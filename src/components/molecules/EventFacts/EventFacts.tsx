@@ -83,10 +83,7 @@ export type EventFactsProps = {
   /** Distance from the searched location, shown faded under the address. List
    *  cards only: the panel has no search origin to measure from. */
   distance?: ReactNode
-  /**
-   * Content at the end of the calendar fact and of the location fact — the add-a-class
-   * review's Edit links, which return to the step that fills each one (#147).
-   */
+  /** Content at the end of the calendar fact and of the location fact. */
   trailing?: { when?: ReactNode; where?: ReactNode }
   className?: string
 }

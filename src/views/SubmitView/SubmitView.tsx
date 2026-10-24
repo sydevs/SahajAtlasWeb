@@ -8,9 +8,11 @@ import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
 import { useShallow } from 'zustand/react/shallow'
 
+import { ListingDetails } from './ListingDetails'
+
 import { type SubmitEntry, submitTitleKey } from '@/lib/shape'
 import { DrawerBody } from '@/components/atoms/Drawer'
-import { EventDetails } from '@/components/organisms/EventDetails'
+import { IpLookupContext } from '@/hooks/use-ip-location'
 import { EventHeader } from '@/components/organisms/EventDetails/EventHeader'
 import { ProposalForm } from '@/components/organisms/ProposalForm'
 import { regionQuery } from '@/config/api'
@@ -230,11 +232,13 @@ function Listing({ target, inlinePanel }: { target: FlowTarget; inlinePanel: boo
         {!session.sent && (
           <p className="mx-6 mb-2 text-xs text-gray-11">{t('submit.chrome.preview_note')}</p>
         )}
-        <EventDetails
-          basePath={target.path}
-          event={listing}
-          preview={{ onEdit: session.step === 'review' && !session.sent ? setStep : undefined }}
-        />
+        <IpLookupContext.Provider value={false}>
+          <ListingDetails
+            listing={listing}
+            path={target.path}
+            onEdit={session.step === 'review' && !session.sent ? setStep : undefined}
+          />
+        </IpLookupContext.Provider>
       </DrawerBody>
     </>
   )

@@ -120,18 +120,17 @@ export const Default: Story = () => (
     </StorySection>
 
     <StorySection
-      description="The add-a-class listing (#147), built live from what a visitor has entered: nothing on it can be acted on, so Register and the actions drop and the contact shows as lines. On the review step each section carries an Edit link back to the step that fills it."
-      title="Preview"
+      description="A caller showing something other than a published class composes the panel instead of switching it into a mode — the add-a-class listing (#147) is the one today. `actions` replaces the caveat, Register and the action row; `sectionTrailing` puts something at the end of each section's heading line."
+      title="Slots"
     >
-      <div className="flex flex-wrap gap-4">
-        <div className="w-[352px] border border-divider">
-          <EventHeader event={mockEvent} />
-          <EventDetails basePath="/add" event={mockEvent} preview={{}} />
-        </div>
-        <div className="w-[352px] border border-divider">
-          <EventHeader event={mockEvent} />
-          <EventDetails basePath="/add" event={mockEvent} preview={{ onEdit: () => {} }} />
-        </div>
+      <div className="w-[352px] border border-divider">
+        <EventHeader event={mockEvent} />
+        <EventDetails
+          actions={<p className="text-sm text-gray-11">Nothing here can be acted on yet.</p>}
+          basePath="/add"
+          event={mockEvent}
+          sectionTrailing={(section) => <span className="text-xs text-primary-11">{section}</span>}
+        />
       </div>
     </StorySection>
 

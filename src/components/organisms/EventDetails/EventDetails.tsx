@@ -1,5 +1,3 @@
-import type { ListingSection } from '@/lib/proposal'
-
 import { type ReactNode, useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 
@@ -7,14 +5,11 @@ import { EventRegisterBar } from './EventRegister'
 import { sanitizeDescription } from './sanitize'
 
 import { Alert } from '@/components/atoms/Alert'
-import { Button } from '@/components/atoms/Button'
-import { AddClassLink } from '@/components/molecules/AddClassLink'
 import { EventActions } from '@/components/molecules/EventActions'
 import { EventChips } from '@/components/molecules/EventChips'
 import { ImageCarousel } from '@/components/molecules/ImageCarousel'
 import { EventFacts } from '@/components/molecules/EventFacts'
-import livePreview from '@/config/live-preview/protocol'
-import { correctionPath, isUnverified, lexicalToHtml } from '@/lib/shape'
+import { isUnverified, lexicalToHtml } from '@/lib/shape'
 import { Event } from '@/types'
 
 /**
@@ -29,6 +24,9 @@ export type EventSurfaceProps = {
   /** The event's current route. Register and share drawers open at `${basePath}/register|share`. */
   basePath: string
 }
+
+/** A section of the panel a caller can put something at the end of. */
+export type EventDetailsSection = 'details' | 'when' | 'where' | 'about'
 
 export type EventDetailsProps = EventSurfaceProps & {
   /** Render Register inline (panel order slot 4). The mobile map sheet passes
@@ -50,12 +48,15 @@ export type EventDetailsProps = EventSurfaceProps & {
    */
   children?: ReactNode
   /**
-   * Renders a listing that does not exist yet — the add-a-class and correction flows build it
-   * live from what the visitor enters (#147). Nothing on it can be acted on, so Register, the
-   * action row and the unverified caveat drop, and the contact details show as plain lines.
-   * `onEdit`, passed on the review step, puts an Edit link on each section.
+   * Content at the end of a section's heading line. Given this slot, About renders even while
+   * empty, so a listing still being built shows where its description goes (#147).
    */
-  preview?: { onEdit?: (section: ListingSection) => void }
+  sectionTrailing?: (section: EventDetailsSection) => ReactNode
+  /**
+   * Replaces what a published class offers below the facts — the unverified caveat, Register
+   * and the action row — for a listing nobody can act on yet (#147).
+   */
+  actions?: ReactNode
 }
 
 /**
@@ -69,27 +70,16 @@ export function EventDetails({
   basePath,
   registerInline = true,
   children,
-  preview,
+  sectionTrailing,
+  actions,
 }: EventDetailsProps) {
   const { t } = useTranslation()
-  const onEdit = preview?.onEdit
-  // One Edit control per section. Every one reads "Edit", so each carries the section it
-  // returns to in its accessible name.
-  const edit = (section: ListingSection, name: string) =>
-    onEdit && (
-      <Button
-        aria-label={`${t('submit.review.edit')}: ${name}`}
-        className="-my-1 shrink-0"
-        color="primary"
-        size="sm"
-        variant="ghost"
-        onClick={() => onEdit(section)}
-      >
-        {t('submit.review.edit')}
-      </Button>
-    )
 
-  const descriptionHtml = lexicalToHtml(event.description)
+  const descriptionHtml = useMemo(() => {
+    const html = lexicalToHtml(event.description)
+
+    return html && sanitizeDescription(html)
+  }, [event.description])
 
   // The image alt text doubles as the lightbox caption. This value is memoized,
   // so the carousel and lightbox receive the same stable slides array across
@@ -106,6 +96,7 @@ export function EventDetails({
   )
 
   const hasImages = slides.length > 0
+  const detailsTrailing = sectionTrailing?.('details')
 
   return (
     // The carousel is full-bleed and always last. It removes the container's
@@ -116,68 +107,41 @@ export function EventDetails({
           pinned header. The chips are a short row. The container's `gap-4` and
           the facts' own `my-2` add extra space before the facts. The `-mb-2`
           class removes that extra space. */}
-      <div className="-mb-2 flex items-center justify-between gap-2">
-        <EventChips event={event} />
-        {edit('more', t('submit.more.title'))}
-      </div>
+      {detailsTrailing ? (
+        <div className="-mb-2 flex items-center justify-between gap-2">
+          <EventChips event={event} />
+          {detailsTrailing}
+        </div>
+      ) : (
+        <EventChips className="-mb-2" event={event} />
+      )}
 
       {/* Extra space appears around the date and location facts, above the Register button. */}
       <EventFacts
         className="my-2"
         event={event}
         trailing={
-          onEdit && {
-            when: edit('when', t('submit.when.title')),
-            where: edit('where', t('submit.where.title')),
-          }
+          sectionTrailing && { when: sectionTrailing('when'), where: sectionTrailing('where') }
         }
       />
 
       {children}
 
-      {preview ? (
-        <PreviewSection
-          edit={edit('contact', t('submit.contact.title'))}
-          title={t('submit.contact.title')}
-        >
-          {[event.contactName, event.contactPhone].filter(Boolean).map((line) => (
-            <p key={line}>{line}</p>
-          ))}
-        </PreviewSection>
-      ) : (
-        <PublishedSections basePath={basePath} event={event} registerInline={registerInline} />
+      {actions ?? (
+        <PublishedActions basePath={basePath} event={event} registerInline={registerInline} />
       )}
 
       {/* About — host-authored prose always sits below the facts and actions. */}
-      {preview ? (
-        <PreviewSection
-          edit={edit('about', t('event.display.about'))}
-          title={t('event.display.about')}
-        >
+      {(descriptionHtml || sectionTrailing) && (
+        <DetailsSection title={t('event.display.about')} trailing={sectionTrailing?.('about')}>
           {descriptionHtml && (
             <div
-              dangerouslySetInnerHTML={{ __html: sanitizeDescription(descriptionHtml) }}
-              className="flex flex-col gap-2 colored-links normal-nums"
-            />
-          )}
-        </PreviewSection>
-      ) : (
-        descriptionHtml && (
-          <div className="flex flex-col gap-2">
-            <h2 className="text-md font-semibold">{t('event.display.about')}</h2>
-            <div
-              dangerouslySetInnerHTML={{ __html: sanitizeDescription(descriptionHtml) }}
+              dangerouslySetInnerHTML={{ __html: descriptionHtml }}
               // `colored-links` carries the host-prose treatment, wrapping included.
               className="flex flex-col gap-2 text-sm leading-snug colored-links normal-nums"
             />
-          </div>
-        )
-      )}
-
-      {/* A published class takes corrections from anyone who knows it (#147). Never on a
-          reviewer's live preview, which is not yet a class anyone could correct. */}
-      {!preview && !livePreview.active && (
-        <AddClassLink href={correctionPath(basePath)} label={t('submit.chrome.correct_entry')} />
+          )}
+        </DetailsSection>
       )}
 
       {hasImages && (
@@ -193,7 +157,7 @@ export function EventDetails({
 }
 
 /** What a published class offers: the unverified caveat, Register, and the action row. */
-function PublishedSections({
+function PublishedActions({
   event,
   basePath,
   registerInline,
@@ -221,22 +185,26 @@ function PublishedSections({
   )
 }
 
-/** A preview section: its heading, its Edit link on review, and whatever it holds so far. */
-function PreviewSection({
+/** A titled section of the panel, with whatever a caller puts at the end of its heading. */
+export function DetailsSection({
   title,
-  edit,
+  trailing,
   children,
 }: {
   title: string
-  edit?: ReactNode
+  trailing?: ReactNode
   children?: ReactNode
 }) {
   return (
-    <div className="flex flex-col gap-2 text-sm leading-snug">
-      <div className="flex items-center justify-between gap-2">
+    <div className="flex flex-col gap-2">
+      {trailing ? (
+        <div className="flex items-center justify-between gap-2">
+          <h2 className="text-md font-semibold">{title}</h2>
+          {trailing}
+        </div>
+      ) : (
         <h2 className="text-md font-semibold">{title}</h2>
-        {edit}
-      </div>
+      )}
       {children}
     </div>
   )
