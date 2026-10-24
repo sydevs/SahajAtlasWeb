@@ -35,6 +35,7 @@ import {
   isFilterOverlay,
   isSubmitEntry,
   resolveStack,
+  submitTitleKey,
 } from '@/lib/shape'
 import { wakesSheetLoop } from '@/views/DrawerStack/sheet-wake'
 import { stripLabel } from '@/views/DrawerStack/strip-label'
@@ -742,11 +743,7 @@ export function DrawerStack() {
           measureAgainst={frameElement()}
         >
           <DrawerContent
-            aria-label={
-              top.kind === 'correct'
-                ? t('submit.chrome.title_correct')
-                : t('submit.chrome.title_add')
-            }
+            aria-label={t(submitTitleKey(top.kind))}
             className={panelLayout.className}
             handle={false}
           >

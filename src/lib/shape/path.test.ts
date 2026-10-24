@@ -6,6 +6,7 @@ import {
   childRoute,
   correctionPath,
   isSubmitEntry,
+  submitTitleKey,
   filterOriginRegion,
   isCanonicalPath,
   listResetKey,
@@ -94,6 +95,10 @@ describe('childRoute', () => {
     expect(childRoute('/belgium/flanders/antwerpen', 507)).toBe('/belgium/flanders/antwerpen/507')
     expect(childRoute('/belgium', 'flanders')).toBe('/belgium/flanders')
     expect(parentOf(childRoute('/india/pune', 507))).toBe('/india/pune')
+  })
+
+  it('nests under the root without writing a protocol-relative path', () => {
+    expect(childRoute('/', 507)).toBe('/507')
   })
 })
 
@@ -460,7 +465,6 @@ describe('the add-a-class routes', () => {
   it('builds the add path under a region, or at the root', () => {
     expect(addClassPath('/gb/london')).toBe('/gb/london/add')
     expect(addClassPath()).toBe('/add')
-    // `childRoute('/', 'add')` would write a protocol-relative `//add`.
     expect(addClassPath('/')).toBe('/add')
   })
 
@@ -473,5 +477,10 @@ describe('the add-a-class routes', () => {
     expect(isSubmitEntry(resolveStack('/507/correct').at(-1))).toBe(true)
     expect(isSubmitEntry(resolveStack('/507/register').at(-1))).toBe(false)
     expect(isSubmitEntry(undefined)).toBe(false)
+  })
+
+  it('titles each flow by its kind', () => {
+    expect(submitTitleKey('add')).toBe('submit.chrome.title_add')
+    expect(submitTitleKey('correct')).toBe('submit.chrome.title_correct')
   })
 })

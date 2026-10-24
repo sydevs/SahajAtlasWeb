@@ -14,7 +14,7 @@ import { eventTitlesQuery, regionsQuery } from '@/config/api'
 import { useWidgetMode } from '@/config/mode'
 import { useLocale } from '@/hooks/use-locale'
 import { classifyError, errorMessage } from '@/lib/report'
-import { baseStackEntry, resolveStack } from '@/lib/shape'
+import { baseStackEntry, resolveStack, submitTitleKey } from '@/lib/shape'
 import {
   CalendarButton,
   CloseButton,
@@ -161,9 +161,8 @@ export function DrawerChrome({ interactive = true }: { interactive?: boolean }) 
       case 'share':
         return t('share.title', { defaultValue: 'Share Meditation' })
       case 'add':
-        return t('submit.chrome.title_add')
       case 'correct':
-        return t('submit.chrome.title_correct')
+        return t(submitTitleKey(entry.kind))
       default:
         return undefined
     }

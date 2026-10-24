@@ -1,5 +1,4 @@
 import type { OpenedListing, PickedPlace, ZonedPoint } from '@/lib/proposal'
-import type { SubmitEntry } from '@/lib/shape'
 import type { Event, Geojson, Region } from '@/types'
 import type { ReactNode } from 'react'
 
@@ -10,6 +9,7 @@ import { useTranslation } from 'react-i18next'
 import { useShallow } from 'zustand/react/shallow'
 import { DateTime } from 'luxon'
 
+import { type SubmitEntry, submitTitleKey } from '@/lib/shape'
 import { DrawerBody } from '@/components/atoms/Drawer'
 import { EventDetails } from '@/components/organisms/EventDetails'
 import { EventHeader } from '@/components/organisms/EventDetails/EventHeader'
@@ -219,8 +219,7 @@ function Listing({ target, inlinePanel }: { target: FlowTarget; inlinePanel: boo
   if (!session || !listing) return null
 
   const { setStep } = useListingDraft.getState()
-  const title =
-    listing.title || (event ? t('submit.chrome.title_correct') : t('submit.chrome.title_add'))
+  const title = listing.title || t(submitTitleKey(event ? 'correct' : 'add'))
 
   return (
     <>

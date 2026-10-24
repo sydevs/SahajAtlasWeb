@@ -35,10 +35,10 @@ export const parentOf = (path: string): string | undefined => {
  * `parentOf`: `childRoute('/india/pune', 507)` returns `/india/pune/507`. Region
  * events use this, so navigating to an event keeps the region ancestry in the URL (an
  * event's own `webPath` is flat, and often null), rather than composing the path
- * inline.
+ * inline. Under the root it writes `/507`, never the protocol-relative `//507`.
  */
 export const childRoute = (parentPath: string, child: string | number): string =>
-  `${parentPath}/${child}`
+  `${parentPath === '/' ? '' : parentPath}/${child}`
 
 /**
  * A server-provided route (`webPath`) is only trusted as a same-origin route when it
@@ -271,12 +271,15 @@ export type SubmitEntry = Extract<StackEntry, { kind: 'add' | 'correct' }>
 export const isSubmitEntry = (entry: StackEntry | null | undefined): entry is SubmitEntry =>
   entry?.kind === 'add' || entry?.kind === 'correct'
 
+/** The flow's title, which its panel, its listing and the drawer chrome all show. */
+export const submitTitleKey = (kind: SubmitEntry['kind']) =>
+  kind === 'correct' ? 'submit.chrome.title_correct' : 'submit.chrome.title_add'
+
 /**
  * Where "add a class" opens: under a region, so the address search starts near it, or at the
- * root with no place in context. Never `childRoute('/', …)`, which would write `//add`.
+ * root with no place in context.
  */
-export const addClassPath = (regionPath?: string): string =>
-  regionPath && regionPath !== '/' ? childRoute(regionPath, 'add') : '/add'
+export const addClassPath = (regionPath = '/'): string => childRoute(regionPath, 'add')
 
 /** Where "suggest a correction" opens, over the class it corrects. */
 export const correctionPath = (eventPath: string): string => childRoute(eventPath, 'correct')

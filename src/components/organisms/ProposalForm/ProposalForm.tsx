@@ -10,6 +10,7 @@ import { useMutation } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
 import { ChevronDown } from 'lucide-react'
 
+import { submitTitleKey } from '@/lib/shape'
 import { Alert } from '@/components/atoms/Alert'
 import { Button } from '@/components/atoms/Button'
 import { Checkbox } from '@/components/atoms/Checkbox'
@@ -185,7 +186,7 @@ export function ProposalForm({
       <div className="flex items-start justify-between gap-2">
         <div className="min-w-0">
           <h2 className="text-lg leading-tight font-semibold">
-            {correction ? t('submit.chrome.title_correct') : t('submit.chrome.title_add')}
+            {t(submitTitleKey(correction ? 'correct' : 'add'))}
           </h2>
           {index >= 0 && (
             <p className="text-sm text-gray-11">
