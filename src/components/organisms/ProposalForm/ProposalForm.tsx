@@ -17,6 +17,7 @@ import { useMutation } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
 
 import { submitTitleKey } from '@/lib/shape'
+import { viewerTimeZone } from '@/lib/time'
 import { Alert } from '@/components/atoms/Alert'
 import { Button } from '@/components/atoms/Button'
 import { Input } from '@/components/atoms/Input'
@@ -135,9 +136,9 @@ export function ProposalForm({
 
   const pick = (key: 'address' | 'city') => (feature: GeocodingFeature) => {
     const place = featureToPlace(feature)
-    const timeZone = timeZoneFor?.(place)
 
-    onChange({ [key]: place, ...(timeZone ? { timeZone } : {}) })
+    // Without a nearby class to lend one, the visitor's own zone — never one inferred earlier.
+    onChange({ [key]: place, timeZone: timeZoneFor?.(place) ?? viewerTimeZone() })
   }
 
   if (sent) {
