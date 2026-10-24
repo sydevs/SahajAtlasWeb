@@ -173,6 +173,7 @@ export type ListingField =
   | 'firstDate'
   | 'startTime'
   | 'contactEmail'
+  | 'website'
 
 export type ListingErrors = Partial<Record<ListingField, true>>
 
@@ -217,6 +218,9 @@ export const stepErrors = (
     errors.contactEmail = true
   }
 
+  // Refused here rather than dropped by the patch, where it would silently clear a stored one.
+  if (step === 'more' && draft.website.trim() && !isWebUrl(draft.website)) errors.website = true
+
   return errors
 }
 
@@ -225,7 +229,7 @@ export const firstInvalidStep = (
   draft: ListingDraft,
   base?: ListingDraft | null,
 ): ListingStep | null =>
-  (['where', 'when', 'contact'] as const).find(
+  (['where', 'when', 'contact', 'more'] as const).find(
     (step) => Object.keys(stepErrors(step, draft, base)).length > 0,
   ) ?? null
 

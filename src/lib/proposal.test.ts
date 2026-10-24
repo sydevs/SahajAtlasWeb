@@ -155,6 +155,13 @@ describe('stepErrors', () => {
     })
   })
 
+  it('refuses a website that is not an absolute web address, rather than dropping it', () => {
+    expect(stepErrors('more', inPerson({ website: 'oxford.example' }))).toEqual({ website: true })
+    expect(stepErrors('more', inPerson({ website: 'https://oxford.example' }))).toEqual({})
+    expect(stepErrors('more', inPerson({ website: '' }))).toEqual({})
+    expect(firstInvalidStep(inPerson({ website: 'oxford.example' }))).toBe('more')
+  })
+
   it('names the first step a submit would be refused at', () => {
     expect(firstInvalidStep(online({ city: null }))).toBe('where')
     expect(firstInvalidStep(inPerson({ startTime: '' }))).toBe('when')

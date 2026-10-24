@@ -116,7 +116,7 @@ export function ProposalForm({
   // Once review has been seen — a correction opens there — a step reached by an Edit link
   // returns to review, rather than walking the visitor through every step after it again.
   const [reviewed, setReviewed] = useState(Boolean(correction))
-  const onward = reviewed ? 'review' : (LISTING_STEPS[index + 1] ?? 'review')
+  const onward = reviewed || step === 'more' ? 'review' : (LISTING_STEPS[index + 1] ?? 'review')
 
   const go = (next: ListingStep) => {
     setAttempted(null)
@@ -190,7 +190,12 @@ export function ProposalForm({
       {step === 'contact' && <ContactStep draft={draft} errors={errors} onChange={onChange} />}
       {step === 'about' && <AboutStep draft={draft} onChange={onChange} />}
       {step === 'more' && (
-        <MoreStep draft={draft} languageOptions={languageOptions} onChange={onChange} />
+        <MoreStep
+          draft={draft}
+          errors={errors}
+          languageOptions={languageOptions}
+          onChange={onChange}
+        />
       )}
       {step === 'review' && (
         <ReviewBar
@@ -210,7 +215,8 @@ export function ProposalForm({
       {step !== 'review' && (
         <div className="flex flex-wrap justify-end gap-2">
           {backTo && (
-            <Button variant="flat" onClick={() => go(backTo)}>
+            // The details step is a detour off review, so going back is how it is left.
+            <Button variant="flat" onClick={() => (step === 'more' ? advance() : go(backTo))}>
               {t('submit.chrome.back')}
             </Button>
           )}
@@ -477,7 +483,12 @@ function AboutStep({ draft, onChange }: StepProps) {
   )
 }
 
-function MoreStep({ draft, languageOptions, onChange }: StepProps & { languageOptions: string[] }) {
+function MoreStep({
+  draft,
+  errors = {},
+  languageOptions,
+  onChange,
+}: StepProps & { languageOptions: string[] }) {
   const { t } = useTranslation()
   const { languageLabel } = useLocale()
   const codes = useMemo(
@@ -507,6 +518,7 @@ function MoreStep({ draft, languageOptions, onChange }: StepProps & { languageOp
         />
       </FormField>
       <ValidatedInput
+        error={errors.website && t('submit.errors.online_url')}
         id="submit-website"
         label={t('submit.more.website_label')}
         maxLength={USER_SUBMISSION_VALUE_MAX}
