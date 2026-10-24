@@ -126,6 +126,19 @@ describe('stepErrors', () => {
     expect(stepErrors('where', online())).toEqual({})
   })
 
+  it('keeps the stored join link when correcting a class that is already online', () => {
+    const base = online({ onlineUrl: '' })
+
+    // The widget never reads a join link, so a blank one on an online correction keeps it.
+    expect(stepErrors('where', base, base)).toEqual({})
+    expect(firstInvalidStep(base, base)).toBeNull()
+    // A typed link is still checked, and a class becoming online must supply one.
+    expect(stepErrors('where', online({ onlineUrl: 'nope' }), base)).toEqual({ onlineUrl: true })
+    expect(stepErrors('where', online({ onlineUrl: '' }), inPerson())).toEqual({
+      onlineUrl: true,
+    })
+  })
+
   it('needs a first date and a start time, and nothing else on When', () => {
     expect(stepErrors('when', inPerson({ firstDate: '', startTime: '7pm' }))).toEqual({
       firstDate: true,

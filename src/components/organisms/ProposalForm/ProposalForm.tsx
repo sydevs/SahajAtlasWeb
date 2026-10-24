@@ -115,21 +115,27 @@ export function ProposalForm({
   const { t } = useTranslation()
   // Errors show once a step has been attempted, never while it is first being filled in.
   const [attempted, setAttempted] = useState<ListingStep | null>(null)
-  const errors: ListingErrors = attempted === step ? stepErrors(step, draft) : {}
+  const base = correction?.baseDraft
+  const errors: ListingErrors = attempted === step ? stepErrors(step, draft, base) : {}
   const index = LISTING_STEPS.indexOf(step as (typeof LISTING_STEPS)[number])
+  // Once review has been seen — a correction opens there — a step reached by an Edit link
+  // returns to review, rather than walking the visitor through every step after it again.
+  const [reviewed, setReviewed] = useState(Boolean(correction))
+  const onward = reviewed ? 'review' : (LISTING_STEPS[index + 1] ?? 'review')
 
   const go = (next: ListingStep) => {
     setAttempted(null)
+    if (next === 'review') setReviewed(true)
     onStep(next)
   }
 
   const advance = () => {
-    if (Object.keys(stepErrors(step, draft)).length > 0) {
+    if (Object.keys(stepErrors(step, draft, base)).length > 0) {
       setAttempted(step)
 
       return
     }
-    go(LISTING_STEPS[index + 1] ?? 'review')
+    go(onward)
   }
 
   const pick = (key: 'address' | 'city') => (feature: GeocodingFeature) => {
@@ -169,7 +175,7 @@ export function ProposalForm({
     </Button>
   )
   const skip = (
-    <Button variant="ghost" onClick={() => go(LISTING_STEPS[index + 1])}>
+    <Button variant="ghost" onClick={() => go(onward)}>
       {t('submit.chrome.skip')}
     </Button>
   )
@@ -635,7 +641,7 @@ function ReviewBar({
         event.preventDefault()
         setNoChanges(false)
 
-        const invalid = firstInvalidStep(draft)
+        const invalid = firstInvalidStep(draft, correction?.baseDraft)
 
         if (invalid) return onInvalid(invalid)
         if (!isEmail(senderEmail)) return setEmailError(true)

@@ -338,4 +338,27 @@ describe('ProposalForm steps', () => {
 
     await act(async () => root.unmount())
   })
+
+  it('returns an Edit link’s step straight to review once review has been seen', async () => {
+    // A correction opens on review, so a step it reaches came from a listing Edit link.
+    const root = await mount({
+      initial: inPerson,
+      correction: { eventId: 507, baseDraft: inPerson },
+      startAt: 'when',
+    })
+
+    await press('submit.chrome.next')
+    expect(container.querySelector('#submit-sender-email')).not.toBeNull()
+
+    await act(async () => root.unmount())
+  })
+
+  it('walks a new listing on through each step the first time', async () => {
+    const root = await mount({ initial: inPerson, startAt: 'when' })
+
+    await press('submit.chrome.next')
+    expect(container.textContent).toContain('submit.contact.title')
+
+    await act(async () => root.unmount())
+  })
 })
