@@ -10,7 +10,7 @@ import { useShallow } from 'zustand/react/shallow'
 
 import { ListingDetails } from './ListingDetails'
 
-import { type SubmitEntry, submitTitleKey } from '@/lib/shape'
+import { type SubmitEntry, submitPanelPlacement, submitTitleKey } from '@/lib/shape'
 import { DrawerBody } from '@/components/atoms/Drawer'
 import { IpLookupContext } from '@/hooks/use-ip-location'
 import { EventHeader } from '@/components/organisms/EventDetails/EventHeader'
@@ -250,18 +250,26 @@ export function SubmitView({ entry }: { entry: SubmitEntry }) {
 
   return (
     <WithTarget entry={entry}>
-      {(target) => <Listing inlinePanel={!hasMap} target={target} />}
+      {(target) => (
+        <Listing inlinePanel={submitPanelPlacement(entry, hasMap) === 'inline'} target={target} />
+      )}
     </WithTarget>
   )
 }
 
 /** The step panel, as DrawerStack mounts it in its own sheet beside the listing. */
 export function SubmitPanel({ entry }: { entry: SubmitEntry }) {
+  // On review the panel shrinks to a bar, so the listing and its Edit links show. The sheet
+  // reads this mark through `submitPanelLayout`'s `has-data-compact` classes.
+  const compact = useListingDraft((state) => state.step === 'review' || state.sent)
+
   return (
     <DrawerBody>
-      <WithTarget entry={entry}>
-        {(target) => <FlowPanel target={target} trailing={<CloseButton />} />}
-      </WithTarget>
+      <div className="contents" data-compact={compact || undefined}>
+        <WithTarget entry={entry}>
+          {(target) => <FlowPanel target={target} trailing={<CloseButton />} />}
+        </WithTarget>
+      </div>
     </DrawerBody>
   )
 }

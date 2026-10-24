@@ -24,7 +24,7 @@ import { Drawer, DrawerContent } from '@/components/atoms/Drawer'
 import { ResetErrorBoundary, SettingsMenu } from '@/components/molecules'
 import { WidgetWidthContext, useIsWide } from '@/config/responsive'
 import { useWidgetMode } from '@/config/mode'
-import { useCalendarPosition, useListingDraft } from '@/config/store'
+import { useCalendarPosition } from '@/config/store'
 import { frameElement, overlayContainer } from '@/lib/overlay'
 import {
   type StackEntry,
@@ -34,7 +34,9 @@ import {
   baseStackEntry,
   isFilterOverlay,
   isSubmitEntry,
+  opensTall,
   resolveStack,
+  submitPanelPlacement,
   submitTitleKey,
 } from '@/lib/shape'
 import { wakesSheetLoop } from '@/views/DrawerStack/sheet-wake'
@@ -531,21 +533,14 @@ export function DrawerStack() {
     }
   }, [hasMap, direction])
 
-  // The calendar opens at the near-full snap on mobile — its month grid AND its list
-  // both need the height — while every other view keeps the third-height open snap.
-  // Keyed on the view KIND (not `wide`), so switching the calendar between
-  // month/week/list keeps it tall, rather than collapsing the list to the short snap.
-  // This runs only when navigating to or from the calendar, so it never fights a
-  // manual drag on a non-calendar view.
-  // The add-a-class listing opens tall too: the step panel rises over its lower half, so the
-  // part the visitor is filling in stays in view above it.
-  const submitting = isSubmitEntry(top)
-
+  // A few views open at the near-full snap on mobile (`opensTall`), while every other view
+  // keeps the third-height open snap. Keyed on the view KIND (not `wide`), so switching the
+  // calendar between month/week/list keeps it tall, rather than collapsing the list to the
+  // short snap. This runs only when navigating between kinds, so it never fights a manual
+  // drag within one view.
   useEffect(() => {
-    if (direction === 'bottom') {
-      setSnap(top?.kind === 'calendar' || submitting ? WIDE_SNAP : OPEN_SNAP)
-    }
-  }, [direction, top?.kind, submitting])
+    if (direction === 'bottom') setSnap(opensTall(top?.kind) ? WIDE_SNAP : OPEN_SNAP)
+  }, [direction, top?.kind])
 
   // A new searched place lifts the sheet out of its peek, so results are never
   // fetched into a sheet the visitor cannot see. The effect above does not cover this
@@ -723,15 +718,12 @@ export function DrawerStack() {
     </DrawerControlContext.Provider>
   ) : null
 
-  // The add-a-class step panel (map mode only, #147): a second sheet beside the listing it
-  // fills in — from the right on a wide widget, rising from the bottom on a narrow one. It is
-  // NON-modal, unlike the filter overlay, because the listing behind it stays live: its Edit
-  // links are how review returns to a step. It cannot be swiped or clicked away — the flow
-  // closes from its own X, which is the stack's dismiss. On review it shrinks to a bar.
-  const reviewing = useListingDraft((state) => state.step === 'review' || state.sent)
-  const panelLayout = submitPanelLayout({ isWide, reviewing })
+  // The add-a-class step panel (#147). NON-modal, unlike the filter overlay, because the
+  // listing behind it stays live: its Edit links are how review returns to a step. Not
+  // dismissible, because the flow closes from its own X, which is the stack's dismiss.
+  const panelLayout = submitPanelLayout(isWide)
   const submitPanel =
-    hasMap && isSubmitEntry(top) ? (
+    isSubmitEntry(top) && submitPanelPlacement(top, hasMap) === 'sheet' ? (
       <DrawerControlContext.Provider value={control}>
         <Drawer
           key={`submit-panel-${direction}`}

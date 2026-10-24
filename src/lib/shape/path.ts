@@ -271,6 +271,25 @@ export type SubmitEntry = Extract<StackEntry, { kind: 'add' | 'correct' }>
 export const isSubmitEntry = (entry: StackEntry | null | undefined): entry is SubmitEntry =>
   entry?.kind === 'add' || entry?.kind === 'correct'
 
+/**
+ * Where the add-a-class step panel renders over `top` (#147): in a sheet of its own beside the
+ * listing, or inline above it in a map-less embed, which has no room for a second sheet. `null`
+ * off the flow's routes. DrawerStack and SubmitView both read this, so they cannot disagree.
+ */
+export const submitPanelPlacement = (
+  top: StackEntry | null | undefined,
+  hasMap: boolean,
+): 'sheet' | 'inline' | null => (isSubmitEntry(top) ? (hasMap ? 'sheet' : 'inline') : null)
+
+/**
+ * The views a bottom sheet opens at its near-full snap: the calendar, whose month grid and list
+ * both need the height, and the add-a-class listing, whose step panel rises over its lower half.
+ */
+const OPENS_TALL: ReadonlySet<StackEntry['kind']> = new Set(['calendar', 'add', 'correct'])
+
+export const opensTall = (kind: StackEntry['kind'] | undefined): boolean =>
+  kind !== undefined && OPENS_TALL.has(kind)
+
 /** The flow's title, which its panel, its listing and the drawer chrome all show. */
 export const submitTitleKey = (kind: SubmitEntry['kind']) =>
   kind === 'correct' ? 'submit.chrome.title_correct' : 'submit.chrome.title_add'
