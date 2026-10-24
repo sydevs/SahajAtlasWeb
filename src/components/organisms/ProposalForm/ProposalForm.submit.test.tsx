@@ -105,7 +105,9 @@ function Harness({
   initial,
   correction,
   startAt = 'review',
+  reviewed,
 }: {
+  reviewed?: boolean
   initial: ListingDraft
   correction?: { eventId: number; baseDraft: ListingDraft }
   startAt?: ListingStep
@@ -120,6 +122,7 @@ function Harness({
       context={context}
       correction={correction}
       draft={draft}
+      reviewed={reviewed}
       sender={sender}
       sent={sent}
       step={step}
@@ -398,6 +401,15 @@ describe('ProposalForm steps', () => {
       correction: { eventId: 507, baseDraft: inPerson },
       startAt: 'when',
     })
+
+    await press('submit.chrome.next')
+    expect(container.querySelector('#submit-sender-email')).not.toBeNull()
+
+    await act(async () => root.unmount())
+  })
+
+  it('returns to review when its owner says review was reached before a remount', async () => {
+    const root = await mount({ initial: inPerson, startAt: 'when', reviewed: true })
 
     await press('submit.chrome.next')
     expect(container.querySelector('#submit-sender-email')).not.toBeNull()

@@ -115,7 +115,8 @@ function WithTarget({
 
 /**
  * The route's draft, started when the flow opens. Both surfaces call this, and only the first
- * to commit starts it. A draft already sent starts over, so reopening the flow is a new listing.
+ * to commit starts it. A sent draft starts over only when the flow is reopened — a new history
+ * entry — never when a surface remounts, as the step panel does crossing the breakpoint.
  */
 function useListingSession(target: FlowTarget) {
   const session = useListingDraft(
@@ -125,9 +126,11 @@ function useListingSession(target: FlowTarget) {
       sender: state.sender,
       base: state.base,
       step: state.step,
+      reviewed: state.reviewed,
       sent: state.sent,
     })),
   )
+  const { key: entry } = useLocation()
 
   // Keyed on the route alone: the target object is rebuilt every render.
   const open = useRef(target.open)
@@ -137,10 +140,10 @@ function useListingSession(target: FlowTarget) {
   useLayoutEffect(() => {
     const current = useListingDraft.getState()
 
-    if (current.key === target.key && !current.sent) return
+    if (current.key === target.key && (!current.sent || current.entry === entry)) return
 
-    current.start(target.key, open.current())
-  }, [target.key])
+    current.start({ key: target.key, entry }, open.current())
+  }, [target.key, entry])
 
   return session.key === target.key ? session : null
 }
@@ -190,6 +193,7 @@ function FlowPanel({ target, trailing }: { target: FlowTarget; trailing?: ReactN
       draft={session.draft}
       languageOptions={hints.languages}
       proximity={searchProximity(target.region?.center)}
+      reviewed={session.reviewed}
       sender={session.sender}
       sent={session.sent}
       step={session.step}

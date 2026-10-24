@@ -71,6 +71,8 @@ export type ProposalFormProps = {
   /** The submitter's address and note, kept beside the draft so an Edit round trip keeps them. */
   sender: ListingSender
   onSender: (patch: Partial<ListingSender>) => void
+  /** Whether review has already been reached this session, as the owner records it. */
+  reviewed?: boolean
   /** Whether the submission has been accepted. The form then shows its receipt. */
   sent: boolean
   onSent: () => void
@@ -102,6 +104,7 @@ export function ProposalForm({
   step,
   onChange,
   onStep,
+  reviewed: reviewedProp = false,
   sender,
   onSender,
   sent,
@@ -122,12 +125,15 @@ export function ProposalForm({
   const index = LISTING_STEPS.indexOf(step as (typeof LISTING_STEPS)[number])
   // Once review has been seen — a correction opens there — a step reached by an Edit link
   // returns to review, rather than walking the visitor through every step after it again.
-  const [reviewed, setReviewed] = useState(Boolean(correction))
+  // The owner's `reviewed` carries this across a remount; the local flag covers an owner
+  // that does not track it.
+  const [seenReview, setSeenReview] = useState(false)
+  const reviewed = reviewedProp || seenReview || Boolean(correction)
   const onward = reviewed || step === 'more' ? 'review' : (LISTING_STEPS[index + 1] ?? 'review')
 
   const go = (next: ListingStep) => {
     setAttempted(null)
-    if (next === 'review') setReviewed(true)
+    if (next === 'review') setSeenReview(true)
     onStep(next)
   }
 
