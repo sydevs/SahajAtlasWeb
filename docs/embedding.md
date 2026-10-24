@@ -691,10 +691,10 @@ five special cases.
 
 | Segments dropped wherever they appear                                | Why                                        |
 | --------------------------------------------------------------------- | -------------------------------------------- |
-| `search`, `calendar`, `filters`, `register`, `share`, `online`, `preview` | the widget's own views — a view *of* something |
+| `search`, `calendar`, `filters`, `register`, `share`, `online`, `preview`, `add`, `correct` | the widget's own views — a view *of* something |
 | `events`, `areas`, `regions`, `venues`                                | legacy Atlas URL prefixes, carrying no view |
 
-Eleven in all, matched case-insensitively. Dropping them is what makes `/gb/london/1204/register`
+Thirteen in all, matched case-insensitively. Dropping them is what makes `/gb/london/1204/register`
 describe event 1204 rather than 404, and what makes `/events/areas` — every segment reserved —
 reduce to the root. **A region slug can never collide with one of these**; the same list is
 reserved on our side.
