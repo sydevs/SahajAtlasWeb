@@ -281,9 +281,9 @@ function WhereStep({
             label={t('submit.where.address_label')}
           >
             <MapSearch
-              initialQuery={draft.address?.label ?? ''}
               label={t('submit.where.address_placeholder')}
               proximity={proximity}
+              query={{ initial: draft.address?.label ?? '' }}
               types="address"
               onSelect={onPick('address')}
             />
@@ -325,9 +325,9 @@ function WhereStep({
             label={t('submit.where.city_label')}
           >
             <MapSearch
-              initialQuery={draft.city?.label ?? ''}
               label={t('submit.where.city_placeholder')}
               proximity={proximity}
+              query={{ initial: draft.city?.label ?? '' }}
               types="place"
               onSelect={onPick('city')}
             />

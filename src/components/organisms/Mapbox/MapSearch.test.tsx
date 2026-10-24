@@ -50,8 +50,12 @@ describe('MapSearch', () => {
   })
 
   it('seeds a form field from its own value, never from the search in the URL', () => {
-    expect(render(<MapSearch initialQuery="10 Downing St" onSelect={() => {}} />).value).toBe(
-      '10 Downing St',
-    )
+    expect(
+      render(<MapSearch query={{ initial: '10 Downing St' }} onSelect={() => {}} />).value,
+    ).toBe('10 Downing St')
+  })
+
+  it('still shows the search in the URL when it may not write it', () => {
+    expect(render(<MapSearch query="read-only" onSelect={() => {}} />).value).toBe('from-the-url')
   })
 })

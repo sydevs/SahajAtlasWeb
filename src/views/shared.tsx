@@ -252,10 +252,7 @@ export function FilterButton({ iconOnly = false }: { iconOnly?: boolean }) {
 // place navigates to /search with the geocoded bbox and centre (the SearchView
 // ranks events by distance from there). This carries the geocode-to-search
 // behaviour that used to live in the removed SearchBar.
-export function SearchField({
-  label,
-  syncToUrl,
-}: Pick<MapSearchProps, 'label' | 'syncToUrl'> = {}) {
+export function SearchField({ label, query }: Pick<MapSearchProps, 'label' | 'query'> = {}) {
   const navigate = useAtlasNavigate()
   const [searchParams] = useSearchParams()
 
@@ -283,7 +280,7 @@ export function SearchField({
 
   return (
     <div className="min-w-0 flex-1">
-      <MapSearch label={label} syncToUrl={syncToUrl} onSelect={handleSelect} />
+      <MapSearch label={label} query={query} onSelect={handleSelect} />
     </div>
   )
 }
@@ -388,7 +385,7 @@ export function EmptyEventList() {
           reads on this screen as a promise that there ARE nearby events. */}
       <SearchField
         label={t('common.errors.search_label', { defaultValue: 'Or search for a place' })}
-        syncToUrl={false}
+        query="read-only"
       />
     </FallbackPanel>
   )
