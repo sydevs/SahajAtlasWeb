@@ -7,7 +7,6 @@ import { useLocation } from 'react-router'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
 import { useShallow } from 'zustand/react/shallow'
-import { DateTime } from 'luxon'
 
 import { type SubmitEntry, submitTitleKey } from '@/lib/shape'
 import { DrawerBody } from '@/components/atoms/Drawer'
@@ -21,6 +20,7 @@ import { useLocale } from '@/hooks/use-locale'
 import { useMapController } from '@/hooks/use-map-controller'
 import { nearestTimeZone, openListing, previewEvent, searchProximity } from '@/lib/proposal'
 import { buildReportContext } from '@/lib/report'
+import { viewerTimeZone } from '@/lib/time'
 import { CloseButton, useDrawerControl, useEventFromPath, useFrameOnTop } from '@/views/shared'
 
 /**
@@ -43,9 +43,6 @@ type FlowTarget = {
   open: () => OpenedListing
 }
 
-/** The visitor's own zone, until a picked place names a better one. */
-const viewerZone = () => DateTime.local().zoneName ?? 'UTC'
-
 function AddTarget({
   entry,
   children,
@@ -64,7 +61,7 @@ function AddTarget({
     key: `add:${entry.path}`,
     path: entry.path,
     region,
-    open: () => openListing({ timeZone: viewerZone(), languages: [languageCode] }),
+    open: () => openListing({ timeZone: viewerTimeZone(), languages: [languageCode] }),
   })
 }
 

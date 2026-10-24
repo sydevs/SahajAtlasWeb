@@ -343,6 +343,18 @@ describe('a correction', () => {
       title: 'Monday evening meditation',
     })
   })
+
+  it('reads a malformed stored zone as UTC, the way every other surface does', () => {
+    const malformed = publishedEvent({
+      schedule: { ...publishedEvent().schedule!, firstDate_tz: 'Not/AZone' as never },
+    })
+
+    expect(eventToDraft(malformed)).toMatchObject({
+      timeZone: 'UTC',
+      firstDate: '2024-01-08',
+      startTime: '19:00',
+    })
+  })
 })
 
 describe('diffPatch', () => {

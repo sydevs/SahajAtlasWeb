@@ -8,6 +8,15 @@
 export const validateWebUrl = (url: string | null | undefined): string | undefined =>
   url && /^https?:/i.test(url) ? url : undefined
 
+/** Whether a visitor-typed value parses as an absolute http(s) URL. */
+export const isWebUrl = (value: string): boolean => {
+  try {
+    return /^https?:$/.test(new URL(value.trim()).protocol)
+  } catch {
+    return false
+  }
+}
+
 /**
  * The URL an event's share / calendar-export surfaces should hand out, or `undefined` when there
  * honestly is not one (issues #115, #154).

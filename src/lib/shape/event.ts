@@ -8,6 +8,7 @@ import type {
 import { DateTime, IANAZone } from 'luxon'
 
 import { REGISTRATION_QUESTION_NAMES, UNVERIFIED_STAGE } from '@/types'
+import { viewerTimeZone } from '@/lib/time'
 
 /**
  * Derivations shared by the event components, so the raw SahajCloud field shapes
@@ -107,11 +108,7 @@ export const byDistance = (a: { distance?: number }, b: { distance?: number }): 
  * resort.
  */
 export const eventTimeZone = (event: EventLike): string =>
-  isOnline(event)
-    ? (DateTime.local().zoneName ?? 'UTC')
-    : event.schedule
-      ? scheduleTimeZone(event.schedule)
-      : 'UTC'
+  isOnline(event) ? viewerTimeZone() : event.schedule ? scheduleTimeZone(event.schedule) : 'UTC'
 
 // ── Schedule time primitives (shared with the occurrence expansion in shape/calendar.ts) ──
 
@@ -270,7 +267,7 @@ export function resolveEventDisplay(
 ): EventDisplay {
   const online = isOnline(event)
   const schedule = event.schedule
-  const viewerTz = options.viewerTz ?? DateTime.local().zoneName ?? 'UTC'
+  const viewerTz = options.viewerTz ?? viewerTimeZone()
   const eventTz = schedule ? scheduleTimeZone(schedule) : 'UTC'
   const displayZone = online ? viewerTz : eventTz
   const now = toDateTime(options.now ?? DateTime.now())

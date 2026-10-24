@@ -7,14 +7,16 @@ import type {
   LexicalDocument,
   ProposalLocation,
   ProposedEventPatch,
-  Weekday,
 } from '@/types'
 
 import { DateTime } from 'luxon'
+import z from 'zod'
 
+import { WeekdaySchema } from '@/types/event'
 import { distanceKm } from '@/lib/geo'
 import { geocodeCountryCode } from '@/lib/geocode'
-import { lexicalToText } from '@/lib/shape'
+import { lexicalToText, scheduleStart, scheduleTimeZone } from '@/lib/shape'
+import { isWebUrl } from '@/lib/url'
 
 /**
  * The add-a-class and correction flows (#147), as pure data: the draft a visitor fills in, the
@@ -154,13 +156,13 @@ export const searchProximity = (
 ): { lng: number; lat: number } | undefined =>
   center && center.length >= 2 ? { lng: center[0], lat: center[1] } : undefined
 
-/** Where the class sits, for `sendProposal`'s `location`: the address, or an online class's city. */
-export const draftLocation = (draft: ListingDraft): ProposalLocation =>
-  (draft.eventType === 'online' ? draft.city?.location : draft.address?.location) ?? {}
-
 /** The place a draft is anchored to, for the confirmation's city name and the timezone. */
 export const draftPlace = (draft: ListingDraft): PickedPlace | null =>
   draft.eventType === 'online' ? draft.city : draft.address
+
+/** Where the class sits, for `sendProposal`'s `location`: the address, or an online class's city. */
+export const draftLocation = (draft: ListingDraft): ProposalLocation =>
+  draftPlace(draft)?.location ?? {}
 
 // ── Validation ───────────────────────────────────────────────────────────────────
 
@@ -176,18 +178,10 @@ export type ListingErrors = Partial<Record<ListingField, true>>
 
 const HHMM = /^([01]\d|2[0-3]):[0-5]\d$/
 const DATE = /^\d{4}-\d{2}-\d{2}$/
-// The shape `type="email"` itself accepts. The server re-checks the submitter's own address.
-const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+// The server re-checks the submitter's own address.
+const EMAIL = z.string().trim().email()
 
-export const isEmail = (value: string): boolean => EMAIL.test(value.trim())
-
-export const isWebUrl = (value: string): boolean => {
-  try {
-    return /^https?:$/.test(new URL(value.trim()).protocol)
-  } catch {
-    return false
-  }
-}
+export const isEmail = (value: string): boolean => EMAIL.safeParse(value).success
 
 /**
  * What stops a step from moving on. Contact and About may be skipped, but not filled wrongly.
@@ -237,8 +231,6 @@ export const firstInvalidStep = (
 
 // ── To the Events patch ──────────────────────────────────────────────────────────
 
-const WEEKDAYS: readonly Weekday[] = ['MO', 'TU', 'WE', 'TH', 'FR', 'SA', 'SU']
-
 /** A blank optional field is `null`, which is how a correction clears a value. */
 const text = (value: string): string | null => value.trim() || null
 
@@ -251,7 +243,10 @@ const draftStart = (draft: ListingDraft): DateTime | null => {
   return start.isValid ? start : null
 }
 
-const draftSchedule = (draft: ListingDraft): ProposedEventPatch['schedule'] => {
+/** What the flow can say about a schedule: everything but the exclusions, which it never edits. */
+type DraftSchedule = Omit<NonNullable<ProposedEventPatch['schedule']>, 'exclusions'>
+
+const draftSchedule = (draft: ListingDraft): DraftSchedule | undefined => {
   const start = draftStart(draft)
 
   if (!start) return undefined
@@ -267,7 +262,9 @@ const draftSchedule = (draft: ListingDraft): ProposedEventPatch['schedule'] => {
     endTime: HHMM.test(draft.endTime) ? draft.endTime : null,
     recurrenceType:
       draft.repeats === 'weekly' ? 'WEEKLY' : draft.repeats === 'monthly' ? 'MONTHLY' : null,
-    ...(draft.repeats === 'weekly' ? { interval: 1, weekdays: [WEEKDAYS[start.weekday - 1]] } : {}),
+    ...(draft.repeats === 'weekly'
+      ? { interval: 1, weekdays: [WeekdaySchema.options[start.weekday - 1]] }
+      : {}),
     ...(draft.repeats === 'monthly'
       ? { interval: 1, monthlyMode: 'date' as const, monthDay: start.day }
       : {}),
@@ -316,7 +313,9 @@ export const plainTextToLexical = (value: string): LexicalDocument | null => {
  * Optional values that are blank come out `null` rather than absent, so a correction that
  * empties a field reads as a change; `newListingPatch` drops them for a new listing.
  */
-export const draftToPatch = (draft: ListingDraft): ProposedEventPatch => {
+export const draftToPatch = (
+  draft: ListingDraft,
+): ProposedEventPatch & { schedule?: DraftSchedule } => {
   const online = draft.eventType === 'online'
   const address = draft.address
 
@@ -464,8 +463,8 @@ const REPEATS: Record<NonNullable<EventSchedule['recurrenceType']>, ListingRepea
 /** A published class, opened for correction. */
 export const eventToDraft = (event: Event): ListingDraft => {
   const schedule = event.schedule
-  const timeZone = schedule?.firstDate_tz || 'UTC'
-  const start = schedule ? DateTime.fromJSDate(schedule.firstDate).setZone(timeZone) : null
+  const timeZone = schedule ? scheduleTimeZone(schedule) : 'UTC'
+  const start = schedule ? scheduleStart(schedule) : null
   const until =
     schedule?.endingType === 'until' && schedule.untilDate
       ? DateTime.fromJSDate(schedule.untilDate).setZone(timeZone)
@@ -534,9 +533,11 @@ export const previewSessions = (draft: ListingDraft, now: DateTime = DateTime.no
     : null
   const sessions: Date[] = []
 
+  const today = now.startOf('day')
+
   for (let i = 0, at = start; sessions.length < PREVIEW_SESSIONS && i < 1000; i += 1) {
     if (until && at > until) break
-    if (at >= now.startOf('day')) sessions.push(at.toJSDate())
+    if (at >= today) sessions.push(at.toJSDate())
     // Always from the first session, so a monthly class on the 31st does not drift to the 28th.
     at = start.plus(draft.repeats === 'weekly' ? { weeks: i + 1 } : { months: i + 1 })
   }
@@ -550,21 +551,15 @@ export const draftTitle = (draft: ListingDraft): string =>
   (draft.eventType === 'online' ? draft.city?.city : draft.address?.street) ||
   ''
 
-const previewSchedule = (draft: ListingDraft): EventSchedule | null => {
-  const patch = draftSchedule(draft)
-
+const previewSchedule = (
+  draft: ListingDraft,
+  patch: DraftSchedule | undefined,
+): EventSchedule | null => {
   if (!patch?.firstDate) return null
 
   return {
+    ...patch,
     firstDate: new Date(patch.firstDate),
-    firstDate_tz: patch.firstDate_tz,
-    endTime: patch.endTime,
-    recurrenceType: patch.recurrenceType,
-    interval: patch.interval,
-    weekdays: patch.weekdays,
-    monthlyMode: patch.monthlyMode,
-    monthDay: patch.monthDay,
-    endingType: patch.endingType,
     untilDate: patch.untilDate ? new Date(patch.untilDate) : null,
     upcomingDates: previewSessions(draft),
   }
@@ -593,7 +588,7 @@ export const previewEvent = (
       !online && draft.address
         ? { ...patch.address, mapboxId: draft.address.mapboxId ?? null }
         : null,
-    schedule: previewSchedule(draft),
+    schedule: previewSchedule(draft, patch.schedule),
     description: patch.description as LexicalDocument | null,
     images: [],
     contactName: patch.contactName,
