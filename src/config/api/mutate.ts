@@ -1,14 +1,12 @@
 import type { EventRegistrationErrorCode } from '@/types/payload/response-types'
 import type { EmbedFingerprint } from '@/loader/detect'
 import type { MountParts } from '@/lib/mount'
-import type { ReportPayload } from '@/lib/report'
-import type { ProposalPayload, Registration } from '@/types'
+import type { ReportContext, ReportPayload } from '@/lib/report'
+import type { Registration } from '@/types'
 
 import z from 'zod'
 
 import { activeLocale, requestJson } from './client'
-
-import { PROPOSABLE_EVENT_FIELDS, isMapboxFeatureId } from '@/types'
 
 /**
  * This is the one public intake. Registrations, issue reports, mailing-list opt-ins and event
@@ -43,7 +41,7 @@ export type UserSubmissionResponse = z.infer<typeof UserSubmissionResponseSchema
  *
  * A blank value is dropped rather than sent. Every key is optional, and an empty answer is not one.
  */
-const submissionData = (entries: Record<string, string | undefined>) =>
+export const submissionData = (entries: Record<string, string | undefined>) =>
   Object.entries(entries)
     .filter((entry): entry is [string, string] => Boolean(entry[1]))
     .map(([field, value]) => ({ field, value }))
@@ -329,6 +327,54 @@ export const userSubmissionValueMax = (key: string): number =>
 const clamp = (value: string, max: number) => value.slice(0, max)
 
 /**
+ * The context a submission carries as `submissionData` pairs, each clamped to the collection's
+ * bound. Our field is `pageUrl` and the collection's is `hostUrl`, for the same value: the host
+ * page as origin plus path, which `buildReportContext` has already stripped of its query and
+ * fragment, since a host's own URL can carry a reset token.
+ *
+ * `context.client` is deliberately NOT sent. The collection derives the client from the
+ * authenticated API key, so our cached copy would be a second, forgeable source for the row.
+ */
+export const contextSubmissionData = (context: ReportContext) => ({
+  path: clamp(context.path, USER_SUBMISSION_VALUE_MAX),
+  hostUrl: clamp(context.pageUrl, USER_SUBMISSION_VALUE_MAX),
+  locale: clamp(context.locale, USER_SUBMISSION_VALUE_MAX),
+  userAgent: clamp(context.userAgent, USER_SUBMISSION_VALUE_MAX),
+})
+
+/**
+ * Posts one row to the user-submissions intake, with the Turnstile token on the shared header,
+ * and re-casts a coded refusal as a `UserSubmissionError`.
+ *
+ * The parse deliberately sits OUTSIDE the try. See `createRegistration`. A `ZodError` looks
+ * exactly like a refusal body to `asRefusal`.
+ */
+export const postUserSubmission = async (
+  json: Record<string, unknown>,
+  turnstileToken: string,
+  fallbackMessage: string,
+): Promise<UserSubmissionResponse> => {
+  let response: unknown
+
+  try {
+    response = await requestJson({
+      method: 'POST',
+      path: USER_SUBMISSIONS_PATH,
+      init: { headers: { [TURNSTILE_HEADER]: turnstileToken } },
+      json,
+    })
+  } catch (error) {
+    throw asRefusal<UserSubmissionErrorCode>(
+      error,
+      (code, message) => new UserSubmissionError(code, message),
+      fallbackMessage,
+    )
+  }
+
+  return UserSubmissionResponseSchema.parse(response)
+}
+
+/**
  * This sends a viewer's issue report as a `contact` submission.
  * See sydevs/SahajCloud#632, #695 and #800, and issues #80, #103, and #171.
  * This is a shared, general-purpose intake.
@@ -369,112 +415,13 @@ const sendReport = async (payload: ReportPayload): Promise<UserSubmissionRespons
       // control instead. See `USER_SUBMISSION_VALUE_MAX`.
       ...payload.answers,
       subject: REPORT_SUBJECT,
-      path: clamp(context.path, USER_SUBMISSION_VALUE_MAX),
-      // Our field is `pageUrl`. The collection's field is `hostUrl`. Both carry the same value.
-      // That value is the host page as origin plus path.
-      // `buildReportContext` already strips its query and fragment, since a host's own URL can carry a reset token.
-      hostUrl: clamp(context.pageUrl, USER_SUBMISSION_VALUE_MAX),
-      locale: clamp(context.locale, USER_SUBMISSION_VALUE_MAX),
-      userAgent: clamp(context.userAgent, USER_SUBMISSION_VALUE_MAX),
+      ...contextSubmissionData(context),
       // `buildReportContext` already caps this at 500.
       error: context.error && clamp(context.error, USER_SUBMISSION_VALUE_MAX),
     }),
-    // This deliberately does NOT send `context.client`.
-    // The collection derives the client from the authenticated API key.
-    // So passing our cached copy would be a second, forgeable source for the same row.
   }
 
-  // The parse deliberately sits OUTSIDE the try. See `createRegistration`.
-  // A `ZodError` looks exactly like a refusal body to `asRefusal`.
-  let response: unknown
-
-  try {
-    response = await requestJson({
-      method: 'POST',
-      path: USER_SUBMISSIONS_PATH,
-      // The token moved out of the body and onto the shared header.
-      // The guard that reads it is a plugin above every collection, so it cannot know one body shape from another.
-      // This is the same header `createRegistration` already sends.
-      init: { headers: { [TURNSTILE_HEADER]: payload.turnstileToken } },
-      json,
-    })
-  } catch (error) {
-    throw asRefusal<UserSubmissionErrorCode>(
-      error,
-      (code, message) => new UserSubmissionError(code, message),
-      'Report refused',
-    )
-  }
-
-  return UserSubmissionResponseSchema.parse(response)
-}
-
-/**
- * This sends a visitor's new listing, or their correction to a published one, as a `proposal`
- * submission (#147, SahajCloud#1021). A manager reviews it, and Accept writes `proposed` to
- * Events verbatim — which is why intake refuses any key outside the proposable Events fields
- * with `proposed_field_invalid`.
- *
- * **Every key is filtered against `PROPOSABLE_EVENT_FIELDS` here**, so that refusal stays a
- * defect this widget cannot produce rather than copy a visitor ever reads.
- *
- * `location` names the city, state and country layers as Mapbox feature ids, a sibling of
- * `proposed`. The address's own id rides in `proposed.address.mapboxId`; an online class has
- * no address, so its city goes in `location.placeId`. Intake matches the ids to a region and
- * writes `region` and `regionHint` itself — neither is ever sent from here, and an id its
- * column would refuse is dropped rather than sent.
- *
- * ⚠ **A 201 means ACCEPTED, not reviewed.** Nothing reads the row back.
- */
-const sendProposal = async (payload: ProposalPayload): Promise<UserSubmissionResponse> => {
-  const { context } = payload
-
-  const proposed = Object.fromEntries(
-    Object.entries(payload.proposed).filter(
-      ([key, value]) =>
-        value !== undefined && (PROPOSABLE_EVENT_FIELDS as readonly string[]).includes(key),
-    ),
-  )
-
-  const location = Object.fromEntries(
-    Object.entries(payload.location ?? {}).filter(([, id]) => isMapboxFeatureId(id)),
-  )
-
-  const json = {
-    type: 'proposal',
-    ...(payload.event === undefined ? {} : { event: payload.event }),
-    proposed,
-    ...(Object.keys(location).length > 0 ? { location } : {}),
-    senderEmail: payload.senderEmail,
-    submissionData: submissionData({
-      // Prose the visitor wrote, bounded at the control rather than truncated here.
-      note: payload.note,
-      path: clamp(context.path, USER_SUBMISSION_VALUE_MAX),
-      hostUrl: clamp(context.pageUrl, USER_SUBMISSION_VALUE_MAX),
-      locale: clamp(context.locale, USER_SUBMISSION_VALUE_MAX),
-      userAgent: clamp(context.userAgent, USER_SUBMISSION_VALUE_MAX),
-    }),
-  }
-
-  // The parse deliberately sits OUTSIDE the try. See `createRegistration`.
-  let response: unknown
-
-  try {
-    response = await requestJson({
-      method: 'POST',
-      path: USER_SUBMISSIONS_PATH,
-      init: { headers: { [TURNSTILE_HEADER]: payload.turnstileToken } },
-      json,
-    })
-  } catch (error) {
-    throw asRefusal<UserSubmissionErrorCode>(
-      error,
-      (code, message) => new UserSubmissionError(code, message),
-      'Proposal refused',
-    )
-  }
-
-  return UserSubmissionResponseSchema.parse(response)
+  return postUserSubmission(json, payload.turnstileToken, 'Report refused')
 }
 
 /**
@@ -526,6 +473,5 @@ const reportEmbed = async (body: EmbedReportBody): Promise<EmbedReportResponse> 
 export default {
   createRegistration,
   sendReport,
-  sendProposal,
   reportEmbed,
 }

@@ -23,7 +23,7 @@ import {
   stepErrors,
 } from './proposal'
 
-import { PROPOSABLE_EVENT_FIELDS } from '@/types'
+import { PROPOSABLE_EVENT_FIELDS } from '@/config/api/proposal'
 
 // The two shapes Mapbox Geocoding v6 retrieves: an address, whose city, state and country sit
 // in `context`, and a city, which is its own `place` layer. Only the fields the flow reads.

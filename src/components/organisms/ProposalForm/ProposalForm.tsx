@@ -24,7 +24,7 @@ import { Textarea } from '@/components/atoms/Textarea'
 import { ToggleGroup, ToggleGroupItem } from '@/components/atoms/ToggleGroup'
 import { FormField, fieldDescribedBy } from '@/components/molecules/FormField'
 import { MapSearch } from '@/components/organisms/Mapbox/MapSearch'
-import api from '@/config/api'
+import proposalApi from '@/config/api/proposal'
 import {
   USER_SUBMISSION_VALUE_MAX,
   refusalCopyKey,
@@ -553,7 +553,7 @@ function ReviewBar({
     // Offline, the default would pause this behind a spinner that never resolves.
     networkMode: 'always',
     mutationFn: ({ built, captcha }: { built: BuiltProposal; captcha: string }) =>
-      api.sendProposal({
+      proposalApi.sendProposal({
         ...built,
         senderEmail: senderEmail.trim(),
         note: note.trim() || undefined,
