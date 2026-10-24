@@ -122,6 +122,7 @@ function useListingSession(target: FlowTarget) {
     useShallow((state) => ({
       key: state.key,
       draft: state.draft,
+      sender: state.sender,
       base: state.base,
       step: state.step,
       sent: state.sent,
@@ -176,7 +177,7 @@ function FlowPanel({ target, trailing }: { target: FlowTarget; trailing?: ReactN
 
   if (!session?.draft) return null
 
-  const { update, setStep, markSent } = useListingDraft.getState()
+  const { update, setSender, setStep, markSent } = useListingDraft.getState()
 
   return (
     <ProposalForm
@@ -189,12 +190,14 @@ function FlowPanel({ target, trailing }: { target: FlowTarget; trailing?: ReactN
       draft={session.draft}
       languageOptions={hints.languages}
       proximity={searchProximity(target.region?.center)}
+      sender={session.sender}
       sent={session.sent}
       step={session.step}
       timeZoneFor={timeZoneFor}
       trailing={trailing}
       onChange={update}
       onClose={dismiss}
+      onSender={setSender}
       onSent={markSent}
       onStep={setStep}
     />

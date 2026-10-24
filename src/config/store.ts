@@ -1,4 +1,4 @@
-import type { ListingDraft, ListingStep, OpenedListing } from '@/lib/proposal'
+import type { ListingDraft, ListingSender, ListingStep, OpenedListing } from '@/lib/proposal'
 
 import { create } from 'zustand'
 import { Feature } from 'geojson'
@@ -282,11 +282,15 @@ export const useRegistrationDraft = create<RegistrationDraftState & Registration
 
 // The add-a-class and correction flows (#147): the listing and the step panel both read it, and
 // it survives the md-crossing remount. `key` names the route (`add:/gb/london`, `correct:507`).
+// A value, not an import: `lib/proposal` stays out of the eager graph this store is in.
+export const EMPTY_SENDER: ListingSender = { email: '', note: '' }
+
 type ListingDraftState = {
   key: string | null
   draft: ListingDraft | null
   /** What a correction opened as, so only what changed is sent. */
   base: ListingDraft | null
+  sender: ListingSender
   step: ListingStep
   /** Set once a submission resolves. Nothing reads the row back, so this is the whole receipt. */
   sent: boolean
@@ -295,6 +299,7 @@ type ListingDraftState = {
 type ListingDraftAction = {
   start: (key: string, opened: OpenedListing) => void
   update: (patch: Partial<ListingDraft>) => void
+  setSender: (patch: Partial<ListingSender>) => void
   setStep: (step: ListingStep) => void
   markSent: () => void
 }
@@ -303,10 +308,12 @@ export const useListingDraft = create<ListingDraftState & ListingDraftAction>((s
   key: null,
   draft: null,
   base: null,
+  sender: EMPTY_SENDER,
   step: 'where',
   sent: false,
   start: (key, { draft, base, step }) =>
-    set(() => ({ key, draft, base: base ?? null, step, sent: false })),
+    set(() => ({ key, draft, base: base ?? null, sender: EMPTY_SENDER, step, sent: false })),
+  setSender: (patch) => set((state) => ({ sender: { ...state.sender, ...patch } })),
   update: (patch) => set((state) => (state.draft ? { draft: { ...state.draft, ...patch } } : {})),
   setStep: (step) => set(() => ({ step })),
   markSent: () => set(() => ({ sent: true })),

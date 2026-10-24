@@ -5,6 +5,7 @@ import type {
   BuiltProposal,
   ListingDraft,
   ListingErrors,
+  ListingSender,
   ListingStep,
   PickedPlace,
 } from '@/lib/proposal'
@@ -67,6 +68,9 @@ export type ProposalFormProps = {
   step: ListingStep
   onChange: (patch: Partial<ListingDraft>) => void
   onStep: (step: ListingStep) => void
+  /** The submitter's address and note, kept beside the draft so an Edit round trip keeps them. */
+  sender: ListingSender
+  onSender: (patch: Partial<ListingSender>) => void
   /** Whether the submission has been accepted. The form then shows its receipt. */
   sent: boolean
   onSent: () => void
@@ -98,6 +102,8 @@ export function ProposalForm({
   step,
   onChange,
   onStep,
+  sender,
+  onSender,
   sent,
   onSent,
   onClose,
@@ -204,11 +210,13 @@ export function ProposalForm({
           correction={correction}
           draft={draft}
           initialRefusal={initialRefusal}
+          sender={sender}
           onInvalid={(invalid) => {
             setAttempted(invalid)
             onStep(invalid)
           }}
           onMore={() => go('more')}
+          onSender={onSender}
           onSent={onSent}
         />
       )}
@@ -544,7 +552,11 @@ function ReviewBar({
   onMore,
   onSent,
   initialRefusal,
+  sender,
+  onSender,
 }: {
+  sender: ListingSender
+  onSender: ProposalFormProps['onSender']
   correction?: ProposalFormProps['correction']
   draft: ListingDraft
   context: ReportContext
@@ -554,8 +566,8 @@ function ReviewBar({
   initialRefusal?: ProposalFormProps['initialRefusal']
 }) {
   const { t } = useTranslation()
-  const [senderEmail, setSenderEmail] = useState('')
-  const [note, setNote] = useState('')
+  const senderEmail = sender.email
+  const note = sender.note
   const [emailError, setEmailError] = useState(false)
   const [noChanges, setNoChanges] = useState(false)
   const { challengeRef, token, reset } = useTurnstile()
@@ -622,7 +634,7 @@ function ReviewBar({
         label={t('submit.review.email_label')}
         type="email"
         value={senderEmail}
-        onChange={(event) => setSenderEmail(event.target.value)}
+        onChange={(event) => onSender({ email: event.target.value })}
       />
       <FormField htmlFor="submit-note" label={t('submit.review.note_label')}>
         <Textarea
@@ -630,7 +642,7 @@ function ReviewBar({
           maxLength={userSubmissionValueMax('note')}
           rows={2}
           value={note}
-          onChange={(event) => setNote(event.target.value)}
+          onChange={(event) => onSender({ note: event.target.value })}
         />
       </FormField>
 

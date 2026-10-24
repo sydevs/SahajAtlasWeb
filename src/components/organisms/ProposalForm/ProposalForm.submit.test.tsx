@@ -113,16 +113,19 @@ function Harness({
   const [draft, setDraft] = useState(initial)
   const [step, setStep] = useState<ListingStep>(startAt)
   const [sent, setSent] = useState(false)
+  const [sender, setSender] = useState({ email: '', note: '' })
 
   return (
     <ProposalForm
       context={context}
       correction={correction}
       draft={draft}
+      sender={sender}
       sent={sent}
       step={step}
       onChange={(patch) => setDraft((current) => ({ ...current, ...patch }))}
       onClose={() => {}}
+      onSender={(patch) => setSender((current) => ({ ...current, ...patch }))}
       onSent={() => setSent(true)}
       onStep={setStep}
     />
@@ -371,6 +374,19 @@ describe('ProposalForm steps', () => {
     await press('submit.chrome.back')
     expect(container.textContent).toContain('submit.errors.online_url')
     expect(container.querySelector('#submit-website')).not.toBeNull()
+
+    await act(async () => root.unmount())
+  })
+
+  it('keeps the submitter’s address and note across a details round trip', async () => {
+    const root = await mount({ initial: inPerson })
+
+    await type('#submit-sender-email', 'ada@example.org')
+    await press('submit.review.add_more')
+    await press('submit.chrome.back')
+    expect(container.querySelector<HTMLInputElement>('#submit-sender-email')?.value).toBe(
+      'ada@example.org',
+    )
 
     await act(async () => root.unmount())
   })

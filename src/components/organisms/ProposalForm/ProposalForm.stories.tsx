@@ -10,6 +10,7 @@ import { StorySection, StoryWrapper } from '../../ladle'
 import { ProposalForm } from './ProposalForm'
 
 import { emptyDraft } from '@/lib/proposal'
+import { EMPTY_SENDER } from '@/config/store'
 
 export default { title: 'Organisms' } satisfies StoryDefault
 
@@ -58,6 +59,7 @@ function Panel({
   const [draft, setDraft] = useState(initial)
   const [step, setStep] = useState(initialStep)
   const [sent, setSent] = useState(rest.sent ?? false)
+  const [sender, setSender] = useState(EMPTY_SENDER)
 
   return (
     <div className="rounded-lg border border-divider bg-background" style={{ width }}>
@@ -67,9 +69,11 @@ function Panel({
         onClose={() => setSent(false)}
         {...rest}
         draft={draft}
+        sender={sender}
         sent={sent}
         step={step}
         onChange={(patch) => setDraft((current) => ({ ...current, ...patch }))}
+        onSender={(patch) => setSender((current) => ({ ...current, ...patch }))}
         onSent={() => setSent(true)}
         onStep={setStep}
       />

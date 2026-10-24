@@ -84,6 +84,9 @@ export type ListingDraft = {
   website: string
 }
 
+/** Who is sending the listing: their own address, and an optional note to the reviewer. */
+export type ListingSender = { email: string; note: string }
+
 /** A blank listing. The zone is the visitor's own until a place names a better one. */
 export const emptyDraft = (timeZone: string, languages: string[] = []): ListingDraft => ({
   eventType: 'offline',

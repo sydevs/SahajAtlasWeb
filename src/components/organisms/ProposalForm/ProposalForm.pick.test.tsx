@@ -8,6 +8,7 @@ import { describe, expect, it, vi } from 'vitest'
 import { ProposalForm } from './ProposalForm'
 
 import { emptyDraft } from '@/lib/proposal'
+import { EMPTY_SENDER } from '@/config/store'
 import { viewerTimeZone } from '@/lib/time'
 
 // Picking a place is the geocoder's retrieve, stood in for here by capturing the callback the
@@ -44,11 +45,13 @@ const pick = (zoneNearby: string | undefined) => {
         <ProposalForm
           context={{ path: '/add', pageUrl: 'https://host.example', locale: 'en', userAgent: 'x' }}
           draft={emptyDraft('Pacific/Kiritimati')}
+          sender={EMPTY_SENDER}
           sent={false}
           step="where"
           timeZoneFor={() => zoneNearby}
           onChange={onChange}
           onClose={() => {}}
+          onSender={() => {}}
           onSent={() => {}}
           onStep={() => {}}
         />

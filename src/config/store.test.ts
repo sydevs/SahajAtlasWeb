@@ -182,7 +182,14 @@ describe('useCameraSettled', () => {
 
 describe('useListingDraft', () => {
   beforeEach(() => {
-    useListingDraft.setState({ key: null, draft: null, base: null, step: 'where', sent: false })
+    useListingDraft.setState({
+      key: null,
+      draft: null,
+      base: null,
+      sender: { email: '', note: '' },
+      step: 'where',
+      sent: false,
+    })
   })
 
   it('starts a route draft, and keeps the base a correction opened as', () => {
@@ -221,5 +228,15 @@ describe('useListingDraft', () => {
 
     useListingDraft.getState().start('add:/add', { draft: emptyDraft('UTC'), step: 'where' })
     expect(useListingDraft.getState().sent).toBe(false)
+  })
+
+  it('keeps the sender across edits, and a fresh start clears it', () => {
+    useListingDraft.getState().start('add:/add', { draft: emptyDraft('UTC'), step: 'where' })
+    useListingDraft.getState().setSender({ email: 'ada@example.org' })
+    useListingDraft.getState().setSender({ note: 'Hi' })
+    expect(useListingDraft.getState().sender).toEqual({ email: 'ada@example.org', note: 'Hi' })
+
+    useListingDraft.getState().start('add:/add', { draft: emptyDraft('UTC'), step: 'where' })
+    expect(useListingDraft.getState().sender).toEqual({ email: '', note: '' })
   })
 })
