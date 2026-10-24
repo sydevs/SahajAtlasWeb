@@ -341,17 +341,19 @@ export const draftToPatch = (
     ...(online
       ? { onlineUrl: text(draft.onlineUrl) }
       : {
+          // A picked place states every leaf, `null` for what it lacks: SahajCloud merges the
+          // group leaf by leaf, so an absent one would keep the previous venue's value.
           address: address
             ? {
-                mapboxId: address.mapboxId,
-                street: address.street,
+                mapboxId: address.mapboxId ?? null,
+                street: address.street ?? null,
                 room: text(draft.room),
-                postCode: address.postCode,
-                city: address.city,
-                region: address.region,
-                country: address.country,
-                latitude: address.latitude,
-                longitude: address.longitude,
+                postCode: address.postCode ?? null,
+                city: address.city ?? null,
+                region: address.region ?? null,
+                country: address.country ?? null,
+                latitude: address.latitude ?? null,
+                longitude: address.longitude ?? null,
               }
             : { room: text(draft.room) },
         }),

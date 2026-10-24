@@ -319,6 +319,15 @@ describe('a correction', () => {
     expect(proposed).toEqual({ schedule: { firstDate: '2024-01-08T18:30:00.000Z' } })
   })
 
+  it('clears the address leaves a newly picked place does not carry', () => {
+    const picked = { ...featureToPlace(addressFeature), postCode: undefined, region: undefined }
+    const { proposed } = buildProposal({ ...baseDraft, address: picked }, correction)
+
+    // SahajCloud merges the address group leaf by leaf, so an absent leaf would keep the old
+    // venue's postcode and subdivision on the new one.
+    expect(proposed.address).toMatchObject({ postCode: null, region: null })
+  })
+
   it('re-places the class only when a new place is picked', () => {
     expect(buildProposal({ ...baseDraft, room: 'x' }, correction).location).toEqual({})
 
