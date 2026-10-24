@@ -1,20 +1,15 @@
-import type {
-  ListingDraft,
-  OpenedListing,
-  PickedPlace,
-  ScheduleFields,
-  ZonedPoint,
-} from '@/lib/proposal'
-import type { Event, Geojson, Region } from '@/types'
+import type { ListingDraft, OpenedListing, PickedPlace, ScheduleFields } from '@/lib/proposal'
+import type { Event, Region } from '@/types'
 import type { ReactNode } from 'react'
 
 import { useCallback, useDeferredValue, useLayoutEffect, useMemo, useRef } from 'react'
 import { useLocation } from 'react-router'
-import { useQuery, useQueryClient } from '@tanstack/react-query'
+import { useQuery } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
 import { useShallow } from 'zustand/react/shallow'
 
 import { ListingDetails } from './ListingDetails'
+import { useFeedHints } from './use-feed-hints'
 
 import { type SubmitEntry, submitPanelPlacement, submitTitleKey } from '@/lib/shape'
 import { DrawerBody } from '@/components/atoms/Drawer'
@@ -34,8 +29,6 @@ import {
   previewEvent,
   searchProximity,
 } from '@/lib/proposal'
-import { feedLanguageCodes } from '@/lib/events'
-import { GEOJSON_QUERY_KEY } from '@/config/api/fetch'
 import { buildReportContext } from '@/lib/report'
 import { viewerTimeZone } from '@/lib/time'
 import { CloseButton, useDrawerControl, useEventFromPath, useFrameOnTop } from '@/views/shared'
@@ -146,25 +139,6 @@ function useListingSession(target: FlowTarget) {
   }, [target.key, entry])
 
   return session.key === target.key ? session : null
-}
-
-/** Classes already on the map, as the zones they lend a nearby place. Read from cache only. */
-function useFeedHints() {
-  const queryClient = useQueryClient()
-
-  return useMemo(() => {
-    const feed = queryClient.getQueryData<Geojson>(GEOJSON_QUERY_KEY)
-    const points: ZonedPoint[] = []
-
-    for (const feature of feed?.features ?? []) {
-      const timeZone = feature.properties.schedule?.firstDate_tz
-
-      if (feature.geometry && timeZone)
-        points.push({ position: feature.geometry.coordinates, timeZone })
-    }
-
-    return { points, languages: feedLanguageCodes(feed) }
-  }, [queryClient])
 }
 
 function FlowPanel({ target, trailing }: { target: FlowTarget; trailing?: ReactNode }) {
