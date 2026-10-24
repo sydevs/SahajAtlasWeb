@@ -78,10 +78,7 @@ export const isMapboxFeatureId = (value: unknown): value is string =>
  *
  * ⚠ **A 201 means ACCEPTED, not reviewed.** Nothing reads the row back.
  *
- * `location` names the place's Mapbox layers; intake matches them to a region and writes
- * `region` itself, and an id its column would refuse is dropped here rather than sent.
- *
- * Its own module, imported by the form alone, so none of it rides in the eager graph.
+ * `location` names the place's Mapbox layers, which intake matches to a region itself.
  */
 const sendProposal = async (payload: ProposalPayload): Promise<UserSubmissionResponse> => {
   const proposed = Object.fromEntries(
@@ -110,6 +107,8 @@ const sendProposal = async (payload: ProposalPayload): Promise<UserSubmissionRes
   return postUserSubmission(json, payload.turnstileToken, 'Proposal refused')
 }
 
+// Its own module, imported by the form alone rather than spread into `api`, so none of it rides
+// in the eager graph.
 export default {
   sendProposal,
 }

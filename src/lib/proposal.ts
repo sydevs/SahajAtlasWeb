@@ -386,10 +386,9 @@ export const newListingPatch = (draft: ListingDraft): ProposedEventPatch =>
 /**
  * The leaves of `next` that differ from `base` — a correction sends only what changed.
  *
- * Groups compare leaf by leaf, because SahajCloud merges a proposal into its target the way
- * Payload merges an update: `{ address: { room } }` changes the room and keeps the rest.
- * Arrays and rich text are values and compare whole. A leaf `next` leaves out is not a change;
- * one it sets to `null` is a clear.
+ * Groups compare leaf by leaf, since SahajCloud merges them (see `ProposedEventPatch`). Arrays
+ * and rich text are values and compare whole. A leaf `next` leaves out is not a change; one it
+ * sets to `null` is a clear.
  */
 export const diffPatch = (
   base: ProposedEventPatch,

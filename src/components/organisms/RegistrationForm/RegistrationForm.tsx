@@ -115,7 +115,7 @@ export type RegistrationFormProps = {
   /**
    * Whether this event's region, an ancestor of it, or the atlas fallback offers a mailing list.
    * The opt-in box renders only when this is `true` — never where no list would receive the
-   * subscription. SahajCloud resolves it on the single-event read alone.
+   * subscription.
    */
   offersMailingList?: boolean
   /** This is an optional close callback. The footer also closes the
