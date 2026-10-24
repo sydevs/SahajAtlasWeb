@@ -2,11 +2,13 @@ import type { EventRegistrationErrorCode } from '@/types/payload/response-types'
 import type { EmbedFingerprint } from '@/loader/detect'
 import type { MountParts } from '@/lib/mount'
 import type { ReportPayload } from '@/lib/report'
-import type { Registration } from '@/types'
+import type { ProposalPayload, Registration } from '@/types'
 
 import z from 'zod'
 
 import { activeLocale, requestJson } from './client'
+
+import { PROPOSABLE_EVENT_FIELDS, isMapboxFeatureId } from '@/types'
 
 /**
  * This is the one public intake. Registrations, issue reports, mailing-list opt-ins and event
@@ -198,6 +200,9 @@ const createRegistration = async (
           // So this value must stay a subset of SahajCloud's LOCALES. All ten widget languages have been in it since SahajCloud#578.
           locale: activeLocale(),
           ...data.questions,
+          // The pair SahajCloud's `spawnSubscribeFromRegistration` reads to open a linked
+          // `subscribe` row. An unticked box sends nothing, which the CMS reads as no.
+          subscribe: data.subscribe ? 'yes' : undefined,
         }),
       },
     })
@@ -227,10 +232,9 @@ const createRegistration = async (
  * Five of the six are reachable for the report form.
  * `invalid_email` is belt-and-braces. The widget validates the address with zod before sending.
  * But the guard checks `senderEmail` itself, so this code can still come back.
- * `content_unscannable` (sydevs/SahajCloud#948) needs a `proposed` patch to reach, which only an
- * event proposal carries, so neither intake here can earn it today. It is mirrored anyway: the
- * mirror is what forces each new code through `ReportIssueForm`'s copy map, and a proposal intake
- * in this widget would make it live without touching this union.
+ * `content_unscannable` (sydevs/SahajCloud#948) needs a `proposed` patch to reach, so only
+ * `sendProposal` can earn it. Neither it nor `captcha_unavailable` is something a visitor can fix
+ * by editing a field, so both forms map them onto their generic send-failed copy.
  */
 export type UserSubmissionErrorCode =
   | 'captcha_failed'
@@ -382,6 +386,74 @@ const sendReport = async (payload: ReportPayload): Promise<UserSubmissionRespons
 }
 
 /**
+ * This sends a visitor's new listing, or their correction to a published one, as a `proposal`
+ * submission (#147, SahajCloud#1021). A manager reviews it, and Accept writes `proposed` to
+ * Events verbatim — which is why intake refuses any key outside the proposable Events fields
+ * with `proposed_field_invalid`.
+ *
+ * **Every key is filtered against `PROPOSABLE_EVENT_FIELDS` here**, so that refusal stays a
+ * defect this widget cannot produce rather than copy a visitor ever reads.
+ *
+ * `location` names the city, state and country layers as Mapbox feature ids, a sibling of
+ * `proposed`. The address's own id rides in `proposed.address.mapboxId`; an online class has
+ * no address, so its city goes in `location.placeId`. Intake matches the ids to a region and
+ * writes `region` and `regionHint` itself — neither is ever sent from here, and an id its
+ * column would refuse is dropped rather than sent.
+ *
+ * ⚠ **A 201 means ACCEPTED, not reviewed.** Nothing reads the row back.
+ */
+const sendProposal = async (payload: ProposalPayload): Promise<UserSubmissionResponse> => {
+  const { context } = payload
+
+  const proposed = Object.fromEntries(
+    Object.entries(payload.proposed).filter(
+      ([key, value]) =>
+        value !== undefined && (PROPOSABLE_EVENT_FIELDS as readonly string[]).includes(key),
+    ),
+  )
+
+  const location = Object.fromEntries(
+    Object.entries(payload.location ?? {}).filter(([, id]) => isMapboxFeatureId(id)),
+  )
+
+  const json = {
+    type: 'proposal',
+    ...(payload.event === undefined ? {} : { event: payload.event }),
+    proposed,
+    ...(Object.keys(location).length > 0 ? { location } : {}),
+    senderEmail: payload.senderEmail,
+    submissionData: submissionData({
+      // Prose the visitor wrote, bounded at the control rather than truncated here.
+      note: payload.note,
+      path: clamp(context.path, USER_SUBMISSION_VALUE_MAX),
+      hostUrl: clamp(context.pageUrl, USER_SUBMISSION_VALUE_MAX),
+      locale: clamp(context.locale, USER_SUBMISSION_VALUE_MAX),
+      userAgent: clamp(context.userAgent, USER_SUBMISSION_VALUE_MAX),
+    }),
+  }
+
+  // The parse deliberately sits OUTSIDE the try. See `createRegistration`.
+  let response: unknown
+
+  try {
+    response = await requestJson({
+      method: 'POST',
+      path: USER_SUBMISSIONS_PATH,
+      init: { headers: { [TURNSTILE_HEADER]: payload.turnstileToken } },
+      json,
+    })
+  } catch (error) {
+    throw asRefusal<UserSubmissionErrorCode>(
+      error,
+      (code, message) => new UserSubmissionError(code, message),
+      'Proposal refused',
+    )
+  }
+
+  return UserSubmissionResponseSchema.parse(response)
+}
+
+/**
  * This is the `POST /api/clients/report` body: the loader's observation, flattened onto the mount it describes. See #153.
  *
  * **This is the one place the two halves are joined, and it is deliberately a transport type.**
@@ -430,5 +502,6 @@ const reportEmbed = async (body: EmbedReportBody): Promise<EmbedReportResponse> 
 export default {
   createRegistration,
   sendReport,
+  sendProposal,
   reportEmbed,
 }

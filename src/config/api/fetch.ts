@@ -662,6 +662,9 @@ const getEventDoc = async (id: number): Promise<EventDoc> => {
         registrationLimit: true,
         registrationsFull: true,
         registrationQuestions: true,
+        // Virtual, and resolved on this single-document read only. SahajCloud's
+        // `ensureVirtualFieldDeps` re-adds the `region` it is computed from on its own.
+        offersMailingList: true,
         region: true,
         verificationStage: true,
         webPath: true,

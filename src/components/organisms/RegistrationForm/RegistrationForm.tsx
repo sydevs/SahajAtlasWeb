@@ -18,6 +18,7 @@ import { type ReactNode, useEffect, useMemo, useState } from 'react'
 
 import { Button } from '@/components/atoms/Button'
 import { Alert } from '@/components/atoms/Alert'
+import { Checkbox } from '@/components/atoms/Checkbox'
 import { RadioGroup, type RadioOption } from '@/components/atoms/RadioGroup'
 import { fieldChrome } from '@/components/atoms/Select'
 import { AddToCalendar } from '@/components/molecules/AddToCalendar'
@@ -110,6 +111,12 @@ export type RegistrationFormProps = {
    *  starting-date labels read in the class's own cadence ("Next week" and
    *  "Next month," for example). */
   recurrenceType?: RecurrenceType | null
+  /**
+   * Whether this event's region, an ancestor of it, or the atlas fallback offers a mailing list.
+   * The opt-in box renders only when this is `true` — never where no list would receive the
+   * subscription. SahajCloud resolves it on the single-event read alone.
+   */
+  offersMailingList?: boolean
   /** This is an optional close callback. The footer also closes the
    *  enclosing Modal via ModalClose. */
   onClose?: () => void
@@ -138,6 +145,7 @@ export function RegistrationForm({
   eventTitle,
   eventUrl,
   calendar,
+  offersMailingList = false,
   onClose,
   initialSubmitted = false,
 }: RegistrationFormProps) {
@@ -277,6 +285,7 @@ export function RegistrationForm({
           <RegistrationFields
             control={control}
             errors={errors}
+            offersMailingList={offersMailingList}
             questions={questions}
             recurrenceType={recurrenceType}
             register={register}
@@ -415,6 +424,7 @@ type RegistrationFieldsProps = {
   timeZone?: string
   recurrenceType?: RecurrenceType | null
   questions: RegistrationQuestionName[]
+  offersMailingList: boolean
   register: UseFormRegister<Registration>
   control: Control<Registration>
   errors: FieldErrors<Registration>
@@ -425,6 +435,7 @@ function RegistrationFields({
   timeZone,
   recurrenceType,
   questions,
+  offersMailingList,
   register,
   control,
   errors,
@@ -508,6 +519,24 @@ function RegistrationFields({
           registration={register(`questions.${question}`)}
         />
       ))}
+
+      {offersMailingList && (
+        <Controller
+          control={control}
+          name="subscribe"
+          render={({ field }) => (
+            <Checkbox
+              appearance="checkbox"
+              checked={field.value === true}
+              className="text-sm"
+              id={field.name}
+              onCheckedChange={field.onChange}
+            >
+              {t('registration.form.subscribe')}
+            </Checkbox>
+          )}
+        />
+      )}
 
       <p className="text-center text-xs">{t('registration.form.privacy_policy')}</p>
     </div>

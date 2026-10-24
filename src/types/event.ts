@@ -217,6 +217,10 @@ export const EventDocSchema = z.object({
   // count stays server-side).
   registrationsFull: z.boolean().nullish(),
   registrationQuestions: RegistrationQuestionsSchema.nullish(),
+  // Whether registrants are offered a mailing list. A virtual field SahajCloud resolves on a
+  // single-event read only — `null` on every list read and absent from the feed — so the
+  // registration form's opt-in reads it here and nowhere else.
+  offersMailingList: z.boolean().nullish(),
   // Nullish, unlike the feed's, because a live-preview proposal for a NEW event has no
   // region until a manager accepts it — SahajCloud resolves one from the submission row at
   // that moment (`applyReview`), so the merged `previewEvent` it posts carries none (#163).
