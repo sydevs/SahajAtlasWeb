@@ -155,12 +155,14 @@ function Summary({
             <h4 className="text-sm font-semibold">{t(SECTION_TITLES[section])}</h4>
             <EditButton label={t(SECTION_TITLES[section])} onClick={() => onEdit(section)} />
           </div>
-          <dl className="flex flex-col gap-2.5 px-3 py-3">
+          {/* Label beside value: a read-back is scanned down the values, so the labels keep to
+              a narrow column rather than doubling every row's height. */}
+          <dl className="grid grid-cols-[minmax(0,6.5rem)_minmax(0,1fr)] gap-x-3 gap-y-2 px-3 py-3">
             {rows
               .filter((row) => row.section === section)
               .map((row) => (
-                <div key={row.key} className="flex flex-col gap-0.5">
-                  <dt className="text-xs text-gray-11">{row.label}</dt>
+                <div key={row.key} className="contents">
+                  <dt className="pt-px text-xs leading-5 text-gray-11">{row.label}</dt>
                   <dd
                     className={`text-sm break-words whitespace-pre-line ${
                       row.value ? 'font-medium' : 'text-gray-11'

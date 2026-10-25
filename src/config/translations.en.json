@@ -430,7 +430,9 @@
       "schedule": "When",
       "no_end": "No end date",
       "zone": "Time zone",
-      "contact_email": "Contact email"
+      "contact_email": "Contact email",
+      "address": "Address",
+      "contact": "Contact"
     }
   }
 }

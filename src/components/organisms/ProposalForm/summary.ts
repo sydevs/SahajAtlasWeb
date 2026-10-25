@@ -56,7 +56,7 @@ export function useSummaryRows(
         }
       : {
           key: 'place',
-          label: t('submit.where.venue_label'),
+          label: t('submit.summary.address'),
           value: draft.address?.label ?? '',
           section: 'where',
         },
@@ -105,7 +105,7 @@ export function useSummaryRows(
     },
     {
       key: 'contact',
-      label: t('submit.contact.title'),
+      label: t('submit.summary.contact'),
       value: [draft.contactName, draft.contactPhone]
         .map((line) => line.trim())
         .filter(Boolean)
