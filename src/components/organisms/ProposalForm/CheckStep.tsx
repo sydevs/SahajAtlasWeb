@@ -232,8 +232,9 @@ function ChangeList({
   onEdit: (section: ListingSection | 'note') => void
 }) {
   const { t } = useTranslation()
-  const before = useSummaryRows(baseDraft, base, { correction: true })
-  const after = useSummaryRows(draft, listing, { correction: true })
+  const keep = { correction: true, keepTitle: baseDraft.title }
+  const before = useSummaryRows(baseDraft, base, keep)
+  const after = useSummaryRows(draft, listing, keep)
   const changes: Change[] = []
 
   if (intent === 'stopped') {

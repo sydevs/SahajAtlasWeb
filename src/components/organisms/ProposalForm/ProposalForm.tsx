@@ -54,6 +54,10 @@ const REFUSAL_MESSAGE_KEYS: Record<UserSubmissionErrorCode, TranslationKey> = {
   content_unscannable: 'submit.errors.send_failed',
 }
 
+/** "It ends on a set date" is switched on for a repeating class, and no date given yet. */
+const endIsPromised = (draft: ListingDraft, endsOn: boolean) =>
+  endsOn && draft.repeats !== 'once' && !draft.endDate
+
 /** The step each of a correction's answers opens on. */
 const INTENT_STEPS: Record<FixIntent, ListingStep> = {
   when: 'when',
@@ -126,6 +130,9 @@ export function ProposalForm(props: ProposalFormProps) {
   const [seenReview, setSeenReview] = useState(false)
   // The step Check sent the visitor back to because it is incomplete, so it opens flagged.
   const [bounced, setBounced] = useState<ListingStep | null>(null)
+  // "It ends on a set date" is a promise to give one. It is held here, above the steps, so no
+  // way off Time — Continue, Back, the stepper — can leave it unkept.
+  const [endsOn, setEndsOn] = useState(Boolean(props.draft.endDate))
 
   // Once Check has been seen, a step reached from it returns there — never through every step
   // after it again. The owner's `reviewed` carries this across a remount.
@@ -157,7 +164,10 @@ export function ProposalForm(props: ProposalFormProps) {
             className="px-2"
             current={index}
             reachable={reviewed ? LISTING_STEPS.length - 1 : index}
-            onPick={(at) => go(LISTING_STEPS[at])}
+            onPick={(at) => {
+              if (step === 'when' && endIsPromised(props.draft, endsOn)) return setBounced('when')
+              go(LISTING_STEPS[at])
+            }}
           />
         )}
       </DrawerHeader>
@@ -181,9 +191,12 @@ export function ProposalForm(props: ProposalFormProps) {
       ) : (
         <StepStage
           {...props}
+          key={bounced === step ? `flagged-${step}` : step}
+          endsOn={endsOn}
           flagged={bounced === step}
           index={index}
           reviewed={reviewed}
+          onEndsOn={setEndsOn}
           onGo={(next) => {
             setBounced(null)
             onStep(next)
@@ -231,8 +244,16 @@ function StepStage({
   stickyFooter,
   placeMap,
   flagged,
+  endsOn,
+  onEndsOn,
   onGo,
-}: StageProps & { index: number; reviewed: boolean; flagged: boolean }) {
+}: StageProps & {
+  index: number
+  reviewed: boolean
+  flagged: boolean
+  endsOn: boolean
+  onEndsOn: (ends: boolean) => void
+}) {
   const { t } = useTranslation()
   // Errors show once a step has been attempted — or Check sent the visitor back to it — never
   // while it is first being filled in.
@@ -244,9 +265,7 @@ function StepStage({
   const errors: ListingErrors =
     fields && attempted?.step === step ? stepErrors(step, draft, base) : {}
   const noteMissing = attempted?.step === 'note' && intent === 'other' && !sender.note.trim()
-  // "It ends on a set date" is a promise to give one, so it holds Time until it is kept.
-  const [endsOn, setEndsOn] = useState(Boolean(draft.endDate))
-  const endMissing = step === 'when' && endsOn && draft.repeats !== 'once' && !draft.endDate
+  const endMissing = step === 'when' && endIsPromised(draft, endsOn)
   const scope = useFocusFirstInvalid(attempted?.at)
 
   const pick = (key: 'address' | 'city') => (feature: GeocodingFeature) => {
@@ -268,6 +287,12 @@ function StepStage({
 
   if (reviewed) back = 'review'
   else if (correction) back = 'fix'
+
+  // Leaving by Back or the stepper keeps the same promise Continue does.
+  const leave = (next: ListingStep) => {
+    if (endMissing) return setAttempted({ step, at: Date.now() })
+    onGo(next)
+  }
 
   const advance = (event: FormEvent) => {
     event.preventDefault()
@@ -324,13 +349,14 @@ function StepStage({
               errors={errors}
               listing={listing}
               onChange={onChange}
-              onEnds={setEndsOn}
+              onEnds={onEndsOn}
             />
           )}
           {step === 'details' && (
             <DetailsStep
               draft={draft}
               errors={errors}
+              keepTitle={correction?.baseDraft.title}
               languageOptions={languageOptions}
               onChange={onChange}
             />
@@ -340,7 +366,7 @@ function StepStage({
       {step !== 'fix' && (
         <FlowFooter sticky={stickyFooter}>
           {back && (
-            <Button size="lg" variant="flat" onClick={() => onGo(back)}>
+            <Button size="lg" variant="flat" onClick={() => leave(back)}>
               {t('submit.chrome.back')}
             </Button>
           )}

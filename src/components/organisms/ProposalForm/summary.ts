@@ -28,7 +28,7 @@ export type SummaryRow = {
 export function useSummaryRows(
   draft: ListingDraft,
   listing: Event,
-  { correction = false }: { correction?: boolean } = {},
+  { correction = false, keepTitle }: { correction?: boolean; keepTitle?: string } = {},
 ): SummaryRow[] {
   const { t } = useTranslation()
   const { locale, languageLabel } = useLocale()
@@ -127,7 +127,8 @@ export function useSummaryRows(
     {
       key: 'title',
       label: t('submit.more.title_label'),
-      value: draftTitle(draft),
+      // A correction left blank keeps the published name: that is what is sent, so it is shown.
+      value: keepTitle !== undefined ? draft.title.trim() || keepTitle : draftTitle(draft),
       section: 'details',
     },
     {

@@ -23,6 +23,8 @@ export type DetailsStepProps = {
   errors: ListingErrors
   /** The languages offered, beyond the ones already chosen. */
   languageOptions: string[]
+  /** A correction keeps the published name when the field is left blank. */
+  keepTitle?: string
   onChange: (patch: Partial<ListingDraft>) => void
 }
 
@@ -31,7 +33,13 @@ export type DetailsStepProps = {
  * newcomer asks — what language, who do I ask, what is it like — and the class's name last,
  * since it has a sensible default.
  */
-export function DetailsStep({ draft, errors, languageOptions, onChange }: DetailsStepProps) {
+export function DetailsStep({
+  draft,
+  errors,
+  languageOptions,
+  keepTitle,
+  onChange,
+}: DetailsStepProps) {
   const { t } = useTranslation()
   const { languageLabel } = useLocale()
   const codes = useMemo(
@@ -39,13 +47,18 @@ export function DetailsStep({ draft, errors, languageOptions, onChange }: Detail
     [draft.languages, languageOptions],
   )
   const options = useLanguageOptions(codes)
-  const defaultTitle = draftTitle({ ...draft, title: '' })
+  const defaultTitle = keepTitle ?? draftTitle({ ...draft, title: '' })
 
   return (
     <div className="flex flex-col gap-6">
       <StepHeading intro={t('submit.details.intro')} title={t('submit.details.title')} />
 
-      <FormField help={t('submit.details.languages_help')} label={t('submit.more.languages_label')}>
+      <FormField
+        required
+        error={errors.languages && t('submit.errors.languages')}
+        help={t('submit.details.languages_help')}
+        label={t('submit.more.languages_label')}
+      >
         <LanguageMultiSelect
           label={t('submit.more.languages_label')}
           options={options}
@@ -103,7 +116,13 @@ export function DetailsStep({ draft, errors, languageOptions, onChange }: Detail
       </FormField>
 
       <ValidatedInput
-        help={defaultTitle ? t('submit.details.title_help', { name: defaultTitle }) : undefined}
+        help={
+          keepTitle
+            ? t('submit.details.title_keep')
+            : defaultTitle
+              ? t('submit.details.title_help', { name: defaultTitle })
+              : undefined
+        }
         id="submit-title"
         label={t('submit.more.title_label')}
         maxLength={TITLE_MAX}

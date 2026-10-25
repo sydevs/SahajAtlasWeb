@@ -318,7 +318,10 @@
       "urls_not_allowed": "Links aren’t allowed here. Please remove them.",
       "weekday": "Choose the day it meets.",
       "last_date": "Choose the last date, or turn this off.",
-      "manual_address": "Fill in the street and the town."
+      "manual_address": "Fill in the street and the town.",
+      "languages": "Choose at least one language.",
+      "end_before": "The last class can’t be before the first.",
+      "manual_city": "Fill in the town or city."
     },
     "more": {
       "languages_label": "Languages",
@@ -336,13 +339,12 @@
       "no_description": "No description yet",
       "email_private": "Your email (not shown)",
       "send": "Send for review",
-      "intro": "Make sure everything is right. A coordinator checks it before it goes on the map.",
+      "intro": "Make sure everything is right, then add your email at the bottom and send. A coordinator checks it before it goes on the map.",
       "see_preview": "See how it will look"
     },
     "when": {
       "end_time": "Ends at",
       "start_time": "Starts at",
-      "timezone_note": "Times are in %{timezone}.",
       "title": "When does it meet?",
       "how_often": "How often?",
       "weekly": "Every week",
@@ -356,7 +358,10 @@
       "first_class": "First class",
       "last_class": "Last class",
       "overnight": "Ends the next day.",
-      "zone_search": "Search for a city or time zone"
+      "zone_search": "Search for a time zone or a big city",
+      "zone_confirm": "Times are in %{timezone}, the class’s local time.",
+      "zone_empty": "No match. Try a big city in the same time zone, or a zone name like “Europe/Paris”.",
+      "monthly_pattern": "Meets on a pattern like “the first Tuesday”? Choose the next date, and explain the pattern in your note at the end."
     },
     "where": {
       "address_placeholder": "Search for the address",
@@ -384,14 +389,18 @@
       "manual_street": "Street and number",
       "manual_city": "Town or city",
       "manual_postcode": "Postcode",
-      "nearby_body_near": "There’s already a class listed close to this address. If it’s the same class, correct that listing instead. If not, just carry on."
+      "nearby_body_near": "There’s already a class listed close to this address. If it’s the same class, correct that listing instead. If not, just carry on.",
+      "manual_country": "Country",
+      "manual_city_toggle": "Can’t find it? Type the city instead",
+      "manual_city_back": "Search for the city instead"
     },
     "details": {
       "title": "A few more details",
       "intro": "All optional — but they help people decide to come.",
       "languages_help": "The languages the class is held in.",
       "title_help": "Leave blank to call it “%{name}”.",
-      "contact_help": "Shown on the listing so newcomers can ask before they come. Adding a class for someone else? Use their details, not yours."
+      "contact_help": "Shown on the listing so newcomers can ask before they come. Adding a class for someone else? Use their details, not yours.",
+      "title_keep": "Leave blank to keep the name it has now."
     },
     "fix": {
       "title": "What needs fixing?",

@@ -377,6 +377,17 @@ describe('ProposalForm steps', () => {
     await act(async () => root.unmount())
   })
 
+  it('holds Time, on Back as on Continue, once "it ends on a set date" is on with no date', async () => {
+    const root = await mount({ initial: inPerson, startAt: 'when' })
+
+    await act(async () => container.querySelector<HTMLButtonElement>('[role="switch"]')!.click())
+    await press('submit.chrome.back')
+    expect(container.textContent).toContain('submit.errors.last_date')
+    expect(container.textContent).toContain('submit.when.title')
+
+    await act(async () => root.unmount())
+  })
+
   it('returns a step straight to Check once Check has been seen', async () => {
     const root = await mount({ initial: inPerson, startAt: 'when', reviewed: true })
 

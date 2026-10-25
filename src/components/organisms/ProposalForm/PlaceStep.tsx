@@ -49,6 +49,7 @@ export function PlaceStep({
   // An address the geocoder can't find is typed in by hand: it has no map point, and the
   // coordinator places it. A draft reopened with such an address opens back on the fields.
   const [manual, setManual] = useState(Boolean(draft.address && !draft.address.mapboxId))
+  const [manualCity, setManualCity] = useState(Boolean(draft.city && !draft.city.location.placeId))
 
   return (
     <div className="flex flex-col gap-5">
@@ -65,6 +66,7 @@ export function PlaceStep({
           icon={MapPin}
           label={t('submit.where.offline')}
           selected={offline}
+          tabStop={offline}
           onSelect={() => onChange({ eventType: 'offline' })}
         />
         <ChoiceCard
@@ -72,6 +74,7 @@ export function PlaceStep({
           icon={Monitor}
           label={t('submit.where.online')}
           selected={!offline}
+          tabStop={!offline}
           onSelect={() => onChange({ eventType: 'online' })}
         />
       </div>
@@ -84,16 +87,14 @@ export function PlaceStep({
             error={errors.address}
             onChange={onChange}
           />
-          <button
-            className="-mt-2 self-start rounded-sm text-sm font-medium text-primary-11 underline underline-offset-2 outline-none focus-visible:ring-2 focus-visible:ring-focus"
-            type="button"
+          <TextButton
             onClick={() => {
               setManual(false)
               onChange({ address: null })
             }}
           >
             {t('submit.where.manual_back')}
-          </button>
+          </TextButton>
           <RoomField draft={draft} onChange={onChange} />
         </>
       ) : offline ? (
@@ -118,13 +119,9 @@ export function PlaceStep({
             onClear={() => onChange({ address: null })}
           />
           {!draft.address && (
-            <button
-              className="-mt-2 self-start rounded-sm text-sm font-medium text-primary-11 underline underline-offset-2 outline-none focus-visible:ring-2 focus-visible:ring-focus"
-              type="button"
-              onClick={() => setManual(true)}
-            >
+            <TextButton onClick={() => setManual(true)}>
               {t('submit.where.manual_toggle')}
-            </button>
+            </TextButton>
           )}
           {notice}
           <RoomField draft={draft} onChange={onChange} />
@@ -144,24 +141,45 @@ export function PlaceStep({
             value={draft.onlineUrl}
             onChange={(event) => onChange({ onlineUrl: event.target.value })}
           />
-          <PlaceField
-            error={errors.city && t('submit.errors.city_required')}
-            help={t('submit.where.city_help')}
-            label={t('submit.where.city_label')}
-            place={draft.city}
-            search={
-              <MapSearch
-                country={country}
-                label={t('submit.where.city_placeholder')}
-                proximity={proximity}
-                query={{ initial: '' }}
-                types="place"
-                onQueryChange={onEdit('city')}
-                onSelect={onPick('city')}
+          {manualCity ? (
+            <>
+              <ManualCity country={country} draft={draft} error={errors.city} onChange={onChange} />
+              <TextButton
+                onClick={() => {
+                  setManualCity(false)
+                  onChange({ city: null })
+                }}
+              >
+                {t('submit.where.manual_city_back')}
+              </TextButton>
+            </>
+          ) : (
+            <>
+              <PlaceField
+                error={errors.city && t('submit.errors.city_required')}
+                help={t('submit.where.city_help')}
+                label={t('submit.where.city_label')}
+                place={draft.city}
+                search={
+                  <MapSearch
+                    country={country}
+                    label={t('submit.where.city_placeholder')}
+                    proximity={proximity}
+                    query={{ initial: '' }}
+                    types="place"
+                    onQueryChange={onEdit('city')}
+                    onSelect={onPick('city')}
+                  />
+                }
+                onClear={() => onChange({ city: null })}
               />
-            }
-            onClear={() => onChange({ city: null })}
-          />
+              {!draft.city && (
+                <TextButton onClick={() => setManualCity(true)}>
+                  {t('submit.where.manual_city_toggle')}
+                </TextButton>
+              )}
+            </>
+          )}
         </>
       )}
     </div>
@@ -296,19 +314,25 @@ function ManualAddress({
     street: draft.address?.street ?? '',
     city: draft.address?.city ?? '',
     postCode: draft.address?.postCode ?? '',
+    countryName: '',
   })
   const set = (patch: Partial<typeof parts>) => {
     const next = { ...parts, ...patch }
     const street = next.street.trim()
     const city = next.city.trim()
     const postCode = next.postCode.trim()
+    // Without a country from the flow, the visitor names it, so the coordinator isn't left
+    // guessing which "Springfield" this is.
+    const countryName = country ? '' : next.countryName.trim()
 
     setParts(next)
     onChange({
       address:
         street && city
           ? {
-              label: [street, [postCode, city].filter(Boolean).join(' ')].join(', '),
+              label: [street, [postCode, city].filter(Boolean).join(' '), countryName]
+                .filter(Boolean)
+                .join(', '),
               street,
               city,
               postCode: postCode || undefined,
@@ -353,6 +377,91 @@ function ManualAddress({
           onChange={(event) => set({ postCode: event.target.value })}
         />
       </div>
+      {!country && (
+        <ValidatedInput
+          autoComplete="country-name"
+          id="submit-country"
+          label={t('submit.where.manual_country')}
+          maxLength={ROOM_MAX}
+          value={parts.countryName}
+          onChange={(event) => set({ countryName: event.target.value })}
+        />
+      )}
     </div>
+  )
+}
+
+/**
+ * An online class's city typed in by hand, for a place the search does not know. The
+ * coordinator places it; the listing waits on them for its region.
+ */
+function ManualCity({
+  draft,
+  country,
+  error,
+  onChange,
+}: {
+  draft: ListingDraft
+  country?: string
+  error?: boolean
+  onChange: (patch: Partial<ListingDraft>) => void
+}) {
+  const { t } = useTranslation()
+  const [parts, setParts] = useState({ city: draft.city?.city ?? '', countryName: '' })
+  const set = (patch: Partial<typeof parts>) => {
+    const next = { ...parts, ...patch }
+    const city = next.city.trim()
+    const countryName = country ? '' : next.countryName.trim()
+
+    setParts(next)
+    onChange({
+      city: city
+        ? {
+            label: [city, countryName].filter(Boolean).join(', '),
+            city,
+            country: country?.toUpperCase(),
+            location: {},
+          }
+        : null,
+    })
+  }
+
+  return (
+    <div className="flex flex-col gap-3">
+      <p className="text-sm text-gray-11">{t('submit.where.manual_note')}</p>
+      <ValidatedInput
+        required
+        autoComplete="address-level2"
+        error={error && t('submit.errors.manual_city')}
+        id="submit-city"
+        label={t('submit.where.manual_city')}
+        maxLength={ROOM_MAX}
+        value={parts.city}
+        onChange={(event) => set({ city: event.target.value })}
+      />
+      {!country && (
+        <ValidatedInput
+          autoComplete="country-name"
+          id="submit-country"
+          label={t('submit.where.manual_country')}
+          maxLength={ROOM_MAX}
+          value={parts.countryName}
+          onChange={(event) => set({ countryName: event.target.value })}
+        />
+      )}
+    </div>
+  )
+}
+
+/** A quiet way out — "type it instead", "search instead" — set as a link under the field. */
+function TextButton({ onClick, children }: { onClick: () => void; children: ReactNode }) {
+  return (
+    <button
+      className="-mt-2 min-h-8 self-start rounded-sm text-sm font-medium text-primary-11 underline underline-offset-2 outline-none focus-visible:ring-2 focus-visible:ring-focus"
+      type="button"
+      onClick={onClick}
+    >
+      {children}
+    </button>
   )
 }

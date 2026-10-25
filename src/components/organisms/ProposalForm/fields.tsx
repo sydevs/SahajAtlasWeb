@@ -100,6 +100,7 @@ export function ChoiceCard({
   label,
   hint,
   selected,
+  tabStop,
   trailing,
   onSelect,
 }: {
@@ -107,6 +108,8 @@ export function ChoiceCard({
   label: string
   hint?: string
   selected?: boolean
+  /** In a radio group, whether this card is the group's one tab stop. */
+  tabStop?: boolean
   trailing?: ReactNode
   onSelect: () => void
 }) {
@@ -117,6 +120,7 @@ export function ChoiceCard({
       aria-checked={selected === undefined ? undefined : selected}
       className={slots.base()}
       role={selected === undefined ? undefined : 'radio'}
+      tabIndex={tabStop === undefined ? undefined : tabStop ? 0 : -1}
       type="button"
       onClick={onSelect}
     >
@@ -143,7 +147,9 @@ export const radioKeys = {
     if (!step) return
 
     const radios = [...event.currentTarget.querySelectorAll<HTMLElement>('[role="radio"]')]
-    const at = radios.indexOf(document.activeElement as HTMLElement)
+    // The event's own target, not `document.activeElement`: inside the widget's shadow root the
+    // document only sees the host element.
+    const at = radios.indexOf((event.target as HTMLElement).closest<HTMLElement>('[role="radio"]')!)
 
     if (at < 0) return
     event.preventDefault()

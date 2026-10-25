@@ -184,6 +184,8 @@ export type ListingField =
   | 'startTime'
   | 'contactEmail'
   | 'website'
+  | 'endDate'
+  | 'languages'
 
 export type ListingErrors = Partial<Record<ListingField, true>>
 
@@ -223,12 +225,14 @@ export const stepErrors = (
     const endsBeforeStart =
       draft.repeats !== 'once' && DATE.test(draft.endDate) && draft.endDate < draft.firstDate
 
-    // A backwards range flags the first date, whose own copy is the closest SahajCloud has.
     // An end TIME before the start is an overnight session, so it is not checked.
-    if (!DATE.test(draft.firstDate) || endsBeforeStart) errors.firstDate = true
+    if (!DATE.test(draft.firstDate)) errors.firstDate = true
+    if (endsBeforeStart) errors.endDate = true
     if (!HHMM.test(draft.startTime)) errors.startTime = true
   }
 
+  // A class is held in some language, and an empty list could never be sent as a correction.
+  if (step === 'details' && draft.languages.length === 0) errors.languages = true
   if (step === 'details' && draft.contactEmail.trim() && !isEmail(draft.contactEmail)) {
     errors.contactEmail = true
   }

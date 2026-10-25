@@ -80,6 +80,7 @@ export function TimeStep({
               aria-checked={draft.repeats === value}
               className={`${segment} ${draft.repeats === value ? segmentOn : segmentOff}`}
               role="radio"
+              tabIndex={draft.repeats === value ? 0 : -1}
               type="button"
               onClick={() => onChange({ repeats: value, ...(value === 'once' && { endDate: '' }) })}
             >
@@ -101,6 +102,7 @@ export function TimeStep({
             {weekdays.map((label, index) => {
               const day = index + 1
               const on = weekday === day
+              // One tab stop per group: the chosen day, or Monday before there is one.
 
               return (
                 <button
@@ -116,6 +118,7 @@ export function TimeStep({
                         : 'border-gray-6 hover:bg-gray-2'
                   }`}
                   role="radio"
+                  tabIndex={on || (weekday === null && index === 0) ? 0 : -1}
                   type="button"
                   onClick={() => {
                     if (on) return
@@ -171,7 +174,11 @@ export function TimeStep({
         <ValidatedInput
           required
           error={errors.firstDate && t('submit.errors.first_date')}
-          help={draft.repeats === 'monthly' ? t('submit.when.monthly_help') : undefined}
+          help={
+            draft.repeats === 'monthly'
+              ? `${t('submit.when.monthly_help')} ${t('submit.when.monthly_pattern')}`
+              : undefined
+          }
           id="submit-first-date"
           label={t(draft.repeats === 'once' ? 'submit.when.date' : 'submit.when.first_class')}
           type="date"
@@ -194,7 +201,10 @@ export function TimeStep({
           {ends && (
             <ValidatedInput
               required
-              error={endMissing && t('submit.errors.last_date')}
+              error={
+                (endMissing && t('submit.errors.last_date')) ||
+                (errors.endDate && t('submit.errors.end_before'))
+              }
               id="submit-end-date"
               label={t('submit.when.last_class')}
               min={draft.firstDate || undefined}
@@ -256,7 +266,7 @@ function ScheduleSummary({
             <p className="text-sm text-gray-11">{t('submit.when.summary_empty')}</p>
           )}
           <p className="text-xs text-gray-11">
-            {t('submit.when.timezone_note', { timezone: zoneLabel(zone, locale) })}{' '}
+            {t('submit.when.zone_confirm', { timezone: zoneLabel(zone, locale) })}{' '}
             {!editing && ZONES.length > 0 && (
               <button
                 className="rounded-sm font-medium text-primary-11 underline underline-offset-2 outline-none focus-visible:ring-2 focus-visible:ring-focus"
@@ -273,6 +283,7 @@ function ScheduleSummary({
         <Combobox
           aria-label={t('submit.summary.zone')}
           className="bg-background"
+          emptyLabel={t('submit.when.zone_empty')}
           options={options}
           placeholder={zoneLabel(zone, locale)}
           searchPlaceholder={t('submit.when.zone_search')}

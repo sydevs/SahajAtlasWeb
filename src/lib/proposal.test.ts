@@ -156,13 +156,18 @@ describe('stepErrors', () => {
   it('refuses a last date before the first, and only for a repeating class', () => {
     const backwards = { firstDate: '2026-11-03', endDate: '2026-10-01' }
 
+    // The error sits on the last date, which is the one to change.
     expect(stepErrors('when', inPerson({ ...backwards, repeats: 'weekly' }))).toEqual({
-      firstDate: true,
+      endDate: true,
     })
     expect(stepErrors('when', inPerson({ ...backwards, repeats: 'once' }))).toEqual({})
     expect(
       stepErrors('when', inPerson({ firstDate: '2026-11-03', endDate: '2026-11-03' })),
     ).toEqual({})
+  })
+
+  it('needs at least one language, since none could never be sent', () => {
+    expect(stepErrors('details', inPerson({ languages: [] }))).toEqual({ languages: true })
   })
 
   it('lets Details be skipped, but not filled with a broken address', () => {
