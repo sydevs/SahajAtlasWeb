@@ -373,7 +373,8 @@
       "duration_120": "2 hours",
       "duration_custom": "Set the end time",
       "ends_at": "Ends at %{time}.",
-      "first_help": "The first date the map shows. Change it if the class starts later."
+      "first_help": "Change this if the class starts later.",
+      "first_on_map": "First date on the map"
     },
     "where": {
       "address_placeholder": "Search for the address",

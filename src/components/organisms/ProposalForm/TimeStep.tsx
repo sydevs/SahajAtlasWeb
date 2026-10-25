@@ -260,7 +260,13 @@ export function TimeStep({
                 : undefined
           }
           id="submit-first-date"
-          label={t(draft.repeats === 'once' ? 'submit.when.date' : 'submit.when.first_class')}
+          label={t(
+            draft.repeats === 'once'
+              ? 'submit.when.date'
+              : weekly
+                ? 'submit.when.first_on_map'
+                : 'submit.when.first_class',
+          )}
           type="date"
           value={draft.firstDate}
           onChange={(event) => onChange({ firstDate: event.target.value })}
