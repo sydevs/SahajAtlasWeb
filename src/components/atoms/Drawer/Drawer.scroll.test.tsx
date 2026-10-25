@@ -3,7 +3,7 @@ import { act } from 'react'
 import { type Root, createRoot } from 'react-dom/client'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 
-import { Drawer, DrawerBody, DrawerContent } from './Drawer'
+import { Drawer, DrawerBody, DrawerContent, type DrawerProps } from './Drawer'
 
 import { readRepoSource } from '@/test-support/repo-source'
 
@@ -34,22 +34,22 @@ import { readRepoSource } from '@/test-support/repo-source'
 let host: HTMLElement
 let root: Root
 
-beforeEach(() => {
-  host = document.createElement('div')
-  document.body.append(host)
-  root = createRoot(host)
-
-  // Both assertions read tv BASE slots, which no variant touches, so nothing below is
-  // load-bearing beyond mounting a real panel.
+const mount = (props: Partial<DrawerProps> = {}) =>
   act(() =>
     root.render(
-      <Drawer open direction="bottom">
+      <Drawer open direction="bottom" {...props}>
         <DrawerContent aria-label="Test sheet">
           <DrawerBody>body</DrawerBody>
         </DrawerContent>
       </Drawer>,
     ),
   )
+
+beforeEach(() => {
+  host = document.createElement('div')
+  document.body.append(host)
+  root = createRoot(host)
+  mount()
 })
 
 afterEach(() => {
@@ -66,11 +66,27 @@ const classesOf = (selector: string) => {
 }
 
 describe('Drawer — the panel cannot scroll', () => {
-  it('clips the panel instead of hiding its overflow', () => {
+  // ⚠ Every variant, not the base slot alone. `filled` and the wide left panel are nothing
+  // but `!important` overrides of `content`, and tailwind-merge does not strip a base
+  // `overflow-clip` across importance — so a compound adding `!overflow-hidden` leaves the
+  // panel carrying both, and a base-only assertion stays green. Watched that way.
+  const VARIANTS: Partial<DrawerProps>[] = (['bottom', 'top', 'left', 'right'] as const).flatMap(
+    (direction) =>
+      (['anchored', 'filled'] as const).flatMap((mode) =>
+        [false, true].map((wide) => ({ direction, mode, wide })),
+      ),
+  )
+
+  // Any importance, any variant prefix, any axis. `overflow-clip` is the one allowed answer.
+  const SCROLLS = /(^|:)!?overflow(-[xy])?-(hidden|auto|scroll)!?$/
+
+  it.each(VARIANTS)('clips the panel, never hides it — %o', (variant) => {
+    mount(variant)
+
     const classes = classesOf('[data-vaul-drawer]')
 
     expect(classes).toContain('overflow-clip')
-    expect(classes).not.toContain('overflow-hidden')
+    expect(classes.filter((token) => SCROLLS.test(token))).toEqual([])
   })
 
   it('leaves the body slot no padding of its own', () => {
