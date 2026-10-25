@@ -12,6 +12,9 @@ const options: RadioOption[] = [
 
 const radios = (html: string) => (html.match(/type="radio"/g) ?? []).length
 
+const markClasses = (html: string, index: number) =>
+  ((html.match(/<input[^>]*>/g) ?? [])[index].match(/class="([^"]*)"/)?.[1] ?? '').split(' ')
+
 describe('RadioGroup', () => {
   it('renders one radio per option and marks exactly the selected value checked', () => {
     const html = renderToStaticMarkup(
@@ -20,6 +23,25 @@ describe('RadioGroup', () => {
 
     expect(radios(html)).toBe(4)
     expect((html.match(/checked/g) ?? []).length).toBe(1)
+  })
+
+  it('accents the checked mark with the card solid’s on-colour, never the solid itself', () => {
+    const html = renderToStaticMarkup(
+      <RadioGroup name="x" options={options} value="b" onChange={() => {}} />,
+    )
+
+    expect(markClasses(html, 1)).toContain('accent-primary-foreground')
+    expect(markClasses(html, 1)).not.toContain('accent-primary')
+    expect(markClasses(html, 0)).toContain('accent-primary')
+  })
+
+  it('follows the checked card to danger when the group is invalid', () => {
+    const html = renderToStaticMarkup(
+      <RadioGroup isInvalid name="x" options={options} value="b" onChange={() => {}} />,
+    )
+
+    expect(markClasses(html, 1)).toContain('accent-danger-foreground')
+    expect(markClasses(html, 1)).not.toContain('accent-primary-foreground')
   })
 
   it('collapses options past collapseAfter behind the reveal link', () => {

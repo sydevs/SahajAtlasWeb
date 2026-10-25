@@ -53,6 +53,19 @@ const radioOption = tv({
   ],
 })
 
+// The browser paints the native mark in `accent-color`, so on the checked
+// card's own solid the dot disappears and the option reads as unchosen
+// (#323). The accent follows the card: each solid's on-colour, which the
+// tenant palette already derives to be readable against it.
+const radioMark = tv({
+  base: 'h-4 w-4 shrink-0',
+  variants: {
+    checked: { true: 'accent-primary-foreground', false: 'accent-primary' },
+    isInvalid: { true: '' },
+  },
+  compoundVariants: [{ checked: true, isInvalid: true, class: 'accent-danger-foreground' }],
+})
+
 export type RadioGroupProps = {
   /** The radio inputs' shared `name`. Each group has one checked value. */
   name: string
@@ -128,7 +141,7 @@ export const RadioGroup = forwardRef<HTMLInputElement, RadioGroupProps>(function
             <input
               ref={index === 0 ? ref : undefined}
               checked={checked}
-              className="h-4 w-4 shrink-0 accent-primary"
+              className={radioMark({ checked, isInvalid })}
               name={name}
               type="radio"
               value={option.value}
