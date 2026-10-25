@@ -43,6 +43,9 @@ export function TimeStep({ draft, errors, listing, onChange }: TimeStepProps) {
   const { locale } = useLocale()
   const weekday = draftWeekday(draft)
   const repeating = draft.repeats !== 'once'
+  const weekly = draft.repeats === 'weekly'
+  // A weekly class with no date yet is missing its day, and is told so at the day chips.
+  const dayMissing = weekly && weekday === null && Boolean(errors.firstDate)
   const [ends, setEnds] = useState(Boolean(draft.endDate))
   const weekdays = Info.weekdays('short', { locale })
   const weekdayNames = Info.weekdays('long', { locale })
@@ -69,10 +72,14 @@ export function TimeStep({ draft, errors, listing, onChange }: TimeStepProps) {
         </div>
       </fieldset>
 
-      {draft.repeats === 'weekly' && (
+      {weekly && (
         <fieldset className="flex flex-col">
           <legend className="mb-2 text-sm font-medium">{t('submit.when.weekday_label')} *</legend>
-          <div className="grid grid-cols-7 gap-1" role="radiogroup">
+          <div
+            aria-describedby={dayMissing ? 'submit-weekday-error' : undefined}
+            className="grid grid-cols-7 gap-1"
+            role="radiogroup"
+          >
             {weekdays.map((label, index) => {
               const day = index + 1
               const on = weekday === day
@@ -81,11 +88,14 @@ export function TimeStep({ draft, errors, listing, onChange }: TimeStepProps) {
                 <button
                   key={label}
                   aria-checked={on}
+                  aria-invalid={dayMissing && index === 0 ? true : undefined}
                   aria-label={weekdayNames[index]}
                   className={`h-11 rounded-md border text-sm font-medium transition-colors outline-none focus-visible:ring-2 focus-visible:ring-focus ${
                     on
                       ? 'border-primary-9 bg-primary-9 text-primary-foreground'
-                      : 'border-gray-6 hover:bg-gray-2'
+                      : dayMissing
+                        ? 'border-danger-7 hover:bg-gray-2'
+                        : 'border-gray-6 hover:bg-gray-2'
                   }`}
                   role="radio"
                   type="button"
@@ -98,6 +108,11 @@ export function TimeStep({ draft, errors, listing, onChange }: TimeStepProps) {
               )
             })}
           </div>
+          {dayMissing && (
+            <span className="mt-1 text-xs text-danger-11" id="submit-weekday-error" role="alert">
+              {t('submit.errors.weekday')}
+            </span>
+          )}
         </fieldset>
       )}
 
@@ -120,16 +135,20 @@ export function TimeStep({ draft, errors, listing, onChange }: TimeStepProps) {
         />
       </div>
 
-      <ValidatedInput
-        required
-        error={errors.firstDate && t('submit.errors.first_date')}
-        help={draft.repeats === 'monthly' ? t('submit.when.monthly_help') : undefined}
-        id="submit-first-date"
-        label={t(draft.repeats === 'once' ? 'submit.when.date' : 'submit.when.first_class')}
-        type="date"
-        value={draft.firstDate}
-        onChange={(event) => onChange({ firstDate: event.target.value })}
-      />
+      {/* A weekly class's first date follows from its day, so it shows once there is one —
+          prefilled, and still movable for a class that starts later. */}
+      {(!weekly || weekday !== null) && (
+        <ValidatedInput
+          required
+          error={errors.firstDate && t('submit.errors.first_date')}
+          help={draft.repeats === 'monthly' ? t('submit.when.monthly_help') : undefined}
+          id="submit-first-date"
+          label={t(draft.repeats === 'once' ? 'submit.when.date' : 'submit.when.first_class')}
+          type="date"
+          value={draft.firstDate}
+          onChange={(event) => onChange({ firstDate: event.target.value })}
+        />
+      )}
 
       {repeating && (
         <div className="flex flex-col gap-3">

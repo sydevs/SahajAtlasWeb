@@ -71,8 +71,8 @@ export function CheckStep({
             />
           )}
           {preview && (
-            <details className="group rounded-lg border border-gray-6">
-              <summary className="flex min-h-11 cursor-pointer list-none items-center justify-between gap-2 px-3 text-sm font-medium [&::-webkit-details-marker]:hidden">
+            <details className="group -mx-6 border-y border-gray-5">
+              <summary className="flex min-h-12 cursor-pointer list-none items-center justify-between gap-2 px-6 text-sm font-medium [&::-webkit-details-marker]:hidden">
                 {t('submit.changes.full_listing')}
                 <ChevronDown
                   aria-hidden
@@ -80,7 +80,7 @@ export function CheckStep({
                   size={18}
                 />
               </summary>
-              <div className="border-t border-gray-6 pt-3">{preview}</div>
+              <div className="border-t border-gray-5 bg-gray-2 pt-4">{preview}</div>
             </details>
           )}
         </>
@@ -88,10 +88,12 @@ export function CheckStep({
         <>
           <StepHeading intro={t('submit.chrome.preview_note')} title={t('submit.review.title')} />
           {preview && (
-            <div className="relative -mx-1 rounded-xl border border-gray-6 bg-background pt-4 shadow-sm">
-              <span className="absolute -top-2.5 left-4 rounded-full bg-gray-12 px-2 py-0.5 text-[11px] font-semibold tracking-wide text-gray-1 uppercase">
+            // Full-bleed, so the listing lines up with the form around it exactly as it will
+            // line up in its own panel — a card inside the sheet would indent it twice.
+            <div className="-mx-6 border-y border-gray-5 bg-gray-2 pt-3">
+              <p className="px-6 pb-2 text-[11px] font-semibold tracking-wider text-gray-11 uppercase">
                 {t('submit.review.preview_badge')}
-              </span>
+              </p>
               {preview}
             </div>
           )}

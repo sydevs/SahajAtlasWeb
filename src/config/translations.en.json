@@ -317,7 +317,8 @@
       "online_url": "Enter a link starting with https://",
       "send_failed": "We couldn’t send your submission. Please try again.",
       "start_time": "Choose a start time.",
-      "urls_not_allowed": "Links aren’t allowed here. Please remove them."
+      "urls_not_allowed": "Links aren’t allowed here. Please remove them.",
+      "weekday": "Choose the day it meets."
     },
     "more": {
       "languages_label": "Languages",
@@ -369,7 +370,7 @@
       "nearby_body": "There’s already a class listed at this address. If it’s yours, correct it instead of adding it again.",
       "nearby_action": "Correct it",
       "offline_hint": "At a venue",
-      "online_hint": "Zoom, Meet or similar",
+      "online_hint": "Zoom or similar",
       "address_help": "Type the street and number, then pick it from the list.",
       "room_placeholder": "For example: upstairs hall",
       "online_url_help": "The link people use to join. It’s shared with people who sign up.",
