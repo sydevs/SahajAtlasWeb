@@ -54,9 +54,6 @@ const REFUSAL_MESSAGE_KEYS: Record<UserSubmissionErrorCode, TranslationKey> = {
   content_unscannable: 'submit.errors.send_failed',
 }
 
-/** How long after a pick a field edit is the geocoder's own echo, not the visitor's. */
-const PICK_ECHO_MS = 500
-
 /** The step each of a correction's answers opens on. */
 const INTENT_STEPS: Record<FixIntent, ListingStep> = {
   when: 'when',
@@ -252,18 +249,15 @@ function StepStage({
   const endMissing = step === 'when' && endsOn && draft.repeats !== 'once' && !draft.endDate
   const scope = useFocusFirstInvalid(attempted?.at)
 
-  // The geocoder may write its own label into the field right after a pick. Any edit after that
-  // means the text no longer names the pick, so the pick is dropped and must be redone.
-  const pickedAt = useRef(0)
   const pick = (key: 'address' | 'city') => (feature: GeocodingFeature) => {
     const place = featureToPlace(feature)
 
-    pickedAt.current = Date.now()
     // Without a nearby class to lend one, the visitor's own zone — never one inferred earlier.
     onChange({ [key]: place, timeZone: timeZoneFor?.(place) ?? viewerTimeZone() })
   }
+  // The search writes a picked label into its field without reporting it as an edit, so any
+  // edit it does report means the text no longer names the pick: drop it, and ask again.
   const edit = (key: 'address' | 'city') => () => {
-    if (Date.now() - pickedAt.current < PICK_ECHO_MS) return
     if (draft[key]) onChange({ [key]: null })
   }
 
