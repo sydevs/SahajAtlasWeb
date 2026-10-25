@@ -4,7 +4,7 @@ import type { Event } from '@/types'
 import type { GeocodingFeature } from '@mapbox/search-js-core'
 import type { ReactNode } from 'react'
 
-import { useRef, useState } from 'react'
+import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { AlignLeft, CalendarDays, Info, MapPin, Monitor, Pencil, UserRound } from 'lucide-react'
 
@@ -19,9 +19,6 @@ import { useLocale } from '@/hooks/use-locale'
 import { useTheme } from '@/hooks/use-theme'
 import { emptyDraft, featureToPlace, fieldsChanged, revertFields } from '@/lib/proposal'
 import { viewerTimeZone } from '@/lib/time'
-
-/** How long after a pick a field edit is the geocoder's own echo, not the visitor's. */
-const PICK_ECHO_MS = 500
 
 /** The atlas's own map styles, so the preview tile looks like the map it stands in for. */
 const STATIC_STYLES = {
@@ -82,7 +79,6 @@ export function ListingEditor({
   // Focus follows a visitor's own tap into a section, never the section a flow opens on — a
   // keyboard springing up on arrival would cover the listing it is meant to explain.
   const [tapped, setTapped] = useState<ListingStep | null>(null)
-  const pickedAt = useRef(0)
 
   const baseline = base ?? emptyDraft(draft.timeZone, draft.languages)
   const changed = (key: SectionKey) =>
@@ -109,12 +105,12 @@ export function ListingEditor({
   const pick = (key: 'address' | 'city') => (feature: GeocodingFeature) => {
     const place = featureToPlace(feature)
 
-    pickedAt.current = Date.now()
     // Without a nearby class to lend one, the visitor's own zone — never one inferred earlier.
     onChange({ [key]: place, timeZone: timeZoneFor?.(place) ?? viewerTimeZone() })
   }
+  // The search writes a picked label into its field without reporting it as an edit, so any
+  // edit it does report means the text no longer names the pick: drop it, and ask again.
   const edit = (key: 'address' | 'city') => () => {
-    if (Date.now() - pickedAt.current < PICK_ECHO_MS) return
     if (draft[key]) onChange({ [key]: null })
   }
 
