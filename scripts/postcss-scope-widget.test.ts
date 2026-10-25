@@ -306,10 +306,13 @@ describe('agreement with the runtime', () => {
   // re-declares the light palette for its whole subtree, so the wrapper
   // has to carry one too.
   it("carries a theme class on Ladle's wrapper, the second scope element", () => {
-    const wrapper = readRepoSource('.ladle/components.tsx').match(/clsx\(([\s\S]*?)\)/)?.[1] ?? ''
+    // Anchored on the wrapper element itself, so another `clsx` naming a
+    // theme cannot answer for it.
+    const [, wrapper = ''] =
+      readRepoSource('.ladle/components.tsx').match(/<main([\s\S]*?)>\s*\{children\}/) ?? []
 
     expect(wrapper).toContain('WIDGET_SCOPE_CLASS')
-    expect(wrapper).toContain('theme')
+    expect(wrapper).toMatch(/\btheme\b/)
   })
 
   it('is never written to whatever getThemeRoot() happens to return', () => {
