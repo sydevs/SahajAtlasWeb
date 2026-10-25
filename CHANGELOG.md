@@ -287,6 +287,11 @@ cover everything a host would notice since the widget was first deployed.
 
 ### Fixed
 
+- **A chosen date on the registration form looks chosen again.** ([#329]) The selected card
+  filled with your brand colour, but the radio mark inside it stayed an empty ring, because the
+  browser drew that mark in the same colour as the card behind it. The mark now takes the card's
+  contrasting colour, in light and dark themes and under your own palette. No change for you to
+  make.
 - **Filling in a form no longer slides the widget off its own panel.** ([#326]) On a phone-sized
   sheet, tapping a field low in the registration form scrolled the whole panel away: the header
   left the screen, a blank band took its place, and the buttons floated over nothing, with no
@@ -749,6 +754,7 @@ must-revalidate`, pinned rather than left to the CDN default. The production dom
 [#311]: https://github.com/sydevs/SahajAtlasWeb/pull/311
 [#312]: https://github.com/sydevs/SahajAtlasWeb/pull/312
 [#326]: https://github.com/sydevs/SahajAtlasWeb/issues/326
+[#329]: https://github.com/sydevs/SahajAtlasWeb/pull/329
 [Sizing the element]: docs/embedding.md#sizing-the-element
 [compact card]: docs/embedding.md#when-the-slot-is-too-small
 [Embedding in an iframe]: docs/embedding.md#embedding-in-an-iframe
