@@ -287,6 +287,14 @@ cover everything a host would notice since the widget was first deployed.
 
 ### Fixed
 
+- **The map credits Mapbox again, where you can see them.** ([#324]) The Mapbox wordmark sat
+  in the corner the panel covers on a wide embed and the bottom sheet covers on a narrow one,
+  so it was never visible, and the attribution control was switched off altogether — both are
+  required by Mapbox's terms. The wordmark and a compact attribution button now sit bottom
+  right beside the panel, and top left under the settings control on a narrow embed. Nothing to
+  change on your side: no new origin, no new permission, and they are inside the widget's own
+  element as every other control is.
+
 - **The panel no longer flickers halfway down on every navigation.** ([#312]) Since the widget
   moved into its shadow root ([#236]), each change of view showed the arriving view in the lower
   half of the panel for the length of the fade, before it jumped to the top. The fade relied on a
@@ -745,3 +753,4 @@ must-revalidate`, pinned rather than left to the CDN default. The production dom
 [compact card]: docs/embedding.md#when-the-slot-is-too-small
 [Embedding in an iframe]: docs/embedding.md#embedding-in-an-iframe
 [Permissions Policy]: docs/embedding.md#permissions-policy
+[#324]: https://github.com/sydevs/SahajAtlasWeb/issues/324
