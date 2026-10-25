@@ -60,6 +60,13 @@ export function useSummaryRows(
           value: draft.address?.label ?? '',
           section: 'where',
         },
+    // Said on Check because it is how the typed-in place reaches the coordinator.
+    Boolean((online ? draft.city : draft.address)?.manual) && {
+      key: 'manual',
+      label: t('submit.summary.manual'),
+      value: t('submit.summary.manual_value'),
+      section: 'where',
+    },
     !online && {
       key: 'room',
       label: t('submit.summary.room'),

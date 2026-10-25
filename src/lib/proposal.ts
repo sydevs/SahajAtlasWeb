@@ -62,6 +62,14 @@ export type PickedPlace = {
   longitude?: number
   /** The layers above the place, for intake to match to a region. */
   location: ProposalLocation
+  /**
+   * Typed in by hand, because the search did not know it: no map point and no layers, so the
+   * coordinator places it — and since no Events field carries a free-text place, the place
+   * travels in the note the coordinator reads (`manualPlaceLine`).
+   */
+  manual?: true
+  /** The country as the visitor typed it, for a hand-typed place with no country from the flow. */
+  countryName?: string
 }
 
 export type ListingDraft = {
@@ -169,6 +177,13 @@ export const searchProximity = (
 /** The place a draft is anchored to, for the confirmation's city name and the timezone. */
 export const draftPlace = (draft: ListingDraft): PickedPlace | null =>
   draft.eventType === 'online' ? draft.city : draft.address
+
+/** The typed-in place, when there is one, for the coordinator's note — its only way to them. */
+export const manualPlace = (draft: ListingDraft): PickedPlace | null => {
+  const place = draftPlace(draft)
+
+  return place?.manual ? place : null
+}
 
 /** Where the class sits, for `sendProposal`'s `location`: the address, or an online class's city. */
 export const draftLocation = (draft: ListingDraft): ProposalLocation =>

@@ -321,7 +321,8 @@
       "manual_address": "Fill in the street and the town.",
       "languages": "Choose at least one language.",
       "end_before": "The last class can’t be before the first.",
-      "manual_city": "Fill in the town or city."
+      "manual_city": "Fill in the town or city.",
+      "manual_country": "Add the country."
     },
     "more": {
       "languages_label": "Languages",
@@ -420,7 +421,8 @@
       "other_title": "What’s wrong?",
       "other_label": "Tell the coordinator",
       "other_placeholder": "What’s wrong, and what should it say instead?",
-      "other_required": "Write a few words about what’s wrong."
+      "other_required": "Write a few words about what’s wrong.",
+      "manual_place": "Typed in by hand (not found on the map): %{place}"
     },
     "changes": {
       "title": "Check your suggestion",
@@ -441,7 +443,9 @@
       "zone": "Time zone",
       "contact_email": "Contact email",
       "address": "Address",
-      "contact": "Contact"
+      "contact": "Contact",
+      "manual": "On the map",
+      "manual_value": "Not found by the search — sent in your note so the coordinator can place it."
     }
   }
 }

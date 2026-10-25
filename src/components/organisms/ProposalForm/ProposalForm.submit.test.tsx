@@ -411,6 +411,37 @@ describe('ProposalForm steps', () => {
   })
 })
 
+describe('a place typed in by hand', () => {
+  it('reaches the coordinator in the note, since no Events field carries it', async () => {
+    sdk.request.mockResolvedValue({ json: async () => ({ doc: { id: 12 } }) })
+
+    const typed: ListingDraft = {
+      ...inPerson,
+      eventType: 'online',
+      onlineUrl: 'https://meet.example/a',
+      address: null,
+      city: {
+        label: 'Évora, Portugal',
+        city: 'Évora',
+        countryName: 'Portugal',
+        location: {},
+        manual: true,
+      },
+    }
+    const root = await mount({ initial: typed })
+
+    await type('#submit-sender-email', 'ada@example.org')
+    await submit()
+
+    expect(sdk.request.mock.calls[0][0].json.submissionData).toContainEqual({
+      field: 'note',
+      value: 'submit.note.manual_place',
+    })
+
+    await act(async () => root.unmount())
+  })
+})
+
 describe('ProposalForm corrections', () => {
   const correction = { eventId: 507, baseDraft: inPerson }
 

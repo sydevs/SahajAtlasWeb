@@ -48,8 +48,8 @@ export function PlaceStep({
   const offline = draft.eventType === 'offline'
   // An address the geocoder can't find is typed in by hand: it has no map point, and the
   // coordinator places it. A draft reopened with such an address opens back on the fields.
-  const [manual, setManual] = useState(Boolean(draft.address && !draft.address.mapboxId))
-  const [manualCity, setManualCity] = useState(Boolean(draft.city && !draft.city.location.placeId))
+  const [manual, setManual] = useState(Boolean(draft.address?.manual))
+  const [manualCity, setManualCity] = useState(Boolean(draft.city?.manual))
 
   return (
     <div className="flex flex-col gap-5">
@@ -314,7 +314,7 @@ function ManualAddress({
     street: draft.address?.street ?? '',
     city: draft.address?.city ?? '',
     postCode: draft.address?.postCode ?? '',
-    countryName: '',
+    countryName: draft.address?.countryName ?? '',
   })
   const set = (patch: Partial<typeof parts>) => {
     const next = { ...parts, ...patch }
@@ -328,7 +328,7 @@ function ManualAddress({
     setParts(next)
     onChange({
       address:
-        street && city
+        street && city && (country || countryName)
           ? {
               label: [street, [postCode, city].filter(Boolean).join(' '), countryName]
                 .filter(Boolean)
@@ -337,7 +337,9 @@ function ManualAddress({
               city,
               postCode: postCode || undefined,
               country: country?.toUpperCase(),
+              countryName: countryName || undefined,
               location: {},
+              manual: true,
             }
           : null,
     })
@@ -379,7 +381,9 @@ function ManualAddress({
       </div>
       {!country && (
         <ValidatedInput
+          required
           autoComplete="country-name"
+          error={missing && !parts.countryName.trim() && t('submit.errors.manual_country')}
           id="submit-country"
           label={t('submit.where.manual_country')}
           maxLength={ROOM_MAX}
@@ -407,7 +411,10 @@ function ManualCity({
   onChange: (patch: Partial<ListingDraft>) => void
 }) {
   const { t } = useTranslation()
-  const [parts, setParts] = useState({ city: draft.city?.city ?? '', countryName: '' })
+  const [parts, setParts] = useState({
+    city: draft.city?.city ?? '',
+    countryName: draft.city?.countryName ?? '',
+  })
   const set = (patch: Partial<typeof parts>) => {
     const next = { ...parts, ...patch }
     const city = next.city.trim()
@@ -415,14 +422,17 @@ function ManualCity({
 
     setParts(next)
     onChange({
-      city: city
-        ? {
-            label: [city, countryName].filter(Boolean).join(', '),
-            city,
-            country: country?.toUpperCase(),
-            location: {},
-          }
-        : null,
+      city:
+        city && (country || countryName)
+          ? {
+              label: [city, countryName].filter(Boolean).join(', '),
+              city,
+              country: country?.toUpperCase(),
+              countryName: countryName || undefined,
+              location: {},
+              manual: true,
+            }
+          : null,
     })
   }
 
@@ -432,7 +442,7 @@ function ManualCity({
       <ValidatedInput
         required
         autoComplete="address-level2"
-        error={error && t('submit.errors.manual_city')}
+        error={error && !parts.city.trim() && t('submit.errors.manual_city')}
         id="submit-city"
         label={t('submit.where.manual_city')}
         maxLength={ROOM_MAX}
@@ -441,7 +451,9 @@ function ManualCity({
       />
       {!country && (
         <ValidatedInput
+          required
           autoComplete="country-name"
+          error={error && !parts.countryName.trim() && t('submit.errors.manual_country')}
           id="submit-country"
           label={t('submit.where.manual_country')}
           maxLength={ROOM_MAX}

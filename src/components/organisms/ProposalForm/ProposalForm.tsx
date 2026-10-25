@@ -39,6 +39,7 @@ import {
   featureToPlace,
   firstInvalidStep,
   isEmail,
+  manualPlace,
   stepErrors,
 } from '@/lib/proposal'
 import { submitTitleKey } from '@/lib/shape'
@@ -471,8 +472,14 @@ function ReviewStage({
       Object.keys(built.proposed).length === 0 && Object.keys(built.location).length === 0
     // "It has stopped running" is the report itself, so it leads the note whatever the visitor
     // adds to it — a note saying only "ask Elizabeth" must still say what to ask about.
+    // A typed-in place has no Events field to travel in, so the note carries it.
+    const typed = manualPlace(draft)
     const note =
-      [intent === 'stopped' && t('submit.note.stopped_default'), sender.note.trim()]
+      [
+        intent === 'stopped' && t('submit.note.stopped_default'),
+        typed && t('submit.note.manual_place', { place: typed.label }),
+        sender.note.trim(),
+      ]
         .filter(Boolean)
         .join('\n\n') || undefined
 
