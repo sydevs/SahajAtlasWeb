@@ -22,11 +22,9 @@ export type DrawerDirection = 'left' | 'right' | 'top' | 'bottom'
 
 const drawer = tv({
   slots: {
-    // ⚠ `overflow-clip`, never `overflow-hidden`. A hidden box is still a scroll
-    // container, so focusing a field low in the sheet let the browser scroll the
-    // PANEL to reach it — the header went off-screen and nothing scrolled it back,
-    // since there is no scrollbar and no wheel target (#326). A clipped box cannot
-    // scroll at all, so the body below is the only thing that can move.
+    // ⚠ Clip, never hidden — `components/AGENTS.md` carries why (#326). The panel's own
+    // overflow is vaul's `::after` filler, which no view creates and none can decline, so
+    // this one belongs on the atom. Measured at 390×844: `scrollTop: 762` before it.
     content:
       'pointer-events-auto fixed z-40 flex flex-col overflow-clip bg-background text-foreground shadow-2xl outline-none',
     // Every content band is capped at `--sy-content-max` (default 512px) and

@@ -105,10 +105,8 @@ const overlayClass = `fixed inset-0 ${aboveHost} bg-black/50`
 // inset is the margin that lets the host's page show through. Rounded plus shadow so
 // the frame reads as deliberate.
 //
-// ⚠ Clip, never hidden — `components/AGENTS.md` carries why. Measured here, since this
-// is where it was caught: a sheet translated to its snap point gave this box 528px of
-// scrollable overflow, and focusing a field below the fold carried the whole widget out
-// of the dialog (#326).
+// ⚠ Clip, never hidden — `components/AGENTS.md` carries why (#326). Measured here, since
+// this is where it was caught: 528px of scrollable overflow at 390×844.
 const contentClass = `fixed inset-2 ${aboveHost} overflow-clip rounded-xl bg-background text-foreground shadow-2xl outline-none [contain:layout] sm:inset-4`
 // Deliberately the SettingsMenu cog's chrome, down to the shadow: they are the two
 // floating controls over the same surface, at opposite corners, and they should read
