@@ -441,7 +441,7 @@ function ChangeList({
               onEdit={() => onEdit(change.edit)}
               onRemove={onUndo && (() => undo(change.key))}
             >
-              <dl className="grid grid-cols-[3rem_minmax(0,1fr)] gap-x-3 gap-y-1 text-sm">
+              <dl className="grid grid-cols-[48px_minmax(0,1fr)] gap-x-3 gap-y-1 text-sm">
                 {change.before !== undefined && (
                   <>
                     <dt className="text-gray-11">{t('submit.changes.was')}</dt>
