@@ -99,8 +99,19 @@ export function EventView({ id, basePath }: { id: number; basePath: string }) {
           padding — the Drawer's `sticky` footer asks for exactly that — rather than
           a spacer element in the flow. The old `h-24` div stacked on top of the
           content's own padding, leaving ~176px of blank space under a full-bleed
-          carousel to clear a 65px bar. */}
-      <DrawerBody className={stickyRegister ? 'pb-20' : undefined}>
+          carousel to clear a 65px bar.
+
+          `pb-20` clears the CONTENT. The scroll padding clears the SCROLL, so focus cannot
+          park a field behind the bar — 112px is the bar plus slack, offset by the sheet's own
+          top because THIS body's bottom edge sits that far below the viewport, where the bar
+          paints: measured 519px at the 544px snap, so a bare 112px cleared the bar at the top
+          snap only (#326). Both numbers live here because this is the app's one sticky
+          footer, and the ten other drawer bodies have nothing at the bottom to clear. */}
+      <DrawerBody
+        className={
+          stickyRegister ? 'scroll-pb-[calc(112px_+_var(--sy-sheet-top,0px))] pb-20' : undefined
+        }
+      >
         {/* The details are a lazy chunk, so they can fail on their own — a dropped connection
             mid-session, or a host CSP blocking the chunk — after the event itself resolved.
             Keeping that local means the title, the close button, and the sticky Register CTA

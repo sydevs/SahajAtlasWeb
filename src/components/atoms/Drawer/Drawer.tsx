@@ -48,12 +48,7 @@ const drawer = tv({
     // a clipped edge, instead of a horizontal scrollbar across the view. It
     // is safe for the full-bleed carousel, which is exactly the body's width,
     // and for popovers, which portal out of the body entirely.
-    //
-    // `scroll-pb-28` (112px) stops a focused field scrolling flush to this box's
-    // bottom edge, where a sticky DrawerFooter paints over it. EventView's `pb-20`
-    // is the other half, not a duplicate: that one clears the CONTENT, this one
-    // clears the SCROLL (#326).
-    body: 'mx-auto min-h-0 w-full max-w-[var(--sy-content-max,512px)] flex-1 scroll-pb-28 overflow-x-hidden overflow-y-auto',
+    body: 'mx-auto min-h-0 w-full max-w-[var(--sy-content-max,512px)] flex-1 overflow-x-hidden overflow-y-auto',
     footer:
       'mx-auto mt-auto w-full max-w-[var(--sy-content-max,512px)] shrink-0 border-t border-gray-4',
     // This themes the vaul drag handle. Its vendored CSS hardcodes a light
@@ -399,7 +394,10 @@ export function DrawerFooter({
    * The sheet is a full-height translated panel, so `fixed` would resolve
    * against it instead. So the footer offsets by the sheet's live top. That
    * value is mirrored every frame onto `--sy-sheet-top` by DrawerStack.
-   * Content scrolls under the footer. Give the body matching bottom padding.
+   * Content scrolls under the footer. Give the body matching bottom padding AND
+   * scroll padding, the latter offset by `--sy-sheet-top`: the body's bottom edge
+   * sits that far below the viewport at any snap but the top one, so a constant
+   * clears the bar at the top snap only (#326).
    */
   sticky?: boolean
 }) {

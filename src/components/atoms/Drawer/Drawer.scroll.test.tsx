@@ -5,6 +5,8 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 
 import { Drawer, DrawerBody, DrawerContent } from './Drawer'
 
+import { readRepoSource } from '@/test-support/repo-source'
+
 /**
  * The panel is not a scroll container (issue #326).
  *
@@ -71,9 +73,35 @@ describe('Drawer — the panel cannot scroll', () => {
     expect(classes).not.toContain('overflow-hidden')
   })
 
-  it('gives the scrolling body room to clear a sticky footer', () => {
-    // A `sticky` DrawerFooter paints OVER the body rather than beside it (EventView's Register
-    // bar), so without scroll padding the browser parks a focused field behind it.
-    expect(classesOf('[data-vaul-drawer] .overflow-y-auto')).toContain('scroll-pb-28')
+  it('leaves the body slot no padding of its own', () => {
+    // The clearance for a sticky footer belongs to the one view that has one — see below.
+    const body = classesOf('[data-vaul-drawer] .overflow-y-auto')
+
+    expect(body.filter((token) => /^(scroll-)?p[btrlxy]?-/.test(token))).toEqual([])
+  })
+})
+
+/**
+ * Where a sticky footer's clearance lives: at its ONE caller, as a pair (issue #326).
+ *
+ * `EventView`'s Register bar is the app's only `sticky` DrawerFooter, so the ten other drawer
+ * bodies have nothing at the bottom to clear. Both numbers therefore sit on that one body, and
+ * nothing failed while they drifted.
+ *
+ * The scroll half carries `--sy-sheet-top` because the body's bottom edge sits that far below
+ * the viewport at any snap but the top one. Measured in Chrome at 390×844 on the branch preview,
+ * sheet at its 544px snap: the body's bottom edge was 519px below the viewport, so a bare 112px
+ * parked a focused field off-screen instead of above the bar.
+ */
+describe('the sticky register bar’s clearance', () => {
+  const eventView = readRepoSource('src/views/EventView/EventView.tsx')
+  const classes = eventView.match(/stickyRegister \? '([^']+)'/)?.[1].split(/\s+/)
+
+  it('pairs both paddings on the one body with a footer to clear', () => {
+    // Tokens, not a substring: `overlay.clip.test.ts` carries the defect that settled that.
+    // A null here means the class moved and every assertion below would pass by vacuum.
+    expect(classes, 'no `stickyRegister ? …` class string in EventView').toBeDefined()
+    expect(classes).toContain('pb-20')
+    expect(classes).toContain('scroll-pb-[calc(112px_+_var(--sy-sheet-top,0px))]')
   })
 })
