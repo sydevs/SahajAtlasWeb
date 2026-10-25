@@ -346,7 +346,10 @@
       "online_url_label": "Link to join",
       "online_url_placeholder": "https://",
       "room_label": "Room or floor (optional)",
-      "title": "Where does the class take place?"
+      "title": "Where does the class take place?",
+      "nearby_title": "Is it one of these?",
+      "nearby_body": "There’s already a class listed at this address. If it’s yours, correct it instead of adding it again.",
+      "nearby_action": "Correct it"
     }
   }
 }

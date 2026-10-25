@@ -238,8 +238,29 @@ export const firstInvalidStep = (
   base?: ListingDraft | null,
 ): ListingStep | null =>
   (['where', 'when', 'contact', 'more'] as const).find(
-    (step) => Object.keys(stepErrors(step, draft, base)).length > 0,
+    (step) =>
+      // A correction answers only for what it touches: a class with no schedule can still have
+      // its phone number fixed.
+      (!base || stepChanged(step, draft, base)) &&
+      Object.keys(stepErrors(step, draft, base)).length > 0,
   ) ?? null
+
+/** The draft fields each step fills in, so a correction can tell which steps it touched. */
+const STEP_FIELDS: Record<Exclude<ListingStep, 'review'>, (keyof ListingDraft)[]> = {
+  where: ['eventType', 'address', 'room', 'onlineUrl', 'city'],
+  when: ['firstDate', 'startTime', 'endTime', 'repeats', 'endDate', 'timeZone'],
+  contact: ['contactName', 'contactPhone', 'contactEmail'],
+  about: ['description'],
+  more: ['title', 'languages', 'website'],
+}
+
+/** Whether `draft` differs from `base` in any field `step` fills in. */
+export const stepChanged = (
+  step: Exclude<ListingStep, 'review'>,
+  draft: ListingDraft,
+  base: ListingDraft,
+): boolean =>
+  STEP_FIELDS[step].some((field) => JSON.stringify(draft[field]) !== JSON.stringify(base[field]))
 
 // ── To the Events patch ──────────────────────────────────────────────────────────
 

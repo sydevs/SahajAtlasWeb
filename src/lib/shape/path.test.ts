@@ -7,7 +7,6 @@ import {
   correctionPath,
   isSubmitEntry,
   opensTall,
-  submitPanelPlacement,
   submitTitleKey,
   filterOriginRegion,
   isCanonicalPath,
@@ -479,14 +478,6 @@ describe('the add-a-class routes', () => {
     expect(isSubmitEntry(resolveStack('/507/correct').at(-1))).toBe(true)
     expect(isSubmitEntry(resolveStack('/507/register').at(-1))).toBe(false)
     expect(isSubmitEntry(undefined)).toBe(false)
-  })
-
-  it('places the step panel in its own sheet with a map, and inline without one', () => {
-    const add = resolveStack('/gb/london/add').at(-1)
-
-    expect(submitPanelPlacement(add, true)).toBe('sheet')
-    expect(submitPanelPlacement(add, false)).toBe('inline')
-    expect(submitPanelPlacement(resolveStack('/gb/london').at(-1), true)).toBeNull()
   })
 
   it('opens the calendar and both flows tall, and nothing else', () => {

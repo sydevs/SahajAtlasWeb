@@ -13,7 +13,7 @@ import type { InputProps } from '@/components/atoms/Input'
 import type { GeocodingFeature } from '@mapbox/search-js-core'
 import type { ReactNode } from 'react'
 
-import { useMemo, useState } from 'react'
+import { useMemo, useRef, useState } from 'react'
 import { useMutation } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
 
@@ -81,10 +81,14 @@ export type ProposalFormProps = {
   context: ReportContext
   /** Where the place searches start: the region the flow opened from. */
   proximity?: { lng: number; lat: number }
+  /** The country the place searches keep to, when the flow opened inside one. */
+  country?: string
   /** The zone a picked place implies, when one can be told. */
   timeZoneFor?: (place: PickedPlace) => string | undefined
   /** The languages offered on the details step, beyond the ones already chosen. */
   languageOptions?: string[]
+  /** Shown under the place once one is picked — the view's "is it one of these?" check. */
+  placeNotice?: ReactNode
   /** The header's trailing control — the panel's close button. */
   trailing?: ReactNode
   /** Story-only: open the review step showing this refusal, without a real request. */
@@ -112,8 +116,10 @@ export function ProposalForm({
   onClose,
   context,
   proximity,
+  country,
   timeZoneFor,
   languageOptions = [],
+  placeNotice,
   trailing,
   initialRefusal,
 }: ProposalFormProps) {
@@ -146,11 +152,23 @@ export function ProposalForm({
     go(onward)
   }
 
+  // The geocoder writes the picked label into its field right after a pick. Any edit after
+  // that means the text no longer names the pick, so the pick is dropped and must be redone.
+  const picking = useRef(false)
   const pick = (key: 'address' | 'city') => (feature: GeocodingFeature) => {
     const place = featureToPlace(feature)
 
+    picking.current = true
     // Without a nearby class to lend one, the visitor's own zone — never one inferred earlier.
     onChange({ [key]: place, timeZone: timeZoneFor?.(place) ?? viewerTimeZone() })
+  }
+  const edit = (key: 'address' | 'city') => () => {
+    if (picking.current) {
+      picking.current = false
+
+      return
+    }
+    if (draft[key]) onChange({ [key]: null })
   }
 
   if (sent) {
@@ -192,13 +210,16 @@ export function ProposalForm({
 
       {step === 'where' && (
         <WhereStep
+          country={country}
           draft={draft}
           errors={errors}
           proximity={proximity}
           onChange={onChange}
+          onEdit={edit}
           onPick={pick}
         />
       )}
+      {step === 'where' && placeNotice}
       {step === 'when' && <WhenStep draft={draft} errors={errors} onChange={onChange} />}
       {step === 'contact' && <ContactStep draft={draft} errors={errors} onChange={onChange} />}
       {step === 'about' && <AboutStep draft={draft} onChange={onChange} />}
@@ -293,11 +314,15 @@ function WhereStep({
   draft,
   errors = {},
   proximity,
+  country,
   onChange,
   onPick,
+  onEdit,
 }: StepProps & {
   proximity?: { lng: number; lat: number }
+  country?: string
   onPick: (key: 'address' | 'city') => (feature: GeocodingFeature) => void
+  onEdit: (key: 'address' | 'city') => () => void
 }) {
   const { t } = useTranslation()
 
@@ -325,10 +350,12 @@ function WhereStep({
             label={t('submit.where.address_label')}
           >
             <MapSearch
+              country={country}
               label={t('submit.where.address_placeholder')}
               proximity={proximity}
               query={{ initial: draft.address?.label ?? '' }}
               types="address"
+              onQueryChange={onEdit('address')}
               onSelect={onPick('address')}
             />
           </FormField>
@@ -359,10 +386,12 @@ function WhereStep({
             label={t('submit.where.city_label')}
           >
             <MapSearch
+              country={country}
               label={t('submit.where.city_placeholder')}
               proximity={proximity}
               query={{ initial: draft.city?.label ?? '' }}
               types="place"
+              onQueryChange={onEdit('city')}
               onSelect={onPick('city')}
             />
           </FormField>
@@ -627,7 +656,8 @@ function ReviewBar({
         const unchanged =
           Object.keys(built.proposed).length === 0 && Object.keys(built.location).length === 0
 
-        if (correction && unchanged) return setNoChanges(true)
+        // A note alone is a correction too: "this class no longer meets" has no field to change.
+        if (correction && unchanged && !note.trim()) return setNoChanges(true)
         if (token) mutation.mutate({ built, captcha: token })
       }}
     >

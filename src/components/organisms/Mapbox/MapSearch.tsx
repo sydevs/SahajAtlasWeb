@@ -43,6 +43,12 @@ export interface MapSearchProps {
    * add-a-class flow opened from, which a map-less embed has no camera to say.
    */
   proximity?: { lng: number; lat: number }
+  /** Keeps suggestions inside this country (ISO 3166-1 alpha-2) — the one a flow opened in. */
+  country?: string
+  /**
+   * Told of every edit to the field's text, so a form can drop a pick the text no longer names.
+   */
+  onQueryChange?: (text: string) => void
 }
 
 // The geocoder is a custom element from @mapbox/search-js-web. It fails to
@@ -69,7 +75,15 @@ class GeocoderBoundary extends Component<
   }
 }
 
-export function MapSearch({ onSelect, query = 'url', label, types, proximity }: MapSearchProps) {
+export function MapSearch({
+  onSelect,
+  query = 'url',
+  label,
+  types,
+  proximity,
+  country,
+  onQueryChange,
+}: MapSearchProps) {
   const [searchParams, setSearchParams] = useSearchParams()
   const location = useLocation()
   const isFormField = typeof query === 'object'
@@ -122,6 +136,7 @@ export function MapSearch({ onSelect, query = 'url', label, types, proximity }: 
 
   const setQuery = (text: string) => {
     setSearchQuery(text)
+    onQueryChange?.(text)
     ownWrite.current = text
     if (query !== 'url') return
 
@@ -146,7 +161,16 @@ export function MapSearch({ onSelect, query = 'url', label, types, proximity }: 
     // types and the × appears, so the text never runs under it. (The
     // generated `mbx…--Input` class carries a per-build hash, so this
     // targets the element, not the class.)
-    <div ref={field} className="[&_input:placeholder-shown]:!pe-3">
+    // In a form, Escape belongs to the suggestion list: closing it must not also close the
+    // drawer the form sits in, and with it the visitor's half-filled listing.
+    // eslint-disable-next-line jsx-a11y/no-static-element-interactions
+    <div
+      ref={field}
+      className="[&_input:placeholder-shown]:!pe-3"
+      onKeyDown={(event) => {
+        if (isFormField && event.key === 'Escape') event.stopPropagation()
+      }}
+    >
       <GeocoderBoundary
         fallback={
           <input
@@ -168,6 +192,7 @@ export function MapSearch({ onSelect, query = 'url', label, types, proximity }: 
             language: locale, // TODO: Make sure this switches when locale changes
             proximity: proximity ?? mapbox?.getCenter(),
             ...(types ? { types } : {}),
+            ...(country ? { country } : {}),
           }}
           placeholder={fieldLabel}
           theme={controlTheme}

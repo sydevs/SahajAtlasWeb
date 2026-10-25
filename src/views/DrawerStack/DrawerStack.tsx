@@ -33,15 +33,11 @@ import {
   dismissDepth,
   baseStackEntry,
   isFilterOverlay,
-  isSubmitEntry,
   opensTall,
   resolveStack,
-  submitPanelPlacement,
-  submitTitleKey,
 } from '@/lib/shape'
 import { wakesSheetLoop } from '@/views/DrawerStack/sheet-wake'
 import { stripLabel } from '@/views/DrawerStack/strip-label'
-import { submitPanelLayout } from '@/views/DrawerStack/submit-panel'
 import { ViewLayer } from '@/views/DrawerStack/ViewLayer'
 import { DrawerControlContext } from '@/views/shared'
 import { DrawerErrorFallback, DrawerLoading } from '@/views/fallbacks'
@@ -83,13 +79,9 @@ const loadSecondaryViews = () => ({
   ShareView: lazy(() =>
     import('@/views/ShareView/ShareView').then((m) => ({ default: m.ShareView })),
   ),
-  // The add-a-class and correction flows (#147): the listing in this sheet, and the step
-  // panel in a sheet of its own beside it. One module, so one chunk serves both.
+  // The add-a-class and correction flows (#147), in the stack's own sheet like any other view.
   SubmitView: lazy(() =>
     import('@/views/SubmitView/SubmitView').then((m) => ({ default: m.SubmitView })),
-  ),
-  SubmitPanel: lazy(() =>
-    import('@/views/SubmitView/SubmitView').then((m) => ({ default: m.SubmitPanel })),
   ),
 })
 
@@ -291,8 +283,6 @@ export function DrawerStack() {
   const isWide = useIsWide(container ?? frameElement())
   const direction: Direction = isWide ? 'left' : 'bottom'
   const [snap, setSnap] = useState<number | string | null>(OPEN_SNAP)
-  // Whether the add-a-class step panel is the review bar, as the panel itself reports it.
-  const [panelCompact, setPanelCompact] = useState(false)
   const stripsRef = useRef<HTMLDivElement>(null)
   // The lazy components ARE the retry state — the boundary's reset swaps in fresh ones.
   // Same shape, and the same reasoning, as EventView's `EventDetails`.
@@ -720,40 +710,6 @@ export function DrawerStack() {
     </DrawerControlContext.Provider>
   ) : null
 
-  // The add-a-class step panel (#147). NON-modal, unlike the filter overlay, because the
-  // listing behind it stays live: its Edit links are how review returns to a step. Not
-  // dismissible, because the flow closes from its own X, which is the stack's dismiss.
-  const panelLayout = submitPanelLayout(isWide, panelCompact)
-  const submitPanel =
-    isSubmitEntry(top) && submitPanelPlacement(top, hasMap) === 'sheet' ? (
-      <DrawerControlContext.Provider value={control}>
-        <Drawer
-          key={`submit-panel-${direction}`}
-          handleOnly
-          open
-          container={overlayContainer()}
-          direction={panelLayout.direction}
-          dismissible={false}
-          measureAgainst={frameElement()}
-        >
-          <DrawerContent
-            aria-label={t(submitTitleKey(top.kind))}
-            className={panelLayout.className}
-            handle={false}
-          >
-            <Suspense fallback={<DrawerLoading />}>
-              <ResetErrorBoundary
-                FallbackComponent={DrawerErrorFallback}
-                onReset={() => setSecondary(loadSecondaryViews())}
-              >
-                <secondary.SubmitPanel entry={top} onCompactChange={setPanelCompact} />
-              </ResetErrorBoundary>
-            </Suspense>
-          </DrawerContent>
-        </Drawer>
-      </DrawerControlContext.Provider>
-    ) : null
-
   // Map-less: one contained drawer fills the widget container (there is no map to
   // reveal, so no peek strips or snap ladder). Standalone owns the viewport
   // (100dvh). Embedded fills the host's slot (100%).
@@ -901,7 +857,6 @@ export function DrawerStack() {
           {sheet}
         </Drawer>
         {filterDrawer}
-        {submitPanel}
       </DrawerControlContext.Provider>
     </WidgetWidthContext.Provider>
   )

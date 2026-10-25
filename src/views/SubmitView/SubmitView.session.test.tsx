@@ -7,12 +7,13 @@ import { MemoryRouter, type NavigateFunction, useNavigate } from 'react-router'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
-import { SubmitPanel } from './SubmitView'
+import { SubmitView } from './SubmitView'
 
 import { useListingDraft } from '@/config/store'
 
-// The step panel's sheet remounts when the widget crosses its breakpoint. Whether the session
-// survives that is a mount-and-remount question, which only a mounted tree can answer.
+// The flow's view remounts when the widget crosses its breakpoint (the sheet changes direction).
+// Whether the session survives that is a mount-and-remount question, which only a mounted tree
+// can answer.
 ;(globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true
 
 vi.mock('@mapbox/search-js-react', () => ({ Geocoder: () => null }))
@@ -30,17 +31,13 @@ function Navigator() {
 const client = new QueryClient()
 let root: ReturnType<typeof createRoot>
 
-let reported: boolean[] = []
-
 const render = (panel: boolean) =>
   act(async () =>
     root.render(
       <QueryClientProvider client={client}>
         <MemoryRouter initialEntries={['/add']}>
           <Navigator />
-          {panel && (
-            <SubmitPanel entry={entry} onCompactChange={(compact) => reported.push(compact)} />
-          )}
+          {panel && <SubmitView entry={entry} />}
         </MemoryRouter>
       </QueryClientProvider>,
     ),
@@ -50,7 +47,6 @@ describe('the listing session', () => {
   beforeEach(() => {
     useListingDraft.setState({ key: null, entry: null, draft: null, sent: false })
     root = createRoot(document.createElement('div'))
-    reported = []
   })
   afterEach(() => act(() => root.unmount()))
 
@@ -86,14 +82,5 @@ describe('the listing session', () => {
     await render(true)
 
     expect(useListingDraft.getState().sent).toBe(false)
-  })
-
-  it('tells its sheet when it shrinks to the review bar, and lets go when it closes', async () => {
-    await render(true)
-    act(() => useListingDraft.getState().setStep('review'))
-    expect(reported.at(-1)).toBe(true)
-
-    await render(false)
-    expect(reported.at(-1)).toBe(false)
   })
 })

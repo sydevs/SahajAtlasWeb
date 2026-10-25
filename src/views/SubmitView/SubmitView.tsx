@@ -2,22 +2,23 @@ import type { ListingDraft, OpenedListing, PickedPlace, ScheduleFields } from '@
 import type { Event, Region } from '@/types'
 import type { ReactNode } from 'react'
 
-import { useCallback, useDeferredValue, useLayoutEffect, useMemo, useRef } from 'react'
+import { useCallback, useDeferredValue, useEffect, useLayoutEffect, useMemo, useRef } from 'react'
 import { useLocation } from 'react-router'
 import { useQuery } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
 import { useShallow } from 'zustand/react/shallow'
 
 import { ListingDetails } from './ListingDetails'
+import { NearbyClassNotice } from './NearbyClassNotice'
 import { useFeedHints } from './use-feed-hints'
+import { useNearbyClasses } from './use-nearby-classes'
 
-import { type SubmitEntry, submitPanelPlacement, submitTitleKey } from '@/lib/shape'
+import { type SubmitEntry, submitTitleKey } from '@/lib/shape'
 import { DrawerBody } from '@/components/atoms/Drawer'
 import { IpLookupContext } from '@/hooks/use-ip-location'
 import { EventHeader } from '@/components/organisms/EventDetails/EventHeader'
 import { ProposalForm } from '@/components/organisms/ProposalForm'
 import { regionQuery } from '@/config/api'
-import { useWidgetMode } from '@/config/mode'
 import { useListingDraft } from '@/config/store'
 import { useLocale } from '@/hooks/use-locale'
 import { useMapController } from '@/hooks/use-map-controller'
@@ -37,11 +38,8 @@ import { CloseButton, useDrawerControl, useEventFromPath, useFrameOnTop } from '
  * The add-a-class and correction flows (#147), at `<region-path>/add`, `/add` and
  * `<event-path>/correct`.
  *
- * Two surfaces share one draft, held in `useListingDraft`: `SubmitView` is the listing in the
- * stack's base sheet, built live from what the visitor has entered, and `SubmitPanel` is the
- * step panel DrawerStack renders beside it — from the right on a wide widget, rising from the
- * bottom on a narrow one. A map-less embed has no room for a second sheet, so there the panel
- * renders above the listing inside this view instead.
+ * One surface, in the stack's own sheet like any other view: the step form, and under it the
+ * listing built live from the same draft, held in `useListingDraft`.
  */
 
 /** What a flow opened on: the route's own draft, and whatever place or class it opened over. */
@@ -51,6 +49,15 @@ type FlowTarget = {
   event?: Event
   region?: Region
   open: () => OpenedListing
+  /** ISO 3166-1 alpha-2 of the country the flow opened in, which the place searches keep to. */
+  country?: string
+}
+
+/** The country a region path sits in: its first segment, which is the country's ISO code. */
+const pathCountry = (path: string): string | undefined => {
+  const first = path.split('/').filter(Boolean)[0]
+
+  return first && /^[a-z]{2}$/i.test(first) ? first.toLowerCase() : undefined
 }
 
 function AddTarget({
@@ -71,6 +78,7 @@ function AddTarget({
     key: `add:${entry.path}`,
     path: entry.path,
     region,
+    country: entry.regionSlug === null ? undefined : pathCountry(entry.path),
     open: () => openListing({ timeZone: viewerTimeZone(), languages: [languageCode] }),
   })
 }
@@ -147,6 +155,10 @@ function FlowPanel({ target, trailing }: { target: FlowTarget; trailing?: ReactN
   const { locale } = useLocale()
   const location = useLocation()
   const hints = useFeedHints()
+  const draft = session?.draft ?? null
+  const nearby = useNearbyClasses(
+    draft && !target.event && draft.eventType === 'offline' ? draft.address : null,
+  )
   const timeZoneFor = useCallback(
     (place: PickedPlace) => nearestTimeZone(place, hints.points),
     [hints.points],
@@ -164,8 +176,10 @@ function FlowPanel({ target, trailing }: { target: FlowTarget; trailing?: ReactN
           ? { eventId: target.event.id, baseDraft: session.base }
           : undefined
       }
+      country={target.country}
       draft={session.draft}
       languageOptions={hints.languages}
+      placeNotice={<NearbyClassNotice classes={nearby} />}
       proximity={searchProximity(target.region?.center)}
       reviewed={session.reviewed}
       sender={session.sender}
@@ -199,7 +213,7 @@ function usePreviewSchedule(draft: ListingDraft | null) {
   )
 }
 
-function Listing({ target, inlinePanel }: { target: FlowTarget; inlinePanel: boolean }) {
+function Listing({ target }: { target: FlowTarget }) {
   const { t } = useTranslation()
   const session = useListingSession(target)
   const { frameEvent, frameRegion } = useMapController()
@@ -230,6 +244,15 @@ function Listing({ target, inlinePanel }: { target: FlowTarget; inlinePanel: boo
     [draft, base, basePatch, schedule, event, target.path],
   )
 
+  // A picked place drops its pin, so the visitor sees where the class will show on the map.
+  const placed = listing?.address?.latitude != null ? listing : null
+  const pinKey = placed ? `${placed.address?.latitude},${placed.address?.longitude}` : null
+
+  useEffect(() => {
+    if (placed && pinKey) frameEvent(placed)
+    // Keyed on the point alone: the listing is rebuilt on every keystroke.
+  }, [pinKey, frameEvent])
+
   if (!session || !listing) return null
 
   const { setStep } = useListingDraft.getState()
@@ -239,11 +262,9 @@ function Listing({ target, inlinePanel }: { target: FlowTarget; inlinePanel: boo
     <>
       <EventHeader event={{ ...listing, title }} trailing={<CloseButton />} />
       <DrawerBody>
-        {inlinePanel && (
-          <div className="mx-6 mb-4 rounded-lg border border-divider">
-            <FlowPanel target={target} />
-          </div>
-        )}
+        <div className="mx-6 mb-4 rounded-lg border border-divider">
+          <FlowPanel target={target} />
+        </div>
         {!session.sent && (
           <p className="mx-6 mb-2 text-xs text-gray-11">{t('submit.chrome.preview_note')}</p>
         )}
@@ -259,45 +280,7 @@ function Listing({ target, inlinePanel }: { target: FlowTarget; inlinePanel: boo
   )
 }
 
-/** The listing behind the panel — the base sheet's view for the flow's routes. */
+/** The flow's one view: the step form over the listing it builds. */
 export function SubmitView({ entry }: { entry: SubmitEntry }) {
-  const { hasMap } = useWidgetMode()
-
-  return (
-    <WithTarget entry={entry}>
-      {(target) => (
-        <Listing inlinePanel={submitPanelPlacement(entry, hasMap) === 'inline'} target={target} />
-      )}
-    </WithTarget>
-  )
-}
-
-/** The step panel, as DrawerStack mounts it in its own sheet beside the listing. */
-export function SubmitPanel({
-  entry,
-  onCompactChange,
-}: {
-  entry: SubmitEntry
-  /** Told when the panel becomes the review bar, and `false` when it closes, so its sheet
-   *  can size itself without reading the draft store. */
-  onCompactChange?: (compact: boolean) => void
-}) {
-  const compact = useListingDraft((state) => state.step === 'review' || state.sent)
-  const report = useRef(onCompactChange)
-
-  report.current = onCompactChange
-
-  // A layout effect, so the sheet resizes before the frame paints.
-  useLayoutEffect(() => {
-    report.current?.(compact)
-  }, [compact])
-  useLayoutEffect(() => () => report.current?.(false), [])
-
-  return (
-    <DrawerBody>
-      <WithTarget entry={entry}>
-        {(target) => <FlowPanel target={target} trailing={<CloseButton />} />}
-      </WithTarget>
-    </DrawerBody>
-  )
+  return <WithTarget entry={entry}>{(target) => <Listing target={target} />}</WithTarget>
 }
