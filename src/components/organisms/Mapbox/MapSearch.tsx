@@ -130,10 +130,10 @@ export function MapSearch({ onSelect, syncToUrl = true, label }: MapSearchProps)
     // generated `mbx…--Input` class carries a per-build hash, so this
     // targets the element, not the class.)
     //
-    // The font size below `md` is the same iOS zoom floor `fieldChrome` carries
-    // (#322), reached from out here because the geocoder's own input takes
-    // `font: inherit` from a themed container, and `themes.ts`'s `unit` is the
-    // whole control's spacing scale rather than just its text.
+    // Below `md` the geocoder's own input takes the same iOS zoom floor `fieldChrome`
+    // carries (#322) — reached from out here, since that input inherits its size from
+    // a container `themes.ts` sizes with the control's whole spacing scale.
+    // `mobile-zoom.test.ts` owns the rest of the argument, including the `!`.
     <div ref={field} className="max-md:[&_input]:!text-[16px] [&_input:placeholder-shown]:!pe-3">
       <GeocoderBoundary
         fallback={

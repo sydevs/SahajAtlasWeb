@@ -558,8 +558,8 @@ coupling the other cannot:
 specs enumerate the source tree instead of importing from it — the ten `src/` inventories and
 `source-tree.test.ts`, found because they import the shared walk (#286), plus two `scripts/` specs
 found by an enumerating call (`readdirSync(` and its kin). Nothing in them references the file that
-breaks them, so no reference can select one, and before #293 every one of them ran on every edit. `readLane` still
-reports the set, because
+breaks them, so no reference can select one, and until #293 they all ran on every edit. `readLane`
+still reports the set, because
 `select-unit-specs.test.ts` pins it as a closed list. `selectFrom` no longer takes it, and the hook
 needed no edit to stop running it — it exits before spawning vitest on an empty selection
 (`.claude/hooks/unit-test.mjs:32`), which is also what keeps this change out of `.claude/`, a

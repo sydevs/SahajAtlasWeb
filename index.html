@@ -11,11 +11,8 @@
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/logo.svg" />
     <!--
-      No `maximum-scale` and no `user-scalable`: a reader who needs to magnify the map or a
-      venue address must be able to, and this shell is a page in its own right rather than
-      an app chrome. iOS Safari's other zoom — the one that scales the whole page when a
-      field under 16px is focused — is prevented at the fields instead, which keeps pinch
-      available (#322).
+      No `maximum-scale` and no `user-scalable`: a reader who needs to magnify a venue address
+      must be able to. Safari's focus zoom is held off at the fields instead (#322).
     -->
     <meta name="viewport" content="viewport-fit=cover, width=device-width, initial-scale=1.0" />
     <!--

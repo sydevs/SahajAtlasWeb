@@ -3,59 +3,44 @@ import { describe, expect, it } from 'vitest'
 
 import { readRepoSource } from '@/test-support/repo-source'
 import { parseSource } from '@/test-support/source-ast'
-import { readSource, sourceFiles } from '@/test-support/source-tree'
+import { readSourceWithoutComments, sourceFiles } from '@/test-support/source-tree'
 
 /**
- * Both halves of #322, which are one bug seen from two ends: a reader on a phone could not
- * magnify the standalone page, and tapping any field magnified it for them whether they asked
- * or not.
- *
- * The second half is the one an enumeration has to hold. iOS Safari scales the whole page in
- * when a focused text field computes under 16px, and embedded there is no way back out — the
- * host's page is left scaled, and nothing of ours is in a position to undo it. So the floor has
- * to hold for every field in the app, not for the two a ticket happened to name, and a field
- * added later is exactly how it stops holding.
+ * iOS Safari scales the whole page in when a focused text field computes under 16px, and
+ * embedded there is no way back out — the host's page is left scaled, and nothing of ours is in
+ * a position to undo it (#322). So the floor has to hold for every field in the app, not for the
+ * two a ticket happened to name, and a field added later is how it stops holding.
  */
 
-/** 16px, written in px like every other length here (`src/AGENTS.md`). */
 const ZOOM_FLOOR = /text-\[16px\]/
 
-/** The shared field recipe carries the floor for everything built on it. */
 const ON_THE_RECIPE = /fieldChrome\(/
 
 /**
  * Tags that render a focusable text field.
  *
  * `CommandInput` is cmdk's, and the Combobox's real text entry — the Radix trigger beside it is
- * a button. Our own `Input` and `Textarea` atoms are absent on purpose: they are `<input>` and
- * `<textarea>` in this list already, through their own files.
+ * a button. Our own `Input` and `Textarea` atoms are absent on purpose: they are the `<input>`
+ * and `<textarea>` in this list already, through their own files.
  */
 const FIELD_TAGS = ['input', 'textarea', 'select', 'CommandInput']
 
 /** `type`s that take no typing, so focusing one zooms nothing. */
-const NON_TEXT_TYPES = [
-  'button',
-  'checkbox',
-  'color',
-  'file',
-  'hidden',
-  'image',
-  'radio',
-  'range',
-  'reset',
-  'submit',
-]
+const NON_TEXT_TYPES = ['checkbox', 'radio']
 
 type Field = { path: string; tag: string; className: string }
 
-const attribute = (element: ts.JsxOpeningLikeElement, name: string) =>
+const label = ({ path, tag }: Field) => `${path} <${tag}>`
+
+const attribute = (element: ts.JsxOpeningLikeElement, name: string, source: ts.SourceFile) =>
   element.attributes.properties.find(
     (property): property is ts.JsxAttribute =>
-      ts.isJsxAttribute(property) && property.name.getText() === name,
+      ts.isJsxAttribute(property) && property.name.getText(source) === name,
   )
 
-// Parsed rather than grepped, for the reason `href.test.ts` gives: every cheap way of stripping
-// comments from the raw text has a false pass in it, and a hidden field is what this must find.
+// Read per element, not per file: a regex cannot reliably tie a `className` to the opening tag it
+// belongs to across multiline JSX, so a file-level match would pass a file whose SECOND field
+// lacks the floor.
 const fieldsIn = (path: string): Field[] => {
   const parsed = parseSource(path)
   const found: Field[] = []
@@ -65,7 +50,7 @@ const fieldsIn = (path: string): Field[] => {
       const tag = node.tagName.getText(parsed)
 
       if (FIELD_TAGS.includes(tag)) {
-        const type = attribute(node, 'type')?.initializer
+        const type = attribute(node, 'type', parsed)?.initializer
         const literalType = type && ts.isStringLiteral(type) ? type.text : undefined
 
         // An expression for `type` is unreadable from here, so it counts as text entry.
@@ -73,7 +58,7 @@ const fieldsIn = (path: string): Field[] => {
           found.push({
             path,
             tag,
-            className: attribute(node, 'className')?.initializer?.getText(parsed) ?? '',
+            className: attribute(node, 'className', parsed)?.initializer?.getText(parsed) ?? '',
           })
         }
       }
@@ -88,16 +73,35 @@ const fieldsIn = (path: string): Field[] => {
 }
 
 describe('every field clears the 16px iOS zoom floor', () => {
-  const fields = sourceFiles({ extensions: ['.tsx'] }).flatMap(fieldsIn)
+  const sources = sourceFiles({ extensions: ['.tsx'] })
+  const fields = sources.flatMap(fieldsIn)
 
-  it('finds the app fields to check (the walk itself must not silently break)', () => {
-    // Blind spots, stated because a guard that oversells itself is worse than none: a field
-    // rendered by a component not in `FIELD_TAGS`, one built with `React.createElement`, and a
-    // third-party control styling its own input. The geocoder is that last case, pinned below.
-    // Schedule-X's `.sx__date-input` is the other, measured at 14px — inert only because
-    // `globals.css` hides the whole `.sx__calendar-header` it sits in, so un-hiding that header
-    // puts a zooming field back on screen that nothing here would catch.
-    expect(fields.length).toBeGreaterThanOrEqual(6)
+  /**
+   * Two blind spots, since a guard that oversells itself is worse than none. A field rendered by
+   * a component not in `FIELD_TAGS` is invisible here — the geocoder is that case, pinned below.
+   * So is Schedule-X's `.sx__date-input`, measured at 14px and inert only because `globals.css`
+   * hides the `.sx__calendar-header` it sits in: un-hiding that header puts a zooming field back
+   * on screen that nothing here would catch.
+   */
+  const INVENTORY = [
+    'components/atoms/Combobox/Combobox.tsx <CommandInput>',
+    'components/atoms/Input/Input.tsx <input>',
+    'components/atoms/Textarea/Textarea.tsx <textarea>',
+    'components/organisms/Mapbox/MapSearch.tsx <input>',
+    'components/organisms/RegistrationForm/RegistrationForm.tsx <input>',
+    'components/organisms/RegistrationForm/RegistrationForm.tsx <textarea>',
+    'views/CalendarView/CalendarView.tsx <input>',
+    'views/fallbacks.tsx <input>',
+  ]
+
+  it('finds source files to scan (the walk itself must not silently break)', () => {
+    expect(sources.length).toBeGreaterThan(50)
+  })
+
+  it('is exactly these fields', () => {
+    // A new entry here is a field this floor now has to cover. Give it the floor, then list it.
+    // Listing it alone defeats the test.
+    expect(fields.map(label).sort()).toEqual(INVENTORY)
   })
 
   it('has each one on the recipe or carrying the floor itself', () => {
@@ -105,51 +109,47 @@ describe('every field clears the 16px iOS zoom floor', () => {
       ({ className }) => !ZOOM_FLOOR.test(className) && !ON_THE_RECIPE.test(className),
     )
 
-    // A field here computes under 16px below `md`. Put it on `fieldChrome`
-    // (`atoms/Select`), or give it `text-[16px] md:text-sm`. Adding a `type` to the
-    // exempt list instead is only right for a control nobody types into.
-    expect(under.map(({ path, tag }) => `${path} <${tag}>`)).toEqual([])
+    // Put the field on `fieldChrome` (`atoms/Select`), or give it `text-[16px] md:text-sm`.
+    // Adding a `type` to `NON_TEXT_TYPES` instead is only right for a control nobody types into.
+    expect(under.map(label)).toEqual([])
   })
 })
 
+// Comment-stripped, because both files below discuss the very classes being matched and
+// documenting a rule must not satisfy it (`source-tree.ts`).
 describe('the two places the floor is reached from outside a field', () => {
   it('has fieldChrome at 16px below md, and the 13px scale above it', () => {
-    const recipe = readSource('components/atoms/Select/Select.tsx')
+    const recipe = readSourceWithoutComments('components/atoms/Select/Select.tsx')
 
     expect(recipe).toMatch(ZOOM_FLOOR)
-    // Without this the whole app's fields grow by 3px on a desktop too, which the ticket
-    // separated out as a design question rather than part of the fix.
+    // Without this every field grows by 3px on a desktop too, which is a design question.
     expect(recipe).toContain('md:text-sm')
   })
 
   it("overrides the geocoder's own input, which our classes cannot otherwise reach", () => {
     // `@mapbox/search-js-web` gives its input `font: inherit` from a container it sizes from
-    // `themes.ts`'s `unit` — the control's whole spacing scale, so raising that would resize
-    // the suggestion list and truncate the placeholder. The override is on the wrapper, and
-    // `!` is load-bearing: the library's sheet and ours land at equal specificity.
-    expect(readSource('components/organisms/Mapbox/MapSearch.tsx')).toContain(
+    // `themes.ts`'s `unit` — the control's whole spacing scale, so raising that would resize the
+    // suggestion list and truncate the placeholder. Hence a font-size-only override, on the
+    // wrapper. `!` is not for specificity: measured in Chromium, a `.wrapper input` rule (0,1,1)
+    // already beats the library's single-class `font: inherit`. It is because that rule is
+    // emitted at RUNTIME under a hashed class, so nothing here can read what it will be.
+    expect(readSourceWithoutComments('components/organisms/Mapbox/MapSearch.tsx')).toContain(
       'max-md:[&_input]:!text-[16px]',
     )
   })
 })
 
 describe('the standalone viewport meta', () => {
-  // Comments stripped first, the same reason `source-tree.ts` strips them from a module: the
-  // tag's own comment has to be free to name the two values it refuses, and this check reads
-  // markup rather than prose.
+  // Comments stripped, so the tag's own comment is free to name the values it refuses.
   const shell = readRepoSource('index.html').replace(/<!--[\s\S]*?-->/g, '')
 
   it('pins neither the scale nor scalability', () => {
     expect(shell).not.toMatch(/user-scalable/)
     expect(shell).not.toMatch(/maximum-scale/)
+    expect(shell).toContain('width=device-width')
   })
 
-  it('is one tag, so no second one can reintroduce either', () => {
-    // There were two, and the one further down the document won. The surviving pair of values
-    // was therefore not what either tag read on its own.
-    const tags = shell.match(/<meta[^>]*name="viewport"/g) ?? []
-
-    expect(tags).toHaveLength(1)
-    expect(shell).toContain('width=device-width')
+  it('is one tag, since a second one wins silently', () => {
+    expect(shell.match(/<meta[^>]*name="viewport"/g) ?? []).toHaveLength(1)
   })
 })
