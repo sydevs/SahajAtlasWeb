@@ -287,6 +287,11 @@ cover everything a host would notice since the widget was first deployed.
 
 ### Fixed
 
+- **A chosen date on the registration form looks chosen again.** ([#323]) The selected card
+  filled with your brand colour, but the radio mark inside it stayed an empty ring, because the
+  browser drew that mark in the same colour as the card behind it. The mark now takes the card's
+  contrasting colour, in light and dark themes and under your own palette. No change for you to
+  make.
 - **The panel no longer flickers halfway down on every navigation.** ([#312]) Since the widget
   moved into its shadow root ([#236]), each change of view showed the arriving view in the lower
   half of the panel for the length of the fade, before it jumped to the top. The fade relied on a
@@ -741,6 +746,7 @@ must-revalidate`, pinned rather than left to the CDN default. The production dom
 [#262]: https://github.com/sydevs/SahajAtlasWeb/issues/262
 [#311]: https://github.com/sydevs/SahajAtlasWeb/pull/311
 [#312]: https://github.com/sydevs/SahajAtlasWeb/pull/312
+[#323]: https://github.com/sydevs/SahajAtlasWeb/issues/323
 [Sizing the element]: docs/embedding.md#sizing-the-element
 [compact card]: docs/embedding.md#when-the-slot-is-too-small
 [Embedding in an iframe]: docs/embedding.md#embedding-in-an-iframe
