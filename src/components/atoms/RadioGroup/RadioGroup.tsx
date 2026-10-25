@@ -22,8 +22,7 @@ export type RadioOption = {
 // The mark is a slot of the same recipe because it follows the card: the
 // browser paints the native mark in `accent-color`, so an accent matching
 // the card's own fill leaves a ring with nothing in it, and the option
-// reads as unchosen (#323). Each fill therefore hands the mark the
-// on-colour declared beside it, so a tenant palette repaints both together.
+// reads as unchosen (#323).
 const radioOption = tv({
   slots: {
     card: 'flex cursor-pointer items-center gap-3 rounded border px-3 py-2.5 text-sm transition-colors',
