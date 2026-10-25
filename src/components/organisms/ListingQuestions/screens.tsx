@@ -576,7 +576,7 @@ export function TimeScreen({
               focusSoon('ask-end-time')
             }}
           >
-            {t('submit.ask.time_other')}
+            {t('submit.ask.time_end_other')}
           </Pick>
         </div>
         {customEnd && (

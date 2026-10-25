@@ -393,7 +393,8 @@
       "next_check_no_city": "A coordinator checks it.",
       "next_email": "We email you at %{email} once it’s been reviewed.",
       "next_live": "Your class appears on the map.",
-      "next_changed": "The listing is updated."
+      "next_changed": "The listing is updated.",
+      "time_end_other": "Set the end time"
     },
     "correct": {
       "changed_title": "What’s changed?",
