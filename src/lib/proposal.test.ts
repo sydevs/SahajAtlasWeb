@@ -10,17 +10,21 @@ import {
   diffPatch,
   draftPreviewSchedule,
   draftLocation,
+  draftWeekday,
   emptyDraft,
   eventToDraft,
   featureToPlace,
   firstInvalidStep,
   nearestTimeZone,
   newListingPatch,
+  nextWeekdayDate,
   openListing,
   previewEvent,
   previewSessions,
   searchProximity,
+  stepChanged,
   stepErrors,
+  todayIn,
 } from './proposal'
 
 import { PROPOSABLE_EVENT_FIELDS } from '@/config/api/proposal'
@@ -160,18 +164,20 @@ describe('stepErrors', () => {
     ).toEqual({})
   })
 
-  it('lets Contact be skipped, but not filled with a broken address', () => {
-    expect(stepErrors('contact', inPerson())).toEqual({})
-    expect(stepErrors('contact', inPerson({ contactEmail: 'nope' }))).toEqual({
+  it('lets Details be skipped, but not filled with a broken address', () => {
+    expect(stepErrors('details', inPerson())).toEqual({})
+    expect(stepErrors('details', inPerson({ contactEmail: 'nope' }))).toEqual({
       contactEmail: true,
     })
   })
 
   it('refuses a website that is not an absolute web address, rather than dropping it', () => {
-    expect(stepErrors('more', inPerson({ website: 'oxford.example' }))).toEqual({ website: true })
-    expect(stepErrors('more', inPerson({ website: 'https://oxford.example' }))).toEqual({})
-    expect(stepErrors('more', inPerson({ website: '' }))).toEqual({})
-    expect(firstInvalidStep(inPerson({ website: 'oxford.example' }))).toBe('more')
+    expect(stepErrors('details', inPerson({ website: 'oxford.example' }))).toEqual({
+      website: true,
+    })
+    expect(stepErrors('details', inPerson({ website: 'https://oxford.example' }))).toEqual({})
+    expect(stepErrors('details', inPerson({ website: '' }))).toEqual({})
+    expect(firstInvalidStep(inPerson({ website: 'oxford.example' }))).toBe('details')
   })
 
   it('names the first step a submit would be refused at', () => {
@@ -483,11 +489,11 @@ describe('searchProximity', () => {
 })
 
 describe('openListing', () => {
-  it('opens a correction on review, prefilled, with the published class as its base', () => {
+  it('opens a correction on "what needs fixing?", prefilled, with the class as its base', () => {
     const event = publishedEvent()
     const opened = openListing({ event })
 
-    expect(opened.step).toBe('review')
+    expect(opened.step).toBe('fix')
     expect(opened.draft).toEqual(eventToDraft(event))
     expect(opened.base).toBe(opened.draft)
   })
@@ -496,5 +502,39 @@ describe('openListing', () => {
     const opened = openListing({ timeZone: 'Europe/Paris', languages: ['fr'] })
 
     expect(opened).toEqual({ draft: emptyDraft('Europe/Paris', ['fr']), step: 'where' })
+  })
+})
+
+describe('the weekday a schedule starts on', () => {
+  it('reads the weekday off the first date, and nothing before one is set', () => {
+    expect(draftWeekday({ firstDate: '2026-11-03' })).toBe(2)
+    expect(draftWeekday({ firstDate: '' })).toBeNull()
+  })
+
+  it('starts "every Tuesday" on the coming Tuesday, or today when today is one', () => {
+    // 2026-10-25 is a Sunday.
+    expect(nextWeekdayDate(2, '2026-10-25')).toBe('2026-10-27')
+    expect(nextWeekdayDate(7, '2026-10-25')).toBe('2026-10-25')
+    expect(nextWeekdayDate(6, '2026-10-25')).toBe('2026-10-31')
+  })
+
+  it('counts today in the class’s own zone', () => {
+    const now = DateTime.fromISO('2026-10-25T23:30:00Z')
+
+    expect(todayIn('Europe/London', now)).toBe('2026-10-25')
+    expect(todayIn('Asia/Tokyo', now)).toBe('2026-10-26')
+  })
+})
+
+describe('a correction’s touched steps', () => {
+  it('validates only the steps a correction changed', () => {
+    const base = inPerson({ firstDate: '', startTime: '' })
+
+    // An untouched, unscheduled class can still have its phone fixed.
+    expect(
+      firstInvalidStep(inPerson({ firstDate: '', startTime: '', contactPhone: '01' }), base),
+    ).toBeNull()
+    expect(stepChanged('details', { ...base, languages: ['fr'] }, base)).toBe(true)
+    expect(stepChanged('when', base, base)).toBe(false)
   })
 })

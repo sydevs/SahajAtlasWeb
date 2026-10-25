@@ -51,19 +51,13 @@ describe('ListingDetails', () => {
     expect(markup).toContain('+44 20 7946 0000')
   })
 
-  it('puts an Edit link on each section on review, each naming its section', () => {
+  it('puts an Edit link on each section on review, each naming the step it opens', () => {
     const markup = render(() => {})
 
-    // Details, When, Where, Contact and About.
+    // Chips, When, Where, Contact and About — the three detail sections all return to Details.
     expect(editLinks(markup)).toHaveLength(5)
-    for (const section of [
-      'submit.more.title',
-      'submit.when.title',
-      'submit.where.title',
-      'submit.contact.title',
-      'event.display.about',
-    ]) {
-      expect(markup).toContain(`aria-label="${EDIT}: ${section}"`)
+    for (const step of ['step_details', 'step_when', 'step_where']) {
+      expect(markup).toContain(`aria-label="${EDIT}: submit.chrome.${step}"`)
     }
   })
 

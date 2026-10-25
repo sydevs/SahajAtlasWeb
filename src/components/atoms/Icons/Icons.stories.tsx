@@ -1,11 +1,14 @@
 import type { Story, StoryDefault } from '@ladle/react'
 
 import {
+  ArrowDown,
   ArrowUpRight,
+  CalendarClock,
   CalendarDays,
   Check,
   ChevronDown,
   ChevronRight,
+  CircleOff,
   Funnel,
   Globe,
   Info,
@@ -13,6 +16,7 @@ import {
   LoaderCircle,
   MapPin,
   Menu,
+  MessageSquare,
   Milestone,
   Monitor,
   Moon,
@@ -23,6 +27,7 @@ import {
   Settings,
   Share,
   Sun,
+  UserRound,
   X,
 } from 'lucide-react'
 
@@ -50,11 +55,14 @@ export default {
  * only, so neither belongs here.
  */
 const ICONS = [
+  { name: 'ArrowDown', Icon: ArrowDown },
   { name: 'ArrowUpRight', Icon: ArrowUpRight },
+  { name: 'CalendarClock', Icon: CalendarClock },
   { name: 'CalendarDays', Icon: CalendarDays },
   { name: 'Check', Icon: Check },
   { name: 'ChevronDown', Icon: ChevronDown },
   { name: 'ChevronRight', Icon: ChevronRight },
+  { name: 'CircleOff', Icon: CircleOff },
   { name: 'Funnel', Icon: Funnel },
   { name: 'Globe', Icon: Globe },
   { name: 'Info', Icon: Info },
@@ -62,6 +70,7 @@ const ICONS = [
   { name: 'LoaderCircle', Icon: LoaderCircle },
   { name: 'MapPin', Icon: MapPin },
   { name: 'Menu', Icon: Menu },
+  { name: 'MessageSquare', Icon: MessageSquare },
   { name: 'Milestone', Icon: Milestone },
   { name: 'Monitor', Icon: Monitor },
   { name: 'Moon', Icon: Moon },
@@ -72,6 +81,7 @@ const ICONS = [
   { name: 'Settings', Icon: Settings },
   { name: 'Share', Icon: Share },
   { name: 'Sun', Icon: Sun },
+  { name: 'UserRound', Icon: UserRound },
   { name: 'X', Icon: X },
 ] as const
 

@@ -1,4 +1,10 @@
-import type { ListingDraft, ListingSender, ListingStep, OpenedListing } from '@/lib/proposal'
+import type {
+  FixIntent,
+  ListingDraft,
+  ListingSender,
+  ListingStep,
+  OpenedListing,
+} from '@/lib/proposal'
 
 import { create } from 'zustand'
 import { Feature } from 'geojson'
@@ -296,6 +302,8 @@ type ListingDraftState = {
   step: ListingStep
   /** Whether review has been reached, after which a step returns straight to it. */
   reviewed: boolean
+  /** What a correction set out to fix, once its first screen is answered. */
+  intent: FixIntent | null
   /** Set once a submission resolves. Nothing reads the row back, so this is the whole receipt. */
   sent: boolean
 }
@@ -305,6 +313,8 @@ type ListingDraftAction = {
   update: (patch: Partial<ListingDraft>) => void
   setSender: (patch: Partial<ListingSender>) => void
   setStep: (step: ListingStep) => void
+  /** Answers a correction's "what needs fixing?" and opens the step that fixes it. */
+  setIntent: (intent: FixIntent, step: ListingStep) => void
   markSent: () => void
 }
 
@@ -316,6 +326,7 @@ export const useListingDraft = create<ListingDraftState & ListingDraftAction>((s
   sender: EMPTY_SENDER,
   step: 'where',
   reviewed: false,
+  intent: null,
   sent: false,
   start: ({ key, entry }, { draft, base, step }) =>
     set(() => ({
@@ -326,10 +337,12 @@ export const useListingDraft = create<ListingDraftState & ListingDraftAction>((s
       sender: EMPTY_SENDER,
       step,
       reviewed: step === 'review',
+      intent: null,
       sent: false,
     })),
   setSender: (patch) => set((state) => ({ sender: { ...state.sender, ...patch } })),
   update: (patch) => set((state) => (state.draft ? { draft: { ...state.draft, ...patch } } : {})),
   setStep: (step) => set((state) => ({ step, reviewed: state.reviewed || step === 'review' })),
+  setIntent: (intent, step) => set(() => ({ intent, step })),
   markSent: () => set(() => ({ sent: true })),
 }))

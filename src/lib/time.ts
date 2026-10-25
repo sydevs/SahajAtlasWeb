@@ -86,3 +86,20 @@ export function formatTimeRange(start: DateTime, end: DateTime | null, locale: s
 
   return formatter.formatRange(start.toJSDate(), end.toJSDate())
 }
+
+/**
+ * A zone as a person names it — "United Kingdom Time", "Central European Time" — in `locale`,
+ * falling back to the IANA id where the runtime has no generic name for it.
+ */
+export function zoneLabel(zone: string, locale: string, at: Date = new Date()): string {
+  try {
+    const name = new Intl.DateTimeFormat(locale, { timeZone: zone, timeZoneName: 'longGeneric' })
+      .formatToParts(at)
+      .find((part) => part.type === 'timeZoneName')?.value
+
+    // A zone with no generic name formats as an offset ("GMT+03:00"), which says less than its id.
+    return name && !/^GMT[+-]/.test(name) ? name : zone
+  } catch {
+    return zone
+  }
+}

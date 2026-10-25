@@ -3,38 +3,34 @@ import type { UserSubmissionErrorCode } from '@/config/api/mutate'
 import type { ReportContext } from '@/lib/report'
 import type {
   BuiltProposal,
+  FixIntent,
   ListingDraft,
   ListingErrors,
+  ListingSection,
   ListingSender,
   ListingStep,
   PickedPlace,
 } from '@/lib/proposal'
-import type { InputProps } from '@/components/atoms/Input'
+import type { Event } from '@/types'
 import type { GeocodingFeature } from '@mapbox/search-js-core'
-import type { ReactNode } from 'react'
+import type { FormEvent, ReactNode } from 'react'
 
-import { useMemo, useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useMutation } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
+import { Check } from 'lucide-react'
 
-import { submitTitleKey } from '@/lib/shape'
-import { viewerTimeZone } from '@/lib/time'
-import { Alert } from '@/components/atoms/Alert'
+import { CheckStep } from './CheckStep'
+import { DetailsStep } from './DetailsStep'
+import { FixStep, NoteStep } from './FixStep'
+import { PlaceStep } from './PlaceStep'
+import { StepProgress } from './StepProgress'
+import { TimeStep } from './TimeStep'
+
 import { Button } from '@/components/atoms/Button'
-import { Input } from '@/components/atoms/Input'
-import { Textarea } from '@/components/atoms/Textarea'
-import { ToggleGroup, ToggleGroupItem } from '@/components/atoms/ToggleGroup'
-import { FormField, fieldDescribedBy } from '@/components/molecules/FormField'
-import { MapSearch } from '@/components/organisms/Mapbox/MapSearch'
+import { DrawerBody, DrawerFooter, DrawerHeader } from '@/components/atoms/Drawer'
 import proposalApi from '@/config/api/proposal'
-import {
-  USER_SUBMISSION_VALUE_MAX,
-  refusalCopyKey,
-  userSubmissionValueMax,
-} from '@/config/api/mutate'
-import { useLocale } from '@/hooks/use-locale'
-import { useLanguageOptions } from '@/hooks/use-language-options'
-import { LanguageMultiSelect } from '@/components/molecules/LanguageMultiSelect'
+import { refusalCopyKey } from '@/config/api/mutate'
 import { useTurnstile } from '@/hooks/use-turnstile'
 import {
   LISTING_STEPS,
@@ -45,6 +41,8 @@ import {
   isEmail,
   stepErrors,
 } from '@/lib/proposal'
+import { submitTitleKey } from '@/lib/shape'
+import { viewerTimeZone } from '@/lib/time'
 
 /** The copy for each refusal the proposal intake can return. */
 const REFUSAL_MESSAGE_KEYS: Record<UserSubmissionErrorCode, TranslationKey> = {
@@ -59,14 +57,18 @@ const REFUSAL_MESSAGE_KEYS: Record<UserSubmissionErrorCode, TranslationKey> = {
 /** How long after a pick a field edit is the geocoder's own echo, not the visitor's. */
 const PICK_ECHO_MS = 500
 
-/** The Events title's own bound. */
-const TITLE_MAX = 100
-/** The contact fields' bound on an Event. */
-const CONTACT_MAX = 100
+/** The step each of a correction's answers opens on. */
+const INTENT_STEPS: Record<FixIntent, ListingStep> = {
+  when: 'when',
+  where: 'where',
+  details: 'details',
+  stopped: 'note',
+  other: 'note',
+}
 
 export type ProposalFormProps = {
   /** A new listing, or a correction to the published class `correction` names. */
-  correction?: { eventId: number; baseDraft: ListingDraft }
+  correction?: { eventId: number; baseDraft: ListingDraft; event?: Event }
   draft: ListingDraft
   step: ListingStep
   onChange: (patch: Partial<ListingDraft>) => void
@@ -76,6 +78,9 @@ export type ProposalFormProps = {
   onSender: (patch: Partial<ListingSender>) => void
   /** Whether review has already been reached this session, as the owner records it. */
   reviewed?: boolean
+  /** What a correction set out to fix, and the owner's way to record the answer. */
+  intent?: FixIntent | null
+  onIntent?: (intent: FixIntent, step: ListingStep) => void
   /** Whether the submission has been accepted. The form then shows its receipt. */
   sent: boolean
   onSent: () => void
@@ -92,72 +97,160 @@ export type ProposalFormProps = {
   languageOptions?: string[]
   /** Shown under the place once one is picked — the view's "is it one of these?" check. */
   placeNotice?: ReactNode
-  /** The header's trailing control — the panel's close button. */
+  /** The draft as it would publish, for the schedule summary and a correction's diff. */
+  listing?: Event
+  /** The listing preview Check shows, with its Edit links — the view builds it. */
+  preview?: ReactNode
+  /** The header's trailing control — the sheet's close button. */
   trailing?: ReactNode
+  /** Pins the footer to the visible bottom of a snap-point sheet (the mobile map sheet). */
+  stickyFooter?: boolean
+  /**
+   * Shows a small map under a picked address — where the live map is covered (a phone's sheet)
+   * or absent (a map-less embed). Beside a visible map it would only repeat it.
+   */
+  placeMap?: boolean
   /** Story-only: open the review step showing this refusal, without a real request. */
   initialRefusal?: UserSubmissionErrorCode | 'unknown'
 }
 
 /**
- * The add-a-class and correction panel (#147): Where, When, Contact, About and Review, with an
- * optional details step off Review. It edits a draft its view owns — the live listing behind
- * the panel renders the same draft — and sends it as a `proposal` submission.
+ * The add-a-class and correction flow (#147), guided: Place, Time, Details, then Check — the
+ * listing as it will look, and the visitor's own address. A correction asks "what needs fixing?"
+ * first and opens only the step that fixes it, and its Check lists only what changes.
  *
- * Contact and About may be skipped. A correction opens on Review and sends only what changed.
+ * It edits a draft its view owns and sends it as a `proposal` submission. It renders the whole
+ * sheet content — header, scrolling body, footer — so its Continue is always within reach.
  */
-export function ProposalForm({
+export function ProposalForm(props: ProposalFormProps) {
+  const { t } = useTranslation()
+  const { correction, step, onStep, reviewed: reviewedProp = false, sent, trailing } = props
+  const index = LISTING_STEPS.indexOf(step as (typeof LISTING_STEPS)[number])
+  const [seenReview, setSeenReview] = useState(false)
+  // The step Check sent the visitor back to because it is incomplete, so it opens flagged.
+  const [bounced, setBounced] = useState<ListingStep | null>(null)
+
+  // Once Check has been seen, a step reached from it returns there — never through every step
+  // after it again. The owner's `reviewed` carries this across a remount.
+  // Recorded during render, so however Check was reached — a step, a remount, an owner that
+  // opened there — leaving it already knows to come back.
+  if (step === 'review' && !seenReview) setSeenReview(true)
+
+  const reviewed = reviewedProp || seenReview || step === 'review'
+  const go = onStep
+
+  return (
+    <>
+      <DrawerHeader className="flex-col items-stretch gap-3">
+        <div className="flex items-start justify-between gap-2 ps-2">
+          <div className="min-w-0">
+            <h2 className="truncate text-lg leading-tight font-semibold">
+              {t(submitTitleKey(correction ? 'correct' : 'add'))}
+            </h2>
+            {correction?.event && !sent && (
+              <p className="line-clamp-2 text-sm leading-snug text-gray-11">
+                {correction.event.title}
+              </p>
+            )}
+          </div>
+          {trailing}
+        </div>
+        {!correction && !sent && index >= 0 && (
+          <StepProgress
+            className="px-2"
+            current={index}
+            reachable={reviewed ? LISTING_STEPS.length - 1 : index}
+            onPick={(at) => go(LISTING_STEPS[at])}
+          />
+        )}
+      </DrawerHeader>
+
+      {sent ? (
+        <Receipt
+          correction={Boolean(correction)}
+          draft={props.draft}
+          email={props.sender.email}
+          onClose={props.onClose}
+        />
+      ) : step === 'review' ? (
+        <ReviewStage
+          {...props}
+          onBounce={(invalid) => {
+            setBounced(invalid)
+            onStep(invalid)
+          }}
+          onGo={go}
+        />
+      ) : (
+        <StepStage
+          {...props}
+          flagged={bounced === step}
+          index={index}
+          reviewed={reviewed}
+          onGo={(next) => {
+            setBounced(null)
+            onStep(next)
+          }}
+        />
+      )}
+    </>
+  )
+}
+
+type StageProps = ProposalFormProps & { onGo: (step: ListingStep) => void }
+
+/** Focuses the first field a failed Continue flagged, once it has rendered as invalid. */
+function useFocusFirstInvalid(trigger: unknown) {
+  const scope = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    if (!trigger) return
+    scope.current
+      ?.querySelector<HTMLElement>('[aria-invalid="true"], [data-invalid] input')
+      ?.focus()
+  }, [trigger])
+
+  return scope
+}
+
+/** Every step but Check: its fields, and Back / Continue. */
+function StepStage({
   correction,
   draft,
   step,
+  index,
+  reviewed,
+  intent = null,
+  onIntent,
   onChange,
-  onStep,
-  reviewed: reviewedProp = false,
   sender,
   onSender,
-  sent,
-  onSent,
-  onClose,
-  context,
   proximity,
   country,
   timeZoneFor,
   languageOptions = [],
   placeNotice,
-  trailing,
-  initialRefusal,
-}: ProposalFormProps) {
+  listing,
+  stickyFooter,
+  placeMap,
+  flagged,
+  onGo,
+}: StageProps & { index: number; reviewed: boolean; flagged: boolean }) {
   const { t } = useTranslation()
-  // Errors show once a step has been attempted, never while it is first being filled in.
-  const [attempted, setAttempted] = useState<ListingStep | null>(null)
+  // Errors show once a step has been attempted — or Check sent the visitor back to it — never
+  // while it is first being filled in.
+  const [attempted, setAttempted] = useState<{ step: ListingStep; at: number } | null>(() =>
+    flagged ? { step, at: Date.now() } : null,
+  )
   const base = correction?.baseDraft
-  const errors: ListingErrors = attempted === step ? stepErrors(step, draft, base) : {}
-  const index = LISTING_STEPS.indexOf(step as (typeof LISTING_STEPS)[number])
-  // Once review has been seen — a correction opens there — a step reached by an Edit link
-  // returns to review, rather than walking the visitor through every step after it again.
-  // The owner's `reviewed` carries this across a remount; the local flag covers an owner
-  // that does not track it.
-  const [seenReview, setSeenReview] = useState(false)
-  const reviewed = reviewedProp || seenReview || Boolean(correction)
-  const onward = reviewed || step === 'more' ? 'review' : (LISTING_STEPS[index + 1] ?? 'review')
+  const fields = step !== 'note' && step !== 'fix'
+  const errors: ListingErrors =
+    fields && attempted?.step === step ? stepErrors(step, draft, base) : {}
+  const noteMissing = attempted?.step === 'note' && intent === 'other' && !sender.note.trim()
+  const scope = useFocusFirstInvalid(attempted?.at)
 
-  const go = (next: ListingStep) => {
-    setAttempted(null)
-    if (next === 'review') setSeenReview(true)
-    onStep(next)
-  }
-
-  const advance = () => {
-    if (Object.keys(stepErrors(step, draft, base)).length > 0) {
-      setAttempted(step)
-
-      return
-    }
-    go(onward)
-  }
-
-  // A pick may be followed at once by the geocoder writing its own label into the field. Any
-  // edit after that means the text no longer names the pick, so the pick is dropped and the
-  // visitor is asked to choose again.
+  // The geocoder may write its own label into the field right after a pick. Any edit after that
+  // means the text no longer names the pick, so the pick is dropped and must be redone.
   const pickedAt = useRef(0)
   const pick = (key: 'address' | 'city') => (feature: GeocodingFeature) => {
     const place = featureToPlace(feature)
@@ -171,452 +264,142 @@ export function ProposalForm({
     if (draft[key]) onChange({ [key]: null })
   }
 
-  if (sent) {
-    const city = draftPlace(draft)?.city
+  // A correction, and any step reached back from Check, goes straight on to Check.
+  const onward: ListingStep =
+    correction || reviewed ? 'review' : (LISTING_STEPS[index + 1] ?? 'review')
+  let back: ListingStep | null = LISTING_STEPS[index - 1] ?? null
 
-    return (
-      <div className="flex flex-col gap-4 p-4">
-        <div className="flex items-start justify-between gap-2">
-          <h2 className="text-lg font-semibold">{t('submit.done.title')}</h2>
-          {trailing}
-        </div>
-        <p className="text-sm">
-          {city ? t('submit.done.body', { city }) : t('submit.done.body_no_city')}
-        </p>
-        <Button className="self-end" color="primary" variant="flat" onClick={onClose}>
-          {t('common.chrome.close')}
-        </Button>
-      </div>
-    )
+  if (reviewed) back = 'review'
+  else if (correction) back = 'fix'
+
+  const advance = (event: FormEvent) => {
+    event.preventDefault()
+    if (step === 'fix') return
+
+    const invalid =
+      step === 'note'
+        ? intent === 'other' && !sender.note.trim()
+        : Object.keys(stepErrors(step, draft, base)).length > 0
+
+    if (invalid) return setAttempted({ step, at: Date.now() })
+    setAttempted(null)
+    onGo(onward)
   }
 
-  const backTo: ListingStep | undefined = step === 'more' ? 'review' : LISTING_STEPS[index - 1]
-
   return (
-    <div className="flex flex-col gap-4 p-4">
-      <div className="flex items-start justify-between gap-2">
-        <div className="min-w-0">
-          <h2 className="text-lg leading-tight font-semibold">
-            {t(submitTitleKey(correction ? 'correct' : 'add'))}
-          </h2>
-          {index >= 0 && (
-            <p className="text-sm text-gray-11">
-              {t('submit.chrome.step_progress', { step: index + 1, total: LISTING_STEPS.length })}
-            </p>
+    <form noValidate className="contents" onSubmit={advance}>
+      <DrawerBody key={step} className={stickyFooter ? 'pb-24' : undefined}>
+        <div ref={scope} className="px-6 pt-2 pb-8">
+          {step === 'fix' && (
+            <FixStep
+              onPick={(picked) => {
+                setAttempted(null)
+                onIntent?.(picked, INTENT_STEPS[picked])
+              }}
+            />
+          )}
+          {step === 'note' && (intent === 'stopped' || intent === 'other') && (
+            <NoteStep
+              error={noteMissing && t('submit.note.other_required')}
+              intent={intent}
+              sender={sender}
+              onSender={onSender}
+            />
+          )}
+          {step === 'where' && (
+            <PlaceStep
+              country={country}
+              draft={draft}
+              errors={errors}
+              notice={placeNotice}
+              proximity={proximity}
+              showMap={placeMap}
+              onChange={onChange}
+              onEdit={edit}
+              onPick={pick}
+            />
+          )}
+          {step === 'when' && (
+            <TimeStep draft={draft} errors={errors} listing={listing} onChange={onChange} />
+          )}
+          {step === 'details' && (
+            <DetailsStep
+              draft={draft}
+              errors={errors}
+              languageOptions={languageOptions}
+              onChange={onChange}
+            />
           )}
         </div>
-        {trailing}
-      </div>
-
-      {step === 'where' && (
-        <WhereStep
-          country={country}
-          draft={draft}
-          errors={errors}
-          proximity={proximity}
-          onChange={onChange}
-          onEdit={edit}
-          onPick={pick}
-        />
-      )}
-      {step === 'where' && placeNotice}
-      {step === 'when' && <WhenStep draft={draft} errors={errors} onChange={onChange} />}
-      {step === 'contact' && <ContactStep draft={draft} errors={errors} onChange={onChange} />}
-      {step === 'about' && <AboutStep draft={draft} onChange={onChange} />}
-      {step === 'more' && (
-        <MoreStep
-          draft={draft}
-          errors={errors}
-          languageOptions={languageOptions}
-          onChange={onChange}
-        />
-      )}
-      {step === 'review' && (
-        <ReviewBar
-          context={context}
-          correction={correction}
-          draft={draft}
-          initialRefusal={initialRefusal}
-          sender={sender}
-          onInvalid={(invalid) => {
-            setAttempted(invalid)
-            onStep(invalid)
-          }}
-          onMore={() => go('more')}
-          onSender={onSender}
-          onSent={onSent}
-        />
-      )}
-
-      {step !== 'review' && (
-        <div className="flex flex-wrap justify-end gap-2">
-          {backTo && (
-            // The details step is a detour off review, so going back is how it is left.
-            <Button variant="flat" onClick={() => (step === 'more' ? advance() : go(backTo))}>
+      </DrawerBody>
+      {step !== 'fix' && (
+        <FlowFooter sticky={stickyFooter}>
+          {back && (
+            <Button size="lg" variant="flat" onClick={() => onGo(back)}>
               {t('submit.chrome.back')}
             </Button>
           )}
-          {(step === 'contact' || step === 'about') && (
-            <Button variant="ghost" onClick={() => go(onward)}>
-              {t('submit.chrome.skip')}
-            </Button>
-          )}
-          {step !== 'more' && (
-            <Button color="primary" variant="flat" onClick={advance}>
-              {t('submit.chrome.next')}
-            </Button>
-          )}
-        </div>
-      )}
-    </div>
-  )
-}
-
-type StepProps = {
-  draft: ListingDraft
-  errors?: ListingErrors
-  onChange: (patch: Partial<ListingDraft>) => void
-}
-
-/** A labelled input whose help and error text are wired to it by id. */
-function ValidatedInput({
-  id,
-  label,
-  required,
-  help,
-  error,
-  ...input
-}: Omit<InputProps, 'id' | 'isInvalid'> & {
-  id: string
-  label: string
-  required?: boolean
-  help?: string
-  /** The error sentence, shown in place of the help while set. */
-  error?: string | false
-}) {
-  return (
-    <FormField error={error} help={help} htmlFor={id} label={label} required={required}>
-      <Input
-        aria-describedby={fieldDescribedBy({
-          name: id,
-          help: Boolean(help) && !error,
-          error: Boolean(error),
-        })}
-        id={id}
-        isInvalid={Boolean(error)}
-        {...input}
-      />
-    </FormField>
-  )
-}
-
-function WhereStep({
-  draft,
-  errors = {},
-  proximity,
-  country,
-  onChange,
-  onPick,
-  onEdit,
-}: StepProps & {
-  proximity?: { lng: number; lat: number }
-  country?: string
-  onPick: (key: 'address' | 'city') => (feature: GeocodingFeature) => void
-  onEdit: (key: 'address' | 'city') => () => void
-}) {
-  const { t } = useTranslation()
-
-  return (
-    <div className="flex flex-col gap-4">
-      <h3 className="text-md font-semibold">{t('submit.where.title')}</h3>
-      <ToggleGroup
-        joined
-        aria-label={t('submit.where.title')}
-        type="single"
-        value={draft.eventType}
-        onValueChange={(value) =>
-          value && onChange({ eventType: value as ListingDraft['eventType'] })
-        }
-      >
-        <ToggleGroupItem value="offline">{t('submit.where.offline')}</ToggleGroupItem>
-        <ToggleGroupItem value="online">{t('submit.where.online')}</ToggleGroupItem>
-      </ToggleGroup>
-
-      {draft.eventType === 'offline' ? (
-        <>
-          <FormField
-            required
-            error={errors.address && t('submit.errors.address_required')}
-            label={t('submit.where.address_label')}
+          <Button
+            className="ms-auto min-w-32"
+            color="primary"
+            size="lg"
+            type="submit"
+            variant="solid"
           >
-            <MapSearch
-              country={country}
-              label={t('submit.where.address_placeholder')}
-              proximity={proximity}
-              query={{ initial: draft.address?.label ?? '' }}
-              types="address"
-              onQueryChange={onEdit('address')}
-              onSelect={onPick('address')}
-            />
-          </FormField>
-          <ValidatedInput
-            id="submit-room"
-            label={t('submit.where.room_label')}
-            maxLength={CONTACT_MAX}
-            value={draft.room}
-            onChange={(event) => onChange({ room: event.target.value })}
-          />
-        </>
-      ) : (
-        <>
-          <ValidatedInput
-            required
-            error={errors.onlineUrl && t('submit.errors.online_url')}
-            id="submit-online-url"
-            label={t('submit.where.online_url_label')}
-            placeholder={t('submit.where.online_url_placeholder')}
-            type="url"
-            value={draft.onlineUrl}
-            onChange={(event) => onChange({ onlineUrl: event.target.value })}
-          />
-          <FormField
-            required
-            error={errors.city && t('submit.errors.city_required')}
-            help={t('submit.where.city_help')}
-            label={t('submit.where.city_label')}
-          >
-            <MapSearch
-              country={country}
-              label={t('submit.where.city_placeholder')}
-              proximity={proximity}
-              query={{ initial: draft.city?.label ?? '' }}
-              types="place"
-              onQueryChange={onEdit('city')}
-              onSelect={onPick('city')}
-            />
-          </FormField>
-        </>
+            {t(reviewed ? 'submit.chrome.done_editing' : 'submit.chrome.continue')}
+          </Button>
+        </FlowFooter>
       )}
-    </div>
-  )
-}
-
-function WhenStep({ draft, errors = {}, onChange }: StepProps) {
-  const { t } = useTranslation()
-  const repeating = draft.repeats !== 'once'
-
-  return (
-    <div className="flex flex-col gap-4">
-      <h3 className="text-md font-semibold">{t('submit.when.title')}</h3>
-      <ValidatedInput
-        required
-        error={errors.firstDate && t('submit.errors.first_date')}
-        id="submit-first-date"
-        label={t('submit.when.first_date')}
-        type="date"
-        value={draft.firstDate}
-        onChange={(event) => onChange({ firstDate: event.target.value })}
-      />
-      <div className="grid grid-cols-2 gap-3">
-        <ValidatedInput
-          required
-          error={errors.startTime && t('submit.errors.start_time')}
-          id="submit-start-time"
-          label={t('submit.when.start_time')}
-          type="time"
-          value={draft.startTime}
-          onChange={(event) => onChange({ startTime: event.target.value })}
-        />
-        <ValidatedInput
-          id="submit-end-time"
-          label={t('submit.when.end_time')}
-          type="time"
-          value={draft.endTime}
-          onChange={(event) => onChange({ endTime: event.target.value })}
-        />
-      </div>
-      <p className="-mt-2 text-xs text-gray-11">
-        {t('submit.when.timezone_note', { timezone: draft.timeZone })}
-      </p>
-      <FormField label={t('submit.when.repeats')}>
-        <ToggleGroup
-          joined
-          aria-label={t('submit.when.repeats')}
-          type="single"
-          value={draft.repeats}
-          onValueChange={(value) =>
-            value && onChange({ repeats: value as ListingDraft['repeats'] })
-          }
-        >
-          <ToggleGroupItem value="once">{t('filters.cadence.once')}</ToggleGroupItem>
-          <ToggleGroupItem value="weekly">{t('filters.cadence.weekly')}</ToggleGroupItem>
-          <ToggleGroupItem value="monthly">{t('filters.cadence.monthly')}</ToggleGroupItem>
-        </ToggleGroup>
-      </FormField>
-      {repeating && (
-        <ValidatedInput
-          id="submit-end-date"
-          label={t('submit.when.end_date')}
-          min={draft.firstDate || undefined}
-          type="date"
-          value={draft.endDate}
-          onChange={(event) => onChange({ endDate: event.target.value })}
-        />
-      )}
-    </div>
-  )
-}
-
-function ContactStep({ draft, errors = {}, onChange }: StepProps) {
-  const { t } = useTranslation()
-
-  return (
-    <div className="flex flex-col gap-4">
-      <div>
-        <h3 className="text-md font-semibold">{t('submit.contact.title')}</h3>
-        <p className="text-sm text-gray-11">{t('submit.contact.help')}</p>
-      </div>
-      <ValidatedInput
-        autoComplete="name"
-        id="submit-contact-name"
-        label={t('submit.contact.name_label')}
-        maxLength={CONTACT_MAX}
-        value={draft.contactName}
-        onChange={(event) => onChange({ contactName: event.target.value })}
-      />
-      <ValidatedInput
-        autoComplete="tel"
-        id="submit-contact-phone"
-        label={t('submit.contact.phone_label')}
-        maxLength={CONTACT_MAX}
-        type="tel"
-        value={draft.contactPhone}
-        onChange={(event) => onChange({ contactPhone: event.target.value })}
-      />
-      <ValidatedInput
-        autoComplete="email"
-        error={errors.contactEmail && t('submit.errors.email')}
-        id="submit-contact-email"
-        label={t('submit.contact.email_label')}
-        maxLength={CONTACT_MAX}
-        type="email"
-        value={draft.contactEmail}
-        onChange={(event) => onChange({ contactEmail: event.target.value })}
-      />
-    </div>
-  )
-}
-
-function AboutStep({ draft, onChange }: StepProps) {
-  const { t } = useTranslation()
-
-  return (
-    <div className="flex flex-col gap-4">
-      <h3 className="text-md font-semibold">{t('submit.about.title')}</h3>
-      <FormField htmlFor="submit-description" label={t('submit.about.description_label')}>
-        <Textarea
-          id="submit-description"
-          maxLength={userSubmissionValueMax('message')}
-          placeholder={t('submit.about.description_placeholder')}
-          rows={5}
-          value={draft.description}
-          onChange={(event) => onChange({ description: event.target.value })}
-        />
-      </FormField>
-    </div>
-  )
-}
-
-function MoreStep({
-  draft,
-  errors = {},
-  languageOptions,
-  onChange,
-}: StepProps & { languageOptions: string[] }) {
-  const { t } = useTranslation()
-  const { languageLabel } = useLocale()
-  const codes = useMemo(
-    () => [...new Set([...draft.languages, ...languageOptions])],
-    [draft.languages, languageOptions],
-  )
-  const options = useLanguageOptions(codes)
-
-  return (
-    <div className="flex flex-col gap-4">
-      <h3 className="text-md font-semibold">{t('submit.more.title')}</h3>
-      <ValidatedInput
-        help={t('submit.more.title_help')}
-        id="submit-title"
-        label={t('submit.more.title_label')}
-        maxLength={TITLE_MAX}
-        value={draft.title}
-        onChange={(event) => onChange({ title: event.target.value })}
-      />
-      <FormField label={t('submit.more.languages_label')}>
-        <LanguageMultiSelect
-          label={t('submit.more.languages_label')}
-          options={options}
-          triggerLabel={draft.languages.map(languageLabel).join(', ')}
-          value={draft.languages}
-          onChange={(languages) => onChange({ languages })}
-        />
-      </FormField>
-      <ValidatedInput
-        error={errors.website && t('submit.errors.online_url')}
-        id="submit-website"
-        label={t('submit.more.website_label')}
-        maxLength={USER_SUBMISSION_VALUE_MAX}
-        type="url"
-        value={draft.website}
-        onChange={(event) => onChange({ website: event.target.value })}
-      />
-    </div>
+    </form>
   )
 }
 
 /**
- * The minimal bar the panel shrinks to on review: the submitter's own address, a note to the
- * reviewer, the challenge, and the two ways on. It mounts only here, so each visit renders a
- * fresh challenge rather than holding a token that may expire behind the other steps.
+ * Check: the listing or the diff, the visitor's address, the challenge, and Send. It mounts only
+ * here, so each visit renders a fresh challenge rather than holding a token that may expire
+ * behind the other steps.
  */
-function ReviewBar({
+function ReviewStage({
   correction,
   draft,
-  context,
-  onInvalid,
-  onMore,
-  onSent,
-  initialRefusal,
   sender,
   onSender,
-}: {
-  sender: ListingSender
-  onSender: ProposalFormProps['onSender']
-  correction?: ProposalFormProps['correction']
-  draft: ListingDraft
-  context: ReportContext
-  onInvalid: (step: ListingStep) => void
-  onMore: () => void
-  onSent: () => void
-  initialRefusal?: ProposalFormProps['initialRefusal']
-}) {
+  intent = null,
+  context,
+  listing,
+  preview,
+  stickyFooter,
+  initialRefusal,
+  onSent,
+  onGo,
+  onBounce,
+}: StageProps & { onBounce: (step: ListingStep) => void }) {
   const { t } = useTranslation()
-  const senderEmail = sender.email
-  const note = sender.note
   const [emailError, setEmailError] = useState(false)
   const [noChanges, setNoChanges] = useState(false)
-  const { challengeRef, token, reset } = useTurnstile()
+  const [attemptAt, setAttemptAt] = useState(0)
+  const scope = useFocusFirstInvalid(attemptAt)
+  const { challengeRef, token, status, reset } = useTurnstile()
+  const base = correction?.baseDraft
 
   const mutation = useMutation({
     // A re-sent proposal would replay a single-use token the server already redeemed.
     retry: 0,
     // Offline, the default would pause this behind a spinner that never resolves.
     networkMode: 'always',
-    mutationFn: ({ built, captcha }: { built: BuiltProposal; captcha: string }) =>
+    mutationFn: ({
+      built,
+      captcha,
+      note,
+    }: {
+      built: BuiltProposal
+      captcha: string
+      note?: string
+    }) =>
       proposalApi.sendProposal({
         ...built,
-        senderEmail: senderEmail.trim(),
-        note: note.trim() || undefined,
+        senderEmail: sender.email.trim(),
+        note,
         turnstileToken: captcha,
         context,
       }),
@@ -636,71 +419,134 @@ function ReviewBar({
       ),
     )
 
+  const send = (event: FormEvent) => {
+    event.preventDefault()
+    setNoChanges(false)
+
+    const invalid = firstInvalidStep(draft, base)
+
+    if (invalid) return onBounce(invalid)
+    if (!isEmail(sender.email)) {
+      setEmailError(true)
+      setAttemptAt(Date.now())
+
+      return
+    }
+    setEmailError(false)
+
+    const built = buildProposal(draft, correction)
+    // A new place re-places the class through `location` alone, so it counts as a change.
+    const unchanged =
+      Object.keys(built.proposed).length === 0 && Object.keys(built.location).length === 0
+    // "It has stopped running" is a report even when the visitor adds nothing to it.
+    const note =
+      sender.note.trim() || (intent === 'stopped' ? t('submit.note.stopped_default') : undefined)
+
+    // A note alone is a correction too: "this class no longer meets" has no field to change.
+    if (correction && unchanged && !note) return setNoChanges(true)
+    if (token) mutation.mutate({ built, captcha: token, note })
+  }
+
+  const back: ListingStep = correction ? (intent ? INTENT_STEPS[intent] : 'fix') : 'details'
+
   return (
-    <form
-      noValidate
-      className="flex flex-col gap-3"
-      onSubmit={(event) => {
-        event.preventDefault()
-        setNoChanges(false)
-
-        const invalid = firstInvalidStep(draft, correction?.baseDraft)
-
-        if (invalid) return onInvalid(invalid)
-        if (!isEmail(senderEmail)) return setEmailError(true)
-        setEmailError(false)
-
-        const built = buildProposal(draft, correction)
-
-        // A new place re-places the class through `location` alone, so it counts as a change.
-        const unchanged =
-          Object.keys(built.proposed).length === 0 && Object.keys(built.location).length === 0
-
-        // A note alone is a correction too: "this class no longer meets" has no field to change.
-        if (correction && unchanged && !note.trim()) return setNoChanges(true)
-        if (token) mutation.mutate({ built, captcha: token })
-      }}
-    >
-      <ValidatedInput
-        required
-        autoComplete="email"
-        error={emailError && t('submit.errors.email')}
-        help={t('submit.review.email_help')}
-        id="submit-sender-email"
-        label={t('submit.review.email_label')}
-        type="email"
-        value={senderEmail}
-        onChange={(event) => onSender({ email: event.target.value })}
-      />
-      <FormField htmlFor="submit-note" label={t('submit.review.note_label')}>
-        <Textarea
-          id="submit-note"
-          maxLength={userSubmissionValueMax('note')}
-          rows={2}
-          value={note}
-          onChange={(event) => onSender({ note: event.target.value })}
-        />
-      </FormField>
-
-      <div ref={challengeRef} className="empty:hidden" />
-
-      {noChanges && <Alert color="neutral" description={t('submit.review.no_changes')} size="sm" />}
-      {refusal && <Alert color="danger" description={refusal} role="alert" size="sm" />}
-
-      <div className="flex flex-wrap justify-end gap-2">
-        <Button variant="flat" onClick={onMore}>
-          {t('submit.review.add_more')}
+    <form noValidate className="contents" onSubmit={send}>
+      <DrawerBody className={stickyFooter ? 'pb-24' : undefined}>
+        <div ref={scope} className="px-6 pt-2 pb-8">
+          <CheckStep
+            challengeBlocked={status === 'blocked'}
+            challengeRef={challengeRef}
+            correction={
+              correction && { baseDraft: correction.baseDraft, event: correction.event, intent }
+            }
+            draft={draft}
+            emailError={emailError}
+            listing={listing}
+            noChanges={noChanges}
+            preview={preview}
+            refusal={refusal}
+            sender={sender}
+            onEdit={(section: ListingSection | 'note') => onGo(section)}
+            onSender={onSender}
+          />
+        </div>
+      </DrawerBody>
+      <FlowFooter sticky={stickyFooter}>
+        <Button size="lg" variant="flat" onClick={() => onGo(back)}>
+          {t('submit.chrome.back')}
         </Button>
         <Button
+          className="ms-auto min-w-40"
           color="primary"
           disabled={!token}
           isLoading={mutation.isPending}
+          size="lg"
           type="submit"
           variant="solid"
         >
-          {t('submit.review.submit')}
+          {t('submit.review.send')}
+        </Button>
+      </FlowFooter>
+    </form>
+  )
+}
+
+function FlowFooter({ sticky, children }: { sticky?: boolean; children: ReactNode }) {
+  return (
+    <DrawerFooter
+      className="flex items-center gap-2 px-4 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]"
+      sticky={sticky}
+    >
+      {children}
+    </DrawerFooter>
+  )
+}
+
+/** What a sent submission leaves: who checks it, where we'll write, and the way back. */
+function Receipt({
+  correction,
+  draft,
+  email,
+  onClose,
+}: {
+  /** A correction changes a listed class; a new listing appears. The receipt says which. */
+  correction: boolean
+  draft: ListingDraft
+  email: string
+  onClose: () => void
+}) {
+  const { t } = useTranslation()
+  const city = draftPlace(draft)?.city
+
+  return (
+    <DrawerBody>
+      <div className="flex flex-col items-center gap-4 px-6 pt-10 pb-10 text-center">
+        <span className="flex size-14 items-center justify-center rounded-full bg-primary-3 text-primary-11">
+          <Check aria-hidden size={28} strokeWidth={2.5} />
+        </span>
+        <div className="flex max-w-80 flex-col gap-2" role="status">
+          <h3 className="text-lg font-semibold">{t('submit.done.heading')}</h3>
+          <p className="text-sm leading-relaxed text-gray-11">
+            {correction
+              ? city
+                ? t('submit.done.body_correct', { city })
+                : t('submit.done.body_correct_no_city')
+              : city
+                ? t('submit.done.body_check', { city })
+                : t('submit.done.body_check_no_city')}{' '}
+            {email.trim() && t('submit.done.email_line', { email: email.trim() })}
+          </p>
+        </div>
+        <Button
+          className="mt-2 min-w-48"
+          color="primary"
+          size="lg"
+          variant="solid"
+          onClick={onClose}
+        >
+          {t('submit.done.back')}
         </Button>
       </div>
-    </form>
+    </DrawerBody>
   )
 }

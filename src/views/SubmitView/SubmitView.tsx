@@ -5,7 +5,6 @@ import type { ReactNode } from 'react'
 import { useCallback, useDeferredValue, useEffect, useLayoutEffect, useMemo, useRef } from 'react'
 import { useLocation } from 'react-router'
 import { useQuery } from '@tanstack/react-query'
-import { useTranslation } from 'react-i18next'
 import { useShallow } from 'zustand/react/shallow'
 
 import { ListingDetails } from './ListingDetails'
@@ -13,12 +12,12 @@ import { NearbyClassNotice } from './NearbyClassNotice'
 import { useFeedHints } from './use-feed-hints'
 import { useNearbyClasses } from './use-nearby-classes'
 
-import { type SubmitEntry, submitTitleKey } from '@/lib/shape'
-import { DrawerBody } from '@/components/atoms/Drawer'
+import { type SubmitEntry } from '@/lib/shape'
 import { IpLookupContext } from '@/hooks/use-ip-location'
-import { EventHeader } from '@/components/organisms/EventDetails/EventHeader'
 import { ProposalForm } from '@/components/organisms/ProposalForm'
 import { regionQuery } from '@/config/api'
+import { useWidgetMode } from '@/config/mode'
+import { useIsWideWidget } from '@/config/responsive'
 import { useListingDraft } from '@/config/store'
 import { useLocale } from '@/hooks/use-locale'
 import { useMapController } from '@/hooks/use-map-controller'
@@ -128,6 +127,7 @@ function useListingSession(target: FlowTarget) {
       base: state.base,
       step: state.step,
       reviewed: state.reviewed,
+      intent: state.intent,
       sent: state.sent,
     })),
   )
@@ -149,53 +149,6 @@ function useListingSession(target: FlowTarget) {
   return session.key === target.key ? session : null
 }
 
-function FlowPanel({ target, trailing }: { target: FlowTarget; trailing?: ReactNode }) {
-  const session = useListingSession(target)
-  const { dismiss } = useDrawerControl()
-  const { locale } = useLocale()
-  const location = useLocation()
-  const hints = useFeedHints()
-  const draft = session?.draft ?? null
-  const nearby = useNearbyClasses(
-    draft && !target.event && draft.eventType === 'offline' ? draft.address : null,
-  )
-  const timeZoneFor = useCallback(
-    (place: PickedPlace) => nearestTimeZone(place, hints.points),
-    [hints.points],
-  )
-
-  if (!session?.draft) return null
-
-  const { update, setSender, setStep, markSent } = useListingDraft.getState()
-
-  return (
-    <ProposalForm
-      context={buildReportContext({ path: location.pathname, locale })}
-      correction={
-        target.event && session.base
-          ? { eventId: target.event.id, baseDraft: session.base }
-          : undefined
-      }
-      country={target.country}
-      draft={session.draft}
-      languageOptions={hints.languages}
-      placeNotice={<NearbyClassNotice classes={nearby} />}
-      proximity={searchProximity(target.region?.center)}
-      reviewed={session.reviewed}
-      sender={session.sender}
-      sent={session.sent}
-      step={session.step}
-      timeZoneFor={timeZoneFor}
-      trailing={trailing}
-      onChange={update}
-      onClose={dismiss}
-      onSender={setSender}
-      onSent={markSent}
-      onStep={setStep}
-    />
-  )
-}
-
 /** The draft's schedule preview, rebuilt only when a field it reads changes. */
 function usePreviewSchedule(draft: ListingDraft | null) {
   const {
@@ -213,9 +166,18 @@ function usePreviewSchedule(draft: ListingDraft | null) {
   )
 }
 
-function Listing({ target }: { target: FlowTarget }) {
-  const { t } = useTranslation()
+/**
+ * The flow on one sheet: the guided steps, with the listing they build — used for the schedule
+ * summary as it is filled in, and shown whole on Check.
+ */
+function Flow({ target }: { target: FlowTarget }) {
   const session = useListingSession(target)
+  const { dismiss } = useDrawerControl()
+  const { locale } = useLocale()
+  const location = useLocation()
+  const hints = useFeedHints()
+  const { hasMap } = useWidgetMode()
+  const isWide = useIsWideWidget()
   const { frameEvent, frameRegion } = useMapController()
   const { event, region } = target
 
@@ -227,7 +189,7 @@ function Listing({ target }: { target: FlowTarget }) {
     [event, region, frameEvent, frameRegion],
   )
 
-  // Typing re-renders the panel at once and lets the listing behind it catch up.
+  // Typing re-renders the form at once and lets the listing built from it catch up.
   const draft = useDeferredValue(session?.draft ?? null)
   const base = session?.base ?? null
   const basePatch = useMemo(() => (base ? draftToPatch(base) : undefined), [base])
@@ -243,6 +205,13 @@ function Listing({ target }: { target: FlowTarget }) {
         : null,
     [draft, base, basePatch, schedule, event, target.path],
   )
+  const nearby = useNearbyClasses(
+    draft && !event && draft.eventType === 'offline' ? draft.address : null,
+  )
+  const timeZoneFor = useCallback(
+    (place: PickedPlace) => nearestTimeZone(place, hints.points),
+    [hints.points],
+  )
 
   // A picked place drops its pin, so the visitor sees where the class will show on the map.
   const placed = listing?.address?.latitude != null ? listing : null
@@ -253,34 +222,52 @@ function Listing({ target }: { target: FlowTarget }) {
     // Keyed on the point alone: the listing is rebuilt on every keystroke.
   }, [pinKey, frameEvent])
 
-  if (!session || !listing) return null
+  if (!session?.draft || !listing) return null
 
-  const { setStep } = useListingDraft.getState()
-  const title = listing.title || t(submitTitleKey(event ? 'correct' : 'add'))
+  const { update, setSender, setStep, setIntent, markSent } = useListingDraft.getState()
 
   return (
-    <>
-      <EventHeader event={{ ...listing, title }} trailing={<CloseButton />} />
-      <DrawerBody>
-        <div className="mx-6 mb-4 rounded-lg border border-divider">
-          <FlowPanel target={target} />
-        </div>
-        {!session.sent && (
-          <p className="mx-6 mb-2 text-xs text-gray-11">{t('submit.chrome.preview_note')}</p>
-        )}
-        <IpLookupContext.Provider value={false}>
+    // The preview names no viewer's place, so nothing here may ping the IP lookup.
+    <IpLookupContext.Provider value={false}>
+      <ProposalForm
+        context={buildReportContext({ path: location.pathname, locale })}
+        correction={
+          event && session.base ? { eventId: event.id, baseDraft: session.base, event } : undefined
+        }
+        country={target.country}
+        draft={session.draft}
+        intent={session.intent}
+        languageOptions={hints.languages}
+        listing={listing}
+        placeMap={!hasMap || !isWide}
+        placeNotice={<NearbyClassNotice classes={nearby} />}
+        preview={
           <ListingDetails
             listing={listing}
             path={target.path}
-            onEdit={session.step === 'review' && !session.sent ? setStep : undefined}
+            onEdit={session.sent ? undefined : setStep}
           />
-        </IpLookupContext.Provider>
-      </DrawerBody>
-    </>
+        }
+        proximity={searchProximity(region?.center)}
+        reviewed={session.reviewed}
+        sender={session.sender}
+        sent={session.sent}
+        step={session.step}
+        stickyFooter={hasMap && !isWide}
+        timeZoneFor={timeZoneFor}
+        trailing={<CloseButton />}
+        onChange={update}
+        onClose={dismiss}
+        onIntent={setIntent}
+        onSender={setSender}
+        onSent={markSent}
+        onStep={setStep}
+      />
+    </IpLookupContext.Provider>
   )
 }
 
-/** The flow's one view: the step form over the listing it builds. */
+/** The flow's one view. */
 export function SubmitView({ entry }: { entry: SubmitEntry }) {
-  return <WithTarget entry={entry}>{(target) => <Listing target={target} />}</WithTarget>
+  return <WithTarget entry={entry}>{(target) => <Flow target={target} />}</WithTarget>
 }

@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import { DateTime } from 'luxon'
 
-import { formatTimeRange, reconciledViewerPlace, sameWallClock, zoneCity } from './time'
+import { formatTimeRange, reconciledViewerPlace, sameWallClock, zoneCity, zoneLabel } from './time'
 
 // All fixtures are built in a fixed zone so the formatter's `timeZone` (taken
 // from the DateTime) is deterministic regardless of the machine's zone.
@@ -127,5 +127,15 @@ describe('reconciledViewerPlace', () => {
 
   it('drops the place for an invalid IP zone string', () => {
     expect(reconciledViewerPlace('British Columbia', 'Not/AZone', at)).toBeNull()
+  })
+})
+
+describe('zoneLabel', () => {
+  it('names a zone the way people say it', () => {
+    expect(zoneLabel('Europe/London', 'en')).toBe('United Kingdom Time')
+  })
+
+  it('keeps the id for a zone it cannot name, or does not know', () => {
+    expect(zoneLabel('Not/AZone', 'en')).toBe('Not/AZone')
   })
 })

@@ -11,27 +11,26 @@ import {
   type EventDetailsSection,
 } from '@/components/organisms/EventDetails'
 
-/** Each section's title, which its Edit link names, so every "Edit" says where it returns to. */
+/** Each step's name, which its Edit link names, so every "Edit" says where it returns to. */
 const SECTION_TITLES: Record<ListingSection, TranslationKey> = {
-  more: 'submit.more.title',
-  when: 'submit.when.title',
-  where: 'submit.where.title',
-  contact: 'submit.contact.title',
-  about: 'event.display.about',
+  where: 'submit.chrome.step_where',
+  when: 'submit.chrome.step_when',
+  details: 'submit.chrome.step_details',
 }
 
 /** The step each panel section is filled in at. */
 const SECTION_STEPS: Record<EventDetailsSection, ListingSection> = {
-  details: 'more',
+  details: 'details',
   when: 'when',
   where: 'where',
-  about: 'about',
+  about: 'details',
 }
 
 /**
  * The listing as the published panel would show it, minus what nobody can act on yet: no
  * Register, no action row and no unverified caveat, and the contact details as plain lines.
- * `onEdit`, passed on review, puts an Edit link on each section.
+ * `onEdit` puts an Edit link on each section. What the visitor left blank says so, rather than
+ * leaving a heading over nothing.
  */
 export function ListingDetails({
   listing,
@@ -56,21 +55,30 @@ export function ListingDetails({
         {t('submit.review.edit')}
       </Button>
     )
+  const contact = [listing.contactName, listing.contactPhone].filter(Boolean)
 
   return (
-    <EventDetails
-      actions={
-        <DetailsSection title={t('submit.contact.title')} trailing={edit('contact')}>
-          {[listing.contactName, listing.contactPhone].filter(Boolean).map((line) => (
-            <p key={line} className="text-sm leading-snug">
-              {line}
-            </p>
-          ))}
-        </DetailsSection>
-      }
-      basePath={path}
-      event={listing}
-      sectionTrailing={(section) => edit(SECTION_STEPS[section])}
-    />
+    <>
+      <h3 className="px-6 pb-2 text-lg leading-tight font-semibold">{listing.title}</h3>
+      <EventDetails
+        actions={
+          <DetailsSection title={t('submit.contact.title')} trailing={edit('details')}>
+            {contact.length > 0 ? (
+              contact.map((line) => (
+                <p key={line} className="text-sm leading-snug">
+                  {line}
+                </p>
+              ))
+            ) : (
+              <p className="text-sm text-gray-11">{t('submit.review.not_given')}</p>
+            )}
+          </DetailsSection>
+        }
+        basePath={path}
+        emptyAbout={<p className="text-sm text-gray-11">{t('submit.review.no_description')}</p>}
+        event={listing}
+        sectionTrailing={(section) => edit(SECTION_STEPS[section])}
+      />
+    </>
   )
 }

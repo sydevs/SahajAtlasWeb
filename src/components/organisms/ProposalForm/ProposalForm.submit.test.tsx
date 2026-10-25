@@ -5,7 +5,7 @@
 // SSR markup can reach neither. The SDK is mocked at its boundary, so the real `sendProposal`
 // body mapping and refusal re-cast run inside the system under test.
 import type { GeocodingFeature } from '@mapbox/search-js-core'
-import type { ListingDraft, ListingStep } from '@/lib/proposal'
+import type { FixIntent, ListingDraft, ListingStep } from '@/lib/proposal'
 
 import { act, useState } from 'react'
 import { createRoot } from 'react-dom/client'
@@ -105,15 +105,18 @@ function Harness({
   initial,
   correction,
   startAt = 'review',
+  startIntent = null,
   reviewed,
 }: {
   reviewed?: boolean
   initial: ListingDraft
   correction?: { eventId: number; baseDraft: ListingDraft }
   startAt?: ListingStep
+  startIntent?: FixIntent | null
 }) {
   const [draft, setDraft] = useState(initial)
   const [step, setStep] = useState<ListingStep>(startAt)
+  const [intent, setIntent] = useState<FixIntent | null>(startIntent)
   const [sent, setSent] = useState(false)
   const [sender, setSender] = useState({ email: '', note: '' })
 
@@ -122,12 +125,17 @@ function Harness({
       context={context}
       correction={correction}
       draft={draft}
+      intent={intent}
       reviewed={reviewed}
       sender={sender}
       sent={sent}
       step={step}
       onChange={(patch) => setDraft((current) => ({ ...current, ...patch }))}
       onClose={() => {}}
+      onIntent={(picked, at) => {
+        setIntent(picked)
+        setStep(at)
+      }}
       onSender={(patch) => setSender((current) => ({ ...current, ...patch }))}
       onSent={() => setSent(true)}
       onStep={setStep}
@@ -187,7 +195,7 @@ describe('ProposalForm submit', () => {
     const root = await mount({ initial: inPerson })
 
     await type('#submit-sender-email', 'ada@example.org')
-    expect(container.textContent).not.toContain('submit.done.title')
+    expect(container.textContent).not.toContain('submit.done.heading')
     await submit()
 
     expect(sdk.request).toHaveBeenCalledTimes(1)
@@ -205,9 +213,10 @@ describe('ProposalForm submit', () => {
     expect(json).not.toHaveProperty('event')
     expect(json).not.toHaveProperty('regionHint')
     expect(json.proposed).not.toHaveProperty('region')
-    // The receipt names the city the visitor chose.
-    expect(container.textContent).toContain('submit.done.title')
-    expect(container.textContent).toContain('submit.done.body')
+    // The receipt says who checks it, in the city the visitor chose, and where we'll write.
+    expect(container.textContent).toContain('submit.done.heading')
+    expect(container.textContent).toContain('submit.done.body_check')
+    expect(container.textContent).toContain('submit.done.email_line')
 
     await act(async () => root.unmount())
   })
@@ -230,7 +239,7 @@ describe('ProposalForm submit', () => {
 
     expect(sdk.request).toHaveBeenCalledTimes(1)
     expect(container.querySelector('[role="alert"]')?.textContent).toContain(key)
-    expect(container.textContent).not.toContain('submit.done.title')
+    expect(container.textContent).not.toContain('submit.done.heading')
 
     await act(async () => root.unmount())
   })
@@ -333,95 +342,109 @@ async function press(label: string) {
 }
 
 describe('ProposalForm steps', () => {
-  it('lets Contact and About be skipped on the way to review', async () => {
-    const root = await mount({ initial: inPerson, startAt: 'contact' })
-
-    expect(container.textContent).toContain('submit.contact.title')
-    await press('submit.chrome.skip')
-    expect(container.textContent).toContain('submit.about.title')
-    await press('submit.chrome.skip')
-    expect(container.querySelector('#submit-sender-email')).not.toBeNull()
-
-    await act(async () => root.unmount())
-  })
-
-  it('holds Where until an address is picked', async () => {
+  it('holds Place until an address is picked', async () => {
     const root = await mount({ initial: { ...inPerson, address: null }, startAt: 'where' })
 
-    await press('submit.chrome.next')
+    await press('submit.chrome.continue')
     expect(container.textContent).toContain('submit.errors.address_required')
     expect(container.textContent).not.toContain('submit.when.title')
 
     await act(async () => root.unmount())
   })
 
-  it('offers title, languages and website under Add more details, then returns to review', async () => {
-    const root = await mount({ initial: inPerson })
+  it('walks a new listing on through Time, Details and Check the first time', async () => {
+    const root = await mount({ initial: inPerson, startAt: 'when' })
 
-    await press('submit.review.add_more')
-    expect(container.querySelector('#submit-title')).not.toBeNull()
-    expect(container.textContent).toContain('submit.more.languages_label')
-    expect(container.querySelector('#submit-website')).not.toBeNull()
-    await press('submit.chrome.back')
+    await press('submit.chrome.continue')
+    expect(container.textContent).toContain('submit.details.title')
+    // Details are all optional: Continue goes straight on.
+    await press('submit.chrome.continue')
     expect(container.querySelector('#submit-sender-email')).not.toBeNull()
 
     await act(async () => root.unmount())
   })
 
-  it('holds Add more details while the website is not a web address', async () => {
+  it('holds Details while the website is not a web address', async () => {
     const root = await mount({
       initial: { ...inPerson, website: 'oxford.example' },
-      startAt: 'more',
+      startAt: 'details',
     })
 
-    await press('submit.chrome.back')
+    await press('submit.chrome.continue')
     expect(container.textContent).toContain('submit.errors.online_url')
     expect(container.querySelector('#submit-website')).not.toBeNull()
 
     await act(async () => root.unmount())
   })
 
-  it('keeps the submitter’s address and note across a details round trip', async () => {
+  it('returns a step straight to Check once Check has been seen', async () => {
+    const root = await mount({ initial: inPerson, startAt: 'when', reviewed: true })
+
+    await press('submit.chrome.done_editing')
+    expect(container.querySelector('#submit-sender-email')).not.toBeNull()
+
+    await act(async () => root.unmount())
+  })
+
+  it('keeps the submitter’s address across an Edit round trip', async () => {
     const root = await mount({ initial: inPerson })
 
     await type('#submit-sender-email', 'ada@example.org')
-    await press('submit.review.add_more')
     await press('submit.chrome.back')
+    await press('submit.chrome.done_editing')
     expect(container.querySelector<HTMLInputElement>('#submit-sender-email')?.value).toBe(
       'ada@example.org',
     )
 
     await act(async () => root.unmount())
   })
+})
 
-  it('returns an Edit link’s step straight to review once review has been seen', async () => {
-    // A correction opens on review, so a step it reaches came from a listing Edit link.
-    const root = await mount({
-      initial: inPerson,
-      correction: { eventId: 507, baseDraft: inPerson },
-      startAt: 'when',
+describe('ProposalForm corrections', () => {
+  const correction = { eventId: 507, baseDraft: inPerson }
+
+  it('asks what needs fixing first, and opens only the step that fixes it', async () => {
+    const root = await mount({ initial: inPerson, correction, startAt: 'fix' })
+
+    expect(container.textContent).toContain('submit.fix.title')
+    await press('submit.fix.when')
+    expect(container.textContent).toContain('submit.when.title')
+    await press('submit.chrome.continue')
+    // Its Check lists what changes, not the whole listing.
+    expect(container.textContent).toContain('submit.changes.title')
+
+    await act(async () => root.unmount())
+  })
+
+  it('sends "it has stopped running" with no field changed, and a default note', async () => {
+    sdk.request.mockResolvedValue({ json: async () => ({ doc: { id: 10 } }) })
+
+    const root = await mount({ initial: inPerson, correction, startAt: 'fix' })
+
+    await press('submit.fix.stopped')
+    await press('submit.chrome.continue')
+    await type('#submit-sender-email', 'ada@example.org')
+    await submit()
+
+    const { json } = sdk.request.mock.calls[0][0]
+
+    expect(json.event).toBe(507)
+    expect(json.proposed).toEqual({})
+    expect(json.submissionData).toContainEqual({
+      field: 'note',
+      value: 'submit.note.stopped_default',
     })
-
-    await press('submit.chrome.next')
-    expect(container.querySelector('#submit-sender-email')).not.toBeNull()
+    expect(container.textContent).toContain('submit.done.body_correct')
 
     await act(async () => root.unmount())
   })
 
-  it('returns to review when its owner says review was reached before a remount', async () => {
-    const root = await mount({ initial: inPerson, startAt: 'when', reviewed: true })
+  it('needs a few words for "something else" before it goes on', async () => {
+    const root = await mount({ initial: inPerson, correction, startAt: 'fix' })
 
-    await press('submit.chrome.next')
-    expect(container.querySelector('#submit-sender-email')).not.toBeNull()
-
-    await act(async () => root.unmount())
-  })
-
-  it('walks a new listing on through each step the first time', async () => {
-    const root = await mount({ initial: inPerson, startAt: 'when' })
-
-    await press('submit.chrome.next')
-    expect(container.textContent).toContain('submit.contact.title')
+    await press('submit.fix.other')
+    await press('submit.chrome.continue')
+    expect(container.textContent).toContain('submit.note.other_required')
 
     await act(async () => root.unmount())
   })

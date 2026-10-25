@@ -57,6 +57,8 @@ export type EventDetailsProps = EventSurfaceProps & {
    * and the action row — for a listing nobody can act on yet (#147).
    */
   actions?: ReactNode
+  /** What About says while there is no description yet — a listing being built (#147). */
+  emptyAbout?: ReactNode
 }
 
 /**
@@ -72,6 +74,7 @@ export function EventDetails({
   children,
   sectionTrailing,
   actions,
+  emptyAbout,
 }: EventDetailsProps) {
   const { t } = useTranslation()
 
@@ -134,12 +137,14 @@ export function EventDetails({
       {/* About — host-authored prose always sits below the facts and actions. */}
       {(descriptionHtml || sectionTrailing) && (
         <DetailsSection title={t('event.display.about')} trailing={sectionTrailing?.('about')}>
-          {descriptionHtml && (
+          {descriptionHtml ? (
             <div
               dangerouslySetInnerHTML={{ __html: descriptionHtml }}
               // `colored-links` carries the host-prose treatment, wrapping included.
               className="flex flex-col gap-2 text-sm leading-snug colored-links normal-nums"
             />
+          ) : (
+            emptyAbout
           )}
         </DetailsSection>
       )}

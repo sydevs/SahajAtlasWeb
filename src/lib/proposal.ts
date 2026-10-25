@@ -24,13 +24,20 @@ import { isWebUrl } from '@/lib/url'
  * panel and the live listing both read these, so the two cannot disagree about what is sent.
  */
 
-/** The numbered steps, in order. `more` is the optional detour off `review`, not a step. */
-export const LISTING_STEPS = ['where', 'when', 'contact', 'about', 'review'] as const
+/**
+ * The guided steps, in order: the place, the schedule, the optional details, and the check that
+ * sends. A correction opens on `fix` instead — "what needs fixing?" — and a report that changes no
+ * field (the class has stopped, something else) is written on `note`.
+ */
+export const LISTING_STEPS = ['where', 'when', 'details', 'review'] as const
 
-export type ListingStep = (typeof LISTING_STEPS)[number] | 'more'
+export type ListingStep = (typeof LISTING_STEPS)[number] | 'fix' | 'note'
 
 /** The parts of the listing a visitor can jump back to from review. */
-export type ListingSection = Exclude<ListingStep, 'review'>
+export type ListingSection = Exclude<(typeof LISTING_STEPS)[number], 'review'>
+
+/** What a correction set out to fix, as its first screen asks it. */
+export type FixIntent = 'when' | 'where' | 'details' | 'stopped' | 'other'
 
 export type ListingRepeats = 'once' | 'weekly' | 'monthly'
 
@@ -188,7 +195,7 @@ const EMAIL = z.string().trim().email()
 export const isEmail = (value: string): boolean => EMAIL.safeParse(value).success
 
 /**
- * What stops a step from moving on. Contact and About may be skipped, but not filled wrongly.
+ * What stops a step from moving on. Details may be skipped, but not filled wrongly.
  *
  * `base` is the published class a correction opened as. The widget never reads a class's join
  * link, so correcting a class that is already online leaves the link blank and keeps the stored
@@ -222,12 +229,14 @@ export const stepErrors = (
     if (!HHMM.test(draft.startTime)) errors.startTime = true
   }
 
-  if (step === 'contact' && draft.contactEmail.trim() && !isEmail(draft.contactEmail)) {
+  if (step === 'details' && draft.contactEmail.trim() && !isEmail(draft.contactEmail)) {
     errors.contactEmail = true
   }
 
   // Refused here rather than dropped by the patch, where it would silently clear a stored one.
-  if (step === 'more' && draft.website.trim() && !isWebUrl(draft.website)) errors.website = true
+  if (step === 'details' && draft.website.trim() && !isWebUrl(draft.website)) {
+    errors.website = true
+  }
 
   return errors
 }
@@ -237,7 +246,7 @@ export const firstInvalidStep = (
   draft: ListingDraft,
   base?: ListingDraft | null,
 ): ListingStep | null =>
-  (['where', 'when', 'contact', 'more'] as const).find(
+  (['where', 'when', 'details'] as const).find(
     (step) =>
       // A correction answers only for what it touches: a class with no schedule can still have
       // its phone number fixed.
@@ -246,21 +255,57 @@ export const firstInvalidStep = (
   ) ?? null
 
 /** The draft fields each step fills in, so a correction can tell which steps it touched. */
-const STEP_FIELDS: Record<Exclude<ListingStep, 'review'>, (keyof ListingDraft)[]> = {
+const STEP_FIELDS: Record<ListingSection, (keyof ListingDraft)[]> = {
   where: ['eventType', 'address', 'room', 'onlineUrl', 'city'],
   when: ['firstDate', 'startTime', 'endTime', 'repeats', 'endDate', 'timeZone'],
-  contact: ['contactName', 'contactPhone', 'contactEmail'],
-  about: ['description'],
-  more: ['title', 'languages', 'website'],
+  details: [
+    'languages',
+    'contactName',
+    'contactPhone',
+    'contactEmail',
+    'description',
+    'title',
+    'website',
+  ],
 }
 
 /** Whether `draft` differs from `base` in any field `step` fills in. */
 export const stepChanged = (
-  step: Exclude<ListingStep, 'review'>,
+  step: ListingSection,
   draft: ListingDraft,
   base: ListingDraft,
 ): boolean =>
   STEP_FIELDS[step].some((field) => JSON.stringify(draft[field]) !== JSON.stringify(base[field]))
+
+// ── Schedule helpers ─────────────────────────────────────────────────────────────
+
+/**
+ * The ISO weekday (1 = Monday … 7 = Sunday) a draft's first session falls on, or null before a
+ * date is set. The weekday a host picks is never stored on its own: it is read off `firstDate`,
+ * so the chip row and the date field can never disagree.
+ */
+export const draftWeekday = (draft: Pick<ListingDraft, 'firstDate'>): number | null => {
+  if (!DATE.test(draft.firstDate)) return null
+
+  const date = DateTime.fromISO(draft.firstDate)
+
+  return date.isValid ? date.weekday : null
+}
+
+/**
+ * The first date on `weekday` on or after `from` — what a host means by "every Tuesday,
+ * starting this week". `from` is an ISO date in the class's own zone.
+ */
+export const nextWeekdayDate = (weekday: number, from: string): string => {
+  const start = DateTime.fromISO(from)
+  const ahead = (weekday - start.weekday + 7) % 7
+
+  return start.plus({ days: ahead }).toISODate() ?? from
+}
+
+/** Today, as an ISO date in `timeZone` — where "starting this week" counts from. */
+export const todayIn = (timeZone: string, now: DateTime = DateTime.now()): string =>
+  now.setZone(timeZone).toISODate() ?? now.toISODate() ?? ''
 
 // ── To the Events patch ──────────────────────────────────────────────────────────
 
@@ -541,8 +586,8 @@ export const eventToDraft = (event: Event): ListingDraft => {
 export type OpenedListing = { draft: ListingDraft; base?: ListingDraft; step: ListingStep }
 
 /**
- * Where a flow opens. A new listing starts blank on Where. A correction opens straight on
- * Review, prefilled from the published class, which is also the base its diff is taken from.
+ * Where a flow opens. A new listing starts blank on Where. A correction opens on "what needs
+ * fixing?", prefilled from the published class, which is also the base its diff is taken from.
  */
 export const openListing = (
   opening: { event: Event } | { timeZone: string; languages: string[] },
@@ -550,7 +595,7 @@ export const openListing = (
   if ('event' in opening) {
     const draft = eventToDraft(opening.event)
 
-    return { draft, base: draft, step: 'review' }
+    return { draft, base: draft, step: 'fix' }
   }
 
   return { draft: emptyDraft(opening.timeZone, opening.languages), step: 'where' }

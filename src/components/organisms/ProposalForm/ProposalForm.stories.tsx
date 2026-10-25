@@ -1,5 +1,5 @@
 import type { Story, StoryDefault } from '@ladle/react'
-import type { ListingDraft, ListingStep } from '@/lib/proposal'
+import type { FixIntent, ListingDraft, ListingStep } from '@/lib/proposal'
 import type { ProposalFormProps } from './ProposalForm'
 
 import { useState } from 'react'
@@ -60,19 +60,29 @@ function Panel({
   const [step, setStep] = useState(initialStep)
   const [sent, setSent] = useState(rest.sent ?? false)
   const [sender, setSender] = useState(EMPTY_SENDER)
+  const [intent, setIntent] = useState<FixIntent | null>(rest.intent ?? null)
 
   return (
-    <div className="rounded-lg border border-divider bg-background" style={{ width }}>
+    // The form renders a whole sheet — header, scrolling body, footer — so it gets a sheet's box.
+    <div
+      className="flex h-[680px] flex-col overflow-hidden rounded-lg border border-divider bg-background"
+      style={{ width }}
+    >
       <ProposalForm
         context={context}
         languageOptions={['en', 'fr', 'de', 'hi']}
         onClose={() => setSent(false)}
         {...rest}
         draft={draft}
+        intent={intent}
         sender={sender}
         sent={sent}
         step={step}
         onChange={(patch) => setDraft((current) => ({ ...current, ...patch }))}
+        onIntent={(picked, at) => {
+          setIntent(picked)
+          setStep(at)
+        }}
         onSender={(patch) => setSender((current) => ({ ...current, ...patch }))}
         onSent={() => setSent(true)}
         onStep={setStep}
@@ -81,19 +91,17 @@ function Panel({
   )
 }
 
-const STEPS: ListingStep[] = ['where', 'when', 'contact', 'about', 'review', 'more']
+const STEPS: ListingStep[] = ['where', 'when', 'details', 'review']
 
 /**
- * ProposalForm is the add-a-class and correction panel (#147): Where, When, Contact, About and
- * Review, plus the optional details step off Review. In the app it sits in its own sheet beside
- * the live listing — from the right on a wide widget, rising from the bottom on a narrow one —
- * and shrinks to the review bar on step 5. Each section here holds its own draft, so the steps
- * can be walked.
+ * ProposalForm is the add-a-class and correction flow (#147), guided: Place, Time, Details and
+ * Check, in the stack's own sheet. A correction asks "what needs fixing?" first. Each panel here
+ * holds its own draft, so the steps can be walked.
  */
 export const Default: Story = () => (
   <StoryWrapper>
     <StorySection
-      description="Every step of a new listing, before anything is entered. Contact and About carry Skip."
+      description="Every step of a new listing, before anything is entered."
       title="Empty"
     >
       <div className="flex flex-wrap gap-4">
@@ -119,10 +127,18 @@ export const Default: Story = () => (
     </StorySection>
 
     <StorySection
-      description="A correction opens on review, prefilled from the published class."
+      description="A correction opens on what needs fixing, then only the step that fixes it."
       title="Correction"
     >
-      <Panel correction={{ eventId: 507, baseDraft: filled }} initial={filled} step="review" />
+      <div className="flex flex-wrap gap-4">
+        <Panel correction={{ eventId: 507, baseDraft: filled }} initial={filled} step="fix" />
+        <Panel
+          correction={{ eventId: 507, baseDraft: filled }}
+          initial={filled}
+          intent="stopped"
+          step="note"
+        />
+      </div>
     </StorySection>
 
     <StorySection
@@ -152,7 +168,7 @@ export const Default: Story = () => (
     </StorySection>
 
     <StorySection
-      description="A phone's bottom sheet (375px) and the desktop right panel (352px)."
+      description="A phone's bottom sheet (375px) and the desktop panel (352px)."
       title="Widths"
     >
       <div className="flex flex-wrap items-start gap-4">

@@ -45,10 +45,22 @@ const render = (panel: boolean) =>
 
 describe('the listing session', () => {
   beforeEach(() => {
+    // The Time step's switch measures itself.
+    vi.stubGlobal(
+      'ResizeObserver',
+      class {
+        observe() {}
+        unobserve() {}
+        disconnect() {}
+      },
+    )
     useListingDraft.setState({ key: null, entry: null, draft: null, sent: false })
     root = createRoot(document.createElement('div'))
   })
-  afterEach(() => act(() => root.unmount()))
+  afterEach(() => {
+    act(() => root.unmount())
+    vi.unstubAllGlobals()
+  })
 
   it('keeps a sent receipt when the panel remounts on the same visit', async () => {
     await render(true)

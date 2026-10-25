@@ -391,6 +391,9 @@ export function DrawerFooter({
    * The sheet is a full-height translated panel, so `fixed` would resolve
    * against it instead. So the footer offsets by the sheet's live top. That
    * value is mirrored every frame onto `--sy-sheet-top` by DrawerStack.
+   * The sheet's own bottom padding (the 3% kept clear for the top snap) already
+   * lifts the box this resolves against, so the offset takes that back off —
+   * otherwise the bar floats that far above the screen's edge at every snap.
    * Content scrolls under the footer. Give the body matching bottom padding.
    */
   sticky?: boolean
@@ -400,7 +403,7 @@ export function DrawerFooter({
   return (
     <div
       className={slots.footer({
-        className: `${sticky ? 'absolute inset-x-0 bottom-[var(--sy-sheet-top,0px)] z-10 bg-background' : ''} ${className ?? ''}`,
+        className: `${sticky ? 'absolute inset-x-0 bottom-[calc(var(--sy-sheet-top,0px)-var(--sy-frame-h,0px)*0.03)] z-10 bg-background' : ''} ${className ?? ''}`,
       })}
     >
       {children}
