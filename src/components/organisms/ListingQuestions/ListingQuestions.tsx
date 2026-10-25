@@ -246,7 +246,7 @@ export function ListingQuestions(props: ListingQuestionsProps) {
             isCorrection={Boolean(correction)}
           />
         </DrawerBody>
-        <DrawerFooter className="px-4 py-3" sticky={stickyFooter}>
+        <DrawerFooter className="flex px-4 py-3" sticky={stickyFooter}>
           <Button
             className="flex-1"
             color="primary"
@@ -285,6 +285,8 @@ export function ListingQuestions(props: ListingQuestionsProps) {
   )
 
   const isLast = question === 'review'
+  // A screen answered by a tap has nothing to confirm until it holds an answer.
+  const hasFooter = isLast || !CHOSEN.has(question) || answeredChoice(question, draft, reason)
   const continueLabel =
     reviewed && !CHOSEN.has(question) && onward(question, questions) === 'review'
       ? t('submit.ask.done')
@@ -311,16 +313,18 @@ export function ListingQuestions(props: ListingQuestionsProps) {
           trailing={trailing}
         />
         {correction ? (
-          <p className="truncate px-1 text-sm text-gray-11">
+          <p className="line-clamp-2 px-1 text-sm text-gray-11">
             {t('submit.correct.changed_help', { title: correction.title })}
           </p>
         ) : (
-          <AnswerChips
-            draft={draft}
-            question={question}
-            questions={questions}
-            onJump={(asked) => go(asked, -1)}
-          />
+          question !== 'review' && (
+            <AnswerChips
+              draft={draft}
+              question={question}
+              questions={questions}
+              onJump={(asked) => go(asked, -1)}
+            />
+          )
         )}
       </DrawerHeader>
 
@@ -338,33 +342,33 @@ export function ListingQuestions(props: ListingQuestionsProps) {
         </div>
       </DrawerBody>
 
-      <DrawerFooter className="flex items-center gap-2 px-4 py-3" sticky={stickyFooter}>
-        {SKIPPABLE.has(question) && (
-          <Button size="lg" variant="ghost" onClick={() => go(onward(question, questions), 1)}>
-            {t('submit.chrome.skip')}
-          </Button>
-        )}
-        {isLast ? (
-          <Button
-            className="flex-1"
-            color="primary"
-            disabled={!send.ready}
-            form={SEND_FORM_ID}
-            isLoading={send.pending}
-            size="lg"
-            type="submit"
-            variant="solid"
-          >
-            {t('submit.ask.send')}
-          </Button>
-        ) : (
-          (!CHOSEN.has(question) || answeredChoice(question, draft, reason)) && (
+      {hasFooter && (
+        <DrawerFooter className="flex items-center gap-2 px-4 py-3" sticky={stickyFooter}>
+          {SKIPPABLE.has(question) && (
+            <Button size="lg" variant="ghost" onClick={() => go(onward(question, questions), 1)}>
+              {t('submit.chrome.skip')}
+            </Button>
+          )}
+          {isLast ? (
+            <Button
+              className="flex-1"
+              color="primary"
+              disabled={!send.ready}
+              form={SEND_FORM_ID}
+              isLoading={send.pending}
+              size="lg"
+              type="submit"
+              variant="solid"
+            >
+              {t('submit.ask.send')}
+            </Button>
+          ) : (
             <Button className="flex-1" color="primary" size="lg" variant="solid" onClick={advance}>
               {continueLabel}
             </Button>
-          )
-        )}
-      </DrawerFooter>
+          )}
+        </DrawerFooter>
+      )}
     </>
   )
 }
@@ -661,7 +665,7 @@ function Screen(args: ScreenArgs) {
   }
 }
 
-/** The screen after sending: what happens next, in plain words. */
+/** The screen after sending: what happens next, in plain words, as the three steps it is. */
 function Receipt({
   city,
   email,
@@ -674,27 +678,48 @@ function Receipt({
   headingRef: Ref<HTMLHeadingElement>
 }) {
   const { t } = useTranslation()
-  const body = isCorrection
-    ? t('submit.correct.sent_body')
-    : city
-      ? t('submit.done.body', { city })
-      : t('submit.done.body_no_city')
+  const steps = [
+    city ? t('submit.ask.next_check', { city }) : t('submit.ask.next_check_no_city'),
+    t('submit.ask.next_email', { email: email.trim() }),
+    isCorrection ? t('submit.ask.next_changed') : t('submit.ask.next_live'),
+  ]
 
   return (
-    <div className="flex flex-col items-center gap-4 pt-10 pb-6 text-center" role="status">
-      <span className="flex size-16 items-center justify-center rounded-full bg-primary-3 text-primary-11">
-        <Check aria-hidden size={32} strokeWidth={2.5} />
-      </span>
-      <h3
-        ref={headingRef}
-        className="text-[1.375rem] leading-tight font-semibold tracking-tight outline-none"
-        tabIndex={-1}
-      >
-        {t('submit.ask.sent_title')}
-      </h3>
-      <p className="max-w-[22rem] text-[0.9375rem] leading-snug text-gray-11">
-        {body} {email.trim() && t('submit.ask.sent_email', { email: email.trim() })}
-      </p>
+    <div className="flex flex-col gap-8 pt-8 pb-6" role="status">
+      <div className="flex flex-col items-center gap-4 text-center">
+        <span className="flex size-16 items-center justify-center rounded-full bg-primary-3 text-primary-11">
+          <Check aria-hidden size={32} strokeWidth={2.5} />
+        </span>
+        <h3
+          ref={headingRef}
+          className="text-[1.375rem] leading-tight font-semibold tracking-tight outline-none"
+          tabIndex={-1}
+        >
+          {t('submit.ask.sent_title')}
+        </h3>
+      </div>
+      <section className="flex flex-col gap-4">
+        <h4 className="text-sm font-semibold tracking-wide text-gray-11 uppercase">
+          {t('submit.ask.next_title')}
+        </h4>
+        <ol className="flex flex-col">
+          {steps.map((step, index) => (
+            <li key={step} className="relative flex gap-3 pb-5 last:pb-0">
+              {/* The rail joining the steps, stopping at the last one. */}
+              {index < steps.length - 1 && (
+                <span aria-hidden className="absolute start-3.5 top-8 bottom-1 w-px bg-gray-6" />
+              )}
+              <span
+                aria-hidden
+                className="flex size-7 shrink-0 items-center justify-center rounded-full border border-gray-6 bg-background text-sm font-semibold text-gray-11"
+              >
+                {index + 1}
+              </span>
+              <p className="pt-0.5 text-[0.9375rem] leading-snug break-words">{step}</p>
+            </li>
+          ))}
+        </ol>
+      </section>
     </div>
   )
 }

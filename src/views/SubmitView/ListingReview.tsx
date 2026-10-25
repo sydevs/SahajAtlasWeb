@@ -62,7 +62,19 @@ export function ListingPreview({
       <p className="border-b border-gray-4 bg-gray-2 px-6 py-2 text-xs font-semibold tracking-wide text-gray-11 uppercase">
         {t('submit.ask.preview_eyebrow')}
       </p>
-      <h4 className="px-6 pt-4 text-lg leading-6 font-semibold">{listing.title}</h4>
+      <div className="flex items-start justify-between gap-2 px-6 pt-4">
+        <h4 className="text-lg leading-6 font-semibold">{listing.title}</h4>
+        <Button
+          aria-label={`${t('submit.review.edit')}: ${t('submit.ask.name_label')}`}
+          className="-my-1 shrink-0"
+          color="primary"
+          size="sm"
+          variant="ghost"
+          onClick={() => onEdit('about')}
+        >
+          {t('submit.review.edit')}
+        </Button>
+      </div>
       {/* The panel's own bottom padding is sized for a drawer's end, not a card's. */}
       <div className="[&>div]:!pb-5">
         <ListingDetails

@@ -288,10 +288,6 @@
       "phone_label": "Phone",
       "title": "Who can people contact?"
     },
-    "done": {
-      "body": "A coordinator for %{city} will review it.",
-      "body_no_city": "A coordinator will review it."
-    },
     "errors": {
       "address_required": "Choose an address from the search results.",
       "captcha": "The security check expired. Please try again.",
@@ -387,11 +383,17 @@
       "note_add": "Add a note for the coordinator",
       "send": "Send for review",
       "sent_title": "Sent for review",
-      "sent_email": "We’ll email %{email} once it’s been reviewed.",
       "sent_back": "Back to the map",
       "chip_weekly": "Every %{weekday}",
       "chip_monthly": "Monthly",
-      "time_other": "Or choose a time"
+      "time_other": "Other time",
+      "time_length": "How long is it?",
+      "next_title": "What happens next",
+      "next_check": "A coordinator for %{city} checks it.",
+      "next_check_no_city": "A coordinator checks it.",
+      "next_email": "We email you at %{email} once it’s been reviewed.",
+      "next_live": "Your class appears on the map.",
+      "next_changed": "The listing is updated."
     },
     "correct": {
       "changed_title": "What’s changed?",
@@ -422,8 +424,7 @@
       "now": "Now",
       "stopped_change": "No longer running",
       "stopped_change_on": "Last class %{date}",
-      "nothing_changed": "Nothing has changed yet. Add a note below, or go back and make a change.",
-      "sent_body": "A coordinator will check it before the listing changes."
+      "nothing_changed": "Nothing has changed yet. Add a note below, or go back and make a change."
     }
   }
 }

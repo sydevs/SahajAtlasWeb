@@ -334,7 +334,8 @@ export const useListingDraft = create<ListingDraftState & ListingDraftAction>((s
       base: base ?? null,
       sender: EMPTY_SENDER,
       step,
-      reviewed: step === 'review',
+      // Reached only by walking the questions: a correction opens on "what's changed?" now.
+      reviewed: false,
       sent: false,
       // A correction opens on "what's changed?"; a new listing on its first question.
       question: base ? 'changed' : 'mode',

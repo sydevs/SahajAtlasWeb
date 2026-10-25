@@ -1,7 +1,7 @@
 import type { LucideIcon } from 'lucide-react'
 
 import { tv } from 'tailwind-variants'
-import { Check, ChevronRight } from 'lucide-react'
+import { Check, ChevronRight, Circle } from 'lucide-react'
 
 // A whole-row answer to a question: one tap picks it and moves on. Sized for a thumb (64px+),
 // with the icon, a plain label and a one-line hint, so a visitor never has to read a form.
@@ -36,6 +36,11 @@ export type ChoiceCardProps = {
   label: string
   hint?: string
   selected?: boolean
+  /**
+   * `next` answers and moves on, so it points onward; `radio` picks one of a pair that stays
+   * on screen, so it shows the empty circle of a choice not yet made.
+   */
+  kind?: 'next' | 'radio'
   onSelect: () => void
 }
 
@@ -44,13 +49,21 @@ export function ChoiceCard({
   label,
   hint,
   selected = false,
+  kind = 'next',
   onSelect,
 }: ChoiceCardProps) {
   const slots = card({ selected })
-  const Trailing = selected ? Check : ChevronRight
+  const Trailing = selected ? Check : kind === 'radio' ? Circle : ChevronRight
 
   return (
-    <button aria-pressed={selected} className={slots.base()} type="button" onClick={onSelect}>
+    <button
+      aria-checked={kind === 'radio' ? selected : undefined}
+      aria-pressed={kind === 'radio' ? undefined : selected}
+      className={slots.base()}
+      role={kind === 'radio' ? 'radio' : undefined}
+      type="button"
+      onClick={onSelect}
+    >
       <span aria-hidden className={slots.icon()}>
         <Icon size={20} />
       </span>

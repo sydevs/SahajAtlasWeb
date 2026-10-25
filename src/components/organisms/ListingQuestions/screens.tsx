@@ -296,8 +296,8 @@ export function PlaceScreen({
       help={online ? t('submit.where.city_help') : t('submit.ask.place_not_found')}
       label={online ? t('submit.where.city_label') : t('submit.where.address_label')}
     >
-      {/* The geocoder's own field is a fixed 40px; this lifts it to the flow's 48px, 16px type. */}
-      <div className="[&_input]:!h-12 [&_input]:!text-base" data-invalid={error ? true : undefined}>
+      {/* 16px type in the geocoder's own field, so iOS does not zoom into it. */}
+      <div className="[&_input]:!text-base" data-invalid={error ? true : undefined}>
         <MapSearch
           country={country}
           label={
@@ -484,6 +484,9 @@ export function DayScreen({
   )
 }
 
+/** Focuses a field the click that revealed it has just rendered. */
+const focusSoon = (id: string) => requestAnimationFrame(() => document.getElementById(id)?.focus())
+
 export function TimeScreen({
   draft,
   errors,
@@ -493,63 +496,107 @@ export function TimeScreen({
   const { t } = useTranslation()
   const { locale } = useLocale()
   const length = minutesBetween(draft.startTime, draft.endTime)
+  // A time the picks don't offer opens its own field, and so does asking for one.
+  const [customStart, setCustomStart] = useState(
+    Boolean(draft.startTime) && !START_PICKS.includes(draft.startTime),
+  )
+  const [customEnd, setCustomEnd] = useState(
+    Boolean(draft.endTime) && !LENGTH_PICKS.some((pick) => pick.minutes === length),
+  )
+  const startError = errors.startTime && t('submit.errors.start_time')
 
   const setStart = (startTime: string) => {
     // Keep the session's length when the start moves, so the end follows it.
-    const keep = minutesBetween(draft.startTime, draft.endTime)
-
-    onChange({ startTime, endTime: keep ? addMinutes(startTime, keep) : draft.endTime })
+    onChange({ startTime, endTime: length ? addMinutes(startTime, length) : draft.endTime })
   }
 
   return (
-    <div className="flex flex-col gap-6">
-      <fieldset className="flex flex-col gap-3">
-        <legend className="mb-3 text-sm font-medium">{t('submit.when.start_time')}</legend>
+    <div className="flex flex-col gap-7">
+      <fieldset className="flex flex-col gap-3" data-invalid={startError ? true : undefined}>
+        <legend className="mb-3 text-[0.9375rem] font-medium">{t('submit.when.start_time')}</legend>
         <div className="flex flex-wrap gap-2">
           {START_PICKS.map((time) => (
-            <Pick key={time} selected={draft.startTime === time} onClick={() => setStart(time)}>
+            <Pick
+              key={time}
+              selected={!customStart && draft.startTime === time}
+              onClick={() => {
+                setCustomStart(false)
+                setStart(time)
+              }}
+            >
               {clockLabel(time, locale)}
             </Pick>
           ))}
+          <Pick
+            selected={customStart}
+            onClick={() => {
+              setCustomStart(true)
+              focusSoon('ask-start-time')
+            }}
+          >
+            {t('submit.ask.time_other')}
+          </Pick>
         </div>
-        <Field
-          error={errors.startTime && t('submit.errors.start_time')}
-          id="ask-start-time"
-          label={t('submit.ask.time_other')}
-          type="time"
-          value={draft.startTime}
-          onChange={(event) => setStart(event.target.value)}
-        />
+        {customStart && (
+          <Field
+            error={startError}
+            id="ask-start-time"
+            label={t('submit.when.start_time')}
+            type="time"
+            value={draft.startTime}
+            onChange={(event) => setStart(event.target.value)}
+          />
+        )}
+        {startError && !customStart && (
+          <p className="text-sm text-danger-11" role="alert">
+            {startError}
+          </p>
+        )}
       </fieldset>
 
-      <fieldset className="flex flex-col gap-3">
-        <legend className="mb-3 text-sm font-medium">{t('submit.when.end_time')}</legend>
+      <fieldset className="flex flex-col gap-3" disabled={!draft.startTime}>
+        <legend className="mb-3 text-[0.9375rem] font-medium">{t('submit.ask.time_length')}</legend>
         <div className="flex flex-wrap gap-2">
           {LENGTH_PICKS.map((pick) => (
             <Pick
               key={pick.minutes}
-              selected={length === pick.minutes}
-              onClick={() =>
-                draft.startTime && onChange({ endTime: addMinutes(draft.startTime, pick.minutes) })
-              }
+              selected={!customEnd && length === pick.minutes}
+              onClick={() => {
+                setCustomEnd(false)
+                onChange({ endTime: addMinutes(draft.startTime, pick.minutes) })
+              }}
             >
               {t(pick.key)}
             </Pick>
           ))}
+          <Pick
+            selected={customEnd}
+            onClick={() => {
+              setCustomEnd(true)
+              focusSoon('ask-end-time')
+            }}
+          >
+            {t('submit.ask.time_other')}
+          </Pick>
         </div>
-        <Field
-          id="ask-end-time"
-          label={t('submit.ask.time_other')}
-          type="time"
-          value={draft.endTime}
-          onChange={(event) => onChange({ endTime: event.target.value })}
-        />
+        {customEnd && (
+          <Field
+            id="ask-end-time"
+            label={t('submit.when.end_time')}
+            type="time"
+            value={draft.endTime}
+            onChange={(event) => onChange({ endTime: event.target.value })}
+          />
+        )}
       </fieldset>
 
       {summary}
     </div>
   )
 }
+
+/** Languages most classes are taught in, offered before the long list. */
+const LIKELY_LANGUAGES = ['en', 'fr', 'de', 'es', 'it', 'pt', 'ru', 'hi']
 
 export function LanguageScreen({
   draft,
@@ -558,16 +605,14 @@ export function LanguageScreen({
 }: Omit<ScreenProps, 'errors'> & { languageOptions: string[] }) {
   const { t } = useTranslation()
   const { languageLabel, languageCode } = useLocale()
-  // The visitor's own language first, then the ones classes here are already taught in.
-  const shown = useMemo(
-    () => [...new Set([...draft.languages, languageCode, ...languageOptions])].slice(0, 8),
-    // Keep the chips still while they are being toggled.
-
-    [languageCode, languageOptions],
+  // What the visitor already has, their own language, then the likeliest. Fixed while the
+  // visitor toggles, so a chip never jumps out from under a finger.
+  const [shown] = useState(() =>
+    [...new Set([...draft.languages, languageCode, ...LIKELY_LANGUAGES])].slice(0, 8),
   )
   const all = useMemo(
-    () => [...new Set([...shown, ...draft.languages, ...languageOptions, ...COMMON_LANGUAGES])],
-    [shown, draft.languages, languageOptions],
+    () => [...new Set([...shown, ...languageOptions, ...COMMON_LANGUAGES])],
+    [shown, languageOptions],
   )
   const options = useLanguageOptions(all)
   const extra = draft.languages.filter((code) => !shown.includes(code))
@@ -587,7 +632,7 @@ export function LanguageScreen({
           </Pick>
         ))}
       </div>
-      <FormField label={t('submit.ask.language_more')}>
+      <div className="[&_button]:h-12 [&_button]:text-base">
         <LanguageMultiSelect
           label={t('submit.ask.language_more')}
           options={options}
@@ -595,7 +640,7 @@ export function LanguageScreen({
           value={draft.languages}
           onChange={(languages) => onChange({ languages })}
         />
-      </FormField>
+      </div>
     </div>
   )
 }
@@ -755,6 +800,7 @@ export function StoppedScreen({
       <div className="flex flex-col gap-3">
         <ChoiceCard
           icon={CircleSlash}
+          kind="radio"
           label={t('submit.correct.stopped_unsure')}
           selected={!knowsDate}
           onSelect={() => {
@@ -764,6 +810,7 @@ export function StoppedScreen({
         />
         <ChoiceCard
           icon={CalendarDays}
+          kind="radio"
           label={t('submit.correct.stopped_on')}
           selected={knowsDate}
           onSelect={() => setKnowsDate(true)}
@@ -805,9 +852,9 @@ export function NoteScreen({
     <FormField announceError error={error} htmlFor="ask-note" label="">
       <Textarea
         aria-describedby={fieldDescribedBy({ name: 'ask-note', error: Boolean(error) })}
-        aria-invalid={error ? true : undefined}
         className="text-base"
         id="ask-note"
+        isInvalid={Boolean(error)}
         maxLength={userSubmissionValueMax('note')}
         rows={6}
         value={sender.note}
