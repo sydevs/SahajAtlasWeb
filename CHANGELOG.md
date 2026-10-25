@@ -287,7 +287,7 @@ cover everything a host would notice since the widget was first deployed.
 
 ### Fixed
 
-- **A chosen date on the registration form looks chosen again.** ([#323]) The selected card
+- **A chosen date on the registration form looks chosen again.** ([#329]) The selected card
   filled with your brand colour, but the radio mark inside it stayed an empty ring, because the
   browser drew that mark in the same colour as the card behind it. The mark now takes the card's
   contrasting colour, in light and dark themes and under your own palette. No change for you to
@@ -746,7 +746,7 @@ must-revalidate`, pinned rather than left to the CDN default. The production dom
 [#262]: https://github.com/sydevs/SahajAtlasWeb/issues/262
 [#311]: https://github.com/sydevs/SahajAtlasWeb/pull/311
 [#312]: https://github.com/sydevs/SahajAtlasWeb/pull/312
-[#323]: https://github.com/sydevs/SahajAtlasWeb/issues/323
+[#329]: https://github.com/sydevs/SahajAtlasWeb/pull/329
 [Sizing the element]: docs/embedding.md#sizing-the-element
 [compact card]: docs/embedding.md#when-the-slot-is-too-small
 [Embedding in an iframe]: docs/embedding.md#embedding-in-an-iframe
