@@ -535,7 +535,7 @@ function ReviewStage({
 function FlowFooter({ sticky, children }: { sticky?: boolean; children: ReactNode }) {
   return (
     <DrawerFooter
-      className="flex items-center gap-2 px-4 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]"
+      className="flex items-center gap-2 px-4 pt-3 pb-[max(12px,env(safe-area-inset-bottom))]"
       sticky={sticky}
     >
       {children}

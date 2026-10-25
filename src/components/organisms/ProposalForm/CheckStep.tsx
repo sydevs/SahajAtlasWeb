@@ -157,7 +157,7 @@ function Summary({
           </div>
           {/* Label beside value: a read-back is scanned down the values, so the labels keep to
               a narrow column rather than doubling every row's height. */}
-          <dl className="grid grid-cols-[minmax(0,6.5rem)_minmax(0,1fr)] gap-x-3 gap-y-2 px-3 py-3">
+          <dl className="grid grid-cols-[minmax(0,104px)_minmax(0,1fr)] gap-x-3 gap-y-2 px-3 py-3">
             {rows
               .filter((row) => row.section === section)
               .map((row) => (
