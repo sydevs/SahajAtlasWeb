@@ -298,8 +298,10 @@ cover everything a host would notice since the widget was first deployed.
   was left on a magnified version of your page, with nothing of ours able to undo it. Every text
   field now renders at 16px on any touch device, whatever its width, and on any screen narrower
   than 768px. A desktop embed driven by a mouse keeps the 13px fields it had, so it looks exactly
-  as it did; a narrow embed in a column on a desktop gets the 16px ones. Nothing for you to
-  change, and no CSP or parameter change.
+  as it did; a narrow embed in a column on a desktop gets the 16px ones. A long option label in a
+  dropdown now ends in an ellipsis on one line, where it used to wrap to three lines or push the
+  arrow out of the field — bigger text reaches that point sooner. Nothing for you to change, and
+  no CSP or parameter change.
 - **The panel no longer flickers halfway down on every navigation.** ([#312]) Since the widget
   moved into its shadow root ([#236]), each change of view showed the arriving view in the lower
   half of the panel for the length of the fade, before it jumped to the top. The fade relied on a
