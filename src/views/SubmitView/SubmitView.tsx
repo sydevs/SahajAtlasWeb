@@ -285,7 +285,7 @@ function Flow({ target }: { target: FlowTarget }) {
           <Button
             className="h-12 w-full text-base md:h-11"
             color="primary"
-            variant="flat"
+            variant="solid"
             onClick={dismiss}
           >
             {t('submit.done.back_to_map')}
@@ -414,6 +414,7 @@ function Flow({ target }: { target: FlowTarget }) {
             draft={draft}
             languageOptions={hints.languages}
             listing={listing}
+            mapInView={hasMap && isWide}
             open={session.step}
             placeNotice={<NearbyClassNotice classes={nearby} />}
             proximity={searchProximity(target.region?.center)}

@@ -325,7 +325,8 @@
       "online_url": "Enter a link starting with https://",
       "send_failed": "We couldn’t send your submission. Please try again.",
       "start_time": "Choose a start time.",
-      "urls_not_allowed": "Links aren’t allowed here. Please remove them."
+      "urls_not_allowed": "Links aren’t allowed here. Please remove them.",
+      "weekday": "Choose the day it meets."
     },
     "more": {
       "languages_label": "Languages",

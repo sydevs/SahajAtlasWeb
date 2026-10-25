@@ -268,7 +268,7 @@ export function WhenFields({
       {draft.repeats === 'weekly' && (
         <FormField
           required
-          error={errors.firstDate && !weekday && t('submit.errors.first_date')}
+          error={errors.firstDate && !weekday && t('submit.errors.weekday')}
           label={t('submit.when.weekday')}
         >
           <ToggleGroup

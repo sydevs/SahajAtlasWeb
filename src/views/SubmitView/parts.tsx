@@ -3,6 +3,7 @@ import type { Event } from '@/types'
 import type { TranslationKey } from '@/types/i18next'
 import type { ReactNode } from 'react'
 
+import { useLayoutEffect, useRef } from 'react'
 import { useTranslation } from 'react-i18next'
 import { ArrowLeft, Pencil } from 'lucide-react'
 
@@ -29,21 +30,35 @@ export function TitleField({
 }) {
   const { t } = useTranslation()
   const fallback = draftTitle({ ...draft, title: '' })
+  // Grows with the name, as the published title wraps, instead of cutting a long one off.
+  const field = useRef<HTMLTextAreaElement | null>(null)
+  const grow = (node: HTMLTextAreaElement | null) => {
+    field.current = node
+    if (!node) return
+    node.style.height = 'auto'
+    node.style.height = `${node.scrollHeight}px`
+  }
+
+  useLayoutEffect(() => grow(field.current), [draft.title])
 
   return (
     <div className="min-w-0 flex-1">
       <label className="group relative block">
         <span className="sr-only">{t('submit.more.title_label')}</span>
-        <input
-          className="-mx-1.5 w-[calc(100%+0.75rem)] rounded-md border border-transparent bg-transparent py-0.5 ps-1.5 pe-8 text-lg leading-6 font-semibold tracking-wide text-foreground outline-none placeholder:font-semibold placeholder:text-gray-9 hover:border-gray-6 focus:border-primary-7 focus:bg-background focus-visible:ring-2 focus-visible:ring-focus"
+        <textarea
+          ref={grow}
+          className="-mx-1.5 block w-[calc(100%+0.75rem)] resize-none overflow-hidden rounded-md border border-transparent bg-transparent py-0.5 ps-1.5 pe-8 text-lg leading-6 font-semibold tracking-wide text-foreground outline-none placeholder:font-semibold placeholder:text-gray-9 hover:border-gray-6 focus:border-primary-7 focus:bg-background focus-visible:ring-2 focus-visible:ring-focus"
           maxLength={100}
           placeholder={fallback || t('submit.chrome.title_placeholder')}
+          rows={1}
           value={draft.title}
-          onChange={(event) => onChange({ title: event.target.value })}
+          // A name is one line: Enter finishes it rather than breaking it.
+          onChange={(event) => onChange({ title: event.target.value.replace(/\n/g, ' ') })}
+          onKeyDown={(event) => event.key === 'Enter' && event.currentTarget.blur()}
         />
         <Pencil
           aria-hidden
-          className="pointer-events-none absolute end-1 top-1/2 -translate-y-1/2 text-gray-9 group-focus-within:hidden"
+          className="pointer-events-none absolute end-1 top-1.5 text-gray-9 group-focus-within:hidden"
           size={14}
         />
       </label>

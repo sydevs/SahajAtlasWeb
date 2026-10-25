@@ -31,6 +31,32 @@ const section = tv({
   },
 })
 
+/** Room the sticky footer takes at the bottom of a bottom sheet, which a revealed panel clears. */
+const FOOTER_CLEARANCE = 96
+
+/**
+ * Scrolls the nearest scrolling ancestor — the sheet's body — just enough to show `node`.
+ * `scrollIntoView` would also scroll the drawer's clipped panels, which can never scroll back
+ * and leave the whole sheet shifted up.
+ */
+const revealIn = (node: HTMLElement, behavior: ScrollBehavior) => {
+  let scroller = node.parentElement
+
+  while (scroller && !/(auto|scroll)/.test(getComputedStyle(scroller).overflowY)) {
+    scroller = scroller.parentElement
+  }
+  if (!scroller) return
+
+  const box = node.getBoundingClientRect()
+  const view = scroller.getBoundingClientRect()
+  const below = box.bottom - (view.bottom - FOOTER_CLEARANCE)
+  const above = box.top - (view.top + 16)
+  // A panel taller than the view shows its top; otherwise just enough to show its bottom.
+  const by = above < 0 || box.height > view.height - FOOTER_CLEARANCE ? above : Math.max(0, below)
+
+  if (by !== 0) scroller.scrollBy({ top: by, behavior })
+}
+
 export type SectionProps = {
   id: string
   icon: LucideIcon
@@ -85,7 +111,7 @@ export function Section({
     // After the height animation, so the panel is measured at its full size.
     const timer = window.setTimeout(
       () => {
-        node.scrollIntoView({ block: 'nearest', behavior: reduceMotion ? 'auto' : 'smooth' })
+        revealIn(node, reduceMotion ? 'auto' : 'smooth')
         if (focusOnOpen) {
           node
             .querySelector<HTMLElement>('input:not([type=hidden]), textarea, [role=radio], button')
@@ -153,7 +179,8 @@ export function Section({
         <motion.div
           key="filled"
           animate={{ opacity: 1 }}
-          className="flex items-start gap-2"
+          // A changed section sits on a faint tint, so the edits read at a glance down the list.
+          className={`flex items-start gap-2 ${changed ? '-mx-2 rounded-lg bg-primary-2 px-2 py-1.5' : ''}`}
           initial={reduceMotion ? false : { opacity: 0 }}
         >
           <button

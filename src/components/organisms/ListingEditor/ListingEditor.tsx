@@ -50,6 +50,8 @@ export type ListingEditorProps = {
   placeNotice?: ReactNode
   /** A correction's "it's no longer running" shortcut. */
   onStopped?: () => void
+  /** Whether a live map beside the sheet already shows the pin — then no still tile is needed. */
+  mapInView?: boolean
 }
 
 /**
@@ -72,6 +74,7 @@ export function ListingEditor({
   languageOptions = [],
   placeNotice,
   onStopped,
+  mapInView = false,
 }: ListingEditorProps) {
   const { t } = useTranslation()
   const { languageLabel } = useLocale()
@@ -167,8 +170,8 @@ export function ListingEditor({
           </p>
           {onStopped && (
             <Button
-              className="h-11 justify-center bg-background md:h-10"
-              color="neutral"
+              className="h-11 justify-center border-primary-7 bg-background md:h-10"
+              color="primary"
               variant="bordered"
               onClick={onStopped}
             >
@@ -218,6 +221,7 @@ export function ListingEditor({
         required
         aside={
           !online &&
+          !mapInView &&
           draft.address?.latitude !== undefined &&
           draft.address.longitude !== undefined && (
             <StaticMap
