@@ -303,6 +303,10 @@ export const nextWeekdayDate = (weekday: number, from: string): string => {
   return start.plus({ days: ahead }).toISODate() ?? from
 }
 
+/** The Monday of the week an ISO date falls in. */
+export const weekStart = (iso: string): string =>
+  DateTime.fromISO(iso).startOf('week').toISODate() ?? iso
+
 /** Today, as an ISO date in `timeZone` — where "starting this week" counts from. */
 export const todayIn = (timeZone: string, now: DateTime = DateTime.now()): string =>
   now.setZone(timeZone).toISODate() ?? now.toISODate() ?? ''

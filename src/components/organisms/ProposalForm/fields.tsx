@@ -1,6 +1,6 @@
 import type { InputProps } from '@/components/atoms/Input'
 import type { LucideIcon } from 'lucide-react'
-import type { ReactNode } from 'react'
+import type { KeyboardEvent, ReactNode } from 'react'
 
 import { tv } from 'tailwind-variants'
 
@@ -130,4 +130,27 @@ export function ChoiceCard({
       {trailing}
     </button>
   )
+}
+
+/**
+ * Arrow keys for a hand-built radio group: move to the previous or next option and pick it, as a
+ * native radio group does. Spread onto the element with `role="radiogroup"`.
+ */
+export const radioKeys = {
+  onKeyDown: (event: KeyboardEvent<HTMLElement>) => {
+    const step = { ArrowRight: 1, ArrowDown: 1, ArrowLeft: -1, ArrowUp: -1 }[event.key]
+
+    if (!step) return
+
+    const radios = [...event.currentTarget.querySelectorAll<HTMLElement>('[role="radio"]')]
+    const at = radios.indexOf(document.activeElement as HTMLElement)
+
+    if (at < 0) return
+    event.preventDefault()
+
+    const next = radios[(at + step + radios.length) % radios.length]
+
+    next.focus()
+    next.click()
+  },
 }

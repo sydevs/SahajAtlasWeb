@@ -2,17 +2,18 @@ import type { ListingDraft, ListingErrors, ListingRepeats } from '@/lib/proposal
 import type { Event } from '@/types'
 import type { TranslationKey } from '@/types/i18next'
 
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Info } from 'luxon'
 import { CalendarDays } from 'lucide-react'
 
-import { StepHeading, ValidatedInput } from './fields'
+import { StepHeading, ValidatedInput, radioKeys } from './fields'
 
 import { Checkbox } from '@/components/atoms/Checkbox'
+import { Combobox } from '@/components/atoms/Combobox'
 import { useEventDisplay } from '@/hooks/use-event-display'
 import { useLocale } from '@/hooks/use-locale'
-import { draftWeekday, nextWeekdayDate, todayIn } from '@/lib/proposal'
+import { draftWeekday, nextWeekdayDate, todayIn, weekStart } from '@/lib/proposal'
 import { zoneLabel } from '@/lib/time'
 
 const REPEATS: { value: ListingRepeats; label: TranslationKey }[] = [
@@ -31,6 +32,11 @@ export type TimeStepProps = {
   errors: ListingErrors
   /** The listing as it would publish, for the plain-language summary under the fields. */
   listing?: Event
+  /** Whether "It ends on a set date" is on — its owner holds it, so Continue can ask for one. */
+  ends: boolean
+  onEnds: (ends: boolean) => void
+  /** The toggle is on and no last date was given, after a Continue. */
+  endMissing?: boolean
   onChange: (patch: Partial<ListingDraft>) => void
 }
 
@@ -38,7 +44,15 @@ export type TimeStepProps = {
  * Step 2: how often first, then only the fields that answer it. A weekly class is a weekday and
  * a time — the first date follows from them, and can still be moved.
  */
-export function TimeStep({ draft, errors, listing, onChange }: TimeStepProps) {
+export function TimeStep({
+  draft,
+  errors,
+  listing,
+  ends,
+  onEnds,
+  endMissing = false,
+  onChange,
+}: TimeStepProps) {
   const { t } = useTranslation()
   const { locale } = useLocale()
   const weekday = draftWeekday(draft)
@@ -46,7 +60,6 @@ export function TimeStep({ draft, errors, listing, onChange }: TimeStepProps) {
   const weekly = draft.repeats === 'weekly'
   // A weekly class with no date yet is missing its day, and is told so at the day chips.
   const dayMissing = weekly && weekday === null && Boolean(errors.firstDate)
-  const [ends, setEnds] = useState(Boolean(draft.endDate))
   const weekdays = Info.weekdays('short', { locale })
   const weekdayNames = Info.weekdays('long', { locale })
 
@@ -56,7 +69,11 @@ export function TimeStep({ draft, errors, listing, onChange }: TimeStepProps) {
 
       <fieldset className="flex flex-col gap-2">
         <legend className="mb-2 text-sm font-medium">{t('submit.when.how_often')}</legend>
-        <div className="grid grid-cols-3 gap-1 rounded-lg bg-gray-2 p-1" role="radiogroup">
+        <div
+          className="grid grid-cols-3 gap-1 rounded-lg bg-gray-2 p-1"
+          role="radiogroup"
+          {...radioKeys}
+        >
           {REPEATS.map(({ value, label }) => (
             <button
               key={value}
@@ -79,6 +96,7 @@ export function TimeStep({ draft, errors, listing, onChange }: TimeStepProps) {
             aria-describedby={dayMissing ? 'submit-weekday-error' : undefined}
             className="grid grid-cols-7 gap-1"
             role="radiogroup"
+            {...radioKeys}
           >
             {weekdays.map((label, index) => {
               const day = index + 1
@@ -99,9 +117,16 @@ export function TimeStep({ draft, errors, listing, onChange }: TimeStepProps) {
                   }`}
                   role="radio"
                   type="button"
-                  onClick={() =>
-                    onChange({ firstDate: nextWeekdayDate(day, todayIn(draft.timeZone)) })
-                  }
+                  onClick={() => {
+                    if (on) return
+                    // Moving the day keeps the week the visitor already chose, never earlier
+                    // than this week.
+                    const today = todayIn(draft.timeZone)
+                    const week = draft.firstDate ? weekStart(draft.firstDate) : today
+                    const from = week > today ? week : today
+
+                    onChange({ firstDate: nextWeekdayDate(day, from) })
+                  }}
                 >
                   {label.replace(/\.$/, '')}
                 </button>
@@ -127,6 +152,11 @@ export function TimeStep({ draft, errors, listing, onChange }: TimeStepProps) {
           onChange={(event) => onChange({ startTime: event.target.value })}
         />
         <ValidatedInput
+          help={
+            draft.endTime && draft.startTime && draft.endTime < draft.startTime
+              ? t('submit.when.overnight')
+              : undefined
+          }
           id="submit-end-time"
           label={t('submit.when.end_time')}
           type="time"
@@ -155,7 +185,7 @@ export function TimeStep({ draft, errors, listing, onChange }: TimeStepProps) {
           <Checkbox
             checked={ends}
             onCheckedChange={(checked) => {
-              setEnds(checked)
+              onEnds(checked)
               if (!checked) onChange({ endDate: '' })
             }}
           >
@@ -163,6 +193,8 @@ export function TimeStep({ draft, errors, listing, onChange }: TimeStepProps) {
           </Checkbox>
           {ends && (
             <ValidatedInput
+              required
+              error={endMissing && t('submit.errors.last_date')}
               id="submit-end-date"
               label={t('submit.when.last_class')}
               min={draft.firstDate || undefined}
@@ -176,27 +208,81 @@ export function TimeStep({ draft, errors, listing, onChange }: TimeStepProps) {
 
       <ScheduleSummary
         listing={draft.firstDate && draft.startTime ? listing : undefined}
-        zone={zoneLabel(draft.timeZone, locale)}
+        zone={draft.timeZone}
+        onZone={(timeZone) => onChange({ timeZone })}
       />
     </div>
   )
 }
 
 /** The schedule read back in one line, the way the published listing will say it. */
-function ScheduleSummary({ listing, zone }: { listing?: Event; zone: string }) {
+/** Every zone the runtime knows, for a host whose class is not where the guess put it. */
+const ZONES: string[] =
+  (Intl as { supportedValuesOf?: (key: 'timeZone') => string[] }).supportedValuesOf?.('timeZone') ??
+  []
+
+/**
+ * The schedule read back in one line, the way the published listing will say it, and the zone
+ * it is read in. The zone is a guess from the place, so it can be changed right here.
+ */
+function ScheduleSummary({
+  listing,
+  zone,
+  onZone,
+}: {
+  listing?: Event
+  zone: string
+  onZone: (zone: string) => void
+}) {
   const { t } = useTranslation()
+  const { locale } = useLocale()
+  const [editing, setEditing] = useState(false)
+  const options = useMemo(
+    () =>
+      editing
+        ? ZONES.map((value) => ({ value, label: zoneLabel(value, locale), hint: value }))
+        : [],
+    [editing, locale],
+  )
 
   return (
-    <div className="flex items-start gap-3 rounded-lg bg-primary-2 px-3 py-3">
-      <CalendarDays aria-hidden className="mt-0.5 shrink-0 text-primary" size={18} />
-      <div aria-live="polite" className="min-w-0 flex-1">
-        {listing ? (
-          <SummaryLine listing={listing} />
-        ) : (
-          <p className="text-sm text-gray-11">{t('submit.when.summary_empty')}</p>
-        )}
-        <p className="text-xs text-gray-11">{t('submit.when.timezone_note', { timezone: zone })}</p>
+    <div className="flex flex-col gap-3 rounded-lg bg-primary-2 px-3 py-3">
+      <div className="flex items-start gap-3">
+        <CalendarDays aria-hidden className="mt-0.5 shrink-0 text-primary" size={18} />
+        <div aria-live="polite" className="min-w-0 flex-1">
+          {listing ? (
+            <SummaryLine listing={listing} />
+          ) : (
+            <p className="text-sm text-gray-11">{t('submit.when.summary_empty')}</p>
+          )}
+          <p className="text-xs text-gray-11">
+            {t('submit.when.timezone_note', { timezone: zoneLabel(zone, locale) })}{' '}
+            {!editing && ZONES.length > 0 && (
+              <button
+                className="rounded-sm font-medium text-primary-11 underline underline-offset-2 outline-none focus-visible:ring-2 focus-visible:ring-focus"
+                type="button"
+                onClick={() => setEditing(true)}
+              >
+                {t('submit.chrome.change')}
+              </button>
+            )}
+          </p>
+        </div>
       </div>
+      {editing && (
+        <Combobox
+          aria-label={t('submit.summary.zone')}
+          className="bg-background"
+          options={options}
+          placeholder={zoneLabel(zone, locale)}
+          searchPlaceholder={t('submit.when.zone_search')}
+          value={zone}
+          onValueChange={(value) => {
+            onZone(value)
+            setEditing(false)
+          }}
+        />
+      )}
     </div>
   )
 }

@@ -25,6 +25,7 @@ import {
   stepChanged,
   stepErrors,
   todayIn,
+  weekStart,
 } from './proposal'
 
 import { PROPOSABLE_EVENT_FIELDS } from '@/config/api/proposal'
@@ -516,6 +517,11 @@ describe('the weekday a schedule starts on', () => {
     expect(nextWeekdayDate(2, '2026-10-25')).toBe('2026-10-27')
     expect(nextWeekdayDate(7, '2026-10-25')).toBe('2026-10-25')
     expect(nextWeekdayDate(6, '2026-10-25')).toBe('2026-10-31')
+  })
+
+  it('finds the Monday of a date’s week, so changing the day keeps the week', () => {
+    expect(weekStart('2026-12-03')).toBe('2026-11-30')
+    expect(nextWeekdayDate(4, weekStart('2026-12-01'))).toBe('2026-12-03')
   })
 
   it('counts today in the class’s own zone', () => {

@@ -247,6 +247,9 @@ function StepStage({
   const errors: ListingErrors =
     fields && attempted?.step === step ? stepErrors(step, draft, base) : {}
   const noteMissing = attempted?.step === 'note' && intent === 'other' && !sender.note.trim()
+  // "It ends on a set date" is a promise to give one, so it holds Time until it is kept.
+  const [endsOn, setEndsOn] = useState(Boolean(draft.endDate))
+  const endMissing = step === 'when' && endsOn && draft.repeats !== 'once' && !draft.endDate
   const scope = useFocusFirstInvalid(attempted?.at)
 
   // The geocoder may write its own label into the field right after a pick. Any edit after that
@@ -279,7 +282,7 @@ function StepStage({
     const invalid =
       step === 'note'
         ? intent === 'other' && !sender.note.trim()
-        : Object.keys(stepErrors(step, draft, base)).length > 0
+        : endMissing || Object.keys(stepErrors(step, draft, base)).length > 0
 
     if (invalid) return setAttempted({ step, at: Date.now() })
     setAttempted(null)
@@ -320,7 +323,15 @@ function StepStage({
             />
           )}
           {step === 'when' && (
-            <TimeStep draft={draft} errors={errors} listing={listing} onChange={onChange} />
+            <TimeStep
+              draft={draft}
+              endMissing={endMissing && attempted?.step === 'when'}
+              ends={endsOn}
+              errors={errors}
+              listing={listing}
+              onChange={onChange}
+              onEnds={setEndsOn}
+            />
           )}
           {step === 'details' && (
             <DetailsStep
@@ -438,9 +449,12 @@ function ReviewStage({
     // A new place re-places the class through `location` alone, so it counts as a change.
     const unchanged =
       Object.keys(built.proposed).length === 0 && Object.keys(built.location).length === 0
-    // "It has stopped running" is a report even when the visitor adds nothing to it.
+    // "It has stopped running" is the report itself, so it leads the note whatever the visitor
+    // adds to it — a note saying only "ask Elizabeth" must still say what to ask about.
     const note =
-      sender.note.trim() || (intent === 'stopped' ? t('submit.note.stopped_default') : undefined)
+      [intent === 'stopped' && t('submit.note.stopped_default'), sender.note.trim()]
+        .filter(Boolean)
+        .join('\n\n') || undefined
 
     // A note alone is a correction too: "this class no longer meets" has no field to change.
     if (correction && unchanged && !note) return setNoChanges(true)

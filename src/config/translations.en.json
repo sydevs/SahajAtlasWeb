@@ -279,7 +279,6 @@
       "add_here": "Add a class here",
       "back": "Back",
       "correct_entry": "Suggest a correction",
-      "preview_note": "This is how your class will appear once a coordinator approves it.",
       "title_add": "Add a class",
       "title_correct": "Suggest a correction",
       "change": "Change",
@@ -293,7 +292,6 @@
     },
     "contact": {
       "email_label": "Email",
-      "help": "Shown on the listing so people can ask questions before they come.",
       "name_label": "Name",
       "phone_label": "Phone",
       "title": "Who can people contact?"
@@ -318,7 +316,9 @@
       "send_failed": "We couldn’t send your submission. Please try again.",
       "start_time": "Choose a start time.",
       "urls_not_allowed": "Links aren’t allowed here. Please remove them.",
-      "weekday": "Choose the day it meets."
+      "weekday": "Choose the day it meets.",
+      "last_date": "Choose the last date, or turn this off.",
+      "manual_address": "Fill in the street and the town."
     },
     "more": {
       "languages_label": "Languages",
@@ -331,12 +331,13 @@
       "no_changes": "Change at least one detail before submitting.",
       "note_label": "Note for the coordinator (optional)",
       "title": "Check your listing",
-      "preview_badge": "Preview",
       "you_title": "About you",
       "not_given": "Not given",
       "no_description": "No description yet",
       "email_private": "Your email (not shown)",
-      "send": "Send for review"
+      "send": "Send for review",
+      "intro": "Make sure everything is right. A coordinator checks it before it goes on the map.",
+      "see_preview": "See how it will look"
     },
     "when": {
       "end_time": "Ends at",
@@ -353,7 +354,9 @@
       "ends_toggle": "It ends on a set date",
       "summary_empty": "Choose a day and a start time to see how it will read.",
       "first_class": "First class",
-      "last_class": "Last class"
+      "last_class": "Last class",
+      "overnight": "Ends the next day.",
+      "zone_search": "Search for a city or time zone"
     },
     "where": {
       "address_placeholder": "Search for the address",
@@ -367,7 +370,6 @@
       "room_label": "Room or floor (optional)",
       "title": "Where does the class take place?",
       "nearby_title": "Is it one of these?",
-      "nearby_body": "There’s already a class listed at this address. If it’s yours, correct it instead of adding it again.",
       "nearby_action": "Correct it",
       "offline_hint": "At a venue",
       "online_hint": "Zoom or similar",
@@ -375,13 +377,21 @@
       "room_placeholder": "For example: upstairs hall",
       "online_url_help": "The link people use to join. It’s shared with people who sign up.",
       "map_alt": "Map showing %{place}",
-      "venue_label": "Address of the venue"
+      "venue_label": "Address of the venue",
+      "manual_toggle": "Can’t find it? Type the address instead",
+      "manual_back": "Search for the address instead",
+      "manual_note": "The coordinator will put it on the map for you.",
+      "manual_street": "Street and number",
+      "manual_city": "Town or city",
+      "manual_postcode": "Postcode",
+      "nearby_body_near": "There’s already a class listed close to this address. If it’s the same class, correct that listing instead. If not, just carry on."
     },
     "details": {
       "title": "A few more details",
       "intro": "All optional — but they help people decide to come.",
       "languages_help": "The languages the class is held in.",
-      "title_help": "Leave blank to call it “%{name}”."
+      "title_help": "Leave blank to call it “%{name}”.",
+      "contact_help": "Shown on the listing so newcomers can ask before they come. Adding a class for someone else? Use their details, not yours."
     },
     "fix": {
       "title": "What needs fixing?",
@@ -411,7 +421,16 @@
       "stopped": "Has stopped running",
       "removed": "Removed",
       "note_label": "Your note",
-      "none": "Nothing changed yet. Go back and change a detail, or write a note."
+      "none": "Nothing changed yet. Go back and change a detail, or write a note.",
+      "unknown": "Not shown here"
+    },
+    "summary": {
+      "type": "Type",
+      "room": "Room or floor",
+      "schedule": "When",
+      "no_end": "No end date",
+      "zone": "Time zone",
+      "contact_email": "Contact email"
     }
   }
 }

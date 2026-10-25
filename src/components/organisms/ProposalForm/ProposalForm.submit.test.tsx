@@ -439,6 +439,31 @@ describe('ProposalForm corrections', () => {
     await act(async () => root.unmount())
   })
 
+  it('keeps "it has stopped running" in the note when the visitor adds their own words', async () => {
+    sdk.request.mockResolvedValue({ json: async () => ({ doc: { id: 11 } }) })
+
+    const root = await mount({ initial: inPerson, correction, startAt: 'fix' })
+
+    await press('submit.fix.stopped')
+    await act(async () => {
+      const note = container.querySelector<HTMLTextAreaElement>('#submit-note')!
+      const setValue = Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, 'value')?.set
+
+      setValue?.call(note, 'Ask Elizabeth.')
+      note.dispatchEvent(new Event('input', { bubbles: true }))
+    })
+    await press('submit.chrome.continue')
+    await type('#submit-sender-email', 'ada@example.org')
+    await submit()
+
+    expect(sdk.request.mock.calls[0][0].json.submissionData).toContainEqual({
+      field: 'note',
+      value: 'submit.note.stopped_default\n\nAsk Elizabeth.',
+    })
+
+    await act(async () => root.unmount())
+  })
+
   it('needs a few words for "something else" before it goes on', async () => {
     const root = await mount({ initial: inPerson, correction, startAt: 'fix' })
 

@@ -17,7 +17,7 @@ export function NearbyClassNotice({ classes }: { classes: NearbyClass[] }) {
   return (
     <div className="flex flex-col gap-2 rounded-lg border border-divider bg-gray-2 p-3">
       <p className="text-sm font-medium">{t('submit.where.nearby_title')}</p>
-      <p className="text-sm text-gray-11">{t('submit.where.nearby_body')}</p>
+      <p className="text-sm text-gray-11">{t('submit.where.nearby_body_near')}</p>
       <ul className="flex flex-col gap-1">
         {classes.slice(0, 3).map((nearby) => (
           <li key={nearby.id}>
@@ -25,7 +25,7 @@ export function NearbyClassNotice({ classes }: { classes: NearbyClass[] }) {
               className="flex w-full items-center justify-between gap-2 rounded-md bg-background px-3 py-2 text-sm"
               href={nearby.correctPath}
             >
-              <span className="min-w-0 truncate font-medium">{nearby.title}</span>
+              <span className="line-clamp-2 min-w-0 font-medium">{nearby.title}</span>
               <span className="flex shrink-0 items-center gap-0.5 text-primary">
                 {t('submit.where.nearby_action')}
                 <ChevronRight aria-hidden className="size-4" />

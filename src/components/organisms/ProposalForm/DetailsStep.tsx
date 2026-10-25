@@ -56,7 +56,7 @@ export function DetailsStep({ draft, errors, languageOptions, onChange }: Detail
       </FormField>
 
       <section className="flex flex-col gap-3">
-        <GroupHeading help={t('submit.contact.help')} title={t('submit.contact.title')} />
+        <GroupHeading help={t('submit.details.contact_help')} title={t('submit.contact.title')} />
         <ValidatedInput
           autoComplete="off"
           id="submit-contact-name"
