@@ -194,9 +194,6 @@ export function SendForm({
 
       <div ref={challengeRef} className="empty:hidden" />
 
-      {status === 'blocked' && (
-        <Alert color="danger" description={t('common.report.blocked')} role="alert" size="sm" />
-      )}
       {noChanges && (
         <Alert
           color="neutral"

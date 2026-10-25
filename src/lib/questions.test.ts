@@ -102,6 +102,13 @@ describe('questionErrors', () => {
     })
     expect(questionErrors('language', draft)).toEqual({})
   })
+
+  it('checks the website on the contact screen, where it is', () => {
+    expect(questionErrors('contact', { ...draft, website: 'not a link' })).toEqual({
+      website: true,
+    })
+    expect(questionErrors('about', { ...draft, website: 'not a link' })).toEqual({})
+  })
 })
 
 describe('days and times', () => {

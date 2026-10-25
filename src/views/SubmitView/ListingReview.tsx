@@ -31,7 +31,7 @@ export function ScheduleSummary({ listing }: { listing: Event }) {
   return (
     <div className="flex items-start gap-3 rounded-xl bg-primary-2 px-4 py-3" role="status">
       <CalendarDays aria-hidden className="mt-0.5 size-5 shrink-0 text-primary-11" />
-      <p className="min-w-0 text-[0.9375rem] leading-snug font-medium">{line}</p>
+      <p className="min-w-0 text-[15px] leading-snug font-medium">{line}</p>
     </div>
   )
 }
@@ -109,7 +109,7 @@ function ChangeRow({
           </Button>
         )}
       </div>
-      <dl className="grid grid-cols-[auto_1fr] items-baseline gap-x-3 gap-y-1 text-[0.9375rem] leading-snug">
+      <dl className="grid grid-cols-[auto_1fr] items-baseline gap-x-3 gap-y-1 text-[15px] leading-snug">
         <dt className="text-xs font-medium tracking-wide text-gray-11 uppercase">
           {t('submit.correct.was')}
         </dt>
@@ -250,14 +250,14 @@ export function CorrectionChanges({
     return (
       <div className="flex flex-col gap-1.5 rounded-xl border border-gray-6 px-4 py-3">
         <p className="text-sm font-semibold">{t('submit.correct.note_row')}</p>
-        <p className="text-[0.9375rem] leading-snug break-words whitespace-pre-line">{note}</p>
+        <p className="text-[15px] leading-snug break-words whitespace-pre-line">{note}</p>
       </div>
     )
   }
 
   if (rows.length === 0) {
     return (
-      <p className="rounded-xl bg-gray-2 px-4 py-3 text-[0.9375rem] leading-snug text-gray-11">
+      <p className="rounded-xl bg-gray-2 px-4 py-3 text-[15px] leading-snug text-gray-11">
         {t('submit.correct.nothing_changed')}
       </p>
     )

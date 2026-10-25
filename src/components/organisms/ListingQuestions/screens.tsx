@@ -108,13 +108,13 @@ export function QuestionTitle({
     <div className="flex flex-col gap-1.5">
       <h3
         ref={headingRef}
-        className="text-[1.375rem] leading-tight font-semibold tracking-tight text-balance outline-none"
+        className="text-[22px] leading-tight font-semibold tracking-tight text-balance outline-none"
         id={id}
         tabIndex={-1}
       >
         {title}
       </h3>
-      {help && <p className="text-[0.9375rem] leading-snug text-gray-11">{help}</p>}
+      {help && <p className="text-[15px] leading-snug text-gray-11">{help}</p>}
     </div>
   )
 }
@@ -169,7 +169,7 @@ function Pick({
     <button
       data-vaul-no-drag
       aria-pressed={selected}
-      className={`inline-flex h-11 items-center gap-1.5 rounded-full border px-4 text-[0.9375rem] font-medium transition-colors outline-none focus-visible:ring-2 focus-visible:ring-focus ${
+      className={`inline-flex h-11 items-center gap-1.5 rounded-full border px-4 text-[15px] font-medium transition-colors outline-none focus-visible:ring-2 focus-visible:ring-focus ${
         selected
           ? 'border-primary-9 bg-primary-9 text-white'
           : 'border-gray-6 bg-background hover:border-gray-8 hover:bg-gray-2'
@@ -412,7 +412,7 @@ export function DayScreen({
 
   const endField = draft.repeats !== 'once' && (
     <div className="flex flex-col gap-3 border-t border-gray-4 pt-5">
-      <label className="flex min-h-11 cursor-pointer items-center gap-3 text-[0.9375rem]">
+      <label className="flex min-h-11 cursor-pointer items-center gap-3 text-[15px]">
         <input
           checked={hasEnd}
           className="size-5 accent-[hsl(var(--primary-9))]"
@@ -472,7 +472,7 @@ export function DayScreen({
       {weekday && !changingDate && (
         <div className="flex items-center gap-3 rounded-xl bg-gray-2 px-4 py-3">
           <CalendarDays aria-hidden className="size-5 shrink-0 text-primary-11" />
-          <p className="min-w-0 flex-1 text-[0.9375rem] leading-snug">
+          <p className="min-w-0 flex-1 text-[15px] leading-snug">
             {t('submit.ask.day_first', { date: longDate })}
           </p>
           <Button
@@ -500,7 +500,12 @@ export function TimeScreen({
   errors,
   onChange,
   summary,
-}: ScreenProps & { summary?: ReactNode }) {
+  onZone,
+}: ScreenProps & {
+  summary?: ReactNode
+  /** A zone the visitor chose, which the flow then keeps over any it would infer. */
+  onZone: (timeZone: string) => void
+}) {
   const { t } = useTranslation()
   const { locale } = useLocale()
   const length = minutesBetween(draft.startTime, draft.endTime)
@@ -523,7 +528,7 @@ export function TimeScreen({
   return (
     <div className="flex flex-col gap-7">
       <fieldset className="flex flex-col gap-3" data-invalid={startError ? true : undefined}>
-        <legend className="mb-3 text-[0.9375rem] font-medium">{t('submit.when.start_time')}</legend>
+        <legend className="mb-3 text-[15px] font-medium">{t('submit.when.start_time')}</legend>
         <div className="flex flex-wrap gap-2">
           {START_PICKS.map((time) => (
             <Pick
@@ -566,7 +571,7 @@ export function TimeScreen({
       </fieldset>
 
       <fieldset className="flex flex-col gap-3" disabled={!draft.startTime}>
-        <legend className="mb-3 text-[0.9375rem] font-medium">{t('submit.ask.time_length')}</legend>
+        <legend className="mb-3 text-[15px] font-medium">{t('submit.ask.time_length')}</legend>
         <div className="flex flex-wrap gap-2">
           {LENGTH_PICKS.map((pick) => (
             <Pick
@@ -604,7 +609,7 @@ export function TimeScreen({
 
       <div className="flex flex-col gap-3">
         {summary}
-        <TimeZoneLine timeZone={draft.timeZone} onChange={(timeZone) => onChange({ timeZone })} />
+        <TimeZoneLine timeZone={draft.timeZone} onChange={onZone} />
       </div>
     </div>
   )

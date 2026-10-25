@@ -259,7 +259,7 @@ function Flow({ target }: { target: FlowTarget }) {
               event={event}
               listing={listing}
               note={session.sender.note}
-              stopped={session.reason === 'stopped'}
+              stopped={session.answered.includes('stopped')}
               onEdit={(question) => {
                 setReason(reasonFor(question) ?? session.reason)
                 setQuestion(question, false)

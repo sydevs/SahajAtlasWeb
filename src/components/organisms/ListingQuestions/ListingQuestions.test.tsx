@@ -264,6 +264,32 @@ describe('ListingQuestions', () => {
     await act(async () => root.unmount())
   })
 
+  it('keeps "it has stopped" when a second correction is added after it', async () => {
+    sdk.request.mockResolvedValue({ json: async () => ({ doc: { id: 7 } }) })
+
+    const root = await mount({
+      initial: inPerson,
+      correction: { eventId: 507, baseDraft: inPerson, title: 'Tuesdays' },
+      startAt: 'changed',
+    })
+
+    await press('submit.correct.reason_stopped')
+    await press('submit.ask.continue')
+    await press('submit.correct.another')
+    await press('submit.correct.reason_contact')
+    await type('#ask-contact-phone', '+44 7700 900123')
+    await press('submit.ask.continue')
+    expect(asked.at(-1)).toBe('review')
+
+    await type('#send-email', 'ada@example.org')
+    await submit()
+
+    expect(sentBody().proposed).toEqual({ contactPhone: '+44 7700 900123' })
+    expect(JSON.stringify(sentBody().submissionData)).toContain('submit.correct.stopped_marker')
+
+    await act(async () => root.unmount())
+  })
+
   it('sends nothing for a correction that changes nothing and says nothing', async () => {
     const root = await mount({
       initial: inPerson,

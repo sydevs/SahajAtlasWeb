@@ -134,6 +134,12 @@ export function ListingQuestions(props: ListingQuestionsProps) {
   const [attempted, setAttempted] = useState<Question | null>(null)
   const [direction, setDirection] = useState<1 | -1>(1)
   const [send, setSend] = useState<SendState>({ ready: false, pending: false, blocked: false })
+  // The question whose answer was just tapped, lit at once while the next one is on its way.
+  const [tapped, setTapped] = useState<Question | null>(null)
+  // A zone the visitor chose stands: a later place pick no longer infers one over it.
+  const zoneChosen = useRef(false)
+  // Remounted to fetch a fresh security check after the last one was blocked.
+  const [sendAttempt, setSendAttempt] = useState(0)
   const headingRef = useRef<HTMLHeadingElement>(null)
   const bodyRef = useRef<HTMLDivElement>(null)
   const beat = useRef<ReturnType<typeof setTimeout>>()
@@ -163,6 +169,7 @@ export function ListingQuestions(props: ListingQuestionsProps) {
     clearTimeout(beat.current)
     setDirection(towards)
     setAttempted(null)
+    setTapped(null)
     onQuestion(next, towards === 1)
   }
 
@@ -193,6 +200,7 @@ export function ListingQuestions(props: ListingQuestionsProps) {
     const nextDraft = { ...draft, ...patch }
 
     onChange(patch)
+    setTapped(question)
     clearTimeout(beat.current)
     beat.current = setTimeout(
       () =>
@@ -208,6 +216,7 @@ export function ListingQuestions(props: ListingQuestionsProps) {
   // may have changed the time too, and corrects both in one go.
   const chooseReason = (next: CorrectionReason) => {
     onReason(next)
+    setTapped(question)
     clearTimeout(beat.current)
     beat.current = setTimeout(
       () => go(correctionQuestions(base ?? draft, next)[1], 1),
@@ -218,8 +227,13 @@ export function ListingQuestions(props: ListingQuestionsProps) {
   const pick = (key: 'address' | 'city') => (feature: GeocodingFeature) => {
     const place = featureToPlace(feature)
 
-    // Without a nearby class to lend one, the visitor's own zone — never one inferred earlier.
-    onChange({ [key]: place, timeZone: props.timeZoneFor?.(place) ?? viewerTimeZone() })
+    // Without a nearby class to lend one, the visitor's own zone — never one inferred earlier,
+    // and never over one the visitor chose.
+    onChange(
+      zoneChosen.current
+        ? { [key]: place }
+        : { [key]: place, timeZone: props.timeZoneFor?.(place) ?? viewerTimeZone() },
+    )
   }
   // The search writes a picked label into its field without reporting it as an edit, so any
   // edit it does report means the text no longer names the pick: drop it, and ask again.
@@ -266,6 +280,8 @@ export function ListingQuestions(props: ListingQuestionsProps) {
       errors={errors}
       headingRef={headingRef}
       questions={questions}
+      sendAttempt={sendAttempt}
+      tapped={tapped}
       onAnother={() => go('changed', -1)}
       onChooseMode={(eventType) => choose({ eventType })}
       onChooseReason={chooseReason}
@@ -284,6 +300,10 @@ export function ListingQuestions(props: ListingQuestionsProps) {
         weekdayOf(draft.firstDate) !== weekday &&
         onChange({ firstDate: weekdayDate(weekday, draft.timeZone) })
       }
+      onZone={(timeZone) => {
+        zoneChosen.current = true
+        onChange({ timeZone })
+      }}
     />
   )
 
@@ -358,7 +378,24 @@ export function ListingQuestions(props: ListingQuestionsProps) {
               {t('submit.ask.send_waiting')}
             </p>
           )}
-          {isLast ? (
+          {isLast && send.blocked ? (
+            // A blocked check cannot be sent past: say so where the Send button would be, and
+            // offer a fresh check rather than a button that can never work.
+            <div className="flex flex-1 flex-col gap-2">
+              <p className="text-sm leading-snug text-danger-11" role="alert">
+                {t('common.report.blocked')}
+              </p>
+              <Button
+                className="flex-1"
+                color="primary"
+                size="lg"
+                variant="bordered"
+                onClick={() => setSendAttempt((attempt) => attempt + 1)}
+              >
+                {t('common.errors.retry')}
+              </Button>
+            </div>
+          ) : isLast ? (
             <Button
               className="flex-1"
               color="primary"
@@ -369,7 +406,7 @@ export function ListingQuestions(props: ListingQuestionsProps) {
               type="submit"
               variant="solid"
             >
-              {send.ready || send.blocked ? t('submit.ask.send') : t('submit.ask.send_waiting')}
+              {send.ready ? t('submit.ask.send') : t('submit.ask.send_waiting')}
             </Button>
           ) : (
             <Button className="flex-1" color="primary" size="lg" variant="solid" onClick={advance}>
@@ -504,7 +541,7 @@ function AnswerChips({
         <li key={chip.question}>
           <button
             data-vaul-no-drag
-            className="inline-flex h-8 max-w-[15rem] items-center gap-1.5 rounded-full bg-primary-3 px-3 text-[0.8125rem] font-medium text-primary-11 transition-colors outline-none hover:bg-primary-4 focus-visible:ring-2 focus-visible:ring-focus"
+            className="inline-flex h-8 max-w-[240px] items-center gap-1.5 rounded-full bg-primary-3 px-3 text-[13px] font-medium text-primary-11 transition-colors outline-none hover:bg-primary-4 focus-visible:ring-2 focus-visible:ring-focus"
             type="button"
             onClick={() => onJump(chip.question)}
           >
@@ -531,6 +568,9 @@ type ScreenArgs = ListingQuestionsProps & {
   onInvalid: (step: ListingStep) => void
   onSendState: (state: SendState) => void
   onAnother: () => void
+  onZone: (timeZone: string) => void
+  tapped: Question | null
+  sendAttempt: number
 }
 
 /** The screen for the current question: its heading, then its answer. */
@@ -553,7 +593,7 @@ function Screen(args: ScreenArgs) {
         null,
         <ModeScreen
           draft={draft}
-          picked={args.answered.includes('mode')}
+          picked={args.answered.includes('mode') || args.tapped === 'mode'}
           onChoose={args.onChooseMode}
         />,
       )
@@ -590,7 +630,7 @@ function Screen(args: ScreenArgs) {
         null,
         <OftenScreen
           draft={draft}
-          picked={args.answered.includes('often')}
+          picked={args.answered.includes('often') || args.tapped === 'often'}
           onChoose={args.onChooseRepeats}
         />,
       )
@@ -608,7 +648,7 @@ function Screen(args: ScreenArgs) {
       return titled(
         t('submit.ask.time_title'),
         null,
-        <TimeScreen {...props} summary={args.scheduleSummary} />,
+        <TimeScreen {...props} summary={args.scheduleSummary} onZone={args.onZone} />,
       )
     case 'language':
       return titled(
@@ -680,12 +720,15 @@ function Screen(args: ScreenArgs) {
             )}
           </div>
           <SendForm
+            key={args.sendAttempt}
             context={args.context}
             correction={correction}
             draft={draft}
             initialRefusal={args.initialRefusal}
             noteOpen={Boolean(correction)}
-            notePrefix={reason === 'stopped' ? t('submit.correct.stopped_marker') : undefined}
+            notePrefix={
+              args.answered.includes('stopped') ? t('submit.correct.stopped_marker') : undefined
+            }
             sender={args.sender}
             onInvalid={args.onInvalid}
             onSender={args.onSender}
@@ -724,7 +767,7 @@ function Receipt({
         </span>
         <h3
           ref={headingRef}
-          className="text-[1.375rem] leading-tight font-semibold tracking-tight outline-none"
+          className="text-[22px] leading-tight font-semibold tracking-tight outline-none"
           tabIndex={-1}
         >
           {t('submit.ask.sent_title')}
@@ -747,7 +790,7 @@ function Receipt({
               >
                 {index + 1}
               </span>
-              <p className="pt-0.5 text-[0.9375rem] leading-snug break-words">{step}</p>
+              <p className="pt-0.5 text-[15px] leading-snug break-words">{step}</p>
             </li>
           ))}
         </ol>

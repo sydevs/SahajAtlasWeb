@@ -124,7 +124,6 @@ const QUESTION_STEP: Partial<Record<Question, Parameters<typeof stepErrors>[0]>>
   link: 'where',
   place: 'where',
   contact: 'contact',
-  about: 'more',
 }
 
 /**
@@ -154,6 +153,8 @@ export const questionErrors = (
   const errors = stepErrors(step, draft, base)
 
   if (question === 'link') return errors.onlineUrl ? { onlineUrl: true } : {}
+  // The website sits with the contact details on screen, so it is checked there too.
+  if (question === 'contact') return { ...errors, ...stepErrors('more', draft, base) }
   if (question === 'place') {
     const place = { ...errors }
 
