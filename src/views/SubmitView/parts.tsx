@@ -164,8 +164,8 @@ export function ListingCard({
 function ListingExtras({ listing, draft }: { listing: Event; draft: ListingDraft }) {
   const { t } = useTranslation()
   const rows: [string, string][] = [
-    [t('submit.where.room_label'), draft.room],
-    [t('submit.where.online_url_label'), listing.eventType === 'online' ? draft.onlineUrl : ''],
+    [t('submit.review.label_room'), draft.room],
+    [t('submit.review.label_link'), listing.eventType === 'online' ? draft.onlineUrl : ''],
     [
       t('submit.review.label_contact'),
       [draft.contactName, draft.contactPhone, draft.contactEmail]

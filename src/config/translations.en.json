@@ -359,7 +359,9 @@
       "was": "Was",
       "now": "Now",
       "until": "Last class %{date}",
-      "first": "From %{date}"
+      "first": "From %{date}",
+      "label_room": "Room",
+      "label_link": "Link"
     },
     "when": {
       "end_date": "Last date (optional)",
