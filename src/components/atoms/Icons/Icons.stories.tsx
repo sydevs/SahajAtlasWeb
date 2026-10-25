@@ -1,7 +1,7 @@
 import type { Story, StoryDefault } from '@ladle/react'
 
 import {
-  ArrowDown,
+  AlignLeft,
   ArrowUpRight,
   CalendarClock,
   CalendarDays,
@@ -23,6 +23,7 @@ import {
   Pause,
   PhoneOutgoing,
   Play,
+  RotateCcw,
   Search,
   Settings,
   Share,
@@ -55,7 +56,7 @@ export default {
  * only, so neither belongs here.
  */
 const ICONS = [
-  { name: 'ArrowDown', Icon: ArrowDown },
+  { name: 'AlignLeft', Icon: AlignLeft },
   { name: 'ArrowUpRight', Icon: ArrowUpRight },
   { name: 'CalendarClock', Icon: CalendarClock },
   { name: 'CalendarDays', Icon: CalendarDays },
@@ -77,6 +78,7 @@ const ICONS = [
   { name: 'Pause', Icon: Pause },
   { name: 'PhoneOutgoing', Icon: PhoneOutgoing },
   { name: 'Play', Icon: Play },
+  { name: 'RotateCcw', Icon: RotateCcw },
   { name: 'Search', Icon: Search },
   { name: 'Settings', Icon: Settings },
   { name: 'Share', Icon: Share },

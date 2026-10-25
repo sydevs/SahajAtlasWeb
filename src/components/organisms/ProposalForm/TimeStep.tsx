@@ -8,18 +8,32 @@ import { Info } from 'luxon'
 import { CalendarDays } from 'lucide-react'
 
 import { StepHeading, ValidatedInput, radioKeys } from './fields'
+import { useScheduleLines } from './summary'
 
 import { Checkbox } from '@/components/atoms/Checkbox'
 import { Combobox } from '@/components/atoms/Combobox'
-import { useEventDisplay } from '@/hooks/use-event-display'
 import { useLocale } from '@/hooks/use-locale'
-import { draftWeekday, nextWeekdayDate, todayIn, weekStart } from '@/lib/proposal'
+import {
+  draftWeekday,
+  endAfter,
+  nextWeekdayDate,
+  sessionMinutes,
+  todayIn,
+  weekStart,
+} from '@/lib/proposal'
 import { zoneLabel } from '@/lib/time'
 
 const REPEATS: { value: ListingRepeats; label: TranslationKey }[] = [
   { value: 'weekly', label: 'submit.when.weekly' },
   { value: 'monthly', label: 'submit.when.monthly' },
   { value: 'once', label: 'submit.when.once' },
+]
+
+const DURATIONS: { minutes: number | null; label: TranslationKey }[] = [
+  { minutes: 60, label: 'submit.when.duration_60' },
+  { minutes: 90, label: 'submit.when.duration_90' },
+  { minutes: 120, label: 'submit.when.duration_120' },
+  { minutes: null, label: 'submit.when.duration_custom' },
 ]
 
 const segment =
@@ -62,6 +76,15 @@ export function TimeStep({
   const dayMissing = weekly && weekday === null && Boolean(errors.firstDate)
   const weekdays = Info.weekdays('short', { locale })
   const weekdayNames = Info.weekdays('long', { locale })
+  // The length a session runs, as one of the offered ones — read off the two times, so a class
+  // opened for correction shows its own. "Set the end time" is for every other length.
+  const stored = sessionMinutes(draft.startTime, draft.endTime)
+  const [custom, setCustom] = useState(
+    Boolean(draft.endTime) && !DURATIONS.some(({ minutes }) => minutes === stored),
+  )
+  // A length picked before there is a start time, applied once one is given.
+  const [chosen, setChosen] = useState<number | null>(null)
+  const duration = DURATIONS.some(({ minutes }) => minutes === stored) ? stored : chosen
 
   return (
     <div className="flex flex-col gap-5">
@@ -144,17 +167,62 @@ export function TimeStep({
         </fieldset>
       )}
 
-      <div className="grid grid-cols-2 gap-3">
+      <ValidatedInput
+        required
+        className="max-w-48"
+        error={errors.startTime && t('submit.errors.start_time')}
+        id="submit-start-time"
+        label={t('submit.when.start_time')}
+        type="time"
+        value={draft.startTime}
+        onChange={(event) => {
+          const startTime = event.target.value
+
+          // A chosen length keeps its length when the start moves; a typed end time stays put.
+          onChange(
+            !custom && duration
+              ? { startTime, endTime: endAfter(startTime, duration) }
+              : { startTime },
+          )
+        }}
+      />
+
+      <fieldset className="flex flex-col">
+        <legend className="mb-2 text-sm font-medium">{t('submit.when.duration')}</legend>
+        <div className="grid grid-cols-2 gap-2 sm:grid-cols-4" role="radiogroup" {...radioKeys}>
+          {DURATIONS.map(({ minutes, label }) => {
+            const on = minutes === null ? custom : !custom && duration === minutes
+
+            return (
+              <button
+                key={label}
+                aria-checked={on}
+                className={`h-11 rounded-md border px-2 text-sm font-medium transition-colors outline-none focus-visible:ring-2 focus-visible:ring-focus ${
+                  on
+                    ? 'border-primary-9 bg-primary-9 text-primary-foreground'
+                    : 'border-gray-6 hover:bg-gray-2'
+                }`}
+                role="radio"
+                tabIndex={on || (!custom && duration === null && minutes === 60) ? 0 : -1}
+                type="button"
+                onClick={() => {
+                  setCustom(minutes === null)
+                  setChosen(minutes)
+                  if (minutes !== null && draft.startTime) {
+                    onChange({ endTime: endAfter(draft.startTime, minutes) })
+                  }
+                }}
+              >
+                {t(label)}
+              </button>
+            )
+          })}
+        </div>
+      </fieldset>
+
+      {custom && (
         <ValidatedInput
-          required
-          error={errors.startTime && t('submit.errors.start_time')}
-          id="submit-start-time"
-          label={t('submit.when.start_time')}
-          type="time"
-          value={draft.startTime}
-          onChange={(event) => onChange({ startTime: event.target.value })}
-        />
-        <ValidatedInput
+          className="max-w-48"
           help={
             draft.endTime && draft.startTime && draft.endTime < draft.startTime
               ? t('submit.when.overnight')
@@ -166,7 +234,7 @@ export function TimeStep({
           value={draft.endTime}
           onChange={(event) => onChange({ endTime: event.target.value })}
         />
-      </div>
+      )}
 
       {/* A weekly class's first date follows from its day, so it shows once there is one —
           prefilled, and still movable for a class that starts later. */}
@@ -217,6 +285,7 @@ export function TimeStep({
       )}
 
       <ScheduleSummary
+        draft={draft}
         listing={draft.firstDate && draft.startTime ? listing : undefined}
         zone={draft.timeZone}
         onZone={(timeZone) => onChange({ timeZone })}
@@ -236,10 +305,12 @@ const ZONES: string[] =
  * it is read in. The zone is a guess from the place, so it can be changed right here.
  */
 function ScheduleSummary({
+  draft,
   listing,
   zone,
   onZone,
 }: {
+  draft: ListingDraft
   listing?: Event
   zone: string
   onZone: (zone: string) => void
@@ -261,7 +332,7 @@ function ScheduleSummary({
         <CalendarDays aria-hidden className="mt-0.5 shrink-0 text-primary" size={18} />
         <div aria-live="polite" className="min-w-0 flex-1">
           {listing ? (
-            <SummaryLine listing={listing} />
+            <SummaryLine draft={draft} listing={listing} />
           ) : (
             <p className="text-sm text-gray-11">{t('submit.when.summary_empty')}</p>
           )}
@@ -298,9 +369,15 @@ function ScheduleSummary({
   )
 }
 
-function SummaryLine({ listing }: { listing: Event }) {
-  const { recurrenceLine, eventTimeRange, whenLine } = useEventDisplay(listing)
-  const line = recurrenceLine ? [recurrenceLine, eventTimeRange] : [whenLine, eventTimeRange]
+function SummaryLine({ draft, listing }: { draft: ListingDraft; listing: Event }) {
+  const lines = useScheduleLines(draft, listing)
 
-  return <p className="text-sm font-medium">{line.filter(Boolean).join(' · ')}</p>
+  if (!lines) return null
+
+  return (
+    <>
+      <p className="text-sm font-medium">{lines.pattern}</p>
+      {lines.time && <p className="text-sm">{lines.time}</p>}
+    </>
+  )
 }

@@ -11,6 +11,7 @@ import {
   draftPreviewSchedule,
   draftLocation,
   draftWeekday,
+  endAfter,
   emptyDraft,
   eventToDraft,
   featureToPlace,
@@ -18,6 +19,8 @@ import {
   nearestTimeZone,
   newListingPatch,
   nextWeekdayDate,
+  revertFields,
+  sessionMinutes,
   openListing,
   previewEvent,
   previewSessions,
@@ -547,5 +550,34 @@ describe('a correction’s touched steps', () => {
     ).toBeNull()
     expect(stepChanged('details', { ...base, languages: ['fr'] }, base)).toBe(true)
     expect(stepChanged('when', base, base)).toBe(false)
+  })
+})
+
+describe('endAfter and sessionMinutes', () => {
+  it('ends a session a duration after it starts', () => {
+    expect(endAfter('19:30', 60)).toBe('20:30')
+    expect(endAfter('19:30', 90)).toBe('21:00')
+  })
+
+  it('wraps past midnight, as an overnight session', () => {
+    expect(endAfter('23:30', 60)).toBe('00:30')
+    expect(sessionMinutes('23:30', '00:30')).toBe(60)
+  })
+
+  it('waits for a start, and for both times', () => {
+    expect(endAfter('', 60)).toBe('')
+    expect(sessionMinutes('19:30', '')).toBeNull()
+  })
+})
+
+describe('revertFields', () => {
+  it('takes back the named fields only', () => {
+    const base = { ...emptyDraft('Europe/London'), contactName: 'Ana', room: 'Hall' }
+    const edited = { ...base, contactName: 'Bea', room: 'Upstairs' }
+
+    expect({ ...edited, ...revertFields(base, ['contactName']) }).toMatchObject({
+      contactName: 'Ana',
+      room: 'Upstairs',
+    })
   })
 })

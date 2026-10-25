@@ -148,3 +148,35 @@ export function useSummaryRows(
 
   return rows.filter((row): row is SummaryRow => Boolean(row))
 }
+
+/**
+ * The schedule as two lines a host can check at a glance: the pattern with its first date in
+ * words ("Every Tuesday from 27 October"), then the times and the zone they are in. The first
+ * date and the zone are inferred for the host, so they are spelled out rather than implied.
+ * Empty until there is a first date and a start time.
+ */
+export function useScheduleLines(
+  draft: ListingDraft,
+  listing: Event,
+): { pattern: string; time: string | null; zone: string } | null {
+  const { t } = useTranslation()
+  const { locale } = useLocale()
+  const display = useEventDisplay(listing)
+
+  if (!draft.firstDate || !draft.startTime) return null
+
+  const first = DateTime.fromISO(draft.firstDate).setLocale(locale)
+  const thisYear = first.year === DateTime.now().year
+  const date = first.toLocaleString({
+    ...(draft.repeats === 'once' && { weekday: 'long' }),
+    day: 'numeric',
+    month: 'long',
+    ...(!thisYear && { year: 'numeric' }),
+  })
+  const pattern =
+    draft.repeats === 'once' || !display.recurrenceLine
+      ? date
+      : t('submit.when.from', { pattern: display.recurrenceLine, date })
+
+  return { pattern, time: display.eventTimeRange, zone: zoneLabel(draft.timeZone, locale) }
+}

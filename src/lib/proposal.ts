@@ -330,6 +330,28 @@ export const weekStart = (iso: string): string =>
 export const todayIn = (timeZone: string, now: DateTime = DateTime.now()): string =>
   now.setZone(timeZone).toISODate() ?? now.toISODate() ?? ''
 
+/**
+ * The end time `minutes` after `start`, both `HH:MM` — past midnight it wraps to the next day,
+ * which the schedule already reads as an overnight session. Empty while there is no start.
+ */
+export const endAfter = (start: string, minutes: number): string => {
+  if (!HHMM.test(start)) return ''
+
+  const [hours, mins] = start.split(':').map(Number)
+  const total = (hours * 60 + mins + minutes) % (24 * 60)
+
+  return `${String(Math.floor(total / 60)).padStart(2, '0')}:${String(total % 60).padStart(2, '0')}`
+}
+
+/** How long a session runs, in minutes, from two `HH:MM` times — null until both are set. */
+export const sessionMinutes = (start: string, end: string): number | null => {
+  if (!HHMM.test(start) || !HHMM.test(end)) return null
+
+  const at = (time: string) => Number(time.slice(0, 2)) * 60 + Number(time.slice(3))
+
+  return (at(end) - at(start) + 24 * 60) % (24 * 60)
+}
+
 // ── To the Events patch ──────────────────────────────────────────────────────────
 
 /** A blank optional field is `null`, which is how a correction clears a value. */
@@ -522,6 +544,15 @@ export type BuiltProposal = {
   proposed: ProposedEventPatch
   location: ProposalLocation
 }
+
+/**
+ * `base`'s values for `fields` — the patch that takes back one change to a correction and
+ * leaves the others standing.
+ */
+export const revertFields = (
+  base: ListingDraft,
+  fields: readonly (keyof ListingDraft)[],
+): Partial<ListingDraft> => Object.fromEntries(fields.map((field) => [field, base[field]]))
 
 /**
  * What the panel sends. A correction compares the edited draft with the one the published

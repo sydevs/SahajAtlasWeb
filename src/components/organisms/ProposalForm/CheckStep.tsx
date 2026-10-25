@@ -1,18 +1,35 @@
 import type { FixIntent, ListingDraft, ListingSection, ListingSender } from '@/lib/proposal'
 import type { Event } from '@/types'
+import type { LucideIcon } from 'lucide-react'
 import type { ReactNode, RefObject } from 'react'
 
+import { DateTime } from 'luxon'
 import { useTranslation } from 'react-i18next'
-import { ArrowDown, ChevronDown } from 'lucide-react'
+import {
+  AlignLeft,
+  CalendarDays,
+  ChevronDown,
+  Globe,
+  MapPin,
+  Monitor,
+  RotateCcw,
+  UserRound,
+} from 'lucide-react'
 
 import { FIELD_TEXT, GroupHeading, StepHeading, ValidatedInput } from './fields'
-import { type SummaryRow, useSummaryRows } from './summary'
+import { type SummaryRow, useScheduleLines, useSummaryRows } from './summary'
 
 import { Alert } from '@/components/atoms/Alert'
 import { Button } from '@/components/atoms/Button'
 import { Textarea } from '@/components/atoms/Textarea'
+import { EventChips } from '@/components/molecules/EventChips'
 import { FormField } from '@/components/molecules/FormField'
 import { userSubmissionValueMax } from '@/config/api/mutate'
+import { useLocale } from '@/hooks/use-locale'
+import { draftTitle } from '@/lib/proposal'
+
+/** What a change on a correction's Check can be: a row of the listing, the report, or the note. */
+export type ChangeKey = SummaryRow['key'] | 'stopped' | 'note'
 
 export type CheckStepProps = {
   sender: ListingSender
@@ -20,11 +37,20 @@ export type CheckStepProps = {
   emailError: boolean
   /** The listing preview, with an Edit link per section — the view builds it. */
   preview?: ReactNode
-  /** A correction: what it opened as, and the published class, for the before → after list. */
-  correction?: { baseDraft: ListingDraft; event?: Event; intent: FixIntent | null }
+  /** A correction: what it opened as, and the published class, for the was → now list. */
+  correction?: {
+    baseDraft: ListingDraft
+    event?: Event
+    intent: FixIntent | null
+    reported: boolean
+  }
   draft: ListingDraft
   listing?: Event
   onEdit: (section: ListingSection | 'note') => void
+  /** A correction takes back one change; `remaining` is how many are left after it. */
+  onUndo?: (key: ChangeKey, remaining: number) => void
+  /** A correction goes back to "what needs fixing?" to add another change to the same report. */
+  onMore?: () => void
   challengeRef: RefObject<HTMLDivElement> | ((node: HTMLDivElement | null) => void)
   /** The challenge could not run, so Send cannot either — said, not left as a dead button. */
   challengeBlocked: boolean
@@ -33,9 +59,9 @@ export type CheckStepProps = {
 }
 
 /**
- * The last step: everything that will be sent, then the visitor. A new listing reads back every
- * value, grouped by the step that set it; a correction reads back only what changes. The listing
- * as it will look is one tap away, not in the way of the email field that still needs filling.
+ * The last step: what will be sent, then the visitor. A new listing reads back as the listing
+ * itself, in the order the published class shows it; a correction reads back only what changes,
+ * each as Was / Now with its own Undo. Then the visitor's private address, and Send.
  */
 export function CheckStep({
   sender,
@@ -46,6 +72,8 @@ export function CheckStep({
   draft,
   listing,
   onEdit,
+  onUndo,
+  onMore,
   challengeRef,
   challengeBlocked,
   noChanges,
@@ -53,7 +81,7 @@ export function CheckStep({
 }: CheckStepProps) {
   const { t } = useTranslation()
   // A report with no field to change already wrote its note on the step before.
-  const noteWritten = correction?.intent === 'stopped' || correction?.intent === 'other'
+  const noteWritten = Boolean(correction?.reported) || correction?.intent === 'other'
 
   return (
     <div className="flex flex-col gap-6">
@@ -65,38 +93,42 @@ export function CheckStep({
               base={correction.event}
               baseDraft={correction.baseDraft}
               draft={draft}
-              intent={correction.intent}
               listing={listing}
               note={noteWritten ? sender.note : ''}
+              reported={correction.reported}
               onEdit={onEdit}
+              onMore={onMore}
+              onUndo={onUndo}
             />
+          )}
+          {preview && (
+            // Full-bleed, so the listing lines up with the form around it exactly as it will
+            // line up in its own panel — a card inside the sheet would indent it twice.
+            <details className="group -mx-6 border-y border-gray-5">
+              <summary className="flex min-h-12 cursor-pointer list-none items-center justify-between gap-2 px-6 text-sm font-medium [&::-webkit-details-marker]:hidden">
+                {t('submit.changes.full_listing')}
+                <ChevronDown
+                  aria-hidden
+                  className="text-gray-11 transition-transform group-open:rotate-180"
+                  size={18}
+                />
+              </summary>
+              <div className="border-t border-gray-5 bg-gray-2 pt-4">{preview}</div>
+            </details>
           )}
         </>
       ) : (
         <>
           <StepHeading intro={t('submit.review.intro')} title={t('submit.review.title')} />
-          {listing && <Summary draft={draft} listing={listing} onEdit={onEdit} />}
+          {listing && <ListingSummary draft={draft} listing={listing} onEdit={onEdit} />}
         </>
       )}
 
-      {preview && (
-        // Full-bleed, so the listing lines up with the form around it exactly as it will line
-        // up in its own panel — a card inside the sheet would indent it twice.
-        <details className="group -mx-6 border-y border-gray-5">
-          <summary className="flex min-h-12 cursor-pointer list-none items-center justify-between gap-2 px-6 text-sm font-medium [&::-webkit-details-marker]:hidden">
-            {t(correction ? 'submit.changes.full_listing' : 'submit.review.see_preview')}
-            <ChevronDown
-              aria-hidden
-              className="text-gray-11 transition-transform group-open:rotate-180"
-              size={18}
-            />
-          </summary>
-          <div className="border-t border-gray-5 bg-gray-2 pt-4">{preview}</div>
-        </details>
-      )}
-
       <section className="flex flex-col gap-3">
-        <GroupHeading help={t('submit.review.email_help')} title={t('submit.review.you_title')} />
+        <GroupHeading
+          help={t('submit.review.email_help_private')}
+          title={t('submit.review.you_title')}
+        />
         <ValidatedInput
           required
           autoComplete="email"
@@ -132,10 +164,13 @@ export function CheckStep({
   )
 }
 
-const SECTIONS: ListingSection[] = ['where', 'when', 'details']
-
-/** Every value a new listing sends, in three groups, each with the way back to its step. */
-function Summary({
+/**
+ * A new listing read back as the listing it will be: name, chips, when, where, then whatever
+ * optional parts were filled in. The facts a host can get wrong without noticing — the first
+ * date, the zone, the full address and room, the join link — are spelled out, not implied.
+ * Optional parts left empty are named once at the foot instead of each saying "Not given".
+ */
+function ListingSummary({
   draft,
   listing,
   onEdit,
@@ -145,45 +180,144 @@ function Summary({
   onEdit: (section: ListingSection) => void
 }) {
   const { t } = useTranslation()
-  const rows = useSummaryRows(draft, listing)
+  const schedule = useScheduleLines(draft, listing)
+  const online = draft.eventType === 'online'
+  const place = online ? draft.city : draft.address
+  const contact = [draft.contactName, draft.contactPhone, draft.contactEmail]
+    .map((line) => line.trim())
+    .filter(Boolean)
+  const description = draft.description.trim()
+  const website = draft.website.trim()
+  const leftOut = [
+    contact.length === 0 && t('submit.summary.contact'),
+    !description && t('submit.about.description_label'),
+    !website && t('submit.more.website_label'),
+  ].filter((part): part is string => Boolean(part))
 
   return (
-    <div className="flex flex-col gap-3">
-      {SECTIONS.map((section) => (
-        <section key={section} className="rounded-lg border border-gray-6">
-          <div className="flex items-center justify-between gap-2 border-b border-gray-5 px-3 py-2">
-            <h4 className="text-sm font-semibold">{t(SECTION_TITLES[section])}</h4>
-            <EditButton label={t(SECTION_TITLES[section])} onClick={() => onEdit(section)} />
-          </div>
-          {/* Label beside value: a read-back is scanned down the values, so the labels keep to
-              a narrow column rather than doubling every row's height. */}
-          <dl className="grid grid-cols-[minmax(0,6.5rem)_minmax(0,1fr)] gap-x-3 gap-y-2 px-3 py-3">
-            {rows
-              .filter((row) => row.section === section)
-              .map((row) => (
-                <div key={row.key} className="contents">
-                  <dt className="pt-px text-xs leading-5 text-gray-11">{row.label}</dt>
-                  <dd
-                    className={`text-sm break-words whitespace-pre-line ${
-                      row.value ? 'font-medium' : 'text-gray-11'
-                    }`}
-                  >
-                    {row.value || t('submit.review.not_given')}
-                  </dd>
-                </div>
-              ))}
-          </dl>
-        </section>
-      ))}
-    </div>
+    <article className="flex flex-col rounded-lg border border-gray-6">
+      <div className="flex flex-col gap-3 px-4 pt-4 pb-3">
+        <div className="flex items-start justify-between gap-2">
+          <h4 className="min-w-0 text-base leading-snug font-semibold text-balance">
+            {draftTitle(draft) || t('submit.chrome.title_add')}
+          </h4>
+          <EditButton label={t('submit.more.title_label')} onClick={() => onEdit('details')} />
+        </div>
+        <EventChips event={listing} />
+      </div>
+
+      <Fact icon={CalendarDays} label={t('submit.chrome.step_when')} onEdit={() => onEdit('when')}>
+        {schedule ? (
+          <>
+            <p className="font-medium">{schedule.pattern}</p>
+            <p>{[schedule.time, schedule.zone].filter(Boolean).join(' · ')}</p>
+            {draft.repeats !== 'once' && draft.endDate && (
+              <p className="text-gray-11">
+                {t('submit.when.last_class')}: <Day iso={draft.endDate} />
+              </p>
+            )}
+          </>
+        ) : (
+          <p className="text-gray-11">{t('submit.when.summary_empty')}</p>
+        )}
+      </Fact>
+
+      <Fact
+        icon={online ? Monitor : MapPin}
+        label={t('submit.chrome.step_where')}
+        onEdit={() => onEdit('where')}
+      >
+        {online ? (
+          <>
+            <p className="font-medium">
+              {t('submit.review.online_line', { city: place?.city ?? place?.label ?? '' })}
+            </p>
+            {draft.onlineUrl.trim() && <p className="break-all">{draft.onlineUrl.trim()}</p>}
+          </>
+        ) : (
+          <>
+            <p className="font-medium">{place?.label}</p>
+            {draft.room.trim() && <p>{draft.room.trim()}</p>}
+          </>
+        )}
+        {place?.manual && <p className="text-gray-11">{t('submit.summary.manual_value')}</p>}
+      </Fact>
+
+      {contact.length > 0 && (
+        <Fact icon={UserRound} label={t('submit.summary.contact')} onEdit={() => onEdit('details')}>
+          {contact.map((line) => (
+            <p key={line} className="break-words">
+              {line}
+            </p>
+          ))}
+        </Fact>
+      )}
+
+      {description && (
+        <Fact
+          icon={AlignLeft}
+          label={t('submit.about.description_label')}
+          onEdit={() => onEdit('details')}
+        >
+          <p className="whitespace-pre-line">{description}</p>
+        </Fact>
+      )}
+
+      {website && (
+        <Fact icon={Globe} label={t('submit.more.website_label')} onEdit={() => onEdit('details')}>
+          <p className="break-all">{website}</p>
+        </Fact>
+      )}
+
+      {leftOut.length > 0 && (
+        <div className="flex items-center justify-between gap-2 border-t border-gray-5 px-4 py-2.5">
+          <p className="text-xs text-gray-11">
+            {t('submit.review.left_out', { parts: leftOut.join(', ') })}
+          </p>
+          <Button
+            className="-my-1 -me-2 shrink-0"
+            color="primary"
+            size="sm"
+            variant="ghost"
+            onClick={() => onEdit('details')}
+          >
+            {t('submit.review.add')}
+          </Button>
+        </div>
+      )}
+    </article>
   )
 }
 
-const SECTION_TITLES = {
-  where: 'submit.chrome.step_where',
-  when: 'submit.chrome.step_when',
-  details: 'submit.chrome.step_details',
-} as const
+/** One line of the listing: its icon, what it says, and the way back to the step that set it. */
+function Fact({
+  icon: Icon,
+  label,
+  onEdit,
+  children,
+}: {
+  icon: LucideIcon
+  label: string
+  onEdit: () => void
+  children: ReactNode
+}) {
+  return (
+    <section
+      aria-label={label}
+      className="flex items-start gap-3 border-t border-gray-5 px-4 py-3 text-sm leading-snug"
+    >
+      <Icon aria-hidden className="mt-0.5 shrink-0 text-primary" size={18} />
+      <div className="flex min-w-0 flex-1 flex-col gap-0.5">{children}</div>
+      <EditButton label={label} onClick={onEdit} />
+    </section>
+  )
+}
+
+function Day({ iso }: { iso: string }) {
+  const { locale } = useLocale()
+
+  return <>{DateTime.fromISO(iso).setLocale(locale).toLocaleString(DateTime.DATE_FULL)}</>
+}
 
 function EditButton({ label, onClick }: { label: string; onClick: () => void }) {
   const { t } = useTranslation()
@@ -202,8 +336,11 @@ function EditButton({ label, onClick }: { label: string; onClick: () => void }) 
   )
 }
 
+/** The fields that say when a class meets, apart from when it stops. */
+const SCHEDULE_CORE = ['repeats', 'startTime', 'endTime', 'firstDate', 'timeZone'] as const
+
 type Change = {
-  key: string
+  key: ChangeKey
   label: string
   before?: string
   after: string
@@ -211,25 +348,30 @@ type Change = {
 }
 
 /**
- * Only what the correction changes, each value as the listing says it now and as it should —
- * read off the same rows a new listing's summary shows, so nothing that is sent goes unshown.
+ * Only what the correction changes, each as the listing says it now and as it should — read off
+ * the same rows a new listing is built from, so nothing that is sent goes unshown. Each change
+ * can be taken back on its own, and another can be added to the same report.
  */
 function ChangeList({
   base,
   baseDraft,
   draft,
   listing,
-  intent,
+  reported,
   note,
   onEdit,
+  onUndo,
+  onMore,
 }: {
   base: Event
   baseDraft: ListingDraft
   draft: ListingDraft
   listing: Event
-  intent: FixIntent | null
+  reported: boolean
   note: string
   onEdit: (section: ListingSection | 'note') => void
+  onUndo?: (key: ChangeKey, remaining: number) => void
+  onMore?: () => void
 }) {
   const { t } = useTranslation()
   const keep = { correction: true, keepTitle: baseDraft.title }
@@ -237,7 +379,7 @@ function ChangeList({
   const after = useSummaryRows(draft, listing, keep)
   const changes: Change[] = []
 
-  if (intent === 'stopped') {
+  if (reported) {
     changes.push({
       key: 'stopped',
       label: t('submit.changes.status_label'),
@@ -245,10 +387,15 @@ function ChangeList({
       edit: 'note',
     })
   }
+  // The schedule line reads a past last date as "This event has ended". When only the last date
+  // moved, that is the Last class line's news, not a change to when the class meets.
+  const sameSchedule = SCHEDULE_CORE.every((field) => draft[field] === baseDraft[field])
+
   for (const row of after) {
     const was = before.find((candidate) => candidate.key === row.key)
 
     if (was?.value === row.value) continue
+    if (row.key === 'schedule' && sameSchedule) continue
     changes.push({
       key: row.key,
       label: row.label,
@@ -263,35 +410,58 @@ function ChangeList({
     changes.push({ key: 'note', label: t('submit.changes.note_label'), after: note, edit: 'note' })
   }
 
-  if (changes.length === 0) {
-    return (
-      <p className="rounded-lg bg-gray-2 px-3 py-3 text-sm text-gray-11">
-        {t('submit.changes.none')}
-      </p>
-    )
-  }
-
   return (
-    <ul className="flex flex-col divide-y divide-gray-5 rounded-lg border border-gray-6">
-      {changes.map((change) => (
-        <li key={change.key} className="flex items-start gap-3 px-3 py-3">
-          <div className="flex min-w-0 flex-1 flex-col gap-1">
-            <span className="text-xs text-gray-11">{change.label}</span>
-            {change.before !== undefined && (
-              <>
-                <span className="text-sm break-words whitespace-pre-line text-gray-11 line-through decoration-gray-8">
-                  {change.before}
+    <div className="flex flex-col gap-3">
+      {changes.length === 0 ? (
+        <p className="rounded-lg bg-gray-2 px-3 py-3 text-sm text-gray-11">
+          {t('submit.changes.none')}
+        </p>
+      ) : (
+        <ul className="flex flex-col divide-y divide-gray-5 rounded-lg border border-gray-6">
+          {changes.map((change) => (
+            <li key={change.key} className="flex flex-col gap-2 px-3 py-3">
+              <div className="flex items-center justify-between gap-2">
+                <span className="text-xs font-semibold tracking-wide text-gray-11 uppercase">
+                  {change.label}
                 </span>
-                <ArrowDown aria-hidden className="text-gray-9" size={14} />
-              </>
-            )}
-            <span className="text-sm font-medium break-words whitespace-pre-line">
-              {change.after}
-            </span>
-          </div>
-          <EditButton label={change.label} onClick={() => onEdit(change.edit)} />
-        </li>
-      ))}
-    </ul>
+                <div className="-my-1 -me-2 flex shrink-0 items-center">
+                  <EditButton label={change.label} onClick={() => onEdit(change.edit)} />
+                  {onUndo && (
+                    <Button
+                      aria-label={`${t('submit.changes.undo')}: ${change.label}`}
+                      className="ms-1"
+                      color="neutral"
+                      size="sm"
+                      variant="ghost"
+                      onClick={() => onUndo(change.key, changes.length - 1)}
+                    >
+                      <RotateCcw aria-hidden size={14} />
+                      {t('submit.changes.undo')}
+                    </Button>
+                  )}
+                </div>
+              </div>
+              <dl className="grid grid-cols-[3rem_minmax(0,1fr)] gap-x-3 gap-y-1 text-sm">
+                {change.before !== undefined && (
+                  <>
+                    <dt className="text-gray-11">{t('submit.changes.was')}</dt>
+                    <dd className="break-words whitespace-pre-line text-gray-11">
+                      {change.before}
+                    </dd>
+                  </>
+                )}
+                <dt className="font-semibold text-primary-11">{t('submit.changes.now')}</dt>
+                <dd className="font-medium break-words whitespace-pre-line">{change.after}</dd>
+              </dl>
+            </li>
+          ))}
+        </ul>
+      )}
+      {onMore && (
+        <Button className="self-start" color="primary" variant="flat" onClick={onMore}>
+          {t('submit.changes.more')}
+        </Button>
+      )}
+    </div>
   )
 }

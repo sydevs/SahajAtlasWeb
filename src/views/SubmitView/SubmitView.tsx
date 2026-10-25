@@ -128,6 +128,7 @@ function useListingSession(target: FlowTarget) {
       step: state.step,
       reviewed: state.reviewed,
       intent: state.intent,
+      reported: state.reported,
       sent: state.sent,
     })),
   )
@@ -230,7 +231,8 @@ function Flow({ target }: { target: FlowTarget }) {
 
   if (!session?.draft || !listing) return null
 
-  const { update, setSender, setStep, setIntent, markSent } = useListingDraft.getState()
+  const { update, setSender, setStep, setIntent, clearReport, markSent } =
+    useListingDraft.getState()
 
   return (
     // The preview names no viewer's place, so nothing here may ping the IP lookup.
@@ -255,6 +257,7 @@ function Flow({ target }: { target: FlowTarget }) {
           />
         }
         proximity={searchProximity(region?.center)}
+        reported={session.reported}
         reviewed={session.reviewed}
         sender={session.sender}
         sent={session.sent}
@@ -263,6 +266,7 @@ function Flow({ target }: { target: FlowTarget }) {
         timeZoneFor={timeZoneFor}
         trailing={<CloseButton />}
         onChange={update}
+        onClearReport={clearReport}
         onClose={dismiss}
         onIntent={setIntent}
         onSender={setSender}

@@ -298,7 +298,7 @@
     },
     "done": {
       "heading": "Sent for review",
-      "email_line": "We’ll write to %{email} about what happens next.",
+      "email_line": "If they have a question, they can reach you at %{email}.",
       "back": "Back to the map",
       "body_check": "A coordinator for %{city} will check it before it appears on the map.",
       "body_check_no_city": "A coordinator will check it before it appears on the map.",
@@ -331,7 +331,6 @@
     },
     "review": {
       "edit": "Edit",
-      "email_help": "We’ll only use this to tell you what happens to your submission.",
       "no_changes": "Change at least one detail before submitting.",
       "note_label": "Note for the coordinator (optional)",
       "title": "Check your listing",
@@ -341,7 +340,10 @@
       "email_private": "Your email (not shown)",
       "send": "Send for review",
       "intro": "Make sure everything is right, then add your email at the bottom and send. A coordinator checks it before it goes on the map.",
-      "see_preview": "See how it will look"
+      "left_out": "Not added: %{parts}.",
+      "add": "Add",
+      "email_help_private": "Only the coordinator sees it, in case they have a question.",
+      "online_line": "Online, hosted from %{city}"
     },
     "when": {
       "end_time": "Ends at",
@@ -362,7 +364,13 @@
       "zone_search": "Search for a time zone or a big city",
       "zone_confirm": "Times are in %{timezone}, the class’s local time.",
       "zone_empty": "No match. Try a big city in the same time zone, or a zone name like “Europe/Paris”.",
-      "monthly_pattern": "Meets on a pattern like “the first Tuesday”? Choose the next date, and explain the pattern in your note at the end."
+      "monthly_pattern": "Meets on a pattern like “the first Tuesday”? Choose the next date, and explain the pattern in your note at the end.",
+      "from": "%{pattern} from %{date}",
+      "duration": "How long is it?",
+      "duration_60": "1 hour",
+      "duration_90": "1½ hours",
+      "duration_120": "2 hours",
+      "duration_custom": "Set the end time"
     },
     "where": {
       "address_placeholder": "Search for the address",
@@ -422,7 +430,11 @@
       "other_label": "Tell the coordinator",
       "other_placeholder": "What’s wrong, and what should it say instead?",
       "other_required": "Write a few words about what’s wrong.",
-      "manual_place": "Typed in by hand (not found on the map): %{place}"
+      "manual_place": "Typed in by hand (not found on the map): %{place}",
+      "last_question": "When was the last class?",
+      "last_unsure": "I’m not sure",
+      "last_known": "I know the date",
+      "last_date": "Last class"
     },
     "changes": {
       "title": "Check your suggestion",
@@ -433,7 +445,11 @@
       "removed": "Removed",
       "note_label": "Your note",
       "none": "Nothing changed yet. Go back and change a detail, or write a note.",
-      "unknown": "Not shown here"
+      "unknown": "Not shown here",
+      "was": "Was",
+      "now": "Now",
+      "undo": "Undo",
+      "more": "Correct something else too"
     },
     "summary": {
       "type": "Type",

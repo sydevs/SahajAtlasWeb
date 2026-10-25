@@ -304,6 +304,11 @@ type ListingDraftState = {
   reviewed: boolean
   /** What a correction set out to fix, once its first screen is answered. */
   intent: FixIntent | null
+  /**
+   * Whether the correction reports the class as stopped. Held apart from `intent`, which follows
+   * the latest answer: "correct something else too" must not drop a report already made.
+   */
+  reported: boolean
   /** Set once a submission resolves. Nothing reads the row back, so this is the whole receipt. */
   sent: boolean
 }
@@ -315,6 +320,8 @@ type ListingDraftAction = {
   setStep: (step: ListingStep) => void
   /** Answers a correction's "what needs fixing?" and opens the step that fixes it. */
   setIntent: (intent: FixIntent, step: ListingStep) => void
+  /** Takes back a "stopped running" report, as a change on Check is undone. */
+  clearReport: () => void
   markSent: () => void
 }
 
@@ -327,6 +334,7 @@ export const useListingDraft = create<ListingDraftState & ListingDraftAction>((s
   step: 'where',
   reviewed: false,
   intent: null,
+  reported: false,
   sent: false,
   start: ({ key, entry }, { draft, base, step }) =>
     set(() => ({
@@ -338,11 +346,14 @@ export const useListingDraft = create<ListingDraftState & ListingDraftAction>((s
       step,
       reviewed: step === 'review',
       intent: null,
+      reported: false,
       sent: false,
     })),
   setSender: (patch) => set((state) => ({ sender: { ...state.sender, ...patch } })),
   update: (patch) => set((state) => (state.draft ? { draft: { ...state.draft, ...patch } } : {})),
   setStep: (step) => set((state) => ({ step, reviewed: state.reviewed || step === 'review' })),
-  setIntent: (intent, step) => set(() => ({ intent, step })),
+  setIntent: (intent, step) =>
+    set((state) => ({ intent, step, reported: state.reported || intent === 'stopped' })),
+  clearReport: () => set(() => ({ reported: false })),
   markSent: () => set(() => ({ sent: true })),
 }))

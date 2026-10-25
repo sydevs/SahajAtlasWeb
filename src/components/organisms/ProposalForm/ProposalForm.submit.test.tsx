@@ -15,7 +15,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { ProposalForm } from './ProposalForm'
 
-import { emptyDraft, featureToPlace } from '@/lib/proposal'
+import { draftPreviewSchedule, emptyDraft, featureToPlace, previewEvent } from '@/lib/proposal'
 
 const sdk = vi.hoisted(() => ({ find: vi.fn(), findByID: vi.fn(), request: vi.fn() }))
 
@@ -107,8 +107,12 @@ function Harness({
   startAt = 'review',
   startIntent = null,
   reviewed,
+  withListing = false,
 }: {
   reviewed?: boolean
+  /** Hands the form the listing it previews, and a correction its published class — so Check
+   *  renders the change list a correction's Undo lives on. */
+  withListing?: boolean
   initial: ListingDraft
   correction?: { eventId: number; baseDraft: ListingDraft }
   startAt?: ListingStep
@@ -117,23 +121,32 @@ function Harness({
   const [draft, setDraft] = useState(initial)
   const [step, setStep] = useState<ListingStep>(startAt)
   const [intent, setIntent] = useState<FixIntent | null>(startIntent)
+  const [reported, setReported] = useState(startIntent === 'stopped')
   const [sent, setSent] = useState(false)
   const [sender, setSender] = useState({ email: '', note: '' })
 
   return (
     <ProposalForm
       context={context}
-      correction={correction}
+      correction={
+        correction && withListing
+          ? { ...correction, event: { ...asListing(correction.baseDraft), id: correction.eventId } }
+          : correction
+      }
       draft={draft}
       intent={intent}
+      listing={withListing ? asListing(draft) : undefined}
+      reported={reported}
       reviewed={reviewed}
       sender={sender}
       sent={sent}
       step={step}
       onChange={(patch) => setDraft((current) => ({ ...current, ...patch }))}
+      onClearReport={() => setReported(false)}
       onClose={() => {}}
       onIntent={(picked, at) => {
         setIntent(picked)
+        setReported((was) => was || picked === 'stopped')
         setStep(at)
       }}
       onSender={(patch) => setSender((current) => ({ ...current, ...patch }))}
@@ -142,6 +155,9 @@ function Harness({
     />
   )
 }
+
+const asListing = (draft: ListingDraft) =>
+  previewEvent(draft, { path: '/gb/london/507', schedule: draftPreviewSchedule(draft) })
 
 async function mount(props: Parameters<typeof Harness>[0]) {
   const root = createRoot(container)
@@ -342,6 +358,21 @@ async function press(label: string) {
 }
 
 describe('ProposalForm steps', () => {
+  it('ends a session the chosen length after it starts', async () => {
+    sdk.request.mockResolvedValue({ json: async () => ({ doc: { id: 14 } }) })
+
+    const root = await mount({ initial: inPerson, startAt: 'when', reviewed: true })
+
+    await press('submit.when.duration_90')
+    await press('submit.chrome.done_editing')
+    await type('#submit-sender-email', 'ada@example.org')
+    await submit()
+
+    expect(sdk.request.mock.calls[0][0].json.proposed.schedule.endTime).toBe('20:30')
+
+    await act(async () => root.unmount())
+  })
+
   it('holds Place until an address is picked', async () => {
     const root = await mount({ initial: { ...inPerson, address: null }, startAt: 'where' })
 
@@ -501,6 +532,77 @@ describe('ProposalForm corrections', () => {
     expect(sdk.request.mock.calls[0][0].json.submissionData).toContainEqual({
       field: 'note',
       value: 'submit.note.stopped_default\n\nAsk Elizabeth.',
+    })
+
+    await act(async () => root.unmount())
+  })
+
+  it('takes back one change and keeps the other, in one report', async () => {
+    sdk.request.mockResolvedValue({ json: async () => ({ doc: { id: 12 } }) })
+
+    const root = await mount({ initial: inPerson, correction, startAt: 'fix', withListing: true })
+
+    await press('submit.fix.details')
+    await type('#submit-contact-phone', '+44 7700 900123')
+    await press('submit.chrome.continue')
+    await press('submit.changes.more')
+    expect(container.textContent).toContain('submit.fix.title')
+    await press('submit.fix.when')
+    await type('#submit-start-time', '20:00')
+    await press('submit.chrome.done_editing')
+    expect(container.textContent).toContain('submit.changes.was')
+
+    const undoContact = container.querySelector<HTMLButtonElement>(
+      'button[aria-label="submit.changes.undo: submit.summary.contact"]',
+    )
+
+    await act(async () => undoContact?.click())
+    await type('#submit-sender-email', 'ada@example.org')
+    await submit()
+
+    const { json } = sdk.request.mock.calls[0][0]
+
+    expect(json.proposed.schedule).toBeDefined()
+    expect(json.proposed).not.toHaveProperty('contactPhone')
+
+    await act(async () => root.unmount())
+  })
+
+  it('goes back to "what needs fixing?" once every change is taken back', async () => {
+    const root = await mount({ initial: inPerson, correction, startAt: 'fix', withListing: true })
+
+    await press('submit.fix.details')
+    await type('#submit-contact-phone', '+44 7700 900123')
+    await press('submit.chrome.continue')
+    await act(async () =>
+      container
+        .querySelector<HTMLButtonElement>('button[aria-label^="submit.changes.undo"]')
+        ?.click(),
+    )
+    expect(container.textContent).toContain('submit.fix.title')
+
+    await act(async () => root.unmount())
+  })
+
+  it('sends a known last class as the schedule end, and "not sure" as none', async () => {
+    sdk.request.mockResolvedValue({ json: async () => ({ doc: { id: 13 } }) })
+
+    const root = await mount({ initial: inPerson, correction, startAt: 'fix' })
+
+    await press('submit.fix.stopped')
+    expect(container.textContent).toContain('submit.note.last_unsure')
+    await press('submit.note.last_known')
+    await type('#submit-stopped-last', '2030-12-03')
+    await press('submit.chrome.continue')
+    await type('#submit-sender-email', 'ada@example.org')
+    await submit()
+
+    const { json } = sdk.request.mock.calls[0][0]
+
+    expect(json.proposed.schedule).toMatchObject({ endingType: 'until' })
+    expect(json.submissionData).toContainEqual({
+      field: 'note',
+      value: 'submit.note.stopped_default',
     })
 
     await act(async () => root.unmount())

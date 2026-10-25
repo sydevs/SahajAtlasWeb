@@ -20,7 +20,7 @@ import { useMutation } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
 import { Check } from 'lucide-react'
 
-import { CheckStep } from './CheckStep'
+import { type ChangeKey, CheckStep } from './CheckStep'
 import { DetailsStep } from './DetailsStep'
 import { FixStep, NoteStep } from './FixStep'
 import { PlaceStep } from './PlaceStep'
@@ -40,6 +40,7 @@ import {
   firstInvalidStep,
   isEmail,
   manualPlace,
+  revertFields,
   stepErrors,
 } from '@/lib/proposal'
 import { submitTitleKey } from '@/lib/shape'
@@ -58,6 +59,27 @@ const REFUSAL_MESSAGE_KEYS: Record<UserSubmissionErrorCode, TranslationKey> = {
 /** "It ends on a set date" is switched on for a repeating class, and no date given yet. */
 const endIsPromised = (draft: ListingDraft, endsOn: boolean) =>
   endsOn && draft.repeats !== 'once' && !draft.endDate
+
+/** The draft fields each line of a correction's Check is built from, so its Undo takes back all
+ *  of them and nothing else. A place's type travels with it: half an undo would leave an online
+ *  class with a street address. */
+const UNDO_FIELDS: Partial<Record<ChangeKey, (keyof ListingDraft)[]>> = {
+  type: ['eventType', 'address', 'city', 'onlineUrl'],
+  place: ['eventType', 'address', 'city'],
+  manual: ['address', 'city'],
+  room: ['room'],
+  link: ['onlineUrl'],
+  schedule: ['repeats', 'startTime', 'endTime', 'firstDate', 'endDate'],
+  first: ['firstDate'],
+  last: ['endDate'],
+  zone: ['timeZone'],
+  languages: ['languages'],
+  contact: ['contactName', 'contactPhone'],
+  contact_email: ['contactEmail'],
+  description: ['description'],
+  title: ['title'],
+  website: ['website'],
+}
 
 /** The step each of a correction's answers opens on. */
 const INTENT_STEPS: Record<FixIntent, ListingStep> = {
@@ -83,6 +105,9 @@ export type ProposalFormProps = {
   /** What a correction set out to fix, and the owner's way to record the answer. */
   intent?: FixIntent | null
   onIntent?: (intent: FixIntent, step: ListingStep) => void
+  /** Whether the correction reports the class as stopped — kept across further answers. */
+  reported?: boolean
+  onClearReport?: () => void
   /** Whether the submission has been accepted. The form then shows its receipt. */
   sent: boolean
   onSent: () => void
@@ -232,6 +257,7 @@ function StepStage({
   index,
   reviewed,
   intent = null,
+  reported = false,
   onIntent,
   onChange,
   sender,
@@ -321,11 +347,16 @@ function StepStage({
               }}
             />
           )}
-          {step === 'note' && (intent === 'stopped' || intent === 'other') && (
+          {/* The note step answers the report at hand: "something else" when that was the latest
+              answer, otherwise the stopped report — which a later answer does not undo. */}
+          {step === 'note' && (intent === 'other' || reported) && (
             <NoteStep
+              base={base}
+              draft={draft}
               error={noteMissing && t('submit.note.other_required')}
-              intent={intent}
+              intent={intent === 'other' ? 'other' : 'stopped'}
               sender={sender}
+              onChange={onChange}
               onSender={onSender}
             />
           )}
@@ -396,7 +427,10 @@ function ReviewStage({
   draft,
   sender,
   onSender,
+  onChange,
   intent = null,
+  reported = false,
+  onClearReport,
   context,
   listing,
   preview,
@@ -476,7 +510,7 @@ function ReviewStage({
     const typed = manualPlace(draft)
     const note =
       [
-        intent === 'stopped' && t('submit.note.stopped_default'),
+        reported && t('submit.note.stopped_default'),
         typed && t('submit.note.manual_place', { place: typed.label }),
         sender.note.trim(),
       ]
@@ -490,6 +524,15 @@ function ReviewStage({
 
   const back: ListingStep = correction ? (intent ? INTENT_STEPS[intent] : 'fix') : 'details'
 
+  // One change taken back, the others kept. With none left there is nothing to check, so the
+  // visitor is back where a correction starts.
+  const undo = (key: ChangeKey, remaining: number) => {
+    if (key === 'stopped') onClearReport?.()
+    else if (key === 'note') onSender({ note: '' })
+    else if (base) onChange(revertFields(base, UNDO_FIELDS[key] ?? []))
+    if (remaining === 0) onGo('fix')
+  }
+
   return (
     <form noValidate className="contents" onSubmit={send}>
       <DrawerBody className={stickyFooter ? 'scroll-pb-28 pb-24' : undefined}>
@@ -498,7 +541,12 @@ function ReviewStage({
             challengeBlocked={status === 'blocked'}
             challengeRef={challengeRef}
             correction={
-              correction && { baseDraft: correction.baseDraft, event: correction.event, intent }
+              correction && {
+                baseDraft: correction.baseDraft,
+                event: correction.event,
+                intent,
+                reported,
+              }
             }
             draft={draft}
             emailError={emailError}
@@ -508,7 +556,9 @@ function ReviewStage({
             refusal={refusal}
             sender={sender}
             onEdit={(section: ListingSection | 'note') => onGo(section)}
+            onMore={correction ? () => onGo('fix') : undefined}
             onSender={onSender}
+            onUndo={correction ? undo : undefined}
           />
         </div>
       </DrawerBody>
