@@ -5,20 +5,19 @@ import type { ReactNode } from 'react'
 import { useCallback, useDeferredValue, useEffect, useLayoutEffect, useMemo, useRef } from 'react'
 import { useLocation } from 'react-router'
 import { useQuery } from '@tanstack/react-query'
-import { useTranslation } from 'react-i18next'
 import { useShallow } from 'zustand/react/shallow'
 
-import { ListingDetails } from './ListingDetails'
+import { CorrectionChanges, ListingPreview, ScheduleSummary } from './ListingReview'
 import { NearbyClassNotice } from './NearbyClassNotice'
 import { useFeedHints } from './use-feed-hints'
 import { useNearbyClasses } from './use-nearby-classes'
 
-import { type SubmitEntry, submitTitleKey } from '@/lib/shape'
-import { DrawerBody } from '@/components/atoms/Drawer'
+import { type SubmitEntry } from '@/lib/shape'
 import { IpLookupContext } from '@/hooks/use-ip-location'
-import { EventHeader } from '@/components/organisms/EventDetails/EventHeader'
-import { ProposalForm } from '@/components/organisms/ProposalForm'
+import { ListingQuestions } from '@/components/organisms/ListingQuestions'
 import { regionQuery } from '@/config/api'
+import { useWidgetMode } from '@/config/mode'
+import { useIsWideWidget } from '@/config/responsive'
 import { useListingDraft } from '@/config/store'
 import { useLocale } from '@/hooks/use-locale'
 import { useMapController } from '@/hooks/use-map-controller'
@@ -38,8 +37,9 @@ import { CloseButton, useDrawerControl, useEventFromPath, useFrameOnTop } from '
  * The add-a-class and correction flows (#147), at `<region-path>/add`, `/add` and
  * `<event-path>/correct`.
  *
- * One surface, in the stack's own sheet like any other view: the step form, and under it the
- * listing built live from the same draft, held in `useListingDraft`.
+ * One surface, in the stack's own sheet like any other view: one question per screen, ending
+ * on the listing the answers build. The draft lives in `useListingDraft`, so a remount (the
+ * sheet changing direction at the breakpoint) resumes on the same question.
  */
 
 /** What a flow opened on: the route's own draft, and whatever place or class it opened over. */
@@ -126,7 +126,8 @@ function useListingSession(target: FlowTarget) {
       draft: state.draft,
       sender: state.sender,
       base: state.base,
-      step: state.step,
+      question: state.question,
+      reason: state.reason,
       reviewed: state.reviewed,
       sent: state.sent,
     })),
@@ -149,53 +150,6 @@ function useListingSession(target: FlowTarget) {
   return session.key === target.key ? session : null
 }
 
-function FlowPanel({ target, trailing }: { target: FlowTarget; trailing?: ReactNode }) {
-  const session = useListingSession(target)
-  const { dismiss } = useDrawerControl()
-  const { locale } = useLocale()
-  const location = useLocation()
-  const hints = useFeedHints()
-  const draft = session?.draft ?? null
-  const nearby = useNearbyClasses(
-    draft && !target.event && draft.eventType === 'offline' ? draft.address : null,
-  )
-  const timeZoneFor = useCallback(
-    (place: PickedPlace) => nearestTimeZone(place, hints.points),
-    [hints.points],
-  )
-
-  if (!session?.draft) return null
-
-  const { update, setSender, setStep, markSent } = useListingDraft.getState()
-
-  return (
-    <ProposalForm
-      context={buildReportContext({ path: location.pathname, locale })}
-      correction={
-        target.event && session.base
-          ? { eventId: target.event.id, baseDraft: session.base }
-          : undefined
-      }
-      country={target.country}
-      draft={session.draft}
-      languageOptions={hints.languages}
-      placeNotice={<NearbyClassNotice classes={nearby} />}
-      proximity={searchProximity(target.region?.center)}
-      reviewed={session.reviewed}
-      sender={session.sender}
-      sent={session.sent}
-      step={session.step}
-      timeZoneFor={timeZoneFor}
-      trailing={trailing}
-      onChange={update}
-      onClose={dismiss}
-      onSender={setSender}
-      onSent={markSent}
-      onStep={setStep}
-    />
-  )
-}
-
 /** The draft's schedule preview, rebuilt only when a field it reads changes. */
 function usePreviewSchedule(draft: ListingDraft | null) {
   const {
@@ -213,10 +167,15 @@ function usePreviewSchedule(draft: ListingDraft | null) {
   )
 }
 
-function Listing({ target }: { target: FlowTarget }) {
-  const { t } = useTranslation()
+function Flow({ target }: { target: FlowTarget }) {
   const session = useListingSession(target)
+  const { dismiss } = useDrawerControl()
+  const { locale } = useLocale()
+  const location = useLocation()
+  const { hasMap } = useWidgetMode()
+  const isWide = useIsWideWidget()
   const { frameEvent, frameRegion } = useMapController()
+  const hints = useFeedHints()
   const { event, region } = target
 
   useFrameOnTop(
@@ -227,8 +186,17 @@ function Listing({ target }: { target: FlowTarget }) {
     [event, region, frameEvent, frameRegion],
   )
 
-  // Typing re-renders the panel at once and lets the listing behind it catch up.
-  const draft = useDeferredValue(session?.draft ?? null)
+  const current = session?.draft ?? null
+  const nearby = useNearbyClasses(
+    current && !event && current.eventType === 'offline' ? current.address : null,
+  )
+  const timeZoneFor = useCallback(
+    (place: PickedPlace) => nearestTimeZone(place, hints.points),
+    [hints.points],
+  )
+
+  // Typing re-renders the questions at once and lets the listing preview catch up.
+  const draft = useDeferredValue(current)
   const base = session?.base ?? null
   const basePatch = useMemo(() => (base ? draftToPatch(base) : undefined), [base])
   const schedule = usePreviewSchedule(draft)
@@ -253,34 +221,64 @@ function Listing({ target }: { target: FlowTarget }) {
     // Keyed on the point alone: the listing is rebuilt on every keystroke.
   }, [pinKey, frameEvent])
 
-  if (!session || !listing) return null
+  if (!session?.draft || !listing) return null
 
-  const { setStep } = useListingDraft.getState()
-  const title = listing.title || t(submitTitleKey(event ? 'correct' : 'add'))
+  const { update, setSender, setQuestion, setReason, markSent } = useListingDraft.getState()
+  const correction =
+    event && session.base
+      ? { eventId: event.id, baseDraft: session.base, title: event.title }
+      : undefined
 
   return (
-    <>
-      <EventHeader event={{ ...listing, title }} trailing={<CloseButton />} />
-      <DrawerBody>
-        <div className="mx-6 mb-4 rounded-lg border border-divider">
-          <FlowPanel target={target} />
-        </div>
-        {!session.sent && (
-          <p className="mx-6 mb-2 text-xs text-gray-11">{t('submit.chrome.preview_note')}</p>
-        )}
+    <ListingQuestions
+      city={region?.name ?? event?.region?.name ?? undefined}
+      context={buildReportContext({ path: location.pathname, locale })}
+      correction={correction}
+      country={target.country}
+      draft={session.draft}
+      languageOptions={hints.languages}
+      placeNotice={<NearbyClassNotice classes={nearby} />}
+      proximity={searchProximity(region?.center)}
+      question={session.question}
+      reason={session.reason}
+      review={
         <IpLookupContext.Provider value={false}>
-          <ListingDetails
-            listing={listing}
-            path={target.path}
-            onEdit={session.step === 'review' && !session.sent ? setStep : undefined}
-          />
+          {event && session.base ? (
+            <CorrectionChanges
+              base={session.base}
+              draft={session.draft}
+              event={event}
+              listing={listing}
+              stopped={session.reason === 'stopped'}
+              onEdit={setQuestion}
+            />
+          ) : (
+            <ListingPreview listing={listing} path={target.path} onEdit={setQuestion} />
+          )}
         </IpLookupContext.Provider>
-      </DrawerBody>
-    </>
+      }
+      reviewed={session.reviewed}
+      scheduleSummary={
+        <IpLookupContext.Provider value={false}>
+          <ScheduleSummary listing={listing} timeZone={session.draft.timeZone} />
+        </IpLookupContext.Provider>
+      }
+      sender={session.sender}
+      sent={session.sent}
+      stickyFooter={hasMap && !isWide}
+      timeZoneFor={timeZoneFor}
+      trailing={<CloseButton />}
+      onChange={update}
+      onClose={dismiss}
+      onQuestion={setQuestion}
+      onReason={setReason}
+      onSender={setSender}
+      onSent={markSent}
+    />
   )
 }
 
-/** The flow's one view: the step form over the listing it builds. */
+/** The flow's one view: the questions, ending on the listing they build. */
 export function SubmitView({ entry }: { entry: SubmitEntry }) {
-  return <WithTarget entry={entry}>{(target) => <Listing target={target} />}</WithTarget>
+  return <WithTarget entry={entry}>{(target) => <Flow target={target} />}</WithTarget>
 }

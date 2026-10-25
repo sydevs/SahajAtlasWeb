@@ -1,4 +1,5 @@
 import type { ListingDraft, ListingSender, ListingStep, OpenedListing } from '@/lib/proposal'
+import type { CorrectionReason, Question } from '@/lib/questions'
 
 import { create } from 'zustand'
 import { Feature } from 'geojson'
@@ -298,6 +299,10 @@ type ListingDraftState = {
   reviewed: boolean
   /** Set once a submission resolves. Nothing reads the row back, so this is the whole receipt. */
   sent: boolean
+  /** The question on screen in the one-question flow, kept here so a remount resumes on it. */
+  question: Question
+  /** What a correction said was wrong, which picks the questions it asks. */
+  reason: CorrectionReason | null
 }
 
 type ListingDraftAction = {
@@ -305,6 +310,8 @@ type ListingDraftAction = {
   update: (patch: Partial<ListingDraft>) => void
   setSender: (patch: Partial<ListingSender>) => void
   setStep: (step: ListingStep) => void
+  setQuestion: (question: Question) => void
+  setReason: (reason: CorrectionReason | null) => void
   markSent: () => void
 }
 
@@ -317,6 +324,8 @@ export const useListingDraft = create<ListingDraftState & ListingDraftAction>((s
   step: 'where',
   reviewed: false,
   sent: false,
+  question: 'mode',
+  reason: null,
   start: ({ key, entry }, { draft, base, step }) =>
     set(() => ({
       key,
@@ -327,9 +336,15 @@ export const useListingDraft = create<ListingDraftState & ListingDraftAction>((s
       step,
       reviewed: step === 'review',
       sent: false,
+      // A correction opens on "what's changed?"; a new listing on its first question.
+      question: base ? 'changed' : 'mode',
+      reason: null,
     })),
   setSender: (patch) => set((state) => ({ sender: { ...state.sender, ...patch } })),
   update: (patch) => set((state) => (state.draft ? { draft: { ...state.draft, ...patch } } : {})),
   setStep: (step) => set((state) => ({ step, reviewed: state.reviewed || step === 'review' })),
+  setQuestion: (question) =>
+    set((state) => ({ question, reviewed: state.reviewed || question === 'review' })),
+  setReason: (reason) => set(() => ({ reason })),
   markSent: () => set(() => ({ sent: true })),
 }))

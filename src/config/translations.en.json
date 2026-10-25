@@ -271,32 +271,26 @@
   "submit": {
     "about": {
       "description_label": "Description",
-      "description_placeholder": "What to expect, who it is for, anything a newcomer should know.",
-      "title": "Tell people about the class"
+      "description_placeholder": "What to expect, who it is for, anything a newcomer should know."
     },
     "chrome": {
       "add_entry": "Don’t see your class? Add it",
       "add_here": "Add a class here",
       "back": "Back",
       "correct_entry": "Suggest a correction",
-      "next": "Next",
-      "preview_note": "This is how your class will appear once a coordinator approves it.",
       "skip": "Skip",
-      "step_progress": "Step %{step} of %{total}",
       "title_add": "Add a class",
       "title_correct": "Suggest a correction"
     },
     "contact": {
       "email_label": "Email",
-      "help": "Shown on the listing so people can ask questions before they come.",
       "name_label": "Name",
       "phone_label": "Phone",
       "title": "Who can people contact?"
     },
     "done": {
       "body": "A coordinator for %{city} will review it.",
-      "body_no_city": "A coordinator will review it.",
-      "title": "Thank you"
+      "body_no_city": "A coordinator will review it."
     },
     "errors": {
       "address_required": "Choose an address from the search results.",
@@ -311,28 +305,21 @@
       "urls_not_allowed": "Links aren’t allowed here. Please remove them."
     },
     "more": {
-      "languages_label": "Languages",
       "title": "More details",
-      "title_help": "Leave blank to name it after the venue.",
-      "title_label": "Class name",
       "website_label": "Website"
     },
     "review": {
-      "add_more": "Add more details",
       "edit": "Edit",
       "email_help": "We’ll only use this to tell you what happens to your submission.",
       "email_label": "Your email",
       "no_changes": "Change at least one detail before submitting.",
-      "note_label": "Note for the coordinator (optional)",
-      "submit": "Submit"
+      "note_label": "Note for the coordinator (optional)"
     },
     "when": {
       "end_date": "Last date (optional)",
       "end_time": "Ends at",
       "first_date": "First date",
-      "repeats": "Repeats",
       "start_time": "Starts at",
-      "timezone_note": "Times are in %{timezone}.",
       "title": "When does it meet?"
     },
     "where": {
@@ -350,6 +337,93 @@
       "nearby_title": "Is it one of these?",
       "nearby_body": "There’s already a class listed at this address. If it’s yours, correct it instead of adding it again.",
       "nearby_action": "Correct it"
+    },
+    "ask": {
+      "progress_label": "Your progress",
+      "continue": "Continue",
+      "done": "Done",
+      "mode_title": "Is your class in person or online?",
+      "mode_offline_hint": "At a venue people can come to",
+      "mode_online_hint": "People join with a link",
+      "place_title": "Where does it meet?",
+      "place_help": "Search for the venue’s street address.",
+      "place_not_found": "Can’t find it? Try the street name and number on its own.",
+      "place_confirm_title": "Is this the place?",
+      "place_change": "Change",
+      "room_placeholder": "For example: upstairs hall",
+      "link_title": "How do people join?",
+      "link_help": "Paste the Zoom, Meet or other link people use to join.",
+      "city_title": "Which city do you host it from?",
+      "often_title": "How often does it meet?",
+      "often_weekly": "Every week",
+      "often_weekly_hint": "A regular weekly class",
+      "often_monthly": "Every month",
+      "often_monthly_hint": "On the same date each month",
+      "often_once": "Just once",
+      "often_once_hint": "A single event or workshop",
+      "day_title_weekly": "Which day of the week?",
+      "day_title_monthly": "When is the next one?",
+      "day_title_once": "What’s the date?",
+      "day_first": "First class: %{date}",
+      "day_change_date": "Change",
+      "day_monthly_help": "It repeats on the same date each month.",
+      "day_add_end": "It stops on a set date",
+      "time_title": "What time is it?",
+      "time_60": "1 hour",
+      "time_90": "1½ hours",
+      "time_120": "2 hours",
+      "time_zone": "Times are %{zone}.",
+      "language_title": "Which language is it taught in?",
+      "language_help": "Pick all that apply.",
+      "language_more": "Another language",
+      "contact_help": "Shown on the listing, so newcomers can ask before they come. You can skip this.",
+      "about_title": "Anything newcomers should know?",
+      "about_help": "What to expect, who it’s for, what to bring. You can skip this.",
+      "name_label": "Class name (optional)",
+      "name_help": "Leave blank to call it “%{title}”.",
+      "review_title": "Here’s your listing",
+      "review_help": "Check it over. A coordinator looks at every listing before it goes on the map.",
+      "preview_eyebrow": "Preview",
+      "note_add": "Add a note for the coordinator",
+      "send": "Send for review",
+      "sent_title": "Sent for review",
+      "sent_email": "We’ll email %{email} once it’s been reviewed.",
+      "sent_back": "Back to the map",
+      "chip_weekly": "Every %{weekday}",
+      "chip_monthly": "Monthly",
+      "time_other": "Or choose a time"
+    },
+    "correct": {
+      "changed_title": "What’s changed?",
+      "changed_help": "About “%{title}”",
+      "reason_time": "The day or time",
+      "reason_time_hint": "It meets on another day, or at another time",
+      "reason_place": "The place",
+      "reason_place_hint": "It has moved, or the address is wrong",
+      "reason_contact": "Contact details",
+      "reason_contact_hint": "A new name, phone number or email",
+      "reason_stopped": "It’s stopped running",
+      "reason_stopped_hint": "The class no longer meets",
+      "reason_other": "Something else",
+      "reason_other_hint": "Tell the coordinator in your own words",
+      "stopped_title": "When was the last class?",
+      "stopped_help": "If you’re not sure, that’s fine.",
+      "stopped_unsure": "I’m not sure",
+      "stopped_on": "I know the date",
+      "stopped_date": "Last class",
+      "stopped_note_label": "Anything else the coordinator should know? (optional)",
+      "stopped_marker": "Reported as no longer running.",
+      "note_title": "What needs correcting?",
+      "note_help": "Tell the coordinator what’s wrong. If you know the right details, add them too.",
+      "note_required": "Write a few words about what’s wrong.",
+      "review_title": "Check your correction",
+      "review_help": "Only what you changed is sent. A coordinator checks it before the listing changes.",
+      "was": "Was",
+      "now": "Now",
+      "stopped_change": "No longer running",
+      "stopped_change_on": "Last class %{date}",
+      "nothing_changed": "Nothing has changed yet. Add a note below, or go back and make a change.",
+      "sent_body": "A coordinator will check it before the listing changes."
     }
   }
 }
