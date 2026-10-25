@@ -222,6 +222,7 @@ shipping a narrow embed that quietly behaves like a desktop.
 | SettingsMenu cog offset (`DrawerStack`) | container (via `isWide`) | Clears the left panel, so it must agree with whatever decided there is one. Outside a frame, `isWide` is the viewport's own answer. |
 | Modal box sizing | container (the frame) | Portals through `overlayContainer()`, so a frame contains and clips it on both axes. |
 | `EventHeader`'s `md:pt-4`, `ListItem`'s `lg:h-9 lg:w-9` | viewport (accepted residue) | The only two variants that fire wrongly in a narrow map-less embed. Both are cosmetic — fix them if you are already there. |
+| Form-field font size — the 16px floor below `md` (`fieldChrome`, both search fields) | viewport (and correctly so) | iOS Safari scales the whole page in when a focused field computes under 16px, so it is the screen asking, never our box. A narrow embed on a desktop viewport zooms nothing, and keeps the 13px scale. `src/styles/mobile-zoom.test.ts` holds the floor across every field (#322). |
 | Compact card vs. full interface (`AppShell`) | the slot, measured ONCE at mount | Not one of the three signals, and deliberately not reactive — see below. |
 | Reduced motion, color scheme | preference | Not a size question at all — see the accessibility motion seams below. |
 

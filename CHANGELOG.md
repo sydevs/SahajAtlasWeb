@@ -287,6 +287,14 @@ cover everything a host would notice since the widget was first deployed.
 
 ### Fixed
 
+- **Tapping a form field on a phone no longer zooms your page in.** ([#322]) iOS Safari scales
+  the whole page when a focused field is under 16px, and the widget's fields were 13px — so a
+  visitor who tapped the place search, a filter or the registration form was left on a
+  magnified version of your page, with nothing of ours able to undo it. Every text field, on
+  every screen narrower than 768px, now renders at 16px. Above that width they are 13px as
+  before, so a desktop embed looks exactly as it did. Nothing for you to change, and no CSP or
+  parameter change.
+
 - **The panel no longer flickers halfway down on every navigation.** ([#312]) Since the widget
   moved into its shadow root ([#236]), each change of view showed the arriving view in the lower
   half of the panel for the length of the fade, before it jumped to the top. The fade relied on a
@@ -741,6 +749,7 @@ must-revalidate`, pinned rather than left to the CDN default. The production dom
 [#262]: https://github.com/sydevs/SahajAtlasWeb/issues/262
 [#311]: https://github.com/sydevs/SahajAtlasWeb/pull/311
 [#312]: https://github.com/sydevs/SahajAtlasWeb/pull/312
+[#322]: https://github.com/sydevs/SahajAtlasWeb/issues/322
 [Sizing the element]: docs/embedding.md#sizing-the-element
 [compact card]: docs/embedding.md#when-the-slot-is-too-small
 [Embedding in an iframe]: docs/embedding.md#embedding-in-an-iframe
