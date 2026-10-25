@@ -13,11 +13,14 @@ import { frameCollision, overlayContainer } from '@/lib/overlay'
 // border ternary. `highlight` tints the field primary, to flag an active
 // filter (see FilterView).
 //
-// **16px below `md` is a floor, not a type choice (#322).** iOS Safari zooms the whole page in
-// when a field under 16px takes focus, and embedded there is no way back out — the host's page
-// is left scaled.
+// **16px is a floor, not a type choice (#322).** iOS Safari zooms the whole page in when a field
+// under 16px takes focus, and embedded there is no way back out — the host's page is left scaled.
+// The 13px scale is therefore conditioned on a wide screen **and** a fine pointer: focus zoom is
+// the engine's behaviour, not the viewport's, so an iPhone in landscape is 932px wide and still
+// zooms. A caller must not pass a `text-*` through `className` — tailwind-merge drops the floor
+// and keeps the override (`src/styles/mobile-zoom.test.ts` refuses it).
 export const fieldChrome = tv({
-  base: 'w-full rounded border bg-background px-3 text-[16px] text-foreground transition-colors outline-none focus-visible:ring-2 focus-visible:ring-focus disabled:opacity-disabled md:text-sm',
+  base: 'w-full rounded border bg-background px-3 text-[16px] text-foreground transition-colors outline-none focus-visible:ring-2 focus-visible:ring-focus disabled:opacity-disabled md:pointer-fine:text-sm',
   variants: {
     isInvalid: { true: 'border-danger-7', false: 'border-gray-7' },
     /** A trigger lays its value out against the chevron. A plain input does not. */
@@ -84,9 +87,12 @@ export function Select({
         className={fieldChrome({ isInvalid, highlight, trigger: true, className })}
         onBlur={onBlur}
       >
-        <RadixSelect.Value placeholder={placeholder} />
+        {/* The value ellipsises and the chevron holds its width. Without both, a long
+            CMS-authored option label pushes the chevron out of a `justify-between`
+            trigger instead — 16px fields reach that point sooner than 13px ones did. */}
+        <RadixSelect.Value className="truncate" placeholder={placeholder} />
         <RadixSelect.Icon>
-          <ChevronDown className="h-4 w-4 opacity-70" />
+          <ChevronDown className="h-4 w-4 shrink-0 opacity-70" />
         </RadixSelect.Icon>
       </RadixSelect.Trigger>
 

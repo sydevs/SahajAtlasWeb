@@ -171,8 +171,9 @@ function CalendarControls({ controls }: { controls: CalendarControlsPlugin }) {
           {/* The focused date sits between the arrows. Clicking it opens the browser's native
               picker, which has its own Today button, so this needs no separate one. The input
               overlays the button so the picker anchors to it, but stays click-through.
-              Its 16px matters although it is invisible: `showPicker()` focuses it, and iOS
-              Safari zooms the page in on a focused field under 16px (#322). */}
+              Its 16px is insurance, not a live fix: nothing can focus it today, and Safari's
+              focus zoom needs focus (#322). Giving an input that can become focusable anything
+              under 16px is the defect, so the floor goes on now rather than with that change. */}
           <div className="relative">
             <button
               className="inline-flex items-center rounded px-1.5 py-1 text-sm font-medium hover:bg-primary-3"

@@ -115,7 +115,7 @@ export function Combobox({
               <Search className="h-4 w-4 shrink-0 opacity-70" />
               <CommandInput
                 aria-label={searchPlaceholder ?? ariaLabel}
-                className="h-10 w-full bg-transparent text-[16px] text-foreground outline-none placeholder:text-gray-11 md:text-sm"
+                className="h-10 w-full bg-transparent text-[16px] text-foreground outline-none placeholder:text-gray-11 md:pointer-fine:text-sm"
                 placeholder={searchPlaceholder}
                 value={query}
                 onValueChange={setQuery}

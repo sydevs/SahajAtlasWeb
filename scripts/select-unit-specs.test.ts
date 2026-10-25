@@ -163,7 +163,7 @@ describe('this repository', () => {
    * `docs/testing.md`'s trade paragraph is scoped by, and a spec joining or leaving it fails here
    * and nowhere else.
    *
-   * The nine `src/` inventories and `source-tree.test.ts` are found by importing the shared walk
+   * The ten `src/` inventories and `source-tree.test.ts` are found by importing the shared walk
    * (#286); the rest by an enumerating call. `wrangler-config.test.ts` lists only the repo root,
    * so no lane edit can break it, but the detector over-includes on purpose and it costs nothing
    * measurable.

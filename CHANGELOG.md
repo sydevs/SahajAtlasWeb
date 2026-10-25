@@ -288,12 +288,13 @@ cover everything a host would notice since the widget was first deployed.
 ### Fixed
 
 - **Tapping a form field on a phone no longer zooms your page in.** ([#322]) iOS Safari scales
-  the whole page when a focused field is under 16px, and the widget's fields were 13px — so a
-  visitor who tapped the place search, a filter or the registration form was left on a
-  magnified version of your page, with nothing of ours able to undo it. Every text field, on
-  every screen narrower than 768px, now renders at 16px. Above that width they are 13px as
-  before, so a desktop embed looks exactly as it did. Nothing for you to change, and no CSP or
-  parameter change.
+  the whole page when a focused field is under 16px, and the widget's fields were 13px (the
+  place search, 14px) — so a visitor who tapped the search, a filter or the registration form
+  was left on a magnified version of your page, with nothing of ours able to undo it. Every text
+  field now renders at 16px on any touch device, whatever its width, and on any screen narrower
+  than 768px. A desktop embed driven by a mouse keeps the 13px fields it had, so it looks exactly
+  as it did; a narrow embed in a column on a desktop gets the 16px ones. Nothing for you to
+  change, and no CSP or parameter change.
 
 - **The panel no longer flickers halfway down on every navigation.** ([#312]) Since the widget
   moved into its shadow root ([#236]), each change of view showed the arriving view in the lower

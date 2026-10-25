@@ -77,7 +77,7 @@ function SearchFieldSkeleton() {
       <input
         disabled
         readOnly
-        className="w-full rounded-lg border border-divider bg-gray-2 px-3 py-2 text-[16px] text-foreground placeholder:text-gray-11 md:text-sm"
+        className="w-full rounded-lg border border-divider bg-gray-2 px-3 py-2 text-[16px] text-foreground placeholder:text-gray-11 md:pointer-fine:text-sm"
         placeholder={t('search.chrome.placeholder', { defaultValue: 'Search for events near…' })}
         type="search"
         value=""
