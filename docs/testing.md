@@ -453,7 +453,7 @@ three shapes that were not interchangeable, so the next would inherit whichever 
 copied.
 `sourceFiles()` (`src/test-support/source-tree.ts`) is the one walk now, with
 `readSource` / `readSourceWithoutComments` beside it and `parseSource`
-(`src/test-support/source-ast.ts`) for the two specs that parse. **A tenth walk fails `pnpm
+(`src/test-support/source-ast.ts`) for the two specs that parse. **Another walk fails `pnpm
 lint`**: `no-restricted-imports` in `eslint.config.js` bans `readdirSync` from `node:fs` and `fs`
 everywhere under `src/` but `test-support/`, so regrowth is caught at the import instead of by a
 grep nobody runs. `importNames` is what leaves a spec's single-file `readFileSync` alone.
@@ -505,7 +505,7 @@ per edit like any other spec. `lane.walkers` is a register, read only by the clo
 ⚠ **The scopes did not merge, and must not** — the ten cover seven different file sets, and
 `source-tree.ts`'s own docblock owns that rule. Each spec passes its own `sourceFiles({…})`
 options beside the assertions they serve, and `source-tree.test.ts` pins every option as biting
-in both directions, because a scope that silently stopped matching would make all nine closed
+in both directions, because a scope that silently stopped matching would make all ten closed
 lists pass by vacuum.
 
 **This is one walk implementation, not fewer walks.** Vitest gives each spec file its own module
