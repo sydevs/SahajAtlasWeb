@@ -710,9 +710,14 @@ export function DrawerStack() {
     return (
       <WidgetWidthContext.Provider value={isWide}>
         <DrawerControlContext.Provider value={control}>
+          {/* ⚠ Clip, never hidden — `components/AGENTS.md` carries why (#326). This is
+              `MapFrame`'s map-less twin: the filled panel is `!absolute !inset-0`, so this
+              box is its containing block, and vaul translates that panel on drag and on
+              close. Nothing has been measured overflowing here, as the sheet takes no snap
+              ladder map-less — the invariant stated, not a defect repaired. */}
           <div
             ref={setContainer}
-            className="relative w-full overflow-hidden bg-background"
+            className="relative w-full overflow-clip bg-background"
             style={{ height: standalone ? '100dvh' : '100%' }}
           >
             <Drawer

@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { act } from 'react'
-import { createRoot } from 'react-dom/client'
+import { type Root, createRoot } from 'react-dom/client'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 
 import { Drawer, DrawerBody, DrawerContent } from './Drawer'
@@ -13,7 +13,14 @@ import { Drawer, DrawerBody, DrawerContent } from './Drawer'
  * `/gb/south-east/brighton/163/register`: `scrollIntoView` on the form's submit button put the
  * panel at `scrollTop: 762`. The header went off-screen, the footer floated over a blank band,
  * and nothing brought it back — a clipped box paints no scrollbar and takes no wheel.
- * `overflow: clip` is the same paint with no scroll box at all.
+ *
+ * **What it was scrolling into is vaul's own, which is why the atom owns this and no view can
+ * opt out**: `styles/vaul.css` gives every panel a `::after` background filler at `top: 100%;
+ * height: 200%`, so a 844px sheet carries ~1688px of scrollable overflow that no view creates.
+ * `overflow: clip` paints identically and has no scroll box. ⚠ It is not identical in every
+ * respect — `clip` establishes no block formatting context where `hidden` does — which is moot
+ * here (the panel is a flex container) and for the frames (`contain: layout` already gives them
+ * an independent formatting context).
  *
  * ⚠ **The assertion is the class, and it has to be.** jsdom has no layout: every box is 0×0,
  * `scrollTop` never leaves 0, and no Tailwind sheet is loaded, so `getComputedStyle().overflow`
@@ -22,31 +29,30 @@ import { Drawer, DrawerBody, DrawerContent } from './Drawer'
  * recorded in the pull request; what the atom renders is held here.
  */
 
-let cleanup: (() => void) | null = null
-
-afterEach(() => {
-  cleanup?.()
-  cleanup = null
-  document.body.innerHTML = ''
-})
+let host: HTMLElement
+let root: Root
 
 beforeEach(() => {
-  const host = document.createElement('div')
-
+  host = document.createElement('div')
   document.body.append(host)
-  const root = createRoot(host)
+  root = createRoot(host)
 
-  // One real sheet, in the shape a phone gets: bottom direction, snap ladder.
+  // Both assertions read tv BASE slots, which no variant touches, so nothing below is
+  // load-bearing beyond mounting a real panel.
   act(() =>
     root.render(
-      <Drawer open direction="bottom" snapPoints={['96px', '336px', 0.97]}>
+      <Drawer open direction="bottom">
         <DrawerContent aria-label="Test sheet">
           <DrawerBody>body</DrawerBody>
         </DrawerContent>
       </Drawer>,
     ),
   )
-  cleanup = () => act(() => root.unmount())
+})
+
+afterEach(() => {
+  act(() => root.unmount())
+  host.remove()
 })
 
 const classesOf = (selector: string) => {

@@ -117,12 +117,9 @@ function ContainedFrame({ children }: { children: ReactNode }) {
     // exactly as in `map=false`. `overflow-clip` keeps a promise. Nothing the interface
     // renders paints outside the box the host gave it.
     //
-    // ⚠ Clip, not hidden, for the second reason the Drawer atom's `content` slot carries:
-    // a hidden box still scrolls. `contain: layout` makes this the containing block for
-    // the whole fixed interface, which is the shape that let a focused field scroll the
-    // widget off inside its own box — measured at 528px on the compact card's dialog,
-    // which is this element's twin. No configuration here has been seen to overflow, so
-    // this is the invariant stated, not a defect repaired (#326).
+    // ⚠ Clip, never hidden — `components/AGENTS.md` carries why (#326). No configuration
+    // here has been seen to overflow, so this is the invariant stated, not a defect
+    // repaired; the twin that WAS measured is `CompactEmbedView`'s dialog.
     <div ref={adopt} className="h-full w-full overflow-clip [contain:layout]" data-sy-frame="">
       {/* Held back until `adopt` has published this node, so the first drawer portals inside
           the frame rather than beside it. `usePublishedNode` carries the argument. */}

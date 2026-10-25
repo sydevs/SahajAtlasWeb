@@ -51,10 +51,10 @@ const drawer = tv({
     // is safe for the full-bleed carousel, which is exactly the body's width,
     // and for popovers, which portal out of the body entirely.
     //
-    // `scroll-pb-28` (112px) is what the panel above can no longer absorb. A
-    // sticky footer paints OVER this box, so scrolling a focused field flush to
-    // the bottom edge parks it behind the Register bar. The padding clears the
-    // tallest of them with room to spare (#326).
+    // `scroll-pb-28` (112px) stops a focused field scrolling flush to this box's
+    // bottom edge, where a sticky DrawerFooter paints over it. EventView's `pb-20`
+    // is the other half, not a duplicate: that one clears the CONTENT, this one
+    // clears the SCROLL (#326).
     body: 'mx-auto min-h-0 w-full max-w-[var(--sy-content-max,512px)] flex-1 scroll-pb-28 overflow-x-hidden overflow-y-auto',
     footer:
       'mx-auto mt-auto w-full max-w-[var(--sy-content-max,512px)] shrink-0 border-t border-gray-4',
