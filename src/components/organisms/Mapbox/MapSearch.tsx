@@ -189,6 +189,8 @@ export function MapSearch({
           theme={controlTheme}
           value={searchQuery}
           onChange={setQuery}
+          // The × empties the field without an input event, so it is an edit of its own.
+          onClear={() => setQuery('')}
           onRetrieve={onSelect}
         />
       </GeocoderBoundary>
