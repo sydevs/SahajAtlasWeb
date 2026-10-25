@@ -159,16 +159,17 @@ export function ListingEditor({
   return (
     <div className="flex flex-col gap-5 px-4 pt-1 pb-6 md:px-6">
       {base ? (
-        <div className="flex flex-col gap-3 rounded-xl bg-primary-2 p-3">
+        <div className="flex flex-col gap-1 rounded-xl bg-primary-2 px-3 pt-3 pb-1.5">
           <p className="flex items-start gap-2 text-sm leading-snug text-primary-12">
             <Info aria-hidden className="mt-0.5 shrink-0 text-primary-11" size={16} />
             {t('submit.chrome.intro_correct')}
           </p>
           {onStopped && (
             <Button
-              className="h-11 justify-center border-primary-7 bg-background md:h-10"
+              className="-ms-1 h-9 self-start px-1 text-sm underline underline-offset-2"
               color="primary"
-              variant="bordered"
+              size="sm"
+              variant="ghost"
               onClick={onStopped}
             >
               {t('submit.stopped.action')}
@@ -195,20 +196,24 @@ export function ListingEditor({
         </Section>
       ) : (
         // The triage chips, as the published class opens with them. The type chip waits for a
-        // schedule — until then there is no type to name. Tapping the row changes languages.
-        <div className="flex items-start gap-2">
+        // schedule — until then there is no type to name — and only the language is a control.
+        <div className="flex flex-wrap items-center gap-x-1 gap-y-1">
+          {listing.schedule && <Chip color="primary">{display.typeLabel}</Chip>}
           <button
             aria-label={t('submit.more.languages_edit')}
-            className="group flex min-h-8 flex-1 flex-wrap items-center gap-1 rounded-md text-start outline-none focus-visible:ring-2 focus-visible:ring-focus"
+            className="group flex min-h-8 items-center gap-1.5 rounded-md text-start outline-none focus-visible:ring-2 focus-visible:ring-focus"
             type="button"
             onClick={() => openSection('more')}
           >
-            {listing.schedule && <Chip color="primary">{display.typeLabel}</Chip>}
             {draft.languages.length > 0 && (
               <Chip color="secondary">{draft.languages.map(languageLabel).join(', ')}</Chip>
             )}
-            <Pencil aria-hidden className="ms-1 text-gray-10 group-hover:text-primary" size={14} />
+            <Pencil aria-hidden className="text-gray-10 group-hover:text-primary" size={14} />
+            {!base && (
+              <span className="text-xs text-gray-11">{t('submit.chrome.languages_hint')}</span>
+            )}
           </button>
+          <span className="flex-1" />
           {changed('more') && <ChangedTag onUndo={() => undo('more')} />}
         </div>
       )}

@@ -1,8 +1,8 @@
 import type { ListingDraft } from '@/lib/proposal'
 import type { Event } from '@/types'
 import type { TranslationKey } from '@/types/i18next'
-import type { ReactNode } from 'react'
 
+import { DateTime } from 'luxon'
 import { useLayoutEffect, useRef } from 'react'
 import { useTranslation } from 'react-i18next'
 import { ArrowLeft, Pencil } from 'lucide-react'
@@ -23,9 +23,12 @@ import { CloseButton } from '@/views/shared'
  */
 export function TitleField({
   draft,
+  base,
   onChange,
 }: {
   draft: ListingDraft
+  /** The published class a correction opened as, so a renamed class can be put back. */
+  base?: ListingDraft | null
   onChange: (patch: Partial<ListingDraft>) => void
 }) {
   const { t } = useTranslation()
@@ -47,7 +50,7 @@ export function TitleField({
         <span className="sr-only">{t('submit.more.title_label')}</span>
         <textarea
           ref={grow}
-          className="-mx-1.5 block w-[calc(100%+0.75rem)] resize-none overflow-hidden rounded-md border border-transparent bg-transparent py-0.5 ps-1.5 pe-8 text-lg leading-6 font-semibold tracking-wide text-foreground outline-none placeholder:font-semibold placeholder:text-gray-9 hover:border-gray-6 focus:border-primary-7 focus:bg-background focus-visible:ring-2 focus-visible:ring-focus"
+          className="-mx-1.5 block w-[calc(100%+0.75rem)] resize-none overflow-hidden rounded-md border border-transparent bg-transparent py-0.5 ps-1.5 pe-8 text-lg leading-6 font-semibold tracking-wide text-foreground outline-none placeholder:font-semibold placeholder:text-gray-11 hover:border-gray-6 focus:border-primary-7 focus:bg-background focus-visible:ring-2 focus-visible:ring-focus"
           maxLength={100}
           placeholder={fallback || t('submit.chrome.title_placeholder')}
           rows={1}
@@ -63,8 +66,22 @@ export function TitleField({
         />
       </label>
       {!draft.title.trim() && fallback && (
-        <p className="mt-0.5 text-xs text-gray-11">
-          {t('submit.chrome.title_default', { name: fallback })}
+        <p className="mt-0.5 text-xs text-gray-11">{t('submit.chrome.title_default')}</p>
+      )}
+      {base && draft.title !== base.title && (
+        <p className="mt-1 flex items-center gap-1">
+          <span className="rounded-full bg-primary-3 px-2 py-0.5 text-xs font-semibold text-primary-11">
+            {t('submit.chrome.changed')}
+          </span>
+          <Button
+            className="h-7 px-2 text-xs"
+            color="neutral"
+            size="sm"
+            variant="ghost"
+            onClick={() => onChange({ title: base.title })}
+          >
+            {t('submit.chrome.undo')}
+          </Button>
         </p>
       )}
     </div>
@@ -137,6 +154,15 @@ export function ListingCard({
   )
 }
 
+/** A join link's host, enough to recognise it without printing a meeting's passcode. */
+const hostOf = (url: string): string => {
+  try {
+    return new URL(url.trim()).host
+  } catch {
+    return url.trim()
+  }
+}
+
 const CHANGE_LABELS: Record<string, TranslationKey> = {
   title: 'submit.more.title_label',
   more: 'submit.more.languages_label',
@@ -161,7 +187,7 @@ export function ChangeList({
   listing: Event
 }) {
   const { t } = useTranslation()
-  const { languageLabel } = useLocale()
+  const { languageLabel, locale } = useLocale()
   const was = useEventDisplay(before)
   const now = useEventDisplay(listing)
   const changes = changedSections(draft, base)
@@ -178,14 +204,32 @@ export function ChangeList({
       .map((line) => line.trim())
       .filter(Boolean)
       .join(' · ')
-  const lines: Record<string, [ReactNode, ReactNode]> = {
+  const until = (fields: ListingDraft) =>
+    fields.repeats !== 'once' && fields.endDate
+      ? t('submit.review.until', {
+          date: DateTime.fromISO(fields.endDate)
+            .setLocale(locale)
+            .toLocaleString({ day: 'numeric', month: 'short', year: 'numeric' }),
+        })
+      : null
+  const joined = (...parts: (string | null | undefined)[]) =>
+    parts
+      .map((part) => part?.trim())
+      .filter(Boolean)
+      .join(' · ')
+  // Every leaf a section can change shows in its line, so a new room or link is never hidden
+  // behind an unchanged street.
+  const lines: Record<string, [string, string]> = {
     title: [before.title, draft.title.trim() || draftTitle(draft)],
     more: [
       base.languages.map(languageLabel).join(', '),
       draft.languages.map(languageLabel).join(', '),
     ],
-    where: [was.whereLine, now.whereLine],
-    when: [calendar(was), calendar(now)],
+    where: [
+      joined(was.whereLine, base.room),
+      joined(now.whereLine, draft.room, draft.onlineUrl.trim() && hostOf(draft.onlineUrl)),
+    ],
+    when: [joined(calendar(was), until(base)), joined(calendar(now), until(draft))],
     contact: [contact(base), contact(draft)],
     about: [lexicalToText(before.description), draft.description.trim()],
   }
@@ -203,14 +247,18 @@ export function ChangeList({
             const [from, to] = lines[key]
 
             return (
-              <li key={key} className="flex flex-col gap-0.5 px-3 py-2.5">
+              <li key={key} className="flex flex-col gap-1 px-3 py-2.5">
                 <span className="text-xs font-semibold tracking-wide text-gray-11 uppercase">
                   {t(CHANGE_LABELS[key])}
                 </span>
-                {from && (
-                  <span className="line-clamp-2 text-sm text-gray-10 line-through">{from}</span>
-                )}
-                <span className="line-clamp-3 text-sm font-medium">{to || '—'}</span>
+                <dl className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-0.5 text-sm leading-snug">
+                  <dt className="text-gray-11">{t('submit.review.was')}</dt>
+                  <dd className="line-clamp-2 text-gray-11">{from || '—'}</dd>
+                  <dt className="font-medium">{t('submit.review.now')}</dt>
+                  <dd className="line-clamp-3 font-medium">
+                    {to || <span className="italic">{t('submit.chrome.removed')}</span>}
+                  </dd>
+                </dl>
               </li>
             )
           })}

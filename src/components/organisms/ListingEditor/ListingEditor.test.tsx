@@ -105,6 +105,19 @@ const button = (name: RegExp | string) => {
 
 const press = (name: RegExp | string) => act(async () => button(name).click())
 
+async function type(selector: string, value: string) {
+  const field = container.querySelector<HTMLInputElement>(selector)
+
+  if (!field) throw new Error(`no ${selector}`)
+
+  const setValue = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')?.set
+
+  await act(async () => {
+    setValue?.call(field, value)
+    field.dispatchEvent(new Event('input', { bubbles: true }))
+  })
+}
+
 beforeEach(() => {
   vi.stubGlobal(
     'ResizeObserver',
@@ -181,6 +194,51 @@ describe('ListingEditor', () => {
     await press('submit.chrome.undo')
     expect(latest.room).toBe('Hall A')
     expect(container.textContent).not.toContain('submit.chrome.changed')
+
+    await act(async () => root.unmount())
+  })
+
+  it('takes an address the search cannot find, typed by hand, for a coordinator to place', async () => {
+    const root = await mount({ initial: emptyDraft('Europe/London'), open: 'where' })
+
+    await press('submit.where.manual_toggle')
+    await type('#submit-manual-street', 'Old School Hall')
+    await type('#submit-manual-city', 'Ditchling')
+
+    expect(latest.address).toMatchObject({ street: 'Old School Hall', city: 'Ditchling' })
+    expect(latest.address?.mapboxId).toBeUndefined()
+
+    await act(async () => root.unmount())
+  })
+
+  it('puts a backwards range on the last date, where it can be seen and fixed', async () => {
+    const root = await mount({
+      initial: {
+        ...emptyDraft('Europe/London'),
+        address: place,
+        firstDate: '2026-11-03',
+        startTime: '19:30',
+        endDate: '2026-10-01',
+      },
+      open: 'when',
+    })
+
+    await press('submit.chrome.done')
+    expect(container.querySelector('#submit-end-date-error')?.textContent).toBe(
+      'submit.errors.end_date',
+    )
+    expect(container.textContent).not.toContain('submit.errors.first_date')
+
+    await act(async () => root.unmount())
+  })
+
+  it('keeps Undo on a part a correction cleared', async () => {
+    const base = { ...emptyDraft('Europe/London'), address: place, contactName: 'Elizabeth' }
+    const root = await mount({ initial: { ...base, contactName: '' }, base })
+
+    expect(container.textContent).toContain('submit.chrome.removed')
+    await press('submit.chrome.undo')
+    expect(latest.contactName).toBe('Elizabeth')
 
     await act(async () => root.unmount())
   })

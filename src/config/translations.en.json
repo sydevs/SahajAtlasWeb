@@ -282,10 +282,10 @@
       "correct_entry": "Suggest a correction",
       "title_add": "Add a class",
       "title_correct": "Suggest a correction",
-      "intro_add": "Fill in each part. This is how your class will look on the map.",
+      "intro_add": "Fill in each part. This is how your class will look on the map. We’ll ask for your email at the end — it stays private.",
       "intro_correct": "Tap anything that’s wrong to fix it.",
       "title_placeholder": "Name your class",
-      "title_default": "Leave blank to call it “%{name}”.",
+      "title_default": "Suggested name. Tap to change it.",
       "required": "Required",
       "done": "Done",
       "changed": "Changed",
@@ -297,7 +297,10 @@
       "ready": "Ready to send",
       "no_changes": "No changes yet",
       "changes_one": "1 change",
-      "changes_other": "%{count} changes"
+      "changes_other": "%{count} changes",
+      "saved": "Kept as you type",
+      "removed": "Removed",
+      "languages_hint": "Class language — tap to change"
     },
     "contact": {
       "email_label": "Email",
@@ -326,7 +329,8 @@
       "send_failed": "We couldn’t send your submission. Please try again.",
       "start_time": "Choose a start time.",
       "urls_not_allowed": "Links aren’t allowed here. Please remove them.",
-      "weekday": "Choose the day it meets."
+      "weekday": "Choose the day it meets.",
+      "end_date": "The last date is before the first."
     },
     "more": {
       "languages_label": "Languages",
@@ -350,7 +354,10 @@
       "label_where": "Where",
       "label_when": "When",
       "label_contact": "Contact",
-      "label_about": "Description"
+      "label_about": "Description",
+      "was": "Was",
+      "now": "Now",
+      "until": "Last class %{date}"
     },
     "when": {
       "end_date": "Last date (optional)",
@@ -365,7 +372,10 @@
       "starting": "First class %{date}",
       "change_start": "Change",
       "date": "Date",
-      "add_end": "Add a last date"
+      "add_end": "Add a last date",
+      "overnight": "Ends the next day",
+      "timezone_label": "Time zone",
+      "timezone_search": "Search for a city or zone"
     },
     "where": {
       "address_label": "Address",
@@ -385,14 +395,21 @@
       "hint": "An address, or a link if it’s online",
       "address_help": "Search by street and number, e.g. 12 Church Road.",
       "map_alt": "Map showing %{place}",
-      "link_kept": "Leave blank to keep the current link."
+      "link_kept": "Leave blank to keep the current link.",
+      "manual_toggle": "Can’t find it? Type the address",
+      "manual_street": "Street and number",
+      "manual_city": "Town or city",
+      "manual_postcode": "Postcode",
+      "manual_note": "A coordinator will place it on the map.",
+      "search_instead": "Search for it instead"
     },
     "stopped": {
       "action": "It’s no longer running",
       "title": "No longer running",
       "body": "Thanks for letting us know. A coordinator will check and take it off the map.",
       "last_date": "Last class (optional)",
-      "note_prefix": "This class is no longer running."
+      "note_prefix": "This class is no longer running.",
+      "subject": "Report that “%{title}” has stopped."
     }
   }
 }

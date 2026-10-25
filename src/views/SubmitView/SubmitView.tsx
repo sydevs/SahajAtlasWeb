@@ -341,8 +341,13 @@ function Flow({ target }: { target: FlowTarget }) {
           >
             {stopped ? (
               <>
-                <div className="rounded-xl bg-primary-2 p-4 text-sm leading-snug text-primary-12">
-                  {t('submit.stopped.body')}
+                <div className="flex flex-col gap-1 rounded-xl bg-primary-2 p-4 text-sm leading-snug text-primary-12">
+                  {event && (
+                    <p className="font-semibold">
+                      {t('submit.stopped.subject', { title: event.title })}
+                    </p>
+                  )}
+                  <p>{t('submit.stopped.body')}</p>
                 </div>
                 {draft.repeats !== 'once' && (
                   <FormField htmlFor="submit-last-date" label={t('submit.stopped.last_date')}>
@@ -375,7 +380,10 @@ function Flow({ target }: { target: FlowTarget }) {
   const blocking = blockingSections(draft, base)
   const changes = base ? changedSections(draft, base).length : 0
   const needs = (['where', 'when'] as const).filter((key) => blocking.includes(key))
-  const status = base ? (
+  const editing = session.step !== 'review'
+  const status = editing ? (
+    t('submit.chrome.saved')
+  ) : base ? (
     changes ? (
       t('submit.chrome.changes', { count: changes })
     ) : (
@@ -408,7 +416,7 @@ function Flow({ target }: { target: FlowTarget }) {
   return (
     <>
       <div className="flex shrink-0 items-start gap-2 px-4 pt-1 pb-2 md:px-6 md:pt-4">
-        <TitleField draft={draft} onChange={update} />
+        <TitleField base={base} draft={draft} onChange={update} />
         <CloseButton />
       </div>
       <DrawerBody className={sticky ? 'pb-24' : undefined}>

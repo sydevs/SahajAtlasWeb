@@ -26,7 +26,10 @@ const section = tv({
   },
   variants: {
     invalid: {
-      true: { empty: 'border-danger-8 hover:border-danger-9 hover:bg-danger-2' },
+      true: {
+        empty: 'border-danger-8 hover:border-danger-9 hover:bg-danger-2',
+        hint: 'text-danger-11',
+      },
     },
   },
 })
@@ -151,7 +154,7 @@ export function Section({
             </Button>
           </div>
         </motion.section>
-      ) : summary === null ? (
+      ) : summary === null && !changed ? (
         <motion.button
           key="empty"
           animate={{ opacity: 1 }}
@@ -191,13 +194,18 @@ export function Section({
           >
             <Icon aria-hidden className="mt-0.5 shrink-0 text-primary" size={20} />
             <span className="min-w-0 flex-1 text-sm leading-snug font-medium">
-              {summary}
+              {/* A correction that cleared the part says so, and keeps its Undo. */}
+              {summary ?? (
+                <span className="font-normal text-gray-11 italic">
+                  {t('submit.chrome.removed')}
+                </span>
+              )}
               {aside}
             </span>
-            {!changed && <Pencil aria-hidden className="mt-0.5 shrink-0 text-gray-10" size={16} />}
+            <Pencil aria-hidden className="mt-0.5 shrink-0 text-gray-10" size={16} />
           </button>
           {changed && (
-            <div className="flex shrink-0 flex-col items-end gap-1">
+            <div className="flex shrink-0 flex-col items-end gap-1 ps-1">
               <span className="rounded-full bg-primary-3 px-2 py-0.5 text-xs font-semibold text-primary-11">
                 {t('submit.chrome.changed')}
               </span>

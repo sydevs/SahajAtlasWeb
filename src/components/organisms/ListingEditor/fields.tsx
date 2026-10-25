@@ -9,6 +9,7 @@ import { DateTime, Info } from 'luxon'
 import { Plus } from 'lucide-react'
 
 import { Button } from '@/components/atoms/Button'
+import { Combobox, type ComboboxOption } from '@/components/atoms/Combobox'
 import { Input } from '@/components/atoms/Input'
 import { Textarea } from '@/components/atoms/Textarea'
 import { ToggleGroup, ToggleGroupItem } from '@/components/atoms/ToggleGroup'
@@ -124,6 +125,34 @@ export function WhereFields({
   notice?: ReactNode
 }) {
   const { t } = useTranslation()
+  // A venue the geocoder cannot find — a village hall, a park — is typed in by hand instead, and
+  // a coordinator places it. Opens on its own when the draft already holds such an address.
+  const [manual, setManual] = useState(Boolean(draft.address && !draft.address.mapboxId))
+  const typed = (patch: Partial<Record<'street' | 'city' | 'postCode', string>>) => {
+    const next = {
+      street: draft.address?.street ?? '',
+      city: draft.address?.city ?? '',
+      postCode: draft.address?.postCode ?? '',
+      ...patch,
+    }
+    const filled = next.street.trim() || next.city.trim()
+
+    onChange({
+      address: filled
+        ? {
+            label: [next.street, next.postCode, next.city]
+              .map((part) => part.trim())
+              .filter(Boolean)
+              .join(', '),
+            street: next.street.trim() || undefined,
+            city: next.city.trim() || undefined,
+            postCode: next.postCode.trim() || undefined,
+            country: country?.toUpperCase(),
+            location: {},
+          }
+        : null,
+    })
+  }
 
   return (
     <>
@@ -139,22 +168,81 @@ export function WhereFields({
 
       {draft.eventType === 'offline' ? (
         <>
-          <FormField
-            required
-            error={errors.address && t('submit.errors.address_required')}
-            help={t('submit.where.address_help')}
-            label={t('submit.where.address_label')}
-          >
-            <MapSearch
-              country={country}
-              label={t('submit.where.address_placeholder')}
-              proximity={proximity}
-              query={{ initial: draft.address?.label ?? '' }}
-              types="address"
-              onQueryChange={onEdit('address')}
-              onSelect={onPick('address')}
-            />
-          </FormField>
+          {manual ? (
+            <>
+              <ValidatedInput
+                required
+                autoComplete="address-line1"
+                error={errors.address && t('submit.errors.address_required')}
+                id="submit-manual-street"
+                label={t('submit.where.manual_street')}
+                maxLength={CONTACT_MAX}
+                value={draft.address?.street ?? ''}
+                onChange={(event) => typed({ street: event.target.value })}
+              />
+              <div className="grid grid-cols-[1fr_7rem] gap-3">
+                <ValidatedInput
+                  autoComplete="address-level2"
+                  id="submit-manual-city"
+                  label={t('submit.where.manual_city')}
+                  maxLength={CONTACT_MAX}
+                  value={draft.address?.city ?? ''}
+                  onChange={(event) => typed({ city: event.target.value })}
+                />
+                <ValidatedInput
+                  autoComplete="postal-code"
+                  id="submit-manual-postcode"
+                  label={t('submit.where.manual_postcode')}
+                  maxLength={20}
+                  value={draft.address?.postCode ?? ''}
+                  onChange={(event) => typed({ postCode: event.target.value })}
+                />
+              </div>
+              <p className="-mt-2 text-xs text-gray-11">{t('submit.where.manual_note')}</p>
+              <Button
+                className="-ms-2 self-start"
+                color="primary"
+                size="sm"
+                variant="ghost"
+                onClick={() => {
+                  setManual(false)
+                  onChange({ address: null })
+                }}
+              >
+                {t('submit.where.search_instead')}
+              </Button>
+            </>
+          ) : (
+            <>
+              <FormField
+                required
+                error={errors.address && t('submit.errors.address_required')}
+                help={t('submit.where.address_help')}
+                label={t('submit.where.address_label')}
+              >
+                <MapSearch
+                  country={country}
+                  label={t('submit.where.address_placeholder')}
+                  proximity={proximity}
+                  query={{ initial: draft.address?.label ?? '' }}
+                  types="address"
+                  onQueryChange={onEdit('address')}
+                  onSelect={onPick('address')}
+                />
+              </FormField>
+              {!draft.address && (
+                <Button
+                  className="-ms-2 -mt-2 self-start"
+                  color="primary"
+                  size="sm"
+                  variant="ghost"
+                  onClick={() => setManual(true)}
+                >
+                  {t('submit.where.manual_toggle')}
+                </Button>
+              )}
+            </>
+          )}
           {notice}
           <ValidatedInput
             id="submit-room"
@@ -213,6 +301,23 @@ export const zoneLabel = (timeZone: string, locale: string): string => {
   }
 }
 
+/** Every zone the browser knows, the class's own first, each named as people say it. */
+const zoneOptions = (current: string, locale: string): ComboboxOption[] => {
+  const all: string[] =
+    'supportedValuesOf' in Intl
+      ? (Intl as unknown as { supportedValuesOf: (key: string) => string[] }).supportedValuesOf(
+          'timeZone',
+        )
+      : []
+  const ids = [current, ...all.filter((zone) => zone !== current)]
+
+  return ids.map((zone) => ({
+    value: zone,
+    label: zone.replace(/_/g, ' '),
+    hint: zoneLabel(zone, locale).replace(` (${zone})`, ''),
+  }))
+}
+
 export function WhenFields({
   draft,
   errors,
@@ -226,6 +331,13 @@ export function WhenFields({
   const { locale } = useLocale()
   const weekday = draftWeekday(draft)
   const repeating = draft.repeats !== 'once'
+  // The shared rule flags a backwards range on the first date; it belongs on the last one.
+  const endsEarly = repeating && Boolean(draft.endDate) && draft.endDate < draft.firstDate
+  const firstDateError = errors.firstDate && !endsEarly
+  // An end before the start is read as running past midnight — say so, in case it is a slip.
+  const overnight = Boolean(draft.startTime && draft.endTime) && draft.endTime < draft.startTime
+  const [zoneOpen, setZoneOpen] = useState(false)
+  const zones = useMemo(() => zoneOptions(draft.timeZone, locale), [draft.timeZone, locale])
   const [editStart, setEditStart] = useState(false)
   const [showEnd, setShowEnd] = useState(Boolean(draft.endDate))
   const days = useMemo(
@@ -241,7 +353,7 @@ export function WhenFields({
   const dateField = (label: string) => (
     <ValidatedInput
       required
-      error={errors.firstDate && t('submit.errors.first_date')}
+      error={firstDateError && t('submit.errors.first_date')}
       id="submit-first-date"
       label={label}
       type="date"
@@ -268,13 +380,13 @@ export function WhenFields({
       {draft.repeats === 'weekly' && (
         <FormField
           required
-          error={errors.firstDate && !weekday && t('submit.errors.weekday')}
+          error={firstDateError && !weekday && t('submit.errors.weekday')}
           label={t('submit.when.weekday')}
         >
           <ToggleGroup
             aria-label={t('submit.when.weekday')}
             className="grid w-full grid-cols-7 gap-1"
-            isInvalid={Boolean(errors.firstDate) && !weekday}
+            isInvalid={Boolean(firstDateError) && !weekday}
             type="single"
             value={weekday ? String(weekday) : ''}
             onValueChange={(value) => {
@@ -326,6 +438,7 @@ export function WhenFields({
           onChange={(event) => onChange({ startTime: event.target.value })}
         />
         <ValidatedInput
+          help={overnight ? t('submit.when.overnight') : undefined}
           id="submit-end-time"
           label={t('submit.when.end_time')}
           type="time"
@@ -334,9 +447,40 @@ export function WhenFields({
         />
       </div>
 
+      <div className="-mt-1 flex flex-wrap items-center gap-x-1 text-xs text-gray-11">
+        {t('submit.when.timezone_note', { timezone: zoneLabel(draft.timeZone, locale) })}
+        {!zoneOpen && (
+          <Button
+            className="h-6 px-1.5 text-xs"
+            color="primary"
+            size="sm"
+            variant="ghost"
+            onClick={() => setZoneOpen(true)}
+          >
+            {t('submit.when.change_start')}
+          </Button>
+        )}
+      </div>
+      {zoneOpen && (
+        <FormField label={t('submit.when.timezone_label')}>
+          <Combobox
+            aria-label={t('submit.when.timezone_label')}
+            className={TOUCH}
+            options={zones}
+            searchPlaceholder={t('submit.when.timezone_search')}
+            value={draft.timeZone}
+            onValueChange={(timeZone) => {
+              onChange({ timeZone })
+              setZoneOpen(false)
+            }}
+          />
+        </FormField>
+      )}
+
       {repeating &&
-        (showEnd ? (
+        (showEnd || draft.endDate ? (
           <ValidatedInput
+            error={endsEarly && t('submit.errors.end_date')}
             id="submit-end-date"
             label={t('submit.when.end_date')}
             min={draft.firstDate || undefined}
@@ -357,12 +501,7 @@ export function WhenFields({
           </Button>
         ))}
 
-      <div className="rounded-lg bg-gray-2 px-3 py-2.5">
-        {summary}
-        <p className="mt-1 text-xs text-gray-11">
-          {t('submit.when.timezone_note', { timezone: zoneLabel(draft.timeZone, locale) })}
-        </p>
-      </div>
+      <div className="rounded-lg bg-gray-2 px-3 py-2.5">{summary}</div>
     </>
   )
 }
