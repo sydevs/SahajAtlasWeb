@@ -102,6 +102,9 @@ export type ListingQuestionsProps = {
   trailing?: ReactNode
   /** Pins the footer to the visible bottom of a phone's bottom sheet. */
   stickyFooter?: boolean
+  /** The visitor picked the time zone: a later place pick keeps it rather than inferring one. */
+  zoneChosen?: boolean
+  onZoneChosen?: () => void
   /** Story-only: open the last screen showing this refusal. */
   initialRefusal?: UserSubmissionErrorCode | 'unknown'
 }
@@ -136,8 +139,6 @@ export function ListingQuestions(props: ListingQuestionsProps) {
   const [send, setSend] = useState<SendState>({ ready: false, pending: false, blocked: false })
   // The question whose answer was just tapped, lit at once while the next one is on its way.
   const [tapped, setTapped] = useState<Question | null>(null)
-  // A zone the visitor chose stands: a later place pick no longer infers one over it.
-  const zoneChosen = useRef(false)
   // Remounted to fetch a fresh security check after the last one was blocked.
   const [sendAttempt, setSendAttempt] = useState(0)
   const headingRef = useRef<HTMLHeadingElement>(null)
@@ -230,7 +231,7 @@ export function ListingQuestions(props: ListingQuestionsProps) {
     // Without a nearby class to lend one, the visitor's own zone — never one inferred earlier,
     // and never over one the visitor chose.
     onChange(
-      zoneChosen.current
+      props.zoneChosen
         ? { [key]: place }
         : { [key]: place, timeZone: props.timeZoneFor?.(place) ?? viewerTimeZone() },
     )
@@ -301,7 +302,7 @@ export function ListingQuestions(props: ListingQuestionsProps) {
         onChange({ firstDate: weekdayDate(weekday, draft.timeZone) })
       }
       onZone={(timeZone) => {
-        zoneChosen.current = true
+        props.onZoneChosen?.()
         onChange({ timeZone })
       }}
     />

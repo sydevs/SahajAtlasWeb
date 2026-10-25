@@ -305,6 +305,8 @@ type ListingDraftState = {
   reason: CorrectionReason | null
   /** The questions moved on from, so a tap question shows an answer only once one was given. */
   answered: Question[]
+  /** The visitor picked the time zone, so a later place pick must not infer one over it. */
+  zoneChosen: boolean
 }
 
 type ListingDraftAction = {
@@ -315,6 +317,7 @@ type ListingDraftAction = {
   /** Moving on (`forward`) counts the question left as answered; going back does not. */
   setQuestion: (question: Question, forward?: boolean) => void
   setReason: (reason: CorrectionReason | null) => void
+  chooseZone: () => void
   markSent: () => void
 }
 
@@ -330,6 +333,7 @@ export const useListingDraft = create<ListingDraftState & ListingDraftAction>((s
   question: 'mode',
   reason: null,
   answered: [],
+  zoneChosen: false,
   start: ({ key, entry }, { draft, base, step }) =>
     set(() => ({
       key,
@@ -345,6 +349,7 @@ export const useListingDraft = create<ListingDraftState & ListingDraftAction>((s
       question: base ? 'changed' : 'mode',
       reason: null,
       answered: [],
+      zoneChosen: false,
     })),
   setSender: (patch) => set((state) => ({ sender: { ...state.sender, ...patch } })),
   update: (patch) => set((state) => (state.draft ? { draft: { ...state.draft, ...patch } } : {})),
@@ -359,5 +364,6 @@ export const useListingDraft = create<ListingDraftState & ListingDraftAction>((s
           : [...state.answered, state.question],
     })),
   setReason: (reason) => set(() => ({ reason })),
+  chooseZone: () => set(() => ({ zoneChosen: true })),
   markSent: () => set(() => ({ sent: true })),
 }))

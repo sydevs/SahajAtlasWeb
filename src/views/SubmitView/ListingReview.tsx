@@ -186,8 +186,12 @@ export function CorrectionChanges({
     )
   }
 
-  // A stopped class's last date is the stopped row above, not a schedule change.
-  if (!stopped && stepChanged('when', draft, base)) {
+  // A stopped class's last date is the stopped row above; any other schedule change still shows.
+  const scheduleChanged = stopped
+    ? stepChanged('when', { ...draft, endDate: base.endDate }, base)
+    : stepChanged('when', draft, base)
+
+  if (scheduleChanged) {
     rows.push(
       <ChangeRow
         key="when"

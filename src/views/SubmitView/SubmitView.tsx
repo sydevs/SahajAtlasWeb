@@ -130,6 +130,7 @@ function useListingSession(target: FlowTarget) {
       question: state.question,
       reason: state.reason,
       answered: state.answered,
+      zoneChosen: state.zoneChosen,
       reviewed: state.reviewed,
       sent: state.sent,
     })),
@@ -231,7 +232,8 @@ function Flow({ target }: { target: FlowTarget }) {
 
   if (!session?.draft || !listing) return null
 
-  const { update, setSender, setQuestion, setReason, markSent } = useListingDraft.getState()
+  const { update, setSender, setQuestion, setReason, markSent, chooseZone } =
+    useListingDraft.getState()
   const correction =
     event && session.base
       ? { eventId: event.id, baseDraft: session.base, title: event.title }
@@ -285,12 +287,14 @@ function Flow({ target }: { target: FlowTarget }) {
       stickyFooter={hasMap && !isWide}
       timeZoneFor={timeZoneFor}
       trailing={<CloseButton />}
+      zoneChosen={session.zoneChosen}
       onChange={update}
       onClose={dismiss}
       onQuestion={setQuestion}
       onReason={setReason}
       onSender={setSender}
       onSent={markSent}
+      onZoneChosen={chooseZone}
     />
   )
 }
