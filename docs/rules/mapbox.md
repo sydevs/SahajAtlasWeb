@@ -201,6 +201,20 @@ it** — the same rule the root `AGENTS.md` states for a new fetch origin. Read
 the specifics there. Here, only the rule: **enumerate from the rendered control
 list and the libraries behind it, never from a grep.**
 
+That list is two: `GeolocateControl` and `AttributionControl`. The second
+reaches for nothing — a button and links — so it added no row to that table.
+
+## The wordmark and the attribution are placed in CSS, not through Mapbox
+
+Mapbox's terms require both to be visible, and the corner mapbox puts them in is
+the one the drawer takes. So `Map.tsx` publishes an `inset` for mapbox's own
+corner container as `--sy-map-attribution`, and `globals.css` places the
+container from it; `ATTRIBUTION_INSET` carries why no Mapbox API can do this.
+**Both controls must stay in one corner container**, which is what makes a
+single inset place them together — so the attribution is rendered at
+`position="bottom-left"`, where mapbox already put the wordmark, rather than in
+the corner it is to appear in.
+
 ## Geo helpers
 
 Use `@turf/*` (`bbox`, `bbox-polygon`, `circle`) for geometry math — bounding

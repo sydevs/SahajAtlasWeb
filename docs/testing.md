@@ -486,8 +486,8 @@ It bans the shape, not `import.meta.url` itself: `src/lib/shadow-patches.test.ts
 `node_modules` with `createRequire(import.meta.url)`, which no repo-relative reader can serve.
 **`src/Widget.standalone.test.ts` is the one spec left deriving a root**, under a disable —
 `importGraph` resolves specifiers on disk, so it needs a directory rather than text, and naming
-`repo-source` for `REPO_ROOT` would add it to that module's own per-edit selection, which has one
-slot left.
+`repo-source` for `REPO_ROOT` would add it to that module's own per-edit selection, which is now
+at its ceiling.
 
 **Neither rule reaches a cwd-relative `readFileSync('src/App.tsx', 'utf8')`**, the third shape
 `brand.test.ts` carried until #289 — it works only while vitest runs from the repo root, and
@@ -522,8 +522,9 @@ failures as non-blocking context. No hook type-checks an edit; run `pnpm typeche
 That is the hook's whole command, wall clock, not the lane, which takes ~36s. Measured 2026-10-16
 on 4 cores, median of three: **0.12s** for a lane source with no spec of its own, **6.6s** for
 `src/config/i18n.ts` (12 specs, the slowest edit in the tree), and **4.5s** for
-`src/test-support/repo-source.ts` (15 specs, the widest — #289 moved it there). The slowest edit
-sits at about half the bound.
+`src/test-support/repo-source.ts` (the widest — #289 moved it there). The slowest edit
+sits at about half the bound. Re-measured 2026-10-25, at 16 specs rather than 15: still **4.5s**,
+median of three.
 ⚠ **The 0.12s class is smaller than #289 found it**: `src/views/FullInterface.tsx` selected
 nothing until `MapFrame.test.tsx` named it as a quoted repo-relative path, and now costs **2.2s**
 per edit for the wiring pin it previously had no per-edit coverage from at all. A quoted literal
@@ -581,8 +582,9 @@ to select from. The full lane still runs in the lean gate (`.claude/skills/pr-pr
 in CI, so this narrows the inner loop, not the gate.
 
 **What holds the budget is the selection's width, and `scripts/select-unit-specs.test.ts` pins
-that**: the widest edit in the tree, exhaustively through the real composition, at 15 against a
-ceiling of 16. ⚠ The widest is no longer the slowest — `i18n.ts`
+that**: the widest edit in the tree, exhaustively through the real composition, at 16 against a
+ceiling of 16 — no headroom, so the next spec reading a repo file through `repo-source` trips it,
+and the answer is to time the hook and ratchet, never to drop a spec. ⚠ The widest is no longer the slowest — `i18n.ts`
 selects 12, four of them jsdom, and takes 6.6s against the widest's 4.5s and three — so width
 bounds the slice, never the time, and a jump in either is a re-measure of both. It also pins each
 of the three specifier forms, end to end against this tree; the tree-walking set as a closed list,
