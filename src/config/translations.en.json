@@ -394,7 +394,7 @@
       "room_label": "Room or floor (optional)",
       "title": "Where does the class take place?",
       "nearby_title": "Is it one of these?",
-      "nearby_body": "There’s already a class listed at this address. If it’s yours, correct it instead of adding it again.",
+      "nearby_body": "There’s already a class listed close to this address. If it’s the same class, correct that listing instead. If not, just carry on.",
       "nearby_action": "Correct it",
       "hint": "An address, or a link if it’s online",
       "address_help": "Search by street and number, e.g. 12 Church Road.",
