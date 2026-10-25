@@ -22,13 +22,15 @@ const PROPERTY = '--sy-map-attribution'
 // Mapbox's own container for both controls, which is also the fallback this asserts.
 const CONTAINER = '.mapboxgl-ctrl-bottom-left'
 
-const insets = (source: string) =>
-  Object.fromEntries(
-    [...source.matchAll(/^ {2}(panel|sheet): '([^']+)',$/gm)].map(([, name, inset]) => [
-      name,
-      inset,
-    ]),
+// Deliberately unanchored to indentation: the table is matched by its own name, so reformatting
+// or re-nesting it cannot turn this into a silent no-match.
+const insets = (source: string) => {
+  const table = source.match(/const ATTRIBUTION_INSET = \{[\s\S]*?\n\}/)?.[0] ?? ''
+
+  return Object.fromEntries(
+    [...table.matchAll(/\b(panel|sheet): '([^']+)'/g)].map(([, name, inset]) => [name, inset]),
   )
+}
 
 describe('the Mapbox wordmark and attribution corner', () => {
   const map = read(MAP)
@@ -43,8 +45,7 @@ describe('the Mapbox wordmark and attribution corner', () => {
 
     expect(panel).toMatch(EDGES)
     expect(narrow).toMatch(EDGES)
-    // A table whose branches agreed would place both layouts in one corner, which is the
-    // defect, not the fix: the panel and the sheet cover different edges.
+    // The panel and the sheet cover different edges, so one corner cannot serve both.
     expect(panel).not.toBe(narrow)
   })
 
@@ -71,9 +72,11 @@ describe('the Mapbox wordmark and attribution corner', () => {
     const offset = Number(read(STACK).match(/'fixed top-(\d+) z-\d+'/)?.[1])
     const size = Number(read(COG).match(/\bh-(\d+) w-\1\b/)?.[1])
 
-    // This guards the three reads. A renamed class would otherwise make the comparison below
-    // pass against `NaN`-free zeros and check nothing.
-    expect([step, offset, size].every(Number.isFinite)).toBe(true)
+    // A renamed class gives `NaN`, which fails the comparison below anyway. These name which of
+    // the three reads broke, instead of leaving one opaque failure to be worked out.
+    expect(step, 'the spacing step').toBeGreaterThan(0)
+    expect(offset, "the cog's top offset").toBeGreaterThan(0)
+    expect(size, "the cog trigger's size").toBeGreaterThan(0)
 
     const top = Number(insets(map).sheet.match(/^(\d+)px/)?.[1])
 

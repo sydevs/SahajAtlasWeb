@@ -554,15 +554,13 @@
   margin-top: 40px;
 }
 
-/* Mapbox's terms require its wordmark and its attribution to stay visible, and the corner it
-   puts them in is the corner this app puts the drawer in. `Map.tsx` picks a clear one from the
-   measured width and sets `--sy-map-attribution`; its own `ATTRIBUTION_INSET` says why the
-   corner cannot be re-chosen through mapbox instead. The fallback is mapbox's own placement,
-   and it is not optional: the property arrives as an inline style, which no sheet declares, and
-   `scripts/assert-css-scoped.mjs` fails the build on a fallbackless `var()` naming one (#262).
-   The inner margin is uniform because mapbox's is keyed to the corner it believes it is in.
-   The container is anchored by `inset` and shrinks to fit, so margin on the two far edges
-   only grows that box inward, away from the map's edge. */
+/* Moves mapbox's wordmark and attribution out from under the drawer. `Map.tsx` sets
+   `--sy-map-attribution` from the measured width, and its `ATTRIBUTION_INSET` carries the why.
+   The fallback is mapbox's own corner, and it is not optional: the property arrives as an
+   inline style, which no sheet declares, and `scripts/assert-css-scoped.mjs` fails the build on
+   a fallbackless `var()` naming one (#262). The inner margin is uniform because mapbox's is
+   keyed to the corner it believes it is in, and the anchored container shrinks to fit, so the
+   two far edges cost nothing. */
 .mapboxgl-ctrl-bottom-left {
   inset: var(--sy-map-attribution, auto auto 0 0);
 }
