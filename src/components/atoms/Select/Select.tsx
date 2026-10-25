@@ -89,8 +89,14 @@ export function Select({
       >
         {/* The value ellipsises and the chevron holds its width. Without both, a long
             CMS-authored option label pushes the chevron out of a `justify-between`
-            trigger instead — 16px fields reach that point sooner than 13px ones did. */}
-        <RadixSelect.Value className="truncate" placeholder={placeholder} />
+            trigger instead — 16px fields reach that point sooner than 13px ones did.
+            The wrapper carries it because `RadixSelect.Value` destructures `className`
+            and `style` out and forwards neither; `min-w-0` because a flex item's
+            `min-width: auto` refuses to shrink below its text, so `truncate` never
+            engages without it. */}
+        <span className="min-w-0 truncate">
+          <RadixSelect.Value placeholder={placeholder} />
+        </span>
         <RadixSelect.Icon>
           <ChevronDown className="h-4 w-4 shrink-0 opacity-70" />
         </RadixSelect.Icon>
