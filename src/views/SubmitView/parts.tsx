@@ -185,7 +185,7 @@ function ListingExtras({ listing, draft }: { listing: Event; draft: ListingDraft
       {shown.map(([name, value]) => (
         <Fragment key={name}>
           <dt className="text-gray-11">{name}</dt>
-          <dd className="line-clamp-4 break-words whitespace-pre-line">{value.trim()}</dd>
+          <dd className="break-words whitespace-pre-line">{value.trim()}</dd>
         </Fragment>
       ))}
     </dl>
