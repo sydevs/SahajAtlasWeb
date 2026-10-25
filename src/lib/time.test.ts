@@ -24,6 +24,12 @@ describe('formatTimeRange', () => {
     expect(out).toBe('6:30 – 7:45 PM')
   })
 
+  it('keeps an overnight session to its two times, never two full dates', () => {
+    const out = norm(formatTimeRange(at('2026-10-29T21:30'), at('2026-10-30T00:30'), 'en-US'))
+
+    expect(out).toBe('9:30 PM – 12:30 AM')
+  })
+
   it('shows both day periods when the range crosses noon', () => {
     const out = norm(formatTimeRange(at('2026-07-04T11:30'), at('2026-07-04T13:00'), 'en-US'))
 

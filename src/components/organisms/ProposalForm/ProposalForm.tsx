@@ -285,7 +285,7 @@ function StepStage({
 
   return (
     <form noValidate className="contents" onSubmit={advance}>
-      <DrawerBody key={step} className={stickyFooter ? 'pb-24' : undefined}>
+      <DrawerBody key={step} className={stickyFooter ? 'scroll-pb-28 pb-24' : undefined}>
         <div ref={scope} className="px-6 pt-2 pb-8">
           {step === 'fix' && (
             <FixStep
@@ -459,7 +459,7 @@ function ReviewStage({
 
   return (
     <form noValidate className="contents" onSubmit={send}>
-      <DrawerBody className={stickyFooter ? 'pb-24' : undefined}>
+      <DrawerBody className={stickyFooter ? 'scroll-pb-28 pb-24' : undefined}>
         <div ref={scope} className="px-6 pt-2 pb-8">
           <CheckStep
             challengeBlocked={status === 'blocked'}

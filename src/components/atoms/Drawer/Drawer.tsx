@@ -22,8 +22,11 @@ export type DrawerDirection = 'left' | 'right' | 'top' | 'bottom'
 
 const drawer = tv({
   slots: {
+    // `overflow-clip`, not `hidden`: a hidden box can still be scrolled by the browser — focus
+    // moving to a field under a sticky footer scrolls it, sliding the whole sheet up and
+    // leaving a blank band at the bottom. A clipped box cannot be scrolled at all.
     content:
-      'pointer-events-auto fixed z-40 flex flex-col overflow-hidden bg-background text-foreground shadow-2xl outline-none',
+      'pointer-events-auto fixed z-40 flex flex-col overflow-clip bg-background text-foreground shadow-2xl outline-none',
     // Every content band is capped at `--sy-content-max` (default 512px) and
     // centred. So on a wide surface, such as a map-less embed or a large-mobile
     // bottom sheet, the views read as a centred column, instead of stretching

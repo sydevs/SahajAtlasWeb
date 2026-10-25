@@ -84,6 +84,12 @@ export function formatTimeRange(start: DateTime, end: DateTime | null, locale: s
 
   if (!end || +end === +start) return formatter.format(start.toJSDate())
 
+  // Across midnight, `formatRange` falls back to printing both full dates ("10/29/2026, 9:30 PM –
+  // 10/30/2026, 12:30 AM"). A session's line is about its hours, so the two times stand alone.
+  if (!start.setZone(timeZone).hasSame(end.setZone(timeZone), 'day')) {
+    return `${formatter.format(start.toJSDate())} – ${formatter.format(end.toJSDate())}`
+  }
+
   return formatter.formatRange(start.toJSDate(), end.toJSDate())
 }
 
