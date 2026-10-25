@@ -14,6 +14,7 @@ import { changedSections } from '@/components/organisms/ListingEditor'
 import { composeCalendarLine, useEventDisplay } from '@/hooks/use-event-display'
 import { useLocale } from '@/hooks/use-locale'
 import { draftTitle } from '@/lib/proposal'
+import { zoneLabel } from '@/components/organisms/ListingEditor'
 import { lexicalToText } from '@/lib/shape'
 import { CloseButton } from '@/views/shared'
 
@@ -154,15 +155,6 @@ export function ListingCard({
   )
 }
 
-/** A join link's host, enough to recognise it without printing a meeting's passcode. */
-const hostOf = (url: string): string => {
-  try {
-    return new URL(url.trim()).host
-  } catch {
-    return url.trim()
-  }
-}
-
 const CHANGE_LABELS: Record<string, TranslationKey> = {
   title: 'submit.more.title_label',
   more: 'submit.more.languages_label',
@@ -204,17 +196,22 @@ export function ChangeList({
       .map((line) => line.trim())
       .filter(Boolean)
       .join(' · ')
+  const day = (iso: string) =>
+    DateTime.fromISO(iso)
+      .setLocale(locale)
+      .toLocaleString({ day: 'numeric', month: 'short', year: 'numeric' })
   const until = (fields: ListingDraft) =>
     fields.repeats !== 'once' && fields.endDate
-      ? t('submit.review.until', {
-          date: DateTime.fromISO(fields.endDate)
-            .setLocale(locale)
-            .toLocaleString({ day: 'numeric', month: 'short', year: 'numeric' }),
-        })
+      ? t('submit.review.until', { date: day(fields.endDate) })
       : null
-  const joined = (...parts: (string | null | undefined)[]) =>
+  const first = (fields: ListingDraft) =>
+    fields.firstDate && fields.firstDate !== (fields === draft ? base : draft).firstDate
+      ? t('submit.review.first', { date: day(fields.firstDate) })
+      : null
+  const zoneMoved = draft.timeZone !== base.timeZone
+  const joined = (...parts: (string | false | null | undefined)[]) =>
     parts
-      .map((part) => part?.trim())
+      .map((part) => (part || '').trim())
       .filter(Boolean)
       .join(' · ')
   // Every leaf a section can change shows in its line, so a new room or link is never hidden
@@ -226,10 +223,23 @@ export function ChangeList({
       draft.languages.map(languageLabel).join(', '),
     ],
     where: [
-      joined(was.whereLine, base.room),
-      joined(now.whereLine, draft.room, draft.onlineUrl.trim() && hostOf(draft.onlineUrl)),
+      joined(was.whereLine, base.address?.postCode, base.room),
+      joined(now.whereLine, draft.address?.postCode, draft.room, draft.onlineUrl),
     ],
-    when: [joined(calendar(was), until(base)), joined(calendar(now), until(draft))],
+    when: [
+      joined(
+        calendar(was),
+        first(base),
+        until(base),
+        zoneMoved && zoneLabel(base.timeZone, locale),
+      ),
+      joined(
+        calendar(now),
+        first(draft),
+        until(draft),
+        zoneMoved && zoneLabel(draft.timeZone, locale),
+      ),
+    ],
     contact: [contact(base), contact(draft)],
     about: [lexicalToText(before.description), draft.description.trim()],
   }
@@ -255,7 +265,7 @@ export function ChangeList({
                   <dt className="text-gray-11">{t('submit.review.was')}</dt>
                   <dd className="line-clamp-2 text-gray-11">{from || '—'}</dd>
                   <dt className="font-medium">{t('submit.review.now')}</dt>
-                  <dd className="line-clamp-3 font-medium">
+                  <dd className="font-medium break-words">
                     {to || <span className="italic">{t('submit.chrome.removed')}</span>}
                   </dd>
                 </dl>

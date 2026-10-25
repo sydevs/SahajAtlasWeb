@@ -128,29 +128,31 @@ export function WhereFields({
   // A venue the geocoder cannot find — a village hall, a park — is typed in by hand instead, and
   // a coordinator places it. Opens on its own when the draft already holds such an address.
   const [manual, setManual] = useState(Boolean(draft.address && !draft.address.mapboxId))
-  const typed = (patch: Partial<Record<'street' | 'city' | 'postCode', string>>) => {
-    const next = {
-      street: draft.address?.street ?? '',
-      city: draft.address?.city ?? '',
-      postCode: draft.address?.postCode ?? '',
-      ...patch,
-    }
-    const filled = next.street.trim() || next.city.trim()
+  // What the visitor types, untrimmed, so a space between words survives the keystroke. The
+  // draft only takes the address once it names both the street and the town — enough for a
+  // coordinator to find it.
+  const [hand, setHand] = useState({
+    street: draft.address?.street ?? '',
+    city: draft.address?.city ?? '',
+    postCode: draft.address?.postCode ?? '',
+  })
+  const typed = (patch: Partial<typeof hand>) => {
+    const next = { ...hand, ...patch }
+    const [street, city, postCode] = [next.street.trim(), next.city.trim(), next.postCode.trim()]
 
+    setHand(next)
     onChange({
-      address: filled
-        ? {
-            label: [next.street, next.postCode, next.city]
-              .map((part) => part.trim())
-              .filter(Boolean)
-              .join(', '),
-            street: next.street.trim() || undefined,
-            city: next.city.trim() || undefined,
-            postCode: next.postCode.trim() || undefined,
-            country: country?.toUpperCase(),
-            location: {},
-          }
-        : null,
+      address:
+        street && city
+          ? {
+              label: [street, postCode, city].filter(Boolean).join(', '),
+              street,
+              city,
+              postCode: postCode || undefined,
+              country: country?.toUpperCase(),
+              location: {},
+            }
+          : null,
     })
   }
 
@@ -173,20 +175,21 @@ export function WhereFields({
               <ValidatedInput
                 required
                 autoComplete="address-line1"
-                error={errors.address && t('submit.errors.address_required')}
+                error={errors.address && t('submit.errors.manual_address')}
                 id="submit-manual-street"
                 label={t('submit.where.manual_street')}
                 maxLength={CONTACT_MAX}
-                value={draft.address?.street ?? ''}
+                value={hand.street}
                 onChange={(event) => typed({ street: event.target.value })}
               />
               <div className="grid grid-cols-[1fr_7rem] gap-3">
                 <ValidatedInput
+                  required
                   autoComplete="address-level2"
                   id="submit-manual-city"
                   label={t('submit.where.manual_city')}
                   maxLength={CONTACT_MAX}
-                  value={draft.address?.city ?? ''}
+                  value={hand.city}
                   onChange={(event) => typed({ city: event.target.value })}
                 />
                 <ValidatedInput
@@ -194,7 +197,7 @@ export function WhereFields({
                   id="submit-manual-postcode"
                   label={t('submit.where.manual_postcode')}
                   maxLength={20}
-                  value={draft.address?.postCode ?? ''}
+                  value={hand.postCode}
                   onChange={(event) => typed({ postCode: event.target.value })}
                 />
               </div>
@@ -204,10 +207,8 @@ export function WhereFields({
                 color="primary"
                 size="sm"
                 variant="ghost"
-                onClick={() => {
-                  setManual(false)
-                  onChange({ address: null })
-                }}
+                // What was typed stays in the search field; any edit there drops it.
+                onClick={() => setManual(false)}
               >
                 {t('submit.where.search_instead')}
               </Button>
@@ -322,8 +323,11 @@ export function WhenFields({
   draft,
   errors,
   onChange,
+  onZone,
   summary,
 }: FieldsProps & {
+  /** The visitor chose the zone themselves, so a later place pick must not replace it. */
+  onZone: () => void
   /** The schedule as the listing will read, under the fields. */
   summary: ReactNode
 }) {
@@ -471,6 +475,7 @@ export function WhenFields({
             value={draft.timeZone}
             onValueChange={(timeZone) => {
               onChange({ timeZone })
+              onZone()
               setZoneOpen(false)
             }}
           />

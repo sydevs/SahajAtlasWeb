@@ -283,7 +283,7 @@
       "title_add": "Add a class",
       "title_correct": "Suggest a correction",
       "intro_add": "Fill in each part. This is how your class will look on the map. We’ll ask for your email at the end — it stays private.",
-      "intro_correct": "Tap anything that’s wrong to fix it.",
+      "intro_correct": "Tap anything that’s wrong to fix it. We’ll ask for your email at the end — it stays private.",
       "title_placeholder": "Name your class",
       "title_default": "Suggested name. Tap to change it.",
       "required": "Required",
@@ -298,9 +298,9 @@
       "no_changes": "No changes yet",
       "changes_one": "1 change",
       "changes_other": "%{count} changes",
-      "saved": "Kept as you type",
       "removed": "Removed",
-      "languages_hint": "Class language — tap to change"
+      "languages_hint": "Class language — tap to change",
+      "finish_part": "Tap Done when this part looks right"
     },
     "contact": {
       "email_label": "Email",
@@ -330,7 +330,8 @@
       "start_time": "Choose a start time.",
       "urls_not_allowed": "Links aren’t allowed here. Please remove them.",
       "weekday": "Choose the day it meets.",
-      "end_date": "The last date is before the first."
+      "end_date": "The last date is before the first.",
+      "manual_address": "Enter the street and the town."
     },
     "more": {
       "languages_label": "Languages",
@@ -357,7 +358,8 @@
       "label_about": "Description",
       "was": "Was",
       "now": "Now",
-      "until": "Last class %{date}"
+      "until": "Last class %{date}",
+      "first": "From %{date}"
     },
     "when": {
       "end_date": "Last date (optional)",

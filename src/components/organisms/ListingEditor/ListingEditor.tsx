@@ -102,11 +102,15 @@ export function ListingEditor({
 
   const undo = (key: SectionKey) => base && onChange(revertFields(base, SECTION_FIELDS[key]))
 
+  // A zone the visitor chose — or a published class's own — outranks any guess from a place.
+  const [zonePinned, setZonePinned] = useState(false)
   const pick = (key: 'address' | 'city') => (feature: GeocodingFeature) => {
     const place = featureToPlace(feature)
+    const guess = timeZoneFor?.(place)
 
+    if (zonePinned || (base && !guess)) return onChange({ [key]: place })
     // Without a nearby class to lend one, the visitor's own zone — never one inferred earlier.
-    onChange({ [key]: place, timeZone: timeZoneFor?.(place) ?? viewerTimeZone() })
+    onChange({ [key]: place, timeZone: guess ?? viewerTimeZone() })
   }
   // The search writes a picked label into its field without reporting it as an edit, so any
   // edit it does report means the text no longer names the pick: drop it, and ask again.
@@ -292,6 +296,7 @@ export function ListingEditor({
             </p>
           }
           onChange={onChange}
+          onZone={() => setZonePinned(true)}
         />
       </Section>
 

@@ -382,10 +382,12 @@ function Flow({ target }: { target: FlowTarget }) {
   const needs = (['where', 'when'] as const).filter((key) => blocking.includes(key))
   const editing = session.step !== 'review'
   const status = editing ? (
-    t('submit.chrome.saved')
+    t('submit.chrome.finish_part')
   ) : base ? (
     changes ? (
-      t('submit.chrome.changes', { count: changes })
+      <span className="font-medium text-foreground">
+        {t('submit.chrome.changes', { count: changes })}
+      </span>
     ) : (
       t('submit.chrome.no_changes')
     )

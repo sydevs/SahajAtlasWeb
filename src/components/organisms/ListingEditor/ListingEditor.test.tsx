@@ -202,7 +202,12 @@ describe('ListingEditor', () => {
     const root = await mount({ initial: emptyDraft('Europe/London'), open: 'where' })
 
     await press('submit.where.manual_toggle')
+    // Typed a word at a time, as a person does: the space after "Old" must survive.
+    await type('#submit-manual-street', 'Old ')
+    expect(container.querySelector<HTMLInputElement>('#submit-manual-street')?.value).toBe('Old ')
     await type('#submit-manual-street', 'Old School Hall')
+    // A street alone is not enough for a coordinator to find it.
+    expect(latest.address).toBeNull()
     await type('#submit-manual-city', 'Ditchling')
 
     expect(latest.address).toMatchObject({ street: 'Old School Hall', city: 'Ditchling' })
