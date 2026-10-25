@@ -12,7 +12,7 @@ import { readSourceWithoutComments, sourceFiles } from '@/test-support/source-tr
  * two a ticket happened to name, and a field added later is how it stops holding.
  */
 
-const ZOOM_FLOOR = /text-\[16px\]/
+const ZOOM_FLOOR = /\bfield-size\b/
 
 const ON_THE_RECIPE = /fieldChrome\(/
 
@@ -29,12 +29,12 @@ const BARE_BREAKPOINT = /\bmd:text-sm\b/
 const FIELD_COMPONENTS = ['Input', 'Textarea', 'Select', 'Combobox']
 
 /**
- * A caller's `text-*` silently removes the floor and keeps the conditional half.
+ * A caller's `text-*` silently outranks the floor.
  *
- * Measured against this repo's `tailwind-variants` and `tailwind-merge`:
- * `fieldChrome({ className: 'text-xs' })` drops `text-[16px]` — same merge group — and keeps
- * `md:pointer-fine:text-sm`, which is a different one. The field then computes 12px on a phone
- * and 13px on a desktop, the worst of both.
+ * Measured: tailwind-merge does not know `field-size` is a font size, so `fieldChrome({
+ * className: 'text-xs' })` keeps both — and Tailwind emits every registered `@utility` ahead of
+ * the core `text-*` scale, so at equal specificity the caller's class wins at every width and
+ * the field computes 12px on a phone.
  */
 const CALLER_TEXT_SIZE = /\btext-(?:xs|sm|base|md|lg|xl|2xl|\[)/
 
@@ -131,9 +131,8 @@ describe('every field clears the 16px iOS zoom floor', () => {
       ({ className }) => !ZOOM_FLOOR.test(className) && !ON_THE_RECIPE.test(className),
     )
 
-    // Put the field on `fieldChrome` (`atoms/Select`), or give it
-    // `text-[16px] md:pointer-fine:text-sm`. Adding a `type` to `NON_TEXT_TYPES` instead is only
-    // right for a control nobody types into.
+    // Put the field on `fieldChrome` (`atoms/Select`), or give it `field-size`. Adding a `type`
+    // to `NON_TEXT_TYPES` instead is only right for a control nobody types into.
     expect(under.map(label)).toEqual([])
   })
 
@@ -157,25 +156,25 @@ describe('every field clears the 16px iOS zoom floor', () => {
 
 // Comment-stripped, because both files below discuss the very classes being matched and
 // documenting a rule must not satisfy it (`source-tree.ts`).
-describe('the two places the floor is reached from outside a field', () => {
-  it('has fieldChrome at 16px, and the 13px scale only when wide and mouse-driven', () => {
-    const recipe = readSourceWithoutComments('components/atoms/Select/Select.tsx')
+describe('the floor itself, and the one field reached from outside', () => {
+  it('floors `field-size` at 16px, and returns the 13px scale only when wide and mouse-driven', () => {
+    const sheet = readSourceWithoutComments('styles/globals.css')
+    const [utility = ''] = sheet.match(/@utility field-size \{[^}]*\}/) ?? []
 
-    expect(recipe).toMatch(ZOOM_FLOOR)
+    expect(utility).toContain('text-[16px]')
     // Without this every field grows by 3px on a desktop too, which is a design question.
-    expect(recipe).toContain('md:pointer-fine:text-sm')
+    expect(utility).toContain('md:pointer-fine:text-sm')
   })
 
   it("overrides the geocoder's own input, which our classes cannot otherwise reach", () => {
     // `@mapbox/search-js-web` gives its input `font: inherit` from a container it sizes from
     // `themes.ts`'s `unit`, which also drives the suggestion list and its `padding: 1em` — hence
-    // a font-size-only override, on the wrapper, rather than a bigger `unit`. Two arms because
-    // CSS has no `or`. No `!`: measured in Chromium, `.wrapper input` (0,1,1) already beats the
-    // library's single-class rule, whatever hash its class carries.
+    // a font-size-only override, on the wrapper, rather than a bigger `unit`. No `!`: measured in
+    // Chromium, `.wrapper input` (0,1,1) already beats the library's single-class rule, whatever
+    // hash its class carries.
     const search = readSourceWithoutComments('components/organisms/Mapbox/MapSearch.tsx')
 
-    expect(search).toContain('max-md:[&_input]:text-[16px]')
-    expect(search).toContain('pointer-coarse:[&_input]:text-[16px]')
+    expect(search).toContain('[&_input]:field-size')
   })
 })
 

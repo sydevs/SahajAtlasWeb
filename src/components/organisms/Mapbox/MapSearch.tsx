@@ -130,20 +130,16 @@ export function MapSearch({ onSelect, syncToUrl = true, label }: MapSearchProps)
     // generated `mbx…--Input` class carries a per-build hash, so this
     // targets the element, not the class.)
     //
-    // The geocoder's own input takes the same 16px floor `fieldChrome` carries (#322),
-    // reached from out here because that input inherits its size from a container
+    // The geocoder's own input takes the same `field-size` floor `fieldChrome` carries
+    // (#322), reached from out here because that input inherits its size from a container
     // `themes.ts` sizes with `unit` — the control's whole spacing scale, which also
-    // drives the suggestion list and its `padding: 1em`. Two arms because CSS has no
-    // `or`: narrow, and any coarse pointer whatever its width.
-    <div
-      ref={field}
-      className="max-md:[&_input]:text-[16px] pointer-coarse:[&_input]:text-[16px] [&_input:placeholder-shown]:!pe-3"
-    >
+    // drives the suggestion list and its `padding: 1em`.
+    <div ref={field} className="[&_input]:field-size [&_input:placeholder-shown]:!pe-3">
       <GeocoderBoundary
         fallback={
           <input
             aria-label={fieldLabel}
-            className="w-full rounded-lg border border-divider bg-gray-2 px-3 py-2 text-[16px] text-foreground placeholder:text-gray-11 md:pointer-fine:text-sm"
+            className="w-full rounded-lg border border-divider bg-gray-2 px-3 py-2 field-size text-foreground placeholder:text-gray-11"
             placeholder={fieldLabel}
             type="search"
             value={searchQuery}

@@ -13,14 +13,12 @@ import { frameCollision, overlayContainer } from '@/lib/overlay'
 // border ternary. `highlight` tints the field primary, to flag an active
 // filter (see FilterView).
 //
-// **16px is a floor, not a type choice (#322).** iOS Safari zooms the whole page in when a field
-// under 16px takes focus, and embedded there is no way back out — the host's page is left scaled.
-// The 13px scale is therefore conditioned on a wide screen **and** a fine pointer: focus zoom is
-// the engine's behaviour, not the viewport's, so an iPhone in landscape is 932px wide and still
-// zooms. A caller must not pass a `text-*` through `className` — tailwind-merge drops the floor
-// and keeps the override (`src/styles/mobile-zoom.test.ts` refuses it).
+// **`field-size` is a floor, not a type choice (#322).** It is registered in `globals.css`,
+// which owns the argument for the sizes it picks. A caller must not pass a `text-*` through
+// `className` — a core `text-*` emits after `field-size` and silently outranks it
+// (`src/styles/mobile-zoom.test.ts` refuses it).
 export const fieldChrome = tv({
-  base: 'w-full rounded border bg-background px-3 text-[16px] text-foreground transition-colors outline-none focus-visible:ring-2 focus-visible:ring-focus disabled:opacity-disabled md:pointer-fine:text-sm',
+  base: 'w-full rounded border bg-background px-3 field-size text-foreground transition-colors outline-none focus-visible:ring-2 focus-visible:ring-focus disabled:opacity-disabled',
   variants: {
     isInvalid: { true: 'border-danger-7', false: 'border-gray-7' },
     /** A trigger lays its value out against the chevron. A plain input does not. */
