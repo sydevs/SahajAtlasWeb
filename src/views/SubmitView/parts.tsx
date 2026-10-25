@@ -51,7 +51,7 @@ export function TitleField({
         <span className="sr-only">{t('submit.more.title_label')}</span>
         <textarea
           ref={grow}
-          className="-mx-1.5 block w-[calc(100%+0.75rem)] resize-none overflow-hidden rounded-md border border-transparent bg-transparent py-0.5 ps-1.5 pe-8 text-lg leading-6 font-semibold tracking-wide text-foreground outline-none placeholder:font-semibold placeholder:text-gray-11 hover:border-gray-6 focus:border-primary-7 focus:bg-background focus-visible:ring-2 focus-visible:ring-focus"
+          className="-mx-1.5 block w-[calc(100%+12px)] resize-none overflow-hidden rounded-md border border-transparent bg-transparent py-0.5 ps-1.5 pe-8 text-lg leading-6 font-semibold tracking-wide text-foreground outline-none placeholder:font-semibold placeholder:text-gray-11 hover:border-gray-6 focus:border-primary-7 focus:bg-background focus-visible:ring-2 focus-visible:ring-focus"
           maxLength={100}
           placeholder={fallback || t('submit.chrome.title_placeholder')}
           rows={1}

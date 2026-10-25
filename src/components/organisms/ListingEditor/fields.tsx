@@ -222,7 +222,7 @@ export function WhereFields({
                 value={hand.street}
                 onChange={(event) => typed({ street: event.target.value })}
               />
-              <div className="grid grid-cols-[1fr_7rem] gap-3">
+              <div className="grid grid-cols-[1fr_112px] gap-3">
                 <ValidatedInput
                   required
                   autoComplete="address-level2"
