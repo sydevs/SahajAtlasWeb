@@ -2,8 +2,9 @@ import type { FeatureCollection, Geometry } from 'geojson'
 import type { Geojson } from '@/types'
 import type { DisplayableEvent } from '@/hooks/use-event-display'
 
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { type CSSProperties, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import ReactMapGL, {
+  AttributionControl,
   GeoJSONSource,
   GeolocateControl,
   Layer,
@@ -39,6 +40,8 @@ import { hasActiveFilters, matchesFilters, safePath, todayISO } from '@/lib/shap
 import { useLocale } from '@/hooks/use-locale'
 import { useTheme } from '@/hooks/use-theme'
 import { useMapbox } from '@/hooks/use-mapbox'
+import { useIsWide } from '@/config/responsive'
+import { frameElement } from '@/lib/overlay'
 
 const MAP_STYLES = {
   light: 'mapbox://styles/sydevadmin/ck7g6nag70rn11io09f45odkq',
@@ -93,6 +96,28 @@ const toMapSource = (features: Geojson['features']): FeatureCollection<Geometry 
     properties: { id: feature.properties.id, webPath: feature.properties.webPath ?? null },
   })),
 })
+
+/**
+ * Where Mapbox's wordmark and its attribution sit, as an `inset` for mapbox's own corner
+ * container. `styles/globals.css` reads it as `--sy-map-attribution`.
+ *
+ * Mapbox's terms require both to be visible, and the corner it puts them in is the corner this
+ * app puts the drawer in: the side panel covers the bottom left, and the bottom sheet covers the
+ * whole bottom edge at every snap point.
+ *
+ * ⚠ **The corner cannot be re-chosen at runtime, which is why CSS moves the container instead.**
+ * `logoPosition` is read once, when the map is constructed — mapbox exposes no setter and
+ * react-map-gl leaves it out of its reconciliation whitelist — and `LogoControl` is not an export,
+ * so the logo cannot be removed and re-added either. `useControl` reads a control's `position`
+ * once for the same reason.
+ *
+ * `sheet` clears the settings cog, which `DrawerStack` fixes at `top-3` with an `h-8` trigger.
+ * `attribution.test.ts` derives that sum rather than trusting this number.
+ */
+const ATTRIBUTION_INSET = {
+  panel: 'auto 0 0 auto',
+  sheet: '44px auto auto 0',
+}
 
 const DEBUG_BOUNDARY = false
 const DEBUG_PADDING = false
@@ -219,10 +244,17 @@ export function Mapbox({ cooperative = false }: { cooperative?: boolean } = {}) 
   // subscription on the app's hottest render path.
   const { t, locale, languageCode } = useLocale()
   const { theme } = useTheme()
+  // Which corner `ATTRIBUTION_INSET` picks, measured the way the drawer that would otherwise
+  // cover it is. This cannot read `WidgetWidthContext` — the map is `DrawerStack`'s sibling,
+  // not its descendant — but map mode's measured element is the frame in both components, so
+  // the two cannot disagree about where the panel is.
+  const isWide = useIsWide(frameElement())
 
   // Mapbox's own control strings are otherwise English on every embed. The
-  // GeolocateControl below is the only control this app renders, and its
-  // whole accessible name comes from these two strings (issue #102).
+  // GeolocateControl's whole accessible name comes from these two strings
+  // (issue #102). The wordmark's and the attribution's names are Mapbox keys
+  // too, and both are still English: the copy for them is CMS-owned, so
+  // overriding them waits on keys SahajCloud has to ship first.
   //
   // Two things to know before extending this. It is CONSTRUCTION-ONLY.
   // `locale` is absent from react-map-gl's reconciliation whitelist
@@ -277,25 +309,30 @@ export function Mapbox({ cooperative = false }: { cooperative?: boolean } = {}) 
   const settled = useCameraSettled((s) => s.settled)
   const reveal = useCameraSettled((s) => s.markSettled)
   const canvasStyle = useMemo(
-    () => ({
-      width: '100%',
-      height: '100%',
-      // ⚠ **The canvas stays VISIBLE while the camera is still arriving.**
-      // `MapCurtain` blurs it, rather than hiding it. An earlier version also
-      // set `opacity: 0` here, alongside the frosting, and the two effects
-      // canceled each other. `backdrop-filter` filters what is BEHIND the
-      // element, so with a transparent canvas there was nothing to blur, and
-      // the tint painted onto the page's own white. The result was a blank
-      // screen where a soft map should be — the whole point of a frost is
-      // that you can see something is there.
-      //
-      // This is also not interactive. A map nobody can read clearly should
-      // not take clicks. The curtain above it is `pointer-events-none`, so
-      // without this setting, a click would land on pins behind the blur
-      // and open a class the visitor never chose.
-      pointerEvents: settled ? undefined : ('none' as const),
-    }),
-    [settled],
+    () =>
+      ({
+        width: '100%',
+        height: '100%',
+        // ⚠ **The canvas stays VISIBLE while the camera is still arriving.**
+        // `MapCurtain` blurs it, rather than hiding it. An earlier version also
+        // set `opacity: 0` here, alongside the frosting, and the two effects
+        // canceled each other. `backdrop-filter` filters what is BEHIND the
+        // element, so with a transparent canvas there was nothing to blur, and
+        // the tint painted onto the page's own white. The result was a blank
+        // screen where a soft map should be — the whole point of a frost is
+        // that you can see something is there.
+        //
+        // This is also not interactive. A map nobody can read clearly should
+        // not take clicks. The curtain above it is `pointer-events-none`, so
+        // without this setting, a click would land on pins behind the blur
+        // and open a class the visitor never chose.
+        pointerEvents: settled ? undefined : ('none' as const),
+        // This inherits down to mapbox's own control container, which `styles/globals.css`
+        // places from it. `style` is the one prop react-map-gl passes to the element the map
+        // is built in.
+        '--sy-map-attribution': ATTRIBUTION_INSET[isWide ? 'panel' : 'sheet'],
+      }) as CSSProperties,
+    [settled, isWide],
   )
 
   // This is armed on style load and cleared on unmount, so a map torn down
@@ -418,6 +455,9 @@ export function Mapbox({ cooperative = false }: { cooperative?: boolean } = {}) 
   return (
     <ReactMapGL
       reuseMaps
+      // Mapbox's own attribution is added at a position nothing can change, so it is declined
+      // here and rendered as a control below instead — one attribution, in the corner
+      // `ATTRIBUTION_INSET` moves the wordmark to.
       attributionControl={false}
       cooperativeGestures={cooperative}
       // Symbols — pins, clusters, the selection and hover highlights —
@@ -522,6 +562,11 @@ export function Mapbox({ cooperative = false }: { cooperative?: boolean } = {}) 
           source code says otherwise. This was verified against the running
           control, rather than trusting either claim. */}
       <GeolocateControl followUserLocation={false} onGeolocate={geolocateToSearch} />
+      {/* `bottom-left` is the container mapbox already put the wordmark in, so the two share
+          one box and stack — and `ATTRIBUTION_INSET` then places both at once. `compact` keeps
+          it a single round button until a visitor opens it, rather than a strip of text across
+          an embed's map. */}
+      <AttributionControl compact position="bottom-left" />
     </ReactMapGL>
   )
 }
