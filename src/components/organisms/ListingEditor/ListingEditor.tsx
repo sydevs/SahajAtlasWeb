@@ -8,7 +8,14 @@ import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { AlignLeft, CalendarDays, Info, MapPin, Monitor, Pencil, UserRound } from 'lucide-react'
 
-import { AboutFields, ContactFields, LanguageFields, WhenFields, WhereFields } from './fields'
+import {
+  AboutFields,
+  ContactFields,
+  LanguageFields,
+  WhenFields,
+  WhereFields,
+  handAddressOf,
+} from './fields'
 import { Section } from './Section'
 import { SECTION_FIELDS, sectionErrors } from './sections'
 
@@ -49,6 +56,9 @@ export type ListingEditorProps = {
   onStopped?: () => void
   /** Whether a live map beside the sheet already shows the pin — then no still tile is needed. */
   mapInView?: boolean
+  /** The visitor chose the zone, so a place pick keeps it. Held by the view across remounts. */
+  zonePinned?: boolean
+  onPinZone?: () => void
 }
 
 /**
@@ -72,6 +82,8 @@ export function ListingEditor({
   placeNotice,
   onStopped,
   mapInView = false,
+  zonePinned = false,
+  onPinZone,
 }: ListingEditorProps) {
   const { t } = useTranslation()
   const { languageLabel } = useLocale()
@@ -94,7 +106,12 @@ export function ListingEditor({
   const done = (key: SectionKey) => {
     // The zone moves with a pick on its own, so it never counts as the visitor's input.
     const fields = SECTION_FIELDS[key].filter((field) => field !== 'timeZone')
-    const touched = fieldsChanged(draft, baseline, fields)
+    // A half-typed hand address has not reached the draft yet, but it is the visitor's input.
+    const halfTyped =
+      key === 'where' && manual && !draft.address && Boolean(hand.street.trim() || hand.city.trim())
+    const touched = halfTyped || fieldsChanged(draft, baseline, fields)
+
+    if (halfTyped) return onAttempt(key)
 
     if (touched && Object.keys(sectionErrors(key, draft, base)).length > 0) return onAttempt(key)
     onOpen('review')
@@ -102,13 +119,14 @@ export function ListingEditor({
 
   const undo = (key: SectionKey) => base && onChange(revertFields(base, SECTION_FIELDS[key]))
 
+  const [manual, setManual] = useState(Boolean(draft.address && !draft.address.mapboxId))
+  const [hand, setHand] = useState(() => handAddressOf(draft))
   // A zone the visitor chose — or a published class's own — outranks any guess from a place.
-  const [zonePinned, setZonePinned] = useState(false)
   const pick = (key: 'address' | 'city') => (feature: GeocodingFeature) => {
     const place = featureToPlace(feature)
     const guess = timeZoneFor?.(place)
 
-    if (zonePinned || (base && !guess)) return onChange({ [key]: place })
+    if (zonePinned || base) return onChange({ [key]: place })
     // Without a nearby class to lend one, the visitor's own zone — never one inferred earlier.
     onChange({ [key]: place, timeZone: guess ?? viewerTimeZone() })
   }
@@ -260,11 +278,15 @@ export function ListingEditor({
           country={country}
           draft={draft}
           errors={errorsOf('where')}
+          hand={hand}
           linkKept={base?.eventType === 'online'}
+          manual={manual}
           notice={placeNotice}
           proximity={proximity}
           onChange={onChange}
           onEdit={edit}
+          onHand={setHand}
+          onManual={setManual}
           onPick={pick}
         />
       </Section>
@@ -296,7 +318,7 @@ export function ListingEditor({
             </p>
           }
           onChange={onChange}
-          onZone={() => setZonePinned(true)}
+          onZone={() => onPinZone?.()}
         />
       </Section>
 

@@ -299,6 +299,8 @@ type ListingDraftState = {
   reviewed: boolean
   /** Editing the listing, or on the send step that collects the visitor's own email. */
   phase: 'edit' | 'send'
+  /** The visitor chose the time zone, so picking a place no longer replaces it with a guess. */
+  zonePinned: boolean
   /** Set once a submission resolves. Nothing reads the row back, so this is the whole receipt. */
   sent: boolean
 }
@@ -309,6 +311,7 @@ type ListingDraftAction = {
   setSender: (patch: Partial<ListingSender>) => void
   setStep: (step: ListingStep) => void
   setPhase: (phase: 'edit' | 'send') => void
+  pinZone: () => void
   markSent: () => void
 }
 
@@ -321,6 +324,7 @@ export const useListingDraft = create<ListingDraftState & ListingDraftAction>((s
   step: 'where',
   reviewed: false,
   phase: 'edit',
+  zonePinned: false,
   sent: false,
   start: ({ key, entry }, { draft, base, step }) =>
     set(() => ({
@@ -332,11 +336,13 @@ export const useListingDraft = create<ListingDraftState & ListingDraftAction>((s
       step,
       reviewed: step === 'review',
       phase: 'edit',
+      zonePinned: false,
       sent: false,
     })),
   setSender: (patch) => set((state) => ({ sender: { ...state.sender, ...patch } })),
   update: (patch) => set((state) => (state.draft ? { draft: { ...state.draft, ...patch } } : {})),
   setStep: (step) => set((state) => ({ step, reviewed: state.reviewed || step === 'review' })),
   setPhase: (phase) => set(() => ({ phase })),
+  pinZone: () => set(() => ({ zonePinned: true })),
   markSent: () => set(() => ({ sent: true })),
 }))

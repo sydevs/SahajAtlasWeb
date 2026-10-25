@@ -403,7 +403,8 @@
       "manual_city": "Town or city",
       "manual_postcode": "Postcode",
       "manual_note": "A coordinator will place it on the map.",
-      "search_instead": "Search for it instead"
+      "search_instead": "Search for it instead",
+      "manual_country": "Country"
     },
     "stopped": {
       "action": "It’s no longer running",

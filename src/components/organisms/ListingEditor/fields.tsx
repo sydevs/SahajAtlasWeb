@@ -104,6 +104,37 @@ function Choice({
   )
 }
 
+/** A venue typed by hand, as typed — untrimmed, so a space survives the keystroke. */
+export type HandAddress = { street: string; city: string; postCode: string; country: string }
+
+export const handAddressOf = (draft: ListingDraft): HandAddress => ({
+  street: draft.address?.street ?? '',
+  city: draft.address?.city ?? '',
+  postCode: draft.address?.postCode ?? '',
+  country: draft.address?.country ?? '',
+})
+
+/** Not countries, though `Intl.DisplayNames` names them. */
+const NOT_COUNTRIES = new Set(['EU', 'EZ', 'UN', 'QO', 'ZZ', 'XA', 'XB', 'AA', 'XK'])
+
+/** Every ISO 3166-1 country the browser can name, in the visitor's language, A–Z. */
+const countryOptions = (locale: string): ComboboxOption[] => {
+  const names = new Intl.DisplayNames([locale], { type: 'region' })
+  const options: ComboboxOption[] = []
+
+  for (let a = 65; a <= 90; a += 1) {
+    for (let b = 65; b <= 90; b += 1) {
+      const code = String.fromCharCode(a, b)
+      const name = names.of(code)
+
+      if (name && name !== code && !NOT_COUNTRIES.has(code))
+        options.push({ value: code, label: name })
+    }
+  }
+
+  return options.sort((x, y) => x.label.localeCompare(y.label, locale))
+}
+
 export function WhereFields({
   draft,
   errors,
@@ -114,6 +145,10 @@ export function WhereFields({
   country,
   linkKept,
   notice,
+  manual,
+  onManual,
+  hand,
+  onHand,
 }: FieldsProps & {
   onPick: (key: 'address' | 'city') => (feature: GeocodingFeature) => void
   onEdit: (key: 'address' | 'city') => () => void
@@ -123,33 +158,38 @@ export function WhereFields({
   linkKept?: boolean
   /** Under the address once one is picked — the "is it one of these?" check. */
   notice?: ReactNode
+  /**
+   * Typing the venue by hand instead — a village hall or park the search cannot find — for a
+   * coordinator to place. Owned by the editor, so a half-typed address survives this closing.
+   */
+  manual: boolean
+  onManual: (manual: boolean) => void
+  hand: HandAddress
+  onHand: (hand: HandAddress) => void
 }) {
   const { t } = useTranslation()
-  // A venue the geocoder cannot find — a village hall, a park — is typed in by hand instead, and
-  // a coordinator places it. Opens on its own when the draft already holds such an address.
-  const [manual, setManual] = useState(Boolean(draft.address && !draft.address.mapboxId))
-  // What the visitor types, untrimmed, so a space between words survives the keystroke. The
-  // draft only takes the address once it names both the street and the town — enough for a
-  // coordinator to find it.
-  const [hand, setHand] = useState({
-    street: draft.address?.street ?? '',
-    city: draft.address?.city ?? '',
-    postCode: draft.address?.postCode ?? '',
-  })
-  const typed = (patch: Partial<typeof hand>) => {
+  const { locale } = useLocale()
+  const countries = useMemo(
+    () => (manual && !country ? countryOptions(locale) : []),
+    [manual, country, locale],
+  )
+  // The draft takes the address only once it names the street, the town and the country —
+  // enough for a coordinator to find it.
+  const typed = (patch: Partial<HandAddress>) => {
     const next = { ...hand, ...patch }
     const [street, city, postCode] = [next.street.trim(), next.city.trim(), next.postCode.trim()]
+    const nation = country?.toUpperCase() ?? next.country
 
-    setHand(next)
+    onHand(next)
     onChange({
       address:
-        street && city
+        street && city && nation
           ? {
               label: [street, postCode, city].filter(Boolean).join(', '),
               street,
               city,
               postCode: postCode || undefined,
-              country: country?.toUpperCase(),
+              country: nation,
               location: {},
             }
           : null,
@@ -201,6 +241,18 @@ export function WhereFields({
                   onChange={(event) => typed({ postCode: event.target.value })}
                 />
               </div>
+              {!country && (
+                <FormField required label={t('submit.where.manual_country')}>
+                  <Combobox
+                    aria-label={t('submit.where.manual_country')}
+                    className={TOUCH}
+                    options={countries}
+                    searchPlaceholder={t('submit.where.manual_country')}
+                    value={hand.country}
+                    onValueChange={(code) => typed({ country: code })}
+                  />
+                </FormField>
+              )}
               <p className="-mt-2 text-xs text-gray-11">{t('submit.where.manual_note')}</p>
               <Button
                 className="-ms-2 self-start"
@@ -208,7 +260,7 @@ export function WhereFields({
                 size="sm"
                 variant="ghost"
                 // What was typed stays in the search field; any edit there drops it.
-                onClick={() => setManual(false)}
+                onClick={() => onManual(false)}
               >
                 {t('submit.where.search_instead')}
               </Button>
@@ -237,7 +289,7 @@ export function WhereFields({
                   color="primary"
                   size="sm"
                   variant="ghost"
-                  onClick={() => setManual(true)}
+                  onClick={() => onManual(true)}
                 >
                   {t('submit.where.manual_toggle')}
                 </Button>

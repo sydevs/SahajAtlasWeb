@@ -263,7 +263,7 @@ export function ChangeList({
                 </span>
                 <dl className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-0.5 text-sm leading-snug">
                   <dt className="text-gray-11">{t('submit.review.was')}</dt>
-                  <dd className="line-clamp-2 text-gray-11">{from || '—'}</dd>
+                  <dd className="break-words text-gray-11">{from || '—'}</dd>
                   <dt className="font-medium">{t('submit.review.now')}</dt>
                   <dd className="font-medium break-words">
                     {to || <span className="italic">{t('submit.chrome.removed')}</span>}

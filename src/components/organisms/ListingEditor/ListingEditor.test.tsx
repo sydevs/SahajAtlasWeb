@@ -62,6 +62,7 @@ function Harness({
     <ListingEditor
       attempted={attempted as never}
       base={base}
+      country="gb"
       draft={draft}
       listing={listing}
       open={open}
@@ -210,7 +211,11 @@ describe('ListingEditor', () => {
     expect(latest.address).toBeNull()
     await type('#submit-manual-city', 'Ditchling')
 
-    expect(latest.address).toMatchObject({ street: 'Old School Hall', city: 'Ditchling' })
+    expect(latest.address).toMatchObject({
+      street: 'Old School Hall',
+      city: 'Ditchling',
+      country: 'GB',
+    })
     expect(latest.address?.mapboxId).toBeUndefined()
 
     await act(async () => root.unmount())
@@ -244,6 +249,21 @@ describe('ListingEditor', () => {
     expect(container.textContent).toContain('submit.chrome.removed')
     await press('submit.chrome.undo')
     expect(latest.contactName).toBe('Elizabeth')
+
+    await act(async () => root.unmount())
+  })
+
+  it('holds a half-typed hand address open on Done rather than losing it', async () => {
+    const root = await mount({ initial: emptyDraft('Europe/London'), open: 'where' })
+
+    await press('submit.where.manual_toggle')
+    await type('#submit-manual-street', 'Old School Hall')
+    await press('submit.chrome.done')
+
+    expect(container.textContent).toContain('submit.errors.manual_address')
+    expect(container.querySelector<HTMLInputElement>('#submit-manual-street')?.value).toBe(
+      'Old School Hall',
+    )
 
     await act(async () => root.unmount())
   })

@@ -150,6 +150,7 @@ function useListingSession(target: FlowTarget) {
       base: state.base,
       step: state.step,
       phase: state.phase,
+      zonePinned: state.zonePinned,
       sent: state.sent,
     })),
   )
@@ -435,9 +436,11 @@ function Flow({ target }: { target: FlowTarget }) {
             placeNotice={<NearbyClassNotice classes={nearby} />}
             proximity={searchProximity(target.region?.center)}
             timeZoneFor={timeZoneFor}
+            zonePinned={session.zonePinned}
             onAttempt={(key) => setAttempted((current) => [...new Set([...current, key])])}
             onChange={update}
             onOpen={setStep}
+            onPinZone={useListingDraft.getState().pinZone}
             onStopped={
               base
                 ? () => {
