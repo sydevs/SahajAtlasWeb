@@ -166,12 +166,11 @@ export function useScheduleLines(
   if (!draft.firstDate || !draft.startTime) return null
 
   const first = DateTime.fromISO(draft.firstDate).setLocale(locale)
-  const thisYear = first.year === DateTime.now().year
   const date = first.toLocaleString({
     ...(draft.repeats === 'once' && { weekday: 'long' }),
     day: 'numeric',
     month: 'long',
-    ...(!thisYear && { year: 'numeric' }),
+    year: 'numeric',
   })
   const pattern =
     draft.repeats === 'once' || !display.recurrenceLine

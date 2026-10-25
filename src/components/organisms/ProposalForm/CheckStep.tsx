@@ -180,6 +180,7 @@ function ListingSummary({
   onEdit: (section: ListingSection) => void
 }) {
   const { t } = useTranslation()
+  const { locale } = useLocale()
   const schedule = useScheduleLines(draft, listing)
   const online = draft.eventType === 'online'
   const place = online ? draft.city : draft.address
@@ -211,9 +212,10 @@ function ListingSummary({
           <>
             <p className="font-medium">{schedule.pattern}</p>
             <p>{[schedule.time, schedule.zone].filter(Boolean).join(' · ')}</p>
-            {draft.repeats !== 'once' && draft.endDate && (
+            {draft.repeats !== 'once' && (
               <p className="text-gray-11">
-                {t('submit.when.last_class')}: <Day iso={draft.endDate} />
+                {t('submit.when.last_class')}:{' '}
+                {draft.endDate ? longDate(draft.endDate, locale) : t('submit.summary.no_end')}
               </p>
             )}
           </>
@@ -313,11 +315,9 @@ function Fact({
   )
 }
 
-function Day({ iso }: { iso: string }) {
-  const { locale } = useLocale()
-
-  return <>{DateTime.fromISO(iso).setLocale(locale).toLocaleString(DateTime.DATE_FULL)}</>
-}
+/** A date in words, year included — on Check every date is checked, so none is left implied. */
+const longDate = (iso: string, locale: string) =>
+  DateTime.fromISO(iso).setLocale(locale).toLocaleString(DateTime.DATE_FULL)
 
 function EditButton({ label, onClick }: { label: string; onClick: () => void }) {
   const { t } = useTranslation()
@@ -351,6 +351,10 @@ type Change = {
  * Only what the correction changes, each as the listing says it now and as it should — read off
  * the same rows a new listing is built from, so nothing that is sent goes unshown. Each change
  * can be taken back on its own, and another can be added to the same report.
+ *
+ * A "stopped running" report is one thing, not three: its status, its last class and what the
+ * visitor knows sit on one card with one way to remove it. A note is shown as what it is —
+ * information for the coordinator — never as a change to the listing.
  */
 function ChangeList({
   base,
@@ -374,28 +378,23 @@ function ChangeList({
   onMore?: () => void
 }) {
   const { t } = useTranslation()
+  const { locale } = useLocale()
   const keep = { correction: true, keepTitle: baseDraft.title }
   const before = useSummaryRows(baseDraft, base, keep)
   const after = useSummaryRows(draft, listing, keep)
   const changes: Change[] = []
-
-  if (reported) {
-    changes.push({
-      key: 'stopped',
-      label: t('submit.changes.status_label'),
-      after: t('submit.changes.stopped'),
-      edit: 'note',
-    })
-  }
   // The schedule line reads a past last date as "This event has ended". When only the last date
   // moved, that is the Last class line's news, not a change to when the class meets.
   const sameSchedule = SCHEDULE_CORE.every((field) => draft[field] === baseDraft[field])
+  const lastMoved = draft.endDate !== baseDraft.endDate
 
   for (const row of after) {
     const was = before.find((candidate) => candidate.key === row.key)
 
     if (was?.value === row.value) continue
     if (row.key === 'schedule' && sameSchedule) continue
+    // A stopped class's last date belongs to its report.
+    if (row.key === 'last' && reported) continue
     changes.push({
       key: row.key,
       label: row.label,
@@ -406,41 +405,42 @@ function ChangeList({
       edit: row.section,
     })
   }
-  if (note.trim()) {
-    changes.push({ key: 'note', label: t('submit.changes.note_label'), after: note, edit: 'note' })
-  }
+
+  const info = note.trim()
+  const total = changes.length + (reported ? 1 : 0) + (!reported && info ? 1 : 0)
+  const undo = (key: ChangeKey) => onUndo?.(key, total - 1)
 
   return (
     <div className="flex flex-col gap-3">
-      {changes.length === 0 ? (
+      {total === 0 ? (
         <p className="rounded-lg bg-gray-2 px-3 py-3 text-sm text-gray-11">
           {t('submit.changes.none')}
         </p>
       ) : (
         <ul className="flex flex-col divide-y divide-gray-5 rounded-lg border border-gray-6">
+          {reported && (
+            <ChangeCard
+              label={t('submit.changes.report_title')}
+              removeLabel={t('submit.changes.report_remove')}
+              onEdit={() => onEdit('note')}
+              onRemove={onUndo && (() => undo('stopped'))}
+            >
+              <p className="text-sm font-medium">{t('submit.changes.stopped')}</p>
+              <p className="text-sm text-gray-11">
+                {lastMoved && draft.endDate
+                  ? t('submit.changes.report_last', { date: longDate(draft.endDate, locale) })
+                  : t('submit.changes.report_last_unknown')}
+              </p>
+              {info && <Info note={info} />}
+            </ChangeCard>
+          )}
           {changes.map((change) => (
-            <li key={change.key} className="flex flex-col gap-2 px-3 py-3">
-              <div className="flex items-center justify-between gap-2">
-                <span className="text-xs font-semibold tracking-wide text-gray-11 uppercase">
-                  {change.label}
-                </span>
-                <div className="-my-1 -me-2 flex shrink-0 items-center">
-                  <EditButton label={change.label} onClick={() => onEdit(change.edit)} />
-                  {onUndo && (
-                    <Button
-                      aria-label={`${t('submit.changes.undo')}: ${change.label}`}
-                      className="ms-1"
-                      color="neutral"
-                      size="sm"
-                      variant="ghost"
-                      onClick={() => onUndo(change.key, changes.length - 1)}
-                    >
-                      <RotateCcw aria-hidden size={14} />
-                      {t('submit.changes.undo')}
-                    </Button>
-                  )}
-                </div>
-              </div>
+            <ChangeCard
+              key={change.key}
+              label={change.label}
+              onEdit={() => onEdit(change.edit)}
+              onRemove={onUndo && (() => undo(change.key))}
+            >
               <dl className="grid grid-cols-[3rem_minmax(0,1fr)] gap-x-3 gap-y-1 text-sm">
                 {change.before !== undefined && (
                   <>
@@ -453,8 +453,17 @@ function ChangeList({
                 <dt className="font-semibold text-primary-11">{t('submit.changes.now')}</dt>
                 <dd className="font-medium break-words whitespace-pre-line">{change.after}</dd>
               </dl>
-            </li>
+            </ChangeCard>
           ))}
+          {!reported && info && (
+            <ChangeCard
+              label={t('submit.changes.report_info')}
+              onEdit={() => onEdit('note')}
+              onRemove={onUndo && (() => undo('note'))}
+            >
+              <p className="text-sm break-words whitespace-pre-line">{info}</p>
+            </ChangeCard>
+          )}
         </ul>
       )}
       {onMore && (
@@ -463,5 +472,61 @@ function ChangeList({
         </Button>
       )}
     </div>
+  )
+}
+
+/** What the visitor told the coordinator, under the report it explains. */
+function Info({ note }: { note: string }) {
+  const { t } = useTranslation()
+
+  return (
+    <div className="mt-1 rounded-md bg-gray-2 px-3 py-2">
+      <p className="text-xs text-gray-11">{t('submit.changes.report_info')}</p>
+      <p className="text-sm break-words whitespace-pre-line">{note}</p>
+    </div>
+  )
+}
+
+/** One entry on a correction's Check: what it is, the way back to it, and the way to drop it. */
+function ChangeCard({
+  label,
+  removeLabel,
+  onEdit,
+  onRemove,
+  children,
+}: {
+  label: string
+  /** The remove action's full name, where Undo would undersell it (a whole report). */
+  removeLabel?: string
+  onEdit: () => void
+  onRemove?: () => void
+  children: ReactNode
+}) {
+  const { t } = useTranslation()
+  const remove = t(removeLabel ? 'submit.changes.remove' : 'submit.changes.undo')
+
+  return (
+    <li className="flex flex-col gap-2 px-3 py-3">
+      <div className="flex items-center justify-between gap-2">
+        <span className="text-xs font-semibold tracking-wide text-gray-11 uppercase">{label}</span>
+        <div className="-my-1 -me-2 flex shrink-0 items-center">
+          <EditButton label={label} onClick={onEdit} />
+          {onRemove && (
+            <Button
+              aria-label={removeLabel ?? `${remove}: ${label}`}
+              className="ms-1"
+              color="neutral"
+              size="sm"
+              variant="ghost"
+              onClick={onRemove}
+            >
+              <RotateCcw aria-hidden size={14} />
+              {remove}
+            </Button>
+          )}
+        </div>
+      </div>
+      {children}
+    </li>
   )
 }

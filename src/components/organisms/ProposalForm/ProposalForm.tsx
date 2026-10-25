@@ -492,6 +492,16 @@ function ReviewStage({
     const invalid = firstInvalidStep(draft, base)
 
     if (invalid) return onBounce(invalid)
+    // The footer's first press, with no address yet, only brings the field into view: an error
+    // for a field the visitor has not reached yet would scold them for reading.
+    if (!emailGiven) {
+      const field = document.getElementById('submit-sender-email')
+
+      field?.scrollIntoView({ block: 'center', behavior: 'smooth' })
+      field?.focus({ preventScroll: true })
+
+      return
+    }
     if (!isEmail(sender.email)) {
       setEmailError(true)
       setAttemptAt(Date.now())
@@ -523,12 +533,17 @@ function ReviewStage({
   }
 
   const back: ListingStep = correction ? (intent ? INTENT_STEPS[intent] : 'fix') : 'details'
+  const emailGiven = Boolean(sender.email.trim())
 
   // One change taken back, the others kept. With none left there is nothing to check, so the
   // visitor is back where a correction starts.
   const undo = (key: ChangeKey, remaining: number) => {
-    if (key === 'stopped') onClearReport?.()
-    else if (key === 'note') onSender({ note: '' })
+    // A report goes whole: its status, its last date and what the visitor said about it.
+    if (key === 'stopped') {
+      onClearReport?.()
+      if (base) onChange(revertFields(base, ['endDate']))
+      onSender({ note: '' })
+    } else if (key === 'note') onSender({ note: '' })
     else if (base) onChange(revertFields(base, UNDO_FIELDS[key] ?? []))
     if (remaining === 0) onGo('fix')
   }
@@ -569,13 +584,13 @@ function ReviewStage({
         <Button
           className="ms-auto min-w-40"
           color="primary"
-          disabled={!token}
+          disabled={emailGiven && !token}
           isLoading={mutation.isPending}
           size="lg"
           type="submit"
           variant="solid"
         >
-          {t('submit.review.send')}
+          {t(emailGiven ? 'submit.review.send' : 'submit.review.to_email')}
         </Button>
       </FlowFooter>
     </form>

@@ -4,7 +4,7 @@ import type { TranslationKey } from '@/types/i18next'
 
 import { useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Info } from 'luxon'
+import { DateTime, Info } from 'luxon'
 import { CalendarDays } from 'lucide-react'
 
 import { StepHeading, ValidatedInput, radioKeys } from './fields'
@@ -28,6 +28,10 @@ const REPEATS: { value: ListingRepeats; label: TranslationKey }[] = [
   { value: 'monthly', label: 'submit.when.monthly' },
   { value: 'once', label: 'submit.when.once' },
 ]
+
+/** An `HH:MM` time as the visitor's locale writes it ("8:30 PM", "20:30"). */
+const formatClock = (time: string, locale: string) =>
+  DateTime.fromFormat(time, 'HH:mm').setLocale(locale).toLocaleString(DateTime.TIME_SIMPLE)
 
 const DURATIONS: { minutes: number | null; label: TranslationKey }[] = [
   { minutes: 60, label: 'submit.when.duration_60' },
@@ -220,6 +224,12 @@ export function TimeStep({
         </div>
       </fieldset>
 
+      {!custom && duration !== null && draft.endTime && (
+        <p aria-live="polite" className="-mt-3 text-sm text-gray-11">
+          {t('submit.when.ends_at', { time: formatClock(draft.endTime, locale) })}
+        </p>
+      )}
+
       {custom && (
         <ValidatedInput
           className="max-w-48"
@@ -245,7 +255,9 @@ export function TimeStep({
           help={
             draft.repeats === 'monthly'
               ? `${t('submit.when.monthly_help')} ${t('submit.when.monthly_pattern')}`
-              : undefined
+              : weekly
+                ? t('submit.when.first_help')
+                : undefined
           }
           id="submit-first-date"
           label={t(draft.repeats === 'once' ? 'submit.when.date' : 'submit.when.first_class')}

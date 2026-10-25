@@ -343,7 +343,8 @@
       "left_out": "Not added: %{parts}.",
       "add": "Add",
       "email_help_private": "Only the coordinator sees it, in case they have a question.",
-      "online_line": "Online, hosted from %{city}"
+      "online_line": "Online, hosted from %{city}",
+      "to_email": "Continue to your email"
     },
     "when": {
       "end_time": "Ends at",
@@ -370,7 +371,9 @@
       "duration_60": "1 hour",
       "duration_90": "1½ hours",
       "duration_120": "2 hours",
-      "duration_custom": "Set the end time"
+      "duration_custom": "Set the end time",
+      "ends_at": "Ends at %{time}.",
+      "first_help": "The first date the map shows. Change it if the class starts later."
     },
     "where": {
       "address_placeholder": "Search for the address",
@@ -440,16 +443,20 @@
       "title": "Check your suggestion",
       "intro": "Only these changes are sent. Nothing changes until a coordinator approves it.",
       "full_listing": "See the whole listing",
-      "status_label": "Status",
       "stopped": "Has stopped running",
       "removed": "Removed",
-      "note_label": "Your note",
       "none": "Nothing changed yet. Go back and change a detail, or write a note.",
       "unknown": "Not shown here",
       "was": "Was",
       "now": "Now",
       "undo": "Undo",
-      "more": "Correct something else too"
+      "more": "Add another correction",
+      "report_title": "Your report",
+      "report_remove": "Remove this report",
+      "report_last": "Last class: %{date}",
+      "report_last_unknown": "Last class: not known",
+      "report_info": "Information for the coordinator",
+      "remove": "Remove"
     },
     "summary": {
       "type": "Type",
