@@ -367,6 +367,7 @@ function Flow({ target }: { target: FlowTarget }) {
               <ChangeList base={base} before={event} draft={draft} listing={listing} />
             ) : (
               <ListingCard
+                details={draft}
                 label={t('submit.review.listing_label')}
                 listing={listing}
                 note={t('submit.review.listing_note')}

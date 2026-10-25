@@ -267,4 +267,25 @@ describe('ListingEditor', () => {
 
     await act(async () => root.unmount())
   })
+
+  it('lets a half-typed hand address go once the class is switched online', async () => {
+    const root = await mount({
+      initial: {
+        ...emptyDraft('Europe/London'),
+        city: { label: 'Hove', city: 'Hove', location: {} },
+        onlineUrl: 'https://zoom.us/j/1',
+      },
+      open: 'where',
+    })
+
+    await press('submit.where.manual_toggle')
+    await type('#submit-manual-street', 'Old School Hall')
+    await press('submit.where.online')
+    expect(latest.eventType).toBe('online')
+    await press('submit.chrome.done')
+
+    expect(container.querySelector('#submit-online-url')).toBeNull()
+
+    await act(async () => root.unmount())
+  })
 })

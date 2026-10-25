@@ -3,7 +3,7 @@ import type { Event } from '@/types'
 import type { TranslationKey } from '@/types/i18next'
 
 import { DateTime } from 'luxon'
-import { useLayoutEffect, useRef } from 'react'
+import { Fragment, useLayoutEffect, useRef } from 'react'
 import { useTranslation } from 'react-i18next'
 import { ArrowLeft, Pencil } from 'lucide-react'
 
@@ -120,12 +120,15 @@ export function ListingCard({
   label,
   note,
   status,
+  details,
 }: {
   listing: Event
   label?: string
   note?: string
   /** A chip saying the card is not yet public. */
   status?: string
+  /** The draft, to list everything being sent under the facts — the send step's check. */
+  details?: ListingDraft
 }) {
   const { t } = useTranslation()
   const { languageLabel } = useLocale()
@@ -149,9 +152,43 @@ export function ListingCard({
           </span>
         }
         variant="card"
-      />
+      >
+        {details && <ListingExtras draft={details} listing={listing} />}
+      </EventFacts>
       {note && <p className="text-xs text-gray-11">{note}</p>}
     </div>
+  )
+}
+
+/** The parts the facts card does not show, so the send step's check covers every field. */
+function ListingExtras({ listing, draft }: { listing: Event; draft: ListingDraft }) {
+  const { t } = useTranslation()
+  const rows: [string, string][] = [
+    [t('submit.where.room_label'), draft.room],
+    [t('submit.where.online_url_label'), listing.eventType === 'online' ? draft.onlineUrl : ''],
+    [
+      t('submit.review.label_contact'),
+      [draft.contactName, draft.contactPhone, draft.contactEmail]
+        .map((part) => part.trim())
+        .filter(Boolean)
+        .join(' · '),
+    ],
+    [t('submit.more.website_label'), draft.website],
+    [t('submit.review.label_about'), draft.description],
+  ]
+  const shown = rows.filter(([, value]) => value.trim())
+
+  if (shown.length === 0) return null
+
+  return (
+    <dl className="mt-3 grid grid-cols-[auto_1fr] gap-x-3 gap-y-1.5 border-t border-divider pt-3 text-sm leading-snug">
+      {shown.map(([name, value]) => (
+        <Fragment key={name}>
+          <dt className="text-gray-11">{name}</dt>
+          <dd className="line-clamp-4 break-words whitespace-pre-line">{value.trim()}</dd>
+        </Fragment>
+      ))}
+    </dl>
   )
 }
 

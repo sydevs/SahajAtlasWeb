@@ -277,7 +277,15 @@ export function WhereFields({
                   country={country}
                   label={t('submit.where.address_placeholder')}
                   proximity={proximity}
-                  query={{ initial: draft.address?.label ?? '' }}
+                  // Back from typing it by hand, the search starts from what was typed.
+                  query={{
+                    initial:
+                      draft.address?.label ??
+                      [hand.street, hand.postCode, hand.city]
+                        .map((part) => part.trim())
+                        .filter(Boolean)
+                        .join(', '),
+                  }}
                   types="address"
                   onQueryChange={onEdit('address')}
                   onSelect={onPick('address')}

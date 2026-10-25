@@ -98,6 +98,10 @@ export function ListingEditor({
   const errorsOf = (key: SectionKey) =>
     attempted.includes(key) ? sectionErrors(key, draft, base) : {}
 
+  // The hand-typed address lives here, not in its editor, so it survives the part closing.
+  const [manual, setManual] = useState(Boolean(draft.address && !draft.address.mapboxId))
+  const [hand, setHand] = useState(() => handAddressOf(draft))
+
   const openSection = (key: ListingStep) => {
     setTapped(key)
     onOpen(key)
@@ -108,7 +112,11 @@ export function ListingEditor({
     const fields = SECTION_FIELDS[key].filter((field) => field !== 'timeZone')
     // A half-typed hand address has not reached the draft yet, but it is the visitor's input.
     const halfTyped =
-      key === 'where' && manual && !draft.address && Boolean(hand.street.trim() || hand.city.trim())
+      key === 'where' &&
+      draft.eventType === 'offline' &&
+      manual &&
+      !draft.address &&
+      Boolean(hand.street.trim() || hand.city.trim())
     const touched = halfTyped || fieldsChanged(draft, baseline, fields)
 
     if (halfTyped) return onAttempt(key)
@@ -117,10 +125,16 @@ export function ListingEditor({
     onOpen('review')
   }
 
-  const undo = (key: SectionKey) => base && onChange(revertFields(base, SECTION_FIELDS[key]))
+  const undo = (key: SectionKey) => {
+    if (!base) return
+    onChange(revertFields(base, SECTION_FIELDS[key]))
+    // The typed-by-hand copy follows the address back, so reopening shows what Undo restored.
+    if (key === 'where') {
+      setHand(handAddressOf(base))
+      setManual(Boolean(base.address && !base.address.mapboxId))
+    }
+  }
 
-  const [manual, setManual] = useState(Boolean(draft.address && !draft.address.mapboxId))
-  const [hand, setHand] = useState(() => handAddressOf(draft))
   // A zone the visitor chose — or a published class's own — outranks any guess from a place.
   const pick = (key: 'address' | 'city') => (feature: GeocodingFeature) => {
     const place = featureToPlace(feature)
