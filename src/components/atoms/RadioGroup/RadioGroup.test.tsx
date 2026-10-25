@@ -12,8 +12,17 @@ const options: RadioOption[] = [
 
 const radios = (html: string) => (html.match(/type="radio"/g) ?? []).length
 
-const markClasses = (html: string, index: number) =>
-  ((html.match(/<input[^>]*>/g) ?? [])[index].match(/class="([^"]*)"/)?.[1] ?? '').split(' ')
+// Split rather than match a substring: `accent-primary` occurs inside
+// `accent-primary-foreground`.
+const classesOf = (tag = '') => (tag.match(/class="([^"]*)"/)?.[1] ?? '').split(' ')
+const marks = (html: string) => {
+  const tags = html.match(/<input[^>]*>/g) ?? []
+
+  return {
+    checked: classesOf(tags.find((tag) => tag.includes('checked'))),
+    unchecked: classesOf(tags.find((tag) => !tag.includes('checked'))),
+  }
+}
 
 describe('RadioGroup', () => {
   it('renders one radio per option and marks exactly the selected value checked', () => {
@@ -26,22 +35,24 @@ describe('RadioGroup', () => {
   })
 
   it('accents the checked mark with the card solid’s on-colour, never the solid itself', () => {
-    const html = renderToStaticMarkup(
-      <RadioGroup name="x" options={options} value="b" onChange={() => {}} />,
+    const { checked, unchecked } = marks(
+      renderToStaticMarkup(<RadioGroup name="x" options={options} value="b" onChange={() => {}} />),
     )
 
-    expect(markClasses(html, 1)).toContain('accent-primary-foreground')
-    expect(markClasses(html, 1)).not.toContain('accent-primary')
-    expect(markClasses(html, 0)).toContain('accent-primary')
+    expect(checked).toContain('accent-primary-foreground')
+    expect(checked).not.toContain('accent-primary')
+    expect(unchecked).toContain('accent-primary')
   })
 
   it('follows the checked card to danger when the group is invalid', () => {
-    const html = renderToStaticMarkup(
-      <RadioGroup isInvalid name="x" options={options} value="b" onChange={() => {}} />,
+    const { checked } = marks(
+      renderToStaticMarkup(
+        <RadioGroup isInvalid name="x" options={options} value="b" onChange={() => {}} />,
+      ),
     )
 
-    expect(markClasses(html, 1)).toContain('accent-danger-foreground')
-    expect(markClasses(html, 1)).not.toContain('accent-primary-foreground')
+    expect(checked).toContain('accent-danger-foreground')
+    expect(checked).not.toContain('accent-primary-foreground')
   })
 
   it('collapses options past collapseAfter behind the reveal link', () => {

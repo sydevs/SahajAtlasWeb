@@ -301,13 +301,15 @@ describe('agreement with the runtime', () => {
     expect(readRepoSource('.ladle/components.tsx')).toContain('classList.add(WIDGET_SCOPE_CLASS)')
   })
 
-  // The palette block's `:root` arm is emitted as a bare scope selector,
-  // so a scope element with no theme class re-declares the light palette
-  // for its whole subtree. Ladle's wrapper is a second scope element
-  // under <html>, and without this it held every story in light while the
-  // toolbar said dark.
-  it('pairs the scope class with a theme class wherever it is applied twice', () => {
-    expect(readRepoSource('.ladle/components.tsx')).toMatch(/WIDGET_SCOPE_CLASS,\s*theme,/)
+  // Ladle's story wrapper is a SECOND scope element below <html>, for the
+  // reason its own comment gives. A scope element without a theme class
+  // re-declares the light palette for its whole subtree, so the wrapper
+  // has to carry one too.
+  it("carries a theme class on Ladle's wrapper, the second scope element", () => {
+    const wrapper = readRepoSource('.ladle/components.tsx').match(/clsx\(([\s\S]*?)\)/)?.[1] ?? ''
+
+    expect(wrapper).toContain('WIDGET_SCOPE_CLASS')
+    expect(wrapper).toContain('theme')
   })
 
   it('is never written to whatever getThemeRoot() happens to return', () => {
