@@ -447,9 +447,10 @@ still right. It just is not enough on its own when the pure part encodes a forei
 
 ### A spec that inventories `src/` walks it through `src/test-support/` (issue #286)
 
-Nine specs assert that some list of call sites is CLOSED — the JSX anchors, the viewport reads,
-the Radix poppers, the SahajCloud reads. Each rolled its own `readdirSync`, in three shapes that
-were not interchangeable, so a tenth would inherit whichever one its author copied.
+Ten specs assert that some list of call sites is CLOSED — the JSX anchors, the viewport reads,
+the Radix poppers, the frame boxes, the SahajCloud reads. Each rolled its own `readdirSync`, in
+three shapes that were not interchangeable, so the next would inherit whichever one its author
+copied.
 `sourceFiles()` (`src/test-support/source-tree.ts`) is the one walk now, with
 `readSource` / `readSourceWithoutComments` beside it and `parseSource`
 (`src/test-support/source-ast.ts`) for the two specs that parse. **A tenth walk fails `pnpm
@@ -501,7 +502,7 @@ nothing. ⚠ **The walker mark itself costs no selection**: since #293 `selectFr
 the walkers to every edit, but it still selects one that names the edited module, so a walker runs
 per edit like any other spec. `lane.walkers` is a register, read only by the closed-list pin.
 
-⚠ **The scopes did not merge, and must not** — the nine cover seven different file sets, and
+⚠ **The scopes did not merge, and must not** — the ten cover seven different file sets, and
 `source-tree.ts`'s own docblock owns that rule. Each spec passes its own `sourceFiles({…})`
 options beside the assertions they serve, and `source-tree.test.ts` pins every option as biting
 in both directions, because a scope that silently stopped matching would make all nine closed
@@ -553,11 +554,12 @@ coupling the other cannot:
   name match misses two of the three — `fetch.test.ts` is the only spec for `client.ts` and
   reaches it as `'./client'`, and `Chip.test.tsx` imports its own folder as `'.'`.
 
-**A third source selected the tree-walking specs until #293, and it was the whole floor.** Twelve
-specs enumerate the source tree instead of importing from it — the nine `src/` inventories and
-`source-tree.test.ts`, found because they import the shared walk (#286), plus two `scripts/` specs
-found by an enumerating call (`readdirSync(` and its kin). Nothing in them references the file that
-breaks them, so no reference can select one, and all twelve ran on every edit. `readLane` still
+**A third source selected the tree-walking specs until #293, and it was the whole floor.**
+Thirteen specs enumerate the source tree instead of importing from it — the ten `src/` inventories
+and `source-tree.test.ts`, found because they import the shared walk (#286), plus two `scripts/`
+specs found by an enumerating call (`readdirSync(` and its kin). Nothing in them references the
+file that breaks them, so no reference can select one, and every one of them ran on every edit.
+`readLane` still
 reports the set, because
 `select-unit-specs.test.ts` pins it as a closed list. `selectFrom` no longer takes it, and the hook
 needed no edit to stop running it — it exits before spawning vitest on an empty selection

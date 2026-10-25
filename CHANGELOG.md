@@ -287,6 +287,13 @@ cover everything a host would notice since the widget was first deployed.
 
 ### Fixed
 
+- **Filling in a form no longer slides the widget off its own panel.** ([#326]) On a phone-sized
+  sheet, tapping a field low in the registration form scrolled the whole panel away: the header
+  left the screen, a blank band took its place, and the buttons floated over nothing, with no
+  scrollbar and no gesture to bring it back. In a [contained embed][Sizing the element] the same
+  tap carried the entire widget out of the box you sized, and in a [compact card] out of the
+  dialog it opens. Fields now stay clear of the sticky Register bar as well. Nothing to change on
+  your side.
 - **The panel no longer flickers halfway down on every navigation.** ([#312]) Since the widget
   moved into its shadow root ([#236]), each change of view showed the arriving view in the lower
   half of the panel for the length of the fade, before it jumped to the top. The fade relied on a
@@ -741,6 +748,7 @@ must-revalidate`, pinned rather than left to the CDN default. The production dom
 [#262]: https://github.com/sydevs/SahajAtlasWeb/issues/262
 [#311]: https://github.com/sydevs/SahajAtlasWeb/pull/311
 [#312]: https://github.com/sydevs/SahajAtlasWeb/pull/312
+[#326]: https://github.com/sydevs/SahajAtlasWeb/issues/326
 [Sizing the element]: docs/embedding.md#sizing-the-element
 [compact card]: docs/embedding.md#when-the-slot-is-too-small
 [Embedding in an iframe]: docs/embedding.md#embedding-in-an-iframe

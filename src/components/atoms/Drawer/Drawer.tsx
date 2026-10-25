@@ -22,8 +22,13 @@ export type DrawerDirection = 'left' | 'right' | 'top' | 'bottom'
 
 const drawer = tv({
   slots: {
+    // ⚠ `overflow-clip`, never `overflow-hidden`. A hidden box is still a scroll
+    // container, so focusing a field low in the sheet let the browser scroll the
+    // PANEL to reach it — the header went off-screen and nothing scrolled it back,
+    // since there is no scrollbar and no wheel target (#326). A clipped box cannot
+    // scroll at all, so the body below is the only thing that can move.
     content:
-      'pointer-events-auto fixed z-40 flex flex-col overflow-hidden bg-background text-foreground shadow-2xl outline-none',
+      'pointer-events-auto fixed z-40 flex flex-col overflow-clip bg-background text-foreground shadow-2xl outline-none',
     // Every content band is capped at `--sy-content-max` (default 512px) and
     // centred. So on a wide surface, such as a map-less embed or a large-mobile
     // bottom sheet, the views read as a centred column, instead of stretching
@@ -45,7 +50,12 @@ const drawer = tv({
     // a clipped edge, instead of a horizontal scrollbar across the view. It
     // is safe for the full-bleed carousel, which is exactly the body's width,
     // and for popovers, which portal out of the body entirely.
-    body: 'mx-auto min-h-0 w-full max-w-[var(--sy-content-max,512px)] flex-1 overflow-x-hidden overflow-y-auto',
+    //
+    // `scroll-pb-28` (112px) is what the panel above can no longer absorb. A
+    // sticky footer paints OVER this box, so scrolling a focused field flush to
+    // the bottom edge parks it behind the Register bar. The padding clears the
+    // tallest of them with room to spare (#326).
+    body: 'mx-auto min-h-0 w-full max-w-[var(--sy-content-max,512px)] flex-1 scroll-pb-28 overflow-x-hidden overflow-y-auto',
     footer:
       'mx-auto mt-auto w-full max-w-[var(--sy-content-max,512px)] shrink-0 border-t border-gray-4',
     // This themes the vaul drag handle. Its vendored CSS hardcodes a light

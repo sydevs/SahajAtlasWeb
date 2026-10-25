@@ -813,7 +813,7 @@ export function DrawerStack() {
                     // the viewport's. A 600px contained map on a desktop gets the
                     // bottom sheet, and a viewport variant would still push the cog
                     // 384px right for a panel that is not there. At a 400px frame it
-                    // would land past the edge, where the frame's `overflow-hidden`
+                    // would land past the edge, where the frame's `overflow-clip`
                     // clips it away entirely. Outside a frame, `isWide` IS the
                     // viewport's answer, so this stays the same offset it always was.
                     isWide
