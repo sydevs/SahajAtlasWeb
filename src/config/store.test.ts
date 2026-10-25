@@ -221,6 +221,19 @@ describe('useListingDraft', () => {
     expect(useListingDraft.getState().base?.room).toBe('')
   })
 
+  it('moves to the send step and back, and a fresh start returns to editing', () => {
+    useListingDraft
+      .getState()
+      .start({ key: 'add:/add', entry: 'e1' }, { draft: emptyDraft('UTC'), step: 'where' })
+    useListingDraft.getState().setPhase('send')
+    expect(useListingDraft.getState().phase).toBe('send')
+
+    useListingDraft
+      .getState()
+      .start({ key: 'add:/add', entry: 'e2' }, { draft: emptyDraft('UTC'), step: 'where' })
+    expect(useListingDraft.getState().phase).toBe('edit')
+  })
+
   it('ignores an edit before any flow has started', () => {
     useListingDraft.getState().update({ room: 'Hall B' })
 

@@ -262,6 +262,37 @@ export const stepChanged = (
 ): boolean =>
   STEP_FIELDS[step].some((field) => JSON.stringify(draft[field]) !== JSON.stringify(base[field]))
 
+/** Whether `draft` differs from `base` in any of `fields`. */
+export const fieldsChanged = (
+  draft: ListingDraft,
+  base: ListingDraft,
+  fields: readonly (keyof ListingDraft)[],
+): boolean => fields.some((field) => !same(draft[field], base[field]))
+
+/** `base`'s values for `fields` — the patch that undoes an edit to them. */
+export const revertFields = (
+  base: ListingDraft,
+  fields: readonly (keyof ListingDraft)[],
+): Partial<ListingDraft> => Object.fromEntries(fields.map((field) => [field, base[field]]))
+
+/** The ISO weekday (1 Monday … 7 Sunday) a draft's first date falls on, once it has one. */
+export const draftWeekday = (draft: Pick<ListingDraft, 'firstDate'>): number | null =>
+  DATE.test(draft.firstDate) ? DateTime.fromISO(draft.firstDate).weekday : null
+
+/**
+ * The first date on or after today, in `timeZone`, that falls on `weekday` — how "every Tuesday"
+ * becomes the first date a schedule needs. Hosts think in weekdays, not first dates.
+ */
+export const nextWeekdayDate = (
+  weekday: number,
+  timeZone: string,
+  now: DateTime = DateTime.now(),
+): string => {
+  const today = now.setZone(timeZone).startOf('day')
+
+  return today.plus({ days: (weekday - today.weekday + 7) % 7 }).toISODate() ?? ''
+}
+
 // ── To the Events patch ──────────────────────────────────────────────────────────
 
 /** A blank optional field is `null`, which is how a correction clears a value. */

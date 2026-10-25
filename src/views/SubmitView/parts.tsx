@@ -1,0 +1,206 @@
+import type { ListingDraft } from '@/lib/proposal'
+import type { Event } from '@/types'
+import type { TranslationKey } from '@/types/i18next'
+import type { ReactNode } from 'react'
+
+import { useTranslation } from 'react-i18next'
+import { ArrowLeft, Pencil } from 'lucide-react'
+
+import { Button } from '@/components/atoms/Button'
+import { Chip } from '@/components/atoms/Chip'
+import { EventFacts } from '@/components/molecules/EventFacts'
+import { changedSections } from '@/components/organisms/ListingEditor'
+import { composeCalendarLine, useEventDisplay } from '@/hooks/use-event-display'
+import { useLocale } from '@/hooks/use-locale'
+import { draftTitle } from '@/lib/proposal'
+import { lexicalToText } from '@/lib/shape'
+import { CloseButton } from '@/views/shared'
+
+/**
+ * The class's name, edited where the published class shows it. Blank, it reads as the name
+ * SahajCloud will give it — the venue's street — so leaving it alone is a real choice.
+ */
+export function TitleField({
+  draft,
+  onChange,
+}: {
+  draft: ListingDraft
+  onChange: (patch: Partial<ListingDraft>) => void
+}) {
+  const { t } = useTranslation()
+  const fallback = draftTitle({ ...draft, title: '' })
+
+  return (
+    <div className="min-w-0 flex-1">
+      <label className="group relative block">
+        <span className="sr-only">{t('submit.more.title_label')}</span>
+        <input
+          className="-mx-1.5 w-[calc(100%+0.75rem)] rounded-md border border-transparent bg-transparent py-0.5 ps-1.5 pe-8 text-lg leading-6 font-semibold tracking-wide text-foreground outline-none placeholder:font-semibold placeholder:text-gray-9 hover:border-gray-6 focus:border-primary-7 focus:bg-background focus-visible:ring-2 focus-visible:ring-focus"
+          maxLength={100}
+          placeholder={fallback || t('submit.chrome.title_placeholder')}
+          value={draft.title}
+          onChange={(event) => onChange({ title: event.target.value })}
+        />
+        <Pencil
+          aria-hidden
+          className="pointer-events-none absolute end-1 top-1/2 -translate-y-1/2 text-gray-9 group-focus-within:hidden"
+          size={14}
+        />
+      </label>
+      {!draft.title.trim() && fallback && (
+        <p className="mt-0.5 text-xs text-gray-11">
+          {t('submit.chrome.title_default', { name: fallback })}
+        </p>
+      )}
+    </div>
+  )
+}
+
+/** The send step's and receipt's header: back to the listing, the step's name, and close. */
+export function SendHeader({ title, onBack }: { title: string; onBack?: () => void }) {
+  const { t } = useTranslation()
+
+  return (
+    <div className="flex shrink-0 items-center gap-1 px-2 pt-1 pb-2 md:px-4 md:pt-4">
+      {onBack && (
+        <Button
+          isIconOnly
+          aria-label={t('submit.chrome.back')}
+          size="sm"
+          variant="ghost"
+          onClick={onBack}
+        >
+          <ArrowLeft size={20} />
+        </Button>
+      )}
+      <h1 className={`min-w-0 flex-1 text-lg leading-6 font-semibold ${onBack ? '' : 'ps-2'}`}>
+        {title}
+      </h1>
+      <CloseButton />
+    </div>
+  )
+}
+
+/** The listing as one compact card — what the send step sends and the receipt received. */
+export function ListingCard({
+  listing,
+  label,
+  note,
+  status,
+}: {
+  listing: Event
+  label?: string
+  note?: string
+  /** A chip saying the card is not yet public. */
+  status?: string
+}) {
+  const { t } = useTranslation()
+  const { languageLabel } = useLocale()
+  const { typeLabel } = useEventDisplay(listing)
+
+  return (
+    <div className="flex flex-col gap-2">
+      {label && <p className="text-sm font-semibold">{label}</p>}
+      <EventFacts
+        event={listing}
+        title={
+          <span className="flex flex-col gap-2">
+            <span>{listing.title || t('submit.chrome.title_add')}</span>
+            <span className="flex flex-wrap gap-1">
+              {status && <Chip color="neutral">{status}</Chip>}
+              {listing.schedule && <Chip color="primary">{typeLabel}</Chip>}
+              {listing.languages.length > 0 && (
+                <Chip color="secondary">{listing.languages.map(languageLabel).join(', ')}</Chip>
+              )}
+            </span>
+          </span>
+        }
+        variant="card"
+      />
+      {note && <p className="text-xs text-gray-11">{note}</p>}
+    </div>
+  )
+}
+
+const CHANGE_LABELS: Record<string, TranslationKey> = {
+  title: 'submit.more.title_label',
+  more: 'submit.more.languages_label',
+  where: 'submit.review.label_where',
+  when: 'submit.review.label_when',
+  contact: 'submit.review.label_contact',
+  about: 'submit.review.label_about',
+}
+
+/** A correction's changes, each as the class reads now and as it will read. */
+export function ChangeList({
+  draft,
+  base,
+  before,
+  listing,
+}: {
+  draft: ListingDraft
+  base: ListingDraft
+  /** The published class. */
+  before: Event
+  /** The class with the correction applied. */
+  listing: Event
+}) {
+  const { t } = useTranslation()
+  const { languageLabel } = useLocale()
+  const was = useEventDisplay(before)
+  const now = useEventDisplay(listing)
+  const changes = changedSections(draft, base)
+
+  const calendar = (display: typeof was) =>
+    composeCalendarLine({
+      recurrenceLine: display.recurrenceLine,
+      whenLine: display.whenLine,
+      time: display.eventTimeRange,
+      hasNext: Boolean(display.display.next),
+    })
+  const contact = (fields: ListingDraft) =>
+    [fields.contactName, fields.contactPhone, fields.contactEmail, fields.website]
+      .map((line) => line.trim())
+      .filter(Boolean)
+      .join(' · ')
+  const lines: Record<string, [ReactNode, ReactNode]> = {
+    title: [before.title, draft.title.trim() || draftTitle(draft)],
+    more: [
+      base.languages.map(languageLabel).join(', '),
+      draft.languages.map(languageLabel).join(', '),
+    ],
+    where: [was.whereLine, now.whereLine],
+    when: [calendar(was), calendar(now)],
+    contact: [contact(base), contact(draft)],
+    about: [lexicalToText(before.description), draft.description.trim()],
+  }
+
+  return (
+    <div className="flex flex-col gap-2">
+      <p className="text-sm font-semibold">{t('submit.review.changes_label')}</p>
+      {changes.length === 0 ? (
+        <p className="rounded-lg bg-gray-2 p-3 text-sm text-gray-11">
+          {t('submit.review.note_only')}
+        </p>
+      ) : (
+        <ul className="flex flex-col divide-y divide-divider rounded-lg border border-divider">
+          {changes.map((key) => {
+            const [from, to] = lines[key]
+
+            return (
+              <li key={key} className="flex flex-col gap-0.5 px-3 py-2.5">
+                <span className="text-xs font-semibold tracking-wide text-gray-11 uppercase">
+                  {t(CHANGE_LABELS[key])}
+                </span>
+                {from && (
+                  <span className="line-clamp-2 text-sm text-gray-10 line-through">{from}</span>
+                )}
+                <span className="line-clamp-3 text-sm font-medium">{to || '—'}</span>
+              </li>
+            )
+          })}
+        </ul>
+      )}
+    </div>
+  )
+}

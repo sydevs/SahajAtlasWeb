@@ -1,6 +1,8 @@
 import type { Story, StoryDefault } from '@ladle/react'
 
 import {
+  AlignLeft,
+  ArrowLeft,
   ArrowUpRight,
   CalendarDays,
   Check,
@@ -17,12 +19,15 @@ import {
   Monitor,
   Moon,
   Pause,
+  Pencil,
   PhoneOutgoing,
   Play,
+  Plus,
   Search,
   Settings,
   Share,
   Sun,
+  UserRound,
   X,
 } from 'lucide-react'
 
@@ -50,6 +55,8 @@ export default {
  * only, so neither belongs here.
  */
 const ICONS = [
+  { name: 'AlignLeft', Icon: AlignLeft },
+  { name: 'ArrowLeft', Icon: ArrowLeft },
   { name: 'ArrowUpRight', Icon: ArrowUpRight },
   { name: 'CalendarDays', Icon: CalendarDays },
   { name: 'Check', Icon: Check },
@@ -66,12 +73,15 @@ const ICONS = [
   { name: 'Monitor', Icon: Monitor },
   { name: 'Moon', Icon: Moon },
   { name: 'Pause', Icon: Pause },
+  { name: 'Pencil', Icon: Pencil },
   { name: 'PhoneOutgoing', Icon: PhoneOutgoing },
   { name: 'Play', Icon: Play },
+  { name: 'Plus', Icon: Plus },
   { name: 'Search', Icon: Search },
   { name: 'Settings', Icon: Settings },
   { name: 'Share', Icon: Share },
   { name: 'Sun', Icon: Sun },
+  { name: 'UserRound', Icon: UserRound },
   { name: 'X', Icon: X },
 ] as const
 

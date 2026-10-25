@@ -9,16 +9,20 @@ import {
   buildProposal,
   diffPatch,
   draftPreviewSchedule,
+  draftWeekday,
   draftLocation,
   emptyDraft,
   eventToDraft,
   featureToPlace,
+  fieldsChanged,
   firstInvalidStep,
   nearestTimeZone,
   newListingPatch,
+  nextWeekdayDate,
   openListing,
   previewEvent,
   previewSessions,
+  revertFields,
   searchProximity,
   stepErrors,
 } from './proposal'
@@ -496,5 +500,48 @@ describe('openListing', () => {
     const opened = openListing({ timeZone: 'Europe/Paris', languages: ['fr'] })
 
     expect(opened).toEqual({ draft: emptyDraft('Europe/Paris', ['fr']), step: 'where' })
+  })
+})
+
+describe('editing a section in place', () => {
+  const base = { ...emptyDraft('Europe/London', ['en']), contactName: 'Ada', room: 'Hall A' }
+
+  it('tells which fields an edit touched, ignoring the rest', () => {
+    const draft = { ...base, room: 'Hall B' }
+
+    expect(fieldsChanged(draft, base, ['room', 'address'])).toBe(true)
+    expect(fieldsChanged(draft, base, ['contactName', 'contactPhone'])).toBe(false)
+  })
+
+  it('undoes an edit by restoring the base values of just those fields', () => {
+    const draft = { ...base, room: 'Hall B', contactName: 'Grace' }
+    const undone = { ...draft, ...revertFields(base, ['room']) }
+
+    expect(undone.room).toBe('Hall A')
+    expect(undone.contactName).toBe('Grace')
+  })
+})
+
+describe('weekly schedules by weekday', () => {
+  // Wednesday 4 November 2026, late evening in London.
+  const now = DateTime.fromISO('2026-11-04T23:30', { zone: 'Europe/London' })
+
+  it('takes today when today is the weekday asked for', () => {
+    expect(nextWeekdayDate(3, 'Europe/London', now)).toBe('2026-11-04')
+  })
+
+  it('rolls forward to the next such weekday otherwise', () => {
+    expect(nextWeekdayDate(2, 'Europe/London', now)).toBe('2026-11-10')
+    expect(nextWeekdayDate(7, 'Europe/London', now)).toBe('2026-11-08')
+  })
+
+  it('reads today in the class’s zone, not the visitor’s', () => {
+    // Already Thursday in Tokyo.
+    expect(nextWeekdayDate(4, 'Asia/Tokyo', now)).toBe('2026-11-05')
+  })
+
+  it('reads back the weekday a first date falls on', () => {
+    expect(draftWeekday({ firstDate: '2026-11-10' })).toBe(2)
+    expect(draftWeekday({ firstDate: '' })).toBeNull()
   })
 })

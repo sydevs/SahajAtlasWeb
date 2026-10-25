@@ -272,31 +272,48 @@
     "about": {
       "description_label": "Description",
       "description_placeholder": "What to expect, who it is for, anything a newcomer should know.",
-      "title": "Tell people about the class"
+      "title": "Tell people about the class",
+      "hint": "A few words for newcomers"
     },
     "chrome": {
       "add_entry": "Don’t see your class? Add it",
       "add_here": "Add a class here",
       "back": "Back",
       "correct_entry": "Suggest a correction",
-      "next": "Next",
-      "preview_note": "This is how your class will appear once a coordinator approves it.",
-      "skip": "Skip",
-      "step_progress": "Step %{step} of %{total}",
       "title_add": "Add a class",
-      "title_correct": "Suggest a correction"
+      "title_correct": "Suggest a correction",
+      "intro_add": "Fill in each part. This is how your class will look on the map.",
+      "intro_correct": "Tap anything that’s wrong to fix it.",
+      "title_placeholder": "Name your class",
+      "title_default": "Leave blank to call it “%{name}”.",
+      "required": "Required",
+      "done": "Done",
+      "changed": "Changed",
+      "undo": "Undo",
+      "continue": "Continue",
+      "needs_where": "Add where it meets to continue",
+      "needs_when": "Add when it meets to continue",
+      "needs_both": "Add where and when to continue",
+      "ready": "Ready to send",
+      "no_changes": "No changes yet",
+      "changes_one": "1 change",
+      "changes_other": "%{count} changes"
     },
     "contact": {
       "email_label": "Email",
       "help": "Shown on the listing so people can ask questions before they come.",
       "name_label": "Name",
       "phone_label": "Phone",
-      "title": "Who can people contact?"
+      "title": "Who can people contact?",
+      "hint": "A name, phone number or email"
     },
     "done": {
       "body": "A coordinator for %{city} will review it.",
       "body_no_city": "A coordinator will review it.",
-      "title": "Thank you"
+      "title_sent": "Sent for review",
+      "email": "We’ll email %{email} once it’s been reviewed.",
+      "pending": "Waiting for review",
+      "back_to_map": "Back to the map"
     },
     "errors": {
       "address_required": "Choose an address from the search results.",
@@ -312,28 +329,42 @@
     },
     "more": {
       "languages_label": "Languages",
-      "title": "More details",
-      "title_help": "Leave blank to name it after the venue.",
       "title_label": "Class name",
-      "website_label": "Website"
+      "website_label": "Website",
+      "languages_edit": "Change languages"
     },
     "review": {
-      "add_more": "Add more details",
       "edit": "Edit",
       "email_help": "We’ll only use this to tell you what happens to your submission.",
       "email_label": "Your email",
-      "no_changes": "Change at least one detail before submitting.",
       "note_label": "Note for the coordinator (optional)",
-      "submit": "Submit"
+      "send": "Send for review",
+      "title_add": "Send for review",
+      "title_correct": "Send your correction",
+      "listing_label": "Your listing",
+      "listing_note": "It won’t be public until a coordinator approves it.",
+      "changes_label": "Your changes",
+      "note_only": "No details changed. Your note will go to the coordinator.",
+      "note_needed": "Change a detail or write a note for the coordinator.",
+      "label_where": "Where",
+      "label_when": "When",
+      "label_contact": "Contact",
+      "label_about": "Description"
     },
     "when": {
       "end_date": "Last date (optional)",
       "end_time": "Ends at",
       "first_date": "First date",
-      "repeats": "Repeats",
       "start_time": "Starts at",
       "timezone_note": "Times are in %{timezone}.",
-      "title": "When does it meet?"
+      "title": "When does it meet?",
+      "hint": "The day and time",
+      "often": "How often?",
+      "weekday": "Day",
+      "starting": "First class %{date}",
+      "change_start": "Change",
+      "date": "Date",
+      "add_end": "Add a last date"
     },
     "where": {
       "address_label": "Address",
@@ -349,7 +380,18 @@
       "title": "Where does the class take place?",
       "nearby_title": "Is it one of these?",
       "nearby_body": "There’s already a class listed at this address. If it’s yours, correct it instead of adding it again.",
-      "nearby_action": "Correct it"
+      "nearby_action": "Correct it",
+      "hint": "An address, or a link if it’s online",
+      "address_help": "Search by street and number, e.g. 12 Church Road.",
+      "map_alt": "Map showing %{place}",
+      "link_kept": "Leave blank to keep the current link."
+    },
+    "stopped": {
+      "action": "It’s no longer running",
+      "title": "No longer running",
+      "body": "Thanks for letting us know. A coordinator will check and take it off the map.",
+      "last_date": "Last class (optional)",
+      "note_prefix": "This class is no longer running."
     }
   }
 }
