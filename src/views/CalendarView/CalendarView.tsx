@@ -170,7 +170,9 @@ function CalendarControls({ controls }: { controls: CalendarControlsPlugin }) {
 
           {/* The focused date sits between the arrows. Clicking it opens the browser's native
               picker, which has its own Today button, so this needs no separate one. The input
-              overlays the button so the picker anchors to it, but stays click-through. */}
+              overlays the button so the picker anchors to it, but stays click-through.
+              Its 16px matters although it is invisible: `showPicker()` focuses it, and iOS
+              Safari zooms the page in on a focused field under 16px (#322). */}
           <div className="relative">
             <button
               className="inline-flex items-center rounded px-1.5 py-1 text-sm font-medium hover:bg-primary-3"
@@ -182,7 +184,7 @@ function CalendarControls({ controls }: { controls: CalendarControlsPlugin }) {
             <input
               ref={dateInputRef}
               aria-label={t('calendar.pick_date')}
-              className="pointer-events-none absolute inset-0 h-full w-full opacity-0"
+              className="pointer-events-none absolute inset-0 h-full w-full text-[16px] opacity-0"
               tabIndex={-1}
               type="date"
               value={focused ?? ''}
