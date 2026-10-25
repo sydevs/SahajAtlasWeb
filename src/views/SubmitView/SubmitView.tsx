@@ -174,7 +174,7 @@ function Flow({ target }: { target: FlowTarget }) {
   const location = useLocation()
   const { hasMap } = useWidgetMode()
   const isWide = useIsWideWidget()
-  const { frameEvent, frameRegion } = useMapController()
+  const { frameEvent, frameRegion, frameSearch } = useMapController()
   const hints = useFeedHints()
   const { event, region } = target
 
@@ -212,14 +212,20 @@ function Flow({ target }: { target: FlowTarget }) {
     [draft, base, basePatch, schedule, event, target.path],
   )
 
-  // A picked place drops its pin, so the visitor sees where the class will show on the map.
-  const placed = listing?.address?.latitude != null ? listing : null
-  const pinKey = placed ? `${placed.address?.latitude},${placed.address?.longitude}` : null
+  // A picked place drops its pin, so the visitor sees where the class will show on the map; a
+  // dropped one takes its pin with it. Only a change frames: on mount the camera is
+  // `useFrameOnTop`'s, which restores where the visitor left it on a Back.
+  const point = listing?.eventType === 'offline' ? listing.address : null
+  const pinKey = point?.latitude != null ? `${point.latitude},${point.longitude}` : null
+  const framedPin = useRef(pinKey)
 
   useEffect(() => {
-    if (placed && pinKey) frameEvent(placed)
+    if (pinKey === framedPin.current) return
+    framedPin.current = pinKey
+    if (pinKey && listing) frameEvent(listing)
+    else frameSearch({})
     // Keyed on the point alone: the listing is rebuilt on every keystroke.
-  }, [pinKey, frameEvent])
+  }, [pinKey, frameEvent, frameSearch])
 
   if (!session?.draft || !listing) return null
 

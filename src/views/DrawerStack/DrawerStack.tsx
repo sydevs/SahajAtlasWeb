@@ -161,6 +161,10 @@ function TopView({
   }
 }
 
+/** A search field whose suggestion list is showing — the one control that owns Escape. */
+const isOpenSuggestionList = (node: EventTarget) =>
+  node instanceof Element && node.matches('input[aria-expanded="true"]')
+
 // Every other control in the app draws this ring on focus. The strips drew nothing, so
 // tabbing into the stack was invisible. `ring-inset` matters because only a thin edge of
 // each strip escapes the sheet in front of it — an outset ring would paint into the
@@ -651,8 +655,9 @@ export function DrawerStack() {
        */
       onEscapeKeyDown={(event) => {
         // Rung zero: an open suggestion list inside the sheet (the add-a-class address search)
-        // owns Escape. Closing the list must not also close the form and its draft.
-        if (event.target instanceof Element && event.target.closest('[aria-expanded="true"]')) {
+        // owns Escape. Closing the list must not also close the form and its draft. The path,
+        // not the target: inside the embed's shadow root the target is the host element.
+        if (event.composedPath().some(isOpenSuggestionList)) {
           event.preventDefault()
 
           return

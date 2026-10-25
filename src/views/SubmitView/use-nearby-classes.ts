@@ -20,29 +20,36 @@ export type NearbyClass = { id: number; title: string; correctPath: string }
 /**
  * Classes already on the map at the place a new listing just picked, so the flow can ask "is it
  * one of these?" before a duplicate reaches a coordinator. Reads the feed and titles the map
- * already loaded — disabled observers, so this never fetches.
+ * already loaded; the titles are fetched only when a class is that close.
  */
 export function useNearbyClasses(place: PickedPlace | null, skipId?: number): NearbyClass[] {
   const { locale } = useLocale()
   const { data: feed } = useQuery<Geojson>({ queryKey: GEOJSON_QUERY_KEY, enabled: false })
-  const { data: titles } = useQuery({ ...eventTitlesQuery(locale), enabled: false })
   const lat = place?.latitude
   const lng = place?.longitude
-
-  return useMemo(() => {
+  const candidates = useMemo(() => {
     if (lat === undefined || lng === undefined) return []
 
-    return (feed?.features ?? []).flatMap((feature) => {
-      const { id, webPath, eventType } = feature.properties
+    return (feed?.features ?? []).filter(
+      ({ properties, geometry }) =>
+        properties.id !== skipId &&
+        properties.eventType !== 'online' &&
+        geometry &&
+        distanceKm(geometry.coordinates, [lng, lat]) <= SAME_PLACE_KM,
+    )
+  }, [feed, lat, lng, skipId])
+  // Titles load only on a near match: a flow opened from the country index never loaded them.
+  const { data: titles } = useQuery({ ...eventTitlesQuery(locale), enabled: candidates.length > 0 })
 
-      if (id === skipId || eventType === 'online' || !feature.geometry) return []
-      if (distanceKm(feature.geometry.coordinates, [lng, lat]) > SAME_PLACE_KM) return []
+  return useMemo(
+    () =>
+      candidates.flatMap(({ properties: { id, webPath } }) => {
+        const title = titles?.get(id)
 
-      const title = titles?.get(id)
-
-      if (!title) return []
-
-      return [{ id, title, correctPath: correctionPath(safePath(webPath) ?? `/${id}`) }]
-    })
-  }, [feed, titles, lat, lng, skipId])
+        return title
+          ? [{ id, title, correctPath: correctionPath(safePath(webPath) ?? `/${id}`) }]
+          : []
+      }),
+    [candidates, titles],
+  )
 }
