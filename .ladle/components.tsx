@@ -155,13 +155,18 @@ export const Provider: GlobalProvider = ({ children }) => {
           {/* The scope class sits on both this wrapper and <html>, on purpose.
               See the note at the top of this file: in viewport mode, the story
               renders into an iframe that the module-scope class never reaches.
-              Only an ancestor inside the tree travels with it. Having the class
-              in both places is harmless. `:where()` adds no specificity, and the
-              inherited-property block sets the same values at either level. */}
+              Only an ancestor inside the tree travels with it.
+
+              The theme class has to travel with it. The palette block's `:root`
+              arm is emitted as a bare `:where(.sy-atlas)`, so a second scope
+              element carrying no theme class re-declares the LIGHT palette for
+              everything below it — which left every story light while <html>
+              said dark. */}
           <main
             ref={wrapperRef}
             className={clsx(
               WIDGET_SCOPE_CLASS,
+              theme,
               'min-h-screen bg-background text-foreground',
               !isView && 'p-6',
             )}

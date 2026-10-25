@@ -287,6 +287,11 @@ cover everything a host would notice since the widget was first deployed.
 
 ### Fixed
 
+- **A chosen date on the registration form looks chosen again.** ([#329]) The selected card
+  filled with your brand colour, but the radio mark inside it stayed an empty ring, because the
+  browser drew that mark in the same colour as the card behind it. The mark now takes the card's
+  contrasting colour, in light and dark themes and under your own palette. No change for you to
+  make.
 - **Tapping a form field on a phone no longer zooms your page in.** ([#322]) iOS Safari scales
   the whole page when a focused field is under 16px, and the widget's fields were 13px (the
   place search, 14px) — so a visitor who tapped the search, a filter or the registration form
@@ -295,7 +300,6 @@ cover everything a host would notice since the widget was first deployed.
   than 768px. A desktop embed driven by a mouse keeps the 13px fields it had, so it looks exactly
   as it did; a narrow embed in a column on a desktop gets the 16px ones. Nothing for you to
   change, and no CSP or parameter change.
-
 - **The panel no longer flickers halfway down on every navigation.** ([#312]) Since the widget
   moved into its shadow root ([#236]), each change of view showed the arriving view in the lower
   half of the panel for the length of the fade, before it jumped to the top. The fade relied on a
@@ -751,6 +755,7 @@ must-revalidate`, pinned rather than left to the CDN default. The production dom
 [#311]: https://github.com/sydevs/SahajAtlasWeb/pull/311
 [#312]: https://github.com/sydevs/SahajAtlasWeb/pull/312
 [#322]: https://github.com/sydevs/SahajAtlasWeb/issues/322
+[#329]: https://github.com/sydevs/SahajAtlasWeb/pull/329
 [Sizing the element]: docs/embedding.md#sizing-the-element
 [compact card]: docs/embedding.md#when-the-slot-is-too-small
 [Embedding in an iframe]: docs/embedding.md#embedding-in-an-iframe
