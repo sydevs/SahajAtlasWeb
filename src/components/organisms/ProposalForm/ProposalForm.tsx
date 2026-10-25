@@ -56,6 +56,9 @@ const REFUSAL_MESSAGE_KEYS: Record<UserSubmissionErrorCode, TranslationKey> = {
   content_unscannable: 'submit.errors.send_failed',
 }
 
+/** How long after a pick a field edit is the geocoder's own echo, not the visitor's. */
+const PICK_ECHO_MS = 500
+
 /** The Events title's own bound. */
 const TITLE_MAX = 100
 /** The contact fields' bound on an Event. */
@@ -152,22 +155,19 @@ export function ProposalForm({
     go(onward)
   }
 
-  // The geocoder writes the picked label into its field right after a pick. Any edit after
-  // that means the text no longer names the pick, so the pick is dropped and must be redone.
-  const picking = useRef(false)
+  // A pick may be followed at once by the geocoder writing its own label into the field. Any
+  // edit after that means the text no longer names the pick, so the pick is dropped and the
+  // visitor is asked to choose again.
+  const pickedAt = useRef(0)
   const pick = (key: 'address' | 'city') => (feature: GeocodingFeature) => {
     const place = featureToPlace(feature)
 
-    picking.current = true
+    pickedAt.current = Date.now()
     // Without a nearby class to lend one, the visitor's own zone — never one inferred earlier.
     onChange({ [key]: place, timeZone: timeZoneFor?.(place) ?? viewerTimeZone() })
   }
   const edit = (key: 'address' | 'city') => () => {
-    if (picking.current) {
-      picking.current = false
-
-      return
-    }
+    if (Date.now() - pickedAt.current < PICK_ECHO_MS) return
     if (draft[key]) onChange({ [key]: null })
   }
 

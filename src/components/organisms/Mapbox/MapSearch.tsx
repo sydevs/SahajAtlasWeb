@@ -161,16 +161,7 @@ export function MapSearch({
     // types and the × appears, so the text never runs under it. (The
     // generated `mbx…--Input` class carries a per-build hash, so this
     // targets the element, not the class.)
-    // In a form, Escape belongs to the suggestion list: closing it must not also close the
-    // drawer the form sits in, and with it the visitor's half-filled listing.
-    // eslint-disable-next-line jsx-a11y/no-static-element-interactions
-    <div
-      ref={field}
-      className="[&_input:placeholder-shown]:!pe-3"
-      onKeyDown={(event) => {
-        if (isFormField && event.key === 'Escape') event.stopPropagation()
-      }}
-    >
+    <div ref={field} className="[&_input:placeholder-shown]:!pe-3">
       <GeocoderBoundary
         fallback={
           <input

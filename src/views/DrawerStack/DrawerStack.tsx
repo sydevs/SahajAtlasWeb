@@ -650,6 +650,13 @@ export function DrawerStack() {
        * to collapse to.
        */
       onEscapeKeyDown={(event) => {
+        // Rung zero: an open suggestion list inside the sheet (the add-a-class address search)
+        // owns Escape. Closing the list must not also close the form and its draft.
+        if (event.target instanceof Element && event.target.closest('[aria-expanded="true"]')) {
+          event.preventDefault()
+
+          return
+        }
         if (control.canDismiss || (control.canCollapse && !control.collapsed)) return
 
         event.preventDefault()

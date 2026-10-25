@@ -9,8 +9,11 @@ import { useLocale } from '@/hooks/use-locale'
 import { distanceKm } from '@/lib/geo'
 import { correctionPath, safePath } from '@/lib/shape'
 
-/** Close enough to be the same building: an address pick lands on the door, a class on the venue. */
-const SAME_PLACE_KM = 0.08
+/**
+ * Close enough to be the same venue: an address pick lands on a door, a listed class on wherever
+ * its host pinned it, often the next number along.
+ */
+const SAME_PLACE_KM = 0.15
 
 export type NearbyClass = { id: number; title: string; correctPath: string }
 
