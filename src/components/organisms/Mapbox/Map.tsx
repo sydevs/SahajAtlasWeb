@@ -111,6 +111,9 @@ const toMapSource = (features: Geojson['features']): FeatureCollection<Geometry 
  * once for the same reason.
  */
 const ATTRIBUTION_INSET = {
+  // Physical, and paired with the drawer's deferred RTL flip (`atoms/Drawer`'s
+  // `TODO(rtl, #52 WS8)`): that panel is on the left under RTL too until the flip lands, so
+  // turning this one logical alone would put the credits back under it.
   panel: 'auto 0 0 auto',
   // Below the settings cog `DrawerStack` fixes in this corner. `attribution.test.ts` derives
   // the sum from the cog's own classes.
