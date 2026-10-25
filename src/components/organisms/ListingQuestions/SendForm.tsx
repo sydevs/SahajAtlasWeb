@@ -31,7 +31,7 @@ const REFUSAL_MESSAGE_KEYS: Record<UserSubmissionErrorCode, TranslationKey> = {
 export const SEND_FORM_ID = 'listing-send'
 
 /** What the footer's Send button needs to know about the form above it. */
-export type SendState = { ready: boolean; pending: boolean }
+export type SendState = { ready: boolean; pending: boolean; blocked: boolean }
 
 export type SendFormProps = {
   draft: ListingDraft
@@ -96,8 +96,12 @@ export function SendForm({
 
   report.current = onState
   useLayoutEffect(() => {
-    report.current({ ready: Boolean(token), pending: mutation.isPending })
-  }, [token, mutation.isPending])
+    report.current({
+      ready: Boolean(token),
+      pending: mutation.isPending,
+      blocked: status === 'blocked',
+    })
+  }, [token, mutation.isPending, status])
 
   const refusal =
     (initialRefusal !== undefined || mutation.isError) &&
@@ -145,7 +149,7 @@ export function SendForm({
         error={emailError && t('submit.errors.email')}
         help={t('submit.review.email_help')}
         htmlFor="send-email"
-        label={t('submit.review.email_label')}
+        label={t('submit.ask.email_label')}
       >
         <Input
           ref={emailRef}

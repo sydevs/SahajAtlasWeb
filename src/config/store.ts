@@ -303,6 +303,8 @@ type ListingDraftState = {
   question: Question
   /** What a correction said was wrong, which picks the questions it asks. */
   reason: CorrectionReason | null
+  /** The questions moved on from, so a tap question shows an answer only once one was given. */
+  answered: Question[]
 }
 
 type ListingDraftAction = {
@@ -310,7 +312,8 @@ type ListingDraftAction = {
   update: (patch: Partial<ListingDraft>) => void
   setSender: (patch: Partial<ListingSender>) => void
   setStep: (step: ListingStep) => void
-  setQuestion: (question: Question) => void
+  /** Moving on (`forward`) counts the question left as answered; going back does not. */
+  setQuestion: (question: Question, forward?: boolean) => void
   setReason: (reason: CorrectionReason | null) => void
   markSent: () => void
 }
@@ -326,6 +329,7 @@ export const useListingDraft = create<ListingDraftState & ListingDraftAction>((s
   sent: false,
   question: 'mode',
   reason: null,
+  answered: [],
   start: ({ key, entry }, { draft, base, step }) =>
     set(() => ({
       key,
@@ -340,12 +344,20 @@ export const useListingDraft = create<ListingDraftState & ListingDraftAction>((s
       // A correction opens on "what's changed?"; a new listing on its first question.
       question: base ? 'changed' : 'mode',
       reason: null,
+      answered: [],
     })),
   setSender: (patch) => set((state) => ({ sender: { ...state.sender, ...patch } })),
   update: (patch) => set((state) => (state.draft ? { draft: { ...state.draft, ...patch } } : {})),
   setStep: (step) => set((state) => ({ step, reviewed: state.reviewed || step === 'review' })),
-  setQuestion: (question) =>
-    set((state) => ({ question, reviewed: state.reviewed || question === 'review' })),
+  setQuestion: (question, forward = true) =>
+    set((state) => ({
+      question,
+      reviewed: state.reviewed || question === 'review',
+      answered:
+        !forward || state.answered.includes(state.question)
+          ? state.answered
+          : [...state.answered, state.question],
+    })),
   setReason: (reason) => set(() => ({ reason })),
   markSent: () => set(() => ({ sent: true })),
 }))

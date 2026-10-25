@@ -15,10 +15,8 @@ import { useLocale } from '@/hooks/use-locale'
 import { stepChanged } from '@/lib/proposal'
 import { SECTION_QUESTION } from '@/lib/questions'
 
-/** The schedule as the listing will read it, with the zone it is read in, under the time picks. */
-export function ScheduleSummary({ listing, timeZone }: { listing: Event; timeZone: string }) {
-  const { t } = useTranslation()
-  const { locale } = useLocale()
+/** The schedule as the listing will read it, under the time picks. */
+export function ScheduleSummary({ listing }: { listing: Event }) {
   const { recurrenceLine, whenLine, eventTimeRange, display } = useEventDisplay(listing)
 
   if (!display.next) return null
@@ -29,18 +27,11 @@ export function ScheduleSummary({ listing, timeZone }: { listing: Event; timeZon
     time: eventTimeRange,
     hasNext: true,
   })
-  const zone =
-    new Intl.DateTimeFormat(locale, { timeZone, timeZoneName: 'longGeneric' })
-      .formatToParts(new Date())
-      .find((part) => part.type === 'timeZoneName')?.value ?? timeZone
 
   return (
     <div className="flex items-start gap-3 rounded-xl bg-primary-2 px-4 py-3" role="status">
       <CalendarDays aria-hidden className="mt-0.5 size-5 shrink-0 text-primary-11" />
-      <div className="flex min-w-0 flex-col gap-0.5">
-        <p className="text-[0.9375rem] leading-snug font-medium">{line}</p>
-        <p className="text-sm leading-snug text-gray-11">{t('submit.ask.time_zone', { zone })}</p>
-      </div>
+      <p className="min-w-0 text-[0.9375rem] leading-snug font-medium">{line}</p>
     </div>
   )
 }
@@ -148,6 +139,7 @@ export function CorrectionChanges({
   base,
   draft,
   stopped,
+  note,
   onEdit,
 }: {
   /** The published class. */
@@ -157,6 +149,8 @@ export function CorrectionChanges({
   base: ListingDraft
   draft: ListingDraft
   stopped: boolean
+  /** The note to the coordinator, which is a correction of its own when nothing else changed. */
+  note: string
   onEdit: (question: Question) => void
 }) {
   const { t } = useTranslation()
@@ -187,67 +181,78 @@ export function CorrectionChanges({
             : t('submit.correct.stopped_change')
         }
         was={calendar(before)}
+        onEdit={() => onEdit('stopped')}
       />,
     )
-  } else {
-    if (stepChanged('when', draft, base)) {
-      rows.push(
-        <ChangeRow
-          key="when"
-          label={t('submit.when.title')}
-          now={calendar(after)}
-          was={calendar(before)}
-          onEdit={() => onEdit('often')}
-        />,
-      )
-    }
-    if (stepChanged('where', draft, base)) {
-      rows.push(
-        <ChangeRow
-          key="where"
-          label={t('submit.where.title')}
-          now={after.whereLine}
-          was={before.whereLine}
-          onEdit={() => onEdit('place')}
-        />,
-      )
-    }
-    if (stepChanged('contact', draft, base)) {
-      rows.push(
-        <ChangeRow
-          key="contact"
-          label={t('submit.contact.title')}
-          now={contactLine(draft)}
-          was={contactLine(base)}
-          onEdit={() => onEdit('contact')}
-        />,
-      )
-    }
-    if (stepChanged('about', draft, base)) {
-      rows.push(
-        <ChangeRow
-          key="about"
-          label={t('event.display.about')}
-          now={draft.description}
-          was={base.description}
-          onEdit={() => onEdit('about')}
-        />,
-      )
-    }
-    if (stepChanged('more', draft, base)) {
-      rows.push(
-        <ChangeRow
-          key="more"
-          label={t('submit.more.title')}
-          now={[draft.title, draft.languages.map(languageLabel).join(', '), draft.website]
-            .filter(Boolean)
-            .join(' · ')}
-          was={[base.title, base.languages.map(languageLabel).join(', '), base.website]
-            .filter(Boolean)
-            .join(' · ')}
-        />,
-      )
-    }
+  }
+
+  // A stopped class's last date is the stopped row above, not a schedule change.
+  if (!stopped && stepChanged('when', draft, base)) {
+    rows.push(
+      <ChangeRow
+        key="when"
+        label={t('submit.when.title')}
+        now={calendar(after)}
+        was={calendar(before)}
+        onEdit={() => onEdit('often')}
+      />,
+    )
+  }
+  if (stepChanged('where', draft, base)) {
+    rows.push(
+      <ChangeRow
+        key="where"
+        label={t('submit.where.title')}
+        now={after.whereLine}
+        was={before.whereLine}
+        onEdit={() => onEdit('place')}
+      />,
+    )
+  }
+  if (stepChanged('contact', draft, base)) {
+    rows.push(
+      <ChangeRow
+        key="contact"
+        label={t('submit.contact.title')}
+        now={contactLine(draft)}
+        was={contactLine(base)}
+        onEdit={() => onEdit('contact')}
+      />,
+    )
+  }
+  if (stepChanged('about', draft, base)) {
+    rows.push(
+      <ChangeRow
+        key="about"
+        label={t('event.display.about')}
+        now={draft.description}
+        was={base.description}
+        onEdit={() => onEdit('about')}
+      />,
+    )
+  }
+  if (stepChanged('more', draft, base)) {
+    rows.push(
+      <ChangeRow
+        key="more"
+        label={t('submit.more.title')}
+        now={[draft.title, draft.languages.map(languageLabel).join(', '), draft.website]
+          .filter(Boolean)
+          .join(' · ')}
+        was={[base.title, base.languages.map(languageLabel).join(', '), base.website]
+          .filter(Boolean)
+          .join(' · ')}
+      />,
+    )
+  }
+
+  if (rows.length === 0 && note.trim()) {
+    return (
+      <div className="flex flex-col gap-1.5 rounded-xl border border-gray-6 px-4 py-3">
+        <p className="text-sm font-semibold">{t('submit.correct.note_row')}</p>
+        <p className="text-[0.9375rem] leading-snug break-words whitespace-pre-line">{note}</p>
+      </div>
+    )
   }
 
   if (rows.length === 0) {

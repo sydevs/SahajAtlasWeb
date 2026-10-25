@@ -69,6 +69,17 @@ export const correctionQuestions = (
   return ['changed', ...(reason ? branch[reason] : []), 'review']
 }
 
+/** The correction answer a question belongs to, so an Edit from review re-enters its branch. */
+export const reasonFor = (question: Question): CorrectionReason | null => {
+  if (question === 'often' || question === 'day' || question === 'time') return 'time'
+  if (question === 'mode' || question === 'link' || question === 'place') return 'place'
+  if (question === 'contact') return 'contact'
+  if (question === 'stopped') return 'stopped'
+  if (question === 'note') return 'other'
+
+  return null
+}
+
 /** The questions the visitor is walking through right now. */
 export const flowQuestions = (
   draft: ListingDraft,

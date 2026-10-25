@@ -53,12 +53,14 @@ function Flow({
   const [draft, setDraft] = useState(initial)
   const [question, setQuestion] = useState(initialQuestion)
   const [reason, setReason] = useState<CorrectionReason | null>(null)
+  const [answered, setAnswered] = useState<Question[]>([])
   const [sent, setSent] = useState(false)
   const [sender, setSender] = useState(EMPTY_SENDER)
 
   return (
     <div className="flex h-[640px] w-[352px] flex-col rounded-lg border border-divider bg-background">
       <ListingQuestions
+        answered={answered}
         context={context}
         correction={correction}
         draft={draft}
@@ -71,7 +73,10 @@ function Flow({
         sent={sent}
         onChange={(patch) => setDraft((current) => ({ ...current, ...patch }))}
         onClose={() => setSent(false)}
-        onQuestion={setQuestion}
+        onQuestion={(next, forward = true) => {
+          if (forward) setAnswered((current) => [...current, question])
+          setQuestion(next)
+        }}
         onReason={setReason}
         onSender={(patch) => setSender((current) => ({ ...current, ...patch }))}
         onSent={() => setSent(true)}

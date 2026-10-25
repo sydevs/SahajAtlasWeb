@@ -14,14 +14,23 @@ const STYLE = 'sydevadmin/ck7g6nag70rn11io09f45odkq'
  * the only way the visitor sees where their class will show — and a map-less embed has no live
  * map at all.
  */
-const staticMapUrl = (longitude: number, latitude: number) => {
+const staticMapUrl = (longitude: number, latitude: number, zoom: number) => {
   const point = `${longitude.toFixed(5)},${latitude.toFixed(5)}`
 
-  return `https://api.mapbox.com/styles/v1/${STYLE}/static/pin-l+${PIN_COLOR}(${point})/${point},15/600x240@2x?access_token=${import.meta.env.VITE_MAPBOX_ACCESSTOKEN}`
+  return `https://api.mapbox.com/styles/v1/${STYLE}/static/pin-l+${PIN_COLOR}(${point})/${point},${zoom}/600x240@2x?access_token=${import.meta.env.VITE_MAPBOX_ACCESSTOKEN}`
 }
 
 /** The picked place, as the visitor confirms it: a map of the pin over the address. */
-export function PlaceCard({ place, action }: { place: PickedPlace; action?: ReactNode }) {
+export function PlaceCard({
+  place,
+  action,
+  zoom = 15,
+}: {
+  place: PickedPlace
+  action?: ReactNode
+  /** Street level for an address; a city wants the whole town in view. */
+  zoom?: number
+}) {
   const [mapFailed, setMapFailed] = useState(false)
   const hasPoint = place.latitude !== undefined && place.longitude !== undefined
 
@@ -32,7 +41,7 @@ export function PlaceCard({ place, action }: { place: PickedPlace; action?: Reac
           alt={place.label}
           className="block aspect-[5/2] w-full bg-gray-3 object-cover"
           loading="lazy"
-          src={staticMapUrl(place.longitude!, place.latitude!)}
+          src={staticMapUrl(place.longitude!, place.latitude!, zoom)}
           onError={() => setMapFailed(true)}
         />
       )}

@@ -117,11 +117,13 @@ function Harness({
   const [draft, setDraft] = useState(initial)
   const [question, setQuestion] = useState<Question>(startAt)
   const [reason, setReason] = useState<CorrectionReason | null>(null)
+  const [answered, setAnswered] = useState<Question[]>([])
   const [sent, setSent] = useState(false)
   const [sender, setSender] = useState({ email: '', note })
 
   return (
     <ListingQuestions
+      answered={answered}
       context={context}
       correction={correction}
       draft={draft}
@@ -133,8 +135,9 @@ function Harness({
       sent={sent}
       onChange={(patch) => setDraft((current) => ({ ...current, ...patch }))}
       onClose={() => {}}
-      onQuestion={(next) => {
+      onQuestion={(next, forward = true) => {
         asked.push(next)
+        if (forward) setAnswered((current) => [...current, question])
         setQuestion(next)
       }}
       onReason={setReason}
@@ -190,7 +193,7 @@ async function press(label: string) {
   await act(async () => {
     button.click()
     // A tapped answer moves on after a short beat.
-    await new Promise((resolve) => setTimeout(resolve, 250))
+    await new Promise((resolve) => setTimeout(resolve, 450))
   })
 }
 

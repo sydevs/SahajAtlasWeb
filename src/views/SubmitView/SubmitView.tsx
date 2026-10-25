@@ -21,6 +21,7 @@ import { useIsWideWidget } from '@/config/responsive'
 import { useListingDraft } from '@/config/store'
 import { useLocale } from '@/hooks/use-locale'
 import { useMapController } from '@/hooks/use-map-controller'
+import { reasonFor } from '@/lib/questions'
 import {
   draftPreviewSchedule,
   draftToPatch,
@@ -128,6 +129,7 @@ function useListingSession(target: FlowTarget) {
       base: state.base,
       question: state.question,
       reason: state.reason,
+      answered: state.answered,
       reviewed: state.reviewed,
       sent: state.sent,
     })),
@@ -237,6 +239,7 @@ function Flow({ target }: { target: FlowTarget }) {
 
   return (
     <ListingQuestions
+      answered={session.answered}
       city={region?.name ?? event?.region?.name ?? undefined}
       context={buildReportContext({ path: location.pathname, locale })}
       correction={correction}
@@ -255,18 +258,26 @@ function Flow({ target }: { target: FlowTarget }) {
               draft={session.draft}
               event={event}
               listing={listing}
+              note={session.sender.note}
               stopped={session.reason === 'stopped'}
-              onEdit={setQuestion}
+              onEdit={(question) => {
+                setReason(reasonFor(question) ?? session.reason)
+                setQuestion(question, false)
+              }}
             />
           ) : (
-            <ListingPreview listing={listing} path={target.path} onEdit={setQuestion} />
+            <ListingPreview
+              listing={listing}
+              path={target.path}
+              onEdit={(question) => setQuestion(question, false)}
+            />
           )}
         </IpLookupContext.Provider>
       }
       reviewed={session.reviewed}
       scheduleSummary={
         <IpLookupContext.Provider value={false}>
-          <ScheduleSummary listing={listing} timeZone={session.draft.timeZone} />
+          <ScheduleSummary listing={listing} />
         </IpLookupContext.Provider>
       }
       sender={session.sender}

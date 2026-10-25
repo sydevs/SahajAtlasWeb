@@ -11,6 +11,7 @@ import {
   previousQuestion,
   questionErrors,
   questionProgress,
+  reasonFor,
   weekdayOf,
 } from './questions'
 
@@ -47,6 +48,13 @@ describe('the questions asked', () => {
     expect(correctionQuestions(draft, 'contact')).toEqual(['changed', 'contact', 'review'])
     expect(correctionQuestions(draft, 'stopped')).toEqual(['changed', 'stopped', 'review'])
     expect(correctionQuestions(draft, 'other')).toEqual(['changed', 'note', 'review'])
+  })
+
+  it('sends an Edit from a correction’s review back into the branch that owns it', () => {
+    expect(reasonFor('day')).toBe('time')
+    expect(reasonFor('place')).toBe('place')
+    expect(reasonFor('note')).toBe('other')
+    expect(reasonFor('review')).toBeNull()
   })
 
   it('walks forward and back, and ends on review', () => {

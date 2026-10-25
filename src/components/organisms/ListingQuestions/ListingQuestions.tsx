@@ -42,11 +42,12 @@ import {
   previousQuestion,
   questionErrors,
   questionProgress,
+  weekdayOf,
 } from '@/lib/questions'
 import { viewerTimeZone } from '@/lib/time'
 
 /** How long a tapped answer stays lit before the next question slides in. */
-const CHOICE_BEAT_MS = 180
+const CHOICE_BEAT_MS = 320
 
 /** The questions the visitor can leave without answering. */
 const SKIPPABLE: ReadonlySet<Question> = new Set(['contact', 'about'])
@@ -54,10 +55,11 @@ const SKIPPABLE: ReadonlySet<Question> = new Set(['contact', 'about'])
 /** The questions whose answer is a tap, so they move on by themselves. */
 const CHOSEN: ReadonlySet<Question> = new Set(['mode', 'often', 'changed'])
 
-/** The step a refused send names, as the question that fixes it. */
-const stepQuestion = (step: ListingStep, draft: ListingDraft): Question => {
-  if (step === 'where') return draft.eventType === 'online' && !draft.onlineUrl ? 'link' : 'place'
-  if (step === 'when') return draft.firstDate ? 'time' : 'day'
+/** The step a refused send names, as the question whose screen holds the wrong field. */
+const stepQuestion = (step: ListingStep, draft: ListingDraft, base?: ListingDraft): Question => {
+  if (step === 'where') return questionErrors('link', draft, base).onlineUrl ? 'link' : 'place'
+  // The first and last dates are on the day screen; the times on the next.
+  if (step === 'when') return questionErrors('day', draft, base).firstDate ? 'day' : 'time'
 
   // The website, the one field `more` checks, sits with the contact details here.
   return 'contact'
@@ -69,7 +71,10 @@ export type ListingQuestionsProps = {
   draft: ListingDraft
   onChange: (patch: Partial<ListingDraft>) => void
   question: Question
-  onQuestion: (question: Question) => void
+  /** `forward` is false for Back, so the question left does not count as answered. */
+  onQuestion: (question: Question, forward?: boolean) => void
+  /** The questions already moved on from: a tap question shows its answer only after one. */
+  answered: Question[]
   reason: CorrectionReason | null
   onReason: (reason: CorrectionReason | null) => void
   /** Whether the last screen has been reached, after which an edit returns straight to it. */
@@ -117,9 +122,8 @@ export function ListingQuestions(props: ListingQuestionsProps) {
     onReason,
     reviewed,
     sender,
-    onSender,
     sent,
-
+    answered,
     trailing,
     stickyFooter = false,
   } = props
@@ -129,7 +133,7 @@ export function ListingQuestions(props: ListingQuestionsProps) {
   const questions = flowQuestions(draft, correction ? { reason } : null)
   const [attempted, setAttempted] = useState<Question | null>(null)
   const [direction, setDirection] = useState<1 | -1>(1)
-  const [send, setSend] = useState<SendState>({ ready: false, pending: false })
+  const [send, setSend] = useState<SendState>({ ready: false, pending: false, blocked: false })
   const headingRef = useRef<HTMLHeadingElement>(null)
   const bodyRef = useRef<HTMLDivElement>(null)
   const beat = useRef<ReturnType<typeof setTimeout>>()
@@ -159,7 +163,7 @@ export function ListingQuestions(props: ListingQuestionsProps) {
     clearTimeout(beat.current)
     setDirection(towards)
     setAttempted(null)
-    onQuestion(next)
+    onQuestion(next, towards === 1)
   }
 
   /** Where Continue leads: on through the questions, or back to the end once it was seen. */
@@ -200,13 +204,10 @@ export function ListingQuestions(props: ListingQuestionsProps) {
     )
   }
 
+  // Another answer adds to the correction rather than starting it over: a host who moved venue
+  // may have changed the time too, and corrects both in one go.
   const chooseReason = (next: CorrectionReason) => {
     onReason(next)
-    // A different answer starts the correction over from the published class.
-    if (base && next !== reason) {
-      onChange(base)
-      onSender({ note: '' })
-    }
     clearTimeout(beat.current)
     beat.current = setTimeout(
       () => go(correctionQuestions(base ?? draft, next)[1], 1),
@@ -265,25 +266,30 @@ export function ListingQuestions(props: ListingQuestionsProps) {
       errors={errors}
       headingRef={headingRef}
       questions={questions}
+      onAnother={() => go('changed', -1)}
       onChooseMode={(eventType) => choose({ eventType })}
       onChooseReason={chooseReason}
       onChooseRepeats={(repeats) => choose({ repeats })}
       onEdit={edit}
       onInvalid={(step) => {
-        const fix = stepQuestion(step, draft)
+        const fix = stepQuestion(step, draft, base)
 
         go(fix, -1)
         setAttempted(fix)
       }}
       onPick={pick}
       onSendState={setSend}
-      onWeekday={(weekday) => choose({ firstDate: weekdayDate(weekday, draft.timeZone) })}
+      onWeekday={(weekday) =>
+        // A start already on that weekday is kept, so a class starting next month stays put.
+        weekdayOf(draft.firstDate) !== weekday &&
+        onChange({ firstDate: weekdayDate(weekday, draft.timeZone) })
+      }
     />
   )
 
   const isLast = question === 'review'
   // A screen answered by a tap has nothing to confirm until it holds an answer.
-  const hasFooter = isLast || !CHOSEN.has(question) || answeredChoice(question, draft, reason)
+  const hasFooter = isLast || !CHOSEN.has(question) || answered.includes(question)
   const continueLabel =
     reviewed && !CHOSEN.has(question) && onward(question, questions) === 'review'
       ? t('submit.ask.done')
@@ -316,9 +322,9 @@ export function ListingQuestions(props: ListingQuestionsProps) {
         ) : (
           question !== 'review' && (
             <AnswerChips
+              answered={answered}
               draft={draft}
               question={question}
-              questions={questions}
               onJump={(asked) => go(asked, -1)}
             />
           )
@@ -346,6 +352,12 @@ export function ListingQuestions(props: ListingQuestionsProps) {
               {t('submit.chrome.skip')}
             </Button>
           )}
+          {isLast && !send.ready && !send.blocked && (
+            // Says why Send is not ready yet, rather than leaving a pale button to puzzle over.
+            <p className="sr-only" role="status">
+              {t('submit.ask.send_waiting')}
+            </p>
+          )}
           {isLast ? (
             <Button
               className="flex-1"
@@ -357,7 +369,7 @@ export function ListingQuestions(props: ListingQuestionsProps) {
               type="submit"
               variant="solid"
             >
-              {t('submit.ask.send')}
+              {send.ready || send.blocked ? t('submit.ask.send') : t('submit.ask.send_waiting')}
             </Button>
           ) : (
             <Button className="flex-1" color="primary" size="lg" variant="solid" onClick={advance}>
@@ -402,13 +414,6 @@ function QuestionLayer({
   )
 }
 
-/** Whether a tap question already holds an answer, so Continue can keep it. */
-const answeredChoice = (
-  question: Question,
-  draft: ListingDraft,
-  reason: CorrectionReason | null,
-) => (question === 'changed' ? reason !== null : Boolean(draft))
-
 /** The header row: back, the progress through the questions, and close. */
 function FlowBar({
   back,
@@ -450,24 +455,31 @@ function FlowBar({
 function AnswerChips({
   draft,
   question,
-  questions,
+  answered,
   onJump,
 }: {
   draft: ListingDraft
   question: Question
-  questions: Question[]
+  answered: Question[]
   onJump: (question: Question) => void
 }) {
   const { t } = useTranslation()
   const { locale, languageLabel } = useLocale()
-  const passed = new Set(questions.slice(0, Math.max(0, questions.indexOf(question))))
+  const passed = new Set(answered.filter((asked) => asked !== question))
   const firstDate = DateTime.fromISO(draft.firstDate).setLocale(locale)
   const place = draftPlace(draft)
   const chips: { question: Question; label: string }[] = []
 
-  if (passed.has('place') && place)
-    chips.push({ question: 'place', label: place.city || place.label })
-  else if (passed.has('mode') && draft.eventType === 'online')
+  const online = draft.eventType === 'online'
+
+  if (passed.has('place') && place) {
+    const where = place.city || place.label
+
+    chips.push({
+      question: 'place',
+      label: online ? `${t('submit.where.online')} · ${where}` : where,
+    })
+  } else if (passed.has('mode') && online)
     chips.push({ question: 'mode', label: t('submit.where.online') })
   if (passed.has('day') && firstDate.isValid) {
     const label =
@@ -491,7 +503,8 @@ function AnswerChips({
       {chips.map((chip) => (
         <li key={chip.question}>
           <button
-            className="inline-flex h-7 max-w-[14rem] items-center gap-1 rounded-full bg-primary-3 px-2.5 text-xs font-medium text-primary-11 transition-colors outline-none hover:bg-primary-4 focus-visible:ring-2 focus-visible:ring-focus"
+            data-vaul-no-drag
+            className="inline-flex h-8 max-w-[15rem] items-center gap-1.5 rounded-full bg-primary-3 px-3 text-[0.8125rem] font-medium text-primary-11 transition-colors outline-none hover:bg-primary-4 focus-visible:ring-2 focus-visible:ring-focus"
             type="button"
             onClick={() => onJump(chip.question)}
           >
@@ -517,6 +530,7 @@ type ScreenArgs = ListingQuestionsProps & {
   onEdit: (key: 'address' | 'city') => () => void
   onInvalid: (step: ListingStep) => void
   onSendState: (state: SendState) => void
+  onAnother: () => void
 }
 
 /** The screen for the current question: its heading, then its answer. */
@@ -537,7 +551,11 @@ function Screen(args: ScreenArgs) {
       return titled(
         t('submit.ask.mode_title'),
         null,
-        <ModeScreen draft={draft} onChoose={args.onChooseMode} />,
+        <ModeScreen
+          draft={draft}
+          picked={args.answered.includes('mode')}
+          onChoose={args.onChooseMode}
+        />,
       )
     case 'link':
       return titled(
@@ -570,7 +588,11 @@ function Screen(args: ScreenArgs) {
       return titled(
         t('submit.ask.often_title'),
         null,
-        <OftenScreen draft={draft} onChoose={args.onChooseRepeats} />,
+        <OftenScreen
+          draft={draft}
+          picked={args.answered.includes('often')}
+          onChoose={args.onChooseRepeats}
+        />,
       )
     case 'day':
       return titled(
@@ -643,7 +665,20 @@ function Screen(args: ScreenArgs) {
         correction ? t('submit.correct.review_title') : t('submit.ask.review_title'),
         correction ? t('submit.correct.review_help') : t('submit.ask.review_help'),
         <div className="flex flex-col gap-8">
-          {args.review}
+          <div className="flex flex-col gap-3">
+            {args.review}
+            {correction && (
+              <Button
+                className="self-start"
+                color="primary"
+                size="sm"
+                variant="ghost"
+                onClick={args.onAnother}
+              >
+                {t('submit.correct.another')}
+              </Button>
+            )}
+          </div>
           <SendForm
             context={args.context}
             correction={correction}

@@ -4,7 +4,7 @@ import type { GeocodingFeature } from '@mapbox/search-js-core'
 import type { LucideIcon } from 'lucide-react'
 import type { ComponentProps, ReactNode, Ref } from 'react'
 
-import { useMemo, useState } from 'react'
+import { useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { DateTime } from 'luxon'
 import {
@@ -13,6 +13,7 @@ import {
   CalendarRange,
   Check,
   CircleSlash,
+  Globe,
   MapPin,
   MessageSquareText,
   Monitor,
@@ -25,15 +26,17 @@ import { ChoiceCard } from './ChoiceCard'
 import { PlaceCard } from './PlaceCard'
 
 import { Button } from '@/components/atoms/Button'
+import { Combobox } from '@/components/atoms/Combobox'
 import { Input } from '@/components/atoms/Input'
 import { Textarea } from '@/components/atoms/Textarea'
-import { FormField, fieldDescribedBy } from '@/components/molecules/FormField'
+import { FormField, fieldDescribedBy, fieldErrorId } from '@/components/molecules/FormField'
 import { LanguageMultiSelect } from '@/components/molecules/LanguageMultiSelect'
 import { MapSearch } from '@/components/organisms/Mapbox/MapSearch'
 import { userSubmissionValueMax } from '@/config/api/mutate'
 import { useLanguageOptions } from '@/hooks/use-language-options'
 import { useLocale } from '@/hooks/use-locale'
 import { draftTitle } from '@/lib/proposal'
+import { zoneCity } from '@/lib/time'
 import { ISO_WEEKDAYS, addMinutes, minutesBetween, nextDateOn, weekdayOf } from '@/lib/questions'
 
 /** Inputs a phone can read without zooming in: iOS zooms any field under 16px. */
@@ -124,17 +127,20 @@ function Field({
   error,
   required,
   className,
+  inputRef,
   ...input
-}: Omit<ComponentProps<typeof Input>, 'id' | 'isInvalid'> & {
+}: Omit<ComponentProps<typeof Input>, 'id' | 'isInvalid' | 'ref'> & {
   id: string
   label: string
   help?: string
   error?: string | false
   required?: boolean
+  inputRef?: Ref<HTMLInputElement>
 }) {
   return (
     <FormField error={error} help={help} htmlFor={id} label={label} required={required}>
       <Input
+        ref={inputRef}
         aria-describedby={fieldDescribedBy({
           name: id,
           help: Boolean(help) && !error,
@@ -161,6 +167,7 @@ function Pick({
 }) {
   return (
     <button
+      data-vaul-no-drag
       aria-pressed={selected}
       className={`inline-flex h-11 items-center gap-1.5 rounded-full border px-4 text-[0.9375rem] font-medium transition-colors outline-none focus-visible:ring-2 focus-visible:ring-focus ${
         selected
@@ -186,9 +193,12 @@ type ScreenProps = {
 
 export function ModeScreen({
   draft,
+  picked,
   onChoose,
 }: {
   draft: ListingDraft
+  /** Whether this was answered before: until then nothing shows as chosen. */
+  picked: boolean
   onChoose: (eventType: ListingDraft['eventType']) => void
 }) {
   const { t } = useTranslation()
@@ -199,14 +209,14 @@ export function ModeScreen({
         hint={t('submit.ask.mode_offline_hint')}
         icon={Users}
         label={t('submit.where.offline')}
-        selected={draft.eventType === 'offline'}
+        selected={picked && draft.eventType === 'offline'}
         onSelect={() => onChoose('offline')}
       />
       <ChoiceCard
         hint={t('submit.ask.mode_online_hint')}
         icon={Monitor}
         label={t('submit.where.online')}
-        selected={draft.eventType === 'online'}
+        selected={picked && draft.eventType === 'online'}
         onSelect={() => onChoose('online')}
       />
     </div>
@@ -273,6 +283,7 @@ export function PlaceScreen({
             </Button>
           }
           place={place}
+          zoom={online ? 10 : 15}
         />
         {notice}
         {!online && (
@@ -319,9 +330,12 @@ export function PlaceScreen({
 
 export function OftenScreen({
   draft,
+  picked,
   onChoose,
 }: {
   draft: ListingDraft
+  /** Whether this was answered before: until then nothing shows as chosen. */
+  picked: boolean
   onChoose: (repeats: ListingDraft['repeats']) => void
 }) {
   const { t } = useTranslation()
@@ -354,7 +368,7 @@ export function OftenScreen({
           hint={choice.hint}
           icon={choice.icon}
           label={choice.label}
-          selected={draft.repeats === choice.value}
+          selected={picked && draft.repeats === choice.value}
           onSelect={() => onChoose(choice.value)}
         />
       ))}
@@ -373,7 +387,10 @@ export function DayScreen({
   const weekday = weekdayOf(draft.firstDate)
   const [changingDate, setChangingDate] = useState(false)
   const [hasEnd, setHasEnd] = useState(Boolean(draft.endDate))
-  const dateError = errors.firstDate && t('submit.errors.first_date')
+  const dateRef = useRef<HTMLInputElement>(null)
+  const endRef = useRef<HTMLInputElement>(null)
+  const endsFirst = Boolean(draft.endDate) && draft.endDate < draft.firstDate
+  const dateError = errors.firstDate && !endsFirst && t('submit.errors.first_date')
   const firstDate = DateTime.fromISO(draft.firstDate)
   const longDate = firstDate.isValid
     ? firstDate.setLocale(locale).toLocaleString({ weekday: 'long', day: 'numeric', month: 'long' })
@@ -385,7 +402,8 @@ export function DayScreen({
       error={dateError}
       help={draft.repeats === 'monthly' ? t('submit.ask.day_monthly_help') : undefined}
       id="ask-first-date"
-      label={t('submit.when.first_date')}
+      inputRef={dateRef}
+      label={draft.repeats === 'once' ? t('submit.ask.date_label') : t('submit.when.first_date')}
       type="date"
       value={draft.firstDate}
       onChange={(event) => onChange({ firstDate: event.target.value })}
@@ -393,7 +411,7 @@ export function DayScreen({
   )
 
   const endField = draft.repeats !== 'once' && (
-    <div className="flex flex-col gap-3">
+    <div className="flex flex-col gap-3 border-t border-gray-4 pt-5">
       <label className="flex min-h-11 cursor-pointer items-center gap-3 text-[0.9375rem]">
         <input
           checked={hasEnd}
@@ -401,15 +419,19 @@ export function DayScreen({
           type="checkbox"
           onChange={(event) => {
             setHasEnd(event.target.checked)
-            if (!event.target.checked) onChange({ endDate: '' })
+            if (event.target.checked) requestAnimationFrame(() => endRef.current?.focus())
+            else onChange({ endDate: '' })
           }}
         />
         {t('submit.ask.day_add_end')}
       </label>
       {hasEnd && (
         <Field
+          error={endsFirst && t('submit.ask.end_before_start')}
+          help={t('submit.ask.day_end_help')}
           id="ask-end-date"
-          label={t('submit.when.end_date')}
+          inputRef={endRef}
+          label={t('submit.ask.day_end_label')}
           min={draft.firstDate || undefined}
           type="date"
           value={draft.endDate}
@@ -432,60 +454,46 @@ export function DayScreen({
     <div className="flex flex-col gap-5">
       <div
         aria-label={t('submit.ask.day_title_weekly')}
-        className="grid grid-cols-7 gap-1.5"
+        className="flex flex-wrap gap-2"
         data-invalid={dateError ? true : undefined}
         role="group"
       >
-        {ISO_WEEKDAYS.map((day) => {
-          const name = DateTime.fromObject({ weekday: day }).setLocale(locale)
-          const selected = weekday === day
-
-          return (
-            <button
-              key={day}
-              aria-label={name.toFormat('cccc')}
-              aria-pressed={selected}
-              className={`flex h-14 items-center justify-center rounded-lg border text-sm font-semibold transition-colors outline-none focus-visible:ring-2 focus-visible:ring-focus ${
-                selected
-                  ? 'border-primary-9 bg-primary-9 text-white'
-                  : 'border-gray-6 bg-background hover:border-gray-8 hover:bg-gray-2'
-              }`}
-              type="button"
-              onClick={() => onWeekday(day)}
-            >
-              {name.toFormat('ccc')}
-            </button>
-          )
-        })}
+        {ISO_WEEKDAYS.map((day) => (
+          <Pick key={day} selected={weekday === day} onClick={() => onWeekday(day)}>
+            {DateTime.fromObject({ weekday: day }).setLocale(locale).toFormat('cccc')}
+          </Pick>
+        ))}
       </div>
       {dateError && !changingDate && (
-        <p className="-mt-3 text-sm text-danger-11" role="alert">
+        <p className="-mt-2 text-sm text-danger-11" role="alert">
           {dateError}
         </p>
       )}
       {weekday && !changingDate && (
-        <p className="flex items-center gap-2 text-[0.9375rem] text-gray-11">
-          <CalendarDays aria-hidden className="size-4 shrink-0" />
-          <span className="min-w-0 flex-1">{t('submit.ask.day_first', { date: longDate })}</span>
+        <div className="flex items-center gap-3 rounded-xl bg-gray-2 px-4 py-3">
+          <CalendarDays aria-hidden className="size-5 shrink-0 text-primary-11" />
+          <p className="min-w-0 flex-1 text-[0.9375rem] leading-snug">
+            {t('submit.ask.day_first', { date: longDate })}
+          </p>
           <Button
-            className="-my-1 shrink-0"
+            className="-my-1 -me-2 shrink-0"
             color="primary"
             size="sm"
             variant="ghost"
-            onClick={() => setChangingDate(true)}
+            onClick={() => {
+              setChangingDate(true)
+              requestAnimationFrame(() => dateRef.current?.focus())
+            }}
           >
             {t('submit.ask.day_change_date')}
           </Button>
-        </p>
+        </div>
       )}
       {changingDate && dateField}
       {endField}
     </div>
   )
 }
-
-/** Focuses a field the click that revealed it has just rendered. */
-const focusSoon = (id: string) => requestAnimationFrame(() => document.getElementById(id)?.focus())
 
 export function TimeScreen({
   draft,
@@ -504,6 +512,8 @@ export function TimeScreen({
     Boolean(draft.endTime) && !LENGTH_PICKS.some((pick) => pick.minutes === length),
   )
   const startError = errors.startTime && t('submit.errors.start_time')
+  const startRef = useRef<HTMLInputElement>(null)
+  const endRef = useRef<HTMLInputElement>(null)
 
   const setStart = (startTime: string) => {
     // Keep the session's length when the start moves, so the end follows it.
@@ -531,7 +541,7 @@ export function TimeScreen({
             selected={customStart}
             onClick={() => {
               setCustomStart(true)
-              focusSoon('ask-start-time')
+              requestAnimationFrame(() => startRef.current?.focus())
             }}
           >
             {t('submit.ask.time_other')}
@@ -541,6 +551,7 @@ export function TimeScreen({
           <Field
             error={startError}
             id="ask-start-time"
+            inputRef={startRef}
             label={t('submit.when.start_time')}
             type="time"
             value={draft.startTime}
@@ -573,7 +584,7 @@ export function TimeScreen({
             selected={customEnd}
             onClick={() => {
               setCustomEnd(true)
-              focusSoon('ask-end-time')
+              requestAnimationFrame(() => endRef.current?.focus())
             }}
           >
             {t('submit.ask.time_end_other')}
@@ -582,6 +593,7 @@ export function TimeScreen({
         {customEnd && (
           <Field
             id="ask-end-time"
+            inputRef={endRef}
             label={t('submit.when.end_time')}
             type="time"
             value={draft.endTime}
@@ -590,8 +602,89 @@ export function TimeScreen({
         )}
       </fieldset>
 
-      {summary}
+      <div className="flex flex-col gap-3">
+        {summary}
+        <TimeZoneLine timeZone={draft.timeZone} onChange={(timeZone) => onChange({ timeZone })} />
+      </div>
     </div>
+  )
+}
+
+/** Every zone the browser knows, or just the current one where it cannot list them. */
+const zoneList = (current: string): string[] =>
+  (Intl as { supportedValuesOf?: (key: 'timeZone') => string[] }).supportedValuesOf?.(
+    'timeZone',
+  ) ?? [current]
+
+/** A zone's everyday name in the visitor's language: "United Kingdom Time". */
+const zoneName = (timeZone: string, locale: string) =>
+  new Intl.DateTimeFormat(locale, { timeZone, timeZoneName: 'longGeneric' })
+    .formatToParts(new Date())
+    .find((part) => part.type === 'timeZoneName')?.value ?? timeZone
+
+/**
+ * The zone the times are read in, with a way to change it. It is a guess — the nearest listed
+ * class's zone, else the visitor's own — and a wrong one shifts every session, so it is shown
+ * in words and kept one tap from a fix.
+ */
+function TimeZoneLine({
+  timeZone,
+  onChange,
+}: {
+  timeZone: string
+  onChange: (timeZone: string) => void
+}) {
+  const { t } = useTranslation()
+  const { locale } = useLocale()
+  const [changing, setChanging] = useState(false)
+  const options = useMemo(
+    () =>
+      changing
+        ? zoneList(timeZone).map((zone) => ({
+            value: zone,
+            label: zoneCity(zone),
+            hint: zoneName(zone, locale),
+          }))
+        : [],
+    [changing, locale, timeZone],
+  )
+
+  if (changing) {
+    return (
+      <FormField label={t('submit.ask.zone_label')}>
+        <Combobox
+          aria-label={t('submit.ask.zone_label')}
+          className={BIG_FIELD}
+          options={options}
+          searchPlaceholder={t('submit.ask.zone_search')}
+          value={timeZone}
+          onValueChange={(zone) => {
+            onChange(zone)
+            setChanging(false)
+          }}
+        />
+      </FormField>
+    )
+  }
+
+  return (
+    <p className="flex items-center gap-2 px-1 text-sm text-gray-11">
+      <Globe aria-hidden className="size-4 shrink-0" />
+      <span className="min-w-0 flex-1">
+        {t('submit.ask.time_zone', {
+          zone: `${zoneName(timeZone, locale)} (${zoneCity(timeZone)})`,
+        })}
+      </span>
+      <Button
+        className="-my-1 shrink-0"
+        color="primary"
+        size="sm"
+        variant="ghost"
+        onClick={() => setChanging(true)}
+      >
+        {t('submit.ask.zone_change')}
+      </Button>
+    </p>
   )
 }
 
@@ -848,10 +941,12 @@ export function NoteScreen({
   onSender: (patch: Partial<ListingSender>) => void
   error?: string | false
 }) {
+  // The screen's question is this field's label: there is nothing else on the screen.
   return (
-    <FormField announceError error={error} htmlFor="ask-note" label="">
+    <div className="flex flex-col gap-1.5">
       <Textarea
         aria-describedby={fieldDescribedBy({ name: 'ask-note', error: Boolean(error) })}
+        aria-labelledby="ask-note-title"
         className="text-base"
         id="ask-note"
         isInvalid={Boolean(error)}
@@ -860,7 +955,12 @@ export function NoteScreen({
         value={sender.note}
         onChange={(event) => onSender({ note: event.target.value })}
       />
-    </FormField>
+      {error && (
+        <p className="text-sm text-danger-11" id={fieldErrorId('ask-note')} role="alert">
+          {error}
+        </p>
+      )}
+    </div>
   )
 }
 

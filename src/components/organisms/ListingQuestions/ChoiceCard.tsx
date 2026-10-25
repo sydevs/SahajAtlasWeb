@@ -5,6 +5,8 @@ import { Check, ChevronRight, Circle } from 'lucide-react'
 
 // A whole-row answer to a question: one tap picks it and moves on. Sized for a thumb (64px+),
 // with the icon, a plain label and a one-line hint, so a visitor never has to read a form.
+// Like the Button atom, each tappable thing in this flow carries `data-vaul-no-drag`, or the
+// bottom sheet reads a tap that moves a little as a drag and swallows it.
 const card = tv({
   slots: {
     base: 'group flex min-h-16 w-full items-center gap-3 rounded-xl border px-4 py-3 text-start transition-[background,border-color,transform] outline-none focus-visible:ring-2 focus-visible:ring-focus active:scale-[0.99] motion-reduce:active:scale-100',
@@ -38,7 +40,8 @@ export type ChoiceCardProps = {
   selected?: boolean
   /**
    * `next` answers and moves on, so it points onward; `radio` picks one of a pair that stays
-   * on screen, so it shows the empty circle of a choice not yet made.
+   * on screen, so it shows the empty circle of a choice not yet made. Both are toggle buttons
+   * (`aria-pressed`), which need none of a radio group's arrow-key handling.
    */
   kind?: 'next' | 'radio'
   onSelect: () => void
@@ -57,10 +60,9 @@ export function ChoiceCard({
 
   return (
     <button
-      aria-checked={kind === 'radio' ? selected : undefined}
-      aria-pressed={kind === 'radio' ? undefined : selected}
+      data-vaul-no-drag
+      aria-pressed={selected}
       className={slots.base()}
-      role={kind === 'radio' ? 'radio' : undefined}
       type="button"
       onClick={onSelect}
     >

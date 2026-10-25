@@ -307,12 +307,10 @@
     "review": {
       "edit": "Edit",
       "email_help": "We’ll only use this to tell you what happens to your submission.",
-      "email_label": "Your email",
       "no_changes": "Change at least one detail before submitting.",
       "note_label": "Note for the coordinator (optional)"
     },
     "when": {
-      "end_date": "Last date (optional)",
       "end_time": "Ends at",
       "first_date": "First date",
       "start_time": "Starts at",
@@ -392,9 +390,18 @@
       "next_check": "A coordinator for %{city} checks it.",
       "next_check_no_city": "A coordinator checks it.",
       "next_email": "We email you at %{email} once it’s been reviewed.",
-      "next_live": "Your class appears on the map.",
-      "next_changed": "The listing is updated.",
-      "time_end_other": "Set the end time"
+      "next_live": "If it’s approved, your class appears on the map.",
+      "next_changed": "If it’s approved, the listing is updated.",
+      "time_end_other": "Set the end time",
+      "date_label": "Date",
+      "day_end_label": "Last class",
+      "day_end_help": "For a course, or a class that ends on a set date.",
+      "end_before_start": "The last class can’t be before the first one.",
+      "zone_change": "Change",
+      "zone_label": "Time zone",
+      "zone_search": "Search for a city or zone",
+      "send_waiting": "Running a quick security check…",
+      "email_label": "Your email (kept private)"
     },
     "correct": {
       "changed_title": "What’s changed?",
@@ -425,7 +432,9 @@
       "now": "Now",
       "stopped_change": "No longer running",
       "stopped_change_on": "Last class %{date}",
-      "nothing_changed": "Nothing has changed yet. Add a note below, or go back and make a change."
+      "nothing_changed": "Nothing has changed yet. Add a note below, or go back and make a change.",
+      "another": "Correct something else too",
+      "note_row": "Your note"
     }
   }
 }
