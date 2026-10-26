@@ -56,6 +56,12 @@ export const reconciledViewerPlace = (
  * An occurrence spans at most one night (`withEndTime`), so those dates say
  * nothing. The day is in UTC, where no transition can swallow the wall clock it
  * carries.
+ *
+ * An overnight range therefore reaches `formatRange` with its start later than
+ * its end — pinned 21:30 against pinned 00:30. No spec or MDN text covers that
+ * pair, but every locale checked renders it in the order given. Do not "fix" it:
+ * re-dating the end restores the day boundary, and swapping the arguments prints
+ * the range backwards.
  */
 const wallClockOnOneDay = (at: DateTime): Date => new Date(Date.UTC(2000, 0, 1, at.hour, at.minute))
 
