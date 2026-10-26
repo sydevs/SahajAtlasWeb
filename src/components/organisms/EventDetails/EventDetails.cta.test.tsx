@@ -6,21 +6,13 @@ import { EventDetails } from './EventDetails'
 import { mockEvent } from '@/mocks/events'
 
 // Node-only SSR assertions (see `docs/testing.md`). Register and the action row travel
-// together: the mobile map sheet pins its footer over the body's last band, so an inline
-// copy of either is drawn underneath it at the 300px snap (#320). Measured there at
-// 390×844, the four circles straddled the bar's top edge — icons above it, labels and tap
-// areas beneath.
+// together, because the mobile map sheet's footer is pinned over the body's last band
+// (#320).
 //
 // ⚠ Both stubs render a MARKER, not null. `not.toContain` against a null stub passes
 // whether or not the component was called, which is how this spec would go vacuous.
 vi.mock('react-i18next', () => ({
   useTranslation: () => ({ t: (key: string) => key }),
-}))
-vi.mock('@/hooks/use-locale', () => ({
-  useLocale: () => ({ locale: 'en', languageCode: 'en', languageLabel: (code: string) => code }),
-}))
-vi.mock('@/hooks/use-ip-location', () => ({
-  useIpLocation: () => null,
 }))
 vi.mock('./EventRegister', () => ({
   EventRegisterBar: () => <i>register-slot</i>,

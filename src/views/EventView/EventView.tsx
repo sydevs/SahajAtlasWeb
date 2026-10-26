@@ -51,11 +51,9 @@ const loadEventDetails = () =>
 // what must survive a chunk the host's CSP blocked (issue #89). Module scope is right here,
 // unlike `loadEventDetails` above, because nothing offers to retry this one — the boundary
 // below renders nothing and the bar keeps its CTA.
-const LazyEventActions = lazy(() =>
+const EventActions = lazy(() =>
   import('@/components/molecules/EventActions').then((m) => ({ default: m.EventActions })),
 )
-
-const NoFallback = () => null
 
 // A single event, at route `<event-path>`. The header — the title — is the mobile sheet's
 // 80px peek payload, and stays pinned above the scrolling body. The chips and facts lead the
@@ -107,13 +105,11 @@ export function EventView({ id, basePath }: { id: number; basePath: string }) {
           build. The embedded widget's host owns the document head. */}
       {standalone && <EventMetadata event={event} />}
       <EventHeader event={event} trailing={<CloseButton />} />
-      {/* Clear the pinned register bar with the scroll container's own bottom
-          padding — the Drawer's `sticky` footer asks for exactly that — rather than
-          a spacer element in the flow. The old `h-24` div stacked on top of the
-          content's own padding, leaving ~176px of blank space under a full-bleed
-          carousel to clear the bar. 160px clears the bar's two rows — a Register
-          band over the action row, 150px together at 390×844. */}
-      <DrawerBody className={stickyRegister ? 'pb-40' : undefined}>
+      {/* No clearance for the pinned bar here: the Drawer's body slot pads itself by
+          the sticky footer's published height. This view carried an `h-24` spacer and
+          then a `pb-20`, both constants, and the bar is not one — it runs 65px to
+          197.5px across the resolver states. */}
+      <DrawerBody>
         {/* The details are a lazy chunk, so they can fail on their own — a dropped connection
             mid-session, or a host CSP blocking the chunk — after the event itself resolved.
             Keeping that local means the title, the close button, and the sticky Register CTA
@@ -181,13 +177,12 @@ export function EventView({ id, basePath }: { id: number; basePath: string }) {
               footer's own safe-area spacer is not a third gapped sibling. */}
           <div className="flex flex-col gap-2">
             <EventRegisterBar basePath={basePath} event={event} />
-            {/* The actions ride the bar rather than the body. The bar is pinned over
-                the body's last band, so an inline row lands half under it at the
-                300px snap — icons above the bar's edge, labels and tap areas below
-                it (#320). Pinned, the row is whole, and there is only ever one. */}
-            <ResetErrorBoundary FallbackComponent={NoFallback} context="event actions">
+            {/* The row rides the bar so only one copy exists — see `ctaInline`. The
+                boundary keeps a rejected chunk from reaching the body's sibling
+                boundary and taking the Register CTA down with it (issue #89). */}
+            <ResetErrorBoundary context="event actions" fallback={null}>
               <Suspense fallback={null}>
-                <LazyEventActions basePath={basePath} event={event} />
+                <EventActions basePath={basePath} event={event} />
               </Suspense>
             </ResetErrorBoundary>
           </div>
