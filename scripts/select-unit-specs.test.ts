@@ -163,7 +163,7 @@ describe('this repository', () => {
    * `docs/testing.md`'s trade paragraph is scoped by, and a spec joining or leaving it fails here
    * and nowhere else.
    *
-   * The ten `src/` inventories and `source-tree.test.ts` are found by importing the shared walk
+   * The eleven `src/` inventories and `source-tree.test.ts` are found by importing the shared walk
    * (#286); the rest by an enumerating call. `wrangler-config.test.ts` lists only the repo root,
    * so no lane edit can break it, but the detector over-includes on purpose and it costs nothing
    * measurable.
@@ -181,6 +181,7 @@ describe('this repository', () => {
     'src/lib/overlay.clip.test.ts',
     'src/lib/overlay.popper.test.ts',
     'src/lib/shape/href.test.ts',
+    'src/styles/mobile-zoom.test.ts',
     'src/test-support/source-tree.test.ts',
   ]
 
@@ -238,12 +239,12 @@ describe('this repository', () => {
       .map((source) => ({ source, count: selectFrom(source, lane).length }))
       .reduce((a, b) => (b.count > a.count ? b : a))
 
-    // 15, on `src/test-support/repo-source.ts` (#289) — every spec reading one repo file names
-    // it, and a spec may read one no other way, so this grows by one per adopter. ⚠ The widest
-    // is no longer the slowest: `i18n.ts` selects 12, four of them jsdom, and measures 6.6s
-    // against the widest selection's 4.5s and three. So this bounds width as a proxy, and the
+    // 17, on `src/test-support/repo-source.ts` (#289) — every spec reading one repo file names
+    // it, and a spec may read one no other way, so this grows by one per adopter. ⚠ Width is not
+    // time: `i18n.ts` selects 12, four of them jsdom, and has measured at or above the widest
+    // selection on both machines either ran on. So this bounds width as a proxy, and the
     // answer when it trips is to time the hook and ratchet, never to drop a spec from the
     // selection. `docs/testing.md` carries the times and the method.
-    expect(worst.count, `widest selection: ${worst.source}`).toBeLessThanOrEqual(16)
+    expect(worst.count, `widest selection: ${worst.source}`).toBeLessThanOrEqual(18)
   })
 })

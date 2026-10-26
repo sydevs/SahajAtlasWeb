@@ -129,12 +129,17 @@ export function MapSearch({ onSelect, syncToUrl = true, label }: MapSearchProps)
     // types and the × appears, so the text never runs under it. (The
     // generated `mbx…--Input` class carries a per-build hash, so this
     // targets the element, not the class.)
-    <div ref={field} className="[&_input:placeholder-shown]:!pe-3">
+    //
+    // The geocoder's own input takes the same `field-size` floor `fieldChrome` carries
+    // (#322), reached from out here because that input inherits its size from a container
+    // `themes.ts` sizes with `unit` — the control's whole spacing scale, which also
+    // drives the suggestion list and its `padding: 1em`.
+    <div ref={field} className="[&_input]:field-size [&_input:placeholder-shown]:!pe-3">
       <GeocoderBoundary
         fallback={
           <input
             aria-label={fieldLabel}
-            className="w-full rounded-lg border border-divider bg-gray-2 px-3 py-2 text-sm text-foreground placeholder:text-gray-11"
+            className="w-full rounded-lg border border-divider bg-gray-2 px-3 py-2 field-size text-foreground placeholder:text-gray-11"
             placeholder={fieldLabel}
             type="search"
             value={searchQuery}
