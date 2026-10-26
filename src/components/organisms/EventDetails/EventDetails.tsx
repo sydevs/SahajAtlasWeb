@@ -26,22 +26,25 @@ export type EventSurfaceProps = {
 }
 
 export type EventDetailsProps = EventSurfaceProps & {
-  /** Render Register inline (panel order slot 4). The mobile map sheet passes
-   *  false and mounts EventRegisterBar in the sticky drawer footer instead. */
-  registerInline?: boolean
+  /** Render the calls to action — Register, then the secondary action row —
+   *  inline in panel order. The mobile map sheet passes false and mounts both
+   *  in the sticky drawer footer instead. They travel together because the
+   *  footer is pinned over the body's last band, so an inline copy of either
+   *  would be drawn underneath it at the short snap (#320). */
+  ctaInline?: boolean
   /**
    * This slot renders below the facts, inside the panel's own flow, above the
    * unverified caveat and Register.
    *
    * This uses a slot, not a prop, because each caller decides what goes here.
    * It is a view's job, not this component's job. The alternative was a second
-   * boolean beside `registerInline` for every new addition. EventView passes
+   * boolean beside `ctaInline` for every new addition. EventView passes
    * the post-event feedback acknowledgement (#164).
    *
-   * ⚠ Register is sometimes not inline. Then the mobile map sheet mounts
-   * `EventRegisterBar` in the sticky footer instead. This slot still renders
-   * here, after the facts and above everything that follows. This position
-   * keeps it above the sticky bar in reading order too.
+   * ⚠ The calls to action are sometimes not inline. Then the mobile map sheet
+   * mounts them in the sticky footer instead. This slot still renders here,
+   * after the facts and above everything that follows. This position keeps it
+   * above the sticky bar in reading order too.
    */
   children?: ReactNode
 }
@@ -52,12 +55,7 @@ export type EventDetailsProps = EventSurfaceProps & {
  * About. The title is a separate component (EventHeader). It renders outside
  * the scrolling drawer body, so it stays pinned. The triage chips lead the body.
  */
-export function EventDetails({
-  event,
-  basePath,
-  registerInline = true,
-  children,
-}: EventDetailsProps) {
+export function EventDetails({ event, basePath, ctaInline = true, children }: EventDetailsProps) {
   const { t } = useTranslation()
 
   const descriptionHtml = lexicalToHtml(event.description)
@@ -106,9 +104,12 @@ export function EventDetails({
         />
       )}
 
-      {registerInline && <EventRegisterBar basePath={basePath} event={event} />}
-
-      <EventActions basePath={basePath} event={event} />
+      {ctaInline && (
+        <>
+          <EventRegisterBar basePath={basePath} event={event} />
+          <EventActions basePath={basePath} event={event} />
+        </>
+      )}
 
       {/* About — host-authored prose always sits below the facts and actions. */}
       {descriptionHtml && (

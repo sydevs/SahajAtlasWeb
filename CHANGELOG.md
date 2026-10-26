@@ -287,6 +287,13 @@ cover everything a host would notice since the widget was first deployed.
 
 ### Fixed
 
+- **The Register bar no longer covers a class page's other actions on a phone.** ([#320]) At the
+  sheet's default height the pinned "Register Now" bar sat over the Directions / Website /
+  Contact / Share row: the circles were cut in half, their labels hidden, and the covered half of
+  each tap area did nothing. Those four actions now ride the bar itself, under the button, so the
+  row is whole and there is only ever one of it — a visitor still reaches the class description
+  and the address by dragging the sheet up, as before. The bar also leaves room for the home
+  indicator on phones that have one. No parameter, origin or CSP change.
 - **A class that runs past midnight shows its times, not two dates.** ([#325]) A 9:30 PM session
   ending at 12:30 AM read "10/27/2026, 9:30 PM – 10/28/2026, 12:30 AM" on the class page and the
   list cards, because the browser's own range formatter adds both calendar dates once the two
@@ -761,6 +768,7 @@ must-revalidate`, pinned rather than left to the CDN default. The production dom
 [#262]: https://github.com/sydevs/SahajAtlasWeb/issues/262
 [#311]: https://github.com/sydevs/SahajAtlasWeb/pull/311
 [#312]: https://github.com/sydevs/SahajAtlasWeb/pull/312
+[#320]: https://github.com/sydevs/SahajAtlasWeb/issues/320
 [#322]: https://github.com/sydevs/SahajAtlasWeb/issues/322
 [#329]: https://github.com/sydevs/SahajAtlasWeb/pull/329
 [#325]: https://github.com/sydevs/SahajAtlasWeb/issues/325
