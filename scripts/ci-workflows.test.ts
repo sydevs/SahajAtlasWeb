@@ -143,11 +143,12 @@ describe('ci.yml', () => {
     expect(smoke).toContain('node scripts/assert-preview-host.mjs "$PINNED_URL" "$STABLE_URL"')
   })
 
-  // ⚠ A bare `pnpm build` leaves `dist/_redirects`, whose splat the Workers API rejects as an
-  // infinite loop (100324) and fails the whole upload (#280, #295). The pairing of the config
-  // with the script that fills it is pinned in `wrangler-config.test.ts`; this is the pairing
-  // of that script with the job that uploads from it.
-  it('builds the upload with the script that drops _redirects', () => {
+  // ⚠ The upload must run the Worker's own build script, not the plain one. A `dist/_redirects`
+  // splat is rejected by the Workers API as an infinite loop (100324) and fails the whole upload
+  // (#280, #295); #283 deleted the file, so the guard is dormant rather than gone. The pairing of
+  // the config with the script that fills it is pinned in `wrangler-config.test.ts`; this is the
+  // pairing of that script with the job that uploads from it.
+  it("builds the upload with the app Worker's own build script", () => {
     expect(smoke).toContain('run: pnpm build:worker')
     expect(smoke).not.toMatch(/^\s*(- )?run: pnpm build$/m)
   })
