@@ -965,10 +965,16 @@ One host serves the bundle:
 | ------------------------ | --------------------- |
 | `https://sahajatlas.com` | the production domain |
 
+⚠ **`sahajatlas.pages.dev` used to serve the same bundle and no longer serves anything of ours.**
+If your snippet or your CSP still names it, move both to `https://sahajatlas.com`. The name was
+released rather than redirected, so a request to it does not reach us and anybody may claim it —
+treat a script still loaded from there as a third party, not as us.
+
 **The widget's data all comes from one other origin: `cloud.sydevelopers.com`.** That is the only
-host `connect-src` has to name for the atlas itself. Its UI strings come from there too, alongside the events — the widget ships an English
-copy compiled in and fetches every other language from the CMS, so a blocked `connect-src` leaves
-a non-English page reading English rather than showing raw key names.
+host `connect-src` has to name for the atlas itself. Its UI strings come from there too, alongside
+the events — the widget ships an English copy compiled in and fetches every other language from
+the CMS, so a blocked `connect-src` leaves a non-English page reading English rather than showing
+raw key names.
 
 Two files sit at that origin's root, and only the first is one you reference:
 
