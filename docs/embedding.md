@@ -961,6 +961,10 @@ an iframe, put them in its `allow` attribute as shown above.
 
 One host serves the bundle:
 
+<!-- scripts/ci-workflows.test.ts reads the production host out of the row below, so the
+     production smoke lane and this guide can never name different hosts. Reword the cell text
+     freely; keep the row a table row, or that spec fails at collection. -->
+
 | Host                     | What it is            |
 | ------------------------ | --------------------- |
 | `https://sahajatlas.com` | the production domain |
