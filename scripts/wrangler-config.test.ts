@@ -1,4 +1,5 @@
-import { readdirSync } from 'node:fs'
+import { existsSync, readdirSync } from 'node:fs'
+import { join } from 'node:path'
 
 import { describe, expect, it } from 'vitest'
 
@@ -124,10 +125,8 @@ describe('the targets', () => {
 
   // A Worker's assets directory must carry no `_redirects` splat: the API rejects it as an
   // infinite loop and fails the deploy, and the dry run never reaches the API to catch it. #283
-  // deleted `public/_redirects`, so both deletions are no-ops today and this spec passes on
-  // `package.json` alone — kept because the file is still planned to return with a `/map  /  301`
-  // rule (#252), and a splat landing beside it would break the deploy silently again.
-  // ⚠ If #252 lands, the guard must drop the splat rather than the whole file.
+  // deleted `public/_redirects`, so both deletions are no-ops today, and this pairing reads
+  // `package.json` rather than the file.
   // Nothing else pairs a config with the script that fills it.
   it.each([
     [APP_CONFIG, 'build:worker'],
@@ -137,6 +136,15 @@ describe('the targets', () => {
 
     expect(directory).toBeTruthy()
     expect(PACKAGE.scripts[script]).toContain(`rm -f ${directory}/_redirects`)
+  })
+
+  // ⚠ The guard above deletes the whole file, which is safe only while there is no file. #252
+  // brings `public/_redirects` back with a `/map  /  301` rule a Worker accepts, and a blanket
+  // `rm -f` would strip that rule from every build while the pairing above stayed green. So the
+  // narrowing is held here rather than by a comment: whoever adds the file fails this, and makes
+  // both guards drop the splat alone.
+  it('has no `public/_redirects` for that blanket guard to delete', () => {
+    expect(existsSync(join(REPO_ROOT, 'public/_redirects'))).toBe(false)
   })
 
   // Nothing separates `pnpm build`'s output from the Worker's since #283 deleted
