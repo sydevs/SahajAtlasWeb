@@ -69,12 +69,14 @@ describe('formatTimeRange', () => {
 
   it('keeps the plain range when midnight UTC falls inside an event-local day', () => {
     // 16:00–18:00 in Vancouver is 23:00–01:00 UTC. The day crossing is the
-    // formatter's own zone's, so this must not take the split path.
-    const start = at('2026-07-04T16:00', 'America/Vancouver')
-
-    expect(norm(formatTimeRange(start, at('2026-07-04T18:00', 'America/Vancouver'), 'en-US'))).toBe(
-      '4 – 6 PM',
+    // formatter's own zone's, so this must not take the split path, which would
+    // lose the collapsed meridiem.
+    const vancouver = (iso: string) => at(iso, 'America/Vancouver')
+    const out = norm(
+      formatTimeRange(vancouver('2026-07-04T16:00'), vancouver('2026-07-04T18:00'), 'en-US'),
     )
+
+    expect(out).toBe('4 – 6 PM')
   })
 
   it('formats in the event zone, not the machine zone', () => {

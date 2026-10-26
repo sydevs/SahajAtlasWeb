@@ -69,10 +69,10 @@ export const reconciledViewerPlace = (
 }
 
 /**
- * The field types `formatRange` adds of its own accord once the two instants
- * fall on different calendar days, in any locale's date pattern.
+ * Every part type a time-only option set emits. Anything else is `formatRange`
+ * widening its own pattern, whatever the field is called.
  */
-const DATE_FIELDS = new Set(['era', 'year', 'relatedYear', 'yearName', 'month', 'day', 'weekday'])
+const TIME_FIELDS = new Set(['hour', 'minute', 'dayPeriod', 'literal'])
 
 export function formatTimeRange(start: DateTime, end: DateTime | null, locale: string): string {
   // Both endpoints are in the same (event) zone. Format the instants in it.
@@ -91,15 +91,16 @@ export function formatTimeRange(start: DateTime, end: DateTime | null, locale: s
   const endDate = end.toJSDate()
   const parts = formatter.formatRangeToParts(startDate, endDate)
 
-  // `formatRange` widens the pattern to disambiguate endpoints on different
-  // calendar days, so a 21:30–00:30 session comes back as two full dates
-  // (#325). An occurrence never spans more than one night (`withEndTime`), so
-  // the dates carry nothing and the line must stay a time range. Nothing turns
-  // that widening off, so this formats each endpoint on its own and rejoins
-  // them with the separator the range itself used — the locale's, not ours.
-  if (!parts.some((part) => DATE_FIELDS.has(part.type)))
-    return formatter.formatRange(startDate, endDate)
+  // Different calendar days make `formatRange` widen its pattern to a full date
+  // on each end: a 21:30–00:30 session reads "10/27/2026, 9:30 PM – 10/28/2026,
+  // 12:30 AM" (#325). No option turns that off, and an occurrence spans at most
+  // one night (`withEndTime`), so the dates say nothing. Joining the parts back
+  // up is what `formatRange` itself returns, so reading them costs no extra pass.
+  if (parts.every((part) => TIME_FIELDS.has(part.type)))
+    return parts.map((part) => part.value).join('')
 
+  // Each end alone, rejoined by the separator the widened pattern chose, so a
+  // locale keeps its own — Japanese joins a range with a wave dash.
   const separator = parts.find((part) => part.type === 'literal' && part.source === 'shared')?.value
 
   return `${formatter.format(startDate)}${separator ?? ' – '}${formatter.format(endDate)}`
