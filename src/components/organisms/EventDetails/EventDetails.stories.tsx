@@ -105,7 +105,7 @@ export const Default: Story = () => (
     </StorySection>
 
     <StorySection
-      description="The Register slot on its own, as the mobile sheet's sticky footer renders it. `registerInline={false}` is what the panel passes when the bar is pinned to the footer instead."
+      description="The Register slot on its own, as the mobile sheet's sticky footer renders it. `ctaInline={false}` is what the panel passes when the bar is pinned to the footer instead."
       title="Register bar"
     >
       <div className="flex max-w-md flex-col gap-4">
@@ -114,7 +114,7 @@ export const Default: Story = () => (
         </div>
         <div className="border border-divider">
           <EventHeader event={mockEvent} />
-          <EventDetails basePath="/demo/101" event={mockEvent} registerInline={false} />
+          <EventDetails basePath="/demo/101" ctaInline={false} event={mockEvent} />
         </div>
       </div>
     </StorySection>

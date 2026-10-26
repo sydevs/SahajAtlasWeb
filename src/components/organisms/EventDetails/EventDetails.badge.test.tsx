@@ -107,8 +107,8 @@ describe('unverified badge', () => {
     const markup = renderToStaticMarkup(
       <EventDetails
         basePath="/gb/london/1"
+        ctaInline={false}
         event={{ ...mockEvent, verificationStage: 'unverified' }}
-        registerInline={false}
       />,
     )
 

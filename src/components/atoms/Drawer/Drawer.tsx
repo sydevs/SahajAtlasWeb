@@ -392,6 +392,12 @@ export function DrawerFooter({
    * against it instead. So the footer offsets by the sheet's live top. That
    * value is mirrored every frame onto `--sy-sheet-top` by DrawerStack.
    * Content scrolls under the footer. Give the body matching bottom padding.
+   *
+   * ⚠ The sheet's `pb-[calc(var(--sy-frame-h)*0.03)]` does NOT enter this sum,
+   * and subtracting it lands the bar BELOW the fold. An absolutely positioned
+   * child resolves against its ancestor's PADDING box, so `bottom` is measured
+   * from the sheet's own bottom edge, padding included. Measured at 390×844
+   * (#320): the bar's bottom edge is the viewport bottom at all three snaps.
    */
   sticky?: boolean
 }) {
@@ -404,6 +410,11 @@ export function DrawerFooter({
       })}
     >
       {children}
+      {/* `viewport-fit=cover` (index.html) runs the layout viewport under the
+          home indicator, so a bar flush with it puts its control in the gesture
+          area. The spacer carries the inset rather than the footer's padding,
+          which a caller's own `py-*` would merge away. */}
+      {sticky && <div className="h-[env(safe-area-inset-bottom)]" />}
     </div>
   )
 }
