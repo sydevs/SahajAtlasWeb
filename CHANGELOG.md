@@ -23,6 +23,13 @@ cover everything a host would notice since the widget was first deployed.
 
 ### Removed
 
+- ⚠ **BREAKING: `sahajatlas.pages.dev` no longer serves the widget.** ([#283]) Load the script
+  from `https://sahajatlas.com`, which serves the identical bundle. If your snippet's `src`, or
+  your CSP's `script-src` and `font-src`, name the `pages.dev` host, point all three at
+  `https://sahajatlas.com`. The guide used to offer that host as a second origin and no longer
+  does. ⚠ **The old host is released, not redirected**, so a request to it does not land here any
+  more and Cloudflare reserves no released `pages.dev` name — anybody may take it.
+
 - ⚠ **BREAKING: the `sahaj-atlas-style` style tag is gone.** ([#236]) The widget's stylesheet
   moved into its shadow root, so there is no longer a `<style>` element in your `<head>` to
   carry that id, and `document.querySelectorAll('style#sahaj-atlas-style')` returns nothing.
@@ -759,6 +766,7 @@ must-revalidate`, pinned rather than left to the CDN default. The production dom
 [#232]: https://github.com/sydevs/SahajAtlasWeb/issues/232
 [#236]: https://github.com/sydevs/SahajAtlasWeb/issues/236
 [#262]: https://github.com/sydevs/SahajAtlasWeb/issues/262
+[#283]: https://github.com/sydevs/SahajAtlasWeb/issues/283
 [#311]: https://github.com/sydevs/SahajAtlasWeb/pull/311
 [#312]: https://github.com/sydevs/SahajAtlasWeb/pull/312
 [#322]: https://github.com/sydevs/SahajAtlasWeb/issues/322

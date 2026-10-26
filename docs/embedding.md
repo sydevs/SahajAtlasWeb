@@ -797,9 +797,7 @@ frame-src   https://challenges.cloudflare.com
 
 **One line per directive, deliberately: CSP ignores every repeat of a directive name after the
 first**, so splitting `script-src` across two lines silently drops the second, leaving you
-believing you allowed something you hadn't. Loading the script from `sahajatlas.pages.dev`? Add
-that host to `script-src` and `font-src`. It does not belong in `connect-src`: the widget
-fetches no data from wherever its script was served.
+believing you allowed something you hadn't.
 
 ### Why each one, and what breaks without it
 
@@ -961,16 +959,14 @@ an iframe, put them in its `allow` attribute as shown above.
 
 ## Where to load it from
 
-Two hosts serve the identical bundle:
+One host serves the bundle:
 
-| Host                           | What it is                                             |
-| ------------------------------ | ------------------------------------------------------ |
-| `https://sahajatlas.com`       | the production domain — **use this one**               |
-| `https://sahajatlas.pages.dev` | the Cloudflare Pages default host for the same project |
+| Host                     | What it is            |
+| ------------------------ | --------------------- |
+| `https://sahajatlas.com` | the production domain |
 
-**Whichever of the two you load the script from, the widget's data all comes from one other
-origin: `cloud.sydevelopers.com`.** That is the only host `connect-src` has to name for the atlas
-itself. Its UI strings come from there too, alongside the events — the widget ships an English
+**The widget's data all comes from one other origin: `cloud.sydevelopers.com`.** That is the only
+host `connect-src` has to name for the atlas itself. Its UI strings come from there too, alongside the events — the widget ships an English
 copy compiled in and fetches every other language from the CMS, so a blocked `connect-src` leaves
 a non-English page reading English rather than showing raw key names.
 
