@@ -336,7 +336,7 @@ describe('what is allowed to travel with an event', () => {
       images: [
         {
           type: 'sourcemap',
-          code_file: 'https://sahajatlas.pages.dev/assets/App-C5ZV2wC2.js',
+          code_file: 'https://sahajatlas.com/assets/App-C5ZV2wC2.js',
           debug_id: '7f3a1c60-9b2e-4d51-8a44-0c1d2e3f4a5b',
         },
       ],

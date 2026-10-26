@@ -6,9 +6,9 @@ import { fetchPreview, skipWithoutPreview } from './_helpers/preview'
 //
 // Every part of that answer is a deploy-time fact, and the unit lane cannot reach it.
 // `public/robots.txt` and `public/_headers` are inert files in the repo until the
-// platform reads them out of the build output — Workers on the preview, Pages on
-// `sahajatlas.com` until #266's last child moves the domain. `_headers` in particular
-// asserts platform behavior, not code this repo wrote.
+// platform reads them out of the build output — Workers static assets on the preview and,
+// since #283, on `sahajatlas.com` too. `_headers` in particular asserts platform behavior,
+// not code this repo wrote.
 
 /**
  * The static tag in index.html. This pattern ignores attribute order on purpose. The
@@ -21,8 +21,8 @@ describe('indexing directives', () => {
   test.skipIf(skipWithoutPreview)('serves robots.txt with a site-wide Disallow', async () => {
     const res = await fetchPreview('/robots.txt')
 
-    // Checks content type, not status. See `docs/testing.md`. `_redirects` sets `/*
-    // /index.html 200`, so a missing robots.txt also answers 200 as the SPA shell.
+    // Checks content type, not status. See `docs/testing.md`. The SPA fallback answers
+    // `/* /index.html 200`, so a missing robots.txt also answers 200 as the shell.
     // That is the failure this spec exists to catch.
     expect(res.headers.get('content-type')).toMatch(/text\/plain/i)
 
@@ -38,7 +38,7 @@ describe('indexing directives', () => {
     expect(body).toMatch(/^User-agent:\s*redditbot$/im)
   })
 
-  // A real file backs `/`. Only the `_redirects` SPA fallback resolves `/search`.
+  // A real file backs `/`. Only the SPA fallback resolves `/search`.
   // Both return the same shell. This test does not check the header rule's path
   // matching. It checks that the rewrite keeps both noindex signals on the routes
   // people actually link to.

@@ -41,8 +41,9 @@ only ever read a preview" below.
   Worker's, and any state the report does not recognise. If you add a spec, guard it with
   `test.skipIf(skipWithoutPreview)` like its siblings — the loudness belongs to the job, not the
   spec.
-- **A 200 status is not proof of anything.** `public/_redirects` is `/* /index.html 200`, so
-  Cloudflare answers **200 `text/html`** for any path that is not a built asset. A spec asserting
+- **A 200 status is not proof of anything.** `assets.not_found_handling` serves the SPA shell, so
+  Cloudflare answers **200 `text/html`** for any path that is not a built asset — as
+  `public/_redirects`'s `/* /index.html 200` did on Pages before #283. A spec asserting
   `res.status === 200` therefore passes for a missing file too — `embed.smoke.test.ts` learned
   this the hard way. Assert on the body or the content type instead.
 - **A green Smoke check proves the specs ran against THIS commit's build, on the app's OWN
@@ -149,22 +150,24 @@ Four findings from the subsystem this replaced, worth keeping so nobody re-deriv
   something exercises the caller — a live run of the script against a real SHA is what caught
   this one.
 - **A check-run name identifies the integration as well as the target, and only both together
-  identify a build.** The app Worker carries the Pages project's own name, so
-  `Workers Builds: sahajatlas` and `Cloudflare Pages: sahajatlas` share this project's slug and
-  differ only in their prefix (#280, #297). ⚠ That is why `production-smoke.yml` compares the
-  **whole** name with `==` — see the production lane below.
+  identify a build.** The app Worker took the Pages project's own name, so
+  `Workers Builds: sahajatlas` and `Cloudflare Pages: sahajatlas` shared this project's slug and
+  differed only in their prefix (#280, #297). ⚠ That is why `production-smoke.yml` compares the
+  **whole** name with `==` — see the production lane below. The Pages check run stops arriving
+  once #283's last phase deletes that project, and the comparison stays as it is: it is what
+  told the two apart while both posted.
 
 The lane also covers `embed.js`, not only the standalone page — the embed is what a host
 installs, so a deploy that breaks it while `index.html` stays healthy must not be a green check.
 
-It also covers the `public/` files only the platform executes: `_headers`, `robots.txt` and
-`_redirects`. All three are read on **both** platforms, but a Worker rejects the splat outright
-rather than serving it, so each Worker build deletes that file and takes the fallback from
-`assets.not_found_handling` instead (#279, #280; `docs/rules/deployment.md` owns the mechanism).
+It also covers the `public/` files only the platform executes: `_headers` and `robots.txt`. Both
+are read on both sites. The deep-link fallback is `assets.not_found_handling` rather than a third
+file: `public/_redirects` carried it until #283, and a Worker rejects its splat outright rather
+than serving it (#279, #280, #283; `docs/rules/deployment.md` owns the mechanism).
 Those are inert text in the repo, so no local gate can prove they work. ⚠ One claim about `_headers` is settled locally and must not be re-litigated
 here: `scripts/deploy-headers.test.ts` holds "no two rules set the same header name on paths that
-overlap" before a deploy, because the smoke lane reads two URLs on one of the two platforms and
-cannot be that mechanism.
+overlap" before a deploy, because the smoke lane reads two URLs after one deploy and cannot be
+that mechanism.
 `robots.smoke.test.ts` pins the #91 CORS headers against displacement by the #106 `/*` rule — a
 claim about platform behaviour, asserted rather than left as a comment.
 
@@ -238,10 +241,10 @@ about it are deliberate:
   artifact under test comes into existence.
 - **It reads `sahajatlas.com`, the custom domain — not a vendor host, and not a URL from the
   event.** `docs/embedding.md` is what decides which host "production" means, and
-  `ci-workflows.test.ts` pins the lane to that table's row. The custom domain and the vendor host
+  `ci-workflows.test.ts` pins the lane to that table's row. A custom domain and a vendor host
   serve one build, and **their headers can diverge**: `public/_headers` records #148,
-  `max-age=14400` on the custom domain against `max-age=0` on `*.pages.dev`, a defect that "was
-  invisible on the host every check runs against". A preview is on a vendor host either way, so a
+  `max-age=14400` on the Pages-served custom domain against `max-age=0` on `*.pages.dev`, a
+  defect that "was invisible on the host every check runs against". A preview is on a vendor host either way, so a
   production lane there would add no coverage and inherit that blindness. The host being a
   constant is also why the event is a clock rather than a source: a URL out of a payload would
   re-open #138's question — any installed App with `deployments: write` posts one, and a vendor
@@ -299,11 +302,11 @@ two cache-header specs failed on the unhashed loader files while `sahajatlas.pag
 the custom domain and not a preview: no vendor host could have shown it, and the fix was a
 dashboard setting rather than a commit. ⚠ Both measurements above were taken against `*.pages.dev`
 previews and a Pages-served custom domain, so each is evidence about a **host**, not about a
-platform. The preview the PR gate reads is a Worker since #282, and `sahajatlas.com` stays on
-Pages until #266's last child moves it — so re-measure rather than carrying either figure across
-that cutover. Whether a Workers preview host adds `X-Robots-Tag: noindex` of its own accord is
-**not yet known**, and it decides whether four assertions still test our own `public/_headers`
-rule: `robots.smoke.test.ts` at its three cases, and `cache-headers.smoke.test.ts`'s `embed.js`
+platform. The preview the PR gate reads is a Worker since #282, and #283 moved `sahajatlas.com`
+onto a Worker too — so **neither figure carries across that cutover, and both are owed a
+re-measure against the Workers-served `sahajatlas.com`**. Whether a Workers host adds
+`X-Robots-Tag: noindex` of its own accord is **still not known**, and it decides whether four
+assertions still test our own `public/_headers` rule: `robots.smoke.test.ts` at its three cases, and `cache-headers.smoke.test.ts`'s `embed.js`
 case. If the platform supplies the header, those four stop telling our rule from a default.
 Record the finding; do not weaken the specs for it — sydevs/SahajCloud#903's success list owns
 the repair.
