@@ -51,7 +51,7 @@ describe('formatTimeRange', () => {
   })
 
   it('keeps an overnight range time-only, with no dates', () => {
-    // 21:30–00:30 crosses midnight, which makes Intl widen the pattern to two
+    // 21:30–00:30 crosses midnight, which makes Intl widen its pattern to two
     // full dates unless formatTimeRange intervenes (#325).
     const out = norm(formatTimeRange(at('2026-10-27T21:30'), at('2026-10-28T00:30'), 'en-US'))
 
@@ -59,24 +59,32 @@ describe('formatTimeRange', () => {
     expect(out).not.toContain('/')
   })
 
-  it('rejoins an overnight range with the locale’s own separator', () => {
-    // Japanese separates a range with a wave dash, so a hard-coded en dash
-    // would pass the en-US case above and still be wrong here.
-    const out = norm(formatTimeRange(at('2026-10-27T21:30'), at('2026-10-28T00:30'), 'ja'))
+  it('keeps the locale’s own range pattern across midnight', () => {
+    // The widened pattern drops German's "Uhr" and Japanese's 時/分 and swaps
+    // the separator, so an overnight range must still go through formatRange.
+    const start = at('2026-10-27T21:30')
+    const end = at('2026-10-28T00:30')
 
-    expect(out).toBe('21:30～0:30')
+    expect(norm(formatTimeRange(start, end, 'de'))).toBe('21:30–00:30 Uhr')
+    expect(norm(formatTimeRange(start, end, 'ja'))).toBe('21時30分～0時30分')
   })
 
-  it('keeps the plain range when midnight UTC falls inside an event-local day', () => {
-    // 16:00–18:00 in Vancouver is 23:00–01:00 UTC. The day crossing is the
-    // formatter's own zone's, so this must not take the split path, which would
-    // lose the collapsed meridiem.
-    const vancouver = (iso: string) => at(iso, 'America/Vancouver')
+  it('keeps an overnight range through a spring-forward night', () => {
+    // London skips 01:00–02:00 on 2026-03-29, the start's own calendar day. An
+    // end re-dated onto that day would render 02:30 for a class ending at 01:30.
+    const out = norm(formatTimeRange(at('2026-03-29T22:30'), at('2026-03-30T01:30'), 'en-US'))
+
+    expect(out).toBe('10:30 PM – 1:30 AM')
+  })
+
+  it('reads both endpoints in the event zone, not each its own', () => {
+    // The same instants, one endpoint handed over in another zone: 21:30–00:30
+    // in London, with the end expressed as 01:30 Prague.
     const out = norm(
-      formatTimeRange(vancouver('2026-07-04T16:00'), vancouver('2026-07-04T18:00'), 'en-US'),
+      formatTimeRange(at('2026-10-27T21:30'), at('2026-10-28T01:30', 'Europe/Prague'), 'en-US'),
     )
 
-    expect(out).toBe('4 – 6 PM')
+    expect(out).toBe('9:30 PM – 12:30 AM')
   })
 
   it('formats in the event zone, not the machine zone', () => {

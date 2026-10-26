@@ -13,7 +13,7 @@ import { IANAZone, type DateTime } from 'luxon'
  * - en-US  → "11:30 AM – 1:00 PM" (differing meridiems both show)
  * - de     → "18–19 Uhr"       (24-hour, localized suffix)
  *
- * The one thing Intl will not do is drop a `:00`, so this picks the option
+ * One thing Intl will not do is drop a `:00`, so this picks the option
  * set: a range whose endpoints both land on the hour formats without
  * minutes, and any range with real minutes keeps them on both ends (mixing
  * them within a single range is not expressible through one formatter, and
@@ -69,39 +69,31 @@ export const reconciledViewerPlace = (
 }
 
 /**
- * Every part type a time-only option set emits. Anything else is `formatRange`
- * widening its own pattern, whatever the field is called.
+ * An instant's wall clock, re-pinned to one fixed calendar day.
+ *
+ * `formatRange` widens its pattern to a full date on each end as soon as the two
+ * instants fall on different calendar days, so a 21:30–00:30 session reads
+ * "10/27/2026, 9:30 PM – 10/28/2026, 12:30 AM", and no option turns that off
+ * (#325). An occurrence spans at most one night (`withEndTime`), so those dates
+ * say nothing. Putting both ends on one day keeps the locale's own hour-range
+ * pattern — German's "Uhr", Japanese's wave dash — which is the whole reason
+ * this delegates to Intl. The day is in UTC, where no transition can swallow
+ * the wall clock it carries.
  */
-const TIME_FIELDS = new Set(['hour', 'minute', 'dayPeriod', 'literal'])
+const wallClockOnOneDay = (at: DateTime): Date => new Date(Date.UTC(2000, 0, 1, at.hour, at.minute))
 
 export function formatTimeRange(start: DateTime, end: DateTime | null, locale: string): string {
-  // Both endpoints are in the same (event) zone. Format the instants in it.
-  const timeZone = start.zoneName ?? undefined
-  const onTheHour = start.minute === 0 && (end === null || end.minute === 0)
+  // Both endpoints read in the start's (the event's) zone.
+  const endInZone = end?.setZone(start.zone) ?? null
+  const onTheHour = start.minute === 0 && (endInZone === null || endInZone.minute === 0)
 
   const formatter = new Intl.DateTimeFormat(locale, {
     hour: 'numeric',
     ...(onTheHour ? {} : { minute: '2-digit' as const }),
-    timeZone,
+    timeZone: 'UTC',
   })
 
-  if (!end || +end === +start) return formatter.format(start.toJSDate())
+  if (!endInZone || +endInZone === +start) return formatter.format(wallClockOnOneDay(start))
 
-  const startDate = start.toJSDate()
-  const endDate = end.toJSDate()
-  const parts = formatter.formatRangeToParts(startDate, endDate)
-
-  // Different calendar days make `formatRange` widen its pattern to a full date
-  // on each end: a 21:30–00:30 session reads "10/27/2026, 9:30 PM – 10/28/2026,
-  // 12:30 AM" (#325). No option turns that off, and an occurrence spans at most
-  // one night (`withEndTime`), so the dates say nothing. Joining the parts back
-  // up is what `formatRange` itself returns, so reading them costs no extra pass.
-  if (parts.every((part) => TIME_FIELDS.has(part.type)))
-    return parts.map((part) => part.value).join('')
-
-  // Each end alone, rejoined by the separator the widened pattern chose, so a
-  // locale keeps its own — Japanese joins a range with a wave dash.
-  const separator = parts.find((part) => part.type === 'literal' && part.source === 'shared')?.value
-
-  return `${formatter.format(startDate)}${separator ?? ' – '}${formatter.format(endDate)}`
+  return formatter.formatRange(wallClockOnOneDay(start), wallClockOnOneDay(endInZone))
 }
