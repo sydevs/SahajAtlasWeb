@@ -111,7 +111,7 @@ dashboard, per Workers Builds trigger (`docs/rules/deployment.md`).
      one artifact bundle per preview build.
    - ⚠ **Workers Builds keys them per trigger** (#280), and a preview trigger inherits nothing
      from a production one. The `sahajatlas` Pages project held its own copies per environment
-     until #283 deleted it.
+     until #283 moved the domain off it.
 4. **`sahajatlas-design` (the Ladle playground, #279): do NOT add them.** It builds through
    `.ladle/vite.config.ts`, which never loads the root config, so the plugin cannot run there.
    Verified: with all three variables set, `pnpm ladle:build` still emits no maps, uploads

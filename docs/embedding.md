@@ -965,10 +965,11 @@ One host serves the bundle:
 | ------------------------ | --------------------- |
 | `https://sahajatlas.com` | the production domain |
 
-⚠ **`sahajatlas.pages.dev` used to serve the same bundle and no longer serves anything of ours.**
-If your snippet or your CSP still names it, move both to `https://sahajatlas.com`. The name was
-released rather than redirected, so a request to it does not reach us and anybody may claim it —
-treat a script still loaded from there as a third party, not as us.
+⚠ **`sahajatlas.pages.dev` used to serve the same bundle and is no longer an origin of ours.**
+If your snippet or your CSP still names it, move both to `https://sahajatlas.com`. The name is
+withdrawn rather than redirected, so no request to it reaches what serves the domain, and once
+the project behind it is deleted the name is claimable by anybody — treat a script still loaded
+from there as a third party, not as us.
 
 **The widget's data all comes from one other origin: `cloud.sydevelopers.com`.** That is the only
 host `connect-src` has to name for the atlas itself. Its UI strings come from there too, alongside

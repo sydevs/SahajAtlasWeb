@@ -1,15 +1,15 @@
 {
   // The `sahajatlas` app, as a Cloudflare Workers static-assets Worker. It serves
   // `sahajatlas.com` as a Custom Domain since #283, which moved the domain off the Cloudflare
-  // **Pages** project of the same name and deleted it. `docs/rules/deployment.md` is the one
-  // place that topology is stated.
+  // **Pages** project of the same name; that project is deleted at the ticket's last phase, not
+  // at this merge. `docs/rules/deployment.md` is the one place that topology is stated.
   //
   // ⚠ This name collides twice, and this `name` is the anchor both checks read (#282):
   //   - `sahajatlas` is a PREFIX of `sahajatlas-design`, and a preview host is
   //     `<preview>-<worker>.<subdomain>.workers.dev`, so telling the two deploys apart means
   //     anchoring the whole `-sahajatlas` LABEL segment, never the bare substring.
   //     `scripts/assert-preview-host.mjs` is what the smoke lane refuses the playground with.
-  //   - it was also the deleted Pages project's name, whose check run read
+  //   - it was also the retiring Pages project's name, whose check run read
   //     `Cloudflare Pages: sahajatlas` against this Worker's `Workers Builds: sahajatlas`
   //     (#283). `production-smoke.yml` compares the WHOLE name with `==`, integration prefix
   //     included, which is what kept those two apart and what keeps the playground out.

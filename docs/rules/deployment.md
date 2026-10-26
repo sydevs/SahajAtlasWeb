@@ -26,10 +26,13 @@ move ran one site at a time, and the app's own cutover was split from building i
   `workers.dev` host. Workers Builds holds the build command and the trigger's variables and
   branch rules **per trigger**, not per project — which is what `docs/environment.md` works out
   for each variable.
-  ⚠ **`sahajatlas.pages.dev` was released, not redirected**, and the `sahajatlas` Pages project
-  was deleted (#283). Cloudflare reserves no released `pages.dev` name, so that host is
-  first-come-first-served for anyone — `docs/testing.md` carries this repo's own measurement of
-  that. There is no way back other than building a Pages project from scratch.
+  ⚠ **`sahajatlas.pages.dev` is withdrawn, not redirected**, so no request to it reaches what
+  serves the domain. The `sahajatlas` Pages project itself goes at #283's last phase, after the
+  Custom Domain is verified — until then its last deployment stands as the cutover's rollback,
+  which is the one thing merging this earlier would deny. Deletion is one-way: the route back is
+  a Pages project built from scratch, and Cloudflare reserves no released `pages.dev` name, so
+  the host is then first-come-first-served for anyone — `docs/testing.md` carries this repo's own
+  measurement of that.
 - **`sahajatlas-design`** — the Ladle component playground, on **Workers static assets**.
   Builds with `pnpm ladle:build` into `build/`, served at `design.sahajatlas.com`.
   `wrangler.design.jsonc` in the repo root is its config: assets-only (no `main`),
@@ -62,7 +65,7 @@ Two deploy files live in `public/`, copied into both build outputs, and both gov
 `BrowserRouter` build needs one — `/search` and `/countries/:code` are real paths — while the
 embeddable widget routes off a query parameter on the host's page and needs none.
 `public/_redirects` (`/* /index.html 200`) carried it for the Pages app until #283 deleted the
-file and the project together.
+file; the Pages project itself goes later, as above.
 ⚠ **Workers static assets do read `_redirects`, and reject that splat** as an infinite loop
 (API code 100324), failing the whole deploy — and `pnpm check:wrangler` cannot catch it, since
 the dry run never reaches the API. So `pnpm build:worker` and `pnpm ladle:build` each still end

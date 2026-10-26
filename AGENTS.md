@@ -143,10 +143,10 @@ secrets must never reach client code — the bundle is public.
 
 Two Cloudflare sites deploy from this repo, both on Workers static assets: the app,
 `sahajatlas`, serving `sahajatlas.com`, and the Ladle playground, `sahajatlas-design`
-(#266, #279, #280, #283). ⚠ `sahajatlas.pages.dev` was released rather than redirected, so
-anyone may claim it. Source maps are uploaded, then deleted — never deployed
-(#130). Topology, the `public/` deploy files, the source-map policy and the deploy-side CI
-gates: `docs/rules/deployment.md`.
+(#266, #279, #280, #283). ⚠ `sahajatlas.pages.dev` is withdrawn rather than redirected, and
+claimable by anyone once #283's last phase deletes the project behind it. Source maps are
+uploaded, then deleted — never deployed (#130). Topology, the `public/` deploy files, the
+source-map policy and the deploy-side CI gates: `docs/rules/deployment.md`.
 
 Use the **cloudflare-docs** MCP for Cloudflare Workers questions. ⚠ Its published
 docs do not cover every wrangler config key — see `docs/mcp-setup.md` for what settles one
