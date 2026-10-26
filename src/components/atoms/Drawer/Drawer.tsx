@@ -413,31 +413,39 @@ export function DrawerFooter({
   const { slots } = useDrawerSlots()
   const ref = useRef<HTMLDivElement>(null)
 
-  // The body clears this footer by its own trailing padding, and no caller can
-  // hard-code that length: across EventView's resolver states alone the bar
-  // measured 65px to 197.5px at 390×844, and a translated label moves it again.
-  // A constant was wrong in both directions — dead space under a short bar, the
+  // The body clears this footer by its own trailing length, and no caller can
+  // hard-code it: across EventView's resolver states alone the bar measured
+  // 65px to 197.5px at 390×844, and a translated label moves it again. A
+  // constant was wrong in both directions — dead space under a short bar, the
   // end of the content still buried under a tall one. So the footer publishes
-  // its height onto the sheet, the one box that holds the body too, since the
-  // slots are siblings. `borderBoxSize` is the untransformed box, so the
-  // collapsed sheet's `translate-y-full` cannot report a different one.
+  // its own height, on its PARENT, which is the view's crossfade layer (#312)
+  // rather than the sheet. Publishing on the sheet instead would scope one
+  // value to both layers, and the outgoing layer's cleanup would then blank the
+  // incoming footer's value mid-fade.
+  //
+  // ⚠ The contract that buys: a `sticky` footer's parent must also contain the
+  // body it clears. Anywhere it does not, the clearance silently resolves to
+  // its `0px` fallback and the content ends under the bar.
+  //
+  // `borderBoxSize` is the untransformed box, so the collapsed sheet's
+  // `translate-y-full` cannot report a different one.
   useEffect(() => {
     const el = ref.current
-    const sheet = el?.parentElement
+    const layer = el?.parentElement
 
-    if (!sticky || !el || !sheet || typeof ResizeObserver === 'undefined') return
+    if (!sticky || !el || !layer || typeof ResizeObserver === 'undefined') return
 
     const observer = new ResizeObserver(([entry]) => {
       const height = entry?.borderBoxSize?.[0]?.blockSize ?? el.offsetHeight
 
-      sheet.style.setProperty('--sy-footer-h', `${height}px`)
+      layer.style.setProperty('--sy-footer-h', `${height}px`)
     })
 
     observer.observe(el)
 
     return () => {
       observer.disconnect()
-      sheet.style.removeProperty('--sy-footer-h')
+      layer.style.removeProperty('--sy-footer-h')
     }
   }, [sticky])
 
