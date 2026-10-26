@@ -5,7 +5,7 @@ import { StoryWrapper, StorySection } from '../../ladle'
 
 import { EventFacts } from './EventFacts'
 
-import { mockEvent } from '@/mocks/events'
+import { mockEvent, mockEventOvernight } from '@/mocks/events'
 
 export default { title: 'Molecules' } satisfies StoryDefault
 
@@ -41,6 +41,15 @@ export const Default: Story = () => (
     <StorySection description="An online class — screen icon, converted time." title="Online">
       <div className="max-w-md">
         <EventFacts event={{ ...mockEvent, eventType: 'online' }} />
+      </div>
+    </StorySection>
+
+    <StorySection
+      description="A class that runs past midnight — the line stays a time range, with no dates."
+      title="Past midnight"
+    >
+      <div className="max-w-md">
+        <EventFacts event={mockEventOvernight} />
       </div>
     </StorySection>
 

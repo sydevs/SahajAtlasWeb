@@ -1,26 +1,6 @@
 import { IANAZone, type DateTime } from 'luxon'
 
 /**
- * Concise, locale-correct event times.
- *
- * Rather than hand-assembling "6 – 7 PM" (which breaks the moment a locale
- * prefers a 24-hour clock, a different range separator, or a suffix like
- * German's "Uhr"), this delegates to `Intl.DateTimeFormat.formatRange`, which
- * already collapses a shared day period onto the end of the range and renders
- * each locale's own convention:
- *
- * - en-US  → "6 – 7 PM"        (shared meridiem collapses)
- * - en-US  → "11:30 AM – 1:00 PM" (differing meridiems both show)
- * - de     → "18–19 Uhr"       (24-hour, localized suffix)
- *
- * The one thing Intl will not do is drop a `:00`, so this picks the option
- * set: a range whose endpoints both land on the hour formats without
- * minutes, and any range with real minutes keeps them on both ends (mixing
- * them within a single range is not expressible through one formatter, and
- * hand-splicing the parts would reintroduce exactly the locale bugs this
- * avoids).
- */
-/**
  * Whether two instants read as the same wall-clock time — i.e. they share a UTC
  * offset at that moment, so converting between them changes nothing. Compares
  * the OFFSET rather than the zone id so it also catches distinct zones that
@@ -68,18 +48,59 @@ export const reconciledViewerPlace = (
   return at.setZone(zone).offset === at.offset ? region : null
 }
 
+/**
+ * An instant's wall clock, re-pinned to one fixed calendar day.
+ *
+ * `formatRange` widens its pattern to a full date on each end as soon as the two
+ * instants fall on different calendar days, and no option turns that off (#325).
+ * An occurrence spans at most one night (`withEndTime`), so those dates say
+ * nothing. The day is in UTC, where no transition can swallow the wall clock it
+ * carries.
+ *
+ * An overnight range therefore reaches `formatRange` with its start later than
+ * its end — pinned 21:30 against pinned 00:30. No spec or MDN text covers that
+ * pair, but every locale checked renders it in the order given. Do not "fix" it:
+ * re-dating the end restores the day boundary, and swapping the arguments prints
+ * the range backwards.
+ */
+const wallClockOnOneDay = (at: DateTime): Date => new Date(Date.UTC(2000, 0, 1, at.hour, at.minute))
+
+/**
+ * Concise, locale-correct event times.
+ *
+ * Rather than hand-assembling "6 – 7 PM" (which breaks the moment a locale
+ * prefers a 24-hour clock, a different range separator, or a suffix like
+ * German's "Uhr"), this delegates to `Intl.DateTimeFormat.formatRange`, which
+ * already collapses a shared day period onto the end of the range and renders
+ * each locale's own convention:
+ *
+ * - en-US  → "6 – 7 PM"        (shared meridiem collapses)
+ * - en-US  → "11:30 AM – 1:00 PM" (differing meridiems both show)
+ * - de     → "18–19 Uhr"       (24-hour, localized suffix)
+ *
+ * One thing Intl will not do is drop a `:00`, so this picks the option
+ * set: a range whose endpoints both land on the hour formats without
+ * minutes, and any range with real minutes keeps them on both ends (mixing
+ * them within a single range is not expressible through one formatter, and
+ * hand-splicing the parts would reintroduce exactly the locale bugs this
+ * avoids).
+ *
+ * Both endpoints are read in the start's (the event's) zone — a caller may hand
+ * over either — and pinned to one calendar day, so an overnight range keeps its
+ * locale's hour-range pattern instead of widening into two full dates
+ * (`wallClockOnOneDay`).
+ */
 export function formatTimeRange(start: DateTime, end: DateTime | null, locale: string): string {
-  // Both endpoints are in the same (event) zone. Format the instants in it.
-  const timeZone = start.zoneName ?? undefined
-  const onTheHour = start.minute === 0 && (end === null || end.minute === 0)
+  const endInZone = end?.setZone(start.zone) ?? null
+  const onTheHour = start.minute === 0 && (endInZone === null || endInZone.minute === 0)
 
   const formatter = new Intl.DateTimeFormat(locale, {
     hour: 'numeric',
     ...(onTheHour ? {} : { minute: '2-digit' as const }),
-    timeZone,
+    timeZone: 'UTC',
   })
 
-  if (!end || +end === +start) return formatter.format(start.toJSDate())
+  if (!endInZone || +endInZone === +start) return formatter.format(wallClockOnOneDay(start))
 
-  return formatter.formatRange(start.toJSDate(), end.toJSDate())
+  return formatter.formatRange(wallClockOnOneDay(start), wallClockOnOneDay(endInZone))
 }
