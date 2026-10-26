@@ -287,6 +287,13 @@ cover everything a host would notice since the widget was first deployed.
 
 ### Fixed
 
+- **The Register bar no longer covers a class page's other actions on a phone.** ([#320]) At the
+  sheet's default height the pinned "Register Now" bar sat over the Directions / Website /
+  Contact / Share row: the circles were cut in half, their labels hidden, and the covered half of
+  each tap area did nothing. Those four actions now ride the bar itself, under the button, so the
+  row is whole and there is only ever one of it — a visitor still reaches the class description
+  and the address by dragging the sheet up, as before. The bar also leaves room for the home
+  indicator on phones that have one. No parameter, origin or CSP change.
 - **A chosen date on the registration form looks chosen again.** ([#329]) The selected card
   filled with your brand colour, but the radio mark inside it stayed an empty ring, because the
   browser drew that mark in the same colour as the card behind it. The mark now takes the card's
@@ -756,6 +763,7 @@ must-revalidate`, pinned rather than left to the CDN default. The production dom
 [#262]: https://github.com/sydevs/SahajAtlasWeb/issues/262
 [#311]: https://github.com/sydevs/SahajAtlasWeb/pull/311
 [#312]: https://github.com/sydevs/SahajAtlasWeb/pull/312
+[#320]: https://github.com/sydevs/SahajAtlasWeb/issues/320
 [#322]: https://github.com/sydevs/SahajAtlasWeb/issues/322
 [#329]: https://github.com/sydevs/SahajAtlasWeb/pull/329
 [Sizing the element]: docs/embedding.md#sizing-the-element
