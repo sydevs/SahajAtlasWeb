@@ -25,8 +25,9 @@ describe('production-smoke.yml', () => {
   const target = match(lane, /^\s*PREVIEW_URL: (\S+)$/m)
 
   // `docs/embedding.md` is the host-facing contract, so its table decides
-  // which host "production" means. Reading the other one is how #148
-  // stayed invisible: the two serve one build and two sets of headers.
+  // which host "production" means. Reading a vendor host instead is how #148
+  // stayed invisible: it and the custom domain served one build and two sets
+  // of headers, and only the domain hosts embed from.
   it('reads the host the embedding guide calls the production domain', () => {
     expect(target).toBe(
       match(readRepoSource('docs/embedding.md'), /`(\S+)`\s*\|\s*the production domain/),
@@ -38,11 +39,13 @@ describe('production-smoke.yml', () => {
   // spec at collection. The `ci.yml` environment value that used to carry it went with the
   // discovery subsystem (#282).
   //
-  // ⚠ The integration prefix is part of the match, because the app Worker carries the Pages
-  // project's own name: `Workers Builds: sahajatlas` and `Cloudflare Pages: sahajatlas` differ
-  // in nothing else, and only one of them is this lane's (#280, #297). And the comparison must
-  // stay `==`: `sahajatlas` is a prefix of `sahajatlas-design`, so a `startsWith` would let the
-  // playground's deploy fire the atlas's lane.
+  // ⚠ The integration prefix is part of the match, because the app Worker took the Pages
+  // project's own name: `Workers Builds: sahajatlas` and `Cloudflare Pages: sahajatlas` differed
+  // in nothing else, and only one of them was ever this lane's (#280, #297). A Pages check run
+  // stops arriving once that project is deleted; the prefix stays, because it is what told the
+  // two apart while both posted. And the comparison must stay `==`: `sahajatlas` is a prefix of
+  // `sahajatlas-design`, so a `startsWith` would let the playground's deploy fire the atlas's
+  // lane.
   it('waits on the Workers build of the Worker wrangler.jsonc names', () => {
     expect(match(lane, /check_run\.name == '(.+?)'/)).toBe(`Workers Builds: ${appWorkerName()}`)
   })

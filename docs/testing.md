@@ -150,10 +150,12 @@ Four findings from the subsystem this replaced, worth keeping so nobody re-deriv
   something exercises the caller — a live run of the script against a real SHA is what caught
   this one.
 - **A check-run name identifies the integration as well as the target, and only both together
-  identify a build.** The app Worker carries the Pages project's own name, so
-  `Workers Builds: sahajatlas` and `Cloudflare Pages: sahajatlas` share this project's slug and
-  differ only in their prefix (#280, #297). ⚠ That is why `production-smoke.yml` compares the
-  **whole** name with `==` — see the production lane below.
+  identify a build.** The app Worker took the Pages project's own name, so
+  `Workers Builds: sahajatlas` and `Cloudflare Pages: sahajatlas` shared this project's slug and
+  differed only in their prefix (#280, #297). ⚠ That is why `production-smoke.yml` compares the
+  **whole** name with `==` — see the production lane below. The Pages check run stops arriving
+  once #283's last phase deletes that project, and the comparison stays as it is: it is what
+  told the two apart while both posted.
 
 The lane also covers `embed.js`, not only the standalone page — the embed is what a host
 installs, so a deploy that breaks it while `index.html` stays healthy must not be a green check.
