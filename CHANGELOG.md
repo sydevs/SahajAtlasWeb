@@ -287,6 +287,11 @@ cover everything a host would notice since the widget was first deployed.
 
 ### Fixed
 
+- **A class that runs past midnight shows its times, not two dates.** ([#325]) A 9:30 PM session
+  ending at 12:30 AM read "10/27/2026, 9:30 PM – 10/28/2026, 12:30 AM" on the class page and the
+  list cards, because the browser's own range formatter adds both calendar dates once the two
+  ends fall on different days. It now reads "9:30 PM – 12:30 AM", in each language's own
+  convention. No change for you to make.
 - **A chosen date on the registration form looks chosen again.** ([#329]) The selected card
   filled with your brand colour, but the radio mark inside it stayed an empty ring, because the
   browser drew that mark in the same colour as the card behind it. The mark now takes the card's
@@ -758,6 +763,7 @@ must-revalidate`, pinned rather than left to the CDN default. The production dom
 [#312]: https://github.com/sydevs/SahajAtlasWeb/pull/312
 [#322]: https://github.com/sydevs/SahajAtlasWeb/issues/322
 [#329]: https://github.com/sydevs/SahajAtlasWeb/pull/329
+[#325]: https://github.com/sydevs/SahajAtlasWeb/issues/325
 [Sizing the element]: docs/embedding.md#sizing-the-element
 [compact card]: docs/embedding.md#when-the-slot-is-too-small
 [Embedding in an iframe]: docs/embedding.md#embedding-in-an-iframe
