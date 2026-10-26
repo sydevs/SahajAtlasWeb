@@ -229,7 +229,7 @@ export const mockEventStartedCourse: Event = {
  */
 export const mockEventOvernight: Event = {
   ...mockEvent,
-  id: 126,
+  id: 129,
   title: 'Late Evening Meditation',
   schedule: {
     ...mockEvent.schedule!,
