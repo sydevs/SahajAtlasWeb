@@ -9,6 +9,7 @@ import { EventDetails } from './EventDetails'
 import { EventHeader } from './EventHeader'
 import { EventRegisterBar } from './EventRegister'
 
+import { EventActions } from '@/components/molecules/EventActions'
 import {
   mockEvent,
   mockEventCourse,
@@ -105,12 +106,16 @@ export const Default: Story = () => (
     </StorySection>
 
     <StorySection
-      description="The Register slot on its own, as the mobile sheet's sticky footer renders it. `ctaInline={false}` is what the panel passes when the bar is pinned to the footer instead."
+      description="Register plus the secondary action row, as the mobile sheet's sticky footer renders them. `ctaInline={false}` is what the panel passes when the bar is pinned to the footer instead."
       title="Register bar"
     >
       <div className="flex max-w-md flex-col gap-4">
+        {/* The two rows are gapped inside a wrapper, as EventView's footer gaps them. */}
         <div className="border border-divider p-3">
-          <EventRegisterBar basePath="/demo/101" event={mockEvent} />
+          <div className="flex flex-col gap-2">
+            <EventRegisterBar basePath="/demo/101" event={mockEvent} />
+            <EventActions basePath="/demo/101" event={mockEvent} />
+          </div>
         </div>
         <div className="border border-divider">
           <EventHeader event={mockEvent} />
