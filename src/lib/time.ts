@@ -68,6 +68,12 @@ export const reconciledViewerPlace = (
   return at.setZone(zone).offset === at.offset ? region : null
 }
 
+/**
+ * The field types `formatRange` adds of its own accord once the two instants
+ * fall on different calendar days, in any locale's date pattern.
+ */
+const DATE_FIELDS = new Set(['era', 'year', 'relatedYear', 'yearName', 'month', 'day', 'weekday'])
+
 export function formatTimeRange(start: DateTime, end: DateTime | null, locale: string): string {
   // Both endpoints are in the same (event) zone. Format the instants in it.
   const timeZone = start.zoneName ?? undefined
@@ -81,5 +87,20 @@ export function formatTimeRange(start: DateTime, end: DateTime | null, locale: s
 
   if (!end || +end === +start) return formatter.format(start.toJSDate())
 
-  return formatter.formatRange(start.toJSDate(), end.toJSDate())
+  const startDate = start.toJSDate()
+  const endDate = end.toJSDate()
+  const parts = formatter.formatRangeToParts(startDate, endDate)
+
+  // `formatRange` widens the pattern to disambiguate endpoints on different
+  // calendar days, so a 21:30–00:30 session comes back as two full dates
+  // (#325). An occurrence never spans more than one night (`withEndTime`), so
+  // the dates carry nothing and the line must stay a time range. Nothing turns
+  // that widening off, so this formats each endpoint on its own and rejoins
+  // them with the separator the range itself used — the locale's, not ours.
+  if (!parts.some((part) => DATE_FIELDS.has(part.type)))
+    return formatter.formatRange(startDate, endDate)
+
+  const separator = parts.find((part) => part.type === 'literal' && part.source === 'shared')?.value
+
+  return `${formatter.format(startDate)}${separator ?? ' – '}${formatter.format(endDate)}`
 }

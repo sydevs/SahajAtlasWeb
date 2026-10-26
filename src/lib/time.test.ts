@@ -50,6 +50,33 @@ describe('formatTimeRange', () => {
     expect(out).toContain('19')
   })
 
+  it('keeps an overnight range time-only, with no dates', () => {
+    // 21:30–00:30 crosses midnight, which makes Intl widen the pattern to two
+    // full dates unless formatTimeRange intervenes (#325).
+    const out = norm(formatTimeRange(at('2026-10-27T21:30'), at('2026-10-28T00:30'), 'en-US'))
+
+    expect(out).toBe('9:30 PM – 12:30 AM')
+    expect(out).not.toContain('/')
+  })
+
+  it('rejoins an overnight range with the locale’s own separator', () => {
+    // Japanese separates a range with a wave dash, so a hard-coded en dash
+    // would pass the en-US case above and still be wrong here.
+    const out = norm(formatTimeRange(at('2026-10-27T21:30'), at('2026-10-28T00:30'), 'ja'))
+
+    expect(out).toBe('21:30～0:30')
+  })
+
+  it('keeps the plain range when midnight UTC falls inside an event-local day', () => {
+    // 16:00–18:00 in Vancouver is 23:00–01:00 UTC. The day crossing is the
+    // formatter's own zone's, so this must not take the split path.
+    const start = at('2026-07-04T16:00', 'America/Vancouver')
+
+    expect(norm(formatTimeRange(start, at('2026-07-04T18:00', 'America/Vancouver'), 'en-US'))).toBe(
+      '4 – 6 PM',
+    )
+  })
+
   it('formats in the event zone, not the machine zone', () => {
     // 18:00 in London is 19:00 in Prague — the DateTime's own zone wins.
     const prague = at('2026-07-04T19:00', 'Europe/Prague')
