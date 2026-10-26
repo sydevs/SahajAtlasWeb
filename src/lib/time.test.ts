@@ -3,8 +3,9 @@ import { DateTime } from 'luxon'
 
 import { formatTimeRange, reconciledViewerPlace, sameWallClock, zoneCity } from './time'
 
-// All fixtures are built in a fixed zone so the formatter's `timeZone` (taken
-// from the DateTime) is deterministic regardless of the machine's zone.
+// All fixtures are built in a fixed zone so each endpoint's wall clock — and a
+// cross-zone end's conversion into the start's zone — stays deterministic
+// regardless of the machine's zone.
 const at = (iso: string, zone = 'Europe/London') => DateTime.fromISO(iso, { zone })
 
 // Intl renders the range separator as an en dash, sometimes with non-breaking
