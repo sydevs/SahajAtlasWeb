@@ -233,11 +233,9 @@ export function useEventDisplay(event: DisplayableEvent): EventDisplayStrings {
     // These are ALWAYS the event's own local time, with no label. Issue #52 dropped the local-versus-your-time labels.
     // For an online event, `origin` is the event-local instant. `next` is the viewer-local instant, used for the where-line hint.
     const eventStart = display.online ? origin : next
-    const eventEnd =
-      eventStart && nextEnd ? nextEnd.setZone(eventStart.zoneName ?? undefined) : null
     const eventStartTime = eventStart ? formatTimeRange(eventStart, null, locale) : null
     const eventTimeRange = eventStart
-      ? formatTimeRange(eventStart, schedule?.endTime ? eventEnd : null, locale)
+      ? formatTimeRange(eventStart, schedule?.endTime ? nextEnd : null, locale)
       : null
 
     const originCity = event.address?.city ?? event.region?.name ?? zoneCity(origin?.zoneName)
