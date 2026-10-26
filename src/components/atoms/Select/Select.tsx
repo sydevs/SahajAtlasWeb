@@ -12,8 +12,13 @@ import { frameCollision, overlayContainer } from '@/lib/overlay'
 // form. `isInvalid` is a variant here, so no caller re-implements the
 // border ternary. `highlight` tints the field primary, to flag an active
 // filter (see FilterView).
+//
+// **`field-size` is a floor, not a type choice (#322).** It is registered in `globals.css`,
+// which owns the argument for the sizes it picks. A caller must not pass a `text-*` through
+// `className` — a core `text-*` emits after `field-size` and silently outranks it
+// (`src/styles/mobile-zoom.test.ts` refuses it).
 export const fieldChrome = tv({
-  base: 'w-full rounded border bg-background px-3 text-sm text-foreground transition-colors outline-none focus-visible:ring-2 focus-visible:ring-focus disabled:opacity-disabled',
+  base: 'w-full rounded border bg-background px-3 field-size text-foreground transition-colors outline-none focus-visible:ring-2 focus-visible:ring-focus disabled:opacity-disabled',
   variants: {
     isInvalid: { true: 'border-danger-7', false: 'border-gray-7' },
     /** A trigger lays its value out against the chevron. A plain input does not. */
@@ -80,9 +85,18 @@ export function Select({
         className={fieldChrome({ isInvalid, highlight, trigger: true, className })}
         onBlur={onBlur}
       >
-        <RadixSelect.Value placeholder={placeholder} />
+        {/* The value ellipsises and the chevron holds its width. Without both, a long
+            CMS-authored option label pushes the chevron out of a `justify-between`
+            trigger instead — 16px fields reach that point sooner than 13px ones did.
+            The wrapper carries it because `RadixSelect.Value` destructures `className`
+            and `style` out and forwards neither; `min-w-0` because a flex item's
+            `min-width: auto` refuses to shrink below its text, so `truncate` never
+            engages without it. */}
+        <span className="min-w-0 truncate">
+          <RadixSelect.Value placeholder={placeholder} />
+        </span>
         <RadixSelect.Icon>
-          <ChevronDown className="h-4 w-4 opacity-70" />
+          <ChevronDown className="h-4 w-4 shrink-0 opacity-70" />
         </RadixSelect.Icon>
       </RadixSelect.Trigger>
 

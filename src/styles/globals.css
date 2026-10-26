@@ -440,6 +440,15 @@
   @apply flex items-center;
 }
 
+/* The iOS zoom floor (#322). Safari scales the host's whole page in when a focused field
+   computes under 16px, and nothing of ours can undo it. The 13px scale needs a wide screen
+   AND a fine pointer — focus zoom is the engine's behaviour, not the viewport's, and an iPhone
+   is 932px wide in landscape. One name, so `[&_input]:field-size` reaches a library's own
+   input in one arm where the class pair needed two, CSS having no `or`. */
+@utility field-size {
+  @apply text-[16px] md:pointer-fine:text-sm;
+}
+
 /* Applied wherever this app renders host-authored rich text. Wrapping is a
    property of THAT — not of the panel it happens to sit in — so it lives
    here, and the next prose surface inherits it: one unbreakable run (a

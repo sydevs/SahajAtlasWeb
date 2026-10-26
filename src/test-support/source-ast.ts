@@ -2,7 +2,7 @@ import ts from 'typescript'
 
 import { memo, readSource } from './source-tree'
 
-// A module of its own so that importing the walk never loads `typescript`: seven of the nine
+// A module of its own so that importing the walk never loads `typescript`: seven of the ten
 // specs that inventory `src/` read raw text and have no parse to pay for.
 
 /** One module's AST. `path` is relative to `src/`. */
