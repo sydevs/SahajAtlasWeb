@@ -393,16 +393,20 @@ export function DrawerFooter({
   className?: string
   /**
    * Pins the footer to the VIEWPORT bottom edge of a snap-point bottom sheet.
-   * The sheet is a full-height translated panel, so `fixed` would resolve
-   * against it instead. So the footer offsets by the sheet's live top. That
-   * value is mirrored every frame onto `--sy-sheet-top` by DrawerStack.
-   * Content scrolls under the footer, and the body's own slot clears it.
+   * The sheet is a full-height panel vaul translates down by the snap offset,
+   * so the footer cancels that translate by offsetting the same distance from
+   * the sheet's own bottom edge. DrawerStack mirrors it onto `--sy-sheet-top`
+   * every frame. Content scrolls under the footer, and the body's slot clears
+   * it.
    *
-   * ⚠ The sheet's `pb-[calc(var(--sy-frame-h)*0.03)]` does NOT enter this sum,
-   * and subtracting it lands the bar BELOW the fold. An absolutely positioned
-   * child resolves against its ancestor's PADDING box, so `bottom` is measured
-   * from the sheet's own bottom edge, padding included. Measured at 390×844
-   * (#320): the bar's bottom edge is the viewport bottom at all three snaps.
+   * ⚠ `fixed`, not `absolute`, and the sheet's `pb-[calc(var(--sy-frame-h)*0.03)]`
+   * is why. The cancellation only holds while the offset is measured from the
+   * sheet's own box, and `absolute` resolves against the nearest POSITIONED
+   * ancestor — which since #312 is a crossfade layer filling the sheet's
+   * CONTENT box, 3% short. Measured at 390×844 on a deployed preview: the bar
+   * sat at 818.69 rather than 844, with the body showing through the gap
+   * (#320). `fixed` resolves against the nearest ancestor with a transform,
+   * and that is the sheet itself, whatever DrawerStack nests in between.
    */
   sticky?: boolean
 }) {
@@ -441,7 +445,7 @@ export function DrawerFooter({
     <div
       ref={ref}
       className={slots.footer({
-        className: `${sticky ? 'absolute inset-x-0 bottom-[var(--sy-sheet-top,0px)] z-10 bg-background' : ''} ${className ?? ''}`,
+        className: `${sticky ? 'fixed inset-x-0 bottom-[var(--sy-sheet-top,0px)] z-10 bg-background' : ''} ${className ?? ''}`,
       })}
     >
       {children}

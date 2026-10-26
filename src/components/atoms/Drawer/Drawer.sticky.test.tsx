@@ -10,6 +10,12 @@ import { DrawerBody, DrawerFooter, DrawerSlotsProvider } from './Drawer'
  * ⚠ The measured half — that the footer's height reaches the body, and that the bar's
  * bottom edge is the viewport bottom — needs a browser. jsdom has no `ResizeObserver`
  * and reports every rect as zero, so these assert the two seams that carry the numbers.
+ *
+ * ⚠ **A harness that composes `DrawerFooter` straight under `DrawerContent` cannot see
+ * the defect this fixes**, and one did: the bar measured flush there while the app put
+ * it 25px high, because the app's crossfade layers (#312) sit in between and `absolute`
+ * took one of them as its containing block. Hence the `fixed` assertion below, and hence
+ * measuring a deployed preview rather than an isolated story.
  */
 const render = (children: React.ReactNode) =>
   renderToStaticMarkup(
@@ -28,6 +34,15 @@ const footer = (sticky: boolean) =>
 describe('DrawerFooter — sticky', () => {
   it('offsets by the live sheet top, with nothing taken off it', () => {
     expect(footer(true)).toContain('bottom-[var(--sy-sheet-top,0px)]')
+  })
+
+  // The offset cancels vaul's translate only when measured from the sheet's own box.
+  // `absolute` takes a crossfade layer instead, which is the sheet's content box.
+  it('resolves against the sheet, not the nearest positioned ancestor', () => {
+    const markup = footer(true)
+
+    expect(markup).toContain('fixed')
+    expect(markup).not.toContain('absolute')
   })
 
   // The inset rides a spacer rather than the footer's own padding, which a caller's
