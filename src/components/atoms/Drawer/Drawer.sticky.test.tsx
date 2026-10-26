@@ -62,6 +62,16 @@ describe('DrawerFooter — sticky', () => {
 describe('DrawerBody', () => {
   // Zero where no sticky footer publishes a height, so every other body is unchanged.
   it('ends its content at the published footer height', () => {
-    expect(render(<DrawerBody>content</DrawerBody>)).toContain('pb-[var(--sy-footer-h,0px)]')
+    expect(render(<DrawerBody>content</DrawerBody>)).toContain('after:h-[var(--sy-footer-h,0px)]')
+  })
+
+  // FilterView, ShareView, RegistrationView and CalendarView all pass `p-4`, which
+  // tailwind-merge resolves against a slot's own `pb-*`. The clearance has to survive
+  // the first of them to gain a sticky footer.
+  it('keeps the clearance a caller shorthand cannot merge away', () => {
+    const markup = render(<DrawerBody className="p-4">content</DrawerBody>)
+
+    expect(markup).toContain('after:h-[var(--sy-footer-h,0px)]')
+    expect(markup).toContain('p-4')
   })
 })

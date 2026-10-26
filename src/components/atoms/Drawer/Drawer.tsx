@@ -45,12 +45,18 @@ const drawer = tv({
     // a clipped edge, instead of a horizontal scrollbar across the view. It
     // is safe for the full-bleed carousel, which is exactly the body's width,
     // and for popovers, which portal out of the body entirely.
-    // The trailing padding clears a `sticky` footer, which is out of flow, so
+    // The trailing spacer clears a `sticky` footer, which is out of flow, so
     // the body runs underneath it and the end of the content is otherwise
-    // unreachable. The length is the footer's own, published by `DrawerFooter`.
-    // ⚠ A caller's `p-*` or `pb-*` merges it away — give such a body `pt-*`,
-    // `px-*` and `pb-[var(--sy-footer-h,0px)]` rather than one shorthand.
-    body: 'mx-auto min-h-0 w-full max-w-[var(--sy-content-max,512px)] flex-1 overflow-x-hidden overflow-y-auto pb-[var(--sy-footer-h,0px)]',
+    // unreachable. The length is the footer's own, published by `DrawerFooter`,
+    // and zero wherever no sticky footer exists.
+    // ⚠ A spacer and not this slot's own `pb-*`: tailwind-merge drops a slot
+    // `pb-*` for any caller shorthand, and four bodies already pass `p-4`, so
+    // the first of them to gain a sticky footer would bury its own content with
+    // every lane green. A variant-prefixed class conflicts with no caller
+    // class, and the spacer adds to their padding instead of replacing it. It
+    // is a pseudo-element so `[&>:last-child]` postures still find the real
+    // last child (`CENTERED_BODY`).
+    body: "mx-auto min-h-0 w-full max-w-[var(--sy-content-max,512px)] flex-1 overflow-x-hidden overflow-y-auto after:block after:h-[var(--sy-footer-h,0px)] after:shrink-0 after:content-['']",
     footer:
       'mx-auto mt-auto w-full max-w-[var(--sy-content-max,512px)] shrink-0 border-t border-gray-4',
     // This themes the vaul drag handle. Its vendored CSS hardcodes a light

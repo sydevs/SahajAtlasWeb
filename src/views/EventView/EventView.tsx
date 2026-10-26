@@ -105,8 +105,8 @@ export function EventView({ id, basePath }: { id: number; basePath: string }) {
           build. The embedded widget's host owns the document head. */}
       {standalone && <EventMetadata event={event} />}
       <EventHeader event={event} trailing={<CloseButton />} />
-      {/* No clearance for the pinned bar here: the Drawer's body slot pads itself by
-          the sticky footer's published height. This view carried an `h-24` spacer and
+      {/* No clearance for the pinned bar here: the Drawer's body slot ends on a spacer
+          the sticky footer's published height tall. This view carried an `h-24` spacer and
           then a `pb-20`, both constants, and the bar is not one — it runs 65px to
           197.5px across the resolver states. */}
       <DrawerBody>
