@@ -524,8 +524,9 @@ That is the hook's whole command, wall clock, not the lane, which takes ~36s. Me
 on 4 cores, median of three: **0.12s** for a lane source with no spec of its own, **6.6s** for
 `src/config/i18n.ts` (12 specs, the slowest edit in the tree), and **4.5s** for
 `src/test-support/repo-source.ts` (the widest — #289 moved it there). The slowest edit
-sits at about half the bound. Re-measured 2026-10-25, at 16 specs rather than 15: still **4.5s**,
-median of three.
+sits at about half the bound. Re-measured 2026-10-26, at 17 specs rather than 15: **4.2s** for the
+widest and **5.0s** for `i18n.ts`, medians of three. Both fell while the widest selection grew, so
+read the two figures as a pair taken on one machine, never as a trend.
 ⚠ **The 0.12s class is smaller than #289 found it**: `src/views/FullInterface.tsx` selected
 nothing until `MapFrame.test.tsx` named it as a quoted repo-relative path, and now costs **2.2s**
 per edit for the wiring pin it previously had no per-edit coverage from at all. A quoted literal
@@ -583,10 +584,12 @@ to select from. The full lane still runs in the lean gate (`.claude/skills/pr-pr
 in CI, so this narrows the inner loop, not the gate.
 
 **What holds the budget is the selection's width, and `scripts/select-unit-specs.test.ts` pins
-that**: the widest edit in the tree, exhaustively through the real composition, at 16 against a
-ceiling of 16 — no headroom, so the next spec reading a repo file through `repo-source` trips it,
-and the answer is to time the hook and ratchet, never to drop a spec. ⚠ The widest is no longer the slowest — `i18n.ts`
-selects 12, four of them jsdom, and takes 6.6s against the widest's 4.5s and three — so width
+that**: the widest edit in the tree, exhaustively through the real composition, at 17 against a
+ceiling of 17 — no headroom, so the next spec reading a repo file through `repo-source` trips it,
+and the answer is to time the hook and ratchet, never to drop a spec. ⚠ **Two PRs can trip it
+without either one doing so alone**: #322's `mobile-zoom.test.ts` and #324's `attribution.test.ts`
+each took a slot, and the pin went red on the merge rather than on either branch. ⚠ The widest is not the slowest — `i18n.ts`
+selects 12, four of them jsdom, and takes 5.0s against the widest's 4.2s and seventeen — so width
 bounds the slice, never the time, and a jump in either is a re-measure of both. It also pins each
 of the three specifier forms, end to end against this tree; the tree-walking set as a closed list,
 and its absence from the selection, where the fixture carries a walker of each kind, so a re-added
