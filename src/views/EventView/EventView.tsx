@@ -162,11 +162,9 @@ export function EventView({ id, basePath }: { id: number; basePath: string }) {
             under a preview too: a document session inerts every link it draws
             (`LivePreviewController`), and a translations session wants this one live, so the
             translator can reach the screen its string is on. */}
-        <p className="px-4 py-4 text-center text-sm text-gray-11">
-          <Link className="underline underline-offset-2" href={correctionPath(basePath)}>
-            {t('submit.chrome.correct_entry')}
-          </Link>
-        </p>
+        <Link appearance="footnote" href={correctionPath(basePath)}>
+          {t('submit.chrome.correct_entry')}
+        </Link>
       </DrawerBody>
       {stickyRegister && (
         <DrawerFooter
