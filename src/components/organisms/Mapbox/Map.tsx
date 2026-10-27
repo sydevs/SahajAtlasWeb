@@ -40,8 +40,6 @@ import { hasActiveFilters, matchesFilters, safePath, todayISO } from '@/lib/shap
 import { useLocale } from '@/hooks/use-locale'
 import { useTheme } from '@/hooks/use-theme'
 import { useMapbox } from '@/hooks/use-mapbox'
-import { useIsWide } from '@/config/responsive'
-import { frameElement } from '@/lib/overlay'
 
 const MAP_STYLES = {
   light: 'mapbox://styles/sydevadmin/ck7g6nag70rn11io09f45odkq',
@@ -96,29 +94,6 @@ const toMapSource = (features: Geojson['features']): FeatureCollection<Geometry 
     properties: { id: feature.properties.id, webPath: feature.properties.webPath ?? null },
   })),
 })
-
-/**
- * Where Mapbox's wordmark and its attribution sit, as an `inset` for mapbox's own corner
- * container. `styles/globals.css` reads it as `--sy-map-attribution`.
- *
- * Mapbox's terms require both to be visible, and mapbox's own corner is the one the drawer
- * takes: the side panel covers the bottom left, the bottom sheet covers the whole bottom edge.
- *
- * ⚠ **The corner cannot be re-chosen at runtime, which is why CSS moves the container instead.**
- * `logoPosition` is read once, when the map is constructed — mapbox exposes no setter and
- * react-map-gl leaves it out of its reconciliation whitelist — and `LogoControl` is not an export,
- * so the logo cannot be removed and re-added either. `useControl` reads a control's `position`
- * once for the same reason.
- */
-const ATTRIBUTION_INSET = {
-  // Physical, and paired with the drawer's deferred RTL flip (`atoms/Drawer`'s
-  // `TODO(rtl, #52 WS8)`): that panel is on the left under RTL too until the flip lands, so
-  // turning this one logical alone would put the credits back under it.
-  panel: 'auto 0 0 auto',
-  // Below the settings cog `DrawerStack` fixes in this corner. `attribution.test.ts` derives
-  // the sum from the cog's own classes.
-  sheet: '44px auto auto 0',
-}
 
 const DEBUG_BOUNDARY = false
 const DEBUG_PADDING = false
@@ -245,10 +220,6 @@ export function Mapbox({ cooperative = false }: { cooperative?: boolean } = {}) 
   // subscription on the app's hottest render path.
   const { t, locale, languageCode } = useLocale()
   const { theme } = useTheme()
-  // Measured, not inferred, and measured here because the map is `DrawerStack`'s sibling rather
-  // than its descendant, so `WidgetWidthContext` cannot reach it. Map mode measures the frame in
-  // both, so the two cannot disagree about which corner the drawer takes.
-  const isWide = useIsWide(frameElement())
 
   // Mapbox's own control strings are otherwise English on every embed. The
   // GeolocateControl's whole accessible name comes from these two strings
@@ -327,12 +298,8 @@ export function Mapbox({ cooperative = false }: { cooperative?: boolean } = {}) 
       // without this setting, a click would land on pins behind the blur
       // and open a class the visitor never chose.
       pointerEvents: settled ? undefined : ('none' as const),
-      // This inherits down to mapbox's own control container, which `styles/globals.css`
-      // places from it. `style` is the one prop react-map-gl passes to the element the map
-      // is built in.
-      '--sy-map-attribution': ATTRIBUTION_INSET[isWide ? 'panel' : 'sheet'],
     }),
-    [settled, isWide],
+    [settled],
   )
 
   // This is armed on style load and cleared on unmount, so a map torn down
@@ -469,6 +436,7 @@ export function Mapbox({ cooperative = false }: { cooperative?: boolean } = {}) 
       // @ts-ignore - Language is a valid property
       language={locale} // TODO: Make sure this switches when locale changes
       locale={mapLocale}
+      logoPosition="top-right"
       mapStyle={MAP_STYLES[theme]}
       mapboxAccessToken={import.meta.env.VITE_MAPBOX_ACCESSTOKEN}
       style={canvasStyle}
@@ -559,11 +527,15 @@ export function Mapbox({ cooperative = false }: { cooperative?: boolean } = {}) 
           source code says otherwise. This was verified against the running
           control, rather than trusting either claim. */}
       <GeolocateControl followUserLocation={false} onGeolocate={geolocateToSearch} />
-      {/* Mapbox adds its own at a position nothing can change, so `attributionControl` above
-          declines it and this replaces it. `bottom-left` is the container mapbox already put the
-          wordmark in, so one `ATTRIBUTION_INSET` places both. `compact` keeps it a round button
-          until a visitor opens it, rather than a strip of text across an embed's map. */}
-      <AttributionControl compact position="bottom-left" />
+      {/* Mapbox's terms require both the wordmark and the attribution, and both must stay on the
+          map view. Mapbox adds its own attribution in a corner no prop can change, so
+          `attributionControl` above declines it and this replaces it — in the top right, with
+          `logoPosition`, because that is the one corner no drawer takes: the side panel covers the
+          bottom left, and the bottom sheet's peek covers the whole bottom edge at every snap. Both
+          props are read once, when the map is constructed, which is all a corner that never moves
+          needs. `compact` keeps it a round button until a visitor opens it, rather than a strip of
+          text across an embed's map. */}
+      <AttributionControl compact position="top-right" />
     </ReactMapGL>
   )
 }

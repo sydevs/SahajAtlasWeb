@@ -76,12 +76,10 @@ const drawer = tv({
       // prop. That prop is physically left or right, and it drives both the
       // drag axis and the enter animation. These inset classes cannot fix
       // that alone. DrawerStack picks the direction, so the flip belongs
-      // there and here together — and with `ATTRIBUTION_INSET.panel` in
-      // `organisms/Mapbox/Map.tsx`, which keeps the map credits clear of this
-      // panel and is physical for the same reason. This is deferred until an
-      // RTL locale actually ships. Everything else here is already logical:
-      // the stack's panel and cog positioning use `start-*`, and directional
-      // icons mirror through BaseIcon's `flipRtl`.
+      // there and here together. This is deferred until an RTL locale
+      // actually ships. Everything else here is already logical: the stack's
+      // panel and cog positioning use `start-*`, and directional icons mirror
+      // through BaseIcon's `flipRtl`.
       //
       // **The `352px` in both variants below is paired with `DRAWER_W_PX` in
       // `hooks/use-map-controller-real.tsx`.** That constant becomes the map's

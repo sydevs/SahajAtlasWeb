@@ -49,16 +49,11 @@ const VIEWPORT_CALLERS: Record<string, string> = {
  * A 600px contained map gets the bottom sheet, while a viewport read would still reserve 352px of camera for a panel that is not there.
  * This code cannot take `WidgetWidthContext`, since it RENDERS the provider.
  * So both now measure `frameElement()`, which is `null`, and therefore the viewport, wherever no frame exists.
- *
- * **The map's own attribution corner reads it for the third reason**: the map is the provider's SIBLING, not its descendant.
- * Mapbox's wordmark and attribution have to sit where the drawer does not cover them, which is the cog's question and so the same signal.
- * It measures `frameElement()` for the same reason the camera padding does, and that is the same element `DrawerStack` measures in map mode — so the two cannot place the panel differently.
  */
 const CONTAINER_CALLERS = [
   'views/DrawerStack/DrawerStack.tsx',
   'views/EventView/EventView.tsx',
   'hooks/use-map-controller-real.tsx',
-  'components/organisms/Mapbox/Map.tsx',
 ]
 
 // `useIsDesktop` is gone.

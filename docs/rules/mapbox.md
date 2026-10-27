@@ -204,16 +204,41 @@ list and the libraries behind it, never from a grep.**
 That list is two: `GeolocateControl` and `AttributionControl`. The second
 reaches for nothing — a button and links — so it added no row to that table.
 
-## The wordmark and the attribution are placed in CSS, not through Mapbox
+## The wordmark and the attribution sit in ONE fixed corner — no CSS, no measurement
 
-Mapbox's terms require both to be visible, and the corner mapbox puts them in is
-the one the drawer takes. So `Map.tsx` publishes an `inset` for mapbox's own
-corner container as `--sy-map-attribution`, and `globals.css` places the
-container from it; `ATTRIBUTION_INSET` carries why no Mapbox API can do this.
-**Both controls must stay in one corner container**, which is what makes a
-single inset place them together — so the attribution is rendered at
-`position="bottom-left"`, where mapbox already put the wordmark, rather than in
-the corner it is to appear in.
+Mapbox's terms require both, and mapbox's own default corners are the ones the
+drawer takes: the side panel covers the bottom left, and the bottom sheet's
+`PEEK_SNAP` covers the whole bottom edge at every snap. The top right is clear in
+both layouts, so `logoPosition="top-right"` on the map plus `position="top-right"`
+on the `AttributionControl` are the entire placement — no stylesheet rule, no
+custom property, no width measurement. **This is not a responsive decision**, and
+`src/components/AGENTS.md`'s signal table carries no row for it.
+
+**Both props are read once, when the map is constructed**, which is exactly why a
+fixed corner is cheap and a per-layout one is not. `logoPosition` has no setter
+and react-map-gl leaves it out of `settingNames`, its reconciliation whitelist;
+`LogoControl` is not a mapbox-gl export, so the logo cannot be removed and
+re-added; and `useControl` reads a control's `position` once for the same reason.
+A corner that follows the layout therefore costs a measured width in React, a
+custom property, and a CSS rule that moves mapbox's container — which is the shape
+#330 shipped first and its review replaced.
+
+**Both controls must stay in one corner container.** Mapbox's corner containers
+float and `clear: both`, so two controls in one container stack vertically;
+splitting them across two corners puts one of them back under the drawer.
+`attribution.test.ts` pins the two literals as equal, because a drift between them
+is silent.
+
+**Neither may be dropped, and neither may leave the map.** The wordmark is
+required outright; the text attribution is required for any map using Mapbox
+styles or data, which ours do. Mapbox's attribution guide sanctions exactly one
+collapsed form — its own information button, which `compact` renders — and says
+any other placement must be reviewed and approved by Mapbox, so the credits
+cannot move into the settings menu.
+
+⚠ The top-right container also holds `GeolocateControl`, and `[data-sy-expanded]`
+nudges the whole column down 40px to clear the expanded surface's collapse
+control — three controls now, not one.
 
 ## Geo helpers
 

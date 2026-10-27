@@ -554,28 +554,13 @@
 }
 
 /* Keeps Mapbox's own control column clear of the expanded surface's collapse control.
-   Both sit in the top-inline-end corner (`CompactEmbedView`'s `ExpandedDialog`), and the
-   geolocate button is the one thing map mode renders there. This is unconditional,
-   rather than direction-aware: under RTL the collapse control moves to the other corner
-   and this nudge is merely unnecessary, which is a better failure than two round buttons
-   on top of each other. */
+   Both sit in the top-inline-end corner (`CompactEmbedView`'s `ExpandedDialog`), and map
+   mode renders the geolocate button, the wordmark and the attribution there. This is
+   unconditional, rather than direction-aware: under RTL the collapse control moves to the
+   other corner and this nudge is merely unnecessary, which is a better failure than two
+   round buttons on top of each other. */
 [data-sy-expanded] .mapboxgl-ctrl-top-right {
   margin-top: 40px;
-}
-
-/* Moves mapbox's wordmark and attribution out from under the drawer. `Map.tsx` sets
-   `--sy-map-attribution` from the measured width, and its `ATTRIBUTION_INSET` carries the why.
-   The fallback is mapbox's own corner, and it is not optional: the property arrives as an
-   inline style, which no sheet declares, and `scripts/assert-css-scoped.mjs` fails the build on
-   a fallbackless `var()` naming one (#262). The inner margin is uniform because mapbox's is
-   keyed to the corner it believes it is in, and the anchored container shrinks to fit, so the
-   two far edges cost nothing. */
-.mapboxgl-ctrl-bottom-left {
-  inset: var(--sy-map-attribution, auto auto 0 0);
-}
-
-.mapboxgl-ctrl-bottom-left .mapboxgl-ctrl {
-  margin: 10px;
 }
 
 /* The boot curtain's spinner (views/FullInterface.tsx → MapCurtain). It fades in on a
