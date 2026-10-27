@@ -299,10 +299,11 @@ cover everything a host would notice since the widget was first deployed.
 - **The map credits Mapbox again, where you can see them.** ([#324]) The Mapbox wordmark sat
   in the corner the panel covers on a wide embed and the bottom sheet covers on a narrow one,
   so it was never visible, and the attribution control was switched off altogether — both are
-  required by Mapbox's terms. The wordmark and a compact attribution button now sit in the map's
-  top right corner, beneath the locate control, at every embed size. Nothing to change on your
-  side: no new origin, no new permission, and they are inside the widget's own element as every
-  other control is.
+  required by Mapbox's terms. A compact attribution button now sits in the map's top right
+  corner, beneath the locate control, at every embed size, and the wordmark sits at the bottom
+  right — clear of the panel on a wide embed, though the bottom sheet still covers it on a
+  narrow one. Nothing to change on your side: no new origin, no new permission, and they are
+  inside the widget's own element as every other control is.
 - **The Register bar no longer covers a class page's other actions on a phone.** ([#320]) At the
   sheet's default height the pinned "Register Now" bar sat over the Directions / Website /
   Contact / Share row: the circles were cut in half, their labels hidden, and the covered half of
