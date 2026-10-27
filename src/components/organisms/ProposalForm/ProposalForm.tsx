@@ -104,7 +104,7 @@ export function ProposalForm({
   step,
   onChange,
   onStep,
-  reviewed: reviewedProp = false,
+  reviewed = false,
   sender,
   onSender,
   sent,
@@ -125,15 +125,12 @@ export function ProposalForm({
   const index = LISTING_STEPS.indexOf(step as (typeof LISTING_STEPS)[number])
   // Once review has been seen — a correction opens there — a step reached by an Edit link
   // returns to review, rather than walking the visitor through every step after it again.
-  // The owner's `reviewed` carries this across a remount; the local flag covers an owner
-  // that does not track it.
-  const [seenReview, setSeenReview] = useState(false)
-  const reviewed = reviewedProp || seenReview || Boolean(correction)
-  const onward = reviewed || step === 'more' ? 'review' : (LISTING_STEPS[index + 1] ?? 'review')
+  // The owner tracks it, so a remount keeps it.
+  const onward =
+    reviewed || step === 'more' ? 'review' : (LISTING_STEPS[index + 1] ?? 'review')
 
   const go = (next: ListingStep) => {
     setAttempted(null)
-    if (next === 'review') setSeenReview(true)
     onStep(next)
   }
 

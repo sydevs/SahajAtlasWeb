@@ -114,6 +114,9 @@ function Harness({
 }) {
   const [draft, setDraft] = useState(initial)
   const [step, setStep] = useState<ListingStep>(startAt)
+  // The store's own rule: a session is reviewed once it has been at review, and a correction
+  // opens there, so one reached through an Edit link arrives already reviewed.
+  const [seenReview, setSeenReview] = useState(startAt === 'review' || Boolean(correction))
   const [sent, setSent] = useState(false)
   const [sender, setSender] = useState({ email: '', note: '' })
 
@@ -122,7 +125,7 @@ function Harness({
       context={context}
       correction={correction}
       draft={draft}
-      reviewed={reviewed}
+      reviewed={reviewed ?? seenReview}
       sender={sender}
       sent={sent}
       step={step}
@@ -130,7 +133,10 @@ function Harness({
       onClose={() => {}}
       onSender={(patch) => setSender((current) => ({ ...current, ...patch }))}
       onSent={() => setSent(true)}
-      onStep={setStep}
+      onStep={(next) => {
+        setStep(next)
+        if (next === 'review') setSeenReview(true)
+      }}
     />
   )
 }
