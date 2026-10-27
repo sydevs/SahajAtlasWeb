@@ -436,7 +436,7 @@ export function Mapbox({ cooperative = false }: { cooperative?: boolean } = {}) 
       // @ts-ignore - Language is a valid property
       language={locale} // TODO: Make sure this switches when locale changes
       locale={mapLocale}
-      logoPosition="top-right"
+      logoPosition="bottom-right"
       mapStyle={MAP_STYLES[theme]}
       mapboxAccessToken={import.meta.env.VITE_MAPBOX_ACCESSTOKEN}
       style={canvasStyle}
