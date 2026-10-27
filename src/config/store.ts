@@ -1,3 +1,5 @@
+import type { CalendarViewOption } from '@/lib/shape'
+
 import { create } from 'zustand'
 import { Feature } from 'geojson'
 
@@ -153,19 +155,19 @@ export const useCameraSettled = create<CameraSettled>((set) => ({
 
 // ===== CALENDAR POSITION ===== //
 
-// This holds the full-width `CalendarView`'s last view, `month-grid`, `week`, or `list`, plus its focused date.
+// This holds the full-width `CalendarView`'s last view — one of the three the switch offers, never the `month-agenda` a width collapses onto — plus its focused date.
 // The store keeps this so applying a filter, which remounts the filters-keyed grid, does not reset Schedule-X to today's month grid.
 // Opening an event and coming back also does not reset it.
 // This state is session-scoped and clears on reload.
 // The grid SEEDS from this store once at mount, through `getState`.
 // It then writes both fields imperatively as the user navigates.
 // So a write never re-renders the calendar.
-// `DrawerStack` also reads `view` reactively, through a selector, to size the drawer. A list view needs the regular width.
+// `DrawerStack` also reads `view` reactively, through a selector, to size the drawer — the wide panel exists only above the width crossing, and the list view never takes it (#331).
 // `date` is only ever read through `getState`, so its frequent writes stay render-free.
 type CalendarPositionState = {
-  view: string | null
+  view: CalendarViewOption | null
   date: string | null
-  setView: (view: string) => void
+  setView: (view: CalendarViewOption) => void
   setDate: (date: string) => void
 }
 

@@ -310,6 +310,16 @@ cover everything a host would notice since the widget was first deployed.
   row is whole and there is only ever one of it — a visitor still reaches the class description
   and the address by dragging the sheet up, as before. The bar also leaves room for the home
   indicator on phones that have one. No parameter, origin or CSP change.
+- **The calendar's Month button now shows a month on a phone, instead of a day list.** ([#331])
+  Below 768px the calendar drew a day-by-day list while the switch said Month, and pressing
+  Month changed nothing — the third-party grid refuses its month and week layouts at that width
+  and silently substituted the list, with no way for our own header to find out. Month now opens
+  a month date-picker over the chosen day's classes, and the lit button always matches what is on
+  screen. Week is hidden below that width, where a seven-column time grid was never readable, so
+  a narrow embed offers Month and List and a wide one offers all three; a visitor who picked Week
+  on a desktop gets it back when the space returns. The settings control also reappears on a
+  phone in month view, where it had been hidden. Nothing above 768px changes, and no parameter,
+  origin or CSP change.
 - **A class that runs past midnight shows its times, not two dates.** ([#325]) A 9:30 PM session
   ending at 12:30 AM read "10/27/2026, 9:30 PM – 10/28/2026, 12:30 AM" on the class page and the
   list cards, because the browser's own range formatter adds both calendar dates once the two
@@ -789,6 +799,7 @@ must-revalidate`, pinned rather than left to the CDN default. The production dom
 [#322]: https://github.com/sydevs/SahajAtlasWeb/issues/322
 [#329]: https://github.com/sydevs/SahajAtlasWeb/pull/329
 [#325]: https://github.com/sydevs/SahajAtlasWeb/issues/325
+[#331]: https://github.com/sydevs/SahajAtlasWeb/issues/331
 [Sizing the element]: docs/embedding.md#sizing-the-element
 [compact card]: docs/embedding.md#when-the-slot-is-too-small
 [Embedding in an iframe]: docs/embedding.md#embedding-in-an-iframe
