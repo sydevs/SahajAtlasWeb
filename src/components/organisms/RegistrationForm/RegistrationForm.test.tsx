@@ -84,8 +84,8 @@ describe('RegistrationForm', () => {
         key="false"
         eventId={42}
         eventTitle="Evening meditation"
-        isOnline={false}
         hasMailingList={false}
+        isOnline={false}
         questions={[]}
         upcomingDates={[new Date('2026-10-01T18:00:00Z')]}
       />,

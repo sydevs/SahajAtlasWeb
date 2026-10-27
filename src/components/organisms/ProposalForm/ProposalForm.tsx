@@ -126,8 +126,7 @@ export function ProposalForm({
   // Once review has been seen — a correction opens there — a step reached by an Edit link
   // returns to review, rather than walking the visitor through every step after it again.
   // The owner tracks it, so a remount keeps it.
-  const onward =
-    reviewed || step === 'more' ? 'review' : (LISTING_STEPS[index + 1] ?? 'review')
+  const onward = reviewed || step === 'more' ? 'review' : (LISTING_STEPS[index + 1] ?? 'review')
 
   const go = (next: ListingStep) => {
     setAttempted(null)

@@ -5,7 +5,7 @@ import { Check } from 'lucide-react'
 import { Alert } from '@/components/atoms/Alert'
 import { DrawerBody, DrawerFooter } from '@/components/atoms/Drawer'
 import { Link } from '@/components/atoms/Link'
-import { AddClassLink, EventMetadata, ResetErrorBoundary } from '@/components/molecules'
+import { EventMetadata, ResetErrorBoundary } from '@/components/molecules'
 // This imports leaf files, not the folder index. The index re-exports EventDetails, and
 // importing it statically here would pull the lazy-loaded panel chunk — DOMPurify and action
 // wiring — back into the main bundle.
@@ -162,7 +162,11 @@ export function EventView({ id, basePath }: { id: number; basePath: string }) {
             under a preview too: a document session inerts every link it draws
             (`LivePreviewController`), and a translations session wants this one live, so the
             translator can reach the screen its string is on. */}
-        <AddClassLink href={correctionPath(basePath)} label={t('submit.chrome.correct_entry')} />
+        <p className="px-4 py-4 text-center text-sm text-gray-11">
+          <Link className="underline underline-offset-2" href={correctionPath(basePath)}>
+            {t('submit.chrome.correct_entry')}
+          </Link>
+        </p>
       </DrawerBody>
       {stickyRegister && (
         <DrawerFooter
