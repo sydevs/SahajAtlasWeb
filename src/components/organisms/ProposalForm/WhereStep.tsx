@@ -1,13 +1,14 @@
 import type { ListingDraft } from '@/lib/proposal'
 import type { GeocodingFeature } from '@mapbox/search-js-core'
 
+import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
 import { type StepProps, CONTACT_MAX, ValidatedInput } from './fields'
 
 import { ToggleGroup, ToggleGroupItem } from '@/components/atoms/ToggleGroup'
 import { FormField } from '@/components/molecules/FormField'
-import { MapSearch } from '@/components/organisms/Mapbox/MapSearch'
+import { MapSearch, type MapSearchProps } from '@/components/organisms/Mapbox/MapSearch'
 
 export function WhereStep({
   draft,
@@ -44,10 +45,10 @@ export function WhereStep({
             error={errors.address && t('submit.errors.address_required')}
             label={t('submit.where.address_label')}
           >
-            <MapSearch
+            <PlaceField
+              initial={draft.address?.label ?? ''}
               label={t('submit.where.address_placeholder')}
               proximity={proximity}
-              query={{ initial: draft.address?.label ?? '' }}
               types="address"
               onSelect={onPick('address')}
             />
@@ -78,10 +79,10 @@ export function WhereStep({
             help={t('submit.where.city_help')}
             label={t('submit.where.city_label')}
           >
-            <MapSearch
+            <PlaceField
+              initial={draft.city?.label ?? ''}
               label={t('submit.where.city_placeholder')}
               proximity={proximity}
-              query={{ initial: draft.city?.label ?? '' }}
               types="place"
               onSelect={onPick('city')}
             />
@@ -90,4 +91,17 @@ export function WhereStep({
       )}
     </div>
   )
+}
+
+/**
+ * A geocoder field whose text belongs to the step, not to `?q`: a step reached through an Edit
+ * link reopens on what the draft already holds.
+ */
+function PlaceField({
+  initial,
+  ...field
+}: { initial: string } & Omit<MapSearchProps, 'value' | 'onChange'>) {
+  const [text, setText] = useState(initial)
+
+  return <MapSearch value={text} onChange={setText} {...field} />
 }
