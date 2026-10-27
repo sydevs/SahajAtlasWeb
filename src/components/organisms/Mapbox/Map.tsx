@@ -4,6 +4,7 @@ import type { DisplayableEvent } from '@/hooks/use-event-display'
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import ReactMapGL, {
+  AttributionControl,
   GeoJSONSource,
   GeolocateControl,
   Layer,
@@ -221,8 +222,11 @@ export function Mapbox({ cooperative = false }: { cooperative?: boolean } = {}) 
   const { theme } = useTheme()
 
   // Mapbox's own control strings are otherwise English on every embed. The
-  // GeolocateControl below is the only control this app renders, and its
-  // whole accessible name comes from these two strings (issue #102).
+  // GeolocateControl's whole accessible name comes from these two strings
+  // (issue #102).
+  // The wordmark's and the attribution toggle's names are Mapbox keys too, left
+  // in Mapbox's English on purpose: they label the legally required credits,
+  // not a feature, so they are not worth CMS keys (sydevs/SahajCloud#1032).
   //
   // Two things to know before extending this. It is CONSTRUCTION-ONLY.
   // `locale` is absent from react-map-gl's reconciliation whitelist
@@ -432,6 +436,7 @@ export function Mapbox({ cooperative = false }: { cooperative?: boolean } = {}) 
       // @ts-ignore - Language is a valid property
       language={locale} // TODO: Make sure this switches when locale changes
       locale={mapLocale}
+      logoPosition="bottom-right"
       mapStyle={MAP_STYLES[theme]}
       mapboxAccessToken={import.meta.env.VITE_MAPBOX_ACCESSTOKEN}
       style={canvasStyle}
@@ -522,6 +527,17 @@ export function Mapbox({ cooperative = false }: { cooperative?: boolean } = {}) 
           source code says otherwise. This was verified against the running
           control, rather than trusting either claim. */}
       <GeolocateControl followUserLocation={false} onGeolocate={geolocateToSearch} />
+      {/* Mapbox's terms require both the wordmark and the attribution, and both must stay on the
+          map view. Mapbox adds its own attribution in a corner no prop can change, so
+          `attributionControl` above declines it and this replaces it — in the top right, the one
+          corner no drawer takes: the side panel covers the bottom left, and the bottom sheet's
+          peek covers the whole bottom edge at every snap. `logoPosition` above puts the wordmark
+          bottom right instead, clear of the panel on a wide embed and covered by that peek on a
+          narrow one — accepted, rather than paid for with a measured per-layout corner (#330). Both
+          props are read once, when the map is constructed, which is all a corner that never moves
+          needs. `compact` keeps it a round button until a visitor opens it, rather than a strip
+          of text across an embed's map. */}
+      <AttributionControl compact position="top-right" />
     </ReactMapGL>
   )
 }
