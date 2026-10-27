@@ -529,12 +529,14 @@ export function Mapbox({ cooperative = false }: { cooperative?: boolean } = {}) 
       <GeolocateControl followUserLocation={false} onGeolocate={geolocateToSearch} />
       {/* Mapbox's terms require both the wordmark and the attribution, and both must stay on the
           map view. Mapbox adds its own attribution in a corner no prop can change, so
-          `attributionControl` above declines it and this replaces it — in the top right, with
-          `logoPosition`, because that is the one corner no drawer takes: the side panel covers the
-          bottom left, and the bottom sheet's peek covers the whole bottom edge at every snap. Both
+          `attributionControl` above declines it and this replaces it — in the top right, the one
+          corner no drawer takes: the side panel covers the bottom left, and the bottom sheet's
+          peek covers the whole bottom edge at every snap. `logoPosition` above puts the wordmark
+          bottom right instead, clear of the panel on a wide embed and covered by that peek on a
+          narrow one — accepted, rather than paid for with a measured per-layout corner (#330). Both
           props are read once, when the map is constructed, which is all a corner that never moves
-          needs. `compact` keeps it a round button until a visitor opens it, rather than a strip of
-          text across an embed's map. */}
+          needs. `compact` keeps it a round button until a visitor opens it, rather than a strip
+          of text across an embed's map. */}
       <AttributionControl compact position="top-right" />
     </ReactMapGL>
   )
