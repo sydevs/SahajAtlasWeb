@@ -1,4 +1,5 @@
-import { readdirSync } from 'node:fs'
+import { existsSync, readdirSync } from 'node:fs'
+import { join } from 'node:path'
 
 import { describe, expect, it } from 'vitest'
 
@@ -87,8 +88,8 @@ describe.each([...CONFIGS])('%s', (_file, config) => {
     expect(config.assets?.directory).toBeTruthy()
   })
 
-  // A Worker rejects `public/_redirects`'s splat outright, so this key is the only deep-link
-  // fallback it has.
+  // The only deep-link fallback either Worker has. `public/_redirects` carried it for the Pages
+  // app until #283 deleted both the file and the project.
   it('falls back to the shell for an unbuilt path', () => {
     expect(config.assets?.not_found_handling).toBe('single-page-application')
   })
@@ -116,17 +117,17 @@ describe('the targets', () => {
   })
 
   // Distinctness alone permits the two being swapped, and both directories exist in CI. This is
-  // the app's own output; the Worker's NAME is deliberately unpinned, because Cloudflare may
-  // refuse `sahajatlas` while the Pages project of that name lives (#280).
+  // the app's own output; the Worker's NAME stays unpinned, because Cloudflare refused
+  // `sahajatlas` while the Pages project of that name still held it (#280, #283).
   it('serve the app out of `dist`', () => {
     expect(CONFIGS.get(APP_CONFIG)?.assets?.directory).toBe('dist')
   })
 
-  // Every assets directory a Worker deploys must have `_redirects` deleted from it first: the
-  // API rejects that file's splat as an infinite loop and fails the deploy, and the dry run
-  // never reaches the API to catch it. `pnpm build` cannot do the deleting for `dist/`, since
-  // the Pages project serving sahajatlas.com deploys the same directory and needs the file —
-  // hence a separate `build:worker`. Nothing else pairs a config with the script that fills it.
+  // A Worker's assets directory must carry no `_redirects` splat: the API rejects it as an
+  // infinite loop and fails the deploy, and the dry run never reaches the API to catch it. #283
+  // deleted `public/_redirects`, so both deletions are no-ops today, and this pairing reads
+  // `package.json` rather than the file.
+  // Nothing else pairs a config with the script that fills it.
   it.each([
     [APP_CONFIG, 'build:worker'],
     ['wrangler.design.jsonc', 'ladle:build'],
@@ -137,9 +138,20 @@ describe('the targets', () => {
     expect(PACKAGE.scripts[script]).toContain(`rm -f ${directory}/_redirects`)
   })
 
-  // The Pages app deploys `dist/` too and depends on the splat, so the plain build must leave
-  // it alone. Only the Worker's own script may delete it.
-  it('leaves `pnpm build` free of the deletion the Pages app depends on', () => {
+  // ⚠ The guard above deletes the whole file, which is safe only while there is no file. #252
+  // brings `public/_redirects` back with a `/map  /  301` rule a Worker accepts, and a blanket
+  // `rm -f` would strip that rule from every build while the pairing above stayed green. So the
+  // narrowing is held here rather than by a comment: whoever adds the file fails this, and makes
+  // both guards drop the splat alone.
+  it('has no `public/_redirects` for that blanket guard to delete', () => {
+    expect(existsSync(join(REPO_ROOT, 'public/_redirects'))).toBe(false)
+  })
+
+  // Nothing separates `pnpm build`'s output from the Worker's since #283 deleted
+  // `public/_redirects`, so this now says only that the plain build stays plain. The pairing is
+  // what still matters: `build:worker`, not `build`, is the command Workers Builds holds for the
+  // app (#280), so collapsing the two is a dashboard change rather than a `package.json` one.
+  it('leaves `pnpm build` free of the deletion', () => {
     expect(PACKAGE.scripts.build).not.toContain('_redirects')
   })
 })

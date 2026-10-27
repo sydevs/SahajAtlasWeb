@@ -28,6 +28,7 @@ import { useCalendarPosition } from '@/config/store'
 import { frameElement, overlayContainer } from '@/lib/overlay'
 import {
   type StackEntry,
+  CALENDAR_VIEW_LIST,
   atlasDepth,
   dismissAction,
   dismissDepth,
@@ -298,14 +299,14 @@ export function DrawerStack() {
   // that key to tell whether it is still the view on top, and the two agreeing is what
   // makes the comparison mean anything.
   const top = baseStackEntry(entries, hasMap) ?? null
-  // The calendar is the one full-width view. It fills the widget, minus the floating
-  // margins, instead of the 352px left panel (see the Drawer `wide` variant) — EXCEPT in
-  // its list (agenda) view, which is a single narrow column and reads better at the regular
-  // width. The live Schedule-X view is mirrored into `useCalendarPosition`, read reactively
-  // here so switching month or list resizes the drawer. Date changes do not re-render this
-  // component.
+  // The calendar is the one full-width view. It fills the widget, minus the floating margins,
+  // instead of the 352px left panel (see the Drawer `wide` variant) — EXCEPT in its list
+  // (agenda) view, one narrow column that reads better at the regular width. `isWide` is here
+  // because the wide panel exists only above the crossing; below it `wide` gates the settings
+  // cog alone, which a phone in month view had lost (#331). The view is read reactively, so
+  // switching it resizes the drawer. Date changes do not re-render this component.
   const calendarView = useCalendarPosition((s) => s.view)
-  const wide = top?.kind === 'calendar' && calendarView !== 'list'
+  const wide = top?.kind === 'calendar' && isWide && calendarView !== CALENDAR_VIEW_LIST
   // Ancestor paths below the top view, root-first (empty at CountriesView).
   const parentPaths = useMemo(
     () => (baseEntries.length === 0 ? [] : ['/', ...baseEntries.slice(0, -1).map((e) => e.path)]),

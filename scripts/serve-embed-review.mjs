@@ -33,11 +33,12 @@
  * `/locales/<lng>/*.json` from it, so a host page on another port, or one
  * without CORS, left i18next retrying forever and the element empty.
  *
- * **4. A stale server on the port you guessed.** `dist/_redirects` reads
- * `/* /index.html 200`, and any leftover `vite preview` honors it. So a
- * request for a host page that server does not have returns **200 with
- * the app shell**, and a reviewer reads the wrong document without
- * noticing. This script refuses to start on an occupied port, rather
+ * **4. A stale server on the port you guessed.** A leftover `vite preview`
+ * serves the SPA shell for any path it does not have — its own fallback,
+ * which `dist/_redirects` spelled out for the deploy too, until #283 deleted
+ * the file. So a request for a host page that server does not have returns
+ * **200 with the app shell**, and a reviewer reads the wrong document
+ * without noticing. This script refuses to start on an occupied port, rather
  * than assuming the occupant is ours.
  *
  * ## What you still need, and what currently blocks it
@@ -353,7 +354,7 @@ const server = createServer((req, res) => {
   if (!file.startsWith(DIST) || !existsSync(file) || !statSync(file).isFile()) {
     // Deliberately NOT the SPA fallback: a 404 that says so beats a 200 of the wrong document.
     res.writeHead(404, { 'content-type': 'text/plain' })
-    res.end(`404 ${pathname}\n\nThis review server does not apply dist/_redirects — see trap 4.`)
+    res.end(`404 ${pathname}\n\nThis review server serves no SPA fallback — see trap 4.`)
     return
   }
 
@@ -369,8 +370,8 @@ server.on('error', (/** @type {NodeJS.ErrnoException} */ error) => {
 
   console.error(
     `✖ Port ${port} is already in use.\n` +
-      '  Refusing to start: dist/_redirects makes any leftover server answer 200 with the app\n' +
-      '  shell for a page it does not have, so you would review the wrong document (trap 4).\n' +
+      '  Refusing to start: a leftover server answers 200 with the app shell for a page it does\n' +
+      '  not have, so you would review the wrong document (trap 4).\n' +
       `  Free it first:  lsof -ti tcp:${port} | xargs kill -9`,
   )
   process.exit(1)

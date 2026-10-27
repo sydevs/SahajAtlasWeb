@@ -240,11 +240,12 @@ describe('this repository', () => {
       .reduce((a, b) => (b.count > a.count ? b : a))
 
     // 17, on `src/test-support/repo-source.ts` (#289) — every spec reading one repo file names
-    // it, and a spec may read one no other way, so this grows by one per adopter. ⚠ Width is not
-    // time: `i18n.ts` selects 12, four of them jsdom, and has measured at or above the widest
-    // selection on both machines either ran on. So this bounds width as a proxy, and the
-    // answer when it trips is to time the hook and ratchet, never to drop a spec from the
-    // selection. `docs/testing.md` carries the times and the method.
+    // it, and a spec may read one no other way, so this grows by one per adopter. ⚠ Width is
+    // not time, and which of the pair is slower has flipped across machines: `i18n.ts` selects
+    // 12, four of them jsdom, and measured 4.7s against the widest selection's 5.0s at
+    // eighteen, having been the slower of the two at seventeen. So this bounds width as a
+    // proxy, and the answer when it trips is to time the hook and ratchet, never to drop a
+    // spec from the selection. `docs/testing.md` carries the times and the method.
     expect(worst.count, `widest selection: ${worst.source}`).toBeLessThanOrEqual(18)
   })
 })

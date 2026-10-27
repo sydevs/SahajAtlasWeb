@@ -90,7 +90,8 @@ describe('Drawer — the panel cannot scroll', () => {
   })
 
   it('leaves the body slot no padding of its own', () => {
-    // The clearance for a sticky footer belongs to the one view that has one — see below.
+    // A sticky footer's clearance is the slot's own trailing spacer (#320) plus, at the one
+    // view with a footer, that body's `scroll-pb-*` — never padding on the slot.
     const body = classesOf('[data-vaul-drawer] .overflow-y-auto')
 
     expect(body.filter((token) => /^(scroll-)?p[btrlxy]?-/.test(token))).toEqual([])
@@ -98,26 +99,29 @@ describe('Drawer — the panel cannot scroll', () => {
 })
 
 /**
- * Where a sticky footer's clearance lives: at its ONE caller, as a pair (issue #326).
+ * Where a sticky footer's SCROLL clearance lives: at its one caller (issue #326).
  *
- * `EventView`'s Register bar is the app's only `sticky` DrawerFooter, so the ten other drawer
- * bodies have nothing at the bottom to clear. Both numbers therefore sit on that one body, and
- * nothing failed while they drifted.
+ * The body slot's own trailing spacer clears the content at the footer's published height
+ * (#320, `Drawer.sticky.test.tsx`). That leaves focus, which a spacer cannot stop parking a
+ * field behind the bar — only `scroll-padding-bottom` does. `EventView`'s Register bar is the
+ * app's only `sticky` DrawerFooter, so the ten other drawer bodies have nothing to clear and
+ * carry none.
  *
- * The scroll half carries `--sy-sheet-top` because the body's bottom edge sits that far below
- * the viewport at any snap but the top one. Measured in Chrome at 390×844 on the branch preview,
- * sheet at its 544px snap: the body's bottom edge was 519px below the viewport, so a bare 112px
- * parked a focused field off-screen instead of above the bar.
+ * It carries `--sy-sheet-top` on top of the height because the body's bottom edge sits that far
+ * below the viewport at any snap but the top one. Measured in Chrome at 390×844 on the branch
+ * preview, sheet at its 544px snap: the body's bottom edge was 519px below the viewport, so the
+ * bar's height alone parked a focused field off-screen instead of above the bar.
  */
 describe('the sticky register bar’s clearance', () => {
   const eventView = readRepoSource('src/views/EventView/EventView.tsx')
-  const classes = eventView.match(/stickyRegister \? '([^']+)'/)?.[1].split(/\s+/)
+  const classes = eventView.match(/stickyRegister\s*\n?\s*\? '([^']+)'/)?.[1].split(/\s+/)
 
-  it('pairs both paddings on the one body with a footer to clear', () => {
+  it('scroll-pads the one body with a footer to clear, at the published height', () => {
     // Tokens, not a substring: `overlay.clip.test.ts` carries the defect that settled that.
     // A null here means the class moved and every assertion below would pass by vacuum.
     expect(classes, 'no `stickyRegister ? …` class string in EventView').toBeDefined()
-    expect(classes).toContain('pb-20')
-    expect(classes).toContain('scroll-pb-[calc(112px_+_var(--sy-sheet-top,0px))]')
+    expect(classes).toContain('scroll-pb-[calc(var(--sy-footer-h,0px)_+_var(--sy-sheet-top,0px))]')
+    // A constant here is what #320 measured wrong in both directions.
+    expect(classes!.filter((token) => /^p[btrlxy]?-/.test(token))).toEqual([])
   })
 })

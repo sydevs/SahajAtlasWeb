@@ -1,18 +1,18 @@
 {
-  // The `sahajatlas` app, as a Cloudflare Workers static-assets Worker. Through #280 the
-  // `sahajatlas` Cloudflare **Pages** project still serves `sahajatlas.com` from this same
-  // `dist/`, and #266's last child is what moves the domain. `docs/rules/deployment.md` is the
-  // one place that topology is stated.
+  // The `sahajatlas` app, as a Cloudflare Workers static-assets Worker. It serves
+  // `sahajatlas.com` as a Custom Domain since #283, which moved the domain off the Cloudflare
+  // **Pages** project of the same name; that project is deleted at the ticket's last phase, not
+  // at this merge. `docs/rules/deployment.md` is the one place that topology is stated.
   //
   // ⚠ This name collides twice, and this `name` is the anchor both checks read (#282):
   //   - `sahajatlas` is a PREFIX of `sahajatlas-design`, and a preview host is
   //     `<preview>-<worker>.<subdomain>.workers.dev`, so telling the two deploys apart means
   //     anchoring the whole `-sahajatlas` LABEL segment, never the bare substring.
   //     `scripts/assert-preview-host.mjs` is what the smoke lane refuses the playground with.
-  //   - it also equals the Pages project's name, so this Worker's check run is
-  //     `Workers Builds: sahajatlas` against the Pages run's `Cloudflare Pages: sahajatlas`.
-  //     `production-smoke.yml` therefore compares the WHOLE name with `==`, prefix included,
-  //     or a Pages build would fire the lane the Workers build owns.
+  //   - it was also the retiring Pages project's name, whose check run read
+  //     `Cloudflare Pages: sahajatlas` against this Worker's `Workers Builds: sahajatlas`
+  //     (#283). `production-smoke.yml` compares the WHOLE name with `==`, integration prefix
+  //     included, which is what kept those two apart and what keeps the playground out.
   "$schema": "node_modules/wrangler/config-schema.json",
   "name": "sahajatlas",
 
@@ -21,14 +21,14 @@
 
   // `pnpm build` writes `dist/` and copies `public/` into it, which is how the shared
   // `_headers` and `robots.txt` reach this Worker. `not_found_handling` does the job the
-  // `public/_redirects` splat does on Pages.
+  // `public/_redirects` splat did on Pages, until #283 deleted the file.
   //
   // ⚠ Build this Worker with **`pnpm build:worker`**, never `pnpm build`. A Worker reads
   // `_redirects` and its API rejects that splat as an infinite loop (100324), failing the
-  // deploy, and `pnpm build` must keep the file because the same `dist/` is what the Pages
-  // project serving `sahajatlas.com` deploys. `build:worker` is `build` plus the `rm -f`
-  // (#280). `check:wrangler` cannot catch a regression here — the dry run never reaches the
-  // API — so `scripts/wrangler-config.test.ts` pins the pairing instead.
+  // deploy. `build:worker` is `build` plus the `rm -f`, now a dormant guard against the file
+  // returning — #252 plans to, with a `/map  /  301` rule a Worker accepts (#280, #283).
+  // `check:wrangler` cannot catch a regression here — the dry run never reaches the API — so
+  // `scripts/wrangler-config.test.ts` pins the pairing instead.
   "assets": {
     "directory": "dist",
     "not_found_handling": "single-page-application"
