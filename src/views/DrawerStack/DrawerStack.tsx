@@ -29,10 +29,12 @@ import { frameElement, overlayContainer } from '@/lib/overlay'
 import {
   type StackEntry,
   atlasDepth,
+  calendarViewIsFullWidth,
   dismissAction,
   dismissDepth,
   baseStackEntry,
   isFilterOverlay,
+  resolveCalendarView,
   resolveStack,
 } from '@/lib/shape'
 import { wakesSheetLoop } from '@/views/DrawerStack/sheet-wake'
@@ -299,13 +301,18 @@ export function DrawerStack() {
   // makes the comparison mean anything.
   const top = baseStackEntry(entries, hasMap) ?? null
   // The calendar is the one full-width view. It fills the widget, minus the floating
-  // margins, instead of the 352px left panel (see the Drawer `wide` variant) — EXCEPT in
-  // its list (agenda) view, which is a single narrow column and reads better at the regular
-  // width. The live Schedule-X view is mirrored into `useCalendarPosition`, read reactively
-  // here so switching month or list resizes the drawer. Date changes do not re-render this
-  // component.
+  // margins, instead of the 352px left panel (see the Drawer `wide` variant) — EXCEPT in the
+  // two views that are a single narrow column and read better at the regular width: its list
+  // (agenda) view, and the month agenda a stored month or week collapses onto below the
+  // crossing. So this reads what RENDERS, resolved against the same width signal the view
+  // switch reads, rather than the stored name — which on a phone claimed a month grid that
+  // Schedule-X cannot draw, and took the settings cog below with it. The viewer's pick is
+  // mirrored into `useCalendarPosition`, read reactively here so switching view resizes the
+  // drawer. Date changes do not re-render this component.
   const calendarView = useCalendarPosition((s) => s.view)
-  const wide = top?.kind === 'calendar' && calendarView !== 'list'
+  const wide =
+    top?.kind === 'calendar' &&
+    calendarViewIsFullWidth(resolveCalendarView(calendarView, isWide).view)
   // Ancestor paths below the top view, root-first (empty at CountriesView).
   const parentPaths = useMemo(
     () => (baseEntries.length === 0 ? [] : ['/', ...baseEntries.slice(0, -1).map((e) => e.path)]),

@@ -1,9 +1,14 @@
-import { Suspense, useMemo, useRef } from 'react'
+import { Suspense, useEffect, useMemo, useRef } from 'react'
 import { useSuspenseQuery } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
 import { DateTime } from 'luxon'
 import { useNextCalendarApp } from '@schedule-x/react'
-import { createViewList, createViewMonthGrid, createViewWeek } from '@schedule-x/calendar'
+import {
+  createViewList,
+  createViewMonthAgenda,
+  createViewMonthGrid,
+  createViewWeek,
+} from '@schedule-x/calendar'
 import { createCalendarControlsPlugin } from '@schedule-x/calendar-controls'
 import { ChevronRight } from 'lucide-react'
 
@@ -16,16 +21,21 @@ import { DrawerBody, DrawerHeader } from '@/components/atoms/Drawer'
 import { ToggleGroup, ToggleGroupItem } from '@/components/atoms/ToggleGroup'
 import { ActiveFilterPills, ResetErrorBoundary } from '@/components/molecules'
 import api from '@/config/api'
+import { useIsWideWidget } from '@/config/responsive'
 import { useCalendarPosition } from '@/config/store'
 import { useAtlasNavigate } from '@/hooks/use-atlas-navigate'
 import { useEventFilters } from '@/hooks/use-filters'
 import { useLocale } from '@/hooks/use-locale'
 import { useTheme } from '@/hooks/use-theme'
 import {
+  CALENDAR_VIEW_LIST,
+  CALENDAR_VIEW_MONTH,
+  CALENDAR_VIEW_WEEK,
   type EventFilters,
   computeDayBoundaries,
   eventsToCalendarEntries,
   filtersKey,
+  resolveCalendarView,
 } from '@/lib/shape'
 import { CloseButton, FilterButton } from '@/views/shared'
 import { DrawerErrorBody, DrawerLoadingBody } from '@/views/fallbacks'
@@ -63,12 +73,6 @@ const CALENDARS = {
   online: { colorName: 'online', lightColors: ONLINE_COLORS, darkColors: ONLINE_COLORS },
 }
 
-// The registered Schedule-X view names — the picker's values and what this app persists and
-// restores.
-const VIEW_MONTH = 'month-grid'
-const VIEW_WEEK = 'week'
-const VIEW_LIST = 'list'
-
 type CalendarControlsPlugin = ReturnType<typeof createCalendarControlsPlugin>
 
 // The header drives Schedule-X through the `calendar-controls` plugin, but its buttons are
@@ -93,7 +97,12 @@ const drive = (controls: CalendarControlsPlugin, fn: (c: CalendarControlsPlugin)
 function CalendarControls({ controls }: { controls: CalendarControlsPlugin }) {
   const { t } = useTranslation()
   const { locale } = useLocale()
-  const view = useCalendarPosition((s) => s.view) ?? VIEW_MONTH
+  const isWide = useIsWideWidget()
+  const stored = useCalendarPosition((s) => s.view)
+  // The OPTION, not the stored name: below the crossing a stored `week` renders a month agenda
+  // and lights Month, and the label and the paging step have to follow what rendered. Reading
+  // the stored name there labelled the week's first day and paged by whole weeks over a month.
+  const { option: view } = resolveCalendarView(stored, isWide)
   const date = useCalendarPosition((s) => s.date)
   const dateInputRef = useRef<HTMLInputElement>(null)
 
@@ -104,9 +113,9 @@ function CalendarControls({ controls }: { controls: CalendarControlsPlugin }) {
   const dt = focused ? DateTime.fromISO(focused).setLocale(locale) : null
   const label = !dt
     ? ''
-    : view === VIEW_MONTH
+    : view === CALENDAR_VIEW_MONTH
       ? dt.toLocaleString({ month: 'long', year: 'numeric' })
-      : (view === VIEW_WEEK ? dt.startOf('week') : dt).toLocaleString({
+      : (view === CALENDAR_VIEW_WEEK ? dt.startOf('week') : dt).toLocaleString({
           day: 'numeric',
           month: 'short',
           year: 'numeric',
@@ -117,10 +126,12 @@ function CalendarControls({ controls }: { controls: CalendarControlsPlugin }) {
     drive(controls, (c) => c.setDate(next))
   }
 
+  // The store takes what was PICKED, never the width-specific view that renders for it, so a
+  // `week` picked on a desktop lights Week again after a trip through a phone width.
   const selectView = (next: string) => {
     if (!next) return
     useCalendarPosition.getState().setView(next)
-    drive(controls, (c) => c.setView(next))
+    drive(controls, (c) => c.setView(resolveCalendarView(next, isWide).view))
   }
 
   // Page one period off the focused date — a month in month view, a week in week view, a day in
@@ -130,9 +141,9 @@ function CalendarControls({ controls }: { controls: CalendarControlsPlugin }) {
 
     const base = DateTime.fromISO(focused)
     const moved =
-      view === VIEW_MONTH
+      view === CALENDAR_VIEW_MONTH
         ? base.plus({ months: dir })
-        : view === VIEW_WEEK
+        : view === CALENDAR_VIEW_WEEK
           ? base.plus({ weeks: dir })
           : base.plus({ days: dir })
     const next = moved.toISODate()
@@ -150,9 +161,13 @@ function CalendarControls({ controls }: { controls: CalendarControlsPlugin }) {
         value={view}
         onValueChange={selectView}
       >
-        <ToggleGroupItem value={VIEW_MONTH}>{t('calendar.view_month')}</ToggleGroupItem>
-        <ToggleGroupItem value={VIEW_WEEK}>{t('calendar.view_week')}</ToggleGroupItem>
-        <ToggleGroupItem value={VIEW_LIST}>{t('calendar.view_list')}</ToggleGroupItem>
+        <ToggleGroupItem value={CALENDAR_VIEW_MONTH}>{t('calendar.view_month')}</ToggleGroupItem>
+        {/* Schedule-X ships no small-screen week, and a 7-column time grid at 390px was never
+            readable — so below the crossing the switch offers Month and List only. */}
+        {isWide && (
+          <ToggleGroupItem value={CALENDAR_VIEW_WEEK}>{t('calendar.view_week')}</ToggleGroupItem>
+        )}
+        <ToggleGroupItem value={CALENDAR_VIEW_LIST}>{t('calendar.view_list')}</ToggleGroupItem>
       </ToggleGroup>
 
       {/* Nav + filter — wraps to a second line on narrow widths, one line on large. */}
@@ -274,6 +289,7 @@ function CalendarGrid({
   const { locale } = useLocale()
   const { theme } = useTheme()
   const navigate = useAtlasNavigate()
+  const isWide = useIsWideWidget()
 
   const { data: source } = useSuspenseQuery({
     queryKey: ['calendar', filtersKey(filters), locale],
@@ -300,9 +316,11 @@ function CalendarGrid({
 
   const calendar = useNextCalendarApp(
     {
-      views: [createViewMonthGrid(), createViewWeek(), createViewList()],
-      // Restore the last view (month by default).
-      defaultView: position.view ?? VIEW_MONTH,
+      // `month-agenda` is registered because `controls.setView` validates the name against this
+      // list — the resolver, never Schedule-X, is what chooses it.
+      views: [createViewMonthGrid(), createViewMonthAgenda(), createViewWeek(), createViewList()],
+      // Restore the last view, resolved against this width (month by default).
+      defaultView: resolveCalendarView(position.view, isWide).view,
       selectedDate: position.date ?? undefined,
       events,
       // Online programs render in the secondary colour (see CALENDARS + `calendarId`).
@@ -310,6 +328,18 @@ function CalendarGrid({
       // Undefined leaves Schedule-X's default grid (whole day).
       dayBoundaries,
       isDark: theme === 'dark',
+      // ⚠ Schedule-X rewrites the rendered view by itself otherwise, and emits no callback
+      // when it does — so the switch cannot learn about it. `month-grid` and `week` both
+      // declare `hasSmallScreenCompat: false`, and `setScreenSizeCompatibleView` moves off
+      // them at mount and at each breakpoint crossing, to the FIRST registered compat view.
+      // That is what lit Month over a day list on a phone. The resize listener is registered
+      // only while this flag is on, and it is the only path into that rewrite, so turning it
+      // off leaves `resolveCalendarView` as the one authority — with no registration order to
+      // depend on, and no race against this app's own damped width signal. Nothing is lost:
+      // the dropped `isCalendarSmall` signal feeds SX's own view dropdown and the
+      // `sx__is-calendar-small` class, whose rules all target the header bar globals.css
+      // hides.
+      isResponsive: false,
       // SX needs a supported BCP-47 code (see SX_LOCALES), or it throws. This project's token
       // overrides (globals.css) carry the light/dark and accent theming regardless of
       // `isDark`.
@@ -325,9 +355,9 @@ function CalendarGrid({
         // The month grid's "+N more" jumps to the list view focused on that day.
         onClickPlusEvents: (date) => {
           controls.setDate(date)
-          controls.setView(VIEW_LIST)
+          controls.setView(CALENDAR_VIEW_LIST)
           useCalendarPosition.getState().setDate(date)
-          useCalendarPosition.getState().setView(VIEW_LIST)
+          useCalendarPosition.getState().setView(CALENDAR_VIEW_LIST)
         },
       },
       weekOptions: {
@@ -336,6 +366,16 @@ function CalendarGrid({
     },
     [controls],
   )
+
+  // The config above is captured once at mount, so `defaultView` cannot answer a width that
+  // changes afterwards. Nothing competes with this call now that SX's own rewrite is off. The
+  // store is read non-reactively: a view the header just picked was already driven in by
+  // `selectView`, and this is only ever the crossing.
+  useEffect(() => {
+    const { view } = useCalendarPosition.getState()
+
+    drive(controls, (c) => c.setView(resolveCalendarView(view, isWide).view))
+  }, [controls, isWide])
 
   return (
     <DrawerBody className="max-w-none overflow-hidden p-4">

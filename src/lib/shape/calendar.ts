@@ -202,3 +202,60 @@ export const computeDayBoundaries = (
 
   return { start: hhmm(Math.floor(earliest) - 1), end: hhmm(Math.ceil(latest) + 1) }
 }
+
+// ===== VIEW RESOLUTION ===== //
+
+/**
+ * The Schedule-X view names this app registers — the view switch's values, and what
+ * `useCalendarPosition` persists and restores.
+ */
+export const CALENDAR_VIEW_MONTH = 'month-grid'
+export const CALENDAR_VIEW_MONTH_AGENDA = 'month-agenda'
+export const CALENDAR_VIEW_WEEK = 'week'
+export const CALENDAR_VIEW_LIST = 'list'
+
+/** What the calendar renders at a given width, and which switch option that lights. */
+export type ResolvedCalendarView = {
+  /** The Schedule-X view to render. */
+  view: string
+  /** The switch's value — always an option the switch offers at this width. */
+  option: string
+}
+
+/**
+ * Resolves a stored view against the widget's width class, so the lit option always matches
+ * what rendered.
+ *
+ * Schedule-X's `month-grid` and `week` both declare `hasSmallScreenCompat: false`, so below
+ * the crossing neither can render: `week` has no small-screen layout at all, and a 7-column
+ * time grid at 390px was never readable. Both collapse onto `month-agenda` — a month
+ * date-picker over the selected day's agenda — and the switch lights Month, which is the one
+ * option offered below the crossing besides List. `week` collapses there rather than onto
+ * `list` because the agenda keeps a chosen day's own hours in view, which is what Week was
+ * being read for.
+ *
+ * The caller stores what the viewer PICKED, never what this resolved: a stored `week`
+ * survives a trip through a phone width and lights Week again above the crossing.
+ */
+export const resolveCalendarView = (
+  stored: string | null,
+  isWide: boolean,
+): ResolvedCalendarView => {
+  if (stored === CALENDAR_VIEW_LIST) {
+    return { view: CALENDAR_VIEW_LIST, option: CALENDAR_VIEW_LIST }
+  }
+
+  const option = stored === CALENDAR_VIEW_WEEK ? CALENDAR_VIEW_WEEK : CALENDAR_VIEW_MONTH
+
+  if (isWide) return { view: option, option }
+
+  return { view: CALENDAR_VIEW_MONTH_AGENDA, option: CALENDAR_VIEW_MONTH }
+}
+
+/**
+ * Whether a rendered view fills the widget, rather than reading as one narrow column.
+ * `DrawerStack` sizes the calendar drawer from this — the month agenda is a single column
+ * like the list view, so neither earns the full-width drawer.
+ */
+export const calendarViewIsFullWidth = (view: string): boolean =>
+  view === CALENDAR_VIEW_MONTH || view === CALENDAR_VIEW_WEEK
