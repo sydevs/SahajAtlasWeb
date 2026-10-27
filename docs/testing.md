@@ -450,10 +450,10 @@ still right. It just is not enough on its own when the pure part encodes a forei
 
 ### A spec that inventories `src/` walks it through `src/test-support/` (issue #286)
 
-Ten specs assert that some list of call sites is CLOSED — the JSX anchors, the viewport reads,
-the Radix poppers, the SahajCloud reads, the form fields' 16px zoom floor. Nine of them rolled
-their own `readdirSync`, in three shapes that were not interchangeable, so the next would inherit
-whichever one its author copied.
+Eleven specs assert that some list of call sites is CLOSED — the JSX anchors, the viewport reads,
+the Radix poppers, the frame boxes, the SahajCloud reads, the form fields' 16px zoom floor. Nine of
+them rolled their own `readdirSync`, in three shapes that were not interchangeable, so the next
+would inherit whichever one its author copied.
 `sourceFiles()` (`src/test-support/source-tree.ts`) is the one walk now, with
 `readSource` / `readSourceWithoutComments` beside it and `parseSource`
 (`src/test-support/source-ast.ts`) for the three specs that parse. **A hand-rolled walk fails
@@ -505,10 +505,10 @@ nothing. ⚠ **The walker mark itself costs no selection**: since #293 `selectFr
 the walkers to every edit, but it still selects one that names the edited module, so a walker runs
 per edit like any other spec. `lane.walkers` is a register, read only by the closed-list pin.
 
-⚠ **The scopes did not merge, and must not** — the ten cover seven different file sets, and
+⚠ **The scopes did not merge, and must not** — the eleven cover seven different file sets, and
 `source-tree.ts`'s own docblock owns that rule. Each spec passes its own `sourceFiles({…})`
 options beside the assertions they serve, and `source-tree.test.ts` pins every option as biting
-in both directions, because a scope that silently stopped matching would make all ten closed
+in both directions, because a scope that silently stopped matching would make all eleven closed
 lists pass by vacuum.
 
 **This is one walk implementation, not fewer walks.** Vitest gives each spec file its own module
@@ -559,12 +559,12 @@ coupling the other cannot:
   name match misses two of the three — `fetch.test.ts` is the only spec for `client.ts` and
   reaches it as `'./client'`, and `Chip.test.tsx` imports its own folder as `'.'`.
 
-**A third source selected the tree-walking specs until #293, and it was the whole floor.** Thirteen
-specs enumerate the source tree instead of importing from it — the ten `src/` inventories and
-`source-tree.test.ts`, found because they import the shared walk (#286), plus two `scripts/` specs
-found by an enumerating call (`readdirSync(` and its kin). Nothing in them references the file that
-breaks them, so no reference can select one, and until #293 they all ran on every edit. `readLane`
-still reports the set, because
+**A third source selected the tree-walking specs until #293, and it was the whole floor.**
+Fourteen specs enumerate the source tree instead of importing from it — the eleven `src/`
+inventories and `source-tree.test.ts`, found because they import the shared walk (#286), plus two
+`scripts/` specs found by an enumerating call (`readdirSync(` and its kin). Nothing in them
+references the file that breaks them, so no reference can select one, and every one of them ran on
+every edit. `readLane` still reports the set, because
 `select-unit-specs.test.ts` pins it as a closed list. `selectFrom` no longer takes it, and the hook
 needed no edit to stop running it — it exits before spawning vitest on an empty selection
 (`.claude/hooks/unit-test.mjs:32`), which is also what keeps this change out of `.claude/`, a
@@ -587,12 +587,15 @@ to select from. The full lane still runs in the lean gate (`.claude/skills/pr-pr
 in CI, so this narrows the inner loop, not the gate.
 
 **What holds the budget is the selection's width, and `scripts/select-unit-specs.test.ts` pins
-that**: the widest edit in the tree, exhaustively through the real composition, at 17 against a
-ceiling of 17 — no headroom, so the next spec reading a repo file through `repo-source` trips it,
+that**: the widest edit in the tree, exhaustively through the real composition, at 18 against a
+ceiling of 18 — no headroom, so the next spec reading a repo file through `repo-source` trips it,
 and the answer is to time the hook and ratchet, never to drop a spec. ⚠ **Two PRs can trip it
 without either one doing so alone**: #322's `mobile-zoom.test.ts` and #324's `attribution.test.ts`
-each took a slot, and the pin went red on the merge rather than on either branch. ⚠ The widest is not the slowest — `i18n.ts`
-selects 12, four of them jsdom, and takes 5.0s against the widest's 4.2s and seventeen — so width
+each took a slot, and the pin went red on the merge rather than on either branch; #328's
+`Drawer.scroll.test.tsx` is what ratcheted it from 17 to 18. ⚠ Width is not time, and which of
+the pair is slower has flipped across machines — `i18n.ts` selects 12, four of them jsdom, and
+measured 4.7s against the widest's 5.0s at eighteen (2026-10-27, 4 cores), having been the slower
+of the two at seventeen — so width
 bounds the slice, never the time, and a jump in either is a re-measure of both. It also pins each
 of the three specifier forms, end to end against this tree; the tree-walking set as a closed list,
 and its absence from the selection, where the fixture carries a walker of each kind, so a re-added

@@ -268,6 +268,22 @@ change.** Same mechanism, opposite direction: on the root it would re-parent the
 fixed layer onto the HOST's element, a box a map-less embed shares with the host's
 page. On `MapFrame`, re-parenting is the entire point, and the element is ours.
 
+⚠ **Every box the fixed layer resolves against clips with `overflow-clip`, never
+`overflow-hidden`** (#326). `hidden` is still a scroll container, so the browser scrolls
+such a box to reach a focused field — and a clipped box offers no scrollbar and no wheel
+to scroll back. Measured at 390×844: focusing a registration field carried the widget
+528px out of the compact card's dialog.
+
+Two mechanisms produce the overflow, and both are ours to clip. A **snap-translated
+sheet** contributes its own translate to whatever holds it — the frame, the compact
+dialog, or `DrawerStack`'s map-less container, which takes the containing block through
+`position: relative` rather than `contain: layout` and so is invisible to a scan for the
+latter. And the **panel itself** carries vaul's `::after` background filler
+(`styles/vaul.css`, `top: 100%; height: 200%`), ~1688px on a phone sheet, which no view
+creates and none can decline — so the Drawer atom's `content` slot clips too.
+`lib/overlay.clip.test.ts` names the boxes and `Drawer.scroll.test.tsx` holds the panel,
+because this is a rule that gets applied in one place and missed in the other.
+
 **What decides containment is whether the host sized the element, and nothing
 else** (`mapMode`, `lib/embed-slot.ts`). Map mode renders everything fixed, so `<sahaj-atlas>`
 measures zero height on its own — a height cannot appear by accident. An

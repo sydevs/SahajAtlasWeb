@@ -105,11 +105,20 @@ export function EventView({ id, basePath }: { id: number; basePath: string }) {
           build. The embedded widget's host owns the document head. */}
       {standalone && <EventMetadata event={event} />}
       <EventHeader event={event} trailing={<CloseButton />} />
-      {/* No clearance for the pinned bar here: the Drawer's body slot ends on a spacer
-          the sticky footer's published height tall. This view carried an `h-24` spacer and
-          then a `pb-20`, both constants, and the bar is not one — it runs 65px to
-          197.5px across the resolver states. */}
-      <DrawerBody>
+      {/* The body slot's own spacer clears the pinned bar's CONTENT, at the footer's
+          published height. Clearing the SCROLL is this body's, and only this body's: focus
+          would otherwise park a field behind the bar. It carries the sheet's live top on
+          top of that height because THIS body's bottom edge sits that far below the
+          viewport, where the bar paints — measured 519px at the 544px snap, so the bar's
+          height alone cleared it at the top snap only (#326). The ten other drawer bodies
+          have nothing at the bottom to clear. */}
+      <DrawerBody
+        className={
+          stickyRegister
+            ? 'scroll-pb-[calc(var(--sy-footer-h,0px)_+_var(--sy-sheet-top,0px))]'
+            : undefined
+        }
+      >
         {/* The details are a lazy chunk, so they can fail on their own — a dropped connection
             mid-session, or a host CSP blocking the chunk — after the event itself resolved.
             Keeping that local means the title, the close button, and the sticky Register CTA

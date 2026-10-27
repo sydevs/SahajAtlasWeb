@@ -22,8 +22,11 @@ export type DrawerDirection = 'left' | 'right' | 'top' | 'bottom'
 
 const drawer = tv({
   slots: {
+    // ⚠ Clip, never hidden — `components/AGENTS.md` carries why (#326). The panel's own
+    // overflow is vaul's `::after` filler, which no view creates and none can decline, so
+    // this one belongs on the atom. Measured at 390×844: `scrollTop: 762` before it.
     content:
-      'pointer-events-auto fixed z-40 flex flex-col overflow-hidden bg-background text-foreground shadow-2xl outline-none',
+      'pointer-events-auto fixed z-40 flex flex-col overflow-clip bg-background text-foreground shadow-2xl outline-none',
     // Every content band is capped at `--sy-content-max` (default 512px) and
     // centred. So on a wide surface, such as a map-less embed or a large-mobile
     // bottom sheet, the views read as a centred column, instead of stretching
@@ -415,6 +418,12 @@ export function DrawerFooter({
    * sat at 818.69 rather than 844, with the body showing through the gap
    * (#320). `fixed` resolves against the nearest ancestor with a transform,
    * and that is the sheet itself, whatever DrawerStack nests in between.
+   *
+   * ⚠ That slot clears the CONTENT, and nothing more. Keeping FOCUS off the bar
+   * takes the body's own `scroll-padding-bottom`, carrying `--sy-sheet-top` on
+   * top of the published height: the body's bottom edge sits that far below the
+   * viewport at any snap but the top one, and the bar paints at the viewport
+   * (#326).
    */
   sticky?: boolean
 }) {

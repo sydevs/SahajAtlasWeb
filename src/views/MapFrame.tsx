@@ -114,9 +114,12 @@ function ContainedFrame({ children }: { children: ReactNode }) {
   return (
     // `h-full` resolves against `<sahaj-atlas>`. The theme root between them is `display:
     // contents` and generates no box, so the host's own height is what the widget fills,
-    // exactly as in `map=false`. `overflow-hidden` keeps a promise. Nothing the interface
+    // exactly as in `map=false`. `overflow-clip` keeps a promise. Nothing the interface
     // renders paints outside the box the host gave it.
-    <div ref={adopt} className="h-full w-full overflow-hidden [contain:layout]" data-sy-frame="">
+    //
+    // ⚠ Clip, never hidden — `components/AGENTS.md` carries why (#326). Nothing here was
+    // measured overflowing: the invariant stated, not a defect repaired.
+    <div ref={adopt} className="h-full w-full overflow-clip [contain:layout]" data-sy-frame="">
       {/* Held back until `adopt` has published this node, so the first drawer portals inside
           the frame rather than beside it. `usePublishedNode` carries the argument. */}
       {node && children}

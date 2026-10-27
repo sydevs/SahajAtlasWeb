@@ -331,6 +331,13 @@ cover everything a host would notice since the widget was first deployed.
   browser drew that mark in the same colour as the card behind it. The mark now takes the card's
   contrasting colour, in light and dark themes and under your own palette. No change for you to
   make.
+- **Filling in a form no longer slides the widget off its own panel.** ([#326]) On a phone-sized
+  sheet, tapping a field low in the registration form scrolled the whole panel away: the header
+  left the screen, a blank band took its place, and the buttons floated over nothing, with no
+  scrollbar and no gesture to bring it back. In a [contained embed][Sizing the element] the same
+  tap carried the entire widget out of the box you sized, and in a [compact card] out of the
+  dialog it opens. Fields now stay clear of the sticky Register bar as well. Nothing to change on
+  your side.
 - **Tapping a form field on a phone no longer zooms your page in.** ([#322]) iOS Safari scales
   the whole page when a focused field is under 16px, and the widget's fields were 13px (the
   place search, 14px) — so a visitor who tapped the search, a filter or the registration form
@@ -797,6 +804,7 @@ must-revalidate`, pinned rather than left to the CDN default. The production dom
 [#311]: https://github.com/sydevs/SahajAtlasWeb/pull/311
 [#312]: https://github.com/sydevs/SahajAtlasWeb/pull/312
 [#320]: https://github.com/sydevs/SahajAtlasWeb/issues/320
+[#326]: https://github.com/sydevs/SahajAtlasWeb/issues/326
 [#322]: https://github.com/sydevs/SahajAtlasWeb/issues/322
 [#329]: https://github.com/sydevs/SahajAtlasWeb/pull/329
 [#325]: https://github.com/sydevs/SahajAtlasWeb/issues/325

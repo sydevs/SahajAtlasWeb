@@ -104,7 +104,10 @@ const overlayClass = `fixed inset-0 ${aboveHost} bg-black/50`
 // `contain: layout` via the arbitrary variant — see `ExpandedDialog`'s note. The
 // inset is the margin that lets the host's page show through. Rounded plus shadow so
 // the frame reads as deliberate.
-const contentClass = `fixed inset-2 ${aboveHost} overflow-hidden rounded-xl bg-background text-foreground shadow-2xl outline-none [contain:layout] sm:inset-4`
+//
+// ⚠ Clip, never hidden — `components/AGENTS.md` carries why (#326). Measured here, since
+// this is where it was caught: 528px of scrollable overflow at 390×844.
+const contentClass = `fixed inset-2 ${aboveHost} overflow-clip rounded-xl bg-background text-foreground shadow-2xl outline-none [contain:layout] sm:inset-4`
 // Deliberately the SettingsMenu cog's chrome, down to the shadow: they are the two
 // floating controls over the same surface, at opposite corners, and they should read
 // as one system.
