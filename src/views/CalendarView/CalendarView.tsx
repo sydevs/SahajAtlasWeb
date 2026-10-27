@@ -35,6 +35,7 @@ import {
   computeDayBoundaries,
   eventsToCalendarEntries,
   filtersKey,
+  isCalendarViewOption,
   resolveCalendarView,
 } from '@/lib/shape'
 import { CloseButton, FilterButton } from '@/views/shared'
@@ -128,7 +129,7 @@ function CalendarControls({ controls }: { controls: CalendarControlsPlugin }) {
   // The store takes what was PICKED, never the width-specific view that renders for it, so a
   // `week` picked on a desktop lights Week again after a trip through a phone width.
   const selectView = (next: string) => {
-    if (!next) return
+    if (!isCalendarViewOption(next)) return
     useCalendarPosition.getState().setView(next)
     drive(controls, (c) => c.setView(resolveCalendarView(next, isWide).view))
   }

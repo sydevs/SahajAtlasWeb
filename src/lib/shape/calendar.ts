@@ -231,6 +231,20 @@ export type CalendarViewOption =
   | typeof CALENDAR_VIEW_WEEK
   | typeof CALENDAR_VIEW_LIST
 
+const CALENDAR_VIEW_OPTIONS: readonly CalendarViewOption[] = [
+  CALENDAR_VIEW_MONTH,
+  CALENDAR_VIEW_WEEK,
+  CALENDAR_VIEW_LIST,
+]
+
+/**
+ * Narrows a switch value to an option the switch offers. Radix hands `onValueChange` a bare
+ * `string`, empty on a deselect, so this is the one runtime boundary between the toggle group
+ * and a store typed to the three options.
+ */
+export const isCalendarViewOption = (value: string): value is CalendarViewOption =>
+  (CALENDAR_VIEW_OPTIONS as readonly string[]).includes(value)
+
 /** What the calendar renders at a given width, and which switch option that lights. */
 export type ResolvedCalendarView = {
   /** The Schedule-X view to render. */
@@ -249,7 +263,7 @@ export type ResolvedCalendarView = {
  * switch lights Month there, the only option it offers besides List (#331).
  */
 export const resolveCalendarView = (
-  stored: string | null,
+  stored: CalendarViewOption | null,
   isWide: boolean,
 ): ResolvedCalendarView => {
   if (stored === CALENDAR_VIEW_LIST) {

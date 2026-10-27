@@ -8,6 +8,7 @@ import {
   CALENDAR_VIEW_WEEK,
   computeDayBoundaries,
   eventsToCalendarEntries,
+  isCalendarViewOption,
   resolveCalendarView,
   type CalendarEntry,
   type CalendarSourceEvent,
@@ -276,6 +277,26 @@ describe('computeDayBoundaries', () => {
 
   it('is undefined when every period is selected (whole day)', () => {
     expect(computeDayBoundaries([], ['morning', 'afternoon', 'evening', 'night'])).toBeUndefined()
+  })
+})
+
+describe('isCalendarViewOption', () => {
+  it('accepts the three the switch offers', () => {
+    expect(isCalendarViewOption(CALENDAR_VIEW_MONTH)).toBe(true)
+    expect(isCalendarViewOption(CALENDAR_VIEW_WEEK)).toBe(true)
+    expect(isCalendarViewOption(CALENDAR_VIEW_LIST)).toBe(true)
+  })
+
+  // The one name the store must never hold: it renders FOR Month and the switch has no item
+  // for it, so a stored `month-agenda` would light nothing.
+  it('refuses the month agenda', () => {
+    expect(isCalendarViewOption(CALENDAR_VIEW_MONTH_AGENDA)).toBe(false)
+  })
+
+  // Radix reports a deselect as the empty string, which is what the guard replaced.
+  it('refuses an empty value and an unknown name', () => {
+    expect(isCalendarViewOption('')).toBe(false)
+    expect(isCalendarViewOption('day')).toBe(false)
   })
 })
 
