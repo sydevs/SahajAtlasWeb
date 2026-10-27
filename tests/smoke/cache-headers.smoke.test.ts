@@ -7,14 +7,14 @@ import { fetchPreview, skipWithoutPreview } from './_helpers/preview'
 //
 // This is a deploy-time fact, and the unit lane cannot reach it in two ways.
 // `public/_headers` is an inert text file in the repo until the platform reads it out
-// of the build output — Workers on the preview, Pages on `sahajatlas.com` until #266's
-// last child moves the domain. The thing under test is platform behavior, not code
-// this repo wrote.
+// of the build output — Workers static assets on the preview and, since #283, on
+// `sahajatlas.com` too. The thing under test is platform behavior, not code this repo
+// wrote.
 //
 // This is also a regression test. The defect it guards against shipped invisibly.
 // `_headers` carried a comment saying `embed.js` "must stay revalidated", but nothing
-// enforced it, so the platform default applied. That default differs by host:
-// `sahajatlas.com` served `max-age=14400`, while `*.pages.dev` served `max-age=0`.
+// enforced it, so the platform default applied. That default differed by host while Pages
+// served both: `sahajatlas.com` served `max-age=14400`, `*.pages.dev` served `max-age=0`.
 // Every check anyone ran used the second host, so a four-hour staleness window on the
 // production domain went unnoticed. A comment stating an intention is not a mechanism.
 // This test is the mechanism.
@@ -36,7 +36,7 @@ describe('entry-file caching', () => {
     async (path) => {
       const res = await fetchPreview(path)
 
-      // Checks content type, not status. `_redirects` sets `/* /index.html 200`, so
+      // Checks content type, not status. The SPA fallback answers `/* /index.html 200`, so
       // a file missing from the build also answers 200 as the SPA shell. Every header
       // assertion below would then describe an HTML page instead. This is the lane's
       // second invariant.
@@ -72,7 +72,7 @@ describe('entry-file caching', () => {
     expect(res.headers.get('access-control-allow-origin')).toBe('*')
   })
 
-  // Pages applies every matching rule, and joins repeated header values with a comma, so a
+  // The platform applies every matching rule, and joins repeated header values with a comma, so a
   // new rule can silently collide with an existing one. This asserts the live result, the
   // way `robots.smoke.test.ts` asserts the CORS half; `scripts/deploy-headers.test.ts` is
   // what rules the collision out in the first place.

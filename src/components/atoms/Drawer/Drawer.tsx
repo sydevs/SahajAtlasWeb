@@ -1,4 +1,4 @@
-import { type ReactNode, createContext, useContext, useState } from 'react'
+import { type ReactNode, createContext, useContext, useEffect, useRef, useState } from 'react'
 import { Drawer as Vaul } from 'vaul'
 import { tv, type VariantProps } from 'tailwind-variants'
 
@@ -45,7 +45,18 @@ const drawer = tv({
     // a clipped edge, instead of a horizontal scrollbar across the view. It
     // is safe for the full-bleed carousel, which is exactly the body's width,
     // and for popovers, which portal out of the body entirely.
-    body: 'mx-auto min-h-0 w-full max-w-[var(--sy-content-max,512px)] flex-1 overflow-x-hidden overflow-y-auto',
+    // The trailing spacer clears a `sticky` footer, which is out of flow, so
+    // the body runs underneath it and the end of the content is otherwise
+    // unreachable. The length is the footer's own, published by `DrawerFooter`,
+    // and zero wherever no sticky footer exists.
+    // ⚠ A spacer and not this slot's own `pb-*`: tailwind-merge drops a slot
+    // `pb-*` for any caller shorthand, and four bodies already pass `p-4`, so
+    // the first of them to gain a sticky footer would bury its own content with
+    // every lane green. A variant-prefixed class conflicts with no caller
+    // class, and the spacer adds to their padding instead of replacing it. It
+    // is a pseudo-element so `[&>:last-child]` postures still find the real
+    // last child (`CENTERED_BODY`).
+    body: "mx-auto min-h-0 w-full max-w-[var(--sy-content-max,512px)] flex-1 overflow-x-hidden overflow-y-auto after:block after:h-[var(--sy-footer-h,0px)] after:shrink-0 after:content-['']",
     footer:
       'mx-auto mt-auto w-full max-w-[var(--sy-content-max,512px)] shrink-0 border-t border-gray-4',
     // This themes the vaul drag handle. Its vendored CSS hardcodes a light
@@ -390,22 +401,75 @@ export function DrawerFooter({
   className?: string
   /**
    * Pins the footer to the VIEWPORT bottom edge of a snap-point bottom sheet.
-   * The sheet is a full-height translated panel, so `fixed` would resolve
-   * against it instead. So the footer offsets by the sheet's live top. That
-   * value is mirrored every frame onto `--sy-sheet-top` by DrawerStack.
-   * Content scrolls under the footer. Give the body matching bottom padding.
+   * The sheet is a full-height panel vaul translates down by the snap offset,
+   * so the footer cancels that translate by offsetting the same distance from
+   * the sheet's own bottom edge. DrawerStack mirrors it onto `--sy-sheet-top`
+   * every frame. Content scrolls under the footer, and the body's slot clears
+   * it.
+   *
+   * ⚠ `fixed`, not `absolute`, and the sheet's `pb-[calc(var(--sy-frame-h)*0.03)]`
+   * is why. The cancellation only holds while the offset is measured from the
+   * sheet's own box, and `absolute` resolves against the nearest POSITIONED
+   * ancestor — which since #312 is a crossfade layer filling the sheet's
+   * CONTENT box, 3% short. Measured at 390×844 on a deployed preview: the bar
+   * sat at 818.69 rather than 844, with the body showing through the gap
+   * (#320). `fixed` resolves against the nearest ancestor with a transform,
+   * and that is the sheet itself, whatever DrawerStack nests in between.
    */
   sticky?: boolean
 }) {
   const { slots } = useDrawerSlots()
+  const ref = useRef<HTMLDivElement>(null)
+
+  // The body clears this footer by its own trailing length, and no caller can
+  // hard-code it: across EventView's resolver states alone the bar measured
+  // 65px to 197.5px at 390×844, and a translated label moves it again. A
+  // constant was wrong in both directions — dead space under a short bar, the
+  // end of the content still buried under a tall one. So the footer publishes
+  // its own height, on its PARENT, which is the view's crossfade layer (#312)
+  // rather than the sheet. Publishing on the sheet instead would scope one
+  // value to both layers, and the outgoing layer's cleanup would then blank the
+  // incoming footer's value mid-fade.
+  //
+  // ⚠ The contract that buys: a `sticky` footer's parent must also contain the
+  // body it clears. Anywhere it does not, the clearance silently resolves to
+  // its `0px` fallback and the content ends under the bar.
+  //
+  // `borderBoxSize` is the untransformed box, so the collapsed sheet's
+  // `translate-y-full` cannot report a different one.
+  useEffect(() => {
+    const el = ref.current
+    const layer = el?.parentElement
+
+    if (!sticky || !el || !layer || typeof ResizeObserver === 'undefined') return
+
+    const observer = new ResizeObserver(([entry]) => {
+      const height = entry?.borderBoxSize?.[0]?.blockSize ?? el.offsetHeight
+
+      layer.style.setProperty('--sy-footer-h', `${height}px`)
+    })
+
+    observer.observe(el)
+
+    return () => {
+      observer.disconnect()
+      layer.style.removeProperty('--sy-footer-h')
+    }
+  }, [sticky])
 
   return (
     <div
+      ref={ref}
       className={slots.footer({
-        className: `${sticky ? 'absolute inset-x-0 bottom-[var(--sy-sheet-top,0px)] z-10 bg-background' : ''} ${className ?? ''}`,
+        className: `${sticky ? 'fixed inset-x-0 bottom-[var(--sy-sheet-top,0px)] z-10 bg-background' : ''} ${className ?? ''}`,
       })}
     >
       {children}
+      {/* `viewport-fit=cover` (index.html) runs the layout viewport under the
+          home indicator, so a bar flush with it puts its control in the gesture
+          area. The spacer carries the inset rather than the footer's padding,
+          which a caller's own `py-*` would merge away. */}
+      {sticky && <div className="h-[env(safe-area-inset-bottom)]" />}
     </div>
   )
 }

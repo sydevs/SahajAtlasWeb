@@ -232,9 +232,8 @@ review:embed` rather than hand-rolling a host page. It serves `dist/` on
 port 5174, one origin for the built app and every review page, in the shapes that have
 produced real bugs. Its header documents the four traps a hand-rolled version
 costs an afternoon on — chiefly that `<sahaj-atlas>` observes **no
-attributes**, so config must ride on the script URL, and that
-`dist/_redirects` makes a leftover server answer 200 with the app shell for a
-page it does not have.
+attributes**, so config must ride on the script URL, and that a leftover
+`vite preview` answers 200 with the app shell for a page it does not have.
 
 For everything else — driving the map itself — serve the app the usual way
 (`pnpm dev`, or an alt port under the worktree

@@ -23,6 +23,15 @@ cover everything a host would notice since the widget was first deployed.
 
 ### Removed
 
+- ⚠ **BREAKING: `sahajatlas.pages.dev` is no longer a supported origin.** ([#283]) Load the
+  script from `https://sahajatlas.com`, which serves the identical bundle. If your snippet's
+  `src`, or your CSP's `script-src` and `font-src`, name the `pages.dev` host, point all three at
+  `https://sahajatlas.com`. The guide used to offer that host as a second origin and no longer
+  does. ⚠ **The old host is withdrawn, not redirected**: what it still answers with is a frozen
+  copy, and once the project behind it is deleted it answers with nothing — Cloudflare reserves
+  no released `pages.dev` name, so anybody may then take it. Treat a script still loaded from
+  there as a third party either way.
+
 - ⚠ **BREAKING: the `sahaj-atlas-style` style tag is gone.** ([#236]) The widget's stylesheet
   moved into its shadow root, so there is no longer a `<style>` element in your `<head>` to
   carry that id, and `document.querySelectorAll('style#sahaj-atlas-style')` returns nothing.
@@ -294,6 +303,13 @@ cover everything a host would notice since the widget was first deployed.
   right beside the panel, and top left under the settings control on a narrow embed. Nothing to
   change on your side: no new origin, no new permission, and they are inside the widget's own
   element as every other control is.
+- **The Register bar no longer covers a class page's other actions on a phone.** ([#320]) At the
+  sheet's default height the pinned "Register Now" bar sat over the Directions / Website /
+  Contact / Share row: the circles were cut in half, their labels hidden, and the covered half of
+  each tap area did nothing. Those four actions now ride the bar itself, under the button, so the
+  row is whole and there is only ever one of it — a visitor still reaches the class description
+  and the address by dragging the sheet up, as before. The bar also leaves room for the home
+  indicator on phones that have one. No parameter, origin or CSP change.
 - **A class that runs past midnight shows its times, not two dates.** ([#325]) A 9:30 PM session
   ending at 12:30 AM read "10/27/2026, 9:30 PM – 10/28/2026, 12:30 AM" on the class page and the
   list cards, because the browser's own range formatter adds both calendar dates once the two
@@ -766,8 +782,10 @@ must-revalidate`, pinned rather than left to the CDN default. The production dom
 [#232]: https://github.com/sydevs/SahajAtlasWeb/issues/232
 [#236]: https://github.com/sydevs/SahajAtlasWeb/issues/236
 [#262]: https://github.com/sydevs/SahajAtlasWeb/issues/262
+[#283]: https://github.com/sydevs/SahajAtlasWeb/issues/283
 [#311]: https://github.com/sydevs/SahajAtlasWeb/pull/311
 [#312]: https://github.com/sydevs/SahajAtlasWeb/pull/312
+[#320]: https://github.com/sydevs/SahajAtlasWeb/issues/320
 [#322]: https://github.com/sydevs/SahajAtlasWeb/issues/322
 [#329]: https://github.com/sydevs/SahajAtlasWeb/pull/329
 [#325]: https://github.com/sydevs/SahajAtlasWeb/issues/325

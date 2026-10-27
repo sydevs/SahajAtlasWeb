@@ -45,6 +45,16 @@ const loadEventDetails = () =>
     import('@/components/organisms/EventDetails').then((m) => ({ default: m.EventDetails })),
   )
 
+// The sticky bar carries the action row too (#320), and EventActions reaches CopyField and
+// so react-share — which `molecules/index.ts` keeps out of the eager payload on purpose
+// (issue #96). So the row loads on its own, while EventRegisterBar stays eager: Register is
+// what must survive a chunk the host's CSP blocked (issue #89). Module scope is right here,
+// unlike `loadEventDetails` above, because nothing offers to retry this one — the boundary
+// below renders nothing and the bar keeps its CTA.
+const EventActions = lazy(() =>
+  import('@/components/molecules/EventActions').then((m) => ({ default: m.EventActions })),
+)
+
 // A single event, at route `<event-path>`. The header — the title — is the mobile sheet's
 // 80px peek payload, and stays pinned above the scrolling body. The chips and facts lead the
 // body. On the mobile map sheet, Register lives in a sticky bar pinned to the viewport edge,
@@ -95,12 +105,11 @@ export function EventView({ id, basePath }: { id: number; basePath: string }) {
           build. The embedded widget's host owns the document head. */}
       {standalone && <EventMetadata event={event} />}
       <EventHeader event={event} trailing={<CloseButton />} />
-      {/* Clear the pinned register bar with the scroll container's own bottom
-          padding — the Drawer's `sticky` footer asks for exactly that — rather than
-          a spacer element in the flow. The old `h-24` div stacked on top of the
-          content's own padding, leaving ~176px of blank space under a full-bleed
-          carousel to clear a 65px bar. */}
-      <DrawerBody className={stickyRegister ? 'pb-20' : undefined}>
+      {/* No clearance for the pinned bar here: the Drawer's body slot ends on a spacer
+          the sticky footer's published height tall. This view carried an `h-24` spacer and
+          then a `pb-20`, both constants, and the bar is not one — it runs 65px to
+          197.5px across the resolver states. */}
+      <DrawerBody>
         {/* The details are a lazy chunk, so they can fail on their own — a dropped connection
             mid-session, or a host CSP blocking the chunk — after the event itself resolved.
             Keeping that local means the title, the close button, and the sticky Register CTA
@@ -122,7 +131,7 @@ export function EventView({ id, basePath }: { id: number; basePath: string }) {
               />
             }
           >
-            <EventDetails basePath={basePath} event={event} registerInline={!stickyRegister}>
+            <EventDetails basePath={basePath} ctaInline={!stickyRegister} event={event}>
               {/* This is passed as the panel's slot, so it lands immediately above Register,
                   which lives inside EventDetails when it is inline. The acknowledgement belongs
                   beside the action it wants the reader to take, and the panel is the only thing
@@ -164,7 +173,19 @@ export function EventView({ id, basePath }: { id: number; basePath: string }) {
           sticky
           className={`px-4 py-3 transition-transform ${collapsed ? 'translate-y-full opacity-0' : ''}`}
         >
-          <EventRegisterBar basePath={basePath} event={event} />
+          {/* The two rows are gapped inside a wrapper, not by the footer itself, so the
+              footer's own safe-area spacer is not a third gapped sibling. */}
+          <div className="flex flex-col gap-2">
+            <EventRegisterBar basePath={basePath} event={event} />
+            {/* The row rides the bar so only one copy exists — see `ctaInline`. The
+                boundary keeps a rejected chunk from reaching the body's sibling
+                boundary and taking the Register CTA down with it (issue #89). */}
+            <ResetErrorBoundary context="event actions" fallback={null}>
+              <Suspense fallback={null}>
+                <EventActions basePath={basePath} event={event} />
+              </Suspense>
+            </ResetErrorBoundary>
+          </div>
         </DrawerFooter>
       )}
     </>
