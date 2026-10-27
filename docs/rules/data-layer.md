@@ -302,9 +302,12 @@ senderEmail }` plus `name`, `locale` and the question answers as pairs. The
     belongs at the transport, not scattered across two overlapping domain types.
 
 ⚠ In all three mutations, run the response's `.parse()` **outside** the request's
-`try`. A `ZodError`'s `.errors` shape (`{ message, code }`) matches exactly what
-`asRefusal` reads out of a server refusal — a parse failure caught inside the
-`try` becomes a re-cast server refusal, and the real cause disappears.
+`try`. A parse failure caught inside the `try` reaches `asRefusal`, which re-casts
+anything refusal-shaped and loses the real cause. zod 3's `ZodError.errors` was
+`RefusalBodySchema`'s shape exactly, so every schema drift came out as a server
+refusal carrying a zod issue code; zod 4 renamed that field `issues`, which closed
+the collision by luck rather than by design. Keep the parse outside regardless —
+the placement is what makes the refusal path unable to see a parse failure at all.
 
 ## Consuming data — TanStack Query only
 
