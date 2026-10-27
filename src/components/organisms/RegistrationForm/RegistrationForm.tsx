@@ -117,7 +117,7 @@ export type RegistrationFormProps = {
    * The opt-in box renders only when this is `true` — never where no list would receive the
    * subscription.
    */
-  offersMailingList?: boolean
+  hasMailingList?: boolean
   /** This is an optional close callback. The footer also closes the
    *  enclosing Modal via ModalClose. */
   onClose?: () => void
@@ -146,7 +146,7 @@ export function RegistrationForm({
   eventTitle,
   eventUrl,
   calendar,
-  offersMailingList = false,
+  hasMailingList = false,
   onClose,
   initialSubmitted = false,
 }: RegistrationFormProps) {
@@ -280,7 +280,7 @@ export function RegistrationForm({
           <RegistrationFields
             control={control}
             errors={errors}
-            offersMailingList={offersMailingList}
+            hasMailingList={hasMailingList}
             questions={questions}
             recurrenceType={recurrenceType}
             register={register}
@@ -419,7 +419,7 @@ type RegistrationFieldsProps = {
   timeZone?: string
   recurrenceType?: RecurrenceType | null
   questions: RegistrationQuestionName[]
-  offersMailingList: boolean
+  hasMailingList: boolean
   register: UseFormRegister<Registration>
   control: Control<Registration>
   errors: FieldErrors<Registration>
@@ -430,7 +430,7 @@ function RegistrationFields({
   timeZone,
   recurrenceType,
   questions,
-  offersMailingList,
+  hasMailingList,
   register,
   control,
   errors,
@@ -515,7 +515,7 @@ function RegistrationFields({
         />
       ))}
 
-      {offersMailingList && (
+      {hasMailingList && (
         <Controller
           control={control}
           name="subscribe"

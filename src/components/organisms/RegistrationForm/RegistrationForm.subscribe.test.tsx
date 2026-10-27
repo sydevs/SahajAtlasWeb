@@ -84,7 +84,7 @@ async function registerWith({ tick }: { tick: boolean }) {
     root.render(
       <QueryClientProvider client={new QueryClient()}>
         <RegistrationForm
-          offersMailingList
+          hasMailingList
           eventId={4242}
           eventTitle="Evening meditation"
           isOnline={false}

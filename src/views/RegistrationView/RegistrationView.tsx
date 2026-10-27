@@ -125,7 +125,7 @@ export function RegistrationView({
             eventUrl={eventUrl}
             initialSubmitted={initialSubmitted}
             isOnline={isOnline(event)}
-            offersMailingList={event.offersMailingList === true}
+            hasMailingList={event.offersMailingList === true}
             questions={enabledQuestions(event)}
             recurrenceType={event.schedule?.recurrenceType}
             timeZone={eventTimeZone(event)}
