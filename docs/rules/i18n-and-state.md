@@ -112,6 +112,16 @@ Six stores, each the single source of truth for its own slice:
   re-render on write). The header and `DrawerStack` (for sizing) read it
   **reactively**. The header drives Schedule-X through the public
   `calendar-controls` plugin — no reach into SX internals. Session-scoped.
+  ⚠ **It holds what the viewer PICKED, never what a width can render** (#331).
+  `month-grid` and `week` declare no small-screen support, so below the crossing
+  both render as `month-agenda` — and every reader resolves the stored name
+  through `resolveCalendarView` (`lib/shape/calendar.ts`) against
+  `useIsWideWidget()` rather than reading it raw. Storing the resolution instead
+  would lose a `week` the moment a viewer passed through a phone width. The
+  header's label and paging step, the switch's value and its offered options, the
+  grid's `defaultView`, and `DrawerStack`'s drawer-width test are all that same
+  resolution. Schedule-X's own `isResponsive` is **off**, so nothing but the
+  resolver decides which view renders.
 - **`useReportModal`** — whether the report-issue modal is open, plus the thrown
   message when an error CTA opened it. A store, not local state, because its
   three triggers (the settings cog, `ErrorFallback`, `DrawerErrorFallback`) sit
