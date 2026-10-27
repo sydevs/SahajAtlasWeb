@@ -253,9 +253,9 @@ export function Mapbox({ cooperative = false }: { cooperative?: boolean } = {}) 
   // Mapbox's own control strings are otherwise English on every embed. The
   // GeolocateControl's whole accessible name comes from these two strings
   // (issue #102).
-  // TODO: the wordmark's and the attribution's names are Mapbox keys too, and
-  // both still read English — the copy is CMS-owned, so they wait on keys
-  // SahajCloud ships first.
+  // The wordmark's and the attribution toggle's names are Mapbox keys too, left
+  // in Mapbox's English on purpose: they label the legally required credits,
+  // not a feature, so they are not worth CMS keys (sydevs/SahajCloud#1032).
   //
   // Two things to know before extending this. It is CONSTRUCTION-ONLY.
   // `locale` is absent from react-map-gl's reconciliation whitelist
