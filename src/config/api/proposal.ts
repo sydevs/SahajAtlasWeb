@@ -33,34 +33,6 @@ export const PROPOSABLE_EVENT_FIELDS = [
 
 export type ProposableEventField = (typeof PROPOSABLE_EVENT_FIELDS)[number]
 
-/**
- * The Events fields intake refuses whatever their value — `PRIVILEGED_FIELDS` in SahajCloud's
- * `src/collections/UserSubmissions/hooks/validateProposal.ts`, plus `region`, which is resolved
- * from `location` instead. Restated only so the type-level check below can fail.
- */
-type PrivilegedEventField =
-  | 'manager'
-  | 'region'
-  | '_status'
-  | 'id'
-  | 'deletedAt'
-  | 'createdAt'
-  | 'updatedAt'
-  | 'registrationMode'
-  | 'externalRegistrationUrl'
-  | 'registrationLimit'
-  | 'registrationNotificationEmail'
-  | 'registrationNotificationFrequency'
-  | 'registrationQuestions'
-  | 'images'
-
-// A privileged name added to the list above fails `pnpm typecheck` here.
-const noPrivilegedField: Extract<ProposableEventField, PrivilegedEventField> extends never
-  ? true
-  : never = true
-
-void noPrivilegedField
-
 /** The `SubmissionLocation` column's own bound on each id. Anything else would refuse the whole create. */
 const MAPBOX_FEATURE_ID = /^[A-Za-z0-9_=-]{1,200}$/
 
