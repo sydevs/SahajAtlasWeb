@@ -214,12 +214,29 @@ export const CALENDAR_VIEW_MONTH_AGENDA = 'month-agenda'
 export const CALENDAR_VIEW_WEEK = 'week'
 export const CALENDAR_VIEW_LIST = 'list'
 
+/** Every Schedule-X view this app registers. */
+export type CalendarViewName =
+  | typeof CALENDAR_VIEW_MONTH
+  | typeof CALENDAR_VIEW_MONTH_AGENDA
+  | typeof CALENDAR_VIEW_WEEK
+  | typeof CALENDAR_VIEW_LIST
+
+/**
+ * The three the view switch offers. `month-agenda` is deliberately absent: it renders FOR
+ * Month below the crossing and is never lit, so the type refuses the mix-up rather than
+ * leaving the switch able to hold a value with no matching item.
+ */
+export type CalendarViewOption =
+  | typeof CALENDAR_VIEW_MONTH
+  | typeof CALENDAR_VIEW_WEEK
+  | typeof CALENDAR_VIEW_LIST
+
 /** What the calendar renders at a given width, and which switch option that lights. */
 export type ResolvedCalendarView = {
   /** The Schedule-X view to render. */
-  view: string
+  view: CalendarViewName
   /** The switch's value — always an option the switch offers at this width. */
-  option: string
+  option: CalendarViewOption
 }
 
 /**
@@ -253,9 +270,14 @@ export const resolveCalendarView = (
 }
 
 /**
- * Whether a rendered view fills the widget, rather than reading as one narrow column.
- * `DrawerStack` sizes the calendar drawer from this — the month agenda is a single column
- * like the list view, so neither earns the full-width drawer.
+ * Whether the calendar fills the widget at this width, rather than reading as one narrow
+ * column. `DrawerStack` sizes the calendar drawer from this — the list view and the month
+ * agenda are both a single column, so neither earns the full-width drawer. It resolves
+ * rather than taking a view name, so the drawer never has to know which name a width
+ * collapses onto.
  */
-export const calendarViewIsFullWidth = (view: string): boolean =>
-  view === CALENDAR_VIEW_MONTH || view === CALENDAR_VIEW_WEEK
+export const calendarFillsWidget = (stored: string | null, isWide: boolean): boolean => {
+  const { view } = resolveCalendarView(stored, isWide)
+
+  return view === CALENDAR_VIEW_MONTH || view === CALENDAR_VIEW_WEEK
+}

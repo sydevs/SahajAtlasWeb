@@ -29,12 +29,11 @@ import { frameElement, overlayContainer } from '@/lib/overlay'
 import {
   type StackEntry,
   atlasDepth,
-  calendarViewIsFullWidth,
+  calendarFillsWidget,
   dismissAction,
   dismissDepth,
   baseStackEntry,
   isFilterOverlay,
-  resolveCalendarView,
   resolveStack,
 } from '@/lib/shape'
 import { wakesSheetLoop } from '@/views/DrawerStack/sheet-wake'
@@ -310,9 +309,7 @@ export function DrawerStack() {
   // mirrored into `useCalendarPosition`, read reactively here so switching view resizes the
   // drawer. Date changes do not re-render this component.
   const calendarView = useCalendarPosition((s) => s.view)
-  const wide =
-    top?.kind === 'calendar' &&
-    calendarViewIsFullWidth(resolveCalendarView(calendarView, isWide).view)
+  const wide = top?.kind === 'calendar' && calendarFillsWidget(calendarView, isWide)
   // Ancestor paths below the top view, root-first (empty at CountriesView).
   const parentPaths = useMemo(
     () => (baseEntries.length === 0 ? [] : ['/', ...baseEntries.slice(0, -1).map((e) => e.path)]),

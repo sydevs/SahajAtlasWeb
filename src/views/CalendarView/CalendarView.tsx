@@ -1,4 +1,4 @@
-import { Suspense, useEffect, useMemo, useRef } from 'react'
+import { Suspense, useMemo, useRef } from 'react'
 import { useSuspenseQuery } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
 import { DateTime } from 'luxon'
@@ -102,7 +102,7 @@ function CalendarControls({ controls }: { controls: CalendarControlsPlugin }) {
   // The OPTION, not the stored name: below the crossing a stored `week` renders a month agenda
   // and lights Month, and the label and the paging step have to follow what rendered. Reading
   // the stored name there labelled the week's first day and paged by whole weeks over a month.
-  const { option: view } = resolveCalendarView(stored, isWide)
+  const { option } = resolveCalendarView(stored, isWide)
   const date = useCalendarPosition((s) => s.date)
   const dateInputRef = useRef<HTMLInputElement>(null)
 
@@ -113,9 +113,9 @@ function CalendarControls({ controls }: { controls: CalendarControlsPlugin }) {
   const dt = focused ? DateTime.fromISO(focused).setLocale(locale) : null
   const label = !dt
     ? ''
-    : view === CALENDAR_VIEW_MONTH
+    : option === CALENDAR_VIEW_MONTH
       ? dt.toLocaleString({ month: 'long', year: 'numeric' })
-      : (view === CALENDAR_VIEW_WEEK ? dt.startOf('week') : dt).toLocaleString({
+      : (option === CALENDAR_VIEW_WEEK ? dt.startOf('week') : dt).toLocaleString({
           day: 'numeric',
           month: 'short',
           year: 'numeric',
@@ -141,9 +141,9 @@ function CalendarControls({ controls }: { controls: CalendarControlsPlugin }) {
 
     const base = DateTime.fromISO(focused)
     const moved =
-      view === CALENDAR_VIEW_MONTH
+      option === CALENDAR_VIEW_MONTH
         ? base.plus({ months: dir })
-        : view === CALENDAR_VIEW_WEEK
+        : option === CALENDAR_VIEW_WEEK
           ? base.plus({ weeks: dir })
           : base.plus({ days: dir })
     const next = moved.toISODate()
@@ -158,7 +158,7 @@ function CalendarControls({ controls }: { controls: CalendarControlsPlugin }) {
         joined
         aria-label={t('calendar.title')}
         type="single"
-        value={view}
+        value={option}
         onValueChange={selectView}
       >
         <ToggleGroupItem value={CALENDAR_VIEW_MONTH}>{t('calendar.view_month')}</ToggleGroupItem>
@@ -320,6 +320,12 @@ function CalendarGrid({
       // list — the resolver, never Schedule-X, is what chooses it.
       views: [createViewMonthGrid(), createViewMonthAgenda(), createViewWeek(), createViewList()],
       // Restore the last view, resolved against this width (month by default).
+      // ⚠ This config is captured ONCE, so this is the only seam — and it covers a width
+      // crossing only because `DrawerStack` remounts the whole drawer when `isWide` flips
+      // (vaul's `direction` is not hot-swappable, see `config/responsive.ts`), which remounts
+      // this grid with it. Both read the same measurement, so they cannot disagree. An effect
+      // driving `controls.setView` on the crossing was measured as dead code for that reason.
+      // Should that remount ever stop happening, this seam stops answering a resize.
       defaultView: resolveCalendarView(position.view, isWide).view,
       selectedDate: position.date ?? undefined,
       events,
@@ -366,16 +372,6 @@ function CalendarGrid({
     },
     [controls],
   )
-
-  // The config above is captured once at mount, so `defaultView` cannot answer a width that
-  // changes afterwards. Nothing competes with this call now that SX's own rewrite is off. The
-  // store is read non-reactively: a view the header just picked was already driven in by
-  // `selectView`, and this is only ever the crossing.
-  useEffect(() => {
-    const { view } = useCalendarPosition.getState()
-
-    drive(controls, (c) => c.setView(resolveCalendarView(view, isWide).view))
-  }, [controls, isWide])
 
   return (
     <DrawerBody className="max-w-none overflow-hidden p-4">

@@ -6,7 +6,7 @@ import {
   CALENDAR_VIEW_MONTH,
   CALENDAR_VIEW_MONTH_AGENDA,
   CALENDAR_VIEW_WEEK,
-  calendarViewIsFullWidth,
+  calendarFillsWidget,
   computeDayBoundaries,
   eventsToCalendarEntries,
   resolveCalendarView,
@@ -330,14 +330,22 @@ describe('resolveCalendarView', () => {
   })
 })
 
-describe('calendarViewIsFullWidth', () => {
-  it('fills the widget for the two grid views', () => {
-    expect(calendarViewIsFullWidth(CALENDAR_VIEW_MONTH)).toBe(true)
-    expect(calendarViewIsFullWidth(CALENDAR_VIEW_WEEK)).toBe(true)
+describe('calendarFillsWidget', () => {
+  it('fills the widget for the two grid views, above the crossing', () => {
+    expect(calendarFillsWidget(CALENDAR_VIEW_MONTH, true)).toBe(true)
+    expect(calendarFillsWidget(CALENDAR_VIEW_WEEK, true)).toBe(true)
   })
 
-  it('reads the list and the month agenda as one narrow column', () => {
-    expect(calendarViewIsFullWidth(CALENDAR_VIEW_LIST)).toBe(false)
-    expect(calendarViewIsFullWidth(CALENDAR_VIEW_MONTH_AGENDA)).toBe(false)
+  it('reads the list view as one narrow column at either width', () => {
+    expect(calendarFillsWidget(CALENDAR_VIEW_LIST, true)).toBe(false)
+    expect(calendarFillsWidget(CALENDAR_VIEW_LIST, false)).toBe(false)
+  })
+
+  // The month agenda every non-list view collapses onto below the crossing is one column too.
+  // The same test hides the settings cog, so a phone in month view had no cog at all (#331).
+  it('fills nothing below the crossing, where only the month agenda renders', () => {
+    expect(calendarFillsWidget(CALENDAR_VIEW_MONTH, false)).toBe(false)
+    expect(calendarFillsWidget(CALENDAR_VIEW_WEEK, false)).toBe(false)
+    expect(calendarFillsWidget(null, false)).toBe(false)
   })
 })
