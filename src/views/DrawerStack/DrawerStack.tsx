@@ -41,7 +41,7 @@ import {
 } from '@/lib/shape'
 import { wakesSheetLoop } from '@/views/DrawerStack/sheet-wake'
 import { stripLabel } from '@/views/DrawerStack/strip-label'
-import { submitPanelLayout } from '@/views/DrawerStack/submit-panel'
+import { submitSheetChrome } from '@/views/DrawerStack/submit-panel'
 import { ViewLayer } from '@/views/DrawerStack/ViewLayer'
 import { DrawerControlContext } from '@/views/shared'
 import { DrawerErrorFallback, DrawerLoading } from '@/views/fallbacks'
@@ -723,7 +723,7 @@ export function DrawerStack() {
   // The add-a-class step panel (#147). NON-modal, unlike the filter overlay, because the
   // listing behind it stays live: its Edit links are how review returns to a step. Not
   // dismissible, because the flow closes from its own X, which is the stack's dismiss.
-  const panelLayout = submitPanelLayout(isWide, panelCompact)
+  const sheetChrome = submitSheetChrome(isWide, panelCompact)
   const submitPanel =
     isSubmitEntry(top) && submitPanelPlacement(top, hasMap) === 'sheet' ? (
       <DrawerControlContext.Provider value={control}>
@@ -732,13 +732,13 @@ export function DrawerStack() {
           handleOnly
           open
           container={overlayContainer()}
-          direction={panelLayout.direction}
+          direction={sheetChrome.direction}
           dismissible={false}
           measureAgainst={frameElement()}
         >
           <DrawerContent
             aria-label={t(submitTitleKey(top.kind))}
-            className={panelLayout.className}
+            className={sheetChrome.className}
             handle={false}
           >
             <Suspense fallback={<DrawerLoading />}>

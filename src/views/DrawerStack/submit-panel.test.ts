@@ -1,24 +1,24 @@
 import { describe, expect, it } from 'vitest'
 
-import { submitPanelLayout } from './submit-panel'
+import { submitSheetChrome } from './submit-panel'
 
-describe('submitPanelLayout', () => {
+describe('submitSheetChrome', () => {
   it('slides in from the right on a wide widget, full height while it fills a step', () => {
-    const layout = submitPanelLayout(true, false)
+    const chrome = submitSheetChrome(true, false)
 
-    expect(layout.direction).toBe('right')
-    expect(layout.className ?? '').not.toContain('!h-auto')
+    expect(chrome.direction).toBe('right')
+    expect(chrome.className ?? '').not.toContain('!h-auto')
   })
 
   it('rises from the bottom on a narrow widget, sized to its content', () => {
-    const layout = submitPanelLayout(false, false)
+    const chrome = submitSheetChrome(false, false)
 
-    expect(layout.direction).toBe('bottom')
-    expect(layout.className).toContain('!h-auto')
+    expect(chrome.direction).toBe('bottom')
+    expect(chrome.className).toContain('!h-auto')
   })
 
   it('docks to a bar on a wide widget once its content is compact, with no :has()', () => {
-    const { className } = submitPanelLayout(true, true)
+    const { className } = submitSheetChrome(true, true)
 
     expect(className).toContain('!h-auto')
     expect(className).not.toContain('has-')
