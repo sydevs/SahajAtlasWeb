@@ -243,16 +243,10 @@ export type ResolvedCalendarView = {
  * Resolves a stored view against the widget's width class, so the lit option always matches
  * what rendered.
  *
- * Schedule-X's `month-grid` and `week` both declare `hasSmallScreenCompat: false`, so below
- * the crossing neither can render: `week` has no small-screen layout at all, and a 7-column
- * time grid at 390px was never readable. Both collapse onto `month-agenda` — a month
- * date-picker over the selected day's agenda — and the switch lights Month, which is the one
- * option offered below the crossing besides List. `week` collapses there rather than onto
- * `list` because the agenda keeps a chosen day's own hours in view, which is what Week was
- * being read for.
- *
- * The caller stores what the viewer PICKED, never what this resolved: a stored `week`
- * survives a trip through a phone width and lights Week again above the crossing.
+ * `month-grid` and `week` both declare `hasSmallScreenCompat: false`, so below the crossing
+ * neither can render and both collapse onto `month-agenda` — not onto `list`, because the
+ * agenda keeps a chosen day's own hours in view, which is what Week was being read for. The
+ * switch lights Month there, the only option it offers besides List (#331).
  */
 export const resolveCalendarView = (
   stored: string | null,

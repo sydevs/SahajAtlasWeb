@@ -99,9 +99,8 @@ function CalendarControls({ controls }: { controls: CalendarControlsPlugin }) {
   const { locale } = useLocale()
   const isWide = useIsWideWidget()
   const stored = useCalendarPosition((s) => s.view)
-  // The OPTION, not the stored name: below the crossing a stored `week` renders a month agenda
-  // and lights Month, and the label and the paging step have to follow what rendered. Reading
-  // the stored name there labelled the week's first day and paged by whole weeks over a month.
+  // The OPTION, not the stored name: below the crossing a stored `week` renders a month
+  // agenda, so the lit button, the label and the paging step must all follow what rendered.
   const { option } = resolveCalendarView(stored, isWide)
   const date = useCalendarPosition((s) => s.date)
   const dateInputRef = useRef<HTMLInputElement>(null)
@@ -319,13 +318,9 @@ function CalendarGrid({
       // `month-agenda` is registered because `controls.setView` validates the name against this
       // list — the resolver, never Schedule-X, is what chooses it.
       views: [createViewMonthGrid(), createViewMonthAgenda(), createViewWeek(), createViewList()],
-      // Restore the last view, resolved against this width (month by default).
-      // ⚠ This config is captured ONCE, so this is the only seam — and it covers a width
-      // crossing only because `DrawerStack` remounts the whole drawer when `isWide` flips
-      // (vaul's `direction` is not hot-swappable, see `config/responsive.ts`), which remounts
-      // this grid with it. Both read the same measurement, so they cannot disagree. An effect
-      // driving `controls.setView` on the crossing was measured as dead code for that reason.
-      // Should that remount ever stop happening, this seam stops answering a resize.
+      // ⚠ Captured ONCE, so this seam answers a width crossing only because `DrawerStack`
+      // remounts the whole drawer when `isWide` flips (vaul's `direction` is not
+      // hot-swappable), remounting this grid with it. Should that stop, so does this.
       defaultView: resolveCalendarView(position.view, isWide).view,
       selectedDate: position.date ?? undefined,
       events,
@@ -334,17 +329,9 @@ function CalendarGrid({
       // Undefined leaves Schedule-X's default grid (whole day).
       dayBoundaries,
       isDark: theme === 'dark',
-      // ⚠ Schedule-X rewrites the rendered view by itself otherwise, and emits no callback
-      // when it does — so the switch cannot learn about it. `month-grid` and `week` both
-      // declare `hasSmallScreenCompat: false`, and `setScreenSizeCompatibleView` moves off
-      // them at mount and at each breakpoint crossing, to the FIRST registered compat view.
-      // That is what lit Month over a day list on a phone. The resize listener is registered
-      // only while this flag is on, and it is the only path into that rewrite, so turning it
-      // off leaves `resolveCalendarView` as the one authority — with no registration order to
-      // depend on, and no race against this app's own damped width signal. Nothing is lost:
-      // the dropped `isCalendarSmall` signal feeds SX's own view dropdown and the
-      // `sx__is-calendar-small` class, whose rules all target the header bar globals.css
-      // hides.
+      // ⚠ Otherwise Schedule-X rewrites the rendered view at its own breakpoint and emits no
+      // callback, so the switch cannot learn about it — which lit Month over a day list on a
+      // phone. `resolveCalendarView` decides instead (#331, `docs/rules/i18n-and-state.md`).
       isResponsive: false,
       // SX needs a supported BCP-47 code (see SX_LOCALES), or it throws. This project's token
       // overrides (globals.css) carry the light/dark and accent theming regardless of

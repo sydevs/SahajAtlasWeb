@@ -121,7 +121,13 @@ Six stores, each the single source of truth for its own slice:
   header's label and paging step, the switch's value and its offered options, the
   grid's `defaultView`, and `DrawerStack`'s drawer-width test are all that same
   resolution. Schedule-X's own `isResponsive` is **off**, so nothing but the
-  resolver decides which view renders.
+  resolver decides which view renders: the flag registers the resize listener
+  that is the only path into `setScreenSizeCompatibleView`, which moved off both
+  grids to the FIRST registered compat view and emitted nothing. With it off,
+  neither registration order nor SX's own breakpoint matters. Nothing is lost —
+  the `isCalendarSmall` signal it drops feeds SX's view dropdown and the
+  `sx__is-calendar-small` class, whose rules all target the header bar
+  `globals.css` hides.
 - **`useReportModal`** — whether the report-issue modal is open, plus the thrown
   message when an error CTA opened it. A store, not local state, because its
   three triggers (the settings cog, `ErrorFallback`, `DrawerErrorFallback`) sit

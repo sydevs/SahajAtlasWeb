@@ -160,7 +160,7 @@ export const useCameraSettled = create<CameraSettled>((set) => ({
 // The grid SEEDS from this store once at mount, through `getState`.
 // It then writes both fields imperatively as the user navigates.
 // So a write never re-renders the calendar.
-// `DrawerStack` also reads `view` reactively, through a selector, to size the drawer. A list view needs the regular width.
+// `DrawerStack` also reads `view` reactively, through a selector, to size the drawer — the wide panel exists only above the width crossing, and the list view never takes it (#331).
 // `date` is only ever read through `getState`, so its frequent writes stay render-free.
 type CalendarPositionState = {
   view: string | null
