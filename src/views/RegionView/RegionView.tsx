@@ -178,11 +178,9 @@ export function RegionView({ slug }: { slug: string }) {
         )}
         {/* A region or venue page opens the flow over itself, so its address search starts
             near this place (#147). */}
-        <p className="px-4 py-4 text-center text-sm text-gray-11">
-          <Link className="underline underline-offset-2" href={addClassPath(region.path)}>
-            {t('submit.chrome.add_here')}
-          </Link>
-        </p>
+        <Link appearance="footnote" href={addClassPath(region.path)}>
+          {t('submit.chrome.add_here')}
+        </Link>
       </DrawerBody>
     </>
   )

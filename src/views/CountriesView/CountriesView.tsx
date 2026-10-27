@@ -120,11 +120,9 @@ export function CountriesView() {
             />
           ))}
         </List>
-        <p className="px-4 py-4 text-center text-sm text-gray-11">
-          <Link className="underline underline-offset-2" href={addClassPath()}>
-            {t('submit.chrome.add_entry')}
-          </Link>
-        </p>
+        <Link appearance="footnote" href={addClassPath()}>
+          {t('submit.chrome.add_entry')}
+        </Link>
       </DrawerBody>
     </>
   )

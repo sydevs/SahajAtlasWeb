@@ -172,11 +172,9 @@ export function DynamicEventsList({
       )}
       {/* Under the list and under every empty state alike: no place is in context here, so the
           flow opens at the root (#147). */}
-      <p className="px-4 py-4 text-center text-sm text-gray-11">
-        <Link className="underline underline-offset-2" href={addClassPath()}>
-          {t('submit.chrome.add_entry')}
-        </Link>
-      </p>
+      <Link appearance="footnote" href={addClassPath()}>
+        {t('submit.chrome.add_entry')}
+      </Link>
     </>
   )
 }
