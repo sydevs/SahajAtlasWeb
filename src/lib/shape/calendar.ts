@@ -268,16 +268,3 @@ export const resolveCalendarView = (
 
   return { view: CALENDAR_VIEW_MONTH_AGENDA, option: CALENDAR_VIEW_MONTH }
 }
-
-/**
- * Whether the calendar fills the widget at this width, rather than reading as one narrow
- * column. `DrawerStack` sizes the calendar drawer from this — the list view and the month
- * agenda are both a single column, so neither earns the full-width drawer. It resolves
- * rather than taking a view name, so the drawer never has to know which name a width
- * collapses onto.
- */
-export const calendarFillsWidget = (stored: string | null, isWide: boolean): boolean => {
-  const { view } = resolveCalendarView(stored, isWide)
-
-  return view === CALENDAR_VIEW_MONTH || view === CALENDAR_VIEW_WEEK
-}

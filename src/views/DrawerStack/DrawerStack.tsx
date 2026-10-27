@@ -28,8 +28,8 @@ import { useCalendarPosition } from '@/config/store'
 import { frameElement, overlayContainer } from '@/lib/overlay'
 import {
   type StackEntry,
+  CALENDAR_VIEW_LIST,
   atlasDepth,
-  calendarFillsWidget,
   dismissAction,
   dismissDepth,
   baseStackEntry,
@@ -299,17 +299,14 @@ export function DrawerStack() {
   // that key to tell whether it is still the view on top, and the two agreeing is what
   // makes the comparison mean anything.
   const top = baseStackEntry(entries, hasMap) ?? null
-  // The calendar is the one full-width view. It fills the widget, minus the floating
-  // margins, instead of the 352px left panel (see the Drawer `wide` variant) — EXCEPT in the
-  // two views that are a single narrow column and read better at the regular width: its list
-  // (agenda) view, and the month agenda a stored month or week collapses onto below the
-  // crossing. So this reads what RENDERS, resolved against the same width signal the view
-  // switch reads, rather than the stored name — which on a phone claimed a month grid that
-  // Schedule-X cannot draw, and took the settings cog below with it. The viewer's pick is
-  // mirrored into `useCalendarPosition`, read reactively here so switching view resizes the
-  // drawer. Date changes do not re-render this component.
+  // The calendar is the one full-width view. It fills the widget, minus the floating margins,
+  // instead of the 352px left panel (see the Drawer `wide` variant) — EXCEPT in its list
+  // (agenda) view, one narrow column that reads better at the regular width. `isWide` is here
+  // because the wide panel exists only above the crossing; below it `wide` gates the settings
+  // cog alone, which a phone in month view had lost (#331). The view is read reactively, so
+  // switching it resizes the drawer. Date changes do not re-render this component.
   const calendarView = useCalendarPosition((s) => s.view)
-  const wide = top?.kind === 'calendar' && calendarFillsWidget(calendarView, isWide)
+  const wide = top?.kind === 'calendar' && isWide && calendarView !== CALENDAR_VIEW_LIST
   // Ancestor paths below the top view, root-first (empty at CountriesView).
   const parentPaths = useMemo(
     () => (baseEntries.length === 0 ? [] : ['/', ...baseEntries.slice(0, -1).map((e) => e.path)]),
