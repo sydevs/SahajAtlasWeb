@@ -34,7 +34,7 @@ import {
 } from '@/config/api/mutate'
 import { useLocale } from '@/hooks/use-locale'
 import { useLanguageOptions } from '@/hooks/use-language-options'
-import { LanguageMultiSelect } from '@/components/molecules/LanguageMultiSelect'
+import { MultiSelect } from '@/components/molecules/MultiSelect'
 import { useTurnstile } from '@/hooks/use-turnstile'
 import {
   LISTING_STEPS,
@@ -520,7 +520,7 @@ function MoreStep({
         onChange={(event) => onChange({ title: event.target.value })}
       />
       <FormField label={t('submit.more.languages_label')}>
-        <LanguageMultiSelect
+        <MultiSelect
           label={t('submit.more.languages_label')}
           options={options}
           triggerLabel={draft.languages.map(languageLabel).join(', ')}
