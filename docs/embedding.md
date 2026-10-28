@@ -311,8 +311,8 @@ query is still dropped whole, including `?p=123&utm_source=…`, rather than tri
 
 It reports on **every load**, not only when something changed — that is what makes "last seen"
 mean anything: an embed that reported once and went quiet is indistinguishable from a removed
-one. Repeat reports of an unchanged page collapse server-side into at most one write an hour, so
-this is one small request per page view, and nothing your visitor sees depends on it.
+one. Repeat reports of an unchanged page collapse server-side into at most one write in any 6 h
+window, so this is one small request per page view, and nothing your visitor sees depends on it.
 
 Two things can refuse it, both configuration rather than a fault in your page, and both reported
 to the console while the widget carries on working:

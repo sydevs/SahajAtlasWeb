@@ -44,6 +44,12 @@ cover everything a host would notice since the widget was first deployed.
 
 ### Changed
 
+- **A repeat embed report turns into at most one write in any 6 h window.** ([#160]) The widget
+  still reports on every page load, and an unchanged report inside that window is answered
+  without a write. This guide and the embedding guide had both published the window as one hour.
+  It bounds writes on our side, not requests from your page — those are still one per load.
+  Nothing in your snippet, your CSP or what the widget sends changes.
+
 - ⚠ **BREAKING: your own children of `<sahaj-atlas>` stop rendering.** ([#236]) The element
   attaches its shadow root in its constructor, so anything you nest inside the tag is hidden
   from the moment the element upgrades — before the widget can decline. There is no `<slot>`,
@@ -652,8 +658,8 @@ must-revalidate`, pinned rather than left to the CDN default. The production dom
   origin your CSP already allows — no policy change needed. Three things a host can
   observe. It reports on **every** load rather than only when something changed, so "last
   seen" distinguishes a live embed from a removed one; repeat reports of an unchanged page
-  collapse server-side into at most one write an hour. It still sends your **origin and
-  path only**, with one exception: a WordPress **`?p=<number>`** permalink is preserved,
+  collapse server-side into at most one write in any 6 h window. It still sends your
+  **origin and path only**, with one exception: a WordPress **`?p=<number>`** permalink is preserved,
   because discarding it reported every post on a default-permalink site as the same page.
   Anything else in the query is still dropped, `?p=123&utm_source=…` included. And a
   refusal — your domain missing from the service's allowed-domains list, or the 50-mount
@@ -814,3 +820,4 @@ must-revalidate`, pinned rather than left to the CDN default. The production dom
 [Embedding in an iframe]: docs/embedding.md#embedding-in-an-iframe
 [Permissions Policy]: docs/embedding.md#permissions-policy
 [#324]: https://github.com/sydevs/SahajAtlasWeb/issues/324
+[#160]: https://github.com/sydevs/SahajAtlasWeb/issues/160

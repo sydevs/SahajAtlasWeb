@@ -398,7 +398,7 @@ export type EmbedReportBody = EmbedFingerprint & MountParts
 
 // This is the confirmation `POST /api/clients/report` returns, `EmbedReportResponse`.
 // `ok` is the whole receipt this schema checks.
-// The endpoint also returns the `mount` key it filed under, and `stored: false` when it suppressed an unchanged report within the hour.
+// The endpoint also returns `mounts`, the number it now holds for this service, and `updated: false` when it suppressed an unchanged report.
 // Nothing here consumes either field, so they are deliberately NOT in this schema.
 // Pinning a field this code never reads would turn a harmless rename on the CMS side into a "could not record this embed" warning on every host's console.
 // That failure would be worse than the drift it would be detecting.
@@ -411,7 +411,7 @@ export type EmbedReportResponse = z.infer<typeof EmbedReportResponseSchema>
  * It calls `POST /api/clients/report`. See sydevs/SahajCloud#633 and issue #153.
  *
  * `lib/embed-announce.ts` calls this once per page, never from a component and never through React Query.
- * Nothing renders this as data, it takes no part in a cache, and a retry would be a second write of a record the server already collapses by the hour.
+ * Nothing renders this as data, it takes no part in a cache, and a retry would be a second write of a record the server already collapses.
  *
  * The report goes over the wire whole, `canonicalViable` included.
  * The endpoint's Zod schema strips what it does not model.
