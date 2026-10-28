@@ -41,9 +41,9 @@ describe('EventView', () => {
     expect(markup).toMatch(/href="[^"]*\/gb\/oxford\/507\/correct"/)
   })
 
-  it('never on a reviewer’s live preview, which is not yet a class anyone could correct', () => {
+  it('offers it under a live preview too, which the link guard inerts where it must', () => {
     livePreview.active = true
 
-    expect(render()).not.toMatch(/\/gb\/oxford\/507\/correct"/)
+    expect(render()).toMatch(/href="[^"]*\/gb\/oxford\/507\/correct"/)
   })
 })

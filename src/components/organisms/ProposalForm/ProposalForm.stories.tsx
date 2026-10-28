@@ -58,6 +58,8 @@ function Panel({
 }: Partial<ProposalFormProps> & { initial: ListingDraft; step: ListingStep; width?: number }) {
   const [draft, setDraft] = useState(initial)
   const [step, setStep] = useState(initialStep)
+  // The store's own rule, so a story walks the steps the way the view does.
+  const [reviewed, setReviewed] = useState(initialStep === 'review')
   const [sent, setSent] = useState(rest.sent ?? false)
   const [sender, setSender] = useState(EMPTY_SENDER)
 
@@ -69,13 +71,17 @@ function Panel({
         onClose={() => setSent(false)}
         {...rest}
         draft={draft}
+        reviewed={reviewed}
         sender={sender}
         sent={sent}
         step={step}
         onChange={(patch) => setDraft((current) => ({ ...current, ...patch }))}
         onSender={(patch) => setSender((current) => ({ ...current, ...patch }))}
         onSent={() => setSent(true)}
-        onStep={setStep}
+        onStep={(next) => {
+          setStep(next)
+          if (next === 'review') setReviewed(true)
+        }}
       />
     </div>
   )

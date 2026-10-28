@@ -5,7 +5,7 @@ import { Check } from 'lucide-react'
 import { Alert } from '@/components/atoms/Alert'
 import { DrawerBody, DrawerFooter } from '@/components/atoms/Drawer'
 import { Link } from '@/components/atoms/Link'
-import { AddClassLink, EventMetadata, ResetErrorBoundary } from '@/components/molecules'
+import { EventMetadata, ResetErrorBoundary } from '@/components/molecules'
 // This imports leaf files, not the folder index. The index re-exports EventDetails, and
 // importing it statically here would pull the lazy-loaded panel chunk — DOMPurify and action
 // wiring — back into the main bundle.
@@ -22,7 +22,6 @@ import { useLocale } from '@/hooks/use-locale'
 import { useMapController } from '@/hooks/use-map-controller'
 import { usePostEventFeedback } from '@/hooks/use-post-event-feedback'
 import { useWidgetMode } from '@/config/mode'
-import livePreview from '@/config/live-preview/protocol'
 import { correctionPath, parentOf } from '@/lib/shape'
 import { CloseButton, useDrawerControl, useFrameOnTop } from '@/views/shared'
 import { ErrorPanel } from '@/views/fallbacks'
@@ -177,11 +176,13 @@ export function EventView({ id, basePath }: { id: number; basePath: string }) {
             </EventDetails>
           </Suspense>
         </ResetErrorBoundary>
-        {/* A published class takes corrections from anyone who knows it (#147). Never on a
-            reviewer's live preview, which is not yet a class anyone could correct. */}
-        {!livePreview.active && (
-          <AddClassLink href={correctionPath(basePath)} label={t('submit.chrome.correct_entry')} />
-        )}
+        {/* A published class takes corrections from anyone who knows it (#147). It renders
+            under a preview too: a document session inerts every link it draws
+            (`LivePreviewController`), and a translations session wants this one live, so the
+            translator can reach the screen its string is on. */}
+        <Link appearance="footnote" href={correctionPath(basePath)}>
+          {t('submit.chrome.correct_entry')}
+        </Link>
       </DrawerBody>
       {stickyRegister && (
         <DrawerFooter

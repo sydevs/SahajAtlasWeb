@@ -273,26 +273,7 @@ export function SubmitView({ entry }: { entry: SubmitEntry }) {
 }
 
 /** The step panel, as DrawerStack mounts it in its own sheet beside the listing. */
-export function SubmitPanel({
-  entry,
-  onCompactChange,
-}: {
-  entry: SubmitEntry
-  /** Told when the panel becomes the review bar, and `false` when it closes, so its sheet
-   *  can size itself without reading the draft store. */
-  onCompactChange?: (compact: boolean) => void
-}) {
-  const compact = useListingDraft((state) => state.step === 'review' || state.sent)
-  const report = useRef(onCompactChange)
-
-  report.current = onCompactChange
-
-  // A layout effect, so the sheet resizes before the frame paints.
-  useLayoutEffect(() => {
-    report.current?.(compact)
-  }, [compact])
-  useLayoutEffect(() => () => report.current?.(false), [])
-
+export function SubmitPanel({ entry }: { entry: SubmitEntry }) {
   return (
     <DrawerBody>
       <WithTarget entry={entry}>

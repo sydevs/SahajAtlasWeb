@@ -1,7 +1,6 @@
 import React, { Component, type ReactNode } from 'react'
 import { Geocoder } from '@mapbox/search-js-react'
 import { GeocodingFeature } from '@mapbox/search-js-core'
-import { useLocation, useSearchParams } from 'react-router'
 import { useTranslation } from 'react-i18next'
 
 import { hoistGeocoderLiveRegion } from './aria-live'
@@ -13,19 +12,9 @@ import { useMapbox } from '@/hooks/use-mapbox'
 export interface MapSearchProps {
   /** Called with the geocoded place the user picked from the suggestions. */
   onSelect: (value: GeocodingFeature) => void
-  /**
-   * Where the field's text lives.
-   *
-   * - `'url'` (default) mirrors what is typed into `?q`, so a reload or a shared link keeps the
-   *   query.
-   * - `'read-only'` still shows the URL's `?q` but never writes it — for where the current URL
-   *   is known-bad, the error screen for a dead link (issue #89). Writing state into a URL
-   *   already flagged as broken only spreads the problem: embedded, that URL lives in the host
-   *   page's `#!` fragment and travels with anything the visitor copies.
-   * - `{ initial }` makes this a form field (#147): it seeds from that value, and never reads or
-   *   writes `?q`.
-   */
-  query?: 'url' | 'read-only' | { initial: string }
+  /** The field's text. Its owner decides where that lives — a form draft, or `?q`. */
+  value: string
+  onChange: (text: string) => void
   /**
    * This is the accessible name and placeholder. It defaults to the "search
    * for events near…" phrasing, which is right in a header, where position
@@ -69,42 +58,16 @@ class GeocoderBoundary extends Component<
   }
 }
 
-export function MapSearch({ onSelect, query = 'url', label, types, proximity }: MapSearchProps) {
-  const [searchParams, setSearchParams] = useSearchParams()
-  const location = useLocation()
-  const isFormField = typeof query === 'object'
-  const [searchQuery, setSearchQuery] = React.useState(
-    isFormField ? query.initial : searchParams.get('q') || '',
-  )
+/**
+ * The geocoder field itself, and nothing else: it renders what it is given and reports what was
+ * picked. Where the text lives is its owner's question — `SearchField` keeps it in `?q`, the
+ * add-a-class Where step keeps it beside the draft.
+ */
+export function MapSearch({ onSelect, value, onChange, label, types, proximity }: MapSearchProps) {
   const { mapbox } = useMapbox()
   const { locale } = useLocale()
   const { t } = useTranslation()
   const fieldLabel = label ?? t('search.chrome.placeholder')
-
-  // This merges `q` into the existing query, so the active filters (and
-  // bbox and center) survive typing — they live only in the URL now.
-  // `replace` means per-keystroke edits do not stack history. Both the
-  // geocoder and the plain fallback share this function.
-  //
-  // `state` is carried explicitly. `setSearchParams` forwards only what it is
-  // given, so a bare `{ replace: true }` replaces the entry with a
-  // state-less one and drops its `atlasDepth`. After ONE keystroke, the
-  // drawer's dismissal (X, swipe, or Esc) would then push to the structural
-  // parent, instead of going chronologically back. The filter and sort
-  // setters carry it for the same reason.
-  // This adopts a `?q` that somebody ELSE wrote. The field seeds from the URL
-  // once, in the state initializer above, which is right while typing is the
-  // only writer. But the geolocate control names the place it found AFTER
-  // navigating, and `placeSearchPath` clears `?q` on every re-search. Neither
-  // one remounts this component when the view on top is unchanged. So
-  // without this effect, the field keeps showing a place the results are no
-  // longer about.
-  //
-  // This guards on the last value written here, rather than on equality with
-  // the field. So the per-keystroke mirroring below can never fight it:
-  // typing records its own write, sees the URL agree, and does nothing.
-  const urlQuery = searchParams.get('q') ?? ''
-  const ownWrite = React.useRef(urlQuery)
   const field = React.useRef<HTMLDivElement>(null)
 
   React.useEffect(() => {
@@ -112,30 +75,6 @@ export function MapSearch({ onSelect, query = 'url', label, types, proximity }: 
 
     return scope ? hoistGeocoderLiveRegion(scope) : undefined
   }, [])
-
-  React.useEffect(() => {
-    if (isFormField || urlQuery === ownWrite.current) return
-
-    ownWrite.current = urlQuery
-    setSearchQuery(urlQuery)
-  }, [urlQuery, isFormField])
-
-  const setQuery = (text: string) => {
-    setSearchQuery(text)
-    ownWrite.current = text
-    if (query !== 'url') return
-
-    setSearchParams(
-      (prev) => {
-        const next = new URLSearchParams(prev)
-
-        next.set('q', text)
-
-        return next
-      },
-      { replace: true, state: location.state },
-    )
-  }
 
   return (
     // The Geocoder permanently reserves ~40px of right padding for its
@@ -159,8 +98,8 @@ export function MapSearch({ onSelect, query = 'url', label, types, proximity }: 
             className="w-full rounded-lg border border-divider bg-gray-2 px-3 py-2 field-size text-foreground placeholder:text-gray-11"
             placeholder={fieldLabel}
             type="search"
-            value={searchQuery}
-            onChange={(event) => setQuery(event.target.value)}
+            value={value}
+            onChange={(event) => onChange(event.target.value)}
           />
         }
       >
@@ -176,8 +115,8 @@ export function MapSearch({ onSelect, query = 'url', label, types, proximity }: 
           }}
           placeholder={fieldLabel}
           theme={controlTheme}
-          value={searchQuery}
-          onChange={setQuery}
+          value={value}
+          onChange={onChange}
           onRetrieve={onSelect}
         />
       </GeocoderBoundary>

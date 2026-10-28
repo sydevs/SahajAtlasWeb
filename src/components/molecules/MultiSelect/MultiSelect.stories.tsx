@@ -4,25 +4,25 @@ import { useState } from 'react'
 
 import { StorySection, StoryWrapper } from '../../ladle'
 
-import { LanguageMultiSelect } from './LanguageMultiSelect'
+import { MultiSelect } from './MultiSelect'
 
 export default { title: 'Molecules' } satisfies StoryDefault
 
 const OPTIONS = [
-  { code: 'en', label: 'English' },
-  { code: 'fr', label: 'French' },
-  { code: 'de', label: 'German' },
-  { code: 'hi', label: 'Hindi' },
+  { value: 'en', label: 'English' },
+  { value: 'fr', label: 'French' },
+  { value: 'de', label: 'German' },
+  { value: 'hi', label: 'Hindi' },
 ]
 
 const labelOf = (codes: string[]) =>
-  codes.map((code) => OPTIONS.find((option) => option.code === code)?.label ?? code).join(', ')
+  codes.map((code) => OPTIONS.find((option) => option.value === code)?.label ?? code).join(', ')
 
 function Picker({ initial, highlight }: { initial: string[]; highlight?: boolean }) {
   const [value, setValue] = useState(initial)
 
   return (
-    <LanguageMultiSelect
+    <MultiSelect
       highlight={highlight && value.length > 0}
       label="Language"
       options={OPTIONS}
@@ -34,8 +34,9 @@ function Picker({ initial, highlight }: { initial: string[]; highlight?: boolean
 }
 
 /**
- * LanguageMultiSelect opens a checklist of languages. The search filters tint it while a
- * language is chosen; the add-a-class details step does not, since a class always has one.
+ * MultiSelect opens a checklist behind a field. Both of its users pick languages: the search
+ * filters tint it while one is chosen, and the add-a-class details step does not, since a
+ * class always has one.
  */
 export const Default: Story = () => (
   <StoryWrapper>
@@ -54,4 +55,4 @@ export const Default: Story = () => (
     <div />
   </StoryWrapper>
 )
-Default.storyName = 'Language Multi Select'
+Default.storyName = 'Multi Select'

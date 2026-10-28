@@ -82,7 +82,7 @@ export const Default: Story = () => (
     >
       <div className="max-w-md rounded-lg border border-divider p-4">
         <RegistrationForm
-          offersMailingList
+          hasMailingList
           eventId={7}
           eventTitle="Evening Meditation"
           eventUrl="https://atlas.example/e/7"
