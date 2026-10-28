@@ -165,9 +165,9 @@ const createRegistration = async (
   turnstileToken: string,
 ): Promise<UserSubmissionResponse> => {
   // Only the REQUEST is guarded here.
-  // A `.parse()` call inside this try would hand `asRefusal` a `ZodError`.
-  // A `ZodError`'s `.errors` field is `{ message, code }`, the very shape a refusal body has.
-  // So schema drift would get re-cast as a server refusal carrying a zod issue code.
+  // A `.parse()` call inside this try would hand `asRefusal` a `ZodError`, and schema drift
+  // would then read as a server refusal. zod 3's `ZodError.errors` was `RefusalBodySchema`'s
+  // shape exactly; zod 4 renamed it `issues`, so that collision closed by luck, not by design.
   let response: unknown
 
   try {
@@ -188,6 +188,10 @@ const createRegistration = async (
         // and what the sender's history across all four intakes is keyed on.
         senderEmail: data.email,
         submissionData: submissionData({
+          // The answers go FIRST, so our own two keys are written last and a question the CMS
+          // names `name` or `locale` cannot replace them — the same ordering `sendReport` relies
+          // on. Today's four question names do not collide, so this is the guard, not a fix.
+          ...data.questions,
           name: data.name,
           // This is the registrant's language.
           // So SahajCloud sends the confirmation email, and its reminders, in the language they registered in.
@@ -197,7 +201,6 @@ const createRegistration = async (
           // SahajCloud REJECTS an unknown code, rather than defaulting.
           // So this value must stay a subset of SahajCloud's LOCALES. All ten widget languages have been in it since SahajCloud#578.
           locale: activeLocale(),
-          ...data.questions,
         }),
       },
     })
@@ -357,7 +360,6 @@ const sendReport = async (payload: ReportPayload): Promise<UserSubmissionRespons
   }
 
   // The parse deliberately sits OUTSIDE the try. See `createRegistration`.
-  // A `ZodError` looks exactly like a refusal body to `asRefusal`.
   let response: unknown
 
   try {
