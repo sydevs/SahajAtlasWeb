@@ -102,11 +102,19 @@ const main = async () => {
   const env = loadEnv('development', process.cwd(), 'VITE_')
   const key = resolveKey(env)
 
-  const url = `${PRODUCTION}/api/globals/${GLOBAL}?locale=en&depth=0`
+  // SahajCloud refuses an API-client read that sends no `select`, with a 400 — so the tabs are
+  // requested by name rather than fetched whole and stripped. They are built from `WIDGET_TABS`
+  // instead of a second list, because `src/config/translations.test.ts` pins that array alone.
+  const select = WIDGET_TABS.map((tab) => `select[${tab}]=true`).join('&')
+  const url = `${PRODUCTION}/api/globals/${GLOBAL}?locale=en&depth=0&${select}`
   const response = await fetch(url, { headers: { Authorization: `clients API-Key ${key}` } })
 
   if (!response.ok) {
-    throw new Error(`GET ${url} answered ${response.status}. Is the key a production client key?`)
+    // The body names which refusal this is. Without it, a `select` or locale fault reads as a
+    // credential fault and sends the reader after the key.
+    const detail = await response.text().catch(() => '')
+
+    throw new Error(`GET ${url} answered ${response.status}. ${detail}`.trim())
   }
 
   const bundle = strip(await response.json())
