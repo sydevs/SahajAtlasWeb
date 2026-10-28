@@ -2,7 +2,15 @@ import type { Feature } from 'geojson'
 
 import { describe, it, expect, beforeEach } from 'vitest'
 
-import { rememberCamera, useCameraHistory, useCameraSettled, useViewState } from './store'
+import {
+  rememberCamera,
+  useCameraHistory,
+  useCameraSettled,
+  useListingDraft,
+  useViewState,
+} from './store'
+
+import { emptyDraft } from '@/lib/proposal'
 
 // These stores are the single source of truth for the map view, plus the registration draft.
 // They are plain zustand vanilla stores.
@@ -169,5 +177,80 @@ describe('useCameraSettled', () => {
     useCameraSettled.getState().forgetSettled()
 
     expect(useCameraSettled.getState()).toBe(before)
+  })
+})
+
+describe('useListingDraft', () => {
+  beforeEach(() => {
+    useListingDraft.setState({
+      key: null,
+      draft: null,
+      base: null,
+      entry: null,
+      sender: { email: '', note: '' },
+      step: 'where',
+      reviewed: false,
+      sent: false,
+    })
+  })
+
+  it('starts a route draft, and keeps the base a correction opened as', () => {
+    const draft = emptyDraft('Europe/London')
+
+    useListingDraft
+      .getState()
+      .start({ key: 'correct:507', entry: 'e1' }, { draft, base: draft, step: 'review' })
+
+    expect(useListingDraft.getState()).toMatchObject({
+      key: 'correct:507',
+      step: 'review',
+      base: draft,
+      sent: false,
+    })
+  })
+
+  it('merges an edit into the draft without touching the base', () => {
+    const draft = emptyDraft('Europe/London')
+
+    useListingDraft
+      .getState()
+      .start({ key: 'correct:507', entry: 'e1' }, { draft, base: draft, step: 'review' })
+    useListingDraft.getState().update({ room: 'Hall B' })
+
+    expect(useListingDraft.getState().draft?.room).toBe('Hall B')
+    expect(useListingDraft.getState().base?.room).toBe('')
+  })
+
+  it('ignores an edit before any flow has started', () => {
+    useListingDraft.getState().update({ room: 'Hall B' })
+
+    expect(useListingDraft.getState().draft).toBeNull()
+  })
+
+  it('records the receipt, and a fresh start clears it', () => {
+    useListingDraft
+      .getState()
+      .start({ key: 'add:/add', entry: 'e1' }, { draft: emptyDraft('UTC'), step: 'where' })
+    useListingDraft.getState().markSent()
+    expect(useListingDraft.getState().sent).toBe(true)
+
+    useListingDraft
+      .getState()
+      .start({ key: 'add:/add', entry: 'e1' }, { draft: emptyDraft('UTC'), step: 'where' })
+    expect(useListingDraft.getState().sent).toBe(false)
+  })
+
+  it('keeps the sender across edits, and a fresh start clears it', () => {
+    useListingDraft
+      .getState()
+      .start({ key: 'add:/add', entry: 'e1' }, { draft: emptyDraft('UTC'), step: 'where' })
+    useListingDraft.getState().setSender({ email: 'ada@example.org' })
+    useListingDraft.getState().setSender({ note: 'Hi' })
+    expect(useListingDraft.getState().sender).toEqual({ email: 'ada@example.org', note: 'Hi' })
+
+    useListingDraft
+      .getState()
+      .start({ key: 'add:/add', entry: 'e1' }, { draft: emptyDraft('UTC'), step: 'where' })
+    expect(useListingDraft.getState().sender).toEqual({ email: '', note: '' })
   })
 })

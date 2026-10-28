@@ -22,7 +22,7 @@ import { useLocale } from '@/hooks/use-locale'
 import { useMapController } from '@/hooks/use-map-controller'
 import { usePostEventFeedback } from '@/hooks/use-post-event-feedback'
 import { useWidgetMode } from '@/config/mode'
-import { parentOf } from '@/lib/shape'
+import { correctionPath, parentOf } from '@/lib/shape'
 import { CloseButton, useDrawerControl, useFrameOnTop } from '@/views/shared'
 import { ErrorPanel } from '@/views/fallbacks'
 
@@ -176,6 +176,13 @@ export function EventView({ id, basePath }: { id: number; basePath: string }) {
             </EventDetails>
           </Suspense>
         </ResetErrorBoundary>
+        {/* A published class takes corrections from anyone who knows it (#147). It renders
+            under a preview too: a document session inerts every link it draws
+            (`LivePreviewController`), and a translations session wants this one live, so the
+            translator can reach the screen its string is on. */}
+        <Link appearance="footnote" href={correctionPath(basePath)}>
+          {t('submit.chrome.correct_entry')}
+        </Link>
       </DrawerBody>
       {stickyRegister && (
         <DrawerFooter

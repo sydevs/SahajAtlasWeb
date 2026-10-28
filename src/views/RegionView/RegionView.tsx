@@ -13,7 +13,7 @@ import { useMapController } from '@/hooks/use-map-controller'
 import { usePostEventFeedback } from '@/hooks/use-post-event-feedback'
 import { usePrefetchEvents } from '@/hooks/use-prefetch-event'
 import { useWidgetMode } from '@/config/mode'
-import { childRoute, searchPath } from '@/lib/shape'
+import { addClassPath, childRoute, searchPath } from '@/lib/shape'
 import { validateWebUrl } from '@/lib/url'
 import {
   CalendarButton,
@@ -176,6 +176,11 @@ export function RegionView({ slug }: { slug: string }) {
               ))}
           </List>
         )}
+        {/* A region or venue page opens the flow over itself, so its address search starts
+            near this place (#147). */}
+        <Link appearance="footnote" href={addClassPath(region.path)}>
+          {t('submit.chrome.add_here')}
+        </Link>
       </DrawerBody>
     </>
   )

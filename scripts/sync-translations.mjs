@@ -66,6 +66,7 @@ const WIDGET_TABS = [
   'event',
   'calendar',
   'registration',
+  'submit',
   'share',
   'compact',
 ]
@@ -102,7 +103,9 @@ const main = async () => {
   const env = loadEnv('development', process.cwd(), 'VITE_')
   const key = resolveKey(env)
 
-  const url = `${PRODUCTION}/api/globals/${GLOBAL}?locale=en&depth=0`
+  // A client read of a global must name its `select` since SahajCloud#710, or it answers 400.
+  const select = WIDGET_TABS.map((tab) => `&select[${tab}]=true`).join('')
+  const url = `${PRODUCTION}/api/globals/${GLOBAL}?locale=en&depth=0${select}`
   const response = await fetch(url, { headers: { Authorization: `clients API-Key ${key}` } })
 
   if (!response.ok) {

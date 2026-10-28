@@ -7,6 +7,11 @@
 export { SettingsMenu } from './SettingsMenu'
 export type { SettingsMenuProps } from './SettingsMenu'
 
+// MultiSelect — a checklist behind a field: the Language filter and the
+// add-a-class details step.
+export { MultiSelect } from './MultiSelect'
+export type { MultiSelectOption, MultiSelectProps } from './MultiSelect'
+
 // SearchFilters — the controlled event-filters form (Format, Frequency,
 // Day, Time, Language), rendered inside the FilterView drawer.
 export { SearchFilters } from './SearchFilters'

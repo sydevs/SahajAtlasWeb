@@ -254,10 +254,56 @@ export function FilterButton({ iconOnly = false }: { iconOnly?: boolean }) {
 // behaviour that used to live in the removed SearchBar.
 export function SearchField({
   label,
-  syncToUrl,
-}: Pick<MapSearchProps, 'label' | 'syncToUrl'> = {}) {
+  query = 'url',
+}: { label?: MapSearchProps['label']; query?: 'url' | 'read-only' } = {}) {
   const navigate = useAtlasNavigate()
-  const [searchParams] = useSearchParams()
+  const location = useLocation()
+  const [searchParams, setSearchParams] = useSearchParams()
+  const urlQuery = searchParams.get('q') ?? ''
+  const [text, setText] = useState(urlQuery)
+  // This guards on the last value written here, rather than on equality with the field. So the
+  // per-keystroke mirroring below can never fight it: typing records its own write, sees the
+  // URL agree, and does nothing.
+  //
+  // This adopts a `?q` that somebody ELSE wrote. The field seeds from the URL once, above,
+  // which is right while typing is the only writer. But the geolocate control names the place
+  // it found AFTER navigating, and `placeSearchPath` clears `?q` on every re-search. Neither
+  // one remounts this component when the view on top is unchanged. So without this effect, the
+  // field keeps showing a place the results are no longer about.
+  const ownWrite = useRef(urlQuery)
+
+  useEffect(() => {
+    if (urlQuery === ownWrite.current) return
+
+    ownWrite.current = urlQuery
+    setText(urlQuery)
+  }, [urlQuery])
+
+  // This merges `q` into the existing query, so the active filters (and bbox and center)
+  // survive typing — they live only in the URL now. `replace` means per-keystroke edits do not
+  // stack history.
+  //
+  // `state` is carried explicitly. `setSearchParams` forwards only what it is given, so a bare
+  // `{ replace: true }` replaces the entry with a state-less one and drops its `atlasDepth`.
+  // After ONE keystroke, the drawer's dismissal (X, swipe, or Esc) would then push to the
+  // structural parent, instead of going chronologically back. The filter and sort setters carry
+  // it for the same reason.
+  const handleChange = (next: string) => {
+    setText(next)
+    ownWrite.current = next
+    if (query !== 'url') return
+
+    setSearchParams(
+      (prev) => {
+        const params = new URLSearchParams(prev)
+
+        params.set('q', next)
+
+        return params
+      },
+      { replace: true, state: location.state },
+    )
+  }
 
   const handleSelect = useCallback(
     (value: GeocodingFeature) => {
@@ -283,7 +329,7 @@ export function SearchField({
 
   return (
     <div className="min-w-0 flex-1">
-      <MapSearch label={label} syncToUrl={syncToUrl} onSelect={handleSelect} />
+      <MapSearch label={label} value={text} onChange={handleChange} onSelect={handleSelect} />
     </div>
   )
 }
@@ -388,7 +434,7 @@ export function EmptyEventList() {
           reads on this screen as a promise that there ARE nearby events. */}
       <SearchField
         label={t('common.errors.search_label', { defaultValue: 'Or search for a place' })}
-        syncToUrl={false}
+        query="read-only"
       />
     </FallbackPanel>
   )

@@ -161,6 +161,14 @@ cover everything a host would notice since the widget was first deployed.
 
 ### Added
 
+- **Visitors can add a class, or suggest a correction to one, from the widget.** ([#147]) Every
+  list ends with a link to add a class; a region or venue page offers to add one there, and a
+  class page offers a correction. The flow opens new routes under your page's URL — `/add`,
+  `<region>/add` and `<class>/correct` — and sends nothing to anyone until the visitor submits;
+  a local coordinator reviews it before it appears. It uses the Mapbox and Turnstile origins your
+  CSP already allows, so your policy is unchanged.
+- **Registrants can join a mailing list.** ([#147]) Where a list exists for the class's area,
+  the registration form shows an opt-in box. Ticking it subscribes them once they register.
 - **A region's panel has a filter control.** ([#311]) It sits beside search on every country,
   city and venue panel, with the same active-count badge the country list's carries. It opens
   the filters scoped to that region, so applying them lists the region's matching classes, not
@@ -800,6 +808,7 @@ must-revalidate`, pinned rather than left to the CDN default. The production dom
 [#232]: https://github.com/sydevs/SahajAtlasWeb/issues/232
 [#236]: https://github.com/sydevs/SahajAtlasWeb/issues/236
 [#262]: https://github.com/sydevs/SahajAtlasWeb/issues/262
+[#147]: https://github.com/sydevs/SahajAtlasWeb/issues/147
 [#283]: https://github.com/sydevs/SahajAtlasWeb/issues/283
 [#311]: https://github.com/sydevs/SahajAtlasWeb/pull/311
 [#312]: https://github.com/sydevs/SahajAtlasWeb/pull/312

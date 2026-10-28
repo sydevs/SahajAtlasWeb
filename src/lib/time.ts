@@ -1,4 +1,7 @@
-import { IANAZone, type DateTime } from 'luxon'
+import { DateTime, IANAZone } from 'luxon'
+
+/** The visitor's own IANA zone, UTC where the runtime cannot name one. */
+export const viewerTimeZone = (): string => DateTime.local().zoneName ?? 'UTC'
 
 /**
  * Whether two instants read as the same wall-clock time — i.e. they share a UTC

@@ -238,6 +238,8 @@ const getGeojson = async (): Promise<Geojson> => {
   return { type: 'FeatureCollection', features }
 }
 
+export const GEOJSON_QUERY_KEY = ['geojson'] as const
+
 // The hierarchy fetchers and the events fetchers all need the same feed.
 // This reads the feed through the shared React Query cache, under the same key the map uses.
 // So the app fetches and parses the feed once per stale window, not on every navigation.
@@ -245,7 +247,7 @@ const getGeojson = async (): Promise<Geojson> => {
 // A language switch does not refetch the feed. It refetches only the titles sliver.
 const loadGeojson = (): Promise<Geojson> =>
   queryClient.ensureQueryData({
-    queryKey: ['geojson'],
+    queryKey: GEOJSON_QUERY_KEY,
     queryFn: getGeojson,
     staleTime: GEOJSON_STALE_TIME,
     gcTime: WHOLESALE_GC_TIME,
@@ -662,6 +664,10 @@ const getEventDoc = async (id: number): Promise<EventDoc> => {
         registrationLimit: true,
         registrationsFull: true,
         registrationQuestions: true,
+        // Virtual, and resolved on this single-document read only — `null` on every list read
+        // and absent from the feed. SahajCloud's `ensureVirtualFieldDeps` re-adds the `region`
+        // it is computed from on its own.
+        offersMailingList: true,
         region: true,
         verificationStage: true,
         webPath: true,
@@ -742,6 +748,7 @@ export const TRANSLATION_SELECT = {
   event: { display: true, actions: true, recurrence: true },
   calendar: true,
   registration: true,
+  submit: true,
   share: true,
   compact: true,
 } as const

@@ -77,6 +77,23 @@ export const Default: Story = () => (
     </StorySection>
 
     <StorySection
+      description="An event whose region, an ancestor of it, or the atlas fallback runs a mailing list (`offersMailingList`). The opt-in box sits under the fields; ticking it sends `subscribe: yes`, which SahajCloud turns into a linked subscription. Where no list would receive it, the box is absent, as in every section above."
+      title="Mailing-list opt-in"
+    >
+      <div className="max-w-md rounded-lg border border-divider p-4">
+        <RegistrationForm
+          hasMailingList
+          eventId={7}
+          eventTitle="Evening Meditation"
+          eventUrl="https://atlas.example/e/7"
+          isOnline={false}
+          questions={[]}
+          upcomingDates={upcomingDates}
+        />
+      </div>
+    </StorySection>
+
+    <StorySection
       description="Submit the empty form above to see the validation state: a danger border plus error text that is wired to its field with aria-invalid + aria-describedby, so a screen reader announces it with the field rather than as a stray sentence."
       title="Validation"
     >

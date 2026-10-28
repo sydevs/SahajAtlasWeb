@@ -124,6 +124,21 @@ export const Default: Story = () => (
       </div>
     </StorySection>
 
+    <StorySection
+      description="A caller showing something other than a published class composes the panel instead of switching it into a mode — the add-a-class listing (#147) is the one today. `actions` replaces the caveat, Register and the action row; `sectionTrailing` puts something at the end of each section's heading line."
+      title="Slots"
+    >
+      <div className="w-[352px] border border-divider">
+        <EventHeader event={mockEvent} />
+        <EventDetails
+          actions={<p className="text-sm text-gray-11">Nothing here can be acted on yet.</p>}
+          basePath="/add"
+          event={mockEvent}
+          sectionTrailing={(section) => <span className="text-xs text-primary-11">{section}</span>}
+        />
+      </div>
+    </StorySection>
+
     <div />
   </StoryWrapper>
 )

@@ -25,6 +25,9 @@ export type EventSurfaceProps = {
   basePath: string
 }
 
+/** A section of the panel a caller can put something at the end of. */
+export type EventDetailsSection = 'details' | 'when' | 'where' | 'about'
+
 export type EventDetailsProps = EventSurfaceProps & {
   /** Render the calls to action — Register, then the secondary action row —
    *  inline in panel order. The mobile map sheet passes false and mounts both
@@ -47,6 +50,16 @@ export type EventDetailsProps = EventSurfaceProps & {
    * above the sticky bar in reading order too.
    */
   children?: ReactNode
+  /**
+   * Content at the end of a section's heading line. Given this slot, About renders even while
+   * empty, so a listing still being built shows where its description goes (#147).
+   */
+  sectionTrailing?: (section: EventDetailsSection) => ReactNode
+  /**
+   * Replaces what a published class offers below the facts — the unverified caveat, Register
+   * and the action row — for a listing nobody can act on yet (#147).
+   */
+  actions?: ReactNode
 }
 
 /**
@@ -55,10 +68,21 @@ export type EventDetailsProps = EventSurfaceProps & {
  * About. The title is a separate component (EventHeader). It renders outside
  * the scrolling drawer body, so it stays pinned. The triage chips lead the body.
  */
-export function EventDetails({ event, basePath, ctaInline = true, children }: EventDetailsProps) {
+export function EventDetails({
+  event,
+  basePath,
+  ctaInline = true,
+  children,
+  sectionTrailing,
+  actions,
+}: EventDetailsProps) {
   const { t } = useTranslation()
 
-  const descriptionHtml = lexicalToHtml(event.description)
+  const descriptionHtml = useMemo(() => {
+    const html = lexicalToHtml(event.description)
+
+    return html && sanitizeDescription(html)
+  }, [event.description])
 
   // The image alt text doubles as the lightbox caption. This value is memoized,
   // so the carousel and lightbox receive the same stable slides array across
@@ -75,6 +99,7 @@ export function EventDetails({ event, basePath, ctaInline = true, children }: Ev
   )
 
   const hasImages = slides.length > 0
+  const detailsTrailing = sectionTrailing?.('details')
 
   return (
     // The carousel is full-bleed and always last. It removes the container's
@@ -85,13 +110,63 @@ export function EventDetails({ event, basePath, ctaInline = true, children }: Ev
           pinned header. The chips are a short row. The container's `gap-4` and
           the facts' own `my-2` add extra space before the facts. The `-mb-2`
           class removes that extra space. */}
-      <EventChips className="-mb-2" event={event} />
+      {detailsTrailing ? (
+        <div className="-mb-2 flex items-center justify-between gap-2">
+          <EventChips event={event} />
+          {detailsTrailing}
+        </div>
+      ) : (
+        <EventChips className="-mb-2" event={event} />
+      )}
 
       {/* Extra space appears around the date and location facts, above the Register button. */}
-      <EventFacts className="my-2" event={event} />
+      <EventFacts
+        className="my-2"
+        event={event}
+        trailing={
+          sectionTrailing && { when: sectionTrailing('when'), where: sectionTrailing('where') }
+        }
+      />
 
       {children}
 
+      {actions ?? <PublishedActions basePath={basePath} ctaInline={ctaInline} event={event} />}
+
+      {/* About — host-authored prose always sits below the facts and actions. */}
+      {(descriptionHtml || sectionTrailing) && (
+        <DetailsSection title={t('event.display.about')} trailing={sectionTrailing?.('about')}>
+          {descriptionHtml && (
+            <div
+              dangerouslySetInnerHTML={{ __html: descriptionHtml }}
+              // `colored-links` carries the host-prose treatment, wrapping included.
+              className="flex flex-col gap-2 text-sm leading-snug colored-links normal-nums"
+            />
+          )}
+        </DetailsSection>
+      )}
+
+      {hasImages && (
+        // This section sits full-bleed below the description. It cancels the
+        // container's `px-6` padding, so the carousel spans the full drawer
+        // width. The slides now carry no padding of their own.
+        <div className="-mx-6">
+          <ImageCarousel slides={slides} />
+        </div>
+      )}
+    </div>
+  )
+}
+
+/** What a published class offers: the unverified caveat, Register, and the action row. */
+function PublishedActions({
+  event,
+  basePath,
+  ctaInline,
+}: EventSurfaceProps & { ctaInline: boolean }) {
+  const { t } = useTranslation()
+
+  return (
+    <>
       {/* Above Register, not at the top of a panel that scrolls. RegistrationView
           repeats it, since that route is reachable without passing here. Badging via the
           chips above would mark the list card, the surface this leaves alone. */}
@@ -110,27 +185,31 @@ export function EventDetails({ event, basePath, ctaInline = true, children }: Ev
           <EventActions basePath={basePath} event={event} />
         </>
       )}
+    </>
+  )
+}
 
-      {/* About — host-authored prose always sits below the facts and actions. */}
-      {descriptionHtml && (
-        <div className="flex flex-col gap-2">
-          <h2 className="text-md font-semibold">{t('event.display.about')}</h2>
-          <div
-            dangerouslySetInnerHTML={{ __html: sanitizeDescription(descriptionHtml) }}
-            // `colored-links` carries the host-prose treatment, wrapping included.
-            className="flex flex-col gap-2 text-sm leading-snug colored-links normal-nums"
-          />
+/** A titled section of the panel, with whatever a caller puts at the end of its heading. */
+export function DetailsSection({
+  title,
+  trailing,
+  children,
+}: {
+  title: string
+  trailing?: ReactNode
+  children?: ReactNode
+}) {
+  return (
+    <div className="flex flex-col gap-2">
+      {trailing ? (
+        <div className="flex items-center justify-between gap-2">
+          <h2 className="text-md font-semibold">{title}</h2>
+          {trailing}
         </div>
+      ) : (
+        <h2 className="text-md font-semibold">{title}</h2>
       )}
-
-      {hasImages && (
-        // This section sits full-bleed below the description. It cancels the
-        // container's `px-6` padding, so the carousel spans the full drawer
-        // width. The slides now carry no padding of their own.
-        <div className="-mx-6">
-          <ImageCarousel slides={slides} />
-        </div>
-      )}
+      {children}
     </div>
   )
 }

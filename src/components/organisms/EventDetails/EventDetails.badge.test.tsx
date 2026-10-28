@@ -55,7 +55,10 @@ const NOTE_KEY = 'event.display.unverified_note'
 
 const panel = (verificationStage: string | null) =>
   renderToStaticMarkup(
-    <EventDetails basePath="/gb/london/1" event={{ ...mockEvent, verificationStage }} />,
+    // The panel's correction link is a router link, so the panel needs a router like the card.
+    <MemoryRouter>
+      <EventDetails basePath="/gb/london/1" event={{ ...mockEvent, verificationStage }} />
+    </MemoryRouter>,
   )
 
 // ⚠ The card's chips are `compact`, and that variant drops the plain weekly type and the
@@ -105,11 +108,13 @@ describe('unverified badge', () => {
   // is absent. The caveat is not the button's, and must survive without it.
   it('renders with Register pinned to the sheet footer', () => {
     const markup = renderToStaticMarkup(
-      <EventDetails
-        basePath="/gb/london/1"
-        ctaInline={false}
-        event={{ ...mockEvent, verificationStage: 'unverified' }}
-      />,
+      <MemoryRouter>
+        <EventDetails
+          basePath="/gb/london/1"
+          ctaInline={false}
+          event={{ ...mockEvent, verificationStage: 'unverified' }}
+        />
+      </MemoryRouter>,
     )
 
     expect(markup).toContain(TITLE_KEY)

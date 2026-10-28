@@ -242,10 +242,10 @@ describe('this repository', () => {
     // 17, on `src/test-support/repo-source.ts` (#289) — every spec reading one repo file names
     // it, and a spec may read one no other way, so this grows by one per adopter. ⚠ Width is
     // not time, and which of the pair is slower has flipped across machines: `i18n.ts` selects
-    // 12, four of them jsdom, and measured 4.7s against the widest selection's 5.0s at
-    // eighteen, having been the slower of the two at seventeen. So this bounds width as a
+    // 12, four of them jsdom, and measured 8.7s against the widest selection's 6.8s at
+    // nineteen, having been the faster of the two at eighteen. So this bounds width as a
     // proxy, and the answer when it trips is to time the hook and ratchet, never to drop a
     // spec from the selection. `docs/testing.md` carries the times and the method.
-    expect(worst.count, `widest selection: ${worst.source}`).toBeLessThanOrEqual(18)
+    expect(worst.count, `widest selection: ${worst.source}`).toBeLessThanOrEqual(19)
   })
 })

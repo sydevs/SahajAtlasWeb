@@ -1,3 +1,4 @@
+import type { ListingDraft, ListingSender, ListingStep, OpenedListing } from '@/lib/proposal'
 import type { CalendarViewOption } from '@/lib/shape'
 
 import { create } from 'zustand'
@@ -277,3 +278,59 @@ export const useRegistrationDraft = create<RegistrationDraftState & Registration
     clearDraft: () => set(() => ({ eventId: null, values: {} })),
   }),
 )
+
+// ===== LISTING DRAFT ===== //
+
+// The add-a-class and correction flows (#147): the listing and the step panel both read it, and
+// it survives the md-crossing remount. `key` names the route (`add:/gb/london`, `correct:507`).
+// A value, not an import: `lib/proposal` stays out of the eager graph this store is in.
+export const EMPTY_SENDER: ListingSender = { email: '', note: '' }
+
+type ListingDraftState = {
+  key: string | null
+  /** The history entry the session opened on: a remount keeps it, reopening the flow does not. */
+  entry: string | null
+  draft: ListingDraft | null
+  /** What a correction opened as, so only what changed is sent. */
+  base: ListingDraft | null
+  sender: ListingSender
+  step: ListingStep
+  /** Whether review has been reached, after which a step returns straight to it. */
+  reviewed: boolean
+  /** Set once a submission resolves. Nothing reads the row back, so this is the whole receipt. */
+  sent: boolean
+}
+
+type ListingDraftAction = {
+  start: (session: { key: string; entry: string }, opened: OpenedListing) => void
+  update: (patch: Partial<ListingDraft>) => void
+  setSender: (patch: Partial<ListingSender>) => void
+  setStep: (step: ListingStep) => void
+  markSent: () => void
+}
+
+export const useListingDraft = create<ListingDraftState & ListingDraftAction>((set) => ({
+  key: null,
+  entry: null,
+  draft: null,
+  base: null,
+  sender: EMPTY_SENDER,
+  step: 'where',
+  reviewed: false,
+  sent: false,
+  start: ({ key, entry }, { draft, base, step }) =>
+    set(() => ({
+      key,
+      entry,
+      draft,
+      base: base ?? null,
+      sender: EMPTY_SENDER,
+      step,
+      reviewed: step === 'review',
+      sent: false,
+    })),
+  setSender: (patch) => set((state) => ({ sender: { ...state.sender, ...patch } })),
+  update: (patch) => set((state) => (state.draft ? { draft: { ...state.draft, ...patch } } : {})),
+  setStep: (step) => set((state) => ({ step, reviewed: state.reviewed || step === 'review' })),
+  markSent: () => set(() => ({ sent: true })),
+}))
