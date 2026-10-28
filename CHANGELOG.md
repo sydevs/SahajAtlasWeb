@@ -46,9 +46,9 @@ cover everything a host would notice since the widget was first deployed.
 
 - **A repeat embed report turns into at most one write in any 6 h window.** ([#160]) The widget
   still reports on every page load, and an unchanged report inside that window is answered
-  without a write. This guide and the embedding guide had both published the window as one hour;
-  six is the figure to size against if you were budgeting for our traffic. Nothing in your
-  snippet, your CSP or what the widget sends changes.
+  without a write. This guide and the embedding guide had both published the window as one hour.
+  It bounds writes on our side, not requests from your page — those are still one per load.
+  Nothing in your snippet, your CSP or what the widget sends changes.
 
 - ⚠ **BREAKING: your own children of `<sahaj-atlas>` stop rendering.** ([#236]) The element
   attaches its shadow root in its constructor, so anything you nest inside the tag is hidden
