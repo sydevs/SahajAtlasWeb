@@ -409,7 +409,7 @@ export type EmbedReportResponse = z.infer<typeof EmbedReportResponseSchema>
  * It calls `POST /api/clients/report`. See sydevs/SahajCloud#633 and issue #153.
  *
  * `lib/embed-announce.ts` calls this once per page, never from a component and never through React Query.
- * Nothing renders this as data, it takes no part in a cache, and a retry would be a second write of a record the server already collapses by the hour.
+ * Nothing renders this as data, it takes no part in a cache, and a retry would be a second write of a record the server already collapses within 6 h.
  *
  * The report goes over the wire whole, `canonicalViable` included.
  * The endpoint's Zod schema strips what it does not model.
