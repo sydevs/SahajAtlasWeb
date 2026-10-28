@@ -28,6 +28,8 @@ import {
 } from './layers'
 import { registerMarkerImages } from './markers'
 
+import { Button } from '@/components/atoms/Button'
+import { Modal, ModalClose, ModalContent, ModalFooter } from '@/components/atoms/Modal'
 import { calendarLineParts, useEventDisplay } from '@/hooks/use-event-display'
 import { useCameraSettled, useViewState, type MapPoint } from '@/config/store'
 import { useAtlasNavigate } from '@/hooks/use-atlas-navigate'
@@ -327,6 +329,20 @@ export function Mapbox({ cooperative = false }: { cooperative?: boolean } = {}) 
   // state, not zustand: it is purely a map-view detail.
   const [hoveredId, setHoveredId] = useState<number | null>(null)
 
+  // Mapbox's locate control fails silently otherwise: no message, no next
+  // step. One dialog covers every `GeolocationPositionError` code, since a
+  // refusal, an unavailable position and the 6-second timeout all leave a
+  // viewer with the same thing to do instead.
+  //
+  // ⚠ It cannot cover the headline case. mapbox-gl queries
+  // `navigator.permissions` in `onAdd` and renders the button `disabled` when
+  // the state is already `denied`, so a permission blocked before the map
+  // loaded — Chrome and Firefox — emits no `error` event at all. Only Safari,
+  // whose `permissions.query` rejects for `geolocation`, leaves the control
+  // live and reaches here. Speaking for the disabled control would mean
+  // replacing Mapbox's own, which #321 declined.
+  const [locationFailed, setLocationFailed] = useState(false)
+
   // This filters the feed before it reaches the clustering source, so
   // cluster counts reflect the filters — a layer-level `filter` would leave
   // stale counts. Then it trims the result to a geometry-only source. This
@@ -420,124 +436,145 @@ export function Mapbox({ cooperative = false }: { cooperative?: boolean } = {}) 
   // hooks/use-map-controller.tsx.
 
   return (
-    <ReactMapGL
-      reuseMaps
-      attributionControl={false}
-      cooperativeGestures={cooperative}
-      // Symbols — pins, clusters, the selection and hover highlights —
-      // appear instantly instead of Mapbox's default ~300ms icon fade-in.
-      // The card-hover highlight must track the pointer immediately.
-      // `fadeDuration` is a global map option, with no per-layer control, so
-      // this also removes the fade on the base pins and clusters and on the
-      // selection pin.
-      fadeDuration={0}
-      id="mapbox"
-      interactiveLayerIds={[clusterLayer.id, unclusteredPointLayer.id]}
-      // @ts-ignore - Language is a valid property
-      language={locale} // TODO: Make sure this switches when locale changes
-      locale={mapLocale}
-      logoPosition="bottom-right"
-      mapStyle={MAP_STYLES[theme]}
-      mapboxAccessToken={import.meta.env.VITE_MAPBOX_ACCESSTOKEN}
-      style={canvasStyle}
-      worldview={MAP_WORLDVIEWS[languageCode] || MAP_WORLDVIEWS.default}
-      onClick={selectFeature}
-      // This is the backstop on the reveal. A route that never frames the
-      // camera — CalendarView is the one that deliberately does not — must
-      // not leave the map hidden for the whole session.
-      onLoad={armReveal}
-      onMouseMove={hoverOnFeature}
-      // This dismisses the timing popover when the pointer leaves the
-      // canvas. `mouseout` (react-map-gl `onMouseOut`) is the canvas-exit
-      // event. `hoverOnFeature` above handles moving between pins or onto
-      // empty map.
-      onMouseOut={() => setHoveredId(null)}
-      // This is DELIBERATELY UNCONTROLLED — no `viewState`, and no
-      // `initialViewState` either.
-      //
-      // The camera is driven imperatively through `useMapbox` — the
-      // MapController seam owns every move. `onMoveEnd` mirrors the result
-      // back into the store, which is what `rememberCamera` and the search
-      // ranking read. A controlled `viewState` would put React in the
-      // middle of every frame of a fly.
-      //
-      // So nothing seeds the initial camera, and the map boots at [0, 0]
-      // zoom 0. That is why the session's first framing jumps rather than
-      // flies (`use-mapbox.ts`), and why the canvas stays held until it
-      // does. Seeding it instead would mean resolving a center before the
-      // map may mount, only to save one frame nobody ever sees.
-      onMoveEnd={(evt) => setViewState(evt.viewState)}
-    >
-      {DEBUG_PADDING && (
-        <div
-          className="pointer-events-none absolute border-4 border-dashed border-danger-9"
-          style={padding}
+    <>
+      <ReactMapGL
+        reuseMaps
+        attributionControl={false}
+        cooperativeGestures={cooperative}
+        // Symbols — pins, clusters, the selection and hover highlights —
+        // appear instantly instead of Mapbox's default ~300ms icon fade-in.
+        // The card-hover highlight must track the pointer immediately.
+        // `fadeDuration` is a global map option, with no per-layer control, so
+        // this also removes the fade on the base pins and clusters and on the
+        // selection pin.
+        fadeDuration={0}
+        id="mapbox"
+        interactiveLayerIds={[clusterLayer.id, unclusteredPointLayer.id]}
+        // @ts-ignore - Language is a valid property
+        language={locale} // TODO: Make sure this switches when locale changes
+        locale={mapLocale}
+        logoPosition="bottom-right"
+        mapStyle={MAP_STYLES[theme]}
+        mapboxAccessToken={import.meta.env.VITE_MAPBOX_ACCESSTOKEN}
+        style={canvasStyle}
+        worldview={MAP_WORLDVIEWS[languageCode] || MAP_WORLDVIEWS.default}
+        onClick={selectFeature}
+        // This is the backstop on the reveal. A route that never frames the
+        // camera — CalendarView is the one that deliberately does not — must
+        // not leave the map hidden for the whole session.
+        onLoad={armReveal}
+        onMouseMove={hoverOnFeature}
+        // This dismisses the timing popover when the pointer leaves the
+        // canvas. `mouseout` (react-map-gl `onMouseOut`) is the canvas-exit
+        // event. `hoverOnFeature` above handles moving between pins or onto
+        // empty map.
+        onMouseOut={() => setHoveredId(null)}
+        // This is DELIBERATELY UNCONTROLLED — no `viewState`, and no
+        // `initialViewState` either.
+        //
+        // The camera is driven imperatively through `useMapbox` — the
+        // MapController seam owns every move. `onMoveEnd` mirrors the result
+        // back into the store, which is what `rememberCamera` and the search
+        // ranking read. A controlled `viewState` would put React in the
+        // middle of every frame of a fly.
+        //
+        // So nothing seeds the initial camera, and the map boots at [0, 0]
+        // zoom 0. That is why the session's first framing jumps rather than
+        // flies (`use-mapbox.ts`), and why the canvas stays held until it
+        // does. Seeding it instead would mean resolving a center before the
+        // map may mount, only to save one frame nobody ever sees.
+        onMoveEnd={(evt) => setViewState(evt.viewState)}
+      >
+        {DEBUG_PADDING && (
+          <div
+            className="pointer-events-none absolute border-4 border-dashed border-danger-9"
+            style={padding}
+          />
+        )}
+        {filtered && (
+          <Source
+            cluster={true}
+            clusterMaxZoom={14}
+            clusterRadius={50}
+            data={filtered}
+            id="events"
+            type="geojson"
+          >
+            <Layer {...clusterLayer} />
+            <Layer {...unclusteredPointLayer} />
+          </Source>
+        )}
+        {DEBUG_BOUNDARY && boundary && (
+          <Source data={boundary} id="bounds" type="geojson">
+            <Layer {...boundsLayer} />
+          </Source>
+        )}
+        {selection && (
+          <PointSource
+            areaLayer={selectedAreaLayer}
+            id="selection"
+            point={selection}
+            pointLayer={selectedPointLayer}
+          />
+        )}
+        {hover && (
+          <PointSource
+            areaLayer={hoveredAreaLayer}
+            id="hover"
+            point={hover}
+            pointLayer={hoveredPointLayer}
+          />
+        )}
+        {hovered && (
+          <EventPinPopover
+            event={hovered.event}
+            latitude={hovered.latitude}
+            longitude={hovered.longitude}
+          />
+        )}
+        {/* `followUserLocation={false}` stops Mapbox from moving the camera itself.
+            Its `_updateCamera` method fits the accuracy circle at zoom 15 — a
+            street corner — with its own curve and speed, and it fires BEFORE
+            the `geolocate` event. So it would race the framing our handler asks
+            for through the URL. The flag is read in `_onSuccess`, and it gates
+            only that one call. `_updateMarker` is separate, so the blue dot,
+            the accuracy circle, the permission flow, and the localized labels
+            above all stay.
+            ⚠ Mapbox's own .d.ts file claims this option still recenters. Its
+            source code says otherwise. This was verified against the running
+            control, rather than trusting either claim. */}
+        <GeolocateControl
+          followUserLocation={false}
+          onError={() => setLocationFailed(true)}
+          onGeolocate={geolocateToSearch}
         />
-      )}
-      {filtered && (
-        <Source
-          cluster={true}
-          clusterMaxZoom={14}
-          clusterRadius={50}
-          data={filtered}
-          id="events"
-          type="geojson"
+        {/* Mapbox's terms require both the wordmark and the attribution, and both must stay on the
+            map view. Mapbox adds its own attribution in a corner no prop can change, so
+            `attributionControl` above declines it and this replaces it — in the top right, the one
+            corner no drawer takes: the side panel covers the bottom left, and the bottom sheet's
+            peek covers the whole bottom edge at every snap. `logoPosition` above puts the wordmark
+            bottom right instead, clear of the panel on a wide embed and covered by that peek on a
+            narrow one — accepted, rather than paid for with a measured per-layout corner (#330). Both
+            props are read once, when the map is constructed, which is all a corner that never moves
+            needs. `compact` keeps it a round button until a visitor opens it, rather than a strip
+            of text across an embed's map. */}
+        <AttributionControl compact position="top-right" />
+      </ReactMapGL>
+      <Modal open={locationFailed} onOpenChange={setLocationFailed}>
+        <ModalContent
+          closeLabel={t('common.chrome.close')}
+          description={t('common.map.location_failed')}
+          title={t('common.map.location_not_available')}
         >
-          <Layer {...clusterLayer} />
-          <Layer {...unclusteredPointLayer} />
-        </Source>
-      )}
-      {DEBUG_BOUNDARY && boundary && (
-        <Source data={boundary} id="bounds" type="geojson">
-          <Layer {...boundsLayer} />
-        </Source>
-      )}
-      {selection && (
-        <PointSource
-          areaLayer={selectedAreaLayer}
-          id="selection"
-          point={selection}
-          pointLayer={selectedPointLayer}
-        />
-      )}
-      {hover && (
-        <PointSource
-          areaLayer={hoveredAreaLayer}
-          id="hover"
-          point={hover}
-          pointLayer={hoveredPointLayer}
-        />
-      )}
-      {hovered && (
-        <EventPinPopover
-          event={hovered.event}
-          latitude={hovered.latitude}
-          longitude={hovered.longitude}
-        />
-      )}
-      {/* `followUserLocation={false}` stops Mapbox from moving the camera itself.
-          Its `_updateCamera` method fits the accuracy circle at zoom 15 — a
-          street corner — with its own curve and speed, and it fires BEFORE
-          the `geolocate` event. So it would race the framing our handler asks
-          for through the URL. The flag is read in `_onSuccess`, and it gates
-          only that one call. `_updateMarker` is separate, so the blue dot,
-          the accuracy circle, the permission flow, and the localized labels
-          above all stay.
-          ⚠ Mapbox's own .d.ts file claims this option still recenters. Its
-          source code says otherwise. This was verified against the running
-          control, rather than trusting either claim. */}
-      <GeolocateControl followUserLocation={false} onGeolocate={geolocateToSearch} />
-      {/* Mapbox's terms require both the wordmark and the attribution, and both must stay on the
-          map view. Mapbox adds its own attribution in a corner no prop can change, so
-          `attributionControl` above declines it and this replaces it — in the top right, the one
-          corner no drawer takes: the side panel covers the bottom left, and the bottom sheet's
-          peek covers the whole bottom edge at every snap. `logoPosition` above puts the wordmark
-          bottom right instead, clear of the panel on a wide embed and covered by that peek on a
-          narrow one — accepted, rather than paid for with a measured per-layout corner (#330). Both
-          props are read once, when the map is constructed, which is all a corner that never moves
-          needs. `compact` keeps it a round button until a visitor opens it, rather than a strip
-          of text across an embed's map. */}
-      <AttributionControl compact position="top-right" />
-    </ReactMapGL>
+          <ModalFooter>
+            <ModalClose>
+              <Button color="primary" variant="flat">
+                {t('common.chrome.close')}
+              </Button>
+            </ModalClose>
+          </ModalFooter>
+        </ModalContent>
+      </Modal>
+    </>
   )
 }
