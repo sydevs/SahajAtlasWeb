@@ -33,7 +33,13 @@ import {
 } from '@/config/api/mutate'
 import livePreview from '@/config/live-preview/protocol'
 import { useRegistrationDraft } from '@/config/store'
-import { RecurrenceType, Registration, RegistrationQuestionName, RegistrationSchema } from '@/types'
+import {
+  RecurrenceType,
+  Registration,
+  RegistrationInput,
+  RegistrationQuestionName,
+  RegistrationSchema,
+} from '@/types'
 import { useLocale } from '@/hooks/use-locale'
 import { useTurnstile } from '@/hooks/use-turnstile'
 import { useViewerCountry } from '@/hooks/use-viewer-country'
@@ -164,10 +170,10 @@ export function RegistrationForm({
   // This restores any in-progress values for this event once, so a drawer
   // remount (for example, the md-crossing direction remount) cannot drop a
   // half-filled form.
-  const [defaultValues] = useState<Partial<Registration>>(() => {
+  const [defaultValues] = useState<Partial<RegistrationInput>>(() => {
     const draft = useRegistrationDraft.getState()
 
-    return draft.eventId === eventId ? (draft.values as Partial<Registration>) : {}
+    return draft.eventId === eventId ? (draft.values as Partial<RegistrationInput>) : {}
   })
 
   const {
@@ -176,7 +182,12 @@ export function RegistrationForm({
     handleSubmit,
     watch,
     formState: { errors },
-  } = useForm<Registration>({ resolver: zodResolver(RegistrationSchema), defaultValues })
+    // The three generics are what keep the coercion honest: the fields hold the INPUT shape
+    // (`startingAt` is the ISO string below), and only `handleSubmit` is handed a `Registration`.
+  } = useForm<RegistrationInput, unknown, Registration>({
+    resolver: zodResolver(RegistrationSchema),
+    defaultValues,
+  })
 
   // This persists edits to the hoisted draft, via getState() so it never re-renders.
   useEffect(() => {
@@ -420,9 +431,9 @@ type RegistrationFieldsProps = {
   recurrenceType?: RecurrenceType | null
   questions: RegistrationQuestionName[]
   hasMailingList: boolean
-  register: UseFormRegister<Registration>
-  control: Control<Registration>
-  errors: FieldErrors<Registration>
+  register: UseFormRegister<RegistrationInput>
+  control: Control<RegistrationInput, unknown, Registration>
+  errors: FieldErrors<RegistrationInput>
 }
 
 function RegistrationFields({

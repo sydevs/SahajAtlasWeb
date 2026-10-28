@@ -120,10 +120,22 @@ import { annotate, report } from './_ci-output.mjs'
 // so the budget must stay above that too. 3.6 would put the CI number on
 // the slack boundary exactly; 3.5 is strictly inside it either way the
 // comparison at `line 402` is read.
+// `standalone` and `embed` were 318 until zod 4 (GHSA-mrhx-c7xc-m3w5). zod 4's
+// classic API is bigger than 3.25.76's in this graph, and the schemas are eager
+// because every fetcher parses through one. Measured uncredentialed, which is
+// what CI reads:
+//
+//   standalone  324.1 KiB
+//   embed       325.9 KiB
+//
+// Production ships each plus this graph's Sentry gap above — 325.2 and 327.1,
+// derived rather than built, since no credentialed build ran here. 330 clears
+// both and keeps the CI numbers inside the slack window. Ratchet it back if the
+// schemas ever move off the eager graph.
 const BUDGET_KIB = {
-  standalone: 318,
+  standalone: 330,
   loader: 3.5,
-  embed: 318,
+  embed: 330,
 }
 
 // A budget set far above the real payload is a green check that checks

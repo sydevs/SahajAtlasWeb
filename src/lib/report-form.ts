@@ -46,7 +46,7 @@ export const renderableFields = (form: ReportForm | undefined): ReportFormField[
 export const reportValuesSchema = (fields: ReportFormField[]) =>
   z.object(
     Object.fromEntries(
-      fields.flatMap((field, index): [string, z.ZodTypeAny][] => {
+      fields.flatMap((field, index): [string, z.ZodType<string | boolean, string | boolean>][] => {
         if (field.blockType === 'message') return []
 
         const key = fieldKey(index)
@@ -74,7 +74,10 @@ export const reportValuesSchema = (fields: ReportFormField[]) =>
           }
         }
       }),
-    ) as z.ZodRawShape,
+      // The value types stay narrow through the cast: widened to `ZodRawShape`, the object's own
+      // input type becomes `unknown` per key, and react-hook-form's resolver stops matching
+      // `ReportValues`.
+    ) as Record<string, z.ZodType<string | boolean, string | boolean>>,
   )
 
 /** The authored defaults, so a form opens as the operator set it up. */
