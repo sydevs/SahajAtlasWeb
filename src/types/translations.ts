@@ -19,7 +19,7 @@ import { z } from 'zod'
 export type TranslationTree = { [key: string]: string | TranslationTree }
 
 export const TranslationBundleSchema: z.ZodType<TranslationTree> = z.lazy(() =>
-  z.record(z.union([z.string(), TranslationBundleSchema])),
+  z.record(z.string(), z.union([z.string(), TranslationBundleSchema])),
 )
 
 /**

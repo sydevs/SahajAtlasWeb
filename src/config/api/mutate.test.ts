@@ -1,4 +1,5 @@
 import type { ReportContext } from '@/lib/report'
+import type { Registration } from '@/types/registration'
 
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import z from 'zod'
@@ -89,6 +90,27 @@ describe('createRegistration', () => {
     expect(pair(options.json, 'locale')).toBe('fr')
     expect(pair(options.json, 'experience')).toBe('Twice')
     expect(pair(options.json, 'referral')).toBe('A friend')
+  })
+
+  // `submissionData` folds a repeated key to its LAST value, so our own two keys are spread
+  // after the answers. None of today's four question names collides, so only a cast reaches
+  // the collision — and without this case a reversed spread order stays green.
+  it('keeps its own name and locale when a question is named after either', async () => {
+    sdk.request.mockResolvedValue(jsonResponse(created))
+
+    await mutate.createRegistration(
+      42,
+      {
+        ...registration,
+        questions: { name: 'Not the registrant', locale: 'de' } as Registration['questions'],
+      },
+      CAPTCHA_TOKEN,
+    )
+
+    const [options] = sdk.request.mock.calls[0]
+
+    expect(pair(options.json, 'name')).toBe('Ada')
+    expect(pair(options.json, 'locale')).toBe('fr')
   })
 
   it('drops a blank answer rather than sending an empty pair', async () => {
