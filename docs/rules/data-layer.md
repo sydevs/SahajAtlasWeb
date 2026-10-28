@@ -292,7 +292,16 @@ senderEmail }` plus `name`, `locale` and the question answers as pairs. The
   widget observed about the host page it mounted on. Send it once per page from
   `lib/embed-announce.ts`, never from a component and never through React Query:
   it renders nothing, caches nothing, and a retry would replay a write the server
-  already collapses by the hour.
+  already collapses within 6 h.
+  - **Reporting on every page load stays** (#160). The cadence is cheap at the
+    server in three independent ways, each checkable in SahajCloud: `clients` is
+    excluded from the usage plugin, so nothing meters the route
+    (`src/collections/Clients/endpoints/report.ts`, above `mergeMount`); `req.user`
+    is the full client doc, so a repeat reads `embedMetadata` off it and answers
+    `updated: false` with no query and no write (same file, the no-op path); and an
+    unchanged report collapses within 6 h, per SahajCloud's
+    `EMBED_REPORT_REFRESH_MS` (`src/lib/clients/embedMetadata.ts`). Revisit only
+    if Railway CPU spent on `POST /api/clients/report` becomes noticeable.
   - Keep its response schema at `{ ok: true }` only. The endpoint also returns a
     `mount` key and a `stored: false` flag, and nothing reads either — pinning
     them would turn a harmless CMS rename into a false "could not record this
