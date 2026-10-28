@@ -97,7 +97,7 @@ export type RequestDecorator = (url: URL, headers: Headers) => void
  * destructive to an ordinary visitor: every `<a>` goes inert, navigation snaps back, all
  * queries pin to `staleTime: Infinity`, and every request — the registration create included —
  * gains `draft=true` and the credential header (`request.ts`). Since any path can now carry a token,
- * and `public/_redirects` answers the SPA shell for every path, a parameter being PRESENT
+ * and the deploy's SPA fallback answers every path, a parameter being PRESENT
  * would make `sahajatlas.com/anything?live-preview=x` a link that silently bricks the page for
  * whoever it was sent to. See `boot.ts`.
  */

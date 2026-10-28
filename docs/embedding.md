@@ -797,9 +797,7 @@ frame-src   https://challenges.cloudflare.com
 
 **One line per directive, deliberately: CSP ignores every repeat of a directive name after the
 first**, so splitting `script-src` across two lines silently drops the second, leaving you
-believing you allowed something you hadn't. Loading the script from `sahajatlas.pages.dev`? Add
-that host to `script-src` and `font-src`. It does not belong in `connect-src`: the widget
-fetches no data from wherever its script was served.
+believing you allowed something you hadn't.
 
 ### Why each one, and what breaks without it
 
@@ -961,18 +959,27 @@ an iframe, put them in its `allow` attribute as shown above.
 
 ## Where to load it from
 
-Two hosts serve the identical bundle:
+One host serves the bundle:
 
-| Host                           | What it is                                             |
-| ------------------------------ | ------------------------------------------------------ |
-| `https://sahajatlas.com`       | the production domain — **use this one**               |
-| `https://sahajatlas.pages.dev` | the Cloudflare Pages default host for the same project |
+<!-- scripts/ci-workflows.test.ts reads the production host out of the row below, so the
+     production smoke lane and this guide can never name different hosts. Reword the cell text
+     freely; keep the row a table row, or that spec fails at collection. -->
 
-**Whichever of the two you load the script from, the widget's data all comes from one other
-origin: `cloud.sydevelopers.com`.** That is the only host `connect-src` has to name for the atlas
-itself. Its UI strings come from there too, alongside the events — the widget ships an English
-copy compiled in and fetches every other language from the CMS, so a blocked `connect-src` leaves
-a non-English page reading English rather than showing raw key names.
+| Host                     | What it is            |
+| ------------------------ | --------------------- |
+| `https://sahajatlas.com` | the production domain |
+
+⚠ **`sahajatlas.pages.dev` used to serve the same bundle and is no longer an origin of ours.**
+If your snippet or your CSP still names it, move both to `https://sahajatlas.com`. The name is
+withdrawn rather than redirected, so no request to it reaches what serves the domain, and once
+the project behind it is deleted the name is claimable by anybody — treat a script still loaded
+from there as a third party, not as us.
+
+**The widget's data all comes from one other origin: `cloud.sydevelopers.com`.** That is the only
+host `connect-src` has to name for the atlas itself. Its UI strings come from there too, alongside
+the events — the widget ships an English copy compiled in and fetches every other language from
+the CMS, so a blocked `connect-src` leaves a non-English page reading English rather than showing
+raw key names.
 
 Two files sit at that origin's root, and only the first is one you reference:
 

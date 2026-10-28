@@ -58,8 +58,8 @@ experience, with a country → region → area → venue → event hierarchy.
 | --- | --- |
 | Routing | `react-router` v7 over a hand-written history (`src/router.tsx`, `src/lib/shape/routing.ts`). The route is the `?atlas=` query parameter on the host's page URL — indexable, shareable, and it never touches `#anchor`. `routing=path` puts it in the pathname instead, under a prefix from the client record's `canonical.embed`, so path mode waits for that record before it routes. It uses in-memory routing only where the document refuses `replaceState` (#154). |
 | i18n | `i18next` plus `react-i18next`. One namespace, served per locale by SahajCloud's `sy-atlas-translations` global; `src/config/translations.en.json` is the committed English snapshot i18next boots from (#198). |
-| Calendar | **Schedule-X** (`@schedule-x/*`, pinned `2.36.0`) drives CalendarView's month/week/list grid. Our own header replaces SX's, via the `calendar-controls` plugin. |
-| Deploy | **Cloudflare**, Pages and Workers — see `docs/rules/deployment.md` (#266, #279, #280). Deep-link fallback via `public/_redirects` on Pages and `assets.not_found_handling` on a Worker, headers via `public/_headers`, indexing policy in `public/robots.txt`. |
+| Calendar | **Schedule-X** (`@schedule-x/*`, pinned `2.36.0`) drives CalendarView's month/week/list grid, plus a month agenda below the width crossing. Our own header replaces SX's, via the `calendar-controls` plugin. ⚠ SX's `isResponsive` is **off**: it otherwise rewrites the rendered view at its own breakpoint and emits no callback, so the switch lit a view that was not there (#331). `resolveCalendarView` (`src/lib/shape/calendar.ts`) is the only thing that picks a view — see `docs/rules/i18n-and-state.md`. |
+| Deploy | **Cloudflare Workers** static assets — see `docs/rules/deployment.md` (#266, #279, #280, #283). Deep-link fallback via `assets.not_found_handling`, headers via `public/_headers`, indexing policy in `public/robots.txt`. |
 
 **The host-facing contract lives in `docs/embedding.md`** (the integrator guide) and
 `CHANGELOG.md` — attributes, the CSP a host must send, sizing, the URL shape, privacy.
@@ -80,7 +80,7 @@ Permissions Policy table holds the specifics.
 ## Essential commands
 
 ```bash
-pnpm build:worker # pnpm build, minus dist/_redirects — the app Worker's Builds command (#280)
+pnpm build:worker # the app Worker's Builds command (#280) — pnpm build, plus a dormant rm -f
 pnpm test:smoke   # smoke specs vs a deployed preview (needs PREVIEW_URL)
 pnpm size         # eager-payload budget (CI gate — run after pnpm build)
 pnpm review:embed # serve dist/ as REAL host-page embeds for browser review (after pnpm build)
@@ -141,13 +141,14 @@ secrets must never reach client code — the bundle is public.
 
 ## Deployment
 
-Two Cloudflare sites deploy from this repo: the app, `sahajatlas`, and the Ladle playground,
-`sahajatlas-design` (#266, #279, #280). ⚠ `sahajatlas.com` is still the Pages project until
-#266's last child moves the domain. Source maps are uploaded, then deleted — never deployed
-(#130). Topology, the `public/` deploy files, the source-map policy and the deploy-side CI
-gates: `docs/rules/deployment.md`.
+Two Cloudflare sites deploy from this repo, both on Workers static assets: the app,
+`sahajatlas`, serving `sahajatlas.com`, and the Ladle playground, `sahajatlas-design`
+(#266, #279, #280, #283). ⚠ `sahajatlas.pages.dev` is withdrawn rather than redirected, and
+claimable by anyone once #283's last phase deletes the project behind it. Source maps are
+uploaded, then deleted — never deployed (#130). Topology, the `public/` deploy files, the
+source-map policy and the deploy-side CI gates: `docs/rules/deployment.md`.
 
-Use the **cloudflare-docs** MCP for Cloudflare Pages and Workers questions. ⚠ Its published
+Use the **cloudflare-docs** MCP for Cloudflare Workers questions. ⚠ Its published
 docs do not cover every wrangler config key — see `docs/mcp-setup.md` for what settles one
 when they are silent (#279).
 

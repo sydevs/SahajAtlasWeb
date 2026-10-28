@@ -41,8 +41,9 @@ only ever read a preview" below.
   Worker's, and any state the report does not recognise. If you add a spec, guard it with
   `test.skipIf(skipWithoutPreview)` like its siblings — the loudness belongs to the job, not the
   spec.
-- **A 200 status is not proof of anything.** `public/_redirects` is `/* /index.html 200`, so
-  Cloudflare answers **200 `text/html`** for any path that is not a built asset. A spec asserting
+- **A 200 status is not proof of anything.** `assets.not_found_handling` serves the SPA shell, so
+  Cloudflare answers **200 `text/html`** for any path that is not a built asset — as
+  `public/_redirects`'s `/* /index.html 200` did on Pages before #283. A spec asserting
   `res.status === 200` therefore passes for a missing file too — `embed.smoke.test.ts` learned
   this the hard way. Assert on the body or the content type instead.
 - **A green Smoke check proves the specs ran against THIS commit's build, on the app's OWN
@@ -149,22 +150,24 @@ Four findings from the subsystem this replaced, worth keeping so nobody re-deriv
   something exercises the caller — a live run of the script against a real SHA is what caught
   this one.
 - **A check-run name identifies the integration as well as the target, and only both together
-  identify a build.** The app Worker carries the Pages project's own name, so
-  `Workers Builds: sahajatlas` and `Cloudflare Pages: sahajatlas` share this project's slug and
-  differ only in their prefix (#280, #297). ⚠ That is why `production-smoke.yml` compares the
-  **whole** name with `==` — see the production lane below.
+  identify a build.** The app Worker took the Pages project's own name, so
+  `Workers Builds: sahajatlas` and `Cloudflare Pages: sahajatlas` shared this project's slug and
+  differed only in their prefix (#280, #297). ⚠ That is why `production-smoke.yml` compares the
+  **whole** name with `==` — see the production lane below. The Pages check run stops arriving
+  once #283's last phase deletes that project, and the comparison stays as it is: it is what
+  told the two apart while both posted.
 
 The lane also covers `embed.js`, not only the standalone page — the embed is what a host
 installs, so a deploy that breaks it while `index.html` stays healthy must not be a green check.
 
-It also covers the `public/` files only the platform executes: `_headers`, `robots.txt` and
-`_redirects`. All three are read on **both** platforms, but a Worker rejects the splat outright
-rather than serving it, so each Worker build deletes that file and takes the fallback from
-`assets.not_found_handling` instead (#279, #280; `docs/rules/deployment.md` owns the mechanism).
+It also covers the `public/` files only the platform executes: `_headers` and `robots.txt`. Both
+are read on both sites. The deep-link fallback is `assets.not_found_handling` rather than a third
+file: `public/_redirects` carried it until #283, and a Worker rejects its splat outright rather
+than serving it (#279, #280, #283; `docs/rules/deployment.md` owns the mechanism).
 Those are inert text in the repo, so no local gate can prove they work. ⚠ One claim about `_headers` is settled locally and must not be re-litigated
 here: `scripts/deploy-headers.test.ts` holds "no two rules set the same header name on paths that
-overlap" before a deploy, because the smoke lane reads two URLs on one of the two platforms and
-cannot be that mechanism.
+overlap" before a deploy, because the smoke lane reads two URLs after one deploy and cannot be
+that mechanism.
 `robots.smoke.test.ts` pins the #91 CORS headers against displacement by the #106 `/*` rule — a
 claim about platform behaviour, asserted rather than left as a comment.
 
@@ -238,10 +241,10 @@ about it are deliberate:
   artifact under test comes into existence.
 - **It reads `sahajatlas.com`, the custom domain — not a vendor host, and not a URL from the
   event.** `docs/embedding.md` is what decides which host "production" means, and
-  `ci-workflows.test.ts` pins the lane to that table's row. The custom domain and the vendor host
+  `ci-workflows.test.ts` pins the lane to that table's row. A custom domain and a vendor host
   serve one build, and **their headers can diverge**: `public/_headers` records #148,
-  `max-age=14400` on the custom domain against `max-age=0` on `*.pages.dev`, a defect that "was
-  invisible on the host every check runs against". A preview is on a vendor host either way, so a
+  `max-age=14400` on the Pages-served custom domain against `max-age=0` on `*.pages.dev`, a
+  defect that "was invisible on the host every check runs against". A preview is on a vendor host either way, so a
   production lane there would add no coverage and inherit that blindness. The host being a
   constant is also why the event is a clock rather than a source: a URL out of a payload would
   re-open #138's question — any installed App with `deployments: write` posts one, and a vendor
@@ -299,11 +302,11 @@ two cache-header specs failed on the unhashed loader files while `sahajatlas.pag
 the custom domain and not a preview: no vendor host could have shown it, and the fix was a
 dashboard setting rather than a commit. ⚠ Both measurements above were taken against `*.pages.dev`
 previews and a Pages-served custom domain, so each is evidence about a **host**, not about a
-platform. The preview the PR gate reads is a Worker since #282, and `sahajatlas.com` stays on
-Pages until #266's last child moves it — so re-measure rather than carrying either figure across
-that cutover. Whether a Workers preview host adds `X-Robots-Tag: noindex` of its own accord is
-**not yet known**, and it decides whether four assertions still test our own `public/_headers`
-rule: `robots.smoke.test.ts` at its three cases, and `cache-headers.smoke.test.ts`'s `embed.js`
+platform. The preview the PR gate reads is a Worker since #282, and #283 moved `sahajatlas.com`
+onto a Worker too — so **neither figure carries across that cutover, and both are owed a
+re-measure against the Workers-served `sahajatlas.com`**. Whether a Workers host adds
+`X-Robots-Tag: noindex` of its own accord is **still not known**, and it decides whether four
+assertions still test our own `public/_headers` rule: `robots.smoke.test.ts` at its three cases, and `cache-headers.smoke.test.ts`'s `embed.js`
 case. If the platform supplies the header, those four stop telling our rule from a default.
 Record the finding; do not weaken the specs for it — sydevs/SahajCloud#903's success list owns
 the repair.
@@ -447,13 +450,14 @@ still right. It just is not enough on its own when the pure part encodes a forei
 
 ### A spec that inventories `src/` walks it through `src/test-support/` (issue #286)
 
-Nine specs assert that some list of call sites is CLOSED — the JSX anchors, the viewport reads,
-the Radix poppers, the SahajCloud reads. Each rolled its own `readdirSync`, in three shapes that
-were not interchangeable, so a tenth would inherit whichever one its author copied.
+Eleven specs assert that some list of call sites is CLOSED — the JSX anchors, the viewport reads,
+the Radix poppers, the frame boxes, the SahajCloud reads, the form fields' 16px zoom floor. Nine of
+them rolled their own `readdirSync`, in three shapes that were not interchangeable, so the next
+would inherit whichever one its author copied.
 `sourceFiles()` (`src/test-support/source-tree.ts`) is the one walk now, with
 `readSource` / `readSourceWithoutComments` beside it and `parseSource`
-(`src/test-support/source-ast.ts`) for the two specs that parse. **A tenth walk fails `pnpm
-lint`**: `no-restricted-imports` in `eslint.config.js` bans `readdirSync` from `node:fs` and `fs`
+(`src/test-support/source-ast.ts`) for the three specs that parse. **A hand-rolled walk fails
+`pnpm lint`**: `no-restricted-imports` in `eslint.config.js` bans `readdirSync` from `node:fs` and `fs`
 everywhere under `src/` but `test-support/`, so regrowth is caught at the import instead of by a
 grep nobody runs. `importNames` is what leaves a spec's single-file `readFileSync` alone.
 
@@ -486,8 +490,8 @@ It bans the shape, not `import.meta.url` itself: `src/lib/shadow-patches.test.ts
 `node_modules` with `createRequire(import.meta.url)`, which no repo-relative reader can serve.
 **`src/Widget.standalone.test.ts` is the one spec left deriving a root**, under a disable —
 `importGraph` resolves specifiers on disk, so it needs a directory rather than text, and naming
-`repo-source` for `REPO_ROOT` would add it to that module's own per-edit selection, which has one
-slot left.
+`repo-source` for `REPO_ROOT` would add it to that module's own per-edit selection, which is now
+at its ceiling.
 
 **Neither rule reaches a cwd-relative `readFileSync('src/App.tsx', 'utf8')`**, the third shape
 `brand.test.ts` carried until #289 — it works only while vitest runs from the repo root, and
@@ -501,10 +505,10 @@ nothing. ⚠ **The walker mark itself costs no selection**: since #293 `selectFr
 the walkers to every edit, but it still selects one that names the edited module, so a walker runs
 per edit like any other spec. `lane.walkers` is a register, read only by the closed-list pin.
 
-⚠ **The scopes did not merge, and must not** — the nine cover seven different file sets, and
+⚠ **The scopes did not merge, and must not** — the eleven cover seven different file sets, and
 `source-tree.ts`'s own docblock owns that rule. Each spec passes its own `sourceFiles({…})`
 options beside the assertions they serve, and `source-tree.test.ts` pins every option as biting
-in both directions, because a scope that silently stopped matching would make all nine closed
+in both directions, because a scope that silently stopped matching would make all eleven closed
 lists pass by vacuum.
 
 **This is one walk implementation, not fewer walks.** Vitest gives each spec file its own module
@@ -522,8 +526,10 @@ failures as non-blocking context. No hook type-checks an edit; run `pnpm typeche
 That is the hook's whole command, wall clock, not the lane, which takes ~36s. Measured 2026-10-16
 on 4 cores, median of three: **0.12s** for a lane source with no spec of its own, **6.6s** for
 `src/config/i18n.ts` (12 specs, the slowest edit in the tree), and **4.5s** for
-`src/test-support/repo-source.ts` (15 specs, the widest — #289 moved it there). The slowest edit
-sits at about half the bound.
+`src/test-support/repo-source.ts` (the widest — #289 moved it there). The slowest edit
+sits at about half the bound. Re-measured 2026-10-26, at 17 specs rather than 15: **4.2s** for the
+widest and **5.0s** for `i18n.ts`, medians of three. Both fell while the widest selection grew, so
+read the two figures as a pair taken on one machine, never as a trend.
 ⚠ **The 0.12s class is smaller than #289 found it**: `src/views/FullInterface.tsx` selected
 nothing until `MapFrame.test.tsx` named it as a quoted repo-relative path, and now costs **2.2s**
 per edit for the wiring pin it previously had no per-edit coverage from at all. A quoted literal
@@ -553,12 +559,12 @@ coupling the other cannot:
   name match misses two of the three — `fetch.test.ts` is the only spec for `client.ts` and
   reaches it as `'./client'`, and `Chip.test.tsx` imports its own folder as `'.'`.
 
-**A third source selected the tree-walking specs until #293, and it was the whole floor.** Twelve
-specs enumerate the source tree instead of importing from it — the nine `src/` inventories and
-`source-tree.test.ts`, found because they import the shared walk (#286), plus two `scripts/` specs
-found by an enumerating call (`readdirSync(` and its kin). Nothing in them references the file that
-breaks them, so no reference can select one, and all twelve ran on every edit. `readLane` still
-reports the set, because
+**A third source selected the tree-walking specs until #293, and it was the whole floor.**
+Fourteen specs enumerate the source tree instead of importing from it — the eleven `src/`
+inventories and `source-tree.test.ts`, found because they import the shared walk (#286), plus two
+`scripts/` specs found by an enumerating call (`readdirSync(` and its kin). Nothing in them
+references the file that breaks them, so no reference can select one, and every one of them ran on
+every edit. `readLane` still reports the set, because
 `select-unit-specs.test.ts` pins it as a closed list. `selectFrom` no longer takes it, and the hook
 needed no edit to stop running it — it exits before spawning vitest on an empty selection
 (`.claude/hooks/unit-test.mjs:32`), which is also what keeps this change out of `.claude/`, a
@@ -581,9 +587,16 @@ to select from. The full lane still runs in the lean gate (`.claude/skills/pr-pr
 in CI, so this narrows the inner loop, not the gate.
 
 **What holds the budget is the selection's width, and `scripts/select-unit-specs.test.ts` pins
-that**: the widest edit in the tree, exhaustively through the real composition, at 15 against a
-ceiling of 16. ⚠ The widest is no longer the slowest — `i18n.ts`
-selects 12, four of them jsdom, and takes 6.6s against the widest's 4.5s and three — so width
+that**: the widest edit in the tree, exhaustively through the real composition, at 19 against a
+ceiling of 19 — no headroom, so the next spec reading a repo file through `repo-source` trips it,
+and the answer is to time the hook and ratchet, never to drop a spec. ⚠ **Two PRs can trip it
+without either one doing so alone**: #322's `mobile-zoom.test.ts` and #324's `attribution.test.ts`
+each took a slot, and the pin went red on the merge rather than on either branch; #328's
+`Drawer.scroll.test.tsx` is what ratcheted it from 17 to 18, and #318's `AddClassLink.test.tsx`
+from 18 to 19 — on the merge again, since neither #318 nor the base trips it alone. ⚠ Width is not
+time, and which of the pair is slower has flipped across machines — `i18n.ts` selects 12, four of
+them jsdom, and measured 4.7s against the widest's 5.0s at eighteen (2026-10-27, 4 cores) and
+8.7s against 6.8s at nineteen (2026-10-28, 4 cores, every figure higher) — so width
 bounds the slice, never the time, and a jump in either is a re-measure of both. It also pins each
 of the three specifier forms, end to end against this tree; the tree-walking set as a closed list,
 and its absence from the selection, where the fixture carries a walker of each kind, so a re-added

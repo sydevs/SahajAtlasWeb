@@ -76,7 +76,7 @@ export function frameElement(): HTMLElement | null {
  * ⚠ **Radix's popper defaults to an EMPTY boundary, which Floating UI reads as the viewport.**
  * That was right while the widget owned the viewport and is wrong the moment a frame contains it:
  * a menu opened near the bottom of a 640px contained map sees hundreds of pixels of free browser
- * window below its trigger, places itself there, and the frame's `overflow-hidden` erases it. The
+ * window below its trigger, places itself there, and the frame's `overflow-clip` erases it. The
  * control then appears to do nothing, with nothing in the console.
  *
  * `null` is filtered out by Radix, so with no frame this is exactly today's behaviour.

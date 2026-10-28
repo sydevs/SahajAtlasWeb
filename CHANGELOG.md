@@ -23,6 +23,15 @@ cover everything a host would notice since the widget was first deployed.
 
 ### Removed
 
+- ⚠ **BREAKING: `sahajatlas.pages.dev` is no longer a supported origin.** ([#283]) Load the
+  script from `https://sahajatlas.com`, which serves the identical bundle. If your snippet's
+  `src`, or your CSP's `script-src` and `font-src`, name the `pages.dev` host, point all three at
+  `https://sahajatlas.com`. The guide used to offer that host as a second origin and no longer
+  does. ⚠ **The old host is withdrawn, not redirected**: what it still answers with is a frozen
+  copy, and once the project behind it is deleted it answers with nothing — Cloudflare reserves
+  no released `pages.dev` name, so anybody may then take it. Treat a script still loaded from
+  there as a third party either way.
+
 - ⚠ **BREAKING: the `sahaj-atlas-style` style tag is gone.** ([#236]) The widget's stylesheet
   moved into its shadow root, so there is no longer a `<style>` element in your `<head>` to
   carry that id, and `document.querySelectorAll('style#sahaj-atlas-style')` returns nothing.
@@ -295,6 +304,58 @@ cover everything a host would notice since the widget was first deployed.
 
 ### Fixed
 
+- **The map credits Mapbox again, where you can see them.** ([#324]) The Mapbox wordmark sat
+  in the corner the panel covers on a wide embed and the bottom sheet covers on a narrow one,
+  so it was never visible, and the attribution control was switched off altogether — both are
+  required by Mapbox's terms. A compact attribution button now sits in the map's top right
+  corner, beneath the locate control, at every embed size, and the wordmark sits at the bottom
+  right — clear of the panel on a wide embed, though the bottom sheet still covers it on a
+  narrow one. Nothing to change on your side: no new origin, no new permission, and they are
+  inside the widget's own element as every other control is.
+- **The Register bar no longer covers a class page's other actions on a phone.** ([#320]) At the
+  sheet's default height the pinned "Register Now" bar sat over the Directions / Website /
+  Contact / Share row: the circles were cut in half, their labels hidden, and the covered half of
+  each tap area did nothing. Those four actions now ride the bar itself, under the button, so the
+  row is whole and there is only ever one of it — a visitor still reaches the class description
+  and the address by dragging the sheet up, as before. The bar also leaves room for the home
+  indicator on phones that have one. No parameter, origin or CSP change.
+- **The calendar's Month button now shows a month on a phone, instead of a day list.** ([#331])
+  Below 768px the calendar drew a day-by-day list while the switch said Month, and pressing
+  Month changed nothing — the third-party grid refuses its month and week layouts at that width
+  and silently substituted the list, with no way for our own header to find out. Month now opens
+  a month date-picker over the chosen day's classes, and the lit button always matches what is on
+  screen. Week is hidden below that width, where a seven-column time grid was never readable, so
+  a narrow embed offers Month and List and a wide one offers all three; a visitor who picked Week
+  on a desktop gets it back when the space returns. The settings control also reappears on a
+  phone in month view, where it had been hidden. Nothing above 768px changes, and no parameter,
+  origin or CSP change.
+- **A class that runs past midnight shows its times, not two dates.** ([#325]) A 9:30 PM session
+  ending at 12:30 AM read "10/27/2026, 9:30 PM – 10/28/2026, 12:30 AM" on the class page and the
+  list cards, because the browser's own range formatter adds both calendar dates once the two
+  ends fall on different days. It now reads "9:30 PM – 12:30 AM", in each language's own
+  convention. No change for you to make.
+- **A chosen date on the registration form looks chosen again.** ([#329]) The selected card
+  filled with your brand colour, but the radio mark inside it stayed an empty ring, because the
+  browser drew that mark in the same colour as the card behind it. The mark now takes the card's
+  contrasting colour, in light and dark themes and under your own palette. No change for you to
+  make.
+- **Filling in a form no longer slides the widget off its own panel.** ([#326]) On a phone-sized
+  sheet, tapping a field low in the registration form scrolled the whole panel away: the header
+  left the screen, a blank band took its place, and the buttons floated over nothing, with no
+  scrollbar and no gesture to bring it back. In a [contained embed][Sizing the element] the same
+  tap carried the entire widget out of the box you sized, and in a [compact card] out of the
+  dialog it opens. Fields now stay clear of the sticky Register bar as well. Nothing to change on
+  your side.
+- **Tapping a form field on a phone no longer zooms your page in.** ([#322]) iOS Safari scales
+  the whole page when a focused field is under 16px, and the widget's fields were 13px (the
+  place search, 14px) — so a visitor who tapped the search, a filter or the registration form
+  was left on a magnified version of your page, with nothing of ours able to undo it. Every text
+  field now renders at 16px on any touch device, whatever its width, and on any screen narrower
+  than 768px. A desktop embed driven by a mouse keeps the 13px fields it had, so it looks exactly
+  as it did; a narrow embed in a column on a desktop gets the 16px ones. A long option label in a
+  dropdown now ends in an ellipsis on one line, where it used to wrap to three lines or push the
+  arrow out of the field — bigger text reaches that point sooner. Nothing for you to change, and
+  no CSP or parameter change.
 - **The panel no longer flickers halfway down on every navigation.** ([#312]) Since the widget
   moved into its shadow root ([#236]), each change of view showed the arriving view in the lower
   half of the panel for the length of the fade, before it jumped to the top. The fade relied on a
@@ -748,9 +809,17 @@ must-revalidate`, pinned rather than left to the CDN default. The production dom
 [#236]: https://github.com/sydevs/SahajAtlasWeb/issues/236
 [#262]: https://github.com/sydevs/SahajAtlasWeb/issues/262
 [#147]: https://github.com/sydevs/SahajAtlasWeb/issues/147
+[#283]: https://github.com/sydevs/SahajAtlasWeb/issues/283
 [#311]: https://github.com/sydevs/SahajAtlasWeb/pull/311
 [#312]: https://github.com/sydevs/SahajAtlasWeb/pull/312
+[#320]: https://github.com/sydevs/SahajAtlasWeb/issues/320
+[#326]: https://github.com/sydevs/SahajAtlasWeb/issues/326
+[#322]: https://github.com/sydevs/SahajAtlasWeb/issues/322
+[#329]: https://github.com/sydevs/SahajAtlasWeb/pull/329
+[#325]: https://github.com/sydevs/SahajAtlasWeb/issues/325
+[#331]: https://github.com/sydevs/SahajAtlasWeb/issues/331
 [Sizing the element]: docs/embedding.md#sizing-the-element
 [compact card]: docs/embedding.md#when-the-slot-is-too-small
 [Embedding in an iframe]: docs/embedding.md#embedding-in-an-iframe
 [Permissions Policy]: docs/embedding.md#permissions-policy
+[#324]: https://github.com/sydevs/SahajAtlasWeb/issues/324

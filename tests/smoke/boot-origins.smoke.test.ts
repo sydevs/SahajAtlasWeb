@@ -9,8 +9,9 @@ import { fetchPreview, skipWithoutPreview } from './_helpers/preview'
 // silently on every preview in this repo until someone found it by hand.
 //
 // **What went wrong.** The build bakes `VITE_HOST` into the bundle. The bundle uses it
-// to compose the absolute URL for the locale JSON fetch. Production sets `VITE_HOST` in
-// the Pages dashboard. The Preview environment set nothing, so every preview inherited
+// to compose the absolute URL for the locale JSON fetch. Production set `VITE_HOST` in the
+// Cloudflare dashboard; the variable itself went with the locale bundles in #198. The Preview
+// environment set nothing, so every preview inherited
 // `.env`'s `http://localhost:5174` and shipped it to a `pages.dev` origin. Each locale
 // fetch then became a cross-origin request to the reviewer's own machine. The browser
 // refused it as a private-network access.
@@ -19,8 +20,8 @@ import { fetchPreview, skipWithoutPreview } from './_helpers/preview'
 // strings is the shape a spec would expect and check for. Instead, i18next's `init`
 // never resolves, so every component that reads a translation suspends forever. The
 // widget renders nothing: no canvas, no content, no readiness marker. Meanwhile every
-// existing smoke spec passed, because `_redirects`, `_headers`, `robots.txt`, `auto.js`,
-// and `index.html` all deployed correctly. "The specs ran" stayed true. It did not mean
+// existing smoke spec passed, because `_redirects` (since deleted, #283), `_headers`,
+// `robots.txt`, `auto.js` and `index.html` all deployed correctly. "The specs ran" stayed true. It did not mean
 // "the widget works".
 //
 // **Why this spec still only fetches.** Running a browser in CI would catch more
@@ -66,8 +67,8 @@ const REQUEST_ORIGINS = [
     pattern: /(https?:\/\/[^"'`\s\\)]+?)\/api["'`]/,
   },
   // Crash reporting, from `VITE_SENTRY_DSN` (#232) — here for presence, not for
-  // reachability, since nothing else observed that the variable was set on neither
-  // Pages environment. Two caveats, both load-bearing:
+  // reachability, since nothing else observed that the variable was set on neither of the
+  // then-Pages environments. Two caveats, both load-bearing:
   // ⚠ it can only ever see a preview. `scripts/assert-preview-host.mjs` refuses the
   // Worker's own production host, so a green run says nothing about production — which is
   // what `production-smoke.yml` exists for.

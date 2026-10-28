@@ -38,7 +38,8 @@ jobs:
     # `scripts/assert-preview-host.mjs` guards, one layer up (#280, #282).
     #
     # `startsWith(app.slug, 'cloudflare')` holds unchanged: one Cloudflare
-    # App posts both the Workers Builds run and the Pages one.
+    # App posts every Workers Builds run, as it posted the retiring Pages
+    # project's runs before #283.
     #
     # Two independent conditions say "this is a main-branch build", and
     # neither can admit a preview build of the same Worker: a PR head is

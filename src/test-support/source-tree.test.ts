@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest'
 import { readSource, readSourceWithoutComments, sourceFiles, stripComments } from './source-tree'
 
 /**
- * Nine specs inventory `src/` through this one walk, and most of them assert that a list of call
+ * Eleven specs inventory `src/` through this one walk, and most of them assert that a list of call
  * sites is CLOSED. A scope that quietly stopped matching would make every one of them pass by
  * vacuum, so each option is asserted to bite in both directions — the default leaves a named
  * file out, and the opt-in brings that same file back.

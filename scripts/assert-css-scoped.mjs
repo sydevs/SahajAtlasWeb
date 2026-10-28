@@ -45,7 +45,7 @@
  * Checks 1 to 4 ask whether a rule can reach a host page. Checks 5 and 6 ask
  * the other direction: whether what we ship resolves at all.
  *
- * `pnpm build` runs this gate, so both CI and the Cloudflare Pages build
+ * `pnpm build` runs this gate, so both CI and the Cloudflare Workers build
  * enforce it.
  */
 import { readFileSync, readdirSync, existsSync } from 'node:fs'
