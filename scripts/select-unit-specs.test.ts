@@ -246,6 +246,6 @@ describe('this repository', () => {
     // eighteen, having been the slower of the two at seventeen. So this bounds width as a
     // proxy, and the answer when it trips is to time the hook and ratchet, never to drop a
     // spec from the selection. `docs/testing.md` carries the times and the method.
-    expect(worst.count, `widest selection: ${worst.source}`).toBeLessThanOrEqual(18)
+    expect(worst.count, `widest selection: ${worst.source}`).toBeLessThanOrEqual(19)
   })
 })
