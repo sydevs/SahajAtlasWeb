@@ -658,8 +658,8 @@ must-revalidate`, pinned rather than left to the CDN default. The production dom
   origin your CSP already allows — no policy change needed. Three things a host can
   observe. It reports on **every** load rather than only when something changed, so "last
   seen" distinguishes a live embed from a removed one; repeat reports of an unchanged page
-  collapse server-side into at most one write in any 6 h window. It still sends your **origin and
-  path only**, with one exception: a WordPress **`?p=<number>`** permalink is preserved,
+  collapse server-side into at most one write in any 6 h window. It still sends your
+  **origin and path only**, with one exception: a WordPress **`?p=<number>`** permalink is preserved,
   because discarding it reported every post on a default-permalink site as the same page.
   Anything else in the query is still dropped, `?p=123&utm_source=…` included. And a
   refusal — your domain missing from the service's allowed-domains list, or the 50-mount

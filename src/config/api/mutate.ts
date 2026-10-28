@@ -396,7 +396,7 @@ export type EmbedReportBody = EmbedFingerprint & MountParts
 
 // This is the confirmation `POST /api/clients/report` returns, `EmbedReportResponse`.
 // `ok` is the whole receipt this schema checks.
-// The endpoint also returns the `mount` key it filed under, and `stored: false` when it suppressed an unchanged report within the hour.
+// The endpoint also returns `mounts`, the number it now holds for this service, and `updated: false` when it suppressed an unchanged report within the 6 h window.
 // Nothing here consumes either field, so they are deliberately NOT in this schema.
 // Pinning a field this code never reads would turn a harmless rename on the CMS side into a "could not record this embed" warning on every host's console.
 // That failure would be worse than the drift it would be detecting.

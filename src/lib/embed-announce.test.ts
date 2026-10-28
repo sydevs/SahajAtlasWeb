@@ -128,11 +128,13 @@ describe('announceEmbed', () => {
     })
   })
 
-  // `stored: false` means the server already held this observation and suppressed the write —
-  // which is how reporting on every mount stays cheap, and is a success, not a refusal.
+  // `updated: false` means the server already held this observation and suppressed the write —
+  // which is how reporting on every mount stays cheap, and is a success, not a refusal. The two
+  // unpinned keys are spelled as SahajCloud's `ClientEmbedReportResponse` returns them, so this
+  // fixture stays a response the endpoint could actually send.
   it('treats a suppressed duplicate as a successful send', async () => {
     stubDocument()
-    sdk.request.mockResolvedValue(jsonResponse({ ok: true, mount: 'x', stored: false }))
+    sdk.request.mockResolvedValue(jsonResponse({ ok: true, mounts: 1, updated: false }))
 
     await expect(announceEmbed({ routing: 'query', observed })).resolves.toBeUndefined()
   })
