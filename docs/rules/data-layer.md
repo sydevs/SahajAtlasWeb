@@ -292,7 +292,7 @@ senderEmail }` plus `name`, `locale` and the question answers as pairs. The
   widget observed about the host page it mounted on. Send it once per page from
   `lib/embed-announce.ts`, never from a component and never through React Query:
   it renders nothing, caches nothing, and a retry would replay a write the server
-  already collapses within 6 h.
+  already collapses.
   - **Reporting on every page load stays** (#160). The cadence is cheap at the
     server in three independent ways, each checkable in SahajCloud: `clients` is
     excluded from the usage plugin, so nothing meters the route (SahajCloud's
