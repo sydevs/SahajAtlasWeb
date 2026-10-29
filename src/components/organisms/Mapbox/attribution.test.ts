@@ -52,3 +52,32 @@ describe('the Mapbox wordmark and attribution corners', () => {
     expect(cornerIn(map, 'logoPosition')).toBe('bottom-right')
   })
 })
+
+// The locate control's failure dialog is wired the same silent way: mapbox emits `error` whether
+// or not anything listens, and the dialog is a portal the node lane cannot open (`docs/testing.md`),
+// so the wiring is what is pinned here and the attended browser pass observes the dialog (#321).
+describe('a refused location request', () => {
+  const map = read(MAP)
+  // Not `[^>]*`: an arrow function in a handler carries a `>` of its own.
+  const control = map.match(/<GeolocateControl\b[\s\S]*?\/>/)?.[0] ?? ''
+
+  it('is heard by the locate control', () => {
+    expect(control, 'the GeolocateControl element').toMatch(/onError=\{/)
+  })
+
+  it('opens a dialog that is a sibling of the map, not part of its subtree', () => {
+    // react-map-gl reconciles its children as map controls and sources; inside `<ReactMapGL>` the
+    // dialog would be reparented into mapbox's own container.
+    const [beforeMap, afterMap] = map.split('</ReactMapGL>')
+
+    expect(afterMap, 'markup after the map element').toContain('<Modal')
+    expect(beforeMap).not.toContain('<Modal')
+  })
+
+  it('hands focus back to the locate control on close', () => {
+    // Radix returns focus to a `Dialog.Trigger`, and this dialog has none.
+    expect(map.split('</ReactMapGL>')[1]).toMatch(
+      /onCloseAutoFocus=\{[\s\S]*?mapboxgl-ctrl-geolocate/,
+    )
+  })
+})

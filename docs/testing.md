@@ -587,17 +587,15 @@ to select from. The full lane still runs in the lean gate (`.claude/skills/pr-pr
 in CI, so this narrows the inner loop, not the gate.
 
 **What holds the budget is the selection's width, and `scripts/select-unit-specs.test.ts` pins
-that**: the widest edit in the tree, exhaustively through the real composition, at 19 against a
-ceiling of 19 — no headroom, so the next spec reading a repo file through `repo-source` trips it,
+that**: the widest edit in the tree, exhaustively through the real composition, at 18 against a
+ceiling of 18 — no headroom, so the next spec reading a repo file through `repo-source` trips it,
 and the answer is to time the hook and ratchet, never to drop a spec. ⚠ **Two PRs can trip it
 without either one doing so alone**: #322's `mobile-zoom.test.ts` and #324's `attribution.test.ts`
 each took a slot, and the pin went red on the merge rather than on either branch; #328's
-`Drawer.scroll.test.tsx` ratcheted it from 17 to 18, and #321's `locate-failure.test.ts` from 18
-to 19. ⚠ Width is not time, and which of
+`Drawer.scroll.test.tsx` is what ratcheted it from 17 to 18. ⚠ Width is not time, and which of
 the pair is slower has flipped across machines — `i18n.ts` selects 12, four of them jsdom, and
 measured 4.7s against the widest's 5.0s at eighteen (2026-10-27, 4 cores), having been the slower
-of the two at seventeen; at nineteen the widest measured 6.3s against `i18n.ts`'s 5.8s, on a
-different 4-core machine, so read that pair only against itself — so width
+of the two at seventeen — so width
 bounds the slice, never the time, and a jump in either is a re-measure of both. It also pins each
 of the three specifier forms, end to end against this tree; the tree-walking set as a closed list,
 and its absence from the selection, where the fixture carries a walker of each kind, so a re-added

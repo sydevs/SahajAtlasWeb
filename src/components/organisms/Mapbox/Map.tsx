@@ -1,4 +1,5 @@
 import type { FeatureCollection, Geometry } from 'geojson'
+import type { MapRef } from 'react-map-gl'
 import type { Geojson } from '@/types'
 import type { DisplayableEvent } from '@/hooks/use-event-display'
 
@@ -329,19 +330,10 @@ export function Mapbox({ cooperative = false }: { cooperative?: boolean } = {}) 
   // state, not zustand: it is purely a map-view detail.
   const [hoveredId, setHoveredId] = useState<number | null>(null)
 
-  // Mapbox's locate control fails silently otherwise: no message, no next
-  // step. One dialog covers every `GeolocationPositionError` code, since a
-  // refusal, an unavailable position and the 6-second timeout all leave a
-  // viewer with the same thing to do instead.
-  //
-  // ⚠ It cannot cover the headline case. mapbox-gl queries
-  // `navigator.permissions` in `onAdd` and renders the button `disabled` when
-  // the state is already `denied`, so a permission blocked before the map
-  // loaded — Chrome and Firefox — emits no `error` event at all. Only Safari,
-  // whose `permissions.query` rejects for `geolocation`, leaves the control
-  // live and reaches here. Speaking for the disabled control would mean
-  // replacing Mapbox's own, which #321 declined.
+  // Mapbox's locate control fails silently otherwise (#321). ⚠ A permission already denied when
+  // the map loads never reaches `onError`: mapbox renders the control disabled instead.
   const [locationFailed, setLocationFailed] = useState(false)
+  const mapRef = useRef<MapRef>(null)
 
   // This filters the feed before it reaches the clustering source, so
   // cluster counts reflect the filters — a layer-level `filter` would leave
@@ -438,6 +430,7 @@ export function Mapbox({ cooperative = false }: { cooperative?: boolean } = {}) 
   return (
     <>
       <ReactMapGL
+        ref={mapRef}
         reuseMaps
         attributionControl={false}
         cooperativeGestures={cooperative}
@@ -565,6 +558,14 @@ export function Mapbox({ cooperative = false }: { cooperative?: boolean } = {}) 
           closeLabel={t('common.chrome.close')}
           description={t('common.map.location_failed')}
           title={t('common.map.location_not_available')}
+          onCloseAutoFocus={(event) => {
+            // Radix returns focus to a `Dialog.Trigger`, and the locate control is not one.
+            event.preventDefault()
+            mapRef.current
+              ?.getContainer()
+              .querySelector<HTMLElement>('.mapboxgl-ctrl-geolocate')
+              ?.focus()
+          }}
         >
           <ModalFooter>
             <ModalClose>

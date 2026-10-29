@@ -164,9 +164,7 @@ identity, so the router values it closed over stayed at the render the map
 mounted in, and it rewrote `/search?center=…` back to the route the widget had
 booted on — dropping the search a viewer had just performed. Every gate stayed
 green; only a browser found it. The hook's empty deps are still correct, because
-the ref beside them is what refreshes those values. A `useState` setter needs
-neither, its identity being stable already — which is why `Map.tsx` hands
-`onError` a bare setter.
+the ref beside them is what refreshes those values.
 
 ## "Find my location" is a NAVIGATION, not a camera move
 

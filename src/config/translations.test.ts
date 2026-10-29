@@ -221,31 +221,31 @@ const PENDING_KEYS: Record<string, string> = {
 }
 
 describe('every key the snapshot holds', () => {
+  // Quoted ANYWHERE in the source, not only inside a `t()` call: a key can legitimately be held in
+  // a constant and handed to `t` elsewhere (`use-event-display`'s register label, every
+  // `messageKey`). This direction asks whether the copy is reachable at all, so the weaker test is
+  // the right one — the stricter direction above is what catches a typo.
+  const quoted = [...allSource.matchAll(/['"]([a-z_][a-zA-Z0-9_.]*)['"]/g)].map((m) => m[1])
+  const referenced = new Set([...LITERAL_KEYS, ...DYNAMIC_KEYS, ...quoted])
+
   it('is referenced somewhere in the source', () => {
     // The other direction: copy nobody renders is copy translators are asked to fill in for
     // nothing. A key dropped from the app but left in the CMS shows up here.
-    // Quoted ANYWHERE in the source, not only inside a `t()` call: a key can legitimately be
-    // held in a constant and handed to `t` elsewhere (`use-event-display`'s register label,
-    // every `messageKey`). This direction asks whether the copy is reachable at all, so the
-    // weaker test is the right one — the stricter direction above is what catches a typo.
-    const quoted = [...allSource.matchAll(/['"]([a-z_][a-zA-Z0-9_.]*)['"]/g)].map((m) => m[1])
-
-    const referenced = new Set([...LITERAL_KEYS, ...DYNAMIC_KEYS, ...quoted])
-
     const dead = [...keys].filter((key) => {
       const logical = key.replace(/_(one|few|many|other)$/, '')
 
-      return !referenced.has(key) && !referenced.has(logical) && !(logical in PENDING_KEYS)
+      return (
+        !referenced.has(key) &&
+        !referenced.has(logical) &&
+        !Object.prototype.hasOwnProperty.call(PENDING_KEYS, logical)
+      )
     })
 
     expect(dead, 'in the snapshot, referenced by nothing — drop it in SahajCloud').toEqual([])
   })
 
   it('names a pending key only while it is published and still unwired', () => {
-    const quoted = new Set(
-      [...allSource.matchAll(/['"]([a-z_][a-zA-Z0-9_.]*)['"]/g)].map((m) => m[1]),
-    )
-    const stale = Object.keys(PENDING_KEYS).filter((key) => !resolves(key) || quoted.has(key))
+    const stale = Object.keys(PENDING_KEYS).filter((key) => !resolves(key) || referenced.has(key))
 
     expect(stale, 'wired or unpublished — delete it from PENDING_KEYS').toEqual([])
   })

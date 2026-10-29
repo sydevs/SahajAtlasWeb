@@ -154,8 +154,8 @@ cover everything a host would notice since the widget was first deployed.
   the one family name, so no page ever mixes them. If you were keying off the old family name, or
   overriding it with `--sy-font-sans`, update the name.
 
-- **"Report an issue" sends again, and its thank-you now means *received* rather than
-  *delivered*.** ([#187]) The intake it posted to was replaced on the CMS side, so for two days
+- **"Report an issue" sends again, and its thank-you now means _received_ rather than
+  _delivered_.** ([#187]) The intake it posted to was replaced on the CMS side, so for two days
   the form failed for every visitor who used it; it now posts to the replacement. **Nothing
   changes for your CSP** — it is the same origin (`cloud.sydevelopers.com`) on a different path.
 
@@ -302,6 +302,13 @@ cover everything a host would notice since the widget was first deployed.
 
 ### Fixed
 
+- **"Find my location" says when it could not get a location.** ([#321]) A declined prompt, an
+  unavailable position or a timeout used to leave the button doing nothing; a short dialog now
+  says so and points at the place search. A permission the visitor had already blocked before
+  the map loaded still shows the control disabled, as before. Nothing to change on your side.
+- **A class shows the room inside its venue.** ([#316]) Where a manager has set one, the class
+  view names the room on its own line above the street address. List cards and the
+  registration summary are unchanged.
 - **The map credits Mapbox again, where you can see them.** ([#324]) The Mapbox wordmark sat
   in the corner the panel covers on a wide embed and the bottom sheet covers on a narrow one,
   so it was never visible, and the attribution control was switched off altogether — both are
@@ -821,3 +828,5 @@ must-revalidate`, pinned rather than left to the CDN default. The production dom
 [Permissions Policy]: docs/embedding.md#permissions-policy
 [#324]: https://github.com/sydevs/SahajAtlasWeb/issues/324
 [#160]: https://github.com/sydevs/SahajAtlasWeb/issues/160
+[#321]: https://github.com/sydevs/SahajAtlasWeb/issues/321
+[#316]: https://github.com/sydevs/SahajAtlasWeb/issues/316
