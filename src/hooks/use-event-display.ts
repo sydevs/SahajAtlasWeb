@@ -39,6 +39,8 @@ export type EventDisplayStrings = {
   eventStartTime: string | null
   /** This is a one-line location: hosted-from for an online event, street and city for a physical one. */
   whereLine: string
+  /** The room inside the venue, such as "Room: Hall B", for a physical, non-inactive event that names one. */
+  roomLine: string | null
   /** For an online event only, this shows the next occurrence in the VIEWER's local
    *  time, faded below the where line, such as "Thu, 4:00 AM." This is null for a physical event. */
   whereSubtext: string | null
@@ -250,6 +252,12 @@ export function useEventDisplay(event: DisplayableEvent): EventDisplayStrings {
         : [event.address?.street, event.address?.city].filter(Boolean).join(', ') ||
           event.region?.name ||
           ''
+    // An inactive listing hides the street, so its room would be the same wrong answer.
+    const room = event.address?.room?.trim()
+    const roomLine =
+      !display.online && display.status !== 'inactive' && room
+        ? t('event.display.room', { room })
+        : null
     // For an online event only, this shows the viewer's local time, faded under the where line,
     // named with their region, such as "10 AM in British Columbia."
     // So the conversion says whose clock it is, with no "(your time)" label.
@@ -326,6 +334,7 @@ export function useEventDisplay(event: DisplayableEvent): EventDisplayStrings {
       eventTimeRange,
       eventStartTime,
       whereLine,
+      roomLine,
       whereSubtext,
       registerLabel,
       microcopy,

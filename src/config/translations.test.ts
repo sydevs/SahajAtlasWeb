@@ -208,6 +208,18 @@ describe('every key a call site asks for', () => {
   })
 })
 
+/**
+ * Copy published in SahajCloud ahead of its call site, each with the ticket that wires it.
+ *
+ * ⚠ A `t()` call cannot land before its key is live (the direction above fails it), so every
+ * new key spends a window in production unreferenced — and the snapshot is regenerated
+ * wholesale, so a sync for one ticket carries every other ticket's pending key with it (#316).
+ * Delete an entry in the PR that wires it: the pin below fails until you do.
+ */
+const PENDING_KEYS: Record<string, string> = {
+  'registration.form.subscribe': 'sydevs/SahajAtlasWeb#147',
+}
+
 describe('every key the snapshot holds', () => {
   it('is referenced somewhere in the source', () => {
     // The other direction: copy nobody renders is copy translators are asked to fill in for
@@ -223,9 +235,18 @@ describe('every key the snapshot holds', () => {
     const dead = [...keys].filter((key) => {
       const logical = key.replace(/_(one|few|many|other)$/, '')
 
-      return !referenced.has(key) && !referenced.has(logical)
+      return !referenced.has(key) && !referenced.has(logical) && !(logical in PENDING_KEYS)
     })
 
     expect(dead, 'in the snapshot, referenced by nothing — drop it in SahajCloud').toEqual([])
+  })
+
+  it('names a pending key only while it is published and still unwired', () => {
+    const quoted = new Set(
+      [...allSource.matchAll(/['"]([a-z_][a-zA-Z0-9_.]*)['"]/g)].map((m) => m[1]),
+    )
+    const stale = Object.keys(PENDING_KEYS).filter((key) => !resolves(key) || quoted.has(key))
+
+    expect(stale, 'wired or unpublished — delete it from PENDING_KEYS').toEqual([])
   })
 })
