@@ -231,7 +231,7 @@ values changed; the gap did not.) The `VITE_HOST` story above is that hole in on
 production origin blanked by a dashboard edit is the same hole in the other, and running the PR
 gate more often closes neither.
 
-`.github/workflows/production-smoke.yml` runs these same 17 specs against production. Five things
+`.github/workflows/production-smoke.yml` runs these same 18 specs against production. Five things
 about it are deliberate:
 
 - **The deploy fires it, not the clock.** What the lane reads is deployed file *content*, which
@@ -288,7 +288,7 @@ alert. The lane's last step opens an issue instead, and three things about it ar
   production read, and a ticket claiming production is red when nothing read it is worse than no
   ticket. `ci-workflows.test.ts` pins that gate and the token, since both fail silently.
 
-No spec is scoped by environment. The lane is **17 cases**, from 13 declarations — count it rather
+**One spec is scoped by environment, on purpose** (#259): `embed.smoke.test.ts`'s Turnstile case expects the committed test site key on an address `assert-preview-host.mjs` accepts as the app Worker's preview, and a real `0x4…` key with no test key everywhere else — so a bypassed build gate still reddens production. The preview half keeps the production half from passing vacuously: the same patterns must find the test key there. Measured 2026-10-30: green on `sahajatlas.com` and on `pr-344`'s preview, red against a locally served build carrying the test key and against one carrying no key. Every other spec reads both hosts alike. The lane is **18 cases**, from 14 declarations — count it rather
 than trusting a figure, since `.each` makes the two differ. Measured 2026-10-06 against the 16 it
 was then: all 16 passed against `sahajatlas.com`. Re-measured 2026-10-13 against the playground
 on its Worker (`PREVIEW_URL=https://design.sahajatlas.com pnpm test:smoke`, #279): **10 of the 17

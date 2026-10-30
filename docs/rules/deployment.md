@@ -11,6 +11,8 @@ paths:
   - 'scripts/assert-no-sourcemaps.test.ts'
   - 'scripts/deploy-headers.test.ts'
   - 'scripts/wrangler-config.test.ts'
+  - 'scripts/turnstile-release-guard.mjs'
+  - 'scripts/turnstile-release-guard.test.ts'
   - '.github/workflows/*.yml'
 ---
 
@@ -110,6 +112,15 @@ Three facts to remember:
 
 The Sentry variables are dashboard-only, and owed to **each** target that builds the app. The
 runbook is in `docs/environment.md`.
+
+**A production build refuses Cloudflare's test Turnstile site key (#259).** The real
+`VITE_TURNSTILE_SITE_KEY` is a build variable on the production trigger only; `.env`'s test key
+is correct everywhere else. `scripts/turnstile-release-guard.mjs` fails a Workers Builds build of
+`main` whose resolved key is a test key, empty or malformed, so removing that variable fails the
+release instead of shipping a captcha that accepts everyone. `embed.smoke.test.ts` checks the live
+bundle after each Workers Builds deploy. ⚠ Neither sees a version promoted or rolled back without a
+build, and every PR uploads a test-key version of this Worker. What counts as production, and
+those gaps: `docs/environment.md`.
 
 ## Deploy-side CI gates
 
