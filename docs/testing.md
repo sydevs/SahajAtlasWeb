@@ -303,11 +303,13 @@ the custom domain and not a preview: no vendor host could have shown it, and the
 dashboard setting rather than a commit. ⚠ Both measurements above were taken against `*.pages.dev`
 previews and a Pages-served custom domain, so each is evidence about a **host**, not about a
 platform. The preview the PR gate reads is a Worker since #282, and #283 moved `sahajatlas.com`
-onto a Worker too — so **neither figure carries across that cutover, and both are owed a
-re-measure against the Workers-served `sahajatlas.com`**. Whether a Workers host adds
-`X-Robots-Tag: noindex` of its own accord is **still not known**, and it decides whether four
-assertions still test our own `public/_headers` rule: `robots.smoke.test.ts` at its three cases, and `cache-headers.smoke.test.ts`'s `embed.js`
-case. If the platform supplies the header, those four stop telling our rule from a default.
+onto a Worker too. **Re-measured 2026-10-30 against the Workers-served `sahajatlas.com`, right
+after the cutover: all 17 passed.** Whether a Workers host adds `X-Robots-Tag: noindex` of its
+own accord is **still not known**: every Worker on a custom domain in this account serves our own
+`/*` rule, so no host here can tell the platform from the rule. It decides whether four
+assertions still test our own `public/_headers` rule: `robots.smoke.test.ts` at its three cases,
+and `cache-headers.smoke.test.ts`'s `embed.js` case. If the platform supplies the header, those
+four stop telling our rule from a default.
 Record the finding; do not weaken the specs for it — sydevs/SahajCloud#903's success list owns
 the repair.
 
