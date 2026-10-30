@@ -232,4 +232,28 @@ describe('ReportIssueForm submit', () => {
 
     await act(async () => root.unmount())
   })
+
+  // The same keys `RegistrationForm.submit.test.tsx` expects for these codes: both forms read
+  // `INPUT_REFUSAL_KEYS`, so a visitor turned away by either one reads the same sentence (#259).
+  it.each([
+    ['invalid_email', 'common.report_errors.email'],
+    ['disposable_email', 'common.report_errors.disposable_email'],
+    ['urls_not_allowed', 'common.report_errors.urls_not_allowed'],
+  ])('words %s exactly as the registration form does', async (code, key) => {
+    sdk.request.mockRejectedValue(
+      Object.assign(new Error('Refused.'), {
+        errors: [{ message: 'Refused.', data: { code } }],
+        status: 400,
+      }),
+    )
+
+    const root = await mountForm()
+
+    await type('#report-field-0', MESSAGE)
+    await submit()
+
+    expect(container.querySelector('[role="alert"]')?.textContent).toBe(key)
+
+    await act(async () => root.unmount())
+  })
 })

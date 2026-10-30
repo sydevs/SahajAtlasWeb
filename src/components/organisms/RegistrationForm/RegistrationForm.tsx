@@ -4,6 +4,7 @@ import type { EventRegistrationErrorCode } from '@/types/payload/response-types'
 
 import {
   type Control,
+  type FieldError,
   type FieldErrors,
   type UseFormRegister,
   type UseFormRegisterReturn,
@@ -22,6 +23,7 @@ import { RadioGroup, type RadioOption } from '@/components/atoms/RadioGroup'
 import { fieldChrome } from '@/components/atoms/Select'
 import { AddToCalendar } from '@/components/molecules/AddToCalendar'
 import { FormField, fieldErrorId } from '@/components/molecules/FormField'
+import { INPUT_REFUSAL_KEYS } from '@/components/molecules/FormField/refusal-copy'
 import { ShareContent } from '@/components/molecules/ShareContent'
 import api from '@/config/api'
 import {
@@ -59,27 +61,80 @@ const STATE_MESSAGE_KEYS: Record<EventRegistrationErrorCode, TranslationKey> = {
 }
 
 /**
- * This holds every code a `RegistrationRefusedError` can carry — the state
- * refusals plus the captcha one. This way, a caller finds a refusal's copy
- * once, rather than treating one kind as a special case.
+ * This holds every code a `RegistrationRefusedError` can carry, so a caller
+ * finds a refusal's copy once, rather than treating one kind as a special case.
  *
  * This splits in two only so the half above stays total over the SYNCED
  * union. That totality is what makes a `types:cms` re-sync fail the build
  * here, rather than silently routing a new code to the generic sentence.
- * Folding a code from a different layer into it would lose that check.
- * SahajCloud's write guard throws `captcha_failed` one layer up.
+ *
+ * - `event_not_found` — the event left the caller's view since the read
+ *   (unpublished or deleted). It takes the sentence the fallback panel already
+ *   shows for a class that cannot be joined.
+ * - the address and link refusals — the visitor's own input, so they share
+ *   the report form's words through `INPUT_REFUSAL_KEYS` (#259), and land on
+ *   the field they name (`refusedField`).
+ * - the captcha verdict, a captcha we could not check, and an unscannable
+ *   submission — nothing to change but to try again, and the challenge is
+ *   reset after every failure. So all three take the retry sentence, the
+ *   registration twin of the report form's `common.report_errors.captcha`.
  */
 const REFUSAL_MESSAGE_KEYS: Record<RegistrationErrorCode, TranslationKey> = {
   ...STATE_MESSAGE_KEYS,
+  event_not_found: 'common.errors.unavailable',
+  ...INPUT_REFUSAL_KEYS,
   captcha_failed: 'registration.form.captcha_retry',
+  captcha_unavailable: 'registration.form.captcha_retry',
+  content_unscannable: 'registration.form.captcha_retry',
 }
 
 /**
- * This is the one refusal that is not about the event. So it is also the
- * one that must not invalidate the cached event below. It is an ordinary
- * `RegistrationRefusedError` code, like any other.
+ * The refusals that mean our cached event is stale, so it is refetched. The
+ * rest are about the request or the visitor's input, not the event.
  */
-const CAPTCHA_REFUSED: RegistrationErrorCode = 'captcha_failed'
+const EVENT_REFUSALS: ReadonlySet<string> = new Set([
+  ...Object.keys(STATE_MESSAGE_KEYS),
+  'event_not_found',
+])
+
+// `code` is a cast over a `z.string()`, so at runtime it is whatever the
+// response body said. A bare lookup walks the prototype chain, and a code of
+// `constructor` would hand `t()` a function.
+const hasOwn = (table: object, key: string) => Object.prototype.hasOwnProperty.call(table, key)
+
+const refusalKey = (error: unknown): TranslationKey | undefined =>
+  error instanceof RegistrationRefusedError && hasOwn(REFUSAL_MESSAGE_KEYS, error.code)
+    ? REFUSAL_MESSAGE_KEYS[error.code]
+    : undefined
+
+/** A field error set from a refusal, as opposed to one the schema raised. */
+const REFUSED = 'refused'
+
+type RefusableField = 'email' | 'name' | `questions.${RegistrationQuestionName}`
+
+/**
+ * The form field a refusal is about, when the visitor can fix it there.
+ *
+ * SahajCloud names the input as `field`: `senderEmail` for the address (or
+ * `email`, when the sender's `users` row refused it), and the `submissionData`
+ * key for an answer that carried a link. An address refusal always means the
+ * one email field, named or not.
+ */
+const refusedField = (
+  error: unknown,
+  questions: RegistrationQuestionName[],
+): RefusableField | undefined => {
+  if (!(error instanceof RegistrationRefusedError) || !hasOwn(INPUT_REFUSAL_KEYS, error.code))
+    return undefined
+
+  if (error.code === 'invalid_email' || error.code === 'disposable_email') return 'email'
+
+  if (error.field === 'name') return 'name'
+
+  const question = questions.find((name) => name === error.field)
+
+  return question ? `questions.${question}` : undefined
+}
 
 export type RegistrationFormProps = {
   eventId: number
@@ -122,6 +177,8 @@ export type RegistrationFormProps = {
   /** Start in the post-submit confirmation state — for previewing that screen in a
    *  story without a real submission. Defaults to false (the live form). */
   initialSubmitted?: boolean
+  /** Story-only: render this refusal as if SahajCloud had just returned it. */
+  initialRefusal?: { code: RegistrationErrorCode; field?: string }
 }
 
 /**
@@ -146,6 +203,7 @@ export function RegistrationForm({
   calendar,
   onClose,
   initialSubmitted = false,
+  initialRefusal,
 }: RegistrationFormProps) {
   const [submitted, setSubmitted] = useState(initialSubmitted)
   const { t } = useTranslation()
@@ -171,6 +229,7 @@ export function RegistrationForm({
     register,
     control,
     handleSubmit,
+    setError,
     watch,
     formState: { errors },
     // The three generics are what keep the coercion honest: the fields hold the INPUT shape
@@ -196,6 +255,27 @@ export function RegistrationForm({
   // #182).
   const { challengeRef, token, reset: resetChallenge } = useTurnstile()
 
+  const [storyRefusal] = useState(() =>
+    initialRefusal
+      ? new RegistrationRefusedError(initialRefusal.code, '', initialRefusal.field)
+      : null,
+  )
+
+  // A refusal the visitor can fix in one field lands ON that field, the way a
+  // schema error does: the sentence under it, `aria-invalid`, and focus moved
+  // there. Editing the field re-validates it, which clears this.
+  const flagRefusal = (error: unknown, focus: boolean) => {
+    const field = refusedField(error, questions)
+    const key = refusalKey(error)
+
+    if (field && key) setError(field, { type: REFUSED, message: key }, { shouldFocus: focus })
+  }
+
+  useEffect(() => {
+    if (storyRefusal) flagRefusal(storyRefusal, false)
+    // Mount-only: the story's refusal never changes.
+  }, [])
+
   const mutation = useMutation({
     scope: { id: `registration-for-${eventId}` },
     mutationFn: ({ registration, captcha }: { registration: Registration; captcha: string }) => {
@@ -206,16 +286,18 @@ export function RegistrationForm({
       useRegistrationDraft.getState().clearDraft()
     },
     onError: (error) => {
-      if (!(error instanceof RegistrationRefusedError)) return
-
       // A Turnstile token is single-use, and the server redeems it before
       // doing the work it gates. So the one in hand is spent, whether or not
-      // it was the reason for the refusal, and re-sending it would be
-      // refused for the rest of this form's life. This resets
-      // unconditionally, rather than only on `captcha_failed`. Otherwise,
-      // an `event_full` retry after a cancelled registration would fail
-      // with a captcha error the viewer has no way to understand.
+      // it was the reason for the failure, and re-sending it would be
+      // refused for the rest of this form's life. This resets on EVERY
+      // failure, coded or not: a 500 after the guard ran has spent the token
+      // too, and the only failure that has not costs just a fresh challenge.
+      // The fallback copy promises exactly this reset.
       resetChallenge()
+
+      if (!(error instanceof RegistrationRefusedError)) return
+
+      flagRefusal(error, true)
 
       // A state refusal means our cached event disagrees with the server
       // about whether it can be joined — it filled up, ended, or its course
@@ -223,24 +305,22 @@ export function RegistrationForm({
       // this form flip to the real state, instead of continuing to offer a
       // Register button. This uses a prefix key, since the event is cached
       // per locale (`['event', id, locale]`).
-      if (error.code !== CAPTCHA_REFUSED) {
+      if (EVENT_REFUSALS.has(error.code)) {
         void queryClient.invalidateQueries({ queryKey: ['event', eventId] })
       }
     },
   })
 
-  // A refused registration renders OUR copy for the reason, not the
-  // endpoint's English prose. An unrecognized code — a CMS newer than this
-  // build — uses the generic error title and the server's message instead.
-  // `code` is a cast over a `z.string()`, so at runtime it is whatever the
-  // response body said.
-  const refusalKey =
-    mutation.error instanceof RegistrationRefusedError &&
-    mutation.error.code in REFUSAL_MESSAGE_KEYS
-      ? REFUSAL_MESSAGE_KEYS[mutation.error.code]
-      : null
-
-  const refusalMessage = refusalKey ? t(refusalKey) : null
+  // A refused registration renders OUR copy for the reason, never the
+  // endpoint's English prose, and never the thrown message, which is
+  // developer text. Anything else — offline, a 5xx, a code this build does
+  // not know — keeps the generic title, but says what to do next: the
+  // challenge has been reset under the viewer, so wait for it and register
+  // again, the same move the report form's own catch-all names.
+  const refusal = mutation.error ?? storyRefusal
+  const refusalMessage = refusalKey(refusal)
+  // A field refusal is already said, and announced, on its field.
+  const showAlert = refusal != null && !refusedField(refusal, questions)
 
   return (
     <form
@@ -301,17 +381,16 @@ export function RegistrationForm({
               rather than down in the footer. */}
           <div ref={challengeRef} className="mt-4 empty:mt-0" />
 
-          {/* A refusal is not a malfunction — the event simply cannot be
-              joined — so it states the reason on its own. This drops both
-              the "Something went wrong" framing and the endpoint's English
-              message. */}
-          {mutation.isError && (
+          {/* A refusal is not a malfunction, so it states its reason on its
+              own, without the "Something went wrong" framing or the
+              endpoint's English message. */}
+          {showAlert && (
             <Alert
               className="mt-4"
               color="secondary"
-              description={refusalMessage ? undefined : mutation.error.message}
+              description={refusalMessage ? undefined : t('registration.form.captcha_retry')}
               role="alert"
-              title={refusalMessage ?? t('registration.form.error_title')}
+              title={t(refusalMessage ?? 'registration.form.error_title')}
             />
           )}
         </>
@@ -357,6 +436,22 @@ export function RegistrationForm({
       </div>
     </form>
   )
+}
+
+/**
+ * A field's error sentence: a refusal's own copy, which travels as its key,
+ * or else the schema's sentence for that field.
+ */
+const errorCopy = (
+  error: FieldError | undefined,
+  t: (key: TranslationKey) => string,
+  schemaKey?: TranslationKey,
+) => {
+  if (!error) return undefined
+
+  if (error.type === REFUSED) return t(error.message as TranslationKey)
+
+  return schemaKey ? t(schemaKey) : error.message
 }
 
 // The label, control, and error shell is the shared `FormField` molecule,
@@ -495,7 +590,7 @@ function RegistrationFields({
 
       <LabeledInput
         required
-        error={errors.name && t('registration.errors.name')}
+        error={errorCopy(errors.name, t, 'registration.errors.name')}
         label={t('registration.form.name')}
         maxLength={USER_SUBMISSION_VALUE_MAX}
         registration={register('name', { required: true })}
@@ -504,7 +599,7 @@ function RegistrationFields({
 
       <LabeledInput
         required
-        error={errors.email && t('registration.errors.email')}
+        error={errorCopy(errors.email, t, 'registration.errors.email')}
         label={t('registration.form.email')}
         registration={register('email', { required: true })}
         type="email"
@@ -513,7 +608,7 @@ function RegistrationFields({
       {questions.map((question, index) => (
         <LabeledTextarea
           key={index}
-          error={errors.questions?.[question]?.message}
+          error={errorCopy(errors.questions?.[question], t)}
           label={t(`registration.questions.${question}`)}
           maxLength={USER_SUBMISSION_VALUE_MAX}
           registration={register(`questions.${question}`)}

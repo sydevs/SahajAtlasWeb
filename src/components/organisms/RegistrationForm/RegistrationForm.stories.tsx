@@ -93,6 +93,40 @@ export const Default: Story = () => (
     </StorySection>
 
     <StorySection
+      description="SahajCloud refused the address (`disposable_email`, naming `senderEmail`). A refusal the visitor can fix lands on the field it names, in the same words the report-an-issue form uses, and editing the field clears it (#259)."
+      title="Refused · on a field"
+    >
+      <div className="max-w-md rounded-lg border border-divider p-4">
+        <RegistrationForm
+          eventId={7}
+          eventTitle="Refusal demo"
+          eventUrl="https://atlas.example/e/7"
+          initialRefusal={{ code: 'disposable_email', field: 'senderEmail' }}
+          isOnline={false}
+          questions={[]}
+          upcomingDates={upcomingDates}
+        />
+      </div>
+    </StorySection>
+
+    <StorySection
+      description="A refusal about the request rather than an input (`captcha_failed`) gets its own sentence above the buttons, never the generic title or the server's English message."
+      title="Refused · the request"
+    >
+      <div className="max-w-md rounded-lg border border-divider p-4">
+        <RegistrationForm
+          eventId={8}
+          eventTitle="Refusal demo"
+          eventUrl="https://atlas.example/e/8"
+          initialRefusal={{ code: 'captcha_failed' }}
+          isOnline={false}
+          questions={[]}
+          upcomingDates={upcomingDates}
+        />
+      </div>
+    </StorySection>
+
+    <StorySection
       description="The post-submit confirmation. Two blocks under the thank-you line: add-to-calendar (Apple downloads an .ics; the other four are link-outs) and the share grid. The calendar block only renders when the view passes export inputs — RegistrationView builds them from the FULL event doc, since the trimmed feed omits exclusions and untilDate."
       title="Confirmation"
     >

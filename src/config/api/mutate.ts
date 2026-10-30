@@ -47,38 +47,45 @@ const submissionData = (entries: Record<string, string | undefined>) =>
     .map(([field, value]) => ({ field, value }))
 
 /**
- * These are the codes a registration write can be refused with.
+ * These are the codes a registration write can be refused with: every code SahajCloud's create
+ * path raises for a `registration` row. Three layers raise them, in the order they run:
  *
- * A registration can be refused for a state reason.
- * The event is closed to registration even though the client could read it: external mode, ended, a started course, or full.
- * SahajCloud answers those with `409` plus a stable, machine-readable `code`. See SahajCloud#601.
+ * - the write-guard plugin, which gates every client-originated write the same way
+ *   (sydevs/SahajCloud#629) — the `UserSubmissionErrorCode`s. A registration carries
+ *   `senderEmail` and free-text answers, so the email and link checks reach it, not only the
+ *   captcha;
+ * - `gateRegistration`, the state refusals (409, SahajCloud#601) in the synced
+ *   `EventRegistrationErrorCode` union, plus `event_not_found` (404) for an event the caller can
+ *   no longer see. That one is NOT in the synced union, though the same hook throws it, so it is
+ *   added here;
+ * - `prepareUserSubmission`, which re-raises the same content codes for an answer that carries a
+ *   link, naming the answer's key as `field`.
+ *
  * So the widget can render its own localized copy instead of the endpoint's English prose.
- * `code` is typed as the synced contract union, but this file deliberately does NOT validate it.
- * A code this build does not know about is a copy problem, not a data problem, and the form falls back to the generic error message for it.
+ * `code` is typed as this union, but this file deliberately does NOT validate it. A code this
+ * build does not know about is a copy problem, not a data problem, and the form falls back to its
+ * generic retry sentence for it.
  *
- * `captcha_failed` is deliberately NOT in the synced `EventRegistrationErrorCode` union. It is added here instead.
- * The two come from different places.
- * The endpoint's own union describes the state refusals it raises itself.
- * `captcha_failed` is thrown one layer above it, by SahajCloud's write-guard plugin.
- * That plugin gates every client-originated write the same way. See sydevs/SahajCloud#629.
- *
- * ⚠ **This code is also not in that union YET, and the ordering is the reason.**
- * #629 is blocked on this change landing.
- * The widget has to send the header before the server may start requiring it.
- * So at the time of writing, no SahajCloud build emits this code, and a `pnpm types:cms` run would not produce it.
- * Widening the type here, rather than waiting, lets the client be ready first.
- * If a later re-sync folds `captcha_failed` into the synced union, this extra member becomes redundant and can go.
- * Nothing breaks either way.
+ * Not here, because no registration this widget sends can earn them: `submission_data_invalid`
+ * (a malformed blob — the form bounds every value at the control) and `feedback_closed` (an
+ * `eventFeedback` vote, which this form never sends). Both still arrive as a
+ * `RegistrationRefusedError` and take the generic sentence.
  */
-export type RegistrationErrorCode = EventRegistrationErrorCode | 'captcha_failed'
+export type RegistrationErrorCode =
+  | EventRegistrationErrorCode
+  | UserSubmissionErrorCode
+  | 'event_not_found'
 
 export class RegistrationRefusedError extends Error {
   readonly code: RegistrationErrorCode
+  /** The input SahajCloud named as the cause, for a per-field check. See `RefusalBodySchema`. */
+  readonly field?: string
 
-  constructor(code: RegistrationErrorCode, message: string) {
+  constructor(code: RegistrationErrorCode, message: string, field?: string) {
     super(message)
     this.name = 'RegistrationRefusedError'
     this.code = code
+    this.field = field
   }
 }
 
@@ -94,6 +101,11 @@ export class RegistrationRefusedError extends Error {
  * Dropping either position would silently stop recognizing a whole class of refusal.
  * Each one would fall through `asRefusal` untouched, and the form would show its generic "try again" sentence instead of the copy written for each case.
  * A regression test pins this behavior.
+ *
+ * `data.field` names the input a per-field check refused: `senderEmail` for the address, or the
+ * `submissionData` key whose answer carried a link. A refusal about the request itself, such as
+ * the captcha verdict, carries none. Only the nested position is read: Payload's `APIError` puts
+ * `field` under `data`, beside the code (`writeGuardPlugin.ts`, `prepareUserSubmission.ts`).
  */
 const RefusalBodySchema = z.object({
   errors: z
@@ -101,7 +113,7 @@ const RefusalBodySchema = z.object({
       z.object({
         message: z.string().optional(),
         code: z.string().optional(),
-        data: z.object({ code: z.string().optional() }).optional(),
+        data: z.object({ code: z.string().optional(), field: z.string().optional() }).optional(),
       }),
     )
     .nonempty(),
@@ -121,7 +133,7 @@ const entryCode = (entry: { code?: string; data?: { code?: string } }) =>
  */
 const asRefusal = <Code extends string>(
   error: unknown,
-  refused: (code: Code, message: string) => Error,
+  refused: (code: Code, message: string, field?: string) => Error,
   fallbackMessage: string,
 ): unknown => {
   const parsed = RefusalBodySchema.safeParse(error)
@@ -133,6 +145,7 @@ const asRefusal = <Code extends string>(
   return refused(
     code as Code,
     refusal.message ?? (error instanceof Error ? error.message : fallbackMessage),
+    refusal.data?.field,
   )
 }
 
@@ -207,7 +220,7 @@ const createRegistration = async (
   } catch (error) {
     throw asRefusal<RegistrationErrorCode>(
       error,
-      (code, message) => new RegistrationRefusedError(code, message),
+      (code, message, field) => new RegistrationRefusedError(code, message, field),
       'Registration refused',
     )
   }
@@ -221,8 +234,7 @@ const createRegistration = async (
  *
  * This mirrors `AntiSpamCode` in SahajCloud's `src/lib/antiSpam/antiSpamGuard.ts`, which is the real definition.
  * The write-guard plugin sitting above the collection raises every one of these, not the collection itself.
- * So it raises them for a registration too. `RegistrationErrorCode` folds in the one of these the
- * registration form has copy for, and the rest reach it as an unknown code.
+ * So it raises them for a registration too, and `RegistrationErrorCode` folds in all six.
  * `pnpm types:cms` does NOT sync this union.
  * That command covers `responseTypes.ts` and the generated `Config`, and this union lives in neither.
  * So this file restates it, the same way `RegistrationErrorCode` restates `captcha_failed`.
@@ -247,17 +259,20 @@ export type UserSubmissionErrorCode =
  * This is a user submission SahajCloud refused for a reason the write-guard named.
  * So the caller can render its own localized copy instead of the guard's English prose.
  * The report path throws this. The registration path throws `RegistrationRefusedError` instead,
- * since its gate adds four codes of its own that this class cannot carry.
+ * since its gate adds five codes of its own that this class cannot carry.
  * This arrives as a 403 for `captcha_failed`, a 400 for the email and URL checks, or a 500 for `captcha_unavailable`.
  * The code always sits at `errors[].data.code`. See `RefusalBodySchema`.
  */
 export class UserSubmissionError extends Error {
   readonly code: UserSubmissionErrorCode
+  /** The input SahajCloud named as the cause, for a per-field check. See `RefusalBodySchema`. */
+  readonly field?: string
 
-  constructor(code: UserSubmissionErrorCode, message: string) {
+  constructor(code: UserSubmissionErrorCode, message: string, field?: string) {
     super(message)
     this.name = 'UserSubmissionError'
     this.code = code
+    this.field = field
   }
 }
 
@@ -375,7 +390,7 @@ const sendReport = async (payload: ReportPayload): Promise<UserSubmissionRespons
   } catch (error) {
     throw asRefusal<UserSubmissionErrorCode>(
       error,
-      (code, message) => new UserSubmissionError(code, message),
+      (code, message, field) => new UserSubmissionError(code, message, field),
       'Report refused',
     )
   }

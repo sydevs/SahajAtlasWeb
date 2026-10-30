@@ -25,7 +25,11 @@ const jsonResponse = (data: unknown) => ({ json: async () => data })
 /** This is what the SDK throws on a non-2xx: the response body's `errors` array, verbatim. */
 class FakeSDKError extends Error {
   constructor(
-    readonly errors: { message?: string; code?: string; data?: { code?: string } }[],
+    readonly errors: {
+      message?: string
+      code?: string
+      data?: { code?: string; field?: string }
+    }[],
     readonly status: number,
   ) {
     super(errors[0]?.message ?? 'Request failed')
@@ -189,8 +193,8 @@ describe('createRegistration', () => {
 
   it('carries a code the synced union does not know about', async () => {
     // The gate answers 404 with `event_not_found` now, where the old endpoint sent a bare 404.
-    // The code is not in `EventRegistrationErrorCode`, so the form has no copy for it and falls back
-    // to the generic sentence — but it must still arrive as a refusal rather than a raw failure.
+    // The code is not in `EventRegistrationErrorCode`, so `RegistrationErrorCode` adds it, and it
+    // must arrive as a refusal rather than a raw failure for the form's copy to reach it.
     sdk.request.mockRejectedValue(
       new FakeSDKError(
         [
@@ -205,6 +209,22 @@ describe('createRegistration', () => {
 
     await expect(mutate.createRegistration(42, registration, CAPTCHA_TOKEN)).rejects.toMatchObject({
       code: 'event_not_found',
+    })
+  })
+
+  // The write guard checks `senderEmail` on a registration too, and names the input it refused.
+  // The form puts the sentence on that field, so losing `field` loses where the fix goes.
+  it.each([
+    ['disposable_email', 'senderEmail'],
+    ['urls_not_allowed', 'questions'],
+  ])('carries %s and the field it names', async (code, field) => {
+    sdk.request.mockRejectedValue(
+      new FakeSDKError([{ message: 'Refused.', data: { code, field } }], 400),
+    )
+
+    await expect(mutate.createRegistration(42, registration, CAPTCHA_TOKEN)).rejects.toMatchObject({
+      code,
+      field,
     })
   })
 
