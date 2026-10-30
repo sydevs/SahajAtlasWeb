@@ -154,14 +154,17 @@ exposes no `setLocale`, and `locale` is not in react-map-gl's reconciliation
 whitelist — so a mid-session language switch never relabels a control. Keys not
 overridden stay English (the full set is `defaultLocale` in mapbox-gl).
 
-⚠ **Construction-only applies to a control's HANDLERS too, and that one bites
-silently.** Mapbox reads `onGeolocate` once, when it constructs the control, so
-a handler that closes over router state keeps the values from the render the
-map mounted in — forever. `use-geolocate.ts` shipped exactly that way for one
-commit, and rewrote `/search?center=…` back to the route the widget had booted
-on, dropping the search a viewer had just performed. Every gate stayed green —
-only a browser found it. The fix is a ref refreshed every render, which the
-hook keeps. Treat anything handed to a Mapbox control as bound once, for good.
+⚠ **It does NOT apply to a control's handlers — those are live.** react-map-gl
+re-assigns `thisRef.current.props = props` on every render
+(`dist/esm/components/geolocate-control.js`), and each listener it registers on
+the mapbox control reads its handler off that ref, so a new `onGeolocate` or
+`onError` takes effect at once. What shipped stale for one commit was
+`use-geolocate.ts`'s own `useCallback(…, [])`: the handler itself never changed
+identity, so the router values it closed over stayed at the render the map
+mounted in, and it rewrote `/search?center=…` back to the route the widget had
+booted on — dropping the search a viewer had just performed. Every gate stayed
+green; only a browser found it. The hook's empty deps are still correct, because
+the ref beside them is what refreshes those values.
 
 ## "Find my location" is a NAVIGATION, not a camera move
 

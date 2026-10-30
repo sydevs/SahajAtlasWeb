@@ -47,6 +47,7 @@
     },
     "map": {
       "find_my_location": "Find my location",
+      "location_failed": "We couldn’t get your location. Search for a place instead.",
       "location_not_available": "Location not available"
     },
     "report": {
@@ -118,6 +119,7 @@
       "registration_closed": "Registration closed",
       "registration_external": "Registration for this event happens on another website",
       "registration_required": "Registration required",
+      "room": "Room: %{room}",
       "see_nearby": "See nearby events",
       "sessions_count_one": "%{count} session",
       "sessions_count_other": "%{count} sessions",
@@ -225,6 +227,7 @@
       "show_more_dates": "Show more dates",
       "starting_date": "Starting date",
       "submit": "Register",
+      "subscribe": "Send me news about meditation programmes near me",
       "title": "Register for Meditation"
     },
     "questions": {
