@@ -228,6 +228,20 @@ describe('createRegistration', () => {
     })
   })
 
+  it('keeps the code when the field beside it is malformed', async () => {
+    sdk.request.mockRejectedValue(
+      new FakeSDKError(
+        [{ message: 'Refused.', data: { code: 'event_full', field: null as unknown as string } }],
+        409,
+      ),
+    )
+
+    await expect(mutate.createRegistration(42, registration, CAPTCHA_TOKEN)).rejects.toMatchObject({
+      code: 'event_full',
+      field: undefined,
+    })
+  })
+
   it('passes non-refusal failures through untouched', async () => {
     // An uncoded failure must stay a plain error, so the form shows the generic "something went wrong" treatment, not a state message.
     const serverError = new FakeSDKError([{ message: 'Something went wrong.' }], 500)

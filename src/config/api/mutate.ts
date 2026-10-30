@@ -67,9 +67,10 @@ const submissionData = (entries: Record<string, string | undefined>) =>
  * generic retry sentence for it.
  *
  * Not here, because no registration this widget sends can earn them: `submission_data_invalid`
- * (a malformed blob — the form bounds every value at the control) and `feedback_closed` (an
- * `eventFeedback` vote, which this form never sends). Both still arrive as a
- * `RegistrationRefusedError` and take the generic sentence.
+ * (a malformed blob — the form bounds every value at the control), `submission_type_mismatch`
+ * (form-backed types only), `proposed_field_invalid` (a proposal's patch) and `feedback_closed`
+ * (an `eventFeedback` vote, which this form never sends). Each still arrives as a
+ * `RegistrationRefusedError` and takes the generic sentence.
  */
 export type RegistrationErrorCode =
   | EventRegistrationErrorCode
@@ -113,7 +114,10 @@ const RefusalBodySchema = z.object({
       z.object({
         message: z.string().optional(),
         code: z.string().optional(),
-        data: z.object({ code: z.string().optional(), field: z.string().optional() }).optional(),
+        // `.catch`: a malformed `field` must cost only the field, never the code beside it.
+        data: z
+          .object({ code: z.string().optional(), field: z.string().optional().catch(undefined) })
+          .optional(),
       }),
     )
     .nonempty(),

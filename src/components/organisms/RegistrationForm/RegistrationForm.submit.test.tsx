@@ -60,8 +60,9 @@ afterEach(() => {
   delete window.turnstile
 })
 
-async function mountForm() {
-  const client = new QueryClient({ defaultOptions: { mutations: { retry: 0 } } })
+async function mountForm(
+  client = new QueryClient({ defaultOptions: { mutations: { retry: 0 } } }),
+) {
   const root = createRoot(container)
 
   await act(async () => {
@@ -159,6 +160,44 @@ describe('RegistrationForm refusals', () => {
     )
     expect(answer?.getAttribute('aria-invalid')).toBe('true')
     expect(document.activeElement).toBe(answer)
+
+    await act(async () => root.unmount())
+  })
+
+  it('puts a link in the name on the name field', async () => {
+    // The client schema refuses most of a URL's characters, so this is the
+    // server's half of the name rule: `checkSubmissionData` names the key.
+    sdk.request.mockRejectedValue(refusal('urls_not_allowed', 400, 'name'))
+
+    const root = await mountForm()
+
+    await submitFilled()
+
+    expect(container.querySelector('#name-error')?.textContent).toBe(
+      'common.report_errors.urls_not_allowed',
+    )
+    expect(document.activeElement).toBe(container.querySelector('#name'))
+
+    await act(async () => root.unmount())
+  })
+
+  // Only a refusal about the event means the cached copy is stale. Refetching
+  // on a refused address would flip nothing and cost a read.
+  it.each([
+    ['event_full', 409, true],
+    ['event_not_found', 404, true],
+    ['disposable_email', 400, false],
+    ['captcha_failed', 403, false],
+  ])('refetches the event after %s: %s', async (code, status, refetches) => {
+    sdk.request.mockRejectedValue(refusal(code as string, status as number, 'senderEmail'))
+
+    const client = new QueryClient({ defaultOptions: { mutations: { retry: 0 } } })
+    const invalidate = vi.spyOn(client, 'invalidateQueries')
+    const root = await mountForm(client)
+
+    await submitFilled()
+
+    expect(invalidate).toHaveBeenCalledTimes(refetches ? 1 : 0)
 
     await act(async () => root.unmount())
   })

@@ -76,8 +76,10 @@ const STATE_MESSAGE_KEYS: Record<EventRegistrationErrorCode, TranslationKey> = {
  *   the field they name (`refusedField`).
  * - the captcha verdict, a captcha we could not check, and an unscannable
  *   submission — nothing to change but to try again, and the challenge is
- *   reset after every failure. So all three take the retry sentence, the
- *   registration twin of the report form's `common.report_errors.captcha`.
+ *   reset after every failure. So all three take the retry sentence. For
+ *   `captcha_failed` it is the report form's `common.report_errors.captcha`
+ *   with "register" for "send". For the other two the report says "Your
+ *   report wasn't sent", which this form cannot borrow.
  */
 const REFUSAL_MESSAGE_KEYS: Record<RegistrationErrorCode, TranslationKey> = {
   ...STATE_MESSAGE_KEYS,
@@ -287,12 +289,13 @@ export function RegistrationForm({
     },
     onError: (error) => {
       // A Turnstile token is single-use, and the server redeems it before
-      // doing the work it gates. So the one in hand is spent, whether or not
-      // it was the reason for the failure, and re-sending it would be
-      // refused for the rest of this form's life. This resets on EVERY
-      // failure, coded or not: a 500 after the guard ran has spent the token
-      // too, and the only failure that has not costs just a fresh challenge.
-      // The fallback copy promises exactly this reset.
+      // doing the work it gates. So once a request reaches the captcha check
+      // the token is spent, whether or not it was the reason for the failure,
+      // and re-sending it would be refused for the rest of this form's life.
+      // This resets on EVERY failure, coded or not: a 500 after the guard
+      // spends the token too, and a failure that stopped earlier (the address
+      // checks run first) costs only a fresh challenge. The fallback copy
+      // promises exactly this reset.
       resetChallenge()
 
       if (!(error instanceof RegistrationRefusedError)) return

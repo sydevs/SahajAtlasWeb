@@ -93,7 +93,7 @@ export const Default: Story = () => (
     </StorySection>
 
     <StorySection
-      description="SahajCloud refused the address (`disposable_email`, naming `senderEmail`). A refusal the visitor can fix lands on the field it names, in the same words the report-an-issue form uses, and editing the field clears it (#259)."
+      description="SahajCloud refused the address (`disposable_email`, naming `senderEmail`). A refusal the visitor can fix lands on the field it names, in the same words the report-an-issue form uses (#259). Live, editing the field clears it; here nothing has been submitted, so react-hook-form does not re-validate on change and the error stays."
       title="Refused · on a field"
     >
       <div className="max-w-md rounded-lg border border-divider p-4">
