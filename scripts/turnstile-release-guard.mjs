@@ -11,11 +11,9 @@
  * the shell environment beats every `.env*` file, and `--mode` chooses which files load, so this
  * is exactly the value the bundle inlines.
  *
- * ⚠ It guards a BUILD, so it cannot see production change without one: a manual `wrangler deploy`
- * of a locally built `dist/`, or promoting or rolling back to a version no production build made —
- * and every PR's smoke job uploads a test-key version of this very Worker (`ci.yml`,
- * `versions upload`). `tests/smoke/embed.smoke.test.ts` reads the live key after every Workers
- * Builds deploy; after any of those, run `Production Smoke` by hand.
+ * ⚠ It guards a BUILD, so a promotion, a rollback or a manual deploy changes production without
+ * passing it. `tests/smoke/embed.smoke.test.ts` reads the live key back after every Workers Builds
+ * deploy. Which versions slip through both, and what to run then: docs/environment.md.
  */
 
 import process from 'node:process'

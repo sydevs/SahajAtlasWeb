@@ -119,8 +119,7 @@ is correct everywhere else. `scripts/turnstile-release-guard.mjs` fails a Worker
 `main` whose resolved key is a test key, empty or malformed, so removing that variable fails the
 release instead of shipping a captcha that accepts everyone. `embed.smoke.test.ts` checks the live
 bundle after each Workers Builds deploy. ⚠ Neither sees a version promoted or rolled back without a
-build, and every PR uploads a test-key version of this Worker. What counts as production, and
-those gaps: `docs/environment.md`.
+build. What counts as production, and that gap: `docs/environment.md`.
 
 ## Deploy-side CI gates
 
