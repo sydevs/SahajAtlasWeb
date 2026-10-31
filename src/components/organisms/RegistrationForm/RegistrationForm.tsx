@@ -23,7 +23,7 @@ import { RadioGroup, type RadioOption } from '@/components/atoms/RadioGroup'
 import { fieldChrome } from '@/components/atoms/Select'
 import { AddToCalendar } from '@/components/molecules/AddToCalendar'
 import { FormField, fieldErrorId } from '@/components/molecules/FormField'
-import { INPUT_REFUSAL_KEYS } from '@/components/molecules/FormField/refusal-copy'
+import { INPUT_REFUSAL_KEYS } from '@/components/organisms/ReportIssueForm/refusal-copy'
 import { ShareContent } from '@/components/molecules/ShareContent'
 import api from '@/config/api'
 import {
