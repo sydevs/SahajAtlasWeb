@@ -198,7 +198,13 @@ describe('turnstile site key', () => {
   test.skipIf(skipWithoutPreview)(
     'ships the test key only on a preview, and a real key everywhere else',
     async () => {
-      const { bodies } = await crawlDeploy()
+      const { bodies, broken } = await crawlDeploy()
+
+      // A chunk that failed to fetch is stored with an empty body, so a 404 on the chunk
+      // carrying the key would read here as an unset build variable. The sibling case above
+      // owns that failure and names it correctly.
+      if (broken.length > 0) return
+
       const where = (find: (body: string) => string[]) =>
         [...bodies].flatMap(([path, body]) => find(body).map((key) => `${path}: ${key}`))
 
