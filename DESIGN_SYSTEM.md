@@ -58,7 +58,7 @@ here is **organisms own data/network/map lifecycles. Atoms and molecules don't.*
 
 | Folder                | Exports                                                              | Notes                                                                                                                                                                                                                                                                                                       |
 | --------------------- | -------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `Icons/` (sub-module) | `Logo`, `SocialIcon`, …                                              | **Brand marks only.** Interface glyphs come from `lucide-react`, used directly at the call site. Lucide ships no brand icons. The Sahaja Yoga `Logo` and the three meeting-platform glyphs therefore stay hand-drawn on `BaseIcon`. Lucide strokes with `currentColor` and sets `aria-hidden` itself, matching both contracts. It has no `flipRtl`, though, so directional glyphs carry `rtl:-scale-x-100` per call site |
+| `Icons/` (story only) | —                                                                    | **No component.** Interface glyphs come from `lucide-react`, used directly at the call site; this folder holds the gallery of the ones the app renders. Lucide strokes with `currentColor` and sets `aria-hidden` itself. It has no mirroring prop, though, so directional glyphs carry `rtl:-scale-x-100` per call site |
 | `Alert/`              | `Alert`                                                              | Status/error banner (`tv()`). `role` defaults to `status`, `alert` is opt-in for genuine errors. Two alignment axes: `align` sets the icon's cross-axis position (auto: centred for one line, top for two). `textAlign` sets the layout — `left` (default) keeps the icon beside the copy, `center` stacks the icon above it |
 | `Button/`             | `Button`, `controlSurface`                                           | The app's one control — no separate IconButton. `radius` (`sm`/`full`, same vocabulary as Chip) sets the corner. `isIconOnly` squares the width to the size scale. Renders `<button>`, or `<a>` when given `href` (that arm omits `disabled`). `controlSurface` is the shared colour × variant recipe |
 | `Checkbox/`           | `Checkbox`                                                           | Radix toggle with `appearance: 'switch' \| 'checkbox'` (default `switch`). The checkbox appearance backs the registration consent field. `isInvalid` recolours to danger. Disabled repaints on the **neutral ramp** off Radix's `data-disabled`, rather than fading the brand fill. A pale brand tint read as "a lighter shade of on." There is no `neutral` colour: grey means disabled |
@@ -157,17 +157,16 @@ Folder-per-component, not re-exported through the component barrels.
   (don't `export` them) or, for pure domain logic, move them to `src/lib/`.
 - **Documented multi-export exceptions** (the only barrels that surface more than
   one primary + its `Props`):
-  1. **`Icons/`** — the brand-mark module (keeps a single `export *`).
-  2. **`Mapbox/`** — sub-module exposing `Mapbox` + `MapSearch` (layers/themes stay internal).
-  3. **`Button/`** — `Button` + the `controlSurface` recipe it shares with `ActionCircle`.
-  4. **`ToggleGroup/`** — the `ToggleGroup` + `ToggleGroupItem` compound.
-  5. **`Select/`** — `Select` + `SelectItem`, plus the `fieldChrome` recipe every
+  1. **`Mapbox/`** — sub-module exposing `Mapbox` + `MapSearch` (layers/themes stay internal).
+  2. **`Button/`** — `Button` + the `controlSurface` recipe it shares with `ActionCircle`.
+  3. **`ToggleGroup/`** — the `ToggleGroup` + `ToggleGroupItem` compound.
+  4. **`Select/`** — `Select` + `SelectItem`, plus the `fieldChrome` recipe every
      field-like control shares.
-  6. **`Drawer/`** — `Drawer` + the `DrawerContent`/`DrawerHeader`/`DrawerToolbar`/
+  5. **`Drawer/`** — `Drawer` + the `DrawerContent`/`DrawerHeader`/`DrawerToolbar`/
      `DrawerBody`/`DrawerFooter` layout parts + `DrawerClose`. The single surface abstraction: a
      `Drawer` is `open`/`onOpenChange` controlled with `mode: 'anchored' | 'filled'`
      (filled = map-less), and every View composes it.
-  7. **`ActionRow/`** — `ActionRow` + `ActionCircle` (the row and its one child type).
+  6. **`ActionRow/`** — `ActionRow` + `ActionCircle` (the row and its one child type).
   8. **`List/`** — `List` + the `listRow` recipe its card children share.
   9. **`ShareContent/`** (molecules) — `ShareContent` + `CopyField` (also used by
      the event panel's desktop contact popover).
@@ -272,6 +271,6 @@ section vocabulary, and the global decorator.
    - `index.ts` — explicit `export { <Name> }` + `export type { <Name>Props }` (never `export *`)
    - `<Name>.stories.tsx` — co-located stories (light and dark, key variants)
 3. Re-export the folder from `src/components/<tier>/index.ts`.
-4. Use `tv()` if it has variants. Take icons from `lucide-react` (brand marks from `atoms/Icons/`).
+4. Use `tv()` if it has variants. Take icons from `lucide-react`.
 5. Reference siblings by component-folder path (`@/components/<tier>/<Other>`).
 6. `pnpm typecheck` and `pnpm ladle:build` must stay green.

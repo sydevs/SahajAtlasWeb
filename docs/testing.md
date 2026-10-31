@@ -322,7 +322,7 @@ This mirrors WeMeditateWeb. The unit lane runs in the `node` environment by defa
   per-request context `src/config/api/client.ts` attaches is spec'd from `fetch.test.ts`,
   which is why there is no `client.test.ts`.
 - **Presentational components** — assert the SSR output with `renderToStaticMarkup` from
-  `react-dom/server` (see `src/components/atoms/Icons/Icons.test.tsx` for the template). Hover,
+  `react-dom/server` (see `src/components/molecules/EventFacts/EventFacts.test.tsx` for the template). Hover,
   portals, focus, and map interaction belong in Ladle or the browser, not here.
 
 ### The jsdom exception (issue #89)

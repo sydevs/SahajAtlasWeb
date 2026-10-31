@@ -84,7 +84,7 @@ const drawer = tv({
       // lands under the stack's `start-3` cog on a narrow RTL embed. This is
       // deferred until an RTL locale actually ships. Everything else here is
       // already logical: the stack's panel and cog positioning use `start-*`,
-      // and directional icons mirror through BaseIcon's `flipRtl`.
+      // and directional icons carry `rtl:-scale-x-100` at their call sites.
       //
       // **The `352px` in both variants below is paired with `DRAWER_W_PX` in
       // `hooks/use-map-controller-real.tsx`.** That constant becomes the map's
