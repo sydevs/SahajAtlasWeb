@@ -7,6 +7,7 @@ import {
   PRODUCTION_BRANCH,
   SITE_KEY_VARIABLE,
   classifySiteKey,
+  findLiveSiteKeys,
   findTestSiteKeys,
   isProductionBuild,
   releaseGuardError,
@@ -83,6 +84,32 @@ describe('findTestSiteKeys', () => {
   it('does not match inside a longer token', () => {
     expect(findTestSiteKeys('"ab1x00000000000000000000AA"')).toEqual([])
   })
+})
+
+describe('findLiveSiteKeys', () => {
+  it('finds a live key inlined into minified source', () => {
+    expect(findLiveSiteKeys(`const a={sitekey:"${LIVE_KEY}",theme:t}`)).toEqual([LIVE_KEY])
+  })
+
+  it('finds nothing in a bundle that carries a test key', () => {
+    expect(findLiveSiteKeys(`const a={sitekey:"${TEST_KEYS[0]}"}`)).toEqual([])
+  })
+
+  // Undelimited, `0x…` matches a hex literal anywhere in the graph, and a false find reads as
+  // production carrying a key it does not serve.
+  it('needs the quotes the bundle inlines the key between', () => {
+    expect(findLiveSiteKeys(`const a=${LIVE_KEY},b=t`)).toEqual([])
+  })
+
+  // The gate and `embed.smoke.test.ts` must agree on what a real key is. A key the gate passes
+  // that this reader misses reads on production as an unset build variable.
+  it.each([LIVE_KEY, '0x5AAAAAAAAAA', '0x4AAAA_example-key'])(
+    'finds %j, which the gate calls live',
+    (key) => {
+      expect(classifySiteKey(key)).toBe('live')
+      expect(findLiveSiteKeys(`{sitekey:"${key}"}`)).toEqual([key])
+    },
+  )
 })
 
 describe('isProductionBuild', () => {

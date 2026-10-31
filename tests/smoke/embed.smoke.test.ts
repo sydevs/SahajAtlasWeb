@@ -2,7 +2,7 @@ import { describe, expect, test } from 'vitest'
 
 import { appPreviewHost } from '../../scripts/assert-preview-host.mjs'
 import { appWorkerName } from '../../scripts/_wrangler-config.mjs'
-import { findTestSiteKeys } from '../../scripts/turnstile-release-guard.mjs'
+import { findLiveSiteKeys, findTestSiteKeys } from '../../scripts/turnstile-release-guard.mjs'
 
 import { PREVIEW_URL, fetchPreview, skipWithoutPreview } from './_helpers/preview'
 
@@ -191,8 +191,8 @@ describe('embed bundle', () => {
 // what keeps the production half honest: the same patterns must FIND the test key there, so a
 // minifier change that hid the literal fails the PR gate instead of greening production.
 //
-// A real key is named by prefix only — it is public, but it stays out of CI logs.
-const LIVE_SITE_KEY = /["'`](0x4[0-9A-Za-z_-]{16,})["'`]/g
+// Both patterns come from the guard, so what this reads back is what the gate passes. Defining
+// "a real key" a second time here, stricter, reddens production over a key the gate accepted.
 
 describe('turnstile site key', () => {
   test.skipIf(skipWithoutPreview)(
@@ -203,9 +203,8 @@ describe('turnstile site key', () => {
         [...bodies].flatMap(([path, body]) => find(body).map((key) => `${path}: ${key}`))
 
       const testKeys = where(findTestSiteKeys)
-      const liveKeys = where((body) =>
-        [...body.matchAll(LIVE_SITE_KEY)].map((m) => `${m[1].slice(0, 7)}…`),
-      )
+      // A real key is public, but it stays out of CI logs: named by prefix only.
+      const liveKeys = where((body) => findLiveSiteKeys(body).map((key) => `${key.slice(0, 7)}…`))
 
       if (appPreviewHost(PREVIEW_URL as string, appWorkerName())) {
         expect(

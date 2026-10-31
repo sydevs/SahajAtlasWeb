@@ -42,8 +42,29 @@ export function findTestSiteKeys(text) {
   return [...text.matchAll(new RegExp(TEST_SITE_KEY_SOURCE, 'gi'))].map((m) => m[0])
 }
 
+/**
+ * A real site key's shape: `0x` and at least ten more key characters. `embed.smoke.test.ts` reads
+ * the live bundle through this same source, because a stricter pattern there blames
+ * `VITE_TURNSTILE_SITE_KEY` for being unset over a key this gate has passed.
+ */
+const LIVE_SITE_KEY_SOURCE = '0x[0-9A-Za-z_-]{10,}'
+
 /** A real site key, exactly — Vite inlines the value byte for byte, padding and quotes too. */
-const LIVE_SITE_KEY = /^0x[0-9A-Za-z_-]{10,}$/
+const LIVE_SITE_KEY = new RegExp(`^${LIVE_SITE_KEY_SOURCE}$`)
+
+/**
+ * Every real site key in `text`, for reading a built bundle back. It must be delimited by the
+ * quotes the bundle inlines it between: unanchored, `0x…` matches a hex literal anywhere in the
+ * graph, and a false find here reads as production carrying a key it does not serve.
+ *
+ * @param {string} text
+ * @returns {string[]}
+ */
+export function findLiveSiteKeys(text) {
+  const delimited = new RegExp(`["'\`](${LIVE_SITE_KEY_SOURCE})["'\`]`, 'g')
+
+  return [...text.matchAll(delimited)].map((m) => m[1])
+}
 
 /**
  * `missing`, `test`, `live`, or `malformed`. Padding and quotes are looked through to find a test
