@@ -179,8 +179,12 @@ export type RegistrationFormProps = {
   /** Start in the post-submit confirmation state — for previewing that screen in a
    *  story without a real submission. Defaults to false (the live form). */
   initialSubmitted?: boolean
-  /** Story-only: render this refusal as if SahajCloud had just returned it. */
-  initialRefusal?: { code: RegistrationErrorCode; field?: string }
+  /**
+   * Story-only: render this refusal as if SahajCloud had just returned it. The story
+   * builds the error, because the playground has no solved challenge to submit through
+   * and no SDK boundary to reject at — unlike `RegistrationForm.submit.test.tsx`.
+   */
+  initialRefusal?: RegistrationRefusedError
 }
 
 /**
@@ -257,12 +261,6 @@ export function RegistrationForm({
   // #182).
   const { challengeRef, token, reset: resetChallenge } = useTurnstile()
 
-  const [storyRefusal] = useState(() =>
-    initialRefusal
-      ? new RegistrationRefusedError(initialRefusal.code, '', initialRefusal.field)
-      : null,
-  )
-
   // A refusal the visitor can fix in one field lands ON that field, the way a
   // schema error does: the sentence under it, `aria-invalid`, and focus moved
   // there. Editing the field re-validates it, which clears this.
@@ -274,7 +272,7 @@ export function RegistrationForm({
   }
 
   useEffect(() => {
-    if (storyRefusal) flagRefusal(storyRefusal, false)
+    if (initialRefusal) flagRefusal(initialRefusal, false)
     // Mount-only: the story's refusal never changes.
   }, [])
 
@@ -320,7 +318,7 @@ export function RegistrationForm({
   // not know — keeps the generic title, but says what to do next: the
   // challenge has been reset under the viewer, so wait for it and register
   // again, the same move the report form's own catch-all names.
-  const refusal = mutation.error ?? storyRefusal
+  const refusal = mutation.error ?? initialRefusal
   const refusalMessage = refusalKey(refusal)
   // A field refusal is already said, and announced, on its field.
   const showAlert = refusal != null && !refusedField(refusal, questions)

@@ -7,6 +7,8 @@ import { StoryWrapper, StorySection } from '../../ladle'
 
 import { RegistrationForm } from './RegistrationForm'
 
+import { RegistrationRefusedError } from '@/config/api/mutate'
+
 export default { title: 'Organisms' } satisfies StoryDefault
 
 const upcomingDates = [new Date('2026-08-01T18:00:00Z'), new Date('2026-08-08T18:00:00Z')]
@@ -101,7 +103,7 @@ export const Default: Story = () => (
           eventId={7}
           eventTitle="Refusal demo"
           eventUrl="https://atlas.example/e/7"
-          initialRefusal={{ code: 'disposable_email', field: 'senderEmail' }}
+          initialRefusal={new RegistrationRefusedError('disposable_email', '', 'senderEmail')}
           isOnline={false}
           questions={[]}
           upcomingDates={upcomingDates}
@@ -118,7 +120,7 @@ export const Default: Story = () => (
           eventId={8}
           eventTitle="Refusal demo"
           eventUrl="https://atlas.example/e/8"
-          initialRefusal={{ code: 'captcha_failed' }}
+          initialRefusal={new RegistrationRefusedError('captcha_failed', '')}
           isOnline={false}
           questions={[]}
           upcomingDates={upcomingDates}
