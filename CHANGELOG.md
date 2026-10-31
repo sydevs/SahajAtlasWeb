@@ -78,13 +78,13 @@ cover everything a host would notice since the widget was first deployed.
   the published floor is Tailwind 4's own declared minimum, and Chrome 111 and Safari 16.4
   already met it. A Firefox between 114 and 127 is **not** unstyled — Tailwind ships an
   `@supports`-guarded fallback for exactly those versions and this build keeps it, so the
-  widget still renders. See [Browser support](embedding.md#browser-support). No CSP row
+  widget still renders. See [Browser support](docs/embedding.md#browser-support). No CSP row
   changes, no new origin, and no change to the snippet or its attributes.
 
 - **The widget registers 62 document-global `@property` names, all `--tw-…`.** ([#246]) Tailwind
   4 composes its utilities through them, and a registered name carries a typed initial value and
   `inherits: false` into your document. The build gate allows that one prefix and fails on any
-  other. See [What the widget does to your page](embedding.md#what-the-widget-does-to-your-page).
+  other. See [What the widget does to your page](docs/embedding.md#what-the-widget-does-to-your-page).
 
 - **Where the build carries a Sentry DSN, the widget requests `https://*.sentry.io`, so that
   `connect-src` row stops being hypothetical.** ([#232]) The row has described such a build since
