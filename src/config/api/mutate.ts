@@ -266,17 +266,17 @@ export type UserSubmissionErrorCode =
  * since its gate adds five codes of its own that this class cannot carry.
  * This arrives as a 403 for `captcha_failed`, a 400 for the email and URL checks, or a 500 for `captcha_unavailable`.
  * The code always sits at `errors[].data.code`. See `RefusalBodySchema`.
+ * This carries no `field`, unlike `RegistrationRefusedError`: the report form says a refusal in
+ * one form-level alert, because its own fields are authored by the operator and announce per
+ * keystroke (#102), so there is no field to put a sentence on.
  */
 export class UserSubmissionError extends Error {
   readonly code: UserSubmissionErrorCode
-  /** The input SahajCloud named as the cause, for a per-field check. See `RefusalBodySchema`. */
-  readonly field?: string
 
-  constructor(code: UserSubmissionErrorCode, message: string, field?: string) {
+  constructor(code: UserSubmissionErrorCode, message: string) {
     super(message)
     this.name = 'UserSubmissionError'
     this.code = code
-    this.field = field
   }
 }
 
@@ -394,7 +394,7 @@ const sendReport = async (payload: ReportPayload): Promise<UserSubmissionRespons
   } catch (error) {
     throw asRefusal<UserSubmissionErrorCode>(
       error,
-      (code, message, field) => new UserSubmissionError(code, message, field),
+      (code, message) => new UserSubmissionError(code, message),
       'Report refused',
     )
   }
