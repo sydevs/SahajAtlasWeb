@@ -34,7 +34,7 @@ import type { DetectionSignals, EmbedFingerprint } from './detect'
 
 import { parseConfig } from './config'
 import { fingerprint } from './detect'
-import { ELEMENT_NAME, safeLoaderPath } from './literals'
+import { ELEMENT_NAME } from './literals'
 
 /** The console prefix. Duplicated from `reportIntegrationWarning`'s — see `./literals.ts`. */
 const LOG_PREFIX = '[sahaj-atlas]'
@@ -196,12 +196,9 @@ function resolveElement(script: HTMLScriptElement | null): HTMLElement | null {
   element.setAttribute(CLAIMED_ATTR, '')
   const parent = script?.parentNode
 
-  // `<head>` is never where the widget goes. Two paths can put the script there: a host that
-  // put the snippet there, and the classic shim. The shim bridges to this module by appending a
-  // module script to `<head>`. Inserting the element there would leave it in the document, let
-  // it upgrade normally, but paint nothing — the worst kind of failure. On the shim's path, an
-  // element already exists (Wix creates it), so this branch fires only when something is
-  // genuinely wrong.
+  // `<head>` is never where the widget goes, though a host can put the snippet there. Inserting
+  // the element there would leave it in the document, let it upgrade normally, but paint
+  // nothing — the worst kind of failure.
   if (parent && parent.nodeName !== 'HEAD') {
     // This places the element immediately before the script tag, so the widget appears where
     // the host put the snippet. The host needs no wrapper, and has no selector to set wrong.
@@ -279,13 +276,8 @@ function whenIdle(run: () => void): void {
   setTimeout(once, 0)
 }
 
-/**
- * Boots from a script element.
- *
- * This is exported so the classic shim can hand over its own `document.currentScript`, which it
- * must capture before the dynamic import loses it.
- */
-export function start(script: HTMLScriptElement | null): void {
+/** Boots from a script element. */
+function start(script: HTMLScriptElement | null): void {
   const config = parseConfig(script?.getAttribute('src'), window.location.search)
 
   if (!config.key) {
@@ -348,7 +340,3 @@ const currentScript =
   document.querySelector<HTMLScriptElement>('script[src*="auto.js"]')
 
 start(currentScript)
-
-// Exported for the classic shim and for tests. `safeLoaderPath` is re-exported so the pin spec
-// can reach it without importing the entry's side effects.
-export { safeLoaderPath }
