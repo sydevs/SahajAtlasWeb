@@ -302,6 +302,12 @@ cover everything a host would notice since the widget was first deployed.
 
 ### Fixed
 
+- **Opening on your client record's home region no longer adds a history entry.** The first
+  open navigated to the region by pushing an entry onto your page's history, so the visitor's
+  first Back press only moved the widget back to the world list and a second one was needed to
+  leave your page. It now replaces your page's entry, as the widget's own mount already did
+  ([#112]). Your `atlas` default under `routing=path` opens the same way. No parameter, origin or
+  CSP change.
 - **An online class reads in the visitor's own time throughout.** Its weekday and date were the
   visitor's but its time was the host's, so a Wednesday 7:30 PM class hosted from Prague read
   "Every Thursday · 7:30 PM" in Sydney. The whole line is now the visitor's — "Every Thursday ·

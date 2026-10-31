@@ -162,8 +162,9 @@ form.
 **Under `routing=path`, the default applies when the interface first opens.** Your page's own
 address is the root view there — there is no other URL for it — so the widget boots at the root
 and then navigates to your default, the same way it opens a client record's home region. Your
-page's URL then shows the route (`/classes/gb/london`), and Back returns to the world list. Your
-default outranks the home region. A deep link to any other route is left alone.
+page's URL then shows the route (`/classes/gb/london`) in place of your page's own entry, so Back
+leaves your page as it would without the widget. Your default outranks the home region. A deep
+link to any other route is left alone.
 
 ### The widget follows your page's language
 
@@ -540,8 +541,9 @@ search engine can index. Every event and every city is a distinct URL on **your*
   give somebody a working URL on your site, because every href the widget renders is absolute and
   on your origin.
 
-**Mounting does not add a history entry, and does not touch your URL at all.** The widget only
-writes the parameter once a visitor navigates inside it. To make an embed open somewhere
+**Mounting does not add a history entry.** The widget writes the parameter once a visitor
+navigates inside it, or when it first opens your client record's home region — and that write
+replaces your page's entry, so Back still leaves your page. To make an embed open somewhere
 specific, use the [`atlas` parameter](#atlas-and-how-the-route-is-chosen) — the default the
 widget starts at when your page's URL names no route.
 
