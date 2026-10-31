@@ -20,7 +20,7 @@ import { usePublishedNode } from './hooks/use-published-node'
 import { getInitialTheme, setThemeRoot } from './hooks/use-theme'
 import { ELEMENT_NAME } from './lib/element'
 import { releaseAnnouncement } from './lib/embed-announce'
-import { reportIntegrationWarning, reportInternalError } from './lib/report'
+import { classifyError, reportIntegrationWarning, reportInternalError } from './lib/report'
 import { type SlotDecision, decideSlot } from './lib/slot-decision'
 import { WIDGET_SCOPE_CLASS } from './lib/scope'
 import { adoptStyles } from './styles/sheet'
@@ -136,13 +136,18 @@ function PathBoot({ apiKey }: { apiKey: string }) {
   if (resolved) return <Atlas prefix={resolved.value} />
 
   return (
-    // Falling back to `<Atlas />` falls back to QUERY routing, which is what
-    // `mountDecision` does for every other unhonourable path config. It matters most
-    // for the failure this catches: a rejected API key makes the read throw, and
-    // without this the RootBoundary above would answer with its static untranslated
-    // screen, instead of App's own configuration-error one.
+    // Only a rejected API key falls back to `<Atlas />`, and so to QUERY routing, which is
+    // what `mountDecision` does for every other unhonourable path config. Without it the
+    // RootBoundary above would answer with its static untranslated screen, instead of
+    // App's own configuration-error one. Any other failure rethrows to that screen:
+    // degrading would blame the record for a missing canonical embed, then write
+    // `?atlas=` URLs under the prefix once "Try again" succeeded.
     <ErrorBoundary
-      fallbackRender={() => <Atlas />}
+      fallbackRender={({ error }) => {
+        if (classifyError(error) !== 'config') throw error
+
+        return <Atlas />
+      }}
       // ⚠ **Report, or this fallback hides its own causes.** Degrading to query is a
       // legitimate state that renders perfectly, so a throw here looks identical to a
       // client with no canonical embed — and `mountDecision` then prints a warning

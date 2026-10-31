@@ -266,7 +266,9 @@ prefer.
 
 **If either is missing, the widget uses query routing and says so in the console**, naming which
 one was missing. It never silently switches modes — a host whose server config does nothing
-should learn that from us, not from their analytics six months later.
+should learn that from us, not from their analytics six months later. If your client record
+cannot be read at all — SahajCloud down or erroring, rather than your key refused — it does not
+fall back: it asks the visitor to reload the page.
 
 **It does not cost you a round trip.** The widget reads your client record before it can build
 its router in either mode, before it renders anything — so path mode makes the same single

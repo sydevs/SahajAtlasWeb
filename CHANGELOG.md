@@ -302,6 +302,12 @@ cover everything a host would notice since the widget was first deployed.
 
 ### Fixed
 
+- **Under `routing=path`, a failed client-record read no longer drops you to query routing.**
+  Any failure to read the record — SahajCloud down or erroring, not only a refused key — fell
+  back to query routing, printed a warning blaming your record for a missing canonical embed, and
+  once the visitor pressed "Try again" wrote `?atlas=` URLs under your path prefix. Only a refused
+  key falls back now, to the configuration-error screen as before; anything else shows the
+  "Please reload the page" notice. No parameter, origin or CSP change.
 - **Opening on your client record's home region no longer adds a history entry.** The first
   open navigated to the region by pushing an entry onto your page's history, so the visitor's
   first Back press only moved the widget back to the world list and a second one was needed to
