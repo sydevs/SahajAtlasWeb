@@ -26,11 +26,6 @@ vi.mock('@/hooks/use-map-controller', () => ({
 vi.mock('@/hooks/use-prefetch-event', () => ({
   useHoverPrefetch: () => ({ enter: () => {}, leave: () => {} }),
 }))
-// The chips' display resolver reads the viewer's rough location through react-query.
-// Mocked at that leaf rather than by stubbing the chips, for the reason above.
-vi.mock('@/hooks/use-ip-location', () => ({
-  useIpLocation: () => null,
-}))
 // Register and the secondary actions pull react-query and the registration chain.
 // Neither is what this asserts. Register and the facts render a marker rather than
 // null, because the badge's POSITION between the two is half of what is asserted

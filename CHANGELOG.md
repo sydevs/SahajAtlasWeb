@@ -302,6 +302,14 @@ cover everything a host would notice since the widget was first deployed.
 
 ### Fixed
 
+- **An online class reads in the visitor's own time throughout.** Its weekday and date were the
+  visitor's but its time was the host's, so a Wednesday 7:30 PM class hosted from Prague read
+  "Every Thursday · 7:30 PM" in Sydney. The whole line is now the visitor's — "Every Thursday ·
+  3:30 AM", as the calendar and the date filters already had it — and the faded line under
+  "Hosted from Prague" gives the host's own clock, "Wed 7:30 PM in Prague", wherever the two
+  differ. That line used to name the visitor's region from the `ipwho.is` lookup, so an online
+  class no longer starts that lookup: it runs only for the "classes near you" prompt. No
+  parameter, origin or CSP change.
 - **"Find my location" says when it could not get a location.** ([#321]) A declined prompt, an
   unavailable position or a timeout used to leave the button doing nothing; a short dialog now
   says so and points at the place search. A permission the visitor had already blocked before

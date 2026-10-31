@@ -89,9 +89,9 @@ export type EventFactsProps = {
 
 /**
  * The shared event when/where fact block. It shows a calendar line, the
- * repeat pattern and event-local time, with a muted detail below, and a
- * location line, the address with its distance faded below, or "Online •
- * Hosted from …" with the viewer's local time. One place builds this, so
+ * repeat pattern and time, with a muted detail below, and a location line,
+ * the address with its distance faded below, or "Online • Hosted from …"
+ * with the host's own clock. One place builds this, so
  * the panel, list card, and share/registration summaries never diverge
  * (issue #52). Ended events drop the location.
  *

@@ -16,9 +16,6 @@ vi.mock('react-i18next', () => ({
 vi.mock('@/hooks/use-locale', () => ({
   useLocale: () => ({ locale: 'en' }),
 }))
-vi.mock('@/hooks/use-ip-location', () => ({
-  useIpLocation: () => null,
-}))
 
 const ROOM = 'Community Hall B'
 const withRoom = { ...mockEvent, address: { ...mockEvent.address, room: ROOM } }

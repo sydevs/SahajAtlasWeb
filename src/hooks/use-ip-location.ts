@@ -39,7 +39,7 @@ export async function fetchIpLocation(): Promise<IpLocation | null> {
 // A `null` result means the nearby suggestion simply does not render.
 //
 // There is no host opt-out. See #149.
-// The lookup is a convenience, for the nearby suggestion and the localized online-event time. It is never a prerequisite.
+// The lookup is a convenience, for the nearby suggestion. It is never a prerequisite.
 // `enabled` already lets each caller decline it.
 // Note for anyone revisiting this: an IP is personal data in the EU, and the visitor is on the HOST's page.
 // If a host ever needs to refuse this flow, the answer is a client-record setting, not a script parameter.
