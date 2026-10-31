@@ -7,6 +7,8 @@ import { StoryWrapper, StorySection } from '../../ladle'
 
 import { RegistrationForm } from './RegistrationForm'
 
+import { RegistrationRefusedError } from '@/config/api/mutate'
+
 export default { title: 'Organisms' } satisfies StoryDefault
 
 const upcomingDates = [new Date('2026-08-01T18:00:00Z'), new Date('2026-08-08T18:00:00Z')]
@@ -85,6 +87,40 @@ export const Default: Story = () => (
           eventId={4}
           eventTitle="Validation demo"
           eventUrl="https://atlas.example/e/4"
+          isOnline={false}
+          questions={[]}
+          upcomingDates={upcomingDates}
+        />
+      </div>
+    </StorySection>
+
+    <StorySection
+      description="SahajCloud refused the address (`disposable_email`, naming `senderEmail`). A refusal the visitor can fix lands on the field it names, in the same words the report-an-issue form uses (#259). Live, editing the field clears it; here nothing has been submitted, so react-hook-form does not re-validate on change and the error stays."
+      title="Refused · on a field"
+    >
+      <div className="max-w-md rounded-lg border border-divider p-4">
+        <RegistrationForm
+          eventId={7}
+          eventTitle="Refusal demo"
+          eventUrl="https://atlas.example/e/7"
+          initialRefusal={new RegistrationRefusedError('disposable_email', '', 'senderEmail')}
+          isOnline={false}
+          questions={[]}
+          upcomingDates={upcomingDates}
+        />
+      </div>
+    </StorySection>
+
+    <StorySection
+      description="A refusal about the request rather than an input (`captcha_failed`) gets its own sentence above the buttons, never the generic title or the server's English message."
+      title="Refused · the request"
+    >
+      <div className="max-w-md rounded-lg border border-divider p-4">
+        <RegistrationForm
+          eventId={8}
+          eventTitle="Refusal demo"
+          eventUrl="https://atlas.example/e/8"
+          initialRefusal={new RegistrationRefusedError('captcha_failed', '')}
           isOnline={false}
           questions={[]}
           upcomingDates={upcomingDates}

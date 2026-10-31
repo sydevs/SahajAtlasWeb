@@ -13,6 +13,8 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { useMutation } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
 
+import { INPUT_REFUSAL_KEYS } from './refusal-copy'
+
 import { Alert } from '@/components/atoms/Alert'
 import { Button } from '@/components/atoms/Button'
 import { Checkbox } from '@/components/atoms/Checkbox'
@@ -65,11 +67,10 @@ import { userSubmissionValueMax } from '@/config/api/mutate'
  *   has and the generic sentence is the honest one.
  */
 const REFUSAL_MESSAGE_KEYS: Record<UserSubmissionErrorCode, TranslationKey> = {
+  // The address and link refusals, in the words the registration form also uses (#259).
+  ...INPUT_REFUSAL_KEYS,
   captcha_failed: 'common.report_errors.captcha',
   captcha_unavailable: 'common.report_errors.send_failed',
-  invalid_email: 'common.report_errors.email',
-  disposable_email: 'common.report_errors.disposable_email',
-  urls_not_allowed: 'common.report_errors.urls_not_allowed',
   content_unscannable: 'common.report_errors.send_failed',
 }
 
