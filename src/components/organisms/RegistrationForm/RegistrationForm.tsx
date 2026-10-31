@@ -61,25 +61,16 @@ const STATE_MESSAGE_KEYS: Record<EventRegistrationErrorCode, TranslationKey> = {
 }
 
 /**
- * This holds every code a `RegistrationRefusedError` can carry, so a caller
- * finds a refusal's copy once, rather than treating one kind as a special case.
+ * This holds every code a `RegistrationRefusedError` can carry, so a caller finds a
+ * refusal's copy once rather than treating one kind as a special case.
  *
- * This splits in two only so the half above stays total over the SYNCED
- * union. That totality is what makes a `types:cms` re-sync fail the build
- * here, rather than silently routing a new code to the generic sentence.
+ * It splits in two only so the half above stays total over the SYNCED union. That
+ * totality is what makes a `types:cms` re-sync fail the build here, rather than
+ * silently routing a new code to the generic sentence.
  *
- * - `event_not_found` — the event left the caller's view since the read
- *   (unpublished or deleted). It takes the sentence the fallback panel already
- *   shows for a class that cannot be joined.
- * - the address and link refusals — the visitor's own input, so they share
- *   the report form's words through `INPUT_REFUSAL_KEYS` (#259), and land on
- *   the field they name (`refusedField`).
- * - the captcha verdict, a captcha we could not check, and an unscannable
- *   submission — nothing to change but to try again, and the challenge is
- *   reset after every failure. So all three take the retry sentence. For
- *   `captcha_failed` it is the report form's `common.report_errors.captcha`
- *   with "register" for "send". For the other two the report says "Your
- *   report wasn't sent", which this form cannot borrow.
+ * `event_not_found` borrows the sentence the fallback panel already shows for a class
+ * that cannot be joined: the event left the caller's view since the read. The three
+ * input refusals borrow the report form's own words (#259).
  */
 const REFUSAL_MESSAGE_KEYS: Record<RegistrationErrorCode, TranslationKey> = {
   ...STATE_MESSAGE_KEYS,
