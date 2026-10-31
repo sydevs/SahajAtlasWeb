@@ -307,7 +307,11 @@ cover everything a host would notice since the widget was first deployed.
   back to query routing, printed a warning blaming your record for a missing canonical embed, and
   once the visitor pressed "Try again" wrote `?atlas=` URLs under your path prefix. Only a refused
   key falls back now, to the configuration-error screen as before; anything else shows the
-  "Please reload the page" notice. No parameter, origin or CSP change.
+  "Please reload the page" notice. ⚠ **That notice is one line of untranslated English with no
+  "Try again" control**, on a non-English page too — it is the last-rung screen, deliberately
+  built on nothing it could itself have lost, so a reload is the only way out of it. A
+  `routing=path` embed therefore answers a passing 5xx less gracefully than a query-mode one,
+  which reaches the localized screen with a retry. No parameter, origin or CSP change.
 - **Opening on your client record's home region no longer adds a history entry.** ([#351]) The first
   open navigated to the region by pushing an entry onto your page's history, so the visitor's
   first Back press only moved the widget back to the world list and a second one was needed to
@@ -318,8 +322,8 @@ cover everything a host would notice since the widget was first deployed.
   visitor's but its time was the host's, so a Wednesday 7:30 PM class hosted from Prague read
   "Every Thursday · 7:30 PM" in Sydney. The whole line is now the visitor's — "Every Thursday ·
   3:30 AM", as the calendar and the date filters already had it — and the faded line under
-  "Hosted from Prague" gives the host's own clock, "Wed 7:30 PM in Prague", wherever the two
-  differ. That line used to name the visitor's region from the `ipwho.is` lookup, so an online
+  "Hosted from Prague" gives the host's own clock, "Wed 7:30 PM", wherever the two differ — with
+  no place name, since the line above it already names the city. That line used to name the visitor's region from the `ipwho.is` lookup, so an online
   class no longer starts that lookup: it runs only for the "classes near you" prompt. No
   parameter, origin or CSP change.
 - **"Find my location" says when it could not get a location.** ([#321]) A declined prompt, an
