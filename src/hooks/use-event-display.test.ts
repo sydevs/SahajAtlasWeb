@@ -130,7 +130,7 @@ describe('useEventDisplay — an online class seen from another zone', () => {
   it("reads entirely in the viewer's zone, with the host's clock beneath", () => {
     expect(linesFrom('Australia/Sydney')).toEqual({
       main: 'Every Thursday · 3:30 AM',
-      subtext: 'Wed 7:30 PM in Prague',
+      subtext: 'Wed 7:30 PM',
     })
   })
 

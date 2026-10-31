@@ -249,9 +249,10 @@ export function useEventDisplay(event: DisplayableEvent): EventDisplayStrings {
       !display.online && display.status !== 'inactive' && room
         ? t('event.display.room', { room })
         : null
-    // For an online event only, the host's own clock, named with the host city, faded under the
-    // where line, such as "Wed 7:30 PM in Prague." The weekday shows ONLY when the host's day
-    // differs from the viewer's. Otherwise it is noise.
+    // For an online event only, the host's own clock, faded under the where line, such as
+    // "Wed 7:30 PM". It carries no place name: the line directly above it already reads
+    // "Hosted from Prague", so naming the city again says nothing. The weekday shows ONLY when
+    // the host's day differs from the viewer's. Otherwise it is noise.
     //
     // This is skipped entirely when the viewer shares the host's offset, since it would just
     // restate the time above. Comparing the OFFSET, not the zone id, also catches distinct zones
@@ -259,7 +260,7 @@ export function useEventDisplay(event: DisplayableEvent): EventDisplayStrings {
     let whereSubtext: string | null = null
 
     if (origin && next && !sameWallClock(origin, next)) {
-      const clock = [
+      whereSubtext = [
         origin.weekday !== next.weekday
           ? origin.setLocale(locale).toLocaleString({ weekday: 'short' })
           : null,
@@ -267,8 +268,6 @@ export function useEventDisplay(event: DisplayableEvent): EventDisplayStrings {
       ]
         .filter(Boolean)
         .join(' ')
-
-      whereSubtext = t('event.display.time_in_place', { time: clock, city: originCity })
     }
 
     // ── Register slot ──
