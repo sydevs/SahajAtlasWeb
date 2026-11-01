@@ -537,7 +537,8 @@ on 4 cores, median of three: **0.12s** for a lane source with no spec of its own
 `src/test-support/repo-source.ts` (the widest — #289 moved it there). The slowest edit
 sits at about half the bound. Re-measured 2026-10-26, at 17 specs rather than 15: **4.2s** for the
 widest and **5.0s** for `i18n.ts`, medians of three. Both fell while the widest selection grew, so
-read the two figures as a pair taken on one machine, never as a trend.
+read the two figures as a pair taken on one machine, never as a trend. Re-measured 2026-11-01, at
+19: **5.5s** for the widest and **6.2s** for `i18n.ts`, medians of three on 4 cores.
 ⚠ **The 0.12s class is smaller than #289 found it**: `src/views/FullInterface.tsx` selected
 nothing until `MapFrame.test.tsx` named it as a quoted repo-relative path, and now costs **2.2s**
 per edit for the wiring pin it previously had no per-edit coverage from at all. A quoted literal
@@ -595,14 +596,15 @@ to select from. The full lane still runs in the lean gate (`.claude/skills/pr-pr
 in CI, so this narrows the inner loop, not the gate.
 
 **What holds the budget is the selection's width, and `scripts/select-unit-specs.test.ts` pins
-that**: the widest edit in the tree, exhaustively through the real composition, at 18 against a
-ceiling of 18 — no headroom, so the next spec reading a repo file through `repo-source` trips it,
+that**: the widest edit in the tree, exhaustively through the real composition, at 19 against a
+ceiling of 19 — no headroom, so the next spec reading a repo file through `repo-source` trips it,
 and the answer is to time the hook and ratchet, never to drop a spec. ⚠ **Two PRs can trip it
 without either one doing so alone**: #322's `mobile-zoom.test.ts` and #324's `attribution.test.ts`
 each took a slot, and the pin went red on the merge rather than on either branch; #328's
-`Drawer.scroll.test.tsx` is what ratcheted it from 17 to 18. ⚠ Width is not time, and which of
+`Drawer.scroll.test.tsx` ratcheted it from 17 to 18, and #17's
+`BrandTheme.publish.test.tsx` from 18 to 19. ⚠ Width is not time, and which of
 the pair is slower has flipped across machines — `i18n.ts` selects 12, four of them jsdom, and
-measured 4.7s against the widest's 5.0s at eighteen (2026-10-27, 4 cores), having been the slower
+measured 6.2s against the widest's 5.5s at nineteen (2026-11-01, 4 cores), having been the faster
 of the two at seventeen — so width
 bounds the slice, never the time, and a jump in either is a re-measure of both. It also pins each
 of the three specifier forms, end to end against this tree; the tree-walking set as a closed list,
