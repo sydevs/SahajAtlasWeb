@@ -220,6 +220,20 @@ const PENDING_KEYS: Record<string, string> = {
   'registration.form.subscribe': 'sydevs/SahajAtlasWeb#147',
 }
 
+/**
+ * The mirror image: copy whose last call site is gone, each with the SahajCloud ticket that
+ * removes it from `sy-atlas-translations`.
+ *
+ * ⚠ A key leaves the app a whole release before it can leave the snapshot. The CMS owns the copy
+ * and this repo cannot delete a key, so the window between unwiring a `t()` and the sync that
+ * regenerates the snapshot without it belongs here — otherwise the direction below forces the
+ * choice between an unwired key and a red lane, and the honest answer is neither.
+ * Delete an entry in the sync PR that drops the key: the pin below fails until you do.
+ */
+const RETIRING_KEYS: Record<string, string> = {
+  'event.display.time_in_place': 'sydevs/SahajCloud#1057',
+}
+
 describe('every key the snapshot holds', () => {
   // Quoted ANYWHERE in the source, not only inside a `t()` call: a key can legitimately be held in
   // a constant and handed to `t` elsewhere (`use-event-display`'s register label, every
@@ -237,7 +251,8 @@ describe('every key the snapshot holds', () => {
       return (
         !referenced.has(key) &&
         !referenced.has(logical) &&
-        !Object.prototype.hasOwnProperty.call(PENDING_KEYS, logical)
+        !Object.prototype.hasOwnProperty.call(PENDING_KEYS, logical) &&
+        !Object.prototype.hasOwnProperty.call(RETIRING_KEYS, logical)
       )
     })
 
@@ -248,5 +263,13 @@ describe('every key the snapshot holds', () => {
     const stale = Object.keys(PENDING_KEYS).filter((key) => !resolves(key) || referenced.has(key))
 
     expect(stale, 'wired or unpublished — delete it from PENDING_KEYS').toEqual([])
+  })
+
+  it('names a retiring key only while it is unwired and still published', () => {
+    // Both halves fail the entry rather than the key: one the sync already dropped is an
+    // exemption covering nothing, and one a call site asks for again is live copy.
+    const stale = Object.keys(RETIRING_KEYS).filter((key) => !resolves(key) || referenced.has(key))
+
+    expect(stale, 'rewired or already dropped — delete it from RETIRING_KEYS').toEqual([])
   })
 })

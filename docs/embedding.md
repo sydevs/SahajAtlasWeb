@@ -162,8 +162,9 @@ form.
 **Under `routing=path`, the default applies when the interface first opens.** Your page's own
 address is the root view there — there is no other URL for it — so the widget boots at the root
 and then navigates to your default, the same way it opens a client record's home region. Your
-page's URL then shows the route (`/classes/gb/london`), and Back returns to the world list. Your
-default outranks the home region. A deep link to any other route is left alone.
+page's URL then shows the route (`/classes/gb/london`) in place of your page's own entry, so Back
+leaves your page as it would without the widget. Your default outranks the home region. A deep
+link to any other route is left alone.
 
 ### The widget follows your page's language
 
@@ -265,7 +266,14 @@ prefer.
 
 **If either is missing, the widget uses query routing and says so in the console**, naming which
 one was missing. It never silently switches modes — a host whose server config does nothing
-should learn that from us, not from their analytics six months later.
+should learn that from us, not from their analytics six months later. If your client record
+cannot be read at all — SahajCloud down or erroring, rather than your key refused — it does not
+fall back: the visitor gets the widget's own error screen, with a "Try again" that re-reads the
+record. That is the same screen a query-mode embed shows for the same failure, so neither mode
+answers an outage worse than the other. Its copy is translated like the rest of the widget, which
+means an outage big enough to take the translations with it leaves this screen in English too. It
+carries no "Report an issue" control: the report form mounts below this point, so there is
+nothing for it to open yet.
 
 **It does not cost you a round trip.** The widget reads your client record before it can build
 its router in either mode, before it renders anything — so path mode makes the same single
@@ -540,8 +548,9 @@ search engine can index. Every event and every city is a distinct URL on **your*
   give somebody a working URL on your site, because every href the widget renders is absolute and
   on your origin.
 
-**Mounting does not add a history entry, and does not touch your URL at all.** The widget only
-writes the parameter once a visitor navigates inside it. To make an embed open somewhere
+**Mounting does not add a history entry.** The widget writes the parameter once a visitor
+navigates inside it, or when it first opens your client record's home region — and that write
+replaces your page's entry, so Back still leaves your page. To make an embed open somewhere
 specific, use the [`atlas` parameter](#atlas-and-how-the-route-is-chosen) — the default the
 widget starts at when your page's URL names no route.
 
@@ -817,7 +826,7 @@ believing you allowed something you hadn't.
 | `connect-src`              | `cloud.sydevelopers.com`                      | **the API — every event, region and venue, and since 2026-09 every UI string and the list of languages offered**, plus the one-per-load [embed report](#what-the-loader-reports-back).                                                                                                                                                                                                                                                                                                | **the widget has no data and shows an error screen**                                                                                                                                                          |
 |                            | `api.mapbox.com`                              | tile and style requests. Also the place-search geocoder, and the reverse lookup naming the visitor's own location for "find my location".                                                                                                                                                                                                                                                                                                                                             | the map and search fail                                                                                                                                                                                       |
 |                            | `events.mapbox.com`                           | Mapbox GL's own map-load telemetry                                                                                                                                                                                                                                                                                                                                                                                                                                                    | nothing visible                                                                                                                                                                                               |
-|                            | `ipwho.is`                                    | the once-per-session IP→city lookup behind "classes near you"                                                                                                                                                                                                                                                                                                                                                                                                                         | **degrades**: the nearby suggestion and localized online times are skipped                                                                                                                                    |
+|                            | `ipwho.is`                                    | the once-per-session IP→city lookup behind "classes near you"                                                                                                                                                                                                                                                                                                                                                                                                                         | **degrades**: the nearby suggestion is skipped                                                                                                                                                                |
 |                            | `challenges.cloudflare.com`                   | Turnstile's own verification calls                                                                                                                                                                                                                                                                                                                                                                                                                                                    | **as `script-src` above — the widget does not run**                                                                                                                                                           |
 |                            | `cdn.usefathom.com`                           | analytics, conditional as above                                                                                                                                                                                                                                                                                                                                                                                                                                                       | analytics only                                                                                                                                                                                                |
 |                            | `*.sentry.io`                                 | crash reporting. Contacted **only after the widget has already failed**, and only on a build with a DSN.                                                                                                                                                                                                                                                                                                                                                                              | **degrades**: the widget notices the refusal and stops trying for the rest of the page's life                                                                                                                 |
@@ -1161,10 +1170,9 @@ so it does not need one. If a flow is still a problem for your privacy notice, t
 maintainers rather than editing the snippet:
 
 - **`ipwho.is`** — a keyless IP→city lookup, once per session, so the widget can offer "classes
-  near you" before the visitor types, and show an online class's start time in their own place.
-  No referrer, no key, no cookies, a five-second timeout, silent on failure, and skipped entirely
-  when neither could show — including for the rest of a session after the visitor dismissed the
-  prompt. **An IP is personal data in the EU**, and it is not stored — used to pick a city, then
+  near you" before the visitor types. No referrer, no key, no cookies, a five-second timeout,
+  silent on failure, and skipped entirely when that prompt could not show — including for the
+  rest of a session after the visitor dismissed it. **An IP is personal data in the EU**, and it is not stored — used to pick a city, then
   discarded.
 - **`cdn.usefathom.com`** — cookieless, aggregate pageview counting, loaded only when the bundle
   was built with an analytics ID and your client record names a real primary domain.

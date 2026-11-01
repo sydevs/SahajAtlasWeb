@@ -148,7 +148,7 @@ Conventions:
   name, and it **must be unique within a title** — Ladle keys each story by
   `title` + `storyName`.
 - **Imports**: subject co-located (`./Chip`), helpers `../../ladle`,
-  cross-component by alias (`@/components/atoms/Icons`), fixtures from
+  cross-component by alias (`@/components/atoms/Button`), fixtures from
   `@/mocks/events`.
 - **Trailing `<div />`** removes the last section's divider.
 - **Mock data**: use `@/mocks/events` fixtures, seeded picsum images

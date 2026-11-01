@@ -200,9 +200,6 @@ export type EventDisplay = {
   /** Course total sessions — only meaningful when `endingType` is 'count'. */
   sessions: number | null
   registration: RegistrationState
-  /** Physical events never convert ('local' hint when the viewer is elsewhere).
-   *  Online events convert to viewer time ('viewer' hint, which is load-bearing). */
-  timeHint: 'local' | 'viewer' | null
   /** One occurrence per distinct display-zone weekday of the upcoming dates —
    *  weekday labels derive from these instants, never from the raw pattern. */
   weekdayInstants: DateTime[]
@@ -242,7 +239,6 @@ const terminalDisplay = (
   firstSession: null,
   sessions: null,
   registration: 'hidden',
-  timeHint: null,
   weekdayInstants: [],
   // Ended: nothing to act on. "See nearby events" is the only affordance.
   // Inactive: contact leads (emphasized), plus the host's site, then share. There
@@ -378,7 +374,6 @@ export function resolveEventDisplay(
     firstSession: firstStart.setZone(displayZone),
     sessions: schedule.endingType === 'count' ? (schedule.count ?? null) : null,
     registration,
-    timeHint: online ? 'viewer' : viewerTz !== eventTz ? 'local' : null,
     weekdayInstants,
     actions,
     showNearby: full,
