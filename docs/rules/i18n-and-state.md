@@ -3,6 +3,7 @@ description: i18next localization and zustand state-store conventions.
 paths:
   - 'src/config/i18n.ts'
   - 'src/config/store.ts'
+  - 'src/config/theme/brand-palette.ts'
   - 'src/hooks/use-filters.ts'
   - 'src/hooks/use-locale.ts'
   - 'src/hooks/use-reveal.ts'
@@ -164,6 +165,21 @@ Six stores, each the single source of truth for its own slice:
   every later page keeps that label — a bare "Show more" would misdescribe it.
   There is deliberately **no "< N km" pill** — that button is the list's only
   distance affordance.
+
+**Two stores live beside their one consumer instead**, because nothing else has
+any business reading them and `store.ts` is where a slice several subtrees share
+belongs:
+
+- **`usePaddingState`** (`src/hooks/use-mapbox.ts`) — the camera padding the
+  `MapController` seam writes and the camera calls read.
+- **`useBrandPalette`** (`src/config/theme/brand-palette.ts`) — the resolved
+  brand roles `BrandTheme` painted the UI from, published so the map can derive
+  its own hexes (#17). The map paints an SVG `fill` and a Mapbox paint, which
+  take a literal colour, so the CSS variables `applyPalette` writes are no use to
+  it. ⚠ **It must answer with one object while nothing is seeded** — the map
+  memoises on its identity and re-registers its marker images when that changes,
+  so an equal-but-new object costs an unbranded embed a re-subscription on every
+  light/dark flip. `markers.ts` holds that rule and `markers.test.ts` asserts it.
 
 Three slices are **URL-derived, not stores** — the URL query is their single
 source of truth, so all three stay linkable and shareable:
