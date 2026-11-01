@@ -1,0 +1,32 @@
+<!doctype html>
+
+<!--
+  The Turnstile challenge, served from the widget's own origin and framed by the widget
+  (#343). Turnstile validates the hostname of the document that renders it, so rendering it
+  inside a partner's page failed with `110200` on every hostname not on the widget's list.
+  Here it always sees `sahajatlas.com`. src/lib/turnstile-frame.ts carries the reasoning.
+
+  This is not a page anybody navigates to — src/challenge.ts talks to its parent frame and
+  nothing else. It carries no stylesheet of ours: the widget's sheet is scoped to `.sy-atlas`
+  and adopted into a shadow root, neither of which exists here, and the only thing on the page
+  is Cloudflare's own 300×65 widget.
+
+  ⚠ The reset is in `style` ATTRIBUTES, and may not move into a `<style>` block. Every
+  stylesheet in this build goes through scripts/postcss-scope-widget.mjs, which rewrites each
+  selector to `:where(.sy-atlas)` — measured here, where it collapsed `html, body` onto one
+  selector matching neither element, so the body kept its 8px default margin and pushed the
+  widget out of a frame sized to it. Transparent, so the challenge sits on whatever surface
+  the form puts the frame on; Cloudflare's widget paints its own card.
+-->
+<html lang="en" style="margin: 0; padding: 0; background: transparent; overflow: hidden">
+  <head>
+    <meta charset="UTF-8" />
+    <!-- As index.html: the layer that does not depend on Cloudflare serving public/_headers. -->
+    <meta name="robots" content="noindex" />
+    <title>Security check</title>
+  </head>
+  <body style="margin: 0; padding: 0; background: transparent; overflow: hidden">
+    <div id="challenge"></div>
+    <script type="module" src="/src/challenge.ts"></script>
+  </body>
+</html>

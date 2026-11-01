@@ -3,6 +3,7 @@ import { describe, expect, test } from 'vitest'
 import { appPreviewHost } from '../../scripts/assert-preview-host.mjs'
 import { appWorkerName } from '../../scripts/_wrangler-config.mjs'
 import { findLiveSiteKeys, findTestSiteKeys } from '../../scripts/turnstile-release-guard.mjs'
+import { CHALLENGE_PATH } from '../../src/lib/turnstile-frame'
 
 import { PREVIEW_URL, fetchPreview, skipWithoutPreview } from './_helpers/preview'
 
@@ -146,6 +147,96 @@ async function crawlFromLoader() {
   return { seen: [...seen], broken, bodies }
 }
 
+/**
+ * The Turnstile challenge page's own graph, crawled once and shared.
+ *
+ * It is a SECOND entry, not reachable from the loader: `challenge.html` is framed at runtime
+ * by a URL the widget composes, so no `import()` names it and the crawl above cannot find it
+ * (#343). Its chunks are where the site key now lives, which is why the key spec below reads
+ * both maps.
+ *
+ * Only a clean crawl is cached, as `crawlDeploy`.
+ */
+let challenge:
+  | Promise<{
+      html: string
+      status: number
+      type: string
+      broken: string[]
+      bodies: Map<string, string>
+    }>
+  | undefined
+
+function crawlChallenge() {
+  challenge ??= crawlChallengePage().then(
+    (result) => {
+      if (result.broken.length > 0) challenge = undefined
+
+      return result
+    },
+    (err) => {
+      challenge = undefined
+      throw err
+    },
+  )
+
+  return challenge
+}
+
+async function crawlChallengePage() {
+  const res = await fetchPreview(CHALLENGE_PATH)
+  const html = await res.text()
+  const bodies = new Map<string, string>()
+  const broken: string[] = []
+
+  // Vite emits the entry as a `<script type="module" src>` plus `modulepreload` links. Both
+  // shapes are matched, because which chunks get a preload hint is the bundler's choice and
+  // the key could be inlined into any of them.
+  const specs = new Set(
+    [...html.matchAll(/(?:src|href)="(\/assets\/[^"]+\.js)"/g)].map(([, path]) => path),
+  )
+
+  for (const path of specs) {
+    const chunk = await fetchPreview(path)
+    const type = chunk.headers.get('content-type') ?? ''
+
+    // As the loader crawl: the SPA fallback answers 200 `text/html` for a path the deploy
+    // does not have, so the content type is what tells a chunk from the shell.
+    if (chunk.status === 200 && /javascript|ecmascript/i.test(type)) {
+      bodies.set(path, await chunk.text())
+    } else {
+      bodies.set(path, '')
+      broken.push(`${path} → ${chunk.status} ${type}`)
+    }
+  }
+
+  return { html, broken, bodies, status: res.status, type: res.headers.get('content-type') ?? '' }
+}
+
+describe('turnstile challenge page', () => {
+  // Every registration and every issue report frames this page. A deploy that does not serve
+  // it answers the SPA shell with a 200 instead, so the frame loads the whole widget inside
+  // itself, never sends a handshake, and the eager check fails the embed ten seconds later —
+  // on every host at once.
+  test.skipIf(skipWithoutPreview)('serves the challenge page, not the SPA shell', async () => {
+    const { html, status, type } = await crawlChallenge()
+
+    expect(status).toBe(200)
+    expect(type).toMatch(/text\/html/)
+    expect(html).toContain('id="challenge"')
+    // The shell's own mount point. `assets.not_found_handling` serves it for any path the
+    // deploy lacks, which is exactly the failure this case exists to catch.
+    expect(html).not.toContain('id="syatlas"')
+  })
+
+  test.skipIf(skipWithoutPreview)('serves every chunk the challenge page names', async () => {
+    const { broken, bodies } = await crawlChallenge()
+
+    expect(bodies.size).toBeGreaterThan(0)
+    expect(broken).toEqual([])
+  })
+})
+
 describe('embed bundle', () => {
   test.skipIf(skipWithoutPreview)('serves auto.js as a loader, not as the widget', async () => {
     const { status, body } = await fetchEmbed()
@@ -198,15 +289,22 @@ describe('turnstile site key', () => {
   test.skipIf(skipWithoutPreview)(
     'ships the test key only on a preview, and a real key everywhere else',
     async () => {
-      const { bodies, broken } = await crawlDeploy()
+      const loader = await crawlDeploy()
+      const page = await crawlChallenge()
 
       // A chunk that failed to fetch is stored with an empty body, so a 404 on the chunk
-      // carrying the key would read here as an unset build variable. The sibling case above
-      // owns that failure and names it correctly.
-      if (broken.length > 0) return
+      // carrying the key would read here as an unset build variable. The sibling cases above
+      // own that failure and name it correctly.
+      if (loader.broken.length > 0 || page.broken.length > 0) return
 
+      // ⚠ Both graphs, because the key moved out of the widget's own into the challenge
+      // page's when the challenge moved to a frame (#343) — and a key found in EITHER is a
+      // key production serves. Reading only the loader's graph would report production as
+      // carrying no key at all, and reading only the page's would miss a key re-inlined into
+      // the widget.
+      const bodies = [...loader.bodies, ...page.bodies]
       const where = (find: (body: string) => string[]) =>
-        [...bodies].flatMap(([path, body]) => find(body).map((key) => `${path}: ${key}`))
+        bodies.flatMap(([path, body]) => find(body).map((key) => `${path}: ${key}`))
 
       const testKeys = where(findTestSiteKeys)
       // A real key is public, but it stays out of CI logs: named by prefix only.

@@ -6,7 +6,7 @@ import { ErrorBoundary } from 'react-error-boundary'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { createRoot } from 'react-dom/client'
 
-import { useTurnstileGuard } from './use-turnstile-guard'
+import { cspAdvice, useTurnstileGuard } from './use-turnstile-guard'
 
 import { classifyError } from '@/lib/report'
 
@@ -118,8 +118,20 @@ describe('useTurnstileGuard', () => {
 
     // The directive is the only part of this addressed to somebody who can act on it.
     // It must survive the throw that unmounts the tree. That is why the hook orders its steps this way.
-    expect(advice).toContain('challenges.cloudflare.com')
+    expect(advice).toContain('frame-src')
     expect(advice).toContain('docs/embedding.md')
+  })
+
+  // ⚠ The advice names OUR origin, not Cloudflare's, since #343: the challenge renders in a
+  // frame served from the widget's origin, so `challenges.cloudflare.com` has left the host's
+  // policy altogether and naming it would send a developer to edit a line that fixes nothing.
+  it('names the widget origin under frame-src, and nothing a host no longer needs', () => {
+    const advice = cspAdvice('https://sahajatlas.com')
+
+    expect(advice).toContain('frame-src')
+    expect(advice).toContain('https://sahajatlas.com')
+    expect(advice).not.toContain('challenges.cloudflare.com')
+    expect(advice).not.toContain('script-src')
   })
 
   it('does not block the first paint on the probe', async () => {

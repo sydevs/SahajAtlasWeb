@@ -311,6 +311,10 @@ export default defineConfig(({ command }) => ({
     rolldownOptions: {
       input: {
         main: resolve(import.meta.dirname, 'index.html'),
+        // The Turnstile challenge, served from our origin so Turnstile sees one hostname
+        // whatever page hosts the widget (#343). An HTML input, so it lands at the output
+        // root as `/challenge.html` — the path `src/lib/turnstile-frame.ts` resolves.
+        challenge: resolve(import.meta.dirname, 'challenge.html'),
         // This is the one script a host installs. Nobody loads
         // `embed.js` directly any more — the loader imports it
         // dynamically. It stays an explicit entry so it keeps a stable,

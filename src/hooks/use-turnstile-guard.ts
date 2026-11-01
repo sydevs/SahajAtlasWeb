@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 
+import { challengeOrigin } from '@/lib/turnstile-frame'
 import { atlasError, reportIntegrationWarning } from '@/lib/report'
 import { probeTurnstile } from '@/hooks/use-turnstile'
 
@@ -10,11 +11,23 @@ import { probeTurnstile } from '@/hooks/use-turnstile'
  * This appears on the console, not on the screen, because the two audiences are different people.
  * The visitor gets `error.captcha_blocked`, which says the embed is broken without asking them to do anything about it.
  * The person who can edit the CSP gets the directive instead.
+ *
+ * ⚠ **It names OUR origin under `frame-src`, not Cloudflare's. See issue #343.** The challenge
+ * renders in a frame on the widget's origin, so `challenges.cloudflare.com` is governed by that
+ * frame's own policy and has left the host's `script-src`, `connect-src` and `frame-src`
+ * entirely. The origin is read off the frame URL rather than written out, so a preview deploy
+ * and `pnpm dev` each name the host they actually need allowed.
  */
-const CSP_ADVICE =
-  'Turnstile could not load, so registration and issue reports are impossible on this page. ' +
-  "Allow https://challenges.cloudflare.com in this page's Content-Security-Policy — " +
-  'both `script-src` and `frame-src`. See https://github.com/sydevs/SahajAtlasWeb/blob/main/docs/embedding.md#content-security-policy'
+export function cspAdvice(origin: string): string {
+  return (
+    'Turnstile could not load, so registration and issue reports are impossible on this page. ' +
+    `Allow ${origin} in this page's Content-Security-Policy, under \`frame-src\` — ` +
+    'the challenge renders in a frame served from there. ' +
+    'See https://github.com/sydevs/SahajAtlasWeb/blob/main/docs/embedding.md#content-security-policy'
+  )
+}
+
+const CSP_ADVICE = cspAdvice(challengeOrigin(import.meta.url))
 
 /**
  * This fails the widget when Turnstile cannot load. See issue #182.
@@ -34,7 +47,7 @@ const CSP_ADVICE =
  * ⚠ **Call this from the INTERFACE, never from the shell.**
  * `.claude/rules/components.md` is explicit that anything that fetches or injects a script must mount with `FullInterface`.
  * Four separate bugs, the home-region redirect, `warmCaches`, and both Fathom effects, came from effects firing for a collapsed compact card.
- * Injecting a third-party challenge script into a host's page for a card nobody has pressed would be the fifth.
+ * Mounting a challenge frame for a card nobody has pressed would be the fifth.
  * `CompactEmbedView.mount.test.tsx` asserts that this does not happen.
  *
  * This throws during render, not from the effect.

@@ -44,6 +44,22 @@ cover everything a host would notice since the widget was first deployed.
 
 ### Changed
 
+- ⚠ **BREAKING: your CSP needs `frame-src https://sahajatlas.com`, and the three
+  `challenges.cloudflare.com` entries can go.** ([#343]) The captcha that gates every form now
+  renders in a small frame served from the widget's own origin, instead of inside your document.
+  So `challenges.cloudflare.com` leaves your `script-src`, `connect-src` and `frame-src`, and
+  the widget's origin joins `frame-src`. **A policy that does not allow our origin to be framed
+  shows the error screen**, exactly as a blocked Turnstile did before — and the console names
+  the directive. Leaving the old three in place breaks nothing; they are simply dead.
+
+  Two things improve for you, and neither needs a change. **Onboarding a site needs no captcha
+  step at all**: Turnstile validates the hostname of the document that renders the challenge, so
+  every partner site used to need its hostname registered with us before a registration could be
+  sent — and the free plan caps that list at ten. It is our one hostname now, whatever page
+  hosts the widget. And **no script of Cloudflare's runs in your document any more**: the
+  requests to `challenges.cloudflare.com` are made by our frame, so your page's URL is no longer
+  the document asking.
+
 - **A repeat embed report turns into at most one write in any 6 h window.** ([#160]) The widget
   still reports on every page load, and an unchanged report inside that window is answered
   without a write. This guide and the embedding guide had both published the window as one hour.
@@ -844,6 +860,7 @@ must-revalidate`, pinned rather than left to the CDN default. The production dom
 [#312]: https://github.com/sydevs/SahajAtlasWeb/pull/312
 [#320]: https://github.com/sydevs/SahajAtlasWeb/issues/320
 [#326]: https://github.com/sydevs/SahajAtlasWeb/issues/326
+[#343]: https://github.com/sydevs/SahajAtlasWeb/issues/343
 [#322]: https://github.com/sydevs/SahajAtlasWeb/issues/322
 [#329]: https://github.com/sydevs/SahajAtlasWeb/pull/329
 [#325]: https://github.com/sydevs/SahajAtlasWeb/issues/325
