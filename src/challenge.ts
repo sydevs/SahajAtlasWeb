@@ -6,11 +6,30 @@
  * page failed on every partner hostname. Everything here runs in a frame the widget mounts; it
  * is never a page a visitor navigates to.
  *
- * ⚠ **Every framer is untrusted, and that is fine.** A Turnstile token is single-use and only
- * redeemable against SahajCloud's secret for this site key, so anybody who frames this page can
- * obtain one exactly as they could by loading Turnstile themselves. That is why the token goes
- * out with `'*'` as the target origin: the parent's origin is the host site's, unknown here and
- * different per partner, and pinning it would need a list this approach exists to avoid.
+ * ⚠ **This page hands its token to WHOEVER frames it, and nothing here can tell our widget on
+ * a partner's page from a third party's frame.** The target origin is `'*'` and the inbound
+ * `reset` is accepted from the parent without an origin check, because the parent's origin is
+ * the host site's — unknown here, different per partner, and knowing it would need the
+ * allowlist this whole approach exists to avoid. Nothing restricts framing either: no
+ * `frame-ancestors`, no `X-Frame-Options`.
+ *
+ * What that does NOT cost, measured rather than assumed: minting a token for this site key was
+ * never gated. The production key lists `localhost` and `127.0.0.1`, so anyone could already
+ * serve a page there and solve as many as they liked, and SahajCloud redeems each one only
+ * once.
+ *
+ * What it DOES cost is a token solved in somebody else's visitor's browser. That token carries
+ * that visitor's address, which is the address `verifyTurnstileToken` passes siteverify as
+ * `remoteip`, and a residential browser is scored better than an automation farm — so a write
+ * driven from it looks more legitimate than one driven from a minting host. `reset` lets a
+ * framer re-arm the same frame and take a stream rather than one.
+ *
+ * ⚠ **No client-side change fixes this**, since every framer can replay any handshake this
+ * public page defines. The two real answers are a `frame-ancestors` allowlist fetched at
+ * runtime from the client records, or SahajCloud binding a token to something a harvester
+ * cannot replay — `verifyTurnstile.ts` checks `success` alone today, no `action`, no `hostname`.
+ * Both need a decision, and both were out of #343's scope. See the question thread on the pull
+ * request that introduced this file.
  */
 
 import {
