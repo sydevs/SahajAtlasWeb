@@ -50,8 +50,10 @@ move ran one site at a time, and the app's own cutover was split from building i
 Two deploy files live in `public/`, copied into both build outputs, and both govern both sites:
 
 - **`_headers`** — one site-wide `/*` rule carrying CORS (#91: a font always fetches in CORS
-  mode) and `X-Robots-Tag: noindex` (#106), plus `Cache-Control` on `/assets/*` and the two
-  unhashed entry files (#148). The `/locales/*` rule went with the bundles in #198.
+  mode) and `X-Robots-Tag: noindex` (#106), plus `Cache-Control` on `/assets/*`, the two
+  unhashed entry files (#148) and `/challenge.html` (#343, the Turnstile challenge document —
+  unhashed like those two, but cacheable for ten minutes rather than revalidated, since it
+  names only hashed assets and is fetched inside a frame on the registration path). The `/locales/*` rule went with the bundles in #198.
   ⚠ **No two rules may set the same header name on paths that overlap** — the platform applies
   every matching rule and comma-joins a repeated value, so two would serve `<value>, <value>`.
   `scripts/deploy-headers.test.ts` holds this before a deploy, and it is why CORS lives in one
