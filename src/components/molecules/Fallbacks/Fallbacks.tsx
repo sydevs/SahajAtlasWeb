@@ -1086,6 +1086,13 @@ export type ErrorFallbackProps = {
   /** Supplied by the ErrorBoundary. Wired through `ResetErrorBoundary`, so a retry
    *  re-runs the failed query, instead of re-throwing its cached error. */
   resetErrorBoundary?: () => void
+  /**
+   * Whether a report has anywhere to go from this surface. `false` on the boot-time
+   * surface in `Widget.tsx`, which renders above the modal's host and above the theme
+   * root it portals into — so the action would open nothing there. The atlas's own
+   * config still has the last word where this is true.
+   */
+  canReport?: boolean
 }
 
 /**
@@ -1100,12 +1107,15 @@ export type ErrorFallbackProps = {
  * screen on top of it. `visibleActions` restores the report action in its place
  * instead.
  */
-export function ErrorFallback({ error, resetErrorBoundary }: ErrorFallbackProps) {
+export function ErrorFallback({ error, resetErrorBoundary, canReport = true }: ErrorFallbackProps) {
   const { policy, message, reportContext } = useErrorDisplay(error)
+  // Read unconditionally, then narrowed: `canReport && useReportForm().enabled` would
+  // make the hook call itself conditional.
+  const { enabled } = useReportForm()
   const actions = visibleActions(policy, {
     canRetry: !!resetErrorBoundary,
     canNavigate: false,
-    canReport: useReportForm().enabled,
+    canReport: canReport && enabled,
   })
 
   return (

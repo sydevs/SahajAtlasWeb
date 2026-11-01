@@ -3,8 +3,7 @@ import type { LoaderConfig } from './loader/config'
 import type { MountDecision } from './lib/shape'
 
 import r2wc from '@r2wc/react-to-web-component'
-import { Suspense, useEffect, useRef, useState } from 'react'
-import { ErrorBoundary } from 'react-error-boundary'
+import { type ReactNode, Suspense, useEffect, useRef, useState } from 'react'
 import { QueryClientProvider, useSuspenseQuery } from '@tanstack/react-query'
 
 import App, { RootBoundary } from './App'
@@ -20,11 +19,12 @@ import { usePublishedNode } from './hooks/use-published-node'
 import { getInitialTheme, setThemeRoot } from './hooks/use-theme'
 import { ELEMENT_NAME } from './lib/element'
 import { releaseAnnouncement } from './lib/embed-announce'
-import { classifyError, reportIntegrationWarning, reportInternalError } from './lib/report'
+import { classifyError, reportIntegrationWarning } from './lib/report'
 import { type SlotDecision, decideSlot } from './lib/slot-decision'
 import { WIDGET_SCOPE_CLASS } from './lib/scope'
 import { adoptStyles } from './styles/sheet'
 import { Spinner } from './components/atoms/Spinner'
+import { ErrorFallback, ResetErrorBoundary } from './components/molecules'
 import { mountDecision, mountPrefix } from './lib/shape'
 
 // This implements the embeddable widget's custom element.
@@ -136,38 +136,64 @@ function PathBoot({ apiKey }: { apiKey: string }) {
   if (resolved) return <Atlas prefix={resolved.value} />
 
   return (
-    // Only a rejected API key falls back to `<Atlas />`, and so to QUERY routing, which is
-    // what `mountDecision` does for every other unhonourable path config. Without it the
-    // RootBoundary above would answer with its static untranslated screen, instead of
-    // App's own configuration-error one. Any other failure rethrows to that screen:
-    // degrading would blame the record for a missing canonical embed, then write
-    // `?atlas=` URLs under the prefix once "Try again" succeeded.
-    <ErrorBoundary
-      fallbackRender={({ error }) => {
-        if (classifyError(error) !== 'config') throw error
+    /* Its OWN provider, over the same module-singleton client `Providers` uses — the
+       tree's own provider lives inside `App`, below the router this read exists to
+       construct. Sharing the singleton is what keeps it free: `AppShell`'s own
+       `clientQuery` read is then a cache hit. It sits ABOVE the boundary so the failure
+       screen below is inside it too: that screen's retry resets the query, and its report
+       gate reads the atlas config. */
+    <QueryClientProvider client={queryClient}>
+      {/* Only a rejected API key falls back to `<Atlas />`, and so to QUERY routing, which
+          is what `mountDecision` does for every other unhonourable path config. Without it
+          the RootBoundary above would answer with its static untranslated screen, instead of
+          App's own configuration-error one. Degrading any FURTHER failure would blame the
+          record for a missing canonical embed, then write `?atlas=` URLs under the prefix
+          once "Try again" succeeded — so each one gets `BootFailure` instead.
 
-        return <Atlas />
-      }}
-      // ⚠ **Report, or this fallback hides its own causes.** Degrading to query is a
-      // legitimate state that renders perfectly, so a throw here looks identical to a
-      // client with no canonical embed — and `mountDecision` then prints a warning
-      // blaming the record. Two bugs hid behind exactly that during this change: the
-      // API key was claimed below the read, so the fetch went out unauthenticated. And
-      // the tree's `QueryClientProvider` lives inside `App`, below here, so
-      // `useSuspenseQuery` threw "No QueryClient set". Both were found in a browser and
-      // neither was visible to any spec.
-      onError={(error) => reportInternalError(error, 'path prefix')}
-    >
-      {/* Its OWN provider, over the same module-singleton client `Providers` uses — the
-          tree's own provider lives inside `App`, below the router this read exists to
-          construct. Sharing the singleton is what keeps it free: `AppShell`'s own
-          `clientQuery` read is then a cache hit. */}
-      <QueryClientProvider client={queryClient}>
+          ⚠ **`ResetErrorBoundary`, not a bare `ErrorBoundary`.** Its
+          `QueryErrorResetBoundary` is what makes the retry re-read the record, rather than
+          re-throw the rejection React Query has cached.
+
+          ⚠ **Report, or this fallback hides its own causes.** Degrading to query is a
+          legitimate state that renders perfectly, so a throw here looks identical to a
+          client with no canonical embed — and `mountDecision` then prints a warning
+          blaming the record. Two bugs hid behind exactly that during this change: the
+          API key was claimed below the read, so the fetch went out unauthenticated. And
+          the tree's `QueryClientProvider` lives inside `App`, below here, so
+          `useSuspenseQuery` threw "No QueryClient set". Both were found in a browser and
+          neither was visible to any spec. `ResetErrorBoundary` reports from its own
+          composed `onError`, under the context named here. */}
+      <ResetErrorBoundary
+        context="path prefix"
+        fallbackRender={({ error, resetErrorBoundary }) =>
+          classifyError(error) === 'config' ? (
+            <Atlas />
+          ) : (
+            <BootFailure error={error} onRetry={resetErrorBoundary} />
+          )
+        }
+      >
         <Suspense fallback={<BootSurface />}>
           <PathPrefix apiKey={apiKey} onResolved={setResolved} />
         </Suspense>
-      </QueryClientProvider>
-    </ErrorBoundary>
+      </ResetErrorBoundary>
+    </QueryClientProvider>
+  )
+}
+
+/**
+ * The box both boot-time surfaces render into.
+ *
+ * ⚠ **The theme root and the provider stack live inside `Atlas`, below the point where
+ * path mode waits.** So this is the smallest thing that can be styled at all: the scope
+ * class and the theme class, which is what every rule in our injected stylesheet is
+ * rewritten to sit under, and where the theme tokens are declared.
+ */
+function BootShell({ children }: { children: ReactNode }) {
+  return (
+    <div className={`${WIDGET_SCOPE_CLASS} ${getInitialTheme()}`} translate="no">
+      {children}
+    </div>
   )
 }
 
@@ -177,19 +203,35 @@ function PathBoot({ apiKey }: { apiKey: string }) {
  * ⚠ **Not `null`, and not `LoadingFallback` either.** The wait itself is not extra
  * latency — query mode suspends on the very same `clients/me` request, and shows
  * `LoadingFallback` through it (`App.tsx`). The only thing path mode was missing is that
- * state, because the theme root and the provider stack live inside `Atlas`, below the
- * point where it waits. So this renders the smallest thing that can be styled: the scope
- * class and the theme class, which is all our stylesheet needs to reach a spinner.
- * `Spinner` is an atom and calls no `useTranslation`, so unlike `LoadingFallback` it
- * cannot suspend inside a Suspense fallback, which would throw.
+ * state. `Spinner` is an atom and calls no `useTranslation`, so unlike `LoadingFallback`
+ * it cannot suspend inside a Suspense fallback, which would throw.
  */
 function BootSurface() {
   return (
-    <div className={`${WIDGET_SCOPE_CLASS} ${getInitialTheme()}`} translate="no">
+    <BootShell>
       <div className="flex h-full w-full items-center justify-center p-8">
         <Spinner color="secondary" />
       </div>
-    </div>
+    </BootShell>
+  )
+}
+
+/**
+ * What it shows when the record cannot be read for any reason but a refused key.
+ *
+ * The same screen, in the visitor's own language, that query mode reaches for the same
+ * failure — `RootFallback` is the rung for a failure in what the app is BUILT on, and a
+ * `clients/me` 5xx is an ordinary classified one.
+ *
+ * ⚠ **`canReport` is false as a surface limit, not as policy.** `ReportIssueModal`'s
+ * host mounts inside `App` and portals into the theme root, and neither exists yet here,
+ * so the action would open nothing.
+ */
+function BootFailure({ error, onRetry }: { error: unknown; onRetry: () => void }) {
+  return (
+    <BootShell>
+      <ErrorFallback canReport={false} error={error} resetErrorBoundary={onRetry} />
+    </BootShell>
   )
 }
 
