@@ -3,9 +3,10 @@ import { act } from 'react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { createRoot } from 'react-dom/client'
 
-import { type UseTurnstile, probeTurnstile, useTurnstile } from './use-turnstile'
+import { type UseTurnstile, useTurnstile } from './use-turnstile'
 
-import { CHALLENGE_CHANNEL } from '@/lib/turnstile-frame'
+import { sendFromFrame } from '@/test-support/turnstile-frame'
+import { CHALLENGE_CHANNEL, type ChallengeEvent } from '@/lib/turnstile-frame'
 
 /**
  * The challenge lives in a frame on our own origin since #343, so what this covers is the
@@ -45,28 +46,13 @@ async function mount(node = <Probe />) {
 
 const frame = () => container.querySelector('iframe')
 
-/**
- * Speaks as the challenge page does.
- *
- * ⚠ The origin is read off the frame's own `src`, never written out. The hook resolves that
- * URL against its module URL, so the origin is the dev server's here and the deploy's in
- * production — hard-coding either would make this pass for the wrong reason.
- */
-function fromFrame(message: Record<string, unknown>, overrides: MessageEventInit = {}) {
+/** Speaks as the challenge page does. `sendFromFrame` owns the origin and source. */
+function fromFrame(message: ChallengeEvent, overrides: MessageEventInit = {}) {
   const iframe = frame()
 
   if (!iframe) throw new Error('no challenge frame')
 
-  act(() =>
-    window.dispatchEvent(
-      new MessageEvent('message', {
-        data: { channel: CHALLENGE_CHANNEL, ...message },
-        origin: new URL(iframe.src).origin,
-        source: iframe.contentWindow,
-        ...overrides,
-      }),
-    ),
-  )
+  act(() => sendFromFrame(iframe, message, overrides))
 }
 
 beforeEach(() => {
@@ -158,22 +144,38 @@ describe('useTurnstile', () => {
 
   it('ignores a message on another channel', async () => {
     await mount()
-
-    const iframe = frame()
-
-    act(() =>
-      window.dispatchEvent(
-        new MessageEvent('message', {
-          // A host page's own cross-frame traffic. Without the channel marker this shape
-          // would read as a solved challenge.
-          data: { type: 'token', token: 'tok-host' },
-          origin: new URL(iframe?.src as string).origin,
-          source: iframe?.contentWindow,
-        }),
-      ),
-    )
+    // A host page's own cross-frame traffic. Without the channel marker this shape would read
+    // as a solved challenge.
+    fromFrame({ type: 'token', token: 'tok-1' }, { data: { type: 'token', token: 'tok-host' } })
 
     expect(hook.token).toBeNull()
+  })
+
+  it('reports blocked when the frame never answers', async () => {
+    vi.useFakeTimers()
+    await mount()
+
+    expect(hook.status).toBe('loading')
+
+    // A `frame-src` that refuses us, or a proxy that swallows the request, produces no message
+    // at all. Without this the form sat on `loading` for ever, behind a submit button that
+    // could never produce a token.
+    await act(async () => vi.advanceTimersByTimeAsync(10_000))
+
+    expect(hook.status).toBe('blocked')
+    vi.useRealTimers()
+  })
+
+  it('does not call the frame dead once it has handshaken', async () => {
+    vi.useFakeTimers()
+    await mount()
+    fromFrame({ type: 'ready' })
+
+    // An unsolved challenge is Turnstile's business after the handshake, not a dead frame's.
+    await act(async () => vi.advanceTimersByTimeAsync(60_000))
+
+    expect(hook.status).toBe('ready')
+    vi.useRealTimers()
   })
 
   it('asks the frame to reset, and drops the token first', async () => {
@@ -256,24 +258,35 @@ describe('probeTurnstile', () => {
     )
 
   /**
-   * Starts the check and reports what it has decided so far.
+   * Starts the check on a FRESH copy of the module, and reports what it has decided so far.
    *
-   * ⚠ **Every case here runs on fake timers, and that is the only thing that makes them
-   * non-vacuous.** The check's timeout answers `false` too, so a case that simply awaits the
+   * ⚠ **Fresh, because the verdict is memoized at module scope.** Every case here would
+   * otherwise read whichever answer the first one cached.
+   *
+   * ⚠ **Every case runs on fake timers, and that is the only thing that makes them
+   * non-vacuous.** The handshake timeout answers `false` too, so a case that simply awaits the
    * verdict passes whether the signal it dispatched was read or ignored — it just takes ten
    * seconds about it. What each case asserts is therefore WHEN the verdict lands.
    */
-  function startProbe() {
+  async function startProbe() {
     vi.useFakeTimers()
+    vi.resetModules()
 
-    let state: boolean | 'pending' = 'pending'
-    const done = probeTurnstile().then((available) => {
-      state = available
-    })
+    const { probeTurnstile } = await import('./use-turnstile')
+    const verdicts: (boolean | 'pending')[] = []
+    const run = () => {
+      const index = verdicts.push('pending') - 1
+
+      return probeTurnstile().then((available) => {
+        verdicts[index] = available
+      })
+    }
 
     return {
-      done,
-      settled: () => state,
+      run,
+      done: run(),
+      settled: (index = 0) => verdicts[index],
+      calls: () => verdicts.length,
       origin: () => new URL(probeFrame()?.src as string).origin,
     }
   }
@@ -287,23 +300,24 @@ describe('probeTurnstile', () => {
       }),
     )
 
+  const fromProbe = (type: ChallengeEvent['type']) => {
+    const iframe = probeFrame()
+
+    if (!iframe) throw new Error('no probe frame')
+
+    sendFromFrame(iframe, { type } as ChallengeEvent)
+  }
+
   afterEach(() => {
     vi.useRealTimers()
   })
 
   it('mounts a handshake-only frame and resolves true on ready', async () => {
-    const probe = startProbe()
-    const iframe = probeFrame()
+    const probe = await startProbe()
 
-    expect(new URL(iframe?.src as string).searchParams.get('probe')).toBe('1')
+    expect(new URL(probeFrame()?.src as string).searchParams.get('probe')).toBe('1')
 
-    window.dispatchEvent(
-      new MessageEvent('message', {
-        data: { channel: CHALLENGE_CHANNEL, type: 'ready' },
-        origin: new URL(iframe?.src as string).origin,
-        source: iframe?.contentWindow,
-      }),
-    )
+    fromProbe('ready')
     await probe.done
 
     expect(probe.settled()).toBe(true)
@@ -312,16 +326,9 @@ describe('probeTurnstile', () => {
   })
 
   it('resolves false when the frame reports an error', async () => {
-    const probe = startProbe()
-    const iframe = probeFrame()
+    const probe = await startProbe()
 
-    window.dispatchEvent(
-      new MessageEvent('message', {
-        data: { channel: CHALLENGE_CHANNEL, type: 'error' },
-        origin: new URL(iframe?.src as string).origin,
-        source: iframe?.contentWindow,
-      }),
-    )
+    fromProbe('error')
     await probe.done
 
     expect(probe.settled()).toBe(false)
@@ -333,13 +340,13 @@ describe('probeTurnstile', () => {
     ['the bare origin, as Chromium sends it', ''],
     ['the origin with a path', '/challenge.html'],
   ])('resolves false at once on a frame-src violation naming %s', async (_label, path) => {
-    const probe = startProbe()
+    const probe = await startProbe()
 
     violation('frame-src', `${probe.origin()}${path}`)
     await vi.advanceTimersByTimeAsync(0)
 
-    // Before the timeout, which is the whole point: a refused frame fires no load and no
-    // error of its own, so without this the widget would run for ten seconds looking healthy.
+    // Before the handshake timeout, which is the whole point: a refused frame fires no load
+    // and no error of its own, so without this the widget looks healthy for ten seconds.
     expect(probe.settled()).toBe(false)
   })
 
@@ -350,7 +357,7 @@ describe('probeTurnstile', () => {
     ['another directive, our origin', 'img-src', true],
     ['frame-src, another origin', 'frame-src', false],
   ])('ignores a violation about %s', async (_label, directive, ours) => {
-    const probe = startProbe()
+    const probe = await startProbe()
 
     violation(directive, ours ? `${probe.origin()}/logo.svg` : 'https://widgets.example/f.html')
     await vi.advanceTimersByTimeAsync(5_000)
@@ -364,7 +371,7 @@ describe('probeTurnstile', () => {
   })
 
   it('resolves false only once the frame has had its full wait', async () => {
-    const probe = startProbe()
+    const probe = await startProbe()
 
     await vi.advanceTimersByTimeAsync(9_999)
 
@@ -374,5 +381,40 @@ describe('probeTurnstile', () => {
     await probe.done
 
     expect(probe.settled()).toBe(false)
+  })
+
+  it('checks once per page and shares the answer', async () => {
+    const probe = await startProbe()
+
+    fromProbe('ready')
+    await probe.done
+
+    const second = probe.run()
+
+    await second
+
+    // A compact embed's dialog unmounts its children, so open/close/open would otherwise pay
+    // for a whole browsing context, three of our chunks and a Cloudflare script eval each time.
+    expect(probe.settled(1)).toBe(true)
+    expect(probeFrame()).toBeUndefined()
+  })
+
+  it('checks again after a negative verdict', async () => {
+    const probe = await startProbe()
+
+    fromProbe('error')
+    await probe.done
+
+    // Not cached: the same verdict covers a CSP refusal and a request that simply failed, and
+    // the second of those can recover. The script load this replaced cleared its memo for the
+    // same reason.
+    const second = probe.run()
+
+    expect(probeFrame()).toBeDefined()
+
+    fromProbe('ready')
+    await second
+
+    expect(probe.settled(1)).toBe(true)
   })
 })

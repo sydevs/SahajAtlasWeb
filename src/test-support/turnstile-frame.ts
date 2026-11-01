@@ -1,6 +1,6 @@
 import { vi } from 'vitest'
 
-import { CHALLENGE_CHANNEL, parseChallengeCommand } from '@/lib/turnstile-frame'
+import { type ChallengeEvent, challengeMessage, parseChallengeCommand } from '@/lib/turnstile-frame'
 
 /**
  * Stands in for the challenge PAGE, never for our own hook (#343).
@@ -19,31 +19,42 @@ export function challengeFrameStub(container: ParentNode) {
 
   if (!frame?.contentWindow) throw new Error('no Turnstile challenge frame')
 
-  const commands: string[] = []
+  let resets = 0
 
   vi.spyOn(frame.contentWindow, 'postMessage').mockImplementation(((data: unknown) => {
-    if (parseChallengeCommand(data)) commands.push('reset')
+    if (parseChallengeCommand(data)) resets += 1
   }) as Window['postMessage'])
-
-  // ⚠ The origin is read off the frame's own `src`. The hook resolves that URL against its
-  // module URL, so hard-coding one here would make the hook's own origin check pass or fail
-  // for a reason unrelated to the form under test.
-  const send = (message: Record<string, unknown>) =>
-    window.dispatchEvent(
-      new MessageEvent('message', {
-        data: { channel: CHALLENGE_CHANNEL, ...message },
-        origin: new URL(frame.src).origin,
-        source: frame.contentWindow,
-      }),
-    )
 
   return {
     /** The challenge renders and is solved, which is what hands the form its token. */
     solve: (token = 'tok-live') => {
-      send({ type: 'ready' })
-      send({ type: 'token', token })
+      sendFromFrame(frame, { type: 'ready' })
+      sendFromFrame(frame, { type: 'token', token })
     },
     /** How many times the form asked the frame for a fresh challenge. */
-    resetCount: () => commands.length,
+    resetCount: () => resets,
   }
+}
+
+/**
+ * Dispatches one message as the challenge page would, for a spec driving the frame directly.
+ *
+ * ⚠ The origin is read off the frame's own `src`. The hook resolves that URL against its
+ * module URL, so hard-coding one here would make the hook's own origin check pass or fail for
+ * a reason unrelated to what the spec is testing. `overrides` is what lets a case send a
+ * deliberately wrong source, origin or shape.
+ */
+export function sendFromFrame(
+  frame: HTMLIFrameElement,
+  message: ChallengeEvent,
+  overrides: MessageEventInit = {},
+) {
+  window.dispatchEvent(
+    new MessageEvent('message', {
+      data: challengeMessage(message),
+      origin: new URL(frame.src).origin,
+      source: frame.contentWindow,
+      ...overrides,
+    }),
+  )
 }

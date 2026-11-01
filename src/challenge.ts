@@ -15,6 +15,7 @@
 
 import {
   type ChallengeEvent,
+  type ChallengeOptions,
   challengeMessage,
   parseChallengeCommand,
   readChallengeOptions,
@@ -28,7 +29,7 @@ const SITE_KEY: string | undefined = import.meta.env.VITE_TURNSTILE_SITE_KEY
 
 type TurnstileRenderOptions = {
   sitekey: string
-  theme?: 'light' | 'dark' | 'auto'
+  theme?: ChallengeOptions['theme']
   language?: string
   callback?: (token: string) => void
   'error-callback'?: () => void
@@ -51,14 +52,10 @@ function send(message: ChallengeEvent) {
 }
 
 function mount() {
-  const container = document.getElementById('challenge')
-
-  if (!container) {
-    send({ type: 'error' })
-
-    return
-  }
-
+  // The div is this document's own, so the fallback is for nothing that can happen rather than
+  // a case to branch on. `challenge.html` carries the id because the smoke lane reads it back
+  // to tell this page from the SPA shell a missing deploy would serve in its place.
+  const container = document.getElementById('challenge') ?? document.body
   const options = readChallengeOptions(window.location.search)
 
   // No key means no captcha anywhere in the widget, so the handshake must NOT succeed: the
@@ -74,8 +71,9 @@ function mount() {
 
   script.src = SCRIPT_URL
   script.async = true
-  // Cloudflare learns this origin regardless — it is the hostname check. This keeps the path
-  // and query off the request, which now carry the parent's theme and language.
+  // This is the Cloudflare-facing hop, and the only one. Cloudflare learns this origin
+  // regardless — that is the hostname check. What this keeps off the request is the path and
+  // query, which carry the parent's theme and language.
   script.referrerPolicy = 'strict-origin'
   script.addEventListener('error', () => send({ type: 'error' }))
   script.addEventListener('load', () => {

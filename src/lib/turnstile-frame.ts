@@ -52,14 +52,15 @@ export type ChallengeOptions = {
 }
 
 /**
- * The frame's `src`, resolved against the module's own URL so the frame is always same-origin
- * with the bundle — production, a Workers preview, `pnpm dev` or Ladle, with nothing to
- * configure. `src/styles/fonts.ts` resolves the font files the same way and for the same
- * reason: the deploy origin is not knowable at build time.
+ * The frame's `src`, resolved against the calling module's own URL so the frame is always
+ * same-origin with the bundle — production, a Workers preview, `pnpm dev` or Ladle, with
+ * nothing to configure. `src/styles/fonts.ts` resolves the font files the same way and for the
+ * same reason: the deploy origin is not knowable at build time.
  *
- * ⚠ Pass `import.meta.url` as `moduleUrl` rather than writing it inside this function. Vite
- * rewrites the literal `new URL(…, import.meta.url)` expression at transform time as its
- * asset-URL idiom; a variable base is left alone.
+ * ⚠ `moduleUrl` is a parameter rather than a `import.meta.url` read inside this module, for
+ * two reasons. Vite rewrites the literal `new URL(…, import.meta.url)` expression at transform
+ * time as its asset-URL idiom, and a variable base is left alone. And it is what lets a spec
+ * assert the shape this returns on a real deploy, rather than on the test runner's own origin.
  */
 export function challengeSrc(moduleUrl: string, options: ChallengeOptions): string {
   const url = new URL(CHALLENGE_PATH, moduleUrl)
@@ -71,11 +72,7 @@ export function challengeSrc(moduleUrl: string, options: ChallengeOptions): stri
   return url.href
 }
 
-/**
- * The origin the challenge frame is served from — the one a host must allow under `frame-src`.
- *
- * ⚠ Pass `import.meta.url`, for the reason `challengeSrc` gives.
- */
+/** The origin the frame is served from — the one a host must allow under `frame-src`. */
 export function challengeOrigin(moduleUrl: string): string {
   return new URL(CHALLENGE_PATH, moduleUrl).origin
 }
@@ -129,13 +126,12 @@ export function challengeMessage<T extends ChallengeEvent | ChallengeCommand>(me
 export function readChallengeOptions(search: string): ChallengeOptions {
   const params = new URLSearchParams(search)
   const theme = params.get('theme')
+  const language = params.get('language') ?? ''
 
   return {
     theme: theme === 'light' || theme === 'dark' || theme === 'auto' ? theme : 'auto',
     // Turnstile takes `auto` for "follow the browser", which is the right default here too.
-    language: /^[a-z]{2}(-[a-z]{2})?$/i.test(params.get('language') ?? '')
-      ? (params.get('language') as string)
-      : 'auto',
+    language: /^[a-z]{2}(-[a-z]{2})?$/i.test(language) ? language : 'auto',
     probe: params.get('probe') === '1',
   }
 }

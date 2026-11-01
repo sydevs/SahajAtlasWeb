@@ -80,7 +80,7 @@ const Sentinel = () => <p>{INTERFACE}</p>
  * the widget's own origin now. The cost to a host is the same shape: a document and a request
  * for an interface nobody opened.
  */
-const challengeFrames = () => document.querySelectorAll(`iframe[src*="/challenge.html"]`).length
+const challengeFrames = () => document.querySelectorAll('iframe[src*="/challenge.html"]').length
 
 function InterfaceWithTurnstile() {
   useTurnstileGuard()
@@ -111,9 +111,9 @@ describe('CompactEmbedView — what a collapsed card mounts', () => {
   })
 
   // The fifth candidate for the four-bug pattern above, and the one with a cost outside this
-  // project's own page. A collapsed card is one button in somebody's sidebar. Loading
-  // Cloudflare's challenge for it would put a third-party script into their document, and a
-  // request to Cloudflare from every page view, for an interface nobody opened (issue #182).
+  // project's own page. A collapsed card is one button in somebody's sidebar. Checking the
+  // captcha for it would put a document of ours in theirs, and a request to Cloudflare from
+  // inside it, on every page view, for an interface nobody opened (issue #182).
   it('mounts no Turnstile frame while collapsed, and does once opened', () => {
     expect(challengeFrames()).toBe(0)
 

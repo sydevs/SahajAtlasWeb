@@ -27,8 +27,6 @@ export function cspAdvice(origin: string): string {
   )
 }
 
-const CSP_ADVICE = cspAdvice(challengeOrigin(import.meta.url))
-
 /**
  * This fails the widget when Turnstile cannot load. See issue #182.
  *
@@ -65,7 +63,7 @@ export function useTurnstileGuard(): void {
 
       // This runs before the throw, not after.
       // The throw unmounts this tree, and the console line is the only part of this addressed to somebody who can fix it.
-      reportIntegrationWarning(CSP_ADVICE)
+      reportIntegrationWarning(cspAdvice(challengeOrigin(import.meta.url)))
       setBlocked(true)
     })
 

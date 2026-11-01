@@ -49,28 +49,62 @@ function fetchEmbed() {
 }
 
 /**
- * Every chunk `auto.js` can reach, crawled once and shared by the specs below.
+ * Runs `crawl` once and shares the result, keeping only a CLEAN one.
  *
- * Only a clean crawl is cached. A broken chunk or a thrown fetch clears it, so each retry
- * crawls again rather than replaying the same transient 5xx (see `fetchEmbed`).
+ * A broken chunk or a thrown fetch clears the memo, so each retry crawls again rather than
+ * replaying the same transient 5xx (see `fetchEmbed`). Shared by both crawls below, because
+ * two copies of this would be two chances to get the clearing wrong.
  */
-let crawl: Promise<{ seen: string[]; broken: string[]; bodies: Map<string, string> }> | undefined
+function cacheCleanCrawl<T extends { broken: string[] }>(crawl: () => Promise<T>) {
+  let cached: Promise<T> | undefined
 
-function crawlDeploy() {
-  crawl ??= crawlFromLoader().then(
-    (result) => {
-      if (result.broken.length > 0) crawl = undefined
+  return () =>
+    (cached ??= crawl().then(
+      (result) => {
+        if (result.broken.length > 0) cached = undefined
 
-      return result
-    },
-    (err) => {
-      crawl = undefined
-      throw err
-    },
-  )
-
-  return crawl
+        return result
+      },
+      (err) => {
+        cached = undefined
+        throw err
+      },
+    ))
 }
+
+/**
+ * Fetches one chunk, and decides whether the deploy really served it.
+ *
+ * ⚠ Status alone proves nothing: `assets.not_found_handling` serves the SPA shell with a
+ * **200 `text/html`** for any path that is not a built asset, so a check on `res.status` would
+ * pass for exactly the failure these crawls exist to catch. The content type is what tells a
+ * real chunk from the fallback, and it is the lane's own invariant (`docs/testing.md`) — so it
+ * has one implementation, read by both crawls.
+ *
+ * A chunk that failed is stored with an EMPTY body rather than omitted, so a spec reading the
+ * bodies back cannot mistake a 404 for a chunk that genuinely carries nothing.
+ */
+async function fetchChunk(path: string, bodies: Map<string, string>, broken: string[]) {
+  // Uses GET, not HEAD. The body serves both as the assertion and as the next frontier to
+  // crawl. The whole deploy is roughly 440 KiB gzipped, and this lane runs separately from
+  // the PR gate.
+  const res = await fetchPreview(path)
+  const type = res.headers.get('content-type') ?? ''
+
+  if (res.status === 200 && /javascript|ecmascript/i.test(type)) {
+    bodies.set(path, await res.text())
+
+    return true
+  }
+
+  bodies.set(path, '')
+  broken.push(`${path} → ${res.status} ${type}`)
+
+  return false
+}
+
+/** Every chunk `auto.js` can reach, crawled once and shared by the specs below. */
+const crawlDeploy = cacheCleanCrawl(crawlFromLoader)
 
 async function crawlFromLoader() {
   const { body } = await fetchEmbed()
@@ -79,39 +113,49 @@ async function crawlFromLoader() {
   // hashed. A host or a proxy holding a stale copy can request names the deploy no
   // longer contains, and the widget then never appears. This spec catches the
   // deploy-side half of that mismatch: a loader published without the graph behind
-  // it.
-  //
-  // This matches every relative `.js` literal, not only the static-import shape. A
-  // missing lazy chunk is the same broken deploy, found one interaction later.
-  //
-  // The crawl is transitive, not one level deep, and that matters more now than
-  // before. The whole widget sits behind one dynamic import from the loader. A
-  // one-level crawl from `auto.js` would reach `embed.js` and stop, missing every
-  // chunk the widget needs. The views behind a lazy seam load from a chunk that
-  // names them, not from the entry file. A one-level crawl stopped covering the
-  // calendar, registration, and share chunks the moment those moved behind
-  // `React.lazy` (issue #96). Following each body in turn makes the found set the
-  // whole deploy the widget can ever request, however deep the seam goes.
-  //
-  // Backticks matter as much as the transitive crawl. rolldown's minifier emits
-  // dynamic specifiers as template literals, for example
-  // `import(\`./CalendarView-<hash>.js\`)`. A pattern that matches only `"` and `'`
-  // catches the static imports and silently skips every lazy chunk in the build.
+  // it. The loader's body is already in hand, so it seeds the walk rather than
+  // being fetched a second time.
+  return crawlFrom([], new Map([['/auto.js', body]]))
+}
+
+/**
+ * Walks a JavaScript graph on the deploy, from `seeds` plus anything already in hand.
+ *
+ * This matches every relative `.js` literal, not only the static-import shape. A missing lazy
+ * chunk is the same broken deploy, found one interaction later.
+ *
+ * ⚠ **The crawl is transitive, not one level deep.** The whole widget sits behind one dynamic
+ * import from the loader, so a one-level crawl from `auto.js` would reach `embed.js` and stop,
+ * missing every chunk the widget needs. The views behind a lazy seam load from a chunk that
+ * names them, not from the entry file: a one-level crawl stopped covering the calendar,
+ * registration and share chunks the moment those moved behind `React.lazy` (issue #96).
+ * Following each body in turn makes the found set the whole graph the widget can ever request,
+ * however deep the seam goes — which is why the challenge page's own entry is walked through
+ * this same function rather than read once.
+ *
+ * ⚠ **Backticks matter as much as the transitive crawl.** rolldown's minifier emits dynamic
+ * specifiers as template literals, for example `import(\`./CalendarView-<hash>.js\`)`. A pattern
+ * matching only `"` and `'` catches the static imports and silently skips every lazy chunk.
+ */
+async function crawlFrom(seeds: string[], prefetched = new Map<string, string>()) {
   const RELATIVE_JS = /["'`](\.\/[^"'`]+\.js)["'`]/g
-  // Chunks reference each other relative to their own directory. `embed.js` sits at
-  // the root and points into `./assets/`. Everything under `assets/` points at its
-  // siblings.
+  // Chunks reference each other relative to their own directory. `embed.js` sits at the root
+  // and points into `./assets/`. Everything under `assets/` points at its siblings.
   const resolveFrom = (path: string, spec: string) =>
     `${path.slice(0, path.lastIndexOf('/'))}/${spec.replace(/^\.\//, '')}`
 
-  // Status alone proves nothing here. The SPA fallback answers `/* /index.html
-  // 200`, so a missing chunk also answers 200 as the shell. A check on
-  // `res.status` would pass for exactly the failure this spec exists to catch. The
-  // content type is what tells a real chunk apart from the fallback HTML.
   const broken: string[] = []
+  const bodies = new Map(prefetched)
   const seen = new Set<string>()
-  const queue = ['/auto.js']
-  const bodies = new Map<string, string>([['/auto.js', body]])
+  const queue = [...prefetched.keys()]
+
+  for (const path of seeds) {
+    if (seen.has(path)) continue
+
+    seen.add(path)
+
+    if (await fetchChunk(path, bodies, broken)) queue.push(path)
+  }
 
   while (queue.length) {
     const path = queue.pop() as string
@@ -126,21 +170,7 @@ async function crawlFromLoader() {
 
       seen.add(next)
 
-      // Uses GET, not HEAD. The body serves both as the assertion and as the next
-      // frontier to crawl. The whole deploy is roughly 440 KiB gzipped, and this
-      // lane runs separately from the PR gate.
-      const res = await fetchPreview(next)
-      const type = res.headers.get('content-type') ?? ''
-
-      if (res.status === 200 && /javascript|ecmascript/i.test(type)) {
-        const text = await res.text()
-
-        bodies.set(next, text)
-        queue.push(next)
-      } else {
-        bodies.set(next, '')
-        broken.push(`${next} → ${res.status} ${type}`)
-      }
+      if (await fetchChunk(next, bodies, broken)) queue.push(next)
     }
   }
 
@@ -155,62 +185,23 @@ async function crawlFromLoader() {
  * (#343). Its chunks are where the site key now lives, which is why the key spec below reads
  * both maps.
  *
- * Only a clean crawl is cached, as `crawlDeploy`.
+ * ⚠ **Transitive from the page's own scripts, not one level deep.** A one-level crawl is the
+ * defect #96 recorded against the loader: it reads the entry and stops, so a chunk named only
+ * by another chunk goes unchecked. `crawlFrom` is the same walk the loader uses, seeded with
+ * the page's own `src` and `modulepreload` paths instead of `auto.js`.
  */
-let challenge:
-  | Promise<{
-      html: string
-      status: number
-      type: string
-      broken: string[]
-      bodies: Map<string, string>
-    }>
-  | undefined
-
-function crawlChallenge() {
-  challenge ??= crawlChallengePage().then(
-    (result) => {
-      if (result.broken.length > 0) challenge = undefined
-
-      return result
-    },
-    (err) => {
-      challenge = undefined
-      throw err
-    },
-  )
-
-  return challenge
-}
+const crawlChallenge = cacheCleanCrawl(crawlChallengePage)
 
 async function crawlChallengePage() {
   const res = await fetchPreview(CHALLENGE_PATH)
   const html = await res.text()
-  const bodies = new Map<string, string>()
-  const broken: string[] = []
-
   // Vite emits the entry as a `<script type="module" src>` plus `modulepreload` links. Both
   // shapes are matched, because which chunks get a preload hint is the bundler's choice and
   // the key could be inlined into any of them.
-  const specs = new Set(
-    [...html.matchAll(/(?:src|href)="(\/assets\/[^"]+\.js)"/g)].map(([, path]) => path),
-  )
+  const seeds = [...html.matchAll(/(?:src|href)="(\/assets\/[^"]+\.js)"/g)].map(([, path]) => path)
+  const crawled = await crawlFrom(seeds)
 
-  for (const path of specs) {
-    const chunk = await fetchPreview(path)
-    const type = chunk.headers.get('content-type') ?? ''
-
-    // As the loader crawl: the SPA fallback answers 200 `text/html` for a path the deploy
-    // does not have, so the content type is what tells a chunk from the shell.
-    if (chunk.status === 200 && /javascript|ecmascript/i.test(type)) {
-      bodies.set(path, await chunk.text())
-    } else {
-      bodies.set(path, '')
-      broken.push(`${path} → ${chunk.status} ${type}`)
-    }
-  }
-
-  return { html, broken, bodies, status: res.status, type: res.headers.get('content-type') ?? '' }
+  return { ...crawled, html, status: res.status, type: res.headers.get('content-type') ?? '' }
 }
 
 describe('turnstile challenge page', () => {

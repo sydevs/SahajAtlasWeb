@@ -228,9 +228,10 @@ export const ERROR_POLICY: Record<FallbackKind, FallbackPolicy> = {
     report: true,
   },
   // Turnstile failed to load, so this widget cannot send anything the viewer
-  // writes (issue #182). The usual cause is a `config` failure: a host CSP that is
-  // missing challenges.cloudflare.com. This row still earns its own row, for one
-  // reason `config` cannot express:
+  // writes (issue #182). The usual cause is a `config` failure: a host CSP that
+  // will not let the widget frame its own origin, where the challenge renders
+  // (#343). This row still earns its own row, for one reason `config` cannot
+  // express:
   //
   // **It offers no report action.** The report form is itself gated by Turnstile.
   // Sending a viewer to it would hand them a second form that also cannot submit.
@@ -238,19 +239,20 @@ export const ERROR_POLICY: Record<FallbackKind, FallbackPolicy> = {
   // `REPORTED_KINDS` mirrors it too.
   //
   // The sentence names the cause, not the fix. A visitor cannot edit a CSP. The
-  // instruction "add challenges.cloudflare.com to your script-src" means nothing
-  // to most visitors on a meditation page. Only the site's developer needs it.
+  // instruction "add our origin to your frame-src" means nothing to most visitors
+  // on a meditation page. Only the site's developer needs it.
   // `reportIntegrationWarning` prints that instruction to the console, where a
   // developer debugging the embed will look. `docs/embedding.md` carries the
   // lasting version.
   //
   // ⚠ **This row DOES retry. That looks wrong next to `config`, but is correct.**
-  // The probe reports the same verdict for a CSP that blocks the script and for a
-  // script request that simply failed on the network. `loadTurnstile` clears its
-  // cached promise on failure. So a second attempt is a real second attempt, and
-  // the network-failure half of that pair can genuinely recover. A CSP block fails
-  // again the same way, which costs the viewer one press. A `config` failure has
-  // no such recoverable half, so it withholds the retry. This row does not.
+  // The check reports the same verdict for a CSP that refuses the frame and for a
+  // frame request that simply failed on the network, and it clears its memoized
+  // verdict whenever it is negative. So a second attempt mounts a fresh frame and
+  // is a real second attempt, and the network-failure half of that pair can
+  // genuinely recover. A CSP block fails again the same way, which costs the
+  // viewer one press. A `config` failure has no such recoverable half, so it
+  // withholds the retry. This row does not.
   'captcha-blocked': {
     messageKey: 'common.errors.captcha_blocked',
     fallbackText: "This Atlas can't run on this page: its security check was blocked.",

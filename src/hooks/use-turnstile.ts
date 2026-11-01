@@ -34,22 +34,29 @@ const FRAME_WIDTH = 300
 const FRAME_HEIGHT = 65
 
 /**
- * How long the availability check waits for the frame's handshake.
+ * How long either caller waits for the frame's handshake before calling it dead.
  *
- * It bounds a frame that neither loads nor errors: a CSP refusal reports
- * `securitypolicyviolation` and is caught at once, but a host behind a proxy that swallows the
- * request leaves the frame blank with no event at all. Nothing waits on this promise, so the
- * cost of the bound being generous is a verdict that lands late, not a slow first paint.
+ * It bounds a frame that neither loads nor errors — a host behind a proxy that swallows the
+ * request, or one whose policy refuses the frame on an engine that reports no violation — and
+ * both callers need the same bound. Nothing blocks on the verdict, so a generous bound costs a
+ * late answer, never a slow first paint.
  */
-const PROBE_TIMEOUT_MS = 10_000
+const HANDSHAKE_TIMEOUT_MS = 10_000
 
 /**
- * Builds the frame and the listener that reads it, for both the hook and the probe.
+ * Builds the frame, the listener that reads it, and the one definition of its liveness — for
+ * both the hook and the probe.
  *
  * Two checks decide what counts as the frame talking, and both are needed. `event.source`
  * pins the message to this frame's own window, which no other document can forge. `origin`
  * pins it to the origin we built the `src` from, so a frame navigated elsewhere — a redirect,
  * a captive portal — cannot keep answering as the challenge.
+ *
+ * ⚠ **Silence is delivered as the page's own `error`.** A frame that never handshakes is as
+ * dead as one that reported a failure, and both callers already answer `error` correctly — the
+ * probe with `false`, the hook with `blocked`. Giving the hook no timeout of its own is what
+ * left a form under a refusing `frame-src` on `loading` for ever, with a submit button that
+ * could never produce a token.
  */
 function createChallengeFrame(
   options: ChallengeOptions,
@@ -65,11 +72,17 @@ function createChallengeFrame(
   // The frame's content is a captcha with its own labelling. A title is still required of
   // every frame, and "security check" is what a screen-reader user needs to hear here.
   frame.title = 'Security check'
-  // Cloudflare learns our origin from the request regardless. This keeps the host page's path
-  // and query out of it, which an `unsafe-url` referrer policy on the host would otherwise send.
+  // This request goes to OUR origin, not Cloudflare's — `src/challenge.ts` owns that hop. What
+  // this keeps out of our own logs is the host page's path and query, which a host opting into
+  // an `unsafe-url` referrer policy would otherwise send us.
   frame.referrerPolicy = 'strict-origin'
 
   const expectedOrigin = new URL(src).origin
+  const deliver = (message: ChallengeEvent | null) => {
+    if (message) clearTimeout(timer)
+
+    onEvent(message)
+  }
   const onMessage = (event: MessageEvent) => {
     // `contentWindow` is checked for presence as well as identity: a frame with none yet
     // leaves both sides `null`, and `null !== null` is false, so a message carrying no source
@@ -77,12 +90,14 @@ function createChallengeFrame(
     if (!frame.contentWindow || event.source !== frame.contentWindow) return
     if (event.origin !== expectedOrigin) return
 
-    onEvent(parseChallengeEvent(event.data))
+    deliver(parseChallengeEvent(event.data))
   }
+  const timer = setTimeout(() => onEvent({ type: 'error' }), HANDSHAKE_TIMEOUT_MS)
 
   window.addEventListener('message', onMessage)
 
   const dispose = () => {
+    clearTimeout(timer)
     window.removeEventListener('message', onMessage)
     frame.remove()
   }
@@ -108,24 +123,41 @@ function createChallengeFrame(
  * ⚠ The hostname mismatch this check could never see is **gone** rather than unobserved — the
  * challenge now always renders on the one hostname the widget's Turnstile key lists (#343).
  */
+let availability: Promise<boolean> | null = null
+
 export async function probeTurnstile(): Promise<boolean> {
   if (typeof document === 'undefined') return false
 
+  // One check per page, shared by every mount. The script load this replaced memoized itself,
+  // so reopening an interface cost nothing; without this a compact embed's open/close/open
+  // pays for a whole browsing context, three of our chunks and a Cloudflare script eval each
+  // time. Cleared on a negative verdict, so a transient network failure is retried rather
+  // than cached for the life of the page.
+  availability ??= runCheck().then((available) => {
+    if (!available) availability = null
+
+    return available
+  })
+
+  return availability
+}
+
+function runCheck(): Promise<boolean> {
   return new Promise<boolean>((resolve) => {
     let settled = false
     const settle = (available: boolean) => {
       if (settled) return
 
       settled = true
-      clearTimeout(timer)
       document.removeEventListener('securitypolicyviolation', onViolation)
       dispose()
       resolve(available)
     }
 
-    // The violation the probe exists to catch: a host policy that refuses to frame our
-    // origin. The frame then fires no load and no error of its own, so without this the
-    // verdict would wait out the timeout.
+    // A host policy that refuses to frame our origin. The frame then fires no load and no
+    // error of its own, so this is the only thing that answers before the handshake timeout —
+    // a latency decision, not a second liveness rule. Ten seconds of a healthy-looking widget
+    // before the error screen is worse than the screen arriving at once.
     //
     // Measured in Chromium 153.0.8010.12 against the built page, 2026-11-01: a host sending
     // `frame-src 'none'` AND one sending only `default-src 'self'` both report
@@ -157,17 +189,10 @@ export async function probeTurnstile(): Promise<boolean> {
     // element at its static position still extends the document's scroll area — a stray
     // pixel of scroll on somebody else's page for the length of the check. A fixed element
     // contributes none.
-    frame.style.position = 'fixed'
-    frame.style.top = '0'
-    frame.style.left = '0'
-    frame.style.width = '1px'
-    frame.style.height = '1px'
-    frame.style.opacity = '0'
-    frame.style.pointerEvents = 'none'
+    frame.style.cssText =
+      'position:fixed;top:0;left:0;width:1px;height:1px;opacity:0;pointer-events:none;border:0'
     frame.setAttribute('aria-hidden', 'true')
     frame.tabIndex = -1
-
-    const timer = setTimeout(() => settle(false), PROBE_TIMEOUT_MS)
 
     document.addEventListener('securitypolicyviolation', onViolation)
     document.body.appendChild(frame)
