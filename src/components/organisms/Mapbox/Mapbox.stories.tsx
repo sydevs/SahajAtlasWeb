@@ -8,6 +8,7 @@ import { Mapbox } from './Map'
 import { MapSearch } from './MapSearch'
 
 import { Alert } from '@/components/atoms/Alert'
+import { BrandTheme } from '@/config/theme/BrandTheme'
 
 export default { title: 'Organisms' } satisfies StoryDefault
 
@@ -74,3 +75,36 @@ export const Default: Story = () => (
 )
 
 Default.storyName = 'Mapbox'
+
+/**
+ * The same map under a tenant's brand palette, a deep maroon in both roles.
+ * `BrandTheme` resolves the roles and publishes them; the pins, the cluster
+ * bubbles and the cluster counts all derive from `primary` and `contrast`
+ * step 9. Compare the teal and orange in the `Mapbox` story above.
+ *
+ * ⚠ Ladle's own palette control paints the widget's CSS variables directly
+ * rather than through `BrandTheme`, so it does not reach the map. This story is
+ * the only place in the playground where branded markers appear.
+ */
+export const BrandedMarkers: Story = () => (
+  <StoryWrapper>
+    <StorySection
+      description="A tenant palette reaching the map: brand-colored pins, cluster bubbles and counts."
+      title="Branded markers"
+    >
+      {hasToken ? (
+        <BrandTheme palette={{ primary: '#64032e', contrast: '#64032e' }}>
+          <div className="h-[70vh] w-full">
+            <MapProvider>
+              <Mapbox />
+            </MapProvider>
+          </div>
+        </BrandTheme>
+      ) : (
+        <NeedsToken what="branded map" />
+      )}
+    </StorySection>
+  </StoryWrapper>
+)
+
+BrandedMarkers.storyName = 'Mapbox — branded markers'

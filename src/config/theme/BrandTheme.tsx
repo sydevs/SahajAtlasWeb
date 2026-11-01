@@ -2,6 +2,7 @@ import { useLayoutEffect, useMemo, type ReactNode } from 'react'
 import { useQuery } from '@tanstack/react-query'
 
 import { clientQuery } from '@/config/api'
+import { useBrandPalette } from '@/config/theme/brand-palette'
 import { applyPalette, type PaletteRoles } from '@/config/theme/palette'
 import { getThemeRoot, stopSystemWatch, useTheme } from '@/hooks/use-theme'
 
@@ -51,6 +52,8 @@ export function BrandTheme({ apiKey, palette, children }: BrandThemeProps) {
     if (typeof document === 'undefined') return
 
     applyPalette(getThemeRoot(), resolved, theme)
+    // The map paints in hex rather than CSS variables, so it reads these roles instead of the paint.
+    useBrandPalette.getState().setPalette(resolved)
   }, [resolved, theme])
 
   // This stops the system-theme watcher when this widget unmounts, so no `matchMedia` listener fires after teardown.

@@ -26,8 +26,10 @@ import {
   hoveredPointLayer,
   hoveredAreaLayer,
   boundsLayer,
+  INTERACTIVE_LAYER_IDS,
+  LAYER_IDS,
 } from './layers'
-import { registerMarkerImages } from './markers'
+import { markerColors, registerMarkerImages } from './markers'
 
 import { Button } from '@/components/atoms/Button'
 import { Modal, ModalClose, ModalContent, ModalFooter } from '@/components/atoms/Modal'
@@ -38,6 +40,7 @@ import { useEventFilters } from '@/hooks/use-filters'
 import { useGeolocateToSearch } from '@/hooks/use-geolocate'
 import { useRegionMatcher } from '@/hooks/use-region-matcher'
 import api from '@/config/api'
+import { useBrandPalette } from '@/config/theme/brand-palette'
 import { GEOJSON_STALE_TIME } from '@/config/query-client'
 import { hasActiveFilters, matchesFilters, safePath, todayISO } from '@/lib/shape'
 import { useLocale } from '@/hooks/use-locale'
@@ -269,12 +272,24 @@ export function Mapbox({ cooperative = false }: { cooperative?: boolean } = {}) 
   // nearest classes in it.
   const geolocateToSearch = useGeolocateToSearch(data)
 
+  // The tenant's resolved palette, as `BrandTheme` painted the UI from it.
+  // These three derive every brand color the map paints: the four marker
+  // images, the cluster count, and the debug boundary.
+  //
+  // `mode` is already in each of them, since every step is mode-aware, so a
+  // light/dark switch repaints through the same dependency a palette change
+  // does.
+  const palette = useBrandPalette((state) => state.palette)
+  const colors = useMemo(() => markerColors(palette, theme), [palette, theme])
+  const clusters = useMemo(() => clusterLayer(palette, theme), [palette, theme])
+  const bounds = useMemo(() => boundsLayer(palette, theme), [palette, theme])
+
   // This supplies the app's own pin and cluster images. `markers.ts` owns
-  // the why and the theme-switch handling. There is one subscription per
-  // map instance.
+  // the why, the theme-switch handling, and the in-place repaint. There is
+  // one subscription per map instance and set of colors.
   useEffect(() => {
-    if (mapbox) return registerMarkerImages(mapbox)
-  }, [mapbox])
+    if (mapbox) return registerMarkerImages(mapbox, colors)
+  }, [mapbox, colors])
 
   // This holds the canvas until the camera has arrived somewhere, so a deep
   // link never paints the boot-time world view before jumping off it.
@@ -378,7 +393,7 @@ export function Mapbox({ cooperative = false }: { cooperative?: boolean } = {}) 
       // cannot linger over the pin.
       setHoveredId(null)
 
-      if (feature.layer?.id === clusterLayer.id) {
+      if (feature.layer?.id === LAYER_IDS.cluster) {
         const source = mapbox.getSource('events') as GeoJSONSource
 
         source.getClusterExpansionZoom(feature.properties?.cluster_id, (err, zoom) => {
@@ -391,7 +406,7 @@ export function Mapbox({ cooperative = false }: { cooperative?: boolean } = {}) 
             duration: 500,
           })
         })
-      } else if (feature.layer?.id === unclusteredPointLayer.id) {
+      } else if (feature.layer?.id === LAYER_IDS.unclusteredPoint) {
         navigate(safePath(feature.properties?.webPath) ?? `/${feature.properties?.id}`)
       }
     },
@@ -414,7 +429,7 @@ export function Mapbox({ cooperative = false }: { cooperative?: boolean } = {}) 
       // React skips a re-render when the id is unchanged (Object.is), so
       // this stays a no-op while the pointer sits on one pin.
       const pinId =
-        feature?.layer?.id === unclusteredPointLayer.id ? Number(feature.properties?.id) : NaN
+        feature?.layer?.id === LAYER_IDS.unclusteredPoint ? Number(feature.properties?.id) : NaN
 
       setHoveredId(Number.isFinite(pinId) ? pinId : null)
     },
@@ -442,7 +457,7 @@ export function Mapbox({ cooperative = false }: { cooperative?: boolean } = {}) 
         // selection pin.
         fadeDuration={0}
         id="mapbox"
-        interactiveLayerIds={[clusterLayer.id, unclusteredPointLayer.id]}
+        interactiveLayerIds={INTERACTIVE_LAYER_IDS}
         // @ts-ignore - Language is a valid property
         language={locale} // TODO: Make sure this switches when locale changes
         locale={mapLocale}
@@ -493,13 +508,13 @@ export function Mapbox({ cooperative = false }: { cooperative?: boolean } = {}) 
             id="events"
             type="geojson"
           >
-            <Layer {...clusterLayer} />
+            <Layer {...clusters} />
             <Layer {...unclusteredPointLayer} />
           </Source>
         )}
         {DEBUG_BOUNDARY && boundary && (
           <Source data={boundary} id="bounds" type="geojson">
-            <Layer {...boundsLayer} />
+            <Layer {...bounds} />
           </Source>
         )}
         {selection && (

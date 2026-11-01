@@ -2,12 +2,49 @@ import type { LayerProps } from 'react-map-gl'
 
 import { MARKER_IDS } from './markers'
 
+import { onHex, stepHex, type PaletteRoles, type ThemeMode } from '@/config/theme/palette'
+
 type Props = {
   id: string
 } & LayerProps
 
-export const clusterLayer: Props = {
-  id: 'clusters',
+/**
+ * Every layer id, in one place.
+ *
+ * Two of the layers below are factories now, so `Map.tsx` cannot read an id
+ * off a layer object without building one. These ids are also a contract with
+ * anything that inspects the map — a click handler matches on them, and
+ * `INTERACTIVE_LAYER_IDS` lists them — so they stay stable while the paints
+ * follow the palette.
+ */
+export const LAYER_IDS = {
+  cluster: 'clusters',
+  unclusteredPoint: 'unclustered-point',
+  selectedPoint: 'selected-point',
+  selectedArea: 'selected-area',
+  hoveredPoint: 'hovered-point',
+  hoveredArea: 'hovered-area',
+  bounds: 'selected-bounds',
+} as const
+
+// The layers that answer clicks and hover, as one stable array: `<ReactMapGL>`
+// takes this by identity, and a fresh literal per render would reflow the map.
+// The hover highlights are deliberately absent — they stay purely visual.
+export const INTERACTIVE_LAYER_IDS = [LAYER_IDS.cluster, LAYER_IDS.unclusteredPoint]
+
+// The brand solid, the step the cluster bubble and the pins are filled from.
+const SOLID = 9 as const
+
+/**
+ * The cluster bubble and its count.
+ *
+ * A factory, because the count's color follows the bubble's fill: the bubble
+ * is the `primary` solid (`markers.ts`), so the readable on-color of that same
+ * ramp is what stays legible on it. Memoise the result — `docs/rules/mapbox.md`
+ * forbids a fresh paint object per render.
+ */
+export const clusterLayer = (palette: PaletteRoles, mode: ThemeMode): Props => ({
+  id: LAYER_IDS.cluster,
   type: 'symbol',
   source: 'events',
   filter: ['has', 'point_count'],
@@ -20,18 +57,17 @@ export const clusterLayer: Props = {
     'text-size': 12,
   },
   paint: {
-    // This shows a white count on the cluster bubble, which is the same art
-    // on both basemaps, so it needs no theming. The disc is slightly
-    // translucent (see `markers.ts`), so a pale feature underneath can show
-    // through and reduce contrast with it. This is inherited from the
-    // Studio sprite this replaced. Make the inner disc fully opaque if the
-    // count ever reads thin.
-    'text-color': '#FFFFFF',
+    // White on the stock teal bubble, which is the same art on both basemaps.
+    // The disc is slightly translucent (see `markers.ts`), so a pale feature
+    // underneath can show through and reduce contrast with it. This is
+    // inherited from the Studio sprite this replaced. Make the inner disc
+    // fully opaque if the count ever reads thin.
+    'text-color': onHex(palette.primary, mode) ?? '#FFFFFF',
   },
-}
+})
 
 export const unclusteredPointLayer: Props = {
-  id: 'unclustered-point',
+  id: LAYER_IDS.unclusteredPoint,
   type: 'symbol',
   source: 'events',
   filter: ['!', ['has', 'point_count']],
@@ -44,7 +80,7 @@ export const unclusteredPointLayer: Props = {
 }
 
 export const selectedPointLayer: LayerProps = {
-  id: 'selected-point',
+  id: LAYER_IDS.selectedPoint,
   type: 'symbol',
   source: 'selection',
   layout: {
@@ -56,7 +92,7 @@ export const selectedPointLayer: LayerProps = {
 }
 
 export const selectedAreaLayer: LayerProps = {
-  id: 'selected-area',
+  id: LAYER_IDS.selectedArea,
   type: 'symbol',
   source: 'selection',
   layout: {
@@ -68,12 +104,14 @@ export const selectedAreaLayer: LayerProps = {
 
 // This is the card-hover highlight (issue #44). It reuses the selected
 // marker images — larger and slightly translucent, so the hovered pin
-// "pops" above the base points without a dedicated hover image (one can
-// land with #17). It is fed by the `hover` source, not `selection`, and it
+// "pops" above the base points without a dedicated hover image. #17 brought
+// the markers under the brand palette and added none: reusing the selected
+// images is what makes the highlight follow a tenant's colors for free.
+// It is fed by the `hover` source, not `selection`, and it
 // is never added to `interactiveLayerIds`, so the highlight stays purely
 // visual.
 export const hoveredPointLayer: LayerProps = {
-  id: 'hovered-point',
+  id: LAYER_IDS.hoveredPoint,
   type: 'symbol',
   source: 'hover',
   layout: {
@@ -88,7 +126,7 @@ export const hoveredPointLayer: LayerProps = {
 }
 
 export const hoveredAreaLayer: LayerProps = {
-  id: 'hovered-area',
+  id: LAYER_IDS.hoveredArea,
   type: 'symbol',
   source: 'hover',
   layout: {
@@ -101,8 +139,16 @@ export const hoveredAreaLayer: LayerProps = {
   },
 }
 
-export const boundsLayer: LayerProps = {
-  id: 'selected-bounds',
+/**
+ * The selected region's outline.
+ *
+ * A factory, like `clusterLayer`, and memoised the same way. This is a
+ * debug-only layer, rendered behind `DEBUG_BOUNDARY` in `Map.tsx`, so nothing
+ * on screen shows whether its color is right — the node lane asserts it
+ * instead.
+ */
+export const boundsLayer = (palette: PaletteRoles, mode: ThemeMode): LayerProps => ({
+  id: LAYER_IDS.bounds,
   type: 'line',
   source: 'bounds',
   layout: {
@@ -110,10 +156,10 @@ export const boundsLayer: LayerProps = {
     'line-cap': 'round',
   },
   paint: {
-    // This is a debug-only layer, rendered behind DEBUG_BOUNDARY in Map.tsx.
-    // The neutral mid-grey reads on both basemaps, so it needs no
-    // theme-aware variant.
-    'line-color': '#888',
+    // The brand solid stays visible on both basemaps: step 9 caps its
+    // lightness in light mode and floors it in dark. The neutral mid-grey it
+    // falls back to needs no theme-aware variant for the same reason.
+    'line-color': stepHex(palette.primary, mode, SOLID) ?? '#888',
     'line-width': 4,
   },
-}
+})

@@ -174,6 +174,52 @@ const isBrandSeed = (seedHex: string): boolean => {
   return c.isValid() && c.toHsl().s >= MIN_BRAND_SATURATION
 }
 
+// The map paints in hex. An SVG `fill` attribute and a Mapbox paint both refuse the channel
+// triples above, and neither can read a CSS variable.
+// So these three accessors exist, and `colord` stays in this file, the only one that knows the ladder.
+//
+// `stepHex` and `onHex` return null for a seed that is absent, invalid or achromatic.
+// That is the refusal `setRole` already makes by writing nothing.
+// So each caller falls back to its own built-in default, rather than to a washed-out grey ramp.
+
+const hexOf = (channels: string): string => {
+  const [h, s, l] = channels.replaceAll('%', '').split(' ').map(Number)
+
+  return colord({ h, s, l }).toHex()
+}
+
+/** One step of a seed's ramp, as `#rrggbb`. Null when the seed is not a brand color. */
+export function stepHex(
+  seedHex: string | null | undefined,
+  mode: ThemeMode,
+  step: Step,
+): string | null {
+  if (!seedHex || !isBrandSeed(seedHex)) return null
+
+  return hexOf(buildScale(seedHex, mode)[step])
+}
+
+/** The readable on-color for a seed's solid step, as `#rrggbb`. Null when the seed is not a brand color. */
+export function onHex(seedHex: string | null | undefined, mode: ThemeMode): string | null {
+  if (!seedHex || !isBrandSeed(seedHex)) return null
+
+  return hexOf(buildScale(seedHex, mode).on)
+}
+
+/** A hex shifted in HSL lightness and saturation, clamped into range. */
+export function shiftHex(
+  hex: string,
+  shift: { lightness?: number; saturation?: number; maxLightness?: number },
+): string {
+  const { h, s, l } = colord(hex).toHsl()
+
+  return colord({
+    h,
+    s: clamp(s + (shift.saturation ?? 0), 0, 100),
+    l: clamp(l + (shift.lightness ?? 0), 0, shift.maxLightness ?? 100),
+  }).toHex()
+}
+
 const setRole = (root: HTMLElement, token: string, seedHex: string, mode: ThemeMode) => {
   if (!isBrandSeed(seedHex)) return false
 

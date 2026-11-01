@@ -1,6 +1,14 @@
 import { describe, it, expect } from 'vitest'
 
-import { buildScale, applyPalette, type ColorScale, type Step } from './palette'
+import {
+  buildScale,
+  applyPalette,
+  onHex,
+  shiftHex,
+  stepHex,
+  type ColorScale,
+  type Step,
+} from './palette'
 
 const parse = (s: string) => {
   const [h, sPct, lPct] = s.split(' ')
@@ -162,5 +170,43 @@ describe('applyPalette', () => {
     expect(props.has('--secondary-1')).toBe(false)
     expect(props.has('--background')).toBe(false)
     expect(props.get('--primary-9')).toBe('333 60% 20%')
+  })
+})
+
+// The map paints with literal colors, not CSS variables, so it reads the ramp
+// through these three rather than through `applyPalette`.
+describe('the hex accessors', () => {
+  it('gives a step as #rrggbb, per mode', () => {
+    expect(stepHex('#64032e', 'light', 9)).toBe('#521430')
+    // Dark mode floors the solid's lightness at 60, so the same seed is lighter.
+    expect(stepHex('#64032e', 'dark', 9)).toBe('#d65c93')
+    expect(stepHex('#64032e', 'light', 8)).toBe('#d9689b')
+  })
+
+  it('refuses a seed that is absent, invalid or achromatic', () => {
+    // The refusal `setRole` already makes by writing nothing. Every caller then
+    // keeps its own built-in default rather than painting a grey ramp.
+    for (const seed of [undefined, null, '', 'not-a-color', '#000000', '#ffffff', '#333333']) {
+      expect(stepHex(seed, 'light', 9)).toBeNull()
+      expect(onHex(seed, 'light')).toBeNull()
+    }
+  })
+
+  it('gives the solid step a readable on-color', () => {
+    expect(onHex('#64032e', 'light')).toBe('#ffffff')
+    // Dark mode's lighter solid reads better under black.
+    expect(onHex('#64032e', 'dark')).toBe('#000000')
+  })
+
+  it('shifts a hex in HSL, clamped', () => {
+    // The marker rings: each one is its own fill, lighter and less saturated.
+    expect(shiftHex('#521430', { lightness: 21, saturation: -16, maxLightness: 92 })).toBe(
+      '#983a64',
+    )
+    // A near-white seed hits both clamps: lightness at the cap, saturation at 0.
+    expect(shiftHex('#fafafa', { lightness: 21, saturation: -16, maxLightness: 92 })).toBe(
+      '#ebebeb',
+    )
+    expect(shiftHex('#521430', {})).toBe('#521430')
   })
 })
