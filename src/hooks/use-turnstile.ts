@@ -123,9 +123,16 @@ export async function probeTurnstile(): Promise<boolean> {
       resolve(available)
     }
 
-    // The violation the probe exists to catch: a host `frame-src` (or `child-src`, or a
-    // `default-src` standing in for either) that refuses our origin. The frame then fires no
-    // load and no error of its own, so without this the verdict would wait out the timeout.
+    // The violation the probe exists to catch: a host policy that refuses to frame our
+    // origin. The frame then fires no load and no error of its own, so without this the
+    // verdict would wait out the timeout.
+    //
+    // Measured in Chromium 153.0.8010.12 against the built page, 2026-11-01: a host sending
+    // `frame-src 'none'` AND one sending only `default-src 'self'` both report
+    // `effectiveDirective: 'frame-src'` with `blockedURI` the BARE ORIGIN — no trailing
+    // slash and no path. Hence `startsWith`, which holds for either shape, rather than an
+    // equality test. `child-src` and `default-src` are matched for the engines this was not
+    // measured on, and for `violatedDirective`, which is the older spelling.
     const onViolation = (event: SecurityPolicyViolationEvent) => {
       const directive = event.effectiveDirective || event.violatedDirective
 
@@ -145,7 +152,14 @@ export async function probeTurnstile(): Promise<boolean> {
 
     // Hidden, not `display: none`: a frame with no box is still fetched, but keeping it in the
     // layout tree is what keeps this check as close as possible to the frame a form mounts.
-    frame.style.position = 'absolute'
+    //
+    // ⚠ `fixed`, not `absolute`. This lands in the HOST page's body, and an out-of-flow
+    // element at its static position still extends the document's scroll area — a stray
+    // pixel of scroll on somebody else's page for the length of the check. A fixed element
+    // contributes none.
+    frame.style.position = 'fixed'
+    frame.style.top = '0'
+    frame.style.left = '0'
     frame.style.width = '1px'
     frame.style.height = '1px'
     frame.style.opacity = '0'

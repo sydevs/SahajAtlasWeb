@@ -327,10 +327,15 @@ describe('probeTurnstile', () => {
     expect(probe.settled()).toBe(false)
   })
 
-  it('resolves false at once on a frame-src violation naming our origin', async () => {
+  // Chromium reports the BARE origin as `blockedURI` — measured, and the reason the handler
+  // matches by prefix. The path form is kept for the engines that were not measured.
+  it.each([
+    ['the bare origin, as Chromium sends it', ''],
+    ['the origin with a path', '/challenge.html'],
+  ])('resolves false at once on a frame-src violation naming %s', async (_label, path) => {
     const probe = startProbe()
 
-    violation('frame-src', `${probe.origin()}/challenge.html`)
+    violation('frame-src', `${probe.origin()}${path}`)
     await vi.advanceTimersByTimeAsync(0)
 
     // Before the timeout, which is the whole point: a refused frame fires no load and no

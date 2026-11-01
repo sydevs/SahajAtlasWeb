@@ -1025,7 +1025,7 @@ elements. On top of that, every selector is still confined to the widget's own s
 fails the build if a rule escapes. Your headings, links, lists, forms, `.container`, a `.dark`
 theme class, and your own Swiper or Mapbox instances are all left alone.
 
-Six honest exceptions, none of them styling your content:
+Seven honest exceptions, none of them styling your content:
 
 - Opening a modal panel inside the widget sets `overflow: hidden` on your `<body>` while open —
   standard scroll-lock, reverted on close.
@@ -1061,6 +1061,14 @@ Six honest exceptions, none of them styling your content:
   holding those registrations and nothing else: a registration inside a shadow root is ignored,
   and without them the widget draws no borders and no shadows. Like the widget's own sheet, it is
   constructed, so it asks nothing new of your [CSP](#content-security-policy).
+
+- **A 1-pixel hidden `<iframe>` sits in your `<body>` for a moment after the widget mounts**,
+  and is removed again as soon as it has answered. It is the captcha's availability check: it
+  loads the challenge page from the widget's origin and asks whether your policy lets it, so a
+  page where registration is impossible says so immediately rather than at the moment somebody
+  tries to sign up. It is `position: fixed`, fully transparent, not focusable and hidden from
+  assistive technology, and it adds nothing to your page's scroll height. Nothing else of yours
+  is touched.
 
 **The reverse direction is a boundary, not a defence.** The widget renders inside a **shadow
 root**, so a selector in your stylesheet cannot match an element inside it — at any specificity,
