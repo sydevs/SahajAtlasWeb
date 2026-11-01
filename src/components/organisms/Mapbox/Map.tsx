@@ -273,12 +273,15 @@ export function Mapbox({ cooperative = false }: { cooperative?: boolean } = {}) 
   const geolocateToSearch = useGeolocateToSearch(data)
 
   // The tenant's resolved palette, as `BrandTheme` painted the UI from it.
-  // These three derive every brand color the map paints: the four marker
-  // images, the cluster count, and the debug boundary.
   //
-  // `mode` is already in each of them, since every step is mode-aware, so a
+  // ⚠ Each result is memoised because react-map-gl's `Layer` force-renders on
+  // every `styledata` event, so a factory called in the JSX below would rebuild
+  // a ramp per tile batch. `docs/rules/mapbox.md` states the rule.
+  //
+  // The mode is inside each derivation, since every step is mode-aware, so a
   // light/dark switch repaints through the same dependency a palette change
-  // does.
+  // does — and an unbranded embed re-runs none of it, because `markerColors`
+  // answers with one shared object.
   const palette = useBrandPalette((state) => state.palette)
   const colors = useMemo(() => markerColors(palette, theme), [palette, theme])
   const clusters = useMemo(() => clusterLayer(palette, theme), [palette, theme])

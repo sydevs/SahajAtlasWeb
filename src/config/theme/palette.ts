@@ -130,6 +130,11 @@ const DARK_MIN_LIGHTNESS = 60
 // The surface never uses the seed's raw shade, which would otherwise blacken the panel for a near-black seed.
 const BACKGROUND_STEP: Step = 1
 
+// The brand solid. `ColorScale.on` is this step's on-color by definition, and the
+// map's pins and cluster bubbles are filled from it, so it is exported rather
+// than re-declared in each consumer.
+export const SOLID_STEP: Step = 9
+
 const clamp = (n: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, n))
 
 // This derives a 12-step color scale from a seed hex, for the given mode.
@@ -151,7 +156,8 @@ export function buildScale(seedHex: string, mode: ThemeMode): ColorScale {
   const scale = { on: foregroundFor(colord({ h, s: saturation, l: l9 })) } as ColorScale
 
   for (let step = 1 as Step; step <= 12; step = (step + 1) as Step) {
-    const stepL = step === 9 ? l9 : step === 10 ? l10 : ladder[step as Exclude<Step, 9 | 10>]
+    const stepL =
+      step === SOLID_STEP ? l9 : step === 10 ? l10 : ladder[step as Exclude<Step, 9 | 10>]
 
     scale[step] = channel(h, saturation, stepL)
   }
@@ -182,13 +188,12 @@ const isBrandSeed = (seedHex: string): boolean => {
 // That is the refusal `setRole` already makes by writing nothing.
 // So each caller falls back to its own built-in default, rather than to a washed-out grey ramp.
 
-const hexOf = (channels: string): string => {
-  const [h, s, l] = channels.replaceAll('%', '').split(' ').map(Number)
+// `channel()` emits the CSS space-separated HSL syntax, so colord parses it back.
+// Never hand-roll that parse: it would be a second, unpinned copy of the format
+// above.
+const hexOf = (channels: string): string => colord(`hsl(${channels})`).toHex()
 
-  return colord({ h, s, l }).toHex()
-}
-
-/** One step of a seed's ramp, as `#rrggbb`. Null when the seed is not a brand color. */
+/** One step of a seed's ramp, as `#rrggbb`. */
 export function stepHex(
   seedHex: string | null | undefined,
   mode: ThemeMode,
@@ -199,24 +204,27 @@ export function stepHex(
   return hexOf(buildScale(seedHex, mode)[step])
 }
 
-/** The readable on-color for a seed's solid step, as `#rrggbb`. Null when the seed is not a brand color. */
+/** The readable on-color for a seed's solid step, as `#rrggbb`. */
 export function onHex(seedHex: string | null | undefined, mode: ThemeMode): string | null {
   if (!seedHex || !isBrandSeed(seedHex)) return null
 
   return hexOf(buildScale(seedHex, mode).on)
 }
 
-/** A hex shifted in HSL lightness and saturation, clamped into range. */
+// ⚠ This one sits BELOW the ladder: no mode, no `isBrandSeed`, and no saturation
+// cap. Feed it only a color the ladder produced, and only a negative saturation
+// shift, or it hands back a tone outside the muted brand register this file
+// exists to enforce.
 export function shiftHex(
   hex: string,
-  shift: { lightness?: number; saturation?: number; maxLightness?: number },
+  shift: { lightness: number; saturation: number; maxLightness: number },
 ): string {
   const { h, s, l } = colord(hex).toHsl()
 
   return colord({
     h,
-    s: clamp(s + (shift.saturation ?? 0), 0, 100),
-    l: clamp(l + (shift.lightness ?? 0), 0, shift.maxLightness ?? 100),
+    s: clamp(s + shift.saturation, 0, 100),
+    l: clamp(l + shift.lightness, 0, shift.maxLightness),
   }).toHex()
 }
 

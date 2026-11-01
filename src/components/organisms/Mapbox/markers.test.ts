@@ -50,6 +50,16 @@ describe('markerColors', () => {
       )
     })
 
+    it(`answers with one shared object in ${mode} when nothing is seeded`, () => {
+      // Identity, not equality. `Map.tsx` memoises this and the registration
+      // effect depends on it, so an equal-but-new object would cost an
+      // unbranded embed a re-subscription and four rebuilt SVGs per theme flip.
+      expect(markerColors({}, mode)).toBe(DEFAULT_MARKER_COLORS)
+      expect(markerColors({ primary: '#000000', contrast: '#000000' }, mode)).toBe(
+        DEFAULT_MARKER_COLORS,
+      )
+    })
+
     it(`renders the stock SVGs byte for byte in ${mode}`, () => {
       const images = markerImages(markerColors({}, mode))
 

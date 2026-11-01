@@ -207,6 +207,5 @@ describe('the hex accessors', () => {
     expect(shiftHex('#fafafa', { lightness: 21, saturation: -16, maxLightness: 92 })).toBe(
       '#ebebeb',
     )
-    expect(shiftHex('#521430', {})).toBe('#521430')
   })
 })

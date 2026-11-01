@@ -2,7 +2,13 @@ import type { LayerProps } from 'react-map-gl'
 
 import { MARKER_IDS } from './markers'
 
-import { onHex, stepHex, type PaletteRoles, type ThemeMode } from '@/config/theme/palette'
+import {
+  onHex,
+  SOLID_STEP,
+  stepHex,
+  type PaletteRoles,
+  type ThemeMode,
+} from '@/config/theme/palette'
 
 type Props = {
   id: string
@@ -31,9 +37,6 @@ export const LAYER_IDS = {
 // takes this by identity, and a fresh literal per render would reflow the map.
 // The hover highlights are deliberately absent — they stay purely visual.
 export const INTERACTIVE_LAYER_IDS = [LAYER_IDS.cluster, LAYER_IDS.unclusteredPoint]
-
-// The brand solid, the step the cluster bubble and the pins are filled from.
-const SOLID = 9 as const
 
 /**
  * The cluster bubble and its count.
@@ -159,7 +162,7 @@ export const boundsLayer = (palette: PaletteRoles, mode: ThemeMode): LayerProps 
     // The brand solid stays visible on both basemaps: step 9 caps its
     // lightness in light mode and floors it in dark. The neutral mid-grey it
     // falls back to needs no theme-aware variant for the same reason.
-    'line-color': stepHex(palette.primary, mode, SOLID) ?? '#888',
+    'line-color': stepHex(palette.primary, mode, SOLID_STEP) ?? '#888',
     'line-width': 4,
   },
 })

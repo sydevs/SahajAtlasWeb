@@ -1,7 +1,10 @@
 import type { LayerProps } from 'react-map-gl'
 
+import { colord, extend } from 'colord'
+import a11yPlugin from 'colord/plugins/a11y'
 import { describe, it, expect } from 'vitest'
 
+import { MARKER_IDS, markerColors } from './markers'
 import {
   boundsLayer,
   clusterLayer,
@@ -13,6 +16,9 @@ import {
   selectedPointLayer,
   unclusteredPointLayer,
 } from './layers'
+
+// `.contrast()` is a colord plugin, as in `palette.ts`.
+extend([a11yPlugin])
 
 const MAROON = '#64032e'
 
@@ -73,6 +79,24 @@ describe('clusterLayer', () => {
     const layer = clusterLayer({ contrast: MAROON, secondary: MAROON }, 'light')
 
     expect(paintOf(layer)['text-color']).toBe('#FFFFFF')
+  })
+
+  // ⚠ This layer and `markerColors` derive the count and the disc it sits on
+  // SEPARATELY, and they agree only because both read `primary` step 9. So the
+  // invariant is asserted as contrast against the fill actually produced, not as
+  // the two expressions matching — a change to either side that broke the
+  // agreement would still satisfy a value comparison.
+  //
+  // Only for a branded tenant. The stock pair is `#FFFFFF` on the Studio art's
+  // own `#37BB92`, which measures 2.4:1 and is inherited rather than chosen; see
+  // `layers.ts`.
+  it('keeps the count legible on the bubble markerColors fills', () => {
+    for (const mode of ['light', 'dark'] as const) {
+      const { fill } = markerColors({ primary: MAROON }, mode)[MARKER_IDS.cluster]
+      const label = paintOf(clusterLayer({ primary: MAROON }, mode))['text-color'] as string
+
+      expect(colord(fill).contrast(label)).toBeGreaterThanOrEqual(4.5)
+    }
   })
 })
 

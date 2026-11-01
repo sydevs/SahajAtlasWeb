@@ -88,7 +88,9 @@ describe('the wiring', () => {
     expect(source).toContain('useBrandPalette((state) => state.palette)')
     expect(source).toContain('markerColors(palette, theme)')
     expect(source).toContain('registerMarkerImages(mapbox, colors)')
-    // The colors are a dependency, so a palette change re-registers.
-    expect(source).toMatch(/registerMarkerImages\(mapbox, colors\)\s*\n\s*\}, \[mapbox, colors\]\)/)
+    // The colors are a dependency, so a palette change re-registers. Asserted as
+    // its own literal rather than one regex spanning both, which would also pin
+    // the whitespace between them — Prettier's to choose, not this spec's.
+    expect(source).toContain('}, [mapbox, colors])')
   })
 })
