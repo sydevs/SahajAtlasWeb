@@ -605,7 +605,7 @@ each took a slot, and the pin went red on the merge rather than on either branch
 `BrandTheme.publish.test.tsx` from 18 to 19. ⚠ Width is not time, and which of
 the pair is slower has flipped across machines — `i18n.ts` selects 12, four of them jsdom, and
 measured 6.2s against the widest's 5.5s at nineteen (2026-11-01, 4 cores), having been the faster
-of the two at seventeen — so width
+of the two at eighteen — so width
 bounds the slice, never the time, and a jump in either is a re-measure of both. It also pins each
 of the three specifier forms, end to end against this tree; the tree-walking set as a closed list,
 and its absence from the selection, where the fixture carries a walker of each kind, so a re-added

@@ -38,8 +38,9 @@ The map is the heart of the app and its hottest render path. Treat it carefully.
   the four images as SVG and registers them itself, so both themes match and a
   Studio edit cannot silently drop a marker.
 - `icon-image` in `layers.ts` always references a `MARKER_IDS.*` constant (all
-  `sy-`-prefixed so they cannot collide with a style sprite). Add a new marker to
-  `MARKER_IMAGES` — never reference a bare sprite name.
+  `sy-`-prefixed so they cannot collide with a style sprite). A new marker needs
+  an id there, its stock colours in `DEFAULT_MARKER_COLORS`, a case in
+  `markerColors`, and a row in `markerImages` — never a bare sprite name.
 - Registration hangs off Mapbox's **`styleimagemissing`** event
   (`registerMarkerImages`, one `useEffect` in `Map.tsx`). That event re-fires
   after every style load, so the one subscription covers both the initial load
