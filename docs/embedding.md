@@ -268,10 +268,12 @@ prefer.
 one was missing. It never silently switches modes — a host whose server config does nothing
 should learn that from us, not from their analytics six months later. If your client record
 cannot be read at all — SahajCloud down or erroring, rather than your key refused — it does not
-fall back: it asks the visitor to reload the page. ⚠ **That notice is one line of untranslated
-English with no "Try again" control**, on a non-English page too. It is the widget's last-rung
-screen, built on nothing it could itself have lost, so a reload is the only way out of it — where
-query routing would reach the localized screen and its retry for the same passing failure.
+fall back: the visitor gets the widget's own error screen, with a "Try again" that re-reads the
+record. That is the same screen a query-mode embed shows for the same failure, so neither mode
+answers an outage worse than the other. Its copy is translated like the rest of the widget, which
+means an outage big enough to take the translations with it leaves this screen in English too. It
+carries no "Report an issue" control: the report form mounts below this point, so there is
+nothing for it to open yet.
 
 **It does not cost you a round trip.** The widget reads your client record before it can build
 its router in either mode, before it renders anything — so path mode makes the same single

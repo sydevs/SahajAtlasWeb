@@ -302,6 +302,12 @@ two axes separate — an inner fallback must never re-throw to escalate.
   rung. It mounts twice — in `App` (both entries) and at the widget element's
   own React root in `Widget.tsx`, where it additionally sees the mount decision,
   the theme wrapper, and the router itself.
+  ⚠ **A `routing=path` boot read is not one of those failures**, and the one
+  place `ErrorFallback` renders outside `App` is there (`BootFailure`,
+  `Widget.tsx`): the client record is ordinary classified data, so a 5xx on it
+  gets the localized screen and its retry, not the rung above. Only a refused key
+  degrades to query routing. That surface passes `canReport: false`, since the
+  report modal's host mounts below it.
 
 ## Conventions
 

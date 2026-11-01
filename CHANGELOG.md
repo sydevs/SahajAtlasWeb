@@ -306,12 +306,13 @@ cover everything a host would notice since the widget was first deployed.
   Any failure to read the record — SahajCloud down or erroring, not only a refused key — fell
   back to query routing, printed a warning blaming your record for a missing canonical embed, and
   once the visitor pressed "Try again" wrote `?atlas=` URLs under your path prefix. Only a refused
-  key falls back now, to the configuration-error screen as before; anything else shows the
-  "Please reload the page" notice. ⚠ **That notice is one line of untranslated English with no
-  "Try again" control**, on a non-English page too — it is the last-rung screen, deliberately
-  built on nothing it could itself have lost, so a reload is the only way out of it. A
-  `routing=path` embed therefore answers a passing 5xx less gracefully than a query-mode one,
-  which reaches the localized screen with a retry. No parameter, origin or CSP change.
+  key falls back now, to the configuration-error screen as before. Anything else — a 5xx, an
+  offline visitor — reaches the widget's own error screen, with a "Try again" that re-reads the
+  record: the same screen a query-mode embed already showed for the same failure, so neither mode
+  answers an outage worse than the other. Its copy is translated like the rest of the widget, so
+  an outage that takes the translations too leaves it in English. It offers no "Report an issue"
+  control, since the report form mounts below the point where path mode waits. No parameter,
+  origin or CSP change.
 - **Opening on your client record's home region no longer adds a history entry.** ([#351]) The first
   open navigated to the region by pushing an entry onto your page's history, so the visitor's
   first Back press only moved the widget back to the world list and a second one was needed to
