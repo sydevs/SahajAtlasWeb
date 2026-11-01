@@ -1,5 +1,6 @@
 import type { Story, StoryDefault } from '@ladle/react'
 
+import { useEffect, type ReactNode } from 'react'
 import { MapProvider } from 'react-map-gl'
 
 import { StoryWrapper, StorySection } from '../../ladle'
@@ -8,7 +9,10 @@ import { Mapbox } from './Map'
 import { MapSearch } from './MapSearch'
 
 import { Alert } from '@/components/atoms/Alert'
+import { useBrandPalette } from '@/config/theme/brand-palette'
 import { BrandTheme } from '@/config/theme/BrandTheme'
+import { applyPalette } from '@/config/theme/palette'
+import { getThemeRoot } from '@/hooks/use-theme'
 
 export default { title: 'Organisms' } satisfies StoryDefault
 
@@ -76,11 +80,37 @@ export const Default: Story = () => (
 
 Default.storyName = 'Mapbox'
 
+const BRANDED = { primary: '#64032e', contrast: '#64032e' }
+
+// `BrandTheme` paints `getThemeRoot()`, which is `<html>` here because Ladle
+// never calls `setThemeRoot`, and it publishes to a module store. Neither is
+// scoped to this story and neither is undone on unmount, so without this every
+// later story in the session stays maroon — including the `Mapbox` story above,
+// which is the one this story asks the reviewer to compare against.
+//
+// `applyPalette` with no roles clears exactly the variables it manages.
+function BrandedScope({ children }: { children: ReactNode }) {
+  useEffect(
+    () => () => {
+      applyPalette(getThemeRoot(), {}, 'light')
+      useBrandPalette.setState({ palette: {} })
+    },
+    [],
+  )
+
+  return <BrandTheme palette={BRANDED}>{children}</BrandTheme>
+}
+
 /**
- * The same map under a tenant's brand palette, a deep maroon in both roles.
- * `BrandTheme` resolves the roles and publishes them; the pins, the cluster
- * bubbles and the cluster counts all derive from `primary` and `contrast`
- * step 9. Compare the teal and orange in the `Mapbox` story above.
+ * The same map under a tenant's brand palette. `BrandTheme` resolves the roles
+ * and publishes them; the pins, the cluster bubbles and the cluster counts all
+ * derive from `primary` and `contrast` step 9. Compare the teal and orange in
+ * the `Mapbox` story above.
+ *
+ * Both roles are the same maroon here, so every marker carries the brand — which
+ * also means the selected pin matches an unselected one, since the two differ
+ * only by fill. A tenant that wants the selection to stand out sets `color3`
+ * away from `color1`.
  *
  * ⚠ Ladle's own palette control paints the widget's CSS variables directly
  * rather than through `BrandTheme`, so it does not reach the map. This story is
@@ -93,13 +123,13 @@ export const BrandedMarkers: Story = () => (
       title="Branded markers"
     >
       {hasToken ? (
-        <BrandTheme palette={{ primary: '#64032e', contrast: '#64032e' }}>
+        <BrandedScope>
           <div className="h-[70vh] w-full">
             <MapProvider>
               <Mapbox />
             </MapProvider>
           </div>
-        </BrandTheme>
+        </BrandedScope>
       ) : (
         <NeedsToken what="branded map" />
       )}
