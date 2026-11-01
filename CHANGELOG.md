@@ -44,6 +44,14 @@ cover everything a host would notice since the widget was first deployed.
 
 ### Changed
 
+- **Your brand colours now reach the map.** ([#17]) The event pins, the cluster bubbles and the
+  numbers on them are drawn from the same two colours in your client record that already theme
+  the panels and buttons, in both light and dark. A record that leaves those colours unset is
+  unchanged: the map keeps the widget's own teal and orange, pixel for pixel. The basemap
+  itself is untouched, nothing new is requested from the network, and your CSP, your
+  [Permissions Policy] and your snippet all stay as they are. See
+  [the CMS settings](docs/embedding.md#what-you-configure-in-the-cms-instead).
+
 - **A repeat embed report turns into at most one write in any 6 h window.** ([#160]) The widget
   still reports on every page load, and an unchanged report inside that window is answered
   without a write. This guide and the embedding guide had both published the window as one hour.
@@ -856,3 +864,4 @@ must-revalidate`, pinned rather than left to the CDN default. The production dom
 [#160]: https://github.com/sydevs/SahajAtlasWeb/issues/160
 [#321]: https://github.com/sydevs/SahajAtlasWeb/issues/321
 [#316]: https://github.com/sydevs/SahajAtlasWeb/issues/316
+[#17]: https://github.com/sydevs/SahajAtlasWeb/issues/17

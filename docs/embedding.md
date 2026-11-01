@@ -240,6 +240,12 @@ Some things are **not** parameters, on purpose:
 | Display name, brand colours        | your client record                                                     |
 | The path prefix for `routing=path` | your client record — the same value your canonical URLs are built from |
 
+**Your brand colours reach the map, not only the panels.** The event pins, the cluster bubbles
+and the numbers on them are drawn from the same two colours your buttons and headings use, in
+both light and dark. A record that leaves the colours unset keeps the widget's own teal and
+orange everywhere, map included. Nothing new is requested from the network, so your CSP and
+your Permissions Policy are unchanged.
+
 Identity is the same on every page you embed on, so making it per-embed only risks two of your
 pages disagreeing about what the product is called. The routing prefix is worse than merely
 redundant: it is the value we compose your canonical URLs from, so a second copy on a script tag
