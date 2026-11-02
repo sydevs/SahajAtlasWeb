@@ -9,7 +9,6 @@ import { Mapbox } from './Map'
 import { MapSearch } from './MapSearch'
 
 import { Alert } from '@/components/atoms/Alert'
-import { useBrandPalette } from '@/config/theme/brand-palette'
 import { BrandTheme } from '@/config/theme/BrandTheme'
 import { applyPalette } from '@/config/theme/palette'
 import { getThemeRoot } from '@/hooks/use-theme'
