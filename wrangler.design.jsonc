@@ -3,11 +3,11 @@
   // Two Workers build from this one repo, so this filename carries its target; the app's took
   // the bare `wrangler.jsonc`, which is also what a bare `wrangler` command resolves to.
   //
-  // ⚠ The preview host is `<preview>-<worker>.<subdomain>.workers.dev`, and this name shares the
-  // `sahajatlas-` stem with the app's `sahajatlas-web`. A check that tells the app's
-  // deploy from the playground's must match the worker-name LABEL segment, never a domain
-  // suffix — `scripts/assert-preview-host.test.ts` pins that boundary, with this very host
-  // among its refusals (#282).
+  // ⚠ The preview host is `<preview>-<worker>.<subdomain>.workers.dev`, so a check that tells the
+  // app's deploy from this one must match the worker-name LABEL segment, never a domain suffix —
+  // `scripts/assert-preview-host.test.ts` pins that boundary, with this very host among its
+  // refusals (#282). This name shares only the `sahajatlas-` stem with the app's `sahajatlas-web`,
+  // so what the LABEL anchor alone refuses is a name EXTENDING the app's, not this one.
   "$schema": "node_modules/wrangler/config-schema.json",
   "name": "sahajatlas-design",
 

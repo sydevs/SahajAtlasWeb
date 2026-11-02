@@ -30,11 +30,10 @@ jobs:
     #
     # ⚠ The name is compared with `==`, in full, and must stay that way.
     # Workers Builds names its check run `Workers Builds: <worker name>`
-    # (observed on the `-design` sibling, #297), and both Workers from this
-    # repo start `sahajatlas-` — so `startsWith` or `contains` on a stem
-    # would let the Ladle playground's deploy, which builds from this repo
-    # too, fire the atlas's production lane. `Workers Builds: sahajatlas-web`
-    # never equals `Workers Builds: sahajatlas-design`. The same hazard
+    # (observed on the `-design` sibling, #297) — so a `startsWith` or a
+    # `contains` would accept any check-run name that EXTENDS this one, and
+    # the next Worker added to this repo is one `-suffix` away from firing
+    # the atlas's production lane. The same hazard
     # `scripts/assert-preview-host.mjs` guards, one layer up (#280, #282).
     # ⚠ A dashboard rename changes this name: `ci-workflows.test.ts` ties it
     # to `wrangler.jsonc`, and the dashboard is what both must follow (#266).

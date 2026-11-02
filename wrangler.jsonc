@@ -6,10 +6,10 @@
   // `versions upload` against any other name fails on "a Worker that does not yet exist", so a
   // dashboard rename reaches every PR's smoke job until this file follows it (#266). It is also
   // the anchor both deploy checks read (#282).
-  //   - A preview host is `<preview>-<worker>.<subdomain>.workers.dev`, and both Workers from
-  //     this repo start `sahajatlas-`, so telling the two deploys apart means anchoring the whole
-  //     `-sahajatlas-web` LABEL segment, never a substring.
-  //     `scripts/assert-preview-host.mjs` is what the smoke lane refuses the playground with.
+  //   - A preview host is `<preview>-<worker>.<subdomain>.workers.dev`, so the smoke lane anchors
+  //     the whole `-sahajatlas-web` LABEL segment, never a substring: a Worker whose name EXTENDS
+  //     this one passes a substring or an unanchored regex, and this repo already builds a second
+  //     Worker. `scripts/assert-preview-host.mjs` is that check.
   //   - `production-smoke.yml` compares the WHOLE check-run name, `Workers Builds: <name>`,
   //     with `==`, which is what keeps the playground's deploy out of the production lane.
   "$schema": "node_modules/wrangler/config-schema.json",

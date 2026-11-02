@@ -42,8 +42,8 @@ describe('production-smoke.yml', () => {
   // ⚠ The integration prefix is part of the match: while the `sahajatlas` Pages project and a
   // Worker of the same name both posted, `Workers Builds: sahajatlas` and
   // `Cloudflare Pages: sahajatlas` differed in nothing else (#280, #297). And the comparison must
-  // stay `==`: both Workers from this repo start `sahajatlas-`, so a `startsWith` on a stem would
-  // let the playground's deploy fire the atlas's lane.
+  // stay `==`: a `startsWith` or a `contains` accepts any check-run name that EXTENDS this one,
+  // and this repo already builds a second Worker.
   it('waits on the Workers build of the Worker wrangler.jsonc names', () => {
     expect(match(lane, /check_run\.name == '(.+?)'/)).toBe(`Workers Builds: ${appWorkerName()}`)
   })

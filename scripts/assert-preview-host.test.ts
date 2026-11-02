@@ -20,16 +20,19 @@ describe('appPreviewHost', () => {
     )
   })
 
-  // ⚠ The playground is read off its own config, not derived from the app's name: until #266's
-  // rename `sahajatlas-design` carried the app's `sahajatlas` as a prefix, and a derived
-  // `${WORKER}-design` would stop being the real sibling after the next rename.
+  // The real sibling, read off its own config: a derived `${WORKER}-design` would stop naming it
+  // at the next rename. ⚠ This case pins that config read, not the anchor — since #266 renamed
+  // the app Worker the playground shares only the `sahajatlas-` stem with it, so every defect
+  // this file catalogues refuses it anyway. The next case is the one that discriminates.
   it('refuses the sibling Ladle playground, whose deploy is not what we smoke-test', () => {
     expect(PLAYGROUND).toBeTruthy()
     expect(appPreviewHost(`https://pr-1-${PLAYGROUND}.${WORKERS_SUBDOMAIN}`, WORKER)).toBeNull()
   })
 
-  // The left-end anchor, for a name that extends the app's: a bare substring or an unanchored
-  // regex accepts this.
+  // ⚠ The whole reason the match anchors the worker-name label at its LEFT end too: a bare
+  // substring or an unanchored regex accepts a name that extends the app's. No Worker carries
+  // this one, so the case is synthetic — and it is the only near-miss the left anchor alone
+  // refuses.
   it('refuses a Worker whose name extends the app Worker’s', () => {
     expect(appPreviewHost(`https://pr-1-${WORKER}-design.${WORKERS_SUBDOMAIN}`, WORKER)).toBeNull()
   })

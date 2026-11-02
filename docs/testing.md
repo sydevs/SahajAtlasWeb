@@ -70,16 +70,20 @@ only ever read a preview" below.
 
   **Which Worker.** `scripts/assert-preview-host.mjs` refuses an address that is not a preview of
   the Worker `wrangler.jsonc` names. ⚠ A preview host is
-  `<preview>-<worker>.<subdomain>.workers.dev`, and both Workers from this repo start
-  `sahajatlas-` (until #266's rename, the app's `sahajatlas` was a **prefix** of
-  `sahajatlas-design`, #280), so the match **anchors the whole worker-name label segment at both
-  ends**: the first label ends at `-<worker>`, and the labels after it are exactly the account
-  subdomain. A bare substring, a domain suffix test, an unanchored regex, or one extra label on
-  either side all let the playground's deploy pass for the app's and collect a green check that
-  verified the wrong site. The label-segment anchor is what refuses it, and
-  `scripts/assert-preview-host.test.ts` pins it against seven near-miss hosts, the playground's
-  own among them, read off its config. The substring defect reddens three of those; the suffix
-  defect one.
+  `<preview>-<worker>.<subdomain>.workers.dev`, so the match **anchors the whole worker-name label
+  segment at both ends**: the first label ends at `-<worker>`, and the labels after it are exactly
+  the account subdomain. A bare substring, a domain suffix test, an unanchored regex, or one extra
+  label on either side each let some other Worker's deploy pass for the app's and collect a green
+  check that verified the wrong site — a name that **extends** `sahajatlas-web`, a label that
+  merely ends with it, a label inserted before the account subdomain, or the app's own production
+  host. `scripts/assert-preview-host.test.ts` pins the anchor against seven near-miss hosts, read
+  off the configs. The substring defect reddens three of those; the suffix defect one.
+
+  ⚠ **The playground is not one of those three, and was the clearest of them before #266.** The
+  app Worker was `sahajatlas` then, a **prefix** of `sahajatlas-design` (#280), so a substring
+  match accepted the playground's own preview host. `sahajatlas-web` shares only the
+  `sahajatlas-` stem with it, so every defect above refuses it now and its case pins the config
+  read instead of the anchor. Read the three off the test file, never off this paragraph.
 
   **This is stronger than what it replaced, in two specific ways.** Discovery (#122, #138) ranked
   candidates by provenance because a `pages.dev` label is globally first-come-first-served and
