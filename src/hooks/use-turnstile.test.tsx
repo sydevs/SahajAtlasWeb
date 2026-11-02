@@ -212,9 +212,11 @@ describe('useTurnstile', () => {
     act(() => hook.reset())
 
     expect(hook.token).toBeNull()
+    // Addressed to the frame's own origin, as narrowly as the inbound filter reads it: a frame
+    // navigated elsewhere gets no command rather than one aimed at whatever occupies it.
     expect(posted).toHaveBeenCalledWith(
       { channel: CHALLENGE_CHANNEL, type: 'reset' },
-      expect.anything(),
+      new URL(frame()?.src as string).origin,
     )
   })
 

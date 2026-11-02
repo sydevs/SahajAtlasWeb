@@ -263,7 +263,9 @@ export function useTurnstile({ disabled = false }: UseTurnstileOptions = {}): Us
   const challengeRef = useRef<HTMLDivElement>(null)
   // This is held in a ref as well as the effect closure.
   // So `reset` can reach the live frame without re-running, and so re-mounting, the challenge.
-  const frameRef = useRef<HTMLIFrameElement | null>(null)
+  // The origin rides along because `reset` must address the frame as narrowly as the inbound
+  // filter reads it — a frame navigated elsewhere receives nothing rather than a command.
+  const frameRef = useRef<{ frame: HTMLIFrameElement; origin: string } | null>(null)
   const [token, setToken] = useState<string | null>(null)
   const [status, setStatus] = useState<TurnstileStatus>(disabled ? 'blocked' : 'loading')
   const { theme } = useTheme()
@@ -278,7 +280,7 @@ export function useTurnstile({ disabled = false }: UseTurnstileOptions = {}): Us
     setToken(null)
     setStatus('loading')
 
-    const { frame, dispose } = createChallengeFrame(
+    const { frame, expectedOrigin, dispose } = createChallengeFrame(
       { theme, language: languageCode },
       (message) => {
         switch (message?.type) {
@@ -305,7 +307,7 @@ export function useTurnstile({ disabled = false }: UseTurnstileOptions = {}): Us
       },
     )
 
-    frameRef.current = frame
+    frameRef.current = { frame, origin: expectedOrigin }
     challengeRef.current.appendChild(frame)
 
     return () => {
@@ -320,12 +322,12 @@ export function useTurnstile({ disabled = false }: UseTurnstileOptions = {}): Us
   // `reset` re-runs the challenge, which sends the same `token` message on success.
   // So the new token arrives through the normal path.
   const reset = useCallback(() => {
-    const frame = frameRef.current
+    const live = frameRef.current
 
-    if (!frame?.contentWindow) return
+    if (!live?.frame.contentWindow) return
 
     setToken(null)
-    frame.contentWindow.postMessage(challengeMessage({ type: 'reset' }), '*')
+    live.frame.contentWindow.postMessage(challengeMessage({ type: 'reset' }), live.origin)
   }, [])
 
   return { challengeRef, token, status, reset }
