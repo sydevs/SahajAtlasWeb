@@ -45,11 +45,11 @@ importers:
         specifier: 1.0.0-beta.24
         version: 1.0.0-beta.24(mapbox-gl@3.34.1)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       '@payloadcms/live-preview-react':
-        specifier: 3.92.1
-        version: 3.92.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+        specifier: 3.90.2
+        version: 3.90.2(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       '@payloadcms/sdk':
-        specifier: ^3.92.1
-        version: 3.92.1(graphql@16.14.2)(typescript@5.6.3)
+        specifier: ^3.90.2
+        version: 3.90.2(graphql@16.14.2)(typescript@5.6.3)
       '@r2wc/react-to-web-component':
         specifier: ^2.1.1
         version: 2.1.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
@@ -1297,20 +1297,20 @@ packages:
   '@oxc-project/types@0.156.0':
     resolution: {integrity: sha512-1Duyg48TdJNdyhEB8Xn1L36bT9Pv6GUtlKjHxOys8xkaF/rQq3XJE+bAurSK/AgIz5mGFsb77cn9Pb20+WCScw==}
 
-  '@payloadcms/live-preview-react@3.92.1':
-    resolution: {integrity: sha512-66tIu6Iktkjg2zd8BQKv1e04+rMg4C9rASXDqylEMH9VrYdEayrGcyEYejPc8yTek0S/Tklz6mBRV8nisFIeEg==}
+  '@payloadcms/live-preview-react@3.90.2':
+    resolution: {integrity: sha512-hMIlWbZ/WztaOoJi/bMClLVTIJ9jaBHVZammwqtxztjv9okg6xuIzmuZC4k/xBEVa/7nkQQOVig+dgX9fOODkw==}
     peerDependencies:
       react: ^16.8.0 || ^17.0.0 || ^18.0.0 || ^19.0.1 || ^19.1.2 || ^19.2.1
       react-dom: ^16.8.0 || ^17.0.0 || ^18.0.0 || ^19.0.1 || ^19.1.2 || ^19.2.1
 
-  '@payloadcms/live-preview@3.92.1':
-    resolution: {integrity: sha512-w74Fl/UoRgnFnrsPstXxLUh/tz/rSEBzu4hiFhQzkmS0ooRrYqU5ueC+okVWIUeeWmLcFo1LBbKNajH5PVj5Ug==}
+  '@payloadcms/live-preview@3.90.2':
+    resolution: {integrity: sha512-N9ryFbTPHgfHOBRK9jLDzR8Gb1OnZWP2JVW11m45Mh89b7eNW7ZDtRtOEMEWocJo7v6xRGBmiiMW6qXrThmR7A==}
 
-  '@payloadcms/sdk@3.92.1':
-    resolution: {integrity: sha512-rzE4xNKEKTfFD/zSi25xavIQJPS0yRqjerpVxWvByejU5hea2eLmVUWydmORQxCzmaGGgZzRlgCvFB2L9z1YNg==}
+  '@payloadcms/sdk@3.90.2':
+    resolution: {integrity: sha512-Szo5Z9L1Lug08esvZBvYWfSu7U3/zO+SBX3AMWX51Ym4uGXRrtiL0g5FuDaPOcHRvSzZCu6H84e2EWKhJPLfPA==}
 
-  '@payloadcms/translations@3.92.1':
-    resolution: {integrity: sha512-VeL+mP/Q9Q1akTINDognLlVf3MhF+0ZhiVhxiE2DkavD7kaM1olMqdMJqOSGIYMgk7dgm9e7X2cWk0r0TzE0hw==}
+  '@payloadcms/translations@3.90.2':
+    resolution: {integrity: sha512-BGpXyw22ndzL6URrK28qlk2qIsksH8mbWpU/n8vaTt8W6O87KoniX4lJ82m5o0FR/wjWqzcuVRsE0TNX3/7gHg==}
 
   '@pinojs/redact@0.4.0':
     resolution: {integrity: sha512-k2ENnmBugE/rzQfEcdWHcCY+/FM3VLzH9cYEsbdsoqrvzAKRhUZeRNhAZvB8OitQJ1TBed3yqWtdjzS6wJKBwg==}
@@ -4549,9 +4549,9 @@ packages:
   pathe@2.0.3:
     resolution: {integrity: sha512-WUjGcAqP1gQacoQe+OBJsFA7Ld4DyXuUIjZ5cc75cLHvJ7dtNsTugphxIADwspS+AraAUePCKrSVtPLFj/F88w==}
 
-  payload@3.92.1:
-    resolution: {integrity: sha512-IBwuxbr7b1fX+Ub3qxzCru8EBrAb7AUatZHJSFW6Tv6o3LgjJE4ehsBmHcUqcxdQteaGOfcuw6DWAFKwq65yuQ==}
-    engines: {node: ^22.23.4 || >=24.22.1}
+  payload@3.90.2:
+    resolution: {integrity: sha512-Qn+nRiMEVOrClVg7mkCHqCKc7x5DAKQZ+jZQm6lqtLfHTS6fuGXqeOzgy5/woWquN4awRUCNgIGu2uYVNn5uvQ==}
+    engines: {node: ^18.20.2 || >=20.9.0}
     hasBin: true
     peerDependencies:
       graphql: ^16.8.1
@@ -5370,6 +5370,11 @@ packages:
   tsscmp@1.0.6:
     resolution: {integrity: sha512-LxhtAkPDTkVCMQjt2h6eBVY28KCjikZqZfMcC15YBeNjkgUpdCfBu5HoiOTDu86v6smE8yOjyEktJ8hlbANHQA==}
     engines: {node: '>=0.6.x'}
+
+  tsx@4.22.4:
+    resolution: {integrity: sha512-X8EX+XV4QR5xCsrgxaED954zTDfY8KqlDtskKEL0cHhyS/P8b4IFOvGDQpsC9Q1XnLq915wEfwwY/zzskCtmhg==}
+    engines: {node: '>=18.0.0'}
+    hasBin: true
 
   tsx@4.23.15:
     resolution: {integrity: sha512-Yiex1Ovn8z2xPpOWckIiysV1SSyRMY9BkLF++q0yKiDxCqRhosKfMg3janKkiLBwZ5c/YryloKwGZcrEmtwxKw==}
@@ -6694,17 +6699,17 @@ snapshots:
 
   '@oxc-project/types@0.156.0': {}
 
-  '@payloadcms/live-preview-react@3.92.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)':
+  '@payloadcms/live-preview-react@3.90.2(react-dom@18.3.1(react@18.3.1))(react@18.3.1)':
     dependencies:
-      '@payloadcms/live-preview': 3.92.1
+      '@payloadcms/live-preview': 3.90.2
       react: 18.3.1
       react-dom: 18.3.1(react@18.3.1)
 
-  '@payloadcms/live-preview@3.92.1': {}
+  '@payloadcms/live-preview@3.90.2': {}
 
-  '@payloadcms/sdk@3.92.1(graphql@16.14.2)(typescript@5.6.3)':
+  '@payloadcms/sdk@3.90.2(graphql@16.14.2)(typescript@5.6.3)':
     dependencies:
-      payload: 3.92.1(graphql@16.14.2)(typescript@5.6.3)
+      payload: 3.90.2(graphql@16.14.2)(typescript@5.6.3)
       qs-esm: 8.0.1
       ts-essentials: 10.0.3(typescript@5.6.3)
     transitivePeerDependencies:
@@ -6714,7 +6719,7 @@ snapshots:
       - typescript
       - utf-8-validate
 
-  '@payloadcms/translations@3.92.1':
+  '@payloadcms/translations@3.90.2':
     dependencies:
       date-fns: 4.1.0
 
@@ -10391,10 +10396,10 @@ snapshots:
 
   pathe@2.0.3: {}
 
-  payload@3.92.1(graphql@16.14.2)(typescript@5.6.3):
+  payload@3.90.2(graphql@16.14.2)(typescript@5.6.3):
     dependencies:
       '@next/env': 15.5.28
-      '@payloadcms/translations': 3.92.1
+      '@payloadcms/translations': 3.90.2
       '@types/busboy': 1.5.4
       ajv: 8.18.0
       bson-objectid: 2.0.4
@@ -10422,7 +10427,7 @@ snapshots:
       sanitize-filename: 1.6.3
       sax: 1.6.1
       ts-essentials: 10.0.3(typescript@5.6.3)
-      tsx: 4.23.15
+      tsx: 4.22.4
       undici: 7.30.1
       uuid: 13.0.2
       ws: 8.22.1
@@ -11281,11 +11286,18 @@ snapshots:
 
   tsscmp@1.0.6: {}
 
+  tsx@4.22.4:
+    dependencies:
+      esbuild: 0.28.2
+    optionalDependencies:
+      fsevents: 2.3.3
+
   tsx@4.23.15:
     dependencies:
       esbuild: 0.28.2
     optionalDependencies:
       fsevents: 2.3.3
+    optional: true
 
   type-check@0.4.0:
     dependencies:
