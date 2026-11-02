@@ -10,6 +10,8 @@ import {
   readChallengeOptions,
 } from './turnstile-frame'
 
+import { readRepoSource } from '@/test-support/repo-source'
+
 /**
  * The frame protocol, in the node lane. The transport is spec'd in `use-turnstile.test.tsx`,
  * which needs a DOM; everything here is a string.
@@ -137,5 +139,18 @@ describe('challengeMessage', () => {
       type: 'token',
       token: 'tok',
     })
+  })
+})
+
+describe('the challenge page in the Ladle build', () => {
+  // `.ladle/vite.config.ts` serves and emits this page by substituting its script path: Ladle's
+  // Vite root is its own app directory, so the path resolves from neither side without that
+  // rewrite. A path changed in one file and not the other leaves the playground emitting a page
+  // whose script 404s, which only a browser pass would notice (#343).
+  const SCRIPT = '/src/challenge.ts'
+
+  it('substitutes a script path the page actually carries', () => {
+    expect(readRepoSource('challenge.html')).toContain(`src="${SCRIPT}"`)
+    expect(readRepoSource('.ladle/vite.config.ts')).toContain(`const script = '${SCRIPT}'`)
   })
 })
