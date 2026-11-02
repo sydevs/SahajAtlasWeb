@@ -180,6 +180,10 @@ belongs:
   memoises on its identity and re-registers its marker images when that changes,
   so an equal-but-new object costs an unbranded embed a re-subscription on every
   light/dark flip. `markers.ts` holds that rule and `markers.test.ts` asserts it.
+  **`BrandTheme` retracts the publication on unmount, so no consumer clears this
+  store by hand** — and the retraction belongs in that unmount-only effect, never
+  in the publish effect's cleanup, which keys on the palette and the mode and
+  would empty the store and refill it on every theme flip.
 
 Three slices are **URL-derived, not stores** — the URL query is their single
 source of truth, so all three stay linkable and shareable:
