@@ -241,9 +241,11 @@ Some things are **not** parameters, on purpose:
 | The path prefix for `routing=path` | your client record — the same value your canonical URLs are built from |
 
 **Your brand colours reach the map, not only the panels.** The event pins, the cluster bubbles
-and the numbers on them are drawn from the same two colours your buttons and headings use, in
-both light and dark. A record that leaves the colours unset keeps the widget's own teal and
-orange everywhere, map included. Nothing new is requested from the network, so your CSP and
+and the numbers on them are drawn from the **first** of your record's three brand colours, and
+the pin of whichever event is selected from the **third** — the same two your buttons and
+headings already use, in both light and dark. Your second colour does not reach the map. A
+record that leaves the colours unset keeps the widget's own teal and orange everywhere, map
+included. Nothing new is requested from the network, so your CSP and
 your Permissions Policy are unchanged.
 
 Identity is the same on every page you embed on, so making it per-embed only risks two of your
