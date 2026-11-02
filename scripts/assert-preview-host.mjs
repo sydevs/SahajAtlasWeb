@@ -9,10 +9,11 @@
  * rename would otherwise aim the lane at the `sahajatlas-design` playground and collect a green
  * check that verified the wrong site.
  *
- * ⚠ The app's Worker name is a PREFIX of the playground's, and a preview host is
- * `<preview>-<worker>.<subdomain>.workers.dev` (#280). So the match anchors the whole
- * worker-name label segment at BOTH ends: a bare substring, a domain suffix test, or an
- * unanchored regex all accept `pr-1-sahajatlas-design.contact-c66.workers.dev`.
+ * ⚠ A preview host is `<preview>-<worker>.<subdomain>.workers.dev` (#280), so the match anchors
+ * the whole worker-name label segment at BOTH ends: a bare substring, a domain suffix test or an
+ * unanchored regex accepts a Worker whose name EXTENDS the app's, as
+ * `pr-1-sahajatlas-web-design.contact-c66.workers.dev` does. `sahajatlas-design` is not that
+ * case — it shares only the `sahajatlas-` stem, so every weakening here refuses it anyway.
  *
  * Usage: `node scripts/assert-preview-host.mjs <url>…` — exit 1 names the first refusal.
  */
@@ -61,8 +62,8 @@ export function appPreviewHost(url, worker, subdomain = WORKERS_SUBDOMAIN) {
   // appended. A suffix test would accept `…contact-c66.workers.dev.evil.com`.
   if (rest.join('.') !== subdomain.toLowerCase()) return null
 
-  // The left end: the label ENDS at the worker name, so `-sahajatlas-design` cannot pass for
-  // `-sahajatlas`. A preview name has to precede it — the bare worker label is the production
+  // The left end: the label ENDS at the worker name, so `-sahajatlas-web-design` cannot pass for
+  // `-sahajatlas-web`. A preview name has to precede it — the bare worker label is the production
   // host, not a preview of it.
   if (!label.endsWith(suffix) || label === suffix) return null
 

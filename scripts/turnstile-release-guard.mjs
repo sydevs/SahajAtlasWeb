@@ -20,7 +20,7 @@ import process from 'node:process'
 
 export const SITE_KEY_VARIABLE = 'VITE_TURNSTILE_SITE_KEY'
 
-/** Workers Builds' production branch for the `sahajatlas` Worker (its Git branch setting). */
+/** Workers Builds' production branch for the `sahajatlas-web` Worker (its Git branch setting). */
 export const PRODUCTION_BRANCH = 'main'
 
 /**
@@ -130,7 +130,7 @@ export function releaseGuardError(env, siteKey) {
     `✗ turnstile: refusing a production build — ${SITE_KEY_VARIABLE} ${found}.\n` +
     `  This build (Workers Builds, branch \`${env.WORKERS_CI_BRANCH || '(none)'}\`) would ship a captcha\n` +
     `  that accepts every visitor or refuses every one. Set ${SITE_KEY_VARIABLE} to the real\n` +
-    `  site key (\`0x4AAAA…\`) in the Cloudflare dashboard: Workers & Pages → sahajatlas →\n` +
+    `  site key (\`0x4AAAA…\`) in the Cloudflare dashboard: Workers & Pages → sahajatlas-web →\n` +
     `  Settings → Build → Variables and secrets. It must be a BUILD variable: Vite inlines it\n` +
     `  at build time, so a runtime variable (Settings → Variables and Secrets) never reaches\n` +
     `  the bundle. See docs/environment.md (#259).`

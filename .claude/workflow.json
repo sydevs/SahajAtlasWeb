@@ -22,7 +22,7 @@
     "pnpm install"
   ],
   "worktreeNotes": "Copy .env.local from the main checkout when the branch needs it.",
-  "deployTarget": "Cloudflare Workers static assets: sahajatlas at sahajatlas.com, sahajatlas-design at design.sahajatlas.com",
+  "deployTarget": "Cloudflare Workers static assets: sahajatlas-web at sahajatlas.com, sahajatlas-design at design.sahajatlas.com",
   "devServer": {
     "command": "pnpm dev --port {port}",
     "basePort": 5174,
