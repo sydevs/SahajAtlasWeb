@@ -3,8 +3,8 @@
   // Two Workers build from this one repo, so this filename carries its target; the app's took
   // the bare `wrangler.jsonc`, which is also what a bare `wrangler` command resolves to.
   //
-  // ⚠ The preview host is `<preview>-<worker>.<subdomain>.workers.dev`, so this name contains
-  // `sahajatlas` as a prefix, exactly as the two Pages hosts do. A check that tells the app's
+  // ⚠ The preview host is `<preview>-<worker>.<subdomain>.workers.dev`, and this name shares the
+  // `sahajatlas-` stem with the app's `sahajatlas-web`. A check that tells the app's
   // deploy from the playground's must match the worker-name LABEL segment, never a domain
   // suffix — `scripts/assert-preview-host.test.ts` pins that boundary, with this very host
   // among its refusals (#282).

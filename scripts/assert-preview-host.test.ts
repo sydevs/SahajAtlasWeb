@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 
 import { WORKERS_SUBDOMAIN, appPreviewHost } from './assert-preview-host.mjs'
-import { appWorkerName } from './_wrangler-config.mjs'
+import { appWorkerName, readWranglerConfig } from './_wrangler-config.mjs'
 
 // The security property the Pages-era discovery spec held, carried over by #282. It got
 // stronger in the move, and the provenance ranking it needed went away with the scraping: the
@@ -10,6 +10,7 @@ import { appWorkerName } from './_wrangler-config.mjs'
 // refusals below are that spec's in their Workers spelling.
 const WORKER = appWorkerName()
 const PREVIEW = `https://pr-1-${WORKER}.${WORKERS_SUBDOMAIN}`
+const PLAYGROUND = readWranglerConfig('wrangler.design.jsonc').name
 
 describe('appPreviewHost', () => {
   it('accepts a preview of the app Worker, by preview name and by version', () => {
@@ -19,10 +20,17 @@ describe('appPreviewHost', () => {
     )
   })
 
-  // ⚠ The whole reason the match anchors the worker-name label at its LEFT end too: a preview
-  // host is `<preview>-<worker>.<subdomain>.workers.dev`, and `sahajatlas-design` carries
-  // `sahajatlas` as a prefix. A bare substring or an unanchored regex accepts this.
+  // ⚠ The playground is read off its own config, not derived from the app's name: until #266's
+  // rename `sahajatlas-design` carried the app's `sahajatlas` as a prefix, and a derived
+  // `${WORKER}-design` would stop being the real sibling after the next rename.
   it('refuses the sibling Ladle playground, whose deploy is not what we smoke-test', () => {
+    expect(PLAYGROUND).toBeTruthy()
+    expect(appPreviewHost(`https://pr-1-${PLAYGROUND}.${WORKERS_SUBDOMAIN}`, WORKER)).toBeNull()
+  })
+
+  // The left-end anchor, for a name that extends the app's: a bare substring or an unanchored
+  // regex accepts this.
+  it('refuses a Worker whose name extends the app Worker’s', () => {
     expect(appPreviewHost(`https://pr-1-${WORKER}-design.${WORKERS_SUBDOMAIN}`, WORKER)).toBeNull()
   })
 

@@ -39,13 +39,11 @@ describe('production-smoke.yml', () => {
   // spec at collection. The `ci.yml` environment value that used to carry it went with the
   // discovery subsystem (#282).
   //
-  // ⚠ The integration prefix is part of the match, because the app Worker took the Pages
-  // project's own name: `Workers Builds: sahajatlas` and `Cloudflare Pages: sahajatlas` differed
-  // in nothing else, and only one of them was ever this lane's (#280, #297). A Pages check run
-  // stops arriving once that project is deleted; the prefix stays, because it is what told the
-  // two apart while both posted. And the comparison must stay `==`: `sahajatlas` is a prefix of
-  // `sahajatlas-design`, so a `startsWith` would let the playground's deploy fire the atlas's
-  // lane.
+  // ⚠ The integration prefix is part of the match: while the `sahajatlas` Pages project and a
+  // Worker of the same name both posted, `Workers Builds: sahajatlas` and
+  // `Cloudflare Pages: sahajatlas` differed in nothing else (#280, #297). And the comparison must
+  // stay `==`: both Workers from this repo start `sahajatlas-`, so a `startsWith` on a stem would
+  // let the playground's deploy fire the atlas's lane.
   it('waits on the Workers build of the Worker wrangler.jsonc names', () => {
     expect(match(lane, /check_run\.name == '(.+?)'/)).toBe(`Workers Builds: ${appWorkerName()}`)
   })

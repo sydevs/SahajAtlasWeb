@@ -70,14 +70,16 @@ only ever read a preview" below.
 
   **Which Worker.** `scripts/assert-preview-host.mjs` refuses an address that is not a preview of
   the Worker `wrangler.jsonc` names. ⚠ A preview host is
-  `<preview>-<worker>.<subdomain>.workers.dev`, and `sahajatlas` is a **prefix** of
-  `sahajatlas-design` (#280), so the match **anchors the whole worker-name label segment at both
+  `<preview>-<worker>.<subdomain>.workers.dev`, and both Workers from this repo start
+  `sahajatlas-` (until #266's rename, the app's `sahajatlas` was a **prefix** of
+  `sahajatlas-design`, #280), so the match **anchors the whole worker-name label segment at both
   ends**: the first label ends at `-<worker>`, and the labels after it are exactly the account
   subdomain. A bare substring, a domain suffix test, an unanchored regex, or one extra label on
   either side all let the playground's deploy pass for the app's and collect a green check that
   verified the wrong site. The label-segment anchor is what refuses it, and
-  `scripts/assert-preview-host.test.ts` pins it against six near-miss hosts, the playground's
-  own among them. The substring defect reddens three of those; the suffix defect one.
+  `scripts/assert-preview-host.test.ts` pins it against seven near-miss hosts, the playground's
+  own among them, read off its config. The substring defect reddens three of those; the suffix
+  defect one.
 
   **This is stronger than what it replaced, in two specific ways.** Discovery (#122, #138) ranked
   candidates by provenance because a `pages.dev` label is globally first-come-first-served and
@@ -150,12 +152,12 @@ Four findings from the subsystem this replaced, worth keeping so nobody re-deriv
   something exercises the caller — a live run of the script against a real SHA is what caught
   this one.
 - **A check-run name identifies the integration as well as the target, and only both together
-  identify a build.** The app Worker took the Pages project's own name, so
+  identify a build.** The app Worker first took the Pages project's own name, so
   `Workers Builds: sahajatlas` and `Cloudflare Pages: sahajatlas` shared this project's slug and
   differed only in their prefix (#280, #297). ⚠ That is why `production-smoke.yml` compares the
-  **whole** name with `==` — see the production lane below. The Pages check run stops arriving
-  once #283's last phase deletes that project, and the comparison stays as it is: it is what
-  told the two apart while both posted.
+  **whole** name with `==` — see the production lane below. The Pages project is gone (#283) and
+  the Worker is `sahajatlas-web` since 2026-11-01 (#266); the comparison stays as it is, and a
+  dashboard rename has to move `wrangler.jsonc`'s `name` with it.
 
 The lane also covers `embed.js`, not only the standalone page — the embed is what a host
 installs, so a deploy that breaks it while `index.html` stays healthy must not be a green check.
