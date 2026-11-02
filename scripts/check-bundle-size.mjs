@@ -109,13 +109,8 @@ import { annotate, report } from './_ci-output.mjs'
 //
 // The loader budget was 3.8 against a measured 2.9 (#199's routine
 // dependency batch took 0.3 KiB off the graph, which tripped the ratchet
-// below), and then 3.5 against a measured 2.6. It is 3.2 now, and a
-// routine dependency batch tripped the ratchet a third time: vite 8.3.5
-// emits a smaller `__vitePreload` helper than 8.3.4, 1519 bytes against
-// 2444 raw. Isolated by building the batch's base commit with that one
-// bump and nothing else, so the win belongs to the dependency and is not
-// a re-chunk. Both loader chunks are still in the graph, which is what
-// says the import walker did not stop seeing one.
+// below). It is 3.2 now, because vite 8.3.5 emits a smaller
+// `__vitePreload` helper than 8.3.4 — 1519 bytes against 2444, raw.
 //
 //   loader   2.4 KiB  uncredentialed  ← the number CI measures
 //   loader   2.7 KiB  credentialed    ← what production ships, derived
