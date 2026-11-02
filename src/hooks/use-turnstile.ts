@@ -44,6 +44,33 @@ const FRAME_HEIGHT = 65
 const HANDSHAKE_TIMEOUT_MS = 10_000
 
 /**
+ * What the frame delegates, read off Turnstile's own `api.js` on 2026-11-02: these are the
+ * features it sets on the widget frame it renders inside our page.
+ *
+ * ⚠ **Permissions Policy is hierarchical, so that inner delegation reaches nothing our own
+ * document was not granted**, and every policy-controlled feature is denied to a cross-origin
+ * child by default. The script embed ran `api.js` in the HOST's document, which holds them all
+ * unless the host's own header says otherwise — so without this line the challenge frame is
+ * strictly less capable than the arrangement it replaces, silently.
+ *
+ * ⚠ **Private State Tokens cannot be delegated from here, and asking for them would be
+ * theatre.** `api.js` pushes one more feature when `document.featurePolicy.features()` lists
+ * it, under the pre-standard name `private-token` — which Chromium 153 does not: it lists
+ * `private-state-token-issuance` and `private-state-token-redemption`. So Turnstile's own
+ * widget frame is not asking for that capability under any name an engine knows, and nothing
+ * a parent delegates can reach it. Nothing in our own document calls the API either.
+ * `docs/embedding.md` § Permissions Policy carries the host-facing half.
+ */
+const TURNSTILE_FEATURES = [
+  'cross-origin-isolated',
+  'fullscreen',
+  'autoplay',
+  'keyboard-map',
+  'gamepad',
+  'xr-spatial-tracking',
+].join('; ')
+
+/**
  * Builds the frame, the listener that reads it, and the one definition of its liveness — for
  * both the hook and the probe.
  *
@@ -76,6 +103,7 @@ function createChallengeFrame(
   // this keeps out of our own logs is the host page's path and query, which a host opting into
   // an `unsafe-url` referrer policy would otherwise send us.
   frame.referrerPolicy = 'strict-origin'
+  frame.allow = TURNSTILE_FEATURES
 
   const expectedOrigin = new URL(src).origin
   const deliver = (message: ChallengeEvent | null) => {

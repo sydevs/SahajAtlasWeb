@@ -60,6 +60,10 @@ cover everything a host would notice since the widget was first deployed.
   requests to `challenges.cloudflare.com` are made by our frame, so your page's URL is no longer
   the document asking.
 
+  **Your `Permissions-Policy` needs nothing for the captcha.** The frame asks for six features
+  Cloudflare's widget requests, and the challenge renders and solves with all six denied — see
+  the embedding guide's Permissions Policy section.
+
 - **A repeat embed report turns into at most one write in any 6 h window.** ([#160]) The widget
   still reports on every page load, and an unchanged report inside that window is answered
   without a write. This guide and the embedding guide had both published the window as one hour.

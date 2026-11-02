@@ -958,6 +958,23 @@ by a `Permissions-Policy` header on your own page.
 you send a `Permissions-Policy` header, allow these three for your own origin. If you embed in
 an iframe, put them in its `allow` attribute as shown above.
 
+### The captcha frame asks for six more, and needs none of them
+
+The captcha renders in a frame on our own origin (see
+[Content-Security-Policy](#content-security-policy)), and that frame carries
+`allow="cross-origin-isolated; fullscreen; autoplay; keyboard-map; gamepad;
+xr-spatial-tracking"` — the same six Cloudflare's own Turnstile widget asks for one level
+further in. They are listed here because a `Permissions-Policy` header of yours that denies
+them does reach that frame, not because registration depends on them: measured in Chromium
+153, the challenge renders and solves with all six denied. **Nothing to add to your header or
+your `allow` attribute for the captcha.**
+
+⚠ **Private State Tokens are not among them, and adding them achieves nothing.** Turnstile's
+widget frame requests that capability under the pre-standard name `private-token`, which no
+current engine publishes — Chromium 153 publishes `private-state-token-issuance` and
+`private-state-token-redemption` — so no policy either of us writes can delegate it to the
+code that would use it.
+
 ## Where to load it from
 
 One host serves the bundle:

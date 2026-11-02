@@ -84,6 +84,28 @@ describe('useTurnstile', () => {
     expect(iframe?.title).not.toBe('')
   })
 
+  it('delegates the features Turnstile asks for on its own widget frame', async () => {
+    await mount()
+
+    const allow = frame()?.allow ?? ''
+
+    // Permissions Policy is hierarchical: `api.js` sets these on the frame it renders inside
+    // our page, and that delegation grants nothing our own document was not granted first.
+    for (const feature of [
+      'cross-origin-isolated',
+      'fullscreen',
+      'autoplay',
+      'keyboard-map',
+      'gamepad',
+      'xr-spatial-tracking',
+    ])
+      expect(allow).toContain(feature)
+
+    // Not a Private State Token name, under either spelling: `api.js` asks for none an engine
+    // knows, so nothing a parent delegates can reach the capability.
+    expect(allow).not.toContain('token')
+  })
+
   it('is loading until the frame hands back its handshake', async () => {
     await mount()
 
