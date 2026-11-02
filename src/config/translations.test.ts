@@ -230,9 +230,7 @@ const PENDING_KEYS: Record<string, string> = {
  * choice between an unwired key and a red lane, and the honest answer is neither.
  * Delete an entry in the sync PR that drops the key: the pin below fails until you do.
  */
-const RETIRING_KEYS: Record<string, string> = {
-  'event.display.time_in_place': 'sydevs/SahajCloud#1057',
-}
+const RETIRING_KEYS: Record<string, string> = {}
 
 describe('every key the snapshot holds', () => {
   // Quoted ANYWHERE in the source, not only inside a `t()` call: a key can legitimately be held in
