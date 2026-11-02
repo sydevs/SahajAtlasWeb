@@ -2,9 +2,10 @@
   // The atlas app, as a Cloudflare Workers static-assets Worker. It serves `sahajatlas.com` as a
   // Custom Domain since #283. `docs/rules/deployment.md` is the one place that topology is stated.
   //
-  // ⚠ This `name` must be the Worker's name in the dashboard, and it is the anchor both checks
-  // read (#282). The Worker was renamed from `sahajatlas` on 2026-11-01 (#266), and until this
-  // file followed, every PR's `versions upload` failed on "a Worker that does not yet exist".
+  // ⚠ This `name` must equal the Worker's name in the Cloudflare dashboard, which owns it: a
+  // `versions upload` against any other name fails on "a Worker that does not yet exist", so a
+  // dashboard rename reaches every PR's smoke job until this file follows it (#266). It is also
+  // the anchor both deploy checks read (#282).
   //   - A preview host is `<preview>-<worker>.<subdomain>.workers.dev`, and both Workers from
   //     this repo start `sahajatlas-`, so telling the two deploys apart means anchoring the whole
   //     `-sahajatlas-web` LABEL segment, never a substring.
