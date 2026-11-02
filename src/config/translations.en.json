@@ -124,7 +124,6 @@
       "sessions_count_one": "%{count} session",
       "sessions_count_other": "%{count} sessions",
       "started_on": "Started %{date}",
-      "time_in_place": "%{time} in %{city}",
       "type_class": "Class",
       "type_class_daily": "Daily class",
       "type_class_fortnightly": "Fortnightly class",
