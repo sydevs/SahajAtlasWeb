@@ -90,6 +90,12 @@ describe('clusterLayer', () => {
   // Only for a branded tenant. The stock pair is `#FFFFFF` on the Studio art's
   // own `#37BB92`, which measures 2.4:1 and is inherited rather than chosen; see
   // `layers.ts`.
+  //
+  // ⚠ 4.5 is the OPAQUE figure. The disc renders at `opacity="0.914"`
+  // (`markers.ts`), so what a reader sees is that fill composited over the
+  // basemap, a little lower — `foregroundFor`'s black-versus-white crossover is
+  // 4.58:1, so a seed landing near it passes here at about 4.2 on screen.
+  // Blending needs a basemap colour this lane has no business asserting.
   it('keeps the count legible on the bubble markerColors fills', () => {
     for (const mode of ['light', 'dark'] as const) {
       const { fill } = markerColors({ primary: MAROON }, mode)[MARKER_IDS.cluster]
