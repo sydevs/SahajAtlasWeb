@@ -126,10 +126,10 @@ import { annotate, report } from './_ci-output.mjs'
 // because every fetcher parses through one. Measured uncredentialed, which is
 // what CI reads:
 //
-//   standalone  324.1 KiB
-//   embed       325.9 KiB
+//   standalone  324.4 KiB
+//   embed       326.2 KiB
 //
-// Production ships each plus this graph's Sentry gap above — 325.2 and 327.1,
+// Production ships each plus this graph's Sentry gap above — 325.5 and 327.4,
 // derived rather than built, since no credentialed build ran here. 330 clears
 // both and keeps the CI numbers inside the slack window. Ratchet it back if the
 // schemas ever move off the eager graph.
