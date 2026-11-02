@@ -56,11 +56,21 @@ export function BrandTheme({ apiKey, palette, children }: BrandThemeProps) {
     useBrandPalette.getState().setPalette(resolved)
   }, [resolved, theme])
 
-  // This stops the system-theme watcher when this widget unmounts, so no `matchMedia` listener fires after teardown.
+  // This stops the system-theme watcher and retracts the published palette when this widget unmounts, so no
+  // `matchMedia` listener fires after teardown and nothing reads roles the UI is no longer painted from.
   // ⚠ It must not release the theme root too. The wrapper's callback ref does that, and this component sits inside
-  // `StrictMode`, whose simulated unmount would clear a root nothing then publishes again.
+  // `StrictMode`, whose simulated unmount would clear a root nothing then publishes again. The palette survives that
+  // remount, because the effect above republishes it.
+  // ⚠ The retraction does not belong in that effect's own cleanup: it keys on the palette and the mode, so a theme
+  // flip would empty the store and refill it, re-registering a branded embed's markers in the stock colors between.
   // This assumes one widget per page. A second concurrent embed would share these singletons.
-  useLayoutEffect(() => () => stopSystemWatch(), [])
+  useLayoutEffect(
+    () => () => {
+      stopSystemWatch()
+      useBrandPalette.setState({ palette: {} })
+    },
+    [],
+  )
 
   return <>{children}</>
 }

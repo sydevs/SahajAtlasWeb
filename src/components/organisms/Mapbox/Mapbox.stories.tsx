@@ -83,20 +83,15 @@ Default.storyName = 'Mapbox'
 const BRANDED = { primary: '#64032e', contrast: '#64032e' }
 
 // `BrandTheme` paints `getThemeRoot()`, which is `<html>` here because Ladle
-// never calls `setThemeRoot`, and it publishes to a module store. Neither is
-// scoped to this story and neither is undone on unmount, so without this every
-// later story in the session stays maroon — including the `Mapbox` story above,
-// which is the one this story asks the reviewer to compare against.
+// never calls `setThemeRoot`. That paint is not scoped to this story and nothing
+// undoes it, so without this every later story in the session stays maroon —
+// including the `Mapbox` story above, which is the one this story asks the
+// reviewer to compare against. The published palette needs no such cleanup:
+// `BrandTheme` retracts that itself on unmount.
 //
 // `applyPalette` with no roles clears exactly the variables it manages.
 function BrandedScope({ children }: { children: ReactNode }) {
-  useEffect(
-    () => () => {
-      applyPalette(getThemeRoot(), {}, 'light')
-      useBrandPalette.setState({ palette: {} })
-    },
-    [],
-  )
+  useEffect(() => () => applyPalette(getThemeRoot(), {}, 'light'), [])
 
   return <BrandTheme palette={BRANDED}>{children}</BrandTheme>
 }

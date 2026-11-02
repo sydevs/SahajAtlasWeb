@@ -73,6 +73,17 @@ describe('BrandTheme', () => {
     })
     expect(document.documentElement.style.getPropertyValue('--primary-9')).toBe('')
   })
+
+  it('retracts the published palette on unmount', () => {
+    mount({ primary: '#64032e', contrast: '#1E6C71' })
+
+    cleanup?.()
+    cleanup = null
+
+    // The store is a module singleton, so a palette left behind would brand the
+    // next widget on the page from a record nothing is painting the UI from.
+    expect(useBrandPalette.getState().palette).toEqual({})
+  })
 })
 
 /**
