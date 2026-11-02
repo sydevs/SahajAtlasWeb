@@ -50,7 +50,7 @@ The map is the heart of the app and its hottest render path. Treat it carefully.
   add the image _synchronously_ inside the handler, or the new style's first
   frame paints pinless.
 - **The four images carry the tenant's colors** (#17). `markerColors(palette,
-  mode)` derives them from the palette `BrandTheme` published
+  mode)` derives them from the palette `BrandTheme` resolved and hands down
   (`config/theme/brand-palette.ts`) — the pin and cluster from `primary` step 9,
   the selected pair from `contrast` step 9, each cluster ring from its own fill.
   ⚠ **A role with no usable seed keeps the `markers.ts` constants verbatim.**
@@ -63,7 +63,7 @@ The map is the heart of the app and its hottest render path. Treat it carefully.
   map in the colors asked for, so the eager pass is what repaints after a
   palette change: nothing reloads the style, so nothing re-fires
   `styleimagemissing`.
-- **Read the palette from the store, never with `getComputedStyle`.** The map
+- **Read the palette from its context, never with `getComputedStyle`.** The map
   would then need its own change signal, and a role that fell back to the
   default writes no variable at all (`palette.ts`). `markers.ts` must also stay
   importable with no DOM, so its color builder is pure and the node lane

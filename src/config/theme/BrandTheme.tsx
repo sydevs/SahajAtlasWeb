@@ -2,7 +2,7 @@ import { useLayoutEffect, useMemo, type ReactNode } from 'react'
 import { useQuery } from '@tanstack/react-query'
 
 import { clientQuery } from '@/config/api'
-import { useBrandPalette } from '@/config/theme/brand-palette'
+import { BrandPaletteContext } from '@/config/theme/brand-palette'
 import { applyPalette, type PaletteRoles } from '@/config/theme/palette'
 import { getThemeRoot, stopSystemWatch, useTheme } from '@/hooks/use-theme'
 
@@ -52,25 +52,14 @@ export function BrandTheme({ apiKey, palette, children }: BrandThemeProps) {
     if (typeof document === 'undefined') return
 
     applyPalette(getThemeRoot(), resolved, theme)
-    // The map paints in hex rather than CSS variables, so it reads these roles instead of the paint.
-    useBrandPalette.getState().setPalette(resolved)
   }, [resolved, theme])
 
-  // This stops the system-theme watcher and retracts the published palette when this widget unmounts, so no
-  // `matchMedia` listener fires after teardown and nothing reads roles the UI is no longer painted from.
+  // This stops the system-theme watcher when this widget unmounts, so no `matchMedia` listener fires after teardown.
   // ⚠ It must not release the theme root too. The wrapper's callback ref does that, and this component sits inside
-  // `StrictMode`, whose simulated unmount would clear a root nothing then publishes again. The palette survives that
-  // remount, because the effect above republishes it.
-  // ⚠ The retraction does not belong in that effect's own cleanup: it keys on the palette and the mode, so a theme
-  // flip would empty the store and refill it, re-registering a branded embed's markers in the stock colors between.
-  // This assumes one widget per page. A second concurrent embed would share these singletons.
-  useLayoutEffect(
-    () => () => {
-      stopSystemWatch()
-      useBrandPalette.setState({ palette: {} })
-    },
-    [],
-  )
+  // `StrictMode`, whose simulated unmount would clear a root nothing then publishes again.
+  useLayoutEffect(() => () => stopSystemWatch(), [])
 
-  return <>{children}</>
+  // The map paints in hex rather than CSS variables, so it reads these roles rather than the paint.
+  // This is the same `resolved` object the paint above came from, so the two cannot disagree.
+  return <BrandPaletteContext.Provider value={resolved}>{children}</BrandPaletteContext.Provider>
 }

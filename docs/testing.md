@@ -602,7 +602,7 @@ and the answer is to time the hook and ratchet, never to drop a spec. ⚠ **Two 
 without either one doing so alone**: #322's `mobile-zoom.test.ts` and #324's `attribution.test.ts`
 each took a slot, and the pin went red on the merge rather than on either branch; #328's
 `Drawer.scroll.test.tsx` ratcheted it from 17 to 18, and #17's
-`BrandTheme.publish.test.tsx` from 18 to 19. ⚠ Width is not time, and which of
+`BrandTheme.palette.test.tsx` from 18 to 19. ⚠ Width is not time, and which of
 the pair is slower has flipped across machines — `i18n.ts` selects 12, four of them jsdom, and
 measured 6.2s against the widest's 5.5s at nineteen (2026-11-01, 4 cores), having been the faster
 of the two at eighteen — so width

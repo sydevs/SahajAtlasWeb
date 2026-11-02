@@ -85,8 +85,8 @@ const BRANDED = { primary: '#64032e', contrast: '#64032e' }
 // never calls `setThemeRoot`. That paint is not scoped to this story and nothing
 // undoes it, so without this every later story in the session stays maroon —
 // including the `Mapbox` story above, which is the one this story asks the
-// reviewer to compare against. The published palette needs no such cleanup:
-// `BrandTheme` retracts that itself on unmount.
+// reviewer to compare against. The palette the map reads needs no such cleanup:
+// it is context, so it leaves with the provider.
 //
 // `applyPalette` with no roles clears exactly the variables it manages.
 function BrandedScope({ children }: { children: ReactNode }) {
@@ -97,7 +97,7 @@ function BrandedScope({ children }: { children: ReactNode }) {
 
 /**
  * The same map under a tenant's brand palette. `BrandTheme` resolves the roles
- * and publishes them; the pins, the cluster bubbles and the cluster counts all
+ * and hands them down; the pins, the cluster bubbles and the cluster counts all
  * derive from `primary` and `contrast` step 9. Compare the teal and orange in
  * the `Mapbox` story above.
  *

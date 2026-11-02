@@ -282,7 +282,7 @@ export function Mapbox({ cooperative = false }: { cooperative?: boolean } = {}) 
   // light/dark switch repaints through the same dependency a palette change
   // does — and an unbranded embed re-runs none of it, because `markerColors`
   // answers with one shared object.
-  const palette = useBrandPalette((state) => state.palette)
+  const palette = useBrandPalette()
   const colors = useMemo(() => markerColors(palette, theme), [palette, theme])
   const clusters = useMemo(() => clusterLayer(palette, theme), [palette, theme])
   const bounds = useMemo(() => boundsLayer(palette, theme), [palette, theme])
