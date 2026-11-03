@@ -28,7 +28,7 @@ export const mockErrors: Record<ErrorKind, unknown> = {
   'not-found': atlasError('not-found', 'Region not found: atlantis'),
   // An embed whose API key SahajCloud rejects.
   config: sdkError(401, 'Unauthorized'),
-  // A host page whose CSP refuses to frame the widget's own origin, so the challenge cannot
+  // A host page whose CSP refuses to frame SahajCloud's challenge page, so it cannot
   // render and no form can produce a token (issues #182, #343). Tagged rather than
   // frame-driven for the same reason `offline` is: the fixture must classify the same way
   // wherever the story renders.

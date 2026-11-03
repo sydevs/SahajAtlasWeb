@@ -2,86 +2,50 @@ import { describe, expect, it } from 'vitest'
 
 import {
   CHALLENGE_CHANNEL,
+  CHALLENGE_PATH,
   challengeMessage,
-  challengeOrigin,
   challengeSrc,
-  parseChallengeCommand,
   parseChallengeEvent,
-  readChallengeOptions,
 } from './turnstile-frame'
-
-import { readRepoSource } from '@/test-support/repo-source'
 
 /**
  * The frame protocol, in the node lane. The transport is spec'd in `use-turnstile.test.tsx`,
- * which needs a DOM; everything here is a string.
+ * which needs a DOM; everything here is a string. The page's half lives in SahajCloud and is
+ * spec'd there (`tests/unit/atlas-challenge.spec.ts`).
  */
 
-// What `import.meta.url` is inside a built chunk: the widget's own graph, under /assets/.
-const CHUNK = 'https://sahajatlas.com/assets/use-turnstile-a1b2c3.js'
+const SERVER = 'https://cloud.sydevelopers.com'
+const OPTIONS = { parent: 'https://partner.org', theme: 'dark', language: 'cs' } as const
 
 describe('challengeSrc', () => {
-  it('resolves to the challenge page at the ROOT of the chunk-s own origin', () => {
-    const url = new URL(challengeSrc(CHUNK, { theme: 'dark', language: 'cs' }))
+  it('addresses the challenge page on the SahajCloud origin', () => {
+    const url = new URL(challengeSrc(SERVER, OPTIONS))
 
-    // The whole fix turns on this origin being ours rather than the host page's (#343), and
-    // on the path being the output root rather than the chunk's own directory — Vite emits
-    // an HTML input there, so `/assets/challenge.html` would 404 into the SPA fallback.
-    expect(url.origin).toBe('https://sahajatlas.com')
-    expect(url.pathname).toBe('/challenge.html')
+    expect(url.origin).toBe(SERVER)
+    expect(url.pathname).toBe(CHALLENGE_PATH)
   })
 
-  it('carries the theme and language the widget is rendering in', () => {
-    const url = new URL(challengeSrc(CHUNK, { theme: 'dark', language: 'cs' }))
+  it('carries the parent origin, theme and language the page renders with', () => {
+    const url = new URL(challengeSrc(SERVER, OPTIONS))
 
+    // The page hands its token to this origin and no other, so it is the one parameter whose
+    // loss would silently break every embed: SahajCloud refuses a frame that names no parent.
+    expect(url.searchParams.get('parent')).toBe('https://partner.org')
     expect(url.searchParams.get('theme')).toBe('dark')
     expect(url.searchParams.get('language')).toBe('cs')
     expect(url.searchParams.get('probe')).toBeNull()
   })
 
   it('marks a probe frame, so it hands back the handshake and renders nothing', () => {
-    const url = new URL(challengeSrc(CHUNK, { theme: 'auto', language: 'auto', probe: true }))
+    const url = new URL(challengeSrc(SERVER, { ...OPTIONS, probe: true }))
 
     expect(url.searchParams.get('probe')).toBe('1')
   })
 
-  it.each([
-    ['a dev server', 'http://localhost:5174/src/hooks/use-turnstile.ts'],
-    ['a Workers preview', 'https://pr-9-sahajatlas.sydevs.workers.dev/assets/x.js'],
-  ])('follows the origin the bundle was served from — %s', (_label, moduleUrl) => {
-    const expected = new URL(moduleUrl).origin
-
-    expect(new URL(challengeSrc(moduleUrl, { theme: 'auto', language: 'en' })).origin).toBe(
-      expected,
+  it('follows a local SahajCloud, so `pnpm dev` against one frames it', () => {
+    expect(new URL(challengeSrc('http://localhost:3000', OPTIONS)).origin).toBe(
+      'http://localhost:3000',
     )
-    expect(challengeOrigin(moduleUrl)).toBe(expected)
-  })
-})
-
-describe('readChallengeOptions', () => {
-  it('reads what the widget sent', () => {
-    expect(readChallengeOptions('?theme=dark&language=ru&probe=1')).toEqual({
-      theme: 'dark',
-      language: 'ru',
-      probe: true,
-    })
-  })
-
-  it.each([
-    ['an unknown theme', '?theme=sepia&language=en', 'auto', 'en'],
-    ['no theme at all', '?language=en', 'auto', 'en'],
-    // A language Turnstile would refuse, or one carrying anything but a locale code, must not
-    // stop the challenge rendering: `auto` follows the browser, which is a worse answer than
-    // the widget's own locale and a far better one than no captcha.
-    ['a non-locale language', '?theme=light&language=klingon', 'light', 'auto'],
-    ['an empty query', '', 'auto', 'auto'],
-  ])('falls back rather than refusing, given %s', (_label, search, theme, language) => {
-    expect(readChallengeOptions(search)).toEqual({ theme, language, probe: false })
-  })
-
-  it('treats any probe value but 1 as a real challenge', () => {
-    expect(readChallengeOptions('?probe=0').probe).toBe(false)
-    expect(readChallengeOptions('?probe=true').probe).toBe(false)
   })
 })
 
@@ -90,6 +54,15 @@ describe('parseChallengeEvent', () => {
 
   it.each(['ready', 'expired', 'error'])('reads %s', (type) => {
     expect(parseChallengeEvent(on({ type }))).toEqual({ type })
+  })
+
+  it.each(['origin', 'unavailable'] as const)('keeps the refusal reason %s', (reason) => {
+    expect(parseChallengeEvent(on({ type: 'error', reason }))).toEqual({ type: 'error', reason })
+  })
+
+  it('reads an unknown reason as a plain error rather than ignoring it', () => {
+    // A newer page must never make an older widget wait out its handshake timeout.
+    expect(parseChallengeEvent(on({ type: 'error', reason: 'quota' }))).toEqual({ type: 'error' })
   })
 
   it('reads a token', () => {
@@ -117,40 +90,11 @@ describe('parseChallengeEvent', () => {
   })
 })
 
-describe('parseChallengeCommand', () => {
-  it('reads a reset', () => {
-    expect(parseChallengeCommand(challengeMessage({ type: 'reset' }))).toEqual({ type: 'reset' })
-  })
-
-  it.each([
-    ['an unchannelled reset', { type: 'reset' }],
-    // The page accepts commands, not events: a `token` echoed back at it is not one.
-    ['an event', { channel: CHALLENGE_CHANNEL, type: 'token', token: 'tok' }],
-    ['null', null],
-  ])('refuses %s', (_label, data) => {
-    expect(parseChallengeCommand(data)).toBeNull()
-  })
-})
-
 describe('challengeMessage', () => {
-  it('stamps the channel on everything either side sends', () => {
-    expect(challengeMessage({ type: 'token', token: 'tok' })).toEqual({
+  it('stamps the channel on everything the widget sends', () => {
+    expect(challengeMessage({ type: 'reset' })).toEqual({
       channel: CHALLENGE_CHANNEL,
-      type: 'token',
-      token: 'tok',
+      type: 'reset',
     })
-  })
-})
-
-describe('the challenge page in the Ladle build', () => {
-  // `.ladle/vite.config.ts` serves and emits this page by substituting its script path: Ladle's
-  // Vite root is its own app directory, so the path resolves from neither side without that
-  // rewrite. A path changed in one file and not the other leaves the playground emitting a page
-  // whose script 404s, which only a browser pass would notice (#343).
-  const SCRIPT = '/src/challenge.ts'
-
-  it('substitutes a script path the page actually carries', () => {
-    expect(readRepoSource('challenge.html')).toContain(`src="${SCRIPT}"`)
-    expect(readRepoSource('.ladle/vite.config.ts')).toContain(`const script = '${SCRIPT}'`)
   })
 })

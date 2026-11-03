@@ -3,13 +3,13 @@ import { act } from 'react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { createRoot } from 'react-dom/client'
 
-import { type UseTurnstile, useTurnstile } from './use-turnstile'
+import { type TurnstileVerdict, type UseTurnstile, useTurnstile } from './use-turnstile'
 
 import { sendFromFrame } from '@/test-support/turnstile-frame'
-import { CHALLENGE_CHANNEL, type ChallengeEvent } from '@/lib/turnstile-frame'
+import { CHALLENGE_CHANNEL, CHALLENGE_PATH, type ChallengeEvent } from '@/lib/turnstile-frame'
 
 /**
- * The challenge lives in a frame on our own origin since #343, so what this covers is the
+ * The challenge lives in a frame SahajCloud serves (#343, sydevs/SahajCloud#1072), so what this covers is the
  * `postMessage` seam between the widget and that frame — the part no pure test can express,
  * and the part a real browser cannot reach either, since jsdom will not run Cloudflare's
  * script and a browser pass cannot drive an unsolved challenge to each of these states.
@@ -70,13 +70,16 @@ afterEach(() => {
 })
 
 describe('useTurnstile', () => {
-  it('frames the challenge page on its own origin, carrying theme and language', async () => {
+  it('frames the SahajCloud challenge page, naming this document as its parent', async () => {
     await mount()
 
     const iframe = frame()
     const url = new URL(iframe?.src as string)
 
-    expect(url.pathname).toBe('/challenge.html')
+    expect(url.origin).toBe(new URL(import.meta.env.VITE_SAHAJCLOUD_URL).origin)
+    expect(url.pathname).toBe(CHALLENGE_PATH)
+    // The page hands its token to this origin alone, so it must be the document the frame is in.
+    expect(url.searchParams.get('parent')).toBe(window.location.origin)
     expect(url.searchParams.get('theme')).toBe('dark')
     expect(url.searchParams.get('language')).toBe('cs')
     // The form mounts a real challenge, never the probe's handshake-only mode.
@@ -277,9 +280,7 @@ describe('useTurnstile', () => {
 
 describe('probeTurnstile', () => {
   const probeFrame = () =>
-    [...document.body.querySelectorAll('iframe')].find((node) =>
-      node.src.includes('/challenge.html'),
-    )
+    [...document.body.querySelectorAll('iframe')].find((node) => node.src.includes(CHALLENGE_PATH))
 
   /**
    * Starts the check on a FRESH copy of the module, and reports what it has decided so far.
@@ -297,12 +298,12 @@ describe('probeTurnstile', () => {
     vi.resetModules()
 
     const { probeTurnstile } = await import('./use-turnstile')
-    const verdicts: (boolean | 'pending')[] = []
+    const verdicts: (TurnstileVerdict | 'pending')[] = []
     const run = () => {
       const index = verdicts.push('pending') - 1
 
-      return probeTurnstile().then((available) => {
-        verdicts[index] = available
+      return probeTurnstile().then((verdict) => {
+        verdicts[index] = verdict
       })
     }
 
@@ -324,46 +325,56 @@ describe('probeTurnstile', () => {
       }),
     )
 
-  const fromProbe = (type: ChallengeEvent['type']) => {
+  const fromProbe = (message: ChallengeEvent) => {
     const iframe = probeFrame()
 
     if (!iframe) throw new Error('no probe frame')
 
-    sendFromFrame(iframe, { type } as ChallengeEvent)
+    sendFromFrame(iframe, message)
   }
 
   afterEach(() => {
     vi.useRealTimers()
   })
 
-  it('mounts a handshake-only frame and resolves true on ready', async () => {
+  it('mounts a handshake-only frame and resolves available on ready', async () => {
     const probe = await startProbe()
 
     expect(new URL(probeFrame()?.src as string).searchParams.get('probe')).toBe('1')
 
-    fromProbe('ready')
+    fromProbe({ type: 'ready' })
     await probe.done
 
-    expect(probe.settled()).toBe(true)
+    expect(probe.settled()).toBe('available')
     // The frame is torn down with the verdict: it exists only to produce one.
     expect(probeFrame()).toBeUndefined()
   })
 
-  it('resolves false when the frame reports an error', async () => {
+  it('resolves failed when the frame reports an error', async () => {
     const probe = await startProbe()
 
-    fromProbe('error')
+    fromProbe({ type: 'error' })
     await probe.done
 
-    expect(probe.settled()).toBe(false)
+    expect(probe.settled()).toBe('failed')
+  })
+
+  it('resolves origin when SahajCloud refuses this page as a parent', async () => {
+    const probe = await startProbe()
+
+    // The one refusal a host cannot fix in its own policy, so the advice it earns differs.
+    fromProbe({ type: 'error', reason: 'origin' })
+    await probe.done
+
+    expect(probe.settled()).toBe('origin')
   })
 
   // Chromium reports the BARE origin as `blockedURI` — measured, and the reason the handler
   // matches by prefix. The path form is kept for the engines that were not measured.
   it.each([
     ['the bare origin, as Chromium sends it', ''],
-    ['the origin with a path', '/challenge.html'],
-  ])('resolves false at once on a frame-src violation naming %s', async (_label, path) => {
+    ['the origin with a path', CHALLENGE_PATH],
+  ])('resolves csp at once on a frame-src violation naming %s', async (_label, path) => {
     const probe = await startProbe()
 
     violation('frame-src', `${probe.origin()}${path}`)
@@ -371,14 +382,14 @@ describe('probeTurnstile', () => {
 
     // Before the handshake timeout, which is the whole point: a refused frame fires no load
     // and no error of its own, so without this the widget looks healthy for ten seconds.
-    expect(probe.settled()).toBe(false)
+    expect(probe.settled()).toBe('csp')
   })
 
   // Two near misses, because each filter in the violation handler is wrong on its own. A
-  // strict-CSP host can produce either: the widget fetches its own flags and pins from this
-  // same origin, and it frames nothing else from Cloudflare's.
+  // strict-CSP host can produce either: the widget loads event photography from this same
+  // SahajCloud origin, and a host frames plenty of other origins of its own.
   it.each([
-    ['another directive, our origin', 'img-src', true],
+    ['another directive, the SahajCloud origin', 'img-src', true],
     ['frame-src, another origin', 'frame-src', false],
   ])('ignores a violation about %s', async (_label, directive, ours) => {
     const probe = await startProbe()
@@ -391,10 +402,10 @@ describe('probeTurnstile', () => {
     await vi.advanceTimersByTimeAsync(5_000)
     await probe.done
 
-    expect(probe.settled()).toBe(false)
+    expect(probe.settled()).toBe('failed')
   })
 
-  it('resolves false only once the frame has had its full wait', async () => {
+  it('resolves failed only once the frame has had its full wait', async () => {
     const probe = await startProbe()
 
     await vi.advanceTimersByTimeAsync(9_999)
@@ -404,13 +415,13 @@ describe('probeTurnstile', () => {
     await vi.advanceTimersByTimeAsync(1)
     await probe.done
 
-    expect(probe.settled()).toBe(false)
+    expect(probe.settled()).toBe('failed')
   })
 
   it('checks once per page and shares the answer', async () => {
     const probe = await startProbe()
 
-    fromProbe('ready')
+    fromProbe({ type: 'ready' })
     await probe.done
 
     const second = probe.run()
@@ -419,14 +430,14 @@ describe('probeTurnstile', () => {
 
     // A compact embed's dialog unmounts its children, so open/close/open would otherwise pay
     // for a whole browsing context, three of our chunks and a Cloudflare script eval each time.
-    expect(probe.settled(1)).toBe(true)
+    expect(probe.settled(1)).toBe('available')
     expect(probeFrame()).toBeUndefined()
   })
 
   it('checks again after a negative verdict', async () => {
     const probe = await startProbe()
 
-    fromProbe('error')
+    fromProbe({ type: 'error' })
     await probe.done
 
     // Not cached: the same verdict covers a CSP refusal and a request that simply failed, and
@@ -436,9 +447,9 @@ describe('probeTurnstile', () => {
 
     expect(probeFrame()).toBeDefined()
 
-    fromProbe('ready')
+    fromProbe({ type: 'ready' })
     await second
 
-    expect(probe.settled(1)).toBe(true)
+    expect(probe.settled(1)).toBe('available')
   })
 })

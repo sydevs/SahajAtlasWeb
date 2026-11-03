@@ -11,8 +11,6 @@ paths:
   - 'scripts/assert-no-sourcemaps.test.ts'
   - 'scripts/deploy-headers.test.ts'
   - 'scripts/wrangler-config.test.ts'
-  - 'scripts/turnstile-release-guard.mjs'
-  - 'scripts/turnstile-release-guard.test.ts'
   - '.github/workflows/*.yml'
 ---
 
@@ -51,10 +49,8 @@ move ran one site at a time, and the app's own cutover was split from building i
 Two deploy files live in `public/`, copied into both build outputs, and both govern both sites:
 
 - **`_headers`** — one site-wide `/*` rule carrying CORS (#91: a font always fetches in CORS
-  mode) and `X-Robots-Tag: noindex` (#106), plus `Cache-Control` on `/assets/*`, the two
-  unhashed entry files (#148) and `/challenge.html` (#343, the Turnstile challenge document —
-  unhashed like those two, but cacheable for ten minutes rather than revalidated, since it
-  names only hashed assets and is fetched inside a frame on the registration path). The `/locales/*` rule went with the bundles in #198.
+  mode) and `X-Robots-Tag: noindex` (#106), plus `Cache-Control` on `/assets/*` and the two
+  unhashed entry files (#148). The `/locales/*` rule went with the bundles in #198.
   ⚠ **No two rules may set the same header name on paths that overlap** — the platform applies
   every matching rule and comma-joins a repeated value, so two would serve `<value>, <value>`.
   `scripts/deploy-headers.test.ts` holds this before a deploy, and it is why CORS lives in one
@@ -116,13 +112,9 @@ Three facts to remember:
 The Sentry variables are dashboard-only, and owed to **each** target that builds the app. The
 runbook is in `docs/environment.md`.
 
-**A production build refuses Cloudflare's test Turnstile site key (#259).** The real
-`VITE_TURNSTILE_SITE_KEY` is a build variable on the production trigger only; `.env`'s test key
-is correct everywhere else. `scripts/turnstile-release-guard.mjs` fails a Workers Builds build of
-`main` whose resolved key is a test key, empty or malformed, so removing that variable fails the
-release instead of shipping a captcha that accepts everyone. `embed.smoke.test.ts` checks the live
-bundle after each Workers Builds deploy. ⚠ Neither sees a version promoted or rolled back without a
-build. What counts as production, and that gap: `docs/environment.md`.
+**Neither Worker carries a Turnstile key.** The captcha renders in a page SahajCloud serves, which
+holds both halves of the key (sydevs/SahajCloud#1072), so #259's release guard and the production
+trigger's `VITE_TURNSTILE_SITE_KEY` build variable went with the widget's own challenge page.
 
 ## Deploy-side CI gates
 

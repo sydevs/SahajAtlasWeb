@@ -294,7 +294,11 @@ alert. The lane's last step opens an issue instead, and three things about it ar
   production read, and a ticket claiming production is red when nothing read it is worse than no
   ticket. `ci-workflows.test.ts` pins that gate and the token, since both fail silently.
 
-**One spec is scoped by environment, on purpose** (#259): `embed.smoke.test.ts`'s Turnstile case expects the committed test site key on an address `assert-preview-host.mjs` accepts as the app Worker's preview, and a real `0x4…` key with no test key everywhere else — so a bypassed build gate still reddens production. The preview half keeps the production half from passing vacuously: the same patterns must find the test key there. ⚠ **It reads two graphs, and must keep doing so** (#343): the key moved into `challenge.html`'s chunk, which the loader crawl cannot reach because nothing `import()`s the challenge page — the widget frames it by a URL composed at runtime. Measured 2026-11-01 against a locally served build: the loader's graph alone reports "no Turnstile site key at all", the false reading that spec exists to avoid. Measured 2026-10-30: green on `sahajatlas.com` and on `pr-344`'s preview, red against a locally served build carrying the test key and against one carrying no key. Every other spec reads both hosts alike. The lane is **20 cases**, from 16 declarations — count it rather
+**No spec is scoped by environment any more.** #259's Turnstile case read the site key back out
+of the bundle, expecting the committed test key on a preview and a real key everywhere else, so a
+bypassed build gate still reddened production. Since sydevs/SahajCloud#1072 the widget carries no
+Turnstile key at all: SahajCloud serves the challenge page and holds both halves, so the build
+gate, the build variable and this case went together. Every spec reads both hosts alike. The lane is **17 cases**, from 13 declarations — count it rather
 than trusting a figure, since `.each` makes the two differ. Measured 2026-10-06 against the 16 it
 was then: all 16 passed against `sahajatlas.com`. Re-measured 2026-10-13 against the playground
 on its Worker (`PREVIEW_URL=https://design.sahajatlas.com pnpm test:smoke`, #279): **10 of the 17
@@ -595,17 +599,15 @@ to select from. The full lane still runs in the lean gate (`.claude/skills/pr-pr
 in CI, so this narrows the inner loop, not the gate.
 
 **What holds the budget is the selection's width, and `scripts/select-unit-specs.test.ts` pins
-that**: the widest edit in the tree, exhaustively through the real composition, at 19 against a
-ceiling of 19 — no headroom, so the next spec reading a repo file through `repo-source` trips it,
+that**: the widest edit in the tree, exhaustively through the real composition, at 18 against a
+ceiling of 18 — no headroom, so the next spec reading a repo file through `repo-source` trips it,
 and the answer is to time the hook and ratchet, never to drop a spec. ⚠ **Two PRs can trip it
 without either one doing so alone**: #322's `mobile-zoom.test.ts` and #324's `attribution.test.ts`
 each took a slot, and the pin went red on the merge rather than on either branch; #328's
-`Drawer.scroll.test.tsx` is what ratcheted it from 17 to 18, and #343's `turnstile-frame.test.ts`
-from 18 to 19. ⚠ Width is not time, and which of
+`Drawer.scroll.test.tsx` is what ratcheted it from 17 to 18. ⚠ Width is not time, and which of
 the pair is slower has flipped across machines — `i18n.ts` selects 12, four of them jsdom, and
-measured 4.7s against the widest's 5.0s at eighteen (2026-10-27, 4 cores), and **7.8s against the
-widest's 6.5s at nineteen (2026-11-02, 4 cores, medians of three)**, the reverse order on a
-slower machine where both still sit under half the 12s bound — so width
+measured 4.7s against the widest's 5.0s at eighteen (2026-10-27, 4 cores), having been the slower
+of the two at seventeen — so width
 bounds the slice, never the time, and a jump in either is a re-measure of both. It also pins each
 of the three specifier forms, end to end against this tree; the tree-walking set as a closed list,
 and its absence from the selection, where the fixture carries a walker of each kind, so a re-added

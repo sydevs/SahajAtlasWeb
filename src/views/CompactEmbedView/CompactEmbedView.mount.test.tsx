@@ -77,10 +77,11 @@ const Sentinel = () => <p>{INTERFACE}</p>
  * only prove the fake stayed unrendered.
  *
  * ⚠ **What the guard mounts is a frame, not a script, since #343** — the challenge renders on
- * the widget's own origin now. The cost to a host is the same shape: a document and a request
+ * SahajCloud now. The cost to a host is the same shape: a document and a request
  * for an interface nobody opened.
  */
-const challengeFrames = () => document.querySelectorAll('iframe[src*="/challenge.html"]').length
+const challengeFrames = () =>
+  document.querySelectorAll('iframe[src*="/api/atlas/challenge"]').length
 
 function InterfaceWithTurnstile() {
   useTurnstileGuard()

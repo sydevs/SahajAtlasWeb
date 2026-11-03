@@ -13,9 +13,10 @@ import { useTheme } from '@/hooks/use-theme'
 // Turnstile rendered explicitly, hand-rolled rather than through `@marsidev/react-turnstile`
 // (#79): this bundle ships on host pages we do not control, so a dependency is weight.
 //
-// ⚠ **The challenge renders in a frame on OUR origin, never in the host's document (#343).**
-// `src/lib/turnstile-frame.ts` owns that reasoning and the protocol; `challenge.html` is the
-// page. Nothing here branches on embed mode, so one code path is the only one anybody tests.
+// ⚠ **The challenge renders in a frame on SahajCloud's origin, never in the host's document
+// (#343, sydevs/SahajCloud#1072).** `src/lib/turnstile-frame.ts` owns that reasoning and the
+// protocol; SahajCloud owns the page and both halves of the key. Nothing here branches on embed
+// mode, so one code path is the only one anybody tests.
 //
 // ⚠ **The challenge is not lazy — that inverted in #182.** Registration cannot happen without a
 // token, so a challenge that cannot load fails the widget rather than degrading the form, as
@@ -64,11 +65,15 @@ const TURNSTILE_FEATURES =
  * ever.
  */
 function createChallengeFrame(
-  options: ChallengeOptions,
+  options: Omit<ChallengeOptions, 'parent'>,
   onEvent: (message: ChallengeEvent | null) => void,
 ) {
   const frame = document.createElement('iframe')
-  const src = challengeSrc(import.meta.url, options)
+  // The frame's parent is this document, in a script embed and an iframe embed alike.
+  const src = challengeSrc(import.meta.env.VITE_SAHAJCLOUD_URL, {
+    ...options,
+    parent: window.location.origin,
+  })
 
   frame.src = src
   frame.width = String(FRAME_WIDTH)
@@ -77,8 +82,8 @@ function createChallengeFrame(
   // A captcha labels itself, but every frame still needs a title, and this is what a
   // screen-reader user needs to hear.
   frame.title = 'Security check'
-  // This hop goes to OUR origin, not Cloudflare's (`src/challenge.ts` owns that one), so what
-  // this withholds is the host page's path and query from our own logs.
+  // SahajCloud reads the parent from the URL, so all this withholds is the host page's path and
+  // query from SahajCloud's logs.
   frame.referrerPolicy = 'strict-origin'
   frame.allow = TURNSTILE_FEATURES
 
@@ -108,48 +113,57 @@ function createChallengeFrame(
   return { frame, expectedOrigin, dispose }
 }
 
+/**
+ * Why the probe answered as it did, so the console advice can name the one fix that applies.
+ * `csp`: the host's policy refused the frame. `origin`: SahajCloud refused this page's origin,
+ * which is in no client record's allowed domains. `failed`: anything else — a page that errored,
+ * an absent site key, or silence until the handshake timeout.
+ */
+export type TurnstileVerdict = 'available' | 'csp' | 'origin' | 'failed'
+
 /** Shared by every mount on the page. Cleared on a negative verdict, so a blip is retried. */
-let availability: Promise<boolean> | null = null
+let availability: Promise<TurnstileVerdict> | null = null
 
 /**
- * Whether Turnstile can run on this page at all — the host's CSP and the network, not any one
- * form (#182). Resolves `false` rather than rejecting, because every caller wants a verdict.
+ * Whether Turnstile can run on this page at all — the host's CSP, SahajCloud's allowlist and the
+ * network, not any one form (#182). Resolves rather than rejecting, because every caller wants a
+ * verdict.
  *
  * Memoized because the script load this replaced memoized itself: without it a compact embed's
  * open/close/open pays for a browsing context, three of our chunks and a script eval each time.
  *
  * ⚠ **Weaker than a real render, deliberately.** Probe mode hands back the handshake without
- * rendering, so it sees a `frame-src` that refuses us, a `script-src` inside our own frame, an
+ * rendering, so it sees a `frame-src` that refuses the frame, a parent SahajCloud refuses, an
  * absent site key and a script that loads without defining the API — but not a challenge that
  * renders and then errors, which `useTurnstile`'s `blocked` backstops.
  * ⚠ The hostname mismatch it could never see is **gone** rather than unobserved: the challenge
- * now always renders on the one hostname the widget's Turnstile key lists (#343).
+ * always renders on the one hostname the Turnstile key lists, SahajCloud's (#343).
  */
-export async function probeTurnstile(): Promise<boolean> {
-  if (typeof document === 'undefined') return false
+export async function probeTurnstile(): Promise<TurnstileVerdict> {
+  if (typeof document === 'undefined') return 'failed'
 
-  availability ??= runCheck().then((available) => {
-    if (!available) availability = null
+  availability ??= runCheck().then((verdict) => {
+    if (verdict !== 'available') availability = null
 
-    return available
+    return verdict
   })
 
   return availability
 }
 
-function runCheck(): Promise<boolean> {
-  return new Promise<boolean>((resolve) => {
+function runCheck(): Promise<TurnstileVerdict> {
+  return new Promise<TurnstileVerdict>((resolve) => {
     let settled = false
-    const settle = (available: boolean) => {
+    const settle = (verdict: TurnstileVerdict) => {
       if (settled) return
 
       settled = true
       document.removeEventListener('securitypolicyviolation', onViolation)
       dispose()
-      resolve(available)
+      resolve(verdict)
     }
 
-    // A host refusing to frame our origin fires no load and no error, so this answers before the
+    // A host refusing to frame SahajCloud fires no load and no error, so this answers before the
     // handshake timeout — a latency decision, not a second liveness rule.
     //
     // Measured in Chromium 153.0.8010.12 against the built page, 2026-11-01: `frame-src 'none'`
@@ -163,14 +177,14 @@ function runCheck(): Promise<boolean> {
       if (!/^(frame|child|default)-src$/.test(directive)) return
       if (!event.blockedURI.startsWith(expectedOrigin)) return
 
-      settle(false)
+      settle('csp')
     }
 
     const { frame, expectedOrigin, dispose } = createChallengeFrame(
       { theme: 'auto', language: 'auto', probe: true },
       (message) => {
-        if (message?.type === 'ready') settle(true)
-        if (message?.type === 'error') settle(false)
+        if (message?.type === 'ready') settle('available')
+        if (message?.type === 'error') settle(message.reason === 'origin' ? 'origin' : 'failed')
       },
     )
 

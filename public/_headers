@@ -29,16 +29,6 @@
 /embed.js
   Cache-Control: public, max-age=0, must-revalidate
 
-# The Turnstile challenge document (#343). Unhashed, like the two above, because the widget
-# composes its URL at runtime — but it is fetched inside a frame on the registration path, and
-# it references only content-hashed assets, so it can be cached briefly rather than revalidated
-# on every mount. Without a rule it falls to the platform default, which this file records as
-# host-dependent (`max-age=14400` on the custom domain, `max-age=0` on a vendor host): four
-# hours is too long for a document that names hashed chunks, and zero is a network round trip
-# per frame.
-/challenge.html
-  Cache-Control: public, max-age=600, must-revalidate
-
 
 # CORS. The widget is embedded in OTHER sites, so everything it loads at runtime is a
 # cross-origin request from the host page's point of view. A font is always fetched in CORS

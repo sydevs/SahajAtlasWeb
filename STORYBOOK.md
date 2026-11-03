@@ -22,7 +22,7 @@ pnpm ladle:build  # static build (also the CI gate — broken stories fail it)
 | Piece                   | What it does                                                                        |
 | ----------------------- | -------------------------------------------------------------------------------------- |
 | `.ladle/config.mjs`     | Story glob (`src/**/*.stories.{ts,tsx}`), title, port, `viteConfig`.                  |
-| `.ladle/vite.config.ts` | Resolves the `@/` alias to `src/` (Ladle relocates Vite's root), and serves `/challenge.html` so the two form stories render a live captcha (#343). |
+| `.ladle/vite.config.ts` | Resolves the `@/` alias to `src/` (Ladle relocates Vite's root).                      |
 | `.ladle/i18n.ts`        | Self-contained i18next with en/fr bundled (the app loads over HTTP, Ladle has no backend). |
 | `.ladle/components.tsx` | The **global decorator**: React Query + Helmet + a `MemoryRouter` + `<I18nextProvider>`. |
 

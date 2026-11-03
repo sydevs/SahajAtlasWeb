@@ -103,9 +103,10 @@ SahajCloud's:
   [`docs/embedding.md`](docs/embedding.md#content-security-policy).
   **`challenges.cloudflare.com`** loads Turnstile as soon as the interface
   mounts, not when a visitor opens a form (#182) — but since #343 it is loaded
-  by the challenge document on OUR origin, not by the host's page, so it is in
-  no directive of theirs and their URL is never the referrer. The host allows
-  `frame-src` for our origin instead.
+  by a challenge page SahajCloud serves (sydevs/SahajCloud#1072), not by the
+  host's page, so it is in no directive of theirs and their URL is never the
+  referrer. The host allows `frame-src` for SahajCloud's origin instead, and
+  that page hands its token only to a page on a domain the client record lists.
 
 None of these has a script-URL opt-out (#149) — each is built so it does not
 need one. A compliance requirement we have not anticipated becomes a setting

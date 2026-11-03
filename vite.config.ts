@@ -11,7 +11,6 @@ import process from 'node:process'
 import { resolve } from 'path'
 
 import flattenEntryImports from './scripts/flatten-entry-imports.mjs'
-import { turnstileReleaseGuard } from './scripts/turnstile-release-guard.mjs'
 
 /**
  * Where the emitted CSS goes instead of `document.head` (#236).
@@ -282,8 +281,6 @@ export default defineConfig(({ command }) => ({
     // `<script>` tag parsed up front.
     flattenEntryImports('loader'),
     stripDsStore(),
-    // Fails a production build that would ship `.env`'s test Turnstile key (#259).
-    turnstileReleaseGuard(),
     // This plugin's position in the array does not set its order.
     // `sentryVitePlugin` returns `enforce: 'pre'`, so Vite hoists it
     // ahead of every plugin above, regardless of array order. What makes
@@ -311,10 +308,6 @@ export default defineConfig(({ command }) => ({
     rolldownOptions: {
       input: {
         main: resolve(import.meta.dirname, 'index.html'),
-        // The Turnstile challenge, served from our origin so Turnstile sees one hostname
-        // whatever page hosts the widget (#343). An HTML input, so it lands at the output
-        // root as `/challenge.html` — the path `src/lib/turnstile-frame.ts` resolves.
-        challenge: resolve(import.meta.dirname, 'challenge.html'),
         // This is the one script a host installs. Nobody loads
         // `embed.js` directly any more — the loader imports it
         // dynamically. It stays an explicit entry so it keeps a stable,

@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react'
 
-import { challengeOrigin } from '@/lib/turnstile-frame'
 import { atlasError, reportIntegrationWarning } from '@/lib/report'
-import { probeTurnstile } from '@/hooks/use-turnstile'
+import { type TurnstileVerdict, probeTurnstile } from '@/hooks/use-turnstile'
+
+const GUIDE = 'https://github.com/sydevs/SahajAtlasWeb/blob/main/docs/embedding.md'
 
 /**
  * This is where a host's developer is told what to change.
@@ -10,20 +11,36 @@ import { probeTurnstile } from '@/hooks/use-turnstile'
  *
  * This appears on the console, not on the screen, because the two audiences are different people.
  * The visitor gets `error.captcha_blocked`, which says the embed is broken without asking them to do anything about it.
- * The person who can edit the CSP gets the directive instead.
+ * The person who can edit the CSP, or ask for their domain to be listed, gets the fix instead.
  *
- * ⚠ **It names OUR origin under `frame-src`, not Cloudflare's. See issue #343.** The challenge
- * renders in a frame on the widget's origin, so `challenges.cloudflare.com` is governed by that
- * frame's own policy and has left the host's `script-src`, `connect-src` and `frame-src`
- * entirely. The origin is read off the frame URL rather than written out, so a preview deploy
- * and `pnpm dev` each name the host they actually need allowed.
+ * ⚠ **It names SahajCloud's origin under `frame-src`, not Cloudflare's or ours** (#343,
+ * sydevs/SahajCloud#1072). The challenge renders in a frame SahajCloud serves, so
+ * `challenges.cloudflare.com` is governed by that frame's own policy and belongs in no directive
+ * of the host's. The origin is read off the configured API URL rather than written out, so a
+ * build pointed at a local SahajCloud names the host it actually needs allowed.
  */
-export function cspAdvice(origin: string): string {
+export function turnstileAdvice(
+  verdict: Exclude<TurnstileVerdict, 'available'>,
+  serverOrigin: string,
+  hostname: string,
+): string {
+  const lead =
+    'Turnstile could not load, so registration and issue reports are impossible on this page. '
+
+  if (verdict === 'origin') {
+    return (
+      lead +
+      `${hostname} is not an allowed domain of any Sahaj Atlas client, so the security check refuses to run here. ` +
+      'Ask the Sahaj Atlas team to add it to your client record. ' +
+      `See ${GUIDE}#what-you-configure-in-the-cms-instead`
+    )
+  }
+
   return (
-    'Turnstile could not load, so registration and issue reports are impossible on this page. ' +
-    `Allow ${origin} in this page's Content-Security-Policy, under \`frame-src\` — ` +
+    lead +
+    `If this page sends a Content-Security-Policy, allow ${serverOrigin} under \`frame-src\` — ` +
     'the challenge renders in a frame served from there. ' +
-    'See https://github.com/sydevs/SahajAtlasWeb/blob/main/docs/embedding.md#content-security-policy'
+    `See ${GUIDE}#content-security-policy`
   )
 }
 
@@ -58,12 +75,18 @@ export function useTurnstileGuard(): void {
   useEffect(() => {
     let cancelled = false
 
-    void probeTurnstile().then((available) => {
-      if (cancelled || available) return
+    void probeTurnstile().then((verdict) => {
+      if (cancelled || verdict === 'available') return
 
       // This runs before the throw, not after.
       // The throw unmounts this tree, and the console line is the only part of this addressed to somebody who can fix it.
-      reportIntegrationWarning(cspAdvice(challengeOrigin(import.meta.url)))
+      reportIntegrationWarning(
+        turnstileAdvice(
+          verdict,
+          new URL(import.meta.env.VITE_SAHAJCLOUD_URL).origin,
+          window.location.hostname,
+        ),
+      )
       setBlocked(true)
     })
 

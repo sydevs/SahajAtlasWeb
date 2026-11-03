@@ -6,7 +6,7 @@ import { ErrorBoundary } from 'react-error-boundary'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { createRoot } from 'react-dom/client'
 
-import { cspAdvice, useTurnstileGuard } from './use-turnstile-guard'
+import { turnstileAdvice, useTurnstileGuard } from './use-turnstile-guard'
 
 import { classifyError } from '@/lib/report'
 
@@ -89,7 +89,7 @@ describe('useTurnstileGuard', () => {
   })
 
   it('renders the interface when Turnstile is available', async () => {
-    probeTurnstile.mockResolvedValue(true)
+    probeTurnstile.mockResolvedValue('available')
 
     await mount()
 
@@ -97,20 +97,23 @@ describe('useTurnstileGuard', () => {
     expect(caught).toBeUndefined()
   })
 
-  it('fails the widget as `captcha-blocked` when Turnstile cannot load', async () => {
-    probeTurnstile.mockResolvedValue(false)
+  it.each(['csp', 'origin', 'failed'])(
+    'fails the widget as `captcha-blocked` on %s',
+    async (verdict) => {
+      probeTurnstile.mockResolvedValue(verdict)
 
-    await mount()
+      await mount()
 
-    expect(document.body.textContent).not.toContain(GUARDED)
-    // This checks the KIND, not merely that something threw.
-    // The kind picks the sentence.
-    // More importantly, it withholds the report CTA that would open a second form the same failure has already disabled.
-    expect(classifyError(caught)).toBe('captcha-blocked')
-  })
+      expect(document.body.textContent).not.toContain(GUARDED)
+      // This checks the KIND, not merely that something threw.
+      // The kind picks the sentence.
+      // More importantly, it withholds the report CTA that would open a second form the same failure has already disabled.
+      expect(classifyError(caught)).toBe('captcha-blocked')
+    },
+  )
 
   it('tells the host developer what to change, on the console', async () => {
-    probeTurnstile.mockResolvedValue(false)
+    probeTurnstile.mockResolvedValue('csp')
 
     await mount()
 
@@ -122,16 +125,29 @@ describe('useTurnstileGuard', () => {
     expect(advice).toContain('docs/embedding.md')
   })
 
-  // ⚠ The advice names OUR origin, not Cloudflare's, since #343: the challenge renders in a
-  // frame served from the widget's origin, so `challenges.cloudflare.com` has left the host's
-  // policy altogether and naming it would send a developer to edit a line that fixes nothing.
-  it('names the widget origin under frame-src, and nothing a host no longer needs', () => {
-    const advice = cspAdvice('https://sahajatlas.com')
+  // ⚠ The advice names SahajCloud's origin, not Cloudflare's or the widget's (#343,
+  // sydevs/SahajCloud#1072): the challenge renders in a frame SahajCloud serves, so naming
+  // anything else would send a developer to edit a line that fixes nothing.
+  it.each(['csp', 'failed'] as const)(
+    'names the SahajCloud origin under frame-src on %s, and nothing a host no longer needs',
+    (verdict) => {
+      const advice = turnstileAdvice(verdict, 'https://cloud.sydevelopers.com', 'partner.org')
 
-    expect(advice).toContain('frame-src')
-    expect(advice).toContain('https://sahajatlas.com')
-    expect(advice).not.toContain('challenges.cloudflare.com')
-    expect(advice).not.toContain('script-src')
+      expect(advice).toContain('frame-src')
+      expect(advice).toContain('https://cloud.sydevelopers.com')
+      expect(advice).not.toContain('challenges.cloudflare.com')
+      expect(advice).not.toContain('script-src')
+    },
+  )
+
+  // A host's own policy cannot fix this one, so pointing at `frame-src` would waste the reader's
+  // time: the page's domain is missing from every client record.
+  it('names the domain to have listed when SahajCloud refuses the page', () => {
+    const advice = turnstileAdvice('origin', 'https://cloud.sydevelopers.com', 'partner.org')
+
+    expect(advice).toContain('partner.org')
+    expect(advice).toContain('client record')
+    expect(advice).not.toContain('frame-src')
   })
 
   it('does not block the first paint on the probe', async () => {

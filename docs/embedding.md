@@ -239,6 +239,7 @@ Some things are **not** parameters, on purpose:
 | ---------------------------------- | ---------------------------------------------------------------------- |
 | Display name, brand colours        | your client record                                                     |
 | The path prefix for `routing=path` | your client record — the same value your canonical URLs are built from |
+| The domains you embed on           | your client record — the API refuses reads from anywhere else, and the captcha renders nowhere else |
 
 Identity is the same on every page you embed on, so making it per-embed only risks two of your
 pages disagreeing about what the product is called. The routing prefix is worse than merely
@@ -793,10 +794,13 @@ and `cloud.sydevelopers.com` is in `connect-src` already, for the widget's own r
 If your page sends a CSP, this is what the widget needs added to it. **It is a list of
 additions to your policy, not a policy** — your own sources still have to be in there.
 
-**There is nothing to configure per site for the captcha.** Every form in the widget is behind a
-Cloudflare Turnstile challenge, and that challenge is served, rendered and validated on the
-widget's own origin. So onboarding a new site needs no key of yours, no account of yours, and no
-hostname of yours registered with us. The `frame-src` line below is the whole of it.
+**The captcha needs nothing of yours but a listed domain.** Every form in the widget is behind a
+Cloudflare Turnstile challenge, and that challenge is served, rendered and validated by
+`cloud.sydevelopers.com` — the origin the widget already reads its data from. So onboarding a
+new site needs no key of yours and no account of yours. It renders only for a page on one of the
+domains on your client record, the same list that already gates the API ([What you configure in
+the CMS instead](#what-you-configure-in-the-cms-instead)), so tell us every domain you embed on.
+The `frame-src` line below is the whole of your policy's part.
 
 ```
 script-src  https://sahajatlas.com https://api.mapbox.com https://cdn.usefathom.com
@@ -806,7 +810,7 @@ style-src   'unsafe-inline'
 font-src    https://sahajatlas.com
 img-src     data: https://api.mapbox.com https://imagedelivery.net https://cloud.sydevelopers.com https://react-circle-flags.pages.dev
 connect-src https://cloud.sydevelopers.com https://api.mapbox.com https://events.mapbox.com https://ipwho.is https://cdn.usefathom.com https://*.sentry.io
-frame-src   https://sahajatlas.com
+frame-src   https://cloud.sydevelopers.com
 ```
 
 **One line per directive, deliberately: CSP ignores every repeat of a directive name after the
@@ -833,12 +837,12 @@ believing you allowed something you hadn't.
 |                            | `ipwho.is`                                    | the once-per-session IP→city lookup behind "classes near you"                                                                                                                                                                                                                                                                                                                                                                                                                         | **degrades**: the nearby suggestion is skipped                                                                                                                                                                |
 |                            | `cdn.usefathom.com`                           | analytics, conditional as above                                                                                                                                                                                                                                                                                                                                                                                                                                                       | analytics only                                                                                                                                                                                                |
 |                            | `*.sentry.io`                                 | crash reporting. Contacted **only after the widget has already failed**, and only on a build with a DSN.                                                                                                                                                                                                                                                                                                                                                                              | **degrades**: the widget notices the refusal and stops trying for the rest of the page's life                                                                                                                 |
-| `frame-src`                | the widget's origin                           | **The captcha — required.** Every write the widget makes is captcha-gated, so registration is impossible without it. The challenge is Cloudflare Turnstile, and it renders in a small frame the widget serves from its own origin rather than in your document, so `challenges.cloudflare.com` belongs in no directive of yours. The frame is mounted as soon as the interface does, so a policy that omits this fails immediately rather than at the moment somebody registers.      | **the widget shows an error screen and does not run.** Not a degradation — see the note below                                                                                                                 |
+| `frame-src`                | `cloud.sydevelopers.com`                      | **The captcha — required.** Every write the widget makes is captcha-gated, so registration is impossible without it. The challenge is Cloudflare Turnstile, and it renders in a small frame `cloud.sydevelopers.com` serves rather than in your document, so `challenges.cloudflare.com` belongs in no directive of yours. The frame is mounted as soon as the interface does, so a policy that omits this fails immediately rather than at the moment somebody registers.      | **the widget shows an error screen and does not run.** Not a degradation — see the note below                                                                                                                 |
 
 Notes on that table:
 
 **Nothing of Cloudflare's runs in your document, and `'unsafe-eval'` is not wanted here.** The
-challenge is a separate document on the widget's own origin, which loads Turnstile's `api.js`
+challenge is a separate document on `cloud.sydevelopers.com`, which loads Turnstile's `api.js`
 under its own policy and nests Cloudflare's own challenge frame inside itself. So your
 `frame-src` above is the only directive of yours that reaches any of it. **Do not add
 `'unsafe-eval'`**, and do not add `challenges.cloudflare.com` — neither buys you anything, and
@@ -849,8 +853,10 @@ is ours rather than yours.
 forced interactive challenge rendered in the host's own document was clicked through in six runs
 of six, Chromium 141.0.7390.37, on the policy of that day: the challenge reached its success
 state, the widget took the token, and Submit went from disabled to enabled. What has been
-measured since is that the challenge reaches its success state in a nested frame on our origin
-and that `frame-src` is what refuses it — not a full solve-and-submit on a partner site. Two
+measured since is that the challenge reaches its success state in a nested frame on the widget's
+origin, the arrangement before this one, and that `frame-src` is what refuses it — not a full
+solve-and-submit on a partner site. The page `cloud.sydevelopers.com` serves now is the same
+protocol on a different origin, and has not yet been watched solving in a browser. Two
 things have therefore never been covered in either arrangement: nothing was posted to the
 backend, so the measurement ends at the token rather than at an accepted submission, and map
 mode was not measured, for want of a Mapbox token. Tell us if a challenge will not solve on
@@ -902,7 +908,7 @@ nothing else, allow these — each breaks the widget as a whole:
 |                                      |                                     |
 | ------------------------------------ | ----------------------------------- |
 | `script-src` the widget's origin     | nothing renders                     |
-| `frame-src` the widget's origin      | the widget shows an error and stops |
+| `frame-src cloud.sydevelopers.com`   | the widget shows an error and stops |
 | `connect-src cloud.sydevelopers.com` | no data at all                      |
 | `worker-src blob:`                   | the map never renders               |
 | `img-src data:`                      | the map renders with no pins        |
@@ -923,12 +929,13 @@ silently fail to sign up for one, with no reason for the page owner to suspect a
 wrong. Failing loudly is worse for five minutes and better thereafter.
 
 ⚠ **Which line that entry is has CHANGED.** It used to be `challenges.cloudflare.com`, under
-`script-src`, `frame-src` and `connect-src`. It is now `https://sahajatlas.com` under
-`frame-src` alone, and the three Cloudflare entries can go. A policy still carrying the old
-three is not broken by this — they are simply dead — but one that never had `frame-src
-https://sahajatlas.com` will show the error screen. The widget writes the specific directive it
-needs to the browser console, so a developer looking at the page gets the answer without opening
-this document.
+`script-src`, `frame-src` and `connect-src`. It is now `https://cloud.sydevelopers.com` under
+`frame-src` alone — the origin already in your `connect-src` — and the three Cloudflare entries
+can go. A policy still carrying the old three is not broken by this — they are simply dead — but
+one that never had `frame-src https://cloud.sydevelopers.com` will show the error screen. The
+widget writes the fix to the browser console — the directive, or that your domain is not yet on
+your client record — so a developer looking at the page gets the answer without opening this
+document.
 
 Everything else degrades to exactly what its "Blocked ⇒" column says — a missing typeface, a
 search field that offers no places, missing photography, missing flags, no analytics, no
@@ -960,7 +967,7 @@ an iframe, put them in its `allow` attribute as shown above.
 
 ### The captcha frame asks for six more, and needs none of them
 
-The captcha renders in a frame on our own origin (see
+The captcha renders in a frame on `cloud.sydevelopers.com` (see
 [Content-Security-Policy](#content-security-policy)), and that frame carries
 `allow="cross-origin-isolated; fullscreen; autoplay; keyboard-map; gamepad;
 xr-spatial-tracking"` — the same six Cloudflare's own Turnstile widget asks for one level
@@ -1081,7 +1088,7 @@ Seven honest exceptions, none of them styling your content:
 
 - **A 1-pixel hidden `<iframe>` sits in your `<body>` for a moment after the widget mounts**,
   and is removed again as soon as it has answered. It is the captcha's availability check: it
-  loads the challenge page from the widget's origin and asks whether your policy lets it, so a
+  loads the challenge page from `cloud.sydevelopers.com` and asks whether it may run here, so a
   page where registration is impossible says so immediately rather than at the moment somebody
   tries to sign up. It is `position: fixed`, fully transparent, not focusable and hidden from
   assistive technology, and it adds nothing to your page's scroll height. Nothing else of yours
@@ -1202,12 +1209,13 @@ maintainers rather than editing the snippet:
   own scripts' exceptions are never captured. No breadcrumbs, no session replay.
 
 **The captcha's own requests no longer come from your page.** Cloudflare Turnstile gates every
-form in the widget, and the challenge is now a small frame served from the widget's origin, so
+form in the widget, and the challenge is now a small frame served from `cloud.sydevelopers.com`, so
 the requests to `challenges.cloudflare.com` are made by that frame's document rather than by
 yours. Cloudflare still sees the visitor's IP, as it did before — what changed is that it no
 longer sees your page as the document asking, and no script of Cloudflare's runs in your
-document. The frame is mounted as soon as the interface is, so this happens whether or not the
-visitor opens a form.
+document. The frame's URL carries your page's **origin** — scheme, host and port, never a path —
+because that is the one window the challenge will hand its token to. The frame is mounted as soon
+as the interface is, so this happens whether or not the visitor opens a form.
 
 **`map=false` removes the Mapbox flows too** — tiles, the geocoder (which sends the visitor's
 typed query and the map centre to Mapbox), and the map-load telemetry — along with the two
@@ -1286,7 +1294,7 @@ Three things to check when you migrate:
 | **The map area is blank or grey**                                            | `worker-src blob:` (Mapbox starts its worker from a `blob:` URL), or `api.mapbox.com` missing from `img-src`/`connect-src`.                                                                                                                                                                                                                                                                                                      |
 | **The map renders but has no pins**                                          | `img-src data:` — the pins are inline SVG rasterised from a `data:` URI.                                                                                                                                                                                                                                                                                                                                                         |
 | **Country flags are missing, everything else fine**                          | `img-src https://react-circle-flags.pages.dev`. Cosmetic.                                                                                                                                                                                                                                                                                                                                                                        |
-| **The widget shows "its security check was blocked" and nothing else**       | The captcha's frame is blocked — add `https://sahajatlas.com` to `frame-src`. The browser console carries the exact directive. `challenges.cloudflare.com` is **not** the answer any more: the challenge renders on our origin, not in your document. This used to degrade the report form instead — since the atlas cannot take a registration without it, it now fails outright.                                               |
+| **The widget shows "its security check was blocked" and nothing else**       | Read the browser console, which names one of two causes. Either your CSP blocks the captcha's frame — add `https://cloud.sydevelopers.com` to `frame-src` — or your page's domain is not on your client record, so the challenge refuses to run here — ask us to add it. `challenges.cloudflare.com` is **not** the answer any more: the challenge renders on `cloud.sydevelopers.com`, not in your document. This used to degrade the report form instead — since the atlas cannot take a registration without it, it now fails outright. |
 | **The widget's route never appears in the address bar**                      | The document refuses `history.replaceState` — most often `file://`. The widget detects that and routes in memory.                                                                                                                                                                                                                                                                                                                |
 | **The compact card's button does nothing, in an iframe**                     | The frame is sandboxed without `allow-popups`, so its `target="_blank"` link cannot open. It fails silently, with nothing in the console. Add `allow-popups`, or drop `sandbox`.                                                                                                                                                                                                                                                 |
 | **`atlas=` on the script URL seems to be ignored**                           | The page's own URL already carries an `?atlas=` route, which always wins. That is intended — see [`atlas`, and how the route is chosen](#atlas-and-how-the-route-is-chosen).                                                                                                                                                                                                                                                     |

@@ -1,11 +1,18 @@
 import { vi } from 'vitest'
 
-import { type ChallengeEvent, challengeMessage, parseChallengeCommand } from '@/lib/turnstile-frame'
+import { CHALLENGE_CHANNEL, type ChallengeEvent, challengeMessage } from '@/lib/turnstile-frame'
+
+/** The reset command as SahajCloud's page reads it: on our channel, `type: 'reset'`. */
+const isReset = (data: unknown) =>
+  typeof data === 'object' &&
+  data !== null &&
+  (data as Record<string, unknown>).channel === CHALLENGE_CHANNEL &&
+  (data as Record<string, unknown>).type === 'reset'
 
 /**
  * Stands in for the challenge PAGE, never for our own hook (#343).
  *
- * `useTurnstile` mounts a frame on the widget's origin and waits for its `postMessage`
+ * `useTurnstile` mounts a frame on SahajCloud's origin and waits for its `postMessage`
  * handshake, so this speaks that protocol from the other side. What the specs using it are
  * for is the form's own wiring — the token reaching Submit, and a failed submit asking for a
  * fresh challenge — and mocking the hook would skip exactly that.
@@ -22,7 +29,7 @@ export function challengeFrameStub(container: ParentNode) {
   let resets = 0
 
   vi.spyOn(frame.contentWindow, 'postMessage').mockImplementation(((data: unknown) => {
-    if (parseChallengeCommand(data)) resets += 1
+    if (isReset(data)) resets += 1
   }) as Window['postMessage'])
 
   return {
@@ -39,8 +46,8 @@ export function challengeFrameStub(container: ParentNode) {
 /**
  * Dispatches one message as the challenge page would, for a spec driving the frame directly.
  *
- * ⚠ The origin is read off the frame's own `src`. The hook resolves that URL against its
- * module URL, so hard-coding one here would make the hook's own origin check pass or fail for
+ * ⚠ The origin is read off the frame's own `src`. The hook builds that URL from
+ * `VITE_SAHAJCLOUD_URL`, so hard-coding one here would make the hook's own origin check pass or fail for
  * a reason unrelated to what the spec is testing. `overrides` is what lets a case send a
  * deliberately wrong source, origin or shape.
  */
