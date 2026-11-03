@@ -294,11 +294,7 @@ alert. The lane's last step opens an issue instead, and three things about it ar
   production read, and a ticket claiming production is red when nothing read it is worse than no
   ticket. `ci-workflows.test.ts` pins that gate and the token, since both fail silently.
 
-**No spec is scoped by environment any more.** #259's Turnstile case read the site key back out
-of the bundle, expecting the committed test key on a preview and a real key everywhere else, so a
-bypassed build gate still reddened production. Since sydevs/SahajCloud#1072 the widget carries no
-Turnstile key at all: SahajCloud serves the challenge page and holds both halves, so the build
-gate, the build variable and this case went together. Every spec reads both hosts alike. The lane is **17 cases**, from 13 declarations — count it rather
+Every spec reads both hosts alike. The lane is **17 cases**, from 13 declarations — count it rather
 than trusting a figure, since `.each` makes the two differ. Measured 2026-10-06 against the 16 it
 was then: all 16 passed against `sahajatlas.com`. Re-measured 2026-10-13 against the playground
 on its Worker (`PREVIEW_URL=https://design.sahajatlas.com pnpm test:smoke`, #279): **10 of the 17

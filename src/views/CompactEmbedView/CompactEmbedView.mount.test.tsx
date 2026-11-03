@@ -75,10 +75,6 @@ const Sentinel = () => <p>{INTERFACE}</p>
  * This calls the real hook, rather than a stand-in. What is being asserted is that React never
  * renders this subtree, so anything the subtree would do is equally prevented. A fake would
  * only prove the fake stayed unrendered.
- *
- * ⚠ **What the guard mounts is a frame, not a script, since #343** — the challenge renders on
- * SahajCloud now. The cost to a host is the same shape: a document and a request
- * for an interface nobody opened.
  */
 const challengeFrames = () =>
   document.querySelectorAll('iframe[src*="/api/atlas/challenge"]').length

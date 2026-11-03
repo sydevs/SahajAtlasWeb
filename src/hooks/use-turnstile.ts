@@ -12,8 +12,8 @@ import { useTheme } from '@/hooks/use-theme'
 // which parents may receive a token; this file only frames the page and listens to it.
 //
 // ⚠ **Cross-repo contract** with SahajCloud's `src/endpoints/atlas/challenge/`: the path, the query
-// parameters, the channel, each message `type` and the `origin` reason. Change them in both repos
-// in the same release — a drifted protocol fails silently, the frame waiting out its handshake.
+// parameters, the channel and each message `type`. Change them in both repos in the same release —
+// a drifted protocol fails silently, the frame waiting out its handshake.
 //
 // ⚠ **The challenge is not lazy — that inverted in #182.** Registration cannot happen without a
 // token, so a challenge that cannot load fails the widget as soon as the INTERFACE mounts
@@ -28,23 +28,23 @@ const CHALLENGE_PATH = '/api/atlas/challenge'
  */
 const CHALLENGE_CHANNEL = 'sahaj-atlas-turnstile'
 
-/** `ready` is the handshake: Turnstile is live in the frame. */
+/**
+ * `ready` is the handshake: Turnstile is live in the frame. `error` includes SahajCloud refusing
+ * this page's origin, which no client record lists.
+ */
 type ChallengeEvent =
   | { type: 'ready' }
   | { type: 'expired' }
+  | { type: 'error' }
   | { type: 'token'; token: string }
-  /** `origin`: SahajCloud refused this page's origin — no client record lists its domain. */
-  | { type: 'error'; reason?: 'origin' }
 
 function readChallengeEvent(data: unknown): ChallengeEvent | null {
   if (typeof data !== 'object' || data === null) return null
 
-  const { channel, type, token, reason } = data as Record<string, unknown>
+  const { channel, type, token } = data as Record<string, unknown>
 
   if (channel !== CHALLENGE_CHANNEL) return null
-  if (type === 'ready' || type === 'expired') return { type }
-  // Any other reason is still an error: a newer page must not leave this widget waiting.
-  if (type === 'error') return reason === 'origin' ? { type, reason } : { type }
+  if (type === 'ready' || type === 'expired' || type === 'error') return { type }
   // An empty token would enable Submit and then fail verification, which reads to a visitor as
   // the form being broken rather than the challenge.
   if (type === 'token' && typeof token === 'string' && token !== '') return { type, token }
@@ -139,14 +139,8 @@ function createChallengeFrame(
   return { frame, origin: url.origin, dispose }
 }
 
-/**
- * `origin`: SahajCloud refused this page's origin. `failed`: anything else — a page that errored,
- * an absent site key, or a frame refused by the host's CSP, which is silent until the timeout.
- */
-export type TurnstileVerdict = 'available' | 'origin' | 'failed'
-
 /** Shared by every mount on the page. Cleared on a negative verdict, so a blip is retried. */
-let availability: Promise<TurnstileVerdict> | null = null
+let availability: Promise<boolean> | null = null
 
 /**
  * Whether Turnstile can run on this page at all — the host's CSP, SahajCloud's allowlist and the
@@ -159,17 +153,17 @@ let availability: Promise<TurnstileVerdict> | null = null
  * ⚠ The hostname mismatch it could never see is **gone** rather than unobserved: the challenge
  * always renders on the one hostname the Turnstile key lists, SahajCloud's (#343).
  */
-export async function probeTurnstile(): Promise<TurnstileVerdict> {
-  if (typeof document === 'undefined') return 'failed'
+export async function probeTurnstile(): Promise<boolean> {
+  if (typeof document === 'undefined') return false
 
-  availability ??= new Promise<TurnstileVerdict>((resolve) => {
+  availability ??= new Promise<boolean>((resolve) => {
     const { frame, dispose } = createChallengeFrame(
       { theme: 'auto', language: 'auto', probe: true },
       (message) => {
         if (message.type !== 'ready' && message.type !== 'error') return
 
         dispose()
-        resolve(message.type === 'ready' ? 'available' : (message.reason ?? 'failed'))
+        resolve(message.type === 'ready')
       },
     )
 
@@ -181,10 +175,10 @@ export async function probeTurnstile(): Promise<TurnstileVerdict> {
     frame.setAttribute('aria-hidden', 'true')
     frame.tabIndex = -1
     document.body.appendChild(frame)
-  }).then((verdict) => {
-    if (verdict !== 'available') availability = null
+  }).then((available) => {
+    if (!available) availability = null
 
-    return verdict
+    return available
   })
 
   return availability

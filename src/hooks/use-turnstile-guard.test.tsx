@@ -6,7 +6,7 @@ import { ErrorBoundary } from 'react-error-boundary'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { createRoot } from 'react-dom/client'
 
-import { turnstileAdvice, useTurnstileGuard } from './use-turnstile-guard'
+import { useTurnstileGuard } from './use-turnstile-guard'
 
 import { classifyError } from '@/lib/report'
 
@@ -89,7 +89,7 @@ describe('useTurnstileGuard', () => {
   })
 
   it('renders the interface when Turnstile is available', async () => {
-    probeTurnstile.mockResolvedValue('available')
+    probeTurnstile.mockResolvedValue(true)
 
     await mount()
 
@@ -97,8 +97,8 @@ describe('useTurnstileGuard', () => {
     expect(caught).toBeUndefined()
   })
 
-  it.each(['origin', 'failed'])('fails the widget as `captcha-blocked` on %s', async (verdict) => {
-    probeTurnstile.mockResolvedValue(verdict)
+  it('fails the widget as `captcha-blocked` when Turnstile cannot load', async () => {
+    probeTurnstile.mockResolvedValue(false)
 
     await mount()
 
@@ -110,7 +110,7 @@ describe('useTurnstileGuard', () => {
   })
 
   it('tells the host developer what to change, on the console', async () => {
-    probeTurnstile.mockResolvedValue('failed')
+    probeTurnstile.mockResolvedValue(false)
 
     await mount()
 
@@ -118,30 +118,16 @@ describe('useTurnstileGuard', () => {
 
     // The directive is the only part of this addressed to somebody who can act on it.
     // It must survive the throw that unmounts the tree. That is why the hook orders its steps this way.
-    expect(advice).toContain('frame-src')
     expect(advice).toContain('docs/embedding.md')
-  })
-
-  // ⚠ The advice names SahajCloud's origin, not Cloudflare's or the widget's (#343,
-  // sydevs/SahajCloud#1072): the challenge renders in a frame SahajCloud serves, so naming
-  // anything else would send a developer to edit a line that fixes nothing.
-  it('names the SahajCloud origin under frame-src, and nothing a host no longer needs', () => {
-    const advice = turnstileAdvice('failed', 'https://cloud.sydevelopers.com', 'partner.org')
-
-    expect(advice).toContain('frame-src')
-    expect(advice).toContain('https://cloud.sydevelopers.com')
+    // ⚠ SahajCloud's origin under `frame-src`, not Cloudflare's (#343, sydevs/SahajCloud#1072):
+    // the challenge renders in a frame SahajCloud serves, so naming anything else would send a
+    // developer to edit a line that fixes nothing.
+    expect(advice).toContain(
+      `${new URL(import.meta.env.VITE_SAHAJCLOUD_URL).origin} under \`frame-src\``,
+    )
     expect(advice).not.toContain('challenges.cloudflare.com')
-    expect(advice).not.toContain('script-src')
-  })
-
-  // A host's own policy cannot fix this one, so pointing at `frame-src` would waste the reader's
-  // time: the page's domain is missing from every client record.
-  it('names the domain to have listed when SahajCloud refuses the page', () => {
-    const advice = turnstileAdvice('origin', 'https://cloud.sydevelopers.com', 'partner.org')
-
-    expect(advice).toContain('partner.org')
-    expect(advice).toContain('client record')
-    expect(advice).not.toContain('frame-src')
+    // The other cause, which no policy of theirs can fix: the page's domain is on no client record.
+    expect(advice).toContain(`${window.location.hostname} is not an allowed domain`)
   })
 
   it('does not block the first paint on the probe', async () => {

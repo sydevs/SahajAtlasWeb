@@ -31,10 +31,7 @@ place it is stated — everywhere else in this repo just points here.
 | `SAHAJCLOUD_DOCS_PASSWORD` | `.env.local`                  | HTTP basic-auth password for the SahajCloud OpenAPI docs. Used **only** by the `pnpm types:openapi` script. Never `VITE_`-prefixed — tooling-only, never in the bundle. |
 
 **The widget carries no Turnstile configuration.** Its captcha renders in a page SahajCloud serves
-(`GET /api/atlas/challenge`, sydevs/SahajCloud#1072), and SahajCloud holds both halves of the key —
-`TURNSTILE_SITE_KEY` beside the secret. `VITE_TURNSTILE_SITE_KEY`, its Workers Builds build
-variable and #259's release guard went with the widget's own challenge page: delete the variable
-from the app Worker's production trigger if it is still set, since nothing reads it.
+(`GET /api/atlas/challenge`, sydevs/SahajCloud#1072), which holds both halves of the key.
 
 ## GitHub Actions secrets — the smoke lane's preview (#282)
 

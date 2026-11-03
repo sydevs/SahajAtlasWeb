@@ -3,7 +3,7 @@ import { act } from 'react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { createRoot } from 'react-dom/client'
 
-import { type TurnstileVerdict, type UseTurnstile, useTurnstile } from './use-turnstile'
+import { type UseTurnstile, useTurnstile } from './use-turnstile'
 
 import { type PageMessage, sendFromFrame } from '@/test-support/turnstile-frame'
 
@@ -161,25 +161,14 @@ describe('useTurnstile', () => {
     expect(hook.token).toBe('tok-2')
   })
 
-  it('ignores a message from another window', async () => {
+  it.each([
+    ['another window', { source: window }],
+    ['another origin', { origin: 'https://evil.example' }],
+    // Anything else the page's own scripts post, `api.js` among them: same source, same origin.
+    ['no channel', { data: { type: 'token', token: 'tok-other' } }],
+  ])('ignores a token from %s', async (_label, overrides: MessageEventInit) => {
     await mount()
-    fromFrame({ type: 'token', token: 'tok-evil' }, { source: window })
-
-    expect(hook.token).toBeNull()
-  })
-
-  it('ignores a message from another origin', async () => {
-    await mount()
-    fromFrame({ type: 'token', token: 'tok-evil' }, { origin: 'https://evil.example' })
-
-    expect(hook.token).toBeNull()
-  })
-
-  it('ignores a message on another channel', async () => {
-    await mount()
-    // A host page's own cross-frame traffic. Without the channel marker this shape would read
-    // as a solved challenge.
-    fromFrame({ type: 'token', token: 'tok-1' }, { data: { type: 'token', token: 'tok-host' } })
+    fromFrame({ type: 'token', token: 'tok-1' }, overrides)
 
     expect(hook.token).toBeNull()
   })
@@ -299,7 +288,7 @@ describe('probeTurnstile', () => {
    * otherwise read whichever answer the first one cached.
    *
    * ⚠ **Every case runs on fake timers, and that is the only thing that makes them
-   * non-vacuous.** The handshake timeout answers `failed` too, so on real timers a case that
+   * non-vacuous.** The handshake timeout answers `false` too, so on real timers a case that
    * awaits the verdict passes whether the signal it dispatched was read or ignored — it just
    * takes ten seconds about it. Frozen, an ignored signal leaves the verdict pending for good.
    */
@@ -308,7 +297,7 @@ describe('probeTurnstile', () => {
     vi.resetModules()
 
     const { probeTurnstile } = await import('./use-turnstile')
-    const verdicts: (TurnstileVerdict | 'pending')[] = []
+    const verdicts: (boolean | 'pending')[] = []
     const run = () => {
       const index = verdicts.push('pending') - 1
 
@@ -321,7 +310,6 @@ describe('probeTurnstile', () => {
       run,
       done: run(),
       settled: (index = 0) => verdicts[index],
-      calls: () => verdicts.length,
     }
   }
 
@@ -337,7 +325,7 @@ describe('probeTurnstile', () => {
     vi.useRealTimers()
   })
 
-  it('mounts a handshake-only frame and resolves available on ready', async () => {
+  it('mounts a handshake-only frame and resolves true on ready', async () => {
     const probe = await startProbe()
 
     expect(new URL(probeFrame()?.src as string).searchParams.get('probe')).toBe('1')
@@ -345,32 +333,22 @@ describe('probeTurnstile', () => {
     fromProbe({ type: 'ready' })
     await probe.done
 
-    expect(probe.settled()).toBe('available')
+    expect(probe.settled()).toBe(true)
     // The frame is torn down with the verdict: it exists only to produce one.
     expect(probeFrame()).toBeUndefined()
   })
 
-  it('resolves failed when the frame reports any other error', async () => {
+  it('resolves false at once when the frame reports an error', async () => {
     const probe = await startProbe()
 
-    // What SahajCloud sends with no site key: the host can fix nothing, so no domain advice.
-    fromProbe({ type: 'error', reason: 'unavailable' })
+    // SahajCloud refusing this page's origin, among others: posted the moment the page loads.
+    fromProbe({ type: 'error' })
     await probe.done
 
-    expect(probe.settled()).toBe('failed')
+    expect(probe.settled()).toBe(false)
   })
 
-  it('resolves origin when SahajCloud refuses this page as a parent', async () => {
-    const probe = await startProbe()
-
-    // The one refusal a host cannot fix in its own policy, so the advice it earns differs.
-    fromProbe({ type: 'error', reason: 'origin' })
-    await probe.done
-
-    expect(probe.settled()).toBe('origin')
-  })
-
-  it('resolves failed only once the frame has had its full wait', async () => {
+  it('resolves false only once the frame has had its full wait', async () => {
     // A `frame-src` that refuses the frame is silent to its parent, so this is the path a host's
     // stale CSP takes.
     const probe = await startProbe()
@@ -382,7 +360,7 @@ describe('probeTurnstile', () => {
     await vi.advanceTimersByTimeAsync(1)
     await probe.done
 
-    expect(probe.settled()).toBe('failed')
+    expect(probe.settled()).toBe(false)
   })
 
   it('checks once per page and shares the answer', async () => {
@@ -397,7 +375,7 @@ describe('probeTurnstile', () => {
 
     // A compact embed's dialog unmounts its children, so open/close/open would otherwise pay
     // for a whole browsing context, three of our chunks and a Cloudflare script eval each time.
-    expect(probe.settled(1)).toBe('available')
+    expect(probe.settled(1)).toBe(true)
     expect(probeFrame()).toBeUndefined()
   })
 
@@ -417,6 +395,6 @@ describe('probeTurnstile', () => {
     fromProbe({ type: 'ready' })
     await second
 
-    expect(probe.settled(1)).toBe('available')
+    expect(probe.settled(1)).toBe(true)
   })
 })

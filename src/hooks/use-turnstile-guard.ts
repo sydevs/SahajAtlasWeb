@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 
 import { atlasError, reportIntegrationWarning } from '@/lib/report'
-import { type TurnstileVerdict, probeTurnstile } from '@/hooks/use-turnstile'
+import { probeTurnstile } from '@/hooks/use-turnstile'
 
 const GUIDE = 'https://github.com/sydevs/SahajAtlasWeb/blob/main/docs/embedding.md'
 
@@ -14,35 +14,17 @@ const GUIDE = 'https://github.com/sydevs/SahajAtlasWeb/blob/main/docs/embedding.
  * The person who can edit the CSP, or ask for their domain to be listed, gets the fix instead.
  *
  * ⚠ **It names SahajCloud's origin under `frame-src`, not Cloudflare's or ours** (#343,
- * sydevs/SahajCloud#1072). The challenge renders in a frame SahajCloud serves, so
- * `challenges.cloudflare.com` is governed by that frame's own policy and belongs in no directive
- * of the host's. The origin is read off the configured API URL rather than written out, so a
- * build pointed at a local SahajCloud names the host it actually needs allowed.
+ * sydevs/SahajCloud#1072): the challenge renders in a frame SahajCloud serves. The origin is read
+ * off the configured API URL, so a build pointed at a local SahajCloud names the host it needs.
+ * It names both causes rather than carrying SahajCloud's reason for a refusal: the browser logs a
+ * CSP refusal itself, beside this line, which tells the two apart.
  */
-export function turnstileAdvice(
-  verdict: Exclude<TurnstileVerdict, 'available'>,
-  serverOrigin: string,
-  hostname: string,
-): string {
-  const lead =
-    'Turnstile could not load, so registration and issue reports are impossible on this page. '
-
-  if (verdict === 'origin') {
-    return (
-      lead +
-      `${hostname} is not an allowed domain of any Sahaj Atlas client, so the security check refuses to run here. ` +
-      'Ask the Sahaj Atlas team to add it to your client record. ' +
-      `See ${GUIDE}#what-you-configure-in-the-cms-instead`
-    )
-  }
-
-  return (
-    lead +
-    `If this page sends a Content-Security-Policy, allow ${serverOrigin} under \`frame-src\` — ` +
-    'the challenge renders in a frame served from there. ' +
-    `See ${GUIDE}#content-security-policy`
-  )
-}
+const captchaAdvice = (serverOrigin: string, hostname: string) =>
+  'Turnstile could not load, so registration and issue reports are impossible on this page. ' +
+  `Either this page's Content-Security-Policy does not allow ${serverOrigin} under \`frame-src\` ` +
+  '(the browser logs that refusal itself), ' +
+  `or ${hostname} is not an allowed domain on your Sahaj Atlas client record. ` +
+  `See ${GUIDE}#troubleshooting`
 
 /**
  * This fails the widget when Turnstile cannot load. See issue #182.
@@ -75,14 +57,13 @@ export function useTurnstileGuard(): void {
   useEffect(() => {
     let cancelled = false
 
-    void probeTurnstile().then((verdict) => {
-      if (cancelled || verdict === 'available') return
+    void probeTurnstile().then((available) => {
+      if (cancelled || available) return
 
       // This runs before the throw, not after.
       // The throw unmounts this tree, and the console line is the only part of this addressed to somebody who can fix it.
       reportIntegrationWarning(
-        turnstileAdvice(
-          verdict,
+        captchaAdvice(
           new URL(import.meta.env.VITE_SAHAJCLOUD_URL).origin,
           window.location.hostname,
         ),

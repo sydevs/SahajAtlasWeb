@@ -46,29 +46,17 @@ cover everything a host would notice since the widget was first deployed.
 
 - ⚠ **BREAKING: your CSP needs `frame-src https://cloud.sydevelopers.com`, and the three
   `challenges.cloudflare.com` entries can go.** ([#343], [SahajCloud#1072]) The captcha that
-  gates every form now renders in a small frame served by `cloud.sydevelopers.com` — the origin
-  already in your `connect-src` — instead of inside your document. So `challenges.cloudflare.com`
-  leaves your `script-src`, `connect-src` and `frame-src`, and that origin joins `frame-src`.
-  **A policy that does not allow the frame shows the error screen**, exactly as a blocked
-  Turnstile did before — and the console names the directive. Leaving the old three in place
-  breaks nothing; they are simply dead.
+  gates every form now renders in a small frame `cloud.sydevelopers.com` serves — the origin
+  already in your `connect-src` — instead of in your document. A policy that does not allow the
+  frame shows the error screen, and the console names the fix.
 
   ⚠ **The captcha renders only on a domain your client record lists** — the same list that
-  already gates the API. A page on any other domain shows the error screen, and the console names
-  the domain to send us. An iframe embed needs nothing listed: there the challenge's parent is the
-  widget's own page.
+  already gates the API. Any other domain shows the error screen. An iframe embed needs nothing
+  listed: there the challenge's parent is the widget's own page.
 
-  Two things improve for you, and neither needs a change. **Onboarding a site needs no Turnstile
-  step**: Turnstile validates the hostname of the document that renders the challenge, so every
-  partner site used to need its hostname registered with Cloudflare before a registration could
-  be sent — and the free plan caps that list at ten. It is one hostname now, whatever page hosts
-  the widget. And **no script of Cloudflare's runs in your document any more**: the requests to
-  `challenges.cloudflare.com` are made by the frame, so your page's URL is no longer the document
-  asking.
-
-  **Your `Permissions-Policy` needs nothing for the captcha.** The frame asks for six features
-  Cloudflare's widget requests, and the challenge renders and solves with all six denied — see
-  the embedding guide's Permissions Policy section.
+  **Onboarding a site needs no Turnstile step**: Turnstile checks the hostname of the document
+  that renders the challenge, which is now always `cloud.sydevelopers.com`. No script of
+  Cloudflare's runs in your document, and your `Permissions-Policy` needs nothing for the captcha.
 
 - **A repeat embed report turns into at most one write in any 6 h window.** ([#160]) The widget
   still reports on every page load, and an unchanged report inside that window is answered

@@ -112,10 +112,6 @@ Three facts to remember:
 The Sentry variables are dashboard-only, and owed to **each** target that builds the app. The
 runbook is in `docs/environment.md`.
 
-**Neither Worker carries a Turnstile key.** The captcha renders in a page SahajCloud serves, which
-holds both halves of the key (sydevs/SahajCloud#1072), so #259's release guard and the production
-trigger's `VITE_TURNSTILE_SITE_KEY` build variable went with the widget's own challenge page.
-
 ## Deploy-side CI gates
 
 Two of the four CI gates that exist because each one once missed something, unnoticed (#99).
