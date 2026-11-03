@@ -5,8 +5,7 @@ import { createRoot } from 'react-dom/client'
 
 import { type TurnstileVerdict, type UseTurnstile, useTurnstile } from './use-turnstile'
 
-import { sendFromFrame } from '@/test-support/turnstile-frame'
-import { CHALLENGE_CHANNEL, CHALLENGE_PATH, type ChallengeEvent } from '@/lib/turnstile-frame'
+import { type PageMessage, sendFromFrame } from '@/test-support/turnstile-frame'
 
 /**
  * The challenge lives in a frame SahajCloud serves (#343, sydevs/SahajCloud#1072), so what this covers is the
@@ -47,7 +46,7 @@ async function mount(node = <Probe />) {
 const frame = () => container.querySelector('iframe')
 
 /** Speaks as the challenge page does. `sendFromFrame` owns the origin and source. */
-function fromFrame(message: ChallengeEvent, overrides: MessageEventInit = {}) {
+function fromFrame(message: PageMessage, overrides: MessageEventInit = {}) {
   const iframe = frame()
 
   if (!iframe) throw new Error('no challenge frame')
@@ -77,7 +76,8 @@ describe('useTurnstile', () => {
     const url = new URL(iframe?.src as string)
 
     expect(url.origin).toBe(new URL(import.meta.env.VITE_SAHAJCLOUD_URL).origin)
-    expect(url.pathname).toBe(CHALLENGE_PATH)
+    // SahajCloud's route, written out: a constant shared with the hook would follow it anywhere.
+    expect(url.pathname).toBe('/api/atlas/challenge')
     // The page hands its token to this origin alone, so it must be the document the frame is in.
     expect(url.searchParams.get('parent')).toBe(window.location.origin)
     expect(url.searchParams.get('theme')).toBe('dark')
@@ -128,6 +128,14 @@ describe('useTurnstile', () => {
 
     expect(hook.token).toBe('tok-1')
     expect(hook.status).toBe('ready')
+  })
+
+  it('refuses an empty token, which would enable Submit and then fail verification', async () => {
+    await mount()
+    fromFrame({ type: 'ready' })
+    fromFrame({ type: 'token', token: '' })
+
+    expect(hook.token).toBeNull()
   })
 
   it('drops the token on expiry, without blocking the form', async () => {
@@ -218,7 +226,7 @@ describe('useTurnstile', () => {
     // Addressed to the frame's own origin, as narrowly as the inbound filter reads it: a frame
     // navigated elsewhere gets no command rather than one aimed at whatever occupies it.
     expect(posted).toHaveBeenCalledWith(
-      { channel: CHALLENGE_CHANNEL, type: 'reset' },
+      { channel: 'sahaj-atlas-turnstile', type: 'reset' },
       new URL(frame()?.src as string).origin,
     )
   })
@@ -280,7 +288,9 @@ describe('useTurnstile', () => {
 
 describe('probeTurnstile', () => {
   const probeFrame = () =>
-    [...document.body.querySelectorAll('iframe')].find((node) => node.src.includes(CHALLENGE_PATH))
+    [...document.body.querySelectorAll('iframe')].find((node) =>
+      node.src.includes('/api/atlas/challenge'),
+    )
 
   /**
    * Starts the check on a FRESH copy of the module, and reports what it has decided so far.
@@ -289,9 +299,9 @@ describe('probeTurnstile', () => {
    * otherwise read whichever answer the first one cached.
    *
    * ⚠ **Every case runs on fake timers, and that is the only thing that makes them
-   * non-vacuous.** The handshake timeout answers `false` too, so a case that simply awaits the
-   * verdict passes whether the signal it dispatched was read or ignored — it just takes ten
-   * seconds about it. What each case asserts is therefore WHEN the verdict lands.
+   * non-vacuous.** The handshake timeout answers `failed` too, so on real timers a case that
+   * awaits the verdict passes whether the signal it dispatched was read or ignored — it just
+   * takes ten seconds about it. Frozen, an ignored signal leaves the verdict pending for good.
    */
   async function startProbe() {
     vi.useFakeTimers()
@@ -312,20 +322,10 @@ describe('probeTurnstile', () => {
       done: run(),
       settled: (index = 0) => verdicts[index],
       calls: () => verdicts.length,
-      origin: () => new URL(probeFrame()?.src as string).origin,
     }
   }
 
-  const violation = (directive: string, blockedURI: string) =>
-    document.dispatchEvent(
-      Object.assign(new Event('securitypolicyviolation'), {
-        effectiveDirective: directive,
-        violatedDirective: directive,
-        blockedURI,
-      }),
-    )
-
-  const fromProbe = (message: ChallengeEvent) => {
+  const fromProbe = (message: PageMessage) => {
     const iframe = probeFrame()
 
     if (!iframe) throw new Error('no probe frame')
@@ -350,10 +350,11 @@ describe('probeTurnstile', () => {
     expect(probeFrame()).toBeUndefined()
   })
 
-  it('resolves failed when the frame reports an error', async () => {
+  it('resolves failed when the frame reports any other error', async () => {
     const probe = await startProbe()
 
-    fromProbe({ type: 'error' })
+    // What SahajCloud sends with no site key: the host can fix nothing, so no domain advice.
+    fromProbe({ type: 'error', reason: 'unavailable' })
     await probe.done
 
     expect(probe.settled()).toBe('failed')
@@ -369,43 +370,9 @@ describe('probeTurnstile', () => {
     expect(probe.settled()).toBe('origin')
   })
 
-  // Chromium reports the BARE origin as `blockedURI` — measured, and the reason the handler
-  // matches by prefix. The path form is kept for the engines that were not measured.
-  it.each([
-    ['the bare origin, as Chromium sends it', ''],
-    ['the origin with a path', CHALLENGE_PATH],
-  ])('resolves csp at once on a frame-src violation naming %s', async (_label, path) => {
-    const probe = await startProbe()
-
-    violation('frame-src', `${probe.origin()}${path}`)
-    await vi.advanceTimersByTimeAsync(0)
-
-    // Before the handshake timeout, which is the whole point: a refused frame fires no load
-    // and no error of its own, so without this the widget looks healthy for ten seconds.
-    expect(probe.settled()).toBe('csp')
-  })
-
-  // Two near misses, because each filter in the violation handler is wrong on its own. A
-  // strict-CSP host can produce either: the widget loads event photography from this same
-  // SahajCloud origin, and a host frames plenty of other origins of its own.
-  it.each([
-    ['another directive, the SahajCloud origin', 'img-src', true],
-    ['frame-src, another origin', 'frame-src', false],
-  ])('ignores a violation about %s', async (_label, directive, ours) => {
-    const probe = await startProbe()
-
-    violation(directive, ours ? `${probe.origin()}/logo.svg` : 'https://widgets.example/f.html')
-    await vi.advanceTimersByTimeAsync(5_000)
-
-    expect(probe.settled()).toBe('pending')
-
-    await vi.advanceTimersByTimeAsync(5_000)
-    await probe.done
-
-    expect(probe.settled()).toBe('failed')
-  })
-
   it('resolves failed only once the frame has had its full wait', async () => {
+    // A `frame-src` that refuses the frame is silent to its parent, so this is the path a host's
+    // stale CSP takes.
     const probe = await startProbe()
 
     await vi.advanceTimersByTimeAsync(9_999)

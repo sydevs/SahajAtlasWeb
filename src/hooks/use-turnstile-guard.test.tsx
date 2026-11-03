@@ -97,23 +97,20 @@ describe('useTurnstileGuard', () => {
     expect(caught).toBeUndefined()
   })
 
-  it.each(['csp', 'origin', 'failed'])(
-    'fails the widget as `captcha-blocked` on %s',
-    async (verdict) => {
-      probeTurnstile.mockResolvedValue(verdict)
+  it.each(['origin', 'failed'])('fails the widget as `captcha-blocked` on %s', async (verdict) => {
+    probeTurnstile.mockResolvedValue(verdict)
 
-      await mount()
+    await mount()
 
-      expect(document.body.textContent).not.toContain(GUARDED)
-      // This checks the KIND, not merely that something threw.
-      // The kind picks the sentence.
-      // More importantly, it withholds the report CTA that would open a second form the same failure has already disabled.
-      expect(classifyError(caught)).toBe('captcha-blocked')
-    },
-  )
+    expect(document.body.textContent).not.toContain(GUARDED)
+    // This checks the KIND, not merely that something threw.
+    // The kind picks the sentence.
+    // More importantly, it withholds the report CTA that would open a second form the same failure has already disabled.
+    expect(classifyError(caught)).toBe('captcha-blocked')
+  })
 
   it('tells the host developer what to change, on the console', async () => {
-    probeTurnstile.mockResolvedValue('csp')
+    probeTurnstile.mockResolvedValue('failed')
 
     await mount()
 
@@ -128,17 +125,14 @@ describe('useTurnstileGuard', () => {
   // ⚠ The advice names SahajCloud's origin, not Cloudflare's or the widget's (#343,
   // sydevs/SahajCloud#1072): the challenge renders in a frame SahajCloud serves, so naming
   // anything else would send a developer to edit a line that fixes nothing.
-  it.each(['csp', 'failed'] as const)(
-    'names the SahajCloud origin under frame-src on %s, and nothing a host no longer needs',
-    (verdict) => {
-      const advice = turnstileAdvice(verdict, 'https://cloud.sydevelopers.com', 'partner.org')
+  it('names the SahajCloud origin under frame-src, and nothing a host no longer needs', () => {
+    const advice = turnstileAdvice('failed', 'https://cloud.sydevelopers.com', 'partner.org')
 
-      expect(advice).toContain('frame-src')
-      expect(advice).toContain('https://cloud.sydevelopers.com')
-      expect(advice).not.toContain('challenges.cloudflare.com')
-      expect(advice).not.toContain('script-src')
-    },
-  )
+    expect(advice).toContain('frame-src')
+    expect(advice).toContain('https://cloud.sydevelopers.com')
+    expect(advice).not.toContain('challenges.cloudflare.com')
+    expect(advice).not.toContain('script-src')
+  })
 
   // A host's own policy cannot fix this one, so pointing at `frame-src` would waste the reader's
   // time: the page's domain is missing from every client record.

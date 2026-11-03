@@ -1,12 +1,19 @@
 import { vi } from 'vitest'
 
-import { CHALLENGE_CHANNEL, type ChallengeEvent, challengeMessage } from '@/lib/turnstile-frame'
+/**
+ * SahajCloud's wire format (`src/endpoints/atlas/challenge/` there), written out rather than
+ * imported: the hook keeps its protocol private, and a stub speaking it through the hook's own
+ * constant would pass with both sides wrong together.
+ */
+const CHANNEL = 'sahaj-atlas-turnstile'
 
-/** The reset command as SahajCloud's page reads it: on our channel, `type: 'reset'`. */
+/** A message as SahajCloud's page posts it, before the channel is stamped on. */
+export type PageMessage = { type: string } & Record<string, unknown>
+
 const isReset = (data: unknown) =>
   typeof data === 'object' &&
   data !== null &&
-  (data as Record<string, unknown>).channel === CHALLENGE_CHANNEL &&
+  (data as Record<string, unknown>).channel === CHANNEL &&
   (data as Record<string, unknown>).type === 'reset'
 
 /**
@@ -53,12 +60,12 @@ export function challengeFrameStub(container: ParentNode) {
  */
 export function sendFromFrame(
   frame: HTMLIFrameElement,
-  message: ChallengeEvent,
+  message: PageMessage,
   overrides: MessageEventInit = {},
 ) {
   window.dispatchEvent(
     new MessageEvent('message', {
-      data: challengeMessage(message),
+      data: { channel: CHANNEL, ...message },
       origin: new URL(frame.src).origin,
       source: frame.contentWindow,
       ...overrides,
