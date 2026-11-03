@@ -44,6 +44,20 @@ cover everything a host would notice since the widget was first deployed.
 
 ### Changed
 
+- ⚠ **BREAKING: your CSP needs `frame-src https://cloud.sydevelopers.com`, and the three
+  `challenges.cloudflare.com` entries can go.** ([#343], [SahajCloud#1072]) The captcha that
+  gates every form now renders in a small frame `cloud.sydevelopers.com` serves — the origin
+  already in your `connect-src` — instead of in your document. A policy that does not allow the
+  frame shows the error screen, and the console names the fix.
+
+  ⚠ **The captcha renders only on a domain your client record lists** — the same list that
+  already gates the API. Any other domain shows the error screen. An iframe embed needs nothing
+  listed: there the challenge's parent is the widget's own page.
+
+  **Onboarding a site needs no Turnstile step**: Turnstile checks the hostname of the document
+  that renders the challenge, which is now always `cloud.sydevelopers.com`. No script of
+  Cloudflare's runs in your document, and your `Permissions-Policy` needs nothing for the captcha.
+
 - **A repeat embed report turns into at most one write in any 6 h window.** ([#160]) The widget
   still reports on every page load, and an unchanged report inside that window is answered
   without a write. This guide and the embedding guide had both published the window as one hour.
@@ -844,6 +858,8 @@ must-revalidate`, pinned rather than left to the CDN default. The production dom
 [#312]: https://github.com/sydevs/SahajAtlasWeb/pull/312
 [#320]: https://github.com/sydevs/SahajAtlasWeb/issues/320
 [#326]: https://github.com/sydevs/SahajAtlasWeb/issues/326
+[#343]: https://github.com/sydevs/SahajAtlasWeb/issues/343
+[SahajCloud#1072]: https://github.com/sydevs/SahajCloud/issues/1072
 [#322]: https://github.com/sydevs/SahajAtlasWeb/issues/322
 [#329]: https://github.com/sydevs/SahajAtlasWeb/pull/329
 [#325]: https://github.com/sydevs/SahajAtlasWeb/issues/325

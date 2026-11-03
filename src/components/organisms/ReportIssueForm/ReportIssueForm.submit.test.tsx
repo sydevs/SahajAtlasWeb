@@ -21,6 +21,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { ReportIssueForm } from './ReportIssueForm'
 
+import { challengeFrameStub } from '@/test-support/turnstile-frame'
 import { type ReportContext } from '@/lib/report'
 import { mockReportForm } from '@/mocks/report-form'
 
@@ -60,28 +61,13 @@ const context: ReportContext = {
 }
 
 let container: HTMLDivElement
-let resetCalls: number
+// This stands in for the challenge PAGE, rather than for OUR hook. The real `useTurnstile`
+// frames that page and takes its token over `postMessage`, which is what gives the form a
+// token and enables Send. Mocking the hook instead would skip the very wiring under test.
+let challenge: ReturnType<typeof challengeFrameStub>
 
 beforeEach(() => {
   sdk.request.mockReset()
-  resetCalls = 0
-
-  // This stands in for the Turnstile script, rather than for OUR hook.
-  // `loadTurnstile` short-circuits when `window.turnstile` already exists,
-  // so the real `useTurnstile` runs and solves through its own callback.
-  // That callback is what gives the form a token and enables Send. Mocking
-  // the hook instead would skip the very wiring under test.
-  window.turnstile = {
-    render: (_el, options) => {
-      options.callback?.('tok-live')
-
-      return 'widget-1'
-    },
-    remove: () => {},
-    reset: () => {
-      resetCalls += 1
-    },
-  }
 
   container = document.createElement('div')
   document.body.appendChild(container)
@@ -89,7 +75,6 @@ beforeEach(() => {
 
 afterEach(() => {
   container.remove()
-  delete window.turnstile
 })
 
 /** Mount the form and let the captcha's callback settle, so Send is enabled. */
@@ -104,6 +89,10 @@ async function mountForm() {
       </QueryClientProvider>,
     )
   })
+
+  // The frame is appended in an effect, so the stub attaches once the form has mounted.
+  challenge = challengeFrameStub(container)
+  await act(async () => challenge.solve())
 
   return root
 }
@@ -202,11 +191,11 @@ describe('ReportIssueForm submit', () => {
     const root = await mountForm()
 
     await type('#report-field-0', MESSAGE)
-    expect(resetCalls).toBe(0)
+    expect(challenge.resetCount()).toBe(0)
 
     await submit()
 
-    expect(resetCalls).toBe(1)
+    expect(challenge.resetCount()).toBe(1)
 
     await act(async () => root.unmount())
   })

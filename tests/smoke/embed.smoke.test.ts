@@ -1,10 +1,6 @@
 import { describe, expect, test } from 'vitest'
 
-import { appPreviewHost } from '../../scripts/assert-preview-host.mjs'
-import { appWorkerName } from '../../scripts/_wrangler-config.mjs'
-import { findLiveSiteKeys, findTestSiteKeys } from '../../scripts/turnstile-release-guard.mjs'
-
-import { PREVIEW_URL, fetchPreview, skipWithoutPreview } from './_helpers/preview'
+import { fetchPreview, skipWithoutPreview } from './_helpers/preview'
 
 // Smoke test: does the deploy serve the file a host installs?
 //
@@ -53,7 +49,7 @@ function fetchEmbed() {
  * Only a clean crawl is cached. A broken chunk or a thrown fetch clears it, so each retry
  * crawls again rather than replaying the same transient 5xx (see `fetchEmbed`).
  */
-let crawl: Promise<{ seen: string[]; broken: string[]; bodies: Map<string, string> }> | undefined
+let crawl: Promise<{ seen: string[]; broken: string[] }> | undefined
 
 function crawlDeploy() {
   crawl ??= crawlFromLoader().then(
@@ -137,13 +133,12 @@ async function crawlFromLoader() {
         bodies.set(next, text)
         queue.push(next)
       } else {
-        bodies.set(next, '')
         broken.push(`${next} → ${res.status} ${type}`)
       }
     }
   }
 
-  return { seen: [...seen], broken, bodies }
+  return { seen: [...seen], broken }
 }
 
 describe('embed bundle', () => {
@@ -179,56 +174,4 @@ describe('embed bundle', () => {
 
     expect(broken).toEqual([])
   })
-})
-
-// The live half of #259's release guard: the build refuses a production build on the test key,
-// and this reads what production actually serves, so a bypassed build gate still goes red.
-//
-// ⚠ The one spec in this lane whose expectation depends on the host, because the committed
-// `.env` key IS correct on a preview — no real key validates on a `workers.dev` host. Only an
-// address `assert-preview-host.mjs` accepts as the app Worker's preview may carry it; every
-// other host, `sahajatlas.com` among them, is held to production's standard. The preview half is
-// what keeps the production half honest: the same patterns must FIND the test key there, so a
-// minifier change that hid the literal fails the PR gate instead of greening production.
-//
-// Both patterns come from the guard, so what this reads back is what the gate passes. Defining
-// "a real key" a second time here, stricter, reddens production over a key the gate accepted.
-
-describe('turnstile site key', () => {
-  test.skipIf(skipWithoutPreview)(
-    'ships the test key only on a preview, and a real key everywhere else',
-    async () => {
-      const { bodies, broken } = await crawlDeploy()
-
-      // A chunk that failed to fetch is stored with an empty body, so a 404 on the chunk
-      // carrying the key would read here as an unset build variable. The sibling case above
-      // owns that failure and names it correctly.
-      if (broken.length > 0) return
-
-      const where = (find: (body: string) => string[]) =>
-        [...bodies].flatMap(([path, body]) => find(body).map((key) => `${path}: ${key}`))
-
-      const testKeys = where(findTestSiteKeys)
-      // A real key is public, but it stays out of CI logs: named by prefix only.
-      const liveKeys = where((body) => findLiveSiteKeys(body).map((key) => `${key.slice(0, 7)}…`))
-
-      if (appPreviewHost(PREVIEW_URL as string, appWorkerName())) {
-        expect(
-          testKeys.length,
-          'no Turnstile test key found on a preview — moved, or renamed?',
-        ).toBeGreaterThan(0)
-
-        return
-      }
-
-      expect(
-        testKeys,
-        'production serves the Turnstile TEST key: set VITE_TURNSTILE_SITE_KEY as a Workers Builds build variable (docs/environment.md)',
-      ).toEqual([])
-      expect(
-        liveKeys.length,
-        'production serves no Turnstile site key at all: VITE_TURNSTILE_SITE_KEY is unset on its build',
-      ).toBeGreaterThan(0)
-    },
-  )
 })
