@@ -28,9 +28,10 @@ export const mockErrors: Record<ErrorKind, unknown> = {
   'not-found': atlasError('not-found', 'Region not found: atlantis'),
   // An embed whose API key SahajCloud rejects.
   config: sdkError(401, 'Unauthorized'),
-  // A host page whose CSP refuses challenges.cloudflare.com, so no form in the widget can
-  // produce a token (issue #182). Tagged rather than script-driven for the same reason
-  // `offline` is: the fixture must classify the same way wherever the story renders.
+  // A host page whose CSP refuses to frame SahajCloud's challenge page, so it cannot
+  // render and no form can produce a token (issues #182, #343). Tagged rather than
+  // frame-driven for the same reason `offline` is: the fixture must classify the same way
+  // wherever the story renders.
   'captcha-blocked': atlasError('captcha-blocked', 'Turnstile could not be loaded'),
   // Anything unrecognized — the catch-all that offers both a retry and a report. A zod
   // parse failure lands here too, which is why the fixture IS one: `contract` used to be

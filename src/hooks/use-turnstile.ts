@@ -3,230 +3,278 @@ import { type RefObject, useCallback, useEffect, useRef, useState } from 'react'
 import { useLocale } from '@/hooks/use-locale'
 import { useTheme } from '@/hooks/use-theme'
 
-// This renders Cloudflare Turnstile explicitly. See issue #79.
-// This code is hand-rolled, instead of adding `@marsidev/react-turnstile`.
-// Turnstile is a script tag and one render call.
-// The embedded bundle ships on host pages we do not control, so every added dependency is weight we would rather avoid.
+// Turnstile rendered explicitly, hand-rolled rather than through `@marsidev/react-turnstile`
+// (#79): this bundle ships on host pages we do not control, so a dependency is weight.
 //
-// ⚠ **The script is no longer lazy. That behavior inverted in issue #182.**
-// Registration is what this widget is for, and registration cannot happen without a token.
-// So a challenge that cannot load is a broken embed, not a form that degrades.
-// `useTurnstileProbe` starts the load as soon as the INTERFACE mounts, never the shell. See `FullInterface`.
-// It fails the widget when the load cannot complete.
-// So a host with an out-of-date CSP finds out from their own page, not from a visitor who could not register.
+// ⚠ **The challenge renders in a frame SahajCloud serves, never in the host's document (#343,
+// sydevs/SahajCloud#1072).** Turnstile validates the hostname of the document that renders it, so
+// one SahajCloud hostname covers every partner. SahajCloud holds both halves of the key and decides
+// which parents may receive a token; this file only frames the page and listens to it.
 //
-// The widget is still removed on unmount.
-// So reopening a form always gets a fresh challenge, not a stale or expired token.
+// ⚠ **Cross-repo contract** with SahajCloud's `src/endpoints/atlas/challenge/`: the path, the query
+// parameters, the channel and each message `type`. Change them in both repos in the same release —
+// a drifted protocol fails silently, the frame waiting out its handshake.
+//
+// ⚠ **The challenge is not lazy — that inverted in #182.** Registration cannot happen without a
+// token, so a challenge that cannot load fails the widget as soon as the INTERFACE mounts
+// (`useTurnstileGuard`), and a host with a stale CSP hears it from their own page.
 
-const SCRIPT_URL = 'https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit'
-
-// A Turnstile SITE key is public by design. The secret half lives in SahajCloud.
-// So the site key belongs in the committed `.env` file.
-// An absent key means the captcha cannot render, the same blocked state as a CSP-refused script.
-const SITE_KEY: string | undefined = import.meta.env.VITE_TURNSTILE_SITE_KEY
-
-type TurnstileRenderOptions = {
-  sitekey: string
-  theme?: 'light' | 'dark' | 'auto'
-  language?: string
-  callback?: (token: string) => void
-  'error-callback'?: () => void
-  'expired-callback'?: () => void
-}
-
-type TurnstileApi = {
-  render: (container: HTMLElement, options: TurnstileRenderOptions) => string | undefined
-  remove: (widgetId: string) => void
-  reset: (widgetId: string) => void
-}
-
-declare global {
-  interface Window {
-    turnstile?: TurnstileApi
-  }
-}
-
-// This is one in-flight load, shared by every caller.
-// This clears on failure, so a later open retries instead of caching a transient network error forever.
-let scriptPromise: Promise<void> | null = null
-
-function loadTurnstile(): Promise<void> {
-  if (window.turnstile) return Promise.resolve()
-  if (scriptPromise) return scriptPromise
-
-  scriptPromise = new Promise<void>((resolve, reject) => {
-    const script = document.createElement('script')
-
-    script.src = SCRIPT_URL
-    script.async = true
-    script.defer = true
-    // Cloudflare learns the embedding hostname regardless. That is how the domain check works.
-    // But a host page that opts into `unsafe-url` referrers would otherwise leak its full path and query on this request too.
-    // This sends the origin only.
-    script.referrerPolicy = 'strict-origin'
-    script.onload = () => resolve()
-    // This fires when a host page's CSP omits `challenges.cloudflare.com` from `script-src`.
-    // It also fires on an ordinary network failure.
-    script.onerror = () => {
-      // This drops the dead tag.
-      // `scriptPromise` clears below, so every reopen retries.
-      // Without this, a host page whose CSP blocks Cloudflare would pile up an orphaned `<script>` tag, and a blocked request, in their `<head>` each time.
-      script.remove()
-      reject(new Error('Turnstile script could not be loaded'))
-    }
-    document.head.appendChild(script)
-  }).catch((error: unknown) => {
-    scriptPromise = null
-    throw error
-  })
-
-  return scriptPromise
-}
+const CHALLENGE_PATH = '/api/atlas/challenge'
 
 /**
- * This loads the Turnstile script without rendering a challenge, and reports whether the API arrived.
+ * Stamped on every message, both ways. `source` and `origin` pin a message to SahajCloud's page,
+ * but that page also runs Cloudflare's `api.js`, so they cannot tell this protocol from anything
+ * else its scripts post.
+ */
+const CHALLENGE_CHANNEL = 'sahaj-atlas-turnstile'
+
+/**
+ * `ready` is the handshake: Turnstile is live in the frame. `error` includes SahajCloud refusing
+ * this page's origin, which no client record lists.
+ */
+type ChallengeEvent =
+  | { type: 'ready' }
+  | { type: 'expired' }
+  | { type: 'error' }
+  | { type: 'token'; token: string }
+
+function readChallengeEvent(data: unknown): ChallengeEvent | null {
+  if (typeof data !== 'object' || data === null) return null
+
+  const { channel, type, token } = data as Record<string, unknown>
+
+  if (channel !== CHALLENGE_CHANNEL) return null
+  if (type === 'ready' || type === 'expired' || type === 'error') return { type }
+  // An empty token would enable Submit and then fail verification, which reads to a visitor as
+  // the form being broken rather than the challenge.
+  if (type === 'token' && typeof token === 'string' && token !== '') return { type, token }
+
+  return null
+}
+
+/** Cloudflare's own widget is 300×65, and nothing else is on the page. */
+const FRAME_WIDTH = 300
+const FRAME_HEIGHT = 65
+
+/**
+ * Bounds a frame that never answers. A `frame-src` that refuses it is silent to its parent, so
+ * this is also how a host's stale CSP is found. Nothing blocks on it, so a generous bound costs a
+ * late answer rather than a slow first paint.
+ */
+const HANDSHAKE_TIMEOUT_MS = 10_000
+
+/**
+ * Read off Turnstile's own `api.js` on 2026-11-02: what it sets on the widget frame it renders.
  *
- * This is the reading half of the eager check. See issue #182.
- * It answers "can this page run Turnstile at all," a question about the host's CSP and the network, not about any one form.
- * This resolves to `false` rather than rejecting, because every caller treats a failure as a verdict, not an exception.
+ * ⚠ **Every policy-controlled feature is denied to a cross-origin child by default**, so without
+ * this the challenge is less capable than when `api.js` ran in the host's document. Permissions
+ * Policy is hierarchical, so it grants nothing the host did not.
  *
- * ⚠ **This check is strictly weaker than a real render, and that gap is deliberate, not overlooked.**
- * Three failures are visible from here: no site key, a `script-src` that refuses `challenges.cloudflare.com`,
- * and a script that loads without defining the API, such as a content blocker or an enterprise proxy answering 200 with a stub.
- * Two failures are not visible from here: a `frame-src` that blocks the challenge iframe, and a sitekey the embedding domain is not registered for.
- * Both of those surface only when `turnstile.render` actually runs.
- * So this check is the early warning, and `useTurnstile`'s own `blocked` status remains the backstop.
- * Neither replaces the other.
+ * ⚠ **Private State Tokens cannot be delegated from here.** `api.js` asks for `private-token`,
+ * gated on `document.featurePolicy.features()`, which in Chromium 153 lists only
+ * `private-state-token-issuance` and `-redemption` — so the pair a parent can delegate reaches
+ * nothing. `docs/embedding.md` § Permissions Policy has the host-facing half.
+ */
+const TURNSTILE_FEATURES =
+  'cross-origin-isolated; fullscreen; autoplay; keyboard-map; gamepad; xr-spatial-tracking'
+
+type FrameOptions = { theme: 'light' | 'dark' | 'auto'; language: string; probe?: boolean }
+
+/**
+ * The frame, its listener, and the one definition of its liveness, for both the hook and the
+ * probe. `event.source` pins a message to this frame's window, which no other document can forge;
+ * `origin` pins it to SahajCloud, so a frame navigated elsewhere cannot answer as the challenge.
+ *
+ * ⚠ **Silence is delivered as the page's own `error`**: a frame that never handshakes is as dead
+ * as one that failed, and both callers already answer `error`.
+ */
+function createChallengeFrame(
+  { theme, language, probe = false }: FrameOptions,
+  onEvent: (message: ChallengeEvent) => void,
+) {
+  const url = new URL(CHALLENGE_PATH, import.meta.env.VITE_SAHAJCLOUD_URL)
+
+  // The page posts to this origin and no other, so it must be the document the frame is appended
+  // to — the host's in a script embed, ours in an iframe embed.
+  url.searchParams.set('parent', window.location.origin)
+  url.searchParams.set('theme', theme)
+  url.searchParams.set('language', language)
+  // Handshake only: a hidden render would spend a solve nobody submits.
+  if (probe) url.searchParams.set('probe', '1')
+
+  const frame = document.createElement('iframe')
+
+  frame.src = url.href
+  frame.width = String(FRAME_WIDTH)
+  frame.height = String(FRAME_HEIGHT)
+  frame.style.border = '0'
+  frame.title = 'Security check'
+  // SahajCloud reads the parent from the URL, so this withholds only the host page's path and query.
+  frame.referrerPolicy = 'strict-origin'
+  frame.allow = TURNSTILE_FEATURES
+
+  const onMessage = (event: MessageEvent) => {
+    // Presence as well as identity: before the frame has a window both sides are `null`, and a
+    // message carrying no source would pass an identity test alone.
+    if (!frame.contentWindow || event.source !== frame.contentWindow) return
+    if (event.origin !== url.origin) return
+
+    const message = readChallengeEvent(event.data)
+
+    if (!message) return
+
+    clearTimeout(timer)
+    onEvent(message)
+  }
+  const timer = setTimeout(() => onEvent({ type: 'error' }), HANDSHAKE_TIMEOUT_MS)
+
+  window.addEventListener('message', onMessage)
+
+  const dispose = () => {
+    clearTimeout(timer)
+    window.removeEventListener('message', onMessage)
+    frame.remove()
+  }
+
+  return { frame, origin: url.origin, dispose }
+}
+
+/** Shared by every mount on the page. Cleared on a negative verdict, so a blip is retried. */
+let availability: Promise<boolean> | null = null
+
+/**
+ * Whether Turnstile can run on this page at all — the host's CSP, SahajCloud's allowlist and the
+ * network, not any one form (#182). Resolves rather than rejecting: every caller wants a verdict.
+ * Memoized, so a compact embed's open/close/open does not pay for a browsing context each time.
+ *
+ * ⚠ **Weaker than a real render, deliberately.** The probe hands back the handshake without
+ * rendering, so it sees whatever stops the page loading Turnstile, but not a challenge that
+ * renders and then errors — `useTurnstile`'s `blocked` backstops that.
+ * ⚠ The hostname mismatch it could never see is **gone** rather than unobserved: the challenge
+ * always renders on the one hostname the Turnstile key lists, SahajCloud's (#343).
  */
 export async function probeTurnstile(): Promise<boolean> {
-  if (!SITE_KEY) return false
+  if (typeof document === 'undefined') return false
 
-  try {
-    await loadTurnstile()
+  availability ??= new Promise<boolean>((resolve) => {
+    const { frame, dispose } = createChallengeFrame(
+      { theme: 'auto', language: 'auto', probe: true },
+      (message) => {
+        if (message.type !== 'ready' && message.type !== 'error') return
 
-    return Boolean(window.turnstile)
-  } catch {
-    return false
-  }
+        dispose()
+        resolve(message.type === 'ready')
+      },
+    )
+
+    // ⚠ `fixed`, not `absolute`: this lands in the HOST page's body, where an out-of-flow element
+    // at its static position still extends the scroll area. Hidden rather than `display: none`,
+    // to keep the check as close as possible to the frame a form mounts.
+    frame.style.cssText =
+      'position:fixed;top:0;left:0;width:1px;height:1px;opacity:0;pointer-events:none;border:0'
+    frame.setAttribute('aria-hidden', 'true')
+    frame.tabIndex = -1
+    document.body.appendChild(frame)
+  }).then((available) => {
+    if (!available) availability = null
+
+    return available
+  })
+
+  return availability
 }
 
 /**
- * This is `loading` until the challenge renders.
- * This is `blocked` when Turnstile is unavailable: no site key, a CSP-blocked script, or a widget that errors out, such as when `frame-src` blocks the challenge iframe.
- * A caller must degrade on `blocked`, rather than leaving a submit button that can never produce a token.
+ * `loading` until the challenge renders, `blocked` when Turnstile is unavailable. A caller must
+ * degrade on `blocked` rather than leave a submit button that can never produce a token.
  */
 export type TurnstileStatus = 'loading' | 'ready' | 'blocked'
 
 export type UseTurnstileOptions = {
-  /** This skips loading entirely and reports `blocked`, for the Ladle story's degraded case. */
+  /** Skips the frame entirely and reports `blocked`, for the Ladle story's degraded case. */
   disabled?: boolean
 }
 
 export type UseTurnstile = {
-  /** Attach to the element the challenge renders into. */
+  /** Attach to the element the challenge frame is appended to. */
   challengeRef: RefObject<HTMLDivElement>
-  /** This is the solved token, or null while unsolved or expired. */
+  /** The solved token, or null while unsolved or expired. */
   token: string | null
   status: TurnstileStatus
   /**
-   * This discards the current token and re-runs the challenge in place.
+   * Discards the token and re-runs the challenge in place. A no-op while it is not rendered, so
+   * a caller never has to check `status` first.
    *
-   * **A Turnstile token is single-use.** The server redeems it the moment it verifies, before it does the work the token was gating.
-   * So after ANY failed submit, the token in hand may already be spent.
-   * Re-sending it would then be refused for the rest of the widget's life.
-   * A caller whose submit failed must reset, rather than offer a retry that cannot succeed.
-   *
-   * This is a no-op while the challenge is not rendered, blocked or still loading.
-   * So a caller never has to check `status` first.
+   * **A Turnstile token is single-use**, redeemed the moment the server verifies it and before
+   * the work it gated. So after ANY failed submit the token in hand may be spent, and re-sending
+   * it is refused for the rest of the widget's life: a caller whose submit failed must reset
+   * rather than offer a retry that cannot succeed.
    */
   reset: () => void
 }
 
 export function useTurnstile({ disabled = false }: UseTurnstileOptions = {}): UseTurnstile {
   const challengeRef = useRef<HTMLDivElement>(null)
-  // This is held in a ref as well as the effect closure.
-  // So `reset` can reach the live widget without re-running, and so re-rendering, the challenge.
-  const widgetIdRef = useRef<string | undefined>(undefined)
+  // A ref as well as the effect closure, so `reset` reaches the live frame without re-running the
+  // effect. The origin rides along so a frame navigated elsewhere receives no command.
+  const frameRef = useRef<{ frame: HTMLIFrameElement; origin: string } | null>(null)
   const [token, setToken] = useState<string | null>(null)
-  const [status, setStatus] = useState<TurnstileStatus>(
-    disabled || !SITE_KEY ? 'blocked' : 'loading',
-  )
+  const [status, setStatus] = useState<TurnstileStatus>(disabled ? 'blocked' : 'loading')
   const { theme } = useTheme()
   const { languageCode } = useLocale()
 
-  // Re-rendering on a theme or language change is deliberate.
-  // Turnstile bakes both into the widget at render time.
-  // So the challenge tears down and re-renders, which also drops the token correctly, since the new widget has not been solved.
+  // Re-mounting on a theme or language change is deliberate: Turnstile bakes both in at render
+  // time, so the frame carries them in its URL and the teardown drops the unsolved token with it.
   useEffect(() => {
-    if (disabled || !SITE_KEY) return
-
-    let cancelled = false
+    if (disabled || !challengeRef.current) return
 
     setToken(null)
     setStatus('loading')
 
-    loadTurnstile()
-      .then(() => {
-        if (cancelled) return
-
-        // The script can "load" without giving this hook an API.
-        // A content blocker, or an enterprise proxy that answers 200 with a stub, does exactly this.
-        // This treats a missing API as blocked.
-        // Returning early instead would strand `status` on `'loading'`, leaving a permanently disabled submit button with no mailto escape.
-        if (!challengeRef.current || !window.turnstile) {
-          setStatus('blocked')
-
-          return
-        }
-
-        widgetIdRef.current = window.turnstile.render(challengeRef.current, {
-          sitekey: SITE_KEY,
-          theme,
-          language: languageCode,
-          // Turnstile's `retry` option defaults to `auto`.
-          // So a transient failure is often followed by an automatic retry that solves.
-          // So `blocked` must NOT be a one-way latch.
-          // A solved challenge has to win the form back.
-          // Otherwise the user holds a valid token while the UI still offers only the mailto escape.
-          callback: (solved) => {
-            setToken(solved)
+    const { frame, origin, dispose } = createChallengeFrame(
+      { theme, language: languageCode },
+      (message) => {
+        switch (message.type) {
+          case 'ready':
             setStatus('ready')
-          },
-          'error-callback': () => {
+            break
+          // Turnstile's `retry` defaults to `auto`, so a transient failure is often followed by a
+          // retry that solves. `blocked` must NOT latch, or the user holds a valid token while
+          // the UI still offers only the mailto escape.
+          case 'token':
+            setToken(message.token)
+            setStatus('ready')
+            break
+          case 'expired':
+            setToken(null)
+            break
+          case 'error':
             setToken(null)
             setStatus('blocked')
-          },
-          'expired-callback': () => setToken(null),
-        })
-        // `render` returns undefined instead of a widget id when it refuses.
-        // The most common cause is a sitekey the embedding domain is not registered for.
-        // No widget means no token, so this state is blocked, not ready.
-        setStatus(widgetIdRef.current ? 'ready' : 'blocked')
-      })
-      .catch(() => {
-        if (!cancelled) setStatus('blocked')
-      })
+            break
+        }
+      },
+    )
+
+    frameRef.current = { frame, origin }
+    challengeRef.current.appendChild(frame)
 
     return () => {
-      cancelled = true
-      // This ref is written only past the `cancelled` guard above.
-      // React runs this cleanup before the next effect body.
-      // So the ref holds THIS run's widget, or nothing.
-      if (widgetIdRef.current) window.turnstile?.remove(widgetIdRef.current)
-      widgetIdRef.current = undefined
+      dispose()
+      frameRef.current = null
     }
   }, [disabled, theme, languageCode])
 
-  // This is stable across renders, with no dependencies.
-  // The caller passes this straight to `useMutation`'s `onError`.
-  // A fresh identity on each render would re-run the observer's `setOptions` for nothing.
-  // `reset` re-runs the challenge, which calls the same `callback` on success.
-  // So the new token arrives through the normal path.
+  // Stable with no dependencies: the caller hands this to `useMutation`'s `onError`, and a fresh
+  // identity each render would re-run the observer's `setOptions` for nothing. The new token
+  // arrives through the normal path, since the re-run challenge sends `token` on success.
   const reset = useCallback(() => {
-    if (!widgetIdRef.current) return
+    const live = frameRef.current
+
+    if (!live?.frame.contentWindow) return
 
     setToken(null)
-    window.turnstile?.reset(widgetIdRef.current)
+    live.frame.contentWindow.postMessage({ channel: CHALLENGE_CHANNEL, type: 'reset' }, live.origin)
   }, [])
 
   return { challengeRef, token, status, reset }

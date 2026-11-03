@@ -11,6 +11,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { RegistrationForm } from './RegistrationForm'
 
+import { challengeFrameStub } from '@/test-support/turnstile-frame'
+
 const sdk = vi.hoisted(() => ({ find: vi.fn(), findByID: vi.fn(), request: vi.fn() }))
 
 vi.mock('@payloadcms/sdk', () => ({
@@ -31,25 +33,12 @@ vi.mock('react-i18next', () => ({
 }))
 
 let container: HTMLDivElement
-let resetCalls: number
+// The challenge page, not our hook: the real `useTurnstile` frames that page and takes its
+// token over `postMessage`, which is what enables Submit. See `challengeFrameStub`.
+let challenge: ReturnType<typeof challengeFrameStub>
 
 beforeEach(() => {
   sdk.request.mockReset()
-  resetCalls = 0
-
-  // The Turnstile script, not our hook: the real `useTurnstile` solves through
-  // this callback, which is what hands the form a token.
-  window.turnstile = {
-    render: (_el, options) => {
-      options.callback?.('tok-live')
-
-      return 'widget-1'
-    },
-    remove: () => {},
-    reset: () => {
-      resetCalls += 1
-    },
-  }
 
   container = document.createElement('div')
   document.body.appendChild(container)
@@ -57,7 +46,6 @@ beforeEach(() => {
 
 afterEach(() => {
   container.remove()
-  delete window.turnstile
 })
 
 async function mountForm(
@@ -78,6 +66,10 @@ async function mountForm(
       </QueryClientProvider>,
     )
   })
+
+  // The frame is appended in an effect, so the stub attaches once the form has mounted.
+  challenge = challengeFrameStub(container)
+  await act(async () => challenge.solve())
 
   return root
 }
@@ -255,7 +247,7 @@ describe('RegistrationForm refusals', () => {
     expect(alertText()).toContain('registration.form.error_title')
     expect(alertText()).toContain('registration.form.captcha_retry')
     expect(alertText()).not.toContain('Something went wrong.')
-    expect(resetCalls).toBe(1)
+    expect(challenge.resetCount()).toBe(1)
 
     await act(async () => root.unmount())
   })
