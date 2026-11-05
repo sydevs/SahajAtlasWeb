@@ -67,6 +67,8 @@ export type DrawerControl = {
   raise: () => void
   /** A class view's measured default height on the phone sheet, or null for the fallback. */
   setOpenHeight: (px: number | null) => void
+  /** Lifts a bottom sheet to its near-full height, for content that just grew. */
+  expand?: () => void
 }
 
 export const DrawerControlContext = createContext<DrawerControl>({

@@ -32,24 +32,26 @@ describe('useWebShare', () => {
     expect(renderToStaticMarkup(<Probe />)).toContain('can-share')
   })
 
-  it('share() resolves true on success and false when the native call is blocked', async () => {
+  it('share() tells a success, a dismissal and a blocked call apart', async () => {
     const share = vi
       .fn()
       .mockResolvedValueOnce(undefined)
+      .mockRejectedValueOnce(new DOMException('dismissed', 'AbortError'))
       .mockRejectedValueOnce(new DOMException('blocked', 'NotAllowedError'))
 
     vi.stubGlobal('navigator', { share })
     renderToStaticMarkup(<Probe />)
 
-    expect(await captured!.share({ title: 't', url: 'https://x.test/e/1' })).toBe(true)
-    expect(await captured!.share({ title: 't', url: 'https://x.test/e/1' })).toBe(false)
-    expect(share).toHaveBeenCalledTimes(2)
+    expect(await captured!.share({ title: 't', url: 'https://x.test/e/1' })).toBe('shared')
+    expect(await captured!.share({ title: 't', url: 'https://x.test/e/1' })).toBe('dismissed')
+    expect(await captured!.share({ title: 't', url: 'https://x.test/e/1' })).toBe('unavailable')
+    expect(share).toHaveBeenCalledTimes(3)
   })
 
-  it('share() resolves false when the API is unavailable', async () => {
+  it('share() resolves unavailable when the API is missing', async () => {
     vi.stubGlobal('navigator', {})
     renderToStaticMarkup(<Probe />)
 
-    expect(await captured!.share({ url: 'https://x.test/e/1' })).toBe(false)
+    expect(await captured!.share({ url: 'https://x.test/e/1' })).toBe('unavailable')
   })
 })

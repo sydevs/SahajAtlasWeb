@@ -26,6 +26,7 @@ import {
   filterCloseTarget,
   isFilterOverlay,
   parentOf,
+  opensTall,
   resolveStack,
 } from '@/lib/shape'
 import { wakesSheetLoop } from '@/views/DrawerStack/sheet-wake'
@@ -422,9 +423,9 @@ export function DrawerStack() {
     }
   }, [hasMap, direction])
 
-  // The calendar opens at the near-full snap on mobile — its month grid AND its list
-  // both need the height — and so do the filters, which were otherwise cut off mid-row with
-  // their footer out of reach. Every other view keeps the third-height open snap.
+  // A few views open at the near-full snap on mobile (`opensTall`: the calendar, whose month grid
+  // AND list both need the height, and the registration form), and so do the filters, which were
+  // otherwise cut off mid-row with their footer out of reach. Every other view keeps its open snap.
   // Keyed on the view KIND (not `wide`), so switching the calendar between
   // month/week/list keeps it tall, rather than collapsing the list to the short snap.
   // This runs only when navigating to or from the calendar, so it never fights a
@@ -449,7 +450,7 @@ export function DrawerStack() {
     if (direction !== 'bottom') return
 
     const tall =
-      top?.kind === 'calendar' ||
+      opensTall(top?.kind) ||
       top?.kind === 'filters' ||
       (from === 'filters' && top?.kind === 'search')
 
@@ -535,6 +536,7 @@ export function DrawerStack() {
         setSnap(WIDE_SNAP)
       },
       setOpenHeight: setMeasuredOpenPx,
+      expand: () => setSnap(WIDE_SNAP),
       dismiss: () => {
         // Marks the dismiss navigation as a transition: unmounting a heavy view (the
         // calendar's large grid) would otherwise reconcile synchronously and freeze

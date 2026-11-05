@@ -93,6 +93,11 @@ export type EventFactsProps = {
   distance?: ReactNode
   /** Replaces the address line, for a list that sorts by place. List cards only. */
   where?: ReactNode
+  /**
+   * Drops the muted line under the timing ("Next session: …"), for a screen that has its own answer
+   * to which date. The registration form asks for one, and its confirmation names the one chosen.
+   */
+  hideTimingDetail?: boolean
   className?: string
 }
 
@@ -115,6 +120,7 @@ export function EventFacts({
   children,
   distance,
   where,
+  hideTimingDetail = false,
   className,
 }: EventFactsProps) {
   const { t } = useTranslation()
@@ -164,7 +170,7 @@ export function EventFacts({
         time,
         hasNext: Boolean(display.next),
       }),
-      subtext: timingDetail,
+      subtext: hideTimingDetail ? undefined : timingDetail,
     },
   ]
 

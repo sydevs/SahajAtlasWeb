@@ -1,5 +1,7 @@
+import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { CalendarDays } from 'lucide-react'
+import { CalendarPlus, ChevronDown } from 'lucide-react'
+import clsx from 'clsx'
 
 import { Button } from '@/components/atoms/Button'
 import {
@@ -10,6 +12,10 @@ import {
   buildYahooCalendarUrl,
   icsFileName,
 } from '@/lib/ics'
+
+/** A plain list row, 48px for a thumb. The button above already says what the list is for. */
+const TARGET_ROW =
+  'h-12 w-full justify-start border-b border-divider text-base text-foreground last:border-b-0'
 
 export type AddToCalendarProps = {
   /** Everything the export needs. The caller builds it from the FULL event doc.
@@ -35,8 +41,9 @@ const downloadEventIcs = (event: IcsEventInput) => {
 }
 
 /**
- * The five add-to-calendar targets, offered on the registration confirmation
- * (issue #105).
+ * One "Add to calendar" button, which opens the five targets, on the registration
+ * confirmation (issue #105). Five buttons in a row asked a question before the
+ * visitor had decided to do anything.
  *
  * Four are ordinary link-outs, so they render as anchors. A middle-click or
  * a long-press then behaves the way the viewer expects, and no JavaScript
@@ -56,6 +63,7 @@ const downloadEventIcs = (event: IcsEventInput) => {
  */
 export function AddToCalendar({ event }: AddToCalendarProps) {
   const { t } = useTranslation()
+  const [open, setOpen] = useState(false)
   const downloadIcs = () => downloadEventIcs(event)
 
   // These are brand names, so they stay untranslated. They are also unique,
@@ -67,36 +75,58 @@ export function AddToCalendar({ event }: AddToCalendarProps) {
     { label: 'Yahoo', href: buildYahooCalendarUrl(event) },
   ]
 
-  // `gap-3` deliberately matches ShareContent's grid. The two rows stack on
-  // this one screen, so a different gap would read as a mistake, not a
-  // distinction.
   return (
-    <div className="flex flex-row flex-wrap justify-center gap-3">
-      {/* Apple Calendar has no add-by-URL endpoint. An .ics file IS the
+    <div className="flex flex-col gap-1">
+      <Button
+        aria-expanded={open}
+        className="w-full"
+        color="primary"
+        size="lg"
+        variant="solid"
+        onClick={() => setOpen(!open)}
+      >
+        <CalendarPlus aria-hidden size={18} />
+        {t('event.actions.add_calendar')}
+        <ChevronDown
+          aria-hidden
+          className={clsx('transition-transform', open && 'rotate-180')}
+          size={18}
+        />
+      </Button>
+
+      <div className={clsx('flex-col', open ? 'flex' : 'hidden')}>
+        {/* Apple Calendar has no add-by-URL endpoint. An .ics file IS the
           Apple path, and it doubles as the escape hatch for every other
           client, such as Thunderbird, Proton, or a corporate desktop
           Outlook. The accessible name CONTAINS the visible "Apple", so it
           satisfies WCAG 2.5.3, while still telling a screen-reader user
           that this one downloads a file. */}
-      <Button
-        aria-label={`Apple · ${t('event.actions.download_ics')}`}
-        color="primary"
-        size="sm"
-        variant="flat"
-        onClick={downloadIcs}
-      >
-        <CalendarDays size={16} />
-        Apple
-      </Button>
+        <Button
+          aria-label={`Apple · ${t('event.actions.download_ics')}`}
+          className={TARGET_ROW}
+          color="neutral"
+          variant="ghost"
+          onClick={downloadIcs}
+        >
+          Apple
+        </Button>
 
-      {/* The Button atom derives `rel="noopener noreferrer"` from
+        {/* The Button atom derives `rel="noopener noreferrer"` from
           `target="_blank"` itself. So spelling it here would only opt this
           one row out of whatever the atom decides an external link needs. */}
-      {targets.map(({ label, href }) => (
-        <Button key={label} color="primary" href={href} size="sm" target="_blank" variant="flat">
-          {label}
-        </Button>
-      ))}
+        {targets.map(({ label, href }) => (
+          <Button
+            key={label}
+            className={TARGET_ROW}
+            color="neutral"
+            href={href}
+            target="_blank"
+            variant="ghost"
+          >
+            {label}
+          </Button>
+        ))}
+      </div>
     </div>
   )
 }

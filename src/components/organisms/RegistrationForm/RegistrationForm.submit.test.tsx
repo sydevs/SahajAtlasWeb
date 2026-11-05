@@ -15,6 +15,16 @@ import { challengeFrameStub } from '@/test-support/turnstile-frame'
 
 const sdk = vi.hoisted(() => ({ find: vi.fn(), findByID: vi.fn(), request: vi.fn() }))
 
+// Radix's Checkbox measures itself. jsdom has no ResizeObserver, and nothing here reads the size.
+vi.stubGlobal(
+  'ResizeObserver',
+  class {
+    observe() {}
+    unobserve() {}
+    disconnect() {}
+  },
+)
+
 vi.mock('@payloadcms/sdk', () => ({
   PayloadSDK: class {
     find = sdk.find

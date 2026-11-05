@@ -23,6 +23,7 @@
       "loading": "Loading…",
       "show_list": "Show the list",
       "show_more": "Show more",
+      "optional": "optional",
       "widget_label": "Free meditation classes"
     },
     "errors": {
@@ -262,20 +263,27 @@
     },
     "form": {
       "captcha_retry": "The security check needs doing again. Wait for it to refresh, then register once more.",
+      "change_date": "Change",
+      "checking": "Checking you're not a robot…",
+      "confirm_email": "We'll email a confirmation to %{email} shortly.",
+      "confirmed_title": "You're registered",
+      "consent_class": "We'll email you about this class.",
       "email": "Your email",
       "error_title": "Something went wrong",
+      "first_class": "Your first class",
       "followup": "You will receive an email confirmation shortly",
       "invite_friend": "Invite a friend along",
       "name": "Your name",
-      "okay": "Okay",
       "online_notice": "The link to this class will be emailed to you.",
       "online_notice_title": "Online Session",
-      "privacy_policy": "By submitting you confirm you agree to receive follow up messages about this and similar events, in accordance with our privacy policy.",
+      "privacy_link": "Privacy policy",
+      "reassurance": "Free, with no account needed.",
+      "security_check": "Please complete the security check above.",
+      "see_you": "See you on %{date}.",
       "show_more_dates": "Show more dates",
-      "starting_date": "Starting date",
       "submit": "Register",
       "subscribe": "Send me news about meditation programmes near me",
-      "title": "Register for Meditation"
+      "title_class": "Register for this class"
     },
     "questions": {
       "aspirations": "What are you hoping to get out of this?",
@@ -341,9 +349,17 @@
   },
   "share": {
     "copied": "Copied",
+    "copy_failed_pointer": "Couldn't copy it. The link below is selected: press Ctrl+C, or ⌘C on a Mac.",
+    "copy_failed_touch": "Couldn't copy it. Press and hold the link below, then choose Copy.",
     "copy_link": "Copy link",
+    "link_copied": "Link copied",
     "native": "Share…",
+    "qr_alt": "QR code for %{title}",
+    "qr_download": "Download for printing",
+    "qr_failed": "The QR code didn't load. Check your connection, then close and reopen this.",
+    "qr_hint": "Print this on posters or flyers. People can point their phone camera at it to open this class.",
+    "qr_title": "QR code for posters",
     "share_on": "Share on %{platform}",
-    "title": "Share Meditation"
+    "title_class": "Share this class"
   }
 }
