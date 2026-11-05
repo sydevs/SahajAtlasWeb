@@ -5,7 +5,9 @@ import { DateTime } from 'luxon'
 
 import { emptyDraft } from './draft'
 import { placeFromAddress } from './place'
+import { firstRuleDate } from './schedule'
 
+import { WeekdaySchema } from '@/types/event'
 import { lexicalToText, scheduleStart, scheduleTimeZone } from '@/lib/shape'
 
 /** A published class, read back as a draft — where a correction starts, and its diff's base. */
@@ -28,6 +30,17 @@ export const eventToDraft = (event: Event): ListingDraft => {
       ? DateTime.fromJSDate(schedule.untilDate).setZone(timeZone)
       : null
   const regionName = event.region?.name ?? undefined
+  const ruleStart =
+    start &&
+    schedule?.recurrenceType === 'MONTHLY' &&
+    schedule.monthlyMode === 'weekday' &&
+    schedule.weekNumber &&
+    schedule.weekdayOfMonth
+      ? firstRuleDate(start, {
+          weekNumber: schedule.weekNumber,
+          weekday: WeekdaySchema.options.indexOf(schedule.weekdayOfMonth) + 1,
+        })
+      : start
 
   return {
     eventType: event.eventType,
@@ -39,7 +52,7 @@ export const eventToDraft = (event: Event): ListingDraft => {
       event.eventType === 'online' && regionName
         ? { label: regionName, city: regionName, location: {} }
         : null,
-    firstDate: start?.toISODate() ?? '',
+    firstDate: ruleStart?.toISODate() ?? '',
     startTime: start?.toFormat('HH:mm') ?? '',
     endTime: schedule?.endTime ?? '',
     repeats: schedule?.recurrenceType ? REPEATS[schedule.recurrenceType] : 'once',

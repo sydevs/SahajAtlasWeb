@@ -643,11 +643,12 @@ describe('a monthly class on a weekday', () => {
     ])
   })
 
-  it('reads a published weekday rule back, so an untouched correction sends nothing new', () => {
+  it('reads a published rule back, even from a stored start the rule does not fall on', () => {
     const draft = eventToDraft(
       publishedEvent({
         schedule: {
-          firstDate: new Date('2026-11-10T19:30:00.000Z'),
+          // A Sunday, for a class on the second Tuesday.
+          firstDate: new Date('2026-11-01T19:30:00.000Z'),
           firstDate_tz: 'Europe/London',
           recurrenceType: 'MONTHLY',
           monthlyMode: 'weekday',
@@ -657,7 +658,14 @@ describe('a monthly class on a weekday', () => {
       }),
     )
 
-    expect(draft.monthlyBy).toBe('weekday')
-    expect(diffPatch(draftToPatch(draft), draftToPatch(draft))).toEqual({})
+    expect(draft).toMatchObject({ firstDate: '2026-11-10', monthlyBy: 'weekday' })
+    expect(draftToPatch(draft).schedule).toMatchObject({ weekNumber: '2', weekdayOfMonth: 'TU' })
+
+    // A new time is a new time: the rule's own leaves stay out of the correction.
+    const moved = diffPatch(draftToPatch(draft), draftToPatch({ ...draft, startTime: '20:00' }))
+
+    expect(moved.schedule).not.toHaveProperty('weekNumber')
+    expect(moved.schedule).not.toHaveProperty('weekdayOfMonth')
+    expect(moved.schedule).not.toHaveProperty('monthlyMode')
   })
 })

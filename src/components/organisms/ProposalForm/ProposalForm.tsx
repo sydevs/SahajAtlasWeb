@@ -69,7 +69,7 @@ const UNDO_FIELDS: Partial<Record<ChangeKey, (keyof ListingDraft)[]>> = {
   manual: ['address', 'city'],
   room: ['room'],
   link: ['onlineUrl'],
-  schedule: ['repeats', 'startTime', 'endTime', 'firstDate', 'endDate'],
+  schedule: ['repeats', 'monthlyBy', 'startTime', 'endTime', 'firstDate', 'endDate'],
   first: ['firstDate'],
   last: ['endDate'],
   zone: ['timeZone'],
@@ -495,7 +495,9 @@ function ReviewStage({
     // The footer's first press, with no address yet, only brings the field into view: an error
     // for a field the visitor has not reached yet would scold them for reading.
     if (!emailGiven) {
-      const field = document.getElementById('submit-sender-email')
+      // From the form's own root, not `document`: the widget lives in a shadow root.
+      const root = event.currentTarget.getRootNode() as ParentNode
+      const field = root.querySelector<HTMLElement>('#submit-sender-email')
 
       field?.scrollIntoView({ block: 'center', behavior: 'smooth' })
       field?.focus({ preventScroll: true })

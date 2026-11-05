@@ -132,7 +132,7 @@ export function TimeStep({
               role="radio"
               tabIndex={draft.repeats === value ? 0 : -1}
               type="button"
-              onClick={() => onChange({ repeats: value, ...(value === 'once' && { endDate: '' }) })}
+              onClick={() => onChange({ repeats: value })}
             >
               {t(label)}
             </button>

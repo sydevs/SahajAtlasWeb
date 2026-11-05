@@ -616,3 +616,107 @@ describe('ProposalForm corrections', () => {
     await act(async () => root.unmount())
   })
 })
+
+describe('ProposalForm details the walk cannot see', () => {
+  it('finds the email field from inside a shadow root, as an embed renders it', async () => {
+    const scroll = vi.fn()
+
+    Element.prototype.scrollIntoView = scroll
+
+    const host = document.createElement('div')
+
+    container.appendChild(host)
+
+    const shadow = host.attachShadow({ mode: 'open' })
+    const mountPoint = shadow.appendChild(document.createElement('div'))
+    const root = createRoot(mountPoint)
+
+    await act(async () => {
+      root.render(
+        <MemoryRouter>
+          <QueryClientProvider client={new QueryClient()}>
+            <Harness initial={inPerson} />
+          </QueryClientProvider>
+        </MemoryRouter>,
+      )
+    })
+    await act(async () => {
+      shadow
+        .querySelector('form')
+        ?.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }))
+    })
+
+    expect(scroll).toHaveBeenCalled()
+    expect(shadow.activeElement?.id).toBe('submit-sender-email')
+
+    await act(async () => root.unmount())
+  })
+
+  it('shows an online class in the zone it was typed in, not the viewer’s', async () => {
+    const root = await mount({
+      initial: {
+        ...inPerson,
+        eventType: 'online',
+        onlineUrl: 'https://meet.example/a',
+        startTime: '19:30',
+        endTime: '20:30',
+        timeZone: 'Pacific/Auckland',
+      },
+      withListing: true,
+    })
+
+    // The whole range: a viewer's own zone can land on the same digits, half a day out.
+    expect(container.textContent).toMatch(/7:30\s*–\s*8:30\sPM/)
+
+    await act(async () => root.unmount())
+  })
+
+  it('takes a monthly rule back with the rest of the schedule', async () => {
+    sdk.request.mockResolvedValue({ json: async () => ({ doc: { id: 12 } }) })
+
+    const base = { ...inPerson, repeats: 'monthly' as const, firstDate: '2030-10-29' }
+    const root = await mount({
+      initial: base,
+      correction: { eventId: 7, baseDraft: base },
+      startAt: 'fix',
+      withListing: true,
+    })
+
+    await press('submit.fix.when')
+    await press('event.recurrence.monthly_last')
+    await press('submit.chrome.continue')
+    await press('submit.changes.more')
+    await press('submit.fix.details')
+    await type('#submit-contact-phone', '+44 7700 900123')
+    await press('submit.chrome.done_editing')
+
+    const undoWhen = [
+      ...container.querySelectorAll<HTMLButtonElement>('button[aria-label^="submit.changes.undo"]'),
+    ].find((button) => /when|schedule/i.test(button.getAttribute('aria-label') ?? ''))
+
+    await act(async () => undoWhen?.click())
+    await type('#submit-sender-email', 'ada@example.org')
+    await submit()
+
+    const { json } = sdk.request.mock.calls[0][0]
+
+    expect(json.proposed).toHaveProperty('contactPhone')
+    expect(json.proposed).not.toHaveProperty('schedule')
+
+    await act(async () => root.unmount())
+  })
+
+  it('keeps the last date through a detour to "just once"', async () => {
+    const root = await mount({
+      initial: { ...inPerson, endDate: '2031-06-01' },
+      startAt: 'when',
+    })
+
+    await press('submit.when.once')
+    await press('submit.when.weekly')
+
+    expect(container.querySelector<HTMLInputElement>('#submit-end-date')?.value).toBe('2031-06-01')
+
+    await act(async () => root.unmount())
+  })
+})

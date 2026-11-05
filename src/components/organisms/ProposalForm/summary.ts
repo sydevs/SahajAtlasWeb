@@ -2,6 +2,7 @@ import type { ListingDraft, ListingSection } from '@/lib/proposal'
 import type { Event } from '@/types'
 
 import { DateTime } from 'luxon'
+import { useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 
 import { useEventDisplay } from '@/hooks/use-event-display'
@@ -25,6 +26,15 @@ export type SummaryRow = {
  * `correction` drops the two values the widget never reads from a published class (its join link
  * and contact address): an unknown is not a blank, and must not read as one being changed.
  */
+/**
+ * The published line for this class, read in the class's own zone. The listing shows an online
+ * class in the viewer's time; a host checking what they typed must see what they typed, beside
+ * the zone it was typed in, or 19:30 London reads as 20:30 from Prague.
+ */
+function useHostDisplay(listing: Event) {
+  return useEventDisplay(useMemo(() => ({ ...listing, eventType: 'offline' as const }), [listing]))
+}
+
 export function useSummaryRows(
   draft: ListingDraft,
   listing: Event,
@@ -32,7 +42,7 @@ export function useSummaryRows(
 ): SummaryRow[] {
   const { t } = useTranslation()
   const { locale, languageLabel } = useLocale()
-  const display = useEventDisplay(listing)
+  const display = useHostDisplay(listing)
   const online = draft.eventType === 'online'
   const date = (iso: string) =>
     iso ? DateTime.fromISO(iso).setLocale(locale).toLocaleString(DateTime.DATE_HUGE) : ''
@@ -161,7 +171,7 @@ export function useScheduleLines(
 ): { pattern: string; time: string | null; zone: string } | null {
   const { t } = useTranslation()
   const { locale } = useLocale()
-  const display = useEventDisplay(listing)
+  const display = useHostDisplay(listing)
 
   if (!draft.firstDate || !draft.startTime) return null
 

@@ -98,6 +98,17 @@ export const resolvedMonthlyBy = (firstDate: string, by: MonthlyBy): MonthlyBy =
   return by === 'date' ? 'date' : (options.find((option) => option !== 'date') ?? 'date')
 }
 
+/** The day of `month` a weekday rule falls on. */
+const ruleDay = (month: DateTime, weekday: number, week: '1' | '2' | '3' | '4' | '-1'): number => {
+  if (week === '-1') {
+    const end = month.endOf('month')
+
+    return end.day - ((end.weekday - weekday + 7) % 7)
+  }
+
+  return 1 + ((weekday - month.weekday + 7) % 7) + 7 * (Number(week) - 1)
+}
+
 /**
  * The session `months` after `start` for a class on a weekday of its month. Null when the rule
  * is the same date, which plain month arithmetic already answers.
@@ -106,17 +117,30 @@ export const monthlySession = (start: DateTime, months: number, by: MonthlyBy): 
   if (by === 'date') return null
 
   const month = start.startOf('month').plus({ months })
-  let day: number
-
-  if (by === 'last') {
-    const end = month.endOf('month')
-
-    day = end.day - ((end.weekday - start.weekday + 7) % 7)
-  } else {
-    const first = 1 + ((start.weekday - month.weekday + 7) % 7)
-
-    day = first + 7 * (Number(monthWeekNumber(start)) - 1)
-  }
+  const day = ruleDay(month, start.weekday, by === 'last' ? '-1' : monthWeekNumber(start))
 
   return start.set({ year: month.year, month: month.month, day })
+}
+
+/**
+ * The first date a published weekday rule actually lands on, on or after `start`. The form reads
+ * its rule off the date, and a stored start need not fall on the rule ("the second Tuesday" from
+ * the 1st), so without this the form would describe, and preview, a different class.
+ */
+export const firstRuleDate = (
+  start: DateTime,
+  rule: { weekNumber: '1' | '2' | '3' | '4' | '-1'; weekday: number },
+): DateTime => {
+  const thisMonth = start.startOf('month')
+  const at = start.set({ day: ruleDay(thisMonth, rule.weekday, rule.weekNumber) })
+
+  if (at.startOf('day') >= start.startOf('day')) return at
+
+  const next = thisMonth.plus({ months: 1 })
+
+  return start.set({
+    year: next.year,
+    month: next.month,
+    day: ruleDay(next, rule.weekday, rule.weekNumber),
+  })
 }
