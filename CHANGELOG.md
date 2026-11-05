@@ -329,8 +329,12 @@ cover everything a host would notice since the widget was first deployed.
 - **A direct link to an online class now zooms the map to its region.** ([#363]) An online
   class usually has no location of its own, so a link to one, such as `…/ca/ontario/toronto/720`,
   opened the class over the whole-world map. It now frames the class's region, as a region link
-  does. Opening the class from inside the widget still leaves the map where the visitor has it.
-  No parameter, origin or CSP change.
+  does, and a direct link to an Online Classes drawer frames the same way. A region is drawn
+  from the in-person classes under it, so where it has none the map climbs to the nearest
+  region that has some — a city running only online classes zooms to its province rather than
+  staying on the world map. A link whose whole country runs only online classes still opens on
+  the world map, since there is nothing to zoom to. Opening the class from inside the widget
+  still leaves the map where the visitor has it. No parameter, origin or CSP change.
 
 - **Under `routing=path`, a failed client-record read no longer drops you to query routing.** ([#351])
   Any failure to read the record — SahajCloud down or erroring, not only a refused key — fell
