@@ -199,8 +199,9 @@ export function EventView({ id, basePath }: { id: number; basePath: string }) {
           className={`px-4 py-3 transition-transform before:pointer-events-none before:absolute before:inset-x-0 before:bottom-full before:h-4 before:bg-gradient-to-t before:from-background before:to-transparent before:content-[''] ${collapsed ? 'translate-y-full opacity-0' : ''}`}
         >
           {/* The two rows are gapped inside a wrapper, not by the footer itself, so the
-              footer's own safe-area spacer is not a third gapped sibling. */}
-          <div data-sheet-footer className="flex flex-col gap-2">
+              footer's own safe-area spacer is not a third gapped sibling. 16px, the same as the
+              inline layout, so the secondary row reads as its own set, not part of Register. */}
+          <div data-sheet-footer className="flex flex-col gap-4">
             <EventRegisterBar basePath={basePath} event={event} />
             {/* The row rides the bar so only one copy exists — see `ctaInline`. The
                 boundary keeps a rejected chunk from reaching the body's sibling

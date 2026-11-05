@@ -191,7 +191,6 @@ export function EventActions({ event, basePath }: EventActionsProps) {
         return [
           <ActionButton
             key="share"
-            quiet
             icon={<Share size={ICON_SIZE} />}
             label={t('event.actions.share')}
             stacked={stacked}
