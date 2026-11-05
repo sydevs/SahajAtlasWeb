@@ -59,7 +59,12 @@ export function EventChips({ event, variant = 'default', className }: EventChips
   if (!showType && !languageText && !full && !today) return null
 
   return (
-    <div className={clsx('flex flex-wrap items-center gap-1', className)}>
+    // On the class page the tags must show above the phone sheet's Register bar, so
+    // `useSheetFit` counts them when it sizes the sheet. The list card has no such bar.
+    <div
+      className={clsx('flex flex-wrap items-center gap-1', className)}
+      data-sheet-fold={compact ? undefined : ''}
+    >
       {showType && <Chip color="primary">{typeLabel}</Chip>}
       {languageText && <Chip color="secondary">{languageText}</Chip>}
       {full && <Chip color="neutral">{t('event.display.chip_full')}</Chip>}

@@ -45,6 +45,13 @@ describe('EventChips', () => {
     expect(html).toContain('en, fr')
   })
 
+  it('default: marks the row for the phone sheet to fit above Register; compact does not', () => {
+    d.isDefaultType = false
+
+    expect(render(['fr'])).toContain('data-sheet-fold')
+    expect(render(['fr'], 'compact')).not.toContain('data-sheet-fold')
+  })
+
   it('compact: drops the plain weekly type and the viewer language (renders nothing)', () => {
     expect(render(['en'], 'compact')).toBe('')
   })
