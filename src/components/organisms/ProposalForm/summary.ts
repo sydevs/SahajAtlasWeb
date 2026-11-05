@@ -7,7 +7,7 @@ import { useTranslation } from 'react-i18next'
 
 import { useEventDisplay } from '@/hooks/use-event-display'
 import { useLocale } from '@/hooks/use-locale'
-import { draftTitle } from '@/lib/proposal'
+import { draftPlaceName, draftTitle, titleSlot } from '@/lib/proposal'
 import { zoneLabel } from '@/lib/time'
 
 export type SummaryRow = {
@@ -194,4 +194,19 @@ export function useScheduleLines(
       : t('submit.when.from', { pattern: display.recurrenceLine, date })
 
   return { pattern, time: display.eventTimeRange, zone: zoneLabel(draft.timeZone, locale) }
+}
+
+const AUTO_TITLE_KEYS = {
+  morning: 'submit.auto_title.morning',
+  afternoon: 'submit.auto_title.afternoon',
+  evening: 'submit.auto_title.evening',
+  default: 'submit.auto_title.default',
+} as const
+
+/** The title SahajCloud will give a class left unnamed, as Check and the name field state it. */
+export function useAutoTitle(draft: ListingDraft): string {
+  const { t } = useTranslation()
+  const place = draftPlaceName(draft)
+
+  return place ? t(AUTO_TITLE_KEYS[titleSlot(draft.startTime)], { place }) : ''
 }

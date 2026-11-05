@@ -13,6 +13,7 @@ import {
   ValidatedInput,
   radioKeys,
 } from './fields'
+import { useAutoTitle } from './summary'
 
 import { Textarea } from '@/components/atoms/Textarea'
 import { FormField } from '@/components/molecules/FormField'
@@ -20,7 +21,6 @@ import { MultiSelect } from '@/components/molecules/MultiSelect'
 import { USER_SUBMISSION_VALUE_MAX, userSubmissionValueMax } from '@/config/api/mutate'
 import { useLanguageOptions } from '@/hooks/use-language-options'
 import { useLocale } from '@/hooks/use-locale'
-import { draftTitle } from '@/lib/proposal'
 
 /** The Events title's own bound. */
 const TITLE_MAX = 100
@@ -38,9 +38,9 @@ export type DetailsStepProps = {
 }
 
 /**
- * Step 3: the language, then everything else that helps someone decide to come, all optional. Grouped by what a
- * newcomer asks — what language, who do I ask, what is it like — and the class's name last,
- * since it has a sensible default.
+ * Step 3: the class's name, since it heads the listing, then the language and everything else
+ * that helps someone decide to come, all optional. Grouped by what a newcomer asks: what
+ * language, who do I ask, what is it like.
  */
 export function DetailsStep({
   draft,
@@ -56,12 +56,38 @@ export function DetailsStep({
     [draft.languages, languageOptions],
   )
   const options = useLanguageOptions(codes)
-  const defaultTitle = keepTitle ?? draftTitle({ ...draft, title: '' })
+  const autoTitle = useAutoTitle(draft)
   const signupLink = !keepTitle && draft.signup === 'elsewhere'
 
   return (
     <div className="flex flex-col gap-6">
       <StepHeading intro={t('submit.details.intro_language')} title={t('submit.details.title')} />
+
+      <ValidatedInput
+        help={
+          <NameHelp
+            guidance={
+              keepTitle
+                ? t('submit.details.title_keep')
+                : [
+                    t('submit.details.title_guidance'),
+                    autoTitle && t('submit.details.title_blank', { name: autoTitle }),
+                  ]
+                    .filter(Boolean)
+                    .join(' ')
+            }
+            value={draft.title}
+          />
+        }
+        id="submit-title"
+        label={t('submit.more.title_label')}
+        maxLength={TITLE_MAX}
+        // A correction shows the name it keeps. A new class shows none: a grey name in the field
+        // reads as already filled in.
+        placeholder={keepTitle}
+        value={draft.title}
+        onChange={(event) => onChange({ title: event.target.value })}
+      />
 
       <FormField
         required
@@ -124,30 +150,6 @@ export function DetailsStep({
           onChange={(event) => onChange({ description: event.target.value })}
         />
       </FormField>
-
-      <ValidatedInput
-        help={
-          <NameHelp
-            guidance={
-              keepTitle
-                ? t('submit.details.title_keep')
-                : [
-                    t('submit.details.title_guidance'),
-                    defaultTitle && t('submit.details.title_blank', { name: defaultTitle }),
-                  ]
-                    .filter(Boolean)
-                    .join(' ')
-            }
-            value={draft.title}
-          />
-        }
-        id="submit-title"
-        label={t('submit.more.title_label')}
-        maxLength={TITLE_MAX}
-        placeholder={defaultTitle}
-        value={draft.title}
-        onChange={(event) => onChange({ title: event.target.value })}
-      />
 
       {!keepTitle && (
         <fieldset className="flex flex-col gap-3">

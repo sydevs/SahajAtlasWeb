@@ -418,9 +418,9 @@
       "contact_help": "Shown on the listing so newcomers can ask before they come. Adding a class for someone else? Use their details, not yours.",
       "title_keep": "Leave blank to keep the name it has now.",
       "intro_language": "Only the language is needed. The rest helps people decide to come.",
-      "title_guidance": "Just the name. The listing already shows the time, and that it’s free. Links go under Website.",
-      "title_blank": "Leave it blank and it’s named after the place, like “Evening Meditation at %{name}”.",
-      "name_warning": "Best left out: %{parts}. The listing shows these in their own place.",
+      "title_guidance": "Just the name, no times or links.",
+      "title_blank": "Left blank, it reads “%{name}”.",
+      "name_warning": "Best left out here: %{parts}.",
       "issue_link": "a link",
       "issue_time": "the time",
       "issue_free": "the word “free”"
@@ -500,6 +500,12 @@
       "elsewhere_hint": "We’ll ask the coordinator to link the button to your page.",
       "link_label": "Link to sign up",
       "link_help": "Your Meetup page, for example. It goes here rather than in the description."
+    },
+    "auto_title": {
+      "morning": "Morning Meditation at %{place}",
+      "afternoon": "Afternoon Meditation at %{place}",
+      "evening": "Evening Meditation at %{place}",
+      "default": "Meditation at %{place}"
     }
   }
 }

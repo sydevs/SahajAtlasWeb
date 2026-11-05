@@ -108,6 +108,23 @@ export const manualPlace = (draft: ListingDraft): PickedPlace | null => {
   return place?.manual ? place : null
 }
 
+/** Which of SahajCloud's auto-title templates a start time gets (`eventTitle/compose.ts`). */
+export const titleSlot = (startTime: string): 'morning' | 'afternoon' | 'evening' | 'default' => {
+  const hour = Number(startTime.slice(0, 2))
+
+  if (!startTime || !Number.isInteger(hour)) return 'default'
+  if (hour >= 5 && hour < 12) return 'morning'
+  if (hour >= 12 && hour < 17) return 'afternoon'
+
+  return hour >= 17 && hour < 22 ? 'evening' : 'default'
+}
+
+/** The place SahajCloud's auto-title names: the building, else the street's first segment. */
+export const draftPlaceName = (draft: ListingDraft): string =>
+  (draft.eventType === 'online'
+    ? draft.city?.city
+    : draft.venueName.trim() || draft.address?.street?.split(',')[0]?.trim()) || ''
+
 /** Where the class sits, for `sendProposal`'s `location`: the address, or an online class's city. */
 export const draftLocation = (draft: ListingDraft): ProposalLocation =>
   draftPlace(draft)?.location ?? {}
