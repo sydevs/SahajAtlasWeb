@@ -7,9 +7,10 @@
 /** The atlas's light map style, as `owner/id` — the one `Map.tsx` loads as `mapbox://styles/…`. */
 const STYLE = 'sydevadmin/ck7g6nag70rn11io09f45odkq'
 
-/** The selected-pin orange, so the picture's pin reads as the one on the live map. Mapbox's own
- *  wordmark and attribution stay on the picture, as its terms ask. */
-const PIN = 'e9704e'
+/** The selected-pin coral (`POINT_SELECTED_FILL` in `components/organisms/Mapbox/markers.ts`), so
+ *  the picture's pin reads as the one on the live map. Mapbox's own wordmark and attribution stay
+ *  on the picture, as its terms ask. */
+const PIN = 'e0775c'
 
 export const staticMapUrl = ({
   longitude,

@@ -14,7 +14,7 @@ describe('staticMapUrl', () => {
 
     expect(url).toBe(
       'https://api.mapbox.com/styles/v1/sydevadmin/ck7g6nag70rn11io09f45odkq/static/' +
-        'pin-l+e9704e(-0.17000,50.82000)/-0.17000,50.82000,15,0/340x120@2x?access_token=pk.x',
+        'pin-l+e0775c(-0.17000,50.82000)/-0.17000,50.82000,15,0/340x120@2x?access_token=pk.x',
     )
   })
 

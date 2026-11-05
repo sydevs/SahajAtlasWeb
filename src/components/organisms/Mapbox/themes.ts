@@ -32,6 +32,8 @@ export const controlTheme = {
   },
   // The geocoder's own placeholder is 37% black, about 2.6:1 on white. This lifts it
   // to the same secondary text the rest of the panel uses. Its typed text is a fixed 75% black,
-  // which `colorText` does not reach, so it is set here or dark theme can't be read.
-  cssText: `.Input, .Input:focus { color: var(--gray-12); } .Input::placeholder { color: var(--gray-11); opacity: 1; }`,
+  // which `colorText` does not reach, so it is set here or dark theme can't be read. Its
+  // magnifier is a fixed neutral grey (#757575) that the warm sand ramp never reaches, so it
+  // takes the placeholder's colour beside it.
+  cssText: `.Input, .Input:focus { color: var(--gray-12); } .Input::placeholder { color: var(--gray-11); opacity: 1; } .SearchIcon { fill: var(--gray-11); }`,
 }
