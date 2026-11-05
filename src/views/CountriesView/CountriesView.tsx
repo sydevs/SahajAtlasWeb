@@ -6,7 +6,13 @@ import { useTranslation } from 'react-i18next'
 import { Monitor } from 'lucide-react'
 
 import { DrawerBody, DrawerHeader } from '@/components/atoms/Drawer'
-import { ActiveFilterPills, FallbackPanel, List, ListItem } from '@/components/molecules'
+import {
+  ActiveFilterPills,
+  FallbackPanel,
+  List,
+  ListItem,
+  ResultCountStatus,
+} from '@/components/molecules'
 import api, { clientQuery } from '@/config/api'
 import atlasAuth from '@/config/api/auth'
 import { GEOJSON_STALE_TIME } from '@/config/query-client'
@@ -108,6 +114,11 @@ export function CountriesView() {
       </DrawerHeader>
       <DrawerBody>
         <ActiveFilterPills />
+        {filterSearch && (
+          <ResultCountStatus
+            total={countries.reduce((sum, country) => sum + country.eventCount, onlineCount)}
+          />
+        )}
         <GeolocationSuggestion />
         {noMatches ? (
           <FallbackPanel

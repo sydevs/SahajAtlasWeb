@@ -567,3 +567,20 @@
 [data-sy-expanded] .mapboxgl-ctrl-top-right {
   margin-top: 40px;
 }
+
+/* One focus ring everywhere: a 2px line drawn INSIDE the element. Inside, so a panel's clip can't
+   cut it down to two lines at the sides of a row. Central, so atoms can't drift back to three
+   styles. It overrides each atom's `outline-none` and `ring-*`. Elements focused only by script
+   (`tabindex="-1"`, such as a dialog or an error region) are left alone: nobody tabs to them, and
+   a ring there reads as something selected. */
+:focus-visible:not([tabindex='-1']) {
+  outline: 2px solid var(--color-focus) !important;
+  outline-offset: -2px !important;
+  --tw-ring-offset-shadow: 0 0 #0000 !important;
+  --tw-ring-shadow: 0 0 #0000 !important;
+}
+
+/* Mapbox draws its own blue halo on its controls. */
+.mapboxgl-ctrl button:focus-visible {
+  box-shadow: none !important;
+}

@@ -11,6 +11,7 @@ import {
   FallbackPanel,
   List,
   ListItem,
+  ResultCountStatus,
 } from '@/components/molecules'
 import { useEventFilters, useFilterSearch, useSetFilters } from '@/hooks/use-filters'
 import { regionQuery } from '@/config/api'
@@ -109,6 +110,7 @@ export function RegionView({ slug }: { slug: string }) {
       </DrawerHeader>
       <DrawerBody>
         <ActiveFilterPills />
+        {filterSearch && <ResultCountStatus total={region.eventCount} />}
         {/* Above the region's own content, which IS the "other classes near them" the
             acknowledgement hands off to. So the banner carries no onward link of its own.
             This stays neutral and unticked. A tick would read as "yes, it's gone", and one

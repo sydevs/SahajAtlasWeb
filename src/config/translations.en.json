@@ -14,6 +14,8 @@
       "back": "Back",
       "back_to": "Back to %{title}",
       "cancel": "Cancel",
+      "classes_found_one": "%{count} class found",
+      "classes_found_other": "%{count} classes found",
       "close": "Close",
       "explore": "Explore",
       "finding_classes": "Finding classes…",

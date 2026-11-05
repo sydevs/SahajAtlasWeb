@@ -651,7 +651,11 @@ export function DrawerStack() {
         collapse()
       }}
     >
-      <div className="relative min-h-0 flex-1">
+      <div
+        aria-label={t('common.chrome.widget_label')}
+        className="relative min-h-0 flex-1"
+        role="region"
+      >
         <AnimatePresence>
           <ViewLayer key={top?.path ?? '/'}>
             {/* Suspense sits OUTSIDE the boundary, so a lazy view's chunk load is a

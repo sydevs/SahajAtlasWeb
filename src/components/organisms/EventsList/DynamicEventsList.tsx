@@ -7,6 +7,7 @@ import { LoadMore } from './LoadMore'
 
 import { ActiveFilterPills } from '@/components/molecules/ActiveFilterPills'
 import { FallbackPanel } from '@/components/molecules/Fallbacks'
+import { ResultCountStatus } from '@/components/molecules/ResultCountStatus'
 import { DEFAULT_REVEAL, hasActiveFilters, revealKey, revealRows, sortEvents } from '@/lib/shape'
 import { useCountrySite } from '@/hooks/use-country-site'
 import { useEventFilters, useSetFilters } from '@/hooks/use-filters'
@@ -132,6 +133,7 @@ export function DynamicEventsList({
   return (
     <>
       <ActiveFilterPills />
+      <ResultCountStatus total={total} />
       <div ref={listRef}>
         {rows.length === 0 ? (
           <EmptyResults nearbyKm={more === 'farther' ? nearbyKm : undefined} />

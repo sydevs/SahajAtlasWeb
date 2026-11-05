@@ -100,3 +100,4 @@ export type { EventMetadataProps } from './EventMetadata'
 // GeolocationSuggestion in views/shared.
 export { GeolocationPrompt } from './GeolocationPrompt'
 export type { GeolocationPromptProps } from './GeolocationPrompt'
+export { ResultCountStatus } from './ResultCountStatus'

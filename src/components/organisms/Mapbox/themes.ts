@@ -32,5 +32,6 @@ export const controlTheme = {
   },
   // The geocoder's own placeholder is 37% black, about 2.6:1 on white. This lifts it
   // to the same secondary text the rest of the panel uses.
-  cssText: `.Input::placeholder { color: var(--gray-11); opacity: 1; }`,
+  cssText: `.Input::placeholder { color: var(--gray-11); opacity: 1; }
+    .Input:focus-visible { outline: 2px solid hsl(var(--primary-9)); outline-offset: -2px; }`,
 }
