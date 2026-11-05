@@ -152,6 +152,8 @@ export const AgnosticFeedEventSchema = z.object({
   languages: z.array(z.string()),
   // Dormant event (no active schedule. CMS requires contact info on it). In the
   // feed so cards resolve the same inactive state as the panel.
+  // PROTOTYPE: not a CMS field yet. See `molecules/ContactOnly`.
+  contactOnly: z.boolean().nullish(),
   inactive: z.boolean().nullish(),
   address: EventAddressSchema.nullish(),
   schedule: EventScheduleSchema.nullish(),
@@ -195,6 +197,8 @@ export type EventSlim = z.infer<typeof EventSlimSchema>
 // No `onlineUrl` here: joining details are delivered CMS-side after registration,
 // so Atlas never selects or renders a join link (issue #52).
 export const EventDocSchema = z.object({
+  // PROTOTYPE: not a CMS field yet. See `molecules/ContactOnly`.
+  contactOnly: z.boolean().nullish(),
   id: z.number(),
   title: z.string(),
   eventType: EventTypeSchema,

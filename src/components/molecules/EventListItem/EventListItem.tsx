@@ -7,6 +7,7 @@ import { useMapController } from '@/hooks/use-map-controller'
 import { useHoverPrefetch } from '@/hooks/use-prefetch-event'
 import { formatDistance } from '@/lib'
 import { isOnline } from '@/lib/shape'
+import { ContactOnlyRow } from '@/components/molecules/ContactOnly'
 import { EventChips } from '@/components/molecules/EventChips'
 import { EventFacts } from '@/components/molecules/EventFacts'
 import { Link } from '@/components/atoms/Link'
@@ -49,6 +50,12 @@ const MIN_DISTANCE_KM = 5
  * none of the value.
  */
 function EventListItemImpl({ event, searchedPlace }: EventListItemProps) {
+  if (event.contactOnly) return <ContactOnlyRow event={event} />
+
+  return <ClassRow event={event} searchedPlace={searchedPlace} />
+}
+
+function ClassRow({ event, searchedPlace }: EventListItemProps) {
   const { t } = useTranslation()
   const { locale } = useLocale()
   const { highlightEvent } = useMapController()

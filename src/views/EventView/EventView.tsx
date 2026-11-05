@@ -80,7 +80,13 @@ export function EventView({ id, basePath }: { id: number; basePath: string }) {
   // calls a function initializer, and `lazy()` returns an object, so this reads once.
   const [EventDetails, setEventDetails] = useState(loadEventDetails)
 
-  useFrameOnTop(({ isEntry }) => frameEvent(event, { isEntry }), [event, frameEvent])
+  useFrameOnTop(
+    ({ isEntry }) => {
+      // No pin to frame: the camera stays where the visitor left it.
+      if (!event.contactOnly) frameEvent(event, { isEntry })
+    },
+    [event, frameEvent],
+  )
 
   // The snap-ladder bottom sheet is the one surface where in-flow content can scroll the CTA
   // away. Pin Register there. Keep it inline everywhere else. Never pin an empty bar —
@@ -96,7 +102,7 @@ export function EventView({ id, basePath }: { id: number; basePath: string }) {
   // viewport's answer. The hook is here so a future map-less sticky bar starts out reading the
   // right thing, not because a narrow embed gains one today.
   const { display } = useEventDisplay(event)
-  const stickyRegister = hasMap && !isWide && hasRegisterSlot(event, display)
+  const stickyRegister = hasMap && !isWide && !event.contactOnly && hasRegisterSlot(event, display)
   const onwardHref = parentOf(event.path)
 
   return (

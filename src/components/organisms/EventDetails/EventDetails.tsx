@@ -5,6 +5,7 @@ import { EventRegisterBar } from './EventRegister'
 import { sanitizeDescription } from './sanitize'
 
 import { Alert } from '@/components/atoms/Alert'
+import { ContactOnlyDetails } from '@/components/molecules/ContactOnly'
 import { EventActions } from '@/components/molecules/EventActions'
 import { EventChips } from '@/components/molecules/EventChips'
 import { ImageCarousel } from '@/components/molecules/ImageCarousel'
@@ -75,6 +76,8 @@ export function EventDetails({ event, basePath, ctaInline = true, children }: Ev
   )
 
   const hasImages = slides.length > 0
+
+  if (event.contactOnly) return <ContactOnlyDetails event={event} />
 
   return (
     // The carousel is full-bleed and always last. It removes the container's

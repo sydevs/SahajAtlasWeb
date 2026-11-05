@@ -1,4 +1,4 @@
-import type { RegionNode } from '@/types'
+import type { AgnosticFeedEvent, RegionNode } from '@/types'
 
 import {
   type CSSProperties,
@@ -13,12 +13,13 @@ import {
 } from 'react'
 import { createPortal } from 'react-dom'
 import { useLocation, useNavigate } from 'react-router'
-import { useQueryClient } from '@tanstack/react-query'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { AnimatePresence, motion } from 'framer-motion'
 import clsx from 'clsx'
 import { MapIcon } from 'lucide-react'
 
-import { eventTitlesQuery, regionsQuery } from '@/config/api'
+import api, { eventTitlesQuery, regionsQuery } from '@/config/api'
+import { GEOJSON_STALE_TIME } from '@/config/query-client'
 import { useExpansion } from '@/hooks/use-expansion'
 import { useLocale } from '@/hooks/use-locale'
 import { Drawer, DrawerContent } from '@/components/atoms/Drawer'
@@ -102,6 +103,19 @@ const FRAMED_FULL_SNAP = 1
 const FRAMED_SNAP_POINTS = [PEEK_SNAP, OPEN_SNAP, DETAIL_SNAP, FRAMED_FULL_SNAP]
 // Under this, DETAIL_SNAP would leave a sliver of map.
 const DETAIL_SNAP_MIN_FRAME_PX = 520
+
+/** PROTOTYPE. Whether every class under this path is a contact-only listing. */
+function isContactOnlyPage(
+  features: { properties: AgnosticFeedEvent }[],
+  path: string | undefined,
+) {
+  if (!path || path === '/') return false
+  const under = features.filter(
+    ({ properties: { webPath } }) => webPath === path || webPath?.startsWith(`${path}/`),
+  )
+
+  return under.length > 0 && under.every(({ properties }) => properties.contactOnly)
+}
 
 /**
  * Where the sheet opens for a view. In a host's box (or the compact dialog), a form or a class
@@ -324,6 +338,16 @@ export function DrawerStack() {
   // that key to tell whether it is still the view on top, and the two agreeing is what
   // makes the comparison mean anything.
   const top = baseStackEntry(entries, hasMap) ?? null
+  const { data: feed } = useQuery({
+    queryKey: ['geojson'],
+    queryFn: () => api.getGeojson(),
+    staleTime: GEOJSON_STALE_TIME,
+    enabled: hasMap,
+  })
+  const contactOnlyPage = useMemo(
+    () => isContactOnlyPage(feed?.features ?? [], top?.path),
+    [feed, top?.path],
+  )
   // The calendar is the one full-width view. It fills the widget, minus the floating margins,
   // instead of the 352px left panel (see the Drawer `wide` variant) — EXCEPT in its list
   // (agenda) view, one narrow column that reads better at the regular width. `isWide` is here
@@ -550,8 +574,11 @@ export function DrawerStack() {
   // This runs only when navigating to or from the calendar, so it never fights a
   // manual drag on a non-calendar view.
   useEffect(() => {
-    if (direction === 'bottom') setSnap(openSnapFor(top?.kind, frameHeight))
-  }, [direction, top?.kind, frameHeight])
+    if (direction !== 'bottom') return
+    // PROTOTYPE: these pages have no pin, so the map has nothing to say about them.
+    if (contactOnlyPage) setSnap(FRAMED_FULL_SNAP)
+    else setSnap(openSnapFor(top?.kind, frameHeight))
+  }, [direction, top?.kind, frameHeight, contactOnlyPage])
 
   // A new searched place lifts the sheet out of its peek, so results are never
   // fetched into a sheet the visitor cannot see. The effect above does not cover this
@@ -886,7 +913,11 @@ export function DrawerStack() {
           measureAgainst={frameElement()}
           setActiveSnapPoint={direction === 'bottom' ? setSnap : undefined}
           snapPoints={
-            direction !== 'bottom' ? undefined : frameHeight ? FRAMED_SNAP_POINTS : SNAP_POINTS
+            direction !== 'bottom'
+              ? undefined
+              : frameHeight || contactOnlyPage
+                ? FRAMED_SNAP_POINTS
+                : SNAP_POINTS
           }
           wide={wide}
           onOpenChange={(o) => !o && control.dismiss()}

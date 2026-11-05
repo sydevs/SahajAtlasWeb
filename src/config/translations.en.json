@@ -87,6 +87,11 @@
     "title": "Free Meditation Classes"
   },
   "event": {
+    "contact_only": {
+      "call": "Call %{phone}",
+      "hint": "Call to ask when and where",
+      "note": "This group shares its address by phone. Call to ask when and where."
+    },
     "actions": {
       "add_calendar": "Add to calendar",
       "contact": "Contact",
