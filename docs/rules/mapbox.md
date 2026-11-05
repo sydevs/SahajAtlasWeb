@@ -58,8 +58,11 @@ The map is the heart of the app and its hottest render path. Treat it carefully.
   pin, in both modes; `markers.test.ts` freezes the four stock SVGs byte for
   byte against exactly that.
 - **Every cache is keyed by the id AND its colors**, and a live map is
-  repainted with **`map.updateImage`**, never a second `addImage` — which makes
-  Mapbox fire an `error` event. `add` returns early only when the id is on the
+  repainted with **`removeImage` then `addImage`**. A second `addImage` alone
+  makes Mapbox fire an `error` event. ⚠ `map.updateImage` looks right and is
+  not: its icon-atlas patch is discarded by any frame that re-evaluates the
+  style first, and a palette change starts the cluster count's paint transition,
+  so the pins silently kept their old colors. `add` returns early only when the id is on the
   map in the colors asked for, so the eager pass is what repaints after a
   palette change: nothing reloads the style, so nothing re-fires
   `styleimagemissing`.

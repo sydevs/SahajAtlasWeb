@@ -33,7 +33,7 @@ const STOCK = {
   },
 } as const
 
-// The maroon the `BrandedMarkers` story paints with, and `palette.test.ts`'s seed.
+// The Ladle `shrimataji.org` preset's primary, and `palette.test.ts`'s seed.
 const MAROON = '#64032e'
 
 describe('markerColors', () => {
@@ -107,7 +107,7 @@ describe('markerImages', () => {
     expect(images.get(MARKER_IDS.point)?.svg).toContain('fill="#521430"')
     expect(images.get(MARKER_IDS.cluster)?.svg).toContain('fill="#521430"')
     expect(images.get(MARKER_IDS.cluster)?.svg).toContain('fill="#983a64"')
-    // The dimensions never change, which is what lets a repaint use `map.updateImage`.
+    // A palette moves only the fills, never the box the art is placed in.
     expect(images.get(MARKER_IDS.point)).toMatchObject({ width: 34, height: 38 })
     expect(images.get(MARKER_IDS.cluster)).toMatchObject({ width: 38, height: 38 })
   })

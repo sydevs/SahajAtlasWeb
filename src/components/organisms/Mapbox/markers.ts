@@ -257,13 +257,13 @@ function decodeMarker(key: string, { svg, width, height }: MarkerImage) {
  *
  * `colors` repaints a live map in place. Call this again with a new set — the
  * effect in `Map.tsx` does, since the set is one of its dependencies — and
- * each image whose colors changed is replaced through `map.updateImage`.
+ * each image whose colors changed is removed and added again.
  */
 export function registerMarkerImages(map: MapRef, colors: MarkerColors): () => void {
   const images = markerImages(colors)
   // What this subscription has already put on the map. Mapbox re-fires
   // `styleimagemissing` per missing id PER TILE BATCH, and without this each
-  // repeat would be another `updateImage`. It needs no color of its own: the
+  // repeat would replace the image again. It needs no color of its own: the
   // colors are fixed for the life of one subscription, and a style load dropping
   // the image underneath is what `map.hasImage` beside it answers.
   const registered = new Map<string, string>()
@@ -280,16 +280,19 @@ export function registerMarkerImages(map: MapRef, colors: MarkerColors): () => v
   const onError = (id: string) => (error: unknown) =>
     console.error(`Failed to add map marker "${id}"`, error)
 
-  // An id the style already carries is REPLACED rather than added again: a
-  // second `addImage` on a live id makes Mapbox fire an `error` event. The
-  // dimensions never change, so `updateImage` is the right call — only the
-  // fills differ between two sets of colors.
+  // An id the style already carries is removed first: a second `addImage` on a
+  // live id makes Mapbox fire an `error` event.
+  // ⚠ Not `updateImage`. It leaves the icon-atlas patch for a later frame, and a
+  // frame that re-evaluates the style first discards it. A palette change starts
+  // the cluster count's paint transition, which is exactly that, so the pins kept
+  // their old colors (seen in a browser, mapbox-gl 3.34.1). `removeImage` makes
+  // Mapbox re-lay out the symbol tiles instead, once per palette change.
   const place = (id: string, key: string, image: HTMLImageElement) => {
     // Both call sites below can run synchronously, so this guards rather than
     // leaving it to the decode path's `.catch`.
     try {
-      if (map.hasImage(id)) map.updateImage(id, image)
-      else map.addImage(id, image, { pixelRatio: SCALE })
+      if (map.hasImage(id)) map.removeImage(id)
+      map.addImage(id, image, { pixelRatio: SCALE })
 
       registered.set(id, key)
     } catch (error) {
