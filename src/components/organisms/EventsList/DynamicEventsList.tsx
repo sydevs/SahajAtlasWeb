@@ -10,7 +10,6 @@ import { EventsList } from './EventsList'
 import { LoadMore } from './LoadMore'
 
 import { Button } from '@/components/atoms/Button'
-import { Link } from '@/components/atoms/Link'
 import { type FilterPill, useFilterPills } from '@/components/molecules/ActiveFilterPills'
 import { FallbackPanel } from '@/components/molecules/Fallbacks'
 import { FoldSection } from '@/components/molecules/FoldSection'
@@ -19,6 +18,7 @@ import {
   DEFAULT_FILTERS,
   DEFAULT_REVEAL,
   boundsWith,
+  filtersKey,
   hasActiveFilters,
   isoCountryCode,
   orderOnline,
@@ -37,6 +37,7 @@ import { useReveal } from '@/hooks/use-reveal'
 import { useSearchCountry } from '@/hooks/use-search-country'
 import { useSortOrder } from '@/hooks/use-sort'
 import { eventsQuery } from '@/config/api'
+import { useArrivalFilters } from '@/config/store'
 
 export interface DynamicEventsListProps {
   latitude: number
@@ -50,10 +51,6 @@ export interface DynamicEventsListProps {
   /** The searched place's own box, which decides what is "in" it. */
   bbox?: BBox
 }
-
-// Where "Add it" goes. The add-a-class flow (#147) isn't on this base yet: it routes here when it
-// lands, and until then this reaches the not-found state.
-const ADD_CLASS_PATH = '/add'
 
 // A list too long to mount in one press shows this many rows first, and offers the rest.
 const FOLD_PAGE = 25
@@ -123,6 +120,17 @@ export function DynamicEventsList({
   if (placeName.current.at !== at || !placeName.current.name) {
     placeName.current = { at, name: searchedPlace }
   }
+
+  // Whether these filters were already on when this place first showed. Removing or changing one
+  // here makes the rest the visitor's own decision. It is a store so it outlasts the drawer's
+  // remounts, and read without subscribing because only this list ever writes it. A reload or a
+  // shared link counts as carried over: nothing says otherwise.
+  const appliedKey = filtersKey(filters)
+
+  if (useArrivalFilters.getState().place !== at) {
+    useArrivalFilters.setState({ place: at, filters: appliedKey })
+  }
+  const carried = useArrivalFilters.getState().filters === appliedKey
 
   // A searched place reads as groups, with `revealRows` still paging the first and last of them.
   // Without one, nothing is "here", so the list stays one undivided run.
@@ -270,19 +278,24 @@ export function DynamicEventsList({
           ? t('search.sections.across_border')
           : t('search.sections.nearby_places')
 
+    // A filter chosen for this place was a decision, and needs no comment while classes remain. One
+    // that came along from earlier, or that leaves the place empty, is worth saying out loud.
+    const filterNotice = hasActiveFilters(filters) &&
+      !nothing &&
+      (carried || here.length === 0) && (
+        <FilterRelief
+          bbox={bbox}
+          here={here.length}
+          latitude={latitude}
+          longitude={longitude}
+          nearby={nearby.length}
+          place={place}
+        />
+      )
+
     return (
       <>
-        {nothing && <EmptyResults latitude={latitude} longitude={longitude} />}
-        {hasActiveFilters(filters) && !nothing && (
-          <FilterRelief
-            bbox={bbox}
-            here={here.length}
-            latitude={latitude}
-            longitude={longitude}
-            nearby={nearby.length}
-            place={place}
-          />
-        )}
+        {nothing && <EmptyResults scoped bbox={bbox} latitude={latitude} longitude={longitude} />}
         {here.length === 0 && !nothing && (
           <NoClassesHere
             bbox={bbox}
@@ -292,6 +305,7 @@ export function DynamicEventsList({
             spot={size === 'spot'}
           />
         )}
+        {here.length === 0 && filterNotice}
         {here.length > 0 && (
           <section ref={listRef}>
             <ResultsHeading count={here.length}>{hereTitle}</ResultsHeading>
@@ -300,6 +314,7 @@ export function DynamicEventsList({
             {openNearby && size !== 'area' && (
               <p className="px-4 pb-1 text-sm text-gray-11">{t('search.sections.map_wider')}</p>
             )}
+            {filterNotice}
             <EventsList
               events={hereRows}
               fromCentre={size === 'town'}
@@ -469,12 +484,9 @@ function useFilterRelief(
 function ReliefActions({
   best,
   many,
-  quiet = false,
 }: {
   best?: { pill: FilterPill; count: number }
   many: boolean
-  /** Results are on screen, so this isn't the one next step and shouldn't look like it. */
-  quiet?: boolean
 }) {
   const { t } = useTranslation()
   const { clearFilters } = useSetFilters()
@@ -484,9 +496,9 @@ function ReliefActions({
       {best && (
         <Button
           className="h-11"
-          color={quiet ? 'neutral' : 'primary'}
+          color="primary"
           size="md"
-          variant={quiet ? 'bordered' : 'solid'}
+          variant="solid"
           onClick={best.pill.onRemove}
         >
           {t('search.filtered.remove', { label: best.pill.label, count: best.count })}
@@ -495,9 +507,9 @@ function ReliefActions({
       {(!best || many) && (
         <Button
           className="h-11"
-          color={best || quiet ? 'neutral' : 'primary'}
+          color={best ? 'neutral' : 'primary'}
           size="md"
-          variant={best ? 'ghost' : quiet ? 'bordered' : 'solid'}
+          variant={best ? 'ghost' : 'solid'}
           onClick={clearFilters}
         >
           {t('filters.chrome.clear')}
@@ -524,6 +536,7 @@ function FilterRelief({
 }) {
   const { t } = useTranslation()
   const { locale } = useLocale()
+  const { clearFilters } = useSetFilters()
   const searchCountry = useSearchCountry()
   const { data: unfiltered } = useQuery(eventsQuery(latitude, longitude, DEFAULT_FILTERS, locale))
   const all = useMemo(
@@ -543,21 +556,33 @@ function FilterRelief({
 
   if (!inPlace && hiddenNearby <= 0) return null
 
+  const best = relief[0]
+
+  // One quiet line. Classes may well be on screen, and the filter may be the visitor's only free
+  // day, so this mentions the cost and never presses for the filter to go.
   return (
-    <div className="mx-4 my-2 flex flex-col gap-3 rounded-lg bg-gray-3 p-3" role="status">
-      <p className="text-base">
+    <p className="flex flex-wrap items-center gap-x-2 px-4 text-sm text-gray-11" role="status">
+      <span>
         {inPlace
           ? t('search.filtered.hidden_here', { count: hiddenHere, place })
           : t('search.filtered.hidden_nearby', { count: hiddenNearby })}
-      </p>
-      <ReliefActions best={relief[0]} many={relief.length > 1} quiet={here > 0} />
-    </div>
+      </span>
+      <button
+        className="min-h-11 text-start font-medium text-primary underline outline-none focus-visible:ring-2 focus-visible:ring-primary-8"
+        type="button"
+        onClick={best ? best.pill.onRemove : clearFilters}
+      >
+        {best
+          ? t('search.filtered.remove_short', { label: best.pill.label })
+          : t('filters.chrome.clear')}
+      </button>
+    </p>
   )
 }
 
 // The place itself has nothing. The line says so before the nearest classes take over, so a class
 // 146 km away is never read as being in the place. When it is the filters that emptied it, it
-// isn't "yet", and an invitation to add a class would be wrong too.
+// isn't "yet".
 function NoClassesHere({
   latitude,
   longitude,
@@ -613,28 +638,37 @@ function NoClassesHere({
       : t(spot ? 'search.no_classes.near' : 'search.no_classes.here', { place })
 
   return (
-    <div className="px-4 pt-3 pb-4">
+    <div className="px-4 pt-3 pb-2">
       <h3 className="text-xl">{title}</h3>
-      {!emptied && (
-        <p className="mt-1 text-base text-gray-11">
-          {t('search.no_classes.add_prompt')}{' '}
-          <Link className="underline" color="primary" href={ADD_CLASS_PATH}>
-            {t('search.no_classes.add')}
-          </Link>
-        </p>
-      )}
     </div>
   )
 }
 
 // This renders when no results exist to show at all. The list has nothing to fall back on, so this
 // is the one state where the filter's way out IS the screen.
-function EmptyResults({ latitude, longitude }: { latitude: number; longitude: number }) {
+function EmptyResults({
+  latitude,
+  longitude,
+  bbox,
+  scoped = false,
+}: {
+  latitude: number
+  longitude: number
+  bbox?: BBox
+  /** Count only what a removed filter would put in this place's own groups, not the whole feed. */
+  scoped?: boolean
+}) {
   const { t } = useTranslation()
   const { regionNames } = useLocale()
   const active = hasActiveFilters(useEventFilters())
   const countrySite = useCountrySite()
-  const relief = useFilterRelief(latitude, longitude, (events) => events.length)
+  const searchCountry = useSearchCountry()
+  const relief = useFilterRelief(latitude, longitude, (events) => {
+    if (!scoped) return events.length
+    const { here, nearby, online } = splitResults(events, { bbox, searchCountry })
+
+    return here.length + nearby.length + online.length
+  })
 
   if (countrySite) {
     // `countryCode` is always canonical uppercase alpha-2 (`isoCountryCode`), so `of`

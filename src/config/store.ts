@@ -226,6 +226,13 @@ export const useResultFolds = create<ResultFoldsState>((set) => ({
     set((state) => ({ key, open: { ...(state.key === key ? state.open : {}), [id]: open } })),
 }))
 
+// The filters a searched place first showed with, to tell one that came along from an earlier search
+// from one the visitor chose here. Only the current place matters, so it holds one.
+export const useArrivalFilters = create<{ place: string; filters: string }>(() => ({
+  place: '',
+  filters: '',
+}))
+
 // ===== REPORT MODAL ===== //
 
 // This holds the open state for the report-issue modal, issue #79.

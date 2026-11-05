@@ -263,11 +263,10 @@
       "hidden_nearby_other": "Your filters hide %{count} classes nearby.",
       "none": "No classes match your filters.",
       "remove_one": "Remove %{label} (%{count} class)",
-      "remove_other": "Remove %{label} (%{count} classes)"
+      "remove_other": "Remove %{label} (%{count} classes)",
+      "remove_short": "Remove %{label}"
     },
     "no_classes": {
-      "add": "Add it",
-      "add_prompt": "Know a class here?",
       "filtered": "No matching classes in %{place}",
       "here": "No classes in %{place} yet",
       "near": "No classes near %{place} yet",
