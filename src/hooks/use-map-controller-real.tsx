@@ -38,9 +38,9 @@ import { frameElement } from '@/lib/overlay'
 const DRAWER_W_PX = 352
 const MOBILE_PEEK_PX = 128
 const MAP_MARGIN = 20
-// The filter panel's 320px width plus the 64px it stands off the right edge (`FiltersPanel`),
-// which is where the locate and attribution controls live.
-const FILTER_PANEL_PX = 336
+// The filter panel's 272px width plus the 16px it stands off the right edge (`end-4` in
+// `FiltersPanel`). The map controls beside it move left of the panel (`CONTROLS_BESIDE_PANEL`).
+const FILTER_PANEL_PX = 288
 
 // These constants keep zoom consistent.
 // An event frames at `EVENT_ZOOM`.
