@@ -213,7 +213,9 @@ source of truth, so all three stay linkable and shareable:
   searched country's ISO code). Read with a local parse helper, not a codec:
   unlike filters or sort, these are *replaced* by a new search, not merged —
   `preserveSearchState` re-encodes from an **empty** base, so a previous country
-  can never leak into the next search. `?cc` exists because it cannot be
+  can never leak into the next search. The region filter (`?region=`) is a Where
+  too and goes with the old place: a new place search keeps the other filters,
+  not the region. `?cc` exists because it cannot be
   re-derived: a country with no programs has no feed geometry to resolve a point
   against, so the geocoder's answer has to ride in the URL (it drives the
   `useCountrySite` offer).

@@ -53,8 +53,7 @@ export function usePanelFilters() {
     canClear: activeFilterCount({ ...filters, region: null }) > 0,
     /** Clear resets the questions, not the Where: the visitor is still looking in the same place. */
     clear: () => write({ ...DEFAULT_FILTERS, region: filters.region }),
-    pickPlace: (place: PlaceSearch) =>
-      push(placeSearchPath(filtersToParams({ ...filters, region: null }, params()), place)),
+    pickPlace: (place: PlaceSearch) => push(placeSearchPath(params(), place)),
     /** Back to everywhere: the place and the region go, and the other filters stay. */
     clearWhere: () => {
       const rest = { ...filters, region: null }

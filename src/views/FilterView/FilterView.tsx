@@ -87,13 +87,10 @@ export function FilterView() {
   }
 
   const pickPlace = (place: PlaceSearch) =>
-    navigate(
-      placeFiltersPath(
-        filtersToParams({ ...filters, region: null }, new URLSearchParams(location.search)),
-        place,
-      ),
-      { replace: true, state: location.state },
-    )
+    navigate(placeFiltersPath(new URLSearchParams(location.search), place), {
+      replace: true,
+      state: location.state,
+    })
 
   // Back to everywhere: the place and the region both go, and the other filters stay.
   const clearWhere = () =>

@@ -157,11 +157,15 @@ export const SEARCH_COUNTRY_PARAM = 'cc'
  * merges onto the current params (`filtersToParams(…, prev)`), so it preserves the
  * searched country.
  *
+ * The region filter (`?region=gb`) is a Where too, so it goes with the old place. Kept, a
+ * search for Prague after choosing the United Kingdom would look for Prague inside the
+ * United Kingdom, and find nothing.
+ *
  * The results list's reveal is not in the URL at all: a new centre changes
  * `revealKey`, so paging resets on its own (see `use-reveal`).
  */
 export const preserveSearchState = (params: URLSearchParams): URLSearchParams => {
-  const next = filtersToParams(filtersFromParams(params))
+  const next = filtersToParams({ ...filtersFromParams(params), region: null })
   // Only a sort the visitor CHOSE travels. The implied one follows the new place: carrying
   // "closest" from a searched place to the root would pin it where nothing is near. It is kept
   // verbatim, since whether it is the default depends on the place set next.

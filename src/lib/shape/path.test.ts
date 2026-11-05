@@ -338,6 +338,17 @@ describe('placeSearchPath', () => {
     expect(params.get('sort')).toBe('soonest')
   })
 
+  // United Kingdom, then Tuesday, then Prague: the new place replaces the country, or the search
+  // looks for Prague inside the United Kingdom and finds nothing.
+  it('drops a region chosen earlier, keeping the other filters', () => {
+    const params = query(
+      placeSearchPath(new URLSearchParams('region=gb&days=2'), { center: CENTRE }),
+    )
+
+    expect(params.get('region')).toBeNull()
+    expect(params.get('days')).toBe('2')
+  })
+
   // This goes through `preserveSearchState`, instead of copying the
   // previous params, because a stale `?cc` offers the wrong country's
   // website on an empty result set, and a stale `?q` labels the new results
