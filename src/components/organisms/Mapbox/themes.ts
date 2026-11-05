@@ -33,13 +33,16 @@ export const controlTheme = {
   // The geocoder hardcodes three things its variables don't reach. Typed text is 75% black in
   // both themes, so `colorText` never touches it and it vanishes on a dark panel. Its focus state
   // is a dotted border. And its placeholder is 37% black, about 2.6:1 on white. These restate all
-  // three in the tokens the rest of the panel uses, with the same 2px ring as `fieldChrome`.
+  // three in the tokens the rest of the panel uses. The focus ring is the global one every field
+  // gets (`:focus-visible` in globals.css), drawn inside the input; a second ring here, outside
+  // the field, doubled it and was clipped by the panel's edge. The border is the wrapper's, not
+  // the input's, so it hides while focused, or it would show as a grey line around the ring.
   // The clear button draws at 20px, so it gets the same invisible 44px tap area as `touch-target`.
   cssText: `
     .Input, .Input:focus { color: var(--gray-12); caret-color: var(--gray-12); }
     .Input:focus { border: 0; }
     .Input::placeholder { color: var(--gray-11); opacity: 1; }
-    .Geocoder:focus-within { box-shadow: 0 0 0 2px hsl(var(--primary-9)); }
+    .Geocoder:focus-within { border-color: transparent; }
     .Results {
       min-width: var(--sy-results-w, 0);
       border-radius: 8px;
