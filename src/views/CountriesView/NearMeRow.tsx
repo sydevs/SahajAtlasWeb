@@ -2,7 +2,7 @@ import type { Geojson } from '@/types'
 
 import { useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { ChevronRight, LocateFixed, MapPin } from 'lucide-react'
+import { ChevronRight } from 'lucide-react'
 
 import { Spinner } from '@/components/atoms/Spinner'
 import { listRow } from '@/components/molecules/List/List'
@@ -12,7 +12,7 @@ import { deepActiveElement } from '@/lib/active-element'
 import { SearchField, useIpSuggestion } from '@/views/shared'
 
 /**
- * The first thing a visitor sees: one obvious way to a class near them, then the town search.
+ * The first thing a visitor sees: the town search, then one obvious way to a class near them.
  *
  * The row is there from the first paint, so the IP guess, which can land seconds later, changes its
  * words in place and never moves the list. With a guess the row offers that city, with "Use my
@@ -80,6 +80,12 @@ export function NearMeRow({ geojson }: { geojson: Geojson | undefined }) {
 
   return (
     <>
+      {/* The search field leads: typing a town is the most direct way to classes. */}
+      <div ref={search} className="px-4 pb-2">
+        {/* Not mirrored to `?q`: nothing on this view reads it, and it would count as an active
+            place search and swap the row's offer away mid-typing. */}
+        <SearchField syncToUrl={false} />
+      </div>
       <button
         ref={button}
         className={listRow({
@@ -89,15 +95,11 @@ export function NearMeRow({ geojson }: { geojson: Geojson | undefined }) {
         type="button"
         onClick={offer ? offer.accept : locate}
       >
-        <span className="me-4 flex h-6 w-6 shrink-0 items-center justify-center text-primary-11">
-          {locating ? (
+        {locating && (
+          <span className="me-3 flex shrink-0 items-center">
             <Spinner size="sm" />
-          ) : offer ? (
-            <MapPin aria-hidden size={20} />
-          ) : (
-            <LocateFixed aria-hidden size={20} />
-          )}
-        </span>
+          </span>
+        )}
         <span className="min-w-0 flex-grow text-lg">
           {locating
             ? t('countries.locating')
@@ -110,7 +112,7 @@ export function NearMeRow({ geojson }: { geojson: Geojson | undefined }) {
       {/* One quiet line under the row, whatever it says: this slot's height is always there, so a
           guess or a failure that lands late moves nothing. It overlaps the row's empty bottom
           padding, which leaves both tap targets at least 44px tall. */}
-      <div className="relative -mt-3 flex min-h-11 items-center ps-14 pe-4 text-sm text-gray-11">
+      <div className="relative -mt-3 flex min-h-11 items-center px-4 text-sm text-gray-11">
         {state === 'failed' ? (
           <p role="alert">{t('common.map.location_failed')}</p>
         ) : offer ? (
@@ -121,11 +123,6 @@ export function NearMeRow({ geojson }: { geojson: Geojson | undefined }) {
         ) : (
           <p>{t('countries.near_me_hint')}</p>
         )}
-      </div>
-      <div ref={search} className="px-4 pb-3">
-        {/* Not mirrored to `?q`: nothing on this view reads it, and it would count as an active
-            place search and swap the row's offer away mid-typing. */}
-        <SearchField syncToUrl={false} />
       </div>
     </>
   )
