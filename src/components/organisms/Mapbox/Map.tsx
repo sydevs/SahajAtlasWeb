@@ -19,6 +19,10 @@ import { useShallow } from 'zustand/react/shallow'
 import { CalendarDays } from 'lucide-react'
 
 import {
+  approximateDotLayer,
+  approximateFillLayer,
+  approximateOutlineLayer,
+  CLASS_LAYER_IDS,
   clusterLayer,
   selectedPointLayer,
   unclusteredPointLayer,
@@ -30,6 +34,7 @@ import {
   LAYER_IDS,
 } from './layers'
 import { markerColors, registerMarkerImages } from './markers'
+import { pinPopoverPlacement, type PopoverAnchor } from './pin-popover'
 
 import { Button } from '@/components/atoms/Button'
 import { Modal, ModalClose, ModalContent, ModalFooter } from '@/components/atoms/Modal'
@@ -39,10 +44,19 @@ import { useAtlasNavigate } from '@/hooks/use-atlas-navigate'
 import { useEventFilters } from '@/hooks/use-filters'
 import { useGeolocateToSearch } from '@/hooks/use-geolocate'
 import { useRegionMatcher } from '@/hooks/use-region-matcher'
-import api from '@/config/api'
+import api, { eventTitlesQuery } from '@/config/api'
+import { useHasRealPointer } from '@/config/responsive'
 import { useBrandPalette } from '@/config/theme/brand-palette'
 import { GEOJSON_STALE_TIME } from '@/config/query-client'
-import { hasActiveFilters, matchesFilters, safePath, todayISO } from '@/lib/shape'
+import { areaAround } from '@/lib/geo'
+import {
+  hasActiveFilters,
+  hasVagueAddress,
+  isOnline,
+  matchesFilters,
+  safePath,
+  todayISO,
+} from '@/lib/shape'
 import { useLocale } from '@/hooks/use-locale'
 import { useTheme } from '@/hooks/use-theme'
 import { useMapbox } from '@/hooks/use-mapbox'
@@ -85,6 +99,9 @@ const MAP_WORLDVIEWS: Record<string, string> = {
   default: 'US', // Default
 }
 
+/** How far around the stored point a class with no real place might be, in km. */
+const APPROXIMATE_RADIUS_KM = 1.5
+
 // Mapbox renders geometry and injects its own cluster properties. The click
 // handler needs only `id` and `webPath`. This strips every other feature
 // property before handing the collection to the vector source. So the map
@@ -97,8 +114,23 @@ const toMapSource = (features: Geojson['features']): FeatureCollection<Geometry 
   features: features.map((feature) => ({
     type: 'Feature',
     geometry: feature.geometry,
-    properties: { id: feature.properties.id, webPath: feature.properties.webPath ?? null },
+    properties: {
+      id: feature.properties.id,
+      webPath: feature.properties.webPath ?? null,
+      approximate: !isOnline(feature.properties) && hasVagueAddress(feature.properties.address),
+    },
   })),
+})
+
+// The round areas of the classes with no real place. These go in their own source, because the
+// events source is a clustering one and takes points only.
+const toApproximateAreas = (source: FeatureCollection<Geometry | null>): FeatureCollection => ({
+  type: 'FeatureCollection',
+  features: source.features.flatMap((feature) =>
+    feature.properties?.approximate && feature.geometry?.type === 'Point'
+      ? [areaAround(feature.geometry.coordinates, APPROXIMATE_RADIUS_KM, feature.properties)]
+      : [],
+  ),
 })
 
 const DEBUG_BOUNDARY = false
@@ -138,13 +170,17 @@ function PointSource({
   )
 }
 
-// This is the card shown inside the hover popover: a calendar glyph beside
-// the event's timing, with the recurrence (for example, "Every Thursday")
-// stacked above its start time, so the card stays narrow. It renders the
-// SAME calendar parts that the list card's `composeCalendarLine` joins (via
-// the shared `calendarLineParts` gate). Here they stack across two lines
-// instead of joining with a `·`, so the two never drift apart (#72).
-function EventPinCard({ event }: { event: DisplayableEvent }) {
+// This is the card shown inside the hover popover: the class name, then its
+// timing, with the recurrence (for example, "Every Thursday") stacked above its
+// start time. It renders the SAME calendar parts that the list card's
+// `composeCalendarLine` joins (via the shared `calendarLineParts` gate). Here
+// they stack instead of joining with a `·`, so the two never drift apart (#72).
+// The name comes from the per-locale titles sliver, since the feed carries none.
+// Until that loads, the card shows the timing alone.
+function EventPinCard({ event }: { event: DisplayableEvent & { id: number } }) {
+  const { locale } = useLocale()
+  const { data: titles } = useQuery(eventTitlesQuery(locale))
+  const title = titles?.get(event.id)
   const { display, recurrenceLine, whenLine, eventStartTime } = useEventDisplay(event)
   const { primary, time } = calendarLineParts({
     recurrenceLine,
@@ -153,23 +189,26 @@ function EventPinCard({ event }: { event: DisplayableEvent }) {
     hasNext: Boolean(display.next),
   })
 
-  if (!primary) return null
+  if (!title && !primary) return null
 
   return (
-    <div className="inline-flex items-center gap-1.5 rounded-lg border border-divider bg-background px-2.5 py-1.5 text-foreground shadow-md">
-      <CalendarDays className="shrink-0 text-gray-11" size={16} />
-      <div className="flex flex-col text-sm leading-tight font-medium">
-        <span>{primary}</span>
-        {time && <span className="text-xs font-normal text-gray-11">{time}</span>}
-      </div>
+    <div className="flex max-w-60 flex-col gap-0.5 rounded-lg border border-divider bg-background px-3 py-2 text-foreground shadow-md">
+      {title && <span className="line-clamp-2 text-sm font-semibold">{title}</span>}
+      {primary && (
+        <span className="flex items-center gap-1.5 text-xs text-gray-11">
+          <CalendarDays className="shrink-0" size={14} />
+          <span>
+            {primary}
+            {time && ` · ${time}`}
+          </span>
+        </span>
+      )}
     </div>
   )
 }
 
-// This is a non-interactive hover popover over an individual event pin. It
-// shows that event's timing (recurrence stacked above start time) via
-// EventPinCard. It carries no title, so the locale-agnostic feed event alone
-// is enough — there is no titles sliver to join.
+// This is a non-interactive hover popover over an individual event pin, on
+// devices with a real pointer only (see `useHasRealPointer` where it is wired).
 //
 // This renders only for `unclustered-point` pins, never clusters, since one
 // recurrence line is meaningless for a cluster of events. The caller
@@ -182,21 +221,25 @@ function EventPinPopover({
   event,
   longitude,
   latitude,
+  anchor,
+  offset,
 }: {
-  event: DisplayableEvent
+  event: DisplayableEvent & { id: number }
   longitude: number
   latitude: number
+  anchor: PopoverAnchor
+  offset: [number, number]
 }) {
   return (
     <Popup
-      anchor="bottom"
+      anchor={anchor}
       className="event-pin-popover"
       closeButton={false}
       closeOnClick={false}
       focusAfterOpen={false}
       latitude={latitude}
       longitude={longitude}
-      offset={34}
+      offset={offset}
     >
       <EventPinCard event={event} />
     </Popup>
@@ -286,6 +329,12 @@ export function Mapbox({ cooperative = false }: { cooperative?: boolean } = {}) 
   const colors = useMemo(() => markerColors(palette, theme), [palette, theme])
   const clusters = useMemo(() => clusterLayer(palette, theme), [palette, theme])
   const bounds = useMemo(() => boundsLayer(palette, theme), [palette, theme])
+  const approximateDot = useMemo(() => approximateDotLayer(palette, theme), [palette, theme])
+  const approximateFill = useMemo(() => approximateFillLayer(palette, theme), [palette, theme])
+  const approximateOutline = useMemo(
+    () => approximateOutlineLayer(palette, theme),
+    [palette, theme],
+  )
 
   // This supplies the app's own pin and cluster images. `markers.ts` owns
   // the why, the theme-switch handling, and the in-place repaint. There is
@@ -347,6 +396,9 @@ export function Mapbox({ cooperative = false }: { cooperative?: boolean } = {}) 
   // the pointer moves to empty map or leaves the canvas. This is local
   // state, not zustand: it is purely a map-view detail.
   const [hoveredId, setHoveredId] = useState<number | null>(null)
+  // A touch device gets no hover at all, so one tap opens the class. iOS sends a fake mouse move
+  // before a tap, and when that reveals content Safari treats the tap as a hover and doesn't click.
+  const hasRealPointer = useHasRealPointer()
 
   // Mapbox's locate control fails silently otherwise (#321). ⚠ A permission already denied when
   // the map loads never reaches `onError`: mapbox renders the control disabled instead.
@@ -368,6 +420,7 @@ export function Mapbox({ cooperative = false }: { cooperative?: boolean } = {}) 
 
     return toMapSource(features)
   }, [data, filters, matchesRegion])
+  const approximateAreas = useMemo(() => filtered && toApproximateAreas(filtered), [filtered])
 
   // This re-joins the hovered pin's id to the FULL feed event — the map
   // source is trimmed to id plus webPath. It reads the same `['geojson']`
@@ -382,9 +435,21 @@ export function Mapbox({ cooperative = false }: { cooperative?: boolean } = {}) 
     if (!feature || feature.geometry?.type !== 'Point') return undefined
 
     const [longitude, latitude] = feature.geometry.coordinates
+    const container = mapbox?.getContainer()
+    const placement = pinPopoverPlacement(
+      mapbox?.project([longitude, latitude]) ?? { x: 0, y: 0 },
+      { width: container?.clientWidth ?? 0, height: container?.clientHeight ?? 0 },
+      {
+        top: 0,
+        right: 0,
+        bottom: 0,
+        left: 0,
+        ...mapbox?.getPadding(),
+      },
+    )
 
-    return { event: feature.properties, longitude, latitude }
-  }, [hoveredId, data])
+    return { event: feature.properties, longitude, latitude, ...placement }
+  }, [hoveredId, data, mapbox])
 
   const selectFeature = useCallback(
     (evt: MapMouseEvent) => {
@@ -409,7 +474,7 @@ export function Mapbox({ cooperative = false }: { cooperative?: boolean } = {}) 
             duration: 500,
           })
         })
-      } else if (feature.layer?.id === LAYER_IDS.unclusteredPoint) {
+      } else if (feature.layer && CLASS_LAYER_IDS.includes(feature.layer.id)) {
         navigate(safePath(feature.properties?.webPath) ?? `/${feature.properties?.id}`)
       }
     },
@@ -432,7 +497,9 @@ export function Mapbox({ cooperative = false }: { cooperative?: boolean } = {}) 
       // React skips a re-render when the id is unchanged (Object.is), so
       // this stays a no-op while the pointer sits on one pin.
       const pinId =
-        feature?.layer?.id === LAYER_IDS.unclusteredPoint ? Number(feature.properties?.id) : NaN
+        feature?.layer && CLASS_LAYER_IDS.includes(feature.layer.id)
+          ? Number(feature.properties?.id)
+          : NaN
 
       setHoveredId(Number.isFinite(pinId) ? pinId : null)
     },
@@ -474,7 +541,7 @@ export function Mapbox({ cooperative = false }: { cooperative?: boolean } = {}) 
         // camera — CalendarView is the one that deliberately does not — must
         // not leave the map hidden for the whole session.
         onLoad={armReveal}
-        onMouseMove={hoverOnFeature}
+        onMouseMove={hasRealPointer ? hoverOnFeature : undefined}
         // This dismisses the timing popover when the pointer leaves the
         // canvas. `mouseout` (react-map-gl `onMouseOut`) is the canvas-exit
         // event. `hoverOnFeature` above handles moving between pins or onto
@@ -502,6 +569,13 @@ export function Mapbox({ cooperative = false }: { cooperative?: boolean } = {}) 
             style={padding}
           />
         )}
+        {/* Before the events source, so an area lies under every pin and cluster. */}
+        {approximateAreas && (
+          <Source data={approximateAreas} id="approximate-areas" type="geojson">
+            <Layer {...approximateFill} />
+            <Layer {...approximateOutline} />
+          </Source>
+        )}
         {filtered && (
           <Source
             cluster={true}
@@ -513,6 +587,7 @@ export function Mapbox({ cooperative = false }: { cooperative?: boolean } = {}) 
           >
             <Layer {...clusters} />
             <Layer {...unclusteredPointLayer} />
+            <Layer {...approximateDot} />
           </Source>
         )}
         {DEBUG_BOUNDARY && boundary && (
@@ -538,9 +613,11 @@ export function Mapbox({ cooperative = false }: { cooperative?: boolean } = {}) 
         )}
         {hovered && (
           <EventPinPopover
+            anchor={hovered.anchor}
             event={hovered.event}
             latitude={hovered.latitude}
             longitude={hovered.longitude}
+            offset={hovered.offset}
           />
         )}
         {/* `followUserLocation={false}` stops Mapbox from moving the camera itself.
@@ -568,7 +645,8 @@ export function Mapbox({ cooperative = false }: { cooperative?: boolean } = {}) 
             narrow one — accepted, rather than paid for with a measured per-layout corner (#330). Both
             props are read once, when the map is constructed, which is all a corner that never moves
             needs. `compact` keeps it a round button until a visitor opens it, rather than a strip
-            of text across an embed's map. */}
+            of text across an embed's map. Both controls below share one column with the settings
+            cog, styled in globals.css. */}
         <AttributionControl compact position="top-right" />
       </ReactMapGL>
       <Modal open={locationFailed} onOpenChange={setLocationFailed}>

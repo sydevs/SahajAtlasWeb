@@ -1,8 +1,9 @@
 import type { LayerProps } from 'react-map-gl'
 
-import { MARKER_IDS } from './markers'
+import { MARKER_IDS, primarySolid } from './markers'
 
 import {
+  DEFAULT_SEEDS,
   onHex,
   SOLID_STEP,
   stepHex,
@@ -30,13 +31,28 @@ export const LAYER_IDS = {
   selectedArea: 'selected-area',
   hoveredPoint: 'hovered-point',
   hoveredArea: 'hovered-area',
+  approximateDot: 'approximate-dot',
+  approximateFill: 'approximate-fill',
+  approximateOutline: 'approximate-outline',
   bounds: 'selected-bounds',
 } as const
 
 // The layers that answer clicks and hover, as one stable array: `<ReactMapGL>`
 // takes this by identity, and a fresh literal per render would reflow the map.
 // The hover highlights are deliberately absent — they stay purely visual.
-export const INTERACTIVE_LAYER_IDS = [LAYER_IDS.cluster, LAYER_IDS.unclusteredPoint]
+export const INTERACTIVE_LAYER_IDS = [
+  LAYER_IDS.cluster,
+  LAYER_IDS.unclusteredPoint,
+  LAYER_IDS.approximateDot,
+  LAYER_IDS.approximateFill,
+]
+
+// The layers that stand for one class, so they open it and show its hover card.
+export const CLASS_LAYER_IDS: readonly string[] = [
+  LAYER_IDS.unclusteredPoint,
+  LAYER_IDS.approximateDot,
+  LAYER_IDS.approximateFill,
+]
 
 /**
  * The cluster bubble and its count.
@@ -60,12 +76,7 @@ export const clusterLayer = (palette: PaletteRoles, mode: ThemeMode): Props => (
     'text-size': 12,
   },
   paint: {
-    // White on the stock teal bubble, which is the same art on both basemaps.
-    // The disc is slightly translucent (see `markers.ts`), so a pale feature
-    // underneath can show through and reduce contrast with it. This is
-    // inherited from the Studio sprite this replaced. Make the inner disc
-    // fully opaque if the count ever reads thin.
-    'text-color': onHex(palette.primary, mode) ?? '#FFFFFF',
+    'text-color': onHex(palette.primary, mode) ?? (onHex(DEFAULT_SEEDS.primary, mode) as string),
   },
 })
 
@@ -73,7 +84,7 @@ export const unclusteredPointLayer: Props = {
   id: LAYER_IDS.unclusteredPoint,
   type: 'symbol',
   source: 'events',
-  filter: ['!', ['has', 'point_count']],
+  filter: ['all', ['!', ['has', 'point_count']], ['!=', ['get', 'approximate'], true]],
   layout: {
     'icon-anchor': 'bottom',
     'icon-size': 0.85,
@@ -81,6 +92,49 @@ export const unclusteredPointLayer: Props = {
     'icon-image': MARKER_IDS.point,
   },
 }
+
+/**
+ * A class whose host gave no real place: a soft circle in place of a pin, since a pin would claim
+ * an exact spot. The area itself is drawn to scale (`areaAround`), so it reads as a neighbourhood
+ * when zoomed in. Zoomed out it shrinks to nothing, so this dot keeps the class visible and
+ * clickable. Factories, memoised like `clusterLayer`, because the colours follow the brand.
+ */
+const approximateColor = primarySolid
+
+export const approximateDotLayer = (palette: PaletteRoles, mode: ThemeMode): Props => ({
+  id: LAYER_IDS.approximateDot,
+  type: 'circle',
+  source: 'events',
+  filter: ['all', ['!', ['has', 'point_count']], ['==', ['get', 'approximate'], true]],
+  paint: {
+    'circle-radius': 9,
+    'circle-color': approximateColor(palette, mode),
+    'circle-opacity': 0.3,
+    'circle-stroke-color': approximateColor(palette, mode),
+    'circle-stroke-width': 2,
+  },
+})
+
+export const approximateFillLayer = (palette: PaletteRoles, mode: ThemeMode): LayerProps => ({
+  id: LAYER_IDS.approximateFill,
+  type: 'fill',
+  source: 'approximate-areas',
+  paint: {
+    'fill-color': approximateColor(palette, mode),
+    'fill-opacity': 0.14,
+  },
+})
+
+export const approximateOutlineLayer = (palette: PaletteRoles, mode: ThemeMode): LayerProps => ({
+  id: LAYER_IDS.approximateOutline,
+  type: 'line',
+  source: 'approximate-areas',
+  paint: {
+    'line-color': approximateColor(palette, mode),
+    'line-opacity': 0.6,
+    'line-width': 1.5,
+  },
+})
 
 export const selectedPointLayer: LayerProps = {
   id: LAYER_IDS.selectedPoint,

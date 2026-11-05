@@ -41,6 +41,9 @@ describe('LAYER_IDS', () => {
       selectedArea: 'selected-area',
       hoveredPoint: 'hovered-point',
       hoveredArea: 'hovered-area',
+      approximateDot: 'approximate-dot',
+      approximateFill: 'approximate-fill',
+      approximateOutline: 'approximate-outline',
       bounds: 'selected-bounds',
     })
   })
@@ -56,17 +59,22 @@ describe('LAYER_IDS', () => {
   })
 
   it('lists the clickable layers, and only those', () => {
-    expect(INTERACTIVE_LAYER_IDS).toEqual([LAYER_IDS.cluster, LAYER_IDS.unclusteredPoint])
+    expect(INTERACTIVE_LAYER_IDS).toEqual([
+      LAYER_IDS.cluster,
+      LAYER_IDS.unclusteredPoint,
+      LAYER_IDS.approximateDot,
+      LAYER_IDS.approximateFill,
+    ])
   })
 })
 
 describe('clusterLayer', () => {
-  for (const mode of ['light', 'dark'] as const) {
-    it(`counts in white on the stock bubble in ${mode}`, () => {
-      expect(paintOf(clusterLayer({}, mode))['text-color']).toBe('#FFFFFF')
-      expect(paintOf(clusterLayer({ primary: '#000000' }, mode))['text-color']).toBe('#FFFFFF')
-    })
-  }
+  it('counts on the default primary when the tenant has no usable seed', () => {
+    for (const palette of [{}, { primary: '#000000' }]) {
+      expect(paintOf(clusterLayer(palette, 'light'))['text-color']).toBe('#ffffff')
+      expect(paintOf(clusterLayer(palette, 'dark'))['text-color']).toBe('#000000')
+    }
+  })
 
   it('takes the on-color of the bubble it sits on', () => {
     // The bubble is `primary` step 9, so the count follows that ramp: white on
@@ -78,7 +86,7 @@ describe('clusterLayer', () => {
   it('ignores the other roles', () => {
     const layer = clusterLayer({ contrast: MAROON, secondary: MAROON }, 'light')
 
-    expect(paintOf(layer)['text-color']).toBe('#FFFFFF')
+    expect(paintOf(layer)['text-color']).toBe('#ffffff')
   })
 
   // ⚠ This layer and `markerColors` derive the count and the disc it sits on
@@ -87,21 +95,15 @@ describe('clusterLayer', () => {
   // the two expressions matching — a change to either side that broke the
   // agreement would still satisfy a value comparison.
   //
-  // Only for a branded tenant. The stock pair is `#FFFFFF` on the Studio art's
-  // own `#37BB92`, which measures 2.4:1 and is inherited rather than chosen; see
-  // `layers.ts`.
-  //
-  // ⚠ 4.5 is the OPAQUE figure. The disc renders at `opacity="0.914"`
-  // (`markers.ts`), so what a reader sees is that fill composited over the
-  // basemap, a little lower — `foregroundFor`'s black-versus-white crossover is
-  // 4.58:1, so a seed landing near it passes here at about 4.2 on screen.
-  // Blending needs a basemap colour this lane has no business asserting.
+  // The disc is opaque (`markers.ts`), so this is also what a reader sees.
   it('keeps the count legible on the bubble markerColors fills', () => {
     for (const mode of ['light', 'dark'] as const) {
-      const { fill } = markerColors({ primary: MAROON }, mode)[MARKER_IDS.cluster]
-      const label = paintOf(clusterLayer({ primary: MAROON }, mode))['text-color'] as string
+      for (const palette of [{}, { primary: MAROON }]) {
+        const { fill } = markerColors(palette, mode)[MARKER_IDS.cluster]
+        const label = paintOf(clusterLayer(palette, mode))['text-color'] as string
 
-      expect(colord(fill).contrast(label)).toBeGreaterThanOrEqual(4.5)
+        expect(colord(fill).contrast(label)).toBeGreaterThanOrEqual(4.5)
+      }
     }
   })
 })

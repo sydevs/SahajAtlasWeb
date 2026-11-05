@@ -552,14 +552,157 @@
   --sy-frame-h: 100%;
 }
 
-/* Keeps Mapbox's own control column clear of the expanded surface's collapse control.
-   Both sit in the top-inline-end corner (`CompactEmbedView`'s `ExpandedDialog`), and map
-   mode renders the geolocate button and the attribution there. This is unconditional,
-   rather than direction-aware: under RTL the collapse control moves to the other corner
-   and this nudge is merely unnecessary, which is a better failure than two round buttons
-   on top of each other. */
-[data-sy-expanded] .mapboxgl-ctrl-top-right {
-  margin-top: 40px;
+/* One control column in the map's top-right corner: settings, locate, attribution, in that
+   order and all the same disc. The cog is ours and sits outside the map, Mapbox owns the other
+   two, so these variables are what keep them one column: the cog is placed at the top, and
+   Mapbox's own corner starts one disc and one gap below it. Every step is px, so a host page
+   that restyles its root font size can't pull the two apart.
+
+   The safe-area terms only do anything under `viewport-fit=cover`, where the map runs beneath
+   a phone's status bar. Elsewhere they are 0. */
+:root,
+.light,
+.dark {
+  --sy-map-ctrl-size: 40px;
+  --sy-map-ctrl-gap: 8px;
+  --sy-map-ctrl-top: calc(16px + env(safe-area-inset-top, 0px));
+  --sy-map-ctrl-end: calc(16px + env(safe-area-inset-right, 0px));
+}
+
+/* The expanded compact embed has its own close control in that corner (32px at 12px in, see
+   `CompactEmbedView`), so the whole column starts below it. */
+[data-sy-expanded] {
+  --sy-map-ctrl-top: 56px;
+  --sy-map-ctrl-end: 12px;
+}
+
+.mapboxgl-ctrl-top-right {
+  top: calc(var(--sy-map-ctrl-top) + var(--sy-map-ctrl-size) + var(--sy-map-ctrl-gap));
+  right: var(--sy-map-ctrl-end);
+}
+
+.mapboxgl-ctrl-top-right .mapboxgl-ctrl {
+  margin: 0 0 var(--sy-map-ctrl-gap);
+}
+
+/* A phone on its side is too short for a column: the sheet's default 300px snap would cover
+   locate and the required attribution. There the same discs run as a row beside the cog, above
+   the sheet's top edge (75px on a 375px-tall screen). */
+@media (max-height: 480px) {
+  .mapboxgl-ctrl-top-right {
+    top: var(--sy-map-ctrl-top);
+    right: calc(var(--sy-map-ctrl-end) + var(--sy-map-ctrl-size) + var(--sy-map-ctrl-gap));
+    display: flex;
+    flex-direction: row;
+    gap: var(--sy-map-ctrl-gap);
+  }
+
+  .mapboxgl-ctrl-top-right .mapboxgl-ctrl {
+    margin: 0;
+    float: none;
+  }
+}
+
+/* The same surface `SettingsMenu`'s trigger draws with utilities. */
+.mapboxgl-ctrl-top-right .mapboxgl-ctrl-group:not(:empty),
+.mapboxgl-ctrl-top-right .mapboxgl-ctrl-attrib.mapboxgl-compact {
+  @apply rounded-full border border-divider bg-background text-gray-11 shadow-lg;
+}
+
+.mapboxgl-ctrl-top-right .mapboxgl-ctrl-group button {
+  position: relative;
+}
+
+/* Mapbox pins the attribution button to the corner of a box that grows left when opened. */
+.mapboxgl-ctrl-top-right .mapboxgl-ctrl-group button,
+.mapboxgl-ctrl-top-right .mapboxgl-ctrl-attrib-button {
+  width: calc(var(--sy-map-ctrl-size) - 2px);
+  height: calc(var(--sy-map-ctrl-size) - 2px);
+  overflow: visible;
+  background-color: transparent;
+  background-image: none;
+  border-radius: 9999px;
+}
+
+/* 40px discs that answer a 44px finger, without pushing the column apart. */
+.mapboxgl-ctrl-top-right .mapboxgl-ctrl-group button::after,
+.mapboxgl-ctrl-top-right .mapboxgl-ctrl-attrib-button::after {
+  position: absolute;
+  inset: -3px;
+  content: '';
+}
+
+/* The Mapbox glyphs are bitmaps of a fixed colour, swapped per state. These draw the same
+   meaning from the lucide set the cog uses, as masks, so they take a token. The `!important`
+   beats Mapbox's per-state `background-image` rules without restating each of them. */
+.mapboxgl-ctrl-top-right .mapboxgl-ctrl-geolocate .mapboxgl-ctrl-icon,
+.mapboxgl-ctrl-top-right .mapboxgl-ctrl-attrib-button::before {
+  background-color: currentColor;
+  background-image: none !important;
+  mask-position: center;
+  mask-repeat: no-repeat;
+  mask-size: 20px 20px;
+}
+
+.mapboxgl-ctrl-top-right .mapboxgl-ctrl-geolocate .mapboxgl-ctrl-icon {
+  mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2' stroke-linecap='round'%3E%3Cpath d='M2 12h3M19 12h3M12 2v3M12 19v3'/%3E%3Ccircle cx='12' cy='12' r='7'/%3E%3Ccircle cx='12' cy='12' r='3'/%3E%3C/svg%3E");
+}
+
+.mapboxgl-ctrl-top-right .mapboxgl-ctrl-attrib-button::before {
+  position: absolute;
+  inset: 0;
+  content: '';
+  mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2' stroke-linecap='round'%3E%3Ccircle cx='12' cy='12' r='10'/%3E%3Cpath d='M12 16v-4M12 8h.01'/%3E%3C/svg%3E");
+}
+
+.mapboxgl-ctrl-top-right .mapboxgl-ctrl-attrib.mapboxgl-compact {
+  box-sizing: border-box;
+  min-width: var(--sy-map-ctrl-size);
+  min-height: var(--sy-map-ctrl-size);
+  padding: 0;
+}
+
+.mapboxgl-ctrl-top-right .mapboxgl-ctrl-attrib.mapboxgl-compact-show {
+  padding: 9px 44px 9px 16px;
+  border-radius: 20px;
+}
+
+.mapboxgl-ctrl-top-right .mapboxgl-ctrl-attrib.mapboxgl-compact-show .mapboxgl-ctrl-attrib-button {
+  background-color: transparent;
+}
+
+/* The rest of Mapbox's fixed colours, so every state of the column follows the theme. Hover,
+   focus and the open attribution are its white and black literals otherwise. */
+.mapboxgl-ctrl-top-right .mapboxgl-ctrl button:not(:disabled):hover {
+  background-color: var(--gray-3);
+}
+
+.mapboxgl-ctrl-top-right .mapboxgl-ctrl-group button:focus,
+.mapboxgl-ctrl-top-right .mapboxgl-ctrl-attrib-button:focus {
+  box-shadow: none;
+}
+
+.mapboxgl-ctrl-top-right .mapboxgl-ctrl-group button:focus-visible,
+.mapboxgl-ctrl-top-right .mapboxgl-ctrl-attrib-button:focus-visible {
+  @apply ring-2 ring-focus;
+}
+
+.mapboxgl-ctrl-top-right .mapboxgl-ctrl-geolocate-active .mapboxgl-ctrl-icon,
+.mapboxgl-ctrl-top-right .mapboxgl-ctrl-geolocate-background .mapboxgl-ctrl-icon {
+  color: var(--color-primary-11);
+}
+
+.mapboxgl-ctrl-top-right .mapboxgl-ctrl-geolocate-active-error .mapboxgl-ctrl-icon,
+.mapboxgl-ctrl-top-right .mapboxgl-ctrl-geolocate-background-error .mapboxgl-ctrl-icon {
+  color: var(--color-danger-11);
+}
+
+.mapboxgl-ctrl-top-right .mapboxgl-ctrl-attrib a {
+  color: var(--gray-11);
+}
+
+.mapboxgl-ctrl-top-right .mapboxgl-ctrl-attrib a:hover {
+  color: var(--gray-12);
 }
 
 /* The boot curtain's spinner (views/FullInterface.tsx → MapCurtain). It fades in on a
