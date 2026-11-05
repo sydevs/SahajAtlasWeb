@@ -803,11 +803,14 @@ const RELATIVE_UNIT: Record<RecurrenceType, 'days' | 'weeks' | 'months'> = {
 
 const sentenceCase = (text: string) => text.charAt(0).toLocaleUpperCase() + text.slice(1)
 
-/** "Tuesday, November 10" in the class's own zone, for the confirmation line. */
+/**
+ * "Tuesday 10 November" (en-GB) or "Tuesday, November 10" (en-US) in the class's own zone, for
+ * the confirmation line. The same regional locale as the date list above, so the two agree.
+ */
 const longDate = (date: Date, timeZone: string | undefined, locale: string) =>
   DateTime.fromJSDate(date)
     .setZone(timeZone ?? 'local')
-    .setLocale(locale)
+    .setLocale(regionalLocale(locale))
     .toLocaleString({ weekday: 'long', month: 'long', day: 'numeric' })
 
 function dateOptions(
