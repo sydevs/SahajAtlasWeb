@@ -322,6 +322,29 @@ export function matchesFilters(
 }
 
 /** Whether any filter narrows the default (all-events) set — drives the trigger's active indicator. */
+/** The kinds of filter a visitor can remove one at a time. Each is one pill in the results. */
+export type FilterKey = 'region' | 'format' | 'cadence' | 'days' | 'time' | 'languages' | 'dates'
+
+/** These filters with one kind taken off, to ask what that one filter is hiding. */
+export const withoutFilter = (filters: EventFilters, key: FilterKey): EventFilters => {
+  switch (key) {
+    case 'region':
+      return { ...filters, region: DEFAULT_FILTERS.region }
+    case 'format':
+      return { ...filters, format: DEFAULT_FILTERS.format }
+    case 'cadence':
+      return { ...filters, cadence: DEFAULT_FILTERS.cadence }
+    case 'days':
+      return { ...filters, daysOfWeek: DEFAULT_FILTERS.daysOfWeek }
+    case 'time':
+      return { ...filters, timeOfDay: DEFAULT_FILTERS.timeOfDay }
+    case 'languages':
+      return { ...filters, languages: DEFAULT_FILTERS.languages }
+    case 'dates':
+      return { ...filters, dateRange: DEFAULT_FILTERS.dateRange }
+  }
+}
+
 export const hasActiveFilters = (filters: EventFilters): boolean => activeFilterCount(filters) > 0
 
 /** How many filter groups are non-default — shown as the trigger's badge count. */

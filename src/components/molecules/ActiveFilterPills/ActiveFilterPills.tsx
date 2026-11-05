@@ -10,22 +10,12 @@ import { regionsQuery } from '@/config/api'
 import { useEventFilters, useSetFilters } from '@/hooks/use-filters'
 import { useLocale } from '@/hooks/use-locale'
 import { formatTimePeriods } from '@/lib'
-import { isDateRestricted, isTimeRestricted } from '@/lib/shape'
+import { type FilterKey, isDateRestricted, isTimeRestricted } from '@/lib/shape'
 
-/**
- * The active filters, as a row of removable pills at the top of the search
- * results. It shows one pill per filter type. The day-of-week and language
- * selections each collapse into a single pill. Each pill's X clears that
- * filter immediately, as a quick edit on the applied filters. This renders
- * nothing when no filter is active.
- *
- * Every pill here is one of the USER's own filters. The results list's
- * automatic distance cut used to ride along as one more pill, which read as
- * a filter someone had chosen. It is now a segment boundary the list pages
- * across instead, signposted by its own control at the foot of the list
- * (see `revealRows` in `@/lib/shape/reveal`).
- */
-export function ActiveFilterPills() {
+export type FilterPill = { key: FilterKey; label: string; onRemove: () => void }
+
+/** One entry per active filter, in display order: what it reads as, and how to remove it. */
+export function useFilterPills(): FilterPill[] {
   const { t } = useTranslation()
   const { locale, languageLabel } = useLocale()
   const { format, timeOfDay, daysOfWeek, languages, cadence, dateRange, region } = useEventFilters()
@@ -44,7 +34,7 @@ export function ActiveFilterPills() {
   // The cache-once region tree, to resolve the selected slug to its display name below.
   const { data: regions } = useQuery(regionsQuery())
 
-  const pills: { key: string; label: string; onRemove: () => void }[] = []
+  const pills: FilterPill[] = []
 
   if (region) {
     // This shows the region's name, falling back to the slug until the
@@ -102,6 +92,26 @@ export function ActiveFilterPills() {
 
     pills.push({ key: 'dates', label, onRemove: () => setDateRange({ start: null, end: null }) })
   }
+
+  return pills
+}
+
+/**
+ * The active filters, as a row of removable pills at the top of the search
+ * results. It shows one pill per filter type. The day-of-week and language
+ * selections each collapse into a single pill. Each pill's X clears that
+ * filter immediately, as a quick edit on the applied filters. This renders
+ * nothing when no filter is active.
+ *
+ * Every pill here is one of the USER's own filters. The results list's
+ * automatic distance cut used to ride along as one more pill, which read as
+ * a filter someone had chosen. It is now a segment boundary the list pages
+ * across instead, signposted by its own control at the foot of the list
+ * (see `revealRows` in `@/lib/shape/reveal`).
+ */
+export function ActiveFilterPills() {
+  const { t } = useTranslation()
+  const pills = useFilterPills()
 
   if (pills.length === 0) return null
 

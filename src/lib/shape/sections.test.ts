@@ -2,7 +2,7 @@ import type { BBox } from 'geojson'
 
 import { describe, expect, it } from 'vitest'
 
-import { parseBounds, placeSize, splitResults } from './sections'
+import { boundsWith, parseBounds, placeSize, splitResults } from './sections'
 
 const PRAGUE: BBox = [14.07, 49.86, 14.77, 50.31]
 const CZECHIA: BBox = [12.09, 48.55, 18.86, 51.06]
@@ -140,5 +140,27 @@ describe('splitResults', () => {
     expect(size).toBe('spot')
     expect(ids(here)).toEqual([14])
     expect(ids(nearby)).toEqual([15])
+  })
+})
+
+describe('boundsWith', () => {
+  const berlin = inPerson(20, 13.4, 52.52, 146, 'DE')
+  const liberec = inPerson(21, 15.06, 50.77, 198)
+  const frankfurt = inPerson(22, 8.68, 50.11, 292, 'DE')
+  const leipzig: BBox = [12.24, 51.24, 12.54, 51.45]
+
+  it('holds the place and its nearest classes, so a pin is in view', () => {
+    expect(boundsWith(leipzig, [12.37, 51.34], [berlin], 1)).toEqual([12.24, 51.24, 13.4, 52.52])
+  })
+
+  it('stops at the count, leaving out what is farther', () => {
+    const box = boundsWith(leipzig, [12.37, 51.34], [berlin, liberec, frankfurt], 2)
+
+    expect(box?.[0]).toBe(12.24)
+    expect(box?.[2]).toBe(15.06)
+  })
+
+  it('falls back on the searched point with no box', () => {
+    expect(boundsWith(undefined, [12.37, 51.34], [berlin], 1)).toEqual([12.37, 51.34, 13.4, 52.52])
   })
 })

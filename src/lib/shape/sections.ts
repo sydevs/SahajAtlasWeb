@@ -4,7 +4,7 @@ import { byDistance, isOnline } from './event'
 import { isoCountryCode } from './country'
 import { FOREIGN_NEARBY_KM, NEARBY_KM } from './reveal'
 
-import { distanceKm } from '@/lib/geo'
+import { boundsOfPoints, distanceKm } from '@/lib/geo'
 
 // The results of a place search, split into the groups a visitor reads: classes in the place
 // itself, classes in other towns close enough to reach, online classes, and everything else.
@@ -162,4 +162,32 @@ export function splitResults<T extends Sectionable>(
   }
 
   return groups
+}
+
+/** How many of the nearest classes a place with none of its own frames, so a pin is in view. */
+const NEAREST_TO_FRAME = 3
+
+/**
+ * The box holding a searched place and these classes. `count` keeps only the nearest few, which
+ * must be the first in the list.
+ */
+export const boundsWith = <T extends Sectionable>(
+  place: BBox | undefined,
+  center: Position,
+  events: T[],
+  count = NEAREST_TO_FRAME,
+): [number, number, number, number] | undefined => {
+  const points = events.slice(0, count).flatMap((event) => {
+    const point = pointOf(event)
+
+    return point ? [point] : []
+  })
+  const corners: Position[] = place
+    ? [
+        [place[0], place[1]],
+        [place[2], place[3]],
+      ]
+    : [center]
+
+  return boundsOfPoints([...points, ...corners]) as [number, number, number, number] | undefined
 }

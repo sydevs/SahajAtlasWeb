@@ -1,12 +1,17 @@
 import { useMemo, useRef } from 'react'
 import { useSearchParams } from 'react-router'
+import { useQuery } from '@tanstack/react-query'
 
 import { DrawerBody, DrawerHeader, DrawerToolbar } from '@/components/atoms/Drawer'
 import { ListToolbar, ResetErrorBoundary, SortMenu } from '@/components/molecules'
 import { DynamicEventsList } from '@/components/organisms'
+import { eventsQuery } from '@/config/api'
 import { useViewState } from '@/config/store'
+import { useEventFilters } from '@/hooks/use-filters'
+import { useLocale } from '@/hooks/use-locale'
+import { useSearchCountry } from '@/hooks/use-search-country'
 import { useMapController } from '@/hooks/use-map-controller'
-import { listResetKey, parseBounds, parseCenter } from '@/lib/shape'
+import { boundsWith, listResetKey, parseBounds, parseCenter, splitResults } from '@/lib/shape'
 import {
   CloseButton,
   FilterButton,
@@ -34,11 +39,27 @@ export function SearchView() {
   const snapshot = useRef(useViewState.getState())
   const [longitude, latitude] = center ?? [snapshot.current.longitude, snapshot.current.latitude]
 
-  // Only re-frame when the searched place changes — not on `?q` edits.
-  useFrameOnTop(
-    () => frameSearch({ bbox: bounds, center }),
-    [frameSearch, searchParams.get('center'), searchParams.get('bbox')],
-  )
+  // A place with no class of its own would otherwise frame an empty map beside a list of classes
+  // somewhere else. It frames the place and its nearest classes instead, so a pin is in view. This
+  // reads the same filtered list the map draws its pins from, and waits for it, so the camera makes
+  // one move rather than two.
+  const filters = useEventFilters()
+  const { locale } = useLocale()
+  const searchCountry = useSearchCountry()
+  const { data: events, isPending } = useQuery(eventsQuery(latitude, longitude, filters, locale))
+  const frame = useMemo(() => {
+    if (!center || !events) return bounds
+    const { here, nearby } = splitResults(events, { bbox: bounds, searchCountry })
+
+    return here.length === 0 && nearby.length > 0 ? boundsWith(bounds, center, nearby) : bounds
+    // `center` and `bounds` are rebuilt each render from these two params.
+  }, [events, searchCountry, searchParams.get('center'), searchParams.get('bbox')])
+  const waiting = center !== undefined && isPending
+
+  // Only re-frame when what to frame changes — not on `?q` edits.
+  useFrameOnTop(() => {
+    if (!waiting) frameSearch({ bbox: frame, center })
+  }, [frameSearch, searchParams.get('center'), frame?.join(), waiting])
 
   // What the list boundary below resets on — see `listResetKey`: everything that changes
   // WHAT is queried, minus the per-keystroke `?q`.

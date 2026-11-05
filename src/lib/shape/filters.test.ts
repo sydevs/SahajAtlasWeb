@@ -11,6 +11,7 @@ import {
   hasActiveFilters,
   matchesFilters,
   timePeriodRanges,
+  withoutFilter,
   type EventFilters,
 } from './filters'
 
@@ -532,5 +533,26 @@ describe('timePeriodRanges', () => {
     expect(timePeriodRanges(['evening', 'morning'])).toEqual(
       timePeriodRanges(['morning', 'evening']),
     )
+  })
+})
+
+describe('withoutFilter', () => {
+  const set: EventFilters = {
+    ...DEFAULT_FILTERS,
+    format: 'offline',
+    daysOfWeek: [2],
+    languages: ['zh'],
+  }
+
+  it('takes off the one filter and leaves the others', () => {
+    const next = withoutFilter(set, 'languages')
+
+    expect(next.languages).toEqual([])
+    expect(next.daysOfWeek).toEqual([2])
+    expect(next.format).toBe('offline')
+  })
+
+  it('returns to the default for each kind', () => {
+    expect(activeFilterCount(withoutFilter(withoutFilter(set, 'days'), 'format'))).toBe(1)
   })
 })

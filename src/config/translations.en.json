@@ -256,6 +256,23 @@
       "no_nearby": "No events within %{km} km.",
       "showing": "Showing %{shown} of %{total} events"
     },
+    "filtered": {
+      "hidden_here_one": "Your filters hide %{count} class in %{place}.",
+      "hidden_here_other": "Your filters hide %{count} classes in %{place}.",
+      "hidden_nearby_one": "Your filters hide %{count} class nearby.",
+      "hidden_nearby_other": "Your filters hide %{count} classes nearby.",
+      "none": "No classes match your filters.",
+      "remove_one": "Remove %{label} (%{count} class)",
+      "remove_other": "Remove %{label} (%{count} classes)"
+    },
+    "no_classes": {
+      "add": "Add it",
+      "add_prompt": "Know a class here?",
+      "filtered": "No matching classes in %{place}",
+      "here": "No classes in %{place} yet",
+      "near": "No classes near %{place} yet",
+      "nowhere": "No classes here yet"
+    },
     "sections": {
       "across_border": "Nearby in other countries",
       "farther": "Farther away",

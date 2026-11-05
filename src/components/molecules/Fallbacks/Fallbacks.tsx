@@ -5,6 +5,7 @@ import type { RecoveryOffer } from '@/hooks/use-recovery-offer'
 
 import { useEffect, useRef } from 'react'
 import { CircleFlag } from 'react-circle-flags'
+import clsx from 'clsx'
 import { useTranslation } from 'react-i18next'
 import { ErrorBoundary } from 'react-error-boundary'
 import { QueryErrorResetBoundary } from '@tanstack/react-query'
@@ -799,7 +800,7 @@ export const CENTERED_BODY =
  * guard: content that starts at the top is on screen by construction. That is exactly
  * what `CENTERED_BODY` has to work to achieve.
  */
-export const START_BODY = 'flex h-full flex-col items-start p-6 text-start'
+export const START_BODY = 'flex h-full flex-col items-start px-4 py-4 text-start'
 
 /** Which posture a surface renders in — see `CENTERED_BODY` / `START_BODY`. */
 export type FallbackAlign = 'center' | 'start'
@@ -837,7 +838,11 @@ function FallbackShell({
 }: FallbackShellProps) {
   return (
     <FallbackRegion className={align === 'start' ? START_BODY : CENTERED_BODY} message={message}>
-      <div className="flex w-full max-w-xs flex-col items-start gap-3">
+      {/* A list view's empty state sits on the list's own 16px gutter, edge to edge like its rows.
+          The narrower measure belongs to the centred posture. */}
+      <div
+        className={clsx('flex w-full flex-col items-start gap-3', align !== 'start' && 'max-w-xs')}
+      >
         {/* `textAlign="left"` is set explicitly, not left to the default. The
             centred posture sets `text-center` on the container. A sentence centred
             inside its own banner is harder to read, and costs the onward link its

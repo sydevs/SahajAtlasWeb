@@ -3,20 +3,26 @@ import type { EventSlim } from '@/types'
 
 import { type ReactNode, useCallback, useEffect, useMemo, useRef } from 'react'
 import { useSearchParams } from 'react-router'
-import { useSuspenseQuery } from '@tanstack/react-query'
+import { useQueries, useQuery, useSuspenseQuery } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
 
 import { EventsList } from './EventsList'
 import { LoadMore } from './LoadMore'
 
 import { Button } from '@/components/atoms/Button'
-import { ActiveFilterPills } from '@/components/molecules/ActiveFilterPills'
+import { Link } from '@/components/atoms/Link'
+import {
+  ActiveFilterPills,
+  type FilterPill,
+  useFilterPills,
+} from '@/components/molecules/ActiveFilterPills'
 import { FallbackPanel } from '@/components/molecules/Fallbacks'
 import { FoldSection } from '@/components/molecules/FoldSection'
 import { formatDistance } from '@/lib'
-import { boundsOfPoints } from '@/lib/geo'
 import {
+  DEFAULT_FILTERS,
   DEFAULT_REVEAL,
+  boundsWith,
   hasActiveFilters,
   isoCountryCode,
   orderOnline,
@@ -24,6 +30,7 @@ import {
   revealRows,
   sortEvents,
   splitResults,
+  withoutFilter,
 } from '@/lib/shape'
 import { useCountrySite } from '@/hooks/use-country-site'
 import { useEventFilters, useSetFilters } from '@/hooks/use-filters'
@@ -47,6 +54,10 @@ export interface DynamicEventsListProps {
   /** The searched place's own box, which decides what is "in" it. */
   bbox?: BBox
 }
+
+// Where "Add it" goes. The add-a-class flow (#147) isn't on this base yet: it routes here when it
+// lands, and until then this reaches the not-found state.
+const ADD_CLASS_PATH = '/add'
 
 // A list too long to mount in one press shows this many rows first, and offers the rest.
 const FOLD_PAGE = 25
@@ -132,7 +143,7 @@ export function DynamicEventsList({
   )
   const hereIds = useMemo(() => new Set(sections?.here.map((event) => event.id)), [sections])
 
-  const { rows, more, next, total, nearbyKm } = useMemo(
+  const { rows, more, next, total } = useMemo(
     () =>
       sections
         ? revealRows([...sections.here, ...sections.distant], {
@@ -155,23 +166,17 @@ export function DynamicEventsList({
   // Opening "Other cities" widens the map to show them, and closing it comes back to the place.
   const toggleNearby = (open: boolean) => {
     folds.setOpen('nearby', open)
-    const points = (sections?.nearby ?? []).flatMap(({ address }) =>
-      address?.longitude != null && address.latitude != null
-        ? [[address.longitude, address.latitude]]
-        : [],
-    )
-    const corners = bbox
-      ? [
-          [bbox[0], bbox[1]],
-          [bbox[2], bbox[3]],
-        ]
-      : [[longitude, latitude]]
-    const wide = open ? boundsOfPoints([...points, ...corners]) : null
+    const nearby = sections?.nearby ?? []
+    const center: [number, number] = [longitude, latitude]
+    // Everything in the group when it opens. Closed, back to the place, or with none of its own,
+    // back to the place and its nearest few, so a pin stays in view.
+    const frame = open
+      ? boundsWith(bbox, center, nearby, nearby.length)
+      : sections?.here.length === 0
+        ? boundsWith(bbox, center, nearby)
+        : (bbox as [number, number, number, number] | undefined)
 
-    frameSearch({
-      bbox: (wide ?? bbox) as [number, number, number, number] | undefined,
-      center: [longitude, latitude],
-    })
+    frameSearch({ bbox: frame, center })
   }
 
   // A row in a group read by place leads with the town, and the country only when it isn't the one
@@ -272,7 +277,26 @@ export function DynamicEventsList({
     return (
       <>
         <ActiveFilterPills />
-        {nothing && <EmptyResults nearbyKm={more === 'farther' ? nearbyKm : undefined} />}
+        {nothing && <EmptyResults latitude={latitude} longitude={longitude} />}
+        {hasActiveFilters(filters) && !nothing && (
+          <FilterRelief
+            bbox={bbox}
+            here={here.length}
+            latitude={latitude}
+            longitude={longitude}
+            nearby={nearby.length}
+            place={place}
+          />
+        )}
+        {here.length === 0 && !nothing && (
+          <NoClassesHere
+            bbox={bbox}
+            latitude={latitude}
+            longitude={longitude}
+            place={place}
+            spot={size === 'spot'}
+          />
+        )}
         {here.length > 0 && (
           <section ref={listRef}>
             <ResultsHeading count={here.length}>{hereTitle}</ResultsHeading>
@@ -345,7 +369,7 @@ export function DynamicEventsList({
       <ActiveFilterPills />
       <div ref={listRef}>
         {rows.length === 0 ? (
-          <EmptyResults nearbyKm={more === 'farther' ? nearbyKm : undefined} />
+          <EmptyResults latitude={latitude} longitude={longitude} />
         ) : (
           <EventsList events={rows} searchedPlace={searchedPlace} />
         )}
@@ -421,43 +445,202 @@ function FoldRows({
   )
 }
 
-// This renders when no events match. The three branches below appear in the
-// order that best explains the empty list. Every branch uses the same
-// `FallbackPanel` that a dead link and a broken query also render — one
-// component reading one policy table (issue #89). So this function only
-// decides WHICH row to show:
+// What the visitor's filters are costing them, and the one step that gives the most back:
+// "Remove Chinese (3 classes)". A filter can follow someone from an earlier search, so this says it
+// outright rather than leave them to work out why a place looks empty. It sits on the panel's 16px
+// gutter, like every row.
 //
-//  1. The searched country lists NO programs at all. This row offers that
-//     country's own national site (issue #82). It comes before the
-//     distance-boundary row below, because `getEvents` returns every match
-//     ranked by distance with no limit. So a program-less country's nearest
-//     results usually sit a thousand km away, and the "no events within N km"
-//     branch would fire for almost every such search, burying the one useful
-//     next step. `useCountrySite` answers from the FULL feed. It stands down
-//     while any filter is active, because an empty list under a filter is
-//     explained by the filter — case 3 owns the "clear all" escape hatch
-//     there. So this offer waits, rather than replacing that one.
-//  2. Every match lies beyond the distance boundary. This row says so. The
-//     "show events farther than N km" control below the list is how the user
-//     reaches them. This is the one row that offers nothing else, because
-//     that control is already the way out.
-//  3. Otherwise, this row shows "no results" with a "clear all filters"
-//     action, when filters are the reason. Else it shows the plain "no
-//     events" line, with the onward offer behind it.
-//
-// The country-site offer does NOT suppress the "show events farther" control
-// below the list. The offer keeps the top of the empty state, and a second
-// way out below it does not bury the first. This also keeps `useCountrySite`
-// off the path a NON-empty list renders on — that hook scans the whole feed
-// and rebuilds a region index.
-//
-// `hasSearchChrome` appears throughout, because SearchView's header already
-// IS a geocoder. A second one under the sentence would look odd on the screen.
-function EmptyResults({ nearbyKm }: { nearbyKm?: number }) {
+// Each candidate re-reads the feed without one filter. These are all client-side passes over the
+// feed already in memory, not requests, and nothing here runs until a filter is on.
+function useFilterRelief(
+  latitude: number,
+  longitude: number,
+  gained: (events: EventSlim[]) => number,
+) {
+  const { locale } = useLocale()
+  const filters = useEventFilters()
+  const pills = useFilterPills()
+  const results = useQueries({
+    queries: pills.map((pill) =>
+      eventsQuery(latitude, longitude, withoutFilter(filters, pill.key), locale),
+    ),
+  })
+
+  return pills
+    .map((pill, index) => ({ pill, count: gained(results[index]?.data ?? []) }))
+    .filter(({ count }) => count > 0)
+    .sort((a, b) => b.count - a.count)
+}
+
+function ReliefActions({
+  best,
+  many,
+  quiet = false,
+}: {
+  best?: { pill: FilterPill; count: number }
+  many: boolean
+  /** Results are on screen, so this isn't the one next step and shouldn't look like it. */
+  quiet?: boolean
+}) {
+  const { t } = useTranslation()
+  const { clearFilters } = useSetFilters()
+
+  return (
+    <div className="flex flex-wrap items-center gap-2">
+      {best && (
+        <Button
+          className="h-11"
+          color={quiet ? 'neutral' : 'primary'}
+          size="md"
+          variant={quiet ? 'bordered' : 'solid'}
+          onClick={best.pill.onRemove}
+        >
+          {t('search.filtered.remove', { label: best.pill.label, count: best.count })}
+        </Button>
+      )}
+      {(!best || many) && (
+        <Button
+          className="h-11"
+          color={best || quiet ? 'neutral' : 'primary'}
+          size="md"
+          variant={best ? 'ghost' : quiet ? 'bordered' : 'solid'}
+          onClick={clearFilters}
+        >
+          {t('filters.chrome.clear')}
+        </Button>
+      )}
+    </div>
+  )
+}
+
+function FilterRelief({
+  latitude,
+  longitude,
+  bbox,
+  place,
+  here,
+  nearby,
+}: {
+  latitude: number
+  longitude: number
+  bbox?: BBox
+  place: string
+  here: number
+  nearby: number
+}) {
+  const { t } = useTranslation()
+  const { locale } = useLocale()
+  const searchCountry = useSearchCountry()
+  const { data: unfiltered } = useQuery(eventsQuery(latitude, longitude, DEFAULT_FILTERS, locale))
+  const all = useMemo(
+    () => (unfiltered ? splitResults(unfiltered, { bbox, searchCountry }) : null),
+    [unfiltered, bbox, searchCountry],
+  )
+  const hiddenHere = all ? all.here.length - here : 0
+  const hiddenNearby = all ? all.nearby.length - nearby : 0
+  // A class back in the place itself is worth more than one in the next town. The step offered
+  // counts whichever of the two this sentence is about.
+  const inPlace = hiddenHere > 0
+  const relief = useFilterRelief(latitude, longitude, (events) => {
+    const groups = splitResults(events, { bbox, searchCountry })
+
+    return inPlace ? groups.here.length - here : groups.nearby.length - nearby
+  })
+
+  if (!inPlace && hiddenNearby <= 0) return null
+
+  return (
+    <div className="mx-4 my-2 flex flex-col gap-3 rounded-lg bg-gray-3 p-3" role="status">
+      <p className="text-base">
+        {inPlace
+          ? t('search.filtered.hidden_here', { count: hiddenHere, place })
+          : t('search.filtered.hidden_nearby', { count: hiddenNearby })}
+      </p>
+      <ReliefActions best={relief[0]} many={relief.length > 1} quiet={here > 0} />
+    </div>
+  )
+}
+
+// The place itself has nothing. The line says so before the nearest classes take over, so a class
+// 146 km away is never read as being in the place. When it is the filters that emptied it, it
+// isn't "yet", and an invitation to add a class would be wrong too.
+function NoClassesHere({
+  latitude,
+  longitude,
+  bbox,
+  place,
+  spot,
+}: {
+  latitude: number
+  longitude: number
+  bbox?: BBox
+  place: string
+  spot: boolean
+}) {
+  const { t } = useTranslation()
+  const { locale, regionNames } = useLocale()
+  const searchCountry = useSearchCountry()
+  const countrySite = useCountrySite()
+  const active = hasActiveFilters(useEventFilters())
+  const { data: unfiltered } = useQuery({
+    ...eventsQuery(latitude, longitude, DEFAULT_FILTERS, locale),
+    enabled: active,
+  })
+  const emptied =
+    active && unfiltered ? splitResults(unfiltered, { bbox, searchCountry }).here.length > 0 : false
+
+  if (countrySite) {
+    const country = regionNames.of(countrySite.countryCode) ?? countrySite.countryCode
+
+    // The panel fills the body when it stands alone. Here the groups follow it, so it takes only
+    // the room it needs.
+    return (
+      <div className="[&>*]:!h-auto">
+        <FallbackPanel
+          hasSearchChrome
+          align="start"
+          kind="country-site"
+          offer={{
+            kind: 'country-site',
+            path: countrySite.href,
+            name: country,
+            countryCode: countrySite.countryCode,
+          }}
+          values={{ country }}
+        />
+      </div>
+    )
+  }
+
+  const title = emptied
+    ? t('search.no_classes.filtered', { place })
+    : !place
+      ? t('search.no_classes.nowhere')
+      : t(spot ? 'search.no_classes.near' : 'search.no_classes.here', { place })
+
+  return (
+    <div className="px-4 pt-3 pb-4">
+      <h3 className="text-xl">{title}</h3>
+      {!emptied && (
+        <p className="mt-1 text-base text-gray-11">
+          {t('search.no_classes.add_prompt')}{' '}
+          <Link className="underline" color="primary" href={ADD_CLASS_PATH}>
+            {t('search.no_classes.add')}
+          </Link>
+        </p>
+      )}
+    </div>
+  )
+}
+
+// This renders when no results exist to show at all. The list has nothing to fall back on, so this
+// is the one state where the filter's way out IS the screen.
+function EmptyResults({ latitude, longitude }: { latitude: number; longitude: number }) {
+  const { t } = useTranslation()
   const { regionNames } = useLocale()
   const active = hasActiveFilters(useEventFilters())
-  const { clearFilters } = useSetFilters()
   const countrySite = useCountrySite()
+  const relief = useFilterRelief(latitude, longitude, (events) => events.length)
 
   if (countrySite) {
     // `countryCode` is always canonical uppercase alpha-2 (`isoCountryCode`), so `of`
@@ -480,21 +663,14 @@ function EmptyResults({ nearbyKm }: { nearbyKm?: number }) {
     )
   }
 
-  if (nearbyKm !== undefined) {
+  if (active) {
     return (
-      <FallbackPanel hasSearchChrome align="start" kind="no-nearby" values={{ km: nearbyKm }} />
+      <div className="flex flex-col gap-3 px-4 py-4" role="status">
+        <h3 className="text-xl">{t('search.filtered.none')}</h3>
+        <ReliefActions best={relief[0]} many={relief.length > 1} />
+      </div>
     )
   }
 
-  // Filters are both the explanation and the escape. So that row keeps "Clear
-  // all" and nothing else. An onward link would compete with the one action
-  // that actually restores results.
-  return (
-    <FallbackPanel
-      hasSearchChrome
-      align="start"
-      kind={active ? 'no-results' : 'empty'}
-      onClearFilters={active ? clearFilters : undefined}
-    />
-  )
+  return <FallbackPanel hasSearchChrome align="start" kind="empty" />
 }
