@@ -145,6 +145,8 @@ describe('the container-vs-viewport decision table', () => {
 const RAW_VIEWPORT_READERS: Record<string, string> = {
   // The height of the box the sheet covers, when no frame owns it, to cap the camera padding.
   'hooks/use-map-controller-real.tsx': 'caps camera padding for a short viewport',
+  'views/DrawerStack/DrawerStack.tsx':
+    "the floating panel's room: a HEIGHT in px, never a width, used to cap the panel at the viewport",
   'lib/slot-decision.ts':
     'the slot decision: compares the host slot to the viewport, and a frame to the screen, before React renders',
 }

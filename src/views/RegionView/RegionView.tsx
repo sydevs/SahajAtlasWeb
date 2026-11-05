@@ -172,7 +172,7 @@ export function RegionView({ slug }: { slug: string }) {
               <>
                 {t('common.feedback.denied_body')}
                 {isEmpty ? (
-                  <Link className="mt-1 block underline" href={searchPath()}>
+                  <Link className="touch-target relative mt-1 block underline" href={searchPath()}>
                     {t('common.feedback.nearby')}
                   </Link>
                 ) : (

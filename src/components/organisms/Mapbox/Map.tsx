@@ -35,6 +35,7 @@ import {
 } from './layers'
 import { markerColors, registerMarkerImages } from './markers'
 import { pinPopoverPlacement, type PopoverAnchor } from './pin-popover'
+import { registerBasemap } from './quiet-map'
 
 import { LocationHelp, type LocationProblem } from '@/components/molecules/LocationHelp'
 import { calendarLineParts, useEventDisplay } from '@/hooks/use-event-display'
@@ -351,6 +352,11 @@ export function Mapbox({ cooperative = false }: { cooperative?: boolean } = {}) 
   useEffect(() => {
     if (mapbox) return registerMarkerImages(mapbox, colors)
   }, [mapbox, colors])
+
+  // The calmer sea and land, painted over the Studio style (a prototype; see `quiet-map.ts`).
+  useEffect(() => {
+    if (mapbox) return registerBasemap(mapbox, theme)
+  }, [mapbox, theme])
 
   // This holds the canvas until the camera has arrived somewhere, so a deep
   // link never paints the boot-time world view before jumping off it.

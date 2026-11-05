@@ -550,7 +550,7 @@ export function OnwardLink({ offer }: { offer: RecoveryOffer }) {
 
   return (
     <Link
-      className="mt-2 text-sm font-medium"
+      className="touch-target relative mt-2 text-sm font-medium"
       color="primary"
       href={offer.path}
       // The country-site rung leaves the widget entirely. So it gets the external

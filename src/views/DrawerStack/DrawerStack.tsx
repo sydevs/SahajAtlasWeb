@@ -163,6 +163,10 @@ const DESKTOP_FILTERS =
     ? 'chips'
     : 'panel'
 
+// The floating panel's 16px margin above and below, and its 1px border top and bottom.
+const PANEL_MARGIN_PX = 32
+const PANEL_BORDER_PX = 2
+
 // Frames a stationary sheet holds before the `--sy-sheet-top` mirror parks itself (about
 // 0.5s at 60fps — well past the end of any vaul spring). See the effect below for why it
 // parks at all.
@@ -685,6 +689,37 @@ export function DrawerStack() {
   // that is not there. The map-less ROOT view sets `dismissible={false}`, since there is no
   // parent to climb to, and correctly keeps no handle. Map mode is always dismissible, so
   // this resolves to the atom's old answer there.
+  // On desktop the floating panel hugs what's inside it, up to full height, so a short list
+  // shows more map. Its width doesn't change, so the map's left padding stays correct.
+  // The two variables sit on the portal target, which holds both the panel and its peek strips.
+  // `--sy-panel-room` is in pixels because `--sy-frame-h` can be a percentage, and a percentage
+  // inside the panel would resolve against the panel, whose height comes from this.
+  const panelFits = hasMap && direction === 'left' && !wide
+  const fitPanel = useCallback((height: number) => {
+    overlayContainer()?.style.setProperty('--sy-panel-h', `${height + PANEL_BORDER_PX}px`)
+  }, [])
+
+  useEffect(() => {
+    const target = overlayContainer()
+
+    if (!panelFits || !target) return
+
+    const measure = () => {
+      const frameHeight = frameElement()?.clientHeight ?? window.innerHeight
+
+      target.style.setProperty('--sy-panel-room', `${frameHeight - PANEL_MARGIN_PX}px`)
+    }
+
+    measure()
+    window.addEventListener('resize', measure)
+
+    return () => {
+      window.removeEventListener('resize', measure)
+      target.style.removeProperty('--sy-panel-room')
+      target.style.removeProperty('--sy-panel-h')
+    }
+  }, [panelFits])
+
   const sheetDismissible = hasMap || parentPaths.length > 0
   const sheet = (
     <DrawerContent
@@ -733,7 +768,10 @@ export function DrawerStack() {
         <AnimatePresence>
           {/* The filter drawer keeps one identity across its routes. Picking a place moves it
               from `/filters` to `/search/filters`, and that must not crossfade the form. */}
-          <ViewLayer key={top?.kind === 'filters' ? 'filters' : (top?.path ?? '/')}>
+          <ViewLayer
+            key={top?.kind === 'filters' ? 'filters' : (top?.path ?? '/')}
+            onHeight={panelFits ? fitPanel : undefined}
+          >
             {/* Suspense sits OUTSIDE the boundary, so a lazy view's chunk load is a
                 suspend that shows `DrawerLoading` — the shared chrome (header plus close
                 control, rebuilt from the URL) over a spinner — and only a FAILED load

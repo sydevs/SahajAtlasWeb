@@ -93,7 +93,7 @@ const drawer = tv({
       // nothing anywhere reports the drift.
       left: {
         content:
-          'inset-y-0 left-0 w-[var(--sy-drawer-w,352px)] max-w-[calc(100%-32px)] rounded-none border border-divider lg:inset-y-4 lg:left-4 lg:rounded-2xl',
+          'inset-y-0 left-0 w-[var(--sy-drawer-w,352px)] max-w-[calc(100%-32px)] rounded-none border border-divider lg:top-4 lg:bottom-auto lg:left-4 lg:h-[var(--sy-panel-h,calc(var(--sy-frame-h)-32px))] lg:rounded-2xl',
       },
       right: {
         content:
@@ -151,7 +151,7 @@ const drawer = tv({
       direction: 'left',
       mode: 'anchored',
       wide: true,
-      class: { content: '!inset-0 !w-auto !max-w-none lg:!inset-4' },
+      class: { content: '!inset-0 !w-auto !max-w-none lg:!inset-4 lg:!h-auto' },
     },
   ],
   defaultVariants: { direction: 'bottom', mode: 'anchored', wide: false },

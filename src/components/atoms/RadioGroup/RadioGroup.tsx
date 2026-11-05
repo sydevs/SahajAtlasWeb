@@ -153,7 +153,9 @@ export const RadioGroup = forwardRef<HTMLInputElement, RadioGroupProps>(function
 
       {collapsible && !expanded && (
         <button
-          className="self-start text-sm font-medium text-primary-12 underline underline-offset-2 hover:opacity-hover"
+          // `mt-1` on touch: the 44px area reaches 12px up, so it stops at the row above instead of
+          // taking taps meant for that date.
+          className="touch-target relative self-start text-sm font-medium text-primary-12 underline underline-offset-2 hover:opacity-hover pointer-coarse:mt-1"
           type="button"
           onClick={() => setExpanded(true)}
         >

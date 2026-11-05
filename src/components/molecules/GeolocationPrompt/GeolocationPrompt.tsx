@@ -50,7 +50,7 @@ export function GeolocationPrompt({ city, onAccept, onClose, site }: Geolocation
       size="sm"
       title={
         <button
-          className="flex w-full items-center gap-1 text-start hover:underline focus:outline-none focus-visible:underline"
+          className="touch-target relative flex w-full items-center gap-1 text-start hover:underline focus:outline-none focus-visible:underline"
           type="button"
           onClick={onAccept}
         >

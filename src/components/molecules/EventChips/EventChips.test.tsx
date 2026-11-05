@@ -10,7 +10,7 @@ import { EventChips } from './EventChips'
 // The UI language is `en`. `languageLabel` echoes the code, so the
 // combined language text is greppable.
 const { d } = vi.hoisted(() => ({
-  d: { status: 'upcoming', full: false, typeLabel: 'Weekly class', isDefaultType: true },
+  d: { status: 'upcoming', full: false, kind: 'class', typeLabel: 'Weekly class' },
 }))
 
 vi.mock('react-i18next', () => ({ useTranslation: () => ({ t: (key: string) => key }) }))
@@ -19,9 +19,8 @@ vi.mock('@/hooks/use-locale', () => ({
 }))
 vi.mock('@/hooks/use-event-display', () => ({
   useEventDisplay: () => ({
-    display: { status: d.status, full: d.full },
+    display: { status: d.status, full: d.full, kind: d.kind },
     typeLabel: d.typeLabel,
-    isDefaultType: d.isDefaultType,
     recurrenceLine: 'Every Wednesday',
   }),
 }))
@@ -35,14 +34,16 @@ describe('EventChips', () => {
   beforeEach(() => {
     d.status = 'upcoming'
     d.full = false
+    d.kind = 'class'
     d.typeLabel = 'Weekly class'
-    d.isDefaultType = true
   })
 
-  it('default: names the type and folds every language into one chip', () => {
+  it('default: names a course and folds every language into one chip', () => {
+    d.kind = 'course'
+    d.typeLabel = 'Course'
     const html = render(['en', 'fr'])
 
-    expect(html).toContain('Weekly class')
+    expect(html).toContain('Course')
     expect(html).toContain('en, fr')
   })
 
@@ -78,7 +79,7 @@ describe('EventChips', () => {
   })
 
   it('compact: keeps a non-default type and only the non-UI languages', () => {
-    d.isDefaultType = false
+    d.kind = 'course'
     d.typeLabel = 'Course'
 
     const html = render(['en', 'fr'], 'compact')
@@ -88,13 +89,32 @@ describe('EventChips', () => {
     expect(html).not.toContain('en, fr')
   })
 
-  it('shows a contrast "Today" chip on a card when the event is today', () => {
+  it('compact: leaves "Today" to the card facts, which already say it', () => {
     d.status = 'today'
 
-    const html = render(['en'], 'compact')
+    expect(render(['en'], 'compact')).toBe('')
+  })
 
-    expect(html).toContain('event.display.chip_today')
-    expect(html).toContain('text-contrast-11')
+  it('compact: drops a monthly class type, which restates the recurrence line', () => {
+    d.typeLabel = 'Monthly class'
+
+    expect(render(['en'], 'compact')).toBe('')
+  })
+
+  it('compact: drops a language the title already names', () => {
+    const event = { languages: ['fr'], title: 'Meditation in FR' }
+
+    expect(
+      renderToStaticMarkup(
+        <EventChips event={event as unknown as EventChipsProps['event']} variant="compact" />,
+      ),
+    ).toBe('')
+  })
+
+  it('shows no "Today" chip on a card: the card facts say it on their own line', () => {
+    d.status = 'today'
+
+    expect(render(['en'], 'compact')).not.toContain('event.display.chip_today')
   })
 
   it('leaves "Today" to the when line on the class page', () => {

@@ -27,13 +27,14 @@ export const controlTheme = {
     colorBackgroundActive: 'var(--gray-4)',
     colorPrimary: 'hsl(var(--primary-9))',
     border: '1px solid var(--gray-7)',
-    borderRadius: '4px',
+    borderRadius: '8px',
     boxShadow: 'none',
   },
   // The geocoder hardcodes three things its variables don't reach. Typed text is 75% black in
   // both themes, so `colorText` never touches it and it vanishes on a dark panel. Its focus state
   // is a dotted border. And its placeholder is 37% black, about 2.6:1 on white. These restate all
   // three in the tokens the rest of the panel uses, with the same 2px ring as `fieldChrome`.
+  // The clear button draws at 20px, so it gets the same invisible 44px tap area as `touch-target`.
   cssText: `
     .Input, .Input:focus { color: var(--gray-12); caret-color: var(--gray-12); }
     .Input:focus { border: 0; }
@@ -45,6 +46,18 @@ export const controlTheme = {
       overflow: hidden;
       /* The list sits 1px inside the field. The ring closes that gap, so no row's flag shows past it. */
       box-shadow: 0 0 0 1px hsl(var(--background)), 0 8px 24px rgb(0 0 0 / 0.16);
+    }
+    @media (pointer: coarse) {
+      .ClearBtn { position: relative; }
+      .ClearBtn::after {
+        content: '';
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        width: 44px;
+        height: 44px;
+        transform: translate(-50%, -50%);
+      }
     }
   `,
 }
