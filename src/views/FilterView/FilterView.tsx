@@ -99,6 +99,8 @@ export function FilterView() {
 
   // Clear resets the questions, not the Where: the visitor is still looking in the same place.
   const canClear = activeFilterCount({ ...filters, region: null }) > 0
+  // Nothing matches, and removing any one answer still finds nothing: Clear is the only way out.
+  const noWayOut = count === 0 && !facets?.recovery
   // With nothing chosen, closing just goes back, so the button mustn't promise results.
   const goesBack = filterCloseTarget(location.pathname, location.search) === null
 
@@ -125,7 +127,7 @@ export function FilterView() {
                   online: facets.counts.format.online,
                 }
               }
-              prominent={placeFirst}
+              prominent={placeFirst && !canClear}
               region={filters.region}
               searchable={searchable}
               onClear={clearWhere}
@@ -143,8 +145,9 @@ export function FilterView() {
           )}
           {canClear && (
             <Button
-              className="h-11"
-              variant="flat"
+              className={noWayOut ? 'h-11 flex-1' : 'h-11'}
+              color={noWayOut ? 'primary' : 'neutral'}
+              variant={noWayOut ? 'solid' : 'flat'}
               onClick={() => write({ ...DEFAULT_FILTERS, region: filters.region })}
             >
               {t('filters.chrome.clear_one')}

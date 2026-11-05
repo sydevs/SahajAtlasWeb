@@ -62,7 +62,7 @@ export function FiltersPanel() {
                   online: facets.counts.format.online,
                 }
               }
-              prominent={placeFirst}
+              prominent={placeFirst && !canClear}
               region={filters.region}
               townSearch={false}
               onClear={clearWhere}
