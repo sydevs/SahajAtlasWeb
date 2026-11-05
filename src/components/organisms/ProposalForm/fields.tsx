@@ -8,10 +8,10 @@ import { Input } from '@/components/atoms/Input'
 import { FormField, fieldDescribedBy } from '@/components/molecules/FormField'
 
 /**
- * The flow's own field text size: 16px on a phone, where anything smaller makes iOS zoom the
- * page on focus, and the app's usual 14px from `md` up.
+ * The flow's own field text size: the shared `field-size`, 16px on a touch screen, where anything
+ * smaller makes iOS zoom the page on focus, and the app's usual 14px with a mouse.
  */
-export const FIELD_TEXT = 'text-base md:text-sm'
+export const FIELD_TEXT = 'field-size'
 
 /** A labelled input whose help and error text are wired to it by id. */
 export function ValidatedInput({
