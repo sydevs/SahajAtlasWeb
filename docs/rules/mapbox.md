@@ -13,10 +13,21 @@ The map is the heart of the app and its hottest render path. Treat it carefully.
 ## Layer definitions live in `layers.ts`
 
 - Define every layer's `id`, `type`, `paint`, and `layout` in
-  `Mapbox/layers.ts`, and spread it into `<Layer {...clusterLayer} />`. Never
+  `Mapbox/layers.ts`, and spread it into `<Layer {...clusters} />`. Never
   inline paint/layout objects in JSX — React would recreate them every render and
   reflow the map. Existing layers: `clusterLayer`, `unclusteredPointLayer`,
   `selectedPointLayer`, `selectedAreaLayer`, `boundsLayer`.
+- **Two of them are factories, because their paint follows the brand palette**
+  (#17): `clusterLayer(palette, mode)` for the cluster count's color and
+  `boundsLayer(palette, mode)` for the debug outline. `Map.tsx` memoises each
+  result on the palette and the mode — a factory called in the JSX would hand
+  `<Layer>` a fresh paint object every render, which is the same reflow the rule
+  above forbids. The other five carry no color paint and stay constants.
+- **Layer ids live in `LAYER_IDS`, never read off a layer object.** A factory
+  has no id until it is called, and the ids are a contract with the click
+  handler and with `INTERACTIVE_LAYER_IDS` — one module-level array, passed to
+  `<ReactMapGL>` by identity. `layers.test.ts` pins every id as the string it
+  has always been.
 
 ## The app owns its marker images (`markers.ts`)
 
@@ -27,8 +38,9 @@ The map is the heart of the app and its hottest render path. Treat it carefully.
   the four images as SVG and registers them itself, so both themes match and a
   Studio edit cannot silently drop a marker.
 - `icon-image` in `layers.ts` always references a `MARKER_IDS.*` constant (all
-  `sy-`-prefixed so they cannot collide with a style sprite). Add a new marker to
-  `MARKER_IMAGES` — never reference a bare sprite name.
+  `sy-`-prefixed so they cannot collide with a style sprite). A new marker needs
+  an id there, its stock colours in `DEFAULT_MARKER_COLORS`, a case in
+  `markerColors`, and a row in `markerImages` — never a bare sprite name.
 - Registration hangs off Mapbox's **`styleimagemissing`** event
   (`registerMarkerImages`, one `useEffect` in `Map.tsx`). That event re-fires
   after every style load, so the one subscription covers both the initial load
@@ -37,6 +49,28 @@ The map is the heart of the app and its hottest render path. Treat it carefully.
   re-fires the event per missing id **per tile batch**, and the warm path must
   add the image _synchronously_ inside the handler, or the new style's first
   frame paints pinless.
+- **The four images carry the tenant's colors** (#17). `markerColors(palette,
+  mode)` derives them from the palette `BrandTheme` resolved and hands down
+  (`config/theme/brand-palette.ts`) — the pin and cluster from `primary` step 9,
+  the selected pair from `contrast` step 9, each cluster ring from its own fill.
+  ⚠ **A role with no usable seed keeps the `markers.ts` constants verbatim.**
+  Deriving them from `DEFAULT_SEEDS` instead changes every unbranded embed's
+  pin, in both modes; `markers.test.ts` freezes the four stock SVGs byte for
+  byte against exactly that.
+- **Every cache is keyed by the id AND its colors**, and a live map is
+  repainted with **`removeImage` then `addImage`**. A second `addImage` alone
+  makes Mapbox fire an `error` event. ⚠ `map.updateImage` looks right and is
+  not: its icon-atlas patch is discarded by any frame that re-evaluates the
+  style first, and a palette change starts the cluster count's paint transition,
+  so the pins silently kept their old colors. `add` returns early only when the id is on the
+  map in the colors asked for, so the eager pass is what repaints after a
+  palette change: nothing reloads the style, so nothing re-fires
+  `styleimagemissing`.
+- **Read the palette from its context, never with `getComputedStyle`.** The map
+  would then need its own change signal, and a role that fell back to the
+  default writes no variable at all (`palette.ts`). `markers.ts` must also stay
+  importable with no DOM, so its color builder is pure and the node lane
+  asserts it.
 - The images rasterize from an inline `data:` URI, so an embedding host needs
   **`img-src … data:`** in its CSP — the same allowance Mapbox GL's own
   recommended policy carries. Drop a failed decode from the cache instead of

@@ -2,6 +2,7 @@ import { useLayoutEffect, useMemo, type ReactNode } from 'react'
 import { useQuery } from '@tanstack/react-query'
 
 import { clientQuery } from '@/config/api'
+import { BrandPaletteContext } from '@/config/theme/brand-palette'
 import { applyPalette, type PaletteRoles } from '@/config/theme/palette'
 import { getThemeRoot, stopSystemWatch, useTheme } from '@/hooks/use-theme'
 
@@ -56,8 +57,9 @@ export function BrandTheme({ apiKey, palette, children }: BrandThemeProps) {
   // This stops the system-theme watcher when this widget unmounts, so no `matchMedia` listener fires after teardown.
   // ⚠ It must not release the theme root too. The wrapper's callback ref does that, and this component sits inside
   // `StrictMode`, whose simulated unmount would clear a root nothing then publishes again.
-  // This assumes one widget per page. A second concurrent embed would share these singletons.
   useLayoutEffect(() => () => stopSystemWatch(), [])
 
-  return <>{children}</>
+  // The map paints in hex rather than CSS variables, so it reads these roles rather than the paint.
+  // This is the same `resolved` object the paint above came from, so the two cannot disagree.
+  return <BrandPaletteContext.Provider value={resolved}>{children}</BrandPaletteContext.Provider>
 }

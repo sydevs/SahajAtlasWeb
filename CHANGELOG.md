@@ -44,6 +44,16 @@ cover everything a host would notice since the widget was first deployed.
 
 ### Changed
 
+- **Your brand colours now reach the map.** ([#17]) The event pins, the cluster bubbles and the
+  numbers on them are drawn from the **first** of your client record's three brand colours, and
+  the selected event's pin from the **third** — the same two that already theme the panels and
+  buttons, in both light and dark. Your second colour does not reach the map. A record that
+  leaves those colours unset is
+  unchanged: the map keeps the widget's own teal and orange, pixel for pixel. The basemap
+  itself is untouched, nothing new is requested from the network, and your CSP, your
+  [Permissions Policy] and your snippet all stay as they are. See
+  [the CMS settings](docs/embedding.md#what-you-configure-in-the-cms-instead).
+
 - ⚠ **BREAKING: your CSP needs `frame-src https://cloud.sydevelopers.com`, and the three
   `challenges.cloudflare.com` entries can go.** ([#343], [SahajCloud#1072]) The captcha that
   gates every form now renders in a small frame `cloud.sydevelopers.com` serves — the origin
@@ -872,3 +882,4 @@ must-revalidate`, pinned rather than left to the CDN default. The production dom
 [#160]: https://github.com/sydevs/SahajAtlasWeb/issues/160
 [#321]: https://github.com/sydevs/SahajAtlasWeb/issues/321
 [#316]: https://github.com/sydevs/SahajAtlasWeb/issues/316
+[#17]: https://github.com/sydevs/SahajAtlasWeb/issues/17

@@ -1,5 +1,13 @@
 import type { MapRef } from 'react-map-gl'
 
+import {
+  shiftHex,
+  SOLID_STEP,
+  stepHex,
+  type PaletteRoles,
+  type ThemeMode,
+} from '@/config/theme/palette'
+
 // These are app-owned marker images, registered on the map at runtime.
 //
 // The pins used to come from each Mapbox Studio style's sprite, and the two
@@ -14,9 +22,16 @@ import type { MapRef } from 'react-map-gl'
 //
 // Names are `sy-`-prefixed, so they can never collide with a style sprite.
 
-// These are the Studio artwork's colors, kept verbatim so light mode stays
-// unchanged: a teal pin and cluster for a normal event, the warm accent for
-// the selected one.
+// These are the Studio artwork's colors, kept verbatim: a teal pin and cluster
+// for a normal event, the warm accent for the selected one.
+//
+// ⚠ These are what an embed with no tenant seed renders, in BOTH modes, and
+// `markerColors` below must keep returning them unchanged for that case.
+// Deriving them from `DEFAULT_SEEDS` instead would change the unbranded pin:
+// `DEFAULT_SEEDS.primary`'s step 9 is hsl(184 58% 28%), 16pp darker and 16°
+// bluer than the teal below, and hsl(184 58% 60%) in dark mode — while this
+// pin is identical in both. `applyPalette` makes the same promise for the CSS
+// variables: with no palette supplied, none of the derivation runs.
 const POINT_FILL = '#21C1A2'
 const POINT_SELECTED_FILL = '#E87952'
 const CLUSTER_FILL = '#37BB92'
@@ -84,16 +99,101 @@ export const MARKER_IDS = {
   clusterSelected: 'sy-cluster-selected',
 } as const
 
-// This is a Map, not an object literal. The `styleimagemissing` event
-// carries whatever `icon-image` asked for, including the basemap's own
-// layers. An id like `constructor` would resolve up an object's prototype
-// chain to a non-marker.
-const MARKER_IMAGES = new Map<string, MarkerImage>([
-  [MARKER_IDS.point, pin(POINT_FILL)],
-  [MARKER_IDS.pointSelected, pin(POINT_SELECTED_FILL)],
-  [MARKER_IDS.cluster, cluster(CLUSTER_FILL, CLUSTER_RING)],
-  [MARKER_IDS.clusterSelected, cluster(CLUSTER_SELECTED_FILL, CLUSTER_SELECTED_RING)],
-])
+type PinColors = { fill: string }
+
+/** A cluster bubble's two colors: the solid disc, and the wider translucent ring. */
+type ClusterColors = { fill: string; ring: string }
+
+export type MarkerColors = Readonly<{
+  [MARKER_IDS.point]: PinColors
+  [MARKER_IDS.pointSelected]: PinColors
+  [MARKER_IDS.cluster]: ClusterColors
+  [MARKER_IDS.clusterSelected]: ClusterColors
+}>
+
+/** What an embed with no tenant seed renders. */
+export const DEFAULT_MARKER_COLORS: MarkerColors = {
+  [MARKER_IDS.point]: { fill: POINT_FILL },
+  [MARKER_IDS.pointSelected]: { fill: POINT_SELECTED_FILL },
+  [MARKER_IDS.cluster]: { fill: CLUSTER_FILL, ring: CLUSTER_RING },
+  [MARKER_IDS.clusterSelected]: { fill: CLUSTER_SELECTED_FILL, ring: CLUSTER_SELECTED_RING },
+}
+
+// The Studio art's own two fill→ring deltas disagree — +21 L / −16 S for the
+// unclustered pair, +9 / +9 for the selected one — so one transform replaces
+// both rather than preserving a difference nobody chose.
+const ringOf = (fill: string) =>
+  shiftHex(fill, { lightness: 21, saturation: -16, maxLightness: 92 })
+
+/**
+ * The four images' colors for a resolved palette, in the active mode.
+ *
+ * Pure, and the only thing in this module that is: `markers.ts` must stay
+ * importable with no DOM, and the node lane asserts these values.
+ *
+ * A role with no usable seed keeps its default verbatim, per role rather than
+ * per palette — a tenant that configured `color1` alone still gets its own
+ * pins and the stock selected accent.
+ */
+export function markerColors(palette: PaletteRoles, mode: ThemeMode): MarkerColors {
+  const primary = stepHex(palette.primary, mode, SOLID_STEP)
+  const contrast = stepHex(palette.contrast, mode, SOLID_STEP)
+
+  // ⚠ The same object, not an equal one. `Map.tsx` memoises this and the
+  // registration effect depends on it, so a new identity costs an unbranded
+  // embed a re-subscription and four rebuilt SVGs on every light/dark flip —
+  // where before this file carried colors, a flip ran nothing here at all.
+  if (!primary && !contrast) return DEFAULT_MARKER_COLORS
+
+  return {
+    [MARKER_IDS.point]: primary ? { fill: primary } : DEFAULT_MARKER_COLORS[MARKER_IDS.point],
+    [MARKER_IDS.pointSelected]: contrast
+      ? { fill: contrast }
+      : DEFAULT_MARKER_COLORS[MARKER_IDS.pointSelected],
+    [MARKER_IDS.cluster]: primary
+      ? { fill: primary, ring: ringOf(primary) }
+      : DEFAULT_MARKER_COLORS[MARKER_IDS.cluster],
+    [MARKER_IDS.clusterSelected]: contrast
+      ? { fill: contrast, ring: ringOf(contrast) }
+      : DEFAULT_MARKER_COLORS[MARKER_IDS.clusterSelected],
+  }
+}
+
+/**
+ * The four marker images in the given colors.
+ *
+ * This is a Map, not an object literal. The `styleimagemissing` event carries
+ * whatever `icon-image` asked for, including the basemap's own layers. An id
+ * like `constructor` would resolve up an object's prototype chain to a
+ * non-marker.
+ */
+export function markerImages(colors: MarkerColors): Map<string, MarkerImage> {
+  const { point, cluster: bubble, clusterSelected, pointSelected } = MARKER_IDS
+
+  return new Map<string, MarkerImage>([
+    [point, pin(colors[point].fill)],
+    [pointSelected, pin(colors[pointSelected].fill)],
+    [bubble, cluster(colors[bubble].fill, colors[bubble].ring)],
+    [clusterSelected, cluster(colors[clusterSelected].fill, colors[clusterSelected].ring)],
+  ])
+}
+
+// Every cache below is keyed by this, not by the image id alone: a palette
+// change and a light/dark flip both produce different art for the same id. The
+// SVG string IS the art, so this cannot miss a difference and needs no separate
+// list of the colors that went into it.
+//
+// At most one entry per image per mode survives a session — eight per embed —
+// so none of them needs eviction. An unseeded role derives nothing, so its art
+// is identical in both modes and takes ONE entry: the stock pins stay warm
+// across a theme switch exactly as they did before colors existed here.
+//
+// shortcut: a branded embed's first switch into a mode decodes that mode's four
+// images, so those pins land a tick after the new style's first frame rather
+// than on it. Measure before warming the counterpart mode at mount — that trades
+// four rasterisations and four texture uploads at boot for a mode the visitor
+// may never ask for.
+const artKey = (id: string, { svg }: MarkerImage) => `${id}|${svg}`
 
 // Each id is decoded once and kept. `addImage` extracts the pixels, so one
 // decoded element can be re-added as often as needed. This matters, because
@@ -110,9 +210,9 @@ const decoded = new Map<string, HTMLImageElement>()
 // None of those repeats see a `decoded` entry until the first decode
 // resolves. Without this map, each repeat would start its own decode.
 const decoding = new Map<string, Promise<HTMLImageElement>>()
-// These are ids whose decode failed, so this stops retrying until the next
+// These are images whose decode failed, so this stops retrying until the next
 // style load. A failed decode is removed from `decoding` — a rejected
-// promise left in place would poison the id for the life of the page. Since
+// promise left in place would poison the image for the life of the page. Since
 // the widget owns ALL four images, a host whose CSP omits `img-src data:`
 // would then lose every pin permanently. But retrying on that fact alone
 // would loop: `styleimagemissing` re-fires per missing id PER TILE BATCH, so
@@ -122,8 +222,8 @@ const decoding = new Map<string, Promise<HTMLImageElement>>()
 const failed = new Set<string>()
 
 /** Rasterise one marker SVG at `SCALE`× via an inline data URI (no network). */
-function decodeMarker(id: string, { svg, width, height }: MarkerImage) {
-  const pending = decoding.get(id)
+function decodeMarker(key: string, { svg, width, height }: MarkerImage) {
+  const pending = decoding.get(key)
 
   if (pending) return pending
 
@@ -132,16 +232,16 @@ function decodeMarker(id: string, { svg, width, height }: MarkerImage) {
   image.src = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`
 
   const decode = image.decode().then(() => {
-    decoded.set(id, image)
+    decoded.set(key, image)
 
     return image
   })
 
   decode.catch(() => {
-    decoding.delete(id)
-    failed.add(id)
+    decoding.delete(key)
+    failed.add(key)
   })
-  decoding.set(id, decode)
+  decoding.set(key, decode)
 
   return decode
 }
@@ -154,8 +254,19 @@ function decodeMarker(id: string, { svg, width, height }: MarkerImage) {
  * covers both the initial load AND the light/dark switch, which swaps the
  * style and drops runtime images, without tracking the theme here. This
  * function returns an unsubscribe.
+ *
+ * `colors` repaints a live map in place. Call this again with a new set — the
+ * effect in `Map.tsx` does, since the set is one of its dependencies — and
+ * each image whose colors changed is removed and added again.
  */
-export function registerMarkerImages(map: MapRef): () => void {
+export function registerMarkerImages(map: MapRef, colors: MarkerColors): () => void {
+  const images = markerImages(colors)
+  // What this subscription has already put on the map. Mapbox re-fires
+  // `styleimagemissing` per missing id PER TILE BATCH, and without this each
+  // repeat would replace the image again. It needs no color of its own: the
+  // colors are fixed for the life of one subscription, and a style load dropping
+  // the image underneath is what `map.hasImage` beside it answers.
+  const registered = new Map<string, string>()
   // The unsubscribe sets this. A decode that resolves after the map is gone
   // must not touch it. `hasImage` short-circuits on a removed map's missing
   // style, so the `addImage` behind it would have Mapbox lazily build a
@@ -169,31 +280,53 @@ export function registerMarkerImages(map: MapRef): () => void {
   const onError = (id: string) => (error: unknown) =>
     console.error(`Failed to add map marker "${id}"`, error)
 
-  const add = (id: string) => {
-    const marker = MARKER_IMAGES.get(id)
+  // An id the style already carries is removed first: a second `addImage` on a
+  // live id makes Mapbox fire an `error` event.
+  // ⚠ Not `updateImage`. It leaves the icon-atlas patch for a later frame, and a
+  // frame that re-evaluates the style first discards it. A palette change starts
+  // the cluster count's paint transition, which is exactly that, so the pins kept
+  // their old colors (seen in a browser, mapbox-gl 3.34.1). `removeImage` makes
+  // Mapbox re-lay out the symbol tiles instead, once per palette change.
+  const place = (id: string, key: string, image: HTMLImageElement) => {
+    // Both call sites below can run synchronously, so this guards rather than
+    // leaving it to the decode path's `.catch`.
+    try {
+      if (map.hasImage(id)) map.removeImage(id)
+      map.addImage(id, image, { pixelRatio: SCALE })
 
-    if (!marker || failed.has(id) || map.hasImage(id)) return
-
-    const cached = decoded.get(id)
-
-    if (cached) {
-      // This runs synchronously, so it needs its own guard. The decode path
-      // below has `.catch`.
-      try {
-        map.addImage(id, cached, { pixelRatio: SCALE })
-      } catch (error) {
-        onError(id)(error)
-      }
-
-      return
+      registered.set(id, key)
+    } catch (error) {
+      onError(id)(error)
     }
+  }
 
-    decodeMarker(id, marker)
-      // The style can change while the SVG decodes, so this re-checks before
-      // adding. A duplicate id makes Mapbox fire an `error` event, which
-      // surfaces as a console error, rather than a throw.
+  // Already on the map in these colors. A style load drops the image without
+  // telling this module, so the id's presence is checked too.
+  const current = (id: string, key: string) => registered.get(id) === key && map.hasImage(id)
+
+  const add = (id: string) => {
+    const marker = images.get(id)
+
+    if (!marker) return
+
+    const key = artKey(id, marker)
+
+    if (failed.has(key) || current(id, key)) return
+
+    const cached = decoded.get(key)
+
+    if (cached) return place(id, key, cached)
+
+    decodeMarker(key, marker)
+      // Two things can have happened while the SVG decoded, and each needs its
+      // own answer. The style, the palette or the mode changing re-runs the
+      // effect, which unsubscribes this closure first — `cancelled` keeps a
+      // stale decode from painting over the colors that replaced it. And
+      // Mapbox re-fires `styleimagemissing` PER TILE BATCH, so several repeats
+      // queue on this one promise; without re-asking `current`, each would be
+      // another texture upload of art already on the map.
       .then((image) => {
-        if (!cancelled && !map.hasImage(id)) map.addImage(id, image, { pixelRatio: SCALE })
+        if (!cancelled && !current(id, key)) place(id, key, image)
       })
       .catch(onError(id))
   }
@@ -210,8 +343,12 @@ export function registerMarkerImages(map: MapRef): () => void {
   // it — BEFORE the style has loaded — so this eager pass usually only
   // warms the cache. `styleimagemissing` is what actually lands the images.
   // This is harmless either way: `add` no-ops on an image the style already
-  // has.
-  MARKER_IMAGES.forEach((_marker, id) => add(id))
+  // has in these colors.
+  //
+  // It is also what repaints a live map. A palette change re-runs the effect
+  // rather than reloading the style, so nothing re-fires
+  // `styleimagemissing` — this pass is the only thing that asks again.
+  images.forEach((_marker, id) => add(id))
 
   return () => {
     cancelled = true
