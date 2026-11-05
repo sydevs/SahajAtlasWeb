@@ -4,6 +4,8 @@ import { tv, type VariantProps } from 'tailwind-variants'
 
 import { overlayContainer } from '@/lib/overlay'
 
+import { useSheetDragClaim } from './sheet-touch'
+
 // A drawer built on vaul (see issue #30). It uses a tailwind-variants slot set,
 // portaled into the themed widget root through `overlayContainer()`. It is
 // non-modal by default, so the map and content behind it stay interactive. The
@@ -40,6 +42,8 @@ const drawer = tv({
     // so a long list scrolls under it instead of carrying it away. That is
     // exactly when those controls become useful.
     toolbar: 'mx-auto w-full max-w-[var(--sy-content-max,512px)] shrink-0',
+    // `overscroll-y-none` stops a list's scroll, flung to its end, chaining into Safari's page
+    // pull. `useSheetDragClaim` handles the slow drag that starts at the top.
     // `overflow-x-hidden` is a backstop, not the fix. A drawer is a
     // fixed-width panel and must never scroll sideways. But it renders
     // host-authored prose, so one unbreakable string could always overflow
@@ -59,7 +63,7 @@ const drawer = tv({
     // class, and the spacer adds to their padding instead of replacing it. It
     // is a pseudo-element so `[&>:last-child]` postures still find the real
     // last child (`CENTERED_BODY`).
-    body: "mx-auto min-h-0 w-full max-w-[var(--sy-content-max,512px)] flex-1 overflow-x-hidden overflow-y-auto after:block after:h-[var(--sy-footer-h,0px)] after:shrink-0 after:content-['']",
+    body: "mx-auto min-h-0 w-full max-w-[var(--sy-content-max,512px)] flex-1 overflow-x-hidden overflow-y-auto overscroll-y-none after:block after:h-[var(--sy-footer-h,0px)] after:shrink-0 after:content-['']",
     footer:
       'mx-auto mt-auto w-full max-w-[var(--sy-content-max,512px)] shrink-0 border-t border-gray-4',
     // This themes the vaul drag handle. Its vendored CSS hardcodes a light
@@ -331,6 +335,10 @@ export function DrawerContent({
   onEscapeKeyDown,
 }: DrawerContentProps) {
   const { slots, direction, mode, container } = useDrawerSlots()
+  // State, not a ref: the portal mounts the panel a pass after this component does.
+  const [panel, setPanel] = useState<HTMLDivElement | null>(null)
+
+  useSheetDragClaim(direction === 'bottom' && mode !== 'filled' ? panel : null)
 
   const showHandle = handle ?? (direction === 'bottom' && mode !== 'filled')
   // `undefined` means use the default themed root. An explicit `null` opts out.
@@ -339,6 +347,7 @@ export function DrawerContent({
   return (
     <Vaul.Portal container={target ?? undefined}>
       <Vaul.Content
+        ref={setPanel}
         aria-describedby={undefined}
         className={slots.content({ className })}
         onEscapeKeyDown={onEscapeKeyDown}
