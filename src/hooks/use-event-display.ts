@@ -38,6 +38,9 @@ export type EventDisplayStrings = {
   eventStartTime: string | null
   /** This is a one-line location: hosted-from for an online event, street and city for a physical one. */
   whereLine: string
+  /** `whereLine` plus the postcode, for the surfaces that give directions: "120 Heath St,
+   *  London NW3 1DR". An online or inactive event has no postcode to show. */
+  whereLineFull: string
   /** The room inside the venue, such as "Room: Hall B", for a physical, non-inactive event that names one. */
   roomLine: string | null
   /** For an online event only, the HOST's clock and city, faded below the where line, such
@@ -243,6 +246,16 @@ export function useEventDisplay(event: DisplayableEvent): EventDisplayStrings {
         : [event.address?.street, event.address?.city].filter(Boolean).join(', ') ||
           event.region?.name ||
           ''
+    // A postcode is how people check they have the right place. Hosts sometimes type it into
+    // the street or city field, so it is added only when it is not already there.
+    const postCode = event.address?.postCode?.trim()
+    const showPostCode =
+      !display.online &&
+      display.status !== 'inactive' &&
+      postCode &&
+      whereLine &&
+      !whereLine.toLowerCase().includes(postCode.toLowerCase())
+    const whereLineFull = showPostCode ? `${whereLine} ${postCode}` : whereLine
     // An inactive listing hides the street, so its room would be the same wrong answer.
     const room = event.address?.room?.trim()
     const roomLine =
@@ -314,6 +327,7 @@ export function useEventDisplay(event: DisplayableEvent): EventDisplayStrings {
       eventTimeRange,
       eventStartTime,
       whereLine,
+      whereLineFull,
       roomLine,
       whereSubtext,
       registerLabel,

@@ -120,6 +120,7 @@ export function EventFacts({
     eventTimeRange,
     eventStartTime,
     whereLine,
+    whereLineFull,
     roomLine,
     whereSubtext,
   } = useEventDisplay(event)
@@ -166,16 +167,18 @@ export function EventFacts({
     // The room is directions, so only the panel carries it. The list card and the
     // share/registration summaries are triage and recap (#316).
     const room = variant === 'default' ? roomLine : null
+    // The card stays short. Every other surface helps someone find the place.
+    const where = compact ? whereLine : whereLineFull
 
     items.push({
       icon: display.online ? Monitor : MapPin,
       text: room ? (
         <>
           <div>{room}</div>
-          <div>{whereLine}</div>
+          <div>{where}</div>
         </>
       ) : (
-        whereLine
+        where
       ),
       stacked: Boolean(room),
       subtext: display.online ? (whereSubtext ?? undefined) : (distance ?? undefined),
