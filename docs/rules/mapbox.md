@@ -91,6 +91,13 @@ The map is the heart of the app and its hottest render path. Treat it carefully.
   `api.getGeojson()`. Read from the cache — never fetch it ad-hoc in a
   component.
 
+## Classes with no real place
+
+- `hasVagueAddress` (`lib/shape/event.ts`) reads the street text: a placeholder, the
+  town's own name, or a "city centre" word. Those classes draw a 1.5km circle
+  (`areaAround`, sources `approximate-areas` + a dot in `events`) instead of a pin,
+  and frame at `VAGUE_ZOOM`. It's a text heuristic, because the CMS has no such field.
+
 ## Pin-hover timing popover
 
 - Only on a device with a real pointer (`useHasRealPointer`). iOS sends a fake mouse

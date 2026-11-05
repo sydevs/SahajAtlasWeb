@@ -6,6 +6,7 @@ import { DateTime } from 'luxon'
 import {
   byNextOccurrence,
   eventTimeZone,
+  hasVagueAddress,
   isOnline,
   isSoon,
   nextOccurrence,
@@ -491,5 +492,33 @@ describe('isSoon', () => {
   it('is false for a date in the past', () => {
     expect(isSoon(DateTime.now().minus({ minutes: 30 }), true)).toBe(false)
     expect(isSoon(DateTime.now().minus({ days: 1 }), false)).toBe(false)
+  })
+})
+
+describe('hasVagueAddress', () => {
+  it.each([
+    ['-', 'Punaauia'],
+    ['None', 'Sevenoaks'],
+    ['wird noch angekündigt', 'krems'],
+    ['Broome', 'Broome'],
+    ['Zentrum', 'Salzburg'],
+    ['Perth CBD', 'Perth'],
+    ['Centro', 'Araguari'],
+    ['', 'Leeds'],
+  ])('reads %j in %s as no real place', (street, city) => {
+    expect(hasVagueAddress({ street, city })).toBe(true)
+  })
+
+  it.each([
+    ['71 Main South Road, Sockburn', 'Christchurch'],
+    ['Katharine St', 'London'],
+    ['Av. Centro 12', 'Vitória'],
+    ['Broome Street', 'Broome'],
+  ])('reads %j in %s as a real place', (street, city) => {
+    expect(hasVagueAddress({ street, city })).toBe(false)
+  })
+
+  it('has nothing to judge without an address', () => {
+    expect(hasVagueAddress(undefined)).toBe(false)
   })
 })

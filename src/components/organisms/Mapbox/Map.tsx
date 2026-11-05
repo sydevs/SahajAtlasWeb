@@ -19,6 +19,10 @@ import { useShallow } from 'zustand/react/shallow'
 import { CalendarDays } from 'lucide-react'
 
 import {
+  approximateDotLayer,
+  approximateFillLayer,
+  approximateOutlineLayer,
+  CLASS_LAYER_IDS,
   clusterLayer,
   selectedPointLayer,
   unclusteredPointLayer,
@@ -44,7 +48,15 @@ import api, { eventTitlesQuery } from '@/config/api'
 import { useHasRealPointer } from '@/config/responsive'
 import { useBrandPalette } from '@/config/theme/brand-palette'
 import { GEOJSON_STALE_TIME } from '@/config/query-client'
-import { hasActiveFilters, matchesFilters, safePath, todayISO } from '@/lib/shape'
+import { areaAround } from '@/lib/geo'
+import {
+  hasActiveFilters,
+  hasVagueAddress,
+  isOnline,
+  matchesFilters,
+  safePath,
+  todayISO,
+} from '@/lib/shape'
 import { useLocale } from '@/hooks/use-locale'
 import { useTheme } from '@/hooks/use-theme'
 import { useMapbox } from '@/hooks/use-mapbox'
@@ -87,6 +99,9 @@ const MAP_WORLDVIEWS: Record<string, string> = {
   default: 'US', // Default
 }
 
+/** How far around the stored point a class with no real place might be, in km. */
+const APPROXIMATE_RADIUS_KM = 1.5
+
 // Mapbox renders geometry and injects its own cluster properties. The click
 // handler needs only `id` and `webPath`. This strips every other feature
 // property before handing the collection to the vector source. So the map
@@ -99,8 +114,23 @@ const toMapSource = (features: Geojson['features']): FeatureCollection<Geometry 
   features: features.map((feature) => ({
     type: 'Feature',
     geometry: feature.geometry,
-    properties: { id: feature.properties.id, webPath: feature.properties.webPath ?? null },
+    properties: {
+      id: feature.properties.id,
+      webPath: feature.properties.webPath ?? null,
+      approximate: !isOnline(feature.properties) && hasVagueAddress(feature.properties.address),
+    },
   })),
+})
+
+// The round areas of the classes with no real place. These go in their own source, because the
+// events source is a clustering one and takes points only.
+const toApproximateAreas = (source: FeatureCollection<Geometry | null>): FeatureCollection => ({
+  type: 'FeatureCollection',
+  features: source.features.flatMap((feature) =>
+    feature.properties?.approximate && feature.geometry?.type === 'Point'
+      ? [areaAround(feature.geometry.coordinates, APPROXIMATE_RADIUS_KM, feature.properties)]
+      : [],
+  ),
 })
 
 const DEBUG_BOUNDARY = false
@@ -299,6 +329,12 @@ export function Mapbox({ cooperative = false }: { cooperative?: boolean } = {}) 
   const colors = useMemo(() => markerColors(palette, theme), [palette, theme])
   const clusters = useMemo(() => clusterLayer(palette, theme), [palette, theme])
   const bounds = useMemo(() => boundsLayer(palette, theme), [palette, theme])
+  const approximateDot = useMemo(() => approximateDotLayer(palette, theme), [palette, theme])
+  const approximateFill = useMemo(() => approximateFillLayer(palette, theme), [palette, theme])
+  const approximateOutline = useMemo(
+    () => approximateOutlineLayer(palette, theme),
+    [palette, theme],
+  )
 
   // This supplies the app's own pin and cluster images. `markers.ts` owns
   // the why, the theme-switch handling, and the in-place repaint. There is
@@ -384,6 +420,7 @@ export function Mapbox({ cooperative = false }: { cooperative?: boolean } = {}) 
 
     return toMapSource(features)
   }, [data, filters, matchesRegion])
+  const approximateAreas = useMemo(() => filtered && toApproximateAreas(filtered), [filtered])
 
   // This re-joins the hovered pin's id to the FULL feed event — the map
   // source is trimmed to id plus webPath. It reads the same `['geojson']`
@@ -437,7 +474,7 @@ export function Mapbox({ cooperative = false }: { cooperative?: boolean } = {}) 
             duration: 500,
           })
         })
-      } else if (feature.layer?.id === LAYER_IDS.unclusteredPoint) {
+      } else if (feature.layer && CLASS_LAYER_IDS.includes(feature.layer.id)) {
         navigate(safePath(feature.properties?.webPath) ?? `/${feature.properties?.id}`)
       }
     },
@@ -460,7 +497,9 @@ export function Mapbox({ cooperative = false }: { cooperative?: boolean } = {}) 
       // React skips a re-render when the id is unchanged (Object.is), so
       // this stays a no-op while the pointer sits on one pin.
       const pinId =
-        feature?.layer?.id === LAYER_IDS.unclusteredPoint ? Number(feature.properties?.id) : NaN
+        feature?.layer && CLASS_LAYER_IDS.includes(feature.layer.id)
+          ? Number(feature.properties?.id)
+          : NaN
 
       setHoveredId(Number.isFinite(pinId) ? pinId : null)
     },
@@ -530,6 +569,13 @@ export function Mapbox({ cooperative = false }: { cooperative?: boolean } = {}) 
             style={padding}
           />
         )}
+        {/* Before the events source, so an area lies under every pin and cluster. */}
+        {approximateAreas && (
+          <Source data={approximateAreas} id="approximate-areas" type="geojson">
+            <Layer {...approximateFill} />
+            <Layer {...approximateOutline} />
+          </Source>
+        )}
         {filtered && (
           <Source
             cluster={true}
@@ -541,6 +587,7 @@ export function Mapbox({ cooperative = false }: { cooperative?: boolean } = {}) 
           >
             <Layer {...clusters} />
             <Layer {...unclusteredPointLayer} />
+            <Layer {...approximateDot} />
           </Source>
         )}
         {DEBUG_BOUNDARY && boundary && (

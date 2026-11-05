@@ -1,4 +1,4 @@
-import type { BBox, FeatureCollection, Point, Position } from 'geojson'
+import type { BBox, Feature, FeatureCollection, Point, Polygon, Position } from 'geojson'
 
 import { bbox } from '@turf/bbox'
 import { circle } from '@turf/circle'
@@ -48,3 +48,10 @@ export const distanceKm = (from: Position, to: Position): number =>
  */
 export const approxBounds = (center: Position, radiusKm: number): BBox =>
   bbox(circle(center, radiusKm, { units: 'kilometers' }))
+
+/** A round area of `radiusKm` around a point, for a place only known roughly. */
+export const areaAround = <P extends Record<string, unknown>>(
+  center: Position,
+  radiusKm: number,
+  properties: P,
+): Feature<Polygon, P> => circle(center, radiusKm, { units: 'kilometers', properties })
