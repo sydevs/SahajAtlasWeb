@@ -178,8 +178,6 @@ export function EventDetails({ event, basePath, ctaInline = true, children }: Ev
         <EventOnward basePath={basePath} event={event} />
       )}
 
-      <EventAddToCalendar event={event} />
-
       {/* With no phone, the Contact button already writes to this address. */}
       {event.contactEmail && event.contactPhone && (
         <p className="text-sm text-gray-11">
@@ -205,6 +203,8 @@ export function EventDetails({ event, basePath, ctaInline = true, children }: Ev
       )}
 
       <WhatToExpect event={event} />
+
+      <EventAddToCalendar event={event} />
 
       {/* About — host-authored prose always sits below the facts and actions. */}
       {descriptionHtml && (
