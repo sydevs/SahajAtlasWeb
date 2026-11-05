@@ -1,6 +1,7 @@
 import type { MapSearchProps } from '@/components/organisms/Mapbox/MapSearch'
 import type { GeocodingFeature } from '@mapbox/search-js-core'
 import type { DependencyList, ReactNode } from 'react'
+import type { Event } from '@/types'
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react'
 import { useLocation, useNavigationType, useSearchParams } from 'react-router'
@@ -11,7 +12,7 @@ import { CalendarDays, Funnel, Menu, Search, X } from 'lucide-react'
 import { Button } from '@/components/atoms/Button'
 import { FallbackPanel, GeolocationPrompt } from '@/components/molecules'
 import { MapSearch } from '@/components/organisms'
-import api, { eventQuery } from '@/config/api'
+import api, { eventQuery, regionQuery } from '@/config/api'
 import { GEOJSON_STALE_TIME } from '@/config/query-client'
 import { useCameraHistory } from '@/config/store'
 import { useAtlasNavigate } from '@/hooks/use-atlas-navigate'
@@ -19,6 +20,7 @@ import { useEventFilters } from '@/hooks/use-filters'
 import { useIpLocation } from '@/hooks/use-ip-location'
 import { useLocale } from '@/hooks/use-locale'
 import { useMapController } from '@/hooks/use-map-controller'
+import { hasMapPoint } from '@/lib/camera'
 import { approxBounds } from '@/lib/geo'
 import { geocodeBounds, geocodeCountryCode } from '@/lib/geocode'
 import { atlasError } from '@/lib/report'
@@ -335,6 +337,35 @@ export function useFrameOnTop(frame: (ctx: FrameContext) => void, deps: Dependen
     if (hasMap && snapshot) restore(snapshot)
     else frame({ isEntry: atlasDepth(location) === 0 })
   }, [...deps])
+}
+
+/**
+ * Frames an event-level view (the event, its register and share drawers) on the map.
+ *
+ * An event with no stored point, typically an online one, has nothing for `frameEvent` to fly
+ * to. Without this fallback a deep link to it left the camera on the boot-time world view.
+ * It frames the parent region instead, only as the session entry point, like `OnlineView`:
+ * opening it in-session leaves the camera where the visitor already is.
+ */
+export function useFrameEventOnTop(event: Event) {
+  const { hasMap, frameEvent, frameRegion } = useMapController()
+  const { locale } = useLocale()
+  const located = hasMapPoint(event)
+  const regionSlug = located ? undefined : event.region?.slug
+  // Not a suspense read: the drawer must not wait on a fetch only the camera needs. The
+  // `['region', slug, locale]` key is shared with RegionView, so a climb up is a cache hit.
+  const { data: region } = useQuery({
+    ...regionQuery(regionSlug ?? '', locale),
+    enabled: hasMap && regionSlug != null,
+  })
+
+  useFrameOnTop(
+    ({ isEntry }) => {
+      if (located) frameEvent(event, { isEntry })
+      else if (isEntry && region) frameRegion(region)
+    },
+    [event, located, region, frameEvent, frameRegion],
+  )
 }
 
 // RegistrationView and ShareView both resolve an event from its route path, and suspense-fetch

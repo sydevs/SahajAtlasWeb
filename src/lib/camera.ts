@@ -78,3 +78,11 @@ export const eventFrameZoom = (opts: {
 
   return opts.eventZoom
 }
+
+/**
+ * Whether an event has a stored point to frame. An online event often has none: it has
+ * no place of its own, so a deep link to it frames its parent region instead.
+ */
+export const hasMapPoint = (event: {
+  address?: { latitude?: number | null; longitude?: number | null } | null
+}): boolean => event.address?.latitude != null && event.address?.longitude != null
