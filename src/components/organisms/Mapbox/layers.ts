@@ -60,11 +60,9 @@ export const clusterLayer = (palette: PaletteRoles, mode: ThemeMode): Props => (
     'text-size': 12,
   },
   paint: {
-    // White on the stock teal bubble, which is the same art on both basemaps.
-    // The disc is slightly translucent (see `markers.ts`), so a pale feature
-    // underneath can show through and reduce contrast with it. This is
-    // inherited from the Studio sprite this replaced. Make the inner disc
-    // fully opaque if the count ever reads thin.
+    // White on the stock green bubble (3.3:1, bold), or the brand ramp's own
+    // on-colour on a tenant's bubble. The disc is opaque (`markers.ts`), so the
+    // basemap cannot thin it.
     'text-color': onHex(palette.primary, mode) ?? '#FFFFFF',
   },
 })
