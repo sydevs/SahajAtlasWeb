@@ -1,6 +1,7 @@
 import type { MapRef } from 'react-map-gl'
 
 import {
+  DEFAULT_SEEDS,
   shiftHex,
   SOLID_STEP,
   stepHex,
@@ -22,20 +23,11 @@ import {
 //
 // Names are `sy-`-prefixed, so they can never collide with a style sprite.
 
-// These are the Studio artwork's colors, kept verbatim: a teal pin and cluster
-// for a normal event, the warm accent for the selected one.
-//
-// ⚠ These are what an embed with no tenant seed renders, in BOTH modes, and
-// `markerColors` below must keep returning them unchanged for that case.
-// Deriving them from `DEFAULT_SEEDS` instead would change the unbranded pin:
-// `DEFAULT_SEEDS.primary`'s step 9 is hsl(184 58% 28%), 16pp darker and 16°
-// bluer than the teal below, and hsl(184 58% 60%) in dark mode — while this
-// pin is identical in both. `applyPalette` makes the same promise for the CSS
-// variables: with no palette supplied, none of the derivation runs.
-const POINT_FILL = '#21C1A2'
+// The selected pair: the warm accent, and the only orange on the map. Everything
+// else is `primary`, from the tenant or `DEFAULT_SEEDS`, so a pin and a cluster are
+// the same colour as the Register button. The Studio art's own greens gave a white
+// count 2.35:1 and barely separated from the sea.
 const POINT_SELECTED_FILL = '#E87952'
-const CLUSTER_FILL = '#37BB92'
-const CLUSTER_RING = '#8CCDC4'
 const CLUSTER_SELECTED_FILL = '#E47C5A'
 const CLUSTER_SELECTED_RING = '#F2A179'
 
@@ -81,6 +73,7 @@ const pin = (fill: string): MarkerImage =>
   )
 
 // This is the cluster bubble: a solid disc inside a wider translucent ring.
+// The disc is opaque, so the count's contrast doesn't depend on the basemap.
 // The count label is a `text-field` on the layer, so the art carries no
 // text.
 const cluster = (fill: string, ring: string): MarkerImage =>
@@ -88,7 +81,7 @@ const cluster = (fill: string, ring: string): MarkerImage =>
     38,
     38,
     `<circle cx="19" cy="19" r="19" fill="${ring}" opacity="0.706"/>
-  <circle cx="19" cy="19" r="13.8" fill="${fill}" opacity="0.914"/>`,
+  <circle cx="19" cy="19" r="13.8" fill="${fill}"/>`,
   )
 
 /** Marker image ids — referenced by `icon-image` in `layers.ts`. */
@@ -111,19 +104,33 @@ export type MarkerColors = Readonly<{
   [MARKER_IDS.clusterSelected]: ClusterColors
 }>
 
-/** What an embed with no tenant seed renders. */
-export const DEFAULT_MARKER_COLORS: MarkerColors = {
-  [MARKER_IDS.point]: { fill: POINT_FILL },
-  [MARKER_IDS.pointSelected]: { fill: POINT_SELECTED_FILL },
-  [MARKER_IDS.cluster]: { fill: CLUSTER_FILL, ring: CLUSTER_RING },
-  [MARKER_IDS.clusterSelected]: { fill: CLUSTER_SELECTED_FILL, ring: CLUSTER_SELECTED_RING },
-}
-
 // The Studio art's own two fill→ring deltas disagree — +21 L / −16 S for the
 // unclustered pair, +9 / +9 for the selected one — so one transform replaces
 // both rather than preserving a difference nobody chose.
 const ringOf = (fill: string) =>
   shiftHex(fill, { lightness: 21, saturation: -16, maxLightness: 92 })
+
+/** `primary`'s solid in this mode, from the tenant's seed when it has a usable one. */
+export const primarySolid = (palette: PaletteRoles, mode: ThemeMode): string =>
+  stepHex(palette.primary, mode, SOLID_STEP) ??
+  (stepHex(DEFAULT_SEEDS.primary, mode, SOLID_STEP) as string)
+
+const defaultColors = (mode: ThemeMode): MarkerColors => {
+  const primary = primarySolid({}, mode)
+
+  return {
+    [MARKER_IDS.point]: { fill: primary },
+    [MARKER_IDS.pointSelected]: { fill: POINT_SELECTED_FILL },
+    [MARKER_IDS.cluster]: { fill: primary, ring: ringOf(primary) },
+    [MARKER_IDS.clusterSelected]: { fill: CLUSTER_SELECTED_FILL, ring: CLUSTER_SELECTED_RING },
+  }
+}
+
+/** What an embed with no tenant seed renders, per mode because step 9 is mode-aware. */
+export const DEFAULT_MARKER_COLORS: Record<ThemeMode, MarkerColors> = {
+  light: defaultColors('light'),
+  dark: defaultColors('dark'),
+}
 
 /**
  * The four images' colors for a resolved palette, in the active mode.
@@ -139,23 +146,22 @@ export function markerColors(palette: PaletteRoles, mode: ThemeMode): MarkerColo
   const primary = stepHex(palette.primary, mode, SOLID_STEP)
   const contrast = stepHex(palette.contrast, mode, SOLID_STEP)
 
-  // ⚠ The same object, not an equal one. `Map.tsx` memoises this and the
-  // registration effect depends on it, so a new identity costs an unbranded
-  // embed a re-subscription and four rebuilt SVGs on every light/dark flip —
-  // where before this file carried colors, a flip ran nothing here at all.
-  if (!primary && !contrast) return DEFAULT_MARKER_COLORS
+  // ⚠ One shared object per mode, not an equal one. `Map.tsx` memoises this and the
+  // registration effect depends on it, so a new identity costs an unbranded embed a
+  // re-subscription and four rebuilt SVGs.
+  const stock = DEFAULT_MARKER_COLORS[mode]
+
+  if (!primary && !contrast) return stock
 
   return {
-    [MARKER_IDS.point]: primary ? { fill: primary } : DEFAULT_MARKER_COLORS[MARKER_IDS.point],
-    [MARKER_IDS.pointSelected]: contrast
-      ? { fill: contrast }
-      : DEFAULT_MARKER_COLORS[MARKER_IDS.pointSelected],
+    [MARKER_IDS.point]: primary ? { fill: primary } : stock[MARKER_IDS.point],
+    [MARKER_IDS.pointSelected]: contrast ? { fill: contrast } : stock[MARKER_IDS.pointSelected],
     [MARKER_IDS.cluster]: primary
       ? { fill: primary, ring: ringOf(primary) }
-      : DEFAULT_MARKER_COLORS[MARKER_IDS.cluster],
+      : stock[MARKER_IDS.cluster],
     [MARKER_IDS.clusterSelected]: contrast
       ? { fill: contrast, ring: ringOf(contrast) }
-      : DEFAULT_MARKER_COLORS[MARKER_IDS.clusterSelected],
+      : stock[MARKER_IDS.clusterSelected],
   }
 }
 
@@ -184,9 +190,8 @@ export function markerImages(colors: MarkerColors): Map<string, MarkerImage> {
 // list of the colors that went into it.
 //
 // At most one entry per image per mode survives a session — eight per embed —
-// so none of them needs eviction. An unseeded role derives nothing, so its art
-// is identical in both modes and takes ONE entry: the stock pins stay warm
-// across a theme switch exactly as they did before colors existed here.
+// so none of them needs eviction. The selected pair is the same art in both modes
+// when unseeded, and takes ONE entry.
 //
 // shortcut: a branded embed's first switch into a mode decodes that mode's four
 // images, so those pins land a tick after the new style's first frame rather

@@ -2,70 +2,40 @@ import { describe, it, expect } from 'vitest'
 
 import { DEFAULT_MARKER_COLORS, MARKER_IDS, markerColors, markerImages } from './markers'
 
-/**
- * The art an embed with no tenant seed renders, frozen byte for byte.
- *
- * Taken off `main` and compared in both modes, because "unchanged" is the whole
- * promise `markerColors` makes for an unseeded role: `DEFAULT_SEEDS.primary`'s
- * own step 9 is a different teal, and a different one again in dark mode. A
- * change here is a visible change to every unbranded embed.
- */
-const STOCK = {
-  [MARKER_IDS.point]: {
-    width: 34,
-    height: 38,
-    svg: '<svg xmlns="http://www.w3.org/2000/svg" width="68" height="76" viewBox="0 0 34 38"><defs>\n    <filter id="shadow" x="-40%" y="-40%" width="200%" height="200%">\n      <feDropShadow dx="1.2" dy="0.8" stdDeviation="0.9" flood-color="#4A5350" flood-opacity="0.45"/>\n    </filter>\n  </defs>\n  <path d="M4.71 26.42a15 15 0 1 1 21.58 0L15.5 37.6Z" fill="#21C1A2" filter="url(#shadow)"/>\n  <circle cx="15.5" cy="16" r="4.5" fill="#FFFFFF"/></svg>',
-  },
-  [MARKER_IDS.pointSelected]: {
-    width: 34,
-    height: 38,
-    svg: '<svg xmlns="http://www.w3.org/2000/svg" width="68" height="76" viewBox="0 0 34 38"><defs>\n    <filter id="shadow" x="-40%" y="-40%" width="200%" height="200%">\n      <feDropShadow dx="1.2" dy="0.8" stdDeviation="0.9" flood-color="#4A5350" flood-opacity="0.45"/>\n    </filter>\n  </defs>\n  <path d="M4.71 26.42a15 15 0 1 1 21.58 0L15.5 37.6Z" fill="#E87952" filter="url(#shadow)"/>\n  <circle cx="15.5" cy="16" r="4.5" fill="#FFFFFF"/></svg>',
-  },
-  [MARKER_IDS.cluster]: {
-    width: 38,
-    height: 38,
-    svg: '<svg xmlns="http://www.w3.org/2000/svg" width="76" height="76" viewBox="0 0 38 38"><circle cx="19" cy="19" r="19" fill="#8CCDC4" opacity="0.706"/>\n  <circle cx="19" cy="19" r="13.8" fill="#37BB92" opacity="0.914"/></svg>',
-  },
-  [MARKER_IDS.clusterSelected]: {
-    width: 38,
-    height: 38,
-    svg: '<svg xmlns="http://www.w3.org/2000/svg" width="76" height="76" viewBox="0 0 38 38"><circle cx="19" cy="19" r="19" fill="#F2A179" opacity="0.706"/>\n  <circle cx="19" cy="19" r="13.8" fill="#E47C5A" opacity="0.914"/></svg>',
-  },
-} as const
-
 // The Ladle `shrimataji.org` preset's primary, and `palette.test.ts`'s seed.
 const MAROON = '#64032e'
 
 describe('markerColors', () => {
   for (const mode of ['light', 'dark'] as const) {
-    it(`keeps the stock colors in ${mode} when no role has a usable seed`, () => {
-      expect(markerColors({}, mode)).toEqual(DEFAULT_MARKER_COLORS)
+    it(`uses the default primary in ${mode} when no role has a usable seed`, () => {
       // `#000000` is what the client record defaults `color1`–`color3` to, so an
       // unconfigured tenant takes the same path as an absent palette.
-      expect(markerColors({ primary: '#000000', contrast: '#000000' }, mode)).toEqual(
-        DEFAULT_MARKER_COLORS,
-      )
-      expect(markerColors({ primary: null, contrast: undefined }, mode)).toEqual(
-        DEFAULT_MARKER_COLORS,
-      )
-    })
-
-    it(`answers with one shared object in ${mode} when nothing is seeded`, () => {
-      // Identity, not equality. `Map.tsx` memoises this and the registration
-      // effect depends on it, so an equal-but-new object would cost an
-      // unbranded embed a re-subscription and four rebuilt SVGs per theme flip.
-      expect(markerColors({}, mode)).toBe(DEFAULT_MARKER_COLORS)
-      expect(markerColors({ primary: '#000000', contrast: '#000000' }, mode)).toBe(
-        DEFAULT_MARKER_COLORS,
-      )
-    })
-
-    it(`renders the stock SVGs byte for byte in ${mode}`, () => {
-      const images = markerImages(markerColors({}, mode))
-
-      for (const id of Object.values(MARKER_IDS)) expect(images.get(id)).toEqual(STOCK[id])
+      for (const palette of [
+        {},
+        { primary: '#000000', contrast: '#000000' },
+        { primary: null, contrast: undefined },
+      ]) {
+        // Identity, not equality. `Map.tsx` memoises this and the registration
+        // effect depends on it, so an equal-but-new object would cost an unbranded
+        // embed a re-subscription and four rebuilt SVGs.
+        expect(markerColors(palette, mode)).toBe(DEFAULT_MARKER_COLORS[mode])
+      }
     })
   }
+
+  it('paints a default pin and cluster the same colour as the button teal', () => {
+    const { light } = DEFAULT_MARKER_COLORS
+
+    expect(light[MARKER_IDS.point].fill).toBe('#1e6b71')
+    expect(light[MARKER_IDS.cluster].fill).toBe('#1e6b71')
+  })
+
+  it('keeps orange for the selected pair alone', () => {
+    const { light } = DEFAULT_MARKER_COLORS
+
+    expect(light[MARKER_IDS.pointSelected].fill).toBe('#E87952')
+    expect(light[MARKER_IDS.clusterSelected].fill).toBe('#E47C5A')
+  })
 
   it('fills the pins from primary step 9 and the selected pair from contrast', () => {
     expect(markerColors({ primary: MAROON, contrast: '#1E6C71' }, 'light')).toEqual({
@@ -92,10 +62,10 @@ describe('markerColors', () => {
     expect(colors[MARKER_IDS.cluster]).toEqual({ fill: '#521430', ring: '#983a64' })
     // A tenant that configured `color1` alone keeps the stock selected accent.
     expect(colors[MARKER_IDS.pointSelected]).toEqual(
-      DEFAULT_MARKER_COLORS[MARKER_IDS.pointSelected],
+      DEFAULT_MARKER_COLORS.light[MARKER_IDS.pointSelected],
     )
     expect(colors[MARKER_IDS.clusterSelected]).toEqual(
-      DEFAULT_MARKER_COLORS[MARKER_IDS.clusterSelected],
+      DEFAULT_MARKER_COLORS.light[MARKER_IDS.clusterSelected],
     )
   })
 })
@@ -113,7 +83,7 @@ describe('markerImages', () => {
   })
 
   it('answers nothing for an id that is not a marker', () => {
-    const images = markerImages(DEFAULT_MARKER_COLORS)
+    const images = markerImages(DEFAULT_MARKER_COLORS.light)
 
     // `styleimagemissing` carries the basemap's own layer ids too, which is why
     // this is a Map rather than an object literal.
