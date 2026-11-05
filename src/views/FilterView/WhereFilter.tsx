@@ -73,17 +73,18 @@ export function WhereFilter({
       <h3 className="text-sm font-semibold text-foreground">{t('filters.where.label')}</h3>
       {searchable && (
         // Px, not `h-11`: the geocoder redefines `--spacing` inside itself, so a spacing-scale
-        // height resolves against its value and comes out three times too tall.
+        // height resolves against its value and comes out three times too tall. 42 plus the
+        // field's 1px border is the button's 44, and `field-size` is the input's own type size.
         <div
           className={clsx(
-            'flex gap-2 [&_input]:h-[44px] [&_input]:text-base',
+            'flex gap-2 [&_input]:h-[42px]',
             prominent || !townSearch ? 'flex-col' : 'items-start',
           )}
         >
           <Button
             aria-pressed={nearMeOn}
             className={clsx(
-              'h-[44px] shrink-0 text-base',
+              'field-size h-[44px] shrink-0',
               !nearMeOn && !prominent && 'border-gray-6 text-foreground',
             )}
             color={nearMeOn || prominent ? 'primary' : 'neutral'}

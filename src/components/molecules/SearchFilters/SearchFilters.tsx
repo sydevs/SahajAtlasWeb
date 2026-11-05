@@ -445,7 +445,7 @@ export function SearchFilters({
     return (
       <div className="flex flex-col gap-4">
         {where}
-        <div className="-mx-4 flex flex-col divide-y divide-divider border-y border-divider px-4">
+        <div className="-mx-4 flex flex-col divide-y divide-divider border-t border-divider px-4">
           <RouteRow
             count={facets?.counts.format.online}
             label={t('filters.where.online_route')}
