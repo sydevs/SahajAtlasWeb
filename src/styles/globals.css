@@ -419,6 +419,22 @@
    for a custom class: it emits with the utilities, and — the part that is not
    cosmetic — it is what lets `@apply bg-panel` below resolve at all. v4's `@apply`
    takes utilities, and a bare class inside a layer is not one. */
+/* An invisible 44px tap area around a smaller control, on touch screens only, so the control can
+   keep its visual size. It needs a positioned element, so pair it with `relative`. */
+@utility touch-target {
+  @media (pointer: coarse) {
+    &::after {
+      content: '';
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      width: max(100%, 44px);
+      height: max(100%, 44px);
+      transform: translate(-50%, -50%);
+    }
+  }
+}
+
 @utility bg-panel {
   @apply bg-background/90 backdrop-blur-lg backdrop-saturate-150;
 }

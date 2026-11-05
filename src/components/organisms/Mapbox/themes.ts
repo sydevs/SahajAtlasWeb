@@ -32,5 +32,18 @@ export const controlTheme = {
   },
   // The geocoder's own placeholder is 37% black, about 2.6:1 on white. This lifts it
   // to the same secondary text the rest of the panel uses.
-  cssText: `.Input::placeholder { color: var(--gray-11); opacity: 1; }`,
+  // The clear button draws at 20px, so it gets the same invisible 44px tap area as `touch-target`.
+  cssText: `.Input::placeholder { color: var(--gray-11); opacity: 1; }
+    @media (pointer: coarse) {
+      .ClearBtn { position: relative; }
+      .ClearBtn::after {
+        content: '';
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        width: 44px;
+        height: 44px;
+        transform: translate(-50%, -50%);
+      }
+    }`,
 }

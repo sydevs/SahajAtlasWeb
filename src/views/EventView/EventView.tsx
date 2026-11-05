@@ -160,7 +160,10 @@ export function EventView({ id, basePath }: { id: number; basePath: string }) {
                     <>
                       {t('common.feedback.confirmed_body')}
                       {onwardHref && (
-                        <Link className="mt-1 block underline" href={onwardHref}>
+                        <Link
+                          className="touch-target relative mt-1 block underline"
+                          href={onwardHref}
+                        >
                           {t('common.feedback.nearby')}
                         </Link>
                       )}

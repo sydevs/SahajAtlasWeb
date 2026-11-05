@@ -147,6 +147,8 @@ export const controlSurface = tv({
 const button = tv({
   extend: controlSurface,
   base: [
+    // Every button is at least 44px to a thumb, whatever size it draws.
+    'touch-target relative',
     'outline-none',
     'focus-visible:ring-2 focus-visible:ring-focus focus-visible:ring-offset-1',
     'disabled:pointer-events-none disabled:opacity-disabled',

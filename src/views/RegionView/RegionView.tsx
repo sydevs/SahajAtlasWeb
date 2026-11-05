@@ -90,7 +90,7 @@ export function RegionView({ slug }: { slug: string }) {
         {/* Calendar, search, filters and close form one right-aligned control group.
             justify-between keeps the title left. The calendar and the filters both open
             pre-scoped to this region. */}
-        <div className="flex shrink-0 items-center gap-2">
+        <div className="flex shrink-0 items-center gap-2 pointer-coarse:gap-3">
           <CalendarButton regionSlug={region.slug} />
           <SearchButton />
           <FilterButton iconOnly />
@@ -120,7 +120,7 @@ export function RegionView({ slug }: { slug: string }) {
               <>
                 {t('common.feedback.denied_body')}
                 {isEmpty ? (
-                  <Link className="mt-1 block underline" href={searchPath()}>
+                  <Link className="touch-target relative mt-1 block underline" href={searchPath()}>
                     {t('common.feedback.nearby')}
                   </Link>
                 ) : (

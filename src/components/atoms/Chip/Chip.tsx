@@ -19,7 +19,7 @@ const chip = tv({
     // keyboard user got no signal that focus had landed there. The ring is
     // the same `focus-visible:ring-2 ring-focus` every other control draws.
     close:
-      'shrink-0 rounded-full opacity-60 transition-opacity outline-none hover:opacity-100 focus-visible:opacity-100 focus-visible:ring-2 focus-visible:ring-focus',
+      'touch-target relative shrink-0 rounded-full opacity-60 transition-opacity outline-none hover:opacity-100 focus-visible:opacity-100 focus-visible:ring-2 focus-visible:ring-focus',
   },
   variants: {
     color: {

@@ -85,7 +85,7 @@ function FilterGroup({
               `tabIndex` is needed to stop a hidden control being reachable. */}
           {onClear && (
             <button
-              className={`text-xs font-medium text-primary-11 hover:underline ${active ? '' : 'invisible'}`}
+              className={`touch-target relative text-xs font-medium text-primary-11 hover:underline ${active ? '' : 'invisible'}`}
               type="button"
               onClick={onClear}
             >

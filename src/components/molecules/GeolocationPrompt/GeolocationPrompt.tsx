@@ -39,7 +39,7 @@ export function GeolocationPrompt({ city, onAccept, onClose }: GeolocationPrompt
       size="sm"
       title={
         <button
-          className="w-full text-start hover:underline focus:outline-none focus-visible:underline"
+          className="touch-target relative w-full text-start hover:underline focus:outline-none focus-visible:underline"
           type="button"
           onClick={onAccept}
         >
