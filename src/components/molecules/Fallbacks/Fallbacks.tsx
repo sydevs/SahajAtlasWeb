@@ -5,6 +5,7 @@ import type { RecoveryOffer } from '@/hooks/use-recovery-offer'
 
 import { useEffect, useRef } from 'react'
 import { CircleFlag } from 'react-circle-flags'
+import clsx from 'clsx'
 import { useTranslation } from 'react-i18next'
 import { ErrorBoundary } from 'react-error-boundary'
 import { QueryErrorResetBoundary } from '@tanstack/react-query'
@@ -14,6 +15,7 @@ import { Spinner } from '@/components/atoms/Spinner/Spinner'
 import { Alert } from '@/components/atoms/Alert/Alert'
 import { Button, controlSurface } from '@/components/atoms/Button'
 import { Link } from '@/components/atoms/Link'
+import { useIsWide } from '@/config/responsive'
 import { useReportModal } from '@/config/store'
 import { useReportForm } from '@/hooks/use-report-form'
 import { useRecoveryOffer } from '@/hooks/use-recovery-offer'
@@ -72,6 +74,62 @@ export function LoadingFallback({ unboxed = false }: LoadingFallbackProps) {
           text adds nothing the spinner has not already said. Its height would also
           push the spinner off centre. */}
       <Spinner color="secondary" srLabel={t('common.chrome.loading')} />
+    </div>
+  )
+}
+
+/**
+ * The list a view is about to show, as quiet placeholder rows, under one calm line.
+ *
+ * The line carries the announcement, so the rows are hidden from assistive tech. Used inside
+ * the real drawer while a list view loads, and inside `BootFallback` before the drawer exists,
+ * so the two can't drift and the swap between them doesn't jump.
+ */
+export function ListSkeleton() {
+  const { t } = useTranslation()
+
+  return (
+    <div className="flex flex-col">
+      <p className="px-4 py-2 text-sm text-gray-11" role="status">
+        {t('common.chrome.finding_classes', { defaultValue: 'Finding classes…' })}
+      </p>
+      <div aria-hidden className="flex flex-col motion-safe:animate-pulse">
+        {['w-3/5', 'w-2/5', 'w-1/2', 'w-1/3', 'w-2/5'].map((width) => (
+          <div key={width} className="flex min-h-14 items-center justify-between gap-4 px-4">
+            <div className={`h-3.5 rounded bg-gray-3 ${width}`} />
+            <div className="h-3.5 w-5 rounded bg-gray-3" />
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+/**
+ * What the full-window map form shows for the moment before its code has arrived: the panel
+ * already in its real place, over a plain map-toned surface. The real map replaces the surface
+ * as soon as the map chunk loads, and the real drawer replaces this panel.
+ *
+ * Only for the form that fills the window. A form with a box of its own keeps `LoadingFallback`,
+ * since taking the viewport there would paint over the host's page.
+ */
+export function BootFallback() {
+  const isWide = useIsWide(null)
+
+  return (
+    <div className="fixed inset-0 bg-gray-3">
+      <div
+        className={
+          isWide
+            ? 'fixed inset-y-0 left-0 z-40 w-[352px] border border-divider bg-background lg:inset-y-4 lg:left-4 lg:rounded-2xl'
+            : 'fixed inset-x-0 bottom-0 z-40 h-[300px] rounded-t-2xl border-t border-divider bg-background'
+        }
+      >
+        <div className="px-4 pt-4 pb-2">
+          <div aria-hidden className="h-10 rounded-lg border border-divider bg-gray-2" />
+        </div>
+        <ListSkeleton />
+      </div>
     </div>
   )
 }
@@ -799,7 +857,7 @@ export const CENTERED_BODY =
  * guard: content that starts at the top is on screen by construction. That is exactly
  * what `CENTERED_BODY` has to work to achieve.
  */
-export const START_BODY = 'flex h-full flex-col items-start p-6 text-start'
+export const START_BODY = 'flex h-full flex-col items-start p-4 text-start'
 
 /** Which posture a surface renders in — see `CENTERED_BODY` / `START_BODY`. */
 export type FallbackAlign = 'center' | 'start'
@@ -822,7 +880,8 @@ type FallbackShellProps = FallbackActionsProps & {
  * live body and the floor it degrades to both render this, so the two cannot look like
  * different screens.
  *
- * ONE column at ONE width. Every part is `w-full` inside a single `max-w-xs` box. Left
+ * ONE column at ONE width. Every part is `w-full` inside a single box: `max-w-xs` when
+ * centred, and the panel's full width when it starts at the top of a list. Left
  * to shrink-wrap on its own, each part came out a different width, stacked on a centre
  * line: a banner as wide as its sentence, a button row as wide as its labels, and a
  * full-width field.
@@ -837,7 +896,9 @@ function FallbackShell({
 }: FallbackShellProps) {
   return (
     <FallbackRegion className={align === 'start' ? START_BODY : CENTERED_BODY} message={message}>
-      <div className="flex w-full max-w-xs flex-col items-start gap-3">
+      <div
+        className={clsx('flex w-full flex-col items-start gap-3', align !== 'start' && 'max-w-xs')}
+      >
         {/* `textAlign="left"` is set explicitly, not left to the default. The
             centred posture sets `text-center` on the container. A sentence centred
             inside its own banner is harder to read, and costs the onward link its

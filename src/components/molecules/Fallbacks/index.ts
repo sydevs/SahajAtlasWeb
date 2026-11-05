@@ -6,6 +6,8 @@
 // "single-use internals are NOT exported"). The co-located tests and
 // stories reach them by module path.
 export {
+  BootFallback,
+  ListSkeleton,
   LoadingFallback,
   ErrorFallback,
   FallbackPanel,

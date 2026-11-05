@@ -2,9 +2,7 @@ import { useEffect, useRef } from 'react'
 import * as Fathom from 'fathom-client'
 import { useLocation, useNavigate } from 'react-router'
 import { MapProvider } from 'react-map-gl'
-import { useTranslation } from 'react-i18next'
 
-import { Spinner } from '@/components/atoms/Spinner'
 import { useCameraSettled } from '@/config/store'
 import { Mapbox } from '@/components/organisms/Mapbox'
 import { NoopMapControllerProvider } from '@/hooks/use-map-controller'
@@ -109,45 +107,34 @@ function useAnalytics(primaryDomain: string, pathname: string) {
  * yet". The moment it stops reading as a map behind glass, it has become a loading screen,
  * which is a worse answer than the world view it was meant to soften.
  *
- * The spinner fades in on a delay (`sy-map-curtain-spinner`, styles/globals.css), rather than
- * appearing at once, so a warm boot reads as a clean frost-to-reveal instead of flashing a
- * spinner nobody had time to register. This uses a CSS animation-delay, rather than a timer,
- * because there is no state here to schedule against.
- *
  * Module-private, and rendered in exactly one place, per the single-use rule in
  * DESIGN_SYSTEM.md.
  */
 function MapCurtain() {
   const settled = useCameraSettled((s) => s.settled)
-  const { t } = useTranslation()
 
   if (settled) return null
 
   return (
+    // No spinner and no live region: the sheet's own loading state already says what is
+    // happening, and two ways of saying it is one more than a visitor needs.
     <div
-      // Not `role="status"`: the drawer's own DrawerLoading already announces the wait, and two
-      // live regions describing one boot is one more than a screen reader should hear.
       aria-hidden
-      className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center bg-background/20 backdrop-blur-sm"
-    >
-      <span className="sy-map-curtain-spinner">
-        <Spinner
-          decorative
-          size="lg"
-          srLabel={t('common.chrome.loading', { defaultValue: 'Loading' })}
-        />
-      </span>
-    </div>
+      className="pointer-events-none absolute inset-0 z-10 bg-background/20 backdrop-blur-sm"
+    />
   )
 }
 
 /** The map (or not) and the drawer stack over it — everything below the form decision. */
 function FullInterface({
+  clientLoaded,
   contained,
   hasMap,
   homePath,
   primaryDomain = '',
 }: {
+  /** Whether `homePath` is known yet: the map form mounts before the client record arrives. */
+  clientLoaded: boolean
   /**
    * Map mode lives inside the host's element rather than filling the window (issue #169).
    *
@@ -184,11 +171,11 @@ function FullInterface({
   // the host's page on load, having never asked for one — auto-open triggered by this project's
   // own bookkeeping, rather than by a link anybody followed.
   useEffect(() => {
-    if (didInit.current) return
+    if (didInit.current || !clientLoaded) return
     didInit.current = true
     if (location.pathname === '/' && homePath && homePath !== '/')
       navigate(homePath, { replace: true })
-  }, [homePath, location.pathname, navigate])
+  }, [clientLoaded, homePath, location.pathname, navigate])
 
   // The feed and region tree, warmed when the interface actually mounts. `App` skips this for a
   // compact embed precisely so a collapsed card costs nothing, which leaves the expanded case to

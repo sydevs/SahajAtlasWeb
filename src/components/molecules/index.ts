@@ -34,6 +34,8 @@ export { SortMenu } from './SortMenu'
 // one table, not three that agree by hand. The table itself, and its
 // narrowing function, stay module-private. See the folder barrel for why.
 export {
+  BootFallback,
+  ListSkeleton,
   LoadingFallback,
   ErrorFallback,
   FallbackPanel,

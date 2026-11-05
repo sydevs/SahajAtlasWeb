@@ -22,6 +22,7 @@ import { useExpansion } from '@/hooks/use-expansion'
 import { useLocale } from '@/hooks/use-locale'
 import { Drawer, DrawerContent } from '@/components/atoms/Drawer'
 import { ResetErrorBoundary, SettingsMenu } from '@/components/molecules'
+import { ClientGate } from '@/config/client-gate'
 import { WidgetWidthContext, useIsWide } from '@/config/responsive'
 import { useWidgetMode } from '@/config/mode'
 import { useCalendarPosition } from '@/config/store'
@@ -665,6 +666,7 @@ export function DrawerStack() {
                 FallbackComponent={DrawerErrorFallback}
                 onReset={() => setSecondary(loadSecondaryViews())}
               >
+                <ClientGate />
                 <TopView entry={top} parentPath={parentPath ?? '/'} secondary={secondary} />
               </ResetErrorBoundary>
             </Suspense>
