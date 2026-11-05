@@ -1,11 +1,12 @@
-import { Suspense, useMemo, useRef } from 'react'
+import { Suspense, useMemo, useRef, useState } from 'react'
 import { useQuery, useSuspenseQuery } from '@tanstack/react-query'
+import { useSearchParams } from 'react-router'
 import { useTranslation } from 'react-i18next'
 import { DateTime } from 'luxon'
 import { useNextCalendarApp } from '@schedule-x/react'
 import { createViewMonthAgenda, createViewMonthGrid, createViewWeek } from '@schedule-x/calendar'
 import { createCalendarControlsPlugin } from '@schedule-x/calendar-controls'
-import { ChevronRight } from 'lucide-react'
+import { Check, ChevronRight, Share } from 'lucide-react'
 
 import '@schedule-x/theme-default/dist/index.css'
 
@@ -16,19 +17,23 @@ import { Button } from '@/components/atoms/Button'
 import { DrawerBody, DrawerHeader } from '@/components/atoms/Drawer'
 import { ToggleGroup, ToggleGroupItem } from '@/components/atoms/ToggleGroup'
 import { ActiveFilterPills, ResetErrorBoundary } from '@/components/molecules'
-import { calendarQuery, regionsQuery } from '@/config/api'
+import { calendarQuery, regionQuery, regionsQuery } from '@/config/api'
 import { useIsWideWidget } from '@/config/responsive'
+import { useHrefFor } from '@/config/routing'
 import { useCalendarPosition } from '@/config/store'
 import { useAtlasNavigate } from '@/hooks/use-atlas-navigate'
 import { useCalendarView, useSetCalendarView } from '@/hooks/use-calendar-view'
 import { useEventFilters, useSetFilters } from '@/hooks/use-filters'
 import { useLocale } from '@/hooks/use-locale'
+import { useMapController } from '@/hooks/use-map-controller'
+import { useWebShare } from '@/hooks/use-web-share'
 import { useTheme } from '@/hooks/use-theme'
 import {
   CALENDAR_VIEW_LIST,
   CALENDAR_VIEW_MONTH,
   CALENDAR_VIEW_WEEK,
   type EventFilters,
+  calendarShareRoute,
   calendarWindow,
   chosenCalendarFilters,
   computeDayBoundaries,
@@ -41,7 +46,7 @@ import {
   todayISO,
   weekFrom,
 } from '@/lib/shape'
-import { CloseButton, DrawerTitle, FilterButton } from '@/views/shared'
+import { CloseButton, DrawerTitle, FilterButton, useFrameOnTop } from '@/views/shared'
 import { DrawerErrorBody, DrawerLoadingBody } from '@/views/fallbacks'
 
 // Schedule-X validates `locale` against its own supported BCP-47 set, and THROWS
@@ -138,6 +143,43 @@ const drive = (controls: CalendarControlsPlugin, fn: (c: CalendarControlsPlugin)
   }
 }
 
+// Shares the dates on screen, with the scope and filters that were applied. The dates are written
+// into the link even when the visitor is looking at the next seven days, because a link sent today
+// should still mean those days when it is opened next Tuesday. A phone opens its own share sheet;
+// anywhere else, or when that is blocked or dismissed, the link is copied. The button keeps its
+// size when it confirms, so the header doesn't move.
+function ShareDates({ start, end, label }: { start: string; end: string; label: string }) {
+  const { t } = useTranslation()
+  const hrefFor = useHrefFor()
+  const { share } = useWebShare()
+  const [copied, setCopied] = useState(false)
+  const [searchParams] = useSearchParams()
+
+  // Memory-routed embeds have no address to link to, so there is nothing to offer.
+  if (!hrefFor) return null
+
+  const onShare = async () => {
+    const url = hrefFor(calendarShareRoute(searchParams, start, end))
+
+    if (await share({ title: t('calendar.share_title', { dates: label }), url })) return
+
+    await navigator.clipboard?.writeText(url).then(() => {
+      setCopied(true)
+      globalThis.setTimeout(() => setCopied(false), 2000)
+    })
+  }
+  const name = copied ? t('calendar.link_copied') : t('event.actions.share')
+
+  return (
+    <Button isIconOnly aria-label={name} size="sm" title={name} variant="ghost" onClick={onShare}>
+      {copied ? <Check className="text-primary-11" size={20} /> : <Share size={20} />}
+      <span aria-live="polite" className="sr-only">
+        {copied ? name : ''}
+      </span>
+    </Button>
+  )
+}
+
 // This drives Schedule-X from this project's own header, rather than styling its built-in
 // one, whose date picker, view dropdown, and nav kept causing conflicts. The `calendar-controls`
 // plugin is a public API (`setView`/`setDate`/`getRange`/…), so the header uses this project's
@@ -167,13 +209,14 @@ function CalendarControls({ controls }: { controls: CalendarControlsPlugin }) {
   const today = todayISO()
   const hasDates = isDateRestricted(filters.dateRange)
   const window = calendarWindow(filters.dateRange, today)
+  const windowDates = new Intl.DateTimeFormat(locale, {
+    day: 'numeric',
+    month: 'short',
+  }).formatRange(DateTime.fromISO(window.start).toJSDate(), DateTime.fromISO(window.end).toJSDate())
   const label = isList
     ? window.isThisWeek
       ? t('calendar.next_7_days')
-      : new Intl.DateTimeFormat(locale, { day: 'numeric', month: 'short' }).formatRange(
-          DateTime.fromISO(window.start).toJSDate(),
-          DateTime.fromISO(window.end).toJSDate(),
-        )
+      : windowDates
     : !dt
       ? ''
       : option === CALENDAR_VIEW_MONTH
@@ -228,6 +271,7 @@ function CalendarControls({ controls }: { controls: CalendarControlsPlugin }) {
       <div className="flex w-full items-center justify-between gap-2">
         <DrawerTitle title={place ?? t('calendar.title')} />
         <div className="flex shrink-0 items-center gap-2">
+          {isList && <ShareDates end={window.end} label={windowDates} start={window.start} />}
           <FilterButton iconOnly counted={chosenCalendarFilters(filters, isList)} />
           <CloseButton />
         </div>
@@ -320,6 +364,21 @@ function CalendarControls({ controls }: { controls: CalendarControlsPlugin }) {
 // keeps the header and pills visible while the cache-once source resolves. Across a remount,
 // and when returning from an event, the view and focused date restore from
 // `useCalendarPosition`.
+// A link opened fresh should show the place it is about, not one cluster on a world map. Arriving
+// from inside the widget, the map is already there.
+function useFrameScope(slug: string | null) {
+  const { locale } = useLocale()
+  const { frameRegion } = useMapController()
+  const { data: region } = useQuery({ ...regionQuery(slug ?? '', locale), enabled: Boolean(slug) })
+
+  useFrameOnTop(
+    ({ isEntry }) => {
+      if (region && isEntry) frameRegion(region)
+    },
+    [region, frameRegion],
+  )
+}
+
 export function CalendarView() {
   const filters = useEventFilters()
   // Shared with the grid (which registers + binds it) and the header (which drives it). Stable
@@ -327,6 +386,8 @@ export function CalendarView() {
   const controls = useMemo(() => createCalendarControlsPlugin(), [])
   const isWide = useIsWideWidget()
   const { option } = resolveCalendarView(useCalendarView(), isWide)
+
+  useFrameScope(filters.region)
 
   return (
     <>

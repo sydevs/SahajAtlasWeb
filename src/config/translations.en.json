@@ -1,6 +1,7 @@
 {
   "calendar": {
     "clear_filters": "Clear filters",
+    "link_copied": "Link copied",
     "next": "Next",
     "next_7_days": "Next 7 days",
     "next_class": "Next class: %{date}",
@@ -8,6 +9,7 @@
     "none_match_filters": "No classes match your filters on these dates.",
     "pick_date": "Pick a date",
     "previous": "Previous",
+    "share_title": "Meditation classes, %{dates}",
     "title": "Calendar",
     "today": "Today",
     "tomorrow": "Tomorrow",

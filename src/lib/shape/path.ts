@@ -207,6 +207,23 @@ export const calendarPath = (regionSlug?: string): string =>
 export const thisWeekPath = (regionSlug: string): string =>
   `/calendar?region=${encodeURIComponent(regionSlug)}&view=list`
 
+/**
+ * The link to a stretch of dates in the week list: the current query (scope and filters), on the
+ * List view, with those dates written in.
+ */
+export const calendarShareRoute = (
+  current: URLSearchParams,
+  start: string,
+  end: string,
+): string => {
+  const params = new URLSearchParams(current)
+
+  params.set('view', 'list')
+  params.set('dates', `${start},${end}`)
+
+  return `/calendar?${params.toString()}`
+}
+
 /** What an incoming pathname resolves to, keyed off its terminal segment. */
 export type ResolvedPath = { kind: 'region'; slug: string } | { kind: 'event'; id: number } | null
 

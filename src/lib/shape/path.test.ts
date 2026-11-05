@@ -13,6 +13,7 @@ import {
   resolveStack,
   safePath,
   topViewKey,
+  calendarShareRoute,
 } from './path'
 
 describe('safePath', () => {
@@ -420,5 +421,22 @@ describe('topViewKey', () => {
   // change": the same SearchView must re-frame when `?center` moves.
   it('is unchanged by a re-search on the same view', () => {
     expect(topViewKey('/search')).toBe(topViewKey('/search'))
+  })
+})
+
+describe('calendarShareRoute', () => {
+  it('keeps the scope and filters, and writes in the list view and the dates', () => {
+    const route = calendarShareRoute(
+      new URLSearchParams('region=gb&format=online'),
+      '2026-11-12',
+      '2026-11-18',
+    )
+    const params = new URLSearchParams(route.split('?')[1])
+
+    expect(route.startsWith('/calendar?')).toBe(true)
+    expect(params.get('region')).toBe('gb')
+    expect(params.get('format')).toBe('online')
+    expect(params.get('view')).toBe('list')
+    expect(params.get('dates')).toBe('2026-11-12,2026-11-18')
   })
 })
