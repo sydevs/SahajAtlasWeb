@@ -52,7 +52,9 @@ export function SearchView() {
 
   return (
     <>
-      <DrawerHeader>
+      {/* The field shares this band with Close, but its suggestions span the whole band: a dropdown
+          narrower than the panel leaves the list's counts peeking out beside it. */}
+      <DrawerHeader className="[container-type:inline-size] [--sy-results-w:100cqi]">
         <SearchField />
         <CloseButton />
       </DrawerHeader>
