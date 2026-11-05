@@ -97,6 +97,21 @@ export function useCoarsePointer(): boolean {
   return useMediaQuery({ query: '(hover: none) and (pointer: coarse)' })
 }
 
+/**
+ * The window height at or under which the map's control column runs as a row along the top,
+ * because a column would sit under the sheet (`@media (max-height: 480px)` in globals.css).
+ */
+export const SHORT_VIEWPORT_MAX_PX = 480
+
+/**
+ * This checks whether the window is short enough for that row: a phone on its side.
+ * It reads the viewport on purpose, to agree with the CSS that lays out the row. Only the
+ * frameless phone sheet asks it, and that sheet is measured against the window too.
+ */
+export function useIsShortViewport(): boolean {
+  return useMediaQuery({ query: `(max-height: ${SHORT_VIEWPORT_MAX_PX}px)` })
+}
+
 /** The device has a real pointer that can rest on something, so hover can carry content. */
 export const REAL_POINTER_QUERY = '(hover: hover) and (pointer: fine)'
 
