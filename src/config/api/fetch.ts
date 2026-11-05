@@ -36,6 +36,7 @@ import {
   childRoute,
   childrenOf,
   DEFAULT_FILTERS,
+  hasActiveFilters,
   indexRegions,
   isOnline,
   isUnverified,
@@ -354,6 +355,23 @@ const indexedFeed = (regions: RegionNode[], geojson: Geojson) => {
   return feedMemo
 }
 
+// The features a browse list counts and shows: the same check the map applies to its pins, so a
+// filtered URL can't show a pin count and a list that disagree. Framing keeps using the full set.
+const visibleFeatures = (
+  events: IndexedFeature[],
+  regions: RegionNode[],
+  filters?: EventFilters,
+): IndexedFeature[] => {
+  if (!filters || !hasActiveFilters(filters)) return events
+
+  const matchesRegion = buildRegionMatcher(regions, filters.region)
+  const today = todayISO()
+
+  return events.filter((event) =>
+    matchesFilters(event.feature.properties, filters, today, matchesRegion),
+  )
+}
+
 // This builds a list or map item from an agnostic feed feature.
 // It joins the localized `title` from the per-locale titles map.
 // It falls back to an empty string if a title is missing, so a data gap cannot fail the parse.
@@ -414,9 +432,9 @@ const byEventCountDesc = (a: RegionListItem, b: RegionListItem) => b.eventCount 
 // It derives both from the cached region tree and feed, with no dedicated `/regions` read.
 // It reads no titles, because a country card shows no event title.
 // So this list stays locale-agnostic.
-const getCountries = async (): Promise<RegionListItem[]> => {
+const getCountries = async (filters?: EventFilters): Promise<RegionListItem[]> => {
   const [regions, geojson] = await Promise.all([loadRegions(), loadGeojson()])
-  const { events } = indexedFeed(regions, geojson)
+  const events = visibleFeatures(indexedFeed(regions, geojson).events, regions, filters)
 
   // Ordering is the list's own concern, not the feed's.
   // `CountriesView` sorts by event count.
@@ -444,7 +462,7 @@ const getCountries = async (): Promise<RegionListItem[]> => {
 // The cached region tree supplies the node, its children, and its ancestry.
 // The feed supplies bounds, center, and counts.
 // The per-locale titles map supplies event titles, joined by id.
-const getRegion = async (slug: string): Promise<Region> => {
+const getRegion = async (slug: string, filters?: EventFilters): Promise<Region> => {
   const [regions, geojson, titles] = await Promise.all([
     loadRegions(),
     loadGeojson(),
@@ -463,7 +481,8 @@ const getRegion = async (slug: string): Promise<Region> => {
   // `getCountries` still hides 0-event countries from the home list.
   // So a viewer reaches this state only through a direct link, or through a region whose events have all ended.
   // A viewer never reaches it by browsing in.
-  const eventCount = countUnder(events, node.id)
+  const visible = visibleFeatures(events, regions, filters)
+  const eventCount = countUnder(visible, node.id)
   const path = regionRoute(node)
   const isParent = node.level === 'country' || node.level === 'region'
   const bounds = boundsUnder(events, node.id)
@@ -473,7 +492,7 @@ const getRegion = async (slug: string): Promise<Region> => {
   // Online events roll up at every level.
   const children = isParent ? childrenOf(index, node.id) : []
   const { byChild, direct, online } = partitionUnder(
-    events,
+    visible,
     node.id,
     children.map((child) => child.id),
   )
