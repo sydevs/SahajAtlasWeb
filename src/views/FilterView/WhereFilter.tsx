@@ -3,6 +3,7 @@ import { useQuery } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
 import { useSearchParams } from 'react-router'
 import { LocateFixed, X } from 'lucide-react'
+import clsx from 'clsx'
 
 import { Button } from '@/components/atoms/Button'
 import { LocationHelp } from '@/components/molecules/LocationHelp'
@@ -23,6 +24,8 @@ export type WhereFilterProps = {
   onClear: () => void
   /** The town search and Near me only make sense where the results rank by place. */
   searchable?: boolean
+  /** Nothing is chosen yet, so choosing a place is the one obvious next step. */
+  prominent?: boolean
 }
 
 /**
@@ -30,7 +33,13 @@ export type WhereFilterProps = {
  * Location comes first because it's the first thing a visitor is deciding, and it's what makes
  * every count below it mean something.
  */
-export function WhereFilter({ region, onPlace, onClear, searchable = true }: WhereFilterProps) {
+export function WhereFilter({
+  region,
+  onPlace,
+  onClear,
+  searchable = true,
+  prominent = false,
+}: WhereFilterProps) {
   const { t } = useTranslation()
   const [searchParams] = useSearchParams()
   const { hasMap } = useWidgetMode()
@@ -57,13 +66,21 @@ export function WhereFilter({ region, onPlace, onClear, searchable = true }: Whe
       {searchable && (
         // Px, not `h-11`: the geocoder redefines `--spacing` inside itself, so a spacing-scale
         // height resolves against its value and comes out three times too tall.
-        <div className="flex items-start gap-2 [&_input]:h-[44px]">
+        <div
+          className={clsx(
+            'flex gap-2 [&_input]:h-[44px] [&_input]:text-base',
+            prominent ? 'flex-col' : 'items-start',
+          )}
+        >
           <Button
             aria-pressed={nearMeOn}
-            className={nearMeOn ? 'h-11 shrink-0' : 'h-11 shrink-0 border-gray-6 text-foreground'}
-            color={nearMeOn ? 'primary' : 'neutral'}
+            className={clsx(
+              'h-[44px] shrink-0 text-base',
+              !nearMeOn && !prominent && 'border-gray-6 text-foreground',
+            )}
+            color={nearMeOn || prominent ? 'primary' : 'neutral'}
             isLoading={status === 'locating'}
-            variant={nearMeOn ? 'solid' : 'bordered'}
+            variant={nearMeOn || prominent ? 'solid' : 'bordered'}
             onClick={nearMeOn ? onClear : locate}
           >
             {status !== 'locating' && <LocateFixed aria-hidden size={18} />}

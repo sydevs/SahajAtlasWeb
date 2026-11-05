@@ -98,6 +98,10 @@ export function FilterView() {
   // Clear resets the questions, not the Where: the visitor is still looking in the same place.
   const canClear = activeFilterCount({ ...filters, region: null }) > 0
 
+  // The calendar doesn't rank by place, so it has no place to ask for first.
+  const searchable = parentOf(location.pathname) !== '/calendar'
+  const placeFirst = searchable && !filters.region && !center
+
   return (
     <>
       <DrawerHeader className="justify-between">
@@ -107,11 +111,13 @@ export function FilterView() {
       <DrawerBody className="scroll-pb-[calc(var(--sy-footer-h,0px)_+_var(--sy-sheet-top,0px))] p-4">
         <SearchFilters
           facets={facets}
+          placeFirst={placeFirst}
           value={filters}
           where={
             <WhereFilter
+              prominent={placeFirst}
               region={filters.region}
-              searchable={parentOf(location.pathname) !== '/calendar'}
+              searchable={searchable}
               onClear={clearWhere}
               onPlace={pickPlace}
             />

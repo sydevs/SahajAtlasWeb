@@ -4,7 +4,7 @@ import type { FilterFacets } from '@/hooks/use-filter-facets'
 import { type ReactNode, useMemo, useState } from 'react'
 import { Info } from 'luxon'
 import { useTranslation } from 'react-i18next'
-import { ChevronDown, Moon, Sun, Sunrise, Sunset } from 'lucide-react'
+import { ChevronDown, ChevronRight, Moon, Sun, Sunrise, Sunset } from 'lucide-react'
 import clsx from 'clsx'
 
 import { Checkbox } from '@/components/atoms/Checkbox'
@@ -197,6 +197,7 @@ export function LanguageFilter({ value, patch, facets, className }: FilterContro
           <ToggleGroupItem
             key={option.code}
             className="h-11 justify-between gap-2 px-3"
+            disabled={option.count === 0 && !value.languages.includes(option.code)}
             value={option.code}
           >
             <span className="truncate">{languageLabel(option.code)}</span>
@@ -229,6 +230,7 @@ export function LanguageFilter({ value, patch, facets, className }: FilterContro
             appearance="checkbox"
             checked={value.languages.includes(option.code)}
             className="w-full rounded px-2 py-2 hover:bg-gray-3"
+            disabled={option.count === 0 && !value.languages.includes(option.code)}
             onCheckedChange={() => toggle(option.code)}
           >
             <span className="flex w-full items-baseline justify-between gap-3">
@@ -375,6 +377,36 @@ export type SearchFiltersProps = {
   where?: ReactNode
   /** Live counts and relevance. Without them, every group shows, with no numbers. */
   facets?: FilterFacets
+  /**
+   * No place is chosen yet, and one can be. The form then asks only that, plus the online route,
+   * because "Tuesday, anywhere on earth" rarely helps. The other questions stay one tap away.
+   */
+  placeFirst?: boolean
+}
+
+/** A plain full-width row, for a route the visitor can take instead of choosing a place. */
+function RouteRow({
+  label,
+  count,
+  onClick,
+}: {
+  label: string
+  count?: number
+  onClick: () => void
+}) {
+  return (
+    <button
+      className="-mx-4 flex min-h-14 items-center justify-between gap-2 px-4 text-start text-base font-medium text-foreground outline-none hover:bg-gray-3 focus-visible:ring-2 focus-visible:ring-focus focus-visible:ring-inset"
+      type="button"
+      onClick={onClick}
+    >
+      <span>{label}</span>
+      <span className="flex shrink-0 items-center gap-2">
+        <OptionCount count={count} />
+        <ChevronRight aria-hidden className="text-gray-11 rtl:rotate-180" size={18} />
+      </span>
+    </button>
+  )
 }
 
 /**
@@ -385,13 +417,44 @@ export type SearchFiltersProps = {
  * Every option is one chip style. The groups differ by how they're laid out (a pair, a week
  * strip, a 2x2), not by how a chip is drawn, so nothing has to be learned twice.
  */
-export function SearchFilters({ value, onChange, where, facets }: SearchFiltersProps) {
+export function SearchFilters({
+  value,
+  onChange,
+  where,
+  facets,
+  placeFirst = false,
+}: SearchFiltersProps) {
   const { t } = useTranslation()
+  const [askEverything, setAskEverything] = useState(false)
   const relevance = facets?.relevance
   const control: FilterControlProps = {
     value,
     facets,
     patch: (next) => onChange({ ...value, ...next }),
+  }
+  // A question already answered stays on screen, so it can always be undone.
+  const answered =
+    value.format !== 'any' ||
+    value.daysOfWeek.length > 0 ||
+    value.timeOfDay.length > 0 ||
+    value.languages.length > 0 ||
+    value.cadence !== 'any' ||
+    isDateRestricted(value.dateRange)
+
+  if (placeFirst && !askEverything && !answered) {
+    return (
+      <div className="flex flex-col gap-4">
+        {where}
+        <div className="-mx-4 flex flex-col divide-y divide-divider border-y border-divider px-4">
+          <RouteRow
+            count={facets?.counts.format.online}
+            label={t('filters.where.online_route')}
+            onClick={() => control.patch({ format: 'online' })}
+          />
+          <RouteRow label={t('filters.where.anywhere')} onClick={() => setAskEverything(true)} />
+        </div>
+      </div>
+    )
   }
 
   return (

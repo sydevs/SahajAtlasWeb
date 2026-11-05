@@ -204,7 +204,9 @@
     },
     "where": {
       "label": "Where",
+      "anywhere": "Choose a day or time, anywhere",
       "near_me": "Near me",
+      "online_route": "Online classes, from anywhere",
       "placeholder": "Town or city"
     }
   },
