@@ -110,7 +110,7 @@
     "near_me_hint": "Your browser will ask for permission",
     "not_in_city": "Not in %{city}?",
     "near_me": "Classes near me",
-    "title": "Free Meditation Classes",
+    "title": "Free meditation classes",
     "use_location": "Use my location"
   },
   "event": {
@@ -150,8 +150,8 @@
       "distance_from_place": "%{distance} from %{place}",
       "distance_from_search": "%{distance} from the searched location",
       "email_host": "Email the host:",
-      "event_ended": "This event has ended",
-      "event_full": "This event is full",
+      "event_ended": "This class has ended",
+      "event_full": "This class is full",
       "expect_beginners": "Open to beginners. No experience needed.",
       "expect_title": "What to expect",
       "fact_free": "Free",
@@ -273,7 +273,7 @@
   "online": {
     "anywhere": "Join from anywhere",
     "row": "Online classes",
-    "title": "Online Classes"
+    "title": "Online classes"
   },
   "registration": {
     "errors": {
@@ -296,7 +296,7 @@
       "invite_friend": "Invite a friend along",
       "name": "Your name",
       "online_notice": "The link to this class will be emailed to you.",
-      "online_notice_title": "Online Session",
+      "online_notice_title": "Online session",
       "privacy_link": "Privacy policy",
       "reassurance": "Free, with no account needed.",
       "security_check": "Please complete the security check above.",
