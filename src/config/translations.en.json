@@ -47,7 +47,6 @@
     },
     "map": {
       "find_my_location": "Find my location",
-      "location_failed": "We couldn’t get your location. Search for a place instead.",
       "location_not_available": "Location not available"
     },
     "report": {
@@ -208,6 +207,15 @@
       "near_me": "Near me",
       "placeholder": "Town or city"
     }
+  },
+  "location": {
+    "blocked_intro": "Your browser is set not to share your location with this site, so it can’t ask again.",
+    "blocked_title": "Location is turned off",
+    "failed_body": "We couldn’t find your location just now. Try again, or search for your town.",
+    "search_instead": "Search for a town",
+    "steps_android": "To turn it back on in Chrome: tap the icon to the left of the web address, tap Permissions, then turn on Location. Then press Near me again.",
+    "steps_desktop": "To turn it back on: click the icon to the left of the web address, and allow Location. You may need to reload the page. Then press Near me again.",
+    "steps_ios": "To turn it back on: open the Settings app, then Privacy & Security, then Location Services. Turn it on, and set Safari Websites to While Using the App. Then come back and press Near me again."
   },
   "online": {
     "title": "Online Classes"

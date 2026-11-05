@@ -70,8 +70,8 @@ describe('a refused location request', () => {
     // dialog would be reparented into mapbox's own container.
     const [beforeMap, afterMap] = map.split('</ReactMapGL>')
 
-    expect(afterMap, 'markup after the map element').toContain('<Modal')
-    expect(beforeMap).not.toContain('<Modal')
+    expect(afterMap, 'markup after the map element').toContain('<LocationHelp')
+    expect(beforeMap).not.toContain('<LocationHelp')
   })
 
   it('hands focus back to the locate control on close', () => {

@@ -1,5 +1,6 @@
 import type { Geojson } from '@/types'
 import type { PlaceSearch } from '@/lib/shape'
+import type { LocationProblem } from '@/components/molecules/LocationHelp'
 
 import { useCallback, useEffect, useRef, useState } from 'react'
 
@@ -11,7 +12,14 @@ import { nearbyBounds } from '@/lib/geolocation'
 /** How long to wait for a place name before searching without one. */
 const NAME_WAIT_MS = 1500
 
-export type NearMeStatus = 'idle' | 'locating' | 'failed'
+/**
+ * How long a request may wait, in ms. Well past the time a person takes to answer the browser's
+ * prompt: iOS Safari appears to count the timeout while that prompt is open, so a short one
+ * reported a failure over a visitor who was still reading the question.
+ */
+export const LOCATE_TIMEOUT_MS = 30000
+
+export type NearMeStatus = 'idle' | 'locating' | LocationProblem
 
 /**
  * The Near me choice: asks the browser for a position only when pressed, and answers with a place
@@ -69,12 +77,14 @@ export function useNearMe({
           countryCode: feature ? geocodeCountryCode(feature) : undefined,
         })
       },
-      () => {
-        if (id === request.current) setStatus('failed')
+      (error) => {
+        if (id === request.current) {
+          setStatus(error.code === error.PERMISSION_DENIED ? 'blocked' : 'failed')
+        }
       },
-      { timeout: 30000, maximumAge: 300000 },
+      { timeout: LOCATE_TIMEOUT_MS, maximumAge: 300000 },
     )
   }, [geojson, locale, naming, onPlace, setCenter])
 
-  return { status, locate }
+  return { status, locate, dismiss: () => setStatus('idle') }
 }

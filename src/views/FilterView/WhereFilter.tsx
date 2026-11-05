@@ -1,9 +1,11 @@
+import { useRef } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
 import { useSearchParams } from 'react-router'
 import { LocateFixed, X } from 'lucide-react'
 
 import { Button } from '@/components/atoms/Button'
+import { LocationHelp } from '@/components/molecules/LocationHelp'
 import api, { regionsQuery } from '@/config/api'
 import { useWidgetMode } from '@/config/mode'
 import { GEOJSON_STALE_TIME } from '@/config/query-client'
@@ -42,14 +44,15 @@ export function WhereFilter({ region, onPlace, onClear, searchable = true }: Whe
     staleTime: GEOJSON_STALE_TIME,
   })
   const { data: regions } = useQuery(regionsQuery())
-  const { status, locate } = useNearMe({ geojson, naming: hasMap, onPlace })
+  const { status, locate, dismiss } = useNearMe({ geojson, naming: hasMap, onPlace })
+  const section = useRef<HTMLElement>(null)
 
   const regionName = region ? (regions?.find((node) => node.slug === region)?.name ?? region) : null
   const placeName = center && !nearMeOn ? searchParams.get('q') : null
   const scopeLabel = placeName || regionName
 
   return (
-    <section className="flex flex-col gap-2">
+    <section ref={section} className="flex flex-col gap-2">
       <h3 className="text-sm font-semibold text-foreground">{t('filters.where.label')}</h3>
       {searchable && (
         // Px, not `h-11`: the geocoder redefines `--spacing` inside itself, so a spacing-scale
@@ -76,11 +79,6 @@ export function WhereFilter({ region, onPlace, onClear, searchable = true }: Whe
           />
         </div>
       )}
-      {status === 'failed' && (
-        <p className="text-sm text-gray-11" role="status">
-          {t('common.map.location_failed')}
-        </p>
-      )}
       {scopeLabel && (
         <div>
           {/* The pseudo-element takes the pill's tap area up to 44px without making it look big. */}
@@ -95,6 +93,14 @@ export function WhereFilter({ region, onPlace, onClear, searchable = true }: Whe
           </button>
         </div>
       )}
+      <LocationHelp
+        problem={status === 'blocked' || status === 'failed' ? status : null}
+        onClose={dismiss}
+        onSearchInstead={() => {
+          dismiss()
+          section.current?.querySelector('input')?.focus()
+        }}
+      />
     </section>
   )
 }
