@@ -66,6 +66,6 @@ describe('ListingDetails', () => {
   })
 
   it('never offers a correction to the listing itself', () => {
-    expect(render()).not.toContain('submit.chrome.correct_entry')
+    expect(render()).not.toContain('submit.chrome.correct_entry_ask')
   })
 })

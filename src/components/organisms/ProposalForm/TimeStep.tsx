@@ -58,6 +58,8 @@ const segmentOn = 'bg-primary-9 text-primary-foreground shadow-sm'
 const segmentOff = 'text-foreground hover:bg-gray-3'
 
 export type TimeStepProps = {
+  /** A correction: the class already runs, so its past start isn't asked about. */
+  correcting?: boolean
   draft: ListingDraft
   errors: ListingErrors
   /** The listing as it would publish, for the plain-language summary under the fields. */
@@ -75,6 +77,7 @@ export type TimeStepProps = {
  * a time — the first date follows from them, and can still be moved.
  */
 export function TimeStep({
+  correcting = false,
   draft,
   errors,
   listing,
@@ -90,6 +93,10 @@ export function TimeStep({
   const weekly = draft.repeats === 'weekly'
   // A weekly class with no date yet is missing its day, and is told so at the day chips.
   const dayMissing = weekly && weekday === null && Boolean(errors.firstDate)
+  // A weekly class already running needs no first date. Picking a new day moves it to the future,
+  // and then it shows again.
+  const sinceLongAgo =
+    correcting && weekly && Boolean(draft.firstDate) && draft.firstDate < DateTime.now().toISODate()
   const weekdays = Info.weekdays('short', { locale })
   const weekdayNames = Info.weekdays('long', { locale })
   // The length a session runs, as one of the offered ones — read off the two times, so a class
@@ -271,7 +278,7 @@ export function TimeStep({
 
       {/* A weekly class's first date follows from its day, so it shows once there is one —
           prefilled, and still movable for a class that starts later. */}
-      {(!weekly || weekday !== null) && (
+      {(!weekly || weekday !== null) && !sinceLongAgo && (
         <ValidatedInput
           required
           error={errors.firstDate && t('submit.errors.first_date')}

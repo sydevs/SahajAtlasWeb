@@ -181,7 +181,7 @@ export function EventView({ id, basePath }: { id: number; basePath: string }) {
             (`LivePreviewController`), and a translations session wants this one live, so the
             translator can reach the screen its string is on. */}
         <Link appearance="footnote" href={correctionPath(basePath)}>
-          {t('submit.chrome.correct_entry')}
+          {t('submit.chrome.correct_entry_ask')}
         </Link>
       </DrawerBody>
       {stickyRegister && (

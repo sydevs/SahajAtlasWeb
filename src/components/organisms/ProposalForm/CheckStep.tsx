@@ -17,7 +17,7 @@ import {
 } from 'lucide-react'
 
 import { FIELD_TEXT, GroupHeading, StepHeading, ValidatedInput } from './fields'
-import { type SummaryRow, useScheduleLines, useSummaryRows } from './summary'
+import { type SummaryRow, useAutoTitle, useScheduleLines, useSummaryRows } from './summary'
 
 import { Alert } from '@/components/atoms/Alert'
 import { Button } from '@/components/atoms/Button'
@@ -26,7 +26,6 @@ import { EventChips } from '@/components/molecules/EventChips'
 import { FormField } from '@/components/molecules/FormField'
 import { userSubmissionValueMax } from '@/config/api/mutate'
 import { useLocale } from '@/hooks/use-locale'
-import { draftTitle } from '@/lib/proposal'
 
 /** What a change on a correction's Check can be: a row of the listing, the report, or the note. */
 export type ChangeKey = SummaryRow['key'] | 'stopped' | 'nobody' | 'note'
@@ -57,6 +56,10 @@ export type CheckStepProps = {
   challengeRef: RefObject<HTMLDivElement> | ((node: HTMLDivElement | null) => void)
   /** The challenge could not run, so Send cannot either — said, not left as a dead button. */
   challengeBlocked: boolean
+  /** An address is given and the challenge has not answered, so Send waits: said, not left dead. */
+  challengeWaiting: boolean
+  /** A correction that only reports nobody there, so nothing on the listing would change. */
+  reportOnly: boolean
   noChanges: boolean
   refusal?: string | false
 }
@@ -80,6 +83,8 @@ export function CheckStep({
   onMore,
   challengeRef,
   challengeBlocked,
+  challengeWaiting,
+  reportOnly,
   noChanges,
   refusal,
 }: CheckStepProps) {
@@ -94,7 +99,10 @@ export function CheckStep({
     <div className="flex flex-col gap-6">
       {correction ? (
         <>
-          <StepHeading intro={t('submit.changes.intro')} title={t('submit.changes.title')} />
+          <StepHeading
+            intro={t(reportOnly ? 'submit.changes.intro_report' : 'submit.changes.intro')}
+            title={t(reportOnly ? 'submit.changes.title_report' : 'submit.changes.title')}
+          />
           {correction.event && listing && (
             <ChangeList
               base={correction.event}
@@ -164,6 +172,11 @@ export function CheckStep({
       </section>
 
       <div ref={challengeRef} className="empty:hidden" />
+      {challengeWaiting && (
+        <p className="text-sm text-gray-11" role="status">
+          {t('submit.review.checking')}
+        </p>
+      )}
       {challengeBlocked && (
         <Alert color="danger" description={t('submit.errors.captcha')} role="alert" size="sm" />
       )}
@@ -191,6 +204,7 @@ function ListingSummary({
   const { t } = useTranslation()
   const { locale } = useLocale()
   const schedule = useScheduleLines(draft, listing)
+  const autoTitle = useAutoTitle(draft)
   const online = draft.eventType === 'online'
   const place = online ? draft.city : draft.address
   const contact = [draft.contactName, draft.contactPhone, draft.contactEmail]
@@ -209,7 +223,7 @@ function ListingSummary({
       <div className="flex flex-col gap-3 px-4 pt-4 pb-3">
         <div className="flex items-start justify-between gap-2">
           <h4 className="min-w-0 text-base leading-snug font-semibold text-balance">
-            {draftTitle(draft) || t('submit.chrome.title_add')}
+            {draft.title.trim() || autoTitle || t('submit.chrome.title_add')}
           </h4>
           <EditButton label={t('submit.more.title_label')} onClick={() => onEdit('details')} />
         </div>

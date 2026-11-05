@@ -30,7 +30,7 @@ describe('the add-a-class entry', () => {
 
   it('offers a correction on a class page', () => {
     expect(wiring('src/views/EventView/EventView.tsx')).toContain(
-      "href={correctionPath(basePath)}>{t('submit.chrome.correct_entry')}",
+      "href={correctionPath(basePath)}>{t('submit.chrome.correct_entry_ask')}",
     )
   })
 })

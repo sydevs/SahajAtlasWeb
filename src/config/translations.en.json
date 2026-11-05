@@ -277,7 +277,6 @@
     },
     "chrome": {
       "back": "Back",
-      "correct_entry": "Suggest a correction",
       "title_add": "Add a class",
       "title_correct": "Suggest a correction",
       "change": "Change",
@@ -290,7 +289,8 @@
       "step_review": "Check",
       "add_row": "Add a class to the map",
       "add_row_in": "Add a class in %{place} to the map",
-      "add_hint": "Run one, or know of one? A coordinator checks it before it appears."
+      "add_hint": "Run one, or know of one? A coordinator checks it before it appears.",
+      "correct_entry_ask": "Something wrong, or nobody there? Tell us"
     },
     "contact": {
       "email_label": "Email",
@@ -305,7 +305,9 @@
       "body_check": "A coordinator for %{city} will check it before it appears on the map.",
       "body_check_no_city": "A coordinator will check it before it appears on the map.",
       "body_correct": "A coordinator for %{city} will check it before anything changes on the listing.",
-      "body_correct_no_city": "A coordinator will check it before anything changes on the listing."
+      "body_correct_no_city": "A coordinator will check it before anything changes on the listing.",
+      "body_report": "A coordinator for %{city} will read your report. It doesn’t change the listing.",
+      "body_report_no_city": "A coordinator will read your report. It doesn’t change the listing."
     },
     "errors": {
       "address_required": "Choose an address from the search results.",
@@ -346,7 +348,8 @@
       "add": "Add",
       "email_help_private": "Only the coordinator sees it, in case they have a question.",
       "online_line": "Online, hosted from %{city}",
-      "to_email": "Continue to your email"
+      "to_email": "Continue to your email",
+      "checking": "You can send once the security check above is done."
     },
     "when": {
       "end_time": "Ends at",
@@ -477,7 +480,9 @@
       "report_info": "Information for the coordinator",
       "remove": "Remove",
       "nobody": "Nobody was there",
-      "nobody_on": "On %{date}"
+      "nobody_on": "On %{date}",
+      "title_report": "Check your report",
+      "intro_report": "The coordinator reads this. It doesn’t change the listing."
     },
     "summary": {
       "type": "Type",

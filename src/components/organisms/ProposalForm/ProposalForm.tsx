@@ -173,6 +173,12 @@ export function ProposalForm(props: ProposalFormProps) {
   if (step === 'review' && !seenReview) setSeenReview(true)
 
   const reviewed = reviewedProp || seenReview || step === 'review'
+  // Nobody-there travels in the note alone, so with nothing else on it the listing stays as it is.
+  const reportOnly =
+    Boolean(correction) &&
+    props.nobodyOn != null &&
+    !props.reported &&
+    isUnchanged(buildProposal(props.draft, correction))
   const go = onStep
 
   return (
@@ -208,11 +214,13 @@ export function ProposalForm(props: ProposalFormProps) {
           correction={Boolean(correction)}
           draft={props.draft}
           email={props.sender.email}
+          reportOnly={reportOnly}
           onClose={props.onClose}
         />
       ) : step === 'review' ? (
         <ReviewStage
           {...props}
+          reportOnly={reportOnly}
           onBounce={(invalid) => {
             setBounced(invalid)
             onStep(invalid)
@@ -391,6 +399,7 @@ function StepStage({
           )}
           {step === 'when' && (
             <TimeStep
+              correcting={Boolean(correction)}
               draft={draft}
               endMissing={endMissing && attempted?.step === 'when'}
               ends={endsOn}
@@ -458,7 +467,8 @@ function ReviewStage({
   onSent,
   onGo,
   onBounce,
-}: StageProps & { onBounce: (step: ListingStep) => void }) {
+  reportOnly,
+}: StageProps & { onBounce: (step: ListingStep) => void; reportOnly: boolean }) {
   const { t } = useTranslation()
   const { locale } = useLocale()
   const [emailError, setEmailError] = useState(false)
@@ -467,6 +477,28 @@ function ReviewStage({
   const scope = useFocusFirstInvalid(attemptAt)
   const { challengeRef, token, status, reset } = useTurnstile()
   const base = correction?.baseDraft
+  // Once the address field has been on screen, Send is what the footer's button does.
+  const [emailSeen, setEmailSeen] = useState(false)
+
+  useEffect(() => {
+    const field = scope.current?.querySelector('#submit-sender-email')
+
+    if (!field || typeof IntersectionObserver === 'undefined') return
+
+    // The bottom margin takes off the sticky footer, which can cover the field on a phone.
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (!entry?.isIntersecting) return
+        setEmailSeen(true)
+        observer.disconnect()
+      },
+      { rootMargin: '0px 0px -96px 0px', threshold: 0.6 },
+    )
+
+    observer.observe(field)
+
+    return () => observer.disconnect()
+  }, [scope])
 
   const mutation = useMutation({
     // A re-sent proposal would replay a single-use token the server already redeemed.
@@ -512,8 +544,8 @@ function ReviewStage({
     const invalid = firstInvalidStep(draft, base)
 
     if (invalid) return onBounce(invalid)
-    // The footer's first press, with no address yet, only brings the field into view: an error
-    // for a field the visitor has not reached yet would scold them for reading.
+    // With no address yet, a press brings the field into view. It only says what's missing once
+    // the visitor has seen the field: before that, an error would scold them for reading.
     if (!emailGiven) {
       // From the form's own root, not `document`: the widget lives in a shadow root.
       const root = event.currentTarget.getRootNode() as ParentNode
@@ -521,6 +553,7 @@ function ReviewStage({
 
       field?.scrollIntoView({ block: 'center', behavior: 'smooth' })
       field?.focus({ preventScroll: true })
+      if (emailSeen) setEmailError(true)
 
       return
     }
@@ -533,9 +566,7 @@ function ReviewStage({
     setEmailError(false)
 
     const built = buildProposal(draft, correction)
-    // A new place re-places the class through `location` alone, so it counts as a change.
-    const unchanged =
-      Object.keys(built.proposed).length === 0 && Object.keys(built.location).length === 0
+    const unchanged = isUnchanged(built)
     // "It has stopped running" is the report itself, so it leads the note whatever the visitor
     // adds to it — a note saying only "ask Elizabeth" must still say what to ask about.
     // A typed-in place has no Events field to travel in, so the note carries it.
@@ -586,6 +617,7 @@ function ReviewStage({
           <CheckStep
             challengeBlocked={status === 'blocked'}
             challengeRef={challengeRef}
+            challengeWaiting={emailGiven && !token && status !== 'blocked'}
             correction={
               correction && {
                 baseDraft: correction.baseDraft,
@@ -601,6 +633,7 @@ function ReviewStage({
             noChanges={noChanges}
             preview={preview}
             refusal={refusal}
+            reportOnly={reportOnly}
             sender={sender}
             onEdit={(section: ListingSection | 'note') => onGo(section)}
             onEditReport={(report) => onIntent?.(report, 'note')}
@@ -623,12 +656,16 @@ function ReviewStage({
           type="submit"
           variant="solid"
         >
-          {t(emailGiven ? 'submit.review.send' : 'submit.review.to_email')}
+          {t(emailGiven || emailSeen ? 'submit.review.send' : 'submit.review.to_email')}
         </Button>
       </FlowFooter>
     </form>
   )
 }
+
+/** A new place re-places the class through `location` alone, so it counts as a change. */
+const isUnchanged = (built: BuiltProposal) =>
+  Object.keys(built.proposed).length === 0 && Object.keys(built.location).length === 0
 
 function FlowFooter({ sticky, children }: { sticky?: boolean; children: ReactNode }) {
   return (
@@ -646,12 +683,15 @@ function Receipt({
   correction,
   draft,
   email,
+  reportOnly,
   onClose,
 }: {
   /** A correction changes a listed class; a new listing appears. The receipt says which. */
   correction: boolean
   draft: ListingDraft
   email: string
+  /** Only a report that nobody was there: nothing is waiting to change on the listing. */
+  reportOnly: boolean
   onClose: () => void
 }) {
   const { t } = useTranslation()
@@ -666,13 +706,17 @@ function Receipt({
         <div className="flex max-w-80 flex-col gap-2" role="status">
           <h3 className="text-lg font-semibold">{t('submit.done.heading')}</h3>
           <p className="text-base text-gray-11">
-            {correction
+            {reportOnly
               ? city
-                ? t('submit.done.body_correct', { city })
-                : t('submit.done.body_correct_no_city')
-              : city
-                ? t('submit.done.body_check', { city })
-                : t('submit.done.body_check_no_city')}{' '}
+                ? t('submit.done.body_report', { city })
+                : t('submit.done.body_report_no_city')
+              : correction
+                ? city
+                  ? t('submit.done.body_correct', { city })
+                  : t('submit.done.body_correct_no_city')
+                : city
+                  ? t('submit.done.body_check', { city })
+                  : t('submit.done.body_check_no_city')}{' '}
             {email.trim() && t('submit.done.email_line', { email: email.trim() })}
           </p>
         </div>
