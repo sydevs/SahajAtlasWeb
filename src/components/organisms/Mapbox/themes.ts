@@ -30,7 +30,14 @@ export const controlTheme = {
     borderRadius: '4px',
     boxShadow: 'none',
   },
-  // The geocoder's own placeholder is 37% black, about 2.6:1 on white. This lifts it
-  // to the same secondary text the rest of the panel uses.
-  cssText: `.Input::placeholder { color: var(--gray-11); opacity: 1; }`,
+  // The geocoder hardcodes three things its variables don't reach. Typed text is 75% black in
+  // both themes, so `colorText` never touches it and it vanishes on a dark panel. Its focus state
+  // is a dotted border. And its placeholder is 37% black, about 2.6:1 on white. These restate all
+  // three in the tokens the rest of the panel uses, with the same 2px ring as `fieldChrome`.
+  cssText: `
+    .Input, .Input:focus { color: var(--gray-12); caret-color: var(--gray-12); }
+    .Input:focus { border: 0; }
+    .Input::placeholder { color: var(--gray-11); opacity: 1; }
+    .Geocoder:focus-within { box-shadow: 0 0 0 2px hsl(var(--primary-9)); }
+  `,
 }
