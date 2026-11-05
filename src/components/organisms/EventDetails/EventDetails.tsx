@@ -180,6 +180,16 @@ export function EventDetails({ event, basePath, ctaInline = true, children }: Ev
 
       <EventAddToCalendar event={event} />
 
+      {/* With no phone, the Contact button already writes to this address. */}
+      {event.contactEmail && event.contactPhone && (
+        <p className="text-sm text-gray-11">
+          {t('event.display.email_host')}{' '}
+          <Link className="underline" href={`mailto:${event.contactEmail}`}>
+            {event.contactEmail}
+          </Link>
+        </p>
+      )}
+
       {/* People have turned up to find nobody there. Worth one quiet line, only when there
           is a host to ask, and a link only where a `tel:` reaches anything. */}
       {display.next && event.contactPhone && (

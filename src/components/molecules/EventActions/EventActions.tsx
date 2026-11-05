@@ -1,6 +1,6 @@
 import { FloatingFocusManager, FloatingPortal } from '@floating-ui/react'
 import { useTranslation } from 'react-i18next'
-import { Globe, Navigation, Phone, Share } from 'lucide-react'
+import { Globe, Mail, Navigation, Phone, Share } from 'lucide-react'
 
 import { useAtlasNavigate } from '@/hooks/use-atlas-navigate'
 import { ActionButton, ActionRow } from '@/components/molecules/ActionRow'
@@ -144,8 +144,23 @@ export function EventActions({ event, basePath }: EventActionsProps) {
             ]
           : []
       case 'contact': {
-        if (!event.contactPhone) return []
         const label = t('event.actions.contact')
+
+        // A host with an email and no phone: the button writes to them.
+        if (!event.contactPhone) {
+          return event.contactEmail
+            ? [
+                <ActionButton
+                  key="contact"
+                  href={`mailto:${event.contactEmail}`}
+                  icon={<Mail size={ICON_SIZE} />}
+                  label={t('event.actions.email')}
+                  lead={contactLeads}
+                  stacked={stacked}
+                />,
+              ]
+            : []
+        }
 
         // Touch devices dial. Everything else shows the number with a copy affordance.
         if (canDial) {
