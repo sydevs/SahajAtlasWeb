@@ -574,6 +574,7 @@ export function DrawerStack() {
       canCollapse,
       canDismiss: action !== 'collapse',
       toggle: () => setSnap((s) => (s === PEEK_SNAP ? OPEN_SNAP : PEEK_SNAP)),
+      expand: () => setSnap(WIDE_SNAP),
       dismiss: () => {
         // Marks the dismiss navigation as a transition: unmounting a heavy view (the
         // calendar's large grid) would otherwise reconcile synchronously and freeze

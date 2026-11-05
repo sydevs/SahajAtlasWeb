@@ -60,6 +60,8 @@ export type DrawerControl = {
   canDismiss: boolean
   toggle: () => void
   dismiss: () => void
+  /** Lifts a bottom sheet to its near-full height, for content that just grew. */
+  expand?: () => void
 }
 
 export const DrawerControlContext = createContext<DrawerControl>({
