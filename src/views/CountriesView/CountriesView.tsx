@@ -142,7 +142,7 @@ export function CountriesView() {
               <ListItem
                 key={country.id}
                 count={country.eventCount}
-                href={`${country.path}${filterSearch}`}
+                href={country.singleEventPath ?? `${country.path}${filterSearch}`}
                 icon={
                   country.countryCode ? (
                     <CircleFlag

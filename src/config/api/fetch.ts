@@ -410,6 +410,18 @@ export const regionRoute = (node: RegionNode): string =>
 // A non-ISO slug, such as an un-migrated local dev seed, yields no flag instead of an error.
 const countryCodeOf = (node: RegionNode): string | undefined => isoCountryCode(node.slug)
 
+// A place holding exactly one class has no list worth showing, so its row opens the class. The
+// URL still nests under the place, so dismissing goes back where the visitor came from, and a
+// fresh deep link climbs to the place's own page. An online class stays out of this: the rows
+// count located classes, and one located class beside an online one is still two to choose from.
+const singleEventPath = (events: IndexedFeature[], node: RegionNode): string | undefined => {
+  const under = events.filter((event) => event.ancestorIds.includes(node.id))
+
+  return under.length === 1 && !under[0].online
+    ? childRoute(regionRoute(node), under[0].feature.properties.id)
+    : undefined
+}
+
 const toListItem = (node: RegionNode, eventCount: number): RegionListItem =>
   RegionListItemSchema.parse({
     id: node.id,
@@ -450,6 +462,7 @@ const getCountries = async (filters?: EventFilters): Promise<RegionListItem[]> =
         countryCode: countryCodeOf(node),
         eventCount: countUnder(events, node.id),
         path: regionRoute(node),
+        singleEventPath: singleEventPath(events, node),
       }),
     )
     .filter((country) => country.eventCount > 0)
@@ -505,7 +518,11 @@ const getRegion = async (slug: string, filters?: EventFilters): Promise<Region> 
   for (const child of children) {
     const located = byChild.get(child.id)?.length ?? 0
 
-    if (located > 0) subregions.push(toListItem(child, located))
+    if (located > 0)
+      subregions.push({
+        ...toListItem(child, located),
+        singleEventPath: singleEventPath(visible, child),
+      })
   }
   subregions.sort(byEventCountDesc)
 

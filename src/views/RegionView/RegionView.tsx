@@ -179,7 +179,7 @@ export function RegionView({ slug }: { slug: string }) {
               <ListItem
                 key={`region-${child.id}`}
                 count={child.eventCount}
-                href={`${child.path}${filterSearch}`}
+                href={child.singleEventPath ?? `${child.path}${filterSearch}`}
                 label={child.name}
                 subtitle={child.subtitle}
               />
