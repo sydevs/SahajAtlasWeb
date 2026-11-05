@@ -93,8 +93,9 @@ type SecondaryViews = ReturnType<typeof loadSecondaryViews>
 //  - 440px   a searched place: enough to see its classes and that other groups follow
 //  - 0.97    near-full
 const SEARCH_SNAP = `${SEARCH_SHEET_PX}px` // a searched place: the answer, and the groups below it
-const SNAP_POINTS = ['88px', '356px', '380px', SEARCH_SNAP, 0.97]
-const PEEK_SNAP = '88px' // the collapsed peek
+const PEEK_PX = 88
+const PEEK_SNAP = `${PEEK_PX}px` // the collapsed peek
+const SNAP_POINTS = [PEEK_SNAP, '356px', '380px', SEARCH_SNAP, 0.97]
 const OPEN_SNAP = '356px' // default, and what the peek expands to
 const HOME_SNAP = '380px' // what the first screen opens at
 const WIDE_SNAP = SNAP_POINTS[SNAP_POINTS.length - 1] // the near-full snap the full-width calendar opens at
@@ -471,6 +472,12 @@ export function DrawerStack() {
           still = 0
           last = top
           sheet.style.setProperty('--sy-sheet-top', `${top}px`)
+          // Live rather than from `collapsed`, so a sheet being dragged up fills in as it
+          // rises instead of when it lands.
+          sheet.toggleAttribute(
+            'data-sy-peek',
+            (frameElement()?.clientHeight ?? window.innerHeight) - top < PEEK_PX + 8,
+          )
         }
       }
 

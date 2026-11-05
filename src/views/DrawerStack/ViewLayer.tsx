@@ -46,7 +46,9 @@ export function ViewLayer({
       animate={{ opacity: 1 }}
       aria-hidden={isPresent ? undefined : true}
       className={clsx(
-        'absolute inset-0 flex flex-col',
+        // At the peek only the header fits, so what follows it would show as a sliced-off
+        // strip. It also leaves the tab order, as nobody can see what they would land on.
+        'absolute inset-0 flex flex-col [[data-sy-peek]_&>*:not(:first-child)]:invisible',
         onHeight &&
           'lg:bottom-auto lg:max-h-[calc(var(--sy-panel-room,100dvh)-2px)] lg:[&>*]:flex-[0_1_auto]',
         !isPresent && 'pointer-events-none',
