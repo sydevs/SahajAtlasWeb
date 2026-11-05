@@ -87,17 +87,26 @@ export function CountriesView() {
       </DrawerHeader>
       <DrawerBody>
         <GeolocationSuggestion />
-        <List>
-          {/* Online classes belong to no country — a leading entry into the
-              online-filtered search rather than a place in the list below. */}
-          {onlineCount > 0 && (
+        {/* Online classes belong to no country — a leading entry into the
+            online-filtered search rather than a place in the list below. */}
+        {onlineCount > 0 && (
+          <List>
             <ListItem
               count={onlineCount}
               href={onlineSearch}
               icon={<Monitor size={20} />}
               label={t('online.title')}
             />
-          )}
+          </List>
+        )}
+        {/* A small uppercase section label, the We Meditate app's "MEDITATE WITH OTHERS"
+            voice: the search field above is one way in, the countries are the other. It
+            names the group without competing with the rows. Uppercase is CSS only, so the
+            copy stays sentence case for translators and screen readers. */}
+        <h3 className="px-4 pt-4 pb-1 text-xs font-medium tracking-[0.08em] text-gray-11 uppercase">
+          {t('countries.browse')}
+        </h3>
+        <List>
           {sortedCountries.map((country) => (
             <ListItem
               key={country.id}
