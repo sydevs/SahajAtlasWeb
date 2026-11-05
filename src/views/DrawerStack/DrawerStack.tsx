@@ -70,10 +70,11 @@ type SecondaryViews = ReturnType<typeof loadSecondaryViews>
 // The mobile bottom-sheet snap ladder, ascending. vaul reads a string as pixels, and a
 // number as a fraction of the sheet height:
 //  - '88px'  peek — the handle plus the search row, or the Back row and the title
-//  - '356px' the Back row, title, breadcrumbs, a list row, and a peek of the next
+//  - '356px' the Back row, title, a list row, and a peek of the next
 //  - 0.97    near-full
-const SNAP_POINTS = ['88px', '356px', 0.97]
-const PEEK_SNAP = '88px' // the collapsed peek
+const PEEK_PX = 88
+const PEEK_SNAP = `${PEEK_PX}px` // the collapsed peek
+const SNAP_POINTS = [PEEK_SNAP, '356px', 0.97]
 const OPEN_SNAP = '356px' // default, and what the peek expands to
 const WIDE_SNAP = SNAP_POINTS[2] // the near-full snap the full-width calendar opens at
 
@@ -291,6 +292,12 @@ export function DrawerStack() {
           still = 0
           last = top
           sheet.style.setProperty('--sy-sheet-top', `${top}px`)
+          // Live rather than from `collapsed`, so a sheet being dragged up fills in as it
+          // rises instead of when it lands.
+          sheet.toggleAttribute(
+            'data-sy-peek',
+            (frameElement()?.clientHeight ?? window.innerHeight) - top < PEEK_PX + 8,
+          )
         }
       }
 

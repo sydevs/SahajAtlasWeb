@@ -20,7 +20,12 @@ export function ViewLayer({ children }: { children: ReactNode }) {
     <motion.div
       animate={{ opacity: 1 }}
       aria-hidden={isPresent ? undefined : true}
-      className={clsx('absolute inset-0 flex flex-col', !isPresent && 'pointer-events-none')}
+      className={clsx(
+        // At the peek only the header fits, so what follows it would show as a sliced-off
+        // strip. It also leaves the tab order, as nobody can see what they would land on.
+        'absolute inset-0 flex flex-col [[data-sy-peek]_&>*:not(:first-child)]:invisible',
+        !isPresent && 'pointer-events-none',
+      )}
       exit={{ opacity: 0 }}
       initial={{ opacity: 0 }}
       transition={{ duration: 0.15 }}
