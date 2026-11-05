@@ -222,6 +222,8 @@
   --color-gray-10: var(--gray-10);
   --color-gray-11: var(--gray-11);
   --color-gray-12: var(--gray-12);
+  /* The warm accent for the We Meditate line icons (atoms/Icons/wm). See `--ornament`. */
+  --color-ornament: var(--ornament);
 
   --color-primary: hsl(var(--primary-9));
   --color-primary-foreground: hsl(var(--primary-on));
@@ -621,4 +623,19 @@
     opacity: 1;
     animation: none;
   }
+}
+
+/* `--ornament`: the coral the We Meditate icons are drawn in. The contrast solid (#E08E79)
+   is the app's coral but is under the 3:1 an icon needs on the panel, so light mode mixes
+   it toward the ramp's deep step; dark mode uses the solid itself. Both derive from the
+   contrast ramp, so a host palette repaints them too. */
+:root,
+.light,
+.light-theme {
+  --ornament: color-mix(in srgb, hsl(var(--contrast-9)) 55%, hsl(var(--contrast-11)));
+}
+
+.dark,
+.dark-theme {
+  --ornament: hsl(var(--contrast-9));
 }
