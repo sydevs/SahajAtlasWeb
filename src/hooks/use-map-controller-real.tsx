@@ -47,9 +47,9 @@ const MOBILE_SHEET_MAX_SHARE = 0.5
 // In a host's box the sheet opens taller (`DETAIL_SNAP` in DrawerStack).
 const FRAMED_SHEET_PX = 400
 const MAP_MARGIN = 20
-// The filter panel's 272px width plus the 16px it stands off the right edge (`end-4` in
+// The filter panel's 288px width plus the 16px it stands off the right edge (`end-4` in
 // `FiltersPanel`). The map controls beside it move left of the panel (`CONTROLS_BESIDE_PANEL`).
-const FILTER_PANEL_PX = 288
+const FILTER_PANEL_PX = 304
 const MIN_FIT_PX = 80
 
 // These constants keep zoom consistent.
