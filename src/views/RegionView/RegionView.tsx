@@ -1,22 +1,29 @@
-import { useSuspenseQuery } from '@tanstack/react-query'
+import { useMemo } from 'react'
+import { useQuery, useSuspenseQuery } from '@tanstack/react-query'
 import { Helmet } from 'react-helmet-async'
 import { useTranslation } from 'react-i18next'
-import { Monitor } from 'lucide-react'
 
 import { Alert } from '@/components/atoms/Alert'
 import { Link } from '@/components/atoms/Link'
 import { DrawerBody, DrawerHeader } from '@/components/atoms/Drawer'
 import { EventListItem, List, ListItem } from '@/components/molecules'
-import { regionQuery } from '@/config/api'
+import { calendarQuery, regionQuery } from '@/config/api'
 import { useLocale } from '@/hooks/use-locale'
 import { useMapController } from '@/hooks/use-map-controller'
 import { usePostEventFeedback } from '@/hooks/use-post-event-feedback'
 import { usePrefetchEvents } from '@/hooks/use-prefetch-event'
 import { useWidgetMode } from '@/config/mode'
-import { childRoute, searchPath } from '@/lib/shape'
+import {
+  DEFAULT_FILTERS,
+  calendarWindow,
+  childRoute,
+  eventsToCalendarEntries,
+  searchPath,
+  thisWeekPath,
+  todayISO,
+} from '@/lib/shape'
 import { validateWebUrl } from '@/lib/url'
 import {
-  CalendarButton,
   CloseButton,
   DrawerTitle,
   EmptyEventList,
@@ -25,6 +32,29 @@ import {
   SearchButton,
   useFrameOnTop,
 } from '@/views/shared'
+
+// How many classes the week list will show for a region: one read of the same query, so the
+// count and the list can't disagree. No number until it has loaded, and none for an empty week.
+function useThisWeekCount(regionSlug: string, enabled: boolean): number | undefined {
+  const { locale } = useLocale()
+  const { t } = useTranslation()
+  const filters = useMemo(() => ({ ...DEFAULT_FILTERS, region: regionSlug }), [regionSlug])
+  const { data } = useQuery({ ...calendarQuery(filters, locale), enabled })
+  const onlineLabel = t('event.display.online')
+
+  return useMemo(() => {
+    if (!data) return undefined
+
+    const window = calendarWindow(DEFAULT_FILTERS.dateRange, todayISO())
+    const count = eventsToCalendarEntries(data, filters, { onlineLabel }).filter((entry) => {
+      const date = entry.start.slice(0, 10)
+
+      return date >= window.start && date <= window.end
+    }).length
+
+    return count > 0 ? count : undefined
+  }, [data, filters, onlineLabel])
+}
 
 // A region at any level, at route `<region-path>`. It shows child-region cards, then this
 // region's own located events, in ONE mixed list. A city can hold both venue and centre
@@ -71,6 +101,9 @@ export function RegionView({ slug }: { slug: string }) {
   // no button on an error page could help here (issue #89). So the drawer says so plainly,
   // instead of rendering an empty <List>.
   const isEmpty = region.subregions.length === 0 && !hasEventList
+  // The date-first way in. A venue with one class has nothing to arrange by day.
+  const showThisWeek = !isEmpty && (region.subregions.length > 0 || region.events.length > 1)
+  const thisWeekCount = useThisWeekCount(region.slug, showThisWeek)
   // "All events are free" is the subtitle FALLBACK. It states this once per list — no Free
   // chip repeats on cards — but only where events are actually listed. A city's own subtitle
   // takes the slot when present.
@@ -88,11 +121,9 @@ export function RegionView({ slug }: { slug: string }) {
       )}
       <DrawerHeader className="justify-between">
         <DrawerTitle subtitle={subheader} title={header} />
-        {/* Calendar, search, filters and close form one right-aligned control group.
-            justify-between keeps the title left. The calendar and the filters both open
-            pre-scoped to this region. */}
+        {/* Search, filters and close form one right-aligned control group. justify-between
+            keeps the title left. The filters open pre-scoped to this region. */}
         <div className="flex shrink-0 items-center gap-2">
-          <CalendarButton regionSlug={region.slug} />
           <SearchButton />
           <FilterButton iconOnly />
           <CloseButton />
@@ -143,13 +174,19 @@ export function RegionView({ slug }: { slug: string }) {
           <EmptyEventList />
         ) : (
           <List>
+            {showThisWeek && (
+              <ListItem
+                count={thisWeekCount}
+                href={thisWeekPath(region.slug)}
+                label={t('calendar.next_7_days')}
+              />
+            )}
             {/* On a region with sub-regions, the online roll-up opens in its own drawer
                 via this card, keeping the placeless classes out of the mixed list below. */}
             {showOnlineCard && (
               <ListItem
                 count={region.onlineEvents.length}
                 href={childRoute(region.path, 'online')}
-                icon={<Monitor size={20} />}
                 label={t('online.title')}
               />
             )}

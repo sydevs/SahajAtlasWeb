@@ -10,7 +10,7 @@ import { regionsQuery } from '@/config/api'
 import { useEventFilters, useSetFilters } from '@/hooks/use-filters'
 import { useLocale } from '@/hooks/use-locale'
 import { formatTimePeriods } from '@/lib'
-import { isDateRestricted, isTimeRestricted } from '@/lib/shape'
+import { type EventFilters, isDateRestricted, isTimeRestricted } from '@/lib/shape'
 
 /**
  * The active filters, as a row of removable pills at the top of the search
@@ -25,10 +25,13 @@ import { isDateRestricted, isTimeRestricted } from '@/lib/shape'
  * across instead, signposted by its own control at the foot of the list
  * (see `revealRows` in `@/lib/shape/reveal`).
  */
-export function ActiveFilterPills() {
+export function ActiveFilterPills({ filters }: { filters?: EventFilters }) {
   const { t } = useTranslation()
   const { locale, languageLabel } = useLocale()
-  const { format, timeOfDay, daysOfWeek, languages, cadence, dateRange, region } = useEventFilters()
+  const applied = useEventFilters()
+  // A view that says some of these another way passes the rest. See `chosenCalendarFilters`.
+  const { format, timeOfDay, daysOfWeek, languages, cadence, dateRange, region } =
+    filters ?? applied
   const {
     setFormat,
     setCadence,

@@ -200,6 +200,13 @@ export const placeSearchPath = (params: URLSearchParams, place: PlaceSearch): st
 export const calendarPath = (regionSlug?: string): string =>
   regionSlug ? `/calendar?region=${encodeURIComponent(regionSlug)}` : '/calendar'
 
+/**
+ * The week list: the calendar opened on its List view, scoped to a region. `view=list` is in the
+ * URL, not only in the session's memory, so this link and a shared one open on the same view.
+ */
+export const thisWeekPath = (regionSlug: string): string =>
+  `/calendar?region=${encodeURIComponent(regionSlug)}&view=list`
+
 /** What an incoming pathname resolves to, keyed off its terminal segment. */
 export type ResolvedPath = { kind: 'region'; slug: string } | { kind: 'event'; id: number } | null
 

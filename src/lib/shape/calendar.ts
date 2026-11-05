@@ -4,6 +4,7 @@ import { DateTime } from 'luxon'
 
 import { DEFAULT_DURATION, eventTimeZone, scheduleTimeZone, withEndTime } from './event'
 import {
+  type DateRange,
   type EventFilters,
   type TimePeriod,
   dateFloor,
@@ -211,6 +212,94 @@ export const computeDayBoundaries = (
   if (earliest >= latest) return undefined // no entries
 
   return { start: hhmm(Math.floor(earliest) - 1), end: hhmm(Math.ceil(latest) + 1) }
+}
+
+// ===== THE WEEK LIST ===== //
+
+/** How many days the List view shows: this one and the six after it, so never a thin Sunday. */
+export const CALENDAR_WEEK_DAYS = 7
+
+/** The dates the List view shows, as `yyyy-MM-dd`. */
+export type CalendarWindow = {
+  start: string
+  end: string
+  /** Today plus the next six days, whether the URL named those dates or named none. */
+  isThisWeek: boolean
+}
+
+const addDays = (iso: string, days: number): string =>
+  DateTime.fromISO(iso).plus({ days }).toISODate() ?? iso
+
+/**
+ * The window a date range shows in the List view. With no range it is this week. With a range it
+ * is that range, so a shared link and the Filters date picker both land on the dates they name.
+ */
+export const calendarWindow = (range: DateRange, today: string): CalendarWindow => {
+  const start = range.start ?? today
+  const end = range.end ?? addDays(start, CALENDAR_WEEK_DAYS - 1)
+
+  return {
+    start,
+    end,
+    isThisWeek: start === today && end === addDays(today, CALENDAR_WEEK_DAYS - 1),
+  }
+}
+
+/**
+ * The seven days next to a window, whatever its own length: a link opened mid-week, or a single
+ * day, still pages a week at a time. Nothing before today has classes, so a step back stops there,
+ * and landing on the next seven days clears the range entirely.
+ */
+export const shiftCalendarWindow = (
+  window: CalendarWindow,
+  direction: -1 | 1,
+  today: string,
+): DateRange => {
+  const moved =
+    direction > 0 ? addDays(window.end, 1) : addDays(window.start, -CALENDAR_WEEK_DAYS)
+  const next = weekFrom(moved < today ? today : moved)
+
+  return calendarWindow(next, today).isThisWeek ? { start: null, end: null } : next
+}
+
+/** A week starting on `date`, for a date the visitor picked. */
+export const weekFrom = (date: string): DateRange => ({
+  start: date,
+  end: addDays(date, CALENDAR_WEEK_DAYS - 1),
+})
+
+/**
+ * The filters a visitor chose, for the pills and the Filters count. The place is the view's title,
+ * and in the List the dates are its arrows: neither is a restriction they added.
+ */
+export const chosenCalendarFilters = (filters: EventFilters, isList: boolean): EventFilters => ({
+  ...filters,
+  region: null,
+  dateRange: isList ? { start: null, end: null } : filters.dateRange,
+})
+
+/** One day of the List view. */
+export type CalendarDay = { date: string; entries: CalendarEntry[] }
+
+/** The entries inside a window, by day, in time order, leaving out days with no classes. */
+export const groupEntriesByDay = (
+  entries: CalendarEntry[],
+  window: Pick<CalendarWindow, 'start' | 'end'>,
+): CalendarDay[] => {
+  const days = new Map<string, CalendarEntry[]>()
+  const sorted = [...entries].sort(
+    (a, b) => a.start.localeCompare(b.start) || a.name.localeCompare(b.name),
+  )
+
+  for (const entry of sorted) {
+    const date = entry.start.slice(0, 10)
+
+    if (date >= window.start && date <= window.end) {
+      days.set(date, [...(days.get(date) ?? []), entry])
+    }
+  }
+
+  return [...days].map(([date, dayEntries]) => ({ date, entries: dayEntries }))
 }
 
 // ===== VIEW RESOLUTION ===== //

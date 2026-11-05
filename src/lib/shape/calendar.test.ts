@@ -8,6 +8,10 @@ import {
   CALENDAR_VIEW_WEEK,
   computeDayBoundaries,
   eventsToCalendarEntries,
+  calendarWindow,
+  groupEntriesByDay,
+  chosenCalendarFilters,
+  shiftCalendarWindow,
   isCalendarViewOption,
   resolveCalendarView,
   type CalendarEntry,
@@ -354,5 +358,82 @@ describe('resolveCalendarView', () => {
 
     expect(resolveCalendarView(stored, false).option).toBe(CALENDAR_VIEW_MONTH)
     expect(resolveCalendarView(stored, true).option).toBe(CALENDAR_VIEW_WEEK)
+  })
+})
+
+describe('the week list window', () => {
+  const NONE = { start: null, end: null }
+  const today = '2026-11-05'
+
+  it('is this week when the URL names no dates, or names exactly those dates', () => {
+    expect(calendarWindow(NONE, today)).toEqual({
+      start: today,
+      end: '2026-11-11',
+      isThisWeek: true,
+    })
+    expect(calendarWindow({ start: today, end: '2026-11-11' }, today).isThisWeek).toBe(true)
+    expect(calendarWindow({ start: today, end: '2026-11-08' }, today).isThisWeek).toBe(false)
+  })
+
+  it('steps by its own length, and clears the range on landing back on this week', () => {
+    const week = calendarWindow(NONE, today)
+    const next = shiftCalendarWindow(week, 1, today)
+
+    expect(next).toEqual({ start: '2026-11-12', end: '2026-11-18' })
+    expect(shiftCalendarWindow(calendarWindow(next, today), -1, today)).toEqual(NONE)
+    expect(
+      shiftCalendarWindow(calendarWindow({ start: today, end: today }, today), 1, today),
+    ).toEqual({ start: '2026-11-06', end: '2026-11-12' })
+  })
+
+  it('pages seven days from a shorter window, such as a link opened mid-week', () => {
+    const window = calendarWindow({ start: '2026-11-08', end: '2026-11-10' }, today)
+
+    expect(shiftCalendarWindow(window, 1, today)).toEqual({ start: '2026-11-11', end: '2026-11-17' })
+  })
+
+  it('counts only the filters a visitor chose', () => {
+    const scoped = {
+      ...DEFAULT_FILTERS,
+      region: 'gb',
+      format: 'online' as const,
+      dateRange: { start: '2026-11-12', end: '2026-11-18' },
+    }
+
+    expect(chosenCalendarFilters(scoped, true)).toEqual({
+      ...DEFAULT_FILTERS,
+      format: 'online',
+    })
+    expect(chosenCalendarFilters(scoped, false).dateRange).toEqual(scoped.dateRange)
+    expect(chosenCalendarFilters(scoped, false).region).toBeNull()
+  })
+
+  it('never steps back past today', () => {
+    const window = calendarWindow({ start: '2026-11-07', end: '2026-11-08' }, today)
+
+    expect(shiftCalendarWindow(window, -1, today)).toEqual(NONE)
+  })
+
+  it('groups entries inside the window by day, in time order, skipping empty days', () => {
+    const entry = (id: string, start: string, name = 'x') => ({
+      id,
+      name,
+      title: name,
+      start,
+      end: start,
+      path: '/x',
+    })
+    const days = groupEntriesByDay(
+      [
+        entry('a', '2026-11-07 18:00'),
+        entry('b', '2026-11-05 19:00'),
+        entry('c', '2026-11-05 09:00'),
+        entry('d', '2026-11-12 09:00'),
+      ],
+      { start: today, end: '2026-11-11' },
+    )
+
+    expect(days.map((day) => day.date)).toEqual(['2026-11-05', '2026-11-07'])
+    expect(days[0].entries.map((item) => item.id)).toEqual(['c', 'b'])
   })
 })

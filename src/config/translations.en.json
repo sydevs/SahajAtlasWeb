@@ -1,9 +1,16 @@
 {
   "calendar": {
+    "clear_filters": "Clear filters",
     "next": "Next",
+    "next_7_days": "Next 7 days",
+    "next_class": "Next class: %{date}",
+    "none_in_window": "No classes on these dates.",
+    "none_match_filters": "No classes match your filters on these dates.",
     "pick_date": "Pick a date",
     "previous": "Previous",
     "title": "Calendar",
+    "today": "Today",
+    "tomorrow": "Tomorrow",
     "view_list": "List",
     "view_month": "Month",
     "view_week": "Week"

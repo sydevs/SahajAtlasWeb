@@ -45,6 +45,13 @@ export const regionQuery = (slug: string, locale: string) => ({
   queryFn: () => api.getRegion(slug),
 })
 
+// This is the calendar's source query contract, in one place.
+// The month grid, the week list and a region's "This week" count all read it.
+export const calendarQuery = (filters: EventFilters, locale: string) => ({
+  queryKey: ['calendar', filtersKey(filters), locale] as const,
+  queryFn: () => api.getCalendarEvents(filters),
+})
+
 // This is the distance-ranked events query contract, in one place.
 // The results list's suspense read and the SearchView story's cache seed both share it.
 // So the key can never drift.

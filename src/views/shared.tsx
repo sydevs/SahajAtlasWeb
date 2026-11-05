@@ -6,7 +6,7 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useRef, use
 import { useLocation, useNavigationType, useSearchParams } from 'react-router'
 import { useTranslation } from 'react-i18next'
 import { useQuery, useSuspenseQuery } from '@tanstack/react-query'
-import { CalendarDays, Funnel, Menu, Search, X } from 'lucide-react'
+import { Funnel, Menu, Search, X } from 'lucide-react'
 
 import { Button } from '@/components/atoms/Button'
 import { FallbackPanel, GeolocationPrompt } from '@/components/molecules'
@@ -30,10 +30,10 @@ import {
   shouldShowGeolocationPrompt,
 } from '@/lib/geolocation'
 import {
+  type EventFilters,
   activeFilterCount,
   searchPath,
   atlasDepth,
-  calendarPath,
   isoCountryCode,
   placeSearchPath,
   resolvePath,
@@ -133,29 +133,6 @@ export function CloseButton({ className }: { className?: string }) {
   )
 }
 
-// The calendar affordance for region headers (RegionView): opens the full-width
-// calendar pre-scoped to this region (`/calendar?region=<slug>`, pre-setting the
-// Region filter). This uses the same header-control chrome as the close control,
-// so the header reads as one set of buttons.
-export function CalendarButton({ regionSlug }: { regionSlug: string }) {
-  // `useSuspense: false` — also rendered by the fallback chrome
-  // (views/fallbacks.tsx), where suspending on an in-flight namespace would
-  // escape the boundary and blank the widget instead of showing the failure. See
-  // CloseButton.
-  const { t } = useTranslation()
-  const navigate = useAtlasNavigate()
-
-  return (
-    <Button
-      {...HEADER_CONTROL}
-      aria-label={t('calendar.title')}
-      onClick={() => navigate(calendarPath(regionSlug))}
-    >
-      <CalendarDays size={20} />
-    </Button>
-  )
-}
-
 // The search affordance for region headers (RegionView): jumps to the
 // distance-ranked search view. This renders the same header-control chrome as the
 // close/filter controls, so the header reads as one set of buttons.
@@ -210,7 +187,14 @@ export function CollapseToggle() {
 // (SearchView), and — with `iconOnly` — an icon-only header control carrying the
 // active count as a badge (CountriesView's header), so it reads as one set with
 // the close/collapse chrome.
-export function FilterButton({ iconOnly = false }: { iconOnly?: boolean }) {
+export function FilterButton({
+  iconOnly = false,
+  counted,
+}: {
+  iconOnly?: boolean
+  /** The filters the badge counts, when a view shows some of them another way. */
+  counted?: EventFilters
+}) {
   // `useSuspense: false` — also rendered by the fallback chrome
   // (views/fallbacks.tsx), where suspending on an in-flight namespace would
   // escape the boundary and blank the widget instead of showing the failure. See
@@ -218,7 +202,8 @@ export function FilterButton({ iconOnly = false }: { iconOnly?: boolean }) {
   const { t } = useTranslation()
   const navigate = useAtlasNavigate()
   const location = useLocation()
-  const count = activeFilterCount(useEventFilters())
+  const applied = useEventFilters()
+  const count = activeFilterCount(counted ?? applied)
 
   const label = count > 0 ? `${t('filters.chrome.title')} (${count})` : t('filters.chrome.title')
   const to = `${location.pathname === '/' ? '' : location.pathname}/filters`
