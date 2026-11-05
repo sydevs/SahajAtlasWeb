@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next'
 
 import { Alert } from '@/components/atoms/Alert'
 import { Link } from '@/components/atoms/Link'
-import { DrawerBody, DrawerHeader } from '@/components/atoms/Drawer'
+import { DrawerBody, DrawerHeader, DrawerToolbar } from '@/components/atoms/Drawer'
 import { EventListItem, List, ListItem } from '@/components/molecules'
 import { regionQuery } from '@/config/api'
 import { useLocale } from '@/hooks/use-locale'
@@ -21,7 +21,7 @@ import {
   EmptyEventList,
   FilterButton,
   GeolocationSuggestion,
-  SearchButton,
+  SearchField,
   useFrameOnTop,
 } from '@/views/shared'
 
@@ -91,16 +91,22 @@ export function RegionView({ slug }: { slug: string }) {
       )}
       <DrawerHeader className="justify-between">
         <DrawerTitle subtitle={subheader} title={header} />
-        {/* Calendar, search, filters and close form one right-aligned control group.
+        {/* Calendar, filters and close form one right-aligned control group.
             justify-between keeps the title left. The calendar and the filters both open
             pre-scoped to this region. */}
         <div className="flex shrink-0 items-center gap-2">
           <CalendarButton regionSlug={region.slug} />
-          <SearchButton />
           <FilterButton iconOnly />
           <CloseButton />
         </div>
       </DrawerHeader>
+      {/* The field at every level, not an icon that leads to it. `syncToUrl` stays off: typing here
+          must not write `?q` onto a region's own address. */}
+      <DrawerToolbar>
+        <div className="px-4 pb-2">
+          <SearchField syncToUrl={false} />
+        </div>
+      </DrawerToolbar>
       <DrawerBody>
         {/* Above the region's own content, which IS the "other classes near them" the
             acknowledgement hands off to. So the banner carries no onward link of its own.
