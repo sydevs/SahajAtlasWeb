@@ -704,7 +704,9 @@ function Receipt({
           <Check aria-hidden size={28} strokeWidth={2.5} />
         </span>
         <div className="flex max-w-80 flex-col gap-2" role="status">
-          <h3 className="text-lg font-semibold">{t('submit.done.heading')}</h3>
+          <h3 className="text-lg font-semibold">
+            {t(reportOnly ? 'submit.done.heading_report' : 'submit.done.heading')}
+          </h3>
           <p className="text-base text-gray-11">
             {reportOnly
               ? city

@@ -300,6 +300,7 @@
     },
     "done": {
       "heading": "Sent for review",
+      "heading_report": "Report sent",
       "email_line": "If they have a question, they can reach you at %{email}.",
       "back": "Back to the map",
       "body_check": "A coordinator for %{city} will check it before it appears on the map.",
