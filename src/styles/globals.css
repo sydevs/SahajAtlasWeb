@@ -105,13 +105,17 @@
   --breakpoint-2xl: 1536px;
 
   /* v4 renamed this scale one step down (its `sm` is v3's `DEFAULT`), so the names are
-     written out rather than inherited: `rounded-sm` has to stay 2px. */
+     written out rather than inherited. */
   --radius-*: initial;
-  --radius: 4px;
-  --radius-sm: 2px;
-  --radius-md: 6px;
+  /* One radius rule: 16px for panels (`xl`, `2xl`), 8px for everything inside them
+     (buttons, inputs, cards, rows), `rounded-full` only for pills. The smaller steps
+     point at 8px rather than being renamed across the app, so `rounded` and `rounded-sm`
+     can't bring 2, 4 or 6 back. The checkbox is the one exception, in its own file. */
+  --radius: 8px;
+  --radius-sm: 8px;
+  --radius-md: 8px;
   --radius-lg: 8px;
-  --radius-xl: 12px;
+  --radius-xl: 16px;
   --radius-2xl: 16px;
   --radius-3xl: 24px;
 

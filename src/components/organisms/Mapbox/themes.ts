@@ -27,7 +27,7 @@ export const controlTheme = {
     colorBackgroundActive: 'var(--gray-4)',
     colorPrimary: 'hsl(var(--primary-9))',
     border: '1px solid var(--gray-7)',
-    borderRadius: '4px',
+    borderRadius: '8px',
     boxShadow: 'none',
   },
   // The geocoder's own placeholder is 37% black, about 2.6:1 on white. This lifts it
