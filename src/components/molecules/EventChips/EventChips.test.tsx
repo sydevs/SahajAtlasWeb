@@ -10,7 +10,13 @@ import { EventChips } from './EventChips'
 // The UI language is `en`. `languageLabel` echoes the code, so the
 // combined language text is greppable.
 const { d } = vi.hoisted(() => ({
-  d: { status: 'upcoming', full: false, typeLabel: 'Weekly class', isDefaultType: true },
+  d: {
+    status: 'upcoming',
+    kind: 'class',
+    full: false,
+    typeLabel: 'Weekly class',
+    isDefaultType: true,
+  },
 }))
 
 vi.mock('react-i18next', () => ({ useTranslation: () => ({ t: (key: string) => key }) }))
@@ -19,7 +25,7 @@ vi.mock('@/hooks/use-locale', () => ({
 }))
 vi.mock('@/hooks/use-event-display', () => ({
   useEventDisplay: () => ({
-    display: { status: d.status, full: d.full },
+    display: { status: d.status, kind: d.kind, full: d.full },
     typeLabel: d.typeLabel,
     isDefaultType: d.isDefaultType,
     recurrenceLine: 'Every Wednesday',
@@ -34,6 +40,7 @@ const render = (languages: string[], variant?: EventChipsProps['variant']) =>
 describe('EventChips', () => {
   beforeEach(() => {
     d.status = 'upcoming'
+    d.kind = 'class'
     d.full = false
     d.typeLabel = 'Weekly class'
     d.isDefaultType = true
@@ -46,7 +53,11 @@ describe('EventChips', () => {
     expect(html).toContain('en, fr')
   })
 
-  it('default: drops a language the title already names', () => {
+  it('default: names a weekly class even under its "Every Wednesday" line', () => {
+    expect(render(['en'])).toContain('Weekly class')
+  })
+
+  it('default: names a language even when the title says it too', () => {
     const html = renderToStaticMarkup(
       <EventChips
         event={
@@ -55,22 +66,15 @@ describe('EventChips', () => {
       />,
     )
 
-    expect(html).not.toContain('>en<')
+    expect(html).toContain('>en<')
   })
 
-  it('default: keeps a language that only appears inside a longer word', () => {
-    const html = renderToStaticMarkup(
-      <EventChips
-        event={
-          {
-            languages: ['en'],
-            title: 'Meditation in Enfield',
-          } as unknown as EventChipsProps['event']
-        }
-      />,
-    )
+  it('names no type for a by-request listing, which only derives as a one-off', () => {
+    d.status = 'inactive'
+    d.kind = 'oneoff'
+    d.typeLabel = 'One-off event'
 
-    expect(html).toContain('>en<')
+    expect(render(['en'])).not.toContain('One-off event')
   })
 
   it('compact: drops the plain weekly type and the viewer language (renders nothing)', () => {

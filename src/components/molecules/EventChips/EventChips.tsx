@@ -5,21 +5,12 @@ import { Chip } from '@/components/atoms/Chip'
 import { useEventDisplay, type DisplayableEvent } from '@/hooks/use-event-display'
 import { useLocale } from '@/hooks/use-locale'
 
-/** Whether a title already names this language, as in "Meditation in English". A whole-word
- *  match, so "German" does not match "Germany". */
-const titleNames = (title: string | null | undefined, language: string): boolean => {
-  const escaped = language.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
-
-  return new RegExp(`(^|[^\\p{L}])${escaped}($|[^\\p{L}])`, 'iu').test(title ?? '')
-}
-
 export type EventChipsVariant = 'default' | 'compact'
 
 export type EventChipsProps = {
-  event: DisplayableEvent & { languages: string[]; title?: string | null }
+  event: DisplayableEvent & { languages: string[] }
   /**
-   * `default`, the class page, names the type and the languages, except where the page
-   * already says so nearby.
+   * `default`, the class page, names the type and every language.
    * `compact`, the list card, drops the plain weekly-class type and the
    * viewer's own language. Those are the chips that add nothing at a
    * glance.
@@ -42,21 +33,19 @@ export function EventChips({ event, variant = 'default', className }: EventChips
 
   const compact = variant === 'compact'
 
-  // Type: `default` always names it. `compact` skips the plain weekly class,
-  // whose label adds nothing on a compact card.
-  // On the class page, "Every Tuesday" right above already says it is a weekly class. A
-  // course keeps its chip, because the when line does not say "course".
-  const repeatsWhenLine = display.kind === 'class' && Boolean(recurrenceLine)
+  // Type: `default` always names it, even right under "Every Tuesday": the review chose to keep
+  // the tags on the class page. `compact` skips the plain weekly class, whose label adds nothing
+  // on a compact card.
   // A by-request listing has no schedule, so it derives as a one-off, which is simply wrong.
   // "Contact host for timings" already says what it is.
   const byRequest = display.status === 'inactive' && display.kind === 'oneoff'
-  const showType = !byRequest && (compact ? !isDefaultType : !repeatsWhenLine)
+  const showType = !byRequest && (!compact || !isDefaultType)
 
   // All languages fold into a single chip. `compact` keeps only the ones
   // that differ from the viewer's UI language.
   const languages = compact
     ? event.languages.filter((code) => code.split('-')[0] !== uiLanguage)
-    : event.languages.filter((code) => !titleNames(event.title, languageLabel(code)))
+    : event.languages
   const languageText = languages.length
     ? languages.map((code) => languageLabel(code)).join(', ')
     : null
