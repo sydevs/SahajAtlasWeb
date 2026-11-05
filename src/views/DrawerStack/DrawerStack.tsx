@@ -789,41 +789,18 @@ export function DrawerStack() {
           createPortal(
             <>
               {strips}
-              {/* Inline-start, offset past the drawer on ≥md (flush at tablet,
-                floating in by 4 at ≥lg), so it never overlaps the panel. Uses the
-                logical `start-*`, rather than `left-*`: under RTL the drawer flips to
-                the right edge, and the cog has to travel with it. On mobile the
-                sheet sits at the bottom, so the top-left corner stays clear. */}
-              {/* Uses top-3 on mobile/tablet. At ≥lg the drawer floats (lg:inset-y-4),
-                so this bumps the cog to top-4 to line up with the drawer's top edge.
-                Hidden on the full-width calendar — a focused view with no clean
-                corner for the floating cog — settings stay reachable from every
-                other view. */}
-              {/* The inline-start gap clears the PEEK STRIPS, not just the drawer. The
-                deepest stack pushes an ancestor about 23px past the panel edge, using
-                `PEEK_DESKTOP` times the decay series above. So the cog sits 32px out —
-                48px at ≥lg, where the drawer itself is already inset by 16px. That
-                leaves about 9px of air at the deepest stack. A tighter gap would render
-                the strips under the cog.
-                Both `352px` fallbacks below are the drawer-width pair — the twin
-                value is `DRAWER_W_PX` in `hooks/use-map-controller-real.tsx`. */}
-              {!wide && (
+              {/* The top of the map's one control column, with locate and attribution below it
+                (`.mapboxgl-ctrl-top-right` in globals.css holds the shared size and margins).
+                That corner is free in both layouts, and nothing here depends on the panel's
+                width or the peek strips any more. It is physical `right`, paired with Mapbox's
+                own corner: the drawer's RTL flip is still deferred (`atoms/Drawer`).
+                Hidden on the full-width calendar, a focused view with no clean corner for
+                it, and at the sheet's near-full snap, which covers the column anyway and
+                would leave the disc's top edge showing above the sheet. */}
+              {!wide && snap !== WIDE_SNAP && (
                 <SettingsMenu
-                  className={clsx(
-                    'fixed top-3 z-40',
-                    // ⚠ **Uses `isWide`, not a `md:` variant — the #169 correction.**
-                    // This clears the LEFT PANEL, so it has to agree with whatever
-                    // decided there is one — and that is now the frame's width, not
-                    // the viewport's. A 600px contained map on a desktop gets the
-                    // bottom sheet, and a viewport variant would still push the cog
-                    // 384px right for a panel that is not there. At a 400px frame it
-                    // would land past the edge, where the frame's `overflow-clip`
-                    // clips it away entirely. Outside a frame, `isWide` IS the
-                    // viewport's answer, so this stays the same offset it always was.
-                    isWide
-                      ? 'start-[calc(var(--sy-drawer-w,352px)+32px)] lg:start-[calc(var(--sy-drawer-w,352px)+48px)] lg:top-4'
-                      : 'start-3',
-                  )}
+                  align="end"
+                  className="fixed top-[var(--sy-map-ctrl-top)] right-[var(--sy-map-ctrl-end)] z-20"
                 />
               )}
             </>,

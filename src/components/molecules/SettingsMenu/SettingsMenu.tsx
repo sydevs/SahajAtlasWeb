@@ -41,9 +41,11 @@ export type SettingsMenuProps = {
   className?: string
   /** Which side the menu opens toward the trigger (bottom for a top cog, top for a bottom cog). */
   side?: DropdownMenu.DropdownMenuContentProps['side']
+  /** Which edge of the trigger the menu lines up with (`end` for a cog in the right-hand column). */
+  align?: DropdownMenu.DropdownMenuContentProps['align']
 }
 
-export function SettingsMenu({ className, side = 'bottom' }: SettingsMenuProps) {
+export function SettingsMenu({ className, side = 'bottom', align = 'start' }: SettingsMenuProps) {
   const { t } = useTranslation()
   const { locale, setLocale } = useLocale()
   // The set an operator publishes in SahajCloud, never a list compiled in here (#198). Every row
@@ -88,16 +90,16 @@ export function SettingsMenu({ className, side = 'bottom' }: SettingsMenuProps) 
       <DropdownMenu.Trigger asChild>
         <button
           aria-label={t('common.settings.title')}
-          className={`flex h-8 w-8 items-center justify-center rounded-full border border-divider bg-background text-gray-11 shadow-lg transition-colors hover:text-foreground ${className ?? ''}`}
+          className={`flex h-10 w-10 items-center justify-center rounded-full border border-divider bg-background text-gray-11 shadow-lg transition-colors after:absolute after:-inset-0.5 hover:text-foreground ${className ?? ''}`}
           type="button"
         >
-          <Settings size={16} />
+          <Settings size={20} />
         </button>
       </DropdownMenu.Trigger>
 
       <DropdownMenu.Portal container={container}>
         <DropdownMenu.Content
-          align="start"
+          align={align}
           className={menu}
           side={side}
           sideOffset={8}

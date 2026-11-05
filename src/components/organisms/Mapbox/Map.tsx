@@ -568,7 +568,8 @@ export function Mapbox({ cooperative = false }: { cooperative?: boolean } = {}) 
             narrow one — accepted, rather than paid for with a measured per-layout corner (#330). Both
             props are read once, when the map is constructed, which is all a corner that never moves
             needs. `compact` keeps it a round button until a visitor opens it, rather than a strip
-            of text across an embed's map. */}
+            of text across an embed's map. Both controls below share one column with the settings
+            cog, styled in globals.css. */}
         <AttributionControl compact position="top-right" />
       </ReactMapGL>
       <Modal open={locationFailed} onOpenChange={setLocationFailed}>
