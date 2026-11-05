@@ -101,7 +101,6 @@ export function WhereFilter({
               key={centerKey}
               label={t('filters.where.placeholder')}
               seedFromUrl={false}
-              syncToUrl={false}
               onPlace={onPlace}
             />
           )}

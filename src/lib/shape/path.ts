@@ -114,9 +114,9 @@ export const parseCenter = (value: string | null): [number, number] | undefined 
  * The part of a search URL that decides WHAT the results query asks for —
  * everything except `?q`.
  *
- * SearchView's results boundary resets on this (issue #89). It cannot reset on the
- * whole query string: the geocoder mirrors every keystroke into `?q`, so a failing
- * query would be retried once per character typed. And it cannot reset on the
+ * SearchView's results boundary resets on this (issue #89). The place name is not part
+ * of the query, so a change to it alone (Near me naming the place it found, just after
+ * navigating) must not retry a failing one. And it cannot reset on the
  * pathname, which the drawer boundary already keys on — every re-search and filter
  * change moves only the query string, so without a reset a single failure would pin
  * its error over every later attempt, turning a transient failure into a permanent

@@ -14,18 +14,14 @@ import { useLocale } from '@/hooks/use-locale'
 import { useMapbox } from '@/hooks/use-mapbox'
 import { isoCountryCode } from '@/lib/shape'
 
+/**
+ * The place search field. What is typed stays in the field: the URL changes only when a place is
+ * picked (`onSelect`), never per keystroke. Half-typed text in `?q` renamed everything that reads
+ * it — the filters' place pill, the results heading, each card's distance line — to "Prag".
+ */
 export interface MapSearchProps {
   /** Called with the geocoded place the user picked from the suggestions. */
   onSelect: (value: GeocodingFeature) => void
-  /**
-   * This mirrors what is typed into `?q` on the current URL (default `true`),
-   * so a reload or a shared link keeps the query. Pass `false` where the
-   * current URL is known-bad — the error screen for a dead link (issue #89).
-   * Writing state into a URL already flagged as broken only spreads the
-   * problem: embedded, that URL lives in the host page's `#!` fragment and
-   * travels with anything the visitor copies.
-   */
-  syncToUrl?: boolean
   /**
    * This is the accessible name and placeholder. It defaults to the "search
    * for events near…" phrasing, which is right in a header, where position
@@ -77,13 +73,8 @@ const LOCAL_BIAS_MIN_ZOOM = 3
 const searchBias = (zoom: number | undefined, center: LngLatLike | undefined) =>
   zoom !== undefined && zoom >= LOCAL_BIAS_MIN_ZOOM && center ? center : 'ip'
 
-export function MapSearch({
-  onSelect,
-  syncToUrl = true,
-  label,
-  seedFromUrl = true,
-}: MapSearchProps) {
-  const [searchParams, setSearchParams] = useSearchParams()
+export function MapSearch({ onSelect, label, seedFromUrl = true }: MapSearchProps) {
+  const [searchParams] = useSearchParams()
   const location = useLocation()
   const [searchQuery, setSearchQuery] = React.useState(
     seedFromUrl ? searchParams.get('q') || '' : '',
@@ -106,30 +97,12 @@ export function MapSearch({
   const scope = country !== releasedFrom ? country : undefined
   const [foundNothing, setFoundNothing] = React.useState(false)
 
-  // This merges `q` into the existing query, so the active filters (and
-  // bbox and center) survive typing — they live only in the URL now.
-  // `replace` means per-keystroke edits do not stack history. Both the
-  // geocoder and the plain fallback share this function.
-  //
-  // `state` is carried explicitly. `setSearchParams` forwards only what it is
-  // given, so a bare `{ replace: true }` replaces the entry with a
-  // state-less one and drops its `atlasDepth`. After ONE keystroke, the
-  // drawer's dismissal (X, swipe, or Esc) would then push to the structural
-  // parent, instead of going chronologically back. The filter and sort
-  // setters carry it for the same reason.
-  // This adopts a `?q` that somebody ELSE wrote. The field seeds from the URL
-  // once, in the state initializer above, which is right while typing is the
-  // only writer. But the geolocate control names the place it found AFTER
-  // navigating, and `placeSearchPath` clears `?q` on every re-search. Neither
-  // one remounts this component when the view on top is unchanged. So
-  // without this effect, the field keeps showing a place the results are no
-  // longer about.
-  //
-  // This guards on the last value written here, rather than on equality with
-  // the field. So the per-keystroke mirroring below can never fight it:
-  // typing records its own write, sees the URL agree, and does nothing.
+  // This follows a new `?q`. The field seeds from the URL once, in the state initializer above.
+  // But a pick writes a new place name, and the geolocate control names the place it found AFTER
+  // navigating. Neither remounts this component when the view on top is unchanged, so without
+  // this effect the field would keep showing a place the results are no longer about. Typing
+  // never writes `?q`, so the two can't fight: half-typed text stays until the URL names a place.
   const urlQuery = searchParams.get('q') ?? ''
-  const ownWrite = React.useRef(urlQuery)
   const field = React.useRef<HTMLDivElement>(null)
 
   React.useEffect(() => {
@@ -139,28 +112,8 @@ export function MapSearch({
   }, [])
 
   React.useEffect(() => {
-    if (!seedFromUrl || urlQuery === ownWrite.current) return
-
-    ownWrite.current = urlQuery
-    setSearchQuery(urlQuery)
+    if (seedFromUrl) setSearchQuery(urlQuery)
   }, [urlQuery, seedFromUrl])
-
-  const setQuery = (query: string) => {
-    setSearchQuery(query)
-    ownWrite.current = query
-    if (!syncToUrl) return
-
-    setSearchParams(
-      (prev) => {
-        const next = new URLSearchParams(prev)
-
-        next.set('q', query)
-
-        return next
-      },
-      { replace: true, state: location.state },
-    )
-  }
 
   const searchEverywhere = () => {
     setReleasedFrom(country)
@@ -197,7 +150,7 @@ export function MapSearch({
             placeholder={fieldLabel}
             type="search"
             value={searchQuery}
-            onChange={(event) => setQuery(event.target.value)}
+            onChange={(event) => setSearchQuery(event.target.value)}
           />
         }
       >
@@ -216,7 +169,7 @@ export function MapSearch({
           placeholder={fieldLabel}
           theme={controlTheme}
           value={searchQuery}
-          onChange={setQuery}
+          onChange={setSearchQuery}
           onRetrieve={onSelect}
           onSuggest={(response) => setFoundNothing(response.features.length === 0)}
         />

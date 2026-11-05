@@ -252,7 +252,7 @@ export function DrawerStack() {
   // `t` comes off `useLocale`, not a second `useTranslation` call: the hook already
   // holds one for the default (`common`) namespace, and hands it back for exactly this
   // reason. A second call would double this component's i18next subscription, and
-  // DrawerStack re-renders on every geocoder keystroke.
+  // DrawerStack re-renders on every URL change.
   const { t } = useLocale()
   // Read unconditionally, like every other seam consumer: with no surface above this
   // component, it is the no-op provider, and the Escape ladder below simply ends where

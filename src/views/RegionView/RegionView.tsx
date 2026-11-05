@@ -154,11 +154,10 @@ export function RegionView({ slug }: { slug: string }) {
         subtitle={subheader}
         title={header}
       />
-      {/* The field at every level, not an icon that leads to it. `syncToUrl` stays off: typing here
-          must not write `?q` onto a region's own address. */}
+      {/* The field at every level, not an icon that leads to it. */}
       <DrawerToolbar>
         <div className="px-4 pb-2">
-          <SearchField syncToUrl={false} />
+          <SearchField />
         </div>
       </DrawerToolbar>
       <DrawerBody>

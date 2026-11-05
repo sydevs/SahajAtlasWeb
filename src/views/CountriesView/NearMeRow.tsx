@@ -82,9 +82,7 @@ export function NearMeRow({ geojson }: { geojson: Geojson | undefined }) {
     <>
       {/* The search field leads: typing a town is the most direct way to classes. */}
       <div ref={search} className="px-4 pb-2">
-        {/* Not mirrored to `?q`: nothing on this view reads it, and it would count as an active
-            place search and swap the row's offer away mid-typing. */}
-        <SearchField syncToUrl={false} />
+        <SearchField />
       </div>
       <button
         ref={button}
