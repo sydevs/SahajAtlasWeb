@@ -188,7 +188,12 @@ export function RealMapControllerProvider({ children }: { children: ReactNode })
         // `restore` would have reinstated the pin only for a POP.
         setSelection(null)
         setBoundary(undefined)
-        moveMap({ zoom: 0 })
+        // One world, filling the map. `renderWorldCopies` is off on the map, so Mapbox clamps this
+        // zoom up until the world spans the map's full width (and Mercator's full height): the
+        // world shows once at any window size, with no empty space or repeats at the sides.
+        // Zoom 0 alone was a 512px-wide world, repeated three or four times on a wide screen.
+        // Latitude 20 leans north, where most classes are.
+        moveMap({ center: [0, 20], zoom: 0 })
       },
     }),
     [mapbox, moveMap, fitBounds, isPointVisible, flyTo, setSelection, setHover, setBoundary],
