@@ -129,7 +129,7 @@ export function Breadcrumbs() {
   if (!isWide || trail.length === 0) return null
 
   return (
-    <nav aria-label={t('common.chrome.breadcrumb')}>
+    <nav aria-label={t('common.chrome.breadcrumb')} className="mt-1">
       <ol className="flex flex-wrap items-center gap-x-1 text-sm text-gray-11">
         {trail.map((entry, i) => (
           <li key={entry.path} className="flex max-w-full min-w-0 items-center gap-x-1">
@@ -165,7 +165,8 @@ export function NavRow({ children }: { children?: ReactNode }) {
   const { t } = useTranslation()
 
   return (
-    <div className="flex min-h-8 items-center justify-between gap-2">
+    // The bottom margin keeps Back from reading as part of the title it sits above.
+    <div className="mb-2 flex min-h-8 items-center justify-between gap-2">
       <BackButton />
       <div className="ms-auto flex shrink-0 items-center gap-2 empty:hidden">
         {collapsed ? <ExpandSheetButton label={t('common.chrome.show_more')} /> : children}
