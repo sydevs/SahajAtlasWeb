@@ -326,6 +326,12 @@ cover everything a host would notice since the widget was first deployed.
 
 ### Fixed
 
+- **A direct link to an online class now zooms the map to its region.** ([#363]) An online
+  class usually has no location of its own, so a link to one, such as `…/ca/ontario/toronto/720`,
+  opened the class over the whole-world map. It now frames the class's region, as a region link
+  does. Opening the class from inside the widget still leaves the map where the visitor has it.
+  No parameter, origin or CSP change.
+
 - **Under `routing=path`, a failed client-record read no longer drops you to query routing.** ([#351])
   Any failure to read the record — SahajCloud down or erroring, not only a refused key — fell
   back to query routing, printed a warning blaming your record for a missing canonical embed, and
@@ -864,6 +870,7 @@ must-revalidate`, pinned rather than left to the CDN default. The production dom
 [#262]: https://github.com/sydevs/SahajAtlasWeb/issues/262
 [#283]: https://github.com/sydevs/SahajAtlasWeb/issues/283
 [#311]: https://github.com/sydevs/SahajAtlasWeb/pull/311
+[#363]: https://github.com/sydevs/SahajAtlasWeb/pull/363
 [#351]: https://github.com/sydevs/SahajAtlasWeb/pull/351
 [#312]: https://github.com/sydevs/SahajAtlasWeb/pull/312
 [#320]: https://github.com/sydevs/SahajAtlasWeb/issues/320
