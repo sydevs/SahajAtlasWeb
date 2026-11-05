@@ -87,6 +87,7 @@
   "event": {
     "actions": {
       "add_calendar": "Add to calendar",
+      "call": "Call",
       "contact": "Contact",
       "directions": "Directions",
       "download_ics": "Download .ics file",

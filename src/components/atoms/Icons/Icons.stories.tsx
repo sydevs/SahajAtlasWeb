@@ -13,10 +13,11 @@ import {
   LoaderCircle,
   MapPin,
   Menu,
-  Milestone,
+  Navigation,
   Monitor,
   Moon,
   Pause,
+  Phone,
   PhoneOutgoing,
   Play,
   Search,
@@ -60,10 +61,11 @@ const ICONS = [
   { name: 'LoaderCircle', Icon: LoaderCircle },
   { name: 'MapPin', Icon: MapPin },
   { name: 'Menu', Icon: Menu },
-  { name: 'Milestone', Icon: Milestone },
+  { name: 'Navigation', Icon: Navigation },
   { name: 'Monitor', Icon: Monitor },
   { name: 'Moon', Icon: Moon },
   { name: 'Pause', Icon: Pause },
+  { name: 'Phone', Icon: Phone },
   { name: 'PhoneOutgoing', Icon: PhoneOutgoing },
   { name: 'Play', Icon: Play },
   { name: 'Search', Icon: Search },
@@ -147,7 +149,7 @@ export const Default: Story = () => (
     >
       <div className="flex items-center gap-6" dir="rtl">
         <ChevronRight className="rtl:-scale-x-100" size={24} />
-        <Milestone className="rtl:-scale-x-100" size={24} />
+        <Navigation size={24} />
         <span className="text-sm text-gray-11">dir=&quot;rtl&quot;</span>
       </div>
     </StorySection>

@@ -1,9 +1,9 @@
 import { FloatingFocusManager, FloatingPortal } from '@floating-ui/react'
 import { useTranslation } from 'react-i18next'
-import { Globe, Milestone, PhoneOutgoing, Share } from 'lucide-react'
+import { Globe, Navigation, Phone, Share } from 'lucide-react'
 
 import { useAtlasNavigate } from '@/hooks/use-atlas-navigate'
-import { ActionCircle, ActionRow } from '@/components/molecules/ActionRow'
+import { ActionButton, ActionRow } from '@/components/molecules/ActionRow'
 import { CopyField } from '@/components/molecules/ShareContent'
 import { useCoarsePointer } from '@/config/responsive'
 import { useEventDisplay } from '@/hooks/use-event-display'
@@ -12,7 +12,10 @@ import { directionsUrl } from '@/lib'
 import { overlayContainer } from '@/lib/overlay'
 import { Event } from '@/types'
 
-// The desktop contact action: the circle, plus a popover carrying the
+// One size for every action, so the row reads as a set.
+const ICON_SIZE = 18
+
+// The desktop contact action: the button, plus a popover carrying the
 // number and a copy affordance. A raw `tel:` link is a desktop dead end.
 // This uses the same @floating-ui pattern as the Dropdown atom. It is
 // portaled, so the scrolling panel never clips it. It is viewport-aware,
@@ -22,10 +25,12 @@ function ContactPopover({
   label,
   name,
   phone,
+  stacked,
 }: {
   label: string
   name?: string | null
   phone: string
+  stacked: boolean
 }) {
   const { isOpen, refs, floatingStyles, context, getReferenceProps, getFloatingProps } = usePopover(
     {
@@ -36,11 +41,11 @@ function ContactPopover({
 
   return (
     <>
-      <ActionCircle
+      <ActionButton
         ref={refs.setReference}
-        icon={<PhoneOutgoing />}
+        icon={<Phone size={ICON_SIZE} />}
         label={label}
-        variant="bordered"
+        stacked={stacked}
         {...getReferenceProps()}
       />
       {isOpen && (
@@ -84,8 +89,8 @@ export type EventActionsProps = {
 }
 
 /**
- * The secondary action row (issue #52, WS3): equal-weight labelled tonal
- * circles, set per resolver state. Contact is `tel:` on touch, and a popover
+ * The secondary action row (issue #52, WS3): equal-weight labelled buttons,
+ * set per resolver state. Contact is `tel:` on touch, and a popover
  * with the number and copy on desktop. A raw tel: link is a desktop dead end.
  */
 export function EventActions({ event, basePath }: EventActionsProps) {
@@ -102,31 +107,34 @@ export function EventActions({ event, basePath }: EventActionsProps) {
 
   const mapsUrl = directionsUrl(event.address)
 
-  const circles = display.actions.flatMap((action) => {
+  // Website makes four, which is too tight for icon-beside-label on a phone.
+  const stacked = display.actions.length > 3 && Boolean(event.website)
+
+  const buttons = display.actions.flatMap((action) => {
     switch (action) {
       case 'directions':
         return mapsUrl
           ? [
-              <ActionCircle
+              <ActionButton
                 key="directions"
                 isExternal
                 href={mapsUrl}
-                icon={<Milestone className="rtl:-scale-x-100" />}
+                icon={<Navigation size={ICON_SIZE} />}
                 label={t('event.actions.directions')}
-                variant="bordered"
+                stacked={stacked}
               />,
             ]
           : []
       case 'website':
         return event.website
           ? [
-              <ActionCircle
+              <ActionButton
                 key="website"
                 isExternal
                 href={event.website}
-                icon={<Globe />}
+                icon={<Globe size={ICON_SIZE} />}
                 label={t('event.actions.website')}
-                variant="bordered"
+                stacked={stacked}
               />,
             ]
           : []
@@ -137,12 +145,12 @@ export function EventActions({ event, basePath }: EventActionsProps) {
         // Touch devices dial. Everything else shows the number with a copy affordance.
         if (canDial) {
           return [
-            <ActionCircle
+            <ActionButton
               key="contact"
               href={`tel:${event.contactPhone}`}
-              icon={<PhoneOutgoing />}
-              label={label}
-              variant="bordered"
+              icon={<Phone size={ICON_SIZE} />}
+              label={t('event.actions.call')}
+              stacked={stacked}
             />,
           ]
         }
@@ -153,23 +161,25 @@ export function EventActions({ event, basePath }: EventActionsProps) {
             label={label}
             name={event.contactName}
             phone={event.contactPhone}
+            stacked={stacked}
           />,
         ]
       }
       case 'share':
         return [
-          <ActionCircle
+          <ActionButton
             key="share"
-            icon={<Share size={20} />}
+            quiet
+            icon={<Share size={ICON_SIZE} />}
             label={t('event.actions.share')}
-            variant="bordered"
+            stacked={stacked}
             onClick={() => navigate(`${basePath}/share`)}
           />,
         ]
     }
   })
 
-  if (circles.length === 0) return null
+  if (buttons.length === 0) return null
 
-  return <ActionRow>{circles}</ActionRow>
+  return <ActionRow>{buttons}</ActionRow>
 }

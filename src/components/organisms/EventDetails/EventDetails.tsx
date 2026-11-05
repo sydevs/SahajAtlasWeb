@@ -113,8 +113,8 @@ export function EventDetails({ event, basePath, ctaInline = true, children }: Ev
 
       {/* About — host-authored prose always sits below the facts and actions. */}
       {descriptionHtml && (
-        <div className="flex flex-col gap-2">
-          <h2 className="text-md font-semibold">{t('event.display.about')}</h2>
+        <div className="mt-4 flex flex-col gap-2">
+          <h2 className="text-lg">{t('event.display.about')}</h2>
           <div
             dangerouslySetInnerHTML={{ __html: sanitizeDescription(descriptionHtml) }}
             // `colored-links` carries the host-prose treatment, wrapping included.

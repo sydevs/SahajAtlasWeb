@@ -27,8 +27,8 @@ export const hasAllowedScheme = (href: unknown): boolean =>
  * **The gate every href the app puts on a JSX `<a>` passes through**: true only for a string
  * that is either a safe site-relative route or one of the three allowed schemes.
  *
- * It is one predicate in one place because the app renders three such anchors — the `Link`
- * atom, the `Button` atom's href form, and `ActionRow`'s `ActionCircle` — and safety used to
+ * It is one predicate in one place because the app renders two such anchors — the `Link`
+ * atom and the `Button` atom's href form — and safety used to
  * be asserted once per CALLER instead of once at the sink. Every href reaching them was safe
  * by provenance, which is not a property the next component or the next caller inherits.
  * That is also why the recurrences look accidental rather than careless: the `Link` atom's
@@ -53,8 +53,8 @@ export const hasAllowedScheme = (href: unknown): boolean =>
  *   starts with `tel:`, whatever the CMS put after the colon. That is sound — no `tel:` or
  *   `mailto:` body executes or crosses an origin — but it means this gate is not a reason to
  *   retire an upstream check like `SafeUrlSchema` on the value being concatenated.
- * - **Safe is not the same as routable.** A site-relative `/gb` passes at all three anchors,
- *   but only `Link` has react-router behind it. On a `Button`/`ActionCircle` it renders a
+ * - **Safe is not the same as routable.** A site-relative `/gb` passes at both anchors,
+ *   but only `Link` has react-router behind it. On a `Button` it renders a
  *   plain `<a>` that navigates the host document away. Read this as a shared safety floor,
  *   never as a shared capability — see the note in `Fallbacks.tsx`'s `OnwardLink`.
  *
