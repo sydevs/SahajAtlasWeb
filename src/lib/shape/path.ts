@@ -8,7 +8,7 @@
 import type { BBox } from 'geojson'
 
 import { filtersFromParams, filtersToParams, hasActiveFilters } from './filters'
-import { sortFromParams, sortToParams } from './sort'
+import { SORT_PARAM, type SortOrder, sortFromParams, sortToParams } from './sort'
 
 /** Decodes a URL segment, tolerating a malformed `%` escape (returns it unchanged). */
 const safeDecode = (segment: string): string => {
@@ -169,6 +169,8 @@ export type PlaceSearch = {
   bbox?: BBox
   /** ISO alpha-2, for the country-site offer and the foreign-distance rule. */
   countryCode?: string
+  /** A list order the search should open in, such as nearest first for Near me. */
+  sort?: SortOrder
 }
 
 /**
@@ -188,6 +190,7 @@ export const placeSearchPath = (params: URLSearchParams, place: PlaceSearch): st
   next.set('center', `${place.center[0]},${place.center[1]}`)
   if (place.bbox) next.set('bbox', place.bbox.toString())
   if (place.countryCode) next.set(SEARCH_COUNTRY_PARAM, place.countryCode)
+  if (place.sort) next.set(SORT_PARAM, place.sort)
 
   return `/search?${next.toString()}`
 }
@@ -224,8 +227,14 @@ export const placeFiltersPath = (params: URLSearchParams, place: PlaceSearch): s
   placeSearchPath(params, place).replace('/search?', '/search/filters?')
 
 /** The filter drawer with the searched place dropped, keeping the filters and sort. */
-export const noPlaceSearch = (params: URLSearchParams): string =>
-  preserveSearchState(params).toString()
+export const noPlaceSearch = (params: URLSearchParams): string => {
+  const next = preserveSearchState(params)
+
+  // "Closest" means nothing without a place to measure from.
+  if (next.get(SORT_PARAM) === 'closest') next.delete(SORT_PARAM)
+
+  return next.toString()
+}
 
 /**
  * The calendar route, optionally pre-scoped to a region (`?region=<slug>`) — owns the

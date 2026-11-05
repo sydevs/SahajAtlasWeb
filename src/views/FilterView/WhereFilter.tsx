@@ -12,7 +12,8 @@ import { useWidgetMode } from '@/config/mode'
 import { GEOJSON_STALE_TIME } from '@/config/query-client'
 import { useNearMeState } from '@/config/store'
 import { useNearMe } from '@/hooks/use-near-me'
-import { type PlaceSearch, parseCenter } from '@/lib/shape'
+import { overlayContainer } from '@/lib/overlay'
+import { NEARBY_KM, type PlaceSearch, parseCenter } from '@/lib/shape'
 import { SearchField } from '@/views/shared'
 
 export type WhereFilterProps = {
@@ -28,6 +29,8 @@ export type WhereFilterProps = {
   prominent?: boolean
   /** Off where another search box is already on screen: one place to type a place in. */
   townSearch?: boolean
+  /** What a place's scope really holds, so "near" can't suggest more locality than it has. */
+  counts?: { inPerson: number; online: number }
 }
 
 /**
@@ -42,6 +45,7 @@ export function WhereFilter({
   searchable = true,
   prominent = false,
   townSearch = true,
+  counts,
 }: WhereFilterProps) {
   const { t } = useTranslation()
   const [searchParams] = useSearchParams()
@@ -58,6 +62,7 @@ export function WhereFilter({
   const { data: regions } = useQuery(regionsQuery())
   const { status, locate, dismiss } = useNearMe({ geojson, naming: hasMap, onPlace })
   const section = useRef<HTMLElement>(null)
+  const searchInstead = useRef(false)
 
   const regionName = region ? (regions?.find((node) => node.slug === region)?.name ?? region) : null
   const placeName = center && !nearMeOn ? searchParams.get('q') : null
@@ -115,12 +120,31 @@ export function WhereFilter({
           </button>
         </div>
       )}
+      {center && counts && (
+        <p className="text-sm text-gray-11">
+          {t('filters.where.scope', {
+            near: counts.inPerson,
+            km: NEARBY_KM,
+            online: counts.online,
+          })}
+        </p>
+      )}
       <LocationHelp
         problem={status === 'blocked' || status === 'failed' ? status : null}
         onClose={dismiss}
+        onCloseAutoFocus={(event) => {
+          if (!searchInstead.current) return
+          searchInstead.current = false
+          event.preventDefault()
+          // The panel has no field of its own, so this can be the list's search box beside it.
+          const root =
+            section.current?.closest('[data-vaul-drawer]') ?? overlayContainer() ?? document
+
+          root.querySelector<HTMLElement>('[data-vaul-drawer] input, input')?.focus()
+        }}
         onSearchInstead={() => {
+          searchInstead.current = true
           dismiss()
-          section.current?.querySelector('input')?.focus()
         }}
       />
     </section>

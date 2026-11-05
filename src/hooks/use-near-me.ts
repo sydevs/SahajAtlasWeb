@@ -73,6 +73,8 @@ export function useNearMe({
         onPlace({
           center,
           bbox: nearbyBounds(center, geojson),
+          // Someone pressing Near me is asking what's closest, whatever the default ranking favours.
+          sort: 'closest',
           q: feature?.properties?.full_address ?? undefined,
           countryCode: feature ? geocodeCountryCode(feature) : undefined,
         })

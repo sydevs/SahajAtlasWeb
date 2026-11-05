@@ -209,7 +209,8 @@
       "anywhere": "Choose a day or time, anywhere",
       "near_me": "Near me",
       "online_route": "Online classes, from anywhere",
-      "placeholder": "Town or city"
+      "placeholder": "Town or city",
+      "scope": "%{near} within %{km} km, plus %{online} online"
     }
   },
   "location": {
@@ -219,7 +220,7 @@
     "search_instead": "Search for a town",
     "steps_android": "To turn it back on in Chrome: tap the icon to the left of the web address, tap Permissions, then turn on Location. Then press Near me again.",
     "steps_desktop": "To turn it back on: click the icon to the left of the web address, and allow Location. You may need to reload the page. Then press Near me again.",
-    "steps_ios": "To turn it back on: open the Settings app, then Privacy & Security, then Location Services. Turn it on, and set Safari Websites to While Using the App. Then come back and press Near me again."
+    "steps_ios": "To turn it back on in Safari: tap aA in the address bar, then Website Settings, and set Location to Allow. If that doesn’t help, open the Settings app, then Privacy & Security, then Location Services, and set Safari Websites to While Using the App. Then press Near me again."
   },
   "online": {
     "title": "Online Classes"
