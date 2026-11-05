@@ -159,13 +159,7 @@ export function ExpandSheetButton({ label }: { label?: string }) {
   if (!canCollapse || !collapsed) return null
 
   return (
-    <Button
-      className="relative shrink-0 after:absolute after:inset-x-0 after:-inset-y-1.5"
-      color="primary"
-      size="sm"
-      variant="flat"
-      onClick={toggle}
-    >
+    <Button className="shrink-0" color="primary" size="sm" variant="flat" onClick={toggle}>
       {label ?? t('common.chrome.show_list')}
     </Button>
   )
