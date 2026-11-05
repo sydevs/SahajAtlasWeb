@@ -1,6 +1,15 @@
 import type { AgnosticFeedEvent } from '@/types'
 
-import { Suspense, lazy, startTransition, useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import {
+  Suspense,
+  lazy,
+  startTransition,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react'
 import { createPortal } from 'react-dom'
 import { useLocation, useNavigate } from 'react-router'
 import { useQuery } from '@tanstack/react-query'
@@ -16,12 +25,7 @@ import { useLocale } from '@/hooks/use-locale'
 import { Drawer, DrawerContent } from '@/components/atoms/Drawer'
 import { ResetErrorBoundary, SettingsMenu } from '@/components/molecules'
 import { ClientGate } from '@/config/client-gate'
-import {
-  SEARCH_SHEET_PX,
-  WidgetWidthContext,
-  useFitsWidth,
-  useIsWide,
-} from '@/config/responsive'
+import { SEARCH_SHEET_PX, WidgetWidthContext, useFitsWidth, useIsWide } from '@/config/responsive'
 import { useSurfaceSwitch, useWidgetMode } from '@/config/mode'
 import { useClassSheet, useFilterPanelState } from '@/config/store'
 import { frameElement, overlayContainer } from '@/lib/overlay'
@@ -108,6 +112,7 @@ const EVENT_OPEN_PX = 380
 const safeAreaBottom = (): number => {
   if (typeof document === 'undefined') return 0
   const probe = document.createElement('div')
+
   probe.style.cssText = 'position:fixed;visibility:hidden;height:env(safe-area-inset-bottom,0px)'
   document.body.append(probe)
   const inset = probe.getBoundingClientRect().height

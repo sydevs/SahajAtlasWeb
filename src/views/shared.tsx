@@ -444,7 +444,15 @@ export function useIpSuggestion(region?: {
         regionCenter: region?.center,
         viewedCountry: region?.countryCode,
       }),
-    [filterPanelUp, ipLocation, dismissed, activeSearch, geojson, region?.center, region?.countryCode],
+    [
+      filterPanelUp,
+      ipLocation,
+      dismissed,
+      activeSearch,
+      geojson,
+      region?.center,
+      region?.countryCode,
+    ],
   )
 
   const accept = useCallback(() => {

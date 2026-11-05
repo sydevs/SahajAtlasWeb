@@ -18,12 +18,7 @@ import { useSearchCountry } from '@/hooks/use-search-country'
 import { useMapController } from '@/hooks/use-map-controller'
 import { boundsWith, listResetKey, parseBounds, parseCenter, splitResults } from '@/lib/shape'
 import { BackButton } from '@/views/nav'
-import {
-  ExpandSheetButton,
-  FilterButton,
-  SearchField,
-  useFrameOnTop,
-} from '@/views/shared'
+import { ExpandSheetButton, FilterButton, SearchField, useFrameOnTop } from '@/views/shared'
 import { ErrorPanel } from '@/views/fallbacks'
 
 // The search view, at route `/search`. It ranks events by distance from the geocoded place

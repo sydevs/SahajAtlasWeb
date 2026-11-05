@@ -10,12 +10,7 @@ import { regionsQuery } from '@/config/api'
 import { useEventFilters, useSetFilters } from '@/hooks/use-filters'
 import { useLocale } from '@/hooks/use-locale'
 import { formatTimePeriods } from '@/lib'
-import {
-  type EventFilters,
-  type FilterKey,
-  isDateRestricted,
-  isTimeRestricted,
-} from '@/lib/shape'
+import { type EventFilters, type FilterKey, isDateRestricted, isTimeRestricted } from '@/lib/shape'
 import { regionalLocale } from '@/lib/time'
 
 export type FilterPill = { key: FilterKey; label: string; onRemove: () => void }

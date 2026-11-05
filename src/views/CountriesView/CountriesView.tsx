@@ -149,45 +149,49 @@ export function CountriesView() {
           />
         ) : (
           <>
-          {/* Online classes belong to no country — a leading entry into the online-filtered
+            {/* Online classes belong to no country — a leading entry into the online-filtered
               search rather than a place in the list below. */}
-          {onlineCount > 0 && (
-            <List>
-              <ListItem
-                count={onlineCount}
-                href={onlineSearch}
-                icon={<Monitor size={20} />}
-                label={t('online.row')}
-                subtitle={t('online.anywhere')}
-              />
-            </List>
-          )}
-          <h3 className="px-4 pt-3 pb-1 text-sm font-normal text-gray-11">{t('countries.browse')}</h3>
-          <div onFocus={freeze} onPointerDown={freeze} onPointerEnter={freeze}>
-            <List>
-              {sortedCountries.map((country) => (
+            {onlineCount > 0 && (
+              <List>
                 <ListItem
-                  key={country.id}
-                  quiet
-                  count={country.eventCount}
-                  href={country.singleEventPath ?? `${country.path}${filterSearch}`}
-                icon={
-                  country.countryCode ? (
-                    <CircleFlag
-                      className="h-full w-full rounded-full border border-divider bg-divider"
-                      countryCode={country.countryCode.toLocaleLowerCase()}
-                      // Matches the country-site recovery rung (molecules/Fallbacks). The flag SVG
-                      // comes from react-circle-flags' CDN, and this request must not send the
-                      // host page's URL as a referrer.
-                      referrerPolicy="no-referrer"
-                    />
-                  ) : undefined
-                }
-                label={(country.countryCode && regionNames.of(country.countryCode)) || country.name}
-              />
-            ))}
-          </List>
-        </div>
+                  count={onlineCount}
+                  href={onlineSearch}
+                  icon={<Monitor size={20} />}
+                  label={t('online.row')}
+                  subtitle={t('online.anywhere')}
+                />
+              </List>
+            )}
+            <h3 className="px-4 pt-3 pb-1 text-sm font-normal text-gray-11">
+              {t('countries.browse')}
+            </h3>
+            <div onFocus={freeze} onPointerDown={freeze} onPointerEnter={freeze}>
+              <List>
+                {sortedCountries.map((country) => (
+                  <ListItem
+                    key={country.id}
+                    quiet
+                    count={country.eventCount}
+                    href={country.singleEventPath ?? `${country.path}${filterSearch}`}
+                    icon={
+                      country.countryCode ? (
+                        <CircleFlag
+                          className="h-full w-full rounded-full border border-divider bg-divider"
+                          countryCode={country.countryCode.toLocaleLowerCase()}
+                          // Matches the country-site recovery rung (molecules/Fallbacks). The flag SVG
+                          // comes from react-circle-flags' CDN, and this request must not send the
+                          // host page's URL as a referrer.
+                          referrerPolicy="no-referrer"
+                        />
+                      ) : undefined
+                    }
+                    label={
+                      (country.countryCode && regionNames.of(country.countryCode)) || country.name
+                    }
+                  />
+                ))}
+              </List>
+            </div>
           </>
         )}
       </DrawerBody>
