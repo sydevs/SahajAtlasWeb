@@ -268,7 +268,16 @@ function ListingSummary({
       )}
 
       {website && (
-        <Fact icon={Globe} label={t('submit.more.website_label')} onEdit={() => onEdit('details')}>
+        <Fact
+          icon={Globe}
+          label={t(
+            draft.signup === 'elsewhere' ? 'submit.signup.link_label' : 'submit.more.website_label',
+          )}
+          onEdit={() => onEdit('details')}
+        >
+          {draft.signup === 'elsewhere' && (
+            <p className="font-medium">{t('submit.signup.elsewhere')}</p>
+          )}
           <p className="break-all">{website}</p>
         </Fact>
       )}

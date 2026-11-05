@@ -71,6 +71,10 @@ export const stepErrors = (
   if (step === 'details' && draft.website.trim() && !isWebUrl(draft.website)) {
     errors.website = true
   }
+  // Sign-ups elsewhere with nowhere to send people would be a dead end.
+  if (step === 'details' && draft.signup === 'elsewhere' && !isWebUrl(draft.website)) {
+    errors.website = true
+  }
 
   return errors
 }
@@ -113,6 +117,7 @@ const STEP_FIELDS: Record<ListingSection, (keyof ListingDraft)[]> = {
     'description',
     'title',
     'website',
+    'signup',
   ],
 }
 

@@ -529,6 +529,8 @@ function ReviewStage({
       [
         reported && t('submit.note.stopped_default'),
         typed && t('submit.note.manual_place', { place: typed.label }),
+        // Proposals may not set the registration fields, so the coordinator is asked to.
+        draft.signup === 'elsewhere' && t('submit.note.signup_elsewhere'),
         sender.note.trim(),
       ]
         .filter(Boolean)

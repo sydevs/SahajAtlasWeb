@@ -447,7 +447,8 @@
       "last_question": "When was the last class?",
       "last_unsure": "I’m not sure",
       "last_known": "I know the date",
-      "last_date": "Last class"
+      "last_date": "Last class",
+      "signup_elsewhere": "Sign-ups for this class happen on another site. The link is in the Website field. Please set this class to external registration."
     },
     "changes": {
       "title": "Check your suggestion",
@@ -480,6 +481,15 @@
       "manual": "On the map",
       "manual_value": "Not found by the search — sent in your note so the coordinator can place it.",
       "venue": "Building"
+    },
+    "signup": {
+      "title": "How do people sign up?",
+      "here": "On this page",
+      "here_hint": "People register on the class’s own page.",
+      "elsewhere": "On Meetup or another site",
+      "elsewhere_hint": "The button on the listing sends people there.",
+      "link_label": "Link to sign up",
+      "link_help": "Your Meetup page, for example. It goes here rather than in the description."
     }
   }
 }

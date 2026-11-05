@@ -2,8 +2,17 @@ import type { ListingDraft, ListingErrors } from '@/lib/proposal'
 
 import { useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
+import { ClipboardList, ExternalLink } from 'lucide-react'
 
-import { FIELD_TEXT, GroupHeading, NameHelp, StepHeading, ValidatedInput } from './fields'
+import {
+  ChoiceCard,
+  FIELD_TEXT,
+  GroupHeading,
+  NameHelp,
+  StepHeading,
+  ValidatedInput,
+  radioKeys,
+} from './fields'
 
 import { Textarea } from '@/components/atoms/Textarea'
 import { FormField } from '@/components/molecules/FormField'
@@ -48,6 +57,7 @@ export function DetailsStep({
   )
   const options = useLanguageOptions(codes)
   const defaultTitle = keepTitle ?? draftTitle({ ...draft, title: '' })
+  const signupLink = !keepTitle && draft.signup === 'elsewhere'
 
   return (
     <div className="flex flex-col gap-6">
@@ -139,13 +149,39 @@ export function DetailsStep({
         onChange={(event) => onChange({ title: event.target.value })}
       />
 
+      {!keepTitle && (
+        <fieldset className="flex flex-col gap-3">
+          <legend className="mb-2 text-sm font-semibold">{t('submit.signup.title')}</legend>
+          <div className="flex flex-col gap-2" role="radiogroup" {...radioKeys}>
+            <ChoiceCard
+              hint={t('submit.signup.here_hint')}
+              icon={ClipboardList}
+              label={t('submit.signup.here')}
+              selected={draft.signup === 'here'}
+              tabStop={draft.signup === 'here'}
+              onSelect={() => onChange({ signup: 'here' })}
+            />
+            <ChoiceCard
+              hint={t('submit.signup.elsewhere_hint')}
+              icon={ExternalLink}
+              label={t('submit.signup.elsewhere')}
+              selected={draft.signup === 'elsewhere'}
+              tabStop={draft.signup === 'elsewhere'}
+              onSelect={() => onChange({ signup: 'elsewhere' })}
+            />
+          </div>
+        </fieldset>
+      )}
+
       <ValidatedInput
         error={errors.website && t('submit.errors.online_url')}
+        help={signupLink ? t('submit.signup.link_help') : undefined}
         id="submit-website"
         inputMode="url"
-        label={t('submit.more.website_label')}
+        label={t(signupLink ? 'submit.signup.link_label' : 'submit.more.website_label')}
         maxLength={USER_SUBMISSION_VALUE_MAX}
         placeholder="https://"
+        required={signupLink}
         type="url"
         value={draft.website}
         onChange={(event) => onChange({ website: event.target.value })}

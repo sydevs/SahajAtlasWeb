@@ -73,6 +73,8 @@ export const eventToDraft = (event: Event): ListingDraft => {
     title: event.title,
     languages: event.languages,
     website: event.website ?? '',
+    // Only a new listing asks: a correction's sign-up mode stays as the class has it.
+    signup: 'here',
   }
 }
 

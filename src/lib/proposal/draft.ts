@@ -33,6 +33,9 @@ export type ListingRepeats = 'once' | 'weekly' | 'monthly'
  */
 export type MonthlyBy = 'date' | 'weekday' | 'last'
 
+/** Where people sign up: on the listing's own form, or on the host's page, such as Meetup. */
+export type ListingSignup = 'here' | 'elsewhere'
+
 export type ListingDraft = {
   eventType: 'offline' | 'online'
   /** In person: the venue's address. */
@@ -61,7 +64,9 @@ export type ListingDraft = {
   description: string
   title: string
   languages: string[]
+  /** The class's page. When sign-ups are `elsewhere`, this is where they happen. */
   website: string
+  signup: ListingSignup
 }
 
 /** Who is sending the listing: their own address, and an optional note to the reviewer. */
@@ -89,6 +94,7 @@ export const emptyDraft = (timeZone: string, languages: string[] = []): ListingD
   title: '',
   languages,
   website: '',
+  signup: 'here',
 })
 
 /** The place a draft is anchored to, for the confirmation's city name and the timezone. */
