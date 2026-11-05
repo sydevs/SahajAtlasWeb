@@ -1,5 +1,6 @@
 import { memo, useEffect, useRef } from 'react'
 import { useTranslation } from 'react-i18next'
+import { ChevronRight } from 'lucide-react'
 
 import { listRow } from '@/components/molecules/List/List'
 import { useLocale } from '@/hooks/use-locale'
@@ -33,7 +34,8 @@ const MIN_DISTANCE_KM = 5
  * time, then the address with its distance faded below, or the online
  * hosted-from line), then the compact EventChips (a course or one-off
  * type, a language the card has not said, and "Full"). The facts carry the distance, not a
- * chip. The whole card is tappable, with a press state and no chevron. The
+ * chip. The whole card is tappable, with a press state and the same chevron
+ * as a place row. The
  * Link wrapper stays hookable for map-pin highlight (#44). The row is an
  * <li> wrapping the Link, so each card is a valid direct child of the
  * List's <ul> (#65). The List draws the divider between cards, not each
@@ -115,27 +117,30 @@ function EventListItemImpl({ event, searchedPlace }: EventListItemProps) {
           would break silently the day a card grows a second anchor. */}
       <Link
         data-event-row
-        className={listRow({ className: 'flex flex-col gap-1 py-4' })}
+        className={listRow({ className: 'flex flex-row items-center gap-1 py-4' })}
         href={event.path}
         onBlur={deactivate}
         onFocus={activate}
         onMouseEnter={activate}
         onMouseLeave={deactivate}
       >
-        <div className="line-clamp-2 text-lg">{event.title}</div>
-        <EventFacts
-          className="mt-0.5 mb-1"
-          distance={
-            distanceText && (
-              <span aria-label={distanceLabel} title={distanceLabel}>
-                {distanceText}
-              </span>
-            )
-          }
-          event={event}
-          variant="compact"
-        />
-        <EventChips className="mt-1" event={event} variant="compact" />
+        <div className="flex min-w-0 flex-1 flex-col gap-1">
+          <div className="line-clamp-2 text-lg">{event.title}</div>
+          <EventFacts
+            className="mt-0.5 mb-1"
+            distance={
+              distanceText && (
+                <span aria-label={distanceLabel} title={distanceLabel}>
+                  {distanceText}
+                </span>
+              )
+            }
+            event={event}
+            variant="compact"
+          />
+          <EventChips className="mt-1" event={event} variant="compact" />
+        </div>
+        <ChevronRight className="shrink-0 text-gray-9 rtl:-scale-x-100" size={20} />
       </Link>
     </li>
   )
