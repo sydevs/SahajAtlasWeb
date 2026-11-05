@@ -216,7 +216,7 @@ export function TimeStep({
 
       <fieldset className="flex flex-col">
         <legend className="mb-2 text-sm font-medium">{t('submit.when.duration')}</legend>
-        <div className="grid grid-cols-2 gap-2 sm:grid-cols-4" role="radiogroup" {...radioKeys}>
+        <div className="grid grid-cols-2 gap-2" role="radiogroup" {...radioKeys}>
           {DURATIONS.map(({ minutes, label }) => {
             const on = minutes === null ? custom : !custom && duration === minutes
 
