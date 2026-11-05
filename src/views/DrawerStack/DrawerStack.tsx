@@ -1,6 +1,7 @@
 import type { AgnosticFeedEvent } from '@/types'
 
 import {
+  type CSSProperties,
   Suspense,
   lazy,
   startTransition,
@@ -25,7 +26,13 @@ import { useLocale } from '@/hooks/use-locale'
 import { Drawer, DrawerContent } from '@/components/atoms/Drawer'
 import { ResetErrorBoundary, SettingsMenu } from '@/components/molecules'
 import { ClientGate } from '@/config/client-gate'
-import { SEARCH_SHEET_PX, WidgetWidthContext, useFitsWidth, useIsWide } from '@/config/responsive'
+import {
+  FILTER_PANEL_PX,
+  SEARCH_SHEET_PX,
+  WidgetWidthContext,
+  useFitsWidth,
+  useIsWide,
+} from '@/config/responsive'
 import { useSurfaceSwitch, useWidgetMode } from '@/config/mode'
 import { useClassSheet, useFilterPanelState } from '@/config/store'
 import { frameElement, overlayContainer } from '@/lib/overlay'
@@ -173,9 +180,12 @@ function withFitSnap(points: (number | string)[], fitPx: number | null) {
 }
 
 // How wide the widget has to be before the filters get their own panel over the map, and open by
-// default: the 352px list and its margins, the 272px filter panel and the 64px of map controls
-// beside it, which leaves about 450px of map to look at. Below this, filters sit behind the button.
+// default: the 352px list and its margins, the filter panel (`FILTER_PANEL_PX`) and the map
+// controls beside it, which leaves about 450px of map to look at. Below this, filters sit behind
+// the button.
 const FILTER_PANEL_MIN_PX = 1200
+// The settings cog's share of `CONTROLS_BESIDE_PANEL` in Map.tsx: the cog sits outside the map.
+const COG_BESIDE_PANEL = { '--sy-map-end': `${FILTER_PANEL_PX}px` } as CSSProperties
 
 // PROPOSAL SWITCH: the panel and the chip bar are an either/or for Anton to compare. `?filterui=chips`
 // on the page's first load shows the chips. Delete whichever one loses, and this with it.
@@ -952,16 +962,14 @@ export function DrawerStack() {
                   calendar, and at the sheet's near-full snap (which also covers the tall
                   filters sheet), which covers the column anyway. */}
                 {!wide && snap !== WIDE_SNAP && (
-                  <SettingsMenu
-                    align="end"
-                    // With the filter panel up, the cog moves in beside it with the rest of the
-                    // column (`--sy-map-end` in Map.tsx is the same 336px).
-                    className={
-                      filterPanelUp
-                        ? 'fixed top-[var(--sy-map-ctrl-top)] right-[calc(var(--sy-map-ctrl-end)+336px)] z-20'
-                        : 'fixed top-[var(--sy-map-ctrl-top)] right-[var(--sy-map-ctrl-end)] z-20'
-                    }
-                  />
+                  // With the filter panel up, the cog moves in beside it with the rest of the
+                  // column, by the same `--sy-map-end` Map.tsx sets on the map.
+                  <div className="contents" style={filterPanelUp ? COG_BESIDE_PANEL : undefined}>
+                    <SettingsMenu
+                      align="end"
+                      className="fixed top-[var(--sy-map-ctrl-top)] right-[calc(var(--sy-map-ctrl-end)+var(--sy-map-end,0px))] z-20"
+                    />
+                  </div>
                 )}
               </>,
               target,

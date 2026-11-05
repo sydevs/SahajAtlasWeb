@@ -4,6 +4,17 @@ import { useMediaQuery } from 'react-responsive'
 /** How tall a phone's sheet opens on a searched place: the sheet asks for it, the camera frames around it. */
 export const SEARCH_SHEET_PX = 440
 
+/** The desktop filters panel's width (`FiltersPanel` reads it). */
+export const FILTER_PANEL_W_PX = 272
+/** The gap between the filters panel and the map's right edge (`FiltersPanel` reads it). */
+export const FILTER_PANEL_EDGE_PX = 16
+/**
+ * How much of the map's right side the filters panel takes: the camera pads its framing by this,
+ * and the map's control column (settings, locate, info) moves in by it, so the column keeps the
+ * same 16px gap from the panel that it keeps from the map's edge without it.
+ */
+export const FILTER_PANEL_PX = FILTER_PANEL_W_PX + FILTER_PANEL_EDGE_PX
+
 /**
  * # Responsive signals, and which question each one answers
  *

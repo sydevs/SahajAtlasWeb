@@ -52,7 +52,7 @@ import { useGeolocateToSearch } from '@/hooks/use-geolocate'
 import { LOCATE_TIMEOUT_MS } from '@/hooks/use-near-me'
 import { useRegionMatcher } from '@/hooks/use-region-matcher'
 import api, { eventTitlesQuery } from '@/config/api'
-import { useHasRealPointer } from '@/config/responsive'
+import { FILTER_PANEL_PX, useHasRealPointer } from '@/config/responsive'
 import { useBrandPalette } from '@/config/theme/brand-palette'
 import { GEOJSON_STALE_TIME } from '@/config/query-client'
 import { areaAround } from '@/lib/geo'
@@ -257,8 +257,9 @@ function EventPinPopover({
  * @param cooperative Leave one-finger and wheel scrolling to the host page, moving the map only on
  *   two fingers or Ctrl/⌘ + wheel (`gestures=cooperative`, contained maps only).
  */
-// The 320px filter panel and its 16px margin: the top-right controls sit just inside its edge.
-const CONTROLS_BESIDE_PANEL = { '--sy-map-end': '336px' } as CSSProperties
+// While the filters panel is up, the top-right control column moves in beside it, by the same
+// footprint the camera pads for (`.mapboxgl-ctrl-top-right` in globals.css adds it).
+const CONTROLS_BESIDE_PANEL = { '--sy-map-end': `${FILTER_PANEL_PX}px` } as CSSProperties
 
 export function Mapbox({ cooperative = false }: { cooperative?: boolean } = {}) {
   let navigate = useAtlasNavigate()
