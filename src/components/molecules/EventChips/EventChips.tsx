@@ -8,39 +8,43 @@ import { useLocale } from '@/hooks/use-locale'
 export type EventChipsVariant = 'default' | 'compact'
 
 export type EventChipsProps = {
-  event: DisplayableEvent & { languages: string[] }
+  event: DisplayableEvent & { languages: string[]; title?: string }
   /**
    * `default`, the event header, names the type and every language.
-   * `compact`, the list card, drops the plain weekly-class type and the
-   * viewer's own language. Those are the chips that add nothing at a
-   * glance.
+   * `compact`, the list card, shows only what the rest of the card does not
+   * already say. So it drops a recurring class's type (the card reads "Every
+   * Tuesday"), "Today" (the card's facts say it), the viewer's own language,
+   * and a language the title already names.
    */
   variant?: EventChipsVariant
   className?: string
 }
 
 /**
- * The event's triage chips. Up to three, all `flat`: the class type
- * (primary), the language(s) combined into one chip (secondary), and a
- * single availability chip, "Full" (neutral) or "Today" (contrast). The
- * list card and the event header share this component, so the two never
+ * The event's triage chips. Up to three: the class type, the language(s)
+ * combined into one chip, and a single availability chip, "Full" or "Today".
+ * All are neutral except "Today", the one worth noticing. The list card and the event header share this component, so the two never
  * drift. `compact` trims the redundant chips on the card.
  */
 export function EventChips({ event, variant = 'default', className }: EventChipsProps) {
   const { t } = useTranslation()
   const { languageCode: uiLanguage, languageLabel } = useLocale()
-  const { display, typeLabel, isDefaultType } = useEventDisplay(event)
+  const { display, typeLabel } = useEventDisplay(event)
 
   const compact = variant === 'compact'
 
-  // Type: `default` always names it. `compact` skips the plain weekly class,
-  // whose label adds nothing on a compact card.
-  const showType = !compact || !isDefaultType
+  // Type: `default` always names it. `compact` skips any recurring class, whose
+  // "Weekly class" only restates the "Every Tuesday" right above it.
+  const showType = !compact || display.kind !== 'class'
 
-  // All languages fold into a single chip. `compact` keeps only the ones
-  // that differ from the viewer's UI language.
+  // All languages fold into a single chip. `compact` keeps only the ones that
+  // differ from the viewer's UI language and that the title does not name.
+  const title = event.title?.toLowerCase() ?? ''
   const languages = compact
-    ? event.languages.filter((code) => code.split('-')[0] !== uiLanguage)
+    ? event.languages.filter(
+        (code) =>
+          code.split('-')[0] !== uiLanguage && !title.includes(languageLabel(code).toLowerCase()),
+      )
     : event.languages
   const languageText = languages.length
     ? languages.map((code) => languageLabel(code)).join(', ')
@@ -54,16 +58,18 @@ export function EventChips({ event, variant = 'default', className }: EventChips
   // set only when it is the actual blocker, so an ended or dormant event
   // still falls through to its own treatment.
   const full = display.full
-  const today = !full && display.status === 'today'
+  //
+  // `compact` leaves "Today" to the card's facts, which show it on its own tinted line.
+  const today = !compact && !full && display.status === 'today'
 
   if (!showType && !languageText && !full && !today) return null
 
   return (
     <div className={clsx('flex flex-wrap items-center gap-1', className)}>
-      {showType && <Chip color="primary">{typeLabel}</Chip>}
-      {languageText && <Chip color="secondary">{languageText}</Chip>}
-      {full && <Chip color="neutral">{t('event.display.chip_full')}</Chip>}
-      {today && <Chip color="contrast">{t('event.display.chip_today')}</Chip>}
+      {showType && <Chip>{typeLabel}</Chip>}
+      {languageText && <Chip>{languageText}</Chip>}
+      {full && <Chip>{t('event.display.chip_full')}</Chip>}
+      {today && <Chip color="primary">{t('event.display.chip_today')}</Chip>}
     </div>
   )
 }

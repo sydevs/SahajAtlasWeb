@@ -31,8 +31,8 @@ const MIN_DISTANCE_KM = 5
 /**
  * The list card: title, then the shared EventFacts summary (recurrence and
  * time, then the address with its distance faded below, or the online
- * hosted-from line), then the compact EventChips (a non-default type, a
- * non-UI language, and a "Today"). The facts carry the distance, not a
+ * hosted-from line), then the compact EventChips (a course or one-off
+ * type, a language the card has not said, and "Full"). The facts carry the distance, not a
  * chip. The whole card is tappable, with a press state and no chevron. The
  * Link wrapper stays hookable for map-pin highlight (#44). The row is an
  * <li> wrapping the Link, so each card is a valid direct child of the

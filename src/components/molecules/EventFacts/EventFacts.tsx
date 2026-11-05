@@ -33,6 +33,7 @@ const facts = tv({
     item: 'flex',
     icon: 'shrink-0',
     text: 'min-w-0 text-base leading-snug',
+    line: '',
     subtext: 'font-normal text-gray-11',
   },
   variants: {
@@ -57,6 +58,12 @@ const facts = tv({
       true: { item: 'items-start' },
       false: { item: 'items-center' },
     },
+    // A list card's "Today" is the fact a visitor scans for, and the card has no chip for it. It
+    // is the muted line on a recurring class, and the lead line on a one-off.
+    today: {
+      line: { line: 'font-medium text-primary-12' },
+      subtext: { subtext: 'font-medium text-primary-12' },
+    },
   },
   compoundVariants: [
     { variant: 'default', stacked: true, class: { icon: 'mt-0.5' } },
@@ -77,6 +84,8 @@ type Fact = {
   subtext?: ReactNode
   /** The text itself spans two lines, so the icon hangs from the first even with no subtext. */
   stacked?: boolean
+  /** Which line says "Today" and gets the tint, if any. */
+  today?: 'line' | 'subtext'
 }
 
 export type EventFactsProps = {
@@ -153,6 +162,8 @@ export function EventFacts({
         hasNext: Boolean(display.next),
       }),
       subtext: timingDetail,
+      today:
+        compact && display.status === 'today' ? (timingDetail ? 'subtext' : 'line') : undefined,
     },
   ]
 
@@ -185,10 +196,14 @@ export function EventFacts({
   // variants render just the fact column, and take `className` on it.
   const body = (
     <div className={card ? slots.base() : slots.base({ className })}>
-      {items.map(({ icon: Icon, text, subtext, stacked }, index) => {
+      {items.map(({ icon: Icon, text, subtext, stacked, today }, index) => {
         // Alignment is per-fact. Only a stacked fact, one with two lines,
         // hangs its icon from the first line.
-        const styles = facts({ variant, stacked: Boolean(subtext) || Boolean(stacked) })
+        const styles = facts({
+          variant,
+          stacked: Boolean(subtext) || Boolean(stacked),
+          today,
+        })
 
         return (
           <div key={index} className={styles.item()}>
@@ -196,7 +211,7 @@ export function EventFacts({
               <Icon size={size} />
             </span>
             <div className={styles.text()}>
-              <div>{text}</div>
+              <div className={styles.line()}>{text}</div>
               {subtext && <div className={styles.subtext()}>{subtext}</div>}
             </div>
           </div>
