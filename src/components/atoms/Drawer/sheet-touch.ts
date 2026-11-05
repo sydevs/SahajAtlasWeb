@@ -14,12 +14,16 @@ function canScroll(el: Element) {
  * Whether a touch's first move belongs to the sheet rather than to the browser: downward, on
  * nothing that wants the touch itself, with every scroller under the finger already at its top.
  */
-export function claimsSheetDrag(target: Element, sheet: Element, dx: number, dy: number) {
+export function claimsSheetDrag(path: EventTarget[], sheet: Element, dx: number, dy: number) {
   if (dy <= 0 || Math.abs(dx) > dy) return false
-  if (target.closest(`[data-vaul-no-drag], ${TEXT_ENTRY}`)) return false
 
-  for (let el: Element | null = target; el && el !== sheet; el = el.parentElement) {
-    if (canScroll(el) && el.scrollTop > 0) return false
+  // The composed path, because Mapbox's search box keeps its suggestion list in its own shadow
+  // root, where a walk up from the event's target would never see that list scrolled.
+  for (const node of path) {
+    if (node === sheet) break
+    if (!(node instanceof Element)) continue
+    if (node.matches(`[data-vaul-no-drag], ${TEXT_ENTRY}`)) return false
+    if (canScroll(node) && node.scrollTop > 0) return false
   }
 
   return true
@@ -52,9 +56,9 @@ export function useSheetDragClaim(sheet: HTMLElement | null) {
     const onMove = (event: TouchEvent) => {
       const touch = event.touches[0]
 
-      if (start && touch && event.target instanceof Element) {
+      if (start && touch) {
         claimed = claimsSheetDrag(
-          event.target,
+          event.composedPath(),
           sheet,
           touch.clientX - start.x,
           touch.clientY - start.y,
