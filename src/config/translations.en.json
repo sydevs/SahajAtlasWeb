@@ -494,10 +494,10 @@
     },
     "signup": {
       "title": "How do people sign up?",
-      "here": "On this page",
-      "here_hint": "People register on the class’s own page.",
+      "here": "On the class’s page",
+      "here_hint": "People fill in a short form there.",
       "elsewhere": "On Meetup or another site",
-      "elsewhere_hint": "The button on the listing sends people there.",
+      "elsewhere_hint": "We’ll ask the coordinator to link the button to your page.",
       "link_label": "Link to sign up",
       "link_help": "Your Meetup page, for example. It goes here rather than in the description."
     }
