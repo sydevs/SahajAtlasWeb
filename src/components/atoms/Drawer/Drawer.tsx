@@ -90,6 +90,10 @@ const drawer = tv({
       // already logical: the stack's panel and cog positioning use `start-*`,
       // and directional icons carry `rtl:-scale-x-100` at their call sites.
       //
+      // The left inset is the notch or Dynamic Island of a phone held sideways (`viewport-fit=cover`
+      // runs the page under it). The panel widens by the inset and pads it, so its content keeps
+      // the full width clear of the cut-out. Zero everywhere else.
+      //
       // **The `352px` in both variants below is paired with `DRAWER_W_PX` in
       // `hooks/use-map-controller-real.tsx`.** That constant becomes the map's
       // left camera padding, so the map knows how much of itself this panel
@@ -99,7 +103,7 @@ const drawer = tv({
       // nothing anywhere reports the drift.
       left: {
         content:
-          'inset-y-0 left-0 w-[var(--sy-drawer-w,352px)] max-w-[calc(100%-32px)] rounded-none border border-divider lg:inset-y-4 lg:left-4 lg:rounded-2xl',
+          'inset-y-0 left-0 w-[calc(var(--sy-drawer-w,352px)+env(safe-area-inset-left,0px))] max-w-[calc(100%-32px)] rounded-none border border-divider ps-[env(safe-area-inset-left,0px)] lg:inset-y-4 lg:left-4 lg:rounded-2xl',
       },
       right: {
         content:

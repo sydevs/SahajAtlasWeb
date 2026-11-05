@@ -202,7 +202,7 @@ function PeekStrip({
     // renders at ≥768px, where `352px` always fits — which is exactly why it is worth fixing
     // before that stops being true.
     className =
-      'inset-y-0 start-0 w-[var(--sy-drawer-w,352px)] max-w-[calc(100%-32px)] rounded-none border border-divider bg-background shadow-xl lg:inset-y-4 lg:start-4 lg:rounded-2xl'
+      'inset-y-0 start-0 w-[calc(var(--sy-drawer-w,352px)+env(safe-area-inset-left,0px))] max-w-[calc(100%-32px)] rounded-none border border-divider bg-background shadow-xl lg:inset-y-4 lg:start-4 lg:rounded-2xl'
   } else {
     style.left = 0
     style.right = 0
@@ -833,7 +833,7 @@ export function DrawerStack() {
                     // clips it away entirely. Outside a frame, `isWide` IS the
                     // viewport's answer, so this stays the same offset it always was.
                     isWide
-                      ? 'start-[calc(var(--sy-drawer-w,352px)+32px)] lg:start-[calc(var(--sy-drawer-w,352px)+48px)] lg:top-4'
+                      ? 'start-[calc(var(--sy-drawer-w,352px)+32px+env(safe-area-inset-left,0px))] lg:start-[calc(var(--sy-drawer-w,352px)+48px+env(safe-area-inset-left,0px))] lg:top-4'
                       : 'start-3',
                   )}
                 />
