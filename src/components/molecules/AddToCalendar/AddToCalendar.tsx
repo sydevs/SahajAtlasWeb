@@ -17,6 +17,23 @@ export type AddToCalendarProps = {
   event: IcsEventInput
 }
 
+const downloadEventIcs = (event: IcsEventInput) => {
+  const blob = new Blob([buildEventIcs(event)], { type: 'text/calendar;charset=utf-8' })
+  const href = URL.createObjectURL(blob)
+  const anchor = document.createElement('a')
+
+  anchor.href = href
+  anchor.download = icsFileName(event.title)
+  // Firefox only follows a synthetic click on an anchor that is IN the
+  // document. This defers revoking, instead of doing it immediately. The
+  // download starts during click(). But revoking in the same tick cancels
+  // it in Safari.
+  document.body.append(anchor)
+  anchor.click()
+  anchor.remove()
+  window.setTimeout(() => URL.revokeObjectURL(href), 1000)
+}
+
 /**
  * The five add-to-calendar targets, offered on the registration confirmation
  * (issue #105).
@@ -39,23 +56,7 @@ export type AddToCalendarProps = {
  */
 export function AddToCalendar({ event }: AddToCalendarProps) {
   const { t } = useTranslation()
-
-  const downloadIcs = () => {
-    const blob = new Blob([buildEventIcs(event)], { type: 'text/calendar;charset=utf-8' })
-    const href = URL.createObjectURL(blob)
-    const anchor = document.createElement('a')
-
-    anchor.href = href
-    anchor.download = icsFileName(event.title)
-    // Firefox only follows a synthetic click on an anchor that is IN the
-    // document. This defers revoking, instead of doing it immediately. The
-    // download starts during click(). But revoking in the same tick cancels
-    // it in Safari.
-    document.body.append(anchor)
-    anchor.click()
-    anchor.remove()
-    window.setTimeout(() => URL.revokeObjectURL(href), 1000)
-  }
+  const downloadIcs = () => downloadEventIcs(event)
 
   // These are brand names, so they stay untranslated. They are also unique,
   // so they double as keys.
@@ -96,6 +97,48 @@ export function AddToCalendar({ event }: AddToCalendarProps) {
           {label}
         </Button>
       ))}
+    </div>
+  )
+}
+
+/**
+ * The short version for the class page: a plain list of the choices that keep a weekly class
+ * weekly. The `.ics` file and the Google link carry the repeat. Outlook, Office 365 and Yahoo
+ * links add one session, so they stay on the registration confirmation only, where one session
+ * is what was booked. "Other" is the same file as Apple, because any calendar can open it.
+ */
+export function AddToCalendarList({ event }: AddToCalendarProps) {
+  const { t } = useTranslation()
+  const row = 'h-11 w-full justify-start px-0'
+
+  return (
+    <div className="flex flex-col pl-[26px]">
+      <Button
+        aria-label={`Apple Calendar · ${t('event.actions.download_ics')}`}
+        className={row}
+        color="neutral"
+        variant="ghost"
+        onClick={() => downloadEventIcs(event)}
+      >
+        Apple Calendar
+      </Button>
+      <Button
+        className={row}
+        color="neutral"
+        href={buildGoogleCalendarUrl(event)}
+        target="_blank"
+        variant="ghost"
+      >
+        Google Calendar
+      </Button>
+      <Button
+        className={row}
+        color="neutral"
+        variant="ghost"
+        onClick={() => downloadEventIcs(event)}
+      >
+        {t('event.actions.calendar_other')}
+      </Button>
     </div>
   )
 }

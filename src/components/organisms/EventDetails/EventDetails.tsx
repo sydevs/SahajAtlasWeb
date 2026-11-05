@@ -1,11 +1,13 @@
-import { type ReactNode, useMemo } from 'react'
+import { type ReactNode, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
+import { CalendarPlus, ChevronDown } from 'lucide-react'
 
 import { EventOnward, EventRegisterBar } from './EventRegister'
 import { sanitizeDescription } from './sanitize'
 
 import { Alert } from '@/components/atoms/Alert'
 import { Button } from '@/components/atoms/Button'
+import { AddToCalendarList } from '@/components/molecules/AddToCalendar'
 import { EventActions } from '@/components/molecules/EventActions'
 import { EventChips } from '@/components/molecules/EventChips'
 import { ImageCarousel } from '@/components/molecules/ImageCarousel'
@@ -14,7 +16,7 @@ import { WhatToExpect } from '@/components/molecules/WhatToExpect'
 import { Link } from '@/components/atoms/Link'
 import { useCoarsePointer } from '@/config/responsive'
 import { useEventDisplay } from '@/hooks/use-event-display'
-import { isUnverified, lexicalToHtml } from '@/lib/shape'
+import { isOnline, isUnverified, lexicalToHtml } from '@/lib/shape'
 import { Event } from '@/types'
 
 /**
@@ -59,6 +61,50 @@ export type EventDetailsProps = EventSurfaceProps & {
  * secondary actions, About, then images. The title is a separate component
  * (EventHeader). It renders outside the scrolling drawer body, so it stays pinned.
  */
+/** Add-to-calendar on the class page: a text-weight control that opens a short list. It sits
+ *  below the reassurance, because it isn't the next step. Only for a class with a session still
+ *  to come. */
+function EventAddToCalendar({ event }: { event: Event }) {
+  const { t } = useTranslation()
+  const { display, whereLine } = useEventDisplay(event)
+  const [open, setOpen] = useState(false)
+
+  if (!display.next || !event.schedule) return null
+
+  const now = Date.now()
+
+  return (
+    <div className="flex flex-col">
+      <Button
+        aria-expanded={open}
+        className="h-11 justify-start px-0"
+        color="neutral"
+        variant="ghost"
+        onClick={() => setOpen((value) => !value)}
+      >
+        <CalendarPlus className="text-primary-11" size={18} />
+        {t('event.actions.add_calendar')}
+        <ChevronDown className={open ? 'rotate-180 text-gray-11' : 'text-gray-11'} size={16} />
+      </Button>
+      {open && (
+        <AddToCalendarList
+          event={{
+            id: event.id,
+            title: event.title,
+            schedule: {
+              ...event.schedule,
+              upcomingDates: event.schedule.upcomingDates?.filter((d) => d.getTime() > now),
+            },
+            location: isOnline(event) ? undefined : whereLine,
+            url: event.webUrl,
+            from: display.next.toJSDate(),
+          }}
+        />
+      )}
+    </div>
+  )
+}
+
 export function EventDetails({ event, basePath, ctaInline = true, children }: EventDetailsProps) {
   const { t } = useTranslation()
   const { display } = useEventDisplay(event)
@@ -131,6 +177,8 @@ export function EventDetails({ event, basePath, ctaInline = true, children }: Ev
       {(ended || display.status === 'inactive') && (
         <EventOnward basePath={basePath} event={event} />
       )}
+
+      <EventAddToCalendar event={event} />
 
       {/* People have turned up to find nobody there. Worth one quiet line, only when there
           is a host to ask, and a link only where a `tel:` reaches anything. */}

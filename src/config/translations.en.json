@@ -87,6 +87,7 @@
   "event": {
     "actions": {
       "add_calendar": "Add to calendar",
+      "calendar_other": "Other calendar (downloads a file)",
       "call": "Call",
       "contact": "Contact",
       "directions": "Directions",

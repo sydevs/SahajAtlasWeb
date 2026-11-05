@@ -20,7 +20,7 @@ vi.mock('./EventRegister', () => ({
 }))
 vi.mock('@/config/responsive', () => ({ useCoarsePointer: () => false }))
 vi.mock('@/hooks/use-event-display', () => ({
-  useEventDisplay: () => ({ display: { status: 'running' } }),
+  useEventDisplay: () => ({ display: { status: 'running', next: null } }),
 }))
 vi.mock('@/components/molecules/WhatToExpect', () => ({
   WhatToExpect: () => null,

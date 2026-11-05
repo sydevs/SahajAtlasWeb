@@ -5,5 +5,5 @@
 // and its luxon-backed builder, into the first-load payload of every host
 // page. The barrel states the same rule for ShareContent and ImageCarousel.
 // Import this by leaf path.
-export { AddToCalendar } from './AddToCalendar'
+export { AddToCalendar, AddToCalendarList } from './AddToCalendar'
 export type { AddToCalendarProps } from './AddToCalendar'
