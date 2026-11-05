@@ -82,7 +82,14 @@
     "open": "Find a class near you"
   },
   "countries": {
-    "title": "Free Meditation Classes"
+    "browse": "Or browse by country",
+    "locating": "Finding your location…",
+    "near_city": "Classes near %{city}",
+    "near_me_hint": "Your browser will ask for permission",
+    "not_in_city": "Not in %{city}?",
+    "near_me": "Classes near me",
+    "title": "Free Meditation Classes",
+    "use_location": "Use my location"
   },
   "event": {
     "actions": {
@@ -204,6 +211,8 @@
     }
   },
   "online": {
+    "anywhere": "Join from anywhere",
+    "row": "Online classes",
     "title": "Online Classes"
   },
   "registration": {
@@ -238,7 +247,7 @@
   },
   "search": {
     "chrome": {
-      "placeholder": "Search for events near…",
+      "city_or_postcode": "City or postcode",
       "title": "Search"
     },
     "country_site": {

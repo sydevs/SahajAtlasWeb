@@ -62,7 +62,7 @@ export function MapSearch({ onSelect, syncToUrl = true, label }: MapSearchProps)
   const { mapbox } = useMapbox()
   const { locale } = useLocale()
   const { t } = useTranslation()
-  const fieldLabel = label ?? t('search.chrome.placeholder')
+  const fieldLabel = label ?? t('search.chrome.city_or_postcode')
 
   // This merges `q` into the existing query, so the active filters (and
   // bbox and center) survive typing — they live only in the URL now.

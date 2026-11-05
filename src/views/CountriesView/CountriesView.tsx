@@ -1,32 +1,33 @@
-import { useMemo } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useQuery, useSuspenseQuery } from '@tanstack/react-query'
 import { Helmet } from 'react-helmet-async'
 import { CircleFlag } from 'react-circle-flags'
 import { useTranslation } from 'react-i18next'
 import { Monitor } from 'lucide-react'
 
+import { NearMeRow } from './NearMeRow'
+
 import { DrawerBody, DrawerHeader } from '@/components/atoms/Drawer'
 import { List, ListItem } from '@/components/molecules'
 import api, { clientQuery } from '@/config/api'
 import atlasAuth from '@/config/api/auth'
 import { GEOJSON_STALE_TIME } from '@/config/query-client'
+import { useIpLocation } from '@/hooks/use-ip-location'
 import { useLocale } from '@/hooks/use-locale'
 import { useMapController } from '@/hooks/use-map-controller'
 import { useWidgetMode } from '@/config/mode'
-import { DEFAULT_FILTERS, filtersToParams, isOnline } from '@/lib/shape'
+import { DEFAULT_FILTERS, filtersToParams, isOnline, isoCountryCode } from '@/lib/shape'
 import { validateWebUrl } from '@/lib/url'
 import {
   CollapseToggle,
+  DrawerTitle,
   FilterButton,
-  GeolocationSuggestion,
-  SearchField,
   useDrawerControl,
   useFrameOnTop,
 } from '@/views/shared'
 
-// The base view, at route `/`. It shows a leading "Online Classes" entry into the
-// online-filtered search, then the global country list, with the geocoder and a stacked-list
-// toggle in its header. It renders as inner content of the persistent drawer — DrawerStack owns
+// The base view, at route `/`. It opens on the ways to reach a class near the visitor (near me,
+// then a town search), then online classes, and only then the global country list. It renders as inner content of the persistent drawer — DrawerStack owns
 // the sheet. This view is handled like every other one. It is simply the one with no parent, so
 // dismissing it collapses the sheet to its peek.
 export function CountriesView() {
@@ -42,9 +43,28 @@ export function CountriesView() {
   })
   // Busiest countries first. This component owns the list's display order, so it holds
   // whatever the source — the live feed, or a seeded story — provides.
+  // The visitor's own country leads, once the guess is known. It usually lands after the list has
+  // painted, so it only reorders while nobody has touched the list: the first pointer or focus in
+  // there freezes the order, and no row moves under a finger.
+  const guessedCountry = isoCountryCode(useIpLocation()?.country_code)
+  const [pinnedCountry, setPinnedCountry] = useState<string | undefined>(guessedCountry)
+  const touched = useRef(false)
+
+  useEffect(() => {
+    if (!touched.current && guessedCountry) setPinnedCountry(guessedCountry)
+  }, [guessedCountry])
+
+  const freeze = () => {
+    touched.current = true
+  }
   const sortedCountries = useMemo(
-    () => [...countries].sort((a, b) => b.eventCount - a.eventCount),
-    [countries],
+    () =>
+      [...countries].sort(
+        (a, b) =>
+          Number(b.countryCode === pinnedCountry) - Number(a.countryCode === pinnedCountry) ||
+          b.eventCount - a.eventCount,
+      ),
+    [countries, pinnedCountry],
   )
   const { data: client } = useSuspenseQuery(clientQuery(atlasAuth.apiKey))
 
@@ -83,45 +103,54 @@ export function CountriesView() {
           access lives as an icon control in the header, not a list toolbar. Sorting a country
           index is meaningless, so there is no sort menu here. */}
       <DrawerHeader>
-        <SearchField />
+        <div className="min-w-0 flex-1">
+          <DrawerTitle title={t('common.chrome.widget_label')} />
+        </div>
         {/* The toggle renders nothing where the sheet cannot collapse, so filters end the row. */}
         <FilterButton iconOnly isLast={!canCollapse} />
         <CollapseToggle />
       </DrawerHeader>
       <DrawerBody>
-        <GeolocationSuggestion />
-        <List>
-          {/* Online classes belong to no country — a leading entry into the
-              online-filtered search rather than a place in the list below. */}
-          {onlineCount > 0 && (
+        <NearMeRow geojson={geojson} />
+        {/* Online classes belong to no country — a leading entry into the online-filtered
+            search rather than a place in the list below. */}
+        {onlineCount > 0 && (
+          <List>
             <ListItem
               count={onlineCount}
               href={onlineSearch}
               icon={<Monitor size={20} />}
-              label={t('online.title')}
+              label={t('online.row')}
+              subtitle={t('online.anywhere')}
             />
-          )}
-          {sortedCountries.map((country) => (
-            <ListItem
-              key={country.id}
-              count={country.eventCount}
-              href={country.path}
-              icon={
-                country.countryCode ? (
-                  <CircleFlag
-                    className="h-full w-full rounded-full border border-divider bg-divider"
-                    countryCode={country.countryCode.toLocaleLowerCase()}
-                    // Matches the country-site recovery rung (molecules/Fallbacks). The flag SVG
-                    // comes from react-circle-flags' CDN, and this request must not send the
-                    // host page's URL as a referrer.
-                    referrerPolicy="no-referrer"
-                  />
-                ) : undefined
-              }
-              label={(country.countryCode && regionNames.of(country.countryCode)) || country.name}
-            />
-          ))}
-        </List>
+          </List>
+        )}
+        <h3 className="px-4 pt-3 pb-1 text-sm font-normal text-gray-11">{t('countries.browse')}</h3>
+        <div onFocus={freeze} onPointerDown={freeze} onPointerEnter={freeze}>
+          <List>
+            {sortedCountries.map((country) => (
+              <ListItem
+                key={country.id}
+                quiet
+                count={country.eventCount}
+                href={country.path}
+                icon={
+                  country.countryCode ? (
+                    <CircleFlag
+                      className="h-full w-full rounded-full border border-divider bg-divider"
+                      countryCode={country.countryCode.toLocaleLowerCase()}
+                      // Matches the country-site recovery rung (molecules/Fallbacks). The flag SVG
+                      // comes from react-circle-flags' CDN, and this request must not send the
+                      // host page's URL as a referrer.
+                      referrerPolicy="no-referrer"
+                    />
+                  ) : undefined
+                }
+                label={(country.countryCode && regionNames.of(country.countryCode)) || country.name}
+              />
+            ))}
+          </List>
+        </div>
       </DrawerBody>
     </>
   )

@@ -60,6 +60,8 @@ export type DrawerControl = {
   canDismiss: boolean
   toggle: () => void
   dismiss: () => void
+  /** Takes a phone's sheet near-full, for typing in the search field. */
+  raise: () => void
 }
 
 export const DrawerControlContext = createContext<DrawerControl>({
@@ -68,6 +70,7 @@ export const DrawerControlContext = createContext<DrawerControl>({
   canDismiss: false,
   toggle: () => {},
   dismiss: () => {},
+  raise: () => {},
 })
 
 export const useDrawerControl = () => useContext(DrawerControlContext)
@@ -277,6 +280,7 @@ export function SearchField({
 }: Pick<MapSearchProps, 'label' | 'syncToUrl'> = {}) {
   const navigate = useAtlasNavigate()
   const [searchParams] = useSearchParams()
+  const { raise } = useDrawerControl()
 
   const handleSelect = useCallback(
     (value: GeocodingFeature) => {
@@ -301,7 +305,8 @@ export function SearchField({
   )
 
   return (
-    <div className="min-w-0 flex-1">
+    // Focus raises a phone's sheet, so the suggestions (and the keyboard) have room.
+    <div className="min-w-0 flex-1" onFocus={raise}>
       <MapSearch label={label} syncToUrl={syncToUrl} onSelect={handleSelect} />
     </div>
   )
@@ -423,11 +428,7 @@ export function EmptyEventList() {
 // conditions. Only the close button persists a session-scoped dismissal. Accepting merely
 // navigates. The prompt self-hides while the visitor views that area, but returns once they
 // leave it.
-export function GeolocationSuggestion({
-  regionCenter,
-}: {
-  regionCenter?: [number, number] | null
-}) {
+export function useIpSuggestion(regionCenter?: [number, number] | null) {
   const navigate = useAtlasNavigate()
   const [searchParams] = useSearchParams()
   const [dismissed, setDismissed] = useState(readGeolocationDismissed)
@@ -456,10 +457,10 @@ export function GeolocationSuggestion({
     [ipLocation, dismissed, activeSearch, geojson, regionCenter],
   )
 
-  const handleSelect = useCallback(() => {
+  const accept = useCallback(() => {
     if (!ipLocation) return
 
-    // Accepting must NOT persist a dismissal — only the close button does (handleDismiss).
+    // Accepting must NOT persist a dismissal — only the close button does (dismiss).
     // Zooming to the guess already hides the prompt on its own. The new URL carries
     // `?center`/`?q`, so `hasActivePlaceSearch` suppresses it while the visitor is looking at
     // that area. Leaving the area, by clearing the search, brings the suggestion back, so it
@@ -483,15 +484,29 @@ export function GeolocationSuggestion({
     )
   }, [ipLocation, navigate, searchParams])
 
-  const handleDismiss = useCallback(() => {
+  const dismiss = useCallback(() => {
     markGeolocationDismissed()
     setDismissed(true)
   }, [])
 
-  // `!ipLocation` is implied by `!show`, but narrows the type for the render below.
-  if (!ipLocation || !show) return null
+  // `!ipLocation` is implied by `!show`, but narrows the type for callers.
+  return ipLocation && show ? { guess: ipLocation, accept, dismiss } : null
+}
+
+export function GeolocationSuggestion({
+  regionCenter,
+}: {
+  regionCenter?: [number, number] | null
+}) {
+  const suggestion = useIpSuggestion(regionCenter)
+
+  if (!suggestion) return null
 
   return (
-    <GeolocationPrompt city={ipLocation.city} onAccept={handleSelect} onClose={handleDismiss} />
+    <GeolocationPrompt
+      city={suggestion.guess.city}
+      onAccept={suggestion.accept}
+      onClose={suggestion.dismiss}
+    />
   )
 }

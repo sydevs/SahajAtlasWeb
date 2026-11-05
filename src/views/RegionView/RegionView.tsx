@@ -150,7 +150,7 @@ export function RegionView({ slug }: { slug: string }) {
               <ListItem
                 count={region.onlineEvents.length}
                 href={childRoute(region.path, 'online')}
-                label={t('online.title')}
+                label={t('online.row')}
               />
             )}
             {/* Sub-regions (venues/centres, child areas) then this region's own located

@@ -18,6 +18,11 @@ export interface ListItemProps {
    * online-classes monitor, and callers pass the bare glyph.
    */
   icon?: ReactNode
+  /**
+   * A row in a long browse index (the world's countries). The name steps down to body weight,
+   * so the rows above it stay the first thing read.
+   */
+  quiet?: boolean
 }
 
 /**
@@ -26,17 +31,19 @@ export interface ListItemProps {
  * component covers all of them. The only thing that varies is the glyph
  * in the icon slot.
  */
-export function ListItem({ label, subtitle, count, href, icon }: ListItemProps) {
+export function ListItem({ label, subtitle, count, href, icon, quiet }: ListItemProps) {
   return (
     <li>
       <Link
-        className={listRow({ className: 'flex min-h-14 flex-row items-center py-3 font-semibold' })}
+        className={listRow({
+          className: `flex min-h-14 flex-row items-center py-3 ${quiet ? '' : 'font-semibold'}`,
+        })}
         href={href}
       >
         {icon && (
           <span className="me-3 flex h-6 w-6 shrink-0 items-center justify-center">{icon}</span>
         )}
-        <div className="flex-grow text-lg">
+        <div className={quiet ? 'flex-grow text-base' : 'flex-grow text-lg'}>
           <div>{label}</div>
           {subtitle && <div className="mt-0.5 text-sm font-normal text-gray-11">{subtitle}</div>}
         </div>

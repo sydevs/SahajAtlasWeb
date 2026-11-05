@@ -49,7 +49,7 @@ export function OnlineView({ regionSlug, path }: { regionSlug: string; path: str
             a region has none — no Free chips on the cards (issue #52). */}
         <DrawerTitle
           subtitle={regionName || t('common.chrome.all_classes_free')}
-          title={t('online.title')}
+          title={t('online.row')}
         />
         <CloseButton />
       </DrawerHeader>
