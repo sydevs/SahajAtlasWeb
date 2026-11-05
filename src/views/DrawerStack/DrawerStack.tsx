@@ -676,7 +676,11 @@ export function DrawerStack() {
         setSnap(fullSnap)
       },
       setOpenHeight: setMeasuredOpenPx,
-      expand: () => setSnap(fullSnap),
+      // Bottom sheet only, like `raise`. The side panel has no snaps, and setting the near-full
+      // one there would hide the settings cog, which hides at that snap.
+      expand: () => {
+        if (direction === 'bottom') setSnap(fullSnap)
+      },
       dismiss: () => {
         // Marks the dismiss navigation as a transition: unmounting a heavy view (the
         // calendar's large grid) would otherwise reconcile synchronously and freeze
