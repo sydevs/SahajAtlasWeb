@@ -90,7 +90,7 @@ export function SettingsMenu({ className, side = 'bottom', align = 'start' }: Se
       <DropdownMenu.Trigger asChild>
         <button
           aria-label={t('common.settings.title')}
-          className={`flex h-10 w-10 items-center justify-center rounded-full border border-divider bg-background text-gray-11 shadow-lg transition-colors after:absolute after:-inset-0.5 hover:text-foreground ${className ?? ''}`}
+          className={`flex h-10 w-10 items-center justify-center rounded-full border border-divider bg-background text-gray-11 shadow-lg transition-colors outline-none after:absolute after:-inset-0.5 hover:text-foreground focus-visible:ring-2 focus-visible:ring-focus ${className ?? ''}`}
           type="button"
         >
           <Settings size={20} />

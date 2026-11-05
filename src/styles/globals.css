@@ -671,6 +671,40 @@
   background-color: transparent;
 }
 
+/* The rest of Mapbox's fixed colours, so every state of the column follows the theme. Hover,
+   focus and the open attribution are its white and black literals otherwise. */
+.mapboxgl-ctrl-top-right .mapboxgl-ctrl button:not(:disabled):hover {
+  background-color: var(--gray-3);
+}
+
+.mapboxgl-ctrl-top-right .mapboxgl-ctrl-group button:focus,
+.mapboxgl-ctrl-top-right .mapboxgl-ctrl-attrib-button:focus {
+  box-shadow: none;
+}
+
+.mapboxgl-ctrl-top-right .mapboxgl-ctrl-group button:focus-visible,
+.mapboxgl-ctrl-top-right .mapboxgl-ctrl-attrib-button:focus-visible {
+  @apply ring-2 ring-focus;
+}
+
+.mapboxgl-ctrl-top-right .mapboxgl-ctrl-geolocate-active .mapboxgl-ctrl-icon,
+.mapboxgl-ctrl-top-right .mapboxgl-ctrl-geolocate-background .mapboxgl-ctrl-icon {
+  color: var(--color-primary-11);
+}
+
+.mapboxgl-ctrl-top-right .mapboxgl-ctrl-geolocate-active-error .mapboxgl-ctrl-icon,
+.mapboxgl-ctrl-top-right .mapboxgl-ctrl-geolocate-background-error .mapboxgl-ctrl-icon {
+  color: var(--color-danger-11);
+}
+
+.mapboxgl-ctrl-top-right .mapboxgl-ctrl-attrib a {
+  color: var(--gray-11);
+}
+
+.mapboxgl-ctrl-top-right .mapboxgl-ctrl-attrib a:hover {
+  color: var(--gray-12);
+}
+
 /* The boot curtain's spinner (views/FullInterface.tsx → MapCurtain). It fades in on a
    delay, rather than appearing with the frost, so a warm boot — where the camera
    arrives almost at once — reads as a clean frost-then-reveal instead of flashing a
