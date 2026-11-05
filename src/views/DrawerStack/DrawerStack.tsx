@@ -22,9 +22,9 @@ import { useExpansion } from '@/hooks/use-expansion'
 import { useLocale } from '@/hooks/use-locale'
 import { Drawer, DrawerContent } from '@/components/atoms/Drawer'
 import { ResetErrorBoundary, SettingsMenu } from '@/components/molecules'
-import { WidgetWidthContext, useIsWide } from '@/config/responsive'
+import { WidgetWidthContext, useFitsWidth, useIsWide } from '@/config/responsive'
 import { useWidgetMode } from '@/config/mode'
-import { useCalendarPosition } from '@/config/store'
+import { useCalendarPosition, useFilterPanelState } from '@/config/store'
 import { frameElement, overlayContainer } from '@/lib/overlay'
 import {
   type StackEntry,
@@ -35,16 +35,18 @@ import {
   baseStackEntry,
   filterCloseTarget,
   isFilterOverlay,
+  parentOf,
   resolveStack,
 } from '@/lib/shape'
 import { wakesSheetLoop } from '@/views/DrawerStack/sheet-wake'
 import { stripLabel } from '@/views/DrawerStack/strip-label'
 import { ViewLayer } from '@/views/DrawerStack/ViewLayer'
-import { DrawerControlContext } from '@/views/shared'
+import { DrawerControlContext, FilterPanelAvailableContext } from '@/views/shared'
 import { DrawerErrorFallback, DrawerLoading } from '@/views/fallbacks'
 import { CountriesView } from '@/views/CountriesView/CountriesView'
 import { SearchView } from '@/views/SearchView/SearchView'
 import { FilterView } from '@/views/FilterView/FilterView'
+import { FiltersPanel } from '@/views/FilterView/FiltersPanel'
 import { RegionView } from '@/views/RegionView/RegionView'
 import { OnlineView } from '@/views/OnlineView/OnlineView'
 import { EventView } from '@/views/EventView/EventView'
@@ -93,6 +95,11 @@ const SNAP_POINTS = ['80px', '300px', 0.97]
 const PEEK_SNAP = '80px' // the collapsed peek
 const OPEN_SNAP = '300px' // default, and what the peek expands to
 const WIDE_SNAP = SNAP_POINTS[2] // the near-full snap the full-width calendar opens at
+
+// How wide the widget has to be before the filters get their own panel over the map, and open by
+// default: the 352px list and its margins, the 320px filter panel and the 64px of map controls
+// beside it, which leaves about 450px of map to look at. Below this, filters sit behind the button.
+const FILTER_PANEL_MIN_PX = 1200
 
 // How far each stacked ancestor peeks out behind the active sheet. Wide enough to read as
 // a deliberate stack of cards from across the screen. An earlier few-pixel sliver was easy
@@ -277,6 +284,9 @@ export function DrawerStack() {
   const isWide = useIsWide(container ?? frameElement())
   const direction: Direction = isWide ? 'left' : 'bottom'
   const [snap, setSnap] = useState<number | string | null>(OPEN_SNAP)
+  const filterPanelFits = useFitsWidth(container ?? frameElement(), FILTER_PANEL_MIN_PX)
+  const filterPanelOpen = useFilterPanelState((s) => s.open)
+  const setFilterPanelOpen = useFilterPanelState((s) => s.setOpen)
   const stripsRef = useRef<HTMLDivElement>(null)
   // The lazy components ARE the retry state — the boundary's reset swaps in fresh ones.
   // Same shape, and the same reasoning, as EventView's `EventDetails`.
@@ -308,6 +318,26 @@ export function DrawerStack() {
   // switching it resizes the drawer. Date changes do not re-render this component.
   const calendarView = useCalendarPosition((s) => s.view)
   const wide = top?.kind === 'calendar' && isWide && calendarView !== CALENDAR_VIEW_LIST
+  // The panel belongs to the browsing views. A class page or a form has nothing to filter, and
+  // the calendar keeps its own filter overlay.
+  const filterPanelAvailable =
+    hasMap && filterPanelFits && (!top || top.kind === 'region' || top.kind === 'search')
+  const routedFilters = hasMap && filterPanelFits && top?.kind === 'filters'
+
+  // A `/filters` link on a layout with the panel: open the panel, and show the view beneath it.
+  useEffect(() => {
+    if (!routedFilters) return
+
+    setFilterPanelOpen(true)
+    navigate(
+      filterCloseTarget(location.pathname, location.search) ?? {
+        pathname: parentOf(location.pathname) ?? '/',
+        search: location.search,
+      },
+      { replace: true, state: location.state },
+    )
+    // Only the arrival on the route matters.
+  }, [routedFilters])
   // Ancestor paths below the top view, root-first (empty at CountriesView).
   const parentPaths = useMemo(
     () => (baseEntries.length === 0 ? [] : ['/', ...baseEntries.slice(0, -1).map((e) => e.path)]),
@@ -796,22 +826,24 @@ export function DrawerStack() {
 
   return (
     <WidgetWidthContext.Provider value={isWide}>
-      <DrawerControlContext.Provider value={control}>
-        {target &&
-          createPortal(
-            <>
-              {strips}
-              {/* Inline-start, offset past the drawer on ≥md (flush at tablet,
+      <FilterPanelAvailableContext.Provider value={filterPanelAvailable}>
+        <DrawerControlContext.Provider value={control}>
+          {target &&
+            createPortal(
+              <>
+                {strips}
+                {filterPanelAvailable && filterPanelOpen && <FiltersPanel />}
+                {/* Inline-start, offset past the drawer on ≥md (flush at tablet,
                 floating in by 4 at ≥lg), so it never overlaps the panel. Uses the
                 logical `start-*`, rather than `left-*`: under RTL the drawer flips to
                 the right edge, and the cog has to travel with it. On mobile the
                 sheet sits at the bottom, so the top-left corner stays clear. */}
-              {/* Uses top-3 on mobile/tablet. At ≥lg the drawer floats (lg:inset-y-4),
+                {/* Uses top-3 on mobile/tablet. At ≥lg the drawer floats (lg:inset-y-4),
                 so this bumps the cog to top-4 to line up with the drawer's top edge.
                 Hidden on the full-width calendar — a focused view with no clean
                 corner for the floating cog — settings stay reachable from every
                 other view. */}
-              {/* The inline-start gap clears the PEEK STRIPS, not just the drawer. The
+                {/* The inline-start gap clears the PEEK STRIPS, not just the drawer. The
                 deepest stack pushes an ancestor about 23px past the panel edge, using
                 `PEEK_DESKTOP` times the decay series above. So the cog sits 32px out —
                 48px at ≥lg, where the drawer itself is already inset by 16px. That
@@ -819,54 +851,55 @@ export function DrawerStack() {
                 the strips under the cog.
                 Both `352px` fallbacks below are the drawer-width pair — the twin
                 value is `DRAWER_W_PX` in `hooks/use-map-controller-real.tsx`. */}
-              {!wide && (
-                <SettingsMenu
-                  className={clsx(
-                    'fixed top-3 z-40',
-                    // ⚠ **Uses `isWide`, not a `md:` variant — the #169 correction.**
-                    // This clears the LEFT PANEL, so it has to agree with whatever
-                    // decided there is one — and that is now the frame's width, not
-                    // the viewport's. A 600px contained map on a desktop gets the
-                    // bottom sheet, and a viewport variant would still push the cog
-                    // 384px right for a panel that is not there. At a 400px frame it
-                    // would land past the edge, where the frame's `overflow-clip`
-                    // clips it away entirely. Outside a frame, `isWide` IS the
-                    // viewport's answer, so this stays the same offset it always was.
-                    isWide
-                      ? 'start-[calc(var(--sy-drawer-w,352px)+32px)] lg:start-[calc(var(--sy-drawer-w,352px)+48px)] lg:top-4'
-                      : 'start-3',
-                  )}
-                />
-              )}
-            </>,
-            target,
-          )}
-        <Drawer
-          key={direction}
-          dismissible
-          open
-          activeSnapPoint={direction === 'bottom' ? snap : undefined}
-          container={target}
-          direction={direction}
-          // The left panel (≥md) has no handle and no snap points, so restricting
-          // drag to the (absent) handle makes it undraggable — dismiss stays the
-          // close button only. The mobile bottom sheet keeps its full-panel
-          // snap-drag.
-          handleOnly={direction === 'left'}
-          // The box vaul measures snap points against — the frame, or the window.
-          // Deliberately NOT `target`: that is the portal target, which embedded is
-          // the `display: contents` theme root and measures 0×0. See the note in
-          // `Drawer.tsx`.
-          measureAgainst={frameElement()}
-          setActiveSnapPoint={direction === 'bottom' ? setSnap : undefined}
-          snapPoints={direction === 'bottom' ? SNAP_POINTS : undefined}
-          wide={wide}
-          onOpenChange={(o) => !o && control.dismiss()}
-        >
-          {sheet}
-        </Drawer>
-        {filterDrawer}
-      </DrawerControlContext.Provider>
+                {!wide && (
+                  <SettingsMenu
+                    className={clsx(
+                      'fixed top-3 z-40',
+                      // ⚠ **Uses `isWide`, not a `md:` variant — the #169 correction.**
+                      // This clears the LEFT PANEL, so it has to agree with whatever
+                      // decided there is one — and that is now the frame's width, not
+                      // the viewport's. A 600px contained map on a desktop gets the
+                      // bottom sheet, and a viewport variant would still push the cog
+                      // 384px right for a panel that is not there. At a 400px frame it
+                      // would land past the edge, where the frame's `overflow-clip`
+                      // clips it away entirely. Outside a frame, `isWide` IS the
+                      // viewport's answer, so this stays the same offset it always was.
+                      isWide
+                        ? 'start-[calc(var(--sy-drawer-w,352px)+32px)] lg:start-[calc(var(--sy-drawer-w,352px)+48px)] lg:top-4'
+                        : 'start-3',
+                    )}
+                  />
+                )}
+              </>,
+              target,
+            )}
+          <Drawer
+            key={direction}
+            dismissible
+            open
+            activeSnapPoint={direction === 'bottom' ? snap : undefined}
+            container={target}
+            direction={direction}
+            // The left panel (≥md) has no handle and no snap points, so restricting
+            // drag to the (absent) handle makes it undraggable — dismiss stays the
+            // close button only. The mobile bottom sheet keeps its full-panel
+            // snap-drag.
+            handleOnly={direction === 'left'}
+            // The box vaul measures snap points against — the frame, or the window.
+            // Deliberately NOT `target`: that is the portal target, which embedded is
+            // the `display: contents` theme root and measures 0×0. See the note in
+            // `Drawer.tsx`.
+            measureAgainst={frameElement()}
+            setActiveSnapPoint={direction === 'bottom' ? setSnap : undefined}
+            snapPoints={direction === 'bottom' ? SNAP_POINTS : undefined}
+            wide={wide}
+            onOpenChange={(o) => !o && control.dismiss()}
+          >
+            {sheet}
+          </Drawer>
+          {filterDrawer}
+        </DrawerControlContext.Provider>
+      </FilterPanelAvailableContext.Provider>
     </WidgetWidthContext.Provider>
   )
 }

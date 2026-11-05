@@ -160,6 +160,8 @@
     },
     "chrome": {
       "any_time": "Any time",
+      "class_count_one": "%{count} class",
+      "class_count_other": "%{count} classes",
       "clear": "Clear all",
       "clear_one": "Clear",
       "no_match": "No classes match",

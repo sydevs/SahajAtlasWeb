@@ -13,7 +13,7 @@ import { FallbackPanel, GeolocationPrompt } from '@/components/molecules'
 import { MapSearch } from '@/components/organisms'
 import api, { eventQuery } from '@/config/api'
 import { GEOJSON_STALE_TIME } from '@/config/query-client'
-import { useCameraHistory } from '@/config/store'
+import { useCameraHistory, useFilterPanelState } from '@/config/store'
 import { useAtlasNavigate } from '@/hooks/use-atlas-navigate'
 import { useEventFilters } from '@/hooks/use-filters'
 import { useIpLocation } from '@/hooks/use-ip-location'
@@ -211,6 +211,10 @@ export function CollapseToggle() {
 // (SearchView), and — with `iconOnly` — an icon-only header control carrying the
 // active count as a badge (CountriesView's header), so it reads as one set with
 // the close/collapse chrome.
+// Whether this layout has room for the filter panel, so the Filters button toggles that panel
+// rather than opening the filter drawer. DrawerStack owns the measurement.
+export const FilterPanelAvailableContext = createContext(false)
+
 export function FilterButton({ iconOnly = false }: { iconOnly?: boolean }) {
   // `useSuspense: false` — also rendered by the fallback chrome
   // (views/fallbacks.tsx), where suspending on an in-flight namespace would
@@ -223,7 +227,11 @@ export function FilterButton({ iconOnly = false }: { iconOnly?: boolean }) {
 
   const label = count > 0 ? `${t('filters.chrome.title')} (${count})` : t('filters.chrome.title')
   const to = `${location.pathname === '/' ? '' : location.pathname}/filters`
-  const open = () => navigate({ pathname: to, search: location.search })
+  const panelAvailable = useContext(FilterPanelAvailableContext)
+  const panelOpen = useFilterPanelState((s) => s.open)
+  const setPanelOpen = useFilterPanelState((s) => s.setOpen)
+  const open = () =>
+    panelAvailable ? setPanelOpen(!panelOpen) : navigate({ pathname: to, search: location.search })
 
   if (iconOnly) {
     return (

@@ -161,6 +161,39 @@ export function useIsWide(element: HTMLElement | null, delayMs = SETTLE_MS): boo
 }
 
 /**
+ * Whether the same box `useIsWide` measures is at least `minPx` wide, for a fit question at a
+ * width other than the one crossing, such as "is there room for a second panel?". Nothing
+ * remounts on this answer, so unlike `useIsWide` it has nothing to damp.
+ */
+export function useFitsWidth(element: HTMLElement | null, minPx: number): boolean {
+  const viewportFits = useMediaQuery({ query: `(min-width: ${minPx}px)` })
+  // This is the element's width, or null while there is nothing to measure.
+  const [width, setWidth] = useState<number | null>(null)
+
+  useIsomorphicLayoutEffect(() => {
+    if (!element || typeof ResizeObserver === 'undefined') {
+      setWidth(null)
+
+      return
+    }
+
+    setWidth(element.offsetWidth)
+
+    const observer = new ResizeObserver((entries) => {
+      const size = entries[0]?.borderBoxSize?.[0]?.inlineSize ?? entries[0]?.contentRect.width
+
+      if (size !== undefined) setWidth(size)
+    })
+
+    observer.observe(element)
+
+    return () => observer.disconnect()
+  }, [element])
+
+  return width === null ? viewportFits : width >= minPx
+}
+
+/**
  * This is the measured answer, shared with the subtree.
  *
  * `DrawerStack` owns the measurement. It renders the widget's layout root, and it needs the answer before it can choose a direction.

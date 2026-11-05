@@ -410,6 +410,13 @@ export const filterOriginRegion = (pathname: string): string | null => {
   return origin?.kind === 'region' ? origin.slug : null
 }
 
+/** The region the view at `pathname` is showing, or `null`: `/gb/london` → `london`. */
+export const viewRegion = (pathname: string): string | null => {
+  const top = resolveStack(pathname).at(-1)
+
+  return top?.kind === 'region' ? top.slug : null
+}
+
 /**
  * The entry the BASE drawer is showing — the stack's last entry, unless that is a
  * filter overlay.
