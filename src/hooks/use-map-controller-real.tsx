@@ -9,7 +9,7 @@ import { MapControllerContext } from './use-map-controller'
 import { useMapbox, usePaddingState } from '@/hooks/use-mapbox'
 import { useViewState } from '@/config/store'
 import { useIsWide } from '@/config/responsive'
-import { eventFrameZoom } from '@/lib/camera'
+import { eventFrameZoom, hasMapPoint } from '@/lib/camera'
 import { isOnline } from '@/lib/shape'
 import { frameElement } from '@/lib/overlay'
 
@@ -56,10 +56,14 @@ const ONLINE_ZOOM = 7
 // It returns null when the event has no coordinates, since there is nothing to frame or highlight.
 // `frameEvent` and `highlightEvent` share this function, so both derive the point identically.
 // `frameEvent` commits the point to `selection` and moves the camera. `highlightEvent` only sets `hover`.
+//
+// `hasMapPoint` is the one test for whether those coordinates are there.
+// `useFrameEventOnTop` reads the same verdict to decide whether to fall back to the region.
+// A second test here could disagree with it, and then `frameEvent` would run and frame nothing.
 const eventPoint = (event: Pick<EventSlim, 'address' | 'eventType'>) => {
-  const { latitude, longitude } = event.address ?? {}
+  if (!hasMapPoint(event)) return null
 
-  if (latitude == null || longitude == null) return null
+  const { latitude, longitude } = event.address
 
   return { latitude, longitude, approximate: isOnline(event) }
 }

@@ -7,10 +7,9 @@ import { EventFacts, FallbackPanel } from '@/components/molecules'
 // though this view itself is lazy (issue #96). EventDetails reaches EventActions the same way,
 // for the same reason.
 import { ShareContent } from '@/components/molecules/ShareContent'
-import { useMapController } from '@/hooks/use-map-controller'
 import { useShareUrl } from '@/hooks/use-share-url'
 import { useViewerCountry } from '@/hooks/use-viewer-country'
-import { CloseButton, DrawerTitle, useEventFromPath, useFrameOnTop } from '@/views/shared'
+import { CloseButton, DrawerTitle, useEventFromPath, useFrameEventOnTop } from '@/views/shared'
 
 // Share links for an event, at route `<event-path>/share`. The event's Share CTA reaches
 // this view, and the route is deep-linkable. So it repeats the compact resolver summary —
@@ -18,7 +17,6 @@ import { CloseButton, DrawerTitle, useEventFromPath, useFrameOnTop } from '@/vie
 // they are sharing, without any other Atlas chrome (issue #52).
 export function ShareView({ eventPath }: { eventPath: string }) {
   const { t } = useTranslation()
-  const { frameEvent } = useMapController()
   // Order the share targets to the viewer's region. This is resolved here, so ShareContent
   // stays a pure, prop-driven molecule.
   const country = useViewerCountry()
@@ -29,7 +27,7 @@ export function ShareView({ eventPath }: { eventPath: string }) {
   // widget routes off the URL (issue #115).
   const url = useShareUrl(event.webUrl, event.path)
 
-  useFrameOnTop(({ isEntry }) => frameEvent(event, { isEntry }), [event, frameEvent])
+  useFrameEventOnTop(event)
 
   return (
     <>

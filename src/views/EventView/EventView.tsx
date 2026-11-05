@@ -19,11 +19,10 @@ import { useEventDisplay } from '@/hooks/use-event-display'
 import { eventQuery } from '@/config/api'
 import { useIsWideWidget } from '@/config/responsive'
 import { useLocale } from '@/hooks/use-locale'
-import { useMapController } from '@/hooks/use-map-controller'
 import { usePostEventFeedback } from '@/hooks/use-post-event-feedback'
 import { useWidgetMode } from '@/config/mode'
 import { parentOf } from '@/lib/shape'
-import { CloseButton, useDrawerControl, useFrameOnTop } from '@/views/shared'
+import { CloseButton, useDrawerControl, useFrameEventOnTop } from '@/views/shared'
 import { ErrorPanel } from '@/views/fallbacks'
 
 // EventDetails pulls in DOMPurify and the action-row wiring. This keeps it out of the main
@@ -62,7 +61,6 @@ const EventActions = lazy(() =>
 // (issue #52, WS4). Elsewhere it renders inline in the panel order.
 export function EventView({ id, basePath }: { id: number; basePath: string }) {
   const { standalone, hasMap } = useWidgetMode()
-  const { frameEvent } = useMapController()
   // `t` off `useLocale` rather than a second `useTranslation` — the hook already holds
   // one for the default (`common`) namespace and returns it to avoid the duplicate.
   const { t, locale } = useLocale()
@@ -80,7 +78,7 @@ export function EventView({ id, basePath }: { id: number; basePath: string }) {
   // calls a function initializer, and `lazy()` returns an object, so this reads once.
   const [EventDetails, setEventDetails] = useState(loadEventDetails)
 
-  useFrameOnTop(({ isEntry }) => frameEvent(event, { isEntry }), [event, frameEvent])
+  useFrameEventOnTop(event)
 
   // The snap-ladder bottom sheet is the one surface where in-flow content can scroll the CTA
   // away. Pin Register there. Keep it inline everywhere else. Never pin an empty bar —

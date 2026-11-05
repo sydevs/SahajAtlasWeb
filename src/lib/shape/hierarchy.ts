@@ -88,6 +88,24 @@ export const ancestorIds = <T extends RegionTreeNode>(
 }
 
 /**
+ * A region's ancestry as slugs, self-inclusive and nearest first (self → parent → … →
+ * country). This is what a camera climbs when it cannot frame the region it was given:
+ * `boundsUnder` drops placeless points, so a region whose only classes are online has no
+ * bounds, and framing it moves nothing. Just the slug when the tree does not hold it, as
+ * `ancestorIds` does with an id.
+ */
+export const ancestorSlugs = <T extends RegionTreeNode>(nodes: T[], slug: string): string[] => {
+  const index = indexRegions(nodes)
+  const node = index.bySlug.get(slug)
+
+  if (!node) return [slug]
+
+  return ancestorIds(index, node.id)
+    .map((id) => index.byId.get(id)?.slug)
+    .filter((ancestor): ancestor is string => ancestor != null)
+}
+
+/**
  * Every region id at or below `regionId`: the region itself plus all descendants
  * (self-inclusive, so a leaf yields just `{regionId}`). This drives the region
  * *filter*. An event is "under" the selection when its own region id is in this

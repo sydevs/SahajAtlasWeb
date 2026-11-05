@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
 
-import { eventFrameZoom, fitBoundsOptions, isWithinPaddedViewport } from './camera'
+import { eventFrameZoom, fitBoundsOptions, hasMapPoint, isWithinPaddedViewport } from './camera'
 
 // Pure camera-move decisions — the controller owns the zoom values and applies the
 // action; live projection/easing is a browser concern, not asserted here.
@@ -120,5 +120,20 @@ describe('isWithinPaddedViewport', () => {
     expect(isWithinPaddedViewport({ x: 981, y: 400 }, size, padding)).toBe(false) // right of viewport
     expect(isWithinPaddedViewport({ x: 500, y: 19 }, size, padding)).toBe(false) // above top
     expect(isWithinPaddedViewport({ x: 500, y: 681 }, size, padding)).toBe(false) // below peek
+  })
+})
+
+describe('hasMapPoint', () => {
+  it('is true only when both coordinates are stored', () => {
+    expect(hasMapPoint({ address: { latitude: 43.65, longitude: -79.38 } })).toBe(true)
+    // 0 is a real coordinate, not a missing one.
+    expect(hasMapPoint({ address: { latitude: 0, longitude: 0 } })).toBe(true)
+  })
+
+  it('is false for a placeless event, the online shape SahajCloud returns', () => {
+    expect(hasMapPoint({ address: { latitude: null, longitude: null } })).toBe(false)
+    expect(hasMapPoint({ address: { latitude: 43.65, longitude: null } })).toBe(false)
+    expect(hasMapPoint({ address: null })).toBe(false)
+    expect(hasMapPoint({})).toBe(false)
   })
 })

@@ -78,3 +78,22 @@ export const eventFrameZoom = (opts: {
 
   return opts.eventZoom
 }
+
+/** An event as the feed may serve it: either stored coordinate can be absent or null. */
+type MaybePlacedEvent = {
+  address?: { latitude?: number | null; longitude?: number | null } | null
+}
+
+/** The same event once both coordinates are known to be there. */
+type PlacedEvent = { address: { latitude: number; longitude: number } }
+
+/**
+ * Whether an event has a stored point to frame. An online event often has none: it has
+ * no place of its own, so a deep link to it frames its parent region instead.
+ *
+ * It narrows, so `eventPoint` (`use-map-controller-real.tsx`) reads the coordinates
+ * through this one verdict instead of re-testing them. Two tests that disagreed would
+ * leave `frameEvent` running on an event it then frames nothing for.
+ */
+export const hasMapPoint = <T extends MaybePlacedEvent>(event: T): event is T & PlacedEvent =>
+  event.address?.latitude != null && event.address?.longitude != null

@@ -30,9 +30,6 @@ vi.mock('@/components/organisms/RegistrationForm', () => ({
 vi.mock('@/components/organisms/EventDetails/EventRegister', () => ({
   EventRegisterBar: () => <i>external-cta</i>,
 }))
-vi.mock('@/hooks/use-map-controller', () => ({
-  useMapController: () => ({ frameEvent: () => {} }),
-}))
 vi.mock('@/hooks/use-share-url', () => ({
   useShareUrl: () => 'https://example.org/event',
 }))
@@ -56,7 +53,7 @@ vi.mock('@/views/shared', () => ({
   DrawerTitle: () => null,
   useDrawerControl: () => ({ dismiss: () => {} }),
   useEventFromPath: () => ({ data: eventMock.current }),
-  useFrameOnTop: () => {},
+  useFrameEventOnTop: () => {},
 }))
 
 const TITLE_KEY = 'event.display.unverified_title'
