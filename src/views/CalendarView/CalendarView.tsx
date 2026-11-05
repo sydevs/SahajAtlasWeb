@@ -155,8 +155,8 @@ const drive = (controls: CalendarControlsPlugin, fn: (c: CalendarControlsPlugin)
 // Shares the dates on screen, with the scope and filters that were applied. The dates are written
 // into the link even when the visitor is looking at the next seven days, because a link sent today
 // should still mean those days when it is opened next Tuesday. A phone opens its own share sheet;
-// anywhere else, or when that is blocked or dismissed, the link is copied. The button keeps its
-// size when it confirms, so the header doesn't move.
+// anywhere else (most computers have none), or when that is blocked or dismissed, the link is
+// copied. The button keeps its size when it confirms, so the header doesn't move.
 function ShareDates({ start, end, label }: { start: string; end: string; label: string }) {
   const { t } = useTranslation()
   const hrefFor = useHrefFor()
@@ -170,12 +170,18 @@ function ShareDates({ start, end, label }: { start: string; end: string; label: 
   const onShare = async () => {
     const url = hrefFor(calendarShareRoute(searchParams, start, end))
 
-    if (await share({ title: t('calendar.share_title', { dates: label }), url })) return
+    // `share` always answers with a word, never `false`: only `shared` means the job is done.
+    if ((await share({ title: t('calendar.share_title', { dates: label }), url })) === 'shared')
+      return
 
-    await navigator.clipboard?.writeText(url).then(() => {
-      setCopied(true)
-      globalThis.setTimeout(() => setCopied(false), 2000)
-    })
+    await navigator.clipboard
+      ?.writeText(url)
+      .then(() => {
+        setCopied(true)
+        globalThis.setTimeout(() => setCopied(false), 2000)
+      })
+      // A host page that blocks the clipboard leaves the button as it was, rather than throwing.
+      .catch(() => {})
   }
   const name = copied ? t('calendar.link_copied') : t('event.actions.share')
 
