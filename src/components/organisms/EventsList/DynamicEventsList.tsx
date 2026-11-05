@@ -7,7 +7,14 @@ import { LoadMore } from './LoadMore'
 
 import { ActiveFilterPills } from '@/components/molecules/ActiveFilterPills'
 import { FallbackPanel } from '@/components/molecules/Fallbacks'
-import { DEFAULT_REVEAL, hasActiveFilters, revealKey, revealRows, sortEvents } from '@/lib/shape'
+import {
+  DEFAULT_REVEAL,
+  EXCLUDE_EVENT_PARAM,
+  hasActiveFilters,
+  revealKey,
+  revealRows,
+  sortEvents,
+} from '@/lib/shape'
 import { useCountrySite } from '@/hooks/use-country-site'
 import { useEventFilters, useSetFilters } from '@/hooks/use-filters'
 import { useLocale } from '@/hooks/use-locale'
@@ -54,9 +61,10 @@ export function DynamicEventsList({
   // client-side reorder, never a refetch. The query key above stays unchanged.
   // It takes the base subtag, never the resolved locale: an event's language is ISO 639-1 (#223).
   const order = useSortOrder()
+  const excludedId = Number(useSearchParams()[0].get(EXCLUDE_EVENT_PARAM))
   const sorted = useMemo(
-    () => sortEvents(events, order, languageCode),
-    [events, order, languageCode],
+    () => sortEvents(events, order, languageCode).filter((event) => event.id !== excludedId),
+    [events, order, languageCode, excludedId],
   )
 
   // This tracks how much of the list is revealed. It is session state, keyed

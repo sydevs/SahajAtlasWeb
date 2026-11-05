@@ -16,6 +16,10 @@ vi.mock('react-i18next', () => ({
 }))
 vi.mock('./EventRegister', () => ({
   EventRegisterBar: () => <i>register-slot</i>,
+  EventOnward: () => <i>onward-slot</i>,
+}))
+vi.mock('@/hooks/use-event-display', () => ({
+  useEventDisplay: () => ({ display: { status: 'running' } }),
 }))
 vi.mock('@/components/molecules/EventActions', () => ({
   EventActions: () => <i>actions-slot</i>,
@@ -43,6 +47,10 @@ describe('EventDetails — where the calls to action render', () => {
     expect(markup).toContain('register-slot')
     expect(markup).toContain('actions-slot')
     expect(markup.indexOf('register-slot')).toBeLessThan(markup.indexOf('actions-slot'))
+  })
+
+  it('offers no onward links on a class that can be booked', () => {
+    expect(panel()).not.toContain('onward-slot')
   })
 
   it('renders neither when the sticky footer owns them', () => {

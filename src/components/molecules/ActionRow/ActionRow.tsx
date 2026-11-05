@@ -14,6 +14,7 @@ const actionButton = tv({
   base: 'h-11 min-w-0 flex-1 basis-0 gap-1.5 px-1 text-sm [&_svg]:shrink-0 [&_svg]:text-primary-11',
   variants: {
     stacked: { true: 'h-14 flex-col gap-0.5 text-xs' },
+    lead: { true: '[&_svg]:text-current' },
   },
 })
 
@@ -29,19 +30,21 @@ export type ActionButtonProps = {
   stacked?: boolean
   /** No surface until hovered, for an action most visitors don't need. */
   quiet?: boolean
+  /** The one main action, on a state with no Register button. */
+  lead?: boolean
 } & Omit<HTMLAttributes<HTMLElement>, 'color'>
 
 /** One action. The forwarded ref reaches the interactive element, and rest props spread
  *  onto it, so a popover trigger (floating-ui `getReferenceProps()`) works unchanged. */
 export const ActionButton = forwardRef<HTMLElement, ActionButtonProps>(function ActionButton(
-  { icon, label, href, isExternal = false, stacked = false, quiet = false, ...rest },
+  { icon, label, href, isExternal = false, stacked = false, quiet = false, lead = false, ...rest },
   ref,
 ) {
   const shared = {
     ref: ref as Ref<HTMLButtonElement & HTMLAnchorElement>,
-    className: actionButton({ stacked }),
-    color: 'neutral',
-    variant: quiet ? 'ghost' : 'flat',
+    className: actionButton({ stacked, lead }),
+    color: lead ? 'primary' : 'neutral',
+    variant: lead ? 'solid' : quiet ? 'ghost' : 'flat',
   } as const
   const content = (
     <>

@@ -47,7 +47,10 @@ export function EventChips({ event, variant = 'default', className }: EventChips
   // On the class page, "Every Tuesday" right above already says it is a weekly class. A
   // course keeps its chip, because the when line does not say "course".
   const repeatsWhenLine = display.kind === 'class' && Boolean(recurrenceLine)
-  const showType = compact ? !isDefaultType : !repeatsWhenLine
+  // A by-request listing has no schedule, so it derives as a one-off, which is simply wrong.
+  // "Contact host for timings" already says what it is.
+  const byRequest = display.status === 'inactive' && display.kind === 'oneoff'
+  const showType = !byRequest && (compact ? !isDefaultType : !repeatsWhenLine)
 
   // All languages fold into a single chip. `compact` keeps only the ones
   // that differ from the viewer's UI language.

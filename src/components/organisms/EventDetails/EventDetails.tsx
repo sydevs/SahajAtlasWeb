@@ -1,7 +1,7 @@
 import { type ReactNode, useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 
-import { EventRegisterBar } from './EventRegister'
+import { EventOnward, EventRegisterBar } from './EventRegister'
 import { sanitizeDescription } from './sanitize'
 
 import { Alert } from '@/components/atoms/Alert'
@@ -9,6 +9,7 @@ import { EventActions } from '@/components/molecules/EventActions'
 import { EventChips } from '@/components/molecules/EventChips'
 import { ImageCarousel } from '@/components/molecules/ImageCarousel'
 import { EventFacts } from '@/components/molecules/EventFacts'
+import { useEventDisplay } from '@/hooks/use-event-display'
 import { isUnverified, lexicalToHtml } from '@/lib/shape'
 import { Event } from '@/types'
 
@@ -56,6 +57,7 @@ export type EventDetailsProps = EventSurfaceProps & {
  */
 export function EventDetails({ event, basePath, ctaInline = true, children }: EventDetailsProps) {
   const { t } = useTranslation()
+  const { display } = useEventDisplay(event)
 
   const descriptionHtml = lexicalToHtml(event.description)
 
@@ -108,6 +110,9 @@ export function EventDetails({ event, basePath, ctaInline = true, children }: Ev
           <EventActions basePath={basePath} event={event} />
         </>
       )}
+
+      {/* A by-request class has nothing to book, so it must not be the end of the road. */}
+      {display.status === 'inactive' && <EventOnward basePath={basePath} event={event} />}
 
       {/* About — host-authored prose always sits below the facts and actions. */}
       {descriptionHtml && (

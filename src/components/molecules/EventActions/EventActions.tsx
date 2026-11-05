@@ -23,11 +23,13 @@ const ICON_SIZE = 18
 // because the hook cannot run inside the action `flatMap` below.
 function ContactPopover({
   label,
+  lead,
   name,
   phone,
   stacked,
 }: {
   label: string
+  lead: boolean
   name?: string | null
   phone: string
   stacked: boolean
@@ -45,6 +47,7 @@ function ContactPopover({
         ref={refs.setReference}
         icon={<Phone size={ICON_SIZE} />}
         label={label}
+        lead={lead}
         stacked={stacked}
         {...getReferenceProps()}
       />
@@ -106,6 +109,8 @@ export function EventActions({ event, basePath }: EventActionsProps) {
   const { display } = useEventDisplay(event)
 
   const mapsUrl = directionsUrl(event.address)
+  // A by-request class says "Contact host for timings", so Contact is its one solid button.
+  const contactLeads = display.status === 'inactive'
 
   // Website makes four, which is too tight for icon-beside-label on a phone.
   const stacked = display.actions.length > 3 && Boolean(event.website)
@@ -150,6 +155,7 @@ export function EventActions({ event, basePath }: EventActionsProps) {
               href={`tel:${event.contactPhone}`}
               icon={<Phone size={ICON_SIZE} />}
               label={t('event.actions.call')}
+              lead={contactLeads}
               stacked={stacked}
             />,
           ]
@@ -159,6 +165,7 @@ export function EventActions({ event, basePath }: EventActionsProps) {
           <ContactPopover
             key="contact"
             label={label}
+            lead={contactLeads}
             name={event.contactName}
             phone={event.contactPhone}
             stacked={stacked}

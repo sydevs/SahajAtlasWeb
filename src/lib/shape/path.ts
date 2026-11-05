@@ -82,6 +82,9 @@ export const isCanonicalPath = (pathname: string, target: string): boolean =>
 export const searchPath = (center?: [number, number]): string =>
   center ? `/search?center=${center[0]},${center[1]}` : '/search'
 
+/** The class to leave out of a search, when "See classes nearby" was pressed on it. */
+export const EXCLUDE_EVENT_PARAM = 'exclude'
+
 /**
  * Decodes a `?center=lng,lat` value to `[longitude, latitude]`, or `undefined` when
  * it is absent, or not two finite numbers IN RANGE — so a malformed hand-typed value
