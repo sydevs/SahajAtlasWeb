@@ -4,6 +4,7 @@ import { useLocation, useNavigate } from 'react-router'
 import { AnimatePresence } from 'framer-motion'
 
 import embed from '@/config/embed'
+import { useCalendarView } from '@/hooks/use-calendar-view'
 import { useExpansion } from '@/hooks/use-expansion'
 import { useLocale } from '@/hooks/use-locale'
 import { Drawer, DrawerContent } from '@/components/atoms/Drawer'
@@ -15,7 +16,7 @@ import {
   useIsWide,
 } from '@/config/responsive'
 import { useWidgetMode } from '@/config/mode'
-import { useCalendarPosition, useClassSheet, useFilterPanelState } from '@/config/store'
+import { useClassSheet, useFilterPanelState } from '@/config/store'
 import { frameElement, overlayContainer } from '@/lib/overlay'
 import {
   type StackEntry,
@@ -247,7 +248,7 @@ export function DrawerStack() {
   // because the wide panel exists only above the crossing; below it `wide` gates the settings
   // cog alone, which a phone in month view had lost (#331). The view is read reactively, so
   // switching it resizes the drawer. Date changes do not re-render this component.
-  const calendarView = useCalendarPosition((s) => s.view)
+  const calendarView = useCalendarView()
   const wide = top?.kind === 'calendar' && isWide && calendarView !== CALENDAR_VIEW_LIST
   // The panel belongs to the browsing views. A class page or a form has nothing to filter, and
   // the calendar keeps its own filter overlay.

@@ -1,9 +1,19 @@
 {
   "calendar": {
+    "clear_filters": "Clear filters",
+    "link_copied": "Link copied",
     "next": "Next",
+    "next_7_days": "Next 7 days",
+    "next_class": "Next class: %{date}",
+    "none_in_window": "No classes on these dates.",
+    "none_match_filters": "No classes match your filters on these dates.",
     "pick_date": "Pick a date",
     "previous": "Previous",
+    "share_title": "Meditation classes, %{dates}",
+    "times_note": "Times are local to each class. Online classes show your time (%{zone}).",
     "title": "Calendar",
+    "today": "Today",
+    "tomorrow": "Tomorrow",
     "view_list": "List",
     "view_month": "Month",
     "view_week": "Week"

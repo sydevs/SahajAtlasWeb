@@ -4,6 +4,7 @@ import { DateTime } from 'luxon'
 
 import { DEFAULT_DURATION, eventTimeZone, scheduleTimeZone, withEndTime } from './event'
 import {
+  type DateRange,
   type EventFilters,
   type TimePeriod,
   dateFloor,
@@ -26,33 +27,42 @@ export type CalendarSourceEvent = {
   path: string
   eventType: EventType
   schedule?: EventSchedule | null
-  /** The event's parent region name — the default (concise) calendar label. */
+  /** The event's parent region name — where it is when it has no address. */
   regionName?: string | null
-  /** The event's locality (address city) — the label when the calendar is region-scoped. */
+  /** The event's locality (address city) — where it is, shown under the class name. */
   locality?: string | null
 }
 
-// The event's place (parent region name, or — when the calendar is already scoped to a
-// region so every entry shares it — the finer-grained address locality). No title fallback
-// here: the caller decides what a placeless entry reads as.
-const placeOf = (event: CalendarSourceEvent, regionScoped: boolean): string | undefined => {
-  const region = event.regionName?.trim() || undefined
-  const locality = event.locality?.trim() || undefined
+// Where a class is, as a visitor would say it: the address city first, because a region can be
+// one venue ("Postgasse 13, Vienna") and repeating that next to the class name adds nothing. A
+// class with no address (most online ones) falls back to its region.
+const placeOf = (event: CalendarSourceEvent): string | undefined =>
+  event.locality?.trim() || event.regionName?.trim() || undefined
 
-  return regionScoped ? locality || region : region || locality
+// The line under the class name: where it is, plus "Online" for an online class, because the
+// month and list views have no other text saying so. The place shows even when the name also says
+// it, so someone scanning for a town can read the same line on every row.
+const entryDetail = (
+  event: CalendarSourceEvent,
+  onlineLabel: string | undefined,
+): string | undefined => {
+  const mode = event.eventType === 'online' ? onlineLabel : undefined
+
+  return [placeOf(event), mode].filter(Boolean).join(' · ') || undefined
 }
-
-// The concise label a calendar entry shows instead of the (often long) event title: the
-// event's place (see `placeOf`), or the title itself when it has no place. The "Online"
-// designation is NOT folded in here — it rides the SX `location` field (see the expansion).
-const calendarLabel = (event: CalendarSourceEvent, regionScoped: boolean): string =>
-  placeOf(event, regionScoped) || event.title
 
 /** One occurrence, in Schedule-X's wall-clock shape (`YYYY-MM-DD HH:mm`, no zone). */
 export type CalendarEntry = {
   /** Unique per occurrence: `${eventId}-${startMillis}`. */
   id: string
+  /** The class name, then the detail on a second line: Schedule-X's list has only this field. */
   title: string
+  /** The class name alone. */
+  name: string
+  /** Where it is ("Brighton", "London · Online"). */
+  detail?: string
+  /** The bare place, for the desktop Month cell, which has room for one short word. */
+  place?: string
   start: string
   end: string
   /** The event's route, carried through so a click opens the right EventView. */
@@ -89,9 +99,6 @@ export const eventsToCalendarEntries = (
   const from = opts?.from ?? DateTime.now().startOf('day')
   const to = opts?.to ?? from.plus({ months: 12 })
   const floor = dateFloor(filters, opts?.today ?? from.toISODate() ?? undefined)
-  // When a region is selected every entry sits under it, so the region name would be the
-  // same for all — show the finer-grained locality instead (computed per event below).
-  const regionScoped = filters.region != null
   const entries: CalendarEntry[] = []
 
   for (const event of events) {
@@ -106,7 +113,8 @@ export const eventsToCalendarEntries = (
     const displayZone = eventTimeZone(event)
     const eventZone = event.schedule ? scheduleTimeZone(event.schedule) : 'UTC'
     const endTime = event.schedule?.endTime
-    const label = calendarLabel(event, regionScoped)
+    const name = event.title.trim() || placeOf(event) || ''
+    const detail = entryDetail(event, opts?.onlineLabel)
     // Online programs carry a distinct colour + the "Online" term in the SX `location` field.
     const online = event.eventType === 'online'
     const location = online ? opts?.onlineLabel : undefined
@@ -130,7 +138,10 @@ export const eventsToCalendarEntries = (
 
       entries.push({
         id: `${event.id}-${start.toMillis()}`,
-        title: label,
+        title: detail ? `${name}\n${detail}` : name,
+        name,
+        detail,
+        place: placeOf(event),
         start: start.toFormat(SX_FORMAT),
         end: finish.toFormat(SX_FORMAT),
         path: event.path,
@@ -201,6 +212,93 @@ export const computeDayBoundaries = (
   if (earliest >= latest) return undefined // no entries
 
   return { start: hhmm(Math.floor(earliest) - 1), end: hhmm(Math.ceil(latest) + 1) }
+}
+
+// ===== THE WEEK LIST ===== //
+
+/** How many days the List view shows: this one and the six after it, so never a thin Sunday. */
+export const CALENDAR_WEEK_DAYS = 7
+
+/** The dates the List view shows, as `yyyy-MM-dd`. */
+export type CalendarWindow = {
+  start: string
+  end: string
+  /** Today plus the next six days, whether the URL named those dates or named none. */
+  isThisWeek: boolean
+}
+
+const addDays = (iso: string, days: number): string =>
+  DateTime.fromISO(iso).plus({ days }).toISODate() ?? iso
+
+/**
+ * The window a date range shows in the List view. With no range it is this week. With a range it
+ * is that range, so a shared link and the Filters date picker both land on the dates they name.
+ */
+export const calendarWindow = (range: DateRange, today: string): CalendarWindow => {
+  const start = range.start ?? today
+  const end = range.end ?? addDays(start, CALENDAR_WEEK_DAYS - 1)
+
+  return {
+    start,
+    end,
+    isThisWeek: start === today && end === addDays(today, CALENDAR_WEEK_DAYS - 1),
+  }
+}
+
+/**
+ * The seven days next to a window, whatever its own length: a link opened mid-week, or a single
+ * day, still pages a week at a time. Nothing before today has classes, so a step back stops there,
+ * and landing on the next seven days clears the range entirely.
+ */
+export const shiftCalendarWindow = (
+  window: CalendarWindow,
+  direction: -1 | 1,
+  today: string,
+): DateRange => {
+  const moved = direction > 0 ? addDays(window.end, 1) : addDays(window.start, -CALENDAR_WEEK_DAYS)
+  const next = weekFrom(moved < today ? today : moved)
+
+  return calendarWindow(next, today).isThisWeek ? { start: null, end: null } : next
+}
+
+/** A week starting on `date`, for a date the visitor picked. */
+export const weekFrom = (date: string): DateRange => ({
+  start: date,
+  end: addDays(date, CALENDAR_WEEK_DAYS - 1),
+})
+
+/**
+ * The filters a visitor chose, for the pills and the Filters count. The place is the view's title,
+ * and in the List the dates are its arrows: neither is a restriction they added.
+ */
+export const chosenCalendarFilters = (filters: EventFilters, isList: boolean): EventFilters => ({
+  ...filters,
+  region: null,
+  dateRange: isList ? { start: null, end: null } : filters.dateRange,
+})
+
+/** One day of the List view. */
+export type CalendarDay = { date: string; entries: CalendarEntry[] }
+
+/** The entries inside a window, by day, in time order, leaving out days with no classes. */
+export const groupEntriesByDay = (
+  entries: CalendarEntry[],
+  window: Pick<CalendarWindow, 'start' | 'end'>,
+): CalendarDay[] => {
+  const days = new Map<string, CalendarEntry[]>()
+  const sorted = [...entries].sort(
+    (a, b) => a.start.localeCompare(b.start) || a.name.localeCompare(b.name),
+  )
+
+  for (const entry of sorted) {
+    const date = entry.start.slice(0, 10)
+
+    if (date >= window.start && date <= window.end) {
+      days.set(date, [...(days.get(date) ?? []), entry])
+    }
+  }
+
+  return [...days].map(([date, dayEntries]) => ({ date, entries: dayEntries }))
 }
 
 // ===== VIEW RESOLUTION ===== //

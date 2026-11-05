@@ -9,7 +9,7 @@ import { Alert } from '@/components/atoms/Alert'
 import { Link } from '@/components/atoms/Link'
 import { DrawerBody, DrawerToolbar } from '@/components/atoms/Drawer'
 import { EventListItem, FoldSection, List, ListItem } from '@/components/molecules'
-import { eventsQuery, regionQuery } from '@/config/api'
+import { calendarQuery, eventsQuery, regionQuery } from '@/config/api'
 import { useFolds } from '@/hooks/use-folds'
 import { useLocale } from '@/hooks/use-locale'
 import { useMapController } from '@/hooks/use-map-controller'
@@ -21,22 +21,48 @@ import {
   DEFAULT_FILTERS,
   FOREIGN_NEARBY_KM,
   boundsWith,
+  calendarWindow,
   childRoute,
   distanceToNearest,
-  isOnline,
+  eventsToCalendarEntries,
   isoCountryCode,
+  isOnline,
   searchPath,
+  thisWeekPath,
+  todayISO,
 } from '@/lib/shape'
 import { validateWebUrl } from '@/lib/url'
 import { NavHeader } from '@/views/nav'
 import {
-  CalendarButton,
   EmptyEventList,
   FilterButton,
   GeolocationSuggestion,
   SearchField,
   useFrameOnTop,
 } from '@/views/shared'
+
+// How many classes the week list will show for a region: one read of the same query, so the
+// count and the list can't disagree. No number until it has loaded, and none for an empty week.
+function useThisWeekCount(regionSlug: string, enabled: boolean): number | undefined {
+  const { locale } = useLocale()
+  const { t } = useTranslation()
+  const filters = useMemo(() => ({ ...DEFAULT_FILTERS, region: regionSlug }), [regionSlug])
+  const { data } = useQuery({ ...calendarQuery(filters, locale), enabled })
+  const onlineLabel = t('event.display.online')
+
+  return useMemo(() => {
+    if (!data) return undefined
+
+    const window = calendarWindow(DEFAULT_FILTERS.dateRange, todayISO())
+    const count = eventsToCalendarEntries(data, filters, { onlineLabel }).filter((entry) => {
+      const date = entry.start.slice(0, 10)
+
+      return date >= window.start && date <= window.end
+    }).length
+
+    return count > 0 ? count : undefined
+  }, [data, filters, onlineLabel])
+}
 
 // A region at any level, at route `<region-path>`. It shows child-region cards, then this
 // region's own located events, in ONE mixed list. A city can hold both venue and centre
@@ -87,6 +113,9 @@ export function RegionView({ slug }: { slug: string }) {
   // no button on an error page could help here (issue #89). So the drawer says so plainly,
   // instead of rendering an empty <List>.
   const isEmpty = region.subregions.length === 0 && !hasEventList
+  // The date-first way in. A venue with one class has nothing to arrange by day.
+  const showThisWeek = !isEmpty && (region.subregions.length > 0 || region.events.length > 1)
+  const thisWeekCount = useThisWeekCount(region.slug, showThisWeek)
   // "All events are free" is the subtitle FALLBACK. It states this once per list — no Free
   // chip repeats on cards — but only where events are actually listed. A city's own subtitle
   // takes the slot when present.
@@ -102,12 +131,11 @@ export function RegionView({ slug }: { slug: string }) {
           <meta content={canonicalUrl} property="og:url" />
         </Helmet>
       )}
-      {/* The calendar and the filters both open pre-scoped to this region. */}
+      {/* The filters open pre-scoped to this region. "Next 7 days" replaces the calendar icon. */}
       <NavHeader
         breadcrumbs
         actions={
           <>
-            <CalendarButton regionSlug={region.slug} />
             <FilterButton iconOnly />
           </>
         }
@@ -166,6 +194,13 @@ export function RegionView({ slug }: { slug: string }) {
           <EmptyEventList />
         ) : (
           <List>
+            {showThisWeek && (
+              <ListItem
+                count={thisWeekCount}
+                href={thisWeekPath(region.slug)}
+                label={t('calendar.next_7_days')}
+              />
+            )}
             {/* On a region with sub-regions, the online roll-up opens in its own drawer
                 via this card, keeping the placeless classes out of the mixed list below.
                 It has no icon, because no other row here does, so every label starts on

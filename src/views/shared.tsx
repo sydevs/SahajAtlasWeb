@@ -6,7 +6,7 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useRef, use
 import { useLocation, useNavigationType, useSearchParams } from 'react-router'
 import { useTranslation } from 'react-i18next'
 import { useQuery, useSuspenseQuery } from '@tanstack/react-query'
-import { CalendarDays, Funnel, Search } from 'lucide-react'
+import { Funnel, Search } from 'lucide-react'
 import clsx from 'clsx'
 
 import { Button } from '@/components/atoms/Button'
@@ -34,10 +34,10 @@ import {
 } from '@/lib/geolocation'
 import {
   type PlaceSearch,
+  type EventFilters,
   activeFilterCount,
   searchPath,
   atlasDepth,
-  calendarPath,
   isoCountryCode,
   placeSearchPath,
   resolvePath,
@@ -127,28 +127,6 @@ export const HEADER_CONTROL = { variant: 'ghost', isIconOnly: true, size: 'sm' }
 // rows' chevrons, while the tap area stays whole.
 const HEADER_LAST_CONTROL = '-me-1.5'
 
-// The calendar affordance for region headers (RegionView): opens the full-width
-// calendar pre-scoped to this region (`/calendar?region=<slug>`, pre-setting the
-// Region filter). This uses the same header-control chrome as the close control,
-// so the header reads as one set of buttons.
-export function CalendarButton({ regionSlug }: { regionSlug: string }) {
-  // `useSuspense: false` — also rendered by the fallback chrome
-  // (views/fallbacks.tsx), where suspending on an in-flight namespace would
-  // escape the boundary and blank the widget instead of showing the failure.
-  const { t } = useTranslation()
-  const navigate = useAtlasNavigate()
-
-  return (
-    <Button
-      {...HEADER_CONTROL}
-      aria-label={t('calendar.title')}
-      onClick={() => navigate(calendarPath(regionSlug))}
-    >
-      <CalendarDays size={20} />
-    </Button>
-  )
-}
-
 // The search affordance for region headers (RegionView): jumps to the
 // distance-ranked search view. This renders the same header-control chrome as the
 // other header controls, so the header reads as one set of buttons.
@@ -208,10 +186,13 @@ export const FilterPanelAvailableContext = createContext<'panel' | 'chips' | nul
 export function FilterButton({
   iconOnly = false,
   isLast = false,
+  counted,
 }: {
   iconOnly?: boolean
   /** Nothing follows it in the header, so its icon takes the panel's right edge. */
   isLast?: boolean
+  /** The filters the badge counts, when a view shows some of them another way. */
+  counted?: EventFilters
 }) {
   // `useSuspense: false` — also rendered by the fallback chrome
   // (views/fallbacks.tsx), where suspending on an in-flight namespace would
@@ -219,7 +200,8 @@ export function FilterButton({
   const { t } = useTranslation()
   const navigate = useAtlasNavigate()
   const location = useLocation()
-  const count = activeFilterCount(useEventFilters())
+  const applied = useEventFilters()
+  const count = activeFilterCount(counted ?? applied)
 
   const label = count > 0 ? `${t('filters.chrome.title')} (${count})` : t('filters.chrome.title')
   const to = `${location.pathname === '/' ? '' : location.pathname}/filters`

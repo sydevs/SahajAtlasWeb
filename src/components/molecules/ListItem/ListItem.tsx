@@ -8,7 +8,8 @@ import { Link } from '@/components/atoms/Link'
 export interface ListItemProps {
   label: string
   subtitle?: string | null
-  count: number
+  /** How many classes are behind the row. Left out while unknown, or when there are none to promise. */
+  count?: number
   href: string
   /**
    * Leading glyph. This is named, not `children`, because its position is
@@ -52,7 +53,9 @@ export function ListItem({ label, subtitle, count, href, icon, quiet }: ListItem
             chevron only restates what tapping the row already does, so it
             goes one step further. The title stays `text-foreground`
             (gray-12), and remains the loudest thing in the row. */}
-        <div className="me-1 text-end text-sm font-normal text-gray-11 tabular-nums">{count}</div>
+        {count != null && (
+          <div className="me-1 text-end text-sm font-normal text-gray-11 tabular-nums">{count}</div>
+        )}
         <ChevronRight className="text-gray-9 rtl:-scale-x-100" size={20} />
       </Link>
     </li>

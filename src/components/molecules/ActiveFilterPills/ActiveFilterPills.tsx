@@ -10,15 +10,26 @@ import { regionsQuery } from '@/config/api'
 import { useEventFilters, useSetFilters } from '@/hooks/use-filters'
 import { useLocale } from '@/hooks/use-locale'
 import { formatTimePeriods } from '@/lib'
-import { type FilterKey, isDateRestricted, isTimeRestricted } from '@/lib/shape'
+import {
+  type EventFilters,
+  type FilterKey,
+  isDateRestricted,
+  isTimeRestricted,
+} from '@/lib/shape'
 
 export type FilterPill = { key: FilterKey; label: string; onRemove: () => void }
 
-/** One entry per active filter, in display order: what it reads as, and how to remove it. */
-export function useFilterPills(): FilterPill[] {
+/**
+ * One entry per active filter, in display order: what it reads as, and how to remove it.
+ * A view that says some of these another way passes the rest as `filters`.
+ */
+export function useFilterPills(filters?: EventFilters): FilterPill[] {
   const { t } = useTranslation()
   const { locale, languageLabel } = useLocale()
-  const { format, timeOfDay, daysOfWeek, languages, cadence, dateRange, region } = useEventFilters()
+  const applied = useEventFilters()
+  // A view that says some of these another way passes the rest. See `chosenCalendarFilters`.
+  const { format, timeOfDay, daysOfWeek, languages, cadence, dateRange, region } =
+    filters ?? applied
   const {
     setFormat,
     setCadence,
@@ -109,9 +120,9 @@ export function useFilterPills(): FilterPill[] {
  * across instead, signposted by its own control at the foot of the list
  * (see `revealRows` in `@/lib/shape/reveal`).
  */
-export function ActiveFilterPills() {
+export function ActiveFilterPills({ filters }: { filters?: EventFilters }) {
   const { t } = useTranslation()
-  const pills = useFilterPills()
+  const pills = useFilterPills(filters)
 
   if (pills.length === 0) return null
 

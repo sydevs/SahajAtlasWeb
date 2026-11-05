@@ -1,45 +1,54 @@
-import { Suspense, useMemo, useRef } from 'react'
-import { useSuspenseQuery } from '@tanstack/react-query'
+import { Suspense, useMemo, useRef, useState } from 'react'
+import { useQuery, useSuspenseQuery } from '@tanstack/react-query'
+import { useSearchParams } from 'react-router'
 import { useTranslation } from 'react-i18next'
 import { DateTime } from 'luxon'
 import { useNextCalendarApp } from '@schedule-x/react'
-import {
-  createViewList,
-  createViewMonthAgenda,
-  createViewMonthGrid,
-  createViewWeek,
-} from '@schedule-x/calendar'
+import { createViewMonthAgenda, createViewMonthGrid, createViewWeek } from '@schedule-x/calendar'
 import { createCalendarControlsPlugin } from '@schedule-x/calendar-controls'
-import { ChevronRight } from 'lucide-react'
+import { Check, ChevronRight, Share } from 'lucide-react'
 
 import '@schedule-x/theme-default/dist/index.css'
 
-import { CalendarMount } from './CalendarMount'
+import { type CalendarRenderers, CalendarMount } from './CalendarMount'
+import { TimesNote } from './TimesNote'
+import { WeekList } from './WeekList'
 
 import { Button } from '@/components/atoms/Button'
 import { DrawerBody, DrawerHeader } from '@/components/atoms/Drawer'
 import { ToggleGroup, ToggleGroupItem } from '@/components/atoms/ToggleGroup'
 import { ActiveFilterPills, ResetErrorBoundary } from '@/components/molecules'
-import api from '@/config/api'
+import { calendarQuery, regionQuery, regionsQuery } from '@/config/api'
 import { useIsWideWidget } from '@/config/responsive'
+import { useHrefFor } from '@/config/routing'
 import { useCalendarPosition } from '@/config/store'
 import { useAtlasNavigate } from '@/hooks/use-atlas-navigate'
-import { useEventFilters } from '@/hooks/use-filters'
+import { useCalendarView, useSetCalendarView } from '@/hooks/use-calendar-view'
+import { useEventFilters, useSetFilters } from '@/hooks/use-filters'
 import { useLocale } from '@/hooks/use-locale'
+import { useMapController } from '@/hooks/use-map-controller'
+import { useWebShare } from '@/hooks/use-web-share'
 import { useTheme } from '@/hooks/use-theme'
 import {
   CALENDAR_VIEW_LIST,
   CALENDAR_VIEW_MONTH,
   CALENDAR_VIEW_WEEK,
   type EventFilters,
+  calendarShareRoute,
+  calendarWindow,
+  chosenCalendarFilters,
   computeDayBoundaries,
   eventsToCalendarEntries,
   filtersKey,
   isCalendarViewOption,
+  isDateRestricted,
   resolveCalendarView,
+  shiftCalendarWindow,
+  todayISO,
+  weekFrom,
 } from '@/lib/shape'
 import { BackButton } from '@/views/nav'
-import { FilterButton } from '@/views/shared'
+import { DrawerTitle, FilterButton, useFrameOnTop } from '@/views/shared'
 import { DrawerErrorBody, DrawerLoadingBody } from '@/views/fallbacks'
 
 // Schedule-X validates `locale` against its own supported BCP-47 set, and THROWS
@@ -59,6 +68,12 @@ const SX_LOCALES: Record<string, string> = {
   'pt-BR': 'pt-BR',
 }
 
+const SX_ENGLISH = {
+  '+ {{n}} events': '+ {{n}} classes',
+  '+ 1 event': '+ 1 class',
+  'No events': 'No classes',
+}
+
 const toScheduleXLocale = (locale: string): string => SX_LOCALES[locale] ?? 'en-US'
 
 // Online programs get their own colour, the secondary ramp, so they stand out from
@@ -69,10 +84,63 @@ const toScheduleXLocale = (locale: string): string => SX_LOCALES[locale] ?? 'en-
 const ONLINE_COLORS = {
   main: 'hsl(var(--secondary-9))',
   container: 'hsl(var(--secondary-4))',
-  onContainer: 'hsl(var(--secondary-11))',
+  onContainer: 'var(--gray-12)',
 }
 const CALENDARS = {
   online: { colorName: 'online', lightColors: ONLINE_COLORS, darkColors: ONLINE_COLORS },
+}
+
+// Plain DOM, since Schedule-X hands these an element rather than rendering a component.
+const calendarRenderers = (locale: string): CalendarRenderers => {
+  const time = (wallClock: string) =>
+    DateTime.fromFormat(wallClock, 'yyyy-MM-dd HH:mm')
+      .setLocale(locale)
+      .toLocaleString(DateTime.TIME_SIMPLE)
+  const div = (className: string, text: string) => {
+    const element = document.createElement('div')
+
+    element.className = className
+    element.textContent = text
+
+    return element
+  }
+
+  return {
+    // The phone Month row: the class name, then its time and place. Schedule-X's own row
+    // repeats the date the visitor just tapped.
+    monthAgendaEvent: (host, entry) => {
+      const hours = `${time(entry.start)} – ${time(entry.end)}`
+
+      host.replaceChildren(
+        div('sx-entry-name', entry.name ?? ''),
+        div('sx-entry-meta', [hours, entry.detail].filter(Boolean).join(' · ')),
+      )
+    },
+    // The desktop Month cell is about 150px after the time. There, class names cut to a column
+    // of identical "Evening Meditation", so the cell says where and the tooltip says what.
+    monthGridEvent: (host, entry) => {
+      const where = [entry.place, entry.location].filter(Boolean).join(' · ') || entry.name
+      const cell = div('sx-entry-cell', `${time(entry.start)} ${where ?? ''}`)
+
+      cell.title = [entry.name, entry.detail].filter(Boolean).join(' · ')
+      cell.dataset.online = String(entry.calendarId === 'online')
+      host.replaceChildren(cell)
+    },
+    // A one-hour Week entry has room for three short lines. Its position already shows how long it
+    // lasts, so it gives the start and where, then the name, and never a clipped fourth line.
+    timeGridEvent: (host, entry) => {
+      const where = entry.location ?? entry.place
+
+      const block = div('sx-entry-week', '')
+
+      block.dataset.online = String(entry.calendarId === 'online')
+      block.append(
+        div('sx-entry-week-meta', [time(entry.start), where].filter(Boolean).join(' · ')),
+        div('sx-entry-week-name', entry.name ?? ''),
+      )
+      host.replaceChildren(block)
+    },
+  }
 }
 
 type CalendarControlsPlugin = ReturnType<typeof createCalendarControlsPlugin>
@@ -92,6 +160,43 @@ const drive = (controls: CalendarControlsPlugin, fn: (c: CalendarControlsPlugin)
   }
 }
 
+// Shares the dates on screen, with the scope and filters that were applied. The dates are written
+// into the link even when the visitor is looking at the next seven days, because a link sent today
+// should still mean those days when it is opened next Tuesday. A phone opens its own share sheet;
+// anywhere else, or when that is blocked or dismissed, the link is copied. The button keeps its
+// size when it confirms, so the header doesn't move.
+function ShareDates({ start, end, label }: { start: string; end: string; label: string }) {
+  const { t } = useTranslation()
+  const hrefFor = useHrefFor()
+  const { share } = useWebShare()
+  const [copied, setCopied] = useState(false)
+  const [searchParams] = useSearchParams()
+
+  // Memory-routed embeds have no address to link to, so there is nothing to offer.
+  if (!hrefFor) return null
+
+  const onShare = async () => {
+    const url = hrefFor(calendarShareRoute(searchParams, start, end))
+
+    if (await share({ title: t('calendar.share_title', { dates: label }), url })) return
+
+    await navigator.clipboard?.writeText(url).then(() => {
+      setCopied(true)
+      globalThis.setTimeout(() => setCopied(false), 2000)
+    })
+  }
+  const name = copied ? t('calendar.link_copied') : t('event.actions.share')
+
+  return (
+    <Button isIconOnly aria-label={name} size="sm" title={name} variant="ghost" onClick={onShare}>
+      {copied ? <Check className="text-primary-11" size={20} /> : <Share size={20} />}
+      <span aria-live="polite" className="sr-only">
+        {copied ? name : ''}
+      </span>
+    </Button>
+  )
+}
+
 // This drives Schedule-X from this project's own header, rather than styling its built-in
 // one, whose date picker, view dropdown, and nav kept causing conflicts. The `calendar-controls`
 // plugin is a public API (`setView`/`setDate`/`getRange`/…), so the header uses this project's
@@ -100,7 +205,12 @@ function CalendarControls({ controls }: { controls: CalendarControlsPlugin }) {
   const { t } = useTranslation()
   const { locale } = useLocale()
   const isWide = useIsWideWidget()
-  const stored = useCalendarPosition((s) => s.view)
+  const stored = useCalendarView()
+  const setCalendarView = useSetCalendarView()
+  const filters = useEventFilters()
+  const { setDateRange } = useSetFilters()
+  const { data: regions } = useQuery(regionsQuery())
+  const place = regions?.find((node) => node.slug === filters.region)?.name
   // The OPTION, not the stored name: below the crossing a stored `week` renders a month
   // agenda, so the lit button, the label and the paging step must all follow what rendered.
   const { option } = resolveCalendarView(stored, isWide)
@@ -109,20 +219,34 @@ function CalendarControls({ controls }: { controls: CalendarControlsPlugin }) {
 
   // The focused date (falls back to today until the grid reports one). The header label,
   // localized straight from luxon (no per-month i18n key), shows the month + year in month view,
-  // but the specific date (condensed month) in the week + list views — for the week its first day.
+  // the first day in week view, and the dates on screen in the list.
   const focused = date ?? DateTime.now().toISODate()
   const dt = focused ? DateTime.fromISO(focused).setLocale(locale) : null
-  const label = !dt
-    ? ''
-    : option === CALENDAR_VIEW_MONTH
-      ? dt.toLocaleString({ month: 'long', year: 'numeric' })
-      : (option === CALENDAR_VIEW_WEEK ? dt.startOf('week') : dt).toLocaleString({
-          day: 'numeric',
-          month: 'short',
-          year: 'numeric',
-        })
+  const isList = option === CALENDAR_VIEW_LIST
+  const today = todayISO()
+  const hasDates = isDateRestricted(filters.dateRange)
+  const window = calendarWindow(filters.dateRange, today)
+  const windowDates = new Intl.DateTimeFormat(locale, {
+    day: 'numeric',
+    month: 'short',
+  }).formatRange(DateTime.fromISO(window.start).toJSDate(), DateTime.fromISO(window.end).toJSDate())
+  const label = isList
+    ? window.isThisWeek
+      ? t('calendar.next_7_days')
+      : windowDates
+    : !dt
+      ? ''
+      : option === CALENDAR_VIEW_MONTH
+        ? dt.toLocaleString({ month: 'long', year: 'numeric' })
+        : dt.startOf('week').toLocaleString({ day: 'numeric', month: 'short', year: 'numeric' })
 
   const applyDate = (next: string) => {
+    if (isList) {
+      setDateRange(weekFrom(next))
+
+      return
+    }
+
     useCalendarPosition.getState().setDate(next)
     drive(controls, (c) => c.setDate(next))
   }
@@ -131,31 +255,48 @@ function CalendarControls({ controls }: { controls: CalendarControlsPlugin }) {
   // `week` picked on a desktop lights Week again after a trip through a phone width.
   const selectView = (next: string) => {
     if (!isCalendarViewOption(next)) return
-    useCalendarPosition.getState().setView(next)
+    // The List's dates are its arrows, not a filter, so they don't follow the visitor to a grid.
+    // The grid opens on the first of them instead.
+    const leavingPagedList = isList && next !== CALENDAR_VIEW_LIST && hasDates
+
+    if (leavingPagedList) useCalendarPosition.getState().setDate(window.start)
+    setCalendarView(next, leavingPagedList ? (params) => params.delete('dates') : undefined)
     drive(controls, (c) => c.setView(resolveCalendarView(next, isWide).view))
   }
 
-  // Page one period off the focused date — a month in month view, a week in week view, a day in
-  // list view (matching the built-in nav's semantics per view).
+  // Page one period: a month in month view, a week in week view, and in the list as many days
+  // as are on screen.
   const step = (dir: -1 | 1) => {
+    if (isList) {
+      setDateRange(shiftCalendarWindow(window, dir, today))
+
+      return
+    }
     if (!focused) return
 
     const base = DateTime.fromISO(focused)
-    const moved =
-      option === CALENDAR_VIEW_MONTH
-        ? base.plus({ months: dir })
-        : option === CALENDAR_VIEW_WEEK
-          ? base.plus({ weeks: dir })
-          : base.plus({ days: dir })
-    const next = moved.toISODate()
+    const next = (
+      option === CALENDAR_VIEW_MONTH ? base.plus({ months: dir }) : base.plus({ weeks: dir })
+    ).toISODate()
 
     if (next) applyDate(next)
   }
 
   return (
     <>
-      <BackButton />
-      {/* Mode picker — holds the top row with Back when the rest wraps below. */}
+      {/* Back and this view's controls, then where this is. */}
+      <div className="flex w-full items-center justify-between gap-2">
+        <BackButton />
+        <div className="flex shrink-0 items-center gap-2">
+          {isList && <ShareDates end={window.end} label={windowDates} start={window.start} />}
+          <FilterButton iconOnly isLast counted={chosenCalendarFilters(filters, isList)} />
+        </div>
+      </div>
+      <div className="w-full">
+        <DrawerTitle title={place ?? t('calendar.title')} />
+      </div>
+
+      {/* Mode picker — first item, so it holds its row when the rest wraps below. */}
       <ToggleGroup
         joined
         aria-label={t('calendar.title')}
@@ -178,6 +319,7 @@ function CalendarControls({ controls }: { controls: CalendarControlsPlugin }) {
           <Button
             isIconOnly
             aria-label={t('calendar.previous')}
+            disabled={isList && window.start <= today}
             size="sm"
             variant="ghost"
             onClick={() => step(-1)}
@@ -205,7 +347,7 @@ function CalendarControls({ controls }: { controls: CalendarControlsPlugin }) {
               className="pointer-events-none absolute inset-0 h-full w-full field-size opacity-0"
               tabIndex={-1}
               type="date"
-              value={focused ?? ''}
+              value={isList ? window.start : (focused ?? '')}
               onChange={(event) => event.target.value && applyDate(event.target.value)}
             />
           </div>
@@ -220,8 +362,6 @@ function CalendarControls({ controls }: { controls: CalendarControlsPlugin }) {
             <ChevronRight className="h-4 w-4 rtl:-scale-x-100" />
           </Button>
         </div>
-
-        <FilterButton />
       </div>
     </>
   )
@@ -229,9 +369,9 @@ function CalendarControls({ controls }: { controls: CalendarControlsPlugin }) {
 
 // The full-width calendar, at route `/calendar`, optionally with `?region=<slug>`. Its
 // entries are the filtered feed (`getCalendarEvents`) expanded into one per upcoming
-// occurrence — timezone-correct, online events included — on a Schedule-X month, week, or
-// list (agenda) grid whose `--sx-*` tokens are mapped to this project's theme (see
-// globals.css). This view is placeless, so it never frames the map. Clicking an entry opens
+// occurrence — timezone-correct, online events included — on a Schedule-X month or week grid
+// whose `--sx-*` tokens are mapped to this project's theme (see
+// globals.css), or on this project's own day-by-day list (`WeekList`). This view is placeless, so it never frames the map. Clicking an entry opens
 // its EventView. The Filter button opens FilterView as a right or bottom overlay over this
 // still-mounted view (see DrawerStack).
 //
@@ -243,18 +383,37 @@ function CalendarControls({ controls }: { controls: CalendarControlsPlugin }) {
 // keeps the header and pills visible while the cache-once source resolves. Across a remount,
 // and when returning from an event, the view and focused date restore from
 // `useCalendarPosition`.
+// A link opened fresh should show the place it is about, not one cluster on a world map. Arriving
+// from inside the widget, the map is already there.
+function useFrameScope(slug: string | null) {
+  const { locale } = useLocale()
+  const { frameRegion } = useMapController()
+  const { data: region } = useQuery({ ...regionQuery(slug ?? '', locale), enabled: Boolean(slug) })
+
+  useFrameOnTop(
+    ({ isEntry }) => {
+      if (region && isEntry) frameRegion(region)
+    },
+    [region, frameRegion],
+  )
+}
+
 export function CalendarView() {
   const filters = useEventFilters()
   // Shared with the grid (which registers + binds it) and the header (which drives it). Stable
   // across filter-apply remounts — the grid re-binds the same plugin to each new instance.
   const controls = useMemo(() => createCalendarControlsPlugin(), [])
+  const isWide = useIsWideWidget()
+  const { option } = resolveCalendarView(useCalendarView(), isWide)
+
+  useFrameScope(filters.region)
 
   return (
     <>
       <DrawerHeader className="max-w-none flex-wrap items-center gap-x-3 gap-y-2">
         <CalendarControls controls={controls} />
       </DrawerHeader>
-      <ActiveFilterPills />
+      <ActiveFilterPills filters={chosenCalendarFilters(filters, option === CALENDAR_VIEW_LIST)} />
       {/* The grid owns the `['calendar', …]` read. The header above — month nav, view picker,
           filters, close — and the pills read none of it. So a failed grid is survivable in
           place. Escalating it to the drawer boundary would replace all that working chrome to
@@ -267,7 +426,11 @@ export function CalendarView() {
             under CalendarControls while the grid loaded. Pairs with `DrawerErrorBody` on
             the boundary, for the same reason. */}
         <Suspense fallback={<DrawerLoadingBody />}>
-          <CalendarGrid key={filtersKey(filters)} controls={controls} filters={filters} />
+          {option === CALENDAR_VIEW_LIST ? (
+            <WeekList filters={filters} />
+          ) : (
+            <CalendarGrid key={filtersKey(filters)} controls={controls} filters={filters} />
+          )}
         </Suspense>
       </ResetErrorBoundary>
     </>
@@ -289,10 +452,8 @@ function CalendarGrid({
   const navigate = useAtlasNavigate()
   const isWide = useIsWideWidget()
 
-  const { data: source } = useSuspenseQuery({
-    queryKey: ['calendar', filtersKey(filters), locale],
-    queryFn: () => api.getCalendarEvents(filters),
-  })
+  const setCalendarView = useSetCalendarView()
+  const { data: source } = useSuspenseQuery(calendarQuery(filters, locale))
 
   const onlineLabel = t('event.display.online')
   const events = useMemo(
@@ -316,7 +477,7 @@ function CalendarGrid({
     {
       // `month-agenda` is registered because `controls.setView` validates the name against this
       // list — the resolver, never Schedule-X, is what chooses it.
-      views: [createViewMonthGrid(), createViewMonthAgenda(), createViewWeek(), createViewList()],
+      views: [createViewMonthGrid(), createViewMonthAgenda(), createViewWeek()],
       // ⚠ Captured ONCE, so this seam answers a width crossing only because `DrawerStack`
       // remounts the whole drawer when `isWide` flips (vaul's `direction` is not
       // hot-swappable), remounting this grid with it. Should that stop, so does this.
@@ -336,6 +497,8 @@ function CalendarGrid({
       // overrides (globals.css) carry the light/dark and accent theming regardless of
       // `isDark`.
       locale: toScheduleXLocale(locale),
+      // Schedule-X's own "+ 12 events" and "No events", in the words a visitor reads here.
+      translations: locale === 'en' ? { enUS: SX_ENGLISH } : undefined,
       callbacks: {
         // Each entry carries its event's route. This opens the matching EventView — the atlas
         // navigate stamps camera and depth like every other in-widget push.
@@ -344,13 +507,9 @@ function CalendarGrid({
         },
         // Persist the focused date as the user pages through the calendar (drives the header label).
         onSelectedDateUpdate: (date) => useCalendarPosition.getState().setDate(date),
-        // The month grid's "+N more" jumps to the list view focused on that day.
-        onClickPlusEvents: (date) => {
-          controls.setDate(date)
-          controls.setView(CALENDAR_VIEW_LIST)
-          useCalendarPosition.getState().setDate(date)
-          useCalendarPosition.getState().setView(CALENDAR_VIEW_LIST)
-        },
+        // The month grid's "+N more" opens the list on that one day.
+        onClickPlusEvents: (date) =>
+          setCalendarView(CALENDAR_VIEW_LIST, (next) => next.set('dates', `${date},${date}`)),
       },
       weekOptions: {
         eventWidth: 98,
@@ -359,11 +518,21 @@ function CalendarGrid({
     [controls],
   )
 
+  const renderers = useMemo(() => calendarRenderers(locale), [locale])
+  const focused = DateTime.fromISO(useCalendarPosition((s) => s.date) ?? todayISO())
+
   return (
-    <DrawerBody className="max-w-none overflow-hidden p-4">
-      <div className="sx-calendar">
-        <CalendarMount calendar={calendar} />
-      </div>
-    </DrawerBody>
+    <>
+      <DrawerBody className="max-w-none overflow-hidden px-4 pb-4">
+        <div className="sx-calendar">
+          <CalendarMount calendar={calendar} renderers={renderers} />
+        </div>
+      </DrawerBody>
+      <TimesNote
+        end={focused.endOf('month').toISODate() ?? ''}
+        entries={events}
+        start={focused.startOf('month').toISODate() ?? ''}
+      />
+    </>
   )
 }

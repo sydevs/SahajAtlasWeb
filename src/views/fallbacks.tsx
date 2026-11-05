@@ -18,7 +18,6 @@ import { classifyError, errorMessage } from '@/lib/report'
 import { baseStackEntry, nearestKnownRegion, resolveStack } from '@/lib/shape'
 import { BackButton, NavHeader } from '@/views/nav'
 import {
-  CalendarButton,
   ExpandSheetButton,
   FilterButton,
   SearchButton,
@@ -214,7 +213,6 @@ export function DrawerChrome({ interactive = true }: { interactive?: boolean }) 
         <>
           {entry.kind === 'region' && (
             <>
-              <CalendarButton regionSlug={entry.slug} />
               <SearchButton />
               <FilterButton iconOnly />
             </>
