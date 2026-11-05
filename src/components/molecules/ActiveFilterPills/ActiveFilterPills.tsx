@@ -11,6 +11,7 @@ import { useEventFilters, useSetFilters } from '@/hooks/use-filters'
 import { useLocale } from '@/hooks/use-locale'
 import { formatTimePeriods } from '@/lib'
 import { isDateRestricted, isTimeRestricted } from '@/lib/shape'
+import { regionalLocale } from '@/lib/time'
 
 /**
  * The active filters, as a row of removable pills at the top of the search
@@ -92,7 +93,7 @@ export function ActiveFilterPills() {
   }
   if (isDateRestricted(dateRange)) {
     const fmt = (iso: string) =>
-      DateTime.fromISO(iso).setLocale(locale).toLocaleString(DateTime.DATE_MED)
+      DateTime.fromISO(iso).setLocale(regionalLocale(locale)).toLocaleString(DateTime.DATE_MED)
     const { start, end } = dateRange
     let label = ''
 

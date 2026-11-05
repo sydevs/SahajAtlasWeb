@@ -26,6 +26,7 @@ import { useCalendarPosition } from '@/config/store'
 import { useAtlasNavigate } from '@/hooks/use-atlas-navigate'
 import { useEventFilters } from '@/hooks/use-filters'
 import { useLocale } from '@/hooks/use-locale'
+import { regionalLocale, scheduleXLocale } from '@/lib/time'
 import { useTheme } from '@/hooks/use-theme'
 import {
   CALENDAR_VIEW_LIST,
@@ -40,25 +41,6 @@ import {
 } from '@/lib/shape'
 import { CloseButton, FilterButton } from '@/views/shared'
 import { DrawerErrorBody, DrawerLoadingBody } from '@/views/fallbacks'
-
-// Schedule-X validates `locale` against its own supported BCP-47 set, and THROWS
-// (`InvalidLocaleError`) on an unknown code — this project's short `en`/`de`/… crash it. This
-// maps this project's locales to the closest one SX 2.36 ships. Anything unmapped, including
-// Hungarian, which SX lacks, falls back to en-US chrome. This project's own header stays fully
-// localized via i18n.
-const SX_LOCALES: Record<string, string> = {
-  en: 'en-US',
-  de: 'de-DE',
-  fr: 'fr-FR',
-  es: 'es-ES',
-  cs: 'cs-CZ',
-  nl: 'nl-NL',
-  ru: 'ru-RU',
-  uk: 'uk-UA',
-  'pt-BR': 'pt-BR',
-}
-
-const toScheduleXLocale = (locale: string): string => SX_LOCALES[locale] ?? 'en-US'
 
 // Online programs get their own colour, the secondary ramp, so they stand out from
 // in-person events on the grid. Entries built with `calendarId: 'online'` (see
@@ -110,7 +92,7 @@ function CalendarControls({ controls }: { controls: CalendarControlsPlugin }) {
   // localized straight from luxon (no per-month i18n key), shows the month + year in month view,
   // but the specific date (condensed month) in the week + list views — for the week its first day.
   const focused = date ?? DateTime.now().toISODate()
-  const dt = focused ? DateTime.fromISO(focused).setLocale(locale) : null
+  const dt = focused ? DateTime.fromISO(focused).setLocale(regionalLocale(locale)) : null
   const label = !dt
     ? ''
     : option === CALENDAR_VIEW_MONTH
@@ -334,10 +316,10 @@ function CalendarGrid({
       // callback, so the switch cannot learn about it — which lit Month over a day list on a
       // phone. `resolveCalendarView` decides instead (#331, `docs/rules/i18n-and-state.md`).
       isResponsive: false,
-      // SX needs a supported BCP-47 code (see SX_LOCALES), or it throws. This project's token
+      // SX needs a supported BCP-47 code (see scheduleXLocale), or it throws. This project's token
       // overrides (globals.css) carry the light/dark and accent theming regardless of
       // `isDark`.
-      locale: toScheduleXLocale(locale),
+      locale: scheduleXLocale(regionalLocale(locale)),
       callbacks: {
         // Each entry carries its event's route. This opens the matching EventView — the atlas
         // navigate stamps camera and depth like every other in-widget push.

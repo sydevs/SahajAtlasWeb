@@ -42,6 +42,7 @@ import {
 } from '@/types'
 import { useLocale } from '@/hooks/use-locale'
 import { useTurnstile } from '@/hooks/use-turnstile'
+import { regionalLocale } from '@/lib/time'
 import { useViewerCountry } from '@/hooks/use-viewer-country'
 
 /**
@@ -657,7 +658,7 @@ function dateOptions(
   return dates.map((date) => {
     const dateTime = DateTime.fromJSDate(date)
       .setZone(timeZone ?? 'local')
-      .setLocale(locale)
+      .setLocale(regionalLocale(locale))
 
     return {
       value: date.toISOString(),

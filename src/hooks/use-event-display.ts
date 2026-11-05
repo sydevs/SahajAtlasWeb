@@ -8,7 +8,7 @@ import { useTranslation } from 'react-i18next'
 import { useLocale } from './use-locale'
 
 import { resolveEventDisplay } from '@/lib/shape'
-import { formatTimeRange, sameWallClock, zoneCity } from '@/lib/time'
+import { formatTimeRange, regionalLocale, sameWallClock, zoneCity } from '@/lib/time'
 
 /** This is what the formatting layer reads on top of the resolver input: the address and
  *  region refs that feed the where and origin strings, when the surface has them. */
@@ -118,14 +118,17 @@ export function useEventDisplay(event: DisplayableEvent): EventDisplayStrings {
   const minute = Math.floor(Date.now() / 60_000)
 
   return useMemo(() => {
+    const formatLocale = regionalLocale(locale)
     const display = resolveEventDisplay(event)
     const schedule = event.schedule
     const { kind, status, full, next, nextEnd, origin, firstSession, sessions } = display
 
     const date = (dt: DateTime) =>
-      dt.setLocale(locale).toLocaleString({ weekday: 'short', day: 'numeric', month: 'short' })
+      dt
+        .setLocale(formatLocale)
+        .toLocaleString({ weekday: 'short', day: 'numeric', month: 'short' })
     const shortDate = (dt: DateTime) =>
-      dt.setLocale(locale).toLocaleString({ day: 'numeric', month: 'short' })
+      dt.setLocale(formatLocale).toLocaleString({ day: 'numeric', month: 'short' })
 
     const sessionsLabel =
       sessions != null ? t('event.display.sessions_count', { count: sessions }) : null
@@ -178,7 +181,7 @@ export function useEventDisplay(event: DisplayableEvent): EventDisplayStrings {
     if (next && recurrence) {
       const interval = schedule?.interval ?? 1
       const weekdayNames = display.weekdayInstants.map((dt) =>
-        dt.setLocale(locale).toLocaleString({ weekday: 'long' }),
+        dt.setLocale(formatLocale).toLocaleString({ weekday: 'long' }),
       )
       const weekdays = new Intl.ListFormat(locale, { style: 'long', type: 'conjunction' }).format(
         weekdayNames,
@@ -198,7 +201,7 @@ export function useEventDisplay(event: DisplayableEvent): EventDisplayStrings {
               : t('event.recurrence.weekly_1', { weekday: weekdays })
       } else if (schedule?.monthlyMode === 'weekday' && schedule.weekNumber)
         recurrenceLine = t(WEEK_NUMBER_KEYS[schedule.weekNumber], {
-          weekday: next.setLocale(locale).toLocaleString({ weekday: 'long' }),
+          weekday: next.setLocale(formatLocale).toLocaleString({ weekday: 'long' }),
         })
       else recurrenceLine = t('event.recurrence.monthly_date', { day: next.day })
     }
@@ -226,9 +229,9 @@ export function useEventDisplay(event: DisplayableEvent): EventDisplayStrings {
     // ── Times ──
     // These are in the display zone, the viewer's for an online event, so they agree with the
     // weekday, the date and the calendar. There is no clock label: issue #52 dropped those.
-    const eventStartTime = next ? formatTimeRange(next, null, locale) : null
+    const eventStartTime = next ? formatTimeRange(next, null, formatLocale) : null
     const eventTimeRange = next
-      ? formatTimeRange(next, schedule?.endTime ? nextEnd : null, locale)
+      ? formatTimeRange(next, schedule?.endTime ? nextEnd : null, formatLocale)
       : null
 
     const originCity = event.address?.city ?? event.region?.name ?? zoneCity(origin?.zoneName)
@@ -262,9 +265,9 @@ export function useEventDisplay(event: DisplayableEvent): EventDisplayStrings {
     if (origin && next && !sameWallClock(origin, next)) {
       whereSubtext = [
         origin.weekday !== next.weekday
-          ? origin.setLocale(locale).toLocaleString({ weekday: 'short' })
+          ? origin.setLocale(formatLocale).toLocaleString({ weekday: 'short' })
           : null,
-        formatTimeRange(origin, null, locale),
+        formatTimeRange(origin, null, formatLocale),
       ]
         .filter(Boolean)
         .join(' ')

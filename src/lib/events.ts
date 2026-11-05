@@ -3,6 +3,7 @@ import type { EventAddress } from '@/types'
 import { DateTime } from 'luxon'
 
 import { timePeriodRanges, type TimePeriod } from '@/lib/shape'
+import { regionalLocale } from '@/lib/time'
 
 /**
  * A Google Maps directions link from an event's coordinates (preferred) or its
@@ -32,7 +33,7 @@ export function formatHour(locale: string, hour: number): string {
   const minutes = Math.round(hour * 60) % (24 * 60)
 
   return DateTime.fromObject({ hour: Math.floor(minutes / 60), minute: minutes % 60 })
-    .setLocale(locale)
+    .setLocale(regionalLocale(locale))
     .toLocaleString(DateTime.TIME_SIMPLE)
 }
 
