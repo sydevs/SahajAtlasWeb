@@ -67,12 +67,18 @@ export function SearchView() {
 
   return (
     <>
-      {/* The field shares this band with Back, but its suggestions span the whole band: a dropdown
-          narrower than the panel leaves the list's counts peeking out beside it. */}
-      <DrawerHeader className="[container-type:inline-size] [--sy-results-w:100cqi]">
+      <DrawerHeader>
         <BackButton iconOnly />
-        <SearchField />
-        <ExpandSheetButton />
+        {/* The suggestions open under the field and reach the band's end, past the phone's "Show
+            the list": a dropdown narrower than the panel leaves the list's counts peeking out
+            beside it. The container starts where the field does, so `100cqi` is the room from
+            there to the edge (less 2px: the list sits 1px inside the field's border on each
+            side). Measured on the whole band, Back's width pushed the list that far past the
+            panel and cut it off. */}
+        <div className="[container-type:inline-size] flex min-w-0 flex-1 items-center gap-2 [--sy-results-w:calc(100cqi_-_2px)]">
+          <SearchField />
+          <ExpandSheetButton />
+        </div>
       </DrawerHeader>
       {/* Outside the body, so a long list scrolls UNDER the controls rather than
           carrying them away — the list pages as you scroll, so the one moment Filters
