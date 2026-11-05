@@ -214,8 +214,9 @@ function ListingSummary({
             <p>{[schedule.time, schedule.zone].filter(Boolean).join(' · ')}</p>
             {draft.repeats !== 'once' && (
               <p className="text-gray-11">
-                {t('submit.when.last_class')}:{' '}
-                {draft.endDate ? longDate(draft.endDate, locale) : t('submit.summary.no_end')}
+                {draft.endDate
+                  ? `${t('submit.when.last_class')}: ${longDate(draft.endDate, locale)}`
+                  : t('submit.summary.no_end')}
               </p>
             )}
           </>

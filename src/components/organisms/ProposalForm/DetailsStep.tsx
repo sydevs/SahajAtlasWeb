@@ -29,7 +29,7 @@ export type DetailsStepProps = {
 }
 
 /**
- * Step 3: everything that helps someone decide to come, none of it required. Grouped by what a
+ * Step 3: the language, then everything else that helps someone decide to come, all optional. Grouped by what a
  * newcomer asks — what language, who do I ask, what is it like — and the class's name last,
  * since it has a sensible default.
  */
@@ -51,7 +51,7 @@ export function DetailsStep({
 
   return (
     <div className="flex flex-col gap-6">
-      <StepHeading intro={t('submit.details.intro')} title={t('submit.details.title')} />
+      <StepHeading intro={t('submit.details.intro_language')} title={t('submit.details.title')} />
 
       <FormField
         required

@@ -409,11 +409,11 @@
     },
     "details": {
       "title": "A few more details",
-      "intro": "All optional — but they help people decide to come.",
       "languages_help": "The languages the class is held in.",
       "title_help": "Leave blank to call it “%{name}”.",
       "contact_help": "Shown on the listing so newcomers can ask before they come. Adding a class for someone else? Use their details, not yours.",
-      "title_keep": "Leave blank to keep the name it has now."
+      "title_keep": "Leave blank to keep the name it has now.",
+      "intro_language": "Only the language is needed. The rest helps people decide to come."
     },
     "fix": {
       "title": "What needs fixing?",
