@@ -3,7 +3,7 @@ import type { ListingDraft, ListingErrors } from '@/lib/proposal'
 import { useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 
-import { FIELD_TEXT, GroupHeading, StepHeading, ValidatedInput } from './fields'
+import { FIELD_TEXT, GroupHeading, NameHelp, StepHeading, ValidatedInput } from './fields'
 
 import { Textarea } from '@/components/atoms/Textarea'
 import { FormField } from '@/components/molecules/FormField'
@@ -117,11 +117,19 @@ export function DetailsStep({
 
       <ValidatedInput
         help={
-          keepTitle
-            ? t('submit.details.title_keep')
-            : defaultTitle
-              ? t('submit.details.title_help', { name: defaultTitle })
-              : undefined
+          <NameHelp
+            guidance={
+              keepTitle
+                ? t('submit.details.title_keep')
+                : [
+                    t('submit.details.title_guidance'),
+                    defaultTitle && t('submit.details.title_blank', { name: defaultTitle }),
+                  ]
+                    .filter(Boolean)
+                    .join(' ')
+            }
+            value={draft.title}
+          />
         }
         id="submit-title"
         label={t('submit.more.title_label')}

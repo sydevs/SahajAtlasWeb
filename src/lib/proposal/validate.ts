@@ -75,6 +75,19 @@ export const stepErrors = (
   return errors
 }
 
+/** What a host tends to put in a class's name or room that the listing already says elsewhere. */
+export type NameIssue = 'link' | 'time' | 'free'
+
+const NAME_ISSUES: [NameIssue, RegExp][] = [
+  ['link', /https?:\/\/|www\.|\b[a-z0-9-]+\.(?:com|org|net|uk|co|io|info)\b/i],
+  ['time', /\b\d{1,2}(?:[:.]\d{2})?\s*(?:am|pm)\b|\b\d{1,2}[:.]\d{2}\b/i],
+  ['free', /\bfree\b/i],
+]
+
+/** Advice, never a refusal: a class called "Free Spirit Yoga Hall" must still be sendable. */
+export const nameIssues = (value: string): NameIssue[] =>
+  NAME_ISSUES.filter(([, pattern]) => pattern.test(value)).map(([issue]) => issue)
+
 /** The first step a submit would be refused at, so the panel can send the visitor there. */
 export const firstInvalidStep = (
   draft: ListingDraft,

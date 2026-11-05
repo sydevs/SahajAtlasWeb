@@ -5,6 +5,7 @@ import { DateTime } from 'luxon'
 import { describe, expect, it } from 'vitest'
 
 import {
+  nameIssues,
   type ListingDraft,
   buildProposal,
   diffPatch,
@@ -667,5 +668,23 @@ describe('a monthly class on a weekday', () => {
     expect(moved.schedule).not.toHaveProperty('weekNumber')
     expect(moved.schedule).not.toHaveProperty('weekdayOfMonth')
     expect(moved.schedule).not.toHaveProperty('monthlyMode')
+  })
+})
+
+describe('nameIssues', () => {
+  it.each([
+    ['Free meditation', ['free']],
+    ['Meditation 7pm', ['time']],
+    ['Meditation at 19:30', ['time']],
+    ['See meetup.com/sahaj', ['link']],
+    ['Free class, 7.30pm, https://x.org', ['link', 'time', 'free']],
+  ])('flags %s', (value, issues) => {
+    expect(nameIssues(value)).toEqual(issues)
+  })
+
+  it('leaves a plain name and a room number alone', () => {
+    expect(nameIssues('Evening Meditation at The Hut')).toEqual([])
+    expect(nameIssues('Room 12')).toEqual([])
+    expect(nameIssues('Freedom Hall')).toEqual([])
   })
 })

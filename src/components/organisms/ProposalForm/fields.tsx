@@ -1,11 +1,15 @@
 import type { InputProps } from '@/components/atoms/Input'
+import type { NameIssue } from '@/lib/proposal'
+import type { TranslationKey } from '@/types/i18next'
 import type { LucideIcon } from 'lucide-react'
 import type { KeyboardEvent, ReactNode } from 'react'
 
+import { useTranslation } from 'react-i18next'
 import { tv } from 'tailwind-variants'
 
 import { Input } from '@/components/atoms/Input'
 import { FormField, fieldDescribedBy } from '@/components/molecules/FormField'
+import { nameIssues } from '@/lib/proposal'
 
 /**
  * The flow's own field text size: the shared `field-size`, 16px on a touch screen, where anything
@@ -44,6 +48,28 @@ export function ValidatedInput({
         {...input}
       />
     </FormField>
+  )
+}
+
+const NAME_ISSUE_KEYS: Record<NameIssue, TranslationKey> = {
+  link: 'submit.details.issue_link',
+  time: 'submit.details.issue_time',
+  free: 'submit.details.issue_free',
+}
+
+/** The help a name-like field shows: its guidance, or what to leave out once that's been typed. */
+export function NameHelp({ value, guidance }: { value: string; guidance: ReactNode }) {
+  const { t } = useTranslation()
+  const issues = nameIssues(value)
+
+  if (issues.length === 0) return guidance
+
+  return (
+    <span className="font-medium text-foreground">
+      {t('submit.details.name_warning', {
+        parts: issues.map((issue) => t(NAME_ISSUE_KEYS[issue])).join(', '),
+      })}
+    </span>
   )
 }
 

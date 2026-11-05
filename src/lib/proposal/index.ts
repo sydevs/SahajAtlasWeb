@@ -40,8 +40,10 @@ export { nearestTimeZone, type ZonedPoint } from './timezone'
 export {
   firstInvalidStep,
   isEmail,
+  nameIssues,
   stepChanged,
   stepErrors,
   type ListingErrors,
   type ListingField,
+  type NameIssue,
 } from './validate'

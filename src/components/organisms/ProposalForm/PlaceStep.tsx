@@ -6,7 +6,7 @@ import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { MapPin, Monitor } from 'lucide-react'
 
-import { ChoiceCard, StepHeading, ValidatedInput, radioKeys } from './fields'
+import { ChoiceCard, NameHelp, StepHeading, ValidatedInput, radioKeys } from './fields'
 
 import { Button } from '@/components/atoms/Button'
 import { FormField } from '@/components/molecules/FormField'
@@ -315,6 +315,7 @@ function VenueFields({
         onChange={(event) => onChange({ venueName: event.target.value })}
       />
       <ValidatedInput
+        help={<NameHelp guidance={t('submit.where.room_help')} value={draft.room} />}
         id="submit-room"
         label={t('submit.where.room_label')}
         maxLength={ROOM_MAX}

@@ -408,15 +408,21 @@
       "manual_city_back": "Search for the city instead",
       "venue_name_label": "Name of the building (optional)",
       "venue_name_placeholder": "For example: Balham Library",
-      "venue_name_help": "What people will see on the door. If you leave the class name blank, this names the class."
+      "venue_name_help": "What people will see on the door. If you leave the class name blank, this names the class.",
+      "room_help": "Only the room or floor. The address and time are already on the listing."
     },
     "details": {
       "title": "A few more details",
       "languages_help": "The languages the class is held in.",
-      "title_help": "Leave blank to call it “%{name}”.",
       "contact_help": "Shown on the listing so newcomers can ask before they come. Adding a class for someone else? Use their details, not yours.",
       "title_keep": "Leave blank to keep the name it has now.",
-      "intro_language": "Only the language is needed. The rest helps people decide to come."
+      "intro_language": "Only the language is needed. The rest helps people decide to come.",
+      "title_guidance": "Just the name. The listing already shows the time, and that it’s free. Links go under Website.",
+      "title_blank": "Leave it blank and it’s named after the place, like “Evening Meditation at %{name}”.",
+      "name_warning": "Best left out: %{parts}. The listing shows these in their own place.",
+      "issue_link": "a link",
+      "issue_time": "the time",
+      "issue_free": "the word “free”"
     },
     "fix": {
       "title": "What needs fixing?",
