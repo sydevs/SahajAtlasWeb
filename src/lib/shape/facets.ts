@@ -143,7 +143,8 @@ export const bestRecovery = (
   if (filters.daysOfWeek.length > 0) candidates.push({ group: 'days', patch: { daysOfWeek: [] } })
   if (filters.timeOfDay.length > 0) candidates.push({ group: 'time', patch: { timeOfDay: [] } })
   if (filters.cadence !== 'any') candidates.push({ group: 'cadence', patch: { cadence: 'any' } })
-  if (filters.languages.length > 0) candidates.push({ group: 'languages', patch: { languages: [] } })
+  if (filters.languages.length > 0)
+    candidates.push({ group: 'languages', patch: { languages: [] } })
   if (isDateRestricted(filters.dateRange)) {
     candidates.push({ group: 'dates', patch: { dateRange: { start: null, end: null } } })
   }

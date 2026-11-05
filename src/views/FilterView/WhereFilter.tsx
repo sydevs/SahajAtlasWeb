@@ -84,7 +84,7 @@ export function WhereFilter({
           <Button
             aria-pressed={nearMeOn}
             className={clsx(
-              'field-size h-[44px] shrink-0',
+              'h-[44px] shrink-0 field-size',
               !nearMeOn && !prominent && 'border-gray-6 text-foreground',
             )}
             color={nearMeOn || prominent ? 'primary' : 'neutral'}

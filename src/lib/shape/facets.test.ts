@@ -85,7 +85,11 @@ describe('bestRecovery', () => {
       event({ eventType: 'online', languages: ['en'] }),
       event({ eventType: 'offline', languages: ['fr'] }),
     ]
-    const recovery = bestRecovery(events, { ...DEFAULT_FILTERS, format: 'online', languages: ['fr'] })
+    const recovery = bestRecovery(events, {
+      ...DEFAULT_FILTERS,
+      format: 'online',
+      languages: ['fr'],
+    })
 
     expect(recovery?.group).toBe('languages')
     expect(recovery?.count).toBe(2)

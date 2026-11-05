@@ -1,11 +1,11 @@
 import type { TranslationKey } from '@/types/i18next'
+import type { EventFilters, FilterRecovery } from '@/lib/shape'
 
 import { Info } from 'luxon'
 import { useTranslation } from 'react-i18next'
 
 import { Button } from '@/components/atoms/Button'
 import { useLocale } from '@/hooks/use-locale'
-import type { EventFilters, FilterRecovery } from '@/lib/shape'
 
 export type RecoveryButtonProps = {
   recovery: FilterRecovery

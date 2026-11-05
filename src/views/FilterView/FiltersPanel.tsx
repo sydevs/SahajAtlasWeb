@@ -1,7 +1,6 @@
 import { useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 import { X } from 'lucide-react'
-
 import { useSearchParams } from 'react-router'
 
 import { RecoveryButton } from './RecoveryButton'
@@ -38,7 +37,7 @@ export function FiltersPanel() {
       aria-label={t('filters.chrome.title')}
       className="pointer-events-auto fixed end-4 top-4 z-30 flex max-h-[calc(100%-72px)] w-[320px] flex-col overflow-hidden rounded-2xl border border-divider bg-background text-foreground shadow-xl"
     >
-      <header className="flex shrink-0 items-center justify-between gap-2 ps-4 pe-2 pt-2 pb-1">
+      <header className="flex shrink-0 items-center justify-between gap-2 ps-4 pe-2 pt-4 pb-1">
         <h2 className="text-xl font-semibold">{t('filters.chrome.title')}</h2>
         <Button
           isIconOnly
@@ -58,7 +57,10 @@ export function FiltersPanel() {
           where={
             <WhereFilter
               counts={
-                facets && { inPerson: facets.counts.format.offline, online: facets.counts.format.online }
+                facets && {
+                  inPerson: facets.counts.format.offline,
+                  online: facets.counts.format.online,
+                }
               }
               prominent={placeFirst}
               region={filters.region}
