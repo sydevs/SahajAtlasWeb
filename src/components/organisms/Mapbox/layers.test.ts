@@ -95,15 +95,7 @@ describe('clusterLayer', () => {
   // the two expressions matching — a change to either side that broke the
   // agreement would still satisfy a value comparison.
   //
-  // Only for a branded tenant. The stock pair is `#FFFFFF` on the Studio art's
-  // own `#37BB92`, which measures 2.4:1 and is inherited rather than chosen; see
-  // `layers.ts`.
-  //
-  // ⚠ 4.5 is the OPAQUE figure. The disc renders at `opacity="0.914"`
-  // (`markers.ts`), so what a reader sees is that fill composited over the
-  // basemap, a little lower — `foregroundFor`'s black-versus-white crossover is
-  // 4.58:1, so a seed landing near it passes here at about 4.2 on screen.
-  // Blending needs a basemap colour this lane has no business asserting.
+  // The disc is opaque (`markers.ts`), so this is the figure a reader sees.
   it('keeps the count legible on the bubble markerColors fills', () => {
     for (const mode of ['light', 'dark'] as const) {
       const { fill } = markerColors({ primary: MAROON }, mode)[MARKER_IDS.cluster]
@@ -112,6 +104,17 @@ describe('clusterLayer', () => {
       expect(colord(fill).contrast(label)).toBeGreaterThanOrEqual(4.5)
     }
   })
+})
+
+// The stock pair: a white bold count on the stock green disc. 3:1 is the bar for
+// bold text this size; the old Studio green measured 2.4:1.
+it('keeps the stock count readable on the stock green disc', () => {
+  for (const mode of ['light', 'dark'] as const) {
+    const { fill } = markerColors({}, mode)[MARKER_IDS.cluster]
+    const label = paintOf(clusterLayer({}, mode))['text-color'] as string
+
+    expect(colord(fill).contrast(label)).toBeGreaterThanOrEqual(3)
+  }
 })
 
 describe('boundsLayer', () => {

@@ -22,22 +22,28 @@ import {
 //
 // Names are `sy-`-prefixed, so they can never collide with a style sprite.
 
-// These are the Studio artwork's colors, kept verbatim: a teal pin and cluster
-// for a normal event, the warm accent for the selected one.
+// The stock marker colours: the green pins and clusters with their soft halo
+// (round 2 — Anton liked the original green and asked for it back), and coral for
+// the selected one, the We Meditate app's contrast colour.
+//
+// The cluster disc is one step deeper than the Studio art's `#37BB92`, which put
+// its white count at 2.4:1. `#2E9E78` measures 3.3:1 with white: a bold 12px+
+// count is large enough for the 3:1 bar, and the disc still reads as the bright
+// green. The pin follows it closely so a pin and a cluster read as one family.
 //
 // ⚠ These are what an embed with no tenant seed renders, in BOTH modes, and
 // `markerColors` below must keep returning them unchanged for that case.
-// Deriving them from `DEFAULT_SEEDS` instead would change the unbranded pin:
-// `DEFAULT_SEEDS.primary`'s step 9 is hsl(184 58% 28%), 16pp darker and 16°
-// bluer than the teal below, and hsl(184 58% 60%) in dark mode — while this
-// pin is identical in both. `applyPalette` makes the same promise for the CSS
-// variables: with no palette supplied, none of the derivation runs.
-const POINT_FILL = '#21C1A2'
-const POINT_SELECTED_FILL = '#E87952'
-const CLUSTER_FILL = '#37BB92'
-const CLUSTER_RING = '#8CCDC4'
-const CLUSTER_SELECTED_FILL = '#E47C5A'
-const CLUSTER_SELECTED_RING = '#F2A179'
+// Deriving them from `DEFAULT_SEEDS` instead would turn the unbranded pin into
+// the dark brand teal: `DEFAULT_SEEDS.primary`'s step 9 is hsl(184 58% 28%) in
+// light mode and hsl(184 58% 60%) in dark — while this pin is identical in both.
+// `applyPalette` makes the same promise for the CSS variables: with no palette
+// supplied, none of the derivation runs.
+const POINT_FILL = '#30A47D'
+const POINT_SELECTED_FILL = '#E0775C'
+const CLUSTER_FILL = '#2E9E78'
+const CLUSTER_RING = '#9ED8C2'
+const CLUSTER_SELECTED_FILL = '#DD785D'
+const CLUSTER_SELECTED_RING = '#F4B9A6'
 
 // Rasterisation scale — the images are drawn at 2× and registered with
 // `pixelRatio: 2`, matching the @2x Studio sprite they replace.
@@ -80,15 +86,16 @@ const pin = (fill: string): MarkerImage =>
   <circle cx="15.5" cy="16" r="4.5" fill="#FFFFFF"/>`,
   )
 
-// This is the cluster bubble: a solid disc inside a wider translucent ring.
-// The count label is a `text-field` on the layer, so the art carries no
-// text.
+// This is the cluster bubble: a solid disc inside a wider translucent ring, the
+// soft halo. The disc is opaque, so a pale feature underneath cannot show through
+// and thin the count's contrast. The count label is a `text-field` on the layer,
+// so the art carries no text.
 const cluster = (fill: string, ring: string): MarkerImage =>
   svg(
     38,
     38,
     `<circle cx="19" cy="19" r="19" fill="${ring}" opacity="0.706"/>
-  <circle cx="19" cy="19" r="13.8" fill="${fill}" opacity="0.914"/>`,
+  <circle cx="19" cy="19" r="13.8" fill="${fill}"/>`,
   )
 
 /** Marker image ids — referenced by `icon-image` in `layers.ts`. */
