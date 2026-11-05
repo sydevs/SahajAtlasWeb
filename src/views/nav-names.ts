@@ -67,7 +67,7 @@ export function backLabel(route: string, naming: NavNaming): string {
   const entry = resolveStack(pathname).at(-1)
   const { t } = naming
 
-  if (!entry) return t('common.chrome.back_to_countries')
+  if (!entry) return t('common.chrome.back_to_world_map')
 
   if (entry.kind === 'search') {
     const place = shortPlace(new URLSearchParams(query).get('q'))
