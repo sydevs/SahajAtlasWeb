@@ -10,7 +10,14 @@ import { EventChips } from './EventChips'
 // The UI language is `en`. `languageLabel` echoes the code, so the
 // combined language text is greppable.
 const { d } = vi.hoisted(() => ({
-  d: { status: 'upcoming', full: false, typeLabel: 'Weekly class', isDefaultType: true },
+  d: {
+    status: 'upcoming',
+    kind: 'class',
+    full: false,
+    typeLabel: 'Weekly class',
+    isDefaultType: true,
+    recurrenceLine: 'Every Wednesday' as string | null,
+  },
 }))
 
 vi.mock('react-i18next', () => ({ useTranslation: () => ({ t: (key: string) => key }) }))
@@ -19,9 +26,10 @@ vi.mock('@/hooks/use-locale', () => ({
 }))
 vi.mock('@/hooks/use-event-display', () => ({
   useEventDisplay: () => ({
-    display: { status: d.status, full: d.full },
+    display: { status: d.status, kind: d.kind, full: d.full },
     typeLabel: d.typeLabel,
     isDefaultType: d.isDefaultType,
+    recurrenceLine: d.recurrenceLine,
   }),
 }))
 
@@ -33,9 +41,11 @@ const render = (languages: string[], variant?: EventChipsProps['variant']) =>
 describe('EventChips', () => {
   beforeEach(() => {
     d.status = 'upcoming'
+    d.kind = 'class'
     d.full = false
     d.typeLabel = 'Weekly class'
     d.isDefaultType = true
+    d.recurrenceLine = 'Every Wednesday'
   })
 
   it('default: names the type and folds every language into one chip', () => {
@@ -67,13 +77,36 @@ describe('EventChips', () => {
     expect(html).not.toContain('en, fr')
   })
 
-  it('shows a contrast "Today" chip when the event is today', () => {
+  it('shows a contrast "Today" chip on a weekly card when the event is today', () => {
     d.status = 'today'
 
-    const html = render(['en'])
+    const html = render(['en'], 'compact')
 
     expect(html).toContain('event.display.chip_today')
     expect(html).toContain('text-contrast-11')
+  })
+
+  it('leaves "Today" to the when line on the class page, and to a one-off card\'s lead line', () => {
+    d.status = 'today'
+
+    expect(render(['en'])).not.toContain('event.display.chip_today')
+
+    d.recurrenceLine = null
+    d.isDefaultType = false
+    d.typeLabel = 'One-off event'
+    expect(render(['en'], 'compact')).not.toContain('event.display.chip_today')
+  })
+
+  it('never calls a by-request class a one-off', () => {
+    d.status = 'inactive'
+    d.kind = 'oneoff'
+    d.isDefaultType = false
+    d.typeLabel = 'One-off event'
+
+    expect(render(['en'])).not.toContain('One-off event')
+    expect(render(['fr'], 'compact')).not.toContain('One-off event')
+    // The language still shows.
+    expect(render(['en'])).toContain('>en<')
   })
 
   it('shows a "Full" chip when the event is at capacity', () => {

@@ -10,7 +10,8 @@ export type EventChipsVariant = 'default' | 'compact'
 export type EventChipsProps = {
   event: DisplayableEvent & { languages: string[] }
   /**
-   * `default`, the event header, names the type and every language.
+   * `default`, the event header, names the type (unless the class is by request) and
+   * every language.
    * `compact`, the list card, drops the plain weekly-class type and the
    * viewer's own language. Those are the chips that add nothing at a
    * glance.
@@ -22,20 +23,24 @@ export type EventChipsProps = {
 /**
  * The event's triage chips. Up to three, all `flat`: the class type
  * (primary), the language(s) combined into one chip (secondary), and a
- * single availability chip, "Full" (neutral) or "Today" (contrast). The
+ * single availability chip, "Full" (neutral) or, on a card, "Today" (contrast). The
  * list card and the event header share this component, so the two never
  * drift. `compact` trims the redundant chips on the card.
  */
 export function EventChips({ event, variant = 'default', className }: EventChipsProps) {
   const { t } = useTranslation()
   const { languageCode: uiLanguage, languageLabel } = useLocale()
-  const { display, typeLabel, isDefaultType } = useEventDisplay(event)
+  const { display, typeLabel, isDefaultType, recurrenceLine } = useEventDisplay(event)
 
   const compact = variant === 'compact'
 
-  // Type: `default` always names it. `compact` skips the plain weekly class,
+  // A by-request listing has no schedule, so it derives as a one-off and would read
+  // "One-off event", which is simply wrong. "Contact host for timings" already says what it is.
+  const byRequest = display.status === 'inactive' && display.kind === 'oneoff'
+
+  // Type: `default` names it. `compact` skips the plain weekly class,
   // whose label adds nothing on a compact card.
-  const showType = !compact || !isDefaultType
+  const showType = !byRequest && (!compact || !isDefaultType)
 
   // All languages fold into a single chip. `compact` keeps only the ones
   // that differ from the viewer's UI language.
@@ -54,7 +59,10 @@ export function EventChips({ event, variant = 'default', className }: EventChips
   // set only when it is the actual blocker, so an ended or dormant event
   // still falls through to its own treatment.
   const full = display.full
-  const today = !full && display.status === 'today'
+  // "Today" appears once. The class page says it in the when line right above these chips,
+  // and a one-off card leads with it. So only a card that leads with the weekly pattern,
+  // "Every Wednesday", needs the chip.
+  const today = !full && display.status === 'today' && compact && Boolean(recurrenceLine)
 
   if (!showType && !languageText && !full && !today) return null
 
