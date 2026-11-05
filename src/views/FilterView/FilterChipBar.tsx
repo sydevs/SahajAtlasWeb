@@ -93,9 +93,21 @@ export function FilterChipBar() {
   return (
     <div
       aria-label={t('filters.chrome.title')}
-      className="pointer-events-auto fixed end-16 top-4 z-30 flex flex-wrap items-center justify-end gap-2 ps-[calc(var(--sy-drawer-w,352px)+96px)]"
+      className="pointer-events-auto fixed end-16 top-4 z-30 flex flex-wrap items-center justify-end gap-1.5 ps-[calc(var(--sy-drawer-w,352px)+88px)]"
       role="group"
     >
+      {/* First in a right-aligned row, so its arrival moves nothing that's already there: a chip
+          whose dropdown is open must not slide away from under the pointer. */}
+      {canClear && (
+        <button
+          className="flex h-10 items-center gap-1 rounded-full border border-divider bg-background ps-3 pe-3 text-sm font-medium text-foreground shadow-md hover:bg-gray-3"
+          type="button"
+          onClick={clear}
+        >
+          <X aria-hidden size={16} />
+          {t('filters.chrome.clear_one')}
+        </button>
+      )}
       <FilterChip footer={footer} label={t('filters.where.label')} summary={whereSummary}>
         <WhereFilter region={filters.region} onClear={clearWhere} onPlace={pickPlace} />
       </FilterChip>
@@ -136,16 +148,6 @@ export function FilterChipBar() {
         >
           <LanguageFilter {...control} />
         </FilterChip>
-      )}
-      {canClear && (
-        <button
-          className="flex h-10 items-center gap-1 rounded-full border border-divider bg-background ps-3 pe-3 text-sm font-medium text-foreground shadow-md hover:bg-gray-3"
-          type="button"
-          onClick={clear}
-        >
-          <X aria-hidden size={16} />
-          {t('filters.chrome.clear_one')}
-        </button>
       )}
     </div>
   )
