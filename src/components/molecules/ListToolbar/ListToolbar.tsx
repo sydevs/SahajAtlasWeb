@@ -17,10 +17,10 @@ export type ListToolbarProps = {
  * views supply the controls, since the Filters button is a view concern
  * that drives the drawer stack. So the toolbar never imports them, and
  * the layering stays clean. It sits above the ActiveFilterPills row. It
- * has no vertical padding of its own. The `px-3` here, plus the ghost
- * buttons' own `px-3`, insets their content to `24px`, aligning it with
- * the `px-6` (`listRow`) gutter of the list rows below.
+ * has no vertical padding of its own. The `px-1` here, plus the ghost
+ * buttons' own `px-3`, insets their content to `16px`, aligning it with
+ * the `px-4` (`listRow`) gutter of the list rows below.
  */
 export function ListToolbar({ children }: ListToolbarProps) {
-  return <div className="flex items-center justify-between gap-2 px-3 py-1">{children}</div>
+  return <div className="flex items-center justify-between gap-2 px-1 py-1">{children}</div>
 }

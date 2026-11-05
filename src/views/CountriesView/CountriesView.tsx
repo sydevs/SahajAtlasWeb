@@ -94,7 +94,7 @@ export function CountriesView() {
             <ListItem
               count={onlineCount}
               href={onlineSearch}
-              icon={<Monitor size={24} />}
+              icon={<Monitor size={20} />}
               label={t('online.title')}
             />
           )}

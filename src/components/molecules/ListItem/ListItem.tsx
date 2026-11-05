@@ -30,13 +30,11 @@ export function ListItem({ label, subtitle, count, href, icon }: ListItemProps) 
   return (
     <li>
       <Link
-        className={listRow({ className: 'flex flex-row items-center py-4 font-semibold' })}
+        className={listRow({ className: 'flex min-h-14 flex-row items-center py-3 font-semibold' })}
         href={href}
       >
         {icon && (
-          <span className="me-3 flex h-7 w-7 shrink-0 items-center justify-center lg:h-9 lg:w-9">
-            {icon}
-          </span>
+          <span className="me-3 flex h-6 w-6 shrink-0 items-center justify-center">{icon}</span>
         )}
         <div className="flex-grow text-lg">
           <div>{label}</div>

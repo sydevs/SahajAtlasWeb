@@ -149,7 +149,7 @@ export function RegionView({ slug }: { slug: string }) {
               <ListItem
                 count={region.onlineEvents.length}
                 href={childRoute(region.path, 'online')}
-                icon={<Monitor size={24} />}
+                icon={<Monitor size={20} />}
                 label={t('online.title')}
               />
             )}
