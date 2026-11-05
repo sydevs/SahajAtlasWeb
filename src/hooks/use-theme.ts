@@ -29,9 +29,6 @@ type Theme = typeof ThemeProps.light | typeof ThemeProps.dark
 // This is the user's preference: a resolved theme, or `'auto'` to follow the system.
 export type ThemePreference = Theme | typeof ThemeProps.auto
 
-// A first-time visitor follows their device. The settings menu's explicit choice overrides it.
-const DEFAULT_PREFERENCE: ThemePreference = ThemeProps.auto
-
 // The theme root's class is the single source of truth.
 // Tailwind, through `darkMode: 'class'`, the semantic tokens, and the Mapbox basemap, through `MAP_STYLES[theme]`, all key off it.
 // In the standalone app, the root is the host page's `<html>` element.
@@ -187,7 +184,7 @@ let preference: ThemePreference | null = null
 const prefListeners = new Set<() => void>()
 
 const getPreference = (): ThemePreference => {
-  if (preference === null) preference = readStoredPreference() ?? DEFAULT_PREFERENCE
+  if (preference === null) preference = readStoredPreference() ?? ThemeProps.light
 
   return preference
 }
@@ -206,13 +203,13 @@ const applyPreference = (pref: ThemePreference) => {
 // This resolves the theme to render on first paint: the persisted preference, or the default.
 // This never touches the DOM.
 // The widget uses it to set its wrapper's initial class.
-export const getInitialTheme = (defaultTheme: ThemePreference = DEFAULT_PREFERENCE): Theme =>
+export const getInitialTheme = (defaultTheme: Theme = ThemeProps.light): Theme =>
   resolvePreference(readStoredPreference() ?? defaultTheme)
 
 // This applies the persisted preference, or the default, to the root class once at startup.
 // It starts watching the system when the preference is `'auto'`.
 // This is guarded to be a no-op outside the browser.
-export const initTheme = (defaultTheme: ThemePreference = DEFAULT_PREFERENCE) => {
+export const initTheme = (defaultTheme: Theme = ThemeProps.light) => {
   if (typeof document === 'undefined') return
 
   applyPreference(readStoredPreference() ?? defaultTheme)
