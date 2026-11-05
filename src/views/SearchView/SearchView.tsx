@@ -3,7 +3,12 @@ import { useSearchParams } from 'react-router'
 import { useQuery } from '@tanstack/react-query'
 
 import { DrawerBody, DrawerHeader, DrawerToolbar } from '@/components/atoms/Drawer'
-import { ListToolbar, ResetErrorBoundary, SortMenu } from '@/components/molecules'
+import {
+  ActiveFilterPills,
+  ListToolbar,
+  ResetErrorBoundary,
+  SortMenu,
+} from '@/components/molecules'
 import { DynamicEventsList } from '@/components/organisms'
 import { eventsQuery } from '@/config/api'
 import { useViewState } from '@/config/store'
@@ -79,6 +84,8 @@ export function SearchView() {
           <FilterButton />
           <SortMenu />
         </ListToolbar>
+        {/* Up here so an active filter stays in sight however far the list scrolls. */}
+        <ActiveFilterPills />
       </DrawerToolbar>
       <DrawerBody>
         <GeolocationSuggestion />

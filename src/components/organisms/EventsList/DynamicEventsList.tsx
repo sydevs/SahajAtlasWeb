@@ -11,11 +11,7 @@ import { LoadMore } from './LoadMore'
 
 import { Button } from '@/components/atoms/Button'
 import { Link } from '@/components/atoms/Link'
-import {
-  ActiveFilterPills,
-  type FilterPill,
-  useFilterPills,
-} from '@/components/molecules/ActiveFilterPills'
+import { type FilterPill, useFilterPills } from '@/components/molecules/ActiveFilterPills'
 import { FallbackPanel } from '@/components/molecules/Fallbacks'
 import { FoldSection } from '@/components/molecules/FoldSection'
 import { formatDistance } from '@/lib'
@@ -276,7 +272,6 @@ export function DynamicEventsList({
 
     return (
       <>
-        <ActiveFilterPills />
         {nothing && <EmptyResults latitude={latitude} longitude={longitude} />}
         {hasActiveFilters(filters) && !nothing && (
           <FilterRelief
@@ -366,7 +361,6 @@ export function DynamicEventsList({
 
   return (
     <>
-      <ActiveFilterPills />
       <div ref={listRef}>
         {rows.length === 0 ? (
           <EmptyResults latitude={latitude} longitude={longitude} />

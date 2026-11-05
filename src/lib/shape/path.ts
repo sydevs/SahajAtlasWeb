@@ -8,7 +8,7 @@
 import type { BBox } from 'geojson'
 
 import { filtersFromParams, filtersToParams } from './filters'
-import { sortFromParams, sortToParams } from './sort'
+import { SORT_ORDERS, SORT_PARAM, type SortOrder } from './sort'
 
 /** Decodes a URL segment, tolerating a malformed `%` escape (returns it unchanged). */
 const safeDecode = (segment: string): string => {
@@ -157,8 +157,17 @@ export const SEARCH_COUNTRY_PARAM = 'cc'
  * The results list's reveal is not in the URL at all: a new centre changes
  * `revealKey`, so paging resets on its own (see `use-reveal`).
  */
-export const preserveSearchState = (params: URLSearchParams): URLSearchParams =>
-  sortToParams(sortFromParams(params), filtersToParams(filtersFromParams(params)))
+export const preserveSearchState = (params: URLSearchParams): URLSearchParams => {
+  const next = filtersToParams(filtersFromParams(params))
+  // Only a sort the visitor CHOSE travels. The implied one follows the new place: carrying
+  // "closest" from a searched place to the root would pin it where nothing is near. It is kept
+  // verbatim, since whether it is the default depends on the place set next.
+  const chosen = params.get(SORT_PARAM)
+
+  if (chosen && SORT_ORDERS.includes(chosen as SortOrder)) next.set(SORT_PARAM, chosen)
+
+  return next
+}
 
 /** A searched place, in the terms the URL records it. */
 export type PlaceSearch = {
