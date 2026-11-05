@@ -269,14 +269,16 @@ export const useNearMeState = create<NearMeState>((set) => ({
 
 // ===== FILTER PANEL ===== //
 
-// The wide-container filter panel. `open` is what the visitor last chose, remembered, and open by
+// The wide-container filter panel. `open` is what the visitor last chose this visit, and open by
 // default: `onScreen` is whether it's actually showing, which also depends on the view and the
 // room, and is what the camera's padding reads.
 const FILTER_PANEL_KEY = 'atlas.filtersPanel'
 
+// Open by default on every visit: closing lasts for this visit only (sessionStorage), so the
+// next visit starts with the filters showing again.
 const readPanelOpen = (): boolean => {
   try {
-    return localStorage.getItem(FILTER_PANEL_KEY) !== 'closed'
+    return sessionStorage.getItem(FILTER_PANEL_KEY) !== 'closed'
   } catch {
     return true
   }
@@ -294,7 +296,7 @@ export const useFilterPanelState = create<FilterPanelState>((set) => ({
   onScreen: false,
   setOpen: (open) => {
     try {
-      localStorage.setItem(FILTER_PANEL_KEY, open ? 'open' : 'closed')
+      sessionStorage.setItem(FILTER_PANEL_KEY, open ? 'open' : 'closed')
     } catch {
       // Storage can throw in sandboxed iframes. The choice then lasts for this visit only.
     }

@@ -1152,7 +1152,7 @@ written by Mapbox GL:
 | Key                                | Store            | Holds                                                 | Lifetime            |
 | ---------------------------------- | ---------------- | ----------------------------------------------------- | ------------------- |
 | `atlas.theme`                      | `localStorage`   | the viewer's light/dark/auto choice                   | until cleared       |
-| `atlas.filtersPanel`               | `localStorage`   | whether the viewer closed the filter panel            | until cleared       |
+| `atlas.filtersPanel`               | `sessionStorage` | whether the viewer closed the filter panel            | the browser session |
 | `atlas.geolocationPromptDismissed` | `sessionStorage` | that they dismissed the "classes near you" suggestion | the browser session |
 | `mapbox.eventData:<token>`         | `localStorage`   | Mapbox GL's own telemetry bookkeeping                 | until cleared       |
 | `mapbox.eventData.uuid:<token>`    | `localStorage`   | a persistent anonymous id Mapbox generates            | until cleared       |
