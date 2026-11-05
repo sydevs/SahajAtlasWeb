@@ -68,6 +68,10 @@ export function WhereFilter({
   const placeName = center && !nearMeOn ? searchParams.get('q') : null
   const scopeLabel = placeName || regionName
 
+  // The calendar's filters have no place to search and, unscoped, nothing in scope to show: a
+  // "Where" heading over nothing would read as something failing to load.
+  if (!searchable && !scopeLabel) return null
+
   return (
     <section ref={section} className="flex flex-col gap-2">
       <h3 className="text-sm font-semibold text-foreground">{t('filters.where.label')}</h3>
