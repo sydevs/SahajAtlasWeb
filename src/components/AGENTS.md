@@ -220,8 +220,10 @@ shipping a narrow embed that quietly behaves like a desktop.
 | Map camera padding (`use-map-controller`) | container (the frame) | Camera padding must agree with whatever picked the panel it pads around. Reads `frameElement()` — `null`, and so the viewport, wherever no frame exists. |
 | Anchored-panel geometry — `lg:inset-y-4`, `lg:rounded-2xl` (Drawer atom, PeekStrip) | viewport (accepted residue) | #169 broke "viewport equals container". A contained map can reach a `lg:` crossing its frame never sees. What survives is cosmetic float and rounding. |
 | SettingsMenu cog offset (`DrawerStack`) | container (via `isWide`) | Clears the left panel, so it must agree with whatever decided there is one. Outside a frame, `isWide` is the viewport's own answer. |
+| Which calendar view renders, which options the switch offers, and which one it lights (`CalendarView`, and `DrawerStack` for the drawer's width) | container (via `useIsWideWidget`) | Not a fit question but a **capability** one: Schedule-X refuses its month grid and its week grid below the crossing, and substitutes silently. So this is the one row where the signal decides what a third-party library *can draw*, not how much room to give it — and a viewport read would light a grid a 320px column cannot render (#331). All five seams read one resolver, so they cannot disagree. |
 | Modal box sizing | container (the frame) | Portals through `overlayContainer()`, so a frame contains and clips it on both axes. |
 | `EventHeader`'s `md:pt-4`, `ListItem`'s `lg:h-9 lg:w-9` | viewport (accepted residue) | The only two variants that fire wrongly in a narrow map-less embed. Both are cosmetic — fix them if you are already there. |
+| Form-field font size — the 16px floor (the `field-size` utility, on `fieldChrome` and both search fields) | **input, then viewport** — one `@utility` in `globals.css`, not one of the three hooks | iOS Safari scales the whole page in when a focused field computes under 16px, and embedded that zoom lands on the host's page. The trigger is the engine, not the box: an iPhone is 932px wide in landscape, so a `md:`-only floor handed it the 13px scale back and zoomed exactly as before (measured). So 13px needs a wide screen **and** a fine pointer — the same hardware question the `tel:` row asks, in CSS rather than `useCoarsePointer()`. A 400px iframe on a desktop therefore does render 16px fields, which is cosmetic and accepted. One utility rather than a class pair also lets `[&_input]:field-size` reach the geocoder's own input in a single arm. `src/styles/mobile-zoom.test.ts` holds the floor, refuses a bare `md:`, and refuses a caller `text-*`, which a custom utility cannot outrank (#322). |
 | Compact card vs. full interface (`AppShell`) | the slot, measured ONCE at mount | Not one of the three signals, and deliberately not reactive — see below. |
 | Reduced motion, color scheme | preference | Not a size question at all — see the accessibility motion seams below. |
 
@@ -265,6 +267,22 @@ competing with the host's CSS. `lib/overlay.ts` holds the one reference
 change.** Same mechanism, opposite direction: on the root it would re-parent the
 fixed layer onto the HOST's element, a box a map-less embed shares with the host's
 page. On `MapFrame`, re-parenting is the entire point, and the element is ours.
+
+⚠ **Every box the fixed layer resolves against clips with `overflow-clip`, never
+`overflow-hidden`** (#326). `hidden` is still a scroll container, so the browser scrolls
+such a box to reach a focused field — and a clipped box offers no scrollbar and no wheel
+to scroll back. Measured at 390×844: focusing a registration field carried the widget
+528px out of the compact card's dialog.
+
+Two mechanisms produce the overflow, and both are ours to clip. A **snap-translated
+sheet** contributes its own translate to whatever holds it — the frame, the compact
+dialog, or `DrawerStack`'s map-less container, which takes the containing block through
+`position: relative` rather than `contain: layout` and so is invisible to a scan for the
+latter. And the **panel itself** carries vaul's `::after` background filler
+(`styles/vaul.css`, `top: 100%; height: 200%`), ~1688px on a phone sheet, which no view
+creates and none can decline — so the Drawer atom's `content` slot clips too.
+`lib/overlay.clip.test.ts` names the boxes and `Drawer.scroll.test.tsx` holds the panel,
+because this is a rule that gets applied in one place and missed in the other.
 
 **What decides containment is whether the host sized the element, and nothing
 else** (`mapMode`, `lib/embed-slot.ts`). Map mode renders everything fixed, so `<sahaj-atlas>`

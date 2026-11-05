@@ -29,7 +29,7 @@ import {
   stepErrors,
   todayIn,
   weekStart,
-} from './proposal'
+} from '.'
 
 import { PROPOSABLE_EVENT_FIELDS } from '@/config/api/proposal'
 

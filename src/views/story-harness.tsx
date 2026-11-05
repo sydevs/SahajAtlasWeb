@@ -334,7 +334,9 @@ export function ViewHarness({
               <div
                 key={seedKey}
                 className={clsx(
-                  'z-10 flex flex-col overflow-hidden bg-background text-foreground',
+                  // Clip, never hidden — this hand-copies the panel's own chrome, so a story
+                  // that previewed `overflow-hidden` would preview the defect (#326).
+                  'z-10 flex flex-col overflow-clip bg-background text-foreground',
                   // ⚠ Exactly ONE position class, and the branches must not both contribute
                   // one. An earlier version left `relative` in the shared half and added
                   // `absolute` in the map arm: Tailwind emits `.relative` after

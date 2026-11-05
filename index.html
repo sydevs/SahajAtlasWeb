@@ -10,7 +10,11 @@
   <head>
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/logo.svg" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <!--
+      Scaling is deliberately left unpinned: a reader who needs to magnify a venue address must
+      be able to. Safari's focus zoom is held off at the fields instead (#322).
+    -->
+    <meta name="viewport" content="viewport-fit=cover, width=device-width, initial-scale=1.0" />
     <!--
       Resist direct indexing (issue #106); the policy is written down in public/robots.txt.
       Two things make this tag worth having on top of the X-Robots-Tag header:
@@ -25,11 +29,6 @@
     -->
     <meta name="robots" content="noindex" />
     <title>Meditation classes</title>
-    <meta
-      key="viewport"
-      content="viewport-fit=cover, width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0"
-      name="viewport"
-    />
     <!--link href="/favicon.ico" rel="icon" /-->
     <!--link href='https://api.tiles.mapbox.com/mapbox-gl-js/v3.9.3/mapbox-gl.css' rel='stylesheet' /-->
   </head>

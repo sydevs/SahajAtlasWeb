@@ -7,7 +7,7 @@ import { FIELD_TEXT, GroupHeading, StepHeading, ValidatedInput } from './fields'
 
 import { Textarea } from '@/components/atoms/Textarea'
 import { FormField } from '@/components/molecules/FormField'
-import { LanguageMultiSelect } from '@/components/molecules/LanguageMultiSelect'
+import { MultiSelect } from '@/components/molecules/MultiSelect'
 import { USER_SUBMISSION_VALUE_MAX, userSubmissionValueMax } from '@/config/api/mutate'
 import { useLanguageOptions } from '@/hooks/use-language-options'
 import { useLocale } from '@/hooks/use-locale'
@@ -59,7 +59,7 @@ export function DetailsStep({
         help={t('submit.details.languages_help')}
         label={t('submit.more.languages_label')}
       >
-        <LanguageMultiSelect
+        <MultiSelect
           label={t('submit.more.languages_label')}
           options={options}
           triggerLabel={draft.languages.map(languageLabel).join(', ')}

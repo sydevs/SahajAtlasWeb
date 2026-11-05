@@ -32,30 +32,31 @@ const render = (ui: JSX.Element, url = '/?q=from-the-url') => {
 
 describe('MapSearch', () => {
   it('biases suggestions toward the map centre by default, with every type offered', () => {
-    const { options, value } = render(<MapSearch onSelect={() => {}} />)
+    const { options } = render(<MapSearch value="" onChange={() => {}} onSelect={() => {}} />)
 
     expect(options.proximity).toEqual({ lng: 9, lat: 9 })
     expect(options).not.toHaveProperty('types')
-    expect(value).toBe('from-the-url')
   })
 
   it('starts near the place it is given, and narrows to the types asked for', () => {
     // The add-a-class flow opened from a region passes that region's centre (#147).
     const { options } = render(
-      <MapSearch proximity={{ lng: -0.12, lat: 51.5 }} types="place" onSelect={() => {}} />,
+      <MapSearch
+        proximity={{ lng: -0.12, lat: 51.5 }}
+        types="place"
+        value=""
+        onChange={() => {}}
+        onSelect={() => {}}
+      />,
     )
 
     expect(options.proximity).toEqual({ lng: -0.12, lat: 51.5 })
     expect(options.types).toBe('place')
   })
 
-  it('seeds a form field from its own value, never from the search in the URL', () => {
+  it('shows the text its owner holds, wherever that owner keeps it', () => {
     expect(
-      render(<MapSearch query={{ initial: '10 Downing St' }} onSelect={() => {}} />).value,
+      render(<MapSearch value="10 Downing St" onChange={() => {}} onSelect={() => {}} />).value,
     ).toBe('10 Downing St')
-  })
-
-  it('still shows the search in the URL when it may not write it', () => {
-    expect(render(<MapSearch query="read-only" onSelect={() => {}} />).value).toBe('from-the-url')
   })
 })

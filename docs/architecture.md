@@ -104,18 +104,17 @@ Host page  →  <script src="…/auto.js?key=…&locale=…&map=true|false">
   chunk is handed to `src/styles/sheet.ts` rather than appended as a
   `<style>`, and each entry adopts it into the root it owns — the embed's
   shadow root, the standalone shell's document (#236).
-- **Deploy**: two Cloudflare sites build this repo, on Pages and on Workers
-  static assets (#266, #279, #280). The platforms, hosts and build commands
-  are stated once, in [`docs/rules/deployment.md`](rules/deployment.md). What matters
-  architecturally is the deep-link fallback, and it is **per platform, not
-  per build**: the standalone `BrowserRouter` build gets it from
-  `public/_redirects` (`/* /index.html 200`), which Vite copies into
-  `dist/`, while a Worker takes it from `assets.not_found_handling`
-  instead. ⚠ The two are not interchangeable: a Worker reads `_redirects`
-  and rejects that splat, failing the deploy, so each Worker build deletes
-  the file — see `docs/rules/deployment.md` (#280). The widget build routes
-  off a query parameter on the host's page, so it needs no fallback of its
-  own.
+- **Deploy**: two Cloudflare sites build this repo, both on Workers static
+  assets (#266, #279, #280, #283). The hosts and build commands are stated
+  once, in [`docs/rules/deployment.md`](rules/deployment.md). What matters
+  architecturally is the deep-link fallback, and it is **not a file**: the
+  standalone `BrowserRouter` build takes it from
+  `assets.not_found_handling`. `public/_redirects` (`/* /index.html 200`)
+  carried it while Pages served the app. ⚠ A Worker reads that file and
+  rejects the splat, failing the deploy, which is why each Worker build
+  still deletes it. See `docs/rules/deployment.md` (#280, #283). The widget
+  build routes off a query parameter on the host's page, so it needs no
+  fallback of its own.
 - **Translations**: there is no sync pipeline. Locale JSON under
   SahajCloud owns every string since #198 (`pnpm sync:translations`). The two **Accent**
   translation-sync workflows were removed in #99 (see `AGENTS.md` →

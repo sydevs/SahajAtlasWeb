@@ -983,16 +983,14 @@ export interface Config {
   user: Manager | Client;
   jobs: {
     tasks: {
-      cleanupJobs: TaskCleanupJobs;
       cleanupOrphanedMedia: TaskCleanupOrphanedMedia;
       deliverSubmission: TaskDeliverSubmission;
       expireEvents: TaskExpireEvents;
-      purgeSubmissions: TaskPurgeSubmissions;
       screenSubmission: TaskScreenSubmission;
       sendPostEventFollowUps: TaskSendPostEventFollowUps;
       sendRegistrationDigests: TaskSendRegistrationDigests;
       sendSessionReminders: TaskSendSessionReminders;
-      sweepEventImports: TaskSweepEventImports;
+      cleanupCollections: TaskCleanupCollections;
       syncLectureMetadata: TaskSyncLectureMetadata;
       transcribeMeditation: TaskTranscribeMeditation;
       verifyEmbeds: TaskVerifyEmbeds;
@@ -2195,7 +2193,7 @@ export interface Import {
     | 'zu'
   )[];
   manager?: (number | null) | Manager;
-  locale?: string | null;
+  uploadLocale?: string | null;
   updatedAt: string;
   createdAt: string;
   url?: string | null;
@@ -2476,7 +2474,7 @@ export interface Client {
   /**
    * Primary language for this service (any language).
    */
-  locale?:
+  language?:
     | (
         | 'ab'
         | 'aa'
@@ -3214,16 +3212,14 @@ export interface PayloadJob {
         completedAt: string;
         taskSlug:
           | 'inline'
-          | 'cleanupJobs'
           | 'cleanupOrphanedMedia'
           | 'deliverSubmission'
           | 'expireEvents'
-          | 'purgeSubmissions'
           | 'screenSubmission'
           | 'sendPostEventFollowUps'
           | 'sendRegistrationDigests'
           | 'sendSessionReminders'
-          | 'sweepEventImports'
+          | 'cleanupCollections'
           | 'syncLectureMetadata'
           | 'transcribeMeditation'
           | 'verifyEmbeds'
@@ -3266,16 +3262,14 @@ export interface PayloadJob {
   taskSlug?:
     | (
         | 'inline'
-        | 'cleanupJobs'
         | 'cleanupOrphanedMedia'
         | 'deliverSubmission'
         | 'expireEvents'
-        | 'purgeSubmissions'
         | 'screenSubmission'
         | 'sendPostEventFollowUps'
         | 'sendRegistrationDigests'
         | 'sendSessionReminders'
-        | 'sweepEventImports'
+        | 'cleanupCollections'
         | 'syncLectureMetadata'
         | 'transcribeMeditation'
         | 'verifyEmbeds'
@@ -4865,7 +4859,7 @@ export interface ClientsSelect<T extends boolean = true> {
   logo?: T;
   websiteUrl?: T;
   supportEmail?: T;
-  locale?: T;
+  language?: T;
   region?: T;
   mailingList?:
     | T
@@ -5171,7 +5165,7 @@ export interface ImportsSelect<T extends boolean = true> {
   status?: T;
   defaultLanguages?: T;
   manager?: T;
-  locale?: T;
+  uploadLocale?: T;
   updatedAt?: T;
   createdAt?: T;
   url?: T;
@@ -9399,7 +9393,11 @@ export interface SyAtlasTranslationsCommonMapStrings {
    */
   find_my_location?: string;
   /**
-   * Label of the geolocate control once the browser has refused or failed to supply a location.
+   * Introductory line under the heading of the dialog that opens when the geolocate control fails to supply a location. A full sentence, not a control label.
+   */
+  location_failed?: string;
+  /**
+   * Label of the geolocate control once the browser has refused or failed to supply a location, and the heading of the dialog that reports that failure.
    */
   location_not_available?: string;
 }
@@ -9748,6 +9746,10 @@ export interface SyAtlasTranslationsEventDisplayStrings {
    * When-line for a listing with no schedule, and the message shown when registration is hidden.
    */
   contact_for_timing?: string;
+  /**
+   * Where-line addition naming the room within the venue. Event view only — the list card and the Calendar entry never show it. `%{room}` = room name.
+   */
+  room?: string;
   /**
    * Where-line badge, and the Calendar entry badge, for an online class.
    */
@@ -10876,19 +10878,6 @@ export interface CollectionsWidget {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "TaskCleanupJobs".
- */
-export interface TaskCleanupJobs {
-  input: {
-    now?: string | null;
-    dryRun?: boolean | null;
-  };
-  output: {
-    deletedJobs: number;
-  };
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "TaskCleanupOrphanedMedia".
  */
 export interface TaskCleanupOrphanedMedia {
@@ -10933,20 +10922,6 @@ export interface TaskExpireEvents {
     trashed: number;
     remindersSent: number;
     failed: number;
-  };
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "TaskPurgeSubmissions".
- */
-export interface TaskPurgeSubmissions {
-  input: {
-    now?: string | null;
-    dryRun?: boolean | null;
-  };
-  output: {
-    deletedSubmissions: number;
-    deletedUsers: number;
   };
 }
 /**
@@ -11002,15 +10977,24 @@ export interface TaskSendSessionReminders {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "TaskSweepEventImports".
+ * via the `definition` "TaskCleanupCollections".
  */
-export interface TaskSweepEventImports {
+export interface TaskCleanupCollections {
   input: {
     now?: string | null;
     dryRun?: boolean | null;
+    /**
+     * One collection to sweep, by slug. Blank sweeps all of them.
+     */
+    collection?: string | null;
   };
   output: {
     deleted: number;
+    dryRun: boolean;
+    collections: {
+      collection: string;
+      deleted: number;
+    }[];
   };
 }
 /**

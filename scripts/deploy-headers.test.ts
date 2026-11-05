@@ -6,16 +6,17 @@ import { readRepoSource } from '../src/test-support/repo-source'
 // smoke lane is where its EFFECT is observed. This spec holds the one rule that must be
 // true before a deploy: no two rules may set the same header name on the same path.
 //
-// Both platforms apply every matching rule and join a repeated value with a comma, so two
+// The platform applies every matching rule and joins a repeated value with a comma, so two
 // rules setting `Access-Control-Allow-Origin` serve `*, *` — invalid, and the #91 font
 // failure again. #279 lifted CORS to a single `/*` rule for exactly that reason.
 //
 // The smoke lane cannot be the mechanism for this, and saying it was is what this spec
 // replaces. `cache-headers.smoke.test.ts` and `robots.smoke.test.ts` read ACAO on
-// `/auto.js` and `/embed.js` only, they run post-deploy, they skip without a preview, and
-// they read the Pages app — never the Worker, the one platform where a missing or invalid
-// ACAO is fatal rather than cosmetic. A collision added to `/assets/*`, the likeliest edit
-// because that rule used to carry the header, would be observed by none of them.
+// `/auto.js` and `/embed.js` only, they run post-deploy, and they skip without a preview.
+// ⚠ On Workers static assets a missing or invalid ACAO is fatal rather than cosmetic, because
+// the platform adds none of its own — and since #283 that is the only platform either site
+// runs on. A collision added to `/assets/*`, the likeliest edit because that rule used to
+// carry the header, would be observed by none of them.
 //
 // `cache-headers.smoke.test.ts:18` states the principle this spec exists to honour: a
 // comment stating an intention is not a mechanism.

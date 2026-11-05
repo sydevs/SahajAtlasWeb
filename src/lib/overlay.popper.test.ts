@@ -12,7 +12,7 @@ import {
  * **Radix's popper defaults to an empty collision boundary, which Floating UI reads as the
  * viewport.** That was correct while the widget owned the viewport, and is wrong the moment a
  * frame contains it: a menu opened near the bottom of a contained map sees free browser window
- * below its trigger, places itself there, and the frame's `overflow-hidden` erases it — a control
+ * below its trigger, places itself there, and the frame's `overflow-clip` erases it — a control
  * that appears to do nothing, with nothing in the console and every other gate green.
  *
  * It is asserted rather than written down because **this branch already made exactly that mistake

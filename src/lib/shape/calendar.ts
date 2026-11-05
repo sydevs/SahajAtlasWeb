@@ -202,3 +202,77 @@ export const computeDayBoundaries = (
 
   return { start: hhmm(Math.floor(earliest) - 1), end: hhmm(Math.ceil(latest) + 1) }
 }
+
+// ===== VIEW RESOLUTION ===== //
+
+/**
+ * The Schedule-X view names this app registers — the view switch's values, and what
+ * `useCalendarPosition` persists and restores.
+ */
+export const CALENDAR_VIEW_MONTH = 'month-grid'
+export const CALENDAR_VIEW_MONTH_AGENDA = 'month-agenda'
+export const CALENDAR_VIEW_WEEK = 'week'
+export const CALENDAR_VIEW_LIST = 'list'
+
+/** Every Schedule-X view this app registers. */
+export type CalendarViewName =
+  | typeof CALENDAR_VIEW_MONTH
+  | typeof CALENDAR_VIEW_MONTH_AGENDA
+  | typeof CALENDAR_VIEW_WEEK
+  | typeof CALENDAR_VIEW_LIST
+
+/**
+ * The three the view switch offers. `month-agenda` is deliberately absent: it renders FOR
+ * Month below the crossing and is never lit, so the type refuses the mix-up rather than
+ * leaving the switch able to hold a value with no matching item.
+ */
+export type CalendarViewOption =
+  | typeof CALENDAR_VIEW_MONTH
+  | typeof CALENDAR_VIEW_WEEK
+  | typeof CALENDAR_VIEW_LIST
+
+const CALENDAR_VIEW_OPTIONS: readonly CalendarViewOption[] = [
+  CALENDAR_VIEW_MONTH,
+  CALENDAR_VIEW_WEEK,
+  CALENDAR_VIEW_LIST,
+]
+
+/**
+ * Narrows a switch value to an option the switch offers. Radix hands `onValueChange` a bare
+ * `string`, empty on a deselect, so this is the one runtime boundary between the toggle group
+ * and a store typed to the three options.
+ */
+export const isCalendarViewOption = (value: string): value is CalendarViewOption =>
+  (CALENDAR_VIEW_OPTIONS as readonly string[]).includes(value)
+
+/** What the calendar renders at a given width, and which switch option that lights. */
+export type ResolvedCalendarView = {
+  /** The Schedule-X view to render. */
+  view: CalendarViewName
+  /** The switch's value — always an option the switch offers at this width. */
+  option: CalendarViewOption
+}
+
+/**
+ * Resolves a stored view against the widget's width class, so the lit option always matches
+ * what rendered.
+ *
+ * `month-grid` and `week` both declare `hasSmallScreenCompat: false`, so below the crossing
+ * neither can render and both collapse onto `month-agenda` — not onto `list`, because the
+ * agenda keeps a chosen day's own hours in view, which is what Week was being read for. The
+ * switch lights Month there, the only option it offers besides List (#331).
+ */
+export const resolveCalendarView = (
+  stored: CalendarViewOption | null,
+  isWide: boolean,
+): ResolvedCalendarView => {
+  if (stored === CALENDAR_VIEW_LIST) {
+    return { view: CALENDAR_VIEW_LIST, option: CALENDAR_VIEW_LIST }
+  }
+
+  const option = stored === CALENDAR_VIEW_WEEK ? CALENDAR_VIEW_WEEK : CALENDAR_VIEW_MONTH
+
+  if (isWide) return { view: option, option }
+
+  return { view: CALENDAR_VIEW_MONTH_AGENDA, option: CALENDAR_VIEW_MONTH }
+}

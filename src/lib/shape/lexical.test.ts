@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
 
-import { lexicalToHtml, lexicalToText } from './lexical'
+import { lexicalToHtml, lexicalToText, plainTextToLexical } from './lexical'
 
 // Mirrors the SahajCloud event `description` shape (root → paragraph/heading →
 // text/link), with the format bitmask the italic-only editor produces.
@@ -100,5 +100,20 @@ describe('lexicalToText', () => {
 
   it('returns an empty string for null documents', () => {
     expect(lexicalToText(null)).toBe('')
+  })
+})
+
+describe('plainTextToLexical', () => {
+  it('round-trips through lexicalToText, one paragraph per line', () => {
+    const written = 'Every Tuesday at seven.\n\nBring a cushion.'
+
+    expect(lexicalToText(plainTextToLexical(written))).toBe(written.replace(/\n+/g, '\n'))
+    expect(lexicalToHtml(plainTextToLexical(written))).toBe(
+      '<p>Every Tuesday at seven.</p><p>Bring a cushion.</p>',
+    )
+  })
+
+  it('is null for text with nothing in it', () => {
+    expect(plainTextToLexical('   \n  ')).toBeNull()
   })
 })

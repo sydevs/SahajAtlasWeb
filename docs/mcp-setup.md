@@ -26,10 +26,10 @@ servers per-user in `.claude/settings.local.json`
 ### cloudflare-docs (`mcp__cloudflare-docs__*`)
 
 - Transport: HTTP (`https://docs.mcp.cloudflare.com/mcp`).
-- Search Cloudflare docs (Pages, Workers, redirects, build settings). This
-  repo deploys to both platforms (`docs/rules/deployment.md`). Reach for this
-  instead of `WebFetch` for Cloudflare deployment, `_redirects`, or
-  build-config questions.
+- Search Cloudflare docs (Workers, static assets, redirects, build settings).
+  This repo deploys to Workers static assets (`docs/rules/deployment.md`).
+  Reach for this instead of `WebFetch` for Cloudflare deployment,
+  static-asset, or build-config questions.
 - ⚠ It searches the published docs, which do not cover every wrangler config
   key — `previews` is one they omit. When the docs are silent, read
   `node_modules/wrangler/config-schema.json` and confirm with

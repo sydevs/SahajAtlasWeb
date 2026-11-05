@@ -32,10 +32,10 @@
  *      point at a 404.
  *
  * **This gate runs on both build outputs, and each needs its own path.**
- * This repo ships two Cloudflare sites (#279, #280): `sahajatlas` builds
- * with `pnpm build`, into `dist/`, which both a Pages project and a Worker
- * serve, and `sahajatlas-design` builds with `pnpm ladle:build`, into
- * `build/`, on Workers static assets. `pnpm ladle:build` never runs
+ * This repo ships two Cloudflare sites (#279, #280, #283): `sahajatlas`
+ * builds with `pnpm build`, into `dist/`, which the app Worker serves, and
+ * `sahajatlas-design` builds with `pnpm ladle:build`, into `build/`. Both
+ * are Workers static assets. `pnpm ladle:build` never runs
  * `pnpm build`. Ladle builds through `.ladle/vite.config.ts`, which does
  * not load this repo's root config, so neither `build.sourcemap` nor the
  * Sentry plugin exists in the Ladle build. The playground cannot emit a

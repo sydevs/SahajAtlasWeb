@@ -6,7 +6,8 @@ import { useTranslation } from 'react-i18next'
 import { Monitor } from 'lucide-react'
 
 import { DrawerBody, DrawerHeader } from '@/components/atoms/Drawer'
-import { AddClassLink, List, ListItem } from '@/components/molecules'
+import { Link } from '@/components/atoms/Link'
+import { List, ListItem } from '@/components/molecules'
 import api, { clientQuery } from '@/config/api'
 import atlasAuth from '@/config/api/auth'
 import { GEOJSON_STALE_TIME } from '@/config/query-client'
@@ -119,7 +120,9 @@ export function CountriesView() {
             />
           ))}
         </List>
-        <AddClassLink href={addClassPath()} label={t('submit.chrome.add_entry')} />
+        <Link appearance="footnote" href={addClassPath()}>
+          {t('submit.chrome.add_entry')}
+        </Link>
       </DrawerBody>
     </>
   )

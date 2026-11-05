@@ -146,3 +146,20 @@ describe('Link — site-relative hrefs', () => {
     expect(html).not.toContain('<span')
   })
 })
+
+describe('Link — the footnote appearance', () => {
+  it('renders the foot-of-panel chrome in its own grey, not the default colour', () => {
+    const html = render(
+      <Link appearance="footnote" href="/add">
+        Add a class
+      </Link>,
+    )
+
+    expect(html).toContain('text-gray-11')
+    expect(html).toContain('underline-offset-2')
+    // `color` defaults to `neutral`, which is `text-inherit`, and tailwind-merge keeps
+    // the LAST of two text colours. So the variant only reads grey while it is declared
+    // after `color` in the `tv` block.
+    expect(html).not.toContain('text-inherit')
+  })
+})

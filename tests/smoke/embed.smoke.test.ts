@@ -101,8 +101,8 @@ describe('embed bundle', () => {
     const resolveFrom = (path: string, spec: string) =>
       `${path.slice(0, path.lastIndexOf('/'))}/${spec.replace(/^\.\//, '')}`
 
-    // Status alone proves nothing here. `public/_redirects` sets `/* /index.html
-    // 200`, so a missing chunk also answers 200 as the SPA shell. A check on
+    // Status alone proves nothing here. The SPA fallback answers `/* /index.html
+    // 200`, so a missing chunk also answers 200 as the shell. A check on
     // `res.status` would pass for exactly the failure this spec exists to catch. The
     // content type is what tells a real chunk apart from the fallback HTML.
     const broken: string[] = []

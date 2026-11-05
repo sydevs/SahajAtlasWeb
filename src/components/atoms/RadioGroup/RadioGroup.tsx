@@ -19,36 +19,49 @@ export type RadioOption = {
 // unmistakable. `highlight` primary-tints the UNSELECTED cards. This changes
 // colour only, with no wrapper and no size change, so an active field
 // stands out without shifting the layout.
+// The mark is a slot of the same recipe because it follows the card: the
+// browser paints the native mark in `accent-color`, so an accent matching
+// the card's own fill leaves a ring with nothing in it, and the option
+// reads as unchosen (#323).
 const radioOption = tv({
-  base: 'flex cursor-pointer items-center gap-3 rounded border px-3 py-2.5 text-sm transition-colors',
+  slots: {
+    card: 'flex cursor-pointer items-center gap-3 rounded border px-3 py-2.5 text-sm transition-colors',
+    mark: 'h-4 w-4 shrink-0',
+  },
   variants: {
     checked: {
-      true: 'border-primary-9 bg-primary-9 font-medium text-primary-foreground',
-      false: 'border-gray-7 text-foreground hover:bg-gray-2',
+      true: {
+        card: 'border-primary-9 bg-primary-9 font-medium text-primary-foreground',
+        mark: 'accent-primary-foreground',
+      },
+      false: { card: 'border-gray-7 text-foreground hover:bg-gray-2', mark: 'accent-primary' },
     },
-    highlight: { true: '' },
+    highlight: { true: {} },
     // This recolours to danger. The unselected cards get a danger border.
     // The SELECTED card swaps its primary fill for the danger solid. This
     // changes colour only, with no layout shift. The group also sets
     // `aria-invalid`. It is listed after `highlight`, so an error wins the
     // colours.
-    isInvalid: { true: '' },
+    isInvalid: { true: {} },
   },
   compoundVariants: [
     {
       checked: false,
       highlight: true,
-      class: 'border-primary-7 bg-primary-2 text-primary-12 hover:bg-primary-3',
+      class: { card: 'border-primary-7 bg-primary-2 text-primary-12 hover:bg-primary-3' },
     },
     {
       checked: false,
       isInvalid: true,
-      class: 'border-danger-7',
+      class: { card: 'border-danger-7' },
     },
     {
       checked: true,
       isInvalid: true,
-      class: 'border-danger-9 bg-danger-9 text-danger-foreground',
+      class: {
+        card: 'border-danger-9 bg-danger-9 text-danger-foreground',
+        mark: 'accent-danger-foreground',
+      },
     },
   ],
 })
@@ -122,13 +135,14 @@ export const RadioGroup = forwardRef<HTMLInputElement, RadioGroupProps>(function
     >
       {visible.map((option, index) => {
         const checked = value === option.value
+        const { card, mark } = radioOption({ checked, highlight, isInvalid })
 
         return (
-          <label key={option.value} className={radioOption({ checked, highlight, isInvalid })}>
+          <label key={option.value} className={card()}>
             <input
               ref={index === 0 ? ref : undefined}
               checked={checked}
-              className="h-4 w-4 shrink-0 accent-primary"
+              className={mark()}
               name={name}
               type="radio"
               value={option.value}

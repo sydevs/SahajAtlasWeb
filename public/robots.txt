@@ -1,7 +1,7 @@
 # Cloudflare serves this from the build output, beside _headers.
-# NOTE it lands in BOTH: `pnpm build` copies public/ into dist/ (the `sahajatlas` app, on
-# Pages) and `pnpm ladle:build` copies it into build/ (the `sahajatlas-design` playground,
-# on Workers static assets — #279), so this one file is the policy for both sites. That is
+# NOTE it lands in BOTH: `pnpm build` copies public/ into dist/ (the `sahajatlas` app) and
+# `pnpm ladle:build` copies it into build/ (the `sahajatlas-design` playground), both on
+# Workers static assets (#279, #283), so this one file is the policy for both sites. That is
 # wanted — a component playground is no more a search surface than the app is — but it
 # means the runbook at the bottom opens the playground too.
 #

@@ -1,5 +1,5 @@
-# Cloudflare reads this from the build output (like public/_redirects) — from dist/ on the
-# Pages app, and from build/ on the design Worker. CORS and the indexing policy are set once,
+# Cloudflare reads this from the build output (like public/robots.txt) — from dist/ on the
+# app Worker, and from build/ on the design Worker. CORS and the indexing policy are set once,
 # site-wide, at the bottom; these three rules carry Cache-Control only.
 #
 # Everything Vite emits under /assets/ is content-hashed, so the long immutable cache is
@@ -36,9 +36,10 @@
 # a `type="module"` script is fetched that way too. sydevs/SahajCloud#913 depends on a
 # library's assets staying readable cross-origin.
 #
-# Cloudflare Pages adds `access-control-allow-origin: *` to every static asset by itself.
-# Workers static assets add none. So this rule is what makes the playground work, and the
-# reason a rendering requirement is not left resting on a platform default.
+# Workers static assets add no `access-control-allow-origin` of their own. Cloudflare Pages
+# used to add it to every static asset by itself, and served this app until #283, so this rule
+# is now the only source either site has — and the reason a rendering requirement is not left
+# resting on a platform default.
 #
 # ⚠ EXACTLY ONE rule may set Access-Control-Allow-Origin. Both platforms apply EVERY matching
 # rule and join repeated values with a comma, so a second ACAO rule would serve
@@ -49,10 +50,10 @@
 # Indexing (issue #106). The policy and the robots.txt interaction are written down once, in
 # public/robots.txt; what follows is only why this half exists.
 #
-# A HEADER reaches what a <meta> cannot. index.html's tag covers every ROUTE (`_redirects`
-# rewrites unknown paths to that shell on the Pages app, `assets.not_found_handling` on the
-# Worker), but the root entry files and the hashed assets are each a fetchable URL with no
-# document to carry a tag. This covers all of them.
+# A HEADER reaches what a <meta> cannot. index.html's tag covers every ROUTE
+# (`assets.not_found_handling` rewrites unknown paths to that shell), but the root entry files
+# and the hashed assets are each a fetchable URL with no document to carry a tag. This covers
+# all of them.
 #
 # It cannot leak into a host page's own indexing: X-Robots-Tag governs the URL it is served
 # on, and a directive on a subresource says nothing about the document embedding it.

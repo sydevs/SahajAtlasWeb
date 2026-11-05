@@ -24,6 +24,13 @@ const link = tv({
       contrast: 'text-contrast',
       neutral: 'text-inherit',
     },
+    // The quiet foot-of-panel line into the add-a-class flow (#147), replacing a wrapper
+    // paragraph four views copied. It carries that block's own chrome, so it is the one
+    // link that does not size with the text around it.
+    appearance: {
+      footnote:
+        'flex w-full justify-center px-4 py-4 text-center text-sm text-gray-11 underline underline-offset-2',
+    },
     // No `size` variant: a link sizes with the text it sits in. Callers that need
     // a different size set it on the surrounding block.
   },
@@ -79,10 +86,21 @@ const InternalLink = forwardRef<
 // element that a caller could not otherwise reach, for example to scroll a
 // highlighted card into view.
 export const Link = forwardRef<HTMLAnchorElement, LinkProps>(function Link(
-  { href, color, isExternal, showAnchorIcon, className, target, rel, children, ...props },
+  {
+    href,
+    color,
+    appearance,
+    isExternal,
+    showAnchorIcon,
+    className,
+    target,
+    rel,
+    children,
+    ...props
+  },
   ref,
 ) {
-  const classes = link({ color, className })
+  const classes = link({ color, appearance, className })
   const icon = showAnchorIcon ? <ArrowUpRight className="inline-block h-[1em] w-[1em]" /> : null
   // One name means "the caller asked for the external treatment". So the
   // three places that consult it cannot drift into subtly different

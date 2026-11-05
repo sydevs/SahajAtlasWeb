@@ -182,8 +182,8 @@ components through `renderToStaticMarkup`, not jsdom. See
 
 ## Deployment
 
-Two Cloudflare sites build from this repo. The topology — hosts, build
-commands, which platform serves which, and which one a visitor actually
+Two Cloudflare sites build from this repo, both on Workers static assets.
+The topology — hosts, build commands, and which one a visitor actually
 reaches — is stated once, in
 [`docs/rules/deployment.md`](docs/rules/deployment.md).
 

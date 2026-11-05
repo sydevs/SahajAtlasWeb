@@ -171,8 +171,10 @@ jobs:
       #
       # ⚠ `pnpm build:worker`, never `pnpm build`. A Worker reads `_redirects` and the API
       # rejects its `/* /index.html 200` splat as an infinite loop (code 100324), failing the
-      # WHOLE upload rather than one route — and `pnpm build` must keep the file, because that
-      # same `dist/` is what the Pages project serving sahajatlas.com deploys (#280, #295).
+      # WHOLE upload rather than one route. `pnpm build` kept the file while the Pages project
+      # serving sahajatlas.com deployed the same `dist/`; #283 deleted the file and moved the
+      # domain, so the `rm -f` in `build:worker` is now a dormant guard against #252 bringing it
+      # back (#280, #295, #283).
       #
       # `VITE_SENTRY_DSN` is here because `tests/smoke/boot-origins.smoke.test.ts` FAILS when an
       # origin pattern finds nothing, and the DSN is one of its two (#232). The API key and the

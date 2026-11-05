@@ -8,6 +8,8 @@
  * render site (`EventPanel`). `lexicalToText` feeds plain-text meta/OG tags.
  */
 
+import type { LexicalDocument as EventDescription } from '@/types'
+
 // Lexical text-format bitmask — only the flags the editor can produce.
 const FORMAT_BOLD = 1
 const FORMAT_ITALIC = 1 << 1
@@ -104,4 +106,38 @@ export const lexicalToText = (doc: unknown): string => {
   return collectText(root)
     .replace(/\n{2,}/g, '\n')
     .trim()
+}
+
+/**
+ * Plain text as a Lexical document, one paragraph per line — the shape SahajCloud's own
+ * editor writes, and the inverse of `lexicalToText`.
+ */
+export const plainTextToLexical = (value: string): EventDescription | null => {
+  const lines = value
+    .split(/\n+/)
+    .map((line) => line.trim())
+    .filter(Boolean)
+
+  if (lines.length === 0) return null
+
+  return {
+    root: {
+      type: 'root',
+      format: '',
+      indent: 0,
+      version: 1,
+      direction: 'ltr',
+      children: lines.map((line) => ({
+        type: 'paragraph',
+        format: '',
+        indent: 0,
+        version: 1,
+        direction: 'ltr',
+        textFormat: 0,
+        children: [
+          { type: 'text', text: line, format: 0, detail: 0, mode: 'normal', style: '', version: 1 },
+        ],
+      })),
+    },
+  }
 }

@@ -35,7 +35,7 @@ The map is the heart of the app and its hottest render path. Treat it carefully.
   and the light/dark switch — nothing in the map branches on theme. Cache
   decoded images at module level, and cache the in-flight promise too: Mapbox
   re-fires the event per missing id **per tile batch**, and the warm path must
-  add the image *synchronously* inside the handler, or the new style's first
+  add the image _synchronously_ inside the handler, or the new style's first
   frame paints pinless.
 - The images rasterize from an inline `data:` URI, so an embedding host needs
   **`img-src … data:`** in its CSP — the same allowance Mapbox GL's own
@@ -201,6 +201,51 @@ it** — the same rule the root `AGENTS.md` states for a new fetch origin. Read
 the specifics there. Here, only the rule: **enumerate from the rendered control
 list and the libraries behind it, never from a grep.**
 
+That list is two: `GeolocateControl` and `AttributionControl`. The second
+reaches for nothing — a button and links — so it added no row to that table.
+
+## The wordmark and the attribution sit in TWO fixed corners — no CSS, no measurement
+
+Mapbox's terms require both, and mapbox's own default for the wordmark is the
+bottom left, which the side panel covers. `logoPosition="bottom-right"` on the map
+plus `position="top-right"` on the `AttributionControl` are the entire placement —
+no stylesheet rule, no custom property, no width measurement. **This is not a
+responsive decision**, and `src/components/AGENTS.md`'s signal table carries no row
+for it.
+
+**The top right is the one corner no drawer covers**, in either layout: the side
+panel covers the bottom left, and the bottom sheet's `PEEK_SNAP` covers the whole
+bottom edge at every snap. The attribution takes it. The wordmark takes the bottom
+right, clear of the panel on a wide embed and **covered by that peek on a narrow
+one** — accepted in #330's review, since the only alternative is the measured
+per-layout corner that review removed.
+
+**Both props are read once, when the map is constructed**, which is exactly why a
+fixed corner is cheap and a per-layout one is not. `logoPosition` has no setter
+and react-map-gl leaves it out of `settingNames`, its reconciliation whitelist;
+`LogoControl` is not a mapbox-gl export, so the logo cannot be removed and
+re-added; and `useControl` reads a control's `position` once for the same reason.
+A corner that follows the layout therefore costs a measured width in React, a
+custom property, and a CSS rule that moves mapbox's container — which is the shape
+#330 shipped first and its review replaced.
+
+**Mapbox's corner containers float and `clear: both`**, so two controls in one
+container stack vertically — which is why the top right is a column of the locate
+button and the attribution, and why a third thing put there lands below both.
+`attribution.test.ts` pins each literal on its own, because a corner that moves
+under a drawer renders perfectly and says nothing.
+
+**Neither may be dropped, and neither may leave the map.** The wordmark is
+required outright; the text attribution is required for any map using Mapbox
+styles or data, which ours do. Mapbox's attribution guide sanctions exactly one
+collapsed form — its own information button, which `compact` renders — and says
+any other placement must be reviewed and approved by Mapbox, so the credits
+cannot move into the settings menu.
+
+⚠ The top-right container also holds `GeolocateControl`, and `[data-sy-expanded]`
+nudges the whole column down 40px to clear the expanded surface's collapse
+control — two controls now, not one.
+
 ## Geo helpers
 
 Use `@turf/*` (`bbox`, `bbox-polygon`, `circle`) for geometry math — bounding
@@ -218,9 +263,8 @@ review:embed` rather than hand-rolling a host page. It serves `dist/` on
 port 5174, one origin for the built app and every review page, in the shapes that have
 produced real bugs. Its header documents the four traps a hand-rolled version
 costs an afternoon on — chiefly that `<sahaj-atlas>` observes **no
-attributes**, so config must ride on the script URL, and that
-`dist/_redirects` makes a leftover server answer 200 with the app shell for a
-page it does not have.
+attributes**, so config must ride on the script URL, and that a leftover
+`vite preview` answers 200 with the app shell for a page it does not have.
 
 For everything else — driving the map itself — serve the app the usual way
 (`pnpm dev`, or an alt port under the worktree
@@ -268,7 +312,7 @@ pattern) against the seeded local backend.
   in `.env.local`.
 
 - **`data-sahaj-atlas-ready` is the best single observable.** It attests what
-  the router *actually* did (`{"v":2,"routing":"path",…}`), not what was
+  the router _actually_ did (`{"v":2,"routing":"path",…}`), not what was
   configured — exactly the distinction most boot bugs turn on. ⚠ Poll for it: a
   later error boundary clears it, so a read taken after the data layer fails
   returns `null` on a boot that was otherwise fine.
@@ -285,7 +329,7 @@ pattern) against the seeded local backend.
   URL — useful for reproducing "clicked a pin from the root view."
 - **Assert marker registration from the console, not pixels.** Mapbox logs
   `Image "<id>" could not be loaded` when nothing supplies an icon, so the
-  *absence* of that warning across repeated light/dark toggles is the
+  _absence_ of that warning across repeated light/dark toggles is the
   assertion that `registerMarkerImages` works. Read the
   `.playwright-mcp/console-*.log` files directly. Toggle theme by swapping the
   root class — `useTheme` observes it, so the basemap follows with no reload.
@@ -297,7 +341,7 @@ pattern) against the seeded local backend.
 
 ## The shadow boundary, and what the map libraries make of it (#236)
 
-The embed renders in a shadow root, so a *document*-level DOM lookup made from inside it
+The embed renders in a shadow root, so a _document_-level DOM lookup made from inside it
 answers about the host's document instead. Each line below was read off the installed
 version, because the folklore on this is older than the code.
 

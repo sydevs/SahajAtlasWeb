@@ -10,7 +10,7 @@
  * visitor. Gating it on a parameter being PRESENT would turn any atlas URL
  * into a denial of service: `livePreview.active` inerts every link,
  * snaps navigation back, pins all queries to `staleTime: Infinity` and adds
- * `draft=true` to every request — and `public/_redirects` serves the SPA shell
+ * `draft=true` to every request — and the deploy's SPA fallback serves the shell
  * for any path, so `sahajatlas.com/anything?live-preview=x` would qualify.
  * Share that link and the recipient gets a site where nothing is clickable.
  *

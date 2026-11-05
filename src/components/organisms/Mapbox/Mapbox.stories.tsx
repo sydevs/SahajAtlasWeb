@@ -46,7 +46,7 @@ export const Default: Story = () => (
       {hasToken ? (
         <MapProvider>
           <div className="max-w-md">
-            <MapSearch onSelect={() => {}} />
+            <MapSearch value="" onChange={() => {}} onSelect={() => {}} />
           </div>
         </MapProvider>
       ) : (

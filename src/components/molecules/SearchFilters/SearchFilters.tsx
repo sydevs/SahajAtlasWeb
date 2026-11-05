@@ -14,7 +14,7 @@ import { useLocale } from '@/hooks/use-locale'
 import { formatTimePeriods } from '@/lib'
 import { feedLanguageCodes } from '@/lib/events'
 import { useLanguageOptions } from '@/hooks/use-language-options'
-import { LanguageMultiSelect } from '@/components/molecules/LanguageMultiSelect'
+import { MultiSelect } from '@/components/molecules/MultiSelect'
 import {
   type EventCadence,
   type EventFilters,
@@ -231,7 +231,7 @@ export function SearchFilters({ value, onChange }: SearchFiltersProps) {
   // This shows the selected language names in the trigger, truncated, so
   // the selection is visible at a glance, instead of an opaque count.
   const selectedLanguages = languages.map(
-    (code) => languageOptions.find((option) => option.code === code)?.label ?? code,
+    (code) => languageOptions.find((option) => option.value === code)?.label ?? code,
   )
   const languageTriggerLabel =
     selectedLanguages.length === 0 ? t('filters.language.all') : selectedLanguages.join(', ')
@@ -365,7 +365,7 @@ export function SearchFilters({ value, onChange }: SearchFiltersProps) {
         {languageOptions.length === 0 ? (
           <p className="text-sm text-gray-11">{t('filters.language.empty')}</p>
         ) : (
-          <LanguageMultiSelect
+          <MultiSelect
             highlight={languages.length > 0}
             label={t('filters.language.label')}
             options={languageOptions}

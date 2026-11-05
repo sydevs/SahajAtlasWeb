@@ -34,15 +34,17 @@ const weeklyNext = dayAt(4, 9, 30)
 const weeklyFirst = weeklyNext.minus({ weeks: 13 })
 
 // The evening fixtures (upcoming class / course) start at 6 PM and run 90 minutes,
-// so they end the SAME day — surfaces then show just the times, not a date range.
-// (Inheriting the morning class's "11:00" end made a 6 PM start "finish" at 11 AM
-// the next day: a 17-hour cross-midnight span that rendered as full dates.)
+// so they end the same evening. (Inheriting the morning class's "11:00" end made a
+// 6 PM start "finish" at 11 AM the next day — a 17-hour span, not a class.)
 const EVENING_HOUR = 18
 const eveningEnd = dayAt(0, EVENING_HOUR).plus({ minutes: 90 }).toFormat('HH:mm')
 
 // "Today" starts two hours out (reliably still ahead of the clock) and runs 90
-// minutes, its end derived from that start so it, too, stays a same-day range.
+// minutes, its end derived from that start rather than inherited.
 const todayStart = now.plus({ hours: 2 })
+
+/** A late class's next session, four days out so it is reliably not today. */
+const overnightNext = dayAt(4, 21, 30)
 
 export const mockEventImages: EventImage[] = [
   {
@@ -217,6 +219,24 @@ export const mockEventStartedCourse: Event = {
     ...mockEventCourse.schedule!,
     firstDate: dayAt(-21, EVENING_HOUR).toJSDate(),
     upcomingDates: [dayAt(7, EVENING_HOUR).toJSDate()],
+  },
+}
+
+/**
+ * A weekly class that runs past midnight. `withEndTime` rolls the 00:30 end onto
+ * the following calendar day, which is the shape `formatTimeRange` has to keep as
+ * a time range rather than let Intl widen into two full dates (#325).
+ */
+export const mockEventOvernight: Event = {
+  ...mockEvent,
+  id: 129,
+  title: 'Late Evening Meditation',
+  schedule: {
+    ...mockEvent.schedule!,
+    firstDate: overnightNext.minus({ weeks: 13 }).toJSDate(),
+    endTime: '00:30',
+    weekdays: [WEEKDAY_CODES[overnightNext.weekday - 1]],
+    upcomingDates: [overnightNext.toJSDate(), overnightNext.plus({ weeks: 1 }).toJSDate()],
   },
 }
 

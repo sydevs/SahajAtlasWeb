@@ -210,7 +210,7 @@ describe('readLivePreviewParams', () => {
 
   it('NEVER reports an active session — only a verified token may open one', () => {
     // The gate this replaced was the pathname, and it returned `active: true`. Since any path
-    // can carry a token now, and `public/_redirects` answers the SPA shell for every path,
+    // can carry a token now, and the deploy's SPA fallback answers every path,
     // a reader that opened the session here would make `sahajatlas.com/x?live-preview=junk`
     // a link that inerts every control on the page for whoever it was sent to.
     expect(readLivePreviewParams('/', '?live-preview=t0k3n')?.active).toBe(false)

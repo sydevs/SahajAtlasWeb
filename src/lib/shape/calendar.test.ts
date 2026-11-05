@@ -2,8 +2,14 @@ import { describe, it, expect } from 'vitest'
 import { DateTime } from 'luxon'
 
 import {
+  CALENDAR_VIEW_LIST,
+  CALENDAR_VIEW_MONTH,
+  CALENDAR_VIEW_MONTH_AGENDA,
+  CALENDAR_VIEW_WEEK,
   computeDayBoundaries,
   eventsToCalendarEntries,
+  isCalendarViewOption,
+  resolveCalendarView,
   type CalendarEntry,
   type CalendarSourceEvent,
 } from './calendar'
@@ -271,5 +277,75 @@ describe('computeDayBoundaries', () => {
 
   it('is undefined when every period is selected (whole day)', () => {
     expect(computeDayBoundaries([], ['morning', 'afternoon', 'evening', 'night'])).toBeUndefined()
+  })
+})
+
+describe('isCalendarViewOption', () => {
+  it('accepts the three the switch offers', () => {
+    expect(isCalendarViewOption(CALENDAR_VIEW_MONTH)).toBe(true)
+    expect(isCalendarViewOption(CALENDAR_VIEW_WEEK)).toBe(true)
+    expect(isCalendarViewOption(CALENDAR_VIEW_LIST)).toBe(true)
+  })
+
+  // The one name the store must never hold: it renders FOR Month and the switch has no item
+  // for it, so a stored `month-agenda` would light nothing.
+  it('refuses the month agenda', () => {
+    expect(isCalendarViewOption(CALENDAR_VIEW_MONTH_AGENDA)).toBe(false)
+  })
+
+  // Radix reports a deselect as the empty string, which is what the guard replaced.
+  it('refuses an empty value and an unknown name', () => {
+    expect(isCalendarViewOption('')).toBe(false)
+    expect(isCalendarViewOption('day')).toBe(false)
+  })
+})
+
+describe('resolveCalendarView', () => {
+  it('renders what the viewer picked at or above the crossing', () => {
+    expect(resolveCalendarView(CALENDAR_VIEW_MONTH, true)).toEqual({
+      view: CALENDAR_VIEW_MONTH,
+      option: CALENDAR_VIEW_MONTH,
+    })
+    expect(resolveCalendarView(CALENDAR_VIEW_WEEK, true)).toEqual({
+      view: CALENDAR_VIEW_WEEK,
+      option: CALENDAR_VIEW_WEEK,
+    })
+  })
+
+  it('collapses month onto the month agenda below the crossing, still lighting Month', () => {
+    expect(resolveCalendarView(CALENDAR_VIEW_MONTH, false)).toEqual({
+      view: CALENDAR_VIEW_MONTH_AGENDA,
+      option: CALENDAR_VIEW_MONTH,
+    })
+  })
+
+  it('collapses week onto the month agenda below the crossing, where Week is not offered', () => {
+    expect(resolveCalendarView(CALENDAR_VIEW_WEEK, false)).toEqual({
+      view: CALENDAR_VIEW_MONTH_AGENDA,
+      option: CALENDAR_VIEW_MONTH,
+    })
+  })
+
+  it('passes the list view through at either width', () => {
+    for (const isWide of [true, false]) {
+      expect(resolveCalendarView(CALENDAR_VIEW_LIST, isWide)).toEqual({
+        view: CALENDAR_VIEW_LIST,
+        option: CALENDAR_VIEW_LIST,
+      })
+    }
+  })
+
+  it('treats an unset store as month, so a fresh phone mount renders the agenda', () => {
+    expect(resolveCalendarView(null, true).view).toBe(CALENDAR_VIEW_MONTH)
+    expect(resolveCalendarView(null, false).view).toBe(CALENDAR_VIEW_MONTH_AGENDA)
+  })
+
+  // The store keeps the viewer's pick, never the resolution, so widening restores it — the
+  // round trip the criteria name, a resize over the crossing in both directions.
+  it('restores a stored week above the crossing after a trip below it', () => {
+    const stored = CALENDAR_VIEW_WEEK
+
+    expect(resolveCalendarView(stored, false).option).toBe(CALENDAR_VIEW_MONTH)
+    expect(resolveCalendarView(stored, true).option).toBe(CALENDAR_VIEW_WEEK)
   })
 })

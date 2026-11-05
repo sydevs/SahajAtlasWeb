@@ -29,7 +29,7 @@ through there before:
 | `src/styles/`, `lib/scope`, the PostCSS scoping script and config | Keep our injected stylesheet off the host's DOM (**#91**, **#104**). |
 | `lib/report` | Decides what leaves the visitor's browser at all (**#95**, **#108**). |
 | `pnpm-lock.yaml`, `patches/` | The supply-chain pair — a transitive bump that never touches `package.json`, and arbitrary code applied to a dependency. This is why `patches/vaul@1.1.2.patch` exists. |
-| `wrangler*.jsonc`, `public/_headers`, `public/_redirects` | Decide what each Worker serves, what it rewrites, and which headers reach a host page. `_headers` carries the site-wide `Access-Control-Allow-Origin: *` that makes every file in both build outputs cross-origin readable (**#279**), so a non-public file landing in `dist/` or `build/` is published to every origin. |
+| `wrangler*.jsonc`, `public/_headers`, `public/_redirects` | Decide what each Worker serves, what it rewrites, and which headers reach a host page. `_headers` carries the site-wide `Access-Control-Allow-Origin: *` that makes every file in both build outputs cross-origin readable (**#279**), so a non-public file landing in `dist/` or `build/` is published to every origin. ⚠ `public/_redirects` was deleted by **#283**; the pattern still covers the path, because **#252** plans to bring the file back. |
 
 **Module entries stay unanchored on purpose, so a spec travels with its module** — the
 `src/lib/shape/path` entry matches `path.test.ts` as well as `path.ts`. An assertion enforces

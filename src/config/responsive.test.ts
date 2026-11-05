@@ -41,6 +41,9 @@ const VIEWPORT_CALLERS: Record<string, string> = {
  * `DrawerStack`'s direction is the original fix, #107. A narrow map-less embed becomes a bottom sheet.
  * `EventView`'s sticky bar reads the same signal, so it cannot disagree with the drawer it pins inside.
  *
+ * **`CalendarView` joined them in #331.** Schedule-X refuses its month grid and its week grid below the crossing, and emits nothing when it substitutes one.
+ * So which view renders, which options the switch offers, and which one it lights are all this signal's answer now, and a viewport read would light a grid a 320px column cannot draw.
+ *
  * **The map camera padding joined them in #169.** This is the entry worth understanding.
  * It was the ONE sanctioned viewport read in the app, on an argument that was true when it was written.
  * A map only existed in map mode, and map mode spanned the viewport, so the two boxes were the same box.
@@ -53,6 +56,7 @@ const VIEWPORT_CALLERS: Record<string, string> = {
 const CONTAINER_CALLERS = [
   'views/DrawerStack/DrawerStack.tsx',
   'views/EventView/EventView.tsx',
+  'views/CalendarView/CalendarView.tsx',
   'hooks/use-map-controller-real.tsx',
 ]
 

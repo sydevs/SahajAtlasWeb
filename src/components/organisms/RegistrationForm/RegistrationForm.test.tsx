@@ -66,7 +66,7 @@ describe('RegistrationForm', () => {
   it('offers the mailing-list opt-in only when the event offers a list', () => {
     const offered = render(
       <RegistrationForm
-        offersMailingList
+        hasMailingList
         eventId={42}
         eventTitle="Evening meditation"
         isOnline={false}
@@ -84,8 +84,8 @@ describe('RegistrationForm', () => {
         key="false"
         eventId={42}
         eventTitle="Evening meditation"
+        hasMailingList={false}
         isOnline={false}
-        offersMailingList={false}
         questions={[]}
         upcomingDates={[new Date('2026-10-01T18:00:00Z')]}
       />,

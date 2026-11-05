@@ -10,13 +10,35 @@ import { ChoiceCard, StepHeading, ValidatedInput, radioKeys } from './fields'
 
 import { Button } from '@/components/atoms/Button'
 import { FormField } from '@/components/molecules/FormField'
-import { MapSearch } from '@/components/organisms/Mapbox/MapSearch'
+import { MapSearch, type MapSearchProps } from '@/components/organisms/Mapbox/MapSearch'
 import { staticMapUrl } from '@/lib/static-map'
 
 /** The contact fields' bound on an Event — the room shares it. */
 const ROOM_MAX = 100
 
 type PlaceKey = 'address' | 'city'
+
+/**
+ * A geocoder field whose text belongs to the step, not to `?q`. A pick replaces it with the
+ * place's card, so it only ever holds what is being typed.
+ */
+function PlaceSearch({
+  onEdit,
+  ...field
+}: { onEdit: () => void } & Omit<MapSearchProps, 'value' | 'onChange'>) {
+  const [text, setText] = useState('')
+
+  return (
+    <MapSearch
+      value={text}
+      onChange={(next) => {
+        setText(next)
+        onEdit()
+      }}
+      {...field}
+    />
+  )
+}
 
 export type PlaceStepProps = {
   draft: ListingDraft
@@ -105,13 +127,12 @@ export function PlaceStep({
             label={t('submit.where.venue_label')}
             place={draft.address}
             search={
-              <MapSearch
+              <PlaceSearch
                 country={country}
                 label={t('submit.where.address_placeholder')}
                 proximity={proximity}
-                query={{ initial: '' }}
                 types="address"
-                onQueryChange={onEdit('address')}
+                onEdit={onEdit('address')}
                 onSelect={onPick('address')}
               />
             }
@@ -161,13 +182,12 @@ export function PlaceStep({
                 label={t('submit.where.city_label')}
                 place={draft.city}
                 search={
-                  <MapSearch
+                  <PlaceSearch
                     country={country}
                     label={t('submit.where.city_placeholder')}
                     proximity={proximity}
-                    query={{ initial: '' }}
                     types="place"
-                    onQueryChange={onEdit('city')}
+                    onEdit={onEdit('city')}
                     onSelect={onPick('city')}
                   />
                 }
