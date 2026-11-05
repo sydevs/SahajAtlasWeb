@@ -11,6 +11,7 @@ import {
   Info,
   Languages,
   LoaderCircle,
+  LocateFixed,
   MapPin,
   Menu,
   Milestone,
@@ -23,6 +24,8 @@ import {
   Settings,
   Share,
   Sun,
+  Sunrise,
+  Sunset,
   X,
 } from 'lucide-react'
 
@@ -58,6 +61,7 @@ const ICONS = [
   { name: 'Info', Icon: Info },
   { name: 'Languages', Icon: Languages },
   { name: 'LoaderCircle', Icon: LoaderCircle },
+  { name: 'LocateFixed', Icon: LocateFixed },
   { name: 'MapPin', Icon: MapPin },
   { name: 'Menu', Icon: Menu },
   { name: 'Milestone', Icon: Milestone },
@@ -70,6 +74,8 @@ const ICONS = [
   { name: 'Settings', Icon: Settings },
   { name: 'Share', Icon: Share },
   { name: 'Sun', Icon: Sun },
+  { name: 'Sunrise', Icon: Sunrise },
+  { name: 'Sunset', Icon: Sunset },
   { name: 'X', Icon: X },
 ] as const
 

@@ -16,7 +16,8 @@ vi.mock('@tanstack/react-query', async (importOriginal) => ({
   useQuery: () => ({ data: undefined }),
 }))
 vi.mock('@/config/api', () => ({ default: {} }))
-vi.mock('@/hooks/use-region-matcher', () => ({ useRegionMatcher: () => undefined }))
+vi.mock('@/hooks/use-filter-facets', () => ({ useFilterFacets: () => undefined }))
+vi.mock('./WhereFilter', () => ({ WhereFilter: () => null }))
 vi.mock('@/components/molecules', () => ({
   SearchFilters: ({ value }: { value: EventFilters }) => <i>draft-region:{value.region ?? '∅'}</i>,
 }))

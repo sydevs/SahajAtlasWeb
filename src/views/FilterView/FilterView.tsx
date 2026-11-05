@@ -1,25 +1,25 @@
-import { useMemo, useState } from 'react'
+import { useState } from 'react'
 import { useLocation, useNavigate } from 'react-router'
-import { useQuery } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
+
+import { WhereFilter } from './WhereFilter'
 
 import { DrawerBody, DrawerFooter, DrawerHeader } from '@/components/atoms/Drawer'
 import { Button } from '@/components/atoms/Button'
 import { SearchFilters } from '@/components/molecules'
-import api from '@/config/api'
-import { GEOJSON_STALE_TIME } from '@/config/query-client'
 import { useEventFilters } from '@/hooks/use-filters'
-import { useRegionMatcher } from '@/hooks/use-region-matcher'
+import { useFilterFacets } from '@/hooks/use-filter-facets'
 import {
   DEFAULT_FILTERS,
   type EventFilters,
+  type PlaceSearch,
   filterOriginRegion,
   filtersKey,
   filtersToParams,
   hasActiveFilters,
-  matchesFilters,
+  noPlaceSearch,
   parentOf,
-  todayISO,
+  placeFiltersPath,
 } from '@/lib/shape'
 import { CloseButton, DrawerTitle } from '@/views/shared'
 
@@ -50,26 +50,9 @@ export function FilterView({ initialDraft }: { initialDraft?: EventFilters } = {
         region: applied.region ?? filterOriginRegion(location.pathname),
       },
   )
-  // Region cut for the live count, from the draft's selected region (see matchesFilters).
-  const matchesRegion = useRegionMatcher(draft.region)
-
-  const { data: geojson } = useQuery({
-    queryKey: ['geojson'],
-    queryFn: () => api.getGeojson(),
-    staleTime: GEOJSON_STALE_TIME,
-  })
-
-  // A live preview of how many events the draft filters match. Skip the full-feed
-  // predicate scan when the draft is all-default (every event matches).
-  const count = useMemo(() => {
-    if (!geojson) return undefined
-    if (!hasActiveFilters(draft)) return geojson.features.length
-
-    const today = todayISO()
-
-    return geojson.features.filter((f) => matchesFilters(f.properties, draft, today, matchesRegion))
-      .length
-  }, [geojson, draft, matchesRegion])
+  // The live counts behind every option and the Apply button, cut to the current scope.
+  const facets = useFilterFacets(draft)
+  const count = facets?.counts.total
 
   const hasChanges = filtersKey(draft) !== filtersKey(applied)
   const draftActive = hasActiveFilters(draft)
@@ -93,6 +76,28 @@ export function FilterView({ initialDraft }: { initialDraft?: EventFilters } = {
     navigate({ pathname: target, search }, { replace: true, state: location.state })
   }
 
+  // Picking a place moves the drawer over that search, with the draft written into the URL, so
+  // the search it lands on and the filters in the form can't disagree.
+  const pickPlace = (place: PlaceSearch) => {
+    const next = { ...draft, region: null }
+
+    setDraft(next)
+    navigate(placeFiltersPath(filtersToParams(next, new URLSearchParams(location.search)), place), {
+      replace: true,
+      state: location.state,
+    })
+  }
+
+  const clearWhere = () => {
+    const next = { ...draft, region: null }
+
+    setDraft(next)
+    navigate(
+      { pathname: location.pathname, search: noPlaceSearch(new URLSearchParams(location.search)) },
+      { replace: true, state: location.state },
+    )
+  }
+
   return (
     <>
       <DrawerHeader className="justify-between">
@@ -100,7 +105,19 @@ export function FilterView({ initialDraft }: { initialDraft?: EventFilters } = {
         <CloseButton />
       </DrawerHeader>
       <DrawerBody className="p-4">
-        <SearchFilters value={draft} onChange={setDraft} />
+        <SearchFilters
+          facets={facets}
+          value={draft}
+          where={
+            <WhereFilter
+              region={draft.region}
+              searchable={parentOf(location.pathname) !== '/calendar'}
+              onClear={clearWhere}
+              onPlace={pickPlace}
+            />
+          }
+          onChange={setDraft}
+        />
       </DrawerBody>
       {(draftActive || hasChanges) && (
         <DrawerFooter className="flex items-center gap-2 p-3">

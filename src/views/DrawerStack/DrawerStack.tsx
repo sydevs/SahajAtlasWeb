@@ -652,7 +652,9 @@ export function DrawerStack() {
     >
       <div className="relative min-h-0 flex-1">
         <AnimatePresence>
-          <ViewLayer key={top?.path ?? '/'}>
+          {/* The filter drawer keeps one identity across its routes. Picking a place moves it
+              from `/filters` to `/search/filters`, and that must not crossfade the form. */}
+          <ViewLayer key={top?.kind === 'filters' ? 'filters' : (top?.path ?? '/')}>
             {/* Suspense sits OUTSIDE the boundary, so a lazy view's chunk load is a
                 suspend that shows `DrawerLoading` — the shared chrome (header plus close
                 control, rebuilt from the URL) over a spinner — and only a FAILED load

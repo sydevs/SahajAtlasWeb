@@ -30,6 +30,7 @@ import {
   shouldShowGeolocationPrompt,
 } from '@/lib/geolocation'
 import {
+  type PlaceSearch,
   activeFilterCount,
   searchPath,
   atlasDepth,
@@ -255,35 +256,46 @@ export function FilterButton({ iconOnly = false }: { iconOnly?: boolean }) {
 export function SearchField({
   label,
   syncToUrl,
-}: Pick<MapSearchProps, 'label' | 'syncToUrl'> = {}) {
+  seedFromUrl,
+  onPlace,
+}: Pick<MapSearchProps, 'label' | 'syncToUrl' | 'seedFromUrl'> & {
+  /** Handle the picked place here, instead of opening the search route. */
+  onPlace?: (place: PlaceSearch) => void
+} = {}) {
   const navigate = useAtlasNavigate()
   const [searchParams] = useSearchParams()
 
   const handleSelect = useCallback(
     (value: GeocodingFeature) => {
-      navigate(
-        // `placeSearchPath` carries the active filters and sort across and
-        // resets the searched location — one builder shared with the IP
-        // suggestion and the geolocate control, so none of the three can
-        // forget half of it.
-        placeSearchPath(searchParams, {
-          q: value.properties.full_address ?? '',
-          center: [value.properties.coordinates.longitude, value.properties.coordinates.latitude],
-          bbox: geocodeBounds(value),
-          // The country the place sits in, so an empty result set can offer
-          // that country's own site (issue #82). Present for a country-level
-          // result and for a town within one. It is absent for an ocean or a
-          // country-less feature.
-          countryCode: geocodeCountryCode(value),
-        }),
-      )
+      const place: PlaceSearch = {
+        q: value.properties.full_address ?? '',
+        center: [value.properties.coordinates.longitude, value.properties.coordinates.latitude],
+        bbox: geocodeBounds(value),
+        // The country the place sits in, so an empty result set can offer
+        // that country's own site (issue #82). Present for a country-level
+        // result and for a town within one. It is absent for an ocean or a
+        // country-less feature.
+        countryCode: geocodeCountryCode(value),
+      }
+
+      if (onPlace) onPlace(place)
+      // `placeSearchPath` carries the active filters and sort across and
+      // resets the searched location — one builder shared with the IP
+      // suggestion and the geolocate control, so none of the three can
+      // forget half of it.
+      else navigate(placeSearchPath(searchParams, place))
     },
-    [navigate, searchParams],
+    [navigate, searchParams, onPlace],
   )
 
   return (
     <div className="min-w-0 flex-1">
-      <MapSearch label={label} syncToUrl={syncToUrl} onSelect={handleSelect} />
+      <MapSearch
+        label={label}
+        seedFromUrl={seedFromUrl}
+        syncToUrl={syncToUrl}
+        onSelect={handleSelect}
+      />
     </div>
   )
 }

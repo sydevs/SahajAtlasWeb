@@ -176,24 +176,21 @@
       "to": "To"
     },
     "days": {
-      "label": "Day of week"
+      "short_label": "Day"
     },
     "format": {
       "any": "Any",
       "label": "Format",
       "offline": "In person",
-      "online": "Online"
+      "online": "Online",
+      "question": "Online or in person"
     },
     "language": {
       "all": "All languages",
-      "empty": "No languages available",
       "label": "Language"
     },
-    "region": {
-      "all": "All regions",
-      "empty": "No regions found",
-      "label": "Region",
-      "search": "Search regions…"
+    "more": {
+      "label": "More filters"
     },
     "time": {
       "afternoon": "Afternoon",
@@ -201,6 +198,11 @@
       "label": "Time of day",
       "morning": "Morning",
       "night": "Night"
+    },
+    "where": {
+      "label": "Where",
+      "near_me": "Near me",
+      "placeholder": "Town or city"
     }
   },
   "online": {

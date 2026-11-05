@@ -192,6 +192,14 @@ export const placeSearchPath = (params: URLSearchParams, place: PlaceSearch): st
   return `/search?${next.toString()}`
 }
 
+/** The same place search, with the filter drawer still open over it. */
+export const placeFiltersPath = (params: URLSearchParams, place: PlaceSearch): string =>
+  placeSearchPath(params, place).replace('/search?', '/search/filters?')
+
+/** The filter drawer with the searched place dropped, keeping the filters and sort. */
+export const noPlaceSearch = (params: URLSearchParams): string =>
+  preserveSearchState(params).toString()
+
 /**
  * The calendar route, optionally pre-scoped to a region (`?region=<slug>`) — owns the
  * wire format together with the region filter codec, so producers (the RegionView
