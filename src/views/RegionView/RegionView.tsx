@@ -86,7 +86,7 @@ export function RegionView({ slug }: { slug: string }) {
           <meta content={canonicalUrl} property="og:url" />
         </Helmet>
       )}
-      <DrawerHeader className="justify-between">
+      <DrawerHeader className="justify-between" wash="soft">
         <DrawerTitle subtitle={subheader} title={header} />
         {/* Calendar, search, filters and close form one right-aligned control group.
             justify-between keeps the title left. The calendar and the filters both open

@@ -31,7 +31,7 @@ export {
   DrawerFooter,
   DrawerClose,
 } from './Drawer'
-export type { DrawerProps, DrawerContentProps, DrawerDirection } from './Drawer'
+export type { DrawerProps, DrawerContentProps, DrawerDirection, DrawerWash } from './Drawer'
 
 export { Dropdown } from './Dropdown'
 export type { DropdownProps } from './Dropdown'

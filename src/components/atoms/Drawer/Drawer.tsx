@@ -347,10 +347,49 @@ export function DrawerContent({
   )
 }
 
-export function DrawerHeader({ children, className }: { children: ReactNode; className?: string }) {
+/**
+ * A soft watercolour wash of sunrise yellow and coral behind the top of the panel, like
+ * the We Meditate app's home hero. `strong` is the home panel's; `soft` is the fainter one
+ * for country and region headers. Pure CSS (`.sy-wash` in globals.css) plus one SVG
+ * turbulence filter that roughens the gradient edges into paint. It sits behind the text
+ * and never changes its colour, so contrast is the panel's own.
+ */
+export type DrawerWash = 'strong' | 'soft'
+
+function Wash({ strength }: { strength: DrawerWash }) {
+  return (
+    <div aria-hidden className="sy-wash" data-strength={strength}>
+      {/* The same filter id may exist twice during a view cross-fade. Both copies are
+          identical, so whichever the browser resolves draws the same edge. */}
+      <svg className="absolute h-0 w-0" focusable="false">
+        <filter height="140%" id="sy-wash-paper" width="140%" x="-20%" y="-20%">
+          <feTurbulence baseFrequency="0.011 0.018" numOctaves="3" seed="11" type="fractalNoise" />
+          <feDisplacementMap in="SourceGraphic" scale="46" />
+        </filter>
+      </svg>
+      <div className="sy-wash-paint" />
+    </div>
+  )
+}
+
+export function DrawerHeader({
+  children,
+  className,
+  wash,
+}: {
+  children: ReactNode
+  className?: string
+  /** Paint the watercolour wash behind this header and the top of the body. */
+  wash?: DrawerWash
+}) {
   const { slots } = useDrawerSlots()
 
-  return <div className={slots.header({ className })}>{children}</div>
+  return (
+    <div className={slots.header({ className })}>
+      {wash && <Wash strength={wash} />}
+      {children}
+    </div>
+  )
 }
 
 /**
