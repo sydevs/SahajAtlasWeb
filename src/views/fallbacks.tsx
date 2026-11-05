@@ -15,11 +15,10 @@ import { useWidgetMode } from '@/config/mode'
 import { useLocale } from '@/hooks/use-locale'
 import { classifyError, errorMessage } from '@/lib/report'
 import { baseStackEntry, resolveStack } from '@/lib/shape'
+import { BackButton, NavHeader } from '@/views/nav'
 import {
   CalendarButton,
-  CloseButton,
-  CollapseToggle,
-  DrawerTitle,
+  ExpandSheetButton,
   FilterButton,
   SearchButton,
   SearchField,
@@ -165,11 +164,6 @@ export function DrawerChrome({ interactive = true }: { interactive?: boolean }) 
     }
   })()
 
-  // At the root there is nothing to climb to, and `navigate(-1)` would take the host
-  // page back. So this offers the collapse (which self-hides where it cannot
-  // collapse), rather than a close that silently does nothing.
-  const dismiss = canDismiss ? <CloseButton /> : <CollapseToggle />
-
   // The root and the search view lead with the geocoder, rather than a title, so
   // they get the header their view would render. Everything in it is a NAVIGATION —
   // a new search, a filter drawer — not a read of the data that failed, so none of
@@ -192,8 +186,11 @@ export function DrawerChrome({ interactive = true }: { interactive?: boolean }) 
               fragment, so writing keystrokes into it spreads a broken link into anything the
               visitor copies. Selecting a place still navigates. Only the `?q` echo is
               dropped. */}
+          {canDismiss && <BackButton iconOnly />}
           {interactive ? <SearchField syncToUrl={false} /> : <SearchFieldSkeleton />}
-          {dismiss}
+          {/* At the root there is nothing to climb to: `navigate(-1)` would take the host page
+              back. So Back only renders below it. */}
+          {!canDismiss && <ExpandSheetButton />}
         </DrawerHeader>
         <DrawerToolbar>
           <ListToolbar>
@@ -204,28 +201,34 @@ export function DrawerChrome({ interactive = true }: { interactive?: boolean }) 
     )
   }
 
+  // A region's own header offers these three, and all still work — they navigate rather
+  // than read. The calendar and the filters are scoped to the region whose page failed,
+  // which is exactly where a viewer wanted to be. The Back row and the breadcrumb line match
+  // the view's own header, so nothing jumps when the view arrives. A class page that failed
+  // keeps only Back, which already names its region: a lone path above the message would
+  // read as the page.
   return (
-    <DrawerHeader className="justify-between">
-      {/* An empty <div> rather than an empty DrawerTitle when nothing resolved: a blank
-          <h2> is a heading with no name, which is worse for a screen reader than no
-          heading at all. It still holds the left slot so the control stays right-aligned. */}
-      {title ? <DrawerTitle title={title} /> : <div />}
-      <div className="flex shrink-0 items-center gap-2">
-        {/* A region's own header offers these three, and all still work — they navigate
-            rather than read. The calendar and the filters are scoped to the region whose page
-            failed, which is exactly where a viewer wanted to be. */}
-        {entry.kind === 'region' && (
-          <>
-            <CalendarButton regionSlug={entry.slug} />
-            <SearchButton />
-            <FilterButton iconOnly />
-          </>
-        )}
-        {entry.kind === 'online' && <SearchButton />}
-        {entry.kind === 'calendar' && <FilterButton iconOnly />}
-        {dismiss}
-      </div>
-    </DrawerHeader>
+    <NavHeader
+      actions={
+        <>
+          {entry.kind === 'region' && (
+            <>
+              <CalendarButton regionSlug={entry.slug} />
+              <SearchButton />
+              <FilterButton iconOnly />
+            </>
+          )}
+          {entry.kind === 'online' && <SearchButton />}
+          {entry.kind === 'calendar' && <FilterButton iconOnly />}
+        </>
+      }
+      breadcrumbs={
+        entry.kind === 'region' ||
+        entry.kind === 'online' ||
+        (entry.kind === 'event' && !interactive)
+      }
+      title={title}
+    />
   )
 }
 

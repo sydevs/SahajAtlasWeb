@@ -85,12 +85,12 @@ type SecondaryViews = ReturnType<typeof loadSecondaryViews>
 
 // The mobile bottom-sheet snap ladder, ascending. vaul reads a string as pixels, and a
 // number as a fraction of the sheet height:
-//  - '80px'  peek — the handle plus the search or title row
-//  - '300px' lower third — title, a list row, and a peek of the next
+//  - '88px'  peek — the handle plus the search row, or the Back row and the title
+//  - '356px' the Back row, title, breadcrumbs, a list row, and a peek of the next
 //  - 0.97    near-full
-const SNAP_POINTS = ['80px', '300px', 0.97]
-const PEEK_SNAP = '80px' // the collapsed peek
-const OPEN_SNAP = '300px' // default, and what the peek expands to
+const SNAP_POINTS = ['88px', '356px', 0.97]
+const PEEK_SNAP = '88px' // the collapsed peek
+const OPEN_SNAP = '356px' // default, and what the peek expands to
 const WIDE_SNAP = SNAP_POINTS[2] // the near-full snap the full-width calendar opens at
 
 // How far each stacked ancestor peeks out behind the active sheet. Wide enough to read as

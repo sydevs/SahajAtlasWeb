@@ -16,11 +16,12 @@ import { useWidgetMode } from '@/config/mode'
 import { DEFAULT_FILTERS, filtersToParams, isOnline } from '@/lib/shape'
 import { validateWebUrl } from '@/lib/url'
 import {
-  CollapseToggle,
+  ExpandSheetButton,
   FilterButton,
   GeolocationSuggestion,
   SearchField,
   useFrameOnTop,
+  useDrawerControl,
 } from '@/views/shared'
 
 // The base view, at route `/`. It shows a leading "Online Classes" entry into the
@@ -31,6 +32,7 @@ import {
 export function CountriesView() {
   const { t } = useTranslation()
   const { regionNames } = useLocale()
+  const { collapsed } = useDrawerControl()
   const { standalone } = useWidgetMode()
   const { reset } = useMapController()
 
@@ -82,8 +84,7 @@ export function CountriesView() {
           index is meaningless, so there is no sort menu here. */}
       <DrawerHeader>
         <SearchField />
-        <FilterButton iconOnly />
-        <CollapseToggle />
+        {collapsed ? <ExpandSheetButton /> : <FilterButton iconOnly />}
       </DrawerHeader>
       <DrawerBody>
         <GeolocationSuggestion />

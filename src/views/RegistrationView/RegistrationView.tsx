@@ -1,7 +1,7 @@
 import { useTranslation } from 'react-i18next'
 
 import { Alert } from '@/components/atoms/Alert'
-import { DrawerBody, DrawerHeader } from '@/components/atoms/Drawer'
+import { DrawerBody } from '@/components/atoms/Drawer'
 import { EventFacts, FallbackPanel } from '@/components/molecules'
 import { EventRegisterBar } from '@/components/organisms/EventDetails/EventRegister'
 import { RegistrationForm } from '@/components/organisms/RegistrationForm'
@@ -9,13 +9,8 @@ import { useEventDisplay } from '@/hooks/use-event-display'
 import { useMapController } from '@/hooks/use-map-controller'
 import { useShareUrl } from '@/hooks/use-share-url'
 import { enabledQuestions, eventTimeZone, isOnline, isUnverified } from '@/lib/shape'
-import {
-  CloseButton,
-  DrawerTitle,
-  useDrawerControl,
-  useEventFromPath,
-  useFrameOnTop,
-} from '@/views/shared'
+import { NavHeader } from '@/views/nav'
+import { useDrawerControl, useEventFromPath, useFrameOnTop } from '@/views/shared'
 
 // The registration form for an event, at route `<event-path>/register`. The event's Register
 // CTA reaches this view, and the route is deep-linkable, so the resolver gates it. A closed,
@@ -102,13 +97,10 @@ export function RegistrationView({
 
   return (
     <>
-      <DrawerHeader className="justify-between">
-        <DrawerTitle
-          subtitle={t('common.chrome.all_classes_free')}
-          title={t('registration.form.title')}
-        />
-        <CloseButton />
-      </DrawerHeader>
+      <NavHeader
+        subtitle={t('common.chrome.all_classes_free')}
+        title={t('registration.form.title')}
+      />
       <DrawerBody className="p-4">
         <EventFacts
           className="mx-auto mb-4 w-full max-w-md"
