@@ -11,6 +11,7 @@ export {
   type ListingSection,
   type ListingSender,
   type ListingStep,
+  type MonthlyBy,
 } from './draft'
 export { eventToDraft, openListing, type OpenedListing } from './event'
 export {
@@ -27,7 +28,10 @@ export { draftPreviewSchedule, previewEvent, previewSessions, type PreviewBase }
 export {
   draftWeekday,
   endAfter,
+  monthWeekNumber,
+  monthlyOptions,
   nextWeekdayDate,
+  resolvedMonthlyBy,
   sessionMinutes,
   todayIn,
   weekStart,

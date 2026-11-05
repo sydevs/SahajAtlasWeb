@@ -43,6 +43,12 @@ export const eventToDraft = (event: Event): ListingDraft => {
     startTime: start?.toFormat('HH:mm') ?? '',
     endTime: schedule?.endTime ?? '',
     repeats: schedule?.recurrenceType ? REPEATS[schedule.recurrenceType] : 'once',
+    monthlyBy:
+      schedule?.recurrenceType === 'MONTHLY' && schedule.monthlyMode === 'weekday'
+        ? schedule.weekNumber === '-1'
+          ? 'last'
+          : 'weekday'
+        : 'date',
     endDate: until?.toISODate() ?? '',
     timeZone,
     contactName: event.contactName ?? '',

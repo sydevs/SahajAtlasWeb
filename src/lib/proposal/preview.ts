@@ -5,6 +5,7 @@ import type { DraftSchedule, ScheduleFields } from './patch'
 import { DateTime } from 'luxon'
 
 import { draftTitle } from './draft'
+import { monthlySession, resolvedMonthlyBy } from './schedule'
 import { draftSchedule, draftStart, draftToPatch } from './patch'
 import { DATE, same } from './shared'
 
@@ -26,6 +27,7 @@ export const previewSessions = (draft: ScheduleFields, now: DateTime = DateTime.
     ? DateTime.fromISO(draft.endDate, { zone: draft.timeZone }).endOf('day')
     : null
   const sessions: Date[] = []
+  const monthlyBy = resolvedMonthlyBy(draft.firstDate, draft.monthlyBy)
 
   const today = now.startOf('day')
 
@@ -33,7 +35,10 @@ export const previewSessions = (draft: ScheduleFields, now: DateTime = DateTime.
     if (until && at > until) break
     if (at >= today) sessions.push(at.toJSDate())
     // Always from the first session, so a monthly class on the 31st does not drift to the 28th.
-    at = start.plus(draft.repeats === 'weekly' ? { weeks: i + 1 } : { months: i + 1 })
+    at =
+      draft.repeats === 'weekly'
+        ? start.plus({ weeks: i + 1 })
+        : (monthlySession(start, i + 1, monthlyBy) ?? start.plus({ months: i + 1 }))
   }
 
   return sessions

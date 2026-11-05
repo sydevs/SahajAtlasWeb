@@ -4,6 +4,7 @@ import type { ListingDraft } from './draft'
 import { DateTime } from 'luxon'
 
 import { draftLocation, draftPlace } from './draft'
+import { monthWeekNumber, resolvedMonthlyBy } from './schedule'
 import { DATE, HHMM, compact, isGroup, same, text } from './shared'
 
 import { WeekdaySchema } from '@/types/event'
@@ -15,7 +16,7 @@ import { isWebUrl } from '@/lib/url'
 /** The fields a draft's schedule is built from. */
 export type ScheduleFields = Pick<
   ListingDraft,
-  'firstDate' | 'startTime' | 'endTime' | 'repeats' | 'endDate' | 'timeZone'
+  'firstDate' | 'startTime' | 'endTime' | 'repeats' | 'monthlyBy' | 'endDate' | 'timeZone'
 >
 
 /** The first session, as the instant SahajCloud stores, read in the draft's zone. */
@@ -29,6 +30,20 @@ export const draftStart = (draft: ScheduleFields): DateTime | null => {
 
 /** What the flow can say about a schedule: everything but the exclusions, which it never edits. */
 export type DraftSchedule = Omit<NonNullable<ProposedEventPatch['schedule']>, 'exclusions'>
+
+/** A monthly class's rule, in the discriminated shape the Events schedule stores it. */
+const monthlyRule = (draft: ScheduleFields, start: DateTime) => {
+  const by = resolvedMonthlyBy(draft.firstDate, draft.monthlyBy)
+
+  if (by === 'date') return { interval: 1, monthlyMode: 'date' as const, monthDay: start.day }
+
+  return {
+    interval: 1,
+    monthlyMode: 'weekday' as const,
+    weekNumber: by === 'last' ? ('-1' as const) : monthWeekNumber(start),
+    weekdayOfMonth: WeekdaySchema.options[start.weekday - 1],
+  }
+}
 
 export const draftSchedule = (draft: ScheduleFields): DraftSchedule | undefined => {
   const start = draftStart(draft)
@@ -49,9 +64,7 @@ export const draftSchedule = (draft: ScheduleFields): DraftSchedule | undefined 
     ...(draft.repeats === 'weekly'
       ? { interval: 1, weekdays: [WeekdaySchema.options[start.weekday - 1]] }
       : {}),
-    ...(draft.repeats === 'monthly'
-      ? { interval: 1, monthlyMode: 'date' as const, monthDay: start.day }
-      : {}),
+    ...(draft.repeats === 'monthly' ? monthlyRule(draft, start) : {}),
     endingType: until ? 'until' : null,
     untilDate: until
       ? (DateTime.fromISO(until, { zone: draft.timeZone }).endOf('day').toUTC().toISO() ??

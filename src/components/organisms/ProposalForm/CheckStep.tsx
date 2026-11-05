@@ -337,7 +337,14 @@ function EditButton({ label, onClick }: { label: string; onClick: () => void }) 
 }
 
 /** The fields that say when a class meets, apart from when it stops. */
-const SCHEDULE_CORE = ['repeats', 'startTime', 'endTime', 'firstDate', 'timeZone'] as const
+const SCHEDULE_CORE = [
+  'repeats',
+  'monthlyBy',
+  'startTime',
+  'endTime',
+  'firstDate',
+  'timeZone',
+] as const
 
 type Change = {
   key: ChangeKey

@@ -20,6 +20,9 @@ import {
   sessionMinutes,
   todayIn,
   weekStart,
+  monthWeekNumber,
+  monthlyOptions,
+  resolvedMonthlyBy,
 } from '@/lib/proposal'
 import { zoneLabel } from '@/lib/time'
 
@@ -39,6 +42,15 @@ const DURATIONS: { minutes: number | null; label: TranslationKey }[] = [
   { minutes: 120, label: 'submit.when.duration_120' },
   { minutes: null, label: 'submit.when.duration_custom' },
 ]
+
+/** The published class's own wording for each week, so the choice reads as the listing will. */
+const WEEK_KEYS = {
+  '1': 'event.recurrence.monthly_1st',
+  '2': 'event.recurrence.monthly_2nd',
+  '3': 'event.recurrence.monthly_3rd',
+  '4': 'event.recurrence.monthly_4th',
+  '-1': 'event.recurrence.monthly_last',
+} as const
 
 const segment =
   'flex h-11 items-center justify-center rounded-md px-2 text-sm font-medium transition-colors outline-none focus-visible:ring-2 focus-visible:ring-focus'
@@ -89,6 +101,17 @@ export function TimeStep({
   // A length picked before there is a start time, applied once one is given.
   const [chosen, setChosen] = useState<number | null>(null)
   const duration = DURATIONS.some(({ minutes }) => minutes === stored) ? stored : chosen
+  const monthlyBy = resolvedMonthlyBy(draft.firstDate, draft.monthlyBy)
+  const monthly = monthlyOptions(draft.firstDate).map((by) => {
+    const date = DateTime.fromISO(draft.firstDate)
+    const name = date.setLocale(locale).toLocaleString({ weekday: 'long' })
+    const label =
+      by === 'date'
+        ? t('event.recurrence.monthly_date', { day: date.day })
+        : t(WEEK_KEYS[by === 'last' ? '-1' : monthWeekNumber(date)], { weekday: name })
+
+    return { by, label }
+  })
 
   return (
     <div className="flex flex-col gap-5">
@@ -252,13 +275,7 @@ export function TimeStep({
         <ValidatedInput
           required
           error={errors.firstDate && t('submit.errors.first_date')}
-          help={
-            draft.repeats === 'monthly'
-              ? `${t('submit.when.monthly_help')} ${t('submit.when.monthly_pattern')}`
-              : weekly
-                ? t('submit.when.first_help')
-                : undefined
-          }
+          help={weekly ? t('submit.when.first_help') : undefined}
           id="submit-first-date"
           label={t(
             draft.repeats === 'once'
@@ -271,6 +288,35 @@ export function TimeStep({
           value={draft.firstDate}
           onChange={(event) => onChange({ firstDate: event.target.value })}
         />
+      )}
+
+      {draft.repeats === 'monthly' && monthly.length > 1 && (
+        <fieldset className="flex flex-col">
+          <legend className="mb-2 text-sm font-medium">{t('submit.when.monthly_by')}</legend>
+          <div className="flex flex-col gap-2" role="radiogroup" {...radioKeys}>
+            {monthly.map(({ by, label }) => {
+              const on = monthlyBy === by
+
+              return (
+                <button
+                  key={by}
+                  aria-checked={on}
+                  className={`min-h-11 rounded-md border px-3 py-2 text-start text-sm font-medium transition-colors outline-none focus-visible:ring-2 focus-visible:ring-focus ${
+                    on
+                      ? 'border-primary-9 bg-primary-9 text-primary-foreground'
+                      : 'border-gray-6 hover:bg-gray-2'
+                  }`}
+                  role="radio"
+                  tabIndex={on ? 0 : -1}
+                  type="button"
+                  onClick={() => onChange({ monthlyBy: by })}
+                >
+                  {label}
+                </button>
+              )
+            })}
+          </div>
+        </fieldset>
       )}
 
       {repeating && (

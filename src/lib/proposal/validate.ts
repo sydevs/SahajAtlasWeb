@@ -91,7 +91,7 @@ export const firstInvalidStep = (
 /** The draft fields each step fills in, so a correction can tell which steps it touched. */
 const STEP_FIELDS: Record<ListingSection, (keyof ListingDraft)[]> = {
   where: ['eventType', 'address', 'room', 'onlineUrl', 'city'],
-  when: ['firstDate', 'startTime', 'endTime', 'repeats', 'endDate', 'timeZone'],
+  when: ['firstDate', 'startTime', 'endTime', 'repeats', 'monthlyBy', 'endDate', 'timeZone'],
   details: [
     'languages',
     'contactName',

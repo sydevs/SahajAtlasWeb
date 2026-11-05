@@ -357,7 +357,6 @@
       "once": "Just once",
       "weekday_label": "On which day?",
       "date": "Date",
-      "monthly_help": "It then repeats on the same date each month.",
       "ends_toggle": "It ends on a set date",
       "summary_empty": "Choose a day and a start time to see how it will read.",
       "first_class": "First class",
@@ -366,7 +365,6 @@
       "zone_search": "Search for a time zone or a big city",
       "zone_confirm": "Times are in %{timezone}, the class’s local time.",
       "zone_empty": "No match. Try a big city in the same time zone, or a zone name like “Europe/Paris”.",
-      "monthly_pattern": "Meets on a pattern like “the first Tuesday”? Choose the next date, and explain the pattern in your note at the end.",
       "from": "%{pattern} from %{date}",
       "duration": "How long is it?",
       "duration_60": "1 hour",
@@ -375,7 +373,8 @@
       "duration_custom": "Set the end time",
       "ends_at": "Ends at %{time}.",
       "first_help": "Change this if the class starts later.",
-      "first_on_map": "First date on the map"
+      "first_on_map": "First date on the map",
+      "monthly_by": "Which day each month?"
     },
     "where": {
       "address_placeholder": "Search for the address",
@@ -427,7 +426,7 @@
     },
     "note": {
       "stopped_title": "It has stopped running",
-      "stopped_intro": "Thanks for letting us know — the coordinator will check with the host before taking it down.",
+      "stopped_intro": "Thanks for letting us know. A coordinator will check it before anything changes.",
       "stopped_label": "What do you know? (optional)",
       "stopped_placeholder": "For example: the centre told me the last class was in September.",
       "stopped_default": "This class seems to have stopped running.",

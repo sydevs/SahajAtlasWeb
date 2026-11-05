@@ -157,13 +157,23 @@ function usePreviewSchedule(draft: ListingDraft | null) {
     startTime = '',
     endTime = '',
     repeats = 'once',
+    monthlyBy = 'date',
     endDate = '',
     timeZone = 'UTC',
   }: Partial<ScheduleFields> = draft ?? {}
 
   return useMemo(
-    () => draftPreviewSchedule({ firstDate, startTime, endTime, repeats, endDate, timeZone }),
-    [firstDate, startTime, endTime, repeats, endDate, timeZone],
+    () =>
+      draftPreviewSchedule({
+        firstDate,
+        startTime,
+        endTime,
+        repeats,
+        monthlyBy,
+        endDate,
+        timeZone,
+      }),
+    [firstDate, startTime, endTime, repeats, monthlyBy, endDate, timeZone],
   )
 }
 

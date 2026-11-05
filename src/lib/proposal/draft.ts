@@ -27,6 +27,12 @@ export type FixIntent = 'when' | 'where' | 'details' | 'stopped' | 'other'
 
 export type ListingRepeats = 'once' | 'weekly' | 'monthly'
 
+/**
+ * How a monthly class falls: on the same date, or on a weekday — "the second Tuesday", or "the
+ * last Tuesday". Which weekday, and which week, are read off `firstDate`.
+ */
+export type MonthlyBy = 'date' | 'weekday' | 'last'
+
 export type ListingDraft = {
   eventType: 'offline' | 'online'
   /** In person: the venue's address. */
@@ -41,6 +47,8 @@ export type ListingDraft = {
   startTime: string
   endTime: string
   repeats: ListingRepeats
+  /** Only meaningful for a monthly class. */
+  monthlyBy: MonthlyBy
   /** `YYYY-MM-DD`; only meaningful for a repeating class. */
   endDate: string
   /** IANA zone the date and times are read in. */
@@ -68,6 +76,7 @@ export const emptyDraft = (timeZone: string, languages: string[] = []): ListingD
   startTime: '',
   endTime: '',
   repeats: 'weekly',
+  monthlyBy: 'date',
   endDate: '',
   timeZone,
   contactName: '',

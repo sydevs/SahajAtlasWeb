@@ -10,6 +10,7 @@ import {
   diffPatch,
   draftPreviewSchedule,
   draftLocation,
+  draftToPatch,
   draftWeekday,
   endAfter,
   emptyDraft,
@@ -17,6 +18,7 @@ import {
   featureToPlace,
   firstInvalidStep,
   nearestTimeZone,
+  monthlyOptions,
   newListingPatch,
   nextWeekdayDate,
   revertFields,
@@ -24,6 +26,7 @@ import {
   openListing,
   previewEvent,
   previewSessions,
+  resolvedMonthlyBy,
   searchProximity,
   stepChanged,
   stepErrors,
@@ -579,5 +582,82 @@ describe('revertFields', () => {
       contactName: 'Ana',
       room: 'Upstairs',
     })
+  })
+})
+
+describe('a monthly class on a weekday', () => {
+  const monthly = (firstDate: string, monthlyBy: ListingDraft['monthlyBy']) => ({
+    ...emptyDraft('Europe/London'),
+    repeats: 'monthly' as const,
+    firstDate,
+    startTime: '19:30',
+    monthlyBy,
+  })
+  const days = (draft: ListingDraft, now: string) =>
+    previewSessions(draft, DateTime.fromISO(now, { zone: 'Europe/London' }))
+      .slice(0, 3)
+      .map((at) => DateTime.fromJSDate(at).setZone('Europe/London').toISODate())
+
+  it('offers what the date can mean', () => {
+    expect(monthlyOptions('2026-11-10')).toEqual(['date', 'weekday']) // second Tuesday
+    expect(monthlyOptions('2026-11-24')).toEqual(['date', 'weekday', 'last']) // fourth and last
+    expect(monthlyOptions('2026-12-29')).toEqual(['date', 'last']) // a fifth Tuesday
+    expect(monthlyOptions('')).toEqual(['date'])
+  })
+
+  it('holds a choice to what a moved date can mean', () => {
+    expect(resolvedMonthlyBy('2026-11-10', 'last')).toBe('weekday')
+    expect(resolvedMonthlyBy('2026-12-29', 'weekday')).toBe('last')
+    expect(resolvedMonthlyBy('2026-11-10', 'date')).toBe('date')
+  })
+
+  it('sends the rule the Events schedule stores', () => {
+    expect(draftToPatch(monthly('2026-11-10', 'weekday')).schedule).toMatchObject({
+      recurrenceType: 'MONTHLY',
+      interval: 1,
+      monthlyMode: 'weekday',
+      weekNumber: '2',
+      weekdayOfMonth: 'TU',
+    })
+    expect(draftToPatch(monthly('2026-11-24', 'last')).schedule).toMatchObject({
+      monthlyMode: 'weekday',
+      weekNumber: '-1',
+      weekdayOfMonth: 'TU',
+    })
+    expect(draftToPatch(monthly('2026-11-10', 'date')).schedule).toMatchObject({
+      monthlyMode: 'date',
+      monthDay: 10,
+    })
+  })
+
+  it('previews the sessions the rule produces', () => {
+    expect(days(monthly('2026-11-10', 'weekday'), '2026-11-01')).toEqual([
+      '2026-11-10',
+      '2026-12-08',
+      '2027-01-12',
+    ])
+    expect(days(monthly('2026-11-24', 'last'), '2026-11-01')).toEqual([
+      '2026-11-24',
+      '2026-12-29',
+      '2027-01-26',
+    ])
+  })
+
+  it('reads a published weekday rule back, so an untouched correction sends nothing new', () => {
+    const draft = eventToDraft(
+      publishedEvent({
+        schedule: {
+          firstDate: new Date('2026-11-10T19:30:00.000Z'),
+          firstDate_tz: 'Europe/London',
+          recurrenceType: 'MONTHLY',
+          monthlyMode: 'weekday',
+          weekNumber: '2',
+          weekdayOfMonth: 'TU',
+        },
+      }),
+    )
+
+    expect(draft.monthlyBy).toBe('weekday')
+    expect(diffPatch(draftToPatch(draft), draftToPatch(draft))).toEqual({})
   })
 })
