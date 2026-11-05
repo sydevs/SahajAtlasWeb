@@ -21,6 +21,18 @@ export interface EventListItemProps {
    * below (see `EventsList`).
    */
   searchedPlace?: string
+  /**
+   * The town and distance, in place of the street address and "x km from y". For a group that is
+   * read by place ("Classes in other cities"), where the town decides and the street can wait.
+   */
+  placeLine?: string
+  /** Leaves the distance off, for a search where it would mean nothing (a whole country). */
+  hideDistance?: boolean
+  /**
+   * The row is already listed as in the searched place, so its distance is only how far out from
+   * the middle it sits. "16 km from London" under "In London" would read as an outsider.
+   */
+  fromCentre?: boolean
 }
 
 // Below this, the distance stops being decision-useful. Everything in the
@@ -48,7 +60,13 @@ const MIN_DISTANCE_KM = 5
  * re-render the rows above on every press, which is most of the work and
  * none of the value.
  */
-function EventListItemImpl({ event, searchedPlace }: EventListItemProps) {
+function EventListItemImpl({
+  event,
+  searchedPlace,
+  placeLine,
+  hideDistance,
+  fromCentre,
+}: EventListItemProps) {
   const { t } = useTranslation()
   const { locale } = useLocale()
   const { highlightEvent } = useMapController()
@@ -76,13 +94,15 @@ function EventListItemImpl({ event, searchedPlace }: EventListItemProps) {
   // itself from `?q` and hands it down (see the prop). The precise
   // reference point stays in the accessible label either way.
   const distance =
-    !online && event.distance !== undefined && event.distance >= MIN_DISTANCE_KM
+    !online && !hideDistance && event.distance !== undefined && event.distance >= MIN_DISTANCE_KM
       ? formatDistance(event.distance, locale)
       : null
   const distanceText = distance
-    ? searchedPlace
-      ? t('event.display.distance_from_place', { distance, place: searchedPlace })
-      : t('event.display.distance_away', { distance })
+    ? fromCentre
+      ? t('event.display.distance_from_centre', { distance })
+      : searchedPlace
+        ? t('event.display.distance_from_place', { distance, place: searchedPlace })
+        : t('event.display.distance_away', { distance })
     : null
   const distanceLabel = distance ? t('event.display.distance_from_search', { distance }) : undefined
 
@@ -134,6 +154,7 @@ function EventListItemImpl({ event, searchedPlace }: EventListItemProps) {
           }
           event={event}
           variant="compact"
+          where={placeLine}
         />
         <EventChips className="mt-1" event={event} variant="compact" />
       </Link>

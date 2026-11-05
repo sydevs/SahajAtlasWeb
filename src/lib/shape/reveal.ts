@@ -217,7 +217,18 @@ export function revealRows<T extends Segmentable>(
     showAll,
     hasSearchCenter,
     searchCountry,
-  }: { shown: number; showAll: boolean; hasSearchCenter: boolean; searchCountry?: string },
+    near: isNearOverride,
+  }: {
+    shown: number
+    showAll: boolean
+    hasSearchCenter: boolean
+    searchCountry?: string
+    /**
+     * Who belongs to the first segment, when the caller has already decided (`splitResults`).
+     * The paging below doesn't care how the line was drawn.
+     */
+    near?: (event: T) => boolean
+  },
 ): Reveal<T> {
   // This applies half the cut for an event across a border, the full cut otherwise.
   // Both countries must be known to demote anything. An event with no address country
@@ -233,7 +244,9 @@ export function revealRows<T extends Segmentable>(
     return searchCountry && country && country !== searchCountry ? FOREIGN_NEARBY_KM : NEARBY_KM
   }
   // Online events carry no distance, so they are never distance-excluded.
-  const isNear = (event: T) => event.distance === undefined || event.distance <= limitFor(event)
+  const isNear =
+    isNearOverride ??
+    ((event: T) => event.distance === undefined || event.distance <= limitFor(event))
   const near = hasSearchCenter ? sorted.filter(isNear) : sorted
   const far = hasSearchCenter ? sorted.filter((event) => !isNear(event)) : []
   // This is the smallest limit any excluded event was held to. It is what the empty

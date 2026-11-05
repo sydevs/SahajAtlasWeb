@@ -7,6 +7,7 @@ import { bboxPolygon } from '@turf/bbox-polygon'
 import { MapControllerContext } from './use-map-controller'
 
 import { useMapbox, usePaddingState } from '@/hooks/use-mapbox'
+import { SEARCH_SHEET_PX } from '@/config/responsive'
 import { useFilterPanelState, useViewState } from '@/config/store'
 import { useIsWide } from '@/config/responsive'
 import { eventFrameZoom } from '@/lib/camera'
@@ -47,6 +48,7 @@ const MAP_MARGIN = 20
 // The filter panel's 320px width plus the 64px it stands off the right edge (`FiltersPanel`),
 // which is where the locate and attribution controls live.
 const FILTER_PANEL_PX = 336
+const MIN_FIT_PX = 80
 
 // These constants keep zoom consistent.
 // An event frames at `EVENT_ZOOM`.
@@ -184,8 +186,17 @@ export function RealMapControllerProvider({ children }: { children: ReactNode })
         // So a resize while an event was open cleared the pin, with no navigation at all.
         setSelection(null)
         setBoundary(undefined)
-        if (bbox) fitBounds(bbox, { maxZoom: REGION_MAX_ZOOM, padding: REGION_FIT_PADDING })
-        else if (center) flyTo(center, EVENT_ZOOM)
+        if (bbox) {
+          // A phone's search sheet opens taller than the peek this camera usually allows for, so
+          // the fit reserves its real height: no pin ends up behind it. On a short frame it keeps
+          // a strip of map for the pins, because Mapbox refuses a fit its padding leaves no room for.
+          const height = mapbox?.getContainer().clientHeight ?? 0
+          const room =
+            height - MAP_MARGIN * 2 - MOBILE_SHEET_PX - REGION_FIT_PADDING * 2 - MIN_FIT_PX
+          const bottom = isWide ? 0 : Math.max(0, Math.min(SEARCH_SHEET_PX - MOBILE_SHEET_PX, room))
+
+          fitBounds(bbox, { maxZoom: REGION_MAX_ZOOM, padding: REGION_FIT_PADDING, bottom })
+        } else if (center) flyTo(center, EVENT_ZOOM)
         // No bbox and no center means nothing was searched.
         // So there is nothing to frame, and the camera stays where the visitor left it.
         // This code used to reset the camera to the world view instead.
@@ -211,7 +222,17 @@ export function RealMapControllerProvider({ children }: { children: ReactNode })
         moveMap({ zoom: 0 })
       },
     }),
-    [mapbox, moveMap, fitBounds, isPointVisible, flyTo, setSelection, setHover, setBoundary],
+    [
+      mapbox,
+      moveMap,
+      fitBounds,
+      isPointVisible,
+      flyTo,
+      setSelection,
+      setHover,
+      setBoundary,
+      isWide,
+    ],
   )
 
   return (

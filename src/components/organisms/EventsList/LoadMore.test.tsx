@@ -11,7 +11,7 @@ vi.mock('react-i18next', () => ({
     t: (key: string, opts?: { shown?: number; total?: number }) =>
       ({
         'search.results.more': 'Show more',
-        'search.results.farther': 'Show distant events',
+        'search.results.farther_classes': 'Show classes farther away',
         'search.results.showing': `Showing ${opts?.shown} of ${opts?.total} events`,
       })[key] ?? key,
     i18n: { resolvedLanguage: 'en', on: () => {}, off: () => {} },
@@ -34,13 +34,15 @@ describe('LoadMore', () => {
   it('says plainly what the boundary crossing does', () => {
     // This is the list's only distance affordance. It has to read as "nearby
     // events have run out," not as the list simply ending.
-    expect(render({ more: 'farther' })).toContain('Show distant events')
+    expect(render({ more: 'farther' })).toContain('Show classes farther away')
   })
 
   it('keeps saying "distant" for pages after the boundary, never reverting to "more"', () => {
     // The parent hands back `'farther'` for every page once the distant segment is
     // showing, so this is the label that has to survive repeated presses.
-    expect(render({ more: 'farther', shown: 97, total: 330 })).toContain('Show distant events')
+    expect(render({ more: 'farther', shown: 97, total: 330 })).toContain(
+      'Show classes farther away',
+    )
   })
 
   it('marks itself busy while a reveal renders, but never disabled', () => {

@@ -118,6 +118,7 @@
       "contact_to_join_full": "Contact the host to join anyway",
       "contact_to_join_late": "Contact the host to join late",
       "distance_away": "%{distance} away",
+      "distance_from_centre": "%{distance} from the centre",
       "distance_from_place": "%{distance} from %{place}",
       "distance_from_search": "%{distance} from the searched location",
       "event_ended": "This event has ended",
@@ -286,10 +287,38 @@
       "dismiss": "Dismiss"
     },
     "results": {
-      "farther": "Show distant events",
+      "farther_classes": "Show classes farther away",
       "more": "Show more",
       "no_nearby": "No events within %{km} km.",
       "showing": "Showing %{shown} of %{total} events"
+    },
+    "filtered": {
+      "hidden_here_one": "Your filters hide %{count} class in %{place}.",
+      "hidden_here_other": "Your filters hide %{count} classes in %{place}.",
+      "hidden_nearby_one": "Your filters hide %{count} class nearby.",
+      "hidden_nearby_other": "Your filters hide %{count} classes nearby.",
+      "none": "No classes match your filters.",
+      "remove_one": "Remove %{label} (%{count} class)",
+      "remove_other": "Remove %{label} (%{count} classes)",
+      "remove_short": "Remove %{label}"
+    },
+    "no_classes": {
+      "filtered": "No matching classes in %{place}",
+      "here": "No classes in %{place} yet",
+      "near": "No classes near %{place} yet",
+      "nowhere": "No classes here yet"
+    },
+    "sections": {
+      "across_border": "Nearby in other countries",
+      "farther": "Farther away",
+      "here": "In %{place}",
+      "near": "Near %{place}",
+      "map_wider": "The map also shows other cities",
+      "nearby": "Classes in other cities",
+      "nearby_places": "Other places nearby",
+      "online": "Online classes",
+      "results": "Results",
+      "show_all": "Show all %{total}"
     },
     "sort": {
       "closest": "Closest",

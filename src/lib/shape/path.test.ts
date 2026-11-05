@@ -320,6 +320,14 @@ describe('placeSearchPath', () => {
     expect(params.get('center')).toBe('4.9,52.37')
   })
 
+  it('lets an implied nearest-first order follow the new place instead of pinning it', () => {
+    const params = query(
+      placeSearchPath(new URLSearchParams('center=2.35,48.85'), { center: CENTRE }),
+    )
+
+    expect(params.get('sort')).toBeNull()
+  })
+
   it('carries the active filters and sort across the re-search', () => {
     const params = query(
       placeSearchPath(new URLSearchParams('format=online&sort=soonest'), { center: CENTRE }),

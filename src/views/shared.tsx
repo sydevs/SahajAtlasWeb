@@ -248,7 +248,8 @@ export function FilterButton({
   }
 
   return (
-    <Button size="sm" variant="ghost" onClick={open}>
+    // The font turns "(2)" into a tiny circled figure unless its ligatures are off.
+    <Button className="[font-variant-ligatures:none]" size="sm" variant="ghost" onClick={open}>
       <Funnel size={18} />
       {label}
     </Button>
