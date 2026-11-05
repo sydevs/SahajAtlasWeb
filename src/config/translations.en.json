@@ -288,9 +288,9 @@
       "step_when": "Time",
       "step_details": "Details",
       "step_review": "Check",
-      "add_row": "Run a class? Add it to the map",
-      "add_row_in": "Run a class in %{place}? Add it to the map",
-      "add_hint": "A coordinator checks it before it appears."
+      "add_row": "Add a class to the map",
+      "add_row_in": "Add a class in %{place} to the map",
+      "add_hint": "Run one, or know of one? A coordinator checks it before it appears."
     },
     "contact": {
       "email_label": "Email",

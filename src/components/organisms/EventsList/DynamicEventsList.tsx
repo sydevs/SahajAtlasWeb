@@ -36,9 +36,6 @@ export interface DynamicEventsListProps {
   hasSearchCenter?: boolean
 }
 
-/** Beyond this, the nearest class is not one a visitor to the searched place could go to weekly. */
-const EMPTY_PLACE_KM = 30
-
 export function DynamicEventsList({
   latitude,
   longitude,
@@ -142,25 +139,9 @@ export function DynamicEventsList({
       [index]?.focus({ preventScroll: true })
   }, [rows.length, more])
 
-  // Nothing in or near the searched place, with no filter to blame for it.
-  const distances = rows.flatMap((event) => event.distance ?? [])
-  const emptyPlace =
-    hasSearchCenter &&
-    Boolean(searchedPlace) &&
-    !hasActiveFilters(filters) &&
-    (rows.length === 0 || (distances.length > 0 && Math.min(...distances) > EMPTY_PLACE_KM))
-
   return (
     <>
       <ActiveFilterPills />
-      {/* A place with no class of its own says so first: this is where a host looks. */}
-      {emptyPlace && (
-        <AddClassEntry
-          hint={t('submit.chrome.add_hint')}
-          href={addClassPath()}
-          label={t('submit.chrome.add_row_in', { place: searchedPlace })}
-        />
-      )}
       <div ref={listRef}>
         {rows.length === 0 ? (
           <EmptyResults nearbyKm={more === 'farther' ? nearbyKm : undefined} />
@@ -191,13 +172,11 @@ export function DynamicEventsList({
       )}
       {/* Under the list and under every empty state alike: no place is in context here, so the
           flow opens at the root (#147). */}
-      {!emptyPlace && (
-        <AddClassEntry
-          hint={t('submit.chrome.add_hint')}
-          href={addClassPath()}
-          label={t('submit.chrome.add_row')}
-        />
-      )}
+      <AddClassEntry
+        hint={t('submit.chrome.add_hint')}
+        href={addClassPath()}
+        label={t('submit.chrome.add_row')}
+      />
     </>
   )
 }
