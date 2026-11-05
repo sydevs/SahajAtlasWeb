@@ -394,7 +394,9 @@ export function DrawerStack() {
     entryAncestors: entryAncestors.current,
     ancestors: parentPaths.length,
   })
-  const stackPaths = parentPaths.slice(0, stackDepth)
+  // The tall phone filter sheet reads as one sheet over a dimmed page: no stacked edges above it.
+  const filterSheet = direction === 'bottom' && top?.kind === 'filters'
+  const stackPaths = filterSheet ? [] : parentPaths.slice(0, stackDepth)
 
   // The peek strips' accessible names, resolved from caches the app has already
   // filled.
@@ -572,9 +574,23 @@ export function DrawerStack() {
   // month/week/list keeps it tall, rather than collapsing the list to the short snap.
   // This runs only when navigating to or from the calendar, so it never fights a
   // manual drag on a non-calendar view.
+  //
+  // Results reached from the filters also land tall: the visitor just asked to see classes, and
+  // the short snap showed less than one whole class under the search box and the toolbar.
+  const lastKind = useRef(top?.kind)
+
   useEffect(() => {
-    if (direction === 'bottom')
-      setSnap(top?.kind === 'calendar' || top?.kind === 'filters' ? WIDE_SNAP : OPEN_SNAP)
+    const from = lastKind.current
+
+    lastKind.current = top?.kind
+    if (direction !== 'bottom') return
+
+    const tall =
+      top?.kind === 'calendar' ||
+      top?.kind === 'filters' ||
+      (from === 'filters' && top?.kind === 'search')
+
+    setSnap(tall ? WIDE_SNAP : OPEN_SNAP)
   }, [direction, top?.kind])
 
   // A new searched place lifts the sheet out of its peek, so results are never
@@ -848,6 +864,11 @@ export function DrawerStack() {
             createPortal(
               <>
                 {strips}
+                {/* Dims what the near-full sheet leaves showing above it, half a cog and half a
+                    locate button otherwise. It goes as soon as the sheet is dragged lower. */}
+                {filterSheet && snap === WIDE_SNAP && (
+                  <div aria-hidden className="fixed inset-0 z-[35] bg-black/50" />
+                )}
                 {filterPanelAvailable === 'panel' && filterPanelOpen && <FiltersPanel />}
                 {filterPanelAvailable === 'chips' && <FilterChipBar />}
                 {/* Inline-start, offset past the drawer on ≥md (flush at tablet,
@@ -868,7 +889,7 @@ export function DrawerStack() {
                 the strips under the cog.
                 Both `352px` fallbacks below are the drawer-width pair — the twin
                 value is `DRAWER_W_PX` in `hooks/use-map-controller-real.tsx`. */}
-                {!wide && (
+                {!wide && !(filterSheet && snap === WIDE_SNAP) && (
                   <SettingsMenu
                     className={clsx(
                       'fixed top-3 z-40',

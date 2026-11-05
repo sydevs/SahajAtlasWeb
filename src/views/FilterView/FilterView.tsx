@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef } from 'react'
 import { useLocation, useNavigate, useSearchParams } from 'react-router'
 import { useTranslation } from 'react-i18next'
 
+import { RecoveryButton } from './RecoveryButton'
 import { WhereFilter } from './WhereFilter'
 
 import { DrawerBody, DrawerFooter, DrawerHeader } from '@/components/atoms/Drawer'
@@ -16,6 +17,7 @@ import {
   type EventFilters,
   type PlaceSearch,
   activeFilterCount,
+  filterCloseTarget,
   filterOriginRegion,
   filtersToParams,
   noPlaceSearch,
@@ -97,6 +99,8 @@ export function FilterView() {
 
   // Clear resets the questions, not the Where: the visitor is still looking in the same place.
   const canClear = activeFilterCount({ ...filters, region: null }) > 0
+  // With nothing chosen, closing just goes back, so the button mustn't promise results.
+  const goesBack = filterCloseTarget(location.pathname, location.search) === null
 
   // The calendar doesn't rank by place, so it has no place to ask for first.
   const searchable = parentOf(location.pathname) !== '/calendar'
@@ -126,9 +130,10 @@ export function FilterView() {
         />
       </DrawerBody>
       <DrawerFooter
-        className="flex items-center gap-2 border-t border-divider p-3"
+        className="flex flex-wrap items-center gap-2 border-t border-divider px-4 py-3"
         sticky={!isWide}
       >
+        {count === 0 && <p className="w-full text-sm text-foreground">{t('filters.chrome.no_match')}</p>}
         {canClear && (
           <Button
             className="h-11"
@@ -138,18 +143,29 @@ export function FilterView() {
             {t('filters.chrome.clear_one')}
           </Button>
         )}
-        <Button
-          className="h-11 flex-1"
-          color="primary"
-          disabled={count === 0}
-          onClick={control.dismiss}
-        >
-          {count === undefined
-            ? t('filters.chrome.title')
-            : count === 0
-              ? t('filters.chrome.no_match')
-              : t('filters.chrome.show_classes', { count })}
-        </Button>
+        {count === 0 ? (
+          facets?.recovery && (
+            <RecoveryButton
+              className="h-11 min-w-0 flex-1"
+              filters={filters}
+              recovery={facets.recovery}
+              onApply={write}
+            />
+          )
+        ) : (
+          <Button
+            className="h-11 flex-1"
+            color={goesBack ? 'neutral' : 'primary'}
+            variant={goesBack ? 'flat' : 'solid'}
+            onClick={control.dismiss}
+          >
+            {goesBack
+              ? t('common.chrome.close')
+              : count === undefined
+                ? t('filters.chrome.title')
+                : t('filters.chrome.show_classes', { count })}
+          </Button>
+        )}
       </DrawerFooter>
     </>
   )

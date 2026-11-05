@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import { facetCounts, scopeRelevance } from './facets'
+import { bestRecovery, facetCounts, scopeRelevance } from './facets'
 import { DEFAULT_FILTERS, matchesFilters } from './filters'
 
 // Tuesday 2026-11-10 19:00 and Saturday 2026-11-14 10:00, London.
@@ -75,5 +75,23 @@ describe('scopeRelevance', () => {
     expect(relevance.format).toBe(true)
     expect(relevance.languages).toBe(true)
     expect(relevance.cadence).toBe(false)
+  })
+})
+
+describe('bestRecovery', () => {
+  it('names the answered group that brings back the most classes', () => {
+    const events = [
+      event({ eventType: 'online', languages: ['en'] }),
+      event({ eventType: 'online', languages: ['en'] }),
+      event({ eventType: 'offline', languages: ['fr'] }),
+    ]
+    const recovery = bestRecovery(events, { ...DEFAULT_FILTERS, format: 'online', languages: ['fr'] })
+
+    expect(recovery?.group).toBe('languages')
+    expect(recovery?.count).toBe(2)
+  })
+
+  it('is null when nothing has been answered', () => {
+    expect(bestRecovery([event({})], DEFAULT_FILTERS)).toBeNull()
   })
 })

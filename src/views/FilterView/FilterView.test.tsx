@@ -18,6 +18,7 @@ vi.mock('@tanstack/react-query', async (importOriginal) => ({
 vi.mock('@/config/api', () => ({ default: {} }))
 vi.mock('@/hooks/use-filter-facets', () => ({ useFilterFacets: () => undefined }))
 vi.mock('./WhereFilter', () => ({ WhereFilter: () => null }))
+vi.mock('./RecoveryButton', () => ({ RecoveryButton: () => null }))
 vi.mock('@/components/molecules', () => ({
   SearchFilters: ({ value }: { value: EventFilters }) => <i>draft-region:{value.region ?? '∅'}</i>,
 }))
@@ -54,6 +55,11 @@ describe('FilterView — the scope it opens with', () => {
 describe('FilterView — the footer', () => {
   it('has no Clear with nothing to clear', () => {
     expect(view('/gb/filters')).not.toContain('filters.chrome.clear_one')
+  })
+
+  it('says Close, not a count, when closing would only go back', () => {
+    expect(view('/gb/filters')).toContain('common.chrome.close')
+    expect(view('/filters?days=2')).not.toContain('common.chrome.close')
   })
 
   it('offers Clear once a filter is set', () => {

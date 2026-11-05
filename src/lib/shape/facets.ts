@@ -121,6 +121,41 @@ export const facetCounts = (
   }
 }
 
+/** One group the visitor has answered, and how many classes come back if it's removed. */
+export type FilterRecovery = {
+  group: 'format' | 'days' | 'time' | 'cadence' | 'languages' | 'dates'
+  count: number
+  patch: Partial<EventFilters>
+}
+
+/**
+ * The most useful single way out of an empty result: the answered group whose removal brings back
+ * the most classes. `null` when removing any one of them still leaves nothing.
+ */
+export const bestRecovery = (
+  events: readonly FacetEvent[],
+  filters: EventFilters,
+  today: string = todayISO(),
+): FilterRecovery | null => {
+  const candidates: Pick<FilterRecovery, 'group' | 'patch'>[] = []
+
+  if (filters.format !== 'any') candidates.push({ group: 'format', patch: { format: 'any' } })
+  if (filters.daysOfWeek.length > 0) candidates.push({ group: 'days', patch: { daysOfWeek: [] } })
+  if (filters.timeOfDay.length > 0) candidates.push({ group: 'time', patch: { timeOfDay: [] } })
+  if (filters.cadence !== 'any') candidates.push({ group: 'cadence', patch: { cadence: 'any' } })
+  if (filters.languages.length > 0) candidates.push({ group: 'languages', patch: { languages: [] } })
+  if (isDateRestricted(filters.dateRange)) {
+    candidates.push({ group: 'dates', patch: { dateRange: { start: null, end: null } } })
+  }
+
+  return candidates.reduce<FilterRecovery | null>((best, candidate) => {
+    const next = { ...filters, ...candidate.patch }
+    const count = events.reduce((sum, event) => (passes(event, next, today) ? sum + 1 : sum), 0)
+
+    return count > (best?.count ?? 0) ? { ...candidate, count } : best
+  }, null)
+}
+
 export type FacetRelevance = {
   format: boolean
   days: boolean

@@ -168,7 +168,9 @@
       "remove": "Remove %{label}",
       "show_classes_one": "Show %{count} class",
       "show_classes_other": "Show %{count} classes",
-      "title": "Filters"
+      "title": "Filters",
+      "widen_one": "Remove %{label} (%{count} class)",
+      "widen_other": "Remove %{label} (%{count} classes)"
     },
     "dates": {
       "from": "From",

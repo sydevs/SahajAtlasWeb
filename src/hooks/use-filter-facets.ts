@@ -13,6 +13,8 @@ import {
   type EventFilters,
   type FacetCounts,
   type FacetRelevance,
+  type FilterRecovery,
+  bestRecovery,
   NEARBY_KM,
   facetCounts,
   facetRelevance,
@@ -23,6 +25,8 @@ import {
 export type FilterFacets = {
   counts: FacetCounts
   relevance: FacetRelevance
+  /** Set only when nothing matches: the one change that helps most. */
+  recovery?: FilterRecovery | null
 }
 
 /**
@@ -70,8 +74,15 @@ export function useFilterFacets(filters: EventFilters): FilterFacets | undefined
     [scope],
   )
 
-  return useMemo(
-    () => (scope && relevance ? { counts: facetCounts(scope, filters), relevance } : undefined),
-    [scope, relevance, filters],
-  )
+  return useMemo(() => {
+    if (!scope || !relevance) return undefined
+
+    const counts = facetCounts(scope, filters)
+
+    return {
+      counts,
+      relevance,
+      recovery: counts.total === 0 ? bestRecovery(scope, filters) : null,
+    }
+  }, [scope, relevance, filters])
 }
