@@ -228,24 +228,16 @@ source of truth, so all three stay linkable and shareable:
   (`resolveStack`) — of the *router's* location, which on a host page whose
   anchor the widget declined to take is a `MemoryRouter`'s location rather than
   the address bar's (`mountDecision`). Nothing below the router can tell, which
-  is the point. Dismissal is history-aware: `dismissAction` maps X, swipe, or Esc
+  is the point. Dismissal is history-aware: `dismissAction` maps Back, swipe, or Esc
   to a chronological `navigate(-1)` when in-widget `atlasDepth(location) > 0`
   (restoring the prior camera), and only to the structural parent for a fresh
   deep link (depth 0) — never popping the host page's own history.
-  **How many peek strips the stack draws is that same history question, not the
-  URL's ancestor count** — `dismissDepth` counts what a repeated X actually
-  traverses. A pin clicked from the root sits at depth 1 under three URL
-  ancestors, and one press returns to the root, so three cards would be a lie.
-  `DrawerStack` keeps the depth-0 entry's height in a **ref** (non-reactive): it
-  reads only at depth > 0 and writes only at depth 0, so a write can never change
-  the current render.
-  **Each strip is named for where it lands** (`stripLabel`, #102) — they used to
-  all say "Back," giving a three-deep stack three identically-named buttons going
-  three different places. Names come from the `['regions']` tree and the
-  event-titles sliver, read **cache-only** (`enabled: false`), so naming a strip
-  can never become a fetch. It is a separate pure module because importing
-  `DrawerStack.tsx` to test one string would drag mapbox-gl and vaul into the
-  node lane.
+  **Back says where it goes** (`BackButton`, `src/views/nav.tsx`). Every in-widget
+  push stamps `state.from`, because history can only be moved through, not read, and
+  `backDestination` turns that into the route `dismiss` will land on. The names read
+  the `['regions']` tree and the event caches **cache-only**, so naming a control can
+  never become a fetch. The breadcrumb's links are plain climbs with no depth stamp,
+  so Back and the breadcrumb always agree about what is above what.
 
 Camera control always goes through the `MapController` seam
 (`src/hooks/use-map-controller.tsx`) — never a store, never the map directly.

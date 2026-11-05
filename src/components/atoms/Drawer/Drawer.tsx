@@ -12,8 +12,7 @@ import { overlayContainer } from '@/lib/overlay'
 // non-modal is *truly* non-modal: no background `aria-hidden`, and no focus
 // trap.
 //
-// `DrawerStack` renders a SINGLE drawer, holding the active (top) view. Parent
-// views appear as static peek cards behind it, not real nested drawers.
+// `DrawerStack` renders a SINGLE drawer, holding the active (top) view.
 // Direction is left at ≥md, and bottom on mobile. `snapPoints` are the mobile
 // peek, third, and full ladder. Map-less, the drawer uses `mode="filled"`. It
 // is then absolute and fills the widget container, instead of fixed to the
