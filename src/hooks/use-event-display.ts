@@ -22,6 +22,8 @@ export type EventDisplayStrings = {
   display: EventDisplay
   /** "Weekly class" / "Course · 8 sessions" / "One-off event" */
   typeLabel: string
+  /** A plain weekly class: the default type, which a compact card leaves unnamed. */
+  isDefaultType: boolean
   /** Status chip text, or null when the state shows no chip. */
   statusChip: string | null
   /** This is the templated recurrence pattern, such as "Every Wednesday." It is approximate and secondary. */
@@ -312,9 +314,13 @@ export function useEventDisplay(event: DisplayableEvent): EventDisplayStrings {
             ? t('event.display.contact_for_timing')
             : null
 
+    const isDefaultType =
+      kind === 'class' && schedule?.recurrenceType === 'WEEKLY' && (schedule?.interval ?? 1) === 1
+
     return {
       display,
       typeLabel,
+      isDefaultType,
       statusChip,
       recurrenceLine,
       whenLine,

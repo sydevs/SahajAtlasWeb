@@ -4,42 +4,72 @@ import { X } from 'lucide-react'
 
 import { IconSvgProps } from '@/types'
 
-// A compact, sentence-case pill: the app's one chip. It is the design system's reference
-// tailwind-variants component (see DESIGN_SYSTEM.md), built directly on the Radix-semantic
-// 12-step tokens. `color` is the only thing that varies its look; neutral is the norm, and a
-// colour is for the one chip that has to stand out. Pass `onClose` to render a trailing remove
-// button, as the active-filter pills do.
+// A compact, uppercase label. It is the design system's reference
+// tailwind-variants component (see DESIGN_SYSTEM.md), built directly on
+// the Radix-semantic 12-step tokens. `flat` is a soft, bold tint. `subtle`
+// is that same tint at a lighter content weight. `ghost` is text-only,
+// matching Button's `ghost`. `radius` picks square (`sm`) or pill (`full`)
+// corners. Pass `onClose` to render a trailing remove button, as the
+// active-filter pills do.
 const chip = tv({
   slots: {
-    base: 'inline-flex max-w-full items-center gap-1 rounded-full',
-    content: 'min-w-0 truncate font-medium',
+    base: 'inline-flex max-w-full items-center gap-1',
+    content: 'min-w-0 truncate leading-none tracking-[0.3px] uppercase',
     // The close button carries the app's standard focus ring, not only the
     // opacity lift it used to have on its own (issue #102). Opacity is also
     // what HOVER does. So on a chip the pointer happens to rest on, a
     // keyboard user got no signal that focus had landed there. The ring is
     // the same `focus-visible:ring-2 ring-focus` every other control draws.
     close:
-      'touch-target relative shrink-0 rounded-full opacity-60 transition-opacity outline-none hover:opacity-100 focus-visible:opacity-100 focus-visible:ring-2 focus-visible:ring-focus',
+      'shrink-0 rounded-full opacity-60 transition-opacity outline-none hover:opacity-100 focus-visible:opacity-100 focus-visible:ring-2 focus-visible:ring-focus',
   },
   variants: {
-    color: {
-      primary: { base: 'bg-primary-3 text-primary-12' },
-      secondary: { base: 'bg-secondary-3 text-secondary-12' },
-      contrast: { base: 'bg-contrast-3 text-contrast-12' },
-      // A step quieter than the time and address beside it, so a chip never outweighs them.
-      neutral: { base: 'bg-gray-3 text-gray-11' },
+    color: { primary: '', secondary: '', contrast: '', neutral: '' },
+    // The surface treatment carries the content weight. `flat` and `ghost`
+    // are bold. `subtle` is the flat tint at a lighter weight. The tint
+    // itself is shared in compoundVariants below.
+    variant: {
+      flat: { content: 'font-bold' },
+      subtle: { content: 'font-medium' },
+      ghost: { content: 'font-bold' },
     },
     size: {
-      sm: { base: 'px-2.5 py-1 text-xs' },
-      md: { base: 'px-3 py-1.5 text-sm' },
+      sm: { base: 'px-2 py-1 text-xs' },
+      md: { base: 'px-2.5 py-1.5 text-sm' },
     },
-    // Kept so existing `radius="full"` callers still compile. Every chip is a pill now.
-    radius: { full: {} },
+    radius: {
+      sm: { base: 'rounded-sm' },
+      full: { base: 'rounded-full' },
+    },
   },
+  compoundVariants: [
+    // `flat` and `subtle` share the soft tint. They differ only in weight (above).
+    {
+      color: 'primary',
+      variant: ['flat', 'subtle'],
+      class: { base: 'bg-primary-3 text-primary-11' },
+    },
+    {
+      color: 'secondary',
+      variant: ['flat', 'subtle'],
+      class: { base: 'bg-secondary-3 text-secondary-11' },
+    },
+    {
+      color: 'contrast',
+      variant: ['flat', 'subtle'],
+      class: { base: 'bg-contrast-3 text-contrast-11' },
+    },
+    { color: 'neutral', variant: ['flat', 'subtle'], class: { base: 'bg-gray-3 text-gray-12' } },
+    { color: 'primary', variant: 'ghost', class: { base: 'text-primary-11' } },
+    { color: 'secondary', variant: 'ghost', class: { base: 'text-secondary-11' } },
+    { color: 'contrast', variant: 'ghost', class: { base: 'text-contrast-11' } },
+    { color: 'neutral', variant: 'ghost', class: { base: 'text-gray-12' } },
+  ],
   defaultVariants: {
-    color: 'neutral',
+    color: 'primary',
+    variant: 'flat',
     size: 'sm',
-    radius: 'full',
+    radius: 'sm',
   },
 })
 
@@ -64,13 +94,14 @@ export function Chip({
   children,
   icon,
   color,
+  variant,
   size,
   radius,
   onClose,
   closeLabel,
   className,
 }: ChipProps) {
-  const slots = chip({ color, size, radius })
+  const slots = chip({ color, variant, size, radius })
 
   return (
     <span className={slots.base({ className })}>

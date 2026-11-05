@@ -2,7 +2,17 @@ import type { Story, StoryDefault } from '@ladle/react'
 
 import { Calendar, Video } from 'lucide-react'
 
-import { StoryWrapper, StorySection } from '../../ladle'
+import {
+  StoryWrapper,
+  StorySection,
+  StoryGrid,
+  StoryGridHeader,
+  StoryGridHeaderRow,
+  StoryGridHeaderCell,
+  StoryGridBody,
+  StoryGridRow,
+  StoryGridCell,
+} from '../../ladle'
 
 import { Chip } from './Chip'
 
@@ -13,23 +23,48 @@ export default {
 const colors = ['primary', 'secondary', 'contrast', 'neutral'] as const
 
 /**
- * Chip — a compact, sentence-case pill on the Radix-semantic tokens. This story
- * shows the colours, sizes, and removable
+ * Chip — a compact, uppercase label on the Radix-semantic tokens. This story
+ * shows the colour × variant matrix, and the size, radius, and removable
  * options.
  */
 export const Default: Story = () => (
   <StoryWrapper>
     <StorySection
-      description="One style. Neutral is the norm; a colour is for the chip that must stand out."
-      title="Colour"
+      description="Colour (ramp) × variant (surface treatment)."
+      title="Colour × variant"
     >
-      <div className="flex flex-wrap items-center gap-2">
-        {colors.map((color) => (
-          <Chip key={color} color={color}>
-            {color}
-          </Chip>
-        ))}
-      </div>
+      <StoryGrid>
+        <StoryGridHeader>
+          <StoryGridHeaderRow>
+            <StoryGridHeaderCell />
+            <StoryGridHeaderCell>flat</StoryGridHeaderCell>
+            <StoryGridHeaderCell>subtle</StoryGridHeaderCell>
+            <StoryGridHeaderCell>ghost</StoryGridHeaderCell>
+          </StoryGridHeaderRow>
+        </StoryGridHeader>
+        <StoryGridBody>
+          {colors.map((color) => (
+            <StoryGridRow key={color}>
+              <StoryGridCell isLabel>{color}</StoryGridCell>
+              <StoryGridCell>
+                <Chip color={color} variant="flat">
+                  online
+                </Chip>
+              </StoryGridCell>
+              <StoryGridCell>
+                <Chip color={color} variant="subtle">
+                  online
+                </Chip>
+              </StoryGridCell>
+              <StoryGridCell>
+                <Chip color={color} variant="ghost">
+                  online
+                </Chip>
+              </StoryGridCell>
+            </StoryGridRow>
+          ))}
+        </StoryGridBody>
+      </StoryGrid>
     </StorySection>
 
     <StorySection description="sm (default) and md, across every colour." title="Size">
@@ -47,12 +82,35 @@ export const Default: Story = () => (
     </StorySection>
 
     <StorySection
-      description="`onClose` adds a trailing remove button — as the active-filter pills use. Shown on every colour."
+      description="Square (sm, default) vs pill (full) corners, across every colour."
+      title="Radius"
+    >
+      <div className="flex flex-col gap-3">
+        {(['sm', 'full'] as const).map((radius) => (
+          <div key={radius} className="flex flex-wrap items-center gap-2">
+            {colors.map((color) => (
+              <Chip key={color} color={color} radius={radius}>
+                {radius === 'sm' ? 'square' : 'pill'}
+              </Chip>
+            ))}
+          </div>
+        ))}
+      </div>
+    </StorySection>
+
+    <StorySection
+      description="`onClose` adds a trailing remove button — pairs with `radius=full` for the active-filter pills. Shown on every colour."
       title="Removable"
     >
       <div className="flex flex-wrap items-center gap-2">
         {colors.map((color) => (
-          <Chip key={color} closeLabel={`Remove ${color}`} color={color} onClose={() => {}}>
+          <Chip
+            key={color}
+            closeLabel={`Remove ${color}`}
+            color={color}
+            radius="full"
+            onClose={() => {}}
+          >
             {color}
           </Chip>
         ))}
