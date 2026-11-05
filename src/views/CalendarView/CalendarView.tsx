@@ -28,7 +28,7 @@ import { useEventFilters, useSetFilters } from '@/hooks/use-filters'
 import { useLocale } from '@/hooks/use-locale'
 import { useMapController } from '@/hooks/use-map-controller'
 import { useWebShare } from '@/hooks/use-web-share'
-import { regionalLocale, scheduleXLocale } from '@/lib/time'
+import { regionalLocale, scheduleXLocale, scheduleXTranslationKey } from '@/lib/time'
 import { useTheme } from '@/hooks/use-theme'
 import {
   CALENDAR_VIEW_LIST,
@@ -52,11 +52,22 @@ import { BackButton } from '@/views/nav'
 import { DrawerTitle, FilterButton, useFrameOnTop } from '@/views/shared'
 import { DrawerErrorBody, DrawerLoadingBody } from '@/views/fallbacks'
 
+// Schedule-X's own strings, in the words a visitor reads here. These replace its whole English
+// table, so a key left out shows the key itself, which is its English wording anyway.
 const SX_ENGLISH = {
   '+ {{n}} events': '+ {{n}} classes',
   '+ 1 event': '+ 1 class',
   'No events': 'No classes',
+  'Link to {{n}} more events on {{date}}': 'Show {{n}} more classes on {{date}}',
+  'Link to 1 more event on {{date}}': 'Show 1 more class on {{date}}',
 }
+
+// English runs in en-US or en-GB, following the visitor's region (see `scheduleXLocale`), and the
+// overrides must sit under that exact code. Other languages keep Schedule-X's own table.
+const scheduleXTranslations = (scheduleXCode: string) =>
+  scheduleXCode.startsWith('en-')
+    ? { [scheduleXTranslationKey(scheduleXCode)]: SX_ENGLISH }
+    : undefined
 // Online programs get their own colour, the secondary ramp, so they stand out from
 // in-person events on the grid. Entries built with `calendarId: 'online'` (see
 // eventsToCalendarEntries) pick it up. Light and dark share the same token strings — the
@@ -207,7 +218,7 @@ function CalendarControls({ controls }: { controls: CalendarControlsPlugin }) {
   const today = todayISO()
   const hasDates = isDateRestricted(filters.dateRange)
   const window = calendarWindow(filters.dateRange, today)
-  const windowDates = new Intl.DateTimeFormat(locale, {
+  const windowDates = new Intl.DateTimeFormat(regionalLocale(locale), {
     day: 'numeric',
     month: 'short',
   }).formatRange(DateTime.fromISO(window.start).toJSDate(), DateTime.fromISO(window.end).toJSDate())
@@ -429,6 +440,9 @@ function CalendarGrid({
   // location (`events:display.online`) — no calendar-specific duplicate.
   const { t } = useTranslation()
   const { locale } = useLocale()
+  // Dates and times follow the visitor's region (24-hour on a UK browser), as the class pages do.
+  const formatLocale = regionalLocale(locale)
+  const scheduleXCode = scheduleXLocale(formatLocale)
   const { theme } = useTheme()
   const navigate = useAtlasNavigate()
   const isWide = useIsWideWidget()
@@ -477,9 +491,9 @@ function CalendarGrid({
       // SX needs a supported BCP-47 code (see scheduleXLocale), or it throws. This project's token
       // overrides (globals.css) carry the light/dark and accent theming regardless of
       // `isDark`.
-      locale: scheduleXLocale(regionalLocale(locale)),
+      locale: scheduleXCode,
       // Schedule-X's own "+ 12 events" and "No events", in the words a visitor reads here.
-      translations: locale === 'en' ? { enUS: SX_ENGLISH } : undefined,
+      translations: scheduleXTranslations(scheduleXCode),
       callbacks: {
         // Each entry carries its event's route. This opens the matching EventView — the atlas
         // navigate stamps camera and depth like every other in-widget push.
@@ -499,7 +513,7 @@ function CalendarGrid({
     [controls],
   )
 
-  const renderers = useMemo(() => calendarRenderers(locale), [locale])
+  const renderers = useMemo(() => calendarRenderers(formatLocale), [formatLocale])
   const focused = DateTime.fromISO(useCalendarPosition((s) => s.date) ?? todayISO())
 
   return (

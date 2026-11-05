@@ -1,7 +1,14 @@
 import { describe, it, expect } from 'vitest'
 import { DateTime } from 'luxon'
 
-import { formatTimeRange, regionalLocale, sameWallClock, scheduleXLocale, zoneCity } from './time'
+import {
+  formatTimeRange,
+  regionalLocale,
+  sameWallClock,
+  scheduleXLocale,
+  scheduleXTranslationKey,
+  zoneCity,
+} from './time'
 
 // All fixtures are built in a fixed zone so each endpoint's wall clock — and a
 // cross-zone end's conversion into the start's zone — stays deterministic
@@ -165,5 +172,14 @@ describe('scheduleXLocale', () => {
   it('falls back to en-US for a language Schedule-X lacks', () => {
     expect(scheduleXLocale('hu')).toBe('en-US')
     expect(scheduleXLocale('hu-HU')).toBe('en-US')
+  })
+})
+
+describe('scheduleXTranslationKey', () => {
+  // A UK browser runs the calendar in en-GB, so overrides filed only under enUS never applied.
+  it('files strings under the code without its hyphen', () => {
+    expect(scheduleXTranslationKey(scheduleXLocale(regionalLocale('en', ['en-GB'])))).toBe('enGB')
+    expect(scheduleXTranslationKey(scheduleXLocale(regionalLocale('en', ['en-US'])))).toBe('enUS')
+    expect(scheduleXTranslationKey('pt-BR')).toBe('ptBR')
   })
 })
