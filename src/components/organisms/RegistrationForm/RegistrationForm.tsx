@@ -32,6 +32,7 @@ import {
   USER_SUBMISSION_VALUE_MAX,
 } from '@/config/api/mutate'
 import livePreview from '@/config/live-preview/protocol'
+import { classifyError } from '@/lib/report'
 import { useRegistrationDraft } from '@/config/store'
 import {
   RecurrenceType,
@@ -99,6 +100,24 @@ const refusalKey = (error: unknown): TranslationKey | undefined =>
   error instanceof RegistrationRefusedError && hasOwn(REFUSAL_MESSAGE_KEYS, error.code)
     ? REFUSAL_MESSAGE_KEYS[error.code]
     : undefined
+
+/**
+ * The sentence under the generic title, for a failure that names no refusal.
+ *
+ * A request that got no response at all — offline, SahajCloud unreachable, a rejected CORS
+ * preflight — never reached the captcha check, so asking for the challenge again would send the
+ * visitor round the same failure. Anything that did get a response may have spent the token, so
+ * it keeps the "wait for the check, then register again" sentence.
+ */
+const unansweredKey = (error: unknown): TranslationKey => {
+  const answered = typeof (error as { status?: unknown } | null)?.status === 'number'
+  const kind = answered ? undefined : classifyError(error)
+
+  if (kind === 'offline') return 'common.errors.offline'
+  if (kind === 'server') return 'common.errors.server'
+
+  return 'registration.form.captcha_retry'
+}
 
 /** A field error set from a refusal, as opposed to one the schema raised. */
 const REFUSED = 'refused'
@@ -306,11 +325,11 @@ export function RegistrationForm({
   // A refused registration renders OUR copy for the reason, never the
   // endpoint's English prose, and never the thrown message, which is
   // developer text. Anything else — offline, a 5xx, a code this build does
-  // not know — keeps the generic title, but says what to do next: the
-  // challenge has been reset under the viewer, so wait for it and register
-  // again, the same move the report form's own catch-all names.
+  // not know — keeps the generic title, in the error colour, over a sentence
+  // that says what to do next (`unansweredKey`).
   const refusal = mutation.error ?? initialRefusal
   const refusalMessage = refusalKey(refusal)
+  const failureDescription = refusalMessage ? undefined : unansweredKey(refusal)
   // A field refusal is already said, and announced, on its field.
   const showAlert = refusal != null && !refusedField(refusal, questions)
 
@@ -375,12 +394,12 @@ export function RegistrationForm({
 
           {/* A refusal is not a malfunction, so it states its reason on its
               own, without the "Something went wrong" framing or the
-              endpoint's English message. */}
+              endpoint's English message, and without the error colour. */}
           {showAlert && (
             <Alert
               className="mt-4"
-              color="secondary"
-              description={refusalMessage ? undefined : t('registration.form.captcha_retry')}
+              color={refusalMessage ? 'secondary' : 'danger'}
+              description={failureDescription && t(failureDescription)}
               role="alert"
               title={t(refusalMessage ?? 'registration.form.error_title')}
             />
