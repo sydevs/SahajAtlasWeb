@@ -350,6 +350,10 @@ export function useFrameOnTop(frame: (ctx: FrameContext) => void, deps: Dependen
  * has none, and `frameRegion` moves nothing for it — which is the very city an online
  * class most often sits in. `center` is derived from `bounds`, so one test covers a venue
  * too.
+ *
+ * It resolves a region and frames nothing. Each caller keeps its own `useFrameOnTop`, because
+ * that hook also owns the POP restore: a second instance in one view would restore twice, and
+ * `frameRegion` clears the emphasized point the other instance had just set.
  */
 export function useFrameableRegion(regionSlug: string | undefined): Region | undefined {
   const { hasMap } = useMapController()
