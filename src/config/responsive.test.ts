@@ -143,6 +143,8 @@ describe('the container-vs-viewport decision table', () => {
  * The next component that wants "is the widget wide" will copy the nearest precedent, and a raw read in `src/lib/` is now that precedent.
  */
 const RAW_VIEWPORT_READERS: Record<string, string> = {
+  'views/DrawerStack/DrawerStack.tsx':
+    "the floating panel's room: a HEIGHT in px, never a width, used to cap the panel at the viewport",
   'lib/slot-decision.ts':
     'the slot decision: compares the host slot to the viewport, and a frame to the screen, before React renders',
 }

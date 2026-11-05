@@ -93,6 +93,10 @@ const PEEK_SNAP = '80px' // the collapsed peek
 const OPEN_SNAP = '300px' // default, and what the peek expands to
 const WIDE_SNAP = SNAP_POINTS[2] // the near-full snap the full-width calendar opens at
 
+// The floating panel's 16px margin above and below, and its 1px border top and bottom.
+const PANEL_MARGIN_PX = 32
+const PANEL_BORDER_PX = 2
+
 // How far each stacked ancestor peeks out behind the active sheet. Wide enough to read as
 // a deliberate stack of cards from across the screen. An earlier few-pixel sliver was easy
 // to mistake for a border. This width still leaves the active sheet unambiguously on top.
@@ -202,7 +206,7 @@ function PeekStrip({
     // renders at ≥768px, where `352px` always fits — which is exactly why it is worth fixing
     // before that stops being true.
     className =
-      'inset-y-0 start-0 w-[var(--sy-drawer-w,352px)] max-w-[calc(100%-32px)] rounded-none border border-divider bg-background shadow-xl lg:inset-y-4 lg:start-4 lg:rounded-2xl'
+      'inset-y-0 start-0 w-[var(--sy-drawer-w,352px)] max-w-[calc(100%-32px)] rounded-none border border-divider bg-background shadow-xl transition-[height] duration-200 ease-out motion-reduce:transition-none lg:top-4 lg:bottom-auto lg:start-4 lg:h-[var(--sy-panel-h,calc(var(--sy-frame-h)-32px))] lg:rounded-2xl'
   } else {
     style.left = 0
     style.right = 0
@@ -620,6 +624,37 @@ export function DrawerStack() {
   // that is not there. The map-less ROOT view sets `dismissible={false}`, since there is no
   // parent to climb to, and correctly keeps no handle. Map mode is always dismissible, so
   // this resolves to the atom's old answer there.
+  // On desktop the floating panel hugs what's inside it, up to full height, so a short list
+  // shows more map. Its width doesn't change, so the map's left padding stays correct.
+  // The two variables sit on the portal target, which holds both the panel and its peek strips.
+  // `--sy-panel-room` is in pixels because `--sy-frame-h` can be a percentage, and a percentage
+  // inside the panel would resolve against the panel, whose height comes from this.
+  const panelFits = hasMap && direction === 'left' && !wide
+  const fitPanel = useCallback((height: number) => {
+    overlayContainer()?.style.setProperty('--sy-panel-h', `${height + PANEL_BORDER_PX}px`)
+  }, [])
+
+  useEffect(() => {
+    const target = overlayContainer()
+
+    if (!panelFits || !target) return
+
+    const measure = () => {
+      const frameHeight = frameElement()?.clientHeight ?? window.innerHeight
+
+      target.style.setProperty('--sy-panel-room', `${frameHeight - PANEL_MARGIN_PX}px`)
+    }
+
+    measure()
+    window.addEventListener('resize', measure)
+
+    return () => {
+      window.removeEventListener('resize', measure)
+      target.style.removeProperty('--sy-panel-room')
+      target.style.removeProperty('--sy-panel-h')
+    }
+  }, [panelFits])
+
   const sheetDismissible = hasMap || parentPaths.length > 0
   const sheet = (
     <DrawerContent
@@ -652,7 +687,7 @@ export function DrawerStack() {
     >
       <div className="relative min-h-0 flex-1">
         <AnimatePresence>
-          <ViewLayer key={top?.path ?? '/'}>
+          <ViewLayer key={top?.path ?? '/'} onHeight={panelFits ? fitPanel : undefined}>
             {/* Suspense sits OUTSIDE the boundary, so a lazy view's chunk load is a
                 suspend that shows `DrawerLoading` — the shared chrome (header plus close
                 control, rebuilt from the URL) over a spinner — and only a FAILED load
