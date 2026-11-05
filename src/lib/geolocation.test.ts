@@ -115,6 +115,20 @@ describe('shouldShowGeolocationPrompt', () => {
   it('hides when already viewing a region local to the guess', () => {
     expect(shouldShowGeolocationPrompt({ ...showing, regionCenter: NEAR })).toBe(false)
   })
+  it('hides when viewing the country of the guess, in any letter case', () => {
+    const guess = { ...PARIS, country_code: 'FR' }
+
+    expect(
+      shouldShowGeolocationPrompt({ ...showing, guess, regionCenter: FAR, viewedCountry: 'fr' }),
+    ).toBe(false)
+  })
+  it('shows when viewing a country other than the guess', () => {
+    const guess = { ...PARIS, country_code: 'FR' }
+
+    expect(
+      shouldShowGeolocationPrompt({ ...showing, guess, regionCenter: FAR, viewedCountry: 'GB' }),
+    ).toBe(true)
+  })
   it('shows when the viewed region is far from the guess (a whole country)', () => {
     expect(shouldShowGeolocationPrompt({ ...showing, regionCenter: FAR })).toBe(true)
   })

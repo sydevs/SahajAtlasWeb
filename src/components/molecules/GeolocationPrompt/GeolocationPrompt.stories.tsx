@@ -8,7 +8,7 @@ export default { title: 'Molecules' } satisfies StoryDefault
 
 /**
  * GeolocationPrompt — the dismissible IP-geolocation suggestion shown above
- * the list on the top-level views ("Looking for classes near %{city}?"). A
+ * the list on the top-level views ("Classes near %{city}"). A
  * slim, secondary-tinted `Alert` whose text is a button into the
  * distance-ranked nearby search. The small × dismisses it for the session.
  * It announces politely (`role="status"`), and its horizontal padding lines

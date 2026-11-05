@@ -43,7 +43,7 @@ export function OnlineView({ regionSlug, path }: { regionSlug: string; path: str
 
   return (
     <>
-      <NavHeader breadcrumbs title={t('online.title')} />
+      <NavHeader breadcrumbs title={t('online.row')} />
       <DrawerBody>
         {events.length === 0 ? (
           <EmptyEventList />

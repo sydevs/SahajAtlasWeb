@@ -76,6 +76,7 @@ const STORY_DRAWER_CONTROL = {
   canCollapse: false,
   canDismiss: true,
   toggle: () => {},
+  raise: () => {},
   dismiss: () => {},
 }
 

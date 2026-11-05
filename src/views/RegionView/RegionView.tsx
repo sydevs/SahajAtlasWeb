@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next'
 
 import { Alert } from '@/components/atoms/Alert'
 import { Link } from '@/components/atoms/Link'
-import { DrawerBody } from '@/components/atoms/Drawer'
+import { DrawerBody, DrawerToolbar } from '@/components/atoms/Drawer'
 import { EventListItem, List, ListItem } from '@/components/molecules'
 import { regionQuery } from '@/config/api'
 import { useLocale } from '@/hooks/use-locale'
@@ -20,7 +20,7 @@ import {
   EmptyEventList,
   FilterButton,
   GeolocationSuggestion,
-  SearchButton,
+  SearchField,
   useFrameOnTop,
 } from '@/views/shared'
 
@@ -48,6 +48,10 @@ export function RegionView({ slug }: { slug: string }) {
   useFrameOnTop(() => frameRegion(region), [region, frameRegion])
 
   const header = (region.countryCode && regionNames.of(region.countryCode)) || region.name
+  // Only a country can usefully offer "near the guess". Below that, the visitor has already said
+  // where they are looking.
+  const suggestFor =
+    region.level === 'country' ? { center: region.center, countryCode: region.countryCode } : null
   const canonicalUrl = validateWebUrl(region.webUrl)
   // A region with sub-region cards surfaces its online roll-up behind a dedicated "Online
   // Classes" card. A region without sub-regions lists its online events inline.
@@ -90,13 +94,19 @@ export function RegionView({ slug }: { slug: string }) {
         actions={
           <>
             <CalendarButton regionSlug={region.slug} />
-            <SearchButton />
             <FilterButton iconOnly />
           </>
         }
         subtitle={subheader}
         title={header}
       />
+      {/* The field at every level, not an icon that leads to it. `syncToUrl` stays off: typing here
+          must not write `?q` onto a region's own address. */}
+      <DrawerToolbar>
+        <div className="px-4 pb-2">
+          <SearchField syncToUrl={false} />
+        </div>
+      </DrawerToolbar>
       <DrawerBody>
         {/* Above the region's own content, which IS the "other classes near them" the
             acknowledgement hands off to. So the banner carries no onward link of its own.
@@ -137,7 +147,7 @@ export function RegionView({ slug }: { slug: string }) {
         {/* This is suppressed while the acknowledgement is up. Two stacked prompts above the
             list are more than the screen can carry, and the reader has just acted once
             already. It returns as soon as they dismiss the banner. */}
-        {!feedback && <GeolocationSuggestion regionCenter={region.center} />}
+        {!feedback && suggestFor && <GeolocationSuggestion position="above" region={suggestFor} />}
         {isEmpty ? (
           <EmptyEventList />
         ) : (
@@ -150,7 +160,7 @@ export function RegionView({ slug }: { slug: string }) {
               <ListItem
                 count={region.onlineEvents.length}
                 href={childRoute(region.path, 'online')}
-                label={t('online.title')}
+                label={t('online.row')}
               />
             )}
             {/* Sub-regions (venues/centres, child areas) then this region's own located
@@ -176,6 +186,7 @@ export function RegionView({ slug }: { slug: string }) {
               ))}
           </List>
         )}
+        {!feedback && suggestFor && <GeolocationSuggestion position="below" region={suggestFor} />}
       </DrawerBody>
     </>
   )

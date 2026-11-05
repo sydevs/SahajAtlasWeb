@@ -1,4 +1,4 @@
-import { Suspense, lazy, startTransition, useCallback, useEffect, useMemo, useState } from 'react'
+import { Suspense, lazy, startTransition, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { useLocation, useNavigate } from 'react-router'
 import { AnimatePresence } from 'framer-motion'
@@ -70,11 +70,13 @@ type SecondaryViews = ReturnType<typeof loadSecondaryViews>
 // number as a fraction of the sheet height:
 //  - '88px'  peek — the handle plus the search row, or the Back row and the title
 //  - '356px' the Back row, title, breadcrumbs, a list row, and a peek of the next
+//  - '380px' the first screen: its ways in, plus enough of the country list to show there is one
 //  - 0.97    near-full
-const SNAP_POINTS = ['88px', '356px', 0.97]
+const SNAP_POINTS = ['88px', '356px', '380px', 0.97]
 const PEEK_SNAP = '88px' // the collapsed peek
 const OPEN_SNAP = '356px' // default, and what the peek expands to
-const WIDE_SNAP = SNAP_POINTS[2] // the near-full snap the full-width calendar opens at
+const HOME_SNAP = '380px' // what the first screen opens at
+const WIDE_SNAP = SNAP_POINTS[3] // the near-full snap the full-width calendar opens at
 
 // Frames a stationary sheet holds before the `--sy-sheet-top` mirror parks itself (about
 // 0.5s at 60fps — well past the end of any vaul spring). See the effect below for why it
@@ -181,6 +183,8 @@ export function DrawerStack() {
   // that key to tell whether it is still the view on top, and the two agreeing is what
   // makes the comparison mean anything.
   const top = baseStackEntry(entries, hasMap) ?? null
+  // The first screen has more to show before the map matters than any other view.
+  const openSnap = top ? OPEN_SNAP : HOME_SNAP
   // The calendar is the one full-width view. It fills the widget, minus the floating margins,
   // instead of the 352px left panel (see the Drawer `wide` variant) — EXCEPT in its list
   // (agenda) view, one narrow column that reads better at the regular width. `isWide` is here
@@ -337,8 +341,8 @@ export function DrawerStack() {
   // This runs only when navigating to or from the calendar, so it never fights a
   // manual drag on a non-calendar view.
   useEffect(() => {
-    if (direction === 'bottom') setSnap(top?.kind === 'calendar' ? WIDE_SNAP : OPEN_SNAP)
-  }, [direction, top?.kind])
+    if (direction === 'bottom') setSnap(top?.kind === 'calendar' ? WIDE_SNAP : openSnap)
+  }, [direction, top?.kind, openSnap])
 
   // A new searched place lifts the sheet out of its peek, so results are never
   // fetched into a sheet the visitor cannot see. The effect above does not cover this
@@ -350,8 +354,17 @@ export function DrawerStack() {
   // filter edit), so this cannot fight a deliberate drag. Raising the sheet ONLY out
   // of the peek, rather than setting the snap outright, leaves a sheet the visitor
   // pulled tall exactly where they put it.
+  //
+  // A sheet raised only for typing (see `raise` below) has done its job once a place is picked, so
+  // it comes back down to show the map.
+  const raisedForTyping = useRef(false)
+
   useEffect(() => {
-    if (direction === 'bottom') setSnap((current) => (current === PEEK_SNAP ? OPEN_SNAP : current))
+    if (direction !== 'bottom') return
+    const lower = raisedForTyping.current
+
+    raisedForTyping.current = false
+    setSnap((current) => (current === PEEK_SNAP || lower ? OPEN_SNAP : current))
   }, [direction, searchCenter])
 
   // Uniform for every view: dismissing pops to the parent, and the one view with no
@@ -384,7 +397,14 @@ export function DrawerStack() {
       collapsed: snap === PEEK_SNAP,
       canCollapse,
       canDismiss: action !== 'collapse',
-      toggle: () => setSnap((s) => (s === PEEK_SNAP ? OPEN_SNAP : PEEK_SNAP)),
+      toggle: () => setSnap((s) => (s === PEEK_SNAP ? openSnap : PEEK_SNAP)),
+      // Only the bottom sheet moves, and only on the way up: focus returning to a field in a sheet
+      // already pulled tall changes nothing.
+      raise: () => {
+        if (direction !== 'bottom') return
+        raisedForTyping.current = true
+        setSnap(WIDE_SNAP)
+      },
       dismiss: () => {
         // Marks the dismiss navigation as a transition: unmounting a heavy view (the
         // calendar's large grid) would otherwise reconcile synchronously and freeze
@@ -398,7 +418,7 @@ export function DrawerStack() {
           })
       },
     }
-  }, [snap, canCollapse, parentPath, depth, location, navigate, toStackTarget])
+  }, [snap, canCollapse, parentPath, depth, location, navigate, toStackTarget, direction, openSnap])
 
   // The filter overlay's own dismiss (its X / swipe / Esc): back to the calendar it
   // opened over — chronologically when there is in-widget history, otherwise a direct
@@ -410,6 +430,7 @@ export function DrawerStack() {
       // Always parented to the calendar, so its X always goes somewhere.
       canDismiss: true,
       toggle: () => {},
+      raise: () => {},
       // The same back-vs-climb decision as `control` (via `dismissAction`), but the
       // overlay is always parented to the calendar (`hasParent: true` → never
       // 'collapse'), so 'fallback' climbs to `/calendar` directly, keeping its query.

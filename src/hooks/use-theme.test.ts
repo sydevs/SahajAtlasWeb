@@ -112,6 +112,11 @@ describe('initTheme', () => {
 })
 
 describe('getInitialTheme', () => {
+  it('follows a dark device on a first visit', () => {
+    vi.stubGlobal('window', { matchMedia: () => ({ matches: true }) })
+    expect(getInitialTheme()).toBe('dark')
+    vi.unstubAllGlobals()
+  })
   it('returns the persisted theme', () => {
     vi.stubGlobal('localStorage', { getItem: () => 'dark', setItem: () => {} })
     expect(getInitialTheme()).toBe('dark')

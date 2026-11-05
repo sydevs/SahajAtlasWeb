@@ -22,6 +22,7 @@ import { useLocale } from '@/hooks/use-locale'
 import { useMapController } from '@/hooks/use-map-controller'
 import { approxBounds } from '@/lib/geo'
 import { geocodeBounds, geocodeCountryCode } from '@/lib/geocode'
+import { countrySite } from '@/lib/country-sites'
 import { atlasError } from '@/lib/report'
 import {
   NEARBY_RADIUS_KM,
@@ -60,6 +61,8 @@ export type DrawerControl = {
   canDismiss: boolean
   toggle: () => void
   dismiss: () => void
+  /** Takes a phone's sheet near-full, for typing in the search field. */
+  raise: () => void
 }
 
 export const DrawerControlContext = createContext<DrawerControl>({
@@ -68,6 +71,7 @@ export const DrawerControlContext = createContext<DrawerControl>({
   canDismiss: false,
   toggle: () => {},
   dismiss: () => {},
+  raise: () => {},
 })
 
 export const useDrawerControl = () => useContext(DrawerControlContext)
@@ -248,6 +252,7 @@ export function SearchField({
 }: Pick<MapSearchProps, 'label' | 'syncToUrl'> = {}) {
   const navigate = useAtlasNavigate()
   const [searchParams] = useSearchParams()
+  const { raise } = useDrawerControl()
 
   const handleSelect = useCallback(
     (value: GeocodingFeature) => {
@@ -272,7 +277,8 @@ export function SearchField({
   )
 
   return (
-    <div className="min-w-0 flex-1">
+    // Focus raises a phone's sheet, so the suggestions (and the keyboard) have room.
+    <div className="min-w-0 flex-1" onFocus={raise}>
       <MapSearch label={label} syncToUrl={syncToUrl} onSelect={handleSelect} />
     </div>
   )
@@ -393,10 +399,9 @@ export function EmptyEventList() {
 // conditions. Only the close button persists a session-scoped dismissal. Accepting merely
 // navigates. The prompt self-hides while the visitor views that area, but returns once they
 // leave it.
-export function GeolocationSuggestion({
-  regionCenter,
-}: {
-  regionCenter?: [number, number] | null
+export function useIpSuggestion(region?: {
+  center?: [number, number] | null
+  countryCode?: string | null
 }) {
   const navigate = useAtlasNavigate()
   const [searchParams] = useSearchParams()
@@ -421,15 +426,16 @@ export function GeolocationSuggestion({
         dismissed,
         activeSearch,
         geojson,
-        regionCenter,
+        regionCenter: region?.center,
+        viewedCountry: region?.countryCode,
       }),
-    [ipLocation, dismissed, activeSearch, geojson, regionCenter],
+    [ipLocation, dismissed, activeSearch, geojson, region?.center, region?.countryCode],
   )
 
-  const handleSelect = useCallback(() => {
+  const accept = useCallback(() => {
     if (!ipLocation) return
 
-    // Accepting must NOT persist a dismissal — only the close button does (handleDismiss).
+    // Accepting must NOT persist a dismissal — only the close button does (dismiss).
     // Zooming to the guess already hides the prompt on its own. The new URL carries
     // `?center`/`?q`, so `hasActivePlaceSearch` suppresses it while the visitor is looking at
     // that area. Leaving the area, by clearing the search, brings the suggestion back, so it
@@ -453,15 +459,46 @@ export function GeolocationSuggestion({
     )
   }, [ipLocation, navigate, searchParams])
 
-  const handleDismiss = useCallback(() => {
+  const dismiss = useCallback(() => {
     markGeolocationDismissed()
     setDismissed(true)
   }, [])
 
-  // `!ipLocation` is implied by `!show`, but narrows the type for the render below.
-  if (!ipLocation || !show) return null
+  // `!ipLocation` is implied by `!show`, but narrows the type for callers.
+  return ipLocation && show ? { guess: ipLocation, accept, dismiss } : null
+}
+
+/**
+ * The banner, for a country other than the guess. (The world view offers the guess in its near-me
+ * row instead.) The lookup can land seconds after the list has painted, and a banner pushed in above
+ * rows the visitor may be about to tap makes them tap the wrong one (seen at about 8s on iOS). So a
+ * view mounts this twice: `above` shows only if the answer was already known at the first paint,
+ * `below` only if it came later, where it moves nothing.
+ */
+export function GeolocationSuggestion({
+  region,
+  position,
+}: {
+  region: { center?: [number, number] | null; countryCode?: string | null }
+  position: 'above' | 'below'
+}) {
+  const suggestion = useIpSuggestion(region)
+  const { regionNames } = useLocale()
+  const knownAtFirstPaint = useRef(suggestion !== null)
+
+  if (!suggestion || knownAtFirstPaint.current !== (position === 'above')) return null
+
+  const code = isoCountryCode(suggestion.guess.country_code)
+  const site = countrySite(code)
 
   return (
-    <GeolocationPrompt city={ipLocation.city} onAccept={handleSelect} onClose={handleDismiss} />
+    <div className={position === 'below' ? 'pt-3' : undefined}>
+      <GeolocationPrompt
+        city={suggestion.guess.city}
+        site={code && site ? { href: site, country: regionNames.of(code) ?? code } : undefined}
+        onAccept={suggestion.accept}
+        onClose={suggestion.dismiss}
+      />
+    </div>
   )
 }

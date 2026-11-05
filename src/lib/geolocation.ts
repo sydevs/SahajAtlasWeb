@@ -124,7 +124,7 @@ export const isLocalRegion = (
 /** The inputs the geolocation-prompt visibility decision reads. */
 export type GeolocationPromptState = {
   /** The resolved IP guess, or `null` while loading / on failure. */
-  guess: { latitude: number; longitude: number } | null
+  guess: { latitude: number; longitude: number; country_code?: string } | null
   /** Session-dismissed (× or accepted). */
   dismissed: boolean
   /** A place search is already active (SearchView with `?center`/`?q`). */
@@ -133,6 +133,8 @@ export type GeolocationPromptState = {
   geojson: Geojson | undefined
   /** The centre of the region currently viewed, if any (RegionView). */
   regionCenter?: [number, number] | null
+  /** The country currently viewed, if any (a country-level RegionView). */
+  viewedCountry?: string | null
 }
 
 /**
@@ -146,6 +148,11 @@ export type GeolocationPromptState = {
  * - No located class is within `NEARBY_MAX_KM` of the guess (the suggestion would lead
  *   nowhere).
  * - The user is already viewing a region local to the guess.
+ * - The user is already viewing the country of the guess: its list is the answer, whichever part
+ *   of it they are in.
+ *
+ * The views decide the levels it belongs to: the world and a country. Below a country the
+ * visitor has already said where they are looking, so it is never rendered there.
  */
 export const shouldShowGeolocationPrompt = ({
   guess,
@@ -153,8 +160,15 @@ export const shouldShowGeolocationPrompt = ({
   activeSearch,
   geojson,
   regionCenter,
+  viewedCountry,
 }: GeolocationPromptState): boolean => {
   if (!guess || dismissed || activeSearch) return false
+  if (
+    viewedCountry &&
+    guess.country_code?.toLocaleUpperCase() === viewedCountry.toLocaleUpperCase()
+  ) {
+    return false
+  }
 
   const point: [number, number] = [guess.longitude, guess.latitude]
 

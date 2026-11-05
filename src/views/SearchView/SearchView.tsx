@@ -11,7 +11,6 @@ import { BackButton } from '@/views/nav'
 import {
   ExpandSheetButton,
   FilterButton,
-  GeolocationSuggestion,
   SearchField,
   useFrameOnTop,
 } from '@/views/shared'
@@ -59,7 +58,9 @@ export function SearchView() {
 
   return (
     <>
-      <DrawerHeader>
+      {/* The field shares this band with Back, but its suggestions span the whole band: a dropdown
+          narrower than the panel leaves the list's counts peeking out beside it. */}
+      <DrawerHeader className="[container-type:inline-size] [--sy-results-w:100cqi]">
         <BackButton iconOnly />
         <SearchField />
         <ExpandSheetButton />
@@ -74,7 +75,6 @@ export function SearchView() {
         </ListToolbar>
       </DrawerToolbar>
       <DrawerBody>
-        <GeolocationSuggestion />
         {/* The list owns the `['events', …]` read. The geocoder above it does not. Keeping a
             failed list local means the search field stays live, so the escape from a failed
             search is to run a different one — the most useful thing on the screen. `resetKeys`
