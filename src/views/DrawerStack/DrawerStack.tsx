@@ -263,6 +263,7 @@ export function DrawerStack() {
   const filterPanelFits = useFitsWidth(container ?? frameElement(), FILTER_PANEL_MIN_PX)
   const filterPanelOpen = useFilterPanelState((s) => s.open)
   const setFilterPanelOpen = useFilterPanelState((s) => s.setOpen)
+  const filterPanelUp = useFilterPanelState((s) => s.onScreen)
   // A fixed origin on the sheet's layer, which the live-top loop measures against (see there).
   const sheetOriginRef = useRef<HTMLDivElement>(null)
   // The lazy components ARE the retry state — the boundary's reset swaps in fresh ones.
@@ -923,7 +924,13 @@ export function DrawerStack() {
                 {!wide && snap !== WIDE_SNAP && (
                   <SettingsMenu
                     align="end"
-                    className="fixed top-[var(--sy-map-ctrl-top)] right-[var(--sy-map-ctrl-end)] z-20"
+                    // With the filter panel up, the cog moves in beside it with the rest of the
+                    // column (`--sy-map-end` in Map.tsx is the same 336px).
+                    className={
+                      filterPanelUp
+                        ? 'fixed top-[var(--sy-map-ctrl-top)] right-[calc(var(--sy-map-ctrl-end)+336px)] z-20'
+                        : 'fixed top-[var(--sy-map-ctrl-top)] right-[var(--sy-map-ctrl-end)] z-20'
+                    }
                   />
                 )}
               </>,
