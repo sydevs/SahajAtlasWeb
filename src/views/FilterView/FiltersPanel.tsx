@@ -35,7 +35,7 @@ export function FiltersPanel() {
   return (
     <aside
       aria-label={t('filters.chrome.title')}
-      className="pointer-events-auto fixed end-4 top-4 z-30 flex max-h-[calc(100%-72px)] w-[320px] flex-col overflow-hidden rounded-2xl border border-divider bg-background text-foreground shadow-xl"
+      className="pointer-events-auto fixed end-4 top-4 z-30 flex max-h-[calc(100%-72px)] w-[272px] flex-col overflow-hidden rounded-2xl border border-divider bg-background text-foreground shadow-xl"
     >
       <header className="flex shrink-0 items-center justify-between gap-2 ps-4 pe-2 pt-4 pb-1">
         <h2 className="text-xl font-semibold">{t('filters.chrome.title')}</h2>
@@ -62,7 +62,7 @@ export function FiltersPanel() {
                   online: facets.counts.format.online,
                 }
               }
-              prominent={placeFirst && !canClear}
+              prominent={false}
               region={filters.region}
               townSearch={false}
               onClear={clearWhere}

@@ -156,6 +156,8 @@ export function CountriesView() {
                 <ListItem
                   count={onlineCount}
                   href={onlineSearch}
+                  // The We Meditate meditating figure, in the warm coral: the one icon on the
+                  // first screen, on the one row that is a way to meditate rather than a place.
                   icon={<WmIcon className="text-ornament" name="meditate" size={24} />}
                   label={t('online.row')}
                   subtitle={t('online.anywhere')}

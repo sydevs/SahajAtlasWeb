@@ -173,7 +173,7 @@ function withFitSnap(points: (number | string)[], fitPx: number | null) {
 }
 
 // How wide the widget has to be before the filters get their own panel over the map, and open by
-// default: the 352px list and its margins, the 320px filter panel and the 64px of map controls
+// default: the 352px list and its margins, the 272px filter panel and the 64px of map controls
 // beside it, which leaves about 450px of map to look at. Below this, filters sit behind the button.
 const FILTER_PANEL_MIN_PX = 1200
 

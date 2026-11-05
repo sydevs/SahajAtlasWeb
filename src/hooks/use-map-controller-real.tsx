@@ -47,9 +47,9 @@ const MOBILE_SHEET_MAX_SHARE = 0.5
 // In a host's box the sheet opens taller (`DETAIL_SNAP` in DrawerStack).
 const FRAMED_SHEET_PX = 400
 const MAP_MARGIN = 20
-// The filter panel's 320px width plus the 64px it stands off the right edge (`FiltersPanel`),
-// which is where the locate and attribution controls live.
-const FILTER_PANEL_PX = 336
+// The filter panel's 272px width plus the 16px it stands off the right edge (`end-4` in
+// `FiltersPanel`). The map controls beside it move left of the panel (`CONTROLS_BESIDE_PANEL`).
+const FILTER_PANEL_PX = 288
 const MIN_FIT_PX = 80
 
 // These constants keep zoom consistent.
@@ -226,7 +226,12 @@ export function RealMapControllerProvider({ children }: { children: ReactNode })
         // `restore` would have reinstated the pin only for a POP.
         setSelection(null)
         setBoundary(undefined)
-        moveMap({ zoom: 0 })
+        // One world, filling the map. `renderWorldCopies` is off on the map, so Mapbox clamps this
+        // zoom up until the world spans the map's full width (and Mercator's full height): the
+        // world shows once at any window size, with no empty space or repeats at the sides.
+        // Zoom 0 alone was a 512px-wide world, repeated three or four times on a wide screen.
+        // Latitude 20 leans north, where most classes are.
+        moveMap({ center: [0, 20], zoom: 0 })
       },
     }),
     [
