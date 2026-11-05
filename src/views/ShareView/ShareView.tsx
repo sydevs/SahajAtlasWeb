@@ -34,16 +34,10 @@ export function ShareView({ eventPath }: { eventPath: string }) {
   return (
     <>
       <DrawerHeader className="justify-between">
-        <DrawerTitle title={t('share.title')} />
+        <DrawerTitle subtitle={event.title} title={t('share.title_class')} />
         <CloseButton />
       </DrawerHeader>
       <DrawerBody className="p-4">
-        <EventFacts
-          className="mx-auto mb-4 w-full max-w-md"
-          event={event}
-          title={event.title}
-          variant="card"
-        />
         {/* Match the summary card's width so the share block lines up with it. */}
         <div className="mx-auto w-full max-w-md">
           {url ? (
@@ -66,6 +60,9 @@ export function ShareView({ eventPath }: { eventPath: string }) {
             />
           )}
         </div>
+        {/* The buttons come first, so they fit the sheet's usual height with the map still in view.
+            The class's name is in the header. Its time and place follow for a direct-link visitor. */}
+        <EventFacts className="mx-auto mt-4 w-full max-w-md" event={event} variant="card" />
       </DrawerBody>
     </>
   )

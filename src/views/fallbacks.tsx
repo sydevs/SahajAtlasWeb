@@ -159,7 +159,7 @@ export function DrawerChrome({ interactive = true }: { interactive?: boolean }) 
           defaultValue: 'Register for this class',
         })
       case 'share':
-        return t('share.title', { defaultValue: 'Share Meditation' })
+        return t('share.title_class', { defaultValue: 'Share this class' })
       default:
         return undefined
     }

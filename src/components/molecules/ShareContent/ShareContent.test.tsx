@@ -58,6 +58,13 @@ describe('ShareContent', () => {
     expect(html).not.toContain('caf%C3%A9')
   })
 
+  it('offers a named copy button, with the raw URL as a caption under it', () => {
+    const html = renderToStaticMarkup(<ShareContent label={label} url={url} />)
+
+    expect(html).toContain('share.copy_link')
+    expect(html.indexOf('share.copy_link')).toBeLessThan(html.indexOf(url))
+  })
+
   it('leads with a single native share button when the Web Share API is available', () => {
     vi.stubGlobal('navigator', { share: () => Promise.resolve() })
 

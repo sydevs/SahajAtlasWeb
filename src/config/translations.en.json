@@ -271,9 +271,12 @@
   },
   "share": {
     "copied": "Copied",
+    "copy_failed_pointer": "Couldn't copy it. The link below is selected: press Ctrl+C, or ⌘C on a Mac.",
+    "copy_failed_touch": "Couldn't copy it. Press and hold the link below, then choose Copy.",
     "copy_link": "Copy link",
+    "link_copied": "Link copied",
     "native": "Share…",
     "share_on": "Share on %{platform}",
-    "title": "Share Meditation"
+    "title_class": "Share this class"
   }
 }
