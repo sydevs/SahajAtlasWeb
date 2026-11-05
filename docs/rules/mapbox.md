@@ -93,6 +93,10 @@ The map is the heart of the app and its hottest render path. Treat it carefully.
 
 ## Pin-hover timing popover
 
+- Only on a device with a real pointer (`useHasRealPointer`). iOS sends a fake mouse
+  move before a tap, and a tap that reveals content never clicks, so `onMouseMove` is
+  not wired on touch. It shows the class name above the timing, and
+  `pinPopoverPlacement` keeps it inside the visible map, side panel included.
 - Hovering a pin displays a small non-interactive popover with that event's
   timing — `EventPinPopover` plus `EventPinCard`, module-private helpers
   inlined in `Map.tsx` (the popover is inherently map-bound, since it renders a
