@@ -1,6 +1,12 @@
 import { describe, it, expect } from 'vitest'
 
-import { atlasDepth, atlasPushState, dismissAction, dismissDepth } from './navigation'
+import {
+  atlasDepth,
+  atlasPushState,
+  backDestination,
+  breadcrumbTrail,
+  dismissAction,
+} from './navigation'
 
 // The in-widget history shaping that turns a chronological-back dismiss on and the
 // structural-parent climb off (or vice-versa). Pure decisions, so we drive them with
@@ -52,38 +58,63 @@ describe('dismissAction', () => {
   })
 })
 
-describe('dismissDepth', () => {
-  it('counts the URL ancestors for a fresh deep link (depth 0 — every press climbs)', () => {
-    // /gb/london/123 opened cold: X climbs area → country → root.
-    expect(dismissDepth({ depth: 0, entryAncestors: 3, ancestors: 3 })).toBe(3)
+describe('atlasPushState from', () => {
+  it('records where the push left, query included', () => {
+    expect(atlasPushState({ pathname: '/search', search: '?q=Prague', state: null })).toEqual({
+      depth: 1,
+      from: '/search?q=Prague',
+    })
+  })
+})
+
+describe('backDestination', () => {
+  it('has nothing to go back to at the root', () => {
+    expect(backDestination({ pathname: '/', state: { depth: 3, from: '/gb' } })).toBeUndefined()
   })
 
-  it('counts ONE panel for a pin clicked from the root, not the URL ancestors', () => {
-    // The regression this exists for: /gb/london/123 has 3 URL ancestors, but the
-    // widget entered at the root (entryAncestors 0) and pushed once, so a single X
-    // goes chronologically back to the root.
-    expect(dismissDepth({ depth: 1, entryAncestors: 0, ancestors: 3 })).toBe(1)
+  it('names the entry history will land on when the visitor arrived from a search', () => {
+    expect(
+      backDestination({
+        pathname: '/cz/praha/lipanska-8734/1129',
+        state: { depth: 2, from: '/search?q=Prague' },
+      }),
+    ).toBe('/search?q=Prague')
   })
 
-  it('adds the entry ancestors still to be climbed once history runs out', () => {
-    // Deep-linked to /gb/london (2 ancestors), then opened an event: back to the
-    // event's parent, then climb london → gb → root.
-    expect(dismissDepth({ depth: 1, entryAncestors: 2, ancestors: 3 })).toBe(3)
+  it('climbs one level on a fresh deep link', () => {
+    expect(backDestination({ pathname: '/gb/south-east/london/711' })).toBe('/gb/south-east/london')
+    expect(backDestination({ pathname: '/gb' })).toBe('/')
   })
 
-  it('matches the URL ancestors for a full in-widget drill-down', () => {
-    // root → gb → london → event: depth and structure agree, as they always did.
-    expect(dismissDepth({ depth: 3, entryAncestors: 0, ancestors: 3 })).toBe(3)
+  it('keeps the query when climbing back into a search', () => {
+    expect(backDestination({ pathname: '/search/filters', search: '?q=Prague' })).toBe(
+      '/search?q=Prague',
+    )
   })
 
-  it('never exceeds the ancestors the stack can name', () => {
-    // A sibling jump (a search result in another country) pushes depth past the new
-    // branch's height — there is no fourth panel to draw.
-    expect(dismissDepth({ depth: 2, entryAncestors: 0, ancestors: 1 })).toBe(1)
+  it('names a parent when a stale depth has no record of where it came from', () => {
+    expect(backDestination({ pathname: '/gb', state: { depth: 1 } })).toBe('/')
+  })
+})
+
+describe('breadcrumbTrail', () => {
+  const paths = (pathname: string) => breadcrumbTrail(pathname).map((entry) => entry.path)
+
+  it('has nothing to add on a country or a first-level region', () => {
+    expect(paths('/gb')).toEqual([])
+    expect(paths('/gb/south-east')).toEqual([])
+    expect(paths('/nz/1')).toEqual([])
   })
 
-  it('is 0 at the root, which collapses instead of closing', () => {
-    expect(dismissDepth({ depth: 0, entryAncestors: 0, ancestors: 0 })).toBe(0)
-    expect(dismissDepth({ depth: 4, entryAncestors: 0, ancestors: 0 })).toBe(0)
+  it('leaves the page itself to the heading', () => {
+    expect(paths('/gb/south-east/canterbury')).toEqual(['/gb', '/gb/south-east'])
+  })
+
+  it('lists where a class sits, without the class itself', () => {
+    expect(paths('/cz/jihlava/757')).toEqual(['/cz', '/cz/jihlava'])
+  })
+
+  it('includes the online roll-up a class was opened from', () => {
+    expect(paths('/gb/online/12')).toEqual(['/gb', '/gb/online'])
   })
 })

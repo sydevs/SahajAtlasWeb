@@ -87,15 +87,30 @@ export const useCameraHistory = create<CameraHistoryState>((set, get) => ({
   read: (key) => get().snapshots[key],
 }))
 
+type CameraTarget = Pick<CameraSnapshot, 'zoom' | 'latitude' | 'longitude'>
+
 /**
- * This snapshots the live camera, from `useViewState`, under a history key.
+ * Where a camera move in flight will end, or `null` when the map is at rest.
+ *
+ * `useViewState` mirrors the camera only when the map STOPS moving. So during a fly it still
+ * holds the place the fly left. Someone who clicks during the fly-back from a class, a
+ * natural thing to do, would have that old place remembered as the camera of the screen
+ * they are on. Going back later flies them there, with the list saying somewhere else.
+ * Non-reactive, like the history itself: nothing renders from it.
+ */
+export const useCameraTarget = create<{ target: CameraTarget | null }>(() => ({ target: null }))
+
+/**
+ * This snapshots the camera, from `useViewState`, under a history key: the destination of a
+ * fly in flight if there is one, because that is the place this screen is showing.
  * The app calls it right before an in-widget push.
  * So a later POP back to that entry can restore the camera.
  */
 export const rememberCamera = (key: string): void => {
   const { zoom, latitude, longitude, selection, boundary } = useViewState.getState()
+  const camera = useCameraTarget.getState().target ?? { zoom, latitude, longitude }
 
-  useCameraHistory.getState().save(key, { zoom, latitude, longitude, selection, boundary })
+  useCameraHistory.getState().save(key, { ...camera, selection, boundary })
 }
 
 // ===== CAMERA SETTLED ===== //

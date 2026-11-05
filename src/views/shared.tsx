@@ -6,7 +6,7 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useRef, use
 import { useLocation, useNavigationType, useSearchParams } from 'react-router'
 import { useTranslation } from 'react-i18next'
 import { useQuery, useSuspenseQuery } from '@tanstack/react-query'
-import { CalendarDays, Funnel, Menu, Search, X } from 'lucide-react'
+import { CalendarDays, Funnel, Search } from 'lucide-react'
 import clsx from 'clsx'
 
 import { Button } from '@/components/atoms/Button'
@@ -72,10 +72,6 @@ export const DrawerControlContext = createContext<DrawerControl>({
 
 export const useDrawerControl = () => useContext(DrawerControlContext)
 
-// The close affordance for the drawer views. This dismisses via the control seam
-// (a navigation to the parent), rather than vaul's Close — closing the real drawer
-// made the sheet animate shut and then re-open with the parent, which read as
-// jarring.
 export type DrawerTitleProps = {
   /** The drawer's visible heading. */
   title: ReactNode
@@ -101,7 +97,7 @@ export type DrawerTitleProps = {
 export function DrawerTitle({ title, subtitle, note }: DrawerTitleProps) {
   return (
     <div className="min-w-0">
-      <h2 className="truncate text-xl">{title}</h2>
+      <h2 className="line-clamp-2 text-xl break-words">{title}</h2>
       {subtitle && <div className="truncate text-sm text-gray-11">{subtitle}</div>}
       {note && <div className="truncate text-xs text-gray-11">{note}</div>}
     </div>
@@ -109,35 +105,16 @@ export function DrawerTitle({ title, subtitle, note }: DrawerTitleProps) {
 }
 
 /**
- * The drawer header's icon controls (close, list-toggle, filter) are all the same
+ * The drawer header's icon controls (back, list-toggle, filter) are all the same
  * Button preset, kept here as values, rather than as a wrapper component, so the
  * three provably render identical chrome — the header reads as one set of buttons.
  */
-const HEADER_CONTROL = { variant: 'ghost', isIconOnly: true, size: 'sm' } as const
+export const HEADER_CONTROL = { variant: 'ghost', isIconOnly: true, size: 'sm' } as const
 
 // The last control in a header. Its 20px icon sits in a 32px box, so this pulls the box 6px
 // into the gutter. The icon then lands on the panel's 16px edge, in the same column as the
 // rows' chevrons, while the tap area stays whole.
 const HEADER_LAST_CONTROL = '-me-1.5'
-
-export function CloseButton({ className }: { className?: string }) {
-  // `useSuspense: false` — this renders inside the error/loading chrome, where
-  // suspending on an in-flight namespace (a language switch mid-error) would
-  // escape the boundary and blank the widget instead of showing the failure.
-  const { t } = useTranslation()
-  const { dismiss } = useDrawerControl()
-
-  return (
-    <Button
-      {...HEADER_CONTROL}
-      aria-label={t('common.chrome.close')}
-      className={clsx(HEADER_LAST_CONTROL, className)}
-      onClick={dismiss}
-    >
-      <X size={20} />
-    </Button>
-  )
-}
 
 // The calendar affordance for region headers (RegionView): opens the full-width
 // calendar pre-scoped to this region (`/calendar?region=<slug>`, pre-setting the
@@ -146,8 +123,7 @@ export function CloseButton({ className }: { className?: string }) {
 export function CalendarButton({ regionSlug }: { regionSlug: string }) {
   // `useSuspense: false` — also rendered by the fallback chrome
   // (views/fallbacks.tsx), where suspending on an in-flight namespace would
-  // escape the boundary and blank the widget instead of showing the failure. See
-  // CloseButton.
+  // escape the boundary and blank the widget instead of showing the failure.
   const { t } = useTranslation()
   const navigate = useAtlasNavigate()
 
@@ -164,12 +140,11 @@ export function CalendarButton({ regionSlug }: { regionSlug: string }) {
 
 // The search affordance for region headers (RegionView): jumps to the
 // distance-ranked search view. This renders the same header-control chrome as the
-// close/filter controls, so the header reads as one set of buttons.
+// other header controls, so the header reads as one set of buttons.
 export function SearchButton() {
   // `useSuspense: false` — also rendered by the fallback chrome
   // (views/fallbacks.tsx), where suspending on an in-flight namespace would
-  // escape the boundary and blank the widget instead of showing the failure. See
-  // CloseButton.
+  // escape the boundary and blank the widget instead of showing the failure.
   const { t } = useTranslation()
   const navigate = useAtlasNavigate()
 
@@ -184,28 +159,25 @@ export function SearchButton() {
   )
 }
 
-// The stacked-list toggle in CountriesView's header: expands the collapsed peek
-// into the country list, or collapses the open list back to the peek. Hidden where
-// the sheet cannot collapse (desktop or map-less).
-export function CollapseToggle() {
-  // See CloseButton: also rendered by the error/loading chrome, so it must not
-  // suspend.
+// A sheet pulled down to its peek says how to bring it back. The handle does this too, but
+// a thin handle is easy to miss, and a keyboard can't use it. `label` is for the views where
+// what comes back is not a list.
+export function ExpandSheetButton({ label }: { label?: string }) {
+  // Also rendered by the error/loading chrome, so it must not suspend.
   const { t } = useTranslation()
   const { collapsed, canCollapse, toggle } = useDrawerControl()
 
-  if (!canCollapse) return null
+  if (!canCollapse || !collapsed) return null
 
-  // At the peek, it is a list toggle (expand the countries list). Once opened past
-  // the peek it becomes the usual close control (collapse back to the peek).
   return (
     <Button
-      {...HEADER_CONTROL}
-      aria-expanded={!collapsed}
-      aria-label={collapsed ? t('common.chrome.explore') : t('common.chrome.close')}
-      className={HEADER_LAST_CONTROL}
+      className="relative shrink-0 after:absolute after:inset-x-0 after:-inset-y-1.5"
+      color="primary"
+      size="sm"
+      variant="flat"
       onClick={toggle}
     >
-      {collapsed ? <Menu size={24} /> : <X size={20} />}
+      {label ?? t('common.chrome.show_list')}
     </Button>
   )
 }
@@ -227,8 +199,7 @@ export function FilterButton({
 }) {
   // `useSuspense: false` — also rendered by the fallback chrome
   // (views/fallbacks.tsx), where suspending on an in-flight namespace would
-  // escape the boundary and blank the widget instead of showing the failure. See
-  // CloseButton.
+  // escape the boundary and blank the widget instead of showing the failure.
   const { t } = useTranslation()
   const navigate = useAtlasNavigate()
   const location = useLocation()
@@ -393,8 +364,7 @@ export function useEventFromPath(eventPath: string) {
 export function EmptyEventList() {
   // `useSuspense: false` — also rendered by the fallback chrome
   // (views/fallbacks.tsx), where suspending on an in-flight namespace would
-  // escape the boundary and blank the widget instead of showing the failure. See
-  // CloseButton.
+  // escape the boundary and blank the widget instead of showing the failure.
   const { t } = useTranslation()
 
   return (

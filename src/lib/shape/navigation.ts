@@ -7,9 +7,10 @@
  * import), so the decision is unit-testable in isolation from the components
  * that apply it.
  */
+import { type StackEntry, resolveStack } from './path'
 
 /** The `state` shape we stamp on in-widget pushes (via the Link atom + useAtlasNavigate). */
-export type AtlasNavState = { depth?: number }
+export type AtlasNavState = { depth?: number; from?: string }
 
 /**
  * The in-widget history depth carried on a location's `state`. A fresh deep link
@@ -30,10 +31,64 @@ export const atlasDepth = (location: { state?: unknown }): number => {
  * paths cannot silently diverge. Pair it with `rememberCamera(location.key)` at
  * click time, so a later back restores the camera. That stays a separate call,
  * because Link stamps `state` at render but can only capture the live camera on click.
+ *
+ * `from` records where the push left, query included, so the Back button can name the
+ * place `navigate(-1)` will land on. History itself cannot be read, only moved through.
  */
-export const atlasPushState = (location: { state?: unknown }): AtlasNavState => ({
+export const atlasPushState = (location: {
+  state?: unknown
+  pathname?: string
+  search?: string
+}): AtlasNavState => ({
   depth: atlasDepth(location) + 1,
+  ...(location.pathname ? { from: `${location.pathname}${location.search ?? ''}` } : {}),
 })
+
+/**
+ * Where Back goes from this location, as a route with its query: `undefined` at the root,
+ * which has nothing to go back to. With in-widget history it is the entry that a
+ * `navigate(-1)` lands on. A fresh deep link climbs to its structural parent instead, for
+ * the same reason `dismissAction` does. This is the label's half of that decision, and the
+ * two have to agree, so it reads the same inputs.
+ */
+export const backDestination = (location: {
+  pathname: string
+  search?: string
+  state?: unknown
+}): string | undefined => {
+  const entries = resolveStack(location.pathname)
+
+  if (entries.length === 0) return undefined
+
+  const from = (location.state as { from?: unknown } | null | undefined)?.from
+
+  if (atlasDepth(location) > 0 && typeof from === 'string') return from
+
+  const parent = entries.at(-2)?.path ?? '/'
+
+  // A search keeps its query when something stacked over it climbs back (see DrawerStack).
+  return parent === '/search' ? `${parent}${location.search ?? ''}` : parent
+}
+
+/** One place in the breadcrumb line, always a link: the page itself is the heading's job. */
+export type Crumb = Extract<StackEntry, { kind: 'region' | 'online' }>
+
+const isPlace = (entry: StackEntry): entry is Crumb =>
+  entry.kind === 'region' || entry.kind === 'online'
+
+/**
+ * The places a page sits inside, from the URL, and so the same however the visitor got
+ * there: `/cz/jihlava/757` gives Czechia, Jihlava. The page itself is left to the heading. A
+ * single place is nothing but the Back button's destination said twice, so that yields no
+ * trail at all.
+ */
+export const breadcrumbTrail = (pathname: string): Crumb[] => {
+  const entries = resolveStack(pathname)
+  const top = entries.at(-1)
+  const places = (top && isPlace(top) ? entries.slice(0, -1) : entries).filter(isPlace)
+
+  return places.length < 2 ? [] : places
+}
 
 /** What dismissing the top drawer resolves to. */
 export type DismissAction =
@@ -58,31 +113,3 @@ export const dismissAction = ({
 
   return depth > 0 ? 'back' : 'fallback'
 }
-
-/**
- * How many panels a repeated dismiss actually traverses before the stack
- * collapses — i.e. how many drawers are genuinely behind the active view. This is
- * what the peek strips must count, and it is NOT the URL's ancestor count.
- *
- * Dismissal is history-aware (see `dismissAction`): while in-widget depth remains,
- * each press goes chronologically BACK one entry, and only once depth reaches 0
- * does it begin climbing structural parents. So a pin clicked from the root view
- * lands at depth 1 with three URL ancestors, yet ONE press returns to the root —
- * rendering three stacked panels there was a lie about where X would take you.
- *
- * `entryAncestors` is the structural ancestor count of the last depth-0 location:
- * the deep link the widget opened on, or whatever a back/climb has returned to.
- * Those are the parents still left to climb once history runs out, so the total is
- * `depth + entryAncestors`. Capped at the current URL's `ancestors`, which is all
- * the stack can actually name — a sibling jump (say a search result in another
- * country) can push depth past the new branch's structural height.
- */
-export const dismissDepth = ({
-  depth,
-  entryAncestors,
-  ancestors,
-}: {
-  depth: number
-  entryAncestors: number
-  ancestors: number
-}): number => Math.max(0, Math.min(ancestors, depth === 0 ? ancestors : depth + entryAncestors))

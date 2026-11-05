@@ -13,7 +13,7 @@ import { eventFrameZoom } from '@/lib/camera'
 import { hasVagueAddress, isOnline } from '@/lib/shape'
 import { frameElement } from '@/lib/overlay'
 
-// These are the fixed left-drawer footprint and the mobile peek height.
+// These are the fixed left-drawer footprint and the mobile sheet's open height.
 // The code feeds them to map padding directly, so the camera and controls stay unoccluded.
 // This never DOM-measures the panel.
 //
@@ -36,7 +36,13 @@ import { frameElement } from '@/lib/overlay'
 // This code rejects that approach, because it would put a DOM read in the map's hot path, to serve an override that is not a supported feature yet.
 // If a host is ever invited to set that variable, this is the constant that must start resolving it.
 const DRAWER_W_PX = 352
-const MOBILE_PEEK_PX = 128
+// The open snap in `DrawerStack`, which is what covers the map when a view frames itself.
+// The padding used to be 128, about the peek, so a framed place was centred on a part of the
+// map the open sheet hid, and the classes listed first sat under it (iOS bug 13).
+const MOBILE_SHEET_PX = 356
+// A short contained embed (#169) can be under twice the sheet's height. Padding past the
+// canvas makes `fitBounds` refuse the fit outright, so the sheet's share is capped.
+const MOBILE_SHEET_MAX_SHARE = 0.5
 const MAP_MARGIN = 20
 
 // These constants keep zoom consistent.
@@ -105,7 +111,14 @@ export function RealMapControllerProvider({ children }: { children: ReactNode })
       left: MAP_MARGIN + (isWide ? DRAWER_W_PX : 0),
       right: MAP_MARGIN,
       top: MAP_MARGIN,
-      bottom: MAP_MARGIN + (isWide ? 0 : MOBILE_PEEK_PX),
+      bottom:
+        MAP_MARGIN +
+        (isWide
+          ? 0
+          : Math.min(
+              MOBILE_SHEET_PX,
+              (frameElement()?.clientHeight ?? window.innerHeight) * MOBILE_SHEET_MAX_SHARE,
+            )),
     })
   }, [isWide, setPadding])
 

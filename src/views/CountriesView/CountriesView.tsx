@@ -16,7 +16,7 @@ import { useWidgetMode } from '@/config/mode'
 import { DEFAULT_FILTERS, filtersToParams, isOnline } from '@/lib/shape'
 import { validateWebUrl } from '@/lib/url'
 import {
-  CollapseToggle,
+  ExpandSheetButton,
   FilterButton,
   GeolocationSuggestion,
   SearchField,
@@ -32,10 +32,10 @@ import {
 export function CountriesView() {
   const { t } = useTranslation()
   const { regionNames } = useLocale()
+  const { collapsed } = useDrawerControl()
   const { standalone } = useWidgetMode()
   const { reset } = useMapController()
 
-  const { canCollapse } = useDrawerControl()
   const { data: countries } = useSuspenseQuery({
     queryKey: ['countries'],
     queryFn: () => api.getCountries(),
@@ -84,9 +84,7 @@ export function CountriesView() {
           index is meaningless, so there is no sort menu here. */}
       <DrawerHeader>
         <SearchField />
-        {/* The toggle renders nothing where the sheet cannot collapse, so filters end the row. */}
-        <FilterButton iconOnly isLast={!canCollapse} />
-        <CollapseToggle />
+        {collapsed ? <ExpandSheetButton /> : <FilterButton iconOnly isLast />}
       </DrawerHeader>
       <DrawerBody>
         <GeolocationSuggestion />

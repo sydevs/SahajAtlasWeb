@@ -1,6 +1,7 @@
 import { type ReactNode, createContext, useContext, useEffect, useRef, useState } from 'react'
 import { Drawer as Vaul } from 'vaul'
 import { tv, type VariantProps } from 'tailwind-variants'
+import clsx from 'clsx'
 
 import { overlayContainer } from '@/lib/overlay'
 
@@ -11,8 +12,7 @@ import { overlayContainer } from '@/lib/overlay'
 // non-modal is *truly* non-modal: no background `aria-hidden`, and no focus
 // trap.
 //
-// `DrawerStack` renders a SINGLE drawer, holding the active (top) view. Parent
-// views appear as static peek cards behind it, not real nested drawers.
+// `DrawerStack` renders a SINGLE drawer, holding the active (top) view.
 // Direction is left at ≥md, and bottom on mobile. `snapPoints` are the mobile
 // peek, third, and full ladder. Map-less, the drawer uses `mode="filled"`. It
 // is then absolute and fills the widget container, instead of fixed to the
@@ -346,10 +346,27 @@ export function DrawerContent({
   )
 }
 
-export function DrawerHeader({ children, className }: { children: ReactNode; className?: string }) {
+export function DrawerHeader({
+  children,
+  className,
+  stacked = false,
+}: {
+  children: ReactNode
+  className?: string
+  /** Rows on top of each other (Back, title, breadcrumbs) instead of one row of controls. */
+  stacked?: boolean
+}) {
   const { slots } = useDrawerSlots()
 
-  return <div className={slots.header({ className })}>{children}</div>
+  return (
+    <div
+      className={slots.header({
+        className: clsx(stacked && 'flex-col items-stretch gap-0.5', className),
+      })}
+    >
+      {children}
+    </div>
+  )
 }
 
 /**

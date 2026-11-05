@@ -1,11 +1,14 @@
 import type { ReactNode } from 'react'
 
+import { DrawerHeader } from '@/components/atoms/Drawer'
 import { Event } from '@/types'
 
 export type EventHeaderProps = {
   event: Event
-  /** Trailing header control (the drawer close button). */
-  trailing?: ReactNode
+  /** The row above the title: the way back. */
+  nav?: ReactNode
+  /** The line below the title: where this class sits. */
+  below?: ReactNode
 }
 
 /**
@@ -15,11 +18,12 @@ export type EventHeaderProps = {
  * chips (type, language, Today) open the body instead of sitting here. The
  * date and location facts follow the chips.
  */
-export function EventHeader({ event, trailing }: EventHeaderProps) {
+export function EventHeader({ event, nav, below }: EventHeaderProps) {
   return (
-    <div className="flex shrink-0 items-start justify-between gap-2 px-4 pt-1 pb-2 md:pt-4">
-      <h1 className="line-clamp-3 text-xl">{event.title}</h1>
-      {trailing}
-    </div>
+    <DrawerHeader stacked>
+      {nav}
+      <h1 className="line-clamp-3 text-xl break-words">{event.title}</h1>
+      {below}
+    </DrawerHeader>
   )
 }
