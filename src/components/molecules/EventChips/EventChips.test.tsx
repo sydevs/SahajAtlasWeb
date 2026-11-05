@@ -10,7 +10,13 @@ import { EventChips } from './EventChips'
 // The UI language is `en`. `languageLabel` echoes the code, so the
 // combined language text is greppable.
 const { d } = vi.hoisted(() => ({
-  d: { status: 'upcoming', full: false, typeLabel: 'Weekly class', isDefaultType: true },
+  d: {
+    status: 'upcoming',
+    kind: 'class',
+    full: false,
+    typeLabel: 'Weekly class',
+    isDefaultType: true,
+  },
 }))
 
 vi.mock('react-i18next', () => ({ useTranslation: () => ({ t: (key: string) => key }) }))
@@ -19,7 +25,7 @@ vi.mock('@/hooks/use-locale', () => ({
 }))
 vi.mock('@/hooks/use-event-display', () => ({
   useEventDisplay: () => ({
-    display: { status: d.status, full: d.full },
+    display: { status: d.status, kind: d.kind, full: d.full },
     typeLabel: d.typeLabel,
     isDefaultType: d.isDefaultType,
   }),
@@ -33,6 +39,7 @@ const render = (languages: string[], variant?: EventChipsProps['variant']) =>
 describe('EventChips', () => {
   beforeEach(() => {
     d.status = 'upcoming'
+    d.kind = 'class'
     d.full = false
     d.typeLabel = 'Weekly class'
     d.isDefaultType = true
@@ -67,6 +74,18 @@ describe('EventChips', () => {
 
     expect(html).toContain('event.display.chip_today')
     expect(html).toContain('text-contrast-11')
+  })
+
+  it('never calls a by-request class a one-off', () => {
+    d.status = 'inactive'
+    d.kind = 'oneoff'
+    d.isDefaultType = false
+    d.typeLabel = 'One-off event'
+
+    expect(render(['en'])).not.toContain('One-off event')
+    expect(render(['fr'], 'compact')).not.toContain('One-off event')
+    // The language still shows.
+    expect(render(['en'])).toContain('>en<')
   })
 
   it('shows a "Full" chip when the event is at capacity', () => {
