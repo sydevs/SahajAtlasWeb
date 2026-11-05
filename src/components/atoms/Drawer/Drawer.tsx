@@ -3,6 +3,8 @@ import { Drawer as Vaul } from 'vaul'
 import { tv, type VariantProps } from 'tailwind-variants'
 import clsx from 'clsx'
 
+import { useSheetDragClaim } from './sheet-touch'
+
 import { overlayContainer } from '@/lib/overlay'
 
 // A drawer built on vaul (see issue #30). It uses a tailwind-variants slot set,
@@ -39,6 +41,8 @@ const drawer = tv({
     // so a long list scrolls under it instead of carrying it away. That is
     // exactly when those controls become useful.
     toolbar: 'mx-auto w-full max-w-[var(--sy-content-max,512px)] shrink-0',
+    // `overscroll-y-none` stops a list's scroll, flung to its end, chaining into Safari's page
+    // pull. `useSheetDragClaim` handles the slow drag that starts at the top.
     // `overflow-x-hidden` is a backstop, not the fix. A drawer is a
     // fixed-width panel and must never scroll sideways. But it renders
     // host-authored prose, so one unbreakable string could always overflow
@@ -58,7 +62,7 @@ const drawer = tv({
     // class, and the spacer adds to their padding instead of replacing it. It
     // is a pseudo-element so `[&>:last-child]` postures still find the real
     // last child (`CENTERED_BODY`).
-    body: "mx-auto min-h-0 w-full max-w-[var(--sy-content-max,512px)] flex-1 overflow-x-hidden overflow-y-auto after:block after:h-[var(--sy-footer-h,0px)] after:shrink-0 after:content-['']",
+    body: "mx-auto min-h-0 w-full max-w-[var(--sy-content-max,512px)] flex-1 overflow-x-hidden overflow-y-auto overscroll-y-none after:block after:h-[var(--sy-footer-h,0px)] after:shrink-0 after:content-['']",
     footer:
       'mx-auto mt-auto w-full max-w-[var(--sy-content-max,512px)] shrink-0 border-t border-gray-4',
     // This themes the vaul drag handle. Its vendored CSS hardcodes a light
@@ -84,6 +88,10 @@ const drawer = tv({
       // is already logical: the stack's panel positioning uses `start-*`, and
       // directional icons carry `rtl:-scale-x-100` at their call sites.
       //
+      // The left inset is the notch or Dynamic Island of a phone held sideways (`viewport-fit=cover`
+      // runs the page under it). The panel widens by the inset and pads it, so its content keeps
+      // the full width clear of the cut-out. Zero everywhere else.
+      //
       // **The `352px` in both variants below is paired with `DRAWER_W_PX` in
       // `hooks/use-map-controller-real.tsx`.** That constant becomes the map's
       // left camera padding, so the map knows how much of itself this panel
@@ -93,7 +101,7 @@ const drawer = tv({
       // nothing anywhere reports the drift.
       left: {
         content:
-          'inset-y-0 left-0 w-[var(--sy-drawer-w,352px)] max-w-[calc(100%-32px)] rounded-none border border-divider lg:top-4 lg:bottom-auto lg:left-4 lg:h-[var(--sy-panel-h,calc(var(--sy-frame-h)-32px))] lg:rounded-2xl',
+          'inset-y-0 left-0 w-[calc(var(--sy-drawer-w,352px)+env(safe-area-inset-left,0px))] max-w-[calc(100%-32px)] rounded-none border border-divider ps-[env(safe-area-inset-left,0px)] lg:top-4 lg:bottom-auto lg:left-4 lg:h-[var(--sy-panel-h,calc(var(--sy-frame-h)-32px))] lg:rounded-2xl',
       },
       right: {
         content:
@@ -256,6 +264,12 @@ export function Drawer({
     dismissible,
     handleOnly,
     modal,
+    // ⚠ Off, so Safari alone moves the page for the keyboard. Vaul's handling writes the sheet's
+    // `bottom` and `height` from the keyboard height plus the active snap offset, and tracks
+    // whether the keyboard is open by toggling a flag on each large viewport change. On iOS that
+    // flag goes out of step after the first close: the next focus threw the sheet off the top of
+    // the screen, and closing left a sheet-shaped ghost over the map. Seen on iOS 18.5 and 26.3.
+    repositionInputs: false,
     open,
     onOpenChange,
     snapPoints,
@@ -323,6 +337,10 @@ export function DrawerContent({
   onEscapeKeyDown,
 }: DrawerContentProps) {
   const { slots, direction, mode, container } = useDrawerSlots()
+  // State, not a ref: the portal mounts the panel a pass after this component does.
+  const [panel, setPanel] = useState<HTMLDivElement | null>(null)
+
+  useSheetDragClaim(direction === 'bottom' && mode !== 'filled' ? panel : null)
 
   const showHandle = handle ?? (direction === 'bottom' && mode !== 'filled')
   // `undefined` means use the default themed root. An explicit `null` opts out.
@@ -331,6 +349,7 @@ export function DrawerContent({
   return (
     <Vaul.Portal container={target ?? undefined}>
       <Vaul.Content
+        ref={setPanel}
         aria-describedby={undefined}
         className={slots.content({ className })}
         onEscapeKeyDown={onEscapeKeyDown}

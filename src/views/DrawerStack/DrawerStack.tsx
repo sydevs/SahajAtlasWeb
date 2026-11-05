@@ -257,6 +257,8 @@ export function DrawerStack() {
   const filterPanelFits = useFitsWidth(container ?? frameElement(), FILTER_PANEL_MIN_PX)
   const filterPanelOpen = useFilterPanelState((s) => s.open)
   const setFilterPanelOpen = useFilterPanelState((s) => s.setOpen)
+  // A fixed origin on the sheet's layer, which the live-top loop measures against (see there).
+  const sheetOriginRef = useRef<HTMLDivElement>(null)
   // The lazy components ARE the retry state — the boundary's reset swaps in fresh ones.
   // Same shape, and the same reasoning, as EventView's `EventDetails`.
   const [secondary, setSecondary] = useState(loadSecondaryViews)
@@ -445,8 +447,18 @@ export function DrawerStack() {
         let top = Number.NaN
 
         try {
-          top =
-            sheet.getBoundingClientRect().top - (frameElement()?.getBoundingClientRect().top ?? 0)
+          // ⚠ Read against a `fixed` origin on the same layer, not against the viewport. While
+          // the iOS keyboard is up, Safari pans the page, and a rect read alone shifts by that
+          // pan. The loop then parks on the panned value, because the pan ending fires nothing
+          // that wakes it, and the peek strips stay stranded across the map as a see-through
+          // panel. Both rects shift together, so the difference holds through a pan, and the
+          // origin lands on a frame's edge where one contains the layer.
+          const origin =
+            sheetOriginRef.current?.getBoundingClientRect().top ??
+            frameElement()?.getBoundingClientRect().top ??
+            0
+
+          top = sheet.getBoundingClientRect().top - origin
         } catch {
           top = Number.NaN
         }
@@ -881,6 +893,11 @@ export function DrawerStack() {
           {target &&
             createPortal(
               <>
+                <div
+                  ref={sheetOriginRef}
+                  aria-hidden
+                  className="pointer-events-none fixed top-0 h-0 w-0"
+                />
                 {tallSheet && <div aria-hidden className="fixed inset-0 z-[35] bg-black/50" />}
                 {filterPanelAvailable === 'panel' && filterPanelOpen && <FiltersPanel />}
                 {filterPanelAvailable === 'chips' && <FilterChipBar />}
