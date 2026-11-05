@@ -44,6 +44,7 @@ import {
 import { wakesSheetLoop } from '@/views/DrawerStack/sheet-wake'
 import { ViewLayer } from '@/views/DrawerStack/ViewLayer'
 import { DrawerControlContext, FilterPanelAvailableContext } from '@/views/shared'
+import { useFitSnap } from '@/views/DrawerStack/use-fit-snap'
 import { DrawerErrorFallback, DrawerLoading } from '@/views/fallbacks'
 import { CountriesView } from '@/views/CountriesView/CountriesView'
 import { SearchView } from '@/views/SearchView/SearchView'
@@ -103,6 +104,9 @@ const SNAP_POINTS = [PEEK_SNAP, '356px', '380px', SEARCH_SNAP, 0.97]
 const OPEN_SNAP = '356px' // default, and what the peek expands to
 const HOME_SNAP = '380px' // what the first screen opens at
 const WIDE_SNAP = SNAP_POINTS[SNAP_POINTS.length - 1] // the near-full snap the full-width calendar opens at
+// Stands for "as tall as the content" in `snap`. The pixel value moves with the content, so
+// the state holds this token and the ladder carries the live number (`useFitSnap`).
+const FIT_SNAP = 'fit'
 // A class opens at the height its content needs, measured by EventView's `useSheetFit`: the
 // title, when, where and chips, above a sticky footer of about 125px. A visitor must see when
 // and where without dragging. Until that measure lands, this is the first guess. The footer
@@ -155,6 +159,17 @@ function openSnapFor(kind: StackEntry['kind'] | undefined, frameHeight: number) 
   if (frameHeight >= DETAIL_SNAP_MIN_FRAME_PX) return DETAIL_SNAP
 
   return kind === 'event' ? FRAMED_FULL_SNAP : OPEN_SNAP
+}
+
+/** The phone ladder with the filters' fit-to-content stop slotted in by height. */
+function withFitSnap(points: (number | string)[], fitPx: number | null) {
+  if (fitPx === null) return points
+  const px = (p: number | string) => (typeof p === 'string' ? parseFloat(p) : Infinity)
+
+  if (points.some((p) => px(p) === fitPx)) return points
+  const at = points.findIndex((p) => px(p) > fitPx)
+
+  return [...points.slice(0, at), `${fitPx}px`, ...points.slice(at)]
 }
 
 // How wide the widget has to be before the filters get their own panel over the map, and open by
@@ -310,11 +325,20 @@ export function DrawerStack() {
   const eventOpenPx = measuredOpenPx ?? fallbackOpenPx
   const eventOpenSnap = `${eventOpenPx}px`
   const eventSnapPoints = useMemo(() => [PEEK_SNAP, eventOpenSnap, WIDE_SNAP], [eventOpenSnap])
+  // The filters' fit-to-content snap (phone only: a host's box has its own ladder, where the
+  // filters fill it). Unmeasured, or as tall as the near-full snap, it is null and FIT_SNAP
+  // falls back to the near-full snap.
+  const fitPx = useFitSnap(
+    direction === 'bottom' && hasMap && top?.kind === 'filters' && !filterOverlay && !framed,
+    location.pathname,
+  )
+  const fitSnap = fitPx === null ? null : `${fitPx}px`
+  const fitSnapPoints = useMemo(() => withFitSnap(SNAP_POINTS, fitPx), [fitPx])
   const snapPoints = framed
     ? FRAMED_SNAP_POINTS
     : top?.kind === 'event'
       ? eventSnapPoints
-      : SNAP_POINTS
+      : fitSnapPoints
   // The first screen has more to show before the map matters than any other view.
   const openSnap = framed
     ? contactOnlyPage
@@ -325,7 +349,12 @@ export function DrawerStack() {
       : top
         ? OPEN_SNAP
         : HOME_SNAP
-  const activeSnap = snap != null && snapPoints.includes(snap) ? snap : openSnap
+  // What vaul sees: the FIT_SNAP token resolved to its live pixel value.
+  const vaulSnap = snap === FIT_SNAP ? (fitSnap ?? WIDE_SNAP) : snap
+  const activeSnap = vaulSnap != null && snapPoints.includes(vaulSnap) ? vaulSnap : openSnap
+  // A drag that lands on the fit stop stores the token, so the stop follows the content.
+  const setVaulSnap = (next: number | string | null) =>
+    setSnap(fitSnap !== null && next === fitSnap ? FIT_SNAP : next)
   // The calendar is the one full-width view. It fills the widget, minus the floating margins,
   // instead of the 352px left panel (see the Drawer `wide` variant) — EXCEPT in its list
   // (agenda) view, one narrow column that reads better at the regular width. `isWide` is here
@@ -374,7 +403,7 @@ export function DrawerStack() {
   // with no half a cog above it. It all comes back once the sheet is dragged lower.
   const tallSheet =
     direction === 'bottom' &&
-    snap === WIDE_SNAP &&
+    (snap === WIDE_SNAP || snap === FIT_SNAP) &&
     (top?.kind === 'filters' || top?.kind === 'search')
 
   // Mirrors the active sheet's live top onto the sheet itself, every frame, so what reads
@@ -556,12 +585,13 @@ export function DrawerStack() {
       return
     }
 
-    const tall =
-      opensTall(top?.kind) ||
-      top?.kind === 'filters' ||
-      (from === 'filters' && top?.kind === 'search')
+    const tall = opensTall(top?.kind) || (from === 'filters' && top?.kind === 'search')
 
-    if (tall) setSnap(WIDE_SNAP)
+    // The filters open as tall as their content, which at world level is a few rows: low on
+    // the screen, near the thumb, with no blank sheet above them. Many filters still reach
+    // the near-full snap, since the fit never goes past it.
+    if (top?.kind === 'filters') setSnap(FIT_SNAP)
+    else if (tall) setSnap(WIDE_SNAP)
     else setSnap(top?.kind === 'search' && searchCenter ? SEARCH_SNAP : openSnap)
   }, [direction, top?.kind, openSnap, framed])
 
@@ -953,7 +983,7 @@ export function DrawerStack() {
             // the `display: contents` theme root and measures 0×0. See the note in
             // `Drawer.tsx`.
             measureAgainst={frameElement()}
-            setActiveSnapPoint={direction === 'bottom' ? setSnap : undefined}
+            setActiveSnapPoint={direction === 'bottom' ? setVaulSnap : undefined}
             snapPoints={direction === 'bottom' ? snapPoints : undefined}
             wide={wide}
             onOpenChange={(o) => !o && control.dismiss()}

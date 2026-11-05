@@ -419,6 +419,8 @@ export function DrawerBody({ children, className }: { children: ReactNode; class
 
   return (
     <div
+      // DrawerStack finds this to size a short sheet to its content (`use-fit-snap.ts`).
+      data-drawer-body
       className={slots.body({
         className: `${scrolled ? 'shadow-[inset_0_7px_6px_-7px_rgb(0_0_0/0.25)]' : ''} ${className ?? ''}`,
       })}
