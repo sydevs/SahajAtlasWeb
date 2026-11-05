@@ -3,6 +3,7 @@ import type { ReactNode } from 'react'
 
 import { tv } from 'tailwind-variants'
 import { CalendarDays, MapPin, Monitor } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 
 import {
   composeCalendarLine,
@@ -113,6 +114,7 @@ export function EventFacts({
   distance,
   className,
 }: EventFactsProps) {
+  const { t } = useTranslation()
   const {
     display,
     recurrenceLine,
@@ -214,6 +216,12 @@ export function EventFacts({
           </div>
         )
       })}
+      {/* "Free" is a newcomer's main doubt. "Register for free" says it wherever that button
+          shows, so this is only for a by-request class, which has no such button. It sits
+          after the where line, level with the fact text, so when and where still lead. */}
+      {variant === 'default' && display.status === 'inactive' && (
+        <p className="pl-8 text-sm text-gray-11">{t('event.display.fact_free')}</p>
+      )}
     </div>
   )
 
