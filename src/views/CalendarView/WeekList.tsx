@@ -3,6 +3,8 @@ import { useSuspenseQuery } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
 import { DateTime } from 'luxon'
 
+import { TimesNote } from './TimesNote'
+
 import { Button } from '@/components/atoms/Button'
 import { DrawerBody } from '@/components/atoms/Drawer'
 import { Link } from '@/components/atoms/Link'
@@ -117,20 +119,23 @@ export function WeekList({ filters }: { filters: EventFilters }) {
   }
 
   return (
-    <DrawerBody className="pb-4">
-      {days.map((day) => (
-        <section key={day.date}>
-          <h3 className="sticky top-0 z-10 flex items-baseline gap-2 bg-gray-2 px-4 py-2 text-sm font-semibold">
-            {dayName(day.date)}
-            <span className="font-normal text-gray-11">{shortDate(day.date)}</span>
-          </h3>
-          <List>
-            {day.entries.map((entry) => (
-              <WeekRow key={entry.id} entry={entry} />
-            ))}
-          </List>
-        </section>
-      ))}
-    </DrawerBody>
+    <>
+      <DrawerBody className="pb-4">
+        {days.map((day) => (
+          <section key={day.date}>
+            <h3 className="sticky top-0 z-10 flex items-baseline gap-2 bg-gray-2 px-4 py-2 text-sm font-semibold">
+              {dayName(day.date)}
+              <span className="font-normal text-gray-11">{shortDate(day.date)}</span>
+            </h3>
+            <List>
+              {day.entries.map((entry) => (
+                <WeekRow key={entry.id} entry={entry} />
+              ))}
+            </List>
+          </section>
+        ))}
+      </DrawerBody>
+      <TimesNote end={window.end} entries={entries} start={window.start} />
+    </>
   )
 }

@@ -255,8 +255,7 @@ export const shiftCalendarWindow = (
   direction: -1 | 1,
   today: string,
 ): DateRange => {
-  const moved =
-    direction > 0 ? addDays(window.end, 1) : addDays(window.start, -CALENDAR_WEEK_DAYS)
+  const moved = direction > 0 ? addDays(window.end, 1) : addDays(window.start, -CALENDAR_WEEK_DAYS)
   const next = weekFrom(moved < today ? today : moved)
 
   return calendarWindow(next, today).isThisWeek ? { start: null, end: null } : next

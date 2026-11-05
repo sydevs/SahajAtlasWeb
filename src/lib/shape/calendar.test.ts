@@ -389,7 +389,10 @@ describe('the week list window', () => {
   it('pages seven days from a shorter window, such as a link opened mid-week', () => {
     const window = calendarWindow({ start: '2026-11-08', end: '2026-11-10' }, today)
 
-    expect(shiftCalendarWindow(window, 1, today)).toEqual({ start: '2026-11-11', end: '2026-11-17' })
+    expect(shiftCalendarWindow(window, 1, today)).toEqual({
+      start: '2026-11-11',
+      end: '2026-11-17',
+    })
   })
 
   it('counts only the filters a visitor chose', () => {

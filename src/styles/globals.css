@@ -470,7 +470,10 @@
    already flip with light/dark plus the tenant accent, the calendar follows the theme
    with no second palette. This sits outside a Tailwind layer, so the overrides always
    win. */
-.sx-calendar {
+/* `.is-dark` repeats the mapping because Schedule-X sets its own purple palette on that class, on
+   an element inside this wrapper, which beat the inherited values. */
+.sx-calendar,
+.sx-calendar .is-dark {
   --sx-color-primary: hsl(var(--primary-9));
   /* The on-primary/secondary colours are the theme-adaptive `--*-on` tokens (light: white,
      dark: black — the same on-color the solid Button uses), NOT a `--*-contrast` token, which
@@ -478,15 +481,16 @@
      legible on dark mode's lighter primary-9 (the today-highlight readability bug). */
   --sx-color-on-primary: hsl(var(--primary-on));
   --sx-color-primary-container: hsl(var(--primary-4));
-  --sx-color-on-primary-container: hsl(var(--primary-11));
+  /* Plain text on the tints: the brand's -11 step measured under 3:1 on its own tint. */
+  --sx-color-on-primary-container: var(--gray-12);
   --sx-color-secondary: hsl(var(--secondary-9));
   --sx-color-on-secondary: hsl(var(--secondary-on));
   --sx-color-secondary-container: hsl(var(--secondary-4));
-  --sx-color-on-secondary-container: hsl(var(--secondary-11));
+  --sx-color-on-secondary-container: var(--gray-12);
   --sx-color-tertiary: hsl(var(--primary-9));
   --sx-color-on-tertiary: hsl(var(--primary-on));
   --sx-color-tertiary-container: hsl(var(--primary-4));
-  --sx-color-on-tertiary-container: hsl(var(--primary-11));
+  --sx-color-on-tertiary-container: var(--gray-12);
   --sx-color-surface: hsl(var(--background));
   --sx-color-surface-bright: hsl(var(--background));
   --sx-color-surface-dim: var(--gray-2);
@@ -498,12 +502,14 @@
   --sx-color-on-background: var(--gray-12);
   --sx-color-outline: var(--gray-7);
   --sx-color-outline-variant: var(--gray-6);
-  --sx-color-neutral: var(--gray-9);
+  --sx-color-neutral: var(--gray-11);
   --sx-color-neutral-variant: var(--gray-8);
   --sx-internal-color-text: var(--gray-12);
   --sx-internal-color-light-gray: var(--gray-4);
   --sx-border: var(--gray-6);
+}
 
+.sx-calendar {
   height: 100%;
   min-height: 0;
 }
@@ -591,7 +597,7 @@
   padding-inline: 6px;
   border-radius: 4px;
   background: hsl(var(--primary-3));
-  color: hsl(var(--primary-11));
+  color: var(--gray-12);
   font-size: var(--text-xs);
   line-height: 20px;
   text-overflow: ellipsis;
@@ -600,13 +606,60 @@
 
 .sx-calendar .sx-entry-cell[data-online='true'] {
   background: hsl(var(--secondary-3));
-  color: hsl(var(--secondary-11));
 }
 
 /* The phone month grid leaves room for the classes. The day stays 44px tall to tap. */
 .sx-calendar .sx__month-agenda-day {
   height: 44px;
   padding-block: 4px;
+}
+
+/* One colour for every day's dots: Schedule-X draws online days so pale they read as no classes. */
+.sx-calendar .sx__month-agenda-day__event-icon {
+  background-color: hsl(var(--primary-9)) !important;
+  filter: none;
+}
+
+.sx-calendar .sx__month-agenda-day-name {
+  color: var(--gray-11);
+}
+
+/* Week entries: a plain tint with no side stripe, and text that fits a one-hour block. */
+.sx-calendar .sx__time-grid-event {
+  border-inline-start: 0 !important;
+}
+
+.sx-calendar .sx-entry-week {
+  height: 100%;
+  overflow: hidden;
+  border-radius: 4px;
+  background: hsl(var(--primary-3));
+}
+
+.sx-calendar .sx-entry-week[data-online='true'] {
+  background: hsl(var(--secondary-3));
+}
+
+.sx-calendar .sx-entry-week-meta {
+  overflow: hidden;
+  padding: 2px 6px 0;
+  color: var(--gray-11);
+  font-size: var(--text-xs);
+  line-height: 16px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sx-calendar .sx-entry-week-name {
+  display: -webkit-box;
+  overflow: hidden;
+  padding-inline: 6px;
+  color: var(--gray-12);
+  font-size: var(--text-xs);
+  font-weight: 600;
+  line-height: 16px;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
 }
 
 /* Inside a frame the fixed layer is contained by it, so the frame IS the box to fill.

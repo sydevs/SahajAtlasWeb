@@ -11,6 +11,7 @@ import { Check, ChevronRight, Share } from 'lucide-react'
 import '@schedule-x/theme-default/dist/index.css'
 
 import { type CalendarRenderers, CalendarMount } from './CalendarMount'
+import { TimesNote } from './TimesNote'
 import { WeekList } from './WeekList'
 
 import { Button } from '@/components/atoms/Button'
@@ -82,7 +83,7 @@ const toScheduleXLocale = (locale: string): string => SX_LOCALES[locale] ?? 'en-
 const ONLINE_COLORS = {
   main: 'hsl(var(--secondary-9))',
   container: 'hsl(var(--secondary-4))',
-  onContainer: 'hsl(var(--secondary-11))',
+  onContainer: 'var(--gray-12)',
 }
 const CALENDARS = {
   online: { colorName: 'online', lightColors: ONLINE_COLORS, darkColors: ONLINE_COLORS },
@@ -117,11 +118,26 @@ const calendarRenderers = (locale: string): CalendarRenderers => {
     // The desktop Month cell is about 150px after the time. There, class names cut to a column
     // of identical "Evening Meditation", so the cell says where and the tooltip says what.
     monthGridEvent: (host, entry) => {
-      const cell = div('sx-entry-cell', `${time(entry.start)} ${entry.place ?? entry.name ?? ''}`)
+      const where = [entry.place, entry.location].filter(Boolean).join(' · ') || entry.name
+      const cell = div('sx-entry-cell', `${time(entry.start)} ${where ?? ''}`)
 
       cell.title = [entry.name, entry.detail].filter(Boolean).join(' · ')
       cell.dataset.online = String(entry.calendarId === 'online')
       host.replaceChildren(cell)
+    },
+    // A one-hour Week entry has room for three short lines. Its position already shows how long it
+    // lasts, so it gives the start and where, then the name, and never a clipped fourth line.
+    timeGridEvent: (host, entry) => {
+      const where = entry.location ?? entry.place
+
+      const block = div('sx-entry-week', '')
+
+      block.dataset.online = String(entry.calendarId === 'online')
+      block.append(
+        div('sx-entry-week-meta', [time(entry.start), where].filter(Boolean).join(' · ')),
+        div('sx-entry-week-name', entry.name ?? ''),
+      )
+      host.replaceChildren(block)
     },
   }
 }
@@ -394,9 +410,7 @@ export function CalendarView() {
       <DrawerHeader className="max-w-none flex-wrap items-center gap-x-3 gap-y-2">
         <CalendarControls controls={controls} />
       </DrawerHeader>
-      <ActiveFilterPills
-        filters={chosenCalendarFilters(filters, option === CALENDAR_VIEW_LIST)}
-      />
+      <ActiveFilterPills filters={chosenCalendarFilters(filters, option === CALENDAR_VIEW_LIST)} />
       {/* The grid owns the `['calendar', …]` read. The header above — month nav, view picker,
           filters, close — and the pills read none of it. So a failed grid is survivable in
           place. Escalating it to the drawer boundary would replace all that working chrome to
@@ -502,12 +516,20 @@ function CalendarGrid({
   )
 
   const renderers = useMemo(() => calendarRenderers(locale), [locale])
+  const focused = DateTime.fromISO(useCalendarPosition((s) => s.date) ?? todayISO())
 
   return (
-    <DrawerBody className="max-w-none overflow-hidden px-4 pb-4">
-      <div className="sx-calendar">
-        <CalendarMount calendar={calendar} renderers={renderers} />
-      </div>
-    </DrawerBody>
+    <>
+      <DrawerBody className="max-w-none overflow-hidden px-4 pb-4">
+        <div className="sx-calendar">
+          <CalendarMount calendar={calendar} renderers={renderers} />
+        </div>
+      </DrawerBody>
+      <TimesNote
+        end={focused.endOf('month').toISODate() ?? ''}
+        entries={events}
+        start={focused.startOf('month').toISODate() ?? ''}
+      />
+    </>
   )
 }
