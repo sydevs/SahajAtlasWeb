@@ -173,12 +173,18 @@
     },
     "chrome": {
       "any_time": "Any time",
-      "apply": "Apply",
+      "class_count_one": "%{count} class",
+      "class_count_other": "%{count} classes",
       "clear": "Clear all",
       "clear_one": "Clear",
+      "no_match": "No classes match",
       "no_results": "No events match your filters.",
       "remove": "Remove %{label}",
-      "title": "Filters"
+      "show_classes_one": "Show %{count} class",
+      "show_classes_other": "Show %{count} classes",
+      "title": "Filters",
+      "widen_one": "Remove %{label} (%{count} class)",
+      "widen_other": "Remove %{label} (%{count} classes)"
     },
     "dates": {
       "from": "From",
@@ -189,24 +195,21 @@
       "to": "To"
     },
     "days": {
-      "label": "Day of week"
+      "short_label": "Day"
     },
     "format": {
       "any": "Any",
       "label": "Format",
       "offline": "In person",
-      "online": "Online"
+      "online": "Online",
+      "question": "Online or in person"
     },
     "language": {
       "all": "All languages",
-      "empty": "No languages available",
       "label": "Language"
     },
-    "region": {
-      "all": "All regions",
-      "empty": "No regions found",
-      "label": "Region",
-      "search": "Search regions…"
+    "more": {
+      "label": "More filters"
     },
     "time": {
       "afternoon": "Afternoon",
@@ -214,7 +217,24 @@
       "label": "Time of day",
       "morning": "Morning",
       "night": "Night"
+    },
+    "where": {
+      "label": "Where",
+      "anywhere": "Choose a day or time, anywhere",
+      "near_me": "Near me",
+      "online_route": "Online classes, from anywhere",
+      "placeholder": "Town or city",
+      "scope": "%{near} within %{km} km, plus %{online} online"
     }
+  },
+  "location": {
+    "blocked_intro": "Your browser is set not to share your location with this site, so it can’t ask again.",
+    "blocked_title": "Location is turned off",
+    "failed_body": "We couldn’t find your location just now. Try again, or search for your town.",
+    "search_instead": "Search for a town",
+    "steps_android": "To turn it back on in Chrome: tap the icon to the left of the web address, tap Permissions, then turn on Location. Then press Near me again.",
+    "steps_desktop": "To turn it back on: click the icon to the left of the web address, and allow Location. You may need to reload the page. Then press Near me again.",
+    "steps_ios": "To turn it back on in Safari: tap aA in the address bar, then Website Settings, and set Location to Allow. If that doesn’t help, open the Settings app, then Privacy & Security, then Location Services, and set Safari Websites to While Using the App. Then press Near me again."
   },
   "online": {
     "anywhere": "Join from anywhere",

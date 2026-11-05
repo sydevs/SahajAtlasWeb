@@ -3,13 +3,14 @@ import { createPortal } from 'react-dom'
 import { useLocation, useNavigate } from 'react-router'
 import { AnimatePresence } from 'framer-motion'
 
+import embed from '@/config/embed'
 import { useExpansion } from '@/hooks/use-expansion'
 import { useLocale } from '@/hooks/use-locale'
 import { Drawer, DrawerContent } from '@/components/atoms/Drawer'
 import { ResetErrorBoundary, SettingsMenu } from '@/components/molecules'
-import { WidgetWidthContext, useIsWide } from '@/config/responsive'
+import { WidgetWidthContext, useFitsWidth, useIsWide } from '@/config/responsive'
 import { useWidgetMode } from '@/config/mode'
-import { useCalendarPosition } from '@/config/store'
+import { useCalendarPosition, useFilterPanelState } from '@/config/store'
 import { frameElement, overlayContainer } from '@/lib/overlay'
 import {
   type StackEntry,
@@ -17,16 +18,20 @@ import {
   atlasDepth,
   dismissAction,
   baseStackEntry,
+  filterCloseTarget,
   isFilterOverlay,
+  parentOf,
   resolveStack,
 } from '@/lib/shape'
 import { wakesSheetLoop } from '@/views/DrawerStack/sheet-wake'
 import { ViewLayer } from '@/views/DrawerStack/ViewLayer'
-import { DrawerControlContext } from '@/views/shared'
+import { DrawerControlContext, FilterPanelAvailableContext } from '@/views/shared'
 import { DrawerErrorFallback, DrawerLoading } from '@/views/fallbacks'
 import { CountriesView } from '@/views/CountriesView/CountriesView'
 import { SearchView } from '@/views/SearchView/SearchView'
 import { FilterView } from '@/views/FilterView/FilterView'
+import { FilterChipBar } from '@/views/FilterView/FilterChipBar'
+import { FiltersPanel } from '@/views/FilterView/FiltersPanel'
 import { RegionView } from '@/views/RegionView/RegionView'
 import { OnlineView } from '@/views/OnlineView/OnlineView'
 import { EventView } from '@/views/EventView/EventView'
@@ -77,6 +82,19 @@ const PEEK_SNAP = '88px' // the collapsed peek
 const OPEN_SNAP = '356px' // default, and what the peek expands to
 const HOME_SNAP = '380px' // what the first screen opens at
 const WIDE_SNAP = SNAP_POINTS[3] // the near-full snap the full-width calendar opens at
+
+// How wide the widget has to be before the filters get their own panel over the map, and open by
+// default: the 352px list and its margins, the 320px filter panel and the 64px of map controls
+// beside it, which leaves about 450px of map to look at. Below this, filters sit behind the button.
+const FILTER_PANEL_MIN_PX = 1200
+
+// PROPOSAL SWITCH: the panel and the chip bar are an either/or for Anton to compare. `?filterui=chips`
+// on the page's first load shows the chips. Delete whichever one loses, and this with it.
+const DESKTOP_FILTERS =
+  typeof window !== 'undefined' &&
+  new URLSearchParams(window.location.search).get('filterui') === 'chips'
+    ? 'chips'
+    : 'panel'
 
 // Frames a stationary sheet holds before the `--sy-sheet-top` mirror parks itself (about
 // 0.5s at 60fps — well past the end of any vaul spring). See the effect below for why it
@@ -161,6 +179,9 @@ export function DrawerStack() {
   const isWide = useIsWide(container ?? frameElement())
   const direction: Direction = isWide ? 'left' : 'bottom'
   const [snap, setSnap] = useState<number | string | null>(OPEN_SNAP)
+  const filterPanelFits = useFitsWidth(container ?? frameElement(), FILTER_PANEL_MIN_PX)
+  const filterPanelOpen = useFilterPanelState((s) => s.open)
+  const setFilterPanelOpen = useFilterPanelState((s) => s.setOpen)
   // The lazy components ARE the retry state — the boundary's reset swaps in fresh ones.
   // Same shape, and the same reasoning, as EventView's `EventDetails`.
   const [secondary, setSecondary] = useState(loadSecondaryViews)
@@ -171,7 +192,7 @@ export function DrawerStack() {
   // rather than replacing it. So the calendar stays the base view, and the trailing
   // `filters` entry peels off into the overlay below. (Map-less keeps the plain
   // replace-stack behaviour.)
-  const filterOverlay = isFilterOverlay(entries, hasMap)
+  const filterOverlay = isFilterOverlay(entries, hasMap) && embed.config.filters
   const baseEntries = useMemo(
     () => (filterOverlay ? entries.slice(0, -1) : entries),
     [filterOverlay, entries],
@@ -193,6 +214,32 @@ export function DrawerStack() {
   // switching it resizes the drawer. Date changes do not re-render this component.
   const calendarView = useCalendarPosition((s) => s.view)
   const wide = top?.kind === 'calendar' && isWide && calendarView !== CALENDAR_VIEW_LIST
+  // The panel belongs to the browsing views. A class page or a form has nothing to filter, and
+  // the calendar keeps its own filter overlay.
+  const filterPanelAvailable =
+    embed.config.filters &&
+    hasMap &&
+    filterPanelFits &&
+    (!top || top.kind === 'region' || top.kind === 'search')
+      ? DESKTOP_FILTERS
+      : null
+  const routedFilters =
+    top?.kind === 'filters' && (!embed.config.filters || (hasMap && filterPanelFits))
+
+  // A `/filters` link on a layout with the panel: open the panel, and show the view beneath it.
+  useEffect(() => {
+    if (!routedFilters) return
+
+    if (embed.config.filters) setFilterPanelOpen(true)
+    navigate(
+      filterCloseTarget(location.pathname, location.search) ?? {
+        pathname: parentOf(location.pathname) ?? '/',
+        search: location.search,
+      },
+      { replace: true, state: location.state },
+    )
+    // Only the arrival on the route matters.
+  }, [routedFilters])
   // Ancestor paths below the top view, root-first (empty at CountriesView).
   const parentPaths = useMemo(
     () => (baseEntries.length === 0 ? [] : ['/', ...baseEntries.slice(0, -1).map((e) => e.path)]),
@@ -202,6 +249,13 @@ export function DrawerStack() {
   const canCollapse = hasMap && direction === 'bottom'
 
   const depth = atlasDepth(location)
+
+  // The tall phone sheet for filters and their results reads as one sheet over a dimmed page,
+  // with no half a cog above it. It all comes back once the sheet is dragged lower.
+  const tallSheet =
+    direction === 'bottom' &&
+    snap === WIDE_SNAP &&
+    (top?.kind === 'filters' || top?.kind === 'search')
 
   // Mirrors the active sheet's live top onto the sheet itself, every frame, so what reads
   // it tracks a drag without waiting for the snap to settle (map plus mobile only). It is
@@ -335,13 +389,29 @@ export function DrawerStack() {
   }, [hasMap, direction])
 
   // The calendar opens at the near-full snap on mobile — its month grid AND its list
-  // both need the height — while every other view keeps the third-height open snap.
+  // both need the height — and so do the filters, which were otherwise cut off mid-row with
+  // their footer out of reach. Every other view keeps the third-height open snap.
   // Keyed on the view KIND (not `wide`), so switching the calendar between
   // month/week/list keeps it tall, rather than collapsing the list to the short snap.
   // This runs only when navigating to or from the calendar, so it never fights a
   // manual drag on a non-calendar view.
+  //
+  // Results reached from the filters also land tall: the visitor just asked to see classes, and
+  // the short snap showed less than one whole class under the search box and the toolbar.
+  const lastKind = useRef(top?.kind)
+
   useEffect(() => {
-    if (direction === 'bottom') setSnap(top?.kind === 'calendar' ? WIDE_SNAP : openSnap)
+    const from = lastKind.current
+
+    lastKind.current = top?.kind
+    if (direction !== 'bottom') return
+
+    const tall =
+      top?.kind === 'calendar' ||
+      top?.kind === 'filters' ||
+      (from === 'filters' && top?.kind === 'search')
+
+    setSnap(tall ? WIDE_SNAP : openSnap)
   }, [direction, top?.kind, openSnap])
 
   // A new searched place lifts the sheet out of its peek, so results are never
@@ -410,7 +480,16 @@ export function DrawerStack() {
         // calendar's large grid) would otherwise reconcile synchronously and freeze
         // the click for a beat ("nothing happened"). As a transition, React keeps the
         // UI responsive and swaps the view when it is ready.
-        if (action === 'collapse') setSnap(PEEK_SNAP)
+        // Filters apply as they're tapped, so going chronologically back would undo them.
+        // Closing the drawer lands on the results instead, whichever way it was closed.
+        const filterTarget =
+          top?.kind === 'filters' ? filterCloseTarget(location.pathname, location.search) : null
+
+        if (filterTarget) {
+          startTransition(() => {
+            navigate(filterTarget, { replace: true, state: location.state })
+          })
+        } else if (action === 'collapse') setSnap(PEEK_SNAP)
         else
           startTransition(() => {
             if (action === 'back') navigate(-1)
@@ -418,11 +497,22 @@ export function DrawerStack() {
           })
       },
     }
-  }, [snap, canCollapse, parentPath, depth, location, navigate, toStackTarget, direction, openSnap])
+  }, [
+    snap,
+    canCollapse,
+    parentPath,
+    depth,
+    location,
+    navigate,
+    toStackTarget,
+    direction,
+    openSnap,
+    top?.kind,
+  ])
 
-  // The filter overlay's own dismiss (its X / swipe / Esc): back to the calendar it
-  // opened over — chronologically when there is in-widget history, otherwise a direct
-  // climb (with the query kept).
+  // The filter overlay's own dismiss (its X / swipe / Esc): back to the calendar it opened
+  // over, with the query kept, because filters apply as they're tapped. A chronological back
+  // would undo them.
   const overlayControl = useMemo(
     () => ({
       collapsed: false,
@@ -435,9 +525,10 @@ export function DrawerStack() {
       // overlay is always parented to the calendar (`hasParent: true` → never
       // 'collapse'), so 'fallback' climbs to `/calendar` directly, keeping its query.
       dismiss: () =>
-        dismissAction({ hasParent: true, depth }) === 'back'
-          ? navigate(-1)
-          : navigate({ pathname: '/calendar', search: location.search }),
+        navigate(
+          { pathname: '/calendar', search: location.search },
+          { replace: true, state: location.state },
+        ),
     }),
     [location, navigate],
   )
@@ -485,7 +576,9 @@ export function DrawerStack() {
     >
       <div className="relative min-h-0 flex-1">
         <AnimatePresence>
-          <ViewLayer key={top?.path ?? '/'}>
+          {/* The filter drawer keeps one identity across its routes. Picking a place moves it
+              from `/filters` to `/search/filters`, and that must not crossfade the form. */}
+          <ViewLayer key={top?.kind === 'filters' ? 'filters' : (top?.path ?? '/')}>
             {/* Suspense sits OUTSIDE the boundary, so a lazy view's chunk load is a
                 suspend that shows `DrawerLoading` — the shared chrome (header plus close
                 control, rebuilt from the URL) over a spinner — and only a FAILED load
@@ -509,7 +602,7 @@ export function DrawerStack() {
 
   // The filter overlay drawer (map mode only): a modal panel over the mounted
   // calendar — right at ≥md, a bottom sheet on mobile — with its own control.
-  // FilterView's Apply and Clear actions navigate to /calendar too, which closes it.
+  // FilterView's Show button goes through the same dismiss, which closes it.
   const filterDrawer = filterOverlay ? (
     <DrawerControlContext.Provider value={overlayControl}>
       <Drawer
@@ -585,53 +678,57 @@ export function DrawerStack() {
 
   return (
     <WidgetWidthContext.Provider value={isWide}>
-      <DrawerControlContext.Provider value={control}>
-        {target &&
-          createPortal(
-            <>
-              {/* The top of the map's one control column, with locate and attribution below it
-                (`.mapboxgl-ctrl-top-right` in globals.css holds the shared size and margins).
-                That corner is free in both layouts, and nothing here depends on the panel's
-                width or the peek strips any more. It is physical `right`, paired with Mapbox's
-                own corner: the drawer's RTL flip is still deferred (`atoms/Drawer`).
-                Hidden on the full-width calendar, a focused view with no clean corner for
-                it, and at the sheet's near-full snap, which covers the column anyway and
-                would leave the disc's top edge showing above the sheet. */}
-              {!wide && snap !== WIDE_SNAP && (
-                <SettingsMenu
-                  align="end"
-                  className="fixed top-[var(--sy-map-ctrl-top)] right-[var(--sy-map-ctrl-end)] z-20"
-                />
-              )}
-            </>,
-            target,
-          )}
-        <Drawer
-          key={direction}
-          dismissible
-          open
-          activeSnapPoint={direction === 'bottom' ? snap : undefined}
-          container={target}
-          direction={direction}
-          // The left panel (≥md) has no handle and no snap points, so restricting
-          // drag to the (absent) handle makes it undraggable — dismiss stays the
-          // close button only. The mobile bottom sheet keeps its full-panel
-          // snap-drag.
-          handleOnly={direction === 'left'}
-          // The box vaul measures snap points against — the frame, or the window.
-          // Deliberately NOT `target`: that is the portal target, which embedded is
-          // the `display: contents` theme root and measures 0×0. See the note in
-          // `Drawer.tsx`.
-          measureAgainst={frameElement()}
-          setActiveSnapPoint={direction === 'bottom' ? setSnap : undefined}
-          snapPoints={direction === 'bottom' ? SNAP_POINTS : undefined}
-          wide={wide}
-          onOpenChange={(o) => !o && control.dismiss()}
-        >
-          {sheet}
-        </Drawer>
-        {filterDrawer}
-      </DrawerControlContext.Provider>
+      <FilterPanelAvailableContext.Provider value={filterPanelAvailable}>
+        <DrawerControlContext.Provider value={control}>
+          {target &&
+            createPortal(
+              <>
+                {tallSheet && <div aria-hidden className="fixed inset-0 z-[35] bg-black/50" />}
+                {filterPanelAvailable === 'panel' && filterPanelOpen && <FiltersPanel />}
+                {filterPanelAvailable === 'chips' && <FilterChipBar />}
+                {/* The top of the map's one control column, with locate and attribution below it
+                  (`.mapboxgl-ctrl-top-right` in globals.css holds the shared size and margins).
+                  That corner is free in both layouts, and nothing here depends on the panel's
+                  width any more. It is physical `right`, paired with Mapbox's own corner: the
+                  drawer's RTL flip is still deferred (`atoms/Drawer`). Hidden on the full-width
+                  calendar, and at the sheet's near-full snap (which also covers the tall
+                  filters sheet), which covers the column anyway. */}
+                {!wide && snap !== WIDE_SNAP && (
+                  <SettingsMenu
+                    align="end"
+                    className="fixed top-[var(--sy-map-ctrl-top)] right-[var(--sy-map-ctrl-end)] z-20"
+                  />
+                )}
+              </>,
+              target,
+            )}
+          <Drawer
+            key={direction}
+            dismissible
+            open
+            activeSnapPoint={direction === 'bottom' ? snap : undefined}
+            container={target}
+            direction={direction}
+            // The left panel (≥md) has no handle and no snap points, so restricting
+            // drag to the (absent) handle makes it undraggable — dismiss stays the
+            // close button only. The mobile bottom sheet keeps its full-panel
+            // snap-drag.
+            handleOnly={direction === 'left'}
+            // The box vaul measures snap points against — the frame, or the window.
+            // Deliberately NOT `target`: that is the portal target, which embedded is
+            // the `display: contents` theme root and measures 0×0. See the note in
+            // `Drawer.tsx`.
+            measureAgainst={frameElement()}
+            setActiveSnapPoint={direction === 'bottom' ? setSnap : undefined}
+            snapPoints={direction === 'bottom' ? SNAP_POINTS : undefined}
+            wide={wide}
+            onOpenChange={(o) => !o && control.dismiss()}
+          >
+            {sheet}
+          </Drawer>
+          {filterDrawer}
+        </DrawerControlContext.Provider>
+      </FilterPanelAvailableContext.Provider>
     </WidgetWidthContext.Provider>
   )
 }

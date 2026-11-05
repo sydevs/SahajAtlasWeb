@@ -7,8 +7,8 @@
 export { SettingsMenu } from './SettingsMenu'
 export type { SettingsMenuProps } from './SettingsMenu'
 
-// SearchFilters — the controlled event-filters form (Format, Frequency,
-// Day, Time, Language), rendered inside the FilterView drawer.
+// SearchFilters — the controlled event-filters form (Where, Format, Day, Time, Language, then
+// Frequency and Dates under More), rendered inside the FilterView drawer.
 export { SearchFilters } from './SearchFilters'
 export type { SearchFiltersProps } from './SearchFilters'
 

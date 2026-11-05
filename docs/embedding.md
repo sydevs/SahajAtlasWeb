@@ -129,7 +129,7 @@ Nothing below is needed to get a working embed. Reach for it when you want more:
 
 ## Parameters
 
-Six parameters exist on the script URL, all optional except `key`. Percent-encode reserved
+Seven parameters exist on the script URL, all optional except `key`. Percent-encode reserved
 characters as usual (`atlas=%2Fgb%2Flondon` and `atlas=/gb/london` are equivalent).
 
 | Parameter  | Default                       | What it does                                                                                                                                                                                                                                                                                                                                                                                      |
@@ -140,6 +140,7 @@ characters as usual (`atlas=%2Fgb%2Flondon` and `atlas=/gb/london` are equivalen
 | `routing`  | `query`                       | Where the widget's route lives. `path` also needs your server to serve one page for everything under the atlas prefix — a prefix set on your client record, not here.                                                                                                                                                                                                                             |
 | `atlas`    | —                             | The route to open when the page's own URL does not already name one, e.g. `/gb/london`. Must be site-relative.                                                                                                                                                                                                                                                                                    |
 | `gestures` | —                             | `gestures=cooperative` lets a visitor **scroll your page past a contained map**: one finger and the mouse wheel scroll the page, and the map moves on two fingers or Ctrl/⌘ + wheel, with a hint saying so. Only for a [contained map](#sizing-the-element); a window-filling map and the compact card's overlay ignore it.                                                                       |
+| `filters`  | `true`                        | `filters=false` removes the Filters button and panel, for a page that should show only the classes. Same spelling rule as `map`. A link that already carries filters still applies them, with removable pills.                                                                                                                                                                                    |
 
 **`map` follows one spelling rule: only the exact values `false` and `0` switch it off.**
 Anything else — absent, empty, `true`, `no`, `FALSE` — leaves it **on**, so a typo can never
@@ -1151,6 +1152,7 @@ written by Mapbox GL:
 | Key                                | Store            | Holds                                                 | Lifetime            |
 | ---------------------------------- | ---------------- | ----------------------------------------------------- | ------------------- |
 | `atlas.theme`                      | `localStorage`   | the viewer's light/dark/auto choice                   | until cleared       |
+| `atlas.filtersPanel`               | `localStorage`   | whether the viewer closed the filter panel            | until cleared       |
 | `atlas.geolocationPromptDismissed` | `sessionStorage` | that they dismissed the "classes near you" suggestion | the browser session |
 | `mapbox.eventData:<token>`         | `localStorage`   | Mapbox GL's own telemetry bookkeeping                 | until cleared       |
 | `mapbox.eventData.uuid:<token>`    | `localStorage`   | a persistent anonymous id Mapbox generates            | until cleared       |

@@ -267,6 +267,57 @@ export const useReportModal = create<ReportModalState>((set) => ({
   closeReport: () => set(() => ({ open: false, error: null })),
 }))
 
+// ===== NEAR ME ===== //
+
+// The point the Near me filter last searched from. Whether Near me is ON is this compared with
+// the URL's `?center`, so it survives closing and reopening the form. It stays out of the URL on
+// purpose: a shared link names a place, and only the visitor who pressed it is actually there.
+type NearMeState = {
+  center: [number, number] | null
+  setCenter: (center: [number, number] | null) => void
+}
+
+export const useNearMeState = create<NearMeState>((set) => ({
+  center: null,
+  setCenter: (center) => set(() => ({ center })),
+}))
+
+// ===== FILTER PANEL ===== //
+
+// The wide-container filter panel. `open` is what the visitor last chose, remembered, and open by
+// default: `onScreen` is whether it's actually showing, which also depends on the view and the
+// room, and is what the camera's padding reads.
+const FILTER_PANEL_KEY = 'atlas.filtersPanel'
+
+const readPanelOpen = (): boolean => {
+  try {
+    return localStorage.getItem(FILTER_PANEL_KEY) !== 'closed'
+  } catch {
+    return true
+  }
+}
+
+type FilterPanelState = {
+  open: boolean
+  onScreen: boolean
+  setOpen: (open: boolean) => void
+  setOnScreen: (onScreen: boolean) => void
+}
+
+export const useFilterPanelState = create<FilterPanelState>((set) => ({
+  open: typeof window === 'undefined' ? true : readPanelOpen(),
+  onScreen: false,
+  setOpen: (open) => {
+    try {
+      localStorage.setItem(FILTER_PANEL_KEY, open ? 'open' : 'closed')
+    } catch {
+      // Storage can throw in sandboxed iframes. The choice then lasts for this visit only.
+    }
+    set(() => ({ open }))
+  },
+  setOnScreen: (onScreen) => set(() => ({ onScreen })),
+}))
+
 // ===== REGISTRATION DRAFT ===== //
 
 // This holds in-progress registration form values, hoisted out of the form.

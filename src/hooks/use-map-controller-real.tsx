@@ -7,7 +7,7 @@ import { bboxPolygon } from '@turf/bbox-polygon'
 import { MapControllerContext } from './use-map-controller'
 
 import { useMapbox, usePaddingState } from '@/hooks/use-mapbox'
-import { useViewState } from '@/config/store'
+import { useFilterPanelState, useViewState } from '@/config/store'
 import { useIsWide } from '@/config/responsive'
 import { eventFrameZoom } from '@/lib/camera'
 import { hasVagueAddress, isOnline } from '@/lib/shape'
@@ -44,6 +44,9 @@ const MOBILE_SHEET_PX = 356
 // canvas makes `fitBounds` refuse the fit outright, so the sheet's share is capped.
 const MOBILE_SHEET_MAX_SHARE = 0.5
 const MAP_MARGIN = 20
+// The filter panel's 320px width plus the 64px it stands off the right edge (`FiltersPanel`),
+// which is where the locate and attribution controls live.
+const FILTER_PANEL_PX = 336
 
 // These constants keep zoom consistent.
 // An event frames at `EVENT_ZOOM`.
@@ -104,12 +107,13 @@ export function RealMapControllerProvider({ children }: { children: ReactNode })
   // `frameElement()` is a shared node, not a shared context, so both sides can reach it.
   // This is also why `MapFrame` publishes that node in the layout phase, before either side first renders.
   const isWide = useIsWide(frameElement())
+  const filterPanelUp = useFilterPanelState((s) => s.onScreen)
 
   // Keep the drawer's known footprint out of the usable camera area.
   useEffect(() => {
     setPadding({
       left: MAP_MARGIN + (isWide ? DRAWER_W_PX : 0),
-      right: MAP_MARGIN,
+      right: MAP_MARGIN + (filterPanelUp ? FILTER_PANEL_PX : 0),
       top: MAP_MARGIN,
       bottom:
         MAP_MARGIN +
@@ -120,7 +124,7 @@ export function RealMapControllerProvider({ children }: { children: ReactNode })
               (frameElement()?.clientHeight ?? window.innerHeight) * MOBILE_SHEET_MAX_SHARE,
             )),
     })
-  }, [isWide, setPadding])
+  }, [isWide, filterPanelUp, setPadding])
 
   const controller = useMemo<MapController>(
     () => ({

@@ -6,7 +6,7 @@ import { ListToolbar, ResetErrorBoundary, SortMenu } from '@/components/molecule
 import { DynamicEventsList } from '@/components/organisms'
 import { useViewState } from '@/config/store'
 import { useMapController } from '@/hooks/use-map-controller'
-import { listResetKey, parseCenter } from '@/lib/shape'
+import { listResetKey, parseBounds, parseCenter } from '@/lib/shape'
 import { BackButton } from '@/views/nav'
 import {
   ExpandSheetButton,
@@ -15,18 +15,6 @@ import {
   useFrameOnTop,
 } from '@/views/shared'
 import { ErrorPanel } from '@/views/fallbacks'
-
-// A `?bbox=w,s,e,n` param, validated to four finite numbers — a malformed or
-// truncated hand-typed value resolves to `undefined` so framing falls back to the
-// centre/reset rather than feeding NaNs into Mapbox's fitBounds.
-const parseBounds = (value: string | null): [number, number, number, number] | undefined => {
-  if (!value) return undefined
-  const nums = value.split(',').map(Number)
-
-  return nums.length === 4 && nums.every(Number.isFinite)
-    ? (nums as [number, number, number, number])
-    : undefined
-}
 
 // The search view, at route `/search`. It ranks events by distance from the geocoded place
 // (`?center=lng,lat`), or, absent that, from a one-time snapshot of the map centre — never

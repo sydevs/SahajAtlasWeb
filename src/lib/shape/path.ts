@@ -7,8 +7,8 @@
  */
 import type { BBox } from 'geojson'
 
-import { filtersFromParams, filtersToParams } from './filters'
-import { sortFromParams, sortToParams } from './sort'
+import { filtersFromParams, filtersToParams, hasActiveFilters } from './filters'
+import { SORT_PARAM, type SortOrder, sortFromParams, sortToParams } from './sort'
 
 /** Decodes a URL segment, tolerating a malformed `%` escape (returns it unchanged). */
 const safeDecode = (segment: string): string => {
@@ -169,6 +169,8 @@ export type PlaceSearch = {
   bbox?: BBox
   /** ISO alpha-2, for the country-site offer and the foreign-distance rule. */
   countryCode?: string
+  /** A list order the search should open in, such as nearest first for Near me. */
+  sort?: SortOrder
 }
 
 /**
@@ -188,8 +190,50 @@ export const placeSearchPath = (params: URLSearchParams, place: PlaceSearch): st
   next.set('center', `${place.center[0]},${place.center[1]}`)
   if (place.bbox) next.set('bbox', place.bbox.toString())
   if (place.countryCode) next.set(SEARCH_COUNTRY_PARAM, place.countryCode)
+  if (place.sort) next.set(SORT_PARAM, place.sort)
 
   return `/search?${next.toString()}`
+}
+
+/**
+ * Where closing the filter drawer lands, or `null` for an ordinary dismiss.
+ *
+ * Filters apply as they're tapped, so closing is never a commit, and the URL at this moment is
+ * the answer. A view that shows filters (search, calendar) just gets the query. A view that
+ * doesn't (the country list, a region's list) would hide what was just chosen, so that opens the
+ * results instead, scoped to the region the drawer was opened over. With nothing chosen, there
+ * is nothing to show, and the drawer simply goes back.
+ */
+export const filterCloseTarget = (
+  pathname: string,
+  search: string,
+): { pathname: string; search: string } | null => {
+  const origin = parentOf(pathname)
+
+  if (origin === '/calendar' || origin === '/search') return { pathname: origin, search }
+
+  const params = new URLSearchParams(search)
+  const filters = filtersFromParams(params)
+
+  if (!hasActiveFilters(filters)) return null
+
+  const region = filters.region ?? filterOriginRegion(pathname)
+
+  return { pathname: '/search', search: filtersToParams({ ...filters, region }, params).toString() }
+}
+
+/** The same place search, with the filter drawer still open over it. */
+export const placeFiltersPath = (params: URLSearchParams, place: PlaceSearch): string =>
+  placeSearchPath(params, place).replace('/search?', '/search/filters?')
+
+/** The filter drawer with the searched place dropped, keeping the filters and sort. */
+export const noPlaceSearch = (params: URLSearchParams): string => {
+  const next = preserveSearchState(params)
+
+  // "Closest" means nothing without a place to measure from.
+  if (next.get(SORT_PARAM) === 'closest') next.delete(SORT_PARAM)
+
+  return next.toString()
 }
 
 /**
@@ -225,6 +269,17 @@ export const resolvePath = (pathname: string): ResolvedPath => {
   if (/^\d+$/.test(terminal)) return { kind: 'event', id: Number(terminal) }
 
   return { kind: 'region', slug: safeDecode(terminal) }
+}
+
+/** A `?bbox=w,s,e,n` param, validated. A malformed value is `undefined`, never NaNs for Mapbox. */
+export const parseBounds = (value: string | null): [number, number, number, number] | undefined => {
+  if (!value) return undefined
+
+  const nums = value.split(',').map(Number)
+
+  return nums.length === 4 && nums.every(Number.isFinite)
+    ? (nums as [number, number, number, number])
+    : undefined
 }
 
 /**
@@ -362,6 +417,13 @@ export const filterOriginRegion = (pathname: string): string | null => {
   const origin = entries.at(-2)
 
   return origin?.kind === 'region' ? origin.slug : null
+}
+
+/** The region the view at `pathname` is showing, or `null`: `/gb/london` → `london`. */
+export const viewRegion = (pathname: string): string | null => {
+  const top = resolveStack(pathname).at(-1)
+
+  return top?.kind === 'region' ? top.slug : null
 }
 
 /**

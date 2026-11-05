@@ -33,6 +33,11 @@ export interface MapSearchProps {
    * events when the field sits in an error body instead.
    */
   label?: string
+  /**
+   * Whether the field starts from, and follows, `?q` (default `true`). The filter form says
+   * `false`: its field is only a way to pick a place, and the picked place shows beside it.
+   */
+  seedFromUrl?: boolean
 }
 
 // The geocoder is a custom element from @mapbox/search-js-web. It fails to
@@ -72,10 +77,17 @@ const LOCAL_BIAS_MIN_ZOOM = 3
 const searchBias = (zoom: number | undefined, center: LngLatLike | undefined) =>
   zoom !== undefined && zoom >= LOCAL_BIAS_MIN_ZOOM && center ? center : 'ip'
 
-export function MapSearch({ onSelect, syncToUrl = true, label }: MapSearchProps) {
+export function MapSearch({
+  onSelect,
+  syncToUrl = true,
+  label,
+  seedFromUrl = true,
+}: MapSearchProps) {
   const [searchParams, setSearchParams] = useSearchParams()
   const location = useLocation()
-  const [searchQuery, setSearchQuery] = React.useState(searchParams.get('q') || '')
+  const [searchQuery, setSearchQuery] = React.useState(
+    seedFromUrl ? searchParams.get('q') || '' : '',
+  )
   const { mapbox } = useMapbox()
   const { locale, regionNames } = useLocale()
   const { t } = useTranslation()
@@ -127,11 +139,11 @@ export function MapSearch({ onSelect, syncToUrl = true, label }: MapSearchProps)
   }, [])
 
   React.useEffect(() => {
-    if (urlQuery === ownWrite.current) return
+    if (!seedFromUrl || urlQuery === ownWrite.current) return
 
     ownWrite.current = urlQuery
     setSearchQuery(urlQuery)
-  }, [urlQuery])
+  }, [urlQuery, seedFromUrl])
 
   const setQuery = (query: string) => {
     setSearchQuery(query)

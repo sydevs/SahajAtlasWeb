@@ -1,2 +1,2 @@
-export { SearchFilters } from './SearchFilters'
-export type { SearchFiltersProps } from './SearchFilters'
+export { DayFilter, FormatFilter, LanguageFilter, SearchFilters, TimeFilter } from './SearchFilters'
+export type { FilterControlProps, SearchFiltersProps } from './SearchFilters'

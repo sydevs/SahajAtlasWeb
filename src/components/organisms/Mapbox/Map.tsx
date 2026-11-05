@@ -3,7 +3,7 @@ import type { MapRef } from 'react-map-gl'
 import type { Geojson } from '@/types'
 import type { DisplayableEvent } from '@/hooks/use-event-display'
 
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { type CSSProperties, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import ReactMapGL, {
   AttributionControl,
   GeoJSONSource,
@@ -36,13 +36,19 @@ import {
 import { markerColors, registerMarkerImages } from './markers'
 import { pinPopoverPlacement, type PopoverAnchor } from './pin-popover'
 
-import { Button } from '@/components/atoms/Button'
-import { Modal, ModalClose, ModalContent, ModalFooter } from '@/components/atoms/Modal'
+import { LocationHelp, type LocationProblem } from '@/components/molecules/LocationHelp'
 import { calendarLineParts, useEventDisplay } from '@/hooks/use-event-display'
-import { useCameraSettled, useCameraTarget, useViewState, type MapPoint } from '@/config/store'
+import {
+  useCameraSettled,
+  useCameraTarget,
+  useFilterPanelState,
+  useViewState,
+  type MapPoint,
+} from '@/config/store'
 import { useAtlasNavigate } from '@/hooks/use-atlas-navigate'
 import { useEventFilters } from '@/hooks/use-filters'
 import { useGeolocateToSearch } from '@/hooks/use-geolocate'
+import { LOCATE_TIMEOUT_MS } from '@/hooks/use-near-me'
 import { useRegionMatcher } from '@/hooks/use-region-matcher'
 import api, { eventTitlesQuery } from '@/config/api'
 import { useHasRealPointer } from '@/config/responsive'
@@ -250,6 +256,9 @@ function EventPinPopover({
  * @param cooperative Leave one-finger and wheel scrolling to the host page, moving the map only on
  *   two fingers or Ctrl/⌘ + wheel (`gestures=cooperative`, contained maps only).
  */
+// The 320px filter panel and its 16px margin: the top-right controls sit just inside its edge.
+const CONTROLS_BESIDE_PANEL = { '--sy-map-end': '336px' } as CSSProperties
+
 export function Mapbox({ cooperative = false }: { cooperative?: boolean } = {}) {
   let navigate = useAtlasNavigate()
   const { mapbox, padding, moveMap } = useMapbox()
@@ -350,6 +359,7 @@ export function Mapbox({ cooperative = false }: { cooperative?: boolean } = {}) 
   // arrival reads as the map resolving, not as a panel being swapped out.
   const settled = useCameraSettled((s) => s.settled)
   const reveal = useCameraSettled((s) => s.markSettled)
+  const filterPanelUp = useFilterPanelState((s) => s.onScreen)
   const canvasStyle = useMemo(
     () => ({
       width: '100%',
@@ -402,7 +412,7 @@ export function Mapbox({ cooperative = false }: { cooperative?: boolean } = {}) 
 
   // Mapbox's locate control fails silently otherwise (#321). ⚠ A permission already denied when
   // the map loads never reaches `onError`: mapbox renders the control disabled instead.
-  const [locationFailed, setLocationFailed] = useState(false)
+  const [locationProblem, setLocationProblem] = useState<LocationProblem | null>(null)
   const mapRef = useRef<MapRef>(null)
 
   // This filters the feed before it reaches the clustering source, so
@@ -534,7 +544,7 @@ export function Mapbox({ cooperative = false }: { cooperative?: boolean } = {}) 
         logoPosition="bottom-right"
         mapStyle={MAP_STYLES[theme]}
         mapboxAccessToken={import.meta.env.VITE_MAPBOX_ACCESSTOKEN}
-        style={canvasStyle}
+        style={filterPanelUp ? { ...canvasStyle, ...CONTROLS_BESIDE_PANEL } : canvasStyle}
         worldview={MAP_WORLDVIEWS[languageCode] || MAP_WORLDVIEWS.default}
         onClick={selectFeature}
         // This is the backstop on the reveal. A route that never frames the
@@ -636,8 +646,18 @@ export function Mapbox({ cooperative = false }: { cooperative?: boolean } = {}) 
             control, rather than trusting either claim. */}
         <GeolocateControl
           followUserLocation={false}
-          onError={() => setLocationFailed(true)}
-          onGeolocate={geolocateToSearch}
+          // Mapbox's default is six seconds. iOS Safari appears to count that while its permission
+          // prompt is open, so a visitor who took a moment to press Allow saw a failure.
+          positionOptions={{ timeout: LOCATE_TIMEOUT_MS }}
+          onError={(error) =>
+            setLocationProblem(error.code === error.PERMISSION_DENIED ? 'blocked' : 'failed')
+          }
+          // An answer that arrives after a reported failure wins: the map and list are right,
+          // and an error on top of them would be false.
+          onGeolocate={(position) => {
+            setLocationProblem(null)
+            geolocateToSearch(position)
+          }}
         />
         {/* Mapbox's terms require both the wordmark and the attribution, and both must stay on the
             map view. Mapbox adds its own attribution in a corner no prop can change, so
@@ -652,29 +672,18 @@ export function Mapbox({ cooperative = false }: { cooperative?: boolean } = {}) 
             cog, styled in globals.css. */}
         <AttributionControl compact position="top-right" />
       </ReactMapGL>
-      <Modal open={locationFailed} onOpenChange={setLocationFailed}>
-        <ModalContent
-          closeLabel={t('common.chrome.close')}
-          description={t('common.map.location_failed')}
-          title={t('common.map.location_not_available')}
-          onCloseAutoFocus={(event) => {
-            // Radix returns focus to a `Dialog.Trigger`, and the locate control is not one.
-            event.preventDefault()
-            mapRef.current
-              ?.getContainer()
-              .querySelector<HTMLElement>('.mapboxgl-ctrl-geolocate')
-              ?.focus()
-          }}
-        >
-          <ModalFooter>
-            <ModalClose>
-              <Button color="primary" variant="flat">
-                {t('common.chrome.close')}
-              </Button>
-            </ModalClose>
-          </ModalFooter>
-        </ModalContent>
-      </Modal>
+      <LocationHelp
+        problem={locationProblem}
+        onClose={() => setLocationProblem(null)}
+        onCloseAutoFocus={(event) => {
+          // Radix returns focus to a `Dialog.Trigger`, and the locate control is not one.
+          event.preventDefault()
+          mapRef.current
+            ?.getContainer()
+            .querySelector<HTMLElement>('.mapboxgl-ctrl-geolocate')
+            ?.focus()
+        }}
+      />
     </>
   )
 }

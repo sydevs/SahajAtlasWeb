@@ -14,7 +14,8 @@ import { FallbackPanel, GeolocationPrompt } from '@/components/molecules'
 import { MapSearch } from '@/components/organisms'
 import api, { eventQuery } from '@/config/api'
 import { GEOJSON_STALE_TIME } from '@/config/query-client'
-import { useCameraHistory } from '@/config/store'
+import embed from '@/config/embed'
+import { useCameraHistory, useFilterPanelState } from '@/config/store'
 import { useAtlasNavigate } from '@/hooks/use-atlas-navigate'
 import { useEventFilters } from '@/hooks/use-filters'
 import { useIpLocation } from '@/hooks/use-ip-location'
@@ -32,6 +33,7 @@ import {
   shouldShowGeolocationPrompt,
 } from '@/lib/geolocation'
 import {
+  type PlaceSearch,
   activeFilterCount,
   searchPath,
   atlasDepth,
@@ -193,6 +195,11 @@ export function ExpandSheetButton({ label }: { label?: string }) {
 // (SearchView), and — with `iconOnly` — an icon-only header control carrying the
 // active count as a badge (CountriesView's header), so it reads as one set with
 // the close/collapse chrome.
+// How this layout offers filters beside the list, if it has room: a panel the Filters button
+// toggles, or chips that are always there, so no button at all. `null` means behind the button,
+// in the filter drawer. DrawerStack owns the measurement.
+export const FilterPanelAvailableContext = createContext<'panel' | 'chips' | null>(null)
+
 export function FilterButton({
   iconOnly = false,
   isLast = false,
@@ -211,7 +218,13 @@ export function FilterButton({
 
   const label = count > 0 ? `${t('filters.chrome.title')} (${count})` : t('filters.chrome.title')
   const to = `${location.pathname === '/' ? '' : location.pathname}/filters`
-  const open = () => navigate({ pathname: to, search: location.search })
+  const panelAvailable = useContext(FilterPanelAvailableContext)
+  const panelOpen = useFilterPanelState((s) => s.open)
+  const setPanelOpen = useFilterPanelState((s) => s.setOpen)
+  const open = () =>
+    panelAvailable ? setPanelOpen(!panelOpen) : navigate({ pathname: to, search: location.search })
+
+  if (panelAvailable === 'chips' || !embed.config.filters) return null
 
   if (iconOnly) {
     return (
@@ -249,37 +262,48 @@ export function FilterButton({
 export function SearchField({
   label,
   syncToUrl,
-}: Pick<MapSearchProps, 'label' | 'syncToUrl'> = {}) {
+  seedFromUrl,
+  onPlace,
+}: Pick<MapSearchProps, 'label' | 'syncToUrl' | 'seedFromUrl'> & {
+  /** Handle the picked place here, instead of opening the search route. */
+  onPlace?: (place: PlaceSearch) => void
+} = {}) {
   const navigate = useAtlasNavigate()
   const [searchParams] = useSearchParams()
   const { raise } = useDrawerControl()
 
   const handleSelect = useCallback(
     (value: GeocodingFeature) => {
-      navigate(
-        // `placeSearchPath` carries the active filters and sort across and
-        // resets the searched location — one builder shared with the IP
-        // suggestion and the geolocate control, so none of the three can
-        // forget half of it.
-        placeSearchPath(searchParams, {
-          q: value.properties.full_address ?? '',
-          center: [value.properties.coordinates.longitude, value.properties.coordinates.latitude],
-          bbox: geocodeBounds(value),
-          // The country the place sits in, so an empty result set can offer
-          // that country's own site (issue #82). Present for a country-level
-          // result and for a town within one. It is absent for an ocean or a
-          // country-less feature.
-          countryCode: geocodeCountryCode(value),
-        }),
-      )
+      const place: PlaceSearch = {
+        q: value.properties.full_address ?? '',
+        center: [value.properties.coordinates.longitude, value.properties.coordinates.latitude],
+        bbox: geocodeBounds(value),
+        // The country the place sits in, so an empty result set can offer
+        // that country's own site (issue #82). Present for a country-level
+        // result and for a town within one. It is absent for an ocean or a
+        // country-less feature.
+        countryCode: geocodeCountryCode(value),
+      }
+
+      if (onPlace) onPlace(place)
+      // `placeSearchPath` carries the active filters and sort across and
+      // resets the searched location — one builder shared with the IP
+      // suggestion and the geolocate control, so none of the three can
+      // forget half of it.
+      else navigate(placeSearchPath(searchParams, place))
     },
-    [navigate, searchParams],
+    [navigate, searchParams, onPlace],
   )
 
   return (
     // Focus raises a phone's sheet, so the suggestions (and the keyboard) have room.
     <div className="min-w-0 flex-1" onFocus={raise}>
-      <MapSearch label={label} syncToUrl={syncToUrl} onSelect={handleSelect} />
+      <MapSearch
+        label={label}
+        seedFromUrl={seedFromUrl}
+        syncToUrl={syncToUrl}
+        onSelect={handleSelect}
+      />
     </div>
   )
 }
@@ -419,8 +443,11 @@ export function useIpSuggestion(region?: {
     staleTime: GEOJSON_STALE_TIME,
   })
 
+  // Beside the filter panel's Near me, a second "near you" offer is one location control too many.
+  const filterPanelUp = useFilterPanelState((s) => s.onScreen)
   const show = useMemo(
     () =>
+      !filterPanelUp &&
       shouldShowGeolocationPrompt({
         guess: ipLocation,
         dismissed,
@@ -429,7 +456,7 @@ export function useIpSuggestion(region?: {
         regionCenter: region?.center,
         viewedCountry: region?.countryCode,
       }),
-    [ipLocation, dismissed, activeSearch, geojson, region?.center, region?.countryCode],
+    [filterPanelUp, ipLocation, dismissed, activeSearch, geojson, region?.center, region?.countryCode],
   )
 
   const accept = useCallback(() => {
