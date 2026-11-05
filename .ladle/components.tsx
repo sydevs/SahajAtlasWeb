@@ -10,6 +10,7 @@ import storyI18n from './i18n'
 
 import Providers from '@/providers'
 import { applyTheme, useTheme } from '@/hooks/use-theme'
+import { BrandPaletteContext, NO_BRAND_PALETTE } from '@/config/theme/brand-palette'
 import { applyPalette, type PaletteRoles } from '@/config/theme/palette'
 import { WIDGET_SCOPE_CLASS } from '@/lib/scope'
 
@@ -40,8 +41,10 @@ if (typeof document !== 'undefined') {
 // the production applyPalette on the story wrapper, so Ladle previews
 // exactly what an embed renders. The first preset is the default. It
 // applies no override, so it uses the built-in teal and orange colors.
+// ⚠ Each preset is one module object: the map memoises its marker colors on
+// the palette's identity, so a fresh object per render would re-register them.
 const PALETTES: Record<string, PaletteRoles> = {
-  'wemeditate.com': {},
+  'wemeditate.com': NO_BRAND_PALETTE,
   'shrimataji.org': { primary: '#64032E', secondary: '#A11F0C', background: '#F0ECE2' },
   'sahajayoga.org': { primary: '#5D6F44', secondary: '#D47B2C' },
 }
@@ -79,7 +82,8 @@ const DEFAULT_PALETTE = PALETTE_NAMES[0]
 // Brand palette: a native Ladle control, registered on every story (see
 // below), applies a tenant preset to the story wrapper through the
 // production applyPalette. It re-applies whenever the palette or the
-// resolved light/dark theme changes.
+// resolved light/dark theme changes. It also hands the preset down through
+// BrandPaletteContext, as BrandTheme does, so the map's markers follow it.
 export const Provider: GlobalProvider = ({ children }) => {
   const { globalState, dispatch } = useLadleContext()
   const ladleTheme = globalState.theme
@@ -134,7 +138,8 @@ export const Provider: GlobalProvider = ({ children }) => {
     })
   }, [globalState.control, globalState.controlInitialized, dispatch])
 
-  const palette = globalState.control.palette?.value ?? DEFAULT_PALETTE
+  const palette =
+    PALETTES[globalState.control.palette?.value ?? DEFAULT_PALETTE] ?? NO_BRAND_PALETTE
 
   // This repaints the wrapper when the chosen palette or the resolved
   // theme changes. applyPalette resets the managed variables before it
@@ -145,7 +150,7 @@ export const Provider: GlobalProvider = ({ children }) => {
 
     if (!el) return
 
-    applyPalette(el, PALETTES[palette] ?? {}, theme)
+    applyPalette(el, palette, theme)
   }, [palette, theme])
 
   return (
@@ -171,7 +176,7 @@ export const Provider: GlobalProvider = ({ children }) => {
               !isView && 'p-6',
             )}
           >
-            {children}
+            <BrandPaletteContext.Provider value={palette}>{children}</BrandPaletteContext.Provider>
           </main>
         </Providers>
       </MemoryRouter>
