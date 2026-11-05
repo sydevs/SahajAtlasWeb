@@ -216,9 +216,7 @@ describe('every key a call site asks for', () => {
  * wholesale, so a sync for one ticket carries every other ticket's pending key with it (#316).
  * Delete an entry in the PR that wires it: the pin below fails until you do.
  */
-const PENDING_KEYS: Record<string, string> = {
-  'registration.form.subscribe': 'sydevs/SahajAtlasWeb#147',
-}
+const PENDING_KEYS: Record<string, string> = {}
 
 /**
  * The mirror image: copy whose last call site is gone, each with the SahajCloud ticket that

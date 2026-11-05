@@ -22,6 +22,8 @@ import { type ReactNode, useEffect, useMemo, useRef, useState } from 'react'
 
 import { Button } from '@/components/atoms/Button'
 import { Alert } from '@/components/atoms/Alert'
+import { Checkbox } from '@/components/atoms/Checkbox'
+import { Link } from '@/components/atoms/Link'
 import { RadioGroup, type RadioOption } from '@/components/atoms/RadioGroup'
 import { fieldChrome } from '@/components/atoms/Select'
 import { AddToCalendar } from '@/components/molecules/AddToCalendar'
@@ -46,6 +48,8 @@ import {
 import { useLocale } from '@/hooks/use-locale'
 import { useTurnstile } from '@/hooks/use-turnstile'
 import { useViewerCountry } from '@/hooks/use-viewer-country'
+
+const PRIVACY_POLICY_URL = 'https://wemeditate.com/privacy'
 
 /**
  * This is our copy for each **state** refusal SahajCloud can return (409 and
@@ -213,6 +217,7 @@ export function RegistrationForm({
   const [submitted, setSubmitted] = useState(initialSubmitted)
   const { t } = useTranslation()
   const queryClient = useQueryClient()
+  const [wantsOtherClasses, setWantsOtherClasses] = useState(false)
   const { locale } = useLocale()
   // The viewer's region orders the share targets on the thank-you screen (resolved
   // here so ShareContent stays a pure, prop-driven molecule).
@@ -436,7 +441,30 @@ export function RegistrationForm({
             />
           )}
 
-          <p className="text-xs text-gray-11">{t('registration.form.privacy_policy')}</p>
+          {/* PROPOSAL, pending a qualified GDPR check. Registering no longer doubles as consent
+              to other mail: that is a separate box, off by default.
+
+              ⚠ The box is not sent anywhere yet. `submissionData` keys must exist in SahajCloud's
+              collection first (`mutate.ts`), and the server has to honour it (#147). Do not ship
+              this without that, or the box promises something nothing keeps. */}
+          <Checkbox
+            appearance="checkbox"
+            checked={wantsOtherClasses}
+            onCheckedChange={setWantsOtherClasses}
+          >
+            <span className="text-sm">{t('registration.form.subscribe')}</span>
+          </Checkbox>
+          {/* The link is 44px tall for a thumb, in a line that is otherwise easy to miss. */}
+          <p className="-my-2 text-sm text-gray-11">
+            {t('registration.form.consent_class')}{' '}
+            <Link
+              isExternal
+              className="min-h-11 font-medium text-primary-12 underline underline-offset-2"
+              href={PRIVACY_POLICY_URL}
+            >
+              {t('registration.form.privacy_link')}
+            </Link>
+          </p>
         </>
       )}
 
@@ -555,9 +583,9 @@ function LabeledInput({
   return (
     <FormField error={error} htmlFor={registration.name} label={label}>
       <input
+        aria-required
         aria-describedby={error ? fieldErrorId(registration.name) : undefined}
         aria-invalid={error ? true : undefined}
-        aria-required
         autoComplete={autoComplete}
         className={fieldChrome({ isInvalid: Boolean(error), class: TALL_FIELD })}
         id={registration.name}
