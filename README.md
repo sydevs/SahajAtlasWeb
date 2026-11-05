@@ -47,13 +47,14 @@ origin. So your privacy notice, not ours, has to describe it. This section
 lists every request the widget makes to a party other than you and
 SahajCloud, and every key it stores.
 
-**It sets no cookies.** It stores four keys under your origin. Two are its
+**It sets no cookies.** It stores five keys under your origin. Three are its
 own, written inside a `try`/`catch` so a sandboxed iframe, or a privacy mode
 that refuses storage, degrades gracefully. Two are written by Mapbox GL:
 
 | Key                                | Store            | Holds                                                 | Lifetime            |
 | ----------------------------------- | ---------------- | ------------------------------------------------------ | -------------------- |
 | `atlas.theme`                      | `localStorage`   | the viewer's light/dark/auto choice                   | until cleared       |
+| `atlas.filtersPanel`               | `sessionStorage` | whether the viewer closed the filter panel            | the browser session |
 | `atlas.geolocationPromptDismissed` | `sessionStorage` | that they dismissed the "classes near you" suggestion | the browser session |
 | `mapbox.eventData:<token>`         | `localStorage`   | Mapbox GL's own telemetry bookkeeping                 | until cleared       |
 | `mapbox.eventData.uuid:<token>`    | `localStorage`   | a persistent anonymous id Mapbox generates            | until cleared       |
