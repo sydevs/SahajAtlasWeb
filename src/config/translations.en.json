@@ -102,6 +102,8 @@
       "chip_full": "Full",
       "chip_starts": "Starts %{date}",
       "chip_today": "Today",
+      "class_finished": "This class is over",
+      "class_finished_body": "There are other free classes you can join, nearby or online.",
       "contact_for_timing": "Contact host for timings",
       "contact_to_join_full": "Contact the host to join anyway",
       "contact_to_join_late": "Contact the host to join late",

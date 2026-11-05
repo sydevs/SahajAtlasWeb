@@ -102,7 +102,8 @@ export type EventRegisterBarProps = EventSurfaceProps
  *  An external-mode event with no URL has no CTA at all. This matches the
  *  pre-redesign behavior. */
 export const hasRegisterSlot = (event: Event, display: EventDisplay): boolean => {
-  if (display.status === 'inactive') return false
+  // Terminal states carry their way forward in the body, not in a bar pinned over it.
+  if (display.status === 'inactive' || display.status === 'ended') return false
   if (
     display.registration === 'open' &&
     event.registrationMode === 'external' &&

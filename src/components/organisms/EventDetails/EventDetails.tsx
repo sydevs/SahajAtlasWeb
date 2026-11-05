@@ -5,6 +5,7 @@ import { EventOnward, EventRegisterBar } from './EventRegister'
 import { sanitizeDescription } from './sanitize'
 
 import { Alert } from '@/components/atoms/Alert'
+import { Button } from '@/components/atoms/Button'
 import { EventActions } from '@/components/molecules/EventActions'
 import { EventChips } from '@/components/molecules/EventChips'
 import { ImageCarousel } from '@/components/molecules/ImageCarousel'
@@ -58,6 +59,7 @@ export type EventDetailsProps = EventSurfaceProps & {
 export function EventDetails({ event, basePath, ctaInline = true, children }: EventDetailsProps) {
   const { t } = useTranslation()
   const { display } = useEventDisplay(event)
+  const ended = display.status === 'ended'
 
   const descriptionHtml = lexicalToHtml(event.description)
 
@@ -85,8 +87,17 @@ export function EventDetails({ event, basePath, ctaInline = true, children }: Ev
       {/* When and where lead, because that is what a visitor came for, and on the phone
           sheet they must fit above the sticky footer at the default height. The chips
           follow, as the quieter facts. */}
-      <EventFacts event={event} />
-      <EventChips event={event} />
+      {ended ? (
+        <div className="flex flex-col gap-1">
+          <p className="text-lg">{t('event.display.class_finished')}</p>
+          <p className="text-base text-gray-11">{t('event.display.class_finished_body')}</p>
+        </div>
+      ) : (
+        <>
+          <EventFacts event={event} />
+          <EventChips event={event} />
+        </>
+      )}
 
       {children}
 
@@ -111,8 +122,11 @@ export function EventDetails({ event, basePath, ctaInline = true, children }: Ev
         </>
       )}
 
-      {/* A by-request class has nothing to book, so it must not be the end of the road. */}
-      {display.status === 'inactive' && <EventOnward basePath={basePath} event={event} />}
+      {/* A by-request or finished class has nothing to book, so it must not be the end of
+          the road. Old posters and QR codes keep sending people to finished ones. */}
+      {(ended || display.status === 'inactive') && (
+        <EventOnward basePath={basePath} event={event} />
+      )}
 
       {/* About — host-authored prose always sits below the facts and actions. */}
       {descriptionHtml && (
