@@ -43,6 +43,7 @@ import { wakesSheetLoop } from '@/views/DrawerStack/sheet-wake'
 import { stripLabel } from '@/views/DrawerStack/strip-label'
 import { ViewLayer } from '@/views/DrawerStack/ViewLayer'
 import { DrawerControlContext, FilterPanelAvailableContext } from '@/views/shared'
+import { useFitSnap } from '@/views/DrawerStack/use-fit-snap'
 import { DrawerErrorFallback, DrawerLoading } from '@/views/fallbacks'
 import { CountriesView } from '@/views/CountriesView/CountriesView'
 import { SearchView } from '@/views/SearchView/SearchView'
@@ -97,6 +98,9 @@ const SNAP_POINTS = ['80px', '300px', 0.97]
 const PEEK_SNAP = '80px' // the collapsed peek
 const OPEN_SNAP = '300px' // default, and what the peek expands to
 const WIDE_SNAP = SNAP_POINTS[2] // the near-full snap the full-width calendar opens at
+// Stands for "as tall as the content" in `snap`. The pixel value moves with the content, so
+// the state holds this token and the ladder carries the live number (`useFitSnap`).
+const FIT_SNAP = 'fit'
 
 // How wide the widget has to be before the filters get their own panel over the map, and open by
 // default: the 352px list and its margins, the 320px filter panel and the 64px of map controls
@@ -398,9 +402,28 @@ export function DrawerStack() {
   // stacked edges, and no half a cog, above it. It all comes back once the sheet is dragged lower.
   const tallSheet =
     direction === 'bottom' &&
-    snap === WIDE_SNAP &&
+    (snap === WIDE_SNAP || snap === FIT_SNAP) &&
     (top?.kind === 'filters' || top?.kind === 'search')
   const stackPaths = tallSheet ? [] : parentPaths.slice(0, stackDepth)
+
+  // The filters' fit-to-content snap. Unmeasured, or as tall as the near-full snap, it is
+  // null and FIT_SNAP falls back to the near-full snap.
+  const fitPx = useFitSnap(
+    direction === 'bottom' && hasMap && top?.kind === 'filters' && !filterOverlay,
+    location.pathname,
+  )
+  const fitSnap = fitPx === null ? null : `${fitPx}px`
+  const snapPoints = useMemo(() => {
+    if (fitSnap === null || fitPx === null) return SNAP_POINTS
+    const open = parseFloat(OPEN_SNAP)
+
+    return fitPx < open
+      ? [PEEK_SNAP, fitSnap, OPEN_SNAP, WIDE_SNAP]
+      : [PEEK_SNAP, OPEN_SNAP, fitSnap, WIDE_SNAP]
+  }, [fitSnap, fitPx])
+  const vaulSnap = snap === FIT_SNAP ? (fitSnap ?? WIDE_SNAP) : snap
+  const setVaulSnap = (next: number | string | null) =>
+    setSnap(fitSnap !== null && next === fitSnap ? FIT_SNAP : next)
 
   // The peek strips' accessible names, resolved from caches the app has already
   // filled.
@@ -589,12 +612,12 @@ export function DrawerStack() {
     lastKind.current = top?.kind
     if (direction !== 'bottom') return
 
-    const tall =
-      top?.kind === 'calendar' ||
-      top?.kind === 'filters' ||
-      (from === 'filters' && top?.kind === 'search')
+    const tall = top?.kind === 'calendar' || (from === 'filters' && top?.kind === 'search')
 
-    setSnap(tall ? WIDE_SNAP : OPEN_SNAP)
+    // The filters open as tall as their content, which at world level is a few rows: low on
+    // the screen, near the thumb, with no blank sheet above them. Many filters still reach
+    // the near-full snap, since the fit never goes past it.
+    setSnap(top?.kind === 'filters' ? FIT_SNAP : tall ? WIDE_SNAP : OPEN_SNAP)
   }, [direction, top?.kind])
 
   // A new searched place lifts the sheet out of its peek, so results are never
@@ -915,7 +938,7 @@ export function DrawerStack() {
             key={direction}
             dismissible
             open
-            activeSnapPoint={direction === 'bottom' ? snap : undefined}
+            activeSnapPoint={direction === 'bottom' ? vaulSnap : undefined}
             container={target}
             direction={direction}
             // The left panel (≥md) has no handle and no snap points, so restricting
@@ -928,8 +951,8 @@ export function DrawerStack() {
             // the `display: contents` theme root and measures 0×0. See the note in
             // `Drawer.tsx`.
             measureAgainst={frameElement()}
-            setActiveSnapPoint={direction === 'bottom' ? setSnap : undefined}
-            snapPoints={direction === 'bottom' ? SNAP_POINTS : undefined}
+            setActiveSnapPoint={direction === 'bottom' ? setVaulSnap : undefined}
+            snapPoints={direction === 'bottom' ? snapPoints : undefined}
             wide={wide}
             onOpenChange={(o) => !o && control.dismiss()}
           >
