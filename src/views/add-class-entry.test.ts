@@ -18,13 +18,13 @@ describe('the add-a-class entry', () => {
       'src/components/organisms/EventsList/DynamicEventsList.tsx',
       'src/views/CountriesView/CountriesView.tsx',
     ]) {
-      expect(wiring(path)).toContain("href={addClassPath()}>{t('submit.chrome.add_entry')}")
+      expect(wiring(path)).toContain("href={addClassPath()}label={t('submit.chrome.add_row')}")
     }
   })
 
   it('opens over the region on a region or venue page, so the search starts near it', () => {
     expect(wiring('src/views/RegionView/RegionView.tsx')).toContain(
-      "href={addClassPath(region.path)}>{t('submit.chrome.add_here')}",
+      "href={addClassPath(region.path)}label={t('submit.chrome.add_row_in'",
     )
   })
 

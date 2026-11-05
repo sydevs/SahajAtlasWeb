@@ -276,8 +276,6 @@
       "title": "Tell people about the class"
     },
     "chrome": {
-      "add_entry": "Don’t see your class? Add it",
-      "add_here": "Add a class here",
       "back": "Back",
       "correct_entry": "Suggest a correction",
       "title_add": "Add a class",
@@ -289,7 +287,10 @@
       "step_where": "Place",
       "step_when": "Time",
       "step_details": "Details",
-      "step_review": "Check"
+      "step_review": "Check",
+      "add_row": "Run a class? Add it to the map",
+      "add_row_in": "Run a class in %{place}? Add it to the map",
+      "add_hint": "A coordinator checks it before it appears."
     },
     "contact": {
       "email_label": "Email",

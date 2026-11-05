@@ -6,8 +6,8 @@ import { useTranslation } from 'react-i18next'
 import { EventsList } from './EventsList'
 import { LoadMore } from './LoadMore'
 
-import { Link } from '@/components/atoms/Link'
 import { ActiveFilterPills } from '@/components/molecules/ActiveFilterPills'
+import { AddClassEntry } from '@/components/molecules/AddClassEntry'
 import { FallbackPanel } from '@/components/molecules/Fallbacks'
 import {
   DEFAULT_REVEAL,
@@ -172,9 +172,11 @@ export function DynamicEventsList({
       )}
       {/* Under the list and under every empty state alike: no place is in context here, so the
           flow opens at the root (#147). */}
-      <Link appearance="footnote" href={addClassPath()}>
-        {t('submit.chrome.add_entry')}
-      </Link>
+      <AddClassEntry
+        hint={t('submit.chrome.add_hint')}
+        href={addClassPath()}
+        label={t('submit.chrome.add_row')}
+      />
     </>
   )
 }

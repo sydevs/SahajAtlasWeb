@@ -4,6 +4,10 @@
 // explicit named exports only. Each folder surfaces its primary
 // component or components, plus its `Props` type. Single-use internals
 // stay private.
+// AddClassEntry — the row at the foot of a place list that opens the add-a-class flow.
+export { AddClassEntry } from './AddClassEntry'
+export type { AddClassEntryProps } from './AddClassEntry'
+
 export { SettingsMenu } from './SettingsMenu'
 export type { SettingsMenuProps } from './SettingsMenu'
 
