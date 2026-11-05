@@ -7,6 +7,7 @@ import atlasAuth from './config/api/auth'
 import livePreview from './config/live-preview/protocol'
 import { activateLivePreview, captureLivePreview } from './config/live-preview/boot'
 import { attributeEnabled } from './config/attributes'
+import embed from './config/embed'
 import { initTheme } from './hooks/use-theme'
 import { reportIntegrationWarning } from './lib/report'
 import { FULL_SLOT, decideSlot, framed } from './lib/slot-decision'
@@ -27,6 +28,10 @@ if (!atlasAuth.apiKey) {
 // Iframe-friendly content-only mode: `?map=0` (or `?map=false`) renders without
 // the Mapbox canvas. Default is the full map.
 const hasMap = attributeEnabled(searchParams.get('map'))
+
+// The same per-embed switch the loader reads for the script embed: `?filters=false` here is what
+// a host using the iframe form writes.
+embed.config = { ...embed.config, filters: attributeEnabled(searchParams.get('filters')) }
 
 // SahajCloud live-preview boot (issue #40). Synchronous, and deliberately only half the
 // job: this stashes the token and takes it out of `location.href` before React mounts

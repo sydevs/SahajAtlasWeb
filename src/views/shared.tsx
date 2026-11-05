@@ -13,6 +13,7 @@ import { FallbackPanel, GeolocationPrompt } from '@/components/molecules'
 import { MapSearch } from '@/components/organisms'
 import api, { eventQuery } from '@/config/api'
 import { GEOJSON_STALE_TIME } from '@/config/query-client'
+import embed from '@/config/embed'
 import { useCameraHistory, useFilterPanelState } from '@/config/store'
 import { useAtlasNavigate } from '@/hooks/use-atlas-navigate'
 import { useEventFilters } from '@/hooks/use-filters'
@@ -234,7 +235,7 @@ export function FilterButton({ iconOnly = false }: { iconOnly?: boolean }) {
   const open = () =>
     panelAvailable ? setPanelOpen(!panelOpen) : navigate({ pathname: to, search: location.search })
 
-  if (panelAvailable === 'chips') return null
+  if (panelAvailable === 'chips' || !embed.config.filters) return null
 
   if (iconOnly) {
     return (

@@ -12,7 +12,7 @@ const at = (query: string, pageSearch = '') =>
 describe('parseConfig', () => {
   it('reads every documented parameter off the script URL', () => {
     const config = at(
-      '?key=abc123&map=false&locale=fr&routing=path&atlas=/gb/london&gestures=cooperative',
+      '?key=abc123&map=false&locale=fr&routing=path&atlas=/gb/london&gestures=cooperative&filters=false',
     )
 
     expect(config).toEqual({
@@ -23,6 +23,7 @@ describe('parseConfig', () => {
       route: '/gb/london',
       routeFromPage: false,
       cooperative: true,
+      filters: false,
     })
   })
 
@@ -34,6 +35,7 @@ describe('parseConfig', () => {
       routing: 'query',
       routeFromPage: false,
       cooperative: false,
+      filters: true,
     })
     expect(config.locale).toBeUndefined()
     expect(config.route).toBeUndefined()
@@ -68,7 +70,14 @@ describe('parseConfig', () => {
       route: undefined,
       routeFromPage: false,
       cooperative: false,
+      filters: true,
     })
+  })
+
+  it.each(['false', '0'])('hides filters on filters=%s, and only on those spellings', (value) => {
+    expect(at(`?filters=${value}`).filters).toBe(false)
+    expect(at('?filters=no').filters).toBe(true)
+    expect(at('?key=x').filters).toBe(true)
   })
 
   // Opt-in by exact name, like `routing=path`: anything else leaves the map taking every gesture.

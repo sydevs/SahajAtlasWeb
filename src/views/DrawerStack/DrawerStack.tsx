@@ -18,6 +18,7 @@ import { AnimatePresence, motion } from 'framer-motion'
 import clsx from 'clsx'
 
 import { eventTitlesQuery, regionsQuery } from '@/config/api'
+import embed from '@/config/embed'
 import { useExpansion } from '@/hooks/use-expansion'
 import { useLocale } from '@/hooks/use-locale'
 import { Drawer, DrawerContent } from '@/components/atoms/Drawer'
@@ -307,7 +308,7 @@ export function DrawerStack() {
   // rather than replacing it. So the calendar stays the base view, and the trailing
   // `filters` entry peels off into the overlay below. (Map-less keeps the plain
   // replace-stack behaviour.)
-  const filterOverlay = isFilterOverlay(entries, hasMap)
+  const filterOverlay = isFilterOverlay(entries, hasMap) && embed.config.filters
   const baseEntries = useMemo(
     () => (filterOverlay ? entries.slice(0, -1) : entries),
     [filterOverlay, entries],
@@ -330,16 +331,20 @@ export function DrawerStack() {
   // The panel belongs to the browsing views. A class page or a form has nothing to filter, and
   // the calendar keeps its own filter overlay.
   const filterPanelAvailable =
-    hasMap && filterPanelFits && (!top || top.kind === 'region' || top.kind === 'search')
+    embed.config.filters &&
+    hasMap &&
+    filterPanelFits &&
+    (!top || top.kind === 'region' || top.kind === 'search')
       ? DESKTOP_FILTERS
       : null
-  const routedFilters = hasMap && filterPanelFits && top?.kind === 'filters'
+  const routedFilters =
+    top?.kind === 'filters' && (!embed.config.filters || (hasMap && filterPanelFits))
 
   // A `/filters` link on a layout with the panel: open the panel, and show the view beneath it.
   useEffect(() => {
     if (!routedFilters) return
 
-    setFilterPanelOpen(true)
+    if (embed.config.filters) setFilterPanelOpen(true)
     navigate(
       filterCloseTarget(location.pathname, location.search) ?? {
         pathname: parentOf(location.pathname) ?? '/',
