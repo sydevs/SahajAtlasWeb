@@ -278,7 +278,7 @@ function ListingSummary({
             {t('submit.review.left_out', { parts: leftOut.join(', ') })}
           </p>
           <Button
-            className="-my-1 -me-2 shrink-0"
+            className={`-my-1 -me-2 shrink-0 ${TALL_TARGET}`}
             color="primary"
             size="sm"
             variant="ghost"
@@ -320,13 +320,16 @@ function Fact({
 const longDate = (iso: string, locale: string) =>
   DateTime.fromISO(iso).setLocale(locale).toLocaleString(DateTime.DATE_FULL)
 
+/** A 32px button that takes taps across 44px, without pushing the rows apart. */
+const TALL_TARGET = 'relative after:absolute after:inset-x-0 after:-inset-y-1.5'
+
 function EditButton({ label, onClick }: { label: string; onClick: () => void }) {
   const { t } = useTranslation()
 
   return (
     <Button
       aria-label={`${t('submit.review.edit')}: ${label}`}
-      className="-my-1 -me-2 shrink-0"
+      className={`-my-1 -me-2 shrink-0 ${TALL_TARGET}`}
       color="primary"
       size="sm"
       variant="ghost"
@@ -522,7 +525,7 @@ function ChangeCard({
           {onRemove && (
             <Button
               aria-label={removeLabel ?? `${remove}: ${label}`}
-              className="ms-1"
+              className={`ms-1 ${TALL_TARGET}`}
               color="neutral"
               size="sm"
               variant="ghost"

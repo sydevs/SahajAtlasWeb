@@ -279,7 +279,7 @@ function PlaceField({
             )}
           </div>
           <Button
-            className="-my-1 -me-2 shrink-0"
+            className="relative -my-1 -me-2 shrink-0 after:absolute after:inset-x-0 after:-inset-y-1.5"
             color="primary"
             size="sm"
             variant="ghost"
