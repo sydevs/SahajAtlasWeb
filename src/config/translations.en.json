@@ -248,6 +248,8 @@
   "search": {
     "chrome": {
       "city_or_postcode": "City or postcode",
+      "none_in_country": "Nothing found in %{country}.",
+      "search_all_countries": "Search all countries",
       "title": "Search"
     },
     "country_site": {

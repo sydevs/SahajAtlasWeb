@@ -1,14 +1,18 @@
 import React, { Component, type ReactNode } from 'react'
 import { Geocoder } from '@mapbox/search-js-react'
-import { GeocodingFeature } from '@mapbox/search-js-core'
+import { GeocodingFeature, type LngLatLike } from '@mapbox/search-js-core'
 import { useLocation, useSearchParams } from 'react-router'
+import { useQuery } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
 
 import { hoistGeocoderLiveRegion } from './aria-live'
 import { controlTheme } from './themes'
 
+import { clientQuery } from '@/config/api'
+import atlasAuth from '@/config/api/auth'
 import { useLocale } from '@/hooks/use-locale'
 import { useMapbox } from '@/hooks/use-mapbox'
+import { isoCountryCode } from '@/lib/shape'
 
 export interface MapSearchProps {
   /** Called with the geocoded place the user picked from the suggestions. */
@@ -55,14 +59,40 @@ class GeocoderBoundary extends Component<
   }
 }
 
+// Places a visitor would name, not bare streets or house numbers. A street name matches hundreds of
+// towns, so "Hampstead" offered four streets near Manchester above the London district.
+const PLACE_TYPES = 'country,region,postcode,district,place,locality,neighborhood'
+
+// Below this zoom the map shows a continent or more, so its centre says nothing about the visitor.
+const LOCAL_BIAS_MIN_ZOOM = 3
+
+// Which place the geocoder ranks results near: the map's centre once it has settled on a country or
+// closer. At world level, or with no map, the visitor's own area, which Mapbox reads from the
+// request it already receives.
+const searchBias = (zoom: number | undefined, center: LngLatLike | undefined) =>
+  zoom !== undefined && zoom >= LOCAL_BIAS_MIN_ZOOM && center ? center : 'ip'
+
 export function MapSearch({ onSelect, syncToUrl = true, label }: MapSearchProps) {
   const [searchParams, setSearchParams] = useSearchParams()
   const location = useLocation()
   const [searchQuery, setSearchQuery] = React.useState(searchParams.get('q') || '')
   const { mapbox } = useMapbox()
-  const { locale } = useLocale()
+  const { locale, regionNames } = useLocale()
   const { t } = useTranslation()
   const fieldLabel = label ?? t('search.chrome.city_or_postcode')
+  // Search stays in the country on screen, or the one a client's home region sits in. Mapbox's
+  // ranking alone puts Hampstead, Quebec above Hampstead, London even when told it is near the UK,
+  // and it offers no way to prefer a country short of this filter. So a search that finds nothing
+  // here offers to look everywhere. The client comes from the bootstrap's cache; the field never
+  // fetches it.
+  const { data: client } = useQuery({ ...clientQuery(atlasAuth.apiKey), enabled: false })
+  const home = client?.region && typeof client.region === 'object' ? client.region : null
+  const country =
+    isoCountryCode(location.pathname.split('/')[1]) ??
+    isoCountryCode(home?.webPath?.split('/').filter(Boolean)[0])
+  const [releasedFrom, setReleasedFrom] = React.useState<string>()
+  const scope = country !== releasedFrom ? country : undefined
+  const [foundNothing, setFoundNothing] = React.useState(false)
 
   // This merges `q` into the existing query, so the active filters (and
   // bbox and center) survive typing — they live only in the URL now.
@@ -120,6 +150,18 @@ export function MapSearch({ onSelect, syncToUrl = true, label }: MapSearchProps)
     )
   }
 
+  const searchEverywhere = () => {
+    setReleasedFrom(country)
+    setFoundNothing(false)
+    // The geocoder searches on input, so wait for it to take the wider options, then repeat the query.
+    requestAnimationFrame(() => {
+      const input = field.current?.querySelector('input')
+
+      input?.focus()
+      input?.dispatchEvent(new Event('input', { bubbles: true }))
+    })
+  }
+
   return (
     // The Geocoder permanently reserves ~40px of right padding for its
     // "action" slot. The only thing that ever occupies it is the Clear (×)
@@ -154,15 +196,27 @@ export function MapSearch({ onSelect, syncToUrl = true, label }: MapSearchProps)
           map={mapbox?.getMap()}
           options={{
             language: locale, // TODO: Make sure this switches when locale changes
-            proximity: mapbox?.getCenter(),
+            // `country` is left out rather than undefined: the geocoder serializes what it's given.
+            ...(scope ? { country: scope } : {}),
+            proximity: searchBias(mapbox?.getZoom(), mapbox?.getCenter()),
+            types: PLACE_TYPES,
           }}
           placeholder={fieldLabel}
           theme={controlTheme}
           value={searchQuery}
           onChange={setQuery}
           onRetrieve={onSelect}
+          onSuggest={(response) => setFoundNothing(response.features.length === 0)}
         />
       </GeocoderBoundary>
+      {scope && foundNothing && searchQuery.trim() && (
+        <p className="pt-2 text-sm text-gray-11" role="status">
+          {t('search.chrome.none_in_country', { country: regionNames.of(scope) ?? scope })}{' '}
+          <button className="text-primary-11 underline" type="button" onClick={searchEverywhere}>
+            {t('search.chrome.search_all_countries')}
+          </button>
+        </p>
+      )}
     </div>
   )
 }
