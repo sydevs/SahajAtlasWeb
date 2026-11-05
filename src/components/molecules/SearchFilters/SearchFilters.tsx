@@ -301,13 +301,19 @@ export function SearchFilters({ value, onChange }: SearchFiltersProps) {
       >
         <ToggleGroup
           aria-label={t('filters.days.label')}
+          className="grid w-full grid-cols-7"
           highlight={daysOfWeek.length > 0}
           type="multiple"
           value={daysOfWeek.map(String)}
           onValueChange={(next) => patch({ daysOfWeek: next.map(Number) })}
         >
           {weekdays.map((day) => (
-            <ToggleGroupItem key={day.value} aria-label={day.full} value={day.value}>
+            <ToggleGroupItem
+              key={day.value}
+              aria-label={day.full}
+              className="min-w-0 px-0"
+              value={day.value}
+            >
               {day.label}
             </ToggleGroupItem>
           ))}

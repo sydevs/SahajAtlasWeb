@@ -399,6 +399,12 @@
    already `none`), so the popover never steals hover from the pin beneath it or
    blocks tap-to-open — it is a purely visual affordance. This is plain CSS, not a
    Tailwind layer, so it reliably overrides the imported mapbox-gl.css. */
+/* Mapbox disables the locate button when the browser refuses location outright, such as in an
+   iframe with no `allow="geolocation"`, and shows a crossed-out icon nobody can act on. */
+.mapboxgl-ctrl-group:has(> .mapboxgl-ctrl-geolocate:disabled) {
+  display: none;
+}
+
 .event-pin-popover .mapboxgl-popup-content {
   padding: 0;
   background: none;
@@ -546,20 +552,9 @@
 
 /* Inside a frame the fixed layer is contained by it, so the frame IS the box to fill.
    Carried by `CompactEmbedView`'s expanded dialog and by `MapFrame`. See
-   `lib/overlay.ts` for why there is only ever one. `data-sy-expanded` below is the
-   narrower, dialog-only marker. */
+   `lib/overlay.ts` for why there is only ever one. */
 [data-sy-frame] {
   --sy-frame-h: 100%;
-}
-
-/* Keeps Mapbox's own control column clear of the expanded surface's collapse control.
-   Both sit in the top-inline-end corner (`CompactEmbedView`'s `ExpandedDialog`), and map
-   mode renders the geolocate button and the attribution there. This is unconditional,
-   rather than direction-aware: under RTL the collapse control moves to the other corner
-   and this nudge is merely unnecessary, which is a better failure than two round buttons
-   on top of each other. */
-[data-sy-expanded] .mapboxgl-ctrl-top-right {
-  margin-top: 40px;
 }
 
 /* The boot curtain's spinner (views/FullInterface.tsx → MapCurtain). It fades in on a

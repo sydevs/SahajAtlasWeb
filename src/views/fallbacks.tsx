@@ -78,7 +78,7 @@ function SearchFieldSkeleton() {
         disabled
         readOnly
         className="w-full rounded-lg border border-divider bg-gray-2 px-3 py-2 field-size text-foreground placeholder:text-gray-11"
-        placeholder={t('search.chrome.placeholder', { defaultValue: 'Search for events near…' })}
+        placeholder={t('search.chrome.placeholder_place', { defaultValue: 'Town or city' })}
         type="search"
         value=""
       />

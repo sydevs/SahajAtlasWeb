@@ -37,6 +37,7 @@ import { frameElement } from '@/lib/overlay'
 // If a host is ever invited to set that variable, this is the constant that must start resolving it.
 const DRAWER_W_PX = 352
 const MOBILE_PEEK_PX = 128
+const FRAMED_SHEET_PX = 400
 const MAP_MARGIN = 20
 
 // These constants keep zoom consistent.
@@ -95,11 +96,16 @@ export function RealMapControllerProvider({ children }: { children: ReactNode })
 
   // Keep the drawer's known footprint out of the usable camera area.
   useEffect(() => {
+    // In a host's box the sheet covers far more of the map than on a phone, so a framed pin
+    // has to centre in what is left above the sheet. Capped so a short box keeps some map.
+    const frameHeight = frameElement()?.offsetHeight ?? 0
+    const sheet = frameHeight ? Math.min(FRAMED_SHEET_PX, frameHeight * 0.55) : MOBILE_PEEK_PX
+
     setPadding({
       left: MAP_MARGIN + (isWide ? DRAWER_W_PX : 0),
       right: MAP_MARGIN,
       top: MAP_MARGIN,
-      bottom: MAP_MARGIN + (isWide ? 0 : MOBILE_PEEK_PX),
+      bottom: MAP_MARGIN + (isWide ? 0 : sheet),
     })
   }, [isWide, setPadding])
 

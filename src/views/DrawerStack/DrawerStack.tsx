@@ -92,6 +92,27 @@ const SNAP_POINTS = ['80px', '300px', 0.97]
 const PEEK_SNAP = '80px' // the collapsed peek
 const OPEN_SNAP = '300px' // default, and what the peek expands to
 const WIDE_SNAP = SNAP_POINTS[2] // the near-full snap the full-width calendar opens at
+// In a host's box, 300px shows three rows, or a class's title and a clipped time. This shows
+// five rows, or a class's when, where and register button, and still leaves some map.
+const DETAIL_SNAP = '400px'
+// The whole box. The 97% stop a phone uses would leave a sliver of map here, with the cog and
+// the locate button half under the sheet.
+const FRAMED_FULL_SNAP = 1
+const FRAMED_SNAP_POINTS = [PEEK_SNAP, OPEN_SNAP, DETAIL_SNAP, FRAMED_FULL_SNAP]
+// Under this, DETAIL_SNAP would leave a sliver of map.
+const DETAIL_SNAP_MIN_FRAME_PX = 520
+
+/**
+ * Where the sheet opens for a view. In a host's box (or the compact dialog), a form or a class
+ * cannot share the height with the map the way it can on a phone. The map is one swipe away.
+ */
+function openSnapFor(kind: StackEntry['kind'] | undefined, frameHeight: number) {
+  if (frameHeight === 0) return kind === 'calendar' ? WIDE_SNAP : OPEN_SNAP
+  if (kind === 'calendar' || kind === 'register' || kind === 'filters') return FRAMED_FULL_SNAP
+  if (frameHeight >= DETAIL_SNAP_MIN_FRAME_PX) return DETAIL_SNAP
+
+  return kind === 'event' ? FRAMED_FULL_SNAP : OPEN_SNAP
+}
 
 // How far each stacked ancestor peeks out behind the active sheet. Wide enough to read as
 // a deliberate stack of cards from across the screen. An earlier few-pixel sliver was easy
@@ -274,6 +295,8 @@ export function DrawerStack() {
   // subtree via `WidgetWidthContext` at the foot of this component, so no descendant can
   // disagree with the drawer it sits in.
   const isWide = useIsWide(container ?? frameElement())
+  // Zero means no frame: the sheet is measured against the window, as on a phone.
+  const frameHeight = hasMap ? (frameElement()?.offsetHeight ?? 0) : 0
   const direction: Direction = isWide ? 'left' : 'bottom'
   const [snap, setSnap] = useState<number | string | null>(OPEN_SNAP)
   const stripsRef = useRef<HTMLDivElement>(null)
@@ -525,8 +548,8 @@ export function DrawerStack() {
   // This runs only when navigating to or from the calendar, so it never fights a
   // manual drag on a non-calendar view.
   useEffect(() => {
-    if (direction === 'bottom') setSnap(top?.kind === 'calendar' ? WIDE_SNAP : OPEN_SNAP)
-  }, [direction, top?.kind])
+    if (direction === 'bottom') setSnap(openSnapFor(top?.kind, frameHeight))
+  }, [direction, top?.kind, frameHeight])
 
   // A new searched place lifts the sheet out of its peek, so results are never
   // fetched into a sheet the visitor cannot see. The effect above does not cover this
@@ -715,32 +738,31 @@ export function DrawerStack() {
               measured overflowing here, since the sheet takes no snap ladder map-less — the
               invariant stated, not a defect repaired. */}
           <div
-            ref={setContainer}
-            className="relative w-full overflow-clip bg-background"
+            className="flex w-full flex-col overflow-clip bg-background"
             style={{ height: standalone ? '100dvh' : '100%' }}
           >
-            <Drawer
-              key={direction}
-              open
-              container={container}
-              direction={direction}
-              dismissible={parentPaths.length > 0}
-              // Same as the map drawer: the left panel (≥md) has no handle, so
-              // handle-only drag would make it undraggable — dismiss stays the close
-              // button only.
-              handleOnly={direction === 'left'}
-              mode="filled"
-              onOpenChange={(o) => !o && control.dismiss()}
-            >
-              {sheet}
-            </Drawer>
-            {/* Map-less, the drawer fills the container and its search header owns
-              the top, so a top-left cog would cover the search field. This keeps it
-              on the left but at the bottom, clear of the header. side="top" opens
-              the menu upward from there. z-50 so it sits above the fill-the-container
-              drawer content (z-40, and portaled in last) — otherwise a list row
-              would intercept its clicks. */}
-            <SettingsMenu className="absolute start-3 bottom-3 z-50" side="top" />
+            <div ref={setContainer} className="relative min-h-0 w-full flex-1 overflow-clip">
+              <Drawer
+                key={direction}
+                open
+                container={container}
+                direction={direction}
+                dismissible={parentPaths.length > 0}
+                // Same as the map drawer: the left panel (≥md) has no handle, so
+                // handle-only drag would make it undraggable — dismiss stays the close
+                // button only.
+                handleOnly={direction === 'left'}
+                mode="filled"
+                onOpenChange={(o) => !o && control.dismiss()}
+              >
+                {sheet}
+              </Drawer>
+            </div>
+            {/* Its own strip below the views, not floating over them: floating, the cog sat on
+                form fields and list rows, and the narrower the box the more it covered. */}
+            <div className="flex h-11 shrink-0 items-center border-t border-divider px-4">
+              <SettingsMenu side="top" />
+            </div>
           </div>
         </DrawerControlContext.Provider>
       </WidgetWidthContext.Provider>
@@ -847,7 +869,9 @@ export function DrawerStack() {
           // `Drawer.tsx`.
           measureAgainst={frameElement()}
           setActiveSnapPoint={direction === 'bottom' ? setSnap : undefined}
-          snapPoints={direction === 'bottom' ? SNAP_POINTS : undefined}
+          snapPoints={
+            direction !== 'bottom' ? undefined : frameHeight ? FRAMED_SNAP_POINTS : SNAP_POINTS
+          }
           wide={wide}
           onOpenChange={(o) => !o && control.dismiss()}
         >

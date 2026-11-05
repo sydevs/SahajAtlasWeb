@@ -1,6 +1,6 @@
 import type { CompactState } from '@/lib/slot-decision'
 
-import { type ReactNode, useCallback, useEffect, useRef } from 'react'
+import { type ReactNode, useEffect, useRef } from 'react'
 import * as Primitive from '@radix-ui/react-dialog'
 import { motion } from 'framer-motion'
 import { useTranslation } from 'react-i18next'
@@ -101,18 +101,19 @@ const aboveHost = 'z-[2147483000]'
 // The same dimming as the `Modal` atom, deliberately: two dialogs in one app should
 // not dim the page by different amounts. It drifted to /40 when this was copied.
 const overlayClass = `fixed inset-0 ${aboveHost} bg-black/50`
-// `contain: layout` via the arbitrary variant — see `ExpandedDialog`'s note. The
-// inset is the margin that lets the host's page show through. Rounded plus shadow so
-// the frame reads as deliberate.
+// The inset is the margin that lets the host's page show through. Column: the close control's
+// row, then the frame. The row sits on the dimmed page, so the control can't land on the panel's
+// own close button, and it lets clicks through to the overlay, so its empty part still closes.
+const surfaceClass = `fixed inset-2 ${aboveHost} flex flex-col outline-none sm:inset-4`
+const closeRowClass = 'pointer-events-none flex h-12 shrink-0 items-start justify-end'
+// `contain: layout` via the arbitrary variant — see `ExpandedDialog`'s note. Rounded plus shadow
+// so the frame reads as deliberate.
 //
 // ⚠ Clip, never hidden — `components/AGENTS.md` carries why (#326). Measured here, since
 // this is where it was caught: 528px of scrollable overflow at 390×844.
-const contentClass = `fixed inset-2 ${aboveHost} overflow-clip rounded-xl bg-background text-foreground shadow-2xl outline-none [contain:layout] sm:inset-4`
-// Deliberately the SettingsMenu cog's chrome, down to the shadow: they are the two
-// floating controls over the same surface, at opposite corners, and they should read
-// as one system.
+const contentClass = `relative min-h-0 flex-1 overflow-clip rounded-xl bg-background text-foreground shadow-2xl [contain:layout]`
 const closeClass =
-  'absolute end-3 top-3 z-50 border-divider bg-background text-gray-11 shadow-lg hover:text-foreground'
+  'pointer-events-auto h-11 w-11 min-w-11 border-divider bg-background text-gray-11 shadow-lg hover:text-foreground'
 
 /**
  * The widget's own interface, over the host's page rather than in it.
@@ -177,18 +178,10 @@ function ExpandedDialog({
   // Published as the widget's frame, and the children wait for it — `usePublishedNode`
   // carries the timing argument, which `MapFrame` depends on identically.
   //
-  // The extra `contentRef` is this component's own: the focus handlers below read
-  // the node synchronously from callbacks that must not re-subscribe when it
-  // changes.
+  // `contentRef` is the surface around that frame: the focus handlers below read the
+  // node synchronously from callbacks that must not re-subscribe when it changes.
   const { node, adopt: adoptFrame } = usePublishedNode<HTMLDivElement>(setFrame)
   const contentRef = useRef<HTMLDivElement | null>(null)
-  const adopt = useCallback(
-    (element: HTMLDivElement | null) => {
-      contentRef.current = element
-      adoptFrame(element)
-    },
-    [adoptFrame],
-  )
 
   // Who to give focus back to on close.
   //
@@ -271,32 +264,34 @@ function ExpandedDialog({
               form. This uses framer, rather than CSS, so `MotionConfig` covers it, which
               keeps reduced motion to three seams instead of four (`src/components/AGENTS.md`). */}
           <motion.div
-            ref={adopt}
+            ref={contentRef}
             animate={{ opacity: 1 }}
-            className={contentClass}
-            data-sy-expanded=""
-            data-sy-frame=""
+            className={surfaceClass}
             initial={{ opacity: 0 }}
             transition={{ duration: 0.15 }}
           >
             <Primitive.Title className="sr-only">{title}</Primitive.Title>
-            {/* Held back until the ref above has published this node, so the first drawer portals
-                inside the dialog rather than beside it. */}
-            {node && children}
             {/* The pointer's exit. No longer the only one — Escape reaches this component through
                 `DrawerStack`, and the margin behind is clickable — but the visible one. */}
-            <Primitive.Close asChild>
-              <Button
-                isIconOnly
-                aria-label={closeLabel}
-                className={closeClass}
-                radius="full"
-                size="sm"
-                variant="bordered"
-              >
-                <X size={16} />
-              </Button>
-            </Primitive.Close>
+            <div className={closeRowClass}>
+              <Primitive.Close asChild>
+                <Button
+                  isIconOnly
+                  aria-label={closeLabel}
+                  className={closeClass}
+                  radius="full"
+                  size="sm"
+                  variant="bordered"
+                >
+                  <X size={20} />
+                </Button>
+              </Primitive.Close>
+            </div>
+            <div ref={adoptFrame} className={contentClass} data-sy-expanded="" data-sy-frame="">
+              {/* Held back until the ref above has published this node, so the first drawer portals
+                  inside the dialog rather than beside it. */}
+              {node && children}
+            </div>
           </motion.div>
         </Primitive.Content>
       </Primitive.Portal>
