@@ -446,7 +446,7 @@ widget still reads your client record and sends the one-per-load
 | A script embed on your page | Opens the interface in a full-screen overlay, in place                                       |
 | Inside an iframe            | Opens a page that fits, in a new tab (see [Embedding in an iframe](#embedding-in-an-iframe)) |
 
-The floors are **360px wide and 420px tall**, with a second condition that matters as much: **the
+The floors are **280px wide and 420px tall**, with a second condition that matters as much: **the
 widget only degrades when there is somewhere bigger to go.** A slot that is essentially the whole
 screen is never called too small, since a card there would take the interface away and hand back
 nothing — a full-width phone embed, or a small iframe on a small screen, keeps the normal

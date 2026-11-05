@@ -175,7 +175,7 @@ describe('embedLayout', () => {
     })
 
     it('degrades below either floor', () => {
-      expect(embedLayout({ map: 'none', slot: box(300, 600), destination: overlay })).toEqual({
+      expect(embedLayout({ map: 'none', slot: box(260, 600), destination: overlay })).toEqual({
         layout: 'compact',
         reason: 'floors',
       })
