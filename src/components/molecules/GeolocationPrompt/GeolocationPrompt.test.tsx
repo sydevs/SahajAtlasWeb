@@ -10,7 +10,7 @@ vi.mock('react-i18next', () => ({
   useTranslation: () => ({
     t: (key: string, opts?: { city?: string }) =>
       ({
-        'search.nearby_prompt.title': `Looking for classes near ${opts?.city}?`,
+        'countries.near_city': `Classes near ${opts?.city}`,
         'search.nearby_prompt.dismiss': 'Dismiss',
       })[key] ?? key,
   }),
@@ -24,7 +24,7 @@ describe('GeolocationPrompt', () => {
       <GeolocationPrompt city="Paris" onAccept={noop} onClose={noop} />,
     )
 
-    expect(html).toContain('Looking for classes near Paris?')
+    expect(html).toContain('Classes near Paris')
     expect(html).not.toContain('your location')
   })
 
@@ -34,7 +34,7 @@ describe('GeolocationPrompt', () => {
     )
 
     expect(html).toContain('<button')
-    expect(html).toContain('Looking for classes near Berlin?')
+    expect(html).toContain('Classes near Berlin')
   })
 
   it('is a polite status with an accessible dismiss label — not an assertive alert', () => {

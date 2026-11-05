@@ -49,6 +49,10 @@ export function RegionView({ slug }: { slug: string }) {
   useFrameOnTop(() => frameRegion(region), [region, frameRegion])
 
   const header = (region.countryCode && regionNames.of(region.countryCode)) || region.name
+  // Only a country can usefully offer "near the guess". Below that, the visitor has already said
+  // where they are looking.
+  const suggestFor =
+    region.level === 'country' ? { center: region.center, countryCode: region.countryCode } : null
   const canonicalUrl = validateWebUrl(region.webUrl)
   // A region with sub-region cards surfaces its online roll-up behind a dedicated "Online
   // Classes" card. A region without sub-regions lists its online events inline.
@@ -137,7 +141,7 @@ export function RegionView({ slug }: { slug: string }) {
         {/* This is suppressed while the acknowledgement is up. Two stacked prompts above the
             list are more than the screen can carry, and the reader has just acted once
             already. It returns as soon as they dismiss the banner. */}
-        {!feedback && <GeolocationSuggestion regionCenter={region.center} />}
+        {!feedback && suggestFor && <GeolocationSuggestion position="above" region={suggestFor} />}
         {isEmpty ? (
           <EmptyEventList />
         ) : (
@@ -176,6 +180,7 @@ export function RegionView({ slug }: { slug: string }) {
               ))}
           </List>
         )}
+        {!feedback && suggestFor && <GeolocationSuggestion position="below" region={suggestFor} />}
       </DrawerBody>
     </>
   )

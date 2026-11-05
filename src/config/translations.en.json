@@ -255,8 +255,7 @@
       "title": "No classes listed in %{country} yet."
     },
     "nearby_prompt": {
-      "dismiss": "Dismiss",
-      "title": "Looking for classes near %{city}?"
+      "dismiss": "Dismiss"
     },
     "results": {
       "farther": "Show distant events",

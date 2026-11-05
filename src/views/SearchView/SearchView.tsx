@@ -7,13 +7,7 @@ import { DynamicEventsList } from '@/components/organisms'
 import { useViewState } from '@/config/store'
 import { useMapController } from '@/hooks/use-map-controller'
 import { listResetKey, parseCenter } from '@/lib/shape'
-import {
-  CloseButton,
-  FilterButton,
-  GeolocationSuggestion,
-  SearchField,
-  useFrameOnTop,
-} from '@/views/shared'
+import { CloseButton, FilterButton, SearchField, useFrameOnTop } from '@/views/shared'
 import { ErrorPanel } from '@/views/fallbacks'
 
 // A `?bbox=w,s,e,n` param, validated to four finite numbers — a malformed or
@@ -72,7 +66,6 @@ export function SearchView() {
         </ListToolbar>
       </DrawerToolbar>
       <DrawerBody>
-        <GeolocationSuggestion />
         {/* The list owns the `['events', …]` read. The geocoder above it does not. Keeping a
             failed list local means the search field stays live, so the escape from a failed
             search is to run a different one — the most useful thing on the screen. `resetKeys`

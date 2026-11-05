@@ -1,7 +1,8 @@
 import { useTranslation } from 'react-i18next'
-import { MapPin } from 'lucide-react'
+import { ChevronRight, MapPin } from 'lucide-react'
 
 import { Alert } from '@/components/atoms/Alert'
+import { Link } from '@/components/atoms/Link'
 
 export type GeolocationPromptProps = {
   /** The IP-guessed city, interpolated into the prompt's question. */
@@ -10,6 +11,8 @@ export type GeolocationPromptProps = {
   onAccept: () => void
   /** Dismiss the suggestion for the rest of the session. */
   onClose: () => void
+  /** The guessed country's own website, offered as a second way to go local. */
+  site?: { href: string; country: string }
 }
 
 /**
@@ -18,11 +21,11 @@ export type GeolocationPromptProps = {
  * button into the distance-ranked search. The Alert's × dismisses it for
  * the session. It announces politely (`role="status"`), not as an
  * assertive alert, since it is a passive guess. It is framed as a *guess*:
- * "Looking for classes near %{city}?", never "your location". This is
+ * "Classes near %{city}", never "your location". This is
  * presentational only. The IP lookup, session-scoped dismissal, and
  * navigation live in `GeolocationSuggestion` (src/views/shared.tsx).
  */
-export function GeolocationPrompt({ city, onAccept, onClose }: GeolocationPromptProps) {
+export function GeolocationPrompt({ city, onAccept, onClose, site }: GeolocationPromptProps) {
   const { t } = useTranslation()
 
   // Inset by the panel's 16px gutter so the banner lines up with the header
@@ -34,16 +37,25 @@ export function GeolocationPrompt({ city, onAccept, onClose }: GeolocationPrompt
       className="mx-4 mb-2 gap-2.5 rounded-lg ps-3 pe-1"
       closeLabel={t('search.nearby_prompt.dismiss')}
       color="secondary"
+      description={
+        site && (
+          // Quiet on purpose. The row above is what the notice is for; this one leaves the page.
+          <Link isExternal className="text-gray-11 hover:underline" href={site.href}>
+            {t('search.country_site.cta', { country: site.country })}
+          </Link>
+        )
+      }
       icon={<MapPin size={18} />}
       role="status"
       size="sm"
       title={
         <button
-          className="w-full text-start hover:underline focus:outline-none focus-visible:underline"
+          className="flex w-full items-center gap-1 text-start hover:underline focus:outline-none focus-visible:underline"
           type="button"
           onClick={onAccept}
         >
-          {t('search.nearby_prompt.title', { city })}
+          {t('countries.near_city', { city })}
+          <ChevronRight aria-hidden className="shrink-0 rtl:-scale-x-100" size={16} />
         </button>
       }
       onClose={onClose}
