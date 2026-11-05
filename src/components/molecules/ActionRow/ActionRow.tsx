@@ -4,7 +4,7 @@ import { tv } from 'tailwind-variants'
 import { Button } from '@/components/atoms/Button'
 
 // The secondary actions under Register: matching quiet buttons, icon plus label,
-// one icon size. Emphasis belongs to Register, so these are the soft neutral Button,
+// one icon size and one surface, Share included, so the row reads as a set. Emphasis belongs to Register, so these are the soft neutral Button,
 // which already carries the href safety gate, focus ring and `data-vaul-no-drag`.
 //
 // Three actions sit icon-beside-label. A fourth (Website) leaves too little width for
@@ -28,8 +28,6 @@ export type ActionButtonProps = {
   isExternal?: boolean
   /** Icon above the label, for the four-action set. */
   stacked?: boolean
-  /** No surface until hovered, for an action most visitors don't need. */
-  quiet?: boolean
   /** The one main action, on a state with no Register button. */
   lead?: boolean
 } & Omit<HTMLAttributes<HTMLElement>, 'color'>
@@ -37,14 +35,14 @@ export type ActionButtonProps = {
 /** One action. The forwarded ref reaches the interactive element, and rest props spread
  *  onto it, so a popover trigger (floating-ui `getReferenceProps()`) works unchanged. */
 export const ActionButton = forwardRef<HTMLElement, ActionButtonProps>(function ActionButton(
-  { icon, label, href, isExternal = false, stacked = false, quiet = false, lead = false, ...rest },
+  { icon, label, href, isExternal = false, stacked = false, lead = false, ...rest },
   ref,
 ) {
   const shared = {
     ref: ref as Ref<HTMLButtonElement & HTMLAnchorElement>,
     className: actionButton({ stacked, lead }),
     color: lead ? 'primary' : 'neutral',
-    variant: lead ? 'solid' : quiet ? 'ghost' : 'flat',
+    variant: lead ? 'solid' : 'flat',
   } as const
   const content = (
     <>
