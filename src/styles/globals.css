@@ -287,6 +287,8 @@
   --color-foreground: var(--gray-12);
   --color-divider: var(--gray-6);
   --color-focus: hsl(var(--primary-9));
+  /* The warm accent for the We Meditate line icons (atoms/Icons/wm). See `--ornament`. */
+  --color-ornament: var(--ornament);
 }
 
 /* The neutral alias. A custom property that references another resolves on the element
@@ -407,6 +409,24 @@
   --contrast-11: 12 60% 72%;
   --contrast-12: 12 60% 90%;
   --background: 0 0% 7%;
+}
+
+/* `--ornament`: the coral the We Meditate icons are drawn in. The contrast solid
+   (#E08E79) is the app's coral but measures 2.5:1 on the warm panel, under the 3:1 an
+   icon needs. So light mode mixes it toward the ramp's deep step, about #C46A56 for the
+   default seed (3.7:1 on the panel), and dark mode uses the solid itself, which is
+   already light enough there. Both derive from the contrast ramp, so a tenant palette
+   repaints them too. Declared after the brand-default blocks on purpose: the
+   palette.defaults test reads the FIRST `:root, .light, .light-theme` block. */
+:root,
+.light,
+.light-theme {
+  --ornament: color-mix(in srgb, hsl(var(--contrast-9)) 55%, hsl(var(--contrast-11)));
+}
+
+.dark,
+.dark-theme {
+  --ornament: hsl(var(--contrast-9));
 }
 
 /* vaul disables text selection on the drawer for pointer devices (to keep drag

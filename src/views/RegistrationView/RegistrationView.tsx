@@ -12,6 +12,7 @@ import { enabledQuestions, eventTimeZone, isOnline, isUnverified } from '@/lib/s
 import {
   CloseButton,
   DrawerTitle,
+  FreeLine,
   useDrawerControl,
   useEventFromPath,
   useFrameOnTop,
@@ -103,10 +104,7 @@ export function RegistrationView({
   return (
     <>
       <DrawerHeader className="justify-between">
-        <DrawerTitle
-          subtitle={t('common.chrome.all_classes_free')}
-          title={t('registration.form.title')}
-        />
+        <DrawerTitle subtitle={<FreeLine />} title={t('registration.form.title')} />
         <CloseButton />
       </DrawerHeader>
       <DrawerBody className="p-4">

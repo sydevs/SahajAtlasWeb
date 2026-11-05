@@ -10,6 +10,7 @@ import { ErrorBoundary } from 'react-error-boundary'
 import { QueryErrorResetBoundary } from '@tanstack/react-query'
 import { PhoneOutgoing } from 'lucide-react'
 
+import { WmIcon } from '@/components/atoms/Icons/wm'
 import { Spinner } from '@/components/atoms/Spinner/Spinner'
 import { Alert } from '@/components/atoms/Alert/Alert'
 import { Button, controlSurface } from '@/components/atoms/Button'
@@ -814,7 +815,21 @@ type FallbackShellProps = FallbackActionsProps & {
   offer?: RecoveryOffer
   /** The geocoder, when the actions allow one. */
   children?: ReactNode
+  /** Lead with the meditating figure: an empty list, not a failure. */
+  illustrated?: boolean
 }
+
+/**
+ * The states that are an empty list rather than something going wrong. Only these lead
+ * with the meditating figure (`atoms/Icons/wm`) — a friendly "nobody here yet", where an error
+ * keeps its plain banner.
+ */
+const ILLUSTRATED_KINDS: ReadonlySet<FallbackKind> = new Set([
+  'empty',
+  'no-results',
+  'no-nearby',
+  'country-site',
+])
 
 /**
  * The presentation layer, with nothing that can fail: the sentence in its register
@@ -833,11 +848,19 @@ function FallbackShell({
   offer,
   align = 'center',
   children,
+  illustrated = false,
   ...actionProps
 }: FallbackShellProps) {
   return (
     <FallbackRegion className={align === 'start' ? START_BODY : CENTERED_BODY} message={message}>
       <div className="flex w-full max-w-xs flex-col items-start gap-3">
+        {illustrated && (
+          <WmIcon
+            className={`mb-1 text-ornament ${align === 'center' ? 'self-center' : ''}`}
+            name="meditate"
+            size={48}
+          />
+        )}
         {/* `textAlign="left"` is set explicitly, not left to the default. The
             centred posture sets `text-center` on the container. A sentence centred
             inside its own banner is harder to read, and costs the onward link its
@@ -966,6 +989,7 @@ export function FallbackPanel({
 
   const shared = {
     policy,
+    illustrated: ILLUSTRATED_KINDS.has(kind),
     message: text,
     contact,
     reportContext: reportContext ?? text,

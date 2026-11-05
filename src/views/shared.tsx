@@ -10,6 +10,7 @@ import { CalendarDays, Funnel, Menu, Search, X } from 'lucide-react'
 import clsx from 'clsx'
 
 import { Button } from '@/components/atoms/Button'
+import { WmIcon } from '@/components/atoms/Icons/wm'
 import { FallbackPanel, GeolocationPrompt } from '@/components/molecules'
 import { MapSearch } from '@/components/organisms'
 import api, { eventQuery } from '@/config/api'
@@ -88,6 +89,22 @@ export type DrawerTitleProps = {
    * whole list.
    */
   note?: ReactNode
+}
+
+/**
+ * "All classes are free", led by the We Meditate lotus in the warm coral. It is the one
+ * standing promise the Atlas makes on every list, so it gets the one mark of the family.
+ * Used as a `DrawerTitle` subtitle; the lotus is decorative, the sentence carries it.
+ */
+export function FreeLine() {
+  const { t } = useTranslation()
+
+  return (
+    <span className="inline-flex max-w-full items-center gap-1.5">
+      <WmIcon className="text-ornament" name="lotus" size={16} />
+      <span className="truncate">{t('common.chrome.all_classes_free')}</span>
+    </span>
+  )
 }
 
 /**

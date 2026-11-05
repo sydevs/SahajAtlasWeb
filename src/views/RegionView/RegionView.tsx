@@ -18,6 +18,7 @@ import {
   CalendarButton,
   CloseButton,
   DrawerTitle,
+  FreeLine,
   EmptyEventList,
   FilterButton,
   GeolocationSuggestion,
@@ -75,7 +76,7 @@ export function RegionView({ slug }: { slug: string }) {
   // takes the slot when present.
   const subheader =
     (region.level === 'city' ? region.subtitle : undefined) ??
-    (hasEventList ? t('common.chrome.all_classes_free') : undefined)
+    (hasEventList ? <FreeLine /> : undefined)
 
   return (
     <>

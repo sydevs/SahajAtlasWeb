@@ -8,7 +8,7 @@ import { regionQuery } from '@/config/api'
 import { useLocale } from '@/hooks/use-locale'
 import { useMapController } from '@/hooks/use-map-controller'
 import { childRoute } from '@/lib/shape'
-import { CloseButton, DrawerTitle, EmptyEventList, useFrameOnTop } from '@/views/shared'
+import { CloseButton, DrawerTitle, EmptyEventList, FreeLine, useFrameOnTop } from '@/views/shared'
 
 // The online-classes drawer, at route `<region-path>/online`. It lists the placeless online
 // events rolled up under a region, on their own, so the region page's list stays a clean set
@@ -47,10 +47,7 @@ export function OnlineView({ regionSlug, path }: { regionSlug: string; path: str
       <DrawerHeader className="justify-between">
         {/* The region name is the subtitle. "All classes are free" only fills in when
             a region has none — no Free chips on the cards (issue #52). */}
-        <DrawerTitle
-          subtitle={regionName || t('common.chrome.all_classes_free')}
-          title={t('online.title')}
-        />
+        <DrawerTitle subtitle={regionName || <FreeLine />} title={t('online.title')} />
         <CloseButton />
       </DrawerHeader>
       <DrawerBody>

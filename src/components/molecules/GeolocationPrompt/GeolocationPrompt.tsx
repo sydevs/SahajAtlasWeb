@@ -1,7 +1,7 @@
 import { useTranslation } from 'react-i18next'
-import { MapPin } from 'lucide-react'
 
 import { Alert } from '@/components/atoms/Alert'
+import { WmIcon } from '@/components/atoms/Icons/wm'
 
 export type GeolocationPromptProps = {
   /** The IP-guessed city, interpolated into the prompt's question. */
@@ -37,7 +37,7 @@ export function GeolocationPrompt({ city, onAccept, onClose }: GeolocationPrompt
       className="mx-4 mb-2 gap-2.5 rounded-lg ps-3 pe-1 text-foreground"
       closeLabel={t('search.nearby_prompt.dismiss')}
       color="contrast"
-      icon={<MapPin size={18} />}
+      icon={<WmIcon className="text-ornament" name="location-pin" size={18} />}
       role="status"
       size="sm"
       title={

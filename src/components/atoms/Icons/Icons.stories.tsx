@@ -58,7 +58,6 @@ const ICONS = [
   { name: 'Info', Icon: Info },
   { name: 'Languages', Icon: Languages },
   { name: 'LoaderCircle', Icon: LoaderCircle },
-  { name: 'MapPin', Icon: MapPin },
   { name: 'Menu', Icon: Menu },
   { name: 'Milestone', Icon: Milestone },
   { name: 'Monitor', Icon: Monitor },

@@ -54,6 +54,7 @@ const { eventMock } = vi.hoisted(() => ({ eventMock: { current: null as unknown 
 vi.mock('@/views/shared', () => ({
   CloseButton: () => null,
   DrawerTitle: () => null,
+  FreeLine: () => null,
   useDrawerControl: () => ({ dismiss: () => {} }),
   useEventFromPath: () => ({ data: eventMock.current }),
   useFrameOnTop: () => {},

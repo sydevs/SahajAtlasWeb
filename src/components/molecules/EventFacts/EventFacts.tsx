@@ -1,9 +1,9 @@
-import type { LucideIcon } from 'lucide-react'
 import type { ReactNode } from 'react'
 
 import { tv } from 'tailwind-variants'
-import { CalendarDays, MapPin, Monitor } from 'lucide-react'
+import { CalendarDays } from 'lucide-react'
 
+import { WmIcon } from '@/components/atoms/Icons/wm'
 import {
   composeCalendarLine,
   useEventDisplay,
@@ -37,7 +37,9 @@ const facts = tv({
   },
   variants: {
     variant: {
-      default: { base: 'gap-2.5', item: 'gap-3', icon: 'text-primary' },
+      // The panel's fact icons are the We Meditate app's line icons in the warm coral
+      // (`ornament`, 3.6:1 on the panel), not brand teal: teal is for actions.
+      default: { base: 'gap-2.5', item: 'gap-3', icon: 'text-ornament' },
       compact: {
         base: 'gap-0.5',
         item: 'gap-2',
@@ -49,7 +51,7 @@ const facts = tv({
         title: 'mb-3 text-lg',
         base: 'gap-2.5',
         item: 'gap-3',
-        icon: 'text-primary',
+        icon: 'text-ornament',
       },
     },
     // A two-line fact hangs its icon beside the FIRST line. A lone line centres it.
@@ -72,7 +74,8 @@ const ICON_SIZE = { default: 20, compact: 16, card: 20 } as const
 type FactVariant = 'default' | 'compact' | 'card'
 
 type Fact = {
-  icon: LucideIcon
+  /** The leading glyph, already sized for the variant. */
+  icon: ReactNode
   text: ReactNode
   subtext?: ReactNode
   /** The text itself spans two lines, so the icon hangs from the first even with no subtext. */
@@ -126,6 +129,18 @@ export function EventFacts({
 
   const compact = variant === 'compact'
   const time = compact ? eventStartTime : eventTimeRange
+  const size = ICON_SIZE[variant]
+
+  // The panel says morning or evening at a glance: a sunrise for a class that starts
+  // before noon, a moon for one from 5 PM, the calendar otherwise. The hour is the next
+  // session's, in the display zone. List cards keep the plain calendar — a row of
+  // changing glyphs would read as noise in a scanned list.
+  const hour = display.next?.hour
+  let timeIcon = <CalendarDays size={size} />
+
+  if (!compact && hour !== undefined && hour < 12) timeIcon = <WmIcon name="sunrise" size={size} />
+  else if (!compact && hour !== undefined && hour >= 17)
+    timeIcon = <WmIcon name="moon" size={size} />
 
   // The muted detail under the timing. "Started …" is only meaningful for
   // a course, a run with an end. The "Next session" line is panel-only.
@@ -140,7 +155,7 @@ export function EventFacts({
 
   const items: Fact[] = [
     {
-      icon: CalendarDays,
+      icon: timeIcon,
       // The shared calendar-line composition. It is the identical string
       // on the list card and the map-pin hover popover (#72). Recurring
       // events lead with the pattern. One-off or terminal events lead with
@@ -162,7 +177,7 @@ export function EventFacts({
     const room = variant === 'default' ? roomLine : null
 
     items.push({
-      icon: display.online ? Monitor : MapPin,
+      icon: <WmIcon name={display.online ? 'meditate' : 'location-pin'} size={size} />,
       text: room ? (
         <>
           <div>{room}</div>
@@ -176,7 +191,6 @@ export function EventFacts({
     })
   }
 
-  const size = ICON_SIZE[variant]
   const card = variant === 'card'
   const slots = facts({ variant })
 
@@ -185,16 +199,14 @@ export function EventFacts({
   // variants render just the fact column, and take `className` on it.
   const body = (
     <div className={card ? slots.base() : slots.base({ className })}>
-      {items.map(({ icon: Icon, text, subtext, stacked }, index) => {
+      {items.map(({ icon, text, subtext, stacked }, index) => {
         // Alignment is per-fact. Only a stacked fact, one with two lines,
         // hangs its icon from the first line.
         const styles = facts({ variant, stacked: Boolean(subtext) || Boolean(stacked) })
 
         return (
           <div key={index} className={styles.item()}>
-            <span className={styles.icon()}>
-              <Icon size={size} />
-            </span>
+            <span className={styles.icon()}>{icon}</span>
             <div className={styles.text()}>
               <div>{text}</div>
               {subtext && <div className={styles.subtext()}>{subtext}</div>}
