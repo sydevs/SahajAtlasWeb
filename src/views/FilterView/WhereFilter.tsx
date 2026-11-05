@@ -52,7 +52,9 @@ export function WhereFilter({ region, onPlace, onClear, searchable = true }: Whe
     <section className="flex flex-col gap-2">
       <h3 className="text-sm font-semibold text-foreground">{t('filters.where.label')}</h3>
       {searchable && (
-        <div className="flex items-start gap-2 [&_input]:h-11">
+        // Px, not `h-11`: the geocoder redefines `--spacing` inside itself, so a spacing-scale
+        // height resolves against its value and comes out three times too tall.
+        <div className="flex items-start gap-2 [&_input]:h-[44px]">
           <Button
             aria-pressed={nearMeOn}
             className={nearMeOn ? 'h-11 shrink-0' : 'h-11 shrink-0 border-gray-6 text-foreground'}

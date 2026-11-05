@@ -160,11 +160,13 @@
     },
     "chrome": {
       "any_time": "Any time",
-      "apply": "Apply",
       "clear": "Clear all",
       "clear_one": "Clear",
+      "no_match": "No classes match",
       "no_results": "No events match your filters.",
       "remove": "Remove %{label}",
+      "show_classes_one": "Show %{count} class",
+      "show_classes_other": "Show %{count} classes",
       "title": "Filters"
     },
     "dates": {

@@ -7,7 +7,7 @@
  */
 import type { BBox } from 'geojson'
 
-import { filtersFromParams, filtersToParams } from './filters'
+import { filtersFromParams, filtersToParams, hasActiveFilters } from './filters'
 import { sortFromParams, sortToParams } from './sort'
 
 /** Decodes a URL segment, tolerating a malformed `%` escape (returns it unchanged). */
@@ -192,6 +192,33 @@ export const placeSearchPath = (params: URLSearchParams, place: PlaceSearch): st
   return `/search?${next.toString()}`
 }
 
+/**
+ * Where closing the filter drawer lands, or `null` for an ordinary dismiss.
+ *
+ * Filters apply as they're tapped, so closing is never a commit, and the URL at this moment is
+ * the answer. A view that shows filters (search, calendar) just gets the query. A view that
+ * doesn't (the country list, a region's list) would hide what was just chosen, so that opens the
+ * results instead, scoped to the region the drawer was opened over. With nothing chosen, there
+ * is nothing to show, and the drawer simply goes back.
+ */
+export const filterCloseTarget = (
+  pathname: string,
+  search: string,
+): { pathname: string; search: string } | null => {
+  const origin = parentOf(pathname)
+
+  if (origin === '/calendar' || origin === '/search') return { pathname: origin, search }
+
+  const params = new URLSearchParams(search)
+  const filters = filtersFromParams(params)
+
+  if (!hasActiveFilters(filters)) return null
+
+  const region = filters.region ?? filterOriginRegion(pathname)
+
+  return { pathname: '/search', search: filtersToParams({ ...filters, region }, params).toString() }
+}
+
 /** The same place search, with the filter drawer still open over it. */
 export const placeFiltersPath = (params: URLSearchParams, place: PlaceSearch): string =>
   placeSearchPath(params, place).replace('/search?', '/search/filters?')
@@ -233,6 +260,17 @@ export const resolvePath = (pathname: string): ResolvedPath => {
   if (/^\d+$/.test(terminal)) return { kind: 'event', id: Number(terminal) }
 
   return { kind: 'region', slug: safeDecode(terminal) }
+}
+
+/** A `?bbox=w,s,e,n` param, validated. A malformed value is `undefined`, never NaNs for Mapbox. */
+export const parseBounds = (value: string | null): [number, number, number, number] | undefined => {
+  if (!value) return undefined
+
+  const nums = value.split(',').map(Number)
+
+  return nums.length === 4 && nums.every(Number.isFinite)
+    ? (nums as [number, number, number, number])
+    : undefined
 }
 
 /**

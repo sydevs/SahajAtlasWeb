@@ -33,6 +33,7 @@ import {
   dismissAction,
   dismissDepth,
   baseStackEntry,
+  filterCloseTarget,
   isFilterOverlay,
   resolveStack,
 } from '@/lib/shape'
@@ -519,13 +520,15 @@ export function DrawerStack() {
   }, [hasMap, direction])
 
   // The calendar opens at the near-full snap on mobile — its month grid AND its list
-  // both need the height — while every other view keeps the third-height open snap.
+  // both need the height — and so do the filters, which were otherwise cut off mid-row with
+  // their footer out of reach. Every other view keeps the third-height open snap.
   // Keyed on the view KIND (not `wide`), so switching the calendar between
   // month/week/list keeps it tall, rather than collapsing the list to the short snap.
   // This runs only when navigating to or from the calendar, so it never fights a
   // manual drag on a non-calendar view.
   useEffect(() => {
-    if (direction === 'bottom') setSnap(top?.kind === 'calendar' ? WIDE_SNAP : OPEN_SNAP)
+    if (direction === 'bottom')
+      setSnap(top?.kind === 'calendar' || top?.kind === 'filters' ? WIDE_SNAP : OPEN_SNAP)
   }, [direction, top?.kind])
 
   // A new searched place lifts the sheet out of its peek, so results are never
@@ -578,7 +581,16 @@ export function DrawerStack() {
         // calendar's large grid) would otherwise reconcile synchronously and freeze
         // the click for a beat ("nothing happened"). As a transition, React keeps the
         // UI responsive and swaps the view when it is ready.
-        if (action === 'collapse') setSnap(PEEK_SNAP)
+        // Filters apply as they're tapped, so going chronologically back would undo them.
+        // Closing the drawer lands on the results instead, whichever way it was closed.
+        const filterTarget =
+          top?.kind === 'filters' ? filterCloseTarget(location.pathname, location.search) : null
+
+        if (filterTarget) {
+          startTransition(() => {
+            navigate(filterTarget, { replace: true, state: location.state })
+          })
+        } else if (action === 'collapse') setSnap(PEEK_SNAP)
         else
           startTransition(() => {
             if (action === 'back') navigate(-1)
@@ -586,11 +598,11 @@ export function DrawerStack() {
           })
       },
     }
-  }, [snap, canCollapse, parentPath, depth, location, navigate, toStackTarget])
+  }, [snap, canCollapse, parentPath, depth, location, navigate, toStackTarget, top?.kind])
 
-  // The filter overlay's own dismiss (its X / swipe / Esc): back to the calendar it
-  // opened over — chronologically when there is in-widget history, otherwise a direct
-  // climb (with the query kept).
+  // The filter overlay's own dismiss (its X / swipe / Esc): back to the calendar it opened
+  // over, with the query kept, because filters apply as they're tapped. A chronological back
+  // would undo them.
   const overlayControl = useMemo(
     () => ({
       collapsed: false,
@@ -598,13 +610,11 @@ export function DrawerStack() {
       // Always parented to the calendar, so its X always goes somewhere.
       canDismiss: true,
       toggle: () => {},
-      // The same back-vs-climb decision as `control` (via `dismissAction`), but the
-      // overlay is always parented to the calendar (`hasParent: true` → never
-      // 'collapse'), so 'fallback' climbs to `/calendar` directly, keeping its query.
       dismiss: () =>
-        dismissAction({ hasParent: true, depth }) === 'back'
-          ? navigate(-1)
-          : navigate({ pathname: '/calendar', search: location.search }),
+        navigate(
+          { pathname: '/calendar', search: location.search },
+          { replace: true, state: location.state },
+        ),
     }),
     [location, navigate],
   )
@@ -678,7 +688,7 @@ export function DrawerStack() {
 
   // The filter overlay drawer (map mode only): a modal panel over the mounted
   // calendar — right at ≥md, a bottom sheet on mobile — with its own control.
-  // FilterView's Apply and Clear actions navigate to /calendar too, which closes it.
+  // FilterView's Show button goes through the same dismiss, which closes it.
   const filterDrawer = filterOverlay ? (
     <DrawerControlContext.Provider value={overlayControl}>
       <Drawer

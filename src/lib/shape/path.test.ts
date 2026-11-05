@@ -7,6 +7,7 @@ import {
   listResetKey,
   nearestKnownRegion,
   parentOf,
+  filterCloseTarget,
   parseCenter,
   placeSearchPath,
   resolvePath,
@@ -420,5 +421,27 @@ describe('topViewKey', () => {
   // change": the same SearchView must re-frame when `?center` moves.
   it('is unchanged by a re-search on the same view', () => {
     expect(topViewKey('/search')).toBe(topViewKey('/search'))
+  })
+})
+
+describe('filterCloseTarget', () => {
+  it('returns to a view that shows filters, query and all', () => {
+    expect(filterCloseTarget('/search/filters', '?days=2')).toEqual({
+      pathname: '/search',
+      search: '?days=2',
+    })
+    expect(filterCloseTarget('/calendar/filters', '?days=2')?.pathname).toBe('/calendar')
+  })
+
+  it('opens the results when filters were set over a list that does not show them', () => {
+    expect(filterCloseTarget('/gb/filters', '?days=2')).toEqual({
+      pathname: '/search',
+      search: 'days=2&region=gb',
+    })
+  })
+
+  it('is an ordinary dismiss when nothing was chosen', () => {
+    expect(filterCloseTarget('/gb/filters', '')).toBeNull()
+    expect(filterCloseTarget('/filters', '')).toBeNull()
   })
 })

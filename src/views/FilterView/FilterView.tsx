@@ -1,5 +1,5 @@
-import { useState } from 'react'
-import { useLocation, useNavigate } from 'react-router'
+import { useEffect, useMemo, useRef } from 'react'
+import { useLocation, useNavigate, useSearchParams } from 'react-router'
 import { useTranslation } from 'react-i18next'
 
 import { WhereFilter } from './WhereFilter'
@@ -7,96 +7,96 @@ import { WhereFilter } from './WhereFilter'
 import { DrawerBody, DrawerFooter, DrawerHeader } from '@/components/atoms/Drawer'
 import { Button } from '@/components/atoms/Button'
 import { SearchFilters } from '@/components/molecules'
+import { useIsWideWidget } from '@/config/responsive'
 import { useEventFilters } from '@/hooks/use-filters'
 import { useFilterFacets } from '@/hooks/use-filter-facets'
+import { useMapController } from '@/hooks/use-map-controller'
 import {
   DEFAULT_FILTERS,
   type EventFilters,
   type PlaceSearch,
+  activeFilterCount,
   filterOriginRegion,
-  filtersKey,
   filtersToParams,
-  hasActiveFilters,
   noPlaceSearch,
   parentOf,
+  parseBounds,
+  parseCenter,
   placeFiltersPath,
 } from '@/lib/shape'
-import { CloseButton, DrawerTitle } from '@/views/shared'
+import { CloseButton, DrawerTitle, useDrawerControl } from '@/views/shared'
 
-// The event-filters drawer, at route `/filters`, `/search/filters` when stacked over a
-// search, or `<region-path>/filters` over a region. This is a normal drawer view, with
-// standard header and close chrome, and the usual stacking. Filters are NOT applied live —
-// the form edits a local draft. "Apply (N)" shows only when the draft differs from what is
-// applied. It commits the draft into the /search query — the single source of truth that
-// drives the list and the map — and closes the drawer, showing how many events the draft
-// matches. "Clear all" resets everything, applies, and closes. The per-filter clears inside
-// the form stay draft-only.
-// `initialDraft` seeds the form's draft for previews and tests, so a story can open in a
-// filled, unapplied "dirty" state. The app itself renders `<FilterView />` starting from the
-// applied filters.
-export function FilterView({ initialDraft }: { initialDraft?: EventFilters } = {}) {
+// The filter drawer, at `/filters`, `/search/filters` over a search, or `<region-path>/filters`
+// over a region. There is no draft: every tap writes the URL, the single source of truth the map
+// and the counts read, so the map narrows behind the sheet and the footer's number moves with
+// the finger. The footer's button is therefore a way to close, not a commit. Closing, by any
+// route, lands on the results (see `filterCloseTarget`).
+export function FilterView() {
   const { t } = useTranslation()
   const navigate = useNavigate()
   const location = useLocation()
+  const [searchParams] = useSearchParams()
   const applied = useEventFilters()
+  const control = useDrawerControl()
+  const isWide = useIsWideWidget()
+  const { frameSearch, reset } = useMapController()
+  const originRegion = filterOriginRegion(location.pathname)
 
-  // Start from the applied filters. This draft is discarded on close, unless the user
-  // applies it. Opened over a region, the draft starts scoped to it — see
-  // `filterOriginRegion` — so "Apply" offers that region's count straight away.
-  const [draft, setDraft] = useState(
-    () =>
-      initialDraft ?? {
-        ...applied,
-        region: applied.region ?? filterOriginRegion(location.pathname),
-      },
+  // A region's drawer is scoped to that region without saying so in the URL. So an untouched
+  // `/gb/filters` can still tell "nothing chosen" apart, and go back to `/gb` on close.
+  const filters = useMemo(
+    () => ({ ...applied, region: applied.region ?? originRegion }),
+    [applied, originRegion],
   )
-  // The live counts behind every option and the Apply button, cut to the current scope.
-  const facets = useFilterFacets(draft)
+  const facets = useFilterFacets(filters)
   const count = facets?.counts.total
 
-  const hasChanges = filtersKey(draft) !== filtersKey(applied)
-  const draftActive = hasActiveFilters(draft)
+  // The camera follows Where. Every other filter leaves it alone, so the visitor sees pins
+  // drop away rather than the map jumping about.
+  const center = searchParams.get('center')
+  const bbox = searchParams.get('bbox')
+  const framed = useRef(`${center}|${bbox}|${filters.region}`)
 
-  // Applying or clearing returns to the ORIGIN view — the drawer beneath the filters — with
-  // the filters written into its query. So filtering from the calendar returns to the
-  // calendar, and filtering from search returns to search, each still framed by its own
-  // q/center/bbox/region. When opened over a view that does not itself reflect the filters,
-  // such as the country list or a region, apply instead jumps to /search to show the filtered
-  // events. There is no filtered surface to return to in that case. Either way, this REPLACES
-  // the filter-drawer entry, carrying its depth over, rather than stacking a new one. So the
-  // drawer does not linger in history, and a chronological back lands on the pre-filter view.
-  const commit = (filters: typeof draft) => {
-    // Nothing here resets the results list's reveal, and nothing needs to: the filters
-    // are part of `revealKey`, so a new set is a new result set and the list is back at
-    // its first page by construction (see `use-reveal`).
-    const search = filtersToParams(filters, new URLSearchParams(location.search)).toString()
-    const origin = parentOf(location.pathname)
-    const target = origin === '/calendar' || origin === '/search' ? origin : '/search'
+  useEffect(() => {
+    const key = `${center}|${bbox}|${filters.region}`
 
-    navigate({ pathname: target, search }, { replace: true, state: location.state })
-  }
+    if (key === framed.current) return
+    framed.current = key
 
-  // Picking a place moves the drawer over that search, with the draft written into the URL, so
-  // the search it lands on and the filters in the form can't disagree.
-  const pickPlace = (place: PlaceSearch) => {
-    const next = { ...draft, region: null }
+    if (center) frameSearch({ bbox: parseBounds(bbox), center: parseCenter(center) })
+    else if (!filters.region) reset()
+    // `frameSearch` and `reset` change identity with the camera provider, not with the place.
+  }, [center, bbox, filters.region])
 
-    setDraft(next)
-    navigate(placeFiltersPath(filtersToParams(next, new URLSearchParams(location.search)), place), {
-      replace: true,
-      state: location.state,
-    })
-  }
+  const write = (next: EventFilters, base = new URLSearchParams(location.search)) => {
+    const inOrigin = next.region !== null && next.region === originRegion
+    const leftOrigin = originRegion !== null && next.region === null
+    const search = filtersToParams({ ...next, region: inOrigin ? null : next.region }, base)
 
-  const clearWhere = () => {
-    const next = { ...draft, region: null }
-
-    setDraft(next)
     navigate(
-      { pathname: location.pathname, search: noPlaceSearch(new URLSearchParams(location.search)) },
+      { pathname: leftOrigin ? '/filters' : location.pathname, search: search.toString() },
       { replace: true, state: location.state },
     )
   }
+
+  const pickPlace = (place: PlaceSearch) =>
+    navigate(
+      placeFiltersPath(
+        filtersToParams({ ...filters, region: null }, new URLSearchParams(location.search)),
+        place,
+      ),
+      { replace: true, state: location.state },
+    )
+
+  // Back to everywhere: the place and the region both go, and the other filters stay.
+  const clearWhere = () =>
+    write(
+      { ...filters, region: null },
+      new URLSearchParams(noPlaceSearch(new URLSearchParams(location.search))),
+    )
+
+  // Clear resets the questions, not the Where: the visitor is still looking in the same place.
+  const canClear = activeFilterCount({ ...filters, region: null }) > 0
 
   return (
     <>
@@ -104,37 +104,47 @@ export function FilterView({ initialDraft }: { initialDraft?: EventFilters } = {
         <DrawerTitle title={t('filters.chrome.title')} />
         <CloseButton />
       </DrawerHeader>
-      <DrawerBody className="p-4">
+      <DrawerBody className="scroll-pb-[calc(var(--sy-footer-h,0px)_+_var(--sy-sheet-top,0px))] p-4">
         <SearchFilters
           facets={facets}
-          value={draft}
+          value={filters}
           where={
             <WhereFilter
-              region={draft.region}
+              region={filters.region}
               searchable={parentOf(location.pathname) !== '/calendar'}
               onClear={clearWhere}
               onPlace={pickPlace}
             />
           }
-          onChange={setDraft}
+          onChange={write}
         />
       </DrawerBody>
-      {(draftActive || hasChanges) && (
-        <DrawerFooter className="flex items-center gap-2 p-3">
-          {draftActive && (
-            <Button className="flex-1" variant="flat" onClick={() => commit(DEFAULT_FILTERS)}>
-              {t('filters.chrome.clear')}
-            </Button>
-          )}
-          {hasChanges && (
-            <Button className="flex-1" color="primary" onClick={() => commit(draft)}>
-              {count === undefined
-                ? t('filters.chrome.apply')
-                : `${t('filters.chrome.apply')} (${count})`}
-            </Button>
-          )}
-        </DrawerFooter>
-      )}
+      <DrawerFooter
+        className="flex items-center gap-2 border-t border-divider p-3"
+        sticky={!isWide}
+      >
+        {canClear && (
+          <Button
+            className="h-11"
+            variant="flat"
+            onClick={() => write({ ...DEFAULT_FILTERS, region: filters.region })}
+          >
+            {t('filters.chrome.clear_one')}
+          </Button>
+        )}
+        <Button
+          className="h-11 flex-1"
+          color="primary"
+          disabled={count === 0}
+          onClick={control.dismiss}
+        >
+          {count === undefined
+            ? t('filters.chrome.title')
+            : count === 0
+              ? t('filters.chrome.no_match')
+              : t('filters.chrome.show_classes', { count })}
+        </Button>
+      </DrawerFooter>
     </>
   )
 }

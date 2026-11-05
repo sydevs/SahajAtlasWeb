@@ -6,8 +6,8 @@ import { describe, expect, it, vi } from 'vitest'
 
 import { FilterView } from './FilterView'
 
-// Node-only SSR assertions (see `docs/testing.md`). What is under test is the draft the
-// drawer opens with, which the form stub prints, and the footer that draft earns.
+// Node-only SSR assertions (see `docs/testing.md`). What is under test is the scope the drawer
+// opens with, which the form stub prints, and the footer.
 vi.mock('react-i18next', () => ({
   useTranslation: () => ({ t: (key: string) => key }),
 }))
@@ -24,6 +24,10 @@ vi.mock('@/components/molecules', () => ({
 vi.mock('@/views/shared', () => ({
   CloseButton: () => null,
   DrawerTitle: () => null,
+  useDrawerControl: () => ({ dismiss: () => {} }),
+}))
+vi.mock('@/hooks/use-map-controller', () => ({
+  useMapController: () => ({ frameSearch: () => {}, reset: () => {} }),
 }))
 
 const view = (entry: string) =>
@@ -33,22 +37,26 @@ const view = (entry: string) =>
     </MemoryRouter>,
   )
 
-describe('FilterView — the draft it opens with', () => {
-  it('starts scoped to the region it was opened over, ready to apply', () => {
-    const markup = view('/gb/london/filters')
-
-    expect(markup).toContain('draft-region:london')
-    expect(markup).toContain('filters.chrome.apply')
+describe('FilterView — the scope it opens with', () => {
+  it('is scoped to the region it was opened over', () => {
+    expect(view('/gb/london/filters')).toContain('draft-region:london')
   })
 
   it('keeps a region the URL already applies', () => {
     expect(view('/gb/london/filters?region=gb')).toContain('draft-region:gb')
   })
 
-  it('starts unscoped over the country list, with nothing to apply', () => {
-    const markup = view('/filters')
+  it('is unscoped over the country list', () => {
+    expect(view('/filters')).toContain('draft-region:∅')
+  })
+})
 
-    expect(markup).toContain('draft-region:∅')
-    expect(markup).not.toContain('filters.chrome.apply')
+describe('FilterView — the footer', () => {
+  it('has no Clear with nothing to clear', () => {
+    expect(view('/gb/filters')).not.toContain('filters.chrome.clear_one')
+  })
+
+  it('offers Clear once a filter is set', () => {
+    expect(view('/filters?days=2')).toContain('filters.chrome.clear_one')
   })
 })
