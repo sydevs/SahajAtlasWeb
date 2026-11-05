@@ -29,13 +29,18 @@
 /* vaul drawer slide/snap transforms + handle — vendored (see src/styles/vaul.css header) */
 @import './vaul.css';
 
-/* Radix Colors — the neutral (gray) and status (danger=red) ramps. Each file
+/* Radix Colors — the neutral (sand) and status (danger=red) ramps. Each file
    scopes its scale to `:root, .light` (light) / `.dark` (dark), which matches the
    theme root's light/dark class, so the steps cascade into the widget wrapper.
    The brand ramps (primary/secondary) are NOT from here — they come from the
-   runtime engine's vars (src/config/theme/palette.ts), defaulted below. */
-@import '@radix-ui/colors/gray.css';
-@import '@radix-ui/colors/gray-dark.css';
+   runtime engine's vars (src/config/theme/palette.ts), defaulted below.
+
+   The neutral is Radix SAND, not gray: a faintly warm grey, so text, borders and
+   surfaces read warm instead of blue-grey (round 2: "the UI feels cold"). The rest of
+   the app still says `gray-*` — `--gray-N` is aliased to `--sand-N` after the @theme block — so the
+   ramp can change here without touching a single call site. */
+@import '@radix-ui/colors/sand.css';
+@import '@radix-ui/colors/sand-dark.css';
 @import '@radix-ui/colors/red.css';
 @import '@radix-ui/colors/red-dark.css';
 
@@ -284,6 +289,28 @@
   --color-focus: hsl(var(--primary-9));
 }
 
+/* The neutral alias. A custom property that references another resolves on the element
+   that uses it, so this one block serves both modes: `.dark`'s `--sand-*` values flow
+   through the same names. */
+:root,
+.light,
+.light-theme,
+.dark-theme,
+.dark {
+  --gray-1: var(--sand-1);
+  --gray-2: var(--sand-2);
+  --gray-3: var(--sand-3);
+  --gray-4: var(--sand-4);
+  --gray-5: var(--sand-5);
+  --gray-6: var(--sand-6);
+  --gray-7: var(--sand-7);
+  --gray-8: var(--sand-8);
+  --gray-9: var(--sand-9);
+  --gray-10: var(--sand-10);
+  --gray-11: var(--sand-11);
+  --gray-12: var(--sand-12);
+}
+
 /* Built-in brand defaults — the three themeable roles (primary teal #1E6C71,
    secondary blue #A1C3D7, contrast orange #e08e79) as a 12-step ramp each, in the
    same channel format the runtime engine writes. `--{role}-on` is the readable
@@ -333,7 +360,9 @@
   --contrast-10: 12 60% 62%;
   --contrast-11: 12 60% 40%;
   --contrast-12: 12 60% 24%;
-  --background: 0 0% 100%;
+  /* A warm white, not paper white: the panel reads like the We Meditate app's cream
+     surfaces. Sand-12 body text keeps 15.9:1 on it and sand-11 secondary text 5.9:1. */
+  --background: 40 60% 98.5%;
 }
 
 .dark,
