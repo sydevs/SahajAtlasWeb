@@ -237,7 +237,7 @@ values changed; the gap did not.) The `VITE_HOST` story above is that hole in on
 production origin blanked by a dashboard edit is the same hole in the other, and running the PR
 gate more often closes neither.
 
-`.github/workflows/production-smoke.yml` runs these same 18 specs against production. Five things
+`.github/workflows/production-smoke.yml` runs these same 19 specs against production. Five things
 about it are deliberate:
 
 - **The deploy fires it, not the clock.** What the lane reads is deployed file *content*, which
