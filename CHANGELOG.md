@@ -44,6 +44,36 @@ cover everything a host would notice since the widget was first deployed.
 
 ### Changed
 
+- **Your brand colours now reach the map.** ([#17]) The event pins, the cluster bubbles and the
+  numbers on them are drawn from the **first** of your client record's three brand colours, and
+  the selected event's pin from the **third** — the same two that already theme the panels and
+  buttons, in both light and dark. Your second colour does not reach the map. A record that
+  leaves those colours unset is
+  unchanged: the map keeps the widget's own teal and orange, pixel for pixel. The basemap
+  itself is untouched, nothing new is requested from the network, and your CSP, your
+  [Permissions Policy] and your snippet all stay as they are. See
+  [the CMS settings](docs/embedding.md#what-you-configure-in-the-cms-instead).
+
+- ⚠ **BREAKING: your CSP needs `frame-src https://cloud.sydevelopers.com`, and the three
+  `challenges.cloudflare.com` entries can go.** ([#343], [SahajCloud#1072]) The captcha that
+  gates every form now renders in a small frame `cloud.sydevelopers.com` serves — the origin
+  already in your `connect-src` — instead of in your document. A policy that does not allow the
+  frame shows the error screen, and the console names the fix.
+
+  ⚠ **The captcha renders only on a domain your client record lists** — the same list that
+  already gates the API. Any other domain shows the error screen. An iframe embed needs nothing
+  listed: there the challenge's parent is the widget's own page.
+
+  **Onboarding a site needs no Turnstile step**: Turnstile checks the hostname of the document
+  that renders the challenge, which is now always `cloud.sydevelopers.com`. No script of
+  Cloudflare's runs in your document, and your `Permissions-Policy` needs nothing for the captcha.
+
+- **A repeat embed report turns into at most one write in any 6 h window.** ([#160]) The widget
+  still reports on every page load, and an unchanged report inside that window is answered
+  without a write. This guide and the embedding guide had both published the window as one hour.
+  It bounds writes on our side, not requests from your page — those are still one per load.
+  Nothing in your snippet, your CSP or what the widget sends changes.
+
 - ⚠ **BREAKING: your own children of `<sahaj-atlas>` stop rendering.** ([#236]) The element
   attaches its shadow root in its constructor, so anything you nest inside the tag is hidden
   from the moment the element upgrades — before the widget can decline. There is no `<slot>`,
@@ -72,13 +102,13 @@ cover everything a host would notice since the widget was first deployed.
   the published floor is Tailwind 4's own declared minimum, and Chrome 111 and Safari 16.4
   already met it. A Firefox between 114 and 127 is **not** unstyled — Tailwind ships an
   `@supports`-guarded fallback for exactly those versions and this build keeps it, so the
-  widget still renders. See [Browser support](embedding.md#browser-support). No CSP row
+  widget still renders. See [Browser support](docs/embedding.md#browser-support). No CSP row
   changes, no new origin, and no change to the snippet or its attributes.
 
 - **The widget registers 62 document-global `@property` names, all `--tw-…`.** ([#246]) Tailwind
   4 composes its utilities through them, and a registered name carries a typed initial value and
   `inherits: false` into your document. The build gate allows that one prefix and fails on any
-  other. See [What the widget does to your page](embedding.md#what-the-widget-does-to-your-page).
+  other. See [What the widget does to your page](docs/embedding.md#what-the-widget-does-to-your-page).
 
 - **Where the build carries a Sentry DSN, the widget requests `https://*.sentry.io`, so that
   `connect-src` row stops being hypothetical.** ([#232]) The row has described such a build since
@@ -148,8 +178,8 @@ cover everything a host would notice since the widget was first deployed.
   the one family name, so no page ever mixes them. If you were keying off the old family name, or
   overriding it with `--sy-font-sans`, update the name.
 
-- **"Report an issue" sends again, and its thank-you now means *received* rather than
-  *delivered*.** ([#187]) The intake it posted to was replaced on the CMS side, so for two days
+- **"Report an issue" sends again, and its thank-you now means _received_ rather than
+  _delivered_.** ([#187]) The intake it posted to was replaced on the CMS side, so for two days
   the form failed for every visitor who used it; it now posts to the replacement. **Nothing
   changes for your CSP** — it is the same origin (`cloud.sydevelopers.com`) on a different path.
 
@@ -304,6 +334,38 @@ cover everything a host would notice since the widget was first deployed.
 
 ### Fixed
 
+- **Under `routing=path`, a failed client-record read no longer drops you to query routing.** ([#351])
+  Any failure to read the record — SahajCloud down or erroring, not only a refused key — fell
+  back to query routing, printed a warning blaming your record for a missing canonical embed, and
+  once the visitor pressed "Try again" wrote `?atlas=` URLs under your path prefix. Only a refused
+  key falls back now, to the configuration-error screen as before. Anything else — a 5xx, an
+  offline visitor — reaches the widget's own error screen, with a "Try again" that re-reads the
+  record: the same screen a query-mode embed already showed for the same failure, so neither mode
+  answers an outage worse than the other. Its copy is translated like the rest of the widget, so
+  an outage that takes the translations too leaves it in English. It offers no "Report an issue"
+  control, since the report form mounts below the point where path mode waits. No parameter,
+  origin or CSP change.
+- **Opening on your client record's home region no longer adds a history entry.** ([#351]) The first
+  open navigated to the region by pushing an entry onto your page's history, so the visitor's
+  first Back press only moved the widget back to the world list and a second one was needed to
+  leave your page. It now replaces your page's entry, as the widget's own mount already did
+  ([#112]). Your `atlas` default under `routing=path` opens the same way. No parameter, origin or
+  CSP change.
+- **An online class reads in the visitor's own time throughout.** ([#351]) Its weekday and date were the
+  visitor's but its time was the host's, so a Wednesday 7:30 PM class hosted from Prague read
+  "Every Thursday · 7:30 PM" in Sydney. The whole line is now the visitor's — "Every Thursday ·
+  3:30 AM", as the calendar and the date filters already had it — and the faded line under
+  "Hosted from Prague" gives the host's own clock, "Wed 7:30 PM", wherever the two differ — with
+  no place name, since the line above it already names the city. That line used to name the visitor's region from the `ipwho.is` lookup, so an online
+  class no longer starts that lookup: it runs only for the "classes near you" prompt. No
+  parameter, origin or CSP change.
+- **"Find my location" says when it could not get a location.** ([#321]) A declined prompt, an
+  unavailable position or a timeout used to leave the button doing nothing; a short dialog now
+  says so and points at the place search. A permission the visitor had already blocked before
+  the map loaded still shows the control disabled, as before. Nothing to change on your side.
+- **A class shows the room inside its venue.** ([#316]) Where a manager has set one, the class
+  view names the room on its own line above the street address. List cards and the
+  registration summary are unchanged.
 - **The map credits Mapbox again, where you can see them.** ([#324]) The Mapbox wordmark sat
   in the corner the panel covers on a wide embed and the bottom sheet covers on a narrow one,
   so it was never visible, and the attribution control was switched off altogether — both are
@@ -660,8 +722,8 @@ must-revalidate`, pinned rather than left to the CDN default. The production dom
   origin your CSP already allows — no policy change needed. Three things a host can
   observe. It reports on **every** load rather than only when something changed, so "last
   seen" distinguishes a live embed from a removed one; repeat reports of an unchanged page
-  collapse server-side into at most one write an hour. It still sends your **origin and
-  path only**, with one exception: a WordPress **`?p=<number>`** permalink is preserved,
+  collapse server-side into at most one write in any 6 h window. It still sends your
+  **origin and path only**, with one exception: a WordPress **`?p=<number>`** permalink is preserved,
   because discarding it reported every post on a default-permalink site as the same page.
   Anything else in the query is still dropped, `?p=123&utm_source=…` included. And a
   refusal — your domain missing from the service's allowed-domains list, or the 50-mount
@@ -811,9 +873,12 @@ must-revalidate`, pinned rather than left to the CDN default. The production dom
 [#147]: https://github.com/sydevs/SahajAtlasWeb/issues/147
 [#283]: https://github.com/sydevs/SahajAtlasWeb/issues/283
 [#311]: https://github.com/sydevs/SahajAtlasWeb/pull/311
+[#351]: https://github.com/sydevs/SahajAtlasWeb/pull/351
 [#312]: https://github.com/sydevs/SahajAtlasWeb/pull/312
 [#320]: https://github.com/sydevs/SahajAtlasWeb/issues/320
 [#326]: https://github.com/sydevs/SahajAtlasWeb/issues/326
+[#343]: https://github.com/sydevs/SahajAtlasWeb/issues/343
+[SahajCloud#1072]: https://github.com/sydevs/SahajCloud/issues/1072
 [#322]: https://github.com/sydevs/SahajAtlasWeb/issues/322
 [#329]: https://github.com/sydevs/SahajAtlasWeb/pull/329
 [#325]: https://github.com/sydevs/SahajAtlasWeb/issues/325
@@ -823,3 +888,7 @@ must-revalidate`, pinned rather than left to the CDN default. The production dom
 [Embedding in an iframe]: docs/embedding.md#embedding-in-an-iframe
 [Permissions Policy]: docs/embedding.md#permissions-policy
 [#324]: https://github.com/sydevs/SahajAtlasWeb/issues/324
+[#160]: https://github.com/sydevs/SahajAtlasWeb/issues/160
+[#321]: https://github.com/sydevs/SahajAtlasWeb/issues/321
+[#316]: https://github.com/sydevs/SahajAtlasWeb/issues/316
+[#17]: https://github.com/sydevs/SahajAtlasWeb/issues/17

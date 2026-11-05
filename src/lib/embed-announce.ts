@@ -35,7 +35,7 @@ import api from '@/config/api'
  *
  * **`releaseAnnouncement` deliberately does NOT reset it**, which is the difference between this
  * and the marker. One report per page load: a widget re-mounted after a teardown has nothing new
- * to tell the server, and the endpoint would suppress the repeat for an hour anyway.
+ * to tell the server, and the endpoint would suppress the repeat anyway.
  *
  * ⚠ Lifting this is now *safe* but still a decision, not a tidy-up. The mount is read fresh at
  * every send (`currentMount`), so a re-mount would file the page it is actually on rather than —
@@ -99,8 +99,8 @@ const whenIdle = (): Promise<void> =>
  *
  * The report is sent on **every** page load rather than only when the fingerprint changed. That
  * gate (#149) made `lastSeen` useless as a liveness signal: an unchanged, healthy embed would
- * report once, ever. The server suppresses an unchanged report for an hour, so the real cost is at
- * most one write per mount per hour.
+ * report once, ever. The server suppresses an unchanged report for the length of SahajCloud's
+ * `EMBED_REPORT_REFRESH_MS`, so the real cost is at most one write per mount per window.
  */
 export async function announceEmbed(args: {
   /** The URL shape the router actually uses — not the one that was configured. */

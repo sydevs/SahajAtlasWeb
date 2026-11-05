@@ -46,9 +46,9 @@ function Panel({ children }: { children: ReactNode }) {
  * auto-attached context the viewer never types, behind a Cloudflare Turnstile
  * challenge.
  *
- * The live sections render a REAL Turnstile widget against Cloudflare's
- * always-passes test site key, so submit becomes enabled once every authored
- * field answers its own rule. Submitting performs a real
+ * The live sections render a REAL Turnstile widget, in the challenge page the
+ * configured SahajCloud serves, so submit becomes enabled once it is solved and
+ * every authored field answers its own rule. Submitting performs a real
  * `POST /api/user-submissions`. Ladle carries no API key, so it comes back
  * refused, and you land on the failure state. That is the honest outcome, and
  * the point of the ticket: the thank-you screen shows only for a stored message.

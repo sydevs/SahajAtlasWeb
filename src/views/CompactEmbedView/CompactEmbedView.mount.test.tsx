@@ -69,16 +69,15 @@ const Sentinel = () => <p>{INTERFACE}</p>
 
 /**
  * A child that reaches for Turnstile the way `FullInterface` does (issue #182) — the fifth
- * candidate for the bug this file exists to catch, and the first one that injects a
- * third-party script into a page this project does not own, rather than merely fetching or
- * reporting.
+ * candidate for the bug this file exists to catch, and the first one that puts a request to a
+ * page this project does not own into their document, rather than merely fetching or reporting.
  *
  * This calls the real hook, rather than a stand-in. What is being asserted is that React never
  * renders this subtree, so anything the subtree would do is equally prevented. A fake would
  * only prove the fake stayed unrendered.
  */
-const TURNSTILE_SRC = 'challenges.cloudflare.com'
-const turnstileScripts = () => document.querySelectorAll(`script[src*="${TURNSTILE_SRC}"]`).length
+const challengeFrames = () =>
+  document.querySelectorAll('iframe[src*="/api/atlas/challenge"]').length
 
 function InterfaceWithTurnstile() {
   useTurnstileGuard()
@@ -109,23 +108,23 @@ describe('CompactEmbedView — what a collapsed card mounts', () => {
   })
 
   // The fifth candidate for the four-bug pattern above, and the one with a cost outside this
-  // project's own page. A collapsed card is one button in somebody's sidebar. Loading
-  // Cloudflare's challenge for it would put a third-party script into their document, and a
-  // request to Cloudflare from every page view, for an interface nobody opened (issue #182).
-  it('injects no Turnstile script while collapsed, and does once opened', () => {
-    expect(turnstileScripts()).toBe(0)
+  // project's own page. A collapsed card is one button in somebody's sidebar. Checking the
+  // captcha for it would put a document of ours in theirs, and a request to Cloudflare from
+  // inside it, on every page view, for an interface nobody opened (issue #182).
+  it('mounts no Turnstile frame while collapsed, and does once opened', () => {
+    expect(challengeFrames()).toBe(0)
 
     mount(<InterfaceWithTurnstile />)
 
-    // Searched from `document`, not the host element: `loadTurnstile` appends to `<head>`.
-    expect(turnstileScripts()).toBe(0)
+    // Searched from `document`, not the host element: the probe appends to `<body>`.
+    expect(challengeFrames()).toBe(0)
 
     const button = document.querySelector('button')
 
     act(() => button?.dispatchEvent(new MouseEvent('click', { bubbles: true })))
 
     // The paired positive, for the same reason as the case above: without it a guard that
-    // never loaded Turnstile at all would pass, and take the eager check with it.
-    expect(turnstileScripts()).toBe(1)
+    // never reached for Turnstile at all would pass, and take the eager check with it.
+    expect(challengeFrames()).toBe(1)
   })
 })

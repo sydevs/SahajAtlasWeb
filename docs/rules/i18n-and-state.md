@@ -3,6 +3,7 @@ description: i18next localization and zustand state-store conventions.
 paths:
   - 'src/config/i18n.ts'
   - 'src/config/store.ts'
+  - 'src/config/theme/brand-palette.ts'
   - 'src/hooks/use-filters.ts'
   - 'src/hooks/use-locale.ts'
   - 'src/hooks/use-reveal.ts'
@@ -165,6 +166,37 @@ Six stores, each the single source of truth for its own slice:
   There is deliberately **no "< N km" pill** — that button is the list's only
   distance affordance.
 
+**One store lives beside its one consumer instead**, because nothing else has
+any business reading it and `store.ts` is where a slice several subtrees share
+belongs:
+
+- **`usePaddingState`** (`src/hooks/use-mapbox.ts`) — the camera padding the
+  `MapController` seam writes and the camera calls read.
+
+**The brand palette is a CONTEXT, not a store, and that is the decision rather
+than the default** (#17). `useBrandPalette`
+(`src/config/theme/brand-palette.ts`) carries the resolved brand roles
+`BrandTheme` painted the UI from, so the map can derive its own hexes — it
+paints an SVG `fill` and a Mapbox paint, which take a literal colour, so the
+CSS variables `applyPalette` writes are no use to it.
+
+A store was built first and reviewed: it is a module singleton, so the value
+outlives the component that resolved it, and keeping the two in step cost an
+explicit retraction on unmount plus the rule that it must not sit in the publish
+effect's own cleanup. The provider ends that class of question — the value's
+lifetime IS the painter's, by construction — and `src/config/` resolves three
+other values this way already (`mode.ts`, `responsive.ts`, `routing.tsx`).
+**Reach for a store only where the writer and the reader have no common
+ancestor.** Here `BrandTheme` is above the whole tree.
+
+⚠ **The value must stay one object while the seeds do not change** — the map
+memoises on its identity and re-registers its four marker images when that
+changes, so an equal-but-new object costs a re-registration on every unrelated
+re-render above the map. `BrandTheme`'s `useMemo` holds that for a tenant and
+`NO_BRAND_PALETTE` holds it for the context's default, which is what every
+unbranded embed, story and spec reads. `markers.ts` holds the matching rule for
+the colours it derives, and `markers.test.ts` asserts it.
+
 Three slices are **URL-derived, not stores** — the URL query is their single
 source of truth, so all three stay linkable and shareable:
 
@@ -302,6 +334,12 @@ two axes separate — an inner fallback must never re-throw to escalate.
   rung. It mounts twice — in `App` (both entries) and at the widget element's
   own React root in `Widget.tsx`, where it additionally sees the mount decision,
   the theme wrapper, and the router itself.
+  ⚠ **A `routing=path` boot read is not one of those failures**, and the one
+  place `ErrorFallback` renders outside `App` is there (`BootFailure`,
+  `Widget.tsx`): the client record is ordinary classified data, so a 5xx on it
+  gets the localized screen and its retry, not the rung above. Only a refused key
+  degrades to query routing. That surface passes `canReport: false`, since the
+  report modal's host mounts below it.
 
 ## Conventions
 

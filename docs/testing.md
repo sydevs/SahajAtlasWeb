@@ -70,14 +70,20 @@ only ever read a preview" below.
 
   **Which Worker.** `scripts/assert-preview-host.mjs` refuses an address that is not a preview of
   the Worker `wrangler.jsonc` names. ⚠ A preview host is
-  `<preview>-<worker>.<subdomain>.workers.dev`, and `sahajatlas` is a **prefix** of
-  `sahajatlas-design` (#280), so the match **anchors the whole worker-name label segment at both
-  ends**: the first label ends at `-<worker>`, and the labels after it are exactly the account
-  subdomain. A bare substring, a domain suffix test, an unanchored regex, or one extra label on
-  either side all let the playground's deploy pass for the app's and collect a green check that
-  verified the wrong site. The label-segment anchor is what refuses it, and
-  `scripts/assert-preview-host.test.ts` pins it against six near-miss hosts, the playground's
-  own among them. The substring defect reddens three of those; the suffix defect one.
+  `<preview>-<worker>.<subdomain>.workers.dev`, so the match **anchors the whole worker-name label
+  segment at both ends**: the first label ends at `-<worker>`, and the labels after it are exactly
+  the account subdomain. A bare substring, a domain suffix test, an unanchored regex, or one extra
+  label on either side each let some other Worker's deploy pass for the app's and collect a green
+  check that verified the wrong site — a name that **extends** `sahajatlas-web`, a label that
+  merely ends with it, a label inserted before the account subdomain, or the app's own production
+  host. `scripts/assert-preview-host.test.ts` pins the anchor against seven near-miss hosts, read
+  off the configs. The substring defect reddens three of those; the suffix defect one.
+
+  ⚠ **The playground is not one of those three, and was the clearest of them before #266.** The
+  app Worker was `sahajatlas` then, a **prefix** of `sahajatlas-design` (#280), so a substring
+  match accepted the playground's own preview host. `sahajatlas-web` shares only the
+  `sahajatlas-` stem with it, so every defect above refuses it now and its case pins the config
+  read instead of the anchor. Read the three off the test file, never off this paragraph.
 
   **This is stronger than what it replaced, in two specific ways.** Discovery (#122, #138) ranked
   candidates by provenance because a `pages.dev` label is globally first-come-first-served and
@@ -150,12 +156,12 @@ Four findings from the subsystem this replaced, worth keeping so nobody re-deriv
   something exercises the caller — a live run of the script against a real SHA is what caught
   this one.
 - **A check-run name identifies the integration as well as the target, and only both together
-  identify a build.** The app Worker took the Pages project's own name, so
+  identify a build.** The app Worker first took the Pages project's own name, so
   `Workers Builds: sahajatlas` and `Cloudflare Pages: sahajatlas` shared this project's slug and
   differed only in their prefix (#280, #297). ⚠ That is why `production-smoke.yml` compares the
-  **whole** name with `==` — see the production lane below. The Pages check run stops arriving
-  once #283's last phase deletes that project, and the comparison stays as it is: it is what
-  told the two apart while both posted.
+  **whole** name with `==` — see the production lane below. The Pages project is gone (#283) and
+  the Worker is `sahajatlas-web` since 2026-11-01 (#266); the comparison stays as it is, and a
+  dashboard rename has to move `wrangler.jsonc`'s `name` with it.
 
 The lane also covers `embed.js`, not only the standalone page — the embed is what a host
 installs, so a deploy that breaks it while `index.html` stays healthy must not be a green check.
@@ -231,7 +237,7 @@ values changed; the gap did not.) The `VITE_HOST` story above is that hole in on
 production origin blanked by a dashboard edit is the same hole in the other, and running the PR
 gate more often closes neither.
 
-`.github/workflows/production-smoke.yml` runs these same 17 specs against production. Five things
+`.github/workflows/production-smoke.yml` runs these same 18 specs against production. Five things
 about it are deliberate:
 
 - **The deploy fires it, not the clock.** What the lane reads is deployed file *content*, which
@@ -288,7 +294,7 @@ alert. The lane's last step opens an issue instead, and three things about it ar
   production read, and a ticket claiming production is red when nothing read it is worse than no
   ticket. `ci-workflows.test.ts` pins that gate and the token, since both fail silently.
 
-No spec is scoped by environment. The lane is **17 cases**, from 13 declarations — count it rather
+Every spec reads both hosts alike. The lane is **17 cases**, from 13 declarations — count it rather
 than trusting a figure, since `.each` makes the two differ. Measured 2026-10-06 against the 16 it
 was then: all 16 passed against `sahajatlas.com`. Re-measured 2026-10-13 against the playground
 on its Worker (`PREVIEW_URL=https://design.sahajatlas.com pnpm test:smoke`, #279): **10 of the 17
@@ -303,11 +309,13 @@ the custom domain and not a preview: no vendor host could have shown it, and the
 dashboard setting rather than a commit. ⚠ Both measurements above were taken against `*.pages.dev`
 previews and a Pages-served custom domain, so each is evidence about a **host**, not about a
 platform. The preview the PR gate reads is a Worker since #282, and #283 moved `sahajatlas.com`
-onto a Worker too — so **neither figure carries across that cutover, and both are owed a
-re-measure against the Workers-served `sahajatlas.com`**. Whether a Workers host adds
-`X-Robots-Tag: noindex` of its own accord is **still not known**, and it decides whether four
-assertions still test our own `public/_headers` rule: `robots.smoke.test.ts` at its three cases, and `cache-headers.smoke.test.ts`'s `embed.js`
-case. If the platform supplies the header, those four stop telling our rule from a default.
+onto a Worker too. **Re-measured 2026-10-30 against the Workers-served `sahajatlas.com`, right
+after the cutover: all 17 passed.** Whether a Workers host adds `X-Robots-Tag: noindex` of its
+own accord is **still not known**: every Worker on a custom domain in this account serves our own
+`/*` rule, so no host here can tell the platform from the rule. It decides whether four
+assertions still test our own `public/_headers` rule: `robots.smoke.test.ts` at its three cases,
+and `cache-headers.smoke.test.ts`'s `embed.js` case. If the platform supplies the header, those
+four stop telling our rule from a default.
 Record the finding; do not weaken the specs for it — sydevs/SahajCloud#903's success list owns
 the repair.
 
@@ -320,7 +328,7 @@ This mirrors WeMeditateWeb. The unit lane runs in the `node` environment by defa
   per-request context `src/config/api/client.ts` attaches is spec'd from `fetch.test.ts`,
   which is why there is no `client.test.ts`.
 - **Presentational components** — assert the SSR output with `renderToStaticMarkup` from
-  `react-dom/server` (see `src/components/atoms/Icons/Icons.test.tsx` for the template). Hover,
+  `react-dom/server` (see `src/components/molecules/EventFacts/EventFacts.test.tsx` for the template). Hover,
   portals, focus, and map interaction belong in Ladle or the browser, not here.
 
 ### The jsdom exception (issue #89)
@@ -529,7 +537,8 @@ on 4 cores, median of three: **0.12s** for a lane source with no spec of its own
 `src/test-support/repo-source.ts` (the widest — #289 moved it there). The slowest edit
 sits at about half the bound. Re-measured 2026-10-26, at 17 specs rather than 15: **4.2s** for the
 widest and **5.0s** for `i18n.ts`, medians of three. Both fell while the widest selection grew, so
-read the two figures as a pair taken on one machine, never as a trend.
+read the two figures as a pair taken on one machine, never as a trend. Re-measured 2026-11-01, at
+19: **5.5s** for the widest and **6.2s** for `i18n.ts`, medians of three on 4 cores.
 ⚠ **The 0.12s class is smaller than #289 found it**: `src/views/FullInterface.tsx` selected
 nothing until `MapFrame.test.tsx` named it as a quoted repo-relative path, and now costs **2.2s**
 per edit for the wiring pin it previously had no per-edit coverage from at all. A quoted literal
@@ -587,16 +596,16 @@ to select from. The full lane still runs in the lean gate (`.claude/skills/pr-pr
 in CI, so this narrows the inner loop, not the gate.
 
 **What holds the budget is the selection's width, and `scripts/select-unit-specs.test.ts` pins
-that**: the widest edit in the tree, exhaustively through the real composition, at 19 against a
-ceiling of 19 — no headroom, so the next spec reading a repo file through `repo-source` trips it,
+that**: the widest edit in the tree, exhaustively through the real composition, at 20 against a
+ceiling of 20 — no headroom, so the next spec reading a repo file through `repo-source` trips it,
 and the answer is to time the hook and ratchet, never to drop a spec. ⚠ **Two PRs can trip it
 without either one doing so alone**: #322's `mobile-zoom.test.ts` and #324's `attribution.test.ts`
 each took a slot, and the pin went red on the merge rather than on either branch; #328's
-`Drawer.scroll.test.tsx` is what ratcheted it from 17 to 18, and #318's `AddClassLink.test.tsx`
-from 18 to 19 — on the merge again, since neither #318 nor the base trips it alone. ⚠ Width is not
-time, and which of the pair is slower has flipped across machines — `i18n.ts` selects 12, four of
-them jsdom, and measured 4.7s against the widest's 5.0s at eighteen (2026-10-27, 4 cores) and
-8.7s against 6.8s at nineteen (2026-10-28, 4 cores, every figure higher) — so width
+`Drawer.scroll.test.tsx` ratcheted it from 17 to 18, #17's
+`BrandTheme.palette.test.tsx` from 18 to 19, and #318's `add-class-entry.test.ts` from 19 to 20. ⚠ Width is not time, and which of
+the pair is slower has flipped across machines — `i18n.ts` selects 12, four of them jsdom, and
+measured 6.2s against the widest's 5.5s at nineteen (2026-11-01, 4 cores), having been the faster
+of the two at eighteen — so width
 bounds the slice, never the time, and a jump in either is a re-measure of both. It also pins each
 of the three specifier forms, end to end against this tree; the tree-walking set as a closed list,
 and its absence from the selection, where the fixture carries a walker of each kind, so a re-added

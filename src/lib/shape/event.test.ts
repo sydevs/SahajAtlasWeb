@@ -339,17 +339,19 @@ describe('resolveEventDisplay: external-mode invariance', () => {
 })
 
 describe('resolveEventDisplay: timezones and weekdays', () => {
-  it('physical events never convert — event-tz day + a local-time hint abroad', () => {
+  it('physical events never convert — the event tz answers for every viewer', () => {
     const fromSydney = resolveEventDisplay(weeklyClass, at('2026-07-15T10:00:00', SYDNEY))
 
     // Sydney viewer: the Prague Wednesday stays Wednesday 19:30 (event tz).
     expect(fromSydney.next?.zoneName).toBe(PRAGUE)
     expect(fromSydney.next?.weekday).toBe(3)
-    expect(fromSydney.timeHint).toBe('local')
 
+    // A viewer in the event's own zone gets the same instant in the same zone, so the
+    // pair together is what says the viewer's zone is not read at all here.
     const fromPrague = resolveEventDisplay(weeklyClass, at('2026-07-14T10:00:00'))
 
-    expect(fromPrague.timeHint).toBeNull()
+    expect(fromPrague.next?.zoneName).toBe(PRAGUE)
+    expect(fromPrague.next?.toISO()).toBe(fromSydney.next?.toISO())
   })
 
   it('online events convert — the Prague Wednesday is a Sydney Thursday', () => {
@@ -359,7 +361,6 @@ describe('resolveEventDisplay: timezones and weekdays', () => {
     // Wednesday 19:30 Prague = Thursday 03:30 in Sydney (UTC+10 vs UTC+2).
     expect(display.next?.zoneName).toBe(SYDNEY)
     expect(display.next?.weekday).toBe(4)
-    expect(display.timeHint).toBe('viewer')
     expect(display.origin?.zoneName).toBe(PRAGUE)
     expect(display.origin?.weekday).toBe(3)
     expect(display.weekdayInstants[0]?.weekday).toBe(4)

@@ -142,9 +142,9 @@ secrets must never reach client code — the bundle is public.
 ## Deployment
 
 Two Cloudflare sites deploy from this repo, both on Workers static assets: the app,
-`sahajatlas`, serving `sahajatlas.com`, and the Ladle playground, `sahajatlas-design`
+`sahajatlas-web`, serving `sahajatlas.com`, and the Ladle playground, `sahajatlas-design`
 (#266, #279, #280, #283). ⚠ `sahajatlas.pages.dev` is withdrawn rather than redirected, and
-claimable by anyone once #283's last phase deletes the project behind it. Source maps are
+claimable by anyone since #283 deleted the project behind it. Source maps are
 uploaded, then deleted — never deployed (#130). Topology, the `public/` deploy files, the
 source-map policy and the deploy-side CI gates: `docs/rules/deployment.md`.
 

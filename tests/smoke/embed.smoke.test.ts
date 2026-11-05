@@ -43,6 +43,104 @@ function fetchEmbed() {
   return embed
 }
 
+/**
+ * Every chunk `auto.js` can reach, crawled once and shared by the specs below.
+ *
+ * Only a clean crawl is cached. A broken chunk or a thrown fetch clears it, so each retry
+ * crawls again rather than replaying the same transient 5xx (see `fetchEmbed`).
+ */
+let crawl: Promise<{ seen: string[]; broken: string[] }> | undefined
+
+function crawlDeploy() {
+  crawl ??= crawlFromLoader().then(
+    (result) => {
+      if (result.broken.length > 0) crawl = undefined
+
+      return result
+    },
+    (err) => {
+      crawl = undefined
+      throw err
+    },
+  )
+
+  return crawl
+}
+
+async function crawlFromLoader() {
+  const { body } = await fetchEmbed()
+
+  // `auto.js` and `embed.js` are unhashed and mutable. The chunks they name are
+  // hashed. A host or a proxy holding a stale copy can request names the deploy no
+  // longer contains, and the widget then never appears. This spec catches the
+  // deploy-side half of that mismatch: a loader published without the graph behind
+  // it.
+  //
+  // This matches every relative `.js` literal, not only the static-import shape. A
+  // missing lazy chunk is the same broken deploy, found one interaction later.
+  //
+  // The crawl is transitive, not one level deep, and that matters more now than
+  // before. The whole widget sits behind one dynamic import from the loader. A
+  // one-level crawl from `auto.js` would reach `embed.js` and stop, missing every
+  // chunk the widget needs. The views behind a lazy seam load from a chunk that
+  // names them, not from the entry file. A one-level crawl stopped covering the
+  // calendar, registration, and share chunks the moment those moved behind
+  // `React.lazy` (issue #96). Following each body in turn makes the found set the
+  // whole deploy the widget can ever request, however deep the seam goes.
+  //
+  // Backticks matter as much as the transitive crawl. rolldown's minifier emits
+  // dynamic specifiers as template literals, for example
+  // `import(\`./CalendarView-<hash>.js\`)`. A pattern that matches only `"` and `'`
+  // catches the static imports and silently skips every lazy chunk in the build.
+  const RELATIVE_JS = /["'`](\.\/[^"'`]+\.js)["'`]/g
+  // Chunks reference each other relative to their own directory. `embed.js` sits at
+  // the root and points into `./assets/`. Everything under `assets/` points at its
+  // siblings.
+  const resolveFrom = (path: string, spec: string) =>
+    `${path.slice(0, path.lastIndexOf('/'))}/${spec.replace(/^\.\//, '')}`
+
+  // Status alone proves nothing here. The SPA fallback answers `/* /index.html
+  // 200`, so a missing chunk also answers 200 as the shell. A check on
+  // `res.status` would pass for exactly the failure this spec exists to catch. The
+  // content type is what tells a real chunk apart from the fallback HTML.
+  const broken: string[] = []
+  const seen = new Set<string>()
+  const queue = ['/auto.js']
+  const bodies = new Map<string, string>([['/auto.js', body]])
+
+  while (queue.length) {
+    const path = queue.pop() as string
+    const source = bodies.get(path)
+
+    if (!source) continue
+
+    for (const [, spec] of source.matchAll(RELATIVE_JS)) {
+      const next = resolveFrom(path, spec)
+
+      if (seen.has(next)) continue
+
+      seen.add(next)
+
+      // Uses GET, not HEAD. The body serves both as the assertion and as the next
+      // frontier to crawl. The whole deploy is roughly 440 KiB gzipped, and this
+      // lane runs separately from the PR gate.
+      const res = await fetchPreview(next)
+      const type = res.headers.get('content-type') ?? ''
+
+      if (res.status === 200 && /javascript|ecmascript/i.test(type)) {
+        const text = await res.text()
+
+        bodies.set(next, text)
+        queue.push(next)
+      } else {
+        broken.push(`${next} → ${res.status} ${type}`)
+      }
+    }
+  }
+
+  return { seen: [...seen], broken }
+}
+
 describe('embed bundle', () => {
   test.skipIf(skipWithoutPreview)('serves auto.js as a loader, not as the widget', async () => {
     const { status, body } = await fetchEmbed()
@@ -70,80 +168,9 @@ describe('embed bundle', () => {
   })
 
   test.skipIf(skipWithoutPreview)('serves every chunk the loader can reach', async () => {
-    const { body } = await fetchEmbed()
+    const { seen, broken } = await crawlDeploy()
 
-    // `auto.js` and `embed.js` are unhashed and mutable. The chunks they name are
-    // hashed. A host or a proxy holding a stale copy can request names the deploy no
-    // longer contains, and the widget then never appears. This spec catches the
-    // deploy-side half of that mismatch: a loader published without the graph behind
-    // it.
-    //
-    // This matches every relative `.js` literal, not only the static-import shape. A
-    // missing lazy chunk is the same broken deploy, found one interaction later.
-    //
-    // The crawl is transitive, not one level deep, and that matters more now than
-    // before. The whole widget sits behind one dynamic import from the loader. A
-    // one-level crawl from `auto.js` would reach `embed.js` and stop, missing every
-    // chunk the widget needs. The views behind a lazy seam load from a chunk that
-    // names them, not from the entry file. A one-level crawl stopped covering the
-    // calendar, registration, and share chunks the moment those moved behind
-    // `React.lazy` (issue #96). Following each body in turn makes the found set the
-    // whole deploy the widget can ever request, however deep the seam goes.
-    //
-    // Backticks matter as much as the transitive crawl. rolldown's minifier emits
-    // dynamic specifiers as template literals, for example
-    // `import(\`./CalendarView-<hash>.js\`)`. A pattern that matches only `"` and `'`
-    // catches the static imports and silently skips every lazy chunk in the build.
-    const RELATIVE_JS = /["'`](\.\/[^"'`]+\.js)["'`]/g
-    // Chunks reference each other relative to their own directory. `embed.js` sits at
-    // the root and points into `./assets/`. Everything under `assets/` points at its
-    // siblings.
-    const resolveFrom = (path: string, spec: string) =>
-      `${path.slice(0, path.lastIndexOf('/'))}/${spec.replace(/^\.\//, '')}`
-
-    // Status alone proves nothing here. The SPA fallback answers `/* /index.html
-    // 200`, so a missing chunk also answers 200 as the shell. A check on
-    // `res.status` would pass for exactly the failure this spec exists to catch. The
-    // content type is what tells a real chunk apart from the fallback HTML.
-    const broken: string[] = []
-    const seen = new Set<string>()
-    const queue = ['/auto.js']
-    const bodies = new Map<string, string>([['/auto.js', body]])
-
-    while (queue.length) {
-      const path = queue.pop() as string
-      const source = bodies.get(path)
-
-      if (!source) continue
-
-      for (const [, spec] of source.matchAll(RELATIVE_JS)) {
-        const next = resolveFrom(path, spec)
-
-        if (seen.has(next)) continue
-
-        seen.add(next)
-
-        // Uses GET, not HEAD. The body serves both as the assertion and as the next
-        // frontier to crawl. The whole deploy is roughly 440 KiB gzipped, and this
-        // lane runs separately from the PR gate.
-        const res = await fetchPreview(next)
-        const type = res.headers.get('content-type') ?? ''
-
-        if (res.status === 200 && /javascript|ecmascript/i.test(type)) {
-          const text = await res.text()
-
-          bodies.set(next, text)
-          queue.push(next)
-        } else {
-          bodies.set(next, '')
-          broken.push(`${next} → ${res.status} ${type}`)
-        }
-      }
-    }
-
-    const chunks = [...seen]
-
-    expect(chunks.length).toBeGreaterThan(0)
+    expect(seen.length).toBeGreaterThan(0)
 
     expect(broken).toEqual([])
   })

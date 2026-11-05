@@ -38,6 +38,15 @@ export const Default: Story = () => (
       </div>
     </StorySection>
 
+    <StorySection
+      description="A venue that names the room — it reads above the street, on the panel only."
+      title="With a room"
+    >
+      <div className="max-w-md">
+        <EventFacts event={{ ...mockEvent, address: { ...mockEvent.address, room: 'Hall B' } }} />
+      </div>
+    </StorySection>
+
     <StorySection description="An online class — screen icon, converted time." title="Online">
       <div className="max-w-md">
         <EventFacts event={{ ...mockEvent, eventType: 'online' }} />

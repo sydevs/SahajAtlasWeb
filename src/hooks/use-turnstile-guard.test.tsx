@@ -118,8 +118,16 @@ describe('useTurnstileGuard', () => {
 
     // The directive is the only part of this addressed to somebody who can act on it.
     // It must survive the throw that unmounts the tree. That is why the hook orders its steps this way.
-    expect(advice).toContain('challenges.cloudflare.com')
     expect(advice).toContain('docs/embedding.md')
+    // ⚠ SahajCloud's origin under `frame-src`, not Cloudflare's (#343, sydevs/SahajCloud#1072):
+    // the challenge renders in a frame SahajCloud serves, so naming anything else would send a
+    // developer to edit a line that fixes nothing.
+    expect(advice).toContain(
+      `${new URL(import.meta.env.VITE_SAHAJCLOUD_URL).origin} under \`frame-src\``,
+    )
+    expect(advice).not.toContain('challenges.cloudflare.com')
+    // The other cause, which no policy of theirs can fix: the page's domain is on no client record.
+    expect(advice).toContain(`${window.location.hostname} is not an allowed domain`)
   })
 
   it('does not block the first paint on the probe', async () => {

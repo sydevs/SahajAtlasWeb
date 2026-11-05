@@ -25,4 +25,4 @@ It is built so passing proves something real:
   `loader` +0.3 KiB**. So never lower a budget to within *that graph's own measured gap* of
   the CI number, and record both numbers beside the budget in
   `scripts/check-bundle-size.mjs`. A flat figure is wrong in both directions — read as
-  2.1 KiB the loader's 3.5 KiB budget would have to be ≥ 4.7, above the 3.8 it already had.
+  2.1 KiB the loader's 3.2 KiB budget would have to be ≥ 4.5, above every figure it has held.

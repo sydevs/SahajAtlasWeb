@@ -21,18 +21,19 @@ points here. Two Cloudflare sites deploy from this repo, both on **Workers stati
 move ran one site at a time, and the app's own cutover was split from building it (#266, #279,
 #280, #283):
 
-- **`sahajatlas`, the app** — from `wrangler.jsonc`, assets-only, pointed at `dist/`, which
+- **`sahajatlas-web`, the app** — from `wrangler.jsonc`, assets-only, pointed at `dist/`, which
   `pnpm build:worker` fills. Served at `sahajatlas.com` as a Workers Custom Domain and at its own
   `workers.dev` host. Workers Builds holds the build command and the trigger's variables and
   branch rules **per trigger**, not per project — which is what `docs/environment.md` works out
-  for each variable.
-  ⚠ **`sahajatlas.pages.dev` is withdrawn, not redirected**, so no request to it reaches what
-  serves the domain. The `sahajatlas` Pages project itself goes at #283's last phase, after the
-  Custom Domain is verified — until then its last deployment stands as the cutover's rollback,
-  which is the one thing merging this earlier would deny. Deletion is one-way: the route back is
-  a Pages project built from scratch, and Cloudflare reserves no released `pages.dev` name, so
-  the host is then first-come-first-served for anyone — `docs/testing.md` carries this repo's own
-  measurement of that.
+  for each variable. Its one trigger builds `main` alone; PR previews come from `ci.yml`'s own
+  `versions upload`, never from Workers Builds (#282).
+  ⚠ **The Worker was named `sahajatlas` until 2026-11-01**, and `wrangler.jsonc`'s `name` must
+  follow any dashboard rename: the PR preview uploads by that name, and the production lane
+  waits on the check run that carries it (#266).
+  ⚠ **`sahajatlas.pages.dev` is gone, not redirected.** The `sahajatlas` Pages project was
+  deleted on 2026-10-30 (#283), so the route back is a Pages project built from scratch, and
+  Cloudflare reserves no released `pages.dev` name — the host is first-come-first-served for
+  anyone.
 - **`sahajatlas-design`** — the Ladle component playground, on **Workers static assets**.
   Builds with `pnpm ladle:build` into `build/`, served at `design.sahajatlas.com`.
   `wrangler.design.jsonc` in the repo root is its config: assets-only (no `main`),

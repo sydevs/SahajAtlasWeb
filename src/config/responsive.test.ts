@@ -121,7 +121,7 @@ describe('the container-vs-viewport decision table', () => {
     // A second hardcoded crossing in a component would be the same duplication growing back somewhere the rule file cannot see it.
     //
     // This matches a WIDTH, such as `768px` or `min-width: 768`, not the bare number.
-    // The bare number is a perfectly ordinary SVG path coordinate. `atoms/Icons/symbols.tsx` has one.
+    // The bare number is a perfectly ordinary SVG path coordinate.
     // This also matches over comment-stripped source, so prose may name the crossing freely.
     const hardcoded = SOURCE_FILES.filter(
       (relative) =>

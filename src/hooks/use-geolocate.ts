@@ -41,16 +41,16 @@ export function useGeolocateToSearch(geojson: Geojson | undefined) {
   const { locale } = useLocale()
 
   /**
-   * ⚠ **Mapbox constructs the control and binds the handler this returns ONCE.**
-   * So the handler must not close over router state.
-   * `Map.tsx` documents the same construction-only behavior for the `locale` prop.
+   * ⚠ **This handler is memoized with empty deps, so it must not close over router state.**
+   * react-map-gl re-assigns the control's props to a ref every render and reads each handler off it, so the prop itself is live — what cannot change is this callback's own closure.
+   * (The `locale` prop IS construction-only; `Map.tsx` documents that separately.)
    * This is not theoretical.
    * The first version of this hook read `searchParams` and `setSearchParams` from the closure.
    * The stale `replace` function they carried rewrote `/search?center=…&bbox=…` back to the route the widget had been on when the map mounted.
    * That dropped the search the visitor had just performed.
    * Only a browser test measured this. Nothing else caught it.
    *
-   * A ref refreshed every render is the fix.
+   * A ref refreshed every render is the fix, which is why the empty deps below stay.
    * `Mapbox` already re-renders on filter and location changes, so this ref is always current by the time anyone can press the control.
    */
   const live = useRef({ navigate, replace, location, searchParams, geojson, locale })

@@ -212,24 +212,64 @@ describe('every key a call site asks for', () => {
   })
 })
 
+/**
+ * Copy published in SahajCloud ahead of its call site, each with the ticket that wires it.
+ *
+ * ⚠ A `t()` call cannot land before its key is live (the direction above fails it), so every
+ * new key spends a window in production unreferenced — and the snapshot is regenerated
+ * wholesale, so a sync for one ticket carries every other ticket's pending key with it (#316).
+ * Delete an entry in the PR that wires it: the pin below fails until you do.
+ */
+const PENDING_KEYS: Record<string, string> = {}
+
+/**
+ * The mirror image: copy whose last call site is gone, each with the SahajCloud ticket that
+ * removes it from `sy-atlas-translations`.
+ *
+ * ⚠ A key leaves the app a whole release before it can leave the snapshot. The CMS owns the copy
+ * and this repo cannot delete a key, so the window between unwiring a `t()` and the sync that
+ * regenerates the snapshot without it belongs here — otherwise the direction below forces the
+ * choice between an unwired key and a red lane, and the honest answer is neither.
+ * Delete an entry in the sync PR that drops the key: the pin below fails until you do.
+ */
+const RETIRING_KEYS: Record<string, string> = {}
+
 describe('every key the snapshot holds', () => {
+  // Quoted ANYWHERE in the source, not only inside a `t()` call: a key can legitimately be held in
+  // a constant and handed to `t` elsewhere (`use-event-display`'s register label, every
+  // `messageKey`). This direction asks whether the copy is reachable at all, so the weaker test is
+  // the right one — the stricter direction above is what catches a typo.
+  const quoted = [...allSource.matchAll(/['"]([a-z_][a-zA-Z0-9_.]*)['"]/g)].map((m) => m[1])
+  const referenced = new Set([...LITERAL_KEYS, ...DYNAMIC_KEYS, ...quoted])
+
   it('is referenced somewhere in the source', () => {
     // The other direction: copy nobody renders is copy translators are asked to fill in for
     // nothing. A key dropped from the app but left in the CMS shows up here.
-    // Quoted ANYWHERE in the source, not only inside a `t()` call: a key can legitimately be
-    // held in a constant and handed to `t` elsewhere (`use-event-display`'s register label,
-    // every `messageKey`). This direction asks whether the copy is reachable at all, so the
-    // weaker test is the right one — the stricter direction above is what catches a typo.
-    const quoted = [...allSource.matchAll(/['"]([a-z_][a-zA-Z0-9_.]*)['"]/g)].map((m) => m[1])
-
-    const referenced = new Set([...LITERAL_KEYS, ...DYNAMIC_KEYS, ...quoted])
-
     const dead = [...keys].filter((key) => {
       const logical = key.replace(/_(one|few|many|other)$/, '')
 
-      return !referenced.has(key) && !referenced.has(logical)
+      return (
+        !referenced.has(key) &&
+        !referenced.has(logical) &&
+        !Object.prototype.hasOwnProperty.call(PENDING_KEYS, logical) &&
+        !Object.prototype.hasOwnProperty.call(RETIRING_KEYS, logical)
+      )
     })
 
     expect(dead, 'in the snapshot, referenced by nothing — drop it in SahajCloud').toEqual([])
+  })
+
+  it('names a pending key only while it is published and still unwired', () => {
+    const stale = Object.keys(PENDING_KEYS).filter((key) => !resolves(key) || referenced.has(key))
+
+    expect(stale, 'wired or unpublished — delete it from PENDING_KEYS').toEqual([])
+  })
+
+  it('names a retiring key only while it is unwired and still published', () => {
+    // Both halves fail the entry rather than the key: one the sync already dropped is an
+    // exemption covering nothing, and one a call site asks for again is live copy.
+    const stale = Object.keys(RETIRING_KEYS).filter((key) => !resolves(key) || referenced.has(key))
+
+    expect(stale, 'rewired or already dropped — delete it from RETIRING_KEYS').toEqual([])
   })
 })

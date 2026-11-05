@@ -132,14 +132,14 @@ Nothing below is needed to get a working embed. Reach for it when you want more:
 Six parameters exist on the script URL, all optional except `key`. Percent-encode reserved
 characters as usual (`atlas=%2Fgb%2Flondon` and `atlas=/gb/london` are equivalent).
 
-| Parameter | Default                       | What it does                                                                                                                                                                                                                                                                          |
-| --------- | ----------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `key`     | —                             | **Required.** Your published SahajCloud client key. An invalid key shows the widget's configuration-error screen, and the loader logs an error naming the problem.                                                                                                                   |
-| `locale`  | **your page's `<html lang>`** | Force a UI language, e.g. `fr`. A language we do not offer falls back to English — the set is managed in SahajCloud, not by this parameter. Precedence: **`?locale=` on the page URL** → this parameter → **your page's `<html lang>`** → the browser's language → English. ⚠ A `?locale=` the atlas ships **outranks** this parameter, because the widget writes that parameter itself (below). |
-| `map`     | `true`                        | `map=false` renders the atlas as lists and event pages with **no map canvas at all**. No Mapbox, no map token, and none of the Mapbox origins or storage below. Changes how you size it (see [Sizing](#sizing-the-element)).                                                          |
-| `routing` | `query`                       | Where the widget's route lives. `path` also needs your server to serve one page for everything under the atlas prefix — a prefix set on your client record, not here.                                                                                                                |
-| `atlas`   | —                             | The route to open when the page's own URL does not already name one, e.g. `/gb/london`. Must be site-relative.                                                                                                                                                                       |
-| `gestures` | —                            | `gestures=cooperative` lets a visitor **scroll your page past a contained map**: one finger and the mouse wheel scroll the page, and the map moves on two fingers or Ctrl/⌘ + wheel, with a hint saying so. Only for a [contained map](#sizing-the-element); a window-filling map and the compact card's overlay ignore it. |
+| Parameter  | Default                       | What it does                                                                                                                                                                                                                                                                                                                                                                                      |
+| ---------- | ----------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `key`      | —                             | **Required.** Your published SahajCloud client key. An invalid key shows the widget's configuration-error screen, and the loader logs an error naming the problem.                                                                                                                                                                                                                                |
+| `locale`   | **your page's `<html lang>`** | Force a UI language, e.g. `fr`. A language we do not offer falls back to English — the set is managed in SahajCloud, not by this parameter. Precedence: **`?locale=` on the page URL** → this parameter → **your page's `<html lang>`** → the browser's language → English. ⚠ A `?locale=` the atlas ships **outranks** this parameter, because the widget writes that parameter itself (below). |
+| `map`      | `true`                        | `map=false` renders the atlas as lists and event pages with **no map canvas at all**. No Mapbox, no map token, and none of the Mapbox origins or storage below. Changes how you size it (see [Sizing](#sizing-the-element)).                                                                                                                                                                      |
+| `routing`  | `query`                       | Where the widget's route lives. `path` also needs your server to serve one page for everything under the atlas prefix — a prefix set on your client record, not here.                                                                                                                                                                                                                             |
+| `atlas`    | —                             | The route to open when the page's own URL does not already name one, e.g. `/gb/london`. Must be site-relative.                                                                                                                                                                                                                                                                                    |
+| `gestures` | —                             | `gestures=cooperative` lets a visitor **scroll your page past a contained map**: one finger and the mouse wheel scroll the page, and the map moves on two fingers or Ctrl/⌘ + wheel, with a hint saying so. Only for a [contained map](#sizing-the-element); a window-filling map and the compact card's overlay ignore it.                                                                       |
 
 **`map` follows one spelling rule: only the exact values `false` and `0` switch it off.**
 Anything else — absent, empty, `true`, `no`, `FALSE` — leaves it **on**, so a typo can never
@@ -162,8 +162,9 @@ form.
 **Under `routing=path`, the default applies when the interface first opens.** Your page's own
 address is the root view there — there is no other URL for it — so the widget boots at the root
 and then navigates to your default, the same way it opens a client record's home region. Your
-page's URL then shows the route (`/classes/gb/london`), and Back returns to the world list. Your
-default outranks the home region. A deep link to any other route is left alone.
+page's URL then shows the route (`/classes/gb/london`) in place of your page's own entry, so Back
+leaves your page as it would without the widget. Your default outranks the home region. A deep
+link to any other route is left alone.
 
 ### The widget follows your page's language
 
@@ -235,9 +236,18 @@ yours), with no banner shown.
 Some things are **not** parameters, on purpose:
 
 | Setting                            | Where it lives                                                         |
-| ----------------------------------- | ------------------------------------------------------------------------ |
+| ---------------------------------- | ---------------------------------------------------------------------- |
 | Display name, brand colours        | your client record                                                     |
 | The path prefix for `routing=path` | your client record — the same value your canonical URLs are built from |
+| The domains you embed on           | your client record — the API refuses reads from anywhere else, and the captcha renders nowhere else |
+
+**Your brand colours reach the map, not only the panels.** The event pins, the cluster bubbles
+and the numbers on them are drawn from the **first** of your record's three brand colours, and
+the pin of whichever event is selected from the **third** — the same two your buttons and
+headings already use, in both light and dark. Your second colour does not reach the map. A
+record that leaves the colours unset keeps the widget's own teal and orange everywhere, map
+included. Nothing new is requested from the network, so your CSP and
+your Permissions Policy are unchanged.
 
 Identity is the same on every page you embed on, so making it per-embed only risks two of your
 pages disagreeing about what the product is called. The routing prefix is worse than merely
@@ -265,7 +275,14 @@ prefer.
 
 **If either is missing, the widget uses query routing and says so in the console**, naming which
 one was missing. It never silently switches modes — a host whose server config does nothing
-should learn that from us, not from their analytics six months later.
+should learn that from us, not from their analytics six months later. If your client record
+cannot be read at all — SahajCloud down or erroring, rather than your key refused — it does not
+fall back: the visitor gets the widget's own error screen, with a "Try again" that re-reads the
+record. That is the same screen a query-mode embed shows for the same failure, so neither mode
+answers an outage worse than the other. Its copy is translated like the rest of the widget, which
+means an outage big enough to take the translations with it leaves this screen in English too. It
+carries no "Report an issue" control: the report form mounts below this point, so there is
+nothing for it to open yet.
 
 **It does not cost you a round trip.** The widget reads your client record before it can build
 its router in either mode, before it renders anything — so path mode makes the same single
@@ -311,16 +328,16 @@ query is still dropped whole, including `?p=123&utm_source=…`, rather than tri
 
 It reports on **every load**, not only when something changed — that is what makes "last seen"
 mean anything: an embed that reported once and went quiet is indistinguishable from a removed
-one. Repeat reports of an unchanged page collapse server-side into at most one write an hour, so
-this is one small request per page view, and nothing your visitor sees depends on it.
+one. Repeat reports of an unchanged page collapse server-side into at most one write in any 6 h
+window, so this is one small request per page view, and nothing your visitor sees depends on it.
 
 Two things can refuse it, both configuration rather than a fault in your page, and both reported
 to the console while the widget carries on working:
 
-| Console message mentions     | What it means                                                                                                                                                   |
-| ----------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Console message mentions     | What it means                                                                                                                             |
+| ---------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
 | the origin is not allowed    | your domain is not on the service's allowed-domains list in the CMS. An **empty** list allows every origin, here as on the read endpoints |
-| the maximum number of mounts | the service already tracks 50 distinct pages. Pages already known keep reporting                                                                               |
+| the maximum number of mounts | the service already tracks 50 distinct pages. Pages already known keep reporting                                                          |
 
 ### The readiness marker
 
@@ -346,9 +363,9 @@ render.
 
 **With the map (default), a height is optional and changes the shape you get.**
 
-| What you give the element                                     | What you get                                                                                                                            |
-| --------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------ |
-| A height (`height: 640px`, a grid track, an aspect-ratio box). | The map lives **inside that box**, in your page's flow — your header above it, your content below.                                       |
+| What you give the element                                      | What you get                                                                                                                                |
+| -------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------- |
+| A height (`height: 640px`, a grid track, an aspect-ratio box). | The map lives **inside that box**, in your page's flow — your header above it, your content below.                                          |
 | No height at all.                                              | The map fills the **browser window**. The canvas is `position: fixed; inset: 0`, and the drawers sit over it, whatever size the element is. |
 
 The second is the older behaviour, and still right for a dedicated atlas page — a **full-page
@@ -424,8 +441,8 @@ widget still reads your client record and sends the one-per-load
 
 **Where the button goes depends on whether the widget can grow where it is.**
 
-| Your embed                  | The button                                                                                  |
-| ------------------------------ | ---------------------------------------------------------------------------------------------- |
+| Your embed                  | The button                                                                                   |
+| --------------------------- | -------------------------------------------------------------------------------------------- |
 | A script embed on your page | Opens the interface in a full-screen overlay, in place                                       |
 | Inside an iframe            | Opens a page that fits, in a new tab (see [Embedding in an iframe](#embedding-in-an-iframe)) |
 
@@ -454,7 +471,7 @@ like `map=false`, against the floors above and nothing else.
   **Escape** (steps outward, dismissing whatever is open before closing), and the **×** in the
   corner — all return focus to the button that opened it.
 - **The overlay sits above your page's own chrome.** Its scrim and frame use `z-index:
-  2147483000`, so a fixed or sticky header of yours sits under the scrim, and clicking it closes
+2147483000`, so a fixed or sticky header of yours sits under the scrim, and clicking it closes
   the overlay like any click outside. To keep something of yours on top, give it a higher
   `z-index` — see the ⚠ below for the ancestors that cap it.
 - **A deep link opens the route, and loads eagerly to do it.** `?atlas=/gb/london` on your page's
@@ -540,8 +557,9 @@ search engine can index. Every event and every city is a distinct URL on **your*
   give somebody a working URL on your site, because every href the widget renders is absolute and
   on your origin.
 
-**Mounting does not add a history entry, and does not touch your URL at all.** The widget only
-writes the parameter once a visitor navigates inside it. To make an embed open somewhere
+**Mounting does not add a history entry.** The widget writes the parameter once a visitor
+navigates inside it, or when it first opens your client record's home region — and that write
+replaces your page's entry, so Back still leaves your page. To make an embed open somewhere
 specific, use the [`atlas` parameter](#atlas-and-how-the-route-is-chosen) — the default the
 widget starts at when your page's URL names no route.
 
@@ -576,10 +594,10 @@ GET https://cloud.sydevelopers.com/api/atlas/seo?route=/gb/london&locale=en
 Authorization: clients API-Key <your published client key>
 ```
 
-| Parameter | Required | What it is                                                                                             |
-| --------- | -------- | ------------------------------------------------------------------------------------------------------ |
-| `route`   | yes      | The atlas route, the same string you pass as `atlas` or read off your path prefix. `/` is the root.   |
-| `locale`  | no       | Defaults to `en`. One of the nineteen codes below, matched exactly.                                     |
+| Parameter | Required | What it is                                                                                          |
+| --------- | -------- | --------------------------------------------------------------------------------------------------- |
+| `route`   | yes      | The atlas route, the same string you pass as `atlas` or read off your path prefix. `/` is the root. |
+| `locale`  | no       | Defaults to `en`. One of the nineteen codes below, matched exactly.                                 |
 
 ⚠ **`locale` is matched exactly, and an unknown code is a 400 — never a fallback to `en`.** The
 accepted set is:
@@ -689,10 +707,10 @@ with `route` normalized back to `/`. So does `/calendar`, `/filters`, `/online`,
 segments are dropped.** That is the rule; the list below is what it is made of, not a list of
 five special cases.
 
-| Segments dropped wherever they appear                                | Why                                        |
-| --------------------------------------------------------------------- | -------------------------------------------- |
-| `search`, `calendar`, `filters`, `register`, `share`, `online`, `preview`, `add`, `correct` | the widget's own views — a view *of* something |
-| `events`, `areas`, `regions`, `venues`                                | legacy Atlas URL prefixes, carrying no view |
+| Segments dropped wherever they appear                                     | Why                                            |
+| --------------------------------------------------------------------------------------------- | ---------------------------------------------- |
+| `search`, `calendar`, `filters`, `register`, `share`, `online`, `preview`, `add`, `correct` | the widget's own views — a view _of_ something |
+| `events`, `areas`, `regions`, `venues`                                    | legacy Atlas URL prefixes, carrying no view    |
 
 Thirteen in all, matched case-insensitively. Dropping them is what makes `/gb/london/1204/register`
 describe event 1204 rather than 404, and what makes `/events/areas` — every segment reserved —
@@ -764,11 +782,11 @@ a built-in constant. A locale nobody has written root copy for is still named in
 
 ### What a refusal means
 
-| Response                                                | What happened                                                                   |
-| --------------------------------------------------------- | --------------------------------------------------------------------------------- |
-| **400**                                                 | `route` was empty or over 512 characters, **or `locale` was not one of the nineteen codes above**. Your request is malformed. |
-| **404** `That is not a valid atlas route.`              | `route` carried a `?`, `#` or whitespace, or more than twelve segments. Probably your page's full URL spliced in by mistake. |
-| **404** `That route does not name a region or an event.` | A well-formed route naming nothing we have. A city that closed, or a typo.     |
+| Response                                                 | What happened                                                                                                                 |
+| -------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------- |
+| **400**                                                  | `route` was empty or over 512 characters, **or `locale` was not one of the nineteen codes above**. Your request is malformed. |
+| **404** `That is not a valid atlas route.`               | `route` carried a `?`, `#` or whitespace, or more than twelve segments. Probably your page's full URL spliced in by mistake.  |
+| **404** `That route does not name a region or an event.` | A well-formed route naming nothing we have. A city that closed, or a typo.                                                    |
 
 **The two 404s are deliberately different sentences.** "You sent nonsense" and "no such city" want
 different fixes, and collapsing them would answer a malformed URL with a real page.
@@ -784,15 +802,21 @@ and `cloud.sydevelopers.com` is in `connect-src` already, for the widget's own r
 If your page sends a CSP, this is what the widget needs added to it. **It is a list of
 additions to your policy, not a policy** — your own sources still have to be in there.
 
+**The captcha needs nothing of yours but a listed domain.** Every form in the widget is behind a
+Cloudflare Turnstile challenge that `cloud.sydevelopers.com` serves, renders and validates, so it
+needs no key or account of yours. It renders only on a domain your client record lists ([What you
+configure in the CMS instead](#what-you-configure-in-the-cms-instead)) — tell us every domain you
+embed on — and the `frame-src` line below is your policy's whole part.
+
 ```
-script-src  https://sahajatlas.com https://api.mapbox.com https://challenges.cloudflare.com https://cdn.usefathom.com
+script-src  https://sahajatlas.com https://api.mapbox.com https://cdn.usefathom.com
 worker-src  blob:
 child-src   blob:
 style-src   'unsafe-inline'
 font-src    https://sahajatlas.com
 img-src     data: https://api.mapbox.com https://imagedelivery.net https://cloud.sydevelopers.com https://react-circle-flags.pages.dev
-connect-src https://cloud.sydevelopers.com https://api.mapbox.com https://events.mapbox.com https://ipwho.is https://challenges.cloudflare.com https://cdn.usefathom.com https://*.sentry.io
-frame-src   https://challenges.cloudflare.com
+connect-src https://cloud.sydevelopers.com https://api.mapbox.com https://events.mapbox.com https://ipwho.is https://cdn.usefathom.com https://*.sentry.io
+frame-src   https://cloud.sydevelopers.com
 ```
 
 **One line per directive, deliberately: CSP ignores every repeat of a directive name after the
@@ -801,62 +825,36 @@ believing you allowed something you hadn't.
 
 ### Why each one, and what breaks without it
 
-| Directive                  | Source                                        | Why                                                                                                                                                                                                                                                    | Blocked ⇒                                                                                     |
-| --------------------------- | ------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------ |
-| `script-src`               | the widget's origin                           | The `<script>` tag fetches a small entry that pulls the rest of the bundle from the same origin. It also pulls the calendar, registration and share panels, but only once a viewer opens them.                                                       | nothing renders — or worse, it renders and then dies on one of those three presses            |
-|                            | `api.mapbox.com`                              | Mapbox GL's right-to-left text plugin, loaded on demand from inside the map's worker on first RTL text. Workers inherit the document's policy, so this lands on `script-src` rather than `worker-src`.                                              | Arabic, Hebrew and Persian labels on the map render in the wrong order                        |
-|                            | `challenges.cloudflare.com`                   | **Turnstile — required.** Every write the widget makes is captcha-gated, so registration is impossible without it. Loaded as soon as the interface mounts, so a policy that omits it fails immediately rather than at the moment somebody registers. | **the widget shows an error screen and does not run.** Not a degradation — see the note below |
-|                            | `cdn.usefathom.com`                           | analytics, only on a build with an analytics ID                                                                                                                                                                                                       | analytics only                                                                                |
-| `worker-src` / `child-src` | `blob:`                                       | Mapbox GL compiles its worker bundle into a `Blob` and starts a module Worker from the resulting `blob:` URL. `child-src` is the fallback for engines predating `worker-src`.                                                                        | **the map fails**, the rest of the widget is unaffected                                       |
-| `style-src`                | `'unsafe-inline'`                             | **Narrower than its name suggests.** The widget's own stylesheet is a constructed `CSSStyleSheet` adopted by its shadow root, which `style-src` does not reach on the one engine that was measured. What the directive governs is the `<style>` elements the widget and its libraries still install at runtime — the `@font-face` rules in your `<head>`, and the place-search field's own stylesheet — plus the `style` attributes they set, which the note below covers separately.                                                                                                                              | the interface renders, fully styled. You lose the typeface — as the `font-src` row below — and place search, whose library reads back the stylesheet it just installed and throws when the browser refuses it |
-| `font-src`                 | the widget's origin                           | The typeface is **self-hosted**. No request goes to `fonts.googleapis.com` or `fonts.gstatic.com`, so neither belongs in your policy, and no visitor IP reaches a third party for a font.                                                            | text falls back to your system sans, everything works. `style-src` above costs you the same typeface by a different route: the `@font-face` rules never register, so no font is requested at all |
-| `img-src`                  | `data:`                                       | The map's pins and cluster bubbles are inline SVG rasterised from a `data:` URI. The widget ships them itself, rather than relying on the map style's sprites.                                                                                       | **the map paints with no pins**                                                               |
-|                            | `api.mapbox.com`                              | map tiles, sprites and glyphs                                                                                                                                                                                                                          | the map fails                                                                                 |
-|                            | `imagedelivery.net`, `cloud.sydevelopers.com` | event and venue photography. The URL comes from the CMS, so the origin is data rather than a bundle-pinned value. Production serves the Cloudflare Images CDN (`imagedelivery.net`) today. Any relative URL resolves against the API origin.        | images only                                                                                   |
-|                            | `react-circle-flags.pages.dev`                | country flag SVGs on the country list and the country-website offer, sent with `referrer-policy: no-referrer`, so your page's URL is never disclosed.                                                                                                | the flag glyphs only, the lists still render                                                  |
-| `connect-src`              | `cloud.sydevelopers.com`                      | **the API — every event, region and venue, and since 2026-09 every UI string and the list of languages offered**, plus the one-per-load [embed report](#what-the-loader-reports-back).                                                                                      | **the widget has no data and shows an error screen**                                          |
-|                            | `api.mapbox.com`                              | tile and style requests. Also the place-search geocoder, and the reverse lookup naming the visitor's own location for "find my location".                                                                                                            | the map and search fail                                                                       |
-|                            | `events.mapbox.com`                           | Mapbox GL's own map-load telemetry                                                                                                                                                                                                                     | nothing visible                                                                               |
-|                            | `ipwho.is`                                    | the once-per-session IP→city lookup behind "classes near you"                                                                                                                                                                                         | **degrades**: the nearby suggestion and localized online times are skipped                    |
-|                            | `challenges.cloudflare.com`                   | Turnstile's own verification calls                                                                                                                                                                                                                     | **as `script-src` above — the widget does not run**                                           |
-|                            | `cdn.usefathom.com`                           | analytics, conditional as above                                                                                                                                                                                                                        | analytics only                                                                                |
-|                            | `*.sentry.io`                                 | crash reporting. Contacted **only after the widget has already failed**, and only on a build with a DSN.                                                                                                                                              | **degrades**: the widget notices the refusal and stops trying for the rest of the page's life |
-| `frame-src`                | `challenges.cloudflare.com`                   | the Turnstile challenge iframe                                                                                                                                                                                                                         | **the challenge cannot be solved, so no form can be sent**                                    |
+| Directive                  | Source                                        | Why                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   | Blocked ⇒                                                                                                                                                                                                     |
+| -------------------------- | --------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `script-src`               | the widget's origin                           | The `<script>` tag fetches a small entry that pulls the rest of the bundle from the same origin. It also pulls the calendar, registration and share panels, but only once a viewer opens them.                                                                                                                                                                                                                                                                                        | nothing renders — or worse, it renders and then dies on one of those three presses                                                                                                                            |
+|                            | `api.mapbox.com`                              | Mapbox GL's right-to-left text plugin, loaded on demand from inside the map's worker on first RTL text. Workers inherit the document's policy, so this lands on `script-src` rather than `worker-src`.                                                                                                                                                                                                                                                                                | Arabic, Hebrew and Persian labels on the map render in the wrong order                                                                                                                                        |
+|                            | `cdn.usefathom.com`                           | analytics, only on a build with an analytics ID                                                                                                                                                                                                                                                                                                                                                                                                                                       | analytics only                                                                                                                                                                                                |
+| `worker-src` / `child-src` | `blob:`                                       | Mapbox GL compiles its worker bundle into a `Blob` and starts a module Worker from the resulting `blob:` URL. `child-src` is the fallback for engines predating `worker-src`.                                                                                                                                                                                                                                                                                                         | **the map fails**, the rest of the widget is unaffected                                                                                                                                                       |
+| `style-src`                | `'unsafe-inline'`                             | **Narrower than its name suggests.** The widget's own stylesheet is a constructed `CSSStyleSheet` adopted by its shadow root, which `style-src` does not reach on the one engine that was measured. What the directive governs is the `<style>` elements the widget and its libraries still install at runtime — the `@font-face` rules in your `<head>`, and the place-search field's own stylesheet — plus the `style` attributes they set, which the note below covers separately. | the interface renders, fully styled. You lose the typeface — as the `font-src` row below — and place search, whose library reads back the stylesheet it just installed and throws when the browser refuses it |
+| `font-src`                 | the widget's origin                           | The typeface is **self-hosted**. No request goes to `fonts.googleapis.com` or `fonts.gstatic.com`, so neither belongs in your policy, and no visitor IP reaches a third party for a font.                                                                                                                                                                                                                                                                                             | text falls back to your system sans, everything works. `style-src` above costs you the same typeface by a different route: the `@font-face` rules never register, so no font is requested at all              |
+| `img-src`                  | `data:`                                       | The map's pins and cluster bubbles are inline SVG rasterised from a `data:` URI. The widget ships them itself, rather than relying on the map style's sprites.                                                                                                                                                                                                                                                                                                                        | **the map paints with no pins**                                                                                                                                                                               |
+|                            | `api.mapbox.com`                              | map tiles, sprites and glyphs                                                                                                                                                                                                                                                                                                                                                                                                                                                         | the map fails                                                                                                                                                                                                 |
+|                            | `imagedelivery.net`, `cloud.sydevelopers.com` | event and venue photography. The URL comes from the CMS, so the origin is data rather than a bundle-pinned value. Production serves the Cloudflare Images CDN (`imagedelivery.net`) today. Any relative URL resolves against the API origin.                                                                                                                                                                                                                                          | images only                                                                                                                                                                                                   |
+|                            | `react-circle-flags.pages.dev`                | country flag SVGs on the country list and the country-website offer, sent with `referrer-policy: no-referrer`, so your page's URL is never disclosed.                                                                                                                                                                                                                                                                                                                                 | the flag glyphs only, the lists still render                                                                                                                                                                  |
+| `connect-src`              | `cloud.sydevelopers.com`                      | **the API — every event, region and venue, and since 2026-09 every UI string and the list of languages offered**, plus the one-per-load [embed report](#what-the-loader-reports-back).                                                                                                                                                                                                                                                                                                | **the widget has no data and shows an error screen**                                                                                                                                                          |
+|                            | `api.mapbox.com`                              | tile and style requests. Also the place-search geocoder, and the reverse lookup naming the visitor's own location for "find my location".                                                                                                                                                                                                                                                                                                                                             | the map and search fail                                                                                                                                                                                       |
+|                            | `events.mapbox.com`                           | Mapbox GL's own map-load telemetry                                                                                                                                                                                                                                                                                                                                                                                                                                                    | nothing visible                                                                                                                                                                                               |
+|                            | `ipwho.is`                                    | the once-per-session IP→city lookup behind "classes near you"                                                                                                                                                                                                                                                                                                                                                                                                                         | **degrades**: the nearby suggestion is skipped                                                                                                                                                                |
+|                            | `cdn.usefathom.com`                           | analytics, conditional as above                                                                                                                                                                                                                                                                                                                                                                                                                                                       | analytics only                                                                                                                                                                                                |
+|                            | `*.sentry.io`                                 | crash reporting. Contacted **only after the widget has already failed**, and only on a build with a DSN.                                                                                                                                                                                                                                                                                                                                                                              | **degrades**: the widget notices the refusal and stops trying for the rest of the page's life                                                                                                                 |
+| `frame-src`                | `cloud.sydevelopers.com`                      | **The captcha — required.** Every write the widget makes is captcha-gated. The challenge renders in a frame `cloud.sydevelopers.com` serves, so `challenges.cloudflare.com` belongs in no directive of yours. The frame mounts with the interface, so a policy that omits this fails within seconds rather than when somebody registers.                                                                                                                                              | **the widget shows an error screen and does not run.** Not a degradation — see the note below                                                                                                                 |
 
 Notes on that table:
 
-**A challenge SOLVES on this exact policy, with no `'unsafe-eval'` in it.** A forced interactive
-challenge was clicked through in the widget's own report-issue form, in a built `map=false` embed
-and a host page served from one origin with the block above sent as a response header: the
-challenge reached its success state, the widget took the token, and the form's Submit went from
-disabled to enabled. Six runs of six in Chromium 141.0.7390.37, 2026-10-11 — three on the policy
-verbatim, three with `'unsafe-eval'` added to `script-src`, identical in both. **Do not add
-`'unsafe-eval'`.** The challenge runs inside the `challenges.cloudflare.com` frame, a separate
-document that sends its own `script-src 'nonce-…' 'unsafe-eval'`, so `frame-src` above is the
-only directive of yours that governs it at all — which is why Cloudflare's own CSP guidance for
-Turnstile asks for `challenges.cloudflare.com` under `script-src` and `frame-src`, and for
-nothing else.
+**Do not add `'unsafe-eval'` or `challenges.cloudflare.com`.** The challenge page on
+`cloud.sydevelopers.com` loads Turnstile's `api.js` under its own policy, so your `frame-src`
+above is the only directive of yours that reaches any of it.
 
-⚠ **The refused `eval` is not something every page view produces, and a page showing it has not
-been watched solve.** It was observed 3 times in 3 on 2026-10-10 — Chromium 141, a built
-`map=false` embed, this policy — as `Refused to evaluate a string as JavaScript because
-'unsafe-eval' is not an allowed source of script`, reported against `script-src` with a blocked
-URI of `eval`, carrying no source file and no stack, the signature of a cross-origin script —
-Turnstile's `api.js`, which does run in your document and which your `script-src` does govern.
-The widget rendered, routed and read its data normally in all three. Cloudflare ships that script
-continuously, and on 2026-10-11 it did not occur in any run: nine in the widget's own embed —
-three on the policy verbatim, three with `'unsafe-eval'` added, three on the 2026-10-10
-always-passes setup — and six more on an isolated `api.js` page. So the solve above was measured
-in its absence, not alongside it. Harmless where it has appeared, then, and normal where it has
-not. A refusal *beside* a challenge that will not solve is the one combination nobody has seen:
-tell us if you do.
-
-⚠ **Three further things the 2026-10-11 runs did not cover.** The site key was Cloudflare's
-`3x00000000000000000000FF`, which forces the real interactive challenge, rather than the
-production key — the always-passes key short-circuits before any challenge code and can answer
-nothing here, which is why it is not what was used. Nothing was posted to the backend, so the
-measurement ends at the token rather than at an accepted submission. And map mode was not
-measured, for want of a Mapbox token, as on 2026-10-10.
+⚠ **The challenge page has not yet been watched solving in a browser.** The same protocol solved
+on this policy in Chromium 141 on 2026-10-11, when the challenge rendered in the host's document,
+but no measurement has gone past the token to an accepted submission, or covered map mode. Tell us
+if a challenge will not solve on this policy.
 
 **The `style-src` row was measured, not deduced** — Chromium 141, 2026-10-10, against a
 `map=false` embed served with the policy above and `'unsafe-inline'` removed from `style-src`
@@ -901,13 +899,13 @@ latches off after the first refusal rather than retrying.
 **Five entries are load-bearing. The rest cost only the feature in their own row.** If you allow
 nothing else, allow these — each breaks the widget as a whole:
 
-|                                        |                                       |
-| ---------------------------------------- | --------------------------------------- |
-| `script-src` the widget's origin       | nothing renders                       |
-| `script-src challenges.cloudflare.com` | the widget shows an error and stops   |
-| `connect-src cloud.sydevelopers.com`   | no data at all                        |
-| `worker-src blob:`                     | the map never renders                 |
-| `img-src data:`                        | the map renders with no pins          |
+|                                      |                                     |
+| ------------------------------------ | ----------------------------------- |
+| `script-src` the widget's origin     | nothing renders                     |
+| `frame-src cloud.sydevelopers.com`   | the widget shows an error and stops |
+| `connect-src cloud.sydevelopers.com` | no data at all                      |
+| `worker-src blob:`                   | the map never renders               |
+| `img-src data:`                      | the map renders with no pins        |
 
 ⚠ **`style-src 'unsafe-inline'` was on that list and has left it.** It was there on the strength
 of a consequence measured before the widget moved into a shadow root, when the stylesheet really
@@ -916,18 +914,13 @@ what of — on Chromium, which is the only engine that degradation was measured 
 it: a visitor who gets your typeface and no place search is still worse off. But do not trade a
 load-bearing entry away to afford it.
 
-⚠ **`challenges.cloudflare.com` moved into that list, and it is the one change here that can
-break a page which used to work.** It was previously a degradation: a host that blocked it got a
-working atlas whose report form offered an email address instead of a submit button. It is now
-fatal, deliberately — **every write the widget makes is captcha-gated, registration included, and
-registration is the thing the atlas exists for.** A blocked challenge meant a visitor could browse
-classes and then silently fail to sign up for one, with no reason for the page owner to suspect
-anything was wrong. Failing loudly is worse for five minutes and better thereafter.
-
-If your atlas has stopped working since this change, this is almost certainly why: add
-`https://challenges.cloudflare.com` to **both** `script-src` and `frame-src`, and to
-`connect-src`. The widget also writes the specific directive it needs to the browser console, so
-a developer looking at the page gets the answer without opening this document.
+⚠ **The captcha entry is fatal on purpose.** **Every write the widget makes is captcha-gated,
+registration included, and registration is the thing the atlas exists for.** A degraded challenge
+would let a visitor browse classes and then silently fail to sign up for one, with no reason for
+the page owner to suspect anything was wrong. Failing loudly is worse for five minutes and better
+thereafter. The widget writes both possible fixes to the browser console — this directive, or the
+domain to have listed on your client record — so a developer looking at the page gets the answer
+without opening this document.
 
 Everything else degrades to exactly what its "Blocked ⇒" column says — a missing typeface, a
 search field that offers no places, missing photography, missing flags, no analytics, no
@@ -947,15 +940,24 @@ Alongside the origins in the CSP table above, the widget needs three browser **c
 Each is denied to a cross-origin iframe by default, and each can also be denied to a script embed
 by a `Permissions-Policy` header on your own page.
 
-| Feature           | What uses it                                                                      | What breaks without it                            |
-| ----------------- | --------------------------------------------------------------------------------- | ------------------------------------------------- |
-| `geolocation`     | The map's "find my location" control, which opens the classes nearest the visitor | The control appears and silently does nothing     |
-| `clipboard-write` | The copy-link button on the share sheet                                           | Copying silently fails                            |
-| `web-share`       | The native share sheet on mobile                                                  | The share button falls back to the copy/link list |
+| Feature           | What uses it                                                                      | What breaks without it                                       |
+| ----------------- | --------------------------------------------------------------------------------- | ------------------------------------------------------------ |
+| `geolocation`     | The map's "find my location" control, which opens the classes nearest the visitor | The control is disabled, or says it could not get a location |
+| `clipboard-write` | The copy-link button on the share sheet                                           | Copying silently fails                                       |
+| `web-share`       | The native share sheet on mobile                                                  | The share button falls back to the copy/link list            |
 
-**All three fail silently rather than erroring**, so nothing in your console will tell you. If
+**None of the three errors**, so nothing in your console will tell you. If
 you send a `Permissions-Policy` header, allow these three for your own origin. If you embed in
 an iframe, put them in its `allow` attribute as shown above.
+
+### The captcha frame needs nothing from your policy
+
+The captcha's frame carries `allow="cross-origin-isolated; fullscreen; autoplay; keyboard-map;
+gamepad; xr-spatial-tracking"`, the six features Turnstile's own widget asks for. A
+`Permissions-Policy` of yours that denies them does reach the frame, but the challenge renders and
+solves with all six denied (Chromium 153), so add nothing for the captcha. ⚠ **Private State
+Tokens are not among them**: Turnstile asks for them as `private-token`, a name no current engine
+publishes, so no policy either of us writes can delegate them.
 
 ## Where to load it from
 
@@ -1024,7 +1026,7 @@ elements. On top of that, every selector is still confined to the widget's own s
 fails the build if a rule escapes. Your headings, links, lists, forms, `.container`, a `.dark`
 theme class, and your own Swiper or Mapbox instances are all left alone.
 
-Six honest exceptions, none of them styling your content:
+Seven honest exceptions, none of them styling your content:
 
 - Opening a modal panel inside the widget sets `overflow: hidden` on your `<body>` while open —
   standard scroll-lock, reverted on close.
@@ -1060,6 +1062,12 @@ Six honest exceptions, none of them styling your content:
   holding those registrations and nothing else: a registration inside a shadow root is ignored,
   and without them the widget draws no borders and no shadows. Like the widget's own sheet, it is
   constructed, so it asks nothing new of your [CSP](#content-security-policy).
+
+- **A 1-pixel hidden `<iframe>` sits in your `<body>` for a moment after the widget mounts.** It
+  is the captcha's availability check, loading the challenge page from `cloud.sydevelopers.com`
+  so that a page where registration is impossible says so within seconds. It is
+  `position: fixed`, transparent, unfocusable, hidden from assistive technology, and adds no
+  scroll height.
 
 **The reverse direction is a boundary, not a defence.** The widget renders inside a **shadow
 root**, so a selector in your stylesheet cannot match an element inside it — at any specificity,
@@ -1109,9 +1117,9 @@ instead, and `document.querySelectorAll('style#sahaj-atlas-style')` now returns 
 
 One id remains, and is unchanged:
 
-| Id                  | Where                | Holds                                                |
-| -------------------- | ---------------------- | ------------------------------------------------------ |
-| `sahaj-atlas-fonts` | your `<head>`        | the `@font-face` blocks for the self-hosted typeface |
+| Id                  | Where         | Holds                                                |
+| ------------------- | ------------- | ---------------------------------------------------- |
+| `sahaj-atlas-fonts` | your `<head>` | the `@font-face` blocks for the self-hosted typeface |
 
 **`sahaj-atlas-fonts` stays in your document on purpose.** A `@font-face` registered inside a
 shadow root is never applied, so this one rule has to live where every other document-global rule
@@ -1141,7 +1149,7 @@ full detail on each flow, including exactly what an error report does and does n
 written by Mapbox GL:
 
 | Key                                | Store            | Holds                                                 | Lifetime            |
-| ------------------------------------ | ------------------ | -------------------------------------------------------- | --------------------- |
+| ---------------------------------- | ---------------- | ----------------------------------------------------- | ------------------- |
 | `atlas.theme`                      | `localStorage`   | the viewer's light/dark/auto choice                   | until cleared       |
 | `atlas.geolocationPromptDismissed` | `sessionStorage` | that they dismissed the "classes near you" suggestion | the browser session |
 | `mapbox.eventData:<token>`         | `localStorage`   | Mapbox GL's own telemetry bookkeeping                 | until cleared       |
@@ -1161,10 +1169,9 @@ so it does not need one. If a flow is still a problem for your privacy notice, t
 maintainers rather than editing the snippet:
 
 - **`ipwho.is`** — a keyless IP→city lookup, once per session, so the widget can offer "classes
-  near you" before the visitor types, and show an online class's start time in their own place.
-  No referrer, no key, no cookies, a five-second timeout, silent on failure, and skipped entirely
-  when neither could show — including for the rest of a session after the visitor dismissed the
-  prompt. **An IP is personal data in the EU**, and it is not stored — used to pick a city, then
+  near you" before the visitor types. No referrer, no key, no cookies, a five-second timeout,
+  silent on failure, and skipped entirely when that prompt could not show — including for the
+  rest of a session after the visitor dismissed it. **An IP is personal data in the EU**, and it is not stored — used to pick a city, then
   discarded.
 - **`cdn.usefathom.com`** — cookieless, aggregate pageview counting, loaded only when the bundle
   was built with an analytics ID and your client record names a real primary domain.
@@ -1175,6 +1182,13 @@ maintainers rather than editing the snippet:
   fragment**, which on your site can carry a reset token or an OAuth `#access_token`. It also
   carries the visitor's **`navigator.userAgent`**. No global error handler is installed, so your
   own scripts' exceptions are never captured. No breadcrumbs, no session replay.
+
+**The captcha talks to Cloudflare from a frame, not from your page.** The Turnstile challenge
+gating every form is a small frame served from `cloud.sydevelopers.com`, and that frame's document
+makes the requests to `challenges.cloudflare.com` — so Cloudflare sees the visitor's IP but not
+your page, and no script of Cloudflare's runs in your document. The frame's URL carries your
+page's **origin** — scheme, host and port, never a path — because that is the one window it hands
+its token to. It mounts with the interface, whether or not the visitor opens a form.
 
 **`map=false` removes the Mapbox flows too** — tiles, the geocoder (which sends the visitor's
 typed query and the map centre to Mapbox), and the map-load telemetry — along with the two
@@ -1241,33 +1255,32 @@ Three things to check when you migrate:
 
 ## Troubleshooting
 
-| Symptom                                                               | Likely cause                                                                                                                                                                                                          |
-| --------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Nothing renders, a 404 for the script**                             | The filename is `auto.js`. `embed.js` exists but is the widget the loader fetches, not the file you install.                                                                                                          |
-| **"Not set up correctly" / configuration error**                      | The parameter is `key`, not `api-key` (renamed when configuration moved onto the script URL). The loader logs an error naming it. Otherwise the key is wrong, revoked, or not yet issued.                              |
-| **Nothing renders, no console error, script loaded fine**             | `map=false` with no height on the element — it collapsed to zero. Give it `display:block;height:…`.                                                                                                                   |
-| **Console: "the embed script is on this page more than once"**        | Exactly that. Only one widget runs per page, so the second copy renders nothing and its settings are ignored. Remove the extra script tag.                                                                            |
-| **Text is in your own font, and the search field offers no places**   | `style-src 'unsafe-inline'` is missing from your CSP. The console says `Refused to apply inline style`, and the violation reports name **`style-src-elem`**. The field keeps its box — it falls back to a plain text input — and the rest of the interface keeps its styling, since the widget's own sheet is not governed by `style-src`. |
-| **Labels are English on a non-English page**                          | Either `connect-src https://cloud.sydevelopers.com` is missing, or that language is not switched on in the CMS. The widget carries English compiled in, so this is what a blocked or unavailable language looks like — ask us to enable the language you need. |
-| **Widget loads and styles, but shows an error instead of any events** | `connect-src https://cloud.sydevelopers.com` is missing.                                                                                                                                                              |
-| **The map area is blank or grey**                                     | `worker-src blob:` (Mapbox starts its worker from a `blob:` URL), or `api.mapbox.com` missing from `img-src`/`connect-src`.                                                                                           |
-| **The map renders but has no pins**                                   | `img-src data:` — the pins are inline SVG rasterised from a `data:` URI.                                                                                                                                              |
-| **Country flags are missing, everything else fine**                   | `img-src https://react-circle-flags.pages.dev`. Cosmetic.                                                                                                                                                             |
-| **Console: "Refused to evaluate a string as JavaScript"**            | Turnstile's `api.js` evaluating a string in your document, with no `'unsafe-eval'` in `script-src`. Harmless wherever it has appeared, and it does not appear on every page view. The challenge itself runs in a frame under Cloudflare's own policy, and solved on this CSP in later runs — which did not show the refusal. It is **not** the row below: a blocked Turnstile replaces the widget with an error screen instead. See the note under [the CSP table](#why-each-one-and-what-breaks-without-it). |
-| **The widget shows "its security check was blocked" and nothing else**    | Turnstile is blocked — add `challenges.cloudflare.com` to `script-src`, `frame-src` and `connect-src`. The browser console carries the exact directive. This used to degrade the report form instead — since the atlas cannot take a registration without it, it now fails outright. |
-| **The widget's route never appears in the address bar**               | The document refuses `history.replaceState` — most often `file://`. The widget detects that and routes in memory.                                                                                                     |
-| **The compact card's button does nothing, in an iframe**              | The frame is sandboxed without `allow-popups`, so its `target="_blank"` link cannot open. It fails silently, with nothing in the console. Add `allow-popups`, or drop `sandbox`.                                       |
-| **`atlas=` on the script URL seems to be ignored**                    | The page's own URL already carries an `?atlas=` route, which always wins. That is intended — see [`atlas`, and how the route is chosen](#atlas-and-how-the-route-is-chosen).                                          |
-| **Sharing offers no link**                                            | The same memory-routing mode, on a page with no canonical atlas URL to offer instead.                                                                                                                                 |
-| **The widget covers the rest of the page**                            | A map embed with no height of its own renders `position: fixed; inset: 0`. Give the element a `display: block` and a height to keep the map inside it, or use `map=false` for an embed with no map.                   |
-| **The widget looks wrong on your site only**                          | Not a selector of yours — the shadow root stops those. Look instead at an inherited property the widget does not restate on its own root, your root `font-size` (the calendar only), or the `sahaj-atlas-fonts` `<style>` missing from your `<head>` — or sitting there inert, which is what a `style-src` without `'unsafe-inline'` leaves behind. See [what the widget does to your page](#what-the-widget-does-to-your-page). |
-| **It broke after working yesterday**                                  | The embed updates in place. Check [`CHANGELOG.md`](../CHANGELOG.md). Then look for a cached `auto.js` or `embed.js` at your edge requesting chunk names that no longer exist.                                          |
-| **Console: "could not find a place to render"**                       | The snippet is in `<head>`, or carries `async`/`defer`. Move it into the body without those attributes, or add an empty `<sahaj-atlas></sahaj-atlas>` where the widget should appear.                                 |
-| **Nothing renders; console: "Cannot use import statement outside a module"** | The script tag lost its `type="module"`. An optimizer or an HTML5-cleanup filter rewrote the tag, or combined `auto.js` into a classic bundle. Exclude `auto.js` from minifying, combining and delaying, and from any filter that rewrites script tags. None of the widget runs in this state, so this browser error is the only report you get. |
-| **Console: "could not load the widget"**                              | The loader ran, but `embed.js` or one of its `assets/` chunks did not load — the error printed with it names the URL. Look for that request in the network panel: a blocker, a CSP rule, or a stale copy cached at your edge (see [Updates and caching](#updates-and-caching)). |
-| **The widget shows an error after the page is translated**            | A translation plugin rewrote the widget's text in the browser and ignored its `translate="no"`. Add `sahaj-atlas` to the plugin's excluded elements — see [the widget follows your page's language](#the-widget-follows-your-pages-language). |
-| **Console: "no `key` parameter on the embed script URL"**             | The query string is missing or was stripped. Some page builders drop everything after `?` from a script URL — if so, that platform cannot host the widget this way. Talk to the maintainers.                          |
-| **The widget only appears when you scroll to it**                     | Intended. The loader defers fetching the widget until it nears the viewport. A below-the-fold widget therefore costs visitors nothing until they reach it.                                                             |
+| Symptom                                                                      | Likely cause                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  |
+| ---------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Nothing renders, a 404 for the script**                                    | The filename is `auto.js`. `embed.js` exists but is the widget the loader fetches, not the file you install.                                                                                                                                                                                                                                                                                                                                                                                                  |
+| **"Not set up correctly" / configuration error**                             | The parameter is `key`, not `api-key` (renamed when configuration moved onto the script URL). The loader logs an error naming it. Otherwise the key is wrong, revoked, or not yet issued.                                                                                                                                                                                                                                                                                                                     |
+| **Nothing renders, no console error, script loaded fine**                    | `map=false` with no height on the element — it collapsed to zero. Give it `display:block;height:…`.                                                                                                                                                                                                                                                                                                                                                                                                           |
+| **Console: "the embed script is on this page more than once"**               | Exactly that. Only one widget runs per page, so the second copy renders nothing and its settings are ignored. Remove the extra script tag.                                                                                                                                                                                                                                                                                                                                                                    |
+| **Text is in your own font, and the search field offers no places**          | `style-src 'unsafe-inline'` is missing from your CSP. The console says `Refused to apply inline style`, and the violation reports name **`style-src-elem`**. The field keeps its box — it falls back to a plain text input — and the rest of the interface keeps its styling, since the widget's own sheet is not governed by `style-src`.                                                                                                                                                                    |
+| **Labels are English on a non-English page**                                 | Either `connect-src https://cloud.sydevelopers.com` is missing, or that language is not switched on in the CMS. The widget carries English compiled in, so this is what a blocked or unavailable language looks like — ask us to enable the language you need.                                                                                                                                                                                                                                                |
+| **Widget loads and styles, but shows an error instead of any events**        | `connect-src https://cloud.sydevelopers.com` is missing.                                                                                                                                                                                                                                                                                                                                                                                                                                                      |
+| **The map area is blank or grey**                                            | `worker-src blob:` (Mapbox starts its worker from a `blob:` URL), or `api.mapbox.com` missing from `img-src`/`connect-src`.                                                                                                                                                                                                                                                                                                                                                                                   |
+| **The map renders but has no pins**                                          | `img-src data:` — the pins are inline SVG rasterised from a `data:` URI.                                                                                                                                                                                                                                                                                                                                                                                                                                      |
+| **Country flags are missing, everything else fine**                          | `img-src https://react-circle-flags.pages.dev`. Cosmetic.                                                                                                                                                                                                                                                                                                                                                                                                                                                     |
+| **The widget shows "its security check was blocked" and nothing else**       | Read the browser console, which names both fixes. If the browser also logged a refused frame, your CSP is missing `frame-src https://cloud.sydevelopers.com`; otherwise your page's domain is not on your client record — ask us to add it. Since the atlas cannot take a registration without the captcha, this fails outright rather than degrading the form.                                                                                                                                               |
+| **The widget's route never appears in the address bar**                      | The document refuses `history.replaceState` — most often `file://`. The widget detects that and routes in memory.                                                                                                                                                                                                                                                                                                                                                                                             |
+| **The compact card's button does nothing, in an iframe**                     | The frame is sandboxed without `allow-popups`, so its `target="_blank"` link cannot open. It fails silently, with nothing in the console. Add `allow-popups`, or drop `sandbox`.                                                                                                                                                                                                                                                                                                                              |
+| **`atlas=` on the script URL seems to be ignored**                           | The page's own URL already carries an `?atlas=` route, which always wins. That is intended — see [`atlas`, and how the route is chosen](#atlas-and-how-the-route-is-chosen).                                                                                                                                                                                                                                                                                                                                  |
+| **Sharing offers no link**                                                   | The same memory-routing mode, on a page with no canonical atlas URL to offer instead.                                                                                                                                                                                                                                                                                                                                                                                                                         |
+| **The widget covers the rest of the page**                                   | A map embed with no height of its own renders `position: fixed; inset: 0`. Give the element a `display: block` and a height to keep the map inside it, or use `map=false` for an embed with no map.                                                                                                                                                                                                                                                                                                           |
+| **The widget looks wrong on your site only**                                 | Not a selector of yours — the shadow root stops those. Look instead at an inherited property the widget does not restate on its own root, your root `font-size` (the calendar only), or the `sahaj-atlas-fonts` `<style>` missing from your `<head>` — or sitting there inert, which is what a `style-src` without `'unsafe-inline'` leaves behind. See [what the widget does to your page](#what-the-widget-does-to-your-page).                                                                              |
+| **It broke after working yesterday**                                         | The embed updates in place. Check [`CHANGELOG.md`](../CHANGELOG.md). Then look for a cached `auto.js` or `embed.js` at your edge requesting chunk names that no longer exist.                                                                                                                                                                                                                                                                                                                                 |
+| **Console: "could not find a place to render"**                              | The snippet is in `<head>`, or carries `async`/`defer`. Move it into the body without those attributes, or add an empty `<sahaj-atlas></sahaj-atlas>` where the widget should appear.                                                                                                                                                                                                                                                                                                                         |
+| **Nothing renders; console: "Cannot use import statement outside a module"** | The script tag lost its `type="module"`. An optimizer or an HTML5-cleanup filter rewrote the tag, or combined `auto.js` into a classic bundle. Exclude `auto.js` from minifying, combining and delaying, and from any filter that rewrites script tags. None of the widget runs in this state, so this browser error is the only report you get.                                                                                                                                                              |
+| **Console: "could not load the widget"**                                     | The loader ran, but `embed.js` or one of its `assets/` chunks did not load — the error printed with it names the URL. Look for that request in the network panel: a blocker, a CSP rule, or a stale copy cached at your edge (see [Updates and caching](#updates-and-caching)).                                                                                                                                                                                                                               |
+| **The widget shows an error after the page is translated**                   | A translation plugin rewrote the widget's text in the browser and ignored its `translate="no"`. Add `sahaj-atlas` to the plugin's excluded elements — see [the widget follows your page's language](#the-widget-follows-your-pages-language).                                                                                                                                                                                                                                                                 |
+| **Console: "no `key` parameter on the embed script URL"**                    | The query string is missing or was stripped. Some page builders drop everything after `?` from a script URL — if so, that platform cannot host the widget this way. Talk to the maintainers.                                                                                                                                                                                                                                                                                                                  |
+| **The widget only appears when you scroll to it**                            | Intended. The loader defers fetching the widget until it nears the viewport. A below-the-fold widget therefore costs visitors nothing until they reach it.                                                                                                                                                                                                                                                                                                                                                    |
 
 If none of these fit, the widget's own **Report an issue** form (behind the settings
 control, and offered on most error screens) reaches the maintainers with the failure

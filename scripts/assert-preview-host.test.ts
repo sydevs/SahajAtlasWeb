@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 
 import { WORKERS_SUBDOMAIN, appPreviewHost } from './assert-preview-host.mjs'
-import { appWorkerName } from './_wrangler-config.mjs'
+import { appWorkerName, readWranglerConfig } from './_wrangler-config.mjs'
 
 // The security property the Pages-era discovery spec held, carried over by #282. It got
 // stronger in the move, and the provenance ranking it needed went away with the scraping: the
@@ -10,6 +10,7 @@ import { appWorkerName } from './_wrangler-config.mjs'
 // refusals below are that spec's in their Workers spelling.
 const WORKER = appWorkerName()
 const PREVIEW = `https://pr-1-${WORKER}.${WORKERS_SUBDOMAIN}`
+const PLAYGROUND = readWranglerConfig('wrangler.design.jsonc').name
 
 describe('appPreviewHost', () => {
   it('accepts a preview of the app Worker, by preview name and by version', () => {
@@ -19,10 +20,20 @@ describe('appPreviewHost', () => {
     )
   })
 
-  // ⚠ The whole reason the match anchors the worker-name label at its LEFT end too: a preview
-  // host is `<preview>-<worker>.<subdomain>.workers.dev`, and `sahajatlas-design` carries
-  // `sahajatlas` as a prefix. A bare substring or an unanchored regex accepts this.
+  // The real sibling, read off its own config: a derived `${WORKER}-design` would stop naming it
+  // at the next rename. ⚠ This case pins that config read, not the anchor — since #266 renamed
+  // the app Worker the playground shares only the `sahajatlas-` stem with it, so every defect
+  // this file catalogues refuses it anyway. The next case is the one that discriminates.
   it('refuses the sibling Ladle playground, whose deploy is not what we smoke-test', () => {
+    expect(PLAYGROUND).toBeTruthy()
+    expect(appPreviewHost(`https://pr-1-${PLAYGROUND}.${WORKERS_SUBDOMAIN}`, WORKER)).toBeNull()
+  })
+
+  // ⚠ The whole reason the match anchors the worker-name label at its LEFT end too: a bare
+  // substring or an unanchored regex accepts a name that extends the app's. No Worker carries
+  // this one, so the case is synthetic — and it is the only near-miss the left anchor alone
+  // refuses.
+  it('refuses a Worker whose name extends the app Worker’s', () => {
     expect(appPreviewHost(`https://pr-1-${WORKER}-design.${WORKERS_SUBDOMAIN}`, WORKER)).toBeNull()
   })
 

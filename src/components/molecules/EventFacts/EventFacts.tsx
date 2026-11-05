@@ -70,6 +70,8 @@ type Fact = {
   text: ReactNode
   subtext?: ReactNode
   trailing?: ReactNode
+  /** The text itself spans two lines, so the icon hangs from the first even with no subtext. */
+  stacked?: boolean
 }
 
 export type EventFactsProps = {
@@ -90,9 +92,9 @@ export type EventFactsProps = {
 
 /**
  * The shared event when/where fact block. It shows a calendar line, the
- * repeat pattern and event-local time, with a muted detail below, and a
- * location line, the address with its distance faded below, or "Online •
- * Hosted from …" with the viewer's local time. One place builds this, so
+ * repeat pattern and time, with a muted detail below, and a location line,
+ * the address with its distance faded below, or "Online • Hosted from …"
+ * with the host's own clock. One place builds this, so
  * the panel, list card, and share/registration summaries never diverge
  * (issue #52). Ended events drop the location.
  *
@@ -116,6 +118,7 @@ export function EventFacts({
     eventTimeRange,
     eventStartTime,
     whereLine,
+    roomLine,
     whereSubtext,
   } = useEventDisplay(event)
 
@@ -153,9 +156,21 @@ export function EventFacts({
   ]
 
   if (whereLine && display.status !== 'ended') {
+    // The room is directions, so only the panel carries it. The list card and the
+    // share/registration summaries are triage and recap (#316).
+    const room = variant === 'default' ? roomLine : null
+
     items.push({
       icon: display.online ? Monitor : MapPin,
-      text: whereLine,
+      text: room ? (
+        <>
+          <div>{room}</div>
+          <div>{whereLine}</div>
+        </>
+      ) : (
+        whereLine
+      ),
+      stacked: Boolean(room),
       subtext: display.online ? (whereSubtext ?? undefined) : (distance ?? undefined),
       trailing: trailing?.where,
     })
@@ -170,10 +185,10 @@ export function EventFacts({
   // variants render just the fact column, and take `className` on it.
   const body = (
     <div className={card ? slots.base() : slots.base({ className })}>
-      {items.map(({ icon: Icon, text, subtext, trailing: end }, index) => {
-        // Alignment is per-fact. Only a stacked fact, one with text and
-        // subtext, hangs its icon from the first line.
-        const styles = facts({ variant, stacked: Boolean(subtext) })
+      {items.map(({ icon: Icon, text, subtext, stacked, trailing: end }, index) => {
+        // Alignment is per-fact. Only a stacked fact, one with two lines,
+        // hangs its icon from the first line.
+        const styles = facts({ variant, stacked: Boolean(subtext) || Boolean(stacked) })
 
         return (
           <div key={index} className={styles.item()}>

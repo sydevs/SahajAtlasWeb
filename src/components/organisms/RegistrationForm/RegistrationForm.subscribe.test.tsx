@@ -10,6 +10,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { RegistrationForm } from './RegistrationForm'
 
+import { challengeFrameStub } from '@/test-support/turnstile-frame'
+
 // Mocked at the SDK boundary, so the real `createRegistration` body mapping runs.
 const sdk = vi.hoisted(() => ({ find: vi.fn(), findByID: vi.fn(), request: vi.fn() }))
 
@@ -34,17 +36,6 @@ let container: HTMLDivElement
 beforeEach(() => {
   sdk.request.mockReset()
   sdk.request.mockResolvedValue({ json: async () => ({ doc: { id: 7 } }) })
-  // Stands in for the Turnstile script, so the real `useTurnstile` solves through its own
-  // callback and enables Register.
-  window.turnstile = {
-    render: (_el, options) => {
-      options.callback?.('tok-live')
-
-      return 'widget-1'
-    },
-    remove: () => {},
-    reset: () => {},
-  }
   // Radix's checkbox measures its hidden form input, and jsdom has no ResizeObserver.
   vi.stubGlobal(
     'ResizeObserver',
@@ -60,7 +51,6 @@ beforeEach(() => {
 
 afterEach(() => {
   container.remove()
-  delete window.turnstile
   vi.unstubAllGlobals()
 })
 
@@ -94,6 +84,11 @@ async function registerWith({ tick }: { tick: boolean }) {
       </QueryClientProvider>,
     )
   })
+
+  // The frame is appended in an effect, so the stub attaches once the form has mounted.
+  const challenge = challengeFrameStub(container)
+
+  await act(async () => challenge.solve())
 
   await type('#name', 'Ada Lovelace')
   await type('#email', 'ada@example.org')

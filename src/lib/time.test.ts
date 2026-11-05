@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import { DateTime } from 'luxon'
 
-import { formatTimeRange, reconciledViewerPlace, sameWallClock, zoneCity, zoneLabel } from './time'
+import { formatTimeRange, sameWallClock, zoneCity, zoneLabel } from './time'
 
 // All fixtures are built in a fixed zone so each endpoint's wall clock — and a
 // cross-zone end's conversion into the start's zone — stays deterministic
@@ -135,42 +135,6 @@ describe('zoneCity', () => {
   it('is empty for a missing zone', () => {
     expect(zoneCity(null)).toBe('')
     expect(zoneCity(undefined)).toBe('')
-  })
-})
-
-describe('reconciledViewerPlace', () => {
-  // The clock is quoted in `at`'s own zone (the viewer's OS zone). A non-null
-  // return is the region label ("… in <region>"). Null is the safe bare-time form.
-  const at = DateTime.fromISO('2026-07-20T10:00', { zone: 'America/Vancouver' }) // PDT, -07:00
-
-  it('names the region when the IP zone shares the OS clock (same zone id)', () => {
-    expect(reconciledViewerPlace('British Columbia', 'America/Vancouver', at)).toBe(
-      'British Columbia',
-    )
-  })
-
-  it('names the region for a distinct IP zone that shares the offset right now', () => {
-    // America/Los_Angeles is also -07:00 in July. The offset agrees, so
-    // labelling the region is still honest (offset, not zone id, is what
-    // gets compared).
-    expect(reconciledViewerPlace('California', 'America/Los_Angeles', at)).toBe('California')
-  })
-
-  it('drops the place (safe form) when the IP zone disagrees with the OS clock', () => {
-    // Europe/London is +01:00 in July. Naming it beside a -07:00 clock
-    // would assert a place whose local time is not the one shown, the
-    // mislabelling #64 fixes.
-    expect(reconciledViewerPlace('England', 'Europe/London', at)).toBeNull()
-  })
-
-  it('drops the place when the region or the IP zone is missing', () => {
-    expect(reconciledViewerPlace(undefined, 'America/Vancouver', at)).toBeNull()
-    expect(reconciledViewerPlace('British Columbia', undefined, at)).toBeNull()
-    expect(reconciledViewerPlace('British Columbia', null, at)).toBeNull()
-  })
-
-  it('drops the place for an invalid IP zone string', () => {
-    expect(reconciledViewerPlace('British Columbia', 'Not/AZone', at)).toBeNull()
   })
 })
 

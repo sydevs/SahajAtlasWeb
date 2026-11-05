@@ -34,8 +34,6 @@ import {
 
 import { StoryWrapper, StorySection } from '../../ladle'
 
-import { Logo, SocialIcon } from './index'
-
 import { Button } from '@/components/atoms/Button'
 
 export default {
@@ -87,8 +85,6 @@ const ICONS = [
   { name: 'X', Icon: X },
 ] as const
 
-const SOCIAL_PLATFORMS = ['zoom', 'google_meet', 'youtube'] as const
-
 // Every icon is drawn with `currentColor`, so it inherits the surrounding
 // text color. One glyph serves every palette role. `text-{role}-11` is the
 // readable on-surface step for the brand roles. Neutral text uses `text-gray-12`.
@@ -100,9 +96,7 @@ const PALETTE = [
 ] as const
 
 /**
- * Icons — the Lucide glyphs the app renders, plus the brand marks that stay
- * ours. (Lucide ships no brand icons.) This renders as a labelled gallery at
- * size 28.
+ * Icons — the Lucide glyphs the app renders, as a labelled gallery at size 28.
  */
 export const Default: Story = () => (
   <StoryWrapper>
@@ -142,25 +136,7 @@ export const Default: Story = () => (
     </StorySection>
 
     <StorySection
-      description="Kept hand-drawn: Lucide removed its brand icons, and redrawing them is a trademark problem. SocialIcon resolves a glyph from its platform key."
-      title="Brand marks"
-    >
-      <div className="flex flex-wrap gap-6">
-        <div className="flex w-24 flex-col items-center gap-2 text-center">
-          <Logo size={28} />
-          <span className="text-xs text-gray-11">Logo</span>
-        </div>
-        {SOCIAL_PLATFORMS.map((platform) => (
-          <div key={platform} className="flex w-24 flex-col items-center gap-2 text-center">
-            <SocialIcon platform={platform} size={28} />
-            <span className="text-xs text-gray-11">{platform}</span>
-          </div>
-        ))}
-      </div>
-    </StorySection>
-
-    <StorySection
-      description="Icons are drawn with `currentColor`, so they take the text color of whatever they sit in — the same glyph on each palette role. Lucide strokes with it where our own marks fill with it; both inherit."
+      description="Icons are drawn with `currentColor`, so they take the text color of whatever they sit in — the same glyph on each palette role."
       inContext={true}
       title="Colour inheritance"
     >
@@ -170,7 +146,6 @@ export const Default: Story = () => (
             <CalendarDays size={18} />
             <MapPin size={18} />
             <Languages size={18} />
-            <Logo size={18} />
             <span className="text-sm font-medium">{name}</span>
           </span>
         ))}

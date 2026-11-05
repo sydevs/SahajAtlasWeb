@@ -3,18 +3,28 @@ import { useEffect, useState } from 'react'
 import { atlasError, reportIntegrationWarning } from '@/lib/report'
 import { probeTurnstile } from '@/hooks/use-turnstile'
 
+const GUIDE = 'https://github.com/sydevs/SahajAtlasWeb/blob/main/docs/embedding.md'
+
 /**
  * This is where a host's developer is told what to change.
  * `docs/embedding.md` carries the durable version. This is the copy that reaches them when the page is actually in front of them.
  *
  * This appears on the console, not on the screen, because the two audiences are different people.
  * The visitor gets `error.captcha_blocked`, which says the embed is broken without asking them to do anything about it.
- * The person who can edit the CSP gets the directive instead.
+ * The person who can edit the CSP, or ask for their domain to be listed, gets the fix instead.
+ *
+ * ⚠ **It names SahajCloud's origin under `frame-src`, not Cloudflare's or ours** (#343,
+ * sydevs/SahajCloud#1072): the challenge renders in a frame SahajCloud serves. The origin is read
+ * off the configured API URL, so a build pointed at a local SahajCloud names the host it needs.
+ * It names both causes rather than carrying SahajCloud's reason for a refusal: the browser logs a
+ * CSP refusal itself, beside this line, which tells the two apart.
  */
-const CSP_ADVICE =
+const captchaAdvice = (serverOrigin: string, hostname: string) =>
   'Turnstile could not load, so registration and issue reports are impossible on this page. ' +
-  "Allow https://challenges.cloudflare.com in this page's Content-Security-Policy — " +
-  'both `script-src` and `frame-src`. See https://github.com/sydevs/SahajAtlasWeb/blob/main/docs/embedding.md#content-security-policy'
+  `Either this page's Content-Security-Policy does not allow ${serverOrigin} under \`frame-src\` ` +
+  '(the browser logs that refusal itself), ' +
+  `or ${hostname} is not an allowed domain on your Sahaj Atlas client record. ` +
+  `See ${GUIDE}#troubleshooting`
 
 /**
  * This fails the widget when Turnstile cannot load. See issue #182.
@@ -34,7 +44,7 @@ const CSP_ADVICE =
  * ⚠ **Call this from the INTERFACE, never from the shell.**
  * `.claude/rules/components.md` is explicit that anything that fetches or injects a script must mount with `FullInterface`.
  * Four separate bugs, the home-region redirect, `warmCaches`, and both Fathom effects, came from effects firing for a collapsed compact card.
- * Injecting a third-party challenge script into a host's page for a card nobody has pressed would be the fifth.
+ * Mounting a challenge frame for a card nobody has pressed would be the fifth.
  * `CompactEmbedView.mount.test.tsx` asserts that this does not happen.
  *
  * This throws during render, not from the effect.
@@ -52,7 +62,12 @@ export function useTurnstileGuard(): void {
 
       // This runs before the throw, not after.
       // The throw unmounts this tree, and the console line is the only part of this addressed to somebody who can fix it.
-      reportIntegrationWarning(CSP_ADVICE)
+      reportIntegrationWarning(
+        captchaAdvice(
+          new URL(import.meta.env.VITE_SAHAJCLOUD_URL).origin,
+          window.location.hostname,
+        ),
+      )
       setBlocked(true)
     })
 
