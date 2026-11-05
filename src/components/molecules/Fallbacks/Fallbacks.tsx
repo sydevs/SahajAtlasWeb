@@ -206,8 +206,8 @@ export const ERROR_POLICY: Record<FallbackKind, FallbackPolicy> = {
   'not-found': { ...DEAD_END, messageKey: 'common.errors.not_found', fallbackText: NOT_FOUND_TEXT },
   'not-found-event': {
     ...DEAD_END,
-    messageKey: 'common.errors.not_found_event',
-    fallbackText: "We couldn't find that event.",
+    messageKey: 'common.errors.not_found_class',
+    fallbackText: "We couldn't find that class.",
   },
   'not-found-region': {
     ...DEAD_END,
@@ -525,9 +525,9 @@ const offerLabel = (t: ReturnType<typeof useTranslation>['t'], offer: RecoveryOf
         defaultValue: 'Visit the %{country} website',
       })
     default:
-      return t('common.errors.back_to_region', {
+      return t('common.errors.see_classes_in', {
         region: offer.name,
-        defaultValue: 'See events in %{region}',
+        defaultValue: 'See classes in %{region}',
       })
   }
 }

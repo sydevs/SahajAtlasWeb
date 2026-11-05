@@ -140,7 +140,7 @@ export type ViewHarnessProps = {
  * The gate is the point: `SeedSearchParams` accepts being one render late, because a
  * filter pill appearing a frame later is invisible. Here the first render would resolve
  * a DIFFERENT recovery rung — "Browse all countries" — and the story would visibly flip
- * to "See events in Antwerpen", which is exactly the layout shift these previews exist
+ * to "See classes in Antwerpen", which is exactly the layout shift these previews exist
  * to catch, rather than cause.
  */
 function SeedPath({ path, children }: { path: string; children: ReactNode }) {
