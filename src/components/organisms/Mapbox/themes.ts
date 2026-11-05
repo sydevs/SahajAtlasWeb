@@ -15,7 +15,7 @@ export const controlTheme = {
   variables: {
     fontFamily: `${FONT_FAMILY}, ui-sans-serif, system-ui, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji"`,
     // This is the base font size for the input and suggestions. Spacing
-    // derives from it. It stays small, so the "Search for events near…"
+    // derives from it. It stays small, so the "Search for classes near…"
     // placeholder is not truncated.
     unit: '15px',
     fontWeight: '400',

@@ -78,7 +78,7 @@ function SearchFieldSkeleton() {
         disabled
         readOnly
         className="w-full rounded-lg border border-divider bg-gray-2 px-3 py-2 field-size text-foreground placeholder:text-gray-11"
-        placeholder={t('search.chrome.placeholder', { defaultValue: 'Search for events near…' })}
+        placeholder={t('search.chrome.placeholder', { defaultValue: 'Search for classes near…' })}
         type="search"
         value=""
       />
@@ -145,7 +145,7 @@ export function DrawerChrome({ interactive = true }: { interactive?: boolean }) 
       case 'region':
         return regionName
       case 'online':
-        return t('online.title', { defaultValue: 'Online Classes' })
+        return t('online.title', { defaultValue: 'Online classes' })
       case 'event':
         return titles?.get(entry.id)
       case 'search':
@@ -156,10 +156,10 @@ export function DrawerChrome({ interactive = true }: { interactive?: boolean }) 
         return t('filters.chrome.title', { defaultValue: 'Filters' })
       case 'register':
         return t('registration.form.title', {
-          defaultValue: 'Register for Meditation',
+          defaultValue: 'Register for this class',
         })
       case 'share':
-        return t('share.title', { defaultValue: 'Share Meditation' })
+        return t('share.title', { defaultValue: 'Share this class' })
       default:
         return undefined
     }

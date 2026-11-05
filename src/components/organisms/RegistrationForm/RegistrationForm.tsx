@@ -662,7 +662,7 @@ function dateOptions(
     return {
       value: date.toISOString(),
       label: (
-        <span className="capitalize">
+        <span className="inline-block first-letter:uppercase">
           {dateTime.toRelativeCalendar(unit ? { unit } : undefined)} -{' '}
           {dateTime.toLocaleString(DateTime.DATE_MED_WITH_WEEKDAY)}
         </span>

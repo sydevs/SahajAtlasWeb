@@ -21,21 +21,21 @@
       "widget_label": "Free meditation classes"
     },
     "errors": {
-      "back_to_region": "See events in %{region}",
+      "back_to_region": "See classes in %{region}",
       "browse_countries": "Browse all countries",
       "captcha_blocked": "This Atlas can't run on this page: its security check was blocked.",
       "config": "This Atlas isn't set up correctly on this page.",
       "generic": "Something went wrong.",
-      "near_city": "See events near %{city}",
-      "no_events": "No events found.",
+      "near_city": "See classes near %{city}",
+      "no_events": "No classes found.",
       "not_found": "We couldn't find what you were looking for.",
-      "not_found_event": "We couldn't find that event.",
+      "not_found_event": "We couldn't find that class.",
       "not_found_region": "We couldn't find that place.",
       "offline": "You appear to be offline.",
       "retry": "Try again",
       "search_label": "Or search for a place",
       "server": "Our servers are having trouble right now.",
-      "share_unavailable": "There is no link to share for this meditation yet.",
+      "share_unavailable": "There is no link to share for this class yet.",
       "unavailable": "This program can’t be joined right now."
     },
     "feedback": {
@@ -74,8 +74,8 @@
     },
     "settings": {
       "theme_auto": "System (Auto)",
-      "theme_dark": "Dark Theme",
-      "theme_light": "Light Theme",
+      "theme_dark": "Dark theme",
+      "theme_light": "Light theme",
       "title": "Settings"
     }
   },
@@ -83,7 +83,7 @@
     "open": "Find a class near you"
   },
   "countries": {
-    "title": "Free Meditation Classes"
+    "title": "Free meditation classes"
   },
   "event": {
     "actions": {
@@ -108,20 +108,20 @@
       "distance_away": "%{distance} away",
       "distance_from_place": "%{distance} from %{place}",
       "distance_from_search": "%{distance} from the searched location",
-      "event_ended": "This event has ended",
-      "event_full": "This event is full",
+      "event_ended": "This class has ended",
+      "event_full": "This class is full",
       "first_session": "First session: %{date}",
-      "free_meditation_class": "Free Meditation Class",
+      "free_meditation_class": "Free meditation class",
       "hosted_from": "Hosted from %{city}",
       "next_session": "Next session: %{date}",
       "online": "Online",
       "online_joining_note": "Meeting link will be sent to you by email",
-      "register_now": "Register Now",
+      "register_now": "Register for this class",
       "registration_closed": "Registration closed",
-      "registration_external": "Registration for this event happens on another website",
+      "registration_external": "Registration for this class happens on another website",
       "registration_required": "Registration required",
       "room": "Room: %{room}",
-      "see_nearby": "See nearby events",
+      "see_nearby": "See nearby classes",
       "sessions_count_one": "%{count} session",
       "sessions_count_other": "%{count} sessions",
       "started_on": "Started %{date}",
@@ -131,12 +131,12 @@
       "type_class_monthly": "Monthly class",
       "type_class_weekly": "Weekly class",
       "type_course": "Course",
-      "type_oneoff": "One-off event",
+      "type_oneoff": "One-off class",
       "unverified_note": "This listing has not been verified by a local coordinator yet.",
       "unverified_title": "Unverified listing"
     },
     "recurrence": {
-      "daily": "Every Day",
+      "daily": "Every day",
       "daily_n": "Every %{interval} days",
       "monthly_1st": "1st %{weekday} of every month",
       "monthly_2nd": "2nd %{weekday} of every month",
@@ -164,7 +164,7 @@
       "apply": "Apply",
       "clear": "Clear all",
       "clear_one": "Clear",
-      "no_results": "No events match your filters.",
+      "no_results": "No classes match your filters.",
       "remove": "Remove %{label}",
       "title": "Filters"
     },
@@ -205,13 +205,13 @@
     }
   },
   "online": {
-    "title": "Online Classes"
+    "title": "Online classes"
   },
   "registration": {
     "errors": {
       "email": "Enter a valid email",
       "name": "Enter your full name",
-      "starting_at": "Select your starting date"
+      "starting_at": "Choose a date"
     },
     "form": {
       "captcha_blocked": "We couldn't load the security check, so you can't register just yet.",
@@ -223,24 +223,24 @@
       "name": "Your name",
       "okay": "Okay",
       "online_notice": "The link to this class will be emailed to you.",
-      "online_notice_title": "Online Session",
+      "online_notice_title": "Online session",
       "privacy_policy": "By submitting you confirm you agree to receive follow up messages about this and similar events, in accordance with our privacy policy.",
       "show_more_dates": "Show more dates",
-      "starting_date": "Starting date",
+      "starting_date": "Which date?",
       "submit": "Register",
       "subscribe": "Send me news about meditation programmes near me",
-      "title": "Register for Meditation"
+      "title": "Register for this class"
     },
     "questions": {
       "aspirations": "What are you hoping to get out of this?",
       "experience": "Have you practised Sahaja Yoga meditation before?",
       "questions": "Do you have any questions for us?",
-      "referral": "How did you hear about this event?"
+      "referral": "How did you hear about this class?"
     }
   },
   "search": {
     "chrome": {
-      "placeholder": "Search for events near…",
+      "placeholder": "Search for classes near…",
       "title": "Search"
     },
     "country_site": {
@@ -252,10 +252,10 @@
       "title": "Looking for classes near %{city}?"
     },
     "results": {
-      "farther": "Show distant events",
+      "farther": "Show distant classes",
       "more": "Show more",
-      "no_nearby": "No events within %{km} km.",
-      "showing": "Showing %{shown} of %{total} events"
+      "no_nearby": "No classes within %{km} km.",
+      "showing": "Showing %{shown} of %{total} classes"
     },
     "sort": {
       "closest": "Closest",
@@ -269,6 +269,6 @@
     "copy_link": "Copy link",
     "native": "Share…",
     "share_on": "Share on %{platform}",
-    "title": "Share Meditation"
+    "title": "Share this class"
   }
 }

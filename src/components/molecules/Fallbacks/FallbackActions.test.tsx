@@ -17,7 +17,7 @@ vi.mock('react-i18next', () => ({
     t: (key: string, opts?: { country?: string; region?: string }) =>
       ({
         'search.country_site.cta': `Visit the ${opts?.country} website`,
-        'common.errors.back_to_region': `See events in ${opts?.region}`,
+        'common.errors.back_to_region': `See classes in ${opts?.region}`,
         'common.errors.retry': 'Try again',
         'common.report.title': 'Report an issue',
       })[key] ?? key,
