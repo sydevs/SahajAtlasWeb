@@ -99,12 +99,13 @@ export function EventRegisterBar({ event, basePath }: EventRegisterBarProps) {
       <Button
         className="w-full"
         color="primary"
+        size="lg"
         variant="solid"
         {...(external
           ? { href: external, rel: 'noopener noreferrer', target: '_blank' }
           : { disabled: closed, onClick: () => navigate(`${basePath}/register`) })}
       >
-        <span className="text-base font-semibold">{registerLabel}</span>
+        <span className="font-semibold">{registerLabel}</span>
         {external && <ArrowUpRight className="text-primary-foreground" size={16} />}
       </Button>
       {microcopy.map((line) => (

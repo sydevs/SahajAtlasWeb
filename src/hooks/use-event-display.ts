@@ -274,7 +274,7 @@ export function useEventDisplay(event: DisplayableEvent): EventDisplayStrings {
     const registerLabel = t(
       display.registration === 'closed'
         ? 'event.display.registration_closed'
-        : 'event.display.register_now',
+        : 'event.display.register_free',
     )
     const microcopy: string[] = []
 
