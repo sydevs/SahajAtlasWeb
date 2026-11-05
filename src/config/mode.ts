@@ -34,6 +34,8 @@ export type WidgetMode = {
   standalone: boolean
   hasMap: boolean
   linkable: boolean
+  /** Set by `AppShell`, for `ClientGate`. Absent in a story or spec with no shell above it. */
+  apiKey?: string
 }
 
 /**

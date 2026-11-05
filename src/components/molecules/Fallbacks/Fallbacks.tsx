@@ -15,6 +15,7 @@ import { Spinner } from '@/components/atoms/Spinner/Spinner'
 import { Alert } from '@/components/atoms/Alert/Alert'
 import { Button, controlSurface } from '@/components/atoms/Button'
 import { Link } from '@/components/atoms/Link'
+import { useIsWide } from '@/config/responsive'
 import { useReportModal } from '@/config/store'
 import { useReportForm } from '@/hooks/use-report-form'
 import { useRecoveryOffer } from '@/hooks/use-recovery-offer'
@@ -73,6 +74,62 @@ export function LoadingFallback({ unboxed = false }: LoadingFallbackProps) {
           text adds nothing the spinner has not already said. Its height would also
           push the spinner off centre. */}
       <Spinner color="secondary" srLabel={t('common.chrome.loading')} />
+    </div>
+  )
+}
+
+/**
+ * The list a view is about to show, as quiet placeholder rows, under one calm line.
+ *
+ * The line carries the announcement, so the rows are hidden from assistive tech. Used inside
+ * the real drawer while a list view loads, and inside `BootFallback` before the drawer exists,
+ * so the two can't drift and the swap between them doesn't jump.
+ */
+export function ListSkeleton() {
+  const { t } = useTranslation()
+
+  return (
+    <div className="flex flex-col">
+      <p className="px-4 py-2 text-sm text-gray-11" role="status">
+        {t('common.chrome.finding_classes', { defaultValue: 'Finding classes…' })}
+      </p>
+      <div aria-hidden className="flex flex-col motion-safe:animate-pulse">
+        {['w-3/5', 'w-2/5', 'w-1/2', 'w-1/3', 'w-2/5'].map((width) => (
+          <div key={width} className="flex min-h-14 items-center justify-between gap-4 px-4">
+            <div className={`h-3.5 rounded bg-gray-3 ${width}`} />
+            <div className="h-3.5 w-5 rounded bg-gray-3" />
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+/**
+ * What the full-window map form shows for the moment before its code has arrived: the panel
+ * already in its real place, over a plain map-toned surface. The real map replaces the surface
+ * as soon as the map chunk loads, and the real drawer replaces this panel.
+ *
+ * Only for the form that fills the window. A form with a box of its own keeps `LoadingFallback`,
+ * since taking the viewport there would paint over the host's page.
+ */
+export function BootFallback() {
+  const isWide = useIsWide(null)
+
+  return (
+    <div className="fixed inset-0 bg-gray-3">
+      <div
+        className={
+          isWide
+            ? 'fixed inset-y-0 left-0 z-40 w-[352px] border border-divider bg-background lg:inset-y-4 lg:left-4 lg:rounded-2xl'
+            : 'fixed inset-x-0 bottom-0 z-40 h-[300px] rounded-t-2xl border-t border-divider bg-background'
+        }
+      >
+        <div className="px-4 pt-4 pb-2">
+          <div aria-hidden className="h-10 rounded-lg border border-divider bg-gray-2" />
+        </div>
+        <ListSkeleton />
+      </div>
     </div>
   )
 }
@@ -284,7 +341,7 @@ export const ERROR_POLICY: Record<FallbackKind, FallbackPolicy> = {
   // This row used to offer no action, on the idea that an empty region is
   // nobody's mistake. That is true, but it still left one sentence and nothing to
   // press. That is the same dead end whether the URL was wrong or just empty.
-  empty: { ...DEAD_END, messageKey: 'common.errors.no_events', fallbackText: 'No events found.' },
+  empty: { ...DEAD_END, messageKey: 'common.errors.no_events', fallbackText: 'No classes found.' },
   // A class that exists and runs, but cannot be joined: full, ended, or
   // registration closed. Not an error, and not empty. This is the one row whose
   // best next step is a PERSON. It leads with the organiser's number, and falls
@@ -328,7 +385,7 @@ export const ERROR_POLICY: Record<FallbackKind, FallbackPolicy> = {
   // sentence with nothing else beside it.
   'share-unavailable': {
     messageKey: 'common.errors.share_unavailable',
-    fallbackText: 'There is no link to share for this meditation yet.',
+    fallbackText: 'There is no link to share for this class yet.',
     color: 'neutral',
     retry: false,
     onward: false,
@@ -350,7 +407,7 @@ export const ERROR_POLICY: Record<FallbackKind, FallbackPolicy> = {
   // actually restores results here.
   'no-results': {
     messageKey: 'filters.chrome.no_results',
-    fallbackText: 'No events match your filters.',
+    fallbackText: 'No classes match your filters.',
     color: 'neutral',
     retry: false,
     onward: false,
@@ -361,11 +418,11 @@ export const ERROR_POLICY: Record<FallbackKind, FallbackPolicy> = {
   },
   // This is the only row that offers nothing, and the only one that should.
   // Every match is simply farther away than the boundary, and the list's own
-  // "Show distant events" control sits right below it saying so. `visibleActions`
+  // "Show distant classes" control sits right below it saying so. `visibleActions`
   // leaves this row alone, since it promised nothing for a surface to remove.
   'no-nearby': {
     messageKey: 'search.results.no_nearby',
-    fallbackText: 'No events within %{km} km.',
+    fallbackText: 'No classes within %{km} km.',
     color: 'neutral',
     retry: false,
     onward: false,
@@ -471,7 +528,7 @@ export type SurfaceLimits = {
  * cannot render.
  *
  * A policy that promises NOTHING is left alone. `no-nearby` is a note about the list
- * right below it. That list's own "Show distant events" control is the way out. Adding
+ * right below it. That list's own "Show distant classes" control is the way out. Adding
  * a report action there would invite reports of a working feature. This function is
  * pure, so both rules above are testable without a DOM.
  */
@@ -518,7 +575,7 @@ const offerLabel = (t: ReturnType<typeof useTranslation>['t'], offer: RecoveryOf
     case 'city':
       return t('common.errors.near_city', {
         city: offer.name,
-        defaultValue: 'See events near %{city}',
+        defaultValue: 'See classes near %{city}',
       })
     case 'country-site':
       return t('search.country_site.cta', {
@@ -823,7 +880,8 @@ type FallbackShellProps = FallbackActionsProps & {
  * live body and the floor it degrades to both render this, so the two cannot look like
  * different screens.
  *
- * ONE column at ONE width. Every part is `w-full` inside a single `max-w-xs` box. Left
+ * ONE column at ONE width. Every part is `w-full` inside a single box: `max-w-xs` when
+ * centred, and the panel's full width when it starts at the top of a list. Left
  * to shrink-wrap on its own, each part came out a different width, stacked on a centre
  * line: a banner as wide as its sentence, a button row as wide as its labels, and a
  * full-width field.

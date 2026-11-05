@@ -34,6 +34,8 @@ export { SortMenu } from './SortMenu'
 // one table, not three that agree by hand. The table itself, and its
 // narrowing function, stay module-private. See the folder barrel for why.
 export {
+  BootFallback,
+  ListSkeleton,
   LoadingFallback,
   ErrorFallback,
   FallbackPanel,
@@ -105,3 +107,4 @@ export type { GeolocationPromptProps } from './GeolocationPrompt'
 // WhatToExpect — the short app-supplied promise for newcomers on a class page.
 export { WhatToExpect } from './WhatToExpect'
 export type { WhatToExpectProps } from './WhatToExpect'
+export { ResultCountStatus } from './ResultCountStatus'

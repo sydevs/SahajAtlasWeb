@@ -9,7 +9,7 @@ import { useQuery } from '@tanstack/react-query'
 
 import { DrawerBody, DrawerHeader, DrawerToolbar } from '@/components/atoms/Drawer'
 import { Spinner } from '@/components/atoms/Spinner'
-import { CENTERED_BODY, FallbackPanel, ListToolbar } from '@/components/molecules'
+import { CENTERED_BODY, FallbackPanel, ListSkeleton, ListToolbar } from '@/components/molecules'
 import { eventTitlesQuery, regionQuery, regionsQuery } from '@/config/api'
 import { useWidgetMode } from '@/config/mode'
 import { useLocale } from '@/hooks/use-locale'
@@ -144,7 +144,7 @@ export function DrawerChrome({ interactive = true }: { interactive?: boolean }) 
       case 'region':
         return regionName
       case 'online':
-        return t('online.title', { defaultValue: 'Online Classes' })
+        return t('online.title', { defaultValue: 'Online classes' })
       case 'event':
         return titles?.get(entry.id)
       case 'search':
@@ -235,10 +235,21 @@ export function DrawerChrome({ interactive = true }: { interactive?: boolean }) 
 // (so the drawer keeps its identity and its close control) over a spinner.
 // `interactive={false}`: see `SearchFieldSkeleton`.
 export function DrawerLoading() {
+  const { hasMap } = useWidgetMode()
+  const location = useLocation()
+  const entry = baseStackEntry(resolveStack(location.pathname), hasMap)
+  const isList = fallbackAlign(entry?.kind) === 'start'
+
   return (
     <>
       <DrawerChrome interactive={false} />
-      <DrawerLoadingBody />
+      {isList ? (
+        <DrawerBody>
+          <ListSkeleton />
+        </DrawerBody>
+      ) : (
+        <DrawerLoadingBody />
+      )}
     </>
   )
 }

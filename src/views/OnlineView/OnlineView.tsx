@@ -3,11 +3,18 @@ import { useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 
 import { DrawerBody } from '@/components/atoms/Drawer'
-import { EventListItem, List } from '@/components/molecules'
+import {
+  ActiveFilterPills,
+  EventListItem,
+  FallbackPanel,
+  List,
+  ResultCountStatus,
+} from '@/components/molecules'
 import { regionQuery } from '@/config/api'
+import { useEventFilters, useSetFilters } from '@/hooks/use-filters'
 import { useLocale } from '@/hooks/use-locale'
 import { useMapController } from '@/hooks/use-map-controller'
-import { childRoute } from '@/lib/shape'
+import { DEFAULT_FILTERS, childRoute, hasActiveFilters } from '@/lib/shape'
 import { NavHeader } from '@/views/nav'
 import { EmptyEventList, useFrameOnTop } from '@/views/shared'
 
@@ -22,7 +29,9 @@ export function OnlineView({ regionSlug, path }: { regionSlug: string; path: str
   const { locale } = useLocale()
   const { frameRegion } = useMapController()
 
-  const { data: region } = useSuspenseQuery(regionQuery(regionSlug, locale))
+  const filters = useEventFilters()
+  const { setFilters } = useSetFilters()
+  const { data: region } = useSuspenseQuery(regionQuery(regionSlug, locale, filters))
 
   // Frame the parent region only when this drawer is the session entry point, meaning a
   // fresh deep link. Opening it in-session leaves the camera where it is. Online events have
@@ -45,7 +54,15 @@ export function OnlineView({ regionSlug, path }: { regionSlug: string; path: str
     <>
       <NavHeader breadcrumbs title={t('online.row')} />
       <DrawerBody>
-        {events.length === 0 ? (
+        <ActiveFilterPills />
+        {hasActiveFilters(filters) && <ResultCountStatus total={events.length} />}
+        {events.length === 0 && hasActiveFilters(filters) ? (
+          <FallbackPanel
+            align="start"
+            kind="no-results"
+            onClearFilters={() => setFilters(DEFAULT_FILTERS)}
+          />
+        ) : events.length === 0 ? (
           <EmptyEventList />
         ) : (
           <List>

@@ -8,15 +8,30 @@ import { Monitor } from 'lucide-react'
 import { NearMeRow } from './NearMeRow'
 
 import { DrawerBody, DrawerHeader } from '@/components/atoms/Drawer'
-import { List, ListItem } from '@/components/molecules'
+import {
+  ActiveFilterPills,
+  FallbackPanel,
+  List,
+  ListItem,
+  ResultCountStatus,
+} from '@/components/molecules'
 import api, { clientQuery } from '@/config/api'
 import atlasAuth from '@/config/api/auth'
 import { GEOJSON_STALE_TIME } from '@/config/query-client'
+import { useEventFilters, useFilterSearch, useSetFilters } from '@/hooks/use-filters'
 import { useIpLocation } from '@/hooks/use-ip-location'
 import { useLocale } from '@/hooks/use-locale'
 import { useMapController } from '@/hooks/use-map-controller'
 import { useWidgetMode } from '@/config/mode'
-import { DEFAULT_FILTERS, filtersToParams, isOnline, isoCountryCode } from '@/lib/shape'
+import {
+  DEFAULT_FILTERS,
+  filtersKey,
+  filtersToParams,
+  hasActiveFilters,
+  isOnline,
+  isoCountryCode,
+  matchesFilters,
+} from '@/lib/shape'
 import { validateWebUrl } from '@/lib/url'
 import {
   DrawerTitle,
@@ -37,9 +52,12 @@ export function CountriesView() {
   const { standalone } = useWidgetMode()
   const { reset } = useMapController()
 
+  const filters = useEventFilters()
+  const filterSearch = useFilterSearch()
+  const { setFilters } = useSetFilters()
   const { data: countries } = useSuspenseQuery({
-    queryKey: ['countries'],
-    queryFn: () => api.getCountries(),
+    queryKey: hasActiveFilters(filters) ? ['countries', filtersKey(filters)] : ['countries'],
+    queryFn: () => api.getCountries(filters),
   })
   // Busiest countries first. This component owns the list's display order, so it holds
   // whatever the source — the live feed, or a seeded story — provides.
@@ -76,10 +94,17 @@ export function CountriesView() {
     staleTime: GEOJSON_STALE_TIME,
   })
   const onlineCount = useMemo(
-    () => geojson?.features.filter((feature) => isOnline(feature.properties)).length ?? 0,
-    [geojson],
+    () =>
+      geojson?.features.filter(
+        (feature) =>
+          isOnline(feature.properties) &&
+          (!hasActiveFilters(filters) || matchesFilters(feature.properties, filters)),
+      ).length ?? 0,
+    [geojson, filters],
   )
-  const onlineSearch = `/search?${filtersToParams({ ...DEFAULT_FILTERS, format: 'online' }).toString()}`
+  // The count above follows the active filters, so the search it opens must too.
+  const onlineSearch = `/search?${filtersToParams({ ...filters, format: 'online' }).toString()}`
+  const noMatches = Boolean(filterSearch) && sortedCountries.length === 0 && onlineCount === 0
 
   // Frame the world view when this view mounts. This uses `reset()`, not an empty
   // `frameSearch`. The root view is the one place that genuinely wants the whole world, and
@@ -110,28 +135,42 @@ export function CountriesView() {
       </DrawerHeader>
       <DrawerBody>
         <NearMeRow geojson={geojson} />
-        {/* Online classes belong to no country — a leading entry into the online-filtered
-            search rather than a place in the list below. */}
-        {onlineCount > 0 && (
-          <List>
-            <ListItem
-              count={onlineCount}
-              href={onlineSearch}
-              icon={<Monitor size={20} />}
-              label={t('online.row')}
-              subtitle={t('online.anywhere')}
-            />
-          </List>
+        <ActiveFilterPills />
+        {filterSearch && (
+          <ResultCountStatus
+            total={countries.reduce((sum, country) => sum + country.eventCount, onlineCount)}
+          />
         )}
-        <h3 className="px-4 pt-3 pb-1 text-sm font-normal text-gray-11">{t('countries.browse')}</h3>
-        <div onFocus={freeze} onPointerDown={freeze} onPointerEnter={freeze}>
-          <List>
-            {sortedCountries.map((country) => (
+        {noMatches ? (
+          <FallbackPanel
+            align="start"
+            kind="no-results"
+            onClearFilters={() => setFilters(DEFAULT_FILTERS)}
+          />
+        ) : (
+          <>
+          {/* Online classes belong to no country — a leading entry into the online-filtered
+              search rather than a place in the list below. */}
+          {onlineCount > 0 && (
+            <List>
               <ListItem
-                key={country.id}
-                quiet
-                count={country.eventCount}
-                href={country.path}
+                count={onlineCount}
+                href={onlineSearch}
+                icon={<Monitor size={20} />}
+                label={t('online.row')}
+                subtitle={t('online.anywhere')}
+              />
+            </List>
+          )}
+          <h3 className="px-4 pt-3 pb-1 text-sm font-normal text-gray-11">{t('countries.browse')}</h3>
+          <div onFocus={freeze} onPointerDown={freeze} onPointerEnter={freeze}>
+            <List>
+              {sortedCountries.map((country) => (
+                <ListItem
+                  key={country.id}
+                  quiet
+                  count={country.eventCount}
+                  href={country.singleEventPath ?? `${country.path}${filterSearch}`}
                 icon={
                   country.countryCode ? (
                     <CircleFlag
@@ -149,6 +188,8 @@ export function CountriesView() {
             ))}
           </List>
         </div>
+          </>
+        )}
       </DrawerBody>
     </>
   )

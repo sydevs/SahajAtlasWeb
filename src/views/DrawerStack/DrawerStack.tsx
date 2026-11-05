@@ -15,6 +15,7 @@ import { useExpansion } from '@/hooks/use-expansion'
 import { useLocale } from '@/hooks/use-locale'
 import { Drawer, DrawerContent } from '@/components/atoms/Drawer'
 import { ResetErrorBoundary, SettingsMenu } from '@/components/molecules'
+import { ClientGate } from '@/config/client-gate'
 import {
   SEARCH_SHEET_PX,
   WidgetWidthContext,
@@ -764,7 +765,11 @@ export function DrawerStack() {
           </button>
         </div>
       )}
-      <div className="relative min-h-0 flex-1">
+      <div
+        aria-label={t('common.chrome.widget_label')}
+        className="relative min-h-0 flex-1"
+        role="region"
+      >
         <AnimatePresence>
           {/* The filter drawer keeps one identity across its routes. Picking a place moves it
               from `/filters` to `/search/filters`, and that must not crossfade the form. */}
@@ -784,6 +789,7 @@ export function DrawerStack() {
                 FallbackComponent={DrawerErrorFallback}
                 onReset={() => setSecondary(loadSecondaryViews())}
               >
+                <ClientGate />
                 <TopView entry={top} parentPath={parentPath ?? '/'} secondary={secondary} />
               </ResetErrorBoundary>
             </Suspense>

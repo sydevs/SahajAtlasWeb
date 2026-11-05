@@ -845,7 +845,7 @@ believing you allowed something you hadn't.
 |                            | `ipwho.is`                                    | the once-per-session IP→city lookup behind "classes near you"                                                                                                                                                                                                                                                                                                                                                                                                                         | **degrades**: the nearby suggestion is skipped                                                                                                                                                                |
 |                            | `cdn.usefathom.com`                           | analytics, conditional as above                                                                                                                                                                                                                                                                                                                                                                                                                                                       | analytics only                                                                                                                                                                                                |
 |                            | `*.sentry.io`                                 | crash reporting. Contacted **only after the widget has already failed**, and only on a build with a DSN.                                                                                                                                                                                                                                                                                                                                                                              | **degrades**: the widget notices the refusal and stops trying for the rest of the page's life                                                                                                                 |
-| `frame-src`                | `cloud.sydevelopers.com`                      | **The captcha — required.** Every write the widget makes is captcha-gated. The challenge renders in a frame `cloud.sydevelopers.com` serves, so `challenges.cloudflare.com` belongs in no directive of yours. The frame mounts with the interface, so a policy that omits this fails within seconds rather than when somebody registers.                                                                                                                                              | **the widget shows an error screen and does not run.** Not a degradation — see the note below                                                                                                                 |
+| `frame-src`                | `cloud.sydevelopers.com`                      | **The captcha — required.** Every write the widget makes is captcha-gated. The challenge renders in a frame `cloud.sydevelopers.com` serves, so `challenges.cloudflare.com` belongs in no directive of yours. The frame mounts with the interface, so a policy that omits this shows on the console within seconds rather than when somebody registers.                                                                                                                                              | **browsing still works, but registration and reports can't be sent.** The forms say so — see the note below                                                                                                                 |
 
 Notes on that table:
 
@@ -916,13 +916,12 @@ what of — on Chromium, which is the only engine that degradation was measured 
 it: a visitor who gets your typeface and no place search is still worse off. But do not trade a
 load-bearing entry away to afford it.
 
-⚠ **The captcha entry is fatal on purpose.** **Every write the widget makes is captcha-gated,
-registration included, and registration is the thing the atlas exists for.** A degraded challenge
-would let a visitor browse classes and then silently fail to sign up for one, with no reason for
-the page owner to suspect anything was wrong. Failing loudly is worse for five minutes and better
-thereafter. The widget writes both possible fixes to the browser console — this directive, or the
-domain to have listed on your client record — so a developer looking at the page gets the answer
-without opening this document.
+⚠ **The captcha entry is the one you can't skip.** **Every write the widget makes is
+captcha-gated, registration included, and registration is the thing the atlas exists for.** Without
+it, visitors can browse classes but the registration form tells them it can't send. The widget
+writes both possible fixes to the browser console — this directive, or the domain to have listed on
+your client record — so a developer looking at the page gets the answer without opening this
+document.
 
 Everything else degrades to exactly what its "Blocked ⇒" column says — a missing typeface, a
 search field that offers no places, missing photography, missing flags, no analytics, no

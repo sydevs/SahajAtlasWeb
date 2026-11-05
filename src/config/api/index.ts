@@ -9,7 +9,7 @@ import {
   REGIONS_STALE_TIME,
   WHOLESALE_GC_TIME,
 } from '@/config/query-client'
-import { filtersKey } from '@/lib/shape'
+import { filtersKey, hasActiveFilters } from '@/lib/shape'
 
 const api = {
   ...fetch,
@@ -40,9 +40,13 @@ export const eventQuery = (id: number, locale: string) => ({
 // Locale is part of the key, since a region's name and subtitle are localized.
 // ⚠ A writer under a divergent key is SILENT: `setQueryData` creates the entry it was handed and no reader ever asks for it.
 // That is how live preview shipped writing `['region', slug]` while the drawer read `['region', slug, locale]`, and no live edit rendered.
-export const regionQuery = (slug: string, locale: string) => ({
-  queryKey: ['region', slug, locale] as const,
-  queryFn: () => api.getRegion(slug),
+// Filters join the key only when active, so the plain key every writer above relies on stays as it is.
+export const regionQuery = (slug: string, locale: string, filters?: EventFilters) => ({
+  queryKey:
+    filters && hasActiveFilters(filters)
+      ? (['region', slug, locale, filtersKey(filters)] as const)
+      : (['region', slug, locale] as const),
+  queryFn: () => api.getRegion(slug, filters),
 })
 
 // This is the calendar's source query contract, in one place.

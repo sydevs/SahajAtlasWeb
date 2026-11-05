@@ -75,6 +75,21 @@ export type ModalContentProps = {
   className?: string
 }
 
+/**
+ * Starts a visitor in the first field, rather than on the close button, where the ring makes it
+ * look selected. On a touch device focus goes to the dialog itself, since a field would pop up the
+ * on-screen keyboard over a dialog nobody has read yet.
+ */
+const focusFirstField = (event: Event) => {
+  const dialog = event.currentTarget as HTMLElement
+  const field = window.matchMedia('(pointer: fine)').matches
+    ? dialog.querySelector<HTMLElement>('input:not([type="hidden"]), textarea, select')
+    : null
+
+  event.preventDefault()
+  ;(field ?? dialog).focus()
+}
+
 /** The portaled, centred panel: header (title, description, ×) above `children`. */
 export function ModalContent({
   title,
@@ -96,6 +111,7 @@ export function ModalContent({
       <Dialog.Content
         className={`${content} ${className ?? ''}`}
         onCloseAutoFocus={onCloseAutoFocus}
+        onOpenAutoFocus={focusFirstField}
         {...describedBy}
       >
         <div className={header}>

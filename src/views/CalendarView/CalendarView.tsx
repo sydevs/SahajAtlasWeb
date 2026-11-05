@@ -28,6 +28,7 @@ import { useEventFilters, useSetFilters } from '@/hooks/use-filters'
 import { useLocale } from '@/hooks/use-locale'
 import { useMapController } from '@/hooks/use-map-controller'
 import { useWebShare } from '@/hooks/use-web-share'
+import { regionalLocale, scheduleXLocale } from '@/lib/time'
 import { useTheme } from '@/hooks/use-theme'
 import {
   CALENDAR_VIEW_LIST,
@@ -51,31 +52,11 @@ import { BackButton } from '@/views/nav'
 import { DrawerTitle, FilterButton, useFrameOnTop } from '@/views/shared'
 import { DrawerErrorBody, DrawerLoadingBody } from '@/views/fallbacks'
 
-// Schedule-X validates `locale` against its own supported BCP-47 set, and THROWS
-// (`InvalidLocaleError`) on an unknown code — this project's short `en`/`de`/… crash it. This
-// maps this project's locales to the closest one SX 2.36 ships. Anything unmapped, including
-// Hungarian, which SX lacks, falls back to en-US chrome. This project's own header stays fully
-// localized via i18n.
-const SX_LOCALES: Record<string, string> = {
-  en: 'en-US',
-  de: 'de-DE',
-  fr: 'fr-FR',
-  es: 'es-ES',
-  cs: 'cs-CZ',
-  nl: 'nl-NL',
-  ru: 'ru-RU',
-  uk: 'uk-UA',
-  'pt-BR': 'pt-BR',
-}
-
 const SX_ENGLISH = {
   '+ {{n}} events': '+ {{n}} classes',
   '+ 1 event': '+ 1 class',
   'No events': 'No classes',
 }
-
-const toScheduleXLocale = (locale: string): string => SX_LOCALES[locale] ?? 'en-US'
-
 // Online programs get their own colour, the secondary ramp, so they stand out from
 // in-person events on the grid. Entries built with `calendarId: 'online'` (see
 // eventsToCalendarEntries) pick it up. Light and dark share the same token strings — the
@@ -221,7 +202,7 @@ function CalendarControls({ controls }: { controls: CalendarControlsPlugin }) {
   // localized straight from luxon (no per-month i18n key), shows the month + year in month view,
   // the first day in week view, and the dates on screen in the list.
   const focused = date ?? DateTime.now().toISODate()
-  const dt = focused ? DateTime.fromISO(focused).setLocale(locale) : null
+  const dt = focused ? DateTime.fromISO(focused).setLocale(regionalLocale(locale)) : null
   const isList = option === CALENDAR_VIEW_LIST
   const today = todayISO()
   const hasDates = isDateRestricted(filters.dateRange)
@@ -493,10 +474,10 @@ function CalendarGrid({
       // callback, so the switch cannot learn about it — which lit Month over a day list on a
       // phone. `resolveCalendarView` decides instead (#331, `docs/rules/i18n-and-state.md`).
       isResponsive: false,
-      // SX needs a supported BCP-47 code (see SX_LOCALES), or it throws. This project's token
+      // SX needs a supported BCP-47 code (see scheduleXLocale), or it throws. This project's token
       // overrides (globals.css) carry the light/dark and accent theming regardless of
       // `isDark`.
-      locale: toScheduleXLocale(locale),
+      locale: scheduleXLocale(regionalLocale(locale)),
       // Schedule-X's own "+ 12 events" and "No events", in the words a visitor reads here.
       translations: locale === 'en' ? { enUS: SX_ENGLISH } : undefined,
       callbacks: {

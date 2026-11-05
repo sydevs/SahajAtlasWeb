@@ -42,6 +42,8 @@ export const RegionListItemSchema = z.object({
   countryCode: z.string().nullish(),
   eventCount: z.number(),
   path: z.string(),
+  /** Set when exactly one in-person class sits under this place: the row opens it directly. */
+  singleEventPath: z.string().optional(),
 })
 export type RegionListItem = z.infer<typeof RegionListItemSchema>
 

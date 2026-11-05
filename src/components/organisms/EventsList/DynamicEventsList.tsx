@@ -12,6 +12,7 @@ import { LoadMore } from './LoadMore'
 import { Button } from '@/components/atoms/Button'
 import { type FilterPill, useFilterPills } from '@/components/molecules/ActiveFilterPills'
 import { FallbackPanel } from '@/components/molecules/Fallbacks'
+import { ResultCountStatus } from '@/components/molecules/ResultCountStatus'
 import { FoldSection } from '@/components/molecules/FoldSection'
 import { formatDistance } from '@/lib'
 import {
@@ -378,6 +379,7 @@ export function DynamicEventsList({
 
   return (
     <>
+      <ResultCountStatus total={total} />
       <div ref={listRef}>
         {rows.length === 0 ? (
           <EmptyResults latitude={latitude} longitude={longitude} />

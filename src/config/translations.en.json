@@ -29,7 +29,10 @@
       "back_to_results_near": "Back to results near %{place}",
       "breadcrumb": "Where you are",
       "cancel": "Cancel",
+      "classes_found_one": "%{count} class found",
+      "classes_found_other": "%{count} classes found",
       "close": "Close",
+      "finding_classes": "Finding classes…",
       "loading": "Loading…",
       "show_list": "Show the list",
       "show_more": "Show more",
@@ -41,8 +44,8 @@
       "captcha_blocked": "This Atlas can't run on this page: its security check was blocked.",
       "config": "This Atlas isn't set up correctly on this page.",
       "generic": "Something went wrong.",
-      "near_city": "See events near %{city}",
-      "no_events": "No events found.",
+      "near_city": "See classes near %{city}",
+      "no_events": "No classes found.",
       "not_found": "We couldn't find what you were looking for.",
       "not_found_class": "We couldn't find that class.",
       "not_found_region": "We couldn't find that place.",
@@ -51,7 +54,7 @@
       "search_label": "Or search for a place",
       "see_classes_in": "See classes in %{region}",
       "server": "Our servers are having trouble right now.",
-      "share_unavailable": "There is no link to share for this meditation yet.",
+      "share_unavailable": "There is no link to share for this class yet.",
       "unavailable": "This program can’t be joined right now."
     },
     "feedback": {
@@ -92,8 +95,8 @@
     },
     "settings": {
       "theme_auto": "System (Auto)",
-      "theme_dark": "Dark Theme",
-      "theme_light": "Light Theme",
+      "theme_dark": "Dark theme",
+      "theme_light": "Light theme",
       "title": "Settings"
     }
   },
@@ -153,14 +156,14 @@
       "expect_title": "What to expect",
       "fact_free": "Free",
       "first_session": "First session: %{date}",
-      "free_meditation_class": "Free Meditation Class",
+      "free_meditation_class": "Free meditation class",
       "hosted_from": "Hosted from %{city}",
       "next_session": "Next session: %{date}",
       "online": "Online",
       "online_joining_note": "Meeting link will be sent to you by email",
       "register_free": "Register for free",
       "registration_closed": "Registration closed",
-      "registration_external": "Registration for this event happens on another website",
+      "registration_external": "Registration for this class happens on another website",
       "registration_required": "Registration required",
       "room": "Room: %{room}",
       "see_classes_nearby": "See classes nearby",
@@ -174,12 +177,12 @@
       "type_class_monthly": "Monthly class",
       "type_class_weekly": "Weekly class",
       "type_course": "Course",
-      "type_oneoff": "One-off event",
+      "type_oneoff": "One-off class",
       "unverified_note": "This listing has not been verified by a local coordinator yet.",
       "unverified_title": "Unverified listing"
     },
     "recurrence": {
-      "daily": "Every Day",
+      "daily": "Every day",
       "daily_n": "Every %{interval} days",
       "monthly_1st": "1st %{weekday} of every month",
       "monthly_2nd": "2nd %{weekday} of every month",
@@ -209,7 +212,7 @@
       "clear": "Clear all",
       "clear_one": "Clear",
       "no_match": "No classes match",
-      "no_results": "No events match your filters.",
+      "no_results": "No classes match your filters.",
       "remove": "Remove %{label}",
       "show_classes_one": "Show %{count} class",
       "show_classes_other": "Show %{count} classes",
@@ -276,9 +279,10 @@
     "errors": {
       "email": "Enter a valid email",
       "name": "Enter your full name",
-      "starting_at": "Select your starting date"
+      "starting_at": "Choose a date"
     },
     "form": {
+      "captcha_blocked": "We couldn't load the security check, so you can't register just yet.",
       "captcha_retry": "The security check needs doing again. Wait for it to refresh, then register once more.",
       "change_date": "Change",
       "checking": "Checking you're not a robot…",
@@ -306,7 +310,7 @@
       "aspirations": "What are you hoping to get out of this?",
       "experience": "Have you practised Sahaja Yoga meditation before?",
       "questions": "Do you have any questions for us?",
-      "referral": "How did you hear about this event?"
+      "referral": "How did you hear about this class?"
     }
   },
   "search": {
@@ -326,8 +330,8 @@
     "results": {
       "farther_classes": "Show classes farther away",
       "more": "Show more",
-      "no_nearby": "No events within %{km} km.",
-      "showing": "Showing %{shown} of %{total} events"
+      "no_nearby": "No classes within %{km} km.",
+      "showing": "Showing %{shown} of %{total} classes"
     },
     "filtered": {
       "hidden_here_one": "Your filters hide %{count} class in %{place}.",

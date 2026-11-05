@@ -428,6 +428,9 @@ describe('getRegion (region-tree derivation)', () => {
       ['brussels', 1],
     ])
     expect(region.subregions[0].path).toBe('/belgium/antwerpen')
+    // Brussels holds exactly one class, so its row opens it. Antwerpen holds two, plus online.
+    expect(region.subregions[0].singleEventPath).toBeUndefined()
+    expect(region.subregions[1].singleEventPath).toMatch(/^\/belgium\/brussels\/\d+$/)
 
     // This asserts no promotion: a country lists no events inline. Child events live on child cards instead.
     expect(region.events).toHaveLength(0)

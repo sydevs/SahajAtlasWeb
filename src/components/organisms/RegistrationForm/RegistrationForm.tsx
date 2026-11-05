@@ -47,6 +47,7 @@ import {
 } from '@/types'
 import { useLocale } from '@/hooks/use-locale'
 import { useTurnstile } from '@/hooks/use-turnstile'
+import { regionalLocale } from '@/lib/time'
 import { useViewerCountry } from '@/hooks/use-viewer-country'
 
 const PRIVACY_POLICY_URL = 'https://wemeditate.com/privacy'
@@ -260,12 +261,15 @@ export function RegistrationForm({
     return () => sub.unsubscribe()
   }, [watch, eventId])
 
-  // This is the challenge for this submission. `blocked` is not handled
-  // here. `useTurnstileGuard` has already failed the whole widget by the
-  // time a form could render in that state. So a per-form degradation would
-  // be dead code, guarding a case its own boundary already swallowed (issue
-  // #182).
-  const { challengeRef, token, reset: resetChallenge } = useTurnstile()
+  // This is the challenge for this submission. Only this form needs it, so a blocked challenge
+  // shows here, with a retry, rather than stopping the whole widget.
+  const {
+    challengeRef,
+    token,
+    status: challengeStatus,
+    reset: resetChallenge,
+    retry: retryChallenge,
+  } = useTurnstile()
   // The frame only says when the check has passed, never that it wants an answer. So a wait this
   // long is taken to mean the visitor may have something to do, and the line under Register says so.
   const [checkIsSlow, setCheckIsSlow] = useState(false)
@@ -427,7 +431,24 @@ export function RegistrationForm({
               above the error, so the one thing that can silently hold the
               submit button disabled stays visible immediately above it,
               rather than down in the footer. */}
-          <div ref={challengeRef} className="empty:hidden" />
+          <div
+            ref={challengeRef}
+            className={challengeStatus === 'blocked' ? 'hidden' : 'mt-4 empty:mt-0'}
+          />
+
+          {challengeStatus === 'blocked' && !isPreview && (
+            <div className="mt-4 flex flex-col items-start gap-3">
+              <Alert
+                className="w-full"
+                color="secondary"
+                description={t('registration.form.captcha_blocked')}
+                role="alert"
+              />
+              <Button variant="flat" onClick={retryChallenge}>
+                {t('common.errors.retry')}
+              </Button>
+            </div>
+          )}
 
           {/* A refusal is not a malfunction, so it states its reason on its
               own, without the "Something went wrong" framing or the
@@ -800,7 +821,7 @@ function dateOptions(
   return dates.map((date) => {
     const dateTime = DateTime.fromJSDate(date)
       .setZone(timeZone ?? 'local')
-      .setLocale(locale)
+      .setLocale(regionalLocale(locale))
 
     return {
       value: date.toISOString(),

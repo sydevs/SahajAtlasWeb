@@ -8,7 +8,16 @@ import { useTranslation } from 'react-i18next'
 import { Alert } from '@/components/atoms/Alert'
 import { Link } from '@/components/atoms/Link'
 import { DrawerBody, DrawerToolbar } from '@/components/atoms/Drawer'
-import { EventListItem, FoldSection, List, ListItem } from '@/components/molecules'
+import {
+  ActiveFilterPills,
+  EventListItem,
+  FallbackPanel,
+  FoldSection,
+  List,
+  ListItem,
+  ResultCountStatus,
+} from '@/components/molecules'
+import { useEventFilters, useFilterSearch, useSetFilters } from '@/hooks/use-filters'
 import { calendarQuery, eventsQuery, regionQuery } from '@/config/api'
 import { useFolds } from '@/hooks/use-folds'
 import { useLocale } from '@/hooks/use-locale'
@@ -83,7 +92,10 @@ export function RegionView({ slug }: { slug: string }) {
   // `confirmed` renders nothing here, while the hook still takes the parameter out of the URL.
   const { answer: feedback, dismiss: dismissFeedback } = usePostEventFeedback()
 
-  const { data: region } = useSuspenseQuery(regionQuery(slug, locale))
+  const filters = useEventFilters()
+  const filterSearch = useFilterSearch()
+  const { setFilters } = useSetFilters()
+  const { data: region } = useSuspenseQuery(regionQuery(slug, locale, filters))
 
   useFrameOnTop(() => frameRegion(region), [region, frameRegion])
 
@@ -150,6 +162,8 @@ export function RegionView({ slug }: { slug: string }) {
         </div>
       </DrawerToolbar>
       <DrawerBody>
+        <ActiveFilterPills />
+        {filterSearch && <ResultCountStatus total={region.eventCount} />}
         {/* Above the region's own content, which IS the "other classes near them" the
             acknowledgement hands off to. So the banner carries no onward link of its own.
             This stays neutral and unticked. A tick would read as "yes, it's gone", and one
@@ -190,7 +204,13 @@ export function RegionView({ slug }: { slug: string }) {
             list are more than the screen can carry, and the reader has just acted once
             already. It returns as soon as they dismiss the banner. */}
         {!feedback && suggestFor && <GeolocationSuggestion position="above" region={suggestFor} />}
-        {isEmpty ? (
+        {isEmpty && filterSearch ? (
+          <FallbackPanel
+            align="start"
+            kind="no-results"
+            onClearFilters={() => setFilters(DEFAULT_FILTERS)}
+          />
+        ) : isEmpty ? (
           <EmptyEventList />
         ) : (
           <List>
@@ -208,7 +228,7 @@ export function RegionView({ slug }: { slug: string }) {
             {showOnlineCard && (
               <ListItem
                 count={region.onlineEvents.length}
-                href={childRoute(region.path, 'online')}
+                href={`${childRoute(region.path, 'online')}${filterSearch}`}
                 label={t('online.row')}
               />
             )}
@@ -219,7 +239,7 @@ export function RegionView({ slug }: { slug: string }) {
               <ListItem
                 key={`region-${child.id}`}
                 count={child.eventCount}
-                href={child.path}
+                href={child.singleEventPath ?? `${child.path}${filterSearch}`}
                 label={child.name}
                 subtitle={child.subtitle}
               />
