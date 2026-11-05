@@ -82,7 +82,7 @@ export function CountriesView() {
       {/* The country list is a browse index, not a filterable results list. So its filter
           access lives as an icon control in the header, not a list toolbar. Sorting a country
           index is meaningless, so there is no sort menu here. */}
-      <DrawerHeader wash="strong">
+      <DrawerHeader>
         <SearchField />
         {/* The toggle renders nothing where the sheet cannot collapse, so filters end the row. */}
         <FilterButton iconOnly isLast={!canCollapse} />
