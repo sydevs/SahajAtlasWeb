@@ -147,6 +147,8 @@ const RAW_VIEWPORT_READERS: Record<string, string> = {
   'hooks/use-map-controller-real.tsx': 'caps camera padding for a short viewport',
   'lib/slot-decision.ts':
     'the slot decision: compares the host slot to the viewport, and a frame to the screen, before React renders',
+  // The height of the box the sheet slides in, when no frame owns it, to tell the peek.
+  'views/DrawerStack/DrawerStack.tsx': 'marks the sheet while it rests at its peek',
 }
 
 describe('raw viewport reads are a closed list too', () => {

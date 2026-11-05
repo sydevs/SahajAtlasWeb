@@ -36,7 +36,7 @@ describe('the Mapbox wordmark and attribution corners', () => {
     // The bottom sheet sits at its peek at every snap, so nothing on the bottom edge is ever
     // uncovered on a narrow embed. The peek is `DrawerStack`'s own literal, not restated here —
     // a dismissible sheet would free a bottom corner and relax this.
-    const peek = Number(read(STACK).match(/const PEEK_SNAP = '(\d+)px'/)?.[1])
+    const peek = Number(read(STACK).match(/const PEEK_PX = (\d+)/)?.[1])
 
     expect(peek, "the bottom sheet's peek").toBeGreaterThan(0)
     // The remaining side is the cog's: it takes the inline start in both layouts, so the
