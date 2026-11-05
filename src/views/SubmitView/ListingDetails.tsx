@@ -59,7 +59,7 @@ export function ListingDetails({
 
   return (
     <>
-      <h3 className="px-6 pb-2 text-lg leading-tight font-semibold">{listing.title}</h3>
+      <h3 className="px-4 pb-2 text-lg leading-tight font-semibold">{listing.title}</h3>
       <EventDetails
         actions={
           <DetailsSection title={t('submit.contact.title')} trailing={edit('details')}>

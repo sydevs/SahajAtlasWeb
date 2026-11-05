@@ -30,24 +30,22 @@ export function ListItem({ label, subtitle, count, href, icon }: ListItemProps) 
   return (
     <li>
       <Link
-        className={listRow({ className: 'flex flex-row items-center py-4 font-semibold' })}
+        className={listRow({ className: 'flex min-h-14 flex-row items-center py-3 font-semibold' })}
         href={href}
       >
         {icon && (
-          <span className="me-3 flex h-7 w-7 shrink-0 items-center justify-center lg:h-9 lg:w-9">
-            {icon}
-          </span>
+          <span className="me-3 flex h-6 w-6 shrink-0 items-center justify-center">{icon}</span>
         )}
         <div className="flex-grow text-lg">
           <div>{label}</div>
-          {subtitle && <div className="mt-0.5 text-md font-normal">{subtitle}</div>}
+          {subtitle && <div className="mt-0.5 text-sm font-normal text-gray-11">{subtitle}</div>}
         </div>
         {/* Both step down from the title, but not to the same place. The
             count is still information, so it keeps a readable step. The
             chevron only restates what tapping the row already does, so it
             goes one step further. The title stays `text-foreground`
             (gray-12), and remains the loudest thing in the row. */}
-        <div className="me-1 text-end text-gray-10">{count}</div>
+        <div className="me-1 text-end text-sm font-normal text-gray-11 tabular-nums">{count}</div>
         <ChevronRight className="text-gray-9 rtl:-scale-x-100" size={20} />
       </Link>
     </li>

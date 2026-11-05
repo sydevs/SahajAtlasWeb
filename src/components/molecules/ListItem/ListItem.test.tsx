@@ -57,7 +57,7 @@ describe('ListItem', () => {
 
     const count = html.match(/<div class="([^"]*)">12<\/div>/)?.[1] ?? ''
 
-    expect(count.split(' ')).toContain('text-gray-10')
+    expect(count.split(' ')).toContain('text-gray-11')
     // The chevron is the row's last element and the only <svg> in it.
     expect(html.match(/<svg[^>]*class="([^"]*)"/)?.[1] ?? '').toContain('text-gray-9')
     // The title keeps the row's inherited foreground — it stays the loudest thing here.

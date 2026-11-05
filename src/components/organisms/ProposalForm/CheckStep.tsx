@@ -104,8 +104,8 @@ export function CheckStep({
           {preview && (
             // Full-bleed, so the listing lines up with the form around it exactly as it will
             // line up in its own panel — a card inside the sheet would indent it twice.
-            <details className="group -mx-6 border-y border-gray-5">
-              <summary className="flex min-h-12 cursor-pointer list-none items-center justify-between gap-2 px-6 text-sm font-medium [&::-webkit-details-marker]:hidden">
+            <details className="group -mx-4 border-y border-gray-5">
+              <summary className="flex min-h-12 cursor-pointer list-none items-center justify-between gap-2 px-4 text-sm font-medium [&::-webkit-details-marker]:hidden">
                 {t('submit.changes.full_listing')}
                 <ChevronDown
                   aria-hidden

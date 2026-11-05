@@ -17,8 +17,8 @@ export const controlTheme = {
     // This is the base font size for the input and suggestions. Spacing
     // derives from it. It stays small, so the "Search for events near…"
     // placeholder is not truncated.
-    unit: '14px',
-    fontWeight: '500',
+    unit: '15px',
+    fontWeight: '400',
     padding: '1em',
     colorText: 'var(--gray-12)',
     colorSecondary: 'var(--gray-11)',
@@ -30,4 +30,7 @@ export const controlTheme = {
     borderRadius: '4px',
     boxShadow: 'none',
   },
+  // The geocoder's own placeholder is 37% black, about 2.6:1 on white. This lifts it
+  // to the same secondary text the rest of the panel uses.
+  cssText: `.Input::placeholder { color: var(--gray-11); opacity: 1; }`,
 }

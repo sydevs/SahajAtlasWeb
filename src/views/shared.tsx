@@ -100,7 +100,7 @@ export type DrawerTitleProps = {
 export function DrawerTitle({ title, subtitle, note }: DrawerTitleProps) {
   return (
     <div className="min-w-0">
-      <h2 className="truncate text-lg font-semibold">{title}</h2>
+      <h2 className="truncate text-xl">{title}</h2>
       {subtitle && <div className="truncate text-sm text-gray-11">{subtitle}</div>}
       {note && <div className="truncate text-xs text-gray-11">{note}</div>}
     </div>

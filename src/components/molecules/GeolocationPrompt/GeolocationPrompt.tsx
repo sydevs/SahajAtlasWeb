@@ -25,12 +25,11 @@ export type GeolocationPromptProps = {
 export function GeolocationPrompt({ city, onAccept, onClose }: GeolocationPromptProps) {
   const { t } = useTranslation()
 
-  // `px-4` matches the drawer header's horizontal padding, so the
-  // prompt's icon and text line up with the header content. The slim `sm`
-  // size keeps the vertical padding.
+  // Inset by the panel's 16px gutter so the banner lines up with the header
+  // above and the rows below, and reads as a note rather than a page band.
   return (
     <Alert
-      className="px-4"
+      className="mx-4 mb-2 rounded-lg px-3"
       closeLabel={t('search.nearby_prompt.dismiss')}
       color="secondary"
       icon={<MapPin size={18} />}

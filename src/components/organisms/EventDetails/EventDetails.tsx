@@ -108,7 +108,7 @@ export function EventDetails({
     // The carousel is full-bleed and always last. It removes the container's
     // bottom padding, so the images sit flush against the end of the view
     // instead of floating 40px above it. Everything else keeps the padding.
-    <div className={`flex flex-col gap-4 px-6 pt-2 ${hasImages ? '' : 'pb-10'}`}>
+    <div className={`flex flex-col gap-4 px-4 pt-2 ${hasImages ? '' : 'pb-10'}`}>
       {/* The triage chips open the body. They do not sit under the title in the
           pinned header. The chips are a short row. The container's `gap-4` and
           the facts' own `my-2` add extra space before the facts. The `-mb-2`
@@ -152,9 +152,9 @@ export function EventDetails({
 
       {hasImages && (
         // This section sits full-bleed below the description. It cancels the
-        // container's `px-6` padding, so the carousel spans the full drawer
+        // container's `px-4` padding, so the carousel spans the full drawer
         // width. The slides now carry no padding of their own.
-        <div className="-mx-6">
+        <div className="-mx-4">
           <ImageCarousel slides={slides} />
         </div>
       )}
