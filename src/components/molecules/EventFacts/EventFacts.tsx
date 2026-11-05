@@ -12,9 +12,10 @@ import {
 
 // The when/where fact list. `default` is the panel treatment: brand-tinted
 // icons, roomy spacing. `compact` is the list-card treatment: tighter
-// spacing, and icons that inherit the text colour and shrink to the text
-// height, reading as inline text with a leading glyph, not a labelled
-// block. `card` is the boxed event-details card: a `title` over the
+// spacing, and icons that step back and shrink to the text height, reading
+// as inline text with a leading glyph, not a labelled block. Its time and
+// address stay in the foreground colour, because they are what a visitor
+// came for. Only the distance under them steps back. `card` is the boxed event-details card: a `title` over the
 // default facts on a tinted rounded surface, the object being acted on
 // above the registration and share forms. Each fact has a required primary
 // line (`text`) and an optional faded second line (`subtext`).
@@ -40,8 +41,8 @@ const facts = tv({
       compact: {
         base: 'gap-1',
         item: 'gap-2',
-        icon: 'text-gray-10',
-        text: 'text-sm text-gray-11',
+        icon: 'text-gray-11',
+        text: 'text-sm leading-snug text-foreground',
       },
       card: {
         wrapper: 'rounded-lg border border-divider bg-gray-2 p-3',

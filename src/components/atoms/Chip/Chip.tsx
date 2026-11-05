@@ -14,7 +14,7 @@ import { IconSvgProps } from '@/types'
 const chip = tv({
   slots: {
     base: 'inline-flex max-w-full items-center gap-1',
-    content: 'min-w-0 truncate leading-none uppercase',
+    content: 'min-w-0 truncate leading-none tracking-[0.3px] uppercase',
     // The close button carries the app's standard focus ring, not only the
     // opacity lift it used to have on its own (issue #102). Opacity is also
     // what HOVER does. So on a chip the pointer happens to rest on, a
