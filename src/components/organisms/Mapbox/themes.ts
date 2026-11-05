@@ -32,5 +32,7 @@ export const controlTheme = {
   },
   // The geocoder's own placeholder is 37% black, about 2.6:1 on white. This lifts it
   // to the same secondary text the rest of the panel uses.
-  cssText: `.Input::placeholder { color: var(--gray-11); opacity: 1; }`,
+  // The typed value is pinned too: in dark mode it computed as the geocoder's own
+  // default (75% black) on the dark panel, so a searched place name was unreadable.
+  cssText: `.Input { color: var(--gray-12); } .Input::placeholder { color: var(--gray-11); opacity: 1; }`,
 }

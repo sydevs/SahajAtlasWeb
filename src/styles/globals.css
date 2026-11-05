@@ -408,7 +408,8 @@
   --contrast-10: 12 60% 74%;
   --contrast-11: 12 60% 72%;
   --contrast-12: 12 60% 90%;
-  --background: 0 0% 7%;
+  /* A warm near-black (sand family), not neutral 7% grey. Sand-12 text is 16:1 on it. */
+  --background: 30 10% 8%;
 }
 
 /* `--ornament`: the coral the We Meditate icons are drawn in. The contrast solid

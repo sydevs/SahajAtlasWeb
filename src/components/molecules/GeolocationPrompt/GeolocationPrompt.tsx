@@ -31,10 +31,11 @@ export function GeolocationPrompt({ city, onAccept, onClose }: GeolocationPrompt
   // The end padding keeps the close button's hover square inside the banner.
   // The warm contrast tint, not the light-blue secondary: blue read cold at the top
   // of every list, and the secondary hue is kept for the language tag. The text stays
-  // the foreground colour — the tint's own deep step reads red, like an error.
+  // the foreground colour — the tint's own deep step reads red, like an error. In dark
+  // mode the coral tint turns brick red, so the banner takes the warm sand surface.
   return (
     <Alert
-      className="mx-4 mb-2 gap-2.5 rounded-lg ps-3 pe-1 text-foreground"
+      className="mx-4 mb-2 gap-2.5 rounded-lg ps-3 pe-1 text-foreground dark:bg-gray-3"
       closeLabel={t('search.nearby_prompt.dismiss')}
       color="contrast"
       icon={<WmIcon className="text-ornament" name="location-pin" size={18} />}
