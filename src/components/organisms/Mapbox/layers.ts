@@ -1,9 +1,8 @@
 import type { LayerProps } from 'react-map-gl'
 
-import { MARKER_IDS, primarySolid } from './markers'
+import { MARKER_IDS } from './markers'
 
 import {
-  DEFAULT_SEEDS,
   onHex,
   SOLID_STEP,
   stepHex,
@@ -76,7 +75,12 @@ export const clusterLayer = (palette: PaletteRoles, mode: ThemeMode): Props => (
     'text-size': 12,
   },
   paint: {
-    'text-color': onHex(palette.primary, mode) ?? (onHex(DEFAULT_SEEDS.primary, mode) as string),
+    // White on the stock teal bubble, which is the same art on both basemaps.
+    // The disc is slightly translucent (see `markers.ts`), so a pale feature
+    // underneath can show through and reduce contrast with it. This is
+    // inherited from the Studio sprite this replaced. Make the inner disc
+    // fully opaque if the count ever reads thin.
+    'text-color': onHex(palette.primary, mode) ?? '#FFFFFF',
   },
 })
 
@@ -99,7 +103,8 @@ export const unclusteredPointLayer: Props = {
  * when zoomed in. Zoomed out it shrinks to nothing, so this dot keeps the class visible and
  * clickable. Factories, memoised like `clusterLayer`, because the colours follow the brand.
  */
-const approximateColor = primarySolid
+const approximateColor = (palette: PaletteRoles, mode: ThemeMode) =>
+  stepHex(palette.primary, mode, SOLID_STEP) ?? '#21C1A2'
 
 export const approximateDotLayer = (palette: PaletteRoles, mode: ThemeMode): Props => ({
   id: LAYER_IDS.approximateDot,
