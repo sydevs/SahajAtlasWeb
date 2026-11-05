@@ -7,6 +7,7 @@ import { useLocation, useNavigationType, useSearchParams } from 'react-router'
 import { useTranslation } from 'react-i18next'
 import { useQuery, useSuspenseQuery } from '@tanstack/react-query'
 import { CalendarDays, Funnel, Menu, Search, X } from 'lucide-react'
+import clsx from 'clsx'
 
 import { Button } from '@/components/atoms/Button'
 import { FallbackPanel, GeolocationPrompt } from '@/components/molecules'
@@ -114,6 +115,11 @@ export function DrawerTitle({ title, subtitle, note }: DrawerTitleProps) {
  */
 const HEADER_CONTROL = { variant: 'ghost', isIconOnly: true, size: 'sm' } as const
 
+// The last control in a header. Its 20px icon sits in a 32px box, so this pulls the box 6px
+// into the gutter. The icon then lands on the panel's 16px edge, in the same column as the
+// rows' chevrons, while the tap area stays whole.
+const HEADER_LAST_CONTROL = '-me-1.5'
+
 export function CloseButton({ className }: { className?: string }) {
   // `useSuspense: false` — this renders inside the error/loading chrome, where
   // suspending on an in-flight namespace (a language switch mid-error) would
@@ -125,7 +131,7 @@ export function CloseButton({ className }: { className?: string }) {
     <Button
       {...HEADER_CONTROL}
       aria-label={t('common.chrome.close')}
-      className={className}
+      className={clsx(HEADER_LAST_CONTROL, className)}
       onClick={dismiss}
     >
       <X size={20} />
@@ -196,6 +202,7 @@ export function CollapseToggle() {
       {...HEADER_CONTROL}
       aria-expanded={!collapsed}
       aria-label={collapsed ? t('common.chrome.explore') : t('common.chrome.close')}
+      className={HEADER_LAST_CONTROL}
       onClick={toggle}
     >
       {collapsed ? <Menu size={24} /> : <X size={20} />}

@@ -27,9 +27,11 @@ export function GeolocationPrompt({ city, onAccept, onClose }: GeolocationPrompt
 
   // Inset by the panel's 16px gutter so the banner lines up with the header
   // above and the rows below, and reads as a note rather than a page band.
+  // The gap puts its text at 56px, on the label edge of the rows with a glyph.
+  // The end padding keeps the close button's hover square inside the banner.
   return (
     <Alert
-      className="mx-4 mb-2 rounded-lg px-3"
+      className="mx-4 mb-2 gap-2.5 rounded-lg ps-3 pe-1"
       closeLabel={t('search.nearby_prompt.dismiss')}
       color="secondary"
       icon={<MapPin size={18} />}
