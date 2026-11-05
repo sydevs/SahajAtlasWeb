@@ -113,6 +113,7 @@ function Harness({
   const [step, setStep] = useState<ListingStep>(startAt)
   const [intent, setIntent] = useState<FixIntent | null>(startIntent)
   const [reported, setReported] = useState(startIntent === 'stopped')
+  const [nobodyOn, setNobodyOn] = useState<string | null>(null)
   const [sent, setSent] = useState(false)
   const [sender, setSender] = useState({ email: '', note: '' })
 
@@ -127,6 +128,7 @@ function Harness({
       draft={draft}
       intent={intent}
       listing={withListing ? asListing(draft) : undefined}
+      nobodyOn={nobodyOn}
       reported={reported}
       reviewed={reviewed}
       sender={sender}
@@ -138,8 +140,10 @@ function Harness({
       onIntent={(picked, at) => {
         setIntent(picked)
         setReported((was) => was || picked === 'stopped')
+        if (picked === 'nobody') setNobodyOn((was) => was ?? '')
         setStep(at)
       }}
+      onNobodyOn={setNobodyOn}
       onSender={(patch) => setSender((current) => ({ ...current, ...patch }))}
       onSent={() => setSent(true)}
       onStep={setStep}
@@ -483,6 +487,27 @@ describe('ProposalForm corrections', () => {
     await press('submit.chrome.continue')
     // Its Check lists what changes, not the whole listing.
     expect(container.textContent).toContain('submit.changes.title')
+
+    await act(async () => root.unmount())
+  })
+
+  it('sends "nobody was there" with no field changed, and a default note', async () => {
+    sdk.request.mockResolvedValue({ json: async () => ({ doc: { id: 10 } }) })
+
+    const root = await mount({ initial: inPerson, correction, startAt: 'fix' })
+
+    await press('submit.fix.nobody')
+    await press('submit.chrome.continue')
+    await type('#submit-sender-email', 'ada@example.org')
+    await submit()
+
+    const { json } = sdk.request.mock.calls[0][0]
+
+    expect(json.proposed).toEqual({})
+    expect(json.submissionData).toContainEqual({
+      field: 'note',
+      value: 'submit.note.nobody_default',
+    })
 
     await act(async () => root.unmount())
   })
