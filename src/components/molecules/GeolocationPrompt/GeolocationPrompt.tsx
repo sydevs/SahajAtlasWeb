@@ -14,7 +14,7 @@ export type GeolocationPromptProps = {
 
 /**
  * The dismissible "events near you" suggestion shown above the list on the
- * top-level views: a single-line, secondary-tinted `Alert` whose text is a
+ * top-level views: a single-line, warm (contrast-tinted) `Alert` whose text is a
  * button into the distance-ranked search. The Alert's × dismisses it for
  * the session. It announces politely (`role="status"`), not as an
  * assertive alert, since it is a passive guess. It is framed as a *guess*:
@@ -27,11 +27,15 @@ export function GeolocationPrompt({ city, onAccept, onClose }: GeolocationPrompt
 
   // Inset by the panel's 16px gutter so the banner lines up with the header
   // above and the rows below, and reads as a note rather than a page band.
+  // The warm contrast tint, not the light-blue secondary: blue read cold at the top
+  // of every list, and the secondary hue is kept for the language tag. The text stays
+  // the foreground colour — the tint's own deep step reads red, like an error. In dark
+  // mode the coral tint turns brick red, so the banner takes the warm sand surface.
   return (
     <Alert
-      className="mx-4 mb-2 rounded-lg px-3"
+      className="mx-4 mb-2 rounded-lg px-3 text-foreground dark:bg-gray-3"
       closeLabel={t('search.nearby_prompt.dismiss')}
-      color="secondary"
+      color="contrast"
       icon={<MapPin size={18} />}
       role="status"
       size="sm"
