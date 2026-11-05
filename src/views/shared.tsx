@@ -217,7 +217,14 @@ export function CollapseToggle() {
 // (SearchView), and — with `iconOnly` — an icon-only header control carrying the
 // active count as a badge (CountriesView's header), so it reads as one set with
 // the close/collapse chrome.
-export function FilterButton({ iconOnly = false }: { iconOnly?: boolean }) {
+export function FilterButton({
+  iconOnly = false,
+  isLast = false,
+}: {
+  iconOnly?: boolean
+  /** Nothing follows it in the header, so its icon takes the panel's right edge. */
+  isLast?: boolean
+}) {
   // `useSuspense: false` — also rendered by the fallback chrome
   // (views/fallbacks.tsx), where suspending on an in-flight namespace would
   // escape the boundary and blank the widget instead of showing the failure. See
@@ -233,7 +240,12 @@ export function FilterButton({ iconOnly = false }: { iconOnly?: boolean }) {
 
   if (iconOnly) {
     return (
-      <Button {...HEADER_CONTROL} aria-label={label} className="relative" onClick={open}>
+      <Button
+        {...HEADER_CONTROL}
+        aria-label={label}
+        className={clsx('relative', isLast && HEADER_LAST_CONTROL)}
+        onClick={open}
+      >
         <Funnel size={20} />
         {count > 0 && (
           <span

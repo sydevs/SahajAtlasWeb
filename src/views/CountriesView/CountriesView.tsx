@@ -20,6 +20,7 @@ import {
   FilterButton,
   GeolocationSuggestion,
   SearchField,
+  useDrawerControl,
   useFrameOnTop,
 } from '@/views/shared'
 
@@ -34,6 +35,7 @@ export function CountriesView() {
   const { standalone } = useWidgetMode()
   const { reset } = useMapController()
 
+  const { canCollapse } = useDrawerControl()
   const { data: countries } = useSuspenseQuery({
     queryKey: ['countries'],
     queryFn: () => api.getCountries(),
@@ -82,7 +84,8 @@ export function CountriesView() {
           index is meaningless, so there is no sort menu here. */}
       <DrawerHeader>
         <SearchField />
-        <FilterButton iconOnly />
+        {/* The toggle renders nothing where the sheet cannot collapse, so filters end the row. */}
+        <FilterButton iconOnly isLast={!canCollapse} />
         <CollapseToggle />
       </DrawerHeader>
       <DrawerBody>
