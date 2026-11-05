@@ -120,7 +120,10 @@ export function FilterView() {
           where={
             <WhereFilter
               counts={
-                facets && { inPerson: facets.counts.format.offline, online: facets.counts.format.online }
+                facets && {
+                  inPerson: facets.counts.format.offline,
+                  online: facets.counts.format.online,
+                }
               }
               prominent={placeFirst}
               region={filters.region}
@@ -132,43 +135,45 @@ export function FilterView() {
           onChange={write}
         />
       </DrawerBody>
-      <DrawerFooter
-        className="flex flex-wrap items-center gap-2 border-t border-divider px-4 py-3"
-        sticky={!isWide}
-      >
-        {count === 0 && <p className="w-full text-sm text-foreground">{t('filters.chrome.no_match')}</p>}
-        {canClear && (
-          <Button
-            className="h-11"
-            variant="flat"
-            onClick={() => write({ ...DEFAULT_FILTERS, region: filters.region })}
-          >
-            {t('filters.chrome.clear_one')}
-          </Button>
-        )}
-        {count === 0 ? (
-          facets?.recovery && (
-            <RecoveryButton
-              className="h-11 min-w-0 flex-1"
-              filters={filters}
-              recovery={facets.recovery}
-              onApply={write}
-            />
-          )
-        ) : (
-          <Button
-            className="h-11 flex-1"
-            color={goesBack ? 'neutral' : 'primary'}
-            variant={goesBack ? 'flat' : 'solid'}
-            onClick={control.dismiss}
-          >
-            {goesBack
-              ? t('common.chrome.close')
-              : count === undefined
-                ? t('filters.chrome.title')
-                : t('filters.chrome.show_classes', { count })}
-          </Button>
-        )}
+      <DrawerFooter className="border-t border-divider px-4 py-3" sticky={!isWide}>
+        {/* A wrapper, because the footer's own safe-area spacer would otherwise take a gap. */}
+        <div className="flex flex-wrap items-center gap-2">
+          {count === 0 && (
+            <p className="w-full text-sm text-foreground">{t('filters.chrome.no_match')}</p>
+          )}
+          {canClear && (
+            <Button
+              className="h-11"
+              variant="flat"
+              onClick={() => write({ ...DEFAULT_FILTERS, region: filters.region })}
+            >
+              {t('filters.chrome.clear_one')}
+            </Button>
+          )}
+          {count === 0 ? (
+            facets?.recovery && (
+              <RecoveryButton
+                className="h-11 min-w-0 flex-1"
+                filters={filters}
+                recovery={facets.recovery}
+                onApply={write}
+              />
+            )
+          ) : (
+            <Button
+              className="h-11 flex-1"
+              color={goesBack ? 'neutral' : 'primary'}
+              variant={goesBack ? 'flat' : 'solid'}
+              onClick={control.dismiss}
+            >
+              {goesBack
+                ? t('common.chrome.close')
+                : count === undefined
+                  ? t('filters.chrome.title')
+                  : t('filters.chrome.show_classes', { count })}
+            </Button>
+          )}
+        </div>
       </DrawerFooter>
     </>
   )

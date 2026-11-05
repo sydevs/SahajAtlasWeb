@@ -394,9 +394,13 @@ export function DrawerStack() {
     entryAncestors: entryAncestors.current,
     ancestors: parentPaths.length,
   })
-  // The tall phone filter sheet reads as one sheet over a dimmed page: no stacked edges above it.
-  const filterSheet = direction === 'bottom' && top?.kind === 'filters'
-  const stackPaths = filterSheet ? [] : parentPaths.slice(0, stackDepth)
+  // The tall phone sheet for filters and their results reads as one sheet over a dimmed page: no
+  // stacked edges, and no half a cog, above it. It all comes back once the sheet is dragged lower.
+  const tallSheet =
+    direction === 'bottom' &&
+    snap === WIDE_SNAP &&
+    (top?.kind === 'filters' || top?.kind === 'search')
+  const stackPaths = tallSheet ? [] : parentPaths.slice(0, stackDepth)
 
   // The peek strips' accessible names, resolved from caches the app has already
   // filled.
@@ -864,11 +868,7 @@ export function DrawerStack() {
             createPortal(
               <>
                 {strips}
-                {/* Dims what the near-full sheet leaves showing above it, half a cog and half a
-                    locate button otherwise. It goes as soon as the sheet is dragged lower. */}
-                {filterSheet && snap === WIDE_SNAP && (
-                  <div aria-hidden className="fixed inset-0 z-[35] bg-black/50" />
-                )}
+                {tallSheet && <div aria-hidden className="fixed inset-0 z-[35] bg-black/50" />}
                 {filterPanelAvailable === 'panel' && filterPanelOpen && <FiltersPanel />}
                 {filterPanelAvailable === 'chips' && <FilterChipBar />}
                 {/* Inline-start, offset past the drawer on ≥md (flush at tablet,
@@ -889,7 +889,7 @@ export function DrawerStack() {
                 the strips under the cog.
                 Both `352px` fallbacks below are the drawer-width pair — the twin
                 value is `DRAWER_W_PX` in `hooks/use-map-controller-real.tsx`. */}
-                {!wide && !(filterSheet && snap === WIDE_SNAP) && (
+                {!wide && !tallSheet && (
                   <SettingsMenu
                     className={clsx(
                       'fixed top-3 z-40',
