@@ -129,7 +129,7 @@ Nothing below is needed to get a working embed. Reach for it when you want more:
 
 ## Parameters
 
-Six parameters exist on the script URL, all optional except `key`. Percent-encode reserved
+Seven parameters exist on the script URL, all optional except `key`. Percent-encode reserved
 characters as usual (`atlas=%2Fgb%2Flondon` and `atlas=/gb/london` are equivalent).
 
 | Parameter  | Default                       | What it does                                                                                                                                                                                                                                                                                                                                                                                      |
@@ -140,6 +140,7 @@ characters as usual (`atlas=%2Fgb%2Flondon` and `atlas=/gb/london` are equivalen
 | `routing`  | `query`                       | Where the widget's route lives. `path` also needs your server to serve one page for everything under the atlas prefix — a prefix set on your client record, not here.                                                                                                                                                                                                                             |
 | `atlas`    | —                             | The route to open when the page's own URL does not already name one, e.g. `/gb/london`. Must be site-relative.                                                                                                                                                                                                                                                                                    |
 | `gestures` | —                             | `gestures=cooperative` lets a visitor **scroll your page past a contained map**: one finger and the mouse wheel scroll the page, and the map moves on two fingers or Ctrl/⌘ + wheel, with a hint saying so. Only for a [contained map](#sizing-the-element); a window-filling map and the compact card's overlay ignore it.                                                                       |
+| `view`     | —                             | `view=list` opens on the list, with a "Show map" control at the top of the panel. The map is not loaded until the visitor asks for it. It is for a host who prefers the list first; it does not hide any location, since every pin shows once the map opens. With `map=false` there is no map to switch to, so this does nothing. |
 
 **`map` follows one spelling rule: only the exact values `false` and `0` switch it off.**
 Anything else — absent, empty, `true`, `no`, `FALSE` — leaves it **on**, so a typo can never

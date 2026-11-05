@@ -1,10 +1,11 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import * as Fathom from 'fathom-client'
 import { useLocation, useNavigate } from 'react-router'
 import { MapProvider } from 'react-map-gl'
 import { useTranslation } from 'react-i18next'
 
 import { Spinner } from '@/components/atoms/Spinner'
+import { SurfaceSwitchContext, WidgetModeContext, useWidgetMode } from '@/config/mode'
 import { useCameraSettled } from '@/config/store'
 import { Mapbox } from '@/components/organisms/Mapbox'
 import { NoopMapControllerProvider } from '@/hooks/use-map-controller'
@@ -199,9 +200,30 @@ function FullInterface({
     api.warmCaches()
   }, [])
 
+  // `view=list`: the map is not mounted until the visitor asks for it, so nothing is fetched
+  // from Mapbox before then. The route lives in the URL, so switching keeps the visitor's place.
+  const listFirst = hasMap && embed.config.listFirst
+  const [surface, setSurface] = useState<'list' | 'map'>('list')
+  const surfaceSwitch = useMemo(
+    () =>
+      listFirst
+        ? { surface, toggle: () => setSurface((s) => (s === 'list' ? 'map' : 'list')) }
+        : null,
+    [listFirst, surface],
+  )
+
+  if (listFirst && surface === 'list') {
+    return (
+      <SurfaceSwitchContext.Provider value={surfaceSwitch}>
+        <ListSurface contained={contained} />
+      </SurfaceSwitchContext.Provider>
+    )
+  }
+
   return hasMap ? (
-    <MapProvider>
-      {/* ⚠ **`MapFrame` is the ONLY thing that differs between a viewport map and a contained
+    <SurfaceSwitchContext.Provider value={surfaceSwitch}>
+      <MapProvider>
+        {/* ⚠ **`MapFrame` is the ONLY thing that differs between a viewport map and a contained
           one.** Everything below is byte-identical in both. The canvas stays `position: fixed;
           inset: 0`, the drawers and peek strips stay fixed, and no view branches on which one
           it is. `contain: layout` on the frame re-parents the whole fixed layer onto the
@@ -216,24 +238,42 @@ function FullInterface({
           gets the compact card rather than a takeover. `lib/slot-decision.ts` measures at
           mount, and `AppShell` renders `CompactEmbedView`, whose button opens the map
           full-screen. */}
-      <MapFrame contained={contained}>
-        {/* Inline fixed/inset so the map always fills its frame behind the drawers —
+        <MapFrame contained={contained}>
+          {/* Inline fixed/inset so the map always fills its frame behind the drawers —
             independent of Tailwind viewport-unit utility generation. */}
-        <div style={{ position: 'fixed', inset: 0 }}>
-          {/* The one thing a contained map does differently: `gestures=cooperative` leaves
+          <div style={{ position: 'fixed', inset: 0 }}>
+            {/* The one thing a contained map does differently: `gestures=cooperative` leaves
               scrolling to the page. Never in a window-filling map, where nothing scrolls. */}
-          <Mapbox cooperative={contained && embed.config.cooperative} />
-          <MapCurtain />
-        </div>
-        <RealMapControllerProvider>
-          <DrawerStack />
-        </RealMapControllerProvider>
-      </MapFrame>
-    </MapProvider>
+            <Mapbox cooperative={contained && embed.config.cooperative} />
+            <MapCurtain />
+          </div>
+          <RealMapControllerProvider>
+            <DrawerStack />
+          </RealMapControllerProvider>
+        </MapFrame>
+      </MapProvider>
+    </SurfaceSwitchContext.Provider>
   ) : (
     <NoopMapControllerProvider>
       <DrawerStack />
     </NoopMapControllerProvider>
+  )
+}
+
+/** `view=list` before the visitor asks for the map: the map-less interface, in the map's box. */
+function ListSurface({ contained }: { contained: boolean }) {
+  const mode = useWidgetMode()
+
+  return (
+    <WidgetModeContext.Provider value={{ ...mode, hasMap: false }}>
+      <MapFrame contained={contained}>
+        <div style={{ position: 'fixed', inset: 0 }}>
+          <NoopMapControllerProvider>
+            <DrawerStack />
+          </NoopMapControllerProvider>
+        </div>
+      </MapFrame>
+    </WidgetModeContext.Provider>
   )
 }
 

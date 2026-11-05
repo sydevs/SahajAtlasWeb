@@ -30,6 +30,7 @@ export const DEFAULT_EMBED_CONFIG: LoaderConfig = {
   routing: 'query',
   routeFromPage: false,
   cooperative: false,
+  listFirst: false,
 }
 
 type EmbedBoot = {

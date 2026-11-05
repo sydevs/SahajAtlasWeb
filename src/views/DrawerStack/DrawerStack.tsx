@@ -16,6 +16,7 @@ import { useLocation, useNavigate } from 'react-router'
 import { useQueryClient } from '@tanstack/react-query'
 import { AnimatePresence, motion } from 'framer-motion'
 import clsx from 'clsx'
+import { MapIcon } from 'lucide-react'
 
 import { eventTitlesQuery, regionsQuery } from '@/config/api'
 import { useExpansion } from '@/hooks/use-expansion'
@@ -23,7 +24,7 @@ import { useLocale } from '@/hooks/use-locale'
 import { Drawer, DrawerContent } from '@/components/atoms/Drawer'
 import { ResetErrorBoundary, SettingsMenu } from '@/components/molecules'
 import { WidgetWidthContext, useIsWide } from '@/config/responsive'
-import { useWidgetMode } from '@/config/mode'
+import { useSurfaceSwitch, useWidgetMode } from '@/config/mode'
 import { useCalendarPosition } from '@/config/store'
 import { frameElement, overlayContainer } from '@/lib/overlay'
 import {
@@ -272,6 +273,7 @@ export function DrawerStack() {
   const searchCenter = new URLSearchParams(location.search).get('center')
   const navigate = useNavigate()
   const { hasMap, standalone } = useWidgetMode()
+  const surfaceSwitch = useSurfaceSwitch()
   // `t` comes off `useLocale`, not a second `useTranslation` call: the hook already
   // holds one for the default (`common`) namespace, and hands it back for exactly this
   // reason. A second call would double this component's i18next subscription, and
@@ -673,6 +675,20 @@ export function DrawerStack() {
         collapse()
       }}
     >
+      {/* `view=list`: one control in one place, whichever surface is showing. Above the views,
+          because a bottom sheet's foot sits below the screen at its lower snaps. */}
+      {surfaceSwitch && (
+        <div className="mx-auto w-full max-w-[var(--sy-content-max,512px)] shrink-0 px-4">
+          <button
+            className="-ms-2 flex h-11 items-center gap-2 rounded-lg px-2 text-sm font-medium text-primary outline-none focus-visible:ring-2 focus-visible:ring-primary"
+            type="button"
+            onClick={surfaceSwitch.toggle}
+          >
+            <MapIcon aria-hidden size={16} />
+            {t(surfaceSwitch.surface === 'map' ? 'common.map.hide_map' : 'common.map.show_map')}
+          </button>
+        </div>
+      )}
       <div className="relative min-h-0 flex-1">
         <AnimatePresence>
           <ViewLayer key={top?.path ?? '/'}>

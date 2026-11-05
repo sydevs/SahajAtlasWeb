@@ -82,6 +82,8 @@ export type LoaderConfig = {
    * is no page to scroll there.
    */
   cooperative: boolean
+  /** `view=list`: open on the list, with the map one tap away. Needs the map to be on. */
+  listFirst: boolean
 }
 
 /**
@@ -186,5 +188,6 @@ export function parseConfig(
     route,
     routeFromPage: fromPage,
     cooperative: cooperativeGestures(params.get('gestures')),
+    listFirst: params.get('view') === 'list',
   }
 }

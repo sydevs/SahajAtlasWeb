@@ -4,6 +4,7 @@ import { BrowserRouter } from 'react-router'
 import { RoutingContext } from './config/routing'
 import App from './App.tsx'
 import atlasAuth from './config/api/auth'
+import embed from './config/embed'
 import livePreview from './config/live-preview/protocol'
 import { activateLivePreview, captureLivePreview } from './config/live-preview/boot'
 import { attributeEnabled } from './config/attributes'
@@ -27,6 +28,8 @@ if (!atlasAuth.apiKey) {
 // Iframe-friendly content-only mode: `?map=0` (or `?map=false`) renders without
 // the Mapbox canvas. Default is the full map.
 const hasMap = attributeEnabled(searchParams.get('map'))
+
+embed.config = { ...embed.config, listFirst: searchParams.get('view') === 'list' }
 
 // SahajCloud live-preview boot (issue #40). Synchronous, and deliberately only half the
 // job: this stashes the token and takes it out of `location.href` before React mounts
