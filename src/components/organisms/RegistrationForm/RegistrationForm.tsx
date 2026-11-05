@@ -506,9 +506,8 @@ export function RegistrationForm({
         <div className="sticky bottom-[max(0px,calc(var(--sy-sheet-top,0px)_-_var(--sy-frame-h,0px)*0.03))] z-10 -mx-4 flex flex-col gap-1.5 border-t border-divider bg-background px-4 pt-3 pb-[max(8px,env(safe-area-inset-bottom))]">
           {/* No token means no registration the server would accept. So the
               button stays disabled until the challenge is solved — the
-              same contract the report form has always had. A blocked
-              challenge never reaches this: it fails the widget at
-              `useTurnstileGuard` instead. */}
+              same contract the report form has always had, including while
+              the challenge is blocked and the alert above offers a retry. */}
           <Button
             className="w-full"
             color="primary"
@@ -521,11 +520,18 @@ export function RegistrationForm({
             <span className="text-base font-semibold">{t('registration.form.submit')}</span>
           </Button>
           {/* A pale button with no reason given reads as a broken form. The line keeps its height
-              when empty, so Register does not move just as it becomes tappable. */}
+              when empty, so Register does not move just as it becomes tappable. When the check
+              failed to load, it must not ask the visitor to complete a check that isn't there. */}
           <p aria-live="polite" className="min-h-5 text-center text-sm text-gray-11">
             {isPreview || token
               ? ''
-              : t(checkIsSlow ? 'registration.form.security_check' : 'registration.form.checking')}
+              : t(
+                  challengeStatus === 'blocked'
+                    ? 'registration.form.register_when_check_loads'
+                    : checkIsSlow
+                      ? 'registration.form.security_check'
+                      : 'registration.form.checking',
+                )}
           </p>
         </div>
       )}

@@ -299,6 +299,7 @@
       "online_notice_title": "Online Session",
       "privacy_link": "Privacy policy",
       "reassurance": "Free, with no account needed.",
+      "register_when_check_loads": "You can register once the security check loads.",
       "security_check": "Please complete the security check above.",
       "see_you": "See you on %{date}.",
       "show_more_dates": "Show more dates",
