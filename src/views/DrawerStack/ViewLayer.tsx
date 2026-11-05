@@ -48,7 +48,9 @@ export function ViewLayer({
       className={clsx(
         // At the peek only the header fits, so what follows it would show as a sliced-off
         // strip. It also leaves the tab order, as nobody can see what they would land on.
+        // A two-line title would be sliced the same way, so there it keeps to one line.
         'absolute inset-0 flex flex-col [[data-sy-peek]_&>*:not(:first-child)]:invisible',
+        '[[data-sy-peek]_&>:first-child_:is(h1,h2)]:line-clamp-1',
         onHeight &&
           'lg:bottom-auto lg:max-h-[calc(var(--sy-panel-room,100dvh)-2px)] lg:[&>*]:flex-[0_1_auto]',
         !isPresent && 'pointer-events-none',
