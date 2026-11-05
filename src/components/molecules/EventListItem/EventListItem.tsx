@@ -124,7 +124,7 @@ function EventListItemImpl({ event, searchedPlace }: EventListItemProps) {
       >
         <div className="line-clamp-2 text-lg">{event.title}</div>
         <EventFacts
-          className="my-1"
+          className="mt-0.5 mb-1"
           distance={
             distanceText && (
               <span aria-label={distanceLabel} title={distanceLabel}>

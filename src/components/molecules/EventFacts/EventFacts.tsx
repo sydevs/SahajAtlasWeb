@@ -39,7 +39,7 @@ const facts = tv({
     variant: {
       default: { base: 'gap-2.5', item: 'gap-3', icon: 'text-primary' },
       compact: {
-        base: 'gap-1',
+        base: 'gap-0.5',
         item: 'gap-2',
         icon: 'text-gray-11',
         text: 'text-sm leading-snug text-foreground',
