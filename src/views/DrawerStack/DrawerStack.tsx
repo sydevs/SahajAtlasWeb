@@ -46,6 +46,7 @@ import { DrawerErrorFallback, DrawerLoading } from '@/views/fallbacks'
 import { CountriesView } from '@/views/CountriesView/CountriesView'
 import { SearchView } from '@/views/SearchView/SearchView'
 import { FilterView } from '@/views/FilterView/FilterView'
+import { FilterChipBar } from '@/views/FilterView/FilterChipBar'
 import { FiltersPanel } from '@/views/FilterView/FiltersPanel'
 import { RegionView } from '@/views/RegionView/RegionView'
 import { OnlineView } from '@/views/OnlineView/OnlineView'
@@ -100,6 +101,14 @@ const WIDE_SNAP = SNAP_POINTS[2] // the near-full snap the full-width calendar o
 // default: the 352px list and its margins, the 320px filter panel and the 64px of map controls
 // beside it, which leaves about 450px of map to look at. Below this, filters sit behind the button.
 const FILTER_PANEL_MIN_PX = 1200
+
+// PROPOSAL SWITCH: the panel and the chip bar are an either/or for Anton to compare. `?filterui=chips`
+// on the page's first load shows the chips. Delete whichever one loses, and this with it.
+const DESKTOP_FILTERS =
+  typeof window !== 'undefined' &&
+  new URLSearchParams(window.location.search).get('filterui') === 'chips'
+    ? 'chips'
+    : 'panel'
 
 // How far each stacked ancestor peeks out behind the active sheet. Wide enough to read as
 // a deliberate stack of cards from across the screen. An earlier few-pixel sliver was easy
@@ -322,6 +331,8 @@ export function DrawerStack() {
   // the calendar keeps its own filter overlay.
   const filterPanelAvailable =
     hasMap && filterPanelFits && (!top || top.kind === 'region' || top.kind === 'search')
+      ? DESKTOP_FILTERS
+      : null
   const routedFilters = hasMap && filterPanelFits && top?.kind === 'filters'
 
   // A `/filters` link on a layout with the panel: open the panel, and show the view beneath it.
@@ -832,7 +843,8 @@ export function DrawerStack() {
             createPortal(
               <>
                 {strips}
-                {filterPanelAvailable && filterPanelOpen && <FiltersPanel />}
+                {filterPanelAvailable === 'panel' && filterPanelOpen && <FiltersPanel />}
+                {filterPanelAvailable === 'chips' && <FilterChipBar />}
                 {/* Inline-start, offset past the drawer on ≥md (flush at tablet,
                 floating in by 4 at ≥lg), so it never overlaps the panel. Uses the
                 logical `start-*`, rather than `left-*`: under RTL the drawer flips to

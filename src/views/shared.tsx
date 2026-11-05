@@ -211,9 +211,10 @@ export function CollapseToggle() {
 // (SearchView), and — with `iconOnly` — an icon-only header control carrying the
 // active count as a badge (CountriesView's header), so it reads as one set with
 // the close/collapse chrome.
-// Whether this layout has room for the filter panel, so the Filters button toggles that panel
-// rather than opening the filter drawer. DrawerStack owns the measurement.
-export const FilterPanelAvailableContext = createContext(false)
+// How this layout offers filters beside the list, if it has room: a panel the Filters button
+// toggles, or chips that are always there, so no button at all. `null` means behind the button,
+// in the filter drawer. DrawerStack owns the measurement.
+export const FilterPanelAvailableContext = createContext<'panel' | 'chips' | null>(null)
 
 export function FilterButton({ iconOnly = false }: { iconOnly?: boolean }) {
   // `useSuspense: false` — also rendered by the fallback chrome
@@ -232,6 +233,8 @@ export function FilterButton({ iconOnly = false }: { iconOnly?: boolean }) {
   const setPanelOpen = useFilterPanelState((s) => s.setOpen)
   const open = () =>
     panelAvailable ? setPanelOpen(!panelOpen) : navigate({ pathname: to, search: location.search })
+
+  if (panelAvailable === 'chips') return null
 
   if (iconOnly) {
     return (
