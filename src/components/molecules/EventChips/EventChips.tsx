@@ -22,14 +22,14 @@ export type EventChipsProps = {
 /**
  * The event's triage chips. Up to three, all `flat`: the class type
  * (primary), the language(s) combined into one chip (secondary), and a
- * single availability chip, "Full" (neutral) or "Today" (contrast). The
+ * single availability chip, "Full" (neutral) or, on a card, "Today" (contrast). The
  * list card and the event header share this component, so the two never
  * drift. `compact` trims the redundant chips on the card.
  */
 export function EventChips({ event, variant = 'default', className }: EventChipsProps) {
   const { t } = useTranslation()
   const { languageCode: uiLanguage, languageLabel } = useLocale()
-  const { display, typeLabel, isDefaultType } = useEventDisplay(event)
+  const { display, typeLabel, isDefaultType, recurrenceLine } = useEventDisplay(event)
 
   const compact = variant === 'compact'
 
@@ -54,12 +54,17 @@ export function EventChips({ event, variant = 'default', className }: EventChips
   // set only when it is the actual blocker, so an ended or dormant event
   // still falls through to its own treatment.
   const full = display.full
-  const today = !full && display.status === 'today'
+  // "Today" appears once. The panel says it in the when line, right above these chips. So
+  // only a list card that leads with the weekly pattern, "Every Wednesday", needs the chip.
+  const today = !full && display.status === 'today' && compact && Boolean(recurrenceLine)
 
   if (!showType && !languageText && !full && !today) return null
 
   return (
-    <div className={clsx('flex flex-wrap items-center gap-1', className)}>
+    <div
+      className={clsx('flex flex-wrap items-center gap-1', className)}
+      data-sheet-fold={compact ? undefined : ''}
+    >
       {showType && <Chip color="primary">{typeLabel}</Chip>}
       {languageText && <Chip color="secondary">{languageText}</Chip>}
       {full && <Chip color="neutral">{t('event.display.chip_full')}</Chip>}

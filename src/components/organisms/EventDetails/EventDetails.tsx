@@ -50,10 +50,9 @@ export type EventDetailsProps = EventSurfaceProps & {
 }
 
 /**
- * This is the event panel body. It follows the order from issue #52: chips,
- * facts (plain text), Register, microcopy, secondary actions, images, then
- * About. The title is a separate component (EventHeader). It renders outside
- * the scrolling drawer body, so it stays pinned. The triage chips lead the body.
+ * This is the event panel body: when and where, chips, Register, microcopy,
+ * secondary actions, About, then images. The title is a separate component
+ * (EventHeader). It renders outside the scrolling drawer body, so it stays pinned.
  */
 export function EventDetails({ event, basePath, ctaInline = true, children }: EventDetailsProps) {
   const { t } = useTranslation()
@@ -80,15 +79,12 @@ export function EventDetails({ event, basePath, ctaInline = true, children }: Ev
     // The carousel is full-bleed and always last. It removes the container's
     // bottom padding, so the images sit flush against the end of the view
     // instead of floating 40px above it. Everything else keeps the padding.
-    <div className={`flex flex-col gap-4 px-4 pt-2 ${hasImages ? '' : 'pb-10'}`}>
-      {/* The triage chips open the body. They do not sit under the title in the
-          pinned header. The chips are a short row. The container's `gap-4` and
-          the facts' own `my-2` add extra space before the facts. The `-mb-2`
-          class removes that extra space. */}
-      <EventChips className="-mb-2" event={event} />
-
-      {/* Extra space appears around the date and location facts, above the Register button. */}
-      <EventFacts className="my-2" event={event} />
+    <div className={`flex flex-col gap-4 px-4 pt-1 ${hasImages ? '' : 'pb-10'}`}>
+      {/* When and where lead, because that is what a visitor came for, and on the phone
+          sheet they must fit above the sticky footer at the default height. The chips
+          follow, as the quieter facts. */}
+      <EventFacts event={event} />
+      <EventChips event={event} />
 
       {children}
 
@@ -96,12 +92,14 @@ export function EventDetails({ event, basePath, ctaInline = true, children }: Ev
           repeats it, since that route is reachable without passing here. Badging via the
           chips above would mark the list card, the surface this leaves alone. */}
       {isUnverified(event) && (
-        <Alert
-          color="contrast"
-          description={t('event.display.unverified_note')}
-          size="sm"
-          title={t('event.display.unverified_title')}
-        />
+        <div data-sheet-fold>
+          <Alert
+            color="contrast"
+            description={t('event.display.unverified_note')}
+            size="sm"
+            title={t('event.display.unverified_title')}
+          />
+        </div>
       )}
 
       {ctaInline && (

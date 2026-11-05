@@ -60,6 +60,8 @@ export type DrawerControl = {
   canDismiss: boolean
   toggle: () => void
   dismiss: () => void
+  /** A class view's measured default height on the phone sheet, or null for the fallback. */
+  setOpenHeight: (px: number | null) => void
 }
 
 export const DrawerControlContext = createContext<DrawerControl>({
@@ -68,6 +70,7 @@ export const DrawerControlContext = createContext<DrawerControl>({
   canDismiss: false,
   toggle: () => {},
   dismiss: () => {},
+  setOpenHeight: () => {},
 })
 
 export const useDrawerControl = () => useContext(DrawerControlContext)

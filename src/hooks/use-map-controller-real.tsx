@@ -7,7 +7,7 @@ import { bboxPolygon } from '@turf/bbox-polygon'
 import { MapControllerContext } from './use-map-controller'
 
 import { useMapbox, usePaddingState } from '@/hooks/use-mapbox'
-import { useViewState } from '@/config/store'
+import { useClassSheet, useViewState } from '@/config/store'
 import { useIsWide } from '@/config/responsive'
 import { eventFrameZoom } from '@/lib/camera'
 import { isOnline } from '@/lib/shape'
@@ -74,6 +74,7 @@ const eventPoint = (event: Pick<EventSlim, 'address' | 'eventType'>) => {
 export function RealMapControllerProvider({ children }: { children: ReactNode }) {
   const { mapbox, moveMap, fitBounds, isPointVisible, flyTo } = useMapbox()
   const setPadding = usePaddingState((s) => s.setPadding)
+  const sheetBottom = useClassSheet((s) => s.bottom)
   const setSelection = useViewState((s) => s.setSelection)
   const setHover = useViewState((s) => s.setHover)
   const setBoundary = useViewState((s) => s.setBoundary)
@@ -99,9 +100,10 @@ export function RealMapControllerProvider({ children }: { children: ReactNode })
       left: MAP_MARGIN + (isWide ? DRAWER_W_PX : 0),
       right: MAP_MARGIN,
       top: MAP_MARGIN,
-      bottom: MAP_MARGIN + (isWide ? 0 : MOBILE_PEEK_PX),
+      // A class's sheet is taller than the usual peek allowance, and its pin must show above it.
+      bottom: MAP_MARGIN + (isWide ? 0 : (sheetBottom ?? MOBILE_PEEK_PX)),
     })
-  }, [isWide, setPadding])
+  }, [isWide, sheetBottom, setPadding])
 
   const controller = useMemo<MapController>(
     () => ({

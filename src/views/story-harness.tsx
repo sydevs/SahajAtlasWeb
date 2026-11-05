@@ -77,6 +77,7 @@ const STORY_DRAWER_CONTROL = {
   canDismiss: true,
   toggle: () => {},
   dismiss: () => {},
+  setOpenHeight: () => {},
 }
 
 export type ViewHarnessProps = {

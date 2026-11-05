@@ -129,12 +129,18 @@ export function EventFacts({
 
   // The muted detail under the timing. "Started …" is only meaningful for
   // a course, a run with an end. The "Next session" line is panel-only.
-  let timingDetail: string | undefined
+  let timingDetail: ReactNode
 
   if (display.next && recurrenceLine) {
     if (display.status === 'started')
       timingDetail = display.kind === 'course' ? whenLine : undefined
     else if (display.status === 'running' && compact) timingDetail = undefined
+    // On a card, the Today chip already says it.
+    else if (display.status === 'today' && compact) timingDetail = undefined
+    else if (display.status === 'today')
+      timingDetail = (
+        <span className="font-medium text-primary-12 dark:text-primary-11">{whenLine}</span>
+      )
     else timingDetail = whenLine
   }
 
@@ -184,7 +190,10 @@ export function EventFacts({
   // It also owns a title above the facts, and a slot below them. The other
   // variants render just the fact column, and take `className` on it.
   const body = (
-    <div className={card ? slots.base() : slots.base({ className })}>
+    <div
+      className={card ? slots.base() : slots.base({ className })}
+      data-sheet-fold={variant === 'default' ? '' : undefined}
+    >
       {items.map(({ icon: Icon, text, subtext, stacked }, index) => {
         // Alignment is per-fact. Only a stacked fact, one with two lines,
         // hangs its icon from the first line.

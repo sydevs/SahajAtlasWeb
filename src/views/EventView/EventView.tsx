@@ -1,6 +1,8 @@
-import { Suspense, lazy, useState } from 'react'
+import { Suspense, lazy, useRef, useState } from 'react'
 import { useSuspenseQuery } from '@tanstack/react-query'
 import { Check } from 'lucide-react'
+
+import { useSheetFit } from './use-sheet-fit'
 
 import { Alert } from '@/components/atoms/Alert'
 import { DrawerBody, DrawerFooter } from '@/components/atoms/Drawer'
@@ -98,12 +100,16 @@ export function EventView({ id, basePath }: { id: number; basePath: string }) {
   const { display } = useEventDisplay(event)
   const stickyRegister = hasMap && !isWide && hasRegisterSlot(event, display)
   const onwardHref = parentOf(event.path)
+  const layerAnchor = useRef<HTMLSpanElement>(null)
+
+  useSheetFit(layerAnchor, stickyRegister)
 
   return (
     <>
       {/* SEO — title, canonical, JSON-LD — is only meaningful for the crawlable standalone
           build. The embedded widget's host owns the document head. */}
       {standalone && <EventMetadata event={event} />}
+      <span ref={layerAnchor} hidden />
       <EventHeader event={event} trailing={<CloseButton />} />
       {/* The body slot's own spacer clears the pinned bar's CONTENT, at the footer's
           published height. Clearing the SCROLL is this body's, and only this body's: focus
@@ -180,11 +186,11 @@ export function EventView({ id, basePath }: { id: number; basePath: string }) {
       {stickyRegister && (
         <DrawerFooter
           sticky
-          className={`px-4 py-3 transition-transform ${collapsed ? 'translate-y-full opacity-0' : ''}`}
+          className={`px-4 py-3 transition-transform before:pointer-events-none before:absolute before:inset-x-0 before:bottom-full before:h-4 before:bg-gradient-to-t before:from-background before:to-transparent before:content-[''] ${collapsed ? 'translate-y-full opacity-0' : ''}`}
         >
           {/* The two rows are gapped inside a wrapper, not by the footer itself, so the
               footer's own safe-area spacer is not a third gapped sibling. */}
-          <div className="flex flex-col gap-2">
+          <div data-sheet-footer className="flex flex-col gap-2">
             <EventRegisterBar basePath={basePath} event={event} />
             {/* The row rides the bar so only one copy exists — see `ctaInline`. The
                 boundary keeps a rejected chunk from reaching the body's sibling
