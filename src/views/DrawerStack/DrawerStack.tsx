@@ -22,7 +22,7 @@ import { useExpansion } from '@/hooks/use-expansion'
 import { useLocale } from '@/hooks/use-locale'
 import { Drawer, DrawerContent } from '@/components/atoms/Drawer'
 import { ResetErrorBoundary, SettingsMenu } from '@/components/molecules'
-import { WidgetWidthContext, useIsWide } from '@/config/responsive'
+import { SEARCH_SHEET_PX, WidgetWidthContext, useIsWide } from '@/config/responsive'
 import { useWidgetMode } from '@/config/mode'
 import { useCalendarPosition } from '@/config/store'
 import { frameElement, overlayContainer } from '@/lib/overlay'
@@ -87,11 +87,13 @@ type SecondaryViews = ReturnType<typeof loadSecondaryViews>
 // number as a fraction of the sheet height:
 //  - '80px'  peek — the handle plus the search or title row
 //  - '300px' lower third — title, a list row, and a peek of the next
+//  - 440px   a searched place: enough to see its classes and that other groups follow
 //  - 0.97    near-full
-const SNAP_POINTS = ['80px', '300px', 0.97]
+const SEARCH_SNAP = `${SEARCH_SHEET_PX}px` // a searched place: the answer, and the groups below it
+const SNAP_POINTS = ['80px', '300px', SEARCH_SNAP, 0.97]
 const PEEK_SNAP = '80px' // the collapsed peek
 const OPEN_SNAP = '300px' // default, and what the peek expands to
-const WIDE_SNAP = SNAP_POINTS[2] // the near-full snap the full-width calendar opens at
+const WIDE_SNAP = SNAP_POINTS[3] // the near-full snap the full-width calendar opens at
 
 // How far each stacked ancestor peeks out behind the active sheet. Wide enough to read as
 // a deliberate stack of cards from across the screen. An earlier few-pixel sliver was easy
@@ -525,7 +527,9 @@ export function DrawerStack() {
   // This runs only when navigating to or from the calendar, so it never fights a
   // manual drag on a non-calendar view.
   useEffect(() => {
-    if (direction === 'bottom') setSnap(top?.kind === 'calendar' ? WIDE_SNAP : OPEN_SNAP)
+    if (direction !== 'bottom') return
+    if (top?.kind === 'calendar') setSnap(WIDE_SNAP)
+    else setSnap(top?.kind === 'search' && searchCenter ? SEARCH_SNAP : OPEN_SNAP)
   }, [direction, top?.kind])
 
   // A new searched place lifts the sheet out of its peek, so results are never
@@ -539,7 +543,14 @@ export function DrawerStack() {
   // of the peek, rather than setting the snap outright, leaves a sheet the visitor
   // pulled tall exactly where they put it.
   useEffect(() => {
-    if (direction === 'bottom') setSnap((current) => (current === PEEK_SNAP ? OPEN_SNAP : current))
+    if (direction !== 'bottom') return
+    // A place that was just searched opens at the height that shows its groups, unless the visitor
+    // already pulled the sheet taller.
+    if (searchCenter && top?.kind === 'search') {
+      setSnap((current) => (current === WIDE_SNAP ? current : SEARCH_SNAP))
+    } else {
+      setSnap((current) => (current === PEEK_SNAP ? OPEN_SNAP : current))
+    }
   }, [direction, searchCenter])
 
   // Uniform for every view: dismissing pops to the parent, and the one view with no

@@ -2,6 +2,7 @@ import type { RevealMore } from '@/lib/shape'
 
 import { useEffect, useRef } from 'react'
 import clsx from 'clsx'
+import { ChevronDown } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 
 import { Button } from '@/components/atoms/Button'
@@ -113,8 +114,26 @@ export function LoadMore({
     // left is the `sr-only` region, which is absolutely positioned and
     // contributes no height. Otherwise the padding would be a blank strip
     // under every fully-revealed list.
-    <div className={clsx('flex flex-col items-center gap-2 px-4', more && 'pt-4 pb-6')}>
-      {more && (
+    <div className={clsx('flex flex-col items-center gap-2', more === 'more' && 'px-4 pt-4 pb-6')}>
+      {/* Reaching past the boundary opens one more group of the list, so it looks like the group
+          headers above it, not a button left floating under full-width rows. */}
+      {more === 'farther' && (
+        <button
+          ref={buttonRef}
+          aria-busy={loading || undefined}
+          className="flex min-h-14 w-full items-center gap-2 border-t border-divider bg-gray-2 px-4 py-3 text-start text-base transition-colors outline-none hover:bg-primary-2 focus-visible:ring-2 focus-visible:ring-primary-8 focus-visible:ring-inset active:bg-primary-3 dark:hover:bg-gray-3 dark:active:bg-gray-4"
+          type="button"
+          onClick={() => onReveal('press')}
+        >
+          <span className="min-w-0 flex-grow">{t('search.results.farther_classes')}</span>
+          {loading ? (
+            <Spinner decorative color="current" size="sm" />
+          ) : (
+            <ChevronDown aria-hidden className="shrink-0 text-gray-10" size={20} />
+          )}
+        </button>
+      )}
+      {more === 'more' && (
         // This stays busy, but never `disabled`, and not through the Button's
         // own `isLoading`, which also sets `disabled`. A browser unfocuses a
         // disabled element. So a keyboard user pressing this would be dropped
@@ -132,7 +151,7 @@ export function LoadMore({
           onClick={() => onReveal('press')}
         >
           {loading && <Spinner decorative color="current" size="sm" />}
-          {more === 'farther' ? t('search.results.farther') : t('search.results.more')}
+          {t('search.results.more')}
         </Button>
       )}
       <span aria-live="polite" className="sr-only" role="status">

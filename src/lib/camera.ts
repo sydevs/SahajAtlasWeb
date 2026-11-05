@@ -13,6 +13,8 @@ export type FitOptions = {
   maxZoom?: number
   /** Uniform px added to every side of the base padding, so events are not flush to the edge. */
   padding?: number
+  /** Extra px at the bottom only, for a phone sheet that stands taller than the usual peek. */
+  bottom?: number
 }
 
 /**
@@ -30,7 +32,7 @@ export const fitBoundsOptions = (
     maxZoom: opts?.maxZoom,
     padding: {
       top: (base.top ?? 0) + extra,
-      bottom: (base.bottom ?? 0) + extra,
+      bottom: (base.bottom ?? 0) + extra + (opts?.bottom ?? 0),
       left: (base.left ?? 0) + extra,
       right: (base.right ?? 0) + extra,
     },

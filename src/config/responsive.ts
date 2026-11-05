@@ -1,6 +1,9 @@
 import { createContext, useContext, useEffect, useLayoutEffect, useState } from 'react'
 import { useMediaQuery } from 'react-responsive'
 
+/** How tall a phone's sheet opens on a searched place: the sheet asks for it, the camera frames around it. */
+export const SEARCH_SHEET_PX = 440
+
 /**
  * # Responsive signals, and which question each one answers
  *

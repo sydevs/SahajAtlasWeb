@@ -90,6 +90,8 @@ export type EventFactsProps = {
   /** Distance from the searched location, shown faded under the address. List
    *  cards only: the panel has no search origin to measure from. */
   distance?: ReactNode
+  /** Replaces the address line, for a list that sorts by place. List cards only. */
+  where?: ReactNode
   className?: string
 }
 
@@ -111,6 +113,7 @@ export function EventFacts({
   title,
   children,
   distance,
+  where,
   className,
 }: EventFactsProps) {
   const {
@@ -169,10 +172,14 @@ export function EventFacts({
           <div>{whereLine}</div>
         </>
       ) : (
-        whereLine
+        (where ?? whereLine)
       ),
       stacked: Boolean(room),
-      subtext: display.online ? (whereSubtext ?? undefined) : (distance ?? undefined),
+      subtext: display.online
+        ? (whereSubtext ?? undefined)
+        : where
+          ? undefined
+          : (distance ?? undefined),
     })
   }
 

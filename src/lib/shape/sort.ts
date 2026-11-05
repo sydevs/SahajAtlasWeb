@@ -89,3 +89,10 @@ export function sortEvents(events: EventSlim[], order: SortOrder, language: stri
         .map(({ event }) => event)
   }
 }
+
+/**
+ * The order of the online group. Distance means nothing to a class you join from home, so unless
+ * the visitor asked for Soonest, this falls back to the relevance score: their language, then soon.
+ */
+export const orderOnline = (online: EventSlim[], order: SortOrder, language: string): EventSlim[] =>
+  sortEvents(online, order === 'soonest' ? 'soonest' : 'recommended', language)

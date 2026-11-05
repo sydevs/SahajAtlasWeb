@@ -70,6 +70,9 @@ export type { EventChipsProps, EventChipsVariant } from './EventChips'
 
 export { List } from './List'
 
+export { FoldSection } from './FoldSection'
+export type { FoldSectionProps } from './FoldSection'
+
 export { ListItem } from './ListItem'
 export type { ListItemProps } from './ListItem'
 

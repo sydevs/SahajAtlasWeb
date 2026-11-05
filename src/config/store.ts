@@ -207,6 +207,25 @@ export const useResultsReveal = create<ResultsRevealState>((set) => ({
   revealMore: (key, next) => set(() => ({ key, shown: next.shown, showAll: next.showAll })),
 }))
 
+// ===== RESULT FOLDS ===== //
+
+// Which folded groups of a list are open. A store for the same reason as the reveal above: the
+// drawer stack remounts views, and coming back from a class should find the group still open.
+// `open` holds only what the visitor has toggled, so each group's own default still applies until
+// then. A new `key` (a new place, an edited filter) starts again from those defaults.
+type ResultFoldsState = {
+  key: string
+  open: Record<string, boolean>
+  setOpen: (key: string, id: string, open: boolean) => void
+}
+
+export const useResultFolds = create<ResultFoldsState>((set) => ({
+  key: '',
+  open: {},
+  setOpen: (key, id, open) =>
+    set((state) => ({ key, open: { ...(state.key === key ? state.open : {}), [id]: open } })),
+}))
+
 // ===== REPORT MODAL ===== //
 
 // This holds the open state for the report-issue modal, issue #79.
