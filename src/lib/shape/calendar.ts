@@ -277,6 +277,17 @@ export const chosenCalendarFilters = (filters: EventFilters, isList: boolean): E
   dateRange: isList ? { start: null, end: null } : filters.dateRange,
 })
 
+/**
+ * What a region's "Next 7 days" row counts and opens: the visitor's filters, in that region, over
+ * the next seven days. So with Tuesday chosen, the row counts Tuesday's classes, as the list below
+ * it does. A date filter is left out, because the row names its own days.
+ */
+export const nextSevenDaysFilters = (filters: EventFilters, regionSlug: string): EventFilters => ({
+  ...filters,
+  region: regionSlug,
+  dateRange: { start: null, end: null },
+})
+
 /** One day of the List view. */
 export type CalendarDay = { date: string; entries: CalendarEntry[] }
 

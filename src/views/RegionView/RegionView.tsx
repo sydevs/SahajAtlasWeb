@@ -28,6 +28,7 @@ import { useWidgetMode } from '@/config/mode'
 import { centerOfBounds } from '@/lib/geo'
 import {
   DEFAULT_FILTERS,
+  type EventFilters,
   FOREIGN_NEARBY_KM,
   boundsWith,
   calendarWindow,
@@ -36,6 +37,7 @@ import {
   eventsToCalendarEntries,
   isoCountryCode,
   isOnline,
+  nextSevenDaysFilters,
   searchPath,
   thisWeekPath,
   todayISO,
@@ -50,12 +52,12 @@ import {
   useFrameOnTop,
 } from '@/views/shared'
 
-// How many classes the week list will show for a region: one read of the same query, so the
-// count and the list can't disagree. No number until it has loaded, and none for an empty week.
-function useThisWeekCount(regionSlug: string, enabled: boolean): number | undefined {
+// How many classes the week list will show for a region, with the visitor's filters
+// (`nextSevenDaysFilters`): one read of the same query, so the count, the list it opens and the
+// filtered list below it can't disagree. No number until it has loaded, and none for an empty week.
+function useThisWeekCount(filters: EventFilters, enabled: boolean): number | undefined {
   const { locale } = useLocale()
   const { t } = useTranslation()
-  const filters = useMemo(() => ({ ...DEFAULT_FILTERS, region: regionSlug }), [regionSlug])
   const { data } = useQuery({ ...calendarQuery(filters, locale), enabled })
   const onlineLabel = t('event.display.online')
 
@@ -127,7 +129,12 @@ export function RegionView({ slug }: { slug: string }) {
   const isEmpty = region.subregions.length === 0 && !hasEventList
   // The date-first way in. A venue with one class has nothing to arrange by day.
   const showThisWeek = !isEmpty && (region.subregions.length > 0 || region.events.length > 1)
-  const thisWeekCount = useThisWeekCount(region.slug, showThisWeek)
+  // With Tuesday chosen, the row counts and opens Tuesday's classes, like the list below it.
+  const weekFilters = useMemo(
+    () => nextSevenDaysFilters(filters, region.slug),
+    [filters, region.slug],
+  )
+  const thisWeekCount = useThisWeekCount(weekFilters, showThisWeek)
   // "All events are free" is the subtitle FALLBACK. It states this once per list — no Free
   // chip repeats on cards — but only where events are actually listed. A city's own subtitle
   // takes the slot when present.
@@ -217,7 +224,7 @@ export function RegionView({ slug }: { slug: string }) {
             {showThisWeek && (
               <ListItem
                 count={thisWeekCount}
-                href={thisWeekPath(region.slug)}
+                href={thisWeekPath(weekFilters)}
                 label={t('calendar.next_7_days')}
               />
             )}
