@@ -2,8 +2,9 @@ import type { Geojson } from '@/types'
 
 import { useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { ChevronRight, LocateFixed, MapPin } from 'lucide-react'
+import { ChevronRight, LocateFixed } from 'lucide-react'
 
+import { WmIcon } from '@/components/atoms/Icons/wm'
 import { Spinner } from '@/components/atoms/Spinner'
 import { listRow } from '@/components/molecules/List/List'
 import { useGeolocateToSearch } from '@/hooks/use-geolocate'
@@ -89,11 +90,11 @@ export function NearMeRow({ geojson }: { geojson: Geojson | undefined }) {
         type="button"
         onClick={offer ? offer.accept : locate}
       >
-        <span className="me-4 flex h-6 w-6 shrink-0 items-center justify-center text-primary-11">
+        <span className="me-4 flex h-6 w-6 shrink-0 items-center justify-center text-ornament">
           {locating ? (
             <Spinner size="sm" />
           ) : offer ? (
-            <MapPin aria-hidden size={20} />
+            <WmIcon aria-hidden name="location-pin" size={22} />
           ) : (
             <LocateFixed aria-hidden size={20} />
           )}

@@ -3,10 +3,10 @@ import { useQuery, useSuspenseQuery } from '@tanstack/react-query'
 import { Helmet } from 'react-helmet-async'
 import { CircleFlag } from 'react-circle-flags'
 import { useTranslation } from 'react-i18next'
-import { Monitor } from 'lucide-react'
 
 import { NearMeRow } from './NearMeRow'
 
+import { WmIcon } from '@/components/atoms/Icons/wm'
 import { DrawerBody, DrawerHeader } from '@/components/atoms/Drawer'
 import {
   ActiveFilterPills,
@@ -156,13 +156,13 @@ export function CountriesView() {
                 <ListItem
                   count={onlineCount}
                   href={onlineSearch}
-                  icon={<Monitor size={20} />}
+                  icon={<WmIcon className="text-ornament" name="meditate" size={24} />}
                   label={t('online.row')}
                   subtitle={t('online.anywhere')}
                 />
               </List>
             )}
-            <h3 className="px-4 pt-3 pb-1 text-sm font-normal text-gray-11">
+            <h3 className="px-4 pt-4 pb-1 text-xs font-medium tracking-[0.08em] text-gray-11 uppercase">
               {t('countries.browse')}
             </h3>
             <div onFocus={freeze} onPointerDown={freeze} onPointerEnter={freeze}>
