@@ -2,7 +2,13 @@ import type { Feature } from 'geojson'
 
 import { describe, it, expect, beforeEach } from 'vitest'
 
-import { rememberCamera, useCameraHistory, useCameraSettled, useViewState } from './store'
+import {
+  rememberCamera,
+  useCameraHistory,
+  useCameraSettled,
+  useCameraTarget,
+  useViewState,
+} from './store'
 
 // These stores are the single source of truth for the map view, plus the registration draft.
 // They are plain zustand vanilla stores.
@@ -117,6 +123,34 @@ describe('useCameraHistory', () => {
     })
     // The transient hover is intentionally NOT part of a restore snapshot.
     expect(useCameraHistory.getState().read('entry-1')).not.toHaveProperty('hover')
+  })
+})
+
+describe('rememberCamera during a fly', () => {
+  beforeEach(() => {
+    useViewState.setState({ zoom: 13, latitude: 49.2, longitude: 16.6 })
+  })
+
+  it('remembers where the fly is going, not the place the store has not moved on from', () => {
+    useCameraTarget.setState({ target: { zoom: 9, latitude: 50.08, longitude: 14.42 } })
+    rememberCamera('mid-flight')
+
+    expect(useCameraHistory.getState().read('mid-flight')).toMatchObject({
+      zoom: 9,
+      latitude: 50.08,
+      longitude: 14.42,
+    })
+  })
+
+  it('remembers the store once the map has come to rest', () => {
+    useCameraTarget.setState({ target: null })
+    rememberCamera('at-rest')
+
+    expect(useCameraHistory.getState().read('at-rest')).toMatchObject({
+      zoom: 13,
+      latitude: 49.2,
+      longitude: 16.6,
+    })
   })
 })
 
