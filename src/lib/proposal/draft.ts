@@ -23,7 +23,7 @@ export type ListingStep = (typeof LISTING_STEPS)[number] | 'fix' | 'note'
 export type ListingSection = Exclude<(typeof LISTING_STEPS)[number], 'review'>
 
 /** What a correction set out to fix, as its first screen asks it. */
-export type FixIntent = 'when' | 'where' | 'details' | 'stopped' | 'other'
+export type FixIntent = 'when' | 'where' | 'details' | 'nobody' | 'stopped' | 'other'
 
 export type ListingRepeats = 'once' | 'weekly' | 'monthly'
 

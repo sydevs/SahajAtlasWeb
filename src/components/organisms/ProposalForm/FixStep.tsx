@@ -3,6 +3,7 @@ import type { TranslationKey } from '@/types/i18next'
 import type { LucideIcon } from 'lucide-react'
 
 import { useState } from 'react'
+import { DateTime } from 'luxon'
 import { useTranslation } from 'react-i18next'
 import {
   CalendarClock,
@@ -11,6 +12,7 @@ import {
   MapPin,
   MessageSquare,
   UserRound,
+  UserX,
 } from 'lucide-react'
 
 import { ChoiceCard, FIELD_TEXT, StepHeading, ValidatedInput, radioKeys } from './fields'
@@ -23,6 +25,7 @@ const INTENTS: { intent: FixIntent; icon: LucideIcon; label: TranslationKey }[] 
   { intent: 'when', icon: CalendarClock, label: 'submit.fix.when' },
   { intent: 'where', icon: MapPin, label: 'submit.fix.where' },
   { intent: 'details', icon: UserRound, label: 'submit.fix.details' },
+  { intent: 'nobody', icon: UserX, label: 'submit.fix.nobody' },
   { intent: 'stopped', icon: CircleOff, label: 'submit.fix.stopped' },
   { intent: 'other', icon: MessageSquare, label: 'submit.fix.other' },
 ]
@@ -65,29 +68,57 @@ export function NoteStep({
   draft,
   base,
   error,
+  nobodyOn = '',
+  onNobodyOn,
   onSender,
   onChange,
 }: {
-  intent: 'stopped' | 'other'
+  intent: 'stopped' | 'nobody' | 'other'
   sender: ListingSender
   draft: ListingDraft
   /** The class as published: its last date is what "I'm not sure" leaves in place. */
   base?: ListingDraft
   error?: string | false
+  /** The day someone went, for a report that nobody was there. */
+  nobodyOn?: string
+  onNobodyOn?: (date: string) => void
   onSender: (patch: Partial<ListingSender>) => void
   onChange: (patch: Partial<ListingDraft>) => void
 }) {
   const { t } = useTranslation()
   const stopped = intent === 'stopped'
+  const nobody = intent === 'nobody'
   const repeating = (base ?? draft).repeats !== 'once'
   const [knows, setKnows] = useState(Boolean(base && draft.endDate !== base.endDate))
 
   return (
     <div className="flex flex-col gap-5">
       <StepHeading
-        intro={stopped ? t('submit.note.stopped_intro') : undefined}
-        title={t(stopped ? 'submit.note.stopped_title' : 'submit.note.other_title')}
+        intro={
+          stopped
+            ? t('submit.note.stopped_intro')
+            : nobody
+              ? t('submit.note.nobody_intro')
+              : undefined
+        }
+        title={t(
+          stopped
+            ? 'submit.note.stopped_title'
+            : nobody
+              ? 'submit.note.nobody_title'
+              : 'submit.note.other_title',
+        )}
       />
+      {nobody && (
+        <ValidatedInput
+          id="submit-nobody-date"
+          label={t('submit.note.nobody_date')}
+          max={DateTime.now().toISODate() ?? undefined}
+          type="date"
+          value={nobodyOn}
+          onChange={(event) => onNobodyOn?.(event.target.value)}
+        />
+      )}
       {stopped && repeating && (
         <fieldset className="flex flex-col gap-3">
           <legend className="mb-2 text-sm font-medium">{t('submit.note.last_question')}</legend>
@@ -128,8 +159,8 @@ export function NoteStep({
       <FormField
         error={error}
         htmlFor="submit-note"
-        label={t(stopped ? 'submit.note.stopped_label' : 'submit.note.other_label')}
-        required={!stopped}
+        label={t(stopped || nobody ? 'submit.note.stopped_label' : 'submit.note.other_label')}
+        required={!stopped && !nobody}
       >
         <Textarea
           aria-invalid={error ? true : undefined}
@@ -137,7 +168,11 @@ export function NoteStep({
           id="submit-note"
           maxLength={userSubmissionValueMax('note')}
           placeholder={t(
-            stopped ? 'submit.note.stopped_placeholder' : 'submit.note.other_placeholder',
+            stopped
+              ? 'submit.note.stopped_placeholder'
+              : nobody
+                ? 'submit.note.nobody_placeholder'
+                : 'submit.note.other_placeholder',
           )}
           rows={5}
           value={sender.note}

@@ -310,6 +310,8 @@ type ListingDraftState = {
    * the latest answer: "correct something else too" must not drop a report already made.
    */
   reported: boolean
+  /** A report that someone went and found nobody: the day they went, or '' if not given. */
+  nobodyOn: string | null
   /** Set once a submission resolves. Nothing reads the row back, so this is the whole receipt. */
   sent: boolean
 }
@@ -323,6 +325,7 @@ type ListingDraftAction = {
   setIntent: (intent: FixIntent, step: ListingStep) => void
   /** Takes back a "stopped running" report, as a change on Check is undone. */
   clearReport: () => void
+  setNobodyOn: (date: string | null) => void
   markSent: () => void
 }
 
@@ -336,6 +339,7 @@ export const useListingDraft = create<ListingDraftState & ListingDraftAction>((s
   reviewed: false,
   intent: null,
   reported: false,
+  nobodyOn: null,
   sent: false,
   start: ({ key, entry }, { draft, base, step }) =>
     set(() => ({
@@ -348,13 +352,20 @@ export const useListingDraft = create<ListingDraftState & ListingDraftAction>((s
       reviewed: step === 'review',
       intent: null,
       reported: false,
+      nobodyOn: null,
       sent: false,
     })),
   setSender: (patch) => set((state) => ({ sender: { ...state.sender, ...patch } })),
   update: (patch) => set((state) => (state.draft ? { draft: { ...state.draft, ...patch } } : {})),
   setStep: (step) => set((state) => ({ step, reviewed: state.reviewed || step === 'review' })),
   setIntent: (intent, step) =>
-    set((state) => ({ intent, step, reported: state.reported || intent === 'stopped' })),
+    set((state) => ({
+      intent,
+      step,
+      reported: state.reported || intent === 'stopped',
+      nobodyOn: intent === 'nobody' ? (state.nobodyOn ?? '') : state.nobodyOn,
+    })),
   clearReport: () => set(() => ({ reported: false })),
+  setNobodyOn: (nobodyOn) => set(() => ({ nobodyOn })),
   markSent: () => set(() => ({ sent: true })),
 }))

@@ -432,7 +432,8 @@
       "where": "It moved to a new place",
       "details": "Contact or other details are wrong",
       "stopped": "It has stopped running",
-      "other": "Something else"
+      "other": "Something else",
+      "nobody": "I went and nobody was there"
     },
     "note": {
       "stopped_title": "It has stopped running",
@@ -449,7 +450,13 @@
       "last_unsure": "I’m not sure",
       "last_known": "I know the date",
       "last_date": "Last class",
-      "signup_elsewhere": "Sign-ups for this class happen on another site. The link is in the Website field. Please set this class to external registration."
+      "signup_elsewhere": "Sign-ups for this class happen on another site. The link is in the Website field. Please set this class to external registration.",
+      "nobody_title": "You went and nobody was there",
+      "nobody_intro": "Sorry about the wasted trip. This goes to the coordinator, who can check with the host.",
+      "nobody_date": "When did you go? (optional)",
+      "nobody_placeholder": "For example: the door was locked and the room was dark.",
+      "nobody_default": "Someone went to this class and found nobody there.",
+      "nobody_default_on": "Someone went to this class on %{date} and found nobody there."
     },
     "changes": {
       "title": "Check your suggestion",
@@ -468,7 +475,9 @@
       "report_last": "Last class: %{date}",
       "report_last_unknown": "Last class: not known",
       "report_info": "Information for the coordinator",
-      "remove": "Remove"
+      "remove": "Remove",
+      "nobody": "Nobody was there",
+      "nobody_on": "On %{date}"
     },
     "summary": {
       "type": "Type",

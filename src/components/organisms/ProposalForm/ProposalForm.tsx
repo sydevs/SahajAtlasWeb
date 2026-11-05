@@ -20,7 +20,7 @@ import { useMutation } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
 import { Check } from 'lucide-react'
 
-import { type ChangeKey, CheckStep } from './CheckStep'
+import { type ChangeKey, CheckStep, longDate } from './CheckStep'
 import { DetailsStep } from './DetailsStep'
 import { FixStep, NoteStep } from './FixStep'
 import { PlaceStep } from './PlaceStep'
@@ -31,6 +31,7 @@ import { Button } from '@/components/atoms/Button'
 import { DrawerBody, DrawerFooter, DrawerHeader } from '@/components/atoms/Drawer'
 import proposalApi from '@/config/api/proposal'
 import { refusalCopyKey } from '@/config/api/mutate'
+import { useLocale } from '@/hooks/use-locale'
 import { useTurnstile } from '@/hooks/use-turnstile'
 import {
   LISTING_STEPS,
@@ -87,6 +88,7 @@ const INTENT_STEPS: Record<FixIntent, ListingStep> = {
   when: 'when',
   where: 'where',
   details: 'details',
+  nobody: 'note',
   stopped: 'note',
   other: 'note',
 }
@@ -109,6 +111,9 @@ export type ProposalFormProps = {
   /** Whether the correction reports the class as stopped — kept across further answers. */
   reported?: boolean
   onClearReport?: () => void
+  /** A report that someone went and found nobody: the day, '' if not given, null if no report. */
+  nobodyOn?: string | null
+  onNobodyOn?: (date: string | null) => void
   /** Whether the submission has been accepted. The form then shows its receipt. */
   sent: boolean
   onSent: () => void
@@ -258,6 +263,8 @@ function StepStage({
   reviewed,
   intent = null,
   reported = false,
+  nobodyOn = null,
+  onNobodyOn,
   onIntent,
   onChange,
   sender,
@@ -354,14 +361,18 @@ function StepStage({
           )}
           {/* The note step answers the report at hand: "something else" when that was the latest
               answer, otherwise the stopped report — which a later answer does not undo. */}
-          {step === 'note' && (intent === 'other' || reported) && (
+          {step === 'note' && (intent === 'other' || reported || nobodyOn !== null) && (
             <NoteStep
               base={base}
               draft={draft}
               error={noteMissing && t('submit.note.other_required')}
-              intent={intent === 'other' ? 'other' : 'stopped'}
+              intent={
+                intent === 'other' || intent === 'nobody' ? intent : reported ? 'stopped' : 'nobody'
+              }
+              nobodyOn={nobodyOn ?? ''}
               sender={sender}
               onChange={onChange}
+              onNobodyOn={onNobodyOn}
               onSender={onSender}
             />
           )}
@@ -435,6 +446,9 @@ function ReviewStage({
   onChange,
   intent = null,
   reported = false,
+  nobodyOn = null,
+  onNobodyOn,
+  onIntent,
   onClearReport,
   context,
   listing,
@@ -446,6 +460,7 @@ function ReviewStage({
   onBounce,
 }: StageProps & { onBounce: (step: ListingStep) => void }) {
   const { t } = useTranslation()
+  const { locale } = useLocale()
   const [emailError, setEmailError] = useState(false)
   const [noChanges, setNoChanges] = useState(false)
   const [attemptAt, setAttemptAt] = useState(0)
@@ -528,6 +543,10 @@ function ReviewStage({
     const note =
       [
         reported && t('submit.note.stopped_default'),
+        nobodyOn !== null &&
+          (nobodyOn
+            ? t('submit.note.nobody_default_on', { date: longDate(nobodyOn, locale) })
+            : t('submit.note.nobody_default')),
         typed && t('submit.note.manual_place', { place: typed.label }),
         // Proposals may not set the registration fields, so the coordinator is asked to.
         draft.signup === 'elsewhere' && t('submit.note.signup_elsewhere'),
@@ -548,7 +567,10 @@ function ReviewStage({
   // visitor is back where a correction starts.
   const undo = (key: ChangeKey, remaining: number) => {
     // A report goes whole: its status, its last date and what the visitor said about it.
-    if (key === 'stopped') {
+    if (key === 'nobody') {
+      onNobodyOn?.(null)
+      onSender({ note: '' })
+    } else if (key === 'stopped') {
       onClearReport?.()
       if (base) onChange(revertFields(base, ['endDate']))
       onSender({ note: '' })
@@ -570,6 +592,7 @@ function ReviewStage({
                 event: correction.event,
                 intent,
                 reported,
+                nobodyOn,
               }
             }
             draft={draft}
@@ -580,6 +603,7 @@ function ReviewStage({
             refusal={refusal}
             sender={sender}
             onEdit={(section: ListingSection | 'note') => onGo(section)}
+            onEditReport={(report) => onIntent?.(report, 'note')}
             onMore={correction ? () => onGo('fix') : undefined}
             onSender={onSender}
             onUndo={correction ? undo : undefined}

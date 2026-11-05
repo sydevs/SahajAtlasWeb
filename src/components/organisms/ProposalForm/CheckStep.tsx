@@ -29,7 +29,7 @@ import { useLocale } from '@/hooks/use-locale'
 import { draftTitle } from '@/lib/proposal'
 
 /** What a change on a correction's Check can be: a row of the listing, the report, or the note. */
-export type ChangeKey = SummaryRow['key'] | 'stopped' | 'note'
+export type ChangeKey = SummaryRow['key'] | 'stopped' | 'nobody' | 'note'
 
 export type CheckStepProps = {
   sender: ListingSender
@@ -43,10 +43,13 @@ export type CheckStepProps = {
     event?: Event
     intent: FixIntent | null
     reported: boolean
+    nobodyOn: string | null
   }
   draft: ListingDraft
   listing?: Event
   onEdit: (section: ListingSection | 'note') => void
+  /** A correction reopens one of its reports, whichever was written last. */
+  onEditReport?: (report: 'stopped' | 'nobody') => void
   /** A correction takes back one change; `remaining` is how many are left after it. */
   onUndo?: (key: ChangeKey, remaining: number) => void
   /** A correction goes back to "what needs fixing?" to add another change to the same report. */
@@ -72,6 +75,7 @@ export function CheckStep({
   draft,
   listing,
   onEdit,
+  onEditReport,
   onUndo,
   onMore,
   challengeRef,
@@ -81,7 +85,10 @@ export function CheckStep({
 }: CheckStepProps) {
   const { t } = useTranslation()
   // A report with no field to change already wrote its note on the step before.
-  const noteWritten = Boolean(correction?.reported) || correction?.intent === 'other'
+  const noteWritten =
+    Boolean(correction?.reported) ||
+    (correction?.nobodyOn ?? null) !== null ||
+    correction?.intent === 'other'
 
   return (
     <div className="flex flex-col gap-6">
@@ -94,9 +101,11 @@ export function CheckStep({
               baseDraft={correction.baseDraft}
               draft={draft}
               listing={listing}
+              nobodyOn={correction.nobodyOn}
               note={noteWritten ? sender.note : ''}
               reported={correction.reported}
               onEdit={onEdit}
+              onEditReport={onEditReport}
               onMore={onMore}
               onUndo={onUndo}
             />
@@ -327,7 +336,7 @@ function Fact({
 }
 
 /** A date in words, year included — on Check every date is checked, so none is left implied. */
-const longDate = (iso: string, locale: string) =>
+export const longDate = (iso: string, locale: string) =>
   DateTime.fromISO(iso).setLocale(locale).toLocaleString(DateTime.DATE_FULL)
 
 /** A 32px button that takes taps across 44px, without pushing the rows apart. */
@@ -383,8 +392,10 @@ function ChangeList({
   draft,
   listing,
   reported,
+  nobodyOn,
   note,
   onEdit,
+  onEditReport,
   onUndo,
   onMore,
 }: {
@@ -393,8 +404,10 @@ function ChangeList({
   draft: ListingDraft
   listing: Event
   reported: boolean
+  nobodyOn: string | null
   note: string
   onEdit: (section: ListingSection | 'note') => void
+  onEditReport?: (report: 'stopped' | 'nobody') => void
   onUndo?: (key: ChangeKey, remaining: number) => void
   onMore?: () => void
 }) {
@@ -428,7 +441,10 @@ function ChangeList({
   }
 
   const info = note.trim()
-  const total = changes.length + (reported ? 1 : 0) + (!reported && info ? 1 : 0)
+  const nobody = nobodyOn !== null
+  const hasReport = reported || nobody
+  const total =
+    changes.length + (reported ? 1 : 0) + (nobody ? 1 : 0) + (!hasReport && info ? 1 : 0)
   const undo = (key: ChangeKey) => onUndo?.(key, total - 1)
 
   return (
@@ -443,7 +459,7 @@ function ChangeList({
             <ChangeCard
               label={t('submit.changes.report_title')}
               removeLabel={t('submit.changes.report_remove')}
-              onEdit={() => onEdit('note')}
+              onEdit={() => onEditReport?.('stopped')}
               onRemove={onUndo && (() => undo('stopped'))}
             >
               <p className="text-sm font-medium">{t('submit.changes.stopped')}</p>
@@ -453,6 +469,22 @@ function ChangeList({
                   : t('submit.changes.report_last_unknown')}
               </p>
               {info && <Info note={info} />}
+            </ChangeCard>
+          )}
+          {nobody && (
+            <ChangeCard
+              label={t('submit.changes.report_title')}
+              removeLabel={t('submit.changes.report_remove')}
+              onEdit={() => onEditReport?.('nobody')}
+              onRemove={onUndo && (() => undo('nobody'))}
+            >
+              <p className="text-sm font-medium">{t('submit.changes.nobody')}</p>
+              {nobodyOn && (
+                <p className="text-sm text-gray-11">
+                  {t('submit.changes.nobody_on', { date: longDate(nobodyOn, locale) })}
+                </p>
+              )}
+              {!reported && info && <Info note={info} />}
             </ChangeCard>
           )}
           {changes.map((change) => (
@@ -476,7 +508,7 @@ function ChangeList({
               </dl>
             </ChangeCard>
           ))}
-          {!reported && info && (
+          {!hasReport && info && (
             <ChangeCard
               label={t('submit.changes.report_info')}
               onEdit={() => onEdit('note')}

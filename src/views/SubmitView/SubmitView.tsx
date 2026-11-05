@@ -129,6 +129,7 @@ function useListingSession(target: FlowTarget) {
       reviewed: state.reviewed,
       intent: state.intent,
       reported: state.reported,
+      nobodyOn: state.nobodyOn,
       sent: state.sent,
     })),
   )
@@ -241,7 +242,7 @@ function Flow({ target }: { target: FlowTarget }) {
 
   if (!session?.draft || !listing) return null
 
-  const { update, setSender, setStep, setIntent, clearReport, markSent } =
+  const { update, setSender, setStep, setIntent, clearReport, setNobodyOn, markSent } =
     useListingDraft.getState()
 
   return (
@@ -257,6 +258,7 @@ function Flow({ target }: { target: FlowTarget }) {
         intent={session.intent}
         languageOptions={hints.languages}
         listing={listing}
+        nobodyOn={session.nobodyOn}
         placeMap={!hasMap || !isWide}
         placeNotice={<NearbyClassNotice classes={nearby} />}
         preview={
@@ -279,6 +281,7 @@ function Flow({ target }: { target: FlowTarget }) {
         onClearReport={clearReport}
         onClose={dismiss}
         onIntent={setIntent}
+        onNobodyOn={setNobodyOn}
         onSender={setSender}
         onSent={markSent}
         onStep={setStep}
