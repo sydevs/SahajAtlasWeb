@@ -15,9 +15,9 @@ import { useTheme } from '@/hooks/use-theme'
 // parameters, the channel and each message `type`. Change them in both repos in the same release —
 // a drifted protocol fails silently, the frame waiting out its handshake.
 //
-// ⚠ **The challenge is not lazy — that inverted in #182.** Registration cannot happen without a
-// token, so a challenge that cannot load fails the widget as soon as the INTERFACE mounts
-// (`useTurnstileGuard`), and a host with a stale CSP hears it from their own page.
+// ⚠ **The probe is not lazy (#182).** `useTurnstileGuard` runs it when the INTERFACE mounts, so a
+// host with a stale CSP hears about it on the console. A failure no longer stops the interface:
+// it shows in the forms that need a token, through `status`.
 
 const CHALLENGE_PATH = '/api/atlas/challenge'
 
@@ -211,6 +211,8 @@ export type UseTurnstile = {
    * rather than offer a retry that cannot succeed.
    */
   reset: () => void
+  /** Mounts a fresh frame, for a visitor pressing Try again after `blocked`. */
+  retry: () => void
 }
 
 export function useTurnstile({ disabled = false }: UseTurnstileOptions = {}): UseTurnstile {
@@ -222,6 +224,7 @@ export function useTurnstile({ disabled = false }: UseTurnstileOptions = {}): Us
   const [status, setStatus] = useState<TurnstileStatus>(disabled ? 'blocked' : 'loading')
   const { theme } = useTheme()
   const { languageCode } = useLocale()
+  const [attempt, setAttempt] = useState(0)
 
   // Re-mounting on a theme or language change is deliberate: Turnstile bakes both in at render
   // time, so the frame carries them in its URL and the teardown drops the unsolved token with it.
@@ -263,7 +266,7 @@ export function useTurnstile({ disabled = false }: UseTurnstileOptions = {}): Us
       dispose()
       frameRef.current = null
     }
-  }, [disabled, theme, languageCode])
+  }, [attempt, disabled, theme, languageCode])
 
   // Stable with no dependencies: the caller hands this to `useMutation`'s `onError`, and a fresh
   // identity each render would re-run the observer's `setOptions` for nothing. The new token
@@ -277,5 +280,7 @@ export function useTurnstile({ disabled = false }: UseTurnstileOptions = {}): Us
     live.frame.contentWindow.postMessage({ channel: CHALLENGE_CHANNEL, type: 'reset' }, live.origin)
   }, [])
 
-  return { challengeRef, token, status, reset }
+  const retry = useCallback(() => setAttempt((n) => n + 1), [])
+
+  return { challengeRef, token, status, reset, retry }
 }

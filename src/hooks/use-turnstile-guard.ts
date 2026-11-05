@@ -1,6 +1,6 @@
-import { useEffect, useState } from 'react'
+import { useEffect } from 'react'
 
-import { atlasError, reportIntegrationWarning } from '@/lib/report'
+import { reportIntegrationWarning } from '@/lib/report'
 import { probeTurnstile } from '@/hooks/use-turnstile'
 
 const GUIDE = 'https://github.com/sydevs/SahajAtlasWeb/blob/main/docs/embedding.md'
@@ -27,54 +27,41 @@ const captchaAdvice = (serverOrigin: string, hostname: string) =>
   `See ${GUIDE}#troubleshooting`
 
 /**
- * This fails the widget when Turnstile cannot load. See issue #182.
+ * This tells the host's developer when Turnstile cannot load. It no longer stops the widget.
  *
- * **This is eager, but not blocking.** The probe starts on mount, and nothing waits for it.
- * The overwhelmingly common case is that it succeeds.
- * Making first paint depend on a third-party script would tax every healthy embed to catch the rare broken one.
- * The verdict lands whenever it arrives, and only a negative one does anything.
+ * **It is eager, but not blocking.** The probe starts on mount, and nothing waits for it.
  *
- * **Why fail at all, instead of degrading?**
- * Registration is the whole point of the widget, and a registration cannot be sent without a token.
- * So a page where Turnstile is blocked is a page where the atlas cannot do its job.
- * Degrading quietly would leave a host believing their embed works, while every visitor who tries to register silently cannot.
- * Failing loudly gets the CSP fixed instead.
- * That trade is the decision recorded on the ticket, not one taken here.
+ * **Why it no longer fails the interface.** #182 made a failed check take the widget down, so that
+ * a host with a stale CSP would notice: every write is captcha-gated, and a quiet failure would let
+ * visitors browse and then be unable to register. But the check also fails for reasons that have
+ * nothing to do with the host. It is a frame on another origin with a 10-second handshake, so one
+ * slow load replaced a working atlas with a message blaming the page (seen once in 30+ loads on an
+ * iPhone). Browsing needs no token. So the failure now shows where a token is needed: the
+ * registration form says so and offers a retry, and the report form has its own degraded state.
+ * The console advice below still reaches the developer.
  *
  * ⚠ **Call this from the INTERFACE, never from the shell.**
  * `.claude/rules/components.md` is explicit that anything that fetches or injects a script must mount with `FullInterface`.
- * Four separate bugs, the home-region redirect, `warmCaches`, and both Fathom effects, came from effects firing for a collapsed compact card.
- * Mounting a challenge frame for a card nobody has pressed would be the fifth.
+ * Mounting a challenge frame for a card nobody has pressed would break that.
  * `CompactEmbedView.mount.test.tsx` asserts that this does not happen.
- *
- * This throws during render, not from the effect.
- * So the failure is an ordinary render throw that the nearest boundary catches.
- * That boundary is `ErrorFallback`, through the `ResetErrorBoundary` in `App.tsx`, the widget-level screen this failure deserves.
  */
 export function useTurnstileGuard(): void {
-  const [blocked, setBlocked] = useState(false)
-
   useEffect(() => {
     let cancelled = false
 
     void probeTurnstile().then((available) => {
       if (cancelled || available) return
 
-      // This runs before the throw, not after.
-      // The throw unmounts this tree, and the console line is the only part of this addressed to somebody who can fix it.
       reportIntegrationWarning(
         captchaAdvice(
           new URL(import.meta.env.VITE_SAHAJCLOUD_URL).origin,
           window.location.hostname,
         ),
       )
-      setBlocked(true)
     })
 
     return () => {
       cancelled = true
     }
   }, [])
-
-  if (blocked) throw atlasError('captcha-blocked', 'Turnstile could not be loaded')
 }

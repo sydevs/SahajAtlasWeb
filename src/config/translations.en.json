@@ -214,6 +214,7 @@
       "starting_at": "Select your starting date"
     },
     "form": {
+      "captcha_blocked": "We couldn't load the security check, so you can't register just yet.",
       "captcha_retry": "The security check needs doing again. Wait for it to refresh, then register once more.",
       "email": "Your email",
       "error_title": "Something went wrong",
