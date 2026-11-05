@@ -399,6 +399,12 @@
    already `none`), so the popover never steals hover from the pin beneath it or
    blocks tap-to-open — it is a purely visual affordance. This is plain CSS, not a
    Tailwind layer, so it reliably overrides the imported mapbox-gl.css. */
+/* Mapbox disables the locate button when the browser refuses location outright, such as in an
+   iframe with no `allow="geolocation"`, and shows a crossed-out icon nobody can act on. */
+.mapboxgl-ctrl-group:has(> .mapboxgl-ctrl-geolocate:disabled) {
+  display: none;
+}
+
 .event-pin-popover .mapboxgl-popup-content {
   padding: 0;
   background: none;
@@ -664,8 +670,7 @@
 
 /* Inside a frame the fixed layer is contained by it, so the frame IS the box to fill.
    Carried by `CompactEmbedView`'s expanded dialog and by `MapFrame`. See
-   `lib/overlay.ts` for why there is only ever one. `data-sy-expanded` below is the
-   narrower, dialog-only marker. */
+   `lib/overlay.ts` for why there is only ever one. */
 [data-sy-frame] {
   --sy-frame-h: 100%;
 }

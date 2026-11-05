@@ -7,6 +7,7 @@ import { useMapController } from '@/hooks/use-map-controller'
 import { useHoverPrefetch } from '@/hooks/use-prefetch-event'
 import { formatDistance } from '@/lib'
 import { isOnline } from '@/lib/shape'
+import { ContactOnlyRow } from '@/components/molecules/ContactOnly'
 import { EventChips } from '@/components/molecules/EventChips'
 import { EventFacts } from '@/components/molecules/EventFacts'
 import { Link } from '@/components/atoms/Link'
@@ -60,7 +61,13 @@ const MIN_DISTANCE_KM = 5
  * re-render the rows above on every press, which is most of the work and
  * none of the value.
  */
-function EventListItemImpl({
+function EventListItemImpl(props: EventListItemProps) {
+  if (props.event.contactOnly) return <ContactOnlyRow event={props.event} />
+
+  return <ClassRow {...props} />
+}
+
+function ClassRow({
   event,
   searchedPlace,
   placeLine,

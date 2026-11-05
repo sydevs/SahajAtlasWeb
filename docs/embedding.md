@@ -141,6 +141,7 @@ characters as usual (`atlas=%2Fgb%2Flondon` and `atlas=/gb/london` are equivalen
 | `atlas`    | —                             | The route to open when the page's own URL does not already name one, e.g. `/gb/london`. Must be site-relative.                                                                                                                                                                                                                                                                                    |
 | `gestures` | —                             | `gestures=cooperative` lets a visitor **scroll your page past a contained map**: one finger and the mouse wheel scroll the page, and the map moves on two fingers or Ctrl/⌘ + wheel, with a hint saying so. Only for a [contained map](#sizing-the-element); a window-filling map and the compact card's overlay ignore it.                                                                       |
 | `filters`  | `true`                        | `filters=false` removes the Filters button and panel, for a page that should show only the classes. Same spelling rule as `map`. A link that already carries filters still applies them, with removable pills.                                                                                                                                                                                    |
+| `view`     | —                             | `view=list` opens on the list, with a "Show map" control at the top of the panel. The map is not loaded until the visitor asks for it. It is for a host who prefers the list first; it does not hide any location, since every pin shows once the map opens. With `map=false` there is no map to switch to, so this does nothing. |
 
 **`map` follows one spelling rule: only the exact values `false` and `0` switch it off.**
 Anything else — absent, empty, `true`, `no`, `FALSE` — leaves it **on**, so a typo can never
@@ -447,7 +448,7 @@ widget still reads your client record and sends the one-per-load
 | A script embed on your page | Opens the interface in a full-screen overlay, in place                                       |
 | Inside an iframe            | Opens a page that fits, in a new tab (see [Embedding in an iframe](#embedding-in-an-iframe)) |
 
-The floors are **360px wide and 420px tall**, with a second condition that matters as much: **the
+The floors are **280px wide and 420px tall**, with a second condition that matters as much: **the
 widget only degrades when there is somewhere bigger to go.** A slot that is essentially the whole
 screen is never called too small, since a card there would take the interface away and hand back
 nothing — a full-width phone embed, or a small iframe on a small screen, keeps the normal

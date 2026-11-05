@@ -24,6 +24,7 @@ describe('parseConfig', () => {
       routeFromPage: false,
       cooperative: true,
       filters: false,
+      listFirst: false,
     })
   })
 
@@ -36,6 +37,7 @@ describe('parseConfig', () => {
       routeFromPage: false,
       cooperative: false,
       filters: true,
+      listFirst: false,
     })
     expect(config.locale).toBeUndefined()
     expect(config.route).toBeUndefined()
@@ -71,6 +73,7 @@ describe('parseConfig', () => {
       routeFromPage: false,
       cooperative: false,
       filters: true,
+      listFirst: false,
     })
   })
 
@@ -81,6 +84,12 @@ describe('parseConfig', () => {
   })
 
   // Opt-in by exact name, like `routing=path`: anything else leaves the map taking every gesture.
+  it('opens on the list only for the exact value view=list', () => {
+    expect(at('?view=list').listFirst).toBe(true)
+    expect(at('?view=map').listFirst).toBe(false)
+    expect(at('').listFirst).toBe(false)
+  })
+
   it.each(['', 'true', 'Cooperative', 'greedy', '1'])(
     'reads gestures=%s as not cooperative',
     (value) => {

@@ -44,6 +44,8 @@ const MOBILE_SHEET_PX = 356
 // A short contained embed (#169) can be under twice the sheet's height. Padding past the
 // canvas makes `fitBounds` refuse the fit outright, so the sheet's share is capped.
 const MOBILE_SHEET_MAX_SHARE = 0.5
+// In a host's box the sheet opens taller (`DETAIL_SNAP` in DrawerStack).
+const FRAMED_SHEET_PX = 400
 const MAP_MARGIN = 20
 // The filter panel's 320px width plus the 64px it stands off the right edge (`FiltersPanel`),
 // which is where the locate and attribution controls live.
@@ -114,20 +116,19 @@ export function RealMapControllerProvider({ children }: { children: ReactNode })
 
   // Keep the drawer's known footprint out of the usable camera area.
   useEffect(() => {
+    // In a host's box the sheet covers far more of the map than on a phone, so a framed pin
+    // has to centre in what is left above the sheet. Capped so a short box keeps some map.
+    const frameHeight = frameElement()?.offsetHeight ?? 0
+    const sheet = frameHeight
+      ? Math.min(FRAMED_SHEET_PX, frameHeight * 0.55)
+      : Math.min(MOBILE_SHEET_PX, window.innerHeight * MOBILE_SHEET_MAX_SHARE)
+
     setPadding({
       left: MAP_MARGIN + (isWide ? DRAWER_W_PX : 0),
       right: MAP_MARGIN + (filterPanelUp ? FILTER_PANEL_PX : 0),
       top: MAP_MARGIN,
       // A class's sheet is taller than the usual allowance, and its pin must show above it.
-      bottom:
-        MAP_MARGIN +
-        (isWide
-          ? 0
-          : (sheetBottom ??
-            Math.min(
-              MOBILE_SHEET_PX,
-              (frameElement()?.clientHeight ?? window.innerHeight) * MOBILE_SHEET_MAX_SHARE,
-            ))),
+      bottom: MAP_MARGIN + (isWide ? 0 : (sheetBottom ?? sheet)),
     })
   }, [isWide, filterPanelUp, sheetBottom, setPadding])
 

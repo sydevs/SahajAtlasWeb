@@ -31,6 +31,7 @@ export const DEFAULT_EMBED_CONFIG: LoaderConfig = {
   routeFromPage: false,
   cooperative: false,
   filters: true,
+  listFirst: false,
 }
 
 type EmbedBoot = {

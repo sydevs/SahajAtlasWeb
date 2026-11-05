@@ -78,13 +78,13 @@ describe('decideSlot — the whole decision', () => {
     setWindow({ inner: [1440, 900] })
 
     const { compact, warning } = decideSlot({
-      element: elementOf(300, 500),
+      element: elementOf(260, 500),
       hasMap: false,
       fromPage: false,
     })
 
     expect(compact).toMatchObject({ action: { kind: 'overlay' }, autoOpen: false })
-    expect(warning).toContain('360×420')
+    expect(warning).toContain('280×420')
   })
 
   it('degrades a map embed that does not own the viewport, and says why', () => {
@@ -127,7 +127,7 @@ describe('decideSlot — the whole decision', () => {
       expect(decision.compact).toMatchObject({ action: { kind: 'overlay' } })
       // Below the floors, so the advice is "give the element more room" — not the map-mode
       // sentence, which would tell this host to take the height back off again.
-      expect(decision.warning).toContain('360×420')
+      expect(decision.warning).toContain('280×420')
     })
 
     it('stays UNcontained when the host gave no height', () => {
@@ -162,7 +162,7 @@ describe('decideSlot — the whole decision', () => {
 
   it('opens on mount for a page route, and never for a configured one', () => {
     setWindow({ inner: [1440, 900] })
-    const element = elementOf(300, 500)
+    const element = elementOf(260, 500)
 
     expect(decideSlot({ element, hasMap: false, fromPage: true }).compact).toMatchObject({
       action: { kind: 'overlay' },

@@ -1,5 +1,6 @@
 import { type ReactNode } from 'react'
 import * as DropdownMenu from '@radix-ui/react-dropdown-menu'
+import clsx from 'clsx'
 import { useTranslation } from 'react-i18next'
 import { Check, ChevronRight, Info, Languages, Monitor, Moon, Settings, Sun } from 'lucide-react'
 
@@ -37,7 +38,10 @@ function ItemCheck() {
 // footer's LanguageSelector and ThemeSwitch. `className` positions the
 // trigger button.
 export type SettingsMenuProps = {
-  /** Positions the trigger button (the cog floats over the map or the panel). */
+  /**
+   * Positions the trigger button, which then floats over the map. Without it the cog sits in a
+   * toolbar row, so it takes the header icons' flat look and a 44px tap area.
+   */
   className?: string
   /** Which side the menu opens toward the trigger (bottom for a top cog, top for a bottom cog). */
   side?: DropdownMenu.DropdownMenuContentProps['side']
@@ -90,7 +94,15 @@ export function SettingsMenu({ className, side = 'bottom', align = 'start' }: Se
       <DropdownMenu.Trigger asChild>
         <button
           aria-label={t('common.settings.title')}
-          className={`flex h-10 w-10 items-center justify-center rounded-full border border-divider bg-background text-gray-11 shadow-lg transition-colors outline-none after:absolute after:-inset-0.5 hover:text-foreground focus-visible:ring-2 focus-visible:ring-focus ${className ?? ''}`}
+          className={clsx(
+            'flex items-center justify-center text-gray-11 transition-colors hover:text-foreground',
+            className
+              ? [
+                  'h-10 w-10 rounded-full border border-divider bg-background shadow-lg outline-none after:absolute after:-inset-0.5 focus-visible:ring-2 focus-visible:ring-focus',
+                  className,
+                ]
+              : '-ms-3 h-11 w-11 rounded-lg outline-none focus-visible:ring-2 focus-visible:ring-primary',
+          )}
           type="button"
         >
           <Settings size={20} />

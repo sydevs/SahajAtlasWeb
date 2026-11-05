@@ -63,6 +63,8 @@
       "nearby": "See other classes nearby"
     },
     "map": {
+      "hide_map": "Hide map",
+      "show_map": "Show map",
       "find_my_location": "Find my location",
       "location_failed": "We couldn’t get your location. Search for a place instead.",
       "location_not_available": "Location not available"
@@ -109,6 +111,11 @@
     "use_location": "Use my location"
   },
   "event": {
+    "contact_only": {
+      "call": "Call %{phone}",
+      "hint": "Call to ask when and where",
+      "note": "This group shares its address by phone. Call to ask when and where."
+    },
     "actions": {
       "add_calendar": "Add to calendar",
       "calendar_other": "Other calendar (downloads a file)",

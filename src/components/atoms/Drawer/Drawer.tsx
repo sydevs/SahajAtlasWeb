@@ -28,10 +28,9 @@ const drawer = tv({
     content:
       'pointer-events-auto fixed z-40 flex flex-col overflow-clip bg-background text-foreground shadow-2xl outline-none',
     // Every content band is capped at `--sy-content-max` (default 512px) and
-    // centred. So on a wide surface, such as a map-less embed or a large-mobile
-    // bottom sheet, the views read as a centred column, instead of stretching
-    // edge to edge. This has no effect on the 352px anchored panel,
-    // which is already narrower.
+    // centred. So on a wide surface, such as a wide map-less embed, the views read
+    // as a centred column, instead of stretching edge to edge. A bottom sheet lifts
+    // the cap: a 512px column in a 650px sheet left the banner as a floating island.
     header:
       'mx-auto flex w-full max-w-[var(--sy-content-max,512px)] shrink-0 items-center gap-2 px-4 pt-4 pb-2',
     // A second fixed band under the header, for controls that act on the
@@ -107,7 +106,7 @@ const drawer = tv({
       // hidden. `full` cancels this map-less.
       bottom: {
         content:
-          'inset-x-0 bottom-0 h-[var(--sy-frame-h)] rounded-t-2xl border-t border-divider pb-[calc(var(--sy-frame-h)*0.03)]',
+          'inset-x-0 bottom-0 h-[var(--sy-frame-h)] rounded-t-2xl border-t border-divider pb-[calc(var(--sy-frame-h)*0.03)] [--sy-content-max:100%]',
       },
       top: {
         content: 'inset-x-0 top-0 h-[var(--sy-frame-h)] rounded-b-2xl border-b border-divider',

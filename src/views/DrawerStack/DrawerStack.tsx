@@ -1,8 +1,14 @@
+import type { AgnosticFeedEvent } from '@/types'
+
 import { Suspense, lazy, startTransition, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { useLocation, useNavigate } from 'react-router'
+import { useQuery } from '@tanstack/react-query'
 import { AnimatePresence } from 'framer-motion'
+import { MapIcon } from 'lucide-react'
 
+import api from '@/config/api'
+import { GEOJSON_STALE_TIME } from '@/config/query-client'
 import embed from '@/config/embed'
 import { useCalendarView } from '@/hooks/use-calendar-view'
 import { useExpansion } from '@/hooks/use-expansion'
@@ -15,7 +21,7 @@ import {
   useFitsWidth,
   useIsWide,
 } from '@/config/responsive'
-import { useWidgetMode } from '@/config/mode'
+import { useSurfaceSwitch, useWidgetMode } from '@/config/mode'
 import { useClassSheet, useFilterPanelState } from '@/config/store'
 import { frameElement, overlayContainer } from '@/lib/overlay'
 import {
@@ -100,7 +106,6 @@ const EVENT_OPEN_PX = 380
 const safeAreaBottom = (): number => {
   if (typeof document === 'undefined') return 0
   const probe = document.createElement('div')
-
   probe.style.cssText = 'position:fixed;visibility:hidden;height:env(safe-area-inset-bottom,0px)'
   document.body.append(probe)
   const inset = probe.getBoundingClientRect().height
@@ -108,6 +113,41 @@ const safeAreaBottom = (): number => {
   probe.remove()
 
   return inset
+}
+
+// In a host's box, 300px shows three rows, or a class's title and a clipped time. This shows
+// five rows, or a class's when, where and register button, and still leaves some map.
+const DETAIL_SNAP = '400px'
+// The whole box. The 97% stop a phone uses would leave a sliver of map here, with the cog and
+// the locate button half under the sheet.
+const FRAMED_FULL_SNAP = 1
+const FRAMED_SNAP_POINTS = [PEEK_SNAP, OPEN_SNAP, DETAIL_SNAP, FRAMED_FULL_SNAP]
+// Under this, DETAIL_SNAP would leave a sliver of map.
+const DETAIL_SNAP_MIN_FRAME_PX = 520
+
+/** PROTOTYPE. Whether every class under this path is a contact-only listing. */
+function isContactOnlyPage(
+  features: { properties: AgnosticFeedEvent }[],
+  path: string | undefined,
+) {
+  if (!path || path === '/') return false
+  const under = features.filter(
+    ({ properties: { webPath } }) => webPath === path || webPath?.startsWith(`${path}/`),
+  )
+
+  return under.length > 0 && under.every(({ properties }) => properties.contactOnly)
+}
+
+/**
+ * Where the sheet opens for a view. In a host's box (or the compact dialog), a form or a class
+ * cannot share the height with the map the way it can on a phone. The map is one swipe away.
+ */
+function openSnapFor(kind: StackEntry['kind'] | undefined, frameHeight: number) {
+  if (frameHeight === 0) return kind === 'calendar' ? WIDE_SNAP : OPEN_SNAP
+  if (kind === 'calendar' || kind === 'register' || kind === 'filters') return FRAMED_FULL_SNAP
+  if (frameHeight >= DETAIL_SNAP_MIN_FRAME_PX) return DETAIL_SNAP
+
+  return kind === 'event' ? FRAMED_FULL_SNAP : OPEN_SNAP
 }
 
 // How wide the widget has to be before the filters get their own panel over the map, and open by
@@ -182,6 +222,7 @@ export function DrawerStack() {
   const searchCenter = new URLSearchParams(location.search).get('center')
   const navigate = useNavigate()
   const { hasMap, standalone } = useWidgetMode()
+  const surfaceSwitch = useSurfaceSwitch()
   // `t` comes off `useLocale`, not a second `useTranslation` call: the hook already
   // holds one for the default (`common`) namespace, and hands it back for exactly this
   // reason. A second call would double this component's i18next subscription, and
@@ -204,6 +245,8 @@ export function DrawerStack() {
   // subtree via `WidgetWidthContext` at the foot of this component, so no descendant can
   // disagree with the drawer it sits in.
   const isWide = useIsWide(container ?? frameElement())
+  // Zero means no frame: the sheet is measured against the window, as on a phone.
+  const frameHeight = hasMap ? (frameElement()?.offsetHeight ?? 0) : 0
   const direction: Direction = isWide ? 'left' : 'bottom'
   const [snap, setSnap] = useState<number | string | null>(OPEN_SNAP)
   const filterPanelFits = useFitsWidth(container ?? frameElement(), FILTER_PANEL_MIN_PX)
@@ -231,6 +274,21 @@ export function DrawerStack() {
   // that key to tell whether it is still the view on top, and the two agreeing is what
   // makes the comparison mean anything.
   const top = baseStackEntry(entries, hasMap) ?? null
+  const { data: feed } = useQuery({
+    queryKey: ['geojson'],
+    queryFn: () => api.getGeojson(),
+    staleTime: GEOJSON_STALE_TIME,
+    enabled: hasMap,
+  })
+  const contactOnlyPage = useMemo(
+    () => isContactOnlyPage(feed?.features ?? [], top?.path),
+    [feed, top?.path],
+  )
+  // In a host's box (or for a contact-only page), the sheet takes the framed ladder: a form or
+  // a class cannot share the height with the map the way it can on a phone.
+  const framed = frameHeight > 0 || contactOnlyPage
+  // The stop that fills the screen: the whole box when framed, 97% on a phone.
+  const fullSnap = framed ? FRAMED_FULL_SNAP : WIDE_SNAP
   // A class has its own taller open stop. The stored snap can still be the previous view's
   // for one render, before the effect below moves it, and vaul needs one from this ladder.
   const [fallbackOpenPx] = useState(() => EVENT_OPEN_PX + safeAreaBottom())
@@ -238,9 +296,21 @@ export function DrawerStack() {
   const eventOpenPx = measuredOpenPx ?? fallbackOpenPx
   const eventOpenSnap = `${eventOpenPx}px`
   const eventSnapPoints = useMemo(() => [PEEK_SNAP, eventOpenSnap, WIDE_SNAP], [eventOpenSnap])
-  const snapPoints = top?.kind === 'event' ? eventSnapPoints : SNAP_POINTS
+  const snapPoints = framed
+    ? FRAMED_SNAP_POINTS
+    : top?.kind === 'event'
+      ? eventSnapPoints
+      : SNAP_POINTS
   // The first screen has more to show before the map matters than any other view.
-  const openSnap = top?.kind === 'event' ? eventOpenSnap : top ? OPEN_SNAP : HOME_SNAP
+  const openSnap = framed
+    ? contactOnlyPage
+      ? FRAMED_FULL_SNAP
+      : openSnapFor(top?.kind, frameHeight)
+    : top?.kind === 'event'
+      ? eventOpenSnap
+      : top
+        ? OPEN_SNAP
+        : HOME_SNAP
   const activeSnap = snap != null && snapPoints.includes(snap) ? snap : openSnap
   // The calendar is the one full-width view. It fills the widget, minus the floating margins,
   // instead of the 352px left panel (see the Drawer `wide` variant) — EXCEPT in its list
@@ -440,7 +510,7 @@ export function DrawerStack() {
   const snappedFor = useRef<string | null>(null)
 
   useEffect(() => {
-    const view = `${direction}:${top?.kind}`
+    const view = `${direction}:${top?.kind}:${framed}`
 
     if (snappedFor.current === view) return
     snappedFor.current = view
@@ -449,6 +519,12 @@ export function DrawerStack() {
 
     lastKind.current = top?.kind
     if (direction !== 'bottom') return
+    // A host's box has its own ladder, and openSnapFor already knows which views fill it.
+    if (framed) {
+      setSnap(openSnap)
+
+      return
+    }
 
     const tall =
       opensTall(top?.kind) ||
@@ -457,7 +533,7 @@ export function DrawerStack() {
 
     if (tall) setSnap(WIDE_SNAP)
     else setSnap(top?.kind === 'search' && searchCenter ? SEARCH_SNAP : openSnap)
-  }, [direction, top?.kind, openSnap])
+  }, [direction, top?.kind, openSnap, framed])
 
   // The camera keeps a class's pin clear of the sheet that opened over it. This is only for a
   // class: its sheet is taller, and its pin is the point of the map.
@@ -534,10 +610,10 @@ export function DrawerStack() {
       raise: () => {
         if (direction !== 'bottom') return
         raisedForTyping.current = true
-        setSnap(WIDE_SNAP)
+        setSnap(fullSnap)
       },
       setOpenHeight: setMeasuredOpenPx,
-      expand: () => setSnap(WIDE_SNAP),
+      expand: () => setSnap(fullSnap),
       dismiss: () => {
         // Marks the dismiss navigation as a transition: unmounting a heavy view (the
         // calendar's large grid) would otherwise reconcile synchronously and freeze
@@ -571,6 +647,7 @@ export function DrawerStack() {
     toStackTarget,
     direction,
     top?.kind,
+    fullSnap,
   ])
 
   // The filter overlay's own dismiss (its X / swipe / Esc): back to the calendar it opened
@@ -638,6 +715,20 @@ export function DrawerStack() {
         collapse()
       }}
     >
+      {/* `view=list`: one control in one place, whichever surface is showing. Above the views,
+          because a bottom sheet's foot sits below the screen at its lower snaps. */}
+      {surfaceSwitch && (
+        <div className="mx-auto w-full max-w-[var(--sy-content-max,512px)] shrink-0 px-4">
+          <button
+            className="-ms-2 flex h-11 items-center gap-2 rounded-lg px-2 text-sm font-medium text-primary outline-none focus-visible:ring-2 focus-visible:ring-primary"
+            type="button"
+            onClick={surfaceSwitch.toggle}
+          >
+            <MapIcon aria-hidden size={16} />
+            {t(surfaceSwitch.surface === 'map' ? 'common.map.hide_map' : 'common.map.show_map')}
+          </button>
+        </div>
+      )}
       <div className="relative min-h-0 flex-1">
         <AnimatePresence>
           {/* The filter drawer keeps one identity across its routes. Picking a place moves it
@@ -705,32 +796,31 @@ export function DrawerStack() {
               measured overflowing here, since the sheet takes no snap ladder map-less — the
               invariant stated, not a defect repaired. */}
           <div
-            ref={setContainer}
-            className="relative w-full overflow-clip bg-background"
+            className="flex w-full flex-col overflow-clip bg-background"
             style={{ height: standalone ? '100dvh' : '100%' }}
           >
-            <Drawer
-              key={direction}
-              open
-              container={container}
-              direction={direction}
-              dismissible={parentPaths.length > 0}
-              // Same as the map drawer: the left panel (≥md) has no handle, so
-              // handle-only drag would make it undraggable — dismiss stays the close
-              // button only.
-              handleOnly={direction === 'left'}
-              mode="filled"
-              onOpenChange={(o) => !o && control.dismiss()}
-            >
-              {sheet}
-            </Drawer>
-            {/* Map-less, the drawer fills the container and its search header owns
-              the top, so a top-left cog would cover the search field. This keeps it
-              on the left but at the bottom, clear of the header. side="top" opens
-              the menu upward from there. z-50 so it sits above the fill-the-container
-              drawer content (z-40, and portaled in last) — otherwise a list row
-              would intercept its clicks. */}
-            <SettingsMenu className="absolute start-3 bottom-3 z-50" side="top" />
+            <div ref={setContainer} className="relative min-h-0 w-full flex-1 overflow-clip">
+              <Drawer
+                key={direction}
+                open
+                container={container}
+                direction={direction}
+                dismissible={parentPaths.length > 0}
+                // Same as the map drawer: the left panel (≥md) has no handle, so
+                // handle-only drag would make it undraggable — dismiss stays the close
+                // button only.
+                handleOnly={direction === 'left'}
+                mode="filled"
+                onOpenChange={(o) => !o && control.dismiss()}
+              >
+                {sheet}
+              </Drawer>
+            </div>
+            {/* Its own strip below the views, not floating over them: floating, the cog sat on
+                form fields and list rows, and the narrower the box the more it covered. */}
+            <div className="flex h-11 shrink-0 items-center border-t border-divider px-4">
+              <SettingsMenu side="top" />
+            </div>
           </div>
         </DrawerControlContext.Provider>
       </WidgetWidthContext.Provider>
