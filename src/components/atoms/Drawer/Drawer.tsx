@@ -258,6 +258,12 @@ export function Drawer({
     dismissible,
     handleOnly,
     modal,
+    // ⚠ Off, so Safari alone moves the page for the keyboard. Vaul's handling writes the sheet's
+    // `bottom` and `height` from the keyboard height plus the active snap offset, and tracks
+    // whether the keyboard is open by toggling a flag on each large viewport change. On iOS that
+    // flag goes out of step after the first close: the next focus threw the sheet off the top of
+    // the screen, and closing left a sheet-shaped ghost over the map. Seen on iOS 18.5 and 26.3.
+    repositionInputs: false,
     open,
     onOpenChange,
     snapPoints,
