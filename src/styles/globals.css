@@ -544,6 +544,71 @@
   animation: none;
 }
 
+/* A list entry carries two lines, the class and then its place, joined by a newline
+   (`title` in `eventsToCalendarEntries`). The grid views fold it to a space. */
+.sx-calendar .sx__list-event-title {
+  white-space: pre-line;
+}
+
+/* Calendar rows read as this app's list rows rather than Schedule-X's tinted cards with a
+   coloured stripe. "Online" is now written in the row, so the colour no longer has to say it. */
+.sx-calendar .sx__month-agenda-event,
+.sx-calendar .sx__list-event {
+  display: block;
+  min-height: 56px;
+  margin: 0;
+  padding: 8px 0 !important;
+  border-bottom: 1px solid var(--gray-5);
+  border-radius: 0;
+  cursor: pointer;
+}
+
+.sx-calendar .sx__list-event-color-line {
+  display: none;
+}
+
+.sx-calendar .sx-entry-name {
+  font-size: var(--text-lg);
+  line-height: var(--text-lg--line-height);
+  font-weight: 600;
+  color: var(--gray-12);
+}
+
+.sx-calendar .sx-entry-meta {
+  margin-top: 2px;
+  font-size: var(--text-sm);
+  line-height: var(--text-sm--line-height);
+  color: var(--gray-11);
+}
+
+.sx-calendar .sx__month-agenda-events {
+  padding-inline: 0;
+}
+
+.sx-calendar .sx-entry-cell {
+  width: 100%;
+  overflow: hidden;
+  padding-inline: 6px;
+  border-radius: 4px;
+  background: hsl(var(--primary-3));
+  color: hsl(var(--primary-11));
+  font-size: var(--text-xs);
+  line-height: 20px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sx-calendar .sx-entry-cell[data-online='true'] {
+  background: hsl(var(--secondary-3));
+  color: hsl(var(--secondary-11));
+}
+
+/* The phone month grid leaves room for the classes. The day stays 44px tall to tap. */
+.sx-calendar .sx__month-agenda-day {
+  height: 44px;
+  padding-block: 4px;
+}
+
 /* Inside a frame the fixed layer is contained by it, so the frame IS the box to fill.
    Carried by `CompactEmbedView`'s expanded dialog and by `MapFrame`. See
    `lib/overlay.ts` for why there is only ever one. `data-sy-expanded` below is the

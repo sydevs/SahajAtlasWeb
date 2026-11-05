@@ -26,33 +26,42 @@ export type CalendarSourceEvent = {
   path: string
   eventType: EventType
   schedule?: EventSchedule | null
-  /** The event's parent region name — the default (concise) calendar label. */
+  /** The event's parent region name — where it is when it has no address. */
   regionName?: string | null
-  /** The event's locality (address city) — the label when the calendar is region-scoped. */
+  /** The event's locality (address city) — where it is, shown under the class name. */
   locality?: string | null
 }
 
-// The event's place (parent region name, or — when the calendar is already scoped to a
-// region so every entry shares it — the finer-grained address locality). No title fallback
-// here: the caller decides what a placeless entry reads as.
-const placeOf = (event: CalendarSourceEvent, regionScoped: boolean): string | undefined => {
-  const region = event.regionName?.trim() || undefined
-  const locality = event.locality?.trim() || undefined
+// Where a class is, as a visitor would say it: the address city first, because a region can be
+// one venue ("Postgasse 13, Vienna") and repeating that next to the class name adds nothing. A
+// class with no address (most online ones) falls back to its region.
+const placeOf = (event: CalendarSourceEvent): string | undefined =>
+  event.locality?.trim() || event.regionName?.trim() || undefined
 
-  return regionScoped ? locality || region : region || locality
+// The line under the class name: where it is, plus "Online" for an online class, because the
+// month and list views have no other text saying so. The place shows even when the name also says
+// it, so someone scanning for a town can read the same line on every row.
+const entryDetail = (
+  event: CalendarSourceEvent,
+  onlineLabel: string | undefined,
+): string | undefined => {
+  const mode = event.eventType === 'online' ? onlineLabel : undefined
+
+  return [placeOf(event), mode].filter(Boolean).join(' · ') || undefined
 }
-
-// The concise label a calendar entry shows instead of the (often long) event title: the
-// event's place (see `placeOf`), or the title itself when it has no place. The "Online"
-// designation is NOT folded in here — it rides the SX `location` field (see the expansion).
-const calendarLabel = (event: CalendarSourceEvent, regionScoped: boolean): string =>
-  placeOf(event, regionScoped) || event.title
 
 /** One occurrence, in Schedule-X's wall-clock shape (`YYYY-MM-DD HH:mm`, no zone). */
 export type CalendarEntry = {
   /** Unique per occurrence: `${eventId}-${startMillis}`. */
   id: string
+  /** The class name, then the detail on a second line: Schedule-X's list has only this field. */
   title: string
+  /** The class name alone. */
+  name: string
+  /** Where it is ("Brighton", "London · Online"). */
+  detail?: string
+  /** The bare place, for the desktop Month cell, which has room for one short word. */
+  place?: string
   start: string
   end: string
   /** The event's route, carried through so a click opens the right EventView. */
@@ -89,9 +98,6 @@ export const eventsToCalendarEntries = (
   const from = opts?.from ?? DateTime.now().startOf('day')
   const to = opts?.to ?? from.plus({ months: 12 })
   const floor = dateFloor(filters, opts?.today ?? from.toISODate() ?? undefined)
-  // When a region is selected every entry sits under it, so the region name would be the
-  // same for all — show the finer-grained locality instead (computed per event below).
-  const regionScoped = filters.region != null
   const entries: CalendarEntry[] = []
 
   for (const event of events) {
@@ -106,7 +112,8 @@ export const eventsToCalendarEntries = (
     const displayZone = eventTimeZone(event)
     const eventZone = event.schedule ? scheduleTimeZone(event.schedule) : 'UTC'
     const endTime = event.schedule?.endTime
-    const label = calendarLabel(event, regionScoped)
+    const name = event.title.trim() || placeOf(event) || ''
+    const detail = entryDetail(event, opts?.onlineLabel)
     // Online programs carry a distinct colour + the "Online" term in the SX `location` field.
     const online = event.eventType === 'online'
     const location = online ? opts?.onlineLabel : undefined
@@ -130,7 +137,10 @@ export const eventsToCalendarEntries = (
 
       entries.push({
         id: `${event.id}-${start.toMillis()}`,
-        title: label,
+        title: detail ? `${name}\n${detail}` : name,
+        name,
+        detail,
+        place: placeOf(event),
         start: start.toFormat(SX_FORMAT),
         end: finish.toFormat(SX_FORMAT),
         path: event.path,

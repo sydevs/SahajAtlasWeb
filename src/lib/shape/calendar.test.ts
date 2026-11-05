@@ -116,7 +116,7 @@ describe('eventsToCalendarEntries', () => {
     ).toEqual([])
   })
 
-  it('labels entries with the parent region name (not the event title) by default', () => {
+  it('names the class first and its city second', () => {
     const evt = makeEvent({
       title: 'Weekly Sahaja Yoga meditation for beginners',
       regionName: 'London',
@@ -125,10 +125,12 @@ describe('eventsToCalendarEntries', () => {
     })
     const [entry] = eventsToCalendarEntries([evt], DEFAULT_FILTERS, RANGE)
 
-    expect(entry.title).toBe('London')
+    expect(entry.name).toBe('Weekly Sahaja Yoga meditation for beginners')
+    expect(entry.detail).toBe('Camden')
+    expect(entry.title).toBe('Weekly Sahaja Yoga meditation for beginners\nCamden')
   })
 
-  it('labels entries with the locality when the calendar is scoped to a region', () => {
+  it('reads the same when the calendar is scoped to a region', () => {
     const evt = makeEvent({
       title: 'Weekly Sahaja Yoga meditation for beginners',
       regionName: 'London',
@@ -139,7 +141,7 @@ describe('eventsToCalendarEntries', () => {
 
     const [entry] = eventsToCalendarEntries([evt], scoped, RANGE)
 
-    expect(entry.title).toBe('Camden')
+    expect(entry.detail).toBe('Camden')
   })
 
   it('puts the "Online" term in the location (not the title) and tags its calendar', () => {
@@ -153,13 +155,13 @@ describe('eventsToCalendarEntries', () => {
       onlineLabel: 'Online',
     })
 
-    // The title is the place. "Online" rides the location field (the colour
-    // distinguishes it in the month/list views, which do not render location).
-    expect(entry.title).toBe('London')
+    // The class name leads. "Online" is written on the second line, and rides the location
+    // field for the week view, which shows it.
+    expect(entry.title).toBe('Meditation\nLondon · Online')
     expect(entry.location).toBe('Online')
     expect(entry.calendarId).toBe('online')
 
-    // Placeless online → the title falls back to the event title. The location still flags it.
+    // Placeless online → the second line is just the mode.
     const placeless = makeEvent({
       eventType: 'online',
       title: 'Weekly meditation',
@@ -170,7 +172,7 @@ describe('eventsToCalendarEntries', () => {
       onlineLabel: 'Online',
     })
 
-    expect(bare.title).toBe('Weekly meditation')
+    expect(bare.title).toBe('Weekly meditation\nOnline')
     expect(bare.location).toBe('Online')
   })
 
@@ -199,19 +201,23 @@ describe('eventsToCalendarEntries', () => {
     expect(end.diff(start, 'minutes').minutes).toBe(60)
   })
 
-  it('falls back through region → locality → title when a source is missing', () => {
-    // Region-scoped but no locality → the region name. Neither present → the title.
+  it('falls back to the region for the place, and keeps a place the name also says', () => {
     const noLocality = makeEvent({
       regionName: 'London',
+      occurrences: [at('UTC', '2026-07-06T09:30')],
+    })
+    const named = makeEvent({
+      title: 'Evening Meditation at Regina',
+      regionName: 'Regina',
       occurrences: [at('UTC', '2026-07-06T09:30')],
     })
     const bare = makeEvent({
       title: 'Just the title',
       occurrences: [at('UTC', '2026-07-06T09:30')],
     })
-    const scoped: EventFilters = { ...DEFAULT_FILTERS, region: 'london' }
 
-    expect(eventsToCalendarEntries([noLocality], scoped, RANGE)[0].title).toBe('London')
+    expect(eventsToCalendarEntries([noLocality], DEFAULT_FILTERS, RANGE)[0].detail).toBe('London')
+    expect(eventsToCalendarEntries([named], DEFAULT_FILTERS, RANGE)[0].detail).toBe('Regina')
     expect(eventsToCalendarEntries([bare], DEFAULT_FILTERS, RANGE)[0].title).toBe('Just the title')
   })
 
@@ -236,6 +242,7 @@ describe('computeDayBoundaries', () => {
   const entry = (start: string, end: string): CalendarEntry => ({
     id: start,
     title: 'x',
+    name: 'x',
     start,
     end,
     path: '/1',

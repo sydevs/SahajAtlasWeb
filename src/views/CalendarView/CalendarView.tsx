@@ -14,7 +14,7 @@ import { ChevronRight } from 'lucide-react'
 
 import '@schedule-x/theme-default/dist/index.css'
 
-import { CalendarMount } from './CalendarMount'
+import { type CalendarRenderers, CalendarMount } from './CalendarMount'
 
 import { Button } from '@/components/atoms/Button'
 import { DrawerBody, DrawerHeader } from '@/components/atoms/Drawer'
@@ -58,6 +58,12 @@ const SX_LOCALES: Record<string, string> = {
   'pt-BR': 'pt-BR',
 }
 
+const SX_ENGLISH = {
+  '+ {{n}} events': '+ {{n}} classes',
+  '+ 1 event': '+ 1 class',
+  'No events': 'No classes',
+}
+
 const toScheduleXLocale = (locale: string): string => SX_LOCALES[locale] ?? 'en-US'
 
 // Online programs get their own colour, the secondary ramp, so they stand out from
@@ -72,6 +78,44 @@ const ONLINE_COLORS = {
 }
 const CALENDARS = {
   online: { colorName: 'online', lightColors: ONLINE_COLORS, darkColors: ONLINE_COLORS },
+}
+
+// Plain DOM, since Schedule-X hands these an element rather than rendering a component.
+const calendarRenderers = (locale: string): CalendarRenderers => {
+  const time = (wallClock: string) =>
+    DateTime.fromFormat(wallClock, 'yyyy-MM-dd HH:mm')
+      .setLocale(locale)
+      .toLocaleString(DateTime.TIME_SIMPLE)
+  const div = (className: string, text: string) => {
+    const element = document.createElement('div')
+
+    element.className = className
+    element.textContent = text
+
+    return element
+  }
+
+  return {
+    // The phone Month row: the class name, then its time and place. Schedule-X's own row
+    // repeats the date the visitor just tapped.
+    monthAgendaEvent: (host, entry) => {
+      const hours = `${time(entry.start)} – ${time(entry.end)}`
+
+      host.replaceChildren(
+        div('sx-entry-name', entry.name ?? ''),
+        div('sx-entry-meta', [hours, entry.detail].filter(Boolean).join(' · ')),
+      )
+    },
+    // The desktop Month cell is about 150px after the time. There, class names cut to a column
+    // of identical "Evening Meditation", so the cell says where and the tooltip says what.
+    monthGridEvent: (host, entry) => {
+      const cell = div('sx-entry-cell', `${time(entry.start)} ${entry.place ?? entry.name ?? ''}`)
+
+      cell.title = [entry.name, entry.detail].filter(Boolean).join(' · ')
+      cell.dataset.online = String(entry.calendarId === 'online')
+      host.replaceChildren(cell)
+    },
+  }
 }
 
 type CalendarControlsPlugin = ReturnType<typeof createCalendarControlsPlugin>
@@ -338,6 +382,8 @@ function CalendarGrid({
       // overrides (globals.css) carry the light/dark and accent theming regardless of
       // `isDark`.
       locale: toScheduleXLocale(locale),
+      // Schedule-X's own "+ 12 events" and "No events", in the words a visitor reads here.
+      translations: locale === 'en' ? { enUS: SX_ENGLISH } : undefined,
       callbacks: {
         // Each entry carries its event's route. This opens the matching EventView — the atlas
         // navigate stamps camera and depth like every other in-widget push.
@@ -361,10 +407,12 @@ function CalendarGrid({
     [controls],
   )
 
+  const renderers = useMemo(() => calendarRenderers(locale), [locale])
+
   return (
-    <DrawerBody className="max-w-none overflow-hidden p-4">
+    <DrawerBody className="max-w-none overflow-hidden px-4 pb-4">
       <div className="sx-calendar">
-        <CalendarMount calendar={calendar} />
+        <CalendarMount calendar={calendar} renderers={renderers} />
       </div>
     </DrawerBody>
   )
