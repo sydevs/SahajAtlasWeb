@@ -5,7 +5,7 @@ import { DEFAULT_MARKER_COLORS, MARKER_IDS, markerColors, markerImages } from '.
 /**
  * The art an embed with no tenant seed renders, frozen byte for byte.
  *
- * Taken off `main` and compared in both modes, because "unchanged" is the whole
+ * Compared in both modes, because "unchanged" is the whole
  * promise `markerColors` makes for an unseeded role: `DEFAULT_SEEDS.primary`'s
  * own step 9 is a different teal, and a different one again in dark mode. A
  * change here is a visible change to every unbranded embed.
@@ -14,22 +14,22 @@ const STOCK = {
   [MARKER_IDS.point]: {
     width: 34,
     height: 38,
-    svg: '<svg xmlns="http://www.w3.org/2000/svg" width="68" height="76" viewBox="0 0 34 38"><defs>\n    <filter id="shadow" x="-40%" y="-40%" width="200%" height="200%">\n      <feDropShadow dx="1.2" dy="0.8" stdDeviation="0.9" flood-color="#4A5350" flood-opacity="0.45"/>\n    </filter>\n  </defs>\n  <path d="M4.71 26.42a15 15 0 1 1 21.58 0L15.5 37.6Z" fill="#21C1A2" filter="url(#shadow)"/>\n  <circle cx="15.5" cy="16" r="4.5" fill="#FFFFFF"/></svg>',
+    svg: '<svg xmlns="http://www.w3.org/2000/svg" width="68" height="76" viewBox="0 0 34 38"><defs>\n    <filter id="shadow" x="-40%" y="-40%" width="200%" height="200%">\n      <feDropShadow dx="1.2" dy="0.8" stdDeviation="0.9" flood-color="#4A5350" flood-opacity="0.45"/>\n    </filter>\n  </defs>\n  <path d="M4.71 26.42a15 15 0 1 1 21.58 0L15.5 37.6Z" fill="#30A47D" filter="url(#shadow)"/>\n  <circle cx="15.5" cy="16" r="4.5" fill="#FFFFFF"/></svg>',
   },
   [MARKER_IDS.pointSelected]: {
     width: 34,
     height: 38,
-    svg: '<svg xmlns="http://www.w3.org/2000/svg" width="68" height="76" viewBox="0 0 34 38"><defs>\n    <filter id="shadow" x="-40%" y="-40%" width="200%" height="200%">\n      <feDropShadow dx="1.2" dy="0.8" stdDeviation="0.9" flood-color="#4A5350" flood-opacity="0.45"/>\n    </filter>\n  </defs>\n  <path d="M4.71 26.42a15 15 0 1 1 21.58 0L15.5 37.6Z" fill="#E87952" filter="url(#shadow)"/>\n  <circle cx="15.5" cy="16" r="4.5" fill="#FFFFFF"/></svg>',
+    svg: '<svg xmlns="http://www.w3.org/2000/svg" width="68" height="76" viewBox="0 0 34 38"><defs>\n    <filter id="shadow" x="-40%" y="-40%" width="200%" height="200%">\n      <feDropShadow dx="1.2" dy="0.8" stdDeviation="0.9" flood-color="#4A5350" flood-opacity="0.45"/>\n    </filter>\n  </defs>\n  <path d="M4.71 26.42a15 15 0 1 1 21.58 0L15.5 37.6Z" fill="#E0775C" filter="url(#shadow)"/>\n  <circle cx="15.5" cy="16" r="4.5" fill="#FFFFFF"/></svg>',
   },
   [MARKER_IDS.cluster]: {
     width: 38,
     height: 38,
-    svg: '<svg xmlns="http://www.w3.org/2000/svg" width="76" height="76" viewBox="0 0 38 38"><circle cx="19" cy="19" r="19" fill="#8CCDC4" opacity="0.706"/>\n  <circle cx="19" cy="19" r="13.8" fill="#37BB92" opacity="0.914"/></svg>',
+    svg: '<svg xmlns="http://www.w3.org/2000/svg" width="76" height="76" viewBox="0 0 38 38"><circle cx="19" cy="19" r="19" fill="#9ED8C2" opacity="0.706"/>\n  <circle cx="19" cy="19" r="13.8" fill="#2E9E78"/></svg>',
   },
   [MARKER_IDS.clusterSelected]: {
     width: 38,
     height: 38,
-    svg: '<svg xmlns="http://www.w3.org/2000/svg" width="76" height="76" viewBox="0 0 38 38"><circle cx="19" cy="19" r="19" fill="#F2A179" opacity="0.706"/>\n  <circle cx="19" cy="19" r="13.8" fill="#E47C5A" opacity="0.914"/></svg>',
+    svg: '<svg xmlns="http://www.w3.org/2000/svg" width="76" height="76" viewBox="0 0 38 38"><circle cx="19" cy="19" r="19" fill="#F4B9A6" opacity="0.706"/>\n  <circle cx="19" cy="19" r="13.8" fill="#DD785D"/></svg>',
   },
 } as const
 
