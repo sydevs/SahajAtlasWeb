@@ -3,7 +3,7 @@ import type { MapRef } from 'react-map-gl'
 import type { Geojson } from '@/types'
 import type { DisplayableEvent } from '@/hooks/use-event-display'
 
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { type CSSProperties, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import ReactMapGL, {
   AttributionControl,
   GeoJSONSource,
@@ -33,7 +33,7 @@ import { markerColors, registerMarkerImages } from './markers'
 
 import { LocationHelp, type LocationProblem } from '@/components/molecules/LocationHelp'
 import { calendarLineParts, useEventDisplay } from '@/hooks/use-event-display'
-import { useCameraSettled, useViewState, type MapPoint } from '@/config/store'
+import { useCameraSettled, useFilterPanelState, useViewState, type MapPoint } from '@/config/store'
 import { useAtlasNavigate } from '@/hooks/use-atlas-navigate'
 import { useEventFilters } from '@/hooks/use-filters'
 import { useGeolocateToSearch } from '@/hooks/use-geolocate'
@@ -207,6 +207,9 @@ function EventPinPopover({
  * @param cooperative Leave one-finger and wheel scrolling to the host page, moving the map only on
  *   two fingers or Ctrl/⌘ + wheel (`gestures=cooperative`, contained maps only).
  */
+// The 320px filter panel and its 16px margin: the top-right controls sit just inside its edge.
+const CONTROLS_BESIDE_PANEL = { '--sy-map-end': '336px' } as CSSProperties
+
 export function Mapbox({ cooperative = false }: { cooperative?: boolean } = {}) {
   let navigate = useAtlasNavigate()
   const { mapbox, padding, moveMap } = useMapbox()
@@ -301,6 +304,7 @@ export function Mapbox({ cooperative = false }: { cooperative?: boolean } = {}) 
   // arrival reads as the map resolving, not as a panel being swapped out.
   const settled = useCameraSettled((s) => s.settled)
   const reveal = useCameraSettled((s) => s.markSettled)
+  const filterPanelUp = useFilterPanelState((s) => s.onScreen)
   const canvasStyle = useMemo(
     () => ({
       width: '100%',
@@ -467,7 +471,7 @@ export function Mapbox({ cooperative = false }: { cooperative?: boolean } = {}) 
         logoPosition="bottom-right"
         mapStyle={MAP_STYLES[theme]}
         mapboxAccessToken={import.meta.env.VITE_MAPBOX_ACCESSTOKEN}
-        style={canvasStyle}
+        style={filterPanelUp ? { ...canvasStyle, ...CONTROLS_BESIDE_PANEL } : canvasStyle}
         worldview={MAP_WORLDVIEWS[languageCode] || MAP_WORLDVIEWS.default}
         onClick={selectFeature}
         // This is the backstop on the reveal. A route that never frames the

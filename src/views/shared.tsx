@@ -449,8 +449,11 @@ export function GeolocationSuggestion({
     staleTime: GEOJSON_STALE_TIME,
   })
 
+  // Beside the filter panel's Near me, a second "near you" offer is one location control too many.
+  const filterPanelUp = useFilterPanelState((s) => s.onScreen)
   const show = useMemo(
     () =>
+      !filterPanelUp &&
       shouldShowGeolocationPrompt({
         guess: ipLocation,
         dismissed,
@@ -458,7 +461,7 @@ export function GeolocationSuggestion({
         geojson,
         regionCenter,
       }),
-    [ipLocation, dismissed, activeSearch, geojson, regionCenter],
+    [filterPanelUp, ipLocation, dismissed, activeSearch, geojson, regionCenter],
   )
 
   const handleSelect = useCallback(() => {

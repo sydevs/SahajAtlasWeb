@@ -562,6 +562,12 @@
   margin-top: 40px;
 }
 
+/* The filter panel covers the map's right side, so its corner controls move in beside the
+   panel rather than sitting underneath it. Set on the map by `Map.tsx` while the panel is up. */
+.mapboxgl-map .mapboxgl-ctrl-top-right {
+  right: var(--sy-map-end, 0px);
+}
+
 /* The boot curtain's spinner (views/FullInterface.tsx → MapCurtain). It fades in on a
    delay, rather than appearing with the frost, so a warm boot — where the camera
    arrives almost at once — reads as a clean frost-then-reveal instead of flashing a

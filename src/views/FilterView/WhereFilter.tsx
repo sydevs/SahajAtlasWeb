@@ -26,6 +26,8 @@ export type WhereFilterProps = {
   searchable?: boolean
   /** Nothing is chosen yet, so choosing a place is the one obvious next step. */
   prominent?: boolean
+  /** Off where another search box is already on screen: one place to type a place in. */
+  townSearch?: boolean
 }
 
 /**
@@ -39,6 +41,7 @@ export function WhereFilter({
   onClear,
   searchable = true,
   prominent = false,
+  townSearch = true,
 }: WhereFilterProps) {
   const { t } = useTranslation()
   const [searchParams] = useSearchParams()
@@ -69,7 +72,7 @@ export function WhereFilter({
         <div
           className={clsx(
             'flex gap-2 [&_input]:h-[44px] [&_input]:text-base',
-            prominent ? 'flex-col' : 'items-start',
+            prominent || !townSearch ? 'flex-col' : 'items-start',
           )}
         >
           <Button
@@ -87,13 +90,15 @@ export function WhereFilter({
             {t('filters.where.near_me')}
           </Button>
           {/* Keyed on the place, so a pick empties the field: the pick shows as the chip below. */}
-          <SearchField
-            key={centerKey}
-            label={t('filters.where.placeholder')}
-            seedFromUrl={false}
-            syncToUrl={false}
-            onPlace={onPlace}
-          />
+          {townSearch && (
+            <SearchField
+              key={centerKey}
+              label={t('filters.where.placeholder')}
+              seedFromUrl={false}
+              syncToUrl={false}
+              onPlace={onPlace}
+            />
+          )}
         </div>
       )}
       {scopeLabel && (

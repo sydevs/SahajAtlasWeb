@@ -40,7 +40,7 @@ const MOBILE_PEEK_PX = 128
 const MAP_MARGIN = 20
 // The filter panel's 320px width plus the 64px it stands off the right edge (`FiltersPanel`),
 // which is where the locate and attribution controls live.
-const FILTER_PANEL_PX = 384
+const FILTER_PANEL_PX = 336
 
 // These constants keep zoom consistent.
 // An event frames at `EVENT_ZOOM`.

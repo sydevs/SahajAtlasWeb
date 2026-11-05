@@ -256,7 +256,7 @@
   },
   "search": {
     "chrome": {
-      "placeholder": "Search for events near…",
+      "town_placeholder": "Find classes near…",
       "title": "Search"
     },
     "country_site": {
