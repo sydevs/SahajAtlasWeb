@@ -29,6 +29,7 @@ import {
   INTERACTIVE_LAYER_IDS,
   LAYER_IDS,
 } from './layers'
+import { warmBasemap } from './basemap'
 import { markerColors, registerMarkerImages } from './markers'
 
 import { Button } from '@/components/atoms/Button'
@@ -293,6 +294,11 @@ export function Mapbox({ cooperative = false }: { cooperative?: boolean } = {}) 
   useEffect(() => {
     if (mapbox) return registerMarkerImages(mapbox, colors)
   }, [mapbox, colors])
+
+  // The dark basemap's warm repaint (`basemap.ts`). Light mode runs nothing.
+  useEffect(() => {
+    if (mapbox) return warmBasemap(mapbox, theme)
+  }, [mapbox, theme])
 
   // This holds the canvas until the camera has arrived somewhere, so a deep
   // link never paints the boot-time world view before jumping off it.
