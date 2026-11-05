@@ -750,9 +750,12 @@
   --sy-map-ctrl-end: 12px;
 }
 
+/* `--sy-map-end` is the filters panel's footprint, set on the map by `Map.tsx` while the panel is
+   up, so the column moves in beside the panel rather than sitting under it. It is added to the
+   column's own inset here and in the row below, so one rule never replaces the other. */
 .mapboxgl-ctrl-top-right {
   top: calc(var(--sy-map-ctrl-top) + var(--sy-map-ctrl-size) + var(--sy-map-ctrl-gap));
-  right: var(--sy-map-ctrl-end);
+  right: calc(var(--sy-map-ctrl-end) + var(--sy-map-end, 0px));
 }
 
 .mapboxgl-ctrl-top-right .mapboxgl-ctrl {
@@ -765,7 +768,10 @@
 @media (max-height: 480px) {
   .mapboxgl-ctrl-top-right {
     top: var(--sy-map-ctrl-top);
-    right: calc(var(--sy-map-ctrl-end) + var(--sy-map-ctrl-size) + var(--sy-map-ctrl-gap));
+    right: calc(
+      var(--sy-map-ctrl-end) + var(--sy-map-ctrl-size) + var(--sy-map-ctrl-gap) +
+        var(--sy-map-end, 0px)
+    );
     display: flex;
     flex-direction: row;
     gap: var(--sy-map-ctrl-gap);
@@ -883,13 +889,6 @@
    arrives (`MapCurtain`, z-10). Without this they read as grey smudges. */
 .mapboxgl-ctrl-top-right {
   z-index: 20;
-}
-
-/* The filter panel covers the map's right side, so its corner controls move in beside the
-   panel rather than sitting underneath it. Set on the map by `Map.tsx` while the panel is up.
-   Added to the column's own inset, so with the panel down it stays on the cog's edge. */
-.mapboxgl-map .mapboxgl-ctrl-top-right {
-  right: calc(var(--sy-map-ctrl-end) + var(--sy-map-end, 0px));
 }
 
 /* One focus ring everywhere: a 2px line drawn INSIDE the element. Inside, so a panel's clip can't
