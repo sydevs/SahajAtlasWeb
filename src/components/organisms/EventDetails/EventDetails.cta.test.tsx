@@ -18,6 +18,7 @@ vi.mock('./EventRegister', () => ({
   EventRegisterBar: () => <i>register-slot</i>,
   EventOnward: () => <i>onward-slot</i>,
 }))
+vi.mock('@/config/responsive', () => ({ useCoarsePointer: () => false }))
 vi.mock('@/hooks/use-event-display', () => ({
   useEventDisplay: () => ({ display: { status: 'running' } }),
 }))

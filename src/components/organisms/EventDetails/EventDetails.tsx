@@ -11,6 +11,8 @@ import { EventChips } from '@/components/molecules/EventChips'
 import { ImageCarousel } from '@/components/molecules/ImageCarousel'
 import { EventFacts } from '@/components/molecules/EventFacts'
 import { WhatToExpect } from '@/components/molecules/WhatToExpect'
+import { Link } from '@/components/atoms/Link'
+import { useCoarsePointer } from '@/config/responsive'
 import { useEventDisplay } from '@/hooks/use-event-display'
 import { isUnverified, lexicalToHtml } from '@/lib/shape'
 import { Event } from '@/types'
@@ -61,6 +63,7 @@ export function EventDetails({ event, basePath, ctaInline = true, children }: Ev
   const { t } = useTranslation()
   const { display } = useEventDisplay(event)
   const ended = display.status === 'ended'
+  const canDial = useCoarsePointer()
 
   const descriptionHtml = lexicalToHtml(event.description)
 
@@ -127,6 +130,20 @@ export function EventDetails({ event, basePath, ctaInline = true, children }: Ev
           the road. Old posters and QR codes keep sending people to finished ones. */}
       {(ended || display.status === 'inactive') && (
         <EventOnward basePath={basePath} event={event} />
+      )}
+
+      {/* People have turned up to find nobody there. Worth one quiet line, only when there
+          is a host to ask, and a link only where a `tel:` reaches anything. */}
+      {display.next && event.contactPhone && (
+        <p className="text-sm text-gray-11">
+          {canDial ? (
+            <Link className="underline" href={`tel:${event.contactPhone}`}>
+              {t('event.display.check_first_call')}
+            </Link>
+          ) : (
+            t('event.display.check_first')
+          )}
+        </p>
       )}
 
       <WhatToExpect event={event} />
