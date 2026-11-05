@@ -48,12 +48,12 @@ describe('GeolocationPrompt', () => {
     expect(html).not.toContain('role="alert"')
   })
 
-  it('is a secondary-tinted, header-aligned, vertically-centred single line', () => {
+  it('is a warm-tinted, header-aligned, vertically-centred single line', () => {
     const html = renderToStaticMarkup(
       <GeolocationPrompt city="Paris" onAccept={noop} onClose={noop} />,
     )
 
-    expect(html).toContain('bg-secondary-3')
+    expect(html).toContain('bg-contrast-3')
     expect(html).toContain('items-center')
     // This aligns the horizontal padding with the drawer header (px-4).
     expect(html).toContain('mx-4')
