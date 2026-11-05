@@ -65,6 +65,8 @@ export type DrawerControl = {
   dismiss: () => void
   /** Takes a phone's sheet near-full, for typing in the search field. */
   raise: () => void
+  /** A class view's measured default height on the phone sheet, or null for the fallback. */
+  setOpenHeight: (px: number | null) => void
 }
 
 export const DrawerControlContext = createContext<DrawerControl>({
@@ -74,6 +76,7 @@ export const DrawerControlContext = createContext<DrawerControl>({
   toggle: () => {},
   dismiss: () => {},
   raise: () => {},
+  setOpenHeight: () => {},
 })
 
 export const useDrawerControl = () => useContext(DrawerControlContext)

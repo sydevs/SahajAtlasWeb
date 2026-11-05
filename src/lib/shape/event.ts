@@ -21,6 +21,7 @@ type EventLike = { eventType: EventType; schedule?: EventSchedule | null }
 export type DisplayEventLike = EventLike & {
   inactive?: boolean | null
   contactPhone?: string | null
+  contactEmail?: string | null
   website?: string | null
   /** CMS capacity flag (SahajCloud#601). Absent/null reads as not-full. */
   registrationsFull?: boolean | null
@@ -326,7 +327,7 @@ export function resolveEventDisplay(
   const eventTz = schedule ? scheduleTimeZone(schedule) : 'UTC'
   const displayZone = online ? viewerTz : eventTz
   const now = toDateTime(options.now ?? DateTime.now())
-  const hasContact = Boolean(event.contactPhone)
+  const hasContact = Boolean(event.contactPhone || event.contactEmail)
   const hasWebsite = Boolean(event.website)
 
   const recurrence = schedule?.recurrenceType ?? null

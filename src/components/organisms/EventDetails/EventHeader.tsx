@@ -14,9 +14,8 @@ export type EventHeaderProps = {
 /**
  * This is the event surface header. It shows only the title. The header
  * renders outside the drawer body, so it stays pinned while content scrolls
- * and so the mobile sheet's 80px peek shows it (issue #52, WS4). The triage
- * chips (type, language, Today) open the body instead of sitting here. The
- * date and location facts follow the chips.
+ * and so the mobile sheet's 80px peek shows it (issue #52, WS4). The date
+ * and location facts open the body, directly under it.
  */
 export function EventHeader({ event, nav, below }: EventHeaderProps) {
   return (

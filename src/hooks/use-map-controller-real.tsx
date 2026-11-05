@@ -8,7 +8,7 @@ import { MapControllerContext } from './use-map-controller'
 
 import { useMapbox, usePaddingState } from '@/hooks/use-mapbox'
 import { SEARCH_SHEET_PX } from '@/config/responsive'
-import { useFilterPanelState, useViewState } from '@/config/store'
+import { useClassSheet, useFilterPanelState, useViewState } from '@/config/store'
 import { useIsWide } from '@/config/responsive'
 import { eventFrameZoom } from '@/lib/camera'
 import { hasVagueAddress, isOnline } from '@/lib/shape'
@@ -91,6 +91,7 @@ const eventPoint = (event: Pick<EventSlim, 'address' | 'eventType'>) => {
 export function RealMapControllerProvider({ children }: { children: ReactNode }) {
   const { mapbox, moveMap, fitBounds, isPointVisible, flyTo } = useMapbox()
   const setPadding = usePaddingState((s) => s.setPadding)
+  const sheetBottom = useClassSheet((s) => s.bottom)
   const setSelection = useViewState((s) => s.setSelection)
   const setHover = useViewState((s) => s.setHover)
   const setBoundary = useViewState((s) => s.setBoundary)
@@ -117,16 +118,18 @@ export function RealMapControllerProvider({ children }: { children: ReactNode })
       left: MAP_MARGIN + (isWide ? DRAWER_W_PX : 0),
       right: MAP_MARGIN + (filterPanelUp ? FILTER_PANEL_PX : 0),
       top: MAP_MARGIN,
+      // A class's sheet is taller than the usual allowance, and its pin must show above it.
       bottom:
         MAP_MARGIN +
         (isWide
           ? 0
-          : Math.min(
+          : (sheetBottom ??
+            Math.min(
               MOBILE_SHEET_PX,
               (frameElement()?.clientHeight ?? window.innerHeight) * MOBILE_SHEET_MAX_SHARE,
-            )),
+            ))),
     })
-  }, [isWide, filterPanelUp, setPadding])
+  }, [isWide, filterPanelUp, sheetBottom, setPadding])
 
   const controller = useMemo<MapController>(
     () => ({

@@ -48,10 +48,10 @@ export type { FallbackAlign, FallbackKind } from './Fallbacks'
 export { FormField, fieldErrorId, fieldHelpId, fieldDescribedBy } from './FormField'
 export type { FormFieldProps } from './FormField'
 
-// ActionRow / ActionCircle — the labelled tonal-circle secondary actions
+// ActionRow / ActionButton — the quiet labelled secondary actions
 // under an event's Register CTA (Directions, Website, Contact, Share).
-export { ActionRow, ActionCircle } from './ActionRow'
-export type { ActionRowProps, ActionCircleProps } from './ActionRow'
+export { ActionRow, ActionButton } from './ActionRow'
+export type { ActionRowProps, ActionButtonProps } from './ActionRow'
 
 // EventFacts — the shared calendar and location fact block for an
 // event. It builds and renders the when/where lines. The panel, the list
@@ -101,3 +101,7 @@ export type { EventMetadataProps } from './EventMetadata'
 // GeolocationSuggestion in views/shared.
 export { GeolocationPrompt } from './GeolocationPrompt'
 export type { GeolocationPromptProps } from './GeolocationPrompt'
+
+// WhatToExpect — the short app-supplied promise for newcomers on a class page.
+export { WhatToExpect } from './WhatToExpect'
+export type { WhatToExpectProps } from './WhatToExpect'

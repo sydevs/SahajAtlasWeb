@@ -22,6 +22,7 @@ vi.mock('@/hooks/use-event-display', () => ({
     display: { status: d.status, full: d.full },
     typeLabel: d.typeLabel,
     isDefaultType: d.isDefaultType,
+    recurrenceLine: 'Every Wednesday',
   }),
 }))
 
@@ -45,6 +46,33 @@ describe('EventChips', () => {
     expect(html).toContain('en, fr')
   })
 
+  it('default: drops a language the title already names', () => {
+    const html = renderToStaticMarkup(
+      <EventChips
+        event={
+          { languages: ['en'], title: 'Meditation in EN' } as unknown as EventChipsProps['event']
+        }
+      />,
+    )
+
+    expect(html).not.toContain('>en<')
+  })
+
+  it('default: keeps a language that only appears inside a longer word', () => {
+    const html = renderToStaticMarkup(
+      <EventChips
+        event={
+          {
+            languages: ['en'],
+            title: 'Meditation in Enfield',
+          } as unknown as EventChipsProps['event']
+        }
+      />,
+    )
+
+    expect(html).toContain('>en<')
+  })
+
   it('compact: drops the plain weekly type and the viewer language (renders nothing)', () => {
     expect(render(['en'], 'compact')).toBe('')
   })
@@ -60,13 +88,19 @@ describe('EventChips', () => {
     expect(html).not.toContain('en, fr')
   })
 
-  it('shows a contrast "Today" chip when the event is today', () => {
+  it('shows a contrast "Today" chip on a card when the event is today', () => {
     d.status = 'today'
 
-    const html = render(['en'])
+    const html = render(['en'], 'compact')
 
     expect(html).toContain('event.display.chip_today')
     expect(html).toContain('text-contrast-11')
+  })
+
+  it('leaves "Today" to the when line on the class page', () => {
+    d.status = 'today'
+
+    expect(render(['en'])).not.toContain('event.display.chip_today')
   })
 
   it('shows a "Full" chip when the event is at capacity', () => {

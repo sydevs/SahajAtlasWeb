@@ -1,15 +1,22 @@
-import { type ReactNode, useMemo } from 'react'
+import { type ReactNode, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
+import { CalendarPlus, ChevronDown } from 'lucide-react'
 
-import { EventRegisterBar } from './EventRegister'
+import { EventOnward, EventRegisterBar } from './EventRegister'
 import { sanitizeDescription } from './sanitize'
 
 import { Alert } from '@/components/atoms/Alert'
+import { Button } from '@/components/atoms/Button'
+import { AddToCalendarList } from '@/components/molecules/AddToCalendar'
 import { EventActions } from '@/components/molecules/EventActions'
 import { EventChips } from '@/components/molecules/EventChips'
 import { ImageCarousel } from '@/components/molecules/ImageCarousel'
 import { EventFacts } from '@/components/molecules/EventFacts'
-import { isUnverified, lexicalToHtml } from '@/lib/shape'
+import { WhatToExpect } from '@/components/molecules/WhatToExpect'
+import { Link } from '@/components/atoms/Link'
+import { useCoarsePointer } from '@/config/responsive'
+import { useEventDisplay } from '@/hooks/use-event-display'
+import { isOnline, isUnverified, lexicalToHtml } from '@/lib/shape'
 import { Event } from '@/types'
 
 /**
@@ -50,13 +57,59 @@ export type EventDetailsProps = EventSurfaceProps & {
 }
 
 /**
- * This is the event panel body. It follows the order from issue #52: chips,
- * facts (plain text), Register, microcopy, secondary actions, images, then
- * About. The title is a separate component (EventHeader). It renders outside
- * the scrolling drawer body, so it stays pinned. The triage chips lead the body.
+ * This is the event panel body: when and where, chips, Register, microcopy,
+ * secondary actions, About, then images. The title is a separate component
+ * (EventHeader). It renders outside the scrolling drawer body, so it stays pinned.
  */
+/** Add-to-calendar on the class page: a text-weight control that opens a short list. It sits
+ *  below the reassurance, because it isn't the next step. Only for a class with a session still
+ *  to come. */
+function EventAddToCalendar({ event }: { event: Event }) {
+  const { t } = useTranslation()
+  const { display, whereLine } = useEventDisplay(event)
+  const [open, setOpen] = useState(false)
+
+  if (!display.next || !event.schedule) return null
+
+  const now = Date.now()
+
+  return (
+    <div className="flex flex-col">
+      <Button
+        aria-expanded={open}
+        className="h-11 justify-start px-0"
+        color="neutral"
+        variant="ghost"
+        onClick={() => setOpen((value) => !value)}
+      >
+        <CalendarPlus className="text-primary-11" size={18} />
+        {t('event.actions.add_calendar')}
+        <ChevronDown className={open ? 'rotate-180 text-gray-11' : 'text-gray-11'} size={16} />
+      </Button>
+      {open && (
+        <AddToCalendarList
+          event={{
+            id: event.id,
+            title: event.title,
+            schedule: {
+              ...event.schedule,
+              upcomingDates: event.schedule.upcomingDates?.filter((d) => d.getTime() > now),
+            },
+            location: isOnline(event) ? undefined : whereLine,
+            url: event.webUrl,
+            from: display.next.toJSDate(),
+          }}
+        />
+      )}
+    </div>
+  )
+}
+
 export function EventDetails({ event, basePath, ctaInline = true, children }: EventDetailsProps) {
   const { t } = useTranslation()
+  const { display } = useEventDisplay(event)
+  const ended = display.status === 'ended'
+  const canDial = useCoarsePointer()
 
   const descriptionHtml = lexicalToHtml(event.description)
 
@@ -80,15 +133,21 @@ export function EventDetails({ event, basePath, ctaInline = true, children }: Ev
     // The carousel is full-bleed and always last. It removes the container's
     // bottom padding, so the images sit flush against the end of the view
     // instead of floating 40px above it. Everything else keeps the padding.
-    <div className={`flex flex-col gap-4 px-4 pt-2 ${hasImages ? '' : 'pb-10'}`}>
-      {/* The triage chips open the body. They do not sit under the title in the
-          pinned header. The chips are a short row. The container's `gap-4` and
-          the facts' own `my-2` add extra space before the facts. The `-mb-2`
-          class removes that extra space. */}
-      <EventChips className="-mb-2" event={event} />
-
-      {/* Extra space appears around the date and location facts, above the Register button. */}
-      <EventFacts className="my-2" event={event} />
+    <div className={`flex flex-col gap-4 px-4 pt-1 ${hasImages ? '' : 'pb-10'}`}>
+      {/* When and where lead, because that is what a visitor came for, and on the phone
+          sheet they must fit above the sticky footer at the default height. The chips
+          follow, as the quieter facts. */}
+      {ended ? (
+        <div className="flex flex-col gap-1">
+          <p className="text-lg">{t('event.display.class_finished')}</p>
+          <p className="text-base text-gray-11">{t('event.display.class_finished_body')}</p>
+        </div>
+      ) : (
+        <>
+          <EventFacts event={event} />
+          <EventChips event={event} />
+        </>
+      )}
 
       {children}
 
@@ -96,12 +155,14 @@ export function EventDetails({ event, basePath, ctaInline = true, children }: Ev
           repeats it, since that route is reachable without passing here. Badging via the
           chips above would mark the list card, the surface this leaves alone. */}
       {isUnverified(event) && (
-        <Alert
-          color="contrast"
-          description={t('event.display.unverified_note')}
-          size="sm"
-          title={t('event.display.unverified_title')}
-        />
+        <div data-sheet-fold>
+          <Alert
+            color="contrast"
+            description={t('event.display.unverified_note')}
+            size="sm"
+            title={t('event.display.unverified_title')}
+          />
+        </div>
       )}
 
       {ctaInline && (
@@ -111,10 +172,44 @@ export function EventDetails({ event, basePath, ctaInline = true, children }: Ev
         </>
       )}
 
+      {/* A by-request or finished class has nothing to book, so it must not be the end of
+          the road. Old posters and QR codes keep sending people to finished ones. */}
+      {(ended || display.status === 'inactive') && (
+        <EventOnward basePath={basePath} event={event} />
+      )}
+
+      {/* With no phone, the Contact button already writes to this address. */}
+      {event.contactEmail && event.contactPhone && (
+        <p className="text-sm text-gray-11">
+          {t('event.display.email_host')}{' '}
+          <Link className="underline" href={`mailto:${event.contactEmail}`}>
+            {event.contactEmail}
+          </Link>
+        </p>
+      )}
+
+      {/* People have turned up to find nobody there. Worth one quiet line, only when there
+          is a host to ask, and a link only where a `tel:` reaches anything. */}
+      {display.next && event.contactPhone && (
+        <p className="text-sm text-gray-11">
+          {canDial ? (
+            <Link className="underline" href={`tel:${event.contactPhone}`}>
+              {t('event.display.check_first_call')}
+            </Link>
+          ) : (
+            t('event.display.check_first')
+          )}
+        </p>
+      )}
+
+      <WhatToExpect event={event} />
+
+      <EventAddToCalendar event={event} />
+
       {/* About — host-authored prose always sits below the facts and actions. */}
       {descriptionHtml && (
-        <div className="flex flex-col gap-2">
-          <h2 className="text-md font-semibold">{t('event.display.about')}</h2>
+        <div className="mt-4 flex flex-col gap-2">
+          <h2 className="text-lg">{t('event.display.about')}</h2>
           <div
             dangerouslySetInnerHTML={{ __html: sanitizeDescription(descriptionHtml) }}
             // `colored-links` carries the host-prose treatment, wrapping included.

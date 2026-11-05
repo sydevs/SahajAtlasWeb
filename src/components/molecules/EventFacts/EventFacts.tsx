@@ -3,6 +3,7 @@ import type { ReactNode } from 'react'
 
 import { tv } from 'tailwind-variants'
 import { CalendarDays, MapPin, Monitor } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 
 import {
   composeCalendarLine,
@@ -116,6 +117,7 @@ export function EventFacts({
   where,
   className,
 }: EventFactsProps) {
+  const { t } = useTranslation()
   const {
     display,
     recurrenceLine,
@@ -123,6 +125,7 @@ export function EventFacts({
     eventTimeRange,
     eventStartTime,
     whereLine,
+    whereLineFull,
     roomLine,
     whereSubtext,
   } = useEventDisplay(event)
@@ -132,12 +135,18 @@ export function EventFacts({
 
   // The muted detail under the timing. "Started …" is only meaningful for
   // a course, a run with an end. The "Next session" line is panel-only.
-  let timingDetail: string | undefined
+  let timingDetail: ReactNode
 
   if (display.next && recurrenceLine) {
     if (display.status === 'started')
       timingDetail = display.kind === 'course' ? whenLine : undefined
     else if (display.status === 'running' && compact) timingDetail = undefined
+    // On a card, the Today chip already says it.
+    else if (display.status === 'today' && compact) timingDetail = undefined
+    else if (display.status === 'today')
+      timingDetail = (
+        <span className="font-medium text-primary-12 dark:text-primary-11">{whenLine}</span>
+      )
     else timingDetail = whenLine
   }
 
@@ -163,16 +172,18 @@ export function EventFacts({
     // The room is directions, so only the panel carries it. The list card and the
     // share/registration summaries are triage and recap (#316).
     const room = variant === 'default' ? roomLine : null
+    // The card stays short. Every other surface helps someone find the place.
+    const address = compact ? whereLine : whereLineFull
 
     items.push({
       icon: display.online ? Monitor : MapPin,
       text: room ? (
         <>
           <div>{room}</div>
-          <div>{whereLine}</div>
+          <div>{address}</div>
         </>
       ) : (
-        (where ?? whereLine)
+        (where ?? address)
       ),
       stacked: Boolean(room),
       subtext: display.online
@@ -191,7 +202,10 @@ export function EventFacts({
   // It also owns a title above the facts, and a slot below them. The other
   // variants render just the fact column, and take `className` on it.
   const body = (
-    <div className={card ? slots.base() : slots.base({ className })}>
+    <div
+      className={card ? slots.base() : slots.base({ className })}
+      data-sheet-fold={variant === 'default' ? '' : undefined}
+    >
       {items.map(({ icon: Icon, text, subtext, stacked }, index) => {
         // Alignment is per-fact. Only a stacked fact, one with two lines,
         // hangs its icon from the first line.
@@ -209,6 +223,12 @@ export function EventFacts({
           </div>
         )
       })}
+      {/* "Free" is a newcomer's main doubt. "Register for free" says it wherever that button
+          shows, so this is only for a by-request class, which has no such button. It sits
+          after the where line, level with the fact text, so when and where still lead. */}
+      {variant === 'default' && display.status === 'inactive' && (
+        <p className="pl-8 text-sm text-gray-11">{t('event.display.fact_free')}</p>
+      )}
     </div>
   )
 

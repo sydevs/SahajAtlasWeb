@@ -15,7 +15,7 @@ import {
   useIsWide,
 } from '@/config/responsive'
 import { useWidgetMode } from '@/config/mode'
-import { useCalendarPosition, useFilterPanelState } from '@/config/store'
+import { useCalendarPosition, useClassSheet, useFilterPanelState } from '@/config/store'
 import { frameElement, overlayContainer } from '@/lib/overlay'
 import {
   type StackEntry,
@@ -89,6 +89,24 @@ const PEEK_SNAP = '88px' // the collapsed peek
 const OPEN_SNAP = '356px' // default, and what the peek expands to
 const HOME_SNAP = '380px' // what the first screen opens at
 const WIDE_SNAP = SNAP_POINTS[SNAP_POINTS.length - 1] // the near-full snap the full-width calendar opens at
+// A class opens at the height its content needs, measured by EventView's `useSheetFit`: the
+// title, when, where and chips, above a sticky footer of about 125px. A visitor must see when
+// and where without dragging. Until that measure lands, this is the first guess. The footer
+// also grows by the home-indicator inset, so the guess does too. vaul reads pixels, so the
+// inset is measured once, from the same CSS value the footer's spacer uses.
+const EVENT_OPEN_PX = 380
+const safeAreaBottom = (): number => {
+  if (typeof document === 'undefined') return 0
+  const probe = document.createElement('div')
+
+  probe.style.cssText = 'position:fixed;visibility:hidden;height:env(safe-area-inset-bottom,0px)'
+  document.body.append(probe)
+  const inset = probe.getBoundingClientRect().height
+
+  probe.remove()
+
+  return inset
+}
 
 // How wide the widget has to be before the filters get their own panel over the map, and open by
 // default: the 352px list and its margins, the 320px filter panel and the 64px of map controls
@@ -211,8 +229,17 @@ export function DrawerStack() {
   // that key to tell whether it is still the view on top, and the two agreeing is what
   // makes the comparison mean anything.
   const top = baseStackEntry(entries, hasMap) ?? null
+  // A class has its own taller open stop. The stored snap can still be the previous view's
+  // for one render, before the effect below moves it, and vaul needs one from this ladder.
+  const [fallbackOpenPx] = useState(() => EVENT_OPEN_PX + safeAreaBottom())
+  const [measuredOpenPx, setMeasuredOpenPx] = useState<number | null>(null)
+  const eventOpenPx = measuredOpenPx ?? fallbackOpenPx
+  const eventOpenSnap = `${eventOpenPx}px`
+  const eventSnapPoints = useMemo(() => [PEEK_SNAP, eventOpenSnap, WIDE_SNAP], [eventOpenSnap])
+  const snapPoints = top?.kind === 'event' ? eventSnapPoints : SNAP_POINTS
   // The first screen has more to show before the map matters than any other view.
-  const openSnap = top ? OPEN_SNAP : HOME_SNAP
+  const openSnap = top?.kind === 'event' ? eventOpenSnap : top ? OPEN_SNAP : HOME_SNAP
+  const activeSnap = snap != null && snapPoints.includes(snap) ? snap : openSnap
   // The calendar is the one full-width view. It fills the widget, minus the floating margins,
   // instead of the 352px left panel (see the Drawer `wide` variant) — EXCEPT in its list
   // (agenda) view, one narrow column that reads better at the regular width. `isWide` is here
@@ -406,8 +433,16 @@ export function DrawerStack() {
   // Results reached from the filters also land tall: the visitor just asked to see classes, and
   // the short snap showed less than one whole class under the search box and the toolbar.
   const lastKind = useRef(top?.kind)
+  // A class's measured height arrives after it opens. The ladder lookup above follows it, so
+  // a remeasure must not re-snap here, which would drop a sheet the visitor pulled tall.
+  const snappedFor = useRef<string | null>(null)
 
   useEffect(() => {
+    const view = `${direction}:${top?.kind}`
+
+    if (snappedFor.current === view) return
+    snappedFor.current = view
+
     const from = lastKind.current
 
     lastKind.current = top?.kind
@@ -421,6 +456,16 @@ export function DrawerStack() {
     if (tall) setSnap(WIDE_SNAP)
     else setSnap(top?.kind === 'search' && searchCenter ? SEARCH_SNAP : openSnap)
   }, [direction, top?.kind, openSnap])
+
+  // The camera keeps a class's pin clear of the sheet that opened over it. This is only for a
+  // class: its sheet is taller, and its pin is the point of the map.
+  const setSheetBottom = useClassSheet((s) => s.setBottom)
+
+  useEffect(() => {
+    setSheetBottom(direction === 'bottom' && top?.kind === 'event' ? eventOpenPx : null)
+
+    return () => setSheetBottom(null)
+  }, [direction, top?.kind, eventOpenPx, setSheetBottom])
 
   // A new searched place lifts the sheet out of its peek, so results are never
   // fetched into a sheet the visitor cannot see. The effect above does not cover this
@@ -447,9 +492,9 @@ export function DrawerStack() {
     if (searchCenter && top?.kind === 'search') {
       setSnap((current) => (current === WIDE_SNAP && !lower ? current : SEARCH_SNAP))
     } else {
-      setSnap((current) => (current === PEEK_SNAP || lower ? OPEN_SNAP : current))
+      setSnap((current) => (current === PEEK_SNAP || lower ? openSnap : current))
     }
-  }, [direction, searchCenter])
+  }, [direction, searchCenter, openSnap])
 
   // Uniform for every view: dismissing pops to the parent, and the one view with no
   // parent (CountriesView) collapses to the peek instead of closing. Wired to both the
@@ -489,6 +534,7 @@ export function DrawerStack() {
         raisedForTyping.current = true
         setSnap(WIDE_SNAP)
       },
+      setOpenHeight: setMeasuredOpenPx,
       dismiss: () => {
         // Marks the dismiss navigation as a transition: unmounting a heavy view (the
         // calendar's large grid) would otherwise reconcile synchronously and freeze
@@ -513,6 +559,7 @@ export function DrawerStack() {
     }
   }, [
     snap,
+    openSnap,
     canCollapse,
     parentPath,
     depth,
@@ -520,7 +567,6 @@ export function DrawerStack() {
     navigate,
     toStackTarget,
     direction,
-    openSnap,
     top?.kind,
   ])
 
@@ -535,6 +581,7 @@ export function DrawerStack() {
       canDismiss: true,
       toggle: () => {},
       raise: () => {},
+      setOpenHeight: () => {},
       // The same back-vs-climb decision as `control` (via `dismissAction`), but the
       // overlay is always parented to the calendar (`hasParent: true` → never
       // 'collapse'), so 'fallback' climbs to `/calendar` directly, keeping its query.
@@ -720,7 +767,7 @@ export function DrawerStack() {
             key={direction}
             dismissible
             open
-            activeSnapPoint={direction === 'bottom' ? snap : undefined}
+            activeSnapPoint={direction === 'bottom' ? activeSnap : undefined}
             container={target}
             direction={direction}
             // The left panel (≥md) has no handle and no snap points, so restricting
@@ -734,7 +781,7 @@ export function DrawerStack() {
             // `Drawer.tsx`.
             measureAgainst={frameElement()}
             setActiveSnapPoint={direction === 'bottom' ? setSnap : undefined}
-            snapPoints={direction === 'bottom' ? SNAP_POINTS : undefined}
+            snapPoints={direction === 'bottom' ? snapPoints : undefined}
             wide={wide}
             onOpenChange={(o) => !o && control.dismiss()}
           >

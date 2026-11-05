@@ -4,23 +4,37 @@ import { DateTime } from 'luxon'
 
 import { timePeriodRanges, type TimePeriod } from '@/lib/shape'
 
+/** iPhone or iPad. iPadOS reports a Mac, so touch points tell the two apart. */
+export const isAppleMobile = (
+  nav: Pick<Navigator, 'userAgent' | 'maxTouchPoints'> | undefined = typeof navigator ===
+  'undefined'
+    ? undefined
+    : navigator,
+): boolean =>
+  Boolean(nav) &&
+  (/iPhone|iPad|iPod/.test(nav!.userAgent) ||
+    (/Macintosh/.test(nav!.userAgent) && nav!.maxTouchPoints > 1))
+
 /**
- * A Google Maps directions link from an event's coordinates (preferred) or its
- * address text. This is undefined when there is nothing to point at. Pure —
- * shared by the panel's Directions action and any future card affordance.
+ * A directions link from an event's coordinates (preferred) or its address text. This is
+ * undefined when there is nothing to point at. iPhones and iPads get Apple Maps: Google in
+ * Safari stops a fresh browser at a consent wall. Everything else gets Google Maps.
  */
-export function directionsUrl(address: EventAddress | null | undefined): string | undefined {
+export function directionsUrl(
+  address: EventAddress | null | undefined,
+  apple: boolean = isAppleMobile(),
+): string | undefined {
   const { latitude, longitude, street, city, country } = address ?? {}
+  const text = [street, city, country].filter(Boolean).join(', ')
+  const query = latitude != null && longitude != null ? `${latitude},${longitude}` : text
 
-  if (latitude != null && longitude != null) {
-    return `https://www.google.com/maps/search/?api=1&query=${latitude},${longitude}`
-  }
+  if (!query) return undefined
 
-  const query = [street, city, country].filter(Boolean).join(', ')
+  const encoded = query === text ? encodeURIComponent(query) : query
 
-  return query
-    ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(query)}`
-    : undefined
+  return apple
+    ? `https://maps.apple.com/?daddr=${encoded}`
+    : `https://www.google.com/maps/search/?api=1&query=${encoded}`
 }
 
 /**

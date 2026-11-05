@@ -205,6 +205,7 @@ export const EventDocSchema = z.object({
   description: LexicalDocumentSchema.nullish(),
   images: z.array(EventImageSchema).default([]),
   contactPhone: z.string().nullish(),
+  contactEmail: z.string().nullish(),
   contactName: z.string().nullish(),
   // The host's own site, surfaced as a secondary action. Runs through
   // SafeUrlSchema like the other CMS-authored hrefs — a `javascript:`/`data:`

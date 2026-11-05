@@ -3,6 +3,7 @@ import type { Story, StoryDefault } from '@ladle/react'
 import {
   ArrowUpRight,
   CalendarDays,
+  CalendarPlus,
   Check,
   ChevronDown,
   ChevronLeft,
@@ -13,11 +14,13 @@ import {
   Languages,
   LoaderCircle,
   LocateFixed,
+  Mail,
   MapPin,
-  Milestone,
+  Navigation,
   Monitor,
   Moon,
   Pause,
+  Phone,
   PhoneOutgoing,
   Play,
   Search,
@@ -53,6 +56,7 @@ export default {
 const ICONS = [
   { name: 'ArrowUpRight', Icon: ArrowUpRight },
   { name: 'CalendarDays', Icon: CalendarDays },
+  { name: 'CalendarPlus', Icon: CalendarPlus },
   { name: 'Check', Icon: Check },
   { name: 'ChevronDown', Icon: ChevronDown },
   { name: 'ChevronLeft', Icon: ChevronLeft },
@@ -63,11 +67,13 @@ const ICONS = [
   { name: 'Languages', Icon: Languages },
   { name: 'LoaderCircle', Icon: LoaderCircle },
   { name: 'LocateFixed', Icon: LocateFixed },
+  { name: 'Mail', Icon: Mail },
   { name: 'MapPin', Icon: MapPin },
-  { name: 'Milestone', Icon: Milestone },
+  { name: 'Navigation', Icon: Navigation },
   { name: 'Monitor', Icon: Monitor },
   { name: 'Moon', Icon: Moon },
   { name: 'Pause', Icon: Pause },
+  { name: 'Phone', Icon: Phone },
   { name: 'PhoneOutgoing', Icon: PhoneOutgoing },
   { name: 'Play', Icon: Play },
   { name: 'Search', Icon: Search },
@@ -153,7 +159,7 @@ export const Default: Story = () => (
     >
       <div className="flex items-center gap-6" dir="rtl">
         <ChevronRight className="rtl:-scale-x-100" size={24} />
-        <Milestone className="rtl:-scale-x-100" size={24} />
+        <Navigation size={24} />
         <span className="text-sm text-gray-11">dir=&quot;rtl&quot;</span>
       </div>
     </StorySection>
