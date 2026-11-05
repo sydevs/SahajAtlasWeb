@@ -46,6 +46,7 @@ export const eventToDraft = (event: Event): ListingDraft => {
     eventType: event.eventType,
     address:
       event.eventType === 'offline' && event.address ? placeFromAddress(event.address) : null,
+    venueName: event.address?.venueName ?? '',
     room: event.address?.room ?? '',
     onlineUrl: '',
     city:

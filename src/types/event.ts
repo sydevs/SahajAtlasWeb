@@ -28,6 +28,7 @@ export type ScheduleExclusion = z.infer<typeof ScheduleExclusionSchema>
 // geojson geometry comes from latitude/longitude when present.
 export const EventAddressSchema = z.object({
   mapboxId: z.string().nullish(),
+  venueName: z.string().nullish(),
   street: z.string().nullish(),
   room: z.string().nullish(),
   postCode: z.string().nullish(),

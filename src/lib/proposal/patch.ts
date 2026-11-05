@@ -106,6 +106,7 @@ export const draftToPatch = (
           address: address
             ? {
                 mapboxId: address.mapboxId ?? null,
+                venueName: text(draft.venueName),
                 street: address.street ?? null,
                 room: text(draft.room),
                 postCode: address.postCode ?? null,
@@ -115,7 +116,7 @@ export const draftToPatch = (
                 latitude: address.latitude ?? null,
                 longitude: address.longitude ?? null,
               }
-            : { room: text(draft.room) },
+            : { venueName: text(draft.venueName), room: text(draft.room) },
         }),
     schedule: draftSchedule(draft),
   }

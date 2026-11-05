@@ -82,6 +82,7 @@ const FEED_SELECT = {
   languages: true,
   inactive: true,
   address: {
+    venueName: true,
     street: true,
     room: true,
     postCode: true,

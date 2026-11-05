@@ -78,6 +78,12 @@ export function useSummaryRows(
       section: 'where',
     },
     !online && {
+      key: 'venue',
+      label: t('submit.summary.venue'),
+      value: draft.venueName.trim(),
+      section: 'where',
+    },
+    !online && {
       key: 'room',
       label: t('submit.summary.room'),
       value: draft.room.trim(),

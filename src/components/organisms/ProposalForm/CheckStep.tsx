@@ -239,7 +239,8 @@ function ListingSummary({
           </>
         ) : (
           <>
-            <p className="font-medium">{place?.label}</p>
+            {draft.venueName.trim() && <p className="font-medium">{draft.venueName.trim()}</p>}
+            <p className={draft.venueName.trim() ? undefined : 'font-medium'}>{place?.label}</p>
             {draft.room.trim() && <p>{draft.room.trim()}</p>}
           </>
         )}

@@ -37,6 +37,8 @@ export type ListingDraft = {
   eventType: 'offline' | 'online'
   /** In person: the venue's address. */
   address: PickedPlace | null
+  /** The building's own name, which the search does not give and an address cannot say. */
+  venueName: string
   room: string
   /** Online: the join link, and the city the class is hosted from. */
   onlineUrl: string
@@ -69,6 +71,7 @@ export type ListingSender = { email: string; note: string }
 export const emptyDraft = (timeZone: string, languages: string[] = []): ListingDraft => ({
   eventType: 'offline',
   address: null,
+  venueName: '',
   room: '',
   onlineUrl: '',
   city: null,
@@ -108,5 +111,7 @@ export const draftLocation = (draft: ListingDraft): ProposalLocation =>
  */
 export const draftTitle = (draft: ListingDraft): string =>
   draft.title.trim() ||
-  (draft.eventType === 'online' ? draft.city?.city : draft.address?.street) ||
+  (draft.eventType === 'online'
+    ? draft.city?.city
+    : draft.venueName.trim() || draft.address?.street) ||
   ''

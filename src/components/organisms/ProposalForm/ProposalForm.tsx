@@ -65,8 +65,9 @@ const endIsPromised = (draft: ListingDraft, endsOn: boolean) =>
  *  class with a street address. */
 const UNDO_FIELDS: Partial<Record<ChangeKey, (keyof ListingDraft)[]>> = {
   type: ['eventType', 'address', 'city', 'onlineUrl'],
-  place: ['eventType', 'address', 'city'],
+  place: ['eventType', 'address', 'venueName', 'city'],
   manual: ['address', 'city'],
+  venue: ['venueName'],
   room: ['room'],
   link: ['onlineUrl'],
   schedule: ['repeats', 'monthlyBy', 'startTime', 'endTime', 'firstDate', 'endDate'],
@@ -298,7 +299,12 @@ function StepStage({
     const place = featureToPlace(feature)
 
     // Without a nearby class to lend one, the visitor's own zone — never one inferred earlier.
-    onChange({ [key]: place, timeZone: timeZoneFor?.(place) ?? viewerTimeZone() })
+    onChange({
+      [key]: place,
+      timeZone: timeZoneFor?.(place) ?? viewerTimeZone(),
+      // A new address is a new building, so the old one's name cannot come along.
+      ...(key === 'address' ? { venueName: '' } : {}),
+    })
   }
   // The search writes a picked label into its field without reporting it as an edit, so any
   // edit it does report means the text no longer names the pick: drop it, and ask again.

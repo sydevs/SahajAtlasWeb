@@ -405,7 +405,10 @@
       "nearby_body_near": "There’s already a class listed close to this address. If it’s the same class, correct that listing instead. If not, just carry on.",
       "manual_country": "Country",
       "manual_city_toggle": "Can’t find it? Type the city instead",
-      "manual_city_back": "Search for the city instead"
+      "manual_city_back": "Search for the city instead",
+      "venue_name_label": "Name of the building (optional)",
+      "venue_name_placeholder": "For example: Balham Library",
+      "venue_name_help": "What people will see on the door. If you leave the class name blank, this names the class."
     },
     "details": {
       "title": "A few more details",
@@ -469,7 +472,8 @@
       "address": "Address",
       "contact": "Contact",
       "manual": "On the map",
-      "manual_value": "Not found by the search — sent in your note so the coordinator can place it."
+      "manual_value": "Not found by the search — sent in your note so the coordinator can place it.",
+      "venue": "Building"
     }
   }
 }

@@ -117,7 +117,7 @@ export function PlaceStep({
           >
             {t('submit.where.manual_back')}
           </TextButton>
-          <RoomField draft={draft} onChange={onChange} />
+          <VenueFields draft={draft} onChange={onChange} />
         </>
       ) : offline ? (
         <>
@@ -145,7 +145,7 @@ export function PlaceStep({
             </TextButton>
           )}
           {notice}
-          <RoomField draft={draft} onChange={onChange} />
+          <VenueFields draft={draft} onChange={onChange} />
         </>
       ) : (
         <>
@@ -293,7 +293,8 @@ function PlaceField({
   )
 }
 
-function RoomField({
+/** The two things a street address cannot say: what the building is called, and which room. */
+function VenueFields({
   draft,
   onChange,
 }: {
@@ -303,14 +304,25 @@ function RoomField({
   const { t } = useTranslation()
 
   return (
-    <ValidatedInput
-      id="submit-room"
-      label={t('submit.where.room_label')}
-      maxLength={ROOM_MAX}
-      placeholder={t('submit.where.room_placeholder')}
-      value={draft.room}
-      onChange={(event) => onChange({ room: event.target.value })}
-    />
+    <>
+      <ValidatedInput
+        help={t('submit.where.venue_name_help')}
+        id="submit-venue-name"
+        label={t('submit.where.venue_name_label')}
+        maxLength={ROOM_MAX}
+        placeholder={t('submit.where.venue_name_placeholder')}
+        value={draft.venueName}
+        onChange={(event) => onChange({ venueName: event.target.value })}
+      />
+      <ValidatedInput
+        id="submit-room"
+        label={t('submit.where.room_label')}
+        maxLength={ROOM_MAX}
+        placeholder={t('submit.where.room_placeholder')}
+        value={draft.room}
+        onChange={(event) => onChange({ room: event.target.value })}
+      />
+    </>
   )
 }
 
