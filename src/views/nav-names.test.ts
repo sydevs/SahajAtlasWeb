@@ -16,7 +16,7 @@ const naming = {
 
 describe('backLabel', () => {
   it('names the root in words a visitor knows', () => {
-    expect(backLabel('/', naming)).toBe('common.chrome.back_to_countries')
+    expect(backLabel('/', naming)).toBe('common.chrome.back_to_world_map')
   })
 
   it('names a region from the tree, and falls back to its slug', () => {

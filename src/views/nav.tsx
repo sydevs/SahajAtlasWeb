@@ -116,7 +116,7 @@ export function BackButton({ iconOnly = false }: { iconOnly?: boolean }) {
  *
  * These are climbs, not history steps, so they use the plain router link rather than the
  * Link atom: no depth stamp, the same as the deep-link climb in DrawerStack. After tapping
- * "United Kingdom" Back says "Back to all countries", not the class just left, so the two
+ * "United Kingdom" Back says "Back to the world map", not the class just left, so the two
  * controls always agree about what is above what.
  */
 export function Breadcrumbs() {
