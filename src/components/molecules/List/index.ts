@@ -1,1 +1,2 @@
-export { List } from './List'
+export { List, ListLabel } from './List'
+export type { ListLabelProps } from './List'

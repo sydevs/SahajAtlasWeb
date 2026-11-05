@@ -6,7 +6,7 @@ import { useTranslation } from 'react-i18next'
 
 import { DrawerBody, DrawerHeader } from '@/components/atoms/Drawer'
 import { WmIcon } from '@/components/atoms/Icons/wm'
-import { List, ListItem } from '@/components/molecules'
+import { List, ListItem, ListLabel } from '@/components/molecules'
 import api, { clientQuery } from '@/config/api'
 import atlasAuth from '@/config/api/auth'
 import { GEOJSON_STALE_TIME } from '@/config/query-client'
@@ -103,6 +103,11 @@ export function CountriesView() {
               label={t('online.title')}
             />
           )}
+        </List>
+        {/* The search field above is one way in; the countries are the other. The label
+            says so, and separates the online entry from the places. */}
+        <ListLabel id="sy-countries-label">{t('countries.browse_label')}</ListLabel>
+        <List aria-labelledby="sy-countries-label">
           {sortedCountries.map((country) => (
             <ListItem
               key={country.id}

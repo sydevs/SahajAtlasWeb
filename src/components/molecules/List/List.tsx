@@ -41,6 +41,8 @@ const DIVIDER =
 
 export type ListProps = {
   children: ReactNode
+  /** The id of a `ListLabel` naming this list. */
+  'aria-labelledby'?: string
 }
 
 // A scrollable list wrapper. The surrounding drawer body is the actual
@@ -55,12 +57,36 @@ export type ListProps = {
 // the suppression is stated at class level, where it out-specifies any
 // element rule a third-party sheet we `@import` carries, and
 // `[&>li]:list-none` states it on the `<li>` instead of inheriting it.
-export function List({ children }: ListProps) {
+export function List({ children, 'aria-labelledby': labelledBy }: ListProps) {
   return (
     <ul
+      aria-labelledby={labelledBy}
       className={`m-0 scroll-m-0 scroll-p-0 list-none overflow-y-auto p-0 [&>li]:list-none ${DIVIDER}`}
     >
       {children}
     </ul>
+  )
+}
+
+export type ListLabelProps = {
+  children: ReactNode
+  /** Ties the label to the list it names: pass the same id as the list's `aria-labelledby`. */
+  id?: string
+}
+
+/**
+ * A section label between lists: small, uppercase, tracked, warm grey — the We Meditate
+ * app's "MEDITATE WITH OTHERS" voice. It names the group below it without competing with
+ * the rows. Uppercase is CSS only, so the copy stays sentence case for translators and
+ * screen readers. On the 16px gutter, like every row. Sand-11 on the panel is 5.9:1.
+ */
+export function ListLabel({ children, id }: ListLabelProps) {
+  return (
+    <h3
+      className="m-0 px-4 pt-5 pb-1 text-xs font-medium tracking-[1.2px] text-gray-11 uppercase"
+      id={id}
+    >
+      {children}
+    </h3>
   )
 }
