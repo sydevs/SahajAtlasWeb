@@ -34,6 +34,9 @@ vi.mock('./EventRegister', () => ({
   EventRegisterBar: () => <i>register-slot</i>,
   EventOnward: () => null,
 }))
+vi.mock('@/components/molecules/WhatToExpect', () => ({
+  WhatToExpect: () => null,
+}))
 vi.mock('@/components/molecules/EventActions', () => ({
   EventActions: () => null,
 }))

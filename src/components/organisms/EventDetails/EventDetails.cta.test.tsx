@@ -21,6 +21,9 @@ vi.mock('./EventRegister', () => ({
 vi.mock('@/hooks/use-event-display', () => ({
   useEventDisplay: () => ({ display: { status: 'running' } }),
 }))
+vi.mock('@/components/molecules/WhatToExpect', () => ({
+  WhatToExpect: () => null,
+}))
 vi.mock('@/components/molecules/EventActions', () => ({
   EventActions: () => <i>actions-slot</i>,
 }))

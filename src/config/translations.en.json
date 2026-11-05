@@ -112,6 +112,8 @@
       "distance_from_search": "%{distance} from the searched location",
       "event_ended": "This event has ended",
       "event_full": "This event is full",
+      "expect_beginners": "Open to beginners. No experience needed.",
+      "expect_title": "What to expect",
       "fact_free": "Free",
       "first_session": "First session: %{date}",
       "free_meditation_class": "Free Meditation Class",

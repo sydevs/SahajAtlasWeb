@@ -10,6 +10,7 @@ import { EventActions } from '@/components/molecules/EventActions'
 import { EventChips } from '@/components/molecules/EventChips'
 import { ImageCarousel } from '@/components/molecules/ImageCarousel'
 import { EventFacts } from '@/components/molecules/EventFacts'
+import { WhatToExpect } from '@/components/molecules/WhatToExpect'
 import { useEventDisplay } from '@/hooks/use-event-display'
 import { isUnverified, lexicalToHtml } from '@/lib/shape'
 import { Event } from '@/types'
@@ -127,6 +128,8 @@ export function EventDetails({ event, basePath, ctaInline = true, children }: Ev
       {(ended || display.status === 'inactive') && (
         <EventOnward basePath={basePath} event={event} />
       )}
+
+      <WhatToExpect event={event} />
 
       {/* About — host-authored prose always sits below the facts and actions. */}
       {descriptionHtml && (

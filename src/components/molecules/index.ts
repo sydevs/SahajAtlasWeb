@@ -98,3 +98,7 @@ export type { EventMetadataProps } from './EventMetadata'
 // GeolocationSuggestion in views/shared.
 export { GeolocationPrompt } from './GeolocationPrompt'
 export type { GeolocationPromptProps } from './GeolocationPrompt'
+
+// WhatToExpect — the short app-supplied promise for newcomers on a class page.
+export { WhatToExpect } from './WhatToExpect'
+export type { WhatToExpectProps } from './WhatToExpect'
