@@ -94,8 +94,9 @@ export function ListSkeleton() {
         {t('common.chrome.finding_classes', { defaultValue: 'Finding classes…' })}
       </p>
       <div aria-hidden className="flex flex-col motion-safe:animate-pulse">
-        {['w-3/5', 'w-2/5', 'w-1/2', 'w-1/3', 'w-2/5'].map((width) => (
-          <div key={width} className="flex min-h-14 items-center justify-between gap-4 px-4">
+        {['w-3/5', 'w-2/5', 'w-1/2', 'w-1/3', 'w-2/5'].map((width, row) => (
+          // Two rows share a width, so the row's position is the key.
+          <div key={row} className="flex min-h-14 items-center justify-between gap-4 px-4">
             <div className={`h-3.5 rounded bg-gray-3 ${width}`} />
             <div className="h-3.5 w-5 rounded bg-gray-3" />
           </div>
