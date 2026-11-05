@@ -155,8 +155,8 @@ export function DrawerChrome({ interactive = true }: { interactive?: boolean }) 
       case 'filters':
         return t('filters.chrome.title', { defaultValue: 'Filters' })
       case 'register':
-        return t('registration.form.title', {
-          defaultValue: 'Register for Meditation',
+        return t('registration.form.title_class', {
+          defaultValue: 'Register for this class',
         })
       case 'share':
         return t('share.title', { defaultValue: 'Share Meditation' })

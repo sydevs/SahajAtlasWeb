@@ -3,6 +3,7 @@ import type { Story, StoryDefault } from '@ladle/react'
 import {
   ArrowUpRight,
   CalendarDays,
+  CalendarPlus,
   Check,
   ChevronDown,
   ChevronRight,
@@ -50,6 +51,7 @@ export default {
 const ICONS = [
   { name: 'ArrowUpRight', Icon: ArrowUpRight },
   { name: 'CalendarDays', Icon: CalendarDays },
+  { name: 'CalendarPlus', Icon: CalendarPlus },
   { name: 'Check', Icon: Check },
   { name: 'ChevronDown', Icon: ChevronDown },
   { name: 'ChevronRight', Icon: ChevronRight },

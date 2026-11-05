@@ -34,6 +34,7 @@ import {
   dismissDepth,
   baseStackEntry,
   isFilterOverlay,
+  opensTall,
   resolveStack,
 } from '@/lib/shape'
 import { wakesSheetLoop } from '@/views/DrawerStack/sheet-wake'
@@ -518,14 +519,14 @@ export function DrawerStack() {
     }
   }, [hasMap, direction])
 
-  // The calendar opens at the near-full snap on mobile — its month grid AND its list
-  // both need the height — while every other view keeps the third-height open snap.
+  // A few views open at the near-full snap on mobile (`opensTall`), while every other view
+  // keeps the third-height open snap.
   // Keyed on the view KIND (not `wide`), so switching the calendar between
   // month/week/list keeps it tall, rather than collapsing the list to the short snap.
   // This runs only when navigating to or from the calendar, so it never fights a
   // manual drag on a non-calendar view.
   useEffect(() => {
-    if (direction === 'bottom') setSnap(top?.kind === 'calendar' ? WIDE_SNAP : OPEN_SNAP)
+    if (direction === 'bottom') setSnap(opensTall(top?.kind) ? WIDE_SNAP : OPEN_SNAP)
   }, [direction, top?.kind])
 
   // A new searched place lifts the sheet out of its peek, so results are never

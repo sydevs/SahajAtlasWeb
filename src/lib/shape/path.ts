@@ -348,6 +348,16 @@ export const isFilterOverlay = (entries: StackEntry[], hasMap = true): boolean =
   hasMap && entries.at(-1)?.kind === 'filters' && entries.at(-2)?.kind === 'calendar'
 
 /**
+ * The views a bottom sheet opens at its near-full snap: the calendar, whose month grid and list
+ * both need the height, and registration, a form whose fields would otherwise start below the
+ * fold of a third-height sheet.
+ */
+const OPENS_TALL: ReadonlySet<StackEntry['kind']> = new Set(['calendar', 'register'])
+
+export const opensTall = (kind: StackEntry['kind'] | undefined): boolean =>
+  kind !== undefined && OPENS_TALL.has(kind)
+
+/**
  * The region a filter drawer was opened over, or `null` — `/gb/london/filters` → `london`.
  *
  * A region's list does not itself reflect filters, so applying from there lands on

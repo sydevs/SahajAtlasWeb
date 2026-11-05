@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
 import { Alert } from '@/components/atoms/Alert'
@@ -9,13 +10,7 @@ import { useEventDisplay } from '@/hooks/use-event-display'
 import { useMapController } from '@/hooks/use-map-controller'
 import { useShareUrl } from '@/hooks/use-share-url'
 import { enabledQuestions, eventTimeZone, isOnline, isUnverified } from '@/lib/shape'
-import {
-  CloseButton,
-  DrawerTitle,
-  useDrawerControl,
-  useEventFromPath,
-  useFrameOnTop,
-} from '@/views/shared'
+import { CloseButton, DrawerTitle, useEventFromPath, useFrameOnTop } from '@/views/shared'
 
 // The registration form for an event, at route `<event-path>/register`. The event's Register
 // CTA reaches this view, and the route is deep-linkable, so the resolver gates it. A closed,
@@ -36,7 +31,7 @@ export function RegistrationView({
   initialSubmitted?: boolean
 }) {
   const { t } = useTranslation()
-  const { dismiss } = useDrawerControl()
+  const [submitted, setSubmitted] = useState(Boolean(initialSubmitted))
   const { frameEvent } = useMapController()
 
   const { data: event } = useEventFromPath(eventPath)
@@ -100,22 +95,43 @@ export function RegistrationView({
       }
     : undefined
 
+  const formShowing = open && !external && !submitted
+
+  // Without the "Next session" line: the form asks which date, and the confirmation names the one
+  // chosen, which may not be the next one.
+  const summary = (
+    <EventFacts
+      hideTimingDetail
+      className="w-full"
+      event={event}
+      title={event.title}
+      variant="card"
+    />
+  )
+
   return (
     <>
       <DrawerHeader className="justify-between">
-        <DrawerTitle
-          subtitle={t('common.chrome.all_classes_free')}
-          title={t('registration.form.title')}
-        />
+        {submitted ? (
+          <DrawerTitle title={t('registration.form.confirmed_title')} />
+        ) : (
+          <DrawerTitle
+            subtitle={t('registration.form.reassurance')}
+            title={t('registration.form.title_class')}
+          />
+        )}
         <CloseButton />
       </DrawerHeader>
-      <DrawerBody className="p-4">
-        <EventFacts
-          className="mx-auto mb-4 w-full max-w-md"
-          event={event}
-          title={event.title}
-          variant="card"
-        />
+      {/* Keeps a focused field clear of the pinned Register bar, as EventView does for its own. */}
+      <DrawerBody
+        className={
+          formShowing
+            ? 'scroll-pb-[calc(96px_+_max(0px,calc(var(--sy-sheet-top,0px)_-_var(--sy-frame-h,0px)*0.03)))] px-4 pt-4'
+            : 'p-4'
+        }
+      >
+        {/* On the confirmation the form places this itself, under the success line. */}
+        {!submitted && <div className="mx-auto mb-4 w-full max-w-md">{summary}</div>}
 
         {open && !external ? (
           <RegistrationForm
@@ -127,9 +143,10 @@ export function RegistrationView({
             isOnline={isOnline(event)}
             questions={enabledQuestions(event)}
             recurrenceType={event.schedule?.recurrenceType}
+            summary={summary}
             timeZone={eventTimeZone(event)}
             upcomingDates={selectableDates}
-            onClose={dismiss}
+            onSubmitted={() => setSubmitted(true)}
           />
         ) : external && !blockedMessage ? (
           // Only when the external event is actually registerable — a terminal
@@ -175,6 +192,15 @@ export function RegistrationView({
             description={t('event.display.unverified_note')}
             size="sm"
             title={t('event.display.unverified_title')}
+          />
+        )}
+
+        {/* Room for the same offset the form's pinned bar cancels. This body has no bottom padding
+            either, since a scroller's padding would hold that bar short of the edge. */}
+        {formShowing && (
+          <div
+            aria-hidden
+            className="h-[max(0px,calc(var(--sy-sheet-top,0px)_-_var(--sy-frame-h,0px)*0.03))]"
           />
         )}
       </DrawerBody>

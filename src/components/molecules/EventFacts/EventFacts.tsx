@@ -90,6 +90,11 @@ export type EventFactsProps = {
   /** Distance from the searched location, shown faded under the address. List
    *  cards only: the panel has no search origin to measure from. */
   distance?: ReactNode
+  /**
+   * Drops the muted line under the timing ("Next session: …"), for a screen that has its own answer
+   * to which date. The registration form asks for one, and its confirmation names the one chosen.
+   */
+  hideTimingDetail?: boolean
   className?: string
 }
 
@@ -111,6 +116,7 @@ export function EventFacts({
   title,
   children,
   distance,
+  hideTimingDetail = false,
   className,
 }: EventFactsProps) {
   const {
@@ -152,7 +158,7 @@ export function EventFacts({
         time,
         hasNext: Boolean(display.next),
       }),
-      subtext: timingDetail,
+      subtext: hideTimingDetail ? undefined : timingDetail,
     },
   ]
 
