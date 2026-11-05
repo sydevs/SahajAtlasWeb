@@ -515,7 +515,7 @@ function ChangeCard({
   return (
     <li className="flex flex-col gap-2 px-3 py-3">
       <div className="flex items-center justify-between gap-2">
-        <span className="text-xs font-semibold tracking-wide text-gray-11 uppercase">{label}</span>
+        <span className="text-xs font-semibold text-gray-11">{label}</span>
         <div className="-my-1 -me-2 flex shrink-0 items-center">
           <EditButton label={label} onClick={onEdit} />
           {onRemove && (

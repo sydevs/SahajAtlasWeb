@@ -172,9 +172,9 @@ export function ProposalForm(props: ProposalFormProps) {
   return (
     <>
       <DrawerHeader className="flex-col items-stretch gap-3">
-        <div className="flex items-start justify-between gap-2 ps-2">
+        <div className="flex items-start justify-between gap-2">
           <div className="min-w-0">
-            <h2 className="truncate text-lg leading-tight font-semibold">
+            <h2 className="truncate text-xl">
               {t(submitTitleKey(correction ? 'correct' : 'add'))}
             </h2>
             {correction?.event && !sent && (
@@ -187,7 +187,6 @@ export function ProposalForm(props: ProposalFormProps) {
         </div>
         {!correction && !sent && index >= 0 && (
           <StepProgress
-            className="px-2"
             current={index}
             reachable={reviewed ? LISTING_STEPS.length - 1 : index}
             onPick={(at) => {
@@ -634,7 +633,7 @@ function Receipt({
         </span>
         <div className="flex max-w-80 flex-col gap-2" role="status">
           <h3 className="text-lg font-semibold">{t('submit.done.heading')}</h3>
-          <p className="text-sm leading-relaxed text-gray-11">
+          <p className="text-base text-gray-11">
             {correction
               ? city
                 ? t('submit.done.body_correct', { city })
