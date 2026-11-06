@@ -103,7 +103,7 @@ export function BackButton({ iconOnly = false }: { iconOnly?: boolean }) {
 
   return (
     <Button
-      className="-ms-2 min-w-0 justify-start gap-0.5 ps-0.5 pe-2"
+      className="-ms-2 min-w-0 justify-start gap-0.5 ps-0.5 pe-0"
       color="primary"
       size="sm"
       variant="ghost"
@@ -176,8 +176,11 @@ export function NavRow({ children }: { children?: ReactNode }) {
   const { t } = useTranslation()
 
   return (
-    // The bottom margin keeps Back from reading as part of the title it sits above.
-    <div className="@container mb-2 flex min-h-8 items-center justify-between gap-2">
+    // The bottom margin keeps Back from reading as part of the title it sits above. Back has no
+    // end padding and the gap is tight because the controls' own padding already spaces them from
+    // it: in the 352px desktop panel, 8px of each cut "Back to the world map" short beside "See
+    // calendar".
+    <div className="@container mb-2 flex min-h-8 items-center justify-between gap-1">
       <BackButton />
       <div className="ms-auto flex shrink-0 items-center gap-1 empty:hidden">
         {collapsed ? (

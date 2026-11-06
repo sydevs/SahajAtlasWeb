@@ -26,6 +26,18 @@ describe('ActionButton', () => {
     expect(html).toContain('target="_blank"')
   })
 
+  // Equal thirds cut "Directions" to "Directio…" in the 352px desktop panel (Browser L1). Each
+  // action starts from its own label's width, so only a row too narrow for all of them truncates.
+  it('sizes each action from its own label, not an equal share of the row', () => {
+    const html = renderToStaticMarkup(<ActionButton icon={<svg />} label="Directions" />)
+    const classes = /class="([^"]*)"/.exec(html)?.[1].split(/\s+/)
+
+    expect(classes).toContain('flex-auto')
+    expect(classes).not.toContain('basis-0')
+    // Still allowed to shrink, so a row too narrow for every label truncates instead of overflowing.
+    expect(classes).toContain('min-w-0')
+  })
+
   it('renders a real button without an href, with its label visible', () => {
     const html = renderToStaticMarkup(<ActionButton icon={<svg />} label="Share" />)
 

@@ -10,8 +10,13 @@ import { Button } from '@/components/atoms/Button'
 // Three actions sit icon-beside-label. A fourth (Website) leaves too little width for
 // that at phone sizes, so `stacked` puts the icon above the label instead, and the row
 // still never wraps or scrolls.
+//
+// Each button starts at its own label's width and the row's spare width is shared equally, so
+// a short label never truncates while the row has room for all of them: equal thirds cut
+// "Directions" to "Directio…" in the 352px desktop panel. Only a row too narrow for every label
+// at once shrinks them, and then the longest gives up the most.
 const actionButton = tv({
-  base: 'h-11 min-w-0 flex-1 basis-0 gap-1.5 px-1 text-sm [&_svg]:shrink-0 [&_svg]:text-primary-11',
+  base: 'h-11 min-w-0 flex-auto gap-1.5 px-1 text-sm [&_svg]:shrink-0 [&_svg]:text-primary-11',
   variants: {
     stacked: { true: 'h-14 flex-col gap-0.5 text-xs' },
     lead: { true: '[&_svg]:text-current' },
