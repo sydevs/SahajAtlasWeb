@@ -73,12 +73,17 @@ export function formatTimeRange(start: DateTime, end: DateTime | null, locale: s
     hour: 'numeric',
     minute: '2-digit',
     timeZone: 'UTC',
+    // English always says am or pm, even where the region's clock is 24-hour (en-GB): "4:00"
+    // alone could be morning or afternoon (Anton, 6 Nov). Other languages keep their own clock.
+    ...(isEnglish(locale) ? { hour12: true } : {}),
   })
 
   if (!endInZone || +endInZone === +start) return formatter.format(wallClockOnOneDay(start))
 
   return formatter.formatRange(wallClockOnOneDay(start), wallClockOnOneDay(endInZone))
 }
+
+const isEnglish = (locale: string): boolean => locale.split('-')[0].toLowerCase() === 'en'
 
 /**
  * The locale to format dates and times in: the visitor's own regional variant when its language

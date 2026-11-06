@@ -231,9 +231,21 @@ export function useEventDisplay(event: DisplayableEvent): EventDisplayStrings {
     // ── Times ──
     // These are in the display zone, the viewer's for an online event, so they agree with the
     // weekday, the date and the calendar. There is no clock label: issue #52 dropped those.
-    const eventStartTime = next ? formatTimeRange(next, null, formatLocale) : null
+    // Which clock a time is in, said beside it by its city (Anton, 6 Nov): "8:00 pm Prague time".
+    // An online class is shown in the viewer's own zone, so it always names the viewer's city. An
+    // in-person class is in its venue's zone, which only needs saying when the viewer's clock
+    // differs: "London time" seen from Prague, nothing in London. Compared by offset, so zones that
+    // agree right now count as the same. The city is the zone's own (`zoneCity`), so it needs no
+    // lookup and works anywhere, where abbreviations like EST exist only for some zones.
+    const zoneLabel = !next
+      ? null
+      : display.online || next.offset !== DateTime.now().offset
+        ? t('event.display.zone_time', { city: zoneCity(next.zoneName) })
+        : null
+    const withZone = (time: string) => (zoneLabel ? `${time} ${zoneLabel}` : time)
+    const eventStartTime = next ? withZone(formatTimeRange(next, null, formatLocale)) : null
     const eventTimeRange = next
-      ? formatTimeRange(next, schedule?.endTime ? nextEnd : null, formatLocale)
+      ? withZone(formatTimeRange(next, schedule?.endTime ? nextEnd : null, formatLocale))
       : null
 
     const originCity = event.address?.city ?? event.region?.name ?? zoneCity(origin?.zoneName)
@@ -268,8 +280,8 @@ export function useEventDisplay(event: DisplayableEvent): EventDisplayStrings {
         ? t('event.display.room', { room })
         : null
     // For an online event only, the host's own clock, faded under the where line, such as
-    // "Wed 7:30 PM". It carries no place name: the line directly above it already reads
-    // "Hosted from Prague", so naming the city again says nothing. The weekday shows ONLY when
+    // "Wed 7:30 pm Prague time", named like the viewer's time on the line above it, so the two
+    // clocks read the same way. The weekday shows ONLY when
     // the host's day differs from the viewer's. Otherwise it is noise.
     //
     // This is skipped entirely when the viewer shares the host's offset, since it would just
@@ -283,6 +295,7 @@ export function useEventDisplay(event: DisplayableEvent): EventDisplayStrings {
           ? origin.setLocale(formatLocale).toLocaleString({ weekday: 'short' })
           : null,
         formatTimeRange(origin, null, formatLocale),
+        t('event.display.zone_time', { city: zoneCity(origin.zoneName) }),
       ]
         .filter(Boolean)
         .join(' ')

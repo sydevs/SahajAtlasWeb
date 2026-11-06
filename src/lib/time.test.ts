@@ -20,6 +20,13 @@ const at = (iso: string, zone = 'Europe/London') => DateTime.fromISO(iso, { zone
 const norm = (value: string) => value.replace(/\s+/g, ' ').trim()
 
 describe('formatTimeRange', () => {
+  it('says am or pm in English even where the clock is 24-hour (en-GB), not elsewhere', () => {
+    const at = DateTime.fromISO('2026-07-01T19:30', { zone: 'Europe/London' })
+
+    expect(formatTimeRange(at, null, 'en-GB').replace(/\s/g, ' ')).toBe('7:30 pm')
+    expect(formatTimeRange(at, null, 'de')).toBe('19:30')
+  })
+
   it('keeps minutes on whole hours and collapses a shared meridiem', () => {
     const out = norm(formatTimeRange(at('2026-07-04T18:00'), at('2026-07-04T19:00'), 'en-US'))
 

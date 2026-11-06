@@ -157,6 +157,7 @@
       "hosted_from": "Hosted from %{city}",
       "next_session": "Next session: %{date}",
       "online": "Online",
+      "zone_time": "%{city} time",
       "online_joining_note": "Meeting link will be sent to you by email",
       "register_free": "Register for free",
       "registration_closed": "Registration closed",
