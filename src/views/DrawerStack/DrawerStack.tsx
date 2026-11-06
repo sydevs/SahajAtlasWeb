@@ -236,6 +236,10 @@ const PANEL_BORDER_PX = 2
 // these are constants rather than a measurement (`docs/rules/mapbox.md`).
 const MAPBOX_WORDMARK_TOP_PX = 29
 const ADD_CLASS_GAP_PX = 16 // from the map's right edge, and above the wordmark
+// What a tap on the sheet leaves alone: anything that acts on its own when tapped.
+const INTERACTIVE =
+  'a, button, input, select, textarea, label, summary, [contenteditable="true"], [role="button"], [role="link"], [role="menuitem"], [role="option"], [role="combobox"], [role="tab"], [role="radio"], [role="checkbox"], [role="slider"]'
+
 // Physical `right`, not the logical end: the wordmark is bottom-right in either direction.
 const ADD_CLASS_CORNER: CSSProperties = {
   position: 'fixed',
@@ -550,6 +554,56 @@ export function DrawerStack() {
     seenTaps.current = mapTaps
     if (canCollapse) setSnap(PEEK_SNAP)
   }, [mapTaps, canCollapse])
+
+  // The phone sheet comes up to meet the visitor (Anton, 6 Nov). Scrolling a list in a sheet that
+  // isn't fully open scrolled it inside a short window, so the first scroll opens the sheet fully
+  // instead. And a tap on the sheet itself (not on a link, button or field, and not the end of a
+  // drag) raises it: from the peek to its open height, from there to fully open. Native
+  // listeners, because `scroll` doesn't bubble; a ref for the snap, so they never rebind as it
+  // moves. The element arrives through a callback ref: the sheet portals in once its target exists.
+  const [sheetBody, setSheetBody] = useState<HTMLDivElement | null>(null)
+  const raiseTo = useRef({ snap, openSnap, fullSnap })
+
+  raiseTo.current = { snap, openSnap, fullSnap }
+
+  useEffect(() => {
+    const body = sheetBody
+
+    if (!body || direction !== 'bottom' || !hasMap) return
+
+    const onScroll = (event: Event) => {
+      const target = event.target as HTMLElement
+      const { snap: now, fullSnap: full } = raiseTo.current
+
+      if (now !== full && target.matches?.('[data-drawer-body]') && target.scrollTop > 0) {
+        setSnap(full)
+      }
+    }
+    let down: { x: number; y: number } | null = null
+    const onPointerDown = (event: PointerEvent) => {
+      down = { x: event.clientX, y: event.clientY }
+    }
+    const onClick = (event: MouseEvent) => {
+      const moved = down ? Math.hypot(event.clientX - down.x, event.clientY - down.y) : 0
+      const target = event.target as HTMLElement
+
+      if (moved > 8 || target.closest?.(INTERACTIVE)) return
+      const { snap: now, openSnap: open, fullSnap: full } = raiseTo.current
+
+      if (now === PEEK_SNAP) setSnap(open)
+      else if (now !== full) setSnap(full)
+    }
+
+    body.addEventListener('scroll', onScroll, true)
+    body.addEventListener('pointerdown', onPointerDown)
+    body.addEventListener('click', onClick)
+
+    return () => {
+      body.removeEventListener('scroll', onScroll, true)
+      body.removeEventListener('pointerdown', onPointerDown)
+      body.removeEventListener('click', onClick)
+    }
+  }, [sheetBody, direction, hasMap])
 
   const depth = atlasDepth(location)
 
@@ -1006,6 +1060,7 @@ export function DrawerStack() {
         </div>
       )}
       <div
+        ref={setSheetBody}
         aria-label={t('common.chrome.widget_label')}
         className="relative min-h-0 flex-1"
         role="region"
