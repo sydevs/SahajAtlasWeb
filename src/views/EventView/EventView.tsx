@@ -116,8 +116,10 @@ export function EventView({ id, basePath }: { id: number; basePath: string }) {
       {/* SEO — title, canonical, JSON-LD — is only meaningful for the crawlable standalone
           build. The embedded widget's host owns the document head. */}
       {standalone && <EventMetadata event={event} />}
-      <span ref={layerAnchor} hidden />
       <EventHeader below={<Breadcrumbs />} event={event} nav={<NavRow />} />
+      {/* After the header, never before it: at the peek, ViewLayer shows only the layer's first
+          child, which must be the header with Back and the title. */}
+      <span ref={layerAnchor} hidden />
       {/* The body slot's own spacer clears the pinned bar's CONTENT, at the footer's
           published height. Clearing the SCROLL is this body's, and only this body's: focus
           would otherwise park a field behind the bar. It carries the sheet's live top on

@@ -100,13 +100,16 @@ type SecondaryViews = ReturnType<typeof loadSecondaryViews>
 
 // The mobile bottom-sheet snap ladder, ascending. vaul reads a string as pixels, and a
 // number as a fraction of the sheet height:
-//  - '88px'  peek — the handle plus the search row, or the Back row and the title
+//  - '104px' peek — the handle plus the first screen's title row, or the Back row and one line
+//            of title (ViewLayer clamps the title to one line there), with 8px below it
 //  - '356px' the Back row, title, breadcrumbs, a list row, and a peek of the next
 //  - '380px' the first screen: its ways in, plus enough of the country list to show there is one
 //  - 440px   a searched place: enough to see its classes and that other groups follow
 //  - 0.97    near-full
 const SEARCH_SNAP = `${SEARCH_SHEET_PX}px` // a searched place: the answer, and the groups below it
-const PEEK_PX = 88
+// The handle's 28px, the 32px Back row, the 10px under it (NavRow's `mb-2`), a 26px title line and
+// 8px to spare. At 88px, before NavRow's gap, the title's lower half fell off the screen.
+const PEEK_PX = 104
 const PEEK_SNAP = `${PEEK_PX}px` // the collapsed peek
 const SNAP_POINTS = [PEEK_SNAP, '356px', '380px', SEARCH_SNAP, 0.97]
 const OPEN_SNAP = '356px' // default, and what the peek expands to
@@ -720,7 +723,11 @@ export function DrawerStack() {
         setSnap(fullSnap)
       },
       setOpenHeight: setMeasuredOpenPx,
-      expand: () => setSnap(fullSnap),
+      // Bottom sheet only, like `raise`. The side panel has no snaps, and setting the near-full
+      // one there would hide the settings cog, which hides at that snap.
+      expand: () => {
+        if (direction === 'bottom') setSnap(fullSnap)
+      },
       dismiss: () => {
         // Marks the dismiss navigation as a transition: unmounting a heavy view (the
         // calendar's large grid) would otherwise reconcile synchronously and freeze

@@ -52,7 +52,9 @@ function useRegionNames() {
  * host page's history. `iconOnly` is for the search header, where the field needs the width
  * and a chevron beside a search box is already a familiar pattern.
  *
- * The 32px button carries a 44px touch area, which the rows above and below leave free.
+ * The 32px button carries a 44px touch area, which the rows above and below leave free. That
+ * area is the Button atom's own `touch-target`, centred on the control. A second `after:` inset
+ * here used to combine with it and shift the area up and left by half its size.
  */
 export function BackButton({ iconOnly = false }: { iconOnly?: boolean }) {
   const { t } = useTranslation()
@@ -82,12 +84,7 @@ export function BackButton({ iconOnly = false }: { iconOnly?: boolean }) {
 
   if (iconOnly) {
     return (
-      <Button
-        {...HEADER_CONTROL}
-        aria-label={label}
-        className="relative -ms-2.5 shrink-0 after:absolute after:-inset-1.5"
-        onClick={dismiss}
-      >
+      <Button {...HEADER_CONTROL} aria-label={label} className="-ms-2.5 shrink-0" onClick={dismiss}>
         <ChevronLeft className="rtl:-scale-x-100" size={20} />
       </Button>
     )
@@ -95,7 +92,7 @@ export function BackButton({ iconOnly = false }: { iconOnly?: boolean }) {
 
   return (
     <Button
-      className="relative -ms-2 min-w-0 justify-start gap-0.5 ps-0.5 pe-2 after:absolute after:inset-x-0 after:-inset-y-1.5"
+      className="-ms-2 min-w-0 justify-start gap-0.5 ps-0.5 pe-2"
       color="primary"
       size="sm"
       variant="ghost"

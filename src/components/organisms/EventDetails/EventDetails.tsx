@@ -196,7 +196,8 @@ export function EventDetails({ event, basePath, ctaInline = true, children }: Ev
       {display.next && event.contactPhone && (
         <p className="text-sm text-gray-11">
           {canDial ? (
-            <Link className="underline" href={`tel:${event.contactPhone}`}>
+            // A lone line of text to tap, so it gets the same 44px area as the buttons.
+            <Link className="touch-target relative underline" href={`tel:${event.contactPhone}`}>
               {t('event.display.check_first_call')}
             </Link>
           ) : (
