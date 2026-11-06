@@ -448,11 +448,18 @@ widget still reads your client record and sends the one-per-load
 | A script embed on your page | Opens the interface in a full-screen overlay, in place                                       |
 | Inside an iframe            | Opens a page that fits, in a new tab (see [Embedding in an iframe](#embedding-in-an-iframe)) |
 
-The floors are **280px wide and 420px tall**, with a second condition that matters as much: **the
+The floors are **360px wide and 420px tall**, with a second condition that matters as much: **the
 widget only degrades when there is somewhere bigger to go.** A slot that is essentially the whole
 screen is never called too small, since a card there would take the interface away and hand back
 nothing — a full-width phone embed, or a small iframe on a small screen, keeps the normal
 interface.
+
+**The width floor stays at 360px while the inline card is a proposal.** The inline card
+(`inline=card`, in review, not yet a supported parameter) shows the nearest classes in a column of
+any width and opens the whole interface over your page, so an embed that opts into it is never
+measured against these floors. Lowering the floor without it would put the live interface into
+narrow columns, where it traps your page's scroll, so the floor drops only once that card is the
+default.
 
 **Map mode is measured differently.** A map embed with **no height of its own** fills the
 viewport, so the only question is whether it has the page to itself: one that does not — a map in

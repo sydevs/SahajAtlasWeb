@@ -57,10 +57,13 @@ export const SLOT_GAIN = 0.8
  * Tuned against the live reference case — `sahajayoga.nl` embeds at a hard-coded
  * 400×600 — so that slot keeps the full interface, and only genuinely smaller ones
  * degrade.
+ *
+ * ⚠ Lowering it alone would hand narrow columns the live map, and with it the stuck page scroll
+ * the compact card avoids. A column that wants classes on the page itself opts into the inline
+ * card (`inline=card`), which never asks this question (`Widget.tsx`); the floor can drop only
+ * once that card is what narrow embeds get by default.
  */
-// 280, so a 320px column with its own 16px padding still gets the real interface. It was 360,
-// which swapped those columns for a single button with no classes on it (#161).
-export const MIN_INTERFACE_WIDTH_PX = 280
+export const MIN_INTERFACE_WIDTH_PX = 360
 
 /**
  * Below this height the interface stops fitting: a bottom sheet needs its peek, its

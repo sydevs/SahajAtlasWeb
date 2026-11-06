@@ -175,7 +175,7 @@ describe('embedLayout', () => {
     })
 
     it('degrades below either floor', () => {
-      expect(embedLayout({ map: 'none', slot: box(260, 600), destination: overlay })).toEqual({
+      expect(embedLayout({ map: 'none', slot: box(300, 600), destination: overlay })).toEqual({
         layout: 'compact',
         reason: 'floors',
       })
@@ -183,6 +183,16 @@ describe('embedLayout', () => {
         layout: 'compact',
         reason: 'floors',
       })
+    })
+
+    // A 320px column keeps the compact card until the inline card is what narrow embeds get by
+    // default: the full interface there would bring back the stuck page the card avoids.
+    it('keeps the card for a 320px column on a wide page', () => {
+      expect(embedLayout({ map: 'none', slot: box(320, 600), destination: overlay })).toEqual({
+        layout: 'compact',
+        reason: 'floors',
+      })
+      expect(MIN_INTERFACE_WIDTH_PX).toBe(360)
     })
 
     it('does not degrade a padded phone layout', () => {
