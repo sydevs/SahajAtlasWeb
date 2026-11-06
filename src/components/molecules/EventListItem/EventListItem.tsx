@@ -12,6 +12,7 @@ import { ContactOnlyRow } from '@/components/molecules/ContactOnly'
 import { EventChips } from '@/components/molecules/EventChips'
 import { EventFacts } from '@/components/molecules/EventFacts'
 import { Link } from '@/components/atoms/Link'
+import { Chip } from '@/components/atoms/Chip'
 import { EventSlim } from '@/types'
 
 export interface EventListItemProps {
@@ -152,7 +153,16 @@ function ClassRow({
         onMouseLeave={deactivate}
       >
         <div className="flex min-w-0 flex-1 flex-col gap-1">
-          <div className="line-clamp-2 text-lg">{event.title}</div>
+          {/* An online class says so in a coloured tag right after its title (Anton, 6 Nov):
+              coral, like the meditating figure on the Online classes row. */}
+          <div className="line-clamp-2 text-lg">
+            {event.title}
+            {online && (
+              <Chip className="ms-2 -translate-y-px align-middle" color="contrast">
+                {t('event.display.online')}
+              </Chip>
+            )}
+          </div>
           <EventFacts
             className="mt-0.5 mb-1"
             distance={

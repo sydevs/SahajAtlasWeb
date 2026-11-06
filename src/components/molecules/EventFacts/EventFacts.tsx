@@ -149,6 +149,7 @@ export function EventFacts({
     eventStartTime,
     whereLine,
     whereLineFull,
+    whereLineCard,
     roomLine,
     whereSubtext,
   } = useEventDisplay(event)
@@ -206,7 +207,7 @@ export function EventFacts({
     // share/registration summaries are triage and recap (#316).
     const room = variant === 'default' ? roomLine : null
     // The card stays short. Every other surface helps someone find the place.
-    const address = compact ? whereLine : whereLineFull
+    const address = compact ? whereLineCard : whereLineFull
 
     items.push({
       icon: display.online ? Monitor : MapPin,

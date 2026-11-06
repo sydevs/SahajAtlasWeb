@@ -40,6 +40,11 @@ export type EventDisplayStrings = {
   /** `whereLine` plus the postcode, for the surfaces that give directions: "120 Heath St,
    *  London NW3 1DR". An online or inactive event has no postcode to show. */
   whereLineFull: string
+  /**
+   * The list card's location line. For an online class it is only "Hosted from …": the card
+   * already says Online in a coloured tag beside the title (Anton, 6 Nov). Otherwise `whereLine`.
+   */
+  whereLineCard: string
   /** The room inside the venue, such as "Room: Hall B", for a physical, non-inactive event that names one. */
   roomLine: string | null
   /** For an online event only, the HOST's clock and city, faded below the where line, such
@@ -253,6 +258,9 @@ export function useEventDisplay(event: DisplayableEvent): EventDisplayStrings {
       whereLine &&
       !whereLine.toLowerCase().includes(postCode.toLowerCase())
     const whereLineFull = showPostCode ? `${whereLine} ${postCode}` : whereLine
+    const whereLineCard = display.online
+      ? t('event.display.hosted_from', { city: originCity })
+      : whereLine
     // An inactive listing hides the street, so its room would be the same wrong answer.
     const room = event.address?.room?.trim()
     const roomLine =
@@ -328,6 +336,7 @@ export function useEventDisplay(event: DisplayableEvent): EventDisplayStrings {
       eventStartTime,
       whereLine,
       whereLineFull,
+      whereLineCard,
       roomLine,
       whereSubtext,
       registerLabel,
