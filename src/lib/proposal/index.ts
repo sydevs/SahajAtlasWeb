@@ -18,6 +18,7 @@ export {
 export { eventToDraft, openListing, type OpenedListing } from './event'
 export {
   buildProposal,
+  correctionPatch,
   diffPatch,
   draftToPatch,
   newListingPatch,
@@ -26,7 +27,14 @@ export {
   type ScheduleFields,
 } from './patch'
 export { featureToPlace, searchProximity, type PickedPlace } from './place'
-export { draftPreviewSchedule, previewEvent, previewSessions, type PreviewBase } from './preview'
+export {
+  acceptedEvent,
+  draftPreviewSchedule,
+  previewEvent,
+  previewSessions,
+  scheduleSessions,
+  type PreviewBase,
+} from './preview'
 export {
   draftWeekday,
   endAfter,

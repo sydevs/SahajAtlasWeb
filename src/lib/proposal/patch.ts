@@ -157,6 +157,41 @@ export const diffPatch = (
   return walk(base, next) as ProposedEventPatch
 }
 
+/** The leaves that together say how a schedule repeats. */
+const RULE_LEAVES = [
+  'recurrenceType',
+  'interval',
+  'weekdays',
+  'monthlyMode',
+  'monthDay',
+  'weekNumber',
+  'weekdayOfMonth',
+] as const
+
+/**
+ * What a correction sends: the leaves of `after` that differ from `before`, except that a changed
+ * rule goes whole. The flow can only say "every week on one day" or "every month", so a published
+ * rule it cannot show (every two weeks, on two days) opens as the nearest one it can. Left alone,
+ * that rule is not sent. Once the visitor changes it, a leaf both drafts agree on — `interval: 1`
+ * — must still be sent, or the stored one (2) would survive into a rule nobody chose.
+ */
+export const correctionPatch = (
+  before: ProposedEventPatch,
+  after: ProposedEventPatch,
+): ProposedEventPatch => {
+  const proposed = diffPatch(before, after)
+  const changed = proposed.schedule
+
+  if (!changed || !after.schedule || !RULE_LEAVES.some((leaf) => leaf in changed)) return proposed
+
+  const stated = after.schedule
+  const rule = Object.fromEntries(
+    RULE_LEAVES.filter((leaf) => stated[leaf] !== undefined).map((leaf) => [leaf, stated[leaf]]),
+  )
+
+  return { ...proposed, schedule: { ...changed, ...rule } }
+}
+
 export type BuiltProposal = {
   event?: number
   proposed: ProposedEventPatch
@@ -185,7 +220,7 @@ export const buildProposal = (
     return { proposed: newListingPatch(draft), location: draftLocation(draft) }
   }
 
-  const proposed = diffPatch(draftToPatch(correction.baseDraft), draftToPatch(draft))
+  const proposed = correctionPatch(draftToPatch(correction.baseDraft), draftToPatch(draft))
   // A correction re-places the class only when the visitor picked a new place.
   const location = same(draftPlace(draft), draftPlace(correction.baseDraft))
     ? {}

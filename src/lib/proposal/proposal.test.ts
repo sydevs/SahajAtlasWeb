@@ -2,12 +2,14 @@ import type { GeocodingFeature } from '@mapbox/search-js-core'
 import type { Event } from '@/types'
 
 import { DateTime } from 'luxon'
-import { describe, expect, it } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import {
   nameIssues,
   type ListingDraft,
+  acceptedEvent,
   buildProposal,
+  scheduleSessions,
   diffPatch,
   draftPreviewSchedule,
   draftLocation,
@@ -402,6 +404,103 @@ describe('a correction', () => {
       firstDate: '2024-01-08',
       startTime: '19:00',
     })
+  })
+})
+
+describe('a correction’s preview', () => {
+  // Every two weeks on Monday and Wednesday — a rule the flow cannot show, so it opens as
+  // "every Monday" — with a holiday the flow never edits.
+  const event = publishedEvent({
+    schedule: {
+      ...publishedEvent().schedule!,
+      exclusions: [{ startDate: new Date('2026-11-23T00:00:00Z') }],
+    },
+  })
+  const baseDraft = eventToDraft(event)
+  const base = { event, draft: baseDraft }
+  const correction = { eventId: event.id, baseDraft }
+  const londonDays = (dates?: Date[] | null) =>
+    (dates ?? []).map((at) =>
+      DateTime.fromJSDate(at).setZone('Europe/London').toFormat('ccc yyyy-MM-dd HH:mm'),
+    )
+
+  beforeEach(() => {
+    vi.useFakeTimers()
+    vi.setSystemTime(new Date('2026-11-01T12:00:00Z'))
+  })
+  afterEach(() => {
+    vi.useRealTimers()
+  })
+
+  it('shows what it sends: a new time keeps the rule, both weekdays and the holiday', () => {
+    const draft = { ...baseDraft, startTime: '18:30' }
+    const { proposed } = buildProposal(draft, correction)
+    const preview = previewEvent(draft, { path: '/x', base })
+
+    expect(proposed).toEqual({ schedule: { firstDate: '2024-01-08T18:30:00.000Z' } })
+    expect(preview.schedule).toEqual(acceptedEvent(event, proposed).schedule)
+    expect(preview.schedule).toMatchObject({
+      recurrenceType: 'WEEKLY',
+      interval: 2,
+      weekdays: ['MO', 'WE'],
+      exclusions: event.schedule!.exclusions,
+    })
+    expect(londonDays(preview.schedule?.upcomingDates).slice(0, 4)).toEqual([
+      'Mon 2026-11-09 18:30',
+      'Wed 2026-11-11 18:30',
+      // Monday 23 November is the holiday.
+      'Wed 2026-11-25 18:30',
+      'Mon 2026-12-07 18:30',
+    ])
+  })
+
+  it('sends a changed rule whole, so the stored interval cannot outlive it', () => {
+    // Thursday, in the week the class started.
+    const draft = { ...baseDraft, firstDate: '2024-01-11' }
+    const { proposed } = buildProposal(draft, correction)
+    const preview = previewEvent(draft, { path: '/x', base })
+
+    expect(proposed.schedule).toEqual({
+      firstDate: '2024-01-11T19:00:00.000Z',
+      recurrenceType: 'WEEKLY',
+      interval: 1,
+      weekdays: ['TH'],
+    })
+    expect(preview.schedule).toEqual(acceptedEvent(event, proposed).schedule)
+    expect(londonDays(preview.schedule?.upcomingDates).slice(0, 2)).toEqual([
+      'Thu 2026-11-05 19:00',
+      'Thu 2026-11-12 19:00',
+    ])
+  })
+
+  it('previews the published listing untouched where the visitor changed nothing', () => {
+    expect(previewEvent(baseDraft, { path: '/x', base })).toEqual({ ...event, path: '/x' })
+  })
+})
+
+describe('scheduleSessions', () => {
+  const now = DateTime.fromISO('2026-11-01T12:00:00Z')
+
+  it('counts a course from its first session, not from today', () => {
+    const course = {
+      firstDate: new Date('2026-10-05T18:00:00Z'),
+      firstDate_tz: 'Europe/London',
+      recurrenceType: 'WEEKLY' as const,
+      endingType: 'count' as const,
+      count: 6,
+    }
+
+    // Four of its six sessions were in October.
+    expect(scheduleSessions(course, now).map((at) => at.toISOString())).toEqual([
+      '2026-11-02T19:00:00.000Z',
+      '2026-11-09T19:00:00.000Z',
+    ])
+  })
+
+  it('gives a one-off its one session', () => {
+    const once = { firstDate: new Date('2026-12-01T19:00:00Z'), firstDate_tz: 'Europe/London' }
+
+    expect(scheduleSessions(once, now)).toEqual([once.firstDate])
   })
 })
 

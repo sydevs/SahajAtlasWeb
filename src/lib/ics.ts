@@ -161,10 +161,10 @@ export const buildRrule = (schedule: EventSchedule): string | null => {
 
 /**
  * Whether the pattern lands on `day` (event-zone): a per-day predicate, not
- * a recurrence engine. It expands only the short exclusion windows to
- * EXDATEs.
+ * a recurrence engine. It expands the short exclusion windows to EXDATEs, and
+ * a correction preview's next few sessions (`lib/proposal/preview.ts`).
  */
-const occursOn = (day: DateTime, schedule: EventSchedule): boolean => {
+export const occursOn = (day: DateTime, schedule: EventSchedule): boolean => {
   const type = schedule.recurrenceType
 
   if (!type) return false

@@ -110,19 +110,6 @@ const ruleDay = (month: DateTime, weekday: number, week: '1' | '2' | '3' | '4' |
 }
 
 /**
- * The session `months` after `start` for a class on a weekday of its month. Null when the rule
- * is the same date, which plain month arithmetic already answers.
- */
-export const monthlySession = (start: DateTime, months: number, by: MonthlyBy): DateTime | null => {
-  if (by === 'date') return null
-
-  const month = start.startOf('month').plus({ months })
-  const day = ruleDay(month, start.weekday, by === 'last' ? '-1' : monthWeekNumber(start))
-
-  return start.set({ year: month.year, month: month.month, day })
-}
-
-/**
  * The first date a published weekday rule actually lands on, on or after `start`. The form reads
  * its rule off the date, and a stored start need not fall on the rule ("the second Tuesday" from
  * the 1st), so without this the form would describe, and preview, a different class.
