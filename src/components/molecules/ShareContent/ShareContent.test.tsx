@@ -1,7 +1,7 @@
 import { renderToStaticMarkup } from 'react-dom/server'
 import { describe, it, expect, vi, afterEach } from 'vitest'
 
-import { ShareContent } from './ShareContent'
+import { CopyField, ShareContent } from './ShareContent'
 
 // This mocks the i18n boundary, so aria-labels render as real copy,
 // including the %{platform} interpolation, without booting i18next (see
@@ -73,5 +73,28 @@ describe('ShareContent', () => {
     // Native-first: one "Share…" button opens the OS sheet, not the platform grid.
     expect(html).toContain('Share…')
     expect(html).not.toContain('Share on VK')
+  })
+})
+
+// The class page's contact popover copies a phone number with this. Named "Copy link", it told
+// a screen-reader user it would copy something it does not (Browser M9).
+describe('CopyField', () => {
+  const phone = '020 7946 0000'
+  const html = renderToStaticMarkup(
+    <CopyField
+      copiedLabel="Phone number copied"
+      label={`Copy phone number ${phone}`}
+      value={phone}
+    />,
+  )
+
+  it('is named for what it copies, with the value it shows in its name', () => {
+    expect(html).toContain(`aria-label="Copy phone number ${phone}"`)
+    expect(html).not.toContain('share.copy_link')
+  })
+
+  it('keeps its announcement for after it has copied', () => {
+    expect(html).toContain('aria-live="polite"')
+    expect(html).not.toContain('Phone number copied')
   })
 })

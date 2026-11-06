@@ -17,11 +17,19 @@ const copyField = tv({
   defaultVariants: { copied: false },
 })
 
+export type CopyFieldProps = {
+  value: string
+  /** The button's name, saying what it copies and containing the value it shows: "Copy phone
+   *  number 020 7946 0000". A generic "Copy link" over a phone number named the wrong thing. */
+  label: string
+  /** What the live region announces once it has copied: "Phone number copied". */
+  copiedLabel: string
+}
+
 // A click-to-copy value field. It copies on click, with a brief tint
 // flash. The text stays selectable as a fallback. This is exported for
 // the event panel's desktop contact popover (issue #52).
-export function CopyField({ value }: { value: string }) {
-  const { t } = useTranslation()
+export function CopyField({ value, label, copiedLabel }: CopyFieldProps) {
   const [copied, setCopied] = useState(false)
 
   const copy = () => {
@@ -37,7 +45,7 @@ export function CopyField({ value }: { value: string }) {
   return (
     <div className="flex flex-col gap-1">
       <button
-        aria-label={t('share.copy_link')}
+        aria-label={label}
         className={copyField({ copied })}
         title={value}
         type="button"
@@ -51,7 +59,7 @@ export function CopyField({ value }: { value: string }) {
           perceive it either. The live region announces success, and the
           text confirms it. */}
       <span aria-live="polite" className="h-4 text-xs text-secondary-11">
-        {copied ? t('share.copied') : ''}
+        {copied ? copiedLabel : ''}
       </span>
     </div>
   )

@@ -34,6 +34,7 @@ function ContactPopover({
   phone: string
   stacked: boolean
 }) {
+  const { t } = useTranslation()
   const { isOpen, refs, floatingStyles, context, getReferenceProps, getFloatingProps } = usePopover(
     {
       placement: 'top',
@@ -76,7 +77,11 @@ function ContactPopover({
               {...getFloatingProps({ 'aria-label': label })}
             >
               {name && <div className="text-sm font-medium">{name}</div>}
-              <CopyField value={phone} />
+              <CopyField
+                copiedLabel={t('event.actions.phone_copied')}
+                label={t('event.actions.copy_phone', { phone })}
+                value={phone}
+              />
             </div>
           </FloatingFocusManager>
         </FloatingPortal>
