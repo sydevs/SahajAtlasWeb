@@ -32,10 +32,13 @@ export interface EventListItemProps {
   /** Leaves the distance off, for a search where it would mean nothing (a whole country). */
   hideDistance?: boolean
   /**
-   * The row is already listed as in the searched place, so its distance is only how far out from
-   * the middle it sits. "16 km from London" under "In London" would read as an outsider.
+   * What the distance counts from, when the row says it plainly:
+   *  - `centre`: the row is already listed as in the searched place, so its distance is only how
+   *    far out from the middle it sits. "16 km from London" under "In London" reads as an outsider.
+   *  - `you`: the search started from the visitor's own position ("Classes near me"), so the
+   *    distance is from them (Anton, 6 Nov).
    */
-  fromCentre?: boolean
+  distanceFrom?: 'centre' | 'you'
 }
 
 // Below this, the distance stops being decision-useful. Everything in the
@@ -75,7 +78,7 @@ function ClassRow({
   searchedPlace,
   placeLine,
   hideDistance,
-  fromCentre,
+  distanceFrom,
 }: EventListItemProps) {
   const { t } = useTranslation()
   const { locale } = useLocale()
@@ -97,10 +100,10 @@ function ClassRow({
 
   const online = isOnline(event)
 
-  // This is distance from the SEARCHED location, never the device's. So
-  // it names the place when it knows it, "3.6 km from Brussels". "away"
-  // would imply "from you", and quietly mislead the moment someone
-  // searches a city they are not in. The list container derives the place
+  // This is distance from the SEARCHED location. So it names the place when
+  // it knows it, "3.6 km from Brussels". "away" would imply "from you", and
+  // quietly mislead the moment someone searches a city they are not in. Only
+  // a search from the visitor's own position says "from you" (`distanceFrom`). The list container derives the place
   // itself from `?q` and hands it down (see the prop). The precise
   // reference point stays in the accessible label either way.
   const distance =
@@ -108,11 +111,13 @@ function ClassRow({
       ? formatDistance(event.distance, locale)
       : null
   const distanceText = distance
-    ? fromCentre
-      ? t('event.display.distance_from_centre', { distance })
-      : searchedPlace
-        ? t('event.display.distance_from_place', { distance, place: searchedPlace })
-        : t('event.display.distance_away', { distance })
+    ? distanceFrom === 'you'
+      ? t('event.display.distance_from_you', { distance })
+      : distanceFrom === 'centre'
+        ? t('event.display.distance_from_centre', { distance })
+        : searchedPlace
+          ? t('event.display.distance_from_place', { distance, place: searchedPlace })
+          : t('event.display.distance_away', { distance })
     : null
   const distanceLabel = distance ? t('event.display.distance_from_search', { distance }) : undefined
 

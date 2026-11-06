@@ -146,6 +146,7 @@
       "distance_from_centre": "%{distance} from the centre",
       "distance_from_place": "%{distance} from %{place}",
       "distance_from_search": "%{distance} from the searched location",
+      "distance_from_you": "%{distance} from you",
       "email_host": "Email the host:",
       "event_ended": "This class has ended",
       "event_full": "This class is full",
@@ -345,6 +346,7 @@
       "filtered": "No matching classes in %{place}",
       "here": "No classes in %{place} yet",
       "near": "No classes near %{place} yet",
+      "near_you": "No classes near you yet",
       "nowhere": "No classes here yet"
     },
     "sections": {
@@ -354,6 +356,7 @@
       "just_outside": "Just outside %{place}",
       "just_outside_here": "Close by",
       "near": "Near %{place}",
+      "near_you": "Near you",
       "map_wider": "The map also shows other cities",
       "nearby": "Classes in other cities",
       "nearby_places": "Other places nearby",

@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef } from 'react'
 import { useLocation, useNavigate, useSearchParams } from 'react-router'
 
+import { useNearMeState } from '@/config/store'
 import { useAtlasNavigate } from '@/hooks/use-atlas-navigate'
 import { useLocale } from '@/hooks/use-locale'
 import { geocodeCountryCode, reverseGeocode } from '@/lib/geocode'
@@ -96,6 +97,9 @@ export function useGeolocateToSearch({ naming = 'after' }: { naming?: GeolocateN
       round(position.coords.latitude),
     ]
     const place = { center: point, bbox: aroundVisitor(point) }
+
+    // Marks this centre as the visitor's own, so the results say "from you".
+    useNearMeState.getState().setCenter(point)
 
     if (mode === 'first') {
       const timeout = new Promise<null>((resolve) => setTimeout(() => resolve(null), NAME_FIRST_MS))

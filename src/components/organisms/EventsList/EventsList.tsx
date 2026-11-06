@@ -17,8 +17,8 @@ export interface EventsListProps {
   placeLineFor?: (event: EventSlim) => string | undefined
   /** Leaves the distance off every row. See `hideDistance` on `EventListItem`. */
   hideDistance?: boolean
-  /** Reads each row's distance from the middle of the place. See `fromCentre` on `EventListItem`. */
-  fromCentre?: boolean
+  /** What each row's distance counts from. See `distanceFrom` on `EventListItem`. */
+  distanceFrom?: 'centre' | 'you'
 }
 
 // This is the presentational list: events pass in via props, one card each.
@@ -30,15 +30,15 @@ export function EventsList({
   searchedPlace,
   placeLineFor,
   hideDistance,
-  fromCentre,
+  distanceFrom,
 }: EventsListProps) {
   return (
     <List>
       {events.map((event) => (
         <EventListItem
           key={event.id}
+          distanceFrom={distanceFrom}
           event={event}
-          fromCentre={fromCentre}
           hideDistance={hideDistance}
           placeLine={placeLineFor?.(event)}
           searchedPlace={searchedPlace}

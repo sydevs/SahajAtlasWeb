@@ -40,7 +40,7 @@ import { useReveal } from '@/hooks/use-reveal'
 import { useSearchCountry } from '@/hooks/use-search-country'
 import { useSortOrder } from '@/hooks/use-sort'
 import { eventsQuery } from '@/config/api'
-import { useArrivalFilters } from '@/config/store'
+import { useArrivalFilters, useNearMeState } from '@/config/store'
 
 export interface DynamicEventsListProps {
   latitude: number
@@ -166,6 +166,10 @@ export function DynamicEventsList({
 
   const folds = useFolds(revealKey(query.queryKey, ''))
   const justOutsideId = useId()
+  // A search that started from the visitor's own position measures from them, so the cards say
+  // "from you". Held in memory only: a reload or a shared link is someone somewhere else.
+  const nearCenter = useNearMeState((s) => s.center)
+  const fromYou = nearCenter?.[0] === longitude && nearCenter?.[1] === latitude
   // With nothing in the place or just outside it, the other cities open by themselves, and with
   // none of those either, the online classes do.
   const nothingClose = sections?.here.length === 0 && sections?.justOutside.length === 0
@@ -269,11 +273,15 @@ export function DynamicEventsList({
     const nothing =
       here.length + justOutside.length + nearby.length + online.length + distant.length === 0
     const hideDistance = size === 'area'
-    const hereTitle = !place
-      ? t('search.sections.results')
-      : size === 'area'
-        ? place
-        : t(size === 'spot' ? 'search.sections.near' : 'search.sections.here', { place })
+    // A search from the visitor's own position is about them, not the village their point
+    // falls in: "In Choteč" over classes in Prague would read as a promise about Choteč.
+    const hereTitle = fromYou
+      ? t('search.sections.near_you')
+      : !place
+        ? t('search.sections.results')
+        : size === 'area'
+          ? place
+          : t(size === 'spot' ? 'search.sections.near' : 'search.sections.here', { place })
     // On a country search, "cities" is the wrong word for what lies just outside it. A class whose
     // country doesn't resolve can't be in the searched one, since it would have counted as here.
     const nearbyTitle =
@@ -304,6 +312,7 @@ export function DynamicEventsList({
         {here.length === 0 && !nothing && (
           <NoClassesHere
             bbox={bbox}
+            fromYou={fromYou}
             latitude={latitude}
             longitude={longitude}
             place={place}
@@ -321,8 +330,8 @@ export function DynamicEventsList({
             )}
             {filterNotice}
             <EventsList
+              distanceFrom={fromYou ? 'you' : size === 'town' ? 'centre' : undefined}
               events={hereRows}
-              fromCentre={size === 'town'}
               hideDistance={hideDistance}
               searchedPlace={searchedPlace}
             />
@@ -612,12 +621,15 @@ function NoClassesHere({
   bbox,
   place,
   spot,
+  fromYou,
 }: {
   latitude: number
   longitude: number
   bbox?: BBox
   place: string
   spot: boolean
+  /** The search started from the visitor's own position, so it is "near you". */
+  fromYou: boolean
 }) {
   const { t } = useTranslation()
   const { locale, regionNames } = useLocale()
@@ -656,9 +668,11 @@ function NoClassesHere({
 
   const title = emptied
     ? t('search.no_classes.filtered', { place })
-    : !place
-      ? t('search.no_classes.nowhere')
-      : t(spot ? 'search.no_classes.near' : 'search.no_classes.here', { place })
+    : fromYou
+      ? t('search.no_classes.near_you')
+      : !place
+        ? t('search.no_classes.nowhere')
+        : t(spot ? 'search.no_classes.near' : 'search.no_classes.here', { place })
 
   return (
     <div className="px-4 pt-3 pb-2">
