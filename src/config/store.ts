@@ -482,3 +482,19 @@ export const useClassSheet = create<ClassSheetState>((set) => ({
   bottom: null,
   setBottom: (bottom) => set(() => ({ bottom })),
 }))
+
+type MapTapState = {
+  /** How many taps have landed on open map (not on a pin or a cluster). */
+  taps: number
+  tap: () => void
+}
+
+/**
+ * The map reports a tap on open map, and the drawer lowers its phone sheet to the peek, so the
+ * map the visitor reached for comes into view (Anton, 6 Nov). The same seam as `useClassSheet`:
+ * neither side renders the other's context.
+ */
+export const useMapTap = create<MapTapState>((set) => ({
+  taps: 0,
+  tap: () => set((state) => ({ taps: state.taps + 1 })),
+}))

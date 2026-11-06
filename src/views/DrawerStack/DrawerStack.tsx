@@ -37,7 +37,7 @@ import {
   useIsWide,
 } from '@/config/responsive'
 import { useSurfaceSwitch, useWidgetMode } from '@/config/mode'
-import { useClassSheet, useFilterPanelState } from '@/config/store'
+import { useClassSheet, useFilterPanelState, useMapTap } from '@/config/store'
 import { frameElement, overlayContainer } from '@/lib/overlay'
 import {
   filtersFromParams,
@@ -539,6 +539,17 @@ export function DrawerStack() {
   )
   const parentPath = parentPaths.at(-1)
   const canCollapse = hasMap && direction === 'bottom'
+
+  // A tap on open map lowers the phone sheet to its peek, so the map the visitor reached for
+  // comes into view. A drag or a pin doesn't count: the map only reports a plain tap.
+  const mapTaps = useMapTap((s) => s.taps)
+  const seenTaps = useRef(mapTaps)
+
+  useEffect(() => {
+    if (mapTaps === seenTaps.current) return
+    seenTaps.current = mapTaps
+    if (canCollapse) setSnap(PEEK_SNAP)
+  }, [mapTaps, canCollapse])
 
   const depth = atlasDepth(location)
 

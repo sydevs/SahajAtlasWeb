@@ -43,6 +43,7 @@ import {
   useCameraSettled,
   useCameraTarget,
   useFilterPanelState,
+  useMapTap,
   useViewState,
   type MapPoint,
 } from '@/config/store'
@@ -468,7 +469,13 @@ export function Mapbox({ cooperative = false }: { cooperative?: boolean } = {}) 
 
   const selectFeature = useCallback(
     (evt: MapMouseEvent) => {
-      if (!evt.features || !evt.features.length || !mapbox) return
+      if (!mapbox) return
+      if (!evt.features?.length) {
+        // Open map, not a pin: the phone sheet lowers so the map comes into view.
+        useMapTap.getState().tap()
+
+        return
+      }
       const feature = evt.features[0]
 
       // This dismisses the transient hover popover on any pin or cluster
