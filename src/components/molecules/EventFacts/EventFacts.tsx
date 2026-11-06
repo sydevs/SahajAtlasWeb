@@ -18,7 +18,9 @@ import {
 // came for. Only the distance under them steps back. `card` is the boxed event-details card: a `title` over the
 // default facts on a tinted rounded surface, the object being acted on
 // above the registration and share forms. Each fact has a required primary
-// line (`text`) and an optional faded second line (`subtext`).
+// line (`text`) and an optional faded second line (`subtext`). The primary
+// line is medium weight and the second line regular, grey and on the panel a
+// size smaller, so the time reads first and "Next session" reads as its detail.
 //
 // Presentation and composition live together here. This is the only place
 // that builds event facts, and the only thing that renders them. So a
@@ -32,8 +34,8 @@ const facts = tv({
     base: 'flex flex-col',
     item: 'flex',
     icon: 'shrink-0',
-    text: 'min-w-0 text-base leading-snug',
-    subtext: 'font-normal text-gray-11',
+    text: 'min-w-0 text-base leading-snug font-medium',
+    subtext: 'text-sm font-normal text-gray-11',
   },
   variants: {
     variant: {
