@@ -21,8 +21,8 @@ export type EventChipsProps = {
 }
 
 /**
- * The event's triage chips. Up to three, all `flat`: the class type
- * (primary), the language(s) combined into one chip (secondary), and a
+ * The event's triage chips, all `flat`: on the class page, Online for an online class
+ * (primary); the class type (primary), the language(s) combined into one chip (secondary), and a
  * single availability chip: on a card, "Registration closed" (neutral) for a started course;
  * "Full" (neutral); or, on a card, "Today" (contrast). The
  * list card and the event header share this component, so the two never
@@ -69,8 +69,11 @@ export function EventChips({ event, variant = 'default', className }: EventChips
   // and a one-off card leads with it. So only a card that leads with the weekly pattern,
   // "Every Wednesday", needs the chip.
   const today = !closed && !full && display.status === 'today' && compact && Boolean(recurrenceLine)
+  // A card says Online beside its title, in this same soft teal tag (EventListItem), so only the
+  // class page shows it here, leading its tags.
+  const online = !compact && display.online
 
-  if (!showType && !languageText && !closed && !full && !today) return null
+  if (!online && !showType && !languageText && !closed && !full && !today) return null
 
   return (
     // On the class page the tags must show above the phone sheet's Register bar, so
@@ -79,6 +82,7 @@ export function EventChips({ event, variant = 'default', className }: EventChips
       className={clsx('flex flex-wrap items-center gap-1', className)}
       data-sheet-fold={compact ? undefined : ''}
     >
+      {online && <Chip color="primary">{t('event.display.online')}</Chip>}
       {showType && <Chip color="primary">{typeLabel}</Chip>}
       {languageText && <Chip color="secondary">{languageText}</Chip>}
       {closed && <Chip color="neutral">{t('event.display.registration_closed')}</Chip>}

@@ -18,6 +18,7 @@ const { d } = vi.hoisted(() => ({
     typeLabel: 'Weekly class',
     isDefaultType: true,
     recurrenceLine: 'Every Wednesday' as string | null,
+    online: false,
   },
 }))
 
@@ -27,7 +28,13 @@ vi.mock('@/hooks/use-locale', () => ({
 }))
 vi.mock('@/hooks/use-event-display', () => ({
   useEventDisplay: () => ({
-    display: { status: d.status, kind: d.kind, full: d.full, registration: d.registration },
+    display: {
+      status: d.status,
+      kind: d.kind,
+      full: d.full,
+      registration: d.registration,
+      online: d.online,
+    },
     typeLabel: d.typeLabel,
     isDefaultType: d.isDefaultType,
     recurrenceLine: d.recurrenceLine,
@@ -48,6 +55,31 @@ describe('EventChips', () => {
     d.typeLabel = 'Weekly class'
     d.isDefaultType = true
     d.recurrenceLine = 'Every Wednesday'
+    d.online = false
+  })
+
+  // The card has its own Online tag beside the title, so the tag group would say it twice.
+  it('default: leads an online class page with the soft teal Online tag; compact does not', () => {
+    d.online = true
+
+    const html = render(['en'])
+
+    expect(html).toContain('event.display.online')
+    expect(html).toContain('bg-primary-3')
+    expect(html.indexOf('event.display.online')).toBeLessThan(html.indexOf('Weekly class'))
+    expect(render(['en'], 'compact')).not.toContain('event.display.online')
+  })
+
+  it('default: an online by-request class still shows its tag group', () => {
+    d.online = true
+    d.status = 'inactive'
+    d.kind = 'oneoff'
+
+    expect(render([])).toContain('event.display.online')
+  })
+
+  it('default: an in-person class has no Online tag', () => {
+    expect(render(['en'])).not.toContain('event.display.online')
   })
 
   it('default: names the type and folds every language into one chip', () => {
