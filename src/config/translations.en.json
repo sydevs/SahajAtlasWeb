@@ -351,6 +351,8 @@
       "across_border": "Nearby in other countries",
       "farther": "Farther away",
       "here": "In %{place}",
+      "just_outside": "Just outside %{place}",
+      "just_outside_here": "Close by",
       "near": "Near %{place}",
       "map_wider": "The map also shows other cities",
       "nearby": "Classes in other cities",

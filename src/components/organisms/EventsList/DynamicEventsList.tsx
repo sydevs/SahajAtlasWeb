@@ -1,7 +1,7 @@
 import type { BBox } from 'geojson'
 import type { EventSlim } from '@/types'
 
-import { type ReactNode, useCallback, useEffect, useMemo, useRef } from 'react'
+import { type ReactNode, useCallback, useEffect, useId, useMemo, useRef } from 'react'
 import { useSearchParams } from 'react-router'
 import { useQueries, useQuery, useSuspenseQuery } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
@@ -27,6 +27,7 @@ import {
   revealKey,
   revealRows,
   sortEvents,
+  searchFrame,
   splitResults,
   withoutFilter,
 } from '@/lib/shape'
@@ -164,24 +165,24 @@ export function DynamicEventsList({
   )
 
   const folds = useFolds(revealKey(query.queryKey, ''))
-  const openNearby = folds.isOpen('nearby', sections?.here.length === 0)
-  const openOnline = folds.isOpen(
-    'online',
-    sections?.here.length === 0 && sections?.nearby.length === 0,
-  )
+  const justOutsideId = useId()
+  // With nothing in the place or just outside it, the other cities open by themselves, and with
+  // none of those either, the online classes do.
+  const nothingClose = sections?.here.length === 0 && sections?.justOutside.length === 0
+  const openNearby = folds.isOpen('nearby', nothingClose)
+  const openOnline = folds.isOpen('online', nothingClose && sections?.nearby.length === 0)
 
   // Opening "Other cities" widens the map to show them, and closing it comes back to the place.
   const toggleNearby = (open: boolean) => {
     folds.setOpen('nearby', open)
-    const nearby = sections?.nearby ?? []
+    if (!sections) return
+    const around = [...sections.justOutside, ...sections.nearby]
     const center: [number, number] = [longitude, latitude]
-    // Everything in the group when it opens. Closed, back to the place, or with none of its own,
-    // back to the place and its nearest few, so a pin stays in view.
+    const place = bbox as [number, number, number, number] | undefined
+    // Everything outside the place when it opens. Closed, what the search framed on arrival.
     const frame = open
-      ? boundsWith(bbox, center, nearby, nearby.length)
-      : sections?.here.length === 0
-        ? boundsWith(bbox, center, nearby)
-        : (bbox as [number, number, number, number] | undefined)
+      ? boundsWith(place, center, around, around.length)
+      : searchFrame(sections, place, center)
 
     frameSearch({ bbox: frame, center })
   }
@@ -261,11 +262,12 @@ export function DynamicEventsList({
   }, [rows.length, more, sections])
 
   if (sections) {
-    const { here, nearby, distant, size } = sections
+    const { here, justOutside, nearby, distant, size } = sections
     const hereRows = rows.filter((event) => hereIds.has(event.id))
     const distantRows = rows.filter((event) => !hereIds.has(event.id))
     const place = placeName.current.name
-    const nothing = here.length + nearby.length + online.length + distant.length === 0
+    const nothing =
+      here.length + justOutside.length + nearby.length + online.length + distant.length === 0
     const hideDistance = size === 'area'
     const hereTitle = !place
       ? t('search.sections.results')
@@ -291,7 +293,7 @@ export function DynamicEventsList({
           here={here.length}
           latitude={latitude}
           longitude={longitude}
-          nearby={nearby.length}
+          nearby={justOutside.length + nearby.length}
           place={place}
         />
       )
@@ -335,6 +337,21 @@ export function DynamicEventsList({
                 onReveal={reveal}
               />
             )}
+          </section>
+        )}
+        {/* Close enough to count, but not in the place: shown in full, under the same small label
+            the first screen puts over its country list, so nobody reads them as in the town. */}
+        {justOutside.length > 0 && (
+          <section aria-labelledby={justOutsideId}>
+            <h3
+              className="px-4 pt-4 pb-1 text-xs font-medium tracking-[0.08em] text-gray-11 uppercase"
+              id={justOutsideId}
+            >
+              {place
+                ? t('search.sections.just_outside', { place })
+                : t('search.sections.just_outside_here')}
+            </h3>
+            <EventsList events={justOutside} placeLineFor={placeLineFor} />
           </section>
         )}
         {nearby.length > 0 && (
@@ -548,14 +565,16 @@ function FilterRelief({
     [unfiltered, bbox, searchCountry],
   )
   const hiddenHere = all ? all.here.length - here : 0
-  const hiddenNearby = all ? all.nearby.length - nearby : 0
+  const hiddenNearby = all ? all.justOutside.length + all.nearby.length - nearby : 0
   // A class back in the place itself is worth more than one in the next town. The step offered
   // counts whichever of the two this sentence is about.
   const inPlace = hiddenHere > 0
   const relief = useFilterRelief(latitude, longitude, (events) => {
     const groups = splitResults(events, { bbox, searchCountry })
 
-    return inPlace ? groups.here.length - here : groups.nearby.length - nearby
+    return inPlace
+      ? groups.here.length - here
+      : groups.justOutside.length + groups.nearby.length - nearby
   })
 
   if (!inPlace && hiddenNearby <= 0) return null
@@ -669,9 +688,9 @@ function EmptyResults({
   const searchCountry = useSearchCountry()
   const relief = useFilterRelief(latitude, longitude, (events) => {
     if (!scoped) return events.length
-    const { here, nearby, online } = splitResults(events, { bbox, searchCountry })
+    const { here, justOutside, nearby, online } = splitResults(events, { bbox, searchCountry })
 
-    return here.length + nearby.length + online.length
+    return here.length + justOutside.length + nearby.length + online.length
   })
 
   if (countrySite) {

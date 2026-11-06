@@ -40,6 +40,14 @@ export const NEARBY_KM = 25
 export const FOREIGN_NEARBY_KM = NEARBY_KM / 2
 
 /**
+ * How far a town search's "Classes in other cities" group reaches, past the 25 km nearby cut: a
+ * day trip, so a Prague search still shows Liberec, 90 km away, in its own group rather than
+ * hiding it with the rest of the world (Anton, 6 Nov). Across a border it is half, as above.
+ */
+export const OTHER_CITIES_KM = 100
+export const FOREIGN_OTHER_CITIES_KM = OTHER_CITIES_KM / 2
+
+/**
  * How far over a border a country page looks for its "Nearby in other countries" group, measured
  * from that country's own nearest class. A different question from a town search's nearby segment
  * (Luxembourg's neighbours are a short drive, not a walk), so it keeps its own, wider reach.

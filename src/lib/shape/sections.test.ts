@@ -44,20 +44,23 @@ describe('parseBounds', () => {
 
 describe('splitResults', () => {
   // A town search measures each class from the searched place (its `distance`), against the 25 km
-  // nearby cut. These sit outside the Prague box; their distances are set for the cut.
+  // nearby cut and the 100 km other-cities reach. These sit outside the Prague box; their
+  // distances are set for the cuts.
   const north = inPerson(3, 14.47, 50.35, 8)
   const east = inPerson(4, 14.95, 50.1, 15)
   const south = inPerson(5, 14.4, 49.8, 22)
   const lipanska = inPerson(1, 14.45, 50.08, 2)
 
-  it('splits a town search into here, nearby, online and distant', () => {
+  it('splits a town search into here, just outside, other cities, online and distant', () => {
     const paris = inPerson(6, 2.35, 48.85, 880, 'FR')
+    const liberec = inPerson(18, 15.06, 50.77, 88)
     const {
       here,
+      justOutside,
       nearby,
       online: remote,
       distant,
-    } = splitResults([south, online(9), lipanska, paris, east, north], {
+    } = splitResults([south, online(9), liberec, lipanska, paris, east, north], {
       bbox: PRAGUE,
       searchCountry: 'CZ',
     })
@@ -66,35 +69,42 @@ describe('splitResults', () => {
     expect(ids(remote)).toEqual([9])
     expect(ids(distant)).toEqual([6])
     // Nearest first, whatever order the score left them in.
-    expect(ids(nearby)).toEqual([3, 4, 5])
+    expect(ids(justOutside)).toEqual([3, 4, 5])
+    // Anton, 6 Nov: Liberec, 90 km away, is another city, not hidden with the rest of the world.
+    expect(ids(nearby)).toEqual([18])
   })
 
   it('keeps the incoming order when the visitor asked for Soonest', () => {
-    const { nearby } = splitResults([south, north], {
+    const { justOutside } = splitResults([south, north], {
       bbox: PRAGUE,
       searchCountry: 'CZ',
       keepOrder: true,
     })
 
-    expect(ids(nearby)).toEqual([5, 3])
+    expect(ids(justOutside)).toEqual([5, 3])
   })
 
-  it('holds a class across a border to the shorter limit', () => {
-    // Across the border the cut is half (12.5 km): 12 km is near, 20 km is not.
+  it('holds a class across a border to the shorter limits', () => {
+    // Across the border both cuts are half: 12.5 km just outside, 50 km for other cities.
     const close = inPerson(7, 14.85, 49.75, 12, 'AT')
-    const far = inPerson(8, 14.9, 49.7, 20, 'AT')
-    const { nearby, distant } = splitResults([close, far], { bbox: PRAGUE, searchCountry: 'CZ' })
+    const mid = inPerson(8, 14.9, 49.7, 20, 'AT')
+    const far = inPerson(19, 15.0, 49.6, 60, 'AT')
+    const { justOutside, nearby, distant } = splitResults([close, mid, far], {
+      bbox: PRAGUE,
+      searchCountry: 'CZ',
+    })
 
-    expect(ids(nearby)).toEqual([7])
-    expect(ids(distant)).toEqual([8])
+    expect(ids(justOutside)).toEqual([7])
+    expect(ids(nearby)).toEqual([8])
+    expect(ids(distant)).toEqual([19])
   })
 
   it('keeps a class inside the box out of "here" when it is in another country', () => {
     const dresden = inPerson(10, 14.1, 50.0, 10, 'DE')
-    const { here, nearby } = splitResults([dresden], { bbox: PRAGUE, searchCountry: 'CZ' })
+    const { here, justOutside } = splitResults([dresden], { bbox: PRAGUE, searchCountry: 'CZ' })
 
     expect(here).toEqual([])
-    expect(ids(nearby)).toEqual([10])
+    expect(ids(justOutside)).toEqual([10])
   })
 
   it('never calls a class foreign over a country it cannot read', () => {
@@ -109,13 +119,13 @@ describe('splitResults', () => {
     const ostrava = inPerson(12, 18.26, 49.82, 210)
     // Just over the border in Poland, about 8 km from Ostrava: inside the half cut for a neighbour.
     const acrossBorder = inPerson(13, 18.36, 49.86, 260, 'PL')
-    const { here, nearby, distant } = splitResults([ostrava, acrossBorder], {
+    const { here, justOutside, distant } = splitResults([ostrava, acrossBorder], {
       bbox: CZECHIA,
       searchCountry: 'CZ',
     })
 
     expect(ids(here)).toEqual([12])
-    expect(ids(nearby)).toEqual([13])
+    expect(ids(justOutside)).toEqual([13])
     expect(distant).toEqual([])
   })
 
@@ -123,11 +133,12 @@ describe('splitResults', () => {
     const plzen = inPerson(16, 13.38, 49.74, 140)
     // Inside this rectangle, and far from the one class that is really in the country.
     const kosice = inPerson(17, 18.8, 48.8, 330, 'SK')
-    const { nearby, distant } = splitResults([plzen, kosice], {
+    const { justOutside, nearby, distant } = splitResults([plzen, kosice], {
       bbox: CZECHIA,
       searchCountry: 'CZ',
     })
 
+    expect(justOutside).toEqual([])
     expect(nearby).toEqual([])
     expect(ids(distant)).toEqual([17])
   })
@@ -135,14 +146,14 @@ describe('splitResults', () => {
   it('treats a street search as a short radius', () => {
     const close = inPerson(14, -0.15, 51.55, 6, 'GB')
     const far = inPerson(15, -0.3, 51.7, 18, 'GB')
-    const { size, here, nearby } = splitResults([close, far], {
+    const { size, here, justOutside } = splitResults([close, far], {
       bbox: [-0.1879, 51.5517, -0.1583, 51.5722],
       searchCountry: 'GB',
     })
 
     expect(size).toBe('spot')
     expect(ids(here)).toEqual([14])
-    expect(ids(nearby)).toEqual([15])
+    expect(ids(justOutside)).toEqual([15])
   })
 })
 
@@ -171,8 +182,10 @@ describe('boundsWith', () => {
 describe('searchFrame', () => {
   const center: [number, number] = [14.42, 50.09]
   const lipanska = inPerson(1, 14.45, 50.08, 2)
-  // Outside the Prague box and past the 25 km nearby cut, but within reach.
+  // Outside the Prague box and past the 25 km nearby cut: another city, within reach.
   const liberec = inPerson(3, 15.06, 50.77, 88)
+  // Just outside the box, inside the nearby cut.
+  const beroun = inPerson(4, 13.98, 49.96, 24)
   const brno = inPerson(5, 16.61, 49.2, 187)
 
   it('frames just the place when it has classes of its own', () => {
@@ -188,6 +201,16 @@ describe('searchFrame', () => {
     expect(frame?.[3]).toBeCloseTo(50.77)
     // Brno is past the reach, so it doesn't drag the frame south.
     expect(frame?.[1]).toBe(PRAGUE[1])
+  })
+
+  it('frames the classes just outside before the other cities', () => {
+    const sections = splitResults([liberec, beroun], { bbox: PRAGUE, searchCountry: 'CZ' })
+    const frame = searchFrame(sections, PRAGUE, center)
+
+    expect(sections.here).toEqual([])
+    expect(frame?.[0]).toBe(13.98)
+    // Liberec waits in its own group, so it doesn't drag the frame north.
+    expect(frame?.[3]).toBe(PRAGUE[3])
   })
 
   it('stays on the place when nothing is within reach', () => {

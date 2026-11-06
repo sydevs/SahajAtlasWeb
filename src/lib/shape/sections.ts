@@ -2,13 +2,13 @@ import type { BBox, Position } from 'geojson'
 
 import { byDistance, isOnline } from './event'
 import { isoCountryCode } from './country'
-import { FOREIGN_NEARBY_KM, NEARBY_KM } from './reveal'
+import { FOREIGN_NEARBY_KM, FOREIGN_OTHER_CITIES_KM, NEARBY_KM, OTHER_CITIES_KM } from './reveal'
 
 import { boundsOfPoints, distanceKm } from '@/lib/geo'
-import { NEARBY_MAX_KM } from '@/lib/geolocation'
 
 // The results of a place search, split into the groups a visitor reads: classes in the place
-// itself, classes in other towns close enough to reach, online classes, and everything else.
+// itself, classes just outside it, classes in other towns within a day trip, online classes, and
+// everything else.
 // This is pure, like `revealRows`, which still pages the first and last of these groups.
 
 /**
@@ -86,17 +86,19 @@ export type ResultSections<T> = {
   size: PlaceSize
   /** In the searched place. Order kept from the input. */
   here: T[]
-  /** In-person, outside the place, close enough to reach. Nearest first. */
+  /** In-person, just outside the place, within the 25 km nearby cut. Nearest first. */
+  justOutside: T[]
+  /** In-person, in other towns past that cut, up to `OTHER_CITIES_KM`. Nearest first. */
   nearby: T[]
   /** Online. Order kept from the input. */
   online: T[]
-  /** In-person and past the nearby limit. Nearest first. */
+  /** In-person and past the other-cities limit. Nearest first. */
   distant: T[]
 }
 
 /**
- * Sorts the matches into their groups. `keepOrder` holds `nearby` and `distant` in the order they
- * came in, for a visitor who explicitly asked for Soonest.
+ * Sorts the matches into their groups. `keepOrder` holds the groups outside the place in the order
+ * they came in, for a visitor who explicitly asked for Soonest.
  *
  * A country code that doesn't resolve never counts as foreign: the CMS field is free text, and
  * "Tschechien" is not a reason to push a class out of the Czech results.
@@ -110,7 +112,14 @@ export function splitResults<T extends Sectionable>(
   }: { bbox?: BBox; searchCountry?: string; keepOrder?: boolean },
 ): ResultSections<T> {
   const size = placeSize(bbox)
-  const groups: ResultSections<T> = { size, here: [], nearby: [], online: [], distant: [] }
+  const groups: ResultSections<T> = {
+    size,
+    here: [],
+    justOutside: [],
+    nearby: [],
+    online: [],
+    distant: [],
+  }
   // An area measures from its own classes, everything else from the searched point. `T` is only
   // known structurally here, so the measure is kept beside the event instead of written onto it.
   const reach = new Map<T, number>()
@@ -149,8 +158,11 @@ export function splitResults<T extends Sectionable>(
         ? (distanceToNearest(point, own) ?? distanceToBounds(point, bbox))
         : event.distance
 
-    reach.set(event, km ?? Infinity)
-    if ((km ?? Infinity) <= (foreign ? FOREIGN_NEARBY_KM : NEARBY_KM)) groups.nearby.push(event)
+    const far = km ?? Infinity
+
+    reach.set(event, far)
+    if (far <= (foreign ? FOREIGN_NEARBY_KM : NEARBY_KM)) groups.justOutside.push(event)
+    else if (far <= (foreign ? FOREIGN_OTHER_CITIES_KM : OTHER_CITIES_KM)) groups.nearby.push(event)
     else groups.distant.push(event)
   }
 
@@ -158,6 +170,7 @@ export function splitResults<T extends Sectionable>(
     const nearestFirst = (a: T, b: T) =>
       byDistance({ distance: reach.get(a) }, { distance: reach.get(b) })
 
+    groups.justOutside.sort(nearestFirst)
     groups.nearby.sort(nearestFirst)
     groups.distant.sort(nearestFirst)
   }
@@ -195,19 +208,17 @@ export const boundsWith = <T extends Sectionable>(
 
 /**
  * What a place search frames. A place with classes of its own frames just the place. One with none
- * frames the place and its nearest few, so a pin is in view: the nearby group first, else the
- * nearest farther classes up to `reachKm`, so a place with nothing close still shows where the
+ * frames the place and its nearest few, so a pin is in view: those just outside it, else those in
+ * other towns (up to `OTHER_CITIES_KM`), so a place with nothing close still shows where the
  * nearest are without zooming out to a continent.
  */
 export const searchFrame = <T extends Sectionable>(
-  { here, nearby, distant }: ResultSections<T>,
+  { here, justOutside, nearby }: ResultSections<T>,
   place: [number, number, number, number] | undefined,
   center: Position,
-  reachKm = NEARBY_MAX_KM,
 ): [number, number, number, number] | undefined => {
   if (here.length > 0) return place
-  const nearest =
-    nearby.length > 0 ? nearby : distant.filter((event) => (event.distance ?? Infinity) <= reachKm)
+  const nearest = justOutside.length > 0 ? justOutside : nearby
 
   return nearest.length > 0 ? boundsWith(place, center, nearest) : place
 }
