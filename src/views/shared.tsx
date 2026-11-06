@@ -6,7 +6,7 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useRef, use
 import { useLocation, useNavigationType, useSearchParams } from 'react-router'
 import { useTranslation } from 'react-i18next'
 import { useQuery, useSuspenseQuery } from '@tanstack/react-query'
-import { CalendarDays, Funnel, List, Search, X } from 'lucide-react'
+import { CalendarDays, Funnel, List, MapIcon, Search, X } from 'lucide-react'
 import clsx from 'clsx'
 
 import { Button } from '@/components/atoms/Button'
@@ -15,6 +15,8 @@ import { MapSearch } from '@/components/organisms'
 import api, { eventQuery, regionsQuery } from '@/config/api'
 import { GEOJSON_STALE_TIME } from '@/config/query-client'
 import embed from '@/config/embed'
+import { useSurfaceSwitch } from '@/config/mode'
+import { MAP_BUTTON } from '@/config/review-options'
 import { useCameraHistory, useFilterPanelState } from '@/config/store'
 import { useAtlasNavigate } from '@/hooks/use-atlas-navigate'
 import { useEventFilters } from '@/hooks/use-filters'
@@ -202,13 +204,41 @@ export function CalendarButton({ regionSlug }: { regionSlug: string }) {
 
   return (
     <Button
+      aria-label={t('calendar.see_calendar')}
       className={HEADER_LAST_CONTROL}
       size="sm"
       variant="ghost"
       onClick={() => navigate(calendarPath(regionSlug))}
     >
       <CalendarDays size={18} />
-      {t('calendar.see_calendar')}
+      {/* PROTOTYPE `?mapButton=header`: beside "Map" the pair reads as two short words. */}
+      <span className={HEADER_WORD}>
+        {MAP_BUTTON === 'header' ? t('calendar.title') : t('calendar.see_calendar')}
+      </span>
+    </Button>
+  )
+}
+
+// PROTOTYPE `?mapButton=header`: the words stay and a long Back label shortens with "…" first.
+// Only on a row narrower than any phone's at 375px (18rem, a 336px screen) do the words go,
+// leaving the icons, each still named for screen readers. The Back row is the container.
+const HEADER_WORD = MAP_BUTTON === 'header' ? '@max-[18rem]:sr-only' : ''
+
+/**
+ * PROTOTYPE `?mapButton=header` (see `config/review-options`): the list-first view's map control
+ * on the Back row, "Map" (or "List" while the map shows), in place of the "Show map" row.
+ */
+export function MapSurfaceButton() {
+  const { t } = useTranslation()
+  const surfaceSwitch = useSurfaceSwitch()
+
+  if (!surfaceSwitch || MAP_BUTTON !== 'header') return null
+  const label = t(surfaceSwitch.surface === 'map' ? 'common.map.list' : 'common.map.map')
+
+  return (
+    <Button aria-label={label} size="sm" variant="ghost" onClick={surfaceSwitch.toggle}>
+      {surfaceSwitch.surface === 'map' ? <List size={18} /> : <MapIcon size={18} />}
+      <span className={HEADER_WORD}>{label}</span>
     </Button>
   )
 }

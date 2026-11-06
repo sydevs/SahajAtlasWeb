@@ -39,6 +39,7 @@ import {
   DrawerTitle,
   ExpandSheetButton,
   FilterButton,
+  MapSurfaceButton,
   useDrawerControl,
   useFrameOnTop,
 } from '@/views/shared'
@@ -133,7 +134,14 @@ export function CountriesView() {
         <div className="min-w-0 flex-1">
           <DrawerTitle title={t('common.chrome.widget_label')} />
         </div>
-        {collapsed ? <ExpandSheetButton /> : <FilterButton iconOnly isLast />}
+        {collapsed ? (
+          <ExpandSheetButton />
+        ) : (
+          <div className="flex items-center gap-1">
+            <MapSurfaceButton />
+            <FilterButton iconOnly isLast />
+          </div>
+        )}
       </DrawerHeader>
       <DrawerBody>
         <NearMeRow />

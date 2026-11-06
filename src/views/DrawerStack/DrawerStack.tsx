@@ -16,6 +16,7 @@ import { useLocation, useNavigate } from 'react-router'
 import { useQuery } from '@tanstack/react-query'
 import { AnimatePresence } from 'framer-motion'
 import { MapIcon, Plus } from 'lucide-react'
+import clsx from 'clsx'
 
 import api, { regionsQuery } from '@/config/api'
 import { GEOJSON_STALE_TIME } from '@/config/query-client'
@@ -37,6 +38,7 @@ import {
   useIsWide,
 } from '@/config/responsive'
 import { useSurfaceSwitch, useWidgetMode } from '@/config/mode'
+import { MAP_BUTTON } from '@/config/review-options'
 import { useClassSheet, useFilterPanelState, useMapTap } from '@/config/store'
 import { frameElement, overlayContainer } from '@/lib/overlay'
 import {
@@ -236,6 +238,29 @@ const PANEL_BORDER_PX = 2
 // these are constants rather than a measurement (`docs/rules/mapbox.md`).
 const MAPBOX_WORDMARK_TOP_PX = 29
 const ADD_CLASS_GAP_PX = 16 // from the map's right edge, and above the wordmark
+// PROTOTYPE `?mapButton=float`: the room the panel's lists leave under their last row, so the
+// floating "Map" pill never covers it (the body's spacer reads it; `atoms/Drawer`).
+const PILL_ROOM = { '--sy-pill-room': '72px' } as CSSProperties
+
+/** PROTOTYPE `?mapButton=float`: a dark "Map" pill floating over the foot of the open panel. */
+function MapPill({ className, onClick }: { className: string; onClick: () => void }) {
+  const { t } = useLocale()
+
+  return (
+    <button
+      className={clsx(
+        'z-50 flex h-11 items-center gap-2 rounded-full bg-gray-12 px-5 text-sm font-semibold text-gray-1 shadow-lg outline-none focus-visible:ring-2 focus-visible:ring-focus focus-visible:ring-offset-2',
+        className,
+      )}
+      type="button"
+      onClick={onClick}
+    >
+      <MapIcon aria-hidden size={18} />
+      {t('common.map.map')}
+    </button>
+  )
+}
+
 // What a tap on the sheet leaves alone: anything that acts on its own when tapped.
 const INTERACTIVE =
   'a, button, input, select, textarea, label, summary, [contenteditable="true"], [role="button"], [role="link"], [role="menuitem"], [role="option"], [role="combobox"], [role="tab"], [role="radio"], [role="checkbox"], [role="slider"]'
@@ -353,6 +378,10 @@ export function DrawerStack() {
   const navigate = useNavigate()
   const { hasMap, standalone } = useWidgetMode()
   const surfaceSwitch = useSurfaceSwitch()
+  // PROTOTYPE `?mapButton=float` (`config/review-options`): a "Map" pill floats at the foot of
+  // the open panel, in place of the "Show map" row. Over the list-first view it opens the map; on
+  // the map's own sheet it shows only when the sheet is fully open, and folds it down to the map.
+  const pillPlacement = surfaceSwitch && MAP_BUTTON === 'float'
   // `t` comes off `useLocale`, not a second `useTranslation` call: the hook already
   // holds one for the default (`common`) namespace, and hands it back for exactly this
   // reason. A second call would double this component's i18next subscription, and
@@ -1027,6 +1056,11 @@ export function DrawerStack() {
   }, [panelFits])
 
   const sheetDismissible = hasMap || parentPaths.length > 0
+  // PROTOTYPE `?mapButton=float`: over the list-first view the pill always shows and opens the
+  // map; over the map, only at the full snap, where it folds the sheet down to the map.
+  const mapPill = Boolean(pillPlacement) && (!hasMap || snap === fullSnap)
+  const onMapPill = () => (hasMap ? setSnap(PEEK_SNAP) : surfaceSwitch?.toggle())
+
   const sheet = (
     <DrawerContent
       aria-label={t('countries.title')}
@@ -1066,7 +1100,7 @@ export function DrawerStack() {
     >
       {/* `view=list`: one control in one place, whichever surface is showing. Above the views,
           because a bottom sheet's foot sits below the screen at its lower snaps. */}
-      {surfaceSwitch && (
+      {surfaceSwitch && MAP_BUTTON === 'row' && (
         <div className="mx-auto w-full max-w-[var(--sy-content-max,512px)] shrink-0 px-gutter">
           <button
             className="-ms-2 flex h-11 items-center gap-2 rounded-lg px-2 text-sm font-medium text-primary outline-none focus-visible:ring-2 focus-visible:ring-primary"
@@ -1083,7 +1117,15 @@ export function DrawerStack() {
         aria-label={t('common.chrome.widget_label')}
         className="relative min-h-0 flex-1"
         role="region"
+        style={mapPill ? PILL_ROOM : undefined}
       >
+        {mapPill && hasMap && (
+          // Pinned to the screen's foot, not the sheet's, the way the sticky footer is.
+          <MapPill
+            className="fixed bottom-[calc(var(--sy-sheet-top,0px)+16px)] left-1/2 -translate-x-1/2"
+            onClick={onMapPill}
+          />
+        )}
         <AnimatePresence>
           {/* The filter drawer keeps one identity across its routes. Picking a place moves it
               from `/filters` to `/search/filters`, and that must not crossfade the form. */}
@@ -1157,7 +1199,17 @@ export function DrawerStack() {
             className="flex w-full flex-col overflow-clip bg-background"
             style={{ height: standalone ? '100dvh' : '100%' }}
           >
-            <div ref={setContainer} className="relative min-h-0 w-full flex-1 overflow-clip">
+            <div
+              ref={setContainer}
+              className="relative min-h-0 w-full flex-1 overflow-clip"
+              style={mapPill ? PILL_ROOM : undefined}
+            >
+              {mapPill && (
+                <MapPill
+                  className="absolute bottom-4 left-1/2 -translate-x-1/2"
+                  onClick={onMapPill}
+                />
+              )}
               <Drawer
                 key={direction}
                 open

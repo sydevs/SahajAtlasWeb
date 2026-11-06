@@ -57,7 +57,13 @@ import {
   weekFrom,
 } from '@/lib/shape'
 import { BackButton } from '@/views/nav'
-import { DrawerTitle, FilterButton, SeeListButton, useFrameOnTop } from '@/views/shared'
+import {
+  DrawerTitle,
+  FilterButton,
+  MapSurfaceButton,
+  SeeListButton,
+  useFrameOnTop,
+} from '@/views/shared'
 import { DrawerErrorBody, DrawerLoadingBody } from '@/views/fallbacks'
 
 // Schedule-X's own strings, in the words a visitor reads here. These replace its whole English
@@ -313,6 +319,7 @@ function CalendarControls({ controls }: { controls: CalendarControlsPlugin }) {
         <div className="flex shrink-0 items-center gap-2">
           {isList && <ShareDates end={window.end} label={windowDates} start={window.start} />}
           <SeeListButton />
+          <MapSurfaceButton />
           <FilterButton iconOnly isLast counted={chosenCalendarFilters(filters, isList)} />
         </div>
       </div>

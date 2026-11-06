@@ -18,7 +18,13 @@ import { useSearchCountry } from '@/hooks/use-search-country'
 import { useMapController } from '@/hooks/use-map-controller'
 import { listResetKey, parseBounds, parseCenter, searchFrame, splitResults } from '@/lib/shape'
 import { BackButton } from '@/views/nav'
-import { ExpandSheetButton, FilterButton, SearchField, useFrameOnTop } from '@/views/shared'
+import {
+  ExpandSheetButton,
+  FilterButton,
+  MapSurfaceButton,
+  SearchField,
+  useFrameOnTop,
+} from '@/views/shared'
 import { ErrorPanel } from '@/views/fallbacks'
 
 // The search view, at route `/search`. It ranks events by distance from the geocoded place
@@ -77,6 +83,7 @@ export function SearchView() {
         <div className="[container-type:inline-size] flex min-w-0 flex-1 items-center gap-2 [--sy-results-w:calc(100cqi_-_2px)]">
           <SearchField />
           <ExpandSheetButton />
+          <MapSurfaceButton />
         </div>
       </DrawerHeader>
       {/* Outside the body, so a long list scrolls UNDER the controls rather than

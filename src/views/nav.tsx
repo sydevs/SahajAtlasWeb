@@ -25,6 +25,7 @@ import {
   ExpandSheetButton,
   HEADER_CONTROL,
   DrawerTitle,
+  MapSurfaceButton,
   useClimbInputs,
   useDrawerControl,
 } from '@/views/shared'
@@ -172,10 +173,17 @@ export function NavRow({ children }: { children?: ReactNode }) {
 
   return (
     // The bottom margin keeps Back from reading as part of the title it sits above.
-    <div className="mb-2 flex min-h-8 items-center justify-between gap-2">
+    <div className="@container mb-2 flex min-h-8 items-center justify-between gap-2">
       <BackButton />
-      <div className="ms-auto flex shrink-0 items-center gap-2 empty:hidden">
-        {collapsed ? <ExpandSheetButton label={t('common.chrome.show_more')} /> : children}
+      <div className="ms-auto flex shrink-0 items-center gap-1 empty:hidden">
+        {collapsed ? (
+          <ExpandSheetButton label={t('common.chrome.show_more')} />
+        ) : (
+          <>
+            <MapSurfaceButton />
+            {children}
+          </>
+        )}
       </div>
     </div>
   )

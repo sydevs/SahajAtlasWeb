@@ -62,7 +62,9 @@ describe('DrawerFooter — sticky', () => {
 describe('DrawerBody', () => {
   // Zero where no sticky footer publishes a height, so every other body is unchanged.
   it('ends its content at the published footer height', () => {
-    expect(render(<DrawerBody>content</DrawerBody>)).toContain('after:h-[var(--sy-footer-h,0px)]')
+    expect(render(<DrawerBody>content</DrawerBody>)).toContain(
+      'after:h-[calc(var(--sy-footer-h,0px)+var(--sy-pill-room,0px))]',
+    )
   })
 
   // FilterView, ShareView, RegistrationView and CalendarView all pass `p-4`, which
@@ -71,7 +73,7 @@ describe('DrawerBody', () => {
   it('keeps the clearance a caller shorthand cannot merge away', () => {
     const markup = render(<DrawerBody className="p-4">content</DrawerBody>)
 
-    expect(markup).toContain('after:h-[var(--sy-footer-h,0px)]')
+    expect(markup).toContain('after:h-[calc(var(--sy-footer-h,0px)+var(--sy-pill-room,0px))]')
     expect(markup).toContain('p-4')
   })
 })

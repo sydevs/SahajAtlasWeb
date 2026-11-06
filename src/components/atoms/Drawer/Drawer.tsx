@@ -62,7 +62,7 @@ const drawer = tv({
     // class, and the spacer adds to their padding instead of replacing it. It
     // is a pseudo-element so `[&>:last-child]` postures still find the real
     // last child (`CENTERED_BODY`).
-    body: "mx-auto min-h-0 w-full max-w-[var(--sy-content-max,512px)] flex-1 overflow-x-hidden overflow-y-auto overscroll-y-none after:block after:h-[var(--sy-footer-h,0px)] after:shrink-0 after:content-['']",
+    body: "mx-auto min-h-0 w-full max-w-[var(--sy-content-max,512px)] flex-1 overflow-x-hidden overflow-y-auto overscroll-y-none after:block after:h-[calc(var(--sy-footer-h,0px)+var(--sy-pill-room,0px))] after:shrink-0 after:content-['']",
     footer:
       'mx-auto mt-auto w-full max-w-[var(--sy-content-max,512px)] shrink-0 border-t border-gray-4',
     // This themes the vaul drag handle. Its vendored CSS hardcodes a light
