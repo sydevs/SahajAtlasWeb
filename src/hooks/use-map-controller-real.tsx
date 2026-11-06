@@ -133,8 +133,8 @@ export function RealMapControllerProvider({ children }: { children: ReactNode })
       left: MAP_MARGIN + (isWide ? DRAWER_W_PX : 0),
       right: MAP_MARGIN + (filterPanelUp ? FILTER_PANEL_PX : 0),
       top: MAP_MARGIN,
-      // A class's sheet, and the filters' (as tall as their content), are taller than the usual
-      // allowance, and the place they frame must show above them.
+      // A class's sheet, a place's list and the filters (as tall as their content) are taller than
+      // the usual allowance, and the place they frame must show above them.
       bottom:
         MAP_MARGIN +
         (isWide ? 0 : sheetInset(sheetBottom ?? sheet, window.innerHeight, MIN_STRIP_PX)),

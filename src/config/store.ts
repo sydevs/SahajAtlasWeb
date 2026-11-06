@@ -466,16 +466,16 @@ export const useListingDraft = create<ListingDraftState & ListingDraftAction>((s
 
 type ClassSheetState = {
   /**
-   * The height a class's or the filters' phone sheet opens at, or null when neither is on top
-   * on a phone (the camera then allows for the usual open sheet).
+   * The height a class's, a place's list's or the filters' phone sheet opens at, or null when none
+   * is on top on a phone (the camera then allows for the usual open sheet).
    */
   bottom: number | null
   setBottom: (bottom: number | null) => void
 }
 
 /**
- * The drawer measures this and the map camera reads it, so a class's pin, or the place the
- * filters are scoped to, clears its sheet.
+ * The drawer measures this and the map camera reads it, so a class's pin, or the place a list or
+ * the filters are about, clears its sheet.
  * Neither side renders the other's context, and the drawer must not import the map's hooks.
  */
 export const useClassSheet = create<ClassSheetState>((set) => ({
@@ -487,16 +487,19 @@ type MapTapState = {
   /** How many taps have landed on open map (not on a pin or a cluster). */
   taps: number
   tap: () => void
-  /** How many times the map has opened a list it wants seen in full (a cluster that won't split). */
+  /**
+   * How many times the map has opened a page at its own height: a class's pin, or a cluster that
+   * won't split opening its list.
+   */
   opens: number
   open: () => void
 }
 
 /**
  * The map reports a tap on open map, and the drawer lowers its phone sheet to the peek, so the
- * map the visitor reached for comes into view (Anton, 6 Nov). It also asks for a list to open in
- * full, when a cluster that won't split opens one. The same seam as `useClassSheet`: neither
- * side renders the other's context.
+ * map the visitor reached for comes into view (Anton, 6 Nov). It also asks for the page it opens
+ * (a class, or the list of a cluster that won't split) to open at its own height. The same seam
+ * as `useClassSheet`: neither side renders the other's context.
  */
 export const useMapTap = create<MapTapState>((set) => ({
   taps: 0,

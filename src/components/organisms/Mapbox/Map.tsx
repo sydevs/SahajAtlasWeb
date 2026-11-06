@@ -526,6 +526,9 @@ export function Mapbox({ cooperative = false }: { cooperative?: boolean } = {}) 
           )
         })
       } else if (feature.layer && CLASS_LAYER_IDS.includes(feature.layer.id)) {
+        // A tapped class opens at its own height, even when it is the class already on screen
+        // with its sheet lowered: the same path is pushed again, so only this asks for it.
+        useMapTap.getState().open()
         navigate(safePath(feature.properties?.webPath) ?? `/${feature.properties?.id}`)
       }
     },

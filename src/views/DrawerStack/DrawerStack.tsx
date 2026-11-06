@@ -56,11 +56,11 @@ import {
   isSubmitEntry,
   parentOf,
   submitTitleKey,
-  opensTall,
   placeInStack,
   resolveStack,
 } from '@/lib/shape'
 import { wakesSheetLoop } from '@/views/DrawerStack/sheet-wake'
+import { openStop, sheetOpens } from '@/views/DrawerStack/sheet-open'
 import { ViewLayer } from '@/views/DrawerStack/ViewLayer'
 import { DrawerControlContext, FilterPanelAvailableContext, useClimbInputs } from '@/views/shared'
 import { useFitSnap } from '@/views/DrawerStack/use-fit-snap'
@@ -829,57 +829,16 @@ export function DrawerStack() {
     }
   }, [hasMap, direction])
 
-  // A few views open at the near-full snap on mobile (`opensTall`: the calendar, whose month grid
-  // AND list both need the height, and the registration form), and so do the filters, which were
-  // otherwise cut off mid-row with their footer out of reach. Every other view keeps its open snap.
-  // Keyed on the view KIND (not `wide`), so switching the calendar between
-  // month/week/list keeps it tall, rather than collapsing the list to the short snap.
-  // This runs only when navigating to or from the calendar, so it never fights a
-  // manual drag on a non-calendar view.
+  // Each view sets the sheet's height once, as it opens (`sheetOpens`, `openStop`): a class, its
+  // share panel, a place's list and the filters as tall as their content, up to the near-full stop
+  // (Anton, 6 Nov); the calendar, registration, online-only lists and results reached from the
+  // filters near full; anything else at its open stop. A later measure never re-snaps, which would
+  // drop a sheet the visitor dragged. Each class and each place opens anew, so the next one tapped
+  // opens at its own height, not at the height the last one was left at.
   //
-  // Results reached from the filters also land tall: the visitor just asked to see classes, and
-  // the short snap showed less than one whole class under the search box and the toolbar.
-  const lastKind = useRef(top?.kind)
-  // A class's measured height arrives after it opens. The ladder lookup above follows it, so
-  // a remeasure must not re-snap here, which would drop a sheet the visitor pulled tall.
-  const snappedFor = useRef<string | null>(null)
-
-  useEffect(() => {
-    const view = `${direction}:${top?.kind}:${framed}`
-
-    if (snappedFor.current === view) return
-    snappedFor.current = view
-
-    const from = lastKind.current
-
-    lastKind.current = top?.kind
-    if (direction !== 'bottom') return
-    // A host's box has its own ladder, and openSnapFor already knows which views fill it.
-    if (framed) {
-      setSnap(openSnap)
-
-      return
-    }
-
-    const tall =
-      opensTall(top?.kind) || (from === 'filters' && top?.kind === 'search') || onlineOnly
-
-    // The filters open as tall as their content, which at world level is a few rows: low on
-    // the screen, near the thumb, with no blank sheet above them. Many filters still reach
-    // the near-full snap, since the fit never goes past it. A class and its share panel open the
-    // same way: the whole panel at once, with no short first stop to drag up from (Anton, 6 Nov).
-    if (top?.kind === 'filters' || top?.kind === 'event' || top?.kind === 'share') {
-      setSnap(FIT_SNAP)
-    } else if (tall) setSnap(WIDE_SNAP)
-    else setSnap(top?.kind === 'search' && searchCenter ? SEARCH_SNAP : openSnap)
-  }, [direction, top?.kind, openSnap, framed, onlineOnly])
-
-  // A cluster that won't split opens its list (Map.tsx), and that list should be seen in full,
-  // not as a sliver under the map (Anton, 6 Nov), but no taller than its rows: a two-class venue
-  // opens as tall as its content, like a class (FIT_SNAP falls back to near-full for a long list).
-  // The request lands before the route changes, so it waits for the new page and applies after
-  // the per-view snap above, which would lower it. It waits on the history entry, not the path:
-  // the cluster of the place already on screen pushes the same path again.
+  // The map asks too (Map.tsx): a class's pin, or a cluster that won't split opening its list. The
+  // request lands before the route changes, so it waits for the next history entry, not the path:
+  // the pin or cluster of the page already on screen pushes the same path again.
   const mapOpens = useMapTap((s) => s.opens)
   const seenOpens = useRef(mapOpens)
   const openPending = useRef(false)
@@ -890,16 +849,44 @@ export function DrawerStack() {
     openPending.current = true
   }, [mapOpens])
 
-  useEffect(() => {
-    if (!openPending.current) return
-    openPending.current = false
-    if (direction === 'bottom') setSnap(framed ? fullSnap : FIT_SNAP)
-  }, [location.key, direction, fullSnap, framed])
+  const lastKind = useRef(top?.kind)
+  const snappedFor = useRef<string | null>(null)
 
-  // The camera keeps a class's pin clear of the sheet that opened over it. This is only for a
-  // class, its share panel and the filters: their sheets are taller than the usual open stop. The filters open as
-  // tall as their content (the near-full stop when unmeasured), so the place they are scoped to
-  // frames in the strip above them, not behind them (the camera caps it to keep a strip).
+  useEffect(() => {
+    const asked = openPending.current
+
+    openPending.current = false
+    const opening = sheetOpens(
+      snappedFor.current,
+      { direction, framed, kind: top?.kind, path: top?.path },
+      asked,
+    )
+
+    if (opening === null) return
+    snappedFor.current = opening
+
+    const from = lastKind.current
+
+    lastKind.current = top?.kind
+    if (direction !== 'bottom') return
+    const stop = openStop({
+      asked,
+      framed,
+      from,
+      kind: top?.kind,
+      onlineOnly,
+      searched: Boolean(searchCenter),
+    })
+
+    setSnap(
+      { fit: FIT_SNAP, tall: WIDE_SNAP, search: SEARCH_SNAP, open: openSnap, full: fullSnap }[stop],
+    )
+  }, [location.key, direction, top?.kind, top?.path, framed, openSnap, onlineOnly])
+
+  // The camera keeps a class's pin, or the place a list or the filters are about, clear of the sheet
+  // that opened over it, since these open taller than the usual open stop. The filters open as tall
+  // as their content (the near-full stop when unmeasured), so the place they are scoped to frames
+  // in the strip above them, not behind them (the camera caps it to keep a strip).
   const setSheetBottom = useClassSheet((s) => s.setBottom)
   const filtersSheetPx =
     direction === 'bottom' && hasMap && top?.kind === 'filters' && !filterOverlay && !framed
@@ -909,13 +896,14 @@ export function DrawerStack() {
   useEffect(() => {
     // A class keeps its pin clear of the fitted sheet; a class too long to fit opens near full,
     // where the pin is hidden anyway, so it frames for the key-facts stop one drag below. Its
-    // share panel keeps the same pin clear of its own fitted height.
+    // share panel keeps the same pin clear of its own fitted height, and a place's list keeps the
+    // place clear of its own; a list too long to fit frames for the usual open stop below.
     const bottom = direction === 'bottom'
 
     setSheetBottom(
       bottom && top?.kind === 'event'
         ? (fitPx ?? eventOpenPx)
-        : bottom && top?.kind === 'share'
+        : bottom && (top?.kind === 'share' || top?.kind === 'region')
           ? fitPx
           : filtersSheetPx,
     )
