@@ -1,4 +1,4 @@
-import { type CSSProperties, Suspense, useMemo, useRef, useState } from 'react'
+import { type CSSProperties, Suspense, useEffect, useMemo, useRef, useState } from 'react'
 import { useQuery, useSuspenseQuery } from '@tanstack/react-query'
 import { useSearchParams } from 'react-router'
 import { useTranslation } from 'react-i18next'
@@ -28,6 +28,8 @@ import { useEventFilters, useSetFilters } from '@/hooks/use-filters'
 import { useLocale } from '@/hooks/use-locale'
 import { useMapController } from '@/hooks/use-map-controller'
 import { useWebShare } from '@/hooks/use-web-share'
+import { useAreaNames } from '@/hooks/use-area-names'
+import { type AreaNames, areaKey, areaLabel } from '@/lib/area-names'
 import {
   formatTimeRange,
   regionalLocale,
@@ -39,6 +41,7 @@ import {
   CALENDAR_VIEW_LIST,
   CALENDAR_VIEW_MONTH,
   CALENDAR_VIEW_WEEK,
+  type CalendarEntry,
   type EventFilters,
   calendarShareRoute,
   calendarWindow,
@@ -139,6 +142,23 @@ const calendarRenderers = (locale: string): CalendarRenderers => {
     },
   }
 }
+
+// An in-person entry goes by its area's name when one is known (`areaLabel`), in the row, the
+// desktop cell and the list's title alike.
+const withAreaNames = (
+  entries: CalendarEntry[],
+  names: Map<string, AreaNames>,
+  heading: string | undefined,
+): CalendarEntry[] =>
+  names.size === 0
+    ? entries
+    : entries.map((entry) => {
+        const label = entry.point && areaLabel(names.get(areaKey(entry.point)), heading)
+
+        return label
+          ? { ...entry, detail: label, place: label, title: `${entry.name}\n${label}` }
+          : entry
+      })
 
 type CalendarControlsPlugin = ReturnType<typeof createCalendarControlsPlugin>
 
@@ -467,6 +487,22 @@ function CalendarGrid({
     () => eventsToCalendarEntries(source, filters, { onlineLabel }),
     [source, filters, onlineLabel],
   )
+
+  // PROTOTYPE (Anton, 6 Nov): inside a city each class goes by its part of town or its own town,
+  // "Balham" or "Croydon", not "London" on every row. The names come from Mapbox, looked up in the
+  // browser (`useAreaNames`), and replace the label once they arrive; the calendar shows today's
+  // label until then, and keeps it for any spot Mapbox can't name.
+  const { data: regions } = useQuery(regionsQuery())
+  const heading = regions?.find((node) => node.slug === filters.region)?.name ?? undefined
+  const points = useMemo(
+    () => events.flatMap((entry) => (entry.point ? [entry.point] : [])),
+    [events],
+  )
+  const areaNames = useAreaNames(points, locale)
+  const named = useMemo(
+    () => withAreaNames(events, areaNames, heading),
+    [events, areaNames, heading],
+  )
   // Frame the week/day grid to the selected time-of-day periods, or (unfiltered) to the
   // events themselves — 1 h either side of the earliest/latest occurrence.
   const dayBoundaries = useMemo(
@@ -490,7 +526,7 @@ function CalendarGrid({
       // hot-swappable), remounting this grid with it. Should that stop, so does this.
       defaultView: resolveCalendarView(position.view, isWide).view,
       selectedDate: position.date ?? undefined,
-      events,
+      events: named,
       // Online programs render in the secondary colour (see CALENDARS + `calendarId`).
       calendars: CALENDARS,
       // Undefined leaves Schedule-X's default grid (whole day).
@@ -526,6 +562,19 @@ function CalendarGrid({
   )
 
   const renderers = useMemo(() => calendarRenderers(formatLocale), [formatLocale])
+
+  // The app took its entries once, at creation. Names that land later are handed over in place.
+  const shown = useRef(named)
+
+  useEffect(() => {
+    if (!calendar || named === shown.current) return
+    shown.current = named
+    try {
+      calendar.events.set(named)
+    } catch {
+      // Not rendered yet: it mounts with the names it was created with.
+    }
+  }, [calendar, named])
   const focused = DateTime.fromISO(useCalendarPosition((s) => s.date) ?? todayISO())
 
   // The phone Month list names the day it shows, under a grid of a whole month where only an

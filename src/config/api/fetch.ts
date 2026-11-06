@@ -650,6 +650,7 @@ const getCalendarEvents = async (
     // These supply the place shown under the class name. See `eventsToCalendarEntries`.
     regionName: feature.properties.region?.name ?? null,
     locality: feature.properties.address?.city ?? null,
+    point: feature.geometry ? (feature.geometry.coordinates as [number, number]) : null,
   }))
 }
 

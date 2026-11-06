@@ -31,11 +31,10 @@ export type CalendarSourceEvent = {
   regionName?: string | null
   /** The event's locality (address city) — where it is, shown under the class name. */
   locality?: string | null
+  /** Where an in-person class is on the map, `[longitude, latitude]`, for its area's name. */
+  point?: [number, number] | null
 }
 
-// Where a class is, as a visitor would say it: the address city first, because a region can be
-// one venue ("Postgasse 13, Vienna") and repeating that next to the class name adds nothing. A
-// class with no address (most online ones) falls back to its region.
 // Joining words in a town's name that stay lower case once it is recased: Stratford-upon-Avon.
 const NAME_JOINERS = new Set(['upon', 'on', 'under', 'in', 'by', 'the', 'and', 'de', 'la', 'le'])
 
@@ -55,6 +54,9 @@ export const tidyPlaceCase = (name: string): string =>
             : sep + word[0].toUpperCase() + word.slice(1),
         )
 
+// Where a class is, as a visitor would say it: the address city first, because a region can be
+// one venue ("Postgasse 13, Vienna") and repeating that next to the class name adds nothing. A
+// class with no address (most online ones) falls back to its region.
 const placeOf = (event: CalendarSourceEvent): string | undefined => {
   const place = event.locality?.trim() || event.regionName?.trim()
 
@@ -96,6 +98,8 @@ export type CalendarEntry = {
   location?: string
   /** The zone `start` and `end` are in: the class's own, or the viewer's for an online class. */
   zone: string
+  /** An in-person class's spot, `[longitude, latitude]`, which names its area (`area-names`). */
+  point?: [number, number]
 }
 
 // Schedule-X reads a plain wall-clock string. This hands it the occurrence
@@ -172,6 +176,7 @@ export const eventsToCalendarEntries = (
         calendarId,
         location,
         zone: displayZone,
+        ...(!online && event.point ? { point: event.point } : {}),
       })
     }
   }
