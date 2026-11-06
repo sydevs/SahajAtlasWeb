@@ -130,8 +130,13 @@ export function InlineEmbedView({ mode, framed, autoOpen, children }: InlineEmbe
   const lastKey = useRef(location.key)
 
   useEffect(() => {
-    if (!expanded || lastKey.current === location.key) return
+    if (lastKey.current === location.key) return
+    // Kept in step while closed too. A router that updates its location in a transition (the
+    // standalone page inside a frame) renders a reopen once with the old location first; a stale
+    // key would spend `opening` on that render and count the open's own entry a second time, so
+    // Close went back one entry too far, off the card.
     lastKey.current = location.key
+    if (!expanded) return
     if (opening.current) {
       opening.current = false
 
