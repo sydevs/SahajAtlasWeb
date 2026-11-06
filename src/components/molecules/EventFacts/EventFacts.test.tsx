@@ -22,12 +22,13 @@ const withRoom = { ...mockEvent, address: { ...mockEvent.address, room: ROOM } }
 const roomLine = `event.display.room:${ROOM}`
 
 describe('EventFacts — the room line (#316)', () => {
-  it('shows the room on the panel, on its own line above the street', () => {
+  it('leads with the room on the panel, with the street in the muted line under it', () => {
     const html = renderToStaticMarkup(<EventFacts event={withRoom} />)
     const street = mockEvent.address?.street ?? ''
 
     expect(street).not.toBe('')
-    expect(html).toContain(`<div>${roomLine}</div><div>${street}`)
+    expect(html).toContain(`<div>${roomLine}</div><div class=`)
+    expect(html).toMatch(new RegExp(`<div class="[^"]*text-gray-11[^"]*">${street}`))
   })
 
   it('hangs the pin from the first line when the room stacks it', () => {
@@ -62,5 +63,45 @@ describe('EventFacts — the room line (#316)', () => {
     ],
   ])('adds no line for %s', (_, event) => {
     expect(renderToStaticMarkup(<EventFacts event={event} />)).not.toContain('event.display.room')
+  })
+})
+
+// Anton (round 2): the address at the top made the class page heavy. The page shows the time at
+// the top and the room and street under the actions, as two halves of this one block.
+describe('EventFacts — split into when and where for the class page', () => {
+  const street = mockEvent.address?.street ?? ''
+
+  it('keeps the address out of the when half', () => {
+    const html = renderToStaticMarkup(<EventFacts event={withRoom} part="when" />)
+
+    expect(html).not.toContain(street)
+    expect(html).not.toContain('event.display.room')
+  })
+
+  it('shows only the room and street in the where half', () => {
+    const html = renderToStaticMarkup(<EventFacts event={withRoom} part="where" />)
+    const both = renderToStaticMarkup(<EventFacts event={withRoom} />)
+
+    expect(html).toContain(roomLine)
+    expect(html).toContain(street)
+    // One fact, not two: the calendar fact stays with the when half.
+    expect(html.match(/<svg/g)).toHaveLength(1)
+    expect(both.match(/<svg/g)).toHaveLength(2)
+  })
+
+  it('sizes the phone sheet to the when half only', () => {
+    expect(renderToStaticMarkup(<EventFacts event={mockEvent} part="when" />)).toContain(
+      'data-sheet-fold',
+    )
+    expect(renderToStaticMarkup(<EventFacts event={mockEvent} part="where" />)).not.toContain(
+      'data-sheet-fold',
+    )
+  })
+
+  it('keeps an online class whole in the when half, with nothing under the actions', () => {
+    const when = renderToStaticMarkup(<EventFacts event={mockEventSlimOnline} part="when" />)
+
+    expect(when).toContain('event.display.online')
+    expect(renderToStaticMarkup(<EventFacts event={mockEventSlimOnline} part="where" />)).toBe('')
   })
 })
