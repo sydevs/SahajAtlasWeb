@@ -58,4 +58,13 @@ describe('GeolocationPrompt', () => {
     // This aligns the horizontal padding with the drawer header (px-4).
     expect(html).toContain('mx-4')
   })
+
+  it('offers one thing only: no second link out to a country website', () => {
+    const html = renderToStaticMarkup(
+      <GeolocationPrompt city="Prague" onAccept={noop} onClose={noop} />,
+    )
+
+    expect(html).not.toContain('<a ')
+    expect(html).not.toContain('search.country_site.cta')
+  })
 })

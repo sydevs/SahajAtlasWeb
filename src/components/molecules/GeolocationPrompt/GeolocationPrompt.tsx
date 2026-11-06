@@ -2,7 +2,6 @@ import { useTranslation } from 'react-i18next'
 import { ChevronRight, MapPin } from 'lucide-react'
 
 import { Alert } from '@/components/atoms/Alert'
-import { Link } from '@/components/atoms/Link'
 
 export type GeolocationPromptProps = {
   /** The IP-guessed city, interpolated into the prompt's question. */
@@ -11,8 +10,6 @@ export type GeolocationPromptProps = {
   onAccept: () => void
   /** Dismiss the suggestion for the rest of the session. */
   onClose: () => void
-  /** The guessed country's own website, offered as a second way to go local. */
-  site?: { href: string; country: string }
 }
 
 /**
@@ -23,9 +20,10 @@ export type GeolocationPromptProps = {
  * assertive alert, since it is a passive guess. It is framed as a *guess*:
  * "Classes near %{city}", never "your location". This is
  * presentational only. The IP lookup, session-scoped dismissal, and
- * navigation live in `GeolocationSuggestion` (src/views/shared.tsx).
+ * navigation live in `GeolocationSuggestion` (src/views/shared.tsx). It carries no second link:
+ * a country-website line under it was too small to tap on a phone, and Anton didn't want it.
  */
-export function GeolocationPrompt({ city, onAccept, onClose, site }: GeolocationPromptProps) {
+export function GeolocationPrompt({ city, onAccept, onClose }: GeolocationPromptProps) {
   const { t } = useTranslation()
 
   // Inset by the panel's 16px gutter so the banner lines up with the header
@@ -37,14 +35,6 @@ export function GeolocationPrompt({ city, onAccept, onClose, site }: Geolocation
       className="mx-4 mb-2 gap-2.5 rounded-lg ps-3 pe-1"
       closeLabel={t('search.nearby_prompt.dismiss')}
       color="secondary"
-      description={
-        site && (
-          // Quiet on purpose. The row above is what the notice is for; this one leaves the page.
-          <Link isExternal className="text-gray-11 hover:underline" href={site.href}>
-            {t('search.country_site.cta', { country: site.country })}
-          </Link>
-        )
-      }
       icon={<MapPin size={18} />}
       role="status"
       size="sm"
