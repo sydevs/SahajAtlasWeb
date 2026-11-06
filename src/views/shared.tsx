@@ -224,6 +224,15 @@ export function FilterButton({
   const setPanelOpen = useFilterPanelState((s) => s.setOpen)
   const open = () =>
     panelAvailable ? setPanelOpen(!panelOpen) : navigate({ pathname: to, search: location.search })
+  // Closing the side panel sends the filters back to this icon, so it ripples twice there and
+  // the visitor sees where they went (Anton, 6 Nov). Not on load: only an open-to-closed change.
+  const wasOpen = useRef(panelOpen)
+  const [ripple, setRipple] = useState(0)
+
+  useEffect(() => {
+    if (panelAvailable === 'panel' && wasOpen.current && !panelOpen) setRipple((n) => n + 1)
+    wasOpen.current = panelOpen
+  }, [panelOpen, panelAvailable])
 
   if (panelAvailable === 'chips' || !embed.config.filters) return null
 
@@ -235,6 +244,14 @@ export function FilterButton({
         className={clsx('relative', isLast && HEADER_LAST_CONTROL)}
         onClick={open}
       >
+        {ripple > 0 && (
+          <span
+            key={ripple}
+            aria-hidden
+            className="pointer-events-none absolute inset-0 rounded-full bg-primary-9/40 [animation-iteration-count:2] motion-safe:animate-ping motion-reduce:hidden"
+            onAnimationEnd={() => setRipple(0)}
+          />
+        )}
         <Funnel size={20} />
         {count > 0 && (
           <span
