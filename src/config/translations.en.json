@@ -131,8 +131,6 @@
     },
     "display": {
       "about": "About this class",
-      "check_first": "Travelling far? Check with the host first",
-      "check_first_call": "Call the host before travelling far",
       "chip_ended": "Ended",
       "chip_full": "Full",
       "chip_starts": "Starts %{date}",

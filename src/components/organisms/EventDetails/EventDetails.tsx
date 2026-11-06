@@ -16,7 +16,6 @@ import { ImageCarousel } from '@/components/molecules/ImageCarousel'
 import { EventFacts } from '@/components/molecules/EventFacts'
 import { WhatToExpect } from '@/components/molecules/WhatToExpect'
 import { Link } from '@/components/atoms/Link'
-import { useCoarsePointer } from '@/config/responsive'
 import { useEventDisplay } from '@/hooks/use-event-display'
 import { isOnline, isUnverified, lexicalToHtml } from '@/lib/shape'
 import { Event } from '@/types'
@@ -143,7 +142,6 @@ export function EventDetails({
   const { t } = useTranslation()
   const { display } = useEventDisplay(event)
   const ended = display.status === 'ended'
-  const canDial = useCoarsePointer()
 
   const descriptionHtml = useMemo(() => {
     const html = lexicalToHtml(event.description)
@@ -216,21 +214,6 @@ export function EventDetails({
           <Link className="underline" href={`mailto:${event.contactEmail}`}>
             {event.contactEmail}
           </Link>
-        </p>
-      )}
-
-      {/* People have turned up to find nobody there. Worth one quiet line, only when there
-          is a host to ask, and a link only where a `tel:` reaches anything. */}
-      {display.next && event.contactPhone && (
-        <p className="text-sm text-gray-11">
-          {canDial ? (
-            // A lone line of text to tap, so it gets the same 44px area as the buttons.
-            <Link className="touch-target relative underline" href={`tel:${event.contactPhone}`}>
-              {t('event.display.check_first_call')}
-            </Link>
-          ) : (
-            t('event.display.check_first')
-          )}
         </p>
       )}
 
