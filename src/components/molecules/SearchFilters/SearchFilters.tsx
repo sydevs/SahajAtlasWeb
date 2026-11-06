@@ -4,7 +4,7 @@ import type { FilterFacets } from '@/hooks/use-filter-facets'
 import { type ReactNode, useMemo, useState } from 'react'
 import { Info } from 'luxon'
 import { useTranslation } from 'react-i18next'
-import { ChevronDown, ChevronRight } from 'lucide-react'
+import { ChevronDown, ChevronRight, Sun, Sunrise, Sunset } from 'lucide-react'
 import clsx from 'clsx'
 
 import { Checkbox } from '@/components/atoms/Checkbox'
@@ -33,6 +33,9 @@ import {
 // `|| 'any'` below maps that to.
 const FORMAT_OPTIONS: EventFormat[] = ['offline', 'online']
 const CADENCE_OPTIONS: EventCadence[] = ['DAILY', 'WEEKLY', 'MONTHLY', 'once']
+
+// Anton liked these on the time options (6 Nov): they tell the three apart at a glance.
+const TIME_ICONS = { morning: Sunrise, afternoon: Sun, evening: Sunset } as const
 
 // How many languages still read better as one tap each than as a dropdown.
 const INLINE_LANGUAGES = 4
@@ -138,28 +141,34 @@ export function DayFilter({ value, patch, facets, className }: FilterControlProp
   )
 }
 
+/**
+ * Three times of day, stacked: each a full-width row with its icon, name and count, so the long
+ * names never squeeze in the narrow desktop panel.
+ */
 export function TimeFilter({ value, patch, facets, className }: FilterControlProps) {
   const { t } = useTranslation()
 
   return (
     <ToggleGroup
       aria-label={t('filters.time.label')}
-      className={clsx('grid grid-cols-2 gap-1', className)}
+      className={clsx('flex flex-col items-stretch gap-1', className)}
       type="multiple"
       value={value.timeOfDay}
       onValueChange={(next) => patch({ timeOfDay: next as TimePeriod[] })}
     >
       {TIME_PERIODS.map((period) => {
+        const Icon = TIME_ICONS[period]
         const count = facets?.counts.time[period]
 
         return (
           <ToggleGroupItem
             key={period}
-            className="h-11 justify-between gap-2 px-3"
+            className="h-11 w-full justify-start gap-2.5 px-3"
             disabled={count === 0 && !value.timeOfDay.includes(period)}
             value={period}
           >
-            {t(`filters.time.${period}`)}
+            <Icon aria-hidden className="shrink-0" size={18} />
+            <span className="flex-1 text-start">{t(`filters.time.${period}`)}</span>
             <OptionCount count={count} />
           </ToggleGroupItem>
         )

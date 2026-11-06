@@ -36,7 +36,7 @@ const scopeCounts = {
   total: 10,
   format: { offline: 10, online: 0 },
   days: { 1: 10, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0, 7: 0 },
-  time: { morning: 4, afternoon: 0, evening: 6, night: 0 },
+  time: { morning: 4, afternoon: 0, evening: 6 },
   cadence: { DAILY: 0, WEEKLY: 10, MONTHLY: 0, once: 0 },
   languages: [{ code: 'en', count: 10 }],
 }

@@ -30,6 +30,8 @@ import {
   Settings,
   Share,
   Sun,
+  Sunrise,
+  Sunset,
   X,
 } from 'lucide-react'
 
@@ -84,6 +86,8 @@ const ICONS = [
   { name: 'Settings', Icon: Settings },
   { name: 'Share', Icon: Share },
   { name: 'Sun', Icon: Sun },
+  { name: 'Sunrise', Icon: Sunrise },
+  { name: 'Sunset', Icon: Sunset },
   { name: 'X', Icon: X },
 ] as const
 
