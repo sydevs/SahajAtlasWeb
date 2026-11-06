@@ -52,7 +52,15 @@ export type PlaceStepProps = {
   notice?: ReactNode
   /** A small map under the picked address, where the live one can't be seen. */
   showMap?: boolean
+  /**
+   * Whether the Mapbox place search may load. Off in a map-less embed, which promises its host no
+   * Mapbox request (`docs/embedding.md`), so the place is typed in instead.
+   */
+  search?: boolean
 }
+
+/** A place the search found, rather than one typed in by hand. */
+const found = (place: PickedPlace | null) => Boolean(place && !place.manual)
 
 /** Step 1: in person or online, and where. */
 export function PlaceStep({
@@ -65,13 +73,17 @@ export function PlaceStep({
   onEdit,
   notice,
   showMap = true,
+  search = true,
 }: PlaceStepProps) {
   const { t } = useTranslation()
   const offline = draft.eventType === 'offline'
   // An address the geocoder can't find is typed in by hand: it has no map point, and the
-  // coordinator places it. A draft reopened with such an address opens back on the fields.
-  const [manual, setManual] = useState(Boolean(draft.address?.manual))
+  // admins place it. A draft reopened with such an address opens back on the fields.
+  const [manualAddress, setManualAddress] = useState(Boolean(draft.address?.manual))
   const [manualCity, setManualCity] = useState(Boolean(draft.city?.manual))
+  // With no search, a place is typed in — unless the class already has one, which keeps its card.
+  const typeAddress = manualAddress || (!search && !found(draft.address))
+  const typeCity = manualCity || (!search && !found(draft.city))
 
   return (
     <div className="flex flex-col gap-5">
@@ -101,7 +113,7 @@ export function PlaceStep({
         />
       </div>
 
-      {offline && manual ? (
+      {offline && typeAddress ? (
         <>
           <ManualAddress
             country={country}
@@ -109,14 +121,16 @@ export function PlaceStep({
             error={errors.address}
             onChange={onChange}
           />
-          <TextButton
-            onClick={() => {
-              setManual(false)
-              onChange({ address: null })
-            }}
-          >
-            {t('submit.where.manual_back')}
-          </TextButton>
+          {search && (
+            <TextButton
+              onClick={() => {
+                setManualAddress(false)
+                onChange({ address: null })
+              }}
+            >
+              {t('submit.where.manual_back')}
+            </TextButton>
+          )}
           <VenueFields draft={draft} onChange={onChange} />
         </>
       ) : offline ? (
@@ -127,20 +141,22 @@ export function PlaceStep({
             label={t('submit.where.venue_label')}
             place={draft.address}
             search={
-              <PlaceSearch
-                country={country}
-                label={t('submit.where.address_placeholder')}
-                proximity={proximity}
-                types="address"
-                onEdit={onEdit('address')}
-                onSelect={onPick('address')}
-              />
+              search && (
+                <PlaceSearch
+                  country={country}
+                  label={t('submit.where.address_placeholder')}
+                  proximity={proximity}
+                  types="address"
+                  onEdit={onEdit('address')}
+                  onSelect={onPick('address')}
+                />
+              )
             }
             showMap={showMap}
             onClear={() => onChange({ address: null })}
           />
           {!draft.address && (
-            <TextButton onClick={() => setManual(true)}>
+            <TextButton onClick={() => setManualAddress(true)}>
               {t('submit.where.manual_toggle')}
             </TextButton>
           )}
@@ -162,17 +178,19 @@ export function PlaceStep({
             value={draft.onlineUrl}
             onChange={(event) => onChange({ onlineUrl: event.target.value })}
           />
-          {manualCity ? (
+          {typeCity ? (
             <>
               <ManualCity country={country} draft={draft} error={errors.city} onChange={onChange} />
-              <TextButton
-                onClick={() => {
-                  setManualCity(false)
-                  onChange({ city: null })
-                }}
-              >
-                {t('submit.where.manual_city_back')}
-              </TextButton>
+              {search && (
+                <TextButton
+                  onClick={() => {
+                    setManualCity(false)
+                    onChange({ city: null })
+                  }}
+                >
+                  {t('submit.where.manual_city_back')}
+                </TextButton>
+              )}
             </>
           ) : (
             <>
@@ -182,14 +200,16 @@ export function PlaceStep({
                 label={t('submit.where.city_label')}
                 place={draft.city}
                 search={
-                  <PlaceSearch
-                    country={country}
-                    label={t('submit.where.city_placeholder')}
-                    proximity={proximity}
-                    types="place"
-                    onEdit={onEdit('city')}
-                    onSelect={onPick('city')}
-                  />
+                  search && (
+                    <PlaceSearch
+                      country={country}
+                      label={t('submit.where.city_placeholder')}
+                      proximity={proximity}
+                      types="place"
+                      onEdit={onEdit('city')}
+                      onSelect={onPick('city')}
+                    />
+                  )
                 }
                 onClear={() => onChange({ city: null })}
               />
@@ -329,7 +349,7 @@ function VenueFields({
 
 /**
  * The address typed in by hand, for a venue the search does not know. It becomes the draft's
- * address once it has a street and a town — with no map point, which the coordinator adds.
+ * address once it has a street and a town — with no map point, which the admins add.
  */
 function ManualAddress({
   draft,
@@ -354,7 +374,7 @@ function ManualAddress({
     const street = next.street.trim()
     const city = next.city.trim()
     const postCode = next.postCode.trim()
-    // Without a country from the flow, the visitor names it, so the coordinator isn't left
+    // Without a country from the flow, the visitor names it, so the admins aren't left
     // guessing which "Springfield" this is.
     const countryName = country ? '' : next.countryName.trim()
 
@@ -430,7 +450,7 @@ function ManualAddress({
 
 /**
  * An online class's city typed in by hand, for a place the search does not know. The
- * coordinator places it; the listing waits on them for its region.
+ * admins place it; the listing waits on them for its region.
  */
 function ManualCity({
   draft,

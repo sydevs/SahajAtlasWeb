@@ -140,10 +140,13 @@ export type ProposalFormProps = {
   /** Pins the footer to the visible bottom of a snap-point sheet (the mobile map sheet). */
   stickyFooter?: boolean
   /**
-   * Shows a small map under a picked address — where the live map is covered (a phone's sheet)
-   * or absent (a map-less embed). Beside a visible map it would only repeat it.
+   * Shows a small map under a picked address — where the live map is covered (a phone's sheet).
+   * Beside a visible map it would only repeat it. A map-less embed gets none: it promises its
+   * host no Mapbox request, and the picture is one.
    */
   placeMap?: boolean
+  /** Whether the place steps may search Mapbox; off, a place is typed in (a map-less embed). */
+  placeSearch?: boolean
   /** Story-only: open the review step showing this refusal, without a real request. */
   initialRefusal?: UserSubmissionErrorCode | 'unknown'
 }
@@ -286,6 +289,7 @@ function StepStage({
   listing,
   stickyFooter,
   placeMap,
+  placeSearch,
   flagged,
   endsOn,
   onEndsOn,
@@ -392,6 +396,7 @@ function StepStage({
               errors={errors}
               notice={placeNotice}
               proximity={proximity}
+              search={placeSearch}
               showMap={placeMap}
               onChange={onChange}
               onEdit={edit}

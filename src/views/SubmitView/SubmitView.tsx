@@ -259,8 +259,9 @@ function Flow({ target }: { target: FlowTarget }) {
         languageOptions={hints.languages}
         listing={listing}
         nobodyOn={session.nobodyOn}
-        placeMap={!hasMap || !isWide}
+        placeMap={hasMap && !isWide}
         placeNotice={<NearbyClassNotice classes={nearby} />}
+        placeSearch={hasMap}
         preview={
           <ListingDetails
             listing={listing}
