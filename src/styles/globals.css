@@ -362,9 +362,9 @@
   --contrast-10: 12 60% 62%;
   --contrast-11: 12 60% 40%;
   --contrast-12: 12 60% 24%;
-  /* A warm white, not paper white: the panel reads like the We Meditate app's cream
-     surfaces. Sand-12 body text keeps 15.9:1 on it and sand-11 secondary text 5.9:1. */
-  --background: 40 60% 98.5%;
+  /* Plain white panels. The cream white read as a yellow tint over the whole panel (Anton,
+     6 Nov); the warmth stays in the sand neutrals, the map and the accents. */
+  --background: 0 0% 100%;
 }
 
 .dark,
