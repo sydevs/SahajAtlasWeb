@@ -114,7 +114,12 @@ export function useFitSnap(enabled: boolean, view: string): number | null {
       body = current
       if (!sheet || !current) return
 
-      const update = () => setFit(measure(sheet, current))
+      // ⚠ Not at the peek: there the header clamps its title to one line (ViewLayer), which is not
+      // the open sheet this measures. A two-line title measured there moved the fit stop under a
+      // drag, and vaul sprang the sheet back up to it. Leaving the peek measures again.
+      const update = () => {
+        if (!sheet.hasAttribute('data-sy-peek')) setFit(measure(sheet, current))
+      }
       const resize = new ResizeObserver(update)
       const watch = () => {
         resize.disconnect()
@@ -129,17 +134,20 @@ export function useFitSnap(enabled: boolean, view: string): number | null {
       // The sticky footer publishes its height as `--sy-footer-h` on the body's parent, which
       // moves no box this could observe.
       const footer = new MutationObserver(update)
+      const peek = new MutationObserver(update)
 
       watch()
       kids.observe(current, { childList: true })
       if (current.parentElement) {
         footer.observe(current.parentElement, { attributeFilter: ['style'] })
       }
+      peek.observe(sheet, { attributeFilter: ['data-sy-peek'] })
       update()
       detach = () => {
         resize.disconnect()
         kids.disconnect()
         footer.disconnect()
+        peek.disconnect()
       }
     }
     const bodies = new MutationObserver(sync)
