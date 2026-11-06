@@ -85,6 +85,8 @@ type Fact = {
   icon: LucideIcon
   text: ReactNode
   subtext?: ReactNode
+  /** The text itself spans two lines, so the icon hangs from the first even with no subtext. */
+  stacked?: boolean
   /** Which line says "Today" and gets the tint, if any. */
   today?: 'line' | 'subtext'
 }
@@ -107,13 +109,6 @@ export type EventFactsProps = {
    * to which date. The registration form asks for one, and its confirmation names the one chosen.
    */
   hideTimingDetail?: boolean
-  /**
-   * Renders one half of the block, for the class page, which splits it: `when` leads the page
-   * and `where` (the room and street) sits under the actions, beside Directions. An online
-   * class keeps its "Online • Hosted from …" line with `when`: it has no address, and its
-   * second line is the host's clock. Leave it unset for both halves together.
-   */
-  part?: 'when' | 'where'
   className?: string
 }
 
@@ -137,7 +132,6 @@ export function EventFacts({
   distance,
   where,
   hideTimingDetail = false,
-  part,
   className,
 }: EventFactsProps) {
   const { t } = useTranslation()
@@ -174,10 +168,8 @@ export function EventFacts({
     else timingDetail = whenLine
   }
 
-  const items: Fact[] = []
-
-  if (part !== 'where')
-    items.push({
+  const items: Fact[] = [
+    {
       icon: CalendarDays,
       // The shared calendar-line composition. It is the identical string
       // on the list card and the map-pin hover popover (#72). Recurring
@@ -197,12 +189,10 @@ export function EventFacts({
             ? 'subtext'
             : 'line'
           : undefined,
-    })
+    },
+  ]
 
-  // Which half the location fact belongs to, when the block is split. See `part`.
-  const placePart = display.online ? 'when' : 'where'
-
-  if (whereLine && display.status !== 'ended' && (!part || part === placePart)) {
+  if (whereLine && display.status !== 'ended') {
     // The room is directions, so only the panel carries it. The list card and the
     // share/registration summaries are triage and recap (#316).
     const room = variant === 'default' ? roomLine : null
@@ -211,28 +201,26 @@ export function EventFacts({
 
     items.push({
       icon: display.online ? Monitor : MapPin,
-      // With a room, the room leads and the street steps back under it, so the place reads as
-      // one fact with a detail, not two lines of equal weight.
-      text: room ?? where ?? address,
-      subtext: room
-        ? address
-        : display.online
-          ? (whereSubtext ?? undefined)
-          : where
-            ? undefined
-            : (distance ?? undefined),
+      text: room ? (
+        <>
+          <div>{room}</div>
+          <div>{address}</div>
+        </>
+      ) : (
+        (where ?? address)
+      ),
+      stacked: Boolean(room),
+      subtext: display.online
+        ? (whereSubtext ?? undefined)
+        : where
+          ? undefined
+          : (distance ?? undefined),
     })
   }
-
-  // The `where` half of a class with no address to show (online, or over) renders nothing.
-  if (items.length === 0) return null
 
   const size = ICON_SIZE[variant]
   const card = variant === 'card'
   const slots = facts({ variant })
-  // The phone sheet opens tall enough for the panel's facts. The address under the actions is
-  // not one of them.
-  const fold = variant === 'default' && part !== 'where'
 
   // The card variant owns the outer box, so `className` styles that box.
   // It also owns a title above the facts, and a slot below them. The other
@@ -240,12 +228,16 @@ export function EventFacts({
   const body = (
     <div
       className={card ? slots.base() : slots.base({ className })}
-      data-sheet-fold={fold ? '' : undefined}
+      data-sheet-fold={variant === 'default' ? '' : undefined}
     >
-      {items.map(({ icon: Icon, text, subtext, today }, index) => {
+      {items.map(({ icon: Icon, text, subtext, stacked, today }, index) => {
         // Alignment is per-fact. Only a stacked fact, one with two lines,
         // hangs its icon from the first line.
-        const styles = facts({ variant, stacked: Boolean(subtext), today })
+        const styles = facts({
+          variant,
+          stacked: Boolean(subtext) || Boolean(stacked),
+          today,
+        })
 
         return (
           <div key={index} className={styles.item()}>
@@ -261,8 +253,8 @@ export function EventFacts({
       })}
       {/* "Free" is a newcomer's main doubt. "Register for free" says it wherever that button
           shows, so this is only for a by-request class, which has no such button. It sits
-          after the facts at the top, level with the fact text, so the time still leads. */}
-      {variant === 'default' && part !== 'where' && display.status === 'inactive' && (
+          after the where line, level with the fact text, so when and where still lead. */}
+      {variant === 'default' && display.status === 'inactive' && (
         <p className="pl-8 text-sm text-gray-11">{t('event.display.fact_free')}</p>
       )}
     </div>

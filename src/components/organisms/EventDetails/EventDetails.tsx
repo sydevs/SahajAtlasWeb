@@ -58,8 +58,8 @@ export type EventDetailsProps = EventSurfaceProps & {
 }
 
 /**
- * This is the event panel body: when, chips, Register, microcopy, secondary
- * actions, where, About, then images. The title is a separate component
+ * This is the event panel body: when and where, chips, Register, microcopy,
+ * secondary actions, About, then images. The title is a separate component
  * (EventHeader). It renders outside the scrolling drawer body, so it stays pinned.
  */
 /** Add-to-calendar on the class page: a text-weight control that opens a short list. It sits
@@ -137,9 +137,9 @@ export function EventDetails({ event, basePath, ctaInline = true, children }: Ev
     // bottom padding, so the images sit flush against the end of the view
     // instead of floating 40px above it. Everything else keeps the padding.
     <div className={`flex flex-col gap-4 px-4 pt-1 ${hasImages ? '' : 'pb-10'}`}>
-      {/* When leads, because that is what a visitor came for, and on the phone sheet it
-          must fit above the sticky footer at the default height. The chips follow, as the
-          quieter facts. The address waits under the actions, so the top stays light. */}
+      {/* When and where lead, because that is what a visitor came for, and on the phone
+          sheet they must fit above the sticky footer at the default height. The chips
+          follow, as the quieter facts. */}
       {ended ? (
         <div className="flex flex-col gap-1">
           <p className="text-lg">{t('event.display.class_finished')}</p>
@@ -147,7 +147,7 @@ export function EventDetails({ event, basePath, ctaInline = true, children }: Ev
         </div>
       ) : (
         <>
-          <EventFacts event={event} part="when" />
+          <EventFacts event={event} />
           <EventChips event={event} />
         </>
       )}
@@ -174,11 +174,6 @@ export function EventDetails({ event, basePath, ctaInline = true, children }: Ev
           <EventActions basePath={basePath} event={event} />
         </>
       )}
-
-      {/* The room and street, after the actions so they read with Directions. On the phone
-          those sit in the sticky footer, so this is the first row under the fold: the title
-          and the map pin already say roughly where. */}
-      <EventFacts event={event} part="where" />
 
       {/* A by-request or finished class has nothing to book, so it must not be the end of
           the road. Old posters and QR codes keep sending people to finished ones. */}

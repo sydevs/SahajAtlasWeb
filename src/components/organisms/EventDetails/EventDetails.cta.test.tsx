@@ -32,7 +32,7 @@ vi.mock('@/components/molecules/EventChips', () => ({
   EventChips: () => <i>chips-slot</i>,
 }))
 vi.mock('@/components/molecules/EventFacts', () => ({
-  EventFacts: ({ part }: { part?: string }) => <i>{`facts-slot-${part ?? 'all'}`}</i>,
+  EventFacts: () => <i>facts-slot</i>,
 }))
 // DOMPurify binds a real `window` at module scope. `sanitize.test.ts` owns that allowlist.
 vi.mock('./sanitize', () => ({
@@ -51,16 +51,6 @@ describe('EventDetails — where the calls to action render', () => {
     expect(markup).toContain('register-slot')
     expect(markup).toContain('actions-slot')
     expect(markup.indexOf('register-slot')).toBeLessThan(markup.indexOf('actions-slot'))
-  })
-
-  // Anton (round 2): the address at the top made the page heavy. The time leads, and the
-  // room and street follow the actions, where they read with Directions.
-  it('puts the time above Register and the address under the actions', () => {
-    const markup = panel()
-
-    expect(markup.indexOf('facts-slot-when')).toBeGreaterThan(-1)
-    expect(markup.indexOf('facts-slot-when')).toBeLessThan(markup.indexOf('register-slot'))
-    expect(markup.indexOf('facts-slot-where')).toBeGreaterThan(markup.indexOf('actions-slot'))
   })
 
   it('offers no onward links on a class that can be booked', () => {
