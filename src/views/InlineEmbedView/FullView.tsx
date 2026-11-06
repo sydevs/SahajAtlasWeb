@@ -13,10 +13,11 @@ import { setFrame, widgetOverlayContainer } from '@/lib/overlay'
  * PROTOTYPE (`ux/embed-inline`): the whole interface over the host's page, opened by a tap on the
  * inline card. It is `CompactEmbedView`'s dialog, changed in four ways:
  *
- *  - **Edge to edge on phones.** Below 640px it fills the screen (`100dvh`, safe-area padding) and
- *    slides up; above, it keeps today's 24px margin with the page dimmed behind. The overlay's
- *    margin was chosen on purpose ("a full-bleed layer would read as a navigation"), so the
- *    phone half is a decision for Devindra. The bar below is what answers that worry instead.
+ *  - **Edge to edge on phones.** Below 640px wide, or under 500px tall (a phone turned sideways),
+ *    it fills the screen (`100dvh`, safe-area padding) and slides up; otherwise it keeps today's
+ *    24px margin with the page dimmed behind. The overlay's margin was chosen on purpose ("a
+ *    full-bleed layer would read as a navigation"), so the phone half is a decision for Devindra.
+ *    The bar below is what answers that worry instead.
  *  - **A bar with the host's name.** "shrimataji.org" on the left says the visitor is still on
  *    that site; "Close" on the right is the one way out that is always visible. The Atlas's own
  *    Back stays inside the panel, so the two never sit side by side.
@@ -33,8 +34,10 @@ import { setFrame, widgetOverlayContainer } from '@/lib/overlay'
 const aboveHost = 'z-[2147483000]'
 const overlayClass = `fixed inset-0 ${aboveHost} bg-black/50`
 // Phone: the whole screen. `h-dvh` rather than `bottom-0` so iOS's collapsing toolbar can't leave
-// a strip of page under the layer. From 640px: today's overlay, 24px in.
-const surfaceClass = `fixed inset-x-0 top-0 ${aboveHost} flex h-dvh flex-col overflow-clip bg-background pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)] text-foreground outline-none sm:inset-6 sm:h-auto sm:rounded-xl sm:pt-0 sm:pb-0 sm:shadow-2xl`
+// a strip of page under the layer. From 640px wide AND 500px tall: today's overlay, 24px in. The
+// height condition keeps a phone turned sideways (844x390) edge to edge: with the margin it was a
+// 796x342 box with the page dimmed around it and Register below the fold.
+const surfaceClass = `fixed inset-x-0 top-0 ${aboveHost} flex h-dvh flex-col overflow-clip bg-background pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)] text-foreground outline-none sm:[@media(min-height:500px)]:inset-6 sm:[@media(min-height:500px)]:h-auto sm:[@media(min-height:500px)]:rounded-xl sm:[@media(min-height:500px)]:pt-0 sm:[@media(min-height:500px)]:pb-0 sm:[@media(min-height:500px)]:shadow-2xl`
 // ⚠ `contain: layout` makes this the containing block for the interface's fixed layer (map,
 // drawers, peek strips) — see `CompactEmbedView`'s dialog, which carries the measurement.
 const frameClass = 'relative min-h-0 flex-1 overflow-clip [contain:layout]'
