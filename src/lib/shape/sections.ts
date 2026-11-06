@@ -133,26 +133,51 @@ export type ResultSections<T> = {
   distant: T[]
 }
 
+/** One in-person class, read against a scope. */
+type Located<T> = { event: T; point: Position | null; foreign: boolean; here: boolean }
+
 /**
- * Sorts the matches into their groups. `keepOrder` holds the groups outside the place in the order
- * they came in, for a visitor who explicitly asked for Soonest.
+ * How a scope reads each in-person class: whether it is in the place, and whether it is across a
+ * border. `areaBox` is set only for a whole area, which measures a class outside it from its own
+ * classes rather than from the searched point. `splitResults` and `localResultsOf` both read
+ * classes through this, so the list's groups and the filter counts can't drift apart.
  *
  * A country code that doesn't resolve never counts as foreign: the CMS field is free text, and
  * "Tschechien" is not a reason to push a class out of the Czech results.
  */
-export function splitResults<T extends Sectionable>(
-  events: T[],
-  {
-    bbox,
-    searchCountry,
-    nearVisitor = false,
-    keepOrder = false,
-  }: PlaceScope & { keepOrder?: boolean },
-): ResultSections<T> {
+const placeRule = ({ bbox, searchCountry, nearVisitor = false }: PlaceScope) => {
   const size = placeSize(bbox)
   // Every size but a whole area is a circle around the searched point. Near me is the nearby cut.
   const round = nearVisitor || size !== 'area'
   const radius = nearVisitor ? NEARBY_KM : placeRadiusKm(bbox)
+
+  const locate = <T extends Sectionable>(event: T): Located<T> => {
+    const point = pointOf(event)
+    const country = isoCountryCode(event.address?.country)
+    const foreign = Boolean(searchCountry && country && country !== searchCountry)
+    // Near a spot or near you is only distance. In a named town, a class over the border isn't.
+    const here = round
+      ? (event.distance ?? Infinity) <= radius && (size === 'spot' || nearVisitor || !foreign)
+      : Boolean(bbox && point && inBounds(point, bbox)) && !foreign
+
+    return { event, point, foreign, here }
+  }
+
+  return { size, areaBox: round ? undefined : bbox, locate }
+}
+
+/** How far outside the place a class can be and still count as just outside it. */
+const justOutsideKm = (foreign: boolean) => (foreign ? FOREIGN_NEARBY_KM : NEARBY_KM)
+
+/**
+ * Sorts the matches into their groups. `keepOrder` holds the groups outside the place in the order
+ * they came in, for a visitor who explicitly asked for Soonest.
+ */
+export function splitResults<T extends Sectionable>(
+  events: T[],
+  { keepOrder = false, ...scope }: PlaceScope & { keepOrder?: boolean },
+): ResultSections<T> {
+  const { size, areaBox, locate } = placeRule(scope)
   const groups: ResultSections<T> = {
     size,
     here: [],
@@ -164,7 +189,7 @@ export function splitResults<T extends Sectionable>(
   // An area measures from its own classes, everything else from the searched point. `T` is only
   // known structurally here, so the measure is kept beside the event instead of written onto it.
   const reach = new Map<T, number>()
-  const outside: { event: T; point: Position | null; foreign: boolean }[] = []
+  const outside: Located<T>[] = []
   const own: Position[] = []
 
   for (const event of events) {
@@ -173,34 +198,28 @@ export function splitResults<T extends Sectionable>(
       continue
     }
 
-    const point = pointOf(event)
-    const country = isoCountryCode(event.address?.country)
-    const foreign = Boolean(searchCountry && country && country !== searchCountry)
-    // Near a spot or near you is only distance. In a named town, a class over the border isn't.
-    const isHere = round
-      ? (event.distance ?? Infinity) <= radius && (size === 'spot' || nearVisitor || !foreign)
-      : Boolean(bbox && point && inBounds(point, bbox)) && !foreign
+    const located = locate(event)
 
-    if (isHere) {
+    if (located.here) {
       groups.here.push(event)
-      if (point) own.push(point)
+      if (located.point) own.push(located.point)
       continue
     }
 
-    outside.push({ event, point, foreign })
+    outside.push(located)
   }
 
   for (const { event, point, foreign } of outside) {
     // With filters hiding all of the area's own classes, its box is what is left to measure from.
     const km =
-      !round && bbox && point
-        ? (distanceToNearest(point, own) ?? distanceToBounds(point, bbox))
+      areaBox && point
+        ? (distanceToNearest(point, own) ?? distanceToBounds(point, areaBox))
         : event.distance
 
     const far = km ?? Infinity
 
     reach.set(event, far)
-    if (far <= (foreign ? FOREIGN_NEARBY_KM : NEARBY_KM)) groups.justOutside.push(event)
+    if (far <= justOutsideKm(foreign)) groups.justOutside.push(event)
     else if (far <= (foreign ? FOREIGN_OTHER_CITIES_KM : OTHER_CITIES_KM)) groups.nearby.push(event)
     else groups.distant.push(event)
   }
@@ -225,6 +244,78 @@ export const localResults = <T extends Sectionable>(events: T[], scope: PlaceSco
   const { here, justOutside, online } = splitResults(events, { ...scope, keepOrder: true })
 
   return [...here, ...justOutside, ...online]
+}
+
+/**
+ * `localResults` for any subset of `events`, with the measuring done once.
+ *
+ * The filter counts ask for thirty to fifty subsets on every tap. Whether a class just past an
+ * area's edge counts depends on which of the area's own classes are in the subset, since it is
+ * measured from the nearest of them, so working that out afresh is every class outside against
+ * every class inside, per subset. That made a filter tap lag in a country search. Here each class
+ * outside keeps, once, the area's classes close enough to count from, and whether it is within
+ * reach of the box's edge for when none of them are left. A subset then checks only those.
+ *
+ * The subset must be drawn from `events`. It answers the same classes as
+ * `localResults(subset, scope)`, in the subset's order.
+ */
+export const localResultsOf = <T extends Sectionable>(
+  events: T[],
+  scope: PlaceScope,
+): ((subset: T[]) => T[]) => {
+  const { areaBox, locate } = placeRule(scope)
+  // `true`: counted in any subset that holds it. `false`: in none. Otherwise it is past an area's
+  // edge, and counted when the subset holds one of `near`, or holds none of the area's classes
+  // and `edge` is set.
+  const rules = new Map<T, boolean | { near: T[]; edge: boolean }>()
+  const own: { event: T; point: Position }[] = []
+  const outside: Located<T>[] = []
+
+  for (const event of events) {
+    if (isOnline(event)) {
+      rules.set(event, true)
+      continue
+    }
+
+    const located = locate(event)
+
+    if (!located.here) {
+      outside.push(located)
+      continue
+    }
+
+    rules.set(event, true)
+    if (located.point) own.push({ event, point: located.point })
+  }
+
+  for (const { event, point, foreign } of outside) {
+    const limit = justOutsideKm(foreign)
+
+    if (!areaBox || !point) {
+      rules.set(event, (event.distance ?? Infinity) <= limit)
+      continue
+    }
+
+    rules.set(event, {
+      near: own.filter((other) => distanceKm(point, other.point) <= limit).map((o) => o.event),
+      edge: distanceToBounds(point, areaBox) <= limit,
+    })
+  }
+
+  return (subset) => {
+    if (subset.some((event) => !rules.has(event))) return localResults(subset, scope)
+
+    const present = new Set(subset)
+    const ownPresent = own.some((other) => present.has(other.event))
+
+    return subset.filter((event) => {
+      const rule = rules.get(event) ?? false
+
+      if (typeof rule === 'boolean') return rule
+
+      return ownPresent ? rule.near.some((other) => present.has(other)) : rule.edge
+    })
+  }
 }
 
 /**

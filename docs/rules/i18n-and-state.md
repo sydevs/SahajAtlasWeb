@@ -164,9 +164,12 @@ Six stores, each the single source of truth for its own slice:
   place (a circle as wide as the town, never the box's corners), just outside it
   (to `NEARBY_KM`), other cities (to `OTHER_CITIES_KM`, 100 km), online, and
   farther. **That split is the one geographic rule**: the filter counts read the
-  same groups through `localResults` / `facetScope`, and the box only frames the
+  same groups through `localResultsOf` / `facetScope`, and the box only frames the
   camera and sizes the place, so the panel and the list can't count different
-  sets. The nearby
+  sets. Both read classes through one `placeRule`. `localResultsOf` measures an
+  area's edge classes once per scope, not once per option: re-measuring them for
+  each of a tap's 30–50 counts made the filter panel lag in a country search.
+  The nearby
   segment pages itself on scroll (an IntersectionObserver in `LoadMore`). The
   distant segment always needs an explicit "Show distant events" press, and
   every later page keeps that label — a bare "Show more" would misdescribe it.

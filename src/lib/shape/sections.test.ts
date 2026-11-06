@@ -1,10 +1,12 @@
 import type { BBox } from 'geojson'
+import type { PlaceScope } from './sections'
 
 import { describe, expect, it } from 'vitest'
 
 import {
   boundsWith,
   localResults,
+  localResultsOf,
   nearPlace,
   parseBounds,
   placeRadiusKm,
@@ -231,6 +233,73 @@ describe('localResults', () => {
 
     expect(ids(localResults(events, scope))).toEqual(ids([...here, ...justOutside, ...remote]))
     expect(ids(localResults(events, scope))).toEqual([1, 2, 5])
+  })
+})
+
+describe('localResultsOf', () => {
+  // Every subset of a small set, so no combination of passing classes goes unchecked.
+  const subsets = <T>(items: T[]): T[][] =>
+    Array.from({ length: 2 ** items.length }, (_, mask) =>
+      items.filter((_, bit) => mask & (1 << bit)),
+    )
+  const sorted = (events: { id: number }[]) => ids(events).sort((a, b) => a - b)
+
+  type Listed = {
+    id: number
+    distance?: number
+    eventType: 'offline' | 'online'
+    address: { country: string | null; longitude: number; latitude: number } | null
+  }
+
+  const agrees = (events: Listed[], scope: PlaceScope) => {
+    const shownOf = localResultsOf(events, scope)
+
+    for (const subset of subsets(events)) {
+      expect(sorted(shownOf(subset)), `subset ${ids(subset)}`).toEqual(
+        sorted(localResults(subset, scope)),
+      )
+    }
+  }
+
+  it('answers what localResults does for every subset of an area search', () => {
+    // Czechia: two of its own classes in the east, one over the Polish border near Ostrava, one
+    // Slovak class inside the box but far from any Czech class, a Czech class just past the box,
+    // one with no coordinates, and one online. Which of the outside ones count turns on which
+    // Czech classes pass.
+    agrees(
+      [
+        inPerson(12, 18.26, 49.82, 210),
+        inPerson(18, 17.25, 49.59, 190),
+        inPerson(13, 18.36, 49.86, 260, 'PL'),
+        inPerson(17, 18.8, 48.8, 330, 'SK'),
+        inPerson(19, 12.0, 50.3, 120),
+        { id: 20, distance: 20, eventType: 'offline' as const, address: null },
+        online(5),
+      ],
+      { bbox: CZECHIA, searchCountry: 'CZ' },
+    )
+  })
+
+  it('answers what localResults does for a town, a street and Near me', () => {
+    const events = [
+      inPerson(1, 14.45, 50.08, 2),
+      inPerson(2, 14.63, 50.1, 15),
+      inPerson(3, 15.06, 50.77, 88),
+      inPerson(4, 14.4, 49.88, 22, 'DE'),
+      online(5),
+    ]
+
+    agrees(events, { bbox: PRAGUE, searchCountry: 'CZ' })
+    agrees(events, { bbox: [14.44, 50.07, 14.46, 50.09], searchCountry: 'CZ' })
+    agrees(events, { bbox: CZECHIA, searchCountry: 'CZ', nearVisitor: true })
+  })
+
+  it('measures afresh for a class it was not built with', () => {
+    const scope = { bbox: PRAGUE, searchCountry: 'CZ' }
+    const stranger = inPerson(9, 14.46, 50.08, 1)
+    const remote = online(6)
+
+    expect(ids(localResultsOf<Listed>([online(5)], scope)([stranger, remote]))).toEqual([9, 6])
   })
 })
 

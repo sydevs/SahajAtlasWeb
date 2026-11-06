@@ -18,7 +18,7 @@ import {
   todayISO,
   type RegionMatcher,
 } from './filters'
-import { type PlaceScope, localResults, nearPlace } from './sections'
+import { type PlaceScope, localResultsOf, nearPlace } from './sections'
 
 import { distanceKm } from '@/lib/geo'
 
@@ -96,7 +96,7 @@ const passes = (event: FacetEvent, filters: EventFilters, today: string): boolea
 
 /**
  * Which of the classes that pass a set of filters the results would list. Every one of them by
- * default. A searched place passes `localResults`, since whether a class counts there can depend
+ * default. A searched place passes `localResultsOf`, since whether a class counts there can depend
  * on which others pass (an area measures its neighbours from its own classes).
  */
 export type ShownOf<T> = (passing: T[]) => T[]
@@ -152,10 +152,10 @@ export const facetScope = (
 
   if (!center) return { events }
 
-  return {
-    events: nearPlace(events, place),
-    shownOf: (passing) => localResults(passing, place),
-  }
+  const near = nearPlace(events, place)
+
+  // Built once per scope, so a filter tap counts every option without measuring the area again.
+  return { events: near, shownOf: localResultsOf(near, place) }
 }
 
 /** Counts every option of every group against `filters`. */
