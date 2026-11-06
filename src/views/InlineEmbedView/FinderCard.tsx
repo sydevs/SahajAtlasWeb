@@ -2,6 +2,7 @@ import type { GeoFeature } from '@/types'
 import type { Nearby, OpenFullView } from './parts'
 
 import { useState } from 'react'
+import { useQuery } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
 import { ChevronRight } from 'lucide-react'
 
@@ -10,21 +11,22 @@ import { OnlineRow, SearchInput, ipOrigin, useFeed, useNearest, useOnlineCount }
 import { Button } from '@/components/atoms/Button'
 import { Spinner } from '@/components/atoms/Spinner'
 import { listRow } from '@/components/molecules/List/List'
+import { eventTitlesQuery } from '@/config/api'
 import { composeCalendarLine, useEventDisplay } from '@/hooks/use-event-display'
 import { useIpLocation } from '@/hooks/use-ip-location'
 import { useLocale } from '@/hooks/use-locale'
 import { formatDistance } from '@/lib'
 import { approxBounds } from '@/lib/geo'
 import { NEARBY_RADIUS_KM } from '@/lib/geolocation'
-import { isoCountryCode, placeSearchPath, safePath } from '@/lib/shape'
+import { NEARBY_KM, isoCountryCode, placeSearchPath, safePath } from '@/lib/shape'
 
 /**
  * PROTOTYPE (`ux/embed-inline`, direction B): what an in-page slot shows instead of a map.
  *
  * It answers "when and where can I go?" in the page itself: up to three nearest classes with their
- * time and place, a search field, the way to use your real location, online classes and the map.
- * Nothing in it captures a drag, so the page scrolls straight over it. Every tap opens the full
- * view at that place.
+ * time, name and place, a search field, the way to use your real location, online classes and the
+ * map. Nothing in it captures a drag, so the page scrolls straight over it. Every tap opens the
+ * full view at that place.
  *
  * The nearest classes come from the same feed and the same IP guess the panel's first screen
  * already reads; the device's location is asked for only when "Use my location" is tapped. The
@@ -35,17 +37,26 @@ type Origin =
   | { kind: 'ip'; at: [number, number]; city: string; country: string; code?: string }
   | { kind: 'device'; at: [number, number] }
 
-/** One class: when on the first line, where (and how far) on the second. */
+/**
+ * One class: when, then which class, then where (and how far). Two classes can share an address
+ * and an hour (a Czech and an English one at Lipanská), so the row names the class; until the
+ * titles arrive, its language tells them apart.
+ */
 function ClassRow({
   feature,
   km,
+  title,
+  heading,
   onOpen,
 }: {
   feature: GeoFeature
   km: number
+  title: string | undefined
+  /** Opens a group of its own above this row ("Classes in other cities"). */
+  heading?: string
   onOpen: () => void
 }) {
-  const { locale } = useLocale()
+  const { locale, languageLabel } = useLocale()
   const { recurrenceLine, whenLine, eventStartTime, display, whereLine } = useEventDisplay(
     feature.properties,
   )
@@ -55,19 +66,22 @@ function ClassRow({
     time: eventStartTime,
     hasNext: Boolean(display.next),
   })
+  const name = title || feature.properties.languages.map(languageLabel).join(', ')
 
   return (
-    <li className="min-w-0">
+    <li className="flex min-w-0 flex-col">
+      {heading && <p className="px-gutter pt-3 text-sm font-semibold text-gray-11">{heading}</p>}
+      {/* `flex-1`, not `h-full`: beside a heading, a full-height row would overflow its cell. */}
       <button
         className={listRow({
-          className:
-            'flex h-full min-h-14 w-full flex-row items-center gap-2 py-2.5 text-start @min-[560px]:items-start @min-[560px]:py-3',
+          className: `flex min-h-14 w-full flex-1 flex-row items-center gap-2 py-2.5 text-start @min-[560px]:items-start @min-[560px]:py-3 ${heading ? 'pt-1 @min-[560px]:pt-1' : ''}`,
         })}
         type="button"
         onClick={onOpen}
       >
         <span className="flex min-w-0 flex-1 flex-col gap-0.5">
           <span className="text-base font-semibold">{when}</span>
+          {name && <span className="truncate text-sm">{name}</span>}
           <span className="flex min-w-0 gap-1 text-sm text-gray-11 @min-[560px]:flex-col @min-[560px]:gap-0.5">
             <span className="truncate @min-[560px]:line-clamp-2 @min-[560px]:whitespace-normal">
               {whereLine}
@@ -90,14 +104,31 @@ function ClassRow({
   )
 }
 
-function Rows({ rows, onOpen }: { rows: Nearby[]; onOpen: OpenFullView }) {
+/**
+ * The nearest classes, a farther town's set apart under its own heading: "near Prague" is the
+ * town and its edges (`NEARBY_KM`), and Liberec, 89 km away, is another city.
+ */
+function Rows({
+  rows,
+  titles,
+  onOpen,
+}: {
+  rows: Nearby[]
+  titles: Map<number, string> | undefined
+  onOpen: OpenFullView
+}) {
+  const { t } = useTranslation()
+  const firstFarther = rows.findIndex(({ km }) => km > NEARBY_KM)
+
   return (
     <ul className="m-0 grid list-none grid-cols-1 p-0 @min-[560px]:grid-cols-3 [&>li+li]:border-t [&>li+li]:border-divider @min-[560px]:[&>li+li]:border-s @min-[560px]:[&>li+li]:border-t-0">
-      {rows.map(({ feature, km }) => (
+      {rows.map(({ feature, km }, i) => (
         <ClassRow
           key={feature.properties.id}
           feature={feature}
+          heading={i === firstFarther ? t('search.sections.nearby') : undefined}
           km={km}
+          title={titles?.get(feature.properties.id)}
           onOpen={() => onOpen(safePath(feature.properties.webPath) ?? `/${feature.properties.id}`)}
         />
       ))}
@@ -112,6 +143,7 @@ function RowsSkeleton() {
       {[0, 1, 2].map((i) => (
         <li key={i} className="flex min-h-14 flex-col justify-center gap-2 px-4 py-2.5">
           <span className="h-4 w-2/5 rounded bg-gray-3" />
+          <span className="h-3 w-1/2 rounded bg-gray-3" />
           <span className="h-3 w-3/5 rounded bg-gray-3" />
         </li>
       ))}
@@ -121,7 +153,10 @@ function RowsSkeleton() {
 
 export function FinderCard({ onOpen }: { onOpen: OpenFullView }) {
   const { t } = useTranslation()
+  const { locale } = useLocale()
   const feed = useFeed()
+  // The one localized feed field, a small read the full view needs anyway.
+  const { data: titles } = useQuery(eventTitlesQuery(locale))
   const ip = useIpLocation()
   const [device, setDevice] = useState<[number, number] | null>(null)
   const [locating, setLocating] = useState<'idle' | 'busy' | 'failed'>('idle')
@@ -213,7 +248,7 @@ export function FinderCard({ onOpen }: { onOpen: OpenFullView }) {
       ) : !origin ? (
         <p className="px-4 py-3 text-base text-gray-11">{t('compact.no_place')}</p>
       ) : (
-        <Rows rows={rows} onOpen={onOpen} />
+        <Rows rows={rows} titles={titles} onOpen={onOpen} />
       )}
       <div className="border-t border-divider @min-[560px]:flex @min-[560px]:items-center @min-[560px]:justify-between @min-[560px]:pe-4">
         <div className="@min-[560px]:min-w-0 @min-[560px]:flex-1">

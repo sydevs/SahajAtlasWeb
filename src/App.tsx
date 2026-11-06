@@ -201,7 +201,7 @@ export default function App({
   // moving it behind a lazy chunk would put the feed back behind a round trip it
   // currently overlaps.
   useEffect(() => {
-    // The inline card reads only the feed, which it fetches itself.
+    // The inline card reads only the feed and the titles, which it fetches itself.
     if (apiKey && !compact && !inline) api.warmCaches()
   }, [apiKey, compact, inline])
 
