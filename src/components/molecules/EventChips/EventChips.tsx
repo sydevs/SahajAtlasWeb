@@ -23,7 +23,8 @@ export type EventChipsProps = {
 /**
  * The event's triage chips. Up to three, all `flat`: the class type
  * (primary), the language(s) combined into one chip (secondary), and a
- * single availability chip, "Full" (neutral) or, on a card, "Today" (contrast). The
+ * single availability chip: on a card, "Registration closed" (neutral) for a started course;
+ * "Full" (neutral); or, on a card, "Today" (contrast). The
  * list card and the event header share this component, so the two never
  * drift. `compact` trims the redundant chips on the card.
  */
@@ -58,13 +59,18 @@ export function EventChips({ event, variant = 'default', className }: EventChips
   // resolver's `statusChip` precedence. The resolver guarantees `full` is
   // set only when it is the actual blocker, so an ended or dormant event
   // still falls through to its own treatment.
-  const full = display.full
+  // A course that has started takes no more sign-ups. The class page says so on its Register
+  // button; a card says it with a grey tag, so nobody taps in to find out (Anton, 6 Nov). It
+  // supersedes the other two: a started course is never reported full, and "Today" would invite
+  // a visit the course no longer takes.
+  const closed = compact && display.registration === 'closed'
+  const full = !closed && display.full
   // "Today" appears once. The class page says it in the when line right below these chips,
   // and a one-off card leads with it. So only a card that leads with the weekly pattern,
   // "Every Wednesday", needs the chip.
-  const today = !full && display.status === 'today' && compact && Boolean(recurrenceLine)
+  const today = !closed && !full && display.status === 'today' && compact && Boolean(recurrenceLine)
 
-  if (!showType && !languageText && !full && !today) return null
+  if (!showType && !languageText && !closed && !full && !today) return null
 
   return (
     // On the class page the tags must show above the phone sheet's Register bar, so
@@ -75,6 +81,7 @@ export function EventChips({ event, variant = 'default', className }: EventChips
     >
       {showType && <Chip color="primary">{typeLabel}</Chip>}
       {languageText && <Chip color="secondary">{languageText}</Chip>}
+      {closed && <Chip color="neutral">{t('event.display.registration_closed')}</Chip>}
       {full && <Chip color="neutral">{t('event.display.chip_full')}</Chip>}
       {today && <Chip color="contrast">{t('event.display.chip_today')}</Chip>}
     </div>

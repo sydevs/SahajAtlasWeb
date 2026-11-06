@@ -14,6 +14,7 @@ const { d } = vi.hoisted(() => ({
     status: 'upcoming',
     kind: 'class',
     full: false,
+    registration: 'open',
     typeLabel: 'Weekly class',
     isDefaultType: true,
     recurrenceLine: 'Every Wednesday' as string | null,
@@ -26,7 +27,7 @@ vi.mock('@/hooks/use-locale', () => ({
 }))
 vi.mock('@/hooks/use-event-display', () => ({
   useEventDisplay: () => ({
-    display: { status: d.status, kind: d.kind, full: d.full },
+    display: { status: d.status, kind: d.kind, full: d.full, registration: d.registration },
     typeLabel: d.typeLabel,
     isDefaultType: d.isDefaultType,
     recurrenceLine: d.recurrenceLine,
@@ -43,6 +44,7 @@ describe('EventChips', () => {
     d.status = 'upcoming'
     d.kind = 'class'
     d.full = false
+    d.registration = 'open'
     d.typeLabel = 'Weekly class'
     d.isDefaultType = true
     d.recurrenceLine = 'Every Wednesday'
@@ -133,5 +135,23 @@ describe('EventChips', () => {
     // The plain weekly type and the viewer language are both trimmed in
     // compact. So the row would otherwise be empty.
     expect(render(['en'], 'compact')).toContain('event.display.chip_full')
+  })
+
+  it('compact: a started course says Registration closed, in place of Full or Today', () => {
+    d.registration = 'closed'
+    d.status = 'today'
+    d.full = true
+
+    const html = render(['en'], 'compact')
+
+    expect(html).toContain('event.display.registration_closed')
+    expect(html).not.toContain('event.display.chip_full')
+    expect(html).not.toContain('event.display.chip_today')
+  })
+
+  it('default: the class page leaves it to the Register button', () => {
+    d.registration = 'closed'
+
+    expect(render(['en'])).not.toContain('event.display.registration_closed')
   })
 })
