@@ -913,12 +913,17 @@
    cut it down to two lines at the sides of a row. Central, so atoms can't drift back to three
    styles. It overrides each atom's `outline-none` and `ring-*`. Elements focused only by script
    (`tabindex="-1"`, such as a dialog or an error region) are left alone: nobody tabs to them, and
-   a ring there reads as something selected. */
+   a ring there reads as something selected.
+   ⚠ The line alone vanishes on a filled control of its own colour: on Register it measured 1:1
+   in dark mode. So every control that draws a ring (`focus-visible:ring-*`, which the atoms all
+   carry) also gets a 2px band of the panel's colour just inside the line, through the ring's own
+   shadow slot. On a white or tinted control the band is near the colour already there; on a
+   filled one it is what shows, at the panel's contrast against the fill. */
 :focus-visible:not([tabindex='-1']) {
   outline: 2px solid var(--color-focus) !important;
   outline-offset: -2px !important;
   --tw-ring-offset-shadow: 0 0 #0000 !important;
-  --tw-ring-shadow: 0 0 #0000 !important;
+  --tw-ring-shadow: inset 0 0 0 4px hsl(var(--background)) !important;
 }
 
 /* Mapbox draws its own blue halo on its controls. */
