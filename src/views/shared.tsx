@@ -23,7 +23,6 @@ import { useLocale } from '@/hooks/use-locale'
 import { useMapController } from '@/hooks/use-map-controller'
 import { approxBounds } from '@/lib/geo'
 import { geocodeBounds, geocodeCountryCode } from '@/lib/geocode'
-import { countrySite } from '@/lib/country-sites'
 import { atlasError } from '@/lib/report'
 import {
   NEARBY_RADIUS_KM,
@@ -493,19 +492,14 @@ export function GeolocationSuggestion({
   position: 'above' | 'below'
 }) {
   const suggestion = useIpSuggestion(region)
-  const { regionNames } = useLocale()
   const knownAtFirstPaint = useRef(suggestion !== null)
 
   if (!suggestion || knownAtFirstPaint.current !== (position === 'above')) return null
-
-  const code = isoCountryCode(suggestion.guess.country_code)
-  const site = countrySite(code)
 
   return (
     <div className={position === 'below' ? 'pt-3' : undefined}>
       <GeolocationPrompt
         city={suggestion.guess.city}
-        site={code && site ? { href: site, country: regionNames.of(code) ?? code } : undefined}
         onAccept={suggestion.accept}
         onClose={suggestion.dismiss}
       />

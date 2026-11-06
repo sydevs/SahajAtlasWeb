@@ -63,19 +63,12 @@ describe('GeolocationPrompt', () => {
     expect(html).toContain('mx-4')
   })
 
-  it('keeps the country website link at full strength, outside the dimmed description', () => {
+  it('offers one thing only: no second link out to a country website', () => {
     const html = renderToStaticMarkup(
-      <GeolocationPrompt
-        city="Prague"
-        site={{ href: 'https://example.org', country: 'Czechia' }}
-        onAccept={noop}
-        onClose={noop}
-      />,
+      <GeolocationPrompt city="Prague" onAccept={noop} onClose={noop} />,
     )
 
-    expect(html).toContain('href="https://example.org"')
-    expect(html).toContain('text-gray-11')
-    // The description slot is 90% opacity, which takes sand-11 under 4.5:1 on sand-3.
-    expect(html).not.toContain('opacity-90')
+    expect(html).not.toContain('<a ')
+    expect(html).not.toContain('search.country_site.cta')
   })
 })

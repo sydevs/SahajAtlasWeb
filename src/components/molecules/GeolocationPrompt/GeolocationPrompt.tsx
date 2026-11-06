@@ -2,7 +2,6 @@ import { useTranslation } from 'react-i18next'
 import { ChevronRight, MapPin } from 'lucide-react'
 
 import { Alert } from '@/components/atoms/Alert'
-import { Link } from '@/components/atoms/Link'
 
 export type GeolocationPromptProps = {
   /** The IP-guessed city, interpolated into the prompt's question. */
@@ -11,8 +10,6 @@ export type GeolocationPromptProps = {
   onAccept: () => void
   /** Dismiss the suggestion for the rest of the session. */
   onClose: () => void
-  /** The guessed country's own website, offered as a second way to go local. */
-  site?: { href: string; country: string }
 }
 
 /**
@@ -23,9 +20,10 @@ export type GeolocationPromptProps = {
  * assertive alert, since it is a passive guess. It is framed as a *guess*:
  * "Classes near %{city}", never "your location". This is
  * presentational only. The IP lookup, session-scoped dismissal, and
- * navigation live in `GeolocationSuggestion` (src/views/shared.tsx).
+ * navigation live in `GeolocationSuggestion` (src/views/shared.tsx). It carries no second link:
+ * a country-website line under it was too small to tap on a phone, and Anton didn't want it.
  */
-export function GeolocationPrompt({ city, onAccept, onClose, site }: GeolocationPromptProps) {
+export function GeolocationPrompt({ city, onAccept, onClose }: GeolocationPromptProps) {
   const { t } = useTranslation()
 
   // Inset by the panel's 16px gutter so the banner lines up with the header
@@ -35,8 +33,7 @@ export function GeolocationPrompt({ city, onAccept, onClose, site }: Geolocation
   // The sand neutral, in light and dark. Not the coral tint: a pink band at the top of
   // the list read like an error, and coral is kept for the chosen pin, the today tag and
   // the meditating figure. Not the light-blue secondary either: it read cold, and that
-  // hue is kept for the language tag. Sand-12 text clears 13:1 in both modes, and the
-  // sand-11 website link 5.3:1 (light) and 7.6:1 (dark).
+  // hue is kept for the language tag. Sand-12 text clears 13:1 in both modes.
   return (
     <Alert
       className="mx-4 mb-2 gap-2.5 rounded-lg ps-3 pe-1"
@@ -56,17 +53,6 @@ export function GeolocationPrompt({ city, onAccept, onClose, site }: Geolocation
         </button>
       }
       onClose={onClose}
-    >
-      {site && (
-        // Quiet on purpose. The row above is what the notice is for; this one leaves the page.
-        // A child, not the `description`: that slot is dimmed to 90%, which would take the
-        // sand-11 link under 4.5:1 on the sand fill.
-        <div className="text-sm">
-          <Link isExternal className="text-gray-11 hover:underline" href={site.href}>
-            {t('search.country_site.cta', { country: site.country })}
-          </Link>
-        </div>
-      )}
-    </Alert>
+    />
   )
 }
