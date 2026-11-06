@@ -13,6 +13,13 @@ const online: Event = { ...mockEvent, id: 201, eventType: 'online' }
 const noWebsite: Event = { ...mockEvent, id: 202, website: null }
 const noContact: Event = { ...mockEvent, id: 203, contactPhone: null, contactName: null }
 const inactive: Event = { ...mockEvent, id: 204, inactive: true }
+// The host typed only the town, so its stored point is a guess at the town centre.
+const approximate: Event = {
+  ...mockEvent,
+  id: 205,
+  website: null,
+  address: { street: 'Sneek', city: 'Sneek', country: 'NL', latitude: 53.03, longitude: 5.66 },
+}
 
 // The drawer panel is about 352px wide, with a 24px gutter. So its content
 // box is about 304px. This previews at exactly that width, the real case.
@@ -62,6 +69,13 @@ export const Default: Story = () => (
       title="Inactive"
     >
       <Panel event={inactive} />
+    </StorySection>
+
+    <StorySection
+      description="A class with only a guessed point: Directions leads to the town by name, not to the guessed coordinates, and says so."
+      title="Approximate place"
+    >
+      <Panel event={approximate} />
     </StorySection>
 
     <div />

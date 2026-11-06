@@ -86,6 +86,30 @@ export const hasVagueAddress = (
   return NO_PLACE_STREETS.has(rest)
 }
 
+type DirectionsAddress = {
+  street?: string | null
+  city?: string | null
+  country?: string | null
+  latitude?: number | null
+  longitude?: number | null
+}
+
+/**
+ * Where Directions leads, and the town it names when that is all it can honestly name. A guessed
+ * point (`hasVagueAddress`) lands on whatever sits at the town's centre, so it leads to the town
+ * by name instead of to its coordinates. A guessed point with no town has nowhere to lead: `null`.
+ */
+export const directionsTarget = <A extends DirectionsAddress>(
+  address: A | null | undefined,
+): { address: DirectionsAddress; town?: string } | null => {
+  if (!address) return null
+  if (!hasVagueAddress(address)) return { address }
+
+  const town = address.city?.trim()
+
+  return town ? { address: { city: town, country: address.country }, town } : null
+}
+
 /**
  * The street and the town as one line, naming the town once. Hosts often type the town, or its
  * postcode and town, into the street as well, which read "Sneek, Sneek" and "32 Cejl, 602 00,

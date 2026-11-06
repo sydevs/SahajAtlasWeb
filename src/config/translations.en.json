@@ -142,6 +142,7 @@
       "copy_phone": "Copy phone number %{phone}",
       "phone_copied": "Phone number copied",
       "directions": "Directions",
+      "directions_to": "Directions to %{place}",
       "download_ics": "Download .ics file",
       "email": "Email",
       "pause_slideshow": "Pause slideshow",

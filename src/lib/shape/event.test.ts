@@ -5,6 +5,7 @@ import { DateTime } from 'luxon'
 
 import {
   byNextOccurrence,
+  directionsTarget,
   eventTimeZone,
   hasVagueAddress,
   isOnline,
@@ -521,6 +522,29 @@ describe('hasVagueAddress', () => {
 
   it('has nothing to judge without an address', () => {
     expect(hasVagueAddress(undefined)).toBe(false)
+  })
+})
+
+describe('directionsTarget', () => {
+  const coords = { latitude: 53.03, longitude: 5.65 }
+
+  it('leads to the venue itself when the address is a real place', () => {
+    const address = { street: '16 Ramsden Rd', city: 'London', country: 'GB', ...coords }
+
+    expect(directionsTarget(address)).toEqual({ address })
+  })
+
+  // Sneek's stored point is the town centre's: a newcomer must not be routed to it.
+  it('leads to the town by name, without the guessed coordinates, and names it', () => {
+    expect(directionsTarget({ street: 'Sneek', city: 'Sneek', country: 'NL', ...coords })).toEqual({
+      address: { city: 'Sneek', country: 'NL' },
+      town: 'Sneek',
+    })
+  })
+
+  it('has nowhere to lead for a guessed point with no town', () => {
+    expect(directionsTarget({ street: 'TBA', country: 'NL', ...coords })).toBeNull()
+    expect(directionsTarget(null)).toBeNull()
   })
 })
 
