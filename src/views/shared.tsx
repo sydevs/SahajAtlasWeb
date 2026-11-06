@@ -231,9 +231,10 @@ export function CalendarButton({ regionSlug }: { regionSlug: string }) {
 }
 
 // PROTOTYPE `?mapButton=header`: the words stay and a long Back label shortens with "…" first.
-// Only on a row narrower than any phone's at 375px (18rem, a 336px screen) do the words go,
-// leaving the icons, each still named for screen readers. The Back row is the container.
-const HEADER_WORD = MAP_BUTTON === 'header' ? '@max-[18rem]:sr-only' : ''
+// Only on a row narrower than any phone's at 375px (288px, a 336px screen) do the words go,
+// leaving the icons, each still named for screen readers. The Back row is the container. In px,
+// like every length here: a container query's `rem` follows the host page's root font size.
+const HEADER_WORD = MAP_BUTTON === 'header' ? '@max-[288px]:sr-only' : ''
 
 /**
  * PROTOTYPE `?mapButton=header` (see `config/review-options`): the list-first view's map control
