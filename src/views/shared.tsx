@@ -6,7 +6,7 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useRef, use
 import { useLocation, useNavigationType, useSearchParams } from 'react-router'
 import { useTranslation } from 'react-i18next'
 import { useQuery, useSuspenseQuery } from '@tanstack/react-query'
-import { CalendarDays, Funnel, Search, X } from 'lucide-react'
+import { CalendarDays, Funnel, List, Search, X } from 'lucide-react'
 import clsx from 'clsx'
 
 import { Button } from '@/components/atoms/Button'
@@ -193,9 +193,8 @@ export function CloseButton({ className }: { className?: string }) {
 }
 
 // The calendar affordance for region headers (RegionView): opens the calendar pre-scoped to
-// this region (`/calendar?region=<slug>`). Visitors asked for it, so it stays beside the
-// filters even with the "Next 7 days" row in the list; with search and Back out of the icon
-// row, these two are what the header offers.
+// this region (`/calendar?region=<slug>`). It says so in words, "See calendar", and the
+// calendar answers with "See list", so the two read as one switch (Anton, 6 Nov).
 export function CalendarButton({ regionSlug }: { regionSlug: string }) {
   // `useSuspense: false` — also rendered by the fallback chrome (views/fallbacks.tsx).
   const { t } = useTranslation()
@@ -203,11 +202,30 @@ export function CalendarButton({ regionSlug }: { regionSlug: string }) {
 
   return (
     <Button
-      {...HEADER_CONTROL}
-      aria-label={t('calendar.title')}
+      className={HEADER_LAST_CONTROL}
+      size="sm"
+      variant="ghost"
       onClick={() => navigate(calendarPath(regionSlug))}
     >
-      <CalendarDays size={20} />
+      <CalendarDays size={18} />
+      {t('calendar.see_calendar')}
+    </Button>
+  )
+}
+
+/**
+ * The calendar's way back to the place's list: "See list", the other half of "See calendar". It
+ * goes the way Back does (`dismiss`), which from the calendar is the place it is scoped to, so
+ * flipping between the two never piles up history.
+ */
+export function SeeListButton() {
+  const { t } = useTranslation()
+  const { dismiss } = useDrawerControl()
+
+  return (
+    <Button size="sm" variant="ghost" onClick={dismiss}>
+      <List size={18} />
+      {t('calendar.see_list')}
     </Button>
   )
 }

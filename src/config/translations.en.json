@@ -11,6 +11,8 @@
     "none_match_filters": "No classes match your filters on these dates.",
     "pick_date": "Pick a date",
     "previous": "Previous",
+    "see_calendar": "See calendar",
+    "see_list": "See list",
     "share_title": "Meditation classes, %{dates}",
     "times_city": "Times are %{city} time.",
     "times_local": "Times are each class’s local time.",
