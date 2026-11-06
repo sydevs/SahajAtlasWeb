@@ -1,8 +1,9 @@
 import type { LucideIcon } from 'lucide-react'
 import type { ReactNode } from 'react'
 
+import { useEffect, useState } from 'react'
 import { tv } from 'tailwind-variants'
-import { CalendarDays, MapPin, Monitor } from 'lucide-react'
+import { CalendarDays, Check, Copy, MapPin, Monitor } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 
 import {
@@ -202,7 +203,14 @@ export function EventFacts({
     // share/registration summaries are triage and recap (#316).
     const room = variant === 'default' ? roomLine : null
     // The card stays short. Every other surface helps someone find the place.
-    const address = compact ? whereLineCard : whereLineFull
+    const fullAddress = compact ? whereLineCard : whereLineFull
+    // On the class page a tap copies the address, to paste into a maps app (Anton, 6 Nov).
+    const address =
+      variant === 'default' && !display.online && fullAddress ? (
+        <CopyAddress value={fullAddress} />
+      ) : (
+        fullAddress
+      )
 
     items.push({
       icon: display.online ? Monitor : MapPin,
@@ -275,5 +283,57 @@ export function EventFacts({
       {body}
       {children}
     </div>
+  )
+}
+
+/** How long "Address copied" stays before the address comes back. */
+const COPIED_MS = 2000
+
+/**
+ * The class page's address, which copies itself when tapped: one way people get directions is to
+ * paste it into Google Maps (Anton, 6 Nov). For two seconds the line says "Address copied" in its
+ * place, so nothing moves, and a screen reader hears it. A host page that blocks the clipboard
+ * leaves the line as it was: the address is still there to select.
+ */
+function CopyAddress({ value }: { value: string }) {
+  const { t } = useTranslation()
+  const [copied, setCopied] = useState(false)
+
+  useEffect(() => {
+    if (!copied) return
+    const timer = window.setTimeout(() => setCopied(false), COPIED_MS)
+
+    return () => window.clearTimeout(timer)
+  }, [copied])
+
+  const copy = () => {
+    navigator.clipboard
+      ?.writeText(value)
+      .then(() => setCopied(true))
+      .catch(() => {})
+  }
+
+  return (
+    <button
+      aria-label={t('event.actions.copy_address', { address: value })}
+      className="touch-target relative inline-flex items-center gap-1.5 text-start outline-none select-text focus-visible:ring-2 focus-visible:ring-focus"
+      type="button"
+      onClick={copy}
+    >
+      {copied ? (
+        <span className="inline-flex items-center gap-1.5 text-primary-11">
+          <Check aria-hidden size={16} />
+          {t('event.actions.address_copied')}
+        </span>
+      ) : (
+        <>
+          <span>{value}</span>
+          <Copy aria-hidden className="shrink-0 text-gray-9" size={14} />
+        </>
+      )}
+      <span aria-live="polite" className="sr-only">
+        {copied ? t('event.actions.address_copied') : ''}
+      </span>
+    </button>
   )
 }

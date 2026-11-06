@@ -27,14 +27,17 @@ describe('EventFacts — the room line (#316)', () => {
     const street = mockEvent.address?.street ?? ''
 
     expect(street).not.toBe('')
-    expect(html).toContain(`<div>${roomLine}</div><div>${street}`)
+    // The street is the copy-on-tap button's text (Anton, 6 Nov).
+    expect(html).toContain(`<div>${roomLine}</div><div><button`)
+    expect(html).toContain(`<span>${street}`)
   })
 
   it('hangs the pin from the first line when the room stacks it', () => {
     const stacked = renderToStaticMarkup(<EventFacts event={withRoom} />)
     const single = renderToStaticMarkup(<EventFacts event={mockEvent} />)
     // The location fact is the last item, so its alignment is the last one rendered.
-    const pinItem = (html: string) => [...html.matchAll(/items-(start|center)/g)].at(-1)?.[0]
+    const pinItem = (html: string) =>
+      [...html.matchAll(/class="flex gap-3 (items-(?:start|center))"/g)].at(-1)?.[1]
 
     expect(pinItem(stacked)).toBe('items-start')
     expect(pinItem(single)).toBe('items-center')

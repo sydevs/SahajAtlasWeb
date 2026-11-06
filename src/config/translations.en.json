@@ -127,6 +127,8 @@
       "calendar_other": "Other calendar (downloads a file)",
       "call": "Call",
       "contact": "Contact",
+      "copy_address": "Copy the address %{address}",
+      "address_copied": "Address copied",
       "directions": "Directions",
       "download_ics": "Download .ics file",
       "email": "Email",
