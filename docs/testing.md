@@ -513,10 +513,10 @@ nothing. ⚠ **The walker mark itself costs no selection**: since #293 `selectFr
 the walkers to every edit, but it still selects one that names the edited module, so a walker runs
 per edit like any other spec. `lane.walkers` is a register, read only by the closed-list pin.
 
-⚠ **The scopes did not merge, and must not** — the eleven cover seven different file sets, and
+⚠ **The scopes did not merge, and must not** — the twelve cover seven different file sets, and
 `source-tree.ts`'s own docblock owns that rule. Each spec passes its own `sourceFiles({…})`
 options beside the assertions they serve, and `source-tree.test.ts` pins every option as biting
-in both directions, because a scope that silently stopped matching would make all eleven closed
+in both directions, because a scope that silently stopped matching would make all twelve closed
 lists pass by vacuum.
 
 **This is one walk implementation, not fewer walks.** Vitest gives each spec file its own module

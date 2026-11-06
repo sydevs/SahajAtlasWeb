@@ -255,8 +255,10 @@ It's maintenance with no payoff.
 ## Previews (Ladle)
 
 Every **atom, molecule, and non-map organism** has a co-located
-`<Name>.stories.tsx` — the one exception is `EventMetadata`, which renders only
-`<head>` tags and so has no story. Each story is a single consolidated `Default`
+`<Name>.stories.tsx`. The two exceptions render nothing a preview can show:
+`EventMetadata` (only `<head>` tags) and `ResultCountStatus` (only a visually hidden
+live region). `src/components/stories.test.ts` holds that list, so a new component
+folder without a story fails the unit lane. Each story is a single consolidated `Default`
 story built from the shared
 `StoryWrapper` / `StorySection` / `StoryGrid` helpers in
 [`src/components/ladle/`](src/components/ladle/), kept in **parity with
