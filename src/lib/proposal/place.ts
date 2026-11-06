@@ -34,8 +34,8 @@ export type PickedPlace = {
   location: ProposalLocation
   /**
    * Typed in by hand, because the search did not know it: no map point and no layers, so the
-   * coordinator places it — and since no Events field carries a free-text place, the place
-   * travels in the note the coordinator reads (`manualPlaceLine`).
+   * admins place it — and since no Events field carries a free-text place, the place
+   * travels in the note the admins read (`manualPlaceLine`).
    */
   manual?: true
   /** The country as the visitor typed it, for a hand-typed place with no country from the flow. */

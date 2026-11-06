@@ -21,7 +21,7 @@ export type NearbyClass = { id: number; title: string; correctPath: string }
 
 /**
  * Classes already on the map at the place a new listing just picked, so the flow can ask "is it
- * one of these?" before a duplicate reaches a coordinator. Reads the feed and titles the map
+ * one of these?" before a duplicate reaches the admins. Reads the feed and titles the map
  * already loaded; the titles are fetched only when a class is that close.
  */
 export function useNearbyClasses(place: PickedPlace | null, skipId?: number): NearbyClass[] {

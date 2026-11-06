@@ -101,7 +101,7 @@ export const emptyDraft = (timeZone: string, languages: string[] = []): ListingD
 export const draftPlace = (draft: ListingDraft): PickedPlace | null =>
   draft.eventType === 'online' ? draft.city : draft.address
 
-/** The typed-in place, when there is one, for the coordinator's note — its only way to them. */
+/** The typed-in place, when there is one, for the admins' note — its only way to them. */
 export const manualPlace = (draft: ListingDraft): PickedPlace | null => {
   const place = draftPlace(draft)
 

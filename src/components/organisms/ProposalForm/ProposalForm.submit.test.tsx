@@ -445,7 +445,7 @@ describe('ProposalForm steps', () => {
 })
 
 describe('a place typed in by hand', () => {
-  it('reaches the coordinator in the note, since no Events field carries it', async () => {
+  it('reaches the admins in the note, since no Events field carries it', async () => {
     sdk.request.mockResolvedValue({ json: async () => ({ doc: { id: 12 } }) })
 
     const typed: ListingDraft = {

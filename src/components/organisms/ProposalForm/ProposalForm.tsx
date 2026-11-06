@@ -580,7 +580,7 @@ function ReviewStage({
             ? t('submit.note.nobody_default_on', { date: longDate(nobodyOn, locale) })
             : t('submit.note.nobody_default')),
         typed && t('submit.note.manual_place', { place: typed.label }),
-        // Proposals may not set the registration fields, so the coordinator is asked to.
+        // Proposals may not set the registration fields, so the admins are asked to.
         draft.signup === 'elsewhere' && t('submit.note.signup_elsewhere'),
         sender.note.trim(),
       ]

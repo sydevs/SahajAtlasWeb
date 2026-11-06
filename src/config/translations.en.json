@@ -436,12 +436,12 @@
       "heading_report": "Report sent",
       "email_line": "If they have a question, they can reach you at %{email}.",
       "back": "Back to the map",
-      "body_check": "A coordinator for %{city} will check it before it appears on the map.",
-      "body_check_no_city": "A coordinator will check it before it appears on the map.",
-      "body_correct": "A coordinator for %{city} will check it before anything changes on the listing.",
-      "body_correct_no_city": "A coordinator will check it before anything changes on the listing.",
-      "body_report": "A coordinator for %{city} will read your report. It doesn’t change the listing.",
-      "body_report_no_city": "A coordinator will read your report. It doesn’t change the listing."
+      "body_check": "The admins who look after classes in %{city} will check it before it appears on the map.",
+      "body_check_no_city": "Our admins will check it before it appears on the map.",
+      "body_correct": "The admins who look after classes in %{city} will check it before anything changes on the listing.",
+      "body_correct_no_city": "Our admins will check it before anything changes on the listing.",
+      "body_report": "The admins who look after classes in %{city} will read your report. It doesn’t change the listing.",
+      "body_report_no_city": "Our admins will read your report. It doesn’t change the listing."
     },
     "errors": {
       "address_required": "Choose an address from the search results.",
@@ -470,17 +470,17 @@
     "review": {
       "edit": "Edit",
       "no_changes": "Change at least one detail before submitting.",
-      "note_label": "Note for the coordinator (optional)",
+      "note_label": "Note for our admins (optional)",
       "title": "Check your listing",
       "you_title": "About you",
       "not_given": "Not given",
       "no_description": "No description yet",
       "email_private": "Your email (not shown)",
       "send": "Send for review",
-      "intro": "Make sure everything is right, then add your email at the bottom and send. A coordinator checks it before it goes on the map.",
+      "intro": "Make sure everything is right, then add your email at the bottom and send. Our admins check it before it goes on the map.",
       "left_out": "Not added: %{parts}.",
       "add": "Add",
-      "email_help_private": "Only the coordinator sees it, in case they have a question.",
+      "email_help_private": "Only the admins who look after classes here see it, in case they have a question.",
       "online_line": "Online, hosted from %{city}",
       "to_email": "Continue to your email",
       "checking": "You can send once the security check above is done."
@@ -516,7 +516,7 @@
     },
     "where": {
       "address_placeholder": "Search for the address",
-      "city_help": "The city the class is hosted from, so the right coordinator reviews it.",
+      "city_help": "The city the class is hosted from, so the right admins review it.",
       "city_label": "City",
       "city_placeholder": "Search for a city",
       "offline": "In person",
@@ -536,7 +536,7 @@
       "venue_label": "Address of the venue",
       "manual_toggle": "Can’t find it? Type the address instead",
       "manual_back": "Search for the address instead",
-      "manual_note": "The coordinator will put it on the map for you.",
+      "manual_note": "Our admins will put it on the map for you.",
       "manual_street": "Street and number",
       "manual_city": "Town or city",
       "manual_postcode": "Postcode",
@@ -564,7 +564,7 @@
     },
     "fix": {
       "title": "What needs fixing?",
-      "intro": "Anyone who knows the class can suggest a correction. A coordinator checks it before anything changes.",
+      "intro": "Anyone who knows the class can suggest a correction. Our admins check it before anything changes.",
       "when": "The day or time changed",
       "where": "It moved to a new place",
       "details": "Contact or other details are wrong",
@@ -574,12 +574,12 @@
     },
     "note": {
       "stopped_title": "It has stopped running",
-      "stopped_intro": "Thanks for letting us know. A coordinator will check it before anything changes.",
+      "stopped_intro": "Thanks for letting us know. Our admins will check it before anything changes.",
       "stopped_label": "What do you know? (optional)",
       "stopped_placeholder": "For example: the centre told me the last class was in September.",
       "stopped_default": "This class seems to have stopped running.",
       "other_title": "What’s wrong?",
-      "other_label": "Tell the coordinator",
+      "other_label": "Tell our admins",
       "other_placeholder": "What’s wrong, and what should it say instead?",
       "other_required": "Write a few words about what’s wrong.",
       "manual_place": "Typed in by hand (not found on the map): %{place}",
@@ -589,7 +589,7 @@
       "last_date": "Last class",
       "signup_elsewhere": "Sign-ups for this class happen on another site. The link is in the Website field. Please set this class to external registration.",
       "nobody_title": "You went and nobody was there",
-      "nobody_intro": "Sorry about the wasted trip. This goes to the coordinator, who can check with the host.",
+      "nobody_intro": "Sorry about the wasted trip. This goes to our admins, who can check with the host.",
       "nobody_date": "When did you go? (optional)",
       "nobody_placeholder": "For example: the door was locked and the room was dark.",
       "nobody_default": "Someone went to this class and found nobody there.",
@@ -597,7 +597,7 @@
     },
     "changes": {
       "title": "Check your suggestion",
-      "intro": "Only these changes are sent. Nothing changes until a coordinator approves it.",
+      "intro": "Only these changes are sent. Nothing changes until our admins approve it.",
       "full_listing": "See the whole listing",
       "stopped": "Has stopped running",
       "removed": "Removed",
@@ -611,12 +611,12 @@
       "report_remove": "Remove this report",
       "report_last": "Last class: %{date}",
       "report_last_unknown": "Last class: not known",
-      "report_info": "Information for the coordinator",
+      "report_info": "Information for our admins",
       "remove": "Remove",
       "nobody": "Nobody was there",
       "nobody_on": "On %{date}",
       "title_report": "Check your report",
-      "intro_report": "The coordinator reads this. It doesn’t change the listing."
+      "intro_report": "Our admins read this. It doesn’t change the listing."
     },
     "summary": {
       "type": "Type",
@@ -628,7 +628,7 @@
       "address": "Address",
       "contact": "Contact",
       "manual": "On the map",
-      "manual_value": "Not found by the search — sent in your note so the coordinator can place it.",
+      "manual_value": "Not found by the search — sent in your note so our admins can place it.",
       "venue": "Building"
     },
     "signup": {
@@ -636,7 +636,7 @@
       "here": "On the class’s page",
       "here_hint": "People fill in a short form there.",
       "elsewhere": "On Meetup or another site",
-      "elsewhere_hint": "We’ll ask the coordinator to link the button to your page.",
+      "elsewhere_hint": "We’ll ask our admins to link the button to your page.",
       "link_label": "Link to sign up",
       "link_help": "Your Meetup page, for example. It goes here rather than in the description."
     },

@@ -58,7 +58,7 @@ export function FixStep({ onPick }: { onPick: (intent: FixIntent) => void }) {
 
 /**
  * What a visitor knows when there is no field to change: the class has stopped, or something
- * else is wrong. It is the note the coordinator reads, so it is the whole report. A stopped
+ * else is wrong. It is the note the admins read, so it is the whole report. A stopped
  * repeating class is asked for its last date too — and "I'm not sure" is a full answer: the
  * person who found a locked door rarely knows when the last class was.
  */
