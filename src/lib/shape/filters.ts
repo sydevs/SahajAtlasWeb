@@ -26,18 +26,20 @@ export type EventFormat = 'any' | EventType
 export type EventCadence = 'any' | 'once' | 'DAILY' | 'WEEKLY' | 'MONTHLY'
 
 /**
- * The three named times of day the filter selects, in day order. There is no Night: classes are
- * never held then (Anton, 6 Nov). Evening runs on to midnight, so a late class still has an option.
+ * The three named times of day the filter selects, in day order. There is no Night (Anton, 6 Nov),
+ * so the three cover the whole day between them and every class falls in exactly one: Morning
+ * starts at midnight, and Evening runs on to it.
  */
 export type TimePeriod = 'morning' | 'afternoon' | 'evening'
 export const TIME_PERIODS = ['morning', 'afternoon', 'evening'] as const
 
 // Each period's local-hour half-open interval(s), `[start, end)`. Evening takes the hours Night
-// used to (21-24), so a 21:30 class still counts. Nothing is held between midnight and 6.
+// used to (21-24), and Morning the small hours (0-6): an online class is read on the viewer's
+// clock, so a 7 pm class in Toronto starts at 2 am in Prague and needs an option too.
 // `matchesFilters` tests an occurrence's start hour against these. `timePeriodRanges` coalesces
 // them for display.
 export const TIME_PERIOD_HOURS: Record<TimePeriod, readonly (readonly [number, number])[]> = {
-  morning: [[6, 12]],
+  morning: [[0, 12]],
   afternoon: [[12, 17]],
   evening: [[17, 24]],
 }

@@ -274,25 +274,27 @@ describe('computeDayBoundaries', () => {
   })
 
   it('spans a single selected period, ignoring the events', () => {
-    expect(computeDayBoundaries([], ['morning'])).toEqual({ start: '06:00', end: '12:00' })
+    // Morning starts at midnight, so a class in the small hours is still in the frame.
+    expect(computeDayBoundaries([], ['morning'])).toEqual({ start: '00:00', end: '12:00' })
   })
 
   it('spans multiple non-wrapping periods from earliest to latest', () => {
-    expect(computeDayBoundaries([], ['morning', 'evening'])).toEqual({
-      start: '06:00',
+    expect(computeDayBoundaries([], ['afternoon', 'evening'])).toEqual({
+      start: '12:00',
       end: '24:00',
     })
+  })
+
+  it('leaves the frame to Schedule-X when the periods wrap past midnight', () => {
+    expect(computeDayBoundaries([], ['morning', 'evening'])).toBeUndefined()
   })
 
   it('frames evening up to midnight', () => {
     expect(computeDayBoundaries([], ['evening'])).toEqual({ start: '17:00', end: '24:00' })
   })
 
-  it('frames 6 to midnight when all three periods are selected', () => {
-    expect(computeDayBoundaries([], ['morning', 'afternoon', 'evening'])).toEqual({
-      start: '06:00',
-      end: '24:00',
-    })
+  it('leaves the whole day to Schedule-X when all three periods are selected', () => {
+    expect(computeDayBoundaries([], ['morning', 'afternoon', 'evening'])).toBeUndefined()
   })
 })
 

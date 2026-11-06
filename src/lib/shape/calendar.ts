@@ -215,7 +215,11 @@ export const computeDayBoundaries = (
   if (timeOfDay.length > 0) {
     const ranges = timePeriodRanges(timeOfDay)
 
-    if (ranges.length === 1) return { start: hhmm(ranges[0][0]), end: hhmm(ranges[0][1]) }
+    // A range that wraps past midnight (morning with evening) would make Schedule-X start each day
+    // at 17:00, moving a 7 am class into the day before.
+    if (ranges.length === 1 && ranges[0][0] < ranges[0][1]) {
+      return { start: hhmm(ranges[0][0]), end: hhmm(ranges[0][1]) }
+    }
     if (ranges.length > 1 && !ranges.some(([s, e]) => s > e)) {
       return {
         start: hhmm(Math.min(...ranges.map(([s]) => s))),

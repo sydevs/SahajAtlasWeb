@@ -10,6 +10,7 @@ import {
   filtersToParams,
   hasActiveFilters,
   matchesFilters,
+  TIME_PERIODS,
   timePeriodRanges,
   withoutFilter,
   type EventFilters,
@@ -147,7 +148,7 @@ describe('matchesFilters — time of day (selected periods, in the event zone)',
   })
 
   it('treats period boundaries as half-open [start, end)', () => {
-    // 12:00 belongs to afternoon [12,17), not morning [6,12).
+    // 12:00 belongs to afternoon [12,17), not morning [0,12).
     expect(matchesFilters(withHour('12:00'), withFilters({ timeOfDay: ['afternoon'] }))).toBe(true)
     expect(matchesFilters(withHour('12:00'), withFilters({ timeOfDay: ['morning'] }))).toBe(false)
   })
@@ -155,10 +156,24 @@ describe('matchesFilters — time of day (selected periods, in the event zone)',
   it('lets evening run to midnight, so a late class still matches with no Night option', () => {
     expect(matchesFilters(withHour('21:30'), withFilters({ timeOfDay: ['evening'] }))).toBe(true)
     expect(matchesFilters(withHour('23:00'), withFilters({ timeOfDay: ['evening'] }))).toBe(true)
-    // Nothing is held between midnight and 6, so no option claims those hours.
-    expect(
-      matchesFilters(withHour('03:00'), withFilters({ timeOfDay: ['morning', 'evening'] })),
-    ).toBe(false)
+  })
+
+  it('starts morning at midnight, so a class in the small hours still has an option', () => {
+    // An online class read on the viewer's clock: 7 pm in Toronto is 2 am in Prague.
+    expect(matchesFilters(withHour('02:00'), withFilters({ timeOfDay: ['morning'] }))).toBe(true)
+    expect(matchesFilters(withHour('00:00'), withFilters({ timeOfDay: ['morning'] }))).toBe(true)
+    expect(matchesFilters(withHour('02:00'), withFilters({ timeOfDay: ['evening'] }))).toBe(false)
+  })
+
+  it('puts every start time of the day in exactly one period, so the counts add up', () => {
+    for (let minutes = 0; minutes < 24 * 60; minutes += 15) {
+      const hour = `${String(Math.floor(minutes / 60)).padStart(2, '0')}:${String(minutes % 60).padStart(2, '0')}`
+      const periods = TIME_PERIODS.filter((period) =>
+        matchesFilters(withHour(hour), withFilters({ timeOfDay: [period] })),
+      )
+
+      expect(periods, hour).toHaveLength(1)
+    }
   })
 
   it('falls back to UTC when the event has no timezone', () => {
@@ -506,20 +521,20 @@ describe('timePeriodRanges', () => {
     expect(timePeriodRanges([])).toEqual([])
   })
 
-  it('runs from 6 to midnight when all three are selected', () => {
-    expect(timePeriodRanges(['morning', 'afternoon', 'evening'])).toEqual([[6, 24]])
+  it('is empty when all three are selected, since they cover the whole day', () => {
+    expect(timePeriodRanges(['morning', 'afternoon', 'evening'])).toEqual([])
   })
 
-  it('gives one range per non-adjacent period', () => {
-    expect(timePeriodRanges(['morning'])).toEqual([[6, 12]])
-    expect(timePeriodRanges(['morning', 'evening'])).toEqual([
-      [6, 12],
-      [17, 24],
-    ])
+  it('runs morning from midnight to noon', () => {
+    expect(timePeriodRanges(['morning'])).toEqual([[0, 12]])
+  })
+
+  it('fuses evening and morning into one range across midnight', () => {
+    expect(timePeriodRanges(['morning', 'evening'])).toEqual([[17, 12]])
   })
 
   it('fuses adjacent periods into one range', () => {
-    expect(timePeriodRanges(['morning', 'afternoon'])).toEqual([[6, 17]])
+    expect(timePeriodRanges(['morning', 'afternoon'])).toEqual([[0, 17]])
   })
 
   it('runs evening, alone or fused with afternoon, to midnight', () => {
