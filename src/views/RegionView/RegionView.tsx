@@ -29,7 +29,7 @@ import { useWidgetMode } from '@/config/mode'
 import { centerOfBounds } from '@/lib/geo'
 import {
   DEFAULT_FILTERS,
-  FOREIGN_NEARBY_KM,
+  BORDER_NEARBY_KM,
   boundsWith,
   cameUpFrom,
   childRoute,
@@ -281,7 +281,7 @@ function AcrossBorder({ region }: { region: Region }) {
         if (!code || code === region.countryCode) return []
         const km = distanceToNearest(point, own) ?? Infinity
 
-        return km <= FOREIGN_NEARBY_KM ? [{ event, km }] : []
+        return km <= BORDER_NEARBY_KM ? [{ event, km }] : []
       })
       .sort((a, b) => a.km - b.km)
       .map(({ event }) => event)

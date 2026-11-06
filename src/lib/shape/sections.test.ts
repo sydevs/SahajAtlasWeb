@@ -43,9 +43,11 @@ describe('parseBounds', () => {
 })
 
 describe('splitResults', () => {
-  const liberec = inPerson(3, 15.06, 50.77, 88)
-  const jihlava = inPerson(4, 15.59, 49.4, 113)
-  const brno = inPerson(5, 16.61, 49.2, 187)
+  // A town search measures each class from the searched place (its `distance`), against the 25 km
+  // nearby cut. These sit outside the Prague box; their distances are set for the cut.
+  const north = inPerson(3, 14.47, 50.35, 8)
+  const east = inPerson(4, 14.95, 50.1, 15)
+  const south = inPerson(5, 14.4, 49.8, 22)
   const lipanska = inPerson(1, 14.45, 50.08, 2)
 
   it('splits a town search into here, nearby, online and distant', () => {
@@ -55,7 +57,7 @@ describe('splitResults', () => {
       nearby,
       online: remote,
       distant,
-    } = splitResults([brno, online(9), lipanska, paris, jihlava, liberec], {
+    } = splitResults([south, online(9), lipanska, paris, east, north], {
       bbox: PRAGUE,
       searchCountry: 'CZ',
     })
@@ -68,7 +70,7 @@ describe('splitResults', () => {
   })
 
   it('keeps the incoming order when the visitor asked for Soonest', () => {
-    const { nearby } = splitResults([brno, liberec], {
+    const { nearby } = splitResults([south, north], {
       bbox: PRAGUE,
       searchCountry: 'CZ',
       keepOrder: true,
@@ -78,8 +80,9 @@ describe('splitResults', () => {
   })
 
   it('holds a class across a border to the shorter limit', () => {
-    const close = inPerson(7, 16.37, 48.2, 149, 'AT')
-    const far = inPerson(8, 13.04, 47.8, 280, 'AT')
+    // Across the border the cut is half (12.5 km): 12 km is near, 20 km is not.
+    const close = inPerson(7, 14.85, 49.75, 12, 'AT')
+    const far = inPerson(8, 14.9, 49.7, 20, 'AT')
     const { nearby, distant } = splitResults([close, far], { bbox: PRAGUE, searchCountry: 'CZ' })
 
     expect(ids(nearby)).toEqual([7])
@@ -87,7 +90,7 @@ describe('splitResults', () => {
   })
 
   it('keeps a class inside the box out of "here" when it is in another country', () => {
-    const dresden = inPerson(10, 14.1, 50.0, 25, 'DE')
+    const dresden = inPerson(10, 14.1, 50.0, 10, 'DE')
     const { here, nearby } = splitResults([dresden], { bbox: PRAGUE, searchCountry: 'CZ' })
 
     expect(here).toEqual([])
@@ -104,9 +107,9 @@ describe('splitResults', () => {
   it('measures a whole country from its own classes, not its middle', () => {
     // Inside the box and 300+ km from the middle, which the old cut would have called distant.
     const ostrava = inPerson(12, 18.26, 49.82, 210)
-    // In Slovakia, about 80 km from Ostrava.
-    const zilina = inPerson(13, 18.9, 49.2, 260, 'SK')
-    const { here, nearby, distant } = splitResults([ostrava, zilina], {
+    // Just over the border in Poland, about 8 km from Ostrava: inside the half cut for a neighbour.
+    const acrossBorder = inPerson(13, 18.36, 49.86, 260, 'PL')
+    const { here, nearby, distant } = splitResults([ostrava, acrossBorder], {
       bbox: CZECHIA,
       searchCountry: 'CZ',
     })
@@ -131,7 +134,7 @@ describe('splitResults', () => {
 
   it('treats a street search as a short radius', () => {
     const close = inPerson(14, -0.15, 51.55, 6, 'GB')
-    const far = inPerson(15, -0.3, 51.7, 30, 'GB')
+    const far = inPerson(15, -0.3, 51.7, 18, 'GB')
     const { size, here, nearby } = splitResults([close, far], {
       bbox: [-0.1879, 51.5517, -0.1583, 51.5722],
       searchCountry: 'GB',

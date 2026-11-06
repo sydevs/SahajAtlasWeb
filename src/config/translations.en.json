@@ -255,7 +255,7 @@
       "near_me": "Near me",
       "online_route": "Online classes, from anywhere",
       "placeholder": "Town or city",
-      "scope": "%{near} within %{km} km, plus %{online} online"
+      "scope": "%{near} within %{distance}, plus %{online} online"
     }
   },
   "location": {

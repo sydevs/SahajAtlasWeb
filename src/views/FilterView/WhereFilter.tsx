@@ -12,6 +12,9 @@ import { useWidgetMode } from '@/config/mode'
 import { GEOJSON_STALE_TIME } from '@/config/query-client'
 import { useNearMeState } from '@/config/store'
 import { useNearMe } from '@/hooks/use-near-me'
+import { useLocale } from '@/hooks/use-locale'
+import { formatDistance } from '@/lib'
+import { regionalLocale } from '@/lib/time'
 import { overlayContainer } from '@/lib/overlay'
 import { NEARBY_KM, type PlaceSearch, parseCenter } from '@/lib/shape'
 import { SearchField } from '@/views/shared'
@@ -48,6 +51,7 @@ export function WhereFilter({
   counts,
 }: WhereFilterProps) {
   const { t } = useTranslation()
+  const { locale } = useLocale()
   const [searchParams] = useSearchParams()
   const { hasMap } = useWidgetMode()
   const nearCenter = useNearMeState((s) => s.center)
@@ -128,7 +132,7 @@ export function WhereFilter({
         <p className="text-sm text-gray-11">
           {t('filters.where.scope', {
             near: counts.inPerson,
-            km: NEARBY_KM,
+            distance: formatDistance(NEARBY_KM, regionalLocale(locale)),
             online: counts.online,
           })}
         </p>
