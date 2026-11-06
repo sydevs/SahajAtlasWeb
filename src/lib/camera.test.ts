@@ -1,6 +1,12 @@
 import { describe, it, expect } from 'vitest'
 
-import { eventFrameZoom, fitBoundsOptions, isWithinPaddedViewport, worldViewCamera } from './camera'
+import {
+  eventFrameZoom,
+  fitBoundsOptions,
+  isWithinPaddedViewport,
+  sheetInset,
+  worldViewCamera,
+} from './camera'
 
 // Pure camera-move decisions — the controller owns the zoom values and applies the
 // action; live projection/easing is a browser concern, not asserted here.
@@ -214,5 +220,20 @@ describe('worldViewCamera', () => {
 
   it('leaves a map with no size to Mapbox', () => {
     expect(worldViewCamera({ width: 0, height: 0 }, {}, world)).toEqual({ center: world, zoom: 0 })
+  })
+})
+
+describe('sheetInset', () => {
+  it('reserves the sheet height when the map keeps its strip', () => {
+    expect(sheetInset(560, 844, 216)).toBe(560)
+  })
+
+  it('caps a tall sheet so the fit keeps a strip of map above it', () => {
+    // The UK filters at 390x844 open about 704px tall: uncapped, Mapbox refuses the fit.
+    expect(sheetInset(704, 844, 216)).toBe(628)
+  })
+
+  it('never goes negative on a frame shorter than the strip', () => {
+    expect(sheetInset(300, 200, 216)).toBe(0)
   })
 })

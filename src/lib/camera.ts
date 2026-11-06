@@ -134,3 +134,12 @@ export const worldViewCamera = (
     zoom: Math.log2(worldPx / WORLD_PX_AT_ZOOM_0),
   }
 }
+
+/**
+ * The bottom inset a phone sheet takes from the camera: the sheet's height, but never so much
+ * that less than `minStripPx` of map is left above it. Mapbox refuses a `fitBounds` whose
+ * padding leaves no room, so a sheet as tall as the screen (the filters at their fullest) still
+ * leaves the fit a strip to work in.
+ */
+export const sheetInset = (sheetPx: number, viewportHeight: number, minStripPx: number) =>
+  Math.max(0, Math.min(sheetPx, viewportHeight - minStripPx))

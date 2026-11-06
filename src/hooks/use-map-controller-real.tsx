@@ -10,7 +10,7 @@ import { useMapbox, usePaddingState } from '@/hooks/use-mapbox'
 import { FILTER_PANEL_PX, SEARCH_SHEET_PX } from '@/config/responsive'
 import { useClassSheet, useFilterPanelState, useViewState } from '@/config/store'
 import { useIsWide } from '@/config/responsive'
-import { eventFrameZoom, worldViewCamera } from '@/lib/camera'
+import { eventFrameZoom, sheetInset, worldViewCamera } from '@/lib/camera'
 import { hasVagueAddress, isOnline } from '@/lib/shape'
 import { frameElement } from '@/lib/overlay'
 
@@ -60,6 +60,9 @@ const EVENT_ZOOM = 15
 const REGION_MAX_ZOOM = 13
 const AREA_MAX_ZOOM = 11.5
 const REGION_FIT_PADDING = 48
+// The least map a phone sheet leaves above itself for the camera: room for a region fit with its
+// edge padding. The filters sheet can open nearly as tall as the screen.
+const MIN_STRIP_PX = MAP_MARGIN * 2 + REGION_FIT_PADDING * 2 + MIN_FIT_PX
 // An online event has only an approximate location.
 // This frames it wide, at city or area level, when a deep link makes it the session entry point.
 const ONLINE_ZOOM = 7
@@ -130,8 +133,11 @@ export function RealMapControllerProvider({ children }: { children: ReactNode })
       left: MAP_MARGIN + (isWide ? DRAWER_W_PX : 0),
       right: MAP_MARGIN + (filterPanelUp ? FILTER_PANEL_PX : 0),
       top: MAP_MARGIN,
-      // A class's sheet is taller than the usual allowance, and its pin must show above it.
-      bottom: MAP_MARGIN + (isWide ? 0 : (sheetBottom ?? sheet)),
+      // A class's sheet, and the filters' (as tall as their content), are taller than the usual
+      // allowance, and the place they frame must show above them.
+      bottom:
+        MAP_MARGIN +
+        (isWide ? 0 : sheetInset(sheetBottom ?? sheet, window.innerHeight, MIN_STRIP_PX)),
     })
   }, [isWide, filterPanelUp, sheetBottom, setPadding])
 
@@ -197,10 +203,12 @@ export function RealMapControllerProvider({ children }: { children: ReactNode })
           // A phone's search sheet opens taller than the peek this camera usually allows for, so
           // the fit reserves its real height: no pin ends up behind it. On a short frame it keeps
           // a strip of map for the pins, because Mapbox refuses a fit its padding leaves no room for.
+          // It reads the padding it adds to, which the filters' taller sheet may already have grown.
           const height = mapbox?.getContainer().clientHeight ?? 0
-          const room =
-            height - MAP_MARGIN * 2 - MOBILE_SHEET_PX - REGION_FIT_PADDING * 2 - MIN_FIT_PX
-          const bottom = isWide ? 0 : Math.max(0, Math.min(SEARCH_SHEET_PX - MOBILE_SHEET_PX, room))
+          const { top = MAP_MARGIN, bottom: ambient = MAP_MARGIN } = padding
+          const room = height - top - ambient - REGION_FIT_PADDING * 2 - MIN_FIT_PX
+          const sheetNow = ambient - MAP_MARGIN
+          const bottom = isWide ? 0 : Math.max(0, Math.min(SEARCH_SHEET_PX - sheetNow, room))
 
           fitBounds(bbox, { maxZoom: REGION_MAX_ZOOM, padding: REGION_FIT_PADDING, bottom })
         } else if (center) flyTo(center, EVENT_ZOOM)
