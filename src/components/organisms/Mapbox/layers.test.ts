@@ -106,14 +106,17 @@ describe('clusterLayer', () => {
   })
 })
 
-// The stock pair: a white bold count on the stock green disc. 3:1 is the bar for
-// bold text this size; the old Studio green measured 2.4:1.
+// The stock pair: a white count on the stock green disc. 12px bold is normal text — large
+// text starts at 14pt (18.7px) bold — so the bar is 4.5:1, not 3:1. The old Studio green
+// measured 2.4:1, and the first warm green 3.3:1.
 it('keeps the stock count readable on the stock green disc', () => {
+  expect(clusterLayer({}, 'light').layout).toMatchObject({ 'text-size': 12 })
+
   for (const mode of ['light', 'dark'] as const) {
     const { fill } = markerColors({}, mode)[MARKER_IDS.cluster]
     const label = paintOf(clusterLayer({}, mode))['text-color'] as string
 
-    expect(colord(fill).contrast(label)).toBeGreaterThanOrEqual(3)
+    expect(colord(fill).contrast(label)).toBeGreaterThanOrEqual(4.5)
   }
 })
 

@@ -24,7 +24,7 @@ const STOCK = {
   [MARKER_IDS.cluster]: {
     width: 38,
     height: 38,
-    svg: '<svg xmlns="http://www.w3.org/2000/svg" width="76" height="76" viewBox="0 0 38 38"><circle cx="19" cy="19" r="19" fill="#9ED8C2" opacity="0.706"/>\n  <circle cx="19" cy="19" r="13.8" fill="#2E9E78"/></svg>',
+    svg: '<svg xmlns="http://www.w3.org/2000/svg" width="76" height="76" viewBox="0 0 38 38"><circle cx="19" cy="19" r="19" fill="#9ED8C2" opacity="0.706"/>\n  <circle cx="19" cy="19" r="13.8" fill="#268264"/></svg>',
   },
   [MARKER_IDS.clusterSelected]: {
     width: 38,

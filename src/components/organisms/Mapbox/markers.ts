@@ -26,10 +26,10 @@ import {
 // (round 2 — Anton liked the original green and asked for it back), and coral for
 // the selected one, the We Meditate app's contrast colour.
 //
-// The cluster disc is one step deeper than the Studio art's `#37BB92`, which put
-// its white count at 2.4:1. `#2E9E78` measures 3.3:1 with white: a bold 12px+
-// count is large enough for the 3:1 bar, and the disc still reads as the bright
-// green. The pin follows it closely so a pin and a cluster read as one family.
+// The cluster disc is deeper than the Studio art's `#37BB92`, which put its white
+// count at 2.4:1. The count is 12px bold, which is normal text, not large, so it
+// needs 4.5:1: `#268264` is the same hue and saturation as the pin, 9 points darker,
+// and measures 4.7:1 with white. The pin keeps the brighter green — it carries no text.
 //
 // ⚠ These are what an embed with no tenant seed renders, in BOTH modes, and
 // `markerColors` below must keep returning them unchanged for that case.
@@ -40,7 +40,7 @@ import {
 // supplied, none of the derivation runs.
 const POINT_FILL = '#30A47D'
 const POINT_SELECTED_FILL = '#E0775C'
-const CLUSTER_FILL = '#2E9E78'
+const CLUSTER_FILL = '#268264'
 const CLUSTER_RING = '#9ED8C2'
 const CLUSTER_SELECTED_FILL = '#DD785D'
 const CLUSTER_SELECTED_RING = '#F4B9A6'
