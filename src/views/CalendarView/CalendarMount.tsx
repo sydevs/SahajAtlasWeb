@@ -11,6 +11,7 @@ export type CalendarRowEntry = {
   calendarId?: string
   start: string
   end: string
+  zone?: string
 }
 export type CalendarRowRenderer = (host: HTMLElement, entry: CalendarRowEntry) => void
 /** What fills Schedule-X's row and cell slots, which hand over an element to write into. */

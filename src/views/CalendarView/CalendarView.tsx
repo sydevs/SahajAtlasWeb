@@ -1,4 +1,4 @@
-import { Suspense, useMemo, useRef, useState } from 'react'
+import { type CSSProperties, Suspense, useMemo, useRef, useState } from 'react'
 import { useQuery, useSuspenseQuery } from '@tanstack/react-query'
 import { useSearchParams } from 'react-router'
 import { useTranslation } from 'react-i18next'
@@ -28,7 +28,12 @@ import { useEventFilters, useSetFilters } from '@/hooks/use-filters'
 import { useLocale } from '@/hooks/use-locale'
 import { useMapController } from '@/hooks/use-map-controller'
 import { useWebShare } from '@/hooks/use-web-share'
-import { regionalLocale, scheduleXLocale, scheduleXTranslationKey } from '@/lib/time'
+import {
+  formatTimeRange,
+  regionalLocale,
+  scheduleXLocale,
+  scheduleXTranslationKey,
+} from '@/lib/time'
 import { useTheme } from '@/hooks/use-theme'
 import {
   CALENDAR_VIEW_LIST,
@@ -84,10 +89,10 @@ const CALENDARS = {
 
 // Plain DOM, since Schedule-X hands these an element rather than rendering a component.
 const calendarRenderers = (locale: string): CalendarRenderers => {
-  const time = (wallClock: string) =>
-    DateTime.fromFormat(wallClock, 'yyyy-MM-dd HH:mm')
-      .setLocale(locale)
-      .toLocaleString(DateTime.TIME_SIMPLE)
+  // Through `formatTimeRange`, like the class pages, so English always says am or pm.
+  const wall = (wallClock: string) =>
+    DateTime.fromFormat(wallClock, 'yyyy-MM-dd HH:mm', { zone: 'UTC' })
+  const time = (wallClock: string) => formatTimeRange(wall(wallClock), null, locale)
   const div = (className: string, text: string) => {
     const element = document.createElement('div')
 
@@ -101,7 +106,7 @@ const calendarRenderers = (locale: string): CalendarRenderers => {
     // The phone Month row: the class name, then its time and place. Schedule-X's own row
     // repeats the date the visitor just tapped.
     monthAgendaEvent: (host, entry) => {
-      const hours = `${time(entry.start)} – ${time(entry.end)}`
+      const hours = formatTimeRange(wall(entry.start), wall(entry.end), locale)
 
       host.replaceChildren(
         div('sx-entry-name', entry.name ?? ''),
@@ -522,10 +527,28 @@ function CalendarGrid({
   const renderers = useMemo(() => calendarRenderers(formatLocale), [formatLocale])
   const focused = DateTime.fromISO(useCalendarPosition((s) => s.date) ?? todayISO())
 
+  // The phone Month list names the day it shows, under a grid of a whole month where only an
+  // outline said which day that was (Anton, 6 Nov): "Today · Friday 6 November · 4 classes".
+  // Schedule-X draws that list, so the words reach it through a custom property (globals.css).
+  const focusedISO = focused.toISODate() ?? ''
+  const dayCount = events.filter((entry) => entry.start.startsWith(focusedISO)).length
+  const dayHeading = [
+    focusedISO === todayISO() ? t('calendar.today') : null,
+    focused
+      .setLocale(formatLocale)
+      .toLocaleString({ weekday: 'long', day: 'numeric', month: 'long' }),
+    dayCount > 0 ? t('calendar.day_count', { count: dayCount }) : null,
+  ]
+    .filter(Boolean)
+    .join(' · ')
+
   return (
     <>
       <DrawerBody className="max-w-none overflow-hidden px-4 pb-4">
-        <div className="sx-calendar">
+        <div
+          className="sx-calendar"
+          style={{ '--sy-agenda-day': JSON.stringify(dayHeading) } as CSSProperties}
+        >
           <CalendarMount calendar={calendar} renderers={renderers} />
         </div>
       </DrawerBody>

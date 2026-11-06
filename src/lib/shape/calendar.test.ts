@@ -14,6 +14,7 @@ import {
   shiftCalendarWindow,
   isCalendarViewOption,
   resolveCalendarView,
+  tidyPlaceCase,
   type CalendarEntry,
   type CalendarSourceEvent,
 } from './calendar'
@@ -250,6 +251,7 @@ describe('computeDayBoundaries', () => {
     start,
     end,
     path: '/1',
+    zone: 'Europe/London',
   })
 
   it('frames to the events (1h either side) when no time filter is set', () => {
@@ -428,6 +430,7 @@ describe('the week list window', () => {
       start,
       end: start,
       path: '/x',
+      zone: 'Europe/London',
     })
     const days = groupEntriesByDay(
       [
@@ -441,5 +444,18 @@ describe('the week list window', () => {
 
     expect(days.map((day) => day.date)).toEqual(['2026-11-05', '2026-11-07'])
     expect(days[0].entries.map((item) => item.id)).toEqual(['c', 'b'])
+  })
+})
+
+describe('tidyPlaceCase', () => {
+  it('recases a town typed in capitals, keeping its joining words low', () => {
+    expect(tidyPlaceCase('HARROGATE')).toBe('Harrogate')
+    expect(tidyPlaceCase('STRATFORD-UPON-AVON')).toBe('Stratford-upon-Avon')
+    expect(tidyPlaceCase('NEWCASTLE UPON TYNE')).toBe('Newcastle upon Tyne')
+  })
+
+  it('leaves any other case as it was given', () => {
+    expect(tidyPlaceCase('McLean')).toBe('McLean')
+    expect(tidyPlaceCase('London')).toBe('London')
   })
 })

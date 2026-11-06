@@ -648,6 +648,18 @@
   padding-inline: 0;
 }
 
+/* The phone Month list names the day it shows ("Today · Friday 6 November · 4 classes"), set by
+   CalendarView as a custom property, since Schedule-X draws the list itself. */
+.sx-calendar .sx__month-agenda-events::before {
+  content: var(--sy-agenda-day, none);
+  display: block;
+  padding-block: 12px 4px;
+  font-size: var(--text-base);
+  line-height: var(--text-base--line-height);
+  font-weight: 600;
+  color: var(--gray-12);
+}
+
 .sx-calendar .sx-entry-cell {
   width: 100%;
   overflow: hidden;

@@ -36,8 +36,30 @@ export type CalendarSourceEvent = {
 // Where a class is, as a visitor would say it: the address city first, because a region can be
 // one venue ("Postgasse 13, Vienna") and repeating that next to the class name adds nothing. A
 // class with no address (most online ones) falls back to its region.
-const placeOf = (event: CalendarSourceEvent): string | undefined =>
-  event.locality?.trim() || event.regionName?.trim() || undefined
+// Joining words in a town's name that stay lower case once it is recased: Stratford-upon-Avon.
+const NAME_JOINERS = new Set(['upon', 'on', 'under', 'in', 'by', 'the', 'and', 'de', 'la', 'le'])
+
+/**
+ * A town typed in capitals in SahajCloud ("HARROGATE") reads as shouting beside the rest, so an
+ * all-capitals name is recased (Anton, 6 Nov). Anything else keeps the case it was given, so
+ * "McLean" stays as it is.
+ */
+export const tidyPlaceCase = (name: string): string =>
+  name !== name.toUpperCase() || name === name.toLowerCase()
+    ? name
+    : name
+        .toLowerCase()
+        .replace(/(^|[\s-])(\p{L}+)/gu, (_, sep: string, word: string, offset: number) =>
+          offset > 0 && NAME_JOINERS.has(word)
+            ? sep + word
+            : sep + word[0].toUpperCase() + word.slice(1),
+        )
+
+const placeOf = (event: CalendarSourceEvent): string | undefined => {
+  const place = event.locality?.trim() || event.regionName?.trim()
+
+  return place ? tidyPlaceCase(place) : undefined
+}
 
 // The line under the class name: where it is, plus "Online" for an online class, because the
 // month and list views have no other text saying so. The place shows even when the name also says
@@ -72,6 +94,8 @@ export type CalendarEntry = {
   /** Schedule-X `location` (shown with a pin in the week/day views): the "Online" term for
    *  online programs. The month/list views distinguish them by colour instead. */
   location?: string
+  /** The zone `start` and `end` are in: the class's own, or the viewer's for an online class. */
+  zone: string
 }
 
 // Schedule-X reads a plain wall-clock string. This hands it the occurrence
@@ -147,6 +171,7 @@ export const eventsToCalendarEntries = (
         path: event.path,
         calendarId,
         location,
+        zone: displayZone,
       })
     }
   }
