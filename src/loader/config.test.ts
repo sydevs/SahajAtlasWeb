@@ -25,6 +25,7 @@ describe('parseConfig', () => {
       cooperative: true,
       filters: false,
       listFirst: false,
+      inline: null,
     })
   })
 
@@ -38,6 +39,7 @@ describe('parseConfig', () => {
       cooperative: false,
       filters: true,
       listFirst: false,
+      inline: null,
     })
     expect(config.locale).toBeUndefined()
     expect(config.route).toBeUndefined()
@@ -74,6 +76,7 @@ describe('parseConfig', () => {
       cooperative: false,
       filters: true,
       listFirst: false,
+      inline: null,
     })
   })
 
@@ -88,6 +91,13 @@ describe('parseConfig', () => {
     expect(at('?view=list').listFirst).toBe(true)
     expect(at('?view=map').listFirst).toBe(false)
     expect(at('').listFirst).toBe(false)
+  })
+
+  it('takes inline=card and inline=preview, and nothing else', () => {
+    expect(at('?inline=card').inline).toBe('card')
+    expect(at('?inline=preview').inline).toBe('preview')
+    expect(at('?inline=flow').inline).toBeNull()
+    expect(at('').inline).toBeNull()
   })
 
   it.each(['', 'true', 'Cooperative', 'greedy', '1'])(

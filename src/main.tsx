@@ -11,6 +11,7 @@ import { attributeEnabled } from './config/attributes'
 import { initTheme } from './hooks/use-theme'
 import { reportIntegrationWarning } from './lib/report'
 import { FULL_SLOT, decideSlot, framed } from './lib/slot-decision'
+import { captureReturnTo } from './config/return-to'
 import { adoptStyles } from './styles/sheet'
 
 // The embed's sheet is adopted by its shadow root, so the build stopped appending a
@@ -39,6 +40,19 @@ embed.config = {
   listFirst:
     searchParams.get('view') === 'list' && !window.location.pathname.startsWith('/calendar'),
 }
+
+// PROTOTYPE (`ux/embed-inline`): `inline=card|preview` in the frame's src. The loader keeps its own
+// copy of this parser (`src/loader/config.ts`) because the loader can't import the widget.
+const inlineParam = searchParams.get('inline')
+
+embed.config = {
+  ...embed.config,
+  inline: inlineParam === 'card' || inlineParam === 'preview' ? inlineParam : null,
+}
+
+// PROTOTYPE (`ux/embed-inline`): a framed inline card on a phone sends this tab here with the way
+// back to the host's page. Read and stripped before the router snapshots the URL.
+captureReturnTo()
 
 // SahajCloud live-preview boot (issue #40). Synchronous, and deliberately only half the
 // job: this stashes the token and takes it out of `location.href` before React mounts
@@ -95,9 +109,11 @@ function mount() {
   // are editing should be, with the button leading off to another site. There is nowhere bigger
   // to offer an editor inside their own admin panel, so the premise of the whole decision is
   // absent. Cramped beats absent.
-  const { compact, contained, warning } = livePreview.active
-    ? FULL_SLOT
-    : decideSlot({ element: null, hasMap, fromPage: false })
+  // An inline card is its own answer to the slot question: it fits any column, and opens big.
+  const { compact, contained, warning } =
+    livePreview.active || embed.config.inline
+      ? FULL_SLOT
+      : decideSlot({ element: null, hasMap, fromPage: false })
 
   if (warning) reportIntegrationWarning(warning)
 
@@ -123,7 +139,9 @@ function mount() {
           apiKey={atlasAuth.apiKey}
           compact={compact}
           contained={contained}
+          framed={!topLevel}
           hasMap={hasMap}
+          inline={embed.config.inline}
         />
       </BrowserRouter>
     </RoutingContext.Provider>,

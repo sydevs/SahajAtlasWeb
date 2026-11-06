@@ -45,6 +45,10 @@ const BOXES: Record<string, { marker: string; why: string }> = {
     marker: CONTAINING_BLOCK,
     why: "the compact card's expanded dialog (#161)",
   },
+  'views/InlineEmbedView/FullView.tsx': {
+    marker: CONTAINING_BLOCK,
+    why: "the inline embed's full view (prototype, ux/embed-inline)",
+  },
   'views/DrawerStack/DrawerStack.tsx': {
     marker: 'relative min-h-0 w-full',
     why: 'the map-less container the filled panel is absolute against',

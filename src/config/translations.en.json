@@ -109,13 +109,21 @@
     }
   },
   "compact": {
-    "open": "Find a class near you"
+    "near_place": "Free meditation classes near %{place}",
+    "near_you": "Free meditation classes near you",
+    "no_place": "Search for a town to see the classes nearest to it.",
+    "none_near": "No classes near %{place} yet. Join one online, or search another town.",
+    "none_near_you": "No classes near you yet. Join one online, or search another town.",
+    "open": "Find a class near you",
+    "open_map": "Open the map"
   },
   "countries": {
     "browse": "Or browse by country",
     "locating": "Finding your location…",
     "near_city": "Classes near %{city}",
     "near_me": "Classes near me",
+    "not_in_city": "Not in %{city}?",
+    "use_location": "Use my location",
     "title": "Free meditation classes"
   },
   "event": {
