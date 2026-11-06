@@ -48,19 +48,20 @@ describe('GeolocationPrompt', () => {
     expect(html).not.toContain('role="alert"')
   })
 
-  it('is a sand (neutral), header-aligned, vertically-centred single line', () => {
+  it('is a full-width light-blue band on the panel edges, vertically centred', () => {
     const html = renderToStaticMarkup(
       <GeolocationPrompt city="Paris" onAccept={noop} onClose={noop} />,
     )
 
-    expect(html).toContain('bg-gray-3')
+    // Today's blue tint, which Anton preferred to the sand box (6 Nov).
+    expect(html).toContain('bg-secondary-3')
     // Never the coral tint: a pink band reads like an error.
     expect(html).not.toContain('bg-contrast-3')
-    // The × is dimmed only to 80%, so it keeps 3:1 on the sand fill (60% fell to 2.4:1).
-    expect(html).not.toContain('opacity-60')
+    // Edge to edge, with its content on the panel's 16px edge: no inset box.
+    expect(html).toContain('px-4')
+    expect(html).toContain('rounded-none')
+    expect(html).not.toContain('mx-4')
     expect(html).toContain('items-center')
-    // This aligns the horizontal padding with the drawer header (px-4).
-    expect(html).toContain('mx-4')
   })
 
   it('offers one thing only: no second link out to a country website', () => {

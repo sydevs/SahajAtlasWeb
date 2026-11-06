@@ -14,7 +14,7 @@ export type GeolocationPromptProps = {
 
 /**
  * The dismissible "events near you" suggestion shown above the list on the
- * top-level views: a single-line, sand (neutral) `Alert` whose text is a
+ * top-level views: a single-line, light-blue (secondary) band whose text is a
  * button into the distance-ranked search. The Alert's × dismisses it for
  * the session. It announces politely (`role="status"`), not as an
  * assertive alert, since it is a passive guess. It is framed as a *guess*:
@@ -26,19 +26,16 @@ export type GeolocationPromptProps = {
 export function GeolocationPrompt({ city, onAccept, onClose }: GeolocationPromptProps) {
   const { t } = useTranslation()
 
-  // Inset by the panel's 16px gutter so the banner lines up with the header
-  // above and the rows below, and reads as a note rather than a page band.
-  // The gap puts its text at 56px, on the label edge of the rows with a glyph.
-  // The end padding keeps the close button's hover square inside the banner.
-  // The sand neutral, in light and dark. Not the coral tint: a pink band at the top of
-  // the list read like an error, and coral is kept for the chosen pin, the today tag and
-  // the meditating figure. Not the light-blue secondary either: it read cold, and that
-  // hue is kept for the language tag. Sand-12 text clears 13:1 in both modes.
+  // Today's full-width light-blue band, which Anton preferred to an inset sand box (6 Nov):
+  // the box sat between the search field and the list and lined up with neither. The band
+  // runs edge to edge; `px-4` puts the pin on the panel's 16px edge, where the rows' text
+  // starts, and the × in the column of the rows' chevrons. Not the coral tint: a pink band
+  // read like an error.
   return (
     <Alert
-      className="mx-4 mb-2 gap-2.5 rounded-lg ps-3 pe-1"
+      className="mt-2 gap-2.5 rounded-none px-4"
       closeLabel={t('search.nearby_prompt.dismiss')}
-      color="neutral"
+      color="secondary"
       icon={<MapPin size={18} />}
       role="status"
       size="sm"
