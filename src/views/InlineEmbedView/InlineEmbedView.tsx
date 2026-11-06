@@ -10,6 +10,7 @@ import { FullView } from './FullView'
 import { PreviewCard } from './PreviewCard'
 
 import { ExpansionValueProvider } from '@/hooks/use-expansion'
+import { useWidgetMode } from '@/config/mode'
 import { useReportModal } from '@/config/store'
 import {
   atlasPageUrl,
@@ -18,6 +19,7 @@ import {
   goToAtlasPage,
   hostLabel,
   openPath,
+  pushMarker,
   stampDepth,
 } from '@/lib/full-view'
 import { requestSearchFocus } from '@/lib/pending-focus'
@@ -39,6 +41,10 @@ import { requestSearchFocus } from '@/lib/pending-focus'
  * route is already the URL (the query router refuses to write an identical URL), a marker entry
  * stands in.
  *
+ * **A page that refuses history writes** (the router's memory mode, #154) gets none of that: the
+ * full view keeps its open state locally, Close just closes, and the phone's Back leaves the page,
+ * as it does for the rest of the widget there.
+ *
  * **From inside a frame**, `openPath` picks fullscreen when the host allowed it, and otherwise
  * sends this tab to the Atlas page with a way back (`lib/full-view.ts`).
  */
@@ -57,6 +63,7 @@ export function InlineEmbedView({ mode, framed, autoOpen, children }: InlineEmbe
   const navigate = useNavigate()
   const location = useLocation()
   const navigationType = useNavigationType()
+  const { linkable } = useWidgetMode()
   const [expanded, setExpanded] = useState(autoOpen)
   const [focus, setFocus] = useState<'panel' | 'search'>('panel')
   // How many history entries the full view has added under the current one (see `stampDepth`).
@@ -66,6 +73,8 @@ export function InlineEmbedView({ mode, framed, autoOpen, children }: InlineEmbe
   const openedOnLoad = useRef(autoOpen)
   // The navigation `open` makes is already counted; the location effect must not count it again.
   const opening = useRef(false)
+  // Open with no history entry of its own: the page refused the write, or the route isn't in the URL.
+  const local = useRef(false)
   const viaFullscreen = useRef(false)
   const host = useMemo(() => hostLabel(framed), [framed])
 
@@ -80,7 +89,7 @@ export function InlineEmbedView({ mode, framed, autoOpen, children }: InlineEmbe
 
   const close = useCallback(() => {
     // Back through every entry the full view added; the popstate below finishes the close.
-    if (depth.current > 0) window.history.go(-depth.current)
+    if (!local.current && depth.current > 0) window.history.go(-depth.current)
     else finish()
   }, [finish])
 
@@ -116,14 +125,15 @@ export function InlineEmbedView({ mode, framed, autoOpen, children }: InlineEmbe
       navigate(route)
       // The query router writes nothing for a route that is already the URL, so a marker entry
       // stands in: the full view always owns exactly one entry to go back from.
-      opening.current = window.history.state !== before
-      if (!opening.current) window.history.pushState(window.history.state, '', window.location.href)
-      depth.current = 1
-      stampDepth(1)
+      const routerWrote = window.history.state !== before
+
+      local.current = !linkable || !((routerWrote || pushMarker()) && stampDepth(1))
+      opening.current = routerWrote && !local.current
+      depth.current = local.current ? 0 : 1
       setFocus(nextFocus)
       setExpanded(true)
     },
-    [expanded, finish, framed, navigate],
+    [expanded, finish, framed, linkable, navigate],
   )
 
   // Every entry the Atlas adds while open is stamped one deeper; one it replaces keeps its depth.
@@ -136,7 +146,7 @@ export function InlineEmbedView({ mode, framed, autoOpen, children }: InlineEmbe
     // key would spend `opening` on that render and count the open's own entry a second time, so
     // Close went back one entry too far, off the card.
     lastKey.current = location.key
-    if (!expanded) return
+    if (!expanded || local.current) return
     if (opening.current) {
       opening.current = false
 

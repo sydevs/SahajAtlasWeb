@@ -138,12 +138,35 @@ export const fullViewDepth = (state: unknown = window.history.state): number => 
   return typeof value === 'number' && value > 0 ? value : 0
 }
 
-/** Stamps the current entry with its depth, keeping whatever the router keeps there. */
-export function stampDepth(depth: number): void {
-  const state = window.history.state
+/** The part of `History` the full view writes; a parameter so a spec can hand in one that refuses. */
+export type HistoryWriter = Pick<History, 'state' | 'pushState' | 'replaceState'>
 
-  window.history.replaceState(
-    { ...(state && typeof state === 'object' ? state : {}), [FULL_VIEW_KEY]: depth },
-    '',
-  )
+// ⚠ Both writers return `false` rather than throw. Some hosts' pages refuse history writes, which
+// is why the router has a memory mode (#154); there the full view keeps its open state locally.
+
+/** Stamps the current entry with its depth, keeping whatever the router keeps there. */
+export function stampDepth(depth: number, history: HistoryWriter = window.history): boolean {
+  try {
+    const state = history.state
+
+    history.replaceState(
+      { ...(state && typeof state === 'object' ? state : {}), [FULL_VIEW_KEY]: depth },
+      '',
+    )
+
+    return true
+  } catch {
+    return false
+  }
+}
+
+/** Adds an entry identical to the current one, for the full view to go back from. */
+export function pushMarker(history: HistoryWriter = window.history): boolean {
+  try {
+    history.pushState(history.state, '')
+
+    return true
+  } catch {
+    return false
+  }
 }

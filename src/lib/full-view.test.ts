@@ -1,6 +1,14 @@
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 
-import { FULL_VIEW_KEY, fullViewDepth, isAllowedReturn, siteName } from './full-view'
+import {
+  FULL_VIEW_KEY,
+  type HistoryWriter,
+  fullViewDepth,
+  isAllowedReturn,
+  pushMarker,
+  siteName,
+  stampDepth,
+} from './full-view'
 
 describe('siteName', () => {
   it('drops a leading www, and nothing else', () => {
@@ -37,5 +45,33 @@ describe('fullViewDepth', () => {
     expect(fullViewDepth({ idx: 3 })).toBe(0)
     expect(fullViewDepth({ [FULL_VIEW_KEY]: 'x' })).toBe(0)
     expect(fullViewDepth(null)).toBe(0)
+  })
+})
+
+describe('the history writers', () => {
+  const refusing = (): HistoryWriter => ({
+    state: { idx: 1 },
+    pushState: vi.fn(() => {
+      throw new DOMException('The operation is insecure.', 'SecurityError')
+    }),
+    replaceState: vi.fn(() => {
+      throw new DOMException('The operation is insecure.', 'SecurityError')
+    }),
+  })
+
+  it('report a page that refuses history writes instead of throwing', () => {
+    const history = refusing()
+
+    expect(stampDepth(1, history)).toBe(false)
+    expect(pushMarker(history)).toBe(false)
+  })
+
+  it('stamp the depth beside the router’s own state, and push a copy of the entry', () => {
+    const history: HistoryWriter = { state: { idx: 3 }, pushState: vi.fn(), replaceState: vi.fn() }
+
+    expect(stampDepth(2, history)).toBe(true)
+    expect(history.replaceState).toHaveBeenCalledWith({ idx: 3, [FULL_VIEW_KEY]: 2 }, '')
+    expect(pushMarker(history)).toBe(true)
+    expect(history.pushState).toHaveBeenCalledWith({ idx: 3 }, '')
   })
 })
