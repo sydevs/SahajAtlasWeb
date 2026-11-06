@@ -1,0 +1,325 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-11-06T12:00:00Z",
+  "title": "Design System: Sahaj Atlas",
+  "extensions": {
+    "colorMeta": {
+      "primary-teal": {
+        "role": "primary",
+        "displayName": "We Meditate Teal",
+        "canonical": "hsl(184 58% 28%)",
+        "tonalRamp": [
+          "#0F3537",
+          "#1A5C61",
+          "#1E6C71",
+          "#2B99A1",
+          "#7CCED4",
+          "#B9E7EA",
+          "#E7F7F9",
+          "#F7FDFD"
+        ]
+      },
+      "primary-teal-deep": {
+        "role": "primary",
+        "displayName": "Deep Teal",
+        "canonical": "hsl(184 58% 24%)"
+      },
+      "primary-teal-tint": {
+        "role": "primary",
+        "displayName": "Teal Tint",
+        "canonical": "hsl(184 58% 94%)"
+      },
+      "primary-teal-dark": {
+        "role": "primary",
+        "displayName": "Dark-Mode Teal",
+        "canonical": "hsl(184 58% 60%)"
+      },
+      "secondary-sky": {
+        "role": "secondary",
+        "displayName": "Sky",
+        "canonical": "hsl(202 40% 70%)"
+      },
+      "contrast-coral": {
+        "role": "tertiary",
+        "displayName": "We Meditate Coral",
+        "canonical": "hsl(12 60% 68%)",
+        "tonalRamp": [
+          "#3D1B13",
+          "#A34129",
+          "#C46C57",
+          "#E08E79",
+          "#EBAE9F",
+          "#F2CEC4",
+          "#FAE9E5",
+          "#FEF8F6"
+        ]
+      },
+      "ornament-coral": {
+        "role": "tertiary",
+        "displayName": "Ornament Coral",
+        "canonical": "color-mix(in srgb, hsl(var(--contrast-9)) 55%, hsl(var(--contrast-11)))"
+      },
+      "marker-green": {
+        "role": "map",
+        "displayName": "Marker Green",
+        "tonalRamp": [
+          "#123F30",
+          "#1E6B52",
+          "#2E9E78",
+          "#30A47D",
+          "#6CC3A3",
+          "#9ED8C2",
+          "#D2EEE3",
+          "#F0FAF6"
+        ]
+      },
+      "cluster-green": {
+        "role": "map",
+        "displayName": "Cluster Green"
+      },
+      "marker-coral": {
+        "role": "map",
+        "displayName": "Marker Coral"
+      },
+      "panel-warm-white": {
+        "role": "neutral",
+        "displayName": "Warm White"
+      },
+      "panel-dark": {
+        "role": "neutral",
+        "displayName": "Night Panel"
+      },
+      "sand-12": {
+        "role": "neutral",
+        "displayName": "Sand (Radix)",
+        "tonalRamp": [
+          "#21201C",
+          "#63635E",
+          "#8D8D86",
+          "#CFCECA",
+          "#DAD9D6",
+          "#E9E8E6",
+          "#F1F0EF",
+          "#F9F9F8"
+        ]
+      },
+      "danger-red": {
+        "role": "status",
+        "displayName": "Danger Red"
+      }
+    },
+    "typographyMeta": {
+      "headline": {
+        "displayName": "Headline",
+        "purpose": "View title at the top of each panel."
+      },
+      "title": {
+        "displayName": "Title",
+        "purpose": "List-row labels and card titles."
+      },
+      "body": {
+        "displayName": "Body",
+        "purpose": "Class facts, descriptions, the search input."
+      },
+      "body-small": {
+        "displayName": "Body small",
+        "purpose": "Secondary lines, counts, buttons."
+      },
+      "label": {
+        "displayName": "Tag",
+        "purpose": "Tinted uppercase tags (WEEKLY CLASS, ENGLISH)."
+      },
+      "group-label": {
+        "displayName": "Group label",
+        "purpose": "Names a group of list rows; never above a title."
+      }
+    },
+    "shadows": [
+      {
+        "name": "panel-float",
+        "value": "0 25px 50px -12px rgb(0 0 0 / 0.25)",
+        "purpose": "Side panel, bottom sheet, modals."
+      },
+      {
+        "name": "overlay",
+        "value": "0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1)",
+        "purpose": "Filters panel, menus, popovers."
+      },
+      {
+        "name": "map-control",
+        "value": "0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1)",
+        "purpose": "Filter chip bar, round map buttons, pin popover."
+      },
+      {
+        "name": "scroll-edge",
+        "value": "inset 0 7px 6px -7px rgb(0 0 0 / 0.25)",
+        "purpose": "Under the header once the panel body has scrolled."
+      }
+    ],
+    "motion": [
+      {
+        "name": "curtain-fade",
+        "value": "200ms ease-out 200ms",
+        "purpose": "Boot spinner fades in late; shown at once under reduced motion."
+      }
+    ],
+    "breakpoints": [
+      {
+        "name": "sm",
+        "value": "640px"
+      },
+      {
+        "name": "md",
+        "value": "768px"
+      },
+      {
+        "name": "lg",
+        "value": "1024px"
+      },
+      {
+        "name": "filters-open",
+        "value": "1200px"
+      },
+      {
+        "name": "xl",
+        "value": "1280px"
+      }
+    ]
+  },
+  "components": [
+    {
+      "name": "Primary Button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "Register for free: the one solid button on a class page.",
+      "html": "<button class=\"ds-btn-primary\">Register for free</button>",
+      "css": ".ds-btn-primary{width:100%;height:48px;padding:0 24px;border:0;border-radius:8px;background:#1A5C61;color:#fff;font:600 15px/1 'Atlas Rethink Sans',system-ui,sans-serif;transition:background .15s}.ds-btn-primary:hover{background:#2B99A1}.ds-btn-primary:focus-visible{outline:2px solid #1E6C71;outline-offset:2px}"
+    },
+    {
+      "name": "Neutral Flat Button",
+      "kind": "button",
+      "refersTo": "button-neutral-flat",
+      "description": "Second-choice action.",
+      "html": "<button class=\"ds-btn-flat\">Add to calendar</button>",
+      "css": ".ds-btn-flat{height:40px;padding:0 16px;border:0;border-radius:8px;background:#F1F0EF;color:#21201C;font:500 14px/1 'Atlas Rethink Sans',system-ui,sans-serif}.ds-btn-flat:hover{background:#E9E8E6}.ds-btn-flat:focus-visible{outline:2px solid #1E6C71;outline-offset:2px}"
+    },
+    {
+      "name": "Outlined Button",
+      "kind": "button",
+      "refersTo": "button-outlined",
+      "description": "Near me in the filters panel, before it is on.",
+      "html": "<button class=\"ds-btn-outline\"><svg width=\"18\" height=\"18\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\"><circle cx=\"12\" cy=\"12\" r=\"3\"/><circle cx=\"12\" cy=\"12\" r=\"8\"/><path d=\"M12 2v2M12 20v2M2 12h2M20 12h2\"/></svg>Near me</button>",
+      "css": ".ds-btn-outline{display:inline-flex;align-items:center;gap:8px;height:44px;padding:0 16px;border:1px solid #DAD9D6;border-radius:8px;background:transparent;color:#21201C;font:500 14px/1 'Atlas Rethink Sans',system-ui,sans-serif}.ds-btn-outline:hover{background:#F1F0EF}.ds-btn-outline:focus-visible{outline:2px solid #1E6C71;outline-offset:2px}"
+    },
+    {
+      "name": "Tags",
+      "kind": "chip",
+      "refersTo": "chip-tag",
+      "description": "Tinted uppercase tags by role.",
+      "html": "<span class=\"ds-tag ds-tag-teal\">Weekly class</span> <span class=\"ds-tag ds-tag-sky\">English</span> <span class=\"ds-tag ds-tag-coral\">Today</span>",
+      "css": ".ds-tag{display:inline-flex;padding:4px 8px;border-radius:8px;font:700 12px/1 'Atlas Rethink Sans',system-ui,sans-serif;letter-spacing:.3px;text-transform:uppercase}.ds-tag-teal{background:#E7F7F9;color:#2B99A1}.ds-tag-sky{background:#EAF1F6;color:#3D6C88}.ds-tag-coral{background:#FAE9E5;color:#A34129}"
+    },
+    {
+      "name": "List Row",
+      "kind": "card",
+      "refersTo": "list-row",
+      "description": "Place and online rows on the 16px gutter.",
+      "html": "<a class=\"ds-row\" href=\"#\"><span class=\"ds-row-label\">Online classes<span class=\"ds-row-sub\">Join from anywhere</span></span><span class=\"ds-row-count\">42</span><svg width=\"20\" height=\"20\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"#8D8D86\" stroke-width=\"2\"><path d=\"m9 18 6-6-6-6\"/></svg></a>",
+      "css": ".ds-row{display:flex;align-items:center;min-height:56px;padding:12px 16px;color:#21201C;text-decoration:none;font-family:'Atlas Rethink Sans',system-ui,sans-serif;border-bottom:1px solid #DAD9D6;transition:background .15s}.ds-row:hover{background:#F7FDFD}.ds-row:active{background:#E7F7F9}.ds-row:focus-visible{outline:2px solid #1E6C71;outline-offset:-2px}.ds-row-label{flex:1;font-weight:600;font-size:16px;line-height:1.375}.ds-row-sub{display:block;margin-top:2px;font-weight:400;font-size:14px;color:#63635E}.ds-row-count{margin-inline-end:4px;font-size:14px;color:#63635E;font-variant-numeric:tabular-nums}"
+    },
+    {
+      "name": "Search Field",
+      "kind": "input",
+      "description": "Place search, first under the title.",
+      "html": "<input class=\"ds-search\" placeholder=\"Search for a city or place\">",
+      "css": ".ds-search{width:100%;height:44px;padding:0 15px;border:1px solid #CFCECA;border-radius:8px;background:#FDFCF9;color:#21201C;font:400 16px 'Atlas Rethink Sans',system-ui,sans-serif}.ds-search::placeholder{color:#63635E}.ds-search:focus-visible{outline:2px solid #1E6C71;outline-offset:1px}"
+    },
+    {
+      "name": "Panel",
+      "kind": "custom",
+      "refersTo": "panel",
+      "description": "Warm white side panel floating over the map.",
+      "html": "<div class=\"ds-panel\"><h2 class=\"ds-panel-title\">Free Meditation Classes</h2></div>",
+      "css": ".ds-panel{width:352px;max-width:100%;min-height:160px;padding:16px;border:1px solid #DAD9D6;border-radius:16px;background:#FDFCF9;color:#21201C;box-shadow:0 25px 50px -12px rgb(0 0 0/.25)}.ds-panel-title{margin:0;font:600 20px/1.3 'Atlas Rethink Sans',system-ui,sans-serif;letter-spacing:-.2px}"
+    },
+    {
+      "name": "Map Markers",
+      "kind": "custom",
+      "description": "Green pin and cluster, coral selection.",
+      "html": "<div class=\"ds-markers\"><svg width=\"34\" height=\"38\" viewBox=\"0 0 34 38\"><path d=\"M4.71 26.42a15 15 0 1 1 21.58 0L15.5 37.6Z\" fill=\"#30A47D\"/><circle cx=\"15.5\" cy=\"16\" r=\"4.5\" fill=\"#fff\"/></svg><svg width=\"38\" height=\"38\" viewBox=\"0 0 38 38\"><circle cx=\"19\" cy=\"19\" r=\"19\" fill=\"#9ED8C2\" opacity=\".706\"/><circle cx=\"19\" cy=\"19\" r=\"13.8\" fill=\"#2E9E78\"/><text x=\"19\" y=\"23\" text-anchor=\"middle\" font-size=\"12\" font-weight=\"700\" fill=\"#fff\">12</text></svg><svg width=\"34\" height=\"38\" viewBox=\"0 0 34 38\"><path d=\"M4.71 26.42a15 15 0 1 1 21.58 0L15.5 37.6Z\" fill=\"#E0775C\"/><circle cx=\"15.5\" cy=\"16\" r=\"4.5\" fill=\"#fff\"/></svg></div>",
+      "css": ".ds-markers{display:flex;align-items:flex-end;gap:16px;padding:16px;background:#F6F1E4;border-radius:8px}"
+    }
+  ],
+  "narrative": {
+    "northStar": "A Friend Who Meditates",
+    "overview": "Sahaj Atlas is a bright, sunny map with a warm white panel beside it (a bottom sheet on a phone). It belongs to the We Meditate family and lives inside other people's websites, so it has to feel welcoming without taking over the page. The warmth comes from colour, never from decoration: sand neutrals instead of blue-grey, a cream panel instead of paper white, green map markers, and one coral accent. The interface is quiet so that the one answer a seeker came for (when and where can I go) stands out.\n\nDensity is calm and list-shaped. Every panel row shares one 16px edge and one row height, text sits on one short type ladder, and the search field is the first thing under the title. Dark mode follows the device and keeps the same warmth: a sand-dark ramp and a warm taupe basemap instead of the stock blue-black.\n\nThe approved round-2 look rejected, by name: gradients and washes (a watercolour header was withdrawn), a greyed \"quiet\" map, dark-teal or high-contrast cluster markers, a single flattened chip style, and a set of decorative We Meditate icons.",
+    "keyCharacteristics": [
+      "Warm through colour, not decoration.",
+      "Bright, sunny light basemap; warm taupe dark basemap.",
+      "Green pins and clusters with white counts; coral marks the chosen class.",
+      "One decorative icon in the whole interface: the We Meditate meditating figure.",
+      "Search first: the place search sits at the top of the home panel, under the title.",
+      "Host brand colours repaint every brand role, so meaning never depends on one fixed hue."
+    ],
+    "rules": [
+      {
+        "name": "The Warm-Through-Colour Rule",
+        "body": "Warmth comes from the sand neutrals, the cream panel, the green markers and the coral accent. Never from gradients, washes, textures or ornament.",
+        "section": "colors"
+      },
+      {
+        "name": "The Repaint Rule",
+        "body": "Primary, secondary and contrast are host roles and repaint at runtime. Never let a state or meaning depend on one of them alone; pair colour with text, weight or shape.",
+        "section": "colors"
+      },
+      {
+        "name": "The Coral Is Rare Rule",
+        "body": "Coral marks the chosen class on the map, the \"today\" tag and the meditating figure. Nothing else.",
+        "section": "colors"
+      },
+      {
+        "name": "The One Ladder Rule",
+        "body": "Sizes are 12, 14, 15, 16 and 20px, all in px (a host's root font size must not rescale the widget). No tracking on body text.",
+        "section": "typography"
+      },
+      {
+        "name": "The 16px Field Rule",
+        "body": "Inputs render at 16px on touch screens so iOS never zooms the host page; 14px only with a wide screen and a fine pointer.",
+        "section": "typography"
+      },
+      {
+        "name": "The One Edge Rule",
+        "body": "Nothing in a panel invents its own inset. If a row does not start at 16px, it is wrong.",
+        "section": "layout"
+      },
+      {
+        "name": "The Float Over The Map Rule",
+        "body": "Shadows exist to lift a surface off the map. A card inside a panel never gets one.",
+        "section": "elevation"
+      },
+      {
+        "name": "The Two Corners Rule",
+        "body": "16px for a surface on the map, 8px for anything on that surface, round only for pills. No 2, 4 or 6px corners.",
+        "section": "shapes"
+      }
+    ],
+    "dos": [
+      "**Do** take every neutral from the sand ramp through the `gray-*` names, and every brand colour from the role ramps, so hosts can repaint them.",
+      "**Do** keep every panel row on the 16px gutter and the 56px row height.",
+      "**Do** use the type ladder (12, 14, 15, 16, 20px) in px, with sentence-case copy and uppercase only through CSS.",
+      "**Do** keep the search field first on the home panel, under the title.",
+      "**Do** keep the light basemap bright and sunny, and apply the warm paint to the dark one.",
+      "**Do** keep coral for the selected class, the today tag and the meditating figure.",
+      "**Do** hold 4.5:1 for body text and 3:1 for icons and large text, on both the warm white and the night panel."
+    ],
+    "donts": [
+      "**Don't** use gradients, washes, watercolour, textures or decorative illustration.",
+      "**Don't** add decorative icons. The meditating figure on the online row is the only one; the near-me row has no icon.",
+      "**Don't** grey out the map or recolour clusters dark teal.",
+      "**Don't** flatten the tags into one neutral style; each keeps its tinted role colour.",
+      "**Don't** use corners other than 16px, 8px and fully round.",
+      "**Don't** put a group label above a title or heading; it names a group of rows, nothing else.",
+      "**Don't** use rem units; a host's root font size would rescale the widget."
+    ]
+  }
+}
