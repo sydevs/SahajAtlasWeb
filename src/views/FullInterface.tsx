@@ -187,8 +187,9 @@ function FullInterface({
     api.warmCaches()
   }, [])
 
-  // `view=list`: the map is not mounted until the visitor asks for it, so nothing is fetched
-  // from Mapbox before then. The route lives in the URL, so switching keeps the visitor's place.
+  // `view=list`: the map is not mounted until the visitor asks for it, so nothing is requested
+  // from Mapbox before then. ⚠ The library still downloads: this module imports `react-map-gl`
+  // (see above). The route lives in the URL, so switching keeps the visitor's place.
   const listFirst = hasMap && embed.config.listFirst
   const [surface, setSurface] = useState<'list' | 'map'>('list')
   const surfaceSwitch = useMemo(
