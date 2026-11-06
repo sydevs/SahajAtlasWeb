@@ -1,7 +1,9 @@
+import * as DropdownMenu from '@radix-ui/react-dropdown-menu'
 import { useTranslation } from 'react-i18next'
-import { CalendarDays } from 'lucide-react'
+import { CalendarPlus, ChevronDown } from 'lucide-react'
 
 import { Button } from '@/components/atoms/Button'
+import { Link } from '@/components/atoms/Link'
 import {
   type IcsEventInput,
   buildEventIcs,
@@ -10,6 +12,7 @@ import {
   buildYahooCalendarUrl,
   icsFileName,
 } from '@/lib/ics'
+import { frameCollision, overlayContainer } from '@/lib/overlay'
 
 export type AddToCalendarProps = {
   /** Everything the export needs. The caller builds it from the FULL event doc.
@@ -17,85 +20,88 @@ export type AddToCalendarProps = {
   event: IcsEventInput
 }
 
+/** One link-out row. Brand names stay untranslated, and are unique, so they double as keys. */
+export type CalendarLinkTarget = { label: string; href: string }
+
 /**
- * The five add-to-calendar targets, offered on the registration confirmation
- * (issue #105).
+ * The link-out providers, in menu order. `lib/ics.ts` decides what each URL can carry:
+ * Google gets the real `RRULE`; Outlook, Office 365, and Yahoo have no recurrence
+ * parameter and get only the session the viewer registered for.
+ */
+export function calendarLinkTargets(event: IcsEventInput): CalendarLinkTarget[] {
+  return [
+    { label: 'Google Calendar', href: buildGoogleCalendarUrl(event) },
+    { label: 'Outlook.com', href: buildOutlookCalendarUrl(event, 'live') },
+    { label: 'Office 365', href: buildOutlookCalendarUrl(event, 'office') },
+    { label: 'Yahoo', href: buildYahooCalendarUrl(event) },
+  ]
+}
+
+export function downloadEventIcs(event: IcsEventInput) {
+  const blob = new Blob([buildEventIcs(event)], { type: 'text/calendar;charset=utf-8' })
+  const href = URL.createObjectURL(blob)
+  const anchor = document.createElement('a')
+
+  anchor.href = href
+  anchor.download = icsFileName(event.title)
+  // Firefox only follows a synthetic click on an anchor that is IN the document.
+  // Revoking in the same tick cancels the download in Safari, so it is deferred.
+  document.body.append(anchor)
+  anchor.click()
+  anchor.remove()
+  window.setTimeout(() => URL.revokeObjectURL(href), 1000)
+}
+
+const menu =
+  'z-50 min-w-56 rounded-xl border border-divider bg-background p-1 text-foreground shadow-xl'
+const item =
+  'flex cursor-pointer flex-col items-start rounded-lg px-3 py-2 text-sm outline-none select-none data-[highlighted]:bg-primary-3'
+
+/**
+ * "Add to calendar" on the registration confirmation (issue #105): one button opening a
+ * menu of calendar services, instead of a row of five brand buttons.
  *
- * Four are ordinary link-outs, so they render as anchors. A middle-click or
- * a long-press then behaves the way the viewer expects, and no JavaScript
- * runs to follow one. Only the `.ics` path is a button, because it has to
- * synthesise a file, instead of navigating.
+ * The link-outs render as anchors (through `Link`), so middle-click and long-press
+ * behave as the viewer expects. The `.ics` row is a button, because it synthesises a file.
+ * That file is the Apple path — Apple Calendar has no add-by-URL endpoint — and the escape
+ * hatch for every other client (Thunderbird, Proton, desktop Outlook), so its row says
+ * plainly that it downloads a file.
  *
- * Providers differ in what they can express, and the difference is not
- * cosmetic. The `.ics` file and the Google link carry the real `RRULE` and
- * `TZID`. Outlook, Office 365, and Yahoo have no recurrence parameter at
- * all, and receive only the single session the viewer registered for.
- * `lib/ics.ts` decides which anchor each one gets. This component only
- * lays them out.
- *
- * This component is presentational and prop-driven. It has no Event
- * coupling and no data reads. So it renders in a story, and under
- * `renderToStaticMarkup`, without a DOM.
+ * Built on Radix DropdownMenu (as SortMenu is) for real menu semantics: roving focus,
+ * typeahead, and Escape.
  */
 export function AddToCalendar({ event }: AddToCalendarProps) {
   const { t } = useTranslation()
 
-  const downloadIcs = () => {
-    const blob = new Blob([buildEventIcs(event)], { type: 'text/calendar;charset=utf-8' })
-    const href = URL.createObjectURL(blob)
-    const anchor = document.createElement('a')
-
-    anchor.href = href
-    anchor.download = icsFileName(event.title)
-    // Firefox only follows a synthetic click on an anchor that is IN the
-    // document. This defers revoking, instead of doing it immediately. The
-    // download starts during click(). But revoking in the same tick cancels
-    // it in Safari.
-    document.body.append(anchor)
-    anchor.click()
-    anchor.remove()
-    window.setTimeout(() => URL.revokeObjectURL(href), 1000)
-  }
-
-  // These are brand names, so they stay untranslated. They are also unique,
-  // so they double as keys.
-  const targets = [
-    { label: 'Google', href: buildGoogleCalendarUrl(event) },
-    { label: 'Outlook', href: buildOutlookCalendarUrl(event, 'live') },
-    { label: 'Office 365', href: buildOutlookCalendarUrl(event, 'office') },
-    { label: 'Yahoo', href: buildYahooCalendarUrl(event) },
-  ]
-
-  // `gap-3` deliberately matches ShareContent's grid. The two rows stack on
-  // this one screen, so a different gap would read as a mistake, not a
-  // distinction.
+  // `modal={false}`: this opens inside a vaul drawer, whose drag and scroll fight
+  // Radix's modal scroll-lock.
   return (
-    <div className="flex flex-row flex-wrap justify-center gap-3">
-      {/* Apple Calendar has no add-by-URL endpoint. An .ics file IS the
-          Apple path, and it doubles as the escape hatch for every other
-          client, such as Thunderbird, Proton, or a corporate desktop
-          Outlook. The accessible name CONTAINS the visible "Apple", so it
-          satisfies WCAG 2.5.3, while still telling a screen-reader user
-          that this one downloads a file. */}
-      <Button
-        aria-label={`Apple · ${t('event.actions.download_ics')}`}
-        color="primary"
-        size="sm"
-        variant="flat"
-        onClick={downloadIcs}
-      >
-        <CalendarDays size={16} />
-        Apple
-      </Button>
-
-      {/* The Button atom derives `rel="noopener noreferrer"` from
-          `target="_blank"` itself. So spelling it here would only opt this
-          one row out of whatever the atom decides an external link needs. */}
-      {targets.map(({ label, href }) => (
-        <Button key={label} color="primary" href={href} size="sm" target="_blank" variant="flat">
-          {label}
+    <DropdownMenu.Root modal={false}>
+      <DropdownMenu.Trigger asChild>
+        <Button color="primary" variant="flat">
+          <CalendarPlus size={16} />
+          {t('event.actions.add_calendar')}
+          <ChevronDown size={16} />
         </Button>
-      ))}
-    </div>
+      </DropdownMenu.Trigger>
+
+      <DropdownMenu.Portal container={overlayContainer()}>
+        <DropdownMenu.Content align="start" className={menu} sideOffset={8} {...frameCollision()}>
+          {/* The accessible name CONTAINS the visible "Apple Calendar" (WCAG 2.5.3). */}
+          <DropdownMenu.Item className={item} onSelect={() => downloadEventIcs(event)}>
+            <span>Apple Calendar</span>
+            <span className="text-xs text-gray-11">{t('event.actions.download_ics')}</span>
+          </DropdownMenu.Item>
+
+          {calendarLinkTargets(event).map(({ label, href }) => (
+            <DropdownMenu.Item key={label} asChild className={item}>
+              <Link href={href} target="_blank">
+                {label}
+              </Link>
+            </DropdownMenu.Item>
+          ))}
+        </DropdownMenu.Content>
+      </DropdownMenu.Portal>
+    </DropdownMenu.Root>
   )
 }

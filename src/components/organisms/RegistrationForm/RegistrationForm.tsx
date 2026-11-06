@@ -14,6 +14,7 @@ import {
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { DateTime } from 'luxon'
+import { MailCheck } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { type ReactNode, useEffect, useMemo, useState } from 'react'
 
@@ -269,7 +270,7 @@ export function RegistrationForm({
   // time a form could render in that state. So a per-form degradation would
   // be dead code, guarding a case its own boundary already swallowed (issue
   // #182).
-  const { challengeRef, token, reset: resetChallenge } = useTurnstile()
+  const { challengeRef, token, interactive, reset: resetChallenge } = useTurnstile()
 
   // A refusal the visitor can fix in one field lands ON that field, the way a
   // schema error does: the sentence under it, `aria-invalid`, and focus moved
@@ -345,31 +346,24 @@ export function RegistrationForm({
       })}
     >
       {submitted ? (
-        <div className="flex flex-col gap-3 text-center">
-          <p>{t('registration.form.followup')}</p>
-
-          {/* This is the moment calendar export is most wanted (issue #105).
-              `calendar` is optional, so the form stays generic: it takes
-              export primitives from RegistrationView, never an Event. This
-              anchors on the session that was actually submitted —
-              `mutation.variables` holds it, so this needs no extra state.
-              It uses the next occurrence instead, when the confirmation is
-              being previewed rather than earned. */}
-          {calendar && (
-            <>
-              <div className="mt-2 font-semibold">{t('event.actions.add_calendar')}</div>
-              <AddToCalendar
-                event={{ ...calendar, from: mutation.variables?.registration.startingAt }}
-              />
-            </>
-          )}
+        <div className="flex flex-col gap-3">
+          {/* One notice, right under the event summary: what arrives by email, and for an
+              online class, that the join link is part of it. */}
+          <Alert
+            color="primary"
+            description={isOnline ? t('registration.form.online_notice') : undefined}
+            icon={<MailCheck size={20} />}
+            title={t('registration.form.followup')}
+          />
 
           {/* This shows the heading and block together, or neither. "Invite a
               friend" over nothing to press is a worse confirmation screen
               than one that simply does not offer it. */}
           {eventUrl && (
             <>
-              <div className="mt-2 font-semibold">{t('registration.form.invite_friend')}</div>
+              <div className="mt-2 text-center font-semibold">
+                {t('registration.form.invite_friend')}
+              </div>
               <ShareContent country={country} label={eventTitle} url={eventUrl} />
             </>
           )}
@@ -390,7 +384,7 @@ export function RegistrationForm({
               above the error, so the one thing that can silently hold the
               submit button disabled stays visible immediately above it,
               rather than down in the footer. */}
-          <div ref={challengeRef} className="mt-4 empty:mt-0" />
+          <div ref={challengeRef} className={interactive ? 'mt-4' : undefined} />
 
           {/* A refusal is not a malfunction, so it states its reason on its
               own, without the "Something went wrong" framing or the
@@ -407,7 +401,7 @@ export function RegistrationForm({
         </>
       )}
 
-      {isOnline && (
+      {isOnline && !submitted && (
         <Alert
           className="mt-3"
           color="primary"
@@ -420,9 +414,20 @@ export function RegistrationForm({
 
       <div className="mt-2 flex justify-end gap-2">
         {submitted ? (
-          <Button color="primary" variant="flat" onClick={onClose}>
-            {t('registration.form.okay')}
-          </Button>
+          <>
+            {/* `calendar` is optional, so the form stays generic: it takes export
+                primitives from RegistrationView, never an Event (issue #105). It anchors on
+                the session actually submitted — `mutation.variables` holds it — or on the
+                next occurrence when the confirmation is previewed rather than earned. */}
+            {calendar && (
+              <AddToCalendar
+                event={{ ...calendar, from: mutation.variables?.registration.startingAt }}
+              />
+            )}
+            <Button className="ms-auto" color="neutral" variant="flat" onClick={onClose}>
+              {t('registration.form.okay')}
+            </Button>
+          </>
         ) : (
           <>
             <Button disabled={mutation.isPending} variant="flat" onClick={onClose}>

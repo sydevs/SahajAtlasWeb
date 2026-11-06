@@ -30,10 +30,14 @@ const CHALLENGE_CHANNEL = 'sahaj-atlas-turnstile'
 
 /**
  * `ready` is the handshake: Turnstile is live in the frame. `error` includes SahajCloud refusing
- * this page's origin, which no client record lists.
+ * this page's origin, which no client record lists. The page renders Turnstile
+ * `interaction-only`, so it is invisible until Cloudflare wants a click: `interactive` and
+ * `settled` bracket that window (sydevs/SahajCloud#1090).
  */
 type ChallengeEvent =
   | { type: 'ready' }
+  | { type: 'interactive' }
+  | { type: 'settled' }
   | { type: 'expired' }
   | { type: 'error' }
   | { type: 'token'; token: string }
@@ -44,7 +48,15 @@ function readChallengeEvent(data: unknown): ChallengeEvent | null {
   const { channel, type, token } = data as Record<string, unknown>
 
   if (channel !== CHALLENGE_CHANNEL) return null
-  if (type === 'ready' || type === 'expired' || type === 'error') return { type }
+  if (
+    type === 'ready' ||
+    type === 'interactive' ||
+    type === 'settled' ||
+    type === 'expired' ||
+    type === 'error'
+  ) {
+    return { type }
+  }
   // An empty token would enable Submit and then fail verification, which reads to a visitor as
   // the form being broken rather than the challenge.
   if (type === 'token' && typeof token === 'string' && token !== '') return { type, token }
@@ -52,7 +64,8 @@ function readChallengeEvent(data: unknown): ChallengeEvent | null {
   return null
 }
 
-/** Cloudflare's own widget is 300×65, and nothing else is on the page. */
+/** Cloudflare's own widget is 300×65, and nothing else is on the page. The frame holds height 0
+ *  until the challenge turns interactive. */
 const FRAME_WIDTH = 300
 const FRAME_HEIGHT = 65
 
@@ -106,8 +119,9 @@ function createChallengeFrame(
 
   frame.src = url.href
   frame.width = String(FRAME_WIDTH)
-  frame.height = String(FRAME_HEIGHT)
+  frame.height = '0'
   frame.style.border = '0'
+  frame.style.display = 'block'
   frame.title = 'Security check'
   // SahajCloud reads the parent from the URL, so this withholds only the host page's path and query.
   frame.referrerPolicy = 'strict-origin'
@@ -200,6 +214,9 @@ export type UseTurnstile = {
   challengeRef: RefObject<HTMLDivElement>
   /** The solved token, or null while unsolved or expired. */
   token: string | null
+  /** True while Cloudflare is asking the visitor to click: the frame is open, and a caller
+   *  spaces it. Otherwise it is collapsed to nothing. */
+  interactive: boolean
   status: TurnstileStatus
   /**
    * Discards the token and re-runs the challenge in place. A no-op while it is not rendered, so
@@ -219,6 +236,7 @@ export function useTurnstile({ disabled = false }: UseTurnstileOptions = {}): Us
   // effect. The origin rides along so a frame navigated elsewhere receives no command.
   const frameRef = useRef<{ frame: HTMLIFrameElement; origin: string } | null>(null)
   const [token, setToken] = useState<string | null>(null)
+  const [interactive, setInteractive] = useState(false)
   const [status, setStatus] = useState<TurnstileStatus>(disabled ? 'blocked' : 'loading')
   const { theme } = useTheme()
   const { languageCode } = useLocale()
@@ -229,6 +247,7 @@ export function useTurnstile({ disabled = false }: UseTurnstileOptions = {}): Us
     if (disabled || !challengeRef.current) return
 
     setToken(null)
+    setInteractive(false)
     setStatus('loading')
 
     const { frame, origin, dispose } = createChallengeFrame(
@@ -237,6 +256,14 @@ export function useTurnstile({ disabled = false }: UseTurnstileOptions = {}): Us
         switch (message.type) {
           case 'ready':
             setStatus('ready')
+            break
+          case 'interactive':
+            frame.height = String(FRAME_HEIGHT)
+            setInteractive(true)
+            break
+          case 'settled':
+            frame.height = '0'
+            setInteractive(false)
             break
           // Turnstile's `retry` defaults to `auto`, so a transient failure is often followed by a
           // retry that solves. `blocked` must NOT latch, or the user holds a valid token while
@@ -277,5 +304,5 @@ export function useTurnstile({ disabled = false }: UseTurnstileOptions = {}): Us
     live.frame.contentWindow.postMessage({ channel: CHALLENGE_CHANNEL, type: 'reset' }, live.origin)
   }, [])
 
-  return { challengeRef, token, status, reset }
+  return { challengeRef, token, interactive, status, reset }
 }

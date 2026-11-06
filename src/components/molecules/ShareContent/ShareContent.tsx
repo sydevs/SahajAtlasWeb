@@ -85,15 +85,15 @@ export function ShareContent({ label, url, country }: ShareContentProps) {
   const { t } = useTranslation()
   const { canShare, share } = useWebShare()
   // This reveals the grid when there is no native sheet, or after a
-  // native attempt is blocked (host Permissions-Policy) or dismissed. So
-  // the viewer is never stranded.
+  // native attempt is blocked (host Permissions-Policy). So the viewer is
+  // never stranded. A dismissed sheet keeps the button: it worked.
   const [gridRevealed, setGridRevealed] = useState(false)
   const showGrid = !canShare || gridRevealed
 
   const platforms = platformsForCountry(country)
 
   const shareNatively = async () => {
-    if (!(await share({ title: label, url }))) setGridRevealed(true)
+    if ((await share({ title: label, url })) === 'unavailable') setGridRevealed(true)
   }
 
   return (

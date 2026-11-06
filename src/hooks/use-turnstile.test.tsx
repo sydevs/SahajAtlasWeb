@@ -130,6 +130,22 @@ describe('useTurnstile', () => {
     expect(hook.status).toBe('ready')
   })
 
+  it('keeps the frame collapsed until the challenge needs the visitor', async () => {
+    await mount()
+    fromFrame({ type: 'ready' })
+
+    expect(frame()?.height).toBe('0')
+    expect(hook.interactive).toBe(false)
+
+    fromFrame({ type: 'interactive' })
+    expect(frame()?.height).toBe('65')
+    expect(hook.interactive).toBe(true)
+
+    fromFrame({ type: 'settled' })
+    expect(frame()?.height).toBe('0')
+    expect(hook.interactive).toBe(false)
+  })
+
   it('refuses an empty token, which would enable Submit and then fail verification', async () => {
     await mount()
     fromFrame({ type: 'ready' })

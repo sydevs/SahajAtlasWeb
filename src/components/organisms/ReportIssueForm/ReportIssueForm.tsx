@@ -327,6 +327,7 @@ export function ReportIssueForm({
   const {
     challengeRef,
     token,
+    interactive,
     status,
     reset: resetCaptcha,
   } = useTurnstile({
@@ -492,8 +493,9 @@ export function ReportIssueForm({
           ))}
 
           {/* Kept mounted even when blocked: the hook renders the challenge into it
-              once Turnstile becomes available, and an empty div costs nothing. */}
-          <div ref={challengeRef} />
+              once Turnstile becomes available. Until Cloudflare wants a click the frame
+              is 0px tall, so the negative margin cancels the column's gap for it. */}
+          <div ref={challengeRef} className={interactive ? undefined : '-mt-4'} />
 
           {blocked && (
             <Alert

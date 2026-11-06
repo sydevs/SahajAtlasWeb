@@ -30,14 +30,14 @@ const oneOff: EventSchedule = {
 }
 
 /**
- * AddToCalendar — the five export targets offered on the registration
- * confirmation. Apple is the `.ics` download, a real file, so it is a
- * button. The other four are ordinary link-outs, so middle-click and
- * long-press behave correctly.
+ * AddToCalendar — one "Add to calendar" button opening a menu of calendar
+ * services, offered on the registration confirmation. Apple Calendar is the
+ * `.ics` download, a real file. The others are ordinary link-outs, so
+ * middle-click and long-press behave correctly.
  *
- * Press Apple to download and open the file in a real calendar app. That is
- * the only way to see the recurrence, the timezone, and the cancelled week
- * land correctly, and it is what the unit lane cannot assert.
+ * Choose Apple Calendar to download and open the file in a real calendar app.
+ * That is the only way to see the recurrence, the timezone, and the cancelled
+ * week land correctly, and it is what the unit lane cannot assert.
  */
 export const Default: Story = () => (
   <StoryWrapper>
