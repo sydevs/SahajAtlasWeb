@@ -11,7 +11,7 @@ import { useEventFilters, useSetFilters } from '@/hooks/use-filters'
 import { useLocale } from '@/hooks/use-locale'
 import { formatTimePeriods } from '@/lib'
 import { type EventFilters, type FilterKey, isDateRestricted, isTimeRestricted } from '@/lib/shape'
-import { regionalLocale } from '@/lib/time'
+import { formatDate, regionalLocale } from '@/lib/time'
 
 export type FilterPill = { key: FilterKey; label: string; onRemove: () => void }
 
@@ -88,8 +88,9 @@ export function useFilterPills(filters?: EventFilters): FilterPill[] {
     })
   }
   if (isDateRestricted(dateRange)) {
+    // "11 Nov", like the calendar's day headings; the year only when it is not this one.
     const fmt = (iso: string) =>
-      DateTime.fromISO(iso).setLocale(regionalLocale(locale)).toLocaleString(DateTime.DATE_MED)
+      formatDate(DateTime.fromISO(iso), regionalLocale(locale), { weekday: false })
     const { start, end } = dateRange
     let label = ''
 

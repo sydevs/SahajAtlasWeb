@@ -23,7 +23,7 @@ import {
   monthlyOptions,
   resolvedMonthlyBy,
 } from '@/lib/proposal'
-import { zoneLabel } from '@/lib/time'
+import { formatTimeRange, regionalLocale, zoneLabel } from '@/lib/time'
 
 const REPEATS: { value: ListingRepeats; label: TranslationKey }[] = [
   { value: 'weekly', label: 'submit.when.weekly' },
@@ -31,9 +31,10 @@ const REPEATS: { value: ListingRepeats; label: TranslationKey }[] = [
   { value: 'once', label: 'submit.when.once' },
 ]
 
-/** An `HH:MM` time as the visitor's locale writes it ("8:30 PM", "20:30"). */
+/** An `HH:MM` time as every other time on screen writes it: "8:30 pm" in English, "20:30" in
+ *  German (`formatTimeRange`). */
 const formatClock = (time: string, locale: string) =>
-  DateTime.fromFormat(time, 'HH:mm').setLocale(locale).toLocaleString(DateTime.TIME_SIMPLE)
+  formatTimeRange(DateTime.fromFormat(time, 'HH:mm', { zone: 'UTC' }), null, regionalLocale(locale))
 
 const DURATIONS: { minutes: number | null; label: TranslationKey }[] = [
   { minutes: 60, label: 'submit.when.duration_60' },

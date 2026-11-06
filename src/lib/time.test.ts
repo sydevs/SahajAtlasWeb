@@ -2,11 +2,14 @@ import { describe, it, expect } from 'vitest'
 import { DateTime } from 'luxon'
 
 import {
+  clockOptions,
+  formatDate,
   formatTimeRange,
   regionalLocale,
   sameWallClock,
   scheduleXLocale,
   scheduleXTranslationKey,
+  wallClock,
   zoneCity,
   zoneLabel,
 } from './time'
@@ -114,6 +117,48 @@ describe('formatTimeRange', () => {
     const prague = at('2026-07-04T19:00', 'Europe/Prague')
 
     expect(norm(formatTimeRange(prague, null, 'en-US'))).toBe('7:00 PM')
+  })
+})
+
+describe('clockOptions', () => {
+  it('asks for am/pm in English only, so other Intl formats agree with formatTimeRange', () => {
+    expect(clockOptions('en-GB')).toEqual({ hour12: true })
+    expect(clockOptions('en')).toEqual({ hour12: true })
+    expect(clockOptions('de')).toEqual({})
+  })
+
+  it("turns Schedule-X's week axis hours into am/pm on a UK browser", () => {
+    const axis = new Intl.DateTimeFormat('en-GB', { hour: 'numeric', ...clockOptions('en-GB') })
+
+    expect(norm(axis.format(new Date(2026, 0, 1, 19)))).toBe('7 pm')
+  })
+})
+
+describe('wallClock', () => {
+  it('writes a typed-in time like any class time, am/pm on a UK browser too', () => {
+    expect(norm(formatTimeRange(wallClock(20, 30), null, 'en-GB'))).toBe('8:30 pm')
+    expect(formatTimeRange(wallClock(20, 30), null, 'de')).toBe('20:30')
+  })
+
+  it('reads hour 24 as midnight, so a range can end there', () => {
+    expect(norm(formatTimeRange(wallClock(17), wallClock(24), 'en-GB'))).toBe('5:00 pm – 12:00 am')
+  })
+})
+
+describe('formatDate', () => {
+  const now = DateTime.fromISO('2026-11-06T12:00', { zone: 'Europe/London' })
+
+  it('writes the class page date the visitor’s way', () => {
+    const date = at('2026-11-11T19:30')
+
+    expect(formatDate(date, 'en-GB', { now })).toBe('Wed 11 Nov')
+    expect(formatDate(date, 'en-US', { now })).toBe('Wed, Nov 11')
+    expect(formatDate(date, 'en-GB', { now, weekday: false })).toBe('11 Nov')
+  })
+
+  it('adds the year only when it is not this one', () => {
+    expect(formatDate(at('2022-12-21T19:30'), 'en-GB', { now })).toBe('Wed, 21 Dec 2022')
+    expect(formatDate(at('2027-01-06T19:30'), 'en-GB', { now, weekday: false })).toBe('6 Jan 2027')
   })
 })
 

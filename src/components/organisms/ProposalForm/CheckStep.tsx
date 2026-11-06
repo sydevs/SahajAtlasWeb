@@ -26,6 +26,7 @@ import { EventChips } from '@/components/molecules/EventChips'
 import { FormField } from '@/components/molecules/FormField'
 import { userSubmissionValueMax } from '@/config/api/mutate'
 import { useLocale } from '@/hooks/use-locale'
+import { formatDate, regionalLocale } from '@/lib/time'
 
 /** What a change on a correction's Check can be: a row of the listing, the report, or the note. */
 export type ChangeKey = SummaryRow['key'] | 'stopped' | 'nobody' | 'note'
@@ -234,7 +235,7 @@ function ListingSummary({
         {schedule ? (
           <>
             <p className="font-medium">{schedule.pattern}</p>
-            <p>{[schedule.time, schedule.zone].filter(Boolean).join(' · ')}</p>
+            {schedule.time && <p>{schedule.time}</p>}
             {draft.repeats !== 'once' && (
               <p className="text-gray-11">
                 {draft.endDate
@@ -349,9 +350,9 @@ function Fact({
   )
 }
 
-/** A date in words, year included — on Check every date is checked, so none is left implied. */
+/** A date as the class page writes it ("Wed 11 Nov"), with the year when it is not this one. */
 export const longDate = (iso: string, locale: string) =>
-  DateTime.fromISO(iso).setLocale(locale).toLocaleString(DateTime.DATE_FULL)
+  formatDate(DateTime.fromISO(iso), regionalLocale(locale))
 
 /** A 32px button that takes taps across 44px, without pushing the rows apart. */
 const TALL_TARGET = 'relative after:absolute after:inset-x-0 after:-inset-y-1.5'

@@ -1,9 +1,7 @@
 import type { EventAddress, Geojson } from '@/types'
 
-import { DateTime } from 'luxon'
-
 import { timePeriodRanges, type TimePeriod } from '@/lib/shape'
-import { regionalLocale } from '@/lib/time'
+import { formatTimeRange, regionalLocale, wallClock } from '@/lib/time'
 
 /** iPhone or iPad. iPadOS reports a Mac, so touch points tell the two apart. */
 export const isAppleMobile = (
@@ -38,24 +36,29 @@ export function directionsUrl(
     : `https://www.google.com/maps/search/?api=1&query=${encoded}`
 }
 
-/**
- * A 0–24h value rendered in the given locale's short time format (e.g. "9:30 AM").
- * 24 wraps to midnight so an upper bound reads as a time rather than "24:00".
- * Shared by the filter form and the active-filter pills for the time-of-day label.
- */
-export function formatHour(locale: string, hour: number): string {
+/** A 0–24h value as the wall clock it stands for. 24 wraps to midnight, so an upper bound reads
+ *  as a time rather than "24:00". */
+const hourClock = (hour: number) => {
   const minutes = Math.round(hour * 60) % (24 * 60)
 
-  return DateTime.fromObject({ hour: Math.floor(minutes / 60), minute: minutes % 60 })
-    .setLocale(regionalLocale(locale))
-    .toLocaleString(DateTime.TIME_SIMPLE)
+  return wallClock(Math.floor(minutes / 60), minutes % 60)
 }
 
 /**
- * The selected time-of-day periods rendered as a locale-formatted list of hour
- * ranges (e.g. "9:00 AM – 12:00 PM · 5:00 PM – 9:00 PM"), for the filter form's
- * readout and the active-filter pill. Empty string when nothing is selected — the
- * two surfaces stay in lockstep because both format the same `timePeriodRanges`.
+ * A 0–24h value written like every other time on screen (`formatTimeRange`): "9:30 am" in
+ * English, also on a UK browser, whose own clock would say "09:30".
+ */
+export function formatHour(locale: string, hour: number): string {
+  return formatTimeRange(hourClock(hour), null, regionalLocale(locale))
+}
+
+/**
+ * The selected time-of-day periods as a list of hour ranges ("5:00 pm – 12:00 am"), for the
+ * active-filter pill. Empty string when nothing is selected.
+ *
+ * Each end is written on its own, so each keeps its am or pm. A range across midnight can span
+ * more than twelve hours ("5:00 pm – 12:00 pm"), and `formatRange` would drop the first "pm"
+ * of a pair sharing one, which reads as a morning start.
  */
 export function formatTimePeriods(locale: string, periods: readonly TimePeriod[]): string {
   return timePeriodRanges(periods)

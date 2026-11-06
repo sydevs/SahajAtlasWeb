@@ -71,19 +71,69 @@ const wallClockOnOneDay = (at: DateTime): Date => new Date(Date.UTC(2000, 0, 1, 
  */
 export function formatTimeRange(start: DateTime, end: DateTime | null, locale: string): string {
   const endInZone = end?.setZone(start.zone) ?? null
-
-  const formatter = new Intl.DateTimeFormat(locale, {
-    hour: 'numeric',
-    minute: '2-digit',
-    timeZone: 'UTC',
-    // English always says am or pm, even where the region's clock is 24-hour (en-GB): "4:00"
-    // alone could be morning or afternoon (Anton, 6 Nov). Other languages keep their own clock.
-    ...(isEnglish(locale) ? { hour12: true } : {}),
-  })
+  const formatter = clockFormatter(locale)
 
   if (!endInZone || +endInZone === +start) return formatter.format(wallClockOnOneDay(start))
 
   return formatter.formatRange(wallClockOnOneDay(start), wallClockOnOneDay(endInZone))
+}
+
+/**
+ * The hour cycle every time on screen is written in. English always says am or pm, even where the
+ * region's clock is 24-hour (en-GB): "4:00" alone could be morning or afternoon (Anton, 6 Nov).
+ * Other languages keep their own clock. Spread it into any `Intl` time format — Schedule-X's week
+ * axis takes it too — so no surface drifts back to "19:00", as the calendar's week list, the
+ * filter pills and the add-a-class form once did.
+ */
+export const clockOptions = (locale: string): Intl.DateTimeFormatOptions =>
+  isEnglish(locale) ? { hour12: true } : {}
+
+// One formatter per locale for the widget's lifetime: a week list or a results page formats a
+// time per row, and the result depends on nothing but the locale.
+const clockFormatters = new Map<string, Intl.DateTimeFormat>()
+
+const clockFormatter = (locale: string): Intl.DateTimeFormat => {
+  let formatter = clockFormatters.get(locale)
+
+  if (!formatter) {
+    formatter = new Intl.DateTimeFormat(locale, {
+      hour: 'numeric',
+      minute: '2-digit',
+      timeZone: 'UTC',
+      ...clockOptions(locale),
+    })
+    clockFormatters.set(locale, formatter)
+  }
+
+  return formatter
+}
+
+/**
+ * A wall-clock time that belongs to no instant — an `HH:mm` typed into a form, the hour a filter
+ * stands for — as one `formatTimeRange` writes like any class's time: "8:30 pm" in English,
+ * "20:30" in German. Hour 24 is midnight.
+ */
+export const wallClock = (hour: number, minute = 0): DateTime =>
+  DateTime.utc(2000, 1, 1, hour % 24, minute)
+
+/**
+ * A date the way the class page writes it: "Wed 11 Nov" on a UK browser, "Wed, Nov 11" on a US one
+ * (pass `regionalLocale`'s answer). The year joins only when it is not this year's, so a series
+ * that began in 2022 reads "Wed, 21 Dec 2022" instead of passing for this December.
+ * `weekday: false` drops the day name where the words around it already say it ("Every Wednesday
+ * from 11 Nov", "Started 8 Jul").
+ */
+export function formatDate(
+  at: DateTime,
+  locale: string,
+  { weekday = true, now = DateTime.now() }: { weekday?: boolean; now?: DateTime } = {},
+): string {
+  return at.setLocale(locale).toLocaleString({
+    ...(weekday ? { weekday: 'short' } : {}),
+    day: 'numeric',
+    month: 'short',
+    ...(at.year === now.setZone(at.zone).year ? {} : { year: 'numeric' }),
+  })
 }
 
 /**

@@ -141,3 +141,85 @@ describe('useEventDisplay — an online class seen from another zone', () => {
     })
   })
 })
+
+// Each time names the city whose clock it is in, on every surface, whoever is looking (Anton,
+// 6 Nov). A clock that only showed when the viewer's offset differed TODAY flipped wrongly for a
+// class across a daylight-saving change: Abidjan and London agree in November, not in July.
+describe('useEventDisplay — every time names its clock', () => {
+  afterEach(() => {
+    Settings.defaultZone = 'system'
+    Settings.now = () => Date.now()
+  })
+
+  // Wednesday 14 July 2027, 18:30 UTC: 19:30 in London (BST), 18:30 in Abidjan (no DST).
+  const july = (overrides: Partial<DisplayableEvent>): DisplayableEvent => ({
+    eventType: 'offline',
+    address: { city: 'London' },
+    schedule: {
+      firstDate: new Date('2027-07-07T18:30:00Z'),
+      firstDate_tz: 'Europe/London',
+      recurrenceType: 'WEEKLY',
+      interval: 1,
+      weekdays: ['WE'],
+      endTime: '20:45',
+      upcomingDates: [new Date('2027-07-14T18:30:00Z')],
+    },
+    ...overrides,
+  })
+
+  // Seen from `zone`, by default on 6 November 2026, when London and Abidjan share UTC+0.
+  const seenFrom = (event: DisplayableEvent, zone: string, now = '2026-11-06T12:00:00Z') => {
+    Settings.defaultZone = zone
+    Settings.now = () => Date.parse(now)
+    let lines = { range: '', start: '', subtext: null as string | null }
+    const Probe = () => {
+      const strings = useEventDisplay(event)
+
+      lines = {
+        range: strings.eventTimeRange ?? '',
+        start: strings.eventStartTime ?? '',
+        subtext: strings.whereSubtext,
+      }
+
+      return null
+    }
+
+    renderToStaticMarkup(createElement(Probe))
+
+    return {
+      range: lines.range.replace(/\s/g, ' '),
+      start: lines.start.replace(/\s/g, ' '),
+      subtext: lines.subtext?.replace(/\s/g, ' ') ?? null,
+    }
+  }
+
+  it("names an in-person class's own city seen from that city too", () => {
+    // In July, when the viewer's offset today and the class's agree.
+    expect(seenFrom(july({}), 'Europe/London', '2027-07-01T12:00:00Z')).toMatchObject({
+      range: '7:30 – 8:45 PM London time',
+      start: '7:30 PM London time',
+    })
+  })
+
+  it("names an in-person class's city when the clocks agree today but not on the day", () => {
+    const abidjan = july({
+      address: { city: 'Abidjan' },
+      schedule: { ...july({}).schedule!, firstDate_tz: 'Africa/Abidjan', endTime: '19:45' },
+    })
+
+    expect(seenFrom(abidjan, 'Europe/London').start).toBe('6:30 PM Abidjan time')
+  })
+
+  it("adds an online host's clock that differs on the class's day, though not today", () => {
+    const online = july({
+      eventType: 'online',
+      address: { city: 'Abidjan' },
+      schedule: { ...july({}).schedule!, firstDate_tz: 'Africa/Abidjan', endTime: '19:45' },
+    })
+
+    expect(seenFrom(online, 'Europe/London')).toMatchObject({
+      start: '7:30 PM London time',
+      subtext: '6:30 PM Abidjan time',
+    })
+  })
+})

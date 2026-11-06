@@ -8,7 +8,7 @@ import { useTranslation } from 'react-i18next'
 import { useEventDisplay } from '@/hooks/use-event-display'
 import { useLocale } from '@/hooks/use-locale'
 import { draftPlaceName, draftTitle, titleSlot } from '@/lib/proposal'
-import { zoneLabel } from '@/lib/time'
+import { formatDate, regionalLocale, zoneLabel } from '@/lib/time'
 
 export type SummaryRow = {
   key: string
@@ -44,8 +44,10 @@ export function useSummaryRows(
   const { locale, languageLabel } = useLocale()
   const display = useHostDisplay(listing)
   const online = draft.eventType === 'online'
+  // The class page's own date style ("Wed 11 Nov", the year when it is not this one), so a
+  // correction's Was and Now read like the page they correct.
   const date = (iso: string) =>
-    iso ? DateTime.fromISO(iso).setLocale(locale).toLocaleString(DateTime.DATE_HUGE) : ''
+    iso ? formatDate(DateTime.fromISO(iso), regionalLocale(locale)) : ''
   const schedule = (display.recurrenceLine ? [display.recurrenceLine] : [display.whenLine])
     .concat(display.eventTimeRange ?? [])
     .join(' · ')
@@ -166,34 +168,32 @@ export function useSummaryRows(
 }
 
 /**
- * The schedule as two lines a host can check at a glance: the pattern with its first date in
- * words ("Every Tuesday from 27 October"), then the times and the zone they are in. The first
- * date and the zone are inferred for the host, so they are spelled out rather than implied.
- * Empty until there is a first date and a start time.
+ * The schedule as two lines a host can check at a glance: the pattern with its first date
+ * ("Every Tuesday from 27 Oct"), then the times, which name the clock they are in ("7:30 – 8:30 pm
+ * London time"). The first date and the clock are inferred for the host, so they are spelled out
+ * rather than implied — the clock once, not again as "United Kingdom Time". Dates read as on the
+ * class page. Empty until there is a first date and a start time.
  */
 export function useScheduleLines(
   draft: ListingDraft,
   listing: Event,
-): { pattern: string; time: string | null; zone: string } | null {
+): { pattern: string; time: string | null } | null {
   const { t } = useTranslation()
   const { locale } = useLocale()
   const display = useHostDisplay(listing)
 
   if (!draft.firstDate || !draft.startTime) return null
 
-  const first = DateTime.fromISO(draft.firstDate).setLocale(locale)
-  const date = first.toLocaleString({
-    ...(draft.repeats === 'once' && { weekday: 'long' }),
-    day: 'numeric',
-    month: 'long',
-    year: 'numeric',
+  // A one-off names its day; a pattern already says it ("Every Tuesday from 27 Oct").
+  const date = formatDate(DateTime.fromISO(draft.firstDate), regionalLocale(locale), {
+    weekday: draft.repeats === 'once',
   })
   const pattern =
     draft.repeats === 'once' || !display.recurrenceLine
       ? date
       : t('submit.when.from', { pattern: display.recurrenceLine, date })
 
-  return { pattern, time: display.eventTimeRange, zone: zoneLabel(draft.timeZone, locale) }
+  return { pattern, time: display.eventTimeRange }
 }
 
 const AUTO_TITLE_KEYS = {

@@ -31,6 +31,7 @@ import { useWebShare } from '@/hooks/use-web-share'
 import { useAreaNames } from '@/hooks/use-area-names'
 import { type AreaNames, areaKey, areaLabel, areaLookupPoints } from '@/lib/area-names'
 import {
+  clockOptions,
   formatTimeRange,
   regionalLocale,
   scheduleXLocale,
@@ -561,6 +562,8 @@ function CalendarGrid({
       },
       weekOptions: {
         eventWidth: 98,
+        // The Week grid's hour axis, "7 pm" in English like every other time here, not "19".
+        timeAxisFormatOptions: { hour: 'numeric', ...clockOptions(scheduleXCode) },
       },
     },
     [controls],
@@ -599,6 +602,12 @@ function CalendarGrid({
 
   return (
     <>
+      {/* Above the grid whose times it explains, so it is read first. */}
+      <TimesNote
+        end={focused.endOf('month').toISODate() ?? ''}
+        entries={events}
+        start={focused.startOf('month').toISODate() ?? ''}
+      />
       <DrawerBody className="max-w-none overflow-hidden px-gutter pb-4">
         <div
           className="sx-calendar"
@@ -607,11 +616,6 @@ function CalendarGrid({
           <CalendarMount calendar={calendar} renderers={renderers} />
         </div>
       </DrawerBody>
-      <TimesNote
-        end={focused.endOf('month').toISODate() ?? ''}
-        entries={events}
-        start={focused.startOf('month').toISODate() ?? ''}
-      />
     </>
   )
 }

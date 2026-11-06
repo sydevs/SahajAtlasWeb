@@ -25,16 +25,19 @@ import {
   todayISO,
   weekFrom,
 } from '@/lib/shape'
-import { regionalLocale } from '@/lib/time'
+import { formatTimeRange, regionalLocale } from '@/lib/time'
 
 const WALL_CLOCK = 'yyyy-MM-dd HH:mm'
 
 function WeekRow({ entry }: { entry: CalendarEntry }) {
   const { locale } = useLocale()
-  // The visitor's regional clock: "19:00" on a UK browser, "7:00 PM" on a US one.
-  const time = DateTime.fromFormat(entry.start, WALL_CLOCK)
-    .setLocale(regionalLocale(locale))
-    .toLocaleString(DateTime.TIME_SIMPLE)
+  // Through `formatTimeRange`, like the class pages and the calendar grid: "7:00 pm" on a UK
+  // browser too, never "19:00" beside a class page that says "7:00 pm London time".
+  const time = formatTimeRange(
+    DateTime.fromFormat(entry.start, WALL_CLOCK, { zone: 'UTC' }),
+    null,
+    regionalLocale(locale),
+  )
 
   return (
     <li>
@@ -126,6 +129,8 @@ export function WeekList({ filters }: { filters: EventFilters }) {
 
   return (
     <>
+      {/* Above the times it explains, so it is read first, not found under the list. */}
+      <TimesNote end={window.end} entries={entries} start={window.start} />
       <DrawerBody className="pb-4">
         {days.map((day) => (
           <section key={day.date}>
@@ -141,7 +146,6 @@ export function WeekList({ filters }: { filters: EventFilters }) {
           </section>
         ))}
       </DrawerBody>
-      <TimesNote end={window.end} entries={entries} start={window.start} />
     </>
   )
 }

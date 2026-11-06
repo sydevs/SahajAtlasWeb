@@ -8,7 +8,7 @@ import { useTranslation } from 'react-i18next'
 import { useLocale } from './use-locale'
 
 import { resolveEventDisplay } from '@/lib/shape'
-import { formatTimeRange, regionalLocale, sameWallClock, zoneCity } from '@/lib/time'
+import { formatDate, formatTimeRange, regionalLocale, sameWallClock, zoneCity } from '@/lib/time'
 
 /** This is what the formatting layer reads on top of the resolver input: the address and
  *  region refs that feed the where and origin strings, when the surface has them. */
@@ -130,12 +130,9 @@ export function useEventDisplay(event: DisplayableEvent): EventDisplayStrings {
     const schedule = event.schedule
     const { kind, status, full, next, nextEnd, origin, firstSession, sessions } = display
 
-    const date = (dt: DateTime) =>
-      dt
-        .setLocale(formatLocale)
-        .toLocaleString({ weekday: 'short', day: 'numeric', month: 'short' })
-    const shortDate = (dt: DateTime) =>
-      dt.setLocale(formatLocale).toLocaleString({ day: 'numeric', month: 'short' })
+    // "Wed 11 Nov" and "11 Nov", with the year only when it is not this one ("Started 8 Jul 2024").
+    const date = (dt: DateTime) => formatDate(dt, formatLocale)
+    const shortDate = (dt: DateTime) => formatDate(dt, formatLocale, { weekday: false })
 
     const sessionsLabel =
       sessions != null ? t('event.display.sessions_count', { count: sessions }) : null
@@ -230,18 +227,14 @@ export function useEventDisplay(event: DisplayableEvent): EventDisplayStrings {
 
     // ── Times ──
     // These are in the display zone, the viewer's for an online event, so they agree with the
-    // weekday, the date and the calendar. There is no clock label: issue #52 dropped those.
-    // Which clock a time is in, said beside it by its city (Anton, 6 Nov): "8:00 pm Prague time".
-    // An online class is shown in the viewer's own zone, so it always names the viewer's city. An
-    // in-person class is in its venue's zone, which only needs saying when the viewer's clock
-    // differs: "London time" seen from Prague, nothing in London. Compared by offset, so zones that
-    // agree right now count as the same. The city is the zone's own (`zoneCity`), so it needs no
-    // lookup and works anywhere, where abbreviations like EST exist only for some zones.
-    const zoneLabel = !next
-      ? null
-      : display.online || next.offset !== DateTime.now().offset
-        ? t('event.display.zone_time', { city: zoneCity(next.zoneName) })
-        : null
+    // weekday, the date and the calendar. Each names its clock by city (Anton, 6 Nov): "8:00 pm
+    // Prague time", never "your time". An online class is shown in the viewer's own zone, so it
+    // names the viewer's city; an in-person class names its venue's, seen from anywhere. Always,
+    // not only when the viewer's clock differs: a missing label would leave a visitor to work out
+    // whose clock it is, and the old test compared offsets TODAY, so a class across a
+    // daylight-saving change lost its label. The city is the zone's own (`zoneCity`), so it needs
+    // no lookup and works anywhere, where abbreviations like EST exist only for some zones.
+    const zoneLabel = next ? t('event.display.zone_time', { city: zoneCity(next.zoneName) }) : null
     const withZone = (time: string) => (zoneLabel ? `${time} ${zoneLabel}` : time)
     const eventStartTime = next ? withZone(formatTimeRange(next, null, formatLocale)) : null
     const eventTimeRange = next
@@ -286,7 +279,9 @@ export function useEventDisplay(event: DisplayableEvent): EventDisplayStrings {
     //
     // This is skipped entirely when the viewer shares the host's offset, since it would just
     // restate the time above. Comparing the OFFSET, not the zone id, also catches distinct zones
-    // that happen to agree right now, such as Europe/London and Europe/Lisbon in winter.
+    // that agree, such as Europe/London and Europe/Lisbon. Both offsets are read AT the class
+    // (`origin` and `next` are one instant in two zones), never today, so a daylight-saving change
+    // between now and the class cannot hide a clock that differs on the day.
     let whereSubtext: string | null = null
 
     if (origin && next && !sameWallClock(origin, next)) {
