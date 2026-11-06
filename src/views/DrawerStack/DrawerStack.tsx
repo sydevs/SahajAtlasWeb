@@ -983,7 +983,14 @@ export function DrawerStack() {
             // isn't loaded such a place still climbs on by itself (RegionView, `climbedUpFrom`).
             else if (parentPath)
               navigate(
-                toStackTarget(climbDestination(location.pathname, climb.classes, climb.venueSlugs)),
+                toStackTarget(
+                  climbDestination(
+                    location.pathname,
+                    climb.classes,
+                    climb.venueSlugs,
+                    climb.pathOf,
+                  ),
+                ),
                 { state: { climbedFrom: location.pathname } },
               )
           })

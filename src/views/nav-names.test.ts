@@ -19,9 +19,10 @@ describe('backLabel', () => {
     expect(backLabel('/', naming)).toBe('common.chrome.back_to_world_map')
   })
 
-  it('names a region from the tree, and falls back to its slug', () => {
+  it('names a region from the tree, and never shows a raw slug', () => {
     expect(backLabel('/gb', naming)).toBe('common.chrome.back_to:United Kingdom')
-    expect(backLabel('/fr', naming)).toBe('common.chrome.back_to:fr')
+    expect(backLabel('/fr', naming)).toBe('common.chrome.back_to:FR')
+    expect(backLabel('/united-kingdom', naming)).toBe('common.chrome.back_to:United Kingdom')
   })
 
   it('names search results by the place searched', () => {

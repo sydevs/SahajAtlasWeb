@@ -34,8 +34,10 @@ import {
 } from '@/lib/geolocation'
 import {
   type PlaceSearch,
+  type PlacePathOf,
   type EventFilters,
   activeFilterCount,
+  safePath,
   searchPath,
   calendarPath,
   atlasDepth,
@@ -149,9 +151,17 @@ export function SearchButton() {
   )
 }
 
+/** Each place's own address, by slug, from the region tree (`placedPathname`). */
+const placePaths = (regions: readonly { slug: string; webPath?: string | null }[]): PlacePathOf => {
+  const paths = new Map(regions.map((node) => [node.slug, safePath(node.webPath)]))
+
+  return (slug) => paths.get(slug)
+}
+
 /**
  * What a climb reads to pass over venues and one-class places (`climbDestination`): the feed's
- * class paths and the region tree's venue slugs. Disabled observers: they follow the cache and
+ * class paths and the region tree's venue slugs, plus each place's own address (`placedPathname`)
+ * so a typed or old address climbs the real ancestry. Disabled observers: they follow the cache and
  * never fetch, so the loading and error chrome can call this too.
  */
 export function useClimbInputs() {
@@ -169,6 +179,7 @@ export function useClimbInputs() {
       venueSlugs: regions
         ? new Set(regions.filter((node) => node.level === 'venue').map((node) => node.slug))
         : undefined,
+      pathOf: regions ? placePaths(regions) : undefined,
     }),
     [feed, regions],
   )

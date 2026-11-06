@@ -7,7 +7,7 @@
  * import), so the decision is unit-testable in isolation from the components
  * that apply it.
  */
-import { type StackEntry, resolveStack } from './path'
+import { type StackEntry, isCanonicalPath, placeInStack, resolveStack } from './path'
 
 /**
  * The `state` shape we stamp on in-widget pushes (via the Link atom + useAtlasNavigate). A
@@ -47,6 +47,26 @@ export const atlasPushState = (location: {
   ...(location.pathname ? { from: `${location.pathname}${location.search ?? ''}` } : {}),
 })
 
+/** A place's address as the region tree gives it, by slug (`webPath`, already `safePath`-checked). */
+export type PlacePathOf = (slug: string) => string | undefined
+
+/**
+ * The pathname with its deepest place's address swapped for the one the data gives that place.
+ * A place resolves by its last slug alone, so a typed or old address such as
+ * `/united-kingdom/south-east/london` still opens London, whose country is `gb`. Read straight
+ * from the URL, the breadcrumb line would say "united-kingdom" and the climb would land on a page
+ * that doesn't exist. The address bar is left as it is (#31 dropped canonicalizing redirects);
+ * only what is named and linked above the page follows the data.
+ */
+export const placedPathname = (pathname: string, pathOf?: PlacePathOf): string => {
+  const place = placeInStack(resolveStack(pathname))
+  const real = place && pathOf?.(place.slug)
+
+  return real && !isCanonicalPath(place.path, real)
+    ? `${real}${pathname.slice(place.path.length)}`
+    : pathname
+}
+
 /**
  * Where Back goes from this location, as a route with its query: `undefined` at the root,
  * which has nothing to go back to. With in-widget history it is the entry that a
@@ -62,6 +82,7 @@ export const backDestination = (
   },
   classes?: readonly ClassPathLike[],
   venueSlugs?: ReadonlySet<string>,
+  pathOf?: PlacePathOf,
 ): string | undefined => {
   const entries = resolveStack(location.pathname)
 
@@ -71,7 +92,7 @@ export const backDestination = (
 
   if (atlasDepth(location) > 0 && typeof from === 'string') return from
 
-  const parent = climbDestination(location.pathname, classes, venueSlugs)
+  const parent = climbDestination(location.pathname, classes, venueSlugs, pathOf)
 
   // A search keeps its query when something stacked over it climbs back (see DrawerStack).
   return parent === '/search' ? `${parent}${location.search ?? ''}` : parent
@@ -90,14 +111,17 @@ export type ClassPathLike = { webPath?: string | null; eventType?: string | null
  * - a place holding a single in-person class, which would only open that class again
  *   (`loneClassPath`).
  *
+ * It climbs the place's real ancestry (`placedPathname`), not the words typed in the address.
+ *
  * Without the feed and the region tree (not loaded yet) it is the structural parent, as before.
  */
 export const climbDestination = (
   pathname: string,
   classes?: readonly ClassPathLike[],
   venueSlugs?: ReadonlySet<string>,
+  pathOf?: PlacePathOf,
 ): string => {
-  const entries = resolveStack(pathname)
+  const entries = resolveStack(placedPathname(pathname, pathOf))
   let index = entries.length - 2
 
   while (index >= 0) {

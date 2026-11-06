@@ -10,6 +10,7 @@ import {
   climbedUpFrom,
   dismissAction,
   loneClassPath,
+  placedPathname,
 } from './navigation'
 
 // The in-widget history shaping that turns a chronological-back dismiss on and the
@@ -231,5 +232,42 @@ describe('climbedUpFrom — only a structural climb climbs on', () => {
     expect(
       climbedUpFrom({ state: { depth: 1, from: '/lu/luxembourg/1185' } }, '/lu/luxembourg/1185'),
     ).toBe(false)
+  })
+})
+
+// A place resolves by its last slug, so a typed or old address still opens it. Its real
+// address comes from the region tree.
+describe('placedPathname', () => {
+  const pathOf = (slug: string) =>
+    ({ gb: '/gb', 'south-east': '/gb/south-east', london: '/gb/south-east/london' })[slug]
+
+  it('swaps a typed country for the real one, keeping what sits on the place', () => {
+    expect(placedPathname('/united-kingdom/south-east/london', pathOf)).toBe(
+      '/gb/south-east/london',
+    )
+    expect(placedPathname('/united-kingdom/south-east/london/711/register', pathOf)).toBe(
+      '/gb/south-east/london/711/register',
+    )
+  })
+
+  it('leaves a real address, or one the tree does not know, as it is', () => {
+    expect(placedPathname('/gb/south-east/london', pathOf)).toBe('/gb/south-east/london')
+    expect(placedPathname('/narnia/cair-paravel', pathOf)).toBe('/narnia/cair-paravel')
+    expect(placedPathname('/united-kingdom/south-east/london')).toBe(
+      '/united-kingdom/south-east/london',
+    )
+    expect(placedPathname('/search', pathOf)).toBe('/search')
+  })
+
+  it('names and links the real ancestry above the page, and climbs it', () => {
+    expect(
+      breadcrumbTrail(placedPathname('/united-kingdom/south-east/london/711', pathOf)).map(
+        (entry) => entry.path,
+      ),
+    ).toEqual(['/gb', '/gb/south-east', '/gb/south-east/london'])
+    expect(climbDestination('/united-kingdom/south-east', [], new Set(), pathOf)).toBe('/gb')
+    expect(backDestination({ pathname: '/united-kingdom/south-east' }, [], new Set(), pathOf)).toBe(
+      '/gb',
+    )
   })
 })

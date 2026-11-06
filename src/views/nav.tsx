@@ -18,6 +18,7 @@ import {
   breadcrumbTrail,
   isFilterOverlay,
   isoCountryCode,
+  placedPathname,
   resolveStack,
 } from '@/lib/shape'
 import { type NavNaming, backLabel, entryName } from '@/views/nav-names'
@@ -73,8 +74,8 @@ export function BackButton({ iconOnly = false }: { iconOnly?: boolean }) {
   const regionNames = useRegionNames()
   // Cache-only, like the names: on a fresh deep link the climb passes over the venue and any
   // one-class place, and the label names where it really lands (`climbDestination`).
-  const { classes, venueSlugs } = useClimbInputs()
-  const route = backDestination(location, classes, venueSlugs)
+  const { classes, venueSlugs, pathOf } = useClimbInputs()
+  const route = backDestination(location, classes, venueSlugs, pathOf)
 
   // The filters' X is the way out while they cover the calendar. Back would say "Calendar"
   // on the calendar itself: history can't say where the calendar came from until they close.
@@ -130,8 +131,11 @@ export function Breadcrumbs() {
   const { t } = useTranslation()
   const location = useLocation()
   const regionNames = useRegionNames()
+  const { pathOf } = useClimbInputs()
   const isWide = useIsWideWidget()
-  const trail = breadcrumbTrail(location.pathname)
+  // The real ancestry, not the words typed: `/united-kingdom/south-east/london` still names and
+  // links United Kingdom (`/gb`), the country London is in (`placedPathname`).
+  const trail = breadcrumbTrail(placedPathname(location.pathname, pathOf))
 
   if (!isWide || trail.length === 0) return null
 

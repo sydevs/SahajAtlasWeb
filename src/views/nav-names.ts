@@ -27,11 +27,24 @@ export type NavNaming = {
   titles?: ReadonlyMap<number, string>
 }
 
+/**
+ * A slug no cached region names, made readable, so a person never reads a raw slug:
+ * "united-kingdom" reads "United Kingdom", and a two-letter country code reads "GB".
+ */
+const readableSlug = (slug: string): string =>
+  /^[a-z]{2}$/i.test(slug)
+    ? slug.toUpperCase()
+    : slug
+        .split('-')
+        .filter(Boolean)
+        .map((word) => word.charAt(0).toLocaleUpperCase() + word.slice(1))
+        .join(' ')
+
 /** The name of one stack entry, or `undefined` where nothing true is known. */
 export function entryName(entry: StackEntry, { t, regionNames, titles }: NavNaming) {
   switch (entry.kind) {
     case 'region':
-      return regionNames?.get(entry.slug) ?? entry.slug
+      return regionNames?.get(entry.slug) ?? readableSlug(entry.slug)
     case 'event':
       return titles?.get(entry.id)
     case 'online':
