@@ -5,7 +5,9 @@ import {
   atlasPushState,
   backDestination,
   breadcrumbTrail,
+  cameUpFrom,
   dismissAction,
+  loneClassPath,
 } from './navigation'
 
 // The in-widget history shaping that turns a chronological-back dismiss on and the
@@ -116,5 +118,60 @@ describe('breadcrumbTrail', () => {
 
   it('includes the online roll-up a class was opened from', () => {
     expect(paths('/gb/online/12')).toEqual(['/gb', '/gb/online'])
+  })
+})
+
+describe('loneClassPath — a place with one class opens it', () => {
+  const place = (over: Partial<Parameters<typeof loneClassPath>[0]> = {}) => ({
+    subregions: [],
+    events: [],
+    onlineEvents: [],
+    ...over,
+  })
+
+  it('opens the class of a country whose only city holds one class', () => {
+    expect(
+      loneClassPath(place({ subregions: [{ singleEventPath: '/lu/luxembourg/1185' }] }), false),
+    ).toBe('/lu/luxembourg/1185')
+  })
+
+  it('opens the one class a leaf place lists itself', () => {
+    expect(loneClassPath(place({ events: [{ path: '/lu/1185' }] }), false)).toBe('/lu/1185')
+  })
+
+  it('keeps the page when there is more than one to choose from', () => {
+    expect(loneClassPath(place({ subregions: [{}] }), false)).toBeUndefined()
+    expect(
+      loneClassPath(
+        place({ subregions: [{ singleEventPath: '/a/1' }, { singleEventPath: '/b/2' }] }),
+        false,
+      ),
+    ).toBeUndefined()
+    expect(
+      loneClassPath(place({ events: [{ path: '/x/1' }], onlineEvents: [{}] }), false),
+    ).toBeUndefined()
+  })
+
+  it('keeps the page while a filter narrows the list', () => {
+    expect(loneClassPath(place({ events: [{ path: '/lu/1185' }] }), true)).toBeUndefined()
+  })
+})
+
+describe('cameUpFrom — leaving the lone class never bounces back into it', () => {
+  it('is true after a climb or a link from that class, query ignored', () => {
+    expect(cameUpFrom({ state: { climbedFrom: '/lu/1185' } }, '/lu/1185')).toBe(true)
+    expect(cameUpFrom({ state: { depth: 1, from: '/lu/1185?locale=fr' } }, '/lu/1185')).toBe(true)
+  })
+
+  it('is true two levels up: from the city that holds the class, to its country', () => {
+    expect(cameUpFrom({ state: { climbedFrom: '/lu/luxembourg' } }, '/lu/luxembourg/1185')).toBe(
+      true,
+    )
+  })
+
+  it('is false on a fresh arrival or from somewhere else', () => {
+    expect(cameUpFrom({ state: null }, '/lu/1185')).toBe(false)
+    expect(cameUpFrom({ state: { depth: 1, from: '/' } }, '/lu/1185')).toBe(false)
+    expect(cameUpFrom({ state: { climbedFrom: '/lu/lux' } }, '/lu/luxembourg/1185')).toBe(false)
   })
 })

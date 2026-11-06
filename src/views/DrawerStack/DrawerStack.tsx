@@ -753,7 +753,10 @@ export function DrawerStack() {
         else
           startTransition(() => {
             if (action === 'back') navigate(-1)
-            else if (parentPath) navigate(toStackTarget(parentPath)) // 'fallback'
+            // 'fallback'. It says where it climbed from, so a place that opens its lone class
+            // shows its own page instead of sending the visitor straight back (`cameUpFrom`).
+            else if (parentPath)
+              navigate(toStackTarget(parentPath), { state: { climbedFrom: location.pathname } })
           })
       },
     }

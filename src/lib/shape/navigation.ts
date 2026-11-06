@@ -9,8 +9,11 @@
  */
 import { type StackEntry, resolveStack } from './path'
 
-/** The `state` shape we stamp on in-widget pushes (via the Link atom + useAtlasNavigate). */
-export type AtlasNavState = { depth?: number; from?: string }
+/**
+ * The `state` shape we stamp on in-widget pushes (via the Link atom + useAtlasNavigate). A
+ * structural climb (closing a fresh deep link) carries only `climbedFrom`: the page it left.
+ */
+export type AtlasNavState = { depth?: number; from?: string; climbedFrom?: string }
 
 /**
  * The in-widget history depth carried on a location's `state`. A fresh deep link
@@ -112,4 +115,44 @@ export const dismissAction = ({
   if (!hasParent) return 'collapse'
 
   return depth > 0 ? 'back' : 'fallback'
+}
+
+/**
+ * The one class a place holds, when that is all it holds: exactly one in-person class, no online
+ * class, and no filter narrowing the list. Opening such a place opens that class instead, the same
+ * shortcut the place's row already takes in a list (`singleEventPath`). A sole child place with
+ * one class counts too: Luxembourg holds only the city of Luxembourg, which holds one class.
+ */
+export const loneClassPath = (
+  region: {
+    subregions: { singleEventPath?: string }[]
+    events: { path: string }[]
+    onlineEvents: unknown[]
+  },
+  filtered: boolean,
+): string | undefined => {
+  if (filtered || region.onlineEvents.length > 0) return undefined
+  if (region.events.length === 0 && region.subregions.length === 1)
+    return region.subregions[0].singleEventPath
+  if (region.subregions.length === 0 && region.events.length === 1) return region.events[0].path
+
+  return undefined
+}
+
+/**
+ * Whether this location was reached by leaving `path`, or a place on the way down to it, upward:
+ * Back, swipe or Escape (`climbedFrom`), or a breadcrumb or link (`from`). A place that opens its
+ * lone class shows its own page then, so leaving the class can never bounce back into it, even
+ * two levels up (class, then its city, then the country that holds only that city).
+ */
+export const cameUpFrom = (location: { state?: unknown }, path: string): boolean => {
+  const state = location.state as { from?: unknown; climbedFrom?: unknown } | null | undefined
+  const within = (value: unknown) => {
+    if (typeof value !== 'string') return false
+    const route = value.split('?')[0]
+
+    return route === path || path.startsWith(`${route}/`)
+  }
+
+  return within(state?.from) || within(state?.climbedFrom)
 }

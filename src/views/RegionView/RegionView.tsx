@@ -4,6 +4,7 @@ import { useMemo } from 'react'
 import { useQuery, useSuspenseQuery } from '@tanstack/react-query'
 import { Helmet } from 'react-helmet-async'
 import { useTranslation } from 'react-i18next'
+import { Navigate, useLocation } from 'react-router'
 
 import { Alert } from '@/components/atoms/Alert'
 import { Link } from '@/components/atoms/Link'
@@ -30,11 +31,14 @@ import {
   DEFAULT_FILTERS,
   FOREIGN_NEARBY_KM,
   boundsWith,
+  cameUpFrom,
   childRoute,
   distanceToNearest,
   isoCountryCode,
   isOnline,
   searchPath,
+  loneClassPath,
+  viewRegion,
 } from '@/lib/shape'
 import { validateWebUrl } from '@/lib/url'
 import { NavHeader } from '@/views/nav'
@@ -58,6 +62,7 @@ import {
 // canonical tag is standalone-only.
 export function RegionView({ slug }: { slug: string }) {
   const { t } = useTranslation()
+  const location = useLocation()
   const { regionNames, locale } = useLocale()
   const { standalone } = useWidgetMode()
   const { frameRegion } = useMapController()
@@ -105,6 +110,14 @@ export function RegionView({ slug }: { slug: string }) {
   const subheader =
     (region.level === 'city' ? region.subtitle : undefined) ??
     (hasEventList ? t('common.chrome.all_classes_free') : undefined)
+
+  // A place with one class opens it: a list of one is an extra tap (Anton, 6 Nov). Not when the
+  // visitor just left that class upward, or the page would bounce them back into it; and only
+  // while this view is the page on screen, not while it plays its exit.
+  const lone = loneClassPath(region, Boolean(filterSearch))
+
+  if (lone && viewRegion(location.pathname) === slug && !cameUpFrom(location, lone))
+    return <Navigate replace state={location.state} to={lone} />
 
   return (
     <>
