@@ -7,6 +7,7 @@ import { useTranslation } from 'react-i18next'
 
 import { FinderCard } from './FinderCard'
 import { FullView } from './FullView'
+import { PreviewCard } from './PreviewCard'
 
 import { ExpansionValueProvider } from '@/hooks/use-expansion'
 import { useReportModal } from '@/config/store'
@@ -51,7 +52,7 @@ export type InlineEmbedViewProps = {
   children: ReactNode
 }
 
-export function InlineEmbedView({ framed, autoOpen, children }: InlineEmbedViewProps) {
+export function InlineEmbedView({ mode, framed, autoOpen, children }: InlineEmbedViewProps) {
   const { t } = useTranslation()
   const navigate = useNavigate()
   const location = useLocation()
@@ -180,7 +181,7 @@ export function InlineEmbedView({ framed, autoOpen, children }: InlineEmbedViewP
 
   return (
     <ExpansionValueProvider value={expansion}>
-      <FinderCard onOpen={open} />
+      {mode === 'preview' ? <PreviewCard onOpen={open} /> : <FinderCard onOpen={open} />}
       <FullView
         focus={focus}
         host={host}
