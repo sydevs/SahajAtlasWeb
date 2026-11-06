@@ -326,7 +326,7 @@ function MoreFilters({ value, patch, facets }: FilterControlProps) {
     <div className="flex flex-col">
       <button
         aria-expanded={open}
-        className="-mx-4 flex min-h-11 items-center justify-between gap-2 px-4 text-sm font-semibold text-foreground outline-none hover:bg-gray-3 focus-visible:ring-2 focus-visible:ring-focus focus-visible:ring-inset"
+        className="-mx-gutter flex min-h-11 items-center justify-between gap-2 px-gutter text-sm font-semibold text-foreground outline-none hover:bg-gray-3 focus-visible:ring-2 focus-visible:ring-focus focus-visible:ring-inset"
         type="button"
         onClick={() => setOpen((current) => !current)}
       >
@@ -418,7 +418,7 @@ function RouteRow({
 }) {
   return (
     <button
-      className="-mx-4 flex min-h-14 items-center justify-between gap-2 px-4 text-start text-base font-medium text-foreground outline-none hover:bg-gray-3 focus-visible:ring-2 focus-visible:ring-focus focus-visible:ring-inset @max-[288px]:text-sm"
+      className="-mx-gutter flex min-h-14 items-center justify-between gap-2 px-gutter text-start text-base font-medium text-foreground outline-none hover:bg-gray-3 focus-visible:ring-2 focus-visible:ring-focus focus-visible:ring-inset @max-[288px]:text-sm"
       type="button"
       onClick={onClick}
     >
@@ -467,7 +467,7 @@ export function SearchFilters({
     return (
       <div className="flex flex-col gap-4">
         {where}
-        <div className="@container -mx-4 flex flex-col divide-y divide-divider border-t border-divider px-4">
+        <div className="@container -mx-gutter flex flex-col divide-y divide-divider border-t border-divider px-gutter">
           <RouteRow
             count={facets?.counts.format.online}
             label={t('filters.where.online_route')}

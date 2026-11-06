@@ -545,7 +545,7 @@ function CalendarGrid({
 
   return (
     <>
-      <DrawerBody className="max-w-none overflow-hidden px-4 pb-4">
+      <DrawerBody className="max-w-none overflow-hidden px-gutter pb-4">
         <div
           className="sx-calendar"
           style={{ '--sy-agenda-day': JSON.stringify(dayHeading) } as CSSProperties}

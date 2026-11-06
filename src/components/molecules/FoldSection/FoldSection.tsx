@@ -94,7 +94,7 @@ export function FoldSection({ title, count, open, onOpenChange, children }: Fold
           ref={headerRef}
           aria-controls={id}
           aria-expanded={open}
-          className="flex min-h-14 w-full items-center gap-2 bg-gray-2 px-4 py-3 text-start text-lg font-semibold transition-colors outline-none hover:bg-primary-2 focus-visible:ring-2 focus-visible:ring-primary-8 focus-visible:ring-inset active:bg-primary-3 dark:hover:bg-gray-3 dark:active:bg-gray-4"
+          className="flex min-h-14 w-full items-center gap-2 bg-gray-2 px-gutter py-3 text-start text-lg font-semibold transition-colors outline-none hover:bg-primary-2 focus-visible:ring-2 focus-visible:ring-primary-8 focus-visible:ring-inset active:bg-primary-3 dark:hover:bg-gray-3 dark:active:bg-gray-4"
           type="button"
           onClick={toggle}
         >

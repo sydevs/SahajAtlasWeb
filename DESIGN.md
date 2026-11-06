@@ -74,7 +74,7 @@ rounded:
   pill: "9999px"
 spacing:
   unit: "4px"
-  gutter: "16px"
+  gutter: "24px"
   row-y: "12px"
   row-min: "56px"
   panel-width: "352px"
@@ -131,7 +131,7 @@ components:
 
 Sahaj Atlas is a bright, sunny map with a white panel beside it (a bottom sheet on a phone). It belongs to the We Meditate family and lives inside other people's websites, so it has to feel welcoming without taking over the page. The warmth comes from colour, never from decoration: sand neutrals instead of blue-grey, green map markers, and one coral accent, on plain white panels. The interface is quiet so that the one answer a seeker came for (when and where can I go) stands out.
 
-Density is calm and list-shaped. Every panel row shares one 16px edge and one row height, text sits on one short type ladder, and the search field is the first thing under the title. Dark mode follows the device and keeps the same warmth: a sand-dark ramp and a warm taupe basemap instead of the stock blue-black.
+Density is calm and list-shaped. Every panel row shares one 24px edge and one row height, text sits on one short type ladder, and the search field is the first thing under the title. Dark mode follows the device and keeps the same warmth: a sand-dark ramp and a warm taupe basemap instead of the stock blue-black.
 
 The approved round-2 look rejected, by name: gradients and washes (a watercolour header was withdrawn), a greyed "quiet" map, dark-teal or high-contrast cluster markers, a single flattened chip style, and a set of decorative We Meditate icons.
 
@@ -204,7 +204,7 @@ The map fills the frame. On a phone the panel is a bottom sheet with a 16px roun
 
 - **Panel width:** 352px side panel (paired with the map's camera padding). Content inside any panel is capped at 512px and centred, so a wide map-less embed reads as a column.
 - **Filters panel:** 288px wide, 16px from the map's right edge, opening by default on visits 1200px and wider. Near me is an outlined button inside it.
-- **One edge:** every row in a panel (title, banner, search, online row, country rows, toolbar) starts and ends on the same 16px gutter.
+- **One edge:** every row in a panel (title, banner, search, online row, country rows, toolbar) starts and ends on the same 24px gutter (`--spacing-gutter`, used as `px-gutter`); it was 16px until Anton found it a little tight (6 Nov).
 - **Rows:** one row height, at least 56px, with 12px vertical padding; touch targets reach 44px on coarse pointers even where the drawn control is smaller.
 - **Rhythm:** a 4px unit. The header has 16px above and 8px below.
 - **Home order:** title, then the search field, then near me, the online row, a group label, and the country list.

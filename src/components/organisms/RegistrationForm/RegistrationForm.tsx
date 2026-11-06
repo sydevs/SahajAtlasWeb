@@ -515,7 +515,7 @@ export function RegistrationForm({
         // Always in reach, the same full-width solid as Register on the class page. The offset is
         // how far this scroller's bottom edge sits below the screen: the sheet's drag offset, less
         // the 3% bottom padding the sheet carries. The drawer's X is the way out.
-        <div className="sticky bottom-[max(0px,calc(var(--sy-sheet-top,0px)_-_var(--sy-frame-h,0px)*0.03))] z-10 -mx-4 flex flex-col gap-1.5 border-t border-divider bg-background px-4 pt-3 pb-[max(8px,env(safe-area-inset-bottom))]">
+        <div className="sticky bottom-[max(0px,calc(var(--sy-sheet-top,0px)_-_var(--sy-frame-h,0px)*0.03))] z-10 -mx-gutter flex flex-col gap-1.5 border-t border-divider bg-background px-gutter pt-3 pb-[max(8px,env(safe-area-inset-bottom))]">
           {/* No token means no registration the server would accept. So the
               button stays disabled until the challenge is solved — the
               same contract the report form has always had, including while

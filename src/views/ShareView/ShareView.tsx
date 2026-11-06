@@ -37,7 +37,7 @@ export function ShareView({ eventPath }: { eventPath: string }) {
   return (
     <>
       <NavHeader subtitle={event.title} title={t('share.title_class')} />
-      <DrawerBody className="p-4">
+      <DrawerBody className="px-gutter py-4">
         {/* Match the summary card's width so the share block lines up with it. */}
         <div className="mx-auto w-full max-w-md">
           {url ? (

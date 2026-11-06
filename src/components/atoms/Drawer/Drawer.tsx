@@ -34,7 +34,7 @@ const drawer = tv({
     // as a centred column, instead of stretching edge to edge. A bottom sheet lifts
     // the cap: a 512px column in a 650px sheet left the banner as a floating island.
     header:
-      'mx-auto flex w-full max-w-[var(--sy-content-max,512px)] shrink-0 items-center gap-2 px-4 pt-4 pb-2',
+      'mx-auto flex w-full max-w-[var(--sy-content-max,512px)] shrink-0 items-center gap-2 px-gutter pt-4 pb-2',
     // A second fixed band under the header, for controls that act on the
     // scrolling content below, such as SearchView's Filters and Sort. It
     // shares the header's width cap and `shrink-0`. It sits OUTSIDE the body,
@@ -56,7 +56,7 @@ const drawer = tv({
     // unreachable. The length is the footer's own, published by `DrawerFooter`,
     // and zero wherever no sticky footer exists.
     // ⚠ A spacer and not this slot's own `pb-*`: tailwind-merge drops a slot
-    // `pb-*` for any caller shorthand, and four bodies already pass `p-4`, so
+    // `pb-*` for any caller shorthand, and four bodies already pass `px-gutter py-4`, so
     // the first of them to gain a sticky footer would bury its own content with
     // every lane green. A variant-prefixed class conflicts with no caller
     // class, and the spacer adds to their padding instead of replacing it. It

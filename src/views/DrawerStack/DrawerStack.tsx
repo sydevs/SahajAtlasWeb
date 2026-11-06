@@ -1048,7 +1048,7 @@ export function DrawerStack() {
       {/* `view=list`: one control in one place, whichever surface is showing. Above the views,
           because a bottom sheet's foot sits below the screen at its lower snaps. */}
       {surfaceSwitch && (
-        <div className="mx-auto w-full max-w-[var(--sy-content-max,512px)] shrink-0 px-4">
+        <div className="mx-auto w-full max-w-[var(--sy-content-max,512px)] shrink-0 px-gutter">
           <button
             className="-ms-2 flex h-11 items-center gap-2 rounded-lg px-2 text-sm font-medium text-primary outline-none focus-visible:ring-2 focus-visible:ring-primary"
             type="button"
@@ -1157,7 +1157,7 @@ export function DrawerStack() {
             </div>
             {/* Its own strip below the views, not floating over them: floating, the cog sat on
                 form fields and list rows, and the narrower the box the more it covered. */}
-            <div className="flex h-11 shrink-0 items-center border-t border-divider px-4">
+            <div className="flex h-11 shrink-0 items-center border-t border-divider px-gutter">
               <SettingsMenu side="top" />
             </div>
           </div>

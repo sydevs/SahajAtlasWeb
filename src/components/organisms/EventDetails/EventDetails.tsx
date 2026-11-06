@@ -172,7 +172,7 @@ export function EventDetails({
     // The carousel is full-bleed and always last. It removes the container's
     // bottom padding, so the images sit flush against the end of the view
     // instead of floating 40px above it. Everything else keeps the padding.
-    <div className={`flex flex-col gap-4 px-4 pt-1 ${hasImages ? '' : 'pb-10'}`}>
+    <div className={`flex flex-col gap-4 px-gutter pt-1 ${hasImages ? '' : 'pb-10'}`}>
       {/* The tags say what kind of class this is, so they sit right under its title. When and
           where follow, because that is what a visitor came for, and on the phone sheet all of
           it must fit above the sticky footer at the default height (Anton, 6 Nov). */}
@@ -240,9 +240,9 @@ export function EventDetails({
 
       {hasImages && (
         // This section sits full-bleed below the description. It cancels the
-        // container's `px-4` padding, so the carousel spans the full drawer
+        // container's `px-gutter` padding, so the carousel spans the full drawer
         // width. The slides now carry no padding of their own.
-        <div className="-mx-4">
+        <div className="-mx-gutter">
           <ImageCarousel slides={slides} />
         </div>
       )}

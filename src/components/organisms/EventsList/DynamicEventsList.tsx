@@ -328,7 +328,9 @@ export function DynamicEventsList({
             {/* The map went wide when this group opened, while this heading still names the place.
                 On a lowered phone sheet this is the one line that says why the two differ. */}
             {openNearby && size !== 'area' && (
-              <p className="px-4 pb-1 text-sm text-gray-11">{t('search.sections.map_wider')}</p>
+              <p className="px-gutter pb-1 text-sm text-gray-11">
+                {t('search.sections.map_wider')}
+              </p>
             )}
             {filterNotice}
             <EventsList
@@ -355,7 +357,7 @@ export function DynamicEventsList({
         {justOutside.length > 0 && (
           <section aria-labelledby={justOutsideId}>
             <h3
-              className="px-4 pt-4 pb-1 text-xs font-medium tracking-[0.08em] text-gray-11 uppercase"
+              className="px-gutter pt-4 pb-1 text-xs font-medium tracking-[0.08em] text-gray-11 uppercase"
               id={justOutsideId}
             >
               {place
@@ -456,7 +458,7 @@ export function DynamicEventsList({
 // header above it is a search field.
 function ResultsHeading({ children, count }: { children: ReactNode; count: number }) {
   return (
-    <h3 className="flex items-baseline gap-2 px-4 pt-3 pb-1 text-xl">
+    <h3 className="flex items-baseline gap-2 px-gutter pt-3 pb-1 text-xl">
       <span className="min-w-0">{children}</span>
       <span className="text-sm font-normal text-gray-11 tabular-nums">{count}</span>
     </h3>
@@ -483,7 +485,7 @@ function FoldRows({
     <>
       <EventsList events={all ? rows : rows.slice(0, FOLD_PAGE)} placeLineFor={placeLineFor} />
       {!all && rows.length > FOLD_PAGE && (
-        <div className="flex justify-center px-4 pt-2 pb-4">
+        <div className="flex justify-center px-gutter pt-2 pb-4">
           <Button
             color="neutral"
             size="sm"
@@ -500,7 +502,7 @@ function FoldRows({
 
 // What the visitor's filters are costing them, and the one step that gives the most back:
 // "Remove Chinese (3 classes)". A filter can follow someone from an earlier search, so this says it
-// outright rather than leave them to work out why a place looks empty. It sits on the panel's 16px
+// outright rather than leave them to work out why a place looks empty. It sits on the panel's
 // gutter, like every row.
 //
 // Each candidate re-reads the feed without one filter. These are all client-side passes over the
@@ -607,7 +609,7 @@ function FilterRelief({
   // One quiet line. Classes may well be on screen, and the filter may be the visitor's only free
   // day, so this mentions the cost and never presses for the filter to go.
   return (
-    <p className="flex flex-wrap items-center gap-x-2 px-4 text-sm text-gray-11" role="status">
+    <p className="flex flex-wrap items-center gap-x-2 px-gutter text-sm text-gray-11" role="status">
       <span>
         {inPlace
           ? t('search.filtered.hidden_here', { count: hiddenHere, place })
@@ -689,7 +691,7 @@ function NoClassesHere({
         : t(spot ? 'search.no_classes.near' : 'search.no_classes.here', { place })
 
   return (
-    <div className="px-4 pt-3 pb-2">
+    <div className="px-gutter pt-3 pb-2">
       <h3 className="text-xl">{title}</h3>
     </div>
   )
@@ -744,7 +746,7 @@ function EmptyResults({
 
   if (active) {
     return (
-      <div className="flex flex-col gap-3 px-4 py-4" role="status">
+      <div className="flex flex-col gap-3 px-gutter py-4" role="status">
         <h3 className="text-xl">{t('search.filtered.none')}</h3>
         <ReliefActions best={relief[0]} many={relief.length > 1} />
       </div>

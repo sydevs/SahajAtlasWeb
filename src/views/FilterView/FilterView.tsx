@@ -146,7 +146,7 @@ export function FilterView() {
         overlay={isFilterOverlay(resolveStack(location.pathname), hasMap)}
         title={t('filters.chrome.title')}
       />
-      <DrawerBody className="scroll-pb-[calc(var(--sy-footer-h,0px)_+_var(--sy-sheet-top,0px))] p-4">
+      <DrawerBody className="scroll-pb-[calc(var(--sy-footer-h,0px)_+_var(--sy-sheet-top,0px))] px-gutter py-4">
         <SearchFilters
           facets={facets}
           placeFirst={placeFirst}
@@ -169,7 +169,7 @@ export function FilterView() {
           onChange={write}
         />
       </DrawerBody>
-      <DrawerFooter className="border-t border-divider px-4 py-3" sticky={!isWide}>
+      <DrawerFooter className="border-t border-divider px-gutter py-3" sticky={!isWide}>
         {/* A wrapper, because the footer's own safe-area spacer would otherwise take a gap. */}
         <div className="flex flex-wrap items-center gap-2">
           {count === 0 && (

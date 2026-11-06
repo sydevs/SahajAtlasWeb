@@ -122,8 +122,8 @@ export function RegistrationView({
       <DrawerBody
         className={
           formShowing
-            ? 'scroll-pb-[calc(96px_+_max(0px,calc(var(--sy-sheet-top,0px)_-_var(--sy-frame-h,0px)*0.03)))] px-4 pt-4'
-            : 'p-4'
+            ? 'scroll-pb-[calc(96px_+_max(0px,calc(var(--sy-sheet-top,0px)_-_var(--sy-frame-h,0px)*0.03)))] px-gutter pt-4'
+            : 'px-gutter py-4'
         }
       >
         {/* On the confirmation the form places this itself, under the success line. */}

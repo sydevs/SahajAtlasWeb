@@ -175,7 +175,7 @@ export function RegionView({ slug }: { slug: string }) {
           it as one of its suggestions. It is held back while the acknowledgement banner is up:
           two prompts at once are more than the screen can carry. */}
       <DrawerToolbar>
-        <div className="px-4 pb-2">
+        <div className="px-gutter pb-2">
           <SearchField />
           {!feedback && suggestFor && <GeolocationSuggestion region={suggestFor} />}
         </div>

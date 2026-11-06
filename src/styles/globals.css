@@ -98,6 +98,10 @@
   /* v4 derives the whole spacing scale from this one variable — `.p-4` compiles to
      `calc(var(--spacing) * 4)` — so one line re-pins all 37 of v3's entries. */
   --spacing: 4px;
+  /* The panel's one left and right edge: header, search, notices, rows and dividers all start
+     here (`px-gutter`, `-mx-gutter`, `inset-x-gutter`). 24px, a little roomier than the 16px it
+     was (Anton, 6 Nov); change it here and every band follows. */
+  --spacing-gutter: 24px;
 
   /* v3's screens, which were px. A media query's `rem` resolves against the browser's
      INITIAL font size, not the root's, so v4's 40rem default is not a #238 bug — these

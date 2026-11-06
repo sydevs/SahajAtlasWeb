@@ -210,7 +210,7 @@ export function EventView({ id, basePath }: { id: number; basePath: string }) {
       {stickyRegister && (
         <DrawerFooter
           sticky
-          className={`px-4 py-3 transition-transform before:pointer-events-none before:absolute before:inset-x-0 before:bottom-full before:h-4 before:bg-gradient-to-t before:from-background before:to-transparent before:content-[''] ${collapsed ? 'translate-y-full opacity-0' : ''}`}
+          className={`px-gutter py-3 transition-transform before:pointer-events-none before:absolute before:inset-x-0 before:bottom-full before:h-4 before:bg-gradient-to-t before:from-background before:to-transparent before:content-[''] ${collapsed ? 'translate-y-full opacity-0' : ''}`}
         >
           {/* The two rows are gapped inside a wrapper, not by the footer itself, so the
               footer's own safe-area spacer is not a third gapped sibling. 16px, the same as the

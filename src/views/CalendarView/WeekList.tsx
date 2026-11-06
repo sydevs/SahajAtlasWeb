@@ -95,7 +95,7 @@ export function WeekList({ filters }: { filters: EventFilters }) {
       >((soonest, entry) => (!soonest || entry.start.slice(0, 10) < soonest ? entry.start.slice(0, 10) : soonest), null)
 
     return (
-      <DrawerBody className="p-4">
+      <DrawerBody className="px-gutter py-4">
         <p className="text-base text-gray-11">
           {filtered ? t('calendar.none_match_filters') : t('calendar.none_in_window')}
         </p>
@@ -129,7 +129,7 @@ export function WeekList({ filters }: { filters: EventFilters }) {
       <DrawerBody className="pb-4">
         {days.map((day) => (
           <section key={day.date}>
-            <h3 className="sticky top-0 z-10 flex items-baseline gap-2 bg-gray-2 px-4 py-2 text-sm font-semibold">
+            <h3 className="sticky top-0 z-10 flex items-baseline gap-2 bg-gray-2 px-gutter py-2 text-sm font-semibold">
               {dayName(day.date)}
               <span className="font-normal text-gray-11">{shortDate(day.date)}</span>
             </h3>

@@ -79,7 +79,7 @@ export function NearMeRow() {
     // under it is the same one a country page shows, so it looks the same everywhere (Anton, 6 Nov).
     // It is always there, so a guess or a failure that lands late changes its words and moves
     // nothing.
-    <div ref={search} className="px-4 pb-2">
+    <div ref={search} className="px-gutter pb-2">
       <SearchField />
       {offer ? (
         <GeolocationPrompt

@@ -166,7 +166,7 @@ export function CountriesView() {
                 />
               </List>
             )}
-            <h3 className="px-4 pt-4 pb-1 text-xs font-medium tracking-[0.08em] text-gray-11 uppercase">
+            <h3 className="px-gutter pt-4 pb-1 text-xs font-medium tracking-[0.08em] text-gray-11 uppercase">
               {t('countries.browse')}
             </h3>
             <div onFocus={freeze} onPointerDown={freeze} onPointerEnter={freeze}>

@@ -121,8 +121,8 @@ export function CheckStep({
           {preview && (
             // Full-bleed, so the listing lines up with the form around it exactly as it will
             // line up in its own panel — a card inside the sheet would indent it twice.
-            <details className="group -mx-4 border-y border-gray-5">
-              <summary className="flex min-h-12 cursor-pointer list-none items-center justify-between gap-2 px-4 text-sm font-medium [&::-webkit-details-marker]:hidden">
+            <details className="group -mx-gutter border-y border-gray-5">
+              <summary className="flex min-h-12 cursor-pointer list-none items-center justify-between gap-2 px-gutter text-sm font-medium [&::-webkit-details-marker]:hidden">
                 {t('submit.changes.full_listing')}
                 <ChevronDown
                   aria-hidden
@@ -220,7 +220,7 @@ function ListingSummary({
 
   return (
     <article className="flex flex-col rounded-lg border border-gray-6">
-      <div className="flex flex-col gap-3 px-4 pt-4 pb-3">
+      <div className="flex flex-col gap-3 px-gutter pt-4 pb-3">
         <div className="flex items-start justify-between gap-2">
           <h4 className="min-w-0 text-base leading-snug font-semibold text-balance">
             {draft.title.trim() || autoTitle || t('submit.chrome.title_add')}
@@ -306,7 +306,7 @@ function ListingSummary({
       )}
 
       {leftOut.length > 0 && (
-        <div className="flex items-center justify-between gap-2 border-t border-gray-5 px-4 py-2.5">
+        <div className="flex items-center justify-between gap-2 border-t border-gray-5 px-gutter py-2.5">
           <p className="text-xs text-gray-11">
             {t('submit.review.left_out', { parts: leftOut.join(', ') })}
           </p>
@@ -340,7 +340,7 @@ function Fact({
   return (
     <section
       aria-label={label}
-      className="flex items-start gap-3 border-t border-gray-5 px-4 py-3 text-sm leading-snug"
+      className="flex items-start gap-3 border-t border-gray-5 px-gutter py-3 text-sm leading-snug"
     >
       <Icon aria-hidden className="mt-0.5 shrink-0 text-primary" size={18} />
       <div className="flex min-w-0 flex-1 flex-col gap-0.5">{children}</div>

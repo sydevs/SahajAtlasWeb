@@ -90,13 +90,13 @@ export function ListSkeleton() {
 
   return (
     <div className="flex flex-col">
-      <p className="px-4 py-2 text-sm text-gray-11" role="status">
+      <p className="px-gutter py-2 text-sm text-gray-11" role="status">
         {t('common.chrome.finding_classes', { defaultValue: 'Finding classes…' })}
       </p>
       <div aria-hidden className="flex flex-col motion-safe:animate-pulse">
         {['w-3/5', 'w-2/5', 'w-1/2', 'w-1/3', 'w-2/5'].map((width, row) => (
           // Two rows share a width, so the row's position is the key.
-          <div key={row} className="flex min-h-14 items-center justify-between gap-4 px-4">
+          <div key={row} className="flex min-h-14 items-center justify-between gap-4 px-gutter">
             <div className={`h-3.5 rounded bg-gray-3 ${width}`} />
             <div className="h-3.5 w-5 rounded bg-gray-3" />
           </div>
@@ -126,7 +126,7 @@ export function BootFallback() {
             : 'fixed inset-x-0 bottom-0 z-40 h-[300px] rounded-t-2xl border-t border-divider bg-background'
         }
       >
-        <div className="px-4 pt-4 pb-2">
+        <div className="px-gutter pt-4 pb-2">
           <div aria-hidden className="h-10 rounded-lg border border-divider bg-gray-2" />
         </div>
         <ListSkeleton />
@@ -867,7 +867,7 @@ export const CENTERED_BODY =
  * guard: content that starts at the top is on screen by construction. That is exactly
  * what `CENTERED_BODY` has to work to achieve.
  */
-export const START_BODY = 'flex h-full flex-col items-start px-4 py-4 text-start'
+export const START_BODY = 'flex h-full flex-col items-start px-gutter py-4 text-start'
 
 /** Which posture a surface renders in — see `CENTERED_BODY` / `START_BODY`. */
 export type FallbackAlign = 'center' | 'start'
@@ -906,7 +906,7 @@ function FallbackShell({
 }: FallbackShellProps) {
   return (
     <FallbackRegion className={align === 'start' ? START_BODY : CENTERED_BODY} message={message}>
-      {/* A list view's empty state sits on the list's own 16px gutter, edge to edge like its rows.
+      {/* A list view's empty state sits on the list's own gutter, edge to edge like its rows.
           The narrower measure belongs to the centred posture. */}
       <div
         className={clsx('flex w-full flex-col items-start gap-3', align !== 'start' && 'max-w-xs')}

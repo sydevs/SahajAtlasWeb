@@ -39,7 +39,7 @@ export function ContactOnlyDetails({ event }: { event: Event }) {
   const phone = event.contactPhone
 
   return (
-    <div className="flex flex-col gap-4 px-4 pt-2 pb-10">
+    <div className="flex flex-col gap-4 px-gutter pt-2 pb-10">
       <div className="flex items-center gap-2 text-base">
         <MapPin aria-hidden className="shrink-0 text-gray-11" size={20} />
         {event.region?.name}

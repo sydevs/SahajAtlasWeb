@@ -48,7 +48,7 @@ export function TimesNote({
   if (sentences.length === 0) return null
 
   return (
-    <p className="shrink-0 border-t border-divider px-4 py-2 text-xs text-gray-11">
+    <p className="shrink-0 border-t border-divider px-gutter py-2 text-xs text-gray-11">
       {sentences.join(' ')}
     </p>
   )

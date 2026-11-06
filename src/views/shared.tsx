@@ -122,7 +122,7 @@ export function DrawerTitle({ title, subtitle, note }: DrawerTitleProps) {
 export const HEADER_CONTROL = { variant: 'ghost', isIconOnly: true, size: 'sm' } as const
 
 // The last control in a header. Its 20px icon sits in a 32px box, so this pulls the box 6px
-// into the gutter. The icon then lands on the panel's 16px edge, in the same column as the
+// into the gutter. The icon then lands on the panel's edge, in the same column as the
 // rows' chevrons, while the tap area stays whole.
 const HEADER_LAST_CONTROL = '-me-1.5'
 

@@ -358,7 +358,7 @@ function StepStage({
   return (
     <form noValidate className="contents" onSubmit={advance}>
       <DrawerBody key={step} className={stickyFooter ? 'scroll-pb-28 pb-24' : undefined}>
-        <div ref={scope} className="px-4 pt-2 pb-8">
+        <div ref={scope} className="px-gutter pt-2 pb-8">
           {step === 'fix' && (
             <FixStep
               onPick={(picked) => {
@@ -613,7 +613,7 @@ function ReviewStage({
   return (
     <form noValidate className="contents" onSubmit={send}>
       <DrawerBody className={stickyFooter ? 'scroll-pb-28 pb-24' : undefined}>
-        <div ref={scope} className="px-4 pt-2 pb-8">
+        <div ref={scope} className="px-gutter pt-2 pb-8">
           <CheckStep
             challengeBlocked={status === 'blocked'}
             challengeRef={challengeRef}
@@ -670,7 +670,7 @@ const isUnchanged = (built: BuiltProposal) =>
 function FlowFooter({ sticky, children }: { sticky?: boolean; children: ReactNode }) {
   return (
     <DrawerFooter
-      className="flex items-center gap-2 px-4 pt-3 pb-[max(12px,env(safe-area-inset-bottom))]"
+      className="flex items-center gap-2 px-gutter pt-3 pb-[max(12px,env(safe-area-inset-bottom))]"
       sticky={sticky}
     >
       {children}
@@ -699,7 +699,7 @@ function Receipt({
 
   return (
     <DrawerBody>
-      <div className="flex flex-col items-center gap-4 px-4 pt-10 pb-10 text-center">
+      <div className="flex flex-col items-center gap-4 px-gutter pt-10 pb-10 text-center">
         <span className="flex size-14 items-center justify-center rounded-full bg-primary-3 text-primary-11">
           <Check aria-hidden size={28} strokeWidth={2.5} />
         </span>

@@ -15,7 +15,7 @@ import { tv } from 'tailwind-variants'
  * inner <Link> or <a>. So the hover and press feedback, and the gutter,
  * stay identical across row types.
  *
- * The `px-4` here and the `inset-x-4` in DIVIDER below are one decision
+ * The `px-gutter` here and the `inset-x-gutter` in DIVIDER below are one decision
  * spelled twice. Tailwind's scanner only sees complete literal class
  * names, so neither can build from a shared constant. Keeping them
  * adjacent in this one file is the enforcement. Change one, and change
@@ -26,18 +26,18 @@ export const listRow = tv({
   // icon-link alignment. On a flex-col card, that would centre every line
   // of content. Row-shaped cards (ListItem) re-opt into `items-center` in
   // their own classes, which wins the merge as the later conflict.
-  base: 'block items-stretch px-4 text-inherit transition-colors hover:bg-primary-2 active:bg-primary-3 dark:hover:bg-gray-3 dark:active:bg-gray-4',
+  base: 'block items-stretch px-gutter text-inherit transition-colors hover:bg-primary-2 active:bg-primary-3 dark:hover:bg-gray-3 dark:active:bg-gray-4',
 })
 
 // The divider draws here. Cards carry no border of their own, so mixed
 // region and event lists stay uniform. It is a ::before rule on every
 // child `<li>` EXCEPT the first, so it separates cards without trailing
-// after the last. `inset-x-4` matches the inner row's `listRow` `px-4`, so
+// after the last. `inset-x-gutter` matches the inner row's `listRow` `px-gutter`, so
 // the line stops short of the edges, exactly as the per-card border it
 // replaced did, while each card's hover background still bleeds the full
 // width.
 const DIVIDER =
-  "[&>*+*]:relative [&>*+*]:before:absolute [&>*+*]:before:inset-x-4 [&>*+*]:before:top-0 [&>*+*]:before:border-t [&>*+*]:before:border-divider [&>*+*]:before:content-['']"
+  "[&>*+*]:relative [&>*+*]:before:absolute [&>*+*]:before:inset-x-gutter [&>*+*]:before:top-0 [&>*+*]:before:border-t [&>*+*]:before:border-divider [&>*+*]:before:content-['']"
 
 export type ListProps = {
   children: ReactNode
