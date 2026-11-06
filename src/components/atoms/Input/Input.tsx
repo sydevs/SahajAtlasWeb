@@ -21,11 +21,14 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(function Input(
   // `color-scheme` follows the widget's theme class, so a date or time picker draws its icon and
   // popup dark on a dark panel. It sits here rather than on the theme root, where it would reach
   // the captcha frame too, and a browser backs a frame of the other scheme with an opaque canvas.
-  const chrome = fieldChrome({
-    isInvalid,
-    highlight,
-    className: `dark:[color-scheme:dark] ${className ?? ''}`,
-  })
+  const scheme = 'dark:[color-scheme:dark]'
 
-  return <input ref={ref} aria-invalid={isInvalid || undefined} className={chrome} {...props} />
+  return (
+    <input
+      ref={ref}
+      aria-invalid={isInvalid || undefined}
+      className={fieldChrome({ isInvalid, highlight, className: `${scheme} ${className ?? ''}` })}
+      {...props}
+    />
+  )
 })
