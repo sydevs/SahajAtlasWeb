@@ -58,11 +58,20 @@ vi.mock('@/hooks/use-event-display', () => ({
 }))
 
 // A running weekly class, at a point and in a language of our choosing.
-const { title: _title, path: _path, distance: _distance, ...base } = mockEventSlim
+const { eventType, address, schedule, region, verificationStage } = mockEventSlim
 const feature = (id: number, at: [number, number], languages: string[]): GeoFeature => ({
   type: 'Feature',
   geometry: { type: 'Point', coordinates: at },
-  properties: { ...base, id, languages, webPath: `/cz/${id}` },
+  properties: {
+    id,
+    eventType,
+    address,
+    schedule,
+    region,
+    verificationStage,
+    languages,
+    webPath: `/cz/${id}`,
+  },
 })
 
 const LIPANSKA: [number, number] = [14.4507, 50.0838]

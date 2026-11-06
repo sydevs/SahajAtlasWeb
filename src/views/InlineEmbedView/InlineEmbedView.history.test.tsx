@@ -56,10 +56,7 @@ function refuseHistoryWrites() {
 }
 
 /** `linkable` and the router travel together: memory routing is what an unlinkable route means. */
-function mount(
-  linkable: boolean,
-  Router: ComponentType<{ children?: ReactNode }> = MemoryRouter,
-) {
+function mount(linkable: boolean, Router: ComponentType<{ children?: ReactNode }> = MemoryRouter) {
   const host = document.createElement('div')
   const root = createRoot(host)
 
