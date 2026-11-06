@@ -499,31 +499,25 @@ export function useIpSuggestion(region?: {
 }
 
 /**
- * The banner, for a country other than the guess. (The world view offers the guess in its near-me
- * row instead.) The lookup can land seconds after the list has painted, and a banner pushed in above
- * rows the visitor may be about to tap makes them tap the wrong one (seen at about 8s on iOS). So a
- * view mounts this twice: `above` shows only if the answer was already known at the first paint,
- * `below` only if it came later, where it moves nothing.
+ * The suggestion under the search field, for a country other than the guess. (The world view
+ * offers the guess in its near-me row instead.) Anton wants it beside the search, as part of it
+ * (6 Nov), so it always sits there. The trade-off: when the lookup lands after the list has
+ * painted, the list moves down by this one row (seen at about 8s on iOS).
  */
 export function GeolocationSuggestion({
   region,
-  position,
 }: {
   region: { center?: [number, number] | null; countryCode?: string | null }
-  position: 'above' | 'below'
 }) {
   const suggestion = useIpSuggestion(region)
-  const knownAtFirstPaint = useRef(suggestion !== null)
 
-  if (!suggestion || knownAtFirstPaint.current !== (position === 'above')) return null
+  if (!suggestion) return null
 
   return (
-    <div className={position === 'below' ? 'pt-3' : undefined}>
-      <GeolocationPrompt
-        city={suggestion.guess.city}
-        onAccept={suggestion.accept}
-        onClose={suggestion.dismiss}
-      />
-    </div>
+    <GeolocationPrompt
+      city={suggestion.guess.city}
+      onAccept={suggestion.accept}
+      onClose={suggestion.dismiss}
+    />
   )
 }

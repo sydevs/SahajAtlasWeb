@@ -164,10 +164,13 @@ export function RegionView({ slug }: { slug: string }) {
         subtitle={subheader}
         title={header}
       />
-      {/* The field at every level, not an icon that leads to it. */}
+      {/* The field at every level, not an icon that leads to it. The location guess sits under
+          it as one of its suggestions. It is held back while the acknowledgement banner is up:
+          two prompts at once are more than the screen can carry. */}
       <DrawerToolbar>
         <div className="px-4 pb-2">
           <SearchField />
+          {!feedback && suggestFor && <GeolocationSuggestion region={suggestFor} />}
         </div>
       </DrawerToolbar>
       <DrawerBody>
@@ -209,10 +212,6 @@ export function RegionView({ slug }: { slug: string }) {
             onClose={dismissFeedback}
           />
         )}
-        {/* This is suppressed while the acknowledgement is up. Two stacked prompts above the
-            list are more than the screen can carry, and the reader has just acted once
-            already. It returns as soon as they dismiss the banner. */}
-        {!feedback && suggestFor && <GeolocationSuggestion position="above" region={suggestFor} />}
         {isEmpty && filterSearch ? (
           <FallbackPanel
             align="start"
@@ -264,7 +263,6 @@ export function RegionView({ slug }: { slug: string }) {
               ))}
           </List>
         )}
-        {!feedback && suggestFor && <GeolocationSuggestion position="below" region={suggestFor} />}
         {region.level === 'country' && <AcrossBorder region={region} />}
       </DrawerBody>
     </>

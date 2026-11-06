@@ -1,7 +1,7 @@
 import { useTranslation } from 'react-i18next'
-import { ChevronRight, MapPin } from 'lucide-react'
+import { ChevronRight, MapPin, X } from 'lucide-react'
 
-import { Alert } from '@/components/atoms/Alert'
+import { Button } from '@/components/atoms/Button'
 
 export type GeolocationPromptProps = {
   /** The IP-guessed city, interpolated into the prompt's question. */
@@ -13,43 +13,45 @@ export type GeolocationPromptProps = {
 }
 
 /**
- * The dismissible "events near you" suggestion shown above the list on the
- * top-level views: a single-line, light-blue (secondary) band whose text is a
- * button into the distance-ranked search. The Alert's × dismisses it for
- * the session. It announces politely (`role="status"`), not as an
- * assertive alert, since it is a passive guess. It is framed as a *guess*:
- * "Classes near %{city}", never "your location". This is
- * presentational only. The IP lookup, session-scoped dismissal, and
- * navigation live in `GeolocationSuggestion` (src/views/shared.tsx). It carries no second link:
- * a country-website line under it was too small to tap on a phone, and Anton didn't want it.
+ * The dismissible "Classes near %{city}" suggestion, attached under the search field so it reads
+ * as one of the field's own suggestions: the place the visitor might want to search. Its text is a
+ * button into the distance-ranked search; the × dismisses it for the session. It announces
+ * politely (`role="status"`), since it is a passive guess, and it is framed as a guess, never
+ * "your location". It carries no second link: a country-website line under it was too small to
+ * tap on a phone, and Anton didn't want it. This is presentational only. The IP lookup,
+ * session-scoped dismissal and navigation live in `GeolocationSuggestion` (src/views/shared.tsx).
  */
 export function GeolocationPrompt({ city, onAccept, onClose }: GeolocationPromptProps) {
   const { t } = useTranslation()
 
-  // Today's full-width light-blue band, which Anton preferred to an inset sand box (6 Nov):
-  // the box sat between the search field and the list and lined up with neither. The band
-  // runs edge to edge; `px-4` puts the pin on the panel's 16px edge, where the rows' text
-  // starts, and the × in the column of the rows' chevrons. Not the coral tint: a pink band
-  // read like an error.
+  // It matches the field above it: the same width and 8px corners, the field's type size
+  // (`field-size`), the pin in the column of the field's search glyph (9px in) and the words on
+  // the field's text edge (41px in). Today's light-blue tint, which Anton preferred to sand (6 Nov).
+  // Never the coral tint: a pink band read like an error.
   return (
-    <Alert
-      className="mt-2 gap-2.5 rounded-none px-4"
-      closeLabel={t('search.nearby_prompt.dismiss')}
-      color="secondary"
-      icon={<MapPin size={18} />}
+    <div
+      className="mt-1.5 flex items-center rounded-lg bg-secondary-3 text-secondary-11"
       role="status"
-      size="sm"
-      title={
-        <button
-          className="touch-target relative flex w-full items-center gap-1 text-start hover:underline focus:outline-none focus-visible:underline"
-          type="button"
-          onClick={onAccept}
-        >
-          {t('countries.near_city', { city })}
-          <ChevronRight aria-hidden className="shrink-0 rtl:-scale-x-100" size={16} />
-        </button>
-      }
-      onClose={onClose}
-    />
+    >
+      <button
+        className="touch-target relative flex min-w-0 flex-1 items-center gap-3 py-2 ps-[9px] text-start field-size font-medium hover:underline focus:outline-none focus-visible:underline"
+        type="button"
+        onClick={onAccept}
+      >
+        <MapPin aria-hidden className="shrink-0" size={20} />
+        <span className="truncate">{t('countries.near_city', { city })}</span>
+        <ChevronRight aria-hidden className="-ms-1 shrink-0 rtl:-scale-x-100" size={18} />
+      </button>
+      <Button
+        isIconOnly
+        aria-label={t('search.nearby_prompt.dismiss')}
+        className="me-0.5 shrink-0 opacity-80 hover:opacity-100"
+        size="sm"
+        variant="ghost"
+        onClick={onClose}
+      >
+        <X size={16} />
+      </Button>
+    </div>
   )
 }

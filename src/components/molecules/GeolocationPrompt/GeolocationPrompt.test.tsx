@@ -48,19 +48,18 @@ describe('GeolocationPrompt', () => {
     expect(html).not.toContain('role="alert"')
   })
 
-  it('is a full-width light-blue band on the panel edges, vertically centred', () => {
+  it('matches the search field it hangs under: light blue, 8px corners, the field type size', () => {
     const html = renderToStaticMarkup(
       <GeolocationPrompt city="Paris" onAccept={noop} onClose={noop} />,
     )
 
-    // Today's blue tint, which Anton preferred to the sand box (6 Nov).
+    // Today's blue tint, which Anton preferred to sand (6 Nov).
     expect(html).toContain('bg-secondary-3')
     // Never the coral tint: a pink band reads like an error.
     expect(html).not.toContain('bg-contrast-3')
-    // Edge to edge, with its content on the panel's 16px edge: no inset box.
-    expect(html).toContain('px-4')
-    expect(html).toContain('rounded-none')
-    expect(html).not.toContain('mx-4')
+    // The field's corners and type size, so it reads as one of the field's suggestions.
+    expect(html).toContain('rounded-lg')
+    expect(html).toContain('field-size')
     expect(html).toContain('items-center')
   })
 
