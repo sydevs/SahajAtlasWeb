@@ -33,12 +33,14 @@ import {
   boundsWith,
   cameUpFrom,
   childRoute,
+  climbedUpFrom,
   distanceToNearest,
   isoCountryCode,
   isOnline,
   searchPath,
   loneClassPath,
   viewRegion,
+  parentOf,
 } from '@/lib/shape'
 import { validateWebUrl } from '@/lib/url'
 import { NavHeader } from '@/views/nav'
@@ -111,13 +113,23 @@ export function RegionView({ slug }: { slug: string }) {
     (region.level === 'city' ? region.subtitle : undefined) ??
     (hasEventList ? t('common.chrome.all_classes_free') : undefined)
 
-  // A place with one class opens it: a list of one is an extra tap (Anton, 6 Nov). Not when the
-  // visitor just left that class upward, or the page would bounce them back into it; and only
-  // while this view is the page on screen, not while it plays its exit.
+  // A place with one class opens it: a list of one is an extra tap (Anton, 6 Nov). Only while
+  // this view is the page on screen, not while it plays its exit. Reached by climbing out of that
+  // class, it climbs on to its own parent (the Back row already names that place); reached by a
+  // breadcrumb or link from the class, it shows its page, which is what the visitor tapped.
   const lone = loneClassPath(region, Boolean(filterSearch))
 
-  if (lone && viewRegion(location.pathname) === slug && !cameUpFrom(location, lone))
-    return <Navigate replace state={location.state} to={lone} />
+  if (lone && viewRegion(location.pathname) === slug) {
+    if (climbedUpFrom(location, lone))
+      return (
+        <Navigate
+          replace
+          state={{ climbedFrom: location.pathname }}
+          to={parentOf(location.pathname) ?? '/'}
+        />
+      )
+    if (!cameUpFrom(location, lone)) return <Navigate replace state={location.state} to={lone} />
+  }
 
   return (
     <>

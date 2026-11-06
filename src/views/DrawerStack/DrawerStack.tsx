@@ -38,6 +38,7 @@ import { useSurfaceSwitch, useWidgetMode } from '@/config/mode'
 import { useClassSheet, useFilterPanelState } from '@/config/store'
 import { frameElement, overlayContainer } from '@/lib/overlay'
 import {
+  climbDestination,
   type StackEntry,
   CALENDAR_VIEW_LIST,
   atlasDepth,
@@ -51,7 +52,7 @@ import {
 } from '@/lib/shape'
 import { wakesSheetLoop } from '@/views/DrawerStack/sheet-wake'
 import { ViewLayer } from '@/views/DrawerStack/ViewLayer'
-import { DrawerControlContext, FilterPanelAvailableContext } from '@/views/shared'
+import { DrawerControlContext, FilterPanelAvailableContext, useClimbInputs } from '@/views/shared'
 import { useFitSnap } from '@/views/DrawerStack/use-fit-snap'
 import { DrawerErrorFallback, DrawerLoading } from '@/views/fallbacks'
 import { CountriesView } from '@/views/CountriesView/CountriesView'
@@ -329,6 +330,7 @@ export function DrawerStack() {
   // that key to tell whether it is still the view on top, and the two agreeing is what
   // makes the comparison mean anything.
   const top = baseStackEntry(entries, hasMap) ?? null
+  const climb = useClimbInputs()
   const { data: feed } = useQuery({
     queryKey: ['geojson'],
     queryFn: () => api.getGeojson(),
@@ -753,10 +755,14 @@ export function DrawerStack() {
         else
           startTransition(() => {
             if (action === 'back') navigate(-1)
-            // 'fallback'. It says where it climbed from, so a place that opens its lone class
-            // shows its own page instead of sending the visitor straight back (`cameUpFrom`).
+            // 'fallback': the same place the Back row names, passing over a place whose only class
+            // is this page's (`climbDestination`). It says where it climbed from, so if the feed
+            // isn't loaded such a place still climbs on by itself (RegionView, `climbedUpFrom`).
             else if (parentPath)
-              navigate(toStackTarget(parentPath), { state: { climbedFrom: location.pathname } })
+              navigate(
+                toStackTarget(climbDestination(location.pathname, climb.classes, climb.venueSlugs)),
+                { state: { climbedFrom: location.pathname } },
+              )
           })
       },
     }
@@ -772,6 +778,7 @@ export function DrawerStack() {
     direction,
     top?.kind,
     fullSnap,
+    climb,
   ])
 
   // The filter overlay's own dismiss (its X / swipe / Esc): back to the calendar it opened

@@ -54,11 +54,15 @@ export const atlasPushState = (location: {
  * the same reason `dismissAction` does. This is the label's half of that decision, and the
  * two have to agree, so it reads the same inputs.
  */
-export const backDestination = (location: {
-  pathname: string
-  search?: string
-  state?: unknown
-}): string | undefined => {
+export const backDestination = (
+  location: {
+    pathname: string
+    search?: string
+    state?: unknown
+  },
+  classes?: readonly ClassPathLike[],
+  venueSlugs?: ReadonlySet<string>,
+): string | undefined => {
   const entries = resolveStack(location.pathname)
 
   if (entries.length === 0) return undefined
@@ -67,10 +71,49 @@ export const backDestination = (location: {
 
   if (atlasDepth(location) > 0 && typeof from === 'string') return from
 
-  const parent = entries.at(-2)?.path ?? '/'
+  const parent = climbDestination(location.pathname, classes, venueSlugs)
 
   // A search keeps its query when something stacked over it climbs back (see DrawerStack).
   return parent === '/search' ? `${parent}${location.search ?? ''}` : parent
+}
+
+/** A class as the climb reads it from the feed: its page path and whether it is online. */
+export type ClassPathLike = { webPath?: string | null; eventType?: string | null }
+
+/**
+ * Where a fresh deep link climbs to (X, swipe, Escape, the Back row): the nearest place above that
+ * is worth landing on. It passes over two kinds of place (Anton, 6 Nov):
+ *
+ * - a venue: a class page already names its venue ("Evening Meditation at Balham Library"), so
+ *   "Back to Balham Library" read as going nowhere. Back goes to the city; the breadcrumb still
+ *   offers the venue's own list.
+ * - a place holding a single in-person class, which would only open that class again
+ *   (`loneClassPath`).
+ *
+ * Without the feed and the region tree (not loaded yet) it is the structural parent, as before.
+ */
+export const climbDestination = (
+  pathname: string,
+  classes?: readonly ClassPathLike[],
+  venueSlugs?: ReadonlySet<string>,
+): string => {
+  const entries = resolveStack(pathname)
+  let index = entries.length - 2
+
+  while (index >= 0) {
+    const entry = entries[index]
+
+    if (entry.kind !== 'region') break
+
+    const isVenue = venueSlugs?.has(entry.slug) ?? false
+    const under = classes?.filter((item) => item.webPath?.startsWith(`${entry.path}/`))
+    const isLone = under?.length === 1 && under[0].eventType !== 'online'
+
+    if (!isVenue && !isLone) break
+    index -= 1
+  }
+
+  return index >= 0 ? entries[index].path : '/'
 }
 
 /** One place in the breadcrumb line, always a link: the page itself is the heading's job. */
@@ -146,13 +189,22 @@ export const loneClassPath = (
  * two levels up (class, then its city, then the country that holds only that city).
  */
 export const cameUpFrom = (location: { state?: unknown }, path: string): boolean => {
-  const state = location.state as { from?: unknown; climbedFrom?: unknown } | null | undefined
-  const within = (value: unknown) => {
-    if (typeof value !== 'string') return false
-    const route = value.split('?')[0]
+  const state = location.state as { from?: unknown } | null | undefined
 
-    return route === path || path.startsWith(`${route}/`)
-  }
+  return climbedUpFrom(location, path) || leadsTo(state?.from, path)
+}
 
-  return within(state?.from) || within(state?.climbedFrom)
+/**
+ * The structural-climb half of `cameUpFrom`: X, swipe, Escape or Back on a fresh deep link. A
+ * place reached this way from its lone class climbs on (a breadcrumb tap shows the page instead).
+ */
+export const climbedUpFrom = (location: { state?: unknown }, path: string): boolean =>
+  leadsTo((location.state as { climbedFrom?: unknown } | null | undefined)?.climbedFrom, path)
+
+// Whether `value` is `path` itself or a place on the way down to it, query ignored.
+const leadsTo = (value: unknown, path: string): boolean => {
+  if (typeof value !== 'string') return false
+  const route = value.split('?')[0]
+
+  return route === path || path.startsWith(`${route}/`)
 }

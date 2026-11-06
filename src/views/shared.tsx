@@ -12,7 +12,7 @@ import clsx from 'clsx'
 import { Button } from '@/components/atoms/Button'
 import { FallbackPanel, GeolocationPrompt } from '@/components/molecules'
 import { MapSearch } from '@/components/organisms'
-import api, { eventQuery } from '@/config/api'
+import api, { eventQuery, regionsQuery } from '@/config/api'
 import { GEOJSON_STALE_TIME } from '@/config/query-client'
 import embed from '@/config/embed'
 import { useCameraHistory, useFilterPanelState } from '@/config/store'
@@ -145,6 +145,31 @@ export function SearchButton() {
     >
       <Search size={20} />
     </Button>
+  )
+}
+
+/**
+ * What a climb reads to pass over venues and one-class places (`climbDestination`): the feed's
+ * class paths and the region tree's venue slugs. Disabled observers: they follow the cache and
+ * never fetch, so the loading and error chrome can call this too.
+ */
+export function useClimbInputs() {
+  const { data: feed } = useQuery({
+    queryKey: ['geojson'],
+    queryFn: () => api.getGeojson(),
+    staleTime: GEOJSON_STALE_TIME,
+    enabled: false,
+  })
+  const { data: regions } = useQuery({ ...regionsQuery(), enabled: false })
+
+  return useMemo(
+    () => ({
+      classes: feed?.features.map((feature) => feature.properties),
+      venueSlugs: regions
+        ? new Set(regions.filter((node) => node.level === 'venue').map((node) => node.slug))
+        : undefined,
+    }),
+    [feed, regions],
   )
 }
 

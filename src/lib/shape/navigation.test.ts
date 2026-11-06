@@ -6,6 +6,8 @@ import {
   backDestination,
   breadcrumbTrail,
   cameUpFrom,
+  climbDestination,
+  climbedUpFrom,
   dismissAction,
   loneClassPath,
 } from './navigation'
@@ -173,5 +175,61 @@ describe('cameUpFrom — leaving the lone class never bounces back into it', () 
     expect(cameUpFrom({ state: null }, '/lu/1185')).toBe(false)
     expect(cameUpFrom({ state: { depth: 1, from: '/' } }, '/lu/1185')).toBe(false)
     expect(cameUpFrom({ state: { climbedFrom: '/lu/lux' } }, '/lu/luxembourg/1185')).toBe(false)
+  })
+})
+
+describe('climbDestination — Back passes over a place that holds only this class', () => {
+  const lib = '/gb/south-east/london/balham-library'
+  const classAt = (webPath: string, eventType = 'offline') => ({ webPath, eventType })
+
+  it('skips a venue whose only class is this one, landing on the city', () => {
+    const classes = [classAt(`${lib}/717`), classAt('/gb/south-east/london/711')]
+
+    expect(climbDestination(`${lib}/717`, classes)).toBe('/gb/south-east/london')
+  })
+
+  it('passes over a venue even with two classes, when the tree says it is a venue', () => {
+    const classes = [classAt(`${lib}/717`), classAt(`${lib}/718`)]
+
+    expect(climbDestination(`${lib}/717`, classes, new Set(['balham-library']))).toBe(
+      '/gb/south-east/london',
+    )
+  })
+
+  it('stops at a place with more than one class that is not a venue', () => {
+    const classes = [classAt(`${lib}/717`), classAt(`${lib}/718`)]
+
+    expect(climbDestination(`${lib}/717`, classes)).toBe(lib)
+  })
+
+  it('climbs past every one-class place, up to the world', () => {
+    expect(climbDestination('/lu/luxembourg/1185', [classAt('/lu/luxembourg/1185')])).toBe('/')
+  })
+
+  it('keeps a place that also holds an online class', () => {
+    const classes = [classAt(`${lib}/717`), classAt(`${lib}/9`, 'online')]
+
+    expect(climbDestination(`${lib}/717`, classes)).toBe(lib)
+  })
+
+  it('is the structural parent without the feed', () => {
+    expect(climbDestination(`${lib}/717`)).toBe(lib)
+  })
+
+  it('names the same place in the Back row on a fresh deep link', () => {
+    const classes = [classAt(`${lib}/717`), classAt('/gb/south-east/london/711')]
+
+    expect(backDestination({ pathname: `${lib}/717` }, classes)).toBe('/gb/south-east/london')
+  })
+})
+
+describe('climbedUpFrom — only a structural climb climbs on', () => {
+  it('reads climbedFrom, not a breadcrumb push', () => {
+    expect(climbedUpFrom({ state: { climbedFrom: '/lu/luxembourg' } }, '/lu/luxembourg/1185')).toBe(
+      true,
+    )
+    expect(
+      climbedUpFrom({ state: { depth: 1, from: '/lu/luxembourg/1185' } }, '/lu/luxembourg/1185'),
+    ).toBe(false)
   })
 })

@@ -21,7 +21,13 @@ import {
   resolveStack,
 } from '@/lib/shape'
 import { type NavNaming, backLabel, entryName } from '@/views/nav-names'
-import { ExpandSheetButton, HEADER_CONTROL, DrawerTitle, useDrawerControl } from '@/views/shared'
+import {
+  ExpandSheetButton,
+  HEADER_CONTROL,
+  DrawerTitle,
+  useClimbInputs,
+  useDrawerControl,
+} from '@/views/shared'
 
 // Region names by slug, cache-only: this renders inside the loading and error chrome too,
 // where a fetch would re-issue the read that just failed. A miss costs the name, not the
@@ -64,7 +70,10 @@ export function BackButton({ iconOnly = false }: { iconOnly?: boolean }) {
   const { dismiss } = useDrawerControl()
   const queryClient = useQueryClient()
   const regionNames = useRegionNames()
-  const route = backDestination(location)
+  // Cache-only, like the names: on a fresh deep link the climb passes over the venue and any
+  // one-class place, and the label names where it really lands (`climbDestination`).
+  const { classes, venueSlugs } = useClimbInputs()
+  const route = backDestination(location, classes, venueSlugs)
 
   // The filters' X is the way out while they cover the calendar. Back would say "Calendar"
   // on the calendar itself: history can't say where the calendar came from until they close.
