@@ -38,6 +38,7 @@ import { useSurfaceSwitch, useWidgetMode } from '@/config/mode'
 import { useClassSheet, useFilterPanelState } from '@/config/store'
 import { frameElement, overlayContainer } from '@/lib/overlay'
 import {
+  filtersFromParams,
   climbDestination,
   type StackEntry,
   CALENDAR_VIEW_LIST,
@@ -436,6 +437,13 @@ export function DrawerStack() {
       : null
   const routedFilters =
     top?.kind === 'filters' && (!embed.config.filters || (hasMap && filterPanelFits))
+  // A list of online classes only: a place's Online classes, or results filtered to online. Online
+  // classes have no place on the map, so the phone sheet opens near full rather than leaving a map
+  // with nothing on it above the list (Anton, 6 Nov).
+  const onlineOnly =
+    top?.kind === 'online' ||
+    (top?.kind === 'search' &&
+      filtersFromParams(new URLSearchParams(location.search)).format === 'online')
 
   // A `/filters` link on a layout with the panel: open the panel, and show the view beneath it.
   useEffect(() => {
@@ -647,7 +655,8 @@ export function DrawerStack() {
       return
     }
 
-    const tall = opensTall(top?.kind) || (from === 'filters' && top?.kind === 'search')
+    const tall =
+      opensTall(top?.kind) || (from === 'filters' && top?.kind === 'search') || onlineOnly
 
     // The filters open as tall as their content, which at world level is a few rows: low on
     // the screen, near the thumb, with no blank sheet above them. Many filters still reach
@@ -655,7 +664,7 @@ export function DrawerStack() {
     if (top?.kind === 'filters' || top?.kind === 'event') setSnap(FIT_SNAP)
     else if (tall) setSnap(WIDE_SNAP)
     else setSnap(top?.kind === 'search' && searchCenter ? SEARCH_SNAP : openSnap)
-  }, [direction, top?.kind, openSnap, framed])
+  }, [direction, top?.kind, openSnap, framed, onlineOnly])
 
   // The camera keeps a class's pin clear of the sheet that opened over it. This is only for a
   // class and the filters: their sheets are taller than the usual open stop. The filters open as
