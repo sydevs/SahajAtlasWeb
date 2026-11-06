@@ -35,21 +35,17 @@ import {
 const FORMAT_OPTIONS: EventFormat[] = ['offline', 'online']
 const CADENCE_OPTIONS: EventCadence[] = ['DAILY', 'WEEKLY', 'MONTHLY', 'once']
 
-// The We Meditate app's own sunrise and moon, in the app's own yellow and blue (#ffd591, #a1c3d7:
-// the colours in sunrise.svg and moon.svg), as on its reminder sheet (Anton, 6 Nov). At 20px the
-// app's fine lines wash out, so a 0.75px outline in the same colour thickens them a little
-// (`vector-effect` keeps it 0.75px at any size). The app has no afternoon icon, so afternoon takes
-// a sun line icon in the sunrise's yellow.
-const SUN_YELLOW = 'text-[#ffd591]'
-const MOON_BLUE = 'text-[#a1c3d7]'
+// The We Meditate app's own sunrise and moon, in the text colour like every other control here:
+// Anton tried the app's yellow and blue (6 Nov) and found they pulled too much attention. At 20px
+// the app's fine lines are faint, so a 0.75px outline (`vector-effect` keeps it 0.75px at any size)
+// brings them to the weight of the sun beside them. The app has no afternoon icon, so afternoon
+// takes a sun line icon.
 const THICKER =
   '[&_path]:[stroke:currentColor] [&_path]:[stroke-width:0.75px] [&_path]:[vector-effect:non-scaling-stroke]'
 const TIME_ICONS: Record<TimePeriod, ReactNode> = {
-  morning: <WmIcon className={clsx(SUN_YELLOW, THICKER)} name="sunrise" size={22} />,
-  afternoon: (
-    <Sun aria-hidden className={clsx('shrink-0', SUN_YELLOW)} size={20} strokeWidth={1.75} />
-  ),
-  evening: <WmIcon className={clsx(MOON_BLUE, THICKER)} name="moon" size={20} />,
+  morning: <WmIcon className={THICKER} name="sunrise" size={22} />,
+  afternoon: <Sun aria-hidden className="shrink-0" size={20} strokeWidth={1.75} />,
+  evening: <WmIcon className={THICKER} name="moon" size={20} />,
 }
 
 // How many languages still read better as one tap each than as a dropdown.
