@@ -478,13 +478,15 @@ export function DrawerFooter({
   //
   // ⚠ The contract that buys: a `sticky` footer's parent must also contain the
   // body it clears. Anywhere it does not, the clearance silently resolves to
-  // its `0px` fallback and the content ends under the bar.
+  // its `0px` fallback and the content ends under the bar. A footer placed
+  // INSIDE the body, for its reading order (EventView), publishes on the body's
+  // parent instead: a custom property set below the body never reaches it.
   //
   // `borderBoxSize` is the untransformed box, so the collapsed sheet's
   // `translate-y-full` cannot report a different one.
   useEffect(() => {
     const el = ref.current
-    const layer = el?.parentElement
+    const layer = el?.closest('[data-drawer-body]')?.parentElement ?? el?.parentElement
 
     if (!sticky || !el || !layer || typeof ResizeObserver === 'undefined') return
 

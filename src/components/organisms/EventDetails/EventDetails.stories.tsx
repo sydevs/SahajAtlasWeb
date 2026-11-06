@@ -106,7 +106,7 @@ export const Default: Story = () => (
     </StorySection>
 
     <StorySection
-      description="Register plus the secondary action row, as the mobile sheet's sticky footer renders them. `ctaInline={false}` is what the panel passes when the bar is pinned to the footer instead."
+      description="Register plus the secondary action row, as the mobile sheet's pinned bar renders them. The panel takes that bar through `cta`, so it stands right after the facts in reading and keyboard order while it paints at the screen's edge."
       title="Register bar"
     >
       <div className="flex max-w-md flex-col gap-4">
@@ -119,7 +119,11 @@ export const Default: Story = () => (
         </div>
         <div className="border border-divider">
           <EventHeader event={mockEvent} />
-          <EventDetails basePath="/demo/101" ctaInline={false} event={mockEvent} />
+          <EventDetails
+            basePath="/demo/101"
+            cta={<p className="text-sm text-gray-11">(the pinned bar stands here)</p>}
+            event={mockEvent}
+          />
         </div>
       </div>
     </StorySection>

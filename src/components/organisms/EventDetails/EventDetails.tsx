@@ -37,25 +37,23 @@ export type EventSurfaceProps = {
 export type EventDetailsSection = 'details' | 'when' | 'where' | 'about'
 
 export type EventDetailsProps = EventSurfaceProps & {
-  /** Render the calls to action — Register, then the secondary action row —
-   *  inline in panel order. The mobile map sheet passes false and mounts both
-   *  in the sticky drawer footer instead. They travel together because the
-   *  footer is pinned over the body's last band, so an inline copy of either
-   *  would be drawn underneath it at the short snap (#320). */
-  ctaInline?: boolean
+  /**
+   * What stands where the calls to action go — after the facts, before Add to calendar — in
+   * place of the inline Register and action row. The phone map sheet passes its pinned bar,
+   * which paints at the screen's edge but sits here in the DOM, so reading and keyboard order
+   * stay the page's own: title, tags, time and place, Register, Directions and Share, Add to
+   * calendar, What to expect, About. Register and the row travel together because the bar is
+   * pinned over the body's last band, so an inline copy of either would be drawn underneath it
+   * at the short snap (#320).
+   */
+  cta?: ReactNode
   /**
    * This slot renders below the facts, inside the panel's own flow, above the
    * unverified caveat and Register.
    *
    * This uses a slot, not a prop, because each caller decides what goes here.
-   * It is a view's job, not this component's job. The alternative was a second
-   * boolean beside `ctaInline` for every new addition. EventView passes
-   * the post-event feedback acknowledgement (#164).
-   *
-   * ⚠ The calls to action are sometimes not inline. Then the mobile map sheet
-   * mounts them in the sticky footer instead. This slot still renders here,
-   * after the facts and above everything that follows. This position keeps it
-   * above the sticky bar in reading order too.
+   * It is a view's job, not this component's job. EventView passes the post-event
+   * feedback acknowledgement (#164).
    */
   children?: ReactNode
   /**
@@ -126,7 +124,7 @@ function EventAddToCalendar({ event }: { event: Event }) {
 export function EventDetails({
   event,
   basePath,
-  ctaInline = true,
+  cta,
   children,
   sectionTrailing,
   actions,
@@ -195,9 +193,7 @@ export function EventDetails({
 
       {children}
 
-      {actions ?? (
-        <PublishedActions basePath={basePath} ctaInline={ctaInline} ended={ended} event={event} />
-      )}
+      {actions ?? <PublishedActions basePath={basePath} cta={cta} ended={ended} event={event} />}
 
       {/* With no phone, the Contact button already writes to this address. */}
       {event.contactEmail && event.contactPhone && (
@@ -249,9 +245,9 @@ export function EventDetails({
 function PublishedActions({
   event,
   basePath,
-  ctaInline,
+  cta,
   ended,
-}: EventSurfaceProps & { ctaInline: boolean; ended: boolean }) {
+}: EventSurfaceProps & { cta: ReactNode; ended: boolean }) {
   const { t } = useTranslation()
   const { display } = useEventDisplay(event)
 
@@ -271,7 +267,7 @@ function PublishedActions({
         </div>
       )}
 
-      {ctaInline && (
+      {cta ?? (
         <>
           <EventRegisterBar basePath={basePath} event={event} />
           <EventActions basePath={basePath} event={event} />

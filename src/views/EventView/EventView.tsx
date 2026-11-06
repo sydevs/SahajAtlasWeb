@@ -25,6 +25,7 @@ import { useMapController } from '@/hooks/use-map-controller'
 import { usePostEventFeedback } from '@/hooks/use-post-event-feedback'
 import { useWidgetMode } from '@/config/mode'
 import { correctionPath, parentOf } from '@/lib/shape'
+import { type Event } from '@/types'
 import { NavRow } from '@/views/nav'
 import { useDrawerControl, useFrameOnTop } from '@/views/shared'
 import { ErrorPanel } from '@/views/fallbacks'
@@ -58,11 +59,48 @@ const EventActions = lazy(() =>
   import('@/components/molecules/EventActions').then((m) => ({ default: m.EventActions })),
 )
 
+/**
+ * The phone sheet's Register bar, with the action row riding it so only one copy exists (#320).
+ * It is pinned to the viewport edge through the live `--sy-sheet-top` mirror, so scrolling the
+ * description can never hide the KPI (issue #52, WS4), and slides away with the collapsed sheet.
+ *
+ * Fixed positioning takes it out of the body's flow, so where it sits in the DOM decides only the
+ * reading and keyboard order: the view hands it to the panel to stand right after the facts.
+ */
+function PinnedRegister({
+  event,
+  basePath,
+  collapsed,
+}: {
+  event: Event
+  basePath: string
+  collapsed: boolean
+}) {
+  return (
+    <DrawerFooter
+      sticky
+      className={`px-gutter py-3 transition-transform ${collapsed ? 'translate-y-full opacity-0' : ''}`}
+    >
+      {/* The two rows are gapped inside a wrapper, not by the footer itself, so the
+          footer's own safe-area spacer is not a third gapped sibling. 16px, the same as the
+          inline layout, so the secondary row reads as its own set, not part of Register. */}
+      <div data-sheet-footer className="flex flex-col gap-4">
+        <EventRegisterBar basePath={basePath} event={event} />
+        {/* The boundary keeps a rejected chunk from taking the Register CTA down with it
+            (issue #89). */}
+        <ResetErrorBoundary context="event actions" fallback={null}>
+          <Suspense fallback={null}>
+            <EventActions basePath={basePath} event={event} />
+          </Suspense>
+        </ResetErrorBoundary>
+      </div>
+    </DrawerFooter>
+  )
+}
+
 // A single event, at route `<event-path>`. The header — Back and the title — is the mobile
 // sheet's peek payload, and stays pinned above the scrolling body. The chips and facts lead the
-// body. On the mobile map sheet, Register lives in a sticky bar pinned to the viewport edge,
-// via the live `--sy-sheet-top` mirror, so scrolling the description can never hide the KPI
-// (issue #52, WS4). Elsewhere it renders inline in the panel order.
+// body, then Register and the actions — inline, or the phone sheet's pinned bar in the same place.
 export function EventView({ id, basePath }: { id: number; basePath: string }) {
   const { standalone, hasMap } = useWidgetMode()
   const { frameEvent } = useMapController()
@@ -108,6 +146,9 @@ export function EventView({ id, basePath }: { id: number; basePath: string }) {
   const stickyRegister = hasMap && !isWide && !event.contactOnly && hasRegisterSlot(event, display)
   const onwardHref = parentOf(event.path)
   const layerAnchor = useRef<HTMLSpanElement>(null)
+  const pinned = stickyRegister ? (
+    <PinnedRegister basePath={basePath} collapsed={collapsed} event={event} />
+  ) : null
 
   useSheetFit(layerAnchor, stickyRegister)
 
@@ -137,10 +178,15 @@ export function EventView({ id, basePath }: { id: number; basePath: string }) {
         {/* The details are a lazy chunk, so they can fail on their own — a dropped connection
             mid-session, or a host CSP blocking the chunk — after the event itself resolved.
             Keeping that local means the title, the close button, and the sticky Register CTA
-            all survive. The event stays bookable even when its description is not there
-            (issue #89). */}
+            all survive: the bar stands in each fallback, and inside the panel once it loads.
+            The event stays bookable even when its description is not there (issue #89). */}
         <ResetErrorBoundary
-          FallbackComponent={ErrorPanel}
+          fallbackRender={(props) => (
+            <>
+              <ErrorPanel {...props} />
+              {pinned}
+            </>
+          )}
           onReset={() => setEventDetails(loadEventDetails())}
         >
           {/* The one Spinner in the app with no visible label and no `decorative`, so it is
@@ -149,17 +195,19 @@ export function EventView({ id, basePath }: { id: number; basePath: string }) {
               the translated word (issue #102). */}
           <Suspense
             fallback={
-              <Spinner
-                className="mx-auto my-16"
-                srLabel={t('common.chrome.loading', { defaultValue: 'Loading…' })}
-              />
+              <>
+                <Spinner
+                  className="mx-auto my-16"
+                  srLabel={t('common.chrome.loading', { defaultValue: 'Loading…' })}
+                />
+                {pinned}
+              </>
             }
           >
-            <EventDetails basePath={basePath} ctaInline={!stickyRegister} event={event}>
-              {/* This is passed as the panel's slot, so it lands immediately above Register,
-                  which lives inside EventDetails when it is inline. The acknowledgement belongs
-                  beside the action it wants the reader to take, and the panel is the only thing
-                  that knows where that action sits.
+            <EventDetails basePath={basePath} cta={pinned} event={event}>
+              {/* This is passed as the panel's slot, so it lands immediately above Register.
+                  The acknowledgement belongs beside the action it wants the reader to take,
+                  and the panel is the only thing that knows where that action sits.
 
                   The onward rung is the event's own region — "other classes near them" — built
                   from `event.path`, not `event.region.webPath`. That field is a CMS-supplied
@@ -202,27 +250,6 @@ export function EventView({ id, basePath }: { id: number; basePath: string }) {
           {t('submit.chrome.correct_entry')}
         </Link>
       </DrawerBody>
-      {stickyRegister && (
-        <DrawerFooter
-          sticky
-          className={`px-gutter py-3 transition-transform before:pointer-events-none before:absolute before:inset-x-0 before:bottom-full before:h-4 before:bg-gradient-to-t before:from-background before:to-transparent before:content-[''] ${collapsed ? 'translate-y-full opacity-0' : ''}`}
-        >
-          {/* The two rows are gapped inside a wrapper, not by the footer itself, so the
-              footer's own safe-area spacer is not a third gapped sibling. 16px, the same as the
-              inline layout, so the secondary row reads as its own set, not part of Register. */}
-          <div data-sheet-footer className="flex flex-col gap-4">
-            <EventRegisterBar basePath={basePath} event={event} />
-            {/* The row rides the bar so only one copy exists — see `ctaInline`. The
-                boundary keeps a rejected chunk from reaching the body's sibling
-                boundary and taking the Register CTA down with it (issue #89). */}
-            <ResetErrorBoundary context="event actions" fallback={null}>
-              <Suspense fallback={null}>
-                <EventActions basePath={basePath} event={event} />
-              </Suspense>
-            </ResetErrorBoundary>
-          </div>
-        </DrawerFooter>
-      )}
     </>
   )
 }

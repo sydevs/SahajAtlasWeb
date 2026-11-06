@@ -103,14 +103,14 @@ describe('unverified badge', () => {
     expect(markup.indexOf(TITLE_KEY)).toBeLessThan(markup.indexOf('register-slot'))
   })
 
-  // The mobile map sheet pins Register in the drawer footer instead, so the inline bar
-  // is absent. The caveat is not the button's, and must survive without it.
-  it('renders with Register pinned to the sheet footer', () => {
+  // The mobile map sheet stands its pinned bar in Register's place, so the inline bar is
+  // absent. The caveat is not the button's: it must survive without it, still above the bar.
+  it('renders above the sheet’s pinned Register bar', () => {
     const markup = renderToStaticMarkup(
       <MemoryRouter>
         <EventDetails
           basePath="/gb/london/1"
-          ctaInline={false}
+          cta={<i>pinned-bar</i>}
           event={{ ...mockEvent, verificationStage: 'unverified' }}
         />
       </MemoryRouter>,
@@ -118,5 +118,6 @@ describe('unverified badge', () => {
 
     expect(markup).toContain(TITLE_KEY)
     expect(markup).not.toContain('register-slot')
+    expect(markup.indexOf(TITLE_KEY)).toBeLessThan(markup.indexOf('pinned-bar'))
   })
 })

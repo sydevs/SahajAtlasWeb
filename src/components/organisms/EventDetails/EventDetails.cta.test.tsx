@@ -9,7 +9,7 @@ import { mockEvent } from '@/mocks/events'
 // together, because the mobile map sheet's footer is pinned over the body's last band
 // (#320).
 //
-// ⚠ Both stubs render a MARKER, not null. `not.toContain` against a null stub passes
+// ⚠ Every stub renders a MARKER, not null. `not.toContain` against a null stub passes
 // whether or not the component was called, which is how this spec would go vacuous.
 vi.mock('react-i18next', () => ({
   useTranslation: () => ({ t: (key: string) => key }),
@@ -23,7 +23,7 @@ vi.mock('@/hooks/use-event-display', () => ({
   useEventDisplay: () => ({ display: { status: 'running', next: null } }),
 }))
 vi.mock('@/components/molecules/WhatToExpect', () => ({
-  WhatToExpect: () => null,
+  WhatToExpect: () => <i>expect-slot</i>,
 }))
 vi.mock('@/components/molecules/EventActions', () => ({
   EventActions: () => <i>actions-slot</i>,
@@ -39,10 +39,14 @@ vi.mock('./sanitize', () => ({
   sanitizeDescription: (html: string) => html,
 }))
 
-const panel = (ctaInline?: boolean) =>
-  renderToStaticMarkup(
-    <EventDetails basePath="/gb/london/1" ctaInline={ctaInline} event={mockEvent} />,
-  )
+const panel = (cta?: React.ReactNode) =>
+  renderToStaticMarkup(<EventDetails basePath="/gb/london/1" cta={cta} event={mockEvent} />)
+
+/** Where each marker sits in the markup, so an order reads as a list of positions. */
+const order = (markup: string, ...markers: string[]) => markers.map((m) => markup.indexOf(m))
+
+const ascending = (positions: number[]) =>
+  positions.every((at, i) => at >= 0 && (i === 0 || at > positions[i - 1]))
 
 describe('EventDetails — where the calls to action render', () => {
   it('renders both inline by default, in panel order', () => {
@@ -57,20 +61,26 @@ describe('EventDetails — where the calls to action render', () => {
     expect(panel()).not.toContain('onward-slot')
   })
 
-  it('renders neither when the sticky footer owns them', () => {
-    const markup = panel(false)
+  // Anton's order: title, tags, time and place, Register, Directions/Share, Add to calendar,
+  // What to expect, About. Reading and keyboard order are DOM order.
+  it('puts Register and the actions after the tags and facts, before What to expect', () => {
+    expect(
+      ascending(
+        order(panel(), 'chips-slot', 'facts-slot', 'register-slot', 'actions-slot', 'expect-slot'),
+      ),
+    ).toBe(true)
+  })
+
+  // The phone sheet's pinned bar paints at the screen's edge, but stands HERE in the DOM, so
+  // a keyboard or screen reader reaches Register right after the time and place — not after
+  // About, where a footer below the body put it.
+  it('stands a caller’s bar in the same place, instead of the inline pair', () => {
+    const markup = panel(<i>pinned-bar</i>)
 
     expect(markup).not.toContain('register-slot')
     expect(markup).not.toContain('actions-slot')
-  })
-
-  // The rest of the panel is unaffected, so a reader who drags the sheet up still gets
-  // the facts and the prose. Without this, "renders neither" also passes for a panel
-  // that rendered nothing at all.
-  it('keeps the rest of the panel when the footer owns them', () => {
-    const markup = panel(false)
-
-    expect(markup).toContain('facts-slot')
-    expect(markup).toContain('chips-slot')
+    expect(ascending(order(markup, 'chips-slot', 'facts-slot', 'pinned-bar', 'expect-slot'))).toBe(
+      true,
+    )
   })
 })
