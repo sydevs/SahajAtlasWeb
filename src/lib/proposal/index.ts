@@ -37,6 +37,7 @@ export {
 } from './preview'
 export {
   draftWeekday,
+  firstDateOnDay,
   endAfter,
   monthWeekNumber,
   monthlyOptions,

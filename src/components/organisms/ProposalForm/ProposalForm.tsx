@@ -63,7 +63,8 @@ const endIsPromised = (draft: ListingDraft, endsOn: boolean) =>
 
 /** The draft fields each line of a correction's Check is built from, so its Undo takes back all
  *  of them and nothing else. A place's type travels with it: half an undo would leave an online
- *  class with a street address. */
+ *  class with a street address. When carries the first date (Check shows the two as one change)
+ *  but not the last, which is a line of its own. */
 const UNDO_FIELDS: Partial<Record<ChangeKey, (keyof ListingDraft)[]>> = {
   type: ['eventType', 'address', 'city', 'onlineUrl'],
   place: ['eventType', 'address', 'venueName', 'city'],
@@ -71,7 +72,7 @@ const UNDO_FIELDS: Partial<Record<ChangeKey, (keyof ListingDraft)[]>> = {
   venue: ['venueName'],
   room: ['room'],
   link: ['onlineUrl'],
-  schedule: ['repeats', 'monthlyBy', 'startTime', 'endTime', 'firstDate', 'endDate'],
+  schedule: ['repeats', 'monthlyBy', 'startTime', 'endTime', 'firstDate'],
   first: ['firstDate'],
   last: ['endDate'],
   zone: ['timeZone'],

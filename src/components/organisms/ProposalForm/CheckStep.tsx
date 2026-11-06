@@ -392,13 +392,30 @@ type Change = {
 }
 
 /**
+ * Folds a changed first date into a changed When, as one change with one Undo. The day a class
+ * meets is read off its first date, so neither can be taken back alone: as two cards, the When's
+ * Undo silently took the First class one with it.
+ */
+const joinFirstDate = (changes: Change[]) => {
+  const when = changes.find((change) => change.key === 'schedule')
+  const first = changes.findIndex((change) => change.key === 'first')
+
+  if (!when || first < 0) return
+
+  const [date] = changes.splice(first, 1)
+
+  when.before = `${when.before}\n${date.label}: ${date.before}`
+  when.after = `${when.after}\n${date.label}: ${date.after}`
+}
+
+/**
  * Only what the correction changes, each as the listing says it now and as it should — read off
  * the same rows a new listing is built from, so nothing that is sent goes unshown. Each change
  * can be taken back on its own, and another can be added to the same report.
  *
  * A "stopped running" report is one thing, not three: its status, its last class and what the
  * visitor knows sit on one card with one way to remove it. A note is shown as what it is —
- * information for the coordinator — never as a change to the listing.
+ * information for the admins — never as a change to the listing.
  */
 function ChangeList({
   base,
@@ -453,6 +470,7 @@ function ChangeList({
       edit: row.section,
     })
   }
+  joinFirstDate(changes)
 
   const info = note.trim()
   const nobody = nobodyOn !== null
@@ -542,7 +560,7 @@ function ChangeList({
   )
 }
 
-/** What the visitor told the coordinator, under the report it explains. */
+/** What the visitor told the admins, under the report it explains. */
 function Info({ note }: { note: string }) {
   const { t } = useTranslation()
 

@@ -39,6 +39,22 @@ export const todayIn = (timeZone: string, now: DateTime = DateTime.now()): strin
   now.setZone(timeZone).toISODate() ?? now.toISODate() ?? ''
 
 /**
+ * The first date once a host picks `weekday`: in the week of the first date there is. A new
+ * listing never starts before this week. A correction (`keepStart`) keeps the week the class
+ * started in, however long ago — the visitor said the day changed, not when the class began.
+ */
+export const firstDateOnDay = (
+  firstDate: string,
+  weekday: number,
+  { today, keepStart = false }: { today: string; keepStart?: boolean },
+): string => {
+  const dated = DATE.test(firstDate)
+  const week = dated ? weekStart(firstDate) : today
+
+  return nextWeekdayDate(weekday, (keepStart && dated) || week > today ? week : today)
+}
+
+/**
  * The end time `minutes` after `start`, both `HH:MM` — past midnight it wraps to the next day,
  * which the schedule already reads as an overnight session. Empty while there is no start.
  */

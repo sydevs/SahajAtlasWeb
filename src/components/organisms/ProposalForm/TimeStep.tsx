@@ -16,10 +16,9 @@ import { useLocale } from '@/hooks/use-locale'
 import {
   draftWeekday,
   endAfter,
-  nextWeekdayDate,
+  firstDateOnDay,
   sessionMinutes,
   todayIn,
-  weekStart,
   monthWeekNumber,
   monthlyOptions,
   resolvedMonthlyBy,
@@ -93,8 +92,8 @@ export function TimeStep({
   const weekly = draft.repeats === 'weekly'
   // A weekly class with no date yet is missing its day, and is told so at the day chips.
   const dayMissing = weekly && weekday === null && Boolean(errors.firstDate)
-  // A weekly class already running needs no first date. Picking a new day moves it to the future,
-  // and then it shows again.
+  // A weekly class already running needs no first date, and a new day keeps the week it started
+  // in, so the question stays away.
   const sinceLongAgo =
     correcting && weekly && Boolean(draft.firstDate) && draft.firstDate < DateTime.now().toISODate()
   const weekdays = Info.weekdays('short', { locale })
@@ -179,13 +178,12 @@ export function TimeStep({
                   type="button"
                   onClick={() => {
                     if (on) return
-                    // Moving the day keeps the week the visitor already chose, never earlier
-                    // than this week.
-                    const today = todayIn(draft.timeZone)
-                    const week = draft.firstDate ? weekStart(draft.firstDate) : today
-                    const from = week > today ? week : today
-
-                    onChange({ firstDate: nextWeekdayDate(day, from) })
+                    onChange({
+                      firstDate: firstDateOnDay(draft.firstDate, day, {
+                        today: todayIn(draft.timeZone),
+                        keepStart: correcting,
+                      }),
+                    })
                   }}
                 >
                   {label.replace(/\.$/, '')}

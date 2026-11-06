@@ -19,6 +19,7 @@ import {
   emptyDraft,
   eventToDraft,
   featureToPlace,
+  firstDateOnDay,
   firstInvalidStep,
   nearestTimeZone,
   monthlyOptions,
@@ -640,6 +641,22 @@ describe('the weekday a schedule starts on', () => {
 
     expect(todayIn('Europe/London', now)).toBe('2026-10-25')
     expect(todayIn('Asia/Tokyo', now)).toBe('2026-10-26')
+  })
+
+  it('moves a new listing’s day within its week, never before this one', () => {
+    const today = '2026-11-06' // a Friday
+
+    expect(firstDateOnDay('', 2, { today })).toBe('2026-11-10')
+    expect(firstDateOnDay('2026-11-18', 2, { today })).toBe('2026-11-17')
+    expect(firstDateOnDay('2022-12-21', 4, { today })).toBe('2026-11-12')
+  })
+
+  it('keeps a correction’s start: only the day moves, within the week it began', () => {
+    // A Wednesday class running since 2022, now on Thursdays.
+    expect(firstDateOnDay('2022-12-21', 4, { today: '2026-11-06', keepStart: true })).toBe(
+      '2022-12-22',
+    )
+    expect(firstDateOnDay('', 4, { today: '2026-11-06', keepStart: true })).toBe('2026-11-12')
   })
 })
 

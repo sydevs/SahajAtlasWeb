@@ -640,6 +640,42 @@ describe('ProposalForm corrections', () => {
 
     await act(async () => root.unmount())
   })
+
+  it('keeps a running class’s start when its day changes, shown and undone as one', async () => {
+    sdk.request.mockResolvedValue({ json: async () => ({ doc: { id: 15 } }) })
+
+    // Every Wednesday since December 2022.
+    const running = { ...inPerson, firstDate: '2022-12-21' }
+    const root = await mount({
+      initial: running,
+      correction: { eventId: 717, baseDraft: running },
+      startAt: 'fix',
+      withListing: true,
+    })
+
+    await press('submit.fix.when')
+    await act(async () =>
+      container.querySelector<HTMLButtonElement>('button[aria-label="Thursday"]')?.click(),
+    )
+    await type('#submit-start-time', '19:30')
+    await press('submit.chrome.continue')
+
+    // The new day and the first date it moves are one change, so one Undo.
+    expect(container.querySelectorAll('button[aria-label^="submit.changes.undo"]')).toHaveLength(1)
+    expect(container.textContent).toMatch(/submit\.when\.first_class: Thursday, December 22, 2022/)
+
+    await type('#submit-sender-email', 'ada@example.org')
+    await submit()
+
+    const { json } = sdk.request.mock.calls[0][0]
+
+    expect(json.proposed.schedule).toMatchObject({
+      firstDate: '2022-12-22T19:30:00.000Z',
+      weekdays: ['TH'],
+    })
+
+    await act(async () => root.unmount())
+  })
 })
 
 describe('ProposalForm details the walk cannot see', () => {
