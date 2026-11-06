@@ -1,10 +1,9 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import * as Fathom from 'fathom-client'
 import { useLocation, useNavigate } from 'react-router'
 import { MapProvider } from 'react-map-gl'
-import { useTranslation } from 'react-i18next'
 
-import { Spinner } from '@/components/atoms/Spinner'
+import { SurfaceSwitchContext, WidgetModeContext, useWidgetMode } from '@/config/mode'
 import { useCameraSettled } from '@/config/store'
 import { Mapbox } from '@/components/organisms/Mapbox'
 import { NoopMapControllerProvider } from '@/hooks/use-map-controller'
@@ -109,45 +108,34 @@ function useAnalytics(primaryDomain: string, pathname: string) {
  * yet". The moment it stops reading as a map behind glass, it has become a loading screen,
  * which is a worse answer than the world view it was meant to soften.
  *
- * The spinner fades in on a delay (`sy-map-curtain-spinner`, styles/globals.css), rather than
- * appearing at once, so a warm boot reads as a clean frost-to-reveal instead of flashing a
- * spinner nobody had time to register. This uses a CSS animation-delay, rather than a timer,
- * because there is no state here to schedule against.
- *
  * Module-private, and rendered in exactly one place, per the single-use rule in
  * DESIGN_SYSTEM.md.
  */
 function MapCurtain() {
   const settled = useCameraSettled((s) => s.settled)
-  const { t } = useTranslation()
 
   if (settled) return null
 
   return (
+    // No spinner and no live region: the sheet's own loading state already says what is
+    // happening, and two ways of saying it is one more than a visitor needs.
     <div
-      // Not `role="status"`: the drawer's own DrawerLoading already announces the wait, and two
-      // live regions describing one boot is one more than a screen reader should hear.
       aria-hidden
-      className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center bg-background/20 backdrop-blur-sm"
-    >
-      <span className="sy-map-curtain-spinner">
-        <Spinner
-          decorative
-          size="lg"
-          srLabel={t('common.chrome.loading', { defaultValue: 'Loading' })}
-        />
-      </span>
-    </div>
+      className="pointer-events-none absolute inset-0 z-10 bg-background/20 backdrop-blur-sm"
+    />
   )
 }
 
 /** The map (or not) and the drawer stack over it — everything below the form decision. */
 function FullInterface({
+  clientLoaded,
   contained,
   hasMap,
   homePath,
   primaryDomain = '',
 }: {
+  /** Whether `homePath` is known yet: the map form mounts before the client record arrives. */
+  clientLoaded: boolean
   /**
    * Map mode lives inside the host's element rather than filling the window (issue #169).
    *
@@ -184,11 +172,11 @@ function FullInterface({
   // the host's page on load, having never asked for one — auto-open triggered by this project's
   // own bookkeeping, rather than by a link anybody followed.
   useEffect(() => {
-    if (didInit.current) return
+    if (didInit.current || !clientLoaded) return
     didInit.current = true
     if (location.pathname === '/' && homePath && homePath !== '/')
       navigate(homePath, { replace: true })
-  }, [homePath, location.pathname, navigate])
+  }, [clientLoaded, homePath, location.pathname, navigate])
 
   // The feed and region tree, warmed when the interface actually mounts. `App` skips this for a
   // compact embed precisely so a collapsed card costs nothing, which leaves the expanded case to
@@ -199,9 +187,30 @@ function FullInterface({
     api.warmCaches()
   }, [])
 
+  // `view=list`: the map is not mounted until the visitor asks for it, so nothing is fetched
+  // from Mapbox before then. The route lives in the URL, so switching keeps the visitor's place.
+  const listFirst = hasMap && embed.config.listFirst
+  const [surface, setSurface] = useState<'list' | 'map'>('list')
+  const surfaceSwitch = useMemo(
+    () =>
+      listFirst
+        ? { surface, toggle: () => setSurface((s) => (s === 'list' ? 'map' : 'list')) }
+        : null,
+    [listFirst, surface],
+  )
+
+  if (listFirst && surface === 'list') {
+    return (
+      <SurfaceSwitchContext.Provider value={surfaceSwitch}>
+        <ListSurface contained={contained} />
+      </SurfaceSwitchContext.Provider>
+    )
+  }
+
   return hasMap ? (
-    <MapProvider>
-      {/* ⚠ **`MapFrame` is the ONLY thing that differs between a viewport map and a contained
+    <SurfaceSwitchContext.Provider value={surfaceSwitch}>
+      <MapProvider>
+        {/* ⚠ **`MapFrame` is the ONLY thing that differs between a viewport map and a contained
           one.** Everything below is byte-identical in both. The canvas stays `position: fixed;
           inset: 0`, the drawers and peek strips stay fixed, and no view branches on which one
           it is. `contain: layout` on the frame re-parents the whole fixed layer onto the
@@ -216,24 +225,42 @@ function FullInterface({
           gets the compact card rather than a takeover. `lib/slot-decision.ts` measures at
           mount, and `AppShell` renders `CompactEmbedView`, whose button opens the map
           full-screen. */}
-      <MapFrame contained={contained}>
-        {/* Inline fixed/inset so the map always fills its frame behind the drawers —
+        <MapFrame contained={contained}>
+          {/* Inline fixed/inset so the map always fills its frame behind the drawers —
             independent of Tailwind viewport-unit utility generation. */}
-        <div style={{ position: 'fixed', inset: 0 }}>
-          {/* The one thing a contained map does differently: `gestures=cooperative` leaves
+          <div style={{ position: 'fixed', inset: 0 }}>
+            {/* The one thing a contained map does differently: `gestures=cooperative` leaves
               scrolling to the page. Never in a window-filling map, where nothing scrolls. */}
-          <Mapbox cooperative={contained && embed.config.cooperative} />
-          <MapCurtain />
-        </div>
-        <RealMapControllerProvider>
-          <DrawerStack />
-        </RealMapControllerProvider>
-      </MapFrame>
-    </MapProvider>
+            <Mapbox cooperative={contained && embed.config.cooperative} />
+            <MapCurtain />
+          </div>
+          <RealMapControllerProvider>
+            <DrawerStack />
+          </RealMapControllerProvider>
+        </MapFrame>
+      </MapProvider>
+    </SurfaceSwitchContext.Provider>
   ) : (
     <NoopMapControllerProvider>
       <DrawerStack />
     </NoopMapControllerProvider>
+  )
+}
+
+/** `view=list` before the visitor asks for the map: the map-less interface, in the map's box. */
+function ListSurface({ contained }: { contained: boolean }) {
+  const mode = useWidgetMode()
+
+  return (
+    <WidgetModeContext.Provider value={{ ...mode, hasMap: false }}>
+      <MapFrame contained={contained}>
+        <div style={{ position: 'fixed', inset: 0 }}>
+          <NoopMapControllerProvider>
+            <DrawerStack />
+          </NoopMapControllerProvider>
+        </div>
+      </MapFrame>
+    </WidgetModeContext.Provider>
   )
 }
 

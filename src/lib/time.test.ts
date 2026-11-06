@@ -1,7 +1,15 @@
 import { describe, it, expect } from 'vitest'
 import { DateTime } from 'luxon'
 
-import { formatTimeRange, sameWallClock, zoneCity, zoneLabel } from './time'
+import {
+  formatTimeRange,
+  regionalLocale,
+  sameWallClock,
+  scheduleXLocale,
+  scheduleXTranslationKey,
+  zoneCity,
+  zoneLabel,
+} from './time'
 
 // All fixtures are built in a fixed zone so each endpoint's wall clock — and a
 // cross-zone end's conversion into the start's zone — stays deterministic
@@ -13,10 +21,17 @@ const at = (iso: string, zone = 'Europe/London') => DateTime.fromISO(iso, { zone
 const norm = (value: string) => value.replace(/\s+/g, ' ').trim()
 
 describe('formatTimeRange', () => {
-  it('drops :00 for whole hours and collapses a shared meridiem', () => {
+  it('says am or pm in English even where the clock is 24-hour (en-GB), not elsewhere', () => {
+    const at = DateTime.fromISO('2026-07-01T19:30', { zone: 'Europe/London' })
+
+    expect(formatTimeRange(at, null, 'en-GB').replace(/\s/g, ' ')).toBe('7:30 pm')
+    expect(formatTimeRange(at, null, 'de')).toBe('19:30')
+  })
+
+  it('keeps minutes on whole hours and collapses a shared meridiem', () => {
     const out = norm(formatTimeRange(at('2026-07-04T18:00'), at('2026-07-04T19:00'), 'en-US'))
 
-    expect(out).toBe('6 – 7 PM')
+    expect(out).toBe('6:00 – 7:00 PM')
   })
 
   it('keeps minutes when either endpoint has them', () => {
@@ -39,14 +54,14 @@ describe('formatTimeRange', () => {
   })
 
   it('formats a lone start time (no end)', () => {
-    expect(norm(formatTimeRange(at('2026-07-04T18:00'), null, 'en-US'))).toBe('6 PM')
+    expect(norm(formatTimeRange(at('2026-07-04T18:00'), null, 'en-US'))).toBe('6:00 PM')
     expect(norm(formatTimeRange(at('2026-07-04T18:30'), null, 'en-US'))).toBe('6:30 PM')
   })
 
   it('collapses a zero-length range to a single time', () => {
     const start = at('2026-07-04T18:00')
 
-    expect(norm(formatTimeRange(start, start, 'en-US'))).toBe('6 PM')
+    expect(norm(formatTimeRange(start, start, 'en-US'))).toBe('6:00 PM')
   })
 
   it('renders 24-hour locales in their own convention (no AM/PM)', () => {
@@ -98,7 +113,7 @@ describe('formatTimeRange', () => {
     // 18:00 in London is 19:00 in Prague — the DateTime's own zone wins.
     const prague = at('2026-07-04T19:00', 'Europe/Prague')
 
-    expect(norm(formatTimeRange(prague, null, 'en-US'))).toBe('7 PM')
+    expect(norm(formatTimeRange(prague, null, 'en-US'))).toBe('7:00 PM')
   })
 })
 
@@ -145,5 +160,50 @@ describe('zoneLabel', () => {
 
   it('keeps the id for a zone it cannot name, or does not know', () => {
     expect(zoneLabel('Not/AZone', 'en')).toBe('Not/AZone')
+  })
+})
+
+describe('regionalLocale', () => {
+  it("uses the browser's region when its language is the one on screen", () => {
+    expect(regionalLocale('en', ['en-GB', 'en'])).toBe('en-GB')
+    expect(regionalLocale('pt-BR', ['pt-PT'])).toBe('pt-PT')
+  })
+
+  it('reads past a first language that does not match', () => {
+    expect(regionalLocale('en', ['fr-FR', 'en-AU'])).toBe('en-AU')
+  })
+
+  it('keeps the interface locale when the browser has no such language', () => {
+    expect(regionalLocale('en', ['fr-FR'])).toBe('en')
+    expect(regionalLocale('en', [])).toBe('en')
+  })
+})
+
+describe('scheduleXLocale', () => {
+  it('keeps an exact match', () => {
+    expect(scheduleXLocale('en-GB')).toBe('en-GB')
+    expect(scheduleXLocale('pt-BR')).toBe('pt-BR')
+  })
+
+  it('falls back to the base language for a regional tag it lacks', () => {
+    expect(scheduleXLocale('de-DE')).toBe('de-DE')
+    expect(scheduleXLocale('de-AT')).toBe('de-DE')
+    expect(scheduleXLocale('fr-CA')).toBe('fr-FR')
+    expect(scheduleXLocale('es-MX')).toBe('es-ES')
+    expect(scheduleXLocale('en-ZA')).toBe('en-US')
+  })
+
+  it('falls back to en-US for a language Schedule-X lacks', () => {
+    expect(scheduleXLocale('hu')).toBe('en-US')
+    expect(scheduleXLocale('hu-HU')).toBe('en-US')
+  })
+})
+
+describe('scheduleXTranslationKey', () => {
+  // A UK browser runs the calendar in en-GB, so overrides filed only under enUS never applied.
+  it('files strings under the code without its hyphen', () => {
+    expect(scheduleXTranslationKey(scheduleXLocale(regionalLocale('en', ['en-GB'])))).toBe('enGB')
+    expect(scheduleXTranslationKey(scheduleXLocale(regionalLocale('en', ['en-US'])))).toBe('enUS')
+    expect(scheduleXTranslationKey('pt-BR')).toBe('ptBR')
   })
 })

@@ -1,28 +1,57 @@
-import { useSuspenseQuery } from '@tanstack/react-query'
+import type { EventSlim, Region } from '@/types'
+
+import { useMemo } from 'react'
+import { useQuery, useSuspenseQuery } from '@tanstack/react-query'
 import { Helmet } from 'react-helmet-async'
 import { useTranslation } from 'react-i18next'
-import { Monitor } from 'lucide-react'
+import { Navigate, useLocation } from 'react-router'
 
 import { Alert } from '@/components/atoms/Alert'
 import { Link } from '@/components/atoms/Link'
-import { DrawerBody, DrawerHeader } from '@/components/atoms/Drawer'
-import { AddClassEntry, EventListItem, List, ListItem } from '@/components/molecules'
-import { regionQuery } from '@/config/api'
+import { DrawerBody, DrawerToolbar } from '@/components/atoms/Drawer'
+import {
+  ActiveFilterPills,
+  AddClassEntry,
+  EventListItem,
+  FallbackPanel,
+  FoldSection,
+  List,
+  ListItem,
+  ResultCountStatus,
+} from '@/components/molecules'
+import { useEventFilters, useFilterSearch, useSetFilters } from '@/hooks/use-filters'
+import { eventsQuery, regionQuery } from '@/config/api'
+import { useFolds } from '@/hooks/use-folds'
 import { useLocale } from '@/hooks/use-locale'
 import { useMapController } from '@/hooks/use-map-controller'
 import { usePostEventFeedback } from '@/hooks/use-post-event-feedback'
 import { usePrefetchEvents } from '@/hooks/use-prefetch-event'
 import { useWidgetMode } from '@/config/mode'
-import { addClassPath, childRoute, searchPath } from '@/lib/shape'
+import { centerOfBounds } from '@/lib/geo'
+import {
+  DEFAULT_FILTERS,
+  BORDER_NEARBY_KM,
+  addClassPath,
+  boundsWith,
+  cameUpFrom,
+  childRoute,
+  climbedUpFrom,
+  distanceToNearest,
+  isoCountryCode,
+  isOnline,
+  searchPath,
+  loneClassPath,
+  viewRegion,
+  parentOf,
+} from '@/lib/shape'
 import { validateWebUrl } from '@/lib/url'
+import { NavHeader } from '@/views/nav'
 import {
   CalendarButton,
-  CloseButton,
-  DrawerTitle,
   EmptyEventList,
   FilterButton,
   GeolocationSuggestion,
-  SearchButton,
+  SearchField,
   useFrameOnTop,
 } from '@/views/shared'
 
@@ -37,6 +66,7 @@ import {
 // canonical tag is standalone-only.
 export function RegionView({ slug }: { slug: string }) {
   const { t } = useTranslation()
+  const location = useLocation()
   const { regionNames, locale } = useLocale()
   const { standalone } = useWidgetMode()
   const { frameRegion } = useMapController()
@@ -45,11 +75,18 @@ export function RegionView({ slug }: { slug: string }) {
   // `confirmed` renders nothing here, while the hook still takes the parameter out of the URL.
   const { answer: feedback, dismiss: dismissFeedback } = usePostEventFeedback()
 
-  const { data: region } = useSuspenseQuery(regionQuery(slug, locale))
+  const filters = useEventFilters()
+  const filterSearch = useFilterSearch()
+  const { setFilters } = useSetFilters()
+  const { data: region } = useSuspenseQuery(regionQuery(slug, locale, filters))
 
   useFrameOnTop(() => frameRegion(region), [region, frameRegion])
 
   const header = (region.countryCode && regionNames.of(region.countryCode)) || region.name
+  // Only a country can usefully offer "near the guess". Below that, the visitor has already said
+  // where they are looking.
+  const suggestFor =
+    region.level === 'country' ? { center: region.center, countryCode: region.countryCode } : null
   const canonicalUrl = validateWebUrl(region.webUrl)
   // A region with sub-region cards surfaces its online roll-up behind a dedicated "Online
   // Classes" card. A region without sub-regions lists its online events inline.
@@ -78,6 +115,24 @@ export function RegionView({ slug }: { slug: string }) {
     (region.level === 'city' ? region.subtitle : undefined) ??
     (hasEventList ? t('common.chrome.all_classes_free') : undefined)
 
+  // A place with one class opens it: a list of one is an extra tap (Anton, 6 Nov). Only while
+  // this view is the page on screen, not while it plays its exit. Reached by climbing out of that
+  // class, it climbs on to its own parent (the Back row already names that place); reached by a
+  // breadcrumb or link from the class, it shows its page, which is what the visitor tapped.
+  const lone = loneClassPath(region, Boolean(filterSearch))
+
+  if (lone && viewRegion(location.pathname) === slug) {
+    if (climbedUpFrom(location, lone))
+      return (
+        <Navigate
+          replace
+          state={{ climbedFrom: location.pathname }}
+          to={parentOf(location.pathname) ?? '/'}
+        />
+      )
+    if (!cameUpFrom(location, lone)) return <Navigate replace state={location.state} to={lone} />
+  }
+
   return (
     <>
       {standalone && canonicalUrl && (
@@ -86,19 +141,31 @@ export function RegionView({ slug }: { slug: string }) {
           <meta content={canonicalUrl} property="og:url" />
         </Helmet>
       )}
-      <DrawerHeader className="justify-between">
-        <DrawerTitle subtitle={subheader} title={header} />
-        {/* Calendar, search, filters and close form one right-aligned control group.
-            justify-between keeps the title left. The calendar and the filters both open
-            pre-scoped to this region. */}
-        <div className="flex shrink-0 items-center gap-2">
-          <CalendarButton regionSlug={region.slug} />
-          <SearchButton />
-          <FilterButton iconOnly />
-          <CloseButton />
+      {/* The calendar and the filters open pre-scoped to this region. With search in the field
+          below and Back above the title, these two have the icon row to themselves. */}
+      <NavHeader
+        breadcrumbs
+        actions={
+          <>
+            <CalendarButton regionSlug={region.slug} />
+            <FilterButton iconOnly />
+          </>
+        }
+        subtitle={subheader}
+        title={header}
+      />
+      {/* The field at every level, not an icon that leads to it. The location guess sits under
+          it as one of its suggestions. It is held back while the acknowledgement banner is up:
+          two prompts at once are more than the screen can carry. */}
+      <DrawerToolbar>
+        <div className="px-4 pb-2">
+          <SearchField />
+          {!feedback && suggestFor && <GeolocationSuggestion region={suggestFor} />}
         </div>
-      </DrawerHeader>
+      </DrawerToolbar>
       <DrawerBody>
+        <ActiveFilterPills />
+        {filterSearch && <ResultCountStatus total={region.eventCount} />}
         {/* Above the region's own content, which IS the "other classes near them" the
             acknowledgement hands off to. So the banner carries no onward link of its own.
             This stays neutral and unticked. A tick would read as "yes, it's gone", and one
@@ -121,7 +188,7 @@ export function RegionView({ slug }: { slug: string }) {
               <>
                 {t('common.feedback.denied_body')}
                 {isEmpty ? (
-                  <Link className="mt-1 block underline" href={searchPath()}>
+                  <Link className="touch-target relative mt-1 block underline" href={searchPath()}>
                     {t('common.feedback.nearby')}
                   </Link>
                 ) : (
@@ -135,34 +202,38 @@ export function RegionView({ slug }: { slug: string }) {
             onClose={dismissFeedback}
           />
         )}
-        {/* This is suppressed while the acknowledgement is up. Two stacked prompts above the
-            list are more than the screen can carry, and the reader has just acted once
-            already. It returns as soon as they dismiss the banner. */}
-        {!feedback && <GeolocationSuggestion regionCenter={region.center} />}
-        {isEmpty ? (
+        {isEmpty && filterSearch ? (
+          <FallbackPanel
+            align="start"
+            kind="no-results"
+            onClearFilters={() => setFilters(DEFAULT_FILTERS)}
+          />
+        ) : isEmpty ? (
           <EmptyEventList />
         ) : (
           <List>
             {/* On a region with sub-regions, the online roll-up opens in its own drawer
-                via this card, keeping the placeless classes out of the mixed list below. */}
+                via this card, keeping the placeless classes out of the mixed list below.
+                It has no icon, because no other row here does, so every label starts on
+                the same edge. */}
             {showOnlineCard && (
               <ListItem
                 count={region.onlineEvents.length}
-                href={childRoute(region.path, 'online')}
-                icon={<Monitor size={20} />}
-                label={t('online.title')}
+                href={`${childRoute(region.path, 'online')}${filterSearch}`}
+                label={t('online.row')}
               />
             )}
             {/* Sub-regions (venues/centres, child areas) then this region's own located
                 events, in one list. Region ids and event ids come from independent
-                sequences, so namespace the keys. */}
+                sequences, so namespace the keys. A row is the place's name and count only:
+                its CMS subtitle (Eastbourne's "Learn to Meditate") advertised a course to
+                someone only choosing the right part of the country (Anton, 6 Nov). */}
             {region.subregions.map((child) => (
               <ListItem
                 key={`region-${child.id}`}
                 count={child.eventCount}
-                href={child.path}
+                href={child.singleEventPath ?? `${child.path}${filterSearch}`}
                 label={child.name}
-                subtitle={child.subtitle}
               />
             ))}
             {region.events.map((event) => (
@@ -176,6 +247,7 @@ export function RegionView({ slug }: { slug: string }) {
               ))}
           </List>
         )}
+        {region.level === 'country' && <AcrossBorder region={region} />}
         {/* A region or venue page opens the flow over itself, so its address search starts
             near this place (#147). */}
         <AddClassEntry
@@ -185,5 +257,74 @@ export function RegionView({ slug }: { slug: string }) {
         />
       </DrawerBody>
     </>
+  )
+}
+
+// A country's list stops at its border, and a class can be closer than most of the country's own:
+// the Irish page doesn't reach Belfast, because Belfast sits under the UK. This folds in the classes
+// within reach of one of the country's own classes, which is what a visitor would be comparing with
+// and needs no border data. The row names the town and country and leaves out the km, which would
+// count from a class nobody has picked.
+function AcrossBorder({ region }: { region: Region }) {
+  const { t } = useTranslation()
+  const { locale, regionNames } = useLocale()
+  const { frameRegion, frameSearch } = useMapController()
+  const folds = useFolds(`across:${region.slug}`)
+  const bounds = region.bounds
+  const center = (region.center ?? (bounds ? centerOfBounds(bounds) : [0, 0])) as [number, number]
+  const { data: events } = useQuery(eventsQuery(center[1], center[0], DEFAULT_FILTERS, locale))
+
+  const rows = useMemo(() => {
+    if (!events || !region.countryCode) return []
+    const located = events.flatMap((event) => {
+      const { latitude, longitude, country } = event.address ?? {}
+
+      return isOnline(event) || latitude == null || longitude == null
+        ? []
+        : [{ event, point: [longitude, latitude], code: isoCountryCode(country) }]
+    })
+    const own = located.filter(({ code }) => code === region.countryCode).map((row) => row.point)
+
+    return located
+      .flatMap(({ event, point, code }) => {
+        if (!code || code === region.countryCode) return []
+        const km = distanceToNearest(point, own) ?? Infinity
+
+        return km <= BORDER_NEARBY_KM ? [{ event, km }] : []
+      })
+      .sort((a, b) => a.km - b.km)
+      .map(({ event }) => event)
+  }, [events, region.countryCode])
+
+  const placeLine = (event: EventSlim) => {
+    const city = event.address?.city?.trim()
+    const code = isoCountryCode(event.address?.country)
+    const country = code ? (regionNames.of(code) ?? code) : undefined
+
+    return city && country ? `${city}, ${country}` : undefined
+  }
+
+  if (rows.length === 0) return null
+
+  const onOpenChange = (open: boolean) => {
+    folds.setOpen('across', open)
+    if (open)
+      frameSearch({ bbox: boundsWith(bounds ?? undefined, center, rows, rows.length), center })
+    else frameRegion(region)
+  }
+
+  return (
+    <FoldSection
+      count={rows.length}
+      open={folds.isOpen('across', false)}
+      title={t('search.sections.across_border')}
+      onOpenChange={onOpenChange}
+    >
+      <List>
+        {rows.map((event) => (
+          <EventListItem key={event.id} hideDistance event={event} placeLine={placeLine(event)} />
+        ))}
+      </List>
+    </FoldSection>
   )
 }

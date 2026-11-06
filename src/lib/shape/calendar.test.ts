@@ -8,6 +8,10 @@ import {
   CALENDAR_VIEW_WEEK,
   computeDayBoundaries,
   eventsToCalendarEntries,
+  calendarWindow,
+  groupEntriesByDay,
+  chosenCalendarFilters,
+  shiftCalendarWindow,
   isCalendarViewOption,
   resolveCalendarView,
   type CalendarEntry,
@@ -116,7 +120,7 @@ describe('eventsToCalendarEntries', () => {
     ).toEqual([])
   })
 
-  it('labels entries with the parent region name (not the event title) by default', () => {
+  it('names the class first and its city second', () => {
     const evt = makeEvent({
       title: 'Weekly Sahaja Yoga meditation for beginners',
       regionName: 'London',
@@ -125,10 +129,12 @@ describe('eventsToCalendarEntries', () => {
     })
     const [entry] = eventsToCalendarEntries([evt], DEFAULT_FILTERS, RANGE)
 
-    expect(entry.title).toBe('London')
+    expect(entry.name).toBe('Weekly Sahaja Yoga meditation for beginners')
+    expect(entry.detail).toBe('Camden')
+    expect(entry.title).toBe('Weekly Sahaja Yoga meditation for beginners\nCamden')
   })
 
-  it('labels entries with the locality when the calendar is scoped to a region', () => {
+  it('reads the same when the calendar is scoped to a region', () => {
     const evt = makeEvent({
       title: 'Weekly Sahaja Yoga meditation for beginners',
       regionName: 'London',
@@ -139,7 +145,7 @@ describe('eventsToCalendarEntries', () => {
 
     const [entry] = eventsToCalendarEntries([evt], scoped, RANGE)
 
-    expect(entry.title).toBe('Camden')
+    expect(entry.detail).toBe('Camden')
   })
 
   it('puts the "Online" term in the location (not the title) and tags its calendar', () => {
@@ -153,13 +159,13 @@ describe('eventsToCalendarEntries', () => {
       onlineLabel: 'Online',
     })
 
-    // The title is the place. "Online" rides the location field (the colour
-    // distinguishes it in the month/list views, which do not render location).
-    expect(entry.title).toBe('London')
+    // The class name leads. "Online" is written on the second line, and rides the location
+    // field for the week view, which shows it.
+    expect(entry.title).toBe('Meditation\nLondon · Online')
     expect(entry.location).toBe('Online')
     expect(entry.calendarId).toBe('online')
 
-    // Placeless online → the title falls back to the event title. The location still flags it.
+    // Placeless online → the second line is just the mode.
     const placeless = makeEvent({
       eventType: 'online',
       title: 'Weekly meditation',
@@ -170,7 +176,7 @@ describe('eventsToCalendarEntries', () => {
       onlineLabel: 'Online',
     })
 
-    expect(bare.title).toBe('Weekly meditation')
+    expect(bare.title).toBe('Weekly meditation\nOnline')
     expect(bare.location).toBe('Online')
   })
 
@@ -199,19 +205,23 @@ describe('eventsToCalendarEntries', () => {
     expect(end.diff(start, 'minutes').minutes).toBe(60)
   })
 
-  it('falls back through region → locality → title when a source is missing', () => {
-    // Region-scoped but no locality → the region name. Neither present → the title.
+  it('falls back to the region for the place, and keeps a place the name also says', () => {
     const noLocality = makeEvent({
       regionName: 'London',
+      occurrences: [at('UTC', '2026-07-06T09:30')],
+    })
+    const named = makeEvent({
+      title: 'Evening Meditation at Regina',
+      regionName: 'Regina',
       occurrences: [at('UTC', '2026-07-06T09:30')],
     })
     const bare = makeEvent({
       title: 'Just the title',
       occurrences: [at('UTC', '2026-07-06T09:30')],
     })
-    const scoped: EventFilters = { ...DEFAULT_FILTERS, region: 'london' }
 
-    expect(eventsToCalendarEntries([noLocality], scoped, RANGE)[0].title).toBe('London')
+    expect(eventsToCalendarEntries([noLocality], DEFAULT_FILTERS, RANGE)[0].detail).toBe('London')
+    expect(eventsToCalendarEntries([named], DEFAULT_FILTERS, RANGE)[0].detail).toBe('Regina')
     expect(eventsToCalendarEntries([bare], DEFAULT_FILTERS, RANGE)[0].title).toBe('Just the title')
   })
 
@@ -236,6 +246,7 @@ describe('computeDayBoundaries', () => {
   const entry = (start: string, end: string): CalendarEntry => ({
     id: start,
     title: 'x',
+    name: 'x',
     start,
     end,
     path: '/1',
@@ -267,16 +278,19 @@ describe('computeDayBoundaries', () => {
   it('spans multiple non-wrapping periods from earliest to latest', () => {
     expect(computeDayBoundaries([], ['morning', 'evening'])).toEqual({
       start: '06:00',
-      end: '21:00',
+      end: '24:00',
     })
   })
 
-  it('frames an overnight (night) period as start > end', () => {
-    expect(computeDayBoundaries([], ['night'])).toEqual({ start: '21:00', end: '06:00' })
+  it('frames evening up to midnight', () => {
+    expect(computeDayBoundaries([], ['evening'])).toEqual({ start: '17:00', end: '24:00' })
   })
 
-  it('is undefined when every period is selected (whole day)', () => {
-    expect(computeDayBoundaries([], ['morning', 'afternoon', 'evening', 'night'])).toBeUndefined()
+  it('frames 6 to midnight when all three periods are selected', () => {
+    expect(computeDayBoundaries([], ['morning', 'afternoon', 'evening'])).toEqual({
+      start: '06:00',
+      end: '24:00',
+    })
   })
 })
 
@@ -347,5 +361,85 @@ describe('resolveCalendarView', () => {
 
     expect(resolveCalendarView(stored, false).option).toBe(CALENDAR_VIEW_MONTH)
     expect(resolveCalendarView(stored, true).option).toBe(CALENDAR_VIEW_WEEK)
+  })
+})
+
+describe('the week list window', () => {
+  const NONE = { start: null, end: null }
+  const today = '2026-11-05'
+
+  it('is this week when the URL names no dates, or names exactly those dates', () => {
+    expect(calendarWindow(NONE, today)).toEqual({
+      start: today,
+      end: '2026-11-11',
+      isThisWeek: true,
+    })
+    expect(calendarWindow({ start: today, end: '2026-11-11' }, today).isThisWeek).toBe(true)
+    expect(calendarWindow({ start: today, end: '2026-11-08' }, today).isThisWeek).toBe(false)
+  })
+
+  it('steps by its own length, and clears the range on landing back on this week', () => {
+    const week = calendarWindow(NONE, today)
+    const next = shiftCalendarWindow(week, 1, today)
+
+    expect(next).toEqual({ start: '2026-11-12', end: '2026-11-18' })
+    expect(shiftCalendarWindow(calendarWindow(next, today), -1, today)).toEqual(NONE)
+    expect(
+      shiftCalendarWindow(calendarWindow({ start: today, end: today }, today), 1, today),
+    ).toEqual({ start: '2026-11-06', end: '2026-11-12' })
+  })
+
+  it('pages seven days from a shorter window, such as a link opened mid-week', () => {
+    const window = calendarWindow({ start: '2026-11-08', end: '2026-11-10' }, today)
+
+    expect(shiftCalendarWindow(window, 1, today)).toEqual({
+      start: '2026-11-11',
+      end: '2026-11-17',
+    })
+  })
+
+  it('counts only the filters a visitor chose', () => {
+    const scoped = {
+      ...DEFAULT_FILTERS,
+      region: 'gb',
+      format: 'online' as const,
+      dateRange: { start: '2026-11-12', end: '2026-11-18' },
+    }
+
+    expect(chosenCalendarFilters(scoped, true)).toEqual({
+      ...DEFAULT_FILTERS,
+      format: 'online',
+    })
+    expect(chosenCalendarFilters(scoped, false).dateRange).toEqual(scoped.dateRange)
+    expect(chosenCalendarFilters(scoped, false).region).toBeNull()
+  })
+
+  it('never steps back past today', () => {
+    const window = calendarWindow({ start: '2026-11-07', end: '2026-11-08' }, today)
+
+    expect(shiftCalendarWindow(window, -1, today)).toEqual(NONE)
+  })
+
+  it('groups entries inside the window by day, in time order, skipping empty days', () => {
+    const entry = (id: string, start: string, name = 'x') => ({
+      id,
+      name,
+      title: name,
+      start,
+      end: start,
+      path: '/x',
+    })
+    const days = groupEntriesByDay(
+      [
+        entry('a', '2026-11-07 18:00'),
+        entry('b', '2026-11-05 19:00'),
+        entry('c', '2026-11-05 09:00'),
+        entry('d', '2026-11-12 09:00'),
+      ],
+      { start: today, end: '2026-11-11' },
+    )
+
+    expect(days.map((day) => day.date)).toEqual(['2026-11-05', '2026-11-07'])
+    expect(days[0].entries.map((item) => item.id)).toEqual(['c', 'b'])
   })
 })

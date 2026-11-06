@@ -1,5 +1,6 @@
 import { memo, useEffect, useRef } from 'react'
 import { useTranslation } from 'react-i18next'
+import { ChevronRight } from 'lucide-react'
 
 import { listRow } from '@/components/molecules/List/List'
 import { useLocale } from '@/hooks/use-locale'
@@ -7,9 +8,11 @@ import { useMapController } from '@/hooks/use-map-controller'
 import { useHoverPrefetch } from '@/hooks/use-prefetch-event'
 import { formatDistance } from '@/lib'
 import { isOnline } from '@/lib/shape'
+import { ContactOnlyRow } from '@/components/molecules/ContactOnly'
 import { EventChips } from '@/components/molecules/EventChips'
 import { EventFacts } from '@/components/molecules/EventFacts'
 import { Link } from '@/components/atoms/Link'
+import { Chip } from '@/components/atoms/Chip'
 import { EventSlim } from '@/types'
 
 export interface EventListItemProps {
@@ -21,6 +24,21 @@ export interface EventListItemProps {
    * below (see `EventsList`).
    */
   searchedPlace?: string
+  /**
+   * The town and distance, in place of the street address and "x km from y". For a group that is
+   * read by place ("Classes in other cities"), where the town decides and the street can wait.
+   */
+  placeLine?: string
+  /** Leaves the distance off, for a search where it would mean nothing (a whole country). */
+  hideDistance?: boolean
+  /**
+   * What the distance counts from, when the row says it plainly:
+   *  - `centre`: the row is already listed as in the searched place, so its distance is only how
+   *    far out from the middle it sits. "16 km from London" under "In London" reads as an outsider.
+   *  - `you`: the search started from the visitor's own position ("Classes near me"), so the
+   *    distance is from them (Anton, 6 Nov).
+   */
+  distanceFrom?: 'centre' | 'you'
 }
 
 // Below this, the distance stops being decision-useful. Everything in the
@@ -31,9 +49,10 @@ const MIN_DISTANCE_KM = 5
 /**
  * The list card: title, then the shared EventFacts summary (recurrence and
  * time, then the address with its distance faded below, or the online
- * hosted-from line), then the compact EventChips (a non-default type, a
- * non-UI language, and a "Today"). The facts carry the distance, not a
- * chip. The whole card is tappable, with a press state and no chevron. The
+ * hosted-from line), then the compact EventChips (a course or one-off
+ * type, a language the card has not said, and "Full"). The facts carry the distance, not a
+ * chip. The whole card is tappable, with a press state and the same chevron
+ * as a place row. The
  * Link wrapper stays hookable for map-pin highlight (#44). The row is an
  * <li> wrapping the Link, so each card is a valid direct child of the
  * List's <ul> (#65). The List draws the divider between cards, not each
@@ -48,7 +67,19 @@ const MIN_DISTANCE_KM = 5
  * re-render the rows above on every press, which is most of the work and
  * none of the value.
  */
-function EventListItemImpl({ event, searchedPlace }: EventListItemProps) {
+function EventListItemImpl(props: EventListItemProps) {
+  if (props.event.contactOnly) return <ContactOnlyRow event={props.event} />
+
+  return <ClassRow {...props} />
+}
+
+function ClassRow({
+  event,
+  searchedPlace,
+  placeLine,
+  hideDistance,
+  distanceFrom,
+}: EventListItemProps) {
   const { t } = useTranslation()
   const { locale } = useLocale()
   const { highlightEvent } = useMapController()
@@ -69,20 +100,24 @@ function EventListItemImpl({ event, searchedPlace }: EventListItemProps) {
 
   const online = isOnline(event)
 
-  // This is distance from the SEARCHED location, never the device's. So
-  // it names the place when it knows it, "3.6 km from Brussels". "away"
-  // would imply "from you", and quietly mislead the moment someone
-  // searches a city they are not in. The list container derives the place
+  // This is distance from the SEARCHED location. So it names the place when
+  // it knows it, "3.6 km from Brussels". "away" would imply "from you", and
+  // quietly mislead the moment someone searches a city they are not in. Only
+  // a search from the visitor's own position says "from you" (`distanceFrom`). The list container derives the place
   // itself from `?q` and hands it down (see the prop). The precise
   // reference point stays in the accessible label either way.
   const distance =
-    !online && event.distance !== undefined && event.distance >= MIN_DISTANCE_KM
+    !online && !hideDistance && event.distance !== undefined && event.distance >= MIN_DISTANCE_KM
       ? formatDistance(event.distance, locale)
       : null
   const distanceText = distance
-    ? searchedPlace
-      ? t('event.display.distance_from_place', { distance, place: searchedPlace })
-      : t('event.display.distance_away', { distance })
+    ? distanceFrom === 'you'
+      ? t('event.display.distance_from_you', { distance })
+      : distanceFrom === 'centre'
+        ? t('event.display.distance_from_centre', { distance })
+        : searchedPlace
+          ? t('event.display.distance_from_place', { distance, place: searchedPlace })
+          : t('event.display.distance_away', { distance })
     : null
   const distanceLabel = distance ? t('event.display.distance_from_search', { distance }) : undefined
 
@@ -115,27 +150,39 @@ function EventListItemImpl({ event, searchedPlace }: EventListItemProps) {
           would break silently the day a card grows a second anchor. */}
       <Link
         data-event-row
-        className={listRow({ className: 'flex flex-col gap-1 py-4' })}
+        className={listRow({ className: 'flex flex-row items-center gap-1 py-4' })}
         href={event.path}
         onBlur={deactivate}
         onFocus={activate}
         onMouseEnter={activate}
         onMouseLeave={deactivate}
       >
-        <div className="line-clamp-2 text-lg">{event.title}</div>
-        <EventFacts
-          className="my-1"
-          distance={
-            distanceText && (
-              <span aria-label={distanceLabel} title={distanceLabel}>
-                {distanceText}
-              </span>
-            )
-          }
-          event={event}
-          variant="compact"
-        />
-        <EventChips className="mt-1" event={event} variant="compact" />
+        <div className="flex min-w-0 flex-1 flex-col gap-1">
+          {/* An online class says so right after its title (Anton, 6 Nov), in the same soft teal tag
+              as the class-type tag below it ("Daily class"), so the card has one kind of label. A
+              coral tag read as a warning; plain text sat at odds with the tags. */}
+          <div className="line-clamp-2 text-lg">
+            {event.title}
+            {online && (
+              <Chip className="ms-2 -translate-y-px align-middle">{t('event.display.online')}</Chip>
+            )}
+          </div>
+          <EventFacts
+            className="mt-0.5 mb-1"
+            distance={
+              distanceText && (
+                <span aria-label={distanceLabel} title={distanceLabel}>
+                  {distanceText}
+                </span>
+              )
+            }
+            event={event}
+            variant="compact"
+            where={placeLine}
+          />
+          <EventChips className="mt-1" event={event} variant="compact" />
+        </div>
+        <ChevronRight className="shrink-0 text-gray-9 rtl:-scale-x-100" size={20} />
       </Link>
     </li>
   )

@@ -30,8 +30,7 @@ const radii = ['sm', 'full'] as const
  * tokens. It absorbed the former IconButton through two orthogonal props.
  * `radius` (`sm` or `full`, matching Chip) sets the corner on any button.
  * `isIconOnly` squares the width against the size scale. The colour × variant
- * matrix lives in the exported `controlSurface` recipe. ActionCircle skins its
- * circle with the same recipe. So `color`, `variant`, `size`, and `radius` mean
+ * matrix lives in the exported `controlSurface` recipe. So `color`, `variant`, `size`, and `radius` mean
  * the same thing across every control.
  */
 export const Default: Story = () => (

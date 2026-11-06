@@ -13,17 +13,36 @@ export interface EventsListProps {
    * hundreds, on the very interaction most likely to happen over a deep list.
    */
   searchedPlace?: string
+  /** Names each row by town and distance. See `placeLine` on `EventListItem`. */
+  placeLineFor?: (event: EventSlim) => string | undefined
+  /** Leaves the distance off every row. See `hideDistance` on `EventListItem`. */
+  hideDistance?: boolean
+  /** What each row's distance counts from. See `distanceFrom` on `EventListItem`. */
+  distanceFrom?: 'centre' | 'you'
 }
 
 // This is the presentational list: events pass in via props, one card each.
 // It stays free of the data and i18n graph — its network-bound container is
 // DynamicEventsList — so a story can render it without booting the app's
 // query client or i18n backend.
-export function EventsList({ events, searchedPlace }: EventsListProps) {
+export function EventsList({
+  events,
+  searchedPlace,
+  placeLineFor,
+  hideDistance,
+  distanceFrom,
+}: EventsListProps) {
   return (
     <List>
       {events.map((event) => (
-        <EventListItem key={event.id} event={event} searchedPlace={searchedPlace} />
+        <EventListItem
+          key={event.id}
+          distanceFrom={distanceFrom}
+          event={event}
+          hideDistance={hideDistance}
+          placeLine={placeLineFor?.(event)}
+          searchedPlace={searchedPlace}
+        />
       ))}
     </List>
   )

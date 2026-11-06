@@ -7,8 +7,8 @@
  */
 import type { BBox } from 'geojson'
 
-import { filtersFromParams, filtersToParams } from './filters'
-import { sortFromParams, sortToParams } from './sort'
+import { type EventFilters, filtersFromParams, filtersToParams, hasActiveFilters } from './filters'
+import { SORT_ORDERS, SORT_PARAM, type SortOrder } from './sort'
 
 /** Decodes a URL segment, tolerating a malformed `%` escape (returns it unchanged). */
 const safeDecode = (segment: string): string => {
@@ -82,6 +82,9 @@ export const isCanonicalPath = (pathname: string, target: string): boolean =>
 export const searchPath = (center?: [number, number]): string =>
   center ? `/search?center=${center[0]},${center[1]}` : '/search'
 
+/** The class to leave out of a search, when "See classes nearby" was pressed on it. */
+export const EXCLUDE_EVENT_PARAM = 'exclude'
+
 /**
  * Decodes a `?center=lng,lat` value to `[longitude, latitude]`, or `undefined` when
  * it is absent, or not two finite numbers IN RANGE — so a malformed hand-typed value
@@ -111,9 +114,9 @@ export const parseCenter = (value: string | null): [number, number] | undefined 
  * The part of a search URL that decides WHAT the results query asks for —
  * everything except `?q`.
  *
- * SearchView's results boundary resets on this (issue #89). It cannot reset on the
- * whole query string: the geocoder mirrors every keystroke into `?q`, so a failing
- * query would be retried once per character typed. And it cannot reset on the
+ * SearchView's results boundary resets on this (issue #89). The place name is not part
+ * of the query, so a change to it alone (Near me naming the place it found, just after
+ * navigating) must not retry a failing one. And it cannot reset on the
  * pathname, which the drawer boundary already keys on — every re-search and filter
  * change moves only the query string, so without a reset a single failure would pin
  * its error over every later attempt, turning a transient failure into a permanent
@@ -154,11 +157,24 @@ export const SEARCH_COUNTRY_PARAM = 'cc'
  * merges onto the current params (`filtersToParams(…, prev)`), so it preserves the
  * searched country.
  *
+ * The region filter (`?region=gb`) is a Where too, so it goes with the old place. Kept, a
+ * search for Prague after choosing the United Kingdom would look for Prague inside the
+ * United Kingdom, and find nothing.
+ *
  * The results list's reveal is not in the URL at all: a new centre changes
  * `revealKey`, so paging resets on its own (see `use-reveal`).
  */
-export const preserveSearchState = (params: URLSearchParams): URLSearchParams =>
-  sortToParams(sortFromParams(params), filtersToParams(filtersFromParams(params)))
+export const preserveSearchState = (params: URLSearchParams): URLSearchParams => {
+  const next = filtersToParams({ ...filtersFromParams(params), region: null })
+  // Only a sort the visitor CHOSE travels. The implied one follows the new place: carrying
+  // "closest" from a searched place to the root would pin it where nothing is near. It is kept
+  // verbatim, since whether it is the default depends on the place set next.
+  const chosen = params.get(SORT_PARAM)
+
+  if (chosen && SORT_ORDERS.includes(chosen as SortOrder)) next.set(SORT_PARAM, chosen)
+
+  return next
+}
 
 /** A searched place, in the terms the URL records it. */
 export type PlaceSearch = {
@@ -169,6 +185,8 @@ export type PlaceSearch = {
   bbox?: BBox
   /** ISO alpha-2, for the country-site offer and the foreign-distance rule. */
   countryCode?: string
+  /** A list order the search should open in, such as nearest first for Near me. */
+  sort?: SortOrder
 }
 
 /**
@@ -188,8 +206,50 @@ export const placeSearchPath = (params: URLSearchParams, place: PlaceSearch): st
   next.set('center', `${place.center[0]},${place.center[1]}`)
   if (place.bbox) next.set('bbox', place.bbox.toString())
   if (place.countryCode) next.set(SEARCH_COUNTRY_PARAM, place.countryCode)
+  if (place.sort) next.set(SORT_PARAM, place.sort)
 
   return `/search?${next.toString()}`
+}
+
+/**
+ * Where closing the filter drawer lands, or `null` for an ordinary dismiss.
+ *
+ * Filters apply as they're tapped, so closing is never a commit, and the URL at this moment is
+ * the answer. A view that shows filters (search, calendar) just gets the query. A view that
+ * doesn't (the country list, a region's list) would hide what was just chosen, so that opens the
+ * results instead, scoped to the region the drawer was opened over. With nothing chosen, there
+ * is nothing to show, and the drawer simply goes back.
+ */
+export const filterCloseTarget = (
+  pathname: string,
+  search: string,
+): { pathname: string; search: string } | null => {
+  const origin = parentOf(pathname)
+
+  if (origin === '/calendar' || origin === '/search') return { pathname: origin, search }
+
+  const params = new URLSearchParams(search)
+  const filters = filtersFromParams(params)
+
+  if (!hasActiveFilters(filters)) return null
+
+  const region = filters.region ?? filterOriginRegion(pathname)
+
+  return { pathname: '/search', search: filtersToParams({ ...filters, region }, params).toString() }
+}
+
+/** The same place search, with the filter drawer still open over it. */
+export const placeFiltersPath = (params: URLSearchParams, place: PlaceSearch): string =>
+  placeSearchPath(params, place).replace('/search?', '/search/filters?')
+
+/** The filter drawer with the searched place dropped, keeping the filters and sort. */
+export const noPlaceSearch = (params: URLSearchParams): string => {
+  const next = preserveSearchState(params)
+
+  // "Closest" means nothing without a place to measure from.
+  if (next.get(SORT_PARAM) === 'closest') next.delete(SORT_PARAM)
+
+  return next.toString()
 }
 
 /**
@@ -199,6 +259,37 @@ export const placeSearchPath = (params: URLSearchParams, place: PlaceSearch): st
  */
 export const calendarPath = (regionSlug?: string): string =>
   regionSlug ? `/calendar?region=${encodeURIComponent(regionSlug)}` : '/calendar'
+
+/**
+ * The week list: the calendar opened on its List view, with these filters (a region's "Next 7
+ * days" row passes `nextSevenDaysFilters`, so the list shows what the row counted). `view=list`
+ * is in the URL, not only in the session's memory, so this link and a shared one open on the
+ * same view.
+ */
+export const thisWeekPath = (filters: EventFilters): string => {
+  const params = filtersToParams(filters)
+
+  params.set('view', 'list')
+
+  return `/calendar?${params.toString()}`
+}
+
+/**
+ * The link to a stretch of dates in the week list: the current query (scope and filters), on the
+ * List view, with those dates written in.
+ */
+export const calendarShareRoute = (
+  current: URLSearchParams,
+  start: string,
+  end: string,
+): string => {
+  const params = new URLSearchParams(current)
+
+  params.set('view', 'list')
+  params.set('dates', `${start},${end}`)
+
+  return `/calendar?${params.toString()}`
+}
 
 /** What an incoming pathname resolves to, keyed off its terminal segment. */
 export type ResolvedPath = { kind: 'region'; slug: string } | { kind: 'event'; id: number } | null
@@ -270,15 +361,6 @@ export type SubmitEntry = Extract<StackEntry, { kind: 'add' | 'correct' }>
 
 export const isSubmitEntry = (entry: StackEntry | null | undefined): entry is SubmitEntry =>
   entry?.kind === 'add' || entry?.kind === 'correct'
-
-/**
- * The views a bottom sheet opens at its near-full snap: the calendar, whose month grid and list
- * both need the height, and the add-a-class and correction flows, which are forms.
- */
-const OPENS_TALL: ReadonlySet<StackEntry['kind']> = new Set(['calendar', 'add', 'correct'])
-
-export const opensTall = (kind: StackEntry['kind'] | undefined): boolean =>
-  kind !== undefined && OPENS_TALL.has(kind)
 
 /** The flow's title, which its panel, its listing and the drawer chrome all show. */
 export const submitTitleKey = (kind: SubmitEntry['kind']) =>
@@ -402,6 +484,22 @@ export const isFilterOverlay = (entries: StackEntry[], hasMap = true): boolean =
   hasMap && entries.at(-1)?.kind === 'filters' && entries.at(-2)?.kind === 'calendar'
 
 /**
+ * The views a bottom sheet opens at its near-full snap: the calendar, whose month grid and list
+ * both need the height, and the forms (registration, adding a class, a correction), whose fields
+ * would otherwise start below the fold of a third-height sheet. (A class opens as tall as its
+ * content instead: see DrawerStack.)
+ */
+const OPENS_TALL: ReadonlySet<StackEntry['kind']> = new Set([
+  'calendar',
+  'register',
+  'add',
+  'correct',
+])
+
+export const opensTall = (kind: StackEntry['kind'] | undefined): boolean =>
+  kind !== undefined && OPENS_TALL.has(kind)
+
+/**
  * The region a filter drawer was opened over, or `null` — `/gb/london/filters` → `london`.
  *
  * A region's list does not itself reflect filters, so applying from there lands on
@@ -416,6 +514,13 @@ export const filterOriginRegion = (pathname: string): string | null => {
   const origin = entries.at(-2)
 
   return origin?.kind === 'region' ? origin.slug : null
+}
+
+/** The region the view at `pathname` is showing, or `null`: `/gb/london` → `london`. */
+export const viewRegion = (pathname: string): string | null => {
+  const top = resolveStack(pathname).at(-1)
+
+  return top?.kind === 'region' ? top.slug : null
 }
 
 /**

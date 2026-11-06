@@ -1,4 +1,4 @@
-import { type ReactNode } from 'react'
+import { type ReactNode, useEffect, useRef } from 'react'
 import { motion, useIsPresent } from 'framer-motion'
 import clsx from 'clsx'
 
@@ -13,14 +13,48 @@ import clsx from 'clsx'
 //
 // The outgoing layer stops taking pointer events and leaves the accessibility tree the
 // moment it starts to exit, so a click mid-fade lands on the view it can see arriving.
-export function ViewLayer({ children }: { children: ReactNode }) {
+//
+// With `onHeight`, the layer hugs its content where the panel floats (≥lg) instead of filling
+// the sheet: it sizes to what's inside, up to the room available, and reports that height so the
+// panel can follow. The outgoing layer stops reporting, so the panel takes the arriving view's
+// height.
+export function ViewLayer({
+  children,
+  onHeight,
+}: {
+  children: ReactNode
+  onHeight?: (height: number) => void
+}) {
   const isPresent = useIsPresent()
+  const ref = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    const element = ref.current
+
+    if (!onHeight || !isPresent || !element || typeof ResizeObserver === 'undefined') return
+
+    const observer = new ResizeObserver(() => onHeight(element.offsetHeight))
+
+    observer.observe(element)
+
+    return () => observer.disconnect()
+  }, [onHeight, isPresent])
 
   return (
     <motion.div
+      ref={ref}
       animate={{ opacity: 1 }}
       aria-hidden={isPresent ? undefined : true}
-      className={clsx('absolute inset-0 flex flex-col', !isPresent && 'pointer-events-none')}
+      className={clsx(
+        // At the peek only the header fits, so what follows it would show as a sliced-off
+        // strip. It also leaves the tab order, as nobody can see what they would land on.
+        // A two-line title would be sliced the same way, so there it keeps to one line.
+        'absolute inset-0 flex flex-col [[data-sy-peek]_&>*:not(:first-child)]:invisible',
+        '[[data-sy-peek]_&>:first-child_:is(h1,h2)]:line-clamp-1',
+        onHeight &&
+          'lg:bottom-auto lg:max-h-[calc(var(--sy-panel-room,100dvh)-2px)] lg:[&>*]:flex-[0_1_auto]',
+        !isPresent && 'pointer-events-none',
+      )}
       exit={{ opacity: 0 }}
       initial={{ opacity: 0 }}
       transition={{ duration: 0.15 }}

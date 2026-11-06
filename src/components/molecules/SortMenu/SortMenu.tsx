@@ -52,11 +52,18 @@ export function SortMenu() {
   return (
     <DropdownMenu.Root modal={false}>
       <DropdownMenu.Trigger asChild>
-        <Button size="sm" variant="ghost">
-          <span>
-            {t('search.sort.label')}: {t(`search.sort.${order}`)}
+        <Button
+          aria-label={`${t('search.sort.label')}: ${t(`search.sort.${order}`)}`}
+          size="sm"
+          variant="ghost"
+        >
+          {/* The label only says what the value is. The value is what changes, and what a visitor
+              is checking when they glance here, so it carries the weight. */}
+          <span className="flex items-baseline gap-1.5">
+            <span className="font-normal text-gray-11">{t('search.sort.label')}</span>
+            <span className="text-foreground">{t(`search.sort.${order}`)}</span>
           </span>
-          <ChevronDown size={16} />
+          <ChevronDown className="text-gray-10" size={16} />
         </Button>
       </DropdownMenu.Trigger>
 

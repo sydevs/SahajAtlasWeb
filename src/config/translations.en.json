@@ -1,9 +1,19 @@
 {
   "calendar": {
+    "clear_filters": "Clear filters",
+    "link_copied": "Link copied",
     "next": "Next",
+    "next_7_days": "Next 7 days",
+    "next_class": "Next class: %{date}",
+    "none_in_window": "No classes on these dates.",
+    "none_match_filters": "No classes match your filters on these dates.",
     "pick_date": "Pick a date",
     "previous": "Previous",
+    "share_title": "Meditation classes, %{dates}",
+    "times_note": "Times are local to each class. Online classes show your time (%{zone}).",
     "title": "Calendar",
+    "today": "Today",
+    "tomorrow": "Tomorrow",
     "view_list": "List",
     "view_month": "Month",
     "view_week": "Week"
@@ -13,28 +23,38 @@
       "all_classes_free": "All classes are free",
       "back": "Back",
       "back_to": "Back to %{title}",
+      "back_to_class": "Back to the class",
+      "back_to_world_map": "Back to the world map",
+      "back_to_results": "Back to results",
+      "back_to_results_near": "Back to results near %{place}",
+      "breadcrumb": "Where you are",
       "cancel": "Cancel",
+      "classes_found_one": "%{count} class found",
+      "classes_found_other": "%{count} classes found",
       "close": "Close",
-      "explore": "Explore",
+      "finding_classes": "Finding classes…",
       "loading": "Loading…",
+      "show_list": "Show the list",
+      "show_more": "Show more",
+      "optional": "optional",
       "widget_label": "Free meditation classes"
     },
     "errors": {
-      "back_to_region": "See events in %{region}",
       "browse_countries": "Browse all countries",
       "captcha_blocked": "This Atlas can't run on this page: its security check was blocked.",
       "config": "This Atlas isn't set up correctly on this page.",
       "generic": "Something went wrong.",
-      "near_city": "See events near %{city}",
-      "no_events": "No events found.",
+      "near_city": "See classes near %{city}",
+      "no_events": "No classes found.",
       "not_found": "We couldn't find what you were looking for.",
-      "not_found_event": "We couldn't find that event.",
+      "not_found_class": "We couldn't find that class.",
       "not_found_region": "We couldn't find that place.",
       "offline": "You appear to be offline.",
       "retry": "Try again",
       "search_label": "Or search for a place",
+      "see_classes_in": "See classes in %{region}",
       "server": "Our servers are having trouble right now.",
-      "share_unavailable": "There is no link to share for this meditation yet.",
+      "share_unavailable": "There is no link to share for this class yet.",
       "unavailable": "This program can’t be joined right now."
     },
     "feedback": {
@@ -46,6 +66,8 @@
       "nearby": "See other classes nearby"
     },
     "map": {
+      "hide_map": "Hide map",
+      "show_map": "Show map",
       "find_my_location": "Find my location",
       "location_failed": "We couldn’t get your location. Search for a place instead.",
       "location_not_available": "Location not available"
@@ -73,8 +95,8 @@
     },
     "settings": {
       "theme_auto": "System (Auto)",
-      "theme_dark": "Dark Theme",
-      "theme_light": "Light Theme",
+      "theme_dark": "Dark theme",
+      "theme_light": "Light theme",
       "title": "Settings"
     }
   },
@@ -83,14 +105,25 @@
   },
   "countries": {
     "browse": "Or browse by country",
-    "title": "Free Meditation Classes"
+    "locating": "Finding your location…",
+    "near_city": "Classes near %{city}",
+    "near_me": "Classes near me",
+    "title": "Free meditation classes"
   },
   "event": {
+    "contact_only": {
+      "call": "Call %{phone}",
+      "hint": "Call to ask when and where",
+      "note": "This group shares its address by phone. Call to ask when and where."
+    },
     "actions": {
       "add_calendar": "Add to calendar",
+      "calendar_other": "Other calendar (downloads a file)",
+      "call": "Call",
       "contact": "Contact",
       "directions": "Directions",
       "download_ics": "Download .ics file",
+      "email": "Email",
       "pause_slideshow": "Pause slideshow",
       "share": "Share",
       "view_photo": "View photo",
@@ -98,30 +131,42 @@
     },
     "display": {
       "about": "About this class",
+      "check_first": "Travelling far? Check with the host first",
+      "check_first_call": "Call the host before travelling far",
       "chip_ended": "Ended",
       "chip_full": "Full",
       "chip_starts": "Starts %{date}",
       "chip_today": "Today",
+      "class_finished": "This class is over",
+      "class_finished_body": "There are other free classes you can join, nearby or online.",
       "contact_for_timing": "Contact host for timings",
       "contact_to_join_full": "Contact the host to join anyway",
       "contact_to_join_late": "Contact the host to join late",
       "distance_away": "%{distance} away",
+      "distance_from_centre": "%{distance} from the centre",
       "distance_from_place": "%{distance} from %{place}",
       "distance_from_search": "%{distance} from the searched location",
-      "event_ended": "This event has ended",
-      "event_full": "This event is full",
+      "distance_from_you": "%{distance} from you",
+      "email_host": "Email the host:",
+      "event_ended": "This class has ended",
+      "event_full": "This class is full",
+      "expect_beginners": "Open to beginners. No experience needed.",
+      "expect_title": "What to expect",
+      "fact_free": "Free",
       "first_session": "First session: %{date}",
-      "free_meditation_class": "Free Meditation Class",
+      "free_meditation_class": "Free meditation class",
       "hosted_from": "Hosted from %{city}",
       "next_session": "Next session: %{date}",
       "online": "Online",
+      "zone_time": "%{city} time",
       "online_joining_note": "Meeting link will be sent to you by email",
-      "register_now": "Register Now",
+      "register_free": "Register for free",
       "registration_closed": "Registration closed",
-      "registration_external": "Registration for this event happens on another website",
+      "registration_external": "Registration for this class happens on another website",
       "registration_required": "Registration required",
       "room": "Room: %{room}",
-      "see_nearby": "See nearby events",
+      "see_classes_nearby": "See classes nearby",
+      "see_online_classes": "See online classes",
       "sessions_count_one": "%{count} session",
       "sessions_count_other": "%{count} sessions",
       "started_on": "Started %{date}",
@@ -131,12 +176,12 @@
       "type_class_monthly": "Monthly class",
       "type_class_weekly": "Weekly class",
       "type_course": "Course",
-      "type_oneoff": "One-off event",
+      "type_oneoff": "One-off class",
       "unverified_note": "This listing has not been verified by a local coordinator yet.",
       "unverified_title": "Unverified listing"
     },
     "recurrence": {
-      "daily": "Every Day",
+      "daily": "Every day",
       "daily_n": "Every %{interval} days",
       "monthly_1st": "1st %{weekday} of every month",
       "monthly_2nd": "2nd %{weekday} of every month",
@@ -161,12 +206,18 @@
     },
     "chrome": {
       "any_time": "Any time",
-      "apply": "Apply",
+      "class_count_one": "%{count} class",
+      "class_count_other": "%{count} classes",
       "clear": "Clear all",
       "clear_one": "Clear",
-      "no_results": "No events match your filters.",
+      "no_match": "No classes match",
+      "no_results": "No classes match your filters.",
       "remove": "Remove %{label}",
-      "title": "Filters"
+      "show_classes_one": "Show %{count} class",
+      "show_classes_other": "Show %{count} classes",
+      "title": "Filters",
+      "widen_one": "Remove %{label} (%{count} class)",
+      "widen_other": "Remove %{label} (%{count} classes)"
     },
     "dates": {
       "from": "From",
@@ -177,69 +228,95 @@
       "to": "To"
     },
     "days": {
-      "label": "Day of week"
+      "short_label": "Day"
     },
     "format": {
       "any": "Any",
       "label": "Format",
       "offline": "In person",
-      "online": "Online"
+      "online": "Online",
+      "question": "Online or in person"
     },
     "language": {
       "all": "All languages",
-      "empty": "No languages available",
       "label": "Language"
     },
-    "region": {
-      "all": "All regions",
-      "empty": "No regions found",
-      "label": "Region",
-      "search": "Search regions…"
+    "more": {
+      "label": "More filters"
     },
     "time": {
       "afternoon": "Afternoon",
       "evening": "Evening",
       "label": "Time of day",
-      "morning": "Morning",
-      "night": "Night"
+      "morning": "Morning"
+    },
+    "where": {
+      "label": "Where",
+      "anywhere": "Choose a day or time, anywhere",
+      "near_me": "Near me",
+      "online_route": "Online classes, from anywhere",
+      "placeholder": "Town or city",
+      "scope": "%{near} within %{distance}, plus %{online} online"
     }
   },
+  "location": {
+    "blocked_intro": "Your browser is set not to share your location with this site, so it can’t ask again.",
+    "blocked_title": "Location is turned off",
+    "failed_body": "We couldn’t find your location just now. Try again, or search for your town.",
+    "search_instead": "Search for a town",
+    "steps_android": "To turn it back on in Chrome: tap the icon to the left of the web address, tap Permissions, then turn on Location. Then press Near me again.",
+    "steps_desktop": "To turn it back on: click the icon to the left of the web address, and allow Location. You may need to reload the page. Then press Near me again.",
+    "steps_ios": "To turn it back on in Safari: tap aA in the address bar, then Website Settings, and set Location to Allow. If that doesn’t help, open the Settings app, then Privacy & Security, then Location Services, and set Safari Websites to While Using the App. Then press Near me again."
+  },
   "online": {
-    "title": "Online Classes"
+    "anywhere": "Join from anywhere",
+    "row": "Online classes",
+    "title": "Online classes"
   },
   "registration": {
     "errors": {
       "email": "Enter a valid email",
       "name": "Enter your full name",
-      "starting_at": "Select your starting date"
+      "starting_at": "Choose a date"
     },
     "form": {
+      "captcha_blocked": "We couldn't load the security check, so you can't register just yet.",
       "captcha_retry": "The security check needs doing again. Wait for it to refresh, then register once more.",
+      "change_date": "Change",
+      "checking": "Checking you're not a robot…",
+      "confirm_email": "We'll email a confirmation to %{email} shortly.",
+      "confirmed_title": "You're registered",
+      "consent_class": "We'll email you about this class.",
       "email": "Your email",
       "error_title": "Something went wrong",
+      "first_class": "Your first class",
       "followup": "You will receive an email confirmation shortly",
       "invite_friend": "Invite a friend along",
       "name": "Your name",
-      "okay": "Okay",
       "online_notice": "The link to this class will be emailed to you.",
-      "online_notice_title": "Online Session",
-      "privacy_policy": "By submitting you confirm you agree to receive follow up messages about this and similar events, in accordance with our privacy policy.",
+      "online_notice_title": "Online session",
+      "privacy_link": "Privacy policy",
+      "reassurance": "Free, with no account needed.",
+      "register_when_check_loads": "You can register once the security check loads.",
+      "security_check": "Please complete the security check above.",
+      "see_you": "See you on %{date}.",
       "show_more_dates": "Show more dates",
-      "starting_date": "Starting date",
       "submit": "Register",
       "subscribe": "Send me news about meditation programmes near me",
-      "title": "Register for Meditation"
+      "title_class": "Register for this class"
     },
     "questions": {
       "aspirations": "What are you hoping to get out of this?",
       "experience": "Have you practised Sahaja Yoga meditation before?",
       "questions": "Do you have any questions for us?",
-      "referral": "How did you hear about this event?"
+      "referral": "How did you hear about this class?"
     }
   },
   "search": {
     "chrome": {
-      "placeholder": "Search for events near…",
+      "city_or_postcode": "City or postcode",
+      "none_in_country": "Nothing found in %{country}.",
+      "search_all_countries": "Search all countries",
       "title": "Search"
     },
     "country_site": {
@@ -247,14 +324,45 @@
       "title": "No classes listed in %{country} yet."
     },
     "nearby_prompt": {
-      "dismiss": "Dismiss",
-      "title": "Looking for classes near %{city}?"
+      "dismiss": "Dismiss"
     },
     "results": {
-      "farther": "Show distant events",
+      "farther_classes": "Show classes farther away",
       "more": "Show more",
-      "no_nearby": "No events within %{km} km.",
-      "showing": "Showing %{shown} of %{total} events"
+      "no_nearby": "No classes within %{km} km.",
+      "showing": "Showing %{shown} of %{total} classes"
+    },
+    "filtered": {
+      "hidden_here_one": "Your filters hide %{count} class in %{place}.",
+      "hidden_here_other": "Your filters hide %{count} classes in %{place}.",
+      "hidden_nearby_one": "Your filters hide %{count} class nearby.",
+      "hidden_nearby_other": "Your filters hide %{count} classes nearby.",
+      "none": "No classes match your filters.",
+      "remove_one": "Remove %{label} (%{count} class)",
+      "remove_other": "Remove %{label} (%{count} classes)",
+      "remove_short": "Remove %{label}"
+    },
+    "no_classes": {
+      "filtered": "No matching classes in %{place}",
+      "here": "No classes in %{place} yet",
+      "near": "No classes near %{place} yet",
+      "near_you": "No classes near you yet",
+      "nowhere": "No classes here yet"
+    },
+    "sections": {
+      "across_border": "Nearby in other countries",
+      "farther": "Farther away",
+      "here": "In %{place}",
+      "just_outside": "Just outside %{place}",
+      "just_outside_here": "Close by",
+      "near": "Near %{place}",
+      "near_you": "Near you",
+      "map_wider": "The map also shows other cities",
+      "nearby": "Classes in other cities",
+      "nearby_places": "Other places nearby",
+      "online": "Online classes",
+      "results": "Results",
+      "show_all": "Show all %{total}"
     },
     "sort": {
       "closest": "Closest",
@@ -265,10 +373,18 @@
   },
   "share": {
     "copied": "Copied",
+    "copy_failed_pointer": "Couldn't copy it. The link below is selected: press Ctrl+C, or ⌘C on a Mac.",
+    "copy_failed_touch": "Couldn't copy it. Press and hold the link below, then choose Copy.",
     "copy_link": "Copy link",
+    "link_copied": "Link copied",
     "native": "Share…",
+    "qr_alt": "QR code for %{title}",
+    "qr_download": "Download for printing",
+    "qr_failed": "The QR code didn't load. Check your connection, then close and reopen this.",
+    "qr_hint": "Print this on posters or flyers. People can point their phone camera at it to open this class.",
+    "qr_title": "QR code for posters",
     "share_on": "Share on %{platform}",
-    "title": "Share Meditation"
+    "title_class": "Share this class"
   },
   "submit": {
     "about": {

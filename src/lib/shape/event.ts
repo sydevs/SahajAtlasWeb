@@ -22,12 +22,69 @@ type EventLike = { eventType: EventType; schedule?: EventSchedule | null }
 export type DisplayEventLike = EventLike & {
   inactive?: boolean | null
   contactPhone?: string | null
+  contactEmail?: string | null
   website?: string | null
   /** CMS capacity flag (SahajCloud#601). Absent/null reads as not-full. */
   registrationsFull?: boolean | null
 }
 
 export const isOnline = (event: EventLike): boolean => event.eventType === 'online'
+
+// What hosts type when they have no address yet. These are matched whole, after the city name is
+// removed, so a real street that merely contains one of these words ("Av. Centro 12") stays exact.
+const NO_PLACE_STREETS = new Set([
+  '',
+  'none',
+  'n/a',
+  'tba',
+  'tbc',
+  'tbd',
+  'to be announced',
+  'to be confirmed',
+  'wird noch angekündigt',
+  'a definir',
+  'à définir',
+  'a confirmar',
+  'por definir',
+  'zentrum',
+  'innenstadt',
+  'stadtmitte',
+  'centro',
+  'centre',
+  'centre-ville',
+  'center',
+  'city centre',
+  'city center',
+  'cbd',
+  'downtown',
+])
+
+/**
+ * Whether an in-person class's stored point is only a guess at the area.
+ *
+ * The CMS has no such field, and it geocodes whatever the host typed. So a class whose street says
+ * "to be announced", or just repeats its town, still gets exact coordinates, and those land on
+ * whatever happens to be at the town's centre. This is a conservative reading of the street text:
+ * it catches placeholders, the town's own name, and "city centre" words, and leaves everything
+ * else as a real place. It can't catch a suburb name with no street.
+ */
+export const hasVagueAddress = (
+  address?: {
+    street?: string | null
+    city?: string | null
+  } | null,
+): boolean => {
+  if (!address) return false
+
+  const normalize = (text?: string | null) => (text ?? '').trim().toLowerCase()
+  const city = normalize(address.city)
+  const street = normalize(address.street)
+  const rest = (city && street.startsWith(city) ? street.slice(city.length) : street)
+    .replace(/^[\s,]+/, '')
+    .replace(/^[-.\s]+$/, '')
+
+  return NO_PLACE_STREETS.has(rest)
+}
 
 /**
  * Published with nobody vouching for it — the one stage that means that. The reminder
@@ -267,7 +324,7 @@ export function resolveEventDisplay(
   const eventTz = schedule ? scheduleTimeZone(schedule) : 'UTC'
   const displayZone = online ? viewerTz : eventTz
   const now = toDateTime(options.now ?? DateTime.now())
-  const hasContact = Boolean(event.contactPhone)
+  const hasContact = Boolean(event.contactPhone || event.contactEmail)
   const hasWebsite = Boolean(event.website)
 
   const recurrence = schedule?.recurrenceType ?? null

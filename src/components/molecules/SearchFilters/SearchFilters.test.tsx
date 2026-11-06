@@ -32,51 +32,58 @@ vi.mock('@/config/api', () => ({
 const render = (filters = DEFAULT_FILTERS) =>
   renderToStaticMarkup(<SearchFilters value={filters} onChange={() => {}} />)
 
-// Every group's "Clear" link is HIDDEN, not unmounted, so appearing and
-// disappearing cannot change its row's height.
-//
-// The row is `items-baseline`, and the two children have different line
-// boxes: the label is `text-sm` (19.5px), Clear is `text-xs` (about
-// 20px). So mounting the button on selection grew the row and pushed
-// every section below it down the page. Reserving the space is what
-// makes that impossible. Tuning the line-height only made the two
-// numbers closer.
-//
-// The invariant is the COUNT, not the class. As long as the same number
-// of buttons occupy the flex layout in both states, no amount of later
-// restyling can reintroduce the jump.
-describe('SearchFilters — the per-group Clear reserves its space', () => {
-  const clearButtons = (html: string) =>
-    html.match(/<button[^>]*>filters\.chrome\.clear_one<\/button>/g) ?? []
+const scopeCounts = {
+  total: 10,
+  format: { offline: 10, online: 0 },
+  days: { 1: 10, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0, 7: 0 },
+  time: { morning: 4, afternoon: 0, evening: 6 },
+  cadence: { DAILY: 0, WEEKLY: 10, MONTHLY: 0, once: 0 },
+  languages: [{ code: 'en', count: 10 }],
+}
+const facets = {
+  counts: scopeCounts,
+  relevance: { format: false, days: false, time: true, cadence: false, languages: false },
+}
 
-  it('renders the same number of Clear buttons with nothing selected as with a selection', () => {
-    const idle = clearButtons(render())
-    const active = clearButtons(render({ ...DEFAULT_FILTERS, format: 'online', daysOfWeek: [1] }))
+describe('SearchFilters — only what can change the results', () => {
+  const withFacets = (filters = DEFAULT_FILTERS) =>
+    renderToStaticMarkup(<SearchFilters facets={facets} value={filters} onChange={() => {}} />)
 
-    expect(idle.length).toBeGreaterThan(0)
-    expect(idle).toHaveLength(active.length)
+  it('shows every group while the feed is loading', () => {
+    const html = render()
+
+    expect(html).toContain('filters.format.question')
+    expect(html).toContain('filters.days.short_label')
+    expect(html).toContain('filters.time.label')
   })
 
-  it('hides every Clear while its group is untouched', () => {
-    const buttons = clearButtons(render())
+  it('drops the groups that could not narrow this scope', () => {
+    const html = withFacets()
 
-    // This asserts before the `every`, which is vacuously true on an
-    // empty list. An empty list is exactly what the unmounting bug
-    // produces. So without this, the spec would pass against the defect
-    // it exists to catch.
-    expect(buttons.length).toBeGreaterThan(0)
-    // `visibility: hidden` keeps the button in flow, while taking it out of
-    // the tab order and the accessibility tree. So a hidden control is
-    // never reachable.
-    expect(buttons.every((button) => button.includes('invisible'))).toBe(true)
+    expect(html).not.toContain('filters.format.question')
+    expect(html).not.toContain('filters.days.short_label')
+    expect(html).not.toContain('filters.language.label')
+    expect(html).toContain('filters.time.label')
   })
 
-  it('reveals only the Clear of a group that has a selection', () => {
-    const buttons = clearButtons(render({ ...DEFAULT_FILTERS, format: 'online' }))
-    const shown = buttons.filter((button) => !button.includes('invisible'))
+  it('keeps a group that is in use, so it can be undone', () => {
+    const html = withFacets({ ...DEFAULT_FILTERS, format: 'online' })
 
-    expect(shown).toHaveLength(1)
-    // The others are still there, hidden, for the same reason as above.
-    expect(buttons.length).toBeGreaterThan(shown.length)
+    expect(html).toContain('filters.format.question')
+  })
+})
+
+describe('SearchFilters — More filters', () => {
+  it('is folded by default', () => {
+    const html = render()
+
+    expect(html).toContain('filters.more.label')
+    expect(html).not.toContain('filters.dates.from')
+  })
+
+  it('opens by itself when one of its filters is set', () => {
+    const html = render({ ...DEFAULT_FILTERS, cadence: 'WEEKLY' })
+
+    expect(html).toContain('filters.dates.from')
   })
 })

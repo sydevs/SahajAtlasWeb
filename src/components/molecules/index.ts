@@ -16,8 +16,8 @@ export type { SettingsMenuProps } from './SettingsMenu'
 export { MultiSelect } from './MultiSelect'
 export type { MultiSelectOption, MultiSelectProps } from './MultiSelect'
 
-// SearchFilters — the controlled event-filters form (Format, Frequency,
-// Day, Time, Language), rendered inside the FilterView drawer.
+// SearchFilters — the controlled event-filters form (Where, Format, Day, Time, Language, then
+// Frequency and Dates under More), rendered inside the FilterView drawer.
 export { SearchFilters } from './SearchFilters'
 export type { SearchFiltersProps } from './SearchFilters'
 
@@ -43,6 +43,8 @@ export { SortMenu } from './SortMenu'
 // one table, not three that agree by hand. The table itself, and its
 // narrowing function, stay module-private. See the folder barrel for why.
 export {
+  BootFallback,
+  ListSkeleton,
   LoadingFallback,
   ErrorFallback,
   FallbackPanel,
@@ -57,10 +59,10 @@ export type { FallbackAlign, FallbackKind } from './Fallbacks'
 export { FormField, fieldErrorId, fieldHelpId, fieldDescribedBy } from './FormField'
 export type { FormFieldProps } from './FormField'
 
-// ActionRow / ActionCircle — the labelled tonal-circle secondary actions
+// ActionRow / ActionButton — the quiet labelled secondary actions
 // under an event's Register CTA (Directions, Website, Contact, Share).
-export { ActionRow, ActionCircle } from './ActionRow'
-export type { ActionRowProps, ActionCircleProps } from './ActionRow'
+export { ActionRow, ActionButton } from './ActionRow'
+export type { ActionRowProps, ActionButtonProps } from './ActionRow'
 
 // EventFacts — the shared calendar and location fact block for an
 // event. It builds and renders the when/where lines. The panel, the list
@@ -78,6 +80,9 @@ export { EventChips } from './EventChips'
 export type { EventChipsProps, EventChipsVariant } from './EventChips'
 
 export { List } from './List'
+
+export { FoldSection } from './FoldSection'
+export type { FoldSectionProps } from './FoldSection'
 
 export { ListItem } from './ListItem'
 export type { ListItemProps } from './ListItem'
@@ -107,3 +112,8 @@ export type { EventMetadataProps } from './EventMetadata'
 // GeolocationSuggestion in views/shared.
 export { GeolocationPrompt } from './GeolocationPrompt'
 export type { GeolocationPromptProps } from './GeolocationPrompt'
+
+// WhatToExpect — the short app-supplied promise for newcomers on a class page.
+export { WhatToExpect } from './WhatToExpect'
+export type { WhatToExpectProps } from './WhatToExpect'
+export { ResultCountStatus } from './ResultCountStatus'

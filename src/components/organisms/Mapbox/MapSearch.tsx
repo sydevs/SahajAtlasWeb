@@ -1,20 +1,27 @@
 import React, { Component, type ReactNode } from 'react'
 import { Geocoder } from '@mapbox/search-js-react'
-import { GeocodingFeature } from '@mapbox/search-js-core'
+import { GeocodingFeature, type LngLatLike } from '@mapbox/search-js-core'
+import { useLocation, useSearchParams } from 'react-router'
+import { useQuery } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
 
 import { hoistGeocoderLiveRegion } from './aria-live'
 import { controlTheme } from './themes'
 
+import { clientQuery } from '@/config/api'
+import atlasAuth from '@/config/api/auth'
 import { useLocale } from '@/hooks/use-locale'
 import { useMapbox } from '@/hooks/use-mapbox'
+import { isoCountryCode } from '@/lib/shape'
 
+/**
+ * The place search field. What is typed stays in the field: the URL changes only when a place is
+ * picked (`onSelect`), never per keystroke. Half-typed text in `?q` renamed everything that reads
+ * it — the filters' place pill, the results heading, each card's distance line — to "Prag".
+ */
 export interface MapSearchProps {
   /** Called with the geocoded place the user picked from the suggestions. */
   onSelect: (value: GeocodingFeature) => void
-  /** The field's text. Its owner decides where that lives — a form draft, or `?q`. */
-  value: string
-  onChange: (text: string) => void
   /**
    * This is the accessible name and placeholder. It defaults to the "search
    * for events near…" phrasing, which is right in a header, where position
@@ -23,8 +30,19 @@ export interface MapSearchProps {
    */
   label?: string
   /**
+   * Whether the field starts from, and follows, `?q` (default `true`). The filter form says
+   * `false`: its field is only a way to pick a place, and the picked place shows beside it.
+   */
+  seedFromUrl?: boolean
+  /**
+   * The field's text, when its owner keeps it — the add-a-class Where step keeps it beside the
+   * draft (#147). Left out, the field keeps its own, seeded from `?q`.
+   */
+  value?: string
+  onChange?: (text: string) => void
+  /**
    * Restricts suggestions to these Geocoding feature types, comma-separated — `place` for an
-   * online class's city, `address` for a venue (#147). Every type is offered when omitted.
+   * online class's city, `address` for a venue (#147). Defaults to places a visitor would name.
    */
   types?: string
   /**
@@ -60,24 +78,60 @@ class GeocoderBoundary extends Component<
   }
 }
 
-/**
- * The geocoder field itself, and nothing else: it renders what it is given and reports what was
- * picked. Where the text lives is its owner's question — `SearchField` keeps it in `?q`, the
- * add-a-class Where step keeps it beside the draft.
- */
+// Places a visitor would name, not bare streets or house numbers. A street name matches hundreds of
+// towns, so "Hampstead" offered four streets near Manchester above the London district.
+const PLACE_TYPES = 'country,region,postcode,district,place,locality,neighborhood'
+
+// Below this zoom the map shows a continent or more, so its centre says nothing about the visitor.
+const LOCAL_BIAS_MIN_ZOOM = 3
+
+// Which place the geocoder ranks results near: the map's centre once it has settled on a country or
+// closer. At world level, or with no map, the visitor's own area, which Mapbox reads from the
+// request it already receives.
+const searchBias = (zoom: number | undefined, center: LngLatLike | undefined) =>
+  zoom !== undefined && zoom >= LOCAL_BIAS_MIN_ZOOM && center ? center : 'ip'
+
 export function MapSearch({
   onSelect,
+  label,
+  seedFromUrl = true,
   value,
   onChange,
-  label,
   types,
   proximity,
-  country,
+  country: fixedCountry,
 }: MapSearchProps) {
+  const [searchParams] = useSearchParams()
+  const location = useLocation()
+  const [ownQuery, setOwnQuery] = React.useState(seedFromUrl ? searchParams.get('q') || '' : '')
+  // An owner that passes `value` keeps the text; otherwise the field keeps its own.
+  const searchQuery = value ?? ownQuery
+  const setSearchQuery = (text: string) =>
+    value === undefined ? setOwnQuery(text) : onChange?.(text)
   const { mapbox } = useMapbox()
-  const { locale } = useLocale()
+  const { locale, regionNames } = useLocale()
   const { t } = useTranslation()
-  const fieldLabel = label ?? t('search.chrome.placeholder')
+  const fieldLabel = label ?? t('search.chrome.city_or_postcode')
+  // Search stays in the country on screen, or the one a client's home region sits in. Mapbox's
+  // ranking alone puts Hampstead, Quebec above Hampstead, London even when told it is near the UK,
+  // and it offers no way to prefer a country short of this filter. So a search that finds nothing
+  // here offers to look everywhere. The client comes from the bootstrap's cache; the field never
+  // fetches it.
+  const { data: client } = useQuery({ ...clientQuery(atlasAuth.apiKey), enabled: false })
+  const home = client?.region && typeof client.region === 'object' ? client.region : null
+  const country =
+    isoCountryCode(location.pathname.split('/')[1]) ??
+    isoCountryCode(home?.webPath?.split('/').filter(Boolean)[0])
+  const [releasedFrom, setReleasedFrom] = React.useState<string>()
+  const scope = fixedCountry ?? (country !== releasedFrom ? country : undefined)
+  const [foundNothing, setFoundNothing] = React.useState(false)
+
+  // This follows a new `?q`. The field seeds from the URL once, in the state initializer above.
+  // But a pick writes a new place name, and the geolocate control names the place it found AFTER
+  // navigating. Neither remounts this component when the view on top is unchanged, so without
+  // this effect the field would keep showing a place the results are no longer about. Typing
+  // never writes `?q`, so the two can't fight: half-typed text stays until the URL names a place.
+  const urlQuery = searchParams.get('q') ?? ''
   const field = React.useRef<HTMLDivElement>(null)
 
   React.useEffect(() => {
@@ -85,6 +139,22 @@ export function MapSearch({
 
     return scope ? hoistGeocoderLiveRegion(scope) : undefined
   }, [])
+
+  React.useEffect(() => {
+    if (seedFromUrl && value === undefined) setOwnQuery(urlQuery)
+  }, [urlQuery, seedFromUrl, value])
+
+  const searchEverywhere = () => {
+    setReleasedFrom(country)
+    setFoundNothing(false)
+    // The geocoder searches on input, so wait for it to take the wider options, then repeat the query.
+    requestAnimationFrame(() => {
+      const input = field.current?.querySelector('input')
+
+      input?.focus()
+      input?.dispatchEvent(new Event('input', { bubbles: true }))
+    })
+  }
 
   return (
     // The Geocoder permanently reserves ~40px of right padding for its
@@ -108,8 +178,8 @@ export function MapSearch({
             className="w-full rounded-lg border border-divider bg-gray-2 px-3 py-2 field-size text-foreground placeholder:text-gray-11"
             placeholder={fieldLabel}
             type="search"
-            value={value}
-            onChange={(event) => onChange(event.target.value)}
+            value={searchQuery}
+            onChange={(event) => setSearchQuery(event.target.value)}
           />
         }
       >
@@ -120,19 +190,29 @@ export function MapSearch({
           map={mapbox?.getMap()}
           options={{
             language: locale, // TODO: Make sure this switches when locale changes
-            proximity: proximity ?? mapbox?.getCenter(),
-            ...(types ? { types } : {}),
-            ...(country ? { country } : {}),
+            // `country` is left out rather than undefined: the geocoder serializes what it's given.
+            ...(scope ? { country: scope } : {}),
+            proximity: proximity ?? searchBias(mapbox?.getZoom(), mapbox?.getCenter()),
+            types: types ?? PLACE_TYPES,
           }}
           placeholder={fieldLabel}
           theme={controlTheme}
-          value={value}
-          onChange={onChange}
+          value={searchQuery}
+          onChange={setSearchQuery}
           // The × empties the field without an input event, so it is an edit of its own.
-          onClear={() => onChange('')}
+          onClear={() => setSearchQuery('')}
           onRetrieve={onSelect}
+          onSuggest={(response) => setFoundNothing(response.features.length === 0)}
         />
       </GeocoderBoundary>
+      {scope && !fixedCountry && foundNothing && searchQuery.trim() && (
+        <p className="pt-2 text-sm text-gray-11" role="status">
+          {t('search.chrome.none_in_country', { country: regionNames.of(scope) ?? scope })}{' '}
+          <button className="text-primary-11 underline" type="button" onClick={searchEverywhere}>
+            {t('search.chrome.search_all_countries')}
+          </button>
+        </p>
+      )}
     </div>
   )
 }

@@ -22,6 +22,20 @@ export const useEventFilters = (): EventFilters => {
 }
 
 /**
+ * The active filters as a query string, or '' with none, for a link that moves to another level
+ * of the browse lists and should keep the same filters.
+ */
+export const useFilterSearch = (): string => {
+  const filters = useEventFilters()
+
+  return useMemo(() => {
+    const params = filtersToParams(filters).toString()
+
+    return params ? `?${params}` : ''
+  }, [filters])
+}
+
+/**
  * These are filter setters. They rewrite the current URL's filter params, while preserving the rest, `q`, `bbox`, and `center`.
  * The results' quick-edit pills use these. `setFilters` commits a whole set.
  * This uses `replace`, so tweaking a filter does not stack a history entry.

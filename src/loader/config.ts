@@ -82,6 +82,14 @@ export type LoaderConfig = {
    * is no page to scroll there.
    */
   cooperative: boolean
+  /**
+   * `filters=false` takes filters out of the interface: no Filters button, panel or chips. For a
+   * host that embeds a focused page and wants only the classes. Links that carry filters still
+   * apply them, with the usual removable pills, because a link is what the sender meant.
+   */
+  filters: boolean
+  /** `view=list`: open on the list, with the map one tap away. Needs the map to be on. */
+  listFirst: boolean
 }
 
 /**
@@ -186,5 +194,7 @@ export function parseConfig(
     route,
     routeFromPage: fromPage,
     cooperative: cooperativeGestures(params.get('gestures')),
+    filters: enabled(params.get('filters')),
+    listFirst: params.get('view') === 'list',
   }
 }

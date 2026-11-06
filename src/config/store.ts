@@ -94,15 +94,30 @@ export const useCameraHistory = create<CameraHistoryState>((set, get) => ({
   read: (key) => get().snapshots[key],
 }))
 
+type CameraTarget = Pick<CameraSnapshot, 'zoom' | 'latitude' | 'longitude'>
+
 /**
- * This snapshots the live camera, from `useViewState`, under a history key.
+ * Where a camera move in flight will end, or `null` when the map is at rest.
+ *
+ * `useViewState` mirrors the camera only when the map STOPS moving. So during a fly it still
+ * holds the place the fly left. Someone who clicks during the fly-back from a class, a
+ * natural thing to do, would have that old place remembered as the camera of the screen
+ * they are on. Going back later flies them there, with the list saying somewhere else.
+ * Non-reactive, like the history itself: nothing renders from it.
+ */
+export const useCameraTarget = create<{ target: CameraTarget | null }>(() => ({ target: null }))
+
+/**
+ * This snapshots the camera, from `useViewState`, under a history key: the destination of a
+ * fly in flight if there is one, because that is the place this screen is showing.
  * The app calls it right before an in-widget push.
  * So a later POP back to that entry can restore the camera.
  */
 export const rememberCamera = (key: string): void => {
   const { zoom, latitude, longitude, selection, boundary } = useViewState.getState()
+  const camera = useCameraTarget.getState().target ?? { zoom, latitude, longitude }
 
-  useCameraHistory.getState().save(key, { zoom, latitude, longitude, selection, boundary })
+  useCameraHistory.getState().save(key, { ...camera, selection, boundary })
 }
 
 // ===== CAMERA SETTLED ===== //
@@ -214,6 +229,32 @@ export const useResultsReveal = create<ResultsRevealState>((set) => ({
   revealMore: (key, next) => set(() => ({ key, shown: next.shown, showAll: next.showAll })),
 }))
 
+// ===== RESULT FOLDS ===== //
+
+// Which folded groups of a list are open. A store for the same reason as the reveal above: the
+// drawer stack remounts views, and coming back from a class should find the group still open.
+// `open` holds only what the visitor has toggled, so each group's own default still applies until
+// then. A new `key` (a new place, an edited filter) starts again from those defaults.
+type ResultFoldsState = {
+  key: string
+  open: Record<string, boolean>
+  setOpen: (key: string, id: string, open: boolean) => void
+}
+
+export const useResultFolds = create<ResultFoldsState>((set) => ({
+  key: '',
+  open: {},
+  setOpen: (key, id, open) =>
+    set((state) => ({ key, open: { ...(state.key === key ? state.open : {}), [id]: open } })),
+}))
+
+// The filters a searched place first showed with, to tell one that came along from an earlier search
+// from one the visitor chose here. Only the current place matters, so it holds one.
+export const useArrivalFilters = create<{ place: string; filters: string }>(() => ({
+  place: '',
+  filters: '',
+}))
+
 // ===== REPORT MODAL ===== //
 
 // This holds the open state for the report-issue modal, issue #79.
@@ -257,6 +298,59 @@ export const useReportModal = create<ReportModalState>((set) => ({
   // This also clears the error.
   // So a later open from the settings menu cannot inherit the error context of an earlier, unrelated report.
   closeReport: () => set(() => ({ open: false, error: null })),
+}))
+
+// ===== NEAR ME ===== //
+
+// The point the Near me filter last searched from. Whether Near me is ON is this compared with
+// the URL's `?center`, so it survives closing and reopening the form. It stays out of the URL on
+// purpose: a shared link names a place, and only the visitor who pressed it is actually there.
+type NearMeState = {
+  center: [number, number] | null
+  setCenter: (center: [number, number] | null) => void
+}
+
+export const useNearMeState = create<NearMeState>((set) => ({
+  center: null,
+  setCenter: (center) => set(() => ({ center })),
+}))
+
+// ===== FILTER PANEL ===== //
+
+// The wide-container filter panel. `open` is what the visitor last chose, remembered, and open by
+// default: `onScreen` is whether it's actually showing, which also depends on the view and the
+// room, and is what the camera's padding reads.
+const FILTER_PANEL_KEY = 'atlas.filtersPanel'
+
+// Open by default on every visit: closing lasts for this visit only (sessionStorage), so the
+// next visit starts with the filters showing again.
+const readPanelOpen = (): boolean => {
+  try {
+    return sessionStorage.getItem(FILTER_PANEL_KEY) !== 'closed'
+  } catch {
+    return true
+  }
+}
+
+type FilterPanelState = {
+  open: boolean
+  onScreen: boolean
+  setOpen: (open: boolean) => void
+  setOnScreen: (onScreen: boolean) => void
+}
+
+export const useFilterPanelState = create<FilterPanelState>((set) => ({
+  open: typeof window === 'undefined' ? true : readPanelOpen(),
+  onScreen: false,
+  setOpen: (open) => {
+    try {
+      sessionStorage.setItem(FILTER_PANEL_KEY, open ? 'open' : 'closed')
+    } catch {
+      // Storage can throw in sandboxed iframes. The choice then lasts for this visit only.
+    }
+    set(() => ({ open }))
+  },
+  setOnScreen: (onScreen) => set(() => ({ onScreen })),
 }))
 
 // ===== REGISTRATION DRAFT ===== //
@@ -368,4 +462,23 @@ export const useListingDraft = create<ListingDraftState & ListingDraftAction>((s
   clearReport: () => set(() => ({ reported: false })),
   setNobodyOn: (nobodyOn) => set(() => ({ nobodyOn })),
   markSent: () => set(() => ({ sent: true })),
+}))
+
+type ClassSheetState = {
+  /**
+   * The height a class's or the filters' phone sheet opens at, or null when neither is on top
+   * on a phone (the camera then allows for the usual open sheet).
+   */
+  bottom: number | null
+  setBottom: (bottom: number | null) => void
+}
+
+/**
+ * The drawer measures this and the map camera reads it, so a class's pin, or the place the
+ * filters are scoped to, clears its sheet.
+ * Neither side renders the other's context, and the drawer must not import the map's hooks.
+ */
+export const useClassSheet = create<ClassSheetState>((set) => ({
+  bottom: null,
+  setBottom: (bottom) => set(() => ({ bottom })),
 }))

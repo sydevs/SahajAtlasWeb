@@ -13,6 +13,7 @@ import {
   listResetKey,
   nearestKnownRegion,
   parentOf,
+  filterCloseTarget,
   parseCenter,
   placeInStack,
   placeSearchPath,
@@ -20,7 +21,11 @@ import {
   resolveStack,
   safePath,
   topViewKey,
+  calendarShareRoute,
+  thisWeekPath,
 } from './path'
+import { nextSevenDaysFilters } from './calendar'
+import { DEFAULT_FILTERS, filtersFromParams } from './filters'
 
 describe('safePath', () => {
   it('accepts a site-relative path', () => {
@@ -323,9 +328,9 @@ describe('nearestKnownRegion', () => {
 describe('listResetKey', () => {
   const key = (search: string) => listResetKey(new URLSearchParams(search))
 
-  it('ignores ?q — the geocoder rewrites it on every keystroke', () => {
-    // The reason this helper exists: keying the results boundary on the raw query string
-    // would retry a failing query once per character typed.
+  it('ignores ?q — the place name is not part of the query', () => {
+    // Near me names the place it found just after navigating. Keying the results boundary on
+    // the raw query string would retry a failing query for a label.
     expect(key('center=0,0&q=Cam')).toBe(key('center=0,0&q=Cambridge'))
     expect(key('center=0,0&q=Cam')).toBe(key('center=0,0'))
   })
@@ -359,6 +364,14 @@ describe('placeSearchPath', () => {
     expect(params.get('center')).toBe('4.9,52.37')
   })
 
+  it('lets an implied nearest-first order follow the new place instead of pinning it', () => {
+    const params = query(
+      placeSearchPath(new URLSearchParams('center=2.35,48.85'), { center: CENTRE }),
+    )
+
+    expect(params.get('sort')).toBeNull()
+  })
+
   it('carries the active filters and sort across the re-search', () => {
     const params = query(
       placeSearchPath(new URLSearchParams('format=online&sort=soonest'), { center: CENTRE }),
@@ -366,6 +379,17 @@ describe('placeSearchPath', () => {
 
     expect(params.get('format')).toBe('online')
     expect(params.get('sort')).toBe('soonest')
+  })
+
+  // United Kingdom, then Tuesday, then Prague: the new place replaces the country, or the search
+  // looks for Prague inside the United Kingdom and finds nothing.
+  it('drops a region chosen earlier, keeping the other filters', () => {
+    const params = query(
+      placeSearchPath(new URLSearchParams('region=gb&days=2'), { center: CENTRE }),
+    )
+
+    expect(params.get('region')).toBeNull()
+    expect(params.get('days')).toBe('2')
   })
 
   // This goes through `preserveSearchState`, instead of copying the
@@ -528,5 +552,66 @@ describe('the place on screen', () => {
       kind: 'add',
       regionSlug: 'london',
     })
+  })
+})
+
+describe('filterCloseTarget', () => {
+  it('returns to a view that shows filters, query and all', () => {
+    expect(filterCloseTarget('/search/filters', '?days=2')).toEqual({
+      pathname: '/search',
+      search: '?days=2',
+    })
+    expect(filterCloseTarget('/calendar/filters', '?days=2')?.pathname).toBe('/calendar')
+  })
+
+  it('opens the results when filters were set over a list that does not show them', () => {
+    expect(filterCloseTarget('/gb/filters', '?days=2')).toEqual({
+      pathname: '/search',
+      search: 'days=2&region=gb',
+    })
+  })
+
+  it('is an ordinary dismiss when nothing was chosen', () => {
+    expect(filterCloseTarget('/gb/filters', '')).toBeNull()
+    expect(filterCloseTarget('/filters', '')).toBeNull()
+  })
+})
+
+describe('calendarShareRoute', () => {
+  it('keeps the scope and filters, and writes in the list view and the dates', () => {
+    const route = calendarShareRoute(
+      new URLSearchParams('region=gb&format=online'),
+      '2026-11-12',
+      '2026-11-18',
+    )
+    const params = new URLSearchParams(route.split('?')[1])
+
+    expect(route.startsWith('/calendar?')).toBe(true)
+    expect(params.get('region')).toBe('gb')
+    expect(params.get('format')).toBe('online')
+    expect(params.get('view')).toBe('list')
+    expect(params.get('dates')).toBe('2026-11-12,2026-11-18')
+  })
+})
+
+describe('thisWeekPath', () => {
+  // The "Next 7 days" row on /gb?days=2 read 34 while the list said 8: it dropped the filters.
+  it("opens the list on the region's next seven days, keeping the visitor's filters", () => {
+    const filters = filtersFromParams(new URLSearchParams('days=2&dates=2026-11-14,2026-11-15'))
+    const route = thisWeekPath(nextSevenDaysFilters(filters, 'gb'))
+    const params = new URLSearchParams(route.split('?')[1])
+
+    expect(route.startsWith('/calendar?')).toBe(true)
+    expect(params.get('region')).toBe('gb')
+    expect(params.get('days')).toBe('2')
+    expect(params.get('view')).toBe('list')
+    // The row names its own days, so a date filter doesn't follow it.
+    expect(params.has('dates')).toBe(false)
+  })
+
+  it('stays the plain week list with no filters', () => {
+    expect(thisWeekPath(nextSevenDaysFilters(DEFAULT_FILTERS, 'south-east'))).toBe(
+      '/calendar?region=south-east&view=list',
+    )
   })
 })

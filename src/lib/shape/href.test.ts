@@ -84,7 +84,7 @@ describe('isSafeHref — allows', () => {
   // any of these would be worse than the status quo it replaced, so they are pinned here in
   // the shape their producers emit rather than left to the components' specs.
   it.each([
-    // `directionsUrl` (`lib/events.ts`) — the ActionCircle directions action.
+    // `directionsUrl` (`lib/events.ts`) — the Directions action.
     'https://www.google.com/maps/search/?api=1&query=51.5,-0.12',
     // `buildGoogleCalendarUrl` (`lib/ics.ts`) — a Button link-out.
     'https://calendar.google.com/calendar/render?action=TEMPLATE',
@@ -129,11 +129,7 @@ describe('hasAllowedScheme', () => {
 // so it is executable here instead. Precedent: `config/i18n-options.test.ts`
 // pins the locale directories the same way.
 describe('the JSX anchor inventory', () => {
-  const GATED_ANCHORS = [
-    'components/atoms/Button/Button.tsx',
-    'components/atoms/Link/Link.tsx',
-    'components/molecules/ActionRow/ActionRow.tsx',
-  ]
+  const GATED_ANCHORS = ['components/atoms/Button/Button.tsx', 'components/atoms/Link/Link.tsx']
 
   // Only `.tsx` — JSX is the sink this predicate guards. `lexicalToHtml` (`lexical.ts`) also
   // emits `<a href>`, but as an HTML *string* sanitized by DOMPurify downstream: a different

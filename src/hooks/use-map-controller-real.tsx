@@ -7,13 +7,14 @@ import { bboxPolygon } from '@turf/bbox-polygon'
 import { MapControllerContext } from './use-map-controller'
 
 import { useMapbox, usePaddingState } from '@/hooks/use-mapbox'
-import { useViewState } from '@/config/store'
+import { FILTER_PANEL_PX, SEARCH_SHEET_PX } from '@/config/responsive'
+import { useClassSheet, useFilterPanelState, useViewState } from '@/config/store'
 import { useIsWide } from '@/config/responsive'
-import { eventFrameZoom } from '@/lib/camera'
-import { isOnline } from '@/lib/shape'
+import { eventFrameZoom, sheetInset, worldViewCamera } from '@/lib/camera'
+import { hasVagueAddress, isOnline } from '@/lib/shape'
 import { frameElement } from '@/lib/overlay'
 
-// These are the fixed left-drawer footprint and the mobile peek height.
+// These are the fixed left-drawer footprint and the mobile sheet's open height.
 // The code feeds them to map padding directly, so the camera and controls stay unoccluded.
 // This never DOM-measures the panel.
 //
@@ -36,23 +37,43 @@ import { frameElement } from '@/lib/overlay'
 // This code rejects that approach, because it would put a DOM read in the map's hot path, to serve an override that is not a supported feature yet.
 // If a host is ever invited to set that variable, this is the constant that must start resolving it.
 const DRAWER_W_PX = 352
-const MOBILE_PEEK_PX = 128
+// The open snap in `DrawerStack`, which is what covers the map when a view frames itself.
+// The padding used to be 128, about the peek, so a framed place was centred on a part of the
+// map the open sheet hid, and the classes listed first sat under it (iOS bug 13).
+const MOBILE_SHEET_PX = 356
+// A short contained embed (#169) can be under twice the sheet's height. Padding past the
+// canvas makes `fitBounds` refuse the fit outright, so the sheet's share is capped.
+const MOBILE_SHEET_MAX_SHARE = 0.5
+// In a host's box the sheet opens taller (`DETAIL_SNAP` in DrawerStack).
+const FRAMED_SHEET_PX = 400
 const MAP_MARGIN = 20
+const MIN_FIT_PX = 80
 
 // These constants keep zoom consistent.
 // An event frames at `EVENT_ZOOM`.
-// A region fits no closer than `REGION_MAX_ZOOM`, 2 levels wider.
+// A venue fits no closer than `REGION_MAX_ZOOM`, 2 levels wider.
+// A city, region or country fits no closer than `AREA_MAX_ZOOM`, so a city whose classes all
+// meet at one venue still shows the city, and Back from a class visibly zooms out to it.
 // So clicking an event from its region is always a zoom-in, never a jarring zoom-out.
 // `REGION_FIT_PADDING` keeps edge events off the map border.
 const EVENT_ZOOM = 15
 const REGION_MAX_ZOOM = 13
+const AREA_MAX_ZOOM = 11.5
 const REGION_FIT_PADDING = 48
+// The least map a phone sheet leaves above itself for the camera: room for a region fit with its
+// edge padding. The filters sheet can open nearly as tall as the screen.
+const MIN_STRIP_PX = MAP_MARGIN * 2 + REGION_FIT_PADDING * 2 + MIN_FIT_PX
 // An online event has only an approximate location.
 // This frames it wide, at city or area level, when a deep link makes it the session entry point.
 const ONLINE_ZOOM = 7
+// An in-person class with no real place frames its neighbourhood, with its whole area in view.
+const VAGUE_ZOOM = 12
+// Where the world view centres before `worldViewCamera` keeps the edges filled. Latitude 20
+// leans north, where most classes are.
+const WORLD_CENTER: [number, number] = [0, 20]
 
 // This is the map point an event emphasizes: its stored coordinates.
-// It tags online events as `approximate`, which gives them a softer area sprite and a wider zoom.
+// It tags online events and classes with no real place as `approximate`, which gives them a softer area sprite.
 // It returns null when the event has no coordinates, since there is nothing to frame or highlight.
 // `frameEvent` and `highlightEvent` share this function, so both derive the point identically.
 // `frameEvent` commits the point to `selection` and moves the camera. `highlightEvent` only sets `hover`.
@@ -61,7 +82,11 @@ const eventPoint = (event: Pick<EventSlim, 'address' | 'eventType'>) => {
 
   if (latitude == null || longitude == null) return null
 
-  return { latitude, longitude, approximate: isOnline(event) }
+  return {
+    latitude,
+    longitude,
+    approximate: isOnline(event) || hasVagueAddress(event.address),
+  }
 }
 
 /**
@@ -72,8 +97,9 @@ const eventPoint = (event: Pick<EventSlim, 'address' | 'eventType'>) => {
  * So a compact embed never loads this provider or mapbox-gl.
  */
 export function RealMapControllerProvider({ children }: { children: ReactNode }) {
-  const { mapbox, moveMap, fitBounds, isPointVisible, flyTo } = useMapbox()
+  const { mapbox, padding, moveMap, fitBounds, isPointVisible, flyTo } = useMapbox()
   const setPadding = usePaddingState((s) => s.setPadding)
+  const sheetBottom = useClassSheet((s) => s.bottom)
   const setSelection = useViewState((s) => s.setSelection)
   const setHover = useViewState((s) => s.setHover)
   const setBoundary = useViewState((s) => s.setBoundary)
@@ -92,16 +118,28 @@ export function RealMapControllerProvider({ children }: { children: ReactNode })
   // `frameElement()` is a shared node, not a shared context, so both sides can reach it.
   // This is also why `MapFrame` publishes that node in the layout phase, before either side first renders.
   const isWide = useIsWide(frameElement())
+  const filterPanelUp = useFilterPanelState((s) => s.onScreen)
 
   // Keep the drawer's known footprint out of the usable camera area.
   useEffect(() => {
+    // In a host's box the sheet covers far more of the map than on a phone, so a framed pin
+    // has to centre in what is left above the sheet. Capped so a short box keeps some map.
+    const frameHeight = frameElement()?.offsetHeight ?? 0
+    const sheet = frameHeight
+      ? Math.min(FRAMED_SHEET_PX, frameHeight * 0.55)
+      : Math.min(MOBILE_SHEET_PX, window.innerHeight * MOBILE_SHEET_MAX_SHARE)
+
     setPadding({
       left: MAP_MARGIN + (isWide ? DRAWER_W_PX : 0),
-      right: MAP_MARGIN,
+      right: MAP_MARGIN + (filterPanelUp ? FILTER_PANEL_PX : 0),
       top: MAP_MARGIN,
-      bottom: MAP_MARGIN + (isWide ? 0 : MOBILE_PEEK_PX),
+      // A class's sheet, and the filters' (as tall as their content), are taller than the usual
+      // allowance, and the place they frame must show above them.
+      bottom:
+        MAP_MARGIN +
+        (isWide ? 0 : sheetInset(sheetBottom ?? sheet, window.innerHeight, MIN_STRIP_PX)),
     })
-  }, [isWide, setPadding])
+  }, [isWide, filterPanelUp, sheetBottom, setPadding])
 
   const controller = useMemo<MapController>(
     () => ({
@@ -118,9 +156,9 @@ export function RealMapControllerProvider({ children }: { children: ReactNode })
         } else if (region.bounds) {
           setBoundary(bboxPolygon(region.bounds))
           // This caps the fit and pads the edges.
-          // A single-event or tight-event region cannot zoom past `REGION_MAX_ZOOM`. This cap has no effect on a large region that already fits wider.
+          // A single-event or tight-event region cannot zoom past `AREA_MAX_ZOOM`. This cap has no effect on a large region that already fits wider.
           // The padding keeps events clear of the border.
-          fitBounds(region.bounds, { maxZoom: REGION_MAX_ZOOM, padding: REGION_FIT_PADDING })
+          fitBounds(region.bounds, { maxZoom: AREA_MAX_ZOOM, padding: REGION_FIT_PADDING })
         } else {
           setBoundary(undefined)
         }
@@ -136,11 +174,12 @@ export function RealMapControllerProvider({ children }: { children: ReactNode })
         // So a genuine pin click at a detail zoom keeps that zoom.
         // A deep link, a wide-view click, or an off-screen click still eases in.
         const zoom = eventFrameZoom({
-          approximate: point.approximate,
+          // Only online events have nowhere to fly to. A vague class still has a neighbourhood.
+          approximate: isOnline(event),
           visible: isPointVisible(point.longitude, point.latitude),
           atDetailZoom: (mapbox?.getZoom() ?? 0) >= REGION_MAX_ZOOM,
           isEntry: opts?.isEntry ?? false,
-          eventZoom: EVENT_ZOOM,
+          eventZoom: point.approximate ? VAGUE_ZOOM : EVENT_ZOOM,
           onlineZoom: ONLINE_ZOOM,
         })
 
@@ -160,8 +199,19 @@ export function RealMapControllerProvider({ children }: { children: ReactNode })
         // So a resize while an event was open cleared the pin, with no navigation at all.
         setSelection(null)
         setBoundary(undefined)
-        if (bbox) fitBounds(bbox, { maxZoom: REGION_MAX_ZOOM, padding: REGION_FIT_PADDING })
-        else if (center) flyTo(center, EVENT_ZOOM)
+        if (bbox) {
+          // A phone's search sheet opens taller than the peek this camera usually allows for, so
+          // the fit reserves its real height: no pin ends up behind it. On a short frame it keeps
+          // a strip of map for the pins, because Mapbox refuses a fit its padding leaves no room for.
+          // It reads the padding it adds to, which the filters' taller sheet may already have grown.
+          const height = mapbox?.getContainer().clientHeight ?? 0
+          const { top = MAP_MARGIN, bottom: ambient = MAP_MARGIN } = padding
+          const room = height - top - ambient - REGION_FIT_PADDING * 2 - MIN_FIT_PX
+          const sheetNow = ambient - MAP_MARGIN
+          const bottom = isWide ? 0 : Math.max(0, Math.min(SEARCH_SHEET_PX - sheetNow, room))
+
+          fitBounds(bbox, { maxZoom: REGION_MAX_ZOOM, padding: REGION_FIT_PADDING, bottom })
+        } else if (center) flyTo(center, EVENT_ZOOM)
         // No bbox and no center means nothing was searched.
         // So there is nothing to frame, and the camera stays where the visitor left it.
         // This code used to reset the camera to the world view instead.
@@ -184,10 +234,37 @@ export function RealMapControllerProvider({ children }: { children: ReactNode })
         // `restore` would have reinstated the pin only for a POP.
         setSelection(null)
         setBoundary(undefined)
-        moveMap({ zoom: 0 })
+        // One world, filling the map. `renderWorldCopies` is off on the map, so Mapbox keeps the
+        // world at least as wide as the map and Mercator's full height tall: the world shows once
+        // at any window size, with no repeats at the sides. Mapbox's own clamp ignores our lopsided
+        // padding, though, and left a blank strip at the map's left edge, so `worldViewCamera`
+        // picks a zoom and centre that already fill the map. It reads the same padding `moveMap`
+        // moves with, and this runs again whenever that padding changes (the filters panel opening
+        // or closing), because `moveMap` changes with it.
+        const container = mapbox?.getContainer()
+
+        if (!container) return
+        moveMap(
+          worldViewCamera(
+            { width: container.clientWidth, height: container.clientHeight },
+            padding,
+            WORLD_CENTER,
+          ),
+        )
       },
     }),
-    [mapbox, moveMap, fitBounds, isPointVisible, flyTo, setSelection, setHover, setBoundary],
+    [
+      mapbox,
+      padding,
+      moveMap,
+      fitBounds,
+      isPointVisible,
+      flyTo,
+      setSelection,
+      setHover,
+      setBoundary,
+      isWide,
+    ],
   )
 
   return (

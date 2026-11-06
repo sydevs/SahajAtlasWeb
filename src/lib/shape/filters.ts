@@ -25,24 +25,24 @@ export type EventFormat = 'any' | EventType
  */
 export type EventCadence = 'any' | 'once' | 'DAILY' | 'WEEKLY' | 'MONTHLY'
 
-/** The four named times of day the filter selects, in day order. */
-export type TimePeriod = 'morning' | 'afternoon' | 'evening' | 'night'
-export const TIME_PERIODS = ['morning', 'afternoon', 'evening', 'night'] as const
+/**
+ * The three named times of day the filter selects, in day order. There is no Night: classes are
+ * never held then (Anton, 6 Nov). Evening runs on to midnight, so a late class still has an option.
+ */
+export type TimePeriod = 'morning' | 'afternoon' | 'evening'
+export const TIME_PERIODS = ['morning', 'afternoon', 'evening'] as const
 
-// Each period's local-hour half-open interval(s), `[start, end)`. Night wraps
-// midnight, so it is two intervals. `matchesFilters` tests an occurrence's start
-// hour against these. `timePeriodRanges` coalesces them for display.
+// Each period's local-hour half-open interval(s), `[start, end)`. Evening takes the hours Night
+// used to (21-24), so a 21:30 class still counts. Nothing is held between midnight and 6.
+// `matchesFilters` tests an occurrence's start hour against these. `timePeriodRanges` coalesces
+// them for display.
 export const TIME_PERIOD_HOURS: Record<TimePeriod, readonly (readonly [number, number])[]> = {
   morning: [[6, 12]],
   afternoon: [[12, 17]],
-  evening: [[17, 21]],
-  night: [
-    [21, 24],
-    [0, 6],
-  ],
+  evening: [[17, 24]],
 }
 
-// Selected periods in canonical day order (morning to night), de-duped. This
+// Selected periods in canonical day order (morning to evening), de-duped. This
 // keeps the URL param and the query key stable, regardless of selection order.
 const sortPeriods = (periods: readonly TimePeriod[]): TimePeriod[] =>
   TIME_PERIODS.filter((period) => periods.includes(period))
@@ -322,6 +322,29 @@ export function matchesFilters(
 }
 
 /** Whether any filter narrows the default (all-events) set — drives the trigger's active indicator. */
+/** The kinds of filter a visitor can remove one at a time. Each is one pill in the results. */
+export type FilterKey = 'region' | 'format' | 'cadence' | 'days' | 'time' | 'languages' | 'dates'
+
+/** These filters with one kind taken off, to ask what that one filter is hiding. */
+export const withoutFilter = (filters: EventFilters, key: FilterKey): EventFilters => {
+  switch (key) {
+    case 'region':
+      return { ...filters, region: DEFAULT_FILTERS.region }
+    case 'format':
+      return { ...filters, format: DEFAULT_FILTERS.format }
+    case 'cadence':
+      return { ...filters, cadence: DEFAULT_FILTERS.cadence }
+    case 'days':
+      return { ...filters, daysOfWeek: DEFAULT_FILTERS.daysOfWeek }
+    case 'time':
+      return { ...filters, timeOfDay: DEFAULT_FILTERS.timeOfDay }
+    case 'languages':
+      return { ...filters, languages: DEFAULT_FILTERS.languages }
+    case 'dates':
+      return { ...filters, dateRange: DEFAULT_FILTERS.dateRange }
+  }
+}
+
 export const hasActiveFilters = (filters: EventFilters): boolean => activeFilterCount(filters) > 0
 
 /** How many filter groups are non-default — shown as the trigger's badge count. */

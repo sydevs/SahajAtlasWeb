@@ -29,7 +29,14 @@ import {
 
 import { type PlatformKey } from '@/lib/share/platforms'
 
-const ICON_SIZE = 40
+// One quiet set rather than a row of brand discs, which were the loudest thing on the screen.
+// Each network stays recognisable by its glyph, and named for screen readers.
+const ICON_PROPS = {
+  round: true,
+  size: 44,
+  bgStyle: { fill: 'var(--gray-4)' },
+  iconFillColor: 'var(--gray-12)',
+}
 
 type RenderArgs = { url: string; title: string; ariaLabel: string }
 
@@ -45,7 +52,7 @@ const PLATFORMS: Record<PlatformKey, { name: string; render: (args: RenderArgs) 
     name: 'WhatsApp',
     render: ({ url, title, ariaLabel }) => (
       <WhatsappShareButton aria-label={ariaLabel} title={title} url={url}>
-        <WhatsappIcon round size={ICON_SIZE} />
+        <WhatsappIcon {...ICON_PROPS} />
       </WhatsappShareButton>
     ),
   },
@@ -53,7 +60,7 @@ const PLATFORMS: Record<PlatformKey, { name: string; render: (args: RenderArgs) 
     name: 'Telegram',
     render: ({ url, title, ariaLabel }) => (
       <TelegramShareButton aria-label={ariaLabel} title={title} url={url}>
-        <TelegramIcon round size={ICON_SIZE} />
+        <TelegramIcon {...ICON_PROPS} />
       </TelegramShareButton>
     ),
   },
@@ -61,7 +68,7 @@ const PLATFORMS: Record<PlatformKey, { name: string; render: (args: RenderArgs) 
     name: 'Facebook',
     render: ({ url, ariaLabel }) => (
       <FacebookShareButton aria-label={ariaLabel} url={url}>
-        <FacebookIcon round size={ICON_SIZE} />
+        <FacebookIcon {...ICON_PROPS} />
       </FacebookShareButton>
     ),
   },
@@ -69,7 +76,7 @@ const PLATFORMS: Record<PlatformKey, { name: string; render: (args: RenderArgs) 
     name: 'X',
     render: ({ url, title, ariaLabel }) => (
       <XShareButton aria-label={ariaLabel} title={title} url={url}>
-        <XIcon round size={ICON_SIZE} />
+        <XIcon {...ICON_PROPS} />
       </XShareButton>
     ),
   },
@@ -77,7 +84,7 @@ const PLATFORMS: Record<PlatformKey, { name: string; render: (args: RenderArgs) 
     name: 'LinkedIn',
     render: ({ url, title, ariaLabel }) => (
       <LinkedinShareButton aria-label={ariaLabel} title={title} url={url}>
-        <LinkedinIcon round size={ICON_SIZE} />
+        <LinkedinIcon {...ICON_PROPS} />
       </LinkedinShareButton>
     ),
   },
@@ -85,7 +92,7 @@ const PLATFORMS: Record<PlatformKey, { name: string; render: (args: RenderArgs) 
     name: 'Reddit',
     render: ({ url, title, ariaLabel }) => (
       <RedditShareButton aria-label={ariaLabel} title={title} url={url}>
-        <RedditIcon round size={ICON_SIZE} />
+        <RedditIcon {...ICON_PROPS} />
       </RedditShareButton>
     ),
   },
@@ -93,7 +100,7 @@ const PLATFORMS: Record<PlatformKey, { name: string; render: (args: RenderArgs) 
     name: 'Email',
     render: ({ url, title, ariaLabel }) => (
       <EmailShareButton aria-label={ariaLabel} subject={title} url={url}>
-        <EmailIcon round size={ICON_SIZE} />
+        <EmailIcon {...ICON_PROPS} />
       </EmailShareButton>
     ),
   },
@@ -101,7 +108,7 @@ const PLATFORMS: Record<PlatformKey, { name: string; render: (args: RenderArgs) 
     name: 'VK',
     render: ({ url, title, ariaLabel }) => (
       <VKShareButton aria-label={ariaLabel} title={title} url={url}>
-        <VKIcon round size={ICON_SIZE} />
+        <VKIcon {...ICON_PROPS} />
       </VKShareButton>
     ),
   },
@@ -109,7 +116,7 @@ const PLATFORMS: Record<PlatformKey, { name: string; render: (args: RenderArgs) 
     name: 'OK.ru',
     render: ({ url, title, ariaLabel }) => (
       <OKShareButton aria-label={ariaLabel} title={title} url={url}>
-        <OKIcon round size={ICON_SIZE} />
+        <OKIcon {...ICON_PROPS} />
       </OKShareButton>
     ),
   },
@@ -117,7 +124,7 @@ const PLATFORMS: Record<PlatformKey, { name: string; render: (args: RenderArgs) 
     name: 'LINE',
     render: ({ url, title, ariaLabel }) => (
       <LineShareButton aria-label={ariaLabel} title={title} url={url}>
-        <LineIcon round size={ICON_SIZE} />
+        <LineIcon {...ICON_PROPS} />
       </LineShareButton>
     ),
   },
@@ -125,7 +132,7 @@ const PLATFORMS: Record<PlatformKey, { name: string; render: (args: RenderArgs) 
     name: 'Viber',
     render: ({ url, title, ariaLabel }) => (
       <ViberShareButton aria-label={ariaLabel} title={title} url={url}>
-        <ViberIcon round size={ICON_SIZE} />
+        <ViberIcon {...ICON_PROPS} />
       </ViberShareButton>
     ),
   },
@@ -133,7 +140,7 @@ const PLATFORMS: Record<PlatformKey, { name: string; render: (args: RenderArgs) 
     name: 'Weibo',
     render: ({ url, title, ariaLabel }) => (
       <WeiboShareButton aria-label={ariaLabel} title={title} url={url}>
-        <WeiboIcon round size={ICON_SIZE} />
+        <WeiboIcon {...ICON_PROPS} />
       </WeiboShareButton>
     ),
   },

@@ -1,54 +1,79 @@
 import { useTranslation } from 'react-i18next'
-import { MapPin } from 'lucide-react'
+import { ChevronRight, MapPin, X } from 'lucide-react'
 
-import { Alert } from '@/components/atoms/Alert'
+import { Button } from '@/components/atoms/Button'
+import { Spinner } from '@/components/atoms/Spinner'
 
 export type GeolocationPromptProps = {
-  /** The IP-guessed city, interpolated into the prompt's question. */
-  city: string
-  /** Accept the suggestion. This navigates into the distance-ranked nearby search. */
+  /** The IP-guessed city: "Classes near %{city}". Leave it out to give `label` instead. */
+  city?: string
+  /** The words when there is no guessed city ("Classes near me", "Finding your location…"). */
+  label?: string
+  /** The row's action: the nearby search for a guess, or asking the browser for a position. */
   onAccept: () => void
-  /** Dismiss the suggestion for the rest of the session. */
-  onClose: () => void
+  /** Dismiss the suggestion for the rest of the session. Leave it out for no ×. */
+  onClose?: () => void
+  /** While the browser looks for a position: a spinner in the pin's place, and no taps. */
+  busy?: boolean
+  /** The words report a problem (a refused or failed fix), so they are announced at once. */
+  alert?: boolean
 }
 
 /**
- * The dismissible "events near you" suggestion shown above the list on the
- * top-level views: a single-line, warm (contrast-tinted) `Alert` whose text is a
- * button into the distance-ranked search. The Alert's × dismisses it for
- * the session. It announces politely (`role="status"`), not as an
- * assertive alert, since it is a passive guess. It is framed as a *guess*:
- * "Looking for classes near %{city}?", never "your location". This is
- * presentational only. The IP lookup, session-scoped dismissal, and
- * navigation live in `GeolocationSuggestion` (src/views/shared.tsx).
+ * The location suggestion, attached under the search field so it reads as one of the field's own
+ * suggestions: "Classes near Prague" on a country page, and on the world view either that guess or
+ * "Classes near me", which asks the browser. One look in every place it appears (Anton, 6 Nov). Its
+ * text is a button; the × dismisses a guess for the session. It is framed as a guess, never "your
+ * location". It carries no second link: a country-website line under it was too small to tap on a
+ * phone, and Anton didn't want it. This is presentational only. The IP lookup, dismissal and
+ * navigation live in `GeolocationSuggestion` and `NearMeRow`.
  */
-export function GeolocationPrompt({ city, onAccept, onClose }: GeolocationPromptProps) {
+export function GeolocationPrompt({
+  city,
+  label,
+  onAccept,
+  onClose,
+  busy = false,
+  alert = false,
+}: GeolocationPromptProps) {
   const { t } = useTranslation()
+  const text = city !== undefined ? t('countries.near_city', { city }) : (label ?? '')
 
-  // Inset by the panel's 16px gutter so the banner lines up with the header
-  // above and the rows below, and reads as a note rather than a page band.
-  // The warm contrast tint, not the light-blue secondary: blue read cold at the top
-  // of every list, and the secondary hue is kept for the language tag. The text stays
-  // the foreground colour — the tint's own deep step reads red, like an error. In dark
-  // mode the coral tint turns brick red, so the banner takes the warm sand surface.
+  // It matches the field above it: the same width and 8px corners, the field's type size
+  // (`field-size`), the pin in the column of the field's search glyph (9px in) and the words on
+  // the field's text edge (41px in). Today's light-blue tint, which Anton preferred to sand (6 Nov).
+  // Never the coral tint: a pink band read like an error.
   return (
-    <Alert
-      className="mx-4 mb-2 rounded-lg px-3 text-foreground dark:bg-gray-3"
-      closeLabel={t('search.nearby_prompt.dismiss')}
-      color="contrast"
-      icon={<MapPin size={18} />}
-      role="status"
-      size="sm"
-      title={
-        <button
-          className="w-full text-start hover:underline focus:outline-none focus-visible:underline"
-          type="button"
-          onClick={onAccept}
+    <div
+      className="mt-1.5 flex items-center rounded-lg bg-secondary-3 text-secondary-11"
+      role={alert ? 'alert' : 'status'}
+    >
+      <button
+        className="touch-target relative flex min-h-10 min-w-0 flex-1 items-center gap-3 py-2 ps-[9px] pe-3 text-start field-size font-medium hover:underline focus:outline-none focus-visible:underline disabled:no-underline"
+        disabled={busy}
+        type="button"
+        onClick={onAccept}
+      >
+        <span className="flex w-5 shrink-0 justify-center">
+          {busy ? <Spinner size="sm" /> : <MapPin aria-hidden size={20} />}
+        </span>
+        <span className="truncate">{text}</span>
+        {!busy && (
+          <ChevronRight aria-hidden className="-ms-1 shrink-0 rtl:-scale-x-100" size={18} />
+        )}
+      </button>
+      {onClose && (
+        <Button
+          isIconOnly
+          aria-label={t('search.nearby_prompt.dismiss')}
+          className="me-0.5 shrink-0 opacity-80 hover:opacity-100"
+          size="sm"
+          variant="ghost"
+          onClick={onClose}
         >
-          {t('search.nearby_prompt.title', { city })}
-        </button>
-      }
-      onClose={onClose}
-    />
+          <X size={16} />
+        </Button>
+      )}
+    </div>
   )
 }

@@ -68,20 +68,15 @@ describe('EventListItem', () => {
     expect(html).toContain('data-event-row')
   })
 
-  it('left-aligns the card column: listRow items-stretch beats the Link atom items-center', () => {
+  it('left-aligns the card column beside a chevron, as a place row has', () => {
     const html = renderToStaticMarkup(
       <MemoryRouter>
         <EventListItem event={mockEventSlim} />
       </MemoryRouter>,
     )
 
-    // The first class attribute is the card anchor's (the <li> wrapper is bare).
-    const classes = (html.match(/class="([^"]*)"/)?.[1] ?? '').split(' ')
-
-    expect(classes).toContain('flex-col')
-    expect(classes).toContain('items-stretch')
-    // The Link atom's inline-link `items-center` must lose the merge. On a
-    // flex-col card, it would centre every line of content.
-    expect(classes).not.toContain('items-center')
+    // The row is the Link: its content sits in one left-aligned column, then the chevron.
+    expect(html).toContain('flex min-w-0 flex-1 flex-col gap-1')
+    expect(html).toContain('lucide-chevron-right')
   })
 })

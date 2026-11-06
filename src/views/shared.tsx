@@ -6,34 +6,37 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useRef, use
 import { useLocation, useNavigationType, useSearchParams } from 'react-router'
 import { useTranslation } from 'react-i18next'
 import { useQuery, useSuspenseQuery } from '@tanstack/react-query'
-import { CalendarDays, Funnel, Menu, Search, X } from 'lucide-react'
+import { CalendarDays, Funnel, Search, X } from 'lucide-react'
+import clsx from 'clsx'
 
 import { Button } from '@/components/atoms/Button'
 import { FallbackPanel, GeolocationPrompt } from '@/components/molecules'
 import { MapSearch } from '@/components/organisms'
-import api, { eventQuery } from '@/config/api'
+import api, { eventQuery, regionsQuery } from '@/config/api'
 import { GEOJSON_STALE_TIME } from '@/config/query-client'
-import { useCameraHistory } from '@/config/store'
+import embed from '@/config/embed'
+import { useCameraHistory, useFilterPanelState } from '@/config/store'
 import { useAtlasNavigate } from '@/hooks/use-atlas-navigate'
 import { useEventFilters } from '@/hooks/use-filters'
 import { useIpLocation } from '@/hooks/use-ip-location'
 import { useLocale } from '@/hooks/use-locale'
 import { useMapController } from '@/hooks/use-map-controller'
-import { approxBounds } from '@/lib/geo'
 import { geocodeBounds, geocodeCountryCode } from '@/lib/geocode'
 import { atlasError } from '@/lib/report'
 import {
-  NEARBY_RADIUS_KM,
+  aroundVisitor,
   hasActivePlaceSearch,
   markGeolocationDismissed,
   readGeolocationDismissed,
   shouldShowGeolocationPrompt,
 } from '@/lib/geolocation'
 import {
+  type PlaceSearch,
+  type EventFilters,
   activeFilterCount,
   searchPath,
-  atlasDepth,
   calendarPath,
+  atlasDepth,
   isoCountryCode,
   placeSearchPath,
   resolvePath,
@@ -59,6 +62,12 @@ export type DrawerControl = {
   canDismiss: boolean
   toggle: () => void
   dismiss: () => void
+  /** Takes a phone's sheet near-full, for typing in the search field. */
+  raise: () => void
+  /** A class view's measured default height on the phone sheet, or null for the fallback. */
+  setOpenHeight: (px: number | null) => void
+  /** Lifts a bottom sheet to its near-full height, for content that just grew. */
+  expand?: () => void
 }
 
 export const DrawerControlContext = createContext<DrawerControl>({
@@ -67,14 +76,12 @@ export const DrawerControlContext = createContext<DrawerControl>({
   canDismiss: false,
   toggle: () => {},
   dismiss: () => {},
+  raise: () => {},
+  setOpenHeight: () => {},
 })
 
 export const useDrawerControl = () => useContext(DrawerControlContext)
 
-// The close affordance for the drawer views. This dismisses via the control seam
-// (a navigation to the parent), rather than vaul's Close — closing the real drawer
-// made the sheet animate shut and then re-open with the parent, which read as
-// jarring.
 export type DrawerTitleProps = {
   /** The drawer's visible heading. */
   title: ReactNode
@@ -100,7 +107,7 @@ export type DrawerTitleProps = {
 export function DrawerTitle({ title, subtitle, note }: DrawerTitleProps) {
   return (
     <div className="min-w-0">
-      <h2 className="truncate text-xl">{title}</h2>
+      <h2 className="line-clamp-2 text-xl break-words">{title}</h2>
       {subtitle && <div className="truncate text-sm text-gray-11">{subtitle}</div>}
       {note && <div className="truncate text-xs text-gray-11">{note}</div>}
     </div>
@@ -108,16 +115,68 @@ export function DrawerTitle({ title, subtitle, note }: DrawerTitleProps) {
 }
 
 /**
- * The drawer header's icon controls (close, list-toggle, filter) are all the same
+ * The drawer header's icon controls (back, list-toggle, filter) are all the same
  * Button preset, kept here as values, rather than as a wrapper component, so the
  * three provably render identical chrome — the header reads as one set of buttons.
  */
-const HEADER_CONTROL = { variant: 'ghost', isIconOnly: true, size: 'sm' } as const
+export const HEADER_CONTROL = { variant: 'ghost', isIconOnly: true, size: 'sm' } as const
 
-export function CloseButton({ className }: { className?: string }) {
-  // `useSuspense: false` — this renders inside the error/loading chrome, where
-  // suspending on an in-flight namespace (a language switch mid-error) would
+// The last control in a header. Its 20px icon sits in a 32px box, so this pulls the box 6px
+// into the gutter. The icon then lands on the panel's 16px edge, in the same column as the
+// rows' chevrons, while the tap area stays whole.
+const HEADER_LAST_CONTROL = '-me-1.5'
+
+// The search affordance for region headers (RegionView): jumps to the
+// distance-ranked search view. This renders the same header-control chrome as the
+// other header controls, so the header reads as one set of buttons.
+export function SearchButton() {
+  // `useSuspense: false` — also rendered by the fallback chrome
+  // (views/fallbacks.tsx), where suspending on an in-flight namespace would
   // escape the boundary and blank the widget instead of showing the failure.
+  const { t } = useTranslation()
+  const navigate = useAtlasNavigate()
+
+  return (
+    <Button
+      {...HEADER_CONTROL}
+      aria-label={t('search.chrome.title')}
+      onClick={() => navigate(searchPath())}
+    >
+      <Search size={20} />
+    </Button>
+  )
+}
+
+/**
+ * What a climb reads to pass over venues and one-class places (`climbDestination`): the feed's
+ * class paths and the region tree's venue slugs. Disabled observers: they follow the cache and
+ * never fetch, so the loading and error chrome can call this too.
+ */
+export function useClimbInputs() {
+  const { data: feed } = useQuery({
+    queryKey: ['geojson'],
+    queryFn: () => api.getGeojson(),
+    staleTime: GEOJSON_STALE_TIME,
+    enabled: false,
+  })
+  const { data: regions } = useQuery({ ...regionsQuery(), enabled: false })
+
+  return useMemo(
+    () => ({
+      classes: feed?.features.map((feature) => feature.properties),
+      venueSlugs: regions
+        ? new Set(regions.filter((node) => node.level === 'venue').map((node) => node.slug))
+        : undefined,
+    }),
+    [feed, regions],
+  )
+}
+
+/**
+ * The × that closes the add-a-class and correction forms (#147). Every other view goes Back
+ * (`views/nav`); a form is the one place where closing, not climbing, is the action.
+ */
+export function CloseButton({ className }: { className?: string }) {
   const { t } = useTranslation()
   const { dismiss } = useDrawerControl()
 
@@ -133,15 +192,12 @@ export function CloseButton({ className }: { className?: string }) {
   )
 }
 
-// The calendar affordance for region headers (RegionView): opens the full-width
-// calendar pre-scoped to this region (`/calendar?region=<slug>`, pre-setting the
-// Region filter). This uses the same header-control chrome as the close control,
-// so the header reads as one set of buttons.
+// The calendar affordance for region headers (RegionView): opens the calendar pre-scoped to
+// this region (`/calendar?region=<slug>`). Visitors asked for it, so it stays beside the
+// filters even with the "Next 7 days" row in the list; with search and Back out of the icon
+// row, these two are what the header offers.
 export function CalendarButton({ regionSlug }: { regionSlug: string }) {
-  // `useSuspense: false` — also rendered by the fallback chrome
-  // (views/fallbacks.tsx), where suspending on an in-flight namespace would
-  // escape the boundary and blank the widget instead of showing the failure. See
-  // CloseButton.
+  // `useSuspense: false` — also rendered by the fallback chrome (views/fallbacks.tsx).
   const { t } = useTranslation()
   const navigate = useAtlasNavigate()
 
@@ -156,49 +212,19 @@ export function CalendarButton({ regionSlug }: { regionSlug: string }) {
   )
 }
 
-// The search affordance for region headers (RegionView): jumps to the
-// distance-ranked search view. This renders the same header-control chrome as the
-// close/filter controls, so the header reads as one set of buttons.
-export function SearchButton() {
-  // `useSuspense: false` — also rendered by the fallback chrome
-  // (views/fallbacks.tsx), where suspending on an in-flight namespace would
-  // escape the boundary and blank the widget instead of showing the failure. See
-  // CloseButton.
-  const { t } = useTranslation()
-  const navigate = useAtlasNavigate()
-
-  return (
-    <Button
-      {...HEADER_CONTROL}
-      aria-label={t('search.chrome.title')}
-      onClick={() => navigate(searchPath())}
-    >
-      <Search size={20} />
-    </Button>
-  )
-}
-
-// The stacked-list toggle in CountriesView's header: expands the collapsed peek
-// into the country list, or collapses the open list back to the peek. Hidden where
-// the sheet cannot collapse (desktop or map-less).
-export function CollapseToggle() {
-  // See CloseButton: also rendered by the error/loading chrome, so it must not
-  // suspend.
+// A sheet pulled down to its peek says how to bring it back. The handle does this too, but
+// a thin handle is easy to miss, and a keyboard can't use it. `label` is for the views where
+// what comes back is not a list.
+export function ExpandSheetButton({ label }: { label?: string }) {
+  // Also rendered by the error/loading chrome, so it must not suspend.
   const { t } = useTranslation()
   const { collapsed, canCollapse, toggle } = useDrawerControl()
 
-  if (!canCollapse) return null
+  if (!canCollapse || !collapsed) return null
 
-  // At the peek, it is a list toggle (expand the countries list). Once opened past
-  // the peek it becomes the usual close control (collapse back to the peek).
   return (
-    <Button
-      {...HEADER_CONTROL}
-      aria-expanded={!collapsed}
-      aria-label={collapsed ? t('common.chrome.explore') : t('common.chrome.close')}
-      onClick={toggle}
-    >
-      {collapsed ? <Menu size={24} /> : <X size={20} />}
+    <Button className="shrink-0" color="primary" size="sm" variant="flat" onClick={toggle}>
+      {label ?? t('common.chrome.show_list')}
     </Button>
   )
 }
@@ -210,23 +236,66 @@ export function CollapseToggle() {
 // (SearchView), and — with `iconOnly` — an icon-only header control carrying the
 // active count as a badge (CountriesView's header), so it reads as one set with
 // the close/collapse chrome.
-export function FilterButton({ iconOnly = false }: { iconOnly?: boolean }) {
+// How this layout offers filters beside the list, if it has room: a panel the Filters button
+// toggles, or chips that are always there, so no button at all. `null` means behind the button,
+// in the filter drawer. DrawerStack owns the measurement.
+export const FilterPanelAvailableContext = createContext<'panel' | 'chips' | null>(null)
+
+export function FilterButton({
+  iconOnly = false,
+  isLast = false,
+  counted,
+}: {
+  iconOnly?: boolean
+  /** Nothing follows it in the header, so its icon takes the panel's right edge. */
+  isLast?: boolean
+  /** The filters the badge counts, when a view shows some of them another way. */
+  counted?: EventFilters
+}) {
   // `useSuspense: false` — also rendered by the fallback chrome
   // (views/fallbacks.tsx), where suspending on an in-flight namespace would
-  // escape the boundary and blank the widget instead of showing the failure. See
-  // CloseButton.
+  // escape the boundary and blank the widget instead of showing the failure.
   const { t } = useTranslation()
   const navigate = useAtlasNavigate()
   const location = useLocation()
-  const count = activeFilterCount(useEventFilters())
+  const applied = useEventFilters()
+  const count = activeFilterCount(counted ?? applied)
 
   const label = count > 0 ? `${t('filters.chrome.title')} (${count})` : t('filters.chrome.title')
   const to = `${location.pathname === '/' ? '' : location.pathname}/filters`
-  const open = () => navigate({ pathname: to, search: location.search })
+  const panelAvailable = useContext(FilterPanelAvailableContext)
+  const panelOpen = useFilterPanelState((s) => s.open)
+  const setPanelOpen = useFilterPanelState((s) => s.setOpen)
+  const open = () =>
+    panelAvailable ? setPanelOpen(!panelOpen) : navigate({ pathname: to, search: location.search })
+  // Closing the side panel sends the filters back to this icon, so it ripples twice there and
+  // the visitor sees where they went (Anton, 6 Nov). Not on load: only an open-to-closed change.
+  const wasOpen = useRef(panelOpen)
+  const [ripple, setRipple] = useState(0)
+
+  useEffect(() => {
+    if (panelAvailable === 'panel' && wasOpen.current && !panelOpen) setRipple((n) => n + 1)
+    wasOpen.current = panelOpen
+  }, [panelOpen, panelAvailable])
+
+  if (panelAvailable === 'chips' || !embed.config.filters) return null
 
   if (iconOnly) {
     return (
-      <Button {...HEADER_CONTROL} aria-label={label} className="relative" onClick={open}>
+      <Button
+        {...HEADER_CONTROL}
+        aria-label={label}
+        className={clsx('relative', isLast && HEADER_LAST_CONTROL)}
+        onClick={open}
+      >
+        {ripple > 0 && (
+          <span
+            key={ripple}
+            aria-hidden
+            className="pointer-events-none absolute inset-0 rounded-full bg-primary-9/40 [animation-iteration-count:2] motion-safe:animate-ping motion-reduce:hidden"
+            onAnimationEnd={() => setRipple(0)}
+          />
+        )}
         <Funnel size={20} />
         {count > 0 && (
           <span
@@ -241,7 +310,8 @@ export function FilterButton({ iconOnly = false }: { iconOnly?: boolean }) {
   }
 
   return (
-    <Button size="sm" variant="ghost" onClick={open}>
+    // The font turns "(2)" into a tiny circled figure unless its ligatures are off.
+    <Button className="[font-variant-ligatures:none]" size="sm" variant="ghost" onClick={open}>
       <Funnel size={18} />
       {label}
     </Button>
@@ -254,82 +324,43 @@ export function FilterButton({ iconOnly = false }: { iconOnly?: boolean }) {
 // behaviour that used to live in the removed SearchBar.
 export function SearchField({
   label,
-  query = 'url',
-}: { label?: MapSearchProps['label']; query?: 'url' | 'read-only' } = {}) {
+  seedFromUrl,
+  onPlace,
+}: Pick<MapSearchProps, 'label' | 'seedFromUrl'> & {
+  /** Handle the picked place here, instead of opening the search route. */
+  onPlace?: (place: PlaceSearch) => void
+} = {}) {
   const navigate = useAtlasNavigate()
-  const location = useLocation()
-  const [searchParams, setSearchParams] = useSearchParams()
-  const urlQuery = searchParams.get('q') ?? ''
-  const [text, setText] = useState(urlQuery)
-  // This guards on the last value written here, rather than on equality with the field. So the
-  // per-keystroke mirroring below can never fight it: typing records its own write, sees the
-  // URL agree, and does nothing.
-  //
-  // This adopts a `?q` that somebody ELSE wrote. The field seeds from the URL once, above,
-  // which is right while typing is the only writer. But the geolocate control names the place
-  // it found AFTER navigating, and `placeSearchPath` clears `?q` on every re-search. Neither
-  // one remounts this component when the view on top is unchanged. So without this effect, the
-  // field keeps showing a place the results are no longer about.
-  const ownWrite = useRef(urlQuery)
-
-  useEffect(() => {
-    if (urlQuery === ownWrite.current) return
-
-    ownWrite.current = urlQuery
-    setText(urlQuery)
-  }, [urlQuery])
-
-  // This merges `q` into the existing query, so the active filters (and bbox and center)
-  // survive typing — they live only in the URL now. `replace` means per-keystroke edits do not
-  // stack history.
-  //
-  // `state` is carried explicitly. `setSearchParams` forwards only what it is given, so a bare
-  // `{ replace: true }` replaces the entry with a state-less one and drops its `atlasDepth`.
-  // After ONE keystroke, the drawer's dismissal (X, swipe, or Esc) would then push to the
-  // structural parent, instead of going chronologically back. The filter and sort setters carry
-  // it for the same reason.
-  const handleChange = (next: string) => {
-    setText(next)
-    ownWrite.current = next
-    if (query !== 'url') return
-
-    setSearchParams(
-      (prev) => {
-        const params = new URLSearchParams(prev)
-
-        params.set('q', next)
-
-        return params
-      },
-      { replace: true, state: location.state },
-    )
-  }
+  const [searchParams] = useSearchParams()
+  const { raise } = useDrawerControl()
 
   const handleSelect = useCallback(
     (value: GeocodingFeature) => {
-      navigate(
-        // `placeSearchPath` carries the active filters and sort across and
-        // resets the searched location — one builder shared with the IP
-        // suggestion and the geolocate control, so none of the three can
-        // forget half of it.
-        placeSearchPath(searchParams, {
-          q: value.properties.full_address ?? '',
-          center: [value.properties.coordinates.longitude, value.properties.coordinates.latitude],
-          bbox: geocodeBounds(value),
-          // The country the place sits in, so an empty result set can offer
-          // that country's own site (issue #82). Present for a country-level
-          // result and for a town within one. It is absent for an ocean or a
-          // country-less feature.
-          countryCode: geocodeCountryCode(value),
-        }),
-      )
+      const place: PlaceSearch = {
+        q: value.properties.full_address ?? '',
+        center: [value.properties.coordinates.longitude, value.properties.coordinates.latitude],
+        bbox: geocodeBounds(value),
+        // The country the place sits in, so an empty result set can offer
+        // that country's own site (issue #82). Present for a country-level
+        // result and for a town within one. It is absent for an ocean or a
+        // country-less feature.
+        countryCode: geocodeCountryCode(value),
+      }
+
+      if (onPlace) onPlace(place)
+      // `placeSearchPath` carries the active filters and sort across and
+      // resets the searched location — one builder shared with the IP
+      // suggestion and the geolocate control, so none of the three can
+      // forget half of it.
+      else navigate(placeSearchPath(searchParams, place))
     },
-    [navigate, searchParams],
+    [navigate, searchParams, onPlace],
   )
 
   return (
-    <div className="min-w-0 flex-1">
-      <MapSearch label={label} value={text} onChange={handleChange} onSelect={handleSelect} />
+    // Focus raises a phone's sheet, so the suggestions (and the keyboard) have room.
+    <div className="min-w-0 flex-1" onFocus={raise}>
+      <MapSearch label={label} seedFromUrl={seedFromUrl} onSelect={handleSelect} />
     </div>
   )
 }
@@ -420,8 +451,7 @@ export function useEventFromPath(eventPath: string) {
 export function EmptyEventList() {
   // `useSuspense: false` — also rendered by the fallback chrome
   // (views/fallbacks.tsx), where suspending on an in-flight namespace would
-  // escape the boundary and blank the widget instead of showing the failure. See
-  // CloseButton.
+  // escape the boundary and blank the widget instead of showing the failure.
   const { t } = useTranslation()
 
   return (
@@ -434,7 +464,6 @@ export function EmptyEventList() {
           reads on this screen as a promise that there ARE nearby events. */}
       <SearchField
         label={t('common.errors.search_label', { defaultValue: 'Or search for a place' })}
-        query="read-only"
       />
     </FallbackPanel>
   )
@@ -450,10 +479,9 @@ export function EmptyEventList() {
 // conditions. Only the close button persists a session-scoped dismissal. Accepting merely
 // navigates. The prompt self-hides while the visitor views that area, but returns once they
 // leave it.
-export function GeolocationSuggestion({
-  regionCenter,
-}: {
-  regionCenter?: [number, number] | null
+export function useIpSuggestion(region?: {
+  center?: [number, number] | null
+  countryCode?: string | null
 }) {
   const navigate = useAtlasNavigate()
   const [searchParams] = useSearchParams()
@@ -471,22 +499,34 @@ export function GeolocationSuggestion({
     staleTime: GEOJSON_STALE_TIME,
   })
 
+  // Beside the filter panel's Near me, a second "near you" offer is one location control too many.
+  const filterPanelUp = useFilterPanelState((s) => s.onScreen)
   const show = useMemo(
     () =>
+      !filterPanelUp &&
       shouldShowGeolocationPrompt({
         guess: ipLocation,
         dismissed,
         activeSearch,
         geojson,
-        regionCenter,
+        regionCenter: region?.center,
+        viewedCountry: region?.countryCode,
       }),
-    [ipLocation, dismissed, activeSearch, geojson, regionCenter],
+    [
+      filterPanelUp,
+      ipLocation,
+      dismissed,
+      activeSearch,
+      geojson,
+      region?.center,
+      region?.countryCode,
+    ],
   )
 
-  const handleSelect = useCallback(() => {
+  const accept = useCallback(() => {
     if (!ipLocation) return
 
-    // Accepting must NOT persist a dismissal — only the close button does (handleDismiss).
+    // Accepting must NOT persist a dismissal — only the close button does (dismiss).
     // Zooming to the guess already hides the prompt on its own. The new URL carries
     // `?center`/`?q`, so `hasActivePlaceSearch` suppresses it while the visitor is looking at
     // that area. Leaving the area, by clearing the search, brings the suggestion back, so it
@@ -497,10 +537,8 @@ export function GeolocationSuggestion({
         center: [ipLocation.longitude, ipLocation.latitude],
         // A synthesized city-sized box, so the search frames a neighbourhood
         // rather than the pinpoint zoom a bare centre gets. The device fix
-        // uses the same floor — see `nearbyBounds`, which additionally
-        // extends to the classes themselves, because there the point is
-        // precise enough for that to mean something.
-        bbox: approxBounds([ipLocation.longitude, ipLocation.latitude], NEARBY_RADIUS_KM),
+        // uses the same box (`aroundVisitor`).
+        bbox: aroundVisitor([ipLocation.longitude, ipLocation.latitude]),
         // The same searched-country marker SearchField writes — the guess
         // already carries the code (it also orders an event's share
         // targets), so an accepted suggestion that lands in a program-less
@@ -510,15 +548,35 @@ export function GeolocationSuggestion({
     )
   }, [ipLocation, navigate, searchParams])
 
-  const handleDismiss = useCallback(() => {
+  const dismiss = useCallback(() => {
     markGeolocationDismissed()
     setDismissed(true)
   }, [])
 
-  // `!ipLocation` is implied by `!show`, but narrows the type for the render below.
-  if (!ipLocation || !show) return null
+  // `!ipLocation` is implied by `!show`, but narrows the type for callers.
+  return ipLocation && show ? { guess: ipLocation, accept, dismiss } : null
+}
+
+/**
+ * The suggestion under the search field, for a country other than the guess. (The world view
+ * offers the guess in its near-me row instead.) Anton wants it beside the search, as part of it
+ * (6 Nov), so it always sits there. The trade-off: when the lookup lands after the list has
+ * painted, the list moves down by this one row (seen at about 8s on iOS).
+ */
+export function GeolocationSuggestion({
+  region,
+}: {
+  region: { center?: [number, number] | null; countryCode?: string | null }
+}) {
+  const suggestion = useIpSuggestion(region)
+
+  if (!suggestion) return null
 
   return (
-    <GeolocationPrompt city={ipLocation.city} onAccept={handleSelect} onClose={handleDismiss} />
+    <GeolocationPrompt
+      city={suggestion.guess.city}
+      onAccept={suggestion.accept}
+      onClose={suggestion.dismiss}
+    />
   )
 }

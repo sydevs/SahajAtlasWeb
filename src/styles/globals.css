@@ -110,13 +110,17 @@
   --breakpoint-2xl: 1536px;
 
   /* v4 renamed this scale one step down (its `sm` is v3's `DEFAULT`), so the names are
-     written out rather than inherited: `rounded-sm` has to stay 2px. */
+     written out rather than inherited. */
   --radius-*: initial;
-  --radius: 4px;
-  --radius-sm: 2px;
-  --radius-md: 6px;
+  /* One radius rule: 16px for panels (`xl`, `2xl`), 8px for everything inside them
+     (buttons, inputs, cards, rows), `rounded-full` only for pills. The smaller steps
+     point at 8px rather than being renamed across the app, so `rounded` and `rounded-sm`
+     can't bring 2, 4 or 6 back. The checkbox is the one exception, in its own file. */
+  --radius: 8px;
+  --radius-sm: 8px;
+  --radius-md: 8px;
   --radius-lg: 8px;
-  --radius-xl: 12px;
+  --radius-xl: 16px;
   --radius-2xl: 16px;
   --radius-3xl: 24px;
 
@@ -430,6 +434,12 @@
    already `none`), so the popover never steals hover from the pin beneath it or
    blocks tap-to-open — it is a purely visual affordance. This is plain CSS, not a
    Tailwind layer, so it reliably overrides the imported mapbox-gl.css. */
+/* Mapbox disables the locate button when the browser refuses location outright, such as in an
+   iframe with no `allow="geolocation"`, and shows a crossed-out icon nobody can act on. */
+.mapboxgl-ctrl-group:has(> .mapboxgl-ctrl-geolocate:disabled) {
+  display: none;
+}
+
 .event-pin-popover .mapboxgl-popup-content {
   padding: 0;
   background: none;
@@ -446,6 +456,22 @@
    for a custom class: it emits with the utilities, and — the part that is not
    cosmetic — it is what lets `@apply bg-panel` below resolve at all. v4's `@apply`
    takes utilities, and a bare class inside a layer is not one. */
+/* An invisible 44px tap area around a smaller control, on touch screens only, so the control can
+   keep its visual size. It needs a positioned element, so pair it with `relative`. */
+@utility touch-target {
+  @media (pointer: coarse) {
+    &::after {
+      content: '';
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      width: max(100%, 44px);
+      height: max(100%, 44px);
+      transform: translate(-50%, -50%);
+    }
+  }
+}
+
 @utility bg-panel {
   @apply bg-background/90 backdrop-blur-lg backdrop-saturate-150;
 }
@@ -471,7 +497,7 @@
 }
 
 /* The iOS zoom floor (#322). Safari scales the host's whole page in when a focused field
-   computes under 16px, and nothing of ours can undo it. The 13px scale needs a wide screen
+   computes under 16px, and nothing of ours can undo it. The smaller 14px size needs a wide screen
    AND a fine pointer — focus zoom is the engine's behaviour, not the viewport's, and an iPhone
    is 932px wide in landscape. One name, so `[&_input]:field-size` reaches a library's own
    input in one arm where the class pair needed two, CSS having no `or`. */
@@ -501,7 +527,10 @@
    already flip with light/dark plus the tenant accent, the calendar follows the theme
    with no second palette. This sits outside a Tailwind layer, so the overrides always
    win. */
-.sx-calendar {
+/* `.is-dark` repeats the mapping because Schedule-X sets its own purple palette on that class, on
+   an element inside this wrapper, which beat the inherited values. */
+.sx-calendar,
+.sx-calendar .is-dark {
   --sx-color-primary: hsl(var(--primary-9));
   /* The on-primary/secondary colours are the theme-adaptive `--*-on` tokens (light: white,
      dark: black — the same on-color the solid Button uses), NOT a `--*-contrast` token, which
@@ -509,15 +538,16 @@
      legible on dark mode's lighter primary-9 (the today-highlight readability bug). */
   --sx-color-on-primary: hsl(var(--primary-on));
   --sx-color-primary-container: hsl(var(--primary-4));
-  --sx-color-on-primary-container: hsl(var(--primary-11));
+  /* Plain text on the tints: the brand's -11 step measured under 3:1 on its own tint. */
+  --sx-color-on-primary-container: var(--gray-12);
   --sx-color-secondary: hsl(var(--secondary-9));
   --sx-color-on-secondary: hsl(var(--secondary-on));
   --sx-color-secondary-container: hsl(var(--secondary-4));
-  --sx-color-on-secondary-container: hsl(var(--secondary-11));
+  --sx-color-on-secondary-container: var(--gray-12);
   --sx-color-tertiary: hsl(var(--primary-9));
   --sx-color-on-tertiary: hsl(var(--primary-on));
   --sx-color-tertiary-container: hsl(var(--primary-4));
-  --sx-color-on-tertiary-container: hsl(var(--primary-11));
+  --sx-color-on-tertiary-container: var(--gray-12);
   --sx-color-surface: hsl(var(--background));
   --sx-color-surface-bright: hsl(var(--background));
   --sx-color-surface-dim: var(--gray-2);
@@ -529,12 +559,14 @@
   --sx-color-on-background: var(--gray-12);
   --sx-color-outline: var(--gray-7);
   --sx-color-outline-variant: var(--gray-6);
-  --sx-color-neutral: var(--gray-9);
+  --sx-color-neutral: var(--gray-11);
   --sx-color-neutral-variant: var(--gray-8);
   --sx-internal-color-text: var(--gray-12);
   --sx-internal-color-light-gray: var(--gray-4);
   --sx-border: var(--gray-6);
+}
 
+.sx-calendar {
   height: 100%;
   min-height: 0;
 }
@@ -575,54 +607,320 @@
   animation: none;
 }
 
+/* A list entry carries two lines, the class and then its place, joined by a newline
+   (`title` in `eventsToCalendarEntries`). The grid views fold it to a space. */
+.sx-calendar .sx__list-event-title {
+  white-space: pre-line;
+}
+
+/* Calendar rows read as this app's list rows rather than Schedule-X's tinted cards with a
+   coloured stripe. "Online" is now written in the row, so the colour no longer has to say it. */
+.sx-calendar .sx__month-agenda-event,
+.sx-calendar .sx__list-event {
+  display: block;
+  min-height: 56px;
+  margin: 0;
+  padding: 8px 0 !important;
+  border-bottom: 1px solid var(--gray-5);
+  border-radius: 0;
+  cursor: pointer;
+}
+
+.sx-calendar .sx__list-event-color-line {
+  display: none;
+}
+
+.sx-calendar .sx-entry-name {
+  font-size: var(--text-lg);
+  line-height: var(--text-lg--line-height);
+  font-weight: 600;
+  color: var(--gray-12);
+}
+
+.sx-calendar .sx-entry-meta {
+  margin-top: 2px;
+  font-size: var(--text-sm);
+  line-height: var(--text-sm--line-height);
+  color: var(--gray-11);
+}
+
+.sx-calendar .sx__month-agenda-events {
+  padding-inline: 0;
+}
+
+.sx-calendar .sx-entry-cell {
+  width: 100%;
+  overflow: hidden;
+  padding-inline: 6px;
+  border-radius: 4px;
+  background: hsl(var(--primary-3));
+  color: var(--gray-12);
+  font-size: var(--text-xs);
+  line-height: 20px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sx-calendar .sx-entry-cell[data-online='true'] {
+  background: hsl(var(--secondary-3));
+}
+
+/* The phone month grid leaves room for the classes. The day stays 44px tall to tap. */
+.sx-calendar .sx__month-agenda-day {
+  height: 44px;
+  padding-block: 4px;
+}
+
+/* One colour for every day's dots: Schedule-X draws online days so pale they read as no classes. */
+.sx-calendar .sx__month-agenda-day__event-icon {
+  background-color: hsl(var(--primary-9)) !important;
+  filter: none;
+}
+
+.sx-calendar .sx__month-agenda-day-name {
+  color: var(--gray-11);
+}
+
+/* Week entries: a plain tint with no side stripe, and text that fits a one-hour block. */
+.sx-calendar .sx__time-grid-event {
+  border-inline-start: 0 !important;
+}
+
+.sx-calendar .sx-entry-week {
+  height: 100%;
+  overflow: hidden;
+  border-radius: 4px;
+  background: hsl(var(--primary-3));
+}
+
+.sx-calendar .sx-entry-week[data-online='true'] {
+  background: hsl(var(--secondary-3));
+}
+
+.sx-calendar .sx-entry-week-meta {
+  overflow: hidden;
+  padding: 2px 6px 0;
+  color: var(--gray-11);
+  font-size: var(--text-xs);
+  line-height: 16px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sx-calendar .sx-entry-week-name {
+  display: -webkit-box;
+  overflow: hidden;
+  padding-inline: 6px;
+  color: var(--gray-12);
+  font-size: var(--text-xs);
+  font-weight: 600;
+  line-height: 16px;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
 /* Inside a frame the fixed layer is contained by it, so the frame IS the box to fill.
    Carried by `CompactEmbedView`'s expanded dialog and by `MapFrame`. See
-   `lib/overlay.ts` for why there is only ever one. `data-sy-expanded` below is the
-   narrower, dialog-only marker. */
+   `lib/overlay.ts` for why there is only ever one. */
 [data-sy-frame] {
   --sy-frame-h: 100%;
 }
 
-/* Keeps Mapbox's own control column clear of the expanded surface's collapse control.
-   Both sit in the top-inline-end corner (`CompactEmbedView`'s `ExpandedDialog`), and map
-   mode renders the geolocate button and the attribution there. This is unconditional,
-   rather than direction-aware: under RTL the collapse control moves to the other corner
-   and this nudge is merely unnecessary, which is a better failure than two round buttons
-   on top of each other. */
-[data-sy-expanded] .mapboxgl-ctrl-top-right {
-  margin-top: 40px;
+/* One control column in the map's top-right corner: settings, locate, attribution, in that
+   order and all the same disc. The cog is ours and sits outside the map, Mapbox owns the other
+   two, so these variables are what keep them one column: the cog is placed at the top, and
+   Mapbox's own corner starts one disc and one gap below it. Every step is px, so a host page
+   that restyles its root font size can't pull the two apart.
+
+   The safe-area terms only do anything under `viewport-fit=cover`, where the map runs beneath
+   a phone's status bar. Elsewhere they are 0. */
+:root,
+.light,
+.dark {
+  --sy-map-ctrl-size: 40px;
+  --sy-map-ctrl-gap: 8px;
+  --sy-map-ctrl-top: calc(16px + env(safe-area-inset-top, 0px));
+  --sy-map-ctrl-end: calc(16px + env(safe-area-inset-right, 0px));
 }
 
-/* The boot curtain's spinner (views/FullInterface.tsx → MapCurtain). It fades in on a
-   delay, rather than appearing with the frost, so a warm boot — where the camera
-   arrives almost at once — reads as a clean frost-then-reveal instead of flashing a
-   spinner nobody had time to register. This uses a CSS delay, rather than a timer,
-   because there is no state here to schedule against. `forwards` holds it visible for
-   the genuinely slow case this exists to cover.
+/* The expanded compact embed has its own close control in that corner (32px at 12px in, see
+   `CompactEmbedView`), so the whole column starts below it. */
+[data-sy-expanded] {
+  --sy-map-ctrl-top: 56px;
+  --sy-map-ctrl-end: 12px;
+}
 
-   The PostCSS scoping pass namespaces the keyframes along with the selector, so this
-   cannot collide with an animation of the same name on the host's page. */
-@keyframes sy-map-curtain-in {
-  from {
-    opacity: 0;
+/* `--sy-map-end` is the filters panel's footprint, set on the map by `Map.tsx` while the panel is
+   up, so the column moves in beside the panel rather than sitting under it. It is added to the
+   column's own inset here and in the row below, so one rule never replaces the other. */
+.mapboxgl-ctrl-top-right {
+  top: calc(var(--sy-map-ctrl-top) + var(--sy-map-ctrl-size) + var(--sy-map-ctrl-gap));
+  right: calc(var(--sy-map-ctrl-end) + var(--sy-map-end, 0px));
+}
+
+.mapboxgl-ctrl-top-right .mapboxgl-ctrl {
+  margin: 0 0 var(--sy-map-ctrl-gap);
+}
+
+/* A phone on its side is too short for a column: the sheet's default 300px snap would cover
+   locate and the required attribution. There the same discs run as a row beside the cog, above
+   the sheet's top edge (75px on a 375px-tall screen). */
+@media (max-height: 480px) {
+  .mapboxgl-ctrl-top-right {
+    top: var(--sy-map-ctrl-top);
+    right: calc(
+      var(--sy-map-ctrl-end) + var(--sy-map-ctrl-size) + var(--sy-map-ctrl-gap) +
+        var(--sy-map-end, 0px)
+    );
+    display: flex;
+    flex-direction: row;
+    gap: var(--sy-map-ctrl-gap);
   }
-  to {
-    opacity: 1;
+
+  .mapboxgl-ctrl-top-right .mapboxgl-ctrl {
+    margin: 0;
+    float: none;
   }
 }
 
-.sy-map-curtain-spinner {
-  opacity: 0;
-  animation: sy-map-curtain-in 200ms ease-out 200ms forwards;
+/* The same surface `SettingsMenu`'s trigger draws with utilities. */
+.mapboxgl-ctrl-top-right .mapboxgl-ctrl-group:not(:empty),
+.mapboxgl-ctrl-top-right .mapboxgl-ctrl-attrib.mapboxgl-compact {
+  @apply rounded-full border border-divider bg-background text-gray-11 shadow-lg;
 }
 
-/* Nothing to fade under the preference — this shows it immediately rather than
-   animating it in. */
-@media (prefers-reduced-motion: reduce) {
-  .sy-map-curtain-spinner {
-    opacity: 1;
-    animation: none;
-  }
+.mapboxgl-ctrl-top-right .mapboxgl-ctrl-group button {
+  position: relative;
+}
+
+/* Mapbox pins the attribution button to the corner of a box that grows left when opened. */
+.mapboxgl-ctrl-top-right .mapboxgl-ctrl-group button,
+.mapboxgl-ctrl-top-right .mapboxgl-ctrl-attrib-button {
+  width: calc(var(--sy-map-ctrl-size) - 2px);
+  height: calc(var(--sy-map-ctrl-size) - 2px);
+  overflow: visible;
+  background-color: transparent;
+  background-image: none;
+  border-radius: 9999px;
+}
+
+/* 40px discs that answer a 44px finger, without pushing the column apart. */
+.mapboxgl-ctrl-top-right .mapboxgl-ctrl-group button::after,
+.mapboxgl-ctrl-top-right .mapboxgl-ctrl-attrib-button::after {
+  position: absolute;
+  inset: -3px;
+  content: '';
+}
+
+/* The Mapbox glyphs are bitmaps of a fixed colour, swapped per state. These draw the same
+   meaning from the lucide set the cog uses, as masks, so they take a token. The `!important`
+   beats Mapbox's per-state `background-image` rules without restating each of them. */
+.mapboxgl-ctrl-top-right .mapboxgl-ctrl-geolocate .mapboxgl-ctrl-icon,
+.mapboxgl-ctrl-top-right .mapboxgl-ctrl-attrib-button::before {
+  background-color: currentColor;
+  background-image: none !important;
+  mask-position: center;
+  mask-repeat: no-repeat;
+  mask-size: 20px 20px;
+}
+
+.mapboxgl-ctrl-top-right .mapboxgl-ctrl-geolocate .mapboxgl-ctrl-icon {
+  mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2' stroke-linecap='round'%3E%3Cpath d='M2 12h3M19 12h3M12 2v3M12 19v3'/%3E%3Ccircle cx='12' cy='12' r='7'/%3E%3Ccircle cx='12' cy='12' r='3'/%3E%3C/svg%3E");
+}
+
+.mapboxgl-ctrl-top-right .mapboxgl-ctrl-attrib-button::before {
+  position: absolute;
+  inset: 0;
+  content: '';
+  mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2' stroke-linecap='round'%3E%3Ccircle cx='12' cy='12' r='10'/%3E%3Cpath d='M12 16v-4M12 8h.01'/%3E%3C/svg%3E");
+}
+
+.mapboxgl-ctrl-top-right .mapboxgl-ctrl-attrib.mapboxgl-compact {
+  box-sizing: border-box;
+  min-width: var(--sy-map-ctrl-size);
+  min-height: var(--sy-map-ctrl-size);
+  padding: 0;
+}
+
+.mapboxgl-ctrl-top-right .mapboxgl-ctrl-attrib.mapboxgl-compact-show {
+  padding: 9px 44px 9px 16px;
+  border-radius: 20px;
+}
+
+.mapboxgl-ctrl-top-right .mapboxgl-ctrl-attrib.mapboxgl-compact-show .mapboxgl-ctrl-attrib-button {
+  background-color: transparent;
+}
+
+/* The rest of Mapbox's fixed colours, so every state of the column follows the theme. Hover,
+   focus and the open attribution are its white and black literals otherwise. */
+.mapboxgl-ctrl-top-right .mapboxgl-ctrl button:not(:disabled):hover {
+  background-color: var(--gray-3);
+}
+
+.mapboxgl-ctrl-top-right .mapboxgl-ctrl-group button:focus,
+.mapboxgl-ctrl-top-right .mapboxgl-ctrl-attrib-button:focus {
+  box-shadow: none;
+}
+
+.mapboxgl-ctrl-top-right .mapboxgl-ctrl-group button:focus-visible,
+.mapboxgl-ctrl-top-right .mapboxgl-ctrl-attrib-button:focus-visible {
+  @apply ring-2 ring-focus;
+}
+
+.mapboxgl-ctrl-top-right .mapboxgl-ctrl-geolocate-active .mapboxgl-ctrl-icon,
+.mapboxgl-ctrl-top-right .mapboxgl-ctrl-geolocate-background .mapboxgl-ctrl-icon {
+  color: var(--color-primary-11);
+}
+
+.mapboxgl-ctrl-top-right .mapboxgl-ctrl-geolocate-active-error .mapboxgl-ctrl-icon,
+.mapboxgl-ctrl-top-right .mapboxgl-ctrl-geolocate-background-error .mapboxgl-ctrl-icon {
+  color: var(--color-danger-11);
+}
+
+.mapboxgl-ctrl-top-right .mapboxgl-ctrl-attrib a {
+  color: var(--gray-11);
+}
+
+.mapboxgl-ctrl-top-right .mapboxgl-ctrl-attrib a:hover {
+  color: var(--gray-12);
+}
+
+/* Mapbox's controls stay sharp and usable above the blur that covers the map until the camera
+   arrives (`MapCurtain`, z-10). Without this they read as grey smudges. */
+.mapboxgl-ctrl-top-right {
+  z-index: 20;
+}
+
+/* One focus ring everywhere: a 2px line drawn INSIDE the element. Inside, so a panel's clip can't
+   cut it down to two lines at the sides of a row. Central, so atoms can't drift back to three
+   styles. It overrides each atom's `outline-none` and `ring-*`. Elements focused only by script
+   (`tabindex="-1"`, such as a dialog or an error region) are left alone: nobody tabs to them, and
+   a ring there reads as something selected. */
+:focus-visible:not([tabindex='-1']) {
+  outline: 2px solid var(--color-focus) !important;
+  outline-offset: -2px !important;
+  --tw-ring-offset-shadow: 0 0 #0000 !important;
+  --tw-ring-shadow: 0 0 #0000 !important;
+}
+
+/* Mapbox draws its own blue halo on its controls. */
+.mapboxgl-ctrl button:focus-visible {
+  box-shadow: none !important;
+}
+
+/* `--ornament`: the coral the We Meditate icons are drawn in. The contrast solid (#E08E79)
+   is the app's coral but is under the 3:1 an icon needs on the panel, so light mode mixes
+   it toward the ramp's deep step; dark mode uses the solid itself. Both derive from the
+   contrast ramp, so a host palette repaints them too. */
+:root,
+.light,
+.light-theme {
+  --ornament: color-mix(in srgb, hsl(var(--contrast-9)) 55%, hsl(var(--contrast-11)));
+}
+
+.dark,
+.dark-theme {
+  --ornament: hsl(var(--contrast-9));
 }
 
 /* `--ornament`: the coral the We Meditate icons are drawn in. The contrast solid (#E08E79)

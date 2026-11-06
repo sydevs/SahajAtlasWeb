@@ -1,16 +1,18 @@
 import { useTranslation } from 'react-i18next'
 
-import { DrawerBody, DrawerHeader } from '@/components/atoms/Drawer'
+import { DrawerBody } from '@/components/atoms/Drawer'
 import { EventFacts, FallbackPanel } from '@/components/molecules'
 // This imports the leaf path, not the barrel. ShareContent owns react-share, and eager views
 // import the barrel — so a re-export there would keep react-share in the eager graph, even
 // though this view itself is lazy (issue #96). EventDetails reaches EventActions the same way,
 // for the same reason.
 import { ShareContent } from '@/components/molecules/ShareContent'
+import { QrPoster } from '@/components/molecules/QrPoster'
 import { useMapController } from '@/hooks/use-map-controller'
 import { useShareUrl } from '@/hooks/use-share-url'
 import { useViewerCountry } from '@/hooks/use-viewer-country'
-import { CloseButton, DrawerTitle, useEventFromPath, useFrameOnTop } from '@/views/shared'
+import { NavHeader } from '@/views/nav'
+import { useDrawerControl, useEventFromPath, useFrameOnTop } from '@/views/shared'
 
 // Share links for an event, at route `<event-path>/share`. The event's Share CTA reaches
 // this view, and the route is deep-linkable. So it repeats the compact resolver summary —
@@ -19,6 +21,7 @@ import { CloseButton, DrawerTitle, useEventFromPath, useFrameOnTop } from '@/vie
 export function ShareView({ eventPath }: { eventPath: string }) {
   const { t } = useTranslation()
   const { frameEvent } = useMapController()
+  const { expand } = useDrawerControl()
   // Order the share targets to the viewer's region. This is resolved here, so ShareContent
   // stays a pure, prop-driven molecule.
   const country = useViewerCountry()
@@ -33,21 +36,15 @@ export function ShareView({ eventPath }: { eventPath: string }) {
 
   return (
     <>
-      <DrawerHeader className="justify-between">
-        <DrawerTitle title={t('share.title')} />
-        <CloseButton />
-      </DrawerHeader>
+      <NavHeader subtitle={event.title} title={t('share.title_class')} />
       <DrawerBody className="p-4">
-        <EventFacts
-          className="mx-auto mb-4 w-full max-w-md"
-          event={event}
-          title={event.title}
-          variant="card"
-        />
         {/* Match the summary card's width so the share block lines up with it. */}
         <div className="mx-auto w-full max-w-md">
           {url ? (
-            <ShareContent country={country} label={event.title} url={url} />
+            <div className="flex flex-col gap-4">
+              <ShareContent country={country} label={event.title} url={url} />
+              <QrPoster label={event.title} url={url} onOpen={expand} />
+            </div>
           ) : (
             /* No canonical page, and no route in the URL. The copy field, the native sheet,
                and every react-share target all need a URL. The only string within reach is
@@ -66,6 +63,9 @@ export function ShareView({ eventPath }: { eventPath: string }) {
             />
           )}
         </div>
+        {/* The buttons come first, so they fit the sheet's usual height with the map still in view.
+            The class's name is in the header. Its time and place follow for a direct-link visitor. */}
+        <EventFacts className="mx-auto mt-4 w-full max-w-md" event={event} variant="card" />
       </DrawerBody>
     </>
   )

@@ -223,7 +223,7 @@ shipping a narrow embed that quietly behaves like a desktop.
 | Floating "Add a class" button (`DrawerStack`) | container (via `isWide`) | It sits in the map's bottom-right corner beside the side panel. Below the crossing the bottom sheet covers that corner, and the list row at the foot of each place list is the way in. |
 | Which calendar view renders, which options the switch offers, and which one it lights (`CalendarView`, and `DrawerStack` for the drawer's width) | container (via `useIsWideWidget`) | Not a fit question but a **capability** one: Schedule-X refuses its month grid and its week grid below the crossing, and substitutes silently. So this is the one row where the signal decides what a third-party library *can draw*, not how much room to give it — and a viewport read would light a grid a 320px column cannot render (#331). All five seams read one resolver, so they cannot disagree. |
 | Modal box sizing | container (the frame) | Portals through `overlayContainer()`, so a frame contains and clips it on both axes. |
-| `EventHeader`'s `md:pt-4`, `ListItem`'s `lg:h-9 lg:w-9` | viewport (accepted residue) | The only two variants that fire wrongly in a narrow map-less embed. Both are cosmetic — fix them if you are already there. |
+| `ListItem`'s `lg:h-9 lg:w-9` | viewport (accepted residue) | The only variant that fires wrongly in a narrow map-less embed. It is cosmetic — fix it if you are already there. |
 | Form-field font size — the 16px floor (the `field-size` utility, on `fieldChrome` and both search fields) | **input, then viewport** — one `@utility` in `globals.css`, not one of the three hooks | iOS Safari scales the whole page in when a focused field computes under 16px, and embedded that zoom lands on the host's page. The trigger is the engine, not the box: an iPhone is 932px wide in landscape, so a `md:`-only floor handed it the 13px scale back and zoomed exactly as before (measured). So 13px needs a wide screen **and** a fine pointer — the same hardware question the `tel:` row asks, in CSS rather than `useCoarsePointer()`. A 400px iframe on a desktop therefore does render 16px fields, which is cosmetic and accepted. One utility rather than a class pair also lets `[&_input]:field-size` reach the geocoder's own input in a single arm. `src/styles/mobile-zoom.test.ts` holds the floor, refuses a bare `md:`, and refuses a caller `text-*`, which a custom utility cannot outrank (#322). |
 | Compact card vs. full interface (`AppShell`) | the slot, measured ONCE at mount | Not one of the three signals, and deliberately not reactive — see below. |
 | Reduced motion, color scheme | preference | Not a size question at all — see the accessibility motion seams below. |
@@ -534,9 +534,9 @@ and re-measure rather than trust either this table or the folklore it fixes.
 genuinely must emit its own anchor, its href must go through **`isSafeHref`**
 (`src/lib/shape/href.ts`) first — `safePath`-clean, or an allowed scheme — and a
 refusal reports via `reportInternalError` and degrades to inert content. Exactly
-three components render a JSX anchor (`Link`, `Button`'s href form, `ActionRow`'s
-`ActionCircle`), and `src/lib/shape/href.test.ts` **asserts** that inventory, so a
-fourth turns the unit lane red until it is gated.
+two components render a JSX anchor (`Link` and `Button`'s href form), and
+`src/lib/shape/href.test.ts` **asserts** that inventory, so a
+third turns the unit lane red until it is gated.
 
 For why this is a shared predicate rather than a per-component check, and why
 "site-relative" must mean `safePath` rather than `startsWith('/')`, see
@@ -587,4 +587,4 @@ can render in a Suspense fallback before translation bundles load.
 **A control on the drawer needs `data-vaul-no-drag`.** vaul reads a tap carrying any
 micro-movement as a drag and swallows the click, so a control without this attribute
 fires only intermittently on touch. The `Button` atom sets it for you. Anything
-hand-rolled (`ActionRow`, the carousel's pause button) must carry it itself.
+hand-rolled (the carousel's pause button) must carry it itself.

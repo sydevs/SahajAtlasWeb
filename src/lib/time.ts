@@ -56,16 +56,13 @@ const wallClockOnOneDay = (at: DateTime): Date => new Date(Date.UTC(2000, 0, 1, 
  * already collapses a shared day period onto the end of the range and renders
  * each locale's own convention:
  *
- * - en-US  → "6 – 7 PM"        (shared meridiem collapses)
+ * - en-US  → "6:00 – 7:00 PM"  (shared meridiem collapses)
  * - en-US  → "11:30 AM – 1:00 PM" (differing meridiems both show)
- * - de     → "18–19 Uhr"       (24-hour, localized suffix)
+ * - en-GB  → "18:00–19:00"     (the region's 24-hour clock)
+ * - de     → "18:00–19:00 Uhr" (24-hour, localized suffix)
  *
- * One thing Intl will not do is drop a `:00`, so this picks the option
- * set: a range whose endpoints both land on the hour formats without
- * minutes, and any range with real minutes keeps them on both ends (mixing
- * them within a single range is not expressible through one formatter, and
- * hand-splicing the parts would reintroduce exactly the locale bugs this
- * avoids).
+ * Minutes always show, so every time on screen has one shape ("5:00 PM", "7:30 PM",
+ * "5:00 – 6:30 PM") rather than mixing "5 PM" with "5:00 – 6:30 PM".
  *
  * Both endpoints are read in the start's zone — a caller may hand over either
  * — and pinned to one calendar day, so an overnight range keeps its
@@ -74,12 +71,14 @@ const wallClockOnOneDay = (at: DateTime): Date => new Date(Date.UTC(2000, 0, 1, 
  */
 export function formatTimeRange(start: DateTime, end: DateTime | null, locale: string): string {
   const endInZone = end?.setZone(start.zone) ?? null
-  const onTheHour = start.minute === 0 && (endInZone === null || endInZone.minute === 0)
 
   const formatter = new Intl.DateTimeFormat(locale, {
     hour: 'numeric',
-    ...(onTheHour ? {} : { minute: '2-digit' as const }),
+    minute: '2-digit',
     timeZone: 'UTC',
+    // English always says am or pm, even where the region's clock is 24-hour (en-GB): "4:00"
+    // alone could be morning or afternoon (Anton, 6 Nov). Other languages keep their own clock.
+    ...(isEnglish(locale) ? { hour12: true } : {}),
   })
 
   if (!endInZone || +endInZone === +start) return formatter.format(wallClockOnOneDay(start))
@@ -103,3 +102,55 @@ export function zoneLabel(zone: string, locale: string, at: Date = new Date()): 
     return zone
   }
 }
+const isEnglish = (locale: string): boolean => locale.split('-')[0].toLowerCase() === 'en'
+
+/**
+ * The locale to format dates and times in: the visitor's own regional variant when its language
+ * is the one on screen, so an English page reads "Tue, 10 Nov" and "19:30" for a browser set to
+ * en-GB, and "Tue, Nov 10" and "7:30 PM" for en-US. The interface's language alone says nothing
+ * about the region. A browser in another language keeps the interface's own format, since
+ * mixing a French date pattern into an English sentence would read worse.
+ */
+export function regionalLocale(
+  locale: string,
+  browserLocales: readonly string[] = typeof navigator === 'undefined' ? [] : navigator.languages,
+): string {
+  const language = locale.split('-')[0].toLowerCase()
+  const match = browserLocales.find((tag) => tag.split('-')[0].toLowerCase() === language)
+
+  return match ?? locale
+}
+
+// Schedule-X validates `locale` against its own supported BCP-47 set, and THROWS
+// (`InvalidLocaleError`) on an unknown code — this project's short `en`/`de`/… crash it. This
+// maps this project's locales to the closest one SX 2.36 ships. Hungarian, which SX lacks, falls
+// back to en-US chrome. This project's own header stays fully localized via i18n.
+const SCHEDULE_X_LOCALES: Record<string, string> = {
+  en: 'en-US',
+  'en-GB': 'en-GB',
+  'en-AU': 'en-GB',
+  de: 'de-DE',
+  fr: 'fr-FR',
+  es: 'es-ES',
+  cs: 'cs-CZ',
+  nl: 'nl-NL',
+  ru: 'ru-RU',
+  uk: 'uk-UA',
+  'pt-BR': 'pt-BR',
+}
+
+/**
+ * The Schedule-X locale for a locale tag: the exact tag, then its base language, so a `de-AT` or
+ * `fr-CA` browser (see `regionalLocale`) keeps calendar labels in its own language.
+ */
+export const scheduleXLocale = (locale: string): string =>
+  SCHEDULE_X_LOCALES[locale] ?? SCHEDULE_X_LOCALES[locale.split('-')[0].toLowerCase()] ?? 'en-US'
+
+/**
+ * The name Schedule-X files a locale's strings under: its code without the hyphen (`en-GB` →
+ * `enGB`). A `translations` config REPLACES Schedule-X's built-in table instead of adding to it,
+ * and a locale with no entry there shows its raw keys ("+ {{n}} events"). So an override has to
+ * sit under the exact code the calendar runs in, which follows the visitor's region.
+ */
+export const scheduleXTranslationKey = (scheduleXCode: string): string =>
+  scheduleXCode.replaceAll('-', '')

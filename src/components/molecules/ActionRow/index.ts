@@ -1,2 +1,2 @@
-export { ActionRow, ActionCircle } from './ActionRow'
-export type { ActionRowProps, ActionCircleProps } from './ActionRow'
+export { ActionRow, ActionButton } from './ActionRow'
+export type { ActionRowProps, ActionButtonProps } from './ActionRow'

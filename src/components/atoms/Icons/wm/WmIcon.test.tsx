@@ -13,8 +13,8 @@ describe('WmIcon', () => {
   })
 
   it('namespaces the clip-path id, so two inline icons cannot clip each other', () => {
-    expect(html).toContain('id="sy-wm-meditate-a"')
-    expect(html).toContain('url(#sy-wm-meditate-a)')
+    expect(html).toContain('id="sy-wm-meditate-current-a"')
+    expect(html).toContain('url(#sy-wm-meditate-current-a)')
     expect(html).not.toContain('id="a"')
   })
 

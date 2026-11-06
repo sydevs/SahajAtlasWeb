@@ -8,7 +8,7 @@ import { useTranslation } from 'react-i18next'
 import { useLocale } from './use-locale'
 
 import { resolveEventDisplay } from '@/lib/shape'
-import { formatTimeRange, sameWallClock, zoneCity } from '@/lib/time'
+import { formatTimeRange, regionalLocale, sameWallClock, zoneCity } from '@/lib/time'
 
 /** This is what the formatting layer reads on top of the resolver input: the address and
  *  region refs that feed the where and origin strings, when the surface has them. */
@@ -22,8 +22,7 @@ export type EventDisplayStrings = {
   display: EventDisplay
   /** "Weekly class" / "Course · 8 sessions" / "One-off event" */
   typeLabel: string
-  /** This is true for a plain weekly class, the default shape. Its `typeLabel` adds
-   *  nothing on a compact surface, so the list card skips its type pill. */
+  /** A plain weekly class: the default type, which a compact card leaves unnamed. */
   isDefaultType: boolean
   /** Status chip text, or null when the state shows no chip. */
   statusChip: string | null
@@ -38,6 +37,14 @@ export type EventDisplayStrings = {
   eventStartTime: string | null
   /** This is a one-line location: hosted-from for an online event, street and city for a physical one. */
   whereLine: string
+  /** `whereLine` plus the postcode, for the surfaces that give directions: "120 Heath St,
+   *  London NW3 1DR". An online or inactive event has no postcode to show. */
+  whereLineFull: string
+  /**
+   * The list card's location line. For an online class it is only "Hosted from …": the card
+   * already says Online in a coloured tag beside the title (Anton, 6 Nov). Otherwise `whereLine`.
+   */
+  whereLineCard: string
   /** The room inside the venue, such as "Room: Hall B", for a physical, non-inactive event that names one. */
   roomLine: string | null
   /** For an online event only, the HOST's clock and city, faded below the where line, such
@@ -118,14 +125,17 @@ export function useEventDisplay(event: DisplayableEvent): EventDisplayStrings {
   const minute = Math.floor(Date.now() / 60_000)
 
   return useMemo(() => {
+    const formatLocale = regionalLocale(locale)
     const display = resolveEventDisplay(event)
     const schedule = event.schedule
     const { kind, status, full, next, nextEnd, origin, firstSession, sessions } = display
 
     const date = (dt: DateTime) =>
-      dt.setLocale(locale).toLocaleString({ weekday: 'short', day: 'numeric', month: 'short' })
+      dt
+        .setLocale(formatLocale)
+        .toLocaleString({ weekday: 'short', day: 'numeric', month: 'short' })
     const shortDate = (dt: DateTime) =>
-      dt.setLocale(locale).toLocaleString({ day: 'numeric', month: 'short' })
+      dt.setLocale(formatLocale).toLocaleString({ day: 'numeric', month: 'short' })
 
     const sessionsLabel =
       sessions != null ? t('event.display.sessions_count', { count: sessions }) : null
@@ -152,11 +162,6 @@ export function useEventDisplay(event: DisplayableEvent): EventDisplayStrings {
       else typeLabel = t('event.display.type_class')
     }
 
-    // The plain weekly class is the default shape.
-    // Naming it on a compact surface, the list card's pill, adds nothing, so cards skip it.
-    const isDefaultType =
-      kind === 'class' && schedule?.recurrenceType === 'WEEKLY' && (schedule?.interval ?? 1) === 1
-
     // ── Status chip ──
     const chipDate = firstSession ?? next
     let statusChip: string | null = null
@@ -178,7 +183,7 @@ export function useEventDisplay(event: DisplayableEvent): EventDisplayStrings {
     if (next && recurrence) {
       const interval = schedule?.interval ?? 1
       const weekdayNames = display.weekdayInstants.map((dt) =>
-        dt.setLocale(locale).toLocaleString({ weekday: 'long' }),
+        dt.setLocale(formatLocale).toLocaleString({ weekday: 'long' }),
       )
       const weekdays = new Intl.ListFormat(locale, { style: 'long', type: 'conjunction' }).format(
         weekdayNames,
@@ -198,7 +203,7 @@ export function useEventDisplay(event: DisplayableEvent): EventDisplayStrings {
               : t('event.recurrence.weekly_1', { weekday: weekdays })
       } else if (schedule?.monthlyMode === 'weekday' && schedule.weekNumber)
         recurrenceLine = t(WEEK_NUMBER_KEYS[schedule.weekNumber], {
-          weekday: next.setLocale(locale).toLocaleString({ weekday: 'long' }),
+          weekday: next.setLocale(formatLocale).toLocaleString({ weekday: 'long' }),
         })
       else recurrenceLine = t('event.recurrence.monthly_date', { day: next.day })
     }
@@ -226,9 +231,21 @@ export function useEventDisplay(event: DisplayableEvent): EventDisplayStrings {
     // ── Times ──
     // These are in the display zone, the viewer's for an online event, so they agree with the
     // weekday, the date and the calendar. There is no clock label: issue #52 dropped those.
-    const eventStartTime = next ? formatTimeRange(next, null, locale) : null
+    // Which clock a time is in, said beside it by its city (Anton, 6 Nov): "8:00 pm Prague time".
+    // An online class is shown in the viewer's own zone, so it always names the viewer's city. An
+    // in-person class is in its venue's zone, which only needs saying when the viewer's clock
+    // differs: "London time" seen from Prague, nothing in London. Compared by offset, so zones that
+    // agree right now count as the same. The city is the zone's own (`zoneCity`), so it needs no
+    // lookup and works anywhere, where abbreviations like EST exist only for some zones.
+    const zoneLabel = !next
+      ? null
+      : display.online || next.offset !== DateTime.now().offset
+        ? t('event.display.zone_time', { city: zoneCity(next.zoneName) })
+        : null
+    const withZone = (time: string) => (zoneLabel ? `${time} ${zoneLabel}` : time)
+    const eventStartTime = next ? withZone(formatTimeRange(next, null, formatLocale)) : null
     const eventTimeRange = next
-      ? formatTimeRange(next, schedule?.endTime ? nextEnd : null, locale)
+      ? withZone(formatTimeRange(next, schedule?.endTime ? nextEnd : null, formatLocale))
       : null
 
     const originCity = event.address?.city ?? event.region?.name ?? zoneCity(origin?.zoneName)
@@ -243,6 +260,19 @@ export function useEventDisplay(event: DisplayableEvent): EventDisplayStrings {
         : [event.address?.street, event.address?.city].filter(Boolean).join(', ') ||
           event.region?.name ||
           ''
+    // A postcode is how people check they have the right place. Hosts sometimes type it into
+    // the street or city field, so it is added only when it is not already there.
+    const postCode = event.address?.postCode?.trim()
+    const showPostCode =
+      !display.online &&
+      display.status !== 'inactive' &&
+      postCode &&
+      whereLine &&
+      !whereLine.toLowerCase().includes(postCode.toLowerCase())
+    const whereLineFull = showPostCode ? `${whereLine} ${postCode}` : whereLine
+    const whereLineCard = display.online
+      ? t('event.display.hosted_from', { city: originCity })
+      : whereLine
     // An inactive listing hides the street, so its room would be the same wrong answer.
     const room = event.address?.room?.trim()
     const roomLine =
@@ -250,8 +280,8 @@ export function useEventDisplay(event: DisplayableEvent): EventDisplayStrings {
         ? t('event.display.room', { room })
         : null
     // For an online event only, the host's own clock, faded under the where line, such as
-    // "Wed 7:30 PM". It carries no place name: the line directly above it already reads
-    // "Hosted from Prague", so naming the city again says nothing. The weekday shows ONLY when
+    // "Wed 7:30 pm Prague time", named like the viewer's time on the line above it, so the two
+    // clocks read the same way. The weekday shows ONLY when
     // the host's day differs from the viewer's. Otherwise it is noise.
     //
     // This is skipped entirely when the viewer shares the host's offset, since it would just
@@ -262,9 +292,10 @@ export function useEventDisplay(event: DisplayableEvent): EventDisplayStrings {
     if (origin && next && !sameWallClock(origin, next)) {
       whereSubtext = [
         origin.weekday !== next.weekday
-          ? origin.setLocale(locale).toLocaleString({ weekday: 'short' })
+          ? origin.setLocale(formatLocale).toLocaleString({ weekday: 'short' })
           : null,
-        formatTimeRange(origin, null, locale),
+        formatTimeRange(origin, null, formatLocale),
+        t('event.display.zone_time', { city: zoneCity(origin.zoneName) }),
       ]
         .filter(Boolean)
         .join(' ')
@@ -274,7 +305,7 @@ export function useEventDisplay(event: DisplayableEvent): EventDisplayStrings {
     const registerLabel = t(
       display.registration === 'closed'
         ? 'event.display.registration_closed'
-        : 'event.display.register_now',
+        : 'event.display.register_free',
     )
     const microcopy: string[] = []
 
@@ -304,6 +335,9 @@ export function useEventDisplay(event: DisplayableEvent): EventDisplayStrings {
             ? t('event.display.contact_for_timing')
             : null
 
+    const isDefaultType =
+      kind === 'class' && schedule?.recurrenceType === 'WEEKLY' && (schedule?.interval ?? 1) === 1
+
     return {
       display,
       typeLabel,
@@ -314,6 +348,8 @@ export function useEventDisplay(event: DisplayableEvent): EventDisplayStrings {
       eventTimeRange,
       eventStartTime,
       whereLine,
+      whereLineFull,
+      whereLineCard,
       roomLine,
       whereSubtext,
       registerLabel,

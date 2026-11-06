@@ -34,6 +34,8 @@ export type WidgetMode = {
   standalone: boolean
   hasMap: boolean
   linkable: boolean
+  /** Set by `AppShell`, for `ClientGate`. Absent in a story or spec with no shell above it. */
+  apiKey?: string
 }
 
 /**
@@ -46,3 +48,10 @@ export const DEFAULT_WIDGET_MODE: WidgetMode = { standalone: false, hasMap: true
 export const WidgetModeContext = createContext<WidgetMode>(DEFAULT_WIDGET_MODE)
 
 export const useWidgetMode = () => useContext(WidgetModeContext)
+
+/** `view=list`: which of the two surfaces is showing, and the way to the other. */
+export type SurfaceSwitch = { surface: 'list' | 'map'; toggle: () => void }
+
+export const SurfaceSwitchContext = createContext<SurfaceSwitch | null>(null)
+
+export const useSurfaceSwitch = () => useContext(SurfaceSwitchContext)

@@ -14,14 +14,16 @@ import { IconSvgProps } from '@/types'
 const chip = tv({
   slots: {
     base: 'inline-flex max-w-full items-center gap-1',
-    content: 'min-w-0 truncate leading-none uppercase',
+    content: 'min-w-0 truncate leading-none tracking-[0.3px] uppercase',
     // The close button carries the app's standard focus ring, not only the
     // opacity lift it used to have on its own (issue #102). Opacity is also
     // what HOVER does. So on a chip the pointer happens to rest on, a
     // keyboard user got no signal that focus had landed there. The ring is
     // the same `focus-visible:ring-2 ring-focus` every other control draws.
+    // `touch-target` gives the 12px × an invisible 44px tap area on touch screens, at the
+    // same drawn size.
     close:
-      'shrink-0 rounded-full opacity-60 transition-opacity outline-none hover:opacity-100 focus-visible:opacity-100 focus-visible:ring-2 focus-visible:ring-focus',
+      'touch-target relative shrink-0 rounded-full opacity-60 transition-opacity outline-none hover:opacity-100 focus-visible:opacity-100 focus-visible:ring-2 focus-visible:ring-focus',
   },
   variants: {
     color: { primary: '', secondary: '', contrast: '', neutral: '' },

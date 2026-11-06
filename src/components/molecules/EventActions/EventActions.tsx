@@ -1,9 +1,9 @@
 import { FloatingFocusManager, FloatingPortal } from '@floating-ui/react'
 import { useTranslation } from 'react-i18next'
-import { Globe, Milestone, PhoneOutgoing, Share } from 'lucide-react'
+import { Globe, Mail, Navigation, Phone, Share } from 'lucide-react'
 
 import { useAtlasNavigate } from '@/hooks/use-atlas-navigate'
-import { ActionCircle, ActionRow } from '@/components/molecules/ActionRow'
+import { ActionButton, ActionRow } from '@/components/molecules/ActionRow'
 import { CopyField } from '@/components/molecules/ShareContent'
 import { useCoarsePointer } from '@/config/responsive'
 import { useEventDisplay } from '@/hooks/use-event-display'
@@ -12,7 +12,10 @@ import { directionsUrl } from '@/lib'
 import { overlayContainer } from '@/lib/overlay'
 import { Event } from '@/types'
 
-// The desktop contact action: the circle, plus a popover carrying the
+// One size for every action, so the row reads as a set.
+const ICON_SIZE = 18
+
+// The desktop contact action: the button, plus a popover carrying the
 // number and a copy affordance. A raw `tel:` link is a desktop dead end.
 // This uses the same @floating-ui pattern as the Dropdown atom. It is
 // portaled, so the scrolling panel never clips it. It is viewport-aware,
@@ -20,12 +23,16 @@ import { Event } from '@/types'
 // because the hook cannot run inside the action `flatMap` below.
 function ContactPopover({
   label,
+  lead,
   name,
   phone,
+  stacked,
 }: {
   label: string
+  lead: boolean
   name?: string | null
   phone: string
+  stacked: boolean
 }) {
   const { isOpen, refs, floatingStyles, context, getReferenceProps, getFloatingProps } = usePopover(
     {
@@ -36,11 +43,12 @@ function ContactPopover({
 
   return (
     <>
-      <ActionCircle
+      <ActionButton
         ref={refs.setReference}
-        icon={<PhoneOutgoing />}
+        icon={<Phone size={ICON_SIZE} />}
         label={label}
-        variant="bordered"
+        lead={lead}
+        stacked={stacked}
         {...getReferenceProps()}
       />
       {isOpen && (
@@ -84,8 +92,8 @@ export type EventActionsProps = {
 }
 
 /**
- * The secondary action row (issue #52, WS3): equal-weight labelled tonal
- * circles, set per resolver state. Contact is `tel:` on touch, and a popover
+ * The secondary action row (issue #52, WS3): equal-weight labelled buttons,
+ * set per resolver state. Contact is `tel:` on touch, and a popover
  * with the number and copy on desktop. A raw tel: link is a desktop dead end.
  */
 export function EventActions({ event, basePath }: EventActionsProps) {
@@ -101,48 +109,69 @@ export function EventActions({ event, basePath }: EventActionsProps) {
   const { display } = useEventDisplay(event)
 
   const mapsUrl = directionsUrl(event.address)
+  // A by-request class says "Contact host for timings", so Contact is its one solid button.
+  const contactLeads = display.status === 'inactive'
 
-  const circles = display.actions.flatMap((action) => {
+  // Website makes four, which is too tight for icon-beside-label on a phone.
+  const stacked = display.actions.length > 3 && Boolean(event.website)
+
+  const buttons = display.actions.flatMap((action) => {
     switch (action) {
       case 'directions':
         return mapsUrl
           ? [
-              <ActionCircle
+              <ActionButton
                 key="directions"
                 isExternal
                 href={mapsUrl}
-                icon={<Milestone className="rtl:-scale-x-100" />}
+                icon={<Navigation size={ICON_SIZE} />}
                 label={t('event.actions.directions')}
-                variant="bordered"
+                stacked={stacked}
               />,
             ]
           : []
       case 'website':
         return event.website
           ? [
-              <ActionCircle
+              <ActionButton
                 key="website"
                 isExternal
                 href={event.website}
-                icon={<Globe />}
+                icon={<Globe size={ICON_SIZE} />}
                 label={t('event.actions.website')}
-                variant="bordered"
+                stacked={stacked}
               />,
             ]
           : []
       case 'contact': {
-        if (!event.contactPhone) return []
         const label = t('event.actions.contact')
+
+        // A host with an email and no phone: the button writes to them.
+        if (!event.contactPhone) {
+          return event.contactEmail
+            ? [
+                <ActionButton
+                  key="contact"
+                  href={`mailto:${event.contactEmail}`}
+                  icon={<Mail size={ICON_SIZE} />}
+                  label={t('event.actions.email')}
+                  lead={contactLeads}
+                  stacked={stacked}
+                />,
+              ]
+            : []
+        }
 
         // Touch devices dial. Everything else shows the number with a copy affordance.
         if (canDial) {
           return [
-            <ActionCircle
+            <ActionButton
               key="contact"
               href={`tel:${event.contactPhone}`}
-              icon={<PhoneOutgoing />}
-              label={label}
-              variant="bordered"
+              icon={<Phone size={ICON_SIZE} />}
+              label={t('event.actions.call')}
+              lead={contactLeads}
+              stacked={stacked}
             />,
           ]
         }
@@ -151,25 +180,27 @@ export function EventActions({ event, basePath }: EventActionsProps) {
           <ContactPopover
             key="contact"
             label={label}
+            lead={contactLeads}
             name={event.contactName}
             phone={event.contactPhone}
+            stacked={stacked}
           />,
         ]
       }
       case 'share':
         return [
-          <ActionCircle
+          <ActionButton
             key="share"
-            icon={<Share size={20} />}
+            icon={<Share size={ICON_SIZE} />}
             label={t('event.actions.share')}
-            variant="bordered"
+            stacked={stacked}
             onClick={() => navigate(`${basePath}/share`)}
           />,
         ]
     }
   })
 
-  if (circles.length === 0) return null
+  if (buttons.length === 0) return null
 
-  return <ActionRow>{circles}</ActionRow>
+  return <ActionRow>{buttons}</ActionRow>
 }

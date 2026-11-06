@@ -10,7 +10,7 @@ vi.mock('react-i18next', () => ({
   useTranslation: () => ({
     t: (key: string, opts?: { city?: string }) =>
       ({
-        'search.nearby_prompt.title': `Looking for classes near ${opts?.city}?`,
+        'countries.near_city': `Classes near ${opts?.city}`,
         'search.nearby_prompt.dismiss': 'Dismiss',
       })[key] ?? key,
   }),
@@ -24,7 +24,7 @@ describe('GeolocationPrompt', () => {
       <GeolocationPrompt city="Paris" onAccept={noop} onClose={noop} />,
     )
 
-    expect(html).toContain('Looking for classes near Paris?')
+    expect(html).toContain('Classes near Paris')
     expect(html).not.toContain('your location')
   })
 
@@ -34,7 +34,7 @@ describe('GeolocationPrompt', () => {
     )
 
     expect(html).toContain('<button')
-    expect(html).toContain('Looking for classes near Berlin?')
+    expect(html).toContain('Classes near Berlin')
   })
 
   it('is a polite status with an accessible dismiss label — not an assertive alert', () => {
@@ -48,14 +48,46 @@ describe('GeolocationPrompt', () => {
     expect(html).not.toContain('role="alert"')
   })
 
-  it('is a warm-tinted, header-aligned, vertically-centred single line', () => {
+  it('matches the search field it hangs under: light blue, 8px corners, the field type size', () => {
     const html = renderToStaticMarkup(
       <GeolocationPrompt city="Paris" onAccept={noop} onClose={noop} />,
     )
 
-    expect(html).toContain('bg-contrast-3')
+    // Today's blue tint, which Anton preferred to sand (6 Nov).
+    expect(html).toContain('bg-secondary-3')
+    // Never the coral tint: a pink band reads like an error.
+    expect(html).not.toContain('bg-contrast-3')
+    // The field's corners and type size, so it reads as one of the field's suggestions.
+    expect(html).toContain('rounded-lg')
+    expect(html).toContain('field-size')
     expect(html).toContain('items-center')
-    // This aligns the horizontal padding with the drawer header (px-4).
-    expect(html).toContain('mx-4')
+  })
+
+  it('offers one thing only: no second link out to a country website', () => {
+    const html = renderToStaticMarkup(
+      <GeolocationPrompt city="Prague" onAccept={noop} onClose={noop} />,
+    )
+
+    expect(html).not.toContain('<a ')
+    expect(html).not.toContain('search.country_site.cta')
+  })
+
+  it('reads "Classes near me" with no × when there is no guess to dismiss', () => {
+    const html = renderToStaticMarkup(<GeolocationPrompt label="Classes near me" onAccept={noop} />)
+
+    expect(html).toContain('Classes near me')
+    expect(html).not.toContain('aria-label="Dismiss"')
+  })
+
+  it('is busy while locating, and announces a failure at once', () => {
+    const busy = renderToStaticMarkup(
+      <GeolocationPrompt busy label="Finding your location…" onAccept={noop} />,
+    )
+    const failed = renderToStaticMarkup(
+      <GeolocationPrompt alert label="We couldn't get your location." onAccept={noop} />,
+    )
+
+    expect(busy).toContain('disabled')
+    expect(failed).toContain('role="alert"')
   })
 })

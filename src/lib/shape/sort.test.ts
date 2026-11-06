@@ -12,6 +12,18 @@ import {
 import { mockEventSlim } from '@/mocks/events'
 import { EventSlim } from '@/types'
 
+describe('sortEvents closest', () => {
+  it('breaks a same-address tie in favour of the visitor language', () => {
+    const czech = { ...mockEventSlim, id: 1, distance: 1, languages: ['cs'] } as EventSlim
+    const english = { ...mockEventSlim, id: 2, distance: 1, languages: ['en'] } as EventSlim
+    const nearer = { ...mockEventSlim, id: 3, distance: 0.5, languages: ['cs'] } as EventSlim
+
+    expect(sortEvents([czech, english, nearer], 'closest', 'en').map((e) => e.id)).toEqual([
+      3, 2, 1,
+    ])
+  })
+})
+
 describe('sortFromParams', () => {
   it('defaults to recommended when the param is absent', () => {
     expect(sortFromParams(new URLSearchParams())).toBe('recommended')
@@ -190,5 +202,32 @@ describe('sortEvents', () => {
     const without = [at(1, 2, inHours), at(2, 5, inDays), at(3, 8, LATER)]
 
     expect(ids(sortEvents(stages, order, 'en'))).toEqual(ids(sortEvents(without, order, 'en')))
+  })
+})
+
+describe('the default order', () => {
+  const COUNTRY = 'center=15.3,49.7&bbox=12.09,48.55,18.86,51.06'
+
+  it('is nearest-first in a searched town, and the relevance score otherwise', () => {
+    expect(sortFromParams(new URLSearchParams('center=-0.14,50.82'))).toBe('closest')
+    expect(sortFromParams(new URLSearchParams('q=Brighton'))).toBe('recommended')
+  })
+
+  it('keeps the relevance score for a whole country, which has no useful closest', () => {
+    expect(sortFromParams(new URLSearchParams(COUNTRY))).toBe('recommended')
+  })
+
+  it('still lets a chosen order win over a searched place', () => {
+    expect(sortFromParams(new URLSearchParams('center=-0.14,50.82&sort=soonest'))).toBe('soonest')
+    expect(sortFromParams(new URLSearchParams('center=-0.14,50.82&sort=recommended'))).toBe(
+      'recommended',
+    )
+  })
+
+  it('omits the default for the params it is written into', () => {
+    const near = new URLSearchParams('center=-0.14,50.82')
+
+    expect(sortToParams('closest', near).has('sort')).toBe(false)
+    expect(sortToParams('recommended', near).get('sort')).toBe('recommended')
   })
 })

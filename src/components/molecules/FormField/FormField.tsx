@@ -1,4 +1,5 @@
 import { type ReactNode } from 'react'
+import { useTranslation } from 'react-i18next'
 
 /**
  * The `aria-describedby` target for a field's error text. The id
@@ -38,6 +39,8 @@ export type FormFieldProps = {
   label: ReactNode
   /** Appends the required marker to the label. The caller still marks the control. */
   required?: boolean
+  /** Marks the field optional, for a form where everything unmarked is needed. */
+  optional?: boolean
   /** Supporting copy under the control. The error replaces it while one is showing. */
   help?: ReactNode
   error?: ReactNode
@@ -71,17 +74,23 @@ export type FormFieldProps = {
 export function FormField({
   label,
   required,
+  optional,
   help,
   error,
   htmlFor,
   children,
   announceError = true,
 }: FormFieldProps) {
+  const { t } = useTranslation()
+
   return (
     <div className="flex flex-col gap-1">
       <label className="text-sm font-medium" htmlFor={htmlFor}>
         {label}
         {required && ' *'}
+        {optional && (
+          <span className="font-normal text-gray-11"> ({t('common.chrome.optional')})</span>
+        )}
       </label>
       {children}
       {help && !error && (
@@ -113,7 +122,7 @@ export function FormField({
           keystroke breaks that property, and opts out above. */}
       {error && (
         <span
-          className="text-xs text-danger-11"
+          className="text-sm text-danger-11"
           id={fieldErrorId(htmlFor)}
           role={announceError ? 'alert' : undefined}
         >

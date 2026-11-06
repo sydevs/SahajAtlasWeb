@@ -1,6 +1,8 @@
-import { Suspense, lazy, useState } from 'react'
+import { Suspense, lazy, useRef, useState } from 'react'
 import { useSuspenseQuery } from '@tanstack/react-query'
 import { Check } from 'lucide-react'
+
+import { useSheetFit } from './use-sheet-fit'
 
 import { Alert } from '@/components/atoms/Alert'
 import { DrawerBody, DrawerFooter } from '@/components/atoms/Drawer'
@@ -23,7 +25,8 @@ import { useMapController } from '@/hooks/use-map-controller'
 import { usePostEventFeedback } from '@/hooks/use-post-event-feedback'
 import { useWidgetMode } from '@/config/mode'
 import { correctionPath, parentOf } from '@/lib/shape'
-import { CloseButton, useDrawerControl, useFrameOnTop } from '@/views/shared'
+import { Breadcrumbs, NavRow } from '@/views/nav'
+import { useDrawerControl, useFrameOnTop } from '@/views/shared'
 import { ErrorPanel } from '@/views/fallbacks'
 
 // EventDetails pulls in DOMPurify and the action-row wiring. This keeps it out of the main
@@ -55,8 +58,8 @@ const EventActions = lazy(() =>
   import('@/components/molecules/EventActions').then((m) => ({ default: m.EventActions })),
 )
 
-// A single event, at route `<event-path>`. The header — the title — is the mobile sheet's
-// 80px peek payload, and stays pinned above the scrolling body. The chips and facts lead the
+// A single event, at route `<event-path>`. The header — Back and the title — is the mobile
+// sheet's peek payload, and stays pinned above the scrolling body. The chips and facts lead the
 // body. On the mobile map sheet, Register lives in a sticky bar pinned to the viewport edge,
 // via the live `--sy-sheet-top` mirror, so scrolling the description can never hide the KPI
 // (issue #52, WS4). Elsewhere it renders inline in the panel order.
@@ -80,7 +83,13 @@ export function EventView({ id, basePath }: { id: number; basePath: string }) {
   // calls a function initializer, and `lazy()` returns an object, so this reads once.
   const [EventDetails, setEventDetails] = useState(loadEventDetails)
 
-  useFrameOnTop(({ isEntry }) => frameEvent(event, { isEntry }), [event, frameEvent])
+  useFrameOnTop(
+    ({ isEntry }) => {
+      // No pin to frame: the camera stays where the visitor left it.
+      if (!event.contactOnly) frameEvent(event, { isEntry })
+    },
+    [event, frameEvent],
+  )
 
   // The snap-ladder bottom sheet is the one surface where in-flow content can scroll the CTA
   // away. Pin Register there. Keep it inline everywhere else. Never pin an empty bar —
@@ -96,15 +105,21 @@ export function EventView({ id, basePath }: { id: number; basePath: string }) {
   // viewport's answer. The hook is here so a future map-less sticky bar starts out reading the
   // right thing, not because a narrow embed gains one today.
   const { display } = useEventDisplay(event)
-  const stickyRegister = hasMap && !isWide && hasRegisterSlot(event, display)
+  const stickyRegister = hasMap && !isWide && !event.contactOnly && hasRegisterSlot(event, display)
   const onwardHref = parentOf(event.path)
+  const layerAnchor = useRef<HTMLSpanElement>(null)
+
+  useSheetFit(layerAnchor, stickyRegister)
 
   return (
     <>
       {/* SEO — title, canonical, JSON-LD — is only meaningful for the crawlable standalone
           build. The embedded widget's host owns the document head. */}
       {standalone && <EventMetadata event={event} />}
-      <EventHeader event={event} trailing={<CloseButton />} />
+      <EventHeader event={event} nav={<NavRow />} />
+      {/* After the header, never before it: at the peek, ViewLayer shows only the layer's first
+          child, which must be the header with Back and the title. */}
+      <span ref={layerAnchor} hidden />
       {/* The body slot's own spacer clears the pinned bar's CONTENT, at the footer's
           published height. Clearing the SCROLL is this body's, and only this body's: focus
           would otherwise park a field behind the bar. It carries the sheet's live top on
@@ -140,7 +155,12 @@ export function EventView({ id, basePath }: { id: number; basePath: string }) {
               />
             }
           >
-            <EventDetails basePath={basePath} ctaInline={!stickyRegister} event={event}>
+            <EventDetails
+              basePath={basePath}
+              ctaInline={!stickyRegister}
+              event={event}
+              placeTrail={<Breadcrumbs className="-mt-3 pl-8" />}
+            >
               {/* This is passed as the panel's slot, so it lands immediately above Register,
                   which lives inside EventDetails when it is inline. The acknowledgement belongs
                   beside the action it wants the reader to take, and the panel is the only thing
@@ -160,7 +180,10 @@ export function EventView({ id, basePath }: { id: number; basePath: string }) {
                     <>
                       {t('common.feedback.confirmed_body')}
                       {onwardHref && (
-                        <Link className="mt-1 block underline" href={onwardHref}>
+                        <Link
+                          className="touch-target relative mt-1 block underline"
+                          href={onwardHref}
+                        >
                           {t('common.feedback.nearby')}
                         </Link>
                       )}
@@ -187,11 +210,12 @@ export function EventView({ id, basePath }: { id: number; basePath: string }) {
       {stickyRegister && (
         <DrawerFooter
           sticky
-          className={`px-4 py-3 transition-transform ${collapsed ? 'translate-y-full opacity-0' : ''}`}
+          className={`px-4 py-3 transition-transform before:pointer-events-none before:absolute before:inset-x-0 before:bottom-full before:h-4 before:bg-gradient-to-t before:from-background before:to-transparent before:content-[''] ${collapsed ? 'translate-y-full opacity-0' : ''}`}
         >
           {/* The two rows are gapped inside a wrapper, not by the footer itself, so the
-              footer's own safe-area spacer is not a third gapped sibling. */}
-          <div className="flex flex-col gap-2">
+              footer's own safe-area spacer is not a third gapped sibling. 16px, the same as the
+              inline layout, so the secondary row reads as its own set, not part of Register. */}
+          <div data-sheet-footer className="flex flex-col gap-4">
             <EventRegisterBar basePath={basePath} event={event} />
             {/* The row rides the bar so only one copy exists — see `ctaInline`. The
                 boundary keeps a rejected chunk from reaching the body's sibling

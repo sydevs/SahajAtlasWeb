@@ -5,6 +5,7 @@ import type { RecoveryOffer } from '@/hooks/use-recovery-offer'
 
 import { useEffect, useRef } from 'react'
 import { CircleFlag } from 'react-circle-flags'
+import clsx from 'clsx'
 import { useTranslation } from 'react-i18next'
 import { ErrorBoundary } from 'react-error-boundary'
 import { QueryErrorResetBoundary } from '@tanstack/react-query'
@@ -14,6 +15,7 @@ import { Spinner } from '@/components/atoms/Spinner/Spinner'
 import { Alert } from '@/components/atoms/Alert/Alert'
 import { Button, controlSurface } from '@/components/atoms/Button'
 import { Link } from '@/components/atoms/Link'
+import { useIsWide } from '@/config/responsive'
 import { useReportModal } from '@/config/store'
 import { useReportForm } from '@/hooks/use-report-form'
 import { useRecoveryOffer } from '@/hooks/use-recovery-offer'
@@ -72,6 +74,63 @@ export function LoadingFallback({ unboxed = false }: LoadingFallbackProps) {
           text adds nothing the spinner has not already said. Its height would also
           push the spinner off centre. */}
       <Spinner color="secondary" srLabel={t('common.chrome.loading')} />
+    </div>
+  )
+}
+
+/**
+ * The list a view is about to show, as quiet placeholder rows, under one calm line.
+ *
+ * The line carries the announcement, so the rows are hidden from assistive tech. Used inside
+ * the real drawer while a list view loads, and inside `BootFallback` before the drawer exists,
+ * so the two can't drift and the swap between them doesn't jump.
+ */
+export function ListSkeleton() {
+  const { t } = useTranslation()
+
+  return (
+    <div className="flex flex-col">
+      <p className="px-4 py-2 text-sm text-gray-11" role="status">
+        {t('common.chrome.finding_classes', { defaultValue: 'Finding classes…' })}
+      </p>
+      <div aria-hidden className="flex flex-col motion-safe:animate-pulse">
+        {['w-3/5', 'w-2/5', 'w-1/2', 'w-1/3', 'w-2/5'].map((width, row) => (
+          // Two rows share a width, so the row's position is the key.
+          <div key={row} className="flex min-h-14 items-center justify-between gap-4 px-4">
+            <div className={`h-3.5 rounded bg-gray-3 ${width}`} />
+            <div className="h-3.5 w-5 rounded bg-gray-3" />
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+/**
+ * What the full-window map form shows for the moment before its code has arrived: the panel
+ * already in its real place, over a plain map-toned surface. The real map replaces the surface
+ * as soon as the map chunk loads, and the real drawer replaces this panel.
+ *
+ * Only for the form that fills the window. A form with a box of its own keeps `LoadingFallback`,
+ * since taking the viewport there would paint over the host's page.
+ */
+export function BootFallback() {
+  const isWide = useIsWide(null)
+
+  return (
+    <div className="fixed inset-0 bg-gray-3">
+      <div
+        className={
+          isWide
+            ? 'fixed inset-y-0 left-0 z-40 w-[352px] border border-divider bg-background lg:inset-y-4 lg:left-4 lg:rounded-2xl'
+            : 'fixed inset-x-0 bottom-0 z-40 h-[300px] rounded-t-2xl border-t border-divider bg-background'
+        }
+      >
+        <div className="px-4 pt-4 pb-2">
+          <div aria-hidden className="h-10 rounded-lg border border-divider bg-gray-2" />
+        </div>
+        <ListSkeleton />
+      </div>
     </div>
   )
 }
@@ -206,8 +265,8 @@ export const ERROR_POLICY: Record<FallbackKind, FallbackPolicy> = {
   'not-found': { ...DEAD_END, messageKey: 'common.errors.not_found', fallbackText: NOT_FOUND_TEXT },
   'not-found-event': {
     ...DEAD_END,
-    messageKey: 'common.errors.not_found_event',
-    fallbackText: "We couldn't find that event.",
+    messageKey: 'common.errors.not_found_class',
+    fallbackText: "We couldn't find that class.",
   },
   'not-found-region': {
     ...DEAD_END,
@@ -283,7 +342,7 @@ export const ERROR_POLICY: Record<FallbackKind, FallbackPolicy> = {
   // This row used to offer no action, on the idea that an empty region is
   // nobody's mistake. That is true, but it still left one sentence and nothing to
   // press. That is the same dead end whether the URL was wrong or just empty.
-  empty: { ...DEAD_END, messageKey: 'common.errors.no_events', fallbackText: 'No events found.' },
+  empty: { ...DEAD_END, messageKey: 'common.errors.no_events', fallbackText: 'No classes found.' },
   // A class that exists and runs, but cannot be joined: full, ended, or
   // registration closed. Not an error, and not empty. This is the one row whose
   // best next step is a PERSON. It leads with the organiser's number, and falls
@@ -327,7 +386,7 @@ export const ERROR_POLICY: Record<FallbackKind, FallbackPolicy> = {
   // sentence with nothing else beside it.
   'share-unavailable': {
     messageKey: 'common.errors.share_unavailable',
-    fallbackText: 'There is no link to share for this meditation yet.',
+    fallbackText: 'There is no link to share for this class yet.',
     color: 'neutral',
     retry: false,
     onward: false,
@@ -349,7 +408,7 @@ export const ERROR_POLICY: Record<FallbackKind, FallbackPolicy> = {
   // actually restores results here.
   'no-results': {
     messageKey: 'filters.chrome.no_results',
-    fallbackText: 'No events match your filters.',
+    fallbackText: 'No classes match your filters.',
     color: 'neutral',
     retry: false,
     onward: false,
@@ -360,11 +419,11 @@ export const ERROR_POLICY: Record<FallbackKind, FallbackPolicy> = {
   },
   // This is the only row that offers nothing, and the only one that should.
   // Every match is simply farther away than the boundary, and the list's own
-  // "Show distant events" control sits right below it saying so. `visibleActions`
+  // "Show distant classes" control sits right below it saying so. `visibleActions`
   // leaves this row alone, since it promised nothing for a surface to remove.
   'no-nearby': {
     messageKey: 'search.results.no_nearby',
-    fallbackText: 'No events within %{km} km.',
+    fallbackText: 'No classes within %{km} km.',
     color: 'neutral',
     retry: false,
     onward: false,
@@ -470,7 +529,7 @@ export type SurfaceLimits = {
  * cannot render.
  *
  * A policy that promises NOTHING is left alone. `no-nearby` is a note about the list
- * right below it. That list's own "Show distant events" control is the way out. Adding
+ * right below it. That list's own "Show distant classes" control is the way out. Adding
  * a report action there would invite reports of a working feature. This function is
  * pure, so both rules above are testable without a DOM.
  */
@@ -509,15 +568,24 @@ export const visibleActions = (
   }
 }
 
+/**
+ * Only the calls `offerLabel` makes. Narrower than i18next's typed `t` on purpose: checking these
+ * calls against the full typed key table runs past TypeScript's instantiation depth.
+ */
+type OfferTranslate = (
+  key: string,
+  options: { defaultValue: string; city?: string; country?: string; region?: string },
+) => string
+
 /** The onward rung's label. `kind` picks the sentence. The offer carries the name. */
-const offerLabel = (t: ReturnType<typeof useTranslation>['t'], offer: RecoveryOffer) => {
+const offerLabel = (t: OfferTranslate, offer: RecoveryOffer): string => {
   switch (offer.kind) {
     case 'countries':
       return t('common.errors.browse_countries', { defaultValue: 'Browse all countries' })
     case 'city':
       return t('common.errors.near_city', {
         city: offer.name,
-        defaultValue: 'See events near %{city}',
+        defaultValue: 'See classes near %{city}',
       })
     case 'country-site':
       return t('search.country_site.cta', {
@@ -525,9 +593,9 @@ const offerLabel = (t: ReturnType<typeof useTranslation>['t'], offer: RecoveryOf
         defaultValue: 'Visit the %{country} website',
       })
     default:
-      return t('common.errors.back_to_region', {
+      return t('common.errors.see_classes_in', {
         region: offer.name,
-        defaultValue: 'See events in %{region}',
+        defaultValue: 'See classes in %{region}',
       })
   }
 }
@@ -549,7 +617,7 @@ export function OnwardLink({ offer }: { offer: RecoveryOffer }) {
 
   return (
     <Link
-      className="mt-2 text-sm font-medium"
+      className="touch-target relative mt-2 text-sm font-medium"
       color="primary"
       href={offer.path}
       // The country-site rung leaves the widget entirely. So it gets the external
@@ -568,7 +636,7 @@ export function OnwardLink({ offer }: { offer: RecoveryOffer }) {
           referrerPolicy="no-referrer"
         />
       )}
-      {offerLabel(t, offer)}
+      {offerLabel(t as OfferTranslate, offer)}
     </Link>
   )
 }
@@ -799,7 +867,7 @@ export const CENTERED_BODY =
  * guard: content that starts at the top is on screen by construction. That is exactly
  * what `CENTERED_BODY` has to work to achieve.
  */
-export const START_BODY = 'flex h-full flex-col items-start p-6 text-start'
+export const START_BODY = 'flex h-full flex-col items-start px-4 py-4 text-start'
 
 /** Which posture a surface renders in — see `CENTERED_BODY` / `START_BODY`. */
 export type FallbackAlign = 'center' | 'start'
@@ -822,7 +890,8 @@ type FallbackShellProps = FallbackActionsProps & {
  * live body and the floor it degrades to both render this, so the two cannot look like
  * different screens.
  *
- * ONE column at ONE width. Every part is `w-full` inside a single `max-w-xs` box. Left
+ * ONE column at ONE width. Every part is `w-full` inside a single box: `max-w-xs` when
+ * centred, and the panel's full width when it starts at the top of a list. Left
  * to shrink-wrap on its own, each part came out a different width, stacked on a centre
  * line: a banner as wide as its sentence, a button row as wide as its labels, and a
  * full-width field.
@@ -837,7 +906,11 @@ function FallbackShell({
 }: FallbackShellProps) {
   return (
     <FallbackRegion className={align === 'start' ? START_BODY : CENTERED_BODY} message={message}>
-      <div className="flex w-full max-w-xs flex-col items-start gap-3">
+      {/* A list view's empty state sits on the list's own 16px gutter, edge to edge like its rows.
+          The narrower measure belongs to the centred posture. */}
+      <div
+        className={clsx('flex w-full flex-col items-start gap-3', align !== 'start' && 'max-w-xs')}
+      >
         {/* `textAlign="left"` is set explicitly, not left to the default. The
             centred posture sets `text-center` on the container. A sentence centred
             inside its own banner is harder to read, and costs the onward link its

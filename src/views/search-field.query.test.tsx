@@ -3,6 +3,7 @@ import { act } from 'react'
 import { createRoot } from 'react-dom/client'
 import { MemoryRouter, useLocation } from 'react-router'
 import { afterEach, describe, expect, it, vi } from 'vitest'
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 
 import { SearchField } from './shared'
 
@@ -32,14 +33,16 @@ function Url() {
 
 let root: ReturnType<typeof createRoot> | undefined
 
-const type = async (query: 'url' | 'read-only', text: string) => {
+const type = async (text: string) => {
   root = createRoot(document.createElement('div'))
   await act(async () =>
     root!.render(
-      <MemoryRouter initialEntries={['/search']}>
-        <SearchField query={query} />
-        <Url />
-      </MemoryRouter>,
+      <QueryClientProvider client={new QueryClient()}>
+        <MemoryRouter initialEntries={['/search']}>
+          <SearchField />
+          <Url />
+        </MemoryRouter>
+      </QueryClientProvider>,
     ),
   )
   await act(async () => typed.change(text))
@@ -47,14 +50,12 @@ const type = async (query: 'url' | 'read-only', text: string) => {
   return new URLSearchParams(search).get('q')
 }
 
-describe('SearchField writing ?q', () => {
+describe('SearchField and ?q', () => {
   afterEach(() => act(() => root?.unmount()))
 
-  it('mirrors what is typed into ?q in the default mode', async () => {
-    expect(await type('url', 'Lisbon')).toBe('Lisbon')
-  })
-
-  it('never writes ?q in read-only mode', async () => {
-    expect(await type('read-only', 'Lisbon')).toBeNull()
+  // Half-typed text in `?q` renamed everything that reads it (the place pill, the results heading,
+  // each card's distance line) to "Prag". The URL changes only when a place is picked.
+  it('never writes what is typed into ?q', async () => {
+    expect(await type('Lisbon')).toBeNull()
   })
 })

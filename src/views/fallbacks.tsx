@@ -2,24 +2,24 @@ import type { FallbackProps } from 'react-error-boundary'
 import type { FallbackAlign, FallbackKind } from '@/components/molecules'
 import type { StackEntry } from '@/lib/shape'
 
-import { useMemo } from 'react'
+import { useEffect, useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useLocation } from 'react-router'
 import { useQuery } from '@tanstack/react-query'
 
 import { DrawerBody, DrawerHeader, DrawerToolbar } from '@/components/atoms/Drawer'
 import { Spinner } from '@/components/atoms/Spinner'
-import { CENTERED_BODY, FallbackPanel, ListToolbar } from '@/components/molecules'
-import { eventTitlesQuery, regionsQuery } from '@/config/api'
+import { CENTERED_BODY, FallbackPanel, ListSkeleton, ListToolbar } from '@/components/molecules'
+import { eventTitlesQuery, regionQuery, regionsQuery } from '@/config/api'
 import { useWidgetMode } from '@/config/mode'
 import { useLocale } from '@/hooks/use-locale'
+import { useMapController } from '@/hooks/use-map-controller'
 import { classifyError, errorMessage } from '@/lib/report'
-import { baseStackEntry, resolveStack, submitTitleKey } from '@/lib/shape'
+import { baseStackEntry, nearestKnownRegion, resolveStack, submitTitleKey } from '@/lib/shape'
+import { BackButton, NavHeader } from '@/views/nav'
 import {
+  ExpandSheetButton,
   CalendarButton,
-  CloseButton,
-  CollapseToggle,
-  DrawerTitle,
   FilterButton,
   SearchButton,
   SearchField,
@@ -78,7 +78,7 @@ function SearchFieldSkeleton() {
         disabled
         readOnly
         className="w-full rounded-lg border border-divider bg-gray-2 px-3 py-2 field-size text-foreground placeholder:text-gray-11"
-        placeholder={t('search.chrome.placeholder', { defaultValue: 'Search for events near…' })}
+        placeholder={t('search.chrome.city_or_postcode', { defaultValue: 'City or postcode' })}
         type="search"
         value=""
       />
@@ -145,7 +145,7 @@ export function DrawerChrome({ interactive = true }: { interactive?: boolean }) 
       case 'region':
         return regionName
       case 'online':
-        return t('online.title', { defaultValue: 'Online Classes' })
+        return t('online.title', { defaultValue: 'Online classes' })
       case 'event':
         return titles?.get(entry.id)
       case 'search':
@@ -155,11 +155,11 @@ export function DrawerChrome({ interactive = true }: { interactive?: boolean }) 
       case 'filters':
         return t('filters.chrome.title', { defaultValue: 'Filters' })
       case 'register':
-        return t('registration.form.title', {
-          defaultValue: 'Register for Meditation',
+        return t('registration.form.title_class', {
+          defaultValue: 'Register for this class',
         })
       case 'share':
-        return t('share.title', { defaultValue: 'Share Meditation' })
+        return t('share.title_class', { defaultValue: 'Share this class' })
       case 'add':
       case 'correct':
         return t(submitTitleKey(entry.kind))
@@ -167,11 +167,6 @@ export function DrawerChrome({ interactive = true }: { interactive?: boolean }) 
         return undefined
     }
   })()
-
-  // At the root there is nothing to climb to, and `navigate(-1)` would take the host
-  // page back. So this offers the collapse (which self-hides where it cannot
-  // collapse), rather than a close that silently does nothing.
-  const dismiss = canDismiss ? <CloseButton /> : <CollapseToggle />
 
   // The root and the search view lead with the geocoder, rather than a title, so
   // they get the header their view would render. Everything in it is a NAVIGATION —
@@ -187,16 +182,12 @@ export function DrawerChrome({ interactive = true }: { interactive?: boolean }) 
               fallback is freshly mounted per path inside DrawerStack's keyed motion.div, so on
               a cold start it would instantiate one while the map is still initialising, then
               tear it down again the moment CountriesView mounts its own. An ERROR chrome keeps
-              the real field. There it is the escape hatch.
-
-              `query="read-only"` for the same reason the BODY's field sets it. The only
-              interactive case here is the error chrome, whose URL is the dead one this
-              boundary just reported. Embedded, that URL lives in the host page's `#!`
-              fragment, so writing keystrokes into it spreads a broken link into anything the
-              visitor copies. Selecting a place still navigates. Only the `?q` echo is
-              dropped. */}
-          {interactive ? <SearchField query="read-only" /> : <SearchFieldSkeleton />}
-          {dismiss}
+              the real field. There it is the escape hatch. */}
+          {canDismiss && <BackButton iconOnly />}
+          {interactive ? <SearchField /> : <SearchFieldSkeleton />}
+          {/* At the root there is nothing to climb to: `navigate(-1)` would take the host page
+              back. So Back only renders below it. */}
+          {!canDismiss && <ExpandSheetButton />}
         </DrawerHeader>
         <DrawerToolbar>
           <ListToolbar>
@@ -207,28 +198,34 @@ export function DrawerChrome({ interactive = true }: { interactive?: boolean }) 
     )
   }
 
+  // A region's own header offers these three, and all still work — they navigate rather
+  // than read. The calendar and the filters are scoped to the region whose page failed,
+  // which is exactly where a viewer wanted to be. The Back row and the breadcrumb line match
+  // the view's own header, so nothing jumps when the view arrives. A class page that failed
+  // keeps only Back, which already names its region: a lone path above the message would
+  // read as the page.
   return (
-    <DrawerHeader className="justify-between">
-      {/* An empty <div> rather than an empty DrawerTitle when nothing resolved: a blank
-          <h2> is a heading with no name, which is worse for a screen reader than no
-          heading at all. It still holds the left slot so the control stays right-aligned. */}
-      {title ? <DrawerTitle title={title} /> : <div />}
-      <div className="flex shrink-0 items-center gap-2">
-        {/* A region's own header offers these three, and all still work — they navigate
-            rather than read. The calendar and the filters are scoped to the region whose page
-            failed, which is exactly where a viewer wanted to be. */}
-        {entry.kind === 'region' && (
-          <>
-            <CalendarButton regionSlug={entry.slug} />
-            <SearchButton />
-            <FilterButton iconOnly />
-          </>
-        )}
-        {entry.kind === 'online' && <SearchButton />}
-        {entry.kind === 'calendar' && <FilterButton iconOnly />}
-        {dismiss}
-      </div>
-    </DrawerHeader>
+    <NavHeader
+      actions={
+        <>
+          {entry.kind === 'region' && (
+            <>
+              <CalendarButton regionSlug={entry.slug} />
+              <SearchButton />
+              <FilterButton iconOnly />
+            </>
+          )}
+          {entry.kind === 'online' && <SearchButton />}
+          {entry.kind === 'calendar' && <FilterButton iconOnly />}
+        </>
+      }
+      breadcrumbs={
+        entry.kind === 'region' ||
+        entry.kind === 'online' ||
+        (entry.kind === 'event' && !interactive)
+      }
+      title={title}
+    />
   )
 }
 
@@ -236,10 +233,21 @@ export function DrawerChrome({ interactive = true }: { interactive?: boolean }) 
 // (so the drawer keeps its identity and its close control) over a spinner.
 // `interactive={false}`: see `SearchFieldSkeleton`.
 export function DrawerLoading() {
+  const { hasMap } = useWidgetMode()
+  const location = useLocation()
+  const entry = baseStackEntry(resolveStack(location.pathname), hasMap)
+  const isList = fallbackAlign(entry?.kind) === 'start'
+
   return (
     <>
       <DrawerChrome interactive={false} />
-      <DrawerLoadingBody />
+      {isList ? (
+        <DrawerBody>
+          <ListSkeleton />
+        </DrawerBody>
+      ) : (
+        <DrawerLoadingBody />
+      )}
     </>
   )
 }
@@ -277,15 +285,17 @@ export function DrawerLoadingBody() {
  * search — put content at the top-left of the body, so a fallback standing in for
  * that list belongs there too. Centring it moves the sentence away from where the
  * reader is already looking, and makes the drawer read as a different kind of
- * screen. Everything else (an event, a registration, a share sheet, the calendar) is
- * a single composed panel with no such anchor, so its fallback centres.
+ * screen. A class counts too: it has no title of its own to anchor a dead link, so a
+ * centred message floats a long way from the Back button that belongs to it. Everything
+ * else (a registration, a share sheet, the calendar) is a single composed panel with
+ * no such anchor, so its fallback centres.
  *
  * This is derived from the URL, rather than passed down, because the view
  * boundary's fallback is mounted by `DrawerStack` — the failing view never gets to
  * say anything about it. The empty-list states call `FallbackPanel` directly and
  * pass `align` themselves.
  */
-const LIST_KINDS = new Set<StackEntry['kind']>(['region', 'online', 'search'])
+const LIST_KINDS = new Set<StackEntry['kind']>(['region', 'online', 'search', 'event'])
 
 const fallbackAlign = (kind: StackEntry['kind'] | undefined): FallbackAlign =>
   // `undefined` is the root — CountriesView, the country index, which is a list.
@@ -354,12 +364,8 @@ export function ErrorPanel({ error, resetErrorBoundary }: FallbackProps) {
       reportContext={errorMessage(error) ?? undefined}
       resetErrorBoundary={resetErrorBoundary}
     >
-      {/* `query="read-only"`. This URL is the dead one this boundary just reported. Embedded,
-          it lives in the host page's `#!` fragment, so writing keystrokes into it spreads a
-          broken link into anything the visitor copies. */}
       <SearchField
         label={t('common.errors.search_label', { defaultValue: 'Or search for a place' })}
-        query="read-only"
       />
     </FallbackPanel>
   )
@@ -373,6 +379,28 @@ export function DrawerErrorBody(props: FallbackProps) {
       <ErrorPanel {...props} />
     </DrawerBody>
   )
+}
+
+/**
+ * A dead link still names a place. The body offers "See classes in Paris", so the map shows
+ * Paris rather than sitting on the world behind that sentence. Rendered only for a not-found:
+ * after a server or network failure, this read would go at the backend that just failed.
+ */
+function FrameNearestRegion() {
+  const { locale } = useLocale()
+  const location = useLocation()
+  const { frameRegion } = useMapController()
+  const { data: regions } = useQuery({ ...regionsQuery(), enabled: false })
+  const slug = regions
+    ? nearestKnownRegion(location.pathname, new Set(regions.map((node) => node.slug)))
+    : undefined
+  const { data: region } = useQuery({ ...regionQuery(slug ?? '', locale), enabled: Boolean(slug) })
+
+  useEffect(() => {
+    if (region) frameRegion(region)
+  }, [region, frameRegion])
+
+  return null
 }
 
 /**
@@ -390,6 +418,7 @@ export function DrawerErrorBody(props: FallbackProps) {
 export function DrawerErrorFallback({ error, resetErrorBoundary }: FallbackProps) {
   return (
     <>
+      {classifyError(error) === 'not-found' && <FrameNearestRegion />}
       <DrawerChrome />
       <DrawerErrorBody error={error} resetErrorBoundary={resetErrorBoundary} />
     </>

@@ -41,6 +41,9 @@ describe('LAYER_IDS', () => {
       selectedArea: 'selected-area',
       hoveredPoint: 'hovered-point',
       hoveredArea: 'hovered-area',
+      approximateDot: 'approximate-dot',
+      approximateFill: 'approximate-fill',
+      approximateOutline: 'approximate-outline',
       bounds: 'selected-bounds',
     })
   })
@@ -56,7 +59,12 @@ describe('LAYER_IDS', () => {
   })
 
   it('lists the clickable layers, and only those', () => {
-    expect(INTERACTIVE_LAYER_IDS).toEqual([LAYER_IDS.cluster, LAYER_IDS.unclusteredPoint])
+    expect(INTERACTIVE_LAYER_IDS).toEqual([
+      LAYER_IDS.cluster,
+      LAYER_IDS.unclusteredPoint,
+      LAYER_IDS.approximateDot,
+      LAYER_IDS.approximateFill,
+    ])
   })
 })
 

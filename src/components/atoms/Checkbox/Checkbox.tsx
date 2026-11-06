@@ -73,7 +73,8 @@ const toggle = tv({
 // unchecked one.
 const box = tv({
   slots: {
-    root: 'flex shrink-0 items-center justify-center rounded border border-gray-7 bg-background transition-colors outline-none focus-visible:ring-2 focus-visible:ring-focus data-[disabled]:cursor-not-allowed data-[disabled]:border-gray-7 data-[disabled]:bg-gray-4 data-[disabled]:data-[state=checked]:border-gray-9 data-[disabled]:data-[state=checked]:bg-gray-9 data-[disabled]:data-[state=checked]:text-gray-1 dark:data-[disabled]:data-[state=checked]:border-gray-9 dark:data-[disabled]:data-[state=checked]:bg-gray-9 dark:data-[disabled]:data-[state=checked]:text-gray-1',
+    // 4px, the one exception to the radius rule: at 8px a 16px box would read as a radio.
+    root: 'flex shrink-0 items-center justify-center rounded-[4px] border border-gray-7 bg-background transition-colors outline-none focus-visible:ring-2 focus-visible:ring-focus data-[disabled]:cursor-not-allowed data-[disabled]:border-gray-7 data-[disabled]:bg-gray-4 data-[disabled]:data-[state=checked]:border-gray-9 data-[disabled]:data-[state=checked]:bg-gray-9 data-[disabled]:data-[state=checked]:text-gray-1 dark:data-[disabled]:data-[state=checked]:border-gray-9 dark:data-[disabled]:data-[state=checked]:bg-gray-9 dark:data-[disabled]:data-[state=checked]:text-gray-1',
     indicator: 'flex items-center justify-center',
   },
   variants: {

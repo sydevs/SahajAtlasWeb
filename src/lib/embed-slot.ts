@@ -58,7 +58,9 @@ export const SLOT_GAIN = 0.8
  * 400×600 — so that slot keeps the full interface, and only genuinely smaller ones
  * degrade.
  */
-export const MIN_INTERFACE_WIDTH_PX = 360
+// 280, so a 320px column with its own 16px padding still gets the real interface. It was 360,
+// which swapped those columns for a single button with no classes on it (#161).
+export const MIN_INTERFACE_WIDTH_PX = 280
 
 /**
  * Below this height the interface stops fitting: a bottom sheet needs its peek, its

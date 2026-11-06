@@ -4,7 +4,7 @@ import type { CompactState } from '@/lib/slot-decision'
 
 import { type ReactNode, Suspense, lazy, useEffect, useLayoutEffect, useMemo, useRef } from 'react'
 import { Helmet } from 'react-helmet-async'
-import { useSuspenseQuery } from '@tanstack/react-query'
+import { useQuery } from '@tanstack/react-query'
 import { ErrorBoundary } from 'react-error-boundary'
 
 import { useLocale } from './hooks/use-locale'
@@ -17,7 +17,13 @@ import { atlasError, reportInternalError } from '@/lib/report'
 import { clearReadiness } from '@/lib/readiness'
 import { announceEmbed } from '@/lib/embed-announce'
 import embed from '@/config/embed'
-import { ErrorFallback, LoadingFallback, ResetErrorBoundary } from '@/components/molecules'
+import {
+  BootFallback,
+  ErrorFallback,
+  LoadingFallback,
+  ResetErrorBoundary,
+} from '@/components/molecules'
+import { ClientGate } from '@/config/client-gate'
 // ⚠ Imports the component's own path, NOT the `@/components/organisms` barrel. The barrel
 // re-exports `Mapbox`, so importing ANYTHING through it pulls `react-map-gl` — whose
 // `exports-mapbox.js` fires `import('mapbox-gl')` at module scope — straight back into the
@@ -206,7 +212,9 @@ export default function App({
               inset-0, so a fallback standing in for it must be too, or it collapses to its
               own content height at the top of the screen. A contained map, a map-less embed,
               and the compact card all have a real box, and there `h-full` is already right. */}
-          <Suspense fallback={<LoadingFallback unboxed={hasMap && !contained && !compact} />}>
+          <Suspense
+            fallback={hasMap && !contained && !compact ? <BootFallback /> : <LoadingFallback />}
+          >
             {/* `context` names this one in a report: everything below is a drawer failing
                 to load. This is the widget failing to boot. That is also why it, and the root
                 boundary above, are the only two that take the readiness marker down (#153):
@@ -288,8 +296,13 @@ function AppShell({
 }: AppShellProps) {
   if (!apiKey) throw atlasError('config', 'Missing api key.')
 
-  const { data: client } = useSuspenseQuery(clientQuery(apiKey))
+  // ⚠ **Not a suspense read, so that the map form can draw before the API answers.** The record
+  // decides nothing about the map. `ClientGate` does the waiting and the throwing instead, and
+  // WHERE it sits is the decision: in the map form it sits inside the drawer, so a slow or failed
+  // API shows in the sheet over a live map rather than replacing the whole interface.
+  const { data: client } = useQuery(clientQuery(apiKey))
   const { locale } = useLocale()
+  const mapForm = hasMap && !compact
 
   // Where the interface goes when it first opens on the root view: a path-mode host's
   // `atlas` default, else the client record's home region (`homePathFor`). The redirect
@@ -300,7 +313,7 @@ function AppShell({
     route: embed.config.route,
     routeFromPage: embed.config.routeFromPage,
     region:
-      (client.region && typeof client.region === 'object' && safePath(client.region.webPath)) ||
+      (client?.region && typeof client.region === 'object' && safePath(client.region.webPath)) ||
       undefined,
   })
 
@@ -315,14 +328,16 @@ function AppShell({
    * been published yet, and the root's effect would then publish one over the "could
    * not be loaded" screen, permanently. Reached from here, three things are true at
    * once, and none of them by luck: the marker cannot precede a successful boot,
-   * because `useSuspenseQuery` above has already resolved the client record, proving
+   * because the effect waits for the client record to have resolved, proving
    * the widget reached the API. It is never published over the loading state, because
    * this component does not exist during it. And pressing "Try again" remounts this
    * component, which re-publishes a marker the boundary took down.
    */
+  const clientLoaded = !!client
+
   useEffect(() => {
-    void announceEmbed({ routing, observed: embed.observed, prefix })
-  }, [routing, prefix])
+    if (clientLoaded) void announceEmbed({ routing, observed: embed.observed, prefix })
+  }, [clientLoaded, routing, prefix])
 
   // ⚠ **The client record's `locale` is deliberately NOT read.** The widget's language
   // should match the page it is embedded in, and `<html lang>` says that per page —
@@ -377,11 +392,11 @@ function AppShell({
   // nothing else. Do not restore the claim without restoring the parameter.
   const primaryDomain = useMemo(
     () =>
-      client.allowedDomains
+      client?.allowedDomains
         ?.split('\n')
         .map((domain) => domain.trim())
         .find(Boolean) ?? '',
-    [client.allowedDomains],
+    [client?.allowedDomains],
   )
 
   // Built as an ELEMENT, not rendered here: in the compact form it is handed to the
@@ -395,8 +410,9 @@ function AppShell({
     // has its own box and a deliberate margin — taking the viewport would paint over
     // the margin the dialog keeps precisely so the host's page shows through and can
     // be clicked to close.
-    <Suspense fallback={<LoadingFallback unboxed={hasMap && !contained && !compact} />}>
+    <Suspense fallback={hasMap && !contained && !compact ? <BootFallback /> : <LoadingFallback />}>
       <FullInterface
+        clientLoaded={clientLoaded}
         contained={contained}
         hasMap={hasMap}
         homePath={homePath}
@@ -406,7 +422,8 @@ function AppShell({
   )
 
   return (
-    <WidgetModeContext.Provider value={{ standalone, hasMap, linkable }}>
+    <WidgetModeContext.Provider value={{ standalone, hasMap, linkable, apiKey }}>
+      {!mapForm && <ClientGate />}
       {/* Standalone only. Embedded, this <head> is the HOST page's: their og:locale
           describes their document, not the widget inside it, and the widget's hash URLs
           were never canonical anyway (hence `standalone` existing at all).

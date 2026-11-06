@@ -129,7 +129,7 @@ Nothing below is needed to get a working embed. Reach for it when you want more:
 
 ## Parameters
 
-Six parameters exist on the script URL, all optional except `key`. Percent-encode reserved
+Seven parameters exist on the script URL, all optional except `key`. Percent-encode reserved
 characters as usual (`atlas=%2Fgb%2Flondon` and `atlas=/gb/london` are equivalent).
 
 | Parameter  | Default                       | What it does                                                                                                                                                                                                                                                                                                                                                                                      |
@@ -140,6 +140,8 @@ characters as usual (`atlas=%2Fgb%2Flondon` and `atlas=/gb/london` are equivalen
 | `routing`  | `query`                       | Where the widget's route lives. `path` also needs your server to serve one page for everything under the atlas prefix — a prefix set on your client record, not here.                                                                                                                                                                                                                             |
 | `atlas`    | —                             | The route to open when the page's own URL does not already name one, e.g. `/gb/london`. Must be site-relative.                                                                                                                                                                                                                                                                                    |
 | `gestures` | —                             | `gestures=cooperative` lets a visitor **scroll your page past a contained map**: one finger and the mouse wheel scroll the page, and the map moves on two fingers or Ctrl/⌘ + wheel, with a hint saying so. Only for a [contained map](#sizing-the-element); a window-filling map and the compact card's overlay ignore it.                                                                       |
+| `filters`  | `true`                        | `filters=false` removes the Filters button and panel, for a page that should show only the classes. Same spelling rule as `map`. A link that already carries filters still applies them, with removable pills.                                                                                                                                                                                    |
+| `view`     | —                             | `view=list` opens on the list, with a "Show map" control at the top of the panel. The map is not loaded until the visitor asks for it. It is for a host who prefers the list first; it does not hide any location, since every pin shows once the map opens. With `map=false` there is no map to switch to, so this does nothing. |
 
 **`map` follows one spelling rule: only the exact values `false` and `0` switch it off.**
 Anything else — absent, empty, `true`, `no`, `FALSE` — leaves it **on**, so a typo can never
@@ -446,7 +448,7 @@ widget still reads your client record and sends the one-per-load
 | A script embed on your page | Opens the interface in a full-screen overlay, in place                                       |
 | Inside an iframe            | Opens a page that fits, in a new tab (see [Embedding in an iframe](#embedding-in-an-iframe)) |
 
-The floors are **360px wide and 420px tall**, with a second condition that matters as much: **the
+The floors are **280px wide and 420px tall**, with a second condition that matters as much: **the
 widget only degrades when there is somewhere bigger to go.** A slot that is essentially the whole
 screen is never called too small, since a card there would take the interface away and hand back
 nothing — a full-width phone embed, or a small iframe on a small screen, keeps the normal
@@ -843,7 +845,7 @@ believing you allowed something you hadn't.
 |                            | `ipwho.is`                                    | the once-per-session IP→city lookup behind "classes near you"                                                                                                                                                                                                                                                                                                                                                                                                                         | **degrades**: the nearby suggestion is skipped                                                                                                                                                                |
 |                            | `cdn.usefathom.com`                           | analytics, conditional as above                                                                                                                                                                                                                                                                                                                                                                                                                                                       | analytics only                                                                                                                                                                                                |
 |                            | `*.sentry.io`                                 | crash reporting. Contacted **only after the widget has already failed**, and only on a build with a DSN.                                                                                                                                                                                                                                                                                                                                                                              | **degrades**: the widget notices the refusal and stops trying for the rest of the page's life                                                                                                                 |
-| `frame-src`                | `cloud.sydevelopers.com`                      | **The captcha — required.** Every write the widget makes is captcha-gated. The challenge renders in a frame `cloud.sydevelopers.com` serves, so `challenges.cloudflare.com` belongs in no directive of yours. The frame mounts with the interface, so a policy that omits this fails within seconds rather than when somebody registers.                                                                                                                                              | **the widget shows an error screen and does not run.** Not a degradation — see the note below                                                                                                                 |
+| `frame-src`                | `cloud.sydevelopers.com`                      | **The captcha — required.** Every write the widget makes is captcha-gated. The challenge renders in a frame `cloud.sydevelopers.com` serves, so `challenges.cloudflare.com` belongs in no directive of yours. The frame mounts with the interface, so a policy that omits this shows on the console within seconds rather than when somebody registers.                                                                                                                                              | **browsing still works, but registration and reports can't be sent.** The forms say so — see the note below                                                                                                                 |
 
 Notes on that table:
 
@@ -914,13 +916,12 @@ what of — on Chromium, which is the only engine that degradation was measured 
 it: a visitor who gets your typeface and no place search is still worse off. But do not trade a
 load-bearing entry away to afford it.
 
-⚠ **The captcha entry is fatal on purpose.** **Every write the widget makes is captcha-gated,
-registration included, and registration is the thing the atlas exists for.** A degraded challenge
-would let a visitor browse classes and then silently fail to sign up for one, with no reason for
-the page owner to suspect anything was wrong. Failing loudly is worse for five minutes and better
-thereafter. The widget writes both possible fixes to the browser console — this directive, or the
-domain to have listed on your client record — so a developer looking at the page gets the answer
-without opening this document.
+⚠ **The captcha entry is the one you can't skip.** **Every write the widget makes is
+captcha-gated, registration included, and registration is the thing the atlas exists for.** Without
+it, visitors can browse classes but the registration form tells them it can't send. The widget
+writes both possible fixes to the browser console — this directive, or the domain to have listed on
+your client record — so a developer looking at the page gets the answer without opening this
+document.
 
 Everything else degrades to exactly what its "Blocked ⇒" column says — a missing typeface, a
 search field that offers no places, missing photography, missing flags, no analytics, no
@@ -1144,13 +1145,14 @@ notice, not ours, is the one that has to describe it. This is the summary. The
 [README's privacy section](../README.md#privacy-storage-and-third-party-requests) carries the
 full detail on each flow, including exactly what an error report does and does not contain.
 
-**It sets no cookies.** It stores four keys under your origin — two of its own, written inside a
+**It sets no cookies.** It stores five keys under your origin — three of its own, written inside a
 `try`/`catch` so a sandboxed iframe degrades the setting rather than breaking the widget, and two
 written by Mapbox GL:
 
 | Key                                | Store            | Holds                                                 | Lifetime            |
 | ---------------------------------- | ---------------- | ----------------------------------------------------- | ------------------- |
 | `atlas.theme`                      | `localStorage`   | the viewer's light/dark/auto choice                   | until cleared       |
+| `atlas.filtersPanel`               | `sessionStorage` | whether the viewer closed the filter panel            | the browser session |
 | `atlas.geolocationPromptDismissed` | `sessionStorage` | that they dismissed the "classes near you" suggestion | the browser session |
 | `mapbox.eventData:<token>`         | `localStorage`   | Mapbox GL's own telemetry bookkeeping                 | until cleared       |
 | `mapbox.eventData.uuid:<token>`    | `localStorage`   | a persistent anonymous id Mapbox generates            | until cleared       |

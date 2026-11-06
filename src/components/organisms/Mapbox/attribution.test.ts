@@ -36,12 +36,12 @@ describe('the Mapbox wordmark and attribution corners', () => {
     // The bottom sheet sits at its peek at every snap, so nothing on the bottom edge is ever
     // uncovered on a narrow embed. The peek is `DrawerStack`'s own literal, not restated here —
     // a dismissible sheet would free a bottom corner and relax this.
-    const peek = Number(read(STACK).match(/const PEEK_SNAP = '(\d+)px'/)?.[1])
+    const peek = Number(read(STACK).match(/const PEEK_PX = (\d+)/)?.[1])
 
     expect(peek, "the bottom sheet's peek").toBeGreaterThan(0)
-    // The remaining side is the cog's: it takes the inline start in both layouts, so the
-    // attribution takes the other. Physical, and paired with the drawer's deferred RTL flip
-    // (`atoms/Drawer`'s `TODO(rtl, #52 WS8)`) — the cog is on the left under RTL today too.
+    // The side panel takes the left in a wide layout, so this is the right. The cog sits at the
+    // top of the same column. Physical, and paired with the drawer's deferred RTL flip
+    // (`atoms/Drawer`'s `TODO(rtl, #52 WS8)`).
     expect(cornerIn(control, 'position')).toBe('top-right')
   })
 
@@ -70,8 +70,8 @@ describe('a refused location request', () => {
     // dialog would be reparented into mapbox's own container.
     const [beforeMap, afterMap] = map.split('</ReactMapGL>')
 
-    expect(afterMap, 'markup after the map element').toContain('<Modal')
-    expect(beforeMap).not.toContain('<Modal')
+    expect(afterMap, 'markup after the map element').toContain('<LocationHelp')
+    expect(beforeMap).not.toContain('<LocationHelp')
   })
 
   it('hands focus back to the locate control on close', () => {
@@ -79,5 +79,13 @@ describe('a refused location request', () => {
     expect(map.split('</ReactMapGL>')[1]).toMatch(
       /onCloseAutoFocus=\{[\s\S]*?mapboxgl-ctrl-geolocate/,
     )
+  })
+})
+
+// iOS sends a fake mouse move before a tap, and treats a tap that reveals content as a hover, so
+// the click never fires. Nothing in the node lane can run that, so the wiring is what is pinned.
+describe('the pin hover popover', () => {
+  it('is wired only on a device with a real pointer', () => {
+    expect(read(MAP)).toContain('onMouseMove={hasRealPointer ? hoverOnFeature : undefined}')
   })
 })

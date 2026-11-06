@@ -14,31 +14,28 @@ export type RadioOption = {
   label: ReactNode
 }
 
-// The selected option fills with the primary solid, reading like a selected
-// ToggleGroup item, instead of a faint tint. This makes the choice
-// unmistakable. `highlight` primary-tints the UNSELECTED cards. This changes
+// The selected option is a pale tint with a primary border and a filled mark. A solid fill
+// looked like a button that had already been pressed, and competed with the form's real
+// action. `highlight` primary-tints the UNSELECTED cards. This changes
 // colour only, with no wrapper and no size change, so an active field
 // stands out without shifting the layout.
-// The mark is a slot of the same recipe because it follows the card: the
-// browser paints the native mark in `accent-color`, so an accent matching
-// the card's own fill leaves a ring with nothing in it, and the option
-// reads as unchosen (#323).
+// The mark is a slot of the same recipe because it follows the card's colour.
 const radioOption = tv({
   slots: {
-    card: 'flex cursor-pointer items-center gap-3 rounded border px-3 py-2.5 text-sm transition-colors',
-    mark: 'h-4 w-4 shrink-0',
+    card: 'flex min-h-11 cursor-pointer items-center gap-3 rounded border px-3 py-2.5 text-sm transition-colors',
+    mark: 'h-4 w-4 shrink-0 dark:[color-scheme:dark]',
   },
   variants: {
     checked: {
       true: {
-        card: 'border-primary-9 bg-primary-9 font-medium text-primary-foreground',
-        mark: 'accent-primary-foreground',
+        card: 'border-primary-9 bg-primary-3 font-medium text-foreground',
+        mark: 'accent-primary',
       },
       false: { card: 'border-gray-7 text-foreground hover:bg-gray-2', mark: 'accent-primary' },
     },
     highlight: { true: {} },
     // This recolours to danger. The unselected cards get a danger border.
-    // The SELECTED card swaps its primary fill for the danger solid. This
+    // The SELECTED card swaps its primary tint for a danger one. This
     // changes colour only, with no layout shift. The group also sets
     // `aria-invalid`. It is listed after `highlight`, so an error wins the
     // colours.
@@ -59,8 +56,8 @@ const radioOption = tv({
       checked: true,
       isInvalid: true,
       class: {
-        card: 'border-danger-9 bg-danger-9 text-danger-foreground',
-        mark: 'accent-danger-foreground',
+        card: 'border-danger-9 bg-danger-3 text-foreground',
+        mark: 'accent-danger',
       },
     },
   ],
@@ -156,7 +153,9 @@ export const RadioGroup = forwardRef<HTMLInputElement, RadioGroupProps>(function
 
       {collapsible && !expanded && (
         <button
-          className="self-start text-sm font-medium text-primary-11 underline underline-offset-2 hover:opacity-hover"
+          // `mt-1` on touch: the 44px area reaches 12px up, so it stops at the row above instead of
+          // taking taps meant for that date.
+          className="touch-target relative self-start text-sm font-medium text-primary-12 underline underline-offset-2 hover:opacity-hover pointer-coarse:mt-1"
           type="button"
           onClick={() => setExpanded(true)}
         >

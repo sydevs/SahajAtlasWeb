@@ -36,6 +36,7 @@ import {
   childRoute,
   childrenOf,
   DEFAULT_FILTERS,
+  hasActiveFilters,
   indexRegions,
   isOnline,
   isUnverified,
@@ -356,6 +357,23 @@ const indexedFeed = (regions: RegionNode[], geojson: Geojson) => {
   return feedMemo
 }
 
+// The features a browse list counts and shows: the same check the map applies to its pins, so a
+// filtered URL can't show a pin count and a list that disagree. Framing keeps using the full set.
+const visibleFeatures = (
+  events: IndexedFeature[],
+  regions: RegionNode[],
+  filters?: EventFilters,
+): IndexedFeature[] => {
+  if (!filters || !hasActiveFilters(filters)) return events
+
+  const matchesRegion = buildRegionMatcher(regions, filters.region)
+  const today = todayISO()
+
+  return events.filter((event) =>
+    matchesFilters(event.feature.properties, filters, today, matchesRegion),
+  )
+}
+
 // This builds a list or map item from an agnostic feed feature.
 // It joins the localized `title` from the per-locale titles map.
 // It falls back to an empty string if a title is missing, so a data gap cannot fail the parse.
@@ -394,6 +412,18 @@ export const regionRoute = (node: RegionNode): string =>
 // A non-ISO slug, such as an un-migrated local dev seed, yields no flag instead of an error.
 const countryCodeOf = (node: RegionNode): string | undefined => isoCountryCode(node.slug)
 
+// A place holding exactly one class has no list worth showing, so its row opens the class. The
+// URL still nests under the place, so dismissing goes back where the visitor came from, and a
+// fresh deep link climbs to the place's own page. An online class stays out of this: the rows
+// count located classes, and one located class beside an online one is still two to choose from.
+const singleEventPath = (events: IndexedFeature[], node: RegionNode): string | undefined => {
+  const under = events.filter((event) => event.ancestorIds.includes(node.id))
+
+  return under.length === 1 && !under[0].online
+    ? childRoute(regionRoute(node), under[0].feature.properties.id)
+    : undefined
+}
+
 const toListItem = (node: RegionNode, eventCount: number): RegionListItem =>
   RegionListItemSchema.parse({
     id: node.id,
@@ -416,9 +446,9 @@ const byEventCountDesc = (a: RegionListItem, b: RegionListItem) => b.eventCount 
 // It derives both from the cached region tree and feed, with no dedicated `/regions` read.
 // It reads no titles, because a country card shows no event title.
 // So this list stays locale-agnostic.
-const getCountries = async (): Promise<RegionListItem[]> => {
+const getCountries = async (filters?: EventFilters): Promise<RegionListItem[]> => {
   const [regions, geojson] = await Promise.all([loadRegions(), loadGeojson()])
-  const { events } = indexedFeed(regions, geojson)
+  const events = visibleFeatures(indexedFeed(regions, geojson).events, regions, filters)
 
   // Ordering is the list's own concern, not the feed's.
   // `CountriesView` sorts by event count.
@@ -434,6 +464,7 @@ const getCountries = async (): Promise<RegionListItem[]> => {
         countryCode: countryCodeOf(node),
         eventCount: countUnder(events, node.id),
         path: regionRoute(node),
+        singleEventPath: singleEventPath(events, node),
       }),
     )
     .filter((country) => country.eventCount > 0)
@@ -446,7 +477,7 @@ const getCountries = async (): Promise<RegionListItem[]> => {
 // The cached region tree supplies the node, its children, and its ancestry.
 // The feed supplies bounds, center, and counts.
 // The per-locale titles map supplies event titles, joined by id.
-const getRegion = async (slug: string): Promise<Region> => {
+const getRegion = async (slug: string, filters?: EventFilters): Promise<Region> => {
   const [regions, geojson, titles] = await Promise.all([
     loadRegions(),
     loadGeojson(),
@@ -465,7 +496,8 @@ const getRegion = async (slug: string): Promise<Region> => {
   // `getCountries` still hides 0-event countries from the home list.
   // So a viewer reaches this state only through a direct link, or through a region whose events have all ended.
   // A viewer never reaches it by browsing in.
-  const eventCount = countUnder(events, node.id)
+  const visible = visibleFeatures(events, regions, filters)
+  const eventCount = countUnder(visible, node.id)
   const path = regionRoute(node)
   const isParent = node.level === 'country' || node.level === 'region'
   const bounds = boundsUnder(events, node.id)
@@ -475,7 +507,7 @@ const getRegion = async (slug: string): Promise<Region> => {
   // Online events roll up at every level.
   const children = isParent ? childrenOf(index, node.id) : []
   const { byChild, direct, online } = partitionUnder(
-    events,
+    visible,
     node.id,
     children.map((child) => child.id),
   )
@@ -488,7 +520,11 @@ const getRegion = async (slug: string): Promise<Region> => {
   for (const child of children) {
     const located = byChild.get(child.id)?.length ?? 0
 
-    if (located > 0) subregions.push(toListItem(child, located))
+    if (located > 0)
+      subregions.push({
+        ...toListItem(child, located),
+        singleEventPath: singleEventPath(visible, child),
+      })
   }
   subregions.sort(byEventCountDesc)
 
@@ -611,8 +647,7 @@ const getCalendarEvents = async (
     path: safePath(feature.properties.webPath) ?? `/${feature.properties.id}`,
     eventType: feature.properties.eventType,
     schedule: feature.properties.schedule,
-    // This supplies the concise calendar label.
-    // It uses the parent region name, or the address locality when the calendar is scoped to a region. See `eventsToCalendarEntries`.
+    // These supply the place shown under the class name. See `eventsToCalendarEntries`.
     regionName: feature.properties.region?.name ?? null,
     locality: feature.properties.address?.city ?? null,
   }))
@@ -636,6 +671,10 @@ export const shapeEventDoc = (event: EventDoc): Event => ({
   path: safePath(event.webPath) ?? `/${event.id}`,
 })
 
+// Publishing a host's email is off until SahajCloud has a per-host opt-in: hosts may have
+// entered it for internal use only. This keeps it out of the response, not only off the page.
+const SHOW_HOST_EMAIL = import.meta.env.VITE_SHOW_HOST_EMAIL === 'true'
+
 const getEventDoc = async (id: number): Promise<EventDoc> => {
   // This call sets no `disableErrors` option.
   // So a missing or failed read throws to the ErrorBoundary, the same way the old axios 404 did.
@@ -657,6 +696,7 @@ const getEventDoc = async (id: number): Promise<EventDoc> => {
         description: true,
         images: true,
         contactPhone: true,
+        ...(SHOW_HOST_EMAIL ? { contactEmail: true as const } : {}),
         contactName: true,
         website: true,
         registrationMode: true,

@@ -1,5 +1,6 @@
 import { renderToStaticMarkup } from 'react-dom/server'
 import { MemoryRouter } from 'react-router'
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { describe, expect, it, vi } from 'vitest'
 
 import { MapSearch } from './MapSearch'
@@ -12,7 +13,9 @@ vi.mock('@mapbox/search-js-react', () => ({
   ),
 }))
 vi.mock('react-map-gl', () => ({
-  useMap: () => ({ mapbox: { getCenter: () => ({ lng: 9, lat: 9 }), getMap: () => undefined } }),
+  useMap: () => ({
+    mapbox: { getCenter: () => ({ lng: 9, lat: 9 }), getZoom: () => 10, getMap: () => undefined },
+  }),
 }))
 vi.mock('@/config/i18n', () => ({ default: { resolvedLanguage: 'en' } }))
 vi.mock('react-i18next', () => ({
@@ -23,7 +26,11 @@ vi.mock('react-i18next', () => ({
 }))
 
 const render = (ui: JSX.Element, url = '/?q=from-the-url') => {
-  const html = renderToStaticMarkup(<MemoryRouter initialEntries={[url]}>{ui}</MemoryRouter>)
+  const html = renderToStaticMarkup(
+    <QueryClientProvider client={new QueryClient()}>
+      <MemoryRouter initialEntries={[url]}>{ui}</MemoryRouter>
+    </QueryClientProvider>,
+  )
   const attribute = (name: string) =>
     (new RegExp(`${name}="([^"]*)"`).exec(html)?.[1] ?? '').replaceAll('&quot;', '"')
 
@@ -31,11 +38,15 @@ const render = (ui: JSX.Element, url = '/?q=from-the-url') => {
 }
 
 describe('MapSearch', () => {
-  it('biases suggestions toward the map centre by default, with every type offered', () => {
-    const { options } = render(<MapSearch value="" onChange={() => {}} onSelect={() => {}} />)
+  it('biases toward a zoomed-in map, and offers the places a visitor would name', () => {
+    const { options } = render(<MapSearch onSelect={() => {}} />)
 
     expect(options.proximity).toEqual({ lng: 9, lat: 9 })
-    expect(options).not.toHaveProperty('types')
+    expect(options.types).toBe('country,region,postcode,district,place,locality,neighborhood')
+  })
+
+  it('keeps its own text, seeded from ?q, when no owner holds it', () => {
+    expect(render(<MapSearch onSelect={() => {}} />).value).toBe('from-the-url')
   })
 
   it('starts near the place it is given, and narrows to the types asked for', () => {

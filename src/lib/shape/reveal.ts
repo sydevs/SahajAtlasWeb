@@ -16,8 +16,12 @@ import { isoCountryCode } from './country'
 // "< N km" pill, so the automatic cut is never mistaken for one of the user's own
 // filters.
 
-/** Events within this many km of the searched place are the "nearby" segment. */
-export const NEARBY_KM = 300
+/**
+ * Events within this many km of the searched place are the "nearby" segment: about a town and
+ * its edges, 25 km (16 miles where distances show in miles). It was 300 km, which counted classes
+ * in other cities as near a town search (Anton, 6 Nov).
+ */
+export const NEARBY_KM = 25
 
 /**
  * The nearby limit for an event in a different country from the searched one: half the
@@ -34,6 +38,21 @@ export const NEARBY_KM = 300
  * on a fact we do not have.
  */
 export const FOREIGN_NEARBY_KM = NEARBY_KM / 2
+
+/**
+ * How far a town search's "Classes in other cities" group reaches, past the 25 km nearby cut: a
+ * day trip, so a Prague search still shows Liberec, 90 km away, in its own group rather than
+ * hiding it with the rest of the world (Anton, 6 Nov). Across a border it is half, as above.
+ */
+export const OTHER_CITIES_KM = 100
+export const FOREIGN_OTHER_CITIES_KM = OTHER_CITIES_KM / 2
+
+/**
+ * How far over a border a country page looks for its "Nearby in other countries" group, measured
+ * from that country's own nearest class. A different question from a town search's nearby segment
+ * (Luxembourg's neighbours are a short drive, not a walk), so it keeps its own, wider reach.
+ */
+export const BORDER_NEARBY_KM = 150
 
 /** Rows revealed per press — also the first page. */
 export const PAGE_SIZE = 25
@@ -217,7 +236,18 @@ export function revealRows<T extends Segmentable>(
     showAll,
     hasSearchCenter,
     searchCountry,
-  }: { shown: number; showAll: boolean; hasSearchCenter: boolean; searchCountry?: string },
+    near: isNearOverride,
+  }: {
+    shown: number
+    showAll: boolean
+    hasSearchCenter: boolean
+    searchCountry?: string
+    /**
+     * Who belongs to the first segment, when the caller has already decided (`splitResults`).
+     * The paging below doesn't care how the line was drawn.
+     */
+    near?: (event: T) => boolean
+  },
 ): Reveal<T> {
   // This applies half the cut for an event across a border, the full cut otherwise.
   // Both countries must be known to demote anything. An event with no address country
@@ -233,7 +263,9 @@ export function revealRows<T extends Segmentable>(
     return searchCountry && country && country !== searchCountry ? FOREIGN_NEARBY_KM : NEARBY_KM
   }
   // Online events carry no distance, so they are never distance-excluded.
-  const isNear = (event: T) => event.distance === undefined || event.distance <= limitFor(event)
+  const isNear =
+    isNearOverride ??
+    ((event: T) => event.distance === undefined || event.distance <= limitFor(event))
   const near = hasSearchCenter ? sorted.filter(isNear) : sorted
   const far = hasSearchCenter ? sorted.filter((event) => !isNear(event)) : []
   // This is the smallest limit any excluded event was held to. It is what the empty

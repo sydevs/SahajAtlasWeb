@@ -1,16 +1,28 @@
-import type { Geojson } from '@/types'
-
-import { useCallback, useRef } from 'react'
+import { useCallback, useEffect, useRef } from 'react'
 import { useLocation, useNavigate, useSearchParams } from 'react-router'
 
+import { useNearMeState } from '@/config/store'
 import { useAtlasNavigate } from '@/hooks/use-atlas-navigate'
 import { useLocale } from '@/hooks/use-locale'
 import { geocodeCountryCode, reverseGeocode } from '@/lib/geocode'
-import { nearbyBounds } from '@/lib/geolocation'
+import { aroundVisitor } from '@/lib/geolocation'
 import { placeSearchPath } from '@/lib/shape'
 
 /**
- * This is what "find my location" does: it opens the distance-ranked results centered on the visitor, framed around the classes near them.
+ * How the search gets its place name (`?q`, `?cc`) from a reverse lookup:
+ * - `after` (the map's control): navigate at once, then name the search in place if the visitor
+ *   is still on it. Safe only for an owner that stays mounted and keeps seeing the route.
+ * - `first` (the first screen's row, which unmounts as it navigates): wait briefly for the name,
+ *   then navigate once. Nothing is left running after the navigation.
+ * - `none` (map-less embeds, which promise no Mapbox calls): coordinates only.
+ */
+export type GeolocateNaming = 'after' | 'first' | 'none'
+
+/** How long the first screen waits for a place name before searching without one. */
+const NAME_FIRST_MS = 1500
+
+/**
+ * This is what "find my location" does: it opens the distance-ranked results centered on the visitor, in a town-sized box around them.
  *
  * **This is a navigation, not a camera command.** That is what makes the whole thing simple.
  * The URL becomes `/search?center=…&bbox=…`, and SearchView's existing `frameSearch` does the framing.
@@ -26,10 +38,8 @@ import { placeSearchPath } from '@/lib/shape'
  *  - `Map.tsx` cannot call `useMapController()` at all.
  *    It is a SIBLING of `RealMapControllerProvider`, not a descendant, so it would silently receive the no-op.
  *
- * The feed arrives as an argument because `Map.tsx` already holds it.
- * Passing it keeps this hook off a second `['geojson']` observer, for a value the caller is already subscribed to.
  */
-export function useGeolocateToSearch(geojson: Geojson | undefined) {
+export function useGeolocateToSearch({ naming = 'after' }: { naming?: GeolocateNaming } = {}) {
   const navigate = useAtlasNavigate()
   // This is the RAW navigate, for the naming replace below.
   // `useAtlasNavigate` is for pushes. It stamps an incrementing `atlasDepth` and remembers the outgoing camera.
@@ -53,12 +63,21 @@ export function useGeolocateToSearch(geojson: Geojson | undefined) {
    * A ref refreshed every render is the fix, which is why the empty deps below stay.
    * `Mapbox` already re-renders on filter and location changes, so this ref is always current by the time anyone can press the control.
    */
-  const live = useRef({ navigate, replace, location, searchParams, geojson, locale })
+  const live = useRef({ navigate, replace, location, searchParams, locale, naming })
 
-  live.current = { navigate, replace, location, searchParams, geojson, locale }
+  live.current = { navigate, replace, location, searchParams, locale, naming }
 
-  return useCallback((position: GeolocationPosition) => {
-    const { navigate: go, searchParams: params, geojson: feed, locale: lang } = live.current
+  // A lookup that lands after the owner unmounted must not navigate.
+  const mounted = useRef(true)
+
+  useEffect(() => {
+    mounted.current = true
+
+    return () => void (mounted.current = false)
+  }, [])
+
+  return useCallback(async (position: GeolocationPosition) => {
+    const { navigate: go, searchParams: params, locale: lang, naming: mode } = live.current
     // This rounds to about 110m BEFORE anything serializes it.
     // So the visitor's doorstep never reaches a URL they might copy, or their host page's analytics.
     // This costs nothing the feature can see.
@@ -77,14 +96,35 @@ export function useGeolocateToSearch(geojson: Geojson | undefined) {
       round(position.coords.longitude),
       round(position.coords.latitude),
     ]
-    const place = { center: point, bbox: nearbyBounds(point, feed) }
+    const place = { center: point, bbox: aroundVisitor(point) }
+
+    // Marks this centre as the visitor's own, so the results say "from you".
+    useNearMeState.getState().setCenter(point)
+
+    if (mode === 'first') {
+      const timeout = new Promise<null>((resolve) => setTimeout(() => resolve(null), NAME_FIRST_MS))
+      const feature = await Promise.race([reverseGeocode(point, lang), timeout])
+
+      if (!mounted.current) return
+      go(
+        placeSearchPath(params, {
+          ...place,
+          q: feature?.properties?.full_address ?? undefined,
+          countryCode: feature ? geocodeCountryCode(feature) : undefined,
+        }),
+      )
+
+      return
+    }
 
     // This navigates FIRST, on the coordinates alone.
-    // Getting here has already cost up to Mapbox's six-second `positionOptions.timeout`.
+    // Getting here may already have cost many seconds of `positionOptions.timeout`.
     // So nothing else may wait before the map moves and the list re-ranks.
     const target = placeSearchPath(params, place)
 
     go(target)
+
+    if (mode === 'none') return
 
     // This then names the place, if the network obliges.
     // `?q` fills the search field, so it says where the results are from.

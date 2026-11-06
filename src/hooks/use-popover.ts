@@ -22,7 +22,7 @@ import {
 // This shares the BEHAVIOR, not the markup.
 // The two surfaces anchor differently on purpose.
 // Dropdown wraps its trigger in a focusable `role="button"` div.
-// An ActionCircle is already a real button and forwards its own ref.
+// An ActionButton is already a real button and forwards its own ref.
 // So collapsing them into one component would have forced a nested-interactive trigger on one of them.
 // A hook leaves each free to render its own anchor.
 

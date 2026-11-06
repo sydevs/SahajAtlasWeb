@@ -40,8 +40,9 @@ export const IpLookupContext = createContext(true)
 
 // This is one passive lookup per session.
 // `staleTime` and `gcTime` at `Infinity` keep the single result cached and shared across the top-level views, so it never refetches.
-// Pass `enabled: false` to skip the lookup entirely, such as when the suggestion is already dismissed.
-// So a dismissed session never pings the third-party service.
+// Pass `enabled: false` to skip the lookup for this caller, as the suggestion does once dismissed.
+// The first screen always asks, to put the visitor's own country first, so a dismissal elsewhere
+// doesn't stop the single lookup if the visitor then opens that screen.
 // This returns the location, or `null` while loading, disabled, or failed.
 // A `null` result means the nearby suggestion simply does not render.
 //

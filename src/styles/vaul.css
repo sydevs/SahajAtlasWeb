@@ -300,3 +300,10 @@
     transition: none !important;
   }
 }
+
+/* The floating desktop panel eases to its content's height (see `fitPanel` in DrawerStack). */
+[data-vaul-drawer][data-vaul-drawer-direction='left'] {
+  transition:
+    transform 0.5s cubic-bezier(0.32, 0.72, 0, 1),
+    height 0.2s ease-out;
+}

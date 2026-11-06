@@ -1,6 +1,20 @@
 import { createContext, useContext, useEffect, useLayoutEffect, useState } from 'react'
 import { useMediaQuery } from 'react-responsive'
 
+/** How tall a phone's sheet opens on a searched place: the sheet asks for it, the camera frames around it. */
+export const SEARCH_SHEET_PX = 440
+
+/** The desktop filters panel's width (`FiltersPanel` reads it). */
+export const FILTER_PANEL_W_PX = 288
+/** The gap between the filters panel and the map's right edge (`FiltersPanel` reads it). */
+export const FILTER_PANEL_EDGE_PX = 16
+/**
+ * How much of the map's right side the filters panel takes: the camera pads its framing by this,
+ * and the map's control column (settings, locate, info) moves in by it, so the column keeps the
+ * same 16px gap from the panel that it keeps from the map's edge without it.
+ */
+export const FILTER_PANEL_PX = FILTER_PANEL_W_PX + FILTER_PANEL_EDGE_PX
+
 /**
  * # Responsive signals, and which question each one answers
  *
@@ -18,7 +32,7 @@ import { useMediaQuery } from 'react-responsive'
  *    because a contained map's frame and the viewport stopped being the same box.
  *    It survives as `useIsWide`'s own fallback, which is how a widget with nothing to measure still gets the right answer,
  *    and in a Ladle story, where the viewport really is the container.
- *  - **input** (`useCoarsePointer`): this is for affordances that depend on the DEVICE, not the space, such as whether `tel:` reaches a dialer.
+ *  - **input** (`useCoarsePointer`, `useHasRealPointer`): this is for affordances that depend on the DEVICE, not the space, such as whether `tel:` reaches a dialer.
  *    Narrowing a desktop window has never given it a phone.
  *
  * ## Why the container signal is a strict generalization, not a behavior change
@@ -81,6 +95,34 @@ export function useIsWideViewport(): boolean {
  */
 export function useCoarsePointer(): boolean {
   return useMediaQuery({ query: '(hover: none) and (pointer: coarse)' })
+}
+
+/**
+ * The window height at or under which the map's control column runs as a row along the top,
+ * because a column would sit under the sheet (`@media (max-height: 480px)` in globals.css).
+ */
+export const SHORT_VIEWPORT_MAX_PX = 480
+
+/**
+ * This checks whether the window is short enough for that row: a phone on its side.
+ * It reads the viewport on purpose, to agree with the CSS that lays out the row. Only the
+ * frameless phone sheet asks it, and that sheet is measured against the window too.
+ */
+export function useIsShortViewport(): boolean {
+  return useMediaQuery({ query: `(max-height: ${SHORT_VIEWPORT_MAX_PX}px)` })
+}
+
+/** The device has a real pointer that can rest on something, so hover can carry content. */
+export const REAL_POINTER_QUERY = '(hover: hover) and (pointer: fine)'
+
+/**
+ * This checks for a mouse or trackpad, the opposite question to `useCoarsePointer`.
+ *
+ * Anything revealed on hover needs this gate. iOS sends a fake mouse move before a tap, and when
+ * that reveals content Safari treats the tap as a hover and doesn't click.
+ */
+export function useHasRealPointer(): boolean {
+  return useMediaQuery({ query: REAL_POINTER_QUERY })
 }
 
 /**
@@ -158,6 +200,46 @@ export function useIsWide(element: HTMLElement | null, delayMs = SETTLE_MS): boo
   }, [raw, stable, delayMs])
 
   return stable
+}
+
+/**
+ * Whether the same box `useIsWide` measures is at least `minPx` wide, for a fit question at a
+ * width other than the one crossing, such as "is there room for a second panel?". Nothing
+ * remounts on this answer, so unlike `useIsWide` it has nothing to damp.
+ */
+export function useFitsWidth(element: HTMLElement | null, minPx: number): boolean {
+  const viewportFits = useMediaQuery({ query: `(min-width: ${minPx}px)` })
+  // This is the element's width, or null while there is nothing to measure.
+  //
+  // An element that is already there is measured on the FIRST render, not only in the layout
+  // effect below. Effects that run on mount read this answer before the effect's re-render lands,
+  // so a viewport-wide first answer for a narrower box acted once. A `/filters` link in a 720px
+  // host box on a 1280px page redirected to make room for a panel the box then couldn't show.
+  const [width, setWidth] = useState<number | null>(() =>
+    element && typeof ResizeObserver !== 'undefined' ? element.offsetWidth : null,
+  )
+
+  useIsomorphicLayoutEffect(() => {
+    if (!element || typeof ResizeObserver === 'undefined') {
+      setWidth(null)
+
+      return
+    }
+
+    setWidth(element.offsetWidth)
+
+    const observer = new ResizeObserver((entries) => {
+      const size = entries[0]?.borderBoxSize?.[0]?.inlineSize ?? entries[0]?.contentRect.width
+
+      if (size !== undefined) setWidth(size)
+    })
+
+    observer.observe(element)
+
+    return () => observer.disconnect()
+  }, [element])
+
+  return width === null ? viewportFits : width >= minPx
 }
 
 /**

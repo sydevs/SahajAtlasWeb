@@ -32,6 +32,10 @@ vi.mock('@/hooks/use-prefetch-event', () => ({
 // below, and a null stub leaves nothing to order against.
 vi.mock('./EventRegister', () => ({
   EventRegisterBar: () => <i>register-slot</i>,
+  EventOnward: () => null,
+}))
+vi.mock('@/components/molecules/WhatToExpect', () => ({
+  WhatToExpect: () => null,
 }))
 vi.mock('@/components/molecules/EventActions', () => ({
   EventActions: () => null,

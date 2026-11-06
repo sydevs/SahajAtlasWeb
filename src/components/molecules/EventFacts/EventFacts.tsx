@@ -3,6 +3,7 @@ import type { ReactNode } from 'react'
 
 import { tv } from 'tailwind-variants'
 import { CalendarDays, MapPin, Monitor } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 
 import {
   composeCalendarLine,
@@ -12,12 +13,15 @@ import {
 
 // The when/where fact list. `default` is the panel treatment: brand-tinted
 // icons, roomy spacing. `compact` is the list-card treatment: tighter
-// spacing, and icons that inherit the text colour and shrink to the text
-// height, reading as inline text with a leading glyph, not a labelled
-// block. `card` is the boxed event-details card: a `title` over the
+// spacing, and icons that step back and shrink to the text height, reading
+// as inline text with a leading glyph, not a labelled block. Its time and
+// address stay in the foreground colour, because they are what a visitor
+// came for. Only the distance under them steps back. `card` is the boxed event-details card: a `title` over the
 // default facts on a tinted rounded surface, the object being acted on
 // above the registration and share forms. Each fact has a required primary
-// line (`text`) and an optional faded second line (`subtext`).
+// line (`text`) and an optional faded second line (`subtext`). The primary
+// line is medium weight and the second line regular, grey and on the panel a
+// size smaller, so the time reads first and "Next session" reads as its detail.
 //
 // Presentation and composition live together here. This is the only place
 // that builds event facts, and the only thing that renders them. So a
@@ -31,17 +35,18 @@ const facts = tv({
     base: 'flex flex-col',
     item: 'flex',
     icon: 'shrink-0',
-    text: 'min-w-0 flex-1 text-base leading-snug',
-    subtext: 'font-normal text-gray-11',
+    text: 'min-w-0 flex-1 text-base leading-snug font-medium',
+    line: '',
+    subtext: 'text-sm font-normal text-gray-11',
   },
   variants: {
     variant: {
       default: { base: 'gap-2.5', item: 'gap-3', icon: 'text-primary' },
       compact: {
-        base: 'gap-1',
+        base: 'gap-0.5',
         item: 'gap-2',
-        icon: 'text-gray-10',
-        text: 'text-sm text-gray-11',
+        icon: 'text-gray-11',
+        text: 'text-sm leading-snug text-foreground',
       },
       card: {
         wrapper: 'rounded-lg border border-divider bg-gray-2 p-3',
@@ -55,6 +60,12 @@ const facts = tv({
     stacked: {
       true: { item: 'items-start' },
       false: { item: 'items-center' },
+    },
+    // A list card's "Today" is the fact a visitor scans for, and the card has no chip for it. It
+    // is the muted line on a recurring class, and the lead line on a one-off.
+    today: {
+      line: { line: 'font-medium text-primary-12' },
+      subtext: { subtext: 'font-medium text-primary-12' },
     },
   },
   compoundVariants: [
@@ -77,6 +88,8 @@ type Fact = {
   trailing?: ReactNode
   /** The text itself spans two lines, so the icon hangs from the first even with no subtext. */
   stacked?: boolean
+  /** Which line says "Today" and gets the tint, if any. */
+  today?: 'line' | 'subtext'
 }
 
 export type EventFactsProps = {
@@ -90,6 +103,13 @@ export type EventFactsProps = {
   /** Distance from the searched location, shown faded under the address. List
    *  cards only: the panel has no search origin to measure from. */
   distance?: ReactNode
+  /** Replaces the address line, for a list that sorts by place. List cards only. */
+  where?: ReactNode
+  /**
+   * Drops the muted line under the timing ("Next session: …"), for a screen that has its own answer
+   * to which date. The registration form asks for one, and its confirmation names the one chosen.
+   */
+  hideTimingDetail?: boolean
   /** Content at the end of the calendar fact and of the location fact. */
   trailing?: { when?: ReactNode; where?: ReactNode }
   className?: string
@@ -113,9 +133,12 @@ export function EventFacts({
   title,
   children,
   distance,
+  where,
+  hideTimingDetail = false,
   trailing,
   className,
 }: EventFactsProps) {
+  const { t } = useTranslation()
   const {
     display,
     recurrenceLine,
@@ -123,6 +146,8 @@ export function EventFacts({
     eventTimeRange,
     eventStartTime,
     whereLine,
+    whereLineFull,
+    whereLineCard,
     roomLine,
     whereSubtext,
   } = useEventDisplay(event)
@@ -132,12 +157,18 @@ export function EventFacts({
 
   // The muted detail under the timing. "Started …" is only meaningful for
   // a course, a run with an end. The "Next session" line is panel-only.
-  let timingDetail: string | undefined
+  let timingDetail: ReactNode
 
   if (display.next && recurrenceLine) {
     if (display.status === 'started')
       timingDetail = display.kind === 'course' ? whenLine : undefined
     else if (display.status === 'running' && compact) timingDetail = undefined
+    // On a card, the Today chip already says it.
+    else if (display.status === 'today' && compact) timingDetail = undefined
+    else if (display.status === 'today')
+      timingDetail = (
+        <span className="font-medium text-primary-12 dark:text-primary-11">{whenLine}</span>
+      )
     else timingDetail = whenLine
   }
 
@@ -155,8 +186,14 @@ export function EventFacts({
         time,
         hasNext: Boolean(display.next),
       }),
-      subtext: timingDetail,
+      subtext: hideTimingDetail ? undefined : timingDetail,
       trailing: trailing?.when,
+      today:
+        compact && display.status === 'today'
+          ? timingDetail && !hideTimingDetail
+            ? 'subtext'
+            : 'line'
+          : undefined,
     },
   ]
 
@@ -164,19 +201,25 @@ export function EventFacts({
     // The room is directions, so only the panel carries it. The list card and the
     // share/registration summaries are triage and recap (#316).
     const room = variant === 'default' ? roomLine : null
+    // The card stays short. Every other surface helps someone find the place.
+    const address = compact ? whereLineCard : whereLineFull
 
     items.push({
       icon: display.online ? Monitor : MapPin,
       text: room ? (
         <>
           <div>{room}</div>
-          <div>{whereLine}</div>
+          <div>{address}</div>
         </>
       ) : (
-        whereLine
+        (where ?? address)
       ),
       stacked: Boolean(room),
-      subtext: display.online ? (whereSubtext ?? undefined) : (distance ?? undefined),
+      subtext: display.online
+        ? (whereSubtext ?? undefined)
+        : where
+          ? undefined
+          : (distance ?? undefined),
       trailing: trailing?.where,
     })
   }
@@ -189,11 +232,18 @@ export function EventFacts({
   // It also owns a title above the facts, and a slot below them. The other
   // variants render just the fact column, and take `className` on it.
   const body = (
-    <div className={card ? slots.base() : slots.base({ className })}>
-      {items.map(({ icon: Icon, text, subtext, stacked, trailing: end }, index) => {
+    <div
+      className={card ? slots.base() : slots.base({ className })}
+      data-sheet-fold={variant === 'default' ? '' : undefined}
+    >
+      {items.map(({ icon: Icon, text, subtext, stacked, today, trailing: end }, index) => {
         // Alignment is per-fact. Only a stacked fact, one with two lines,
         // hangs its icon from the first line.
-        const styles = facts({ variant, stacked: Boolean(subtext) || Boolean(stacked) })
+        const styles = facts({
+          variant,
+          stacked: Boolean(subtext) || Boolean(stacked),
+          today,
+        })
 
         return (
           <div key={index} className={styles.item()}>
@@ -201,13 +251,19 @@ export function EventFacts({
               <Icon size={size} />
             </span>
             <div className={styles.text()}>
-              <div>{text}</div>
+              <div className={styles.line()}>{text}</div>
               {subtext && <div className={styles.subtext()}>{subtext}</div>}
             </div>
             {end}
           </div>
         )
       })}
+      {/* "Free" is a newcomer's main doubt. "Register for free" says it wherever that button
+          shows, so this is only for a by-request class, which has no such button. It sits
+          after the where line, level with the fact text, so when and where still lead. */}
+      {variant === 'default' && display.status === 'inactive' && (
+        <p className="pl-8 text-sm text-gray-11">{t('event.display.fact_free')}</p>
+      )}
     </div>
   )
 
