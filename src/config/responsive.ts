@@ -4,6 +4,17 @@ import { useMediaQuery } from 'react-responsive'
 /** How tall a phone's sheet opens on a searched place: the sheet asks for it, the camera frames around it. */
 export const SEARCH_SHEET_PX = 440
 
+/** The desktop filters panel's width (`FiltersPanel` reads it). */
+export const FILTER_PANEL_W_PX = 272
+/** The gap between the filters panel and the map's right edge (`FiltersPanel` reads it). */
+export const FILTER_PANEL_EDGE_PX = 16
+/**
+ * How much of the map's right side the filters panel takes: the camera pads its framing by this,
+ * and the map's control column (settings, locate, info) moves in by it, so the column keeps the
+ * same 16px gap from the panel that it keeps from the map's edge without it.
+ */
+export const FILTER_PANEL_PX = FILTER_PANEL_W_PX + FILTER_PANEL_EDGE_PX
+
 /**
  * # Responsive signals, and which question each one answers
  *
@@ -84,6 +95,21 @@ export function useIsWideViewport(): boolean {
  */
 export function useCoarsePointer(): boolean {
   return useMediaQuery({ query: '(hover: none) and (pointer: coarse)' })
+}
+
+/**
+ * The window height at or under which the map's control column runs as a row along the top,
+ * because a column would sit under the sheet (`@media (max-height: 480px)` in globals.css).
+ */
+export const SHORT_VIEWPORT_MAX_PX = 480
+
+/**
+ * This checks whether the window is short enough for that row: a phone on its side.
+ * It reads the viewport on purpose, to agree with the CSS that lays out the row. Only the
+ * frameless phone sheet asks it, and that sheet is measured against the window too.
+ */
+export function useIsShortViewport(): boolean {
+  return useMediaQuery({ query: `(max-height: ${SHORT_VIEWPORT_MAX_PX}px)` })
 }
 
 /** The device has a real pointer that can rest on something, so hover can carry content. */

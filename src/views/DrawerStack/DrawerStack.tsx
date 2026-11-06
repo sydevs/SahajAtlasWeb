@@ -1,6 +1,7 @@
 import type { AgnosticFeedEvent } from '@/types'
 
 import {
+  type CSSProperties,
   Suspense,
   lazy,
   startTransition,
@@ -25,7 +26,14 @@ import { useLocale } from '@/hooks/use-locale'
 import { Drawer, DrawerContent } from '@/components/atoms/Drawer'
 import { ResetErrorBoundary, SettingsMenu } from '@/components/molecules'
 import { ClientGate } from '@/config/client-gate'
-import { SEARCH_SHEET_PX, WidgetWidthContext, useFitsWidth, useIsWide } from '@/config/responsive'
+import {
+  FILTER_PANEL_PX,
+  SEARCH_SHEET_PX,
+  WidgetWidthContext,
+  useFitsWidth,
+  useIsShortViewport,
+  useIsWide,
+} from '@/config/responsive'
 import { useSurfaceSwitch, useWidgetMode } from '@/config/mode'
 import { useClassSheet, useFilterPanelState } from '@/config/store'
 import { frameElement, overlayContainer } from '@/lib/overlay'
@@ -126,6 +134,12 @@ const safeAreaBottom = (): number => {
   return inset
 }
 
+// On a phone on its side (`useIsShortViewport`), the map's controls run as a row along the top,
+// and the 356px and taller stops covered it on a 375px screen, or ran the sheet's top off the
+// screen. There every stop stays this far below the top of the window: the row and a strip of map,
+// as round 1's 300px stop left on a 375px screen.
+const ABOVE_SHEET_WHEN_SHORT_PX = 75
+
 // In a host's box, 300px shows three rows, or a class's title and a clipped time. This shows
 // five rows, or a class's when, where and register button, and still leaves some map.
 const DETAIL_SNAP = '400px'
@@ -161,6 +175,11 @@ function openSnapFor(kind: StackEntry['kind'] | undefined, frameHeight: number) 
   return kind === 'event' ? FRAMED_FULL_SNAP : OPEN_SNAP
 }
 
+/** A pixel stop held down to `cap`. Fractions, and every stop when there is no cap, pass through. */
+function capStop(point: number | string, cap: number | null) {
+  return cap !== null && typeof point === 'string' && parseFloat(point) > cap ? `${cap}px` : point
+}
+
 /** The phone ladder with the filters' fit-to-content stop slotted in by height. */
 function withFitSnap(points: (number | string)[], fitPx: number | null) {
   if (fitPx === null) return points
@@ -173,9 +192,12 @@ function withFitSnap(points: (number | string)[], fitPx: number | null) {
 }
 
 // How wide the widget has to be before the filters get their own panel over the map, and open by
-// default: the 352px list and its margins, the 272px filter panel and the 64px of map controls
-// beside it, which leaves about 450px of map to look at. Below this, filters sit behind the button.
+// default: the 352px list and its margins, the filter panel (`FILTER_PANEL_PX`) and the map
+// controls beside it, which leaves about 450px of map to look at. Below this, filters sit behind
+// the button.
 const FILTER_PANEL_MIN_PX = 1200
+// The settings cog's share of `CONTROLS_BESIDE_PANEL` in Map.tsx: the cog sits outside the map.
+const COG_BESIDE_PANEL = { '--sy-map-end': `${FILTER_PANEL_PX}px` } as CSSProperties
 
 // PROPOSAL SWITCH: the panel and the chip bar are an either/or for Anton to compare. `?filterui=chips`
 // on the page's first load shows the chips. Delete whichever one loses, and this with it.
@@ -355,6 +377,31 @@ export function DrawerStack() {
   // A drag that lands on the fit stop stores the token, so the stop follows the content.
   const setVaulSnap = (next: number | string | null) =>
     setSnap(fitSnap !== null && next === fitSnap ? FIT_SNAP : next)
+  // A short window caps the pixel stops (see ABOVE_SHEET_WHEN_SHORT_PX), only on the way to vaul:
+  // `snap` keeps naming the logical stop, so everything that compares it stays as it is. The
+  // near-full stop is a fraction, and still covers the row on purpose.
+  const shortViewport = useIsShortViewport()
+  const snapCap =
+    shortViewport && direction === 'bottom' && !framed
+      ? Math.max(PEEK_PX, window.innerHeight - ABOVE_SHEET_WHEN_SHORT_PX)
+      : null
+  // Memoised like the ladders it is built from: vaul re-measures every stop when this changes.
+  const shownSnapPoints = useMemo(
+    () =>
+      snapCap === null ? snapPoints : [...new Set(snapPoints.map((p) => capStop(p, snapCap)))],
+    [snapPoints, snapCap],
+  )
+  const shownSnap = capStop(activeSnap, snapCap)
+  const setShownSnap = (next: number | string | null) => {
+    // A capped stop stands for every stop above the cap: the sheet stays at the one it was at if
+    // that caps to here, and otherwise opens at the usual open stop.
+    if (snapCap !== null && next === `${snapCap}px` && !snapPoints.includes(next)) {
+      if (shownSnap !== next) setSnap(openSnap)
+
+      return
+    }
+    setVaulSnap(next)
+  }
   // The calendar is the one full-width view. It fills the widget, minus the floating margins,
   // instead of the 352px left panel (see the Drawer `wide` variant) — EXCEPT in its list
   // (agenda) view, one narrow column that reads better at the regular width. `isWide` is here
@@ -952,16 +999,14 @@ export function DrawerStack() {
                   calendar, and at the sheet's near-full snap (which also covers the tall
                   filters sheet), which covers the column anyway. */}
                 {!wide && snap !== WIDE_SNAP && (
-                  <SettingsMenu
-                    align="end"
-                    // With the filter panel up, the cog moves in beside it with the rest of the
-                    // column (`--sy-map-end` in Map.tsx is the same 336px).
-                    className={
-                      filterPanelUp
-                        ? 'fixed top-[var(--sy-map-ctrl-top)] right-[calc(var(--sy-map-ctrl-end)+336px)] z-20'
-                        : 'fixed top-[var(--sy-map-ctrl-top)] right-[var(--sy-map-ctrl-end)] z-20'
-                    }
-                  />
+                  // With the filter panel up, the cog moves in beside it with the rest of the
+                  // column, by the same `--sy-map-end` Map.tsx sets on the map.
+                  <div className="contents" style={filterPanelUp ? COG_BESIDE_PANEL : undefined}>
+                    <SettingsMenu
+                      align="end"
+                      className="fixed top-[var(--sy-map-ctrl-top)] right-[calc(var(--sy-map-ctrl-end)+var(--sy-map-end,0px))] z-20"
+                    />
+                  </div>
                 )}
               </>,
               target,
@@ -970,7 +1015,7 @@ export function DrawerStack() {
             key={direction}
             dismissible
             open
-            activeSnapPoint={direction === 'bottom' ? activeSnap : undefined}
+            activeSnapPoint={direction === 'bottom' ? shownSnap : undefined}
             container={target}
             direction={direction}
             // The left panel (≥md) has no handle and no snap points, so restricting
@@ -983,8 +1028,8 @@ export function DrawerStack() {
             // the `display: contents` theme root and measures 0×0. See the note in
             // `Drawer.tsx`.
             measureAgainst={frameElement()}
-            setActiveSnapPoint={direction === 'bottom' ? setVaulSnap : undefined}
-            snapPoints={direction === 'bottom' ? snapPoints : undefined}
+            setActiveSnapPoint={direction === 'bottom' ? setShownSnap : undefined}
+            snapPoints={direction === 'bottom' ? shownSnapPoints : undefined}
             wide={wide}
             onOpenChange={(o) => !o && control.dismiss()}
           >

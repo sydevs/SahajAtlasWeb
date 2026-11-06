@@ -10,10 +10,13 @@ import { WhereFilter } from './WhereFilter'
 import { Button } from '@/components/atoms/Button'
 import { SearchFilters } from '@/components/molecules'
 import { useFilterPanelState } from '@/config/store'
+import { FILTER_PANEL_EDGE_PX, FILTER_PANEL_W_PX } from '@/config/responsive'
+
+const PANEL_BOX = { width: FILTER_PANEL_W_PX, insetInlineEnd: FILTER_PANEL_EDGE_PX } as const
 
 /**
  * The filters as a panel over the map's right side, for wide containers, where they fit beside
- * everything else. The map's own controls sit just inside it (see `--sy-map-end` in Map.tsx). The
+ * everything else. The map's own controls move in beside it (see `--sy-map-end` in Map.tsx). The
  * list's search box is the place to type a town, so this asks only for Near me.
  */
 export function FiltersPanel() {
@@ -35,7 +38,10 @@ export function FiltersPanel() {
   return (
     <aside
       aria-label={t('filters.chrome.title')}
-      className="pointer-events-auto fixed end-4 top-4 z-30 flex max-h-[calc(100%-72px)] w-[272px] flex-col overflow-hidden rounded-2xl border border-divider bg-background text-foreground shadow-xl"
+      className="pointer-events-auto fixed top-4 z-30 flex max-h-[calc(100%-72px)] flex-col overflow-hidden rounded-2xl border border-divider bg-background text-foreground shadow-xl"
+      // From the shared constants, so the camera padding and the map controls beside the panel
+      // can't drift from its real size.
+      style={PANEL_BOX}
     >
       <header className="flex shrink-0 items-center justify-between gap-2 ps-4 pe-2 pt-4 pb-1">
         <h2 className="text-xl font-semibold">{t('filters.chrome.title')}</h2>
