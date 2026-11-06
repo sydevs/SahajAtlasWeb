@@ -81,7 +81,7 @@ export function FilterView() {
   }, [center, bbox, filters.region])
 
   // A fresh link to `/gb/filters` (a host's link, a reload) arrives with the camera still on the
-  // world, and the sheet pushes that up to the Arctic. So on entry only, frame the Where once.
+  // world, and the sheet pushes that up to the Arctic. So on entry only, frame the Where.
   // In-app the camera is already there, and later changes go through the effect above.
   const isEntry = atlasDepth(location) === 0
   const entryRegion = isEntry && !center ? filters.region : null
@@ -89,22 +89,21 @@ export function FilterView() {
     ...regionQuery(entryRegion ?? '', locale),
     enabled: Boolean(entryRegion),
   })
-  const entryFramed = useRef(false)
+  // The phone sheet measures its content after the first frame, and the camera's padding (so the
+  // camera functions) changes with it. Framing again with each new padding fits the place into
+  // the strip the sheet really leaves. It stops at the visitor's first answer, so a sheet that
+  // grows or shrinks with the answers never moves the map.
+  const entryDone = useRef(false)
 
   useEffect(() => {
-    if (entryFramed.current || !isEntry) return
+    if (entryDone.current || !isEntry) return
 
-    if (center) {
-      entryFramed.current = true
-      frameSearch({ bbox: parseBounds(bbox), center: parseCenter(center) })
-    } else if (entryRegionDoc) {
-      entryFramed.current = true
-      frameRegion(entryRegionDoc)
-    }
-    // Same as above: the camera functions change with the provider, not with the place.
-  }, [isEntry, center, bbox, entryRegionDoc])
+    if (center) frameSearch({ bbox: parseBounds(bbox), center: parseCenter(center) })
+    else if (entryRegionDoc) frameRegion(entryRegionDoc)
+  }, [isEntry, center, bbox, entryRegionDoc, frameRegion, frameSearch])
 
   const write = (next: EventFilters, base = new URLSearchParams(location.search)) => {
+    entryDone.current = true
     const inOrigin = next.region !== null && next.region === originRegion
     const leftOrigin = originRegion !== null && next.region === null
     const search = filtersToParams({ ...next, region: inOrigin ? null : next.region }, base)
@@ -115,11 +114,13 @@ export function FilterView() {
     )
   }
 
-  const pickPlace = (place: PlaceSearch) =>
+  const pickPlace = (place: PlaceSearch) => {
+    entryDone.current = true
     navigate(placeFiltersPath(new URLSearchParams(location.search), place), {
       replace: true,
       state: location.state,
     })
+  }
 
   // Back to everywhere: the place and the region both go, and the other filters stay.
   const clearWhere = () =>

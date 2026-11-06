@@ -100,7 +100,8 @@ type SecondaryViews = ReturnType<typeof loadSecondaryViews>
 const SEARCH_SNAP = `${SEARCH_SHEET_PX}px` // a searched place: the answer, and the groups below it
 const PEEK_PX = 88
 const PEEK_SNAP = `${PEEK_PX}px` // the collapsed peek
-const SNAP_POINTS = [PEEK_SNAP, '356px', '380px', SEARCH_SNAP, 0.97]
+const NEAR_FULL_SHARE = 0.97 // the near-full stop, as a share of the screen
+const SNAP_POINTS = [PEEK_SNAP, '356px', '380px', SEARCH_SNAP, NEAR_FULL_SHARE]
 const OPEN_SNAP = '356px' // default, and what the peek expands to
 const HOME_SNAP = '380px' // what the first screen opens at
 const WIDE_SNAP = SNAP_POINTS[SNAP_POINTS.length - 1] // the near-full snap the full-width calendar opens at
@@ -596,14 +597,20 @@ export function DrawerStack() {
   }, [direction, top?.kind, openSnap, framed])
 
   // The camera keeps a class's pin clear of the sheet that opened over it. This is only for a
-  // class: its sheet is taller, and its pin is the point of the map.
+  // class and the filters: their sheets are taller than the usual open stop. The filters open as
+  // tall as their content (the near-full stop when unmeasured), so the place they are scoped to
+  // frames in the strip above them, not behind them (the camera caps it to keep a strip).
   const setSheetBottom = useClassSheet((s) => s.setBottom)
+  const filtersSheetPx =
+    direction === 'bottom' && hasMap && top?.kind === 'filters' && !filterOverlay && !framed
+      ? (fitPx ?? Math.round(window.innerHeight * NEAR_FULL_SHARE))
+      : null
 
   useEffect(() => {
-    setSheetBottom(direction === 'bottom' && top?.kind === 'event' ? eventOpenPx : null)
+    setSheetBottom(direction === 'bottom' && top?.kind === 'event' ? eventOpenPx : filtersSheetPx)
 
     return () => setSheetBottom(null)
-  }, [direction, top?.kind, eventOpenPx, setSheetBottom])
+  }, [direction, top?.kind, eventOpenPx, filtersSheetPx, setSheetBottom])
 
   // A new searched place lifts the sheet out of its peek, so results are never
   // fetched into a sheet the visitor cannot see. The effect above does not cover this

@@ -373,13 +373,17 @@ export const useRegistrationDraft = create<RegistrationDraftState & Registration
 )
 
 type ClassSheetState = {
-  /** The height a class's phone sheet opens at, or null when no class is open on a phone. */
+  /**
+   * The height a class's or the filters' phone sheet opens at, or null when neither is on top
+   * on a phone (the camera then allows for the usual open sheet).
+   */
   bottom: number | null
   setBottom: (bottom: number | null) => void
 }
 
 /**
- * The drawer measures this and the map camera reads it, so a class's pin clears its sheet.
+ * The drawer measures this and the map camera reads it, so a class's pin, or the place the
+ * filters are scoped to, clears its sheet.
  * Neither side renders the other's context, and the drawer must not import the map's hooks.
  */
 export const useClassSheet = create<ClassSheetState>((set) => ({
