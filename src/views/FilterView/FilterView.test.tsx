@@ -15,7 +15,11 @@ vi.mock('@tanstack/react-query', async (importOriginal) => ({
   ...(await importOriginal<typeof import('@tanstack/react-query')>()),
   useQuery: () => ({ data: undefined }),
 }))
-vi.mock('@/config/api', () => ({ default: {} }))
+vi.mock('@/config/api', () => ({
+  default: {},
+  regionQuery: (slug: string) => ({ queryKey: ['region', slug], queryFn: () => null }),
+}))
+vi.mock('@/hooks/use-locale', () => ({ useLocale: () => ({ locale: 'en' }) }))
 vi.mock('@/hooks/use-filter-facets', () => ({ useFilterFacets: () => undefined }))
 vi.mock('./WhereFilter', () => ({ WhereFilter: () => null }))
 vi.mock('./RecoveryButton', () => ({ RecoveryButton: () => null }))
@@ -29,7 +33,7 @@ vi.mock('@/views/shared', () => ({
   useDrawerControl: () => ({ dismiss: () => {} }),
 }))
 vi.mock('@/hooks/use-map-controller', () => ({
-  useMapController: () => ({ frameSearch: () => {}, reset: () => {} }),
+  useMapController: () => ({ frameRegion: () => {}, frameSearch: () => {}, reset: () => {} }),
 }))
 
 const view = (entry: string) =>
