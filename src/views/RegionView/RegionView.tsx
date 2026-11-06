@@ -17,12 +17,15 @@ import {
   FoldSection,
   List,
   ListItem,
+  ListToolbar,
   ResultCountStatus,
+  SortMenu,
 } from '@/components/molecules'
 import { useEventFilters, useFilterSearch, useSetFilters } from '@/hooks/use-filters'
 import { eventsQuery, regionQuery } from '@/config/api'
 import { useFolds } from '@/hooks/use-folds'
 import { useLocale } from '@/hooks/use-locale'
+import { useSortOrder } from '@/hooks/use-sort'
 import { useMapController } from '@/hooks/use-map-controller'
 import { usePostEventFeedback } from '@/hooks/use-post-event-feedback'
 import { usePrefetchEvents } from '@/hooks/use-prefetch-event'
@@ -40,6 +43,9 @@ import {
   isoCountryCode,
   isOnline,
   searchPath,
+  sortEvents,
+  orderOnline,
+  type SortOrder,
   loneClassPath,
   viewRegion,
   parentOf,
@@ -64,10 +70,13 @@ import {
 // located ones. This view frames the map to the region's bounds when it is the top of the
 // stack. There is no canonicalization redirect. The URL stays where the user navigated. The
 // canonical tag is standalone-only.
+/** What a place page can sort by: it has no searched point, so no "Closest". */
+const PLACE_SORTS: readonly SortOrder[] = ['recommended', 'soonest']
+
 export function RegionView({ slug }: { slug: string }) {
   const { t } = useTranslation()
   const location = useLocation()
-  const { regionNames, locale } = useLocale()
+  const { regionNames, locale, languageCode } = useLocale()
   const { standalone } = useWidgetMode()
   const { frameRegion } = useMapController()
   // A reader redirected here by the post-event email said the class did NOT take place (#164).
@@ -79,6 +88,19 @@ export function RegionView({ slug }: { slug: string }) {
   const filterSearch = useFilterSearch()
   const { setFilters } = useSetFilters()
   const { data: region } = useSuspenseQuery(regionQuery(slug, locale, filters))
+
+  // A place page sorts its own classes as the search results do, by `?sort=`. It has no point to
+  // measure "Closest" from, so that one reads as the default here (and `SortMenu` doesn't offer it).
+  const asked = useSortOrder()
+  const order: SortOrder = PLACE_SORTS.includes(asked) ? asked : PLACE_SORTS[0]
+  const events = useMemo(
+    () => sortEvents(region.events, order, languageCode),
+    [region.events, order, languageCode],
+  )
+  const onlineEvents = useMemo(
+    () => orderOnline(region.onlineEvents, order, languageCode),
+    [region.onlineEvents, order, languageCode],
+  )
 
   useFrameOnTop(() => frameRegion(region), [region, frameRegion])
 
@@ -141,16 +163,11 @@ export function RegionView({ slug }: { slug: string }) {
           <meta content={canonicalUrl} property="og:url" />
         </Helmet>
       )}
-      {/* The calendar and the filters open pre-scoped to this region. With search in the field
-          below and Back above the title, these two have the icon row to themselves. */}
+      {/* The calendar opens pre-scoped to this region. Filters and Sort sit in the row under the
+          search field, as on the search results, on every page but the world view (Anton, 6 Nov). */}
       <NavHeader
         breadcrumbs
-        actions={
-          <>
-            <CalendarButton regionSlug={region.slug} />
-            <FilterButton iconOnly />
-          </>
-        }
+        actions={<CalendarButton regionSlug={region.slug} />}
         subtitle={subheader}
         title={header}
       />
@@ -162,9 +179,15 @@ export function RegionView({ slug }: { slug: string }) {
           <SearchField />
           {!feedback && suggestFor && <GeolocationSuggestion region={suggestFor} />}
         </div>
+        {/* Sort only where the page lists classes: a page of places has nothing it would reorder. */}
+        <ListToolbar>
+          <FilterButton />
+          {hasEventList && <SortMenu orders={PLACE_SORTS} />}
+        </ListToolbar>
+        {/* Up here so an active filter stays in sight however far the list scrolls. */}
+        <ActiveFilterPills />
       </DrawerToolbar>
       <DrawerBody>
-        <ActiveFilterPills />
         {filterSearch && <ResultCountStatus total={region.eventCount} />}
         {/* Above the region's own content, which IS the "other classes near them" the
             acknowledgement hands off to. So the banner carries no onward link of its own.
@@ -236,13 +259,13 @@ export function RegionView({ slug }: { slug: string }) {
                 label={child.name}
               />
             ))}
-            {region.events.map((event) => (
+            {events.map((event) => (
               <EventListItem key={`event-${event.id}`} event={event} />
             ))}
             {/* A region without an online roll-up card lists its online events inline,
                 after the located ones. */}
             {!showOnlineCard &&
-              region.onlineEvents.map((event) => (
+              onlineEvents.map((event) => (
                 <EventListItem key={`online-${event.id}`} event={event} />
               ))}
           </List>

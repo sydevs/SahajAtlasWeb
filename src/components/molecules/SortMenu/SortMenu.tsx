@@ -39,10 +39,14 @@ function ItemCheck() {
  * This is built directly on Radix DropdownMenu (RadioGroup and
  * ItemIndicator), instead of the Dropdown or Select atoms, which do not
  * model a checked selection. SettingsMenu makes the same choice.
+ *
+ * `orders` narrows the choices: a place page has no point to measure "Closest" from, so it offers
+ * the other two, and shows the first of them while the URL asks for one it doesn't offer.
  */
-export function SortMenu() {
+export function SortMenu({ orders = SORT_ORDERS }: { orders?: readonly SortOrder[] } = {}) {
   const { t } = useTranslation()
-  const order = useSortOrder()
+  const asked = useSortOrder()
+  const order = orders.includes(asked) ? asked : orders[0]
   const setOrder = useSetSortOrder()
   const container = overlayContainer()
 
@@ -73,7 +77,7 @@ export function SortMenu() {
             value={order}
             onValueChange={(value) => setOrder(value as SortOrder)}
           >
-            {SORT_ORDERS.map((value) => (
+            {orders.map((value) => (
               <DropdownMenu.RadioItem key={value} className={item} value={value}>
                 <ItemCheck />
                 <span>{t(`search.sort.${value}`)}</span>
