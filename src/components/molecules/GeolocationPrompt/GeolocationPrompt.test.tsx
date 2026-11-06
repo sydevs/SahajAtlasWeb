@@ -71,4 +71,23 @@ describe('GeolocationPrompt', () => {
     expect(html).not.toContain('<a ')
     expect(html).not.toContain('search.country_site.cta')
   })
+
+  it('reads "Classes near me" with no × when there is no guess to dismiss', () => {
+    const html = renderToStaticMarkup(<GeolocationPrompt label="Classes near me" onAccept={noop} />)
+
+    expect(html).toContain('Classes near me')
+    expect(html).not.toContain('aria-label="Dismiss"')
+  })
+
+  it('is busy while locating, and announces a failure at once', () => {
+    const busy = renderToStaticMarkup(
+      <GeolocationPrompt busy label="Finding your location…" onAccept={noop} />,
+    )
+    const failed = renderToStaticMarkup(
+      <GeolocationPrompt alert label="We couldn't get your location." onAccept={noop} />,
+    )
+
+    expect(busy).toContain('disabled')
+    expect(failed).toContain('role="alert"')
+  })
 })

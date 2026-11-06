@@ -107,11 +107,8 @@
     "browse": "Or browse by country",
     "locating": "Finding your location…",
     "near_city": "Classes near %{city}",
-    "near_me_hint": "Your browser will ask for permission",
-    "not_in_city": "Not in %{city}?",
     "near_me": "Classes near me",
-    "title": "Free meditation classes",
-    "use_location": "Use my location"
+    "title": "Free meditation classes"
   },
   "event": {
     "contact_only": {
