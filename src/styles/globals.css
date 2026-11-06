@@ -945,18 +945,3 @@
 .dark-theme {
   --ornament: hsl(var(--contrast-9));
 }
-
-/* `--ornament`: the coral the We Meditate icons are drawn in. The contrast solid (#E08E79)
-   is the app's coral but is under the 3:1 an icon needs on the panel, so light mode mixes
-   it toward the ramp's deep step; dark mode uses the solid itself. Both derive from the
-   contrast ramp, so a host palette repaints them too. */
-:root,
-.light,
-.light-theme {
-  --ornament: color-mix(in srgb, hsl(var(--contrast-9)) 55%, hsl(var(--contrast-11)));
-}
-
-.dark,
-.dark-theme {
-  --ornament: hsl(var(--contrast-9));
-}
