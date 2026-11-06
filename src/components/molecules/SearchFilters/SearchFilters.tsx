@@ -35,20 +35,21 @@ import {
 const FORMAT_OPTIONS: EventFormat[] = ['offline', 'online']
 const CADENCE_OPTIONS: EventCadence[] = ['DAILY', 'WEEKLY', 'MONTHLY', 'once']
 
-// Coloured like the We Meditate app's reminder sheet (Anton, 6 Nov): its sunrise and moon, in a
-// deeper amber and blue than the app's pale #ffd591 and #a1c3d7, which washed out at 20px. A 1px
-// outline in the same colour (`vector-effect` keeps it 1px at any size) makes the fine lines bold.
-// The app has no afternoon icon, so afternoon takes a sun line icon in the same amber.
-const MORNING_AMBER = 'text-[#d38b1f]'
-const EVENING_BLUE = 'text-[#4a84b3]'
-const BOLD_LINES =
-  '[&_path]:[stroke:currentColor] [&_path]:[stroke-width:1.25px] [&_path]:[vector-effect:non-scaling-stroke]'
+// The We Meditate app's own sunrise and moon, in the app's own yellow and blue (#ffd591, #a1c3d7:
+// the colours in sunrise.svg and moon.svg), as on its reminder sheet (Anton, 6 Nov). At 20px the
+// app's fine lines wash out, so a 0.75px outline in the same colour thickens them a little
+// (`vector-effect` keeps it 0.75px at any size). The app has no afternoon icon, so afternoon takes
+// a sun line icon in the sunrise's yellow.
+const SUN_YELLOW = 'text-[#ffd591]'
+const MOON_BLUE = 'text-[#a1c3d7]'
+const THICKER =
+  '[&_path]:[stroke:currentColor] [&_path]:[stroke-width:0.75px] [&_path]:[vector-effect:non-scaling-stroke]'
 const TIME_ICONS: Record<TimePeriod, ReactNode> = {
-  morning: <WmIcon className={clsx(MORNING_AMBER, BOLD_LINES)} name="sunrise" size={22} />,
+  morning: <WmIcon className={clsx(SUN_YELLOW, THICKER)} name="sunrise" size={22} />,
   afternoon: (
-    <Sun aria-hidden className={clsx('shrink-0', MORNING_AMBER)} size={20} strokeWidth={2} />
+    <Sun aria-hidden className={clsx('shrink-0', SUN_YELLOW)} size={20} strokeWidth={1.75} />
   ),
-  evening: <WmIcon className={clsx(EVENING_BLUE, BOLD_LINES)} name="moon" size={20} />,
+  evening: <WmIcon className={clsx(MOON_BLUE, THICKER)} name="moon" size={20} />,
 }
 
 // How many languages still read better as one tap each than as a dropdown.
