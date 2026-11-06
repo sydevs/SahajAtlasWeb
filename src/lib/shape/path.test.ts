@@ -285,9 +285,9 @@ describe('nearestKnownRegion', () => {
 describe('listResetKey', () => {
   const key = (search: string) => listResetKey(new URLSearchParams(search))
 
-  it('ignores ?q — the geocoder rewrites it on every keystroke', () => {
-    // The reason this helper exists: keying the results boundary on the raw query string
-    // would retry a failing query once per character typed.
+  it('ignores ?q — the place name is not part of the query', () => {
+    // Near me names the place it found just after navigating. Keying the results boundary on
+    // the raw query string would retry a failing query for a label.
     expect(key('center=0,0&q=Cam')).toBe(key('center=0,0&q=Cambridge'))
     expect(key('center=0,0&q=Cam')).toBe(key('center=0,0'))
   })
@@ -336,6 +336,17 @@ describe('placeSearchPath', () => {
 
     expect(params.get('format')).toBe('online')
     expect(params.get('sort')).toBe('soonest')
+  })
+
+  // United Kingdom, then Tuesday, then Prague: the new place replaces the country, or the search
+  // looks for Prague inside the United Kingdom and finds nothing.
+  it('drops a region chosen earlier, keeping the other filters', () => {
+    const params = query(
+      placeSearchPath(new URLSearchParams('region=gb&days=2'), { center: CENTRE }),
+    )
+
+    expect(params.get('region')).toBeNull()
+    expect(params.get('days')).toBe('2')
   })
 
   // This goes through `preserveSearchState`, instead of copying the

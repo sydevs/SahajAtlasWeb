@@ -5,7 +5,7 @@ import { useMediaQuery } from 'react-responsive'
 export const SEARCH_SHEET_PX = 440
 
 /** The desktop filters panel's width (`FiltersPanel` reads it). */
-export const FILTER_PANEL_W_PX = 272
+export const FILTER_PANEL_W_PX = 288
 /** The gap between the filters panel and the map's right edge (`FiltersPanel` reads it). */
 export const FILTER_PANEL_EDGE_PX = 16
 /**
@@ -210,7 +210,14 @@ export function useIsWide(element: HTMLElement | null, delayMs = SETTLE_MS): boo
 export function useFitsWidth(element: HTMLElement | null, minPx: number): boolean {
   const viewportFits = useMediaQuery({ query: `(min-width: ${minPx}px)` })
   // This is the element's width, or null while there is nothing to measure.
-  const [width, setWidth] = useState<number | null>(null)
+  //
+  // An element that is already there is measured on the FIRST render, not only in the layout
+  // effect below. Effects that run on mount read this answer before the effect's re-render lands,
+  // so a viewport-wide first answer for a narrower box acted once. A `/filters` link in a 720px
+  // host box on a 1280px page redirected to make room for a panel the box then couldn't show.
+  const [width, setWidth] = useState<number | null>(() =>
+    element && typeof ResizeObserver !== 'undefined' ? element.offsetWidth : null,
+  )
 
   useIsomorphicLayoutEffect(() => {
     if (!element || typeof ResizeObserver === 'undefined') {

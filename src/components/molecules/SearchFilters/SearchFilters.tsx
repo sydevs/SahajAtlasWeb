@@ -4,7 +4,7 @@ import type { FilterFacets } from '@/hooks/use-filter-facets'
 import { type ReactNode, useMemo, useState } from 'react'
 import { Info } from 'luxon'
 import { useTranslation } from 'react-i18next'
-import { ChevronDown, ChevronRight, Moon, Sun, Sunrise, Sunset } from 'lucide-react'
+import { ChevronDown, ChevronRight } from 'lucide-react'
 import clsx from 'clsx'
 
 import { Checkbox } from '@/components/atoms/Checkbox'
@@ -33,8 +33,6 @@ import {
 // `|| 'any'` below maps that to.
 const FORMAT_OPTIONS: EventFormat[] = ['offline', 'online']
 const CADENCE_OPTIONS: EventCadence[] = ['DAILY', 'WEEKLY', 'MONTHLY', 'once']
-
-const TIME_ICONS = { morning: Sunrise, afternoon: Sun, evening: Sunset, night: Moon } as const
 
 // How many languages still read better as one tap each than as a dropdown.
 const INLINE_LANGUAGES = 4
@@ -100,7 +98,12 @@ export function FormatFilter({ value, patch, facets, className }: FilterControlP
   )
 }
 
-/** A week strip: seven equal cells, Monday first. A day with nothing on it can't be picked. */
+/**
+ * A week strip: seven equal cells, Monday first. A day with nothing on it can't be picked.
+ *
+ * Under 288px wide (the desktop filters panel, a narrow host box) the names drop to 12px: at 14px
+ * a 33px cell leaves "Wed" a pixel from each border. The full name is each cell's label.
+ */
 export function DayFilter({ value, patch, facets, className }: FilterControlProps) {
   const { t } = useTranslation()
   const { locale } = useLocale()
@@ -115,7 +118,7 @@ export function DayFilter({ value, patch, facets, className }: FilterControlProp
   return (
     <ToggleGroup
       aria-label={t('filters.days.short_label')}
-      className={clsx('grid grid-cols-7 gap-1', className)}
+      className={clsx('@container grid grid-cols-7 gap-1', className)}
       type="multiple"
       value={value.daysOfWeek.map(String)}
       onValueChange={(next) => patch({ daysOfWeek: next.map(Number) })}
@@ -124,7 +127,7 @@ export function DayFilter({ value, patch, facets, className }: FilterControlProp
         <ToggleGroupItem
           key={day.value}
           aria-label={day.full}
-          className="h-11 min-w-0 px-0"
+          className="h-11 min-w-0 px-0 @max-[288px]:text-xs"
           disabled={facets?.counts.days[day.value] === 0 && !value.daysOfWeek.includes(day.value)}
           value={String(day.value)}
         >
@@ -147,21 +150,17 @@ export function TimeFilter({ value, patch, facets, className }: FilterControlPro
       onValueChange={(next) => patch({ timeOfDay: next as TimePeriod[] })}
     >
       {TIME_PERIODS.map((period) => {
-        const Icon = TIME_ICONS[period]
         const count = facets?.counts.time[period]
 
         return (
           <ToggleGroupItem
             key={period}
-            className="h-11 justify-start gap-2 px-3"
+            className="h-11 justify-between gap-2 px-3"
             disabled={count === 0 && !value.timeOfDay.includes(period)}
             value={period}
           >
-            <Icon aria-hidden className="shrink-0 opacity-70" size={16} />
             {t(`filters.time.${period}`)}
-            <span className="ms-auto">
-              <OptionCount count={count} />
-            </span>
+            <OptionCount count={count} />
           </ToggleGroupItem>
         )
       })}
@@ -384,7 +383,11 @@ export type SearchFiltersProps = {
   placeFirst?: boolean
 }
 
-/** A plain full-width row, for a route the visitor can take instead of choosing a place. */
+/**
+ * A plain full-width row, for a route the visitor can take instead of choosing a place. In a list
+ * under 288px wide (the desktop filters panel) the label steps down to 14px, so "Online classes,
+ * from anywhere" stays on one line beside its count.
+ */
 function RouteRow({
   label,
   count,
@@ -396,7 +399,7 @@ function RouteRow({
 }) {
   return (
     <button
-      className="-mx-4 flex min-h-14 items-center justify-between gap-2 px-4 text-start text-base font-medium text-foreground outline-none hover:bg-gray-3 focus-visible:ring-2 focus-visible:ring-focus focus-visible:ring-inset"
+      className="-mx-4 flex min-h-14 items-center justify-between gap-2 px-4 text-start text-base font-medium text-foreground outline-none hover:bg-gray-3 focus-visible:ring-2 focus-visible:ring-focus focus-visible:ring-inset @max-[288px]:text-sm"
       type="button"
       onClick={onClick}
     >
@@ -445,7 +448,7 @@ export function SearchFilters({
     return (
       <div className="flex flex-col gap-4">
         {where}
-        <div className="-mx-4 flex flex-col divide-y divide-divider border-t border-divider px-4">
+        <div className="@container -mx-4 flex flex-col divide-y divide-divider border-t border-divider px-4">
           <RouteRow
             count={facets?.counts.format.online}
             label={t('filters.where.online_route')}

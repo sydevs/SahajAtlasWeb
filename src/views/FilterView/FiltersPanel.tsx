@@ -2,6 +2,7 @@ import { useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 import { X } from 'lucide-react'
 import { useSearchParams } from 'react-router'
+import clsx from 'clsx'
 
 import { RecoveryButton } from './RecoveryButton'
 import { usePanelFilters } from './use-panel-filters'
@@ -78,7 +79,15 @@ export function FiltersPanel() {
           onChange={write}
         />
       </div>
-      <footer className="flex min-h-14 shrink-0 items-center justify-between gap-2 border-t border-divider ps-4 pe-2">
+      {/* With no matches, the way out is a sentence long ("Remove Chinese (6 classes)"), so the
+          footer stacks: the message, then the button across the panel. Otherwise the count and
+          Clear share one row. */}
+      <footer
+        className={clsx(
+          'flex min-h-14 shrink-0 gap-2 border-t border-divider',
+          count === 0 ? 'flex-col p-4 pt-3' : 'items-center justify-between ps-4 pe-2',
+        )}
+      >
         <span aria-live="polite" className="text-sm text-gray-11">
           {count === undefined
             ? null
@@ -87,10 +96,20 @@ export function FiltersPanel() {
               : t('filters.chrome.class_count', { count })}
         </span>
         {count === 0 && facets?.recovery ? (
-          <RecoveryButton filters={filters} recovery={facets.recovery} onApply={write} />
+          <RecoveryButton
+            className="h-auto min-h-11 w-full py-2 whitespace-normal"
+            filters={filters}
+            recovery={facets.recovery}
+            onApply={write}
+          />
         ) : (
           canClear && (
-            <Button variant="ghost" onClick={clear}>
+            <Button
+              className={clsx(count === 0 && 'h-11 w-full')}
+              color={count === 0 ? 'primary' : 'neutral'}
+              variant={count === 0 ? 'solid' : 'ghost'}
+              onClick={clear}
+            >
               {t('filters.chrome.clear_one')}
             </Button>
           )
