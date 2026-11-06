@@ -422,7 +422,7 @@
       "step_review": "Check",
       "add_row": "Add a class to the map",
       "add_row_in": "Add a class in %{place} to the map",
-      "add_hint": "Run one, or know of one? A coordinator checks it before it appears.",
+      "add_hint": "Run one, or know of one? Our admins check it before it appears.",
       "correct_entry": "Suggest a correction"
     },
     "contact": {
