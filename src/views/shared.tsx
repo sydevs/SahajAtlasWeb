@@ -6,7 +6,7 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useRef, use
 import { useLocation, useNavigationType, useSearchParams } from 'react-router'
 import { useTranslation } from 'react-i18next'
 import { useQuery, useSuspenseQuery } from '@tanstack/react-query'
-import { Funnel, Search } from 'lucide-react'
+import { CalendarDays, Funnel, Search } from 'lucide-react'
 import clsx from 'clsx'
 
 import { Button } from '@/components/atoms/Button'
@@ -36,6 +36,7 @@ import {
   type EventFilters,
   activeFilterCount,
   searchPath,
+  calendarPath,
   atlasDepth,
   isoCountryCode,
   placeSearchPath,
@@ -143,6 +144,26 @@ export function SearchButton() {
       onClick={() => navigate(searchPath())}
     >
       <Search size={20} />
+    </Button>
+  )
+}
+
+// The calendar affordance for region headers (RegionView): opens the calendar pre-scoped to
+// this region (`/calendar?region=<slug>`). Visitors asked for it, so it stays beside the
+// filters even with the "Next 7 days" row in the list; with search and Back out of the icon
+// row, these two are what the header offers.
+export function CalendarButton({ regionSlug }: { regionSlug: string }) {
+  // `useSuspense: false` — also rendered by the fallback chrome (views/fallbacks.tsx).
+  const { t } = useTranslation()
+  const navigate = useAtlasNavigate()
+
+  return (
+    <Button
+      {...HEADER_CONTROL}
+      aria-label={t('calendar.title')}
+      onClick={() => navigate(calendarPath(regionSlug))}
+    >
+      <CalendarDays size={20} />
     </Button>
   )
 }

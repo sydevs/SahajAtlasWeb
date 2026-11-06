@@ -45,6 +45,7 @@ import {
 import { validateWebUrl } from '@/lib/url'
 import { NavHeader } from '@/views/nav'
 import {
+  CalendarButton,
   EmptyEventList,
   FilterButton,
   GeolocationSuggestion,
@@ -150,11 +151,13 @@ export function RegionView({ slug }: { slug: string }) {
           <meta content={canonicalUrl} property="og:url" />
         </Helmet>
       )}
-      {/* The filters open pre-scoped to this region. "Next 7 days" replaces the calendar icon. */}
+      {/* The calendar and the filters open pre-scoped to this region. With search in the field
+          below and Back above the title, these two have the icon row to themselves. */}
       <NavHeader
         breadcrumbs
         actions={
           <>
+            <CalendarButton regionSlug={region.slug} />
             <FilterButton iconOnly />
           </>
         }

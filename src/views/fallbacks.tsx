@@ -19,6 +19,7 @@ import { baseStackEntry, nearestKnownRegion, resolveStack } from '@/lib/shape'
 import { BackButton, NavHeader } from '@/views/nav'
 import {
   ExpandSheetButton,
+  CalendarButton,
   FilterButton,
   SearchButton,
   SearchField,
@@ -206,6 +207,7 @@ export function DrawerChrome({ interactive = true }: { interactive?: boolean }) 
         <>
           {entry.kind === 'region' && (
             <>
+              <CalendarButton regionSlug={entry.slug} />
               <SearchButton />
               <FilterButton iconOnly />
             </>
