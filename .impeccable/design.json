@@ -81,9 +81,9 @@
         "role": "map",
         "displayName": "Marker Coral"
       },
-      "panel-warm-white": {
+      "panel-white": {
         "role": "neutral",
-        "displayName": "Warm White"
+        "displayName": "White"
       },
       "panel-dark": {
         "role": "neutral",
@@ -252,7 +252,7 @@
   ],
   "narrative": {
     "northStar": "A Friend Who Meditates",
-    "overview": "Sahaj Atlas is a bright, sunny map with a warm white panel beside it (a bottom sheet on a phone). It belongs to the We Meditate family and lives inside other people's websites, so it has to feel welcoming without taking over the page. The warmth comes from colour, never from decoration: sand neutrals instead of blue-grey, a cream panel instead of paper white, green map markers, and one coral accent. The interface is quiet so that the one answer a seeker came for (when and where can I go) stands out.\n\nDensity is calm and list-shaped. Every panel row shares one 16px edge and one row height, text sits on one short type ladder, and the search field is the first thing under the title. Dark mode follows the device and keeps the same warmth: a sand-dark ramp and a warm taupe basemap instead of the stock blue-black.\n\nThe approved round-2 look rejected, by name: gradients and washes (a watercolour header was withdrawn), a greyed \"quiet\" map, dark-teal or high-contrast cluster markers, a single flattened chip style, and a set of decorative We Meditate icons.",
+    "overview": "Sahaj Atlas is a bright, sunny map with a white panel beside it (a bottom sheet on a phone). It belongs to the We Meditate family and lives inside other people's websites, so it has to feel welcoming without taking over the page. The warmth comes from colour, never from decoration: sand neutrals instead of blue-grey, green map markers, and one coral accent, on plain white panels. The interface is quiet so that the one answer a seeker came for (when and where can I go) stands out.\n\nDensity is calm and list-shaped. Every panel row shares one 16px edge and one row height, text sits on one short type ladder, and the search field is the first thing under the title. Dark mode follows the device and keeps the same warmth: a sand-dark ramp and a warm taupe basemap instead of the stock blue-black.\n\nThe approved round-2 look rejected, by name: gradients and washes (a watercolour header was withdrawn), a greyed \"quiet\" map, dark-teal or high-contrast cluster markers, a single flattened chip style, and a set of decorative We Meditate icons.",
     "keyCharacteristics": [
       "Warm through colour, not decoration.",
       "Bright, sunny light basemap; warm taupe dark basemap.",
@@ -264,7 +264,7 @@
     "rules": [
       {
         "name": "The Warm-Through-Colour Rule",
-        "body": "Warmth comes from the sand neutrals, the cream panel, the green markers and the coral accent. Never from gradients, washes, textures or ornament.",
+        "body": "Warmth comes from the sand neutrals, the green markers and the coral accent. Never from gradients, washes, textures or ornament.",
         "section": "colors"
       },
       {

@@ -16,7 +16,7 @@ colors:
   cluster-coral: "#DD785D"
   cluster-coral-halo: "#F4B9A6"
   danger-red: "#E5484D"
-  panel-warm-white: "hsl(40 60% 98.5%)"
+  panel-white: "hsl(0 0% 100%)"
   panel-dark: "hsl(0 0% 7%)"
   sand-2: "#F9F9F8"
   sand-3: "#F1F0EF"
@@ -113,12 +113,12 @@ components:
     height: "{spacing.row-min}"
     padding: "12px 16px"
   panel:
-    backgroundColor: "{colors.panel-warm-white}"
+    backgroundColor: "{colors.panel-white}"
     textColor: "{colors.sand-12}"
     rounded: "{rounded.panel}"
     width: "{spacing.panel-width}"
   filters-panel:
-    backgroundColor: "{colors.panel-warm-white}"
+    backgroundColor: "{colors.panel-white}"
     rounded: "{rounded.panel}"
     width: "{spacing.filters-width}"
 ---
@@ -129,7 +129,7 @@ components:
 
 **Creative North Star: "A Friend Who Meditates"**
 
-Sahaj Atlas is a bright, sunny map with a warm white panel beside it (a bottom sheet on a phone). It belongs to the We Meditate family and lives inside other people's websites, so it has to feel welcoming without taking over the page. The warmth comes from colour, never from decoration: sand neutrals instead of blue-grey, a cream panel instead of paper white, green map markers, and one coral accent. The interface is quiet so that the one answer a seeker came for (when and where can I go) stands out.
+Sahaj Atlas is a bright, sunny map with a white panel beside it (a bottom sheet on a phone). It belongs to the We Meditate family and lives inside other people's websites, so it has to feel welcoming without taking over the page. The warmth comes from colour, never from decoration: sand neutrals instead of blue-grey, green map markers, and one coral accent, on plain white panels. The interface is quiet so that the one answer a seeker came for (when and where can I go) stands out.
 
 Density is calm and list-shaped. Every panel row shares one 16px edge and one row height, text sits on one short type ladder, and the search field is the first thing under the title. Dark mode follows the device and keeps the same warmth: a sand-dark ramp and a warm taupe basemap instead of the stock blue-black.
 
@@ -145,7 +145,7 @@ The approved round-2 look rejected, by name: gradients and washes (a watercolour
 
 ## Colors
 
-A warm-neutral palette: sand greys and a cream panel carry the mood, a deep teal carries action, and coral is kept for the few things that should feel personal.
+A warm-neutral palette: sand greys on white panels carry the mood, a deep teal carries action, and coral is kept for the few things that should feel personal.
 
 ### Primary
 - **We Meditate Teal** (primary-teal): the brand solid. Focus rings, links in host-authored text, the solid Near me state, the bounds line on the map. It is a host-repaintable role: a host's `color1` replaces the whole 12-step ramp at runtime.
@@ -167,13 +167,13 @@ A warm-neutral palette: sand greys and a cream panel carry the mood, a deep teal
 - With a host palette, pins and clusters take the host's primary solid and the selection takes its contrast solid; the halo is derived from the fill.
 
 ### Neutral
-- **Warm White** (panel-warm-white): the panel surface in light mode, like the We Meditate app's cream. Body text keeps 15.9:1 on it, secondary text 5.9:1.
+- **White** (panel-white): the panel surface in light mode, plain white. A cream white read as a yellow tint and was dropped (6 Nov). Body text keeps over 15:1 on it, secondary text over 5.5:1.
 - **Night Panel** (panel-dark): the panel surface in dark mode.
 - **Sand ramp** (sand-2 to sand-12, light; sand-dark-*, dark): Radix sand, aliased under the app's `gray-*` names. sand-12 is body text, sand-11 secondary text and group labels, sand-9 chevrons, sand-6 dividers and panel borders, sand-7 input borders, sand-3 neutral fills, sand-2 inset cards.
 - **Danger Red** (danger-red): errors only. A fixed status hue that no host palette overrides.
 
 ### Named Rules
-**The Warm-Through-Colour Rule.** Warmth comes from the sand neutrals, the cream panel, the green markers and the coral accent. Never from gradients, washes, textures or ornament.
+**The Warm-Through-Colour Rule.** Warmth comes from the sand neutrals, the green markers and the coral accent. Never from gradients, washes, textures or ornament.
 
 **The Repaint Rule.** Primary, secondary and contrast are host roles and repaint at runtime. Never let a state or meaning depend on one of them alone; pair colour with text, weight or shape.
 
@@ -262,10 +262,10 @@ Directions, Call and Share sit in one row of equal-width, 44px buttons, apart fr
 - **Quiet variant:** country rows use the 15px body weight so the list does not shout.
 
 ### Panels and sheets
-Warm white surface, sand-6 hairline border, panel float shadow, 16px corners when floating. A sand-7 drag handle on phone sheets. Back sits apart from the view title.
+White surface, sand-6 hairline border, panel float shadow, 16px corners when floating. A sand-7 drag handle on phone sheets. Back sits apart from the view title.
 
 ### Search field
-The Mapbox place search, themed to the widget: warm white field, sand-7 1px border, 8px corners, sand-11 placeholder, sand-3 hover in suggestions, the brand solid for focus.
+The Mapbox place search, themed to the widget: white field, sand-7 1px border, 8px corners, sand-11 placeholder, sand-3 hover in suggestions, the brand solid for focus.
 
 ### Map markers
 App-owned SVG art, rasterised at 2x: green teardrop pins and halo clusters with bold white counts, coral for the selected class and area, a 30% tinted dot with a solid ring for a class with no exact location (never a precise pin). Hovering a pin shows a small popover card with the class's timing line.
@@ -282,7 +282,7 @@ The We Meditate app's meditating figure, at 24px in ornament coral, on the "Onli
 - **Do** keep the search field first on the home panel, under the title.
 - **Do** keep the light basemap bright and sunny, and apply the warm paint to the dark one.
 - **Do** keep coral for the selected class, the today tag and the meditating figure.
-- **Do** hold 4.5:1 for body text and 3:1 for icons and large text, on both the warm white and the night panel.
+- **Do** hold 4.5:1 for body text and 3:1 for icons and large text, on both the white and the night panel.
 
 ### Don't:
 - **Don't** use gradients, washes, watercolour, textures or decorative illustration.
