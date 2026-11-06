@@ -388,8 +388,9 @@ export function DrawerStack() {
   const { hasMap, standalone } = useWidgetMode()
   const surfaceSwitch = useSurfaceSwitch()
   // PROTOTYPE `?mapButton=float` (`config/review-options`): a "Map" pill floats at the foot of
-  // the open panel, in place of the "Show map" row. Over the list-first view it opens the map; on
-  // the map's own sheet it shows only when the sheet is fully open, and folds it down to the map.
+  // the open panel, in place of the list-first view's "Show map" row, so only where that view's
+  // switch exists (`?view=list`); the plain map page has no such row. Over the list it opens the
+  // map; on the map side it shows only when the sheet is fully open, and folds it down to the map.
   const pillPlacement = surfaceSwitch && MAP_BUTTON === 'float'
   // `t` comes off `useLocale`, not a second `useTranslation` call: the hook already
   // holds one for the default (`common`) namespace, and hands it back for exactly this
@@ -1078,8 +1079,8 @@ export function DrawerStack() {
   }, [panelFits])
 
   const sheetDismissible = hasMap || parentPaths.length > 0
-  // PROTOTYPE `?mapButton=float`: over the list-first view the pill always shows and opens the
-  // map; over the map, only at the full snap, where it folds the sheet down to the map.
+  // PROTOTYPE `?mapButton=float`: over the list-first view's list the pill always shows and opens
+  // the map; on its map side, only at the full snap, where it folds the sheet down to the map.
   const mapPill = Boolean(pillPlacement) && (!hasMap || snap === fullSnap)
   const onMapPill = () => (hasMap ? setSnap(PEEK_SNAP) : surfaceSwitch?.toggle())
 
