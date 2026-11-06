@@ -25,13 +25,15 @@ import {
   todayISO,
   weekFrom,
 } from '@/lib/shape'
+import { regionalLocale } from '@/lib/time'
 
 const WALL_CLOCK = 'yyyy-MM-dd HH:mm'
 
 function WeekRow({ entry }: { entry: CalendarEntry }) {
   const { locale } = useLocale()
+  // The visitor's regional clock: "19:00" on a UK browser, "7:00 PM" on a US one.
   const time = DateTime.fromFormat(entry.start, WALL_CLOCK)
-    .setLocale(locale)
+    .setLocale(regionalLocale(locale))
     .toLocaleString(DateTime.TIME_SIMPLE)
 
   return (
@@ -68,8 +70,10 @@ export function WeekList({ filters }: { filters: EventFilters }) {
   )
   const days = groupEntriesByDay(entries, window)
 
+  // "6 Nov" on a UK browser, "Nov 6" on a US one, like the times.
+  const formatLocale = regionalLocale(locale)
   const dayName = (date: string) => {
-    const day = DateTime.fromISO(date).setLocale(locale)
+    const day = DateTime.fromISO(date).setLocale(formatLocale)
 
     if (date === today) return t('calendar.today')
     if (date === DateTime.fromISO(today).plus({ days: 1 }).toISODate())
@@ -78,7 +82,9 @@ export function WeekList({ filters }: { filters: EventFilters }) {
     return day.toLocaleString({ weekday: 'long' })
   }
   const shortDate = (date: string) =>
-    DateTime.fromISO(date).setLocale(locale).toLocaleString({ day: 'numeric', month: 'short' })
+    DateTime.fromISO(date)
+      .setLocale(formatLocale)
+      .toLocaleString({ day: 'numeric', month: 'short' })
 
   if (days.length === 0) {
     const filtered = activeFilterCount(chosenCalendarFilters(filters, true)) > 0

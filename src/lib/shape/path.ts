@@ -7,7 +7,7 @@
  */
 import type { BBox } from 'geojson'
 
-import { filtersFromParams, filtersToParams, hasActiveFilters } from './filters'
+import { type EventFilters, filtersFromParams, filtersToParams, hasActiveFilters } from './filters'
 import { SORT_ORDERS, SORT_PARAM, type SortOrder } from './sort'
 
 /** Decodes a URL segment, tolerating a malformed `%` escape (returns it unchanged). */
@@ -261,11 +261,18 @@ export const calendarPath = (regionSlug?: string): string =>
   regionSlug ? `/calendar?region=${encodeURIComponent(regionSlug)}` : '/calendar'
 
 /**
- * The week list: the calendar opened on its List view, scoped to a region. `view=list` is in the
- * URL, not only in the session's memory, so this link and a shared one open on the same view.
+ * The week list: the calendar opened on its List view, with these filters (a region's "Next 7
+ * days" row passes `nextSevenDaysFilters`, so the list shows what the row counted). `view=list`
+ * is in the URL, not only in the session's memory, so this link and a shared one open on the
+ * same view.
  */
-export const thisWeekPath = (regionSlug: string): string =>
-  `/calendar?region=${encodeURIComponent(regionSlug)}&view=list`
+export const thisWeekPath = (filters: EventFilters): string => {
+  const params = filtersToParams(filters)
+
+  params.set('view', 'list')
+
+  return `/calendar?${params.toString()}`
+}
 
 /**
  * The link to a stretch of dates in the week list: the current query (scope and filters), on the

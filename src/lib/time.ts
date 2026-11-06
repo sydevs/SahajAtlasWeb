@@ -121,3 +121,12 @@ const SCHEDULE_X_LOCALES: Record<string, string> = {
  */
 export const scheduleXLocale = (locale: string): string =>
   SCHEDULE_X_LOCALES[locale] ?? SCHEDULE_X_LOCALES[locale.split('-')[0].toLowerCase()] ?? 'en-US'
+
+/**
+ * The name Schedule-X files a locale's strings under: its code without the hyphen (`en-GB` →
+ * `enGB`). A `translations` config REPLACES Schedule-X's built-in table instead of adding to it,
+ * and a locale with no entry there shows its raw keys ("+ {{n}} events"). So an override has to
+ * sit under the exact code the calendar runs in, which follows the visitor's region.
+ */
+export const scheduleXTranslationKey = (scheduleXCode: string): string =>
+  scheduleXCode.replaceAll('-', '')

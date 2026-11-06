@@ -15,7 +15,10 @@ import {
   safePath,
   topViewKey,
   calendarShareRoute,
+  thisWeekPath,
 } from './path'
+import { nextSevenDaysFilters } from './calendar'
+import { DEFAULT_FILTERS, filtersFromParams } from './filters'
 
 describe('safePath', () => {
   it('accepts a site-relative path', () => {
@@ -480,5 +483,27 @@ describe('calendarShareRoute', () => {
     expect(params.get('format')).toBe('online')
     expect(params.get('view')).toBe('list')
     expect(params.get('dates')).toBe('2026-11-12,2026-11-18')
+  })
+})
+
+describe('thisWeekPath', () => {
+  // The "Next 7 days" row on /gb?days=2 read 34 while the list said 8: it dropped the filters.
+  it("opens the list on the region's next seven days, keeping the visitor's filters", () => {
+    const filters = filtersFromParams(new URLSearchParams('days=2&dates=2026-11-14,2026-11-15'))
+    const route = thisWeekPath(nextSevenDaysFilters(filters, 'gb'))
+    const params = new URLSearchParams(route.split('?')[1])
+
+    expect(route.startsWith('/calendar?')).toBe(true)
+    expect(params.get('region')).toBe('gb')
+    expect(params.get('days')).toBe('2')
+    expect(params.get('view')).toBe('list')
+    // The row names its own days, so a date filter doesn't follow it.
+    expect(params.has('dates')).toBe(false)
+  })
+
+  it('stays the plain week list with no filters', () => {
+    expect(thisWeekPath(nextSevenDaysFilters(DEFAULT_FILTERS, 'south-east'))).toBe(
+      '/calendar?region=south-east&view=list',
+    )
   })
 })
