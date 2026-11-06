@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef } from 'react'
 import { useLocation, useNavigate, useSearchParams } from 'react-router'
 import { useTranslation } from 'react-i18next'
+import { useQuery } from '@tanstack/react-query'
 
 import { RecoveryButton } from './RecoveryButton'
 import { WhereFilter } from './WhereFilter'
@@ -8,15 +9,18 @@ import { WhereFilter } from './WhereFilter'
 import { DrawerBody, DrawerFooter } from '@/components/atoms/Drawer'
 import { Button } from '@/components/atoms/Button'
 import { SearchFilters } from '@/components/molecules'
+import { regionQuery } from '@/config/api'
 import { useIsWideWidget } from '@/config/responsive'
 import { useEventFilters } from '@/hooks/use-filters'
 import { useFilterFacets } from '@/hooks/use-filter-facets'
+import { useLocale } from '@/hooks/use-locale'
 import { useMapController } from '@/hooks/use-map-controller'
 import {
   DEFAULT_FILTERS,
   type EventFilters,
   type PlaceSearch,
   activeFilterCount,
+  atlasDepth,
   filterCloseTarget,
   filterOriginRegion,
   filtersToParams,
@@ -46,7 +50,8 @@ export function FilterView() {
   const applied = useEventFilters()
   const control = useDrawerControl()
   const isWide = useIsWideWidget()
-  const { frameSearch, reset } = useMapController()
+  const { frameRegion, frameSearch, reset } = useMapController()
+  const { locale } = useLocale()
   const originRegion = filterOriginRegion(location.pathname)
 
   // A region's drawer is scoped to that region without saying so in the URL. So an untouched
@@ -74,6 +79,30 @@ export function FilterView() {
     else if (!filters.region) reset()
     // `frameSearch` and `reset` change identity with the camera provider, not with the place.
   }, [center, bbox, filters.region])
+
+  // A fresh link to `/gb/filters` (a host's link, a reload) arrives with the camera still on the
+  // world, and the sheet pushes that up to the Arctic. So on entry only, frame the Where once.
+  // In-app the camera is already there, and later changes go through the effect above.
+  const isEntry = atlasDepth(location) === 0
+  const entryRegion = isEntry && !center ? filters.region : null
+  const { data: entryRegionDoc } = useQuery({
+    ...regionQuery(entryRegion ?? '', locale),
+    enabled: Boolean(entryRegion),
+  })
+  const entryFramed = useRef(false)
+
+  useEffect(() => {
+    if (entryFramed.current || !isEntry) return
+
+    if (center) {
+      entryFramed.current = true
+      frameSearch({ bbox: parseBounds(bbox), center: parseCenter(center) })
+    } else if (entryRegionDoc) {
+      entryFramed.current = true
+      frameRegion(entryRegionDoc)
+    }
+    // Same as above: the camera functions change with the provider, not with the place.
+  }, [isEntry, center, bbox, entryRegionDoc])
 
   const write = (next: EventFilters, base = new URLSearchParams(location.search)) => {
     const inOrigin = next.region !== null && next.region === originRegion
