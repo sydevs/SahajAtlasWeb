@@ -38,12 +38,15 @@ const VIEWBOX: Partial<Record<WmIconName, string>> = {
   sunrise: '0 9 68 50',
 }
 
-const prepare = (name: WmIconName, svg: string) => {
-  let out = svg
-    // Literal paints only — `none` and `currentColor` pass through.
-    .replace(/(fill|stroke)="#[0-9a-fA-F]{3,8}"/g, '$1="currentColor"')
-    .replace(/id="([^"]+)"/g, `id="sy-wm-${name}-$1"`)
-    .replace(/url\(#([^)]+)\)/g, `url(#sy-wm-${name}-$1)`)
+const prepare = (name: WmIconName, svg: string, tone: WmIconTone) => {
+  // Literal paints only — `none` and `currentColor` pass through. The app tone keeps them.
+  const painted =
+    tone === 'current'
+      ? svg.replace(/(fill|stroke)="#[0-9a-fA-F]{3,8}"/g, '$1="currentColor"')
+      : svg
+  let out = painted
+    .replace(/id="([^"]+)"/g, `id="sy-wm-${name}-${tone}-$1"`)
+    .replace(/url\(#([^)]+)\)/g, `url(#sy-wm-${name}-${tone}-$1)`)
     // The span sizes the icon, so the root's own pixel size is dropped.
     .replace(/<svg([^>]*?)\swidth="[^"]*"/, '<svg$1')
     .replace(/<svg([^>]*?)\sheight="[^"]*"/, '<svg$1')
@@ -56,27 +59,41 @@ const prepare = (name: WmIconName, svg: string) => {
   return out
 }
 
+/**
+ * `current` draws the icon in the text colour. `app` keeps the app's own paint (the sunrise's
+ * yellow, the moon's blue), as the app's reminder sheet shows them: Anton wanted that colour on
+ * the time-of-day filter (6 Nov).
+ */
+export type WmIconTone = 'current' | 'app'
+
 // Prepared once, at module load: the sources are static, so nothing re-parses per render.
-const MARKUP = Object.fromEntries(
-  Object.entries(SOURCES).map(([name, svg]) => [name, prepare(name as WmIconName, svg)]),
-) as Record<WmIconName, string>
+const prepareAll = (tone: WmIconTone) =>
+  Object.fromEntries(
+    Object.entries(SOURCES).map(([name, svg]) => [name, prepare(name as WmIconName, svg, tone)]),
+  ) as Record<WmIconName, string>
+const MARKUP: Record<WmIconTone, Record<WmIconName, string>> = {
+  current: prepareAll('current'),
+  app: prepareAll('app'),
+}
 
 export type WmIconProps = {
   name: WmIconName
   /** Edge length in px. The drawing keeps its own aspect ratio inside the square. */
   size?: number
+  /** The text colour (default) or the app's own colours. */
+  tone?: WmIconTone
   className?: string
 }
 
 /**
- * One of the We Meditate app's icons, drawn in the current text colour. Decorative:
+ * One of the We Meditate app's icons, in the current text colour or the app's own. Decorative:
  * it is hidden from assistive technology, so the text beside it must carry the meaning.
  */
-export function WmIcon({ name, size = 20, className }: WmIconProps) {
+export function WmIcon({ name, size = 20, tone = 'current', className }: WmIconProps) {
   return (
     <span
       // The markup is this module's own bundled files, never data from the network.
-      dangerouslySetInnerHTML={{ __html: MARKUP[name] }}
+      dangerouslySetInnerHTML={{ __html: MARKUP[tone][name] }}
       aria-hidden
       className={clsx(
         'inline-flex shrink-0 [&>svg]:block [&>svg]:h-full [&>svg]:w-full',

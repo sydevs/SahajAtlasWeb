@@ -4,10 +4,11 @@ import type { FilterFacets } from '@/hooks/use-filter-facets'
 import { type ReactNode, useMemo, useState } from 'react'
 import { Info } from 'luxon'
 import { useTranslation } from 'react-i18next'
-import { ChevronDown, ChevronRight, Sun, Sunrise, Sunset } from 'lucide-react'
+import { ChevronDown, ChevronRight, Sun } from 'lucide-react'
 import clsx from 'clsx'
 
 import { Checkbox } from '@/components/atoms/Checkbox'
+import { WmIcon } from '@/components/atoms/Icons/wm'
 import { Dropdown } from '@/components/atoms/Dropdown'
 import { Input } from '@/components/atoms/Input'
 import { ToggleGroup, ToggleGroupItem } from '@/components/atoms/ToggleGroup'
@@ -34,8 +35,21 @@ import {
 const FORMAT_OPTIONS: EventFormat[] = ['offline', 'online']
 const CADENCE_OPTIONS: EventCadence[] = ['DAILY', 'WEEKLY', 'MONTHLY', 'once']
 
-// Anton liked these on the time options (6 Nov): they tell the three apart at a glance.
-const TIME_ICONS = { morning: Sunrise, afternoon: Sun, evening: Sunset } as const
+// Coloured like the We Meditate app's reminder sheet (Anton, 6 Nov): its sunrise and moon, in a
+// deeper amber and blue than the app's pale #ffd591 and #a1c3d7, which washed out at 20px. A 1px
+// outline in the same colour (`vector-effect` keeps it 1px at any size) makes the fine lines bold.
+// The app has no afternoon icon, so afternoon takes a sun line icon in the same amber.
+const MORNING_AMBER = 'text-[#d38b1f]'
+const EVENING_BLUE = 'text-[#4a84b3]'
+const BOLD_LINES =
+  '[&_path]:[stroke:currentColor] [&_path]:[stroke-width:1.25px] [&_path]:[vector-effect:non-scaling-stroke]'
+const TIME_ICONS: Record<TimePeriod, ReactNode> = {
+  morning: <WmIcon className={clsx(MORNING_AMBER, BOLD_LINES)} name="sunrise" size={22} />,
+  afternoon: (
+    <Sun aria-hidden className={clsx('shrink-0', MORNING_AMBER)} size={20} strokeWidth={2} />
+  ),
+  evening: <WmIcon className={clsx(EVENING_BLUE, BOLD_LINES)} name="moon" size={20} />,
+}
 
 // How many languages still read better as one tap each than as a dropdown.
 const INLINE_LANGUAGES = 4
@@ -157,7 +171,6 @@ export function TimeFilter({ value, patch, facets, className }: FilterControlPro
       onValueChange={(next) => patch({ timeOfDay: next as TimePeriod[] })}
     >
       {TIME_PERIODS.map((period) => {
-        const Icon = TIME_ICONS[period]
         const count = facets?.counts.time[period]
 
         return (
@@ -167,7 +180,7 @@ export function TimeFilter({ value, patch, facets, className }: FilterControlPro
             disabled={count === 0 && !value.timeOfDay.includes(period)}
             value={period}
           >
-            <Icon aria-hidden className="shrink-0" size={18} />
+            <span className="flex w-[22px] shrink-0 justify-center">{TIME_ICONS[period]}</span>
             <span className="flex-1 text-start">{t(`filters.time.${period}`)}</span>
             <OptionCount count={count} />
           </ToggleGroupItem>
