@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest'
 
 import {
   RESERVED_SLUGS,
+  sharedPlacePath,
   addClassPath,
   childRoute,
   correctionPath,
@@ -613,5 +614,26 @@ describe('thisWeekPath', () => {
     expect(thisWeekPath(nextSevenDaysFilters(DEFAULT_FILTERS, 'south-east'))).toBe(
       '/calendar?region=south-east&view=list',
     )
+  })
+})
+
+describe('sharedPlacePath', () => {
+  it('is the venue every class in the group sits at', () => {
+    expect(
+      sharedPlacePath([
+        '/fr/paris/20-rue-sebastien-mercier/12',
+        '/fr/paris/20-rue-sebastien-mercier/13',
+      ]),
+    ).toBe('/fr/paris/20-rue-sebastien-mercier')
+  })
+
+  it('is the closest place they share when their venues differ', () => {
+    expect(sharedPlacePath(['/fr/paris/venue-a/1', '/fr/paris/venue-b/2'])).toBe('/fr/paris')
+  })
+
+  it('is nothing when they share no place, or a path has none', () => {
+    expect(sharedPlacePath(['/fr/paris/1', '/gb/london/2'])).toBeUndefined()
+    expect(sharedPlacePath(['/507'])).toBeUndefined()
+    expect(sharedPlacePath([])).toBeUndefined()
   })
 })

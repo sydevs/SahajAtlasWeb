@@ -487,14 +487,20 @@ type MapTapState = {
   /** How many taps have landed on open map (not on a pin or a cluster). */
   taps: number
   tap: () => void
+  /** How many times the map has opened a list it wants seen in full (a cluster that won't split). */
+  opens: number
+  open: () => void
 }
 
 /**
  * The map reports a tap on open map, and the drawer lowers its phone sheet to the peek, so the
- * map the visitor reached for comes into view (Anton, 6 Nov). The same seam as `useClassSheet`:
- * neither side renders the other's context.
+ * map the visitor reached for comes into view (Anton, 6 Nov). It also asks for a list to open in
+ * full, when a cluster that won't split opens one. The same seam as `useClassSheet`: neither
+ * side renders the other's context.
  */
 export const useMapTap = create<MapTapState>((set) => ({
   taps: 0,
   tap: () => set((state) => ({ taps: state.taps + 1 })),
+  opens: 0,
+  open: () => set((state) => ({ opens: state.opens + 1 })),
 }))

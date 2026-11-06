@@ -804,6 +804,25 @@ export function DrawerStack() {
     else setSnap(top?.kind === 'search' && searchCenter ? SEARCH_SNAP : openSnap)
   }, [direction, top?.kind, openSnap, framed, onlineOnly])
 
+  // A cluster that won't split opens its list (Map.tsx), and that list should be seen in full,
+  // not as a sliver under the map (Anton, 6 Nov). The request lands before the route changes, so
+  // it waits for the new page and applies after the per-view snap above, which would lower it.
+  const mapOpens = useMapTap((s) => s.opens)
+  const seenOpens = useRef(mapOpens)
+  const openPending = useRef(false)
+
+  useEffect(() => {
+    if (mapOpens === seenOpens.current) return
+    seenOpens.current = mapOpens
+    openPending.current = true
+  }, [mapOpens])
+
+  useEffect(() => {
+    if (!openPending.current) return
+    openPending.current = false
+    if (direction === 'bottom') setSnap(fullSnap)
+  }, [location.pathname, direction, fullSnap])
+
   // The camera keeps a class's pin clear of the sheet that opened over it. This is only for a
   // class and the filters: their sheets are taller than the usual open stop. The filters open as
   // tall as their content (the near-full stop when unmeasured), so the place they are scoped to

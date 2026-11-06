@@ -19,6 +19,7 @@ import { useShallow } from 'zustand/react/shallow'
 import { CalendarDays } from 'lucide-react'
 
 import {
+  CLUSTER_MAX_ZOOM,
   approximateDotLayer,
   approximateFillLayer,
   approximateOutlineLayer,
@@ -63,6 +64,7 @@ import {
   isOnline,
   matchesFilters,
   safePath,
+  sharedPlacePath,
   todayISO,
 } from '@/lib/shape'
 import { useLocale } from '@/hooks/use-locale'
@@ -486,15 +488,42 @@ export function Mapbox({ cooperative = false }: { cooperative?: boolean } = {}) 
       if (feature.layer?.id === LAYER_IDS.cluster) {
         const source = mapbox.getSource('events') as GeoJSONSource
 
-        source.getClusterExpansionZoom(feature.properties?.cluster_id, (err, zoom) => {
-          if (err || !mapbox) return console.error(err)
-
+        const clusterId = feature.properties?.cluster_id
+        const zoomIn = (zoom: number | null | undefined) =>
           moveMap({
             // @ts-ignore
             center: feature.geometry.coordinates,
             zoom: (zoom || mapbox.getZoom()) + 1,
             duration: 500,
           })
+
+        source.getClusterExpansionZoom(clusterId, (err, zoom) => {
+          if (err || !mapbox) return console.error(err)
+          if ((zoom ?? 0) <= CLUSTER_MAX_ZOOM) return zoomIn(zoom)
+
+          // It won't split: its classes share a spot, and zooming in only stacks them under one
+          // pin. So it opens their list, the venue's or the closest place they share, in full
+          // (Anton, 6 Nov). Each leaf carries its own path.
+          source.getClusterLeaves(
+            clusterId,
+            feature.properties?.point_count ?? 50,
+            0,
+            (e, leaves) => {
+              const target = e
+                ? undefined
+                : sharedPlacePath(
+                    (leaves ?? []).flatMap((leaf) => {
+                      const path = safePath(leaf.properties?.webPath)
+
+                      return path ? [path] : []
+                    }),
+                  )
+
+              if (!target) return zoomIn(zoom)
+              useMapTap.getState().open()
+              navigate(target)
+            },
+          )
         })
       } else if (feature.layer && CLASS_LAYER_IDS.includes(feature.layer.id)) {
         navigate(safePath(feature.properties?.webPath) ?? `/${feature.properties?.id}`)
@@ -607,7 +636,7 @@ export function Mapbox({ cooperative = false }: { cooperative?: boolean } = {}) 
         {filtered && (
           <Source
             cluster={true}
-            clusterMaxZoom={14}
+            clusterMaxZoom={CLUSTER_MAX_ZOOM}
             clusterRadius={50}
             data={filtered}
             id="events"

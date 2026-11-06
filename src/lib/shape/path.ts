@@ -31,6 +31,26 @@ export const parentOf = (path: string): string | undefined => {
 }
 
 /**
+ * The list a group of classes belongs to, from their own paths: the venue or area they all sit
+ * in (`/fr/paris/20-rue-sebastien-mercier`), or the closest place they share. `undefined` when
+ * they share none, or there is nothing to read. A map cluster that can't split by zooming opens
+ * this list instead (Anton, 6 Nov).
+ */
+export const sharedPlacePath = (eventPaths: string[]): string | undefined => {
+  const parents = eventPaths.map((path) => parentOf(path)?.split('/').filter(Boolean) ?? [])
+
+  if (parents.length === 0 || parents.some((segments) => segments.length === 0)) return undefined
+  const [first, ...rest] = parents
+  let depth = 0
+
+  while (depth < first.length && rest.every((segments) => segments[depth] === first[depth])) {
+    depth += 1
+  }
+
+  return depth > 0 ? `/${first.slice(0, depth).join('/')}` : undefined
+}
+
+/**
  * Nests a child (an event id, or a slug) under a parent route. This is the inverse of
  * `parentOf`: `childRoute('/india/pune', 507)` returns `/india/pune/507`. Region
  * events use this, so navigating to an event keeps the region ancestry in the URL (an

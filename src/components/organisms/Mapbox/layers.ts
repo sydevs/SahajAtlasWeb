@@ -23,6 +23,12 @@ type Props = {
  * `INTERACTIVE_LAYER_IDS` lists them — so they stay stable while the paints
  * follow the palette.
  */
+/**
+ * The deepest zoom the events source still clusters at. A cluster whose expansion zoom passes it
+ * can't split by zooming: its classes share a spot, so a tap opens their list instead.
+ */
+export const CLUSTER_MAX_ZOOM = 14
+
 export const LAYER_IDS = {
   cluster: 'clusters',
   unclusteredPoint: 'unclustered-point',
