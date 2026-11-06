@@ -4,27 +4,14 @@ import { useCallback, useEffect } from 'react'
 import { eventQuery } from '@/config/api'
 import { useLocale } from '@/hooks/use-locale'
 import { createPrefetchIntent } from '@/lib/prefetch-intent'
+import { scheduleIdle } from '@/lib/schedule-idle'
 
 // This is how many of a region list's leading events to warm eagerly.
 // This number is small on purpose.
 // It is the touch-device counterpart to hover prefetch, since there is no pointer to trigger per-card warming.
 // So it covers the few most-likely first taps, without a request burst.
+// The warm-up waits for idle (`scheduleIdle`), so it never competes with rendering the list.
 const EAGER_COUNT = 3
-
-// This delays the eager warm-up off the view's own paint.
-// So it never competes with rendering the list the user is looking at.
-// It uses `requestIdleCallback` where available, and a short timeout otherwise, since Safari lacks `requestIdleCallback`.
-const scheduleIdle = (run: () => void): (() => void) => {
-  if (typeof requestIdleCallback === 'function') {
-    const id = requestIdleCallback(run)
-
-    return () => cancelIdleCallback(id)
-  }
-
-  const id = window.setTimeout(run, 200)
-
-  return () => window.clearTimeout(id)
-}
 
 /**
  * This is ONE gate for the whole widget, deliberately at module scope.

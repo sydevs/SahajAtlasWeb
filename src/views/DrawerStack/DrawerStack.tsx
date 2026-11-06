@@ -41,6 +41,7 @@ import { useSurfaceSwitch, useWidgetMode } from '@/config/mode'
 import { MAP_BUTTON } from '@/config/review-options'
 import { useClassSheet, useFilterPanelState, useMapTap } from '@/config/store'
 import { frameElement, overlayContainer } from '@/lib/overlay'
+import { scheduleIdle } from '@/lib/schedule-idle'
 import {
   filtersFromParams,
   climbDestination,
@@ -92,6 +93,12 @@ import { EventView } from '@/views/EventView/EventView'
 // together, because one reset serves one boundary. A fresh `lazy` for a view that did not
 // fail costs nothing, since the object stays inert until rendered, and only one of them is
 // ever mounted at a time.
+//
+// Share is fetched in the background while a class is open (see `scheduleIdle` below), so a tap
+// on Share opens its panel at once, with no loading step before it (Anton, 6 Nov). A failed
+// background fetch is ignored: the tap then loads it as before, through the lazy view and its
+// boundary.
+const importShareView = () => import('@/views/ShareView/ShareView')
 const loadSecondaryViews = () => ({
   CalendarView: lazy(() =>
     import('@/views/CalendarView/CalendarView').then((m) => ({ default: m.CalendarView })),
@@ -101,9 +108,7 @@ const loadSecondaryViews = () => ({
       default: m.RegistrationView,
     })),
   ),
-  ShareView: lazy(() =>
-    import('@/views/ShareView/ShareView').then((m) => ({ default: m.ShareView })),
-  ),
+  ShareView: lazy(() => importShareView().then((m) => ({ default: m.ShareView }))),
   // The add-a-class and correction flows (#147), in the stack's own sheet like any other view.
   SubmitView: lazy(() =>
     import('@/views/SubmitView/SubmitView').then((m) => ({ default: m.SubmitView })),
@@ -478,18 +483,26 @@ export function DrawerStack() {
   const eventOpenPx = measuredOpenPx ?? fallbackOpenPx
   const eventOpenSnap = `${eventOpenPx}px`
   const eventSnapPoints = useMemo(() => [PEEK_SNAP, eventOpenSnap, WIDE_SNAP], [eventOpenSnap])
-  // The fit-to-content snap for the filters, a class and a place's list (phone only: a host's box
-  // has its own ladder, where the filters fill it). Unmeasured, or as tall as the near-full snap,
-  // it is null and FIT_SNAP falls back to the near-full snap.
+  // The fit-to-content snap for the filters, a class, its share panel and a place's list (phone
+  // only: a host's box has its own ladder, where the filters fill it). Unmeasured, or as tall as
+  // the near-full snap, it is null and FIT_SNAP falls back to the near-full snap.
   const fitPx = useFitSnap(
     direction === 'bottom' &&
       hasMap &&
       !framed &&
       ((top?.kind === 'filters' && !filterOverlay) ||
         top?.kind === 'event' ||
+        top?.kind === 'share' ||
         top?.kind === 'region'),
     location.pathname,
   )
+
+  // A class's Share opens at once: its code is fetched while the class is on screen.
+  useEffect(() => {
+    if (top?.kind !== 'event') return
+
+    return scheduleIdle(() => void importShareView().catch(() => undefined))
+  }, [top?.kind])
   const fitSnap = fitPx === null ? null : `${fitPx}px`
   const fitSnapPoints = useMemo(() => withFitSnap(SNAP_POINTS, fitPx), [fitPx])
   const eventFitSnapPoints = useMemo(
@@ -853,9 +866,11 @@ export function DrawerStack() {
 
     // The filters open as tall as their content, which at world level is a few rows: low on
     // the screen, near the thumb, with no blank sheet above them. Many filters still reach
-    // the near-full snap, since the fit never goes past it.
-    if (top?.kind === 'filters' || top?.kind === 'event') setSnap(FIT_SNAP)
-    else if (tall) setSnap(WIDE_SNAP)
+    // the near-full snap, since the fit never goes past it. A class and its share panel open the
+    // same way: the whole panel at once, with no short first stop to drag up from (Anton, 6 Nov).
+    if (top?.kind === 'filters' || top?.kind === 'event' || top?.kind === 'share') {
+      setSnap(FIT_SNAP)
+    } else if (tall) setSnap(WIDE_SNAP)
     else setSnap(top?.kind === 'search' && searchCenter ? SEARCH_SNAP : openSnap)
   }, [direction, top?.kind, openSnap, framed, onlineOnly])
 
@@ -882,7 +897,7 @@ export function DrawerStack() {
   }, [location.key, direction, fullSnap, framed])
 
   // The camera keeps a class's pin clear of the sheet that opened over it. This is only for a
-  // class and the filters: their sheets are taller than the usual open stop. The filters open as
+  // class, its share panel and the filters: their sheets are taller than the usual open stop. The filters open as
   // tall as their content (the near-full stop when unmeasured), so the place they are scoped to
   // frames in the strip above them, not behind them (the camera caps it to keep a strip).
   const setSheetBottom = useClassSheet((s) => s.setBottom)
@@ -893,9 +908,16 @@ export function DrawerStack() {
 
   useEffect(() => {
     // A class keeps its pin clear of the fitted sheet; a class too long to fit opens near full,
-    // where the pin is hidden anyway, so it frames for the key-facts stop one drag below.
+    // where the pin is hidden anyway, so it frames for the key-facts stop one drag below. Its
+    // share panel keeps the same pin clear of its own fitted height.
+    const bottom = direction === 'bottom'
+
     setSheetBottom(
-      direction === 'bottom' && top?.kind === 'event' ? (fitPx ?? eventOpenPx) : filtersSheetPx,
+      bottom && top?.kind === 'event'
+        ? (fitPx ?? eventOpenPx)
+        : bottom && top?.kind === 'share'
+          ? fitPx
+          : filtersSheetPx,
     )
 
     return () => setSheetBottom(null)

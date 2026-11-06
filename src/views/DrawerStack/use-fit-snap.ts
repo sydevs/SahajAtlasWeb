@@ -36,14 +36,30 @@ export function fitHeight({
   return fit
 }
 
+/** The last child that takes room in the body's flow: not hidden, not lifted out of it. */
+function lastInFlow(body: HTMLElement): HTMLElement | undefined {
+  return (Array.from(body.children) as HTMLElement[]).reverse().find((kid) => {
+    const { position } = getComputedStyle(kid)
+
+    return kid.getClientRects().length > 0 && position !== 'absolute' && position !== 'fixed'
+  })
+}
+
 function measure(sheet: HTMLElement, body: HTMLElement): number | null {
   const style = getComputedStyle(body)
+  const paddingBottom = parseFloat(style.paddingBottom) || 0
   const footerSpace = parseFloat(getComputedStyle(body, '::after').height) || 0
-  const kids = Array.from(body.children) as HTMLElement[]
-  const contentHeight =
-    kids.reduce((sum, kid) => sum + kid.offsetHeight, 0) +
-    (parseFloat(style.paddingTop) || 0) +
-    (parseFloat(style.paddingBottom) || 0)
+  const last = lastInFlow(body)
+  // From the body's top edge to the last child's bottom margin, plus the bottom padding, so the
+  // margins and gaps between children count too (a sum of the children's heights left them out,
+  // and the share panel's last card sat on the screen's edge). `scrollTop` undoes a scrolled body.
+  const contentHeight = last
+    ? last.getBoundingClientRect().bottom +
+      (parseFloat(getComputedStyle(last).marginBottom) || 0) -
+      body.getBoundingClientRect().top +
+      body.scrollTop +
+      paddingBottom
+    : (parseFloat(style.paddingTop) || 0) + paddingBottom
   // The sheet is the full-height panel vaul translates, so it is as tall as the box vaul
   // measures snaps against, with no raw viewport read.
   const frameHeight = sheet.offsetHeight
