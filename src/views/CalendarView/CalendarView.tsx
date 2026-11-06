@@ -29,7 +29,7 @@ import { useLocale } from '@/hooks/use-locale'
 import { useMapController } from '@/hooks/use-map-controller'
 import { useWebShare } from '@/hooks/use-web-share'
 import { useAreaNames } from '@/hooks/use-area-names'
-import { type AreaNames, areaKey, areaLabel } from '@/lib/area-names'
+import { type AreaNames, areaKey, areaLabel, areaLookupPoints } from '@/lib/area-names'
 import {
   formatTimeRange,
   regionalLocale,
@@ -497,14 +497,12 @@ function CalendarGrid({
 
   // PROTOTYPE (Anton, 6 Nov): inside a city each class goes by its part of town or its own town,
   // "Balham" or "Croydon", not "London" on every row. The names come from Mapbox, looked up in the
-  // browser (`useAreaNames`), and replace the label once they arrive; the calendar shows today's
-  // label until then, and keeps it for any spot Mapbox can't name.
+  // browser (`useAreaNames`, never with `map=false`), and replace the label once they arrive; the
+  // calendar shows today's label until then, and keeps it for any spot Mapbox can't name. Only the
+  // rows labelled with the page's own place are asked about (`areaLookupPoints`).
   const { data: regions } = useQuery(regionsQuery())
   const heading = regions?.find((node) => node.slug === filters.region)?.name ?? undefined
-  const points = useMemo(
-    () => events.flatMap((entry) => (entry.point ? [entry.point] : [])),
-    [events],
-  )
+  const points = useMemo(() => areaLookupPoints(events, heading), [events, heading])
   const areaNames = useAreaNames(points, locale)
   const named = useMemo(
     () => withAreaNames(events, areaNames, heading),

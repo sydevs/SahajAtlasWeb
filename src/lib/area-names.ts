@@ -10,13 +10,22 @@ import type { FeatureTypes, GeocodingFeatureContextComponent } from '@mapbox/sea
 /** The names Mapbox gives the area around a point, from the town down. */
 export type AreaNames = { place?: string; locality?: string; neighborhood?: string }
 
-const STORAGE_KEY = 'atlas.areaNames'
+/** ⚠ Listed in `docs/embedding.md`'s storage table: a host's privacy notice describes it. */
+export const AREA_NAMES_STORAGE_KEY = 'atlas.areaNames'
+
+/** How many spots one calendar screen looks up at most: a city's venues, never the world's. */
+export const MAX_AREA_LOOKUPS = 30
+
 const memory = new Map<string, AreaNames>()
 let restored = false
 
-/** The cache key for a point: about 10 m, which is one venue. */
+/** A point's identity: about 10 m, which is one venue. */
 export const areaKey = ([lng, lat]: [number, number]): string =>
   `${lng.toFixed(4)},${lat.toFixed(4)}`
+
+// Mapbox answers in the language asked for (Prague / Praha), so a language switch must not reuse
+// the names of the last one.
+const cacheKey = (point: [number, number], locale: string) => `${locale}|${areaKey(point)}`
 
 // sessionStorage can be absent or throw in sandboxed embeds and private mode: the cache is then
 // the page's memory alone.
@@ -24,12 +33,15 @@ const restore = () => {
   if (restored) return
   restored = true
   try {
-    const saved = JSON.parse(sessionStorage.getItem(STORAGE_KEY) ?? '{}') as Record<
+    const saved = JSON.parse(sessionStorage.getItem(AREA_NAMES_STORAGE_KEY) ?? '{}') as Record<
       string,
       AreaNames
     >
 
-    for (const [key, names] of Object.entries(saved)) memory.set(key, names)
+    for (const [key, names] of Object.entries(saved)) {
+      // An entry saved before names were kept per language has no `locale|` part.
+      if (key.includes('|')) memory.set(key, names)
+    }
   } catch {
     // Nothing saved, or nothing to save to.
   }
@@ -37,17 +49,17 @@ const restore = () => {
 
 const persist = () => {
   try {
-    sessionStorage.setItem(STORAGE_KEY, JSON.stringify(Object.fromEntries(memory)))
+    sessionStorage.setItem(AREA_NAMES_STORAGE_KEY, JSON.stringify(Object.fromEntries(memory)))
   } catch {
     // The memory cache still holds them for this page.
   }
 }
 
-/** What is already known for a point, without asking. */
-export const cachedAreaNames = (point: [number, number]): AreaNames | undefined => {
+/** What is already known for a point in this language, without asking. */
+export const cachedAreaNames = (point: [number, number], locale: string): AreaNames | undefined => {
   restore()
 
-  return memory.get(areaKey(point))
+  return memory.get(cacheKey(point, locale))
 }
 
 /**
@@ -57,9 +69,9 @@ export const cachedAreaNames = (point: [number, number]): AreaNames | undefined 
  */
 export async function lookupAreaNames(
   point: [number, number],
-  locale?: string,
+  locale: string,
 ): Promise<AreaNames | null> {
-  const known = cachedAreaNames(point)
+  const known = cachedAreaNames(point, locale)
 
   if (known) return known
   const accessToken = import.meta.env.VITE_MAPBOX_ACCESSTOKEN
@@ -81,7 +93,7 @@ export async function lookupAreaNames(
       neighborhood: context?.neighborhood?.name,
     }
 
-    memory.set(areaKey(point), names)
+    memory.set(cacheKey(point, locale), names)
     persist()
 
     return names
@@ -92,6 +104,28 @@ export async function lookupAreaNames(
 
 const sameName = (a: string, b: string | undefined) =>
   b !== undefined && a.localeCompare(b, undefined, { sensitivity: 'base' }) === 0
+
+/**
+ * The spots worth asking Mapbox about: those whose label today is just the page's own place
+ * ("London" on the London calendar). Anywhere else the label already names the town, so a lookup
+ * would only repeat it, and with no place heading (the world calendar) nothing is asked at all.
+ * Unique by `areaKey`, in calendar order, at most `MAX_AREA_LOOKUPS`.
+ */
+export const areaLookupPoints = (
+  entries: readonly { point?: [number, number] | null; place?: string }[],
+  heading: string | undefined,
+): [number, number][] => {
+  if (!heading) return []
+
+  const byKey = new Map<string, [number, number]>()
+
+  for (const { point, place } of entries) {
+    if (byKey.size >= MAX_AREA_LOOKUPS) break
+    if (point && place && sameName(place, heading)) byKey.set(areaKey(point), point)
+  }
+
+  return [...byKey.values()]
+}
 
 /**
  * The one name a class goes by on a page about `heading`: its town when that differs (Croydon

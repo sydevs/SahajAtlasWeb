@@ -1145,23 +1145,24 @@ notice, not ours, is the one that has to describe it. This is the summary. The
 [README's privacy section](../README.md#privacy-storage-and-third-party-requests) carries the
 full detail on each flow, including exactly what an error report does and does not contain.
 
-**It sets no cookies.** It stores five keys under your origin — three of its own, written inside a
-`try`/`catch` so a sandboxed iframe degrades the setting rather than breaking the widget, and two
-written by Mapbox GL:
+**It sets no cookies.** It stores up to six keys under your origin — four of its own, written
+inside a `try`/`catch` so a sandboxed iframe degrades the setting rather than breaking the widget,
+and two written by Mapbox GL:
 
 | Key                                | Store            | Holds                                                 | Lifetime            |
 | ---------------------------------- | ---------------- | ----------------------------------------------------- | ------------------- |
 | `atlas.theme`                      | `localStorage`   | the viewer's light/dark/auto choice                   | until cleared       |
 | `atlas.filtersPanel`               | `sessionStorage` | whether the viewer closed the filter panel            | the browser session |
 | `atlas.geolocationPromptDismissed` | `sessionStorage` | that they dismissed the "classes near you" suggestion | the browser session |
+| `atlas.areaNames`                  | `sessionStorage` | the calendar's part-of-town names, per language       | the browser session |
 | `mapbox.eventData:<token>`         | `localStorage`   | Mapbox GL's own telemetry bookkeeping                 | until cleared       |
 | `mapbox.eventData.uuid:<token>`    | `localStorage`   | a persistent anonymous id Mapbox generates            | until cleared       |
 
 **The `theme` key used to be un-namespaced** — the bare string `theme` — so a page storing its
 own light/dark preference under that name had it read and overwritten. That is fixed: our key is
 now `atlas.theme`, and the old one is read once, never written, so nobody loses a choice they
-already made. The two `mapbox.*` keys appear only when the map renders, so `map=false` removes
-them.
+already made. The two `mapbox.*` keys appear only when the map renders, and `atlas.areaNames` only
+once a calendar of one city has looked names up, so `map=false` removes all three.
 
 The language picker persists **nothing** — i18next's detector would cache `i18nextLng` on your
 origin by default, and that write is switched off.
@@ -1193,9 +1194,10 @@ page's **origin** — scheme, host and port, never a path — because that is th
 its token to. It mounts with the interface, whether or not the visitor opens a form.
 
 **`map=false` removes the Mapbox flows too** — tiles, the geocoder (which sends the visitor's
-typed query and the map centre to Mapbox), and the map-load telemetry — along with the two
-`mapbox.*` storage keys. That is the only switch for them, since they are Mapbox's own behaviour,
-not ours.
+typed query and the map centre to Mapbox), the map-load telemetry, and the calendar's area-name
+lookups (a city's calendar sends up to 30 class locations to Mapbox, to name each class's part of
+town) — along with the two `mapbox.*` storage keys and `atlas.areaNames`. That is the only switch
+for them, since they are Mapbox's own behaviour, not ours.
 
 Two things a visitor can send us on purpose, both on submit and never in the background: a
 **class registration** (their name, email and any organiser questions) and a **report about an

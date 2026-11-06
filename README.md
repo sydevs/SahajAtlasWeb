@@ -47,15 +47,16 @@ origin. So your privacy notice, not ours, has to describe it. This section
 lists every request the widget makes to a party other than you and
 SahajCloud, and every key it stores.
 
-**It sets no cookies.** It stores five keys under your origin. Three are its
-own, written inside a `try`/`catch` so a sandboxed iframe, or a privacy mode
-that refuses storage, degrades gracefully. Two are written by Mapbox GL:
+**It sets no cookies.** It stores up to six keys under your origin. Four are
+its own, written inside a `try`/`catch` so a sandboxed iframe, or a privacy
+mode that refuses storage, degrades gracefully. Two are written by Mapbox GL:
 
 | Key                                | Store            | Holds                                                 | Lifetime            |
 | ----------------------------------- | ---------------- | ------------------------------------------------------ | -------------------- |
 | `atlas.theme`                      | `localStorage`   | the viewer's light/dark/auto choice                   | until cleared       |
 | `atlas.filtersPanel`               | `sessionStorage` | whether the viewer closed the filter panel            | the browser session |
 | `atlas.geolocationPromptDismissed` | `sessionStorage` | that they dismissed the "classes near you" suggestion | the browser session |
+| `atlas.areaNames`                  | `sessionStorage` | the calendar's part-of-town names, per language       | the browser session |
 | `mapbox.eventData:<token>`         | `localStorage`   | Mapbox GL's own telemetry bookkeeping                 | until cleared       |
 | `mapbox.eventData.uuid:<token>`    | `localStorage`   | a persistent anonymous id Mapbox generates            | until cleared       |
 
@@ -64,7 +65,8 @@ Two notes. **`theme` used to carry no namespace** — the bare string `theme`
 read and overwritten. That is fixed: the key is now `atlas.theme`, and the
 widget reads the old bare key once and never writes it, so nobody loses an
 existing choice. The two `mapbox.*` keys appear only when the map renders,
-so `map=false` removes them.
+and `atlas.areaNames` only once a calendar of one city has looked names up,
+so `map=false` removes all three.
 
 The language picker persists **nothing** — i18next's detector would cache
 `i18nextLng` on your origin by default, and that write is off. The language
@@ -96,9 +98,10 @@ SahajCloud's:
   dead link are never reported.
 - **`api.mapbox.com` and `events.mapbox.com` — the map.** Unavoidable if you
   render one: tiles, styles, and fonts come from `api.mapbox.com`. Place
-  search sends the visitor's typed query and the map centre there. Mapbox GL
-  posts load telemetry to `events.mapbox.com`. `map=false` drops the whole
-  subtree.
+  search sends the visitor's typed query and the map centre there. A city's
+  calendar sends up to 30 class locations there, once a session, to name each
+  class's part of town. Mapbox GL posts load telemetry to `events.mapbox.com`.
+  `map=false` drops the whole subtree.
 - **`react-circle-flags.pages.dev`** serves the country flag SVGs
   (`referrer-policy: no-referrer`). **`challenges.cloudflare.com`** loads
   Turnstile as soon as the interface mounts, not when a visitor opens a form
