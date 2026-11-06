@@ -25,7 +25,7 @@ import { useMapController } from '@/hooks/use-map-controller'
 import { usePostEventFeedback } from '@/hooks/use-post-event-feedback'
 import { useWidgetMode } from '@/config/mode'
 import { correctionPath, parentOf } from '@/lib/shape'
-import { Breadcrumbs, NavRow } from '@/views/nav'
+import { NavRow } from '@/views/nav'
 import { useDrawerControl, useFrameOnTop } from '@/views/shared'
 import { ErrorPanel } from '@/views/fallbacks'
 
@@ -155,12 +155,7 @@ export function EventView({ id, basePath }: { id: number; basePath: string }) {
               />
             }
           >
-            <EventDetails
-              basePath={basePath}
-              ctaInline={!stickyRegister}
-              event={event}
-              placeTrail={<Breadcrumbs className="-mt-3 pl-8" />}
-            >
+            <EventDetails basePath={basePath} ctaInline={!stickyRegister} event={event}>
               {/* This is passed as the panel's slot, so it lands immediately above Register,
                   which lives inside EventDetails when it is inline. The acknowledgement belongs
                   beside the action it wants the reader to take, and the panel is the only thing

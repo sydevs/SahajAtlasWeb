@@ -44,12 +44,6 @@ export type EventDetailsProps = EventSurfaceProps & {
    *  would be drawn underneath it at the short snap (#320). */
   ctaInline?: boolean
   /**
-   * Where the class sits in the atlas (country › region › city), as links, from the view. It
-   * renders under the address, so every line about where reads as one group. The view passes
-   * it because only views know the route; it renders nothing on a narrow panel.
-   */
-  placeTrail?: ReactNode
-  /**
    * This slot renders below the facts, inside the panel's own flow, above the
    * unverified caveat and Register.
    *
@@ -133,7 +127,6 @@ export function EventDetails({
   event,
   basePath,
   ctaInline = true,
-  placeTrail,
   children,
   sectionTrailing,
   actions,
@@ -197,7 +190,6 @@ export function EventDetails({
               sectionTrailing && { when: sectionTrailing('when'), where: sectionTrailing('where') }
             }
           />
-          {placeTrail}
         </>
       )}
 

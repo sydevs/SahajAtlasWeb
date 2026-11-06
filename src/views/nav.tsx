@@ -125,7 +125,7 @@ export function BackButton({ iconOnly = false }: { iconOnly?: boolean }) {
  * "United Kingdom" Back says "Back to the world map", not the class just left, so the two
  * controls always agree about what is above what.
  */
-export function Breadcrumbs({ className = 'mt-1' }: { className?: string } = {}) {
+export function Breadcrumbs() {
   const { t } = useTranslation()
   const location = useLocation()
   const regionNames = useRegionNames()
@@ -135,7 +135,7 @@ export function Breadcrumbs({ className = 'mt-1' }: { className?: string } = {})
   if (!isWide || trail.length === 0) return null
 
   return (
-    <nav aria-label={t('common.chrome.breadcrumb')} className={className}>
+    <nav aria-label={t('common.chrome.breadcrumb')} className="mt-1">
       <ol className="flex flex-wrap items-center gap-x-1 text-sm text-gray-11">
         {trail.map((entry, i) => (
           <li key={entry.path} className="flex max-w-full min-w-0 items-center gap-x-1">
