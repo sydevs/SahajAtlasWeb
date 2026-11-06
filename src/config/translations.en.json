@@ -158,7 +158,6 @@
       "contact_for_timing": "Contact host for timings",
       "contact_to_join_full": "Contact the host to join anyway",
       "contact_to_join_late": "Contact the host to join late",
-      "distance_away": "%{distance} away",
       "distance_from_centre": "%{distance} from the centre",
       "distance_from_place": "%{distance} from %{place}",
       "distance_from_search": "%{distance} from the searched location",

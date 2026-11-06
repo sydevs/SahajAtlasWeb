@@ -9,7 +9,9 @@ import { boundsOfPoints, distanceKm } from '@/lib/geo'
 // The results of a place search, split into the groups a visitor reads: classes in the place
 // itself, classes just outside it, classes in other towns within a day trip, online classes, and
 // everything else.
-// This is pure, like `revealRows`, which still pages the first and last of these groups.
+// This is pure, like `revealRows`, which still pages the first and last of these groups. It is also
+// the one rule for what a search covers: the filter counts read `localResults`, built on the same
+// split, so the panel's numbers and the list's groups can't describe different sets.
 
 /**
  * How big the searched place is, read from its bounding box. Each size has its own meaning of
@@ -17,9 +19,10 @@ import { boundsOfPoints, distanceKm } from '@/lib/geo'
  *
  *  - `spot`: a street or neighbourhood, or no box at all. "In Hampstead" would miss the class one
  *    street over, so this group is a short radius instead.
- *  - `town`: a town or city. The box is the place.
- *  - `area`: a country or large region. The distance to its centre says nothing, so what lies
- *    outside is measured from the nearest class inside it.
+ *  - `town`: a town or city. "In" is a circle as wide as the town (`placeRadiusKm`), never the
+ *    box's corners: London's box holds Watford, 26 km out.
+ *  - `area`: a country or large region. The distance to its centre says nothing, so the box and the
+ *    country decide what is in it, and what lies outside is measured from its nearest class.
  */
 export type PlaceSize = 'spot' | 'town' | 'area'
 
@@ -30,6 +33,19 @@ const AREA_DIAGONAL_KM = 200
 
 /** What counts as "near" a spot. */
 export const SPOT_RADIUS_KM = 15
+
+/** Where a search stands, and what decides which of its classes are in the place. */
+export type PlaceScope = {
+  /** The searched place's box. It sizes the place; only a whole area's box says what is in it. */
+  bbox?: BBox
+  /** The geocoder's country (`?cc`). */
+  searchCountry?: string
+  /**
+   * The search is the visitor's own position (Near me), so "Near you" is the whole nearby cut,
+   * whichever country a class is in.
+   */
+  nearVisitor?: boolean
+}
 
 /** A `?bbox=w,s,e,n` value, or `undefined` when it isn't four finite numbers. */
 export const parseBounds = (value: string | null): [number, number, number, number] | undefined => {
@@ -67,6 +83,27 @@ const pointOf = (event: Sectionable): Position | null => {
 }
 
 const clamp = (value: number, low: number, high: number) => Math.min(Math.max(value, low), high)
+
+const inBounds = (point: Position, bbox: BBox) =>
+  point[0] >= bbox[0] && point[0] <= bbox[2] && point[1] >= bbox[1] && point[1] <= bbox[3]
+
+/**
+ * How far from the searched point a class is still in the place: half the box's narrower side,
+ * and never past the nearby cut, so everything "in" the place is also inside the radius the filter
+ * counts name. London's box gives about 23 km. A spot keeps its own short radius.
+ */
+export const placeRadiusKm = (bbox: BBox | undefined): number => {
+  if (!bbox || placeSize(bbox) === 'spot') return SPOT_RADIUS_KM
+  const [west, south, east, north] = bbox
+  const midLatitude = (south + north) / 2
+  const midLongitude = (west + east) / 2
+  const narrower = Math.min(
+    distanceKm([west, midLatitude], [east, midLatitude]),
+    distanceKm([midLongitude, south], [midLongitude, north]),
+  )
+
+  return Math.min(NEARBY_KM, narrower / 2)
+}
 
 /** The distance from a point to the nearest edge of a box, 0 when it is inside. */
 export const distanceToBounds = (point: Position, bbox: BBox): number =>
@@ -108,10 +145,14 @@ export function splitResults<T extends Sectionable>(
   {
     bbox,
     searchCountry,
+    nearVisitor = false,
     keepOrder = false,
-  }: { bbox?: BBox; searchCountry?: string; keepOrder?: boolean },
+  }: PlaceScope & { keepOrder?: boolean },
 ): ResultSections<T> {
   const size = placeSize(bbox)
+  // Every size but a whole area is a circle around the searched point. Near me is the nearby cut.
+  const round = nearVisitor || size !== 'area'
+  const radius = nearVisitor ? NEARBY_KM : placeRadiusKm(bbox)
   const groups: ResultSections<T> = {
     size,
     here: [],
@@ -135,12 +176,10 @@ export function splitResults<T extends Sectionable>(
     const point = pointOf(event)
     const country = isoCountryCode(event.address?.country)
     const foreign = Boolean(searchCountry && country && country !== searchCountry)
-    const inBox =
-      bbox && point
-        ? point[0] >= bbox[0] && point[0] <= bbox[2] && point[1] >= bbox[1] && point[1] <= bbox[3]
-        : false
-    const isHere =
-      size === 'spot' ? (event.distance ?? Infinity) <= SPOT_RADIUS_KM : inBox && !foreign
+    // Near a spot or near you is only distance. In a named town, a class over the border isn't.
+    const isHere = round
+      ? (event.distance ?? Infinity) <= radius && (size === 'spot' || nearVisitor || !foreign)
+      : Boolean(bbox && point && inBounds(point, bbox)) && !foreign
 
     if (isHere) {
       groups.here.push(event)
@@ -154,7 +193,7 @@ export function splitResults<T extends Sectionable>(
   for (const { event, point, foreign } of outside) {
     // With filters hiding all of the area's own classes, its box is what is left to measure from.
     const km =
-      size === 'area' && bbox && point
+      !round && bbox && point
         ? (distanceToNearest(point, own) ?? distanceToBounds(point, bbox))
         : event.distance
 
@@ -176,6 +215,34 @@ export function splitResults<T extends Sectionable>(
   }
 
   return groups
+}
+
+/**
+ * The classes a search covers in full, and the filter counts count: the place, just outside it,
+ * and online. Other cities and farther ones wait behind their own fold, under their own count.
+ */
+export const localResults = <T extends Sectionable>(events: T[], scope: PlaceScope): T[] => {
+  const { here, justOutside, online } = splitResults(events, { ...scope, keepOrder: true })
+
+  return [...here, ...justOutside, ...online]
+}
+
+/**
+ * The classes that could be in the place or just outside it under some filters: a cheap first cut
+ * before `localResults`, so a filter tap doesn't measure the whole world against an area's classes.
+ * An area's own classes sit in its box, and nothing just outside is farther than the nearby cut.
+ */
+export const nearPlace = <T extends Sectionable>(events: T[], scope: PlaceScope): T[] => {
+  const { bbox, nearVisitor } = scope
+  const area = !nearVisitor && placeSize(bbox) === 'area'
+
+  return events.filter((event) => {
+    if (isOnline(event)) return true
+    if (!area || !bbox) return (event.distance ?? Infinity) <= NEARBY_KM
+    const point = pointOf(event)
+
+    return point !== null && distanceToBounds(point, bbox) <= NEARBY_KM
+  })
 }
 
 /** How many of the nearest classes a place with none of its own frames, so a pin is in view. */

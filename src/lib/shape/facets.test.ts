@@ -1,7 +1,10 @@
+import type { GeoFeature } from '@/types'
+
 import { describe, expect, it } from 'vitest'
 
-import { bestRecovery, facetCounts, scopeRelevance } from './facets'
+import { bestRecovery, facetCounts, facetScope, scopeRelevance } from './facets'
 import { DEFAULT_FILTERS, matchesFilters } from './filters'
+import { splitResults } from './sections'
 
 // Tuesday 2026-11-10 19:00 and Saturday 2026-11-14 10:00, London.
 const tuesdayEvening = new Date('2026-11-10T19:00:00Z')
@@ -97,5 +100,74 @@ describe('bestRecovery', () => {
 
   it('is null when nothing has been answered', () => {
     expect(bestRecovery([event({})], DEFAULT_FILTERS)).toBeNull()
+  })
+})
+
+describe('facetScope', () => {
+  // London searched: two classes in town, one at 22 km, Watford inside the box but 26 km out, a
+  // class 60 km away in Reading, and one online.
+  const LONDON_CENTER: [number, number] = [-0.1276, 51.5072]
+  const LONDON_BOX: [number, number, number, number] = [-0.51, 51.28, 0.33, 51.69]
+  const feature = (
+    id: number,
+    coordinates: [number, number] | null,
+    over: Parameters<typeof event>[0] = {},
+  ): GeoFeature =>
+    ({
+      type: 'Feature',
+      geometry: coordinates && { type: 'Point', coordinates },
+      properties: {
+        ...event(over),
+        id,
+        address: coordinates && {
+          country: 'GB',
+          longitude: coordinates[0],
+          latitude: coordinates[1],
+        },
+      },
+    }) as unknown as GeoFeature
+  const london = [
+    feature(712, [-0.13, 51.51]),
+    feature(1142, [-0.15, 51.51], { dates: [saturdayMorning] }),
+    feature(806, [0.19, 51.47]),
+    feature(824, [-0.4, 51.66]),
+    feature(1171, [-0.98, 51.46]),
+    feature(9, null, { eventType: 'online' }),
+  ]
+  const place = { bbox: LONDON_BOX, searchCountry: 'GB' }
+
+  it('counts exactly what the list shows in full: in town, just outside, and online', () => {
+    const { events, shownOf } = facetScope(london, { center: LONDON_CENTER, place })
+    const counts = facetCounts(events, DEFAULT_FILTERS, today, shownOf)
+    const { here, justOutside, online } = splitResults(events, place)
+
+    expect(counts.total).toBe(here.length + justOutside.length + online.length)
+    // Watford and Reading wait in "Classes in other cities", so the panel doesn't count them.
+    expect(counts.format).toEqual({ offline: 3, online: 1 })
+  })
+
+  it('leaves out the class a "see alternatives" search excludes, as the list does', () => {
+    // Stirling: the one class near the town is the class being replaced.
+    const stirling = [
+      feature(830, [-3.94, 56.12], { dates: [] }),
+      feature(9, null, { eventType: 'online' }),
+    ]
+    const { events, shownOf } = facetScope(stirling, {
+      center: [-3.937, 56.119],
+      place: {},
+      excluded: 830,
+    })
+
+    expect(facetCounts(events, DEFAULT_FILTERS, today, shownOf).format).toEqual({
+      offline: 0,
+      online: 1,
+    })
+  })
+
+  it('counts the whole feed, less the excluded class, with no searched point', () => {
+    const { events, shownOf } = facetScope(london, { place: {}, excluded: 712 })
+
+    expect(shownOf).toBeUndefined()
+    expect(facetCounts(events, DEFAULT_FILTERS, today).total).toBe(5)
   })
 })

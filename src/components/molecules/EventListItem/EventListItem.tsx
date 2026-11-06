@@ -8,6 +8,7 @@ import { useMapController } from '@/hooks/use-map-controller'
 import { useHoverPrefetch } from '@/hooks/use-prefetch-event'
 import { formatDistance } from '@/lib'
 import { isOnline } from '@/lib/shape'
+import { regionalLocale } from '@/lib/time'
 import { ContactOnlyRow } from '@/components/molecules/ContactOnly'
 import { EventChips } from '@/components/molecules/EventChips'
 import { EventFacts } from '@/components/molecules/EventFacts'
@@ -100,24 +101,27 @@ function ClassRow({
 
   const online = isOnline(event)
 
-  // This is distance from the SEARCHED location. So it names the place when
-  // it knows it, "3.6 km from Brussels". "away" would imply "from you", and
-  // quietly mislead the moment someone searches a city they are not in. Only
-  // a search from the visitor's own position says "from you" (`distanceFrom`). The list container derives the place
-  // itself from `?q` and hands it down (see the prop). The precise
-  // reference point stays in the accessible label either way.
+  // This is distance from the SEARCHED location, so it always says from where: "3.6 km from
+  // Brussels", "from the centre" under "In London", or "from you" after Near me (`distanceFrom`).
+  // With no point to name it shows nothing: "away" reads as "from you", and misleads the moment
+  // someone searches a city they are not in. The list container derives the place itself from
+  // `?q` and hands it down (see the prop). It is in the visitor's own units, as the filters'
+  // "within 16 mi" is: miles in the UK and the US.
+  const named = distanceFrom !== undefined || Boolean(searchedPlace)
   const distance =
-    !online && !hideDistance && event.distance !== undefined && event.distance >= MIN_DISTANCE_KM
-      ? formatDistance(event.distance, locale)
+    named &&
+    !online &&
+    !hideDistance &&
+    event.distance !== undefined &&
+    event.distance >= MIN_DISTANCE_KM
+      ? formatDistance(event.distance, regionalLocale(locale))
       : null
   const distanceText = distance
     ? distanceFrom === 'you'
       ? t('event.display.distance_from_you', { distance })
       : distanceFrom === 'centre'
         ? t('event.display.distance_from_centre', { distance })
-        : searchedPlace
-          ? t('event.display.distance_from_place', { distance, place: searchedPlace })
-          : t('event.display.distance_away', { distance })
+        : t('event.display.distance_from_place', { distance, place: searchedPlace })
     : null
   const distanceLabel = distance ? t('event.display.distance_from_search', { distance }) : undefined
 

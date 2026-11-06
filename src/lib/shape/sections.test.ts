@@ -2,9 +2,22 @@ import type { BBox } from 'geojson'
 
 import { describe, expect, it } from 'vitest'
 
-import { boundsWith, parseBounds, placeSize, searchFrame, splitResults } from './sections'
+import {
+  boundsWith,
+  localResults,
+  nearPlace,
+  parseBounds,
+  placeRadiusKm,
+  placeSize,
+  searchFrame,
+  splitResults,
+} from './sections'
 
-const PRAGUE: BBox = [14.07, 49.86, 14.77, 50.31]
+import { approxBounds } from '@/lib/geo'
+
+// The boxes the geocoder answers with. Prague's narrower side is about 26 km across.
+const PRAGUE: BBox = [14.2244, 49.9419, 14.7068, 50.1774]
+const LONDON: BBox = [-0.51, 51.28, 0.33, 51.69]
 const CZECHIA: BBox = [12.09, 48.55, 18.86, 51.06]
 
 const inPerson = (
@@ -33,6 +46,19 @@ describe('placeSize', () => {
   })
 })
 
+describe('placeRadiusKm', () => {
+  it('is half the narrower side of a town, and never past the 25 km nearby cut', () => {
+    expect(placeRadiusKm(PRAGUE)).toBeCloseTo(13.1, 1)
+    expect(placeRadiusKm(LONDON)).toBeCloseTo(22.8, 1)
+    expect(placeRadiusKm(approxBounds([14.42, 50.08], 60))).toBe(25)
+  })
+
+  it('keeps the short radius for a street or no box at all', () => {
+    expect(placeRadiusKm(undefined)).toBe(15)
+    expect(placeRadiusKm([-0.1879, 51.5517, -0.1583, 51.5722])).toBe(15)
+  })
+})
+
 describe('parseBounds', () => {
   it('takes four finite numbers and nothing else', () => {
     expect(parseBounds('1,2,3,4')).toEqual([1, 2, 3, 4])
@@ -43,12 +69,12 @@ describe('parseBounds', () => {
 })
 
 describe('splitResults', () => {
-  // A town search measures each class from the searched place (its `distance`), against the 25 km
-  // nearby cut and the 100 km other-cities reach. These sit outside the Prague box; their
-  // distances are set for the cuts.
-  const north = inPerson(3, 14.47, 50.35, 8)
-  const east = inPerson(4, 14.95, 50.1, 15)
-  const south = inPerson(5, 14.4, 49.8, 22)
+  // A town search measures each class from the searched place (its `distance`): within the town's
+  // radius it is in the town, then just outside up to the 25 km nearby cut, then other cities up
+  // to 100 km. The distances are what decide; the coordinates only have to be plausible.
+  const north = inPerson(3, 14.47, 50.15, 8)
+  const east = inPerson(4, 14.63, 50.1, 15)
+  const south = inPerson(5, 14.4, 49.88, 22)
   const lipanska = inPerson(1, 14.45, 50.08, 2)
 
   it('splits a town search into here, just outside, other cities, online and distant', () => {
@@ -65,27 +91,61 @@ describe('splitResults', () => {
       searchCountry: 'CZ',
     })
 
-    expect(ids(here)).toEqual([1])
+    expect(ids(here)).toEqual([1, 3])
     expect(ids(remote)).toEqual([9])
     expect(ids(distant)).toEqual([6])
-    // Nearest first, whatever order the score left them in.
-    expect(ids(justOutside)).toEqual([3, 4, 5])
+    // Nearest first, whatever order the score left them in. East sits inside Prague's box, past
+    // its radius: the box frames the camera, it doesn't decide who is in the town.
+    expect(ids(justOutside)).toEqual([4, 5])
     // Anton, 6 Nov: Liberec, 90 km away, is another city, not hidden with the rest of the world.
     expect(ids(nearby)).toEqual([18])
   })
 
+  it('keeps Watford out of "In London" although London\'s box holds it', () => {
+    const sladeGreen = inPerson(806, 0.19, 51.47, 22.4, 'GB')
+    // 150 Church Rd, Watford: inside the box's north-west corner, 26 km from the centre.
+    const watford = inPerson(824, -0.4, 51.66, 26.3, 'GB')
+    const { here, justOutside, nearby } = splitResults([sladeGreen, watford], {
+      bbox: LONDON,
+      searchCountry: 'GB',
+    })
+
+    expect(ids(here)).toEqual([806])
+    expect(justOutside).toEqual([])
+    expect(ids(nearby)).toEqual([824])
+  })
+
+  it('makes "Near you" the 25 km circle, never the corners of the box around the visitor', () => {
+    const at: [number, number] = [14.42, 50.08]
+    const edge = inPerson(30, 14.75, 50.08, 24)
+    // In the box's corner, 35 km out: past the radius the filter counts name.
+    const corner = inPerson(31, 14.76, 50.3, 35)
+    // Near you is distance alone, so a class over a border close by is still near.
+    const overBorder = inPerson(32, 14.5, 50.0, 20, 'DE')
+    const { here, justOutside, nearby } = splitResults([edge, corner, overBorder], {
+      bbox: approxBounds(at, 25),
+      searchCountry: 'CZ',
+      nearVisitor: true,
+    })
+
+    expect(ids(here)).toEqual([30, 32])
+    expect(justOutside).toEqual([])
+    expect(ids(nearby)).toEqual([31])
+  })
+
   it('keeps the incoming order when the visitor asked for Soonest', () => {
-    const { justOutside } = splitResults([south, north], {
+    const { justOutside } = splitResults([south, east], {
       bbox: PRAGUE,
       searchCountry: 'CZ',
       keepOrder: true,
     })
 
-    expect(ids(justOutside)).toEqual([5, 3])
+    expect(ids(justOutside)).toEqual([5, 4])
   })
 
   it('holds a class across a border to the shorter limits', () => {
-    // Across the border both cuts are half: 12.5 km just outside, 50 km for other cities.
+    // Across the border both cuts are half: 12.5 km just outside, 50 km for other cities. A class
+    // over the border is never in the town, even inside its radius.
     const close = inPerson(7, 14.85, 49.75, 12, 'AT')
     const mid = inPerson(8, 14.9, 49.7, 20, 'AT')
     const far = inPerson(19, 15.0, 49.6, 60, 'AT')
@@ -154,6 +214,39 @@ describe('splitResults', () => {
     expect(size).toBe('spot')
     expect(ids(here)).toEqual([14])
     expect(ids(justOutside)).toEqual([15])
+  })
+})
+
+describe('localResults', () => {
+  it('holds what the list counts in full: the place, just outside it, and online', () => {
+    const events = [
+      inPerson(1, 14.45, 50.08, 2),
+      inPerson(2, 14.63, 50.1, 15),
+      inPerson(3, 15.06, 50.77, 88),
+      inPerson(4, 2.35, 48.85, 880, 'FR'),
+      online(5),
+    ]
+    const scope = { bbox: PRAGUE, searchCountry: 'CZ' }
+    const { here, justOutside, online: remote } = splitResults(events, scope)
+
+    expect(ids(localResults(events, scope))).toEqual(ids([...here, ...justOutside, ...remote]))
+    expect(ids(localResults(events, scope))).toEqual([1, 2, 5])
+  })
+})
+
+describe('nearPlace', () => {
+  it('keeps online classes and those within the nearby cut of a town', () => {
+    const events = [inPerson(1, 14.45, 50.08, 2), inPerson(2, 15.06, 50.77, 88), online(3)]
+
+    expect(ids(nearPlace(events, { bbox: PRAGUE }))).toEqual([1, 3])
+  })
+
+  it('keeps everything in an area and near its edge, whatever the distance to its middle', () => {
+    const ostrava = inPerson(12, 18.26, 49.82, 210)
+    const acrossBorder = inPerson(13, 18.36, 49.86, 260, 'PL')
+    const paris = inPerson(6, 2.35, 48.85, 880, 'FR')
+
+    expect(ids(nearPlace([ostrava, acrossBorder, paris], { bbox: CZECHIA }))).toEqual([12, 13])
   })
 })
 

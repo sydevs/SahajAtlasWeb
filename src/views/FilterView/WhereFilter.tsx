@@ -15,7 +15,7 @@ import { useLocale } from '@/hooks/use-locale'
 import { formatDistance } from '@/lib'
 import { regionalLocale } from '@/lib/time'
 import { overlayContainer } from '@/lib/overlay'
-import { NEARBY_KM, type PlaceSearch, parseCenter } from '@/lib/shape'
+import { NEARBY_KM, type PlaceSearch, parseBounds, parseCenter, placeSize } from '@/lib/shape'
 import { SearchField } from '@/views/shared'
 
 export type WhereFilterProps = {
@@ -122,7 +122,9 @@ export function WhereFilter({
           </button>
         </div>
       )}
-      {center && counts && (
+      {/* A whole country or region counts what is in it, not what is within 16 miles of its middle,
+          and its pill already names it. */}
+      {center && counts && placeSize(parseBounds(searchParams.get('bbox'))) !== 'area' && (
         <p className="text-sm text-gray-11">
           {t('filters.where.scope', {
             near: counts.inPerson,

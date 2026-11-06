@@ -4,21 +4,20 @@ import { useSearchParams } from 'react-router'
 
 import api from '@/config/api'
 import { GEOJSON_STALE_TIME } from '@/config/query-client'
-import { distanceKm } from '@/lib/geo'
+import { usePlaceScope } from '@/hooks/use-place-scope'
 import { useRegionMatcher } from '@/hooks/use-region-matcher'
 import {
   DEFAULT_FILTERS,
-  FOREIGN_NEARBY_KM,
-  SEARCH_COUNTRY_PARAM,
+  EXCLUDE_EVENT_PARAM,
   type EventFilters,
   type FacetCounts,
   type FacetRelevance,
   type FilterRecovery,
   bestRecovery,
-  NEARBY_KM,
   facetCounts,
   facetRelevance,
-  isoCountryCode,
+  facetScope,
+  parseBounds,
   parseCenter,
 } from '@/lib/shape'
 
@@ -30,16 +29,18 @@ export type FilterFacets = {
 }
 
 /**
- * Live counts for the filter form, cut to the scope the visitor is in: a searched place's nearby
- * area plus online classes (what the results list opens with), else the selected region, else
- * the whole feed. `undefined` until the feed has loaded, and the form then simply shows every
+ * Live counts for the filter form, cut to the scope the visitor is in: around a searched place,
+ * exactly the classes the results list counts in full (`localResults` — the same split the list
+ * groups by, less the class a "see alternatives" search leaves out), else the selected region,
+ * else the whole feed. `undefined` until the feed has loaded, and the form then simply shows every
  * group without numbers.
  */
 export function useFilterFacets(filters: EventFilters): FilterFacets | undefined {
   const [searchParams] = useSearchParams()
   const center = parseCenter(searchParams.get('center'))
   const centerKey = center?.join(',')
-  const searchCountry = isoCountryCode(searchParams.get(SEARCH_COUNTRY_PARAM))
+  const excluded = Number(searchParams.get(EXCLUDE_EVENT_PARAM))
+  const scope = usePlaceScope(center, parseBounds(searchParams.get('bbox')))
   const matchesRegion = useRegionMatcher(filters.region)
   const { data: geojson } = useQuery({
     queryKey: ['geojson'],
@@ -47,42 +48,33 @@ export function useFilterFacets(filters: EventFilters): FilterFacets | undefined
     staleTime: GEOJSON_STALE_TIME,
   })
 
-  const scope = useMemo(() => {
-    if (!geojson) return undefined
-
-    return geojson.features
-      .filter((feature) => {
-        if (matchesRegion && !matchesRegion(feature.properties)) return false
-        if (!center || feature.properties.eventType === 'online') return true
-
-        if (!feature.geometry) return false
-
-        // The list's own nearby rule: half the limit across a border (see `revealRows`), so the
-        // number on the button is the number of rows the list opens with.
-        const country = isoCountryCode(feature.properties.address?.country)
-        const limit =
-          searchCountry && country && country !== searchCountry ? FOREIGN_NEARBY_KM : NEARBY_KM
-
-        return distanceKm(center, feature.geometry.coordinates) <= limit
-      })
-      .map((feature) => feature.properties)
-    // `center` is rebuilt every render, so its string form is the dependency.
-  }, [geojson, matchesRegion, centerKey, searchCountry])
+  // `center` is rebuilt every render, so its string form is the dependency.
+  const scoped = useMemo(
+    () =>
+      geojson
+        ? facetScope(geojson.features, { center, place: scope, excluded, matchesRegion })
+        : undefined,
+    [geojson, matchesRegion, excluded, centerKey, scope],
+  )
 
   const relevance = useMemo(
-    () => (scope ? facetRelevance(facetCounts(scope, DEFAULT_FILTERS)) : undefined),
-    [scope],
+    () =>
+      scoped
+        ? facetRelevance(facetCounts(scoped.events, DEFAULT_FILTERS, undefined, scoped.shownOf))
+        : undefined,
+    [scoped],
   )
 
   return useMemo(() => {
-    if (!scope || !relevance) return undefined
+    if (!scoped || !relevance) return undefined
 
-    const counts = facetCounts(scope, filters)
+    const { events, shownOf } = scoped
+    const counts = facetCounts(events, filters, undefined, shownOf)
 
     return {
       counts,
       relevance,
-      recovery: counts.total === 0 ? bestRecovery(scope, filters) : null,
+      recovery: counts.total === 0 ? bestRecovery(events, filters, undefined, shownOf) : null,
     }
-  }, [scope, relevance, filters])
+  }, [scoped, relevance, filters])
 }

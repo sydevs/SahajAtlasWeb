@@ -2,6 +2,7 @@ import type { Geojson } from '@/types'
 import type { BBox } from 'geojson'
 
 import { approxBounds, distanceKm } from './geo'
+import { NEARBY_KM, OTHER_CITIES_KM } from './shape/reveal'
 
 // The visibility logic behind the IP-geolocation "nearby classes"
 // suggestion, factored out of the GeolocationSuggestion component so every
@@ -12,9 +13,9 @@ import { approxBounds, distanceKm } from './geo'
 // hides it for the rest of the browser session. It reappears on a fresh visit.
 export const GEOLOCATION_DISMISS_KEY = 'atlas.geolocationPromptDismissed'
 
-// Only suggest when a located class is within this radius (km) of the guess — a
-// tight "genuinely near" bound so the prompt never leads to an empty search.
-export const NEARBY_MAX_KM = 100
+// Only suggest when a located class is within this radius (km) of the guess: the reach of the
+// results' "Classes in other cities" group, so the prompt never leads to a search with nothing to show.
+export const NEARBY_MAX_KM = OTHER_CITIES_KM
 
 // Treat a region as the user's own "local" region when its centre sits
 // within this radius (km) of the guess. A metro region's centre is near
@@ -23,8 +24,9 @@ export const LOCAL_REGION_KM = 100
 
 // A city-sized radius (km): the place a located visitor searches (`aroundVisitor`), so a located
 // point is shown with its surroundings rather than as a pinpoint. Shared by the IP suggestion and
-// the device fix — the same question at different precisions, so they cover the same area.
-export const NEARBY_RADIUS_KM = 25
+// the device fix — the same question at different precisions, so they cover the same area. It is
+// the results' nearby cut, so the map frames the same 25 km the list calls "Near you".
+export const NEARBY_RADIUS_KM = NEARBY_KM
 
 // sessionStorage can be absent or throw in sandboxed embeds / private mode, so both
 // accessors degrade to "not dismissed" rather than crashing the suggestion.
@@ -67,10 +69,11 @@ export const hasClassWithin = (
  * The place a located visitor searches: a town-sized box of `NEARBY_RADIUS_KM` around them, for
  * the IP guess and the device fix alike.
  *
- * The box is what counts as "in" the town the search is named after, so it never stretches to
- * reach classes. It used to take in the nearest five, and in Prague that reached Liberec, 90 km
- * away, which then showed under "In Prague" (Anton, 6 Nov). When the box holds no class,
- * SearchView frames the nearest ones beside it instead (`searchFrame`).
+ * The box frames the camera and sizes the place. Which classes are "near you" is a 25 km circle
+ * (`splitResults`), never the box: its corners are 35 km out, past what the filter counts cover.
+ * It never stretches to reach classes either. It used to take in the nearest five, and in Prague
+ * that reached Liberec, 90 km away, which then showed under "In Prague" (Anton, 6 Nov). When
+ * nothing is near, SearchView frames the nearest ones beside it instead (`searchFrame`).
  *
  * ⚠ Neither `@turf/bbox` nor `@turf/circle` handles the antimeridian, so a visitor at ±179°
  * longitude gets a box spanning the world. This is shared with every other `approxBounds` caller.

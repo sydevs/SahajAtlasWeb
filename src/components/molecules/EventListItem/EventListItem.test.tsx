@@ -1,6 +1,6 @@
 import { renderToStaticMarkup } from 'react-dom/server'
 import { MemoryRouter } from 'react-router'
-import { describe, it, expect, vi } from 'vitest'
+import { afterEach, describe, it, expect, vi } from 'vitest'
 
 import { EventListItem } from './EventListItem'
 
@@ -14,7 +14,10 @@ import { mockEventSlim } from '@/mocks/events'
 // list, not visuals. MemoryRouter supplies the router context (internal
 // Link and useSearchParams).
 vi.mock('react-i18next', () => ({
-  useTranslation: () => ({ t: (key: string) => key }),
+  useTranslation: () => ({
+    t: (key: string, values?: { distance?: string; place?: string }) =>
+      [key, values?.distance, values?.place].filter(Boolean).join(' | '),
+  }),
 }))
 vi.mock('@/hooks/use-locale', () => ({
   useLocale: () => ({ locale: 'en' }),
@@ -28,8 +31,9 @@ vi.mock('@/hooks/use-map-controller', () => ({
 vi.mock('@/hooks/use-prefetch-event', () => ({
   useHoverPrefetch: () => ({ enter: () => {}, leave: () => {} }),
 }))
+// Renders only the distance slot, which is the card's own line.
 vi.mock('@/components/molecules/EventFacts', () => ({
-  EventFacts: () => null,
+  EventFacts: ({ distance }: { distance?: React.ReactNode }) => <span>{distance}</span>,
 }))
 // EventChips pulls the display resolver and i18n. The card's chips are not
 // what this DOM-nesting test asserts. So stub it out, like EventFacts.
@@ -78,5 +82,42 @@ describe('EventListItem', () => {
     // The row is the Link: its content sits in one left-aligned column, then the chevron.
     expect(html).toContain('flex min-w-0 flex-1 flex-col gap-1')
     expect(html).toContain('lucide-chevron-right')
+  })
+})
+
+describe('EventListItem distance', () => {
+  const far = { ...mockEventSlim, eventType: 'offline' as const, distance: 12 }
+  const render = (props: Partial<Parameters<typeof EventListItem>[0]> = {}) =>
+    renderToStaticMarkup(
+      <MemoryRouter>
+        <EventListItem event={far} {...props} />
+      </MemoryRouter>,
+    )
+
+  afterEach(() => vi.unstubAllGlobals())
+
+  it('says where it counts from: the searched place, the centre, or the visitor', () => {
+    // A browser that names no region, so the distance stays in kilometres.
+    vi.stubGlobal('navigator', { languages: ['en'] })
+
+    expect(render({ searchedPlace: 'Brussels' })).toContain(
+      'event.display.distance_from_place | 12 km | Brussels',
+    )
+    expect(render({ distanceFrom: 'centre' })).toContain('event.display.distance_from_centre')
+    expect(render({ distanceFrom: 'you' })).toContain('event.display.distance_from_you')
+  })
+
+  it('shows no distance when there is no point to name, or the list hides it', () => {
+    // A country with a weekday measures from wherever the map was: "132 km away" from nobody.
+    expect(render()).not.toContain('event.display.distance')
+    expect(render({ searchedPlace: 'Brussels', hideDistance: true })).not.toContain(
+      'event.display.distance',
+    )
+  })
+
+  it('counts in miles on a UK browser, as the filters do', () => {
+    vi.stubGlobal('navigator', { languages: ['en-GB', 'en'] })
+
+    expect(render({ distanceFrom: 'centre' })).toContain('7.5 mi')
   })
 })

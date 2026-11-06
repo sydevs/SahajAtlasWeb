@@ -157,9 +157,16 @@ Six stores, each the single source of truth for its own slice:
   `MAX_NEARBY_REVEAL` caps the nearby segment while a distant one exists, and it
   must stay **strictly** below `MAX_REVEAL`, or one budget across two segments
   deletes a segment instead of trimming a list. The boundary itself is two
-  numbers: `NEARBY_KM` (300) and `FOREIGN_NEARBY_KM` (half that) for an event
-  whose country differs from the searched `?cc` — distance alone would rank
-  Belgian classes over French ones for someone searching Lille. The nearby
+  numbers: `NEARBY_KM` (25 km, 16 miles) and `FOREIGN_NEARBY_KM` (half that) for an
+  event whose country differs from the searched `?cc` — distance alone would rank
+  Belgian classes over French ones for someone searching Lille. A searched place
+  reads as groups instead (`splitResults`, `src/lib/shape/sections.ts`): in the
+  place (a circle as wide as the town, never the box's corners), just outside it
+  (to `NEARBY_KM`), other cities (to `OTHER_CITIES_KM`, 100 km), online, and
+  farther. **That split is the one geographic rule**: the filter counts read the
+  same groups through `localResults` / `facetScope`, and the box only frames the
+  camera and sizes the place, so the panel and the list can't count different
+  sets. The nearby
   segment pages itself on scroll (an IntersectionObserver in `LoadMore`). The
   distant segment always needs an explicit "Show distant events" press, and
   every later page keeps that label — a bare "Show more" would misdescribe it.

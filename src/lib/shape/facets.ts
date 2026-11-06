@@ -1,4 +1,5 @@
-import type { EventSchedule, FeedEvent } from '@/types'
+import type { EventSchedule, FeedEvent, GeoFeature } from '@/types'
+import type { Position } from 'geojson'
 
 import { DateTime } from 'luxon'
 
@@ -15,7 +16,11 @@ import {
   matchesFilters,
   occurrenceMatchesFilters,
   todayISO,
+  type RegionMatcher,
 } from './filters'
+import { type PlaceScope, localResults, nearPlace } from './sections'
+
+import { distanceKm } from '@/lib/geo'
 
 /**
  * What each filter can still do in the current scope: how many classes every option would
@@ -89,21 +94,85 @@ const passes = (event: FacetEvent, filters: EventFilters, today: string): boolea
   return localOccurrences(event).some((local) => occurrenceMatchesFilters(local, filters, floor))
 }
 
-/** Counts every option of every group against `filters`. */
-export const facetCounts = (
-  events: readonly FacetEvent[],
-  filters: EventFilters,
-  today: string = todayISO(),
-): FacetCounts => {
-  const count = (next: Partial<EventFilters>) => {
-    const candidate = { ...filters, ...next }
+/**
+ * Which of the classes that pass a set of filters the results would list. Every one of them by
+ * default. A searched place passes `localResults`, since whether a class counts there can depend
+ * on which others pass (an area measures its neighbours from its own classes).
+ */
+export type ShownOf<T> = (passing: T[]) => T[]
 
-    return events.reduce((sum, event) => (passes(event, candidate, today) ? sum + 1 : sum), 0)
+const countPassing = <T extends FacetEvent>(
+  events: readonly T[],
+  filters: EventFilters,
+  today: string,
+  shownOf?: ShownOf<T>,
+): number => {
+  if (!shownOf) {
+    return events.reduce((sum, event) => (passes(event, filters, today) ? sum + 1 : sum), 0)
   }
 
-  const codes = new Set<string>()
+  return shownOf(events.filter((event) => passes(event, filters, today))).length
+}
 
-  events.forEach((event) => event.languages.forEach((code) => codes.add(code)))
+type ScopedEvent = GeoFeature['properties'] & { distance?: number }
+
+/**
+ * The feed as the filter counts read it: the region's classes, less the one a "see alternatives"
+ * search leaves out (as the list does), each with its distance from the searched point. Around a
+ * point it keeps only what could be listed in full, and `shownOf` says which of those that pass
+ * the list shows, by the list's own split.
+ */
+export const facetScope = (
+  features: readonly GeoFeature[],
+  {
+    center,
+    place,
+    excluded,
+    matchesRegion,
+  }: {
+    center?: Position
+    place: PlaceScope
+    excluded?: number
+    matchesRegion?: RegionMatcher | null
+  },
+): { events: ScopedEvent[]; shownOf?: ShownOf<ScopedEvent> } => {
+  const events = features.flatMap((feature): ScopedEvent[] =>
+    (matchesRegion && !matchesRegion(feature.properties)) || feature.properties.id === excluded
+      ? []
+      : [
+          {
+            ...feature.properties,
+            distance:
+              center && feature.geometry
+                ? distanceKm(center, feature.geometry.coordinates)
+                : undefined,
+          },
+        ],
+  )
+
+  if (!center) return { events }
+
+  return {
+    events: nearPlace(events, place),
+    shownOf: (passing) => localResults(passing, place),
+  }
+}
+
+/** Counts every option of every group against `filters`. */
+export const facetCounts = <T extends FacetEvent>(
+  events: readonly T[],
+  filters: EventFilters,
+  today: string = todayISO(),
+  shownOf?: ShownOf<T>,
+): FacetCounts => {
+  const count = (next: Partial<EventFilters>) =>
+    countPassing(events, { ...filters, ...next }, today, shownOf)
+
+  // Only the languages of classes the results would list, so no option offers a language that
+  // only a class past the place's reach speaks.
+  const codes = new Set(
+    (shownOf ? shownOf([...events]) : events).flatMap((event) => event.languages),
+  )
 
   return {
     total: count({}),
@@ -132,10 +201,11 @@ export type FilterRecovery = {
  * The most useful single way out of an empty result: the answered group whose removal brings back
  * the most classes. `null` when removing any one of them still leaves nothing.
  */
-export const bestRecovery = (
-  events: readonly FacetEvent[],
+export const bestRecovery = <T extends FacetEvent>(
+  events: readonly T[],
   filters: EventFilters,
   today: string = todayISO(),
+  shownOf?: ShownOf<T>,
 ): FilterRecovery | null => {
   const candidates: Pick<FilterRecovery, 'group' | 'patch'>[] = []
 
@@ -150,8 +220,7 @@ export const bestRecovery = (
   }
 
   return candidates.reduce<FilterRecovery | null>((best, candidate) => {
-    const next = { ...filters, ...candidate.patch }
-    const count = events.reduce((sum, event) => (passes(event, next, today) ? sum + 1 : sum), 0)
+    const count = countPassing(events, { ...filters, ...candidate.patch }, today, shownOf)
 
     return count > (best?.count ?? 0) ? { ...candidate, count } : best
   }, null)

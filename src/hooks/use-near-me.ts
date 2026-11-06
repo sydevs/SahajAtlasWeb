@@ -21,6 +21,17 @@ export const LOCATE_TIMEOUT_MS = 30000
 export type NearMeStatus = 'idle' | 'locating' | LocationProblem
 
 /**
+ * Whether a search point is the visitor's own position from Near me, so its classes are "near you"
+ * and its distances "from you". Held in memory only: a reload or a shared link is someone
+ * somewhere else.
+ */
+export const useNearVisitor = (center: readonly [number, number] | undefined): boolean => {
+  const nearCenter = useNearMeState((s) => s.center)
+
+  return Boolean(center && nearCenter?.[0] === center[0] && nearCenter[1] === center[1])
+}
+
+/**
  * The Near me choice: asks the browser for a position only when pressed, and answers with a place
  * in the same terms as a typed search. The position is rounded to about 110m before it can reach
  * a URL. `naming: false` is for map-less embeds, which promise no Mapbox calls.

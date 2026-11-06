@@ -16,6 +16,7 @@ import { FallbackPanel } from '@/components/molecules/Fallbacks'
 import { ResultCountStatus } from '@/components/molecules/ResultCountStatus'
 import { FoldSection } from '@/components/molecules/FoldSection'
 import { formatDistance } from '@/lib'
+import { regionalLocale } from '@/lib/time'
 import {
   DEFAULT_FILTERS,
   DEFAULT_REVEAL,
@@ -38,11 +39,11 @@ import { useEventFilters, useSetFilters } from '@/hooks/use-filters'
 import { useFolds } from '@/hooks/use-folds'
 import { useLocale } from '@/hooks/use-locale'
 import { useMapController } from '@/hooks/use-map-controller'
+import { usePlaceScope } from '@/hooks/use-place-scope'
 import { useReveal } from '@/hooks/use-reveal'
-import { useSearchCountry } from '@/hooks/use-search-country'
 import { useSortOrder } from '@/hooks/use-sort'
 import { eventsQuery } from '@/config/api'
-import { useArrivalFilters, useNearMeState } from '@/config/store'
+import { useArrivalFilters } from '@/config/store'
 
 export interface DynamicEventsListProps {
   latitude: number
@@ -107,7 +108,8 @@ export function DynamicEventsList({
   // sort, which that key omits. This way, the reveal's notion of "the same
   // search" cannot drift from the fetch's. The center quantization lives in
   // one place.
-  const searchCountry = useSearchCountry()
+  const scope = usePlaceScope([longitude, latitude], bbox)
+  const { searchCountry } = scope
   const { shown, showAll, pending, revealMore } = useReveal(revealKey(query.queryKey, order))
 
   // This is the searched place each card names in its distance line, read
@@ -142,10 +144,8 @@ export function DynamicEventsList({
   // Without one, nothing is "here", so the list stays one undivided run.
   const sections = useMemo(
     () =>
-      hasSearchCenter
-        ? splitResults(sorted, { bbox, searchCountry, keepOrder: order === 'soonest' })
-        : null,
-    [sorted, bbox, searchCountry, order, hasSearchCenter],
+      hasSearchCenter ? splitResults(sorted, { ...scope, keepOrder: order === 'soonest' }) : null,
+    [sorted, scope, order, hasSearchCenter],
   )
   const online = useMemo(
     () => (sections ? orderOnline(sections.online, order, languageCode) : []),
@@ -169,9 +169,11 @@ export function DynamicEventsList({
   const folds = useFolds(revealKey(query.queryKey, ''))
   const justOutsideId = useId()
   // A search that started from the visitor's own position measures from them, so the cards say
-  // "from you". Held in memory only: a reload or a shared link is someone somewhere else.
-  const nearCenter = useNearMeState((s) => s.center)
-  const fromYou = nearCenter?.[0] === longitude && nearCenter?.[1] === latitude
+  // "from you".
+  const fromYou = scope.nearVisitor
+  // A distance needs a point the visitor can name: themselves, or the place they searched. A
+  // search with neither (a country with a weekday, measured from wherever the map was) shows none.
+  const named = fromYou || Boolean(placeName.current.name)
   // With nothing in the place or just outside it, the other cities open by themselves, and with
   // none of those either, the online classes do.
   const nothingClose = sections?.here.length === 0 && sections?.justOutside.length === 0
@@ -208,11 +210,11 @@ export function DynamicEventsList({
           ? `${city}, ${regionNames.of(country) ?? country}`
           : city
 
-      return sections?.size === 'area' || event.distance === undefined
+      return sections?.size === 'area' || !named || event.distance === undefined
         ? name
-        : `${name} · ${formatDistance(event.distance, locale)}`
+        : `${name} · ${formatDistance(event.distance, regionalLocale(locale))}`
     },
-    [searchCountry, regionNames, locale, sections?.size],
+    [searchCountry, regionNames, locale, sections?.size, named],
   )
 
   // Whether a reveal has happened — kept beside the count for the same reason, so
@@ -274,7 +276,7 @@ export function DynamicEventsList({
     const place = placeName.current.name
     const nothing =
       here.length + justOutside.length + nearby.length + online.length + distant.length === 0
-    const hideDistance = size === 'area'
+    const hideDistance = size === 'area' || !named
     // A search from the visitor's own position is about them, not the village their point
     // falls in: "In Choteč" over classes in Prague would read as a promise about Choteč.
     const hereTitle = fromYou
@@ -419,7 +421,8 @@ export function DynamicEventsList({
         {rows.length === 0 ? (
           <EmptyResults latitude={latitude} longitude={longitude} />
         ) : (
-          <EventsList events={rows} searchedPlace={searchedPlace} />
+          // No searched place, so a distance would count from the middle of the map.
+          <EventsList hideDistance events={rows} />
         )}
       </div>
       {/* At this point, nothing is left to offer and nothing has announced yet.
@@ -583,11 +586,11 @@ function FilterRelief({
   const { t } = useTranslation()
   const { locale } = useLocale()
   const { clearFilters } = useSetFilters()
-  const searchCountry = useSearchCountry()
+  const scope = usePlaceScope([longitude, latitude], bbox)
   const { data: unfiltered } = useQuery(eventsQuery(latitude, longitude, DEFAULT_FILTERS, locale))
   const all = useMemo(
-    () => (unfiltered ? splitResults(unfiltered, { bbox, searchCountry }) : null),
-    [unfiltered, bbox, searchCountry],
+    () => (unfiltered ? splitResults(unfiltered, scope) : null),
+    [unfiltered, scope],
   )
   const hiddenHere = all ? all.here.length - here : 0
   const hiddenNearby = all ? all.justOutside.length + all.nearby.length - nearby : 0
@@ -595,7 +598,7 @@ function FilterRelief({
   // counts whichever of the two this sentence is about.
   const inPlace = hiddenHere > 0
   const relief = useFilterRelief(latitude, longitude, (events) => {
-    const groups = splitResults(events, { bbox, searchCountry })
+    const groups = splitResults(events, scope)
 
     return inPlace
       ? groups.here.length - here
@@ -649,15 +652,14 @@ function NoClassesHere({
 }) {
   const { t } = useTranslation()
   const { locale, regionNames } = useLocale()
-  const searchCountry = useSearchCountry()
+  const scope = usePlaceScope([longitude, latitude], bbox)
   const countrySite = useCountrySite()
   const active = hasActiveFilters(useEventFilters())
   const { data: unfiltered } = useQuery({
     ...eventsQuery(latitude, longitude, DEFAULT_FILTERS, locale),
     enabled: active,
   })
-  const emptied =
-    active && unfiltered ? splitResults(unfiltered, { bbox, searchCountry }).here.length > 0 : false
+  const emptied = active && unfiltered ? splitResults(unfiltered, scope).here.length > 0 : false
 
   if (countrySite) {
     const country = regionNames.of(countrySite.countryCode) ?? countrySite.countryCode
@@ -715,10 +717,10 @@ function EmptyResults({
   const { regionNames } = useLocale()
   const active = hasActiveFilters(useEventFilters())
   const countrySite = useCountrySite()
-  const searchCountry = useSearchCountry()
+  const scope = usePlaceScope([longitude, latitude], bbox)
   const relief = useFilterRelief(latitude, longitude, (events) => {
     if (!scoped) return events.length
-    const { here, justOutside, nearby, online } = splitResults(events, { bbox, searchCountry })
+    const { here, justOutside, nearby, online } = splitResults(events, scope)
 
     return here.length + justOutside.length + nearby.length + online.length
   })

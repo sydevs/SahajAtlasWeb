@@ -14,9 +14,16 @@ import { eventsQuery } from '@/config/api'
 import { useViewState } from '@/config/store'
 import { useEventFilters } from '@/hooks/use-filters'
 import { useLocale } from '@/hooks/use-locale'
-import { useSearchCountry } from '@/hooks/use-search-country'
+import { usePlaceScope } from '@/hooks/use-place-scope'
 import { useMapController } from '@/hooks/use-map-controller'
-import { listResetKey, parseBounds, parseCenter, searchFrame, splitResults } from '@/lib/shape'
+import {
+  EXCLUDE_EVENT_PARAM,
+  listResetKey,
+  parseBounds,
+  parseCenter,
+  searchFrame,
+  splitResults,
+} from '@/lib/shape'
 import { BackButton } from '@/views/nav'
 import {
   ExpandSheetButton,
@@ -51,14 +58,17 @@ export function SearchView() {
   // one move rather than two.
   const filters = useEventFilters()
   const { locale } = useLocale()
-  const searchCountry = useSearchCountry()
+  const scope = usePlaceScope(center, bounds)
+  // The class a "see alternatives" search leaves out of the list stays out of the frame too.
+  const excluded = Number(searchParams.get(EXCLUDE_EVENT_PARAM))
   const { data: events, isPending } = useQuery(eventsQuery(latitude, longitude, filters, locale))
   const frame = useMemo(() => {
     if (!center || !events) return bounds
+    const listed = events.filter((event) => event.id !== excluded)
 
-    return searchFrame(splitResults(events, { bbox: bounds, searchCountry }), bounds, center)
+    return searchFrame(splitResults(listed, scope), bounds, center)
     // `center` and `bounds` are rebuilt each render from these two params.
-  }, [events, searchCountry, searchParams.get('center'), searchParams.get('bbox')])
+  }, [events, scope, excluded, searchParams.get('center'), searchParams.get('bbox')])
   const waiting = center !== undefined && isPending
 
   // Only re-frame when what to frame changes — not on `?q` edits.
