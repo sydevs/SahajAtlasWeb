@@ -17,7 +17,7 @@ export type GeolocationPromptProps = {
 
 /**
  * The dismissible "events near you" suggestion shown above the list on the
- * top-level views: a single-line, warm (contrast-tinted) `Alert` whose text is a
+ * top-level views: a single-line, sand (neutral) `Alert` whose text is a
  * button into the distance-ranked search. The Alert's × dismisses it for
  * the session. It announces politely (`role="status"`), not as an
  * assertive alert, since it is a passive guess. It is framed as a *guess*:
@@ -32,22 +32,16 @@ export function GeolocationPrompt({ city, onAccept, onClose, site }: Geolocation
   // above and the rows below, and reads as a note rather than a page band.
   // The gap puts its text at 56px, on the label edge of the rows with a glyph.
   // The end padding keeps the close button's hover square inside the banner.
-  // The warm contrast tint, not the light-blue secondary: blue read cold at the top
-  // of every list, and the secondary hue is kept for the language tag. The text stays
-  // the foreground colour — the tint's own deep step reads red, like an error.
+  // The sand neutral, in light and dark. Not the coral tint: a pink band at the top of
+  // the list read like an error, and coral is kept for the chosen pin, the today tag and
+  // the meditating figure. Not the light-blue secondary either: it read cold, and that
+  // hue is kept for the language tag. Sand-12 text clears 13:1 in both modes, and the
+  // sand-11 website link 5.3:1 (light) and 7.6:1 (dark).
   return (
     <Alert
-      className="mx-4 mb-2 gap-2.5 rounded-lg ps-3 pe-1 text-foreground"
+      className="mx-4 mb-2 gap-2.5 rounded-lg ps-3 pe-1"
       closeLabel={t('search.nearby_prompt.dismiss')}
-      color="contrast"
-      description={
-        site && (
-          // Quiet on purpose. The row above is what the notice is for; this one leaves the page.
-          <Link isExternal className="text-gray-11 hover:underline" href={site.href}>
-            {t('search.country_site.cta', { country: site.country })}
-          </Link>
-        )
-      }
+      color="neutral"
       icon={<MapPin size={18} />}
       role="status"
       size="sm"
@@ -62,6 +56,17 @@ export function GeolocationPrompt({ city, onAccept, onClose, site }: Geolocation
         </button>
       }
       onClose={onClose}
-    />
+    >
+      {site && (
+        // Quiet on purpose. The row above is what the notice is for; this one leaves the page.
+        // A child, not the `description`: that slot is dimmed to 90%, which would take the
+        // sand-11 link under 4.5:1 on the sand fill.
+        <div className="text-sm">
+          <Link isExternal className="text-gray-11 hover:underline" href={site.href}>
+            {t('search.country_site.cta', { country: site.country })}
+          </Link>
+        </div>
+      )}
+    </Alert>
   )
 }

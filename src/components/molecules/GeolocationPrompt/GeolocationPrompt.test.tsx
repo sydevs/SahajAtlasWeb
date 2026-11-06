@@ -48,14 +48,34 @@ describe('GeolocationPrompt', () => {
     expect(html).not.toContain('role="alert"')
   })
 
-  it('is a warm-tinted, header-aligned, vertically-centred single line', () => {
+  it('is a sand (neutral), header-aligned, vertically-centred single line', () => {
     const html = renderToStaticMarkup(
       <GeolocationPrompt city="Paris" onAccept={noop} onClose={noop} />,
     )
 
-    expect(html).toContain('bg-contrast-3')
+    expect(html).toContain('bg-gray-3')
+    // Never the coral tint: a pink band reads like an error.
+    expect(html).not.toContain('bg-contrast-3')
+    // The × is dimmed only to 80%, so it keeps 3:1 on the sand fill (60% fell to 2.4:1).
+    expect(html).not.toContain('opacity-60')
     expect(html).toContain('items-center')
     // This aligns the horizontal padding with the drawer header (px-4).
     expect(html).toContain('mx-4')
+  })
+
+  it('keeps the country website link at full strength, outside the dimmed description', () => {
+    const html = renderToStaticMarkup(
+      <GeolocationPrompt
+        city="Prague"
+        site={{ href: 'https://example.org', country: 'Czechia' }}
+        onAccept={noop}
+        onClose={noop}
+      />,
+    )
+
+    expect(html).toContain('href="https://example.org"')
+    expect(html).toContain('text-gray-11')
+    // The description slot is 90% opacity, which takes sand-11 under 4.5:1 on sand-3.
+    expect(html).not.toContain('opacity-90')
   })
 })

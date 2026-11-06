@@ -14,7 +14,8 @@ const alert = tv({
     content: 'min-w-0 flex-1',
     title: 'text-sm font-medium',
     description: 'text-sm opacity-90',
-    close: '-me-1 shrink-0 opacity-60 hover:opacity-100',
+    // 80%, not 60%: the dimmed sand-11 × must still clear 3:1 on a sand-3 fill (3.5:1).
+    close: '-me-1 shrink-0 opacity-80 hover:opacity-100',
   },
   variants: {
     color: { primary: '', secondary: '', contrast: '', neutral: '', danger: '' },
