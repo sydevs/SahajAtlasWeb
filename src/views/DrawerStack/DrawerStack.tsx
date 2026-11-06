@@ -120,9 +120,11 @@ const WIDE_SNAP = SNAP_POINTS[SNAP_POINTS.length - 1] // the near-full snap the 
 // Stands for "as tall as the content" in `snap`. The pixel value moves with the content, so
 // the state holds this token and the ladder carries the live number (`useFitSnap`).
 const FIT_SNAP = 'fit'
-// A class opens at the height its content needs, measured by EventView's `useSheetFit`: the
-// title, when, where and chips, above a sticky footer of about 125px. A visitor must see when
-// and where without dragging. Until that measure lands, this is the first guess. The footer
+// A class opens as tall as its whole content and its footer, capped at the near-full snap
+// (`useFitSnap`, as the filters do): the visitor tapped it to read it, with no blank sheet below
+// (Anton, 6 Nov). One drag down, it stops at the height its key facts need, measured by
+// EventView's `useSheetFit`: the title, when, where and chips, above a sticky footer of about
+// 125px, with the map and its pin above. Until that measure lands, this is the first guess. The footer
 // also grows by the home-indicator inset, so the guess does too. vaul reads pixels, so the
 // inset is measured once, from the same CSS value the footer's spacer uses.
 const EVENT_OPEN_PX = 380
@@ -357,15 +359,22 @@ export function DrawerStack() {
   // filters fill it). Unmeasured, or as tall as the near-full snap, it is null and FIT_SNAP
   // falls back to the near-full snap.
   const fitPx = useFitSnap(
-    direction === 'bottom' && hasMap && top?.kind === 'filters' && !filterOverlay && !framed,
+    direction === 'bottom' &&
+      hasMap &&
+      !framed &&
+      ((top?.kind === 'filters' && !filterOverlay) || top?.kind === 'event'),
     location.pathname,
   )
   const fitSnap = fitPx === null ? null : `${fitPx}px`
   const fitSnapPoints = useMemo(() => withFitSnap(SNAP_POINTS, fitPx), [fitPx])
+  const eventFitSnapPoints = useMemo(
+    () => withFitSnap(eventSnapPoints, fitPx),
+    [eventSnapPoints, fitPx],
+  )
   const snapPoints = framed
     ? FRAMED_SNAP_POINTS
     : top?.kind === 'event'
-      ? eventSnapPoints
+      ? eventFitSnapPoints
       : fitSnapPoints
   // The first screen has more to show before the map matters than any other view.
   const openSnap = framed
@@ -373,7 +382,7 @@ export function DrawerStack() {
       ? FRAMED_FULL_SNAP
       : openSnapFor(top?.kind, frameHeight)
     : top?.kind === 'event'
-      ? eventOpenSnap
+      ? WIDE_SNAP
       : top
         ? OPEN_SNAP
         : HOME_SNAP
@@ -643,7 +652,7 @@ export function DrawerStack() {
     // The filters open as tall as their content, which at world level is a few rows: low on
     // the screen, near the thumb, with no blank sheet above them. Many filters still reach
     // the near-full snap, since the fit never goes past it.
-    if (top?.kind === 'filters') setSnap(FIT_SNAP)
+    if (top?.kind === 'filters' || top?.kind === 'event') setSnap(FIT_SNAP)
     else if (tall) setSnap(WIDE_SNAP)
     else setSnap(top?.kind === 'search' && searchCenter ? SEARCH_SNAP : openSnap)
   }, [direction, top?.kind, openSnap, framed])
@@ -659,10 +668,14 @@ export function DrawerStack() {
       : null
 
   useEffect(() => {
-    setSheetBottom(direction === 'bottom' && top?.kind === 'event' ? eventOpenPx : filtersSheetPx)
+    // A class keeps its pin clear of the fitted sheet; a class too long to fit opens near full,
+    // where the pin is hidden anyway, so it frames for the key-facts stop one drag below.
+    setSheetBottom(
+      direction === 'bottom' && top?.kind === 'event' ? (fitPx ?? eventOpenPx) : filtersSheetPx,
+    )
 
     return () => setSheetBottom(null)
-  }, [direction, top?.kind, eventOpenPx, filtersSheetPx, setSheetBottom])
+  }, [direction, top?.kind, eventOpenPx, fitPx, filtersSheetPx, setSheetBottom])
 
   // A new searched place lifts the sheet out of its peek, so results are never
   // fetched into a sheet the visitor cannot see. The effect above does not cover this

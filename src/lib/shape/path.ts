@@ -441,7 +441,7 @@ export const isFilterOverlay = (entries: StackEntry[], hasMap = true): boolean =
 /**
  * The views a bottom sheet opens at its near-full snap: the calendar, whose month grid and list
  * both need the height, and registration, a form whose fields would otherwise start below the
- * fold of a third-height sheet.
+ * fold of a third-height sheet. (A class opens as tall as its content instead: see DrawerStack.)
  */
 const OPENS_TALL: ReadonlySet<StackEntry['kind']> = new Set(['calendar', 'register'])
 
