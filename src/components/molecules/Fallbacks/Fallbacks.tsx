@@ -342,7 +342,7 @@ export const ERROR_POLICY: Record<FallbackKind, FallbackPolicy> = {
   // This row used to offer no action, on the idea that an empty region is
   // nobody's mistake. That is true, but it still left one sentence and nothing to
   // press. That is the same dead end whether the URL was wrong or just empty.
-  empty: { ...DEAD_END, messageKey: 'common.errors.no_events', fallbackText: 'No classes found.' },
+  empty: { ...DEAD_END, messageKey: 'common.errors.no_classes', fallbackText: 'No classes found.' },
   // A class that exists and runs, but cannot be joined: full, ended, or
   // registration closed. Not an error, and not empty. This is the one row whose
   // best next step is a PERSON. It leads with the organiser's number, and falls
@@ -407,7 +407,7 @@ export const ERROR_POLICY: Record<FallbackKind, FallbackPolicy> = {
   // all" and nothing else. An onward link would compete with the one action that
   // actually restores results here.
   'no-results': {
-    messageKey: 'filters.chrome.no_results',
+    messageKey: 'search.filtered.none',
     fallbackText: 'No classes match your filters.',
     color: 'neutral',
     retry: false,
@@ -422,7 +422,7 @@ export const ERROR_POLICY: Record<FallbackKind, FallbackPolicy> = {
   // "Show distant classes" control sits right below it saying so. `visibleActions`
   // leaves this row alone, since it promised nothing for a surface to remove.
   'no-nearby': {
-    messageKey: 'search.results.no_nearby',
+    messageKey: 'search.results.no_nearby_classes',
     fallbackText: 'No classes within %{km} km.',
     color: 'neutral',
     retry: false,
@@ -583,7 +583,7 @@ const offerLabel = (t: OfferTranslate, offer: RecoveryOffer): string => {
     case 'countries':
       return t('common.errors.browse_countries', { defaultValue: 'Browse all countries' })
     case 'city':
-      return t('common.errors.near_city', {
+      return t('common.errors.classes_near_city', {
         city: offer.name,
         defaultValue: 'See classes near %{city}',
       })

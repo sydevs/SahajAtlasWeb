@@ -157,7 +157,7 @@ export function LoadMore({
         </Button>
       )}
       <span aria-live="polite" className="sr-only" role="status">
-        {announce ? t('search.results.showing', { shown, total }) : ''}
+        {announce ? t('search.results.showing_classes', { shown, total }) : ''}
       </span>
     </div>
   )

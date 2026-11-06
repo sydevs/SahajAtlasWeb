@@ -19,7 +19,7 @@ const waysOut = (policy: FallbackPolicy) => ({
   report: policy.report,
 })
 
-/** `common.errors.no_events` resolves to the shipped English, or `undefined` if the key is dead. */
+/** `common.errors.no_classes` resolves to the shipped English, or `undefined` if the key is dead. */
 const enCopy = (dottedKey: string): unknown =>
   dottedKey
     .split('.')

@@ -47,11 +47,11 @@
     },
     "errors": {
       "browse_countries": "Browse all countries",
+      "classes_near_city": "See classes near %{city}",
       "captcha_blocked": "This Atlas can't run on this page: its security check was blocked.",
       "config": "This Atlas isn't set up correctly on this page.",
       "generic": "Something went wrong.",
-      "near_city": "See classes near %{city}",
-      "no_events": "No classes found.",
+      "no_classes": "No classes found.",
       "not_found": "We couldn't find what you were looking for.",
       "not_found_class": "We couldn't find that class.",
       "not_found_region": "We couldn't find that place.",
@@ -226,7 +226,6 @@
       "clear": "Clear all",
       "clear_one": "Clear",
       "no_match": "No classes match",
-      "no_results": "No classes match your filters.",
       "remove": "Remove %{label}",
       "show_classes_one": "Show %{count} class",
       "show_classes_other": "Show %{count} classes",
@@ -344,8 +343,8 @@
     "results": {
       "farther_classes": "Show classes farther away",
       "more": "Show more",
-      "no_nearby": "No classes within %{km} km.",
-      "showing": "Showing %{shown} of %{total} classes"
+      "no_nearby_classes": "No classes within %{km} km.",
+      "showing_classes": "Showing %{shown} of %{total} classes"
     },
     "filtered": {
       "hidden_here_one": "Your filters hide %{count} class in %{place}.",

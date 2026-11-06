@@ -12,7 +12,7 @@ vi.mock('react-i18next', () => ({
       ({
         'search.results.more': 'Show more',
         'search.results.farther_classes': 'Show classes farther away',
-        'search.results.showing': `Showing ${opts?.shown} of ${opts?.total} events`,
+        'search.results.showing_classes': `Showing ${opts?.shown} of ${opts?.total} classes`,
       })[key] ?? key,
     i18n: { resolvedLanguage: 'en', on: () => {}, off: () => {} },
   }),
@@ -73,7 +73,7 @@ describe('LoadMore', () => {
     // The live region survives the button it sat beside. The LAST press is
     // the one that unmounts the control, and its announcement has to outlive it.
     expect(html).toContain('role="status"')
-    expect(html).toContain('Showing 25 of 137 events')
+    expect(html).toContain('Showing 25 of 137 classes')
   })
 
   it('announces politely rather than interrupting', () => {
