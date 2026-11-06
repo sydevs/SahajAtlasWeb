@@ -45,6 +45,7 @@ const BOUNDED: Record<string, string> = {
   'components/atoms/Select/Select.tsx': 'the plain list picker',
   'components/atoms/Combobox/Combobox.tsx':
     'the search-in-the-field region picker (Popover + cmdk)',
+  'components/molecules/AddToCalendar/AddToCalendar.tsx': 'the add-to-calendar provider menu',
   'components/molecules/SettingsMenu/SettingsMenu.tsx': 'the cog, and its language submenu',
   'components/molecules/SortMenu/SortMenu.tsx': 'the results-list sort menu',
 }

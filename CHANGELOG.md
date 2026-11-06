@@ -44,6 +44,10 @@ cover everything a host would notice since the widget was first deployed.
 
 ### Changed
 
+- **The captcha on the registration and report forms is hidden unless it needs a click.**
+  ([SahajCloud#1090]) Most visitors now see no security check at all; the 300×65 box opens only
+  when Cloudflare asks for an interaction, and closes again after. No change to your CSP.
+
 - **Your brand colours now reach the map.** ([#17]) The event pins, the cluster bubbles and the
   numbers on them are drawn from the **first** of your client record's three brand colours, and
   the selected event's pin from the **third** — the same two that already theme the panels and
@@ -881,6 +885,7 @@ must-revalidate`, pinned rather than left to the CDN default. The production dom
 [#326]: https://github.com/sydevs/SahajAtlasWeb/issues/326
 [#343]: https://github.com/sydevs/SahajAtlasWeb/issues/343
 [SahajCloud#1072]: https://github.com/sydevs/SahajCloud/issues/1072
+[SahajCloud#1090]: https://github.com/sydevs/SahajCloud/pull/1090
 [#322]: https://github.com/sydevs/SahajAtlasWeb/issues/322
 [#329]: https://github.com/sydevs/SahajAtlasWeb/pull/329
 [#325]: https://github.com/sydevs/SahajAtlasWeb/issues/325
