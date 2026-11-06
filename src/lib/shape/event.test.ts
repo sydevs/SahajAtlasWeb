@@ -11,6 +11,7 @@ import {
   isSoon,
   nextOccurrence,
   resolveEventDisplay,
+  streetAndCity,
 } from './event'
 
 const offline = {
@@ -520,5 +521,31 @@ describe('hasVagueAddress', () => {
 
   it('has nothing to judge without an address', () => {
     expect(hasVagueAddress(undefined)).toBe(false)
+  })
+})
+
+describe('streetAndCity', () => {
+  it.each([
+    ['Sneek', 'Sneek', 'Sneek'],
+    ['32 Cejl, 602 00, Brno', 'Brno', '32 Cejl, 602 00, Brno'],
+    ['Cejl 32, 602 00 Brno', 'Brno', 'Cejl 32, 602 00 Brno'],
+    ['120 Heath St, London NW3 1DR', 'London', '120 Heath St, London NW3 1DR'],
+    ['Lipanská 8, praha', 'Praha', 'Lipanská 8, praha'],
+  ])('names the town once when the street already does: %j + %j', (street, city, line) => {
+    expect(streetAndCity(street, city)).toBe(line)
+  })
+
+  it.each([
+    ['16 Ramsden Rd', 'London', '16 Ramsden Rd, London'],
+    ['123 London Road', 'London', '123 London Road, London'],
+    ['Main St, West London', 'London', 'Main St, West London, London'],
+  ])('adds the town when the street only mentions a word of it: %j + %j', (street, city, line) => {
+    expect(streetAndCity(street, city)).toBe(line)
+  })
+
+  it('stands on whichever half there is', () => {
+    expect(streetAndCity('16 Ramsden Rd', null)).toBe('16 Ramsden Rd')
+    expect(streetAndCity(undefined, ' Leeds ')).toBe('Leeds')
+    expect(streetAndCity('', '')).toBe('')
   })
 })

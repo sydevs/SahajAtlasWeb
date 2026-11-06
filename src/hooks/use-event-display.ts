@@ -7,7 +7,7 @@ import { useTranslation } from 'react-i18next'
 
 import { useLocale } from './use-locale'
 
-import { resolveEventDisplay } from '@/lib/shape'
+import { resolveEventDisplay, streetAndCity } from '@/lib/shape'
 import { formatDate, formatTimeRange, regionalLocale, sameWallClock, zoneCity } from '@/lib/time'
 
 /** This is what the formatting layer reads on top of the resolver input: the address and
@@ -250,9 +250,7 @@ export function useEventDisplay(event: DisplayableEvent): EventDisplayStrings {
       ? `${t('event.display.online')} • ${t('event.display.hosted_from', { city: originCity })}`
       : display.status === 'inactive'
         ? event.address?.city || event.region?.name || ''
-        : [event.address?.street, event.address?.city].filter(Boolean).join(', ') ||
-          event.region?.name ||
-          ''
+        : streetAndCity(event.address?.street, event.address?.city) || event.region?.name || ''
     // A postcode is how people check they have the right place. Hosts sometimes type it into
     // the street or city field, so it is added only when it is not already there.
     const postCode = event.address?.postCode?.trim()

@@ -87,6 +87,34 @@ export const hasVagueAddress = (
 }
 
 /**
+ * The street and the town as one line, naming the town once. Hosts often type the town, or its
+ * postcode and town, into the street as well, which read "Sneek, Sneek" and "32 Cejl, 602 00,
+ * Brno, Brno". A comma-separated part of the street names the town when it is the town alone, or
+ * the town beside something with a digit in it — a postcode, "602 00 Brno" or "London SW12".
+ * Nothing is taken out of the street, so a postcode typed there stays.
+ */
+export const streetAndCity = (street?: string | null, city?: string | null): string => {
+  const road = street?.trim() ?? ''
+  const town = city?.trim() ?? ''
+
+  if (!road || !town) return road || town
+
+  const name = town.toLowerCase()
+  const namesTown = road.split(',').some((part) => {
+    const words = part.trim().toLowerCase()
+    const beside = words.startsWith(`${name} `)
+      ? words.slice(name.length)
+      : words.endsWith(` ${name}`)
+        ? words.slice(0, -name.length)
+        : null
+
+    return words === name || (beside !== null && /\d/.test(beside))
+  })
+
+  return namesTown ? road : `${road}, ${town}`
+}
+
+/**
  * Published with nobody vouching for it — the one stage that means that. The reminder
  * rungs are all managed, and `finished` is published only so old links still resolve, so
  * the match is exact: an absent or unrecognised value is never badged or ranked down.
