@@ -41,6 +41,12 @@ export type EventDetailsProps = EventSurfaceProps & {
    *  would be drawn underneath it at the short snap (#320). */
   ctaInline?: boolean
   /**
+   * Where the class sits in the atlas (country › region › city), as links, from the view. It
+   * renders under the address, so every line about where reads as one group. The view passes
+   * it because only views know the route; it renders nothing on a narrow panel.
+   */
+  placeTrail?: ReactNode
+  /**
    * This slot renders below the facts, inside the panel's own flow, above the
    * unverified caveat and Register.
    *
@@ -58,13 +64,14 @@ export type EventDetailsProps = EventSurfaceProps & {
 }
 
 /**
- * This is the event panel body: when and where, chips, Register, microcopy,
- * secondary actions, About, then images. The title is a separate component
+ * This is the event panel body, in the order a visitor asks: what kind of class (the tags,
+ * right under the title), when, where, then Register, the other actions and Add to calendar,
+ * the host's notes, what to expect, About, then images. The title is a separate component
  * (EventHeader). It renders outside the scrolling drawer body, so it stays pinned.
  */
-/** Add-to-calendar on the class page: a text-weight control that opens a short list. It sits
- *  below the reassurance, because it isn't the next step. Only for a class with a session still
- *  to come. */
+/** Add-to-calendar on the class page: a text-weight control that opens a short list. It closes
+ *  the group of things to do with the class, after Register and the action row, as the quietest
+ *  of them. Only for a class with a session still to come. */
 function EventAddToCalendar({ event }: { event: Event }) {
   const { t } = useTranslation()
   const { display, whereLine } = useEventDisplay(event)
@@ -106,7 +113,13 @@ function EventAddToCalendar({ event }: { event: Event }) {
   )
 }
 
-export function EventDetails({ event, basePath, ctaInline = true, children }: EventDetailsProps) {
+export function EventDetails({
+  event,
+  basePath,
+  ctaInline = true,
+  placeTrail,
+  children,
+}: EventDetailsProps) {
   const { t } = useTranslation()
   const { display } = useEventDisplay(event)
   const ended = display.status === 'ended'
@@ -137,9 +150,9 @@ export function EventDetails({ event, basePath, ctaInline = true, children }: Ev
     // bottom padding, so the images sit flush against the end of the view
     // instead of floating 40px above it. Everything else keeps the padding.
     <div className={`flex flex-col gap-4 px-4 pt-1 ${hasImages ? '' : 'pb-10'}`}>
-      {/* When and where lead, because that is what a visitor came for, and on the phone
-          sheet they must fit above the sticky footer at the default height. The chips
-          follow, as the quieter facts. */}
+      {/* The tags say what kind of class this is, so they sit right under its title. When and
+          where follow, because that is what a visitor came for, and on the phone sheet all of
+          it must fit above the sticky footer at the default height (Anton, 6 Nov). */}
       {ended ? (
         <div className="flex flex-col gap-1">
           <p className="text-lg">{t('event.display.class_finished')}</p>
@@ -147,8 +160,9 @@ export function EventDetails({ event, basePath, ctaInline = true, children }: Ev
         </div>
       ) : (
         <>
-          <EventFacts event={event} />
           <EventChips event={event} />
+          <EventFacts event={event} />
+          {placeTrail}
         </>
       )}
 
@@ -174,6 +188,8 @@ export function EventDetails({ event, basePath, ctaInline = true, children }: Ev
           <EventActions basePath={basePath} event={event} />
         </>
       )}
+
+      <EventAddToCalendar event={event} />
 
       {/* A by-request or finished class has nothing to book, so it must not be the end of
           the road. Old posters and QR codes keep sending people to finished ones. */}
@@ -207,8 +223,6 @@ export function EventDetails({ event, basePath, ctaInline = true, children }: Ev
       )}
 
       <WhatToExpect event={event} />
-
-      <EventAddToCalendar event={event} />
 
       {/* About — host-authored prose always sits below the facts and actions. */}
       {descriptionHtml && (

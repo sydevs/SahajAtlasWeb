@@ -116,7 +116,7 @@ export function EventView({ id, basePath }: { id: number; basePath: string }) {
       {/* SEO — title, canonical, JSON-LD — is only meaningful for the crawlable standalone
           build. The embedded widget's host owns the document head. */}
       {standalone && <EventMetadata event={event} />}
-      <EventHeader below={<Breadcrumbs />} event={event} nav={<NavRow />} />
+      <EventHeader event={event} nav={<NavRow />} />
       {/* After the header, never before it: at the peek, ViewLayer shows only the layer's first
           child, which must be the header with Back and the title. */}
       <span ref={layerAnchor} hidden />
@@ -155,7 +155,12 @@ export function EventView({ id, basePath }: { id: number; basePath: string }) {
               />
             }
           >
-            <EventDetails basePath={basePath} ctaInline={!stickyRegister} event={event}>
+            <EventDetails
+              basePath={basePath}
+              ctaInline={!stickyRegister}
+              event={event}
+              placeTrail={<Breadcrumbs className="-mt-3 pl-8" />}
+            >
               {/* This is passed as the panel's slot, so it lands immediately above Register,
                   which lives inside EventDetails when it is inline. The acknowledgement belongs
                   beside the action it wants the reader to take, and the panel is the only thing

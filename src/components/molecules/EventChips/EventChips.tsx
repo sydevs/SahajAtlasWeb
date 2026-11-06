@@ -59,7 +59,7 @@ export function EventChips({ event, variant = 'default', className }: EventChips
   // set only when it is the actual blocker, so an ended or dormant event
   // still falls through to its own treatment.
   const full = display.full
-  // "Today" appears once. The class page says it in the when line right above these chips,
+  // "Today" appears once. The class page says it in the when line right below these chips,
   // and a one-off card leads with it. So only a card that leads with the weekly pattern,
   // "Every Wednesday", needs the chip.
   const today = !full && display.status === 'today' && compact && Boolean(recurrenceLine)
