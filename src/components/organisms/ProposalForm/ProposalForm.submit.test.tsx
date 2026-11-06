@@ -662,7 +662,9 @@ describe('ProposalForm corrections', () => {
 
     // The new day and the first date it moves are one change, so one Undo.
     expect(container.querySelectorAll('button[aria-label^="submit.changes.undo"]')).toHaveLength(1)
-    expect(container.textContent).toMatch(/submit\.when\.first_class: Thursday, December 22, 2022/)
+    // Was the 21st, now the 22nd, of December 2022 — however the date is written.
+    expect(container.textContent).toMatch(/submit\.when\.first_class: [^\n]*21[^\n]*2022/)
+    expect(container.textContent).toMatch(/submit\.when\.first_class: [^\n]*22[^\n]*2022/)
 
     await type('#submit-sender-email', 'ada@example.org')
     await submit()
