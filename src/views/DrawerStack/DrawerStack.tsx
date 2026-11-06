@@ -478,14 +478,16 @@ export function DrawerStack() {
   const eventOpenPx = measuredOpenPx ?? fallbackOpenPx
   const eventOpenSnap = `${eventOpenPx}px`
   const eventSnapPoints = useMemo(() => [PEEK_SNAP, eventOpenSnap, WIDE_SNAP], [eventOpenSnap])
-  // The filters' fit-to-content snap (phone only: a host's box has its own ladder, where the
-  // filters fill it). Unmeasured, or as tall as the near-full snap, it is null and FIT_SNAP
-  // falls back to the near-full snap.
+  // The fit-to-content snap for the filters, a class and a place's list (phone only: a host's box
+  // has its own ladder, where the filters fill it). Unmeasured, or as tall as the near-full snap,
+  // it is null and FIT_SNAP falls back to the near-full snap.
   const fitPx = useFitSnap(
     direction === 'bottom' &&
       hasMap &&
       !framed &&
-      ((top?.kind === 'filters' && !filterOverlay) || top?.kind === 'event'),
+      ((top?.kind === 'filters' && !filterOverlay) ||
+        top?.kind === 'event' ||
+        top?.kind === 'region'),
     location.pathname,
   )
   const fitSnap = fitPx === null ? null : `${fitPx}px`
@@ -606,10 +608,13 @@ export function DrawerStack() {
   // drag) raises it: from the peek to its open height, from there to fully open. Native
   // listeners, because `scroll` doesn't bubble; a ref for the snap, so they never rebind as it
   // moves. The element arrives through a callback ref: the sheet portals in once its target exists.
+  // "Fully open" is as tall as the content when it is shorter than the near-full stop, so a raise
+  // never opens a blank sheet below a short list or class (Anton, 6 Nov).
   const [sheetBody, setSheetBody] = useState<HTMLDivElement | null>(null)
-  const raiseTo = useRef({ snap, openSnap, fullSnap })
+  const raiseSnap = fitSnap !== null ? FIT_SNAP : fullSnap
+  const raiseTo = useRef({ snap, openSnap, fullSnap, raiseSnap })
 
-  raiseTo.current = { snap, openSnap, fullSnap }
+  raiseTo.current = { snap, openSnap, fullSnap, raiseSnap }
 
   useEffect(() => {
     const body = sheetBody
@@ -618,10 +623,15 @@ export function DrawerStack() {
 
     const onScroll = (event: Event) => {
       const target = event.target as HTMLElement
-      const { snap: now, fullSnap: full } = raiseTo.current
+      const { snap: now, fullSnap: full, raiseSnap: raise } = raiseTo.current
 
-      if (now !== full && target.matches?.('[data-drawer-body]') && target.scrollTop > 0) {
-        setSnap(full)
+      if (
+        now !== full &&
+        now !== raise &&
+        target.matches?.('[data-drawer-body]') &&
+        target.scrollTop > 0
+      ) {
+        setSnap(raise)
       }
     }
     let down: { x: number; y: number } | null = null
@@ -633,10 +643,10 @@ export function DrawerStack() {
       const target = event.target as HTMLElement
 
       if (moved > 8 || target.closest?.(INTERACTIVE)) return
-      const { snap: now, openSnap: open, fullSnap: full } = raiseTo.current
+      const { snap: now, openSnap: open, fullSnap: full, raiseSnap: raise } = raiseTo.current
 
       if (now === PEEK_SNAP) setSnap(open)
-      else if (now !== full) setSnap(full)
+      else if (now !== full && now !== raise) setSnap(raise)
     }
 
     body.addEventListener('scroll', onScroll, true)
@@ -850,8 +860,11 @@ export function DrawerStack() {
   }, [direction, top?.kind, openSnap, framed, onlineOnly])
 
   // A cluster that won't split opens its list (Map.tsx), and that list should be seen in full,
-  // not as a sliver under the map (Anton, 6 Nov). The request lands before the route changes, so
-  // it waits for the new page and applies after the per-view snap above, which would lower it.
+  // not as a sliver under the map (Anton, 6 Nov), but no taller than its rows: a two-class venue
+  // opens as tall as its content, like a class (FIT_SNAP falls back to near-full for a long list).
+  // The request lands before the route changes, so it waits for the new page and applies after
+  // the per-view snap above, which would lower it. It waits on the history entry, not the path:
+  // the cluster of the place already on screen pushes the same path again.
   const mapOpens = useMapTap((s) => s.opens)
   const seenOpens = useRef(mapOpens)
   const openPending = useRef(false)
@@ -865,8 +878,8 @@ export function DrawerStack() {
   useEffect(() => {
     if (!openPending.current) return
     openPending.current = false
-    if (direction === 'bottom') setSnap(fullSnap)
-  }, [location.pathname, direction, fullSnap])
+    if (direction === 'bottom') setSnap(framed ? fullSnap : FIT_SNAP)
+  }, [location.key, direction, fullSnap, framed])
 
   // The camera keeps a class's pin clear of the sheet that opened over it. This is only for a
   // class and the filters: their sheets are taller than the usual open stop. The filters open as
