@@ -290,6 +290,18 @@ export const submitTitleKey = (kind: SubmitEntry['kind']) =>
  */
 export const addClassPath = (regionPath = '/'): string => childRoute(regionPath, 'add')
 
+/**
+ * The place a stack shows: its deepest region — the venue, city, region or country that an event,
+ * a sign-up or a filter panel sits under. `undefined` at the world view, a search or the calendar,
+ * which show no one place. The map's floating "Add a class" button opens the flow over it.
+ */
+export const placeInStack = (
+  entries: readonly StackEntry[],
+): Extract<StackEntry, { kind: 'region' }> | undefined =>
+  [...entries]
+    .reverse()
+    .find((entry): entry is Extract<StackEntry, { kind: 'region' }> => entry.kind === 'region')
+
 /** Where "suggest a correction" opens, over the class it corrects. */
 export const correctionPath = (eventPath: string): string => childRoute(eventPath, 'correct')
 

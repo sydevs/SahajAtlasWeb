@@ -193,7 +193,9 @@ cover everything a host would notice since the widget was first deployed.
 
 - **Visitors can add a class, or suggest a correction to one, from the widget.** ([#147]) Every
   list ends with a link to add a class; a region or venue page offers to add one there, and a
-  class page offers a correction. The flow opens new routes under your page's URL — `/add`,
+  class page offers a correction. Where the side panel sits beside the map, the map also carries
+  an "Add a class" button in its bottom-right corner, which opens the flow for the place on
+  screen. The flow opens new routes under your page's URL — `/add`,
   `<region>/add` and `<class>/correct` — and sends nothing to anyone until the visitor submits;
   a local coordinator reviews it before it appears. It uses the Mapbox and Turnstile origins your
   CSP already allows, so your policy is unchanged.

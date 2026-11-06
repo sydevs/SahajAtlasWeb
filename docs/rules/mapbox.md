@@ -279,6 +279,14 @@ collapsed form — its own information button, which `compact` renders — and s
 any other placement must be reviewed and approved by Mapbox, so the credits
 cannot move into the settings menu.
 
+**On a wide layout the floating "Add a class" button shares the bottom right**, stacked 16px
+above the wordmark and 16px in from the edge (`ADD_CLASS_CORNER` in `DrawerStack.tsx`). It is
+ours, not a mapbox control, so it is a fixed element in the overlay layer rather than a child of
+`<ReactMapGL>`, and it takes the wordmark's footprint from mapbox-gl's stylesheet as a constant
+(23px tall, 6px off the edge) — the same no-measurement rule as the corners themselves. It uses
+physical `right`, since the wordmark is bottom-right in either direction. A narrow layout never
+renders it: the bottom sheet covers that corner.
+
 ⚠ The top-right container also holds `GeolocateControl`, and `[data-sy-expanded]`
 nudges the whole column down 40px to clear the expanded surface's collapse
 control — two controls now, not one.

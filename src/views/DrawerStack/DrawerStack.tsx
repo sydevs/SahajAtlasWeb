@@ -16,10 +16,13 @@ import { useLocation, useNavigate } from 'react-router'
 import { useQueryClient } from '@tanstack/react-query'
 import { AnimatePresence, motion } from 'framer-motion'
 import clsx from 'clsx'
+import { Plus } from 'lucide-react'
 
 import { eventTitlesQuery, regionsQuery } from '@/config/api'
+import { useAtlasNavigate } from '@/hooks/use-atlas-navigate'
 import { useExpansion } from '@/hooks/use-expansion'
 import { useLocale } from '@/hooks/use-locale'
+import { Button } from '@/components/atoms/Button'
 import { Drawer, DrawerContent } from '@/components/atoms/Drawer'
 import { ResetErrorBoundary, SettingsMenu } from '@/components/molecules'
 import { WidgetWidthContext, useIsWide } from '@/config/responsive'
@@ -32,9 +35,12 @@ import {
   atlasDepth,
   dismissAction,
   dismissDepth,
+  addClassPath,
   baseStackEntry,
   isFilterOverlay,
+  isSubmitEntry,
   opensTall,
+  placeInStack,
   resolveStack,
 } from '@/lib/shape'
 import { wakesSheetLoop } from '@/views/DrawerStack/sheet-wake'
@@ -103,6 +109,21 @@ const WIDE_SNAP = SNAP_POINTS[2] // the near-full snap the full-width calendar o
 // to mistake for a border. This width still leaves the active sheet unambiguously on top.
 const PEEK_MOBILE = 10 // px above the sheet's top edge
 const PEEK_DESKTOP = 12 // px to the right of the left panel
+
+// Where the floating "Add a class" button sits on a wide layout: the map's bottom-right corner,
+// the one the side panel leaves clear (the top right holds the locate button and the
+// attribution). Mapbox's wordmark already sits there (`logoPosition` in `Map.tsx`), so the button
+// stacks above it. mapbox-gl draws the wordmark 23px tall and 6px off the bottom edge — its
+// corner's 10px margin less the logo's own -4px — so its top edge is 29px up. Neither moves, so
+// these are constants rather than a measurement (`docs/rules/mapbox.md`).
+const MAPBOX_WORDMARK_TOP_PX = 29
+const ADD_CLASS_GAP_PX = 16 // from the map's right edge, and above the wordmark
+// Physical `right`, not the logical end: the wordmark is bottom-right in either direction.
+const ADD_CLASS_CORNER: CSSProperties = {
+  position: 'fixed',
+  right: ADD_CLASS_GAP_PX,
+  bottom: MAPBOX_WORDMARK_TOP_PX + ADD_CLASS_GAP_PX,
+}
 
 // Frames a stationary sheet holds before the `--sy-sheet-top` mirror parks itself (about
 // 0.5s at 60fps — well past the end of any vaul spring). See the effect below for why it
@@ -245,6 +266,45 @@ function PeekStrip({
       type="button"
       onClick={onClick}
     />
+  )
+}
+
+/**
+ * The add-a-class flow's way in on a wide map (#147): a filled button in the map's bottom-right
+ * corner that opens the flow over the place on screen. The row at the foot of a list sits below
+ * the fold on a long one, so this keeps the way in on screen. A phone keeps that row alone, since
+ * a floating button there would sit on the bottom sheet.
+ *
+ * An in-widget push, like the list row's link, so the flow's X comes back here. The visible label
+ * is the flow's own title; the accessible name adds the place, and starts with that label, so a
+ * voice command reading the button still matches it.
+ */
+function AddClassButton({
+  href,
+  label,
+  accessibleName,
+}: {
+  href: string
+  label: string
+  accessibleName: string
+}) {
+  const navigate = useAtlasNavigate()
+
+  return (
+    <Button
+      aria-label={accessibleName}
+      // Above the map and its controls, below any drawer (`z-40`) that could ever reach this
+      // corner. Sized up from the `md` control to a 44px touch target.
+      className="z-30 h-11 px-5 text-base font-semibold shadow-lg"
+      color="primary"
+      radius="full"
+      style={ADD_CLASS_CORNER}
+      variant="solid"
+      onClick={() => navigate(href)}
+    >
+      <Plus aria-hidden size={20} />
+      {label}
+    </Button>
   )
 }
 
@@ -801,6 +861,15 @@ export function DrawerStack() {
     </div>
   )
 
+  // The floating "Add a class" button, beside the side panel only — `isWide`, the same answer that
+  // picked the panel, so a narrow embed or a phone (the bottom sheet covers the bottom edge) never
+  // gets it. Hidden where the flow is already open, and where a panel covers the map's bottom
+  // right: the full-width calendar, and the filter overlay over the calendar. It opens over the
+  // place on screen, or at the root where no one place shows.
+  const place = placeInStack(baseEntries)
+  const placeName = place && stripNames.regionNames.get(place.slug)
+  const showAddClass = isWide && !wide && !filterOverlay && !isSubmitEntry(top)
+
   return (
     <WidgetWidthContext.Provider value={isWide}>
       <DrawerControlContext.Provider value={control}>
@@ -843,6 +912,17 @@ export function DrawerStack() {
                       ? 'start-[calc(var(--sy-drawer-w,352px)+32px)] lg:start-[calc(var(--sy-drawer-w,352px)+48px)] lg:top-4'
                       : 'start-3',
                   )}
+                />
+              )}
+              {showAddClass && (
+                <AddClassButton
+                  accessibleName={
+                    placeName
+                      ? t('submit.chrome.add_row_in', { place: placeName })
+                      : t('submit.chrome.add_row')
+                  }
+                  href={addClassPath(place?.path)}
+                  label={t('submit.chrome.title_add')}
                 />
               )}
             </>,

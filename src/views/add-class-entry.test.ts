@@ -28,6 +28,16 @@ describe('the add-a-class entry', () => {
     )
   })
 
+  it('floats over a wide map only, opening over the place on screen', () => {
+    // The button lives in the map's corner beside the side panel, so the gate is the same
+    // `isWide` that picked the panel: a phone's bottom sheet covers that corner.
+    const stack = wiring('src/views/DrawerStack/DrawerStack.tsx')
+
+    expect(stack).toContain('constshowAddClass=isWide&&')
+    expect(stack).toContain('href={addClassPath(place?.path)}')
+    expect(stack).toContain('constplace=placeInStack(baseEntries)')
+  })
+
   it('offers a correction on a class page', () => {
     expect(wiring('src/views/EventView/EventView.tsx')).toContain(
       "href={correctionPath(basePath)}>{t('submit.chrome.correct_entry_ask')}",

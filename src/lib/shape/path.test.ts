@@ -14,6 +14,7 @@ import {
   nearestKnownRegion,
   parentOf,
   parseCenter,
+  placeInStack,
   placeSearchPath,
   resolvePath,
   resolveStack,
@@ -490,5 +491,42 @@ describe('the add-a-class routes', () => {
   it('titles each flow by its kind', () => {
     expect(submitTitleKey('add')).toBe('submit.chrome.title_add')
     expect(submitTitleKey('correct')).toBe('submit.chrome.title_correct')
+  })
+})
+
+// The map's floating "Add a class" button opens the flow over the place on screen, so the address
+// search starts near it. The defect worth catching is a button that opens at the root from a city,
+// or over an event or a sign-up rather than the place they sit in.
+describe('the place on screen', () => {
+  const addFrom = (pathname: string) => addClassPath(placeInStack(resolveStack(pathname))?.path)
+
+  it('is the region a region page shows, at every level', () => {
+    expect(addFrom('/gb')).toBe('/gb/add')
+    expect(addFrom('/gb/south-east/london')).toBe('/gb/south-east/london/add')
+    expect(placeInStack(resolveStack('/gb/south-east/london'))?.slug).toBe('london')
+  })
+
+  it('is the venue or city an event, its sign-up or a filter panel sits in', () => {
+    expect(addFrom('/gb/south-east/london/balham-library/717')).toBe(
+      '/gb/south-east/london/balham-library/add',
+    )
+    expect(addFrom('/gb/oxford/507/register')).toBe('/gb/oxford/add')
+    expect(addFrom('/gb/oxford/filters')).toBe('/gb/oxford/add')
+    expect(addFrom('/gb/oxford/online')).toBe('/gb/oxford/add')
+  })
+
+  it('is none at the world view, a search, the calendar or a bare event link', () => {
+    for (const pathname of ['/', '/search', '/calendar', '/507', '/events/507']) {
+      expect(placeInStack(resolveStack(pathname)), pathname).toBeUndefined()
+      expect(addFrom(pathname), pathname).toBe('/add')
+    }
+  })
+
+  it('keeps a legacy prefix in the path, so the flow resolves the same region', () => {
+    expect(addFrom('/regions/london')).toBe('/regions/london/add')
+    expect(resolveStack(addFrom('/regions/london')).at(-1)).toMatchObject({
+      kind: 'add',
+      regionSlug: 'london',
+    })
   })
 })
