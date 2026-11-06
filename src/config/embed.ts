@@ -32,6 +32,7 @@ export const DEFAULT_EMBED_CONFIG: LoaderConfig = {
   cooperative: false,
   filters: true,
   listFirst: false,
+  inline: null,
 }
 
 type EmbedBoot = {

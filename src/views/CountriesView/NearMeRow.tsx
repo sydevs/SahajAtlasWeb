@@ -9,6 +9,7 @@ import { listRow } from '@/components/molecules/List/List'
 import { useGeolocateToSearch } from '@/hooks/use-geolocate'
 import { useMapController } from '@/hooks/use-map-controller'
 import { deepActiveElement } from '@/lib/active-element'
+import { focusWhenReady, takeSearchFocus } from '@/lib/pending-focus'
 import { SearchField, useIpSuggestion } from '@/views/shared'
 
 /**
@@ -42,6 +43,15 @@ export function NearMeRow({ geojson }: { geojson: Geojson | undefined }) {
     },
     [],
   )
+
+  // PROTOTYPE (`ux/embed-inline`): the inline card's search field opened the full view, and its
+  // focus (with a phone's keyboard still up) moves here as soon as the geocoder's input exists.
+  useEffect(() => {
+    const handover = takeSearchFocus()
+
+    // Not cancelled on cleanup: StrictMode's rehearsal unmount would drop the one request.
+    if (handover) focusWhenReady(search.current, handover.query)
+  }, [])
 
   const failed = (id: number) => {
     if (id !== request.current) return

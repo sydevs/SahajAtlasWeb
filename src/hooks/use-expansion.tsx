@@ -89,3 +89,19 @@ export function LocalExpansionProvider({
 
   return <ExpansionContext.Provider value={value}>{children}</ExpansionContext.Provider>
 }
+
+/**
+ * PROTOTYPE (`ux/embed-inline`): expansion owned by a caller that keeps more than the boolean —
+ * the inline embed's full view, which also owns a history entry and the Fullscreen API. It hands
+ * the seam its own `collapse`, so the Escape ladder in `DrawerStack` closes the full view the same
+ * way its Close button does.
+ */
+export function ExpansionValueProvider({
+  value,
+  children,
+}: {
+  value: Expansion
+  children: ReactNode
+}) {
+  return <ExpansionContext.Provider value={value}>{children}</ExpansionContext.Provider>
+}

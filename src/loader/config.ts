@@ -90,7 +90,20 @@ export type LoaderConfig = {
   filters: boolean
   /** `view=list`: open on the list, with the map one tap away. Needs the map to be on. */
   listFirst: boolean
+  /**
+   * PROTOTYPE (`ux/embed-inline`): `inline=card` or `inline=preview` — what an in-page slot shows
+   * instead of the whole interface. A tap opens the interface in a full view over the page.
+   * The parameter name is a placeholder.
+   */
+  inline: InlineMode | null
 }
+
+/** The two in-page forms: a short finder card (`card`) or a still preview of the panel (`preview`). */
+export type InlineMode = 'card' | 'preview'
+
+/** `inline=card` or `inline=preview`; anything else is the ordinary interface. */
+export const inlineMode = (value: string | null | undefined): InlineMode | null =>
+  value === 'card' || value === 'preview' ? value : null
 
 /**
  * The two spellings that switch something off, and nothing else.
@@ -196,5 +209,6 @@ export function parseConfig(
     cooperative: cooperativeGestures(params.get('gestures')),
     filters: enabled(params.get('filters')),
     listFirst: params.get('view') === 'list',
+    inline: inlineMode(params.get('inline')),
   }
 }

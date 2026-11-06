@@ -1,6 +1,7 @@
 import type { PaletteRoles } from '@/config/theme/palette'
 import type { RoutingMode } from '@/loader/config'
 import type { CompactState } from '@/lib/slot-decision'
+import type { InlineMode } from '@/loader/config'
 
 import { type ReactNode, Suspense, lazy, useEffect, useLayoutEffect, useMemo, useRef } from 'react'
 import { Helmet } from 'react-helmet-async'
@@ -32,6 +33,9 @@ import { ClientGate } from '@/config/client-gate'
 import { ReportIssueModal } from '@/components/organisms/ReportIssueForm'
 import { NoExpansionProvider } from '@/hooks/use-expansion'
 import { CompactEmbedView } from '@/views/CompactEmbedView'
+import { InlineEmbedView, ReturnShell } from '@/views/InlineEmbedView'
+import returnTo from '@/config/return-to'
+import { isAllowedReturn } from '@/lib/full-view'
 import { WidgetModeContext } from '@/config/mode'
 import livePreview from '@/config/live-preview/protocol'
 import '@/styles/globals.css'
@@ -136,6 +140,15 @@ type AppProps = {
    * plus its satellites, so a caller cannot pass an auto-open that nothing reads.
    */
   compact?: CompactState | null
+  /**
+   * PROTOTYPE (`ux/embed-inline`): `inline=card|preview` — an in-page slot shows a card, and a tap
+   * opens the interface in a full view. Takes the place of the slot decision when set.
+   */
+  inline?: InlineMode | null
+  /** Rendered inside a host's `<iframe>`: where the inline full view can open (`lib/full-view`). */
+  framed?: boolean
+  /** A route came from the page's own URL, so the inline full view opens on load. */
+  autoOpen?: boolean
   // Is the route on screen in the URL, and therefore shareable? True for both routers
   // that write one (BrowserRouter standalone, the query router embedded). The embedded widget
   // passes false when it mounted a MemoryRouter over a host anchor it declined to take.
@@ -158,10 +171,16 @@ export default function App({
   hasMap = true,
   contained = false,
   compact = null,
+  inline = null,
+  framed = false,
+  autoOpen = false,
   linkable = true,
   routing = 'query',
   prefix,
 }: AppProps) {
+  // Everything that renders the interface in a box of its own rather than over the window.
+  const boxed = Boolean(compact || inline || returnTo.value)
+
   // Warms the agnostic map/hierarchy caches (feed plus region tree) and the
   // current-locale titles the moment the API key is available, in parallel with the
   // client bootstrap the tree suspends on — so region/map data is not serialized
@@ -182,8 +201,9 @@ export default function App({
   // moving it behind a lazy chunk would put the feed back behind a round trip it
   // currently overlaps.
   useEffect(() => {
-    if (apiKey && !compact) api.warmCaches()
-  }, [apiKey, compact])
+    // The inline card reads only the feed, which it fetches itself.
+    if (apiKey && !compact && !inline) api.warmCaches()
+  }, [apiKey, compact, inline])
 
   // ⚠ **Ungated by `compact`, unlike the warm-up above.** The compact card is one localized
   // sentence, so it needs the language set and the copy as much as the full interface does —
@@ -213,7 +233,7 @@ export default function App({
               own content height at the top of the screen. A contained map, a map-less embed,
               and the compact card all have a real box, and there `h-full` is already right. */}
           <Suspense
-            fallback={hasMap && !contained && !compact ? <BootFallback /> : <LoadingFallback />}
+            fallback={hasMap && !contained && !boxed ? <BootFallback /> : <LoadingFallback />}
           >
             {/* `context` names this one in a report: everything below is a drawer failing
                 to load. This is the widget failing to boot. That is also why it, and the root
@@ -227,10 +247,14 @@ export default function App({
             >
               <AppShell
                 apiKey={apiKey}
+                autoOpen={autoOpen}
+                boxed={boxed}
                 compact={compact}
                 contained={contained}
                 defaultLocale={defaultLocale}
+                framed={framed}
                 hasMap={hasMap}
+                inline={inline}
                 linkable={linkable}
                 prefix={prefix}
                 routing={routing}
@@ -278,6 +302,10 @@ type AppShellProps = {
   hasMap: boolean
   contained: boolean
   compact: CompactState | null
+  inline: InlineMode | null
+  framed: boolean
+  autoOpen: boolean
+  boxed: boolean
   linkable: boolean
   routing: RoutingMode
   prefix?: string
@@ -290,6 +318,10 @@ function AppShell({
   hasMap,
   contained,
   compact,
+  inline,
+  framed,
+  autoOpen,
+  boxed,
   linkable,
   routing,
   prefix,
@@ -302,7 +334,7 @@ function AppShell({
   // API shows in the sheet over a live map rather than replacing the whole interface.
   const { data: client } = useQuery(clientQuery(apiKey))
   const { locale } = useLocale()
-  const mapForm = hasMap && !compact
+  const mapForm = hasMap && !boxed
 
   // Where the interface goes when it first opens on the root view: a path-mode host's
   // `atlas` default, else the client record's home region (`homePathFor`). The redirect
@@ -410,7 +442,7 @@ function AppShell({
     // has its own box and a deliberate margin — taking the viewport would paint over
     // the margin the dialog keeps precisely so the host's page shows through and can
     // be clicked to close.
-    <Suspense fallback={hasMap && !contained && !compact ? <BootFallback /> : <LoadingFallback />}>
+    <Suspense fallback={hasMap && !contained && !boxed ? <BootFallback /> : <LoadingFallback />}>
       <FullInterface
         clientLoaded={clientLoaded}
         contained={contained}
@@ -449,11 +481,42 @@ function AppShell({
           <LivePreviewController />
         </Suspense>
       )}
-      {compact ? (
+      {inline ? (
+        <InlineEmbedView autoOpen={autoOpen} framed={framed} mode={inline}>
+          {interfaceElement}
+        </InlineEmbedView>
+      ) : returnTo.value?.host ? (
+        <ReturnShell host={returnTo.value.host} onBack={returnBack(client?.allowedDomains)}>
+          {interfaceElement}
+        </ReturnShell>
+      ) : compact ? (
         <CompactEmbedView compact={compact}>{interfaceElement}</CompactEmbedView>
       ) : (
         <NoExpansionProvider>{interfaceElement}</NoExpansionProvider>
       )}
     </WidgetModeContext.Provider>
   )
+}
+
+/**
+ * PROTOTYPE (`ux/embed-inline`): what "Back to <host>" does on the Atlas page a frame sent the
+ * visitor to. Back through history when they came from that page, which lands them where they were
+ * reading; otherwise the host's address, only if it is one of the client's allowed domains.
+ */
+/** How many entries the visitor has added on the Atlas page since arriving (react-router's idx). */
+const atlasPageDepth = (): number => {
+  const idx = (window.history.state as { idx?: unknown } | null)?.idx
+
+  return typeof idx === 'number' ? idx : 0
+}
+
+function returnBack(allowedDomains: string | null | undefined): (() => void) | null {
+  const back = returnTo.value
+
+  if (!back) return null
+  if (back.fromFrame && window.history.length > 1)
+    return () => window.history.go(-(atlasPageDepth() + 1))
+  if (isAllowedReturn(back.href, allowedDomains)) return () => window.location.assign(back.href)
+
+  return null
 }

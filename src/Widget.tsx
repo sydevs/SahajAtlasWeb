@@ -20,7 +20,7 @@ import { getInitialTheme, setThemeRoot } from './hooks/use-theme'
 import { ELEMENT_NAME } from './lib/element'
 import { releaseAnnouncement } from './lib/embed-announce'
 import { classifyError, reportIntegrationWarning } from './lib/report'
-import { type SlotDecision, decideSlot } from './lib/slot-decision'
+import { FULL_SLOT, type SlotDecision, decideSlot } from './lib/slot-decision'
 import { WIDGET_SCOPE_CLASS } from './lib/scope'
 import { adoptStyles } from './styles/sheet'
 import { Spinner } from './components/atoms/Spinner'
@@ -368,6 +368,10 @@ function Atlas({ prefix }: { prefix?: string }) {
   // measurement writes nothing.
   const slot = useRef<SlotDecision>()
 
+  // PROTOTYPE (`ux/embed-inline`): an inline card fits any column and opens big, so it answers the
+  // slot question itself.
+  if (!slot.current && config.inline) slot.current = FULL_SLOT
+
   if (!slot.current) {
     slot.current = decideSlot({
       element: owner,
@@ -424,10 +428,12 @@ function Atlas({ prefix }: { prefix?: string }) {
       {themeRoot && (
         <App
           apiKey={config.key ?? ''}
+          autoOpen={Boolean(config.inline) && mount.current.fromPage && config.routeFromPage}
           compact={compact}
           contained={contained}
           defaultLocale={config.locale}
           hasMap={hasMap}
+          inline={config.inline}
           linkable={linkable}
           prefix={mount.current.prefix}
           routing={attested}
