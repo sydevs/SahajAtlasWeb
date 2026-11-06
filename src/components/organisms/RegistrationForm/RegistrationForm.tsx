@@ -52,6 +52,10 @@ import { useViewerCountry } from '@/hooks/use-viewer-country'
 
 const PRIVACY_POLICY_URL = 'https://wemeditate.com/privacy'
 
+// Marks where the privacy link sits in the consent sentence: a private-use character, which no
+// translation contains.
+const LINK_SLOT = '\uE000'
+
 /**
  * This is our copy for each **state** refusal SahajCloud can return (409 and
  * `code`, SahajCloud#601). The endpoint's own messages are English-only
@@ -224,6 +228,12 @@ export function RegistrationForm({
 }: RegistrationFormProps) {
   const [submitted, setSubmitted] = useState(initialSubmitted)
   const { t } = useTranslation()
+  // The consent sentence, split where the privacy link goes. A translation without the slot still
+  // reads whole, with the link after it.
+  const consentText = t('registration.form.consent', { link: LINK_SLOT })
+  const [consentBefore, consentAfter] = consentText.includes(LINK_SLOT)
+    ? consentText.split(LINK_SLOT)
+    : [`${consentText} `, '']
   const queryClient = useQueryClient()
   const { locale } = useLocale()
   // The viewer's region orders the share targets on the thank-you screen (resolved
@@ -487,16 +497,20 @@ export function RegistrationForm({
               )}
             />
           )}
-          {/* The link is 44px tall for a thumb, in a line that is otherwise easy to miss. */}
-          <p className="-my-2 text-sm text-gray-11">
-            {t('registration.form.consent_class')}{' '}
+          {/* Today's wording, which also consents to messages about similar classes (Anton,
+              6 Nov), with "privacy policy" as a link inside the sentence. The sentence is one
+              key and the link drops into its `%{link}` slot, so a translation can move it. The
+              link keeps a 44px tap area without making its line taller. */}
+          <p className="text-sm text-gray-11">
+            {consentBefore}
             <Link
               isExternal
-              className="min-h-11 font-medium text-primary-12 underline underline-offset-2"
+              className="touch-target relative font-medium text-primary-12 underline underline-offset-2"
               href={PRIVACY_POLICY_URL}
             >
               {t('registration.form.privacy_link')}
             </Link>
+            {consentAfter}
           </p>
         </>
       )}
