@@ -12,6 +12,7 @@ import { ContactOnlyRow } from '@/components/molecules/ContactOnly'
 import { EventChips } from '@/components/molecules/EventChips'
 import { EventFacts } from '@/components/molecules/EventFacts'
 import { Link } from '@/components/atoms/Link'
+import { Chip } from '@/components/atoms/Chip'
 import { EventSlim } from '@/types'
 
 export interface EventListItemProps {
@@ -152,19 +153,13 @@ function ClassRow({
         onMouseLeave={deactivate}
       >
         <div className="flex min-w-0 flex-1 flex-col gap-1">
-          {/* An online class says so right after its title (Anton, 6 Nov): a quiet "· Online" in
-              the calm link teal, sentence case, no box. A coral tag read as a warning. */}
+          {/* An online class says so right after its title (Anton, 6 Nov), in the same soft teal tag
+              as the class-type tag below it ("Daily class"), so the card has one kind of label. A
+              coral tag read as a warning; plain text sat at odds with the tags. */}
           <div className="line-clamp-2 text-lg">
             {event.title}
             {online && (
-              <span className="whitespace-nowrap">
-                <span aria-hidden className="mx-1.5 text-gray-9">
-                  ·
-                </span>
-                <span className="text-base font-medium text-primary-11">
-                  {t('event.display.online')}
-                </span>
-              </span>
+              <Chip className="ms-2 -translate-y-px align-middle">{t('event.display.online')}</Chip>
             )}
           </div>
           <EventFacts
