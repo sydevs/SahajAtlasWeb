@@ -4,7 +4,9 @@ import type { Geojson } from '@/types'
 import { useMemo } from 'react'
 import { useQuery } from '@tanstack/react-query'
 
+import api from '@/config/api'
 import { GEOJSON_QUERY_KEY, eventTitlesQuery } from '@/config/api/fetch'
+import { GEOJSON_STALE_TIME } from '@/config/query-client'
 import { useLocale } from '@/hooks/use-locale'
 import { distanceKm } from '@/lib/geo'
 import { correctionPath, safePath } from '@/lib/shape'
@@ -24,7 +26,13 @@ export type NearbyClass = { id: number; title: string; correctPath: string }
  */
 export function useNearbyClasses(place: PickedPlace | null, skipId?: number): NearbyClass[] {
   const { locale } = useLocale()
-  const { data: feed } = useQuery<Geojson>({ queryKey: GEOJSON_QUERY_KEY, enabled: false })
+  // Disabled, so it never fetches; it names the fetcher so a shared refetch still has one.
+  const { data: feed } = useQuery<Geojson>({
+    queryKey: GEOJSON_QUERY_KEY,
+    queryFn: () => api.getGeojson(),
+    staleTime: GEOJSON_STALE_TIME,
+    enabled: false,
+  })
   const lat = place?.latitude
   const lng = place?.longitude
   const candidates = useMemo(() => {
