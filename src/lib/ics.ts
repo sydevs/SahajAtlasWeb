@@ -60,11 +60,11 @@ export type IcsEventInput = {
   location?: string | null
   url?: string | null
   /**
-   * The specific session to anchor a recurrence-less target on: the date the
-   * viewer actually registered for. Only the providers whose URL API has no
-   * recurrence parameter (Outlook, Office 365, Yahoo) read it. The ICS and
-   * the Google link carry the real RRULE, and so must stay anchored on the
-   * series.
+   * The session the viewer is looking at: the next session the class page
+   * shows, or the date they registered for. Every target starts there — the
+   * providers with no recurrence parameter (Outlook, Office 365, Yahoo) as a
+   * single event, the ICS and the Google link as the first instance of the
+   * real RRULE (`seriesExport`).
    */
   from?: Date | null
 }
@@ -123,9 +123,11 @@ const dateOnlyIn = (value: Date, zone: string): DateTime =>
 /**
  * The RRULE for a schedule, or null for a one-off. This reads only the fields
  * the discriminators (`recurrenceType`/`monthlyMode`/`endingType`) make
- * meaningful — the CMS form leaves stale values in the rest.
+ * meaningful — the CMS form leaves stale values in the rest. `remaining`
+ * replaces a course's COUNT when the export starts part-way through it
+ * (`seriesExport`).
  */
-export const buildRrule = (schedule: EventSchedule): string | null => {
+export const buildRrule = (schedule: EventSchedule, remaining?: number): string | null => {
   const type = schedule.recurrenceType
 
   if (!type) return null
@@ -146,7 +148,7 @@ export const buildRrule = (schedule: EventSchedule): string | null => {
   }
 
   if (schedule.endingType === 'count' && schedule.count) {
-    parts.push(`COUNT=${schedule.count}`)
+    parts.push(`COUNT=${remaining ?? schedule.count}`)
   } else if (schedule.endingType === 'until' && schedule.untilDate) {
     // UNTIL must be UTC when DTSTART carries a TZID: the end of the until-DAY
     // in the event's own zone (a date-only value — normalized so a
@@ -287,20 +289,61 @@ export type BuildIcsOptions = {
 }
 
 /**
- * The exported series anchor. A recurring series anchors at its first
- * session. RRULE COUNT counts from DTSTART, and past occurrences in a
- * calendar are normal. A one-off anchors at the session the viewer
- * registered for when we know it, or at its next upcoming occurrence
- * otherwise. A rescheduled one-off may carry a stale `firstDate`, while
- * `upcomingDates` holds the real date: the same drift the display resolver
- * trusts.
+ * Where an exported series starts, and how many sessions a course still runs.
  *
- * `from` cannot move a recurring anchor. DTSTART is the instance the RRULE
- * counts from, so re-anchoring an 8-session course on session 5 would hand
- * the importer eight more sessions starting there.
+ * It starts at the session the viewer is looking at (`from`: the next session
+ * the class page shows, or the one they registered for), else the next
+ * upcoming one — never at the series' first session. A weekly class running
+ * since 2022 otherwise landed in a calendar as a series from 21 December 2022,
+ * with years of past sessions, while the page said "Next session: Wed 11 Nov".
+ * With no upcoming session known, the series keeps its own start.
+ *
+ * A course bounded by COUNT keeps its end. COUNT counts from DTSTART, so
+ * re-anchoring an 8-session course on session 5 would otherwise hand the
+ * importer eight sessions from there: the sessions before the anchor come off
+ * it instead (`remaining`). Should they use it all up (data drift), the series
+ * keeps its own start and COUNT. UNTIL needs nothing: it is a date.
+ *
+ * A one-off anchors at the session the viewer registered for when we know it,
+ * or at its next upcoming occurrence otherwise. A rescheduled one-off may carry
+ * a stale `firstDate`, while `upcomingDates` holds the real date: the same
+ * drift the display resolver trusts.
  */
-const exportStart = (schedule: EventSchedule, from?: Date | null): DateTime =>
-  schedule.recurrenceType ? seriesStart(schedule) : occurrenceStart(schedule, from)
+const seriesExport = (
+  schedule: EventSchedule,
+  from?: Date | null,
+): { start: DateTime; remaining?: number } => {
+  const anchor = occurrenceStart(schedule, from)
+
+  if (!schedule.recurrenceType) return { start: anchor }
+
+  const first = seriesStart(schedule)
+
+  if (anchor <= first) return { start: first }
+  if (schedule.endingType !== 'count' || !schedule.count) return { start: anchor }
+
+  const before = sessionsBefore(anchor, schedule, schedule.count)
+
+  return before < schedule.count
+    ? { start: anchor, remaining: schedule.count - before }
+    : { start: first }
+}
+
+/** The pattern's sessions from the series start to the day before `anchor`, counted up to `limit`. */
+const sessionsBefore = (anchor: DateTime, schedule: EventSchedule, limit: number): number => {
+  const last = anchor.startOf('day')
+  let count = 0
+
+  for (
+    let day = seriesStart(schedule).startOf('day');
+    day < last && count < limit;
+    day = day.plus({ days: 1 })
+  ) {
+    if (occursOn(day, schedule)) count++
+  }
+
+  return count
+}
 
 /**
  * The anchor for a target that cannot carry recurrence (Outlook, Office 365,
@@ -308,9 +351,9 @@ const exportStart = (schedule: EventSchedule, from?: Date | null): DateTime =>
  * single event, so it has to be the right single event: the session the
  * viewer registered for, or the next upcoming one otherwise.
  *
- * This is never the series start, which is what `exportStart` gives a
- * recurring event. A weekly class that has run since 2019 would otherwise
- * drop a 2019 date into the viewer's calendar and call it done.
+ * This is never the series start: a weekly class that has run since 2019
+ * would otherwise drop a 2019 date into the viewer's calendar and call it
+ * done. `seriesExport` starts the ICS and Google series here too.
  */
 const occurrenceStart = (schedule: EventSchedule, from?: Date | null): DateTime => {
   const anchor = from ?? schedule.upcomingDates?.[0]
@@ -322,9 +365,9 @@ const occurrenceStart = (schedule: EventSchedule, from?: Date | null): DateTime 
 export function buildEventIcs(input: IcsEventInput, options: BuildIcsOptions = {}): string {
   const { schedule } = input
   const zone = eventZone(schedule)
-  const start = exportStart(schedule, input.from)
+  const { start, remaining } = seriesExport(schedule, input.from)
   const end = occurrenceEnd(start, schedule)
-  const rrule = buildRrule(schedule)
+  const rrule = buildRrule(schedule, remaining)
 
   const lines = [
     'BEGIN:VCALENDAR',
@@ -357,7 +400,10 @@ export function buildEventIcs(input: IcsEventInput, options: BuildIcsOptions = {
     `DTSTART;TZID=${zone}:${localStamp(start)}`,
     `DTEND;TZID=${zone}:${localStamp(end)}`,
     ...(rrule ? [`RRULE:${rrule}`] : []),
-    ...exclusionDates(schedule).map((dt) => `EXDATE;TZID=${zone}:${localStamp(dt)}`),
+    // Only the skips still ahead of the series' start: earlier ones match no instance.
+    ...exclusionDates(schedule)
+      .filter((dt) => dt >= start)
+      .map((dt) => `EXDATE;TZID=${zone}:${localStamp(dt)}`),
     ...(input.location ? [`LOCATION:${escapeText(input.location)}`] : []),
     ...(input.description ? [`DESCRIPTION:${escapeText(input.description)}`] : []),
     // A URI value, not TEXT — no escaping, but strip control chars so an
@@ -378,9 +424,9 @@ const details = (input: IcsEventInput): string =>
 /** The Google Calendar "add event" template link — the RRULE rides `recur`. */
 export function buildGoogleCalendarUrl(input: IcsEventInput): string {
   const { schedule } = input
-  const start = exportStart(schedule, input.from)
+  const { start, remaining } = seriesExport(schedule, input.from)
   const end = occurrenceEnd(start, schedule)
-  const rrule = buildRrule(schedule)
+  const rrule = buildRrule(schedule, remaining)
 
   const params = new URLSearchParams({
     action: 'TEMPLATE',

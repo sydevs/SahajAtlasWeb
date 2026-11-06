@@ -334,13 +334,85 @@ describe('buildGoogleCalendarUrl', () => {
     expect(url.searchParams.get('recur')).toBe('RRULE:FREQ=WEEKLY;BYDAY=WE')
   })
 
-  it('stays anchored on the SERIES start even when a session is given', () => {
-    // Google carries the RRULE, so DTSTART is the instance COUNT/BYDAY are
-    // reckoned from. Re-anchoring it on session five of a course would hand the
-    // importer five more sessions starting there.
+  it('starts the series at the session the page shows, not its first one', () => {
     const url = new URL(buildGoogleCalendarUrl({ ...input, from: SESSION }))
 
-    expect(url.searchParams.get('dates')).toBe('20260701T193000/20260701T204500')
+    expect(url.searchParams.get('dates')).toBe('20260729T193000/20260729T204500')
+    expect(url.searchParams.get('recur')).toBe('RRULE:FREQ=WEEKLY;BYDAY=WE')
+  })
+
+  it('starts a long-running class at its next session, not in 2019', () => {
+    // The class page once offered a series from 21 Dec 2022 under "Next session: Wed 11 Nov".
+    const url = new URL(
+      buildGoogleCalendarUrl({
+        ...input,
+        schedule: {
+          ...weekly,
+          firstDate: new Date('2019-01-02T18:30:00Z'),
+          upcomingDates: [new Date('2026-07-22T17:30:00Z')],
+        },
+      }),
+    )
+
+    expect(url.searchParams.get('dates')).toBe('20260722T193000/20260722T204500')
+  })
+
+  it('keeps a course to its remaining sessions when it starts part-way', () => {
+    // Eight Wednesdays from 1 Jul; the 29 Jul session is the fifth, so four are left.
+    const course = { ...weekly, endingType: 'count' as const, count: 8 }
+    const url = new URL(buildGoogleCalendarUrl({ ...input, schedule: course, from: SESSION }))
+
+    expect(url.searchParams.get('dates')).toBe('20260729T193000/20260729T204500')
+    expect(url.searchParams.get('recur')).toBe('RRULE:FREQ=WEEKLY;BYDAY=WE;COUNT=4')
+  })
+})
+
+describe('buildEventIcs — where the series starts', () => {
+  it('starts at the session the page shows, with the skips still ahead of it', () => {
+    const ics = buildEventIcs(
+      {
+        ...input,
+        from: SESSION,
+        schedule: {
+          ...weekly,
+          exclusions: [
+            { startDate: new Date('2026-07-08T00:00:00Z') },
+            { startDate: new Date('2026-08-12T00:00:00Z') },
+          ],
+        },
+      },
+      { now: NOW },
+    )
+
+    expect(ics).toContain('DTSTART;TZID=Europe/Prague:20260729T193000')
+    expect(ics).toContain('RRULE:FREQ=WEEKLY;BYDAY=WE\r\n')
+    expect(ics).toContain('EXDATE;TZID=Europe/Prague:20260812T193000')
+    expect(ics).not.toContain('20260708T193000')
+  })
+
+  it('counts a fortnightly course’s past sessions by its own pattern', () => {
+    // Every other Wednesday from 1 Jul: 1, 15 Jul, then 29 Jul is the third of six.
+    const ics = buildEventIcs(
+      {
+        ...input,
+        from: SESSION,
+        schedule: { ...weekly, interval: 2, endingType: 'count', count: 6 },
+      },
+      { now: NOW },
+    )
+
+    expect(ics).toContain('DTSTART;TZID=Europe/Prague:20260729T193000')
+    expect(ics).toContain('RRULE:FREQ=WEEKLY;INTERVAL=2;BYDAY=WE;COUNT=4')
+  })
+
+  it('keeps the whole course when the given session is past its last', () => {
+    const ics = buildEventIcs(
+      { ...input, from: SESSION, schedule: { ...weekly, endingType: 'count', count: 3 } },
+      { now: NOW },
+    )
+
+    expect(ics).toContain('DTSTART;TZID=Europe/Prague:20260701T193000')
+    expect(ics).toContain('COUNT=3')
   })
 })
 

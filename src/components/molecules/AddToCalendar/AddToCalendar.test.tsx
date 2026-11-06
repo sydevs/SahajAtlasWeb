@@ -73,33 +73,29 @@ describe('AddToCalendar', () => {
     }
   })
 
-  it('sends the recurrence-less providers the NEXT session, not the 2019 start', () => {
+  it('sends every provider the NEXT session, not the 2019 start', () => {
     const html = render(<AddToCalendar event={event} />)
 
     // Outlook and Yahoo take no recurrence parameter, so they get one
-    // occurrence. The series began in 2019. A link carrying that date
-    // would be useless.
+    // occurrence. Google carries the RRULE, and its series starts there too.
+    // The series began in 2019: a link carrying that date would be useless.
     expect(html).toContain('startdt=2026-07-22T17%3A30%3A00.000Z')
     expect(html).toContain('st=20260722T173000Z')
-    // This scopes to those two params, NOT the whole document. Google's
-    // `dates` legitimately stays the 2019 series anchor, because it
-    // carries the RRULE.
-    expect(html).not.toContain('startdt=2019')
-    expect(html).not.toContain('st=2019')
+    expect(html).toContain('dates=20260722T193000%2F20260722T204500')
+    expect(html).not.toContain('2019')
   })
 
   // What this spec asserts HERE is the wiring: that `event`, including
   // `from`, reaches the right builder per button. The URL shapes themselves
   // belong to `src/lib/ics.test.ts`, which pins them against a parsed `URL`,
   // instead of a decoded markup string.
-  it('anchors the recurrence-less providers on the registered session when given', () => {
+  it('anchors every provider on the registered session when given', () => {
     const html = render(
       <AddToCalendar event={{ ...event, from: new Date('2026-08-05T17:30:00Z') }} />,
     )
 
     expect(html).toContain('startdt=2026-08-05T17%3A30%3A00.000Z')
-    // Google stays on the series anchor. `from` must not move a DTSTART the
-    // RRULE counts from.
-    expect(html).toContain('dates=20190102T193000%2F20190102T204500')
+    // Google's series starts on that session too, with its RRULE.
+    expect(html).toContain('dates=20260805T193000%2F20260805T204500')
   })
 })
