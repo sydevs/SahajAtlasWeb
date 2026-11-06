@@ -2,7 +2,8 @@ import type { CountryTreeNode, RegionedFeature } from './country'
 
 import { describe, it, expect } from 'vitest'
 
-import { countryHasPrograms, isoCountryCode } from './country'
+import { countryHasPrograms, isoCountryCode, placedAncestorIds } from './country'
+import { indexRegions } from './hierarchy'
 
 // Country slugs are lowercase ISO codes (SahajCloud#556); Iceland is deliberately
 // absent — the "no programs" country the offer exists for. `as` is a two-letter slug
@@ -88,5 +89,29 @@ describe('isoCountryCode', () => {
     expect(isoCountryCode('gb\n')).toBeUndefined()
     expect(isoCountryCode('gb.')).toBeUndefined()
     expect(isoCountryCode(' gb')).toBeUndefined()
+  })
+})
+
+describe('placedAncestorIds', () => {
+  // Ipswich as SahajCloud holds it today: a city saved with no parent.
+  const index = indexRegions<CountryTreeNode>([
+    ...regions,
+    { id: 880, slug: 'ipswich', level: 'city', parent: null },
+  ])
+
+  it('keeps a chain that already reaches a country, whatever the address says', () => {
+    expect(placedAncestorIds(index, 3, 'DE')).toEqual([3, 2, 1])
+  })
+
+  it('puts a region with no country under the one its address names', () => {
+    expect(placedAncestorIds(index, 880, 'GB')).toEqual([880, 1])
+    expect(placedAncestorIds(index, 880, 'gb')).toEqual([880, 1])
+  })
+
+  it('leaves it alone when the address names no country the tree holds', () => {
+    expect(placedAncestorIds(index, 880, 'IS')).toEqual([880])
+    expect(placedAncestorIds(index, 880, null)).toEqual([880])
+    // `as` is a city, not American Samoa.
+    expect(placedAncestorIds(index, 880, 'AS')).toEqual([880])
   })
 })

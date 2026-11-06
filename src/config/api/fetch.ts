@@ -27,7 +27,6 @@ import {
 import { centerOfBounds, distanceKm } from '@/lib/geo'
 import { atlasError } from '@/lib/report'
 import {
-  ancestorIds,
   boundsUnder,
   buildRegionMatcher,
   byDistance,
@@ -44,6 +43,7 @@ import {
   matchesFilters,
   parentOf,
   partitionUnder,
+  placedAncestorIds,
   resolveImageUrl,
   safePath,
   todayISO,
@@ -331,7 +331,13 @@ const indexFeatures = (geojson: Geojson, regions: RegionIndex<RegionNode>): Inde
     // This is the full ancestry, from the event itself up through its country.
     // It walks up the region tree from the event's direct region id.
     // The feed needs no breadcrumbs field for this.
-    ancestorIds: ancestorIds(regions, feature.properties.region.id),
+    // A region SahajCloud left with no country above it takes the one the address names, so
+    // every country count and page agrees with the world's total (`placedAncestorIds`).
+    ancestorIds: placedAncestorIds(
+      regions,
+      feature.properties.region.id,
+      feature.properties.address?.country,
+    ),
   }))
 
 // The region index and the per-feature ancestry are pure derivations of the cached region tree and geojson feed.

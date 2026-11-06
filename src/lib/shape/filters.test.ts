@@ -507,6 +507,26 @@ describe('region-aware matchesFilters (self + descendants)', () => {
     expect(matchesFilters(inRegion(5), scoped, undefined, underGb)).toBe(false)
   })
 
+  it('holds a class SahajCloud left under no country in the country its address names', () => {
+    // Ipswich: a city saved with no parent. Its class counts under the UK by its address.
+    const tree = [
+      { id: 1, slug: 'gb', level: 'country', parent: null },
+      { id: 2, slug: 'london', level: 'city', parent: 1 },
+      { id: 4, slug: 'de', level: 'country', parent: null },
+      { id: 880, slug: 'ipswich', level: 'city', parent: null },
+    ]
+    const ipswich = { ...inRegion(880), address: { country: 'GB' } }
+
+    expect(buildRegionMatcher(tree, 'gb')?.(ipswich)).toBe(true)
+    expect(buildRegionMatcher(tree, 'de')?.(ipswich)).toBe(false)
+    // Only a country takes it in: a region below one doesn't.
+    expect(buildRegionMatcher(tree, 'london')?.(ipswich)).toBe(false)
+    // A class whose region does reach a country stays where the tree puts it.
+    expect(buildRegionMatcher(tree, 'de')?.({ ...inRegion(2), address: { country: 'DE' } })).toBe(
+      false,
+    )
+  })
+
   it('treats an unknown slug, empty tree, or missing resolver as no restriction', () => {
     expect(buildRegionMatcher(regions, 'atlantis')).toBeUndefined()
     expect(buildRegionMatcher(regions, null)).toBeUndefined()

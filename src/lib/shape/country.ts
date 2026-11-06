@@ -1,4 +1,10 @@
-import { type RegionTreeNode, indexRegions, subtreeIds } from './hierarchy'
+import {
+  type RegionIndex,
+  type RegionTreeNode,
+  ancestorIds,
+  indexRegions,
+  subtreeIds,
+} from './hierarchy'
 
 /**
  * Countries: the one canonical ISO alpha-2 form, and "does this country list any
@@ -78,4 +84,29 @@ export const countryHasPrograms = (
   const subtree = subtreeIds(index, country.id)
 
   return features.some((feature) => subtree.has(feature.properties.region.id))
+}
+
+/**
+ * An event's region chain (`ancestorIds`), plus the country its address names when SahajCloud
+ * left that chain without one.
+ *
+ * Ipswich was saved as a city with no parent, so its class sat under no country: the world counted
+ * 443 classes while its 25 countries added up to 442, and no country page listed it. The address's
+ * country puts it back under the United Kingdom, where the country page lists it directly, until
+ * the region is fixed in SahajCloud. A chain that already reaches a country is returned as it is.
+ */
+export const placedAncestorIds = <T extends RegionTreeNode & { level?: string }>(
+  index: RegionIndex<T>,
+  regionId: number,
+  addressCountry: string | null | undefined,
+): number[] => {
+  const chain = ancestorIds(index, regionId)
+
+  if (index.byId.get(chain[chain.length - 1])?.level === 'country') return chain
+
+  const code = isoCountryCode(addressCountry)
+  // `level` qualifies the slug match, for the reason `countryHasPrograms` gives.
+  const country = code ? index.bySlug.get(code.toLowerCase()) : undefined
+
+  return country?.level === 'country' ? [...chain, country.id] : chain
 }

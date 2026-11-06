@@ -3,6 +3,7 @@ import type { EventSchedule, EventType, FeedEvent } from '@/types'
 import { DateTime } from 'luxon'
 
 import { eventTimeZone } from './event'
+import { isoCountryCode, placedAncestorIds } from './country'
 import { type RegionTreeNode, indexRegions, subtreeIds } from './hierarchy'
 
 /**
@@ -158,6 +159,8 @@ type FilterableEvent = Pick<FeedEvent, 'eventType' | 'languages'> & {
   schedule?: EventSchedule | null
   /** The direct region (present on feed features). It enables the region-filter cut. */
   region?: { id: number } | null
+  /** Names the country for a region SahajCloud left without one (`placedAncestorIds`). */
+  address?: { country?: string | null } | null
 }
 
 /**
@@ -175,9 +178,13 @@ export type RegionMatcher = (event: FilterableEvent) => boolean
  * loaded yet, or the slug is not a known region (an unknown slug never narrows
  * the set). The descendant set is precomputed once, so the returned matcher is
  * O(1) per event on the map's hot path.
+ *
+ * A selected country also holds a class whose region SahajCloud left under no
+ * country, when its address names that country — as the country's count and page
+ * do (`placedAncestorIds`). Only a class in that country's address pays for the walk.
  */
 export const buildRegionMatcher = (
-  regions: RegionTreeNode[] | undefined,
+  regions: (RegionTreeNode & { level?: string })[] | undefined,
   regionSlug: string | null,
 ): RegionMatcher | undefined => {
   if (!regionSlug || !regions?.length) return undefined
@@ -188,8 +195,20 @@ export const buildRegionMatcher = (
   if (!selected) return undefined
 
   const subtree = subtreeIds(index, selected.id)
+  const country = selected.level === 'country' ? isoCountryCode(selected.slug) : undefined
 
-  return (event) => event.region != null && subtree.has(event.region.id)
+  return (event) => {
+    if (event.region == null) return false
+    if (subtree.has(event.region.id)) return true
+
+    const named = event.address?.country
+
+    return (
+      country !== undefined &&
+      isoCountryCode(named) === country &&
+      placedAncestorIds(index, event.region.id, named).includes(selected.id)
+    )
+  }
 }
 
 /**

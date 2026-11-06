@@ -118,6 +118,12 @@ or HTML descriptions — the client derives all of these:
   (`src/lib/shape/path.ts`). ⚠ SahajCloud used to spell the leaf level `center`
   (before its #605) — nothing serves that spelling any more, and
   `RegionLevelSchema` tracks only the current one.
+  ⚠ A region SahajCloud saved with no country above it (Ipswich and Norwich, two
+  parentless cities, in November 2026) counts under the country its class's address
+  names (`placedAncestorIds`, `src/lib/shape/country.ts`), and `buildRegionMatcher`
+  applies the same rule, so the world's total, every country count and the country
+  filter agree. Such a class lists directly on its country's page. Fix the parent in
+  SahajCloud rather than relying on this.
 - **`getEvents`** → the whole matching set from the feed, sorted by
   `@turf/distance`, **uncapped** (like `getCalendarEvents`). Do not reintroduce a
   `.slice()` here: an earlier cap truncated the pool _before_ the client-side sort,
