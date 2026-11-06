@@ -1,5 +1,3 @@
-import type { Geojson } from '@/types'
-
 import { useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
@@ -21,13 +19,13 @@ import { SearchField, useIpSuggestion } from '@/views/shared'
  * distance-ranked search, so it works with or without a map. A refused or failed fix says so and
  * hands the visitor to the search.
  */
-export function NearMeRow({ geojson }: { geojson: Geojson | undefined }) {
+export function NearMeRow() {
   const { t } = useTranslation()
   const { hasMap } = useMapController()
   const suggestion = useIpSuggestion()
   // This view unmounts as it navigates, so the place is named before the search opens. A map-less
   // embed promises no Mapbox calls, so there it opens on the coordinates alone.
-  const toSearch = useGeolocateToSearch(geojson, { naming: hasMap ? 'first' : 'none' })
+  const toSearch = useGeolocateToSearch({ naming: hasMap ? 'first' : 'none' })
   const [state, setState] = useState<'idle' | 'locating' | 'failed'>('idle')
   const search = useRef<HTMLDivElement>(null)
   // The fix can arrive seconds later. By then the visitor may have searched a town or opened a

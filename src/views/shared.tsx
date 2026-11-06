@@ -21,11 +21,10 @@ import { useEventFilters } from '@/hooks/use-filters'
 import { useIpLocation } from '@/hooks/use-ip-location'
 import { useLocale } from '@/hooks/use-locale'
 import { useMapController } from '@/hooks/use-map-controller'
-import { approxBounds } from '@/lib/geo'
 import { geocodeBounds, geocodeCountryCode } from '@/lib/geocode'
 import { atlasError } from '@/lib/report'
 import {
-  NEARBY_RADIUS_KM,
+  aroundVisitor,
   hasActivePlaceSearch,
   markGeolocationDismissed,
   readGeolocationDismissed,
@@ -518,10 +517,8 @@ export function useIpSuggestion(region?: {
         center: [ipLocation.longitude, ipLocation.latitude],
         // A synthesized city-sized box, so the search frames a neighbourhood
         // rather than the pinpoint zoom a bare centre gets. The device fix
-        // uses the same floor — see `nearbyBounds`, which additionally
-        // extends to the classes themselves, because there the point is
-        // precise enough for that to mean something.
-        bbox: approxBounds([ipLocation.longitude, ipLocation.latitude], NEARBY_RADIUS_KM),
+        // uses the same box (`aroundVisitor`).
+        bbox: aroundVisitor([ipLocation.longitude, ipLocation.latitude]),
         // The same searched-country marker SearchField writes — the guess
         // already carries the code (it also orders an event's share
         // targets), so an accepted suggestion that lands in a program-less

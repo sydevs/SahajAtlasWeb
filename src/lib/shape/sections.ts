@@ -5,6 +5,7 @@ import { isoCountryCode } from './country'
 import { FOREIGN_NEARBY_KM, NEARBY_KM } from './reveal'
 
 import { boundsOfPoints, distanceKm } from '@/lib/geo'
+import { NEARBY_MAX_KM } from '@/lib/geolocation'
 
 // The results of a place search, split into the groups a visitor reads: classes in the place
 // itself, classes in other towns close enough to reach, online classes, and everything else.
@@ -190,4 +191,23 @@ export const boundsWith = <T extends Sectionable>(
     : [center]
 
   return boundsOfPoints([...points, ...corners]) as [number, number, number, number] | undefined
+}
+
+/**
+ * What a place search frames. A place with classes of its own frames just the place. One with none
+ * frames the place and its nearest few, so a pin is in view: the nearby group first, else the
+ * nearest farther classes up to `reachKm`, so a place with nothing close still shows where the
+ * nearest are without zooming out to a continent.
+ */
+export const searchFrame = <T extends Sectionable>(
+  { here, nearby, distant }: ResultSections<T>,
+  place: [number, number, number, number] | undefined,
+  center: Position,
+  reachKm = NEARBY_MAX_KM,
+): [number, number, number, number] | undefined => {
+  if (here.length > 0) return place
+  const nearest =
+    nearby.length > 0 ? nearby : distant.filter((event) => (event.distance ?? Infinity) <= reachKm)
+
+  return nearest.length > 0 ? boundsWith(place, center, nearest) : place
 }

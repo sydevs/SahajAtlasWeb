@@ -134,7 +134,7 @@ export function CountriesView() {
         {collapsed ? <ExpandSheetButton /> : <FilterButton iconOnly isLast />}
       </DrawerHeader>
       <DrawerBody>
-        <NearMeRow geojson={geojson} />
+        <NearMeRow />
         <ActiveFilterPills />
         {filterSearch && (
           <ResultCountStatus

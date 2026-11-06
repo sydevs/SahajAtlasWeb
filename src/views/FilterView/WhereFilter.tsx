@@ -7,9 +7,8 @@ import clsx from 'clsx'
 
 import { Button } from '@/components/atoms/Button'
 import { LocationHelp } from '@/components/molecules/LocationHelp'
-import api, { regionsQuery } from '@/config/api'
+import { regionsQuery } from '@/config/api'
 import { useWidgetMode } from '@/config/mode'
-import { GEOJSON_STALE_TIME } from '@/config/query-client'
 import { useNearMeState } from '@/config/store'
 import { useNearMe } from '@/hooks/use-near-me'
 import { useLocale } from '@/hooks/use-locale'
@@ -58,13 +57,8 @@ export function WhereFilter({
   const center = parseCenter(searchParams.get('center'))
   const centerKey = center?.join(',') ?? ''
   const nearMeOn = Boolean(center && nearCenter && centerKey === nearCenter.join(','))
-  const { data: geojson } = useQuery({
-    queryKey: ['geojson'],
-    queryFn: () => api.getGeojson(),
-    staleTime: GEOJSON_STALE_TIME,
-  })
   const { data: regions } = useQuery(regionsQuery())
-  const { status, locate, dismiss } = useNearMe({ geojson, naming: hasMap, onPlace })
+  const { status, locate, dismiss } = useNearMe({ naming: hasMap, onPlace })
   const section = useRef<HTMLElement>(null)
   const searchInstead = useRef(false)
 

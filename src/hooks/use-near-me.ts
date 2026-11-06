@@ -1,4 +1,3 @@
-import type { Geojson } from '@/types'
 import type { PlaceSearch } from '@/lib/shape'
 import type { LocationProblem } from '@/components/molecules/LocationHelp'
 
@@ -7,7 +6,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { useNearMeState } from '@/config/store'
 import { useLocale } from '@/hooks/use-locale'
 import { geocodeCountryCode, reverseGeocode } from '@/lib/geocode'
-import { nearbyBounds } from '@/lib/geolocation'
+import { aroundVisitor } from '@/lib/geolocation'
 
 /** How long to wait for a place name before searching without one. */
 const NAME_WAIT_MS = 1500
@@ -27,11 +26,9 @@ export type NearMeStatus = 'idle' | 'locating' | LocationProblem
  * a URL. `naming: false` is for map-less embeds, which promise no Mapbox calls.
  */
 export function useNearMe({
-  geojson,
   naming,
   onPlace,
 }: {
-  geojson: Geojson | undefined
   naming: boolean
   onPlace: (place: PlaceSearch) => void
 }) {
@@ -72,7 +69,7 @@ export function useNearMe({
         setStatus('idle')
         onPlace({
           center,
-          bbox: nearbyBounds(center, geojson),
+          bbox: aroundVisitor(center),
           // Someone pressing Near me is asking what's closest, whatever the default ranking favours.
           sort: 'closest',
           q: feature?.properties?.full_address ?? undefined,
@@ -86,7 +83,7 @@ export function useNearMe({
       },
       { timeout: LOCATE_TIMEOUT_MS, maximumAge: 300000 },
     )
-  }, [geojson, locale, naming, onPlace, setCenter])
+  }, [locale, naming, onPlace, setCenter])
 
   return { status, locate, dismiss: () => setStatus('idle') }
 }

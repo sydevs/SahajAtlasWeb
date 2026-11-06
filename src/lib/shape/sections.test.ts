@@ -2,7 +2,7 @@ import type { BBox } from 'geojson'
 
 import { describe, expect, it } from 'vitest'
 
-import { boundsWith, parseBounds, placeSize, splitResults } from './sections'
+import { boundsWith, parseBounds, placeSize, searchFrame, splitResults } from './sections'
 
 const PRAGUE: BBox = [14.07, 49.86, 14.77, 50.31]
 const CZECHIA: BBox = [12.09, 48.55, 18.86, 51.06]
@@ -165,5 +165,34 @@ describe('boundsWith', () => {
 
   it('falls back on the searched point with no box', () => {
     expect(boundsWith(undefined, [12.37, 51.34], [berlin], 1)).toEqual([12.37, 51.34, 13.4, 52.52])
+  })
+})
+
+describe('searchFrame', () => {
+  const center: [number, number] = [14.42, 50.09]
+  const lipanska = inPerson(1, 14.45, 50.08, 2)
+  // Outside the Prague box and past the 25 km nearby cut, but within reach.
+  const liberec = inPerson(3, 15.06, 50.77, 88)
+  const brno = inPerson(5, 16.61, 49.2, 187)
+
+  it('frames just the place when it has classes of its own', () => {
+    const sections = splitResults([lipanska, liberec], { bbox: PRAGUE, searchCountry: 'CZ' })
+
+    expect(searchFrame(sections, PRAGUE, center)).toEqual(PRAGUE)
+  })
+
+  it('reaches past the nearby cut to the nearest class when the place has none', () => {
+    const sections = splitResults([liberec, brno], { bbox: PRAGUE, searchCountry: 'CZ' })
+    const frame = searchFrame(sections, PRAGUE, center)
+
+    expect(frame?.[3]).toBeCloseTo(50.77)
+    // Brno is past the reach, so it doesn't drag the frame south.
+    expect(frame?.[1]).toBe(PRAGUE[1])
+  })
+
+  it('stays on the place when nothing is within reach', () => {
+    const sections = splitResults([brno], { bbox: PRAGUE, searchCountry: 'CZ' })
+
+    expect(searchFrame(sections, PRAGUE, center)).toEqual(PRAGUE)
   })
 })

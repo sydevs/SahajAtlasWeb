@@ -321,10 +321,8 @@ export function Mapbox({ cooperative = false }: { cooperative?: boolean } = {}) 
 
   // "Find my location" opens the results centered on the visitor, rather
   // than just moving the camera. See the hook, and the `followUserLocation`
-  // note on the control below. This component gives the hook the feed,
-  // since the feed is already available here. The hook frames around the
-  // nearest classes in it.
-  const geolocateToSearch = useGeolocateToSearch(data)
+  // note on the control below.
+  const geolocateToSearch = useGeolocateToSearch()
 
   // The tenant's resolved palette, as `BrandTheme` painted the UI from it.
   //

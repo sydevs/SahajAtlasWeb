@@ -16,7 +16,7 @@ import { useEventFilters } from '@/hooks/use-filters'
 import { useLocale } from '@/hooks/use-locale'
 import { useSearchCountry } from '@/hooks/use-search-country'
 import { useMapController } from '@/hooks/use-map-controller'
-import { boundsWith, listResetKey, parseBounds, parseCenter, splitResults } from '@/lib/shape'
+import { listResetKey, parseBounds, parseCenter, searchFrame, splitResults } from '@/lib/shape'
 import { BackButton } from '@/views/nav'
 import { ExpandSheetButton, FilterButton, SearchField, useFrameOnTop } from '@/views/shared'
 import { ErrorPanel } from '@/views/fallbacks'
@@ -49,9 +49,8 @@ export function SearchView() {
   const { data: events, isPending } = useQuery(eventsQuery(latitude, longitude, filters, locale))
   const frame = useMemo(() => {
     if (!center || !events) return bounds
-    const { here, nearby } = splitResults(events, { bbox: bounds, searchCountry })
 
-    return here.length === 0 && nearby.length > 0 ? boundsWith(bounds, center, nearby) : bounds
+    return searchFrame(splitResults(events, { bbox: bounds, searchCountry }), bounds, center)
     // `center` and `bounds` are rebuilt each render from these two params.
   }, [events, searchCountry, searchParams.get('center'), searchParams.get('bbox')])
   const waiting = center !== undefined && isPending

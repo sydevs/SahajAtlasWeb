@@ -1,12 +1,10 @@
-import type { Geojson } from '@/types'
-
 import { useCallback, useEffect, useRef } from 'react'
 import { useLocation, useNavigate, useSearchParams } from 'react-router'
 
 import { useAtlasNavigate } from '@/hooks/use-atlas-navigate'
 import { useLocale } from '@/hooks/use-locale'
 import { geocodeCountryCode, reverseGeocode } from '@/lib/geocode'
-import { nearbyBounds } from '@/lib/geolocation'
+import { aroundVisitor } from '@/lib/geolocation'
 import { placeSearchPath } from '@/lib/shape'
 
 /**
@@ -23,7 +21,7 @@ export type GeolocateNaming = 'after' | 'first' | 'none'
 const NAME_FIRST_MS = 1500
 
 /**
- * This is what "find my location" does: it opens the distance-ranked results centered on the visitor, framed around the classes near them.
+ * This is what "find my location" does: it opens the distance-ranked results centered on the visitor, in a town-sized box around them.
  *
  * **This is a navigation, not a camera command.** That is what makes the whole thing simple.
  * The URL becomes `/search?center=…&bbox=…`, and SearchView's existing `frameSearch` does the framing.
@@ -39,13 +37,8 @@ const NAME_FIRST_MS = 1500
  *  - `Map.tsx` cannot call `useMapController()` at all.
  *    It is a SIBLING of `RealMapControllerProvider`, not a descendant, so it would silently receive the no-op.
  *
- * The feed arrives as an argument because `Map.tsx` already holds it.
- * Passing it keeps this hook off a second `['geojson']` observer, for a value the caller is already subscribed to.
  */
-export function useGeolocateToSearch(
-  geojson: Geojson | undefined,
-  { naming = 'after' }: { naming?: GeolocateNaming } = {},
-) {
+export function useGeolocateToSearch({ naming = 'after' }: { naming?: GeolocateNaming } = {}) {
   const navigate = useAtlasNavigate()
   // This is the RAW navigate, for the naming replace below.
   // `useAtlasNavigate` is for pushes. It stamps an incrementing `atlasDepth` and remembers the outgoing camera.
@@ -69,9 +62,9 @@ export function useGeolocateToSearch(
    * A ref refreshed every render is the fix, which is why the empty deps below stay.
    * `Mapbox` already re-renders on filter and location changes, so this ref is always current by the time anyone can press the control.
    */
-  const live = useRef({ navigate, replace, location, searchParams, geojson, locale, naming })
+  const live = useRef({ navigate, replace, location, searchParams, locale, naming })
 
-  live.current = { navigate, replace, location, searchParams, geojson, locale, naming }
+  live.current = { navigate, replace, location, searchParams, locale, naming }
 
   // A lookup that lands after the owner unmounted must not navigate.
   const mounted = useRef(true)
@@ -83,13 +76,7 @@ export function useGeolocateToSearch(
   }, [])
 
   return useCallback(async (position: GeolocationPosition) => {
-    const {
-      navigate: go,
-      searchParams: params,
-      geojson: feed,
-      locale: lang,
-      naming: mode,
-    } = live.current
+    const { navigate: go, searchParams: params, locale: lang, naming: mode } = live.current
     // This rounds to about 110m BEFORE anything serializes it.
     // So the visitor's doorstep never reaches a URL they might copy, or their host page's analytics.
     // This costs nothing the feature can see.
@@ -108,7 +95,7 @@ export function useGeolocateToSearch(
       round(position.coords.longitude),
       round(position.coords.latitude),
     ]
-    const place = { center: point, bbox: nearbyBounds(point, feed) }
+    const place = { center: point, bbox: aroundVisitor(point) }
 
     if (mode === 'first') {
       const timeout = new Promise<null>((resolve) => setTimeout(() => resolve(null), NAME_FIRST_MS))
