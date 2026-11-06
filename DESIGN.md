@@ -289,6 +289,7 @@ The We Meditate app's meditating figure, at 24px in ornament coral, on the "Onli
 - **Don't** add decorative icons. The meditating figure on the online row is the only one; the near-me row has no icon.
 - **Don't** grey out the map or recolour clusters dark teal.
 - **Don't** flatten the tags into one neutral style; each keeps its tinted role colour.
+- **Don't** tint a notice coral or red. A passive note, like the location guess, sits on the sand-3 fill so it never reads as an error.
 - **Don't** use corners other than 16px, 8px and fully round.
 - **Don't** put a group label above a title or heading; it names a group of rows, nothing else.
 - **Don't** use rem units; a host's root font size would rescale the widget.
