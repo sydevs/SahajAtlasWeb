@@ -10,7 +10,7 @@ colors:
   contrast-coral: "#E08E79"
   ornament-coral: "#C46C57"
   marker-green: "#30A47D"
-  cluster-green: "#2E9E78"
+  cluster-green: "#268264"
   cluster-halo: "#9ED8C2"
   marker-coral: "#E0775C"
   cluster-coral: "#DD785D"
@@ -161,7 +161,7 @@ A warm-neutral palette: sand greys on white panels carry the mood, a deep teal c
 - **Ornament Coral** (ornament-coral): the coral mixed toward its deep step so the meditating figure clears 3:1 on the light panel. Dark mode uses the coral solid itself.
 
 ### Map
-- **Marker Green** (marker-green) and **Cluster Green** (cluster-green, inside a **Cluster Halo** ring at 70% opacity): unbranded pins and clusters, identical in light and dark. The cluster disc is one step deeper than the old Studio art so its bold white 12px count reaches 3.3:1.
+- **Marker Green** (marker-green) and **Cluster Green** (cluster-green, inside a **Cluster Halo** ring at 70% opacity): unbranded pins and clusters, identical in light and dark. The cluster disc is the pin's green, 9 points darker, so its white 12px count (normal text, not large) reaches 4.5:1 (4.7:1).
 - **Marker Coral** (marker-coral) and **Cluster Coral** (cluster-coral, halo cluster-coral-halo): the selected pin and selected area.
 - **Dark Basemap** (map-dark-land, map-dark-water, map-dark-label): taupe land, deep teal-ink water, cream labels, painted over the dark Studio style on every style load. The light Studio style is left exactly as it is: cream land, sky-blue water, soft green parks.
 - With a host palette, pins and clusters take the host's primary solid and the selection takes its contrast solid; the halo is derived from the fill.

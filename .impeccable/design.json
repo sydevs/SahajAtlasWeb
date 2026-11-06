@@ -246,7 +246,7 @@
       "name": "Map Markers",
       "kind": "custom",
       "description": "Green pin and cluster, coral selection.",
-      "html": "<div class=\"ds-markers\"><svg width=\"34\" height=\"38\" viewBox=\"0 0 34 38\"><path d=\"M4.71 26.42a15 15 0 1 1 21.58 0L15.5 37.6Z\" fill=\"#30A47D\"/><circle cx=\"15.5\" cy=\"16\" r=\"4.5\" fill=\"#fff\"/></svg><svg width=\"38\" height=\"38\" viewBox=\"0 0 38 38\"><circle cx=\"19\" cy=\"19\" r=\"19\" fill=\"#9ED8C2\" opacity=\".706\"/><circle cx=\"19\" cy=\"19\" r=\"13.8\" fill=\"#2E9E78\"/><text x=\"19\" y=\"23\" text-anchor=\"middle\" font-size=\"12\" font-weight=\"700\" fill=\"#fff\">12</text></svg><svg width=\"34\" height=\"38\" viewBox=\"0 0 34 38\"><path d=\"M4.71 26.42a15 15 0 1 1 21.58 0L15.5 37.6Z\" fill=\"#E0775C\"/><circle cx=\"15.5\" cy=\"16\" r=\"4.5\" fill=\"#fff\"/></svg></div>",
+      "html": "<div class=\"ds-markers\"><svg width=\"34\" height=\"38\" viewBox=\"0 0 34 38\"><path d=\"M4.71 26.42a15 15 0 1 1 21.58 0L15.5 37.6Z\" fill=\"#30A47D\"/><circle cx=\"15.5\" cy=\"16\" r=\"4.5\" fill=\"#fff\"/></svg><svg width=\"38\" height=\"38\" viewBox=\"0 0 38 38\"><circle cx=\"19\" cy=\"19\" r=\"19\" fill=\"#9ED8C2\" opacity=\".706\"/><circle cx=\"19\" cy=\"19\" r=\"13.8\" fill=\"#268264\"/><text x=\"19\" y=\"23\" text-anchor=\"middle\" font-size=\"12\" font-weight=\"700\" fill=\"#fff\">12</text></svg><svg width=\"34\" height=\"38\" viewBox=\"0 0 34 38\"><path d=\"M4.71 26.42a15 15 0 1 1 21.58 0L15.5 37.6Z\" fill=\"#E0775C\"/><circle cx=\"15.5\" cy=\"16\" r=\"4.5\" fill=\"#fff\"/></svg></div>",
       "css": ".ds-markers{display:flex;align-items:flex-end;gap:16px;padding:16px;background:#F6F1E4;border-radius:8px}"
     }
   ],
