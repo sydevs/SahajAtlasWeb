@@ -54,6 +54,7 @@ import {
   isFilterOverlay,
   isSubmitEntry,
   parentOf,
+  submitTitleKey,
   opensTall,
   placeInStack,
   resolveStack,
@@ -261,6 +262,14 @@ function MapPill({ className, onClick }: { className: string; onClick: () => voi
   )
 }
 
+// The docked add-a-class panel: the right-hand drawer, sized to its content and lifted to the
+// "Add a class" button's corner, so the flow opens where it was asked for. Its top stays below the
+// map's control column (settings and attribution, 120px), so a long step scrolls inside instead.
+// Tailwind reads only literal classes, so the 45px is `MAPBOX_WORDMARK_TOP_PX + ADD_CLASS_GAP_PX`
+// written out, and 165px adds the 120px: change them together.
+const SUBMIT_PANEL =
+  '!top-auto !right-4 !bottom-[45px] !h-auto max-h-[calc(var(--sy-frame-h)_-_165px)] rounded-2xl shadow-xl lg:!top-auto lg:!bottom-[45px]'
+
 // What a tap on the sheet leaves alone: anything that acts on its own when tapped.
 const INTERACTIVE =
   'a, button, input, select, textarea, label, summary, [contenteditable="true"], [role="button"], [role="link"], [role="menuitem"], [role="option"], [role="combobox"], [role="tab"], [role="radio"], [role="checkbox"], [role="slider"]'
@@ -425,9 +434,15 @@ export function DrawerStack() {
   // `filters` entry peels off into the overlay below. (Map-less keeps the plain
   // replace-stack behaviour.)
   const filterOverlay = isFilterOverlay(entries, hasMap) && embed.config.filters
+  // On a wide map the add-a-class and correction flows open in a panel docked at the map's bottom
+  // right, where the "Add a class" button sits, over the page they were opened from (Anton, 6 Nov,
+  // after Devindra's placement in #318). The page stays as it was behind them. A phone keeps them
+  // in the sheet.
+  const submitEntry = entries.at(-1)
+  const submitOverlay = hasMap && isWide && isSubmitEntry(submitEntry)
   const baseEntries = useMemo(
-    () => (filterOverlay ? entries.slice(0, -1) : entries),
-    [filterOverlay, entries],
+    () => (filterOverlay || submitOverlay ? entries.slice(0, -1) : entries),
+    [filterOverlay, submitOverlay, entries],
   )
   // The region tree is already cached by the bootstrap. It names the place the floating
   // "Add a class" button opens the flow over.
@@ -438,7 +453,7 @@ export function DrawerStack() {
   // `topViewKey(location.pathname, hasMap)`. `useFrameOnTop` compares itself against
   // that key to tell whether it is still the view on top, and the two agreeing is what
   // makes the comparison mean anything.
-  const top = baseStackEntry(entries, hasMap) ?? null
+  const top = (submitOverlay ? baseEntries.at(-1) : baseStackEntry(entries, hasMap)) ?? null
   const climb = useClimbInputs()
   const { data: feed } = useQuery({
     queryKey: ['geojson'],
@@ -1185,6 +1200,48 @@ export function DrawerStack() {
     </DrawerControlContext.Provider>
   ) : null
 
+  // The docked flow closes back onto the page behind it: chronologically back when it was opened
+  // here, or up to that page for a fresh link to the flow.
+  const submitControl = useMemo(
+    () => ({
+      ...overlayControl,
+      dismiss: () => {
+        if (depth > 0) navigate(-1)
+        else navigate(parentOf(location.pathname) ?? '/', { replace: true, state: location.state })
+      },
+    }),
+    [overlayControl, depth, location, navigate],
+  )
+  const submitPanel =
+    submitOverlay && isSubmitEntry(submitEntry) ? (
+      <DrawerControlContext.Provider value={submitControl}>
+        <Drawer
+          key="submit-panel"
+          handleOnly
+          open
+          container={overlayContainer()}
+          direction="right"
+          dismissible={false}
+          measureAgainst={frameElement()}
+        >
+          <DrawerContent
+            aria-label={t(submitTitleKey(submitEntry.kind))}
+            className={SUBMIT_PANEL}
+            handle={false}
+          >
+            <Suspense fallback={<DrawerLoading />}>
+              <ResetErrorBoundary
+                FallbackComponent={DrawerErrorFallback}
+                onReset={() => setSecondary(loadSecondaryViews())}
+              >
+                <secondary.SubmitView entry={submitEntry} />
+              </ResetErrorBoundary>
+            </Suspense>
+          </DrawerContent>
+        </Drawer>
+      </DrawerControlContext.Provider>
+    ) : null
+
   // Map-less: one contained drawer fills the widget container (there is no map to
   // reveal, so no snap ladder). Standalone owns the viewport
   // (100dvh). Embedded fills the host's slot (100%).
@@ -1247,7 +1304,7 @@ export function DrawerStack() {
   // place on screen, or at the root where no one place shows.
   const place = placeInStack(baseEntries)
   const placeName = place && regions?.find((node) => node.slug === place.slug)?.name
-  const showAddClass = isWide && !wide && !filterOverlay && !isSubmitEntry(top)
+  const showAddClass = isWide && !wide && !filterOverlay && !submitOverlay && !isSubmitEntry(top)
 
   return (
     <WidgetWidthContext.Provider value={isWide}>
@@ -1262,7 +1319,10 @@ export function DrawerStack() {
                   className="pointer-events-none fixed top-0 h-0 w-0"
                 />
                 {tallSheet && <div aria-hidden className="fixed inset-0 z-[35] bg-black/50" />}
-                {filterPanelAvailable === 'panel' && filterPanelOpen && <FiltersPanel />}
+                {/* The docked add-a-class panel takes that side of the map while it is open. */}
+                {filterPanelAvailable === 'panel' && filterPanelOpen && !submitOverlay && (
+                  <FiltersPanel />
+                )}
                 {filterPanelAvailable === 'chips' && <FilterChipBar />}
                 {/* The top of the map's one control column, with locate and attribution below it
                   (`.mapboxgl-ctrl-top-right` in globals.css holds the shared size and margins).
@@ -1320,6 +1380,7 @@ export function DrawerStack() {
             {sheet}
           </Drawer>
           {filterDrawer}
+          {submitPanel}
         </DrawerControlContext.Provider>
       </FilterPanelAvailableContext.Provider>
     </WidgetWidthContext.Provider>
