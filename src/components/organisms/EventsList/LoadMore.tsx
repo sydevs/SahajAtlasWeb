@@ -7,6 +7,7 @@ import { useTranslation } from 'react-i18next'
 
 import { Button } from '@/components/atoms/Button'
 import { Spinner } from '@/components/atoms/Spinner'
+import { rewordedKey } from '@/config/reworded-keys'
 
 export interface LoadMoreProps {
   /** What the control offers next — `null` when everything is revealed. */
@@ -71,7 +72,7 @@ export function LoadMore({
   loading = false,
   onReveal,
 }: LoadMoreProps) {
-  const { t } = useTranslation()
+  const { t, i18n } = useTranslation()
   const buttonRef = useRef<HTMLButtonElement>(null)
 
   // `onReveal` is a fresh closure every render, since it reads the current
@@ -157,7 +158,7 @@ export function LoadMore({
         </Button>
       )}
       <span aria-live="polite" className="sr-only" role="status">
-        {announce ? t('search.results.showing_classes', { shown, total }) : ''}
+        {announce ? t(rewordedKey(i18n, 'search.results.showing_classes'), { shown, total }) : ''}
       </span>
     </div>
   )

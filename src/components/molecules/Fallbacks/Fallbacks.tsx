@@ -17,6 +17,7 @@ import { Button, controlSurface } from '@/components/atoms/Button'
 import { Link } from '@/components/atoms/Link'
 import { useIsWide } from '@/config/responsive'
 import { useReportModal } from '@/config/store'
+import { rewordedKey } from '@/config/reworded-keys'
 import { useReportForm } from '@/hooks/use-report-form'
 import { useRecoveryOffer } from '@/hooks/use-recovery-offer'
 import { classifyError, errorMessage, reportInternalError } from '@/lib/report'
@@ -457,7 +458,7 @@ export type FallbackValues = Record<string, string | number>
  * label beats a blank widget, when the whole point is to show the failure.
  */
 export function useFallbackDisplay(kind: FallbackKind, values?: FallbackValues) {
-  const { t } = useTranslation()
+  const { t, i18n } = useTranslation()
   // `?? unknown` stops the lookup from returning undefined and breaking the
   // next line. Callers name the kind from a union type. But `classifyError`'s
   // own-property check resolves `hasOwnProperty` at call time, and this widget
@@ -470,7 +471,11 @@ export function useFallbackDisplay(kind: FallbackKind, values?: FallbackValues) 
     policy,
     // `defaultValue` makes an unloaded namespace render English, not the raw
     // key. See `fallbackText`.
-    message: t(policy.messageKey, { ...values, defaultValue: policy.fallbackText }),
+    // A class-worded key reads SahajCloud's own key in a locale without it (`rewordedKey`).
+    message: t(rewordedKey(i18n, policy.messageKey), {
+      ...values,
+      defaultValue: policy.fallbackText,
+    }),
   }
 }
 
@@ -613,7 +618,10 @@ const offerLabel = (t: OfferTranslate, offer: RecoveryOffer): string => {
  * camera that the drawer stack's back-navigation depends on.
  */
 export function OnwardLink({ offer }: { offer: RecoveryOffer }) {
-  const { t } = useTranslation()
+  const { t, i18n } = useTranslation()
+  // The class-worded offer reads SahajCloud's own key in a locale without it (`rewordedKey`).
+  const translate: OfferTranslate = (key, options) =>
+    (t as OfferTranslate)(rewordedKey(i18n, key), options)
 
   return (
     <Link
@@ -636,7 +644,7 @@ export function OnwardLink({ offer }: { offer: RecoveryOffer }) {
           referrerPolicy="no-referrer"
         />
       )}
-      {offerLabel(t as OfferTranslate, offer)}
+      {offerLabel(translate, offer)}
     </Link>
   )
 }

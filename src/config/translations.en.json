@@ -61,7 +61,9 @@
       "see_classes_in": "See classes in %{region}",
       "server": "Our servers are having trouble right now.",
       "share_unavailable": "There is no link to share for this class yet.",
-      "unavailable": "This program can’t be joined right now."
+      "unavailable": "This program can’t be joined right now.",
+      "near_city": "See events near %{city}",
+      "no_events": "No events found."
     },
     "feedback": {
       "below": "You can find other nearby classes below.",
@@ -234,7 +236,8 @@
       "show_classes_other": "Show %{count} classes",
       "title": "Filters",
       "widen_one": "Remove %{label} (%{count} class)",
-      "widen_other": "Remove %{label} (%{count} classes)"
+      "widen_other": "Remove %{label} (%{count} classes)",
+      "no_results": "No events match your filters."
     },
     "dates": {
       "from": "From",
@@ -347,7 +350,9 @@
       "farther_classes": "Show classes farther away",
       "more": "Show more",
       "no_nearby_classes": "No classes within %{km} km.",
-      "showing_classes": "Showing %{shown} of %{total} classes"
+      "showing_classes": "Showing %{shown} of %{total} classes",
+      "no_nearby": "No events within %{km} km.",
+      "showing": "Showing %{shown} of %{total} events"
     },
     "filtered": {
       "hidden_here_one": "Your filters hide %{count} class in %{place}.",
@@ -470,7 +475,7 @@
     "review": {
       "edit": "Edit",
       "no_changes": "Change at least one detail before submitting.",
-      "note_label": "Note for our admins (optional)",
+      "note_label": "Note for the coordinator (optional)",
       "title": "Check your listing",
       "you_title": "About you",
       "not_given": "Not given",
@@ -483,7 +488,8 @@
       "email_help_private": "Only the admins who look after classes here see it, in case they have a question.",
       "online_line": "Online, hosted from %{city}",
       "to_email": "Continue to your email",
-      "checking": "You can send once the security check above is done."
+      "checking": "You can send once the security check above is done.",
+      "note_label_admins": "Note for our admins (optional)"
     },
     "when": {
       "end_time": "Ends at",
@@ -516,7 +522,7 @@
     },
     "where": {
       "address_placeholder": "Search for the address",
-      "city_help": "The city the class is hosted from, so the right admins review it.",
+      "city_help": "The city the class is hosted from, so the right coordinator reviews it.",
       "city_label": "City",
       "city_placeholder": "Search for a city",
       "offline": "In person",
@@ -547,7 +553,8 @@
       "venue_name_label": "Name of the building (optional)",
       "venue_name_placeholder": "For example: Balham Library",
       "venue_name_help": "What people will see on the door. If you leave the class name blank, this names the class.",
-      "room_help": "Only the room or floor. The address and time are already on the listing."
+      "room_help": "Only the room or floor. The address and time are already on the listing.",
+      "city_help_admins": "The city the class is hosted from, so the right admins review it."
     },
     "details": {
       "title": "A few more details",

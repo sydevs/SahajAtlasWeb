@@ -37,6 +37,14 @@ paths:
   open an issue on `sydevs/SahajCloud` — search the open ones first and update the
   outstanding request rather than duplicating it. Once the CMS ships the key, run
   `pnpm sync:translations --write` and wire the `t()` here.
+- **Rewording a key SahajCloud already holds needs a new key, and the old one kept.**
+  SahajCloud's bundle wins over the snapshot for every key it holds, so a reworded value
+  there never reaches the screen; a plain rename instead costs every other language its
+  translation. `REWORDED_KEYS` (`src/config/reworded-keys.ts`) pairs each new key with
+  the one it replaces, and `t(rewordedKey(i18n, key))` reads the new key where the active
+  locale holds it (English always does) and the old key's translation elsewhere. The old
+  key keeps SahajCloud's own English in the snapshot. Delete the entry once SahajCloud
+  ships the new key in every locale, or rewords the old one.
 - **One namespace, nested keys** (`event.display.chip_full`). i18next resolves the
   nesting natively, so there is no `common`/`events` split any more and every hook
   call is a bare `useTranslation()`.

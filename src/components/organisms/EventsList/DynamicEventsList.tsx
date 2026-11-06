@@ -44,6 +44,7 @@ import { useReveal } from '@/hooks/use-reveal'
 import { useSortOrder } from '@/hooks/use-sort'
 import { eventsQuery } from '@/config/api'
 import { useArrivalFilters } from '@/config/store'
+import { rewordedKey } from '@/config/reworded-keys'
 
 export interface DynamicEventsListProps {
   latitude: number
@@ -713,7 +714,7 @@ function EmptyResults({
   /** Count only what a removed filter would put in this place's own groups, not the whole feed. */
   scoped?: boolean
 }) {
-  const { t } = useTranslation()
+  const { t, i18n } = useTranslation()
   const { regionNames } = useLocale()
   const active = hasActiveFilters(useEventFilters())
   const countrySite = useCountrySite()
@@ -749,7 +750,7 @@ function EmptyResults({
   if (active) {
     return (
       <div className="flex flex-col gap-3 px-gutter py-4" role="status">
-        <h3 className="text-xl">{t('search.filtered.none')}</h3>
+        <h3 className="text-xl">{t(rewordedKey(i18n, 'search.filtered.none'))}</h3>
         <ReliefActions best={relief[0]} many={relief.length > 1} />
       </div>
     )

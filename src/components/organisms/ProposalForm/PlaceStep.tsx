@@ -10,6 +10,7 @@ import { ChoiceCard, NameHelp, StepHeading, ValidatedInput, radioKeys } from './
 
 import { Button } from '@/components/atoms/Button'
 import { FormField } from '@/components/molecules/FormField'
+import { rewordedKey } from '@/config/reworded-keys'
 import { MapSearch, type MapSearchProps } from '@/components/organisms/Mapbox/MapSearch'
 import { staticMapUrl } from '@/lib/static-map'
 
@@ -75,7 +76,7 @@ export function PlaceStep({
   showMap = true,
   search = true,
 }: PlaceStepProps) {
-  const { t } = useTranslation()
+  const { t, i18n } = useTranslation()
   const offline = draft.eventType === 'offline'
   // An address the geocoder can't find is typed in by hand: it has no map point, and the
   // admins place it. A draft reopened with such an address opens back on the fields.
@@ -196,7 +197,7 @@ export function PlaceStep({
             <>
               <PlaceField
                 error={errors.city && t('submit.errors.city_required')}
-                help={t('submit.where.city_help')}
+                help={t(rewordedKey(i18n, 'submit.where.city_help_admins'))}
                 label={t('submit.where.city_label')}
                 place={draft.city}
                 search={

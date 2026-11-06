@@ -25,6 +25,7 @@ import { Textarea } from '@/components/atoms/Textarea'
 import { EventChips } from '@/components/molecules/EventChips'
 import { FormField } from '@/components/molecules/FormField'
 import { userSubmissionValueMax } from '@/config/api/mutate'
+import { rewordedKey } from '@/config/reworded-keys'
 import { useLocale } from '@/hooks/use-locale'
 import { formatDate, regionalLocale } from '@/lib/time'
 
@@ -89,7 +90,7 @@ export function CheckStep({
   noChanges,
   refusal,
 }: CheckStepProps) {
-  const { t } = useTranslation()
+  const { t, i18n } = useTranslation()
   // A report with no field to change already wrote its note on the step before.
   const noteWritten =
     Boolean(correction?.reported) ||
@@ -159,7 +160,10 @@ export function CheckStep({
           onChange={(event) => onSender({ email: event.target.value })}
         />
         {!noteWritten && (
-          <FormField htmlFor="submit-note" label={t('submit.review.note_label')}>
+          <FormField
+            htmlFor="submit-note"
+            label={t(rewordedKey(i18n, 'submit.review.note_label_admins'))}
+          >
             <Textarea
               className={FIELD_TEXT}
               id="submit-note"

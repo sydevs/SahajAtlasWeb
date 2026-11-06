@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest'
 
 import snapshot from './translations.en.json'
 import { TRANSLATION_SELECT } from './api/fetch'
+import { REWORDED_KEYS } from './reworded-keys'
 
 import { REGISTRATION_QUESTION_NAMES, WIDGET_TRANSLATION_TABS } from '@/types'
 import { SORT_ORDERS, TIME_PERIODS } from '@/lib/shape'
@@ -118,6 +119,10 @@ const REFUSAL_KEYS = [
   }),
 ]
 
+// A reworded key reaches `t()` through `rewordedKey`, never as a literal, and either side of the
+// pair can be the one rendered, so both must resolve.
+const REWORDED = Object.entries(REWORDED_KEYS).flat()
+
 const DYNAMIC_KEYS = [
   ...FILTER_OPTIONS,
   ...SORT_KEYS,
@@ -125,6 +130,7 @@ const DYNAMIC_KEYS = [
   ...WEEK_NUMBERS,
   ...POLICY_KEYS,
   ...REFUSAL_KEYS,
+  ...REWORDED,
 ]
 
 const LITERAL_KEYS = [...allSource.matchAll(/\bt\(\s*'([a-z_][a-zA-Z0-9_.]*)'/g)].map((m) => m[1])
@@ -190,6 +196,7 @@ describe('every key a call site asks for', () => {
       WEEK_NUMBERS,
       REFUSAL_KEYS,
       POLICY_KEYS,
+      REWORDED,
     })) {
       expect(family, `${name} read no table — its regex no longer matches the source`).not.toEqual(
         [],
