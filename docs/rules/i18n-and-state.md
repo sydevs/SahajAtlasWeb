@@ -98,7 +98,7 @@ paths:
 
 ## zustand stores (`src/config/store.ts`)
 
-Eight stores, each the single source of truth for its own slice:
+Nine stores, each the single source of truth for its own slice:
 
 - **`useViewState`** — map camera (`zoom` / `latitude` / `longitude`), current
   `selection`, and `boundary`. Read it with a **`useShallow`** selector on the
@@ -173,6 +173,12 @@ Eight stores, each the single source of truth for its own slice:
   every later page keeps that label — a bare "Show more" would misdescribe it.
   There is deliberately **no "< N km" pill** — that button is the list's only
   distance affordance.
+- **`useSheetCover`** — what the phone bottom sheet covers of the map, in px, resolved
+  from the sheet's active snap. A store because `DrawerStack` writes it and the map
+  camera reads it, and neither renders the other's context: the real `MapController`
+  provider renders `DrawerStack`, so a context would have to flow the wrong way, and
+  the drawer must not import the map's hooks. It carries `null` wherever there is no
+  bottom sheet, and the camera falls back to the open snap's height.
 - **`useBrowsedCountry`** — the ISO code of the last country page shown, which scopes
   the place search's suggestions. ⚠ **This is the one slice that looks like it belongs
   in the URL and does not.** The URL holds what a link must reproduce for whoever opens

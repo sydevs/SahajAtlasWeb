@@ -10,7 +10,8 @@ export type EventChipsVariant = 'default' | 'compact'
 export type EventChipsProps = {
   event: DisplayableEvent & { languages: string[] }
   /**
-   * `default`, the event header, names the type and every language.
+   * `default`, the event header, names the type where the listing has one, and
+   * every language.
    * `compact`, the list card, drops the plain weekly-class type and the
    * viewer's own language. Those are the chips that add nothing at a
    * glance.
@@ -33,9 +34,9 @@ export function EventChips({ event, variant = 'default', className }: EventChips
 
   const compact = variant === 'compact'
 
-  // Type: `default` always names it. `compact` skips the plain weekly class,
-  // whose label adds nothing on a compact card.
-  const showType = !compact || !isDefaultType
+  // Type: `default` names it, where there is one — a by-request listing has none.
+  // `compact` skips the plain weekly class, whose label adds nothing on a compact card.
+  const showType = typeLabel !== null && (!compact || !isDefaultType)
 
   // All languages fold into a single chip. `compact` keeps only the ones
   // that differ from the viewer's UI language.

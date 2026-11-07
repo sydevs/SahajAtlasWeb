@@ -330,6 +330,28 @@ cover everything a host would notice since the widget was first deployed.
 
 ### Fixed
 
+- **The map draws the world once.** ([#370]) On a wide embed the whole world repeated two or
+  three times across the map, so a class near the dateline appeared as two or three circles. The
+  world view now fills the map with a single world, and zooming out stops where one world is as
+  wide as the map. The map still pans on across the Pacific, and a link or a search still frames
+  any class exactly where it sits. No parameter, origin or CSP change.
+
+- **The dark theme is readable throughout, and the browser's own chrome follows it.** ([#370])
+  Typed search text was almost invisible on the dark panel and its focused box drew a dotted
+  border; the locate and info controls on the map stayed white; date fields showed dark icons on a
+  dark field and opened light pickers; and the calendar turned purple. All four now take the
+  atlas's own colours. On the standalone page `sahajatlas.com` the document background and the
+  `theme-color` meta follow the theme too, so a phone tints its status bar to match. Within an
+  embed the host's page keeps its own `theme-color`; only the widget's own surfaces change. No
+  parameter, origin or CSP change.
+
+- **Smaller display repairs.** ([#370]) Search suggestions span the panel instead of sitting
+  narrower than it, with the result counts no longer peeking out beside them. A class available by
+  request is no longer labelled "ONE-OFF EVENT". An address no longer repeats the town ("Brno,
+  Brno"). The settings cog no longer covers the list and the sign-up form on a map-less embed
+  (`map=0`). The × on a filter tag keeps its drawn size but takes a 44px tap area on a touch
+  screen. No parameter, origin or CSP change.
+
 - **An embed inside a closed tab or accordion now fills its box when opened from a shared
   link.** ([#371]) A page whose URL carried `?atlas=` loaded the widget at once, while the element
   was still hidden and measured 0×0, so the widget took the whole browser window: when the tab
@@ -343,6 +365,26 @@ cover everything a host would notice since the widget was first deployed.
   It now waits 20 seconds and tries once more before deciding, so a page whose CSP refuses
   `cloud.sydevelopers.com` under `frame-src` sees that screen after about 40 seconds rather than
   10. A domain SahajCloud refuses outright is still reported at once.
+
+- **Phone fixes from the 6 November check of the live site.** ([#369]) A class's bottom sheet now
+  opens as tall as the class needs, up to near full, so the Register bar no longer covers its
+  address and no longer slices a line in half on a small phone — one drag down still stops at the
+  usual third-height. A place's first classes are framed above the open sheet instead of under it,
+  and a link to a class that is no longer there frames the place the link names rather than the
+  whole world. On a touchscreen the first tap on a pin opens the class: the timing popover now
+  shows only where there is a real pointer, and on a desktop it names the class above its timing.
+  "Find my location" waits 30 seconds rather than 6, so allowing location slowly no longer puts
+  "Location not available" over the right results. On iPhone the From and To date filters no
+  longer overlap, tapping a sign-up field no longer hides the form, no see-through panel is left
+  over the map when the keyboard closes, and dragging the panel down from its list no longer
+  shakes or pulls Safari's page with it. No parameter, origin or CSP change.
+
+- **A full-window map on a phone keeps clear of a notch — if your page asks for it.** ([#369])
+  The widget now reads `env(safe-area-inset-*)` for its panel, its peek strips and the map's own
+  controls, so a phone held sideways no longer puts a camera cut-out over them. Those values are
+  **zero** unless your viewport meta tag carries `viewport-fit=cover`, which is your page's call
+  rather than ours — see "Sizing the element" in the embedding guide. Nothing breaks without it,
+  and a contained embed is unaffected either way.
 
 - **A direct link to an online class now zooms the map to its region.** ([#363]) An online
   class usually has no location of its own, so a link to one, such as `…/ca/ontario/toronto/720`,
@@ -892,8 +934,10 @@ must-revalidate`, pinned rather than left to the CDN default. The production dom
 [#262]: https://github.com/sydevs/SahajAtlasWeb/issues/262
 [#283]: https://github.com/sydevs/SahajAtlasWeb/issues/283
 [#311]: https://github.com/sydevs/SahajAtlasWeb/pull/311
+[#370]: https://github.com/sydevs/SahajAtlasWeb/pull/370
 [#371]: https://github.com/sydevs/SahajAtlasWeb/pull/371
 [#363]: https://github.com/sydevs/SahajAtlasWeb/pull/363
+[#369]: https://github.com/sydevs/SahajAtlasWeb/pull/369
 [#351]: https://github.com/sydevs/SahajAtlasWeb/pull/351
 [#312]: https://github.com/sydevs/SahajAtlasWeb/pull/312
 [#320]: https://github.com/sydevs/SahajAtlasWeb/issues/320

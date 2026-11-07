@@ -7,15 +7,16 @@ import { bboxPolygon } from '@turf/bbox-polygon'
 import { MapControllerContext } from './use-map-controller'
 
 import { useMapbox, usePaddingState } from '@/hooks/use-mapbox'
-import { useViewState } from '@/config/store'
+import { useSheetCover, useViewState } from '@/config/store'
 import { useIsWide } from '@/config/responsive'
-import { eventFrameZoom, hasMapPoint } from '@/lib/camera'
+import { eventFrameZoom, hasMapPoint, worldViewCamera } from '@/lib/camera'
 import { isOnline } from '@/lib/shape'
 import { frameElement } from '@/lib/overlay'
 
-// These are the fixed left-drawer footprint and the mobile peek height.
+// These are the fixed left-drawer footprint and the mobile sheet's open height.
 // The code feeds them to map padding directly, so the camera and controls stay unoccluded.
-// This never DOM-measures the panel.
+// This never DOM-measures the panel. The bottom sheet's own height is the one exception, which
+// `DrawerStack` resolves from its active snap and hands over (`useSheetCover`).
 //
 // **`DRAWER_W_PX` is one half of a pair. See the other half before you change it.**
 // The drawer's actual width comes from a `352px` fallback baked into its Tailwind classes.
@@ -36,7 +37,14 @@ import { frameElement } from '@/lib/overlay'
 // This code rejects that approach, because it would put a DOM read in the map's hot path, to serve an override that is not a supported feature yet.
 // If a host is ever invited to set that variable, this is the constant that must start resolving it.
 const DRAWER_W_PX = 352
-const MOBILE_PEEK_PX = 128
+// `OPEN_SNAP` in `DrawerStack`, the height the phone sheet opens at. Only a fallback: the stack
+// publishes what the sheet actually covers. Padding for the peek alone centred a framed place on
+// map the open sheet hides, and on /fr/paris the classes listed first sat under it.
+const MOBILE_SHEET_PX = 300
+// What the sheet must still leave of the map above it, for the pin the camera just framed. It also
+// keeps the padding inside a short contained embed (#169), where padding past the canvas makes
+// `fitBounds` refuse the fit outright.
+const MIN_MAP_STRIP_PX = 160
 const MAP_MARGIN = 20
 
 // These constants keep zoom consistent.
@@ -76,11 +84,12 @@ const eventPoint = (event: Pick<EventSlim, 'address' | 'eventType'>) => {
  * So a compact embed never loads this provider or mapbox-gl.
  */
 export function RealMapControllerProvider({ children }: { children: ReactNode }) {
-  const { mapbox, moveMap, fitBounds, isPointVisible, flyTo } = useMapbox()
+  const { mapbox, padding, moveMap, fitBounds, isPointVisible, flyTo } = useMapbox()
   const setPadding = usePaddingState((s) => s.setPadding)
   const setSelection = useViewState((s) => s.setSelection)
   const setHover = useViewState((s) => s.setHover)
   const setBoundary = useViewState((s) => s.setBoundary)
+  const sheetCover = useSheetCover((s) => s.bottom)
   // This is the box the map actually occupies.
   // It is the frame when a contained embed, or the compact card's expanded dialog, has taken the containing block. See issue #169.
   // Otherwise it is the viewport, which is what this value computed before frames existed.
@@ -99,13 +108,16 @@ export function RealMapControllerProvider({ children }: { children: ReactNode })
 
   // Keep the drawer's known footprint out of the usable camera area.
   useEffect(() => {
+    const boxHeight = frameElement()?.clientHeight ?? window.innerHeight
+    const sheet = Math.max(0, Math.min(sheetCover ?? MOBILE_SHEET_PX, boxHeight - MIN_MAP_STRIP_PX))
+
     setPadding({
       left: MAP_MARGIN + (isWide ? DRAWER_W_PX : 0),
       right: MAP_MARGIN,
       top: MAP_MARGIN,
-      bottom: MAP_MARGIN + (isWide ? 0 : MOBILE_PEEK_PX),
+      bottom: MAP_MARGIN + (isWide ? 0 : sheet),
     })
-  }, [isWide, setPadding])
+  }, [isWide, sheetCover, setPadding])
 
   const controller = useMemo<MapController>(
     () => ({
@@ -188,10 +200,33 @@ export function RealMapControllerProvider({ children }: { children: ReactNode })
         // `restore` would have reinstated the pin only for a POP.
         setSelection(null)
         setBoundary(undefined)
-        moveMap({ zoom: 0 })
+        // One world, filling the map at any window size, so no copy shows at the sides.
+        // `worldViewCamera` picks a zoom and centre that fill it around our lopsided padding, the
+        // padding `moveMap` moves with.
+        // Latitude 20 leans north, where most classes are.
+        const container = mapbox?.getContainer()
+
+        if (!container) return
+        moveMap(
+          worldViewCamera(
+            { width: container.clientWidth, height: container.clientHeight },
+            padding,
+            [0, 20],
+          ),
+        )
       },
     }),
-    [mapbox, moveMap, fitBounds, isPointVisible, flyTo, setSelection, setHover, setBoundary],
+    [
+      mapbox,
+      padding,
+      moveMap,
+      fitBounds,
+      isPointVisible,
+      flyTo,
+      setSelection,
+      setHover,
+      setBoundary,
+    ],
   )
 
   return (

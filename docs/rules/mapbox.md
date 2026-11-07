@@ -93,6 +93,10 @@ The map is the heart of the app and its hottest render path. Treat it carefully.
 
 ## Pin-hover timing popover
 
+- Only on a device with a real pointer (`useHasRealPointer`). iOS sends a fake mouse
+  move before a tap, and a tap that reveals content never clicks, so `onMouseMove` is
+  not wired on touch. It shows the class name above the timing, and
+  `pinPopoverPlacement` keeps it inside the visible map, side panel included.
 - Hovering a pin displays a small non-interactive popover with that event's
   timing — `EventPinPopover` plus `EventPinCard`, module-private helpers
   inlined in `Map.tsx` (the popover is inherently map-bound, since it renders a
@@ -147,7 +151,11 @@ The map is the heart of the app and its hottest render path. Treat it carefully.
   `fitBounds` (a bbox) both carry the tuned arc. `moveMap` is the plain
   `easeTo`, kept only for the instant world reset and cluster expansion. Map
   padding comes from the known drawer width per breakpoint, set by
-  `MapController` — never a DOM measurement.
+  `MapController` — never a DOM measurement of the panel. The bottom sheet's
+  height is the one exception, and it arrives rather than being read:
+  `DrawerStack` resolves its active snap and publishes it through
+  `useSheetCover`, so the camera reserves the peek while the sheet is collapsed
+  and a class's measured height while it is open.
 - **The FIRST camera command of a session arrives instead of flying, and the
   canvas is held until it does.** `<ReactMapGL>` is uncontrolled with no
   `initialViewState`, so the map boots at `[0,0]` zoom 0 while a deep-linked
@@ -163,6 +171,24 @@ The map is the heart of the app and its hottest render path. Treat it carefully.
   that honors `animate` when `linear` is set). Clear the settled flag
   **on unmount**, or a compact embed's second expansion inherits a
   stale `true` and both defects come back.
+
+## One world through a minimum zoom, not `renderWorldCopies={false}`
+
+The map keeps Mapbox's world copies, so it pans on across the Pacific. Two things keep a wide
+screen from showing the world two or three times over:
+
+- **The world view (`reset()`) fills the map**: `worldViewCamera` picks a zoom and centre that
+  make one world at least as wide as the canvas plus the panel's padding, with no edge left for a
+  copy to show in.
+- **Zooming out stops there too**: `Map.tsx` sets `minZoom` to `worldMinZoom(width)`, the zoom at
+  which one world is as wide as the map, on load and on every resize. A map narrower than the
+  world (a phone) keeps zoom 0, so a wide country's fit there is never clamped.
+
+⚠ **Do not reach for `renderWorldCopies={false}` instead.** It is map-wide, and Mapbox then
+clamps the camera centre to keep the world over the canvas, ignoring padding. Measured on
+mapbox-gl 3.34.1 at 1280px: the reachable centre is ±123.75° at zoom 3, ±172.97° at zoom 6, and
+±179.56° at zoom 10. The pan across ±180° goes, and a New Zealand or Fiji region fit below
+about zoom 8 lands west of its bbox (#370's review).
 
 ## Reduced motion is the library's job here, not ours
 

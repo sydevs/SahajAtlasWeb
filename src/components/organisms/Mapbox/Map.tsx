@@ -30,6 +30,7 @@ import {
   LAYER_IDS,
 } from './layers'
 import { markerColors, registerMarkerImages } from './markers'
+import { pinPopoverPlacement, type PopoverAnchor } from './pin-popover'
 
 import { Button } from '@/components/atoms/Button'
 import { Modal, ModalClose, ModalContent, ModalFooter } from '@/components/atoms/Modal'
@@ -39,9 +40,11 @@ import { useAtlasNavigate } from '@/hooks/use-atlas-navigate'
 import { useEventFilters } from '@/hooks/use-filters'
 import { useGeolocateToSearch } from '@/hooks/use-geolocate'
 import { useRegionMatcher } from '@/hooks/use-region-matcher'
-import api from '@/config/api'
+import api, { eventTitlesQuery } from '@/config/api'
+import { useHasRealPointer } from '@/config/responsive'
 import { useBrandPalette } from '@/config/theme/brand-palette'
 import { GEOJSON_STALE_TIME } from '@/config/query-client'
+import { worldMinZoom } from '@/lib/camera'
 import { hasActiveFilters, matchesFilters, safePath, todayISO } from '@/lib/shape'
 import { useLocale } from '@/hooks/use-locale'
 import { useTheme } from '@/hooks/use-theme'
@@ -67,6 +70,9 @@ const MAP_STYLES = {
  * the visitor has now seen where it starts from.
  */
 const REVEAL_TIMEOUT_MS = 1500
+// Mapbox's locate default is six seconds. iOS Safari appears to count that while its permission
+// prompt is open, so a visitor who took a moment to press Allow saw a failure.
+const LOCATE_POSITION_OPTIONS: PositionOptions = { timeout: 30_000 }
 
 const MAP_WORLDVIEWS: Record<string, string> = {
   zh: 'CN', // Chinese
@@ -138,13 +144,19 @@ function PointSource({
   )
 }
 
-// This is the card shown inside the hover popover: a calendar glyph beside
-// the event's timing, with the recurrence (for example, "Every Thursday")
-// stacked above its start time, so the card stays narrow. It renders the
-// SAME calendar parts that the list card's `composeCalendarLine` joins (via
-// the shared `calendarLineParts` gate). Here they stack across two lines
-// instead of joining with a `·`, so the two never drift apart (#72).
-function EventPinCard({ event }: { event: DisplayableEvent }) {
+// This is the card shown inside the hover popover: the class name, then its
+// timing, with the recurrence (for example, "Every Thursday") stacked above its
+// start time. It renders the SAME calendar parts that the list card's
+// `composeCalendarLine` joins (via the shared `calendarLineParts` gate). Here
+// they stack instead of joining with a `·`, so the two never drift apart (#72).
+// The name comes from the per-locale titles sliver, since the feed carries none. It is read
+// CACHE-ONLY, like the drawer's fallback chrome: a live observer here would make one mouse-move
+// over a pin fetch every title in the locale. Until a view that needs them has loaded them, the
+// card shows the timing alone.
+function EventPinCard({ event }: { event: DisplayableEvent & { id: number } }) {
+  const { locale } = useLocale()
+  const { data: titles } = useQuery({ ...eventTitlesQuery(locale), enabled: false })
+  const title = titles?.get(event.id)
   const { display, recurrenceLine, whenLine, eventStartTime } = useEventDisplay(event)
   const { primary, time } = calendarLineParts({
     recurrenceLine,
@@ -153,23 +165,26 @@ function EventPinCard({ event }: { event: DisplayableEvent }) {
     hasNext: Boolean(display.next),
   })
 
-  if (!primary) return null
+  if (!title && !primary) return null
 
   return (
-    <div className="inline-flex items-center gap-1.5 rounded-lg border border-divider bg-background px-2.5 py-1.5 text-foreground shadow-md">
-      <CalendarDays className="shrink-0 text-gray-11" size={16} />
-      <div className="flex flex-col text-sm leading-tight font-medium">
-        <span>{primary}</span>
-        {time && <span className="text-xs font-normal text-gray-11">{time}</span>}
-      </div>
+    <div className="flex max-w-60 flex-col gap-0.5 rounded-lg border border-divider bg-background px-3 py-2 text-foreground shadow-md">
+      {title && <span className="line-clamp-2 text-sm font-semibold">{title}</span>}
+      {primary && (
+        <span className="flex items-center gap-1.5 text-xs text-gray-11">
+          <CalendarDays className="shrink-0" size={14} />
+          <span>
+            {primary}
+            {time && ` · ${time}`}
+          </span>
+        </span>
+      )}
     </div>
   )
 }
 
-// This is a non-interactive hover popover over an individual event pin. It
-// shows that event's timing (recurrence stacked above start time) via
-// EventPinCard. It carries no title, so the locale-agnostic feed event alone
-// is enough — there is no titles sliver to join.
+// This is a non-interactive hover popover over an individual event pin, on
+// devices with a real pointer only (see `useHasRealPointer` where it is wired).
 //
 // This renders only for `unclustered-point` pins, never clusters, since one
 // recurrence line is meaningless for a cluster of events. The caller
@@ -182,21 +197,25 @@ function EventPinPopover({
   event,
   longitude,
   latitude,
+  anchor,
+  offset,
 }: {
-  event: DisplayableEvent
+  event: DisplayableEvent & { id: number }
   longitude: number
   latitude: number
+  anchor: PopoverAnchor
+  offset: [number, number]
 }) {
   return (
     <Popup
-      anchor="bottom"
+      anchor={anchor}
       className="event-pin-popover"
       closeButton={false}
       closeOnClick={false}
       focusAfterOpen={false}
       latitude={latitude}
       longitude={longitude}
-      offset={34}
+      offset={offset}
     >
       <EventPinCard event={event} />
     </Popup>
@@ -347,6 +366,17 @@ export function Mapbox({ cooperative = false }: { cooperative?: boolean } = {}) 
   // the pointer moves to empty map or leaves the canvas. This is local
   // state, not zustand: it is purely a map-view detail.
   const [hoveredId, setHoveredId] = useState<number | null>(null)
+  // Zooming out stops where one world fills the map's width. The map keeps Mapbox's world copies,
+  // so it still pans across the Pacific, and this stops a wide screen from showing the world two
+  // or three times over.
+  const [minZoom, setMinZoom] = useState(0)
+  // A touch device gets no hover at all, so one tap opens the class. iOS sends a fake mouse move
+  // before a tap, and when that reveals content Safari treats the tap as a hover and doesn't click.
+  const hasRealPointer = useHasRealPointer()
+
+  // A touch device gets no hover at all, so one tap opens the class. iOS sends a fake mouse move
+  // before a tap, and when that reveals content Safari treats the tap as a hover and doesn't click.
+  const hasRealPointer = useHasRealPointer()
 
   // Mapbox's locate control fails silently otherwise (#321). ⚠ A permission already denied when
   // the map loads never reaches `onError`: mapbox renders the control disabled instead.
@@ -382,9 +412,21 @@ export function Mapbox({ cooperative = false }: { cooperative?: boolean } = {}) 
     if (!feature || feature.geometry?.type !== 'Point') return undefined
 
     const [longitude, latitude] = feature.geometry.coordinates
+    const container = mapbox?.getContainer()
+    const placement = pinPopoverPlacement(
+      mapbox?.project([longitude, latitude]) ?? { x: 0, y: 0 },
+      { width: container?.clientWidth ?? 0, height: container?.clientHeight ?? 0 },
+      {
+        top: 0,
+        right: 0,
+        bottom: 0,
+        left: 0,
+        ...mapbox?.getPadding(),
+      },
+    )
 
-    return { event: feature.properties, longitude, latitude }
-  }, [hoveredId, data])
+    return { event: feature.properties, longitude, latitude, ...placement }
+  }, [hoveredId, data, mapbox])
 
   const selectFeature = useCallback(
     (evt: MapMouseEvent) => {
@@ -467,14 +509,18 @@ export function Mapbox({ cooperative = false }: { cooperative?: boolean } = {}) 
         logoPosition="bottom-right"
         mapStyle={MAP_STYLES[theme]}
         mapboxAccessToken={import.meta.env.VITE_MAPBOX_ACCESSTOKEN}
+        minZoom={minZoom}
         style={canvasStyle}
         worldview={MAP_WORLDVIEWS[languageCode] || MAP_WORLDVIEWS.default}
         onClick={selectFeature}
         // This is the backstop on the reveal. A route that never frames the
         // camera — CalendarView is the one that deliberately does not — must
         // not leave the map hidden for the whole session.
-        onLoad={armReveal}
-        onMouseMove={hoverOnFeature}
+        onLoad={(event) => {
+          armReveal()
+          setMinZoom(worldMinZoom(event.target.getContainer().clientWidth))
+        }}
+        onMouseMove={hasRealPointer ? hoverOnFeature : undefined}
         // This dismisses the timing popover when the pointer leaves the
         // canvas. `mouseout` (react-map-gl `onMouseOut`) is the canvas-exit
         // event. `hoverOnFeature` above handles moving between pins or onto
@@ -498,6 +544,7 @@ export function Mapbox({ cooperative = false }: { cooperative?: boolean } = {}) 
           setViewState(evt.viewState)
           useCameraTarget.setState({ target: null })
         }}
+        onResize={(event) => setMinZoom(worldMinZoom(event.target.getContainer().clientWidth))}
       >
         {DEBUG_PADDING && (
           <div
@@ -541,9 +588,11 @@ export function Mapbox({ cooperative = false }: { cooperative?: boolean } = {}) 
         )}
         {hovered && (
           <EventPinPopover
+            anchor={hovered.anchor}
             event={hovered.event}
             latitude={hovered.latitude}
             longitude={hovered.longitude}
+            offset={hovered.offset}
           />
         )}
         {/* `followUserLocation={false}` stops Mapbox from moving the camera itself.
@@ -559,8 +608,14 @@ export function Mapbox({ cooperative = false }: { cooperative?: boolean } = {}) 
             control, rather than trusting either claim. */}
         <GeolocateControl
           followUserLocation={false}
+          positionOptions={LOCATE_POSITION_OPTIONS}
           onError={() => setLocationFailed(true)}
-          onGeolocate={geolocateToSearch}
+          // An answer that arrives after a reported failure wins: the map and list are right,
+          // and an error on top of them would be false.
+          onGeolocate={(position) => {
+            setLocationFailed(false)
+            geolocateToSearch(position)
+          }}
         />
         {/* Mapbox's terms require both the wordmark and the attribution, and both must stay on the
             map view. Mapbox adds its own attribution in a corner no prop can change, so
