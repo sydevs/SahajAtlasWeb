@@ -164,29 +164,23 @@ The map is the heart of the app and its hottest render path. Treat it carefully.
   **on unmount**, or a compact embed's second expansion inherits a
   stale `true` and both defects come back.
 
-## `renderWorldCopies={false}` buys one world and spends camera reach
+## One world through a minimum zoom, not `renderWorldCopies={false}`
 
-The world view (`reset()`) shows the world once because the map is constructed with
-`renderWorldCopies={false}`, and `worldViewCamera` picks a zoom and centre that already
-fill the lopsided padding. The flag is map-wide, and it is reactive — react-map-gl lists
-it in its own `settingNames`, so `map.setRenderWorldCopies` runs on a prop change.
+The map keeps Mapbox's world copies, so it pans on across the Pacific. Two things keep a wide
+screen from showing the world two or three times over:
 
-**What it costs: Mapbox then clamps the camera centre to keep the world over the canvas,
-and that clamp ignores padding.** The reachable band on a 1280px-wide map, measured
-against the installed mapbox-gl 3.34.1 with no basemap:
+- **The world view (`reset()`) fills the map**: `worldViewCamera` picks a zoom and centre that
+  make one world at least as wide as the canvas plus the panel's padding, with no edge left for a
+  copy to show in.
+- **Zooming out stops there too**: `Map.tsx` sets `minZoom` to `worldMinZoom(width)`, the zoom at
+  which one world is as wide as the map, on load and on every resize. A map narrower than the
+  world (a phone) keeps zoom 0, so a wide country's fit there is never clamped.
 
-| zoom | reachable centre | with copies on |
-| --- | --- | --- |
-| 3 | ±123.75° | any |
-| 6 | ±172.97° | any |
-| 10 | ±179.56° | any |
-| 15 | ±179.9° | any |
-
-So a detail frame anywhere is unaffected, and nothing becomes unreachable: an event at
-`EVENT_ZOOM` lands where it is asked to. What is lost is the continuous wrap across the
-antimeridian, and the last degree or two of a **region fit** below about zoom 8 — a New Zealand or Fiji fit is nudged west of where its bbox asks, by about 94px
-per degree at zoom 6. The band is `±(180 − (width / 2 / (512 × 2^zoom)) × 360)`, so it
-narrows with the canvas as well as with the zoom.
+⚠ **Do not reach for `renderWorldCopies={false}` instead.** It is map-wide, and Mapbox then
+clamps the camera centre to keep the world over the canvas, ignoring padding. Measured on
+mapbox-gl 3.34.1 at 1280px: the reachable centre is ±123.75° at zoom 3, ±172.97° at zoom 6, and
+±179.56° at zoom 10. The pan across ±180° goes, and a New Zealand or Fiji region fit below
+about zoom 8 lands west of its bbox (#370's review).
 
 ## Reduced motion is the library's job here, not ours
 

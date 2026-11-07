@@ -188,11 +188,9 @@ export function RealMapControllerProvider({ children }: { children: ReactNode })
         // `restore` would have reinstated the pin only for a POP.
         setSelection(null)
         setBoundary(undefined)
-        // One world, filling the map. `renderWorldCopies` is off on the map, so Mapbox keeps the
-        // world at least as wide as the map and Mercator's full height tall: the world shows once
-        // at any window size, with no repeats at the sides. Mapbox's own clamp ignores our lopsided
-        // padding, though, and left a blank strip at the map's left edge, so `worldViewCamera`
-        // picks a zoom and centre that already fill the map, from the padding `moveMap` moves with.
+        // One world, filling the map at any window size, so no copy shows at the sides.
+        // `worldViewCamera` picks a zoom and centre that fill it around our lopsided padding, the
+        // padding `moveMap` moves with.
         // Latitude 20 leans north, where most classes are.
         const container = mapbox?.getContainer()
 

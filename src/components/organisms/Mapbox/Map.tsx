@@ -42,6 +42,7 @@ import { useRegionMatcher } from '@/hooks/use-region-matcher'
 import api from '@/config/api'
 import { useBrandPalette } from '@/config/theme/brand-palette'
 import { GEOJSON_STALE_TIME } from '@/config/query-client'
+import { worldMinZoom } from '@/lib/camera'
 import { hasActiveFilters, matchesFilters, safePath, todayISO } from '@/lib/shape'
 import { useLocale } from '@/hooks/use-locale'
 import { useTheme } from '@/hooks/use-theme'
@@ -347,6 +348,10 @@ export function Mapbox({ cooperative = false }: { cooperative?: boolean } = {}) 
   // the pointer moves to empty map or leaves the canvas. This is local
   // state, not zustand: it is purely a map-view detail.
   const [hoveredId, setHoveredId] = useState<number | null>(null)
+  // Zooming out stops where one world fills the map's width. The map keeps Mapbox's world copies,
+  // so it still pans across the Pacific, and this stops a wide screen from showing the world two
+  // or three times over.
+  const [minZoom, setMinZoom] = useState(0)
 
   // Mapbox's locate control fails silently otherwise (#321). ⚠ A permission already denied when
   // the map loads never reaches `onError`: mapbox renders the control disabled instead.
@@ -467,16 +472,17 @@ export function Mapbox({ cooperative = false }: { cooperative?: boolean } = {}) 
         logoPosition="bottom-right"
         mapStyle={MAP_STYLES[theme]}
         mapboxAccessToken={import.meta.env.VITE_MAPBOX_ACCESSTOKEN}
-        // The world shows once: with copies off, Mapbox keeps the world at least as wide as the
-        // map, so the world view (`reset()`) fills it edge to edge instead of repeating it.
-        renderWorldCopies={false}
+        minZoom={minZoom}
         style={canvasStyle}
         worldview={MAP_WORLDVIEWS[languageCode] || MAP_WORLDVIEWS.default}
         onClick={selectFeature}
         // This is the backstop on the reveal. A route that never frames the
         // camera — CalendarView is the one that deliberately does not — must
         // not leave the map hidden for the whole session.
-        onLoad={armReveal}
+        onLoad={(event) => {
+          armReveal()
+          setMinZoom(worldMinZoom(event.target.getContainer().clientWidth))
+        }}
         onMouseMove={hoverOnFeature}
         // This dismisses the timing popover when the pointer leaves the
         // canvas. `mouseout` (react-map-gl `onMouseOut`) is the canvas-exit
@@ -498,6 +504,7 @@ export function Mapbox({ cooperative = false }: { cooperative?: boolean } = {}) 
         // does. Seeding it instead would mean resolving a center before the
         // map may mount, only to save one frame nobody ever sees.
         onMoveEnd={(evt) => setViewState(evt.viewState)}
+        onResize={(event) => setMinZoom(worldMinZoom(event.target.getContainer().clientWidth))}
       >
         {DEBUG_PADDING && (
           <div

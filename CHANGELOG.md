@@ -330,12 +330,11 @@ cover everything a host would notice since the widget was first deployed.
 
 ### Fixed
 
-- **The map draws the world once, and no longer wraps across the antimeridian.** ([#370]) On a
-  wide embed the whole world repeated two or three times across the map, so a class near the
-  dateline appeared as two or three circles. The map now renders a single world, which costs the
-  continuous pan past ±180°: a visitor reaches New Zealand or Fiji by panning in from the west
-  rather than on across the Pacific. Nothing becomes unreachable, and a link or a search still
-  frames any class exactly where it sits. No parameter, origin or CSP change.
+- **The map draws the world once.** ([#370]) On a wide embed the whole world repeated two or
+  three times across the map, so a class near the dateline appeared as two or three circles. The
+  world view now fills the map with a single world, and zooming out stops where one world is as
+  wide as the map. The map still pans on across the Pacific, and a link or a search still frames
+  any class exactly where it sits. No parameter, origin or CSP change.
 
 - **The dark theme is readable throughout, and the browser's own chrome follows it.** ([#370])
   Typed search text was almost invisible on the dark panel and its focused box drew a dotted

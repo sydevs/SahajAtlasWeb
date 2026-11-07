@@ -5,6 +5,7 @@ import {
   fitBoundsOptions,
   hasMapPoint,
   isWithinPaddedViewport,
+  worldMinZoom,
   worldViewCamera,
 } from './camera'
 
@@ -211,5 +212,18 @@ describe('worldViewCamera', () => {
 
   it('leaves a map with no size to Mapbox', () => {
     expect(worldViewCamera({ width: 0, height: 0 }, {}, world)).toEqual({ center: world, zoom: 0 })
+  })
+})
+
+describe('worldMinZoom', () => {
+  it('stops zooming out where one world is as wide as the map', () => {
+    expect(worldMinZoom(1024)).toBe(1)
+    expect(worldMinZoom(2560)).toBeCloseTo(Math.log2(5))
+  })
+
+  it('leaves a map narrower than the world free to zoom out to the whole world', () => {
+    expect(worldMinZoom(390)).toBe(0)
+    expect(worldMinZoom(512)).toBe(0)
+    expect(worldMinZoom(0)).toBe(0)
   })
 })
