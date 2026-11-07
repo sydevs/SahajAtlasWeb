@@ -30,34 +30,45 @@ export type DisplayEventLike = EventLike & {
 
 export const isOnline = (event: EventLike): boolean => event.eventType === 'online'
 
+// Accents folded off, so a street compares against its town exactly as `streetAndCity` compares
+// them (`localeCompare` at `sensitivity: 'base'`), in a form the prefix strip below can slice.
+const fold = (text?: string | null) =>
+  (text ?? '')
+    .normalize('NFD')
+    .replace(/\p{Diacritic}/gu, '')
+    .trim()
+    .toLowerCase()
+
 // What hosts type when they have no address yet. These are matched whole, after the city name is
 // removed, so a real street that merely contains one of these words ("Av. Centro 12") stays exact.
-const NO_PLACE_STREETS = new Set([
-  '',
-  'none',
-  'n/a',
-  'tba',
-  'tbc',
-  'tbd',
-  'to be announced',
-  'to be confirmed',
-  'wird noch angekündigt',
-  'a definir',
-  'à définir',
-  'a confirmar',
-  'por definir',
-  'zentrum',
-  'innenstadt',
-  'stadtmitte',
-  'centro',
-  'centre',
-  'centre-ville',
-  'center',
-  'city centre',
-  'city center',
-  'cbd',
-  'downtown',
-])
+// Folded on the way in, so one entry covers every accented spelling of it.
+const NO_PLACE_STREETS = new Set(
+  [
+    '',
+    'none',
+    'n/a',
+    'tba',
+    'tbc',
+    'tbd',
+    'to be announced',
+    'to be confirmed',
+    'wird noch angekündigt',
+    'a definir',
+    'a confirmar',
+    'por definir',
+    'zentrum',
+    'innenstadt',
+    'stadtmitte',
+    'centro',
+    'centre',
+    'centre-ville',
+    'center',
+    'city centre',
+    'city center',
+    'cbd',
+    'downtown',
+  ].map(fold),
+)
 
 /**
  * Whether an in-person class's street names no real place (#15).
@@ -77,9 +88,8 @@ export const hasVagueAddress = (
 ): boolean => {
   if (!address) return false
 
-  const normalize = (text?: string | null) => (text ?? '').trim().toLowerCase()
-  const city = normalize(address.city)
-  const street = normalize(address.street)
+  const city = fold(address.city)
+  const street = fold(address.street)
   const afterCity = city && street.startsWith(city) ? street.slice(city.length) : street
 
   return NO_PLACE_STREETS.has(afterCity.replace(/^[\s,]+/, ''))

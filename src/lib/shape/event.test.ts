@@ -552,6 +552,13 @@ describe('hasVagueAddress', () => {
     expect(hasVagueAddress({ street, city })).toBe(false)
   })
 
+  // `streetAndCity` compares at `sensitivity: 'base'`, so the address line already reads this as
+  // the town saying itself twice. The two must not disagree about the same listing.
+  it('reads an unaccented spelling of the town as the town', () => {
+    expect(hasVagueAddress({ street: 'Silvianopolis', city: 'Silvianópolis' })).toBe(true)
+    expect(streetAndCity('Silvianopolis', 'Silvianópolis')).toBe('Silvianopolis')
+  })
+
   it('has nothing to judge without an address', () => {
     expect(hasVagueAddress(undefined)).toBe(false)
   })
