@@ -94,8 +94,8 @@ describe('Radix poppers are bounded by the frame', () => {
  * this lane — goes red while two menus drift apart.
  */
 const SKIN_RUNS = [
-  // Distinctive to the menu skin: every other surface in the app rounds to `2xl` or `lg`, and
-  // the Select atom highlights on `primary-4`.
+  // Each run is distinctive as a run, not by its first class: `CompactEmbedView` also rounds to
+  // `xl`, and the Select atom also highlights, on `primary-4`.
   'rounded-xl border border-divider',
   'data-[highlighted]:bg-primary-3',
 ]
@@ -106,9 +106,12 @@ describe('the dropdown menus share one skin', () => {
   })
 
   it('leaves no menu spelling a skin class of its own', () => {
-    // Each width is a variant of the recipe, so a menu naming one has started a fourth copy —
-    // which is how `min-w-56` and `min-w-44` drifted apart to begin with.
-    for (const relative of Object.keys(MENUS)) expect(read(relative)).not.toMatch(/\bmin-w-/)
+    // The surface width is a variant of the recipe, so a menu setting its own has started a
+    // fourth copy. `min-w-0` is exempt: that is the flex-shrink idiom a dozen components use to
+    // let `truncate` engage, not a width.
+    for (const relative of Object.keys(MENUS)) {
+      expect(read(relative)).not.toMatch(/\bmin-w-(?!0\b)(\d|\[)/)
+    }
 
     for (const run of SKIN_RUNS) {
       expect(SOURCE_FILES.filter((relative) => read(relative).includes(run))).toEqual([

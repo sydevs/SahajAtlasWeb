@@ -116,10 +116,11 @@ export function overlayContainer(): HTMLElement | undefined {
 /**
  * The skin the app's three Radix dropdown menus share.
  *
- * Three hand-copied pairs of strings had already drifted — `min-w-56` against `min-w-44`,
- * `px-3` against `px-2` (#367) — so each menu's difference is a variant here rather than a tail
- * at its call site, as `fieldChrome` is for the field controls. It sits in this module because
- * all three menus already import it for `frameCollision`.
+ * Each menu used to spell the whole pair of strings itself, which made an intended difference
+ * and an accidental one look identical — so the three copies could diverge with every gate green
+ * (#367). Naming each difference as a variant is what tells them apart, as `fieldChrome` does for
+ * the field controls. It sits in this module because all three menus already import it for
+ * `frameCollision`.
  */
 export const menuChrome = tv({
   slots: {
