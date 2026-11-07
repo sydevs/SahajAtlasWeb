@@ -381,6 +381,18 @@
   --background: 0 0% 7%;
 }
 
+/* Tells the browser which scheme the widget is in, so what it draws itself (date pickers and
+   their calendar icons, scrollbars, native controls) matches the theme. Without it a dark atlas
+   got dark calendar icons on dark date fields, and light pickers. On the theme root, so a host
+   page's own `color-scheme` never decides it. */
+.light {
+  color-scheme: light;
+}
+
+.dark {
+  color-scheme: dark;
+}
+
 /* vaul disables text selection on the drawer for pointer devices (to keep drag
    gestures clean — see vaul.css `@media (hover:hover) and (pointer:fine)`). Desktop
    drag is already disabled (handleOnly on the left panel), so this re-enables
