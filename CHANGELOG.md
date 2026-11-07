@@ -330,6 +330,12 @@ cover everything a host would notice since the widget was first deployed.
 
 ### Fixed
 
+- **A class with no real venue shows an area, not a pin.** ([#374]) About a dozen listings give
+  only a town, such as a class at a volunteer's home, so the map pinned the town's centre as if it
+  were the venue — one landed on a supermarket, with Directions to it. Those listings, and every
+  inactive one, now draw a soft area around the town, show only the town's name, and offer no
+  directions. No change to your snippet or CSP.
+
 - **The map draws the world once.** ([#370]) On a wide embed the whole world repeated two or
   three times across the map, so a class near the dateline appeared as two or three circles. The
   world view now fills the map with a single world, and zooming out stops where one world is as
@@ -934,6 +940,7 @@ must-revalidate`, pinned rather than left to the CDN default. The production dom
 [#262]: https://github.com/sydevs/SahajAtlasWeb/issues/262
 [#283]: https://github.com/sydevs/SahajAtlasWeb/issues/283
 [#311]: https://github.com/sydevs/SahajAtlasWeb/pull/311
+[#374]: https://github.com/sydevs/SahajAtlasWeb/pull/374
 [#370]: https://github.com/sydevs/SahajAtlasWeb/pull/370
 [#371]: https://github.com/sydevs/SahajAtlasWeb/pull/371
 [#363]: https://github.com/sydevs/SahajAtlasWeb/pull/363
