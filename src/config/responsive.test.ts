@@ -143,6 +143,8 @@ describe('the container-vs-viewport decision table', () => {
  * The next component that wants "is the widget wide" will copy the nearest precedent, and a raw read in `src/lib/` is now that precedent.
  */
 const RAW_VIEWPORT_READERS: Record<string, string> = {
+  // The height of the box the sheet covers, when no frame owns it, to cap the camera padding.
+  'hooks/use-map-controller-real.tsx': 'caps camera padding for a short viewport',
   'lib/slot-decision.ts':
     'the slot decision: compares the host slot to the viewport, and a frame to the screen, before React renders',
 }

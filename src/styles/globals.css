@@ -553,6 +553,14 @@
   --sy-frame-h: 100%;
 }
 
+/* Keeps Mapbox's right-hand controls clear of the notch or Dynamic Island when a phone is held
+   sideways, with the cut-out on that side. `viewport-fit=cover` runs the map under it. Zero
+   everywhere else. */
+.mapboxgl-ctrl-top-right,
+.mapboxgl-ctrl-bottom-right {
+  right: env(safe-area-inset-right, 0px);
+}
+
 /* Keeps Mapbox's own control column clear of the expanded surface's collapse control.
    Both sit in the top-inline-end corner (`CompactEmbedView`'s `ExpandedDialog`), and map
    mode renders the geolocate button and the attribution there. This is unconditional,
