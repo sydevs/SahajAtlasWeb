@@ -46,13 +46,6 @@ export const INTERACTIVE_LAYER_IDS = [
   LAYER_IDS.approximateFill,
 ]
 
-// The layers that stand for one class, so they open it and show its hover card.
-export const CLASS_LAYER_IDS: readonly string[] = [
-  LAYER_IDS.unclusteredPoint,
-  LAYER_IDS.approximateDot,
-  LAYER_IDS.approximateFill,
-]
-
 /**
  * The cluster bubble and its count.
  *

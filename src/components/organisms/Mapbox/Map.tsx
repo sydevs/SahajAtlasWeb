@@ -22,7 +22,6 @@ import {
   approximateDotLayer,
   approximateFillLayer,
   approximateOutlineLayer,
-  CLASS_LAYER_IDS,
   clusterLayer,
   selectedPointLayer,
   unclusteredPointLayer,
@@ -489,7 +488,8 @@ export function Mapbox({ cooperative = false }: { cooperative?: boolean } = {}) 
             duration: 500,
           })
         })
-      } else if (feature.layer && CLASS_LAYER_IDS.includes(feature.layer.id)) {
+      } else {
+        // Every other feature `interactiveLayerIds` can deliver stands for one class.
         navigate(safePath(feature.properties?.webPath) ?? `/${feature.properties?.id}`)
       }
     },
@@ -512,9 +512,7 @@ export function Mapbox({ cooperative = false }: { cooperative?: boolean } = {}) 
       // React skips a re-render when the id is unchanged (Object.is), so
       // this stays a no-op while the pointer sits on one pin.
       const pinId =
-        feature?.layer && CLASS_LAYER_IDS.includes(feature.layer.id)
-          ? Number(feature.properties?.id)
-          : NaN
+        feature && feature.layer?.id !== LAYER_IDS.cluster ? Number(feature.properties?.id) : NaN
 
       setHoveredId(Number.isFinite(pinId) ? pinId : null)
     },
