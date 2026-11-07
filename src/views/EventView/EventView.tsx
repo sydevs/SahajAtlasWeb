@@ -111,6 +111,7 @@ export function EventView({ id, basePath }: { id: number; basePath: string }) {
           height alone cleared it at the top snap only (#326). The ten other drawer bodies
           have nothing at the bottom to clear. */}
       <DrawerBody
+        fitSheet
         className={
           stickyRegister
             ? 'scroll-pb-[calc(var(--sy-footer-h,0px)_+_var(--sy-sheet-top,0px))]'

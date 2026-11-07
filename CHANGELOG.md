@@ -366,6 +366,26 @@ cover everything a host would notice since the widget was first deployed.
   `cloud.sydevelopers.com` under `frame-src` sees that screen after about 40 seconds rather than
   10. A domain SahajCloud refuses outright is still reported at once.
 
+- **Phone fixes from the 6 November check of the live site.** ([#369]) A class's bottom sheet now
+  opens as tall as the class needs, up to near full, so the Register bar no longer covers its
+  address and no longer slices a line in half on a small phone — one drag down still stops at the
+  usual third-height. A place's first classes are framed above the open sheet instead of under it,
+  and a link to a class that is no longer there frames the place the link names rather than the
+  whole world. On a touchscreen the first tap on a pin opens the class: the timing popover now
+  shows only where there is a real pointer, and on a desktop it names the class above its timing.
+  "Find my location" waits 30 seconds rather than 6, so allowing location slowly no longer puts
+  "Location not available" over the right results. On iPhone the From and To date filters no
+  longer overlap, tapping a sign-up field no longer hides the form, no see-through panel is left
+  over the map when the keyboard closes, and dragging the panel down from its list no longer
+  shakes or pulls Safari's page with it. No parameter, origin or CSP change.
+
+- **A full-window map on a phone keeps clear of a notch — if your page asks for it.** ([#369])
+  The widget now reads `env(safe-area-inset-*)` for its panel, its peek strips and the map's own
+  controls, so a phone held sideways no longer puts a camera cut-out over them. Those values are
+  **zero** unless your viewport meta tag carries `viewport-fit=cover`, which is your page's call
+  rather than ours — see "Sizing the element" in the embedding guide. Nothing breaks without it,
+  and a contained embed is unaffected either way.
+
 - **A direct link to an online class now zooms the map to its region.** ([#363]) An online
   class usually has no location of its own, so a link to one, such as `…/ca/ontario/toronto/720`,
   opened the class over the whole-world map. It now frames the class's region, as a region link
@@ -917,6 +937,7 @@ must-revalidate`, pinned rather than left to the CDN default. The production dom
 [#370]: https://github.com/sydevs/SahajAtlasWeb/pull/370
 [#371]: https://github.com/sydevs/SahajAtlasWeb/pull/371
 [#363]: https://github.com/sydevs/SahajAtlasWeb/pull/363
+[#369]: https://github.com/sydevs/SahajAtlasWeb/pull/369
 [#351]: https://github.com/sydevs/SahajAtlasWeb/pull/351
 [#312]: https://github.com/sydevs/SahajAtlasWeb/pull/312
 [#320]: https://github.com/sydevs/SahajAtlasWeb/issues/320

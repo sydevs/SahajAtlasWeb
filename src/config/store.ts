@@ -293,6 +293,22 @@ export const useRegistrationDraft = create<RegistrationDraftState & Registration
   }),
 )
 
+type SheetCoverState = {
+  /** What the phone sheet covers of the map, in px, or null where there is no bottom sheet. */
+  bottom: number | null
+  setBottom: (bottom: number | null) => void
+}
+
+/**
+ * The drawer resolves its active snap to this and the map camera reads it, so a framed pin clears
+ * the sheet at whatever height the sheet is actually at.
+ * Neither side renders the other's context, and the drawer must not import the map's hooks.
+ */
+export const useSheetCover = create<SheetCoverState>((set) => ({
+  bottom: null,
+  setBottom: (bottom) => set(() => ({ bottom })),
+}))
+
 type BrowsedCountryState = {
   /** ISO alpha-2 of the last country page shown, or undefined after the world view. */
   code: string | undefined
