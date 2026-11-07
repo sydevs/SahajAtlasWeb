@@ -24,7 +24,7 @@ import { Drawer, DrawerContent } from '@/components/atoms/Drawer'
 import { ResetErrorBoundary, SettingsMenu } from '@/components/molecules'
 import { WidgetWidthContext, useIsWide } from '@/config/responsive'
 import { useWidgetMode } from '@/config/mode'
-import { useCalendarPosition, useClassSheet } from '@/config/store'
+import { useCalendarPosition, useSheetCover } from '@/config/store'
 import { frameElement, overlayContainer } from '@/lib/overlay'
 import {
   type StackEntry,
@@ -344,16 +344,25 @@ export function DrawerStack() {
     if (next === vaulSnap) return
     setSnap(fitSnap !== null && next === fitSnap ? FIT_SNAP : next)
   }
-  // The camera keeps a class's pin above a sheet taller than the usual allowance. A class too
-  // long to fit opens near full, where the pin is hidden anyway, so it keeps the usual framing
-  // for the third-height stop one drag below.
-  const setClassSheet = useClassSheet((s) => s.setBottom)
+  // What the sheet covers of the map, resolved from the snap it sits at, so the camera reserves
+  // the collapsed peek while the sheet is collapsed and a class's taller sheet while it is open.
+  // The near-full snap reports the open snap instead: the pin is hidden there whatever the camera
+  // does, so the framing serves the third-height stop one drag below.
+  const sheetCover =
+    direction !== 'bottom' || !hasMap
+      ? null
+      : snap === PEEK_SNAP
+        ? parseFloat(PEEK_SNAP)
+        : snap === FIT_SNAP && fitPx !== null
+          ? fitPx
+          : parseFloat(OPEN_SNAP)
+  const setSheetCover = useSheetCover((s) => s.setBottom)
 
   useEffect(() => {
-    setClassSheet(fitPx)
+    setSheetCover(sheetCover)
 
-    return () => setClassSheet(null)
-  }, [fitPx, setClassSheet])
+    return () => setSheetCover(null)
+  }, [sheetCover, setSheetCover])
 
   // The stack must show the panels a repeated X actually goes through, which is a history
   // question, not a URL one (see `dismissDepth`). `entryAncestors` is the structural height

@@ -278,17 +278,18 @@ export const useRegistrationDraft = create<RegistrationDraftState & Registration
   }),
 )
 
-type ClassSheetState = {
-  /** The height a class's phone sheet opens at, or null when no class is on top on a phone. */
+type SheetCoverState = {
+  /** What the phone sheet covers of the map, in px, or null where there is no bottom sheet. */
   bottom: number | null
   setBottom: (bottom: number | null) => void
 }
 
 /**
- * The drawer measures this and the map camera reads it, so a class's pin clears its sheet.
+ * The drawer resolves its active snap to this and the map camera reads it, so a framed pin clears
+ * the sheet at whatever height the sheet is actually at.
  * Neither side renders the other's context, and the drawer must not import the map's hooks.
  */
-export const useClassSheet = create<ClassSheetState>((set) => ({
+export const useSheetCover = create<SheetCoverState>((set) => ({
   bottom: null,
   setBottom: (bottom) => set(() => ({ bottom })),
 }))
