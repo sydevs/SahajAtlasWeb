@@ -102,6 +102,16 @@ const PROBE_ATTEMPTS = 2
 const TURNSTILE_FEATURES =
   'cross-origin-isolated; fullscreen; autoplay; keyboard-map; gamepad; xr-spatial-tracking'
 
+/**
+ * Takes the challenge's slot out of its column while the frame is collapsed. A 0px flex item still
+ * takes its column's gap on both sides, so the forms each cancelled it by hand, with their own
+ * gap value, and the registration form's spelling was missed (#367). Out of flow, it takes none;
+ * the frame stays rendered at 0px rather than `display: none`, as the probe's does.
+ */
+const collapseSlot = (slot: HTMLElement, collapsed: boolean) => {
+  slot.style.position = collapsed ? 'absolute' : ''
+}
+
 type FrameOptions = { theme: 'light' | 'dark' | 'auto'; language: string; probe?: boolean }
 
 /**
@@ -232,8 +242,8 @@ export type UseTurnstile = {
   challengeRef: RefObject<HTMLDivElement>
   /** The solved token, or null while unsolved or expired. */
   token: string | null
-  /** True while Cloudflare is asking the visitor to click: the frame is open, and a caller
-   *  spaces it. Otherwise it is collapsed to nothing. */
+  /** True while Cloudflare is asking the visitor to click: the frame is open. Otherwise it is
+   *  collapsed to nothing, and its slot takes no room in the caller's column. */
   interactive: boolean
   status: TurnstileStatus
   /**
@@ -262,7 +272,11 @@ export function useTurnstile({ disabled = false }: UseTurnstileOptions = {}): Us
   // Re-mounting on a theme or language change is deliberate: Turnstile bakes both in at render
   // time, so the frame carries them in its URL and the teardown drops the unsolved token with it.
   useEffect(() => {
-    if (disabled || !challengeRef.current) return
+    const slot = challengeRef.current
+
+    if (!slot) return
+    collapseSlot(slot, true)
+    if (disabled) return
 
     setToken(null)
     setInteractive(false)
@@ -277,10 +291,12 @@ export function useTurnstile({ disabled = false }: UseTurnstileOptions = {}): Us
             break
           case 'interactive':
             frame.height = String(FRAME_HEIGHT)
+            collapseSlot(slot, false)
             setInteractive(true)
             break
           case 'settled':
             frame.height = '0'
+            collapseSlot(slot, true)
             setInteractive(false)
             break
           // Turnstile's `retry` defaults to `auto`, so a transient failure is often followed by a
@@ -303,7 +319,7 @@ export function useTurnstile({ disabled = false }: UseTurnstileOptions = {}): Us
     )
 
     frameRef.current = { frame, origin }
-    challengeRef.current.appendChild(frame)
+    slot.appendChild(frame)
 
     return () => {
       dispose()

@@ -270,7 +270,7 @@ export function RegistrationForm({
   // time a form could render in that state. So a per-form degradation would
   // be dead code, guarding a case its own boundary already swallowed (issue
   // #182).
-  const { challengeRef, token, interactive, reset: resetChallenge } = useTurnstile()
+  const { challengeRef, token, reset: resetChallenge } = useTurnstile()
 
   // A refusal the visitor can fix in one field lands ON that field, the way a
   // schema error does: the sentence under it, `aria-invalid`, and focus moved
@@ -383,8 +383,9 @@ export function RegistrationForm({
           {/* This is the challenge itself. It renders under the fields and
               above the error, so the one thing that can silently hold the
               submit button disabled stays visible immediately above it,
-              rather than down in the footer. */}
-          <div ref={challengeRef} className={interactive ? 'mt-4' : undefined} />
+              rather than down in the footer. Until Cloudflare wants a click it takes no room
+              at all (`useTurnstile`). */}
+          <div ref={challengeRef} />
 
           {/* A refusal is not a malfunction, so it states its reason on its
               own, without the "Something went wrong" framing or the

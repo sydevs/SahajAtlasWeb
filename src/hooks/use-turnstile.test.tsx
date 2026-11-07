@@ -146,6 +146,36 @@ describe('useTurnstile', () => {
     expect(hook.interactive).toBe(false)
   })
 
+  // A 0px flex item still takes its column's gap on both sides: the registration form showed
+  // about 24px of blank where 12px belonged (#367). Out of flow, the slot takes none.
+  it('takes the collapsed slot out of its column, and puts it back to ask for a click', async () => {
+    await mount()
+    const slot = () => frame()?.parentElement
+
+    fromFrame({ type: 'ready' })
+    expect(slot()?.style.position).toBe('absolute')
+
+    fromFrame({ type: 'interactive' })
+    expect(slot()?.style.position).toBe('')
+
+    fromFrame({ type: 'settled' })
+    expect(slot()?.style.position).toBe('absolute')
+  })
+
+  it('takes the empty slot out of its column when disabled', async () => {
+    function Disabled() {
+      const turnstile = useTurnstile({ disabled: true })
+
+      return <div ref={turnstile.challengeRef} data-testid="slot" />
+    }
+
+    await mount(<Disabled />)
+
+    expect(container.querySelector<HTMLElement>('[data-testid="slot"]')?.style.position).toBe(
+      'absolute',
+    )
+  })
+
   it('refuses an empty token, which would enable Submit and then fail verification', async () => {
     await mount()
     fromFrame({ type: 'ready' })
