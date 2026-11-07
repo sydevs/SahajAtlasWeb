@@ -194,7 +194,7 @@ Folder-per-component, not re-exported through the component barrels.
   A **single-use** composition stays module-private in its one parent (the
   registration form's `Field`/`LabeledInput`). A **multi-use** one becomes a thin
   exported molecule (`EventFacts`, used by `EventListItem` and the event panel) or a
-  shared recipe (`listRow`, `fieldChrome`).
+  shared recipe (`listRow`, `fieldChrome`, `menuChrome`).
 - **Code-split exception:** a heavy organism that is lazy-loaded (the event detail
   page lazy-imports `EventView`) is intentionally left _out_ of its tier barrel,
   so a barrel import doesn't pull it back into the static graph. Such components —
@@ -228,6 +228,13 @@ Folder-per-component, not re-exported through the component barrels.
   **`tailwind-variants` (`tv()`)** instead of ad-hoc string concatenation — it is
   already a dependency and matches the Radix + Tailwind styling model. `Chip.tsx` is the
   reference implementation (variant-driven content/colour styling).
+- **A skin three components share is one recipe, not three copies.** `fieldChrome`
+  (`atoms/Select`) covers the field controls, `listRow` the card rows, and `menuChrome`
+  (`lib/overlay`, beside the collision boundary the same three menus import) the Radix
+  dropdown menus. Each per-menu difference is a **variant**, so an intended difference reads
+  differently from an accidental one — three hand-copied copies of the menu skin had already
+  diverged before anything noticed (#367), and `lib/overlay.popper.test.ts` now refuses a
+  fourth.
 - Global styles live in `src/styles/globals.css`. The widget injects CSS via JS
   when embedded, so don't rely on a separate stylesheet `<link>`.
 
