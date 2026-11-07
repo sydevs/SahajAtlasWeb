@@ -94,7 +94,7 @@ paths:
 
 ## zustand stores (`src/config/store.ts`)
 
-Six stores, each the single source of truth for its own slice:
+Eight stores, each the single source of truth for its own slice:
 
 - **`useViewState`** — map camera (`zoom` / `latitude` / `longitude`), current
   `selection`, and `boundary`. Read it with a **`useShallow`** selector on the
@@ -107,6 +107,10 @@ Six stores, each the single source of truth for its own slice:
   before an in-widget push, and read it on a POP (`useFrameOnTop`) to restore the
   viewport a viewer left. Non-reactive (`getState()` only, so a write never
   re-renders the map) and FIFO-capped so a long embedded session stays bounded.
+- **`useCameraTarget`** — where a camera move in flight will land, or `null` at rest.
+  `useViewState` mirrors the camera only once the map STOPS, so `rememberCamera` would
+  otherwise snapshot the place a fly left for the screen it is flying to. Non-reactive,
+  like the history it feeds.
 - **`useCalendarPosition`** — the CalendarView's last Schedule-X `view` plus
   focused `date`, so a filter apply or returning from an event does not reset the
   grid to the current month. The grid **seeds** from it once at mount (no
@@ -165,6 +169,14 @@ Six stores, each the single source of truth for its own slice:
   every later page keeps that label — a bare "Show more" would misdescribe it.
   There is deliberately **no "< N km" pill** — that button is the list's only
   distance affordance.
+- **`useBrowsedCountry`** — the ISO code of the last country page shown, which scopes
+  the place search's suggestions. ⚠ **This is the one slice that looks like it belongs
+  in the URL and does not.** The URL holds what a link must reproduce for whoever opens
+  it, and where the reader came from is not that: a shared `/search` link would pin the
+  recipient's suggestions to a country they never browsed. `?cc` answers a different
+  question — the country of the place that WAS searched — and sits ahead of this one in
+  `MapSearch`'s chain. `DrawerStack` writes it, since it sees every route and `/search`
+  names no country.
 
 **One store lives beside its one consumer instead**, because nothing else has
 any business reading it and `store.ts` is where a slice several subtrees share

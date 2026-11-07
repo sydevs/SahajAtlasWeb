@@ -303,6 +303,12 @@ type BrowsedCountryState = {
  * The country the visitor was last looking at, for the place search's country scope. Search is a
  * route of its own (`/search`), so by the time its field is on screen the URL no longer names the
  * country page it was opened from. `DrawerStack` records it, since it sees every route.
+ *
+ * Not the URL, and not `?cc`, though both carry a country. The URL holds what a link must
+ * reproduce for whoever opens it, and where the reader came from is not that: a shared `/search`
+ * link would pin the recipient's suggestions to a country they never browsed. `?cc` answers a
+ * different question — the country of the place that WAS searched, written once a place is
+ * picked — and it is already ahead of this one in `MapSearch`'s fallback chain.
  */
 export const useBrowsedCountry = create<BrowsedCountryState>((set) => ({
   code: undefined,
