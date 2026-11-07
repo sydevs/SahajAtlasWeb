@@ -1,4 +1,5 @@
 import * as DropdownMenu from '@radix-ui/react-dropdown-menu'
+import clsx from 'clsx'
 import { useTranslation } from 'react-i18next'
 import { CalendarPlus, ChevronDown } from 'lucide-react'
 
@@ -12,7 +13,7 @@ import {
   buildYahooCalendarUrl,
   icsFileName,
 } from '@/lib/ics'
-import { frameCollision, overlayContainer } from '@/lib/overlay'
+import { dropdownRow, dropdownSurface, frameCollision, overlayContainer } from '@/lib/overlay'
 
 export type AddToCalendarProps = {
   /** Everything the export needs. The caller builds it from the FULL event doc.
@@ -52,10 +53,10 @@ export function downloadEventIcs(event: IcsEventInput) {
   window.setTimeout(() => URL.revokeObjectURL(href), 1000)
 }
 
-const menu =
-  'z-50 min-w-56 rounded-xl border border-divider bg-background p-1 text-foreground shadow-xl'
-const item =
-  'flex cursor-pointer flex-col items-start rounded-lg px-3 py-2 text-sm outline-none select-none data-[highlighted]:bg-primary-3'
+// Each row stacks a label over a sub-label, so it is wider and more generously padded than
+// the single-line rows the other two menus carry.
+const menu = clsx(dropdownSurface, 'min-w-56')
+const item = clsx(dropdownRow, 'flex-col items-start px-3')
 
 /**
  * "Add to calendar" on the registration confirmation (issue #105): one button opening a

@@ -110,3 +110,21 @@ export function widgetOverlayContainer(): HTMLElement | undefined {
 export function overlayContainer(): HTMLElement | undefined {
   return frameElement() ?? widgetOverlayContainer()
 }
+
+/**
+ * The shared skin for the app's three Radix dropdown menus — the surface, and one row.
+ *
+ * It lives here because these are the same three files `frameCollision` above serves, and
+ * `overlay.popper.test.ts` already pins them as a closed list. A third copy of the strings had
+ * already drifted from the other two (#367), so a fourth menu reaching for the look gets it from
+ * the same import it already needs for its collision boundary.
+ *
+ * Each menu composes its own differences on top: AddToCalendar stacks a sub-label under each
+ * label and is wider for it; the two selectable menus lay their checkmark, icon and label in a
+ * row. Those stay at the call site, so what every menu shares is the only thing stated once.
+ */
+export const dropdownSurface =
+  'z-50 rounded-xl border border-divider bg-background p-1 text-foreground shadow-xl'
+
+export const dropdownRow =
+  'flex cursor-pointer rounded-lg py-2 text-sm outline-none select-none data-[highlighted]:bg-primary-3'

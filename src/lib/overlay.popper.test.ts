@@ -80,3 +80,42 @@ describe('Radix poppers are bounded by the frame', () => {
     expect(readRaw('hooks/use-popover.ts')).not.toContain('frameCollision')
   })
 })
+
+/**
+ * The same three files share one dropdown skin, also as a closed list (#367).
+ *
+ * The surface and row class strings were spelled out in each menu, and by the third copy they
+ * had drifted — `min-w-56` against `min-w-44`, `px-3` against `px-2`. Nothing caught it: an
+ * unintended class is still a valid class, so lint, typecheck and the whole unit lane stay green
+ * while two menus look different. That is the same failure as the gap value each registration
+ * form held its own copy of, in the same change.
+ */
+const SKINNED: Record<string, string> = {
+  'components/molecules/AddToCalendar/AddToCalendar.tsx': 'stacked rows, wider for the sub-label',
+  'components/molecules/SettingsMenu/SettingsMenu.tsx': 'single-line rows, tinted while open',
+  'components/molecules/SortMenu/SortMenu.tsx': 'single-line rows',
+}
+
+/**
+ * The runs that identify a hand-spelled copy. Both are distinctive to the menu skin: the other
+ * surfaces in the app round to `2xl` or `lg`, and the Select atom highlights on `primary-4`.
+ */
+const SKIN_RUNS = ['rounded-xl border border-divider', 'data-[highlighted]:bg-primary-3']
+
+describe('the dropdown menus share one skin', () => {
+  it('composes both halves at each of them', () => {
+    for (const relative of Object.keys(SKINNED)) {
+      // Call-shaped, for the reason the boundary assertion above is.
+      expect(read(relative)).toMatch(/clsx\(\s*dropdownSurface\b/)
+      expect(read(relative)).toMatch(/clsx\(\s*dropdownRow\b/)
+    }
+  })
+
+  it('leaves the strings themselves nowhere else', () => {
+    for (const run of SKIN_RUNS) {
+      expect(SOURCE_FILES.filter((relative) => read(relative).includes(run))).toEqual([
+        'lib/overlay.ts',
+      ])
+    }
+  })
+})

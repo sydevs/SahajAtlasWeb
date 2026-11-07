@@ -1,22 +1,21 @@
 import type { SortOrder } from '@/lib/shape'
 
 import * as DropdownMenu from '@radix-ui/react-dropdown-menu'
+import clsx from 'clsx'
 import { useTranslation } from 'react-i18next'
 import { Check, ChevronDown } from 'lucide-react'
 
-import { frameCollision } from '@/lib/overlay'
+import { dropdownRow, dropdownSurface, frameCollision } from '@/lib/overlay'
 import { Button } from '@/components/atoms/Button'
 import { useSetSortOrder, useSortOrder } from '@/hooks/use-sort'
 import { SORT_ORDERS } from '@/lib/shape'
 import { overlayContainer } from '@/lib/overlay'
 
-// Dropdown surface and row skins, mirroring the SettingsMenu
-// selectable-menu pattern (Radix RadioGroup, ItemIndicator, Check). This
-// stays local. The two menus share only the look, not a base component.
-const menu =
-  'z-50 min-w-44 rounded-xl border border-divider bg-background p-1 text-foreground shadow-xl'
-const item =
-  'flex cursor-pointer select-none items-center gap-2 rounded-lg px-2 py-2 text-sm outline-none data-[highlighted]:bg-primary-3'
+// A single-line row: checkmark, then label. SettingsMenu lays its rows out the same way, and
+// the look they share with AddToCalendar lives in `lib/overlay.ts`. They share no base
+// component — only the skin.
+const menu = clsx(dropdownSurface, 'min-w-44')
+const item = clsx(dropdownRow, 'items-center gap-2 px-2')
 
 // The radio checkmark in a fixed-width slot, so labels line up whether or not the row
 // is the current choice.
