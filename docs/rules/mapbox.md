@@ -104,10 +104,12 @@ The map is the heart of the app and its hottest render path. Treat it carefully.
   `events` source clusters (`clusterMaxZoom` 14). Filtering it on `!has point_count` there
   hid it at every zoom it existed for.
 - It's a text heuristic, because SahajCloud has no such field and requires a street. ⚠ The
-  word list is the fallback, not the mechanism: SahajCloud's Atlas importer rewrites each
+  word list is load-bearing until SahajCloud's Atlas importer is taught to rewrite each
   placeholder street it knows to the town's own name (`VENUE_FIELD_OVERRIDES` in
-  `seeds/atlas/dedupe.ts`), which matches in any language. A lone `-` is deliberately not a
-  placeholder — its one listing is a park whose point is the park.
+  `seeds/atlas/dedupe.ts`), which the town-repeat rule catches in any language. Until that
+  ships and the next Atlas sync runs, dropping an entry drops a production listing with it.
+  A lone `-` is deliberately not a placeholder — its one listing is a park whose point is
+  the park.
 
 ## Pin-hover timing popover
 
