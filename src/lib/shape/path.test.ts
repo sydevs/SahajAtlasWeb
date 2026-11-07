@@ -1,6 +1,8 @@
 import { describe, it, expect } from 'vitest'
 
 import {
+  placePathsOf,
+  placedPathname,
   childRoute,
   filterOriginRegion,
   isCanonicalPath,
@@ -236,6 +238,35 @@ describe('parseCenter', () => {
     // The extremes themselves are legitimate.
     expect(parseCenter('180,90')).toEqual([180, 90])
     expect(parseCenter('-180,-90')).toEqual([-180, -90])
+  })
+})
+
+describe('placedPathname', () => {
+  const pathOf = placePathsOf([
+    { slug: 'gb', webPath: '/gb' },
+    { slug: 'south-east', webPath: '/gb/south-east' },
+    { slug: 'london', webPath: '/gb/south-east/london' },
+  ])
+
+  // A place opens by its last slug, so an old address still shows London. What sits behind it
+  // must be the UK at /gb, not a /united-kingdom page that doesn't exist.
+  it('swaps a typed ancestry for the real one, keeping what follows the place', () => {
+    expect(placedPathname('/united-kingdom/south-east/london', pathOf)).toBe(
+      '/gb/south-east/london',
+    )
+    expect(placedPathname('/united-kingdom/south-east/london/717/register', pathOf)).toBe(
+      '/gb/south-east/london/717/register',
+    )
+    expect(placedPathname('/london', pathOf)).toBe('/gb/south-east/london')
+  })
+
+  it('leaves a real address, an unknown place, and an unloaded tree alone', () => {
+    expect(placedPathname('/gb/south-east/london', pathOf)).toBe('/gb/south-east/london')
+    expect(placedPathname('/nowhere/atlantis', pathOf)).toBe('/nowhere/atlantis')
+    expect(placedPathname('/united-kingdom/south-east/london')).toBe(
+      '/united-kingdom/south-east/london',
+    )
+    expect(placedPathname('/search', pathOf)).toBe('/search')
   })
 })
 

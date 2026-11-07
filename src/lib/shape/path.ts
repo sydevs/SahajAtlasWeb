@@ -303,6 +303,45 @@ export const resolveStack = (pathname: string): StackEntry[] => {
   return entries
 }
 
+/** A place's address as the region tree gives it, by slug (`webPath`, already `safePath`-checked). */
+export type PlacePathOf = (slug: string) => string | undefined
+
+/** Each place's own address, by slug, from the region tree. Undefined until the tree is cached. */
+export const placePathsOf = (
+  regions: readonly { slug: string; webPath?: string | null }[] | undefined,
+): PlacePathOf | undefined => {
+  if (!regions) return undefined
+
+  const paths = new Map(regions.map((node) => [node.slug, safePath(node.webPath)]))
+
+  return (slug) => paths.get(slug)
+}
+
+/** The deepest place in a stack: the one the page actually shows, or holds the class it shows. */
+export const placeInStack = (
+  entries: readonly StackEntry[],
+): Extract<StackEntry, { kind: 'region' }> | undefined =>
+  [...entries]
+    .reverse()
+    .find((entry): entry is Extract<StackEntry, { kind: 'region' }> => entry.kind === 'region')
+
+/**
+ * The pathname with its deepest place's address swapped for the one the region tree gives it.
+ * A place resolves by its last slug alone (`resolvePath`), so a typed or old address such as
+ * `/united-kingdom/south-east/london` still opens London, whose country is `gb`. Read straight
+ * from the URL, the panels behind it would be `/united-kingdom/south-east` and `/united-kingdom`,
+ * and the climb would end on "We couldn't find that place". The address bar is left as typed;
+ * only the ancestry behind the page follows the data.
+ */
+export const placedPathname = (pathname: string, pathOf?: PlacePathOf): string => {
+  const place = placeInStack(resolveStack(pathname))
+  const real = place && pathOf?.(place.slug)
+
+  return real && !isCanonicalPath(place.path, real)
+    ? `${real}${pathname.slice(place.path.length)}`
+    : pathname
+}
+
 /**
  * The nearest region in a dead URL's ancestry that still exists — where to send
  * someone whose link 404'd (issue #89).
