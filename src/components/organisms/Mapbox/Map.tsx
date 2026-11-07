@@ -467,6 +467,9 @@ export function Mapbox({ cooperative = false }: { cooperative?: boolean } = {}) 
         logoPosition="bottom-right"
         mapStyle={MAP_STYLES[theme]}
         mapboxAccessToken={import.meta.env.VITE_MAPBOX_ACCESSTOKEN}
+        // The world shows once: with copies off, Mapbox keeps the world at least as wide as the
+        // map, so the world view (`reset()`) fills it edge to edge instead of repeating it.
+        renderWorldCopies={false}
         style={canvasStyle}
         worldview={MAP_WORLDVIEWS[languageCode] || MAP_WORLDVIEWS.default}
         onClick={selectFeature}

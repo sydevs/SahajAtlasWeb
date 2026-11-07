@@ -379,3 +379,20 @@ export function resolveEventDisplay(
     showNearby: full,
   }
 }
+
+/**
+ * An in-person class's street and town as one line, without saying the town twice. Hosts often
+ * type the town into the street field as well ("32 Cejl, 602 00, Brno", or just "Sneek"), and a
+ * plain join read "Brno, Brno". Only a last comma-separated part that IS the town counts, so
+ * "Rue de Paris" in Paris keeps its town.
+ */
+export const streetAndCity = (street?: string | null, city?: string | null): string => {
+  const s = street?.trim() ?? ''
+  const c = city?.trim() ?? ''
+
+  if (!s || !c) return s || c
+
+  const last = s.split(',').at(-1)?.trim() ?? ''
+
+  return last.localeCompare(c, undefined, { sensitivity: 'base' }) === 0 ? s : `${s}, ${c}`
+}

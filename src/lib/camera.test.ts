@@ -1,6 +1,12 @@
 import { describe, it, expect } from 'vitest'
 
-import { eventFrameZoom, fitBoundsOptions, hasMapPoint, isWithinPaddedViewport } from './camera'
+import {
+  eventFrameZoom,
+  fitBoundsOptions,
+  hasMapPoint,
+  isWithinPaddedViewport,
+  worldViewCamera,
+} from './camera'
 
 // Pure camera-move decisions — the controller owns the zoom values and applies the
 // action; live projection/easing is a browser concern, not asserted here.
@@ -135,5 +141,75 @@ describe('hasMapPoint', () => {
     expect(hasMapPoint({ address: { latitude: 43.65, longitude: null } })).toBe(false)
     expect(hasMapPoint({ address: null })).toBe(false)
     expect(hasMapPoint({})).toBe(false)
+  })
+})
+
+describe('worldViewCamera', () => {
+  const desktop = { width: 1280, height: 800 }
+  const world: [number, number] = [0, 20]
+  // The one part of Mapbox's projection this helper owns: the world is 512px wide at zoom 0
+  // and doubles each level. Everything else — how a longitude lands on screen, and the clamp
+  // the helper exists to stay inside — is Mapbox's, and only a browser can confirm it, so
+  // nothing here models either.
+  const worldPx = (zoom: number) => 512 * 2 ** zoom
+
+  it('makes the world as wide as the map plus the whole padding difference', () => {
+    // One spare px beyond the difference, so an edge is never a sub-pixel short.
+    expect(worldPx(worldViewCamera(desktop, { left: 372, right: 308 }, world).zoom)).toBeCloseTo(
+      1280 + 64 + 1,
+    )
+    expect(worldPx(worldViewCamera(desktop, { left: 372, right: 20 }, world).zoom)).toBeCloseTo(
+      1280 + 352 + 1,
+    )
+  })
+
+  it('widens by the same amount whichever side is heavier', () => {
+    expect(worldViewCamera(desktop, { left: 20, right: 372 }, world).zoom).toBe(
+      worldViewCamera(desktop, { left: 372, right: 20 }, world).zoom,
+    )
+  })
+
+  it('never makes the world narrower than the map is tall', () => {
+    // A phone is taller than wide, and its padding is even, so the height decides.
+    const camera = worldViewCamera({ width: 390, height: 844 }, { left: 20, right: 20 }, world)
+
+    expect(worldPx(camera.zoom)).toBeCloseTo(844)
+  })
+
+  it('changes nothing where the padding is even, as on a phone', () => {
+    expect(
+      worldViewCamera({ width: 390, height: 844 }, { left: 20, right: 20, bottom: 376 }, world)
+        .center,
+    ).toEqual(world)
+  })
+
+  it('passes the latitude through for Mapbox to clamp', () => {
+    expect(worldViewCamera(desktop, { left: 372, right: 20 }, [0, 20]).center[1]).toBe(20)
+  })
+
+  // A 1633px world over a 1280px map leaves only a 39° band of centres that still reaches both
+  // edges, and the side panel puts that band east of the antimeridian's own. A centre inside it
+  // is passed through; one outside moves to the nearer end, never past it.
+  it('clamps a centre that would leave an edge blank, and keeps one that would not', () => {
+    const centre = (lng: number) =>
+      worldViewCamera(desktop, { left: 372, right: 20 }, [lng, 20]).center[0]
+
+    expect(centre(0)).toBe(0)
+    expect(centre(-170)).toBeCloseTo(-0.11, 2)
+    expect(centre(-40)).toBeCloseTo(-0.11, 2)
+    expect(centre(170)).toBeCloseTo(38.91, 2)
+  })
+
+  it('mirrors the band for padding that is heavier on the right', () => {
+    const centre = (lng: number) =>
+      worldViewCamera(desktop, { left: 20, right: 372 }, [lng, 20]).center[0]
+
+    expect(centre(0)).toBe(0)
+    expect(centre(170)).toBeCloseTo(0.11, 2)
+    expect(centre(-170)).toBeCloseTo(-38.91, 2)
+  })
+
+  it('leaves a map with no size to Mapbox', () => {
+    expect(worldViewCamera({ width: 0, height: 0 }, {}, world)).toEqual({ center: world, zoom: 0 })
   })
 })

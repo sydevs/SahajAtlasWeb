@@ -138,3 +138,38 @@ describe('useEventDisplay — an online class seen from another zone', () => {
     expect(linesFrom('Europe/Berlin')).toEqual({ main: 'Every Wednesday · 7:30 PM', subtext: null })
   })
 })
+
+describe('useEventDisplay — the type label', () => {
+  const labelFor = (event: DisplayableEvent) => {
+    let label: string | null = 'unset'
+    const Probe = () => {
+      label = useEventDisplay(event).typeLabel
+
+      return null
+    }
+
+    renderToStaticMarkup(createElement(Probe))
+
+    return label
+  }
+
+  // The resolver reads an absent recurrence as `oneoff`, and a listing with no schedule at all
+  // has no recurrence either. Naming it is what put "One-off event" on a by-request class.
+  it('is null for a by-request listing, which carries no schedule', () => {
+    expect(labelFor({ eventType: 'offline', address: { city: 'Stirling' } })).toBe(null)
+  })
+
+  it('still names a real one-off an operator marked inactive', () => {
+    expect(
+      labelFor({
+        eventType: 'offline',
+        inactive: true,
+        address: { city: 'Stirling' },
+        schedule: {
+          firstDate: new Date('2026-07-01T17:30:00Z'),
+          firstDate_tz: 'Europe/Prague',
+        },
+      }),
+    ).toBe('One-off event')
+  })
+})
