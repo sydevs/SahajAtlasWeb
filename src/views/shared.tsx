@@ -461,10 +461,17 @@ export function EmptyEventList() {
 // conditions. Only the close button persists a session-scoped dismissal. Accepting merely
 // navigates. The prompt self-hides while the visitor views that area, but returns once they
 // leave it.
+//
+// The lookup can land seconds after the list has painted, and a banner pushed in above rows the
+// visitor may be about to tap moved them 48px under the finger. So a view mounts this twice:
+// `above` shows only if the answer was already known at the first paint, `below` only if it came
+// later, where it moves nothing.
 export function GeolocationSuggestion({
   regionCenter,
+  position,
 }: {
   regionCenter?: [number, number] | null
+  position: 'above' | 'below'
 }) {
   const navigate = useAtlasNavigate()
   const [searchParams] = useSearchParams()
@@ -493,6 +500,7 @@ export function GeolocationSuggestion({
       }),
     [ipLocation, dismissed, activeSearch, geojson, regionCenter],
   )
+  const knownAtFirstPaint = useRef(show)
 
   const handleSelect = useCallback(() => {
     if (!ipLocation) return
@@ -527,9 +535,11 @@ export function GeolocationSuggestion({
   }, [])
 
   // `!ipLocation` is implied by `!show`, but narrows the type for the render below.
-  if (!ipLocation || !show) return null
+  if (!ipLocation || !show || knownAtFirstPaint.current !== (position === 'above')) return null
 
   return (
-    <GeolocationPrompt city={ipLocation.city} onAccept={handleSelect} onClose={handleDismiss} />
+    <div className={position === 'below' ? 'pt-3' : undefined}>
+      <GeolocationPrompt city={ipLocation.city} onAccept={handleSelect} onClose={handleDismiss} />
+    </div>
   )
 }

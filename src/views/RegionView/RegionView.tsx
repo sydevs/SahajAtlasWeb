@@ -151,7 +151,7 @@ export function RegionView({ slug }: { slug: string }) {
         {/* This is suppressed while the acknowledgement is up. Two stacked prompts above the
             list are more than the screen can carry, and the reader has just acted once
             already. It returns as soon as they dismiss the banner. */}
-        {!feedback && <GeolocationSuggestion regionCenter={region.center} />}
+        {!feedback && <GeolocationSuggestion position="above" regionCenter={region.center} />}
         {isEmpty && filterSearch ? (
           <FallbackPanel
             align="start"
@@ -195,6 +195,7 @@ export function RegionView({ slug }: { slug: string }) {
               ))}
           </List>
         )}
+        {!feedback && <GeolocationSuggestion position="below" regionCenter={region.center} />}
       </DrawerBody>
     </>
   )

@@ -107,7 +107,7 @@ export function CountriesView() {
       </DrawerHeader>
       <DrawerBody>
         <ActiveFilterPills />
-        <GeolocationSuggestion />
+        <GeolocationSuggestion position="above" />
         {noMatches ? (
           <FallbackPanel
             align="start"
@@ -148,6 +148,7 @@ export function CountriesView() {
             ))}
           </List>
         )}
+        <GeolocationSuggestion position="below" />
       </DrawerBody>
     </>
   )
