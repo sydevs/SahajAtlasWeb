@@ -96,10 +96,25 @@ export const hasVagueAddress = (address?: VagueAddress | null): boolean => {
 }
 
 /**
+ * Which of the three shapes a listing is, from the schedule's own discriminators. `resolveEventDisplay`
+ * and `hasApproximatePlace` both read it, so neither can disagree about what a class is.
+ */
+const eventKind = (schedule?: EventSchedule | null): EventKind =>
+  !schedule?.recurrenceType ? 'oneoff' : schedule.endingType ? 'course' : 'class'
+
+/**
  * Whether an in-person listing's stored point stands for its town rather than a door, so the map
- * draws an area and nothing offers directions to it: an inactive listing, which meets only on
- * request, or one whose street names no place (`hasVagueAddress`). Inactive means what
- * `resolveEventDisplay` reads first, the flag or no schedule at all.
+ * draws an area and nothing offers directions to it: a listing `resolveEventDisplay` calls
+ * inactive, or one whose street names no place (`hasVagueAddress`).
+ *
+ * ⚠ "Inactive" has to mean here what it means there, or the map and the panel disagree about the
+ * same listing — the disagreement this predicate exists to remove. So it covers a dateless class
+ * too, not only the flag and a missing schedule: `resolveEventDisplay` reports every class with no
+ * occurrence left as inactive, and the panel already hides its street on that verdict.
+ *
+ * This reads no clock, which leaves one narrow residue: a schedule whose `upcomingDates` is empty
+ * while its first session has not finished reads dateless here, where `resolveEventDisplay` falls
+ * back to that session. That is upstream drift, and an area is the safe answer to it.
  */
 export const hasApproximatePlace = (
   event: EventLike & {
@@ -107,7 +122,11 @@ export const hasApproximatePlace = (
     address?: VagueAddress | null
   },
 ): boolean =>
-  !isOnline(event) && (Boolean(event.inactive) || !event.schedule || hasVagueAddress(event.address))
+  !isOnline(event) &&
+  (Boolean(event.inactive) ||
+    !event.schedule ||
+    (eventKind(event.schedule) === 'class' && !nextOccurrence(event)) ||
+    hasVagueAddress(event.address))
 
 /**
  * Published with nobody vouching for it — the one stage that means that. The reminder
@@ -355,7 +374,7 @@ export function resolveEventDisplay(
   const hasWebsite = Boolean(event.website)
 
   const recurrence = schedule?.recurrenceType ?? null
-  const kind: EventKind = !recurrence ? 'oneoff' : schedule?.endingType ? 'course' : 'class'
+  const kind = eventKind(schedule)
   // Capacity is a server-owned boolean (SahajCloud#601). The widget never counts
   // registrations. This is coalesced so an absent flag degrades to not-full.
   const atCapacity = event.registrationsFull ?? false

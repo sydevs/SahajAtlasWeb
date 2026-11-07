@@ -242,7 +242,9 @@ export function useEventDisplay(event: DisplayableEvent): EventDisplayStrings {
     // ── Where ──
     // An inactive venue, or a street that names no place, has no precise location (#15).
     // This shows only the municipality, city or region name, never the street address.
-    const townOnly = display.status === 'inactive' || hasApproximatePlace(event)
+    // One predicate, which the map reads too, so the two cannot describe the same listing
+    // differently — `hasApproximatePlace` owns what counts as inactive.
+    const townOnly = hasApproximatePlace(event)
     const whereLine = display.online
       ? `${t('event.display.online')} • ${t('event.display.hosted_from', { city: originCity })}`
       : townOnly

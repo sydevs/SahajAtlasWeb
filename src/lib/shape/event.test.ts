@@ -565,11 +565,7 @@ describe('hasVagueAddress', () => {
 })
 
 describe('hasApproximatePlace', () => {
-  const weekly = {
-    firstDate: new Date('2026-07-01T17:30:00Z'),
-    firstDate_tz: 'Europe/London',
-    recurrenceType: 'WEEKLY' as const,
-  }
+  const weekly = weeklySchedule
   const street = { street: '16 Ramsden Rd', city: 'London' }
 
   it('is true for an inactive listing, even with a real street', () => {
@@ -592,6 +588,33 @@ describe('hasApproximatePlace', () => {
         address: { street: 'Sneek', city: 'Sneek' },
       }),
     ).toBe(true)
+  })
+
+  // `resolveEventDisplay` reports a class with no occurrence left as inactive, and the panel
+  // hides its street on that. The map pinned it, which is the disagreement this removes.
+  it('is true for a class whose occurrences have all passed', () => {
+    const dateless = { ...weeklySchedule, upcomingDates: [] }
+
+    expect(hasApproximatePlace({ eventType: 'offline', schedule: dateless, address: street })).toBe(
+      true,
+    )
+    expect(
+      resolveEventDisplay({ eventType: 'offline', schedule: dateless }, at('2026-08-01T10:00:00'))
+        .status,
+    ).toBe('inactive')
+  })
+
+  // A course that is over is `ended`, not inactive — its venue was real and its street still shows.
+  it('is false for a course that has ended', () => {
+    const over = { ...weeklySchedule, endingType: 'count' as const, count: 4, upcomingDates: [] }
+
+    expect(hasApproximatePlace({ eventType: 'offline', schedule: over, address: street })).toBe(
+      false,
+    )
+    expect(
+      resolveEventDisplay({ eventType: 'offline', schedule: over }, at('2026-08-01T10:00:00'))
+        .status,
+    ).toBe('ended')
   })
 
   it('is false for an active class at a real street, and for any online event', () => {
