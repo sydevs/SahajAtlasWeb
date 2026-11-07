@@ -1,4 +1,5 @@
 import type {
+  EventAddress,
   EventSchedule,
   EventType,
   RegistrationQuestionName,
@@ -25,8 +26,11 @@ export type DisplayEventLike = EventLike & {
   /** CMS capacity flag (SahajCloud#601). Absent/null reads as not-full. */
   registrationsFull?: boolean | null
   /** Read only to decide whether the place is real enough to give directions to. */
-  address?: { street?: string | null; city?: string | null } | null
+  address?: VagueAddress | null
 }
+
+/** All `hasVagueAddress` reads, so a feed event and a full document both satisfy it. */
+type VagueAddress = Pick<EventAddress, 'street' | 'city'>
 
 export const isOnline = (event: EventLike): boolean => event.eventType === 'online'
 
@@ -80,12 +84,7 @@ const NO_PLACE_STREETS = new Set(
  * whose point is the park. The Atlas importer writes the town's own name for every placeholder it
  * knows of (`seeds/atlas/dedupe.ts` in SahajCloud), which this matches in any language.
  */
-export const hasVagueAddress = (
-  address?: {
-    street?: string | null
-    city?: string | null
-  } | null,
-): boolean => {
+export const hasVagueAddress = (address?: VagueAddress | null): boolean => {
   if (!address) return false
 
   const city = fold(address.city)
@@ -104,7 +103,7 @@ export const hasVagueAddress = (
 export const hasApproximatePlace = (
   event: EventLike & {
     inactive?: boolean | null
-    address?: { street?: string | null; city?: string | null } | null
+    address?: VagueAddress | null
   },
 ): boolean =>
   !isOnline(event) && (Boolean(event.inactive) || !event.schedule || hasVagueAddress(event.address))
