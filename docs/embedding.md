@@ -424,6 +424,20 @@ An **unsized** map embed is the one thing that does not adapt, since there is no
 — it fills the window. **A map embed with neither a height nor the page to itself renders the
 compact card instead**, whose button opens the map full-screen (below).
 
+⚠ **A full-window map on a phone wants `viewport-fit=cover` in your viewport meta tag.** The
+widget keeps its panel, its peek strips and the map's own controls clear of a notch or a camera
+cut-out, reading `env(safe-area-inset-*)` to do it. Those values are **zero** unless your page
+opts in:
+
+```html
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+```
+
+Without it, a phone held sideways letterboxes the page away from the cut-out, which is safe but
+narrower, and the widget's own insets do nothing. With it, your page runs under the cut-out and
+the widget stays clear of it — but so must the rest of your page, so this is your call, not
+ours. Nothing about the widget breaks either way, and a contained embed is unaffected.
+
 ### When the slot is too small
 
 Below a certain size no layout works, so the widget shows a **compact card** instead: a heading
