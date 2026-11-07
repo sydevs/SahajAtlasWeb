@@ -489,8 +489,10 @@ html.sy-atlas {
    Schedule-X's DOM — overriding its own `:root`/`.is-dark` values. Because our tokens
    already flip with light/dark plus the tenant accent, the calendar follows the theme
    with no second palette. This sits outside a Tailwind layer, so the overrides always
-   win. */
-.sx-calendar {
+   win. `.is-dark` repeats the mapping because Schedule-X sets its own purple palette on that
+   class, on an element inside this wrapper, which beat the inherited values. */
+.sx-calendar,
+.sx-calendar .is-dark {
   --sx-color-primary: hsl(var(--primary-9));
   /* The on-primary/secondary colours are the theme-adaptive `--*-on` tokens (light: white,
      dark: black — the same on-color the solid Button uses), NOT a `--*-contrast` token, which
@@ -523,7 +525,9 @@ html.sy-atlas {
   --sx-internal-color-text: var(--gray-12);
   --sx-internal-color-light-gray: var(--gray-4);
   --sx-border: var(--gray-6);
+}
 
+.sx-calendar {
   height: 100%;
   min-height: 0;
 }
