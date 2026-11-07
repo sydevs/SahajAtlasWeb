@@ -242,9 +242,6 @@ export type UseTurnstile = {
   challengeRef: RefObject<HTMLDivElement>
   /** The solved token, or null while unsolved or expired. */
   token: string | null
-  /** True while Cloudflare is asking the visitor to click: the frame is open. Otherwise it is
-   *  collapsed to nothing, and its slot takes no room in the caller's column. */
-  interactive: boolean
   status: TurnstileStatus
   /**
    * Discards the token and re-runs the challenge in place. A no-op while it is not rendered, so
@@ -264,7 +261,6 @@ export function useTurnstile({ disabled = false }: UseTurnstileOptions = {}): Us
   // effect. The origin rides along so a frame navigated elsewhere receives no command.
   const frameRef = useRef<{ frame: HTMLIFrameElement; origin: string } | null>(null)
   const [token, setToken] = useState<string | null>(null)
-  const [interactive, setInteractive] = useState(false)
   const [status, setStatus] = useState<TurnstileStatus>(disabled ? 'blocked' : 'loading')
   const { theme } = useTheme()
   const { languageCode } = useLocale()
@@ -279,7 +275,6 @@ export function useTurnstile({ disabled = false }: UseTurnstileOptions = {}): Us
     if (disabled) return
 
     setToken(null)
-    setInteractive(false)
     setStatus('loading')
 
     const { frame, origin, dispose } = createChallengeFrame(
@@ -292,12 +287,10 @@ export function useTurnstile({ disabled = false }: UseTurnstileOptions = {}): Us
           case 'interactive':
             frame.height = String(FRAME_HEIGHT)
             collapseSlot(slot, false)
-            setInteractive(true)
             break
           case 'settled':
             frame.height = '0'
             collapseSlot(slot, true)
-            setInteractive(false)
             break
           // Turnstile's `retry` defaults to `auto`, so a transient failure is often followed by a
           // retry that solves. `blocked` must NOT latch, or the user holds a valid token while
@@ -339,5 +332,5 @@ export function useTurnstile({ disabled = false }: UseTurnstileOptions = {}): Us
     live.frame.contentWindow.postMessage({ channel: CHALLENGE_CHANNEL, type: 'reset' }, live.origin)
   }, [])
 
-  return { challengeRef, token, interactive, status, reset }
+  return { challengeRef, token, status, reset }
 }
