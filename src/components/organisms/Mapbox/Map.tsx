@@ -374,10 +374,6 @@ export function Mapbox({ cooperative = false }: { cooperative?: boolean } = {}) 
   // before a tap, and when that reveals content Safari treats the tap as a hover and doesn't click.
   const hasRealPointer = useHasRealPointer()
 
-  // A touch device gets no hover at all, so one tap opens the class. iOS sends a fake mouse move
-  // before a tap, and when that reveals content Safari treats the tap as a hover and doesn't click.
-  const hasRealPointer = useHasRealPointer()
-
   // Mapbox's locate control fails silently otherwise (#321). ⚠ A permission already denied when
   // the map loads never reaches `onError`: mapbox renders the control disabled instead.
   const [locationFailed, setLocationFailed] = useState(false)
