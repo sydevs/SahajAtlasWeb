@@ -539,8 +539,9 @@ sits at about half the bound. Re-measured 2026-10-26, at 17 specs rather than 15
 widest and **5.0s** for `i18n.ts`, medians of three. Both fell while the widest selection grew, so
 read the two figures as a pair taken on one machine, never as a trend. Re-measured 2026-11-01, at
 19: **5.5s** for the widest and **6.2s** for `i18n.ts`, medians of three on 4 cores. Re-measured
-2026-11-06, at 20: **1.97s** for the widest and **2.26s** for `i18n.ts`, medians of three on 11
-cores, so not comparable with the 4-core figures.
+2026-11-07, at 20: **4.0s** for the widest and **4.4s** for `i18n.ts`, medians of three on 4
+cores. The slowest edit sits at about a third of the bound, so the ceiling is the narrower
+constraint of the two — a slot is spent long before a second is.
 ⚠ **The 0.12s class is smaller than #289 found it**: `src/views/FullInterface.tsx` selected
 nothing until `MapFrame.test.tsx` named it as a quoted repo-relative path, and now costs **2.2s**
 per edit for the wiring pin it previously had no per-edit coverage from at all. A quoted literal
