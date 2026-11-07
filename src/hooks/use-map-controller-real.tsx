@@ -7,7 +7,7 @@ import { bboxPolygon } from '@turf/bbox-polygon'
 import { MapControllerContext } from './use-map-controller'
 
 import { useMapbox, usePaddingState } from '@/hooks/use-mapbox'
-import { useViewState } from '@/config/store'
+import { useClassSheet, useViewState } from '@/config/store'
 import { useIsWide } from '@/config/responsive'
 import { eventFrameZoom, hasMapPoint } from '@/lib/camera'
 import { isOnline } from '@/lib/shape'
@@ -15,7 +15,8 @@ import { frameElement } from '@/lib/overlay'
 
 // These are the fixed left-drawer footprint and the mobile sheet's open height.
 // The code feeds them to map padding directly, so the camera and controls stay unoccluded.
-// This never DOM-measures the panel.
+// This never DOM-measures the panel. A class's taller sheet is the one exception, and
+// `DrawerStack` measures it and hands it over (`useClassSheet`).
 //
 // **`DRAWER_W_PX` is one half of a pair. See the other half before you change it.**
 // The drawer's actual width comes from a `352px` fallback baked into its Tailwind classes.
@@ -43,6 +44,8 @@ const MOBILE_SHEET_PX = 300
 // A short contained embed (#169) can be under twice the sheet's height. Padding past the canvas
 // makes `fitBounds` refuse the fit outright, so the sheet's share is capped.
 const MOBILE_SHEET_MAX_SHARE = 0.5
+// What a class's taller sheet must still leave of the map above it, for its pin.
+const MIN_MAP_STRIP_PX = 160
 const MAP_MARGIN = 20
 
 // These constants keep zoom consistent.
@@ -87,6 +90,7 @@ export function RealMapControllerProvider({ children }: { children: ReactNode })
   const setSelection = useViewState((s) => s.setSelection)
   const setHover = useViewState((s) => s.setHover)
   const setBoundary = useViewState((s) => s.setBoundary)
+  const classSheet = useClassSheet((s) => s.bottom)
   // This is the box the map actually occupies.
   // It is the frame when a contained embed, or the compact card's expanded dialog, has taken the containing block. See issue #169.
   // Otherwise it is the viewport, which is what this value computed before frames existed.
@@ -106,7 +110,10 @@ export function RealMapControllerProvider({ children }: { children: ReactNode })
   // Keep the drawer's known footprint out of the usable camera area.
   useEffect(() => {
     const boxHeight = frameElement()?.clientHeight ?? window.innerHeight
-    const sheet = Math.min(MOBILE_SHEET_PX, boxHeight * MOBILE_SHEET_MAX_SHARE)
+    const sheet =
+      classSheet === null
+        ? Math.min(MOBILE_SHEET_PX, boxHeight * MOBILE_SHEET_MAX_SHARE)
+        : Math.max(0, Math.min(classSheet, boxHeight - MIN_MAP_STRIP_PX))
 
     setPadding({
       left: MAP_MARGIN + (isWide ? DRAWER_W_PX : 0),
@@ -114,7 +121,7 @@ export function RealMapControllerProvider({ children }: { children: ReactNode })
       top: MAP_MARGIN,
       bottom: MAP_MARGIN + (isWide ? 0 : sheet),
     })
-  }, [isWide, setPadding])
+  }, [isWide, classSheet, setPadding])
 
   const controller = useMemo<MapController>(
     () => ({

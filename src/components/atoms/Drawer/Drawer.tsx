@@ -390,7 +390,16 @@ export function DrawerToolbar({
   return <div className={slots.toolbar({ className })}>{children}</div>
 }
 
-export function DrawerBody({ children, className }: { children: ReactNode; className?: string }) {
+export function DrawerBody({
+  children,
+  className,
+  fitSheet = false,
+}: {
+  children: ReactNode
+  className?: string
+  /** Marks the body whose content a phone sheet opens tall enough to show (`use-fit-snap.ts`). */
+  fitSheet?: boolean
+}) {
   const { slots } = useDrawerSlots()
   // Once the body scrolls, its content slides under the opaque header, and
   // the two blend into one another. A soft inset shadow along the body's top
@@ -407,6 +416,7 @@ export function DrawerBody({ children, className }: { children: ReactNode; class
       className={slots.body({
         className: `${scrolled ? 'shadow-[inset_0_7px_6px_-7px_rgb(0_0_0/0.25)]' : ''} ${className ?? ''}`,
       })}
+      data-sheet-fit={fitSheet || undefined}
       onScroll={(event) => setScrolled(event.currentTarget.scrollTop > 0)}
     >
       {children}

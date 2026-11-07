@@ -24,7 +24,7 @@ import { Drawer, DrawerContent } from '@/components/atoms/Drawer'
 import { ResetErrorBoundary, SettingsMenu } from '@/components/molecules'
 import { WidgetWidthContext, useIsWide } from '@/config/responsive'
 import { useWidgetMode } from '@/config/mode'
-import { useCalendarPosition } from '@/config/store'
+import { useCalendarPosition, useClassSheet } from '@/config/store'
 import { frameElement, overlayContainer } from '@/lib/overlay'
 import {
   type StackEntry,
@@ -39,6 +39,7 @@ import {
 import { wakesSheetLoop } from '@/views/DrawerStack/sheet-wake'
 import { stripLabel } from '@/views/DrawerStack/strip-label'
 import { ViewLayer } from '@/views/DrawerStack/ViewLayer'
+import { useFitSnap } from '@/views/DrawerStack/use-fit-snap'
 import { DrawerControlContext } from '@/views/shared'
 import { DrawerErrorFallback, DrawerLoading } from '@/views/fallbacks'
 import { CountriesView } from '@/views/CountriesView/CountriesView'
@@ -92,6 +93,9 @@ const SNAP_POINTS = ['80px', '300px', 0.97]
 const PEEK_SNAP = '80px' // the collapsed peek
 const OPEN_SNAP = '300px' // default, and what the peek expands to
 const WIDE_SNAP = SNAP_POINTS[2] // the near-full snap the full-width calendar opens at
+// Stands for "as tall as the content" in `snap`. The pixel value moves with the content, so the
+// state holds this token and the ladder carries the live number (`useFitSnap`).
+const FIT_SNAP = 'fit'
 
 // How far each stacked ancestor peeks out behind the active sheet. Wide enough to read as
 // a deliberate stack of cards from across the screen. An earlier few-pixel sliver was easy
@@ -316,6 +320,41 @@ export function DrawerStack() {
   const parentPath = parentPaths.at(-1)
   const canCollapse = hasMap && direction === 'bottom'
 
+  // A class opens as tall as its content and footer, up to the near-full snap. At the
+  // third-height snap the sticky Register bar covered the address, and on a small phone it
+  // sliced the "Next session" line in half. It never opens lower than that snap: the loading
+  // skeleton is short, and a sheet that dipped under it would only climb again once the class
+  // arrived. One drag down still stops there, with the map and the class's pin above.
+  const fit = useFitSnap(
+    direction === 'bottom' && hasMap && top?.kind === 'event',
+    location.pathname,
+  )
+  const fitPx = typeof fit === 'number' && fit > parseFloat(OPEN_SNAP) ? fit : null
+  const fitSnap = fitPx === null ? null : `${fitPx}px`
+  const snapPoints = useMemo(
+    () => (fitSnap === null ? SNAP_POINTS : [PEEK_SNAP, OPEN_SNAP, fitSnap, WIDE_SNAP]),
+    [fitSnap],
+  )
+  const openSnap = top?.kind === 'event' ? FIT_SNAP : OPEN_SNAP
+  const vaulSnap = snap === FIT_SNAP ? (fit === 'full' ? WIDE_SNAP : (fitSnap ?? OPEN_SNAP)) : snap
+  // vaul echoes every `activeSnapPoint` it is handed back through this setter. Taking the echo
+  // literally would swap the token for whatever it resolved to that render, and the sheet would
+  // stop following its content.
+  const setVaulSnap = (next: number | string | null) => {
+    if (next === vaulSnap) return
+    setSnap(fitSnap !== null && next === fitSnap ? FIT_SNAP : next)
+  }
+  // The camera keeps a class's pin above a sheet taller than the usual allowance. A class too
+  // long to fit opens near full, where the pin is hidden anyway, so it keeps the usual framing
+  // for the third-height stop one drag below.
+  const setClassSheet = useClassSheet((s) => s.setBottom)
+
+  useEffect(() => {
+    setClassSheet(fitPx)
+
+    return () => setClassSheet(null)
+  }, [fitPx, setClassSheet])
+
   // The stack must show the panels a repeated X actually goes through, which is a history
   // question, not a URL one (see `dismissDepth`). `entryAncestors` is the structural height
   // of the last depth-0 location. This is remembered because once history has pushed past
@@ -536,7 +575,9 @@ export function DrawerStack() {
   // This runs only when navigating to or from the calendar, so it never fights a
   // manual drag on a non-calendar view.
   useEffect(() => {
-    if (direction === 'bottom') setSnap(top?.kind === 'calendar' ? WIDE_SNAP : OPEN_SNAP)
+    if (direction === 'bottom') {
+      setSnap(top?.kind === 'calendar' ? WIDE_SNAP : top?.kind === 'event' ? FIT_SNAP : OPEN_SNAP)
+    }
   }, [direction, top?.kind])
 
   // A new searched place lifts the sheet out of its peek, so results are never
@@ -583,7 +624,7 @@ export function DrawerStack() {
       collapsed: snap === PEEK_SNAP,
       canCollapse,
       canDismiss: action !== 'collapse',
-      toggle: () => setSnap((s) => (s === PEEK_SNAP ? OPEN_SNAP : PEEK_SNAP)),
+      toggle: () => setSnap((s) => (s === PEEK_SNAP ? openSnap : PEEK_SNAP)),
       dismiss: () => {
         // Marks the dismiss navigation as a transition: unmounting a heavy view (the
         // calendar's large grid) would otherwise reconcile synchronously and freeze
@@ -597,7 +638,7 @@ export function DrawerStack() {
           })
       },
     }
-  }, [snap, canCollapse, parentPath, depth, location, navigate, toStackTarget])
+  }, [snap, openSnap, canCollapse, parentPath, depth, location, navigate, toStackTarget])
 
   // The filter overlay's own dismiss (its X / swipe / Esc): back to the calendar it
   // opened over — chronologically when there is in-widget history, otherwise a direct
@@ -845,7 +886,7 @@ export function DrawerStack() {
           key={direction}
           dismissible
           open
-          activeSnapPoint={direction === 'bottom' ? snap : undefined}
+          activeSnapPoint={direction === 'bottom' ? vaulSnap : undefined}
           container={target}
           direction={direction}
           // The left panel (≥md) has no handle and no snap points, so restricting
@@ -858,8 +899,8 @@ export function DrawerStack() {
           // the `display: contents` theme root and measures 0×0. See the note in
           // `Drawer.tsx`.
           measureAgainst={frameElement()}
-          setActiveSnapPoint={direction === 'bottom' ? setSnap : undefined}
-          snapPoints={direction === 'bottom' ? SNAP_POINTS : undefined}
+          setActiveSnapPoint={direction === 'bottom' ? setVaulSnap : undefined}
+          snapPoints={direction === 'bottom' ? snapPoints : undefined}
           wide={wide}
           onOpenChange={(o) => !o && control.dismiss()}
         >
