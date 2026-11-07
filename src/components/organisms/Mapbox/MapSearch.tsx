@@ -93,6 +93,7 @@ export function MapSearch({ onSelect, label }: MapSearchProps) {
     isoCountryCode(home?.webPath?.split('/').filter(Boolean)[0])
   const [releasedFrom, setReleasedFrom] = React.useState<string>()
   const scope = country !== releasedFrom ? country : undefined
+  const [foundNothing, setFoundNothing] = React.useState(false)
 
   // This follows a new `?q`. The field seeds from the URL once, in the state initializer above.
   // But a pick writes a new place name, the geolocate control names the place it found AFTER
@@ -118,12 +119,17 @@ export function MapSearch({ onSelect, label }: MapSearchProps) {
 
     if (none && scope) {
       setReleasedFrom(scope)
+      setFoundNothing(false)
       // The geocoder searches on input, so wait for it to take the wider options, then repeat the
       // query.
       requestAnimationFrame(() => {
         field.current?.querySelector('input')?.dispatchEvent(new Event('input', { bubbles: true }))
       })
+
+      return
     }
+
+    setFoundNothing(none)
   }
 
   return (
@@ -173,6 +179,12 @@ export function MapSearch({ onSelect, label }: MapSearchProps) {
           onSuggest={onSuggest}
         />
       </GeocoderBoundary>
+      {/* Without this a place that doesn't exist left the list as it was, with no answer at all. */}
+      {foundNothing && searchQuery.trim() && (
+        <p className="pt-2 text-sm text-gray-11" role="status">
+          {t('common.errors.not_found_region')}
+        </p>
+      )}
     </div>
   )
 }
