@@ -277,7 +277,8 @@ two axes separate — an inner fallback must never re-throw to escalate.
 - **Body-level boundaries need `resetKeys`.** The drawer boundary keys on the
   *pathname*, but a re-search or a filter change only moves the query string —
   without a `resetKeys` entry, one failure pins its error over every later
-  attempt. Search excludes `?q` (the geocoder rewrites it per keystroke).
+  attempt. Search excludes `?q` (only a label; typing never writes it — the URL
+  changes when a place is picked).
 - **Each such site needs its own `QueryErrorResetBoundary`.**
   `useSuspenseQuery` binds to the nearest one — without it, "Try again" just
   re-throws the cached error.

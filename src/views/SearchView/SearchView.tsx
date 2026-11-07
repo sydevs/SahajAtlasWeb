@@ -53,7 +53,7 @@ export function SearchView() {
   )
 
   // What the list boundary below resets on — see `listResetKey`: everything that changes
-  // WHAT is queried, minus the per-keystroke `?q`.
+  // WHAT is queried, minus `?q`.
   const resetKey = useMemo(() => listResetKey(searchParams), [searchParams])
 
   return (
