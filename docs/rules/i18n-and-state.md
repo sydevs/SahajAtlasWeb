@@ -42,6 +42,10 @@ paths:
   call is a bare `useTranslation()`.
 - **Interpolation uses Ruby-style delimiters** `%{var}`, not i18next's default
   `{{var}}` — the CMS stores the copy in that form. Match it in code and in the CMS.
+- **A link inside a sentence is `<link>…</link>` in the copy** (`splitInlineLink`,
+  `lib/shape/inline-link.ts`), so each language places the link and words it. The code owns the
+  href, and the string is never rendered as markup. A translation without the span renders as
+  plain text. `registration.form.privacy_policy` is the one key that uses it today.
 - **`count` is a reserved plural trigger.** Do not pass it for a plain number: `t()`
   resolves `key_one` / `key_other` instead of the base key. Pass it only for a key
   the CMS declares `plural: true` (`event.display.sessions_count` is the one today).
