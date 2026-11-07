@@ -38,7 +38,7 @@ export function calendarLinkTargets(event: IcsEventInput): CalendarLinkTarget[] 
   ]
 }
 
-export function downloadEventIcs(event: IcsEventInput) {
+function downloadEventIcs(event: IcsEventInput) {
   const blob = new Blob([buildEventIcs(event)], { type: 'text/calendar;charset=utf-8' })
   const href = URL.createObjectURL(blob)
   const anchor = document.createElement('a')
@@ -88,7 +88,6 @@ export function AddToCalendar({ event }: AddToCalendarProps) {
 
       <DropdownMenu.Portal container={overlayContainer()}>
         <DropdownMenu.Content align="start" className={menu} sideOffset={8} {...frameCollision()}>
-          {/* The accessible name CONTAINS the visible "Apple Calendar" (WCAG 2.5.3). */}
           <DropdownMenu.Item className={item} onSelect={() => downloadEventIcs(event)}>
             <span>Apple Calendar</span>
             <span className="text-xs text-gray-11">{t('event.actions.download_ics')}</span>
