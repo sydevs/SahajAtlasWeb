@@ -1,3 +1,5 @@
+import { tv } from 'tailwind-variants'
+
 import { getThemeRoot } from '@/hooks/use-theme'
 
 // Where Radix overlays (Dialog, Select listbox) portal to. They render into
@@ -112,19 +114,26 @@ export function overlayContainer(): HTMLElement | undefined {
 }
 
 /**
- * The shared skin for the app's three Radix dropdown menus — the surface, and one row.
+ * The skin the app's three Radix dropdown menus share.
  *
- * It lives here because these are the same three files `frameCollision` above serves, and
- * `overlay.popper.test.ts` already pins them as a closed list. A third copy of the strings had
- * already drifted from the other two (#367), so a fourth menu reaching for the look gets it from
- * the same import it already needs for its collision boundary.
- *
- * Each menu composes its own differences on top: AddToCalendar stacks a sub-label under each
- * label and is wider for it; the two selectable menus lay their checkmark, icon and label in a
- * row. Those stay at the call site, so what every menu shares is the only thing stated once.
+ * Three hand-copied pairs of strings had already drifted — `min-w-56` against `min-w-44`,
+ * `px-3` against `px-2` (#367) — so each menu's difference is a variant here rather than a tail
+ * at its call site, as `fieldChrome` is for the field controls. It sits in this module because
+ * all three menus already import it for `frameCollision`.
  */
-export const dropdownSurface =
-  'z-50 rounded-xl border border-divider bg-background p-1 text-foreground shadow-xl'
-
-export const dropdownRow =
-  'flex cursor-pointer rounded-lg py-2 text-sm outline-none select-none data-[highlighted]:bg-primary-3'
+export const menuChrome = tv({
+  slots: {
+    surface: 'z-50 rounded-xl border border-divider bg-background p-1 text-foreground shadow-xl',
+    row: 'flex cursor-pointer rounded-lg py-2 text-sm outline-none select-none data-[highlighted]:bg-primary-3',
+  },
+  variants: {
+    rows: {
+      inline: { surface: 'min-w-44', row: 'items-center gap-2 px-2' },
+      /** A label over a sub-label, which needs the extra width and padding. */
+      stacked: { surface: 'min-w-56', row: 'flex-col items-start px-3' },
+    },
+    /** A SubTrigger row stays tinted while its submenu is open. */
+    submenus: { true: { row: 'data-[state=open]:bg-primary-3' } },
+  },
+  defaultVariants: { rows: 'inline' },
+})

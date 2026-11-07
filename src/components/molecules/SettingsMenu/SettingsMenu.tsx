@@ -4,7 +4,7 @@ import clsx from 'clsx'
 import { useTranslation } from 'react-i18next'
 import { Check, ChevronRight, Info, Languages, Monitor, Moon, Settings, Sun } from 'lucide-react'
 
-import { dropdownRow, dropdownSurface, frameCollision } from '@/lib/overlay'
+import { frameCollision, menuChrome } from '@/lib/overlay'
 import { useAvailableLocales } from '@/hooks/use-available-locales'
 import { useWidgetMode } from '@/config/mode'
 import { useReportModal } from '@/config/store'
@@ -14,10 +14,9 @@ import { type ThemePreference, useThemePreference } from '@/hooks/use-theme'
 import { overlayContainer } from '@/lib/overlay'
 import { publishLocale } from '@/lib/shape'
 
-// A single-line row, as SortMenu's is. `data-[state=open]` is this menu's alone: its rows are
-// submenu triggers, which stay tinted while their submenu is open.
-const menu = clsx(dropdownSurface, 'min-w-44')
-const item = clsx(dropdownRow, 'items-center gap-2 px-2 data-[state=open]:bg-primary-3')
+const { surface, row } = menuChrome({ submenus: true })
+const menu = surface()
+const item = row()
 
 // The radio-selected checkmark, in a fixed-width slot so labels line up whether or
 // not the row is the current choice.

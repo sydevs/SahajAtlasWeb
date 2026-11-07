@@ -40,14 +40,19 @@ const SOURCE_FILES = sourceFiles()
 const POPPER_PACKAGES =
   /@radix-ui\/react-(select|popover|dropdown-menu|tooltip|hover-card|context-menu)/
 
+/** The Radix dropdown menus, which also share one skin — the second block below. */
+const MENUS: Record<string, string> = {
+  'components/molecules/AddToCalendar/AddToCalendar.tsx': 'the add-to-calendar provider menu',
+  'components/molecules/SettingsMenu/SettingsMenu.tsx': 'the cog, and its language submenu',
+  'components/molecules/SortMenu/SortMenu.tsx': 'the results-list sort menu',
+}
+
 /** Why each one is here, so a removal is a decision rather than an accident. */
 const BOUNDED: Record<string, string> = {
   'components/atoms/Select/Select.tsx': 'the plain list picker',
   'components/atoms/Combobox/Combobox.tsx':
     'the search-in-the-field region picker (Popover + cmdk)',
-  'components/molecules/AddToCalendar/AddToCalendar.tsx': 'the add-to-calendar provider menu',
-  'components/molecules/SettingsMenu/SettingsMenu.tsx': 'the cog, and its language submenu',
-  'components/molecules/SortMenu/SortMenu.tsx': 'the results-list sort menu',
+  ...MENUS,
 }
 
 describe('Radix poppers are bounded by the frame', () => {
@@ -82,36 +87,29 @@ describe('Radix poppers are bounded by the frame', () => {
 })
 
 /**
- * The same three files share one dropdown skin, also as a closed list (#367).
+ * `MENUS` also share one skin, and spell none of it themselves (#367).
  *
- * The surface and row class strings were spelled out in each menu, and by the third copy they
- * had drifted — `min-w-56` against `min-w-44`, `px-3` against `px-2`. Nothing caught it: an
- * unintended class is still a valid class, so lint, typecheck and the whole unit lane stay green
- * while two menus look different. That is the same failure as the gap value each registration
- * form held its own copy of, in the same change.
+ * `menuChrome`'s own docblock carries why. What matters here is that an unintended class is
+ * still a valid class, so nothing else in the repo — not lint, not typecheck, not the rest of
+ * this lane — goes red while two menus drift apart.
  */
-const SKINNED: Record<string, string> = {
-  'components/molecules/AddToCalendar/AddToCalendar.tsx': 'stacked rows, wider for the sub-label',
-  'components/molecules/SettingsMenu/SettingsMenu.tsx': 'single-line rows, tinted while open',
-  'components/molecules/SortMenu/SortMenu.tsx': 'single-line rows',
-}
-
-/**
- * The runs that identify a hand-spelled copy. Both are distinctive to the menu skin: the other
- * surfaces in the app round to `2xl` or `lg`, and the Select atom highlights on `primary-4`.
- */
-const SKIN_RUNS = ['rounded-xl border border-divider', 'data-[highlighted]:bg-primary-3']
+const SKIN_RUNS = [
+  // Distinctive to the menu skin: every other surface in the app rounds to `2xl` or `lg`, and
+  // the Select atom highlights on `primary-4`.
+  'rounded-xl border border-divider',
+  'data-[highlighted]:bg-primary-3',
+]
 
 describe('the dropdown menus share one skin', () => {
-  it('composes both halves at each of them', () => {
-    for (const relative of Object.keys(SKINNED)) {
-      // Call-shaped, for the reason the boundary assertion above is.
-      expect(read(relative)).toMatch(/clsx\(\s*dropdownSurface\b/)
-      expect(read(relative)).toMatch(/clsx\(\s*dropdownRow\b/)
-    }
+  it('reads it from lib/overlay.ts at each of them', () => {
+    for (const relative of Object.keys(MENUS)) expect(read(relative)).toContain('menuChrome')
   })
 
-  it('leaves the strings themselves nowhere else', () => {
+  it('leaves no menu spelling a skin class of its own', () => {
+    // Each width is a variant of the recipe, so a menu naming one has started a fourth copy —
+    // which is how `min-w-56` and `min-w-44` drifted apart to begin with.
+    for (const relative of Object.keys(MENUS)) expect(read(relative)).not.toMatch(/\bmin-w-/)
+
     for (const run of SKIN_RUNS) {
       expect(SOURCE_FILES.filter((relative) => read(relative).includes(run))).toEqual([
         'lib/overlay.ts',

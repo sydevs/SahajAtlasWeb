@@ -1,21 +1,19 @@
 import type { SortOrder } from '@/lib/shape'
 
 import * as DropdownMenu from '@radix-ui/react-dropdown-menu'
-import clsx from 'clsx'
 import { useTranslation } from 'react-i18next'
 import { Check, ChevronDown } from 'lucide-react'
 
-import { dropdownRow, dropdownSurface, frameCollision } from '@/lib/overlay'
+import { frameCollision, menuChrome } from '@/lib/overlay'
 import { Button } from '@/components/atoms/Button'
 import { useSetSortOrder, useSortOrder } from '@/hooks/use-sort'
 import { SORT_ORDERS } from '@/lib/shape'
 import { overlayContainer } from '@/lib/overlay'
 
-// A single-line row: checkmark, then label. SettingsMenu lays its rows out the same way, and
-// the look they share with AddToCalendar lives in `lib/overlay.ts`. They share no base
-// component — only the skin.
-const menu = clsx(dropdownSurface, 'min-w-44')
-const item = clsx(dropdownRow, 'items-center gap-2 px-2')
+// SettingsMenu lays its rows out the same way. They share no base component — only the skin.
+const { surface, row } = menuChrome()
+const menu = surface()
+const item = row()
 
 // The radio checkmark in a fixed-width slot, so labels line up whether or not the row
 // is the current choice.
