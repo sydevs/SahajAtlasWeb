@@ -74,9 +74,10 @@ export function DynamicEventsList({
   const { shown, showAll, pending, revealMore } = useReveal(revealKey(query.queryKey, order))
 
   // This is the searched place each card names in its distance line, read
-  // ONCE here. `?q` is rewritten on every geocoder keystroke, so a card that
-  // reads it directly subscribes the whole list to that churn — see the
-  // prop's note on `EventsList`. Its leading part keeps the line short. The
+  // ONCE here. A card that reads the URL directly subscribes the whole list
+  // to every URL change — see the prop's note on `EventsList`. Typing never
+  // writes `?q`, so this names the picked place, not half-typed text. Its
+  // leading part keeps the line short. The
   // precise reference point stays in each card's accessible label.
   const searchedPlace = (useSearchParams()[0].get('q') ?? '').split(',')[0].trim()
   const { rows, more, next, total, nearbyKm } = useMemo(
@@ -136,7 +137,7 @@ export function DynamicEventsList({
         {rows.length === 0 ? (
           <EmptyResults nearbyKm={more === 'farther' ? nearbyKm : undefined} />
         ) : (
-          <EventsList events={rows} searchedPlace={searchedPlace} />
+          <EventsList events={rows} searchedPlace={searchedPlace} showDistance={hasSearchCenter} />
         )}
       </div>
       {/* At this point, nothing is left to offer and nothing has announced yet.

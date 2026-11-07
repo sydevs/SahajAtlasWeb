@@ -42,6 +42,10 @@ paths:
   call is a bare `useTranslation()`.
 - **Interpolation uses Ruby-style delimiters** `%{var}`, not i18next's default
   `{{var}}` — the CMS stores the copy in that form. Match it in code and in the CMS.
+- **A link inside a sentence is `<link>…</link>` in the copy** (`splitInlineLink`,
+  `lib/shape/inline-link.ts`), so each language places the link and words it. The code owns the
+  href, and the string is never rendered as markup. A translation without the span renders as
+  plain text. `registration.form.privacy_policy` is the one key that uses it today.
 - **`count` is a reserved plural trigger.** Do not pass it for a plain number: `t()`
   resolves `key_one` / `key_other` instead of the base key. Pass it only for a key
   the CMS declares `plural: true` (`event.display.sessions_count` is the one today).
@@ -94,7 +98,7 @@ paths:
 
 ## zustand stores (`src/config/store.ts`)
 
-Seven stores, each the single source of truth for its own slice:
+Nine stores, each the single source of truth for its own slice:
 
 - **`useViewState`** — map camera (`zoom` / `latitude` / `longitude`), current
   `selection`, and `boundary`. Read it with a **`useShallow`** selector on the
@@ -107,6 +111,10 @@ Seven stores, each the single source of truth for its own slice:
   before an in-widget push, and read it on a POP (`useFrameOnTop`) to restore the
   viewport a viewer left. Non-reactive (`getState()` only, so a write never
   re-renders the map) and FIFO-capped so a long embedded session stays bounded.
+- **`useCameraTarget`** — where a camera move in flight will land, or `null` at rest.
+  `useViewState` mirrors the camera only once the map STOPS, so `rememberCamera` would
+  otherwise snapshot the place a fly left for the screen it is flying to. Non-reactive,
+  like the history it feeds.
 - **`useCalendarPosition`** — the CalendarView's last Schedule-X `view` plus
   focused `date`, so a filter apply or returning from an event does not reset the
   grid to the current month. The grid **seeds** from it once at mount (no
@@ -171,6 +179,14 @@ Seven stores, each the single source of truth for its own slice:
   provider renders `DrawerStack`, so a context would have to flow the wrong way, and
   the drawer must not import the map's hooks. It carries `null` wherever there is no
   bottom sheet, and the camera falls back to the open snap's height.
+- **`useBrowsedCountry`** — the ISO code of the last country page shown, which scopes
+  the place search's suggestions. ⚠ **This is the one slice that looks like it belongs
+  in the URL and does not.** The URL holds what a link must reproduce for whoever opens
+  it, and where the reader came from is not that: a shared `/search` link would pin the
+  recipient's suggestions to a country they never browsed. `?cc` answers a different
+  question — the country of the place that WAS searched — and sits ahead of this one in
+  `MapSearch`'s chain. `DrawerStack` writes it, since it sees every route and `/search`
+  names no country.
 
 **One store lives beside its one consumer instead**, because nothing else has
 any business reading it and `store.ts` is where a slice several subtrees share
@@ -219,7 +235,9 @@ source of truth, so all three stay linkable and shareable:
   searched country's ISO code). Read with a local parse helper, not a codec:
   unlike filters or sort, these are *replaced* by a new search, not merged —
   `preserveSearchState` re-encodes from an **empty** base, so a previous country
-  can never leak into the next search. `?cc` exists because it cannot be
+  can never leak into the next search. The region filter (`?region=`) is a Where
+  too and goes with the old place: a new place search keeps the other filters,
+  not the region. `?cc` exists because it cannot be
   re-derived: a country with no programs has no feed geometry to resolve a point
   against, so the geocoder's answer has to ride in the URL (it drives the
   `useCountrySite` offer).
@@ -281,7 +299,8 @@ two axes separate — an inner fallback must never re-throw to escalate.
 - **Body-level boundaries need `resetKeys`.** The drawer boundary keys on the
   *pathname*, but a re-search or a filter change only moves the query string —
   without a `resetKeys` entry, one failure pins its error over every later
-  attempt. Search excludes `?q` (the geocoder rewrites it per keystroke).
+  attempt. Search excludes `?q` (only a label; typing never writes it — the URL
+  changes when a place is picked).
 - **Each such site needs its own `QueryErrorResetBoundary`.**
   `useSuspenseQuery` binds to the nearest one — without it, "Try again" just
   re-throws the cached error.

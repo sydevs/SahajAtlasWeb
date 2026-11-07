@@ -20,6 +20,7 @@ import { type ReactNode, useEffect, useMemo, useState } from 'react'
 
 import { Button } from '@/components/atoms/Button'
 import { Alert } from '@/components/atoms/Alert'
+import { Link } from '@/components/atoms/Link'
 import { RadioGroup, type RadioOption } from '@/components/atoms/RadioGroup'
 import { fieldChrome } from '@/components/atoms/Select'
 import { AddToCalendar } from '@/components/molecules/AddToCalendar'
@@ -34,6 +35,7 @@ import {
 } from '@/config/api/mutate'
 import livePreview from '@/config/live-preview/protocol'
 import { classifyError } from '@/lib/report'
+import { splitInlineLink } from '@/lib/shape'
 import { useRegistrationDraft } from '@/config/store'
 import {
   RecurrenceType,
@@ -122,6 +124,34 @@ const unansweredKey = (error: unknown): TranslationKey => {
 
 /** A field error set from a refusal, as opposed to one the schema raised. */
 const REFUSED = 'refused'
+
+const PRIVACY_POLICY_URL = 'https://wemeditate.com/privacy'
+
+/**
+ * The consent line under the fields. A translation marks the words that link to the privacy
+ * policy as `<link>…</link>`, so each language puts the link where its own sentence needs it. A
+ * translation without the mark reads as plain text, as every one did before.
+ */
+function ConsentNote({ text }: { text: string }) {
+  const parts = splitInlineLink(text)
+
+  if (!parts) return <p className="text-center text-xs">{text}</p>
+
+  return (
+    <p className="text-center text-xs">
+      {parts.before}
+      <Link
+        data-vaul-no-drag
+        isExternal
+        className="underline underline-offset-2"
+        href={PRIVACY_POLICY_URL}
+      >
+        {parts.link}
+      </Link>
+      {parts.after}
+    </p>
+  )
+}
 
 type RefusableField = 'email' | 'name' | `questions.${RegistrationQuestionName}`
 
@@ -270,7 +300,7 @@ export function RegistrationForm({
   // time a form could render in that state. So a per-form degradation would
   // be dead code, guarding a case its own boundary already swallowed (issue
   // #182).
-  const { challengeRef, token, interactive, reset: resetChallenge } = useTurnstile()
+  const { challengeRef, token, reset: resetChallenge } = useTurnstile()
 
   // A refusal the visitor can fix in one field lands ON that field, the way a
   // schema error does: the sentence under it, `aria-invalid`, and focus moved
@@ -383,8 +413,9 @@ export function RegistrationForm({
           {/* This is the challenge itself. It renders under the fields and
               above the error, so the one thing that can silently hold the
               submit button disabled stays visible immediately above it,
-              rather than down in the footer. */}
-          <div ref={challengeRef} className={interactive ? 'mt-4' : undefined} />
+              rather than down in the footer. Until Cloudflare wants a click it takes no room
+              at all (`useTurnstile`). */}
+          <div ref={challengeRef} />
 
           {/* A refusal is not a malfunction, so it states its reason on its
               own, without the "Something went wrong" framing or the
@@ -477,6 +508,7 @@ const errorCopy = (
 // Select and the filter date bounds.
 
 function LabeledInput({
+  autoComplete,
   label,
   maxLength,
   required,
@@ -484,6 +516,8 @@ function LabeledInput({
   type = 'text',
   registration,
 }: {
+  /** The HTML autofill token, so a phone offers the visitor's own name or email. */
+  autoComplete?: string
   label: ReactNode
   maxLength?: number
   required?: boolean
@@ -496,6 +530,7 @@ function LabeledInput({
       <input
         aria-describedby={error ? fieldErrorId(registration.name) : undefined}
         aria-invalid={error ? true : undefined}
+        autoComplete={autoComplete}
         className={fieldChrome({ isInvalid: Boolean(error) })}
         id={registration.name}
         maxLength={maxLength}
@@ -606,6 +641,7 @@ function RegistrationFields({
 
       <LabeledInput
         required
+        autoComplete="name"
         error={errorCopy(errors.name, t, 'registration.errors.name')}
         label={t('registration.form.name')}
         maxLength={USER_SUBMISSION_VALUE_MAX}
@@ -615,6 +651,7 @@ function RegistrationFields({
 
       <LabeledInput
         required
+        autoComplete="email"
         error={errorCopy(errors.email, t, 'registration.errors.email')}
         label={t('registration.form.email')}
         registration={register('email', { required: true })}
@@ -631,7 +668,7 @@ function RegistrationFields({
         />
       ))}
 
-      <p className="text-center text-xs">{t('registration.form.privacy_policy')}</p>
+      <ConsentNote text={t('registration.form.privacy_policy')} />
     </div>
   )
 }

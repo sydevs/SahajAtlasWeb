@@ -111,7 +111,14 @@ function SearchFieldSkeleton() {
  * second way to do it — but making the locale read non-suspending is an app-wide
  * decision, not this component's.
  */
-export function DrawerChrome({ interactive = true }: { interactive?: boolean }) {
+export function DrawerChrome({
+  interactive = true,
+  notFound = false,
+}: {
+  interactive?: boolean
+  /** The page failed because the place doesn't exist, so nothing can be scoped to it. */
+  notFound?: boolean
+}) {
   const { t } = useTranslation()
   const { locale } = useLocale()
   const { hasMap } = useWidgetMode()
@@ -185,15 +192,8 @@ export function DrawerChrome({ interactive = true }: { interactive?: boolean }) 
               fallback is freshly mounted per path inside DrawerStack's keyed motion.div, so on
               a cold start it would instantiate one while the map is still initialising, then
               tear it down again the moment CountriesView mounts its own. An ERROR chrome keeps
-              the real field. There it is the escape hatch.
-
-              `syncToUrl={false}` for the same reason the BODY's field sets it. The only
-              interactive case here is the error chrome, whose URL is the dead one this
-              boundary just reported. Embedded, that URL lives in the host page's `#!`
-              fragment, so writing keystrokes into it spreads a broken link into anything the
-              visitor copies. Selecting a place still navigates. Only the `?q` echo is
-              dropped. */}
-          {interactive ? <SearchField syncToUrl={false} /> : <SearchFieldSkeleton />}
+              the real field. There it is the escape hatch. */}
+          {interactive ? <SearchField /> : <SearchFieldSkeleton />}
           {dismiss}
         </DrawerHeader>
         <DrawerToolbar>
@@ -214,8 +214,10 @@ export function DrawerChrome({ interactive = true }: { interactive?: boolean }) 
       <div className="flex shrink-0 items-center gap-2">
         {/* A region's own header offers these three, and all still work — they navigate
             rather than read. The calendar and the filters are scoped to the region whose page
-            failed, which is exactly where a viewer wanted to be. */}
-        {entry.kind === 'region' && (
+            failed, which is exactly where a viewer wanted to be. Not for a place that doesn't
+            exist: there is nothing to scope them to, and the message's own way out is the
+            only one that leads anywhere. */}
+        {entry.kind === 'region' && !notFound && (
           <>
             <CalendarButton regionSlug={entry.slug} />
             <SearchButton />
@@ -351,12 +353,8 @@ export function ErrorPanel({ error, resetErrorBoundary }: FallbackProps) {
       reportContext={errorMessage(error) ?? undefined}
       resetErrorBoundary={resetErrorBoundary}
     >
-      {/* `syncToUrl={false}`. This URL is the dead one this boundary just reported. Embedded,
-          it lives in the host page's `#!` fragment, so writing keystrokes into it spreads a
-          broken link into anything the visitor copies. */}
       <SearchField
         label={t('common.errors.search_label', { defaultValue: 'Or search for a place' })}
-        syncToUrl={false}
       />
     </FallbackPanel>
   )
@@ -410,7 +408,7 @@ export function DrawerErrorFallback({ error, resetErrorBoundary }: FallbackProps
   return (
     <>
       {classifyError(error) === 'not-found' && <FrameNearestRegion />}
-      <DrawerChrome />
+      <DrawerChrome notFound={classifyError(error) === 'not-found'} />
       <DrawerErrorBody error={error} resetErrorBoundary={resetErrorBoundary} />
     </>
   )

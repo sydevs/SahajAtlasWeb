@@ -53,7 +53,7 @@ export function SearchView() {
   )
 
   // What the list boundary below resets on — see `listResetKey`: everything that changes
-  // WHAT is queried, minus the per-keystroke `?q`.
+  // WHAT is queried, minus `?q`.
   const resetKey = useMemo(() => listResetKey(searchParams), [searchParams])
 
   return (
@@ -72,7 +72,7 @@ export function SearchView() {
         </ListToolbar>
       </DrawerToolbar>
       <DrawerBody>
-        <GeolocationSuggestion />
+        <GeolocationSuggestion position="above" />
         {/* The list owns the `['events', …]` read. The geocoder above it does not. Keeping a
             failed list local means the search field stays live, so the escape from a failed
             search is to run a different one — the most useful thing on the screen. `resetKeys`
@@ -84,6 +84,7 @@ export function SearchView() {
             longitude={longitude}
           />
         </ResetErrorBoundary>
+        <GeolocationSuggestion position="below" />
       </DrawerBody>
     </>
   )

@@ -1,27 +1,33 @@
 import React, { Component, type ReactNode } from 'react'
 import { Geocoder } from '@mapbox/search-js-react'
-import { GeocodingFeature } from '@mapbox/search-js-core'
+import { type GeocodingResponse, GeocodingFeature, type LngLatLike } from '@mapbox/search-js-core'
 import { useLocation, useSearchParams } from 'react-router'
+import { useQuery } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
 
 import { hoistGeocoderLiveRegion } from './aria-live'
 import { controlTheme } from './themes'
 
+import { clientQuery } from '@/config/api'
+import { useBrowsedCountry } from '@/config/store'
+import atlasAuth from '@/config/api/auth'
 import { useLocale } from '@/hooks/use-locale'
 import { useMapbox } from '@/hooks/use-mapbox'
+import {
+  type ReleasedScope,
+  SEARCH_COUNTRY_PARAM,
+  isoCountryCode,
+  searchCountryScope,
+} from '@/lib/shape'
 
+/**
+ * The place search field. What is typed stays in the field: the URL changes only when a place is
+ * picked (`onSelect`), never per keystroke. Half-typed text in `?q` renamed everything that reads
+ * it, so every result card said "5.1 km from Prag" over London's classes.
+ */
 export interface MapSearchProps {
   /** Called with the geocoded place the user picked from the suggestions. */
   onSelect: (value: GeocodingFeature) => void
-  /**
-   * This mirrors what is typed into `?q` on the current URL (default `true`),
-   * so a reload or a shared link keeps the query. Pass `false` where the
-   * current URL is known-bad — the error screen for a dead link (issue #89).
-   * Writing state into a URL already flagged as broken only spreads the
-   * problem: embedded, that URL lives in the host page's `#!` fragment and
-   * travels with anything the visitor copies.
-   */
-  syncToUrl?: boolean
   /**
    * This is the accessible name and placeholder. It defaults to the "search
    * for events near…" phrasing, which is right in a header, where position
@@ -55,69 +61,80 @@ class GeocoderBoundary extends Component<
   }
 }
 
-export function MapSearch({ onSelect, syncToUrl = true, label }: MapSearchProps) {
-  const [searchParams, setSearchParams] = useSearchParams()
-  const location = useLocation()
+// Places a visitor would name, not bare streets or house numbers. A street name matches hundreds of
+// towns, so "Hampstead" offered four streets near Manchester above the London district.
+const PLACE_TYPES = 'country,region,postcode,district,place,locality,neighborhood'
+
+// Below this zoom the map shows a continent or more, so its centre says nothing about the visitor.
+const LOCAL_BIAS_MIN_ZOOM = 3
+
+// Which place the geocoder ranks results near: the map's centre once it has settled on a country or
+// closer. At world level, or with no map, the visitor's own area, which Mapbox reads from the
+// request it already receives.
+const searchBias = (zoom: number | undefined, center: LngLatLike | undefined) =>
+  zoom !== undefined && zoom >= LOCAL_BIAS_MIN_ZOOM && center ? center : 'ip'
+
+export function MapSearch({ onSelect, label }: MapSearchProps) {
+  const [searchParams] = useSearchParams()
+  const { pathname } = useLocation()
   const [searchQuery, setSearchQuery] = React.useState(searchParams.get('q') || '')
   const { mapbox } = useMapbox()
   const { locale } = useLocale()
   const { t } = useTranslation()
   const fieldLabel = label ?? t('search.chrome.placeholder')
+  // Search stays in one country: the one on screen, else the searched place's (`?cc`), else the
+  // last country page shown, else the one a client's home region sits in. Mapbox's ranking alone
+  // puts Hampstead, Quebec above Hampstead, London even when told it is near the UK, and it offers
+  // no way to prefer a country short of this filter. A search that finds nothing in that country
+  // looks everywhere instead, by itself, so a visitor on the UK page can still find Prague. The
+  // client comes from the bootstrap's cache; the field never fetches it.
+  const browsed = useBrowsedCountry((s) => s.code)
+  const { data: client } = useQuery({ ...clientQuery(atlasAuth.apiKey), enabled: false })
+  const home = client?.region && typeof client.region === 'object' ? client.region : null
+  const country =
+    isoCountryCode(pathname.split('/')[1]) ??
+    isoCountryCode(searchParams.get(SEARCH_COUNTRY_PARAM)) ??
+    browsed ??
+    isoCountryCode(home?.webPath?.split('/').filter(Boolean)[0])
+  const [released, setReleased] = React.useState<ReleasedScope>()
+  const scope = searchCountryScope(country, searchQuery, released)
+  const [foundNothing, setFoundNothing] = React.useState(false)
 
-  // This merges `q` into the existing query, so the active filters (and
-  // bbox and center) survive typing — they live only in the URL now.
-  // `replace` means per-keystroke edits do not stack history. Both the
-  // geocoder and the plain fallback share this function.
-  //
-  // `state` is carried explicitly. `setSearchParams` forwards only what it is
-  // given, so a bare `{ replace: true }` replaces the entry with a
-  // state-less one and drops its `atlasDepth`. After ONE keystroke, the
-  // drawer's dismissal (X, swipe, or Esc) would then push to the structural
-  // parent, instead of going chronologically back. The filter and sort
-  // setters carry it for the same reason.
-  // This adopts a `?q` that somebody ELSE wrote. The field seeds from the URL
-  // once, in the state initializer above, which is right while typing is the
-  // only writer. But the geolocate control names the place it found AFTER
-  // navigating, and `placeSearchPath` clears `?q` on every re-search. Neither
-  // one remounts this component when the view on top is unchanged. So
-  // without this effect, the field keeps showing a place the results are no
-  // longer about.
-  //
-  // This guards on the last value written here, rather than on equality with
-  // the field. So the per-keystroke mirroring below can never fight it:
-  // typing records its own write, sees the URL agree, and does nothing.
+  // This follows a new `?q`. The field seeds from the URL once, in the state initializer above.
+  // But a pick writes a new place name, the geolocate control names the place it found AFTER
+  // navigating, and `placeSearchPath` clears `?q` on every re-search. None of them remounts this
+  // component when the view on top is unchanged, so without this effect the field would keep
+  // showing a place the results are no longer about. Typing never writes `?q`, so the two can't
+  // fight: half-typed text stays until the URL names a place.
   const urlQuery = searchParams.get('q') ?? ''
-  const ownWrite = React.useRef(urlQuery)
   const field = React.useRef<HTMLDivElement>(null)
 
   React.useEffect(() => {
-    const scope = field.current
+    const node = field.current
 
-    return scope ? hoistGeocoderLiveRegion(scope) : undefined
+    return node ? hoistGeocoderLiveRegion(node) : undefined
   }, [])
 
   React.useEffect(() => {
-    if (urlQuery === ownWrite.current) return
-
-    ownWrite.current = urlQuery
     setSearchQuery(urlQuery)
   }, [urlQuery])
 
-  const setQuery = (query: string) => {
-    setSearchQuery(query)
-    ownWrite.current = query
-    if (!syncToUrl) return
+  const onSuggest = (response: GeocodingResponse) => {
+    const none = response.features.length === 0
 
-    setSearchParams(
-      (prev) => {
-        const next = new URLSearchParams(prev)
+    if (none && scope) {
+      setReleased({ country: scope, query: searchQuery })
+      setFoundNothing(false)
+      // The geocoder searches on input, so wait for it to take the wider options, then repeat the
+      // query.
+      requestAnimationFrame(() => {
+        field.current?.querySelector('input')?.dispatchEvent(new Event('input', { bubbles: true }))
+      })
 
-        next.set('q', query)
+      return
+    }
 
-        return next
-      },
-      { replace: true, state: location.state },
-    )
+    setFoundNothing(none)
   }
 
   return (
@@ -143,7 +160,7 @@ export function MapSearch({ onSelect, syncToUrl = true, label }: MapSearchProps)
             placeholder={fieldLabel}
             type="search"
             value={searchQuery}
-            onChange={(event) => setQuery(event.target.value)}
+            onChange={(event) => setSearchQuery(event.target.value)}
           />
         }
       >
@@ -154,15 +171,25 @@ export function MapSearch({ onSelect, syncToUrl = true, label }: MapSearchProps)
           map={mapbox?.getMap()}
           options={{
             language: locale, // TODO: Make sure this switches when locale changes
-            proximity: mapbox?.getCenter(),
+            // `country` is left out rather than undefined: the geocoder serializes what it's given.
+            ...(scope ? { country: scope } : {}),
+            proximity: searchBias(mapbox?.getZoom(), mapbox?.getCenter()),
+            types: PLACE_TYPES,
           }}
           placeholder={fieldLabel}
           theme={controlTheme}
           value={searchQuery}
-          onChange={setQuery}
+          onChange={setSearchQuery}
           onRetrieve={onSelect}
+          onSuggest={onSuggest}
         />
       </GeocoderBoundary>
+      {/* Without this a place that doesn't exist left the list as it was, with no answer at all. */}
+      {foundNothing && searchQuery.trim() && (
+        <p className="pt-2 text-sm text-gray-11" role="status">
+          {t('common.errors.not_found_region')}
+        </p>
+      )}
     </div>
   )
 }

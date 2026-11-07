@@ -330,6 +330,20 @@ cover everything a host would notice since the widget was first deployed.
 
 ### Fixed
 
+- **An embed inside a closed tab or accordion now fills its box when opened from a shared
+  link.** ([#371]) A page whose URL carried `?atlas=` loaded the widget at once, while the element
+  was still hidden and measured 0×0, so the widget took the whole browser window: when the tab
+  opened, its panel floated over your page's top-left corner and your box stayed blank. A deep
+  link now loads at once only into an element that is on the page, and otherwise waits for it to
+  be shown, as an embed with no route always has. No change to your snippet. See
+  [Sizing the element](docs/embedding.md#sizing-the-element).
+
+- **A slow security check no longer replaces the Atlas with an error.** ([#371]) The widget used
+  to give the hidden captcha check 10 seconds before showing "This Atlas can't run on this page".
+  It now waits 20 seconds and tries once more before deciding, so a page whose CSP refuses
+  `cloud.sydevelopers.com` under `frame-src` sees that screen after about 40 seconds rather than
+  10. A domain SahajCloud refuses outright is still reported at once.
+
 - **Phone fixes from the 6 November check of the live site.** ([#369]) A class's bottom sheet now
   opens as tall as the class needs, up to near full, so the Register bar no longer covers its
   address and no longer slices a line in half on a small phone — one drag down still stops at the
@@ -898,6 +912,7 @@ must-revalidate`, pinned rather than left to the CDN default. The production dom
 [#262]: https://github.com/sydevs/SahajAtlasWeb/issues/262
 [#283]: https://github.com/sydevs/SahajAtlasWeb/issues/283
 [#311]: https://github.com/sydevs/SahajAtlasWeb/pull/311
+[#371]: https://github.com/sydevs/SahajAtlasWeb/pull/371
 [#363]: https://github.com/sydevs/SahajAtlasWeb/pull/363
 [#369]: https://github.com/sydevs/SahajAtlasWeb/pull/369
 [#351]: https://github.com/sydevs/SahajAtlasWeb/pull/351

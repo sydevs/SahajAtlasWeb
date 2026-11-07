@@ -21,7 +21,11 @@ vi.mock('@/config/i18n', () => ({ default: { resolvedLanguage: 'en' } }))
 
 vi.mock('react-i18next', () => ({
   useTranslation: () => ({
-    t: (key: string) => key,
+    // The consent line carries the link markup a translation would, so its rendering is visible.
+    t: (key: string) =>
+      key === 'registration.form.privacy_policy'
+        ? 'In accordance with our <link>privacy policy</link>.'
+        : key,
     i18n: { on: () => {}, off: () => {}, resolvedLanguage: 'en' },
   }),
 }))
@@ -59,5 +63,22 @@ describe('RegistrationForm', () => {
     const html = render(form)
 
     expect(html).toMatch(new RegExp(`id="name"[^>]*maxlength="${USER_SUBMISSION_VALUE_MAX}"`, 'i'))
+  })
+
+  // A phone offers the visitor's own name and email only when the field says which it is.
+  it('names the name and email fields for autofill', () => {
+    const html = render(form)
+
+    expect(html).toMatch(/autoComplete="name"[^>]*id="name"/i)
+    expect(html).toMatch(/autoComplete="email"[^>]*id="email"/i)
+  })
+
+  it('links the words a translation marks in the consent line to the privacy policy', () => {
+    const html = render(form)
+
+    expect(html).toMatch(
+      /In accordance with our <a [^>]*href="https:\/\/wemeditate\.com\/privacy"[^>]*>privacy policy<\/a>\./,
+    )
+    expect(html).not.toContain('&lt;link&gt;')
   })
 })

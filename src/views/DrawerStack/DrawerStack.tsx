@@ -13,7 +13,7 @@ import {
 } from 'react'
 import { createPortal } from 'react-dom'
 import { useLocation, useNavigate } from 'react-router'
-import { useQueryClient } from '@tanstack/react-query'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { AnimatePresence, motion } from 'framer-motion'
 import clsx from 'clsx'
 
@@ -24,7 +24,7 @@ import { Drawer, DrawerContent } from '@/components/atoms/Drawer'
 import { ResetErrorBoundary, SettingsMenu } from '@/components/molecules'
 import { WidgetWidthContext, useIsWide } from '@/config/responsive'
 import { useWidgetMode } from '@/config/mode'
-import { useCalendarPosition, useSheetCover } from '@/config/store'
+import { useBrowsedCountry, useCalendarPosition, useSheetCover } from '@/config/store'
 import { frameElement, overlayContainer } from '@/lib/overlay'
 import {
   type StackEntry,
@@ -34,6 +34,9 @@ import {
   dismissDepth,
   baseStackEntry,
   isFilterOverlay,
+  isoCountryCode,
+  placePathsOf,
+  placedPathname,
   resolveStack,
 } from '@/lib/shape'
 import { wakesSheetLoop } from '@/views/DrawerStack/sheet-wake'
@@ -293,12 +296,8 @@ export function DrawerStack() {
   // `filters` entry peels off into the overlay below. (Map-less keeps the plain
   // replace-stack behaviour.)
   const filterOverlay = isFilterOverlay(entries, hasMap)
-  const baseEntries = useMemo(
-    () => (filterOverlay ? entries.slice(0, -1) : entries),
-    [filterOverlay, entries],
-  )
 
-  // Reads through `baseStackEntry` rather than `baseEntries.at(-1)` — the same value
+  // Reads through `baseStackEntry` rather than the last non-overlay entry — the same value
   // either way, but stated in the shared vocabulary, so `top.path` is provably
   // `topViewKey(location.pathname, hasMap)`. `useFrameOnTop` compares itself against
   // that key to tell whether it is still the view on top, and the two agreeing is what
@@ -312,10 +311,32 @@ export function DrawerStack() {
   // switching it resizes the drawer. Date changes do not re-render this component.
   const calendarView = useCalendarPosition((s) => s.view)
   const wide = top?.kind === 'calendar' && isWide && calendarView !== CALENDAR_VIEW_LIST
+  // What sits behind the top view follows the region tree, not the words typed. A place opens by
+  // its last slug, so `/united-kingdom/south-east/london` shows London, and its panels and climb
+  // must name and lead to the UK at `/gb`, not a `/united-kingdom` that doesn't exist. The top view
+  // keeps the address as typed (`top.path` above). A disabled observer follows the cache only.
+  const { data: regionTree } = useQuery({ ...regionsQuery(), enabled: false })
+  const pathOf = useMemo(() => placePathsOf(regionTree), [regionTree])
+  const ancestry = useMemo(() => {
+    const placed = resolveStack(placedPathname(location.pathname, pathOf))
+
+    return isFilterOverlay(placed, hasMap) ? placed.slice(0, -1) : placed
+  }, [location.pathname, pathOf, hasMap])
+  // The country on screen, kept through the routes that name none (search, calendar), so the
+  // place search a country page opens stays in that country. The world view clears it.
+  const setBrowsedCountry = useBrowsedCountry((s) => s.setCode)
+
+  useEffect(() => {
+    const first = location.pathname.split('/')[1]
+    const code = isoCountryCode(first)
+
+    if (!first || code) setBrowsedCountry(code)
+  }, [location.pathname, setBrowsedCountry])
+
   // Ancestor paths below the top view, root-first (empty at CountriesView).
   const parentPaths = useMemo(
-    () => (baseEntries.length === 0 ? [] : ['/', ...baseEntries.slice(0, -1).map((e) => e.path)]),
-    [baseEntries],
+    () => (ancestry.length === 0 ? [] : ['/', ...ancestry.slice(0, -1).map((e) => e.path)]),
+    [ancestry],
   )
   const parentPath = parentPaths.at(-1)
   const canCollapse = hasMap && direction === 'bottom'
@@ -822,10 +843,10 @@ export function DrawerStack() {
       <AnimatePresence>
         {stackPaths.map((path, i) => {
           const stripDepth = stackPaths.length - i
-          // `parentPaths` is `['/', ...baseEntries.slice(0, -1).map(e => e.path)]`, so
+          // `parentPaths` is `['/', ...ancestry.slice(0, -1).map(e => e.path)]`, so
           // strip `i` is entry `i - 1`, and strip 0 is the root (no entry). `stackPaths`
           // only slices that array, so the alignment survives.
-          const ancestor = baseEntries[i - 1]
+          const ancestor = ancestry[i - 1]
 
           return (
             <PeekStrip
