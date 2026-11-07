@@ -292,3 +292,19 @@ export const useRegistrationDraft = create<RegistrationDraftState & Registration
     clearDraft: () => set(() => ({ eventId: null, values: {} })),
   }),
 )
+
+type BrowsedCountryState = {
+  /** ISO alpha-2 of the last country page shown, or undefined after the world view. */
+  code: string | undefined
+  setCode: (code: string | undefined) => void
+}
+
+/**
+ * The country the visitor was last looking at, for the place search's country scope. Search is a
+ * route of its own (`/search`), so by the time its field is on screen the URL no longer names the
+ * country page it was opened from. `DrawerStack` records it, since it sees every route.
+ */
+export const useBrowsedCountry = create<BrowsedCountryState>((set) => ({
+  code: undefined,
+  setCode: (code) => set(() => ({ code })),
+}))

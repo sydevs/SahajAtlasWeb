@@ -24,7 +24,7 @@ import { Drawer, DrawerContent } from '@/components/atoms/Drawer'
 import { ResetErrorBoundary, SettingsMenu } from '@/components/molecules'
 import { WidgetWidthContext, useIsWide } from '@/config/responsive'
 import { useWidgetMode } from '@/config/mode'
-import { useCalendarPosition } from '@/config/store'
+import { useBrowsedCountry, useCalendarPosition } from '@/config/store'
 import { frameElement, overlayContainer } from '@/lib/overlay'
 import {
   type StackEntry,
@@ -34,6 +34,7 @@ import {
   dismissDepth,
   baseStackEntry,
   isFilterOverlay,
+  isoCountryCode,
   placePathsOf,
   placedPathname,
   resolveStack,
@@ -316,6 +317,17 @@ export function DrawerStack() {
 
     return isFilterOverlay(placed, hasMap) ? placed.slice(0, -1) : placed
   }, [location.pathname, pathOf, hasMap])
+  // The country on screen, kept through the routes that name none (search, calendar), so the
+  // place search a country page opens stays in that country. The world view clears it.
+  const setBrowsedCountry = useBrowsedCountry((s) => s.setCode)
+
+  useEffect(() => {
+    const first = location.pathname.split('/')[1]
+    const code = isoCountryCode(first)
+
+    if (!first || code) setBrowsedCountry(code)
+  }, [location.pathname, setBrowsedCountry])
+
   // Ancestor paths below the top view, root-first (empty at CountriesView).
   const parentPaths = useMemo(
     () => (ancestry.length === 0 ? [] : ['/', ...ancestry.slice(0, -1).map((e) => e.path)]),
