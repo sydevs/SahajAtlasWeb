@@ -148,11 +148,13 @@ function PointSource({
 // start time. It renders the SAME calendar parts that the list card's
 // `composeCalendarLine` joins (via the shared `calendarLineParts` gate). Here
 // they stack instead of joining with a `·`, so the two never drift apart (#72).
-// The name comes from the per-locale titles sliver, since the feed carries none.
-// Until that loads, the card shows the timing alone.
+// The name comes from the per-locale titles sliver, since the feed carries none. It is read
+// CACHE-ONLY, like the drawer's fallback chrome: a live observer here would make one mouse-move
+// over a pin fetch every title in the locale. Until a view that needs them has loaded them, the
+// card shows the timing alone.
 function EventPinCard({ event }: { event: DisplayableEvent & { id: number } }) {
   const { locale } = useLocale()
-  const { data: titles } = useQuery(eventTitlesQuery(locale))
+  const { data: titles } = useQuery({ ...eventTitlesQuery(locale), enabled: false })
   const title = titles?.get(event.id)
   const { display, recurrenceLine, whenLine, eventStartTime } = useEventDisplay(event)
   const { primary, time } = calendarLineParts({
