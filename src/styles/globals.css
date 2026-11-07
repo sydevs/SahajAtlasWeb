@@ -393,6 +393,13 @@
   color-scheme: dark;
 }
 
+/* Standalone, `<html>` is the theme root, and iOS Safari tints the strip behind its status bar
+   from the page's own background, not from the map drawn under it. Embedded, the scope class
+   sits on a wrapper, never on `<html>`, so this never paints a host's page. */
+html.sy-atlas {
+  background-color: hsl(var(--background));
+}
+
 /* vaul disables text selection on the drawer for pointer devices (to keep drag
    gestures clean — see vaul.css `@media (hover:hover) and (pointer:fine)`). Desktop
    drag is already disabled (handleOnly on the left panel), so this re-enables
