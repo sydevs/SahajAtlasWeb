@@ -7,23 +7,29 @@ export interface EventsListProps {
   /**
    * The searched place, named in each card's distance line ("3.6 km from Brussels").
    * Read ONCE by the container and passed down rather than read per card: it comes from
-   * `?q`, which the geocoder rewrites on every keystroke, and a card that subscribes to
-   * the URL re-renders on each one no matter how well it's memoized. With the list now
-   * paging to hundreds of rows that is the difference between one re-render and
-   * hundreds, on the very interaction most likely to happen over a deep list.
+   * `?q`, and a card that subscribes to the URL re-renders on every URL change (a filter, a
+   * sort) no matter how well it's memoized. With the list paging to hundreds of rows that
+   * is the difference between one re-render and hundreds.
    */
   searchedPlace?: string
+  /** False when nothing was searched, so a card's distance would be from nowhere in particular. */
+  showDistance?: boolean
 }
 
 // This is the presentational list: events pass in via props, one card each.
 // It stays free of the data and i18n graph — its network-bound container is
 // DynamicEventsList — so a story can render it without booting the app's
 // query client or i18n backend.
-export function EventsList({ events, searchedPlace }: EventsListProps) {
+export function EventsList({ events, searchedPlace, showDistance }: EventsListProps) {
   return (
     <List>
       {events.map((event) => (
-        <EventListItem key={event.id} event={event} searchedPlace={searchedPlace} />
+        <EventListItem
+          key={event.id}
+          event={event}
+          searchedPlace={searchedPlace}
+          showDistance={showDistance}
+        />
       ))}
     </List>
   )

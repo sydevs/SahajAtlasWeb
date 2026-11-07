@@ -407,6 +407,13 @@ element `height: 100vh` below your own sticky header, and its bottom edge — th
 sheet and its drag handle — sits below the fold, leaving a first-time visitor with no visible
 controls until they scroll. Subtract your header, or use a fixed height.
 
+⚠ **An embed that starts hidden is measured when it is shown.** The widget reads your element's
+size once, when it first renders, and keeps the layout that size implies. Inside a closed tab, an
+accordion, or anything else with `display: none` when the page loads, the element has no size
+yet, so the widget waits for it to appear before it loads, deep link or not. Opening the tab
+then gets the layout your box gives. (Before this, a page opened from a shared Atlas link loaded
+the widget at once, while hidden, and it took the browser window instead of your box.)
+
 ⚠ **A flex or grid item is sized even without a height rule.** A stretched item takes its track's
 cross size, so `<sahaj-atlas>` in a full-height flex column is a _contained_ map — almost always
 what you want, but the one way an embed ends up contained without one.
@@ -478,7 +485,9 @@ like `map=false`, against the floors above and nothing else.
   URL means a visitor followed a link, so the widget mounts immediately rather than waiting to be
   scrolled to, and the overlay opens straight onto that route. **The `atlas` parameter on the
   script URL does not do this** — that is your default view, not a visitor's request, so it stays
-  lazy. Closing the overlay does not reopen it.
+  lazy. Closing the overlay does not reopen it. An element that is hidden when the page loads (a
+  closed tab or accordion) waits to be shown first, deep link or not — see
+  [Sizing the element](#sizing-the-element).
 
 ⚠ **Do not put the embed inside an element with `transform`, `filter` or `contain`.** Those make
 that element the containing block for fixed-position content, confining the overlay to it instead
@@ -843,7 +852,7 @@ believing you allowed something you hadn't.
 |                            | `ipwho.is`                                    | the once-per-session IP→city lookup behind "classes near you"                                                                                                                                                                                                                                                                                                                                                                                                                         | **degrades**: the nearby suggestion is skipped                                                                                                                                                                |
 |                            | `cdn.usefathom.com`                           | analytics, conditional as above                                                                                                                                                                                                                                                                                                                                                                                                                                                       | analytics only                                                                                                                                                                                                |
 |                            | `*.sentry.io`                                 | crash reporting. Contacted **only after the widget has already failed**, and only on a build with a DSN.                                                                                                                                                                                                                                                                                                                                                                              | **degrades**: the widget notices the refusal and stops trying for the rest of the page's life                                                                                                                 |
-| `frame-src`                | `cloud.sydevelopers.com`                      | **The captcha — required.** Every write the widget makes is captcha-gated. The challenge renders in a frame `cloud.sydevelopers.com` serves, so `challenges.cloudflare.com` belongs in no directive of yours. The frame mounts with the interface, so a policy that omits this fails within seconds rather than when somebody registers.                                                                                                                                              | **the widget shows an error screen and does not run.** Not a degradation — see the note below                                                                                                                 |
+| `frame-src`                | `cloud.sydevelopers.com`                      | **The captcha — required.** Every write the widget makes is captcha-gated. The challenge renders in a frame `cloud.sydevelopers.com` serves, so `challenges.cloudflare.com` belongs in no directive of yours. The frame mounts with the interface, so a policy that omits this fails within about 40 seconds (two 20-second waits, since a refused frame and a slow one look the same) rather than when somebody registers.                                                                                                                                              | **the widget shows an error screen and does not run.** Not a degradation — see the note below                                                                                                                 |
 
 Notes on that table:
 
@@ -1065,7 +1074,7 @@ Seven honest exceptions, none of them styling your content:
 
 - **A 1-pixel hidden `<iframe>` sits in your `<body>` for a moment after the widget mounts.** It
   is the captcha's availability check, loading the challenge page from `cloud.sydevelopers.com`
-  so that a page where registration is impossible says so within seconds. It is
+  so that a page where registration is impossible says so within about 40 seconds. It is
   `position: fixed`, transparent, unfocusable, hidden from assistive technology, and adds no
   scroll height.
 
@@ -1191,9 +1200,11 @@ page's **origin** — scheme, host and port, never a path — because that is th
 its token to. It mounts with the interface, whether or not the visitor opens a form.
 
 **`map=false` removes the Mapbox flows too** — tiles, the geocoder (which sends the visitor's
-typed query and the map centre to Mapbox), and the map-load telemetry — along with the two
-`mapbox.*` storage keys. That is the only switch for them, since they are Mapbox's own behaviour,
-not ours.
+typed query to Mapbox, with the map centre to rank against, the ISO code of the country they are
+browsing, and — while the map still shows a continent or more, where its centre says nothing —
+an instruction for Mapbox to rank by the visitor's own IP instead), and the map-load telemetry —
+along with the two `mapbox.*` storage keys. That is the only switch for them, since they are
+Mapbox's own behaviour, not ours.
 
 Two things a visitor can send us on purpose, both on submit and never in the background: a
 **class registration** (their name, email and any organiser questions) and a **report about an
