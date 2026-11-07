@@ -80,7 +80,11 @@ export function CountriesView() {
       {/* The country list is a browse index, not a filterable results list. So its filter
           access lives as an icon control in the header, not a list toolbar. Sorting a country
           index is meaningless, so there is no sort menu here. */}
-      <DrawerHeader>
+      {/* The field shares this band with its icon buttons, but its suggestions span the whole
+          band (`--sy-results-w`, read in Mapbox/themes.ts): a dropdown narrower than the panel
+          left the list's counts peeking out beside it. The field starts the band, and the list
+          sits 1px inside the field's border on each side, hence the 2px. */}
+      <DrawerHeader className="[container-type:inline-size] [--sy-results-w:calc(100cqi_-_2px)]">
         <SearchField />
         <FilterButton iconOnly />
         <CollapseToggle />

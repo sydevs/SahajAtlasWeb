@@ -39,5 +39,12 @@ export const controlTheme = {
     .Input:focus { border: 0; }
     .Input::placeholder { color: var(--gray-11); opacity: 1; }
     .Geocoder:focus-within { box-shadow: 0 0 0 2px hsl(var(--primary-9)); }
+    .Results {
+      min-width: var(--sy-results-w, 0);
+      border-radius: 8px;
+      overflow: hidden;
+      /* The list sits 1px inside the field. The ring closes that gap, so no row shows past it. */
+      box-shadow: 0 0 0 1px hsl(var(--background)), 0 8px 24px rgb(0 0 0 / 0.16);
+    }
   `,
 }
