@@ -294,6 +294,12 @@ function start(script: HTMLScriptElement | null): void {
   // MID-SCROLL, where auto-opening would slam a modal over the page and lock its scroll.
   // Eager-loading the deep link removes that situation, rather than detecting it. A route from
   // the SCRIPT url is the host's default view, and stays lazy.
+  //
+  // ⚠ **Eager only into a box that is on the page.** An element inside a closed tab or accordion
+  // has no box at all, and the widget decides its layout ONCE, from the element's size at its
+  // first render (`decideSlot`). Measured at 0×0 it read as an unsized embed and took the whole
+  // viewport, painting over the host's page when the tab opened while its own box stayed blank.
+  // So a deep link into a hidden element waits for it to be shown, as a lazy one does.
   const mount = () => {
     // This resolves to `src/Widget.tsx`, its own build entry. It is the seam that keeps the
     // widget out of the loader's graph, and `pnpm size` asserts the two closures stay disjoint.
@@ -323,7 +329,7 @@ function start(script: HTMLScriptElement | null): void {
       })
   }
 
-  if (config.routeFromPage) {
+  if (config.routeFromPage && element.getClientRects().length > 0) {
     mount()
   } else {
     whenVisible(element, mount)

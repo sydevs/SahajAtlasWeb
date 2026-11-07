@@ -352,6 +352,20 @@ cover everything a host would notice since the widget was first deployed.
   (`map=0`). The × on a filter tag keeps its drawn size but takes a 44px tap area on a touch
   screen. No parameter, origin or CSP change.
 
+- **An embed inside a closed tab or accordion now fills its box when opened from a shared
+  link.** ([#371]) A page whose URL carried `?atlas=` loaded the widget at once, while the element
+  was still hidden and measured 0×0, so the widget took the whole browser window: when the tab
+  opened, its panel floated over your page's top-left corner and your box stayed blank. A deep
+  link now loads at once only into an element that is on the page, and otherwise waits for it to
+  be shown, as an embed with no route always has. No change to your snippet. See
+  [Sizing the element](docs/embedding.md#sizing-the-element).
+
+- **A slow security check no longer replaces the Atlas with an error.** ([#371]) The widget used
+  to give the hidden captcha check 10 seconds before showing "This Atlas can't run on this page".
+  It now waits 20 seconds and tries once more before deciding, so a page whose CSP refuses
+  `cloud.sydevelopers.com` under `frame-src` sees that screen after about 40 seconds rather than
+  10. A domain SahajCloud refuses outright is still reported at once.
+
 - **A direct link to an online class now zooms the map to its region.** ([#363]) An online
   class usually has no location of its own, so a link to one, such as `…/ca/ontario/toronto/720`,
   opened the class over the whole-world map. It now frames the class's region, as a region link
@@ -901,6 +915,7 @@ must-revalidate`, pinned rather than left to the CDN default. The production dom
 [#283]: https://github.com/sydevs/SahajAtlasWeb/issues/283
 [#311]: https://github.com/sydevs/SahajAtlasWeb/pull/311
 [#370]: https://github.com/sydevs/SahajAtlasWeb/pull/370
+[#371]: https://github.com/sydevs/SahajAtlasWeb/pull/371
 [#363]: https://github.com/sydevs/SahajAtlasWeb/pull/363
 [#351]: https://github.com/sydevs/SahajAtlasWeb/pull/351
 [#312]: https://github.com/sydevs/SahajAtlasWeb/pull/312

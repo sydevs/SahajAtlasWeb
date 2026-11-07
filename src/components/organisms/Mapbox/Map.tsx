@@ -34,7 +34,7 @@ import { markerColors, registerMarkerImages } from './markers'
 import { Button } from '@/components/atoms/Button'
 import { Modal, ModalClose, ModalContent, ModalFooter } from '@/components/atoms/Modal'
 import { calendarLineParts, useEventDisplay } from '@/hooks/use-event-display'
-import { useCameraSettled, useViewState, type MapPoint } from '@/config/store'
+import { useCameraSettled, useCameraTarget, useViewState, type MapPoint } from '@/config/store'
 import { useAtlasNavigate } from '@/hooks/use-atlas-navigate'
 import { useEventFilters } from '@/hooks/use-filters'
 import { useGeolocateToSearch } from '@/hooks/use-geolocate'
@@ -503,7 +503,10 @@ export function Mapbox({ cooperative = false }: { cooperative?: boolean } = {}) 
         // flies (`use-mapbox.ts`), and why the canvas stays held until it
         // does. Seeding it instead would mean resolving a center before the
         // map may mount, only to save one frame nobody ever sees.
-        onMoveEnd={(evt) => setViewState(evt.viewState)}
+        onMoveEnd={(evt) => {
+          setViewState(evt.viewState)
+          useCameraTarget.setState({ target: null })
+        }}
         onResize={(event) => setMinZoom(worldMinZoom(event.target.getContainer().clientWidth))}
       >
         {DEBUG_PADDING && (

@@ -117,7 +117,9 @@ or HTML descriptions — the client derives all of these:
   is `country / region / city / venue`, routed `city` → area and `venue` → venue
   (`src/lib/shape/path.ts`). ⚠ SahajCloud used to spell the leaf level `center`
   (before its #605) — nothing serves that spelling any more, and
-  `RegionLevelSchema` tracks only the current one.
+  `RegionLevelSchema` tracks only the current one. **`getOnlineCount`** derives the home
+  list's online badge from the same two caches, so one predicate — `visibleFeatures` —
+  answers for the badge, the country counts and the map's pins.
 - **`getEvents`** → the whole matching set from the feed, sorted by
   `@turf/distance`, **uncapped** (like `getCalendarEvents`). Do not reintroduce a
   `.slice()` here: an earlier cap truncated the pool _before_ the client-side sort,
