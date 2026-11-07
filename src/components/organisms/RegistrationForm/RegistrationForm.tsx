@@ -477,6 +477,7 @@ const errorCopy = (
 // Select and the filter date bounds.
 
 function LabeledInput({
+  autoComplete,
   label,
   maxLength,
   required,
@@ -484,6 +485,8 @@ function LabeledInput({
   type = 'text',
   registration,
 }: {
+  /** The HTML autofill token, so a phone offers the visitor's own name or email. */
+  autoComplete?: string
   label: ReactNode
   maxLength?: number
   required?: boolean
@@ -496,6 +499,7 @@ function LabeledInput({
       <input
         aria-describedby={error ? fieldErrorId(registration.name) : undefined}
         aria-invalid={error ? true : undefined}
+        autoComplete={autoComplete}
         className={fieldChrome({ isInvalid: Boolean(error) })}
         id={registration.name}
         maxLength={maxLength}
@@ -606,6 +610,7 @@ function RegistrationFields({
 
       <LabeledInput
         required
+        autoComplete="name"
         error={errorCopy(errors.name, t, 'registration.errors.name')}
         label={t('registration.form.name')}
         maxLength={USER_SUBMISSION_VALUE_MAX}
@@ -615,6 +620,7 @@ function RegistrationFields({
 
       <LabeledInput
         required
+        autoComplete="email"
         error={errorCopy(errors.email, t, 'registration.errors.email')}
         label={t('registration.form.email')}
         registration={register('email', { required: true })}
