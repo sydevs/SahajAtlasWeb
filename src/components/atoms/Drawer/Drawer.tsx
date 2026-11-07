@@ -2,7 +2,7 @@ import { type ReactNode, createContext, useContext, useEffect, useRef, useState 
 import { Drawer as Vaul } from 'vaul'
 import { tv, type VariantProps } from 'tailwind-variants'
 
-import { useSheetDragClaim } from './sheet-touch'
+import { isIOS, useSheetDragClaim } from './sheet-touch'
 
 import { overlayContainer } from '@/lib/overlay'
 
@@ -266,12 +266,15 @@ export function Drawer({
     dismissible,
     handleOnly,
     modal,
-    // ⚠ Off, so Safari alone moves the page for the keyboard. Vaul's handling writes the sheet's
-    // `bottom` and `height` from the keyboard height plus the active snap offset, and tracks
-    // whether the keyboard is open by toggling a flag on each large viewport change. On iOS that
-    // flag goes out of step after the first close: the next focus threw the sheet off the top of
-    // the screen, and closing left a sheet-shaped ghost over the map. Seen on iOS 18.5 and 26.3.
-    repositionInputs: false,
+    // ⚠ Off on iOS ALONE, so there Safari is the only thing that moves the page for the keyboard.
+    // Vaul's handling writes the sheet's `bottom` and `height` from the keyboard height plus the
+    // active snap offset, and tracks whether the keyboard is open by toggling a flag on each large
+    // viewport change. On iOS that flag goes out of step after the first close: the next focus
+    // threw the sheet off the top of the screen, and closing left a sheet-shaped ghost over the
+    // map. Seen on iOS 18.5 and 26.3. Everywhere else a keyboard shrinks the visual viewport and
+    // this handling is what lifts a focused field clear of it, so it stays on — nothing here
+    // replaces it. The flag also gates vaul's `usePreventScroll`, whose body runs on iOS only.
+    repositionInputs: !isIOS(),
     open,
     onOpenChange,
     snapPoints,
