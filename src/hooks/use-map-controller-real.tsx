@@ -9,7 +9,7 @@ import { MapControllerContext } from './use-map-controller'
 import { useMapbox, usePaddingState } from '@/hooks/use-mapbox'
 import { useViewState } from '@/config/store'
 import { useIsWide } from '@/config/responsive'
-import { eventFrameZoom, hasMapPoint } from '@/lib/camera'
+import { eventFrameZoom, hasMapPoint, worldViewCamera } from '@/lib/camera'
 import { isOnline } from '@/lib/shape'
 import { frameElement } from '@/lib/overlay'
 
@@ -76,7 +76,7 @@ const eventPoint = (event: Pick<EventSlim, 'address' | 'eventType'>) => {
  * So a compact embed never loads this provider or mapbox-gl.
  */
 export function RealMapControllerProvider({ children }: { children: ReactNode }) {
-  const { mapbox, moveMap, fitBounds, isPointVisible, flyTo } = useMapbox()
+  const { mapbox, padding, moveMap, fitBounds, isPointVisible, flyTo } = useMapbox()
   const setPadding = usePaddingState((s) => s.setPadding)
   const setSelection = useViewState((s) => s.setSelection)
   const setHover = useViewState((s) => s.setHover)
@@ -188,15 +188,35 @@ export function RealMapControllerProvider({ children }: { children: ReactNode })
         // `restore` would have reinstated the pin only for a POP.
         setSelection(null)
         setBoundary(undefined)
-        // One world, filling the map. `renderWorldCopies` is off on the map, so Mapbox clamps this
-        // zoom up until the world spans the map's full width (and Mercator's full height): the
-        // world shows once at any window size, with no empty space or repeats at the sides.
-        // Zoom 0 alone was a 512px-wide world, repeated three or four times on a wide screen.
+        // One world, filling the map. `renderWorldCopies` is off on the map, so Mapbox keeps the
+        // world at least as wide as the map and Mercator's full height tall: the world shows once
+        // at any window size, with no repeats at the sides. Mapbox's own clamp ignores our lopsided
+        // padding, though, and left a blank strip at the map's left edge, so `worldViewCamera`
+        // picks a zoom and centre that already fill the map, from the padding `moveMap` moves with.
         // Latitude 20 leans north, where most classes are.
-        moveMap({ center: [0, 20], zoom: 0 })
+        const container = mapbox?.getContainer()
+
+        if (!container) return
+        moveMap(
+          worldViewCamera(
+            { width: container.clientWidth, height: container.clientHeight },
+            padding,
+            [0, 20],
+          ),
+        )
       },
     }),
-    [mapbox, moveMap, fitBounds, isPointVisible, flyTo, setSelection, setHover, setBoundary],
+    [
+      mapbox,
+      padding,
+      moveMap,
+      fitBounds,
+      isPointVisible,
+      flyTo,
+      setSelection,
+      setHover,
+      setBoundary,
+    ],
   )
 
   return (
