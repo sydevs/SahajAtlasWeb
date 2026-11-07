@@ -7,7 +7,7 @@ import { useTranslation } from 'react-i18next'
 
 import { useLocale } from './use-locale'
 
-import { resolveEventDisplay, streetAndCity } from '@/lib/shape'
+import { hasApproximatePlace, resolveEventDisplay, streetAndCity } from '@/lib/shape'
 import { formatTimeRange, sameWallClock, zoneCity } from '@/lib/time'
 
 /** This is what the formatting layer reads on top of the resolver input: the address and
@@ -240,19 +240,17 @@ export function useEventDisplay(event: DisplayableEvent): EventDisplayStrings {
     const originCity = event.address?.city ?? event.region?.name ?? zoneCity(origin?.zoneName)
 
     // ── Where ──
-    // An inactive venue has no precise location.
+    // An inactive venue, or a street that names no place, has no precise location (#15).
     // This shows only the municipality, city or region name, never the street address.
+    const townOnly = display.status === 'inactive' || hasApproximatePlace(event)
     const whereLine = display.online
       ? `${t('event.display.online')} • ${t('event.display.hosted_from', { city: originCity })}`
-      : display.status === 'inactive'
+      : townOnly
         ? event.address?.city || event.region?.name || ''
         : streetAndCity(event.address?.street, event.address?.city) || event.region?.name || ''
-    // An inactive listing hides the street, so its room would be the same wrong answer.
+    // A listing that hides the street hides its room too, as the same wrong answer.
     const room = event.address?.room?.trim()
-    const roomLine =
-      !display.online && display.status !== 'inactive' && room
-        ? t('event.display.room', { room })
-        : null
+    const roomLine = !display.online && !townOnly && room ? t('event.display.room', { room }) : null
     // For an online event only, the host's own clock, faded under the where line, such as
     // "Wed 7:30 PM". It carries no place name: the line directly above it already reads
     // "Hosted from Prague", so naming the city again says nothing. The weekday shows ONLY when

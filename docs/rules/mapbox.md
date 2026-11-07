@@ -91,6 +91,19 @@ The map is the heart of the app and its hottest render path. Treat it carefully.
   `api.getGeojson()`. Read from the cache — never fetch it ad-hoc in a
   component.
 
+## Classes with no real place
+
+- `hasApproximatePlace` (`lib/shape/event.ts`) decides it: an **inactive** listing (it
+  meets only on request), or one whose street names no place — `hasVagueAddress` reads a
+  placeholder, the town's own name, or a "city centre" word (#15). Those draw a 1.5km
+  circle (`areaAround`, sources `approximate-areas` + a dot in `events`) instead of a pin,
+  frame at `VAGUE_ZOOM`, show only the town, and offer no directions.
+- It's a text heuristic, because SahajCloud has no such field and requires a street. ⚠ The
+  word list is the fallback, not the mechanism: SahajCloud's Atlas importer rewrites each
+  placeholder street it knows to the town's own name (`VENUE_FIELD_OVERRIDES` in
+  `seeds/atlas/dedupe.ts`), which matches in any language. A lone `-` is deliberately not a
+  placeholder — its one listing is a park whose point is the park.
+
 ## Pin-hover timing popover
 
 - Only on a device with a real pointer (`useHasRealPointer`). iOS sends a fake mouse

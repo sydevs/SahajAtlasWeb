@@ -24,9 +24,80 @@ export type DisplayEventLike = EventLike & {
   website?: string | null
   /** CMS capacity flag (SahajCloud#601). Absent/null reads as not-full. */
   registrationsFull?: boolean | null
+  /** Read only to decide whether the place is real enough to give directions to. */
+  address?: { street?: string | null; city?: string | null } | null
 }
 
 export const isOnline = (event: EventLike): boolean => event.eventType === 'online'
+
+// What hosts type when they have no address yet. These are matched whole, after the city name is
+// removed, so a real street that merely contains one of these words ("Av. Centro 12") stays exact.
+const NO_PLACE_STREETS = new Set([
+  '',
+  'none',
+  'n/a',
+  'tba',
+  'tbc',
+  'tbd',
+  'to be announced',
+  'to be confirmed',
+  'wird noch angekündigt',
+  'a definir',
+  'à définir',
+  'a confirmar',
+  'por definir',
+  'zentrum',
+  'innenstadt',
+  'stadtmitte',
+  'centro',
+  'centre',
+  'centre-ville',
+  'center',
+  'city centre',
+  'city center',
+  'cbd',
+  'downtown',
+])
+
+/**
+ * Whether an in-person class's street names no real place (#15).
+ *
+ * SahajCloud has no such field, and a street is required, so a host with no venue types the town
+ * again or "to be announced", and the stored point is the town's centre — once, a supermarket.
+ * This reads the street conservatively: a placeholder, the town's own name, or a "city centre"
+ * word, and nothing else. A lone "-" is not on the list: the one listing that has it is a park
+ * whose point is the park. The Atlas importer writes the town's own name for every placeholder it
+ * knows of (`seeds/atlas/dedupe.ts` in SahajCloud), which this matches in any language.
+ */
+export const hasVagueAddress = (
+  address?: {
+    street?: string | null
+    city?: string | null
+  } | null,
+): boolean => {
+  if (!address) return false
+
+  const normalize = (text?: string | null) => (text ?? '').trim().toLowerCase()
+  const city = normalize(address.city)
+  const street = normalize(address.street)
+  const afterCity = city && street.startsWith(city) ? street.slice(city.length) : street
+
+  return NO_PLACE_STREETS.has(afterCity.replace(/^[\s,]+/, ''))
+}
+
+/**
+ * Whether an in-person listing's stored point stands for its town rather than a door, so the map
+ * draws an area and nothing offers directions to it: an inactive listing, which meets only on
+ * request, or one whose street names no place (`hasVagueAddress`). Inactive means what
+ * `resolveEventDisplay` reads first, the flag or no schedule at all.
+ */
+export const hasApproximatePlace = (
+  event: EventLike & {
+    inactive?: boolean | null
+    address?: { street?: string | null; city?: string | null } | null
+  },
+): boolean =>
+  !isOnline(event) && (Boolean(event.inactive) || !event.schedule || hasVagueAddress(event.address))
 
 /**
  * Published with nobody vouching for it — the one stage that means that. The reminder
@@ -357,8 +428,9 @@ export function resolveEventDisplay(
     }
   }
 
+  // A class whose street names no place has no door to route to, like an inactive one.
   const actions: EventActionId[] = [
-    ...(online ? [] : (['directions'] as const)),
+    ...(online || hasVagueAddress(event.address) ? [] : (['directions'] as const)),
     ...(hasWebsite ? (['website'] as const) : []),
     ...(hasContact ? (['contact'] as const) : []),
     'share',
