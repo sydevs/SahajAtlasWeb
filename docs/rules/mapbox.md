@@ -96,8 +96,13 @@ The map is the heart of the app and its hottest render path. Treat it carefully.
 - `hasApproximatePlace` (`lib/shape/event.ts`) decides it: an **inactive** listing (it
   meets only on request), or one whose street names no place — `hasVagueAddress` reads a
   placeholder, the town's own name, or a "city centre" word (#15). Those draw a 1.5km
-  circle (`areaAround`, sources `approximate-areas` + a dot in `events`) instead of a pin,
-  frame at `VAGUE_ZOOM`, show only the town, and offer no directions.
+  circle (`areaAround`) instead of a pin, frame at `VAGUE_ZOOM`, show only the town, and
+  offer no directions.
+- ⚠ **The whole `approximate-areas` source sits outside clustering** — its circle, its
+  outline and its centre dot, told apart by `geometry-type`. The dot stands in for the
+  circle once that shrinks to nothing, which is zoomed out, which is exactly where the
+  `events` source clusters (`clusterMaxZoom` 14). Filtering it on `!has point_count` there
+  hid it at every zoom it existed for.
 - It's a text heuristic, because SahajCloud has no such field and requires a street. ⚠ The
   word list is the fallback, not the mechanism: SahajCloud's Atlas importer rewrites each
   placeholder street it knows to the town's own name (`VENUE_FIELD_OVERRIDES` in

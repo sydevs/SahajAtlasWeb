@@ -6,6 +6,9 @@ import { describe, it, expect } from 'vitest'
 
 import { MARKER_IDS, markerColors } from './markers'
 import {
+  approximateDotLayer,
+  approximateFillLayer,
+  approximateOutlineLayer,
   boundsLayer,
   clusterLayer,
   hoveredAreaLayer,
@@ -65,6 +68,21 @@ describe('LAYER_IDS', () => {
       LAYER_IDS.approximateDot,
       LAYER_IDS.approximateFill,
     ])
+  })
+})
+
+describe('the approximate-place layers', () => {
+  // ⚠ The dot stands in for the circle once that shrinks to nothing, which is zoomed out —
+  // exactly where the `events` source clusters (`clusterMaxZoom` 14). Reading `events` behind a
+  // `!has point_count` filter hid the dot at every zoom it existed for.
+  it('all read the source that does not cluster', () => {
+    for (const layer of [approximateDotLayer, approximateFillLayer, approximateOutlineLayer]) {
+      expect(layer({}, 'light').source).toBe('approximate-areas')
+    }
+  })
+
+  it('tells the dot from the circle by geometry, since one source carries both', () => {
+    expect(approximateDotLayer({}, 'light').filter).toEqual(['==', ['geometry-type'], 'Point'])
   })
 })
 

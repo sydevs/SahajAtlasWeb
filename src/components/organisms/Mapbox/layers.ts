@@ -102,6 +102,10 @@ export const unclusteredPointLayer: Props = {
  * an exact spot. The area itself is drawn to scale (`areaAround`), so it reads as a neighbourhood
  * when zoomed in. Zoomed out it shrinks to nothing, so this dot keeps the class visible and
  * clickable. Factories, memoised like `clusterLayer`, because the colours follow the brand.
+ *
+ * ⚠ The dot reads `approximate-areas`, NOT the clustering `events` source. Zoomed out is exactly
+ * where clustering applies (`clusterMaxZoom` 14), so a `!has point_count` filter there hides the
+ * dot at every zoom it exists for, and leaves a ring with nothing to click at its centre.
  */
 const approximateColor = (palette: PaletteRoles, mode: ThemeMode) =>
   stepHex(palette.primary, mode, SOLID_STEP) ?? '#21C1A2'
@@ -109,8 +113,8 @@ const approximateColor = (palette: PaletteRoles, mode: ThemeMode) =>
 export const approximateDotLayer = (palette: PaletteRoles, mode: ThemeMode): Props => ({
   id: LAYER_IDS.approximateDot,
   type: 'circle',
-  source: 'events',
-  filter: ['all', ['!', ['has', 'point_count']], ['==', ['get', 'approximate'], true]],
+  source: 'approximate-areas',
+  filter: ['==', ['geometry-type'], 'Point'],
   paint: {
     'circle-radius': 9,
     'circle-color': approximateColor(palette, mode),

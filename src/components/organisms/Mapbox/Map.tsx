@@ -125,13 +125,19 @@ const toMapSource = (features: Geojson['features']): FeatureCollection<Geometry 
   })),
 })
 
-// The round areas of the classes with no real place. These go in their own source, because the
-// events source is a clustering one and takes points only.
+// The round areas of the classes with no real place, each with its centre point beside it. These
+// go in their own source, because the events source is a clustering one and takes points only —
+// and because a dot clustered away is a dot missing at the zooms it exists for
+// (`approximateDotLayer`). The two geometries are told apart by `geometry-type` in the layer
+// filters: `fill` and `line` ignore a point, and only the dot layer asks for one.
 const toApproximateAreas = (source: FeatureCollection<Geometry | null>): FeatureCollection => ({
   type: 'FeatureCollection',
   features: source.features.flatMap((feature) =>
     feature.properties?.approximate && feature.geometry?.type === 'Point'
-      ? [areaAround(feature.geometry.coordinates, APPROXIMATE_RADIUS_KM, feature.properties)]
+      ? [
+          areaAround(feature.geometry.coordinates, APPROXIMATE_RADIUS_KM, feature.properties),
+          { type: 'Feature' as const, geometry: feature.geometry, properties: feature.properties },
+        ]
       : [],
   ),
 })
@@ -591,6 +597,7 @@ export function Mapbox({ cooperative = false }: { cooperative?: boolean } = {}) 
           <Source data={approximateAreas} id="approximate-areas" type="geojson">
             <Layer {...approximateFill} />
             <Layer {...approximateOutline} />
+            <Layer {...approximateDot} />
           </Source>
         )}
         {filtered && (
@@ -604,7 +611,6 @@ export function Mapbox({ cooperative = false }: { cooperative?: boolean } = {}) 
           >
             <Layer {...clusters} />
             <Layer {...unclusteredPointLayer} />
-            <Layer {...approximateDot} />
           </Source>
         )}
         {DEBUG_BOUNDARY && boundary && (
