@@ -563,6 +563,32 @@
   margin-top: 40px;
 }
 
+/* Mapbox paints its locate and attribution controls white, with glyphs drawn in fixed colours,
+   so in the dark theme they stayed white beside a dark settings cog. These give them the cog's
+   surface. `invert` then `hue-rotate` turns the glyphs light while keeping each state's hue (the
+   locate button's blue when active, its red on an error), so every state Mapbox draws survives. */
+.dark .mapboxgl-ctrl-group,
+.dark .mapboxgl-ctrl-attrib.mapboxgl-compact {
+  background-color: hsl(var(--background));
+}
+
+.dark .mapboxgl-ctrl-group:not(:empty) {
+  box-shadow: 0 0 0 1px var(--gray-6);
+}
+
+.dark .mapboxgl-ctrl button:not(:disabled):hover {
+  background-color: var(--gray-3);
+}
+
+.dark .mapboxgl-ctrl-icon,
+.dark .mapboxgl-ctrl-attrib-button {
+  filter: invert(1) hue-rotate(180deg);
+}
+
+.dark .mapboxgl-ctrl-attrib a {
+  color: var(--gray-11);
+}
+
 /* The boot curtain's spinner (views/FullInterface.tsx → MapCurtain). It fades in on a
    delay, rather than appearing with the frost, so a warm boot — where the camera
    arrives almost at once — reads as a clean frost-then-reveal instead of flashing a
