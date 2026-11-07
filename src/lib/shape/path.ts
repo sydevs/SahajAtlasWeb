@@ -111,9 +111,9 @@ export const parseCenter = (value: string | null): [number, number] | undefined 
  * The part of a search URL that decides WHAT the results query asks for —
  * everything except `?q`.
  *
- * SearchView's results boundary resets on this (issue #89). It cannot reset on the
- * whole query string: the geocoder mirrors every keystroke into `?q`, so a failing
- * query would be retried once per character typed. And it cannot reset on the
+ * SearchView's results boundary resets on this (issue #89). The place name is not part
+ * of the query, so a change to it alone (Near me naming the place it found, just after
+ * navigating) must not retry a failing one. And it cannot reset on the
  * pathname, which the drawer boundary already keys on — every re-search and filter
  * change moves only the query string, so without a reset a single failure would pin
  * its error over every later attempt, turning a transient failure into a permanent
@@ -154,11 +154,18 @@ export const SEARCH_COUNTRY_PARAM = 'cc'
  * merges onto the current params (`filtersToParams(…, prev)`), so it preserves the
  * searched country.
  *
+ * The region filter (`?region=gb`) is a Where too, so it goes with the old place. Kept, a
+ * search for Prague after choosing the United Kingdom would look for Prague inside the
+ * United Kingdom, and find nothing.
+ *
  * The results list's reveal is not in the URL at all: a new centre changes
  * `revealKey`, so paging resets on its own (see `use-reveal`).
  */
 export const preserveSearchState = (params: URLSearchParams): URLSearchParams =>
-  sortToParams(sortFromParams(params), filtersToParams(filtersFromParams(params)))
+  sortToParams(
+    sortFromParams(params),
+    filtersToParams({ ...filtersFromParams(params), region: null }),
+  )
 
 /** A searched place, in the terms the URL records it. */
 export type PlaceSearch = {
@@ -294,6 +301,45 @@ export const resolveStack = (pathname: string): StackEntry[] => {
   })
 
   return entries
+}
+
+/** A place's address as the region tree gives it, by slug (`webPath`, already `safePath`-checked). */
+export type PlacePathOf = (slug: string) => string | undefined
+
+/** Each place's own address, by slug, from the region tree. Undefined until the tree is cached. */
+export const placePathsOf = (
+  regions: readonly { slug: string; webPath?: string | null }[] | undefined,
+): PlacePathOf | undefined => {
+  if (!regions) return undefined
+
+  const paths = new Map(regions.map((node) => [node.slug, safePath(node.webPath)]))
+
+  return (slug) => paths.get(slug)
+}
+
+/** The deepest place in a stack: the one the page actually shows, or holds the class it shows. */
+export const placeInStack = (
+  entries: readonly StackEntry[],
+): Extract<StackEntry, { kind: 'region' }> | undefined =>
+  [...entries]
+    .reverse()
+    .find((entry): entry is Extract<StackEntry, { kind: 'region' }> => entry.kind === 'region')
+
+/**
+ * The pathname with its deepest place's address swapped for the one the region tree gives it.
+ * A place resolves by its last slug alone (`resolvePath`), so a typed or old address such as
+ * `/united-kingdom/south-east/london` still opens London, whose country is `gb`. Read straight
+ * from the URL, the panels behind it would be `/united-kingdom/south-east` and `/united-kingdom`,
+ * and the climb would end on "We couldn't find that place". The address bar is left as typed;
+ * only the ancestry behind the page follows the data.
+ */
+export const placedPathname = (pathname: string, pathOf?: PlacePathOf): string => {
+  const place = placeInStack(resolveStack(pathname))
+  const real = place && pathOf?.(place.slug)
+
+  return real && !isCanonicalPath(place.path, real)
+    ? `${real}${pathname.slice(place.path.length)}`
+    : pathname
 }
 
 /**

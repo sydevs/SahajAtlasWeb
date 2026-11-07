@@ -6,14 +6,21 @@ import { Monitor } from 'lucide-react'
 import { Alert } from '@/components/atoms/Alert'
 import { Link } from '@/components/atoms/Link'
 import { DrawerBody, DrawerHeader } from '@/components/atoms/Drawer'
-import { EventListItem, List, ListItem } from '@/components/molecules'
+import {
+  ActiveFilterPills,
+  EventListItem,
+  FallbackPanel,
+  List,
+  ListItem,
+} from '@/components/molecules'
 import { regionQuery } from '@/config/api'
+import { useEventFilters, useFilterSearch, useSetFilters } from '@/hooks/use-filters'
 import { useLocale } from '@/hooks/use-locale'
 import { useMapController } from '@/hooks/use-map-controller'
 import { usePostEventFeedback } from '@/hooks/use-post-event-feedback'
 import { usePrefetchEvents } from '@/hooks/use-prefetch-event'
 import { useWidgetMode } from '@/config/mode'
-import { childRoute, searchPath } from '@/lib/shape'
+import { DEFAULT_FILTERS, childRoute, hasActiveFilters, searchPath } from '@/lib/shape'
 import { validateWebUrl } from '@/lib/url'
 import {
   CalendarButton,
@@ -45,7 +52,12 @@ export function RegionView({ slug }: { slug: string }) {
   // `confirmed` renders nothing here, while the hook still takes the parameter out of the URL.
   const { answer: feedback, dismiss: dismissFeedback } = usePostEventFeedback()
 
-  const { data: region } = useSuspenseQuery(regionQuery(slug, locale))
+  // A shared link can carry filters (`/gb?days=2`). The map already applies them to its pins, so
+  // the list, the counts and the links one level down must too, or the two disagree.
+  const filters = useEventFilters()
+  const filterSearch = useFilterSearch()
+  const { setFilters } = useSetFilters()
+  const { data: region } = useSuspenseQuery(regionQuery(slug, locale, filters))
 
   useFrameOnTop(() => frameRegion(region), [region, frameRegion])
 
@@ -99,6 +111,7 @@ export function RegionView({ slug }: { slug: string }) {
         </div>
       </DrawerHeader>
       <DrawerBody>
+        <ActiveFilterPills />
         {/* Above the region's own content, which IS the "other classes near them" the
             acknowledgement hands off to. So the banner carries no onward link of its own.
             This stays neutral and unticked. A tick would read as "yes, it's gone", and one
@@ -138,8 +151,14 @@ export function RegionView({ slug }: { slug: string }) {
         {/* This is suppressed while the acknowledgement is up. Two stacked prompts above the
             list are more than the screen can carry, and the reader has just acted once
             already. It returns as soon as they dismiss the banner. */}
-        {!feedback && <GeolocationSuggestion regionCenter={region.center} />}
-        {isEmpty ? (
+        {!feedback && <GeolocationSuggestion position="above" regionCenter={region.center} />}
+        {isEmpty && hasActiveFilters(filters) ? (
+          <FallbackPanel
+            align="start"
+            kind="no-results"
+            onClearFilters={() => setFilters(DEFAULT_FILTERS)}
+          />
+        ) : isEmpty ? (
           <EmptyEventList />
         ) : (
           <List>
@@ -148,7 +167,7 @@ export function RegionView({ slug }: { slug: string }) {
             {showOnlineCard && (
               <ListItem
                 count={region.onlineEvents.length}
-                href={childRoute(region.path, 'online')}
+                href={`${childRoute(region.path, 'online')}${filterSearch}`}
                 icon={<Monitor size={24} />}
                 label={t('online.title')}
               />
@@ -160,7 +179,7 @@ export function RegionView({ slug }: { slug: string }) {
               <ListItem
                 key={`region-${child.id}`}
                 count={child.eventCount}
-                href={child.path}
+                href={`${child.path}${filterSearch}`}
                 label={child.name}
                 subtitle={child.subtitle}
               />
@@ -176,6 +195,7 @@ export function RegionView({ slug }: { slug: string }) {
               ))}
           </List>
         )}
+        {!feedback && <GeolocationSuggestion position="below" regionCenter={region.center} />}
       </DrawerBody>
     </>
   )

@@ -1,6 +1,8 @@
 import { describe, it, expect } from 'vitest'
 
 import {
+  placePathsOf,
+  placedPathname,
   childRoute,
   filterOriginRegion,
   isCanonicalPath,
@@ -239,6 +241,35 @@ describe('parseCenter', () => {
   })
 })
 
+describe('placedPathname', () => {
+  const pathOf = placePathsOf([
+    { slug: 'gb', webPath: '/gb' },
+    { slug: 'south-east', webPath: '/gb/south-east' },
+    { slug: 'london', webPath: '/gb/south-east/london' },
+  ])
+
+  // A place opens by its last slug, so an old address still shows London. What sits behind it
+  // must be the UK at /gb, not a /united-kingdom page that doesn't exist.
+  it('swaps a typed ancestry for the real one, keeping what follows the place', () => {
+    expect(placedPathname('/united-kingdom/south-east/london', pathOf)).toBe(
+      '/gb/south-east/london',
+    )
+    expect(placedPathname('/united-kingdom/south-east/london/717/register', pathOf)).toBe(
+      '/gb/south-east/london/717/register',
+    )
+    expect(placedPathname('/london', pathOf)).toBe('/gb/south-east/london')
+  })
+
+  it('leaves a real address, an unknown place, and an unloaded tree alone', () => {
+    expect(placedPathname('/gb/south-east/london', pathOf)).toBe('/gb/south-east/london')
+    expect(placedPathname('/nowhere/atlantis', pathOf)).toBe('/nowhere/atlantis')
+    expect(placedPathname('/united-kingdom/south-east/london')).toBe(
+      '/united-kingdom/south-east/london',
+    )
+    expect(placedPathname('/search', pathOf)).toBe('/search')
+  })
+})
+
 describe('nearestKnownRegion', () => {
   // The region tree a viewer's session has cached. `atlantis` and the dead venue are
   // deliberately absent — those are the slugs that 404'd in the first place.
@@ -283,9 +314,9 @@ describe('nearestKnownRegion', () => {
 describe('listResetKey', () => {
   const key = (search: string) => listResetKey(new URLSearchParams(search))
 
-  it('ignores ?q — the geocoder rewrites it on every keystroke', () => {
-    // The reason this helper exists: keying the results boundary on the raw query string
-    // would retry a failing query once per character typed.
+  it('ignores ?q — the place name is not part of the query', () => {
+    // Near me names the place it found just after navigating. Keying the results boundary on
+    // the raw query string would retry a failing query for a label.
     expect(key('center=0,0&q=Cam')).toBe(key('center=0,0&q=Cambridge'))
     expect(key('center=0,0&q=Cam')).toBe(key('center=0,0'))
   })
@@ -332,6 +363,17 @@ describe('placeSearchPath', () => {
   // previous params, because a stale `?cc` offers the wrong country's
   // website on an empty result set, and a stale `?q` labels the new results
   // with the old place.
+  // United Kingdom, then Tuesday, then Prague: the new place replaces the country, or the search
+  // looks for Prague inside the United Kingdom and finds nothing.
+  it('drops a region chosen earlier, keeping the other filters', () => {
+    const params = query(
+      placeSearchPath(new URLSearchParams('region=gb&days=2'), { center: CENTRE }),
+    )
+
+    expect(params.get('region')).toBeNull()
+    expect(params.get('days')).toBe('2')
+  })
+
   it('drops the previous searched location rather than merging onto it', () => {
     const params = query(
       placeSearchPath(new URLSearchParams('q=Paris&center=2.35,48.85&bbox=1,2,3,4&cc=FR'), {

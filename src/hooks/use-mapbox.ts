@@ -4,7 +4,7 @@ import { useMap } from 'react-map-gl'
 import { create } from 'zustand/react'
 
 import { type FitOptions, fitBoundsOptions, isWithinPaddedViewport } from '@/lib/camera'
-import { useCameraSettled } from '@/config/store'
+import { useCameraSettled, useCameraTarget } from '@/config/store'
 
 type PaddingState = {
   padding: PaddingOptions
@@ -125,8 +125,20 @@ export function useMapbox() {
 
         const base = fitBoundsOptions(padding, opts)
 
+        const destination = mapbox.cameraForBounds(bounds, base)
+
         if (arriving()) mapbox.fitBounds(bounds, { ...base, linear: true, animate: false })
         else mapbox.fitBounds(bounds, { ...base, curve: FLY_CURVE, speed: FLY_SPEED })
+
+        // After the call, which fires `moveend` for any fly it interrupts. See `flyTo`.
+        if (destination?.center && destination.zoom != null) {
+          // Typed loosely, but `cameraForBounds` always builds this as a `LngLat`.
+          const { lng, lat } = destination.center as { lng: number; lat: number }
+
+          useCameraTarget.setState({
+            target: { latitude: lat, longitude: lng, zoom: destination.zoom },
+          })
+        }
       },
       [mapbox, padding],
     ),
@@ -165,6 +177,19 @@ export function useMapbox() {
         } else {
           mapbox.easeTo({ ...options, padding })
         }
+
+        // After the call, as in `flyTo`. Both callers pass a plain zoom, and cluster expansion
+        // a `[lng, lat]`, so a click during either saves where the move is going too.
+        const { lng, lat } = mapbox.getCenter()
+        const center = options.center as [number, number] | undefined
+
+        useCameraTarget.setState({
+          target: {
+            latitude: center?.[1] ?? lat,
+            longitude: center?.[0] ?? lng,
+            zoom: options.zoom ?? mapbox.getZoom(),
+          },
+        })
       },
       [mapbox, padding],
     ),
@@ -181,6 +206,14 @@ export function useMapbox() {
 
         if (arriving()) mapbox.jumpTo({ center, zoom, padding })
         else mapbox.flyTo({ center, zoom, padding, curve: FLY_CURVE, speed: FLY_SPEED })
+
+        // Set after the call on purpose. Interrupting a fly fires that fly's `moveend` from
+        // inside this call, and `moveend` clears the target (`Map.tsx`). Set first, the new
+        // destination would be wiped. A jump's `moveend` has already gone by then too, which
+        // leaves a target naming the place the map is already at, until the next move ends.
+        useCameraTarget.setState({
+          target: { latitude: center[1], longitude: center[0], zoom },
+        })
       },
       [mapbox, padding],
     ),
