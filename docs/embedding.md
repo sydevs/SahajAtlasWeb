@@ -1200,9 +1200,11 @@ page's **origin** — scheme, host and port, never a path — because that is th
 its token to. It mounts with the interface, whether or not the visitor opens a form.
 
 **`map=false` removes the Mapbox flows too** — tiles, the geocoder (which sends the visitor's
-typed query and the map centre to Mapbox), and the map-load telemetry — along with the two
-`mapbox.*` storage keys. That is the only switch for them, since they are Mapbox's own behaviour,
-not ours.
+typed query to Mapbox, with the map centre to rank against, the ISO code of the country they are
+browsing, and — while the map still shows a continent or more, where its centre says nothing —
+an instruction for Mapbox to rank by the visitor's own IP instead), and the map-load telemetry —
+along with the two `mapbox.*` storage keys. That is the only switch for them, since they are
+Mapbox's own behaviour, not ours.
 
 Two things a visitor can send us on purpose, both on submit and never in the background: a
 **class registration** (their name, email and any organiser questions) and a **report about an
