@@ -2,7 +2,7 @@ import type { FallbackProps } from 'react-error-boundary'
 import type { FallbackAlign, FallbackKind } from '@/components/molecules'
 import type { StackEntry } from '@/lib/shape'
 
-import { useMemo } from 'react'
+import { useEffect, useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useLocation } from 'react-router'
 import { useQuery } from '@tanstack/react-query'
@@ -10,11 +10,12 @@ import { useQuery } from '@tanstack/react-query'
 import { DrawerBody, DrawerHeader, DrawerToolbar } from '@/components/atoms/Drawer'
 import { Spinner } from '@/components/atoms/Spinner'
 import { CENTERED_BODY, FallbackPanel, ListToolbar } from '@/components/molecules'
-import { eventTitlesQuery, regionsQuery } from '@/config/api'
+import { eventTitlesQuery, regionQuery, regionsQuery } from '@/config/api'
 import { useWidgetMode } from '@/config/mode'
 import { useLocale } from '@/hooks/use-locale'
+import { useMapController } from '@/hooks/use-map-controller'
 import { classifyError, errorMessage } from '@/lib/report'
-import { baseStackEntry, resolveStack } from '@/lib/shape'
+import { baseStackEntry, nearestKnownRegion, resolveStack } from '@/lib/shape'
 import {
   CalendarButton,
   CloseButton,
@@ -372,6 +373,28 @@ export function DrawerErrorBody(props: FallbackProps) {
 }
 
 /**
+ * A dead link still names a place. The body offers that place's classes, so the map shows it
+ * rather than sitting on the world behind that sentence. Rendered only for a not-found: after a
+ * server or network failure, this read would go at the backend that just failed.
+ */
+function FrameNearestRegion() {
+  const { locale } = useLocale()
+  const location = useLocation()
+  const { frameRegion } = useMapController()
+  const { data: regions } = useQuery({ ...regionsQuery(), enabled: false })
+  const slug = regions
+    ? nearestKnownRegion(location.pathname, new Set(regions.map((node) => node.slug)))
+    : undefined
+  const { data: region } = useQuery({ ...regionQuery(slug ?? '', locale), enabled: Boolean(slug) })
+
+  useEffect(() => {
+    if (region) frameRegion(region)
+  }, [region, frameRegion])
+
+  return null
+}
+
+/**
  * The ErrorBoundary fallback for a whole view — kept local to the drawer, so one
  * failing view never blanks the stack. Mirrors the top-level ErrorFallback
  * (molecules/Fallbacks): the same classified copy and the same FallbackActions,
@@ -386,6 +409,7 @@ export function DrawerErrorBody(props: FallbackProps) {
 export function DrawerErrorFallback({ error, resetErrorBoundary }: FallbackProps) {
   return (
     <>
+      {classifyError(error) === 'not-found' && <FrameNearestRegion />}
       <DrawerChrome />
       <DrawerErrorBody error={error} resetErrorBoundary={resetErrorBoundary} />
     </>

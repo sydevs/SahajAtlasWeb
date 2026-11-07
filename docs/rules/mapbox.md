@@ -93,6 +93,10 @@ The map is the heart of the app and its hottest render path. Treat it carefully.
 
 ## Pin-hover timing popover
 
+- Only on a device with a real pointer (`useHasRealPointer`). iOS sends a fake mouse
+  move before a tap, and a tap that reveals content never clicks, so `onMouseMove` is
+  not wired on touch. It shows the class name above the timing, and
+  `pinPopoverPlacement` keeps it inside the visible map, side panel included.
 - Hovering a pin displays a small non-interactive popover with that event's
   timing — `EventPinPopover` plus `EventPinCard`, module-private helpers
   inlined in `Map.tsx` (the popover is inherently map-bound, since it renders a
@@ -147,7 +151,11 @@ The map is the heart of the app and its hottest render path. Treat it carefully.
   `fitBounds` (a bbox) both carry the tuned arc. `moveMap` is the plain
   `easeTo`, kept only for the instant world reset and cluster expansion. Map
   padding comes from the known drawer width per breakpoint, set by
-  `MapController` — never a DOM measurement.
+  `MapController` — never a DOM measurement of the panel. The bottom sheet's
+  height is the one exception, and it arrives rather than being read:
+  `DrawerStack` resolves its active snap and publishes it through
+  `useSheetCover`, so the camera reserves the peek while the sheet is collapsed
+  and a class's measured height while it is open.
 - **The FIRST camera command of a session arrives instead of flying, and the
   canvas is held until it does.** `<ReactMapGL>` is uncontrolled with no
   `initialViewState`, so the map boots at `[0,0]` zoom 0 while a deep-linked
