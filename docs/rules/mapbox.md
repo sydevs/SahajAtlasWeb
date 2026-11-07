@@ -164,6 +164,30 @@ The map is the heart of the app and its hottest render path. Treat it carefully.
   **on unmount**, or a compact embed's second expansion inherits a
   stale `true` and both defects come back.
 
+## `renderWorldCopies={false}` buys one world and spends camera reach
+
+The world view (`reset()`) shows the world once because the map is constructed with
+`renderWorldCopies={false}`, and `worldViewCamera` picks a zoom and centre that already
+fill the lopsided padding. The flag is map-wide, and it is reactive — react-map-gl lists
+it in its own `settingNames`, so `map.setRenderWorldCopies` runs on a prop change.
+
+**What it costs: Mapbox then clamps the camera centre to keep the world over the canvas,
+and that clamp ignores padding.** The reachable band on a 1280px-wide map, measured
+against the installed mapbox-gl 3.34.1 with no basemap:
+
+| zoom | reachable centre | with copies on |
+| --- | --- | --- |
+| 3 | ±123.75° | any |
+| 6 | ±172.97° | any |
+| 10 | ±179.56° | any |
+| 15 | ±179.9° | any |
+
+So a detail frame anywhere is unaffected, and nothing becomes unreachable: an event at
+`EVENT_ZOOM` lands where it is asked to. What is lost is the continuous wrap across the
+antimeridian, and the last degree or two of a **region fit** below about zoom 8 — a New Zealand or Fiji fit is nudged west of where its bbox asks, by about 94px
+per degree at zoom 6. The band is `±(180 − (width / 2 / (512 × 2^zoom)) × 360)`, so it
+narrows with the canvas as well as with the zoom.
+
 ## Reduced motion is the library's job here, not ours
 
 Do **not** add a `prefers-reduced-motion` branch to `use-mapbox.ts`. mapbox-gl
