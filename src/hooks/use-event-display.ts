@@ -7,7 +7,7 @@ import { useTranslation } from 'react-i18next'
 
 import { useLocale } from './use-locale'
 
-import { resolveEventDisplay } from '@/lib/shape'
+import { resolveEventDisplay, streetAndCity } from '@/lib/shape'
 import { formatTimeRange, sameWallClock, zoneCity } from '@/lib/time'
 
 /** This is what the formatting layer reads on top of the resolver input: the address and
@@ -240,9 +240,7 @@ export function useEventDisplay(event: DisplayableEvent): EventDisplayStrings {
       ? `${t('event.display.online')} • ${t('event.display.hosted_from', { city: originCity })}`
       : display.status === 'inactive'
         ? event.address?.city || event.region?.name || ''
-        : [event.address?.street, event.address?.city].filter(Boolean).join(', ') ||
-          event.region?.name ||
-          ''
+        : streetAndCity(event.address?.street, event.address?.city) || event.region?.name || ''
     // An inactive listing hides the street, so its room would be the same wrong answer.
     const room = event.address?.room?.trim()
     const roomLine =
