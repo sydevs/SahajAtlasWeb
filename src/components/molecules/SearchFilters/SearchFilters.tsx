@@ -133,8 +133,10 @@ function DateBound({
   return (
     <label className="flex min-w-0 flex-1 flex-col gap-1 text-xs text-gray-11">
       {label}
+      {/* iOS Safari gives a date field an intrinsic minimum width of its own, wider than half
+          a phone sheet, so From and To overlapped and To ran off the edge. */}
       <Input
-        className="px-2"
+        className="min-w-0 appearance-none px-2"
         highlight={highlight}
         max={max}
         min={min}

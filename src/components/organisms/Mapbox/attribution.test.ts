@@ -81,3 +81,11 @@ describe('a refused location request', () => {
     )
   })
 })
+
+// iOS sends a fake mouse move before a tap, and treats a tap that reveals content as a hover, so
+// the click never fires. Nothing in the node lane can run that, so the wiring is what is pinned.
+describe('the pin hover popover', () => {
+  it('is wired only on a device with a real pointer', () => {
+    expect(read(MAP)).toContain('onMouseMove={hasRealPointer ? hoverOnFeature : undefined}')
+  })
+})
