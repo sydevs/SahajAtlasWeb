@@ -20,6 +20,7 @@ import { type ReactNode, useEffect, useMemo, useState } from 'react'
 
 import { Button } from '@/components/atoms/Button'
 import { Alert } from '@/components/atoms/Alert'
+import { Link } from '@/components/atoms/Link'
 import { RadioGroup, type RadioOption } from '@/components/atoms/RadioGroup'
 import { fieldChrome } from '@/components/atoms/Select'
 import { AddToCalendar } from '@/components/molecules/AddToCalendar'
@@ -34,6 +35,7 @@ import {
 } from '@/config/api/mutate'
 import livePreview from '@/config/live-preview/protocol'
 import { classifyError } from '@/lib/report'
+import { splitInlineLink } from '@/lib/shape'
 import { useRegistrationDraft } from '@/config/store'
 import {
   RecurrenceType,
@@ -122,6 +124,34 @@ const unansweredKey = (error: unknown): TranslationKey => {
 
 /** A field error set from a refusal, as opposed to one the schema raised. */
 const REFUSED = 'refused'
+
+const PRIVACY_POLICY_URL = 'https://wemeditate.com/privacy'
+
+/**
+ * The consent line under the fields. A translation marks the words that link to the privacy
+ * policy as `<link>…</link>`, so each language puts the link where its own sentence needs it. A
+ * translation without the mark reads as plain text, as every one did before.
+ */
+function ConsentNote({ text }: { text: string }) {
+  const parts = splitInlineLink(text)
+
+  if (!parts) return <p className="text-center text-xs">{text}</p>
+
+  return (
+    <p className="text-center text-xs">
+      {parts.before}
+      <Link
+        data-vaul-no-drag
+        isExternal
+        className="underline underline-offset-2"
+        href={PRIVACY_POLICY_URL}
+      >
+        {parts.link}
+      </Link>
+      {parts.after}
+    </p>
+  )
+}
 
 type RefusableField = 'email' | 'name' | `questions.${RegistrationQuestionName}`
 
@@ -638,7 +668,7 @@ function RegistrationFields({
         />
       ))}
 
-      <p className="text-center text-xs">{t('registration.form.privacy_policy')}</p>
+      <ConsentNote text={t('registration.form.privacy_policy')} />
     </div>
   )
 }
