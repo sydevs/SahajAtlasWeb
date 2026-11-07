@@ -110,9 +110,9 @@ export function MapSearch({ onSelect, label }: MapSearchProps) {
   const field = React.useRef<HTMLDivElement>(null)
 
   React.useEffect(() => {
-    const scope = field.current
+    const node = field.current
 
-    return scope ? hoistGeocoderLiveRegion(scope) : undefined
+    return node ? hoistGeocoderLiveRegion(node) : undefined
   }, [])
 
   React.useEffect(() => {
