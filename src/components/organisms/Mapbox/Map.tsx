@@ -69,6 +69,9 @@ const MAP_STYLES = {
  * the visitor has now seen where it starts from.
  */
 const REVEAL_TIMEOUT_MS = 1500
+// Mapbox's locate default is six seconds. iOS Safari appears to count that while its permission
+// prompt is open, so a visitor who took a moment to press Allow saw a failure.
+const LOCATE_POSITION_OPTIONS: PositionOptions = { timeout: 30_000 }
 
 const MAP_WORLDVIEWS: Record<string, string> = {
   zh: 'CN', // Chinese
@@ -586,8 +589,14 @@ export function Mapbox({ cooperative = false }: { cooperative?: boolean } = {}) 
             control, rather than trusting either claim. */}
         <GeolocateControl
           followUserLocation={false}
+          positionOptions={LOCATE_POSITION_OPTIONS}
           onError={() => setLocationFailed(true)}
-          onGeolocate={geolocateToSearch}
+          // An answer that arrives after a reported failure wins: the map and list are right,
+          // and an error on top of them would be false.
+          onGeolocate={(position) => {
+            setLocationFailed(false)
+            geolocateToSearch(position)
+          }}
         />
         {/* Mapbox's terms require both the wordmark and the attribution, and both must stay on the
             map view. Mapbox adds its own attribution in a corner no prop can change, so

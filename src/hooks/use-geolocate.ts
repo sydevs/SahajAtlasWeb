@@ -80,7 +80,7 @@ export function useGeolocateToSearch(geojson: Geojson | undefined) {
     const place = { center: point, bbox: nearbyBounds(point, feed) }
 
     // This navigates FIRST, on the coordinates alone.
-    // Getting here has already cost up to Mapbox's six-second `positionOptions.timeout`.
+    // Getting here may already have cost many seconds of `positionOptions.timeout`.
     // So nothing else may wait before the map moves and the list re-ranks.
     const target = placeSearchPath(params, place)
 
