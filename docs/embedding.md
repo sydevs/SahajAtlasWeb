@@ -407,6 +407,13 @@ element `height: 100vh` below your own sticky header, and its bottom edge — th
 sheet and its drag handle — sits below the fold, leaving a first-time visitor with no visible
 controls until they scroll. Subtract your header, or use a fixed height.
 
+⚠ **An embed that starts hidden is measured when it is shown.** The widget reads your element's
+size once, when it first renders, and keeps the layout that size implies. Inside a closed tab, an
+accordion, or anything else with `display: none` when the page loads, the element has no size
+yet, so the widget waits for it to appear before it loads, deep link or not. Opening the tab
+then gets the layout your box gives. (Before this, a page opened from a shared Atlas link loaded
+the widget at once, while hidden, and it took the browser window instead of your box.)
+
 ⚠ **A flex or grid item is sized even without a height rule.** A stretched item takes its track's
 cross size, so `<sahaj-atlas>` in a full-height flex column is a _contained_ map — almost always
 what you want, but the one way an embed ends up contained without one.
@@ -478,7 +485,9 @@ like `map=false`, against the floors above and nothing else.
   URL means a visitor followed a link, so the widget mounts immediately rather than waiting to be
   scrolled to, and the overlay opens straight onto that route. **The `atlas` parameter on the
   script URL does not do this** — that is your default view, not a visitor's request, so it stays
-  lazy. Closing the overlay does not reopen it.
+  lazy. Closing the overlay does not reopen it. An element that is hidden when the page loads (a
+  closed tab or accordion) waits to be shown first, deep link or not — see
+  [Sizing the element](#sizing-the-element).
 
 ⚠ **Do not put the embed inside an element with `transform`, `filter` or `contain`.** Those make
 that element the containing block for fixed-position content, confining the overlay to it instead
