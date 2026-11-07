@@ -58,8 +58,7 @@ export function SearchView() {
 
   return (
     <>
-      {/* Suggestions span the band, as on the country list (see CountriesView). */}
-      <DrawerHeader className="[container-type:inline-size] [--sy-results-w:calc(100cqi_-_2px)]">
+      <DrawerHeader>
         <SearchField />
         <CloseButton />
       </DrawerHeader>
