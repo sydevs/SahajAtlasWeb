@@ -370,6 +370,9 @@ export function Mapbox({ cooperative = false }: { cooperative?: boolean } = {}) 
   // so it still pans across the Pacific, and this stops a wide screen from showing the world two
   // or three times over.
   const [minZoom, setMinZoom] = useState(0)
+  // A touch device gets no hover at all, so one tap opens the class. iOS sends a fake mouse move
+  // before a tap, and when that reveals content Safari treats the tap as a hover and doesn't click.
+  const hasRealPointer = useHasRealPointer()
 
   // A touch device gets no hover at all, so one tap opens the class. iOS sends a fake mouse move
   // before a tap, and when that reveals content Safari treats the tap as a hover and doesn't click.
