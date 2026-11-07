@@ -330,6 +330,29 @@ cover everything a host would notice since the widget was first deployed.
 
 ### Fixed
 
+- **The map draws the world once, and no longer wraps across the antimeridian.** ([#370]) On a
+  wide embed the whole world repeated two or three times across the map, so a class near the
+  dateline appeared as two or three circles. The map now renders a single world, which costs the
+  continuous pan past ±180°: a visitor reaches New Zealand or Fiji by panning in from the west
+  rather than on across the Pacific. Nothing becomes unreachable, and a link or a search still
+  frames any class exactly where it sits. No parameter, origin or CSP change.
+
+- **The dark theme is readable throughout, and the browser's own chrome follows it.** ([#370])
+  Typed search text was almost invisible on the dark panel and its focused box drew a dotted
+  border; the locate and info controls on the map stayed white; date fields showed dark icons on a
+  dark field and opened light pickers; and the calendar turned purple. All four now take the
+  atlas's own colours. On the standalone page `sahajatlas.com` the document background and the
+  `theme-color` meta follow the theme too, so a phone tints its status bar to match. Within an
+  embed the host's page keeps its own `theme-color`; only the widget's own surfaces change. No
+  parameter, origin or CSP change.
+
+- **Smaller display repairs.** ([#370]) Search suggestions span the panel instead of sitting
+  narrower than it, with the result counts no longer peeking out beside them. A class available by
+  request is no longer labelled "ONE-OFF EVENT". An address no longer repeats the town ("Brno,
+  Brno"). The settings cog no longer covers the list and the sign-up form on a map-less embed
+  (`map=0`). The × on a filter tag keeps its drawn size but takes a 44px tap area on a touch
+  screen. No parameter, origin or CSP change.
+
 - **A direct link to an online class now zooms the map to its region.** ([#363]) An online
   class usually has no location of its own, so a link to one, such as `…/ca/ontario/toronto/720`,
   opened the class over the whole-world map. It now frames the class's region, as a region link
@@ -878,6 +901,7 @@ must-revalidate`, pinned rather than left to the CDN default. The production dom
 [#262]: https://github.com/sydevs/SahajAtlasWeb/issues/262
 [#283]: https://github.com/sydevs/SahajAtlasWeb/issues/283
 [#311]: https://github.com/sydevs/SahajAtlasWeb/pull/311
+[#370]: https://github.com/sydevs/SahajAtlasWeb/pull/370
 [#363]: https://github.com/sydevs/SahajAtlasWeb/pull/363
 [#351]: https://github.com/sydevs/SahajAtlasWeb/pull/351
 [#312]: https://github.com/sydevs/SahajAtlasWeb/pull/312
