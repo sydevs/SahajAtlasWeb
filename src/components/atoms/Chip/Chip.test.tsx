@@ -33,6 +33,18 @@ describe('Chip close button focus', () => {
     expect(html).toContain('type="button"')
   })
 
+  it('gives the 12px close button a 44px tap area on touch screens', () => {
+    const html = renderToStaticMarkup(
+      <Chip closeLabel="Remove filter" onClose={() => {}}>
+        Weekly
+      </Chip>,
+    )
+    const button = html.match(/<button[^>]*>/)?.[0] ?? ''
+
+    expect(button).toContain('touch-target')
+    expect(button).toContain('relative')
+  })
+
   it('renders no close button when there is nothing to close', () => {
     const html = renderToStaticMarkup(<Chip>Weekly</Chip>)
 

@@ -330,6 +330,28 @@ cover everything a host would notice since the widget was first deployed.
 
 ### Fixed
 
+- **The map draws the world once.** ([#370]) On a wide embed the whole world repeated two or
+  three times across the map, so a class near the dateline appeared as two or three circles. The
+  world view now fills the map with a single world, and zooming out stops where one world is as
+  wide as the map. The map still pans on across the Pacific, and a link or a search still frames
+  any class exactly where it sits. No parameter, origin or CSP change.
+
+- **The dark theme is readable throughout, and the browser's own chrome follows it.** ([#370])
+  Typed search text was almost invisible on the dark panel and its focused box drew a dotted
+  border; the locate and info controls on the map stayed white; date fields showed dark icons on a
+  dark field and opened light pickers; and the calendar turned purple. All four now take the
+  atlas's own colours. On the standalone page `sahajatlas.com` the document background and the
+  `theme-color` meta follow the theme too, so a phone tints its status bar to match. Within an
+  embed the host's page keeps its own `theme-color`; only the widget's own surfaces change. No
+  parameter, origin or CSP change.
+
+- **Smaller display repairs.** ([#370]) Search suggestions span the panel instead of sitting
+  narrower than it, with the result counts no longer peeking out beside them. A class available by
+  request is no longer labelled "ONE-OFF EVENT". An address no longer repeats the town ("Brno,
+  Brno"). The settings cog no longer covers the list and the sign-up form on a map-less embed
+  (`map=0`). The × on a filter tag keeps its drawn size but takes a 44px tap area on a touch
+  screen. No parameter, origin or CSP change.
+
 - **An embed inside a closed tab or accordion now fills its box when opened from a shared
   link.** ([#371]) A page whose URL carried `?atlas=` loaded the widget at once, while the element
   was still hidden and measured 0×0, so the widget took the whole browser window: when the tab
@@ -912,6 +934,7 @@ must-revalidate`, pinned rather than left to the CDN default. The production dom
 [#262]: https://github.com/sydevs/SahajAtlasWeb/issues/262
 [#283]: https://github.com/sydevs/SahajAtlasWeb/issues/283
 [#311]: https://github.com/sydevs/SahajAtlasWeb/pull/311
+[#370]: https://github.com/sydevs/SahajAtlasWeb/pull/370
 [#371]: https://github.com/sydevs/SahajAtlasWeb/pull/371
 [#363]: https://github.com/sydevs/SahajAtlasWeb/pull/363
 [#369]: https://github.com/sydevs/SahajAtlasWeb/pull/369

@@ -172,6 +172,24 @@ The map is the heart of the app and its hottest render path. Treat it carefully.
   **on unmount**, or a compact embed's second expansion inherits a
   stale `true` and both defects come back.
 
+## One world through a minimum zoom, not `renderWorldCopies={false}`
+
+The map keeps Mapbox's world copies, so it pans on across the Pacific. Two things keep a wide
+screen from showing the world two or three times over:
+
+- **The world view (`reset()`) fills the map**: `worldViewCamera` picks a zoom and centre that
+  make one world at least as wide as the canvas plus the panel's padding, with no edge left for a
+  copy to show in.
+- **Zooming out stops there too**: `Map.tsx` sets `minZoom` to `worldMinZoom(width)`, the zoom at
+  which one world is as wide as the map, on load and on every resize. A map narrower than the
+  world (a phone) keeps zoom 0, so a wide country's fit there is never clamped.
+
+⚠ **Do not reach for `renderWorldCopies={false}` instead.** It is map-wide, and Mapbox then
+clamps the camera centre to keep the world over the canvas, ignoring padding. Measured on
+mapbox-gl 3.34.1 at 1280px: the reachable centre is ±123.75° at zoom 3, ±172.97° at zoom 6, and
+±179.56° at zoom 10. The pan across ±180° goes, and a New Zealand or Fiji region fit below
+about zoom 8 lands west of its bbox (#370's review).
+
 ## Reduced motion is the library's job here, not ours
 
 Do **not** add a `prefers-reduced-motion` branch to `use-mapbox.ts`. mapbox-gl

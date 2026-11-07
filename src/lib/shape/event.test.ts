@@ -10,6 +10,7 @@ import {
   isSoon,
   nextOccurrence,
   resolveEventDisplay,
+  streetAndCity,
 } from './event'
 
 const offline = {
@@ -491,5 +492,27 @@ describe('isSoon', () => {
   it('is false for a date in the past', () => {
     expect(isSoon(DateTime.now().minus({ minutes: 30 }), true)).toBe(false)
     expect(isSoon(DateTime.now().minus({ days: 1 }), false)).toBe(false)
+  })
+})
+
+describe('streetAndCity', () => {
+  it('joins a street and its town', () => {
+    expect(streetAndCity('16 Ramsden Rd', 'London')).toBe('16 Ramsden Rd, London')
+  })
+
+  it('does not repeat a town the street already ends with', () => {
+    expect(streetAndCity('32 Cejl, 602 00, Brno', 'Brno')).toBe('32 Cejl, 602 00, Brno')
+    expect(streetAndCity('Sneek', 'Sneek')).toBe('Sneek')
+    expect(streetAndCity('Main St, PLYMOUTH', 'Plymouth')).toBe('Main St, PLYMOUTH')
+  })
+
+  it('keeps the town when the street only contains its name', () => {
+    expect(streetAndCity('Rue de Paris', 'Paris')).toBe('Rue de Paris, Paris')
+  })
+
+  it('falls back to whichever half there is', () => {
+    expect(streetAndCity(null, 'Brno')).toBe('Brno')
+    expect(streetAndCity(' 1 High St ', undefined)).toBe('1 High St')
+    expect(streetAndCity('', '')).toBe('')
   })
 })

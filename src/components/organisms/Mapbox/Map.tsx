@@ -44,6 +44,7 @@ import api, { eventTitlesQuery } from '@/config/api'
 import { useHasRealPointer } from '@/config/responsive'
 import { useBrandPalette } from '@/config/theme/brand-palette'
 import { GEOJSON_STALE_TIME } from '@/config/query-client'
+import { worldMinZoom } from '@/lib/camera'
 import { hasActiveFilters, matchesFilters, safePath, todayISO } from '@/lib/shape'
 import { useLocale } from '@/hooks/use-locale'
 import { useTheme } from '@/hooks/use-theme'
@@ -365,6 +366,14 @@ export function Mapbox({ cooperative = false }: { cooperative?: boolean } = {}) 
   // the pointer moves to empty map or leaves the canvas. This is local
   // state, not zustand: it is purely a map-view detail.
   const [hoveredId, setHoveredId] = useState<number | null>(null)
+  // Zooming out stops where one world fills the map's width. The map keeps Mapbox's world copies,
+  // so it still pans across the Pacific, and this stops a wide screen from showing the world two
+  // or three times over.
+  const [minZoom, setMinZoom] = useState(0)
+  // A touch device gets no hover at all, so one tap opens the class. iOS sends a fake mouse move
+  // before a tap, and when that reveals content Safari treats the tap as a hover and doesn't click.
+  const hasRealPointer = useHasRealPointer()
+
   // A touch device gets no hover at all, so one tap opens the class. iOS sends a fake mouse move
   // before a tap, and when that reveals content Safari treats the tap as a hover and doesn't click.
   const hasRealPointer = useHasRealPointer()
@@ -500,13 +509,17 @@ export function Mapbox({ cooperative = false }: { cooperative?: boolean } = {}) 
         logoPosition="bottom-right"
         mapStyle={MAP_STYLES[theme]}
         mapboxAccessToken={import.meta.env.VITE_MAPBOX_ACCESSTOKEN}
+        minZoom={minZoom}
         style={canvasStyle}
         worldview={MAP_WORLDVIEWS[languageCode] || MAP_WORLDVIEWS.default}
         onClick={selectFeature}
         // This is the backstop on the reveal. A route that never frames the
         // camera — CalendarView is the one that deliberately does not — must
         // not leave the map hidden for the whole session.
-        onLoad={armReveal}
+        onLoad={(event) => {
+          armReveal()
+          setMinZoom(worldMinZoom(event.target.getContainer().clientWidth))
+        }}
         onMouseMove={hasRealPointer ? hoverOnFeature : undefined}
         // This dismisses the timing popover when the pointer leaves the
         // canvas. `mouseout` (react-map-gl `onMouseOut`) is the canvas-exit
@@ -531,6 +544,7 @@ export function Mapbox({ cooperative = false }: { cooperative?: boolean } = {}) 
           setViewState(evt.viewState)
           useCameraTarget.setState({ target: null })
         }}
+        onResize={(event) => setMinZoom(worldMinZoom(event.target.getContainer().clientWidth))}
       >
         {DEBUG_PADDING && (
           <div

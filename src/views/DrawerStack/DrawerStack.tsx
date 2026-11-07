@@ -797,32 +797,33 @@ export function DrawerStack() {
               measured overflowing here, since the sheet takes no snap ladder map-less — the
               invariant stated, not a defect repaired. */}
           <div
-            ref={setContainer}
-            className="relative w-full overflow-clip bg-background"
+            className="flex w-full flex-col overflow-clip bg-background"
             style={{ height: standalone ? '100dvh' : '100%' }}
           >
-            <Drawer
-              key={direction}
-              open
-              container={container}
-              direction={direction}
-              dismissible={parentPaths.length > 0}
-              // Same as the map drawer: the left panel (≥md) has no handle, so
-              // handle-only drag would make it undraggable — dismiss stays the close
-              // button only.
-              handleOnly={direction === 'left'}
-              mode="filled"
-              onOpenChange={(o) => !o && control.dismiss()}
-            >
-              {sheet}
-            </Drawer>
-            {/* Map-less, the drawer fills the container and its search header owns
-              the top, so a top-left cog would cover the search field. This keeps it
-              on the left but at the bottom, clear of the header. side="top" opens
-              the menu upward from there. z-50 so it sits above the fill-the-container
-              drawer content (z-40, and portaled in last) — otherwise a list row
-              would intercept its clicks. */}
-            <SettingsMenu className="absolute start-3 bottom-3 z-50" side="top" />
+            <div ref={setContainer} className="relative min-h-0 w-full flex-1 overflow-clip">
+              <Drawer
+                key={direction}
+                open
+                container={container}
+                direction={direction}
+                dismissible={parentPaths.length > 0}
+                // Same as the map drawer: the left panel (≥md) has no handle, so
+                // handle-only drag would make it undraggable — dismiss stays the close
+                // button only.
+                handleOnly={direction === 'left'}
+                mode="filled"
+                onOpenChange={(o) => !o && control.dismiss()}
+              >
+                {sheet}
+              </Drawer>
+            </div>
+            {/* Map-less, the drawer fills its box and its header owns the top, so the cog
+                gets its own strip below the views. Floating over them, it sat on list rows and
+                form fields, and the narrower the box the more it covered. side="top" opens
+                the menu upward from there. */}
+            <div className="flex h-12 shrink-0 items-center border-t border-divider px-4">
+              <SettingsMenu toolbar side="top" />
+            </div>
           </div>
         </DrawerControlContext.Provider>
       </WidgetWidthContext.Provider>
