@@ -9,19 +9,11 @@ import { DrawerBody, DrawerHeader } from '@/components/atoms/Drawer'
 import { ActiveFilterPills, FallbackPanel, List, ListItem } from '@/components/molecules'
 import api, { clientQuery } from '@/config/api'
 import atlasAuth from '@/config/api/auth'
-import { GEOJSON_STALE_TIME } from '@/config/query-client'
 import { useEventFilters, useFilterSearch, useSetFilters } from '@/hooks/use-filters'
 import { useLocale } from '@/hooks/use-locale'
 import { useMapController } from '@/hooks/use-map-controller'
 import { useWidgetMode } from '@/config/mode'
-import {
-  DEFAULT_FILTERS,
-  filtersKey,
-  filtersToParams,
-  hasActiveFilters,
-  isOnline,
-  matchesFilters,
-} from '@/lib/shape'
+import { DEFAULT_FILTERS, filtersKey, filtersToParams, hasActiveFilters } from '@/lib/shape'
 import { validateWebUrl } from '@/lib/url'
 import {
   CollapseToggle,
@@ -59,22 +51,14 @@ export function CountriesView() {
   )
   const { data: client } = useSuspenseQuery(clientQuery(atlasAuth.apiKey))
 
-  // The "Online Classes" entry links to the online-filtered search. Its count is the number
-  // of placeless online events in the already-cached feed.
-  const { data: geojson } = useQuery({
-    queryKey: ['geojson'],
-    queryFn: () => api.getGeojson(),
-    staleTime: GEOJSON_STALE_TIME,
+  // The "Online Classes" entry links to the online-filtered search. Its count comes from the data
+  // layer, under the same predicate the country counts and the cards use: counting the feed here
+  // instead left the badge blind to a `?region=` cut, since `matchesFilters` needs the region tree
+  // to apply one.
+  const { data: onlineCount = 0 } = useQuery({
+    queryKey: hasActiveFilters(filters) ? ['online-count', filtersKey(filters)] : ['online-count'],
+    queryFn: () => api.getOnlineCount(filters),
   })
-  const onlineCount = useMemo(
-    () =>
-      geojson?.features.filter(
-        (feature) =>
-          isOnline(feature.properties) &&
-          (!hasActiveFilters(filters) || matchesFilters(feature.properties, filters)),
-      ).length ?? 0,
-    [geojson, filters],
-  )
   // The count above follows the active filters, so the search it opens must too.
   const onlineSearch = `/search?${filtersToParams({ ...filters, format: 'online' }).toString()}`
   const noMatches = Boolean(filterSearch) && sortedCountries.length === 0 && onlineCount === 0

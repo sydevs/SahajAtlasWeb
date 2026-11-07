@@ -455,6 +455,17 @@ const getCountries = async (filters?: EventFilters): Promise<RegionListItem[]> =
     .filter((country) => country.eventCount > 0)
 }
 
+// The placeless online classes the home list badges, through the same `visibleFeatures` predicate
+// its country counts use. `matchesFilters` alone reads a selected region as no restriction
+// (`filters.ts`), so a view counting the feed itself would badge online classes worldwide while
+// every card below it honoured a `?region=` cut.
+const getOnlineCount = async (filters?: EventFilters): Promise<number> => {
+  const [regions, geojson] = await Promise.all([loadRegions(), loadGeojson()])
+  const events = visibleFeatures(indexedFeed(regions, geojson).events, regions, filters)
+
+  return events.filter((event) => isOnline(event.feature.properties)).length
+}
+
 // This is one fetcher for every region level.
 // Parent levels, `country` and `region`, list their child regions as cards.
 // Leaf levels, `city` and `center`, list their located events instead.
@@ -916,6 +927,7 @@ export default {
   getGeojson,
   getRegions,
   getCountries,
+  getOnlineCount,
   getEvents,
   getCalendarEvents,
   getRegion,

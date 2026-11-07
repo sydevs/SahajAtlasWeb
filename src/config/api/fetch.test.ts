@@ -450,6 +450,16 @@ describe('getRegion (region-tree derivation)', () => {
     expect(region.bounds).toEqual([4.35, 50.85, 4.41, 51.21])
   })
 
+  // The home list's "Online Classes" badge. It counted the feed in the view, where a region cut
+  // cannot be applied, so the badge disagreed with every card under it.
+  it('counts online classes under the region cut, not worldwide', async () => {
+    mockBackend()
+
+    expect(await api.getOnlineCount()).toBe(2)
+    expect(await api.getOnlineCount({ ...DEFAULT_FILTERS, region: 'antwerpen' })).toBe(1)
+    expect(await api.getOnlineCount({ ...DEFAULT_FILTERS, region: 'brussels' })).toBe(0)
+  })
+
   it('derives an UPPERCASE country code from an ISO slug (post-#556), with no legacyData', async () => {
     const isoTree = [
       { id: 9, slug: 'de', level: 'country', name: 'Germany', parent: null, webPath: '/de' },
