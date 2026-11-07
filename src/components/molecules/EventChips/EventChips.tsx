@@ -10,7 +10,7 @@ export type EventChipsVariant = 'default' | 'compact'
 export type EventChipsProps = {
   event: DisplayableEvent & { languages: string[] }
   /**
-   * `default`, the event header, names the type (unless the class is by request) and
+   * `default`, the event header, names the type where the listing has one, and
    * every language.
    * `compact`, the list card, drops the plain weekly-class type and the
    * viewer's own language. Those are the chips that add nothing at a
@@ -34,13 +34,9 @@ export function EventChips({ event, variant = 'default', className }: EventChips
 
   const compact = variant === 'compact'
 
-  // A by-request listing has no schedule, so it derives as a one-off and would read
-  // "One-off event", which is simply wrong. "Contact host for timings" already says what it is.
-  const byRequest = display.status === 'inactive' && display.kind === 'oneoff'
-
-  // Type: `default` names it. `compact` skips the plain weekly class,
-  // whose label adds nothing on a compact card.
-  const showType = !byRequest && (!compact || !isDefaultType)
+  // Type: `default` names it, where there is one — a by-request listing has none.
+  // `compact` skips the plain weekly class, whose label adds nothing on a compact card.
+  const showType = typeLabel !== null && (!compact || !isDefaultType)
 
   // All languages fold into a single chip. `compact` keeps only the ones
   // that differ from the viewer's UI language.

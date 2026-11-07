@@ -20,8 +20,9 @@ export type DisplayableEvent = DisplayEventLike & {
 export type EventDisplayStrings = {
   /** The raw resolved state, for surfaces that need more than strings. */
   display: EventDisplay
-  /** "Weekly class" / "Course · 8 sessions" / "One-off event" */
-  typeLabel: string
+  /** "Weekly class" / "Course · 8 sessions" / "One-off event". Null for a by-request listing,
+   *  which carries no schedule and so has no type to name. */
+  typeLabel: string | null
   /** This is true for a plain weekly class, the default shape. Its `typeLabel` adds
    *  nothing on a compact surface, so the list card skips its type pill. */
   isDefaultType: boolean
@@ -131,9 +132,14 @@ export function useEventDisplay(event: DisplayableEvent): EventDisplayStrings {
       sessions != null ? t('event.display.sessions_count', { count: sessions }) : null
 
     // ── Type label (derived, never host-set) ──
-    let typeLabel: string
+    let typeLabel: string | null
 
-    if (kind === 'oneoff') typeLabel = t('event.display.type_oneoff')
+    // A by-request listing carries no schedule, so the resolver derives `oneoff` from the
+    // absent recurrence and "One-off event" would be simply wrong. "Contact host for timings"
+    // already says what it is. A real one-off has a schedule, inactive or not, and keeps its
+    // label.
+    if (!schedule) typeLabel = null
+    else if (kind === 'oneoff') typeLabel = t('event.display.type_oneoff')
     else if (kind === 'course')
       typeLabel = sessionsLabel
         ? `${t('event.display.type_course')} · ${sessionsLabel}`

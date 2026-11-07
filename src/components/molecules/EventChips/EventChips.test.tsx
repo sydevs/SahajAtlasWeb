@@ -12,9 +12,8 @@ import { EventChips } from './EventChips'
 const { d } = vi.hoisted(() => ({
   d: {
     status: 'upcoming',
-    kind: 'class',
     full: false,
-    typeLabel: 'Weekly class',
+    typeLabel: 'Weekly class' as string | null,
     isDefaultType: true,
   },
 }))
@@ -25,7 +24,7 @@ vi.mock('@/hooks/use-locale', () => ({
 }))
 vi.mock('@/hooks/use-event-display', () => ({
   useEventDisplay: () => ({
-    display: { status: d.status, kind: d.kind, full: d.full },
+    display: { status: d.status, full: d.full },
     typeLabel: d.typeLabel,
     isDefaultType: d.isDefaultType,
   }),
@@ -39,7 +38,6 @@ const render = (languages: string[], variant?: EventChipsProps['variant']) =>
 describe('EventChips', () => {
   beforeEach(() => {
     d.status = 'upcoming'
-    d.kind = 'class'
     d.full = false
     d.typeLabel = 'Weekly class'
     d.isDefaultType = true
@@ -76,14 +74,12 @@ describe('EventChips', () => {
     expect(html).toContain('text-contrast-11')
   })
 
-  it('never calls a by-request class a one-off', () => {
-    d.status = 'inactive'
-    d.kind = 'oneoff'
+  it('renders no type chip where the listing has no type to name', () => {
+    d.typeLabel = null
     d.isDefaultType = false
-    d.typeLabel = 'One-off event'
 
-    expect(render(['en'])).not.toContain('One-off event')
-    expect(render(['fr'], 'compact')).not.toContain('One-off event')
+    expect(render(['en'])).not.toContain('text-primary-11')
+    expect(render(['fr'], 'compact')).not.toContain('text-primary-11')
     // The language still shows.
     expect(render(['en'])).toContain('>en<')
   })
