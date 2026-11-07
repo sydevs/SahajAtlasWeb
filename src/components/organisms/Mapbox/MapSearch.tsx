@@ -13,7 +13,12 @@ import { useBrowsedCountry } from '@/config/store'
 import atlasAuth from '@/config/api/auth'
 import { useLocale } from '@/hooks/use-locale'
 import { useMapbox } from '@/hooks/use-mapbox'
-import { SEARCH_COUNTRY_PARAM, isoCountryCode } from '@/lib/shape'
+import {
+  type ReleasedScope,
+  SEARCH_COUNTRY_PARAM,
+  isoCountryCode,
+  searchCountryScope,
+} from '@/lib/shape'
 
 /**
  * The place search field. What is typed stays in the field: the URL changes only when a place is
@@ -91,8 +96,8 @@ export function MapSearch({ onSelect, label }: MapSearchProps) {
     isoCountryCode(searchParams.get(SEARCH_COUNTRY_PARAM)) ??
     browsed ??
     isoCountryCode(home?.webPath?.split('/').filter(Boolean)[0])
-  const [releasedFrom, setReleasedFrom] = React.useState<string>()
-  const scope = country !== releasedFrom ? country : undefined
+  const [released, setReleased] = React.useState<ReleasedScope>()
+  const scope = searchCountryScope(country, searchQuery, released)
   const [foundNothing, setFoundNothing] = React.useState(false)
 
   // This follows a new `?q`. The field seeds from the URL once, in the state initializer above.
@@ -118,7 +123,7 @@ export function MapSearch({ onSelect, label }: MapSearchProps) {
     const none = response.features.length === 0
 
     if (none && scope) {
-      setReleasedFrom(scope)
+      setReleased({ country: scope, query: searchQuery })
       setFoundNothing(false)
       // The geocoder searches on input, so wait for it to take the wider options, then repeat the
       // query.
