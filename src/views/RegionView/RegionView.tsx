@@ -20,7 +20,7 @@ import { useMapController } from '@/hooks/use-map-controller'
 import { usePostEventFeedback } from '@/hooks/use-post-event-feedback'
 import { usePrefetchEvents } from '@/hooks/use-prefetch-event'
 import { useWidgetMode } from '@/config/mode'
-import { DEFAULT_FILTERS, childRoute, searchPath } from '@/lib/shape'
+import { DEFAULT_FILTERS, childRoute, hasActiveFilters, searchPath } from '@/lib/shape'
 import { validateWebUrl } from '@/lib/url'
 import {
   CalendarButton,
@@ -152,7 +152,7 @@ export function RegionView({ slug }: { slug: string }) {
             list are more than the screen can carry, and the reader has just acted once
             already. It returns as soon as they dismiss the banner. */}
         {!feedback && <GeolocationSuggestion position="above" regionCenter={region.center} />}
-        {isEmpty && filterSearch ? (
+        {isEmpty && hasActiveFilters(filters) ? (
           <FallbackPanel
             align="start"
             kind="no-results"

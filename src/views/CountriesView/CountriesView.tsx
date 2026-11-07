@@ -61,7 +61,7 @@ export function CountriesView() {
   })
   // The count above follows the active filters, so the search it opens must too.
   const onlineSearch = `/search?${filtersToParams({ ...filters, format: 'online' }).toString()}`
-  const noMatches = Boolean(filterSearch) && sortedCountries.length === 0 && onlineCount === 0
+  const noMatches = hasActiveFilters(filters) && sortedCountries.length === 0 && onlineCount === 0
 
   // Frame the world view when this view mounts. This uses `reset()`, not an empty
   // `frameSearch`. The root view is the one place that genuinely wants the whole world, and
