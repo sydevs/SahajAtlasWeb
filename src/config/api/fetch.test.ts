@@ -437,6 +437,19 @@ describe('getRegion (region-tree derivation)', () => {
     expect(region.onlineEvents.every((event) => event.eventType === 'online')).toBe(true)
   })
 
+  // A filtered link (`/belgium?format=online`) shows filtered pins. The list and the counts must
+  // agree with them, while framing still covers every class.
+  it('counts and lists only what the filters let through, framing on everything', async () => {
+    mockBackend()
+
+    const region = await api.getRegion('belgium', { ...DEFAULT_FILTERS, format: 'online' })
+
+    expect(region.subregions).toHaveLength(0)
+    expect(region.onlineEvents.map((event) => event.id)).toEqual([5, 4])
+    expect(region.eventCount).toBe(2)
+    expect(region.bounds).toEqual([4.35, 50.85, 4.41, 51.21])
+  })
+
   it('derives an UPPERCASE country code from an ISO slug (post-#556), with no legacyData', async () => {
     const isoTree = [
       { id: 9, slug: 'de', level: 'country', name: 'Germany', parent: null, webPath: '/de' },
