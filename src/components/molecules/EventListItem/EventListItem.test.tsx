@@ -1,3 +1,5 @@
+import type { ReactNode } from 'react'
+
 import { renderToStaticMarkup } from 'react-dom/server'
 import { MemoryRouter } from 'react-router'
 import { describe, it, expect, vi } from 'vitest'
@@ -28,8 +30,10 @@ vi.mock('@/hooks/use-map-controller', () => ({
 vi.mock('@/hooks/use-prefetch-event', () => ({
   useHoverPrefetch: () => ({ enter: () => {}, leave: () => {} }),
 }))
+// The facts row itself is stubbed, but it renders the distance slot it is handed, so the card's
+// own distance decision stays visible.
 vi.mock('@/components/molecules/EventFacts', () => ({
-  EventFacts: () => null,
+  EventFacts: ({ distance }: { distance?: ReactNode }) => distance ?? null,
 }))
 // EventChips pulls the display resolver and i18n. The card's chips are not
 // what this DOM-nesting test asserts. So stub it out, like EventFacts.
@@ -38,6 +42,21 @@ vi.mock('@/components/molecules/EventChips', () => ({
 }))
 
 describe('EventListItem', () => {
+  // With nothing searched, the list is still measured from the middle of the map, and
+  // "5,652 km away" read as "from you".
+  it('prints a distance only when the list says it means something', () => {
+    const event = { ...mockEventSlim, distance: 12 }
+    const render = (showDistance?: boolean) =>
+      renderToStaticMarkup(
+        <MemoryRouter>
+          <EventListItem event={event} showDistance={showDistance} />
+        </MemoryRouter>,
+      )
+
+    expect(render()).toContain('event.display.distance_away')
+    expect(render(false)).not.toContain('event.display.distance_away')
+  })
+
   it('nests as <li><a> so the card is a direct child of the list <ul>', () => {
     const html = renderToStaticMarkup(
       <MemoryRouter>

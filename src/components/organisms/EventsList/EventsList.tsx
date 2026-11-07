@@ -12,17 +12,24 @@ export interface EventsListProps {
    * is the difference between one re-render and hundreds.
    */
   searchedPlace?: string
+  /** False when nothing was searched, so a card's distance would be from nowhere in particular. */
+  showDistance?: boolean
 }
 
 // This is the presentational list: events pass in via props, one card each.
 // It stays free of the data and i18n graph — its network-bound container is
 // DynamicEventsList — so a story can render it without booting the app's
 // query client or i18n backend.
-export function EventsList({ events, searchedPlace }: EventsListProps) {
+export function EventsList({ events, searchedPlace, showDistance }: EventsListProps) {
   return (
     <List>
       {events.map((event) => (
-        <EventListItem key={event.id} event={event} searchedPlace={searchedPlace} />
+        <EventListItem
+          key={event.id}
+          event={event}
+          searchedPlace={searchedPlace}
+          showDistance={showDistance}
+        />
       ))}
     </List>
   )

@@ -137,7 +137,7 @@ export function DynamicEventsList({
         {rows.length === 0 ? (
           <EmptyResults nearbyKm={more === 'farther' ? nearbyKm : undefined} />
         ) : (
-          <EventsList events={rows} searchedPlace={searchedPlace} />
+          <EventsList events={rows} searchedPlace={searchedPlace} showDistance={hasSearchCenter} />
         )}
       </div>
       {/* At this point, nothing is left to offer and nothing has announced yet.
