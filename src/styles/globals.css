@@ -468,6 +468,22 @@ html.sy-atlas {
   @apply text-[16px] md:pointer-fine:text-sm;
 }
 
+/* An invisible 44px tap area around a smaller control, on touch screens only, so the control
+   keeps its drawn size. It needs a positioned element, so pair it with `relative`. */
+@utility touch-target {
+  @media (pointer: coarse) {
+    &::after {
+      content: '';
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      width: max(100%, 44px);
+      height: max(100%, 44px);
+      transform: translate(-50%, -50%);
+    }
+  }
+}
+
 /* Applied wherever this app renders host-authored rich text. Wrapping is a
    property of THAT — not of the panel it happens to sit in — so it lives
    here, and the next prose surface inherits it: one unbreakable run (a
