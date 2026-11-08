@@ -126,16 +126,17 @@ import { annotate, report } from './_ci-output.mjs'
 // because every fetcher parses through one. Measured uncredentialed, which is
 // what CI reads:
 //
-//   standalone  327.0 KiB
-//   embed       328.8 KiB
+//   standalone  326.8 KiB
+//   embed       328.6 KiB
 //
-// Production ships each plus this graph's Sentry gap above — 328.1 and 330.0,
+// Production ships each plus this graph's Sentry gap above — 327.9 and 329.8,
 // derived rather than built, since no credentialed build ran here.
 //
-// ⚠ `embed` ships AT this budget with nothing spare, and CI cannot see it: the
-// gate reads 328.8 and passes. The pair was 324.4/326.2 when 330 was set, so the
-// margin went unmeasured. Take space off the eager graph, or move the budget
-// deliberately — and ratchet it back if the schemas ever leave that graph.
+// ⚠ `embed` ships 0.2 KiB inside this budget, and CI cannot see that: the gate
+// reads 328.6 and reports 1.4 KiB spare. The pair was 324.4/326.2 when 330 was
+// set, so the margin went unmeasured until #367. Take space off the eager graph,
+// or move the budget deliberately — and ratchet it back if the schemas ever leave
+// that graph.
 const BUDGET_KIB = {
   standalone: 330,
   loader: 3.2,

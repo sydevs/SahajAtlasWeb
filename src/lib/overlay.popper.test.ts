@@ -92,6 +92,10 @@ describe('Radix poppers are bounded by the frame', () => {
  * `menuChrome`'s own docblock carries why. What matters here is that an unintended class is
  * still a valid class, so nothing else in the repo — not lint, not typecheck, not the rest of
  * this lane — goes red while two menus drift apart.
+ *
+ * Asserted here, with the recipe in `atoms/Menu`, for the reason the panel block below gives:
+ * this file holds the closed list all three menus belong to, so one file answers which popper
+ * surfaces exist and which skin each reads.
  */
 const SKIN_RUNS = [
   // Each run is distinctive as a run, not by its first class: `CompactEmbedView` also rounds to
@@ -158,7 +162,7 @@ describe('the two radio menus render one ItemCheck', () => {
 })
 
 describe('the dropdown menus share one skin', () => {
-  it('reads it from lib/overlay.ts at each of them', () => {
+  it('reads it from the Menu atom at each of them', () => {
     for (const relative of Object.keys(MENUS)) expect(read(relative)).toContain('menuChrome')
   })
 
@@ -172,7 +176,7 @@ describe('the dropdown menus share one skin', () => {
 
     for (const run of SKIN_RUNS) {
       expect(SOURCE_FILES.filter((relative) => read(relative).includes(run))).toEqual([
-        'lib/overlay.ts',
+        'components/atoms/Menu/Menu.ts',
       ])
     }
   })

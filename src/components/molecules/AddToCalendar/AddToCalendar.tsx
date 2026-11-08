@@ -4,6 +4,7 @@ import { CalendarPlus, ChevronDown } from 'lucide-react'
 
 import { Button } from '@/components/atoms/Button'
 import { Link } from '@/components/atoms/Link'
+import { menuChrome } from '@/components/atoms/Menu'
 import {
   type IcsEventInput,
   buildEventIcs,
@@ -12,7 +13,7 @@ import {
   buildYahooCalendarUrl,
   icsFileName,
 } from '@/lib/ics'
-import { frameCollision, menuChrome, overlayContainer } from '@/lib/overlay'
+import { frameCollision, overlayContainer } from '@/lib/overlay'
 
 export type AddToCalendarProps = {
   /** Everything the export needs. The caller builds it from the FULL event doc.

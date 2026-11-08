@@ -1,5 +1,3 @@
-import { tv } from 'tailwind-variants'
-
 import { getThemeRoot } from '@/hooks/use-theme'
 
 // Where Radix overlays (Dialog, Select listbox) portal to. They render into
@@ -112,29 +110,3 @@ export function widgetOverlayContainer(): HTMLElement | undefined {
 export function overlayContainer(): HTMLElement | undefined {
   return frameElement() ?? widgetOverlayContainer()
 }
-
-/**
- * The skin the app's three Radix dropdown menus share.
- *
- * Each menu used to spell the whole pair of strings itself, which made an intended difference
- * and an accidental one look identical — so the three copies could diverge with every gate green
- * (#367). Naming each difference as a variant is what tells them apart, as `fieldChrome` does for
- * the field controls. It sits in this module because all three menus already import it for
- * `frameCollision`.
- */
-export const menuChrome = tv({
-  slots: {
-    surface: 'z-50 rounded-xl border border-divider bg-background p-1 text-foreground shadow-xl',
-    row: 'flex cursor-pointer rounded-lg py-2 text-sm outline-none select-none data-[highlighted]:bg-primary-3',
-  },
-  variants: {
-    rows: {
-      inline: { surface: 'min-w-44', row: 'items-center gap-2 px-2' },
-      /** A label over a sub-label, which needs the extra width and padding. */
-      stacked: { surface: 'min-w-56', row: 'flex-col items-start px-3' },
-    },
-    /** A SubTrigger row stays tinted while its submenu is open. */
-    submenus: { true: { row: 'data-[state=open]:bg-primary-3' } },
-  },
-  defaultVariants: { rows: 'inline' },
-})
