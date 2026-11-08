@@ -98,6 +98,9 @@ Four CI gates exist because each one once missed something, unnoticed (#99): `pn
 - **`src/lib/`** is pure domain helpers — no React, no i18n. Static country-keyed tables live
   there (`share/platforms.ts`, `country-sites.ts`), not in a `src/data/`. Failure KIND is domain
   (`lib/report.ts`); its copy and buttons are UI, so `ERROR_POLICY` lives with the fallbacks.
+  ⚠ **`lib/overlay.ts` is the one presentation module here**, and always was: it reads the theme
+  root and holds the frame every fixed descendant resolves against. `DESIGN_SYSTEM.md` § Styling
+  says where a shared skin belongs.
 - **API layer**: every fetcher in `src/config/api/fetch.ts` parses the response through a
   zod schema from `src/types/`. Keep that contract. See `docs/rules/data-layer.md`.
 - **State**: zustand stores (`src/config/store.ts`) are the single source of truth for the

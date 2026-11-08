@@ -4,6 +4,7 @@ import { CalendarPlus, ChevronDown } from 'lucide-react'
 
 import { Button } from '@/components/atoms/Button'
 import { Link } from '@/components/atoms/Link'
+import { menuChrome } from '@/components/atoms/Menu'
 import {
   type IcsEventInput,
   buildEventIcs,
@@ -37,7 +38,7 @@ export function calendarLinkTargets(event: IcsEventInput): CalendarLinkTarget[] 
   ]
 }
 
-export function downloadEventIcs(event: IcsEventInput) {
+function downloadEventIcs(event: IcsEventInput) {
   const blob = new Blob([buildEventIcs(event)], { type: 'text/calendar;charset=utf-8' })
   const href = URL.createObjectURL(blob)
   const anchor = document.createElement('a')
@@ -52,10 +53,9 @@ export function downloadEventIcs(event: IcsEventInput) {
   window.setTimeout(() => URL.revokeObjectURL(href), 1000)
 }
 
-const menu =
-  'z-50 min-w-56 rounded-xl border border-divider bg-background p-1 text-foreground shadow-xl'
-const item =
-  'flex cursor-pointer flex-col items-start rounded-lg px-3 py-2 text-sm outline-none select-none data-[highlighted]:bg-primary-3'
+const { surface, row } = menuChrome({ rows: 'stacked' })
+const menu = surface()
+const item = row()
 
 /**
  * "Add to calendar" on the registration confirmation (issue #105): one button opening a
@@ -87,7 +87,6 @@ export function AddToCalendar({ event }: AddToCalendarProps) {
 
       <DropdownMenu.Portal container={overlayContainer()}>
         <DropdownMenu.Content align="start" className={menu} sideOffset={8} {...frameCollision()}>
-          {/* The accessible name CONTAINS the visible "Apple Calendar" (WCAG 2.5.3). */}
           <DropdownMenu.Item className={item} onSelect={() => downloadEventIcs(event)}>
             <span>Apple Calendar</span>
             <span className="text-xs text-gray-11">{t('event.actions.download_ics')}</span>

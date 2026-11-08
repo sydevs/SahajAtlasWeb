@@ -68,6 +68,7 @@ here is **organisms own data/network/map lifecycles. Atoms and molecules don't.*
 | `Dropdown/`           | `Dropdown`                                                           | Floating-UI popover shell: portaled, flip/shift (`tv()`). Not a menu — menus use Radix DropdownMenu (see `SettingsMenu`) |
 | `Input/`              | `Input`                                                              | Native `<input>` on the shared `fieldChrome` recipe, forwarding its ref for react-hook-form. `isInvalid` swaps to danger, `highlight` primary-tints an active field. Replaces hand-rolled `<input className={fieldChrome(...)}>` call sites |
 | `Link/`               | `Link`                                                               | Router link, or `<a>` for external/`mailto:`/`tel:`. Forwards a ref (used as a whole-card hit target) |
+| `Menu/` (recipe only) | `menuChrome`                                                         | **No component.** The skin the three Radix dropdown menus share — `SortMenu`, `SettingsMenu` and `AddToCalendar` each compose the primitive themselves (a radio group, one with submenus, a column of link-outs), so there is nothing but the skin to share. `rows` carries the surface width with the row layout; `submenus` tints a SubTrigger while its submenu is open |
 | `Modal/`              | `Modal`, `ModalContent`/`Body`/`Footer`/`Close`                      | **The dialog atom.** Radix Dialog centred sheet, portals into the themed root. `ModalContent` owns the header (title, optional description, ×), so there is exactly one `Dialog.Title`. Ephemeral only — anything that is a _place_ is a Drawer, since a modal never touches the URL or history |
 | `RadioGroup/`         | `RadioGroup`, `RadioOption`                                          | Controlled radio list as selectable cards (native `<input type="radio">`). Optional `collapseAfter` hides the tail behind a reveal link. Callers pass `label` nodes — no domain logic (the registration date picker) |
 | `Select/`             | `Select`, `SelectItem`, `fieldChrome`                                | Radix select on brand tokens (use `Combobox` for a type-to-filter picker). `fieldChrome` is the shared input recipe, also used by Input/Textarea/Combobox and the filter date bounds |
@@ -178,6 +179,8 @@ Folder-per-component, not re-exported through the component barrels.
         and `CountrySiteOffer` were folded in: an empty list and a dead link are the same
         screen with a different sentence). The policy machinery itself is **not** exported.
         The barrel lists only what a caller outside the folder actually mounts.
+  11. **`Menu/`** — the `menuChrome` recipe and no component, the one entry here that
+      surfaces no primary. `Icons/` is the other folder without one.
 - **App code (views, stories) imports from the tier barrel**:
   `import { Chip } from '@/components/atoms'`. The barrel is the public surface,
   so layout can change behind it.
@@ -194,7 +197,7 @@ Folder-per-component, not re-exported through the component barrels.
   A **single-use** composition stays module-private in its one parent (the
   registration form's `Field`/`LabeledInput`). A **multi-use** one becomes a thin
   exported molecule (`EventFacts`, used by `EventListItem` and the event panel) or a
-  shared recipe (`listRow`, `fieldChrome`).
+  shared recipe (`listRow`, `fieldChrome`, `menuChrome`, `panelChrome`).
 - **Code-split exception:** a heavy organism that is lazy-loaded (the event detail
   page lazy-imports `EventView`) is intentionally left _out_ of its tier barrel,
   so a barrel import doesn't pull it back into the static graph. Such components —
@@ -228,6 +231,13 @@ Folder-per-component, not re-exported through the component barrels.
   **`tailwind-variants` (`tv()`)** instead of ad-hoc string concatenation — it is
   already a dependency and matches the Radix + Tailwind styling model. `Chip.tsx` is the
   reference implementation (variant-driven content/colour styling).
+- **A skin more than one component spells is one recipe, not a copy each, and it lives in the
+  atom that owns the chrome.** `fieldChrome` (`atoms/Select`) covers the field controls,
+  `panelChrome` beside it the panel a Select or Combobox trigger opens, `listRow` the card rows,
+  and `menuChrome` (`atoms/Menu`) the Radix dropdown menus. Each difference is a **variant**, so
+  an intended one reads differently from an accidental one — three hand-copied copies of the menu
+  skin had already diverged before anything noticed (#367), and `lib/overlay.popper.test.ts` now
+  refuses another of either.
 - Global styles live in `src/styles/globals.css`. The widget injects CSS via JS
   when embedded, so don't rely on a separate stylesheet `<link>`.
 
