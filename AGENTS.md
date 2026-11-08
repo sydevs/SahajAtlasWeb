@@ -99,9 +99,8 @@ Four CI gates exist because each one once missed something, unnoticed (#99): `pn
   there (`share/platforms.ts`, `country-sites.ts`), not in a `src/data/`. Failure KIND is domain
   (`lib/report.ts`); its copy and buttons are UI, so `ERROR_POLICY` lives with the fallbacks.
   ⚠ **`lib/overlay.ts` is the one presentation module here**, and always was: it reads the theme
-  root, holds the frame every fixed descendant resolves against, and since #367 the `menuChrome`
-  recipe the three Radix menus already came here for `frameCollision` to get. Do not read it as
-  licence for a second one — `DESIGN_SYSTEM.md` § Styling owns where a shared skin belongs.
+  root and holds the frame every fixed descendant resolves against. `DESIGN_SYSTEM.md` § Styling
+  says where a shared skin belongs.
 - **API layer**: every fetcher in `src/config/api/fetch.ts` parses the response through a
   zod schema from `src/types/`. Keep that contract. See `docs/rules/data-layer.md`.
 - **State**: zustand stores (`src/config/store.ts`) are the single source of truth for the
