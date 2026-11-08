@@ -134,6 +134,29 @@ describe('the field pickers share one panel skin', () => {
   })
 })
 
+/**
+ * `ItemCheck` is duplicated across the two radio menus on purpose, and pinned rather than merged.
+ *
+ * Any shared home renders `DropdownMenu.ItemIndicator`, so it imports a popper package and owes
+ * `BOUNDED` an entry for a module that renders no popper surface. Narrowing that membership test
+ * from the import to a rendered surface is the one property this file exists to hold: #169's miss
+ * was a call site, and a surface spelled some other way would fall straight out of a narrower
+ * scan. So this takes the `src/loader/` seam's answer instead (#153) — where a boundary forbids
+ * sharing, duplicate and pin both copies, so the drift a copy allows turns this lane red.
+ */
+const itemCheckIn = (relative: string) =>
+  read(relative).match(/function ItemCheck\(\) \{[\s\S]*?\n\}/)?.[0]
+
+describe('the two radio menus render one ItemCheck', () => {
+  it('keeps the copies identical', () => {
+    const sort = itemCheckIn('components/molecules/SortMenu/SortMenu.tsx')
+
+    // Loudly, rather than by vacuum, if a rename stops either match finding the function.
+    expect(sort, 'SortMenu declares no ItemCheck').toBeTruthy()
+    expect(itemCheckIn('components/molecules/SettingsMenu/SettingsMenu.tsx')).toEqual(sort)
+  })
+})
+
 describe('the dropdown menus share one skin', () => {
   it('reads it from lib/overlay.ts at each of them', () => {
     for (const relative of Object.keys(MENUS)) expect(read(relative)).toContain('menuChrome')
