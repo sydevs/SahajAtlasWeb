@@ -112,13 +112,13 @@ import { annotate, report } from './_ci-output.mjs'
 // below). It is 3.2 now, because vite 8.3.5 emits a smaller
 // `__vitePreload` helper than 8.3.4 — 1519 bytes against 2444, raw.
 //
-//   loader   2.4 KiB  uncredentialed  ← the number CI measures
-//   loader   2.7 KiB  credentialed    ← what production ships, derived
+//   loader   2.5 KiB  uncredentialed  ← the number CI measures
+//   loader   2.8 KiB  credentialed    ← what production ships, derived
 //
 // Both numbers matter, and neither alone is enough. `ci.yml:32-38` runs
 // `pnpm build` then `pnpm size` with no Sentry token, so the gate reads
-// 2.4 and needs at most 3.4 to stay inside the slack window. Production
-// ships 2.7, so the budget must stay above that too. 3.4 would put the CI
+// 2.5 and needs at most 3.5 to stay inside the slack window. Production
+// ships 2.8, so the budget must stay above that too. 3.5 would put the CI
 // number on the slack boundary exactly; 3.2 is strictly inside it either
 // way the comparison below is read.
 // `standalone` and `embed` were 318 until zod 4 (GHSA-mrhx-c7xc-m3w5). zod 4's
@@ -126,13 +126,16 @@ import { annotate, report } from './_ci-output.mjs'
 // because every fetcher parses through one. Measured uncredentialed, which is
 // what CI reads:
 //
-//   standalone  324.4 KiB
-//   embed       326.2 KiB
+//   standalone  327.0 KiB
+//   embed       328.8 KiB
 //
-// Production ships each plus this graph's Sentry gap above — 325.5 and 327.4,
-// derived rather than built, since no credentialed build ran here. 330 clears
-// both and keeps the CI numbers inside the slack window. Ratchet it back if the
-// schemas ever move off the eager graph.
+// Production ships each plus this graph's Sentry gap above — 328.1 and 330.0,
+// derived rather than built, since no credentialed build ran here.
+//
+// ⚠ `embed` ships AT this budget with nothing spare, and CI cannot see it: the
+// gate reads 328.8 and passes. The pair was 324.4/326.2 when 330 was set, so the
+// margin went unmeasured. Take space off the eager graph, or move the budget
+// deliberately — and ratchet it back if the schemas ever leave that graph.
 const BUDGET_KIB = {
   standalone: 330,
   loader: 3.2,
