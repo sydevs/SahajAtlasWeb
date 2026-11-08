@@ -100,6 +100,40 @@ const SKIN_RUNS = [
   'data-[highlighted]:bg-primary-3',
 ]
 
+/**
+ * The two field pickers share the panel their triggers open, and spell none of it (#367 review).
+ *
+ * Here rather than beside the atom because this file already holds the closed list both
+ * surfaces belong to, so one file answers which popper surfaces exist and which skin each
+ * reads. `panelChrome` itself sits beside `fieldChrome`, the skin these same two already share.
+ */
+const PANELS: Record<string, string> = {
+  'components/atoms/Select/Select.tsx': 'the listbox, and the recipe both read',
+  'components/atoms/Combobox/Combobox.tsx': 'the search-in-the-field panel',
+}
+
+/**
+ * Distinctive as a run, not by any one class: `atoms/Dropdown` spells
+ * `rounded-lg border border-gray-6 … shadow-xl` too, on a panel whose background token
+ * deliberately differs. Reconciling that third one changes how one of the two looks, so it is a
+ * design call rather than a third member here.
+ */
+const PANEL_RUN = 'overflow-hidden rounded-lg border border-gray-6 bg-background shadow-xl'
+
+describe('the field pickers share one panel skin', () => {
+  it('reads it from the Select atom at each of them', () => {
+    // Call-shaped, for the reason the boundary assertion above gives: a bare mention would
+    // satisfy a substring test, and `unused-imports` strips the import on the next edit.
+    for (const relative of Object.keys(PANELS)) expect(read(relative)).toMatch(/panelChrome\(/)
+  })
+
+  it('leaves no picker spelling the surface itself', () => {
+    expect(SOURCE_FILES.filter((relative) => read(relative).includes(PANEL_RUN))).toEqual([
+      'components/atoms/Select/Select.tsx',
+    ])
+  })
+})
+
 describe('the dropdown menus share one skin', () => {
   it('reads it from lib/overlay.ts at each of them', () => {
     for (const relative of Object.keys(MENUS)) expect(read(relative)).toContain('menuChrome')

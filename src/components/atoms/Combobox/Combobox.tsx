@@ -4,7 +4,7 @@ import { Command, CommandEmpty, CommandInput, CommandItem, CommandList } from 'c
 import { Check, ChevronDown, Search } from 'lucide-react'
 
 import { frameCollision, overlayContainer } from '@/lib/overlay'
-import { fieldChrome } from '@/components/atoms/Select'
+import { fieldChrome, panelChrome } from '@/components/atoms/Select'
 
 // A single-select combobox. The search happens in the field itself, in a text
 // input inside the popover. Results filter as you type. Clicking one selects
@@ -106,7 +106,7 @@ export function Combobox({
             matches the trigger, instead of sizing to its longest option. */}
         <Popover.Content
           align="start"
-          className="z-50 w-[var(--radix-popover-trigger-width)] overflow-hidden rounded-lg border border-gray-6 bg-background shadow-xl"
+          className={panelChrome({ popper: 'popover' })}
           {...frameCollision()}
           sideOffset={4}
         >
