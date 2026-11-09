@@ -77,8 +77,8 @@ Everything either snippet needs is in it. Specifically:
   [Permissions Policy](#permissions-policy).
 - **`title` on the iframe is required for accessibility.** Without one it is announced as an
   unlabelled frame. Write it for your visitors, in your language.
-- **Do not sandbox the iframe.** If your platform insists, add `allow-popups` — see
-  [Embedding in an iframe](#embedding-in-an-iframe).
+- **Do not sandbox the iframe.** If your platform insists, add `allow-popups` and
+  `allow-downloads` — see [Embedding in an iframe](#embedding-in-an-iframe).
 
 Three rules for the script tag specifically:
 
@@ -541,10 +541,13 @@ Five things about that snippet are load-bearing:
   Without these the relevant features fail **silently**, the worst way to find out.
 - **Do not sandbox the frame.** If you must, include **`allow-popups`** — without it the compact
   card's button cannot open anything, and the browser blocks it silently with nothing in your
-  console to say why. Add **`allow-same-origin`** too if you want the widget to keep its own
-  settings between visits, since a sandbox gives the frame an opaque origin, which makes storage
-  throw. (A sandbox does _not_ stop the widget writing its own URL, contrary to what this guide
-  used to say — measured in Chrome 151.)
+  console to say why. Include **`allow-downloads`** too: "Add to calendar" offers Apple Calendar
+  as an `.ics` file the widget builds and hands to the browser, and a sandbox without that flag
+  refuses the download — the menu item does nothing a visitor can see. Add
+  **`allow-same-origin`** as well if you want the widget to keep its own settings between visits,
+  since a sandbox gives the frame an opaque origin, which makes storage throw. (A sandbox does
+  _not_ stop the widget writing its own URL, contrary to what this guide used to say — measured
+  in Chrome 151.)
 - **`map=false` is usually what you want in a frame**, unless the frame is large.
 - **Give it a real height.** As with the element, a frame with no height collapses.
 
