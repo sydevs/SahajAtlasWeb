@@ -81,9 +81,9 @@ const NO_PLACE_STREETS = new Set(
  * again or "to be announced", and the stored point is the town's centre — once, a supermarket.
  * This reads the street conservatively: a placeholder, the town's own name, or a "city centre"
  * word, and nothing else. A lone "-" is not on the list: the one listing that has it is a park
- * whose point is the park. ⚠ The word list is load-bearing until SahajCloud's Atlas importer
- * rewrites every placeholder street to the town's own name (`seeds/atlas/dedupe.ts`), which the
- * town-repeat rule above catches in any language — until then, each entry guards a live listing.
+ * whose point is the park. ⚠ The word list is load-bearing until the next Atlas sync, which applies
+ * SahajCloud's rewrite of each placeholder street to the town's own name (`seeds/atlas/dedupe.ts`,
+ * caught by the town-repeat rule in any language). Until then, each entry guards a live listing.
  */
 export const hasVagueAddress = (address?: VagueAddress | null): boolean => {
   if (!address) return false
