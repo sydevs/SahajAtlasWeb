@@ -103,12 +103,12 @@ describe('useEventDisplay — an online class seen from another zone', () => {
     },
   }
 
-  const linesFrom = (zone: string) => {
+  const linesFrom = (zone: string, event: DisplayableEvent = pragueClass) => {
     Settings.defaultZone = zone
     Settings.now = () => Date.parse('2026-07-13T12:00:00Z')
     let lines = { main: '', subtext: null as string | null }
     const Probe = () => {
-      const strings = useEventDisplay(pragueClass)
+      const strings = useEventDisplay(event)
 
       lines = {
         main: composeCalendarLine({ ...strings, time: strings.eventStartTime, hasNext: true }),
@@ -140,6 +140,17 @@ describe('useEventDisplay — an online class seen from another zone', () => {
       subtext: null,
     })
   })
+
+  // `scheduleTimeZone` degrades a missing zone to UTC, which is a placeholder and not the host's
+  // clock, so the subtext must not name it. The viewer's own line is unaffected.
+  it("leaves the host's clock unnamed when the schedule names no zone", () => {
+    const zoneless = { ...pragueClass, schedule: { ...pragueClass.schedule!, firstDate_tz: null } }
+
+    expect(linesFrom('Australia/Sydney', zoneless)).toEqual({
+      main: 'Every Thursday · 3:30 AM Sydney time',
+      subtext: 'Wed 5:30 PM',
+    })
+  })
 })
 
 describe('useEventDisplay — an in-person class names its clock only for a viewer elsewhere', () => {
@@ -162,12 +173,12 @@ describe('useEventDisplay — an in-person class names its clock only for a view
     },
   }
 
-  const timeFrom = (zone: string) => {
+  const timeFrom = (zone: string, event: DisplayableEvent = londonClass) => {
     Settings.defaultZone = zone
     Settings.now = () => Date.parse('2026-07-13T12:00:00Z')
     let time: string | null = null
     const Probe = () => {
-      time = useEventDisplay(londonClass).eventStartTime
+      time = useEventDisplay(event).eventStartTime
 
       return null
     }
@@ -185,6 +196,18 @@ describe('useEventDisplay — an in-person class names its clock only for a view
   it('says nothing for a viewer on the same clock', () => {
     expect(timeFrom('Europe/London')).toBe('7:30 PM')
     expect(timeFrom('Europe/Lisbon')).toBe('7:30 PM')
+  })
+
+  // A nullish or malformed `firstDate_tz` reads as UTC, and "UTC time" names no venue's clock.
+  it('says nothing when the schedule names no zone', () => {
+    const zoneless = { ...londonClass, schedule: { ...londonClass.schedule!, firstDate_tz: null } }
+    const malformed = {
+      ...londonClass,
+      schedule: { ...londonClass.schedule!, firstDate_tz: 'Europe/Nowhere' },
+    }
+
+    expect(timeFrom('Europe/Prague', zoneless)).toBe('6:30 PM')
+    expect(timeFrom('Europe/Prague', malformed)).toBe('6:30 PM')
   })
 })
 

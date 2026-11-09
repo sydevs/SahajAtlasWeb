@@ -7,7 +7,7 @@ import { useTranslation } from 'react-i18next'
 
 import { useLocale } from './use-locale'
 
-import { resolveEventDisplay, streetAndCity } from '@/lib/shape'
+import { resolveEventDisplay, scheduleNamesZone, streetAndCity } from '@/lib/shape'
 import { formatTimeRange, sameWallClock, zoneCity } from '@/lib/time'
 
 /** This is what the formatting layer reads on top of the resolver input: the address and
@@ -32,17 +32,19 @@ export type EventDisplayStrings = {
   recurrenceLine: string | null
   /** This is the authoritative next-session, first-session, or terminal line. */
   whenLine: string
-  /** This is the next occurrence's start and end time, in the display zone, with no label,
-   *  such as "7:30 PM – 8:30 PM." This is null in terminal states. */
+  /** This is the next occurrence's start and end time, in the display zone, such as
+   *  "7:30 PM – 8:30 PM London time." The clock is named only where it tells the viewer
+   *  something (see the times block below). This is null in terminal states. */
   eventTimeRange: string | null
-  /** This is the next occurrence's start time only, such as "7:30 PM." The compact card uses this. */
+  /** This is the next occurrence's start time only, such as "7:30 PM London time," named on the
+   *  same terms as the range. The compact card uses this. */
   eventStartTime: string | null
   /** This is a one-line location: hosted-from for an online event, street and city for a physical one. */
   whereLine: string
   /** The room inside the venue, such as "Room: Hall B", for a physical, non-inactive event that names one. */
   roomLine: string | null
-  /** For an online event only, the HOST's clock and city, faded below the where line, such
-   *  as "Wed 7:30 PM in Prague." This is null for a physical event. */
+  /** For an online event only, the HOST's clock, faded below the where line, such as
+   *  "Wed 7:30 PM Prague time." This is null for a physical event. */
   whereSubtext: string | null
   registerLabel: string
   /** This is under-button microcopy, in render order. It is a closed set. See issue #52. */
@@ -236,8 +238,12 @@ export function useEventDisplay(event: DisplayableEvent): EventDisplayStrings {
     // is always the viewer's, and always says so. An in-person time is the venue's, and says so
     // only when the viewer's clock differs at that moment. The zone's city needs no lookup and
     // exists for every zone, where an abbreviation like EST does not.
+    // A schedule naming no usable zone reads as UTC, which is a placeholder rather than a
+    // venue's clock, so an in-person time says nothing instead of claiming "UTC time". An
+    // online time is the VIEWER's zone, which is real whatever the schedule carries.
+    const namesZone = scheduleNamesZone(schedule)
     const zoneLabel =
-      next && (display.online || !sameWallClock(next, next.toLocal()))
+      next && (display.online || (namesZone && !sameWallClock(next, next.toLocal())))
         ? t('event.display.zone_time', { city: zoneCity(next.zoneName) })
         : null
     const withZone = (time: string) => (zoneLabel ? `${time} ${zoneLabel}` : time)
@@ -278,7 +284,7 @@ export function useEventDisplay(event: DisplayableEvent): EventDisplayStrings {
           ? origin.setLocale(locale).toLocaleString({ weekday: 'short' })
           : null,
         formatTimeRange(origin, null, locale),
-        t('event.display.zone_time', { city: zoneCity(origin.zoneName) }),
+        namesZone ? t('event.display.zone_time', { city: zoneCity(origin.zoneName) }) : null,
       ]
         .filter(Boolean)
         .join(' ')
