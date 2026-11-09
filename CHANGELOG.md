@@ -46,7 +46,9 @@ cover everything a host would notice since the widget was first deployed.
 
 - **The captcha on the registration and report forms is hidden unless it needs a click.**
   ([SahajCloud#1090]) Most visitors now see no security check at all; the 300×65 box opens only
-  when Cloudflare asks for an interaction, and closes again after. No change to your CSP.
+  when Cloudflare asks for an interaction, and closes again after. The collapsed slot also leaves
+  no gap of its own in the form ([#371]) — it had kept a row's worth of space where the box would
+  have been. No change to your CSP.
 
 - **The registration confirmation leads with one notice about the email.** ([#366]) It names what
   arrives by email and, for an online class, that the join link is in it, in place of a bare line
