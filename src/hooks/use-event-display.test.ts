@@ -127,15 +127,64 @@ describe('useEventDisplay — an online class seen from another zone', () => {
     }
   }
 
-  it("reads entirely in the viewer's zone, with the host's clock beneath", () => {
+  it("reads entirely in the viewer's zone, with the host's clock beneath, each named", () => {
     expect(linesFrom('Australia/Sydney')).toEqual({
-      main: 'Every Thursday · 3:30 AM',
-      subtext: 'Wed 7:30 PM',
+      main: 'Every Thursday · 3:30 AM Sydney time',
+      subtext: 'Wed 7:30 PM Prague time',
     })
   })
 
-  it('drops the host clock when it matches the viewer', () => {
-    expect(linesFrom('Europe/Berlin')).toEqual({ main: 'Every Wednesday · 7:30 PM', subtext: null })
+  it("drops the host clock when it matches the viewer, and still names the viewer's", () => {
+    expect(linesFrom('Europe/Berlin')).toEqual({
+      main: 'Every Wednesday · 7:30 PM Berlin time',
+      subtext: null,
+    })
+  })
+})
+
+describe('useEventDisplay — an in-person class names its clock only for a viewer elsewhere', () => {
+  afterEach(() => {
+    Settings.defaultZone = 'system'
+    Settings.now = () => Date.now()
+  })
+
+  // Wednesday 19:30 in London (BST, UTC+1) is 20:30 in Prague (CEST, UTC+2).
+  const londonClass: DisplayableEvent = {
+    eventType: 'offline',
+    address: { street: '1 High St', city: 'London' },
+    schedule: {
+      firstDate: new Date('2026-07-01T18:30:00Z'),
+      firstDate_tz: 'Europe/London',
+      recurrenceType: 'WEEKLY',
+      interval: 1,
+      weekdays: ['WE'],
+      upcomingDates: [new Date('2026-07-15T18:30:00Z')],
+    },
+  }
+
+  const timeFrom = (zone: string) => {
+    Settings.defaultZone = zone
+    Settings.now = () => Date.parse('2026-07-13T12:00:00Z')
+    let time: string | null = null
+    const Probe = () => {
+      time = useEventDisplay(londonClass).eventStartTime
+
+      return null
+    }
+
+    renderToStaticMarkup(createElement(Probe))
+
+    return (time as string | null)?.replace(/\s/g, ' ') ?? null
+  }
+
+  it("names the venue's clock for a viewer in another zone", () => {
+    expect(timeFrom('Europe/Prague')).toBe('7:30 PM London time')
+  })
+
+  // Lisbon keeps London's offset in summer, so its viewer reads the same clock.
+  it('says nothing for a viewer on the same clock', () => {
+    expect(timeFrom('Europe/London')).toBe('7:30 PM')
+    expect(timeFrom('Europe/Lisbon')).toBe('7:30 PM')
   })
 })
 

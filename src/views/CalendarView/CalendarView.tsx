@@ -15,6 +15,7 @@ import { ChevronRight } from 'lucide-react'
 import '@schedule-x/theme-default/dist/index.css'
 
 import { CalendarMount } from './CalendarMount'
+import { TimesNote } from './TimesNote'
 
 import { Button } from '@/components/atoms/Button'
 import { DrawerBody, DrawerHeader } from '@/components/atoms/Drawer'
@@ -362,10 +363,13 @@ function CalendarGrid({
   )
 
   return (
-    <DrawerBody className="max-w-none overflow-hidden p-4">
-      <div className="sx-calendar">
-        <CalendarMount calendar={calendar} />
-      </div>
-    </DrawerBody>
+    <>
+      <DrawerBody className="max-w-none overflow-hidden p-4">
+        <div className="sx-calendar">
+          <CalendarMount calendar={calendar} />
+        </div>
+      </DrawerBody>
+      <TimesNote entries={events} />
+    </>
   )
 }

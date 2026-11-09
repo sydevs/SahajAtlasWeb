@@ -255,7 +255,8 @@ export const ERROR_POLICY: Record<FallbackKind, FallbackPolicy> = {
   // withholds the retry. This row does not.
   'captcha-blocked': {
     messageKey: 'common.errors.captcha_blocked',
-    fallbackText: "This Atlas can't run on this page: its security check was blocked.",
+    fallbackText:
+      "The map can't load here right now, because its security check didn't respond. Try again later.",
     color: 'danger',
     retry: true,
     onward: false,
