@@ -44,6 +44,18 @@ cover everything a host would notice since the widget was first deployed.
 
 ### Changed
 
+- **A page that replaces `<sahaj-atlas>` no longer throws the widget's data away.** ([#349]) Wix's
+  router re-renders its page on Back and Forward, which destroys the element and creates another
+  one, and page builders relocate elements after load. The widget now carries its classes,
+  regions and API key across such a swap, so the new element opens at the route your URL names
+  without asking the API for anything it has already read — a Back press used to cost a full
+  reload of the feed. The new element has to carry the same `key` and arrive within a second; a
+  different key still starts clean, which it must, and an element gone for longer is still
+  treated as gone. What the visitor was in the middle of does not survive — the panels they had
+  opened, their place in the widget's own Back history, a half-filled registration — because the
+  element really is a new one. No parameter, origin or CSP change. See
+  [If your page replaces the element].
+
 - **The captcha on the registration and report forms is hidden unless it needs a click.**
   ([SahajCloud#1090]) Most visitors now see no security check at all; the 300×65 box opens only
   when Cloudflare asks for an interaction, and closes again after. The collapsed slot also leaves
@@ -207,6 +219,13 @@ cover everything a host would notice since the widget was first deployed.
 
 ### Added
 
+- **The guide now documents Wix, and sends you to a setup screen that fills it in for you.**
+  ([#349]) Wix has nowhere to paste a `<script>` tag, so the script embed goes in a **Custom
+  Element** — Server URL `https://sahajatlas.com/auto.js?key=YOUR_KEY`, tag name `sahaj-atlas` —
+  never Embed HTML, which Wix serves from a sandboxed frame the widget cannot route from. Search
+  listings need a Velo router on top, which the **Install** tab on your client record in the
+  Atlas admin generates for your site, alongside step-by-step tracks for WordPress, a custom site
+  and an iframe. See [On Wix, the script embed is a Custom Element].
 - **A region's panel has a filter control.** ([#311]) It sits beside search on every country,
   city and venue panel, with the same active-count badge the country list's carries. It opens
   the filters scoped to that region, so applying them lists the region's matching classes, not
@@ -1003,3 +1022,6 @@ must-revalidate`, pinned rather than left to the CDN default. The production dom
 [#365]: https://github.com/sydevs/SahajAtlasWeb/pull/365
 [#366]: https://github.com/sydevs/SahajAtlasWeb/pull/366
 [SahajCloud#1085]: https://github.com/sydevs/SahajCloud/pull/1085
+[#349]: https://github.com/sydevs/SahajAtlasWeb/issues/349
+[If your page replaces the element]: docs/embedding.md#if-your-page-replaces-the-element
+[On Wix, the script embed is a Custom Element]: docs/embedding.md#on-wix-the-script-embed-is-a-custom-element

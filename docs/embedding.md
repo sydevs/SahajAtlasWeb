@@ -5,6 +5,12 @@ after them is optional: parameters, sizing, the Content-Security-Policy contract
 touches on your page, what leaves your visitor's browser, and what to check when something looks
 wrong.
 
+**Setting the atlas up on your own site? Start from the Install tab, not from here.** Open your
+client record in the Atlas admin (`https://cloud.sydevelopers.com/admin`, then **Install**) and it
+walks you through WordPress, Wix, a custom site or an iframe step by step, with your key and your
+page's address already in every snippet, and checks the finished install for you. This page is the
+reference behind it, for when you want to know why.
+
 This is the host-facing reference. [`AGENTS.md`](../AGENTS.md) is the developer guide.
 [`CHANGELOG.md`](../CHANGELOG.md) records what changes under an embed that updates itself.
 
@@ -93,6 +99,51 @@ Three rules for the script tag specifically:
 `auto.js` is a ~3 KiB loader, not the widget. It works out what your page supports, then fetches
 the widget itself only when the embed is about to come into view — so an embed further down your
 page costs your visitors almost nothing until they scroll to it.
+
+### On Wix, the script embed is a Custom Element
+
+Wix gives you nowhere to paste a `<script>` tag, so the same loader arrives declared instead of
+written. Add a **Custom Element** and give it two values:
+
+| Field          | Value                                         |
+| -------------- | --------------------------------------------- |
+| **Server URL** | `https://sahajatlas.com/auto.js?key=YOUR_KEY` |
+| **Tag name**   | `sahaj-atlas`                                 |
+
+It is **Add Elements (+) → Embed Code → Custom element** in the Wix Editor, and **Add Elements
+(+) → Embed & Social → Custom Element** in Wix Studio. Give it the page's full width and about the
+height of the screen — an element with no height shows nothing. The map appears on your published
+site, not in the editor.
+
+⚠ **Not Embed HTML, and not an HTML iframe element.** Wix serves those from a sandboxed frame on
+an origin of its own, so the widget cannot reach your page's URL — which costs every shareable
+route and every indexable page, the whole reason to prefer the script. A Custom Element runs in
+your page itself.
+
+**Wix wants two things before a Custom Element works at all:** a Premium plan and your own
+connected domain. Until the site has both, use
+[the iframe](#2-iframe--when-you-cannot-add-a-script).
+
+**Search engines need one more step on Wix, and it is not a parameter.** Nothing of the atlas is
+in the HTML a crawler reads until a Velo router serves the route, so the Install tab generates
+that router — `backend/routers.js` and the router page's own code — filled in for your site. Add
+no `routing=path` here: the router owns the addresses.
+
+### If your page replaces the element
+
+Some platforms re-render a page rather than navigating it — Wix's router does this on Back and
+Forward — and page builders relocate elements after load. Both reach the widget the same way: the
+element is removed, and another one appears.
+
+**The widget carries its state across, as long as the new element has the same `key` and arrives
+within a second.** It opens at the route your page's URL now names, from the classes and regions
+it has already read, so a Back press asks nothing new of the network. A replacement under a
+**different** key starts clean instead, which it must: the data belongs to the key it was read
+under. An element gone for longer than a second is treated as gone.
+
+What does not survive is anything the visitor was in the middle of — the panels they had opened,
+their place in the widget's own Back history, a half-filled registration. The element is a new
+one, so it boots.
 
 ### What you can add later
 

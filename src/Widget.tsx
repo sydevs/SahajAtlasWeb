@@ -550,15 +550,16 @@ class SahajAtlasElement extends AtlasElementBase {
   connectedCallback() {
     if (pendingTeardown) {
       clearTimeout(pendingTeardown)
+      pendingTeardown = null
 
-      // A different element arriving while the old one's release is pending means
-      // the old one is genuinely gone — this runs the release now so this element
-      // does not inherit its key, then lets it take ownership below. Only a
-      // re-connection of the SAME element cancels outright.
-      if (owner !== this) {
+      // A different element under a DIFFERENT key must not inherit the departing one's
+      // credential — the release's whole reason, stated at `TEARDOWN_GRACE_MS`. Under
+      // the same key it is the same tenant, so ownership transfers and the cache stays:
+      // a host router that re-renders its page replaces this element on every
+      // Back/Forward press, and releasing there cost a full re-read of the feed, the
+      // region tree and the client record on each one.
+      if (owner !== this && atlasAuth.apiKey !== embed.config.key) {
         releaseOwnership()
-      } else {
-        pendingTeardown = null
       }
     }
 
