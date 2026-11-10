@@ -122,6 +122,12 @@ export const scheduleTimeZone = (schedule: EventSchedule): string =>
     ? schedule.firstDate_tz
     : 'UTC'
 
+/** Whether the schedule names a zone of its own, rather than leaning on the UTC
+ *  `scheduleTimeZone` falls back to. A label that names the venue's clock must stay silent
+ *  here: that UTC is our placeholder for missing data, not a clock anyone keeps. */
+export const scheduleNamesZone = (schedule: EventSchedule | null | undefined): boolean =>
+  Boolean(schedule?.firstDate_tz && IANAZone.isValidZone(schedule.firstDate_tz))
+
 /** The series' first session as an instant in the schedule's own zone. */
 export const scheduleStart = (schedule: EventSchedule): DateTime =>
   DateTime.fromJSDate(schedule.firstDate).setZone(scheduleTimeZone(schedule))

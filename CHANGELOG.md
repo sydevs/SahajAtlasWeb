@@ -342,6 +342,13 @@ cover everything a host would notice since the widget was first deployed.
 
 ### Fixed
 
+- **Class times say whose clock they are.** ([#380]) An online class showed the visitor's time, then
+  the host's with no label, and the two could fall on different days. Each time now names its
+  city, such as "3 AM London time" with "Mon 8 PM Toronto time" under it. An in-person time is
+  named only when the visitor's clock differs from the venue's, and stays unlabelled where the
+  listing names no timezone. The calendar says the same in one line under the grid whenever it
+  holds an online class. No change to your snippet or CSP.
+
 - **The map draws the world once.** ([#370]) On a wide embed the whole world repeated two or
   three times across the map, so a class near the dateline appeared as two or three circles. The
   world view now fills the map with a single world, and zooming out stops where one world is as
@@ -961,6 +968,7 @@ must-revalidate`, pinned rather than left to the CDN default. The production dom
 [#262]: https://github.com/sydevs/SahajAtlasWeb/issues/262
 [#283]: https://github.com/sydevs/SahajAtlasWeb/issues/283
 [#311]: https://github.com/sydevs/SahajAtlasWeb/pull/311
+[#380]: https://github.com/sydevs/SahajAtlasWeb/pull/380
 [#370]: https://github.com/sydevs/SahajAtlasWeb/pull/370
 [#371]: https://github.com/sydevs/SahajAtlasWeb/pull/371
 [#363]: https://github.com/sydevs/SahajAtlasWeb/pull/363
