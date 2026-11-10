@@ -292,8 +292,8 @@ export function ExpandSheetButton({ label }: { label?: string }) {
 // The event-filters trigger that opens the filter drawer by navigating to
 // `<current>/filters` (root to `/filters`, `/search` to `/search/filters`),
 // preserving the search query so closing returns to the same search. Two shapes
-// over one nav plus count: the labeled ghost button for the list toolbar
-// (SearchView), and — with `iconOnly` — an icon-only header control carrying the
+// over one nav: the labeled ghost button for the list toolbar (SearchView,
+// RegionView), and — with `iconOnly` — an icon-only header control carrying the
 // active count as a badge (CountriesView's header), so it reads as one set with
 // the close/collapse chrome.
 // How this layout offers filters beside the list, if it has room: a panel the Filters button
@@ -369,11 +369,12 @@ export function FilterButton({
     )
   }
 
+  // The labelled form sits in the list toolbar, where the active filters show as tags right beside
+  // it. A count here would say the same thing twice (Devindra, 9 Nov).
   return (
-    // The font turns "(2)" into a tiny circled figure unless its ligatures are off.
-    <Button className="[font-variant-ligatures:none]" size="sm" variant="ghost" onClick={open}>
+    <Button size="sm" variant="ghost" onClick={open}>
       <Funnel size={18} />
-      {label}
+      {t('filters.chrome.title')}
     </Button>
   )
 }

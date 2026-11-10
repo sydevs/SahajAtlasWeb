@@ -22,8 +22,9 @@ const alert = tv({
     variant: { flat: '', bordered: 'border' },
     // Top-align a two-line alert. Centre a single line of text vertically.
     align: { start: { base: 'items-start' }, center: { base: 'items-center' } },
-    // `sm` is a slimmer banner (tighter padding + gap) for compact inline prompts.
-    size: { md: '', sm: { base: 'gap-2 p-2' } },
+    // `sm` is a slimmer banner (tighter padding + gap) for compact inline prompts. `lg` is a notice
+    // the screen is about, such as a searched place with no classes: roomier, with a larger title.
+    size: { md: '', sm: { base: 'gap-2 p-2' }, lg: { base: 'p-4', title: 'text-lg' } },
     /**
      * Where the content sits. This also sets the whole layout.
      *

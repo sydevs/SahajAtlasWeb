@@ -116,26 +116,35 @@ export function useFilterPills(filters?: EventFilters): FilterPill[] {
  * a filter someone had chosen. It is now a segment boundary the list pages
  * across instead, signposted by its own control at the foot of the list
  * (see `revealRows` in `@/lib/shape/reveal`).
+ *
+ * `inline` renders the pills alone, without their own row, for a parent that lays them out:
+ * the list toolbar puts them beside its Filters button (`ListToolbar`'s `tags`).
  */
-export function ActiveFilterPills({ filters }: { filters?: EventFilters }) {
+export function ActiveFilterPills({
+  filters,
+  inline = false,
+}: {
+  filters?: EventFilters
+  inline?: boolean
+}) {
   const { t } = useTranslation()
   const pills = useFilterPills(filters)
 
   if (pills.length === 0) return null
 
-  return (
-    <div className="flex flex-wrap gap-1.5 px-gutter pt-1 pb-2">
-      {pills.map((pill) => (
-        <Chip
-          key={pill.key}
-          closeLabel={t('filters.chrome.remove', { label: pill.label })}
-          color="neutral"
-          radius="full"
-          onClose={pill.onRemove}
-        >
-          {pill.label}
-        </Chip>
-      ))}
-    </div>
-  )
+  const chips = pills.map((pill) => (
+    <Chip
+      key={pill.key}
+      closeLabel={t('filters.chrome.remove', { label: pill.label })}
+      color="neutral"
+      radius="full"
+      onClose={pill.onRemove}
+    >
+      {pill.label}
+    </Chip>
+  ))
+
+  if (inline) return <>{chips}</>
+
+  return <div className="flex flex-wrap gap-1.5 px-gutter pt-1 pb-2">{chips}</div>
 }

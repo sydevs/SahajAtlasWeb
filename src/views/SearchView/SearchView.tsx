@@ -100,12 +100,10 @@ export function SearchView() {
           carrying them away — the list pages as you scroll, so the one moment Filters
           and Sort matter most is the moment a body-mounted toolbar would be gone. */}
       <DrawerToolbar>
-        <ListToolbar>
+        {/* The tags are up here so an active filter stays in sight however far the list scrolls. */}
+        <ListToolbar end={<SortMenu />} tags={<ActiveFilterPills inline />}>
           <FilterButton />
-          <SortMenu />
         </ListToolbar>
-        {/* Up here so an active filter stays in sight however far the list scrolls. */}
-        <ActiveFilterPills />
       </DrawerToolbar>
       <DrawerBody>
         {/* The list owns the `['events', …]` read. The geocoder above it does not. Keeping a

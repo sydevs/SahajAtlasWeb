@@ -1,14 +1,17 @@
 import type { BBox } from 'geojson'
+import type { TFunction } from 'i18next'
 import type { EventSlim } from '@/types'
 
 import { type ReactNode, useCallback, useEffect, useId, useMemo, useRef } from 'react'
 import { useSearchParams } from 'react-router'
 import { useQueries, useQuery, useSuspenseQuery } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
+import { MapPinOff } from 'lucide-react'
 
 import { EventsList } from './EventsList'
 import { LoadMore } from './LoadMore'
 
+import { Alert } from '@/components/atoms/Alert'
 import { Button } from '@/components/atoms/Button'
 import { type FilterPill, useFilterPills } from '@/components/molecules/ActiveFilterPills'
 import { AddClassEntry } from '@/components/molecules/AddClassEntry'
@@ -21,9 +24,9 @@ import {
   DEFAULT_FILTERS,
   DEFAULT_REVEAL,
   EXCLUDE_EVENT_PARAM,
+  type FilterKey,
   addClassPath,
   boundsWith,
-  filtersKey,
   hasActiveFilters,
   isoCountryCode,
   orderOnline,
@@ -43,7 +46,6 @@ import { usePlaceScope } from '@/hooks/use-place-scope'
 import { useReveal } from '@/hooks/use-reveal'
 import { useSortOrder } from '@/hooks/use-sort'
 import { eventsQuery } from '@/config/api'
-import { useArrivalFilters } from '@/config/store'
 import { rewordedKey } from '@/config/reworded-keys'
 
 export interface DynamicEventsListProps {
@@ -129,17 +131,6 @@ export function DynamicEventsList({
   if (placeName.current.at !== at || !placeName.current.name) {
     placeName.current = { at, name: searchedPlace }
   }
-
-  // Whether these filters were already on when this place first showed. Removing or changing one
-  // here makes the rest the visitor's own decision. It is a store so it outlasts the drawer's
-  // remounts, and read without subscribing because only this list ever writes it. A reload or a
-  // shared link counts as carried over: nothing says otherwise.
-  const appliedKey = filtersKey(filters)
-
-  if (useArrivalFilters.getState().place !== at) {
-    useArrivalFilters.setState({ place: at, filters: appliedKey })
-  }
-  const carried = useArrivalFilters.getState().filters === appliedKey
 
   // A searched place reads as groups, with `revealRows` still paging the first and last of them.
   // Without one, nothing is "here", so the list stays one undivided run.
@@ -296,20 +287,18 @@ export function DynamicEventsList({
           ? t('search.sections.across_border')
           : t('search.sections.nearby_places')
 
-    // A filter chosen for this place was a decision, and needs no comment while classes remain. One
-    // that came along from earlier, or that leaves the place empty, is worth saying out loud.
-    const filterNotice = hasActiveFilters(filters) &&
-      !nothing &&
-      (carried || here.length === 0) && (
-        <FilterRelief
-          bbox={bbox}
-          here={here.length}
-          latitude={latitude}
-          longitude={longitude}
-          nearby={justOutside.length + nearby.length}
-          place={place}
-        />
-      )
+    // What the filters hide here. With classes left, it is one quiet line after them, so it never
+    // pushes the results down (Devindra, 9 Nov). With none left, it follows the notice that says so.
+    const filterNotice = hasActiveFilters(filters) && !nothing && (
+      <FilterRelief
+        bbox={bbox}
+        here={here.length}
+        latitude={latitude}
+        longitude={longitude}
+        nearby={justOutside.length + nearby.length}
+        place={place}
+      />
+    )
 
     return (
       <>
@@ -327,15 +316,16 @@ export function DynamicEventsList({
         {here.length === 0 && filterNotice}
         {here.length > 0 && (
           <section ref={listRef}>
-            <ResultsHeading count={here.length}>{hereTitle}</ResultsHeading>
-            {/* The map went wide when this group opened, while this heading still names the place.
-                On a lowered phone sheet this is the one line that says why the two differ. */}
+            {/* The search field above already names the place, so its classes come first with no
+                title of their own (Devindra, 9 Nov). Screen readers still get one to jump to. */}
+            <h3 className="sr-only">{hereTitle}</h3>
+            {/* The map went wide when "Other cities" opened, while the search still names the
+                place. On a lowered phone sheet this is the one line that says why the two differ. */}
             {openNearby && size !== 'area' && (
-              <p className="px-gutter pb-1 text-sm text-gray-11">
+              <p className="px-gutter pt-2 pb-1 text-sm text-gray-11">
                 {t('search.sections.map_wider')}
               </p>
             )}
-            {filterNotice}
             <EventsList
               distanceFrom={fromYou ? 'you' : size === 'town' ? 'centre' : undefined}
               events={hereRows}
@@ -353,6 +343,7 @@ export function DynamicEventsList({
                 onReveal={reveal}
               />
             )}
+            {filterNotice}
           </section>
         )}
         {/* Close enough to count, but not in the place: shown in full, under the same small label
@@ -609,15 +600,23 @@ function FilterRelief({
   if (!inPlace && hiddenNearby <= 0) return null
 
   const best = relief[0]
+  // Under classes that remain, the line says what the hidden ones differ by: "1 more class on
+  // another day. Show all days". It counts what that one step gives back, so the two agree.
+  const after = inPlace && here > 0
 
   // One quiet line. Classes may well be on screen, and the filter may be the visitor's only free
   // day, so this mentions the cost and never presses for the filter to go.
   return (
-    <p className="flex flex-wrap items-center gap-x-2 px-gutter text-sm text-gray-11" role="status">
+    <p
+      className="flex flex-wrap items-center gap-x-2 px-gutter pt-1 text-sm text-gray-11"
+      role="status"
+    >
       <span>
-        {inPlace
-          ? t('search.filtered.hidden_here', { count: hiddenHere, place })
-          : t('search.filtered.hidden_nearby', { count: hiddenNearby })}
+        {after
+          ? moreHereLine(t, best?.pill.key, best?.count ?? hiddenHere)
+          : inPlace
+            ? t('search.filtered.hidden_here', { count: hiddenHere, place })
+            : t('search.filtered.hidden_nearby', { count: hiddenNearby })}
       </span>
       <button
         className="min-h-11 text-start font-medium text-primary underline outline-none focus-visible:ring-2 focus-visible:ring-primary-8"
@@ -625,16 +624,51 @@ function FilterRelief({
         onClick={best ? best.pill.onRemove : clearFilters}
       >
         {best
-          ? t('search.filtered.remove_short', { label: best.pill.label })
+          ? ((after && showAllLabel(t, best.pill.key)) ??
+            t('search.filtered.remove_short', { label: best.pill.label }))
           : t('filters.chrome.clear')}
       </button>
     </p>
   )
 }
 
-// The place itself has nothing. The line says so before the nearest classes take over, so a class
-// 146 km away is never read as being in the place. When it is the filters that emptied it, it
-// isn't "yet".
+// The classes a filter hides, named by what they differ in. A filter with no plain way to say that
+// (format, cadence, region), or none single filter that gives them back, reads as the filters'.
+function moreHereLine(t: TFunction, key: FilterKey | undefined, count: number) {
+  switch (key) {
+    case 'days':
+      return t('search.filtered.more_days', { count })
+    case 'time':
+      return t('search.filtered.more_time', { count })
+    case 'languages':
+      return t('search.filtered.more_languages', { count })
+    case 'dates':
+      return t('search.filtered.more_dates', { count })
+    default:
+      return t('search.filtered.more_other', { count })
+  }
+}
+
+// The step that gives them back, said as what it shows rather than what it removes.
+function showAllLabel(t: TFunction, key: FilterKey): string | null {
+  switch (key) {
+    case 'days':
+      return t('search.filtered.show_days')
+    case 'time':
+      return t('search.filtered.show_time')
+    case 'languages':
+      return t('search.filtered.show_languages')
+    case 'dates':
+      return t('search.filtered.show_dates')
+    default:
+      return null
+  }
+}
+
+// The place itself has nothing. A notice says so before the nearest classes take over, so a class
+// 146 km away is never read as being in the place. It is a box, not a heading: as a heading it read
+// as the title of the classes under it (Devindra, 9 Nov). When it is the filters that emptied the
+// place, it isn't "yet".
 function NoClassesHere({
   latitude,
   longitude,
@@ -695,7 +729,7 @@ function NoClassesHere({
 
   return (
     <div className="px-gutter pt-3 pb-2">
-      <h3 className="text-xl">{title}</h3>
+      <Alert color="neutral" icon={<MapPinOff className="h-5 w-5" />} size="lg" title={title} />
     </div>
   )
 }

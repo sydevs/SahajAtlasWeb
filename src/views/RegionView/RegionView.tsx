@@ -179,13 +179,14 @@ export function RegionView({ slug }: { slug: string }) {
           <SearchField />
           {!feedback && suggestFor && <GeolocationSuggestion region={suggestFor} />}
         </div>
-        {/* Sort only where the page lists classes: a page of places has nothing it would reorder. */}
-        <ListToolbar>
+        {/* Sort only where the page lists classes: a page of places has nothing it would reorder.
+            The tags are up here so an active filter stays in sight however far the list scrolls. */}
+        <ListToolbar
+          end={hasEventList && <SortMenu orders={PLACE_SORTS} />}
+          tags={<ActiveFilterPills inline />}
+        >
           <FilterButton />
-          {hasEventList && <SortMenu orders={PLACE_SORTS} />}
         </ListToolbar>
-        {/* Up here so an active filter stays in sight however far the list scrolls. */}
-        <ActiveFilterPills />
       </DrawerToolbar>
       <DrawerBody>
         {filterSearch && <ResultCountStatus total={region.eventCount} />}
