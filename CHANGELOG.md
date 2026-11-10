@@ -345,8 +345,9 @@ cover everything a host would notice since the widget was first deployed.
 - **Class times say whose clock they are.** ([#380]) An online class showed the visitor's time, then
   the host's with no label, and the two could fall on different days. Each time now names its
   city, such as "3 AM London time" with "Mon 8 PM Toronto time" under it. An in-person time is
-  named only when the visitor's clock differs from the venue's. The calendar says the same in one
-  line under the grid while online classes are on screen. No change to your snippet or CSP.
+  named only when the visitor's clock differs from the venue's, and stays unlabelled where the
+  listing names no timezone. The calendar says the same in one line under the grid whenever it
+  holds an online class. No change to your snippet or CSP.
 
 - **The map draws the world once.** ([#370]) On a wide embed the whole world repeated two or
   three times across the map, so a class near the dateline appeared as two or three circles. The
