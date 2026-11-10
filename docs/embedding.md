@@ -77,8 +77,8 @@ Everything either snippet needs is in it. Specifically:
   [Permissions Policy](#permissions-policy).
 - **`title` on the iframe is required for accessibility.** Without one it is announced as an
   unlabelled frame. Write it for your visitors, in your language.
-- **Do not sandbox the iframe.** If your platform insists, add `allow-popups` — see
-  [Embedding in an iframe](#embedding-in-an-iframe).
+- **Do not sandbox the iframe.** If your platform insists, add `allow-popups` and
+  `allow-downloads` — see [Embedding in an iframe](#embedding-in-an-iframe).
 
 Three rules for the script tag specifically:
 
@@ -409,6 +409,13 @@ element `height: 100vh` below your own sticky header, and its bottom edge — th
 sheet and its drag handle — sits below the fold, leaving a first-time visitor with no visible
 controls until they scroll. Subtract your header, or use a fixed height.
 
+⚠ **An embed that starts hidden is measured when it is shown.** The widget reads your element's
+size once, when it first renders, and keeps the layout that size implies. Inside a closed tab, an
+accordion, or anything else with `display: none` when the page loads, the element has no size
+yet, so the widget waits for it to appear before it loads, deep link or not. Opening the tab
+then gets the layout your box gives. (Before this, a page opened from a shared Atlas link loaded
+the widget at once, while hidden, and it took the browser window instead of your box.)
+
 ⚠ **A flex or grid item is sized even without a height rule.** A stretched item takes its track's
 cross size, so `<sahaj-atlas>` in a full-height flex column is a _contained_ map — almost always
 what you want, but the one way an embed ends up contained without one.
@@ -425,6 +432,20 @@ the column, since whether a dial link reaches a dialer is hardware.
 An **unsized** map embed is the one thing that does not adapt, since there is no box to adapt to
 — it fills the window. **A map embed with neither a height nor the page to itself renders the
 compact card instead**, whose button opens the map full-screen (below).
+
+⚠ **A full-window map on a phone wants `viewport-fit=cover` in your viewport meta tag.** The
+widget keeps its panel, its peek strips and the map's own controls clear of a notch or a camera
+cut-out, reading `env(safe-area-inset-*)` to do it. Those values are **zero** unless your page
+opts in:
+
+```html
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+```
+
+Without it, a phone held sideways letterboxes the page away from the cut-out, which is safe but
+narrower, and the widget's own insets do nothing. With it, your page runs under the cut-out and
+the widget stays clear of it — but so must the rest of your page, so this is your call, not
+ours. Nothing about the widget breaks either way, and a contained embed is unaffected.
 
 ### When the slot is too small
 
@@ -487,7 +508,9 @@ like `map=false`, against the floors above and nothing else.
   URL means a visitor followed a link, so the widget mounts immediately rather than waiting to be
   scrolled to, and the overlay opens straight onto that route. **The `atlas` parameter on the
   script URL does not do this** — that is your default view, not a visitor's request, so it stays
-  lazy. Closing the overlay does not reopen it.
+  lazy. Closing the overlay does not reopen it. An element that is hidden when the page loads (a
+  closed tab or accordion) waits to be shown first, deep link or not — see
+  [Sizing the element](#sizing-the-element).
 
 ⚠ **Do not put the embed inside an element with `transform`, `filter` or `contain`.** Those make
 that element the containing block for fixed-position content, confining the overlay to it instead
@@ -527,10 +550,13 @@ Five things about that snippet are load-bearing:
   Without these the relevant features fail **silently**, the worst way to find out.
 - **Do not sandbox the frame.** If you must, include **`allow-popups`** — without it the compact
   card's button cannot open anything, and the browser blocks it silently with nothing in your
-  console to say why. Add **`allow-same-origin`** too if you want the widget to keep its own
-  settings between visits, since a sandbox gives the frame an opaque origin, which makes storage
-  throw. (A sandbox does _not_ stop the widget writing its own URL, contrary to what this guide
-  used to say — measured in Chrome 151.)
+  console to say why. Include **`allow-downloads`** too: "Add to calendar" offers Apple Calendar
+  as an `.ics` file the widget builds and hands to the browser, and a sandbox without that flag
+  refuses the download — the menu item does nothing a visitor can see. Add
+  **`allow-same-origin`** as well if you want the widget to keep its own settings between visits,
+  since a sandbox gives the frame an opaque origin, which makes storage throw. (A sandbox does
+  _not_ stop the widget writing its own URL, contrary to what this guide used to say — measured
+  in Chrome 151.)
 - **`map=false` is usually what you want in a frame**, unless the frame is large.
 - **Give it a real height.** As with the element, a frame with no height collapses.
 
@@ -852,7 +878,7 @@ believing you allowed something you hadn't.
 |                            | `ipwho.is`                                    | the once-per-session IP→city lookup behind "classes near you"                                                                                                                                                                                                                                                                                                                                                                                                                         | **degrades**: the nearby suggestion is skipped                                                                                                                                                                |
 |                            | `cdn.usefathom.com`                           | analytics, conditional as above                                                                                                                                                                                                                                                                                                                                                                                                                                                       | analytics only                                                                                                                                                                                                |
 |                            | `*.sentry.io`                                 | crash reporting. Contacted **only after the widget has already failed**, and only on a build with a DSN.                                                                                                                                                                                                                                                                                                                                                                              | **degrades**: the widget notices the refusal and stops trying for the rest of the page's life                                                                                                                 |
-| `frame-src`                | `cloud.sydevelopers.com`                      | **The captcha — required.** Every write the widget makes is captcha-gated. The challenge renders in a frame `cloud.sydevelopers.com` serves, so `challenges.cloudflare.com` belongs in no directive of yours. The frame mounts with the interface, so a policy that omits this shows on the console within seconds rather than when somebody registers.                                                                                                                                              | **browsing still works, but registration and reports can't be sent.** The forms say so — see the note below                                                                                                                 |
+| `frame-src`                | `cloud.sydevelopers.com`                      | **The captcha — required.** Every write the widget makes is captcha-gated. The challenge renders in a frame `cloud.sydevelopers.com` serves, so `challenges.cloudflare.com` belongs in no directive of yours. The frame mounts with the interface, so a policy that omits this shows on the console within about 40 seconds (two 20-second waits, since a refused frame and a slow one look the same) rather than when somebody registers.                                                                                                                                              | **browsing still works, but registration and reports can't be sent.** The forms say so — see the note below                                                                                                                 |
 
 Notes on that table:
 
@@ -1073,7 +1099,7 @@ Seven honest exceptions, none of them styling your content:
 
 - **A 1-pixel hidden `<iframe>` sits in your `<body>` for a moment after the widget mounts.** It
   is the captcha's availability check, loading the challenge page from `cloud.sydevelopers.com`
-  so that a page where registration is impossible says so within seconds. It is
+  so that a page where registration is impossible says so within about 40 seconds. It is
   `position: fixed`, transparent, unfocusable, hidden from assistive technology, and adds no
   scroll height.
 
@@ -1201,10 +1227,13 @@ page's **origin** — scheme, host and port, never a path — because that is th
 its token to. It mounts with the interface, whether or not the visitor opens a form.
 
 **`map=false` removes the Mapbox flows too** — tiles, the geocoder (which sends the visitor's
-typed query and the map centre to Mapbox), the map-load telemetry, and the calendar's area-name
-lookups (a city's calendar sends up to 30 class locations to Mapbox, to name each class's part of
-town) — along with the two `mapbox.*` storage keys and `atlas.areaNames`. That is the only switch
-for them, since they are Mapbox's own behaviour, not ours.
+typed query to Mapbox, with the map centre to rank against, the ISO code of the country they are
+browsing, and — while the map still shows a continent or more, where its centre says nothing —
+an instruction for Mapbox to rank by the visitor's own IP instead), the map-load telemetry, and
+the calendar's area-name lookups (a city's calendar sends up to 30 class locations to Mapbox, to
+name each class's part of town) — along with the two `mapbox.*` storage keys and
+`atlas.areaNames`. That is the only switch for them, since they are Mapbox's own behaviour, not
+ours.
 
 Two things a visitor can send us on purpose, both on submit and never in the background: a
 **class registration** (their name, email and any organiser questions) and a **report about an
@@ -1280,7 +1309,8 @@ Three things to check when you migrate:
 | **Country flags are missing, everything else fine**                          | `img-src https://react-circle-flags.pages.dev`. Cosmetic.                                                                                                                                                                                                                                                                                                                                                                                                                                                     |
 | **The widget shows "its security check was blocked" and nothing else**       | Read the browser console, which names both fixes. If the browser also logged a refused frame, your CSP is missing `frame-src https://cloud.sydevelopers.com`; otherwise your page's domain is not on your client record — ask us to add it. Since the atlas cannot take a registration without the captcha, this fails outright rather than degrading the form.                                                                                                                                               |
 | **The widget's route never appears in the address bar**                      | The document refuses `history.replaceState` — most often `file://`. The widget detects that and routes in memory.                                                                                                                                                                                                                                                                                                                                                                                             |
-| **The compact card's button does nothing, in an iframe**                     | The frame is sandboxed without `allow-popups`, so its `target="_blank"` link cannot open. It fails silently, with nothing in the console. Add `allow-popups`, or drop `sandbox`.                                                                                                                                                                                                                                                                                                                              |
+| **A button or a calendar row does nothing, in an iframe**                    | The frame is sandboxed without `allow-popups`, so a `target="_blank"` link cannot open. Two places need one: the compact card's button, and the Google, Outlook.com, Office 365 and Yahoo rows of "Add to calendar". It fails silently, with nothing in the console. Add `allow-popups`, or drop `sandbox`.                                                                                                                                                                                                   |
+| **Add to calendar → Apple Calendar does nothing, in an iframe**              | The frame is sandboxed without `allow-downloads`. That row builds the `.ics` file in the browser and hands it over as a download, which a sandbox refuses — silently, like the popup above. The four link-out rows are unaffected. Add `allow-downloads`, or drop `sandbox`.                                                                                                                                                                                                                                  |
 | **`atlas=` on the script URL seems to be ignored**                           | The page's own URL already carries an `?atlas=` route, which always wins. That is intended — see [`atlas`, and how the route is chosen](#atlas-and-how-the-route-is-chosen).                                                                                                                                                                                                                                                                                                                                  |
 | **Sharing offers no link**                                                   | The same memory-routing mode, on a page with no canonical atlas URL to offer instead.                                                                                                                                                                                                                                                                                                                                                                                                                         |
 | **The widget covers the rest of the page**                                   | A map embed with no height of its own renders `position: fixed; inset: 0`. Give the element a `display: block` and a height to keep the map inside it, or use `map=false` for an embed with no map.                                                                                                                                                                                                                                                                                                           |

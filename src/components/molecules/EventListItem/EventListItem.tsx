@@ -21,8 +21,8 @@ export interface EventListItemProps {
   /**
    * The searched place, for the distance line. This is passed in, instead
    * of read from `?q` here. Subscribing every card to the URL re-renders
-   * the whole list on each geocoder keystroke, which defeats the memo
-   * below (see `EventsList`).
+   * the whole list on every URL change, which defeats the memo below (see
+   * `EventsList`).
    */
   searchedPlace?: string
   /**

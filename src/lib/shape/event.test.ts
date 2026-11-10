@@ -555,6 +555,8 @@ describe('streetAndCity', () => {
     ['Cejl 32, 602 00 Brno', 'Brno', 'Cejl 32, 602 00 Brno'],
     ['120 Heath St, London NW3 1DR', 'London', '120 Heath St, London NW3 1DR'],
     ['Lipanská 8, praha', 'Praha', 'Lipanská 8, praha'],
+    ['Main St, PLYMOUTH', 'Plymouth', 'Main St, PLYMOUTH'],
+    ['Rathausplatz 1, Zurich', 'Zürich', 'Rathausplatz 1, Zurich'],
   ])('names the town once when the street already does: %j + %j', (street, city, line) => {
     expect(streetAndCity(street, city)).toBe(line)
   })
@@ -563,6 +565,7 @@ describe('streetAndCity', () => {
     ['16 Ramsden Rd', 'London', '16 Ramsden Rd, London'],
     ['123 London Road', 'London', '123 London Road, London'],
     ['Main St, West London', 'London', 'Main St, West London, London'],
+    ['Rue de Paris', 'Paris', 'Rue de Paris, Paris'],
   ])('adds the town when the street only mentions a word of it: %j + %j', (street, city, line) => {
     expect(streetAndCity(street, city)).toBe(line)
   })

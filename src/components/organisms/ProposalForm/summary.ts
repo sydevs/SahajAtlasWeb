@@ -8,7 +8,7 @@ import { useTranslation } from 'react-i18next'
 import { useEventDisplay } from '@/hooks/use-event-display'
 import { useLocale } from '@/hooks/use-locale'
 import { draftPlaceName, draftTitle, titleSlot } from '@/lib/proposal'
-import { formatDate, regionalLocale, zoneLabel } from '@/lib/time'
+import { formatDate, regionalLocale, sameWallClock, zoneCity, zoneLabel } from '@/lib/time'
 
 export type SummaryRow = {
   key: string
@@ -32,7 +32,19 @@ export type SummaryRow = {
  * the zone it was typed in, or 19:30 London reads as 20:30 from Prague.
  */
 function useHostDisplay(listing: Event) {
-  return useEventDisplay(useMemo(() => ({ ...listing, eventType: 'offline' as const }), [listing]))
+  const { t } = useTranslation()
+  const display = useEventDisplay(
+    useMemo(() => ({ ...listing, eventType: 'offline' as const }), [listing]),
+  )
+  // The clock was inferred for the host, so their own check spells it out, once, even where a
+  // class page leaves it unsaid because the viewer's clock matches the venue's (#380).
+  const next = display.display.next
+  const eventTimeRange =
+    display.eventTimeRange && next && sameWallClock(next, next.toLocal())
+      ? `${display.eventTimeRange} ${t('event.display.zone_time', { city: zoneCity(next.zoneName) })}`
+      : display.eventTimeRange
+
+  return { ...display, eventTimeRange }
 }
 
 export function useSummaryRows(

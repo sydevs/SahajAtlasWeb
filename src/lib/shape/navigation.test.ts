@@ -248,6 +248,7 @@ describe('placedPathname', () => {
     expect(placedPathname('/united-kingdom/south-east/london/711/register', pathOf)).toBe(
       '/gb/south-east/london/711/register',
     )
+    expect(placedPathname('/london', pathOf)).toBe('/gb/south-east/london')
   })
 
   it('leaves a real address, or one the tree does not know, as it is', () => {

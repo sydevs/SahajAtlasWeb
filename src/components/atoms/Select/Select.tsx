@@ -31,6 +31,23 @@ export const fieldChrome = tv({
   defaultVariants: { isInvalid: false, trigger: false },
 })
 
+// The panel a field trigger opens: this Select's listbox and the Combobox's popover. Both
+// spelled the same six-class surface themselves, so a drift between the two would have
+// reddened nothing — the hazard `menuChrome` was built for one layer up (#367). Each panel's
+// width comes from the popper that opens it, which is the one difference worth naming. There
+// is deliberately no default: a default would hand one surface the other's width property.
+export const panelChrome = tv({
+  base: 'z-50 overflow-hidden rounded-lg border border-gray-6 bg-background shadow-xl',
+  variants: {
+    popper: {
+      /** Radix Select, whose listbox scrolls inside a bounded column. */
+      select: 'flex max-h-72 w-[var(--radix-select-trigger-width)] flex-col',
+      /** Radix Popover, whose panel sizes to its content. */
+      popover: 'w-[var(--radix-popover-trigger-width)]',
+    },
+  },
+})
+
 // A select built on @radix-ui/react-select. It is controlled through
 // `value` and `onValueChange` (pair it with react-hook-form's Controller
 // for forms). The listbox portals into the theme root, so it stays brand
@@ -104,7 +121,7 @@ export function Select({
         {/* `position="popper"` exposes `--radix-select-trigger-width`. So the
             listbox matches the trigger's width, instead of sizing to its longest option. */}
         <RadixSelect.Content
-          className="z-50 flex max-h-72 w-[var(--radix-select-trigger-width)] flex-col overflow-hidden rounded-lg border border-gray-6 bg-background shadow-xl"
+          className={panelChrome({ popper: 'select' })}
           {...frameCollision()}
           position="popper"
           sideOffset={4}

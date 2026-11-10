@@ -36,12 +36,12 @@ const entry = (start: string, zone: string, online = false): CalendarEntry => ({
 
 // The text a viewer reads, with the markup and entities gone.
 const note = (entries: CalendarEntry[]) =>
-  renderToStaticMarkup(
-    createElement(TimesNote, { entries, start: '2026-11-06', end: '2026-11-12' }),
-  )
+  renderToStaticMarkup(createElement(TimesNote, { entries }))
     .replace(/<[^>]+>/g, '')
     .replace(/&#x27;|&#39;/g, "'")
 
+// The calendar's clock note follows the class pages' rule (#380): it speaks only when an online
+// class, read in the viewer's zone, sits among in-person classes read in their own.
 describe('TimesNote', () => {
   afterEach(() => {
     Settings.defaultZone = 'system'
@@ -49,36 +49,21 @@ describe('TimesNote', () => {
 
   const london = entry('2026-11-09 19:30', 'Europe/London')
 
-  it('names the clock even when it is the viewer’s own', () => {
-    // A London viewer used to get no note: it compared offsets today, not on the class's day.
-    Settings.defaultZone = 'Europe/London'
+  it('says nothing when only in-person classes are listed', () => {
+    Settings.defaultZone = 'Europe/Prague'
 
-    expect(note([london])).toBe('Times are London time.')
+    expect(note([london])).toBe('')
   })
 
-  it('says one clock once, when the online classes are read on that same clock', () => {
-    expect(note([london, entry('2026-11-10 20:00', 'Europe/London', true)])).toBe(
-      'Times are London time.',
-    )
-  })
+  it("names the viewer's city once an online class is listed", () => {
+    Settings.defaultZone = 'Europe/Prague'
 
-  it('names the online clock beside the in-person one when they differ', () => {
     expect(note([london, entry('2026-11-10 20:00', 'Europe/Prague', true)])).toBe(
-      'Times are London time. Online classes are in Prague time.',
+      'Times are local to each class. Online classes show your time (Prague).',
     )
   })
 
-  it("falls back to each class's own clock across zones", () => {
-    expect(note([london, entry('2026-11-10 19:00', 'Europe/Dublin')])).toBe(
-      'Times are each class’s local time.',
-    )
-  })
-
-  it('names the online clock alone when only online classes are on screen', () => {
-    expect(note([entry('2026-11-10 20:00', 'Europe/Prague', true)])).toBe('Times are Prague time.')
-  })
-
-  it('says nothing with no class on screen', () => {
-    expect(note([entry('2026-12-01 19:30', 'Europe/London')])).toBe('')
+  it('says nothing with no class listed', () => {
+    expect(note([])).toBe('')
   })
 })

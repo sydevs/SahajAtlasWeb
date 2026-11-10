@@ -50,6 +50,11 @@ paths:
   call is a bare `useTranslation()`.
 - **Interpolation uses Ruby-style delimiters** `%{var}`, not i18next's default
   `{{var}}` — the CMS stores the copy in that form. Match it in code and in the CMS.
+- **A link inside a sentence is a `%{link}` slot in the copy**, with the link's own words in a
+  key of their own, so each language places the link and words it. The code owns the href, and
+  the string is never rendered as markup. A translation without the slot renders the link after
+  the sentence. `registration.form.consent` (with `registration.form.privacy_link`) is the one
+  key that uses it today.
 - **`count` is a reserved plural trigger.** Do not pass it for a plain number: `t()`
   resolves `key_one` / `key_other` instead of the base key. Pass it only for a key
   the CMS declares `plural: true` (`event.display.sessions_count` is the one today).
@@ -102,7 +107,7 @@ paths:
 
 ## zustand stores (`src/config/store.ts`)
 
-Six stores, each the single source of truth for its own slice:
+Nine stores, each the single source of truth for its own slice:
 
 - **`useViewState`** — map camera (`zoom` / `latitude` / `longitude`), current
   `selection`, and `boundary`. Read it with a **`useShallow`** selector on the
@@ -115,6 +120,10 @@ Six stores, each the single source of truth for its own slice:
   before an in-widget push, and read it on a POP (`useFrameOnTop`) to restore the
   viewport a viewer left. Non-reactive (`getState()` only, so a write never
   re-renders the map) and FIFO-capped so a long embedded session stays bounded.
+- **`useCameraTarget`** — where a camera move in flight will land, or `null` at rest.
+  `useViewState` mirrors the camera only once the map STOPS, so `rememberCamera` would
+  otherwise snapshot the place a fly left for the screen it is flying to. Non-reactive,
+  like the history it feeds.
 - **`useCalendarPosition`** — the CalendarView's last Schedule-X `view` plus
   focused `date`, so a filter apply or returning from an event does not reset the
   grid to the current month. The grid **seeds** from it once at mount (no
@@ -183,6 +192,21 @@ Six stores, each the single source of truth for its own slice:
   every later page keeps that label — a bare "Show more" would misdescribe it.
   There is deliberately **no "< N km" pill** — that button is the list's only
   distance affordance.
+- **`useClassSheet`** — what the phone bottom sheet covers of the map, in px: the peek
+  while the sheet is collapsed, and otherwise the height a class's, its share panel's, a
+  place's list's or the filters' sheet opens at. A store because `DrawerStack` writes it
+  and the map camera reads it, and neither renders the other's context: the real
+  `MapController` provider renders `DrawerStack`, so a context would have to flow the
+  wrong way, and the drawer must not import the map's hooks. It carries `null` wherever
+  no such sheet is on top, and the camera falls back to the open snap's height.
+- **`useBrowsedCountry`** — the ISO code of the last country page shown, which scopes
+  the place search's suggestions. ⚠ **This is the one slice that looks like it belongs
+  in the URL and does not.** The URL holds what a link must reproduce for whoever opens
+  it, and where the reader came from is not that: a shared `/search` link would pin the
+  recipient's suggestions to a country they never browsed. `?cc` answers a different
+  question — the country of the place that WAS searched — and sits ahead of this one in
+  `MapSearch`'s chain. `DrawerStack` writes it, since it sees every route and `/search`
+  names no country.
 
 **One store lives beside its one consumer instead**, because nothing else has
 any business reading it and `store.ts` is where a slice several subtrees share

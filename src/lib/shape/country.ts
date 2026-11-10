@@ -32,6 +32,27 @@ export const isoCountryCode = (value: string | null | undefined): string | undef
   typeof value === 'string' && /^[A-Za-z]{2}$/.test(value) ? value.toUpperCase() : undefined
 
 /**
+ * The query whose search inside `country` came back empty, so the place search dropped the
+ * country and repeated itself worldwide.
+ */
+export type ReleasedScope = { country: string; query: string }
+
+/**
+ * Which country a place search restricts itself to: the one being looked at, unless this exact
+ * query already came back empty inside it.
+ *
+ * The release has to carry the query that earned it. An unkeyed release holds for the field's
+ * whole life, and Mapbox ranks Hampstead, Quebec above Hampstead, London once no country is
+ * given — so one typo would undo the country scope for every later search in that field.
+ */
+export const searchCountryScope = (
+  country: string | undefined,
+  query: string,
+  released: ReleasedScope | undefined,
+): string | undefined =>
+  released && released.country === country && released.query === query ? undefined : country
+
+/**
  * The minimal region-tree shape the country lookup needs — `RegionTreeNode` plus the
  * `level` the slug match is qualified by. Structural (not `RegionNode`) to keep this
  * module free of the entity types, like `hierarchy.ts`.

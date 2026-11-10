@@ -7,7 +7,7 @@ import { useTranslation } from 'react-i18next'
 
 import { useLocale } from './use-locale'
 
-import { resolveEventDisplay, streetAndCity } from '@/lib/shape'
+import { resolveEventDisplay, scheduleNamesZone, streetAndCity } from '@/lib/shape'
 import { formatDate, formatTimeRange, regionalLocale, sameWallClock, zoneCity } from '@/lib/time'
 
 /** This is what the formatting layer reads on top of the resolver input: the address and
@@ -20,8 +20,9 @@ export type DisplayableEvent = DisplayEventLike & {
 export type EventDisplayStrings = {
   /** The raw resolved state, for surfaces that need more than strings. */
   display: EventDisplay
-  /** "Weekly class" / "Course · 8 sessions" / "One-off event" */
-  typeLabel: string
+  /** "Weekly class" / "Course · 8 sessions" / "One-off event". Null for a by-request listing,
+   *  which carries no schedule and so has no type to name. */
+  typeLabel: string | null
   /** A plain weekly class: the default type, which a compact card leaves unnamed. */
   isDefaultType: boolean
   /** Status chip text, or null when the state shows no chip. */
@@ -30,10 +31,12 @@ export type EventDisplayStrings = {
   recurrenceLine: string | null
   /** This is the authoritative next-session, first-session, or terminal line. */
   whenLine: string
-  /** This is the next occurrence's start and end time, in the display zone, with no label,
-   *  such as "7:30 PM – 8:30 PM." This is null in terminal states. */
+  /** This is the next occurrence's start and end time, in the display zone, such as
+   *  "7:30 PM – 8:30 PM London time." The clock is named only where it tells the viewer
+   *  something (see the times block below). This is null in terminal states. */
   eventTimeRange: string | null
-  /** This is the next occurrence's start time only, such as "7:30 PM." The compact card uses this. */
+  /** This is the next occurrence's start time only, such as "7:30 PM London time," named on the
+   *  same terms as the range. The compact card uses this. */
   eventStartTime: string | null
   /** This is a one-line location: hosted-from for an online event, street and city for a physical one. */
   whereLine: string
@@ -47,8 +50,8 @@ export type EventDisplayStrings = {
   whereLineCard: string
   /** The room inside the venue, such as "Room: Hall B", for a physical, non-inactive event that names one. */
   roomLine: string | null
-  /** For an online event only, the HOST's clock and city, faded below the where line, such
-   *  as "Wed 7:30 PM in Prague." This is null for a physical event. */
+  /** For an online event only, the HOST's clock, faded below the where line, such as
+   *  "Wed 7:30 PM Prague time." This is null for a physical event. */
   whereSubtext: string | null
   registerLabel: string
   /** This is under-button microcopy, in render order. It is a closed set. See issue #52. */
@@ -138,9 +141,14 @@ export function useEventDisplay(event: DisplayableEvent): EventDisplayStrings {
       sessions != null ? t('event.display.sessions_count', { count: sessions }) : null
 
     // ── Type label (derived, never host-set) ──
-    let typeLabel: string
+    let typeLabel: string | null
 
-    if (kind === 'oneoff') typeLabel = t('event.display.type_oneoff')
+    // A by-request listing carries no schedule, so the resolver derives `oneoff` from the
+    // absent recurrence and "One-off event" would be simply wrong. "Contact host for timings"
+    // already says what it is. A real one-off has a schedule, inactive or not, and keeps its
+    // label.
+    if (!schedule) typeLabel = null
+    else if (kind === 'oneoff') typeLabel = t('event.display.type_oneoff')
     else if (kind === 'course')
       typeLabel = sessionsLabel
         ? `${t('event.display.type_course')} · ${sessionsLabel}`
@@ -227,14 +235,19 @@ export function useEventDisplay(event: DisplayableEvent): EventDisplayStrings {
 
     // ── Times ──
     // These are in the display zone, the viewer's for an online event, so they agree with the
-    // weekday, the date and the calendar. Each names its clock by city (Anton, 6 Nov): "8:00 pm
-    // Prague time", never "your time". An online class is shown in the viewer's own zone, so it
-    // names the viewer's city; an in-person class names its venue's, seen from anywhere. Always,
-    // not only when the viewer's clock differs: a missing label would leave a visitor to work out
-    // whose clock it is, and the old test compared offsets TODAY, so a class across a
-    // daylight-saving change lost its label. The city is the zone's own (`zoneCity`), so it needs
-    // no lookup and works anywhere, where abbreviations like EST exist only for some zones.
-    const zoneLabel = next ? t('event.display.zone_time', { city: zoneCity(next.zoneName) }) : null
+    // weekday, the date and the calendar. Each names its clock by the zone's own city ("8:00 pm
+    // Prague time"), never "your time", since the viewer's zone and the venue's both reach this
+    // line. An online time is always the viewer's, and always says so. An in-person time is the
+    // venue's, and says so only when the viewer's clock differs at that moment (#380). The zone's
+    // city needs no lookup and exists for every zone, where an abbreviation like EST does not.
+    // A schedule naming no usable zone reads as UTC, which is a placeholder rather than a
+    // venue's clock, so an in-person time says nothing instead of claiming "UTC time". An
+    // online time is the VIEWER's zone, which is real whatever the schedule carries.
+    const namesZone = scheduleNamesZone(schedule)
+    const zoneLabel =
+      next && (display.online || (namesZone && !sameWallClock(next, next.toLocal())))
+        ? t('event.display.zone_time', { city: zoneCity(next.zoneName) })
+        : null
     const withZone = (time: string) => (zoneLabel ? `${time} ${zoneLabel}` : time)
     const eventStartTime = next ? withZone(formatTimeRange(next, null, formatLocale)) : null
     const eventTimeRange = next
@@ -271,9 +284,9 @@ export function useEventDisplay(event: DisplayableEvent): EventDisplayStrings {
         ? t('event.display.room', { room })
         : null
     // For an online event only, the host's own clock, faded under the where line, such as
-    // "Wed 7:30 pm Prague time", named like the viewer's time on the line above it, so the two
-    // clocks read the same way. The weekday shows ONLY when
-    // the host's day differs from the viewer's. Otherwise it is noise.
+    // "Wed 7:30 pm Prague time", named like the viewer's time above it, so the two clocks read
+    // the same way. The weekday shows ONLY when the host's day differs from the viewer's.
+    // Otherwise it is noise.
     //
     // This is skipped entirely when the viewer shares the host's offset, since it would just
     // restate the time above. Comparing the OFFSET, not the zone id, also catches distinct zones
@@ -288,7 +301,7 @@ export function useEventDisplay(event: DisplayableEvent): EventDisplayStrings {
           ? origin.setLocale(formatLocale).toLocaleString({ weekday: 'short' })
           : null,
         formatTimeRange(origin, null, formatLocale),
-        t('event.display.zone_time', { city: zoneCity(origin.zoneName) }),
+        namesZone ? t('event.display.zone_time', { city: zoneCity(origin.zoneName) }) : null,
       ]
         .filter(Boolean)
         .join(' ')

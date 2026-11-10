@@ -30,13 +30,20 @@ const CHALLENGE_CHANNEL = 'sahaj-atlas-turnstile'
 
 /**
  * `ready` is the handshake: Turnstile is live in the frame. `error` includes SahajCloud refusing
- * this page's origin, which no client record lists.
+ * this page's origin, which no client record lists. The page renders Turnstile
+ * `interaction-only`, so it is invisible until Cloudflare wants a click: `interactive` and
+ * `settled` bracket that window (sydevs/SahajCloud#1090).
  */
 type ChallengeEvent =
   | { type: 'ready' }
+  | { type: 'interactive' }
+  | { type: 'settled' }
   | { type: 'expired' }
   | { type: 'error' }
   | { type: 'token'; token: string }
+
+/** What a frame reports to its owner: the page's own messages, plus its silence. */
+type FrameEvent = ChallengeEvent | { type: 'timeout' }
 
 function readChallengeEvent(data: unknown): ChallengeEvent | null {
   if (typeof data !== 'object' || data === null) return null
@@ -44,7 +51,15 @@ function readChallengeEvent(data: unknown): ChallengeEvent | null {
   const { channel, type, token } = data as Record<string, unknown>
 
   if (channel !== CHALLENGE_CHANNEL) return null
-  if (type === 'ready' || type === 'expired' || type === 'error') return { type }
+  if (
+    type === 'ready' ||
+    type === 'interactive' ||
+    type === 'settled' ||
+    type === 'expired' ||
+    type === 'error'
+  ) {
+    return { type }
+  }
   // An empty token would enable Submit and then fail verification, which reads to a visitor as
   // the form being broken rather than the challenge.
   if (type === 'token' && typeof token === 'string' && token !== '') return { type, token }
@@ -52,16 +67,25 @@ function readChallengeEvent(data: unknown): ChallengeEvent | null {
   return null
 }
 
-/** Cloudflare's own widget is 300×65, and nothing else is on the page. */
+/** Cloudflare's own widget is 300×65, and nothing else is on the page. The frame holds height 0
+ *  until the challenge turns interactive. */
 const FRAME_WIDTH = 300
 const FRAME_HEIGHT = 65
 
 /**
  * Bounds a frame that never answers. A `frame-src` that refuses it is silent to its parent, so
  * this is also how a host's stale CSP is found. Nothing blocks on it, so a generous bound costs a
- * late answer rather than a slow first paint.
+ * late answer rather than a slow first paint. 10 seconds was not generous enough: a slow load
+ * replaced a working Atlas with the blocked screen about once in 30 loads on an iPhone.
  */
-const HANDSHAKE_TIMEOUT_MS = 10_000
+const HANDSHAKE_TIMEOUT_MS = 20_000
+
+/**
+ * How many silent frames the page-wide check waits out before it calls Turnstile blocked. Silence
+ * is the one verdict a slow network and a refusing CSP share, so it gets a second, fresh frame. A
+ * frame that answers `error` (SahajCloud refusing this page) is believed at once.
+ */
+const PROBE_ATTEMPTS = 2
 
 /**
  * Read off Turnstile's own `api.js` on 2026-11-02: what it sets on the widget frame it renders.
@@ -78,6 +102,16 @@ const HANDSHAKE_TIMEOUT_MS = 10_000
 const TURNSTILE_FEATURES =
   'cross-origin-isolated; fullscreen; autoplay; keyboard-map; gamepad; xr-spatial-tracking'
 
+/**
+ * Takes the challenge's slot out of its column while the frame is collapsed. A 0px flex item still
+ * takes its column's gap on both sides, so the forms each cancelled it by hand, with their own
+ * gap value, and the registration form's spelling was missed (#367). Out of flow, it takes none;
+ * the frame stays rendered at 0px rather than `display: none`, as the probe's does.
+ */
+const collapseSlot = (slot: HTMLElement, collapsed: boolean) => {
+  slot.style.position = collapsed ? 'absolute' : ''
+}
+
 type FrameOptions = { theme: 'light' | 'dark' | 'auto'; language: string; probe?: boolean }
 
 /**
@@ -85,12 +119,12 @@ type FrameOptions = { theme: 'light' | 'dark' | 'auto'; language: string; probe?
  * probe. `event.source` pins a message to this frame's window, which no other document can forge;
  * `origin` pins it to SahajCloud, so a frame navigated elsewhere cannot answer as the challenge.
  *
- * ⚠ **Silence is delivered as the page's own `error`**: a frame that never handshakes is as dead
- * as one that failed, and both callers already answer `error`.
+ * ⚠ **Silence is delivered as `timeout`**, beside the page's own `error`: a frame that never
+ * handshakes is as dead as one that failed, but the page-wide check gives silence one more try.
  */
 function createChallengeFrame(
   { theme, language, probe = false }: FrameOptions,
-  onEvent: (message: ChallengeEvent) => void,
+  onEvent: (message: FrameEvent) => void,
 ) {
   const url = new URL(CHALLENGE_PATH, import.meta.env.VITE_SAHAJCLOUD_URL)
 
@@ -106,8 +140,9 @@ function createChallengeFrame(
 
   frame.src = url.href
   frame.width = String(FRAME_WIDTH)
-  frame.height = String(FRAME_HEIGHT)
+  frame.height = '0'
   frame.style.border = '0'
+  frame.style.display = 'block'
   frame.title = 'Security check'
   // SahajCloud reads the parent from the URL, so this withholds only the host page's path and query.
   frame.referrerPolicy = 'strict-origin'
@@ -126,7 +161,7 @@ function createChallengeFrame(
     clearTimeout(timer)
     onEvent(message)
   }
-  const timer = setTimeout(() => onEvent({ type: 'error' }), HANDSHAKE_TIMEOUT_MS)
+  const timer = setTimeout(() => onEvent({ type: 'timeout' }), HANDSHAKE_TIMEOUT_MS)
 
   window.addEventListener('message', onMessage)
 
@@ -157,24 +192,31 @@ export async function probeTurnstile(): Promise<boolean> {
   if (typeof document === 'undefined') return false
 
   availability ??= new Promise<boolean>((resolve) => {
-    const { frame, dispose } = createChallengeFrame(
-      { theme: 'auto', language: 'auto', probe: true },
-      (message) => {
-        if (message.type !== 'ready' && message.type !== 'error') return
+    const attempt = (left: number) => {
+      const { frame, dispose } = createChallengeFrame(
+        { theme: 'auto', language: 'auto', probe: true },
+        (message) => {
+          if (message.type !== 'ready' && message.type !== 'error' && message.type !== 'timeout') {
+            return
+          }
 
-        dispose()
-        resolve(message.type === 'ready')
-      },
-    )
+          dispose()
+          if (message.type === 'timeout' && left > 1) attempt(left - 1)
+          else resolve(message.type === 'ready')
+        },
+      )
 
-    // ⚠ `fixed`, not `absolute`: this lands in the HOST page's body, where an out-of-flow element
-    // at its static position still extends the scroll area. Hidden rather than `display: none`,
-    // to keep the check as close as possible to the frame a form mounts.
-    frame.style.cssText =
-      'position:fixed;top:0;left:0;width:1px;height:1px;opacity:0;pointer-events:none;border:0'
-    frame.setAttribute('aria-hidden', 'true')
-    frame.tabIndex = -1
-    document.body.appendChild(frame)
+      // ⚠ `fixed`, not `absolute`: this lands in the HOST page's body, where an out-of-flow
+      // element at its static position still extends the scroll area. Hidden rather than
+      // `display: none`, to keep the check as close as possible to the frame a form mounts.
+      frame.style.cssText =
+        'position:fixed;top:0;left:0;width:1px;height:1px;opacity:0;pointer-events:none;border:0'
+      frame.setAttribute('aria-hidden', 'true')
+      frame.tabIndex = -1
+      document.body.appendChild(frame)
+    }
+
+    attempt(PROBE_ATTEMPTS)
   }).then((available) => {
     if (!available) availability = null
 
@@ -229,7 +271,11 @@ export function useTurnstile({ disabled = false }: UseTurnstileOptions = {}): Us
   // Re-mounting on a theme or language change is deliberate: Turnstile bakes both in at render
   // time, so the frame carries them in its URL and the teardown drops the unsolved token with it.
   useEffect(() => {
-    if (disabled || !challengeRef.current) return
+    const slot = challengeRef.current
+
+    if (!slot) return
+    collapseSlot(slot, true)
+    if (disabled) return
 
     setToken(null)
     setStatus('loading')
@@ -240,6 +286,14 @@ export function useTurnstile({ disabled = false }: UseTurnstileOptions = {}): Us
         switch (message.type) {
           case 'ready':
             setStatus('ready')
+            break
+          case 'interactive':
+            frame.height = String(FRAME_HEIGHT)
+            collapseSlot(slot, false)
+            break
+          case 'settled':
+            frame.height = '0'
+            collapseSlot(slot, true)
             break
           // Turnstile's `retry` defaults to `auto`, so a transient failure is often followed by a
           // retry that solves. `blocked` must NOT latch, or the user holds a valid token while
@@ -252,6 +306,7 @@ export function useTurnstile({ disabled = false }: UseTurnstileOptions = {}): Us
             setToken(null)
             break
           case 'error':
+          case 'timeout':
             setToken(null)
             setStatus('blocked')
             break
@@ -260,7 +315,7 @@ export function useTurnstile({ disabled = false }: UseTurnstileOptions = {}): Us
     )
 
     frameRef.current = { frame, origin }
-    challengeRef.current.appendChild(frame)
+    slot.appendChild(frame)
 
     return () => {
       dispose()

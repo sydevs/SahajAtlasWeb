@@ -130,7 +130,7 @@ export function WeekList({ filters }: { filters: EventFilters }) {
   return (
     <>
       {/* Above the times it explains, so it is read first, not found under the list. */}
-      <TimesNote end={window.end} entries={entries} start={window.start} />
+      <TimesNote entries={days.flatMap((day) => day.entries)} />
       <DrawerBody className="pb-4">
         {days.map((day) => (
           <section key={day.date}>

@@ -44,6 +44,22 @@ cover everything a host would notice since the widget was first deployed.
 
 ### Changed
 
+- **The captcha on the registration and report forms is hidden unless it needs a click.**
+  ([SahajCloud#1090]) Most visitors now see no security check at all; the 300×65 box opens only
+  when Cloudflare asks for an interaction, and closes again after. The collapsed slot also leaves
+  no gap of its own in the form ([#371]) — it had kept a row's worth of space where the box would
+  have been. No change to your CSP.
+
+- **The registration confirmation leads with one notice about the email.** ([#366]) It names what
+  arrives by email and, for an online class, that the join link is in it, in place of a bare line
+  of text. No parameter, origin or CSP change.
+
+- **"Add to calendar" is one button that opens a menu of calendars.** ([#366]) It was a row of
+  provider buttons, and now shares a row with "Okay". Apple Calendar downloads an `.ics` file; the
+  others open the provider in a new tab. ⚠ **In a sandboxed iframe that download needs
+  `allow-downloads`**, beside the `allow-popups` the rest of the menu needs — see
+  [Embedding in an iframe]. A script embed and an unsandboxed frame need nothing.
+
 - **Your brand colours now reach the map.** ([#17]) The event pins, the cluster bubbles and the
   numbers on them are drawn from the **first** of your client record's three brand colours, and
   the selected event's pin from the **third** — the same two that already theme the panels and
@@ -335,6 +351,94 @@ cover everything a host would notice since the widget was first deployed.
   opens — so there was no way to discover this from the widget. See [Permissions Policy].
 
 ### Fixed
+
+- **Class times say whose clock they are.** ([#380]) An online class showed the visitor's time, then
+  the host's with no label, and the two could fall on different days. Each time now names its
+  city, such as "3 AM London time" with "Mon 8 PM Toronto time" under it. An in-person time is
+  named only when the visitor's clock differs from the venue's, and stays unlabelled where the
+  listing names no timezone. The calendar says the same in one line under the grid whenever it
+  holds an online class. No change to your snippet or CSP.
+
+- **The map draws the world once.** ([#370]) On a wide embed the whole world repeated two or
+  three times across the map, so a class near the dateline appeared as two or three circles. The
+  world view now fills the map with a single world, and zooming out stops where one world is as
+  wide as the map. The map still pans on across the Pacific, and a link or a search still frames
+  any class exactly where it sits. No parameter, origin or CSP change.
+
+- **The dark theme is readable throughout, and the browser's own chrome follows it.** ([#370])
+  Typed search text was almost invisible on the dark panel and its focused box drew a dotted
+  border; the locate and info controls on the map stayed white; date fields showed dark icons on a
+  dark field and opened light pickers; and the calendar turned purple. All four now take the
+  atlas's own colours. On the standalone page `sahajatlas.com` the document background and the
+  `theme-color` meta follow the theme too, so a phone tints its status bar to match. Within an
+  embed the host's page keeps its own `theme-color`; only the widget's own surfaces change. No
+  parameter, origin or CSP change.
+
+- **Smaller display repairs.** ([#370]) Search suggestions span the panel instead of sitting
+  narrower than it, with the result counts no longer peeking out beside them. A class available by
+  request is no longer labelled "ONE-OFF EVENT". An address no longer repeats the town ("Brno,
+  Brno"). The settings cog no longer covers the list and the sign-up form on a map-less embed
+  (`map=0`). The × on a filter tag keeps its drawn size but takes a 44px tap area on a touch
+  screen. No parameter, origin or CSP change.
+
+- **An embed inside a closed tab or accordion now fills its box when opened from a shared
+  link.** ([#371]) A page whose URL carried `?atlas=` loaded the widget at once, while the element
+  was still hidden and measured 0×0, so the widget took the whole browser window: when the tab
+  opened, its panel floated over your page's top-left corner and your box stayed blank. A deep
+  link now loads at once only into an element that is on the page, and otherwise waits for it to
+  be shown, as an embed with no route always has. No change to your snippet. See
+  [Sizing the element](docs/embedding.md#sizing-the-element).
+
+- **A slow security check no longer replaces the Atlas with an error.** ([#371]) The widget used
+  to give the hidden captcha check 10 seconds before showing "This Atlas can't run on this page".
+  It now waits 20 seconds and tries once more before deciding, so a page whose CSP refuses
+  `cloud.sydevelopers.com` under `frame-src` sees that screen after about 40 seconds rather than
+  10. A domain SahajCloud refuses outright is still reported at once.
+
+- **Phone fixes from the 6 November check of the live site.** ([#369]) A class's bottom sheet now
+  opens as tall as the class needs, up to near full, so the Register bar no longer covers its
+  address and no longer slices a line in half on a small phone — one drag down still stops at the
+  usual third-height. A place's first classes are framed above the open sheet instead of under it,
+  and a link to a class that is no longer there frames the place the link names rather than the
+  whole world. On a touchscreen the first tap on a pin opens the class: the timing popover now
+  shows only where there is a real pointer, and on a desktop it names the class above its timing.
+  "Find my location" waits 30 seconds rather than 6, so allowing location slowly no longer puts
+  "Location not available" over the right results. On iPhone the From and To date filters no
+  longer overlap, tapping a sign-up field no longer hides the form, no see-through panel is left
+  over the map when the keyboard closes, and dragging the panel down from its list no longer
+  shakes or pulls Safari's page with it. No parameter, origin or CSP change.
+
+- **A full-window map on a phone keeps clear of a notch — if your page asks for it.** ([#369])
+  The widget now reads `env(safe-area-inset-*)` for its panel, its peek strips and the map's own
+  controls, so a phone held sideways no longer puts a camera cut-out over them. Those values are
+  **zero** unless your viewport meta tag carries `viewport-fit=cover`, which is your page's call
+  rather than ours — see "Sizing the element" in the embedding guide. Nothing breaks without it,
+  and a contained embed is unaffected either way.
+
+- **Closing your phone's own share sheet no longer takes the Share button away.** ([#366]) The
+  browser reports a dismissal the same way it reports being refused, so cancelling the sheet
+  swapped the button for the copy-and-links list. Only a sheet the browser will not open falls
+  back to that list now, which is what the [Permissions Policy] table describes.
+
+- **A registration that never reached us no longer blames the security check.** ([#365]) Atlas
+  registrations were failing in production: SahajCloud refused the browser's preflight for the
+  header carrying the security check's token, so the sign-up was never sent, and the form asked
+  the visitor to do the check again — advice that could not work, since the check had passed.
+  The refusal itself was fixed in SahajCloud ([SahajCloud#1085]). Here, a request that got no
+  response at all now says the connection or the server is at fault, in the error colour rather
+  than the blue a refusal uses; a response that may have spent the token keeps the old sentence. A
+  smoke case now replays the widget's own preflight, so the next such break fails a test lane
+  rather than every visitor.
+
+- **A direct link to an online class now zooms the map to its region.** ([#363]) An online
+  class usually has no location of its own, so a link to one, such as `…/ca/ontario/toronto/720`,
+  opened the class over the whole-world map. It now frames the class's region, as a region link
+  does, and a direct link to an Online Classes drawer frames the same way. A region is drawn
+  from the in-person classes under it, so where it has none the map climbs to the nearest
+  region that has some — a city running only online classes zooms to its province rather than
+  staying on the world map. A link whose whole country runs only online classes still opens on
+  the world map, since there is nothing to zoom to. Opening the class from inside the widget
+  still leaves the map where the visitor has it. No parameter, origin or CSP change.
 
 - **Under `routing=path`, a failed client-record read no longer drops you to query routing.** ([#351])
   Any failure to read the record — SahajCloud down or erroring, not only a refused key — fell
@@ -875,12 +979,18 @@ must-revalidate`, pinned rather than left to the CDN default. The production dom
 [#147]: https://github.com/sydevs/SahajAtlasWeb/issues/147
 [#283]: https://github.com/sydevs/SahajAtlasWeb/issues/283
 [#311]: https://github.com/sydevs/SahajAtlasWeb/pull/311
+[#380]: https://github.com/sydevs/SahajAtlasWeb/pull/380
+[#370]: https://github.com/sydevs/SahajAtlasWeb/pull/370
+[#371]: https://github.com/sydevs/SahajAtlasWeb/pull/371
+[#363]: https://github.com/sydevs/SahajAtlasWeb/pull/363
+[#369]: https://github.com/sydevs/SahajAtlasWeb/pull/369
 [#351]: https://github.com/sydevs/SahajAtlasWeb/pull/351
 [#312]: https://github.com/sydevs/SahajAtlasWeb/pull/312
 [#320]: https://github.com/sydevs/SahajAtlasWeb/issues/320
 [#326]: https://github.com/sydevs/SahajAtlasWeb/issues/326
 [#343]: https://github.com/sydevs/SahajAtlasWeb/issues/343
 [SahajCloud#1072]: https://github.com/sydevs/SahajCloud/issues/1072
+[SahajCloud#1090]: https://github.com/sydevs/SahajCloud/pull/1090
 [#322]: https://github.com/sydevs/SahajAtlasWeb/issues/322
 [#329]: https://github.com/sydevs/SahajAtlasWeb/pull/329
 [#325]: https://github.com/sydevs/SahajAtlasWeb/issues/325
@@ -894,3 +1004,6 @@ must-revalidate`, pinned rather than left to the CDN default. The production dom
 [#321]: https://github.com/sydevs/SahajAtlasWeb/issues/321
 [#316]: https://github.com/sydevs/SahajAtlasWeb/issues/316
 [#17]: https://github.com/sydevs/SahajAtlasWeb/issues/17
+[#365]: https://github.com/sydevs/SahajAtlasWeb/pull/365
+[#366]: https://github.com/sydevs/SahajAtlasWeb/pull/366
+[SahajCloud#1085]: https://github.com/sydevs/SahajCloud/pull/1085

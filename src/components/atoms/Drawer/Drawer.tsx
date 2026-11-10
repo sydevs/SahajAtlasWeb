@@ -3,7 +3,7 @@ import { Drawer as Vaul } from 'vaul'
 import { tv, type VariantProps } from 'tailwind-variants'
 import clsx from 'clsx'
 
-import { useSheetDragClaim } from './sheet-touch'
+import { isIOS, useSheetDragClaim } from './sheet-touch'
 
 import { overlayContainer } from '@/lib/overlay'
 
@@ -33,8 +33,14 @@ const drawer = tv({
     // centred. So on a wide surface, such as a wide map-less embed, the views read
     // as a centred column, instead of stretching edge to edge. A bottom sheet lifts
     // the cap: a 512px column in a 650px sheet left the banner as a floating island.
+    // A header hosting a `SearchField` also hands the geocoder's suggestion list its width
+    // (`--sy-results-w`, read in Mapbox/themes.ts): a dropdown narrower than the band left the
+    // list's counts peeking out beside it. The field starts the band and the list sits 1px
+    // inside the field's border on each side, hence the 2px. This belongs to the slot rather
+    // than the three views that mount a field, which drifted: the error chrome mounts a live
+    // field (`views/fallbacks.tsx`) and had neither declaration.
     header:
-      'mx-auto flex w-full max-w-[var(--sy-content-max,512px)] shrink-0 items-center gap-2 px-gutter pt-4 pb-2',
+      '[container-type:inline-size] mx-auto flex w-full max-w-[var(--sy-content-max,512px)] shrink-0 items-center gap-2 px-gutter pt-4 pb-2 [--sy-results-w:calc(100cqi_-_2px)]',
     // A second fixed band under the header, for controls that act on the
     // scrolling content below, such as SearchView's Filters and Sort. It
     // shares the header's width cap and `shrink-0`. It sits OUTSIDE the body,
@@ -87,6 +93,10 @@ const drawer = tv({
       // This is deferred until an RTL locale actually ships. Everything else here
       // is already logical: the stack's panel positioning uses `start-*`, and
       // directional icons carry `rtl:-scale-x-100` at their call sites.
+      //
+      // The left inset is the notch or Dynamic Island of a phone held sideways (`viewport-fit=cover`
+      // runs the page under it). The panel widens by the inset and pads it, so its content keeps
+      // the full width clear of the cut-out. Zero everywhere else.
       //
       // The left inset is the notch or Dynamic Island of a phone held sideways (`viewport-fit=cover`
       // runs the page under it). The panel widens by the inset and pads it, so its content keeps
@@ -264,12 +274,15 @@ export function Drawer({
     dismissible,
     handleOnly,
     modal,
-    // ⚠ Off, so Safari alone moves the page for the keyboard. Vaul's handling writes the sheet's
-    // `bottom` and `height` from the keyboard height plus the active snap offset, and tracks
-    // whether the keyboard is open by toggling a flag on each large viewport change. On iOS that
-    // flag goes out of step after the first close: the next focus threw the sheet off the top of
-    // the screen, and closing left a sheet-shaped ghost over the map. Seen on iOS 18.5 and 26.3.
-    repositionInputs: false,
+    // ⚠ Off on iOS ALONE, so there Safari is the only thing that moves the page for the keyboard.
+    // Vaul's handling writes the sheet's `bottom` and `height` from the keyboard height plus the
+    // active snap offset, and tracks whether the keyboard is open by toggling a flag on each large
+    // viewport change. On iOS that flag goes out of step after the first close: the next focus
+    // threw the sheet off the top of the screen, and closing left a sheet-shaped ghost over the
+    // map. Seen on iOS 18.5 and 26.3. Everywhere else a keyboard shrinks the visual viewport and
+    // this handling is what lifts a focused field clear of it, so it stays on — nothing here
+    // replaces it. The flag also gates vaul's `usePreventScroll`, whose body runs on iOS only.
+    repositionInputs: !isIOS(),
     open,
     onOpenChange,
     snapPoints,

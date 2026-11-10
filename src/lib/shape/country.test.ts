@@ -2,7 +2,12 @@ import type { CountryTreeNode, RegionedFeature } from './country'
 
 import { describe, it, expect } from 'vitest'
 
-import { countryHasPrograms, isoCountryCode, placedAncestorIds } from './country'
+import {
+  countryHasPrograms,
+  isoCountryCode,
+  placedAncestorIds,
+  searchCountryScope,
+} from './country'
 import { indexRegions } from './hierarchy'
 
 // Country slugs are lowercase ISO codes (SahajCloud#556); Iceland is deliberately
@@ -113,5 +118,33 @@ describe('placedAncestorIds', () => {
     expect(placedAncestorIds(index, 880, null)).toEqual([880])
     // `as` is a city, not American Samoa.
     expect(placedAncestorIds(index, 880, 'AS')).toEqual([880])
+  })
+})
+
+describe('searchCountryScope', () => {
+  it('restricts the search to the country being looked at', () => {
+    expect(searchCountryScope('GB', 'Hampstead', undefined)).toBe('GB')
+  })
+
+  it('drops the country for the one query that came back empty inside it', () => {
+    expect(searchCountryScope('GB', 'Prague', { country: 'GB', query: 'Prague' })).toBeUndefined()
+  })
+
+  it('keeps the country for every other query', () => {
+    // The defect this holds: an unkeyed release let the typo that proves #34 hand every later
+    // search the worldwide ranking, which puts Hampstead, Quebec above Hampstead, London.
+    const released = { country: 'GB', query: 'zzqqxx' }
+
+    expect(searchCountryScope('GB', 'Hampstead', released)).toBe('GB')
+    expect(searchCountryScope('GB', 'zzqqx', released)).toBe('GB')
+    expect(searchCountryScope('GB', '', released)).toBe('GB')
+  })
+
+  it('keeps the country once the visitor moves to another one', () => {
+    expect(searchCountryScope('CZ', 'Prague', { country: 'GB', query: 'Prague' })).toBe('CZ')
+  })
+
+  it('stays worldwide where there is no country to stay in', () => {
+    expect(searchCountryScope(undefined, 'Hampstead', undefined)).toBeUndefined()
   })
 })

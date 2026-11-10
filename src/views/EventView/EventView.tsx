@@ -21,13 +21,12 @@ import { useEventDisplay } from '@/hooks/use-event-display'
 import { eventQuery } from '@/config/api'
 import { useIsWideWidget } from '@/config/responsive'
 import { useLocale } from '@/hooks/use-locale'
-import { useMapController } from '@/hooks/use-map-controller'
 import { usePostEventFeedback } from '@/hooks/use-post-event-feedback'
 import { useWidgetMode } from '@/config/mode'
 import { correctionPath, parentOf } from '@/lib/shape'
 import { type Event } from '@/types'
 import { NavRow } from '@/views/nav'
-import { useDrawerControl, useFrameOnTop } from '@/views/shared'
+import { useDrawerControl, useFrameEventOnTop } from '@/views/shared'
 import { ErrorPanel } from '@/views/fallbacks'
 
 // EventDetails pulls in DOMPurify and the action-row wiring. This keeps it out of the main
@@ -103,7 +102,6 @@ function PinnedRegister({
 // body, then Register and the actions — inline, or the phone sheet's pinned bar in the same place.
 export function EventView({ id, basePath }: { id: number; basePath: string }) {
   const { standalone, hasMap } = useWidgetMode()
-  const { frameEvent } = useMapController()
   // `t` off `useLocale` rather than a second `useTranslation` — the hook already holds
   // one for the default (`common`) namespace and returns it to avoid the duplicate.
   const { t, locale } = useLocale()
@@ -121,13 +119,8 @@ export function EventView({ id, basePath }: { id: number; basePath: string }) {
   // calls a function initializer, and `lazy()` returns an object, so this reads once.
   const [EventDetails, setEventDetails] = useState(loadEventDetails)
 
-  useFrameOnTop(
-    ({ isEntry }) => {
-      // No pin to frame: the camera stays where the visitor left it.
-      if (!event.contactOnly) frameEvent(event, { isEntry })
-    },
-    [event, frameEvent],
-  )
+  // A contact-only listing has no pin to frame: the camera stays where the visitor left it.
+  useFrameEventOnTop(event, { skip: Boolean(event.contactOnly) })
 
   // The snap-ladder bottom sheet is the one surface where in-flow content can scroll the CTA
   // away. Pin Register there. Keep it inline everywhere else. Never pin an empty bar —

@@ -602,12 +602,9 @@ function CalendarGrid({
 
   return (
     <>
-      {/* Above the grid whose times it explains, so it is read first. */}
-      <TimesNote
-        end={focused.endOf('month').toISODate() ?? ''}
-        entries={events}
-        start={focused.startOf('month').toISODate() ?? ''}
-      />
+      {/* Above the grid whose times it explains, so it is read first. It reads every entry, not
+          the focused month's: a week straddling two months and the list view both show more. */}
+      <TimesNote entries={events} />
       <DrawerBody className="max-w-none overflow-hidden px-gutter pb-4">
         <div
           className="sx-calendar"

@@ -478,7 +478,8 @@ export function ReportIssueForm({
           ))}
 
           {/* Kept mounted even when blocked: the hook renders the challenge into it
-              once Turnstile becomes available, and an empty div costs nothing. */}
+              once Turnstile becomes available. Until Cloudflare wants a click it takes no
+              room at all (`useTurnstile`). */}
           <div ref={challengeRef} />
 
           {blocked && (

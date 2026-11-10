@@ -1,18 +1,19 @@
 import type { MapSearchProps } from '@/components/organisms/Mapbox/MapSearch'
 import type { GeocodingFeature } from '@mapbox/search-js-core'
 import type { DependencyList, ReactNode } from 'react'
+import type { Event, Region } from '@/types'
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react'
 import { useLocation, useNavigationType, useSearchParams } from 'react-router'
 import { useTranslation } from 'react-i18next'
-import { useQuery, useSuspenseQuery } from '@tanstack/react-query'
+import { useQueries, useQuery, useSuspenseQuery } from '@tanstack/react-query'
 import { CalendarDays, Funnel, List, MapIcon, Search, X } from 'lucide-react'
 import clsx from 'clsx'
 
 import { Button } from '@/components/atoms/Button'
 import { FallbackPanel, GeolocationPrompt } from '@/components/molecules'
 import { MapSearch } from '@/components/organisms'
-import api, { eventQuery, regionsQuery } from '@/config/api'
+import api, { eventQuery, regionQuery, regionsQuery } from '@/config/api'
 import { GEOJSON_STALE_TIME } from '@/config/query-client'
 import embed from '@/config/embed'
 import { useSurfaceSwitch } from '@/config/mode'
@@ -23,6 +24,7 @@ import { useEventFilters } from '@/hooks/use-filters'
 import { useIpLocation } from '@/hooks/use-ip-location'
 import { useLocale } from '@/hooks/use-locale'
 import { useMapController } from '@/hooks/use-map-controller'
+import { hasMapPoint } from '@/lib/camera'
 import { geocodeBounds, geocodeCountryCode } from '@/lib/geocode'
 import { atlasError } from '@/lib/report'
 import {
@@ -34,14 +36,14 @@ import {
 } from '@/lib/geolocation'
 import {
   type PlaceSearch,
-  type PlacePathOf,
   type EventFilters,
   activeFilterCount,
-  safePath,
+  ancestorSlugs,
   searchPath,
   calendarPath,
   atlasDepth,
   isoCountryCode,
+  placePathsOf,
   placeSearchPath,
   resolvePath,
   topViewKey,
@@ -151,13 +153,6 @@ export function SearchButton() {
   )
 }
 
-/** Each place's own address, by slug, from the region tree (`placedPathname`). */
-const placePaths = (regions: readonly { slug: string; webPath?: string | null }[]): PlacePathOf => {
-  const paths = new Map(regions.map((node) => [node.slug, safePath(node.webPath)]))
-
-  return (slug) => paths.get(slug)
-}
-
 /**
  * What a climb reads to pass over venues and one-class places (`climbDestination`): the feed's
  * class paths and the region tree's venue slugs, plus each place's own address (`placedPathname`)
@@ -179,7 +174,7 @@ export function useClimbInputs() {
       venueSlugs: regions
         ? new Set(regions.filter((node) => node.level === 'venue').map((node) => node.slug))
         : undefined,
-      pathOf: regions ? placePaths(regions) : undefined,
+      pathOf: placePathsOf(regions),
     }),
     [feed, regions],
   )
@@ -473,6 +468,67 @@ export function useFrameOnTop(frame: (ctx: FrameContext) => void, deps: Dependen
     if (hasMap && snapshot) restore(snapshot)
     else frame({ isEntry: atlasDepth(location) === 0 })
   }, [...deps])
+}
+
+/**
+ * The region a placeless view should frame: the nearest one at or above `regionSlug` that
+ * `frameRegion` can actually move the camera to. Undefined for no slug, for `map=false`,
+ * or while the reads are in flight.
+ *
+ * ⚠ The climb is not defensive. A region's `bounds` are the bounds of the LOCATED events
+ * under it (`boundsUnder` drops placeless points), so a city whose only classes are online
+ * has none, and `frameRegion` moves nothing for it — which is the very city an online
+ * class most often sits in. `center` is derived from `bounds`, so one test covers a venue
+ * too.
+ *
+ * It resolves a region and frames nothing. Each caller keeps its own `useFrameOnTop`, because
+ * that hook also owns the POP restore: a second instance in one view would restore twice, and
+ * `frameRegion` clears the emphasized point the other instance had just set.
+ */
+export function useFrameableRegion(regionSlug: string | undefined): Region | undefined {
+  const { hasMap } = useMapController()
+  const { locale } = useLocale()
+  const enabled = hasMap && regionSlug != null
+  // Not a suspense read: the drawer must not wait on a fetch only the camera needs. The
+  // `['region', slug, locale]` key is shared with RegionView, so this is usually a cache hit.
+  const { data: own } = useQuery({ ...regionQuery(regionSlug ?? '', locale), enabled })
+  // Only an unframeable region pays for the ancestry, so the common case stays one read.
+  const climbing = enabled && own != null && own.bounds == null
+  const { data: regions } = useQuery({ ...regionsQuery(), enabled: climbing })
+  const ancestors = useMemo(
+    () => (climbing && regionSlug ? ancestorSlugs(regions ?? [], regionSlug).slice(1) : []),
+    [climbing, regionSlug, regions],
+  )
+  const climbed = useQueries({ queries: ancestors.map((slug) => regionQuery(slug, locale)) })
+
+  if (own?.bounds) return own
+
+  return climbed.find((result) => result.data?.bounds)?.data
+}
+
+/**
+ * Frames an event-level view (the event, its register and share drawers) on the map.
+ *
+ * An event with no stored point, typically an online one, has nothing for `frameEvent` to fly
+ * to. Without this fallback a deep link to it left the camera on the boot-time world view.
+ * It frames the region instead, only as the session entry point, like `OnlineView`:
+ * opening it in-session leaves the camera where the visitor already is.
+ *
+ * `skip` leaves the camera alone, for a view with nothing it may show on the map.
+ */
+export function useFrameEventOnTop(event: Event, { skip = false }: { skip?: boolean } = {}) {
+  const { frameEvent, frameRegion } = useMapController()
+  const located = hasMapPoint(event)
+  const region = useFrameableRegion(located || skip ? undefined : event.region?.slug)
+
+  useFrameOnTop(
+    ({ isEntry }) => {
+      if (skip) return
+      if (located) frameEvent(event, { isEntry })
+      else if (isEntry && region) frameRegion(region)
+    },
+    [event, located, region, skip, frameEvent, frameRegion],
+  )
 }
 
 // RegistrationView and ShareView both resolve an event from its route path, and suspense-fetch

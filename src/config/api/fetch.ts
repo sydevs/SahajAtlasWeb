@@ -285,9 +285,10 @@ const getEventTitles = async (): Promise<Map<number, string>> => {
 /**
  * This is the titles sliver's query contract: its key, fetcher, and stale window together.
  *
- * The loader below shares this contract. The drawer's loading and error chrome also shares it,
- * reading the same sliver CACHE-ONLY to name the event whose view cannot render.
- * That chrome read sets `enabled: false`. So a mismatched key would not throw an error.
+ * The loader below shares this contract. Two screens also share it, reading the same sliver
+ * CACHE-ONLY: the drawer's loading and error chrome, to name the event whose view cannot render,
+ * and the map's pin popover, to name the class under the pointer.
+ * Both reads set `enabled: false`. So a mismatched key would not throw an error.
  * It would silently miss, and the title would stop appearing on every fallback screen, with every check still passing.
  *
  * This contract lives here, not with the other factories in `config/api/index.ts`,
@@ -298,7 +299,7 @@ export const eventTitlesQuery = (locale: string) => ({
   queryFn: getEventTitles,
   staleTime: GEOJSON_STALE_TIME,
   // This cache is the most eviction-prone of the three.
-  // Its only mounted observer is the drawer's fallback chrome, which reads it with `enabled: false`.
+  // Every mounted observer reads it with `enabled: false`, so no screen turns this into a fetch.
   // This value is pinned so a locale's titles fetch once per session, not once per idle gap.
   gcTime: WHOLESALE_GC_TIME,
 })
@@ -474,6 +475,17 @@ const getCountries = async (filters?: EventFilters): Promise<RegionListItem[]> =
       }),
     )
     .filter((country) => country.eventCount > 0)
+}
+
+// The placeless online classes the home list badges, through the same `visibleFeatures` predicate
+// its country counts use. `matchesFilters` alone reads a selected region as no restriction
+// (`filters.ts`), so a view counting the feed itself would badge online classes worldwide while
+// every card below it honoured a `?region=` cut.
+const getOnlineCount = async (filters?: EventFilters): Promise<number> => {
+  const [regions, geojson] = await Promise.all([loadRegions(), loadGeojson()])
+  const events = visibleFeatures(indexedFeed(regions, geojson).events, regions, filters)
+
+  return events.filter((event) => isOnline(event.feature.properties)).length
 }
 
 // This is one fetcher for every region level.
@@ -951,6 +963,7 @@ export default {
   getGeojson,
   getRegions,
   getCountries,
+  getOnlineCount,
   getEvents,
   getCalendarEvents,
   getRegion,

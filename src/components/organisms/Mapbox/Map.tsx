@@ -58,6 +58,7 @@ import { FILTER_PANEL_PX, useHasRealPointer } from '@/config/responsive'
 import { useBrandPalette } from '@/config/theme/brand-palette'
 import { GEOJSON_STALE_TIME } from '@/config/query-client'
 import { areaAround } from '@/lib/geo'
+import { worldMinZoom } from '@/lib/camera'
 import {
   hasActiveFilters,
   hasVagueAddress,
@@ -185,11 +186,13 @@ function PointSource({
 // start time. It renders the SAME calendar parts that the list card's
 // `composeCalendarLine` joins (via the shared `calendarLineParts` gate). Here
 // they stack instead of joining with a `·`, so the two never drift apart (#72).
-// The name comes from the per-locale titles sliver, since the feed carries none.
-// Until that loads, the card shows the timing alone.
+// The name comes from the per-locale titles sliver, since the feed carries none. It is read
+// CACHE-ONLY, like the drawer's fallback chrome: a live observer here would make one mouse-move
+// over a pin fetch every title in the locale. Until a view that needs them has loaded them, the
+// card shows the timing alone.
 function EventPinCard({ event }: { event: DisplayableEvent & { id: number } }) {
   const { locale } = useLocale()
-  const { data: titles } = useQuery(eventTitlesQuery(locale))
+  const { data: titles } = useQuery({ ...eventTitlesQuery(locale), enabled: false })
   const title = titles?.get(event.id)
   const { display, recurrenceLine, whenLine, eventStartTime } = useEventDisplay(event)
   const { primary, time } = calendarLineParts({
@@ -414,6 +417,10 @@ export function Mapbox({ cooperative = false }: { cooperative?: boolean } = {}) 
   // the pointer moves to empty map or leaves the canvas. This is local
   // state, not zustand: it is purely a map-view detail.
   const [hoveredId, setHoveredId] = useState<number | null>(null)
+  // Zooming out stops where one world fills the map's width. The map keeps Mapbox's world copies,
+  // so it still pans across the Pacific, and this stops a wide screen from showing the world two
+  // or three times over.
+  const [minZoom, setMinZoom] = useState(0)
   // A touch device gets no hover at all, so one tap opens the class. iOS sends a fake mouse move
   // before a tap, and when that reveals content Safari treats the tap as a hover and doesn't click.
   const hasRealPointer = useHasRealPointer()
@@ -588,16 +595,17 @@ export function Mapbox({ cooperative = false }: { cooperative?: boolean } = {}) 
         logoPosition="bottom-right"
         mapStyle={MAP_STYLES[theme]}
         mapboxAccessToken={import.meta.env.VITE_MAPBOX_ACCESSTOKEN}
-        // The world shows once: with copies off, Mapbox keeps the world at least as wide as the
-        // map, so the world view (`reset()`) fills it edge to edge instead of repeating it.
-        renderWorldCopies={false}
+        minZoom={minZoom}
         style={filterPanelUp ? { ...canvasStyle, ...CONTROLS_BESIDE_PANEL } : canvasStyle}
         worldview={MAP_WORLDVIEWS[languageCode] || MAP_WORLDVIEWS.default}
         onClick={selectFeature}
         // This is the backstop on the reveal. A route that never frames the
         // camera — CalendarView is the one that deliberately does not — must
         // not leave the map hidden for the whole session.
-        onLoad={armReveal}
+        onLoad={(event) => {
+          armReveal()
+          setMinZoom(worldMinZoom(event.target.getContainer().clientWidth))
+        }}
         onMouseMove={hasRealPointer ? hoverOnFeature : undefined}
         // This dismisses the timing popover when the pointer leaves the
         // canvas. `mouseout` (react-map-gl `onMouseOut`) is the canvas-exit
@@ -622,6 +630,7 @@ export function Mapbox({ cooperative = false }: { cooperative?: boolean } = {}) 
           setViewState(evt.viewState)
           useCameraTarget.setState({ target: null })
         }}
+        onResize={(event) => setMinZoom(worldMinZoom(event.target.getContainer().clientWidth))}
       >
         {DEBUG_PADDING && (
           <div

@@ -12,6 +12,8 @@ import { useLocale } from './hooks/use-locale'
 import Providers from './providers'
 import api, { clientQuery } from './config/api'
 import { BrandTheme } from './config/theme/BrandTheme'
+import { THEME_COLOR } from './config/theme/theme-color'
+import { useTheme } from './hooks/use-theme'
 
 import { homePathFor, pageLocaleOverride, safePath } from '@/lib/shape'
 import { atlasError, reportInternalError } from '@/lib/report'
@@ -335,6 +337,7 @@ function AppShell({
   const { data: client } = useQuery(clientQuery(apiKey))
   const { locale } = useLocale()
   const mapForm = hasMap && !boxed
+  const { theme } = useTheme()
 
   // Where the interface goes when it first opens on the root view: a path-mode host's
   // `atlas` default, else the client record's home region (`homePathFor`). The redirect
@@ -474,6 +477,9 @@ function AppShell({
       {standalone && (
         <Helmet htmlAttributes={{ lang: locale, dir: i18n.dir(locale) }}>
           <meta content={locale} property="og:locale" />
+          {/* The browser's own chrome (iOS's status bar, Android's toolbar) follows the theme
+              picked in the settings menu, not the device's. */}
+          <meta content={THEME_COLOR[theme]} name="theme-color" />
         </Helmet>
       )}
       {livePreview.active && (

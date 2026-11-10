@@ -7,11 +7,10 @@ import { EventFacts, FallbackPanel } from '@/components/molecules'
 import { EventRegisterBar } from '@/components/organisms/EventDetails/EventRegister'
 import { RegistrationForm } from '@/components/organisms/RegistrationForm'
 import { useEventDisplay } from '@/hooks/use-event-display'
-import { useMapController } from '@/hooks/use-map-controller'
 import { useShareUrl } from '@/hooks/use-share-url'
 import { enabledQuestions, eventTimeZone, isOnline, isUnverified } from '@/lib/shape'
 import { NavHeader } from '@/views/nav'
-import { useEventFromPath, useFrameOnTop } from '@/views/shared'
+import { useEventFromPath, useFrameEventOnTop } from '@/views/shared'
 
 // The registration form for an event, at route `<event-path>/register`. The event's Register
 // CTA reaches this view, and the route is deep-linkable, so the resolver gates it. A closed,
@@ -33,7 +32,6 @@ export function RegistrationView({
 }) {
   const { t } = useTranslation()
   const [submitted, setSubmitted] = useState(Boolean(initialSubmitted))
-  const { frameEvent } = useMapController()
 
   const { data: event } = useEventFromPath(eventPath)
   const { display, blockedMessage, whereLine } = useEventDisplay(event)
@@ -43,7 +41,7 @@ export function RegistrationView({
   // carry the host page's address.
   const eventUrl = useShareUrl(event.webUrl, event.path)
 
-  useFrameOnTop(({ isEntry }) => frameEvent(event, { isEntry }), [event, frameEvent])
+  useFrameEventOnTop(event)
 
   const open = display.registration === 'open'
   // Registration for an external event never happens on Atlas — a deep link

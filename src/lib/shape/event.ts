@@ -123,9 +123,15 @@ export const streetAndCity = (street?: string | null, city?: string | null): str
 
   if (!road || !town) return road || town
 
-  const name = town.toLowerCase()
+  // Case- and accent-blind, so "PLYMOUTH" and "Zurich" still name Plymouth and Zürich.
+  const fold = (text: string) =>
+    text
+      .normalize('NFD')
+      .replace(/\p{Diacritic}/gu, '')
+      .toLowerCase()
+  const name = fold(town)
   const namesTown = road.split(',').some((part) => {
-    const words = part.trim().toLowerCase()
+    const words = fold(part.trim())
     const beside = words.startsWith(`${name} `)
       ? words.slice(name.length)
       : words.endsWith(` ${name}`)
@@ -227,6 +233,12 @@ export const scheduleTimeZone = (schedule: EventSchedule): string =>
   schedule.firstDate_tz && IANAZone.isValidZone(schedule.firstDate_tz)
     ? schedule.firstDate_tz
     : 'UTC'
+
+/** Whether the schedule names a zone of its own, rather than leaning on the UTC
+ *  `scheduleTimeZone` falls back to. A label that names the venue's clock must stay silent
+ *  here: that UTC is our placeholder for missing data, not a clock anyone keeps. */
+export const scheduleNamesZone = (schedule: EventSchedule | null | undefined): boolean =>
+  Boolean(schedule?.firstDate_tz && IANAZone.isValidZone(schedule.firstDate_tz))
 
 /** The series' first session as an instant in the schedule's own zone. */
 export const scheduleStart = (schedule: EventSchedule): DateTime =>

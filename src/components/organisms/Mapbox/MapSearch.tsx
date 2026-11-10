@@ -9,10 +9,16 @@ import { hoistGeocoderLiveRegion } from './aria-live'
 import { controlTheme } from './themes'
 
 import { clientQuery } from '@/config/api'
+import { useBrowsedCountry } from '@/config/store'
 import atlasAuth from '@/config/api/auth'
 import { useLocale } from '@/hooks/use-locale'
 import { useMapbox } from '@/hooks/use-mapbox'
-import { isoCountryCode } from '@/lib/shape'
+import {
+  type ReleasedScope,
+  SEARCH_COUNTRY_PARAM,
+  isoCountryCode,
+  searchCountryScope,
+} from '@/lib/shape'
 
 /**
  * The place search field. What is typed stays in the field: the URL changes only when a place is
@@ -112,18 +118,22 @@ export function MapSearch({
   const { locale, regionNames } = useLocale()
   const { t } = useTranslation()
   const fieldLabel = label ?? t('search.chrome.city_or_postcode')
-  // Search stays in the country on screen, or the one a client's home region sits in. Mapbox's
-  // ranking alone puts Hampstead, Quebec above Hampstead, London even when told it is near the UK,
-  // and it offers no way to prefer a country short of this filter. So a search that finds nothing
-  // here offers to look everywhere. The client comes from the bootstrap's cache; the field never
-  // fetches it.
+  // Search stays in one country: the one on screen, else the searched place's (`?cc`), else the
+  // last country page shown, else the one a client's home region sits in. Mapbox's ranking alone
+  // puts Hampstead, Quebec above Hampstead, London even when told it is near the UK, and it offers
+  // no way to prefer a country short of this filter. So a search that finds nothing here offers
+  // to look everywhere, for that query only (`searchCountryScope`): the next query starts inside
+  // the country again. The client comes from the bootstrap's cache; the field never fetches it.
+  const browsed = useBrowsedCountry((s) => s.code)
   const { data: client } = useQuery({ ...clientQuery(atlasAuth.apiKey), enabled: false })
   const home = client?.region && typeof client.region === 'object' ? client.region : null
   const country =
     isoCountryCode(location.pathname.split('/')[1]) ??
+    isoCountryCode(searchParams.get(SEARCH_COUNTRY_PARAM)) ??
+    browsed ??
     isoCountryCode(home?.webPath?.split('/').filter(Boolean)[0])
-  const [releasedFrom, setReleasedFrom] = React.useState<string>()
-  const scope = fixedCountry ?? (country !== releasedFrom ? country : undefined)
+  const [released, setReleased] = React.useState<ReleasedScope>()
+  const scope = fixedCountry ?? searchCountryScope(country, searchQuery, released)
   const [foundNothing, setFoundNothing] = React.useState(false)
 
   // This follows a new `?q`. The field seeds from the URL once, in the state initializer above.
@@ -135,9 +145,9 @@ export function MapSearch({
   const field = React.useRef<HTMLDivElement>(null)
 
   React.useEffect(() => {
-    const scope = field.current
+    const node = field.current
 
-    return scope ? hoistGeocoderLiveRegion(scope) : undefined
+    return node ? hoistGeocoderLiveRegion(node) : undefined
   }, [])
 
   React.useEffect(() => {
@@ -145,7 +155,7 @@ export function MapSearch({
   }, [urlQuery, seedFromUrl, value])
 
   const searchEverywhere = () => {
-    setReleasedFrom(country)
+    if (country) setReleased({ country, query: searchQuery })
     setFoundNothing(false)
     // The geocoder searches on input, so wait for it to take the wider options, then repeat the query.
     requestAnimationFrame(() => {
@@ -205,13 +215,22 @@ export function MapSearch({
           onSuggest={(response) => setFoundNothing(response.features.length === 0)}
         />
       </GeocoderBoundary>
-      {scope && !fixedCountry && foundNothing && searchQuery.trim() && (
+      {scope && !fixedCountry && foundNothing && searchQuery.trim() ? (
         <p className="pt-2 text-sm text-gray-11" role="status">
           {t('search.chrome.none_in_country', { country: regionNames.of(scope) ?? scope })}{' '}
           <button className="text-primary-11 underline" type="button" onClick={searchEverywhere}>
             {t('search.chrome.search_all_countries')}
           </button>
         </p>
+      ) : (
+        // Searched everywhere and still nothing: a place that doesn't exist, which otherwise left
+        // the list as it was with no answer at all.
+        foundNothing &&
+        searchQuery.trim() && (
+          <p className="pt-2 text-sm text-gray-11" role="status">
+            {t('common.errors.not_found_region')}
+          </p>
+        )
       )}
     </div>
   )

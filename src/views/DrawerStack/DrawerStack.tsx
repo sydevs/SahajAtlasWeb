@@ -39,7 +39,7 @@ import {
 } from '@/config/responsive'
 import { useSurfaceSwitch, useWidgetMode } from '@/config/mode'
 import { MAP_BUTTON } from '@/config/review-options'
-import { useClassSheet, useFilterPanelState, useMapTap } from '@/config/store'
+import { useBrowsedCountry, useClassSheet, useFilterPanelState, useMapTap } from '@/config/store'
 import { frameElement, overlayContainer } from '@/lib/overlay'
 import { scheduleIdle } from '@/lib/schedule-idle'
 import {
@@ -54,9 +54,11 @@ import {
   filterCloseTarget,
   isFilterOverlay,
   isSubmitEntry,
+  isoCountryCode,
   parentOf,
   submitTitleKey,
   placeInStack,
+  placedPathname,
   resolveStack,
 } from '@/lib/shape'
 import { wakesSheetLoop } from '@/views/DrawerStack/sheet-wake'
@@ -454,7 +456,7 @@ export function DrawerStack() {
   // "Add a class" button opens the flow over.
   const { data: regions } = useQuery(regionsQuery())
 
-  // Reads through `baseStackEntry` rather than `baseEntries.at(-1)` — the same value
+  // Reads through `baseStackEntry` rather than the last non-overlay entry — the same value
   // either way, but stated in the shared vocabulary, so `top.path` is provably
   // `topViewKey(location.pathname, hasMap)`. `useFrameOnTop` compares itself against
   // that key to tell whether it is still the view on top, and the two agreeing is what
@@ -596,10 +598,29 @@ export function DrawerStack() {
     )
     // Only the arrival on the route matters.
   }, [routedFilters])
+  // What sits behind the top view follows the region tree, not the words typed. A place opens by
+  // its last slug, so `/united-kingdom/south-east/london` shows London, and the stack behind it
+  // must lead to the UK at `/gb`, not a `/united-kingdom` that doesn't exist. The top view keeps
+  // the address as typed (`top.path` above).
+  const ancestry = useMemo(() => {
+    const placed = resolveStack(placedPathname(location.pathname, climb.pathOf))
+
+    return filterOverlay || submitOverlay ? placed.slice(0, -1) : placed
+  }, [location.pathname, climb.pathOf, filterOverlay, submitOverlay])
+  // The country on screen, kept through the routes that name none (search, calendar), so the
+  // place search a country page opens stays in that country. The world view clears it.
+  const setBrowsedCountry = useBrowsedCountry((s) => s.setCode)
+
+  useEffect(() => {
+    const first = location.pathname.split('/')[1]
+    const code = isoCountryCode(first)
+
+    if (!first || code) setBrowsedCountry(code)
+  }, [location.pathname, setBrowsedCountry])
   // Ancestor paths below the top view, root-first (empty at CountriesView).
   const parentPaths = useMemo(
-    () => (baseEntries.length === 0 ? [] : ['/', ...baseEntries.slice(0, -1).map((e) => e.path)]),
-    [baseEntries],
+    () => (ancestry.length === 0 ? [] : ['/', ...ancestry.slice(0, -1).map((e) => e.path)]),
+    [ancestry],
   )
   const parentPath = parentPaths.at(-1)
   const canCollapse = hasMap && direction === 'bottom'
@@ -893,6 +914,10 @@ export function DrawerStack() {
       ? (fitPx ?? Math.round(window.innerHeight * NEAR_FULL_SHARE))
       : null
 
+  // Collapsed to its peek, the sheet covers only the peek, so a frame taken then centres in the
+  // map the visitor can see, not in its top half (#369).
+  const collapsed = direction === 'bottom' && hasMap && snap === PEEK_SNAP
+
   useEffect(() => {
     // A class keeps its pin clear of the fitted sheet; a class too long to fit opens near full,
     // where the pin is hidden anyway, so it frames for the key-facts stop one drag below. Its
@@ -901,15 +926,17 @@ export function DrawerStack() {
     const bottom = direction === 'bottom'
 
     setSheetBottom(
-      bottom && top?.kind === 'event'
-        ? (fitPx ?? eventOpenPx)
-        : bottom && (top?.kind === 'share' || top?.kind === 'region')
-          ? fitPx
-          : filtersSheetPx,
+      collapsed
+        ? PEEK_PX
+        : bottom && top?.kind === 'event'
+          ? (fitPx ?? eventOpenPx)
+          : bottom && (top?.kind === 'share' || top?.kind === 'region')
+            ? fitPx
+            : filtersSheetPx,
     )
 
     return () => setSheetBottom(null)
-  }, [direction, top?.kind, eventOpenPx, fitPx, filtersSheetPx, setSheetBottom])
+  }, [direction, collapsed, top?.kind, eventOpenPx, fitPx, filtersSheetPx, setSheetBottom])
 
   // A new searched place lifts the sheet out of its peek, so results are never
   // fetched into a sheet the visitor cannot see. The effect above does not cover this

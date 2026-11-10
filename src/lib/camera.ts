@@ -81,25 +81,52 @@ export const eventFrameZoom = (opts: {
   return opts.eventZoom
 }
 
+/** An event as the feed may serve it: either stored coordinate can be absent or null. */
+type MaybePlacedEvent = {
+  address?: { latitude?: number | null; longitude?: number | null } | null
+}
+
+/** The same event once both coordinates are known to be there. */
+type PlacedEvent = { address: { latitude: number; longitude: number } }
+
+/**
+ * Whether an event has a stored point to frame. An online event often has none: it has
+ * no place of its own, so a deep link to it frames its parent region instead.
+ *
+ * It narrows, so `eventPoint` (`use-map-controller-real.tsx`) reads the coordinates
+ * through this one verdict instead of re-testing them. Two tests that disagreed would
+ * leave `frameEvent` running on an event it then frames nothing for.
+ */
+export const hasMapPoint = <T extends MaybePlacedEvent>(event: T): event is T & PlacedEvent =>
+  event.address?.latitude != null && event.address?.longitude != null
+
 /** Mapbox's world is this many px wide at zoom 0, and doubles with each zoom level. */
 const WORLD_PX_AT_ZOOM_0 = 512
 
 /**
+ * The lowest zoom at which one world is as wide as the map, so zooming out never shows it twice.
+ * Only the width counts: a tall phone map may still show the poles' empty band, as it always has,
+ * and a wide region's fit on a phone keeps the zoom it needs.
+ */
+export const worldMinZoom = (width: number): number =>
+  width > WORLD_PX_AT_ZOOM_0 ? Math.log2(width / WORLD_PX_AT_ZOOM_0) : 0
+
+/**
  * The camera for the world view: the world once, filling the map, with no blank edge.
  *
- * With `renderWorldCopies` off, Mapbox keeps the world at least as wide (and as tall) as the
- * canvas. It checks that around the camera centre, though, and ignores the padding. Our padding
- * is lopsided: the list on the left, the filters panel or nothing on the right. So the padded
- * centre sits right of the canvas centre, and a world exactly as wide as the canvas is drawn
- * shifted right by half the difference, with a blank strip at the map's left edge (32px with the
- * filters panel open at 1280px, 176px with it closed).
+ * The map keeps Mapbox's world copies, so it still wraps across the antimeridian. The world view
+ * shows the world once by making it at least as wide (and as tall) as the canvas, with no edge
+ * left for a copy to show in. Our padding is lopsided, though: the side panel on the left, only a
+ * margin on the right. So the padded centre sits right of the canvas centre, and a world exactly
+ * as wide as the canvas would be drawn shifted right by half the difference, with a copy's edge
+ * in a strip at the map's left (176px on a desktop).
  *
  * This makes the world as wide as the canvas plus the whole padding difference, so `center` can
  * stay in the middle of the padded area (where the world view has always put it) with the world
  * still reaching both edges of the map. Half that zoom would do if the centre moved east instead,
  * but then the list would cover North America on screens under 1200px. Should the centre asked
- * for leave an edge blank anyway, the longitude moves just enough to fill it, so Mapbox's clamp
- * never has anything to change. The latitude is passed through for Mapbox to clamp, as before.
+ * for leave an edge open anyway, the longitude moves just enough to fill it. The latitude is
+ * passed through for Mapbox to clamp, as before.
  *
  * Only the sides are handled. On a phone the sheet makes the padding lopsided top to bottom too,
  * which leaves a blank band low on the map. It shows only with the sheet pulled down to its peek,

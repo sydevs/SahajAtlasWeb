@@ -96,4 +96,12 @@ describe('RegistrationForm', () => {
       expect(html).not.toContain('role="checkbox"')
     }
   })
+
+  // A phone offers the visitor's own name and email only when the field says which it is.
+  it('names the name and email fields for autofill', () => {
+    const html = render(form)
+
+    expect(html).toMatch(/autoComplete="name"[^>]*id="name"/i)
+    expect(html).toMatch(/autoComplete="email"[^>]*id="email"/i)
+  })
 })

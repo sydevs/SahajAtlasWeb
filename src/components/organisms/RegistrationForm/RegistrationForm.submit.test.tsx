@@ -119,6 +119,7 @@ const refusal = (code: string, status: number, field?: string) =>
   })
 
 const alertText = () => container.querySelector('[role="alert"]')?.textContent ?? ''
+const alertClass = () => container.querySelector('[role="alert"]')?.className ?? ''
 
 describe('RegistrationForm refusals', () => {
   // The address checks run in SahajCloud's write guard on `senderEmail`, for a
@@ -235,6 +236,7 @@ describe('RegistrationForm refusals', () => {
     await submitFilled()
 
     expect(alertText()).toBe(key)
+    expect(alertClass()).not.toContain('danger')
     expect(container.textContent).not.toContain('registration.form.error_title')
     expect(container.textContent).not.toContain('English server prose')
 
@@ -257,8 +259,37 @@ describe('RegistrationForm refusals', () => {
     expect(alertText()).toContain('registration.form.error_title')
     expect(alertText()).toContain('registration.form.captcha_retry')
     expect(alertText()).not.toContain('Something went wrong.')
+    expect(alertClass()).toContain('danger')
     expect(challenge.resetCount()).toBe(1)
 
     await act(async () => root.unmount())
   })
+
+  // A request the browser never delivered — here a rejected CORS preflight, which is how
+  // every atlas registration failed until SahajCloud allowed the token header — got no
+  // response, so the captcha was never the problem and asking for it again cannot help.
+  it.each([
+    [true, 'common.errors.server'],
+    [false, 'common.errors.offline'],
+  ])(
+    'blames the connection, not the captcha, when nothing answered (online: %s)',
+    async (online, key) => {
+      const onLine = vi.spyOn(navigator, 'onLine', 'get').mockReturnValue(online)
+
+      sdk.request.mockRejectedValue(new TypeError('Failed to fetch'))
+
+      const root = await mountForm()
+
+      await submitFilled()
+
+      expect(alertText()).toContain('registration.form.error_title')
+      expect(alertText()).toContain(key)
+      expect(alertText()).not.toContain('registration.form.captcha_retry')
+      expect(alertClass()).toContain('danger')
+      expect(challenge.resetCount()).toBe(1)
+
+      onLine.mockRestore()
+      await act(async () => root.unmount())
+    },
+  )
 })

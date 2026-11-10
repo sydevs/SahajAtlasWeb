@@ -7,7 +7,7 @@
  * import), so the decision is unit-testable in isolation from the components
  * that apply it.
  */
-import { type StackEntry, isCanonicalPath, placeInStack, resolveStack } from './path'
+import { type StackEntry, isCanonicalPath, placeInStack, resolveStack, safePath } from './path'
 
 /**
  * The `state` shape we stamp on in-widget pushes (via the Link atom + useAtlasNavigate). A
@@ -49,6 +49,17 @@ export const atlasPushState = (location: {
 
 /** A place's address as the region tree gives it, by slug (`webPath`, already `safePath`-checked). */
 export type PlacePathOf = (slug: string) => string | undefined
+
+/** Each place's own address, by slug, from the region tree. Undefined until the tree is cached. */
+export const placePathsOf = (
+  regions: readonly { slug: string; webPath?: string | null }[] | undefined,
+): PlacePathOf | undefined => {
+  if (!regions) return undefined
+
+  const paths = new Map(regions.map((node) => [node.slug, safePath(node.webPath)]))
+
+  return (slug) => paths.get(slug)
+}
 
 /**
  * The pathname with its deepest place's address swapped for the one the data gives that place.

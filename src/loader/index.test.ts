@@ -12,7 +12,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 const widget = vi.hoisted(() => ({ boot: vi.fn() }))
 
 /** The loader's whole host page: one script tag in the body. The node lane has no DOM. */
-function stubHostPage() {
+function stubHostPage({ url = 'https://host.example/classes', rendered = true } = {}) {
   const script = {
     getAttribute: () => 'https://atlas.example/auto.js?key=test-key',
     parentNode: { nodeName: 'BODY', insertBefore: () => undefined },
@@ -22,10 +22,14 @@ function stubHostPage() {
   vi.stubGlobal('document', {
     currentScript: script,
     querySelector: () => null,
-    createElement: () => ({ setAttribute: () => undefined }),
+    createElement: () => ({
+      setAttribute: () => undefined,
+      // A box with no layout (inside `display: none`) has no client rects at all.
+      getClientRects: () => (rendered ? [{}] : []),
+    }),
   })
   vi.stubGlobal('window', {
-    location: new URL('https://host.example/classes'),
+    location: new URL(url),
     history: { state: null, replaceState: () => undefined },
   })
 }
@@ -110,6 +114,51 @@ describe('booting on idle', () => {
 
     expect(widget.boot).toHaveBeenCalledOnce()
     expect(logged).toEqual([])
+  })
+})
+
+/**
+ * A deep link (`?atlas=` on the page's URL) loads at once, but only into a box that is on the page.
+ * The widget decides its layout once, from its element's size, so an element inside a closed tab
+ * measured 0×0 and the widget took the whole viewport when the tab opened.
+ */
+describe('a deep link', () => {
+  const DEEP_LINK = 'https://host.example/classes?atlas=/gb'
+  let reveal: (() => void) | undefined
+
+  beforeEach(() => {
+    vi.useFakeTimers()
+    reveal = undefined
+    vi.stubGlobal(
+      'IntersectionObserver',
+      class {
+        constructor(private callback: (entries: { isIntersecting: boolean }[]) => void) {}
+        observe() {
+          reveal = () => this.callback([{ isIntersecting: true }])
+        }
+        disconnect() {}
+      },
+    )
+  })
+
+  it('mounts at once into an element on the page', async () => {
+    stubHostPage({ url: DEEP_LINK })
+    await loadAutoJs()
+    await vi.advanceTimersByTimeAsync(2000)
+
+    expect(widget.boot).toHaveBeenCalledOnce()
+    expect(reveal).toBeUndefined()
+  })
+
+  it('waits for a hidden element to be shown before it mounts', async () => {
+    stubHostPage({ url: DEEP_LINK, rendered: false })
+    await loadAutoJs()
+    await vi.advanceTimersByTimeAsync(2000)
+
+    expect(widget.boot).not.toHaveBeenCalled()
+
+    reveal?.()
+    await vi.waitFor(() => expect(widget.boot).toHaveBeenCalledOnce(), { timeout: 3000 })
   })
 })
 

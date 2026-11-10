@@ -15,7 +15,7 @@ const { d } = vi.hoisted(() => ({
     kind: 'class',
     full: false,
     registration: 'open',
-    typeLabel: 'Weekly class',
+    typeLabel: 'Weekly class' as string | null,
     isDefaultType: true,
     recurrenceLine: 'Every Wednesday' as string | null,
     online: false,
@@ -131,14 +131,12 @@ describe('EventChips', () => {
     expect(render(['en'], 'compact')).not.toContain('event.display.chip_today')
   })
 
-  it('never calls a by-request class a one-off', () => {
-    d.status = 'inactive'
-    d.kind = 'oneoff'
+  it('renders no type chip where the listing has no type to name', () => {
+    d.typeLabel = null
     d.isDefaultType = false
-    d.typeLabel = 'One-off event'
 
-    expect(render(['en'])).not.toContain('One-off event')
-    expect(render(['fr'], 'compact')).not.toContain('One-off event')
+    expect(render(['en'])).not.toContain('text-primary-11')
+    expect(render(['fr'], 'compact')).not.toContain('text-primary-11')
     // The language still shows.
     expect(render(['en'])).toContain('>en<')
   })

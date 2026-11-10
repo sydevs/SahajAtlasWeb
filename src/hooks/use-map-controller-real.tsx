@@ -10,13 +10,14 @@ import { useMapbox, usePaddingState } from '@/hooks/use-mapbox'
 import { FILTER_PANEL_PX, SEARCH_SHEET_PX } from '@/config/responsive'
 import { useClassSheet, useFilterPanelState, useViewState } from '@/config/store'
 import { useIsWide } from '@/config/responsive'
-import { eventFrameZoom, sheetInset, worldViewCamera } from '@/lib/camera'
+import { eventFrameZoom, hasMapPoint, sheetInset, worldViewCamera } from '@/lib/camera'
 import { hasVagueAddress, isOnline } from '@/lib/shape'
 import { frameElement } from '@/lib/overlay'
 
 // These are the fixed left-drawer footprint and the mobile sheet's open height.
 // The code feeds them to map padding directly, so the camera and controls stay unoccluded.
-// This never DOM-measures the panel.
+// This never DOM-measures the panel. The bottom sheet's own height is the one exception, which
+// `DrawerStack` resolves from its active snap and view and hands over (`useClassSheet`).
 //
 // **`DRAWER_W_PX` is one half of a pair. See the other half before you change it.**
 // The drawer's actual width comes from a `352px` fallback baked into its Tailwind classes.
@@ -77,10 +78,14 @@ const WORLD_CENTER: [number, number] = [0, 20]
 // It returns null when the event has no coordinates, since there is nothing to frame or highlight.
 // `frameEvent` and `highlightEvent` share this function, so both derive the point identically.
 // `frameEvent` commits the point to `selection` and moves the camera. `highlightEvent` only sets `hover`.
+//
+// `hasMapPoint` is the one test for whether those coordinates are there.
+// `useFrameEventOnTop` reads the same verdict to decide whether to fall back to the region.
+// A second test here could disagree with it, and then `frameEvent` would run and frame nothing.
 const eventPoint = (event: Pick<EventSlim, 'address' | 'eventType'>) => {
-  const { latitude, longitude } = event.address ?? {}
+  if (!hasMapPoint(event)) return null
 
-  if (latitude == null || longitude == null) return null
+  const { latitude, longitude } = event.address
 
   return {
     latitude,
@@ -234,13 +239,11 @@ export function RealMapControllerProvider({ children }: { children: ReactNode })
         // `restore` would have reinstated the pin only for a POP.
         setSelection(null)
         setBoundary(undefined)
-        // One world, filling the map. `renderWorldCopies` is off on the map, so Mapbox keeps the
-        // world at least as wide as the map and Mercator's full height tall: the world shows once
-        // at any window size, with no repeats at the sides. Mapbox's own clamp ignores our lopsided
-        // padding, though, and left a blank strip at the map's left edge, so `worldViewCamera`
-        // picks a zoom and centre that already fill the map. It reads the same padding `moveMap`
-        // moves with, and this runs again whenever that padding changes (the filters panel opening
-        // or closing), because `moveMap` changes with it.
+        // One world, filling the map at any window size, so no copy shows at the sides. The map
+        // keeps Mapbox's world copies (it still pans across the Pacific), so `worldViewCamera`
+        // picks a zoom and centre that fill it around our lopsided padding. It reads the same
+        // padding `moveMap` moves with, and this runs again whenever that padding changes (the
+        // filters panel opening or closing), because `moveMap` changes with it.
         const container = mapbox?.getContainer()
 
         if (!container) return

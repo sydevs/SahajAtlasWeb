@@ -110,7 +110,14 @@ function SearchFieldSkeleton() {
  * second way to do it — but making the locale read non-suspending is an app-wide
  * decision, not this component's.
  */
-export function DrawerChrome({ interactive = true }: { interactive?: boolean }) {
+export function DrawerChrome({
+  interactive = true,
+  notFound = false,
+}: {
+  interactive?: boolean
+  /** The page failed because the place doesn't exist, so nothing can be scoped to it. */
+  notFound?: boolean
+}) {
   const { t } = useTranslation()
   const { locale } = useLocale()
   const { hasMap } = useWidgetMode()
@@ -208,7 +215,10 @@ export function DrawerChrome({ interactive = true }: { interactive?: boolean }) 
     <NavHeader
       actions={
         <>
-          {entry.kind === 'region' && (
+          {/* These still work on a failed region — they navigate rather than read, scoped to
+              the place a viewer wanted. Not for a place that doesn't exist: there is nothing to
+              scope them to, and the message's own way out is the only one that leads anywhere. */}
+          {entry.kind === 'region' && !notFound && (
             <>
               <CalendarButton regionSlug={entry.slug} />
               <SearchButton />
@@ -419,7 +429,7 @@ export function DrawerErrorFallback({ error, resetErrorBoundary }: FallbackProps
   return (
     <>
       {classifyError(error) === 'not-found' && <FrameNearestRegion />}
-      <DrawerChrome />
+      <DrawerChrome notFound={classifyError(error) === 'not-found'} />
       <DrawerErrorBody error={error} resetErrorBoundary={resetErrorBoundary} />
     </>
   )
