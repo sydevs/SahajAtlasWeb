@@ -32,9 +32,9 @@ export const LAYER_IDS = {
   selectedArea: 'selected-area',
   hoveredPoint: 'hovered-point',
   hoveredArea: 'hovered-area',
-  approximatePin: 'approximate-pin',
-  approximateRing: 'approximate-ring',
-  approximateDot: 'approximate-dot',
+  vaguePin: 'vague-pin',
+  vagueRing: 'vague-ring',
+  vagueDot: 'vague-dot',
   bounds: 'selected-bounds',
 } as const
 
@@ -44,9 +44,9 @@ export const LAYER_IDS = {
 export const INTERACTIVE_LAYER_IDS = [
   LAYER_IDS.cluster,
   LAYER_IDS.unclusteredPoint,
-  LAYER_IDS.approximatePin,
-  LAYER_IDS.approximateRing,
-  LAYER_IDS.approximateDot,
+  LAYER_IDS.vaguePin,
+  LAYER_IDS.vagueRing,
+  LAYER_IDS.vagueDot,
 ]
 
 /**
@@ -90,18 +90,18 @@ const pinLayout = {
 } as const
 
 const unclustered = ['!', ['has', 'point_count']]
-const isApproximate = ['==', ['get', 'approximate'], true]
+const isVague = ['==', ['get', 'vague'], true]
 
 export const unclusteredPointLayer: Props = {
   id: LAYER_IDS.unclusteredPoint,
   type: 'symbol',
   source: 'events',
-  filter: ['all', unclustered, ['!', isApproximate]],
+  filter: ['all', unclustered, ['!', isVague]],
   layout: pinLayout,
 }
 
 /** How far around its stored point a listing with no real place might be (#15). */
-export const APPROXIMATE_RADIUS_KM = 3
+export const VAGUE_RADIUS_KM = 3
 
 /**
  * Where a listing with no real place stops being a pin and becomes its ring: the zoom at which the
@@ -110,7 +110,7 @@ export const APPROXIMATE_RADIUS_KM = 3
  * known. ⚠ A latitude, not each listing's: a layer's zoom bounds are one number, so the ring
  * appears a little smaller near the equator and a little larger near the poles.
  */
-export const RING_ZOOM = ringZoom(APPROXIMATE_RADIUS_KM, PIN_WIDTH * PIN_SIZE, 45)
+export const RING_ZOOM = ringZoom(VAGUE_RADIUS_KM, PIN_WIDTH * PIN_SIZE, 45)
 
 /**
  * Where the ring stops being a shape and becomes a wash: the zoom at which it is as wide as the
@@ -119,40 +119,40 @@ export const RING_ZOOM = ringZoom(APPROXIMATE_RADIUS_KM, PIN_WIDTH * PIN_SIZE, 4
  * unselected listing is a flat tint with no marker in it — and a tint that takes every click and
  * hover across the map, stacked with its neighbours'. Above it the ring hands over to a dot.
  */
-export const RING_MAX_ZOOM = ringZoom(APPROXIMATE_RADIUS_KM, MIN_INTERFACE_WIDTH_PX / 2, 45)
+export const RING_MAX_ZOOM = ringZoom(VAGUE_RADIUS_KM, MIN_INTERFACE_WIDTH_PX / 2, 45)
 
 /**
  * A listing with no real place, zoomed out: the ordinary pin. It reads the clustering source, so it
  * joins a cluster exactly as any other listing does.
  */
-export const approximatePinLayer: Props = {
-  id: LAYER_IDS.approximatePin,
+export const vaguePinLayer: Props = {
+  id: LAYER_IDS.vaguePin,
   type: 'symbol',
   source: 'events',
   maxzoom: RING_ZOOM,
-  filter: ['all', unclustered, isApproximate],
+  filter: ['all', unclustered, isVague],
   layout: pinLayout,
 }
 
 /**
- * The same listing zoomed in: a soft circle of `APPROXIMATE_RADIUS_KM`, to scale, between
+ * The same listing zoomed in: a soft circle of `VAGUE_RADIUS_KM`, to scale, between
  * `RING_ZOOM` and `RING_MAX_ZOOM`. Also read off the clustering source, so a listing still inside a
  * cluster draws no ring. The radius doubles with each zoom, which `exponential` 2 interpolates
  * exactly, and widens by `1 / cos(latitude)` as Mercator does — `cosLat` is precomputed per
  * feature, since an expression cannot read a point's latitude.
  * A factory, memoised like `clusterLayer`, because the colour follows the brand.
  */
-export const approximateRingLayer = (palette: PaletteRoles, mode: ThemeMode): Props => {
+export const vagueRingLayer = (palette: PaletteRoles, mode: ThemeMode): Props => {
   const color = stepHex(palette.primary, mode, SOLID_STEP) ?? '#21C1A2'
-  const atEquator = (zoom: number) => ringRadiusPx(APPROXIMATE_RADIUS_KM, zoom, 0)
+  const atEquator = (zoom: number) => ringRadiusPx(VAGUE_RADIUS_KM, zoom, 0)
 
   return {
-    id: LAYER_IDS.approximateRing,
+    id: LAYER_IDS.vagueRing,
     type: 'circle',
     source: 'events',
     minzoom: RING_ZOOM,
     maxzoom: RING_MAX_ZOOM,
-    filter: ['all', unclustered, isApproximate],
+    filter: ['all', unclustered, isVague],
     paint: {
       'circle-radius': [
         'interpolate',
@@ -182,15 +182,15 @@ export const approximateRingLayer = (palette: PaletteRoles, mode: ThemeMode): Pr
  * directions. Drawn in the ring's own colours at a fraction of its weight, so it reads as the
  * ring rather than as a second kind of pin. A factory, memoised like `clusterLayer`.
  */
-export const approximateDotLayer = (palette: PaletteRoles, mode: ThemeMode): Props => {
+export const vagueDotLayer = (palette: PaletteRoles, mode: ThemeMode): Props => {
   const color = stepHex(palette.primary, mode, SOLID_STEP) ?? '#21C1A2'
 
   return {
-    id: LAYER_IDS.approximateDot,
+    id: LAYER_IDS.vagueDot,
     type: 'circle',
     source: 'events',
     minzoom: RING_MAX_ZOOM,
-    filter: ['all', unclustered, isApproximate],
+    filter: ['all', unclustered, isVague],
     paint: {
       'circle-radius': 8,
       'circle-color': color,

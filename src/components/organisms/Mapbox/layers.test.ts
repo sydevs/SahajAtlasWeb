@@ -6,10 +6,10 @@ import { describe, it, expect } from 'vitest'
 
 import { MARKER_IDS, markerColors } from './markers'
 import {
-  APPROXIMATE_RADIUS_KM,
-  approximateDotLayer,
-  approximatePinLayer,
-  approximateRingLayer,
+  VAGUE_RADIUS_KM,
+  vagueDotLayer,
+  vaguePinLayer,
+  vagueRingLayer,
   boundsLayer,
   clusterLayer,
   hoveredAreaLayer,
@@ -47,9 +47,9 @@ describe('LAYER_IDS', () => {
       selectedArea: 'selected-area',
       hoveredPoint: 'hovered-point',
       hoveredArea: 'hovered-area',
-      approximatePin: 'approximate-pin',
-      approximateRing: 'approximate-ring',
-      approximateDot: 'approximate-dot',
+      vaguePin: 'vague-pin',
+      vagueRing: 'vague-ring',
+      vagueDot: 'vague-dot',
       bounds: 'selected-bounds',
     })
   })
@@ -68,40 +68,40 @@ describe('LAYER_IDS', () => {
     expect(INTERACTIVE_LAYER_IDS).toEqual([
       LAYER_IDS.cluster,
       LAYER_IDS.unclusteredPoint,
-      LAYER_IDS.approximatePin,
-      LAYER_IDS.approximateRing,
-      LAYER_IDS.approximateDot,
+      LAYER_IDS.vaguePin,
+      LAYER_IDS.vagueRing,
+      LAYER_IDS.vagueDot,
     ])
   })
 })
 
-describe('the approximate-place layers', () => {
-  const ring = approximateRingLayer({}, 'light')
-  const dot = approximateDotLayer({}, 'light')
+describe('the vague-place layers', () => {
+  const ring = vagueRingLayer({}, 'light')
+  const dot = vagueDotLayer({}, 'light')
 
   // A listing with no real place clusters like any other, so it can never show a ring while it
   // is counted in a bubble beside it.
   it('all three read the clustering source, and only an unclustered listing', () => {
-    for (const layer of [approximatePinLayer, ring, dot]) {
+    for (const layer of [vaguePinLayer, ring, dot]) {
       expect(layer.source).toBe('events')
       expect(layer.filter).toEqual([
         'all',
         ['!', ['has', 'point_count']],
-        ['==', ['get', 'approximate'], true],
+        ['==', ['get', 'vague'], true],
       ])
     }
     expect(unclusteredPointLayer.filter).toEqual([
       'all',
       ['!', ['has', 'point_count']],
-      ['!', ['==', ['get', 'approximate'], true]],
+      ['!', ['==', ['get', 'vague'], true]],
     ])
   })
 
   // Exactly one of the three draws at every zoom: a vague listing is never unmarked, and never
   // marked twice.
   it('hands pin to ring to dot at one zoom each, with no gap and no overlap', () => {
-    expect(approximatePinLayer.minzoom).toBeUndefined()
-    expect(approximatePinLayer.maxzoom).toBe(RING_ZOOM)
+    expect(vaguePinLayer.minzoom).toBeUndefined()
+    expect(vaguePinLayer.maxzoom).toBe(RING_ZOOM)
     expect(ring.minzoom).toBe(RING_ZOOM)
     expect(ring.maxzoom).toBe(RING_MAX_ZOOM)
     expect(dot.minzoom).toBe(RING_MAX_ZOOM)
@@ -124,7 +124,7 @@ describe('the approximate-place layers', () => {
 
   // The pin is 34px wide at icon-size 0.85: the ring takes over once its radius is that wide.
   it('switches where the ring is as wide as the pin, around zoom 9 for a 3km radius', () => {
-    expect(APPROXIMATE_RADIUS_KM).toBe(3)
+    expect(VAGUE_RADIUS_KM).toBe(3)
     expect(RING_ZOOM).toBeCloseTo(9.06, 2)
   })
 

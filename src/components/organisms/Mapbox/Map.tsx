@@ -19,9 +19,9 @@ import { useShallow } from 'zustand/react/shallow'
 import { CalendarDays } from 'lucide-react'
 
 import {
-  approximateDotLayer,
-  approximatePinLayer,
-  approximateRingLayer,
+  vagueDotLayer,
+  vaguePinLayer,
+  vagueRingLayer,
   clusterLayer,
   selectedPointLayer,
   unclusteredPointLayer,
@@ -116,7 +116,7 @@ const toMapSource = (features: Geojson['features']): FeatureCollection<Geometry 
     properties: {
       id: feature.properties.id,
       webPath: feature.properties.webPath ?? null,
-      approximate: hasApproximatePlace(feature.properties),
+      vague: hasApproximatePlace(feature.properties),
       // What the ring's radius divides by, since an expression cannot read a point's latitude.
       cosLat:
         feature.geometry?.type === 'Point'
@@ -131,8 +131,9 @@ const DEBUG_PADDING = false
 
 // This renders a single emphasized point — the committed `selection` or the
 // transient card `hover` — as its own GeoJSON source. This way, the sprite
-// shows even when the base pin sits inside a cluster. `approximate` picks
-// the softer area sprite over the pin sprite.
+// shows even when the base pin sits inside a cluster. `MapPoint.approximate`
+// picks the softer area sprite over the pin sprite, and `vague` hands the two
+// over at `RING_ZOOM`, as the base layers do.
 function PointSource({
   id,
   point,
@@ -331,8 +332,8 @@ export function Mapbox({ cooperative = false }: { cooperative?: boolean } = {}) 
   const colors = useMemo(() => markerColors(palette, theme), [palette, theme])
   const clusters = useMemo(() => clusterLayer(palette, theme), [palette, theme])
   const bounds = useMemo(() => boundsLayer(palette, theme), [palette, theme])
-  const approximateRing = useMemo(() => approximateRingLayer(palette, theme), [palette, theme])
-  const approximateDot = useMemo(() => approximateDotLayer(palette, theme), [palette, theme])
+  const vagueRing = useMemo(() => vagueRingLayer(palette, theme), [palette, theme])
+  const vagueDot = useMemo(() => vagueDotLayer(palette, theme), [palette, theme])
 
   // This supplies the app's own pin and cluster images. `markers.ts` owns
   // the why, the theme-switch handling, and the in-place repaint. There is
@@ -587,11 +588,11 @@ export function Mapbox({ cooperative = false }: { cooperative?: boolean } = {}) 
             type="geojson"
           >
             {/* First, so a ring lies under every pin and cluster. */}
-            <Layer {...approximateRing} />
+            <Layer {...vagueRing} />
             <Layer {...clusters} />
             <Layer {...unclusteredPointLayer} />
-            <Layer {...approximatePinLayer} />
-            <Layer {...approximateDot} />
+            <Layer {...vaguePinLayer} />
+            <Layer {...vagueDot} />
           </Source>
         )}
         {DEBUG_BOUNDARY && boundary && (

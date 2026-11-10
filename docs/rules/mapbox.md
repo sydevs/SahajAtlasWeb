@@ -98,9 +98,9 @@ The map is the heart of the app and its hottest render path. Treat it carefully.
   placeholder, the town's own name, or a "city centre" word (#15). Those show only the
   town, offer no directions, and frame at `VAGUE_ZOOM`.
 - **On the map it is a pin, then a ring, then a dot — one of the three at every zoom.**
-  Below `RING_ZOOM` the listing is the ordinary pin (`approximatePinLayer`); from it, a soft
-  `APPROXIMATE_RADIUS_KM` circle drawn to scale (`approximateRingLayer`); from
-  `RING_MAX_ZOOM`, a fixed-size dot (`approximateDotLayer`). `RING_ZOOM` is where the ring's
+  Below `RING_ZOOM` the listing is the ordinary pin (`vaguePinLayer`); from it, a soft
+  `VAGUE_RADIUS_KM` circle drawn to scale (`vagueRingLayer`); from
+  `RING_MAX_ZOOM`, a fixed-size dot (`vagueDotLayer`). `RING_ZOOM` is where the ring's
   radius is as wide as the pin and `RING_MAX_ZOOM` where it is as wide as the narrowest map
   the interface renders in, both at 45° — about zoom 9 and zoom 11.7 for 3km. The selection
   and hover highlights hand over at `RING_ZOOM` (`MapPoint.vague`) and need no second bound,

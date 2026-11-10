@@ -63,7 +63,8 @@ const VAGUE_ZOOM = 11
 
 // This is the map point an event emphasizes: its stored coordinates.
 // It tags online events and in-person listings with no real place (`hasApproximatePlace`) as
-// `approximate`, which gives them a softer area sprite.
+// `approximate`, which gives them a softer area sprite, and the second kind as `vague` too,
+// which is the only one with a neighbourhood to fly to.
 // It returns null when the event has no coordinates, since there is nothing to frame or highlight.
 // `frameEvent` and `highlightEvent` share this function, so both derive the point identically.
 // `frameEvent` commits the point to `selection` and moves the camera. `highlightEvent` only sets `hover`.
@@ -157,8 +158,7 @@ export function RealMapControllerProvider({ children }: { children: ReactNode })
         // So a genuine pin click at a detail zoom keeps that zoom.
         // A deep link, a wide-view click, or an off-screen click still eases in.
         const zoom = eventFrameZoom({
-          // Only online events have nowhere to fly to. A vague class still has a neighbourhood.
-          approximate: isOnline(event),
+          online: isOnline(event),
           visible: isPointVisible(point.longitude, point.latitude),
           atDetailZoom: (mapbox?.getZoom() ?? 0) >= REGION_MAX_ZOOM,
           isEntry: opts?.isEntry ?? false,

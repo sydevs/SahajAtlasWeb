@@ -20,7 +20,7 @@ describe('eventFrameZoom', () => {
   it('frames an online event only as the session entry point (a deep link)', () => {
     expect(
       eventFrameZoom({
-        approximate: true,
+        online: true,
         visible: true,
         atDetailZoom: false,
         isEntry: true,
@@ -30,7 +30,7 @@ describe('eventFrameZoom', () => {
     // in-session: selecting an online event never moves the camera
     expect(
       eventFrameZoom({
-        approximate: true,
+        online: true,
         visible: true,
         atDetailZoom: true,
         isEntry: false,
@@ -42,7 +42,7 @@ describe('eventFrameZoom', () => {
   it('keeps the current zoom only for a pin already shown at a detail zoom', () => {
     expect(
       eventFrameZoom({
-        approximate: false,
+        online: false,
         visible: true,
         atDetailZoom: true,
         isEntry: false,
@@ -56,7 +56,7 @@ describe('eventFrameZoom', () => {
     // still frame it (atDetailZoom false + isEntry).
     expect(
       eventFrameZoom({
-        approximate: false,
+        online: false,
         visible: true,
         atDetailZoom: false,
         isEntry: true,
@@ -66,7 +66,7 @@ describe('eventFrameZoom', () => {
     // wider view — on-screen but not yet at a detail zoom
     expect(
       eventFrameZoom({
-        approximate: false,
+        online: false,
         visible: true,
         atDetailZoom: false,
         isEntry: false,
@@ -76,7 +76,7 @@ describe('eventFrameZoom', () => {
     // off-screen (a list / search click)
     expect(
       eventFrameZoom({
-        approximate: false,
+        online: false,
         visible: false,
         atDetailZoom: true,
         isEntry: false,

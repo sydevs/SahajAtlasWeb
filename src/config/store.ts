@@ -9,7 +9,9 @@ import { deepActiveElement } from '@/lib/active-element'
 
 // This is a point the map emphasizes with a sprite.
 // The committed `selection`, from `frameEvent`, and the transient `hover`, from `highlightEvent`, share this shape.
-// `approximate` swaps the crisp pin for the softer area sprite, used for online events.
+// `approximate` swaps the crisp pin for the softer area sprite. It covers both listings with no
+// real place to draw: an online one, which has none at all, and a `vague` one, whose point is its
+// town's centre. The map's own feature property for the second is `vague`, not this field.
 export type MapPoint = {
   latitude: number
   longitude: number

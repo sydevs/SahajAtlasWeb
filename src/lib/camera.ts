@@ -56,9 +56,9 @@ export const isWithinPaddedViewport = (
  * The zoom `frameEvent` should ease to, or `null` to stay put: "move only as needed"
  * (selecting the marker happens unconditionally, separately).
  *
- * - **Online / approximate** events have no real location. This frames their stored
- *   point only as the session entry point (a deep link). In-session, selecting one
- *   never moves the camera.
+ * - **Online** events have no location at all, so `online` is theirs alone — a vague listing
+ *   has a neighbourhood, and frames it. This frames an online event's stored point only as the
+ *   session entry point (a deep link). In-session, selecting one never moves the camera.
  * - **Located** events ease in to the event zoom on entry, from a wider view, or when
  *   off-screen. Only a genuine pin click — already on-screen *and* already at a detail
  *   zoom (`atDetailZoom`) — keeps the current zoom, so it does not nudge the camera.
@@ -66,14 +66,14 @@ export const isWithinPaddedViewport = (
  *   point projects as "visible") from reading as "already showing the event".
  */
 export const eventFrameZoom = (opts: {
-  approximate: boolean
+  online: boolean
   visible: boolean
   atDetailZoom: boolean
   isEntry: boolean
   eventZoom: number
   onlineZoom: number
 }): number | null => {
-  if (opts.approximate) return opts.isEntry ? opts.onlineZoom : null
+  if (opts.online) return opts.isEntry ? opts.onlineZoom : null
   if (!opts.isEntry && opts.visible && opts.atDetailZoom) return null
 
   return opts.eventZoom
