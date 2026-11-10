@@ -44,17 +44,16 @@ cover everything a host would notice since the widget was first deployed.
 
 ### Changed
 
-- **A page that replaces `<sahaj-atlas>` no longer throws the widget's data away.** ([#349]) Wix's
-  router re-renders its page on Back and Forward, which destroys the element and creates another
-  one, and page builders relocate elements after load. The widget now carries its classes,
-  regions and API key across such a swap, so the new element opens at the route your URL names
-  without asking the API for anything it has already read — a Back press used to cost a full
-  reload of the feed. The new element has to carry the same `key` and arrive within a second; a
-  different key still starts clean, which it must, and an element gone for longer is still
-  treated as gone. What the visitor was in the middle of does not survive — the panels they had
-  opened, their place in the widget's own Back history, a half-filled registration — because the
-  element really is a new one. No parameter, origin or CSP change. See
-  [If your page replaces the element].
+- **A page that _replaces_ `<sahaj-atlas>` now keeps the widget's data too.** ([#349]) [#149] made
+  the same element returning keep it; a host that destroys the element and creates a new one still
+  lost everything, which is exactly what Wix's router does on Back and Forward. The new element now
+  takes over the classes, regions and API key the old one had read, so it opens at the route your
+  URL names without asking the API for anything it already holds — a Back press used to cost a
+  full reload of the feed. It has to carry the same `key` and arrive inside the same moment [#149]
+  already allowed; a different key still starts clean, which it must. What the visitor was in the
+  middle of does not survive — the panels they had opened, their place in the widget's own Back
+  history, a half-filled registration — because the element really is a new one. No parameter,
+  origin or CSP change. See [If your page replaces the element].
 
 - **The captcha on the registration and report forms is hidden unless it needs a click.**
   ([SahajCloud#1090]) Most visitors now see no security check at all; the 300×65 box opens only

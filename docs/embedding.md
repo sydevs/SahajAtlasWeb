@@ -111,14 +111,14 @@ written. Add a **Custom Element** and give it two values:
 | **Tag name**   | `sahaj-atlas`                                 |
 
 It is **Add Elements (+) → Embed Code → Custom element** in the Wix Editor, and **Add Elements
-(+) → Embed & Social → Custom Element** in Wix Studio. Give it the page's full width and about the
-height of the screen — an element with no height shows nothing. The map appears on your published
-site, not in the editor.
+(+) → Embed & Social → Custom Element** in Wix Studio. Give it the page's full width and about
+the height of the screen; [Sizing the element](#sizing-the-element) has the rules. The map appears
+on your published site, not in the editor.
 
-⚠ **Not Embed HTML, and not an HTML iframe element.** Wix serves those from a sandboxed frame on
-an origin of its own, so the widget cannot reach your page's URL — which costs every shareable
-route and every indexable page, the whole reason to prefer the script. A Custom Element runs in
-your page itself.
+⚠ **Not Embed HTML, and not an HTML iframe element.** Wix serves both from a sandboxed frame on an
+origin of its own, so those two get you the iframe embed's trade-offs
+([Which one, and what you give up](#which-one-and-what-you-give-up)) on the one platform where a
+Custom Element gets you the script's.
 
 **Wix wants two things before a Custom Element works at all:** a Premium plan and your own
 connected domain. Until the site has both, use
@@ -132,14 +132,15 @@ no `routing=path` here: the router owns the addresses.
 ### If your page replaces the element
 
 Some platforms re-render a page rather than navigating it — Wix's router does this on Back and
-Forward — and page builders relocate elements after load. Both reach the widget the same way: the
-element is removed, and another one appears.
+Forward — so `<sahaj-atlas>` is destroyed and a new element takes its place. (A page builder
+relocating the element is the gentler case: the same element comes back, and that already kept
+its data.)
 
-**The widget carries its state across, as long as the new element has the same `key` and arrives
-within a second.** It opens at the route your page's URL now names, from the classes and regions
-it has already read, so a Back press asks nothing new of the network. A replacement under a
-**different** key starts clean instead, which it must: the data belongs to the key it was read
-under. An element gone for longer than a second is treated as gone.
+**The widget carries its state across either way, as long as the new element has the same `key`
+and arrives within a second.** It opens at the route your page's URL now names, from the classes
+and regions it has already read, so a Back press asks nothing new of the network. A replacement
+under a **different** key starts clean instead, which it must: the data belongs to the key it was
+read under. An element gone for longer than a second is treated as gone.
 
 What does not survive is anything the visitor was in the middle of — the panels they had opened,
 their place in the widget's own Back history, a half-filled registration. The element is a new
