@@ -13,8 +13,8 @@ const online: Event = { ...mockEvent, id: 201, eventType: 'online' }
 const noWebsite: Event = { ...mockEvent, id: 202, website: null }
 const noContact: Event = { ...mockEvent, id: 203, contactPhone: null, contactName: null }
 const inactive: Event = { ...mockEvent, id: 204, inactive: true }
-// The host typed only the town, so its stored point is a guess at the town centre.
-const approximate: Event = {
+// The host typed only the town, so its stored point is the town centre's (#15).
+const vague: Event = {
   ...mockEvent,
   id: 205,
   website: null,
@@ -72,10 +72,10 @@ export const Default: Story = () => (
     </StorySection>
 
     <StorySection
-      description="A class with only a guessed point: Directions leads to the town by name, not to the guessed coordinates, and says so."
-      title="Approximate place"
+      description="A class with no real place, only its town: no Directions, since its point is the town centre."
+      title="No real place"
     >
-      <Panel event={approximate} />
+      <Panel event={vague} />
     </StorySection>
 
     <div />

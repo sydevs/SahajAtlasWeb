@@ -37,16 +37,14 @@ describe('EventActions — Directions', () => {
     expect(html).toContain('>event.actions.directions<')
   })
 
-  // Sneek's host typed only the town, so its stored point is the town centre's (Browser H2).
-  it('leads to the town by name for a guessed point, and says where', () => {
+  // Sneek's host typed only the town, so its stored point is the town centre's (#15).
+  it('offers no Directions for a listing with no real place', () => {
     const html = render({
       ...mockEvent,
       address: { street: 'Sneek', city: 'Sneek', country: 'NL', latitude: 53.03, longitude: 5.66 },
     })
-    const href = directionsHref(html)
 
-    expect(href).toContain(encodeURIComponent('Sneek, NL'))
-    expect(href).not.toContain('53.03')
-    expect(html).toContain('event.actions.directions_to:{&quot;place&quot;:&quot;Sneek&quot;}')
+    expect(directionsHref(html)).toBeUndefined()
+    expect(html).not.toContain('event.actions.directions')
   })
 })

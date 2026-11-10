@@ -5,6 +5,8 @@ import {
   fitBoundsOptions,
   hasMapPoint,
   isWithinPaddedViewport,
+  ringRadiusPx,
+  ringZoom,
   sheetInset,
   worldMinZoom,
   worldViewCamera,
@@ -19,7 +21,7 @@ describe('eventFrameZoom', () => {
   it('frames an online event only as the session entry point (a deep link)', () => {
     expect(
       eventFrameZoom({
-        approximate: true,
+        online: true,
         visible: true,
         atDetailZoom: false,
         isEntry: true,
@@ -29,7 +31,7 @@ describe('eventFrameZoom', () => {
     // in-session: selecting an online event never moves the camera
     expect(
       eventFrameZoom({
-        approximate: true,
+        online: true,
         visible: true,
         atDetailZoom: true,
         isEntry: false,
@@ -41,7 +43,7 @@ describe('eventFrameZoom', () => {
   it('keeps the current zoom only for a pin already shown at a detail zoom', () => {
     expect(
       eventFrameZoom({
-        approximate: false,
+        online: false,
         visible: true,
         atDetailZoom: true,
         isEntry: false,
@@ -55,7 +57,7 @@ describe('eventFrameZoom', () => {
     // still frame it (atDetailZoom false + isEntry).
     expect(
       eventFrameZoom({
-        approximate: false,
+        online: false,
         visible: true,
         atDetailZoom: false,
         isEntry: true,
@@ -65,7 +67,7 @@ describe('eventFrameZoom', () => {
     // wider view — on-screen but not yet at a detail zoom
     expect(
       eventFrameZoom({
-        approximate: false,
+        online: false,
         visible: true,
         atDetailZoom: false,
         isEntry: false,
@@ -75,7 +77,7 @@ describe('eventFrameZoom', () => {
     // off-screen (a list / search click)
     expect(
       eventFrameZoom({
-        approximate: false,
+        online: false,
         visible: false,
         atDetailZoom: true,
         isEntry: false,
@@ -241,5 +243,19 @@ describe('sheetInset', () => {
 
   it('never goes negative on a frame shorter than the strip', () => {
     expect(sheetInset(300, 200, 216)).toBe(0)
+  })
+})
+
+describe('ringRadiusPx and ringZoom', () => {
+  it('spans a ground distance as Web Mercator does: 2x per zoom, 1/cos(latitude) wider', () => {
+    // 78,271.5 m per px at zoom 0 on the equator (Earth's circumference over a 512px world).
+    expect(ringRadiusPx(78.2715, 0, 0)).toBeCloseTo(1, 4)
+    expect(ringRadiusPx(3, 10, 0) * 2).toBeCloseTo(ringRadiusPx(3, 11, 0))
+    expect(ringRadiusPx(3, 10, 60)).toBeCloseTo(ringRadiusPx(3, 10, 0) * 2)
+  })
+
+  it('inverts each other', () => {
+    expect(ringRadiusPx(3, ringZoom(3, 29, 45), 45)).toBeCloseTo(29)
+    expect(ringZoom(3, ringRadiusPx(3, 11.5, 52), 52)).toBeCloseTo(11.5)
   })
 })

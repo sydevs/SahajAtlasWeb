@@ -11,7 +11,7 @@ import { FILTER_PANEL_PX, SEARCH_SHEET_PX } from '@/config/responsive'
 import { useClassSheet, useFilterPanelState, useViewState } from '@/config/store'
 import { useIsWide } from '@/config/responsive'
 import { eventFrameZoom, hasMapPoint, sheetInset, worldViewCamera } from '@/lib/camera'
-import { hasVagueAddress, isOnline } from '@/lib/shape'
+import { hasApproximatePlace, isOnline } from '@/lib/shape'
 import { frameElement } from '@/lib/overlay'
 
 // These are the fixed left-drawer footprint and the mobile sheet's open height.
@@ -68,13 +68,15 @@ const MIN_STRIP_PX = MAP_MARGIN * 2 + REGION_FIT_PADDING * 2 + MIN_FIT_PX
 // This frames it wide, at city or area level, when a deep link makes it the session entry point.
 const ONLINE_ZOOM = 7
 // An in-person class with no real place frames its neighbourhood, with its whole area in view.
-const VAGUE_ZOOM = 12
+const VAGUE_ZOOM = 11
 // Where the world view centres before `worldViewCamera` keeps the edges filled. Latitude 20
 // leans north, where most classes are.
 const WORLD_CENTER: [number, number] = [0, 20]
 
 // This is the map point an event emphasizes: its stored coordinates.
-// It tags online events and classes with no real place as `approximate`, which gives them a softer area sprite.
+// It tags online events and in-person listings with no real place (`hasApproximatePlace`) as
+// `approximate`, which gives them a softer area sprite, and the second kind as `vague` too,
+// which is the only one with a neighbourhood to fly to.
 // It returns null when the event has no coordinates, since there is nothing to frame or highlight.
 // `frameEvent` and `highlightEvent` share this function, so both derive the point identically.
 // `frameEvent` commits the point to `selection` and moves the camera. `highlightEvent` only sets `hover`.
@@ -82,16 +84,14 @@ const WORLD_CENTER: [number, number] = [0, 20]
 // `hasMapPoint` is the one test for whether those coordinates are there.
 // `useFrameEventOnTop` reads the same verdict to decide whether to fall back to the region.
 // A second test here could disagree with it, and then `frameEvent` would run and frame nothing.
-const eventPoint = (event: Pick<EventSlim, 'address' | 'eventType'>) => {
+const eventPoint = (event: Pick<EventSlim, 'address' | 'eventType' | 'inactive' | 'schedule'>) => {
   if (!hasMapPoint(event)) return null
 
   const { latitude, longitude } = event.address
 
-  return {
-    latitude,
-    longitude,
-    approximate: isOnline(event) || hasVagueAddress(event.address),
-  }
+  const vague = hasApproximatePlace(event)
+
+  return { latitude, longitude, approximate: isOnline(event) || vague, vague }
 }
 
 /**
@@ -179,8 +179,7 @@ export function RealMapControllerProvider({ children }: { children: ReactNode })
         // So a genuine pin click at a detail zoom keeps that zoom.
         // A deep link, a wide-view click, or an off-screen click still eases in.
         const zoom = eventFrameZoom({
-          // Only online events have nowhere to fly to. A vague class still has a neighbourhood.
-          approximate: isOnline(event),
+          online: isOnline(event),
           visible: isPointVisible(point.longitude, point.latitude),
           atDetailZoom: (mapbox?.getZoom() ?? 0) >= REGION_MAX_ZOOM,
           isEntry: opts?.isEntry ?? false,

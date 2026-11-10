@@ -9,7 +9,6 @@ import { useCoarsePointer } from '@/config/responsive'
 import { useEventDisplay } from '@/hooks/use-event-display'
 import { usePopover } from '@/hooks/use-popover'
 import { directionsUrl } from '@/lib'
-import { directionsTarget } from '@/lib/shape'
 import { overlayContainer } from '@/lib/overlay'
 import { Event } from '@/types'
 
@@ -114,12 +113,7 @@ export function EventActions({ event, basePath }: EventActionsProps) {
   const canDial = useCoarsePointer()
   const { display } = useEventDisplay(event)
 
-  // A class with only a guessed point leads to its town, and says so: "Directions to Sneek".
-  const directions = directionsTarget(event.address)
-  const mapsUrl = directions ? directionsUrl(directions.address) : undefined
-  const directionsLabel = directions?.town
-    ? t('event.actions.directions_to', { place: directions.town })
-    : t('event.actions.directions')
+  const mapsUrl = directionsUrl(event.address)
   // A by-request class says "Contact host for timings", so Contact is its one solid button.
   const contactLeads = display.status === 'inactive'
 
@@ -136,7 +130,7 @@ export function EventActions({ event, basePath }: EventActionsProps) {
                 isExternal
                 href={mapsUrl}
                 icon={<Navigation size={ICON_SIZE} />}
-                label={directionsLabel}
+                label={t('event.actions.directions')}
                 stacked={stacked}
               />,
             ]

@@ -352,6 +352,12 @@ cover everything a host would notice since the widget was first deployed.
 
 ### Fixed
 
+- **A class with no real venue shows an area, not a pin.** ([#374]) About a dozen listings give
+  only a town, such as a class at a volunteer's home, so the map pinned the town's centre as if it
+  were the venue — one landed on a supermarket, with Directions to it. Those listings, and every
+  inactive one, now draw a soft area around the town, show only the town's name, and offer no
+  directions. No change to your snippet or CSP.
+
 - **Class times say whose clock they are.** ([#380]) An online class showed the visitor's time, then
   the host's with no label, and the two could fall on different days. Each time now names its
   city, such as "3 AM London time" with "Mon 8 PM Toronto time" under it. An in-person time is
@@ -979,6 +985,7 @@ must-revalidate`, pinned rather than left to the CDN default. The production dom
 [#147]: https://github.com/sydevs/SahajAtlasWeb/issues/147
 [#283]: https://github.com/sydevs/SahajAtlasWeb/issues/283
 [#311]: https://github.com/sydevs/SahajAtlasWeb/pull/311
+[#374]: https://github.com/sydevs/SahajAtlasWeb/pull/374
 [#380]: https://github.com/sydevs/SahajAtlasWeb/pull/380
 [#370]: https://github.com/sydevs/SahajAtlasWeb/pull/370
 [#371]: https://github.com/sydevs/SahajAtlasWeb/pull/371

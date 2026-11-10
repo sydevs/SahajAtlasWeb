@@ -1,4 +1,5 @@
 import type {
+  EventAddress,
   EventSchedule,
   EventType,
   RegistrationQuestionName,
@@ -25,89 +26,108 @@ export type DisplayEventLike = EventLike & {
   website?: string | null
   /** CMS capacity flag (SahajCloud#601). Absent/null reads as not-full. */
   registrationsFull?: boolean | null
+  /** Read only to decide whether the place is real enough to give directions to. */
+  address?: VagueAddress | null
 }
+
+/** All `hasVagueAddress` reads, so a feed event and a full document both satisfy it. */
+type VagueAddress = Pick<EventAddress, 'street' | 'city'>
 
 export const isOnline = (event: EventLike): boolean => event.eventType === 'online'
 
+// Case and accents folded off, so a street compares against its town exactly as `streetAndCity`
+// compares them, in a form the prefix strip below can slice.
+const fold = (text?: string | null) =>
+  (text ?? '')
+    .normalize('NFD')
+    .replace(/\p{Diacritic}/gu, '')
+    .trim()
+    .toLowerCase()
+
 // What hosts type when they have no address yet. These are matched whole, after the city name is
 // removed, so a real street that merely contains one of these words ("Av. Centro 12") stays exact.
-const NO_PLACE_STREETS = new Set([
-  '',
-  'none',
-  'n/a',
-  'tba',
-  'tbc',
-  'tbd',
-  'to be announced',
-  'to be confirmed',
-  'wird noch angekündigt',
-  'a definir',
-  'à définir',
-  'a confirmar',
-  'por definir',
-  'zentrum',
-  'innenstadt',
-  'stadtmitte',
-  'centro',
-  'centre',
-  'centre-ville',
-  'center',
-  'city centre',
-  'city center',
-  'cbd',
-  'downtown',
-])
+// Folded on the way in, so one entry covers every accented spelling of it.
+const NO_PLACE_STREETS = new Set(
+  [
+    '',
+    'none',
+    'n/a',
+    'tba',
+    'tbc',
+    'tbd',
+    'to be announced',
+    'to be confirmed',
+    'wird noch angekündigt',
+    'a definir',
+    'a confirmar',
+    'por definir',
+    'zentrum',
+    'innenstadt',
+    'stadtmitte',
+    'centro',
+    'centre',
+    'centre-ville',
+    'center',
+    'city centre',
+    'city center',
+    'cbd',
+    'downtown',
+  ].map(fold),
+)
 
 /**
- * Whether an in-person class's stored point is only a guess at the area.
+ * Whether an in-person class's street names no real place (#15).
  *
- * The CMS has no such field, and it geocodes whatever the host typed. So a class whose street says
- * "to be announced", or just repeats its town, still gets exact coordinates, and those land on
- * whatever happens to be at the town's centre. This is a conservative reading of the street text:
- * it catches placeholders, the town's own name, and "city centre" words, and leaves everything
- * else as a real place. It can't catch a suburb name with no street.
+ * SahajCloud has no such field, and a street is required, so a host with no venue types the town
+ * again or "to be announced", and the stored point is the town's centre — once, a supermarket.
+ * This reads the street conservatively: a placeholder, the town's own name, or a "city centre"
+ * word, and nothing else. A lone "-" is not on the list: the one listing that has it is a park
+ * whose point is the park. ⚠ The word list is load-bearing until the next Atlas sync, which applies
+ * SahajCloud's rewrite of each placeholder street to the town's own name (`seeds/atlas/dedupe.ts`,
+ * caught by the town-repeat rule in any language). Until then, each entry guards a live listing.
  */
-export const hasVagueAddress = (
-  address?: {
-    street?: string | null
-    city?: string | null
-  } | null,
-): boolean => {
+export const hasVagueAddress = (address?: VagueAddress | null): boolean => {
   if (!address) return false
 
-  const normalize = (text?: string | null) => (text ?? '').trim().toLowerCase()
-  const city = normalize(address.city)
-  const street = normalize(address.street)
-  const rest = (city && street.startsWith(city) ? street.slice(city.length) : street)
-    .replace(/^[\s,]+/, '')
-    .replace(/^[-.\s]+$/, '')
+  const city = fold(address.city)
+  const street = fold(address.street)
+  const afterCity = city && street.startsWith(city) ? street.slice(city.length) : street
 
-  return NO_PLACE_STREETS.has(rest)
-}
-
-type DirectionsAddress = {
-  street?: string | null
-  city?: string | null
-  country?: string | null
-  latitude?: number | null
-  longitude?: number | null
+  return NO_PLACE_STREETS.has(afterCity.replace(/^[\s,]+/, ''))
 }
 
 /**
- * Where Directions leads, and the town it names when that is all it can honestly name. A guessed
- * point (`hasVagueAddress`) lands on whatever sits at the town's centre, so it leads to the town
- * by name instead of to its coordinates. A guessed point with no town has nowhere to lead: `null`.
+ * Which of the three shapes a listing is, from the schedule's own discriminators. `resolveEventDisplay`
+ * and `hasApproximatePlace` both read it, so neither can disagree about what a class is.
  */
-export const directionsTarget = <A extends DirectionsAddress>(
-  address: A | null | undefined,
-): { address: DirectionsAddress; town?: string } | null => {
-  if (!address) return null
-  if (!hasVagueAddress(address)) return { address }
+const eventKind = (schedule?: EventSchedule | null): EventKind =>
+  !schedule?.recurrenceType ? 'oneoff' : schedule.endingType ? 'course' : 'class'
 
-  const town = address.city?.trim()
-
-  return town ? { address: { city: town, country: address.country }, town } : null
-}
+/**
+ * Whether an in-person listing's stored point stands for its town rather than a door, so the map
+ * draws an area and nothing offers directions to it: a listing `resolveEventDisplay` calls
+ * inactive, or one whose street names no place (`hasVagueAddress`).
+ *
+ * ⚠ "Inactive" has to mean here what it means there, or the map and the panel disagree about the
+ * same listing — the disagreement this predicate exists to remove. So it covers a dateless class
+ * too, not only the flag and a missing schedule: `resolveEventDisplay` reports every class with no
+ * occurrence left as inactive, and the panel already hides its street on that verdict.
+ *
+ * This reads no clock, which leaves one narrow residue: a schedule whose `upcomingDates` is empty
+ * while its first session has not finished reads dateless here, where `resolveEventDisplay` falls
+ * back to that session. That is upstream drift, and an area is the safe answer to it.
+ */
+export const hasApproximatePlace = (
+  event: EventLike & {
+    inactive?: boolean | null
+    address?: VagueAddress | null
+  },
+): boolean =>
+  !isOnline(event) &&
+  (Boolean(event.inactive) ||
+    !event.schedule ||
+    (eventKind(event.schedule) === 'class' && !nextOccurrence(event)) ||
+    hasVagueAddress(event.address))
 
 /**
  * The street and the town as one line, naming the town once. Hosts often type the town, or its
@@ -122,15 +142,10 @@ export const streetAndCity = (street?: string | null, city?: string | null): str
 
   if (!road || !town) return road || town
 
-  // Case- and accent-blind, so "PLYMOUTH" and "Zurich" still name Plymouth and Zürich.
-  const fold = (text: string) =>
-    text
-      .normalize('NFD')
-      .replace(/\p{Diacritic}/gu, '')
-      .toLowerCase()
+  // Case- and accent-blind (`fold`), so "PLYMOUTH" and "Zurich" still name Plymouth and Zürich.
   const name = fold(town)
   const namesTown = road.split(',').some((part) => {
-    const words = fold(part.trim())
+    const words = fold(part)
     const beside = words.startsWith(`${name} `)
       ? words.slice(name.length)
       : words.endsWith(` ${name}`)
@@ -391,7 +406,7 @@ export function resolveEventDisplay(
   const hasWebsite = Boolean(event.website)
 
   const recurrence = schedule?.recurrenceType ?? null
-  const kind: EventKind = !recurrence ? 'oneoff' : schedule?.endingType ? 'course' : 'class'
+  const kind = eventKind(schedule)
   // Capacity is a server-owned boolean (SahajCloud#601). The widget never counts
   // registrations. This is coalesced so an absent flag degrades to not-full.
   const atCapacity = event.registrationsFull ?? false
@@ -474,8 +489,9 @@ export function resolveEventDisplay(
     }
   }
 
+  // A class whose street names no place has no door to route to, like an inactive one.
   const actions: EventActionId[] = [
-    ...(online ? [] : (['directions'] as const)),
+    ...(online || hasVagueAddress(event.address) ? [] : (['directions'] as const)),
     ...(hasWebsite ? (['website'] as const) : []),
     ...(hasContact ? (['contact'] as const) : []),
     'share',

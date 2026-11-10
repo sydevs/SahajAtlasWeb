@@ -5,8 +5,8 @@ import { DateTime } from 'luxon'
 
 import {
   byNextOccurrence,
-  directionsTarget,
   eventTimeZone,
+  hasApproximatePlace,
   hasVagueAddress,
   isOnline,
   isSoon,
@@ -472,6 +472,15 @@ describe('resolveEventDisplay: edge cases', () => {
       ).actions,
     ).toEqual(['contact', 'share'])
   })
+
+  it('offers no directions to a class whose street names no place (#15)', () => {
+    expect(
+      resolveEventDisplay(
+        { ...weeklyClass, address: { street: 'Sneek', city: 'Sneek' } },
+        at('2026-07-15T10:00:00'),
+      ).actions,
+    ).toEqual(['share'])
+  })
 })
 
 describe('isSoon', () => {
@@ -494,57 +503,6 @@ describe('isSoon', () => {
   it('is false for a date in the past', () => {
     expect(isSoon(DateTime.now().minus({ minutes: 30 }), true)).toBe(false)
     expect(isSoon(DateTime.now().minus({ days: 1 }), false)).toBe(false)
-  })
-})
-
-describe('hasVagueAddress', () => {
-  it.each([
-    ['-', 'Punaauia'],
-    ['None', 'Sevenoaks'],
-    ['wird noch angekündigt', 'krems'],
-    ['Broome', 'Broome'],
-    ['Zentrum', 'Salzburg'],
-    ['Perth CBD', 'Perth'],
-    ['Centro', 'Araguari'],
-    ['', 'Leeds'],
-  ])('reads %j in %s as no real place', (street, city) => {
-    expect(hasVagueAddress({ street, city })).toBe(true)
-  })
-
-  it.each([
-    ['71 Main South Road, Sockburn', 'Christchurch'],
-    ['Katharine St', 'London'],
-    ['Av. Centro 12', 'Vitória'],
-    ['Broome Street', 'Broome'],
-  ])('reads %j in %s as a real place', (street, city) => {
-    expect(hasVagueAddress({ street, city })).toBe(false)
-  })
-
-  it('has nothing to judge without an address', () => {
-    expect(hasVagueAddress(undefined)).toBe(false)
-  })
-})
-
-describe('directionsTarget', () => {
-  const coords = { latitude: 53.03, longitude: 5.65 }
-
-  it('leads to the venue itself when the address is a real place', () => {
-    const address = { street: '16 Ramsden Rd', city: 'London', country: 'GB', ...coords }
-
-    expect(directionsTarget(address)).toEqual({ address })
-  })
-
-  // Sneek's stored point is the town centre's: a newcomer must not be routed to it.
-  it('leads to the town by name, without the guessed coordinates, and names it', () => {
-    expect(directionsTarget({ street: 'Sneek', city: 'Sneek', country: 'NL', ...coords })).toEqual({
-      address: { city: 'Sneek', country: 'NL' },
-      town: 'Sneek',
-    })
-  })
-
-  it('has nowhere to lead for a guessed point with no town', () => {
-    expect(directionsTarget({ street: 'TBA', country: 'NL', ...coords })).toBeNull()
-    expect(directionsTarget(null)).toBeNull()
   })
 })
 
@@ -574,5 +532,102 @@ describe('streetAndCity', () => {
     expect(streetAndCity('16 Ramsden Rd', null)).toBe('16 Ramsden Rd')
     expect(streetAndCity(undefined, ' Leeds ')).toBe('Leeds')
     expect(streetAndCity('', '')).toBe('')
+  })
+})
+
+describe('hasVagueAddress', () => {
+  it.each([
+    ['None', 'Sevenoaks'],
+    ['wird noch angekündigt', 'krems'],
+    ['Broome', 'Broome'],
+    ['Zentrum', 'Salzburg'],
+    ['Perth CBD', 'Perth'],
+    ['Centro', 'Araguari'],
+    ['', 'Leeds'],
+  ])('reads %j in %s as no real place', (street, city) => {
+    expect(hasVagueAddress({ street, city })).toBe(true)
+  })
+
+  it.each([
+    ['71 Main South Road, Sockburn', 'Christchurch'],
+    ['Katharine St', 'London'],
+    ['Av. Centro 12', 'Vitória'],
+    ['Broome Street', 'Broome'],
+    // Parc Vaira'i: the street is junk, but the stored point is the park itself.
+    ['-', 'Punaauia'],
+  ])('reads %j in %s as a real place', (street, city) => {
+    expect(hasVagueAddress({ street, city })).toBe(false)
+  })
+
+  // `streetAndCity` is accent-blind, so the address line already reads this as the town saying
+  // itself twice. The two must not disagree about the same listing.
+  it('reads an unaccented spelling of the town as the town', () => {
+    expect(hasVagueAddress({ street: 'Silvianopolis', city: 'Silvianópolis' })).toBe(true)
+    expect(streetAndCity('Silvianopolis', 'Silvianópolis')).toBe('Silvianopolis')
+  })
+
+  it('has nothing to judge without an address', () => {
+    expect(hasVagueAddress(undefined)).toBe(false)
+  })
+})
+
+describe('hasApproximatePlace', () => {
+  const weekly = weeklySchedule
+  const street = { street: '16 Ramsden Rd', city: 'London' }
+
+  it('is true for an inactive listing, even with a real street', () => {
+    expect(
+      hasApproximatePlace({
+        eventType: 'offline',
+        inactive: true,
+        schedule: weekly,
+        address: street,
+      }),
+    ).toBe(true)
+    expect(hasApproximatePlace({ eventType: 'offline', address: street })).toBe(true)
+  })
+
+  it('is true for an active class whose street names no place', () => {
+    expect(
+      hasApproximatePlace({
+        eventType: 'offline',
+        schedule: weekly,
+        address: { street: 'Sneek', city: 'Sneek' },
+      }),
+    ).toBe(true)
+  })
+
+  // `resolveEventDisplay` reports a class with no occurrence left as inactive, and the panel
+  // hides its street on that. The map pinned it, which is the disagreement this removes.
+  it('is true for a class whose occurrences have all passed', () => {
+    const dateless = { ...weeklySchedule, upcomingDates: [] }
+
+    expect(hasApproximatePlace({ eventType: 'offline', schedule: dateless, address: street })).toBe(
+      true,
+    )
+    expect(
+      resolveEventDisplay({ eventType: 'offline', schedule: dateless }, at('2026-08-01T10:00:00'))
+        .status,
+    ).toBe('inactive')
+  })
+
+  // A course that is over is `ended`, not inactive — its venue was real and its street still shows.
+  it('is false for a course that has ended', () => {
+    const over = { ...weeklySchedule, endingType: 'count' as const, count: 4, upcomingDates: [] }
+
+    expect(hasApproximatePlace({ eventType: 'offline', schedule: over, address: street })).toBe(
+      false,
+    )
+    expect(
+      resolveEventDisplay({ eventType: 'offline', schedule: over }, at('2026-08-01T10:00:00'))
+        .status,
+    ).toBe('ended')
+  })
+
+  it('is false for an active class at a real street, and for any online event', () => {
+    expect(hasApproximatePlace({ eventType: 'offline', schedule: weekly, address: street })).toBe(
+      false,
+    )
+    expect(hasApproximatePlace({ eventType: 'online', inactive: true })).toBe(false)
   })
 })

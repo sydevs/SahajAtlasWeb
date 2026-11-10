@@ -6,12 +6,18 @@ import { describe, it, expect } from 'vitest'
 
 import { MARKER_IDS, markerColors } from './markers'
 import {
+  VAGUE_RADIUS_KM,
+  vagueDotLayer,
+  vaguePinLayer,
+  vagueRingLayer,
   boundsLayer,
   clusterLayer,
   hoveredAreaLayer,
   hoveredPointLayer,
   INTERACTIVE_LAYER_IDS,
   LAYER_IDS,
+  RING_MAX_ZOOM,
+  RING_ZOOM,
   selectedAreaLayer,
   selectedPointLayer,
   unclusteredPointLayer,
@@ -41,9 +47,9 @@ describe('LAYER_IDS', () => {
       selectedArea: 'selected-area',
       hoveredPoint: 'hovered-point',
       hoveredArea: 'hovered-area',
-      approximateDot: 'approximate-dot',
-      approximateFill: 'approximate-fill',
-      approximateOutline: 'approximate-outline',
+      vaguePin: 'vague-pin',
+      vagueRing: 'vague-ring',
+      vagueDot: 'vague-dot',
       bounds: 'selected-bounds',
     })
   })
@@ -62,9 +68,83 @@ describe('LAYER_IDS', () => {
     expect(INTERACTIVE_LAYER_IDS).toEqual([
       LAYER_IDS.cluster,
       LAYER_IDS.unclusteredPoint,
-      LAYER_IDS.approximateDot,
-      LAYER_IDS.approximateFill,
+      LAYER_IDS.vaguePin,
+      LAYER_IDS.vagueRing,
+      LAYER_IDS.vagueDot,
     ])
+  })
+})
+
+describe('the vague-place layers', () => {
+  const ring = vagueRingLayer({}, 'light')
+  const dot = vagueDotLayer({}, 'light')
+
+  // A listing with no real place clusters like any other, so it can never show a ring while it
+  // is counted in a bubble beside it.
+  it('all three read the clustering source, and only an unclustered listing', () => {
+    for (const layer of [vaguePinLayer, ring, dot]) {
+      expect(layer.source).toBe('events')
+      expect(layer.filter).toEqual([
+        'all',
+        ['!', ['has', 'point_count']],
+        ['==', ['get', 'vague'], true],
+      ])
+    }
+    expect(unclusteredPointLayer.filter).toEqual([
+      'all',
+      ['!', ['has', 'point_count']],
+      ['!', ['==', ['get', 'vague'], true]],
+    ])
+  })
+
+  // Exactly one of the three draws at every zoom: a vague listing is never unmarked, and never
+  // marked twice.
+  it('hands pin to ring to dot at one zoom each, with no gap and no overlap', () => {
+    expect(vaguePinLayer.minzoom).toBeUndefined()
+    expect(vaguePinLayer.maxzoom).toBe(RING_ZOOM)
+    expect(ring.minzoom).toBe(RING_ZOOM)
+    expect(ring.maxzoom).toBe(RING_MAX_ZOOM)
+    expect(dot.minzoom).toBe(RING_MAX_ZOOM)
+    expect(dot.maxzoom).toBeUndefined()
+  })
+
+  // The narrowest map the full interface renders in is 360px, so one level past this the ring's
+  // outline is off every screen and only its tint would be left.
+  it('drops the ring where it grows as wide as the narrowest map, around zoom 11.7', () => {
+    expect(RING_MAX_ZOOM).toBeCloseTo(11.7, 1)
+    expect(RING_MAX_ZOOM).toBeGreaterThan(RING_ZOOM)
+  })
+
+  // The dot stands in for an area wider than the screen, so it is a marker rather than ground:
+  // a fixed size at every zoom, where the ring's radius is an expression that doubles.
+  it('draws the dot at a fixed size, in the ring colours', () => {
+    expect(paintOf(dot)['circle-radius']).toBe(8)
+    expect(paintOf(dot)['circle-color']).toBe(paintOf(ring)['circle-color'])
+  })
+
+  // The pin is 34px wide at icon-size 0.85: the ring takes over once its radius is that wide.
+  it('switches where the ring is as wide as the pin, around zoom 9 for a 3km radius', () => {
+    expect(VAGUE_RADIUS_KM).toBe(3)
+    expect(RING_ZOOM).toBeCloseTo(9.06, 2)
+  })
+
+  it('draws the ring to scale, growing 2x per zoom and widening with latitude', () => {
+    const radius = paintOf(ring)['circle-radius'] as unknown[]
+
+    expect(radius.slice(0, 3)).toEqual(['interpolate', ['exponential', 2], ['zoom']])
+    const [, , , z0, at0, z1, at1] = radius as [
+      unknown,
+      unknown,
+      unknown,
+      number,
+      unknown[],
+      number,
+      unknown[],
+    ]
+
+    expect([z0, z1]).toEqual([0, 24])
+    expect(at0[2]).toEqual(['get', 'cosLat'])
+    expect((at1[1] as number) / (at0[1] as number)).toBeCloseTo(2 ** 24)
   })
 })
 

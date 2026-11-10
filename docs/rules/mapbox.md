@@ -93,10 +93,36 @@ The map is the heart of the app and its hottest render path. Treat it carefully.
 
 ## Classes with no real place
 
-- `hasVagueAddress` (`lib/shape/event.ts`) reads the street text: a placeholder, the
-  town's own name, or a "city centre" word. Those classes draw a 1.5km circle
-  (`areaAround`, sources `approximate-areas` + a dot in `events`) instead of a pin,
-  and frame at `VAGUE_ZOOM`. It's a text heuristic, because the CMS has no such field.
+- `hasApproximatePlace` (`lib/shape/event.ts`) decides it: an **inactive** listing (it
+  meets only on request), or one whose street names no place — `hasVagueAddress` reads a
+  placeholder, the town's own name, or a "city centre" word (#15). Those show only the
+  town, offer no directions, and frame at `VAGUE_ZOOM`.
+- **On the map it is a pin, then a ring, then a dot — one of the three at every zoom.**
+  Below `RING_ZOOM` the listing is the ordinary pin (`vaguePinLayer`); from it, a soft
+  `VAGUE_RADIUS_KM` circle drawn to scale (`vagueRingLayer`); from
+  `RING_MAX_ZOOM`, a fixed-size dot (`vagueDotLayer`). `RING_ZOOM` is where the ring's
+  radius is as wide as the pin and `RING_MAX_ZOOM` where it is as wide as the narrowest map
+  the interface renders in, both at 45° — about zoom 9 and zoom 11.7 for 3km. The selection
+  and hover highlights hand over at `RING_ZOOM` (`MapPoint.vague`) and need no second bound,
+  since their sprite is a fixed size.
+  ⚠ **The ring needs that upper bound because its radius doubles per level.** Past it the
+  stroke is off screen, so an unselected listing was a flat tint carrying no marker — and a
+  tint that answered every click and hover across the map, stacked with its neighbours'. The
+  dot marks the stored point, which is the town's centre rather than the venue; what stops
+  that reading as a doorstep is the panel, which shows only the town and offers no directions.
+- ⚠ **All three read the clustering `events` source, behind `!has point_count`.** So the
+  listing joins a cluster like any other, and never shows a ring while it is counted in a
+  bubble beside it — which a separate, unclustered area source did. The ring is a `circle`
+  layer rather than a polygon: its radius interpolates `exponential` 2 on zoom, exactly
+  Mercator's doubling, divided by each feature's `cosLat`, which `toMapSource` precomputes
+  because an expression cannot read a point's latitude.
+- It's a text heuristic, because SahajCloud has no such field and requires a street. ⚠ The
+  word list is load-bearing until the next Atlas sync: SahajCloud's importer rewrites each
+  placeholder street it knows to the town's own name (`VENUE_FIELD_OVERRIDES` in
+  `seeds/atlas/dedupe.ts`), which the town-repeat rule catches in any language. Until that
+  sync runs, dropping an entry drops a production listing with it.
+  A lone `-` is deliberately not a placeholder — its one listing is a park whose point is
+  the park.
 
 ## Pin-hover timing popover
 

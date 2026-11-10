@@ -20,10 +20,9 @@ import { CalendarDays } from 'lucide-react'
 
 import {
   CLUSTER_MAX_ZOOM,
-  approximateDotLayer,
-  approximateFillLayer,
-  approximateOutlineLayer,
-  CLASS_LAYER_IDS,
+  vagueDotLayer,
+  vaguePinLayer,
+  vagueRingLayer,
   clusterLayer,
   selectedPointLayer,
   unclusteredPointLayer,
@@ -32,6 +31,7 @@ import {
   hoveredAreaLayer,
   boundsLayer,
   INTERACTIVE_LAYER_IDS,
+  RING_ZOOM,
   LAYER_IDS,
 } from './layers'
 import { warmBasemap } from './basemap'
@@ -57,12 +57,10 @@ import api, { eventTitlesQuery } from '@/config/api'
 import { FILTER_PANEL_PX, useHasRealPointer } from '@/config/responsive'
 import { useBrandPalette } from '@/config/theme/brand-palette'
 import { GEOJSON_STALE_TIME } from '@/config/query-client'
-import { areaAround } from '@/lib/geo'
 import { worldMinZoom } from '@/lib/camera'
 import {
   hasActiveFilters,
-  hasVagueAddress,
-  isOnline,
+  hasApproximatePlace,
   matchesFilters,
   safePath,
   sharedPlacePath,
@@ -110,9 +108,6 @@ const MAP_WORLDVIEWS: Record<string, string> = {
   default: 'US', // Default
 }
 
-/** How far around the stored point a class with no real place might be, in km. */
-const APPROXIMATE_RADIUS_KM = 1.5
-
 // Mapbox renders geometry and injects its own cluster properties. The click
 // handler needs only `id` and `webPath`. This strips every other feature
 // property before handing the collection to the vector source. So the map
@@ -128,20 +123,14 @@ const toMapSource = (features: Geojson['features']): FeatureCollection<Geometry 
     properties: {
       id: feature.properties.id,
       webPath: feature.properties.webPath ?? null,
-      approximate: !isOnline(feature.properties) && hasVagueAddress(feature.properties.address),
+      vague: hasApproximatePlace(feature.properties),
+      // What the ring's radius divides by, since an expression cannot read a point's latitude.
+      cosLat:
+        feature.geometry?.type === 'Point'
+          ? Math.cos((feature.geometry.coordinates[1] * Math.PI) / 180)
+          : null,
     },
   })),
-})
-
-// The round areas of the classes with no real place. These go in their own source, because the
-// events source is a clustering one and takes points only.
-const toApproximateAreas = (source: FeatureCollection<Geometry | null>): FeatureCollection => ({
-  type: 'FeatureCollection',
-  features: source.features.flatMap((feature) =>
-    feature.properties?.approximate && feature.geometry?.type === 'Point'
-      ? [areaAround(feature.geometry.coordinates, APPROXIMATE_RADIUS_KM, feature.properties)]
-      : [],
-  ),
 })
 
 const DEBUG_BOUNDARY = false
@@ -149,8 +138,9 @@ const DEBUG_PADDING = false
 
 // This renders a single emphasized point — the committed `selection` or the
 // transient card `hover` — as its own GeoJSON source. This way, the sprite
-// shows even when the base pin sits inside a cluster. `approximate` picks
-// the softer area sprite over the pin sprite.
+// shows even when the base pin sits inside a cluster. `MapPoint.approximate`
+// picks the softer area sprite over the pin sprite, and `vague` hands the two
+// over at `RING_ZOOM`, as the base layers do.
 function PointSource({
   id,
   point,
@@ -176,7 +166,14 @@ function PointSource({
       id={id}
       type="geojson"
     >
-      <Layer {...(point.approximate ? areaLayer : pointLayer)} />
+      {point.vague ? (
+        <>
+          <Layer {...pointLayer} maxzoom={RING_ZOOM} />
+          <Layer {...areaLayer} minzoom={RING_ZOOM} />
+        </>
+      ) : (
+        <Layer {...(point.approximate ? areaLayer : pointLayer)} />
+      )}
     </Source>
   )
 }
@@ -344,12 +341,8 @@ export function Mapbox({ cooperative = false }: { cooperative?: boolean } = {}) 
   const colors = useMemo(() => markerColors(palette, theme), [palette, theme])
   const clusters = useMemo(() => clusterLayer(palette, theme), [palette, theme])
   const bounds = useMemo(() => boundsLayer(palette, theme), [palette, theme])
-  const approximateDot = useMemo(() => approximateDotLayer(palette, theme), [palette, theme])
-  const approximateFill = useMemo(() => approximateFillLayer(palette, theme), [palette, theme])
-  const approximateOutline = useMemo(
-    () => approximateOutlineLayer(palette, theme),
-    [palette, theme],
-  )
+  const vagueRing = useMemo(() => vagueRingLayer(palette, theme), [palette, theme])
+  const vagueDot = useMemo(() => vagueDotLayer(palette, theme), [palette, theme])
 
   // This supplies the app's own pin and cluster images. `markers.ts` owns
   // the why, the theme-switch handling, and the in-place repaint. There is
@@ -445,7 +438,6 @@ export function Mapbox({ cooperative = false }: { cooperative?: boolean } = {}) 
 
     return toMapSource(features)
   }, [data, filters, matchesRegion])
-  const approximateAreas = useMemo(() => filtered && toApproximateAreas(filtered), [filtered])
 
   // This re-joins the hovered pin's id to the FULL feed event — the map
   // source is trimmed to id plus webPath. It reads the same `['geojson']`
@@ -532,9 +524,10 @@ export function Mapbox({ cooperative = false }: { cooperative?: boolean } = {}) 
             },
           )
         })
-      } else if (feature.layer && CLASS_LAYER_IDS.includes(feature.layer.id)) {
-        // A tapped class opens at its own height, even when it is the class already on screen
-        // with its sheet lowered: the same path is pushed again, so only this asks for it.
+      } else {
+        // Every other feature `interactiveLayerIds` can deliver stands for one class. A tapped
+        // class opens at its own height, even when it is the class already on screen with its
+        // sheet lowered: the same path is pushed again, so only this asks for it.
         useMapTap.getState().open()
         navigate(safePath(feature.properties?.webPath) ?? `/${feature.properties?.id}`)
       }
@@ -558,9 +551,7 @@ export function Mapbox({ cooperative = false }: { cooperative?: boolean } = {}) 
       // React skips a re-render when the id is unchanged (Object.is), so
       // this stays a no-op while the pointer sits on one pin.
       const pinId =
-        feature?.layer && CLASS_LAYER_IDS.includes(feature.layer.id)
-          ? Number(feature.properties?.id)
-          : NaN
+        feature && feature.layer?.id !== LAYER_IDS.cluster ? Number(feature.properties?.id) : NaN
 
       setHoveredId(Number.isFinite(pinId) ? pinId : null)
     },
@@ -638,13 +629,6 @@ export function Mapbox({ cooperative = false }: { cooperative?: boolean } = {}) 
             style={padding}
           />
         )}
-        {/* Before the events source, so an area lies under every pin and cluster. */}
-        {approximateAreas && (
-          <Source data={approximateAreas} id="approximate-areas" type="geojson">
-            <Layer {...approximateFill} />
-            <Layer {...approximateOutline} />
-          </Source>
-        )}
         {filtered && (
           <Source
             cluster={true}
@@ -654,9 +638,12 @@ export function Mapbox({ cooperative = false }: { cooperative?: boolean } = {}) 
             id="events"
             type="geojson"
           >
+            {/* First, so a ring lies under every pin and cluster. */}
+            <Layer {...vagueRing} />
             <Layer {...clusters} />
             <Layer {...unclusteredPointLayer} />
-            <Layer {...approximateDot} />
+            <Layer {...vaguePinLayer} />
+            <Layer {...vagueDot} />
           </Source>
         )}
         {DEBUG_BOUNDARY && boundary && (
