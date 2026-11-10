@@ -16,7 +16,10 @@ servers per-user in `.claude/settings.local.json`
 
 ### playwright (`mcp__playwright__*`)
 
-- Transport: stdio (`npx -y @playwright/mcp@latest`).
+- Transport: stdio (`npx -y @playwright/mcp@0.0.84`).
+- Pinned to an exact version, so a session never runs a release nobody has
+  looked at. SahajCloud and WeMeditateWeb pin the same version. Bump all three
+  together.
 - A real browser for driving the running widget: navigate, click the map,
   fill the registration form, take screenshots. This is the **visual
   verification** path for a map-heavy UI with no automated test suite.
