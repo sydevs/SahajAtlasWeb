@@ -1,10 +1,9 @@
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { CalendarPlus, ChevronDown, Download } from 'lucide-react'
+import { CalendarPlus, ChevronDown } from 'lucide-react'
 import clsx from 'clsx'
 
 import { Button } from '@/components/atoms/Button'
-import { BrandIcon } from '@/components/atoms/Icons/brands'
 import {
   type IcsEventInput,
   buildEventIcs,
@@ -128,53 +127,6 @@ export function AddToCalendar({ event }: AddToCalendarProps) {
           </Button>
         ))}
       </div>
-    </div>
-  )
-}
-
-/**
- * The short version for the class page: a plain list of the choices that keep a weekly class
- * weekly. The `.ics` file and the Google link carry the repeat. Outlook, Office 365 and Yahoo
- * links add one session, so they stay on the registration confirmation only, where one session
- * is what was booked. "Other" is the same file as Apple, because any calendar can open it.
- */
-export function AddToCalendarList({ event }: AddToCalendarProps) {
-  const { t } = useTranslation()
-  // Each choice leads with its mark, in the same 18px column as the "Add to calendar" icon above,
-  // so the names line up under that button's label (Anton, 6 Nov).
-  const row = 'h-11 w-full justify-start px-0'
-
-  return (
-    <div className="flex flex-col">
-      <Button
-        aria-label={`Apple Calendar · ${t('event.actions.download_ics')}`}
-        className={row}
-        color="neutral"
-        variant="ghost"
-        onClick={() => downloadEventIcs(event)}
-      >
-        <BrandIcon name="apple" />
-        Apple Calendar
-      </Button>
-      <Button
-        className={row}
-        color="neutral"
-        href={buildGoogleCalendarUrl(event)}
-        target="_blank"
-        variant="ghost"
-      >
-        <BrandIcon name="google" />
-        Google Calendar
-      </Button>
-      <Button
-        className={row}
-        color="neutral"
-        variant="ghost"
-        onClick={() => downloadEventIcs(event)}
-      >
-        <Download aria-hidden className="text-gray-11" size={18} />
-        {t('event.actions.calendar_other')}
-      </Button>
     </div>
   )
 }

@@ -76,8 +76,7 @@ export function EventOnward({ event, basePath }: EventSurfaceProps) {
   const navigate = useAtlasNavigate()
   const { display } = useEventDisplay(event)
   // A by-request class says "Contact host for timings", so Contact is its one solid button.
-  const contactLeads =
-    display.status === 'inactive' && Boolean(event.contactPhone || event.contactEmail)
+  const contactLeads = display.status === 'inactive' && Boolean(event.contactPhone)
 
   return (
     <div className="flex flex-col gap-2">

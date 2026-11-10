@@ -690,10 +690,6 @@ export const shapeEventDoc = (event: EventDoc): Event => ({
   path: safePath(event.webPath) ?? `/${event.id}`,
 })
 
-// Publishing a host's email is off until SahajCloud has a per-host opt-in: hosts may have
-// entered it for internal use only. This keeps it out of the response, not only off the page.
-const SHOW_HOST_EMAIL = import.meta.env.VITE_SHOW_HOST_EMAIL === 'true'
-
 const getEventDoc = async (id: number): Promise<EventDoc> => {
   // This call sets no `disableErrors` option.
   // So a missing or failed read throws to the ErrorBoundary, the same way the old axios 404 did.
@@ -715,7 +711,6 @@ const getEventDoc = async (id: number): Promise<EventDoc> => {
         description: true,
         images: true,
         contactPhone: true,
-        ...(SHOW_HOST_EMAIL ? { contactEmail: true as const } : {}),
         contactName: true,
         website: true,
         registrationMode: true,

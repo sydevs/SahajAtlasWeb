@@ -1,7 +1,5 @@
-import type { EventSlim, Region } from '@/types'
-
 import { useMemo } from 'react'
-import { useQuery, useSuspenseQuery } from '@tanstack/react-query'
+import { useSuspenseQuery } from '@tanstack/react-query'
 import { Helmet } from 'react-helmet-async'
 import { useTranslation } from 'react-i18next'
 import { Navigate, useLocation } from 'react-router'
@@ -14,7 +12,6 @@ import {
   AddClassEntry,
   EventListItem,
   FallbackPanel,
-  FoldSection,
   List,
   ListItem,
   ListToolbar,
@@ -22,26 +19,19 @@ import {
   SortMenu,
 } from '@/components/molecules'
 import { useEventFilters, useFilterSearch, useSetFilters } from '@/hooks/use-filters'
-import { eventsQuery, regionQuery } from '@/config/api'
-import { useFolds } from '@/hooks/use-folds'
+import { regionQuery } from '@/config/api'
 import { useLocale } from '@/hooks/use-locale'
 import { useSortOrder } from '@/hooks/use-sort'
 import { useMapController } from '@/hooks/use-map-controller'
 import { usePostEventFeedback } from '@/hooks/use-post-event-feedback'
 import { usePrefetchEvents } from '@/hooks/use-prefetch-event'
 import { useWidgetMode } from '@/config/mode'
-import { centerOfBounds } from '@/lib/geo'
 import {
   DEFAULT_FILTERS,
-  BORDER_NEARBY_KM,
   addClassPath,
-  boundsWith,
   cameUpFrom,
   childRoute,
   climbedUpFrom,
-  distanceToNearest,
-  isoCountryCode,
-  isOnline,
   searchPath,
   sortEvents,
   orderOnline,
@@ -271,7 +261,6 @@ export function RegionView({ slug }: { slug: string }) {
               ))}
           </List>
         )}
-        {region.level === 'country' && <AcrossBorder region={region} />}
         {/* A region or venue page opens the flow over itself, so its address search starts
             near this place (#147). */}
         <AddClassEntry
@@ -281,74 +270,5 @@ export function RegionView({ slug }: { slug: string }) {
         />
       </DrawerBody>
     </>
-  )
-}
-
-// A country's list stops at its border, and a class can be closer than most of the country's own:
-// the Irish page doesn't reach Belfast, because Belfast sits under the UK. This folds in the classes
-// within reach of one of the country's own classes, which is what a visitor would be comparing with
-// and needs no border data. The row names the town and country and leaves out the km, which would
-// count from a class nobody has picked.
-function AcrossBorder({ region }: { region: Region }) {
-  const { t } = useTranslation()
-  const { locale, regionNames } = useLocale()
-  const { frameRegion, frameSearch } = useMapController()
-  const folds = useFolds(`across:${region.slug}`)
-  const bounds = region.bounds
-  const center = (region.center ?? (bounds ? centerOfBounds(bounds) : [0, 0])) as [number, number]
-  const { data: events } = useQuery(eventsQuery(center[1], center[0], DEFAULT_FILTERS, locale))
-
-  const rows = useMemo(() => {
-    if (!events || !region.countryCode) return []
-    const located = events.flatMap((event) => {
-      const { latitude, longitude, country } = event.address ?? {}
-
-      return isOnline(event) || latitude == null || longitude == null
-        ? []
-        : [{ event, point: [longitude, latitude], code: isoCountryCode(country) }]
-    })
-    const own = located.filter(({ code }) => code === region.countryCode).map((row) => row.point)
-
-    return located
-      .flatMap(({ event, point, code }) => {
-        if (!code || code === region.countryCode) return []
-        const km = distanceToNearest(point, own) ?? Infinity
-
-        return km <= BORDER_NEARBY_KM ? [{ event, km }] : []
-      })
-      .sort((a, b) => a.km - b.km)
-      .map(({ event }) => event)
-  }, [events, region.countryCode])
-
-  const placeLine = (event: EventSlim) => {
-    const city = event.address?.city?.trim()
-    const code = isoCountryCode(event.address?.country)
-    const country = code ? (regionNames.of(code) ?? code) : undefined
-
-    return city && country ? `${city}, ${country}` : undefined
-  }
-
-  if (rows.length === 0) return null
-
-  const onOpenChange = (open: boolean) => {
-    folds.setOpen('across', open)
-    if (open)
-      frameSearch({ bbox: boundsWith(bounds ?? undefined, center, rows, rows.length), center })
-    else frameRegion(region)
-  }
-
-  return (
-    <FoldSection
-      count={rows.length}
-      open={folds.isOpen('across', false)}
-      title={t('search.sections.across_border')}
-      onOpenChange={onOpenChange}
-    >
-      <List>
-        {rows.map((event) => (
-          <EventListItem key={event.id} hideDistance event={event} placeLine={placeLine(event)} />
-        ))}
-      </List>
-    </FoldSection>
   )
 }

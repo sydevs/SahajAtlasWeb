@@ -1,23 +1,19 @@
-import { type ReactNode, useMemo, useState } from 'react'
+import { type ReactNode, useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
-import { CalendarPlus, ChevronDown } from 'lucide-react'
 import clsx from 'clsx'
 
 import { EventOnward, EventRegisterBar } from './EventRegister'
 import { sanitizeDescription } from './sanitize'
 
 import { Alert } from '@/components/atoms/Alert'
-import { Button } from '@/components/atoms/Button'
-import { AddToCalendarList } from '@/components/molecules/AddToCalendar'
 import { ContactOnlyDetails } from '@/components/molecules/ContactOnly'
 import { EventActions } from '@/components/molecules/EventActions'
 import { EventChips } from '@/components/molecules/EventChips'
 import { ImageCarousel } from '@/components/molecules/ImageCarousel'
 import { EventFacts } from '@/components/molecules/EventFacts'
 import { WhatToExpect } from '@/components/molecules/WhatToExpect'
-import { Link } from '@/components/atoms/Link'
 import { useEventDisplay } from '@/hooks/use-event-display'
-import { isOnline, isUnverified, lexicalToHtml } from '@/lib/shape'
+import { isUnverified, lexicalToHtml } from '@/lib/shape'
 import { Event } from '@/types'
 
 /**
@@ -38,11 +34,11 @@ export type EventDetailsSection = 'details' | 'when' | 'where' | 'about'
 
 export type EventDetailsProps = EventSurfaceProps & {
   /**
-   * What stands where the calls to action go — after the facts, before Add to calendar — in
+   * What stands where the calls to action go — after the facts, before What to expect — in
    * place of the inline Register and action row. The phone map sheet passes its pinned bar,
    * which paints at the screen's edge but sits here in the DOM, so reading and keyboard order
-   * stay the page's own: title, tags, time and place, Register, Directions and Share, Add to
-   * calendar, What to expect, About. Register and the row travel together because the bar is
+   * stay the page's own: title, tags, time and place, Register, Directions and Share, What to
+   * expect, About. Register and the row travel together because the bar is
    * pinned over the body's last band, so an inline copy of either would be drawn underneath it
    * at the short snap (#320).
    */
@@ -63,7 +59,7 @@ export type EventDetailsProps = EventSurfaceProps & {
   sectionTrailing?: (section: EventDetailsSection) => ReactNode
   /**
    * Replaces what a published class offers below the facts — the unverified caveat, Register,
-   * the action row, Add to calendar and the onward offer — for a listing nobody can act on yet
+   * the action row and the onward offer — for a listing nobody can act on yet
    * (#147).
    */
   actions?: ReactNode
@@ -73,54 +69,11 @@ export type EventDetailsProps = EventSurfaceProps & {
 
 /**
  * This is the event panel body, in the order a visitor asks: what kind of class (the tags,
- * right under the title), when, where, then Register, the other actions and Add to calendar,
- * the host's notes, what to expect, About, then images. The title is a separate component
- * (EventHeader). It renders outside the scrolling drawer body, so it stays pinned.
+ * right under the title), when, where, then Register and the other actions, what to expect,
+ * About, then images. The title is a separate component (EventHeader). It renders outside the
+ * scrolling drawer body, so it stays pinned. Add to calendar stays on the registration
+ * confirmation only: on the class page it would compete with Register (Devindra, 9 Nov).
  */
-/** Add-to-calendar on the class page: a text-weight control that opens a short list. It closes
- *  the group of things to do with the class, after Register and the action row, as the quietest
- *  of them. Only for a class with a session still to come. */
-function EventAddToCalendar({ event }: { event: Event }) {
-  const { t } = useTranslation()
-  const { display, whereLine } = useEventDisplay(event)
-  const [open, setOpen] = useState(false)
-
-  if (!display.next || !event.schedule) return null
-
-  const now = Date.now()
-
-  return (
-    <div className="flex flex-col">
-      <Button
-        aria-expanded={open}
-        className="h-11 justify-start px-0"
-        color="neutral"
-        variant="ghost"
-        onClick={() => setOpen((value) => !value)}
-      >
-        <CalendarPlus className="text-primary-11" size={18} />
-        {t('event.actions.add_calendar')}
-        <ChevronDown className={open ? 'rotate-180 text-gray-11' : 'text-gray-11'} size={16} />
-      </Button>
-      {open && (
-        <AddToCalendarList
-          event={{
-            id: event.id,
-            title: event.title,
-            schedule: {
-              ...event.schedule,
-              upcomingDates: event.schedule.upcomingDates?.filter((d) => d.getTime() > now),
-            },
-            location: isOnline(event) ? undefined : whereLine,
-            url: event.webUrl,
-            from: display.next.toJSDate(),
-          }}
-        />
-      )}
-    </div>
-  )
-}
-
 export function EventDetails({
   event,
   basePath,
@@ -195,16 +148,6 @@ export function EventDetails({
 
       {actions ?? <PublishedActions basePath={basePath} cta={cta} ended={ended} event={event} />}
 
-      {/* With no phone, the Contact button already writes to this address. */}
-      {event.contactEmail && event.contactPhone && (
-        <p className="text-sm text-gray-11">
-          {t('event.display.email_host')}{' '}
-          <Link className="underline" href={`mailto:${event.contactEmail}`}>
-            {event.contactEmail}
-          </Link>
-        </p>
-      )}
-
       <WhatToExpect event={event} />
 
       {/* About — host-authored prose always sits below the facts and actions. */}
@@ -239,8 +182,8 @@ export function EventDetails({
 }
 
 /**
- * What a published class offers: the unverified caveat, Register and the action row, Add to
- * calendar, and the onward offer for a class with nothing to book.
+ * What a published class offers: the unverified caveat, Register and the action row, and the
+ * onward offer for a class with nothing to book.
  */
 function PublishedActions({
   event,
@@ -273,8 +216,6 @@ function PublishedActions({
           <EventActions basePath={basePath} event={event} />
         </>
       )}
-
-      <EventAddToCalendar event={event} />
 
       {/* A by-request or finished class has nothing to book, so it must not be the end of
             the road. Old posters and QR codes keep sending people to finished ones. */}
