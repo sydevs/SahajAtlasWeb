@@ -39,6 +39,17 @@ describe('EventSlimSchema', () => {
     expect(parsed.schedule?.upcomingDates?.[0].toISOString()).toBe('2026-07-04T09:30:00.000Z')
   })
 
+  // SahajCloud sends a by-request listing an all-null schedule group (class 830, Stirling).
+  it('reads a schedule group with no first date as no schedule', () => {
+    const parsed = EventSlimSchema.parse({
+      ...mockEventSlim,
+      inactive: true,
+      schedule: { firstDate: null, firstDate_tz: null, recurrenceType: null, upcomingDates: [] },
+    })
+
+    expect(parsed.schedule).toBeNull()
+  })
+
   it('rejects an unknown recurrence type', () => {
     expect(() =>
       EventSlimSchema.parse({

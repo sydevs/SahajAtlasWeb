@@ -68,6 +68,18 @@ export const EventScheduleSchema = z.object({
 })
 export type EventSchedule = z.infer<typeof EventScheduleSchema>
 
+// A by-request listing comes back with an empty schedule group, every field null, rather than
+// with no group. `z.coerce.date()` reads its null first date as 1 Jan 1970, so the listing looked
+// scheduled and was tagged "One-off event" (bug 20, still live after #370). A group with no first
+// date is no schedule.
+const OptionalScheduleSchema = z.preprocess(
+  (value) =>
+    value && typeof value === 'object' && (value as { firstDate?: unknown }).firstDate == null
+      ? null
+      : value,
+  EventScheduleSchema.nullish(),
+)
+
 // Populated `images` upload (the SahajCloud `Image` collection). `url` is a
 // virtual field derived from `filename` (which `getEvent` selects). It is nullish,
 // so a single file-less image cannot fail the whole event read. Consumers skip
@@ -157,7 +169,7 @@ export const AgnosticFeedEventSchema = z.object({
   contactOnly: z.boolean().nullish(),
   inactive: z.boolean().nullish(),
   address: EventAddressSchema.nullish(),
-  schedule: EventScheduleSchema.nullish(),
+  schedule: OptionalScheduleSchema,
   region: RegionRefSchema,
   // Denormalized "at capacity" flag (SahajCloud#601) — a boolean, never a raw
   // count, so cards resolve the same Full state as the panel. Nullish: the CMS
@@ -206,11 +218,10 @@ export const EventDocSchema = z.object({
   languages: z.array(z.string()),
   inactive: z.boolean().nullish(),
   address: EventAddressSchema.nullish(),
-  schedule: EventScheduleSchema.nullish(),
+  schedule: OptionalScheduleSchema,
   description: LexicalDocumentSchema.nullish(),
   images: z.array(EventImageSchema).default([]),
   contactPhone: z.string().nullish(),
-  contactEmail: z.string().nullish(),
   contactName: z.string().nullish(),
   // The host's own site, surfaced as a secondary action. Runs through
   // SafeUrlSchema like the other CMS-authored hrefs — a `javascript:`/`data:`
