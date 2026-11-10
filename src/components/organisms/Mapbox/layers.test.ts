@@ -7,6 +7,7 @@ import { describe, it, expect } from 'vitest'
 import { MARKER_IDS, markerColors } from './markers'
 import {
   APPROXIMATE_RADIUS_KM,
+  approximateDotLayer,
   approximatePinLayer,
   approximateRingLayer,
   boundsLayer,
@@ -15,6 +16,7 @@ import {
   hoveredPointLayer,
   INTERACTIVE_LAYER_IDS,
   LAYER_IDS,
+  RING_MAX_ZOOM,
   RING_ZOOM,
   selectedAreaLayer,
   selectedPointLayer,
@@ -47,6 +49,7 @@ describe('LAYER_IDS', () => {
       hoveredArea: 'hovered-area',
       approximatePin: 'approximate-pin',
       approximateRing: 'approximate-ring',
+      approximateDot: 'approximate-dot',
       bounds: 'selected-bounds',
     })
   })
@@ -67,17 +70,19 @@ describe('LAYER_IDS', () => {
       LAYER_IDS.unclusteredPoint,
       LAYER_IDS.approximatePin,
       LAYER_IDS.approximateRing,
+      LAYER_IDS.approximateDot,
     ])
   })
 })
 
 describe('the approximate-place layers', () => {
   const ring = approximateRingLayer({}, 'light')
+  const dot = approximateDotLayer({}, 'light')
 
   // A listing with no real place clusters like any other, so it can never show a ring while it
   // is counted in a bubble beside it.
-  it('both read the clustering source, and only an unclustered listing', () => {
-    for (const layer of [approximatePinLayer, ring]) {
+  it('all three read the clustering source, and only an unclustered listing', () => {
+    for (const layer of [approximatePinLayer, ring, dot]) {
       expect(layer.source).toBe('events')
       expect(layer.filter).toEqual([
         'all',
@@ -92,9 +97,29 @@ describe('the approximate-place layers', () => {
     ])
   })
 
-  it('hands over from pin to ring at one zoom, with no gap and no overlap', () => {
+  // Exactly one of the three draws at every zoom: a vague listing is never unmarked, and never
+  // marked twice.
+  it('hands pin to ring to dot at one zoom each, with no gap and no overlap', () => {
+    expect(approximatePinLayer.minzoom).toBeUndefined()
     expect(approximatePinLayer.maxzoom).toBe(RING_ZOOM)
     expect(ring.minzoom).toBe(RING_ZOOM)
+    expect(ring.maxzoom).toBe(RING_MAX_ZOOM)
+    expect(dot.minzoom).toBe(RING_MAX_ZOOM)
+    expect(dot.maxzoom).toBeUndefined()
+  })
+
+  // The narrowest map the full interface renders in is 360px, so one level past this the ring's
+  // outline is off every screen and only its tint would be left.
+  it('drops the ring where it grows as wide as the narrowest map, around zoom 11.7', () => {
+    expect(RING_MAX_ZOOM).toBeCloseTo(11.7, 1)
+    expect(RING_MAX_ZOOM).toBeGreaterThan(RING_ZOOM)
+  })
+
+  // The dot stands in for an area wider than the screen, so it is a marker rather than ground:
+  // a fixed size at every zoom, where the ring's radius is an expression that doubles.
+  it('draws the dot at a fixed size, in the ring colours', () => {
+    expect(paintOf(dot)['circle-radius']).toBe(8)
+    expect(paintOf(dot)['circle-color']).toBe(paintOf(ring)['circle-color'])
   })
 
   // The pin is 34px wide at icon-size 0.85: the ring takes over once its radius is that wide.

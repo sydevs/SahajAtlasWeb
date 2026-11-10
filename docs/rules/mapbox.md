@@ -97,12 +97,20 @@ The map is the heart of the app and its hottest render path. Treat it carefully.
   meets only on request), or one whose street names no place — `hasVagueAddress` reads a
   placeholder, the town's own name, or a "city centre" word (#15). Those show only the
   town, offer no directions, and frame at `VAGUE_ZOOM`.
-- **On the map it is a pin until the ring is worth drawing.** Below `RING_ZOOM` the listing
-  is the ordinary pin (`approximatePinLayer`); from it, a soft `APPROXIMATE_RADIUS_KM`
-  circle drawn to scale (`approximateRingLayer`). `RING_ZOOM` is where the ring's radius
-  is as wide as the pin, at 45° — about zoom 9 for 3km. The selection and hover
-  highlights hand over at the same zoom (`MapPoint.vague`).
-- ⚠ **Both read the clustering `events` source, behind `!has point_count`.** So the
+- **On the map it is a pin, then a ring, then a dot — one of the three at every zoom.**
+  Below `RING_ZOOM` the listing is the ordinary pin (`approximatePinLayer`); from it, a soft
+  `APPROXIMATE_RADIUS_KM` circle drawn to scale (`approximateRingLayer`); from
+  `RING_MAX_ZOOM`, a fixed-size dot (`approximateDotLayer`). `RING_ZOOM` is where the ring's
+  radius is as wide as the pin and `RING_MAX_ZOOM` where it is as wide as the narrowest map
+  the interface renders in, both at 45° — about zoom 9 and zoom 11.7 for 3km. The selection
+  and hover highlights hand over at `RING_ZOOM` (`MapPoint.vague`) and need no second bound,
+  since their sprite is a fixed size.
+  ⚠ **The ring needs that upper bound because its radius doubles per level.** Past it the
+  stroke is off screen, so an unselected listing was a flat tint carrying no marker — and a
+  tint that answered every click and hover across the map, stacked with its neighbours'. The
+  dot marks the stored point, which is the town's centre rather than the venue; what stops
+  that reading as a doorstep is the panel, which shows only the town and offers no directions.
+- ⚠ **All three read the clustering `events` source, behind `!has point_count`.** So the
   listing joins a cluster like any other, and never shows a ring while it is counted in a
   bubble beside it — which a separate, unclustered area source did. The ring is a `circle`
   layer rather than a polygon: its radius interpolates `exponential` 2 on zoom, exactly

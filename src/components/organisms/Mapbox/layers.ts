@@ -10,6 +10,7 @@ import {
   type ThemeMode,
 } from '@/config/theme/palette'
 import { ringRadiusPx, ringZoom } from '@/lib/camera'
+import { MIN_INTERFACE_WIDTH_PX } from '@/lib/embed-slot'
 
 type Props = {
   id: string
@@ -33,6 +34,7 @@ export const LAYER_IDS = {
   hoveredArea: 'hovered-area',
   approximatePin: 'approximate-pin',
   approximateRing: 'approximate-ring',
+  approximateDot: 'approximate-dot',
   bounds: 'selected-bounds',
 } as const
 
@@ -44,6 +46,7 @@ export const INTERACTIVE_LAYER_IDS = [
   LAYER_IDS.unclusteredPoint,
   LAYER_IDS.approximatePin,
   LAYER_IDS.approximateRing,
+  LAYER_IDS.approximateDot,
 ]
 
 /**
@@ -110,6 +113,15 @@ export const APPROXIMATE_RADIUS_KM = 3
 export const RING_ZOOM = ringZoom(APPROXIMATE_RADIUS_KM, PIN_WIDTH * PIN_SIZE, 45)
 
 /**
+ * Where the ring stops being a shape and becomes a wash: the zoom at which it is as wide as the
+ * narrowest map the full interface renders in, so one more level puts its outline off every
+ * screen. The radius doubles per level, so without a bound the stroke leaves the viewport and an
+ * unselected listing is a flat tint with no marker in it — and a tint that takes every click and
+ * hover across the map, stacked with its neighbours'. Above it the ring hands over to a dot.
+ */
+export const RING_MAX_ZOOM = ringZoom(APPROXIMATE_RADIUS_KM, MIN_INTERFACE_WIDTH_PX / 2, 45)
+
+/**
  * A listing with no real place, zoomed out: the ordinary pin. It reads the clustering source, so it
  * joins a cluster exactly as any other listing does.
  */
@@ -123,10 +135,11 @@ export const approximatePinLayer: Props = {
 }
 
 /**
- * The same listing zoomed in: a soft circle of `APPROXIMATE_RADIUS_KM`, to scale. Also read off the
- * clustering source, so a listing still inside a cluster draws no ring. The radius doubles with each
- * zoom, which `exponential` 2 interpolates exactly, and widens by `1 / cos(latitude)` as Mercator
- * does — `cosLat` is precomputed per feature, since an expression cannot read a point's latitude.
+ * The same listing zoomed in: a soft circle of `APPROXIMATE_RADIUS_KM`, to scale, between
+ * `RING_ZOOM` and `RING_MAX_ZOOM`. Also read off the clustering source, so a listing still inside a
+ * cluster draws no ring. The radius doubles with each zoom, which `exponential` 2 interpolates
+ * exactly, and widens by `1 / cos(latitude)` as Mercator does — `cosLat` is precomputed per
+ * feature, since an expression cannot read a point's latitude.
  * A factory, memoised like `clusterLayer`, because the colour follows the brand.
  */
 export const approximateRingLayer = (palette: PaletteRoles, mode: ThemeMode): Props => {
@@ -138,6 +151,7 @@ export const approximateRingLayer = (palette: PaletteRoles, mode: ThemeMode): Pr
     type: 'circle',
     source: 'events',
     minzoom: RING_ZOOM,
+    maxzoom: RING_MAX_ZOOM,
     filter: ['all', unclustered, isApproximate],
     paint: {
       'circle-radius': [
@@ -156,6 +170,34 @@ export const approximateRingLayer = (palette: PaletteRoles, mode: ThemeMode): Pr
       'circle-stroke-width': 1.5,
       'circle-pitch-alignment': 'map',
       'circle-pitch-scale': 'map',
+    },
+  }
+}
+
+/**
+ * The same listing zoomed past the ring: the ring's centre, at a fixed size. It keeps the
+ * listing on the map, clickable and hoverable, at zooms where the area it stands for is wider
+ * than the screen. ⚠ It marks the stored point, which is the town's centre and not the venue —
+ * what stops that reading as a doorstep is the panel, which shows only the town and offers no
+ * directions. Drawn in the ring's own colours at a fraction of its weight, so it reads as the
+ * ring rather than as a second kind of pin. A factory, memoised like `clusterLayer`.
+ */
+export const approximateDotLayer = (palette: PaletteRoles, mode: ThemeMode): Props => {
+  const color = stepHex(palette.primary, mode, SOLID_STEP) ?? '#21C1A2'
+
+  return {
+    id: LAYER_IDS.approximateDot,
+    type: 'circle',
+    source: 'events',
+    minzoom: RING_MAX_ZOOM,
+    filter: ['all', unclustered, isApproximate],
+    paint: {
+      'circle-radius': 8,
+      'circle-color': color,
+      'circle-opacity': 0.3,
+      'circle-stroke-color': color,
+      'circle-stroke-opacity': 0.8,
+      'circle-stroke-width': 2,
     },
   }
 }

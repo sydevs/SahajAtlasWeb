@@ -19,6 +19,7 @@ import { useShallow } from 'zustand/react/shallow'
 import { CalendarDays } from 'lucide-react'
 
 import {
+  approximateDotLayer,
   approximatePinLayer,
   approximateRingLayer,
   clusterLayer,
@@ -331,6 +332,7 @@ export function Mapbox({ cooperative = false }: { cooperative?: boolean } = {}) 
   const clusters = useMemo(() => clusterLayer(palette, theme), [palette, theme])
   const bounds = useMemo(() => boundsLayer(palette, theme), [palette, theme])
   const approximateRing = useMemo(() => approximateRingLayer(palette, theme), [palette, theme])
+  const approximateDot = useMemo(() => approximateDotLayer(palette, theme), [palette, theme])
 
   // This supplies the app's own pin and cluster images. `markers.ts` owns
   // the why, the theme-switch handling, and the in-place repaint. There is
@@ -589,6 +591,7 @@ export function Mapbox({ cooperative = false }: { cooperative?: boolean } = {}) 
             <Layer {...clusters} />
             <Layer {...unclusteredPointLayer} />
             <Layer {...approximatePinLayer} />
+            <Layer {...approximateDot} />
           </Source>
         )}
         {DEBUG_BOUNDARY && boundary && (
