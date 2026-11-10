@@ -1,5 +1,4 @@
 import type { BBox } from 'geojson'
-import type { TFunction } from 'i18next'
 import type { EventSlim } from '@/types'
 
 import { type ReactNode, useCallback, useEffect, useId, useMemo, useRef } from 'react'
@@ -10,6 +9,7 @@ import { MapPinOff } from 'lucide-react'
 
 import { EventsList } from './EventsList'
 import { LoadMore } from './LoadMore'
+import { reliefCopy } from './relief-copy'
 
 import { Alert } from '@/components/atoms/Alert'
 import { Button } from '@/components/atoms/Button'
@@ -24,7 +24,6 @@ import {
   DEFAULT_FILTERS,
   DEFAULT_REVEAL,
   EXCLUDE_EVENT_PARAM,
-  type FilterKey,
   addClassPath,
   boundsWith,
   hasActiveFilters,
@@ -600,9 +599,13 @@ function FilterRelief({
   if (!inPlace && hiddenNearby <= 0) return null
 
   const best = relief[0]
-  // Under classes that remain, the line says what the hidden ones differ by: "1 more class on
-  // another day. Show all days". It counts what that one step gives back, so the two agree.
-  const after = inPlace && here > 0
+  const { sentence, action } = reliefCopy(t, {
+    here,
+    hiddenHere,
+    hiddenNearby,
+    place,
+    best: best && { key: best.pill.key, label: best.pill.label, count: best.count },
+  })
 
   // One quiet line. Classes may well be on screen, and the filter may be the visitor's only free
   // day, so this mentions the cost and never presses for the filter to go.
@@ -611,58 +614,16 @@ function FilterRelief({
       className="flex flex-wrap items-center gap-x-2 px-gutter pt-1 text-sm text-gray-11"
       role="status"
     >
-      <span>
-        {after
-          ? moreHereLine(t, best?.pill.key, best?.count ?? hiddenHere)
-          : inPlace
-            ? t('search.filtered.hidden_here', { count: hiddenHere, place })
-            : t('search.filtered.hidden_nearby', { count: hiddenNearby })}
-      </span>
+      <span>{sentence}</span>
       <button
         className="min-h-11 text-start font-medium text-primary underline outline-none focus-visible:ring-2 focus-visible:ring-primary-8"
         type="button"
         onClick={best ? best.pill.onRemove : clearFilters}
       >
-        {best
-          ? ((after && showAllLabel(t, best.pill.key)) ??
-            t('search.filtered.remove_short', { label: best.pill.label }))
-          : t('filters.chrome.clear')}
+        {action}
       </button>
     </p>
   )
-}
-
-// The classes a filter hides, named by what they differ in. A filter with no plain way to say that
-// (format, cadence, region), or none single filter that gives them back, reads as the filters'.
-function moreHereLine(t: TFunction, key: FilterKey | undefined, count: number) {
-  switch (key) {
-    case 'days':
-      return t('search.filtered.more_days', { count })
-    case 'time':
-      return t('search.filtered.more_time', { count })
-    case 'languages':
-      return t('search.filtered.more_languages', { count })
-    case 'dates':
-      return t('search.filtered.more_dates', { count })
-    default:
-      return t('search.filtered.more_other', { count })
-  }
-}
-
-// The step that gives them back, said as what it shows rather than what it removes.
-function showAllLabel(t: TFunction, key: FilterKey): string | null {
-  switch (key) {
-    case 'days':
-      return t('search.filtered.show_days')
-    case 'time':
-      return t('search.filtered.show_time')
-    case 'languages':
-      return t('search.filtered.show_languages')
-    case 'dates':
-      return t('search.filtered.show_dates')
-    default:
-      return null
-  }
 }
 
 // The place itself has nothing. A notice says so before the nearest classes take over, so a class
