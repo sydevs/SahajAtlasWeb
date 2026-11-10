@@ -10,7 +10,7 @@ import { useMapbox, usePaddingState } from '@/hooks/use-mapbox'
 import { useSheetCover, useViewState } from '@/config/store'
 import { useIsWide } from '@/config/responsive'
 import { eventFrameZoom, hasMapPoint, worldViewCamera } from '@/lib/camera'
-import { isOnline } from '@/lib/shape'
+import { hasApproximatePlace, isOnline } from '@/lib/shape'
 import { frameElement } from '@/lib/overlay'
 
 // These are the fixed left-drawer footprint and the mobile sheet's open height.
@@ -58,9 +58,13 @@ const REGION_FIT_PADDING = 48
 // An online event has only an approximate location.
 // This frames it wide, at city or area level, when a deep link makes it the session entry point.
 const ONLINE_ZOOM = 7
+// An in-person class with no real place frames its neighbourhood, with its whole area in view.
+const VAGUE_ZOOM = 11
 
 // This is the map point an event emphasizes: its stored coordinates.
-// It tags online events as `approximate`, which gives them a softer area sprite and a wider zoom.
+// It tags online events and in-person listings with no real place (`hasApproximatePlace`) as
+// `approximate`, which gives them a softer area sprite, and the second kind as `vague` too,
+// which is the only one with a neighbourhood to fly to.
 // It returns null when the event has no coordinates, since there is nothing to frame or highlight.
 // `frameEvent` and `highlightEvent` share this function, so both derive the point identically.
 // `frameEvent` commits the point to `selection` and moves the camera. `highlightEvent` only sets `hover`.
@@ -68,12 +72,14 @@ const ONLINE_ZOOM = 7
 // `hasMapPoint` is the one test for whether those coordinates are there.
 // `useFrameEventOnTop` reads the same verdict to decide whether to fall back to the region.
 // A second test here could disagree with it, and then `frameEvent` would run and frame nothing.
-const eventPoint = (event: Pick<EventSlim, 'address' | 'eventType'>) => {
+const eventPoint = (event: Pick<EventSlim, 'address' | 'eventType' | 'inactive' | 'schedule'>) => {
   if (!hasMapPoint(event)) return null
 
   const { latitude, longitude } = event.address
 
-  return { latitude, longitude, approximate: isOnline(event) }
+  const vague = hasApproximatePlace(event)
+
+  return { latitude, longitude, approximate: isOnline(event) || vague, vague }
 }
 
 /**
@@ -152,11 +158,11 @@ export function RealMapControllerProvider({ children }: { children: ReactNode })
         // So a genuine pin click at a detail zoom keeps that zoom.
         // A deep link, a wide-view click, or an off-screen click still eases in.
         const zoom = eventFrameZoom({
-          approximate: point.approximate,
+          online: isOnline(event),
           visible: isPointVisible(point.longitude, point.latitude),
           atDetailZoom: (mapbox?.getZoom() ?? 0) >= REGION_MAX_ZOOM,
           isEntry: opts?.isEntry ?? false,
-          eventZoom: EVENT_ZOOM,
+          eventZoom: point.approximate ? VAGUE_ZOOM : EVENT_ZOOM,
           onlineZoom: ONLINE_ZOOM,
         })
 

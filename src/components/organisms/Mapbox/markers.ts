@@ -67,9 +67,12 @@ const svg = (width: number, height: number, body: string): MarkerImage => ({
 // blur are sized to land inside 34×38, rather than being squared off by the
 // edge. The last of it falls under the tip, where the pin meets the map
 // anyway.
+/** The teardrop pin's image width, before a layer's `icon-size`. */
+export const PIN_WIDTH = 34
+
 const pin = (fill: string): MarkerImage =>
   svg(
-    34,
+    PIN_WIDTH,
     38,
     `<defs>
     <filter id="shadow" x="-40%" y="-40%" width="200%" height="200%">

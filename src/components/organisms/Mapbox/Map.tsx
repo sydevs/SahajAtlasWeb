@@ -19,6 +19,9 @@ import { useShallow } from 'zustand/react/shallow'
 import { CalendarDays } from 'lucide-react'
 
 import {
+  vagueDotLayer,
+  vaguePinLayer,
+  vagueRingLayer,
   clusterLayer,
   selectedPointLayer,
   unclusteredPointLayer,
@@ -27,6 +30,7 @@ import {
   hoveredAreaLayer,
   boundsLayer,
   INTERACTIVE_LAYER_IDS,
+  RING_ZOOM,
   LAYER_IDS,
 } from './layers'
 import { markerColors, registerMarkerImages } from './markers'
@@ -45,7 +49,13 @@ import { useHasRealPointer } from '@/config/responsive'
 import { useBrandPalette } from '@/config/theme/brand-palette'
 import { GEOJSON_STALE_TIME } from '@/config/query-client'
 import { worldMinZoom } from '@/lib/camera'
-import { hasActiveFilters, matchesFilters, safePath, todayISO } from '@/lib/shape'
+import {
+  hasActiveFilters,
+  hasApproximatePlace,
+  matchesFilters,
+  safePath,
+  todayISO,
+} from '@/lib/shape'
 import { useLocale } from '@/hooks/use-locale'
 import { useTheme } from '@/hooks/use-theme'
 import { useMapbox } from '@/hooks/use-mapbox'
@@ -103,7 +113,16 @@ const toMapSource = (features: Geojson['features']): FeatureCollection<Geometry 
   features: features.map((feature) => ({
     type: 'Feature',
     geometry: feature.geometry,
-    properties: { id: feature.properties.id, webPath: feature.properties.webPath ?? null },
+    properties: {
+      id: feature.properties.id,
+      webPath: feature.properties.webPath ?? null,
+      vague: hasApproximatePlace(feature.properties),
+      // What the ring's radius divides by, since an expression cannot read a point's latitude.
+      cosLat:
+        feature.geometry?.type === 'Point'
+          ? Math.cos((feature.geometry.coordinates[1] * Math.PI) / 180)
+          : null,
+    },
   })),
 })
 
@@ -112,8 +131,9 @@ const DEBUG_PADDING = false
 
 // This renders a single emphasized point — the committed `selection` or the
 // transient card `hover` — as its own GeoJSON source. This way, the sprite
-// shows even when the base pin sits inside a cluster. `approximate` picks
-// the softer area sprite over the pin sprite.
+// shows even when the base pin sits inside a cluster. `MapPoint.approximate`
+// picks the softer area sprite over the pin sprite, and `vague` hands the two
+// over at `RING_ZOOM`, as the base layers do.
 function PointSource({
   id,
   point,
@@ -139,7 +159,14 @@ function PointSource({
       id={id}
       type="geojson"
     >
-      <Layer {...(point.approximate ? areaLayer : pointLayer)} />
+      {point.vague ? (
+        <>
+          <Layer {...pointLayer} maxzoom={RING_ZOOM} />
+          <Layer {...areaLayer} minzoom={RING_ZOOM} />
+        </>
+      ) : (
+        <Layer {...(point.approximate ? areaLayer : pointLayer)} />
+      )}
     </Source>
   )
 }
@@ -305,6 +332,8 @@ export function Mapbox({ cooperative = false }: { cooperative?: boolean } = {}) 
   const colors = useMemo(() => markerColors(palette, theme), [palette, theme])
   const clusters = useMemo(() => clusterLayer(palette, theme), [palette, theme])
   const bounds = useMemo(() => boundsLayer(palette, theme), [palette, theme])
+  const vagueRing = useMemo(() => vagueRingLayer(palette, theme), [palette, theme])
+  const vagueDot = useMemo(() => vagueDotLayer(palette, theme), [palette, theme])
 
   // This supplies the app's own pin and cluster images. `markers.ts` owns
   // the why, the theme-switch handling, and the in-place repaint. There is
@@ -447,7 +476,8 @@ export function Mapbox({ cooperative = false }: { cooperative?: boolean } = {}) 
             duration: 500,
           })
         })
-      } else if (feature.layer?.id === LAYER_IDS.unclusteredPoint) {
+      } else {
+        // Every other feature `interactiveLayerIds` can deliver stands for one class.
         navigate(safePath(feature.properties?.webPath) ?? `/${feature.properties?.id}`)
       }
     },
@@ -470,7 +500,7 @@ export function Mapbox({ cooperative = false }: { cooperative?: boolean } = {}) 
       // React skips a re-render when the id is unchanged (Object.is), so
       // this stays a no-op while the pointer sits on one pin.
       const pinId =
-        feature?.layer?.id === LAYER_IDS.unclusteredPoint ? Number(feature.properties?.id) : NaN
+        feature && feature.layer?.id !== LAYER_IDS.cluster ? Number(feature.properties?.id) : NaN
 
       setHoveredId(Number.isFinite(pinId) ? pinId : null)
     },
@@ -557,8 +587,12 @@ export function Mapbox({ cooperative = false }: { cooperative?: boolean } = {}) 
             id="events"
             type="geojson"
           >
+            {/* First, so a ring lies under every pin and cluster. */}
+            <Layer {...vagueRing} />
             <Layer {...clusters} />
             <Layer {...unclusteredPointLayer} />
+            <Layer {...vaguePinLayer} />
+            <Layer {...vagueDot} />
           </Source>
         )}
         {DEBUG_BOUNDARY && boundary && (

@@ -7,7 +7,12 @@ import { useTranslation } from 'react-i18next'
 
 import { useLocale } from './use-locale'
 
-import { resolveEventDisplay, scheduleNamesZone, streetAndCity } from '@/lib/shape'
+import {
+  hasApproximatePlace,
+  resolveEventDisplay,
+  scheduleNamesZone,
+  streetAndCity,
+} from '@/lib/shape'
 import { formatTimeRange, sameWallClock, zoneCity } from '@/lib/time'
 
 /** This is what the formatting layer reads on top of the resolver input: the address and
@@ -255,19 +260,19 @@ export function useEventDisplay(event: DisplayableEvent): EventDisplayStrings {
     const originCity = event.address?.city ?? event.region?.name ?? zoneCity(origin?.zoneName)
 
     // ── Where ──
-    // An inactive venue has no precise location.
+    // An inactive venue, or a street that names no place, has no precise location (#15).
     // This shows only the municipality, city or region name, never the street address.
+    // One predicate, which the map reads too, so the two cannot describe the same listing
+    // differently — `hasApproximatePlace` owns what counts as inactive.
+    const townOnly = hasApproximatePlace(event)
     const whereLine = display.online
       ? `${t('event.display.online')} • ${t('event.display.hosted_from', { city: originCity })}`
-      : display.status === 'inactive'
+      : townOnly
         ? event.address?.city || event.region?.name || ''
         : streetAndCity(event.address?.street, event.address?.city) || event.region?.name || ''
-    // An inactive listing hides the street, so its room would be the same wrong answer.
+    // A listing that hides the street hides its room too, as the same wrong answer.
     const room = event.address?.room?.trim()
-    const roomLine =
-      !display.online && display.status !== 'inactive' && room
-        ? t('event.display.room', { room })
-        : null
+    const roomLine = !display.online && !townOnly && room ? t('event.display.room', { room }) : null
     // For an online event only, the host's own clock, faded under the where line, such as
     // "Wed 7:30 PM Prague time" — named like the viewer's time above it, so the two clocks read
     // the same way. The weekday shows ONLY when the host's day differs from the viewer's.
