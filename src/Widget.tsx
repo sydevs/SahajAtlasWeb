@@ -498,6 +498,11 @@ const AtlasElementBase = r2wc(Widget, { shadow: 'open' }) as unknown as new () =
 // system-theme watcher — so a second `<sahaj-atlas>` would run on instance A's key
 // and steal its theme root, in silence. Exactly one runs, and the rule is enforced
 // where the thing being counted actually lives: the element, not a React render pass.
+//
+// `isConnected` on this is what separates a REPLACEMENT from a second embed: a departed
+// owner yields the page, a live one refuses the arrival. So a replacement has to disconnect
+// before its successor connects — `replaceWith` and a framework re-render both do, and the
+// opposite order costs the arriving element its render.
 let owner: AtlasElement | null = null
 
 /**
@@ -552,12 +557,13 @@ class SahajAtlasElement extends AtlasElementBase {
       clearTimeout(pendingTeardown)
       pendingTeardown = null
 
-      // A different element under a DIFFERENT key must not inherit the departing one's
-      // credential — the release's whole reason, stated at `TEARDOWN_GRACE_MS`. Under
-      // the same key it is the same tenant, so ownership transfers and the cache stays:
-      // a host router that re-renders its page replaces this element on every
-      // Back/Forward press, and releasing there cost a full re-read of the feed, the
-      // region tree and the client record on each one.
+      // A host router that re-renders its page replaces this element on every Back/Forward
+      // press, so what the cache has to survive is a NEW element and not only a returning
+      // one. A different key must still release — `TEARDOWN_GRACE_MS` says why — and
+      // `owner !== this` keeps a plain reconnect out of a comparison `AtlasBoot` may not
+      // have answered yet.
+      // shortcut: only `['client', apiKey]` is key-scoped, so a release is the whole cache;
+      // key every factory in `config/api/index.ts` if two keys reach one page.
       if (owner !== this && atlasAuth.apiKey !== embed.config.key) {
         releaseOwnership()
       }

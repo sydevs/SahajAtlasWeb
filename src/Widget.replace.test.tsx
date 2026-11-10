@@ -7,8 +7,7 @@
 // the swap costs is everything the first element had already read.
 //
 // jsdom, because the decision is a custom-element lifecycle callback and nothing else reaches
-// it: `renderToStaticMarkup` runs no callback at all, and both halves of the property —
-// the query cache and the API key — are module state two elements share.
+// it: `renderToStaticMarkup` runs no callback at all.
 import { act } from 'react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
@@ -33,9 +32,6 @@ vi.mock('@/App', async (importOriginal) => ({
 const KEY = 'sy-key-one'
 const OTHER_KEY = 'sy-key-two'
 
-/** Longer than `TEARDOWN_GRACE_MS`, which `Widget.tsx` keeps private. */
-const PAST_THE_GRACE_WINDOW = 5_000
-
 /** A cache entry no read could reproduce, so a survivor is this entry rather than a refetch. */
 const SEEDED = { marker: 'read before the swap' }
 
@@ -55,7 +51,7 @@ afterEach(() => {
   // The deferred release is the only thing that clears the page-global owner, so letting it run
   // is what returns the module to a state the next case can connect into.
   document.body.innerHTML = ''
-  act(() => void vi.advanceTimersByTime(PAST_THE_GRACE_WINDOW))
+  act(() => void vi.runOnlyPendingTimers())
 
   vi.useRealTimers()
   queryClient.clear()
@@ -70,11 +66,14 @@ function load(key: string) {
   boot({ ...DEFAULT_EMBED_CONFIG, key, map: false })
 }
 
-/** One `<sahaj-atlas>`, connected and mounted. */
+/** Connects one `<sahaj-atlas>`, replacing another atomically where a host would. */
 function connect(replacing?: Element) {
   const element = document.createElement(ELEMENT_NAME)
 
-  act(() => (replacing ? replacing.replaceWith(element) : void document.body.append(element)))
+  act(() => {
+    if (replacing) replacing.replaceWith(element)
+    else document.body.append(element)
+  })
 
   return element
 }
@@ -122,7 +121,7 @@ describe('a host replacing the element', () => {
 
     expect(queryClient.getQueryData(['geojson'])).toBe(SEEDED)
 
-    act(() => void vi.advanceTimersByTime(PAST_THE_GRACE_WINDOW))
+    act(() => void vi.runOnlyPendingTimers())
 
     expect(queryClient.getQueryData(['geojson'])).toBeUndefined()
     expect(atlasAuth.apiKey).toBeNull()
