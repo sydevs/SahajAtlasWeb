@@ -59,7 +59,7 @@ const REGION_FIT_PADDING = 48
 // This frames it wide, at city or area level, when a deep link makes it the session entry point.
 const ONLINE_ZOOM = 7
 // An in-person class with no real place frames its neighbourhood, with its whole area in view.
-const VAGUE_ZOOM = 12
+const VAGUE_ZOOM = 11
 
 // This is the map point an event emphasizes: its stored coordinates.
 // It tags online events and in-person listings with no real place (`hasApproximatePlace`) as
@@ -76,11 +76,9 @@ const eventPoint = (event: Pick<EventSlim, 'address' | 'eventType' | 'inactive' 
 
   const { latitude, longitude } = event.address
 
-  return {
-    latitude,
-    longitude,
-    approximate: isOnline(event) || hasApproximatePlace(event),
-  }
+  const vague = hasApproximatePlace(event)
+
+  return { latitude, longitude, approximate: isOnline(event) || vague, vague }
 }
 
 /**

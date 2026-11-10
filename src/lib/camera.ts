@@ -109,6 +109,19 @@ const WORLD_PX_AT_ZOOM_0 = 512
 export const worldMinZoom = (width: number): number =>
   width > WORLD_PX_AT_ZOOM_0 ? Math.log2(width / WORLD_PX_AT_ZOOM_0) : 0
 
+/** Metres one px covers on the equator at zoom 0: Earth's circumference over the zoom-0 world. */
+const EQUATOR_M_PER_PX_AT_ZOOM_0 = 40_075_016.686 / WORLD_PX_AT_ZOOM_0
+
+const cosDeg = (degrees: number) => Math.cos((degrees * Math.PI) / 180)
+
+/** How many px a ground distance of `radiusKm` spans at `zoom` and `latitude`. */
+export const ringRadiusPx = (radiusKm: number, zoom: number, latitude: number): number =>
+  (radiusKm * 1000 * 2 ** zoom) / (EQUATOR_M_PER_PX_AT_ZOOM_0 * cosDeg(latitude))
+
+/** The zoom at which `radiusKm` of ground spans `px` at `latitude` — `ringRadiusPx` inverted. */
+export const ringZoom = (radiusKm: number, px: number, latitude: number): number =>
+  Math.log2((px * EQUATOR_M_PER_PX_AT_ZOOM_0 * cosDeg(latitude)) / (radiusKm * 1000))
+
 /**
  * The camera for the world view: the world once, filling the map, with no blank edge.
  *

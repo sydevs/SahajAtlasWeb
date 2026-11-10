@@ -95,14 +95,19 @@ The map is the heart of the app and its hottest render path. Treat it carefully.
 
 - `hasApproximatePlace` (`lib/shape/event.ts`) decides it: an **inactive** listing (it
   meets only on request), or one whose street names no place — `hasVagueAddress` reads a
-  placeholder, the town's own name, or a "city centre" word (#15). Those draw a 1.5km
-  circle (`areaAround`) instead of a pin, frame at `VAGUE_ZOOM`, show only the town, and
-  offer no directions.
-- ⚠ **The whole `approximate-areas` source sits outside clustering** — its circle, its
-  outline and its centre dot, told apart by `geometry-type`. The dot stands in for the
-  circle once that shrinks to nothing, which is zoomed out, which is exactly where the
-  `events` source clusters (`clusterMaxZoom` 14). Filtering it on `!has point_count` there
-  hid it at every zoom it existed for.
+  placeholder, the town's own name, or a "city centre" word (#15). Those show only the
+  town, offer no directions, and frame at `VAGUE_ZOOM`.
+- **On the map it is a pin until the ring is worth drawing.** Below `RING_ZOOM` the listing
+  is the ordinary pin (`approximatePinLayer`); from it, a soft `APPROXIMATE_RADIUS_KM`
+  circle drawn to scale (`approximateRingLayer`). `RING_ZOOM` is where the ring's radius
+  is as wide as the pin, at 45° — about zoom 9 for 3km. The selection and hover
+  highlights hand over at the same zoom (`MapPoint.vague`).
+- ⚠ **Both read the clustering `events` source, behind `!has point_count`.** So the
+  listing joins a cluster like any other, and never shows a ring while it is counted in a
+  bubble beside it — which a separate, unclustered area source did. The ring is a `circle`
+  layer rather than a polygon: its radius interpolates `exponential` 2 on zoom, exactly
+  Mercator's doubling, divided by each feature's `cosLat`, which `toMapSource` precomputes
+  because an expression cannot read a point's latitude.
 - It's a text heuristic, because SahajCloud has no such field and requires a street. ⚠ The
   word list is load-bearing until the next Atlas sync: SahajCloud's importer rewrites each
   placeholder street it knows to the town's own name (`VENUE_FIELD_OVERRIDES` in

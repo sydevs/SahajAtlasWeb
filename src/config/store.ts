@@ -10,7 +10,13 @@ import { deepActiveElement } from '@/lib/active-element'
 // This is a point the map emphasizes with a sprite.
 // The committed `selection`, from `frameEvent`, and the transient `hover`, from `highlightEvent`, share this shape.
 // `approximate` swaps the crisp pin for the softer area sprite, used for online events.
-export type MapPoint = { latitude: number; longitude: number; approximate: boolean }
+export type MapPoint = {
+  latitude: number
+  longitude: number
+  approximate: boolean
+  /** An in-person listing with no real place: a pin zoomed out, its area zoomed in (#15). */
+  vague?: boolean
+}
 
 type ViewState = {
   zoom: number

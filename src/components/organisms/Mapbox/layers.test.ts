@@ -6,15 +6,16 @@ import { describe, it, expect } from 'vitest'
 
 import { MARKER_IDS, markerColors } from './markers'
 import {
-  approximateDotLayer,
-  approximateFillLayer,
-  approximateOutlineLayer,
+  APPROXIMATE_RADIUS_KM,
+  approximatePinLayer,
+  approximateRingLayer,
   boundsLayer,
   clusterLayer,
   hoveredAreaLayer,
   hoveredPointLayer,
   INTERACTIVE_LAYER_IDS,
   LAYER_IDS,
+  RING_ZOOM,
   selectedAreaLayer,
   selectedPointLayer,
   unclusteredPointLayer,
@@ -44,9 +45,8 @@ describe('LAYER_IDS', () => {
       selectedArea: 'selected-area',
       hoveredPoint: 'hovered-point',
       hoveredArea: 'hovered-area',
-      approximateDot: 'approximate-dot',
-      approximateFill: 'approximate-fill',
-      approximateOutline: 'approximate-outline',
+      approximatePin: 'approximate-pin',
+      approximateRing: 'approximate-ring',
       bounds: 'selected-bounds',
     })
   })
@@ -65,24 +65,61 @@ describe('LAYER_IDS', () => {
     expect(INTERACTIVE_LAYER_IDS).toEqual([
       LAYER_IDS.cluster,
       LAYER_IDS.unclusteredPoint,
-      LAYER_IDS.approximateDot,
-      LAYER_IDS.approximateFill,
+      LAYER_IDS.approximatePin,
+      LAYER_IDS.approximateRing,
     ])
   })
 })
 
 describe('the approximate-place layers', () => {
-  // ⚠ The dot stands in for the circle once that shrinks to nothing, which is zoomed out —
-  // exactly where the `events` source clusters (`clusterMaxZoom` 14). Reading `events` behind a
-  // `!has point_count` filter hid the dot at every zoom it existed for.
-  it('all read the source that does not cluster', () => {
-    for (const layer of [approximateDotLayer, approximateFillLayer, approximateOutlineLayer]) {
-      expect(layer({}, 'light').source).toBe('approximate-areas')
+  const ring = approximateRingLayer({}, 'light')
+
+  // A listing with no real place clusters like any other, so it can never show a ring while it
+  // is counted in a bubble beside it.
+  it('both read the clustering source, and only an unclustered listing', () => {
+    for (const layer of [approximatePinLayer, ring]) {
+      expect(layer.source).toBe('events')
+      expect(layer.filter).toEqual([
+        'all',
+        ['!', ['has', 'point_count']],
+        ['==', ['get', 'approximate'], true],
+      ])
     }
+    expect(unclusteredPointLayer.filter).toEqual([
+      'all',
+      ['!', ['has', 'point_count']],
+      ['!', ['==', ['get', 'approximate'], true]],
+    ])
   })
 
-  it('tells the dot from the circle by geometry, since one source carries both', () => {
-    expect(approximateDotLayer({}, 'light').filter).toEqual(['==', ['geometry-type'], 'Point'])
+  it('hands over from pin to ring at one zoom, with no gap and no overlap', () => {
+    expect(approximatePinLayer.maxzoom).toBe(RING_ZOOM)
+    expect(ring.minzoom).toBe(RING_ZOOM)
+  })
+
+  // The pin is 34px wide at icon-size 0.85: the ring takes over once its radius is that wide.
+  it('switches where the ring is as wide as the pin, around zoom 9 for a 3km radius', () => {
+    expect(APPROXIMATE_RADIUS_KM).toBe(3)
+    expect(RING_ZOOM).toBeCloseTo(9.06, 2)
+  })
+
+  it('draws the ring to scale, growing 2x per zoom and widening with latitude', () => {
+    const radius = paintOf(ring)['circle-radius'] as unknown[]
+
+    expect(radius.slice(0, 3)).toEqual(['interpolate', ['exponential', 2], ['zoom']])
+    const [, , , z0, at0, z1, at1] = radius as [
+      unknown,
+      unknown,
+      unknown,
+      number,
+      unknown[],
+      number,
+      unknown[],
+    ]
+
+    expect([z0, z1]).toEqual([0, 24])
+    expect(at0[2]).toEqual(['get', 'cosLat'])
+    expect((at1[1] as number) / (at0[1] as number)).toBeCloseTo(2 ** 24)
   })
 })
 

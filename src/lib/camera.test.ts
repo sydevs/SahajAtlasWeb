@@ -5,6 +5,8 @@ import {
   fitBoundsOptions,
   hasMapPoint,
   isWithinPaddedViewport,
+  ringRadiusPx,
+  ringZoom,
   worldMinZoom,
   worldViewCamera,
 } from './camera'
@@ -225,5 +227,19 @@ describe('worldMinZoom', () => {
     expect(worldMinZoom(390)).toBe(0)
     expect(worldMinZoom(512)).toBe(0)
     expect(worldMinZoom(0)).toBe(0)
+  })
+})
+
+describe('ringRadiusPx and ringZoom', () => {
+  it('spans a ground distance as Web Mercator does: 2x per zoom, 1/cos(latitude) wider', () => {
+    // 78,271.5 m per px at zoom 0 on the equator (Earth's circumference over a 512px world).
+    expect(ringRadiusPx(78.2715, 0, 0)).toBeCloseTo(1, 4)
+    expect(ringRadiusPx(3, 10, 0) * 2).toBeCloseTo(ringRadiusPx(3, 11, 0))
+    expect(ringRadiusPx(3, 10, 60)).toBeCloseTo(ringRadiusPx(3, 10, 0) * 2)
+  })
+
+  it('inverts each other', () => {
+    expect(ringRadiusPx(3, ringZoom(3, 29, 45), 45)).toBeCloseTo(29)
+    expect(ringZoom(3, ringRadiusPx(3, 11.5, 52), 52)).toBeCloseTo(11.5)
   })
 })

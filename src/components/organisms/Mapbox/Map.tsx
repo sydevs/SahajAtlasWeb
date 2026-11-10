@@ -19,9 +19,8 @@ import { useShallow } from 'zustand/react/shallow'
 import { CalendarDays } from 'lucide-react'
 
 import {
-  approximateDotLayer,
-  approximateFillLayer,
-  approximateOutlineLayer,
+  approximatePinLayer,
+  approximateRingLayer,
   clusterLayer,
   selectedPointLayer,
   unclusteredPointLayer,
@@ -30,6 +29,7 @@ import {
   hoveredAreaLayer,
   boundsLayer,
   INTERACTIVE_LAYER_IDS,
+  RING_ZOOM,
   LAYER_IDS,
 } from './layers'
 import { markerColors, registerMarkerImages } from './markers'
@@ -48,7 +48,6 @@ import { useHasRealPointer } from '@/config/responsive'
 import { useBrandPalette } from '@/config/theme/brand-palette'
 import { GEOJSON_STALE_TIME } from '@/config/query-client'
 import { worldMinZoom } from '@/lib/camera'
-import { areaAround } from '@/lib/geo'
 import {
   hasActiveFilters,
   hasApproximatePlace,
@@ -101,9 +100,6 @@ const MAP_WORLDVIEWS: Record<string, string> = {
   default: 'US', // Default
 }
 
-/** How far around the stored point a class with no real place might be, in km. */
-const APPROXIMATE_RADIUS_KM = 1.5
-
 // Mapbox renders geometry and injects its own cluster properties. The click
 // handler needs only `id` and `webPath`. This strips every other feature
 // property before handing the collection to the vector source. So the map
@@ -120,25 +116,13 @@ const toMapSource = (features: Geojson['features']): FeatureCollection<Geometry 
       id: feature.properties.id,
       webPath: feature.properties.webPath ?? null,
       approximate: hasApproximatePlace(feature.properties),
+      // What the ring's radius divides by, since an expression cannot read a point's latitude.
+      cosLat:
+        feature.geometry?.type === 'Point'
+          ? Math.cos((feature.geometry.coordinates[1] * Math.PI) / 180)
+          : null,
     },
   })),
-})
-
-// The round areas of the classes with no real place, each with its centre point beside it. These
-// go in their own source, because the events source is a clustering one and takes points only —
-// and because a dot clustered away is a dot missing at the zooms it exists for
-// (`approximateDotLayer`). The two geometries are told apart by `geometry-type` in the layer
-// filters: `fill` and `line` ignore a point, and only the dot layer asks for one.
-const toApproximateAreas = (source: FeatureCollection<Geometry | null>): FeatureCollection => ({
-  type: 'FeatureCollection',
-  features: source.features.flatMap((feature) =>
-    feature.properties?.approximate && feature.geometry?.type === 'Point'
-      ? [
-          areaAround(feature.geometry.coordinates, APPROXIMATE_RADIUS_KM, feature.properties),
-          { type: 'Feature' as const, geometry: feature.geometry, properties: feature.properties },
-        ]
-      : [],
-  ),
 })
 
 const DEBUG_BOUNDARY = false
@@ -173,7 +157,14 @@ function PointSource({
       id={id}
       type="geojson"
     >
-      <Layer {...(point.approximate ? areaLayer : pointLayer)} />
+      {point.vague ? (
+        <>
+          <Layer {...pointLayer} maxzoom={RING_ZOOM} />
+          <Layer {...areaLayer} minzoom={RING_ZOOM} />
+        </>
+      ) : (
+        <Layer {...(point.approximate ? areaLayer : pointLayer)} />
+      )}
     </Source>
   )
 }
@@ -339,12 +330,7 @@ export function Mapbox({ cooperative = false }: { cooperative?: boolean } = {}) 
   const colors = useMemo(() => markerColors(palette, theme), [palette, theme])
   const clusters = useMemo(() => clusterLayer(palette, theme), [palette, theme])
   const bounds = useMemo(() => boundsLayer(palette, theme), [palette, theme])
-  const approximateDot = useMemo(() => approximateDotLayer(palette, theme), [palette, theme])
-  const approximateFill = useMemo(() => approximateFillLayer(palette, theme), [palette, theme])
-  const approximateOutline = useMemo(
-    () => approximateOutlineLayer(palette, theme),
-    [palette, theme],
-  )
+  const approximateRing = useMemo(() => approximateRingLayer(palette, theme), [palette, theme])
 
   // This supplies the app's own pin and cluster images. `markers.ts` owns
   // the why, the theme-switch handling, and the in-place repaint. There is
@@ -434,7 +420,6 @@ export function Mapbox({ cooperative = false }: { cooperative?: boolean } = {}) 
 
     return toMapSource(features)
   }, [data, filters, matchesRegion])
-  const approximateAreas = useMemo(() => filtered && toApproximateAreas(filtered), [filtered])
 
   // This re-joins the hovered pin's id to the FULL feed event — the map
   // source is trimmed to id plus webPath. It reads the same `['geojson']`
@@ -590,14 +575,6 @@ export function Mapbox({ cooperative = false }: { cooperative?: boolean } = {}) 
             style={padding}
           />
         )}
-        {/* Before the events source, so an area lies under every pin and cluster. */}
-        {approximateAreas && (
-          <Source data={approximateAreas} id="approximate-areas" type="geojson">
-            <Layer {...approximateFill} />
-            <Layer {...approximateOutline} />
-            <Layer {...approximateDot} />
-          </Source>
-        )}
         {filtered && (
           <Source
             cluster={true}
@@ -607,8 +584,11 @@ export function Mapbox({ cooperative = false }: { cooperative?: boolean } = {}) 
             id="events"
             type="geojson"
           >
+            {/* First, so a ring lies under every pin and cluster. */}
+            <Layer {...approximateRing} />
             <Layer {...clusters} />
             <Layer {...unclusteredPointLayer} />
+            <Layer {...approximatePinLayer} />
           </Source>
         )}
         {DEBUG_BOUNDARY && boundary && (
