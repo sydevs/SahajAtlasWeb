@@ -77,8 +77,8 @@ Everything either snippet needs is in it. Specifically:
   [Permissions Policy](#permissions-policy).
 - **`title` on the iframe is required for accessibility.** Without one it is announced as an
   unlabelled frame. Write it for your visitors, in your language.
-- **Do not sandbox the iframe.** If your platform insists, add `allow-popups` — see
-  [Embedding in an iframe](#embedding-in-an-iframe).
+- **Do not sandbox the iframe.** If your platform insists, add `allow-popups` and
+  `allow-downloads` — see [Embedding in an iframe](#embedding-in-an-iframe).
 
 Three rules for the script tag specifically:
 
@@ -541,10 +541,13 @@ Five things about that snippet are load-bearing:
   Without these the relevant features fail **silently**, the worst way to find out.
 - **Do not sandbox the frame.** If you must, include **`allow-popups`** — without it the compact
   card's button cannot open anything, and the browser blocks it silently with nothing in your
-  console to say why. Add **`allow-same-origin`** too if you want the widget to keep its own
-  settings between visits, since a sandbox gives the frame an opaque origin, which makes storage
-  throw. (A sandbox does _not_ stop the widget writing its own URL, contrary to what this guide
-  used to say — measured in Chrome 151.)
+  console to say why. Include **`allow-downloads`** too: "Add to calendar" offers Apple Calendar
+  as an `.ics` file the widget builds and hands to the browser, and a sandbox without that flag
+  refuses the download — the menu item does nothing a visitor can see. Add
+  **`allow-same-origin`** as well if you want the widget to keep its own settings between visits,
+  since a sandbox gives the frame an opaque origin, which makes storage throw. (A sandbox does
+  _not_ stop the widget writing its own URL, contrary to what this guide used to say — measured
+  in Chrome 151.)
 - **`map=false` is usually what you want in a frame**, unless the frame is large.
 - **Give it a real height.** As with the element, a frame with no height collapses.
 
@@ -1294,7 +1297,8 @@ Three things to check when you migrate:
 | **Country flags are missing, everything else fine**                          | `img-src https://react-circle-flags.pages.dev`. Cosmetic.                                                                                                                                                                                                                                                                                                                                                                                                                                                     |
 | **The widget shows "its security check was blocked" and nothing else**       | Read the browser console, which names both fixes. If the browser also logged a refused frame, your CSP is missing `frame-src https://cloud.sydevelopers.com`; otherwise your page's domain is not on your client record — ask us to add it. Since the atlas cannot take a registration without the captcha, this fails outright rather than degrading the form.                                                                                                                                               |
 | **The widget's route never appears in the address bar**                      | The document refuses `history.replaceState` — most often `file://`. The widget detects that and routes in memory.                                                                                                                                                                                                                                                                                                                                                                                             |
-| **The compact card's button does nothing, in an iframe**                     | The frame is sandboxed without `allow-popups`, so its `target="_blank"` link cannot open. It fails silently, with nothing in the console. Add `allow-popups`, or drop `sandbox`.                                                                                                                                                                                                                                                                                                                              |
+| **A button or a calendar row does nothing, in an iframe**                    | The frame is sandboxed without `allow-popups`, so a `target="_blank"` link cannot open. Two places need one: the compact card's button, and the Google, Outlook.com, Office 365 and Yahoo rows of "Add to calendar". It fails silently, with nothing in the console. Add `allow-popups`, or drop `sandbox`.                                                                                                                                                                                                   |
+| **Add to calendar → Apple Calendar does nothing, in an iframe**              | The frame is sandboxed without `allow-downloads`. That row builds the `.ics` file in the browser and hands it over as a download, which a sandbox refuses — silently, like the popup above. The four link-out rows are unaffected. Add `allow-downloads`, or drop `sandbox`.                                                                                                                                                                                                                                  |
 | **`atlas=` on the script URL seems to be ignored**                           | The page's own URL already carries an `?atlas=` route, which always wins. That is intended — see [`atlas`, and how the route is chosen](#atlas-and-how-the-route-is-chosen).                                                                                                                                                                                                                                                                                                                                  |
 | **Sharing offers no link**                                                   | The same memory-routing mode, on a page with no canonical atlas URL to offer instead.                                                                                                                                                                                                                                                                                                                                                                                                                         |
 | **The widget covers the rest of the page**                                   | A map embed with no height of its own renders `position: fixed; inset: 0`. Give the element a `display: block` and a height to keep the map inside it, or use `map=false` for an embed with no map.                                                                                                                                                                                                                                                                                                           |

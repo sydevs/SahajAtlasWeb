@@ -5,6 +5,7 @@ import { useTranslation } from 'react-i18next'
 import { Check, ChevronRight, Info, Languages, Monitor, Moon, Settings, Sun } from 'lucide-react'
 
 import { frameCollision } from '@/lib/overlay'
+import { menuChrome } from '@/components/atoms/Menu'
 import { useAvailableLocales } from '@/hooks/use-available-locales'
 import { useWidgetMode } from '@/config/mode'
 import { useReportModal } from '@/config/store'
@@ -14,10 +15,9 @@ import { type ThemePreference, useThemePreference } from '@/hooks/use-theme'
 import { overlayContainer } from '@/lib/overlay'
 import { publishLocale } from '@/lib/shape'
 
-const menu =
-  'z-50 min-w-44 rounded-xl border border-divider bg-background p-1 text-foreground shadow-xl'
-const item =
-  'flex cursor-pointer select-none items-center gap-2 rounded-lg px-2 py-2 text-sm outline-none data-[highlighted]:bg-primary-3 data-[state=open]:bg-primary-3'
+const { surface, row } = menuChrome({ submenus: true })
+const menu = surface()
+const item = row()
 
 // The radio-selected checkmark, in a fixed-width slot so labels line up whether or
 // not the row is the current choice.

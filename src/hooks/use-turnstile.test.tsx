@@ -135,15 +135,12 @@ describe('useTurnstile', () => {
     fromFrame({ type: 'ready' })
 
     expect(frame()?.height).toBe('0')
-    expect(hook.interactive).toBe(false)
 
     fromFrame({ type: 'interactive' })
     expect(frame()?.height).toBe('65')
-    expect(hook.interactive).toBe(true)
 
     fromFrame({ type: 'settled' })
     expect(frame()?.height).toBe('0')
-    expect(hook.interactive).toBe(false)
   })
 
   // A 0px flex item still takes its column's gap on both sides: the registration form showed

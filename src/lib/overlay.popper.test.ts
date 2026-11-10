@@ -40,14 +40,19 @@ const SOURCE_FILES = sourceFiles()
 const POPPER_PACKAGES =
   /@radix-ui\/react-(select|popover|dropdown-menu|tooltip|hover-card|context-menu)/
 
+/** The Radix dropdown menus, which also share one skin — the second block below. */
+const MENUS: Record<string, string> = {
+  'components/molecules/AddToCalendar/AddToCalendar.tsx': 'the add-to-calendar provider menu',
+  'components/molecules/SettingsMenu/SettingsMenu.tsx': 'the cog, and its language submenu',
+  'components/molecules/SortMenu/SortMenu.tsx': 'the results-list sort menu',
+}
+
 /** Why each one is here, so a removal is a decision rather than an accident. */
 const BOUNDED: Record<string, string> = {
   'components/atoms/Select/Select.tsx': 'the plain list picker',
   'components/atoms/Combobox/Combobox.tsx':
     'the search-in-the-field region picker (Popover + cmdk)',
-  'components/molecules/AddToCalendar/AddToCalendar.tsx': 'the add-to-calendar provider menu',
-  'components/molecules/SettingsMenu/SettingsMenu.tsx': 'the cog, and its language submenu',
-  'components/molecules/SortMenu/SortMenu.tsx': 'the results-list sort menu',
+  ...MENUS,
 }
 
 describe('Radix poppers are bounded by the frame', () => {
@@ -78,5 +83,101 @@ describe('Radix poppers are bounded by the frame', () => {
     // asserts an ABSENCE, so a mention in a comment is worth catching too.
     expect(readRaw('components/atoms/Dropdown/Dropdown.tsx')).not.toContain('frameCollision')
     expect(readRaw('hooks/use-popover.ts')).not.toContain('frameCollision')
+  })
+})
+
+/**
+ * `MENUS` also share one skin, and spell none of it themselves (#367).
+ *
+ * `menuChrome`'s own docblock carries why. What matters here is that an unintended class is
+ * still a valid class, so nothing else in the repo — not lint, not typecheck, not the rest of
+ * this lane — goes red while two menus drift apart.
+ *
+ * Asserted here, with the recipe in `atoms/Menu`, for the reason the panel block below gives:
+ * this file holds the closed list all three menus belong to, so one file answers which popper
+ * surfaces exist and which skin each reads.
+ */
+const SKIN_RUNS = [
+  // Each run is distinctive as a run, not by its first class: `CompactEmbedView` also rounds to
+  // `xl`, and the Select atom also highlights, on `primary-4`.
+  'rounded-xl border border-divider',
+  'data-[highlighted]:bg-primary-3',
+]
+
+/**
+ * The two field pickers share the panel their triggers open, and spell none of it (#367 review).
+ *
+ * Here rather than beside the atom because this file already holds the closed list both
+ * surfaces belong to, so one file answers which popper surfaces exist and which skin each
+ * reads. `panelChrome` itself sits beside `fieldChrome`, the skin these same two already share.
+ */
+const PANELS: Record<string, string> = {
+  'components/atoms/Select/Select.tsx': 'the listbox, and the recipe both read',
+  'components/atoms/Combobox/Combobox.tsx': 'the search-in-the-field panel',
+}
+
+/**
+ * Distinctive as a run, not by any one class: `atoms/Dropdown` spells
+ * `rounded-lg border border-gray-6 … shadow-xl` too, on a panel whose background token
+ * deliberately differs. Reconciling that third one changes how one of the two looks, so it is a
+ * design call rather than a third member here.
+ */
+const PANEL_RUN = 'overflow-hidden rounded-lg border border-gray-6 bg-background shadow-xl'
+
+describe('the field pickers share one panel skin', () => {
+  it('reads it from the Select atom at each of them', () => {
+    // Call-shaped, for the reason the boundary assertion above gives: a bare mention would
+    // satisfy a substring test, and `unused-imports` strips the import on the next edit.
+    for (const relative of Object.keys(PANELS)) expect(read(relative)).toMatch(/panelChrome\(/)
+  })
+
+  it('leaves no picker spelling the surface itself', () => {
+    expect(SOURCE_FILES.filter((relative) => read(relative).includes(PANEL_RUN))).toEqual([
+      'components/atoms/Select/Select.tsx',
+    ])
+  })
+})
+
+/**
+ * `ItemCheck` is duplicated across the two radio menus on purpose, and pinned rather than merged.
+ *
+ * Any shared home renders `DropdownMenu.ItemIndicator`, so it imports a popper package and owes
+ * `BOUNDED` an entry for a module that renders no popper surface. Narrowing that membership test
+ * from the import to a rendered surface is the one property this file exists to hold: #169's miss
+ * was a call site, and a surface spelled some other way would fall straight out of a narrower
+ * scan. So this takes the `src/loader/` seam's answer instead (#153) — where a boundary forbids
+ * sharing, duplicate and pin both copies, so the drift a copy allows turns this lane red.
+ */
+const itemCheckIn = (relative: string) =>
+  read(relative).match(/function ItemCheck\(\) \{[\s\S]*?\n\}/)?.[0]
+
+describe('the two radio menus render one ItemCheck', () => {
+  it('keeps the copies identical', () => {
+    const sort = itemCheckIn('components/molecules/SortMenu/SortMenu.tsx')
+
+    // Loudly, rather than by vacuum, if a rename stops either match finding the function.
+    expect(sort, 'SortMenu declares no ItemCheck').toBeTruthy()
+    expect(itemCheckIn('components/molecules/SettingsMenu/SettingsMenu.tsx')).toEqual(sort)
+  })
+})
+
+describe('the dropdown menus share one skin', () => {
+  it('reads it from the Menu atom at each of them', () => {
+    for (const relative of Object.keys(MENUS)) expect(read(relative)).toContain('menuChrome')
+  })
+
+  it('leaves no menu spelling a skin class of its own', () => {
+    // The surface width is a variant of the recipe, so a menu setting its own has started a
+    // fourth copy. `min-w-0` is exempt: that is the flex-shrink idiom a dozen components use to
+    // let `truncate` engage, not a width.
+    for (const relative of Object.keys(MENUS)) {
+      expect(read(relative)).not.toMatch(/\bmin-w-(?!0\b)(\d|\[)/)
+    }
+
+    for (const run of SKIN_RUNS) {
+      expect(SOURCE_FILES.filter((relative) => read(relative).includes(run))).toEqual([
+        'components/atoms/Menu/Menu.ts',
+      ])
+    }
   })
 })

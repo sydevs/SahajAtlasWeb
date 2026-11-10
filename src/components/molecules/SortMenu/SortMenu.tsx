@@ -6,17 +6,15 @@ import { Check, ChevronDown } from 'lucide-react'
 
 import { frameCollision } from '@/lib/overlay'
 import { Button } from '@/components/atoms/Button'
+import { menuChrome } from '@/components/atoms/Menu'
 import { useSetSortOrder, useSortOrder } from '@/hooks/use-sort'
 import { SORT_ORDERS } from '@/lib/shape'
 import { overlayContainer } from '@/lib/overlay'
 
-// Dropdown surface and row skins, mirroring the SettingsMenu
-// selectable-menu pattern (Radix RadioGroup, ItemIndicator, Check). This
-// stays local. The two menus share only the look, not a base component.
-const menu =
-  'z-50 min-w-44 rounded-xl border border-divider bg-background p-1 text-foreground shadow-xl'
-const item =
-  'flex cursor-pointer select-none items-center gap-2 rounded-lg px-2 py-2 text-sm outline-none data-[highlighted]:bg-primary-3'
+// SettingsMenu lays its rows out the same way. They share no base component — only the skin.
+const { surface, row } = menuChrome()
+const menu = surface()
+const item = row()
 
 // The radio checkmark in a fixed-width slot, so labels line up whether or not the row
 // is the current choice.

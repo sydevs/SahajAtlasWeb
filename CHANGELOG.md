@@ -46,7 +46,19 @@ cover everything a host would notice since the widget was first deployed.
 
 - **The captcha on the registration and report forms is hidden unless it needs a click.**
   ([SahajCloud#1090]) Most visitors now see no security check at all; the 300×65 box opens only
-  when Cloudflare asks for an interaction, and closes again after. No change to your CSP.
+  when Cloudflare asks for an interaction, and closes again after. The collapsed slot also leaves
+  no gap of its own in the form ([#371]) — it had kept a row's worth of space where the box would
+  have been. No change to your CSP.
+
+- **The registration confirmation leads with one notice about the email.** ([#366]) It names what
+  arrives by email and, for an online class, that the join link is in it, in place of a bare line
+  of text. No parameter, origin or CSP change.
+
+- **"Add to calendar" is one button that opens a menu of calendars.** ([#366]) It was a row of
+  provider buttons, and now shares a row with "Okay". Apple Calendar downloads an `.ics` file; the
+  others open the provider in a new tab. ⚠ **In a sandboxed iframe that download needs
+  `allow-downloads`**, beside the `allow-popups` the rest of the menu needs — see
+  [Embedding in an iframe]. A script embed and an unsandboxed frame need nothing.
 
 - **Your brand colours now reach the map.** ([#17]) The event pins, the cluster bubbles and the
   numbers on them are drawn from the **first** of your client record's three brand colours, and
@@ -336,6 +348,13 @@ cover everything a host would notice since the widget was first deployed.
   inactive one, now draw a soft area around the town, show only the town's name, and offer no
   directions. No change to your snippet or CSP.
 
+- **Class times say whose clock they are.** ([#380]) An online class showed the visitor's time, then
+  the host's with no label, and the two could fall on different days. Each time now names its
+  city, such as "3 AM London time" with "Mon 8 PM Toronto time" under it. An in-person time is
+  named only when the visitor's clock differs from the venue's, and stays unlabelled where the
+  listing names no timezone. The calendar says the same in one line under the grid whenever it
+  holds an online class. No change to your snippet or CSP.
+
 - **The map draws the world once.** ([#370]) On a wide embed the whole world repeated two or
   three times across the map, so a class near the dateline appeared as two or three circles. The
   world view now fills the map with a single world, and zooming out stops where one world is as
@@ -391,6 +410,21 @@ cover everything a host would notice since the widget was first deployed.
   **zero** unless your viewport meta tag carries `viewport-fit=cover`, which is your page's call
   rather than ours — see "Sizing the element" in the embedding guide. Nothing breaks without it,
   and a contained embed is unaffected either way.
+
+- **Closing your phone's own share sheet no longer takes the Share button away.** ([#366]) The
+  browser reports a dismissal the same way it reports being refused, so cancelling the sheet
+  swapped the button for the copy-and-links list. Only a sheet the browser will not open falls
+  back to that list now, which is what the [Permissions Policy] table describes.
+
+- **A registration that never reached us no longer blames the security check.** ([#365]) Atlas
+  registrations were failing in production: SahajCloud refused the browser's preflight for the
+  header carrying the security check's token, so the sign-up was never sent, and the form asked
+  the visitor to do the check again — advice that could not work, since the check had passed.
+  The refusal itself was fixed in SahajCloud ([SahajCloud#1085]). Here, a request that got no
+  response at all now says the connection or the server is at fault, in the error colour rather
+  than the blue a refusal uses; a response that may have spent the token keeps the old sentence. A
+  smoke case now replays the widget's own preflight, so the next such break fails a test lane
+  rather than every visitor.
 
 - **A direct link to an online class now zooms the map to its region.** ([#363]) An online
   class usually has no location of its own, so a link to one, such as `…/ca/ontario/toronto/720`,
@@ -941,6 +975,7 @@ must-revalidate`, pinned rather than left to the CDN default. The production dom
 [#283]: https://github.com/sydevs/SahajAtlasWeb/issues/283
 [#311]: https://github.com/sydevs/SahajAtlasWeb/pull/311
 [#374]: https://github.com/sydevs/SahajAtlasWeb/pull/374
+[#380]: https://github.com/sydevs/SahajAtlasWeb/pull/380
 [#370]: https://github.com/sydevs/SahajAtlasWeb/pull/370
 [#371]: https://github.com/sydevs/SahajAtlasWeb/pull/371
 [#363]: https://github.com/sydevs/SahajAtlasWeb/pull/363
@@ -965,3 +1000,6 @@ must-revalidate`, pinned rather than left to the CDN default. The production dom
 [#321]: https://github.com/sydevs/SahajAtlasWeb/issues/321
 [#316]: https://github.com/sydevs/SahajAtlasWeb/issues/316
 [#17]: https://github.com/sydevs/SahajAtlasWeb/issues/17
+[#365]: https://github.com/sydevs/SahajAtlasWeb/pull/365
+[#366]: https://github.com/sydevs/SahajAtlasWeb/pull/366
+[SahajCloud#1085]: https://github.com/sydevs/SahajCloud/pull/1085
