@@ -5,6 +5,12 @@ after them is optional: parameters, sizing, the Content-Security-Policy contract
 touches on your page, what leaves your visitor's browser, and what to check when something looks
 wrong.
 
+**Setting the atlas up on your own site? Start from the Install tab, not from here.** Open your
+client record in the Atlas admin (`https://cloud.sydevelopers.com/admin`, then **Install**) and it
+walks you through WordPress, Wix, a custom site or an iframe step by step, with your key and your
+page's address already in every snippet, and checks the finished install for you. This page is the
+reference behind it, for when you want to know why.
+
 This is the host-facing reference. [`AGENTS.md`](../AGENTS.md) is the developer guide.
 [`CHANGELOG.md`](../CHANGELOG.md) records what changes under an embed that updates itself.
 
@@ -93,6 +99,60 @@ Three rules for the script tag specifically:
 `auto.js` is a ~3 KiB loader, not the widget. It works out what your page supports, then fetches
 the widget itself only when the embed is about to come into view — so an embed further down your
 page costs your visitors almost nothing until they scroll to it.
+
+### On Wix, the script embed is a Custom Element
+
+Wix gives you nowhere to paste a `<script>` tag, so the same loader arrives declared instead of
+written. Add a **Custom Element** and give it two values:
+
+| Field          | Value                                         |
+| -------------- | --------------------------------------------- |
+| **Server URL** | `https://sahajatlas.com/auto.js?key=YOUR_KEY` |
+| **Tag name**   | `sahaj-atlas`                                 |
+
+It is **Add Elements (+) → Embed Code → Custom element** in the Wix Editor, and **Add Elements
+(+) → Embed & Social → Custom Element** in Wix Studio. Give it the page's full width and about
+the height of the screen; [Sizing the element](#sizing-the-element) has the rules. The map appears
+on your published site, not in the editor.
+
+⚠ **Not Embed HTML, and not an HTML iframe element.** Wix serves both from a sandboxed frame on an
+origin of its own, so those two get you the iframe embed's trade-offs
+([Which one, and what you give up](#which-one-and-what-you-give-up)) on the one platform where a
+Custom Element gets you the script's.
+
+**Wix wants two things before a Custom Element works at all:** a Premium plan and your own
+connected domain. Until the site has both, use
+[the iframe](#2-iframe--when-you-cannot-add-a-script).
+
+**Search engines need one more step on Wix, and it is not a parameter.** Nothing of the atlas is
+in the HTML a crawler reads until a Velo router serves the route, so the Install tab generates
+that router — `backend/routers.js` and the router page's own code — filled in for your site. Add
+no `routing=path` here: the router owns the addresses.
+
+### If your page replaces the element
+
+Some platforms re-render a page rather than navigating it — Wix's router does this on Back and
+Forward — so `<sahaj-atlas>` is destroyed and a new element takes its place. (A page builder
+relocating the element is the gentler case: the same element comes back, and that already kept
+its data.)
+
+⚠ **Remove the old element before you insert the new one.** `replaceWith` does, and so does a
+framework re-render. Insert first and the page is left with no map at all: only one
+`<sahaj-atlas>` may run, so the arriving element is turned away while the old one is still in the
+document, and nothing asks it again once the old one leaves.
+
+**The widget carries its state across either way, as long as the new element has the same `key`
+and arrives within a second.** It opens at the route your page's URL now names, from the classes
+and regions it has already read, so a Back press asks nothing new of the network. A replacement
+under a **different** key drops everything read under the first one instead, which it must: that
+data belongs to the key it was read under. An element gone for longer than a second is treated as
+gone.
+
+What a replacement costs is small and visual. React mounts fresh in the new element, so a list the
+visitor had scrolled down starts at the top again. Their open panels, their place in the widget's
+own Back history and a half-filled registration all come back — the first two because your page's
+address and the browser's own history entry hold them, the third because it is held against the
+event being registered for.
 
 ### What you can add later
 
