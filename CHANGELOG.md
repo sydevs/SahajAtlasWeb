@@ -45,7 +45,7 @@ cover everything a host would notice since the widget was first deployed.
 ### Changed
 
 - **Pins, cluster bubbles and area rings now carry a fixed outline, and a brand colour may be
-  adjusted so visitors can read it.** ([#389]) The outline is one colour per basemap — dark on
+  adjusted so visitors can read it.** ([#392]) The outline is one colour per basemap — dark on
   the light map, pale on the dark one — so nothing about the colour of a pin depends on what the
   map is showing underneath it, and every pin has a visible edge over pale land, over sea, and
   over a coastline. Separately, a colour that would leave panel text, a chip or the selected
@@ -988,7 +988,7 @@ must-revalidate`, pinned rather than left to the CDN default. The production dom
 [#374]: https://github.com/sydevs/SahajAtlasWeb/pull/374
 [#380]: https://github.com/sydevs/SahajAtlasWeb/pull/380
 [#370]: https://github.com/sydevs/SahajAtlasWeb/pull/370
-[#389]: https://github.com/sydevs/SahajAtlasWeb/pull/389
+[#392]: https://github.com/sydevs/SahajAtlasWeb/pull/392
 [#371]: https://github.com/sydevs/SahajAtlasWeb/pull/371
 [#363]: https://github.com/sydevs/SahajAtlasWeb/pull/363
 [#369]: https://github.com/sydevs/SahajAtlasWeb/pull/369
