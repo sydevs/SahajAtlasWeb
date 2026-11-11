@@ -50,10 +50,12 @@ cover everything a host would notice since the widget was first deployed.
   takes over the classes, regions and API key the old one had read, so it opens at the route your
   URL names without asking the API for anything it already holds — a Back press used to cost a
   full reload of the feed. It has to carry the same `key` and arrive inside the same moment [#149]
-  already allowed; a different key still starts clean, which it must. What the visitor was in the
-  middle of does not survive — the panels they had opened, their place in the widget's own Back
-  history, a half-filled registration — because the element really is a new one. No parameter,
-  origin or CSP change. See [If your page replaces the element].
+  already allowed; a different key still drops everything read under the first, which it must. The
+  panels the visitor had opened, their place in the widget's own Back history and a half-filled
+  registration all come back with it — only what the old element's React tree held, such as a
+  scrolled list's position, starts over. Remove the old element before you insert the new one: the
+  opposite order leaves the page with no widget at all. No parameter, origin or CSP change. See
+  [If your page replaces the element].
 
 - **The captcha on the registration and report forms is hidden unless it needs a click.**
   ([SahajCloud#1090]) Most visitors now see no security check at all; the 300×65 box opens only
