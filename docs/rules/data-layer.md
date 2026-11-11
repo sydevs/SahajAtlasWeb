@@ -171,11 +171,15 @@ browser the off-origin URL. `src/lib/shape/path.test.ts` pins each case.
 ### `isSafeHref` is the sink-level gate
 
 **`isSafeHref` (`src/lib/shape/href.ts`) is the last check an href passes before it
-reaches a JSX `<a>`.** It requires `safePath`-clean, or one of three allowed
-schemes (`https:` / `mailto:` / `tel:`, case-insensitive, matching `SafeUrlSchema`
-and `validateWebUrl` upstream). A refusal reports via `reportInternalError` and
-degrades to inert content — a `javascript:` string reaching an anchor would run in
-the HOST page's realm.
+reaches a JSX `<a>`.** It requires `safePath`-clean, or one of four allowed
+schemes (`https:` / `mailto:` / `tel:` / `webcal:`, case-insensitive). A refusal reports
+via `reportInternalError` and degrades to inert content — a `javascript:` string reaching
+an anchor would run in the HOST page's realm.
+
+The first three match `SafeUrlSchema` and `validateWebUrl` upstream. ⚠ **`webcal:` matches
+neither**: it is an address the widget builds itself, by swapping the scheme on a
+`calendarFeedUrl` those guards parsed as `http(s)` (`src/lib/ics.ts`), so this list is the
+only thing judging the value it admits.
 
 Only three components render a JSX anchor, and all three call it (#114): the
 `Link` atom, the `Button` atom's href form, and `ActionRow` / `ActionCircle`. The

@@ -1986,6 +1986,10 @@ export interface Event {
    */
   offersMailingList?: boolean | null;
   /**
+   * Subscribable calendar address. Anyone holding it can subscribe.
+   */
+  calendarFeedUrl?: string | null;
+  /**
    * Open listing-quality recommendations.
    */
   qualityOpenCount?: number | null;
@@ -5166,6 +5170,7 @@ export interface EventsSelect<T extends boolean = true> {
   nextCheckAt?: T;
   registrationsFull?: T;
   offersMailingList?: T;
+  calendarFeedUrl?: T;
   qualityOpenCount?: T;
   qualityCheckVersion?: T;
   systemMeta?: T;
@@ -9891,6 +9896,14 @@ export interface SyAtlasTranslationsEventActionsStrings {
    * Add-to-calendar menu item that downloads an .ics file.
    */
   download_ics?: string;
+  /**
+   * Add-to-calendar sub-label under each menu row that subscribes, so later changes and cancellations arrive on their own.
+   */
+  calendar_keeps_updated?: string;
+  /**
+   * Add-to-calendar sub-label under a menu row that can add the next session alone, not the whole series.
+   */
+  calendar_next_session_only?: string;
   /**
    * Image carousel: open the photo full size.
    */

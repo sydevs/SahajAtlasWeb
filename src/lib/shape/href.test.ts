@@ -108,11 +108,27 @@ describe('hasAllowedScheme', () => {
     expect(isSafeHref('/gb/london')).toBe(true)
   })
 
-  it('is true only for the three allowed schemes', () => {
+  it('is true only for the four allowed schemes', () => {
     expect(hasAllowedScheme('https://example.com/')).toBe(true)
     expect(hasAllowedScheme('mailto:a@example.com')).toBe(true)
     expect(hasAllowedScheme('tel:+44')).toBe(true)
+    expect(hasAllowedScheme('webcal://cloud.example/f.ics')).toBe(true)
     expect(hasAllowedScheme('javascript:alert(1)')).toBe(false)
+  })
+
+  // A protocol handler has to render as a plain `<a>`: react-router would read it
+  // as a route and navigate the widget instead of handing it to the OS.
+  it('admits webcal in any casing, as the gate does', () => {
+    expect(hasAllowedScheme('WEBCAL://cloud.example/f.ics')).toBe(true)
+    expect(isSafeHref('webcal://cloud.example/f.ics')).toBe(true)
+    expect(isSafeHref('WEBCAL://cloud.example/f.ics')).toBe(true)
+  })
+
+  // The subscribe rows are built by swapping the scheme on an address SahajCloud
+  // minted, so a near-miss must stay refused rather than reach an anchor.
+  it('still refuses a scheme that merely starts like webcal', () => {
+    expect(hasAllowedScheme('webcalx://cloud.example/f.ics')).toBe(false)
+    expect(hasAllowedScheme('javascript:webcal://x')).toBe(false)
   })
 
   it('takes a non-string safely, like the gate it shares a regex with', () => {

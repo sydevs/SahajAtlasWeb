@@ -7,6 +7,7 @@ import { Link } from '@/components/atoms/Link'
 import { menuChrome } from '@/components/atoms/Menu'
 import {
   type IcsEventInput,
+  buildAppleCalendarUrl,
   buildEventIcs,
   buildGoogleCalendarUrl,
   buildOutlookCalendarUrl,
@@ -26,12 +27,27 @@ export type CalendarLinkTarget = { label: string; href: string }
 
 /**
  * The link-out providers, in menu order. `lib/ics.ts` decides what each URL can carry:
- * Google gets the real `RRULE`; Outlook, Office 365, and Yahoo have no recurrence
- * parameter and get only the session the viewer registered for.
+ * Apple and Google subscribe to the class's own feed, so a later change or cancellation
+ * reaches the viewer on its own; Outlook, Office 365 and Yahoo have no subscribe route that
+ * anybody has verified, and their URL APIs carry no recurrence, so they get the one session
+ * the viewer registered for.
+ *
+ * Returns nothing for a class with no feed address — see the component.
+ *
+ * shortcut: no row carries the sub-label its service earns, because both strings are new CMS
+ * copy and this repo may not write one. Add it — `event.actions.calendar_keeps_updated` under
+ * Apple and Google, `event.actions.calendar_next_session_only` under the other three — once
+ * sydevs/SahajCloud#1131 is deployed and `pnpm sync:translations --write` has run.
  */
 export function calendarLinkTargets(event: IcsEventInput): CalendarLinkTarget[] {
+  const apple = buildAppleCalendarUrl(event)
+  const google = buildGoogleCalendarUrl(event)
+
+  if (!apple || !google) return []
+
   return [
-    { label: 'Google Calendar', href: buildGoogleCalendarUrl(event) },
+    { label: 'Apple Calendar', href: apple },
+    { label: 'Google Calendar', href: google },
     { label: 'Outlook.com', href: buildOutlookCalendarUrl(event, 'live') },
     { label: 'Office 365', href: buildOutlookCalendarUrl(event, 'office') },
     { label: 'Yahoo', href: buildYahooCalendarUrl(event) },
@@ -62,10 +78,13 @@ const item = row()
  * menu of calendar services, instead of a row of five brand buttons.
  *
  * The link-outs render as anchors (through `Link`), so middle-click and long-press
- * behave as the viewer expects. The `.ics` row is a button, because it synthesises a file.
- * That file is the Apple path — Apple Calendar has no add-by-URL endpoint — and the escape
- * hatch for every other client (Thunderbird, Proton, desktop Outlook), so its row says
- * plainly that it downloads a file.
+ * behave as the viewer expects. The `.ics` row is a button, because it synthesises a file,
+ * and it is **last**: it is no longer the Apple path — Apple subscribes to the class's feed
+ * now (#368) — but the escape hatch for every other client (Thunderbird, Proton, desktop
+ * Outlook), so its row says plainly that it downloads a file.
+ *
+ * **A class with no feed address renders that row alone.** A subscribe row whose address is
+ * missing cannot work, and an inert menu entry is worse than an absent one.
  *
  * Built on Radix DropdownMenu (as SortMenu is) for real menu semantics: roving focus,
  * typeahead, and Escape.
@@ -87,18 +106,17 @@ export function AddToCalendar({ event }: AddToCalendarProps) {
 
       <DropdownMenu.Portal container={overlayContainer()}>
         <DropdownMenu.Content align="start" className={menu} sideOffset={8} {...frameCollision()}>
-          <DropdownMenu.Item className={item} onSelect={() => downloadEventIcs(event)}>
-            <span>Apple Calendar</span>
-            <span className="text-xs text-gray-11">{t('event.actions.download_ics')}</span>
-          </DropdownMenu.Item>
-
-          {calendarLinkTargets(event).map(({ label, href }) => (
+          {calendarLinkTargets(event).map(({ href, label }) => (
             <DropdownMenu.Item key={label} asChild className={item}>
               <Link href={href} target="_blank">
                 {label}
               </Link>
             </DropdownMenu.Item>
           ))}
+
+          <DropdownMenu.Item className={item} onSelect={() => downloadEventIcs(event)}>
+            <span>{t('event.actions.download_ics')}</span>
+          </DropdownMenu.Item>
         </DropdownMenu.Content>
       </DropdownMenu.Portal>
     </DropdownMenu.Root>

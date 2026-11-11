@@ -12,10 +12,19 @@ import { DEFAULT_DURATION, scheduleStart, scheduleTimeZone, withEndTime } from '
  * importing calendar app then owns all viewer-timezone and DST conversion,
  * the one place that problem solves itself.
  *
- * This references IANA TZIDs without a VTIMEZONE component. Google, Apple,
- * and Outlook all resolve IANA ids natively, while a hand-generated VTIMEZONE
- * (with its own DST RRULEs) is exactly the kind of thing that goes subtly
- * wrong.
+ * This references IANA TZIDs without a VTIMEZONE component, which the
+ * importing clients resolve natively. A hand-generated VTIMEZONE, with its own
+ * DST RRULEs, is exactly the kind of thing that goes subtly wrong.
+ *
+ * ## Which rows each builder serves
+ *
+ * Apple, Google and both Outlooks **subscribe** to SahajCloud's own per-class
+ * feed, so they read nothing this file emits: `buildAppleCalendarUrl` and
+ * `buildGoogleCalendarUrl` are scheme-swaps and percent-encodings over the
+ * address the event document carries. What is still built here is the `.ics`
+ * download (`buildEventIcs`, the last menu row and the escape hatch for every
+ * other client) and the two single-session link-outs that have no subscribe
+ * route — Yahoo, and Outlook until a signed-in click settles one.
  *
  * ## Why this is hand-rolled, instead of a dependency (issue #105)
  *
@@ -59,6 +68,15 @@ export type IcsEventInput = {
   description?: string | null
   location?: string | null
   url?: string | null
+  /**
+   * The class's own subscribable calendar address, read off the event document
+   * (`events.calendarFeedUrl`).
+   *
+   * ⚠ **Never composed from `id`.** It carries a signed token, which is the
+   * feed's entire access control — only SahajCloud can mint one, and a class
+   * with no address simply offers no subscribe row.
+   */
+  calendarFeedUrl?: string | null
   /**
    * The specific session to anchor a recurrence-less target on: the date the
    * viewer actually registered for. Only the providers whose URL API has no
@@ -375,27 +393,45 @@ export function buildEventIcs(input: IcsEventInput, options: BuildIcsOptions = {
 const details = (input: IcsEventInput): string =>
   [input.description, input.url].filter(Boolean).join('\n\n')
 
-/** The Google Calendar "add event" template link — the RRULE rides `recur`. */
-export function buildGoogleCalendarUrl(input: IcsEventInput): string {
-  const { schedule } = input
-  const start = exportStart(schedule, input.from)
-  const end = occurrenceEnd(start, schedule)
-  const rrule = buildRrule(schedule)
+/**
+ * The `webcal://` form of the class's feed address — the one URL that makes a
+ * calendar app offer to SUBSCRIBE rather than download.
+ *
+ * `undefined` for a class with no address, and for an address that is not
+ * `http(s)`: the scheme swap is a rewrite, so anything else would be guesswork
+ * about a string somebody else minted. `EventDocSchema` already refuses a
+ * non-http value, which makes this the second of two checks, deliberately.
+ */
+export function buildFeedSubscribeUrl(input: IcsEventInput): string | undefined {
+  const address = input.calendarFeedUrl?.trim()
+  const scheme = /^https?:/i.exec(address ?? '')
 
-  const params = new URLSearchParams({
-    action: 'TEMPLATE',
-    text: input.title,
-    dates: `${localStamp(start)}/${localStamp(end)}`,
-    ctz: eventZone(schedule),
-  })
+  return address && scheme ? `webcal:${address.slice(scheme[0].length)}` : undefined
+}
 
-  const body = details(input)
+/**
+ * Apple Calendar: the `webcal://` address itself.
+ *
+ * Opening one hands macOS and iOS to Calendar.app, which asks whether to
+ * subscribe. There is no add-by-URL endpoint to go through, and no file to find
+ * in Downloads — which was the whole complaint behind #368.
+ */
+export const buildAppleCalendarUrl = buildFeedSubscribeUrl
 
-  if (body) params.set('details', body)
-  if (input.location) params.set('location', input.location)
-  if (rrule) params.set('recur', `RRULE:${rrule}`)
+/**
+ * Google Calendar: the `webcal://` address percent-encoded onto `cid`.
+ *
+ * This replaced an `action=TEMPLATE` link carrying `dates`, `ctz` and
+ * `recur=RRULE:`. That link added ONE event the viewer then owned a copy of, so
+ * a cancelled session stayed in their calendar for good. `cid` subscribes
+ * instead, which is what makes the class keep itself current.
+ */
+export function buildGoogleCalendarUrl(input: IcsEventInput): string | undefined {
+  const feed = buildFeedSubscribeUrl(input)
 
-  return `https://calendar.google.com/calendar/render?${params.toString()}`
+  return feed
+    ? `https://calendar.google.com/calendar/r?${new URLSearchParams({ cid: feed }).toString()}`
+    : undefined
 }
 
 /**
@@ -413,7 +449,16 @@ const OUTLOOK_HOSTS = {
 export type OutlookFlavor = keyof typeof OUTLOOK_HOSTS
 
 /**
- * An Outlook.com / Office 365 compose link.
+ * An Outlook.com / Office 365 compose link — one session, not the series.
+ *
+ * ⚠ **Still what the two Outlook rows use, and that costs the series.** Microsoft
+ * documents no subscribe route. Two shapes are plausible —
+ * `/calendar/0/addfromweb?url=…` and this endpoint's own
+ * `rru=addsubscription` sibling — and both hosts answer 417 to every path a
+ * script can try, a bogus one included, so only a signed-in click on each host
+ * can tell a subscribe dialog from the add-event modal one report describes.
+ * Until somebody runs that click, these rows get the link that demonstrably
+ * works and say they add the next session only — the treatment Yahoo gets.
  *
  * `startdt`/`enddt` are absolute UTC instants. The compose API takes no
  * timezone parameter, so the instant is the only unambiguous thing to send.

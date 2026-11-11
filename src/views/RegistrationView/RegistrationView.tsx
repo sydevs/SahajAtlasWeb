@@ -95,6 +95,10 @@ export function RegistrationView({
         // `lib/ics.ts` takes `url` as nullish and simply omits the `URL:` line, which is the
         // right outcome when there is no honest link to put in the calendar entry.
         url: eventUrl,
+        // The address SahajCloud minted for this class, never one composed here:
+        // it carries a signed token (`lib/ics.ts`). Null for a class whose feed
+        // address did not come back, which renders the download row alone.
+        calendarFeedUrl: event.calendarFeedUrl,
       }
     : undefined
 

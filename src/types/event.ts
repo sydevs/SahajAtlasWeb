@@ -225,6 +225,11 @@ export const EventDocSchema = z.object({
   verificationStage: VerificationStageSchema,
   webPath: z.string().nullish(),
   webUrl: SafeUrlSchema,
+  // The class's subscribable calendar address. `SafeUrlSchema` like the other
+  // hrefs — `lib/ics.ts` swaps the scheme to `webcal:` to build the subscribe
+  // rows, so a non-http value dropping to null costs those rows and not the
+  // whole event read. Absent for an unpublished class, and on every list read.
+  calendarFeedUrl: SafeUrlSchema,
 })
 export type EventDoc = z.infer<typeof EventDocSchema>
 

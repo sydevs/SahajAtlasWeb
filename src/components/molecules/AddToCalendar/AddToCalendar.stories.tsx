@@ -31,18 +31,23 @@ const oneOff: EventSchedule = {
 
 /**
  * AddToCalendar — one "Add to calendar" button opening a menu of calendar
- * services, offered on the registration confirmation. Apple Calendar is the
- * `.ics` download, a real file. The others are ordinary link-outs, so
- * middle-click and long-press behave correctly.
+ * services, offered on the registration confirmation. Apple and Google
+ * **subscribe** to the class's own feed, so a later change or cancellation
+ * reaches the viewer on its own; Outlook, Office 365 and Yahoo add the next
+ * session alone; the last row downloads a file.
  *
- * Choose Apple Calendar to download and open the file in a real calendar app.
- * That is the only way to see the recurrence, the timezone, and the cancelled
- * week land correctly, and it is what the unit lane cannot assert.
+ * ⚠ **The feed addresses here are fictional, so no subscribe row can work in
+ * Ladle.** They are minted by SahajCloud and carry a signed token. What this
+ * story shows is the menu: its order, which rows are anchors, and the one case
+ * the unit lane cannot — a class with no address, which offers the download
+ * alone. Choose that last row to download and open the file in a real calendar
+ * app, which is still the only way to watch the recurrence, the timezone and
+ * the cancelled week land correctly.
  */
 export const Default: Story = () => (
   <StoryWrapper>
     <StorySection
-      description="A weekly class with a cancelled week. The .ics carries DTSTART;TZID + RRULE + EXDATE, and so does the Google link (via ctz + recur). Outlook, Office 365 and Yahoo have no recurrence parameter at all, so they receive the single next session instead of the series."
+      description="A weekly class with a cancelled week. Apple and Google subscribe to its feed, which carries every session and clears itself when one is cancelled. Outlook, Office 365 and Yahoo have no verified subscribe route, so they receive the single next session. The downloaded .ics carries DTSTART;TZID + RRULE + EXDATE."
       title="Recurring"
     >
       <div className="max-w-md rounded-lg border border-divider p-4">
@@ -53,6 +58,7 @@ export const Default: Story = () => (
             schedule: weekly,
             location: '5 Market St, Prague',
             url: 'https://atlas.example/e/1',
+            calendarFeedUrl: 'https://cloud.example/api/events/calendar/eyJhb.eyJldg.s1gn.ics',
           }}
         />
       </div>
@@ -70,6 +76,7 @@ export const Default: Story = () => (
             schedule: oneOff,
             location: 'Cambridge Guildhall',
             url: 'https://atlas.example/e/2',
+            calendarFeedUrl: 'https://cloud.example/api/events/calendar/eyJhb.eyJvbg.s1gn.ics',
           }}
         />
       </div>
@@ -86,6 +93,24 @@ export const Default: Story = () => (
             title: 'Online Meditation',
             schedule: weekly,
             url: 'https://atlas.example/e/3',
+            calendarFeedUrl: 'https://cloud.example/api/events/calendar/eyJhb.eyJvbA.s1gn.ics',
+          }}
+        />
+      </div>
+    </StorySection>
+
+    <StorySection
+      description="No feed address — an unpublished class, or one whose event read came back without the field. Every subscribe row would be inert, so the menu offers the download alone."
+      title="No feed address"
+    >
+      <div className="max-w-md rounded-lg border border-divider p-4">
+        <AddToCalendar
+          event={{
+            id: 4,
+            title: 'Morning Meditation',
+            schedule: oneOff,
+            location: 'Cambridge Guildhall',
+            url: 'https://atlas.example/e/4',
           }}
         />
       </div>
