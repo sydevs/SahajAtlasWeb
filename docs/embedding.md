@@ -139,12 +139,15 @@ its data.)
 **The widget carries its state across either way, as long as the new element has the same `key`
 and arrives within a second.** It opens at the route your page's URL now names, from the classes
 and regions it has already read, so a Back press asks nothing new of the network. A replacement
-under a **different** key starts clean instead, which it must: the data belongs to the key it was
-read under. An element gone for longer than a second is treated as gone.
+under a **different** key drops everything read under the first one instead, which it must: that
+data belongs to the key it was read under. An element gone for longer than a second is treated as
+gone.
 
-What does not survive is anything the visitor was in the middle of — the panels they had opened,
-their place in the widget's own Back history, a half-filled registration. The element is a new
-one, so it boots.
+What a replacement costs is small and visual. React mounts fresh in the new element, so a list the
+visitor had scrolled down starts at the top again. Their open panels, their place in the widget's
+own Back history and a half-filled registration all come back — the first two because your page's
+address and the browser's own history entry hold them, the third because it is held against the
+event being registered for.
 
 ### What you can add later
 
