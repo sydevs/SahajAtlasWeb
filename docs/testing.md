@@ -353,15 +353,16 @@ things hold that up, and each fails silently:
 way, so this table is the repo's only record of it and only a browser can confirm it. Under the
 ruleset covering `main`:
 
-| setting                | value                                                              |
-| ---------------------- | ------------------------------------------------------------------ |
-| Require merge queue    | on                                                                 |
-| Bypass list            | empty — a bypass is the hole this closes                           |
-| Required status checks | `Lint, Typecheck & Build`, `Dependency Review / review`, `Smoke`  |
+| setting                | to be set to                                                      | observed |
+| ---------------------- | ----------------------------------------------------------------- | -------- |
+| Require merge queue    | on                                                                |          |
+| Bypass list            | empty — a bypass is the hole this closes                          |          |
+| Required status checks | `Lint, Typecheck & Build`, `Dependency Review / review`, `Smoke`  |          |
 
-⚠ **Not yet confirmed as set.** The two halves above ship from the repo; the ruleset edit is an
-attended browser step. Whoever makes it records the date and the values they observed here,
-because a table nobody checked against the dashboard is the failure this section is about.
+⚠ **Nothing has been set yet, so every `observed` cell is blank.** The two halves above ship from
+the repo; the ruleset edit is an attended browser step. Whoever makes it fills that column in with
+what the dashboard actually showed, and dates it. A target read as a record is the failure this
+section is about.
 
 Both costs were measured first. A merge waits one queue run — 2m23s to 2m50s across runs
 `42417964616`, `42528479577` and `42534049552`. And every merge creates a
