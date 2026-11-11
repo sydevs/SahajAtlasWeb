@@ -187,11 +187,8 @@ describe('ci.yml', () => {
     expect(smoke).toMatch(/^\s{12}\*\)$/m)
   })
 
-  // ⚠ `merge_group` is what lets a queue entry's required checks report at all — delete it and
-  // every merge sits in the queue forever, with no red anywhere. A `push` trigger is the
-  // declined alternative (#375): a run on `main` resolves to no pull request, so a red one
-  // reaches no handler. `docs/testing.md` carries why the queue, and not `pull_request`, is the
-  // gate that reads the tree a merge will produce.
+  // ⚠ A wrong `on:` block here fails silently, in both directions. `docs/testing.md` § "The merge
+  // queue is the only gate that reads the tree a merge will produce" says how (#375).
   it('triggers on the pull request and the merge queue, and on no push', () => {
     const lines = ci.split('\n')
     const opens = lines.indexOf('on:')
