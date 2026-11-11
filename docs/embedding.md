@@ -136,6 +136,11 @@ Forward — so `<sahaj-atlas>` is destroyed and a new element takes its place. (
 relocating the element is the gentler case: the same element comes back, and that already kept
 its data.)
 
+⚠ **Remove the old element before you insert the new one.** `replaceWith` does, and so does a
+framework re-render. Insert first and the page is left with no map at all: only one
+`<sahaj-atlas>` may run, so the arriving element is turned away while the old one is still in the
+document, and nothing asks it again once the old one leaves.
+
 **The widget carries its state across either way, as long as the new element has the same `key`
 and arrives within a second.** It opens at the route your page's URL now names, from the classes
 and regions it has already read, so a Back press asks nothing new of the network. A replacement

@@ -501,8 +501,9 @@ const AtlasElementBase = r2wc(Widget, { shadow: 'open' }) as unknown as new () =
 //
 // `isConnected` on this is what separates a REPLACEMENT from a second embed: a departed
 // owner yields the page, a live one refuses the arrival. So a replacement has to disconnect
-// before its successor connects — `replaceWith` and a framework re-render both do, and the
-// opposite order costs the arriving element its render.
+// before its successor connects — `replaceWith` and a framework re-render both do. Insert
+// first and the arrival is refused while the old owner still stands, never gets a second
+// `connectedCallback`, and the old owner's teardown then leaves the page with no widget at all.
 let owner: AtlasElement | null = null
 
 /**
