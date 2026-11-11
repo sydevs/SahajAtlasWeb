@@ -170,6 +170,9 @@ const ringOf = (fill: string) =>
  * A role with no usable seed keeps its default verbatim, per role rather than
  * per palette — a tenant that configured `color1` alone still gets its own
  * pins and the stock selected accent.
+ *
+ * ⚠ It carries no mode for an unbranded embed, which is why `markerImages` takes
+ * one: the art's outline is per-basemap whatever the colours are.
  */
 export function markerColors(palette: PaletteRoles, mode: ThemeMode): MarkerColors {
   // Through `buildPalette`, not `stepHex`, so the selected pin carries
@@ -226,16 +229,25 @@ export function markerImages(colors: MarkerColors, mode: ThemeMode): Map<string,
 // SVG string IS the art, so this cannot miss a difference and needs no separate
 // list of the colors that went into it.
 //
-// At most one entry per image per mode survives a session — eight per embed —
-// so none of them needs eviction. An unseeded role derives nothing, so its art
-// is identical in both modes and takes ONE entry: the stock pins stay warm
-// across a theme switch exactly as they did before colors existed here.
+// At most one entry per image per mode survives an ordinary visit — eight per
+// embed — so none of them needs eviction.
 //
-// shortcut: a branded embed's first switch into a mode decodes that mode's four
-// images, so those pins land a tick after the new style's first frame rather
-// than on it. Measure before warming the counterpart mode at mount — that trades
-// four rasterisations and four texture uploads at boot for a mode the visitor
-// may never ask for.
+// ⚠ **The stock art is per-mode too since the outline landed**, so an unbranded
+// embed takes eight entries rather than four, and its first theme switch decodes
+// rather than answering from a warm cache. Before the outline it was identical in
+// both modes and stayed warm across a switch.
+//
+// shortcut: an embed's first switch into a mode decodes that mode's four images,
+// so those pins land a tick after the new style's first frame rather than on it.
+// Measure before warming the counterpart mode at mount — that trades four
+// rasterisations and four texture uploads at boot for a mode the visitor may
+// never ask for.
+//
+// shortcut: a `clients` preview session repaints per colour-picker message, and
+// each new palette retains four more bitmaps for the life of that tab — about
+// 86 KB a palette, in one manager's own admin iframe. Evict least-recently-used
+// once a session is measured holding more than a few megabytes, or once anything
+// but a preview changes the palette continuously.
 const artKey = (id: string, { svg }: MarkerImage) => `${id}|${svg}`
 
 // Each id is decoded once and kept. `addImage` extracts the pixels, so one

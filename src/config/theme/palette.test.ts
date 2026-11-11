@@ -279,15 +279,31 @@ describe('legibility', () => {
 })
 
 describe('paletteReport', () => {
-  it('names the rendered colour, and a seed that would render it unchanged', () => {
+  // `#f8f1f4` is the case this exists for: its rendered step 9 is not a seed that
+  // renders itself, found by sweeping ~37k seeds.
+  it.each(['#f8f1f4', '#ffff00', '#f0f0ff', '#A1C3D7', '#e08e79', '#00ff7f'])(
+    'offers a seed for %s that renders itself, with nothing left to correct',
+    (seed) => {
+      // ⚠ The ladder works in HSL and emits a quantised hex, so the rendered
+      // colour is not always a seed that renders itself. Offering one that is not
+      // would change the volunteer's colour a second time, the moment they
+      // accepted the first suggestion.
+      const { suggested } = paletteReport({ contrast: '#d8735a', primary: seed }).primary!
+
+      if (!suggested) return
+
+      const again = paletteReport({ contrast: '#d8735a', primary: suggested }).primary!
+
+      expect(again.light).toBe(suggested)
+      expect(again.suggested).toBeNull()
+    },
+  )
+
+  it('names the entered colour and the check that moved it', () => {
     const report = paletteReport({ contrast: '#d8735a', primary: '#ffff00' })
 
     expect(report.primary?.entered).toBe('#ffff00')
     expect(report.primary?.adjustedBy).toContain('surface')
-    // Feeding the suggestion back renders the same colour, with nothing left to correct.
-    expect(
-      buildPalette({ primary: report.primary!.suggested }, 'light').primary?.scale[SOLID_STEP],
-    ).toBe(buildPalette({ primary: '#ffff00' }, 'light').primary?.scale[SOLID_STEP])
   })
 
   it('offers no suggestion for a role only `panel-text` moved', () => {

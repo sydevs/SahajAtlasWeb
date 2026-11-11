@@ -336,6 +336,38 @@ export type RoleReport = {
 
 export type PaletteReport = Partial<Record<BrandRole, RoleReport>>
 
+// ⚠ **A rendered step 9 is not always a seed that renders itself.** The ladder
+// works in HSL and the hex it emits is a quantisation of that, so feeding the hex
+// back can land a point away and be corrected again — which would offer the
+// volunteer a suggestion that changes the colour a second time. This walks to the
+// seed that renders unchanged, which is at most a step or two away. The bound is
+// a guard, not a budget: with no fixed point the entered colour's own rendering
+// is still the honest answer.
+function settledSeed(start: string, palette: PaletteRoles, role: BrandRole): string {
+  const seen = new Set<string>()
+  let seed = start
+
+  for (let attempt = 0; attempt < 32; attempt += 1) {
+    const built = buildPalette({ ...palette, [role]: seed }, 'light')[role]
+
+    if (!built) return seed
+
+    const rendered = hexOf(built.scale[SOLID_STEP])
+
+    if (rendered === seed) return seed
+
+    // Two candidates can render each other, each landing a point the other side
+    // of the bar. Stepping one further in the correcting direction settles it
+    // with margin, where following the rendering alone would oscillate forever.
+    seed = seen.has(rendered)
+      ? shiftHex(rendered, { lightness: -1, maxLightness: 100, saturation: 0 })
+      : rendered
+    seen.add(rendered)
+  }
+
+  return seed
+}
+
 /** Each role's rendered solid and the checks that moved it, in both modes. */
 export function paletteReport(palette: PaletteRoles): PaletteReport {
   const light = buildPalette(palette, 'light')
@@ -355,7 +387,7 @@ export function paletteReport(palette: PaletteRoles): PaletteReport {
       dark: hexOf(dark[role].scale[SOLID_STEP]),
       entered: palette[role] ?? null,
       light: lightHex,
-      suggested: movedSolid ? lightHex : null,
+      suggested: movedSolid ? settledSeed(lightHex, palette, role) : null,
     }
   }
 

@@ -250,10 +250,12 @@ included. Nothing new is requested from the network, so your CSP and
 your Permissions Policy are unchanged.
 
 **A colour you choose is never refused, and never overwritten — but it may be adjusted where it
-would be unreadable.** Every pin, bubble and ring carries a fixed outline for the basemap it is
-drawn on, so your colour reaches the map exactly as stored. Elsewhere, a colour that would leave
-panel text, a chip or the selected class too faint is shifted in lightness until it can be read,
-keeping its hue. What is stored on your record never changes; only what the widget paints does.
+would be unreadable.** A colour that would leave panel text, a chip or the selected class too
+faint is shifted in lightness until it can be read, keeping its hue; the pins and bubbles are
+painted from the same adjusted colour, so the map and the panels agree. What is stored on your
+record never changes — only what the widget paints does. Separately, every pin, bubble and ring
+carries a fixed outline for the basemap it is drawn on, so nothing about your colour depends on
+what the map is showing underneath it.
 
 Identity is the same on every page you embed on, so making it per-embed only risks two of your
 pages disagreeing about what the product is called. The routing prefix is worse than merely

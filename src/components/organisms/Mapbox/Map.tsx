@@ -326,8 +326,9 @@ export function Mapbox({ cooperative = false }: { cooperative?: boolean } = {}) 
   //
   // The mode is inside each derivation, since every step is mode-aware, so a
   // light/dark switch repaints through the same dependency a palette change
-  // does — and an unbranded embed re-runs none of it, because `markerColors`
-  // answers with one shared object.
+  // does. ⚠ The art's outline is per-basemap, so the registration below takes
+  // the mode as well — an unbranded embed's colours still re-run nothing, but
+  // its images are no longer identical in both modes.
   const palette = useBrandPalette()
   const colors = useMemo(() => markerColors(palette, theme), [palette, theme])
   const clusters = useMemo(() => clusterLayer(palette, theme), [palette, theme])

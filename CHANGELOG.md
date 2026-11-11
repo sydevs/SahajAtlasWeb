@@ -46,10 +46,11 @@ cover everything a host would notice since the widget was first deployed.
 
 - **Pins, cluster bubbles and area rings now carry a fixed outline, and a brand colour may be
   adjusted so visitors can read it.** ([#389]) The outline is one colour per basemap — dark on
-  the light map, pale on the dark one — so a pin keeps exactly the colour your record names and
-  still has a visible edge over pale land, over sea, and over a coastline. Separately, a colour
-  that would leave panel text, a chip or the selected class unreadable is shifted in lightness
-  until it is readable; the colour you stored is unchanged, and only what the widget paints
+  the light map, pale on the dark one — so nothing about the colour of a pin depends on what the
+  map is showing underneath it, and every pin has a visible edge over pale land, over sea, and
+  over a coastline. Separately, a colour that would leave panel text, a chip or the selected
+  class unreadable is shifted in lightness until it is readable, and the pins are painted from
+  that same adjusted colour; the colour you stored is unchanged, and only what the widget paints
   moves. Our own default colours are adjusted by the same rules, so an unbranded embed's panels
   and buttons shift slightly too. No change to your CSP, your Permissions Policy or any
   parameter.

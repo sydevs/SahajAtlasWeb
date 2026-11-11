@@ -70,6 +70,11 @@ The map is the heart of the app and its hottest render path. Treat it carefully.
   Deriving them from `DEFAULT_SEEDS` instead changes every unbranded embed's
   pin, in both modes; `markers.test.ts` freezes the four stock SVGs byte for
   byte against exactly that.
+  ⚠ **The stock art is no longer identical in both modes** (#389) — its outline
+  is per-basemap — so an unbranded embed holds eight cache entries rather than
+  four, and its first theme switch decodes instead of answering warm. The
+  `shortcut:` note beside `artKey` carries that cost and the second one the
+  `clients` preview session adds.
 - **Every cache is keyed by the id AND its colors**, and a live map is
   repainted with **`removeImage` then `addImage`**. A second `addImage` alone
   makes Mapbox fire an `error` event. ⚠ `map.updateImage` looks right and is
