@@ -44,6 +44,16 @@ cover everything a host would notice since the widget was first deployed.
 
 ### Changed
 
+- **Pins, cluster bubbles and area rings now carry a fixed outline, and a brand colour may be
+  adjusted so visitors can read it.** ([#389]) The outline is one colour per basemap — dark on
+  the light map, pale on the dark one — so a pin keeps exactly the colour your record names and
+  still has a visible edge over pale land, over sea, and over a coastline. Separately, a colour
+  that would leave panel text, a chip or the selected class unreadable is shifted in lightness
+  until it is readable; the colour you stored is unchanged, and only what the widget paints
+  moves. Our own default colours are adjusted by the same rules, so an unbranded embed's panels
+  and buttons shift slightly too. No change to your CSP, your Permissions Policy or any
+  parameter.
+
 - **The captcha on the registration and report forms is hidden unless it needs a click.**
   ([SahajCloud#1090]) Most visitors now see no security check at all; the 300×65 box opens only
   when Cloudflare asks for an interaction, and closes again after. The collapsed slot also leaves
@@ -977,6 +987,7 @@ must-revalidate`, pinned rather than left to the CDN default. The production dom
 [#374]: https://github.com/sydevs/SahajAtlasWeb/pull/374
 [#380]: https://github.com/sydevs/SahajAtlasWeb/pull/380
 [#370]: https://github.com/sydevs/SahajAtlasWeb/pull/370
+[#389]: https://github.com/sydevs/SahajAtlasWeb/pull/389
 [#371]: https://github.com/sydevs/SahajAtlasWeb/pull/371
 [#363]: https://github.com/sydevs/SahajAtlasWeb/pull/363
 [#369]: https://github.com/sydevs/SahajAtlasWeb/pull/369

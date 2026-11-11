@@ -1,6 +1,6 @@
 import type { LayerProps } from 'react-map-gl'
 
-import { MARKER_IDS, PIN_WIDTH } from './markers'
+import { MARKER_IDS, MARKER_OUTLINE, PIN_WIDTH } from './markers'
 
 import {
   onHex,
@@ -165,7 +165,9 @@ export const vagueRingLayer = (palette: PaletteRoles, mode: ThemeMode): Props =>
       ],
       'circle-color': color,
       'circle-opacity': 0.14,
-      'circle-stroke-color': color,
+      // The style's own fixed edge, like the pins and bubbles: the ring's fill is
+      // the brand colour, and only its edge changes between the two basemaps.
+      'circle-stroke-color': MARKER_OUTLINE[mode],
       'circle-stroke-opacity': 0.6,
       'circle-stroke-width': 1.5,
       'circle-pitch-alignment': 'map',
@@ -195,7 +197,7 @@ export const vagueDotLayer = (palette: PaletteRoles, mode: ThemeMode): Props => 
       'circle-radius': 8,
       'circle-color': color,
       'circle-opacity': 0.3,
-      'circle-stroke-color': color,
+      'circle-stroke-color': MARKER_OUTLINE[mode],
       'circle-stroke-opacity': 0.8,
       'circle-stroke-width': 2,
     },

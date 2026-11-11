@@ -137,10 +137,23 @@ import { annotate, report } from './_ci-output.mjs'
 // set, so the margin went unmeasured until #367. Take space off the eager graph,
 // or move the budget deliberately — and ratchet it back if the schemas ever leave
 // that graph.
+//
+// 334 since #389. `colord/plugins/lab` is the eager cost: `selected-distinct`
+// compares the selected pin against the ordinary one, which is a colour-versus-
+// colour measure the a11y plugin cannot make, and every embed owes that check.
+// Measured uncredentialed, which is what CI reads:
+//
+//   standalone  330.1 KiB
+//   embed       331.2 KiB
+//
+// Production ships each plus this graph's Sentry gap above — 331.2 and 332.4,
+// derived rather than built, since no credentialed build ran here. So the budget
+// clears the credentialed pair by about 1.6 KiB, and sits far inside the 15%
+// slack the ratchet below reads.
 const BUDGET_KIB = {
-  standalone: 330,
+  standalone: 334,
   loader: 3.2,
-  embed: 330,
+  embed: 334,
 }
 
 // A budget set far above the real payload is a green check that checks

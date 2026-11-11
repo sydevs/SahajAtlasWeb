@@ -339,8 +339,8 @@ export function Mapbox({ cooperative = false }: { cooperative?: boolean } = {}) 
   // the why, the theme-switch handling, and the in-place repaint. There is
   // one subscription per map instance and set of colors.
   useEffect(() => {
-    if (mapbox) return registerMarkerImages(mapbox, colors)
-  }, [mapbox, colors])
+    if (mapbox) return registerMarkerImages(mapbox, colors, theme)
+  }, [mapbox, colors, theme])
 
   // This holds the canvas until the camera has arrived somewhere, so a deep
   // link never paints the boot-time world view before jumping off it.

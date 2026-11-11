@@ -102,7 +102,7 @@ export function readLivePreviewParams(pathname: string, search: string): LivePre
     active: false,
     token,
     id: pathname === LIVE_PREVIEW_PATH ? params.get('id') : null,
-    scope: scope === 'sy-atlas-translations' ? scope : null,
+    scope: scope === 'clients' || scope === 'sy-atlas-translations' ? scope : null,
     // ⚠ Capture DISARMS, and only {@link activateLivePreview} arms. A fresh token landing on
     // a page mid-session must not inherit the previous session's credential.
     decorateRequest: null,

@@ -249,6 +249,12 @@ record that leaves the colours unset keeps the widget's own teal and orange ever
 included. Nothing new is requested from the network, so your CSP and
 your Permissions Policy are unchanged.
 
+**A colour you choose is never refused, and never overwritten — but it may be adjusted where it
+would be unreadable.** Every pin, bubble and ring carries a fixed outline for the basemap it is
+drawn on, so your colour reaches the map exactly as stored. Elsewhere, a colour that would leave
+panel text, a chip or the selected class too faint is shifted in lightness until it can be read,
+keeping its hue. What is stored on your record never changes; only what the widget paints does.
+
 Identity is the same on every page you embed on, so making it per-embed only risks two of your
 pages disagreeing about what the product is called. The routing prefix is worse than merely
 redundant: it is the value we compose your canonical URLs from, so a second copy on a script tag
