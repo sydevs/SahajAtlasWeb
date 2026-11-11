@@ -788,7 +788,7 @@ export interface Config {
   collections: {
     pages: Page;
     meditations: Meditation;
-    'meditation-transcripts': MeditationTranscript;
+    transcripts: Transcript;
     songs: Song;
     albums: Album;
     videos: Video;
@@ -820,7 +820,7 @@ export interface Config {
   };
   collectionsJoins: {
     meditations: {
-      transcript: 'meditation-transcripts';
+      transcript: 'transcripts';
     };
     albums: {
       songs: 'songs';
@@ -870,7 +870,7 @@ export interface Config {
   collectionsSelect: {
     pages: PagesSelect<false> | PagesSelect<true>;
     meditations: MeditationsSelect<false> | MeditationsSelect<true>;
-    'meditation-transcripts': MeditationTranscriptsSelect<false> | MeditationTranscriptsSelect<true>;
+    transcripts: TranscriptsSelect<false> | TranscriptsSelect<true>;
     songs: SongsSelect<false> | SongsSelect<true>;
     albums: AlbumsSelect<false> | AlbumsSelect<true>;
     videos: VideosSelect<false> | VideosSelect<true>;
@@ -1504,6 +1504,7 @@ export interface Manager {
     | boolean
     | null;
   magicLinkIssuedAt?: string | null;
+  lastLoginAt?: string | null;
   pendingInvitation?:
     | {
         [k: string]: unknown;
@@ -2375,9 +2376,9 @@ export interface User {
 export interface Client {
   id: number;
   /**
-   * Client organization or application name
+   * How this service is known inside SahajCloud. Never shown to the public.
    */
-  name: string;
+  label: string;
   /**
    * This service’s API key works only while this is on.
    */
@@ -2402,35 +2403,47 @@ export interface Client {
    * Where the map opens, and the region whose atlas links this service’s site becomes the home for. Leave empty for a worldwide map.
    */
   region?: (number | null) | Region;
-  color1?: string | null;
-  color2?: string | null;
-  color3?: string | null;
+  /**
+   * The name registrants see, e.g. in their confirmation emails. Leave empty to use the site’s domain.
+   */
+  title?: string | null;
   /**
    * Logo shown in registrant emails. Resolved to a PNG at send time — email clients render SVG poorly or not at all.
    */
   logo?: (number | null) | Image;
+  color1?: string | null;
+  color2?: string | null;
+  color3?: string | null;
   /**
    * Reply-To on registrant emails, so replies reach this service rather than us. While this service owns its region, the emails also link to its site.
    */
   supportEmail?: string | null;
   /**
-   * Where subscribe submissions relayed by this service are delivered. Off by default, and nothing is pushed anywhere until it is switched on.
+   * Where people who sign up for a newsletter on this site are sent. Nothing is sent anywhere until you switch this on.
    */
   mailingList?: {
     enabled?: boolean | null;
-    provider?: ('mailchimp' | 'brevo' | 'klaviyo') | null;
+    provider?: ('mailchimp' | 'brevo' | 'klaviyo' | 'cleverreach') | null;
     /**
-     * Mailchimp’s Audience ID, Brevo’s numeric list id, or Klaviyo’s List ID.
+     * In CleverReach, open Account → Extras → REST API and pick your app. Copy its Client ID here, and its Client Secret into API Key below.
+     */
+    clientId?: string | null;
+    /**
+     * Mailchimp’s Audience ID, Brevo’s numeric list id, Klaviyo’s List ID, or CleverReach’s group ID.
      */
     listId?: string | null;
     /**
-     * The provider secret. Checked against the provider when you save, and never readable by an API client.
+     * The secret from your mailing-list account — for CleverReach, your app’s Client Secret. We check it when you save it, and it is never sent to your website.
      */
     apiKey?: string | null;
     /**
-     * Mailchimp adds the address as `pending` and emails it a confirmation link.
+     * The person is not subscribed until they click the link in that email. Mailchimp calls that state “pending”, CleverReach calls it inactive.
      */
     doubleOptIn?: boolean | null;
+    /**
+     * The CleverReach flow that sends the confirmation email. In CleverReach, create a double opt-in form, then copy the Flow ID it shows you.
+     */
+    doiFlowId?: string | null;
   };
   usage?: {
     abuseScore?: ClientAbuseScore;
@@ -2668,6 +2681,7 @@ export interface Client {
       )
     | null;
   allowedDomains?: string | null;
+  domain?: string | null;
   /**
    * Public identifier for this service. Auto-generated, or the Atlas public key for imported services.
    */
@@ -2983,7 +2997,7 @@ export interface Meditation {
   subtleSystemNodeWeights?: MeditationNodeWeights;
   durationMinutes?: number | null;
   transcript?: {
-    docs?: (number | MeditationTranscript)[];
+    docs?: (number | Transcript)[];
     hasNextPage?: boolean;
     totalDocs?: number;
   };
@@ -3123,11 +3137,19 @@ export interface Album {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "meditation-transcripts".
+ * via the `definition` "transcripts".
  */
-export interface MeditationTranscript {
+export interface Transcript {
   id: number;
-  meditation?: (number | null) | Meditation;
+  source:
+    | {
+        relationTo: 'meditations';
+        value: number | Meditation;
+      }
+    | {
+        relationTo: 'files';
+        value: number | File;
+      };
   audioFilename?: string | null;
   provider?: 'lemonfox' | null;
   language:
@@ -3151,11 +3173,37 @@ export interface MeditationTranscript {
     | 'hu'
     | 'nl';
   segments?: TranscriptSegments;
+  segmentCount?: number | null;
   job?: (number | null) | PayloadJob;
   status?: ('processing' | 'completed' | 'failed') | null;
   error?: string | null;
   updatedAt: string;
   createdAt: string;
+}
+/**
+ * Media files (images, audio, video) and PDFs used by other collections. A file nothing links to is moved to the trash automatically, and deleted for good after 45 days there.
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "files".
+ */
+export interface File {
+  id: number;
+  createdAt: string;
+  hlsUrl?: string | null;
+  mp4Url?: string | null;
+  previewUrl?: string | null;
+  _objectKey?: string | null;
+  updatedAt: string;
+  deletedAt?: string | null;
+  url?: string | null;
+  thumbnailURL?: string | null;
+  filename?: string | null;
+  mimeType?: string | null;
+  filesize?: number | null;
+  width?: number | null;
+  height?: number | null;
+  focalX?: number | null;
+  focalY?: number | null;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
@@ -3370,31 +3418,6 @@ export interface Lesson {
   updatedAt: string;
   createdAt: string;
   deletedAt?: string | null;
-}
-/**
- * Media files (images, audio, video) and PDFs used by other collections. A file nothing links to is moved to the trash automatically, and deleted for good after 45 days there.
- *
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "files".
- */
-export interface File {
-  id: number;
-  createdAt: string;
-  hlsUrl?: string | null;
-  mp4Url?: string | null;
-  previewUrl?: string | null;
-  _objectKey?: string | null;
-  updatedAt: string;
-  deletedAt?: string | null;
-  url?: string | null;
-  thumbnailURL?: string | null;
-  filename?: string | null;
-  mimeType?: string | null;
-  filesize?: number | null;
-  width?: number | null;
-  height?: number | null;
-  focalX?: number | null;
-  focalY?: number | null;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
@@ -4247,8 +4270,8 @@ export interface PayloadLockedDocument {
         value: number | Meditation;
       } | null)
     | ({
-        relationTo: 'meditation-transcripts';
-        value: number | MeditationTranscript;
+        relationTo: 'transcripts';
+        value: number | Transcript;
       } | null)
     | ({
         relationTo: 'songs';
@@ -4460,14 +4483,15 @@ export interface MeditationsSelect<T extends boolean = true> {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "meditation-transcripts_select".
+ * via the `definition` "transcripts_select".
  */
-export interface MeditationTranscriptsSelect<T extends boolean = true> {
-  meditation?: T;
+export interface TranscriptsSelect<T extends boolean = true> {
+  source?: T;
   audioFilename?: T;
   provider?: T;
   language?: T;
   segments?: T;
+  segmentCount?: T;
   job?: T;
   status?: T;
   error?: T;
@@ -4828,6 +4852,7 @@ export interface ManagersSelect<T extends boolean = true> {
   legacyId?: T;
   legacyData?: T;
   magicLinkIssuedAt?: T;
+  lastLoginAt?: T;
   pendingInvitation?: T;
   invitationDueAt?: T;
   updatedAt?: T;
@@ -4853,26 +4878,29 @@ export interface ManagersSelect<T extends boolean = true> {
  * via the `definition` "clients_select".
  */
 export interface ClientsSelect<T extends boolean = true> {
-  name?: T;
+  label?: T;
   enabled?: T;
   notes?: T;
   roles?: T;
   managers?: T;
   primaryContact?: T;
   region?: T;
+  title?: T;
+  logo?: T;
   color1?: T;
   color2?: T;
   color3?: T;
-  logo?: T;
   supportEmail?: T;
   mailingList?:
     | T
     | {
         enabled?: T;
         provider?: T;
+        clientId?: T;
         listId?: T;
         apiKey?: T;
         doubleOptIn?: T;
+        doiFlowId?: T;
       };
   usage?:
     | T
@@ -4906,6 +4934,7 @@ export interface ClientsSelect<T extends boolean = true> {
       };
   language?: T;
   allowedDomains?: T;
+  domain?: T;
   clientId?: T;
   legacyId?: T;
   legacyData?: T;
