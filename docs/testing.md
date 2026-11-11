@@ -338,10 +338,9 @@ merge will actually land on, and serialises them, so nothing can land between th
 merge it green-lit.
 
 **So `main` is protected by requiring the merge queue, not by a `push` trigger.** A `push` run
-reads the breakage after it has landed, and it resolves to no pull request — the dispatcher maps a
-CI event to an open pull request whose head is that commit (`sydevs/claude-workflow`,
-`dispatcher/resolve.mjs`), so a red run on `main` reaches no handler and files no ticket. The queue
-refuses the merge instead. Two things hold that up, and each fails silently:
+reads the breakage only after it has landed, and nothing routes it — § "A red run files its own
+ticket, because no handler is reachable from here" above. The queue refuses the merge instead. Two
+things hold that up, and each fails silently:
 
 - **`ci.yml`'s `merge_group` trigger is what lets a queue entry complete.** A required check that
   never reports leaves the entry queued with no red anywhere. `scripts/ci-workflows.test.ts` pins
