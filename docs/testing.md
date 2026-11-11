@@ -319,6 +319,57 @@ four stop telling our rule from a default.
 Record the finding; do not weaken the specs for it — sydevs/SahajCloud#903's success list owns
 the repair.
 
+## The merge queue is the only gate that reads the tree a merge will produce (issue #375)
+
+⚠ **`pull_request` already reads a merged tree — the trap is that it is merged against a stale
+base.** GitHub sets `github.ref` to `refs/pull/<n>/merge` and `ci.yml`'s bare
+`actions/checkout@v7` takes it, so the gate does read the head merged into `main`. But it reads
+the `main` of whenever that run fired, and a base that moves afterwards fires nothing. So two
+branches that are each green alone can still land a defect neither one carried.
+
+On 2026-11-07 #369 and #370 each added one `const hasRealPointer = useHasRealPointer()` to
+`src/components/organisms/Mapbox/Map.tsx`. Neither branch held a duplicate; #369 landed at 21:12,
+#370 at 21:18 with its head never re-pushed — so its last green run had merged against a `main`
+without #369. `main` stopped compiling with TS2451 for 34 minutes, and #372's queue entry is what
+found it.
+
+The queue closes that window rather than narrowing it: it builds each entry against the `main` the
+merge will actually land on, and serialises them, so nothing can land between the check and the
+merge it green-lit.
+
+**So `main` is protected by requiring the merge queue, not by a `push` trigger.** A `push` run
+reads the breakage after it has landed, and it resolves to no pull request — the dispatcher maps a
+CI event to an open pull request whose head is that commit (`sydevs/claude-workflow`,
+`dispatcher/resolve.mjs`), so a red run on `main` reaches no handler and files no ticket. The queue
+refuses the merge instead. Two things hold that up, and each fails silently:
+
+- **`ci.yml`'s `merge_group` trigger is what lets a queue entry complete.** A required check that
+  never reports leaves the entry queued with no red anywhere. `scripts/ci-workflows.test.ts` pins
+  the `on:` keys as exactly `pull_request` and `merge_group`.
+- **The queue runs exactly the checks the ruleset requires**, so requiring the queue while
+  requiring no check gates nothing.
+
+⚠ **The ruleset is in Settings → Rules, and nothing readable from here reports it back.** No
+`mcp__github__*` tool reads a ruleset and a cloud session may not reach the GitHub API another
+way, so this table is the repo's only record of it and only a browser can confirm it. Under the
+ruleset covering `main`:
+
+| setting                | value                                                              |
+| ---------------------- | ------------------------------------------------------------------ |
+| Require merge queue    | on                                                                 |
+| Bypass list            | empty — a bypass is the hole this closes                           |
+| Required status checks | `Lint, Typecheck & Build`, `Dependency Review / review`, `Smoke`  |
+
+⚠ **Not yet confirmed as set.** The two halves above ship from the repo; the ruleset edit is an
+attended browser step. Whoever makes it records the date and the values they observed here,
+because a table nobody checked against the dashboard is the failure this section is about.
+
+Both costs were measured first. A merge waits one queue run — 2m23s to 2m50s across runs
+`42417964616`, `42528479577` and `42534049552`. And every merge creates a
+`gh-readonly-queue/main/pr-<n>-<sha>` branch, which starts a `sahajatlas-design` preview build:
+that site's Workers Builds branch rules take a literal branch name or a lone `*` and cannot exclude
+the prefix (`docs/rules/deployment.md`).
+
 ## Decision: node-only (no jsdom / Testing Library)
 
 This mirrors WeMeditateWeb. The unit lane runs in the `node` environment by default, with **no
