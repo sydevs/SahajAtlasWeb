@@ -498,6 +498,12 @@ const AtlasElementBase = r2wc(Widget, { shadow: 'open' }) as unknown as new () =
 // system-theme watcher — so a second `<sahaj-atlas>` would run on instance A's key
 // and steal its theme root, in silence. Exactly one runs, and the rule is enforced
 // where the thing being counted actually lives: the element, not a React render pass.
+//
+// `isConnected` on this is what separates a REPLACEMENT from a second embed: a departed
+// owner yields the page, a live one refuses the arrival. So a replacement has to disconnect
+// before its successor connects — `replaceWith` and a framework re-render both do. Insert
+// first and the arrival is refused while the old owner still stands, never gets a second
+// `connectedCallback`, and the old owner's teardown then leaves the page with no widget at all.
 let owner: AtlasElement | null = null
 
 /**
@@ -550,15 +556,17 @@ class SahajAtlasElement extends AtlasElementBase {
   connectedCallback() {
     if (pendingTeardown) {
       clearTimeout(pendingTeardown)
+      pendingTeardown = null
 
-      // A different element arriving while the old one's release is pending means
-      // the old one is genuinely gone — this runs the release now so this element
-      // does not inherit its key, then lets it take ownership below. Only a
-      // re-connection of the SAME element cancels outright.
-      if (owner !== this) {
+      // A host router that re-renders its page replaces this element on every Back/Forward
+      // press, so what the cache has to survive is a NEW element and not only a returning
+      // one. A different key must still release — `TEARDOWN_GRACE_MS` says why — and
+      // `owner !== this` keeps a plain reconnect out of a comparison `AtlasBoot` may not
+      // have answered yet.
+      // shortcut: only `['client', apiKey]` is key-scoped, so a release is the whole cache;
+      // key every factory in `config/api/index.ts` if two keys reach one page.
+      if (owner !== this && atlasAuth.apiKey !== embed.config.key) {
         releaseOwnership()
-      } else {
-        pendingTeardown = null
       }
     }
 
