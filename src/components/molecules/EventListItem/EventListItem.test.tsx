@@ -109,6 +109,20 @@ describe('EventListItem distance', () => {
     expect(render({ distanceFrom: 'you' })).toContain('event.display.distance_from_you')
   })
 
+  it('says how far a close class is only from the visitor, not from a searched town', () => {
+    vi.stubGlobal('navigator', { languages: ['en'] })
+    const close = { ...far, distance: 1.4 }
+    const card = (props: Partial<Parameters<typeof EventListItem>[0]>) =>
+      renderToStaticMarkup(
+        <MemoryRouter>
+          <EventListItem event={close} {...props} />
+        </MemoryRouter>,
+      )
+
+    expect(card({ distanceFrom: 'you' })).toContain('event.display.distance_from_you | 1.4 km')
+    expect(card({ distanceFrom: 'centre' })).not.toContain('event.display.distance')
+  })
+
   it('shows no distance when there is no point to name, or the list hides it', () => {
     // A country with a weekday measures from wherever the map was: "132 km away" from nobody.
     expect(render()).not.toContain('event.display.distance')

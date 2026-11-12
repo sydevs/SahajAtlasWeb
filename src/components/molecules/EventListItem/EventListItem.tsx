@@ -42,7 +42,9 @@ export interface EventListItemProps {
 
 // Below this, the distance stops being decision-useful. Everything in the
 // searched town is "close", and a line on every card becomes noise. This
-// compares in km, regardless of the unit the locale renders it in.
+// compares in km, regardless of the unit the locale renders it in. It never
+// applies from the visitor's own position: there, "1.4 km from you" is the
+// answer to Near me, not noise.
 const MIN_DISTANCE_KM = 5
 
 /**
@@ -111,7 +113,7 @@ function ClassRow({
     !online &&
     !hideDistance &&
     event.distance !== undefined &&
-    event.distance >= MIN_DISTANCE_KM
+    (distanceFrom === 'you' || event.distance >= MIN_DISTANCE_KM)
       ? formatDistance(event.distance, regionalLocale(locale))
       : null
   const distanceText = distance

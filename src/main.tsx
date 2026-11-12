@@ -15,6 +15,8 @@ import { initTheme } from './hooks/use-theme'
 import { reportIntegrationWarning } from './lib/report'
 import { FULL_SLOT, decideSlot, framed } from './lib/slot-decision'
 import { captureReturnTo } from './config/return-to'
+import { useNearMeState } from './config/store'
+import { parseCenter } from './lib/shape'
 import { adoptStyles } from './styles/sheet'
 
 // The embed's sheet is adopted by its shadow root, so the build stopped appending a
@@ -56,6 +58,16 @@ embed.config = {
 // PROTOTYPE (`ux/embed-inline`): a framed inline card on a phone sends this tab here with the way
 // back to the host's page. Read and stripped before the router snapshots the URL.
 captureReturnTo()
+
+// PROTOTYPE (the filters-near-me review): `nearme=1` opens a search as the visitor who pressed Near
+// me sees it ("Near you", closest first, "2 km from you"), taking the link's own `center` as where
+// they are. Near me keeps that point in memory only, so no real link can carry it, and a review
+// frame can't be asked for a location. Delete with the review.
+if (searchParams.get('nearme') === '1') {
+  const center = parseCenter(searchParams.get('center'))
+
+  if (center) useNearMeState.getState().setCenter(center)
+}
 
 // SahajCloud live-preview boot (issue #40). Synchronous, and deliberately only half the
 // job: this stashes the token and takes it out of `location.href` before React mounts
