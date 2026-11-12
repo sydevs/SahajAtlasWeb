@@ -34,8 +34,8 @@ export type DisplayableEvent = DisplayEventLike & {
 export type EventDisplayStrings = {
   /** The raw resolved state, for surfaces that need more than strings. */
   display: EventDisplay
-  /** "Weekly class" / "Course · 8 sessions" / "One-off event". Null for a by-request listing,
-   *  which carries no schedule and so has no type to name. */
+  /** "Weekly class" / "Course · 8 sessions" / "One-off event". Null for an inactive (by-request)
+   *  listing, and for one with no schedule to name a type from. */
   typeLabel: string | null
   /** A plain weekly class: the default type, which a compact card leaves unnamed. */
   isDefaultType: boolean
@@ -97,8 +97,8 @@ type CalendarLineArgs = {
  * This is the decomposed calendar fact: the lead line, `primary`, and the time that accompanies it.
  * That time is `null` when a one-off or terminal line has no upcoming time.
  * This is the single place the recurrence-versus-when-line choice and the `hasNext` gate live.
- * So the one-line list card, through `composeCalendarLine`, and the two-line map-pin popover,
- * `EventPinCard`, which stacks the parts instead of joining them, can never drift. See #72.
+ * So the list card, through `composeCalendarLine`, and the map-pin popover, `EventPinCard`, can
+ * never drift. See #72.
  *
  * `time` is the surface's chosen time string: the start only, for the compact card or popover,
  * or the full start-to-end range, for the panel.
@@ -157,11 +157,11 @@ export function useEventDisplay(event: DisplayableEvent): EventDisplayStrings {
     // ── Type label (derived, never host-set) ──
     let typeLabel: string | null
 
-    // A by-request listing carries no schedule, so the resolver derives `oneoff` from the
-    // absent recurrence and "One-off event" would be simply wrong. "Contact host for timings"
-    // already says what it is. A real one-off has a schedule, inactive or not, and keeps its
-    // label.
-    if (!schedule) typeLabel = null
+    // An inactive listing is by request, and only the flag says so (Devindra, 12 Nov): it names no
+    // type, even with an old schedule still stored. "Contact host for timings" already says what it
+    // is. A listing with no schedule has no recurrence to name a type from either; the resolver
+    // would derive `oneoff` from the absence.
+    if (event.inactive || !schedule) typeLabel = null
     else if (kind === 'oneoff') typeLabel = t(rewordedKey(i18n, 'event.display.type_oneoff_class'))
     else if (kind === 'course')
       typeLabel = sessionsLabel
@@ -374,4 +374,41 @@ export function useEventDisplay(event: DisplayableEvent): EventDisplayStrings {
       blockedMessage,
     }
   }, [event, locale, t, i18n, minute])
+}
+
+/** What a listing's title is made from: its own title, the flag, and where it is. */
+export type ListingTitleInput = {
+  title: string
+  inactive?: boolean | null
+  address?: Pick<EventAddress, 'city'> | null
+  region?: Pick<RegionRef, 'name'> | null
+}
+
+type InactiveTitleTranslate = (
+  key: 'event.display.inactive_title',
+  options: { city: string },
+) => string
+
+/**
+ * What a listing is called. An inactive listing is always "Meditation in <City>", whatever its
+ * host typed (Devindra, 12 Nov): with no time or door to show, the town is what tells a visitor
+ * whether it is theirs, and a custom title often left it out. Its own title stands when no town is
+ * known.
+ *
+ * PROTOTYPE: SahajCloud should enforce this where the title is written — the field disabled for
+ * an inactive event and filled by its auto-title hook — after which every surface reads the stored
+ * title again and this goes.
+ */
+export function listingTitle(event: ListingTitleInput, t: InactiveTitleTranslate): string {
+  if (!event.inactive) return event.title
+  const city = event.address?.city?.trim() || event.region?.name?.trim()
+
+  return city ? t('event.display.inactive_title', { city }) : event.title
+}
+
+/** `listingTitle` with the active language's copy. */
+export function useListingTitle(event: ListingTitleInput): string {
+  const { t } = useTranslation()
+
+  return listingTitle(event, t)
 }

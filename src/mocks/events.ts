@@ -359,7 +359,7 @@ export const mockEventVariants: EventSlim[] = [
   slimFrom(mockEventFullToday, { distance: 3, path: '/united-kingdom/cambridge/128' }),
   // A one-off whose date has passed → terminal "Ended" (reachable via direct links).
   slimFrom(mockEventEnded, { path: '/united-kingdom/cambridge/125' }),
-  // A dormant venue (no active schedule) → "Contact host for timings".
+  // An inactive (by-request) listing → its own card: "Meditation in Cambridge", call to ask.
   slimFrom(mockEventInactive, { path: '/united-kingdom/cambridge/126' }),
   // A weekly class in a language other than the UI's → the language chip shows.
   {

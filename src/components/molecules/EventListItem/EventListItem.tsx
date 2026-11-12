@@ -9,7 +9,7 @@ import { useHoverPrefetch } from '@/hooks/use-prefetch-event'
 import { formatDistance } from '@/lib'
 import { isOnline } from '@/lib/shape'
 import { regionalLocale } from '@/lib/time'
-import { ContactOnlyRow } from '@/components/molecules/ContactOnly'
+import { InactiveListingRow } from '@/components/molecules/InactiveListing'
 import { EventChips } from '@/components/molecules/EventChips'
 import { EventFacts } from '@/components/molecules/EventFacts'
 import { Link } from '@/components/atoms/Link'
@@ -69,7 +69,8 @@ const MIN_DISTANCE_KM = 5
  * none of the value.
  */
 function EventListItemImpl(props: EventListItemProps) {
-  if (props.event.contactOnly) return <ContactOnlyRow event={props.event} />
+  // An inactive listing has its own card: the flag alone decides it (Devindra, 12 Nov).
+  if (props.event.inactive) return <InactiveListingRow event={props.event} />
 
   return <ClassRow {...props} />
 }

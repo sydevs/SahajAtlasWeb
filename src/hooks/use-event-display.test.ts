@@ -5,7 +5,7 @@ import { createElement } from 'react'
 import { renderToStaticMarkup } from 'react-dom/server'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
-import { composeCalendarLine, useEventDisplay } from './use-event-display'
+import { composeCalendarLine, listingTitle, useEventDisplay } from './use-event-display'
 
 import snapshot from '@/config/translations.en.json'
 
@@ -299,23 +299,56 @@ describe('useEventDisplay — the type label', () => {
     return label
   }
 
-  // The resolver reads an absent recurrence as `oneoff`, and a listing with no schedule at all
-  // has no recurrence either. Naming it is what put "One-off event" on a by-request class.
-  it('is null for a by-request listing, which carries no schedule', () => {
-    expect(labelFor({ eventType: 'offline', address: { city: 'Stirling' } })).toBe(null)
-  })
+  const oneOff = { firstDate: new Date('2026-07-01T17:30:00Z'), firstDate_tz: 'Europe/Prague' }
 
-  it('still names a real one-off an operator marked inactive', () => {
+  // Devindra (12 Nov): the `inactive` flag alone says a listing is by request. Main named a
+  // one-off an operator had flagged inactive, from its stored schedule.
+  it('is null for an inactive listing, even with a schedule still stored', () => {
     expect(
       labelFor({
         eventType: 'offline',
         inactive: true,
         address: { city: 'Stirling' },
-        schedule: {
-          firstDate: new Date('2026-07-01T17:30:00Z'),
-          firstDate_tz: 'Europe/Prague',
-        },
+        schedule: oneOff,
       }),
-    ).toBe(copy('event.display.type_oneoff_class'))
+    ).toBe(null)
+  })
+
+  it('names the type of a listing that is not inactive', () => {
+    expect(labelFor({ eventType: 'offline', schedule: oneOff })).toBe(
+      copy('event.display.type_oneoff_class'),
+    )
+  })
+
+  // The resolver reads an absent recurrence as `oneoff`, so with no schedule there is nothing
+  // true to name.
+  it('is null with no schedule to name a type from', () => {
+    expect(labelFor({ eventType: 'offline', address: { city: 'Stirling' } })).toBe(null)
+  })
+})
+
+describe('listingTitle', () => {
+  const t = (key: 'event.display.inactive_title', options: { city: string }) =>
+    copy(key).replace('%{city}', options.city)
+  const own = 'Meditation at 50 Murray Pl'
+
+  it('names an inactive listing by its town, whatever its host typed (Devindra, 12 Nov)', () => {
+    expect(listingTitle({ title: own, inactive: true, address: { city: 'Stirling' } }, t)).toBe(
+      'Meditation in Stirling',
+    )
+  })
+
+  it('falls back to its region for the town', () => {
+    expect(listingTitle({ title: own, inactive: true, region: { name: 'Stirling' } }, t)).toBe(
+      'Meditation in Stirling',
+    )
+  })
+
+  it('keeps its own title when no town is known', () => {
+    expect(listingTitle({ title: own, inactive: true, address: { city: ' ' } }, t)).toBe(own)
+  })
+
+  it('leaves every other listing its own title', () => {
+    expect(listingTitle({ title: own, address: { city: 'Stirling' } }, t)).toBe(own)
   })
 })

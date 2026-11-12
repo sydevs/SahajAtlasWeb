@@ -12,6 +12,7 @@ import { eventQuery, eventTitlesQuery, regionsQuery } from '@/config/api'
 import { useWidgetMode } from '@/config/mode'
 import { useIsWideWidget } from '@/config/responsive'
 import { rememberCamera } from '@/config/store'
+import { type ListingTitleInput, listingTitle } from '@/hooks/use-event-display'
 import { useLocale } from '@/hooks/use-locale'
 import {
   backDestination,
@@ -81,12 +82,14 @@ export function BackButton({ iconOnly = false }: { iconOnly?: boolean }) {
   // on the calendar itself: history can't say where the calendar came from until they close.
   if (!route || isFilterOverlay(resolveStack(location.pathname), hasMap)) return null
 
-  // Register and Share read this: the class they sit on has just been loaded under this key.
+  // Register and Share read this: the class they sit on has just been loaded under this key. An
+  // inactive listing is named by its town there, so Back names it the same way.
   const target = resolveStack(route.split('?')[0]).at(-1)
-  const title =
+  const doc =
     target?.kind === 'event'
-      ? queryClient.getQueryData<{ title?: string }>(eventQuery(target.id, locale).queryKey)?.title
+      ? queryClient.getQueryData<ListingTitleInput>(eventQuery(target.id, locale).queryKey)
       : undefined
+  const title = doc && listingTitle(doc, t)
   const titles =
     target?.kind === 'event' && title
       ? new Map([[target.id, title]])

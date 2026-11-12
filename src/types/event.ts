@@ -68,10 +68,11 @@ export const EventScheduleSchema = z.object({
 })
 export type EventSchedule = z.infer<typeof EventScheduleSchema>
 
-// A by-request listing comes back with an empty schedule group, every field null, rather than
-// with no group. `z.coerce.date()` reads its null first date as 1 Jan 1970, so the listing looked
-// scheduled and was tagged "One-off event" (bug 20, still live after #370). A group with no first
-// date is no schedule.
+// An inactive listing can come back with an empty schedule group, every field null, rather than
+// with no group (class 830, Stirling). `z.coerce.date()` would read its null first date as 1 Jan
+// 1970, a date nothing ever set, which then reached the class's structured data as its start. A
+// group with no first date is no schedule. Whether a listing is by request is the `inactive`
+// flag's to say, never the schedule's shape (Devindra, 12 Nov).
 const OptionalScheduleSchema = z.preprocess(
   (value) =>
     value && typeof value === 'object' && (value as { firstDate?: unknown }).firstDate == null
@@ -165,8 +166,6 @@ export const AgnosticFeedEventSchema = z.object({
   languages: z.array(z.string()),
   // Dormant event (no active schedule. CMS requires contact info on it). In the
   // feed so cards resolve the same inactive state as the panel.
-  // PROTOTYPE: not a CMS field yet. See `molecules/ContactOnly`.
-  contactOnly: z.boolean().nullish(),
   inactive: z.boolean().nullish(),
   address: EventAddressSchema.nullish(),
   schedule: OptionalScheduleSchema,
@@ -210,8 +209,6 @@ export type EventSlim = z.infer<typeof EventSlimSchema>
 // No `onlineUrl` here: joining details are delivered CMS-side after registration,
 // so Atlas never selects or renders a join link (issue #52).
 export const EventDocSchema = z.object({
-  // PROTOTYPE: not a CMS field yet. See `molecules/ContactOnly`.
-  contactOnly: z.boolean().nullish(),
   id: z.number(),
   title: z.string(),
   eventType: EventTypeSchema,

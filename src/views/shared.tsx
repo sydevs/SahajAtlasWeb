@@ -514,21 +514,18 @@ export function useFrameableRegion(regionSlug: string | undefined): Region | und
  * to. Without this fallback a deep link to it left the camera on the boot-time world view.
  * It frames the region instead, only as the session entry point, like `OnlineView`:
  * opening it in-session leaves the camera where the visitor already is.
- *
- * `skip` leaves the camera alone, for a view with nothing it may show on the map.
  */
-export function useFrameEventOnTop(event: Event, { skip = false }: { skip?: boolean } = {}) {
+export function useFrameEventOnTop(event: Event) {
   const { frameEvent, frameRegion } = useMapController()
   const located = hasMapPoint(event)
-  const region = useFrameableRegion(located || skip ? undefined : event.region?.slug)
+  const region = useFrameableRegion(located ? undefined : event.region?.slug)
 
   useFrameOnTop(
     ({ isEntry }) => {
-      if (skip) return
       if (located) frameEvent(event, { isEntry })
       else if (isEntry && region) frameRegion(region)
     },
-    [event, located, region, skip, frameEvent, frameRegion],
+    [event, located, region, frameEvent, frameRegion],
   )
 }
 

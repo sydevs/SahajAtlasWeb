@@ -124,11 +124,6 @@
     "title": "Free meditation classes"
   },
   "event": {
-    "contact_only": {
-      "call": "Call %{phone}",
-      "hint": "Call to ask when and where",
-      "note": "This group shares its address by phone. Call to ask when and where."
-    },
     "actions": {
       "add_calendar": "Add to calendar",
       "call": "Call",
@@ -168,6 +163,8 @@
       "first_session": "First session: %{date}",
       "free_meditation_class": "Free meditation class",
       "hosted_from": "Hosted from %{city}",
+      "inactive_hint": "Call to ask when and where",
+      "inactive_title": "Meditation in %{city}",
       "next_session": "Next session: %{date}",
       "online": "Online",
       "zone_time": "%{city} time",

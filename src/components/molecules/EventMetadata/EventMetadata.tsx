@@ -6,6 +6,7 @@ import { useTranslation } from 'react-i18next'
 
 import atlasAuth from '@/config/api/auth'
 import { clientQuery } from '@/config/api'
+import { listingTitle } from '@/hooks/use-event-display'
 import { useLocale } from '@/hooks/use-locale'
 import { isOnline, lexicalToText, resolveEventDisplay } from '@/lib/shape'
 import { Event } from '@/types'
@@ -22,6 +23,8 @@ export function EventMetadata({ event }: EventMetadataProps) {
   // same contract for the event-titles sliver.
   const { data: client } = useQuery({ ...clientQuery(atlasAuth.apiKey), enabled: false })
   const { t } = useTranslation()
+  // What the page calls the class, so search results read the same title (`listingTitle`).
+  const title = listingTitle(event, t)
 
   const online = isOnline(event)
   const url = event.webUrl ?? ''
@@ -38,7 +41,7 @@ export function EventMetadata({ event }: EventMetadataProps) {
   const schema: EventSchema = {
     '@type': 'Event',
     '@id': url,
-    name: event.title,
+    name: title,
     description,
     startDate,
     image,
@@ -102,11 +105,11 @@ export function EventMetadata({ event }: EventMetadataProps) {
 
   return (
     <Helmet htmlAttributes={{ lang: locale }}>
-      <title>{`${event.title} - ${t('event.display.free_meditation_class')}`}</title>
+      <title>{`${title} - ${t('event.display.free_meditation_class')}`}</title>
       {url && <link href={url} rel="canonical" />}
       <meta content={description} name="description" />
       <meta content="event" property="og:type" />
-      <meta content={event.title} property="og:title" />
+      <meta content={title} property="og:title" />
       <meta content={description} property="og:description" />
       {url && <meta content={url} property="og:url" />}
       <meta content={languageCode} property="og:locale:alternate" />
