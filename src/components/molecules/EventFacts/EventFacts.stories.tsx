@@ -75,20 +75,6 @@ export const Default: Story = () => (
     </StorySection>
 
     <StorySection
-      description="The boxed details card (a title over the default facts on a tinted surface) shown above the registration and share forms."
-      title="Card"
-    >
-      <div className="flex max-w-md flex-col gap-4">
-        <EventFacts event={mockEvent} title={mockEvent.title} variant="card" />
-        <EventFacts
-          event={{ ...mockEvent, eventType: 'online' }}
-          title="Online Evening Sitting"
-          variant="card"
-        />
-      </div>
-    </StorySection>
-
-    <StorySection
       description="The variant every result card uses: smaller icons faded to the subtext level, the end time dropped, and no 'Next session' line — a list repeats the pattern, so only the lead time earns its space."
       title="Compact"
     >
@@ -105,6 +91,15 @@ export const Default: Story = () => (
     >
       <div className="max-w-md">
         <EventFacts distance="6.2 km away" event={mockEvent} variant="compact" />
+      </div>
+    </StorySection>
+
+    <StorySection
+      description="`hideSubtext` drops every muted second line — the distance, the next session, an online class's host town — for the summary above the registration form, which asks for the date itself."
+      title="Without subtext"
+    >
+      <div className="max-w-md">
+        <EventFacts hideSubtext distance="6.2 km away" event={mockEvent} variant="compact" />
       </div>
     </StorySection>
 

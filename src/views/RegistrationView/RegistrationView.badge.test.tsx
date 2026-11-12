@@ -21,7 +21,7 @@ vi.mock('@/components/atoms/Drawer', () => ({
   DrawerHeader: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
 }))
 vi.mock('@/components/molecules', () => ({
-  EventFacts: () => <i>facts-card</i>,
+  EventSummary: () => <i>summary-card</i>,
   FallbackPanel: () => <i>blocked-panel</i>,
 }))
 vi.mock('@/components/organisms/RegistrationForm', () => ({

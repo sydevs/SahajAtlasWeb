@@ -43,11 +43,9 @@ describe('EventFacts — the room line (#316)', () => {
     expect(pinItem(single)).toBe('items-center')
   })
 
-  it.each([
-    ['the list card', 'compact'],
-    ['the share and registration summaries', 'card'],
-  ] as const)('leaves %s without it', (_, variant) => {
-    const html = renderToStaticMarkup(<EventFacts event={withRoom} variant={variant} />)
+  // The share and registration summaries reuse the list card's facts (`EventSummary`).
+  it('leaves the list card and the summaries without it', () => {
+    const html = renderToStaticMarkup(<EventFacts event={withRoom} variant="compact" />)
 
     expect(html).not.toContain('event.display.room')
   })

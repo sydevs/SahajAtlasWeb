@@ -17,9 +17,7 @@ import {
 // spacing, and icons that step back and shrink to the text height, reading
 // as inline text with a leading glyph, not a labelled block. Its time and
 // address stay in the foreground colour, because they are what a visitor
-// came for. Only the distance under them steps back. `card` is the boxed event-details card: a `title` over the
-// default facts on a tinted rounded surface, the object being acted on
-// above the registration and share forms. Each fact has a required primary
+// came for. Only the distance under them steps back. Each fact has a required primary
 // line (`text`) and an optional faded second line (`subtext`). The primary
 // line is medium weight and the second line regular, grey and on the panel a
 // size smaller, so the time reads first and "Next session" reads as its detail.
@@ -30,9 +28,6 @@ import {
 // surface with a single internal consumer. It is folded in here instead.
 const facts = tv({
   slots: {
-    // `wrapper` and `title` are used only by the `card` variant. They stay empty otherwise.
-    wrapper: '',
-    title: '',
     base: 'flex flex-col',
     item: 'flex',
     icon: 'shrink-0',
@@ -48,13 +43,6 @@ const facts = tv({
         item: 'gap-2',
         icon: 'text-gray-11',
         text: 'text-sm leading-snug text-foreground',
-      },
-      card: {
-        wrapper: 'rounded-lg border border-divider bg-gray-2 p-3',
-        title: 'mb-3 text-lg',
-        base: 'gap-2.5',
-        item: 'gap-3',
-        icon: 'text-primary',
       },
     },
     // A two-line fact hangs its icon beside the FIRST line. A lone line centres it.
@@ -72,15 +60,14 @@ const facts = tv({
   compoundVariants: [
     { variant: 'default', stacked: true, class: { icon: 'mt-0.5' } },
     { variant: 'compact', stacked: true, class: { icon: 'mt-px' } },
-    { variant: 'card', stacked: true, class: { icon: 'mt-0.5' } },
   ],
   defaultVariants: { variant: 'default', stacked: false },
 })
 
 // Icon pixel size per variant. It matches the text height in the compact card.
-const ICON_SIZE = { default: 20, compact: 16, card: 20 } as const
+const ICON_SIZE = { default: 20, compact: 16 } as const
 
-type FactVariant = 'default' | 'compact' | 'card'
+type FactVariant = 'default' | 'compact'
 
 type Fact = {
   icon: LucideIcon
@@ -95,22 +82,19 @@ type Fact = {
 
 export type EventFactsProps = {
   event: DisplayableEvent
-  /** `default` (panel), `compact` (list card), or `card` (boxed details card). */
+  /** `default` (panel) or `compact` (list card, and the summary that reuses it). */
   variant?: FactVariant
-  /** The heading rendered above the facts. `card` variant only. */
-  title?: ReactNode
-  /** Extra content inside the `card` box, below the facts (e.g. a backlink). */
-  children?: ReactNode
   /** Distance from the searched location, shown faded under the address. List
    *  cards only: the panel has no search origin to measure from. */
   distance?: ReactNode
   /** Replaces the address line, for a list that sorts by place. List cards only. */
   where?: ReactNode
   /**
-   * Drops the muted line under the timing ("Next session: …"), for a screen that has its own answer
-   * to which date. The registration form asks for one, and its confirmation names the one chosen.
+   * Drops every muted second line ("Next session: …", the distance, "Hosted from …"), for a
+   * summary above a form. The registration form asks which date, and its confirmation names the
+   * one chosen.
    */
-  hideTimingDetail?: boolean
+  hideSubtext?: boolean
   /** Content at the end of the calendar fact and of the location fact. */
   trailing?: { when?: ReactNode; where?: ReactNode }
   className?: string
@@ -131,11 +115,9 @@ export type EventFactsProps = {
 export function EventFacts({
   event,
   variant = 'default',
-  title,
-  children,
   distance,
   where,
-  hideTimingDetail = false,
+  hideSubtext = false,
   trailing,
   className,
 }: EventFactsProps) {
@@ -186,11 +168,11 @@ export function EventFacts({
         time,
         hasNext: Boolean(display.next),
       }),
-      subtext: hideTimingDetail ? undefined : timingDetail,
+      subtext: hideSubtext ? undefined : timingDetail,
       trailing: trailing?.when,
       today:
         compact && display.status === 'today'
-          ? timingDetail && !hideTimingDetail
+          ? timingDetail && !hideSubtext
             ? 'subtext'
             : 'line'
           : undefined,
@@ -222,25 +204,23 @@ export function EventFacts({
         (where ?? address)
       ),
       stacked: Boolean(room),
-      subtext: display.online
-        ? (whereSubtext ?? undefined)
-        : where
-          ? undefined
-          : (distance ?? undefined),
+      subtext: hideSubtext
+        ? undefined
+        : display.online
+          ? (whereSubtext ?? undefined)
+          : where
+            ? undefined
+            : (distance ?? undefined),
       trailing: trailing?.where,
     })
   }
 
   const size = ICON_SIZE[variant]
-  const card = variant === 'card'
   const slots = facts({ variant })
 
-  // The card variant owns the outer box, so `className` styles that box.
-  // It also owns a title above the facts, and a slot below them. The other
-  // variants render just the fact column, and take `className` on it.
-  const body = (
+  return (
     <div
-      className={card ? slots.base() : slots.base({ className })}
+      className={slots.base({ className })}
       data-sheet-fold={variant === 'default' ? '' : undefined}
     >
       {items.map(({ icon: Icon, text, subtext, stacked, today, trailing: end }, index) => {
@@ -265,16 +245,6 @@ export function EventFacts({
           </div>
         )
       })}
-    </div>
-  )
-
-  if (!card) return body
-
-  return (
-    <div className={slots.wrapper({ className })}>
-      {title != null && <div className={slots.title()}>{title}</div>}
-      {body}
-      {children}
     </div>
   )
 }

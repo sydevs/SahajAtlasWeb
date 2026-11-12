@@ -201,11 +201,6 @@ export type RegistrationFormProps = {
    * subscription.
    */
   hasMailingList?: boolean
-  /**
-   * What was registered for, shown on the confirmation under the success line. RegistrationView
-   * hands over the same facts card it shows above the form, so the success line leads that screen.
-   */
-  summary?: ReactNode
   /** Tells the view the registration went through, so its header can say so. */
   onSubmitted?: () => void
   /** Start in the post-submit confirmation state — for previewing that screen in a
@@ -240,7 +235,6 @@ export function RegistrationForm({
   eventUrl,
   calendar,
   hasMailingList = false,
-  summary,
   onSubmitted,
   initialSubmitted = false,
   initialRefusal,
@@ -429,8 +423,6 @@ export function RegistrationForm({
               </p>
             </div>
           </div>
-
-          {summary}
 
           {/* This is the moment calendar export is most wanted (issue #105).
               `calendar` is optional, so the form stays generic: it takes

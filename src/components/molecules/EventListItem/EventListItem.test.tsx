@@ -80,7 +80,9 @@ describe('EventListItem', () => {
     )
 
     // The row is the Link: its content sits in one left-aligned column, then the chevron.
-    expect(html).toContain('flex min-w-0 flex-1 flex-col gap-1')
+    const column = /class="([^"]*\bflex-col\b[^"]*)"/.exec(html)?.[1].split(' ') ?? []
+
+    expect(column).toEqual(expect.arrayContaining(['flex', 'min-w-0', 'flex-1', 'flex-col']))
     expect(html).toContain('lucide-chevron-right')
   })
 })

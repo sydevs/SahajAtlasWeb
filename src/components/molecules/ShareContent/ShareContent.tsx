@@ -1,15 +1,17 @@
-import { useEffect, useRef, useState } from 'react'
+import { type MouseEvent, useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { tv } from 'tailwind-variants'
+import * as Popover from '@radix-ui/react-popover'
 import { Check, Link, Share } from 'lucide-react'
-import clsx from 'clsx'
 
-import { PlatformButton } from './platform-buttons'
+import { ShareTargets } from './platform-buttons'
 
 import { Button } from '@/components/atoms/Button'
+import { panelChrome } from '@/components/atoms/Select'
+import { QrPoster } from '@/components/molecules/QrPoster'
 import { useCoarsePointer } from '@/config/responsive'
 import { useWebShare } from '@/hooks/use-web-share'
-import { platformsForCountry } from '@/lib/share/platforms'
+import { frameCollision, overlayContainer } from '@/lib/overlay'
 
 const copyField = tv({
   base: 'w-full truncate rounded px-3 py-2 text-start text-sm text-secondary-11 transition-colors select-all',
@@ -68,14 +70,11 @@ export function CopyField({ value, label, copiedLabel }: CopyFieldProps) {
 /** How long the button holds "Link copied". Long enough to read at a glance away and back. */
 const COPIED_MS = 2500
 
-/** The darker teal of the Register button, as text: Copy link's own teal measured about 3:1. */
-const READABLE_PRIMARY = 'text-primary-12'
-
-// The share view's copy control: a real button that says what it does, and says "Link copied"
-// when it has. The button itself changes, under the visitor's thumb, so the answer is where they
-// are already looking. The raw URL stays below as a quiet caption, to see what is being shared
-// and to select by hand where a host page blocks the clipboard.
-function CopyLinkButton({ url, solid }: { url: string; solid: boolean }) {
+// The copy control: a real button that says what it does, and says "Link copied" when it has.
+// The button itself changes, under the visitor's thumb, so the answer is where they are already
+// looking. The raw URL stays below as a quiet caption, to see what is being shared and to select
+// by hand where a host page blocks the clipboard.
+function CopyLinkButton({ url }: { url: string }) {
   const { t } = useTranslation()
   const touch = useCoarsePointer()
   const [status, setStatus] = useState<'idle' | 'copied' | 'failed'>('idle')
@@ -103,11 +102,12 @@ function CopyLinkButton({ url, solid }: { url: string; solid: boolean }) {
 
   return (
     <div className="flex flex-col gap-2">
+      {/* The darker teal of the Register button, as text: Copy link's own teal measured 3:1. */}
       <Button
-        className={clsx('w-full', (copied || !solid) && READABLE_PRIMARY)}
+        className="w-full text-primary-12"
         color="primary"
         size="lg"
-        variant={copied ? 'flat' : solid ? 'solid' : 'bordered'}
+        variant={copied ? 'flat' : 'bordered'}
         onClick={copy}
       >
         {copied ? <Check aria-hidden size={18} strokeWidth={3} /> : <Link aria-hidden size={18} />}
@@ -130,72 +130,87 @@ const copyCaption = tv({
   variants: { wrap: { true: 'break-all', false: 'truncate' } },
 })
 
+type ShareButtonProps = { label: string; url: string; country?: string }
+
+/**
+ * Share, as one button. It opens the device's own share sheet, which lists the apps this person
+ * uses. Where there is none (most desktop browsers), or a host page refuses it, the same button
+ * opens the region's share targets in a popover instead, so the fallback takes the sheet's place
+ * rather than stacking below the other buttons.
+ */
+function ShareButton({ label, url, country }: ShareButtonProps) {
+  const { t } = useTranslation()
+  const { canShare, share } = useWebShare()
+  const [open, setOpen] = useState(false)
+
+  const onClick = async (event: MouseEvent) => {
+    if (!canShare) return
+
+    // Before the await: Radix reads it right after this returns, and skips its own toggle.
+    event.preventDefault()
+    // Backing out of the sheet is not a failure: the button stays, ready to try again.
+    if ((await share({ title: label, url })) === 'unavailable') setOpen(true)
+  }
+
+  return (
+    <Popover.Root open={open} onOpenChange={setOpen}>
+      <Popover.Trigger asChild>
+        <Button className="w-full" color="primary" size="lg" variant="solid" onClick={onClick}>
+          <Share aria-hidden size={18} />
+          {t('share.native')}
+        </Button>
+      </Popover.Trigger>
+
+      <Popover.Portal container={overlayContainer()}>
+        {/* As wide as one row of targets, which can be wider than a narrow side panel's button;
+            only a screen too narrow for the row wraps it. A pick hands over to the network's own
+            page or the mail app, so the popover goes. */}
+        <Popover.Content
+          aria-label={t('share.native')}
+          className={panelChrome({
+            class: 'max-w-[var(--radix-popover-content-available-width)] p-3',
+          })}
+          sideOffset={8}
+          {...frameCollision()}
+          onClick={() => setOpen(false)}
+        >
+          <ShareTargets country={country} title={label} url={url} />
+        </Popover.Content>
+      </Popover.Portal>
+    </Popover.Root>
+  )
+}
+
 export type ShareContentProps = {
   label: string
   url: string
   /**
-   * The viewer's country (ISO alpha-2). It orders the share grid to their
-   * region (`platformsForCountry`). The consumer resolves it, through
-   * `useViewerCountry`, so this molecule stays pure and SSR-testable. When
-   * absent, this uses the default platform set.
+   * The viewer's country (ISO alpha-2). It picks and orders the share targets to their region
+   * (`platformsForCountry`). The consumer resolves it, through `useViewerCountry`, so this
+   * molecule stays pure and SSR-testable. When absent, this uses the default platform set.
    */
   country?: string
+  /** Adds the QR code for posters. The class's own Share panel offers it; a registrant does not
+   *  need one to invite a friend. */
+  qr?: boolean
+  /** Told when the QR row opens, so a bottom sheet can make room for the code. */
+  onQrOpen?: () => void
 }
 
 /**
- * The shareable block: a Copy link button, plus regionally-ordered
- * share targets. On a device that supports the Web Share API, it leads
- * with a single "Share…" button, opening the native OS sheet, which
- * surfaces the viewer's own installed apps, the ultimate region filter.
- * Everywhere else, or if that native sheet cannot open, it falls back to a
- * grid of `react-share` buttons ordered by `country`. This is generic
- * (label, url, and optional country). The event share drawer (ShareView)
- * and the registration "thank you" screen both use it.
+ * The one share block, on the class's Share panel and on the registration confirmation: Share
+ * (the device's sheet, or the region's targets in a popover), then Copy link, then, on the Share
+ * panel only, the QR code.
  *
- * `label` and `url` pass through raw. react-share and the native sheet
- * encode their own parameters, so the old `encodeURI` here would have
- * double-encoded them.
+ * `label` and `url` pass through raw. react-share and the native sheet encode their own
+ * parameters, so an `encodeURI` here would double-encode them.
  */
-export function ShareContent({ label, url, country }: ShareContentProps) {
-  const { t } = useTranslation()
-  const { canShare, share } = useWebShare()
-  // This reveals the grid when there is no native sheet, or after a native attempt is blocked
-  // (host Permissions-Policy). So the viewer is never stranded. Backing out of the sheet is not
-  // that: the button stays where it was, ready to try again.
-  const [gridRevealed, setGridRevealed] = useState(false)
-  const showGrid = !canShare || gridRevealed
-
-  const platforms = platformsForCountry(country)
-
-  const shareNatively = async () => {
-    if ((await share({ title: label, url })) === 'unavailable') setGridRevealed(true)
-  }
-
+export function ShareContent({ label, url, country, qr = false, onQrOpen }: ShareContentProps) {
   return (
     <div className="flex flex-col gap-3">
-      {/* The phone's own sheet leads where there is one: it lists the apps this person uses. */}
-      {!showGrid && (
-        <Button
-          className="w-full"
-          color="primary"
-          size="lg"
-          variant="solid"
-          onClick={shareNatively}
-        >
-          <Share aria-hidden size={18} />
-          {t('share.native')}
-        </Button>
-      )}
-
-      <CopyLinkButton solid={showGrid} url={url} />
-
-      {showGrid && (
-        <div className="flex flex-row flex-wrap justify-center gap-2 pt-1">
-          {platforms.map((platform) => (
-            <PlatformButton key={platform} platform={platform} title={label} url={url} />
-          ))}
-        </div>
-      )}
+      <ShareButton country={country} label={label} url={url} />
+      <CopyLinkButton url={url} />
+      {qr && <QrPoster label={label} url={url} onOpen={onQrOpen} />}
     </div>
   )
 }

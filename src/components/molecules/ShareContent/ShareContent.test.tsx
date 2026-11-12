@@ -2,12 +2,13 @@ import { renderToStaticMarkup } from 'react-dom/server'
 import { describe, it, expect, vi, afterEach } from 'vitest'
 
 import { CopyField, ShareContent } from './ShareContent'
+import { ShareTargets } from './platform-buttons'
 
 // This mocks the i18n boundary, so aria-labels render as real copy,
 // including the %{platform} interpolation, without booting i18next (see
 // GeolocationPrompt.test). This is the node lane, with no jsdom
-// (docs/testing.md). `navigator` has no `.share` here, so ShareContent
-// renders the grid. The last case stubs it, to test the native path.
+// (docs/testing.md), so the popover itself never opens here: `ShareTargets`
+// is rendered directly for what it holds.
 vi.mock('react-i18next', () => ({
   useTranslation: () => ({
     t: (key: string, opts?: { platform?: string }) =>
@@ -29,26 +30,18 @@ const url = 'https://atlas.example/e/café'
 const label = 'Saturday Morning Meditation'
 
 describe('ShareContent', () => {
-  it('orders the share grid to the viewer region', () => {
-    const ru = renderToStaticMarkup(<ShareContent country="RU" label={label} url={url} />)
+  // The fallback targets live in the Share button's popover, not in a grid under Copy link.
+  it.each([
+    ['without a share sheet', undefined],
+    ['with a share sheet', () => Promise.resolve()],
+  ])('leads with one Share button %s, the targets behind it', (_, share) => {
+    if (share) vi.stubGlobal('navigator', { share })
 
-    expect(ru).toContain('Share on VK')
-    expect(ru).toContain('Share on OK.ru')
-    expect(ru).not.toContain('Share on LINE')
+    const html = renderToStaticMarkup(<ShareContent country="RU" label={label} url={url} />)
 
-    const jp = renderToStaticMarkup(<ShareContent country="JP" label={label} url={url} />)
-
-    expect(jp).toContain('Share on LINE')
-    expect(jp).not.toContain('Share on VK')
-  })
-
-  it('falls back to the default platforms for an unknown or absent country', () => {
-    const html = renderToStaticMarkup(<ShareContent label={label} url={url} />)
-
-    // DEFAULT_PLATFORMS leads with WhatsApp and carries no regional-only targets.
-    expect(html).toContain('Share on WhatsApp')
+    expect(html).toMatch(/<button[^>]*aria-haspopup="dialog"[^>]*>.*Share…/)
+    expect(html.indexOf('Share…')).toBeLessThan(html.indexOf('share.copy_link'))
     expect(html).not.toContain('Share on VK')
-    expect(html).not.toContain('Share on LINE')
   })
 
   it('copies the raw URL — react-share encodes internally, so no double-encoding', () => {
@@ -65,14 +58,46 @@ describe('ShareContent', () => {
     expect(html.indexOf('share.copy_link')).toBeLessThan(html.indexOf(url))
   })
 
-  it('leads with a single native share button when the Web Share API is available', () => {
-    vi.stubGlobal('navigator', { share: () => Promise.resolve() })
+  // One block serves the class's Share panel and the registration confirmation; only the
+  // first offers a poster code.
+  it('adds the QR code only when asked', () => {
+    expect(renderToStaticMarkup(<ShareContent label={label} url={url} />)).not.toContain(
+      'share.qr_title',
+    )
+    expect(renderToStaticMarkup(<ShareContent qr label={label} url={url} />)).toContain(
+      'share.qr_title',
+    )
+  })
+})
 
-    const html = renderToStaticMarkup(<ShareContent country="RU" label={label} url={url} />)
+describe('ShareTargets', () => {
+  it('picks and orders the targets to the viewer region', () => {
+    const ru = renderToStaticMarkup(<ShareTargets country="RU" title={label} url={url} />)
 
-    // Native-first: one "Share…" button opens the OS sheet, not the platform grid.
-    expect(html).toContain('Share…')
+    expect(ru.indexOf('Share on VK')).toBeLessThan(ru.indexOf('Share on OK.ru'))
+    expect(ru).not.toContain('Share on LINE')
+
+    const jp = renderToStaticMarkup(<ShareTargets country="JP" title={label} url={url} />)
+
+    expect(jp).toContain('Share on LINE')
+    expect(jp).not.toContain('Share on VK')
+  })
+
+  it('falls back to the default platforms for an unknown or absent country', () => {
+    const html = renderToStaticMarkup(<ShareTargets title={label} url={url} />)
+
+    // DEFAULT_PLATFORMS leads with WhatsApp and carries no regional-only targets.
+    expect(html).toContain('Share on WhatsApp')
     expect(html).not.toContain('Share on VK')
+    expect(html).not.toContain('Share on LINE')
+  })
+
+  // A person finds their app by its colour, so no neutral repaint.
+  it('keeps each network in its brand colours', () => {
+    const html = renderToStaticMarkup(<ShareTargets title={label} url={url} />)
+
+    expect(html).toContain('fill="#25D366"')
+    expect(html).not.toContain('var(--gray-4)')
   })
 })
 

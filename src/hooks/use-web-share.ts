@@ -23,7 +23,7 @@ export type WebShareResult = 'shared' | 'dismissed' | 'unavailable'
  * `share` opens the native OS sheet.
  * A visitor dismissing the sheet resolves to `dismissed` (`AbortError`), so the same button can be tried again.
  * A missing API, or a host page that disables it through `Permissions-Policy` (`NotAllowedError`), resolves to `unavailable`.
- * Callers use `unavailable` to reveal the button grid, so the viewer is never stranded.
+ * Callers use `unavailable` to open the share targets instead, so the viewer is never stranded.
  * This is a fallback signal, not an error to surface.
  */
 export function useWebShare(): {

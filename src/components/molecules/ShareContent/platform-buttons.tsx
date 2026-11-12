@@ -27,18 +27,17 @@ import {
   XShareButton,
 } from 'react-share'
 
-import { type PlatformKey } from '@/lib/share/platforms'
+import { type PlatformKey, platformsForCountry } from '@/lib/share/platforms'
 
-// One quiet set rather than a row of brand discs, which were the loudest thing on the screen.
-// Each network stays recognisable by its glyph, and named for screen readers.
-const ICON_PROPS = {
-  round: true,
-  size: 44,
-  bgStyle: { fill: 'var(--gray-4)' },
-  iconFillColor: 'var(--gray-12)',
-}
+// Each network in its own brand colours, the way a phone's share sheet shows them: a person
+// finds their app by its colour before its glyph.
+const ICON_PROPS = { round: true, size: 44 }
 
-type RenderArgs = { url: string; title: string; ariaLabel: string }
+// The disc is the button, so the focus line follows it round. In dark mode a hairline keeps a
+// dark disc (X's black) from melting into the panel.
+const BUTTON_CLASS = 'rounded-full dark:ring-1 dark:ring-white/20'
+
+type RenderArgs = { url: string; title: string; ariaLabel: string; className: string }
 
 // Each platform maps to its display name, for the aria-label, and a
 // render that wires the matching react-share button and round icon. This
@@ -50,96 +49,96 @@ type RenderArgs = { url: string; title: string; ariaLabel: string }
 const PLATFORMS: Record<PlatformKey, { name: string; render: (args: RenderArgs) => ReactNode }> = {
   whatsapp: {
     name: 'WhatsApp',
-    render: ({ url, title, ariaLabel }) => (
-      <WhatsappShareButton aria-label={ariaLabel} title={title} url={url}>
+    render: ({ url, title, ariaLabel, className }) => (
+      <WhatsappShareButton aria-label={ariaLabel} className={className} title={title} url={url}>
         <WhatsappIcon {...ICON_PROPS} />
       </WhatsappShareButton>
     ),
   },
   telegram: {
     name: 'Telegram',
-    render: ({ url, title, ariaLabel }) => (
-      <TelegramShareButton aria-label={ariaLabel} title={title} url={url}>
+    render: ({ url, title, ariaLabel, className }) => (
+      <TelegramShareButton aria-label={ariaLabel} className={className} title={title} url={url}>
         <TelegramIcon {...ICON_PROPS} />
       </TelegramShareButton>
     ),
   },
   facebook: {
     name: 'Facebook',
-    render: ({ url, ariaLabel }) => (
-      <FacebookShareButton aria-label={ariaLabel} url={url}>
+    render: ({ url, ariaLabel, className }) => (
+      <FacebookShareButton aria-label={ariaLabel} className={className} url={url}>
         <FacebookIcon {...ICON_PROPS} />
       </FacebookShareButton>
     ),
   },
   x: {
     name: 'X',
-    render: ({ url, title, ariaLabel }) => (
-      <XShareButton aria-label={ariaLabel} title={title} url={url}>
+    render: ({ url, title, ariaLabel, className }) => (
+      <XShareButton aria-label={ariaLabel} className={className} title={title} url={url}>
         <XIcon {...ICON_PROPS} />
       </XShareButton>
     ),
   },
   linkedin: {
     name: 'LinkedIn',
-    render: ({ url, title, ariaLabel }) => (
-      <LinkedinShareButton aria-label={ariaLabel} title={title} url={url}>
+    render: ({ url, title, ariaLabel, className }) => (
+      <LinkedinShareButton aria-label={ariaLabel} className={className} title={title} url={url}>
         <LinkedinIcon {...ICON_PROPS} />
       </LinkedinShareButton>
     ),
   },
   reddit: {
     name: 'Reddit',
-    render: ({ url, title, ariaLabel }) => (
-      <RedditShareButton aria-label={ariaLabel} title={title} url={url}>
+    render: ({ url, title, ariaLabel, className }) => (
+      <RedditShareButton aria-label={ariaLabel} className={className} title={title} url={url}>
         <RedditIcon {...ICON_PROPS} />
       </RedditShareButton>
     ),
   },
   email: {
     name: 'Email',
-    render: ({ url, title, ariaLabel }) => (
-      <EmailShareButton aria-label={ariaLabel} subject={title} url={url}>
+    render: ({ url, title, ariaLabel, className }) => (
+      <EmailShareButton aria-label={ariaLabel} className={className} subject={title} url={url}>
         <EmailIcon {...ICON_PROPS} />
       </EmailShareButton>
     ),
   },
   vk: {
     name: 'VK',
-    render: ({ url, title, ariaLabel }) => (
-      <VKShareButton aria-label={ariaLabel} title={title} url={url}>
+    render: ({ url, title, ariaLabel, className }) => (
+      <VKShareButton aria-label={ariaLabel} className={className} title={title} url={url}>
         <VKIcon {...ICON_PROPS} />
       </VKShareButton>
     ),
   },
   ok: {
     name: 'OK.ru',
-    render: ({ url, title, ariaLabel }) => (
-      <OKShareButton aria-label={ariaLabel} title={title} url={url}>
+    render: ({ url, title, ariaLabel, className }) => (
+      <OKShareButton aria-label={ariaLabel} className={className} title={title} url={url}>
         <OKIcon {...ICON_PROPS} />
       </OKShareButton>
     ),
   },
   line: {
     name: 'LINE',
-    render: ({ url, title, ariaLabel }) => (
-      <LineShareButton aria-label={ariaLabel} title={title} url={url}>
+    render: ({ url, title, ariaLabel, className }) => (
+      <LineShareButton aria-label={ariaLabel} className={className} title={title} url={url}>
         <LineIcon {...ICON_PROPS} />
       </LineShareButton>
     ),
   },
   viber: {
     name: 'Viber',
-    render: ({ url, title, ariaLabel }) => (
-      <ViberShareButton aria-label={ariaLabel} title={title} url={url}>
+    render: ({ url, title, ariaLabel, className }) => (
+      <ViberShareButton aria-label={ariaLabel} className={className} title={title} url={url}>
         <ViberIcon {...ICON_PROPS} />
       </ViberShareButton>
     ),
   },
   weibo: {
     name: 'Weibo',
-    render: ({ url, title, ariaLabel }) => (
-      <WeiboShareButton aria-label={ariaLabel} title={title} url={url}>
+    render: ({ url, title, ariaLabel, className }) => (
+      <WeiboShareButton aria-label={ariaLabel} className={className} title={title} url={url}>
         <WeiboIcon {...ICON_PROPS} />
       </WeiboShareButton>
     ),
@@ -157,12 +156,37 @@ export type PlatformButtonProps = {
 /**
  * One region-appropriate share target: the react-share button and round
  * icon for `platform`, labelled "Share on <platform>" for screen
- * readers. The parent `ShareContent` lays these out in a grid, ordered
- * by `platformsForCountry`.
+ * readers. `ShareTargets` lays these out, ordered by `platformsForCountry`.
  */
 export function PlatformButton({ platform, url, title }: PlatformButtonProps) {
   const { t } = useTranslation()
   const { name, render } = PLATFORMS[platform]
 
-  return render({ url, title, ariaLabel: t('share.share_on', { platform: name }) })
+  return render({
+    url,
+    title,
+    ariaLabel: t('share.share_on', { platform: name }),
+    className: BUTTON_CLASS,
+  })
+}
+
+export type ShareTargetsProps = {
+  url: string
+  title: string
+  /** The viewer's country (ISO alpha-2), which picks and orders the targets. */
+  country?: string
+}
+
+/**
+ * The region's share targets in one wrapping row: what the Share button offers where the device
+ * has no share sheet of its own.
+ */
+export function ShareTargets({ url, title, country }: ShareTargetsProps) {
+  return (
+    <div className="flex flex-row flex-wrap justify-center gap-2">
+      {platformsForCountry(country).map((platform) => (
+        <PlatformButton key={platform} platform={platform} title={title} url={url} />
+      ))}
+    </div>
+  )
 }

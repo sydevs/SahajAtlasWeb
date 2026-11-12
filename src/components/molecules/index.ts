@@ -56,13 +56,7 @@ export type { FallbackAlign, FallbackKind } from './Fallbacks'
 // FormField — the label, control, and help-or-error shell shared by the
 // app's forms, and `fieldErrorId`, the single definition of the
 // aria-describedby id convention.
-export {
-  FormField,
-  fieldErrorId,
-  fieldHelpId,
-  fieldLabelId,
-  fieldDescribedBy,
-} from './FormField'
+export { FormField, fieldErrorId, fieldHelpId, fieldLabelId, fieldDescribedBy } from './FormField'
 export type { FieldControlProps, FormFieldProps } from './FormField'
 
 // ActionRow / ActionButton — the quiet labelled secondary actions
@@ -71,13 +65,17 @@ export { ActionRow, ActionButton } from './ActionRow'
 export type { ActionRowProps, ActionButtonProps } from './ActionRow'
 
 // EventFacts — the shared calendar and location fact block for an
-// event. It builds and renders the when/where lines. The panel, the list
-// card, and the share and registration drawers all use it. Its `card`
-// variant is the boxed, titled treatment those two drawers use. There is
-// deliberately no separate wrapper for it. The one that existed only
-// added an outbound backlink that was never correct behaviour (#156).
+// event. It builds and renders the when/where lines, for the class panel
+// and (through EventSummary) the list card and the share and registration
+// drawers.
 export { EventFacts } from './EventFacts'
 export type { EventFactsProps } from './EventFacts'
+
+// EventSummary — a class at a glance (title, when and where, chips): the list card's body, and
+// the boxed summary at the top of the Register and Share panels. It carries no outbound
+// backlink: the earlier summary wrapper's was never correct behaviour (#156).
+export { EventSummary } from './EventSummary'
+export type { EventSummaryProps } from './EventSummary'
 
 // The event's triage chips (type, language(s), Today). The list card
 // and the event header share this, so the two never drift. `compact`

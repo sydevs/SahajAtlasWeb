@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next'
 
 import { Alert } from '@/components/atoms/Alert'
 import { DrawerBody } from '@/components/atoms/Drawer'
-import { EventFacts, FallbackPanel } from '@/components/molecules'
+import { EventSummary, FallbackPanel } from '@/components/molecules'
 import { EventRegisterBar } from '@/components/organisms/EventDetails/EventRegister'
 import { RegistrationForm } from '@/components/organisms/RegistrationForm'
 import { useEventDisplay } from '@/hooks/use-event-display'
@@ -100,18 +100,6 @@ export function RegistrationView({
 
   const formShowing = open && !external && !submitted
 
-  // Without the "Next session" line: the form asks which date, and the confirmation names the one
-  // chosen, which may not be the next one.
-  const summary = (
-    <EventFacts
-      hideTimingDetail
-      className="w-full"
-      event={event}
-      title={event.title}
-      variant="card"
-    />
-  )
-
   return (
     <>
       <NavHeader
@@ -128,8 +116,10 @@ export function RegistrationView({
             : 'px-gutter py-4'
         }
       >
-        {/* On the confirmation the form places this itself, under the success line. */}
-        {!submitted && <div className="mx-auto mb-4 w-full max-w-md">{summary}</div>}
+        {/* The class's summary leads every state, as it leads the Share panel, and stays put when
+            the form gives way to the confirmation. Without the muted lines: the form asks which
+            date, and the confirmation names the one chosen, which may not be the next one. */}
+        <EventSummary boxed hideSubtext className="mx-auto mb-4 w-full max-w-md" event={event} />
 
         {open && !external ? (
           <RegistrationForm
@@ -142,7 +132,6 @@ export function RegistrationView({
             isOnline={isOnline(event)}
             questions={enabledQuestions(event)}
             recurrenceType={event.schedule?.recurrenceType}
-            summary={summary}
             timeZone={eventTimeZone(event)}
             upcomingDates={selectableDates}
             onSubmitted={() => setSubmitted(true)}
