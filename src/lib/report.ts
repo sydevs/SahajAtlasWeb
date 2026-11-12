@@ -189,13 +189,13 @@ const LOG_PREFIX = 'sahaj-atlas'
  *    people's expired URLs becomes a project nobody reads. This is why the viewer
  *    sees the neutral register instead of the danger one.
  *
- * The four remaining kinds are ones a maintainer can act on. **`server`** means
+ * The remaining kinds are ones a maintainer can act on. **`server`** means
  * SahajCloud is down, or a CORS/CSP block is being reported as one. **`config`** means
  * a customer's API key is wrong or expired, so their embed is dead on arrival.
- * **`captcha-blocked`** means the challenge would not load — a host missing from the
- * allowlist, or a CSP refusing its frame — so the whole widget fails. `ERROR_POLICY`
- * withholds the viewer's report button there, and this row still reports: the event
- * rides the Sentry DSN's own transport, which the challenge gate never touches.
+ * **`captcha-blocked`** means the challenge would not load — a host outside the
+ * allowlist, or a CSP refusing its frame. `ERROR_POLICY` still withholds the viewer's
+ * report button there, and that is a different question: their form is Turnstile-gated,
+ * while this event rides the Sentry DSN's own transport, which the gate never touches.
  * **`unknown`** is ours: a render crash, a schema drift, or a refused link.
  *
  * Each row here is one line to flip, on purpose. If a 404 spike ever turns out to be

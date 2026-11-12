@@ -5,6 +5,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { atlasError } from './report'
 
+import { mockErrorKinds } from '@/mocks/errors'
+
 /**
  * The Sentry half of the seam (issue #108). This is kept in its own file, because
  * every case needs a fresh module registry. `report.ts` memoizes the SDK load
@@ -146,22 +148,21 @@ describe('the DSN gate', () => {
 })
 
 /**
- * Every kind, so a row cannot be left out. The table this mirrors is one line per
- * kind to flip, and the contentious row — `captcha-blocked` — was the one the spec
- * omitted while it sat wrong for two months (#387). Typing it `Record<ErrorKind, …>`
- * makes a seventh kind a type error here rather than an untested row.
+ * Restated rather than imported: `REPORTED_KINDS` is module-private, and a table
+ * asserted against itself proves nothing. Keyed by kind, so a new `ErrorKind` fails
+ * here rather than going untested (#387).
  */
 const EXPECTED: Record<ErrorKind, boolean> = {
+  offline: false,
+  'not-found': false,
   server: true,
   config: true,
   'captcha-blocked': true,
   unknown: true,
-  offline: false,
-  'not-found': false,
 }
 
 describe('which failures are worth an event', () => {
-  it.each(Object.entries(EXPECTED) as Array<[ErrorKind, boolean]>)(
+  it.each(mockErrorKinds.map((kind) => [kind, EXPECTED[kind]] as const))(
     '%s → reported: %s',
     async (kind, reported) => {
       const { reportInternalError } = await freshSeam()
@@ -169,8 +170,7 @@ describe('which failures are worth an event', () => {
       reportInternalError(atlasError(kind, `a ${kind} failure`), 'ctx')
       await vi.waitFor(() => expect(sdk.captured).toHaveLength(reported ? 1 : 0))
 
-      // Which kind went, not just how many — the tag is what a maintainer
-      // filters the project by.
+      // Which kind travelled, not just how many.
       expect(sdk.captured.map((event) => event.tags['atlas.kind'])).toEqual(reported ? [kind] : [])
 
       // The console line is unconditional, but its level follows the same table.
