@@ -25,9 +25,9 @@ describe('ToggleGroup', () => {
     expect(html).toMatch(/<button[^>]*role="radio"[^>]*aria-checked="true"[^>]*>Tu<\/button>/)
   })
 
-  it('keeps the dense 32px items by default and takes the 44px form size on request', () => {
+  it('keeps the dense 32px items by default and takes a field’s height on request', () => {
     expect(classesOf(days(), 'Mo')).toContain('h-8')
-    expect(classesOf(days({ size: 'md' }), 'Mo')).toContain('h-11')
+    expect(classesOf(days({ size: 'md' }), 'Mo')).toContain('field-height')
     expect(classesOf(days({ size: 'md' }), 'Mo')).not.toContain('h-8')
   })
 

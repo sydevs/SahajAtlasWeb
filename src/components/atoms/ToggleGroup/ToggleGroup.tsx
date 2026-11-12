@@ -8,8 +8,8 @@ import { tv } from 'tailwind-variants'
 // Radix. The selected item fills with the primary ramp, through
 // `data-[state=on]`. `joined` renders the items as one segmented control,
 // flush with shared borders and rounded outer corners, instead of separate
-// pills. `size="md"` is the form size: a 44px target, as tall as a field on a
-// phone (the filter panel's day and time rows pass the same height by hand).
+// pills. `size="md"` is the form size: as tall as a field (`field-height`, 44px
+// on a touch screen and 40px with a mouse).
 // The root takes a layout through `className` — `grid grid-cols-7` for a row of
 // days — and the items fill their cells.
 const toggleGroup = tv({
@@ -20,7 +20,7 @@ const toggleGroup = tv({
   variants: {
     size: {
       sm: { item: 'h-8' },
-      md: { item: 'h-11 px-3' },
+      md: { item: 'field-height px-3' },
     },
     joined: {
       false: { root: 'flex-wrap gap-1', item: 'rounded' },
@@ -75,7 +75,7 @@ type ToggleGroupBaseProps = {
   'aria-required'?: boolean | 'true' | 'false'
   /** Render the items as a joined segmented control rather than separate pills. */
   joined?: boolean
-  /** `sm` (32px) for the dense filter rows; `md` (44px) for a form, matching its fields. */
+  /** `sm` (32px) for the dense filter rows; `md` for a form, as tall as its fields. */
   size?: 'sm' | 'md'
   /** Primary-tint the group to flag an active field. */
   highlight?: boolean

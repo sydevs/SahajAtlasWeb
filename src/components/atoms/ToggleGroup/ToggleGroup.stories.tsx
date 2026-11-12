@@ -14,7 +14,7 @@ const WEEKDAYS = ['M', 'T', 'W', 'T', 'F', 'S', 'S']
 
 /**
  * ToggleGroup — single- or multi-select. Separate pills or a joined segmented bar. `size="md"` is
- * the form size (44px, as tall as a field on a phone); `required` keeps a single choice answered,
+ * the form size (as tall as a field: 44px on a touch screen, 40px with a mouse); `required` keeps a single choice answered,
  * as a radio group does.
  */
 export const Default: Story = () => {
