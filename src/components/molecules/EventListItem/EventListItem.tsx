@@ -10,10 +10,8 @@ import { formatDistance } from '@/lib'
 import { isOnline } from '@/lib/shape'
 import { regionalLocale } from '@/lib/time'
 import { InactiveListingRow } from '@/components/molecules/InactiveListing'
-import { EventChips } from '@/components/molecules/EventChips'
-import { EventFacts } from '@/components/molecules/EventFacts'
+import { EventSummary } from '@/components/molecules/EventSummary'
 import { Link } from '@/components/atoms/Link'
-import { Chip } from '@/components/atoms/Chip'
 import { EventSlim } from '@/types'
 
 export interface EventListItemProps {
@@ -48,10 +46,9 @@ export interface EventListItemProps {
 const MIN_DISTANCE_KM = 5
 
 /**
- * The list card: title, then the shared EventFacts summary (recurrence and
- * time, then the address with its distance faded below, or the online
- * hosted-from line), then the compact EventChips (a course or one-off
- * type, a language the card has not said, and "Full"). The facts carry the distance, not a
+ * The list card: the shared `EventSummary` (title, when and where with the
+ * distance faded under the address, and the triage chips), which the
+ * Register and Share panels show too. The facts carry the distance, not a
  * chip. The whole card is tappable, with a press state and the same chevron
  * as a place row. The
  * Link wrapper stays hookable for map-pin highlight (#44). The row is an
@@ -162,31 +159,18 @@ function ClassRow({
         onMouseEnter={activate}
         onMouseLeave={deactivate}
       >
-        <div className="flex min-w-0 flex-1 flex-col gap-1">
-          {/* An online class says so right after its title (Anton, 6 Nov), in the same soft teal tag
-              as the class-type tag below it ("Daily class"), so the card has one kind of label. A
-              coral tag read as a warning; plain text sat at odds with the tags. */}
-          <div className="line-clamp-2 text-lg">
-            {event.title}
-            {online && (
-              <Chip className="ms-2 -translate-y-px align-middle">{t('event.display.online')}</Chip>
-            )}
-          </div>
-          <EventFacts
-            className="mt-0.5 mb-1"
-            distance={
-              distanceText && (
-                <span aria-label={distanceLabel} title={distanceLabel}>
-                  {distanceText}
-                </span>
-              )
-            }
-            event={event}
-            variant="compact"
-            where={placeLine}
-          />
-          <EventChips className="mt-1" event={event} variant="compact" />
-        </div>
+        <EventSummary
+          className="flex-1"
+          distance={
+            distanceText && (
+              <span aria-label={distanceLabel} title={distanceLabel}>
+                {distanceText}
+              </span>
+            )
+          }
+          event={event}
+          where={placeLine}
+        />
         <ChevronRight className="shrink-0 text-gray-9 rtl:-scale-x-100" size={20} />
       </Link>
     </li>
