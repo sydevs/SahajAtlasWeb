@@ -1,9 +1,9 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import * as Fathom from 'fathom-client'
 import { useLocation, useNavigate } from 'react-router'
 import { MapProvider } from 'react-map-gl'
 
-import { SurfaceSwitchContext, WidgetModeContext, useWidgetMode } from '@/config/mode'
+import { ShowMapContext, WidgetModeContext, useWidgetMode } from '@/config/mode'
 import { useCameraSettled } from '@/config/store'
 import { Mapbox } from '@/components/organisms/Mapbox'
 import { NoopMapControllerProvider } from '@/hooks/use-map-controller'
@@ -189,29 +189,22 @@ function FullInterface({
 
   // `view=list`: the map is not mounted until the visitor asks for it, so nothing is requested
   // from Mapbox before then. ⚠ The library still downloads: this module imports `react-map-gl`
-  // (see above). The route lives in the URL, so switching keeps the visitor's place.
-  const listFirst = hasMap && embed.config.listFirst
-  const [surface, setSurface] = useState<'list' | 'map'>('list')
-  const surfaceSwitch = useMemo(
-    () =>
-      listFirst
-        ? { surface, toggle: () => setSurface((s) => (s === 'list' ? 'map' : 'list')) }
-        : null,
-    [listFirst, surface],
-  )
+  // (see above). The route lives in the URL, so opening the map keeps the visitor's place. It is
+  // one way: once open, the map stays (`ShowMapContext`). With the map turned off there is no
+  // Map button at all — `hasMap` gates this — since that is the host's choice to make.
+  const [mapShown, setMapShown] = useState(false)
 
-  if (listFirst && surface === 'list') {
+  if (hasMap && embed.config.listFirst && !mapShown) {
     return (
-      <SurfaceSwitchContext.Provider value={surfaceSwitch}>
+      <ShowMapContext.Provider value={() => setMapShown(true)}>
         <ListSurface contained={contained} />
-      </SurfaceSwitchContext.Provider>
+      </ShowMapContext.Provider>
     )
   }
 
   return hasMap ? (
-    <SurfaceSwitchContext.Provider value={surfaceSwitch}>
-      <MapProvider>
-        {/* ⚠ **`MapFrame` is the ONLY thing that differs between a viewport map and a contained
+    <MapProvider>
+      {/* ⚠ **`MapFrame` is the ONLY thing that differs between a viewport map and a contained
           one.** Everything below is byte-identical in both. The canvas stays `position: fixed;
           inset: 0`, the drawers and peek strips stay fixed, and no view branches on which one
           it is. `contain: layout` on the frame re-parents the whole fixed layer onto the
@@ -226,21 +219,20 @@ function FullInterface({
           gets the compact card rather than a takeover. `lib/slot-decision.ts` measures at
           mount, and `AppShell` renders `CompactEmbedView`, whose button opens the map
           full-screen. */}
-        <MapFrame contained={contained}>
-          {/* Inline fixed/inset so the map always fills its frame behind the drawers —
+      <MapFrame contained={contained}>
+        {/* Inline fixed/inset so the map always fills its frame behind the drawers —
             independent of Tailwind viewport-unit utility generation. */}
-          <div style={{ position: 'fixed', inset: 0 }}>
-            {/* The one thing a contained map does differently: `gestures=cooperative` leaves
+        <div style={{ position: 'fixed', inset: 0 }}>
+          {/* The one thing a contained map does differently: `gestures=cooperative` leaves
               scrolling to the page. Never in a window-filling map, where nothing scrolls. */}
-            <Mapbox cooperative={contained && embed.config.cooperative} />
-            <MapCurtain />
-          </div>
-          <RealMapControllerProvider>
-            <DrawerStack />
-          </RealMapControllerProvider>
-        </MapFrame>
-      </MapProvider>
-    </SurfaceSwitchContext.Provider>
+          <Mapbox cooperative={contained && embed.config.cooperative} />
+          <MapCurtain />
+        </div>
+        <RealMapControllerProvider>
+          <DrawerStack />
+        </RealMapControllerProvider>
+      </MapFrame>
+    </MapProvider>
   ) : (
     <NoopMapControllerProvider>
       <DrawerStack />

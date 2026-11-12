@@ -36,7 +36,7 @@ import {
   DrawerTitle,
   ExpandSheetButton,
   FilterButton,
-  MapSurfaceButton,
+  MapButton,
   useDrawerControl,
   useFrameOnTop,
 } from '@/views/shared'
@@ -128,7 +128,7 @@ export function CountriesView() {
           <ExpandSheetButton />
         ) : (
           <div className="flex items-center gap-1">
-            <MapSurfaceButton />
+            <MapButton />
             <FilterButton iconOnly isLast />
           </div>
         )}

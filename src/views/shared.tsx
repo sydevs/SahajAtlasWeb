@@ -16,8 +16,7 @@ import { MapSearch } from '@/components/organisms'
 import api, { eventQuery, regionQuery, regionsQuery } from '@/config/api'
 import { GEOJSON_STALE_TIME } from '@/config/query-client'
 import embed from '@/config/embed'
-import { useSurfaceSwitch } from '@/config/mode'
-import { MAP_BUTTON } from '@/config/review-options'
+import { useShowMap } from '@/config/mode'
 import { useCameraHistory, useFilterPanelState } from '@/config/store'
 import { useAtlasNavigate } from '@/hooks/use-atlas-navigate'
 import { useEventFilters } from '@/hooks/use-filters'
@@ -207,6 +206,8 @@ export function CalendarButton({ regionSlug }: { regionSlug: string }) {
   // `useSuspense: false` — also rendered by the fallback chrome (views/fallbacks.tsx).
   const { t } = useTranslation()
   const navigate = useAtlasNavigate()
+  // Beside "Map" (`view=list`), the pair reads as two short words.
+  const besideMap = Boolean(useShowMap())
 
   return (
     <Button
@@ -217,35 +218,35 @@ export function CalendarButton({ regionSlug }: { regionSlug: string }) {
       onClick={() => navigate(calendarPath(regionSlug))}
     >
       <CalendarDays size={18} />
-      {/* PROTOTYPE `?mapButton=header`: beside "Map" the pair reads as two short words. */}
-      <span className={HEADER_WORD}>
-        {MAP_BUTTON === 'header' ? t('calendar.title') : t('calendar.see_calendar')}
+      <span className={besideMap ? BESIDE_MAP_WORD : undefined}>
+        {besideMap ? t('calendar.title') : t('calendar.see_calendar')}
       </span>
     </Button>
   )
 }
 
-// PROTOTYPE `?mapButton=header`: the words stay and a long Back label shortens with "…" first.
-// Only on a row narrower than any phone's at 375px (288px, a 336px screen) do the words go,
-// leaving the icons, each still named for screen readers. The Back row is the container. In px,
-// like every length here: a container query's `rem` follows the host page's root font size.
-const HEADER_WORD = MAP_BUTTON === 'header' ? '@max-[288px]:sr-only' : ''
+// With "Map" on the Back row, the words stay and a long Back label shortens with "…" first. Only
+// on a row narrower than any phone's at 375px (288px, a 336px screen) do the words go, leaving the
+// icons, each still named for screen readers. The Back row is the container. In px, like every
+// length here: a container query's `rem` follows the host page's root font size.
+const BESIDE_MAP_WORD = '@max-[288px]:sr-only'
 
 /**
- * PROTOTYPE `?mapButton=header` (see `config/review-options`): the list-first view's map control
- * on the Back row, "Map" (or "List" while the map shows), in place of the "Show map" row.
+ * `view=list`: "Map" on the Back row (or beside the first screen's title) opens the map, while the
+ * list is what shows. It renders nothing once the map is open, and nothing without `view=list` or
+ * with the map turned off (`useShowMap`).
  */
-export function MapSurfaceButton() {
+export function MapButton() {
   const { t } = useTranslation()
-  const surfaceSwitch = useSurfaceSwitch()
+  const showMap = useShowMap()
 
-  if (!surfaceSwitch || MAP_BUTTON !== 'header') return null
-  const label = t(surfaceSwitch.surface === 'map' ? 'common.map.list' : 'common.map.map')
+  if (!showMap) return null
+  const label = t('common.map.map')
 
   return (
-    <Button aria-label={label} size="sm" variant="ghost" onClick={surfaceSwitch.toggle}>
-      {surfaceSwitch.surface === 'map' ? <List size={18} /> : <MapIcon size={18} />}
-      <span className={HEADER_WORD}>{label}</span>
+    <Button aria-label={label} size="sm" variant="ghost" onClick={showMap}>
+      <MapIcon size={18} />
+      <span className={BESIDE_MAP_WORD}>{label}</span>
     </Button>
   )
 }

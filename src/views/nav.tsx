@@ -26,7 +26,7 @@ import {
   ExpandSheetButton,
   HEADER_CONTROL,
   DrawerTitle,
-  MapSurfaceButton,
+  MapButton,
   useClimbInputs,
   useDrawerControl,
 } from '@/views/shared'
@@ -187,7 +187,7 @@ export function NavRow({ children }: { children?: ReactNode }) {
           <ExpandSheetButton label={t('common.chrome.show_more')} />
         ) : (
           <>
-            <MapSurfaceButton />
+            <MapButton />
             {children}
           </>
         )}

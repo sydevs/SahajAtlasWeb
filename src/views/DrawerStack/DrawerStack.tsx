@@ -1,5 +1,3 @@
-import type { AgnosticFeedEvent } from '@/types'
-
 import {
   type CSSProperties,
   Suspense,
@@ -15,11 +13,9 @@ import { createPortal } from 'react-dom'
 import { useLocation, useNavigate } from 'react-router'
 import { useQuery } from '@tanstack/react-query'
 import { AnimatePresence } from 'framer-motion'
-import { MapIcon, Plus } from 'lucide-react'
-import clsx from 'clsx'
+import { Plus } from 'lucide-react'
 
-import api, { regionsQuery } from '@/config/api'
-import { GEOJSON_STALE_TIME } from '@/config/query-client'
+import { regionsQuery } from '@/config/api'
 import embed from '@/config/embed'
 import { useAtlasNavigate } from '@/hooks/use-atlas-navigate'
 import { useCalendarView } from '@/hooks/use-calendar-view'
@@ -37,8 +33,7 @@ import {
   useIsShortViewport,
   useIsWide,
 } from '@/config/responsive'
-import { useSurfaceSwitch, useWidgetMode } from '@/config/mode'
-import { MAP_BUTTON } from '@/config/review-options'
+import { useWidgetMode } from '@/config/mode'
 import { useBrowsedCountry, useClassSheet, useFilterPanelState, useMapTap } from '@/config/store'
 import { frameElement, overlayContainer } from '@/lib/overlay'
 import { scheduleIdle } from '@/lib/schedule-idle'
@@ -177,19 +172,6 @@ const FRAMED_SNAP_POINTS = [PEEK_SNAP, OPEN_SNAP, DETAIL_SNAP, FRAMED_FULL_SNAP]
 // Under this, DETAIL_SNAP would leave a sliver of map.
 const DETAIL_SNAP_MIN_FRAME_PX = 520
 
-/** PROTOTYPE. Whether every class under this path is a contact-only listing. */
-function isContactOnlyPage(
-  features: { properties: AgnosticFeedEvent }[],
-  path: string | undefined,
-) {
-  if (!path || path === '/') return false
-  const under = features.filter(
-    ({ properties: { webPath } }) => webPath === path || webPath?.startsWith(`${path}/`),
-  )
-
-  return under.length > 0 && under.every(({ properties }) => properties.contactOnly)
-}
-
 /**
  * Where the sheet opens for a view. In a host's box (or the compact dialog), a form or a class
  * cannot share the height with the map the way it can on a phone. The map is one swipe away.
@@ -246,29 +228,6 @@ const PANEL_BORDER_PX = 2
 // these are constants rather than a measurement (`docs/rules/mapbox.md`).
 const MAPBOX_WORDMARK_TOP_PX = 29
 const ADD_CLASS_GAP_PX = 16 // from the map's right edge, and above the wordmark
-// PROTOTYPE `?mapButton=float`: the room the panel's lists leave under their last row, so the
-// floating "Map" pill never covers it (the body's spacer reads it; `atoms/Drawer`).
-const PILL_ROOM = { '--sy-pill-room': '72px' } as CSSProperties
-
-/** PROTOTYPE `?mapButton=float`: a dark "Map" pill floating over the foot of the open panel. */
-function MapPill({ className, onClick }: { className: string; onClick: () => void }) {
-  const { t } = useLocale()
-
-  return (
-    <button
-      className={clsx(
-        'z-50 flex h-11 items-center gap-2 rounded-full bg-gray-12 px-5 text-sm font-semibold text-gray-1 shadow-lg outline-none focus-visible:ring-2 focus-visible:ring-focus focus-visible:ring-offset-2',
-        className,
-      )}
-      type="button"
-      onClick={onClick}
-    >
-      <MapIcon aria-hidden size={18} />
-      {t('common.map.map')}
-    </button>
-  )
-}
-
 // The docked add-a-class panel: the right-hand drawer, sized to its content and lifted to the
 // "Add a class" button's corner, so the flow opens where it was asked for. Its top stays below the
 // map's control column (settings and attribution, 120px), so a long step scrolls inside instead.
@@ -393,12 +352,6 @@ export function DrawerStack() {
   const searchCenter = new URLSearchParams(location.search).get('center')
   const navigate = useNavigate()
   const { hasMap, standalone } = useWidgetMode()
-  const surfaceSwitch = useSurfaceSwitch()
-  // PROTOTYPE `?mapButton=float` (`config/review-options`): a "Map" pill floats at the foot of
-  // the open panel, in place of the list-first view's "Show map" row, so only where that view's
-  // switch exists (`?view=list`); the plain map page has no such row. Over the list it opens the
-  // map; on the map side it shows only when the sheet is fully open, and folds it down to the map.
-  const pillPlacement = surfaceSwitch && MAP_BUTTON === 'float'
   // `t` comes off `useLocale`, not a second `useTranslation` call: the hook already
   // holds one for the default (`common`) namespace, and hands it back for exactly this
   // reason. A second call would double this component's i18next subscription, and
@@ -463,19 +416,9 @@ export function DrawerStack() {
   // makes the comparison mean anything.
   const top = (submitOverlay ? baseEntries.at(-1) : baseStackEntry(entries, hasMap)) ?? null
   const climb = useClimbInputs()
-  const { data: feed } = useQuery({
-    queryKey: ['geojson'],
-    queryFn: () => api.getGeojson(),
-    staleTime: GEOJSON_STALE_TIME,
-    enabled: hasMap,
-  })
-  const contactOnlyPage = useMemo(
-    () => isContactOnlyPage(feed?.features ?? [], top?.path),
-    [feed, top?.path],
-  )
-  // In a host's box (or for a contact-only page), the sheet takes the framed ladder: a form or
-  // a class cannot share the height with the map the way it can on a phone.
-  const framed = frameHeight > 0 || contactOnlyPage
+  // In a host's box, the sheet takes the framed ladder: a form or a class cannot share the height
+  // with the map the way it can on a phone.
+  const framed = frameHeight > 0
   // The stop that fills the screen: the whole box when framed, 97% on a phone.
   const fullSnap = framed ? FRAMED_FULL_SNAP : WIDE_SNAP
   // A class has its own taller open stop. The stored snap can still be the previous view's
@@ -518,9 +461,7 @@ export function DrawerStack() {
       : fitSnapPoints
   // The first screen has more to show before the map matters than any other view.
   const openSnap = framed
-    ? contactOnlyPage
-      ? FRAMED_FULL_SNAP
-      : openSnapFor(top?.kind, frameHeight)
+    ? openSnapFor(top?.kind, frameHeight)
     : top?.kind === 'event'
       ? WIDE_SNAP
       : top
@@ -1129,10 +1070,6 @@ export function DrawerStack() {
   }, [panelFits])
 
   const sheetDismissible = hasMap || parentPaths.length > 0
-  // PROTOTYPE `?mapButton=float`: over the list-first view's list the pill always shows and opens
-  // the map; on its map side, only at the full snap, where it folds the sheet down to the map.
-  const mapPill = Boolean(pillPlacement) && (!hasMap || snap === fullSnap)
-  const onMapPill = () => (hasMap ? setSnap(PEEK_SNAP) : surfaceSwitch?.toggle())
 
   const sheet = (
     <DrawerContent
@@ -1171,34 +1108,12 @@ export function DrawerStack() {
         collapse()
       }}
     >
-      {/* `view=list`: one control in one place, whichever surface is showing. Above the views,
-          because a bottom sheet's foot sits below the screen at its lower snaps. */}
-      {surfaceSwitch && MAP_BUTTON === 'row' && (
-        <div className="mx-auto w-full max-w-[var(--sy-content-max,512px)] shrink-0 px-gutter">
-          <button
-            className="-ms-2 flex h-11 items-center gap-2 rounded-lg px-2 text-sm font-medium text-primary outline-none focus-visible:ring-2 focus-visible:ring-primary"
-            type="button"
-            onClick={surfaceSwitch.toggle}
-          >
-            <MapIcon aria-hidden size={16} />
-            {t(surfaceSwitch.surface === 'map' ? 'common.map.hide_map' : 'common.map.show_map')}
-          </button>
-        </div>
-      )}
       <div
         ref={setSheetBody}
         aria-label={t('common.chrome.widget_label')}
         className="relative min-h-0 flex-1"
         role="region"
-        style={mapPill ? PILL_ROOM : undefined}
       >
-        {mapPill && hasMap && (
-          // Pinned to the screen's foot, not the sheet's, the way the sticky footer is.
-          <MapPill
-            className="fixed bottom-[calc(var(--sy-sheet-top,0px)+16px)] left-1/2 -translate-x-1/2"
-            onClick={onMapPill}
-          />
-        )}
         <AnimatePresence>
           {/* The filter drawer keeps one identity across its routes. Picking a place moves it
               from `/filters` to `/search/filters`, and that must not crossfade the form. */}
@@ -1314,17 +1229,7 @@ export function DrawerStack() {
             className="flex w-full flex-col overflow-clip bg-background"
             style={{ height: standalone ? '100dvh' : '100%' }}
           >
-            <div
-              ref={setContainer}
-              className="relative min-h-0 w-full flex-1 overflow-clip"
-              style={mapPill ? PILL_ROOM : undefined}
-            >
-              {mapPill && (
-                <MapPill
-                  className="absolute bottom-4 left-1/2 -translate-x-1/2"
-                  onClick={onMapPill}
-                />
-              )}
+            <div ref={setContainer} className="relative min-h-0 w-full flex-1 overflow-clip">
               <Drawer
                 key={direction}
                 open

@@ -28,7 +28,7 @@ import { BackButton } from '@/views/nav'
 import {
   ExpandSheetButton,
   FilterButton,
-  MapSurfaceButton,
+  MapButton,
   SearchField,
   useFrameOnTop,
 } from '@/views/shared'
@@ -93,7 +93,7 @@ export function SearchView() {
         <div className="[container-type:inline-size] flex min-w-0 flex-1 items-center gap-2 [--sy-results-w:calc(100cqi_-_2px)]">
           <SearchField />
           <ExpandSheetButton />
-          <MapSurfaceButton />
+          <MapButton />
         </div>
       </DrawerHeader>
       {/* Outside the body, so a long list scrolls UNDER the controls rather than

@@ -49,9 +49,13 @@ export const WidgetModeContext = createContext<WidgetMode>(DEFAULT_WIDGET_MODE)
 
 export const useWidgetMode = () => useContext(WidgetModeContext)
 
-/** `view=list`: which of the two surfaces is showing, and the way to the other. */
-export type SurfaceSwitch = { surface: 'list' | 'map'; toggle: () => void }
+/**
+ * `view=list`: the way from the list to the map, while the list is what shows. `null` everywhere
+ * else: without `view=list`, with the map turned off (the host's editorial choice, which no
+ * visitor overrides), and once the map is open. There is no way back to the list from the map
+ * (Devindra, 12 Nov): a Hide map control pushed every view's content down, for a step back few
+ * would take.
+ */
+export const ShowMapContext = createContext<(() => void) | null>(null)
 
-export const SurfaceSwitchContext = createContext<SurfaceSwitch | null>(null)
-
-export const useSurfaceSwitch = () => useContext(SurfaceSwitchContext)
+export const useShowMap = () => useContext(ShowMapContext)
