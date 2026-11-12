@@ -18,7 +18,6 @@ import {
   backDestination,
   breadcrumbTrail,
   isFilterOverlay,
-  isoCountryCode,
   placedPathname,
   resolveStack,
 } from '@/lib/shape'
@@ -36,22 +35,18 @@ import {
 // where a fetch would re-issue the read that just failed. A miss costs the name, not the
 // control. A country's own display name wins, the same choice RegionView's heading makes,
 // so the breadcrumb and the heading it repeats can't disagree.
-function useRegionNames() {
+function useNavNames(): Pick<NavNaming, 'regionNames' | 'countryName'> {
   const { regionNames: displayNames } = useLocale()
   const { data: regions } = useQuery({ ...regionsQuery(), enabled: false })
-
-  return useMemo(
+  const regionNames = useMemo(
     () =>
       new Map(
-        regions?.flatMap((node) => {
-          const code = node.level === 'country' ? isoCountryCode(node.slug) : undefined
-          const name = (code && displayNames.of(code)) || node.name
-
-          return name ? [[node.slug, name] as const] : []
-        }) ?? [],
+        regions?.flatMap((node) => (node.name ? [[node.slug, node.name] as const] : [])) ?? [],
       ),
-    [regions, displayNames],
+    [regions],
   )
+
+  return { regionNames, countryName: (code) => displayNames.of(code) }
 }
 
 /**
@@ -72,7 +67,7 @@ export function BackButton({ iconOnly = false }: { iconOnly?: boolean }) {
   const location = useLocation()
   const { dismiss } = useDrawerControl()
   const queryClient = useQueryClient()
-  const regionNames = useRegionNames()
+  const names = useNavNames()
   // Cache-only, like the names: on a fresh deep link the climb passes over the venue and any
   // one-class place, and the label names where it really lands (`climbDestination`).
   const { classes, venueSlugs, pathOf } = useClimbInputs()
@@ -94,7 +89,7 @@ export function BackButton({ iconOnly = false }: { iconOnly?: boolean }) {
     target?.kind === 'event' && title
       ? new Map([[target.id, title]])
       : queryClient.getQueryData<Map<number, string>>(eventTitlesQuery(locale).queryKey)
-  const label = backLabel(route, { t: t as NavNaming['t'], regionNames, titles })
+  const label = backLabel(route, { t: t as NavNaming['t'], ...names, titles })
 
   if (iconOnly) {
     return (
@@ -133,7 +128,7 @@ export function BackButton({ iconOnly = false }: { iconOnly?: boolean }) {
 export function Breadcrumbs() {
   const { t } = useTranslation()
   const location = useLocation()
-  const regionNames = useRegionNames()
+  const names = useNavNames()
   const { pathOf } = useClimbInputs()
   const isWide = useIsWideWidget()
   // The real ancestry, not the words typed: `/united-kingdom/south-east/london` still names and
@@ -152,7 +147,7 @@ export function Breadcrumbs() {
               to={entry.path}
               onClick={() => rememberCamera(location.key)}
             >
-              {entryName(entry, { t: t as NavNaming['t'], regionNames })}
+              {entryName(entry, { t: t as NavNaming['t'], ...names })}
             </RouterLink>
             {/* After the name, so a wrapped line ends on "›" and reads as carrying on. */}
             {i < trail.length - 1 && (

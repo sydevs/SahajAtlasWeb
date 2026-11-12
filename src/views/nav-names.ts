@@ -1,7 +1,7 @@
 import type { TranslationKey } from '@/types/i18next'
 import type { StackEntry } from '@/lib/shape'
 
-import { resolveStack } from '@/lib/shape'
+import { isoCountryCode, resolveStack } from '@/lib/shape'
 
 /**
  * What a place in the widget is CALLED, for the Back button and the breadcrumb line.
@@ -24,6 +24,11 @@ export type NavNaming = {
   t: NavTranslate
   /** Region names by slug. A Map, because the region tree is the whole world's list. */
   regionNames?: ReadonlyMap<string, string>
+  /**
+   * A country's name in the visitor's language, by its ISO code: the name RegionView's heading
+   * shows, and known before the region tree arrives, so a deep link never reads "GB" meanwhile.
+   */
+  countryName?: (code: string) => string | undefined
   titles?: ReadonlyMap<number, string>
 }
 
@@ -41,10 +46,15 @@ const readableSlug = (slug: string): string =>
         .join(' ')
 
 /** The name of one stack entry, or `undefined` where nothing true is known. */
-export function entryName(entry: StackEntry, { t, regionNames, titles }: NavNaming) {
+export function entryName(entry: StackEntry, { t, regionNames, countryName, titles }: NavNaming) {
   switch (entry.kind) {
-    case 'region':
-      return regionNames?.get(entry.slug) ?? readableSlug(entry.slug)
+    case 'region': {
+      const code = isoCountryCode(entry.slug)
+
+      return (
+        (code && countryName?.(code)) || regionNames?.get(entry.slug) || readableSlug(entry.slug)
+      )
+    }
     case 'event':
       return titles?.get(entry.id)
     case 'online':

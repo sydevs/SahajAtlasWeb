@@ -25,6 +25,18 @@ describe('backLabel', () => {
     expect(backLabel('/united-kingdom', naming)).toBe('common.chrome.back_to:United Kingdom')
   })
 
+  // A deep link reads "Back to GB" until the region tree arrives, unless the country's own name,
+  // which needs no tree, is asked first. It is also the name RegionView's heading shows.
+  it('names a country in the visitor’s language, with or without the tree', () => {
+    const countryName = (code: string) => ({ GB: 'Spojené království' })[code]
+
+    expect(backLabel('/gb', { t, countryName })).toBe('common.chrome.back_to:Spojené království')
+    expect(backLabel('/gb', { ...naming, countryName })).toBe(
+      'common.chrome.back_to:Spojené království',
+    )
+    expect(backLabel('/gb/south-east', { t, countryName })).toBe('common.chrome.back_to:South East')
+  })
+
   it('names search results by the place searched', () => {
     expect(backLabel('/search?q=Prague%2C+Czechia&center=1%2C2', naming)).toBe(
       'common.chrome.back_to_results_near:Prague',
