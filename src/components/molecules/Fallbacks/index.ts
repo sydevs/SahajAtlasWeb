@@ -7,7 +7,6 @@
 // stories reach them by module path.
 export {
   BootFallback,
-  ListSkeleton,
   LoadingFallback,
   ErrorFallback,
   FallbackPanel,

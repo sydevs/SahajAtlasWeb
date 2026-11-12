@@ -44,7 +44,6 @@ export { SortMenu } from './SortMenu'
 // narrowing function, stay module-private. See the folder barrel for why.
 export {
   BootFallback,
-  ListSkeleton,
   LoadingFallback,
   ErrorFallback,
   FallbackPanel,
@@ -52,6 +51,18 @@ export {
   CENTERED_BODY,
 } from './Fallbacks'
 export type { FallbackAlign, FallbackKind } from './Fallbacks'
+
+// Skeleton — the placeholder shapes loading states compose, each shaped like
+// what it stands in for: a list of places, a search field, a view's title,
+// a class's page. The boot panel and the drawer's loading chrome draw the same
+// shapes, so the hand-over between them doesn't jump.
+export { EventSkeleton, FieldSkeleton, ListSkeleton, TitleSkeleton } from './Skeleton'
+export type {
+  EventSkeletonProps,
+  FieldSkeletonProps,
+  ListSkeletonProps,
+  TitleSkeletonProps,
+} from './Skeleton'
 
 // FormField — the label, control, and help-or-error shell shared by the
 // app's forms, and `fieldErrorId`, the single definition of the

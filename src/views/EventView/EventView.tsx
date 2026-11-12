@@ -7,7 +7,7 @@ import { useSheetFit } from './use-sheet-fit'
 import { Alert } from '@/components/atoms/Alert'
 import { DrawerBody, DrawerFooter } from '@/components/atoms/Drawer'
 import { Link } from '@/components/atoms/Link'
-import { EventMetadata, ResetErrorBoundary } from '@/components/molecules'
+import { EventMetadata, EventSkeleton, ResetErrorBoundary } from '@/components/molecules'
 // This imports leaf files, not the folder index. The index re-exports EventDetails, and
 // importing it statically here would pull the lazy-loaded panel chunk — DOMPurify and action
 // wiring — back into the main bundle.
@@ -16,7 +16,6 @@ import {
   EventRegisterBar,
   hasRegisterSlot,
 } from '@/components/organisms/EventDetails/EventRegister'
-import { Spinner } from '@/components/atoms/Spinner'
 import { useEventDisplay } from '@/hooks/use-event-display'
 import { eventQuery } from '@/config/api'
 import { useIsWideWidget } from '@/config/responsive'
@@ -28,6 +27,7 @@ import { type Event } from '@/types'
 import { NavRow } from '@/views/nav'
 import { useDrawerControl, useFrameEventOnTop } from '@/views/shared'
 import { ErrorPanel } from '@/views/fallbacks'
+import { LOADING_ATTR } from '@/views/DrawerStack/use-fit-snap'
 
 // EventDetails pulls in DOMPurify and the action-row wiring. This keeps it out of the main
 // chunk, as pages/event.tsx used to, by lazy-loading it here.
@@ -182,17 +182,16 @@ export function EventView({ id, basePath }: { id: number; basePath: string }) {
           )}
           onReset={() => setEventDetails(loadEventDetails())}
         >
-          {/* The one Spinner in the app with no visible label and no `decorative`, so it is
-              the one whose screen-reader-only text actually renders. The atom defaults that
-              text to English. This is a view, well past the i18n boot, so it can hand over
-              the translated word (issue #102). */}
+          {/* The page's shape while its code arrives, so the panel doesn't change shape twice;
+              marked loading, so the phone sheet holds still until it has (`useFitSnap`). The
+              pinned bar stands below it already, so the placeholder draws no Register of its
+              own there. */}
           <Suspense
             fallback={
               <>
-                <Spinner
-                  className="mx-auto my-16"
-                  srLabel={t('common.chrome.loading', { defaultValue: 'Loading…' })}
-                />
+                <div {...{ [LOADING_ATTR]: '' }}>
+                  <EventSkeleton actions={!pinned} />
+                </div>
                 {pinned}
               </>
             }

@@ -2,6 +2,8 @@ import { type ReactNode, useEffect, useRef } from 'react'
 import { motion, useIsPresent } from 'framer-motion'
 import clsx from 'clsx'
 
+import { LOADING_ATTR } from './use-fit-snap'
+
 // One view's layer in the sheet's cross-fade. The outgoing and incoming views overlap for
 // the fade, so each fills the sheet absolutely rather than sharing its height.
 //
@@ -17,7 +19,9 @@ import clsx from 'clsx'
 // With `onHeight`, the layer hugs its content where the panel floats (≥lg) instead of filling
 // the sheet: it sizes to what's inside, up to the room available, and reports that height so the
 // panel can follow. The outgoing layer stops reporting, so the panel takes the arriving view's
-// height.
+// height. While the view's content is still loading (`LOADING_ATTR`) it reports nothing, so the
+// panel keeps the height it has and changes once, when the content arrives, instead of hugging the
+// placeholder first (Devindra, 12 Nov).
 export function ViewLayer({
   children,
   onHeight,
@@ -33,11 +37,20 @@ export function ViewLayer({
 
     if (!onHeight || !isPresent || !element || typeof ResizeObserver === 'undefined') return
 
-    const observer = new ResizeObserver(() => onHeight(element.offsetHeight))
+    const report = () => {
+      if (!element.querySelector(`[${LOADING_ATTR}]`)) onHeight(element.offsetHeight)
+    }
+    const observer = new ResizeObserver(report)
+    // Content that replaces its placeholder at the very same height resizes nothing.
+    const swaps = new MutationObserver(report)
 
     observer.observe(element)
+    swaps.observe(element, { childList: true, subtree: true })
 
-    return () => observer.disconnect()
+    return () => {
+      observer.disconnect()
+      swaps.disconnect()
+    }
   }, [onHeight, isPresent])
 
   return (

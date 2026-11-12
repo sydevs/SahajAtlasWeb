@@ -72,6 +72,9 @@ function measure(sheet: HTMLElement, body: HTMLElement): number | null {
   })
 }
 
+/** Marks a body's loading placeholder: there is nothing true to fit until it gives way. */
+export const LOADING_ATTR = 'data-sy-loading'
+
 /**
  * Follows the open bottom sheet's content height while `enabled`, so a short view (the
  * filters at world level: Near me, a town field and two rows) opens at its own height, low
@@ -79,20 +82,22 @@ function measure(sheet: HTMLElement, body: HTMLElement): number | null {
  * grows (More filters opened, facets loaded) grows the sheet with it, up to the near-full
  * snap.
  *
+ * `undefined` while there is nothing true to fit yet: before the body has been measured, and
+ * while it holds a loading placeholder (`LOADING_ATTR`). The sheet then holds still and moves
+ * once, when the content arrives — following the placeholder's height and then the content's
+ * slid the panel twice on every load (Devindra, 12 Nov).
+ *
  * `view` names what is on screen (the path), so a new view's body is the one followed.
  *
  * It reads the sheet the same way the `--sy-sheet-top` loop does: inside this widget's own
  * portal target, never the host's document.
  */
-export function useFitSnap(enabled: boolean, view: string): number | null {
-  const [fit, setFit] = useState<number | null>(null)
+export function useFitSnap(enabled: boolean, view: string): number | null | undefined {
+  const [fit, setFit] = useState<number | null | undefined>(undefined)
 
   useLayoutEffect(() => {
-    if (!enabled) {
-      setFit(null)
-
-      return
-    }
+    setFit(undefined)
+    if (!enabled) return
 
     const root = overlayContainer() ?? document
     let body: HTMLElement | undefined
@@ -118,7 +123,8 @@ export function useFitSnap(enabled: boolean, view: string): number | null {
       // the open sheet this measures. A two-line title measured there moved the fit stop under a
       // drag, and vaul sprang the sheet back up to it. Leaving the peek measures again.
       const update = () => {
-        if (!sheet.hasAttribute('data-sy-peek')) setFit(measure(sheet, current))
+        if (current.querySelector(`[${LOADING_ATTR}]`)) setFit(undefined)
+        else if (!sheet.hasAttribute('data-sy-peek')) setFit(measure(sheet, current))
       }
       const resize = new ResizeObserver(update)
       const watch = () => {
@@ -137,7 +143,8 @@ export function useFitSnap(enabled: boolean, view: string): number | null {
       const peek = new MutationObserver(update)
 
       watch()
-      kids.observe(current, { childList: true })
+      // The subtree: a view's own placeholder (the class page's, in its body) gives way deep down.
+      kids.observe(current, { childList: true, subtree: true })
       if (current.parentElement) {
         footer.observe(current.parentElement, { attributeFilter: ['style'] })
       }

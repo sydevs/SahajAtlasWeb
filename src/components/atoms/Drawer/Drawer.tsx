@@ -1,4 +1,12 @@
-import { type ReactNode, createContext, useContext, useEffect, useRef, useState } from 'react'
+import {
+  type CSSProperties,
+  type ReactNode,
+  createContext,
+  useContext,
+  useEffect,
+  useRef,
+  useState,
+} from 'react'
 import { Drawer as Vaul } from 'vaul'
 import { tv, type VariantProps } from 'tailwind-variants'
 import clsx from 'clsx'
@@ -184,6 +192,8 @@ type DrawerCtx = {
   mode: 'anchored' | 'filled'
   // The portal target for a real drawer. Map-less mode passes the widget container.
   container?: HTMLElement | null
+  // Where the panel starts before vaul places it (`enterInPlace`); absent means off screen.
+  initialTransform?: string
 }
 
 const DrawerContext = createContext<DrawerCtx>({
@@ -218,7 +228,26 @@ export type DrawerProps = VariantProps<typeof drawer> & {
    * That is right for every mount except inside the expanded dialog.
    */
   measureAgainst?: HTMLElement | null
+  /**
+   * Open already in place — at the active snap point, or fully open without snap points — with
+   * no slide in from the edge. For a drawer that takes over from a stand-in already on screen,
+   * as the main sheet takes over from the boot panel: sliding in again read as the panel
+   * arriving twice (Devindra, 12 Nov). Later moves between snap points still animate.
+   */
+  enterInPlace?: boolean
   children: ReactNode
+}
+
+/**
+ * The `--initial-transform` vaul starts a panel from (vendored in `styles/vaul.css`): its offset
+ * along its axis, as a length or a share of its own size. A snap point in px leaves that much of
+ * the panel showing; a fraction leaves that share; no snap point means fully open.
+ */
+function inPlaceTransform(point: number | string | null | undefined): string {
+  if (typeof point === 'string') return `calc(100% - ${point})`
+  if (typeof point === 'number') return `${(1 - point) * 100}%`
+
+  return '0px'
 }
 
 /** The drawer root. Provides direction and slots to the DrawerContent subtree. */
@@ -236,9 +265,13 @@ export function Drawer({
   setActiveSnapPoint,
   container,
   measureAgainst,
+  enterInPlace = false,
   children,
 }: DrawerProps) {
   const slots = drawer({ direction, mode, wide })
+  const initialTransform = enterInPlace
+    ? inPlaceTransform(snapPoints ? activeSnapPoint : undefined)
+    : undefined
 
   // This passes the snap props unconditionally. `undefined` means no snap
   // points. This lets the WithFadeFrom/WithoutFadeFrom discriminated union
@@ -292,7 +325,9 @@ export function Drawer({
   }
 
   return (
-    <DrawerContext.Provider value={{ slots, direction: direction ?? 'bottom', mode, container }}>
+    <DrawerContext.Provider
+      value={{ slots, direction: direction ?? 'bottom', mode, container, initialTransform }}
+    >
       <Vaul.Root {...rootProps} />
     </DrawerContext.Provider>
   )
@@ -349,7 +384,7 @@ export function DrawerContent({
   handle,
   onEscapeKeyDown,
 }: DrawerContentProps) {
-  const { slots, direction, mode, container } = useDrawerSlots()
+  const { slots, direction, mode, container, initialTransform } = useDrawerSlots()
   // State, not a ref: the portal mounts the panel a pass after this component does.
   const [panel, setPanel] = useState<HTMLDivElement | null>(null)
 
@@ -365,6 +400,11 @@ export function DrawerContent({
         ref={setPanel}
         aria-describedby={undefined}
         className={slots.content({ className })}
+        style={
+          initialTransform
+            ? ({ '--initial-transform': initialTransform } as CSSProperties)
+            : undefined
+        }
         onEscapeKeyDown={onEscapeKeyDown}
       >
         {/* One Radix title, sr-only. The visible header, if any, is a separate

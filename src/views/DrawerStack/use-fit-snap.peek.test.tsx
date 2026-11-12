@@ -63,7 +63,7 @@ function mountSheet() {
 }
 
 function renderFit() {
-  const seen = { fit: null as number | null }
+  const seen = { fit: null as number | null | undefined }
   const host = document.createElement('div')
   const root = createRoot(host)
 

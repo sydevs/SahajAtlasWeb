@@ -5,6 +5,17 @@ import { useMediaQuery } from 'react-responsive'
 export const SEARCH_SHEET_PX = 440
 
 /**
+ * How tall a phone's sheet opens on the first screen, and how tall a fitting view (a place's
+ * list) holds while its content loads. The boot panel stands at it too, so the panel already on
+ * screen before the interface's code arrives is where the sheet will open.
+ */
+export const HOME_SHEET_PX = 380
+
+/** How tall a phone's sheet opens on a class before its key facts are measured (plus the
+ *  home-indicator inset), which the boot panel matches on a class's deep link. */
+export const CLASS_SHEET_PX = 380
+
+/**
  * # Responsive signals, and which question each one answers
  *
  * This widget is embedded in layouts we do not own.

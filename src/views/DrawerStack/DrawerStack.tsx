@@ -26,6 +26,8 @@ import { Drawer, DrawerContent } from '@/components/atoms/Drawer'
 import { ResetErrorBoundary, SettingsMenu } from '@/components/molecules'
 import { ClientGate } from '@/config/client-gate'
 import {
+  CLASS_SHEET_PX,
+  HOME_SHEET_PX,
   SEARCH_SHEET_PX,
   WidgetWidthContext,
   useFitsWidth,
@@ -126,9 +128,12 @@ const SEARCH_SNAP = `${SEARCH_SHEET_PX}px` // a searched place: the answer, and 
 const PEEK_PX = 104
 const PEEK_SNAP = `${PEEK_PX}px` // the collapsed peek
 const NEAR_FULL_SHARE = 0.97 // the near-full stop, as a share of the screen
-const SNAP_POINTS = [PEEK_SNAP, '356px', '380px', SEARCH_SNAP, NEAR_FULL_SHARE]
 const OPEN_SNAP = '356px' // default, and what the peek expands to
-const HOME_SNAP = '380px' // what the first screen opens at
+// What the first screen opens at. A fitting view also holds it while its content loads, so a deep
+// link's boot panel (`BootFallback`, which shares the number), the loading sheet and the content
+// stand at one height until the content can say its own.
+const HOME_SNAP = `${HOME_SHEET_PX}px`
+const SNAP_POINTS = [PEEK_SNAP, OPEN_SNAP, HOME_SNAP, SEARCH_SNAP, NEAR_FULL_SHARE]
 const WIDE_SNAP = SNAP_POINTS[SNAP_POINTS.length - 1] // the near-full snap the full-width calendar opens at
 // Stands for "as tall as the content" in `snap`. The pixel value moves with the content, so
 // the state holds this token and the ladder carries the live number (`useFitSnap`).
@@ -139,8 +144,9 @@ const FIT_SNAP = 'fit'
 // EventView's `useSheetFit`: the title, when, where and chips, above a sticky footer of about
 // 125px, with the map and its pin above. Until that measure lands, this is the first guess. The footer
 // also grows by the home-indicator inset, so the guess does too. vaul reads pixels, so the
-// inset is measured once, from the same CSS value the footer's spacer uses.
-const EVENT_OPEN_PX = 380
+// inset is measured once, from the same CSS value the footer's spacer uses. The boot panel stands
+// a class at the same height.
+const EVENT_OPEN_PX = CLASS_SHEET_PX
 const safeAreaBottom = (): number => {
   if (typeof document === 'undefined') return 0
   const probe = document.createElement('div')
@@ -364,7 +370,9 @@ export function DrawerStack() {
   // Zero means no frame: the sheet is measured against the window, as on a phone.
   const frameHeight = hasMap ? (frameElement()?.offsetHeight ?? 0) : 0
   const direction: Direction = isWide ? 'left' : 'bottom'
-  const [snap, setSnap] = useState<number | string | null>(OPEN_SNAP)
+  // `null` until the view's opening effect below sets it. Until then the sheet takes the stop the
+  // view opens at (`logicalSnap`), so its very first frame is already where it rests.
+  const [snap, setSnap] = useState<number | string | null>(null)
   const filterChipsFit = useFitsWidth(container ?? frameElement(), FILTER_CHIPS_MIN_PX)
   // A fixed origin on the sheet's layer, which the live-top loop measures against (see there).
   const sheetOriginRef = useRef<HTMLDivElement>(null)
@@ -432,10 +440,10 @@ export function DrawerStack() {
 
     return scheduleIdle(() => void importShareView().catch(() => undefined))
   }, [top?.kind])
-  const fitSnap = fitPx === null ? null : `${fitPx}px`
-  const fitSnapPoints = useMemo(() => withFitSnap(SNAP_POINTS, fitPx), [fitPx])
+  const fitSnap = fitPx == null ? null : `${fitPx}px`
+  const fitSnapPoints = useMemo(() => withFitSnap(SNAP_POINTS, fitPx ?? null), [fitPx])
   const eventFitSnapPoints = useMemo(
-    () => withFitSnap(eventSnapPoints, fitPx),
+    () => withFitSnap(eventSnapPoints, fitPx ?? null),
     [eventSnapPoints, fitPx],
   )
   const snapPoints = framed
@@ -451,8 +459,45 @@ export function DrawerStack() {
       : top
         ? OPEN_SNAP
         : HOME_SNAP
-  // What vaul sees: the FIT_SNAP token resolved to its live pixel value.
-  const vaulSnap = snap === FIT_SNAP ? (fitSnap ?? WIDE_SNAP) : snap
+  // A list of online classes only: a place's Online classes, or results filtered to online. Online
+  // classes have no place on the map, so the phone sheet opens near full rather than leaving a map
+  // with nothing on it above the list (Anton, 6 Nov).
+  const onlineOnly =
+    top?.kind === 'online' ||
+    (top?.kind === 'search' &&
+      filtersFromParams(new URLSearchParams(location.search)).format === 'online')
+  // Each opening stop's value; the opening effect below sets one.
+  const stopSnap = {
+    fit: FIT_SNAP,
+    tall: WIDE_SNAP,
+    search: SEARCH_SNAP,
+    open: openSnap,
+    full: fullSnap,
+  }
+  const logicalSnap =
+    snap ??
+    stopSnap[
+      openStop({
+        asked: false,
+        framed,
+        from: undefined,
+        kind: top?.kind,
+        onlineOnly,
+        searched: Boolean(searchCenter),
+      })
+    ]
+  // What vaul sees: the FIT_SNAP token resolved to its live pixel value. While the content is
+  // still loading there is nothing true to fit (`useFitSnap` says `undefined`), so the sheet holds
+  // the first screen's height (a class, its own) and moves once, when the content arrives — it
+  // used to follow the placeholder's height and then the content's (Devindra, 12 Nov).
+  const vaulSnap =
+    logicalSnap !== FIT_SNAP
+      ? logicalSnap
+      : fitPx === undefined
+        ? top?.kind === 'event'
+          ? eventOpenSnap
+          : HOME_SNAP
+        : (fitSnap ?? WIDE_SNAP)
   const activeSnap = vaulSnap != null && snapPoints.includes(vaulSnap) ? vaulSnap : openSnap
   // A drag that lands on the fit stop stores the token, so the stop follows the content.
   const setVaulSnap = (next: number | string | null) =>
@@ -502,14 +547,6 @@ export function DrawerStack() {
   const routedFilters =
     top?.kind === 'filters' &&
     (!embed.config.filters || (hasMap && filterChipsFit && !filterOverlay))
-  // A list of online classes only: a place's Online classes, or results filtered to online. Online
-  // classes have no place on the map, so the phone sheet opens near full rather than leaving a map
-  // with nothing on it above the list (Anton, 6 Nov).
-  const onlineOnly =
-    top?.kind === 'online' ||
-    (top?.kind === 'search' &&
-      filtersFromParams(new URLSearchParams(location.search)).format === 'online')
-
   // A `/filters` link on a layout with the chips: show the view beneath, with the chips over it.
   useEffect(() => {
     if (!routedFilters) return
@@ -824,9 +861,7 @@ export function DrawerStack() {
       searched: Boolean(searchCenter),
     })
 
-    setSnap(
-      { fit: FIT_SNAP, tall: WIDE_SNAP, search: SEARCH_SNAP, open: openSnap, full: fullSnap }[stop],
-    )
+    setSnap(stopSnap[stop])
   }, [location.key, direction, top?.kind, top?.path, framed, openSnap, onlineOnly])
 
   // The camera keeps a class's pin, or the place a list or the filters are about, clear of the sheet
@@ -856,7 +891,7 @@ export function DrawerStack() {
         : bottom && top?.kind === 'event'
           ? (fitPx ?? eventOpenPx)
           : bottom && (top?.kind === 'share' || top?.kind === 'region')
-            ? fitPx
+            ? (fitPx ?? null)
             : filtersSheetPx,
     )
 
@@ -1216,6 +1251,7 @@ export function DrawerStack() {
             <div ref={setContainer} className="relative min-h-0 w-full flex-1 overflow-clip">
               <Drawer
                 key={direction}
+                enterInPlace
                 open
                 container={container}
                 direction={direction}
@@ -1295,9 +1331,13 @@ export function DrawerStack() {
               </>,
               target,
             )}
+          {/* In place from its first frame: on a load it takes over from the boot panel, which
+              already stands where it opens, and a slide in from the edge read as the panel
+              arriving a second time (Devindra, 12 Nov). */}
           <Drawer
             key={direction}
             dismissible
+            enterInPlace
             open
             activeSnapPoint={direction === 'bottom' ? shownSnap : undefined}
             container={target}

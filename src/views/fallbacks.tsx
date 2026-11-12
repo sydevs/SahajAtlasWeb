@@ -1,3 +1,4 @@
+import type { Geojson } from '@/types'
 import type { FallbackProps } from 'react-error-boundary'
 import type { FallbackAlign, FallbackKind } from '@/components/molecules'
 import type { StackEntry } from '@/lib/shape'
@@ -5,22 +6,42 @@ import type { StackEntry } from '@/lib/shape'
 import { useEffect, useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useLocation } from 'react-router'
-import { useQuery } from '@tanstack/react-query'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 
 import { DrawerBody, DrawerHeader, DrawerToolbar } from '@/components/atoms/Drawer'
 import { Spinner } from '@/components/atoms/Spinner'
-import { CENTERED_BODY, FallbackPanel, ListSkeleton, ListToolbar } from '@/components/molecules'
-import { eventTitlesQuery, regionQuery, regionsQuery } from '@/config/api'
+import {
+  CENTERED_BODY,
+  EventSkeleton,
+  FallbackPanel,
+  FieldSkeleton,
+  ListSkeleton,
+  ListToolbar,
+  TitleSkeleton,
+} from '@/components/molecules'
+import { eventQuery, eventTitlesQuery, regionQuery, regionsQuery } from '@/config/api'
+import { GEOJSON_QUERY_KEY } from '@/config/api/fetch'
+import { useIsWideWidget } from '@/config/responsive'
 import { useWidgetMode } from '@/config/mode'
+import { type ListingTitleInput, listingTitle } from '@/hooks/use-event-display'
 import { useLocale } from '@/hooks/use-locale'
 import { useMapController } from '@/hooks/use-map-controller'
 import { classifyError, errorMessage } from '@/lib/report'
-import { baseStackEntry, nearestKnownRegion, resolveStack, submitTitleKey } from '@/lib/shape'
-import { BackButton, NavHeader } from '@/views/nav'
+import {
+  baseStackEntry,
+  isoCountryCode,
+  nearestKnownRegion,
+  resolveStack,
+  submitTitleKey,
+} from '@/lib/shape'
+import { LOADING_ATTR } from '@/views/DrawerStack/use-fit-snap'
+import { BackButton, Breadcrumbs, NavHeader, NavRow } from '@/views/nav'
 import {
   ExpandSheetButton,
   CalendarButton,
+  DrawerTitle,
   FilterButton,
+  MapButton,
   SearchButton,
   SearchField,
   useDrawerControl,
@@ -239,27 +260,179 @@ export function DrawerChrome({
   )
 }
 
-// The Suspense fallback for a view whose data is still loading — the shared chrome
-// (so the drawer keeps its identity and its close control) over a spinner.
-// `interactive={false}`: see `SearchFieldSkeleton`.
+// The Suspense fallback for a view whose data is still loading. The chrome is the view's own
+// wherever it works without the data — Back, the calendar, Filters — and the rest is placeholders
+// shaped like what is coming (`molecules/Skeleton`): the first screen, a place's list, a class's
+// page. The composed panels (a form, the calendar, a share sheet) keep the spinner. Each
+// placeholder body carries `LOADING_ATTR`, so the phone sheet holds still until the content can
+// say its own height (`useFitSnap`; Devindra, 12 Nov).
 export function DrawerLoading() {
   const { hasMap } = useWidgetMode()
   const location = useLocation()
   const entry = baseStackEntry(resolveStack(location.pathname), hasMap)
-  const isList = fallbackAlign(entry?.kind) === 'start'
+
+  switch (entry?.kind) {
+    case undefined:
+      return <HomeLoading />
+    case 'region':
+    case 'online':
+      return <PlaceLoading entry={entry} />
+    case 'event':
+      return <ClassLoading id={entry.id} />
+    case 'search':
+      return (
+        <>
+          {/* `interactive={false}`: see `SearchFieldSkeleton`. */}
+          <DrawerChrome interactive={false} />
+          <DrawerBody>
+            <div {...LOADING}>
+              <ListSkeleton variant="classes" />
+            </div>
+          </DrawerBody>
+        </>
+      )
+    default:
+      return (
+        <>
+          <DrawerChrome interactive={false} />
+          <DrawerLoadingBody />
+        </>
+      )
+  }
+}
+
+const LOADING = { [LOADING_ATTR]: '' }
+
+/** The first screen loading: CountriesView's own header, then its field and its country list. */
+function HomeLoading() {
+  const { t } = useTranslation()
+  const { collapsed } = useDrawerControl()
 
   return (
     <>
-      <DrawerChrome interactive={false} />
-      {isList ? (
-        <DrawerBody>
-          <ListSkeleton />
-        </DrawerBody>
-      ) : (
-        <DrawerLoadingBody />
-      )}
+      <DrawerHeader>
+        <div className="min-w-0 flex-1">
+          <DrawerTitle
+            title={t('common.chrome.widget_label', { defaultValue: 'Free meditation classes' })}
+          />
+        </div>
+        {collapsed ? (
+          <ExpandSheetButton />
+        ) : (
+          <div className="flex items-center gap-1">
+            <MapButton />
+            <FilterButton iconOnly isLast />
+          </div>
+        )}
+      </DrawerHeader>
+      <DrawerBody>
+        <div {...LOADING}>
+          <FieldSkeleton prompt className="mx-gutter mb-2" />
+          <ListSkeleton icons rows={6} />
+        </div>
+      </DrawerBody>
     </>
   )
+}
+
+/**
+ * A place loading: RegionView's header (the Back row and the calendar work already, and the name
+ * shows once the region tree has it), its field and Filters row, then its list. A place's Online
+ * classes is a list of classes under its title.
+ */
+function PlaceLoading({ entry }: { entry: Extract<StackEntry, { kind: 'region' | 'online' }> }) {
+  const { t } = useTranslation()
+  const { data: regions } = useQuery({ ...regionsQuery(), enabled: false })
+
+  if (entry.kind === 'online') {
+    return (
+      <>
+        <NavHeader breadcrumbs title={t('online.row', { defaultValue: 'Online classes' })} />
+        <DrawerBody>
+          <div {...LOADING}>
+            <ListSkeleton variant="classes" />
+          </div>
+        </DrawerBody>
+      </>
+    )
+  }
+
+  const name = regions?.find((node) => node.slug === entry.slug)?.name
+
+  return (
+    <>
+      <DrawerHeader stacked>
+        <NavRow>
+          <CalendarButton regionSlug={entry.slug} />
+        </NavRow>
+        {name ? <DrawerTitle title={name} /> : <TitleSkeleton />}
+        <Breadcrumbs />
+      </DrawerHeader>
+      <DrawerToolbar>
+        {/* A country page offers the visitor's own town under the field. */}
+        <FieldSkeleton className="px-gutter pb-2" prompt={Boolean(isoCountryCode(entry.slug))} />
+        <ListToolbar>
+          <FilterButton />
+        </ListToolbar>
+      </DrawerToolbar>
+      <DrawerBody>
+        <div {...LOADING}>
+          <ListSkeleton />
+        </div>
+      </DrawerBody>
+    </>
+  )
+}
+
+/**
+ * A class loading: EventView's header (the Back row, then the title once anything has it), then
+ * its page as placeholders. On the phone sheet Register pins to the screen's foot when the class
+ * arrives, so the placeholder leaves it out there.
+ */
+function ClassLoading({ id }: { id: number }) {
+  const title = useCachedClassTitle(id)
+  const { hasMap } = useWidgetMode()
+  const isWide = useIsWideWidget()
+
+  return (
+    <>
+      <DrawerHeader stacked>
+        <NavRow />
+        {title ? (
+          <h1 className="line-clamp-3 text-xl break-words">{title}</h1>
+        ) : (
+          <TitleSkeleton lines={2} />
+        )}
+      </DrawerHeader>
+      <DrawerBody>
+        <div {...LOADING}>
+          <EventSkeleton actions={isWide || !hasMap} />
+        </div>
+      </DrawerBody>
+    </>
+  )
+}
+
+/**
+ * A class's title from what is cached, cache-only like the rest of the chrome: its document (a
+ * hover warmed it), else the titles sliver, joined to the feed so an inactive listing reads as
+ * its page will title it (`listingTitle`).
+ */
+function useCachedClassTitle(id: number): string | undefined {
+  const { t } = useTranslation()
+  const { locale } = useLocale()
+  const queryClient = useQueryClient()
+  const { data: titles } = useQuery({ ...eventTitlesQuery(locale), enabled: false })
+  const doc = queryClient.getQueryData<ListingTitleInput>(eventQuery(id, locale).queryKey)
+
+  if (doc) return listingTitle(doc, t)
+  const title = titles?.get(id)
+
+  if (!title) return undefined
+  const feed = queryClient.getQueryData<Geojson>(GEOJSON_QUERY_KEY)
+  const listing = feed?.features.find((feature) => feature.properties.id === id)?.properties
+
+  return listingTitle({ ...listing, title }, t)
 }
 
 /**

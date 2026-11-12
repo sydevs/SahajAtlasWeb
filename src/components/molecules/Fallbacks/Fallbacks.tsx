@@ -4,6 +4,7 @@ import type { ErrorKind } from '@/lib/report'
 import type { RecoveryOffer } from '@/hooks/use-recovery-offer'
 
 import { useEffect, useRef } from 'react'
+import { useLocation } from 'react-router'
 import { CircleFlag } from 'react-circle-flags'
 import clsx from 'clsx'
 import { useTranslation } from 'react-i18next'
@@ -15,12 +16,19 @@ import { Spinner } from '@/components/atoms/Spinner/Spinner'
 import { Alert } from '@/components/atoms/Alert/Alert'
 import { Button, controlSurface } from '@/components/atoms/Button'
 import { Link } from '@/components/atoms/Link'
-import { useIsWide } from '@/config/responsive'
+import {
+  EventSkeleton,
+  FieldSkeleton,
+  ListSkeleton,
+  TitleSkeleton,
+} from '@/components/molecules/Skeleton'
+import { CLASS_SHEET_PX, HOME_SHEET_PX, useIsWide } from '@/config/responsive'
 import { useReportModal } from '@/config/store'
 import { rewordedKey } from '@/config/reworded-keys'
 import { useReportForm } from '@/hooks/use-report-form'
 import { useRecoveryOffer } from '@/hooks/use-recovery-offer'
 import { classifyError, errorMessage, reportInternalError } from '@/lib/report'
+import { resolveStack } from '@/lib/shape'
 
 /**
  * This is the whole-widget surface. It fills the embed when the app has no content to
@@ -80,57 +88,65 @@ export function LoadingFallback({ unboxed = false }: LoadingFallbackProps) {
 }
 
 /**
- * The list a view is about to show, as quiet placeholder rows, under one calm line.
- *
- * The line carries the announcement, so the rows are hidden from assistive tech. Used inside
- * the real drawer while a list view loads, and inside `BootFallback` before the drawer exists,
- * so the two can't drift and the swap between them doesn't jump.
- */
-export function ListSkeleton() {
-  const { t } = useTranslation()
-
-  return (
-    <div className="flex flex-col">
-      <p className="px-gutter py-2 text-sm text-gray-11" role="status">
-        {t('common.chrome.finding_classes', { defaultValue: 'Finding classes…' })}
-      </p>
-      <div aria-hidden className="flex flex-col motion-safe:animate-pulse">
-        {['w-3/5', 'w-2/5', 'w-1/2', 'w-1/3', 'w-2/5'].map((width, row) => (
-          // Two rows share a width, so the row's position is the key.
-          <div key={row} className="flex min-h-14 items-center justify-between gap-4 px-gutter">
-            <div className={`h-3.5 rounded bg-gray-3 ${width}`} />
-            <div className="h-3.5 w-5 rounded bg-gray-3" />
-          </div>
-        ))}
-      </div>
-    </div>
-  )
-}
-
-/**
  * What the full-window map form shows for the moment before its code has arrived: the panel
- * already in its real place, over a plain map-toned surface. The real map replaces the surface
- * as soon as the map chunk loads, and the real drawer replaces this panel.
+ * already in its real place and at the height the sheet opens at, over a plain map-toned surface,
+ * drawn in the shape of the view the address opens — the first screen, a place's list, or a class.
+ * The real map replaces the surface as soon as the map chunk loads, and the real drawer takes over
+ * in place (`enterInPlace`), so nothing slides in a second time (Devindra, 12 Nov).
  *
  * Only for the form that fills the window. A form with a box of its own keeps `LoadingFallback`,
  * since taking the viewport there would paint over the host's page.
  */
 export function BootFallback() {
   const isWide = useIsWide(null)
+  const { pathname } = useLocation()
+  const kind = resolveStack(pathname).at(-1)?.kind
+  // The phone sheet's first stop, as DrawerStack opens it: a class at its own height plus the
+  // home-indicator inset, and everything else at the first screen's.
+  const sheetHeight =
+    kind === 'event'
+      ? `calc(${CLASS_SHEET_PX}px + env(safe-area-inset-bottom, 0px))`
+      : `${HOME_SHEET_PX}px`
+  const header = clsx('px-gutter pb-2', isWide ? 'pt-4' : 'pt-2')
 
   return (
     <div className="fixed inset-0 bg-gray-3">
       <div
         className={
           isWide
-            ? 'fixed inset-y-0 left-0 z-40 w-[352px] border border-divider bg-background lg:inset-y-4 lg:left-4 lg:rounded-2xl'
-            : 'fixed inset-x-0 bottom-0 z-40 h-[300px] rounded-t-2xl border-t border-divider bg-background'
+            ? 'fixed inset-y-0 left-0 z-40 w-[352px] overflow-clip border border-divider bg-background lg:inset-y-4 lg:left-4 lg:rounded-2xl'
+            : 'fixed inset-x-0 bottom-0 z-40 overflow-clip rounded-t-2xl border-t border-divider bg-background'
         }
+        style={isWide ? undefined : { height: sheetHeight }}
       >
-        <div className="px-gutter pt-4 pb-2">
-          <div aria-hidden className="h-10 rounded-lg border border-divider bg-gray-2" />
-        </div>
-        <ListSkeleton />
+        {/* The bottom sheet's handle, where vaul draws it (`atoms/Drawer`). */}
+        {!isWide && (
+          <div aria-hidden className="mx-auto mt-2.5 mb-1 h-[5px] w-8 rounded-2xl bg-gray-7/70" />
+        )}
+        {kind === undefined ? (
+          <>
+            <div className={header}>
+              <TitleSkeleton />
+            </div>
+            <FieldSkeleton prompt className="mx-gutter mb-2" />
+            <ListSkeleton icons rows={6} />
+          </>
+        ) : kind === 'event' ? (
+          <>
+            <div className={header}>
+              <TitleSkeleton back lines={2} />
+            </div>
+            <EventSkeleton actions={isWide} />
+          </>
+        ) : (
+          <>
+            <div className={header}>
+              <TitleSkeleton back />
+            </div>
+            <FieldSkeleton className="mx-gutter mb-2" />
+            <ListSkeleton />
+          </>
+        )}
       </div>
     </div>
   )
