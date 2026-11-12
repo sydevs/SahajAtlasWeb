@@ -236,7 +236,6 @@ export const ERROR_POLICY: Record<FallbackKind, FallbackPolicy> = {
   // **It offers no report action.** The report form is itself gated by Turnstile.
   // Sending a viewer to it would hand them a second form that also cannot submit.
   // This mirrors the call `offline` makes for the network, one layer along.
-  // `REPORTED_KINDS` mirrors it too.
   //
   // The sentence names the cause, not the fix. A visitor cannot edit a CSP. The
   // instruction "add SahajCloud to your frame-src" means nothing to most visitors
