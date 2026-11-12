@@ -148,11 +148,11 @@ cover everything a host would notice since the widget was first deployed.
 - **A blocked security check now produces a crash report, and an error-level console line.**
   ([#387]) When the widget's security check cannot load, the whole widget fails — and that was
   the one failure it reported to nobody, printing a console warning and sending nothing. A build
-  with a DSN now sends one crash report for it, and the console line is an error rather than a
-  warning. No parameter, origin or CSP change: `connect-src https://*.sentry.io` already covers
-  it. A page that leaves that origin out now makes one refused request where it made none, and
-  the widget then stops trying for the rest of that page's life, as that row has always said.
-  What your visitor sees is unchanged: the same message, and still a retry.
+  with a DSN now sends one crash report for it, and logs an error beside the existing warning
+  that names the fix. No parameter, origin or CSP change: `connect-src https://*.sentry.io`
+  already covers it. A page that leaves that origin out now makes one refused request where it
+  made none, and the widget then stops trying for the rest of that page's life, as that row has
+  always said. What your visitor sees is unchanged: the same message, and still a retry.
 
 - **"Report an issue" is managed in SahajCloud.** ([#216]) The form's questions, its submit
   label and its confirmation message are authored there, on the contact form named in the atlas
