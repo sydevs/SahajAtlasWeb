@@ -17,7 +17,7 @@ import api, { eventQuery, regionQuery, regionsQuery } from '@/config/api'
 import { GEOJSON_STALE_TIME } from '@/config/query-client'
 import embed from '@/config/embed'
 import { useShowMap } from '@/config/mode'
-import { useCameraHistory, useFilterPanelState } from '@/config/store'
+import { useCameraHistory } from '@/config/store'
 import { useAtlasNavigate } from '@/hooks/use-atlas-navigate'
 import { useEventFilters } from '@/hooks/use-filters'
 import { useIpLocation } from '@/hooks/use-ip-location'
@@ -285,6 +285,11 @@ export function ExpandSheetButton({ label }: { label?: string }) {
   )
 }
 
+// Whether this layout shows the filters as chips over the map, which leaves the Filters button
+// nothing to do. Otherwise the filters sit behind it, in their drawer. DrawerStack owns the
+// measurement.
+export const FilterChipsContext = createContext(false)
+
 // The event-filters trigger that opens the filter drawer by navigating to
 // `<current>/filters` (root to `/filters`, `/search` to `/search/filters`),
 // preserving the search query so closing returns to the same search. Two shapes
@@ -292,11 +297,6 @@ export function ExpandSheetButton({ label }: { label?: string }) {
 // RegionView), and — with `iconOnly` — an icon-only header control carrying the
 // active count as a badge (CountriesView's header), so it reads as one set with
 // the close/collapse chrome.
-// How this layout offers filters beside the list, if it has room: a panel the Filters button
-// toggles, or chips that are always there, so no button at all. `null` means behind the button,
-// in the filter drawer. DrawerStack owns the measurement.
-export const FilterPanelAvailableContext = createContext<'panel' | 'chips' | null>(null)
-
 export function FilterButton({
   iconOnly = false,
   isLast = false,
@@ -319,22 +319,10 @@ export function FilterButton({
 
   const label = count > 0 ? `${t('filters.chrome.title')} (${count})` : t('filters.chrome.title')
   const to = `${location.pathname === '/' ? '' : location.pathname}/filters`
-  const panelAvailable = useContext(FilterPanelAvailableContext)
-  const panelOpen = useFilterPanelState((s) => s.open)
-  const setPanelOpen = useFilterPanelState((s) => s.setOpen)
-  const open = () =>
-    panelAvailable ? setPanelOpen(!panelOpen) : navigate({ pathname: to, search: location.search })
-  // Closing the side panel sends the filters back to this icon, so it ripples twice there and
-  // the visitor sees where they went (Anton, 6 Nov). Not on load: only an open-to-closed change.
-  const wasOpen = useRef(panelOpen)
-  const [ripple, setRipple] = useState(0)
+  const chips = useContext(FilterChipsContext)
+  const open = () => navigate({ pathname: to, search: location.search })
 
-  useEffect(() => {
-    if (panelAvailable === 'panel' && wasOpen.current && !panelOpen) setRipple((n) => n + 1)
-    wasOpen.current = panelOpen
-  }, [panelOpen, panelAvailable])
-
-  if (panelAvailable === 'chips' || !embed.config.filters) return null
+  if (chips || !embed.config.filters) return null
 
   if (iconOnly) {
     return (
@@ -344,14 +332,6 @@ export function FilterButton({
         className={clsx('relative', isLast && HEADER_LAST_CONTROL)}
         onClick={open}
       >
-        {ripple > 0 && (
-          <span
-            key={ripple}
-            aria-hidden
-            className="pointer-events-none absolute inset-0 rounded-full bg-primary-9/40 [animation-iteration-count:2] motion-safe:animate-ping motion-reduce:hidden"
-            onAnimationEnd={() => setRipple(0)}
-          />
-        )}
         <Funnel size={20} />
         {count > 0 && (
           <span
@@ -614,11 +594,8 @@ export function useIpSuggestion(region?: {
     staleTime: GEOJSON_STALE_TIME,
   })
 
-  // Beside the filter panel's Near me, a second "near you" offer is one location control too many.
-  const filterPanelUp = useFilterPanelState((s) => s.onScreen)
   const show = useMemo(
     () =>
-      !filterPanelUp &&
       shouldShowGeolocationPrompt({
         guess: ipLocation,
         dismissed,
@@ -627,15 +604,7 @@ export function useIpSuggestion(region?: {
         regionCenter: region?.center,
         viewedCountry: region?.countryCode,
       }),
-    [
-      filterPanelUp,
-      ipLocation,
-      dismissed,
-      activeSearch,
-      geojson,
-      region?.center,
-      region?.countryCode,
-    ],
+    [ipLocation, dismissed, activeSearch, geojson, region?.center, region?.countryCode],
   )
 
   const accept = useCallback(() => {

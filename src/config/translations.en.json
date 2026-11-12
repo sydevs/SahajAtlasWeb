@@ -261,12 +261,12 @@
       "morning": "Morning",
       "night": "Night"
     },
+    "when": {
+      "label": "When"
+    },
     "where": {
       "label": "Where",
-      "anywhere": "Choose a day or time, anywhere",
       "near_me": "Near me",
-      "online_route": "Online classes, from anywhere",
-      "placeholder": "Town or city",
       "scope": "%{near} within %{distance}, plus %{online} online"
     }
   },

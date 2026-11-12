@@ -2,7 +2,7 @@ import type { GeoFeature } from '@/types'
 
 import { describe, expect, it } from 'vitest'
 
-import { bestRecovery, facetCounts, facetScope, scopeRelevance } from './facets'
+import { bestRecovery, facetCounts, facetScope, scopeRelevance, shownGroups } from './facets'
 import { DEFAULT_FILTERS, matchesFilters } from './filters'
 import { splitResults } from './sections'
 
@@ -99,6 +99,30 @@ describe('facetCounts — times of day', () => {
 
   it('counts each time with the other groups applied, so night can drop to none', () => {
     expect(facetCounts(classes, { ...DEFAULT_FILTERS, daysOfWeek: [6] }, today).time.night).toBe(0)
+  })
+})
+
+describe('shownGroups', () => {
+  const counts = facetCounts([event({}), event({})], DEFAULT_FILTERS, today)
+  const scope = { counts, relevance: scopeRelevance([event({}), event({})], today) }
+
+  it('drops a group that could not narrow this scope, but keeps one in use', () => {
+    expect(shownGroups(DEFAULT_FILTERS, scope)).toMatchObject({ format: false, days: false })
+    expect(shownGroups({ ...DEFAULT_FILTERS, format: 'online' }, scope).format).toBe(true)
+  })
+
+  it('keeps Language where every class speaks one, so it says which', () => {
+    expect(counts.languages).toEqual([{ code: 'en', count: 2 }])
+    expect(shownGroups(DEFAULT_FILTERS, scope).languages).toBe(true)
+  })
+
+  it('has no Language with no language to offer, until the counts arrive', () => {
+    expect(shownGroups(DEFAULT_FILTERS, undefined)).toEqual({
+      format: true,
+      days: true,
+      time: true,
+      languages: false,
+    })
   })
 })
 

@@ -1,3 +1,5 @@
+import type { TranslationKey } from '@/types/i18next'
+
 import { type ReactNode } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { useSearchParams } from 'react-router'
@@ -5,21 +7,37 @@ import { useTranslation } from 'react-i18next'
 import { ChevronDown, X } from 'lucide-react'
 import clsx from 'clsx'
 
+import { RecoveryButton } from './RecoveryButton'
 import { usePanelFilters } from './use-panel-filters'
 import { WhereFilter } from './WhereFilter'
 
 import { Dropdown } from '@/components/atoms/Dropdown'
 import {
   DayFilter,
+  FilterGroup,
   FormatFilter,
   LanguageFilter,
+  MoreFilters,
   TimeFilter,
 } from '@/components/molecules/SearchFilters'
 import { regionsQuery } from '@/config/api'
 import { useLocale } from '@/hooks/use-locale'
+import { useNearVisitor } from '@/hooks/use-near-me'
+import { isDateRestricted, parseCenter, shownGroups } from '@/lib/shape'
 import { weekdayNames } from '@/lib/time'
 
-/** One chip and its dropdown. An active chip names what's selected. */
+/** The parts of a chip's summary that are set, as one line: "Tue, Wed · Evening". */
+const summarize = (parts: (string | false | null | undefined)[]): string | undefined =>
+  parts.filter(Boolean).join(' · ') || undefined
+
+/**
+ * One chip and its popover. An active chip fills and names what's chosen; its screen-reader name
+ * still starts with the question, so "Tue · Evening" is heard as "When: Tue · Evening".
+ *
+ * The popover opens under the chip's end edge, so it stays on the map's right side, clear of the
+ * list (Devindra, 12 Nov). Inside it the gutter is the popover's own 16px padding, so a full-width
+ * row (More filters) bleeds to its edges as it does to a drawer's.
+ */
 function FilterChip({
   label,
   summary,
@@ -33,23 +51,33 @@ function FilterChip({
 }) {
   return (
     <Dropdown
+      align="end"
       aria-label={label}
       role="dialog"
       trigger={
         <span
           className={clsx(
-            'flex h-10 max-w-48 items-center gap-1.5 rounded-full border ps-4 pe-3 text-sm font-medium shadow-md transition-colors',
+            'flex h-10 max-w-56 items-center gap-1.5 rounded-full border ps-4 pe-3 text-sm font-medium shadow-md transition-colors',
             summary
               ? 'border-primary-9 bg-primary-9 text-primary-foreground'
               : 'border-divider bg-background text-foreground hover:bg-gray-3',
           )}
         >
-          <span className="truncate">{summary ?? label}</span>
+          <span className="truncate">
+            {summary ? (
+              <>
+                <span className="sr-only">{label}: </span>
+                {summary}
+              </>
+            ) : (
+              label
+            )}
+          </span>
           <ChevronDown aria-hidden className="shrink-0 opacity-70" size={16} />
         </span>
       }
     >
-      <div className="flex w-[320px] flex-col gap-3 rounded-lg bg-background p-4 text-foreground">
+      <div className="flex max-h-[calc(var(--sy-frame-h,100dvh)-96px)] w-[320px] flex-col gap-5 overflow-y-auto rounded-lg bg-background p-4 text-foreground [--spacing-gutter:16px]">
         {children}
         {footer}
       </div>
@@ -58,8 +86,14 @@ function FilterChip({
 }
 
 /**
- * The filters as a slim row of dropdown chips over the map: the alternative to `FiltersPanel`,
- * which keeps almost all of the map on view at the cost of one more tap per question.
+ * The filters on a computer: three chips along the top of the map, Where, When and Language, each
+ * opening a small popover (Devindra, 12 Nov). Nothing is open until a chip is pressed, and the map
+ * keeps its full width. Every tap applies at once, as on the phone, and the chips ask the same
+ * questions the phone's filters do (`shownGroups`).
+ *
+ * - **Where** is the place (Near me, the place in scope) and online or in person.
+ * - **When** is the day and the time of day, with frequency and dates folded under More filters.
+ * - **Language** lists the languages this place's classes are held in.
  */
 export function FilterChipBar() {
   const { t } = useTranslation()
@@ -71,23 +105,49 @@ export function FilterChipBar() {
     facets,
     patch: (next: Partial<typeof filters>) => write({ ...filters, ...next }),
   }
-  const relevance = facets?.relevance
+  const shown = shownGroups(filters, facets)
   const [searchParams] = useSearchParams()
+  const nearVisitor = useNearVisitor(parseCenter(searchParams.get('center')))
   const { data: regions } = useQuery(regionsQuery())
-  // A place's name is an address, so its first part is what fits on a chip.
-  const whereSummary =
-    searchParams.get('q')?.split(',')[0] ||
-    regions?.find((node) => node.slug === filters.region)?.name ||
-    undefined
   const weekdays = weekdayNames(locale, 'short')
+
+  // A place's name is an address, so its first part is what fits on a chip.
+  const placeLabel = nearVisitor
+    ? t('filters.where.near_me')
+    : searchParams.get('q')?.split(',')[0] ||
+      regions?.find((node) => node.slug === filters.region)?.name
+  const whereSummary = summarize([
+    placeLabel,
+    filters.format !== 'any' && t(`filters.format.${filters.format}`),
+  ])
+  const whenSummary = summarize([
+    filters.daysOfWeek.map((day) => weekdays[day - 1]).join(', '),
+    filters.timeOfDay.map((period) => t(`filters.time.${period}`)).join(', '),
+    filters.cadence !== 'any' &&
+      t(`filters.cadence.${filters.cadence.toLowerCase()}` as TranslationKey),
+    isDateRestricted(filters.dateRange) && t('filters.dates.label'),
+  ])
+  const languageSummary = summarize([filters.languages.map(languageLabel).join(', ')])
+
+  // Each popover ends on the live count, and with nothing left, on the one change that helps most.
   const footer = (
-    <p aria-live="polite" className="text-sm text-gray-11">
-      {count === undefined
-        ? null
-        : count === 0
-          ? t('filters.chrome.no_match')
-          : t('filters.chrome.class_count', { count })}
-    </p>
+    <div className="-mx-4 -mb-4 flex flex-col gap-2 border-t border-divider px-4 py-3">
+      <p aria-live="polite" className="text-sm text-gray-11">
+        {count === undefined
+          ? null
+          : count === 0
+            ? t('filters.chrome.no_match')
+            : t('filters.chrome.class_count', { count })}
+      </p>
+      {count === 0 && facets?.recovery && (
+        <RecoveryButton
+          className="h-auto min-h-11 w-full py-2 whitespace-normal"
+          filters={filters}
+          recovery={facets.recovery}
+          onApply={write}
+        />
+      )}
+    </div>
   )
 
   return (
@@ -97,7 +157,7 @@ export function FilterChipBar() {
       role="group"
     >
       {/* First in a right-aligned row, so its arrival moves nothing that's already there: a chip
-          whose dropdown is open must not slide away from under the pointer. */}
+          whose popover is open must not slide away from under the pointer. */}
       {canClear && (
         <button
           className="flex h-10 items-center gap-1 rounded-full border border-divider bg-background ps-3 pe-3 text-sm font-medium text-foreground shadow-md hover:bg-gray-3"
@@ -109,44 +169,40 @@ export function FilterChipBar() {
         </button>
       )}
       <FilterChip footer={footer} label={t('filters.where.label')} summary={whereSummary}>
-        <WhereFilter region={filters.region} onClear={clearWhere} onPlace={pickPlace} />
-      </FilterChip>
-      {(filters.format !== 'any' || (relevance?.format ?? true)) && (
-        <FilterChip
-          footer={footer}
-          label={t('filters.format.question')}
-          summary={filters.format === 'any' ? undefined : t(`filters.format.${filters.format}`)}
-        >
-          <FormatFilter {...control} />
-        </FilterChip>
-      )}
-      {(filters.daysOfWeek.length > 0 || (relevance?.days ?? true)) && (
-        <FilterChip
-          footer={footer}
-          label={t('filters.days.short_label')}
-          summary={filters.daysOfWeek.map((day) => weekdays[day - 1]).join(', ') || undefined}
-        >
-          <DayFilter {...control} />
-        </FilterChip>
-      )}
-      {(filters.timeOfDay.length > 0 || (relevance?.time ?? true)) && (
-        <FilterChip
-          footer={footer}
-          label={t('filters.time.label')}
-          summary={
-            filters.timeOfDay.map((period) => t(`filters.time.${period}`)).join(', ') || undefined
+        <WhereFilter
+          counts={
+            facets && {
+              inPerson: facets.counts.format.offline,
+              online: facets.counts.format.online,
+            }
           }
-        >
-          <TimeFilter {...control} />
-        </FilterChip>
-      )}
-      {(filters.languages.length > 0 || relevance?.languages) && (
-        <FilterChip
-          footer={footer}
-          label={t('filters.language.label')}
-          summary={filters.languages.map(languageLabel).join(', ') || undefined}
-        >
-          <LanguageFilter {...control} />
+          region={filters.region}
+          titled={false}
+          onClear={clearWhere}
+          onPlace={pickPlace}
+        />
+        {shown.format && (
+          <FilterGroup label={t('filters.format.question')}>
+            <FormatFilter {...control} />
+          </FilterGroup>
+        )}
+      </FilterChip>
+      <FilterChip footer={footer} label={t('filters.when.label')} summary={whenSummary}>
+        {shown.days && (
+          <FilterGroup label={t('filters.days.short_label')}>
+            <DayFilter {...control} />
+          </FilterGroup>
+        )}
+        {shown.time && (
+          <FilterGroup label={t('filters.time.label')}>
+            <TimeFilter {...control} />
+          </FilterGroup>
+        )}
+        <MoreFilters {...control} />
+      </FilterChip>
+      {shown.languages && (
+        <FilterChip footer={footer} label={t('filters.language.label')} summary={languageSummary}>
+          <LanguageFilter {...control} className="-m-1" layout="list" />
         </FilterChip>
       )}
     </div>

@@ -136,9 +136,8 @@ export function FilterView() {
   // With nothing chosen, closing just goes back, so the button mustn't promise results.
   const goesBack = filterCloseTarget(location.pathname, location.search) === null
 
-  // The calendar doesn't rank by place, so it has no place to ask for first.
+  // The calendar doesn't rank by place, so Near me has nothing to sort there.
   const searchable = parentOf(location.pathname) !== '/calendar'
-  const placeFirst = searchable && !filters.region && !center
 
   return (
     <>
@@ -149,7 +148,6 @@ export function FilterView() {
       <DrawerBody className="scroll-pb-[calc(var(--sy-footer-h,0px)_+_var(--sy-sheet-top,0px))] px-gutter py-4">
         <SearchFilters
           facets={facets}
-          placeFirst={placeFirst}
           value={filters}
           where={
             <WhereFilter
@@ -159,11 +157,12 @@ export function FilterView() {
                   online: facets.counts.format.online,
                 }
               }
-              prominent={placeFirst && !canClear}
               region={filters.region}
               searchable={searchable}
               onClear={clearWhere}
               onPlace={pickPlace}
+              // The list's search box is under this drawer, so closing it is the way there.
+              onSearchInstead={control.dismiss}
             />
           }
           onChange={write}

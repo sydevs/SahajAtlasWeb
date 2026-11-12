@@ -26,7 +26,6 @@ import { Drawer, DrawerContent } from '@/components/atoms/Drawer'
 import { ResetErrorBoundary, SettingsMenu } from '@/components/molecules'
 import { ClientGate } from '@/config/client-gate'
 import {
-  FILTER_PANEL_PX,
   SEARCH_SHEET_PX,
   WidgetWidthContext,
   useFitsWidth,
@@ -34,7 +33,7 @@ import {
   useIsWide,
 } from '@/config/responsive'
 import { useWidgetMode } from '@/config/mode'
-import { useBrowsedCountry, useClassSheet, useFilterPanelState, useMapTap } from '@/config/store'
+import { useBrowsedCountry, useClassSheet, useMapTap } from '@/config/store'
 import { frameElement, overlayContainer } from '@/lib/overlay'
 import { scheduleIdle } from '@/lib/schedule-idle'
 import {
@@ -59,14 +58,13 @@ import {
 import { wakesSheetLoop } from '@/views/DrawerStack/sheet-wake'
 import { openStop, sheetOpens } from '@/views/DrawerStack/sheet-open'
 import { ViewLayer } from '@/views/DrawerStack/ViewLayer'
-import { DrawerControlContext, FilterPanelAvailableContext, useClimbInputs } from '@/views/shared'
+import { DrawerControlContext, FilterChipsContext, useClimbInputs } from '@/views/shared'
 import { useFitSnap } from '@/views/DrawerStack/use-fit-snap'
 import { DrawerErrorFallback, DrawerLoading } from '@/views/fallbacks'
 import { CountriesView } from '@/views/CountriesView/CountriesView'
 import { SearchView } from '@/views/SearchView/SearchView'
 import { FilterView } from '@/views/FilterView/FilterView'
 import { FilterChipBar } from '@/views/FilterView/FilterChipBar'
-import { FiltersPanel } from '@/views/FilterView/FiltersPanel'
 import { RegionView } from '@/views/RegionView/RegionView'
 import { OnlineView } from '@/views/OnlineView/OnlineView'
 import { EventView } from '@/views/EventView/EventView'
@@ -200,21 +198,10 @@ function withFitSnap(points: (number | string)[], fitPx: number | null) {
   return [...points.slice(0, at), `${fitPx}px`, ...points.slice(at)]
 }
 
-// How wide the widget has to be before the filters get their own panel over the map, and open by
-// default: the 352px list and its margins, the filter panel (`FILTER_PANEL_PX`) and the map
-// controls beside it, which leaves about 430px of map to look at. Below this, filters sit behind
-// the button.
-const FILTER_PANEL_MIN_PX = 1200
-// The settings cog's share of `CONTROLS_BESIDE_PANEL` in Map.tsx: the cog sits outside the map.
-const COG_BESIDE_PANEL = { '--sy-map-end': `${FILTER_PANEL_PX}px` } as CSSProperties
-
-// PROPOSAL SWITCH: the panel and the chip bar are an either/or for Anton to compare. `?filterui=chips`
-// on the page's first load shows the chips. Delete whichever one loses, and this with it.
-const DESKTOP_FILTERS =
-  typeof window !== 'undefined' &&
-  new URLSearchParams(window.location.search).get('filterui') === 'chips'
-    ? 'chips'
-    : 'panel'
+// How wide the widget has to be before the filters become chips along the top of the map: the
+// 352px list and its margins, the three chips (and Clear) on one row, and the map's control column
+// beside them. Below this, filters sit behind the Filters button, in their drawer.
+const FILTER_CHIPS_MIN_PX = 1024
 
 // The floating panel's 16px margin above and below, and its 1px border top and bottom.
 const PANEL_MARGIN_PX = 32
@@ -378,10 +365,7 @@ export function DrawerStack() {
   const frameHeight = hasMap ? (frameElement()?.offsetHeight ?? 0) : 0
   const direction: Direction = isWide ? 'left' : 'bottom'
   const [snap, setSnap] = useState<number | string | null>(OPEN_SNAP)
-  const filterPanelFits = useFitsWidth(container ?? frameElement(), FILTER_PANEL_MIN_PX)
-  const filterPanelOpen = useFilterPanelState((s) => s.open)
-  const setFilterPanelOpen = useFilterPanelState((s) => s.setOpen)
-  const filterPanelUp = useFilterPanelState((s) => s.onScreen)
+  const filterChipsFit = useFitsWidth(container ?? frameElement(), FILTER_CHIPS_MIN_PX)
   // A fixed origin on the sheet's layer, which the live-top loop measures against (see there).
   const sheetOriginRef = useRef<HTMLDivElement>(null)
   // The lazy components ARE the retry state — the boundary's reset swaps in fresh ones.
@@ -506,17 +490,18 @@ export function DrawerStack() {
   // switching it resizes the drawer. Date changes do not re-render this component.
   const calendarView = useCalendarView()
   const wide = top?.kind === 'calendar' && isWide && calendarView !== CALENDAR_VIEW_LIST
-  // The panel belongs to the browsing views. A class page or a form has nothing to filter, and
+  // The chips belong to the browsing views. A class page or a form has nothing to filter, and
   // the calendar keeps its own filter overlay.
-  const filterPanelAvailable =
+  const filterChips =
     embed.config.filters &&
     hasMap &&
-    filterPanelFits &&
+    filterChipsFit &&
     (!top || top.kind === 'region' || top.kind === 'search')
-      ? DESKTOP_FILTERS
-      : null
+  // A `/filters` link where the chips stand in for the drawer, or where filters are off. The
+  // calendar's own filters stay a drawer at every width.
   const routedFilters =
-    top?.kind === 'filters' && (!embed.config.filters || (hasMap && filterPanelFits))
+    top?.kind === 'filters' &&
+    (!embed.config.filters || (hasMap && filterChipsFit && !filterOverlay))
   // A list of online classes only: a place's Online classes, or results filtered to online. Online
   // classes have no place on the map, so the phone sheet opens near full rather than leaving a map
   // with nothing on it above the list (Anton, 6 Nov).
@@ -525,11 +510,10 @@ export function DrawerStack() {
     (top?.kind === 'search' &&
       filtersFromParams(new URLSearchParams(location.search)).format === 'online')
 
-  // A `/filters` link on a layout with the panel: open the panel, and show the view beneath it.
+  // A `/filters` link on a layout with the chips: show the view beneath, with the chips over it.
   useEffect(() => {
     if (!routedFilters) return
 
-    if (embed.config.filters) setFilterPanelOpen(true)
     navigate(
       filterCloseTarget(location.pathname, location.search) ?? {
         pathname: parentOf(location.pathname) ?? '/',
@@ -1271,7 +1255,7 @@ export function DrawerStack() {
 
   return (
     <WidgetWidthContext.Provider value={isWide}>
-      <FilterPanelAvailableContext.Provider value={filterPanelAvailable}>
+      <FilterChipsContext.Provider value={filterChips}>
         <DrawerControlContext.Provider value={control}>
           {target &&
             createPortal(
@@ -1283,10 +1267,7 @@ export function DrawerStack() {
                 />
                 {tallSheet && <div aria-hidden className="fixed inset-0 z-[35] bg-black/50" />}
                 {/* The docked add-a-class panel takes that side of the map while it is open. */}
-                {filterPanelAvailable === 'panel' && filterPanelOpen && !submitOverlay && (
-                  <FiltersPanel />
-                )}
-                {filterPanelAvailable === 'chips' && <FilterChipBar />}
+                {filterChips && !submitOverlay && <FilterChipBar />}
                 {/* The top of the map's one control column, with locate and attribution below it
                   (`.mapboxgl-ctrl-top-right` in globals.css holds the shared size and margins).
                   That corner is free in both layouts, and nothing here depends on the panel's
@@ -1295,14 +1276,10 @@ export function DrawerStack() {
                   calendar, and at the sheet's near-full snap (which also covers the tall
                   filters sheet), which covers the column anyway. */}
                 {!wide && snap !== WIDE_SNAP && (
-                  // With the filter panel up, the cog moves in beside it with the rest of the
-                  // column, by the same `--sy-map-end` Map.tsx sets on the map.
-                  <div className="contents" style={filterPanelUp ? COG_BESIDE_PANEL : undefined}>
-                    <SettingsMenu
-                      align="end"
-                      className="fixed top-[var(--sy-map-ctrl-top)] right-[calc(var(--sy-map-ctrl-end)+var(--sy-map-end,0px))] z-20"
-                    />
-                  </div>
+                  <SettingsMenu
+                    align="end"
+                    className="fixed top-[var(--sy-map-ctrl-top)] right-[var(--sy-map-ctrl-end)] z-20"
+                  />
                 )}
                 {showAddClass && (
                   <AddClassButton
@@ -1345,7 +1322,7 @@ export function DrawerStack() {
           {filterDrawer}
           {submitPanel}
         </DrawerControlContext.Provider>
-      </FilterPanelAvailableContext.Provider>
+      </FilterChipsContext.Provider>
     </WidgetWidthContext.Provider>
   )
 }

@@ -764,12 +764,9 @@ html.sy-atlas {
   --sy-map-ctrl-end: 12px;
 }
 
-/* `--sy-map-end` is the filters panel's footprint, set on the map by `Map.tsx` while the panel is
-   up, so the column moves in beside the panel rather than sitting under it. It is added to the
-   column's own inset here and in the row below, so one rule never replaces the other. */
 .mapboxgl-ctrl-top-right {
   top: calc(var(--sy-map-ctrl-top) + var(--sy-map-ctrl-size) + var(--sy-map-ctrl-gap));
-  right: calc(var(--sy-map-ctrl-end) + var(--sy-map-end, 0px));
+  right: var(--sy-map-ctrl-end);
 }
 
 .mapboxgl-ctrl-top-right .mapboxgl-ctrl {
@@ -782,10 +779,7 @@ html.sy-atlas {
 @media (max-height: 480px) {
   .mapboxgl-ctrl-top-right {
     top: var(--sy-map-ctrl-top);
-    right: calc(
-      var(--sy-map-ctrl-end) + var(--sy-map-ctrl-size) + var(--sy-map-ctrl-gap) +
-        var(--sy-map-end, 0px)
-    );
+    right: calc(var(--sy-map-ctrl-end) + var(--sy-map-ctrl-size) + var(--sy-map-ctrl-gap));
     display: flex;
     flex-direction: row;
     gap: var(--sy-map-ctrl-gap);

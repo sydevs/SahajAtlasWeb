@@ -2,9 +2,8 @@ import type { TranslationKey } from '@/types/i18next'
 import type { FilterFacets } from '@/hooks/use-filter-facets'
 
 import { type ReactNode, useMemo, useState } from 'react'
-import { Info } from 'luxon'
 import { useTranslation } from 'react-i18next'
-import { ChevronDown, ChevronRight, MoonStar, Sun } from 'lucide-react'
+import { ChevronDown, MoonStar, Sun } from 'lucide-react'
 import clsx from 'clsx'
 
 import { Checkbox } from '@/components/atoms/Checkbox'
@@ -15,6 +14,7 @@ import { ToggleGroup, ToggleGroupItem } from '@/components/atoms/ToggleGroup'
 import { fieldChrome } from '@/components/atoms/Select'
 import { useLocale } from '@/hooks/use-locale'
 import { formatTimePeriods } from '@/lib/events'
+import { weekdayNames } from '@/lib/time'
 import {
   type EventCadence,
   type EventFilters,
@@ -23,6 +23,7 @@ import {
   TIME_PERIODS,
   dateWindow,
   isDateRestricted,
+  shownGroups,
 } from '@/lib/shape'
 
 // The Format and Frequency toggle options, in display order. The i18n leaf
@@ -53,8 +54,10 @@ const TIME_ICONS: Record<TimePeriod, ReactNode> = {
 // How many languages still read better as one tap each than as a dropdown.
 const INLINE_LANGUAGES = 4
 
+export type FilterGroupProps = { label: string; children: ReactNode }
+
 /** One filter group: a plain heading above its control. */
-function FilterGroup({ label, children }: { label: string; children: ReactNode }) {
+export function FilterGroup({ label, children }: FilterGroupProps) {
   return (
     <section className="flex flex-col gap-2">
       <h3 className="text-sm font-semibold text-foreground">{label}</h3>
@@ -117,16 +120,16 @@ export function FormatFilter({ value, patch, facets, className }: FilterControlP
 /**
  * A week strip: seven equal cells, Monday first. A day with nothing on it can't be picked.
  *
- * Under 288px wide (the desktop filters panel, a narrow host box) the names drop to 12px: at 14px
- * a 33px cell leaves "Wed" a pixel from each border. The full name is each cell's label.
+ * Under 288px wide (the When popover on a computer, a narrow host box) the names drop to 12px: at
+ * 14px a 33px cell leaves "Wed" a pixel from each border. The full name is each cell's label.
  */
 export function DayFilter({ value, patch, facets, className }: FilterControlProps) {
   const { t } = useTranslation()
   const { locale } = useLocale()
-  // luxon's weekdays are 1 (Mon) through 7 (Sun), the store's day encoding.
+  // Monday first, so index + 1 is the ISO weekday, the store's day encoding.
   const weekdays = useMemo(() => {
-    const short = Info.weekdays('short', { locale })
-    const long = Info.weekdays('long', { locale })
+    const short = weekdayNames(locale, 'short')
+    const long = weekdayNames(locale)
 
     return short.map((label, index) => ({ value: index + 1, label, full: long[index] }))
   }, [locale])
@@ -169,7 +172,9 @@ export function TimeFilter({ value, patch, facets, className }: FilterControlPro
   const { locale } = useLocale()
   const periods = TIME_PERIODS.filter(
     (period) =>
-      period !== 'night' || value.timeOfDay.includes(period) || (facets?.counts.time.night ?? 0) > 0,
+      period !== 'night' ||
+      value.timeOfDay.includes(period) ||
+      (facets?.counts.time.night ?? 0) > 0,
   )
 
   return (
@@ -205,11 +210,25 @@ export function TimeFilter({ value, patch, facets, className }: FilterControlPro
   )
 }
 
+export type LanguageFilterProps = FilterControlProps & {
+  /**
+   * `list` always shows the options as a list of checkboxes, for a surface that is already a
+   * popover (the Language chip on a computer), where a dropdown would open inside another one.
+   */
+  layout?: 'auto' | 'list'
+}
+
 /**
  * Languages: one tap each when there are few, a dropdown when there are many. The options are
  * the languages classes in this scope actually use, most-used first.
  */
-export function LanguageFilter({ value, patch, facets, className }: FilterControlProps) {
+export function LanguageFilter({
+  value,
+  patch,
+  facets,
+  className,
+  layout = 'auto',
+}: LanguageFilterProps) {
   const { t } = useTranslation()
   const { languageLabel } = useLocale()
   const options = facets?.counts.languages ?? []
@@ -219,6 +238,28 @@ export function LanguageFilter({ value, patch, facets, className }: FilterContro
         ? value.languages.filter((other) => other !== code)
         : [...value.languages, code],
     })
+  const list = (
+    <div className={clsx('max-h-64 overflow-y-auto p-1', layout === 'list' && className)}>
+      {options.map((option) => (
+        <Checkbox
+          key={option.code}
+          appearance="checkbox"
+          checked={value.languages.includes(option.code)}
+          // The label's own wrapper grows, so the count sits at the row's end.
+          className="w-full rounded px-2 py-2 hover:bg-gray-3 [&>span]:flex-1"
+          disabled={option.count === 0 && !value.languages.includes(option.code)}
+          onCheckedChange={() => toggle(option.code)}
+        >
+          <span className="flex w-full items-baseline justify-between gap-3">
+            {languageLabel(option.code)}
+            <OptionCount count={option.count} />
+          </span>
+        </Checkbox>
+      ))}
+    </div>
+  )
+
+  if (layout === 'list') return list
 
   if (options.length <= INLINE_LANGUAGES) {
     return (
@@ -259,23 +300,7 @@ export function LanguageFilter({ value, patch, facets, className }: FilterContro
         </span>
       }
     >
-      <div className="max-h-64 overflow-y-auto p-1">
-        {options.map((option) => (
-          <Checkbox
-            key={option.code}
-            appearance="checkbox"
-            checked={value.languages.includes(option.code)}
-            className="w-full rounded px-2 py-2 hover:bg-gray-3"
-            disabled={option.count === 0 && !value.languages.includes(option.code)}
-            onCheckedChange={() => toggle(option.code)}
-          >
-            <span className="flex w-full items-baseline justify-between gap-3">
-              {languageLabel(option.code)}
-              <OptionCount count={option.count} />
-            </span>
-          </Checkbox>
-        ))}
-      </div>
+      {list}
     </Dropdown>
   )
 }
@@ -326,8 +351,8 @@ function DateBound({
   )
 }
 
-/** The rarely useful filters: most classes are weekly, so neither narrows much. */
-function MoreFilters({ value, patch, facets }: FilterControlProps) {
+/** The rarely useful filters, folded away: most classes are weekly, so neither narrows much. */
+export function MoreFilters({ value, patch, facets }: FilterControlProps) {
   const { t } = useTranslation()
   const { cadence, dateRange } = value
   const active = cadence !== 'any' || isDateRestricted(dateRange)
@@ -413,109 +438,44 @@ export type SearchFiltersProps = {
   where?: ReactNode
   /** Live counts and relevance. Without them, every group shows, with no numbers. */
   facets?: FilterFacets
-  /**
-   * No place is chosen yet, and one can be. The form then asks only that, plus the online route,
-   * because "Tuesday, anywhere on earth" rarely helps. The other questions stay one tap away.
-   */
-  placeFirst?: boolean
-}
-
-/**
- * A plain full-width row, for a route the visitor can take instead of choosing a place. In a list
- * under 288px wide (the desktop filters panel) the label steps down to 14px, so "Online classes,
- * from anywhere" stays on one line beside its count.
- */
-function RouteRow({
-  label,
-  count,
-  onClick,
-}: {
-  label: string
-  count?: number
-  onClick: () => void
-}) {
-  return (
-    <button
-      className="-mx-gutter flex min-h-14 items-center justify-between gap-2 px-gutter text-start text-base font-medium text-foreground outline-none hover:bg-gray-3 focus-visible:ring-2 focus-visible:ring-focus focus-visible:ring-inset @max-[288px]:text-sm"
-      type="button"
-      onClick={onClick}
-    >
-      <span>{label}</span>
-      <span className="flex shrink-0 items-center gap-2">
-        <OptionCount count={count} />
-        <ChevronRight aria-hidden className="text-gray-11 rtl:rotate-180" size={18} />
-      </span>
-    </button>
-  )
 }
 
 /**
  * The filter form, in the order a visitor decides: where, then online or in person, then when,
- * then language, with the rarely useful ones folded away. A group that can't change the results
- * in this scope isn't shown, unless it is already in use, so it can always be undone.
+ * then language, with the rarely useful ones folded away. Which groups it asks follows
+ * `shownGroups`, the same rule as the filter chips on a computer, so both ask the same questions.
  *
  * Every option is one chip style. The groups differ by how they're laid out (a pair, a week
  * strip, a 2x2), not by how a chip is drawn, so nothing has to be learned twice.
  */
-export function SearchFilters({
-  value,
-  onChange,
-  where,
-  facets,
-  placeFirst = false,
-}: SearchFiltersProps) {
+export function SearchFilters({ value, onChange, where, facets }: SearchFiltersProps) {
   const { t } = useTranslation()
-  const [askEverything, setAskEverything] = useState(false)
-  const relevance = facets?.relevance
+  const shown = shownGroups(value, facets)
   const control: FilterControlProps = {
     value,
     facets,
     patch: (next) => onChange({ ...value, ...next }),
   }
-  // A question already answered stays on screen, so it can always be undone.
-  const answered =
-    value.format !== 'any' ||
-    value.daysOfWeek.length > 0 ||
-    value.timeOfDay.length > 0 ||
-    value.languages.length > 0 ||
-    value.cadence !== 'any' ||
-    isDateRestricted(value.dateRange)
-
-  if (placeFirst && !askEverything && !answered) {
-    return (
-      <div className="flex flex-col gap-4">
-        {where}
-        <div className="@container -mx-gutter flex flex-col divide-y divide-divider border-t border-divider px-gutter">
-          <RouteRow
-            count={facets?.counts.format.online}
-            label={t('filters.where.online_route')}
-            onClick={() => control.patch({ format: 'online' })}
-          />
-          <RouteRow label={t('filters.where.anywhere')} onClick={() => setAskEverything(true)} />
-        </div>
-      </div>
-    )
-  }
 
   return (
     <div className="flex flex-col gap-5">
       {where}
-      {(value.format !== 'any' || (relevance?.format ?? true)) && (
+      {shown.format && (
         <FilterGroup label={t('filters.format.question')}>
           <FormatFilter {...control} />
         </FilterGroup>
       )}
-      {(value.daysOfWeek.length > 0 || (relevance?.days ?? true)) && (
+      {shown.days && (
         <FilterGroup label={t('filters.days.short_label')}>
           <DayFilter {...control} />
         </FilterGroup>
       )}
-      {(value.timeOfDay.length > 0 || (relevance?.time ?? true)) && (
+      {shown.time && (
         <FilterGroup label={t('filters.time.label')}>
           <TimeFilter {...control} />
         </FilterGroup>
       )}
-      {(value.languages.length > 0 || relevance?.languages) && (
+      {shown.languages && (
         <FilterGroup label={t('filters.language.label')}>
           <LanguageFilter {...control} />
         </FilterGroup>

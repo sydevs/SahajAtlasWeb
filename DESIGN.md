@@ -215,11 +215,11 @@ The map fills the frame. On a phone the panel is a bottom sheet with a 16px roun
 
 ## Elevation & Depth
 
-Depth is light and structural: surfaces float over the map, nothing floats inside a panel. Panels, dialogs and the floating filters panel carry a soft, diffuse shadow plus a sand-6 hairline border. Inside a panel, depth is tonal: a sand-2 inset card, a sand-3 fill. A scrolled panel body shows a faint inset shadow under the header so the edge reads.
+Depth is light and structural: surfaces float over the map, nothing floats inside a panel. Panels, dialogs and the filter chips' popovers carry a soft, diffuse shadow plus a sand-6 hairline border. Inside a panel, depth is tonal: a sand-2 inset card, a sand-3 fill. A scrolled panel body shows a faint inset shadow under the header so the edge reads.
 
 ### Shadow Vocabulary
 - **Panel float** (Tailwind `shadow-2xl`): the side panel, the bottom sheet, modals.
-- **Overlay** (`shadow-xl`): the filters panel, menus, select and combobox popovers.
+- **Overlay** (`shadow-xl`): the filter chips' popovers, menus, select and combobox popovers.
 - **Map control** (`shadow-md` to `shadow-lg`): the filter chip bar, round map buttons, the pin-hover popover.
 - **Scroll edge** (`inset 0 7px 6px -7px rgb(0 0 0 / 0.25)`): appears only once the panel body has scrolled.
 
@@ -229,7 +229,7 @@ Depth is light and structural: surfaces float over the map, nothing floats insid
 
 Gently rounded, one rule:
 
-- **Panels** (16px): side panel, sheet top, filters panel, modals, menus.
+- **Panels** (16px): side panel, sheet top, modals, menus.
 - **Everything inside a panel** (8px): buttons, inputs, cards, tags, rows, popovers.
 - **Pills** (fully round): the map's filter chips, active-filter pills, count badges, round icon buttons, country flags.
 
@@ -245,7 +245,7 @@ Note: this radius rule ships in the combined build (`ux/all-proposals`). On `ux/
 - **Shape:** 8px corners; heights 32, 40 and 48px.
 - **Primary (Register for free):** full width, 48px, deep teal with white text in light mode; dark-mode teal with black text in dark mode. Hover steps the shade.
 - **Neutral flat:** sand-3 fill with sand-12 text, for the second-choice action.
-- **Outlined:** a 1px sand-6 border on a transparent fill with sand-12 text, 44px tall; Near me in the filters panel. It turns solid teal once near me is on.
+- **Outlined:** a 1px sand-6 border on a transparent fill with sand-12 text, 44px tall; Near me in the filters. It turns solid teal once near me is on.
 - **Ghost:** no surface until hovered; header and toolbar controls recede.
 - **Focus:** a 2px ring in the brand solid, on every control.
 

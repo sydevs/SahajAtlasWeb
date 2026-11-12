@@ -9,14 +9,12 @@ import { Button } from '@/components/atoms/Button'
 import { LocationHelp } from '@/components/molecules/LocationHelp'
 import { regionsQuery } from '@/config/api'
 import { useWidgetMode } from '@/config/mode'
-import { useNearMeState } from '@/config/store'
-import { useNearMe } from '@/hooks/use-near-me'
+import { useNearMe, useNearVisitor } from '@/hooks/use-near-me'
 import { useLocale } from '@/hooks/use-locale'
 import { formatDistance } from '@/lib'
 import { regionalLocale } from '@/lib/time'
 import { overlayContainer } from '@/lib/overlay'
 import { NEARBY_KM, type PlaceSearch, parseBounds, parseCenter, placeSize } from '@/lib/shape'
-import { SearchField } from '@/views/shared'
 
 export type WhereFilterProps = {
   /** The region slug in scope, if any. */
@@ -25,41 +23,43 @@ export type WhereFilterProps = {
   onPlace: (place: PlaceSearch) => void
   /** Back to everywhere: drops the place and the region. */
   onClear: () => void
-  /** The town search and Near me only make sense where the results rank by place. */
+  /** Near me only makes sense where the results rank by place. */
   searchable?: boolean
-  /** Nothing is chosen yet, so choosing a place is the one obvious next step. */
-  prominent?: boolean
-  /** Off where another search box is already on screen: one place to type a place in. */
-  townSearch?: boolean
+  /** Off where the surface is already named Where (the chip on a computer). */
+  titled?: boolean
   /** What a place's scope really holds, so "near" can't suggest more locality than it has. */
   counts?: { inPerson: number; online: number }
+  /**
+   * Where "Search instead" (after a refused location) takes the visitor. By default it focuses
+   * the list's search box beside this group; a drawer over the list passes a way to close itself.
+   */
+  onSearchInstead?: () => void
 }
 
 /**
- * The Where group: Near me, the same town search as the header, and what's currently in scope.
- * Location comes first because it's the first thing a visitor is deciding, and it's what makes
- * every count below it mean something.
+ * The Where group: Near me, and what's currently in scope. Location comes first because it's the
+ * first thing a visitor is deciding, and it's what makes every count below it mean something.
+ *
+ * There is no town search here: the list's own search box is the one place to type a town, and a
+ * second one beside the filters mixed the place in with the other questions (Devindra, 12 Nov).
  */
 export function WhereFilter({
   region,
   onPlace,
   onClear,
   searchable = true,
-  prominent = false,
-  townSearch = true,
+  titled = true,
   counts,
+  onSearchInstead,
 }: WhereFilterProps) {
   const { t } = useTranslation()
   const { locale } = useLocale()
   const [searchParams] = useSearchParams()
   const { hasMap } = useWidgetMode()
-  const nearCenter = useNearMeState((s) => s.center)
   const center = parseCenter(searchParams.get('center'))
-  const centerKey = center?.join(',') ?? ''
-  const nearMeOn = Boolean(center && nearCenter && centerKey === nearCenter.join(','))
+  const nearMeOn = useNearVisitor(center)
   const { data: regions } = useQuery(regionsQuery())
   const { status, locate, dismiss } = useNearMe({ naming: hasMap, onPlace })
-  const section = useRef<HTMLElement>(null)
   const searchInstead = useRef(false)
 
   const regionName = region ? (regions?.find((node) => node.slug === region)?.name ?? region) : null
@@ -71,42 +71,23 @@ export function WhereFilter({
   if (!searchable && !scopeLabel) return null
 
   return (
-    <section ref={section} className="flex flex-col gap-2">
-      <h3 className="text-sm font-semibold text-foreground">{t('filters.where.label')}</h3>
+    <section className="flex flex-col gap-2">
+      {titled && (
+        <h3 className="text-sm font-semibold text-foreground">{t('filters.where.label')}</h3>
+      )}
       {searchable && (
-        // Px, not `h-11`: the geocoder redefines `--spacing` inside itself, so a spacing-scale
-        // height resolves against its value and comes out three times too tall. 42 plus the
-        // field's 1px border is the button's 44, and `field-size` is the input's own type size.
-        <div
-          className={clsx(
-            'flex gap-2 [&_input]:h-[42px]',
-            prominent || !townSearch ? 'flex-col' : 'items-start',
-          )}
+        // Outlined until it's on, so it doesn't outshout the list beside it.
+        <Button
+          aria-pressed={nearMeOn}
+          className={clsx('h-11 self-start', !nearMeOn && 'border-gray-6 text-foreground')}
+          color={nearMeOn ? 'primary' : 'neutral'}
+          isLoading={status === 'locating'}
+          variant={nearMeOn ? 'solid' : 'bordered'}
+          onClick={nearMeOn ? onClear : locate}
         >
-          <Button
-            aria-pressed={nearMeOn}
-            className={clsx(
-              'h-[44px] shrink-0 field-size',
-              !nearMeOn && !prominent && 'border-gray-6 text-foreground',
-            )}
-            color={nearMeOn || prominent ? 'primary' : 'neutral'}
-            isLoading={status === 'locating'}
-            variant={nearMeOn || prominent ? 'solid' : 'bordered'}
-            onClick={nearMeOn ? onClear : locate}
-          >
-            {status !== 'locating' && <LocateFixed aria-hidden size={18} />}
-            {t('filters.where.near_me')}
-          </Button>
-          {/* Keyed on the place, so a pick empties the field: the pick shows as the chip below. */}
-          {townSearch && (
-            <SearchField
-              key={centerKey}
-              label={t('filters.where.placeholder')}
-              seedFromUrl={false}
-              onPlace={onPlace}
-            />
-          )}
-        </div>
+          {status !== 'locating' && <LocateFixed aria-hidden size={18} />}
+          {t('filters.where.near_me')}
+        </Button>
       )}
       {scopeLabel && (
         <div>
@@ -140,15 +121,15 @@ export function WhereFilter({
           if (!searchInstead.current) return
           searchInstead.current = false
           event.preventDefault()
-          // The panel has no field of its own, so this can be the list's search box beside it.
-          const root =
-            section.current?.closest('[data-vaul-drawer]') ?? overlayContainer() ?? document
+          // This group has no field of its own, so this is the list's search box beside it.
+          const root = overlayContainer() ?? document
 
           root.querySelector<HTMLElement>('[data-vaul-drawer] input, input')?.focus()
         }}
         onSearchInstead={() => {
-          searchInstead.current = true
+          searchInstead.current = !onSearchInstead
           dismiss()
+          onSearchInstead?.()
         }}
       />
     </section>

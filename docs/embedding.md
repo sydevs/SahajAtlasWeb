@@ -202,7 +202,7 @@ characters as usual (`atlas=%2Fgb%2Flondon` and `atlas=/gb/london` are equivalen
 | `routing`  | `query`                       | Where the widget's route lives. `path` also needs your server to serve one page for everything under the atlas prefix — a prefix set on your client record, not here.                                                                                                                                                                                                                             |
 | `atlas`    | —                             | The route to open when the page's own URL does not already name one, e.g. `/gb/london`. Must be site-relative.                                                                                                                                                                                                                                                                                    |
 | `gestures` | —                             | `gestures=cooperative` lets a visitor **scroll your page past a contained map**: one finger and the mouse wheel scroll the page, and the map moves on two fingers or Ctrl/⌘ + wheel, with a hint saying so. Only for a [contained map](#sizing-the-element); a window-filling map and the compact card's overlay ignore it.                                                                       |
-| `filters`  | `true`                        | `filters=false` removes the Filters button and panel, for a page that should show only the classes. Same spelling rule as `map`. A link that already carries filters still applies them, with removable pills.                                                                                                                                                                                    |
+| `filters`  | `true`                        | `filters=false` removes the Filters button and the filter chips over the map, for a page that should show only the classes. Same spelling rule as `map`. A link that already carries filters still applies them, with removable pills.                                                                                                                                                            |
 | `view`     | —                             | `view=list` opens on the list, with a "Map" button on the panel's top row (beside the title on the first screen, on the Back row below it). The map is not drawn until the visitor asks for it, so nothing is requested from Mapbox before then; the map's code still downloads with the rest of the widget. Opening the map is one way: there is no button back to the list. It is for a host who prefers the list first; it does not hide any location, since every pin shows once the map opens. With `map=false` there is no map and no Map button, since leaving the map out is the host's choice. |
 
 **`map` follows one spelling rule: only the exact values `false` and `0` switch it off.**
@@ -1252,14 +1252,13 @@ notice, not ours, is the one that has to describe it. This is the summary. The
 [README's privacy section](../README.md#privacy-storage-and-third-party-requests) carries the
 full detail on each flow, including exactly what an error report does and does not contain.
 
-**It sets no cookies.** It stores up to six keys under your origin — four of its own, written
+**It sets no cookies.** It stores up to five keys under your origin — three of its own, written
 inside a `try`/`catch` so a sandboxed iframe degrades the setting rather than breaking the widget,
 and two written by Mapbox GL:
 
 | Key                                | Store            | Holds                                                 | Lifetime            |
 | ---------------------------------- | ---------------- | ----------------------------------------------------- | ------------------- |
 | `atlas.theme`                      | `localStorage`   | the viewer's light/dark/auto choice                   | until cleared       |
-| `atlas.filtersPanel`               | `sessionStorage` | whether the viewer closed the filter panel            | the browser session |
 | `atlas.geolocationPromptDismissed` | `sessionStorage` | that they dismissed the "classes near you" suggestion | the browser session |
 | `atlas.areaNames`                  | `sessionStorage` | the calendar's part-of-town names, per language       | the browser session |
 | `mapbox.eventData:<token>`         | `localStorage`   | Mapbox GL's own telemetry bookkeeping                 | until cleared       |

@@ -257,3 +257,24 @@ export const facetRelevance = (scope: FacetCounts): FacetRelevance => {
 /** The scope's own relevance, with nothing filtered. */
 export const scopeRelevance = (events: readonly FacetEvent[], today?: string): FacetRelevance =>
   facetRelevance(facetCounts(events, DEFAULT_FILTERS, today))
+
+export type ShownGroups = Pick<FacetRelevance, 'format' | 'days' | 'time' | 'languages'>
+
+/**
+ * Which questions the filter form asks: a group that could narrow this scope, or one already
+ * answered, so it can always be undone. With no counts yet, every group but Language shows.
+ *
+ * Language is the exception: it shows whenever the scope's classes have a language, even only one,
+ * because it tells the visitor what language the classes are in. Hiding it where every class is in
+ * English read as a filter missing from the phone, and the computer's chip bar keeps three fixed
+ * entries (Devindra, 12 Nov). The phone form and the chips both read this, so they ask alike.
+ */
+export const shownGroups = (
+  filters: EventFilters,
+  facets: { counts: FacetCounts; relevance: FacetRelevance } | undefined,
+): ShownGroups => ({
+  format: filters.format !== 'any' || (facets?.relevance.format ?? true),
+  days: filters.daysOfWeek.length > 0 || (facets?.relevance.days ?? true),
+  time: filters.timeOfDay.length > 0 || (facets?.relevance.time ?? true),
+  languages: filters.languages.length > 0 || (facets?.counts.languages.length ?? 0) > 0,
+})

@@ -66,8 +66,21 @@ describe('SearchFilters — only what can change the results', () => {
 
     expect(html).not.toContain('filters.format.question')
     expect(html).not.toContain('filters.days.short_label')
-    expect(html).not.toContain('filters.language.label')
     expect(html).toContain('filters.time.label')
+  })
+
+  it('asks Language even where every class is in one, so it says which', () => {
+    const html = withFacets()
+
+    expect(html).toContain('filters.language.label')
+    expect(html).toContain('>en<')
+  })
+
+  it('goes straight to the questions, with no place-first step', () => {
+    const html = render()
+
+    expect(html).not.toContain('filters.where.online_route')
+    expect(html).not.toContain('filters.where.anywhere')
   })
 
   it('keeps a group that is in use, so it can be undone', () => {
