@@ -105,29 +105,18 @@ const eventKind = (schedule?: EventSchedule | null): EventKind =>
 
 /**
  * Whether an in-person listing's stored point stands for its town rather than a door, so the map
- * draws an area and nothing offers directions to it: a listing `resolveEventDisplay` calls
- * inactive, or one whose street names no place (`hasVagueAddress`).
+ * draws an area and nothing offers directions to it: an inactive listing, or one whose street names
+ * no place (`hasVagueAddress`).
  *
- * ⚠ "Inactive" has to mean here what it means there, or the map and the panel disagree about the
- * same listing — the disagreement this predicate exists to remove. So it covers a dateless class
- * too, not only the flag and a missing schedule: `resolveEventDisplay` reports every class with no
- * occurrence left as inactive, and the panel already hides its street on that verdict.
- *
- * This reads no clock, which leaves one narrow residue: a schedule whose `upcomingDates` is empty
- * while its first session has not finished reads dateless here, where `resolveEventDisplay` falls
- * back to that session. That is upstream drift, and an area is the safe answer to it.
+ * ⚠ "Inactive" is the SahajCloud flag alone, here as in `resolveEventDisplay`, never a reading of
+ * the schedule (Devindra, 12 Nov) — or the map and the panel disagree about the same listing.
  */
 export const hasApproximatePlace = (
-  event: EventLike & {
+  event: Pick<EventLike, 'eventType'> & {
     inactive?: boolean | null
     address?: VagueAddress | null
   },
-): boolean =>
-  !isOnline(event) &&
-  (Boolean(event.inactive) ||
-    !event.schedule ||
-    (eventKind(event.schedule) === 'class' && !nextOccurrence(event)) ||
-    hasVagueAddress(event.address))
+): boolean => !isOnline(event) && (Boolean(event.inactive) || hasVagueAddress(event.address))
 
 /**
  * The street and the town as one line, naming the town once. Hosts often type the town, or its
@@ -305,8 +294,8 @@ export type EventStatus =
   | 'upcoming' // first occurrence still in the future
   | 'running' // recurring class, series underway (no chip)
   | 'started' // course past its first session, run not finished
-  | 'ended' // one-off/course fully over (reachable via direct links only)
-  | 'inactive' // CMS `inactive` flag, or dateless
+  | 'ended' // nothing left to attend: no schedule, or no session ahead (direct links only)
+  | 'inactive' // the SahajCloud `inactive` flag, and nothing else
 
 export type RegistrationState = 'open' | 'closed' | 'hidden'
 
@@ -419,7 +408,12 @@ export function resolveEventDisplay(
   // precedence.
   const base = { online, kind, full: false }
 
-  if (event.inactive || !schedule) return terminalDisplay(base, 'inactive', hasContact, hasWebsite)
+  // Only the flag says a listing is by request (Devindra, 12 Nov). Without it, a listing with
+  // nothing to attend — no schedule, or no session ahead (below) — has ended, whatever its kind.
+  // shortcut: an unflagged weekly class with no next session reads "ended"; give it its own state
+  // if Anton or Devindra want one.
+  if (event.inactive) return terminalDisplay(base, 'inactive', hasContact, hasWebsite)
+  if (!schedule) return terminalDisplay(base, 'ended', hasContact, hasWebsite)
 
   const endTime = schedule.endTime
   const firstStart = scheduleStart(schedule)
@@ -442,11 +436,7 @@ export function resolveEventDisplay(
   // time passes, then the next occurrence takes over.
   const next = candidates.find((start) => occurrenceEnd(start, endTime) > now) ?? null
 
-  if (!next) {
-    // A class never "ends". No dates means dateless, so contact the host.
-    // One-offs and courses are genuinely over.
-    return terminalDisplay(base, kind === 'class' ? 'inactive' : 'ended', hasContact, hasWebsite)
-  }
+  if (!next) return terminalDisplay(base, 'ended', hasContact, hasWebsite)
 
   const nextDisplay = next.setZone(displayZone)
   const live = now >= next && now <= occurrenceEnd(next, endTime)

@@ -221,7 +221,9 @@ describe('resolveEventDisplay: status table', () => {
     expect(display.showNearby).toBe(true)
   })
 
-  it('a class with no dates is dateless (contact the host), never "ended"', () => {
+  // Only the `inactive` flag makes a listing by request (Devindra, 12 Nov). An unflagged class
+  // with nothing ahead says it has ended, and never "Contact host for timings".
+  it('a class with no session ahead and no flag has ended, never inactive', () => {
     const dateless = {
       eventType: 'offline' as const,
       contactPhone: '+420 123',
@@ -233,8 +235,23 @@ describe('resolveEventDisplay: status table', () => {
     }
     const display = resolveEventDisplay(dateless, at('2026-07-17T12:00:00'))
 
-    expect(display.status).toBe('inactive')
+    expect(display.kind).toBe('class')
+    expect(display.status).toBe('ended')
     expect(display.registration).toBe('hidden')
+    expect(display.actions).toEqual([])
+    expect(display.showNearby).toBe(true)
+  })
+
+  it('the flag makes a listing inactive whatever its schedule says', () => {
+    const flagged = (schedule: typeof weeklySchedule | null) =>
+      resolveEventDisplay(
+        { eventType: 'offline', inactive: true, schedule },
+        at('2026-07-15T10:00:00'),
+      ).status
+
+    expect(flagged(weeklySchedule)).toBe('inactive')
+    expect(flagged({ ...weeklySchedule, upcomingDates: [] })).toBe('inactive')
+    expect(flagged(null)).toBe('inactive')
   })
 
   it('Inactive — CMS flag: no register, no directions, no nearby link', () => {
@@ -399,8 +416,8 @@ describe('resolveEventDisplay: timezones and weekdays', () => {
 })
 
 describe('resolveEventDisplay: edge cases', () => {
-  it('no schedule at all resolves inactive', () => {
-    expect(resolveEventDisplay(noSchedule, at('2026-07-15T10:00:00')).status).toBe('inactive')
+  it('no schedule at all, and no flag, has ended', () => {
+    expect(resolveEventDisplay(noSchedule, at('2026-07-15T10:00:00')).status).toBe('ended')
   })
 
   it('an empty upcoming list falls back to a future firstDate', () => {
@@ -584,7 +601,17 @@ describe('hasApproximatePlace', () => {
         address: street,
       }),
     ).toBe(true)
-    expect(hasApproximatePlace({ eventType: 'offline', address: street })).toBe(true)
+  })
+
+  it('reads the flag, never the schedule, at a real street', () => {
+    expect(hasApproximatePlace({ eventType: 'offline', address: street })).toBe(false)
+    expect(
+      hasApproximatePlace({
+        eventType: 'offline',
+        schedule: { ...weeklySchedule, upcomingDates: [] },
+        address: street,
+      }),
+    ).toBe(false)
   })
 
   it('is true for an active class whose street names no place', () => {
@@ -597,21 +624,7 @@ describe('hasApproximatePlace', () => {
     ).toBe(true)
   })
 
-  // `resolveEventDisplay` reports a class with no occurrence left as inactive, and the panel
-  // hides its street on that. The map pinned it, which is the disagreement this removes.
-  it('is true for a class whose occurrences have all passed', () => {
-    const dateless = { ...weeklySchedule, upcomingDates: [] }
-
-    expect(hasApproximatePlace({ eventType: 'offline', schedule: dateless, address: street })).toBe(
-      true,
-    )
-    expect(
-      resolveEventDisplay({ eventType: 'offline', schedule: dateless }, at('2026-08-01T10:00:00'))
-        .status,
-    ).toBe('inactive')
-  })
-
-  // A course that is over is `ended`, not inactive — its venue was real and its street still shows.
+  // An ended listing's venue was real, so its street still shows.
   it('is false for a course that has ended', () => {
     const over = { ...weeklySchedule, endingType: 'count' as const, count: 4, upcomingDates: [] }
 

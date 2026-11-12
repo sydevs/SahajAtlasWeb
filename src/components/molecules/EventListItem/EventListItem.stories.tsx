@@ -68,8 +68,8 @@ export const Default: Story = () => (
     </StorySection>
 
     <StorySection
-      description="A dateless event carries its contact-the-host line instead of a time."
-      title="Dateless"
+      description="Only the inactive flag makes a listing by request. One with no schedule and no flag has nothing to attend, so it reads as ended."
+      title="No schedule"
     >
       <div className="max-w-md">
         <List>
