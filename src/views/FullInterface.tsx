@@ -3,7 +3,7 @@ import * as Fathom from 'fathom-client'
 import { useLocation, useNavigate } from 'react-router'
 import { MapProvider } from 'react-map-gl'
 
-import { ShowMapContext, WidgetModeContext, useWidgetMode } from '@/config/mode'
+import { MapAskedContext, ShowMapContext, WidgetModeContext, useWidgetMode } from '@/config/mode'
 import { useCameraSettled } from '@/config/store'
 import { Mapbox } from '@/components/organisms/Mapbox'
 import { NoopMapControllerProvider } from '@/hooks/use-map-controller'
@@ -229,7 +229,9 @@ function FullInterface({
           <MapCurtain />
         </div>
         <RealMapControllerProvider>
-          <DrawerStack />
+          <MapAskedContext.Provider value={mapShown}>
+            <DrawerStack />
+          </MapAskedContext.Provider>
         </RealMapControllerProvider>
       </MapFrame>
     </MapProvider>

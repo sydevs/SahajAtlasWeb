@@ -34,7 +34,7 @@ import {
   useIsShortViewport,
   useIsWide,
 } from '@/config/responsive'
-import { useWidgetMode } from '@/config/mode'
+import { useMapAsked, useWidgetMode } from '@/config/mode'
 import { useBrowsedCountry, useClassSheet, useMapTap } from '@/config/store'
 import { frameElement, overlayContainer } from '@/lib/overlay'
 import { scheduleIdle } from '@/lib/schedule-idle'
@@ -371,8 +371,10 @@ export function DrawerStack() {
   const frameHeight = hasMap ? (frameElement()?.offsetHeight ?? 0) : 0
   const direction: Direction = isWide ? 'left' : 'bottom'
   // `null` until the view's opening effect below sets it. Until then the sheet takes the stop the
-  // view opens at (`logicalSnap`), so its very first frame is already where it rests.
-  const [snap, setSnap] = useState<number | string | null>(null)
+  // view opens at (`logicalSnap`), so its very first frame is already where it rests. A map the
+  // visitor asked for (`view=list`'s Map button) starts at the open stop instead, below the map.
+  const mapAsked = useMapAsked()
+  const [snap, setSnap] = useState<number | string | null>(mapAsked ? OPEN_SNAP : null)
   const filterChipsFit = useFitsWidth(container ?? frameElement(), FILTER_CHIPS_MIN_PX)
   // A fixed origin on the sheet's layer, which the live-top loop measures against (see there).
   const sheetOriginRef = useRef<HTMLDivElement>(null)
@@ -833,7 +835,12 @@ export function DrawerStack() {
   }, [mapOpens])
 
   const lastKind = useRef(top?.kind)
-  const snappedFor = useRef<string | null>(null)
+  // A map the visitor asked for has already taken its opening (`mapAsked` above).
+  const snappedFor = useRef<string | null>(
+    mapAsked
+      ? sheetOpens(null, { direction, framed, kind: top?.kind, path: top?.path }, false)
+      : null,
+  )
 
   useEffect(() => {
     const asked = openPending.current

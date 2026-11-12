@@ -59,3 +59,12 @@ export const useWidgetMode = () => useContext(WidgetModeContext)
 export const ShowMapContext = createContext<(() => void) | null>(null)
 
 export const useShowMap = () => useContext(ShowMapContext)
+
+/**
+ * `view=list`: true under the map the visitor opened with the Map button. Its phone sheet then
+ * starts low, at its open stop, so the map they asked for shows above the list instead of a
+ * sliver of it over a full sheet.
+ */
+export const MapAskedContext = createContext(false)
+
+export const useMapAsked = () => useContext(MapAskedContext)
