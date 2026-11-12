@@ -20,6 +20,8 @@ export type CalendarSourceEvent = {
   path: string
   eventType: EventType
   schedule?: EventSchedule | null
+  /** SahajCloud's flag for a by-request listing, which keeps no times a calendar can show. */
+  inactive?: boolean | null
   /** The event's parent region name — where it is when it has no address. */
   regionName?: string | null
   /** The event's locality (address city) — where it is, shown under the class name. */
@@ -110,7 +112,8 @@ const SX_FORMAT = 'yyyy-MM-dd HH:mm'
  * matching event. Each occurrence is read in the event's display zone (`eventTimeZone`:
  * the event's own zone for physical events, the viewer's for online, UTC when
  * `firstDate_tz` is null), and emitted as a wall-clock entry. The end is that day's
- * `endTime`, or +1h otherwise. An event with no occurrences contributes nothing.
+ * `endTime`, or +1h otherwise. An event with no occurrences contributes nothing, and neither
+ * does an inactive one.
  */
 export const eventsToCalendarEntries = (
   events: CalendarSourceEvent[],
@@ -125,7 +128,9 @@ export const eventsToCalendarEntries = (
   for (const event of events) {
     const occurrences = event.schedule?.upcomingDates
 
-    if (!occurrences?.length) continue
+    // An inactive listing's page says to ask the host when it meets, so the calendar must not
+    // place it at the times its stored schedule still holds (Devindra, 12 Nov).
+    if (event.inactive || !occurrences?.length) continue
 
     // Times display in the event's OWN zone for in-person classes and the VIEWER's zone for
     // online ones (`eventTimeZone`, shared with the list/detail views). `endTime` is an

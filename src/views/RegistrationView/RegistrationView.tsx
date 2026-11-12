@@ -6,7 +6,7 @@ import { DrawerBody } from '@/components/atoms/Drawer'
 import { EventSummary, FallbackPanel } from '@/components/molecules'
 import { EventRegisterBar } from '@/components/organisms/EventDetails/EventRegister'
 import { RegistrationForm } from '@/components/organisms/RegistrationForm'
-import { useEventDisplay } from '@/hooks/use-event-display'
+import { useEventDisplay, useListingTitle } from '@/hooks/use-event-display'
 import { useShareUrl } from '@/hooks/use-share-url'
 import { REGISTERED_PREVIEW } from '@/config/review-options'
 import { enabledQuestions, eventTimeZone, isOnline, isUnverified } from '@/lib/shape'
@@ -42,6 +42,8 @@ export function RegistrationView({
   // `undefined` where there is no honest link (issue #115). Both then degrade, rather than
   // carry the host page's address.
   const eventUrl = useShareUrl(event.webUrl, event.path)
+  // The name the calendar entry, its file and the invite carry, the same one the summary shows.
+  const title = useListingTitle(event)
 
   useFrameEventOnTop(event)
 
@@ -80,7 +82,7 @@ export function RegistrationView({
   const calendarExport = event.schedule
     ? {
         id: event.id,
-        title: event.title,
+        title,
         // The FILTERED dates, so the export cannot anchor on a session that has already
         // finished — the same guard the date picker above needed, and the one thing
         // `lib/ics.ts` cannot re-derive on its own.
@@ -127,7 +129,7 @@ export function RegistrationView({
           <RegistrationForm
             calendar={calendarExport}
             eventId={event.id}
-            eventTitle={event.title}
+            eventTitle={title}
             eventUrl={eventUrl}
             hasMailingList={event.offersMailingList === true}
             initialSubmitted={initialSubmitted}

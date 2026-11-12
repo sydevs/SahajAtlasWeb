@@ -118,6 +118,16 @@ describe('eventsToCalendarEntries', () => {
     ).toEqual([])
   })
 
+  // Its page says to ask the host when it meets; the dates its schedule still holds are not a plan.
+  it('contributes nothing for an inactive listing, whatever dates it still holds', () => {
+    const stored = makeEvent({ occurrences: [at('Asia/Kolkata', '2026-07-06T09:30')] })
+
+    expect(eventsToCalendarEntries([stored], DEFAULT_FILTERS, RANGE)).toHaveLength(1)
+    expect(
+      eventsToCalendarEntries([{ ...stored, inactive: true }], DEFAULT_FILTERS, RANGE),
+    ).toEqual([])
+  })
+
   it('names the class first and its city second', () => {
     const evt = makeEvent({
       title: 'Weekly Sahaja Yoga meditation for beginners',

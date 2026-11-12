@@ -44,6 +44,7 @@ vi.mock('@/hooks/use-event-display', () => ({
     blockedMessage: displayMock.registration === 'open' ? null : 'registration closed',
     whereLine: 'London',
   }),
+  useListingTitle: (event: { title: string }) => event.title,
 }))
 
 const { eventMock } = vi.hoisted(() => ({ eventMock: { current: null as unknown } }))

@@ -32,6 +32,7 @@ import { Button } from '@/components/atoms/Button'
 import { DrawerBody, DrawerFooter, DrawerHeader } from '@/components/atoms/Drawer'
 import proposalApi from '@/config/api/proposal'
 import { refusalCopyKey } from '@/config/api/mutate'
+import { listingTitle } from '@/hooks/use-event-display'
 import { useLocale } from '@/hooks/use-locale'
 import { useTurnstile } from '@/hooks/use-turnstile'
 import {
@@ -193,7 +194,7 @@ export function ProposalForm(props: ProposalFormProps) {
             </h2>
             {correction?.event && !sent && (
               <p className="line-clamp-2 text-sm leading-snug text-gray-11">
-                {correction.event.title}
+                {listingTitle(correction.event, t)}
               </p>
             )}
           </div>

@@ -7,6 +7,7 @@ import { EventSummary, FallbackPanel } from '@/components/molecules'
 // though this view itself is lazy (issue #96). EventDetails reaches EventActions the same way,
 // for the same reason.
 import { ShareContent } from '@/components/molecules/ShareContent'
+import { useListingTitle } from '@/hooks/use-event-display'
 import { useShareUrl } from '@/hooks/use-share-url'
 import { useViewerCountry } from '@/hooks/use-viewer-country'
 import { NavHeader } from '@/views/nav'
@@ -28,6 +29,8 @@ export function ShareView({ eventPath }: { eventPath: string }) {
   // address, if the route is part of it. It resolves to nothing on a host page where the
   // widget routes off the URL (issue #115).
   const url = useShareUrl(event.webUrl, event.path)
+  // What the share sheet, the networks and the QR poster name it: an inactive listing by its town.
+  const title = useListingTitle(event)
 
   useFrameEventOnTop(event)
 
@@ -38,7 +41,7 @@ export function ShareView({ eventPath }: { eventPath: string }) {
         <div className="mx-auto flex w-full max-w-md flex-col gap-4">
           <EventSummary boxed event={event} />
           {url ? (
-            <ShareContent qr country={country} label={event.title} url={url} onQrOpen={expand} />
+            <ShareContent qr country={country} label={title} url={url} onQrOpen={expand} />
           ) : (
             /* No canonical page, and no route in the URL. The copy field, the native sheet,
                and every react-share target all need a URL. The only string within reach is
