@@ -82,13 +82,18 @@ describe('AddToCalendar', () => {
   })
 
   /**
-   * A subscribe row with no address to subscribe to cannot work, and an inert menu
-   * entry reads as a broken one. The download row is built in the component, so
-   * what this list must do is come back empty.
+   * A subscribe row with no address to subscribe to cannot work, and an inert menu entry
+   * reads as a broken one. The three single-session rows compose their own URL from the
+   * schedule, so they must survive — dropping them would retire working rows for nothing.
    */
-  it('offers no subscribe row for a class with no feed address', () => {
-    expect(calendarLinkTargets({ ...event, calendarFeedUrl: null })).toEqual([])
-    expect(calendarLinkTargets({ ...event, calendarFeedUrl: undefined })).toEqual([])
+  it('drops only the two subscribing rows for a class with no feed address', () => {
+    for (const address of [null, undefined]) {
+      expect(labels({ ...event, calendarFeedUrl: address })).toEqual([
+        'Outlook.com',
+        'Office 365',
+        'Yahoo',
+      ])
+    }
   })
 
   it('sends the recurrence-less providers the NEXT session, not the 2019 start', () => {

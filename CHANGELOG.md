@@ -57,16 +57,17 @@ cover everything a host would notice since the widget was first deployed.
   opposite order leaves the page with no widget at all. No parameter, origin or CSP change. See
   [If your page replaces the element].
 
-- **"Add to calendar" subscribes, so a class keeps itself up to date.** ([#393]) Apple Calendar,
-  Google Calendar, Outlook.com and Office 365 now open a subscribe prompt for the class rather
-  than copying one event into the visitor's calendar, so a session the host cancels disappears
-  from it within a day, without the visitor doing anything. Yahoo still adds the next session
-  only, and **"Download .ics file" is now its own row, last** — it was the Apple row's label.
-  ⚠ **In a sandboxed iframe, `allow-downloads` now matters for that last row alone**, and the
-  four subscribe rows need `allow-popups` like the rest of the menu — plus a sandbox may refuse
-  their `webcal:` address even with it, since the operating system opens it rather than the
-  browser. See [Embedding in an iframe]. **No CSP or Permissions-Policy change**: every row is a
-  navigation, not a fetch. A script embed and an unsandboxed frame need nothing.
+- **"Add to calendar" subscribes, so a class keeps itself up to date.** ([#393]) Apple Calendar
+  and Google Calendar now open a subscribe prompt for the class rather than copying one event
+  into the visitor's calendar, so a session the host cancels disappears from their calendar
+  within a day, without them doing anything. Outlook.com, Office 365 and Yahoo still add the
+  next session only — Microsoft publishes no subscribe address we can use — and **"Download .ics
+  file" is now its own row, last**, where it was the Apple row's label. ⚠ **In a sandboxed
+  iframe, `allow-downloads` now matters for that last row alone**, and every other row needs
+  `allow-popups` as before — plus a sandbox may refuse the `webcal:` address of the two
+  subscribe rows even with it, since the operating system opens it rather than the browser. See
+  [Embedding in an iframe]. **No CSP or Permissions-Policy change**: every row is a navigation,
+  not a fetch. A script embed and an unsandboxed frame need nothing.
 
 - **The captcha on the registration and report forms is hidden unless it needs a click.**
   ([SahajCloud#1090]) Most visitors now see no security check at all; the 300×65 box opens only

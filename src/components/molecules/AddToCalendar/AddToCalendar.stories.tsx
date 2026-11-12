@@ -39,8 +39,8 @@ const oneOff: EventSchedule = {
  * ⚠ **The feed addresses here are fictional, so no subscribe row can work in
  * Ladle.** They are minted by SahajCloud and carry a signed token. What this
  * story shows is the menu: its order, which rows are anchors, and the one case
- * the unit lane cannot — a class with no address, which offers the download
- * alone. Choose that last row to download and open the file in a real calendar
+ * the unit lane cannot — a class with no address, which drops Apple and Google
+ * and keeps the rest. Choose that last row to download and open the file in a real calendar
  * app, which is still the only way to watch the recurrence, the timezone and
  * the cancelled week land correctly.
  */
@@ -100,7 +100,7 @@ export const Default: Story = () => (
     </StorySection>
 
     <StorySection
-      description="No feed address — an unpublished class, or one whose event read came back without the field. Every subscribe row would be inert, so the menu offers the download alone."
+      description="No feed address — an unpublished class, a finished one, or an event read that came back without the field. Apple and Google drop out, since a subscribe row with nothing to subscribe to is inert. The three single-session rows compose their own URL and stay, as does the download."
       title="No feed address"
     >
       <div className="max-w-md rounded-lg border border-divider p-4">

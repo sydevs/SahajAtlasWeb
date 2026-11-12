@@ -18,13 +18,14 @@ import { DEFAULT_DURATION, scheduleStart, scheduleTimeZone, withEndTime } from '
  *
  * ## Which rows each builder serves
  *
- * Apple, Google and both Outlooks **subscribe** to SahajCloud's own per-class
- * feed, so they read nothing this file emits: `buildAppleCalendarUrl` and
- * `buildGoogleCalendarUrl` are scheme-swaps and percent-encodings over the
- * address the event document carries. What is still built here is the `.ics`
- * download (`buildEventIcs`, the last menu row and the escape hatch for every
- * other client) and the two single-session link-outs that have no subscribe
- * route — Yahoo, and Outlook until a signed-in click settles one.
+ * Apple and Google **subscribe** to SahajCloud's own per-class feed, so they read
+ * nothing this file emits: `buildAppleCalendarUrl` and `buildGoogleCalendarUrl`
+ * are a scheme swap and a percent-encoding over the address the event document
+ * carries. Everything else is still built here — the `.ics` download
+ * (`buildEventIcs`, the last menu row and the escape hatch for every other
+ * client), and the three single-session link-outs with no subscribe route this
+ * repo can use: Yahoo, which has none, and both Outlooks until a signed-in click
+ * settles one of the two candidate shapes.
  *
  * ## Why this is hand-rolled, instead of a dependency (issue #105)
  *

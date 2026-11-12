@@ -85,8 +85,8 @@ Everything either snippet needs is in it. Specifically:
   unlabelled frame. Write it for your visitors, in your language.
 - **Do not sandbox the iframe.** If your platform insists, add `allow-popups` and
   `allow-downloads` — see [Embedding in an iframe](#embedding-in-an-iframe). ⚠ Even with
-  `allow-popups`, a sandbox may refuse the `webcal:` protocol handler the calendar menu's
-  subscribe rows open.
+  `allow-popups`, a sandbox may refuse the `webcal:` protocol handler the calendar menu's Apple
+  Calendar and Google Calendar rows open.
 
 Three rules for the script tag specifically:
 
@@ -604,9 +604,9 @@ Five things about that snippet are load-bearing:
 - **Do not sandbox the frame.** If you must, include **`allow-popups`** — without it the compact
   card's button cannot open anything, and neither can any row of "Add to calendar", and the
   browser blocks each one silently with nothing in your console to say why. ⚠ **`allow-popups` is
-  necessary but may not be sufficient for the subscribe rows**: Apple, Google and both Outlooks
-  open an address the operating system handles rather than a page, and a sandbox is entitled to
-  refuse a protocol handler even with that flag. Include **`allow-downloads`** too, for the
+  necessary but may not be sufficient for the Apple Calendar and Google Calendar rows**: those
+  two open an address the operating system handles rather than a page, and a sandbox is entitled
+  to refuse a protocol handler even with that flag. Include **`allow-downloads`** too, for the
   **last** row alone: it builds an `.ics` file in the browser and hands it over as a download,
   which a sandbox without that flag refuses — the row does nothing a visitor can see. Add
   **`allow-same-origin`** as well if you want the widget to keep its own settings between visits,
@@ -1363,7 +1363,7 @@ Three things to check when you migrate:
 | **The widget shows "its security check was blocked" and nothing else**       | Read the browser console, which names both fixes. If the browser also logged a refused frame, your CSP is missing `frame-src https://cloud.sydevelopers.com`; otherwise your page's domain is not on your client record — ask us to add it. Since the atlas cannot take a registration without the captcha, this fails outright rather than degrading the form.                                                                                                                                               |
 | **The widget's route never appears in the address bar**                      | The document refuses `history.replaceState` — most often `file://`. The widget detects that and routes in memory.                                                                                                                                                                                                                                                                                                                                                                                             |
 | **A button or a calendar row does nothing, in an iframe**                    | The frame is sandboxed without `allow-popups`, so a `target="_blank"` link cannot open. Two places need one: the compact card's button, and every row of "Add to calendar" except the last. It fails silently, with nothing in the console. Add `allow-popups`, or drop `sandbox`.                                                                                                                                                                                                                            |
-| **A subscribe row still does nothing, with `allow-popups` set**              | Apple Calendar, Google Calendar, Outlook.com and Office 365 open a `webcal:` address the operating system handles, not a page, and a sandbox may refuse a protocol handler whatever flags it carries. There is nothing to add: drop `sandbox`, or tell your visitors to use the last row and open the file themselves.                                                                                                                                                                                       |
+| **Apple Calendar or Google Calendar does nothing, with `allow-popups` set**  | Those two rows open a `webcal:` address the operating system handles, not a page, and a sandbox may refuse a protocol handler whatever flags it carries. There is nothing to add: drop `sandbox`, or tell your visitors to use the last row and open the file themselves. Outlook.com, Office 365 and Yahoo are ordinary links and need only `allow-popups`. |
 | **Add to calendar → Download .ics file does nothing, in an iframe**          | The frame is sandboxed without `allow-downloads`. That row — the **last** one — builds the `.ics` file in the browser and hands it over as a download, which a sandbox refuses, silently like the popup above. The five rows above it are unaffected. Add `allow-downloads`, or drop `sandbox`.                                                                                                                                                                                                              |
 | **`atlas=` on the script URL seems to be ignored**                           | The page's own URL already carries an `?atlas=` route, which always wins. That is intended — see [`atlas`, and how the route is chosen](#atlas-and-how-the-route-is-chosen).                                                                                                                                                                                                                                                                                                                                  |
 | **Sharing offers no link**                                                   | The same memory-routing mode, on a page with no canonical atlas URL to offer instead.                                                                                                                                                                                                                                                                                                                                                                                                                         |

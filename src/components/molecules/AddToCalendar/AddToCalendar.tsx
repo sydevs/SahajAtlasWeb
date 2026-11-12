@@ -32,7 +32,9 @@ export type CalendarLinkTarget = { label: string; href: string }
  * anybody has verified, and their URL APIs carry no recurrence, so they get the one session
  * the viewer registered for.
  *
- * Returns nothing for a class with no feed address — see the component.
+ * ⚠ **Only the first two rows depend on the feed address.** With none, those two are
+ * dropped and the three single-session link-outs stay — they compose their own URL from the
+ * schedule and work regardless, so dropping them would retire working rows for nothing.
  *
  * shortcut: no row carries the sub-label its service earns, because both strings are new CMS
  * copy and this repo may not write one. Add it — `event.actions.calendar_keeps_updated` under
@@ -43,11 +45,9 @@ export function calendarLinkTargets(event: IcsEventInput): CalendarLinkTarget[] 
   const apple = buildAppleCalendarUrl(event)
   const google = buildGoogleCalendarUrl(event)
 
-  if (!apple || !google) return []
-
   return [
-    { label: 'Apple Calendar', href: apple },
-    { label: 'Google Calendar', href: google },
+    ...(apple ? [{ label: 'Apple Calendar', href: apple }] : []),
+    ...(google ? [{ label: 'Google Calendar', href: google }] : []),
     { label: 'Outlook.com', href: buildOutlookCalendarUrl(event, 'live') },
     { label: 'Office 365', href: buildOutlookCalendarUrl(event, 'office') },
     { label: 'Yahoo', href: buildYahooCalendarUrl(event) },
@@ -83,8 +83,9 @@ const item = row()
  * now (#368) — but the escape hatch for every other client (Thunderbird, Proton, desktop
  * Outlook), so its row says plainly that it downloads a file.
  *
- * **A class with no feed address renders that row alone.** A subscribe row whose address is
- * missing cannot work, and an inert menu entry is worse than an absent one.
+ * **A class with no feed address loses the two subscribing rows, and keeps the rest.** A
+ * subscribe row whose address is missing cannot work, and an inert menu entry is worse than an
+ * absent one — but the three single-session link-outs need no address and still work.
  *
  * Built on Radix DropdownMenu (as SortMenu is) for real menu semantics: roving focus,
  * typeahead, and Escape.

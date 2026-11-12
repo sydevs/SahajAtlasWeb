@@ -86,8 +86,10 @@ describe('isSafeHref — allows', () => {
   it.each([
     // `directionsUrl` (`lib/events.ts`) — the ActionCircle directions action.
     'https://www.google.com/maps/search/?api=1&query=51.5,-0.12',
-    // `buildGoogleCalendarUrl` (`lib/ics.ts`) — a Button link-out.
-    'https://calendar.google.com/calendar/render?action=TEMPLATE',
+    // `buildGoogleCalendarUrl` (`lib/ics.ts`) — a calendar-menu row.
+    'https://calendar.google.com/calendar/r?cid=webcal%3A%2F%2Fcloud.example%2Ff.ics',
+    // `buildAppleCalendarUrl` (`lib/ics.ts`) — the same row, one scheme up.
+    'webcal://cloud.example/api/events/calendar/eyJhb.eyJldg.s1gn.ics',
     // ReportIssueForm's contact Button.
     'mailto:atlas@sydevelopers.com',
     // EventActions' contact circle, and the Fallbacks contact Link.
