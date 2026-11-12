@@ -7,8 +7,8 @@ import { Link } from '@/components/atoms/Link'
 import { menuChrome } from '@/components/atoms/Menu'
 import {
   type IcsEventInput,
-  buildAppleCalendarUrl,
   buildEventIcs,
+  buildFeedSubscribeUrl,
   buildGoogleCalendarUrl,
   buildOutlookCalendarUrl,
   buildYahooCalendarUrl,
@@ -42,11 +42,11 @@ export type CalendarLinkTarget = { label: string; href: string }
  * sydevs/SahajCloud#1131 is deployed and `pnpm sync:translations --write` has run.
  */
 export function calendarLinkTargets(event: IcsEventInput): CalendarLinkTarget[] {
-  const apple = buildAppleCalendarUrl(event)
+  const feed = buildFeedSubscribeUrl(event)
   const google = buildGoogleCalendarUrl(event)
 
   return [
-    ...(apple ? [{ label: 'Apple Calendar', href: apple }] : []),
+    ...(feed ? [{ label: 'Apple Calendar', href: feed }] : []),
     ...(google ? [{ label: 'Google Calendar', href: google }] : []),
     { label: 'Outlook.com', href: buildOutlookCalendarUrl(event, 'live') },
     { label: 'Office 365', href: buildOutlookCalendarUrl(event, 'office') },

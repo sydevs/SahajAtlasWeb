@@ -19,7 +19,7 @@ import { DEFAULT_DURATION, scheduleStart, scheduleTimeZone, withEndTime } from '
  * ## Which rows each builder serves
  *
  * Apple and Google **subscribe** to SahajCloud's own per-class feed, so they read
- * nothing this file emits: `buildAppleCalendarUrl` and `buildGoogleCalendarUrl`
+ * nothing this file emits: `buildFeedSubscribeUrl` and `buildGoogleCalendarUrl`
  * are a scheme swap and a percent-encoding over the address the event document
  * carries. Everything else is still built here — the `.ics` download
  * (`buildEventIcs`, the last menu row and the escape hatch for every other
@@ -396,7 +396,13 @@ const details = (input: IcsEventInput): string =>
 
 /**
  * The `webcal://` form of the class's feed address — the one URL that makes a
- * calendar app offer to SUBSCRIBE rather than download.
+ * calendar app offer to SUBSCRIBE rather than download. Both subscribing rows
+ * carry this one string: the Apple row opens it, and Google percent-encodes it
+ * onto `cid`.
+ *
+ * Opening it hands macOS and iOS to Calendar.app, which asks whether to
+ * subscribe. There is no add-by-URL endpoint to go through, and no file to find
+ * in Downloads — which was the whole complaint behind #368.
  *
  * `undefined` for a class with no address, and for an address that is not
  * `http(s)`: the scheme swap is a rewrite, so anything else would be guesswork
@@ -409,15 +415,6 @@ export function buildFeedSubscribeUrl(input: IcsEventInput): string | undefined 
 
   return address && scheme ? `webcal:${address.slice(scheme[0].length)}` : undefined
 }
-
-/**
- * Apple Calendar: the `webcal://` address itself.
- *
- * Opening one hands macOS and iOS to Calendar.app, which asks whether to
- * subscribe. There is no add-by-URL endpoint to go through, and no file to find
- * in Downloads — which was the whole complaint behind #368.
- */
-export const buildAppleCalendarUrl = buildFeedSubscribeUrl
 
 /**
  * Google Calendar: the `webcal://` address percent-encoded onto `cid`.

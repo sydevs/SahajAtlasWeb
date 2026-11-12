@@ -88,7 +88,7 @@ describe('isSafeHref — allows', () => {
     'https://www.google.com/maps/search/?api=1&query=51.5,-0.12',
     // `buildGoogleCalendarUrl` (`lib/ics.ts`) — a calendar-menu row.
     'https://calendar.google.com/calendar/r?cid=webcal%3A%2F%2Fcloud.example%2Ff.ics',
-    // `buildAppleCalendarUrl` (`lib/ics.ts`) — the same row, one scheme up.
+    // `buildFeedSubscribeUrl` (`lib/ics.ts`) — the Apple row, and the string inside `cid`.
     'webcal://cloud.example/api/events/calendar/eyJhb.eyJldg.s1gn.ics',
     // ReportIssueForm's contact Button.
     'mailto:atlas@sydevelopers.com',

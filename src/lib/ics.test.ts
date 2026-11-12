@@ -3,7 +3,6 @@ import type { EventSchedule } from '@/types'
 import { describe, it, expect } from 'vitest'
 
 import {
-  buildAppleCalendarUrl,
   buildEventIcs,
   buildFeedSubscribeUrl,
   buildGoogleCalendarUrl,
@@ -334,10 +333,6 @@ describe('buildFeedSubscribeUrl', () => {
     expect(buildFeedSubscribeUrl(subscribable)).toBe(
       'webcal://cloud.sydevelopers.com/api/events/calendar/eyJhb.eyJldg.s1gn.ics',
     )
-  })
-
-  it('is Apple Calendar: the same address, and nothing else', () => {
-    expect(buildAppleCalendarUrl(subscribable)).toBe(buildFeedSubscribeUrl(subscribable))
   })
 
   it('is undefined with no address — nothing may be composed from the event id', () => {
