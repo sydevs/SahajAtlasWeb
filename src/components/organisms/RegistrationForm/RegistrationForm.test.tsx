@@ -97,11 +97,47 @@ describe('RegistrationForm', () => {
     }
   })
 
+  // A list of dates pushed name, email and Register down the sheet; a dropdown takes one row.
+  it('asks for the first class in a dropdown named by its label, not a radio list', () => {
+    const html = render(form)
+
+    expect(html).toMatch(/<label[^>]*for="startingAt"[^>]*>registration\.form\.first_class/)
+    expect(html).toMatch(/<button[^>]*role="combobox"[^>]*id="startingAt"/)
+    expect(html).not.toContain('role="radiogroup"')
+  })
+
+  // No browser bubble: the form checks the address itself and says so on the box.
+  it('leaves validation to its own field errors, not the browser', () => {
+    expect(render(form)).toMatch(/<form[^>]*noValidate/i)
+  })
+
+  it('offers the invite open on the confirmation, with Share and Copy link but no QR code', () => {
+    const html = render(
+      <RegistrationForm
+        initialSubmitted
+        eventId={42}
+        eventTitle="Evening meditation"
+        eventUrl="https://atlas.example/e/42"
+        isOnline={false}
+        questions={[]}
+        upcomingDates={[new Date('2026-10-01T18:00:00Z')]}
+      />,
+    )
+
+    expect(html).toMatch(/<h3[^>]*>registration\.form\.invite_friend<\/h3>/)
+    expect(html).not.toContain('aria-expanded="false"><span')
+    expect(html).toContain('share.native')
+    expect(html).toContain('share.copy_link')
+    expect(html).not.toContain('share.qr_title')
+  })
+
   // A phone offers the visitor's own name and email only when the field says which it is.
   it('names the name and email fields for autofill', () => {
     const html = render(form)
 
-    expect(html).toMatch(/autoComplete="name"[^>]*id="name"/i)
-    expect(html).toMatch(/autoComplete="email"[^>]*id="email"/i)
+    const input = (id: string) => new RegExp(`<input[^>]*id="${id}"[^>]*>`, 'i').exec(html)?.[0]
+
+    expect(input('name')).toMatch(/autoComplete="name"/i)
+    expect(input('email')).toMatch(/autoComplete="email"/i)
   })
 })

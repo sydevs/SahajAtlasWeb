@@ -1,4 +1,4 @@
-import { type ReactNode } from 'react'
+import { type ReactNode, forwardRef } from 'react'
 import * as RadixSelect from '@radix-ui/react-select'
 import { tv } from 'tailwind-variants'
 import { ChevronDown } from 'lucide-react'
@@ -58,6 +58,8 @@ export const panelChrome = tv({
 // and light-dark themed. For a type-to-filter picker, with search in the
 // field itself, use the Combobox atom instead.
 export type SelectProps = {
+  /** The trigger's id, for a `<label htmlFor>` (FormField) to name it. */
+  id?: string
   value?: string
   defaultValue?: string
   onValueChange?: (value: string) => void
@@ -76,21 +78,27 @@ export type SelectProps = {
   className?: string
 }
 
-export function Select({
-  value,
-  defaultValue,
-  onValueChange,
-  onBlur,
-  name,
-  disabled,
-  placeholder,
-  'aria-label': ariaLabel,
-  'aria-describedby': describedBy,
-  isInvalid,
-  highlight,
-  children,
-  className,
-}: SelectProps) {
+// The ref lands on the trigger, the one focusable part: react-hook-form can only move focus to
+// an invalid field it holds a ref for, and skips one without it silently.
+export const Select = forwardRef<HTMLButtonElement, SelectProps>(function Select(
+  {
+    id,
+    value,
+    defaultValue,
+    onValueChange,
+    onBlur,
+    name,
+    disabled,
+    placeholder,
+    'aria-label': ariaLabel,
+    'aria-describedby': describedBy,
+    isInvalid,
+    highlight,
+    children,
+    className,
+  },
+  ref,
+) {
   return (
     <RadixSelect.Root
       defaultValue={defaultValue}
@@ -100,10 +108,12 @@ export function Select({
       onValueChange={onValueChange}
     >
       <RadixSelect.Trigger
+        ref={ref}
         aria-describedby={describedBy}
         aria-invalid={isInvalid || undefined}
         aria-label={ariaLabel}
         className={fieldChrome({ isInvalid, highlight, trigger: true, className })}
+        id={id}
         onBlur={onBlur}
       >
         {/* The value ellipsises and the chevron holds its width. Without both, a long
@@ -137,7 +147,7 @@ export function Select({
       </RadixSelect.Portal>
     </RadixSelect.Root>
   )
-}
+})
 
 export type SelectItemProps = {
   value: string

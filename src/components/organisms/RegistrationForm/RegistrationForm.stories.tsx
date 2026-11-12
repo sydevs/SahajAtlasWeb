@@ -8,10 +8,16 @@ import { StoryWrapper, StorySection } from '../../ladle'
 import { RegistrationForm } from './RegistrationForm'
 
 import { RegistrationRefusedError } from '@/config/api/mutate'
+import { useRegistrationDraft } from '@/config/store'
 
 export default { title: 'Organisms' } satisfies StoryDefault
 
-const upcomingDates = [new Date('2026-08-01T18:00:00Z'), new Date('2026-08-08T18:00:00Z')]
+// Weekly, from a week out, so the date dropdown reads "Next week", "In 2 weeks", "In 3 weeks".
+const WEEK_MS = 7 * 24 * 60 * 60 * 1000
+const upcomingDates = [1, 2, 3, 4].map((weeks) => new Date(Date.now() + weeks * WEEK_MS))
+
+// The form restores a draft for its own event id once, at mount, and re-checks a restored address.
+const MISTYPED_EMAIL_EVENT = 9
 
 // This is a real weekly recurrence, so the Confirmation story's calendar
 // links carry an actual RRULE and TZID, rather than a degenerate one-off.
@@ -31,10 +37,16 @@ const weeklySchedule: EventSchedule = {
  * fields, the privacy note, and the thank-you and share screen on success.
  * EventDetails handles external registration (a link out), not this form.
  */
-export const Default: Story = () => (
+export const Default: Story = () => {
+  useRegistrationDraft.getState().setDraft(MISTYPED_EMAIL_EVENT, { email: 'anna@gmail' })
+
+  return <RegistrationFormStory />
+}
+
+const RegistrationFormStory = () => (
   <StoryWrapper>
     <StorySection
-      description="The native form as it renders in the drawer body: date, name and email fields above the privacy note, with the Turnstile challenge between them and the buttons. Register stays disabled until the challenge is solved."
+      description="The native form as it renders in the drawer body: the first-class date as a dropdown (the next date chosen, each option saying how far off it is), then name and email, above the privacy note, with the Turnstile challenge between them and Register. Register stays disabled until the challenge is solved."
       title="Native"
     >
       <div className="max-w-md rounded-lg border border-divider p-4">
@@ -112,6 +124,22 @@ export const Default: Story = () => (
     </StorySection>
 
     <StorySection
+      description="A mistyped address ('anna@gmail') is flagged on its own box as soon as the visitor leaves it: a red border, and 'Enter a valid email' under it, read out with the field. Never a browser bubble — the form sets `noValidate` and checks the address itself. An empty box waits for Register. Here the address comes back from a draft, which is re-checked the same way."
+      title="Mistyped email"
+    >
+      <div className="max-w-md rounded-lg border border-divider p-4">
+        <RegistrationForm
+          eventId={MISTYPED_EMAIL_EVENT}
+          eventTitle="Evening Meditation"
+          eventUrl="https://atlas.example/e/9"
+          isOnline={false}
+          questions={[]}
+          upcomingDates={upcomingDates}
+        />
+      </div>
+    </StorySection>
+
+    <StorySection
       description="SahajCloud refused the address (`disposable_email`, naming `senderEmail`). A refusal the visitor can fix lands on the field it names, in the same words the report-an-issue form uses (#259). Live, editing the field clears it; here nothing has been submitted, so react-hook-form does not re-validate on change and the error stays."
       title="Refused · on a field"
     >
@@ -146,7 +174,7 @@ export const Default: Story = () => (
     </StorySection>
 
     <StorySection
-      description="The post-submit confirmation. Under the success line: one Add to calendar button, opening its five targets (Apple downloads an .ics; the other four are link-outs), and a closed invite-a-friend row. The calendar block only renders when the view passes export inputs — RegistrationView builds them from the FULL event doc, since the trimmed feed omits exclusions and untilDate."
+      description="The post-submit confirmation (RegistrationView puts the class's summary above it). Under the success line: one Add to calendar button opening a menu of calendars, then 'Invite a friend along', open, with the same share block as the class's Share panel, minus the QR code. The calendar block only renders when the view passes export inputs — RegistrationView builds them from the FULL event doc, since the trimmed feed omits exclusions and untilDate."
       title="Confirmation"
     >
       <div className="max-w-md rounded-lg border border-divider p-4">

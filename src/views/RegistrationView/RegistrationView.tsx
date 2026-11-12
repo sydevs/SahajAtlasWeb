@@ -8,6 +8,7 @@ import { EventRegisterBar } from '@/components/organisms/EventDetails/EventRegis
 import { RegistrationForm } from '@/components/organisms/RegistrationForm'
 import { useEventDisplay } from '@/hooks/use-event-display'
 import { useShareUrl } from '@/hooks/use-share-url'
+import { REGISTERED_PREVIEW } from '@/config/review-options'
 import { enabledQuestions, eventTimeZone, isOnline, isUnverified } from '@/lib/shape'
 import { NavHeader } from '@/views/nav'
 import { useEventFromPath, useFrameEventOnTop } from '@/views/shared'
@@ -23,15 +24,16 @@ import { useEventFromPath, useFrameEventOnTop } from '@/views/shared'
 export function RegistrationView({
   eventPath,
   parentPath,
-  initialSubmitted,
+  initialSubmitted = REGISTERED_PREVIEW,
 }: {
   eventPath: string
   parentPath: string
-  /** Preview-only: start the native form on its confirmation screen (see stories). */
+  /** Preview-only: start the native form on its confirmation screen (see stories, and the
+   *  review's `?registered=1`). */
   initialSubmitted?: boolean
 }) {
   const { t } = useTranslation()
-  const [submitted, setSubmitted] = useState(Boolean(initialSubmitted))
+  const [submitted, setSubmitted] = useState(initialSubmitted)
 
   const { data: event } = useEventFromPath(eventPath)
   const { display, blockedMessage, whereLine } = useEventDisplay(event)

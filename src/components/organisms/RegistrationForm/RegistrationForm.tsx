@@ -16,18 +16,18 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { DateTime } from 'luxon'
 import { useTranslation } from 'react-i18next'
-import { Check, ChevronDown } from 'lucide-react'
-import clsx from 'clsx'
+import { Check } from 'lucide-react'
 import { type ReactNode, useEffect, useMemo, useRef, useState } from 'react'
 
 import { Button } from '@/components/atoms/Button'
 import { Alert } from '@/components/atoms/Alert'
 import { Checkbox } from '@/components/atoms/Checkbox'
+import { Input } from '@/components/atoms/Input'
 import { Link } from '@/components/atoms/Link'
-import { RadioGroup, type RadioOption } from '@/components/atoms/RadioGroup'
-import { fieldChrome } from '@/components/atoms/Select'
+import { Select, SelectItem } from '@/components/atoms/Select'
+import { Textarea } from '@/components/atoms/Textarea'
 import { AddToCalendar } from '@/components/molecules/AddToCalendar'
-import { FormField, fieldErrorId } from '@/components/molecules/FormField'
+import { FormField } from '@/components/molecules/FormField'
 import { INPUT_REFUSAL_KEYS } from '@/components/organisms/ReportIssueForm/refusal-copy'
 import { ShareContent } from '@/components/molecules/ShareContent'
 import api from '@/config/api'
@@ -324,7 +324,10 @@ export function RegistrationForm({
 
   useEffect(() => {
     if (initialRefusal) flagRefusal(initialRefusal, false)
-    // Mount-only: the story's refusal never changes.
+    // A remount (the drawer crossing between sheet and side panel) restores what was typed. A
+    // mistyped address comes back flagged on its box, as leaving the field had flagged it.
+    if (defaultValues.email) void trigger('email')
+    // Mount-only: the story's refusal and the restored draft never change.
   }, [])
 
   const mutation = useMutation({
@@ -576,27 +579,19 @@ export function RegistrationForm({
   )
 }
 
-/** The confirmation's one quiet way to pass the class on: closed until asked for. */
+/** The confirmation's way to pass the class on: the same share block as the class's Share panel. */
 function InviteFriend({ children }: { children: ReactNode }) {
   const { t } = useTranslation()
-  const [open, setOpen] = useState(false)
 
   return (
-    <section className="border-t border-divider">
-      <button
-        aria-expanded={open}
-        className="flex min-h-14 w-full items-center justify-between gap-3 text-start text-base font-medium outline-none focus-visible:ring-2 focus-visible:ring-focus"
-        type="button"
-        onClick={() => setOpen(!open)}
-      >
+    <section
+      aria-labelledby="invite-friend"
+      className="flex flex-col gap-3 border-t border-divider pt-4"
+    >
+      <h3 className="text-base font-medium" id="invite-friend">
         {t('registration.form.invite_friend')}
-        <ChevronDown
-          aria-hidden
-          className={clsx('shrink-0 text-gray-11 transition-transform', open && 'rotate-180')}
-          size={20}
-        />
-      </button>
-      {open && <div className="pb-4">{children}</div>}
+      </h3>
+      {children}
     </section>
   )
 }
@@ -617,14 +612,9 @@ const errorCopy = (
   return schemaKey ? t(schemaKey) : error.message
 }
 
-// The label, control, and error shell is the shared `FormField` molecule,
-// also used by the report-issue form. So the required marker and the
-// aria-describedby id convention are defined once. The control's chrome
-// comes from the shared `fieldChrome` recipe, so these inputs match the
-// Select and the filter date bounds.
-
-// 48px tall, an easy target on a phone. `fieldChrome` keeps the 40px default for denser filters.
-const TALL_FIELD = 'h-12'
+// The label, control, and error shell is the shared `FormField` molecule, and the controls are
+// the shared Input, Textarea and Select atoms, as in the report form. So the required marker, the
+// aria-describedby id convention, the field size and the error border are defined once.
 
 function LabeledInput({
   label,
@@ -646,18 +636,18 @@ function LabeledInput({
 }) {
   return (
     <FormField error={error} htmlFor={registration.name} label={label}>
-      <input
-        aria-required
-        aria-describedby={error ? fieldErrorId(registration.name) : undefined}
-        aria-invalid={error ? true : undefined}
-        autoComplete={autoComplete}
-        className={fieldChrome({ isInvalid: Boolean(error), class: TALL_FIELD })}
-        id={registration.name}
-        inputMode={inputMode}
-        maxLength={maxLength}
-        type={type}
-        {...registration}
-      />
+      {/* Required, but unmarked: in this form only the optional box says so. */}
+      {(control) => (
+        <Input
+          {...control}
+          aria-required
+          autoComplete={autoComplete}
+          inputMode={inputMode}
+          maxLength={maxLength}
+          type={type}
+          {...registration}
+        />
+      )}
     </FormField>
   )
 }
@@ -675,15 +665,7 @@ function LabeledTextarea({
 }) {
   return (
     <FormField optional error={error} htmlFor={registration.name} label={label}>
-      <textarea
-        aria-describedby={error ? fieldErrorId(registration.name) : undefined}
-        aria-invalid={error ? true : undefined}
-        className={fieldChrome({ isInvalid: Boolean(error), multiline: true })}
-        id={registration.name}
-        maxLength={maxLength}
-        rows={2}
-        {...registration}
-      />
+      {(control) => <Textarea {...control} maxLength={maxLength} rows={2} {...registration} />}
     </FormField>
   )
 }
@@ -716,18 +698,12 @@ function RegistrationFields({
     () => dateOptions(upcomingDates, recurrenceType, timeZone, locale),
     [upcomingDates, recurrenceType, timeZone, locale],
   )
-  // Most people take the next class, so the date reads as an answer already given, with the
-  // list one tap away. That leaves name and email as the whole of the form. A date error
-  // opens the list, since the visitor has something to do there.
-  const [pickingDate, setPickingDate] = useState(false)
-  const showDateList = pickingDate || Boolean(errors.startingAt) || startingDates.length === 0
 
   return (
     <div className="flex flex-col gap-4">
       {/* The form value is the ISO string. RegistrationSchema's z.coerce.date()
-          turns it into a Date on submit, so the radio list's onChange stores
-          the ISO string, and this casts across that string-to-Date coercion
-          seam. */}
+          turns it into a Date on submit, so the select stores the ISO string,
+          and this casts across that string-to-Date coercion seam. */}
       <Controller
         control={control}
         defaultValue={upcomingDates[0]?.toISOString() as unknown as Date}
@@ -735,52 +711,30 @@ function RegistrationFields({
         render={({ field }) => (
           <FormField
             error={errors.startingAt && t('registration.errors.starting_at')}
+            htmlFor={field.name}
             label={t('registration.form.first_class')}
           >
-            {!showDateList ? (
-              <div className="flex min-h-12 items-center justify-between gap-3 rounded border border-gray-7 ps-3 pe-1">
-                <span className="min-w-0 text-base">
-                  {startingDates.find((option) => option.value === String(field.value))?.label ??
-                    startingDates[0]?.label}
-                </span>
-                {startingDates.length > 1 && (
-                  <Button
-                    className="h-11 text-primary-12"
-                    color="primary"
-                    variant="ghost"
-                    onClick={() => setPickingDate(true)}
-                  >
-                    {t('registration.form.change_date')}
-                  </Button>
-                )}
-              </div>
-            ) : (
-              <>
-                {/* `field.ref` is what makes a failed submit MOVE (issue #102).
-                react-hook-form focuses the first invalid field itself. That
-                is `shouldFocusError`, on by default. But it can only focus a
-                field it was handed a ref for, and it walks them in
-                registration order, which here is the order they render in.
+            {/* A dropdown, so choosing never pushes the fields below it down. The next date is
+                already chosen, and each option says how far off it is ("Next week", "In 2
+                weeks"), so a later week is still one quick pick.
 
-                This is the first field. Until RadioGroup forwarded a ref, it
-                was the one field RHF had to skip. A submit with no date
-                chosen moved focus nowhere and said nothing. So a
-                screen-reader user was left on the Register button, with no
-                sign of why it had not worked. The other two are plain
-                `register`ed inputs, and were always covered. */}
-                <RadioGroup
-                  ref={field.ref}
-                  aria-label={t('registration.form.first_class')}
-                  collapseAfter={VISIBLE_DATES}
-                  isInvalid={!!errors.startingAt}
-                  moreLabel={t('registration.form.show_more_dates')}
-                  name={field.name}
-                  options={startingDates}
-                  value={field.value as unknown as string}
-                  onBlur={field.onBlur}
-                  onChange={field.onChange}
-                />
-              </>
+                `field.ref` is what makes a failed submit MOVE (issue #102): react-hook-form
+                focuses the first invalid field, but only one it holds a ref for. */}
+            {(control) => (
+              <Select
+                {...control}
+                ref={field.ref}
+                name={field.name}
+                value={field.value as unknown as string}
+                onBlur={field.onBlur}
+                onValueChange={field.onChange}
+              >
+                {startingDates.map(({ value, label, text }) => (
+                  <SelectItem key={value} textValue={text} value={value}>
+                    {label}
+                  </SelectItem>
+                ))}
+              </Select>
             )}
           </FormField>
         )}
@@ -828,10 +782,6 @@ function RegistrationFields({
 /** How long the security check may run quietly before the visitor is told it may need them. */
 const CHECK_PATIENCE_MS = 4000
 
-// The starting-date picker shows the next `VISIBLE_DATES` occurrences up
-// front. The RadioGroup atom collapses the rest behind a "show more" link.
-const VISIBLE_DATES = 3
-
 // This sets the relative-label unit per recurrence, so the options read in
 // the class's own cadence. For weekly: "This week," "Next week," "In 2
 // weeks." For daily: "Today," "Tomorrow," "In 2 days." For monthly: "This
@@ -856,30 +806,37 @@ const longDate = (date: Date, timeZone: string | undefined, locale: string) =>
     .setLocale(regionalLocale(locale))
     .toLocaleString({ weekday: 'long', month: 'long', day: 'numeric' })
 
+/** One starting date: the ISO value, its rendered label, and the same words as plain text for
+ *  the listbox's type-ahead. */
+type DateOption = { value: string; label: ReactNode; text: string }
+
 function dateOptions(
   dates: Date[],
   recurrenceType: RecurrenceType | null | undefined,
   timeZone: string | undefined,
   locale: string,
-): RadioOption[] {
+): DateOption[] {
   const unit = recurrenceType ? RELATIVE_UNIT[recurrenceType] : undefined
 
   return dates.map((date) => {
     const dateTime = DateTime.fromJSDate(date)
       .setZone(timeZone ?? 'local')
       .setLocale(regionalLocale(locale))
+    const day = dateTime.toLocaleString({ weekday: 'short', month: 'short', day: 'numeric' })
+    const relative = sentenceCase(dateTime.toRelativeCalendar(unit ? { unit } : undefined) ?? '')
 
     return {
       value: date.toISOString(),
       label: (
-        <span>
-          {dateTime.toLocaleString({ weekday: 'short', month: 'short', day: 'numeric' })}
-          <span className="font-normal opacity-80">
+        <>
+          {day}
+          <span className="text-gray-11">
             {' · '}
-            {sentenceCase(dateTime.toRelativeCalendar(unit ? { unit } : undefined) ?? '')}
+            {relative}
           </span>
-        </span>
+        </>
       ),
+      text: `${day} · ${relative}`,
     }
   })
 }
