@@ -7,6 +7,7 @@ import { useTranslation } from 'react-i18next'
 
 import { useLocale } from './use-locale'
 
+import { rewordedKey } from '@/config/reworded-keys'
 import {
   hasApproximatePlace,
   resolveEventDisplay,
@@ -132,7 +133,7 @@ export function composeCalendarLine(args: CalendarLineArgs): string {
  * So type, status, and time copy can never diverge between surfaces. See issue #52.
  */
 export function useEventDisplay(event: DisplayableEvent): EventDisplayStrings {
-  const { t } = useTranslation()
+  const { t, i18n } = useTranslation()
   const { locale } = useLocale()
   // The resolver reads the wall clock.
   // A stable event identity, through TanStack's structural sharing, would otherwise freeze
@@ -161,7 +162,7 @@ export function useEventDisplay(event: DisplayableEvent): EventDisplayStrings {
     // already says what it is. A real one-off has a schedule, inactive or not, and keeps its
     // label.
     if (!schedule) typeLabel = null
-    else if (kind === 'oneoff') typeLabel = t('event.display.type_oneoff')
+    else if (kind === 'oneoff') typeLabel = t(rewordedKey(i18n, 'event.display.type_oneoff_class'))
     else if (kind === 'course')
       typeLabel = sessionsLabel
         ? `${t('event.display.type_course')} · ${sessionsLabel}`
@@ -228,7 +229,7 @@ export function useEventDisplay(event: DisplayableEvent): EventDisplayStrings {
     let whenLine: string
 
     if (status === 'inactive') whenLine = t('event.display.contact_for_timing')
-    else if (status === 'ended') whenLine = t('event.display.event_ended')
+    else if (status === 'ended') whenLine = t(rewordedKey(i18n, 'event.display.class_ended'))
     else if (status === 'today') whenLine = t('event.display.chip_today')
     else if (status === 'upcoming')
       whenLine =
@@ -324,7 +325,7 @@ export function useEventDisplay(event: DisplayableEvent): EventDisplayStrings {
     )
     const microcopy: string[] = []
 
-    if (full) microcopy.push(t('event.display.event_full'))
+    if (full) microcopy.push(t(rewordedKey(i18n, 'event.display.class_full')))
     else if (display.registration === 'open') {
       // The course note leads. The online mechanics note renders second. See issue #52.
       if (kind === 'course') microcopy.push(t('event.display.registration_required'))
@@ -341,9 +342,9 @@ export function useEventDisplay(event: DisplayableEvent): EventDisplayStrings {
 
     // This is one state-to-copy mapping for every surface that blocks registration.
     const blockedMessage = full
-      ? t('event.display.event_full')
+      ? t(rewordedKey(i18n, 'event.display.class_full'))
       : display.status === 'ended'
-        ? t('event.display.event_ended')
+        ? t(rewordedKey(i18n, 'event.display.class_ended'))
         : display.registration === 'closed'
           ? t('event.display.registration_closed')
           : display.registration === 'hidden'
@@ -372,5 +373,5 @@ export function useEventDisplay(event: DisplayableEvent): EventDisplayStrings {
       contactHelper,
       blockedMessage,
     }
-  }, [event, locale, t, minute])
+  }, [event, locale, t, i18n, minute])
 }

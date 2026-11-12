@@ -386,7 +386,7 @@ export const ERROR_POLICY: Record<FallbackKind, FallbackPolicy> = {
   // neither a public page nor a contact IS a gap worth a report. That beats a
   // sentence with nothing else beside it.
   'share-unavailable': {
-    messageKey: 'common.errors.share_unavailable',
+    messageKey: 'common.errors.share_unavailable_class',
     fallbackText: 'There is no link to share for this class yet.',
     color: 'neutral',
     retry: false,

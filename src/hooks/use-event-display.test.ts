@@ -316,6 +316,6 @@ describe('useEventDisplay — the type label', () => {
           firstDate_tz: 'Europe/Prague',
         },
       }),
-    ).toBe(copy('event.display.type_oneoff'))
+    ).toBe(copy('event.display.type_oneoff_class'))
   })
 })

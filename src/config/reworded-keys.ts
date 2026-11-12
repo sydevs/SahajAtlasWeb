@@ -18,6 +18,10 @@ import type { i18n as I18n } from 'i18next'
 export const REWORDED_KEYS = {
   'common.errors.classes_near_city': 'common.errors.near_city',
   'common.errors.no_classes': 'common.errors.no_events',
+  'common.errors.share_unavailable_class': 'common.errors.share_unavailable',
+  'event.display.class_ended': 'event.display.event_ended',
+  'event.display.class_full': 'event.display.event_full',
+  'event.display.type_oneoff_class': 'event.display.type_oneoff',
   'search.filtered.none': 'filters.chrome.no_results',
   'search.results.no_nearby_classes': 'search.results.no_nearby',
   'search.results.showing_classes': 'search.results.showing',
@@ -40,15 +44,18 @@ type ResourceReader = Partial<Pick<I18n, 'getResource' | 'language' | 'resolvedL
  * Call it inside the render that calls `t`: `useTranslation` re-renders on a language change, so
  * the choice follows the locale.
  */
-export function rewordedKey<K extends string>(i18n: ResourceReader, key: K): RewordedKey<K> {
+export function rewordedKey<K extends string>(
+  i18n: ResourceReader | undefined,
+  key: K,
+): RewordedKey<K> {
   // `hasOwnProperty` through the prototype, never `key in`: a host page may patch
   // `Object.prototype`, and a key named `toString` must not read as reworded.
   if (!Object.prototype.hasOwnProperty.call(REWORDED_KEYS, key)) return key
 
-  const locale = i18n.resolvedLanguage ?? i18n.language
+  const locale = i18n?.resolvedLanguage ?? i18n?.language
 
-  // A stub with no resource store has nothing to choose by, so the new key stands.
-  if (!locale || typeof i18n.getResource !== 'function') return key
+  // A stub with no resource store (or none at all) has nothing to choose by, so the new key stands.
+  if (!i18n || !locale || typeof i18n.getResource !== 'function') return key
 
   return i18n.getResource(locale, 'translation', key) === undefined
     ? (REWORDED_KEYS[key as keyof Reworded] as RewordedKey<K>)
