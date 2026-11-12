@@ -82,6 +82,20 @@ describe('AddToCalendar', () => {
   })
 
   /**
+   * Only the `webcal:` row is a handoff to the operating system. A new tab would show
+   * nothing, and a sandboxed host page would have to grant `allow-popups` for that nothing.
+   */
+  it('asks for a new tab on every row that opens a page, and on no other', () => {
+    expect(calendarLinkTargets(event).map(({ label, opensPage }) => [label, opensPage])).toEqual([
+      ['Apple Calendar', false],
+      ['Google Calendar', true],
+      ['Outlook.com', true],
+      ['Office 365', true],
+      ['Yahoo', true],
+    ])
+  })
+
+  /**
    * A subscribe row with no address to subscribe to cannot work, and an inert menu entry
    * reads as a broken one. The three single-session rows compose their own URL from the
    * schedule, so they must survive — dropping them would retire working rows for nothing.

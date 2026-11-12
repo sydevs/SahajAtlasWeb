@@ -22,8 +22,15 @@ export type AddToCalendarProps = {
   event: IcsEventInput
 }
 
-/** One link-out row. Brand names stay untranslated, and are unique, so they double as keys. */
-export type CalendarLinkTarget = { label: string; href: string }
+/**
+ * One link-out row. Brand names stay untranslated, and are unique, so they double as keys.
+ *
+ * `opensPage` is false only for the `webcal:` handoff, which the operating system takes:
+ * `target="_blank"` would open a tab with nothing to show, and a sandboxed host page would
+ * have to grant `allow-popups` for that nothing. The app's other protocol-handler hrefs
+ * (`tel:`, `mailto:`) carry no target either.
+ */
+export type CalendarLinkTarget = { label: string; href: string; opensPage: boolean }
 
 /**
  * The link-out providers, in menu order. `lib/ics.ts` decides what each URL can carry:
@@ -46,11 +53,11 @@ export function calendarLinkTargets(event: IcsEventInput): CalendarLinkTarget[] 
   const google = buildGoogleCalendarUrl(event)
 
   return [
-    ...(feed ? [{ label: 'Apple Calendar', href: feed }] : []),
-    ...(google ? [{ label: 'Google Calendar', href: google }] : []),
-    { label: 'Outlook.com', href: buildOutlookCalendarUrl(event, 'live') },
-    { label: 'Office 365', href: buildOutlookCalendarUrl(event, 'office') },
-    { label: 'Yahoo', href: buildYahooCalendarUrl(event) },
+    ...(feed ? [{ label: 'Apple Calendar', href: feed, opensPage: false }] : []),
+    ...(google ? [{ label: 'Google Calendar', href: google, opensPage: true }] : []),
+    { label: 'Outlook.com', href: buildOutlookCalendarUrl(event, 'live'), opensPage: true },
+    { label: 'Office 365', href: buildOutlookCalendarUrl(event, 'office'), opensPage: true },
+    { label: 'Yahoo', href: buildYahooCalendarUrl(event), opensPage: true },
   ]
 }
 
@@ -107,9 +114,9 @@ export function AddToCalendar({ event }: AddToCalendarProps) {
 
       <DropdownMenu.Portal container={overlayContainer()}>
         <DropdownMenu.Content align="start" className={menu} sideOffset={8} {...frameCollision()}>
-          {calendarLinkTargets(event).map(({ href, label }) => (
+          {calendarLinkTargets(event).map(({ href, label, opensPage }) => (
             <DropdownMenu.Item key={label} asChild className={item}>
-              <Link href={href} target="_blank">
+              <Link href={href} target={opensPage ? '_blank' : undefined}>
                 {label}
               </Link>
             </DropdownMenu.Item>
