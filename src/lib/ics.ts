@@ -400,6 +400,10 @@ const details = (input: IcsEventInput): string =>
  * carry this one string: the Apple row opens it, and Google percent-encodes it
  * onto `cid`.
  *
+ * Nothing here keeps a subscription current: SahajCloud serves that address as a
+ * live `.ics` document, and the subscriber's calendar re-reads it on its own
+ * schedule. That is what clears a cancelled session from their calendar.
+ *
  * Opening it hands macOS and iOS to Calendar.app, which asks whether to
  * subscribe. There is no add-by-URL endpoint to go through, and no file to find
  * in Downloads — which was the whole complaint behind #368.
