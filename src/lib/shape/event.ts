@@ -112,7 +112,7 @@ const eventKind = (schedule?: EventSchedule | null): EventKind =>
  * the schedule (Devindra, 12 Nov) — or the map and the panel disagree about the same listing.
  */
 export const hasApproximatePlace = (
-  event: Pick<EventLike, 'eventType'> & {
+  event: EventLike & {
     inactive?: boolean | null
     address?: VagueAddress | null
   },
