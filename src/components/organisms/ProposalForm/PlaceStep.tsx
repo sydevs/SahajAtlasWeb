@@ -6,9 +6,10 @@ import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { MapPin, Monitor } from 'lucide-react'
 
-import { ChoiceCard, NameHelp, StepHeading, ValidatedInput, radioKeys } from './fields'
+import { NameHelp, StepHeading, TextField } from './fields'
 
 import { Button } from '@/components/atoms/Button'
+import { RadioGroup } from '@/components/atoms/RadioGroup'
 import { FormField } from '@/components/molecules/FormField'
 import { rewordedKey } from '@/config/reworded-keys'
 import { MapSearch, type MapSearchProps } from '@/components/organisms/Mapbox/MapSearch'
@@ -49,8 +50,6 @@ export type PlaceStepProps = {
   onChange: (patch: Partial<ListingDraft>) => void
   onPick: (key: PlaceKey) => (feature: GeocodingFeature) => void
   onEdit: (key: PlaceKey) => () => void
-  /** "Is it one of these?" — shown once an address lands on a class already listed. */
-  notice?: ReactNode
   /** A small map under the picked address, where the live one can't be seen. */
   showMap?: boolean
   /**
@@ -72,7 +71,6 @@ export function PlaceStep({
   onChange,
   onPick,
   onEdit,
-  notice,
   showMap = true,
   search = true,
 }: PlaceStepProps) {
@@ -90,29 +88,27 @@ export function PlaceStep({
     <div className="flex flex-col gap-5">
       <StepHeading title={t('submit.where.title')} />
 
-      <div
+      <RadioGroup
         aria-label={t('submit.where.title')}
-        className="grid grid-cols-1 gap-2 min-[360px]:grid-cols-2"
-        role="radiogroup"
-        {...radioKeys}
-      >
-        <ChoiceCard
-          hint={t('submit.where.offline_hint')}
-          icon={MapPin}
-          label={t('submit.where.offline')}
-          selected={offline}
-          tabStop={offline}
-          onSelect={() => onChange({ eventType: 'offline' })}
-        />
-        <ChoiceCard
-          hint={t('submit.where.online_hint')}
-          icon={Monitor}
-          label={t('submit.where.online')}
-          selected={!offline}
-          tabStop={!offline}
-          onSelect={() => onChange({ eventType: 'online' })}
-        />
-      </div>
+        className="grid grid-cols-1 min-[360px]:grid-cols-2"
+        name="submit-event-type"
+        options={[
+          {
+            value: 'offline',
+            label: t('submit.where.offline'),
+            hint: t('submit.where.offline_hint'),
+            icon: MapPin,
+          },
+          {
+            value: 'online',
+            label: t('submit.where.online'),
+            hint: t('submit.where.online_hint'),
+            icon: Monitor,
+          },
+        ]}
+        value={draft.eventType}
+        onChange={(eventType) => onChange({ eventType: eventType as ListingDraft['eventType'] })}
+      />
 
       {offline && typeAddress ? (
         <>
@@ -161,12 +157,11 @@ export function PlaceStep({
               {t('submit.where.manual_toggle')}
             </TextButton>
           )}
-          {notice}
           <VenueFields draft={draft} onChange={onChange} />
         </>
       ) : (
         <>
-          <ValidatedInput
+          <TextField
             required
             autoComplete="url"
             error={errors.onlineUrl && t('submit.errors.online_url')}
@@ -326,7 +321,7 @@ function VenueFields({
 
   return (
     <>
-      <ValidatedInput
+      <TextField
         help={t('submit.where.venue_name_help')}
         id="submit-venue-name"
         label={t('submit.where.venue_name_label')}
@@ -335,7 +330,7 @@ function VenueFields({
         value={draft.venueName}
         onChange={(event) => onChange({ venueName: event.target.value })}
       />
-      <ValidatedInput
+      <TextField
         help={<NameHelp guidance={t('submit.where.room_help')} value={draft.room} />}
         id="submit-room"
         label={t('submit.where.room_label')}
@@ -403,7 +398,7 @@ function ManualAddress({
   return (
     <div className="flex flex-col gap-3">
       <p className="text-sm text-gray-11">{t('submit.where.manual_note')}</p>
-      <ValidatedInput
+      <TextField
         required
         autoComplete="address-line1"
         error={missing && !parts.street.trim() && missing}
@@ -414,7 +409,7 @@ function ManualAddress({
         onChange={(event) => set({ street: event.target.value })}
       />
       <div className="grid grid-cols-[2fr_1fr] gap-3">
-        <ValidatedInput
+        <TextField
           required
           autoComplete="address-level2"
           error={missing && !parts.city.trim() && missing}
@@ -424,7 +419,7 @@ function ManualAddress({
           value={parts.city}
           onChange={(event) => set({ city: event.target.value })}
         />
-        <ValidatedInput
+        <TextField
           autoComplete="postal-code"
           id="submit-postcode"
           label={t('submit.where.manual_postcode')}
@@ -434,7 +429,7 @@ function ManualAddress({
         />
       </div>
       {!country && (
-        <ValidatedInput
+        <TextField
           required
           autoComplete="country-name"
           error={missing && !parts.countryName.trim() && t('submit.errors.manual_country')}
@@ -493,7 +488,7 @@ function ManualCity({
   return (
     <div className="flex flex-col gap-3">
       <p className="text-sm text-gray-11">{t('submit.where.manual_note')}</p>
-      <ValidatedInput
+      <TextField
         required
         autoComplete="address-level2"
         error={error && !parts.city.trim() && t('submit.errors.manual_city')}
@@ -504,7 +499,7 @@ function ManualCity({
         onChange={(event) => set({ city: event.target.value })}
       />
       {!country && (
-        <ValidatedInput
+        <TextField
           required
           autoComplete="country-name"
           error={error && !parts.countryName.trim() && t('submit.errors.manual_country')}

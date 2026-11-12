@@ -16,7 +16,7 @@ import {
   UserRound,
 } from 'lucide-react'
 
-import { FIELD_TEXT, GroupHeading, StepHeading, ValidatedInput } from './fields'
+import { GroupHeading, StepHeading, TextField } from './fields'
 import { type SummaryRow, useAutoTitle, useScheduleLines, useSummaryRows } from './summary'
 
 import { Alert } from '@/components/atoms/Alert'
@@ -38,6 +38,8 @@ export type CheckStepProps = {
   emailError: boolean
   /** The listing preview, with an Edit link per section — the view builds it. */
   preview?: ReactNode
+  /** Shown above a new listing's read-back: the view's "this may already be listed" suggestion. */
+  notice?: ReactNode
   /** A correction: what it opened as, and the published class, for the was → now list. */
   correction?: {
     baseDraft: ListingDraft
@@ -76,6 +78,7 @@ export function CheckStep({
   onSender,
   emailError,
   preview,
+  notice,
   correction,
   draft,
   listing,
@@ -139,6 +142,7 @@ export function CheckStep({
       ) : (
         <>
           <StepHeading intro={t('submit.review.intro')} title={t('submit.review.title')} />
+          {notice}
           {listing && <ListingSummary draft={draft} listing={listing} onEdit={onEdit} />}
         </>
       )}
@@ -148,7 +152,7 @@ export function CheckStep({
           help={t('submit.review.email_help_private')}
           title={t('submit.review.you_title')}
         />
-        <ValidatedInput
+        <TextField
           required
           autoComplete="email"
           error={emailError && t('submit.errors.email')}
@@ -164,14 +168,15 @@ export function CheckStep({
             htmlFor="submit-note"
             label={t(rewordedKey(i18n, 'submit.review.note_label_admins'))}
           >
-            <Textarea
-              className={FIELD_TEXT}
-              id="submit-note"
-              maxLength={userSubmissionValueMax('note')}
-              rows={2}
-              value={sender.note}
-              onChange={(event) => onSender({ note: event.target.value })}
-            />
+            {(control) => (
+              <Textarea
+                {...control}
+                maxLength={userSubmissionValueMax('note')}
+                rows={2}
+                value={sender.note}
+                onChange={(event) => onSender({ note: event.target.value })}
+              />
+            )}
           </FormField>
         )}
       </section>

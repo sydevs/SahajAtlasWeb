@@ -15,9 +15,10 @@ import {
   UserX,
 } from 'lucide-react'
 
-import { ChoiceCard, FIELD_TEXT, StepHeading, ValidatedInput, radioKeys } from './fields'
+import { StepHeading, TextField } from './fields'
 
 import { Textarea } from '@/components/atoms/Textarea'
+import { ToggleGroup, ToggleGroupItem } from '@/components/atoms/ToggleGroup'
 import { FormField } from '@/components/molecules/FormField'
 import { userSubmissionValueMax } from '@/config/api/mutate'
 
@@ -41,14 +42,25 @@ export function FixStep({ onPick }: { onPick: (intent: FixIntent) => void }) {
     <div className="flex flex-col gap-5">
       <StepHeading intro={t('submit.fix.intro')} title={t('submit.fix.title')} />
       <ul className="flex flex-col gap-2">
-        {INTENTS.map(({ intent, icon, label }) => (
+        {INTENTS.map(({ intent, icon: Icon, label }) => (
           <li key={intent}>
-            <ChoiceCard
-              icon={icon}
-              label={t(label)}
-              trailing={<ChevronRight aria-hidden className="shrink-0 text-gray-9" size={18} />}
-              onSelect={() => onPick(intent)}
-            />
+            {/* Each answer goes straight to the step that fixes it: a list of ways on, not a
+                choice to confirm, so these are buttons rather than a radio group. */}
+            <button
+              className="flex min-h-14 w-full items-center gap-3 rounded border border-gray-7 bg-background px-3 py-2.5 text-start text-sm font-semibold transition-colors outline-none hover:bg-gray-2 focus-visible:ring-2 focus-visible:ring-focus"
+              type="button"
+              onClick={() => onPick(intent)}
+            >
+              <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-gray-3 text-gray-11">
+                <Icon aria-hidden size={18} />
+              </span>
+              <span className="min-w-0 flex-1 leading-tight">{t(label)}</span>
+              <ChevronRight
+                aria-hidden
+                className="shrink-0 text-gray-9 rtl:-scale-x-100"
+                size={18}
+              />
+            </button>
           </li>
         ))}
       </ul>
@@ -110,7 +122,7 @@ export function NoteStep({
         )}
       />
       {nobody && (
-        <ValidatedInput
+        <TextField
           id="submit-nobody-date"
           label={t('submit.note.nobody_date')}
           max={DateTime.now().toISODate() ?? undefined}
@@ -120,33 +132,29 @@ export function NoteStep({
         />
       )}
       {stopped && repeating && (
-        <fieldset className="flex flex-col gap-3">
-          <legend className="mb-2 text-sm font-medium">{t('submit.note.last_question')}</legend>
-          <div className="grid grid-cols-2 gap-2" role="radiogroup" {...radioKeys}>
-            {([false, true] as const).map((option) => (
-              <button
-                key={String(option)}
-                aria-checked={knows === option}
-                className={`h-11 rounded-md border px-2 text-sm font-medium transition-colors outline-none focus-visible:ring-2 focus-visible:ring-focus ${
-                  knows === option
-                    ? 'border-primary-9 bg-primary-9 text-primary-foreground'
-                    : 'border-gray-6 hover:bg-gray-2'
-                }`}
-                role="radio"
-                tabIndex={knows === option ? 0 : -1}
-                type="button"
-                onClick={() => {
-                  setKnows(option)
+        <div className="flex flex-col gap-3">
+          <FormField as="fieldset" label={t('submit.note.last_question')} name="submit-last-known">
+            {(control) => (
+              <ToggleGroup
+                {...control}
+                required
+                className="grid grid-cols-2"
+                size="md"
+                type="single"
+                value={knows ? 'known' : 'unsure'}
+                onValueChange={(answer) => {
+                  setKnows(answer === 'known')
                   // Not sure leaves the published last date as it was.
-                  if (!option) onChange({ endDate: base?.endDate ?? '' })
+                  if (answer === 'unsure') onChange({ endDate: base?.endDate ?? '' })
                 }}
               >
-                {t(option ? 'submit.note.last_known' : 'submit.note.last_unsure')}
-              </button>
-            ))}
-          </div>
+                <ToggleGroupItem value="unsure">{t('submit.note.last_unsure')}</ToggleGroupItem>
+                <ToggleGroupItem value="known">{t('submit.note.last_known')}</ToggleGroupItem>
+              </ToggleGroup>
+            )}
+          </FormField>
           {knows && (
-            <ValidatedInput
+            <TextField
               id="submit-stopped-last"
               label={t('submit.note.last_date')}
               type="date"
@@ -154,7 +162,7 @@ export function NoteStep({
               onChange={(event) => onChange({ endDate: event.target.value })}
             />
           )}
-        </fieldset>
+        </div>
       )}
       <FormField
         error={error}
@@ -162,22 +170,22 @@ export function NoteStep({
         label={t(stopped || nobody ? 'submit.note.stopped_label' : 'submit.note.other_label')}
         required={!stopped && !nobody}
       >
-        <Textarea
-          aria-invalid={error ? true : undefined}
-          className={FIELD_TEXT}
-          id="submit-note"
-          maxLength={userSubmissionValueMax('note')}
-          placeholder={t(
-            stopped
-              ? 'submit.note.stopped_placeholder'
-              : nobody
-                ? 'submit.note.nobody_placeholder'
-                : 'submit.note.other_placeholder',
-          )}
-          rows={5}
-          value={sender.note}
-          onChange={(event) => onSender({ note: event.target.value })}
-        />
+        {(control) => (
+          <Textarea
+            {...control}
+            maxLength={userSubmissionValueMax('note')}
+            placeholder={t(
+              stopped
+                ? 'submit.note.stopped_placeholder'
+                : nobody
+                  ? 'submit.note.nobody_placeholder'
+                  : 'submit.note.other_placeholder',
+            )}
+            rows={5}
+            value={sender.note}
+            onChange={(event) => onSender({ note: event.target.value })}
+          />
+        )}
       </FormField>
     </div>
   )

@@ -10,6 +10,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { SubmitView } from './SubmitView'
 
 import { useListingDraft } from '@/config/store'
+import { SAMPLE_PLACE, SAMPLE_SIGNUP_LINK } from '@/lib/proposal'
 
 // The flow's view remounts when the widget crosses its breakpoint (the sheet changes direction).
 // Whether the session survives that is a mount-and-remount question, which only a mounted tree
@@ -31,11 +32,11 @@ function Navigator() {
 const client = new QueryClient()
 let root: ReturnType<typeof createRoot>
 
-const render = (panel: boolean) =>
+const render = (panel: boolean, at = '/add') =>
   act(async () =>
     root.render(
       <QueryClientProvider client={client}>
-        <MemoryRouter initialEntries={['/add']}>
+        <MemoryRouter initialEntries={[at]}>
           <Navigator />
           {panel && <SubmitView entry={entry} />}
         </MemoryRouter>
@@ -94,5 +95,23 @@ describe('the listing session', () => {
     await render(true)
 
     expect(useListingDraft.getState().sent).toBe(false)
+  })
+
+  it('opens at the stage a deep link names, the stages before it answered', async () => {
+    await render(true, '/add?step=time')
+
+    expect(useListingDraft.getState()).toMatchObject({ step: 'when' })
+    expect(useListingDraft.getState().draft?.address).toBe(SAMPLE_PLACE)
+    expect(useListingDraft.getState().draft?.startTime).toBe('')
+  })
+
+  it('opens the sign-up question with a host’s own sign-up page chosen', async () => {
+    await render(true, '/add?signup=elsewhere')
+
+    expect(useListingDraft.getState()).toMatchObject({ step: 'details' })
+    expect(useListingDraft.getState().draft).toMatchObject({
+      signup: 'elsewhere',
+      website: SAMPLE_SIGNUP_LINK,
+    })
   })
 })

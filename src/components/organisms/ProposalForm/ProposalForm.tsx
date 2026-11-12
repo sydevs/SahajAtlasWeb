@@ -22,6 +22,7 @@ import { Check } from 'lucide-react'
 
 import { type ChangeKey, CheckStep, longDate } from './CheckStep'
 import { DetailsStep } from './DetailsStep'
+import { type DuplicateClass, DuplicateNotice } from './DuplicateNotice'
 import { FixStep, NoteStep } from './FixStep'
 import { PlaceStep } from './PlaceStep'
 import { StepProgress } from './StepProgress'
@@ -34,6 +35,7 @@ import { refusalCopyKey } from '@/config/api/mutate'
 import { useLocale } from '@/hooks/use-locale'
 import { useTurnstile } from '@/hooks/use-turnstile'
 import {
+  FIX_STEPS,
   LISTING_STEPS,
   buildProposal,
   draftPlace,
@@ -84,16 +86,6 @@ const UNDO_FIELDS: Partial<Record<ChangeKey, (keyof ListingDraft)[]>> = {
   website: ['website'],
 }
 
-/** The step each of a correction's answers opens on. */
-const INTENT_STEPS: Record<FixIntent, ListingStep> = {
-  when: 'when',
-  where: 'where',
-  details: 'details',
-  nobody: 'note',
-  stopped: 'note',
-  other: 'note',
-}
-
 export type ProposalFormProps = {
   /** A new listing, or a correction to the published class `correction` names. */
   correction?: { eventId: number; baseDraft: ListingDraft; event?: Event }
@@ -129,8 +121,14 @@ export type ProposalFormProps = {
   timeZoneFor?: (place: PickedPlace) => string | undefined
   /** The languages offered on the details step, beyond the ones already chosen. */
   languageOptions?: string[]
-  /** Shown under the place once one is picked — the view's "is it one of these?" check. */
-  placeNotice?: ReactNode
+  /**
+   * Listed classes a new one may duplicate — at about the same place, meeting at the same time
+   * (`possibleDuplicates`) — which Check names until the sender says it is a different class.
+   */
+  duplicates?: DuplicateClass[]
+  /** The ids the sender said are a different class; the admins' note says so. */
+  distinct?: number[]
+  onDistinct?: (ids: number[]) => void
   /** The draft as it would publish, for the schedule summary and a correction's diff. */
   listing?: Event
   /** The listing preview Check shows, with its Edit links — the view builds it. */
@@ -285,7 +283,6 @@ function StepStage({
   country,
   timeZoneFor,
   languageOptions = [],
-  placeNotice,
   listing,
   stickyFooter,
   placeMap,
@@ -368,7 +365,7 @@ function StepStage({
             <FixStep
               onPick={(picked) => {
                 setAttempted(null)
-                onIntent?.(picked, INTENT_STEPS[picked])
+                onIntent?.(picked, FIX_STEPS[picked])
               }}
             />
           )}
@@ -394,7 +391,6 @@ function StepStage({
               country={country}
               draft={draft}
               errors={errors}
-              notice={placeNotice}
               proximity={proximity}
               search={placeSearch}
               showMap={placeMap}
@@ -468,6 +464,9 @@ function ReviewStage({
   context,
   listing,
   preview,
+  duplicates = [],
+  distinct = [],
+  onDistinct,
   stickyFooter,
   initialRefusal,
   onSent,
@@ -587,6 +586,11 @@ function ReviewStage({
         typed && t('submit.note.manual_place', { place: typed.label }),
         // Proposals may not set the registration fields, so the admins are asked to.
         draft.signup === 'elsewhere' && t('submit.note.signup_elsewhere'),
+        // The admins would otherwise check the same possible duplicate again.
+        different.length > 0 &&
+          t('submit.note.distinct', {
+            classes: different.map(({ id, title }) => `“${title}” (${id})`).join(', '),
+          }),
         sender.note.trim(),
       ]
         .filter(Boolean)
@@ -597,8 +601,10 @@ function ReviewStage({
     if (token) mutation.mutate({ built, captcha: token, note })
   }
 
-  const back: ListingStep = correction ? (intent ? INTENT_STEPS[intent] : 'fix') : 'details'
+  const back: ListingStep = correction ? (intent ? FIX_STEPS[intent] : 'fix') : 'details'
   const emailGiven = Boolean(sender.email.trim())
+  const unanswered = duplicates.filter(({ id }) => !distinct.includes(id))
+  const different = duplicates.filter(({ id }) => distinct.includes(id))
 
   // One change taken back, the others kept. With none left there is nothing to check, so the
   // visitor is back where a correction starts.
@@ -637,6 +643,14 @@ function ReviewStage({
             emailError={emailError}
             listing={listing}
             noChanges={noChanges}
+            notice={
+              !correction && (
+                <DuplicateNotice
+                  classes={unanswered}
+                  onDistinct={() => onDistinct?.(unanswered.map(({ id }) => id))}
+                />
+              )
+            }
             preview={preview}
             refusal={refusal}
             reportOnly={reportOnly}

@@ -1,30 +1,27 @@
 import type { InputProps } from '@/components/atoms/Input'
 import type { NameIssue } from '@/lib/proposal'
 import type { TranslationKey } from '@/types/i18next'
-import type { LucideIcon } from 'lucide-react'
-import type { KeyboardEvent, ReactNode } from 'react'
+import type { ReactNode } from 'react'
 
 import { useTranslation } from 'react-i18next'
-import { tv } from 'tailwind-variants'
 
 import { Input } from '@/components/atoms/Input'
-import { FormField, fieldDescribedBy } from '@/components/molecules/FormField'
+import { FormField } from '@/components/molecules/FormField'
 import { nameIssues } from '@/lib/proposal'
 
 /**
- * The flow's own field text size: the shared `field-size`, 16px on a touch screen, where anything
- * smaller makes iOS zoom the page on focus, and the app's usual 14px with a mouse.
+ * The flow's pieces that are not form controls. Its controls are the shared form kit —
+ * `FormField` around `Input`, `Textarea`, `ToggleGroup`, `RadioGroup` and `Checkbox` — exactly
+ * as the report-issue and registration forms use them (`DESIGN_SYSTEM.md`, "One form kit").
  */
-export const FIELD_TEXT = 'field-size'
 
-/** A labelled input whose help and error text are wired to it by id. */
-export function ValidatedInput({
+/** `FormField` around an `Input`: a labelled text field, wired by its field. */
+export function TextField({
   id,
   label,
   required,
   help,
   error,
-  className,
   ...input
 }: Omit<InputProps, 'id' | 'isInvalid'> & {
   id: string
@@ -36,17 +33,7 @@ export function ValidatedInput({
 }) {
   return (
     <FormField error={error} help={help} htmlFor={id} label={label} required={required}>
-      <Input
-        aria-describedby={fieldDescribedBy({
-          name: id,
-          help: Boolean(help) && !error,
-          error: Boolean(error),
-        })}
-        className={`${FIELD_TEXT} h-11 md:h-10 ${className ?? ''}`}
-        id={id}
-        isInvalid={Boolean(error)}
-        {...input}
-      />
+      {(control) => <Input {...control} {...input} />}
     </FormField>
   )
 }
@@ -91,98 +78,4 @@ export function GroupHeading({ title, help }: { title: string; help?: string }) 
       {help && <p className="text-xs leading-snug text-gray-11">{help}</p>}
     </div>
   )
-}
-
-const choice = tv({
-  slots: {
-    base: 'flex min-h-14 w-full items-center gap-3 rounded-lg border px-3 py-2.5 text-start transition-colors outline-none focus-visible:ring-2 focus-visible:ring-focus',
-    icon: 'flex size-9 shrink-0 items-center justify-center rounded-full',
-    label: 'text-sm leading-tight font-semibold',
-    hint: 'text-xs leading-snug',
-  },
-  variants: {
-    selected: {
-      true: {
-        base: 'border-primary-9 bg-primary-2',
-        icon: 'bg-primary-9 text-primary-foreground',
-        hint: 'text-primary-11',
-      },
-      false: {
-        base: 'border-gray-6 bg-background hover:bg-gray-2',
-        icon: 'bg-gray-3 text-gray-11',
-        hint: 'text-gray-11',
-      },
-    },
-  },
-})
-
-/**
- * A big, plain choice — an icon, a label and a hint — for the questions a host answers with one
- * tap: in person or online, what needs fixing. A radio when `selected` is given, a button
- * otherwise.
- */
-export function ChoiceCard({
-  icon: Icon,
-  label,
-  hint,
-  selected,
-  tabStop,
-  trailing,
-  onSelect,
-}: {
-  icon: LucideIcon
-  label: string
-  hint?: string
-  selected?: boolean
-  /** In a radio group, whether this card is the group's one tab stop. */
-  tabStop?: boolean
-  trailing?: ReactNode
-  onSelect: () => void
-}) {
-  const slots = choice({ selected: selected ?? false })
-
-  return (
-    <button
-      aria-checked={selected === undefined ? undefined : selected}
-      className={slots.base()}
-      role={selected === undefined ? undefined : 'radio'}
-      tabIndex={tabStop === undefined ? undefined : tabStop ? 0 : -1}
-      type="button"
-      onClick={onSelect}
-    >
-      <span className={slots.icon()}>
-        <Icon aria-hidden size={18} />
-      </span>
-      <span className="flex min-w-0 flex-1 flex-col gap-0.5">
-        <span className={slots.label()}>{label}</span>
-        {hint && <span className={slots.hint()}>{hint}</span>}
-      </span>
-      {trailing}
-    </button>
-  )
-}
-
-/**
- * Arrow keys for a hand-built radio group: move to the previous or next option and pick it, as a
- * native radio group does. Spread onto the element with `role="radiogroup"`.
- */
-export const radioKeys = {
-  onKeyDown: (event: KeyboardEvent<HTMLElement>) => {
-    const step = { ArrowRight: 1, ArrowDown: 1, ArrowLeft: -1, ArrowUp: -1 }[event.key]
-
-    if (!step) return
-
-    const radios = [...event.currentTarget.querySelectorAll<HTMLElement>('[role="radio"]')]
-    // The event's own target, not `document.activeElement`: inside the widget's shadow root the
-    // document only sees the host element.
-    const at = radios.indexOf((event.target as HTMLElement).closest<HTMLElement>('[role="radio"]')!)
-
-    if (at < 0) return
-    event.preventDefault()
-
-    const next = radios[(at + step + radios.length) % radios.length]
-
-    next.focus()
-    next.click()
-  },
 }

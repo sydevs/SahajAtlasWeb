@@ -282,4 +282,39 @@ describe('useListingDraft', () => {
       .start({ key: 'add:/add', entry: 'e1' }, { draft: emptyDraft('UTC'), step: 'where' })
     expect(useListingDraft.getState().sender).toEqual({ email: '', note: '' })
   })
+
+  it('opens a correction on an answer as answering it would (`?fix=`)', () => {
+    const draft = emptyDraft('UTC')
+    const start = (intent: 'stopped' | 'nobody' | 'when') =>
+      useListingDraft
+        .getState()
+        .start({ key: 'correct:507', entry: 'e1' }, { draft, base: draft, step: 'note', intent })
+
+    start('stopped')
+    expect(useListingDraft.getState()).toMatchObject({
+      intent: 'stopped',
+      reported: true,
+      nobodyOn: null,
+    })
+
+    start('nobody')
+    expect(useListingDraft.getState()).toMatchObject({ reported: false, nobodyOn: '' })
+
+    start('when')
+    expect(useListingDraft.getState()).toMatchObject({ reported: false, nobodyOn: null })
+  })
+
+  it('remembers the classes the sender said are different, until the flow starts again', () => {
+    useListingDraft
+      .getState()
+      .start({ key: 'add:/add', entry: 'e1' }, { draft: emptyDraft('UTC'), step: 'review' })
+    useListingDraft.getState().markDistinct([939, 717])
+    useListingDraft.getState().markDistinct([939])
+    expect(useListingDraft.getState().distinct).toEqual([939, 717])
+
+    useListingDraft
+      .getState()
+      .start({ key: 'add:/add', entry: 'e2' }, { draft: emptyDraft('UTC'), step: 'where' })
+    expect(useListingDraft.getState().distinct).toEqual([])
+  })
 })

@@ -1,32 +1,37 @@
 import type { ListingDraft, OpenedListing, PickedPlace, ScheduleFields } from '@/lib/proposal'
-import type { Event, Region } from '@/types'
+import type { Event, Geojson, Region } from '@/types'
 import type { ReactNode } from 'react'
 
 import { useCallback, useDeferredValue, useEffect, useLayoutEffect, useMemo, useRef } from 'react'
-import { useLocation } from 'react-router'
+import { useLocation, useSearchParams } from 'react-router'
 import { useQuery } from '@tanstack/react-query'
 import { useShallow } from 'zustand/react/shallow'
 
 import { ListingDetails } from './ListingDetails'
-import { NearbyClassNotice } from './NearbyClassNotice'
 import { useFeedHints } from './use-feed-hints'
-import { useNearbyClasses } from './use-nearby-classes'
+import { usePossibleDuplicates } from './use-possible-duplicates'
 
 import { type SubmitEntry } from '@/lib/shape'
 import { IpLookupContext } from '@/hooks/use-ip-location'
 import { ProposalForm } from '@/components/organisms/ProposalForm'
-import { regionQuery } from '@/config/api'
+import api, { regionQuery } from '@/config/api'
+import { GEOJSON_QUERY_KEY } from '@/config/api/fetch'
+import { GEOJSON_STALE_TIME } from '@/config/query-client'
 import { useWidgetMode } from '@/config/mode'
 import { useIsWideWidget } from '@/config/responsive'
 import { useListingDraft } from '@/config/store'
 import { useLocale } from '@/hooks/use-locale'
 import { useMapController } from '@/hooks/use-map-controller'
 import {
+  addLinkFromParams,
+  copyPlaceAndTime,
   draftPreviewSchedule,
   draftToPatch,
+  fixFromParams,
   nearestTimeZone,
   openListing,
   previewEvent,
+  sampleDraft,
   searchProximity,
 } from '@/lib/proposal'
 import { buildReportContext } from '@/lib/report'
@@ -39,6 +44,9 @@ import { CloseButton, useDrawerControl, useEventFromPath, useFrameOnTop } from '
  *
  * One surface, in the stack's own sheet like any other view: the step form, and under it the
  * listing built live from the same draft, held in `useListingDraft`.
+ *
+ * Each opens at one stage from a deep link in the route's query (`lib/proposal/deep-link.ts`):
+ * `…/add?step=time`, `…/add?signup=elsewhere`, `…/add?duplicate=939`, `…/correct?fix=place`.
  */
 
 /** What a flow opened on: the route's own draft, and whatever place or class it opened over. */
@@ -67,18 +75,45 @@ function AddTarget({
   children: (target: FlowTarget) => ReactNode
 }) {
   const { locale, languageCode } = useLocale()
+  const [params] = useSearchParams()
+  const link = addLinkFromParams(params)
   // Only for a starting point and a camera — a miss costs neither the flow nor the listing.
   const { data: region } = useQuery({
     ...regionQuery(entry.regionSlug ?? '', locale),
     enabled: entry.regionSlug !== null,
   })
+  // `?duplicate=` copies a listed class, so the flow waits for the feed that holds it. A feed
+  // that fails opens on the sample alone.
+  const copying = link?.duplicateOf !== undefined
+  const { data: feed, isError } = useQuery<Geojson>({
+    queryKey: GEOJSON_QUERY_KEY,
+    queryFn: () => api.getGeojson(),
+    staleTime: GEOJSON_STALE_TIME,
+    enabled: copying,
+  })
+
+  if (copying && !feed && !isError) return null
+
+  const copied = feed?.features.find(({ properties }) => properties.id === link?.duplicateOf)
 
   return children({
     key: `add:${entry.path}`,
     path: entry.path,
     region,
     country: entry.regionSlug === null ? undefined : pathCountry(entry.path),
-    open: () => openListing({ timeZone: viewerTimeZone(), languages: [languageCode] }),
+    open: () => {
+      const opened = openListing({ timeZone: viewerTimeZone(), languages: [languageCode] })
+
+      if (!link) return opened
+
+      const sample = sampleDraft(opened.draft, link)
+
+      return {
+        ...opened,
+        draft: copied ? copyPlaceAndTime(sample, copied) : sample,
+        step: link.step,
+      }
+    },
   })
 }
 
@@ -90,12 +125,14 @@ function CorrectionTarget({
   children: (target: FlowTarget) => ReactNode
 }) {
   const { data: event } = useEventFromPath(entry.eventPath)
+  const [params] = useSearchParams()
 
   return children({
     key: `correct:${event.id}`,
     path: entry.path,
     event,
-    open: () => openListing({ event }),
+    // `?fix=` opens on one answer to "What needs fixing?" instead of the question.
+    open: () => openListing({ event, fix: fixFromParams(params) }),
   })
 }
 
@@ -130,6 +167,7 @@ function useListingSession(target: FlowTarget) {
       intent: state.intent,
       reported: state.reported,
       nobodyOn: state.nobodyOn,
+      distinct: state.distinct,
       sent: state.sent,
     })),
   )
@@ -217,8 +255,9 @@ function Flow({ target }: { target: FlowTarget }) {
         : null,
     [draft, base, basePatch, schedule, event, target.path],
   )
-  const nearby = useNearbyClasses(
+  const duplicates = usePossibleDuplicates(
     draft && !event && draft.eventType === 'offline' ? draft.address : null,
+    schedule,
   )
   const timeZoneFor = useCallback(
     (place: PickedPlace) => nearestTimeZone(place, hints.points),
@@ -242,8 +281,16 @@ function Flow({ target }: { target: FlowTarget }) {
 
   if (!session?.draft || !listing) return null
 
-  const { update, setSender, setStep, setIntent, clearReport, setNobodyOn, markSent } =
-    useListingDraft.getState()
+  const {
+    update,
+    setSender,
+    setStep,
+    setIntent,
+    clearReport,
+    setNobodyOn,
+    markDistinct,
+    markSent,
+  } = useListingDraft.getState()
 
   return (
     // The preview names no viewer's place, so nothing here may ping the IP lookup.
@@ -254,13 +301,14 @@ function Flow({ target }: { target: FlowTarget }) {
           event && session.base ? { eventId: event.id, baseDraft: session.base, event } : undefined
         }
         country={target.country}
+        distinct={session.distinct}
         draft={session.draft}
+        duplicates={duplicates}
         intent={session.intent}
         languageOptions={hints.languages}
         listing={listing}
         nobodyOn={session.nobodyOn}
         placeMap={hasMap && !isWide}
-        placeNotice={<NearbyClassNotice classes={nearby} />}
         placeSearch={hasMap}
         preview={
           <ListingDetails
@@ -281,6 +329,7 @@ function Flow({ target }: { target: FlowTarget }) {
         onChange={update}
         onClearReport={clearReport}
         onClose={dismiss}
+        onDistinct={markDistinct}
         onIntent={setIntent}
         onNobodyOn={setNobodyOn}
         onSender={setSender}

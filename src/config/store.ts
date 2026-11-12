@@ -369,6 +369,11 @@ type ListingDraftState = {
   reported: boolean
   /** A report that someone went and found nobody: the day they went, or '' if not given. */
   nobodyOn: string | null
+  /**
+   * The listed classes the sender said this new one is not, answering "this may already be
+   * listed": the suggestion stops naming them, and the note tells the admins.
+   */
+  distinct: number[]
   /** Set once a submission resolves. Nothing reads the row back, so this is the whole receipt. */
   sent: boolean
 }
@@ -383,6 +388,8 @@ type ListingDraftAction = {
   /** Takes back a "stopped running" report, as a change on Check is undone. */
   clearReport: () => void
   setNobodyOn: (date: string | null) => void
+  /** "It's a different class": the sender answers the duplicate suggestion for these classes. */
+  markDistinct: (ids: number[]) => void
   markSent: () => void
 }
 
@@ -397,8 +404,10 @@ export const useListingDraft = create<ListingDraftState & ListingDraftAction>((s
   intent: null,
   reported: false,
   nobodyOn: null,
+  distinct: [],
   sent: false,
-  start: ({ key, entry }, { draft, base, step }) =>
+  // A flow opened on an answer (`?fix=`) records it as `setIntent` would.
+  start: ({ key, entry }, { draft, base, step, intent = null }) =>
     set(() => ({
       key,
       entry,
@@ -407,9 +416,10 @@ export const useListingDraft = create<ListingDraftState & ListingDraftAction>((s
       sender: EMPTY_SENDER,
       step,
       reviewed: step === 'review',
-      intent: null,
-      reported: false,
-      nobodyOn: null,
+      intent,
+      reported: intent === 'stopped',
+      nobodyOn: intent === 'nobody' ? '' : null,
+      distinct: [],
       sent: false,
     })),
   setSender: (patch) => set((state) => ({ sender: { ...state.sender, ...patch } })),
@@ -424,6 +434,7 @@ export const useListingDraft = create<ListingDraftState & ListingDraftAction>((s
     })),
   clearReport: () => set(() => ({ reported: false })),
   setNobodyOn: (nobodyOn) => set(() => ({ nobodyOn })),
+  markDistinct: (ids) => set((state) => ({ distinct: [...new Set([...state.distinct, ...ids])] })),
   markSent: () => set(() => ({ sent: true })),
 }))
 

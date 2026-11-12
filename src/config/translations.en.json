@@ -518,8 +518,6 @@
       "online_url_placeholder": "https://",
       "room_label": "Room or floor (optional)",
       "title": "Where does the class take place?",
-      "nearby_title": "Is it one of these?",
-      "nearby_action": "Correct it",
       "offline_hint": "At a venue",
       "online_hint": "Zoom or similar",
       "address_help": "Type the street and number, then pick it from the list.",
@@ -533,7 +531,6 @@
       "manual_street": "Street and number",
       "manual_city": "Town or city",
       "manual_postcode": "Postcode",
-      "nearby_body_near": "There’s already a class listed close to this address. If it’s the same class, correct that listing instead. If not, just carry on.",
       "manual_country": "Country",
       "manual_city_toggle": "Can’t find it? Type the city instead",
       "manual_city_back": "Search for the city instead",
@@ -587,7 +584,8 @@
       "nobody_date": "When did you go? (optional)",
       "nobody_placeholder": "For example: the door was locked and the room was dark.",
       "nobody_default": "Someone went to this class and found nobody there.",
-      "nobody_default_on": "Someone went to this class on %{date} and found nobody there."
+      "nobody_default_on": "Someone went to this class on %{date} and found nobody there.",
+      "distinct": "The sender says this is a different class from %{classes}, which meets at the same place and time."
     },
     "changes": {
       "title": "Check your suggestion",
@@ -624,6 +622,11 @@
       "manual": "On the map",
       "manual_value": "Not found by the search — sent in your note so our admins can place it.",
       "venue": "Building"
+    },
+    "duplicate": {
+      "title": "Is this class already listed?",
+      "body": "A class at the same place already meets at this time.",
+      "distinct": "It’s a different class"
     },
     "signup": {
       "title": "How do people sign up?",

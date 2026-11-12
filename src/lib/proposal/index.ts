@@ -1,4 +1,5 @@
 export {
+  FIX_STEPS,
   LISTING_STEPS,
   draftLocation,
   draftPlace,
@@ -12,10 +13,27 @@ export {
   type ListingRepeats,
   type ListingSection,
   type ListingSender,
+  type ListingSignup,
   type ListingStep,
   type MonthlyBy,
 } from './draft'
-export { eventToDraft, openListing, type OpenedListing } from './event'
+export {
+  DUPLICATE_PARAM,
+  FIX_PARAM,
+  SIGNUP_PARAM,
+  STEP_PARAM,
+  addLinkFromParams,
+  fixFromParams,
+  type AddLink,
+} from './deep-link'
+export { SAME_PLACE_KM, possibleDuplicates, schedulesOverlap } from './duplicates'
+export {
+  eventToDraft,
+  openListing,
+  scheduleToDraft,
+  type DraftScheduleFields,
+  type OpenedListing,
+} from './event'
 export {
   buildProposal,
   correctionPatch,
@@ -27,6 +45,7 @@ export {
   type ScheduleFields,
 } from './patch'
 export { featureToPlace, searchProximity, type PickedPlace } from './place'
+export { SAMPLE_PLACE, SAMPLE_SIGNUP_LINK, copyPlaceAndTime, sampleDraft } from './sample'
 export {
   acceptedEvent,
   draftPreviewSchedule,

@@ -1,9 +1,9 @@
 import type { Event, EventSchedule } from '@/types'
-import type { ListingDraft, ListingRepeats, ListingStep } from './draft'
+import type { FixIntent, ListingDraft, ListingRepeats, ListingStep } from './draft'
 
 import { DateTime } from 'luxon'
 
-import { emptyDraft } from './draft'
+import { FIX_STEPS, emptyDraft } from './draft'
 import { placeFromAddress } from './place'
 import { firstRuleDate } from './schedule'
 
@@ -20,16 +20,22 @@ const REPEATS: Record<NonNullable<EventSchedule['recurrenceType']>, ListingRepea
   MONTHLY: 'monthly',
 }
 
-/** A published class, opened for correction. */
-export const eventToDraft = (event: Event): ListingDraft => {
-  const schedule = event.schedule
+/** The schedule fields a draft reads, as a published class's stored schedule says them. */
+export type DraftScheduleFields = Pick<
+  ListingDraft,
+  'firstDate' | 'startTime' | 'endTime' | 'repeats' | 'monthlyBy' | 'endDate' | 'timeZone'
+>
+
+/** A stored schedule read back as the draft's fields — a correction's, or a copied class's. */
+export const scheduleToDraft = (
+  schedule: EventSchedule | null | undefined,
+): DraftScheduleFields => {
   const timeZone = schedule ? scheduleTimeZone(schedule) : 'UTC'
   const start = schedule ? scheduleStart(schedule) : null
   const until =
     schedule?.endingType === 'until' && schedule.untilDate
       ? DateTime.fromJSDate(schedule.untilDate).setZone(timeZone)
       : null
-  const regionName = event.region?.name ?? undefined
   const ruleStart =
     start &&
     schedule?.recurrenceType === 'MONTHLY' &&
@@ -43,16 +49,6 @@ export const eventToDraft = (event: Event): ListingDraft => {
       : start
 
   return {
-    eventType: event.eventType,
-    address:
-      event.eventType === 'offline' && event.address ? placeFromAddress(event.address) : null,
-    venueName: event.address?.venueName ?? '',
-    room: event.address?.room ?? '',
-    onlineUrl: '',
-    city:
-      event.eventType === 'online' && regionName
-        ? { label: regionName, city: regionName, location: {} }
-        : null,
     firstDate: ruleStart?.toISODate() ?? '',
     startTime: start?.toFormat('HH:mm') ?? '',
     endTime: schedule?.endTime ?? '',
@@ -65,6 +61,25 @@ export const eventToDraft = (event: Event): ListingDraft => {
         : 'date',
     endDate: until?.toISODate() ?? '',
     timeZone,
+  }
+}
+
+/** A published class, opened for correction. */
+export const eventToDraft = (event: Event): ListingDraft => {
+  const regionName = event.region?.name ?? undefined
+
+  return {
+    eventType: event.eventType,
+    address:
+      event.eventType === 'offline' && event.address ? placeFromAddress(event.address) : null,
+    venueName: event.address?.venueName ?? '',
+    room: event.address?.room ?? '',
+    onlineUrl: '',
+    city:
+      event.eventType === 'online' && regionName
+        ? { label: regionName, city: regionName, location: {} }
+        : null,
+    ...scheduleToDraft(event.schedule),
     contactName: event.contactName ?? '',
     contactPhone: event.contactPhone ?? '',
     // The widget never reads a class's contact address, so a correction starts it blank.
@@ -78,19 +93,29 @@ export const eventToDraft = (event: Event): ListingDraft => {
   }
 }
 
-export type OpenedListing = { draft: ListingDraft; base?: ListingDraft; step: ListingStep }
+export type OpenedListing = {
+  draft: ListingDraft
+  base?: ListingDraft
+  step: ListingStep
+  /** A correction opened on one answer to "What needs fixing?" (`?fix=`), not the question. */
+  intent?: FixIntent
+}
 
 /**
  * Where a flow opens. A new listing starts blank on Where. A correction opens on "what needs
- * fixing?", prefilled from the published class, which is also the base its diff is taken from.
+ * fixing?", prefilled from the published class, which is also the base its diff is taken from —
+ * or, given an answer to it (`fix`), already on the step that answer opens.
  */
 export const openListing = (
-  opening: { event: Event } | { timeZone: string; languages: string[] },
+  opening: { event: Event; fix?: FixIntent | null } | { timeZone: string; languages: string[] },
 ): OpenedListing => {
   if ('event' in opening) {
     const draft = eventToDraft(opening.event)
+    const { fix } = opening
 
-    return { draft, base: draft, step: 'fix' }
+    return fix
+      ? { draft, base: draft, step: FIX_STEPS[fix], intent: fix }
+      : { draft, base: draft, step: 'fix' }
   }
 
   return { draft: emptyDraft(opening.timeZone, opening.languages), step: 'where' }

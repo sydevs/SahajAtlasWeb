@@ -1,20 +1,13 @@
-import type { ListingDraft, ListingErrors } from '@/lib/proposal'
+import type { ListingDraft, ListingErrors, ListingSignup } from '@/lib/proposal'
 
 import { useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 import { ClipboardList, ExternalLink } from 'lucide-react'
 
-import {
-  ChoiceCard,
-  FIELD_TEXT,
-  GroupHeading,
-  NameHelp,
-  StepHeading,
-  ValidatedInput,
-  radioKeys,
-} from './fields'
+import { GroupHeading, NameHelp, StepHeading, TextField } from './fields'
 import { useAutoTitle } from './summary'
 
+import { RadioGroup } from '@/components/atoms/RadioGroup'
 import { Textarea } from '@/components/atoms/Textarea'
 import { FormField } from '@/components/molecules/FormField'
 import { MultiSelect } from '@/components/molecules/MultiSelect'
@@ -38,9 +31,10 @@ export type DetailsStepProps = {
 }
 
 /**
- * Step 3: the class's name, since it heads the listing, then the language and everything else
- * that helps someone decide to come, all optional. Grouped by what a newcomer asks: what
- * language, who do I ask, what is it like.
+ * Step 3: the class's name, since it heads the listing, then the language and where people sign
+ * up — the two that shape the listing's Register button — then everything else that helps
+ * someone decide to come, all optional: who do I ask, what is it like. The sign-up link sits
+ * right under the sign-up question it answers.
  */
 export function DetailsStep({
   draft,
@@ -63,7 +57,7 @@ export function DetailsStep({
     <div className="flex flex-col gap-6">
       <StepHeading intro={t('submit.details.intro_language')} title={t('submit.details.title')} />
 
-      <ValidatedInput
+      <TextField
         help={
           <NameHelp
             guidance={
@@ -104,9 +98,50 @@ export function DetailsStep({
         />
       </FormField>
 
+      {!keepTitle && (
+        <FormField as="fieldset" label={t('submit.signup.title')} name="submit-signup">
+          {(control) => (
+            <RadioGroup
+              {...control}
+              name="submit-signup"
+              options={[
+                {
+                  value: 'here',
+                  label: t('submit.signup.here'),
+                  hint: t('submit.signup.here_hint'),
+                  icon: ClipboardList,
+                },
+                {
+                  value: 'elsewhere',
+                  label: t('submit.signup.elsewhere'),
+                  hint: t('submit.signup.elsewhere_hint'),
+                  icon: ExternalLink,
+                },
+              ]}
+              value={draft.signup}
+              onChange={(signup) => onChange({ signup: signup as ListingSignup })}
+            />
+          )}
+        </FormField>
+      )}
+
+      <TextField
+        error={errors.website && t('submit.errors.online_url')}
+        help={signupLink ? t('submit.signup.link_help') : undefined}
+        id="submit-website"
+        inputMode="url"
+        label={t(signupLink ? 'submit.signup.link_label' : 'submit.more.website_label')}
+        maxLength={USER_SUBMISSION_VALUE_MAX}
+        placeholder="https://"
+        required={signupLink}
+        type="url"
+        value={draft.website}
+        onChange={(event) => onChange({ website: event.target.value })}
+      />
+
       <section className="flex flex-col gap-3">
         <GroupHeading help={t('submit.details.contact_help')} title={t('submit.contact.title')} />
-        <ValidatedInput
+        <TextField
           autoComplete="off"
           id="submit-contact-name"
           label={t('submit.contact.name_label')}
@@ -115,7 +150,7 @@ export function DetailsStep({
           onChange={(event) => onChange({ contactName: event.target.value })}
         />
         <div className="grid grid-cols-1 gap-3 min-[420px]:grid-cols-2">
-          <ValidatedInput
+          <TextField
             autoComplete="off"
             id="submit-contact-phone"
             inputMode="tel"
@@ -125,7 +160,7 @@ export function DetailsStep({
             value={draft.contactPhone}
             onChange={(event) => onChange({ contactPhone: event.target.value })}
           />
-          <ValidatedInput
+          <TextField
             autoComplete="off"
             error={errors.contactEmail && t('submit.errors.email')}
             id="submit-contact-email"
@@ -140,54 +175,17 @@ export function DetailsStep({
       </section>
 
       <FormField htmlFor="submit-description" label={t('submit.about.title')}>
-        <Textarea
-          className={FIELD_TEXT}
-          id="submit-description"
-          maxLength={userSubmissionValueMax('message')}
-          placeholder={t('submit.about.description_placeholder')}
-          rows={4}
-          value={draft.description}
-          onChange={(event) => onChange({ description: event.target.value })}
-        />
+        {(control) => (
+          <Textarea
+            {...control}
+            maxLength={userSubmissionValueMax('message')}
+            placeholder={t('submit.about.description_placeholder')}
+            rows={4}
+            value={draft.description}
+            onChange={(event) => onChange({ description: event.target.value })}
+          />
+        )}
       </FormField>
-
-      {!keepTitle && (
-        <fieldset className="flex flex-col gap-3">
-          <legend className="mb-2 text-sm font-semibold">{t('submit.signup.title')}</legend>
-          <div className="flex flex-col gap-2" role="radiogroup" {...radioKeys}>
-            <ChoiceCard
-              hint={t('submit.signup.here_hint')}
-              icon={ClipboardList}
-              label={t('submit.signup.here')}
-              selected={draft.signup === 'here'}
-              tabStop={draft.signup === 'here'}
-              onSelect={() => onChange({ signup: 'here' })}
-            />
-            <ChoiceCard
-              hint={t('submit.signup.elsewhere_hint')}
-              icon={ExternalLink}
-              label={t('submit.signup.elsewhere')}
-              selected={draft.signup === 'elsewhere'}
-              tabStop={draft.signup === 'elsewhere'}
-              onSelect={() => onChange({ signup: 'elsewhere' })}
-            />
-          </div>
-        </fieldset>
-      )}
-
-      <ValidatedInput
-        error={errors.website && t('submit.errors.online_url')}
-        help={signupLink ? t('submit.signup.link_help') : undefined}
-        id="submit-website"
-        inputMode="url"
-        label={t(signupLink ? 'submit.signup.link_label' : 'submit.more.website_label')}
-        maxLength={USER_SUBMISSION_VALUE_MAX}
-        placeholder="https://"
-        required={signupLink}
-        type="url"
-        value={draft.website}
-        onChange={(event) => onChange({ website: event.target.value })}
-      />
     </div>
   )
 }

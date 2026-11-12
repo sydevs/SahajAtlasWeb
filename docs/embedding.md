@@ -672,6 +672,29 @@ replaces your page's entry, so Back still leaves your page. To make an embed ope
 specific, use the [`atlas` parameter](#atlas-and-how-the-route-is-chosen) — the default the
 widget starts at when your page's URL names no route.
 
+### Opening adding or correcting a class at one stage
+
+The add-a-class and correction flows open at one stage from a parameter in the route's own query
+— beside the route, inside `atlas` (`lib/proposal/deep-link.ts`). They exist so each stage can be
+reviewed, and previewed by our pipeline, on its own:
+
+| Route        | Parameter                                           | Opens                                                         |
+| ------------ | --------------------------------------------------- | ------------------------------------------------------------- |
+| `…/add`      | `step=place`, `time`, `details` or `check`          | that stage, with the stages before it filled with a sample    |
+| `…/add`      | `signup=elsewhere` (or `here`)                      | Details, "On Meetup or another site" chosen and a link filled |
+| `…/add`      | `duplicate=<class id>`                              | Check, re-adding that class's place and time, so it is named  |
+| `…/correct`  | `fix=time`, `place`, `details`, `nobody`, `stopped` or `other` | that answer to "What needs fixing?"                |
+
+```
+https://your-site.example/classes?atlas=/gb/south-east/london/add?step=time
+https://your-site.example/classes?atlas=/gb/south-east/london/1204/correct?fix=place
+```
+
+⚠ **Don't link visitors to the `add` ones.** They fill in a sample class (Balham Library, London)
+so the stage reads as a host would see it; link visitors to `…/add` itself. Each parameter opens
+its state alone. To combine two, write the `&` inside `atlas` as `%26`, or your page reads the
+second as its own parameter. The flow reads them once, when it opens, and never writes them.
+
 ### If the parameter name collides
 
 `atlas` is not a WordPress reserved query var and does not collide with anything we know of. If

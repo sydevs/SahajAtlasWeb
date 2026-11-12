@@ -14,6 +14,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { ProposalForm } from './ProposalForm'
+import { type DuplicateClass } from './DuplicateNotice'
 
 import { draftPreviewSchedule, emptyDraft, featureToPlace, previewEvent } from '@/lib/proposal'
 import { challengeFrameStub } from '@/test-support/turnstile-frame'
@@ -99,8 +100,11 @@ function Harness({
   startIntent = null,
   reviewed,
   withListing = false,
+  duplicates,
 }: {
   reviewed?: boolean
+  /** Listed classes the view found at the same place and time. */
+  duplicates?: DuplicateClass[]
   /** Hands the form the listing it previews, and a correction its published class — so Check
    *  renders the change list a correction's Undo lives on. */
   withListing?: boolean
@@ -116,6 +120,7 @@ function Harness({
   const [nobodyOn, setNobodyOn] = useState<string | null>(null)
   const [sent, setSent] = useState(false)
   const [sender, setSender] = useState({ email: '', note: '' })
+  const [distinct, setDistinct] = useState<number[]>([])
 
   return (
     <ProposalForm
@@ -125,7 +130,9 @@ function Harness({
           ? { ...correction, event: { ...asListing(correction.baseDraft), id: correction.eventId } }
           : correction
       }
+      distinct={distinct}
       draft={draft}
+      duplicates={duplicates}
       intent={intent}
       listing={withListing ? asListing(draft) : undefined}
       nobodyOn={nobodyOn}
@@ -137,6 +144,7 @@ function Harness({
       onChange={(patch) => setDraft((current) => ({ ...current, ...patch }))}
       onClearReport={() => setReported(false)}
       onClose={() => {}}
+      onDistinct={(ids) => setDistinct((was) => [...was, ...ids])}
       onIntent={(picked, at) => {
         setIntent(picked)
         setReported((was) => was || picked === 'stopped')
@@ -350,9 +358,12 @@ describe('ProposalForm submit', () => {
 })
 
 /** Presses the button whose visible text is `label` — the copy keys, under the identity `t`. */
+/** Presses a button, or picks a radio card, by its text. */
 async function press(label: string) {
-  const button = [...container.querySelectorAll('button')].find(
-    (candidate) => candidate.textContent === label,
+  const button = [...container.querySelectorAll<HTMLElement>('button, label')].find(
+    (candidate) =>
+      candidate.textContent === label &&
+      (candidate.tagName === 'BUTTON' || candidate.querySelector('input[type="radio"]')),
   )
 
   if (!button) throw new Error(`no ${label} button`)
@@ -779,6 +790,73 @@ describe('ProposalForm details the walk cannot see', () => {
     await press('submit.when.weekly')
 
     expect(container.querySelector<HTMLInputElement>('#submit-end-date')?.value).toBe('2031-06-01')
+
+    await act(async () => root.unmount())
+  })
+})
+
+describe('ProposalForm possible duplicates', () => {
+  const balham: DuplicateClass = {
+    id: 939,
+    title: 'Evening Meditation at Balham Library',
+    path: '/gb/south-east/london/balham-library/939',
+    event: asListing(inPerson),
+  }
+
+  it('names a listed class at the same place and time on Check, with a link to it', async () => {
+    const root = await mount({ initial: inPerson, duplicates: [balham] })
+
+    expect(container.textContent).toContain('submit.duplicate.title')
+    expect(container.querySelector(`a[href*="balham-library/939"]`)?.textContent).toContain(
+      balham.title,
+    )
+
+    await act(async () => root.unmount())
+  })
+
+  it('takes "it’s a different class" as an answer, and tells the admins', async () => {
+    sdk.request.mockResolvedValue({ json: async () => ({ doc: { id: 15 } }) })
+
+    const root = await mount({ initial: inPerson, duplicates: [balham] })
+
+    await press('submit.duplicate.distinct')
+    expect(container.textContent).not.toContain('submit.duplicate.title')
+
+    await type('#submit-sender-email', 'ada@example.org')
+    await submit()
+
+    expect(sdk.request.mock.calls[0][0].json.submissionData).toContainEqual({
+      field: 'note',
+      value: 'submit.note.distinct',
+    })
+
+    await act(async () => root.unmount())
+  })
+
+  it('says nothing on a correction, which moves a listed class rather than adding one', async () => {
+    const root = await mount({
+      initial: { ...inPerson, room: 'Hall B' },
+      correction: { eventId: 507, baseDraft: inPerson },
+      duplicates: [balham],
+    })
+
+    expect(container.textContent).not.toContain('submit.duplicate.title')
+
+    await act(async () => root.unmount())
+  })
+})
+
+describe('ProposalForm choices', () => {
+  it('keeps the chosen day when it is pressed again, as a radio group does', async () => {
+    const root = await mount({ initial: inPerson, startAt: 'when' })
+    const tuesday = () =>
+      container.querySelector<HTMLButtonElement>('[role="radiogroup"] [aria-checked="true"]')
+    const chosen = tuesday()
+
+    expect(chosen).not.toBeNull()
+    await act(async () => chosen?.click())
+
+    expect(tuesday()?.getAttribute('aria-label')).toBe(chosen?.getAttribute('aria-label'))
 
     await act(async () => root.unmount())
   })

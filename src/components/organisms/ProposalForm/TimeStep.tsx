@@ -1,4 +1,4 @@
-import type { ListingDraft, ListingErrors, ListingRepeats } from '@/lib/proposal'
+import type { ListingDraft, ListingErrors, ListingRepeats, MonthlyBy } from '@/lib/proposal'
 import type { Event } from '@/types'
 import type { TranslationKey } from '@/types/i18next'
 
@@ -7,11 +7,14 @@ import { useTranslation } from 'react-i18next'
 import { DateTime } from 'luxon'
 import { CalendarDays } from 'lucide-react'
 
-import { StepHeading, ValidatedInput, radioKeys } from './fields'
+import { StepHeading, TextField } from './fields'
 import { useScheduleLines } from './summary'
 
 import { Checkbox } from '@/components/atoms/Checkbox'
 import { Combobox } from '@/components/atoms/Combobox'
+import { RadioGroup } from '@/components/atoms/RadioGroup'
+import { ToggleGroup, ToggleGroupItem } from '@/components/atoms/ToggleGroup'
+import { FormField } from '@/components/molecules/FormField'
 import { useLocale } from '@/hooks/use-locale'
 import {
   draftWeekday,
@@ -52,10 +55,8 @@ const WEEK_KEYS = {
   '-1': 'event.recurrence.monthly_last',
 } as const
 
-const segment =
-  'flex h-11 items-center justify-center rounded-md px-2 text-sm font-medium transition-colors outline-none focus-visible:ring-2 focus-visible:ring-focus'
-const segmentOn = 'bg-primary-9 text-primary-foreground shadow-sm'
-const segmentOff = 'text-foreground hover:bg-gray-3'
+/** The duration group's value for "Set the end time", beside the lengths in minutes. */
+const CUSTOM = 'custom'
 
 export type TimeStepProps = {
   /** A correction: the class already runs, so its past start isn't asked about. */
@@ -124,83 +125,68 @@ export function TimeStep({
     <div className="flex flex-col gap-5">
       <StepHeading title={t('submit.when.title')} />
 
-      <fieldset className="flex flex-col gap-2">
-        <legend className="mb-2 text-sm font-medium">{t('submit.when.how_often')}</legend>
-        <div
-          className="grid grid-cols-3 gap-1 rounded-lg bg-gray-2 p-1"
-          role="radiogroup"
-          {...radioKeys}
-        >
-          {REPEATS.map(({ value, label }) => (
-            <button
-              key={value}
-              aria-checked={draft.repeats === value}
-              className={`${segment} ${draft.repeats === value ? segmentOn : segmentOff}`}
-              role="radio"
-              tabIndex={draft.repeats === value ? 0 : -1}
-              type="button"
-              onClick={() => onChange({ repeats: value })}
-            >
-              {t(label)}
-            </button>
-          ))}
-        </div>
-      </fieldset>
+      <FormField as="fieldset" label={t('submit.when.how_often')} name="submit-repeats">
+        {(control) => (
+          <ToggleGroup
+            {...control}
+            joined
+            required
+            className="grid grid-cols-3"
+            size="md"
+            type="single"
+            value={draft.repeats}
+            onValueChange={(repeats) => onChange({ repeats: repeats as ListingRepeats })}
+          >
+            {REPEATS.map(({ value, label }) => (
+              <ToggleGroupItem key={value} className="px-1" value={value}>
+                {t(label)}
+              </ToggleGroupItem>
+            ))}
+          </ToggleGroup>
+        )}
+      </FormField>
 
       {weekly && (
-        <fieldset className="flex flex-col">
-          <legend className="mb-2 text-sm font-medium">{t('submit.when.weekday_label')} *</legend>
-          <div
-            aria-describedby={dayMissing ? 'submit-weekday-error' : undefined}
-            className="grid grid-cols-7 gap-1"
-            role="radiogroup"
-            {...radioKeys}
-          >
-            {weekdays.map((label, index) => {
-              const day = index + 1
-              const on = weekday === day
-              // One tab stop per group: the chosen day, or Monday before there is one.
-
-              return (
-                <button
+        <FormField
+          required
+          as="fieldset"
+          error={dayMissing && t('submit.errors.weekday')}
+          label={t('submit.when.weekday_label')}
+          name="submit-weekday"
+        >
+          {(control) => (
+            <ToggleGroup
+              {...control}
+              required
+              className="grid grid-cols-7"
+              size="md"
+              type="single"
+              value={weekday === null ? '' : String(weekday)}
+              onValueChange={(day) =>
+                onChange({
+                  firstDate: firstDateOnDay(draft.firstDate, Number(day), {
+                    today: todayIn(draft.timeZone),
+                    keepStart: correcting,
+                  }),
+                })
+              }
+            >
+              {weekdays.map((label, index) => (
+                <ToggleGroupItem
                   key={label}
-                  aria-checked={on}
-                  aria-invalid={dayMissing && index === 0 ? true : undefined}
                   aria-label={weekdaysLong[index]}
-                  className={`h-11 rounded-md border text-sm font-medium transition-colors outline-none focus-visible:ring-2 focus-visible:ring-focus ${
-                    on
-                      ? 'border-primary-9 bg-primary-9 text-primary-foreground'
-                      : dayMissing
-                        ? 'border-danger-7 hover:bg-gray-2'
-                        : 'border-gray-6 hover:bg-gray-2'
-                  }`}
-                  role="radio"
-                  tabIndex={on || (weekday === null && index === 0) ? 0 : -1}
-                  type="button"
-                  onClick={() => {
-                    if (on) return
-                    onChange({
-                      firstDate: firstDateOnDay(draft.firstDate, day, {
-                        today: todayIn(draft.timeZone),
-                        keepStart: correcting,
-                      }),
-                    })
-                  }}
+                  className="px-0"
+                  value={String(index + 1)}
                 >
                   {label.replace(/\.$/, '')}
-                </button>
-              )
-            })}
-          </div>
-          {dayMissing && (
-            <span className="mt-1 text-xs text-danger-11" id="submit-weekday-error" role="alert">
-              {t('submit.errors.weekday')}
-            </span>
+                </ToggleGroupItem>
+              ))}
+            </ToggleGroup>
           )}
-        </fieldset>
+        </FormField>
       )}
 
-      <ValidatedInput
+      <TextField
         required
         className="max-w-48"
         error={errors.startTime && t('submit.errors.start_time')}
@@ -220,38 +206,33 @@ export function TimeStep({
         }}
       />
 
-      <fieldset className="flex flex-col">
-        <legend className="mb-2 text-sm font-medium">{t('submit.when.duration')}</legend>
-        <div className="grid grid-cols-2 gap-2" role="radiogroup" {...radioKeys}>
-          {DURATIONS.map(({ minutes, label }) => {
-            const on = minutes === null ? custom : !custom && duration === minutes
+      <FormField as="fieldset" label={t('submit.when.duration')} name="submit-duration">
+        {(control) => (
+          <ToggleGroup
+            {...control}
+            required
+            className="grid grid-cols-2"
+            size="md"
+            type="single"
+            value={custom ? CUSTOM : duration === null ? '' : String(duration)}
+            onValueChange={(picked) => {
+              const minutes = picked === CUSTOM ? null : Number(picked)
 
-            return (
-              <button
-                key={label}
-                aria-checked={on}
-                className={`h-11 rounded-md border px-2 text-sm font-medium transition-colors outline-none focus-visible:ring-2 focus-visible:ring-focus ${
-                  on
-                    ? 'border-primary-9 bg-primary-9 text-primary-foreground'
-                    : 'border-gray-6 hover:bg-gray-2'
-                }`}
-                role="radio"
-                tabIndex={on || (!custom && duration === null && minutes === 60) ? 0 : -1}
-                type="button"
-                onClick={() => {
-                  setCustom(minutes === null)
-                  setChosen(minutes)
-                  if (minutes !== null && draft.startTime) {
-                    onChange({ endTime: endAfter(draft.startTime, minutes) })
-                  }
-                }}
-              >
+              setCustom(minutes === null)
+              setChosen(minutes)
+              if (minutes !== null && draft.startTime) {
+                onChange({ endTime: endAfter(draft.startTime, minutes) })
+              }
+            }}
+          >
+            {DURATIONS.map(({ minutes, label }) => (
+              <ToggleGroupItem key={label} value={minutes === null ? CUSTOM : String(minutes)}>
                 {t(label)}
-              </button>
-            )
-          })}
-        </div>
-      </fieldset>
+              </ToggleGroupItem>
+            ))}
+          </ToggleGroup>
+        )}
+      </FormField>
 
       {!custom && duration !== null && draft.endTime && (
         <p aria-live="polite" className="-mt-3 text-sm text-gray-11">
@@ -260,7 +241,7 @@ export function TimeStep({
       )}
 
       {custom && (
-        <ValidatedInput
+        <TextField
           className="max-w-48"
           help={
             draft.endTime && draft.startTime && draft.endTime < draft.startTime
@@ -278,7 +259,7 @@ export function TimeStep({
       {/* A weekly class's first date follows from its day, so it shows once there is one —
           prefilled, and still movable for a class that starts later. */}
       {(!weekly || weekday !== null) && !sinceLongAgo && (
-        <ValidatedInput
+        <TextField
           required
           error={errors.firstDate && t('submit.errors.first_date')}
           help={weekly ? t('submit.when.first_help') : undefined}
@@ -297,32 +278,17 @@ export function TimeStep({
       )}
 
       {draft.repeats === 'monthly' && monthly.length > 1 && (
-        <fieldset className="flex flex-col">
-          <legend className="mb-2 text-sm font-medium">{t('submit.when.monthly_by')}</legend>
-          <div className="flex flex-col gap-2" role="radiogroup" {...radioKeys}>
-            {monthly.map(({ by, label }) => {
-              const on = monthlyBy === by
-
-              return (
-                <button
-                  key={by}
-                  aria-checked={on}
-                  className={`min-h-11 rounded-md border px-3 py-2 text-start text-sm font-medium transition-colors outline-none focus-visible:ring-2 focus-visible:ring-focus ${
-                    on
-                      ? 'border-primary-9 bg-primary-9 text-primary-foreground'
-                      : 'border-gray-6 hover:bg-gray-2'
-                  }`}
-                  role="radio"
-                  tabIndex={on ? 0 : -1}
-                  type="button"
-                  onClick={() => onChange({ monthlyBy: by })}
-                >
-                  {label}
-                </button>
-              )
-            })}
-          </div>
-        </fieldset>
+        <FormField as="fieldset" label={t('submit.when.monthly_by')} name="submit-monthly-by">
+          {(control) => (
+            <RadioGroup
+              {...control}
+              name="submit-monthly-by"
+              options={monthly.map(({ by, label }) => ({ value: by, label }))}
+              value={monthlyBy}
+              onChange={(by) => onChange({ monthlyBy: by as MonthlyBy })}
+            />
+          )}
+        </FormField>
       )}
 
       {repeating && (
@@ -337,7 +303,7 @@ export function TimeStep({
             {t('submit.when.ends_toggle')}
           </Checkbox>
           {ends && (
-            <ValidatedInput
+            <TextField
               required
               error={
                 (endMissing && t('submit.errors.last_date')) ||

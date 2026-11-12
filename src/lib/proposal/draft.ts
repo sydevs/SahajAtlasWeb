@@ -25,6 +25,19 @@ export type ListingSection = Exclude<(typeof LISTING_STEPS)[number], 'review'>
 /** What a correction set out to fix, as its first screen asks it. */
 export type FixIntent = 'when' | 'where' | 'details' | 'nobody' | 'stopped' | 'other'
 
+/**
+ * The step each answer to "what needs fixing?" opens on: the fields that fix it, or the note for
+ * a report no field holds.
+ */
+export const FIX_STEPS: Record<FixIntent, ListingStep> = {
+  when: 'when',
+  where: 'where',
+  details: 'details',
+  nobody: 'note',
+  stopped: 'note',
+  other: 'note',
+}
+
 export type ListingRepeats = 'once' | 'weekly' | 'monthly'
 
 /**

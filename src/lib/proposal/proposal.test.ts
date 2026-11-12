@@ -616,6 +616,17 @@ describe('openListing', () => {
 
     expect(opened).toEqual({ draft: emptyDraft('Europe/Paris', ['fr']), step: 'where' })
   })
+
+  it('opens a correction on one answer, on the step that answer leads to (`?fix=`)', () => {
+    const event = publishedEvent()
+
+    expect(openListing({ event, fix: 'where' })).toMatchObject({ step: 'where', intent: 'where' })
+    expect(openListing({ event, fix: 'stopped' })).toMatchObject({
+      step: 'note',
+      intent: 'stopped',
+    })
+    expect(openListing({ event, fix: null }).step).toBe('fix')
+  })
 })
 
 describe('the weekday a schedule starts on', () => {
