@@ -63,9 +63,10 @@ cover everything a host would notice since the widget was first deployed.
   within a day, without them doing anything. Outlook.com, Office 365 and Yahoo still add the
   next session only — Microsoft publishes no subscribe address we can use — and **"Download .ics
   file" is now its own row, last**, where it was the Apple row's label. ⚠ **In a sandboxed
-  iframe, `allow-downloads` now matters for that last row alone**, and every other row needs
-  `allow-popups` as before — plus a sandbox may refuse the `webcal:` address of the two
-  subscribe rows even with it, since the operating system opens it rather than the browser. See
+  iframe, `allow-downloads` now matters for that last row alone**, and the four rows that open a
+  page need `allow-popups` as before — while the Apple Calendar row needs neither, and no flag
+  covers it: a sandbox may refuse the `webcal:` address, which the operating system opens rather
+  than the browser. See
   [Embedding in an iframe]. **No CSP or Permissions-Policy change**: every row is a navigation,
   not a fetch. A script embed and an unsandboxed frame need nothing.
 
