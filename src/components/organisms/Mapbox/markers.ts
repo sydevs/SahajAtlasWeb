@@ -119,11 +119,14 @@ const pin = (fill: string, outline: string): MarkerImage =>
 // text.
 // The ring's radius is inset by half the stroke, so the edge's outer rim lands
 // where the ring used to end rather than being clipped by the canvas.
+// ⚠ The ring's translucency is `fill-opacity`, never `opacity`: the latter
+// applies to the whole element, so it would composite the edge away too and
+// leave it short of the ratio `markers.outline.test.ts` holds the colour to.
 const cluster = (fill: string, ring: string, outline: string): MarkerImage =>
   svg(
     38,
     38,
-    `<circle cx="19" cy="19" r="${19 - OUTLINE_WIDTH / 2}" fill="${ring}" opacity="0.706" stroke="${outline}" stroke-width="${OUTLINE_WIDTH}"/>
+    `<circle cx="19" cy="19" r="${19 - OUTLINE_WIDTH / 2}" fill="${ring}" fill-opacity="0.706" stroke="${outline}" stroke-width="${OUTLINE_WIDTH}"/>
   <circle cx="19" cy="19" r="13.8" fill="${fill}" opacity="0.914"/>`,
   )
 

@@ -2,7 +2,7 @@ import { colord, extend } from 'colord'
 import a11yPlugin from 'colord/plugins/a11y'
 import { describe, expect, it } from 'vitest'
 
-import { BASEMAP_SURFACES, MARKER_OUTLINE } from './markers'
+import { BASEMAP_SURFACES, DEFAULT_MARKER_COLORS, MARKER_OUTLINE, markerImages } from './markers'
 
 import { readRepoSource } from '@/test-support/repo-source'
 
@@ -33,6 +33,20 @@ describe('the fixed marker outline', () => {
 
     expect(colord(swapped.light).contrast(BASEMAP_SURFACES.light.land)).toBeLessThan(3)
     expect(colord(swapped.dark).contrast(BASEMAP_SURFACES.dark.water)).toBeLessThan(3)
+  })
+
+  it.each(['light', 'dark'] as const)('renders the %s edge at full strength', (mode) => {
+    // The ratio above is a property of the constant. What a viewer gets is the
+    // composite, so an element-wide `opacity` beside a `stroke` dims the edge to
+    // something the cases above would still pass. `fill-opacity` is how the ring
+    // stays translucent without taking its own edge with it.
+    for (const image of markerImages(DEFAULT_MARKER_COLORS, mode).values()) {
+      for (const element of image.svg.match(/<(?:circle|path)\b[^>]*>/g) ?? []) {
+        if (!element.includes('stroke=')) continue
+
+        expect(element).not.toMatch(/\sopacity=/)
+      }
+    }
   })
 
   it('names the styles the surfaces were measured from', () => {

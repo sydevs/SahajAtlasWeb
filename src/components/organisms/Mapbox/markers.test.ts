@@ -31,12 +31,12 @@ const STOCK = {
   [MARKER_IDS.cluster]: {
     width: 38,
     height: 38,
-    svg: '<svg xmlns="http://www.w3.org/2000/svg" width="76" height="76" viewBox="0 0 38 38"><circle cx="19" cy="19" r="18.4" fill="#8CCDC4" opacity="0.706" stroke="#000000" stroke-width="1.2"/>\n  <circle cx="19" cy="19" r="13.8" fill="#37BB92" opacity="0.914"/></svg>',
+    svg: '<svg xmlns="http://www.w3.org/2000/svg" width="76" height="76" viewBox="0 0 38 38"><circle cx="19" cy="19" r="18.4" fill="#8CCDC4" fill-opacity="0.706" stroke="#000000" stroke-width="1.2"/>\n  <circle cx="19" cy="19" r="13.8" fill="#37BB92" opacity="0.914"/></svg>',
   },
   [MARKER_IDS.clusterSelected]: {
     width: 38,
     height: 38,
-    svg: '<svg xmlns="http://www.w3.org/2000/svg" width="76" height="76" viewBox="0 0 38 38"><circle cx="19" cy="19" r="18.4" fill="#F2A179" opacity="0.706" stroke="#000000" stroke-width="1.2"/>\n  <circle cx="19" cy="19" r="13.8" fill="#E47C5A" opacity="0.914"/></svg>',
+    svg: '<svg xmlns="http://www.w3.org/2000/svg" width="76" height="76" viewBox="0 0 38 38"><circle cx="19" cy="19" r="18.4" fill="#F2A179" fill-opacity="0.706" stroke="#000000" stroke-width="1.2"/>\n  <circle cx="19" cy="19" r="13.8" fill="#E47C5A" opacity="0.914"/></svg>',
   },
 } as const
 
