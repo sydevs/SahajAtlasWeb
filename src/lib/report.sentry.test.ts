@@ -5,8 +5,6 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { atlasError } from './report'
 
-import { mockErrorKinds } from '@/mocks/errors'
-
 /**
  * The Sentry half of the seam (issue #108). This is kept in its own file, because
  * every case needs a fresh module registry. `report.ts` memoizes the SDK load
@@ -162,7 +160,7 @@ const EXPECTED: Record<ErrorKind, boolean> = {
 }
 
 describe('which failures are worth an event', () => {
-  it.each(mockErrorKinds.map((kind) => [kind, EXPECTED[kind]] as const))(
+  it.each((Object.keys(EXPECTED) as ErrorKind[]).map((kind) => [kind, EXPECTED[kind]] as const))(
     '%s → reported: %s',
     async (kind, reported) => {
       const { reportInternalError } = await freshSeam()
