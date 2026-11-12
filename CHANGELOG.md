@@ -44,6 +44,17 @@ cover everything a host would notice since the widget was first deployed.
 
 ### Changed
 
+- **Pins, cluster bubbles and area rings now carry a fixed outline, and a brand colour may be
+  adjusted so visitors can read it.** ([#392]) The outline is one colour per basemap — dark on
+  the light map, pale on the dark one — so nothing about the colour of a pin depends on what the
+  map is showing underneath it, and every pin has a visible edge over pale land, over sea, and
+  over a coastline. Separately, a colour that would leave panel text, a chip or the selected
+  class unreadable is shifted in lightness until it is readable, and the pins are painted from
+  that same adjusted colour; the colour you stored is unchanged, and only what the widget paints
+  moves. Our own default colours are adjusted by the same rules, so an unbranded embed's panels
+  and buttons shift slightly too. No change to your CSP, your Permissions Policy or any
+  parameter.
+
 - **A page that _replaces_ `<sahaj-atlas>` now keeps the widget's data too.** ([#349]) [#149] made
   the same element returning keep it; a host that destroys the element and creates a new one still
   lost everything, which is exactly what Wix's router does on Back and Forward. The new element now
@@ -1019,6 +1030,7 @@ must-revalidate`, pinned rather than left to the CDN default. The production dom
 [#374]: https://github.com/sydevs/SahajAtlasWeb/pull/374
 [#380]: https://github.com/sydevs/SahajAtlasWeb/pull/380
 [#370]: https://github.com/sydevs/SahajAtlasWeb/pull/370
+[#392]: https://github.com/sydevs/SahajAtlasWeb/pull/392
 [#371]: https://github.com/sydevs/SahajAtlasWeb/pull/371
 [#393]: https://github.com/sydevs/SahajAtlasWeb/issues/393
 [#363]: https://github.com/sydevs/SahajAtlasWeb/pull/363

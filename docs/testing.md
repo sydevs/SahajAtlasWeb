@@ -591,8 +591,11 @@ widest and **5.0s** for `i18n.ts`, medians of three. Both fell while the widest 
 read the two figures as a pair taken on one machine, never as a trend. Re-measured 2026-11-01, at
 19: **5.5s** for the widest and **6.2s** for `i18n.ts`, medians of three on 4 cores. Re-measured
 2026-11-07, at 20: **4.0s** for the widest and **4.4s** for `i18n.ts`, medians of three on 4
-cores. The slowest edit sits at about a third of the bound, so the ceiling is the narrower
-constraint of the two — a slot is spent long before a second is.
+cores. Re-measured 2026-11-11, at 21 — `markers.outline.test.ts` reads two repo files to hold
+the fixed marker outline against the basemap surfaces it was measured from (#389): **6.5s** for
+the widest and **7.0s** for `i18n.ts`, medians of three. The slowest edit sits at about half the
+bound, so the ceiling is the narrower constraint of the two — a slot is spent long before a
+second is.
 ⚠ **The 0.12s class is smaller than #289 found it**: `src/views/FullInterface.tsx` selected
 nothing until `MapFrame.test.tsx` named it as a quoted repo-relative path, and now costs **2.2s**
 per edit for the wiring pin it previously had no per-edit coverage from at all. A quoted literal
@@ -650,8 +653,8 @@ to select from. The full lane still runs in the lean gate (`.claude/skills/pr-pr
 in CI, so this narrows the inner loop, not the gate.
 
 **What holds the budget is the selection's width, and `scripts/select-unit-specs.test.ts` pins
-that**: the widest edit in the tree, exhaustively through the real composition, at 20 against a
-ceiling of 20 — no headroom, so the next spec reading a repo file through `repo-source` trips it,
+that**: the widest edit in the tree, exhaustively through the real composition, at 21 against a
+ceiling of 21 — no headroom, so the next spec reading a repo file through `repo-source` trips it,
 and the answer is to time the hook and ratchet, never to drop a spec. ⚠ **Two PRs can trip it
 without either one doing so alone**: #322's `mobile-zoom.test.ts` and #324's `attribution.test.ts`
 each took a slot, and the pin went red on the merge rather than on either branch; #328's

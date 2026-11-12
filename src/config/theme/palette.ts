@@ -23,9 +23,11 @@
 
 import { colord, extend, type Colord } from 'colord'
 import a11yPlugin from 'colord/plugins/a11y'
+import labPlugin from 'colord/plugins/lab'
 
-// This plugin adds `.contrast()`. It picks a black or white on-color by WCAG ratio.
-extend([a11yPlugin])
+// `a11y` adds `.contrast()`, which picks a black or white on-color by WCAG ratio.
+// `lab` adds `.delta()`, the only colour-versus-colour measure here.
+extend([a11yPlugin, labPlugin])
 
 export type ThemeMode = 'light' | 'dark'
 
@@ -58,10 +60,16 @@ export type ColorScale = Record<Step, string> & { on: string }
 // The static defaults in `globals.css` are these seeds run through `buildScale()`.
 // The `palette.defaults.test.ts` gate asserts that both stay in sync.
 // So a ladder change cannot silently desync the default theme from every tenant theme.
+// ⚠ `secondary` and `contrast` are retuned from `#A1C3D7` and `#e08e79`, which
+// rendered at 2.0:1 and 2.5:1 against white and so failed `surface`. `primary`
+// keeps its seed: no teal passes `panel-text` at any saturation worth calling
+// teal, so the correction below moves its text step instead.
+// ⚠ SahajCloud's `ATLAS_DEFAULT_COLORS` (`src/lib/clients/appearance.ts`) mirrors
+// these three.
 export const DEFAULT_SEEDS = {
   primary: '#1E6C71',
-  secondary: '#A1C3D7',
-  contrast: '#e08e79',
+  secondary: '#5e98ba',
+  contrast: '#d8735a',
 } as const
 
 // This holds fixed per-step lightness, as HSL L%, for steps 1 through 8 and 11 through 12.
@@ -137,32 +145,256 @@ export const SOLID_STEP: Step = 9
 
 const clamp = (n: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, n))
 
+/**
+ * The legibility checks every role is corrected until it passes.
+ *
+ * There is deliberately no basemap check: a pin, a bubble and a ring each carry a
+ * fixed outline for the style they are drawn on (`Mapbox/markers.ts`), so no brand
+ * colour is ever measured against the map.
+ */
+export const PALETTE_CHECKS = ['panel-text', 'surface', 'selected-distinct'] as const
+
+export type PaletteCheck = (typeof PALETTE_CHECKS)[number]
+
+export type BrandRole = (typeof BRAND_ROLES)[number]
+
+const PANEL_TEXT_RATIO = 4.5
+const SURFACE_RATIO = 3
+
+// ⚠ `colord`'s `delta()` answers CIEDE2000 **divided by 100**, so this is ΔE2000
+// 20 — a difference anyone sees — and not the imperceptible 0.2 it reads as.
+const SELECTED_DELTA = 0.2
+
+// The app surface step 9 is measured against: `--background` in `globals.css`,
+// which is fixed rather than tenant-wired.
+const APP_BACKGROUND: Record<ThemeMode, string> = { light: '#ffffff', dark: '#121212' }
+
+// Step 11 is panel text, and `text-*-11` on `bg-*-3` is its common pairing. Step 3
+// is the worst of the three in both modes, so checking all three costs nothing and
+// states the rule rather than its shortcut.
+const PANEL_STEPS = [1, 2, 3] as const
+
+// How far step 9 may travel for `selected-distinct`. The same two limits the clamp
+// below applies, taken as a range rather than a nudge: near hue 60 or 184 two
+// same-hue seeds need about 35 lightness points between them.
+const SOLID_RANGE: Record<ThemeMode, readonly [number, number]> = {
+  light: [0, LIGHT_MAX_LIGHTNESS],
+  dark: [DARK_MIN_LIGHTNESS, 100],
+}
+
+// Light mode darkens, dark mode lightens — both move a step away from its own
+// background. The smallest shift that passes, so a seed that already passes never
+// moves at all.
+function correct(start: number, mode: ThemeMode, passes: (lightness: number) => boolean): number {
+  const direction = mode === 'dark' ? 1 : -1
+
+  for (let l = start; l >= 0 && l <= 100; l += direction) if (passes(l)) return l
+
+  return mode === 'dark' ? 100 : 0
+}
+
+/** A role's ramp, and which checks had to move a step to produce it. */
+export type RoleScale = { scale: ColorScale; adjustedBy: PaletteCheck[] }
+
 // This derives a 12-step color scale from a seed hex, for the given mode.
-// Steps 1 through 8, and 11 through 12, walk the fixed lightness ladder at the seed's hue and capped saturation.
-// Step 9 is the brand solid: the seed's own lightness, clamped to stay visible.
+// Steps 1 through 8, and 12, walk the fixed lightness ladder at the seed's hue and capped saturation.
+// Step 9 is the brand solid: the seed's own lightness, clamped to stay visible, then corrected until it passes `surface`.
 // Step 10 is its hover tone.
-// `on` is the readable on-color for the solid.
-export function buildScale(seedHex: string, mode: ThemeMode): ColorScale {
+// Step 11 is panel text, corrected until it passes `panel-text`.
+// `on` is the readable on-color for the solid, computed after the correction.
+function buildRole(seedHex: string, mode: ThemeMode): RoleScale {
   const { h, s, l } = colord(seedHex).toHsl()
   const saturation = Math.min(s, MAX_SATURATION)
   const ladder = mode === 'dark' ? DARK_L : LIGHT_L
+  const tone = (lightness: number) => colord({ h, s: saturation, l: lightness })
+  const adjustedBy: PaletteCheck[] = []
 
   // Step 9, the solid, uses the seed's own lightness, clamped to stay visible.
+  const clamped =
+    mode === 'dark' ? Math.max(l, DARK_MIN_LIGHTNESS) : Math.min(l, LIGHT_MAX_LIGHTNESS)
+  const l9 = correct(clamped, mode, (c) => tone(c).contrast(APP_BACKGROUND[mode]) >= SURFACE_RATIO)
+
+  if (l9 !== clamped) adjustedBy.push('surface')
+
+  const l11 = correct(ladder[11], mode, (c) =>
+    PANEL_STEPS.every((step) => tone(c).contrast(tone(ladder[step])) >= PANEL_TEXT_RATIO),
+  )
+
+  if (l11 !== ladder[11]) adjustedBy.push('panel-text')
+
   // Step 10, the hovered solid, nudges toward the canvas edge.
   // It goes darker in light mode and lighter in dark mode.
-  const l9 = mode === 'dark' ? Math.max(l, DARK_MIN_LIGHTNESS) : Math.min(l, LIGHT_MAX_LIGHTNESS)
   const l10 = mode === 'dark' ? clamp(l9 + 6, 0, 95) : clamp(l9 - 6, 5, 100)
-
-  const scale = { on: foregroundFor(colord({ h, s: saturation, l: l9 })) } as ColorScale
+  const scale = { on: foregroundFor(tone(l9)) } as ColorScale
 
   for (let step = 1 as Step; step <= 12; step = (step + 1) as Step) {
     const stepL =
-      step === SOLID_STEP ? l9 : step === 10 ? l10 : ladder[step as Exclude<Step, 9 | 10>]
+      step === SOLID_STEP
+        ? l9
+        : step === 10
+          ? l10
+          : step === 11
+            ? l11
+            : ladder[step as Exclude<Step, 9 | 10>]
 
     scale[step] = channel(h, saturation, stepL)
   }
 
-  return scale
+  return { adjustedBy, scale }
+}
+
+/** One role's 12-step ramp for a mode. */
+export function buildScale(seedHex: string, mode: ThemeMode): ColorScale {
+  return buildRole(seedHex, mode).scale
+}
+
+/**
+ * Every usable role's ramp, with `contrast`'s solid moved away from `primary`'s.
+ *
+ * ⚠ **`selected-distinct` compares two roles, so it cannot live in `buildRole`.**
+ * This is the only entry point that sees the whole palette, and the paint
+ * (`applyPalette`), the map (`markerColors`) and the report (`paletteReport`) all
+ * come through it — so what a viewer sees and what the report says cannot disagree.
+ *
+ * A role with no usable seed is absent, which is the refusal `setRole` already
+ * makes by writing nothing.
+ */
+export function buildPalette(
+  palette: PaletteRoles,
+  mode: ThemeMode,
+): Partial<Record<BrandRole, RoleScale>> {
+  const built: Partial<Record<BrandRole, RoleScale>> = {}
+
+  for (const role of BRAND_ROLES) {
+    const seed = palette[role]
+
+    if (seed && isBrandSeed(seed)) built[role] = buildRole(seed, mode)
+  }
+
+  const { contrast, primary } = built
+
+  if (contrast && primary) separateSolid(contrast, hexOf(primary.scale[SOLID_STEP]), mode)
+
+  return built
+}
+
+// The selected class must read as a different colour from the ones around it, so
+// `contrast`'s solid moves away from `primary`'s until it does — the nearest
+// lightness in the mode's whole range that clears ΔE2000 20 and still passes
+// `surface`. With none, the furthest apart the range reaches, which is the trade
+// #389 accepted near hues 60 and 184 in dark mode.
+// ⚠ That trade gives up the separation alone, so the fallback is chosen only from
+// the lightnesses that pass `surface` — starting at the one `buildRole` just
+// corrected, which passes by construction.
+function separateSolid(role: RoleScale, primarySolid: string, mode: ThemeMode): void {
+  const [low, high] = SOLID_RANGE[mode]
+  const { h, s, l } = colord(`hsl(${role.scale[SOLID_STEP]})`).toHsl()
+  const tone = (lightness: number) => colord({ h, s, l: lightness })
+  const delta = (lightness: number) => tone(lightness).delta(primarySolid)
+  const legible = (lightness: number) =>
+    tone(lightness).contrast(APP_BACKGROUND[mode]) >= SURFACE_RATIO
+
+  if (delta(l) >= SELECTED_DELTA) return
+
+  let best = l
+
+  for (let offset = 1; offset <= 100; offset += 1) {
+    for (const candidate of [l + offset, l - offset]) {
+      if (candidate < low || candidate > high) continue
+      if (!legible(candidate)) continue
+      if (delta(candidate) > delta(best)) best = candidate
+      if (delta(candidate) >= SELECTED_DELTA) {
+        applySolid(role, h, s, candidate, mode)
+
+        return
+      }
+    }
+  }
+
+  applySolid(role, h, s, best, mode)
+}
+
+function applySolid(role: RoleScale, h: number, s: number, l9: number, mode: ThemeMode): void {
+  role.scale[SOLID_STEP] = channel(h, s, l9)
+  role.scale[10] = channel(h, s, mode === 'dark' ? clamp(l9 + 6, 0, 95) : clamp(l9 - 6, 5, 100))
+  role.scale.on = foregroundFor(colord({ h, s, l: l9 }))
+  role.adjustedBy.push('selected-distinct')
+}
+
+/** What the atlas rendered for each role, and why it is not what was entered. */
+export type RoleReport = {
+  /** The seed the service chose, verbatim. */
+  entered: string | null
+  /** The step-9 hex that renders in each mode. */
+  light: string
+  dark: string
+  /**
+   * A seed that renders unchanged in light mode, or `null` when no light-mode check
+   * moved step 9 — ⚠ which includes a role adjusted only by `panel-text`, since that
+   * moves a ladder step no seed can express.
+   */
+  suggested: string | null
+  adjustedBy: PaletteCheck[]
+}
+
+export type PaletteReport = Partial<Record<BrandRole, RoleReport>>
+
+// ⚠ **A rendered step 9 is not always a seed that renders itself.** The ladder
+// works in HSL and the hex it emits is a quantisation of that, so feeding the hex
+// back can land a point away and be corrected again — which would offer the
+// volunteer a suggestion that changes the colour a second time. This walks to the
+// seed that renders unchanged, which is at most a step or two away. The bound is
+// a guard, not a budget: with no fixed point the entered colour's own rendering
+// is still the honest answer.
+function settledSeed(start: string, palette: PaletteRoles, role: BrandRole): string {
+  const seen = new Set<string>()
+  let seed = start
+
+  for (let attempt = 0; attempt < 32; attempt += 1) {
+    const built = buildPalette({ ...palette, [role]: seed }, 'light')[role]
+
+    if (!built) return seed
+
+    const rendered = hexOf(built.scale[SOLID_STEP])
+
+    if (rendered === seed) return seed
+
+    // Two candidates can render each other, each landing a point the other side
+    // of the bar. Stepping one further in the correcting direction settles it
+    // with margin, where following the rendering alone would oscillate forever.
+    seed = seen.has(rendered)
+      ? shiftHex(rendered, { lightness: -1, maxLightness: 100, saturation: 0 })
+      : rendered
+    seen.add(rendered)
+  }
+
+  return seed
+}
+
+/** Each role's rendered solid and the checks that moved it, in both modes. */
+export function paletteReport(palette: PaletteRoles): PaletteReport {
+  const light = buildPalette(palette, 'light')
+  const dark = buildPalette(palette, 'dark')
+  const report: PaletteReport = {}
+
+  for (const role of BRAND_ROLES) {
+    const inLight = light[role]
+
+    if (!inLight || !dark[role]) continue
+
+    const movedSolid = inLight.adjustedBy.some((check) => check !== 'panel-text')
+    const lightHex = hexOf(inLight.scale[SOLID_STEP])
+
+    report[role] = {
+      adjustedBy: [...new Set([...inLight.adjustedBy, ...dark[role].adjustedBy])],
+      dark: hexOf(dark[role].scale[SOLID_STEP]),
+      entered: palette[role] ?? null,
+      light: lightHex,
+      suggested: movedSolid ? settledSeed(lightHex, palette, role) : null,
+    }
+  }
+
+  return report
 }
 
 // A brand seed must carry a real hue.
@@ -192,6 +424,9 @@ const isBrandSeed = (seedHex: string): boolean => {
 // Never hand-roll that parse: it would be a second, unpinned copy of the format
 // above.
 const hexOf = (channels: string): string => colord(`hsl(${channels})`).toHex()
+
+/** One step of an already-built ramp, as `#rrggbb`. */
+export const scaleHex = (scale: ColorScale, step: Step): string => hexOf(scale[step])
 
 /** One step of a seed's ramp, as `#rrggbb`. */
 export function stepHex(
@@ -228,17 +463,11 @@ export function shiftHex(
   }).toHex()
 }
 
-const setRole = (root: HTMLElement, token: string, seedHex: string, mode: ThemeMode) => {
-  if (!isBrandSeed(seedHex)) return false
-
-  const scale = buildScale(seedHex, mode)
-
+const setRole = (root: HTMLElement, token: BrandRole, scale: ColorScale) => {
   root.style.setProperty(`--${token}-on`, scale.on)
   for (let step = 1 as Step; step <= 12; step = (step + 1) as Step) {
     root.style.setProperty(`--${token}-${step}`, scale[step])
   }
-
-  return true
 }
 
 // This lists every inline variable `applyPalette` can write.
@@ -260,9 +489,15 @@ const MANAGED_VARS = [
 export function applyPalette(root: HTMLElement, palette: PaletteRoles, mode: ThemeMode) {
   for (const name of MANAGED_VARS) root.style.removeProperty(name)
 
-  if (palette.primary) setRole(root, 'primary', palette.primary, mode)
-  if (palette.secondary) setRole(root, 'secondary', palette.secondary, mode)
-  if (palette.contrast) setRole(root, 'contrast', palette.contrast, mode)
+  // Through `buildPalette`, so the paint carries `selected-distinct` and matches
+  // what `paletteReport` and the map say about the same palette.
+  const built = buildPalette(palette, mode)
+
+  for (const role of BRAND_ROLES) {
+    const resolved = built[role]
+
+    if (resolved) setRole(root, role, resolved.scale)
+  }
 
   // The background surface derives like every other role.
   // It honors the seed's hue and capped saturation.
