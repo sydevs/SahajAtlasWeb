@@ -981,6 +981,7 @@ export interface Config {
       cleanupOrphanedMedia: TaskCleanupOrphanedMedia;
       deliverSubmission: TaskDeliverSubmission;
       expireEvents: TaskExpireEvents;
+      recoverLostJobs: TaskRecoverLostJobs;
       screenSubmission: TaskScreenSubmission;
       sendPostEventFollowUps: TaskSendPostEventFollowUps;
       sendDigests: TaskSendDigests;
@@ -3291,6 +3292,7 @@ export interface PayloadJob {
           | 'cleanupOrphanedMedia'
           | 'deliverSubmission'
           | 'expireEvents'
+          | 'recoverLostJobs'
           | 'screenSubmission'
           | 'sendPostEventFollowUps'
           | 'sendDigests'
@@ -3342,6 +3344,7 @@ export interface PayloadJob {
         | 'cleanupOrphanedMedia'
         | 'deliverSubmission'
         | 'expireEvents'
+        | 'recoverLostJobs'
         | 'screenSubmission'
         | 'sendPostEventFollowUps'
         | 'sendDigests'
@@ -9939,14 +9942,6 @@ export interface SyAtlasTranslationsEventActionsStrings {
    */
   download_ics?: string;
   /**
-   * Add-to-calendar sub-label under each menu row that subscribes, so later changes and cancellations arrive on their own.
-   */
-  calendar_keeps_updated?: string;
-  /**
-   * Add-to-calendar sub-label under a menu row that can add the next session alone, not the whole series.
-   */
-  calendar_next_session_only?: string;
-  /**
    * Image carousel: open the photo full size.
    */
   view_photo?: string;
@@ -11032,6 +11027,16 @@ export interface TaskExpireEvents {
     trashed: number;
     remindersSent: number;
     failed: number;
+  };
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "TaskRecoverLostJobs".
+ */
+export interface TaskRecoverLostJobs {
+  input?: unknown;
+  output: {
+    cancelled: number;
   };
 }
 /**
