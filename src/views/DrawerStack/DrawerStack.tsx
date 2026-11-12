@@ -57,6 +57,7 @@ import {
   placedPathname,
   resolveStack,
 } from '@/lib/shape'
+import { popupOwnsEscape } from '@/views/DrawerStack/escape-owner'
 import { wakesSheetLoop } from '@/views/DrawerStack/sheet-wake'
 import { openStop, sheetOpens } from '@/views/DrawerStack/sheet-open'
 import { ViewLayer } from '@/views/DrawerStack/ViewLayer'
@@ -285,10 +286,6 @@ function TopView({
       return <secondary.SubmitView entry={entry} />
   }
 }
-
-/** A search field whose suggestion list is showing — the one control that owns Escape. */
-const isOpenSuggestionList = (node: EventTarget) =>
-  node instanceof Element && node.matches('input[aria-expanded="true"]')
 
 /**
  * The add-a-class flow's way in on a wide map (#147): a filled button in the map's bottom-right
@@ -1121,10 +1118,9 @@ export function DrawerStack() {
        * to collapse to.
        */
       onEscapeKeyDown={(event) => {
-        // Rung zero: an open suggestion list inside the sheet (the add-a-class address search)
-        // owns Escape. Closing the list must not also close the form and its draft. The path,
-        // not the target: inside the embed's shadow root the target is the host element.
-        if (event.composedPath().some(isOpenSuggestionList)) {
+        // Rung zero: an open popup owns Escape. Closing a suggestion list must not also close the
+        // form and its draft, nor closing a filter chip's popover leave the page and its filters.
+        if (popupOwnsEscape(event.composedPath(), overlayContainer())) {
           event.preventDefault()
 
           return
