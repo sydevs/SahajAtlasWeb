@@ -283,11 +283,16 @@ export function buildPalette(
 // lightness in the mode's whole range that clears ΔE2000 20 and still passes
 // `surface`. With none, the furthest apart the range reaches, which is the trade
 // #389 accepted near hues 60 and 184 in dark mode.
+// ⚠ That trade gives up the separation alone, so the fallback is chosen only from
+// the lightnesses that pass `surface` — starting at the one `buildRole` just
+// corrected, which passes by construction.
 function separateSolid(role: RoleScale, primarySolid: string, mode: ThemeMode): void {
   const [low, high] = SOLID_RANGE[mode]
   const { h, s, l } = colord(`hsl(${role.scale[SOLID_STEP]})`).toHsl()
   const tone = (lightness: number) => colord({ h, s, l: lightness })
   const delta = (lightness: number) => tone(lightness).delta(primarySolid)
+  const legible = (lightness: number) =>
+    tone(lightness).contrast(APP_BACKGROUND[mode]) >= SURFACE_RATIO
 
   if (delta(l) >= SELECTED_DELTA) return
 
@@ -296,11 +301,9 @@ function separateSolid(role: RoleScale, primarySolid: string, mode: ThemeMode): 
   for (let offset = 1; offset <= 100; offset += 1) {
     for (const candidate of [l + offset, l - offset]) {
       if (candidate < low || candidate > high) continue
+      if (!legible(candidate)) continue
       if (delta(candidate) > delta(best)) best = candidate
-      if (
-        delta(candidate) >= SELECTED_DELTA &&
-        tone(candidate).contrast(APP_BACKGROUND[mode]) >= SURFACE_RATIO
-      ) {
+      if (delta(candidate) >= SELECTED_DELTA) {
         applySolid(role, h, s, candidate, mode)
 
         return
