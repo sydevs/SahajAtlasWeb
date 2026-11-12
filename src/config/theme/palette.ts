@@ -132,6 +132,12 @@ const MAX_SATURATION = 60
 const LIGHT_MAX_LIGHTNESS = 70
 const DARK_MIN_LIGHTNESS = 60
 
+// Dark mode caps its lightness too. White passes `surface` on the dark page, so
+// without a cap a near-white brand renders near-white — and three near-white
+// seeds render three pins nobody can tell apart. At 80 the seed's hue survives,
+// so pale tan, pale blue and pale pink stay tan, blue and pink.
+const DARK_MAX_LIGHTNESS = 80
+
 // The page and panel surface, `--background`, uses the ladder's app-background step.
 // So a themed background is a near-white tint of the seed's hue in light mode, and a near-black tint in dark mode.
 // This shade stays light or dark enough to keep the fixed neutral text legible.
@@ -152,7 +158,7 @@ const clamp = (n: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, n
  * fixed outline for the style they are drawn on (`Mapbox/markers.ts`), so no brand
  * colour is ever measured against the map.
  */
-export const PALETTE_CHECKS = ['panel-text', 'surface', 'selected-distinct'] as const
+export const PALETTE_CHECKS = ['panel-text', 'surface', 'selected-distinct', 'near-white'] as const
 
 export type PaletteCheck = (typeof PALETTE_CHECKS)[number]
 
@@ -179,6 +185,9 @@ const PANEL_STEPS = [1, 2, 3] as const
 // same-hue seeds need about 35 lightness points between them.
 const SOLID_RANGE: Record<ThemeMode, readonly [number, number]> = {
   light: [0, LIGHT_MAX_LIGHTNESS],
+  // ⚠ Up to 100, past the near-white cap: two same-hue seeds can need the extra
+  // room to separate, and a selected pin that matches its neighbours is worse
+  // than a pale one.
   dark: [DARK_MIN_LIGHTNESS, 100],
 }
 
@@ -210,8 +219,13 @@ function buildRole(seedHex: string, mode: ThemeMode): RoleScale {
   const adjustedBy: PaletteCheck[] = []
 
   // Step 9, the solid, uses the seed's own lightness, clamped to stay visible.
+  const maxLightness = mode === 'dark' ? DARK_MAX_LIGHTNESS : LIGHT_MAX_LIGHTNESS
   const clamped =
-    mode === 'dark' ? Math.max(l, DARK_MIN_LIGHTNESS) : Math.min(l, LIGHT_MAX_LIGHTNESS)
+    mode === 'dark' ? clamp(l, DARK_MIN_LIGHTNESS, maxLightness) : Math.min(l, maxLightness)
+
+  // Reported, unlike the near-black floor: it is the cap that turns a pale brand
+  // into a visibly different colour, which is what a volunteer needs telling.
+  if (l > maxLightness) adjustedBy.push('near-white')
   const l9 = correct(clamped, mode, (c) => tone(c).contrast(APP_BACKGROUND[mode]) >= SURFACE_RATIO)
 
   if (l9 !== clamped) adjustedBy.push('surface')
