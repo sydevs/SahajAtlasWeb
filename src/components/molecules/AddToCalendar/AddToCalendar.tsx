@@ -43,10 +43,9 @@ export type CalendarLinkTarget = { label: string; href: string; opensPage: boole
  * dropped and the three single-session link-outs stay — they compose their own URL from the
  * schedule and work regardless, so dropping them would retire working rows for nothing.
  *
- * shortcut: no row carries the sub-label its service earns, because both strings are new CMS
- * copy and this repo may not write one. Add it — `event.actions.calendar_keeps_updated` under
- * Apple and Google, `event.actions.calendar_next_session_only` under the other three — once
- * sydevs/SahajCloud#1131 is deployed and `pnpm sync:translations --write` has run.
+ * No row says in words whether it subscribes. The two strings for that were CMS copy, and
+ * sydevs/SahajCloud#1134 dropped the keys rather than ship them, so adding a sub-label here
+ * starts by filing the copy on SahajCloud.
  */
 export function calendarLinkTargets(event: IcsEventInput): CalendarLinkTarget[] {
   const feed = buildFeedSubscribeUrl(event)
