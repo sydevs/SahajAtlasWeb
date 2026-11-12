@@ -30,6 +30,7 @@ import { classifyError, errorMessage } from '@/lib/report'
 import {
   baseStackEntry,
   isoCountryCode,
+  listsPlaces,
   nearestKnownRegion,
   resolveStack,
   submitTitleKey,
@@ -337,11 +338,13 @@ function HomeLoading() {
 
 /**
  * A place loading: RegionView's header (the Back row and the calendar work already, and the name
- * shows once the region tree has it), its field and Filters row, then its list. A place's Online
- * classes is a list of classes under its title.
+ * shows once it is known — a country's at once), its field and Filters row, then its list: class
+ * cards where classes are coming, place rows where places are. A place's Online classes is a list
+ * of classes under its title.
  */
 function PlaceLoading({ entry }: { entry: Extract<StackEntry, { kind: 'region' | 'online' }> }) {
   const { t } = useTranslation()
+  const { regionNames: displayNames } = useLocale()
   const { data: regions } = useQuery({ ...regionsQuery(), enabled: false })
 
   if (entry.kind === 'online') {
@@ -357,7 +360,12 @@ function PlaceLoading({ entry }: { entry: Extract<StackEntry, { kind: 'region' |
     )
   }
 
-  const name = regions?.find((node) => node.slug === entry.slug)?.name
+  const node = regions?.find(({ slug }) => slug === entry.slug)
+  const code = isoCountryCode(entry.slug)
+  // RegionView's own heading for a country, which needs no region tree.
+  const name = (code && displayNames.of(code)) || node?.name
+  // Before the region tree arrives, the route guesses: nothing three levels down lists places.
+  const places = node ? listsPlaces(node.level) : entry.path.split('/').filter(Boolean).length < 3
 
   return (
     <>
@@ -377,7 +385,7 @@ function PlaceLoading({ entry }: { entry: Extract<StackEntry, { kind: 'region' |
       </DrawerToolbar>
       <DrawerBody>
         <div {...LOADING}>
-          <ListSkeleton />
+          <ListSkeleton variant={places ? 'places' : 'classes'} />
         </div>
       </DrawerBody>
     </>
