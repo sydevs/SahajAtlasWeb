@@ -1,4 +1,5 @@
 import type { Event } from '@sentry/browser'
+import type { ErrorKind } from './report'
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
@@ -144,25 +145,41 @@ describe('the DSN gate', () => {
   })
 })
 
+/**
+ * Every kind, so a row cannot be left out. The table this mirrors is one line per
+ * kind to flip, and the contentious row — `captcha-blocked` — was the one the spec
+ * omitted while it sat wrong for two months (#387). Typing it `Record<ErrorKind, …>`
+ * makes a seventh kind a type error here rather than an untested row.
+ */
+const EXPECTED: Record<ErrorKind, boolean> = {
+  server: true,
+  config: true,
+  'captcha-blocked': true,
+  unknown: true,
+  offline: false,
+  'not-found': false,
+}
+
 describe('which failures are worth an event', () => {
-  it.each([
-    ['server', true],
-    ['config', true],
-    ['unknown', true],
-    ['offline', false],
-    ['not-found', false],
-  ] as const)('%s → reported: %s', async (kind, reported) => {
-    const { reportInternalError } = await freshSeam()
+  it.each(Object.entries(EXPECTED) as Array<[ErrorKind, boolean]>)(
+    '%s → reported: %s',
+    async (kind, reported) => {
+      const { reportInternalError } = await freshSeam()
 
-    reportInternalError(atlasError(kind, `a ${kind} failure`), 'ctx')
-    await vi.waitFor(() => expect(sdk.captured).toHaveLength(reported ? 1 : 0))
+      reportInternalError(atlasError(kind, `a ${kind} failure`), 'ctx')
+      await vi.waitFor(() => expect(sdk.captured).toHaveLength(reported ? 1 : 0))
 
-    // The console line is unconditional, but its level follows the same table.
-    // The host's console must not get a red error for something we have
-    // already called not a malfunction.
-    expect(logged).toHaveBeenCalledTimes(reported ? 1 : 0)
-    expect(warned).toHaveBeenCalledTimes(reported ? 0 : 1)
-  })
+      // Which kind went, not just how many — the tag is what a maintainer
+      // filters the project by.
+      expect(sdk.captured.map((event) => event.tags['atlas.kind'])).toEqual(reported ? [kind] : [])
+
+      // The console line is unconditional, but its level follows the same table.
+      // The host's console must not get a red error for something we have
+      // already called not a malfunction.
+      expect(logged).toHaveBeenCalledTimes(reported ? 1 : 0)
+      expect(warned).toHaveBeenCalledTimes(reported ? 0 : 1)
+    },
+  )
 
   it('tags the event with the classified kind and the boundary that caught it', async () => {
     const { reportInternalError } = await freshSeam()

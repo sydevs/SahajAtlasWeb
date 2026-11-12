@@ -145,6 +145,14 @@ cover everything a host would notice since the widget was first deployed.
   report. What travels is unchanged, and omitting the origin is still supported — see [#123] for
   both.
 
+- **A blocked security check now produces a crash report, and an error-level console line.**
+  ([#387]) When the widget's security check cannot load, the whole widget fails — and that was
+  the one failure it reported to nobody, printing a console warning and sending nothing. A build
+  with a DSN now sends one crash report for it, over the `*.sentry.io` origin that `connect-src`
+  row already covers, and the console line is an error rather than a warning. No parameter,
+  origin or CSP change, and what your visitor sees is unchanged: the same message, and still a
+  retry.
+
 - **"Report an issue" is managed in SahajCloud.** ([#216]) The form's questions, its submit
   label and its confirmation message are authored there, on the contact form named in the atlas
   configuration, and the message reaches that form's own recipient. Where no form is named, the
@@ -1026,3 +1034,4 @@ must-revalidate`, pinned rather than left to the CDN default. The production dom
 [#349]: https://github.com/sydevs/SahajAtlasWeb/issues/349
 [If your page replaces the element]: docs/embedding.md#if-your-page-replaces-the-element
 [On Wix, the script embed is a Custom Element]: docs/embedding.md#on-wix-the-script-embed-is-a-custom-element
+[#387]: https://github.com/sydevs/SahajAtlasWeb/issues/387
