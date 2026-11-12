@@ -62,9 +62,7 @@ describe('DrawerFooter — sticky', () => {
 describe('DrawerBody', () => {
   // Zero where no sticky footer publishes a height, so every other body is unchanged.
   it('ends its content at the published footer height', () => {
-    expect(render(<DrawerBody>content</DrawerBody>)).toContain(
-      'after:h-[var(--sy-footer-h,0px)]',
-    )
+    expect(render(<DrawerBody>content</DrawerBody>)).toContain('after:h-[var(--sy-footer-h,0px)]')
   })
 
   // FilterView, ShareView, RegistrationView and CalendarView all pass `p-4`, which

@@ -549,6 +549,7 @@ export function DrawerStack() {
   const routedFilters =
     top?.kind === 'filters' &&
     (!embed.config.filters || (hasMap && filterChipsFit && !filterOverlay))
+
   // A `/filters` link on a layout with the chips: show the view beneath, with the chips over it.
   useEffect(() => {
     if (!routedFilters) return
