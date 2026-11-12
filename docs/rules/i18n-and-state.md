@@ -250,7 +250,9 @@ source of truth, so all three stay linkable and shareable:
   Serialized under `?sort=` (default `recommended`, omitted). Kept **separate**
   from filters because it is presentation, not a predicate: it only re-orders
   already-fetched results (never a refetch, absent from `filtersKey`) and never
-  lights the filter badge.
+  lights the filter badge. A searched place's groups (`splitResults`) come first,
+  and the order applies within each: no order moves a class out of its place's
+  group.
 - **The searched location** — `?q` / `?center` / `?bbox`, plus **`?cc`** (the
   searched country's ISO code). Read with a local parse helper, not a codec:
   unlike filters or sort, these are *replaced* by a new search, not merged —

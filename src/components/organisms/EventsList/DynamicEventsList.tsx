@@ -25,6 +25,7 @@ import {
   DEFAULT_REVEAL,
   EXCLUDE_EVENT_PARAM,
   addClassPath,
+  asGiven,
   boundsWith,
   hasActiveFilters,
   isoCountryCode,
@@ -88,15 +89,11 @@ export function DynamicEventsList({
   const query = eventsQuery(latitude, longitude, filters, locale)
   const { data: events } = useSuspenseQuery(query)
 
-  // This applies the URL-selected ordering to the fetched list. It is memoized
-  // on the fetched reference, the order and the language, so re-sorting is a cheap
-  // client-side reorder, never a refetch. The query key above stays unchanged.
-  // It takes the base subtag, never the resolved locale: an event's language is ISO 639-1 (#223).
   const order = useSortOrder()
   const excludedId = Number(useSearchParams()[0].get(EXCLUDE_EVENT_PARAM))
-  const sorted = useMemo(
-    () => sortEvents(events, order, languageCode).filter((event) => event.id !== excludedId),
-    [events, order, languageCode, excludedId],
+  const listed = useMemo(
+    () => events.filter((event) => event.id !== excludedId),
+    [events, excludedId],
   )
 
   // This tracks how much of the list is revealed. It is session state, keyed
@@ -132,12 +129,26 @@ export function DynamicEventsList({
     placeName.current = { at, name: searchedPlace }
   }
 
-  // A searched place reads as groups, with `revealRows` still paging the first and last of them.
-  // Without one, nothing is "here", so the list stays one undivided run.
+  // The URL-selected ordering, applied client-side: a re-sort is a reorder, never a refetch, so
+  // the query key above leaves it out. It takes the base subtag, never the resolved locale: an
+  // event's language is ISO 639-1 (#223).
+  //
+  // A searched place reads as groups, with `revealRows` still paging the first and last of them,
+  // and the order applies within each group (`splitResults`). Without one, nothing is "here", so
+  // the list stays one undivided run in that order.
   const sections = useMemo(
     () =>
-      hasSearchCenter ? splitResults(sorted, { ...scope, keepOrder: order === 'soonest' }) : null,
-    [sorted, scope, order, hasSearchCenter],
+      hasSearchCenter
+        ? splitResults(listed, {
+            ...scope,
+            order: (group, distanceOf) => sortEvents(group, order, languageCode, distanceOf),
+          })
+        : null,
+    [listed, scope, order, languageCode, hasSearchCenter],
+  )
+  const sorted = useMemo(
+    () => (sections ? [] : sortEvents(listed, order, languageCode)),
+    [sections, listed, order, languageCode],
   )
   const online = useMemo(
     () => (sections ? orderOnline(sections.online, order, languageCode) : []),
@@ -656,7 +667,10 @@ function NoClassesHere({
     ...eventsQuery(latitude, longitude, DEFAULT_FILTERS, locale),
     enabled: active,
   })
-  const emptied = active && unfiltered ? splitResults(unfiltered, scope).here.length > 0 : false
+  const emptied =
+    active && unfiltered
+      ? splitResults(unfiltered, { ...scope, order: asGiven }).here.length > 0
+      : false
 
   if (countrySite) {
     const country = regionNames.of(countrySite.countryCode) ?? countrySite.countryCode
@@ -717,7 +731,7 @@ function EmptyResults({
   const scope = usePlaceScope([longitude, latitude], bbox)
   const relief = useFilterRelief(latitude, longitude, (events) => {
     if (!scoped) return events.length
-    const { here, justOutside, nearby, online } = splitResults(events, scope)
+    const { here, justOutside, nearby, online } = splitResults(events, { ...scope, order: asGiven })
 
     return here.length + justOutside.length + nearby.length + online.length
   })

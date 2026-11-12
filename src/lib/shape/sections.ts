@@ -121,17 +121,30 @@ export const distanceToNearest = (point: Position, points: Position[]): number |
 
 export type ResultSections<T> = {
   size: PlaceSize
-  /** In the searched place. Order kept from the input. */
+  /** In the searched place. */
   here: T[]
-  /** In-person, just outside the place, within the 25 km nearby cut. Nearest first. */
+  /** In-person, just outside the place, within the 25 km nearby cut. */
   justOutside: T[]
-  /** In-person, in other towns past that cut, up to `OTHER_CITIES_KM`. Nearest first. */
+  /** In-person, in other towns past that cut, up to `OTHER_CITIES_KM`. */
   nearby: T[]
-  /** Online. Order kept from the input. */
+  /** Online. Order kept from the input: `orderOnline` has its own rule for them. */
   online: T[]
-  /** In-person and past the other-cities limit. Nearest first. */
+  /** In-person and past the other-cities limit. */
   distant: T[]
 }
+
+/**
+ * How one group is ordered, given the distance each of its classes is measured by: from the
+ * searched point, or, outside a whole area, from the area's nearest own class.
+ */
+export type GroupOrder<T> = (group: T[], distanceOf: (event: T) => number | undefined) => T[]
+
+/** Nearest first. */
+const nearestFirst = <T>(group: T[], distanceOf: (event: T) => number | undefined): T[] =>
+  [...group].sort((a, b) => byDistance({ distance: distanceOf(a) }, { distance: distanceOf(b) }))
+
+/** The order the classes came in, for a caller that only counts them. */
+export const asGiven = <T>(group: T[]): T[] => group
 
 /** One in-person class, read against a scope. */
 type Located<T> = { event: T; point: Position | null; foreign: boolean; here: boolean }
@@ -170,12 +183,16 @@ const placeRule = ({ bbox, searchCountry, nearVisitor = false }: PlaceScope) => 
 const justOutsideKm = (foreign: boolean) => (foreign ? FOREIGN_NEARBY_KM : NEARBY_KM)
 
 /**
- * Sorts the matches into their groups. `keepOrder` holds the groups outside the place in the order
- * they came in, for a visitor who explicitly asked for Soonest.
+ * Sorts the matches into their groups, then orders each group by `order`.
+ *
+ * The groups come first and the visitor's chosen order applies within each, for every order. A
+ * group says where its classes are ("Just outside Prague"), so no order may move a class out of
+ * it: a Prague class in Czech stays with Prague's classes, and Recommended's language weight puts
+ * it after the English ones there. Online classes are left as they came (`orderOnline`).
  */
 export function splitResults<T extends Sectionable>(
   events: T[],
-  { keepOrder = false, ...scope }: PlaceScope & { keepOrder?: boolean },
+  { order = nearestFirst, ...scope }: PlaceScope & { order?: GroupOrder<T> },
 ): ResultSections<T> {
   const { size, areaBox, locate } = placeRule(scope)
   const groups: ResultSections<T> = {
@@ -218,20 +235,19 @@ export function splitResults<T extends Sectionable>(
 
     const far = km ?? Infinity
 
-    reach.set(event, far)
+    if (km !== undefined) reach.set(event, km)
     if (far <= justOutsideKm(foreign)) groups.justOutside.push(event)
     else if (far <= (foreign ? FOREIGN_OTHER_CITIES_KM : OTHER_CITIES_KM)) groups.nearby.push(event)
     else groups.distant.push(event)
   }
 
-  if (!keepOrder) {
-    const nearestFirst = (a: T, b: T) =>
-      byDistance({ distance: reach.get(a) }, { distance: reach.get(b) })
+  const fromPoint = (event: T) => event.distance
+  const fromReach = (event: T) => reach.get(event)
 
-    groups.justOutside.sort(nearestFirst)
-    groups.nearby.sort(nearestFirst)
-    groups.distant.sort(nearestFirst)
-  }
+  groups.here = order(groups.here, fromPoint)
+  groups.justOutside = order(groups.justOutside, fromReach)
+  groups.nearby = order(groups.nearby, fromReach)
+  groups.distant = order(groups.distant, fromReach)
 
   return groups
 }
@@ -241,7 +257,7 @@ export function splitResults<T extends Sectionable>(
  * and online. Other cities and farther ones wait behind their own fold, under their own count.
  */
 export const localResults = <T extends Sectionable>(events: T[], scope: PlaceScope): T[] => {
-  const { here, justOutside, online } = splitResults(events, { ...scope, keepOrder: true })
+  const { here, justOutside, online } = splitResults(events, { ...scope, order: asGiven })
 
   return [...here, ...justOutside, ...online]
 }

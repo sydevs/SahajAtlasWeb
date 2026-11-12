@@ -17,9 +17,18 @@ const source = readRepoSource('src/components/organisms/EventsList/DynamicEvents
   .replace(/,\)/g, ')')
 
 describe('DynamicEventsList', () => {
+  // Two calls: the undivided list, and each group of a searched place.
   it('sorts against the base language, never the resolved locale', () => {
     // A call this no longer finds is a failure, not an empty pass.
-    expect(source.match(/sortEvents\(/g)).toHaveLength(1)
-    expect(source).toContain('sortEvents(events,order,languageCode)')
+    expect(source.match(/sortEvents\(/g)).toHaveLength(2)
+    expect(source.match(/sortEvents\(\w+,order,languageCode[,)]/g)).toHaveLength(2)
+  })
+
+  // The groups of a searched place follow the visitor's order inside them, measured as each group
+  // was measured: an order applied before the split would be undone by it (Devindra, 12 Nov).
+  it('orders a searched place within its groups, by the distance each group measures', () => {
+    expect(source).toContain(
+      'order:(group,distanceOf)=>sortEvents(group,order,languageCode,distanceOf)',
+    )
   })
 })

@@ -10,7 +10,6 @@ import {
   isUnverified,
   nextOccurrence,
 } from './event'
-import { parseBounds, placeSize } from './sections'
 
 // The list sort order — a presentation concern, kept deliberately apart from the
 // event filters. Filters are predicates (they change WHICH events show, so they key
@@ -25,46 +24,55 @@ export type SortOrder = 'recommended' | 'closest' | 'soonest'
 /** All orderings, in menu order — also the codec's allow-list. */
 export const SORT_ORDERS: readonly SortOrder[] = ['recommended', 'closest', 'soonest']
 
-/** The default ordering with no searched place (the relevance score); omitted from the URL. */
+/**
+ * The default ordering, everywhere: the relevance score. A searched town opens on it too. Its
+ * groups already put the town first, so within them the score is what adds language, timing and
+ * verification to distance. Omitted from the URL.
+ */
 export const DEFAULT_SORT: SortOrder = 'recommended'
 
 /** The URL query param the sort order serializes to (separate from the filter codec). */
 export const SORT_PARAM = 'sort'
 
-/**
- * The ordering a list takes when nobody chose one. Someone who searched a town is asking what is
- * near it, so the nearest comes first: the relevance score could rank Brno at 187 km above Jihlava
- * at 113 km, with no visible reason. A whole country has no useful "closest", since it would only
- * count from the middle of the map, so it keeps the score.
- */
-export const defaultSortFor = (params: URLSearchParams): SortOrder =>
-  params.has('center') && placeSize(parseBounds(params.get('bbox'))) !== 'area'
-    ? 'closest'
-    : DEFAULT_SORT
-
-/** Decode `?sort=`, falling back to the default for these params for anything unrecognized. */
+/** Decode `?sort=`, falling back to the default for anything unrecognized. */
 export const sortFromParams = (params: URLSearchParams): SortOrder => {
   const value = params.get(SORT_PARAM)
 
-  return SORT_ORDERS.includes(value as SortOrder) ? (value as SortOrder) : defaultSortFor(params)
+  return SORT_ORDERS.includes(value as SortOrder) ? (value as SortOrder) : DEFAULT_SORT
 }
 
 /**
  * Write `order` into a copy of `base`, preserving every other param and omitting the
- * default for those params so links stay clean (mirrors `filtersToParams`). Setting the default also
+ * default so links stay clean (mirrors `filtersToParams`). Setting the default also
  * clears a stale `?sort=` left over from a previous selection.
  */
 export const sortToParams = (order: SortOrder, base?: URLSearchParams): URLSearchParams => {
   const params = new URLSearchParams(base)
 
-  if (order === defaultSortFor(params)) params.delete(SORT_PARAM)
+  if (order === DEFAULT_SORT) params.delete(SORT_PARAM)
   else params.set(SORT_PARAM, order)
 
   return params
 }
 
-function calculateOrder(event: EventSlim, language: string) {
-  let order = event.distance ?? 100
+/** The distance a class is ranked by. Placeless, and so online, classes have none. */
+export type DistanceOf<T> = (event: T) => number | undefined
+
+const ownDistance: DistanceOf<{ distance?: number }> = (event) => event.distance
+
+/**
+ * Recommended: the distance, weighted. These are the first Atlas's weights (3b807fb4), with the
+ * unverified one from #221. Each multiplies, so a large enough gap in distance still wins:
+ *
+ *  - a language other than the map's: +100%
+ *  - starting soon: -50% (online within the hour, in person within the week, `isSoon`)
+ *  - online: +50%
+ *  - unverified (no manager, brought in by bulk import): +50%
+ *
+ * A class with no distance counts as 100 km away.
+ */
+function calculateOrder(event: EventSlim, language: string, distance: number | undefined) {
+  let order = distance ?? 100
   const online = isOnline(event)
   const languageCode = event.languages[0] ?? ''
   const next = nextOccurrence(event)
@@ -87,21 +95,30 @@ function calculateOrder(event: EventSlim, language: string) {
 // fetcher's nearest-50 cap (#85). Sorting a pre-truncated pool made
 // `?sort=soonest` mean "soonest among the 50 nearest," and it re-ranked
 // `recommended` over an arbitrary subset. The order of operations is filter,
-// then sort, then segment, then slice. `revealRows` owns the last two steps.
-export function sortEvents(events: EventSlim[], order: SortOrder, language: string): EventSlim[] {
+// then group by place (`splitResults`, for a searched place), then sort within
+// each group, then slice. `revealRows` owns the slice.
+//
+// `distanceOf` is what Closest and Recommended measure. A group outside a whole
+// country measures from the country's own classes, not from its middle.
+export function sortEvents<T extends EventSlim>(
+  events: T[],
+  order: SortOrder,
+  language: string,
+  distanceOf: DistanceOf<T> = ownDistance,
+): T[] {
   switch (order) {
     case 'closest':
       // Classes at one address tie on distance, so the visitor's language decides between them.
       return [...events].sort(
         (x, y) =>
-          byDistance(x, y) ||
+          byDistance({ distance: distanceOf(x) }, { distance: distanceOf(y) }) ||
           Number(y.languages[0] === language) - Number(x.languages[0] === language),
       )
     case 'soonest':
       return [...events].sort(byNextOccurrence)
     default:
       return events
-        .map((event) => ({ event, order: calculateOrder(event, language) }))
+        .map((event) => ({ event, order: calculateOrder(event, language, distanceOf(event)) }))
         .sort((a, b) => a.order - b.order)
         .map(({ event }) => event)
   }

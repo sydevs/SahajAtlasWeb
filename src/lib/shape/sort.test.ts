@@ -206,28 +206,45 @@ describe('sortEvents', () => {
 })
 
 describe('the default order', () => {
-  const COUNTRY = 'center=15.3,49.7&bbox=12.09,48.55,18.86,51.06'
-
-  it('is nearest-first in a searched town, and the relevance score otherwise', () => {
-    expect(sortFromParams(new URLSearchParams('center=-0.14,50.82'))).toBe('closest')
-    expect(sortFromParams(new URLSearchParams('q=Brighton'))).toBe('recommended')
+  // A searched town opens on the relevance score too: its groups already put the town first, and
+  // within them the score is what weighs language (Devindra, 12 Nov).
+  it('is the relevance score for a searched town and for a whole country alike', () => {
+    expect(sortFromParams(new URLSearchParams('center=-0.14,50.82'))).toBe('recommended')
+    expect(
+      sortFromParams(new URLSearchParams('center=15.3,49.7&bbox=12.09,48.55,18.86,51.06')),
+    ).toBe('recommended')
   })
 
-  it('keeps the relevance score for a whole country, which has no useful closest', () => {
-    expect(sortFromParams(new URLSearchParams(COUNTRY))).toBe('recommended')
-  })
-
-  it('still lets a chosen order win over a searched place', () => {
-    expect(sortFromParams(new URLSearchParams('center=-0.14,50.82&sort=soonest'))).toBe('soonest')
-    expect(sortFromParams(new URLSearchParams('center=-0.14,50.82&sort=recommended'))).toBe(
-      'recommended',
-    )
-  })
-
-  it('omits the default for the params it is written into', () => {
+  it('keeps a chosen nearest-first order in the URL', () => {
     const near = new URLSearchParams('center=-0.14,50.82')
 
-    expect(sortToParams('closest', near).has('sort')).toBe(false)
-    expect(sortToParams('recommended', near).get('sort')).toBe('recommended')
+    expect(sortToParams('closest', near).get('sort')).toBe('closest')
+    expect(sortToParams('recommended', near).has('sort')).toBe(false)
+  })
+})
+
+// Outside a whole country, a group measures each class from the country's nearest own class, not
+// from the searched point, so the ranking has to take its distance from the caller.
+describe('sortEvents with a distance of its own', () => {
+  // The event's own distances say 1 then 2; the measure given says the reverse.
+  const events = [at(1, 10), at(2, 20)]
+  const measured = new Map([
+    [1, 30],
+    [2, 5],
+  ])
+  const distanceOf = (event: EventSlim) => measured.get(event.id)
+
+  it.each(['closest', 'recommended'] as const)('ranks %s by the distance given', (order) => {
+    expect(ids(sortEvents(events, order, 'en'))).toEqual([1, 2])
+    expect(ids(sortEvents(events, order, 'en', distanceOf))).toEqual([2, 1])
+  })
+
+  // A class that can't be measured counts as 100 km under the score, never as Infinity: two of
+  // those would compare as NaN, an invalid sort result. The measured class comes first in the
+  // input, so a fallback past 150 km would leave it there.
+  it('scores an unmeasured class at the 100 km fallback', () => {
+    const only = (event: EventSlim) => (event.id === 1 ? 150 : undefined)
+
+    expect(ids(sortEvents([at(1, 10), at(2, 20)], 'recommended', 'en', only))).toEqual([2, 1])
   })
 })

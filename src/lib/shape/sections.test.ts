@@ -1,9 +1,10 @@
 import type { BBox } from 'geojson'
-import type { PlaceScope } from './sections'
+import type { GroupOrder, PlaceScope } from './sections'
 
 import { describe, expect, it } from 'vitest'
 
 import {
+  asGiven,
   boundsWith,
   localResults,
   localResultsOf,
@@ -130,19 +131,54 @@ describe('splitResults', () => {
       nearVisitor: true,
     })
 
-    expect(ids(here)).toEqual([30, 32])
+    expect(ids(here)).toEqual([32, 30])
     expect(justOutside).toEqual([])
     expect(ids(nearby)).toEqual([31])
   })
 
-  it('keeps the incoming order when the visitor asked for Soonest', () => {
+  // The groups come first and the chosen order applies within each (Devindra, 12 Nov), so the
+  // order is handed every located group, never the whole list.
+  it('orders every located group with the order it is given, and leaves online alone', () => {
+    const farthestFirst = <T>(...[group, distanceOf]: Parameters<GroupOrder<T>>) =>
+      [...group].sort((a, b) => (distanceOf(b) ?? 0) - (distanceOf(a) ?? 0))
+    const { here, justOutside } = splitResults([lipanska, north, east, south], {
+      bbox: PRAGUE,
+      searchCountry: 'CZ',
+      order: farthestFirst,
+    })
+
+    expect(ids(here)).toEqual([3, 1])
+    expect(ids(justOutside)).toEqual([5, 4])
+    expect(
+      ids(splitResults([online(9), online(8)], { bbox: PRAGUE, order: farthestFirst }).online),
+    ).toEqual([9, 8])
+  })
+
+  it('keeps the incoming order for a caller that only counts', () => {
     const { justOutside } = splitResults([south, east], {
       bbox: PRAGUE,
       searchCountry: 'CZ',
-      keepOrder: true,
+      order: asGiven,
     })
 
     expect(ids(justOutside)).toEqual([5, 4])
+  })
+
+  // Outside a whole country, the order measures from the country's nearest own class, as the groups
+  // do. From the country's middle, the class over the border from Liberec would come first.
+  it("hands a whole country's outside groups the distance they were grouped by", () => {
+    const ostrava = inPerson(12, 18.26, 49.82, 210)
+    const liberec = inPerson(18, 15.06, 50.77, 120)
+    // About 11 km from Liberec, 230 km from the middle.
+    const zgorzelec = inPerson(20, 14.99, 50.86, 230, 'PL')
+    // About 6 km from Ostrava, 250 km from the middle.
+    const overOstrava = inPerson(21, 18.33, 49.85, 250, 'PL')
+    const { justOutside } = splitResults([ostrava, liberec, zgorzelec, overOstrava], {
+      bbox: CZECHIA,
+      searchCountry: 'CZ',
+    })
+
+    expect(ids(justOutside)).toEqual([21, 20])
   })
 
   it('holds a class across a border to the shorter limits', () => {
