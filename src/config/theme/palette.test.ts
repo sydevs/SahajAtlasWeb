@@ -322,7 +322,7 @@ describe('paletteReport', () => {
     const report = paletteReport({ contrast: '#d8735a', primary: '#ffff00' })
 
     expect(report.primary?.entered).toBe('#ffff00')
-    expect(report.primary?.adjustedBy).toContain('surface')
+    expect(report.primary?.lightAdjustedBy).toContain('surface')
   })
 
   it('reports each mode on its own', () => {
@@ -331,14 +331,14 @@ describe('paletteReport', () => {
 
     expect(report.lightAdjustedBy).toContain('surface')
     expect(report.darkAdjustedBy).not.toContain('surface')
-    expect(report.adjustedBy).toEqual([
-      ...new Set([...report.lightAdjustedBy, ...report.darkAdjustedBy]),
-    ])
   })
 
   it('reports a near-white seed as moved away from near-white', () => {
-    expect(paletteReport({ primary: '#fffdfa' }).primary?.adjustedBy).toContain('near-white')
-    expect(paletteReport({ primary: '#1E6C71' }).primary?.adjustedBy).not.toContain('near-white')
+    const nearWhite = paletteReport({ primary: '#fffdfa' }).primary!
+    const teal = paletteReport({ primary: '#1E6C71' }).primary!
+
+    expect([...nearWhite.lightAdjustedBy, ...nearWhite.darkAdjustedBy]).toContain('near-white')
+    expect([...teal.lightAdjustedBy, ...teal.darkAdjustedBy]).not.toContain('near-white')
   })
 
   it('offers no suggestion for a role only `panel-text` moved', () => {
@@ -346,7 +346,9 @@ describe('paletteReport', () => {
     // express it, so there is nothing to offer and the CMS shows no button.
     const report = paletteReport({ primary: '#1E6C71' })
 
-    expect(report.primary?.adjustedBy).toEqual(['panel-text'])
+    expect([
+      ...new Set([...report.primary!.lightAdjustedBy, ...report.primary!.darkAdjustedBy]),
+    ]).toEqual(['panel-text'])
     expect(report.primary?.suggested).toBeNull()
   })
 

@@ -349,9 +349,7 @@ export type RoleReport = {
    * moves a ladder step no seed can express.
    */
   suggested: string | null
-  /** Every check that moved a step, in either mode. */
-  adjustedBy: PaletteCheck[]
-  /** The checks that moved a step in light mode alone, and in dark mode alone. */
+  /** The checks that moved a step, in each mode. */
   lightAdjustedBy: PaletteCheck[]
   darkAdjustedBy: PaletteCheck[]
 }
@@ -405,7 +403,6 @@ export function paletteReport(palette: PaletteRoles): PaletteReport {
     const lightHex = hexOf(inLight.scale[SOLID_STEP])
 
     report[role] = {
-      adjustedBy: [...new Set([...inLight.adjustedBy, ...dark[role].adjustedBy])],
       dark: hexOf(dark[role].scale[SOLID_STEP]),
       darkAdjustedBy: [...dark[role].adjustedBy],
       entered: palette[role] ?? null,
