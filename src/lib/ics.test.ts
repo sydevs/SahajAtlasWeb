@@ -4,6 +4,7 @@ import { describe, it, expect } from 'vitest'
 
 import {
   buildEventIcs,
+  buildFeedSubscribeUrl,
   buildGoogleCalendarUrl,
   buildOutlookCalendarUrl,
   buildRrule,
@@ -23,6 +24,10 @@ const weekly: EventSchedule = {
 }
 
 const input = { id: 42, title: 'Evening Meditation', schedule: weekly }
+// The address SahajCloud mints for this class. The token is opaque, and it carries
+// dots, so the fixture carries them too.
+const FEED = 'https://cloud.sydevelopers.com/api/events/calendar/eyJhb.eyJldg.s1gn.ics'
+const subscribable = { ...input, calendarFeedUrl: FEED }
 const NOW = new Date('2026-07-17T12:00:00Z')
 // A session further into the series than its start — what the registration
 // confirmation knows and passes as `from`.
@@ -323,24 +328,55 @@ describe('buildEventIcs', () => {
   })
 })
 
-describe('buildGoogleCalendarUrl', () => {
-  it('carries event-local dates, the event timezone, and the RRULE', () => {
-    const url = new URL(buildGoogleCalendarUrl(input))
-
-    expect(url.origin + url.pathname).toBe('https://calendar.google.com/calendar/render')
-    expect(url.searchParams.get('action')).toBe('TEMPLATE')
-    expect(url.searchParams.get('dates')).toBe('20260701T193000/20260701T204500')
-    expect(url.searchParams.get('ctz')).toBe('Europe/Prague')
-    expect(url.searchParams.get('recur')).toBe('RRULE:FREQ=WEEKLY;BYDAY=WE')
+describe('buildFeedSubscribeUrl', () => {
+  it('swaps the scheme and keeps everything else, token dots included', () => {
+    expect(buildFeedSubscribeUrl(subscribable)).toBe(
+      'webcal://cloud.sydevelopers.com/api/events/calendar/eyJhb.eyJldg.s1gn.ics',
+    )
   })
 
-  it('stays anchored on the SERIES start even when a session is given', () => {
-    // Google carries the RRULE, so DTSTART is the instance COUNT/BYDAY are
-    // reckoned from. Re-anchoring it on session five of a course would hand the
-    // importer five more sessions starting there.
-    const url = new URL(buildGoogleCalendarUrl({ ...input, from: SESSION }))
+  it('is undefined with no address — nothing may be composed from the event id', () => {
+    for (const address of [undefined, null, '', '   ']) {
+      expect(buildFeedSubscribeUrl({ ...input, calendarFeedUrl: address })).toBeUndefined()
+    }
+    // The id is right there in `input`, and must not be able to produce an address.
+    expect(buildFeedSubscribeUrl(input)).toBeUndefined()
+  })
 
-    expect(url.searchParams.get('dates')).toBe('20260701T193000/20260701T204500')
+  it('refuses an address that is not http(s) rather than rewriting it', () => {
+    for (const address of ['javascript:alert(1)', 'ftp://cloud.example/f.ics', '//cloud/f.ics']) {
+      expect(buildFeedSubscribeUrl({ ...input, calendarFeedUrl: address })).toBeUndefined()
+    }
+  })
+
+  it('rewrites a dev http address too, since a preview serves one', () => {
+    expect(
+      buildFeedSubscribeUrl({ ...input, calendarFeedUrl: 'http://localhost:3000/f.ics' }),
+    ).toBe('webcal://localhost:3000/f.ics')
+  })
+})
+
+describe('buildGoogleCalendarUrl', () => {
+  it('subscribes to the feed through `cid`, and carries no template parameters', () => {
+    const url = new URL(buildGoogleCalendarUrl(subscribable)!)
+
+    expect(url.origin + url.pathname).toBe('https://calendar.google.com/calendar/r')
+    expect(url.searchParams.get('cid')).toBe(buildFeedSubscribeUrl(subscribable))
+    // A subscription is not a copy of one event, so none of these may survive:
+    // each one belonged to the `action=TEMPLATE` link this replaced.
+    for (const param of ['action', 'dates', 'ctz', 'recur', 'details', 'location']) {
+      expect(url.searchParams.get(param)).toBeNull()
+    }
+  })
+
+  it('ignores `from` entirely — a subscription has no anchor to move', () => {
+    expect(buildGoogleCalendarUrl({ ...subscribable, from: SESSION })).toBe(
+      buildGoogleCalendarUrl(subscribable),
+    )
+  })
+
+  it('is undefined with no feed address', () => {
+    expect(buildGoogleCalendarUrl(input)).toBeUndefined()
   })
 })
 

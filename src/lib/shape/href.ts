@@ -1,31 +1,39 @@
 import { safePath } from './path'
 
 /**
- * The only schemes allowed to reach an `<a href>`. Case-INSENSITIVE, to agree with the two
- * upstream URL guards that feed these anchors — `SafeUrlSchema` (`types/event.ts`) and
- * `validateWebUrl` (`lib/url.ts`) both use `/^https?:/i`. A case-sensitive test would refuse
- * a `HTTPS://…` those two already passed, silently degrading a valid link to text; and it
- * buys nothing, since no casing of `https`/`mailto`/`tel` is a dangerous scheme (RFC 3986
- * §3.1 and the WHATWG parser both treat schemes case-insensitively anyway).
+ * The only schemes allowed to reach an `<a href>`. Case-INSENSITIVE, because no casing of
+ * these four is a dangerous scheme (RFC 3986 §3.1 and the WHATWG parser both treat schemes
+ * case-insensitively anyway), and because a case-sensitive test would refuse a `HTTPS://…`
+ * that an upstream guard already passed — `SafeUrlSchema` (`types/event.ts`) and
+ * `validateWebUrl` (`lib/url.ts`) are both `/^https?:/i` — silently degrading a valid link
+ * to text.
+ *
+ * ⚠ **`webcal:` reaches neither of those guards.** It is an address WE build, by swapping
+ * the scheme on a `calendarFeedUrl` that `SafeUrlSchema` already parsed as `http(s)`
+ * (`lib/ics.ts`), so nothing upstream sees the value this list admits. Read the paragraph
+ * above as the argument for case-insensitivity, not as a second gate behind this one.
  *
  * Module-private on purpose. It used to live inside the `Link` atom, where the app's two
  * other anchors could not reach it. This file exists so there is exactly one copy. Ask one
  * of the two predicates below, instead of re-deriving the regex.
  */
-const ALLOWED_SCHEME = /^(?:https?|mailto|tel):/i
+const ALLOWED_SCHEME = /^(?:https?|mailto|tel|webcal):/i
 
 /**
  * True when `href` names a scheme rather than a route. This is a RENDERING question, not a
  * safety one: it is what tells the `Link` atom to emit a plain `<a>` instead of routing the
  * string through react-router. Safety is `isSafeHref` — never substitute this for it, since
  * on its own it says nothing about a site-relative path.
+ *
+ * A protocol handler (`webcal:`) is one of these: the browser hands it to the operating
+ * system, so react-router must never see it.
  */
 export const hasAllowedScheme = (href: unknown): boolean =>
   typeof href === 'string' && ALLOWED_SCHEME.test(href)
 
 /**
  * **The gate every href the app puts on a JSX `<a>` passes through**: true only for a string
- * that is either a safe site-relative route or one of the three allowed schemes.
+ * that is either a safe site-relative route or one of the four allowed schemes.
  *
  * It is one predicate in one place because the app renders three such anchors — the `Link`
  * atom, the `Button` atom's href form, and `ActionRow`'s `ActionCircle` — and safety used to

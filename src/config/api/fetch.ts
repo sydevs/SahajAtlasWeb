@@ -697,6 +697,9 @@ const getEventDoc = async (id: number): Promise<EventDoc> => {
         verificationStage: true,
         webPath: true,
         webUrl: true,
+        // `defaultPopulate: false` upstream, so an unlisted field comes back absent
+        // rather than null. The calendar menu's subscribe rows are built over it.
+        calendarFeedUrl: true,
       },
       populate: {
         ...REGION_POPULATE,

@@ -26,18 +26,24 @@ const schedule: EventSchedule = {
   upcomingDates: [new Date('2026-07-22T17:30:00Z')],
 }
 
+const FEED = 'https://cloud.sydevelopers.com/api/events/calendar/eyJhb.eyJldg.s1gn.ics'
+
 const event = {
   id: 42,
   title: 'Evening Meditation',
   schedule,
   location: '5 Market St, Prague',
   url: 'https://atlas.example/e/42',
+  calendarFeedUrl: FEED,
 }
 
 const hrefs = (input: Parameters<typeof calendarLinkTargets>[0]) =>
   calendarLinkTargets(input)
     .map(({ href }) => href)
     .join('\n')
+
+const labels = (input: Parameters<typeof calendarLinkTargets>[0]) =>
+  calendarLinkTargets(input).map(({ label }) => label)
 
 describe('AddToCalendar', () => {
   // The menu's rows live in a Radix portal, which SSR does not render, so the trigger is
@@ -48,15 +54,60 @@ describe('AddToCalendar', () => {
     expect(html).toContain('Add to calendar')
     expect(html).toContain('aria-haspopup="menu"')
     expect(html).not.toContain('calendar.google.com')
+    expect(html).not.toContain('webcal:')
   })
 
-  it('offers every link-out provider', () => {
+  it('offers the five providers in menu order, Apple first', () => {
+    expect(labels(event)).toEqual([
+      'Apple Calendar',
+      'Google Calendar',
+      'Outlook.com',
+      'Office 365',
+      'Yahoo',
+    ])
+  })
+
+  it('offers every provider its own address', () => {
     const all = hrefs(event)
 
-    expect(all).toContain('calendar.google.com/calendar/render')
+    expect(all).toContain('webcal://cloud.sydevelopers.com/api/events/calendar/')
+    expect(all).toContain('calendar.google.com/calendar/r?cid=webcal%3A%2F%2F')
     expect(all).toContain('outlook.live.com/calendar/0/deeplink/compose')
     expect(all).toContain('outlook.office.com/calendar/0/deeplink/compose')
     expect(all).toContain('calendar.yahoo.com')
+    // The template link Google used to get added one event the viewer then owned
+    // a copy of, so a cancelled session stayed with them for good.
+    expect(all).not.toContain('calendar/render')
+    expect(all).not.toContain('action=TEMPLATE')
+  })
+
+  /**
+   * Only the `webcal:` row is a handoff to the operating system. A new tab would show
+   * nothing, and a sandboxed host page would have to grant `allow-popups` for that nothing.
+   */
+  it('asks for a new tab on every row that opens a page, and on no other', () => {
+    expect(calendarLinkTargets(event).map(({ label, opensPage }) => [label, opensPage])).toEqual([
+      ['Apple Calendar', false],
+      ['Google Calendar', true],
+      ['Outlook.com', true],
+      ['Office 365', true],
+      ['Yahoo', true],
+    ])
+  })
+
+  /**
+   * A subscribe row with no address to subscribe to cannot work, and an inert menu entry
+   * reads as a broken one. The three single-session rows compose their own URL from the
+   * schedule, so they must survive — dropping them would retire working rows for nothing.
+   */
+  it('drops only the two subscribing rows for a class with no feed address', () => {
+    for (const address of [null, undefined]) {
+      expect(labels({ ...event, calendarFeedUrl: address })).toEqual([
+        'Outlook.com',
+        'Office 365',
+        'Yahoo',
+      ])
+    }
   })
 
   it('sends the recurrence-less providers the NEXT session, not the 2019 start', () => {
@@ -67,8 +118,6 @@ describe('AddToCalendar', () => {
     // would be useless.
     expect(all).toContain('startdt=2026-07-22T17%3A30%3A00.000Z')
     expect(all).toContain('st=20260722T173000Z')
-    // Google's `dates` legitimately stays the 2019 series anchor, because it
-    // carries the RRULE.
     expect(all).not.toContain('startdt=2019')
     expect(all).not.toContain('st=2019')
   })
@@ -79,8 +128,15 @@ describe('AddToCalendar', () => {
     const all = hrefs({ ...event, from: new Date('2026-08-05T17:30:00Z') })
 
     expect(all).toContain('startdt=2026-08-05T17%3A30%3A00.000Z')
-    // Google stays on the series anchor. `from` must not move a DTSTART the
-    // RRULE counts from.
-    expect(all).toContain('dates=20190102T193000%2F20190102T204500')
+    // The two subscribing rows carry no anchor to move: their address is the
+    // feed's, which lists every session. Compared per row, since the Outlook rows
+    // in the same list legitimately do carry the date.
+    const anchored = calendarLinkTargets({ ...event, from: new Date('2026-08-05T17:30:00Z') })
+    const plain = calendarLinkTargets(event)
+
+    for (const index of [0, 1]) {
+      expect(anchored[index]!.href).toBe(plain[index]!.href)
+      expect(anchored[index]!.href).not.toContain('2026-08-05')
+    }
   })
 })

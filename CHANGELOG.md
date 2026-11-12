@@ -57,6 +57,19 @@ cover everything a host would notice since the widget was first deployed.
   opposite order leaves the page with no widget at all. No parameter, origin or CSP change. See
   [If your page replaces the element].
 
+- **"Add to calendar" subscribes, so a class keeps itself up to date.** ([#393]) Apple Calendar
+  and Google Calendar now open a subscribe prompt for the class rather than copying one event
+  into the visitor's calendar, so a session the host cancels disappears from their calendar
+  within a day, without them doing anything. Outlook.com, Office 365 and Yahoo still add the
+  next session only — Microsoft publishes no subscribe address we can use — and **"Download .ics
+  file" is now its own row, last**, where it was the Apple row's label. ⚠ **In a sandboxed
+  iframe, `allow-downloads` now matters for that last row alone**, and the four rows that open a
+  page need `allow-popups` as before — while the Apple Calendar row needs neither, and no flag
+  covers it: a sandbox may refuse the `webcal:` address, which the operating system opens rather
+  than the browser. See
+  [Embedding in an iframe]. **No CSP or Permissions-Policy change**: every row is a navigation,
+  not a fetch. A script embed and an unsandboxed frame need nothing.
+
 - **The captcha on the registration and report forms is hidden unless it needs a click.**
   ([SahajCloud#1090]) Most visitors now see no security check at all; the 300×65 box opens only
   when Cloudflare asks for an interaction, and closes again after. The collapsed slot also leaves
@@ -1007,6 +1020,7 @@ must-revalidate`, pinned rather than left to the CDN default. The production dom
 [#380]: https://github.com/sydevs/SahajAtlasWeb/pull/380
 [#370]: https://github.com/sydevs/SahajAtlasWeb/pull/370
 [#371]: https://github.com/sydevs/SahajAtlasWeb/pull/371
+[#393]: https://github.com/sydevs/SahajAtlasWeb/issues/393
 [#363]: https://github.com/sydevs/SahajAtlasWeb/pull/363
 [#369]: https://github.com/sydevs/SahajAtlasWeb/pull/369
 [#351]: https://github.com/sydevs/SahajAtlasWeb/pull/351
