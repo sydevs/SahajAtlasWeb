@@ -81,6 +81,27 @@ describe('scopeRelevance', () => {
   })
 })
 
+describe('facetCounts — times of day', () => {
+  // 2 am in London. Every class here is read on London's clock, whatever zone runs the spec.
+  const smallHours = new Date('2026-11-10T02:00:00Z')
+  const classes = [
+    event({ dates: [smallHours] }),
+    event({ dates: [tuesdayEvening] }),
+    event({ dates: [saturdayMorning] }),
+  ]
+
+  it('counts the small hours as night, so the four times add up to the total', () => {
+    const { total, time } = facetCounts(classes, DEFAULT_FILTERS, today)
+
+    expect(time).toEqual({ morning: 1, afternoon: 0, evening: 1, night: 1 })
+    expect(Object.values(time).reduce((sum, n) => sum + n, 0)).toBe(total)
+  })
+
+  it('counts each time with the other groups applied, so night can drop to none', () => {
+    expect(facetCounts(classes, { ...DEFAULT_FILTERS, daysOfWeek: [6] }, today).time.night).toBe(0)
+  })
+})
+
 describe('bestRecovery', () => {
   it('names the answered group that brings back the most classes', () => {
     const events = [

@@ -4,7 +4,7 @@ import type { FilterFacets } from '@/hooks/use-filter-facets'
 import { type ReactNode, useMemo, useState } from 'react'
 import { Info } from 'luxon'
 import { useTranslation } from 'react-i18next'
-import { ChevronDown, ChevronRight, Sun } from 'lucide-react'
+import { ChevronDown, ChevronRight, MoonStar, Sun } from 'lucide-react'
 import clsx from 'clsx'
 
 import { Checkbox } from '@/components/atoms/Checkbox'
@@ -14,6 +14,7 @@ import { Input } from '@/components/atoms/Input'
 import { ToggleGroup, ToggleGroupItem } from '@/components/atoms/ToggleGroup'
 import { fieldChrome } from '@/components/atoms/Select'
 import { useLocale } from '@/hooks/use-locale'
+import { formatTimePeriods } from '@/lib/events'
 import {
   type EventCadence,
   type EventFilters,
@@ -38,14 +39,15 @@ const CADENCE_OPTIONS: EventCadence[] = ['DAILY', 'WEEKLY', 'MONTHLY', 'once']
 // The We Meditate app's own sunrise and moon, in the text colour like every other control here:
 // Anton tried the app's yellow and blue (6 Nov) and found they pulled too much attention. At 20px
 // the app's fine lines are faint, so a 0.75px outline (`vector-effect` keeps it 0.75px at any size)
-// brings them to the weight of the sun beside them. The app has no afternoon icon, so afternoon
-// takes a sun line icon.
+// brings them to the weight of the sun beside them. The app has no afternoon or night icon, so
+// those take line icons: a sun, and a moon with a star, which tells night apart from evening.
 const THICKER =
   '[&_path]:[stroke:currentColor] [&_path]:[stroke-width:0.75px] [&_path]:[vector-effect:non-scaling-stroke]'
 const TIME_ICONS: Record<TimePeriod, ReactNode> = {
   morning: <WmIcon className={THICKER} name="sunrise" size={22} />,
   afternoon: <Sun aria-hidden className="shrink-0" size={20} strokeWidth={1.75} />,
   evening: <WmIcon className={THICKER} name="moon" size={20} />,
+  night: <MoonStar aria-hidden className="shrink-0" size={20} strokeWidth={1.75} />,
 }
 
 // How many languages still read better as one tap each than as a dropdown.
@@ -153,11 +155,22 @@ export function DayFilter({ value, patch, facets, className }: FilterControlProp
 }
 
 /**
- * Three times of day, stacked: each a full-width row with its icon, name and count, so the long
- * names never squeeze in the narrow desktop panel.
+ * The times of day, stacked: each a full-width row with its icon, name, hours and count, so the
+ * long names never squeeze in a narrow popover.
+ *
+ * The hours sit faded beside each name (Devindra, 12 Nov), written by the same `Intl` formatter as
+ * every other time on screen, so a visitor reads "6:00 AM" or "06:00" as their locale does. Night is
+ * offered only while classes start in it, and is then hidden rather than greyed when none do: in
+ * practice that is online classes from far-off time zones, so an in-person list never shows it. A
+ * selected Night stays, so it can always be undone.
  */
 export function TimeFilter({ value, patch, facets, className }: FilterControlProps) {
   const { t } = useTranslation()
+  const { locale } = useLocale()
+  const periods = TIME_PERIODS.filter(
+    (period) =>
+      period !== 'night' || value.timeOfDay.includes(period) || (facets?.counts.time.night ?? 0) > 0,
+  )
 
   return (
     <ToggleGroup
@@ -167,7 +180,7 @@ export function TimeFilter({ value, patch, facets, className }: FilterControlPro
       value={value.timeOfDay}
       onValueChange={(next) => patch({ timeOfDay: next as TimePeriod[] })}
     >
-      {TIME_PERIODS.map((period) => {
+      {periods.map((period) => {
         const count = facets?.counts.time[period]
 
         return (
@@ -178,7 +191,12 @@ export function TimeFilter({ value, patch, facets, className }: FilterControlPro
             value={period}
           >
             <span className="flex w-[22px] shrink-0 justify-center">{TIME_ICONS[period]}</span>
-            <span className="flex-1 text-start">{t(`filters.time.${period}`)}</span>
+            <span className="flex min-w-0 flex-1 items-baseline gap-2 text-start">
+              {t(`filters.time.${period}`)}
+              <span className="truncate text-xs font-normal text-gray-11 in-data-[state=on]:text-inherit in-data-[state=on]:opacity-80">
+                {formatTimePeriods(locale, [period])}
+              </span>
+            </span>
             <OptionCount count={count} />
           </ToggleGroupItem>
         )

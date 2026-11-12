@@ -36,7 +36,7 @@ const scopeCounts = {
   total: 10,
   format: { offline: 10, online: 0 },
   days: { 1: 10, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0, 7: 0 },
-  time: { morning: 4, afternoon: 0, evening: 6 },
+  time: { morning: 4, afternoon: 0, evening: 6, night: 0 },
   cadence: { DAILY: 0, WEEKLY: 10, MONTHLY: 0, once: 0 },
   languages: [{ code: 'en', count: 10 }],
 }
@@ -44,6 +44,10 @@ const facets = {
   counts: scopeCounts,
   relevance: { format: false, days: false, time: true, cadence: false, languages: false },
 }
+const withNight = (night: number) => ({
+  ...facets,
+  counts: { ...scopeCounts, time: { ...scopeCounts.time, night } },
+})
 
 describe('SearchFilters — only what can change the results', () => {
   const withFacets = (filters = DEFAULT_FILTERS) =>
@@ -85,5 +89,32 @@ describe('SearchFilters — More filters', () => {
     const html = render({ ...DEFAULT_FILTERS, cadence: 'WEEKLY' })
 
     expect(html).toContain('filters.dates.from')
+  })
+})
+
+describe('SearchFilters — times of day', () => {
+  const withFacets = (value = DEFAULT_FILTERS, scope = facets) =>
+    renderToStaticMarkup(<SearchFilters facets={scope} value={value} onChange={() => {}} />)
+  // Intl spaces its times and range dash with narrow and thin no-break spaces.
+  const norm = (html: string) => html.replace(/[\u2009\u202f\u00a0]/g, ' ')
+
+  it("shows each option's hours in the locale's own clock", () => {
+    const html = norm(withFacets())
+
+    // en-US through Intl: "6:00 AM – 12:00 PM", whatever the case of the day period.
+    expect(html).toMatch(/filters\.time\.morning<span[^>]*>6:00 AM – 12:00 PM</i)
+    expect(html).toMatch(/filters\.time\.evening<span[^>]*>5:00 PM – 12:00 AM</i)
+  })
+
+  it('hides Night, not greys it, while no class starts in it', () => {
+    expect(withFacets()).not.toContain('filters.time.night')
+  })
+
+  it('offers Night once a class starts in it', () => {
+    expect(withFacets(DEFAULT_FILTERS, withNight(3))).toContain('filters.time.night')
+  })
+
+  it('keeps a chosen Night, so it can be undone', () => {
+    expect(withFacets({ ...DEFAULT_FILTERS, timeOfDay: ['night'] })).toContain('filters.time.night')
   })
 })

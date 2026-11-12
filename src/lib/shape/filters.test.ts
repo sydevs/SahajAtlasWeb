@@ -148,20 +148,24 @@ describe('matchesFilters — time of day (selected periods, in the event zone)',
   })
 
   it('treats period boundaries as half-open [start, end)', () => {
-    // 12:00 belongs to afternoon [12,17), not morning [0,12).
+    // 12:00 belongs to afternoon [12,17), not morning [6,12).
     expect(matchesFilters(withHour('12:00'), withFilters({ timeOfDay: ['afternoon'] }))).toBe(true)
     expect(matchesFilters(withHour('12:00'), withFilters({ timeOfDay: ['morning'] }))).toBe(false)
+    // 06:00 starts the morning, and ends the night.
+    expect(matchesFilters(withHour('06:00'), withFilters({ timeOfDay: ['morning'] }))).toBe(true)
+    expect(matchesFilters(withHour('06:00'), withFilters({ timeOfDay: ['night'] }))).toBe(false)
   })
 
-  it('lets evening run to midnight, so a late class still matches with no Night option', () => {
+  it('runs evening to midnight', () => {
     expect(matchesFilters(withHour('21:30'), withFilters({ timeOfDay: ['evening'] }))).toBe(true)
     expect(matchesFilters(withHour('23:00'), withFilters({ timeOfDay: ['evening'] }))).toBe(true)
   })
 
-  it('starts morning at midnight, so a class in the small hours still has an option', () => {
+  it('puts the small hours in night, not morning', () => {
     // An online class read on the viewer's clock: 7 pm in Toronto is 2 am in Prague.
-    expect(matchesFilters(withHour('02:00'), withFilters({ timeOfDay: ['morning'] }))).toBe(true)
-    expect(matchesFilters(withHour('00:00'), withFilters({ timeOfDay: ['morning'] }))).toBe(true)
+    expect(matchesFilters(withHour('02:00'), withFilters({ timeOfDay: ['night'] }))).toBe(true)
+    expect(matchesFilters(withHour('00:00'), withFilters({ timeOfDay: ['night'] }))).toBe(true)
+    expect(matchesFilters(withHour('02:00'), withFilters({ timeOfDay: ['morning'] }))).toBe(false)
     expect(matchesFilters(withHour('02:00'), withFilters({ timeOfDay: ['evening'] }))).toBe(false)
   })
 
@@ -541,20 +545,29 @@ describe('timePeriodRanges', () => {
     expect(timePeriodRanges([])).toEqual([])
   })
 
-  it('is empty when all three are selected, since they cover the whole day', () => {
-    expect(timePeriodRanges(['morning', 'afternoon', 'evening'])).toEqual([])
+  it('is empty when all four are selected, since they cover the whole day', () => {
+    expect(timePeriodRanges(['morning', 'afternoon', 'evening', 'night'])).toEqual([])
   })
 
-  it('runs morning from midnight to noon', () => {
-    expect(timePeriodRanges(['morning'])).toEqual([[0, 12]])
+  it('runs morning from 6 to noon, and night from midnight to 6', () => {
+    expect(timePeriodRanges(['morning'])).toEqual([[6, 12]])
+    expect(timePeriodRanges(['night'])).toEqual([[0, 6]])
   })
 
-  it('fuses evening and morning into one range across midnight', () => {
-    expect(timePeriodRanges(['morning', 'evening'])).toEqual([[17, 12]])
+  it('fuses evening and night into one range across midnight', () => {
+    expect(timePeriodRanges(['evening', 'night'])).toEqual([[17, 6]])
   })
 
   it('fuses adjacent periods into one range', () => {
-    expect(timePeriodRanges(['morning', 'afternoon'])).toEqual([[0, 17]])
+    expect(timePeriodRanges(['morning', 'afternoon'])).toEqual([[6, 17]])
+    expect(timePeriodRanges(['night', 'morning'])).toEqual([[0, 12]])
+  })
+
+  it('keeps periods that do not meet apart', () => {
+    expect(timePeriodRanges(['morning', 'evening'])).toEqual([
+      [6, 12],
+      [17, 24],
+    ])
   })
 
   it('runs evening, alone or fused with afternoon, to midnight', () => {
@@ -563,9 +576,7 @@ describe('timePeriodRanges', () => {
   })
 
   it('is order-independent', () => {
-    expect(timePeriodRanges(['evening', 'morning'])).toEqual(
-      timePeriodRanges(['morning', 'evening']),
-    )
+    expect(timePeriodRanges(['night', 'evening'])).toEqual(timePeriodRanges(['evening', 'night']))
   })
 })
 

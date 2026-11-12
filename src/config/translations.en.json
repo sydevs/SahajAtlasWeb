@@ -258,7 +258,8 @@
       "afternoon": "Afternoon",
       "evening": "Evening",
       "label": "Time of day",
-      "morning": "Morning"
+      "morning": "Morning",
+      "night": "Night"
     },
     "where": {
       "label": "Where",
