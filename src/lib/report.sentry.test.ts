@@ -170,6 +170,11 @@ describe('which failures are worth an event', () => {
       reportInternalError(atlasError(kind, `a ${kind} failure`), 'ctx')
       await vi.waitFor(() => expect(sdk.captured).toHaveLength(reported ? 1 : 0))
 
+      // A withheld row settles with nothing to wait for, so its absence must
+      // outlive the microtasks a send would have queued. Otherwise a row that
+      // stopped being withheld still passes here.
+      await new Promise((resolve) => setTimeout(resolve, 0))
+
       // Which kind travelled, not just how many.
       expect(sdk.captured.map((event) => event.tags['atlas.kind'])).toEqual(reported ? [kind] : [])
 
