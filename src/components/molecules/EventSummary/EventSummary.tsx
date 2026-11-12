@@ -7,6 +7,7 @@ import { tv } from 'tailwind-variants'
 import { Chip } from '@/components/atoms/Chip'
 import { EventChips } from '@/components/molecules/EventChips'
 import { EventFacts } from '@/components/molecules/EventFacts'
+import { useListingTitle } from '@/hooks/use-event-display'
 import { isOnline } from '@/lib/shape'
 
 const summary = tv({
@@ -53,13 +54,15 @@ export function EventSummary({
 }: EventSummaryProps) {
   const { t } = useTranslation()
   const slots = summary({ boxed })
+  // An inactive listing reads as its town (`useListingTitle`), as on its card and its page.
+  const title = useListingTitle(event)
 
   return (
     <div className={slots.base({ className })}>
       {/* The Online tag sits right after the title (Anton, 6 Nov), in the same soft teal as the
           class-type tag below it, so the summary has one kind of label. */}
       <div className={slots.title()}>
-        {event.title}
+        {title}
         {isOnline(event) && (
           <Chip className="ms-2 -translate-y-px align-middle">{t('event.display.online')}</Chip>
         )}

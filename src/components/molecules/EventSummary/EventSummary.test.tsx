@@ -26,6 +26,20 @@ describe('EventSummary', () => {
     expect(boxed).toContain(mockEvent.title)
   })
 
+  // Devindra (12 Nov): an inactive listing is "Meditation in <City>" on every surface, the Share
+  // and sign-up summaries included.
+  it('names an inactive listing by its town, not the title its host typed', () => {
+    const html = renderToStaticMarkup(
+      <EventSummary
+        boxed
+        event={{ ...mockEvent, title: 'Meditation at 50 Murray Pl', inactive: true }}
+      />,
+    )
+
+    expect(html).toContain('event.display.inactive_title')
+    expect(html).not.toContain('Murray Pl')
+  })
+
   it('tags an online class after its title', () => {
     const html = renderToStaticMarkup(<EventSummary event={mockEventSlimOnline} />)
 

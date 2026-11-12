@@ -193,7 +193,7 @@ function EventPinCard({ event }: { event: DisplayableEvent }) {
   if (!primary) return null
 
   return (
-    <div className="flex max-w-60 items-center gap-1.5 rounded-lg border border-divider bg-background px-3 py-2 text-xs text-gray-11 shadow-md">
+    <div className="flex max-w-72 items-center gap-1.5 rounded-lg border border-divider bg-background px-3 py-2 text-xs text-gray-11 shadow-md">
       <CalendarDays className="shrink-0" size={14} />
       <span>
         {primary}

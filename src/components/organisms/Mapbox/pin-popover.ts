@@ -9,8 +9,9 @@ export type PopoverAnchor =
   | 'bottom-left'
   | 'bottom-right'
 
-// The largest card: `max-w-60` wide, and two lines of timing tall (it names no class).
-const CARD_W = 240
+// The largest card: `max-w-72` wide, which keeps "Every Thursday · 7:30 PM London time" on one
+// line, and two lines of timing tall (it names no class).
+const CARD_W = 288
 const CARD_H = 52
 // The pin is drawn upward from its point, about 34px tall. Above it the card clears the pin,
 // and below it the card only has to clear the point.
