@@ -9,9 +9,9 @@ export type PopoverAnchor =
   | 'bottom-left'
   | 'bottom-right'
 
-// The largest card: `max-w-60` wide, and a two-line title plus two lines of timing tall.
+// The largest card: `max-w-60` wide, and two lines of timing tall (it names no class).
 const CARD_W = 240
-const CARD_H = 90
+const CARD_H = 52
 // The pin is drawn upward from its point, about 34px tall. Above it the card clears the pin,
 // and below it the card only has to clear the point.
 const ABOVE_PIN_PX = 38

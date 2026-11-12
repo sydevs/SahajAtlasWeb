@@ -18,7 +18,6 @@ export type CalendarRowRenderer = (host: HTMLElement, entry: CalendarRowEntry) =
 export type CalendarRenderers = {
   monthAgendaEvent: CalendarRowRenderer
   monthGridEvent: CalendarRowRenderer
-  timeGridEvent: CalendarRowRenderer
 }
 
 // Stands in for `@schedule-x/react`'s `ScheduleXCalendar`, which finds its own mount point

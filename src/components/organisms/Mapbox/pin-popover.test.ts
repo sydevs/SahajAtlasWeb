@@ -19,6 +19,12 @@ describe('pinPopoverPlacement', () => {
     expect(pinPopoverPlacement({ x: 640, y: 60 }, MAP, NONE).anchor).toBe('top')
   })
 
+  // The card shows the timing alone (Devindra, 12 Nov), so it fits above a pin that a card with
+  // the class name on top had to drop below.
+  it('stays above a pin 100px from the top, now that the card names no class', () => {
+    expect(pinPopoverPlacement({ x: 640, y: 100 }, MAP, NONE).anchor).toBe('bottom')
+  })
+
   it('stays clear of the side panel, not just the canvas edge', () => {
     const padding = { ...NONE, left: 384 }
 

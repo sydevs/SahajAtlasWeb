@@ -3,14 +3,7 @@ import type { EventSchedule, EventType } from '@/types'
 import { DateTime } from 'luxon'
 
 import { DEFAULT_DURATION, eventTimeZone, scheduleTimeZone, withEndTime } from './event'
-import {
-  type DateRange,
-  type EventFilters,
-  type TimePeriod,
-  dateFloor,
-  occurrenceMatchesFilters,
-  timePeriodRanges,
-} from './filters'
+import { type DateRange, type EventFilters, dateFloor, occurrenceMatchesFilters } from './filters'
 
 /**
  * Feed → calendar-entry expansion. SahajCloud pre-computes each event's recurrence
@@ -184,70 +177,6 @@ export const eventsToCalendarEntries = (
   return entries
 }
 
-const clampHour = (hour: number): number => Math.max(0, Math.min(24, hour))
-
-// An `HH:00` bound Schedule-X's `dayBoundaries` reads (it accepts an overnight span
-// where start > end).
-const hhmm = (hour: number): string => `${String(clampHour(hour)).padStart(2, '0')}:00`
-
-// The wall-clock hour (fractional) of an entry's `YYYY-MM-DD HH:mm` bound.
-const entryHour = (wallClock: string): number => {
-  const [hour, minute] = (wallClock.split(' ')[1] ?? '').split(':').map(Number)
-
-  return (hour || 0) + (minute || 0) / 60
-}
-
-/**
- * The week/day time-grid bounds to frame the visible hours (Schedule-X `dayBoundaries`),
- * or `undefined` to leave its default:
- *
- * - **Time-of-day filter set** → span the selected period(s). A single range (including a
- *   night span that wraps midnight, e.g. `21:00`–`06:00`) frames the grid directly.
- *   Several non-wrapping ranges span from the earliest start to the latest end.
- * - **Otherwise** → hug the entries: 1 h before the earliest occurrence start and 1 h
- *   after the latest end (an overnight entry counts to the day's end). This is undefined
- *   when there are no entries.
- */
-export const computeDayBoundaries = (
-  entries: CalendarEntry[],
-  timeOfDay: readonly TimePeriod[],
-): { start: string; end: string } | undefined => {
-  if (timeOfDay.length > 0) {
-    const ranges = timePeriodRanges(timeOfDay)
-
-    // A range that wraps past midnight (morning with evening) would make Schedule-X start each day
-    // at 17:00, moving a 7 am class into the day before.
-    if (ranges.length === 1 && ranges[0][0] < ranges[0][1]) {
-      return { start: hhmm(ranges[0][0]), end: hhmm(ranges[0][1]) }
-    }
-    if (ranges.length > 1 && !ranges.some(([s, e]) => s > e)) {
-      return {
-        start: hhmm(Math.min(...ranges.map(([s]) => s))),
-        end: hhmm(Math.max(...ranges.map(([, e]) => e))),
-      }
-    }
-
-    return undefined // whole-day cover, or an ambiguous wrap → Schedule-X default
-  }
-
-  let earliest = 24
-  let latest = 0
-
-  for (const entry of entries) {
-    const start = entryHour(entry.start)
-    let end = entryHour(entry.end)
-
-    if (end <= start) end = 24 // an overnight entry ends the next day — count to day's end
-
-    earliest = Math.min(earliest, start)
-    latest = Math.max(latest, end)
-  }
-
-  if (earliest >= latest) return undefined // no entries
-
-  return { start: hhmm(Math.floor(earliest) - 1), end: hhmm(Math.ceil(latest) + 1) }
-}
-
 // ===== THE WEEK LIST ===== //
 
 /** How many days the List view shows: this one and the six after it, so never a thin Sunday. */
@@ -349,48 +278,44 @@ export const groupEntriesByDay = (
 // ===== VIEW RESOLUTION ===== //
 
 /**
- * The Schedule-X view names this app registers — the view switch's values, and what
- * `useCalendarPosition` persists and restores.
+ * The Schedule-X view names this app registers, plus the week list it draws itself — the view
+ * switch's values, and what `useCalendarPosition` persists and restores.
  */
 export const CALENDAR_VIEW_MONTH = 'month-grid'
 export const CALENDAR_VIEW_MONTH_AGENDA = 'month-agenda'
-export const CALENDAR_VIEW_WEEK = 'week'
 export const CALENDAR_VIEW_LIST = 'list'
 
-/** Every Schedule-X view this app registers. */
+/** Every view the calendar renders. */
 export type CalendarViewName =
   | typeof CALENDAR_VIEW_MONTH
   | typeof CALENDAR_VIEW_MONTH_AGENDA
-  | typeof CALENDAR_VIEW_WEEK
   | typeof CALENDAR_VIEW_LIST
 
 /**
- * The three the view switch offers. `month-agenda` is deliberately absent: it renders FOR
- * Month below the crossing and is never lit, so the type refuses the mix-up rather than
- * leaving the switch able to hold a value with no matching item.
+ * The two the view switch offers, Month and Week (the week list, `list` in the URL). The list
+ * strictly shows a week, so it is the one Week view: Schedule-X's week time grid showed the same
+ * seven days a second way, under the same name (Devindra, 12 Nov). `month-agenda` is
+ * deliberately absent: it renders FOR Month below the crossing and is never lit, so the type
+ * refuses the mix-up rather than leaving the switch able to hold a value with no matching item.
  */
-export type CalendarViewOption =
-  | typeof CALENDAR_VIEW_MONTH
-  | typeof CALENDAR_VIEW_WEEK
-  | typeof CALENDAR_VIEW_LIST
+export type CalendarViewOption = typeof CALENDAR_VIEW_MONTH | typeof CALENDAR_VIEW_LIST
 
 const CALENDAR_VIEW_OPTIONS: readonly CalendarViewOption[] = [
   CALENDAR_VIEW_MONTH,
-  CALENDAR_VIEW_WEEK,
   CALENDAR_VIEW_LIST,
 ]
 
 /**
  * Narrows a switch value to an option the switch offers. Radix hands `onValueChange` a bare
  * `string`, empty on a deselect, so this is the one runtime boundary between the toggle group
- * and a store typed to the three options.
+ * and a store typed to the options.
  */
 export const isCalendarViewOption = (value: string): value is CalendarViewOption =>
   (CALENDAR_VIEW_OPTIONS as readonly string[]).includes(value)
 
 /** What the calendar renders at a given width, and which switch option that lights. */
 export type ResolvedCalendarView = {
-  /** The Schedule-X view to render. */
+  /** The view to render. */
   view: CalendarViewName
   /** The switch's value — always an option the switch offers at this width. */
   option: CalendarViewOption
@@ -400,10 +325,8 @@ export type ResolvedCalendarView = {
  * Resolves a stored view against the widget's width class, so the lit option always matches
  * what rendered.
  *
- * `month-grid` and `week` both declare `hasSmallScreenCompat: false`, so below the crossing
- * neither can render and both collapse onto `month-agenda` — not onto `list`, because the
- * agenda keeps a chosen day's own hours in view, which is what Week was being read for. The
- * switch lights Month there, the only option it offers besides List (#331).
+ * `month-grid` declares `hasSmallScreenCompat: false`, so below the crossing it cannot render
+ * and Month renders as `month-agenda` instead, still lit as Month (#331).
  */
 export const resolveCalendarView = (
   stored: CalendarViewOption | null,
@@ -413,9 +336,8 @@ export const resolveCalendarView = (
     return { view: CALENDAR_VIEW_LIST, option: CALENDAR_VIEW_LIST }
   }
 
-  const option = stored === CALENDAR_VIEW_WEEK ? CALENDAR_VIEW_WEEK : CALENDAR_VIEW_MONTH
-
-  if (isWide) return { view: option, option }
-
-  return { view: CALENDAR_VIEW_MONTH_AGENDA, option: CALENDAR_VIEW_MONTH }
+  return {
+    view: isWide ? CALENDAR_VIEW_MONTH : CALENDAR_VIEW_MONTH_AGENDA,
+    option: CALENDAR_VIEW_MONTH,
+  }
 }

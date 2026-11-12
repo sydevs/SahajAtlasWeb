@@ -4,7 +4,7 @@ import type { TranslationKey } from '@/types/i18next'
 
 import { useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { DateTime, Info } from 'luxon'
+import { DateTime } from 'luxon'
 import { CalendarDays } from 'lucide-react'
 
 import { StepHeading, ValidatedInput, radioKeys } from './fields'
@@ -23,7 +23,7 @@ import {
   monthlyOptions,
   resolvedMonthlyBy,
 } from '@/lib/proposal'
-import { formatTimeRange, regionalLocale, zoneLabel } from '@/lib/time'
+import { formatTime, formatWeekday, regionalLocale, weekdayNames, zoneLabel } from '@/lib/time'
 
 const REPEATS: { value: ListingRepeats; label: TranslationKey }[] = [
   { value: 'weekly', label: 'submit.when.weekly' },
@@ -31,10 +31,10 @@ const REPEATS: { value: ListingRepeats; label: TranslationKey }[] = [
   { value: 'once', label: 'submit.when.once' },
 ]
 
-/** An `HH:MM` time as every other time on screen writes it: "8:30 pm" in English, "20:30" in
- *  German (`formatTimeRange`). */
+/** An `HH:MM` time as every other time on screen writes it: "8:30 PM" in the US, "20:30" in the
+ *  UK (`formatTime`). */
 const formatClock = (time: string, locale: string) =>
-  formatTimeRange(DateTime.fromFormat(time, 'HH:mm', { zone: 'UTC' }), null, regionalLocale(locale))
+  formatTime(DateTime.fromFormat(time, 'HH:mm', { zone: 'UTC' }), regionalLocale(locale))
 
 const DURATIONS: { minutes: number | null; label: TranslationKey }[] = [
   { minutes: 60, label: 'submit.when.duration_60' },
@@ -97,8 +97,8 @@ export function TimeStep({
   // in, so the question stays away.
   const sinceLongAgo =
     correcting && weekly && Boolean(draft.firstDate) && draft.firstDate < DateTime.now().toISODate()
-  const weekdays = Info.weekdays('short', { locale })
-  const weekdayNames = Info.weekdays('long', { locale })
+  const weekdays = weekdayNames(locale, 'short')
+  const weekdaysLong = weekdayNames(locale)
   // The length a session runs, as one of the offered ones — read off the two times, so a class
   // opened for correction shows its own. "Set the end time" is for every other length.
   const stored = sessionMinutes(draft.startTime, draft.endTime)
@@ -111,7 +111,7 @@ export function TimeStep({
   const monthlyBy = resolvedMonthlyBy(draft.firstDate, draft.monthlyBy)
   const monthly = monthlyOptions(draft.firstDate).map((by) => {
     const date = DateTime.fromISO(draft.firstDate)
-    const name = date.setLocale(locale).toLocaleString({ weekday: 'long' })
+    const name = formatWeekday(date, locale)
     const label =
       by === 'date'
         ? t('event.recurrence.monthly_date', { day: date.day })
@@ -166,7 +166,7 @@ export function TimeStep({
                   key={label}
                   aria-checked={on}
                   aria-invalid={dayMissing && index === 0 ? true : undefined}
-                  aria-label={weekdayNames[index]}
+                  aria-label={weekdaysLong[index]}
                   className={`h-11 rounded-md border text-sm font-medium transition-colors outline-none focus-visible:ring-2 focus-visible:ring-focus ${
                     on
                       ? 'border-primary-9 bg-primary-9 text-primary-foreground'

@@ -146,8 +146,9 @@ The map is the heart of the app and its hottest render path. Treat it carefully.
 
 - Only on a device with a real pointer (`useHasRealPointer`). iOS sends a fake mouse
   move before a tap, and a tap that reveals content never clicks, so `onMouseMove` is
-  not wired on touch. It shows the class name above the timing, and
-  `pinPopoverPlacement` keeps it inside the visible map, side panel included.
+  not wired on touch. It shows the timing only — no class name, which rarely fits and
+  adds nothing to the choice to tap (Devindra, 12 Nov) — and `pinPopoverPlacement` keeps
+  it inside the visible map, side panel included.
 - Hovering a pin displays a small non-interactive popover with that event's
   timing — `EventPinPopover` plus `EventPinCard`, module-private helpers
   inlined in `Map.tsx` (the popover is inherently map-bound, since it renders a
@@ -159,8 +160,8 @@ The map is the heart of the app and its hottest render path. Treat it carefully.
 - The `<Popup>`'s default chrome is stripped in `globals.css`
   (`.event-pin-popover`), and its content is `pointer-events: none`, so it never
   steals hover from the pin or blocks a tap.
-- The card stacks the recurrence above the start time (two narrow lines) rather
-  than the list card's single line, but both derive their parts from the shared
+- The card joins the recurrence and the start time like the list card does, and
+  both derive their parts from the shared
   `calendarLineParts` gate (`use-event-display.ts`) — the popover and the card
   can never drift (#52, #72).
 

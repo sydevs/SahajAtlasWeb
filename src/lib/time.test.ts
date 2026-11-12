@@ -2,9 +2,15 @@ import { describe, it, expect } from 'vitest'
 import { DateTime } from 'luxon'
 
 import {
-  clockOptions,
   formatDate,
+  formatDateRange,
+  formatDayHeading,
+  formatLongDate,
+  formatMonth,
+  formatRelativeDate,
+  formatTime,
   formatTimeRange,
+  formatWeekday,
   regionalLocale,
   sameWallClock,
   scheduleXLocale,
@@ -24,10 +30,12 @@ const at = (iso: string, zone = 'Europe/London') => DateTime.fromISO(iso, { zone
 const norm = (value: string) => value.replace(/\s+/g, ' ').trim()
 
 describe('formatTimeRange', () => {
-  it('says am or pm in English even where the clock is 24-hour (en-GB), not elsewhere', () => {
+  // Devindra (12 Nov): never our own am/pm. Each locale reads its own clock, as Intl writes it.
+  it('writes each locale its own clock: am/pm in the US, 24-hour in the UK and Germany', () => {
     const at = DateTime.fromISO('2026-07-01T19:30', { zone: 'Europe/London' })
 
-    expect(formatTimeRange(at, null, 'en-GB').replace(/\s/g, ' ')).toBe('7:30 pm')
+    expect(norm(formatTimeRange(at, null, 'en-US'))).toBe('7:30 PM')
+    expect(formatTimeRange(at, null, 'en-GB')).toBe('19:30')
     expect(formatTimeRange(at, null, 'de')).toBe('19:30')
   })
 
@@ -112,6 +120,13 @@ describe('formatTimeRange', () => {
     expect(out).toBe('9:30 PM – 12:30 AM')
   })
 
+  it('keeps both day periods on a range past midnight of twelve hours or more', () => {
+    // An evening-and-morning filter, 5 PM to noon: `formatRange` alone writes "5:00 – 12:00 PM",
+    // which reads as a morning start.
+    expect(norm(formatTimeRange(wallClock(17), wallClock(12), 'en-US'))).toBe('5:00 PM – 12:00 PM')
+    expect(formatTimeRange(wallClock(17), wallClock(12), 'en-GB')).toBe('17:00–12:00')
+  })
+
   it('formats in the event zone, not the machine zone', () => {
     // 18:00 in London is 19:00 in Prague — the DateTime's own zone wins.
     const prague = at('2026-07-04T19:00', 'Europe/Prague')
@@ -120,28 +135,16 @@ describe('formatTimeRange', () => {
   })
 })
 
-describe('clockOptions', () => {
-  it('asks for am/pm in English only, so other Intl formats agree with formatTimeRange', () => {
-    expect(clockOptions('en-GB')).toEqual({ hour12: true })
-    expect(clockOptions('en')).toEqual({ hour12: true })
-    expect(clockOptions('de')).toEqual({})
-  })
-
-  it("turns Schedule-X's week axis hours into am/pm on a UK browser", () => {
-    const axis = new Intl.DateTimeFormat('en-GB', { hour: 'numeric', ...clockOptions('en-GB') })
-
-    expect(norm(axis.format(new Date(2026, 0, 1, 19)))).toBe('7 pm')
-  })
-})
-
 describe('wallClock', () => {
-  it('writes a typed-in time like any class time, am/pm on a UK browser too', () => {
-    expect(norm(formatTimeRange(wallClock(20, 30), null, 'en-GB'))).toBe('8:30 pm')
-    expect(formatTimeRange(wallClock(20, 30), null, 'de')).toBe('20:30')
+  it('writes a typed-in time like any class time, in the locale’s clock', () => {
+    expect(norm(formatTime(wallClock(20, 30), 'en-US'))).toBe('8:30 PM')
+    expect(formatTime(wallClock(20, 30), 'en-GB')).toBe('20:30')
+    expect(formatTime(wallClock(20, 30), 'de')).toBe('20:30')
   })
 
   it('reads hour 24 as midnight, so a range can end there', () => {
-    expect(norm(formatTimeRange(wallClock(17), wallClock(24), 'en-GB'))).toBe('5:00 pm – 12:00 am')
+    expect(norm(formatTimeRange(wallClock(17), wallClock(24), 'en-US'))).toBe('5:00 PM – 12:00 AM')
+    expect(formatTimeRange(wallClock(17), wallClock(24), 'en-GB')).toBe('17:00–00:00')
   })
 })
 
@@ -159,6 +162,51 @@ describe('formatDate', () => {
   it('adds the year only when it is not this one', () => {
     expect(formatDate(at('2022-12-21T19:30'), 'en-GB', { now })).toBe('Wed, 21 Dec 2022')
     expect(formatDate(at('2027-01-06T19:30'), 'en-GB', { now, weekday: false })).toBe('6 Jan 2027')
+  })
+})
+
+describe('the calendar’s dates', () => {
+  const now = DateTime.fromISO('2026-11-12T12:00', { zone: 'Europe/London' })
+  const day = at('2026-11-12T00:00')
+
+  it('heads a day compactly, the visitor’s way', () => {
+    expect(formatDayHeading(day, 'en-US', { now })).toBe('Thursday, Nov 12')
+    expect(formatDayHeading(day, 'en-GB', { now })).toBe('Thursday 12 Nov')
+    expect(formatDayHeading(at('2027-01-07T00:00'), 'en-GB', { now })).toBe('Thursday, 7 Jan 2027')
+  })
+
+  it('writes a date in full words for a confirmation', () => {
+    expect(formatLongDate(day, 'en-US', { now })).toBe('Thursday, November 12')
+    expect(formatLongDate(day, 'en-GB', { now })).toBe('Thursday 12 November')
+  })
+
+  it('names a weekday and a month', () => {
+    expect(formatWeekday(day, 'en-GB')).toBe('Thursday')
+    expect(formatWeekday(day, 'en-GB', 'short')).toBe('Thu')
+    expect(formatWeekday(day, 'de')).toBe('Donnerstag')
+    expect(formatMonth(day, 'en-GB')).toBe('November 2026')
+  })
+
+  it('writes a run of days as one range, across a month too', () => {
+    expect(norm(formatDateRange(day, at('2026-11-18T00:00'), 'en-GB'))).toBe('12–18 Nov')
+    expect(norm(formatDateRange(day, at('2026-11-18T00:00'), 'en-US'))).toBe('Nov 12 – 18')
+    expect(norm(formatDateRange(at('2026-11-30T00:00'), at('2026-12-06T00:00'), 'en-GB'))).toBe(
+      '30 Nov – 6 Dec',
+    )
+  })
+
+  it('reads each end of a range as its calendar date, whatever its zone', () => {
+    const lateInTokyo = DateTime.fromISO('2026-11-12T23:30', { zone: 'Asia/Tokyo' })
+
+    expect(norm(formatDateRange(lateInTokyo, at('2026-11-13T00:00'), 'en-GB'))).toBe('12–13 Nov')
+  })
+
+  it('says how far off a date is to lead a phrase', () => {
+    const today = DateTime.now().setZone('Europe/London')
+
+    expect(formatRelativeDate(today, 'en-GB', 'days')).toBe('Today')
+    expect(formatRelativeDate(today.plus({ days: 1 }), 'en-GB', 'days')).toBe('Tomorrow')
+    expect(formatRelativeDate(today.plus({ weeks: 1 }), 'en-GB', 'weeks')).toBe('Next week')
   })
 })
 

@@ -29,6 +29,10 @@ Do not format files by hand. PostToolUse hooks run Prettier and `eslint --fix` a
 
 - Run `pnpm typecheck` before you open a PR. No hook type-checks an edit: per-file errors come from the TypeScript language server, if one is attached, and cross-file breakage needs the full run.
 
+## Dates and times
+
+- **Every date or time on screen goes through `src/lib/time.ts`** (`formatTime`, `formatTimeRange`, `formatDate`, `formatDayHeading`, `formatLongDate`, `formatWeekday`, `weekdayNames`, `formatMonth`, `formatDateRange`, `formatRelativeDate`), passed `regionalLocale(locale)`. Each is an `Intl` format in that locale, so a visitor reads their own clock and date order: "7:30 PM" in the US, "19:30" in the UK. Never assemble a time, a day period or a date by hand, and never force a clock (`hour12`) on a locale (Devindra, 12 Nov). A machine format (`HH:mm` for a form value, an ICS stamp, Schedule-X's `yyyy-MM-dd HH:mm`) is data, not display, and stays a `toFormat`.
+
 ## Environment variables
 
 Client code reads env vars through `import.meta.env.VITE_*`. See `docs/environment.md` for the canonical reference: which prefix reaches the bundle, and where secrets belong.

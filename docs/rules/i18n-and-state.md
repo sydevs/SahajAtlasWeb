@@ -131,17 +131,17 @@ Nine stores, each the single source of truth for its own slice:
   **reactively**. The header drives Schedule-X through the public
   `calendar-controls` plugin — no reach into SX internals. Session-scoped.
   ⚠ **It holds what the viewer PICKED, never what a width can render** (#331).
-  `month-grid` and `week` declare no small-screen support, so below the crossing
-  both render as `month-agenda` — and every reader resolves the stored name
+  `month-grid` declares no small-screen support, so below the crossing it
+  renders as `month-agenda` — and every reader resolves the stored name
   through `resolveCalendarView` (`lib/shape/calendar.ts`) against
-  `useIsWideWidget()` rather than reading it raw. Storing the resolution instead
-  would lose a `week` the moment a viewer passed through a phone width. The
+  `useIsWideWidget()` rather than reading it raw. The switch offers Month and
+  Week, and Week is the day-by-day list (`list`) at every width. The
   header's label and paging step, the switch's value and its offered options, the
   grid's `defaultView`, and `DrawerStack`'s drawer-width test are all that same
   resolution. Schedule-X's own `isResponsive` is **off**, so nothing but the
   resolver decides which view renders: the flag registers the resize listener
-  that is the only path into `setScreenSizeCompatibleView`, which moved off both
-  grids to the FIRST registered compat view and emitted nothing. With it off,
+  that is the only path into `setScreenSizeCompatibleView`, which moved off the
+  grid to the FIRST registered compat view and emitted nothing. With it off,
   neither registration order nor SX's own breakpoint matters. Nothing is lost —
   the `isCalendarSmall` signal it drops feeds SX's view dropdown and the
   `sx__is-calendar-small` class, whose rules all target the header bar

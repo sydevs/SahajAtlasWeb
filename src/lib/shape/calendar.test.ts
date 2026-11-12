@@ -5,8 +5,6 @@ import {
   CALENDAR_VIEW_LIST,
   CALENDAR_VIEW_MONTH,
   CALENDAR_VIEW_MONTH_AGENDA,
-  CALENDAR_VIEW_WEEK,
-  computeDayBoundaries,
   eventsToCalendarEntries,
   calendarWindow,
   groupEntriesByDay,
@@ -15,7 +13,6 @@ import {
   isCalendarViewOption,
   resolveCalendarView,
   tidyPlaceCase,
-  type CalendarEntry,
   type CalendarSourceEvent,
 } from './calendar'
 import { DEFAULT_FILTERS, type EventFilters } from './filters'
@@ -243,65 +240,9 @@ describe('eventsToCalendarEntries', () => {
   })
 })
 
-describe('computeDayBoundaries', () => {
-  const entry = (start: string, end: string): CalendarEntry => ({
-    id: start,
-    title: 'x',
-    name: 'x',
-    start,
-    end,
-    path: '/1',
-    zone: 'Europe/London',
-  })
-
-  it('frames to the events (1h either side) when no time filter is set', () => {
-    const entries = [
-      entry('2026-07-06 09:30', '2026-07-06 10:30'),
-      entry('2026-07-06 14:00', '2026-07-06 15:00'),
-    ]
-
-    expect(computeDayBoundaries(entries, [])).toEqual({ start: '08:00', end: '16:00' })
-  })
-
-  it('counts an overnight event to the day end', () => {
-    const entries = [entry('2026-07-06 23:00', '2026-07-07 00:30')]
-
-    expect(computeDayBoundaries(entries, [])).toEqual({ start: '22:00', end: '24:00' })
-  })
-
-  it('is undefined with no entries and no filter', () => {
-    expect(computeDayBoundaries([], [])).toBeUndefined()
-  })
-
-  it('spans a single selected period, ignoring the events', () => {
-    // Morning starts at midnight, so a class in the small hours is still in the frame.
-    expect(computeDayBoundaries([], ['morning'])).toEqual({ start: '00:00', end: '12:00' })
-  })
-
-  it('spans multiple non-wrapping periods from earliest to latest', () => {
-    expect(computeDayBoundaries([], ['afternoon', 'evening'])).toEqual({
-      start: '12:00',
-      end: '24:00',
-    })
-  })
-
-  it('leaves the frame to Schedule-X when the periods wrap past midnight', () => {
-    expect(computeDayBoundaries([], ['morning', 'evening'])).toBeUndefined()
-  })
-
-  it('frames evening up to midnight', () => {
-    expect(computeDayBoundaries([], ['evening'])).toEqual({ start: '17:00', end: '24:00' })
-  })
-
-  it('leaves the whole day to Schedule-X when all three periods are selected', () => {
-    expect(computeDayBoundaries([], ['morning', 'afternoon', 'evening'])).toBeUndefined()
-  })
-})
-
 describe('isCalendarViewOption', () => {
-  it('accepts the three the switch offers', () => {
+  it('accepts the two the switch offers, Month and Week (the list)', () => {
     expect(isCalendarViewOption(CALENDAR_VIEW_MONTH)).toBe(true)
-    expect(isCalendarViewOption(CALENDAR_VIEW_WEEK)).toBe(true)
     expect(isCalendarViewOption(CALENDAR_VIEW_LIST)).toBe(true)
   })
 
@@ -311,22 +252,20 @@ describe('isCalendarViewOption', () => {
     expect(isCalendarViewOption(CALENDAR_VIEW_MONTH_AGENDA)).toBe(false)
   })
 
-  // Radix reports a deselect as the empty string, which is what the guard replaced.
+  // Radix reports a deselect as the empty string, which is what the guard replaced. Schedule-X's
+  // week time grid is no longer offered: the week list is the one Week view.
   it('refuses an empty value and an unknown name', () => {
     expect(isCalendarViewOption('')).toBe(false)
     expect(isCalendarViewOption('day')).toBe(false)
+    expect(isCalendarViewOption('week')).toBe(false)
   })
 })
 
 describe('resolveCalendarView', () => {
-  it('renders what the viewer picked at or above the crossing', () => {
+  it('renders the month grid at or above the crossing', () => {
     expect(resolveCalendarView(CALENDAR_VIEW_MONTH, true)).toEqual({
       view: CALENDAR_VIEW_MONTH,
       option: CALENDAR_VIEW_MONTH,
-    })
-    expect(resolveCalendarView(CALENDAR_VIEW_WEEK, true)).toEqual({
-      view: CALENDAR_VIEW_WEEK,
-      option: CALENDAR_VIEW_WEEK,
     })
   })
 
@@ -337,14 +276,7 @@ describe('resolveCalendarView', () => {
     })
   })
 
-  it('collapses week onto the month agenda below the crossing, where Week is not offered', () => {
-    expect(resolveCalendarView(CALENDAR_VIEW_WEEK, false)).toEqual({
-      view: CALENDAR_VIEW_MONTH_AGENDA,
-      option: CALENDAR_VIEW_MONTH,
-    })
-  })
-
-  it('passes the list view through at either width', () => {
+  it('passes the week list through at either width', () => {
     for (const isWide of [true, false]) {
       expect(resolveCalendarView(CALENDAR_VIEW_LIST, isWide)).toEqual({
         view: CALENDAR_VIEW_LIST,
@@ -356,15 +288,6 @@ describe('resolveCalendarView', () => {
   it('treats an unset store as month, so a fresh phone mount renders the agenda', () => {
     expect(resolveCalendarView(null, true).view).toBe(CALENDAR_VIEW_MONTH)
     expect(resolveCalendarView(null, false).view).toBe(CALENDAR_VIEW_MONTH_AGENDA)
-  })
-
-  // The store keeps the viewer's pick, never the resolution, so widening restores it — the
-  // round trip the criteria name, a resize over the crossing in both directions.
-  it('restores a stored week above the crossing after a trip below it', () => {
-    const stored = CALENDAR_VIEW_WEEK
-
-    expect(resolveCalendarView(stored, false).option).toBe(CALENDAR_VIEW_MONTH)
-    expect(resolveCalendarView(stored, true).option).toBe(CALENDAR_VIEW_WEEK)
   })
 })
 

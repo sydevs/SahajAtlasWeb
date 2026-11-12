@@ -4,13 +4,14 @@ import { useSearchParams } from 'react-router'
 import { useTranslation } from 'react-i18next'
 import { DateTime } from 'luxon'
 import { useNextCalendarApp } from '@schedule-x/react'
-import { createViewMonthAgenda, createViewMonthGrid, createViewWeek } from '@schedule-x/calendar'
+import { createViewMonthAgenda, createViewMonthGrid } from '@schedule-x/calendar'
 import { createCalendarControlsPlugin } from '@schedule-x/calendar-controls'
 import { Check, ChevronRight, Share } from 'lucide-react'
 
 import '@schedule-x/theme-default/dist/index.css'
 
 import { type CalendarRenderers, CalendarMount } from './CalendarMount'
+import { dayHeadingParts } from './DayHeading'
 import { TimesNote } from './TimesNote'
 import { WeekList } from './WeekList'
 
@@ -31,7 +32,9 @@ import { useWebShare } from '@/hooks/use-web-share'
 import { useAreaNames } from '@/hooks/use-area-names'
 import { type AreaNames, areaKey, areaLabel, areaLookupPoints } from '@/lib/area-names'
 import {
-  clockOptions,
+  formatDateRange,
+  formatMonth,
+  formatTime,
   formatTimeRange,
   regionalLocale,
   scheduleXLocale,
@@ -41,13 +44,11 @@ import { useTheme } from '@/hooks/use-theme'
 import {
   CALENDAR_VIEW_LIST,
   CALENDAR_VIEW_MONTH,
-  CALENDAR_VIEW_WEEK,
   type CalendarEntry,
   type EventFilters,
   calendarShareRoute,
   calendarWindow,
   chosenCalendarFilters,
-  computeDayBoundaries,
   eventsToCalendarEntries,
   filtersKey,
   isCalendarViewOption,
@@ -99,10 +100,9 @@ const CALENDARS = {
 
 // Plain DOM, since Schedule-X hands these an element rather than rendering a component.
 const calendarRenderers = (locale: string): CalendarRenderers => {
-  // Through `formatTimeRange`, like the class pages, so English always says am or pm.
   const wall = (wallClock: string) =>
     DateTime.fromFormat(wallClock, 'yyyy-MM-dd HH:mm', { zone: 'UTC' })
-  const time = (wallClock: string) => formatTimeRange(wall(wallClock), null, locale)
+  const time = (wallClock: string) => formatTime(wall(wallClock), locale)
   const div = (className: string, text: string) => {
     const element = document.createElement('div')
 
@@ -132,20 +132,6 @@ const calendarRenderers = (locale: string): CalendarRenderers => {
       cell.title = [entry.name, entry.detail].filter(Boolean).join(' · ')
       cell.dataset.online = String(entry.calendarId === 'online')
       host.replaceChildren(cell)
-    },
-    // A one-hour Week entry has room for three short lines. Its position already shows how long it
-    // lasts, so it gives the start and where, then the name, and never a clipped fourth line.
-    timeGridEvent: (host, entry) => {
-      const where = entry.location ?? entry.place
-
-      const block = div('sx-entry-week', '')
-
-      block.dataset.online = String(entry.calendarId === 'online')
-      block.append(
-        div('sx-entry-week-meta', [time(entry.start), where].filter(Boolean).join(' · ')),
-        div('sx-entry-week-name', entry.name ?? ''),
-      )
-      host.replaceChildren(block)
     },
   }
 }
@@ -247,28 +233,26 @@ function CalendarControls({ controls }: { controls: CalendarControlsPlugin }) {
   const date = useCalendarPosition((s) => s.date)
   const dateInputRef = useRef<HTMLInputElement>(null)
 
-  // The focused date (falls back to today until the grid reports one). The header label,
-  // localized straight from luxon (no per-month i18n key), shows the month + year in month view,
-  // the first day in week view, and the dates on screen in the list.
+  // The focused date (falls back to today until the grid reports one). The header label shows
+  // the month and year in Month, and the dates on screen in Week.
   const focused = date ?? DateTime.now().toISODate()
-  const dt = focused ? DateTime.fromISO(focused).setLocale(regionalLocale(locale)) : null
+  const formatLocale = regionalLocale(locale)
   const isList = option === CALENDAR_VIEW_LIST
   const today = todayISO()
   const hasDates = isDateRestricted(filters.dateRange)
   const window = calendarWindow(filters.dateRange, today)
-  const windowDates = new Intl.DateTimeFormat(regionalLocale(locale), {
-    day: 'numeric',
-    month: 'short',
-  }).formatRange(DateTime.fromISO(window.start).toJSDate(), DateTime.fromISO(window.end).toJSDate())
+  const windowDates = formatDateRange(
+    DateTime.fromISO(window.start),
+    DateTime.fromISO(window.end),
+    formatLocale,
+  )
   const label = isList
     ? window.isThisWeek
       ? t('calendar.next_7_days')
       : windowDates
-    : !dt
-      ? ''
-      : option === CALENDAR_VIEW_MONTH
-        ? dt.toLocaleString({ month: 'long', year: 'numeric' })
-        : dt.startOf('week').toLocaleString({ day: 'numeric', month: 'short', year: 'numeric' })
+    : focused
+      ? formatMonth(DateTime.fromISO(focused), formatLocale)
+      : ''
 
   const applyDate = (next: string) => {
     if (isList) {
@@ -285,7 +269,7 @@ function CalendarControls({ controls }: { controls: CalendarControlsPlugin }) {
   // `week` picked on a desktop lights Week again after a trip through a phone width.
   const selectView = (next: string) => {
     if (!isCalendarViewOption(next)) return
-    // The List's dates are its arrows, not a filter, so they don't follow the visitor to a grid.
+    // The week's dates are its arrows, not a filter, so they don't follow the visitor to a grid.
     // The grid opens on the first of them instead.
     const leavingPagedList = isList && next !== CALENDAR_VIEW_LIST && hasDates
 
@@ -294,8 +278,7 @@ function CalendarControls({ controls }: { controls: CalendarControlsPlugin }) {
     drive(controls, (c) => c.setView(resolveCalendarView(next, isWide).view))
   }
 
-  // Page one period: a month in month view, a week in week view, and in the list as many days
-  // as are on screen.
+  // Page one period: a month in Month, and in Week as many days as are on screen.
   const step = (dir: -1 | 1) => {
     if (isList) {
       setDateRange(shiftCalendarWindow(window, dir, today))
@@ -304,10 +287,7 @@ function CalendarControls({ controls }: { controls: CalendarControlsPlugin }) {
     }
     if (!focused) return
 
-    const base = DateTime.fromISO(focused)
-    const next = (
-      option === CALENDAR_VIEW_MONTH ? base.plus({ months: dir }) : base.plus({ weeks: dir })
-    ).toISODate()
+    const next = DateTime.fromISO(focused).plus({ months: dir }).toISODate()
 
     if (next) applyDate(next)
   }
@@ -337,12 +317,8 @@ function CalendarControls({ controls }: { controls: CalendarControlsPlugin }) {
         onValueChange={selectView}
       >
         <ToggleGroupItem value={CALENDAR_VIEW_MONTH}>{t('calendar.view_month')}</ToggleGroupItem>
-        {/* Schedule-X ships no small-screen week, and a 7-column time grid at 390px was never
-            readable — so below the crossing the switch offers Month and List only. */}
-        {isWide && (
-          <ToggleGroupItem value={CALENDAR_VIEW_WEEK}>{t('calendar.view_week')}</ToggleGroupItem>
-        )}
-        <ToggleGroupItem value={CALENDAR_VIEW_LIST}>{t('calendar.view_list')}</ToggleGroupItem>
+        {/* The list strictly shows a week, so it is the one Week view, at every width. */}
+        <ToggleGroupItem value={CALENDAR_VIEW_LIST}>{t('calendar.view_week')}</ToggleGroupItem>
       </ToggleGroup>
 
       {/* Nav + filter — wraps to a second line on narrow widths, one line on large. */}
@@ -401,17 +377,17 @@ function CalendarControls({ controls }: { controls: CalendarControlsPlugin }) {
 
 // The full-width calendar, at route `/calendar`, optionally with `?region=<slug>`. Its
 // entries are the filtered feed (`getCalendarEvents`) expanded into one per upcoming
-// occurrence — timezone-correct, online events included — on a Schedule-X month or week grid
-// whose `--sx-*` tokens are mapped to this project's theme (see
-// globals.css), or on this project's own day-by-day list (`WeekList`). This view is placeless, so it never frames the map. Clicking an entry opens
+// occurrence — timezone-correct, online events included — on a Schedule-X month grid whose
+// `--sx-*` tokens are mapped to this project's theme (see globals.css), or on this project's own
+// day-by-day week (`WeekList`). This view is placeless, so it never frames the map. Clicking an entry opens
 // its EventView. The Filter button opens FilterView as a right or bottom overlay over this
 // still-mounted view (see DrawerStack).
 //
 // This project's own header (CalendarControls) drives the calendar via the calendar-controls
 // plugin, so SX's built-in header stays hidden — one consistent drawer header for every width.
 // The plugin is created here and shared with the header. The grid is KEYED by the applied
-// filters, so it captures Schedule-X's config once and remounts with fresh events and
-// dayBoundaries on apply — the shared plugin re-binds to the new instance. A local Suspense
+// filters, so it captures Schedule-X's config once and remounts with fresh events on apply —
+// the shared plugin re-binds to the new instance. A local Suspense
 // keeps the header and pills visible while the cache-once source resolves. Across a remount,
 // and when returning from an event, the view and focused date restore from
 // `useCalendarPosition`.
@@ -509,13 +485,6 @@ function CalendarGrid({
     () => withAreaNames(events, areaNames, heading),
     [events, areaNames, heading],
   )
-  // Frame the week/day grid to the selected time-of-day periods, or (unfiltered) to the
-  // events themselves — 1 h either side of the earliest/latest occurrence.
-  const dayBoundaries = useMemo(
-    () => computeDayBoundaries(events, filters.timeOfDay),
-    [events, filters.timeOfDay],
-  )
-
   // Seed from the last position — view and focused date. This reads once, non-reactively, for
   // the capture-config-once hook. The header and the callback below keep it current, so at the
   // next remount — a filter apply captures config during *render* — the seed is already up to
@@ -526,7 +495,7 @@ function CalendarGrid({
     {
       // `month-agenda` is registered because `controls.setView` validates the name against this
       // list — the resolver, never Schedule-X, is what chooses it.
-      views: [createViewMonthGrid(), createViewMonthAgenda(), createViewWeek()],
+      views: [createViewMonthGrid(), createViewMonthAgenda()],
       // ⚠ Captured ONCE, so this seam answers a width crossing only because `DrawerStack`
       // remounts the whole drawer when `isWide` flips (vaul's `direction` is not
       // hot-swappable), remounting this grid with it. Should that stop, so does this.
@@ -535,8 +504,6 @@ function CalendarGrid({
       events: named,
       // Online programs render in the secondary colour (see CALENDARS + `calendarId`).
       calendars: CALENDARS,
-      // Undefined leaves Schedule-X's default grid (whole day).
-      dayBoundaries,
       isDark: theme === 'dark',
       // ⚠ Otherwise Schedule-X rewrites the rendered view at its own breakpoint and emits no
       // callback, so the switch cannot learn about it — which lit Month over a day list on a
@@ -560,11 +527,6 @@ function CalendarGrid({
         onClickPlusEvents: (date) =>
           setCalendarView(CALENDAR_VIEW_LIST, (next) => next.set('dates', `${date},${date}`)),
       },
-      weekOptions: {
-        eventWidth: 98,
-        // The Week grid's hour axis, "7 pm" in English like every other time here, not "19".
-        timeAxisFormatOptions: { hour: 'numeric', ...clockOptions(scheduleXCode) },
-      },
     },
     [controls],
   )
@@ -583,22 +545,23 @@ function CalendarGrid({
       // Not rendered yet: it mounts with the names it was created with.
     }
   }, [calendar, named])
-  const focused = DateTime.fromISO(useCalendarPosition((s) => s.date) ?? todayISO())
+  const stored = useCalendarPosition((s) => s.date)
+  const focused = (stored && DateTime.fromISO(stored).toISODate()) || todayISO()
 
   // The phone Month list names the day it shows, under a grid of a whole month where only an
-  // outline said which day that was (Anton, 6 Nov): "Today · Friday 6 November · 4 classes".
-  // Schedule-X draws that list, so the words reach it through a custom property (globals.css).
-  const focusedISO = focused.toISODate() ?? ''
-  const dayCount = events.filter((entry) => entry.start.startsWith(focusedISO)).length
-  const dayHeading = [
-    focusedISO === todayISO() ? t('calendar.today') : null,
-    focused
-      .setLocale(formatLocale)
-      .toLocaleString({ weekday: 'long', day: 'numeric', month: 'long' }),
-    dayCount > 0 ? t('calendar.day_count', { count: dayCount }) : null,
-  ]
-    .filter(Boolean)
-    .join(' · ')
+  // outline said which day that was: the date as its heading, then "Today · 4 classes" as a
+  // quieter line. Schedule-X draws that list, so the words reach it through custom properties
+  // (globals.css).
+  const day = dayHeadingParts(focused, {
+    today: todayISO(),
+    locale: formatLocale,
+    t,
+    count: events.filter((entry) => entry.start.startsWith(focused)).length,
+  })
+  const dayStyle = {
+    '--sy-agenda-day': JSON.stringify(day.heading),
+    ...(day.note ? { '--sy-agenda-day-note': JSON.stringify(day.note) } : {}),
+  } as CSSProperties
 
   return (
     <>
@@ -606,10 +569,7 @@ function CalendarGrid({
           the focused month's: a week straddling two months and the list view both show more. */}
       <TimesNote entries={events} />
       <DrawerBody className="max-w-none overflow-hidden px-gutter pb-4">
-        <div
-          className="sx-calendar"
-          style={{ '--sy-agenda-day': JSON.stringify(dayHeading) } as CSSProperties}
-        >
+        <div className="sx-calendar" style={dayStyle}>
           <CalendarMount calendar={calendar} renderers={renderers} />
         </div>
       </DrawerBody>

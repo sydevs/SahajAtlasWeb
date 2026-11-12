@@ -103,13 +103,15 @@ const activeFilters = {
   timeOfDay: ['evening' as const],
 }
 const activeParams = filtersToParams(activeFilters)
+// The Week view is the day-by-day list, which `?view=list` opens.
+const weekParams = filtersToParams(activeFilters, new URLSearchParams({ view: 'list' }))
 
 // "Grid failure" stays on the EXAMPLE axis rather than moving to the State control,
 // because the two throw at different depths and that is the whole point of the case: this
 // one trips the boundary BELOW the header (issue #89), so the month nav, the view picker,
 // the filter button, the close control and the pills all stay put and stay usable. The
 // State control throws at the view level, replacing all of that. Compare the two.
-const EXAMPLES = ['Month', 'Grid failure'] as const
+const EXAMPLES = ['Month', 'Week', 'Grid failure'] as const
 
 // Not an array — `eventsToCalendarEntries` iterates it, so this throws during the grid's
 // render rather than at fetch time. Deliberately unlike the seeded feed: what is being
@@ -118,8 +120,9 @@ const EXAMPLES = ['Month', 'Grid failure'] as const
 const POISONED = { notAnArray: true }
 
 /**
- * CalendarView — the full-width month, week, or list surface. Events are the mocked filtered
- * feed, expanded into per-occurrence entries and labelled by city. This project's own header
+ * CalendarView — the full-width Month grid (a month agenda on a phone, headed by the chosen day)
+ * or the Week view's day-by-day list. Events are the mocked filtered feed, expanded into
+ * per-occurrence entries and labelled by city. This project's own header
  * drives the views and navigation, with the active-filter pills below it. It is themed to this
  * project's tokens, and follows light and dark mode.
  *
@@ -152,7 +155,7 @@ export const Default: Story<{ example: (typeof EXAMPLES)[number]; state: StoryFa
       }}
       state={state}
     >
-      <SeedSearchParams params={activeParams}>
+      <SeedSearchParams params={example === 'Week' ? weekParams : activeParams}>
         <CalendarView />
       </SeedSearchParams>
     </ViewStory>

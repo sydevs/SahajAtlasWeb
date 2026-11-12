@@ -1,6 +1,5 @@
 import { type ReactNode } from 'react'
 import { useQuery } from '@tanstack/react-query'
-import { Info } from 'luxon'
 import { useSearchParams } from 'react-router'
 import { useTranslation } from 'react-i18next'
 import { ChevronDown, X } from 'lucide-react'
@@ -18,6 +17,7 @@ import {
 } from '@/components/molecules/SearchFilters'
 import { regionsQuery } from '@/config/api'
 import { useLocale } from '@/hooks/use-locale'
+import { weekdayNames } from '@/lib/time'
 
 /** One chip and its dropdown. An active chip names what's selected. */
 function FilterChip({
@@ -79,7 +79,7 @@ export function FilterChipBar() {
     searchParams.get('q')?.split(',')[0] ||
     regions?.find((node) => node.slug === filters.region)?.name ||
     undefined
-  const weekdays = Info.weekdays('short', { locale })
+  const weekdays = weekdayNames(locale, 'short')
   const footer = (
     <p aria-live="polite" className="text-sm text-gray-11">
       {count === undefined

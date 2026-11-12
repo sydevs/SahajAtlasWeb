@@ -158,9 +158,9 @@ A **seeker** looks for a class; a **coordinator** manages listings.
   A QR code in Share, or a guide? What a finished class's link offers: nearby classes, a link the
   class host picks, or the We Meditate app, given hosts with their own brand?
 - **Language and inclusion:** Publish more interface languages, and who edits and translates CMS
-  copy? Times as the browser asks (24-hour in the UK) or always am/pm? A GDPR review of the
-  registration consent wording? (Settled in round 2: the theme follows the device's light or dark
-  setting, per the product owner.)
+  copy? A GDPR review of the registration consent wording? (Settled in round 2: the theme follows
+  the device's light or dark setting, per the product owner. Settled on 12 Nov: times and dates
+  follow the browser's own format, 24-hour in the UK, never a forced am/pm, per Devindra.)
 - **Adding a class (PR #318):** Use direction A+? External sign-up (such as Meetup) by hand or via
   SahajCloud? Nobody-there reports without an email? Drafts kept after a reload? A test with a
   real class host first? Replies straight to the sender? A time-based duplicate warning?

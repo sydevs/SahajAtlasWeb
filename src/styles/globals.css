@@ -628,13 +628,11 @@ html.sy-atlas {
 
 /* Suppresses Schedule-X's per-event "grow in" animation (`sx-grow-event` on
    `.is-event-new`). The CalendarGrid remounts when the filters change (to
-   refresh events and dayBoundaries), which otherwise replays this grow on
-   every entry — a distracting reanimation on each filter apply. Month-page
-   and week slide transitions are left intact. */
+   refresh its events), which otherwise replays this grow on every entry — a
+   distracting reanimation on each filter apply. Month-page slide transitions
+   are left intact. */
 .sx-calendar .sx__month-grid-event.is-event-new,
-.sx-calendar .sx__month-agenda-event.is-event-new,
-.sx-calendar .sx__time-grid-event.is-event-new,
-.sx-calendar .sx__date-grid-event.is-event-new {
+.sx-calendar .sx__month-agenda-event.is-event-new {
   animation: none;
 }
 
@@ -679,18 +677,27 @@ html.sy-atlas {
   padding-inline: 0;
 }
 
-/* The phone Month list names the day it shows ("Today · Friday 6 November · 4 classes"), set by
-   CalendarView as a custom property, since Schedule-X draws the list itself. It reads as the
-   list's title: the size of the results' "In London" heading, well clear of the grid above and
-   close to the classes it heads (Anton, 6 Nov). */
-.sx-calendar .sx__month-agenda-events::before {
+/* The phone Month list names the day it shows: the date as its heading ("Thursday 12 Nov"), then
+   "Today · 4 classes" as a quieter line under it (Devindra, 12 Nov). Schedule-X draws the grid and
+   the list as siblings, so CalendarView sets the words as custom properties: the heading closes
+   the grid, well clear of it, and the note opens the list, close to the classes it counts. */
+.sx-calendar .sx__month-agenda-weeks::after {
   content: var(--sy-agenda-day, none);
   display: block;
-  padding-block: 28px 4px;
+  padding-top: 24px;
   font-size: var(--text-xl);
   line-height: var(--text-xl--line-height);
   font-weight: 600;
   color: var(--gray-12);
+}
+
+.sx-calendar .sx__month-agenda-events::before {
+  content: var(--sy-agenda-day-note, none);
+  display: block;
+  padding-bottom: 4px;
+  font-size: var(--text-sm);
+  line-height: var(--text-sm--line-height);
+  color: var(--gray-11);
 }
 
 .sx-calendar .sx-entry-cell {
@@ -724,44 +731,6 @@ html.sy-atlas {
 
 .sx-calendar .sx__month-agenda-day-name {
   color: var(--gray-11);
-}
-
-/* Week entries: a plain tint with no side stripe, and text that fits a one-hour block. */
-.sx-calendar .sx__time-grid-event {
-  border-inline-start: 0 !important;
-}
-
-.sx-calendar .sx-entry-week {
-  height: 100%;
-  overflow: hidden;
-  border-radius: 4px;
-  background: hsl(var(--primary-3));
-}
-
-.sx-calendar .sx-entry-week[data-online='true'] {
-  background: hsl(var(--secondary-3));
-}
-
-.sx-calendar .sx-entry-week-meta {
-  overflow: hidden;
-  padding: 2px 6px 0;
-  color: var(--gray-11);
-  font-size: var(--text-xs);
-  line-height: 16px;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.sx-calendar .sx-entry-week-name {
-  display: -webkit-box;
-  overflow: hidden;
-  padding-inline: 6px;
-  color: var(--gray-12);
-  font-size: var(--text-xs);
-  font-weight: 600;
-  line-height: 16px;
-  -webkit-box-orient: vertical;
-  -webkit-line-clamp: 2;
 }
 
 /* Inside a frame the fixed layer is contained by it, so the frame IS the box to fill.

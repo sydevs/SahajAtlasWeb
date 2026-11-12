@@ -1,4 +1,12 @@
-import { DateTime } from 'luxon'
+/**
+ * The one place a date or a time becomes words. Every formatter here goes through the browser's
+ * `Intl` formats in the locale it is given (`regionalLocale`'s answer), so each visitor reads the
+ * pattern familiar where they are: "7:30 PM" and "Fri, Nov 12" in the US, "19:30" and "Fri 12 Nov"
+ * in the UK, "19:30" and "Fr., 12. Nov." in Germany. Never assemble a clock, a day period or a
+ * date by hand, or force one locale's clock on another: the order, separators and suffixes are
+ * Intl's data, not ours.
+ */
+import { DateTime, Info } from 'luxon'
 
 /** The visitor's own IANA zone, UTC where the runtime cannot name one. */
 export const viewerTimeZone = (): string => DateTime.local().zoneName ?? 'UTC'
@@ -47,8 +55,42 @@ export function zoneCity(zone: string | null | undefined): string {
  */
 const wallClockOnOneDay = (at: DateTime): Date => new Date(Date.UTC(2000, 0, 1, at.hour, at.minute))
 
+const HOUR_MS = 3_600_000
+
+type Clock = { formatter: Intl.DateTimeFormat; separator: string }
+
+// One formatter per locale for the widget's lifetime: a week list or a results page formats a
+// time per row, and the result depends on nothing but the locale.
+const clocks = new Map<string, Clock>()
+
+/** The locale's own mark between two times, read off a range Intl writes itself. */
+const rangeSeparator = (formatter: Intl.DateTimeFormat): string => {
+  const parts = formatter.formatRangeToParts(
+    new Date(Date.UTC(2000, 0, 1, 9)),
+    new Date(Date.UTC(2000, 0, 1, 17)),
+  )
+  const between = parts[parts.findIndex((part) => part.source === 'endRange') - 1]
+
+  return between?.source === 'shared' ? between.value : ' – '
+}
+
+const clock = (locale: string): Clock => {
+  let found = clocks.get(locale)
+
+  if (!found) {
+    // `timeStyle: 'short'` is the locale's own everyday time, as `toLocaleTimeString` writes it:
+    // the clock, the day period and its case are Intl's choice for that locale, never ours.
+    const formatter = new Intl.DateTimeFormat(locale, { timeStyle: 'short', timeZone: 'UTC' })
+
+    found = { formatter, separator: rangeSeparator(formatter) }
+    clocks.set(locale, found)
+  }
+
+  return found
+}
+
 /**
- * Concise, locale-correct event times.
+ * Event times in the locale's own clock.
  *
  * Rather than hand-assembling "6 – 7 PM" (which breaks the moment a locale
  * prefers a 24-hour clock, a different range separator, or a suffix like
@@ -61,9 +103,6 @@ const wallClockOnOneDay = (at: DateTime): Date => new Date(Date.UTC(2000, 0, 1, 
  * - en-GB  → "18:00–19:00"     (the region's 24-hour clock)
  * - de     → "18:00–19:00 Uhr" (24-hour, localized suffix)
  *
- * Minutes always show, so every time on screen has one shape ("5:00 PM", "7:30 PM",
- * "5:00 – 6:30 PM") rather than mixing "5 PM" with "5:00 – 6:30 PM".
- *
  * Both endpoints are read in the start's zone — a caller may hand over either
  * — and pinned to one calendar day, so an overnight range keeps its
  * locale's hour-range pattern instead of widening into two full dates
@@ -71,69 +110,121 @@ const wallClockOnOneDay = (at: DateTime): Date => new Date(Date.UTC(2000, 0, 1, 
  */
 export function formatTimeRange(start: DateTime, end: DateTime | null, locale: string): string {
   const endInZone = end?.setZone(start.zone) ?? null
-  const formatter = clockFormatter(locale)
+  const { formatter, separator } = clock(locale)
+  const from = wallClockOnOneDay(start)
 
-  if (!endInZone || +endInZone === +start) return formatter.format(wallClockOnOneDay(start))
+  if (!endInZone || +endInZone === +start) return formatter.format(from)
 
-  return formatter.formatRange(wallClockOnOneDay(start), wallClockOnOneDay(endInZone))
+  const to = wallClockOnOneDay(endInZone)
+
+  // A range that wraps past midnight and runs twelve hours or more (an evening-and-morning filter,
+  // 5 PM to noon) has the same day period at both ends, and `formatRange` writes it once: "5:00 –
+  // 12:00 PM" reads as a morning start. So each end is written whole.
+  if (+to < +from && +from - +to <= 12 * HOUR_MS)
+    return `${formatter.format(from)}${separator}${formatter.format(to)}`
+
+  return formatter.formatRange(from, to)
 }
 
-/**
- * The hour cycle every time on screen is written in. English always says am or pm, even where the
- * region's clock is 24-hour (en-GB): "4:00" alone could be morning or afternoon (Anton, 6 Nov).
- * Other languages keep their own clock. Spread it into any `Intl` time format — Schedule-X's week
- * axis takes it too — so no surface drifts back to "19:00", as the calendar's week list, the
- * filter pills and the add-a-class form once did.
- */
-export const clockOptions = (locale: string): Intl.DateTimeFormatOptions =>
-  isEnglish(locale) ? { hour12: true } : {}
-
-// One formatter per locale for the widget's lifetime: a week list or a results page formats a
-// time per row, and the result depends on nothing but the locale.
-const clockFormatters = new Map<string, Intl.DateTimeFormat>()
-
-const clockFormatter = (locale: string): Intl.DateTimeFormat => {
-  let formatter = clockFormatters.get(locale)
-
-  if (!formatter) {
-    formatter = new Intl.DateTimeFormat(locale, {
-      hour: 'numeric',
-      minute: '2-digit',
-      timeZone: 'UTC',
-      ...clockOptions(locale),
-    })
-    clockFormatters.set(locale, formatter)
-  }
-
-  return formatter
-}
+/** One time, as `formatTimeRange` writes it: "7:30 PM" in the US, "19:30" in the UK. */
+export const formatTime = (at: DateTime, locale: string): string =>
+  formatTimeRange(at, null, locale)
 
 /**
  * A wall-clock time that belongs to no instant — an `HH:mm` typed into a form, the hour a filter
- * stands for — as one `formatTimeRange` writes like any class's time: "8:30 pm" in English,
- * "20:30" in German. Hour 24 is midnight.
+ * stands for — to format like any class's time. Hour 24 is midnight.
  */
 export const wallClock = (hour: number, minute = 0): DateTime =>
   DateTime.utc(2000, 1, 1, hour % 24, minute)
 
+type DateOptions = { now?: DateTime }
+
+// The year joins only when it is not this year's, so a series that began in 2022 reads
+// "21 Dec 2022" instead of passing for this December.
+const yearUnlessThisOne = (at: DateTime, now: DateTime): Intl.DateTimeFormatOptions =>
+  at.year === now.setZone(at.zone).year ? {} : { year: 'numeric' }
+
 /**
- * A date the way the class page writes it: "Wed 11 Nov" on a UK browser, "Wed, Nov 11" on a US one
- * (pass `regionalLocale`'s answer). The year joins only when it is not this year's, so a series
- * that began in 2022 reads "Wed, 21 Dec 2022" instead of passing for this December.
- * `weekday: false` drops the day name where the words around it already say it ("Every Wednesday
- * from 11 Nov", "Started 8 Jul").
+ * A date the way the class page writes it: "Wed 11 Nov" on a UK browser, "Wed, Nov 11" on a US
+ * one. `weekday: false` drops the day name where the words around it already say it ("Every
+ * Wednesday from 11 Nov", "Started 8 Jul").
  */
 export function formatDate(
   at: DateTime,
   locale: string,
-  { weekday = true, now = DateTime.now() }: { weekday?: boolean; now?: DateTime } = {},
+  { weekday = true, now = DateTime.now() }: DateOptions & { weekday?: boolean } = {},
 ): string {
   return at.setLocale(locale).toLocaleString({
     ...(weekday ? { weekday: 'short' } : {}),
     day: 'numeric',
     month: 'short',
-    ...(at.year === now.setZone(at.zone).year ? {} : { year: 'numeric' }),
+    ...yearUnlessThisOne(at, now),
   })
+}
+
+/** A day as a heading: "Friday, Nov 12" in the US, "Friday 12 Nov" in the UK. */
+export const formatDayHeading = (
+  at: DateTime,
+  locale: string,
+  { now = DateTime.now() }: DateOptions = {},
+): string =>
+  at.setLocale(locale).toLocaleString({
+    weekday: 'long',
+    day: 'numeric',
+    month: 'short',
+    ...yearUnlessThisOne(at, now),
+  })
+
+/** A date in full words: "Tuesday, November 10" in the US, "Tuesday 10 November" in the UK. */
+export const formatLongDate = (
+  at: DateTime,
+  locale: string,
+  { now = DateTime.now() }: DateOptions = {},
+): string =>
+  at.setLocale(locale).toLocaleString({
+    weekday: 'long',
+    day: 'numeric',
+    month: 'long',
+    ...yearUnlessThisOne(at, now),
+  })
+
+/** A weekday's name: "Wednesday", or "Wed" when `short`. */
+export const formatWeekday = (
+  at: DateTime,
+  locale: string,
+  width: 'long' | 'short' = 'long',
+): string => at.setLocale(locale).toLocaleString({ weekday: width })
+
+/** The seven weekday names, Monday first, so an ISO weekday `n` is `[n - 1]`: "Mon", "Tue"… */
+export const weekdayNames = (locale: string, width: 'long' | 'short' = 'long'): string[] =>
+  Info.weekdays(width, { locale })
+
+/** A month and its year: "November 2026". */
+export const formatMonth = (at: DateTime, locale: string): string =>
+  at.setLocale(locale).toLocaleString({ month: 'long', year: 'numeric' })
+
+/**
+ * A run of calendar days: "12–18 Nov" in the UK, "Nov 12 – 18" in the US, "30 Nov – 6 Dec" across
+ * a month. Each end is read as its calendar date, whatever zone it is in.
+ */
+export const formatDateRange = (start: DateTime, end: DateTime, locale: string): string =>
+  new Intl.DateTimeFormat(locale, { day: 'numeric', month: 'short', timeZone: 'UTC' }).formatRange(
+    Date.UTC(start.year, start.month - 1, start.day),
+    Date.UTC(end.year, end.month - 1, end.day),
+  )
+
+/**
+ * How far off a date is, counted in `unit`, to lead a phrase: "Today", "Next week", "In 2 weeks".
+ * Intl writes these words to sit mid-sentence, so only the first letter is raised.
+ */
+export function formatRelativeDate(
+  at: DateTime,
+  locale: string,
+  unit?: 'days' | 'weeks' | 'months',
+): string {
+  const words = at.setLocale(locale).toRelativeCalendar(unit ? { unit } : undefined) ?? ''
+
+  return words.charAt(0).toLocaleUpperCase(locale) + words.slice(1)
 }
 
 /**
@@ -152,7 +243,6 @@ export function zoneLabel(zone: string, locale: string, at: Date = new Date()): 
     return zone
   }
 }
-const isEnglish = (locale: string): boolean => locale.split('-')[0].toLowerCase() === 'en'
 
 /**
  * The locale to format dates and times in: the visitor's own regional variant when its language

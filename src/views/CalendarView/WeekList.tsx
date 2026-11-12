@@ -3,6 +3,7 @@ import { useSuspenseQuery } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
 import { DateTime } from 'luxon'
 
+import { DayHeading } from './DayHeading'
 import { TimesNote } from './TimesNote'
 
 import { Button } from '@/components/atoms/Button'
@@ -25,17 +26,14 @@ import {
   todayISO,
   weekFrom,
 } from '@/lib/shape'
-import { formatTimeRange, regionalLocale } from '@/lib/time'
+import { formatDate, formatTime, regionalLocale } from '@/lib/time'
 
 const WALL_CLOCK = 'yyyy-MM-dd HH:mm'
 
 function WeekRow({ entry }: { entry: CalendarEntry }) {
   const { locale } = useLocale()
-  // Through `formatTimeRange`, like the class pages and the calendar grid: "7:00 pm" on a UK
-  // browser too, never "19:00" beside a class page that says "7:00 pm London time".
-  const time = formatTimeRange(
+  const time = formatTime(
     DateTime.fromFormat(entry.start, WALL_CLOCK, { zone: 'UTC' }),
-    null,
     regionalLocale(locale),
   )
 
@@ -54,8 +52,8 @@ function WeekRow({ entry }: { entry: CalendarEntry }) {
   )
 }
 
-// The calendar's List view: the classes in a window of days, by day, under the plain words a
-// person uses (Today, Tomorrow, Saturday). It reads the feed without the date range and cuts the
+// The calendar's Week view: the classes in a window of seven days, by day, each day headed by its
+// date with "Today" or "Tomorrow" beside it (`DayHeading`). It reads the feed without the date range and cuts the
 // window itself, so paging a week is instant and an empty week can name the next class.
 export function WeekList({ filters }: { filters: EventFilters }) {
   const { t } = useTranslation()
@@ -74,20 +72,8 @@ export function WeekList({ filters }: { filters: EventFilters }) {
   const days = groupEntriesByDay(entries, window)
 
   // "6 Nov" on a UK browser, "Nov 6" on a US one, like the times.
-  const formatLocale = regionalLocale(locale)
-  const dayName = (date: string) => {
-    const day = DateTime.fromISO(date).setLocale(formatLocale)
-
-    if (date === today) return t('calendar.today')
-    if (date === DateTime.fromISO(today).plus({ days: 1 }).toISODate())
-      return t('calendar.tomorrow')
-
-    return day.toLocaleString({ weekday: 'long' })
-  }
   const shortDate = (date: string) =>
-    DateTime.fromISO(date)
-      .setLocale(formatLocale)
-      .toLocaleString({ day: 'numeric', month: 'short' })
+    formatDate(DateTime.fromISO(date), regionalLocale(locale), { weekday: false })
 
   if (days.length === 0) {
     const filtered = activeFilterCount(chosenCalendarFilters(filters, true)) > 0
@@ -134,10 +120,7 @@ export function WeekList({ filters }: { filters: EventFilters }) {
       <DrawerBody className="pb-4">
         {days.map((day) => (
           <section key={day.date}>
-            <h3 className="sticky top-0 z-10 flex items-baseline gap-2 bg-gray-2 px-gutter py-2 text-sm font-semibold">
-              {dayName(day.date)}
-              <span className="font-normal text-gray-11">{shortDate(day.date)}</span>
-            </h3>
+            <DayHeading date={day.date} />
             <List>
               {day.entries.map((entry) => (
                 <WeekRow key={entry.id} entry={entry} />

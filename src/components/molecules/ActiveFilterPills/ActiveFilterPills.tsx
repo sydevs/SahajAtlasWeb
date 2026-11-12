@@ -1,7 +1,7 @@
 import type { TranslationKey } from '@/types/i18next'
 
 import { useMemo } from 'react'
-import { DateTime, Info } from 'luxon'
+import { DateTime } from 'luxon'
 import { useQuery } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
 
@@ -11,7 +11,7 @@ import { useEventFilters, useSetFilters } from '@/hooks/use-filters'
 import { useLocale } from '@/hooks/use-locale'
 import { formatTimePeriods } from '@/lib'
 import { type EventFilters, type FilterKey, isDateRestricted, isTimeRestricted } from '@/lib/shape'
-import { formatDate, regionalLocale } from '@/lib/time'
+import { formatDate, regionalLocale, weekdayNames } from '@/lib/time'
 
 export type FilterPill = { key: FilterKey; label: string; onRemove: () => void }
 
@@ -36,7 +36,7 @@ export function useFilterPills(filters?: EventFilters): FilterPill[] {
     setRegion,
   } = useSetFilters()
 
-  const weekdaysShort = useMemo(() => Info.weekdays('short', { locale }), [locale])
+  const weekdaysShort = useMemo(() => weekdayNames(locale, 'short'), [locale])
 
   // The cache-once region tree, to resolve the selected slug to its display name below.
   const { data: regions } = useQuery(regionsQuery())

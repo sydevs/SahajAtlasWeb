@@ -185,7 +185,7 @@ export const useCameraSettled = create<CameraSettled>((set) => ({
 
 // ===== CALENDAR POSITION ===== //
 
-// This holds the full-width `CalendarView`'s last view — one of the three the switch offers, never the `month-agenda` a width collapses onto — plus its focused date.
+// This holds the full-width `CalendarView`'s last view — one of the options the switch offers, never the `month-agenda` a width collapses onto — plus its focused date.
 // The store keeps this so applying a filter, which remounts the filters-keyed grid, does not reset Schedule-X to today's month grid.
 // Opening an event and coming back also does not reset it.
 // This state is session-scoped and clears on reload.

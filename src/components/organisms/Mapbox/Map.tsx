@@ -52,7 +52,7 @@ import { useEventFilters } from '@/hooks/use-filters'
 import { useGeolocateToSearch } from '@/hooks/use-geolocate'
 import { LOCATE_TIMEOUT_MS } from '@/hooks/use-near-me'
 import { useRegionMatcher } from '@/hooks/use-region-matcher'
-import api, { eventTitlesQuery } from '@/config/api'
+import api from '@/config/api'
 import { FILTER_PANEL_PX, useHasRealPointer } from '@/config/responsive'
 import { useBrandPalette } from '@/config/theme/brand-palette'
 import { GEOJSON_STALE_TIME } from '@/config/query-client'
@@ -177,19 +177,12 @@ function PointSource({
   )
 }
 
-// This is the card shown inside the hover popover: the class name, then its
-// timing, with the recurrence (for example, "Every Thursday") stacked above its
-// start time. It renders the SAME calendar parts that the list card's
-// `composeCalendarLine` joins (via the shared `calendarLineParts` gate). Here
-// they stack instead of joining with a `·`, so the two never drift apart (#72).
-// The name comes from the per-locale titles sliver, since the feed carries none. It is read
-// CACHE-ONLY, like the drawer's fallback chrome: a live observer here would make one mouse-move
-// over a pin fetch every title in the locale. Until a view that needs them has loaded them, the
-// card shows the timing alone.
-function EventPinCard({ event }: { event: DisplayableEvent & { id: number } }) {
-  const { locale } = useLocale()
-  const { data: titles } = useQuery({ ...eventTitlesQuery(locale), enabled: false })
-  const title = titles?.get(event.id)
+// This is the card shown inside the hover popover: the class's timing alone, the recurrence (for
+// example, "Every Thursday") then its start time. It renders the SAME calendar parts that the list
+// card's `composeCalendarLine` joins (via the shared `calendarLineParts` gate), so the two never
+// drift apart (#72). No class name: the pin already shows where the class is, the timing is what
+// decides a tap, and names rarely fit in two lines (Devindra, 12 Nov).
+function EventPinCard({ event }: { event: DisplayableEvent }) {
   const { display, recurrenceLine, whenLine, eventStartTime } = useEventDisplay(event)
   const { primary, time } = calendarLineParts({
     recurrenceLine,
@@ -198,20 +191,15 @@ function EventPinCard({ event }: { event: DisplayableEvent & { id: number } }) {
     hasNext: Boolean(display.next),
   })
 
-  if (!title && !primary) return null
+  if (!primary) return null
 
   return (
-    <div className="flex max-w-60 flex-col gap-0.5 rounded-lg border border-divider bg-background px-3 py-2 text-foreground shadow-md">
-      {title && <span className="line-clamp-2 text-sm font-semibold">{title}</span>}
-      {primary && (
-        <span className="flex items-center gap-1.5 text-xs text-gray-11">
-          <CalendarDays className="shrink-0" size={14} />
-          <span>
-            {primary}
-            {time && ` · ${time}`}
-          </span>
-        </span>
-      )}
+    <div className="flex max-w-60 items-center gap-1.5 rounded-lg border border-divider bg-background px-3 py-2 text-xs text-gray-11 shadow-md">
+      <CalendarDays className="shrink-0" size={14} />
+      <span>
+        {primary}
+        {time && ` · ${time}`}
+      </span>
     </div>
   )
 }
@@ -233,7 +221,7 @@ function EventPinPopover({
   anchor,
   offset,
 }: {
-  event: DisplayableEvent & { id: number }
+  event: DisplayableEvent
   longitude: number
   latitude: number
   anchor: PopoverAnchor

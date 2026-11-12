@@ -13,7 +13,15 @@ import {
   scheduleNamesZone,
   streetAndCity,
 } from '@/lib/shape'
-import { formatDate, formatTimeRange, regionalLocale, sameWallClock, zoneCity } from '@/lib/time'
+import {
+  formatDate,
+  formatTime,
+  formatTimeRange,
+  formatWeekday,
+  regionalLocale,
+  sameWallClock,
+  zoneCity,
+} from '@/lib/time'
 
 /** This is what the formatting layer reads on top of the resolver input: the address and
  *  region refs that feed the where and origin strings, when the surface has them. */
@@ -192,9 +200,7 @@ export function useEventDisplay(event: DisplayableEvent): EventDisplayStrings {
 
     if (next && recurrence) {
       const interval = schedule?.interval ?? 1
-      const weekdayNames = display.weekdayInstants.map((dt) =>
-        dt.setLocale(formatLocale).toLocaleString({ weekday: 'long' }),
-      )
+      const weekdayNames = display.weekdayInstants.map((dt) => formatWeekday(dt, formatLocale))
       const weekdays = new Intl.ListFormat(locale, { style: 'long', type: 'conjunction' }).format(
         weekdayNames,
       )
@@ -213,7 +219,7 @@ export function useEventDisplay(event: DisplayableEvent): EventDisplayStrings {
               : t('event.recurrence.weekly_1', { weekday: weekdays })
       } else if (schedule?.monthlyMode === 'weekday' && schedule.weekNumber)
         recurrenceLine = t(WEEK_NUMBER_KEYS[schedule.weekNumber], {
-          weekday: next.setLocale(formatLocale).toLocaleString({ weekday: 'long' }),
+          weekday: formatWeekday(next, formatLocale),
         })
       else recurrenceLine = t('event.recurrence.monthly_date', { day: next.day })
     }
@@ -240,7 +246,7 @@ export function useEventDisplay(event: DisplayableEvent): EventDisplayStrings {
 
     // ── Times ──
     // These are in the display zone, the viewer's for an online event, so they agree with the
-    // weekday, the date and the calendar. Each names its clock by the zone's own city ("8:00 pm
+    // weekday, the date and the calendar. Each names its clock by the zone's own city ("8:00 PM
     // Prague time"), never "your time", since the viewer's zone and the venue's both reach this
     // line. An online time is always the viewer's, and always says so. An in-person time is the
     // venue's, and says so only when the viewer's clock differs at that moment (#380). The zone's
@@ -254,7 +260,7 @@ export function useEventDisplay(event: DisplayableEvent): EventDisplayStrings {
         ? t('event.display.zone_time', { city: zoneCity(next.zoneName) })
         : null
     const withZone = (time: string) => (zoneLabel ? `${time} ${zoneLabel}` : time)
-    const eventStartTime = next ? withZone(formatTimeRange(next, null, formatLocale)) : null
+    const eventStartTime = next ? withZone(formatTime(next, formatLocale)) : null
     const eventTimeRange = next
       ? withZone(formatTimeRange(next, schedule?.endTime ? nextEnd : null, formatLocale))
       : null
@@ -289,7 +295,7 @@ export function useEventDisplay(event: DisplayableEvent): EventDisplayStrings {
     const room = event.address?.room?.trim()
     const roomLine = !display.online && !townOnly && room ? t('event.display.room', { room }) : null
     // For an online event only, the host's own clock, faded under the where line, such as
-    // "Wed 7:30 pm Prague time", named like the viewer's time above it, so the two clocks read
+    // "Wed 7:30 PM Prague time", named like the viewer's time above it, so the two clocks read
     // the same way. The weekday shows ONLY when the host's day differs from the viewer's.
     // Otherwise it is noise.
     //
@@ -302,10 +308,8 @@ export function useEventDisplay(event: DisplayableEvent): EventDisplayStrings {
 
     if (origin && next && !sameWallClock(origin, next)) {
       whereSubtext = [
-        origin.weekday !== next.weekday
-          ? origin.setLocale(formatLocale).toLocaleString({ weekday: 'short' })
-          : null,
-        formatTimeRange(origin, null, formatLocale),
+        origin.weekday !== next.weekday ? formatWeekday(origin, formatLocale, 'short') : null,
+        formatTime(origin, formatLocale),
         namesZone ? t('event.display.zone_time', { city: zoneCity(origin.zoneName) }) : null,
       ]
         .filter(Boolean)
