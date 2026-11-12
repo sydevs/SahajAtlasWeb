@@ -21,22 +21,22 @@ const STOCK = {
   [MARKER_IDS.point]: {
     width: 34,
     height: 38,
-    svg: '<svg xmlns="http://www.w3.org/2000/svg" width="68" height="76" viewBox="0 0 34 38"><defs>\n    <filter id="shadow" x="-40%" y="-40%" width="200%" height="200%">\n      <feDropShadow dx="1.2" dy="0.8" stdDeviation="0.9" flood-color="#4A5350" flood-opacity="0.45"/>\n    </filter>\n  </defs>\n  <path d="M4.71 26.42a15 15 0 1 1 21.58 0L15.5 37.6Z" fill="#21C1A2" filter="url(#shadow)" stroke="#000000" stroke-width="1.2" stroke-linejoin="round"/>\n  <circle cx="15.5" cy="16" r="4.5" fill="#FFFFFF"/></svg>',
+    svg: '<svg xmlns="http://www.w3.org/2000/svg" width="68" height="76" viewBox="0 0 34 38"><defs>\n    <filter id="shadow" x="-40%" y="-40%" width="200%" height="200%">\n      <feDropShadow dx="1.2" dy="0.8" stdDeviation="0.9" flood-color="#4A5350" flood-opacity="0.45"/>\n    </filter>\n  </defs>\n  <path d="M4.71 26.42a15 15 0 1 1 21.58 0L15.5 37.6Z" fill="#21C1A2" filter="url(#shadow)" stroke="#000000" stroke-opacity="0.5" stroke-width="1.2" stroke-linejoin="round"/>\n  <circle cx="15.5" cy="16" r="4.5" fill="#FFFFFF"/></svg>',
   },
   [MARKER_IDS.pointSelected]: {
     width: 34,
     height: 38,
-    svg: '<svg xmlns="http://www.w3.org/2000/svg" width="68" height="76" viewBox="0 0 34 38"><defs>\n    <filter id="shadow" x="-40%" y="-40%" width="200%" height="200%">\n      <feDropShadow dx="1.2" dy="0.8" stdDeviation="0.9" flood-color="#4A5350" flood-opacity="0.45"/>\n    </filter>\n  </defs>\n  <path d="M4.71 26.42a15 15 0 1 1 21.58 0L15.5 37.6Z" fill="#E87952" filter="url(#shadow)" stroke="#000000" stroke-width="1.2" stroke-linejoin="round"/>\n  <circle cx="15.5" cy="16" r="4.5" fill="#FFFFFF"/></svg>',
+    svg: '<svg xmlns="http://www.w3.org/2000/svg" width="68" height="76" viewBox="0 0 34 38"><defs>\n    <filter id="shadow" x="-40%" y="-40%" width="200%" height="200%">\n      <feDropShadow dx="1.2" dy="0.8" stdDeviation="0.9" flood-color="#4A5350" flood-opacity="0.45"/>\n    </filter>\n  </defs>\n  <path d="M4.71 26.42a15 15 0 1 1 21.58 0L15.5 37.6Z" fill="#E87952" filter="url(#shadow)" stroke="#000000" stroke-opacity="0.5" stroke-width="1.2" stroke-linejoin="round"/>\n  <circle cx="15.5" cy="16" r="4.5" fill="#FFFFFF"/></svg>',
   },
   [MARKER_IDS.cluster]: {
     width: 38,
     height: 38,
-    svg: '<svg xmlns="http://www.w3.org/2000/svg" width="76" height="76" viewBox="0 0 38 38"><circle cx="19" cy="19" r="18.4" fill="#8CCDC4" fill-opacity="0.706" stroke="#000000" stroke-width="1.2"/>\n  <circle cx="19" cy="19" r="13.8" fill="#37BB92" opacity="0.914"/></svg>',
+    svg: '<svg xmlns="http://www.w3.org/2000/svg" width="76" height="76" viewBox="0 0 38 38"><circle cx="19" cy="19" r="18.4" fill="#8CCDC4" fill-opacity="0.706" stroke="#000000" stroke-opacity="0.5" stroke-width="1.2"/>\n  <circle cx="19" cy="19" r="13.8" fill="#37BB92" opacity="0.914"/></svg>',
   },
   [MARKER_IDS.clusterSelected]: {
     width: 38,
     height: 38,
-    svg: '<svg xmlns="http://www.w3.org/2000/svg" width="76" height="76" viewBox="0 0 38 38"><circle cx="19" cy="19" r="18.4" fill="#F2A179" fill-opacity="0.706" stroke="#000000" stroke-width="1.2"/>\n  <circle cx="19" cy="19" r="13.8" fill="#E47C5A" opacity="0.914"/></svg>',
+    svg: '<svg xmlns="http://www.w3.org/2000/svg" width="76" height="76" viewBox="0 0 38 38"><circle cx="19" cy="19" r="18.4" fill="#F2A179" fill-opacity="0.706" stroke="#000000" stroke-opacity="0.5" stroke-width="1.2"/>\n  <circle cx="19" cy="19" r="13.8" fill="#E47C5A" opacity="0.914"/></svg>',
   },
 } as const
 

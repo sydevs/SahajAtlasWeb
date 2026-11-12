@@ -71,6 +71,11 @@ export const BASEMAP_SURFACES: Record<ThemeMode, { land: string; water: string }
 // the pin meets the map anyway.
 const OUTLINE_WIDTH = 1.2
 
+// Half strength, so the edge separates a pin from the map without framing it in a
+// hard line. ⚠ On the stroke alone: an element-wide `opacity` would fade the fill
+// with it (`markers.outline.test.ts`).
+export const OUTLINE_OPACITY = 0.5
+
 // Rasterisation scale — the images are drawn at 2× and registered with
 // `pixelRatio: 2`, matching the @2x Studio sprite they replace.
 const SCALE = 2
@@ -111,7 +116,7 @@ const pin = (fill: string, outline: string): MarkerImage =>
       <feDropShadow dx="1.2" dy="0.8" stdDeviation="0.9" flood-color="#4A5350" flood-opacity="0.45"/>
     </filter>
   </defs>
-  <path d="M4.71 26.42a15 15 0 1 1 21.58 0L15.5 37.6Z" fill="${fill}" filter="url(#shadow)" stroke="${outline}" stroke-width="${OUTLINE_WIDTH}" stroke-linejoin="round"/>
+  <path d="M4.71 26.42a15 15 0 1 1 21.58 0L15.5 37.6Z" fill="${fill}" filter="url(#shadow)" stroke="${outline}" stroke-opacity="${OUTLINE_OPACITY}" stroke-width="${OUTLINE_WIDTH}" stroke-linejoin="round"/>
   <circle cx="15.5" cy="16" r="4.5" fill="#FFFFFF"/>`,
   )
 
@@ -127,7 +132,7 @@ const cluster = (fill: string, ring: string, outline: string): MarkerImage =>
   svg(
     38,
     38,
-    `<circle cx="19" cy="19" r="${19 - OUTLINE_WIDTH / 2}" fill="${ring}" fill-opacity="0.706" stroke="${outline}" stroke-width="${OUTLINE_WIDTH}"/>
+    `<circle cx="19" cy="19" r="${19 - OUTLINE_WIDTH / 2}" fill="${ring}" fill-opacity="0.706" stroke="${outline}" stroke-opacity="${OUTLINE_OPACITY}" stroke-width="${OUTLINE_WIDTH}"/>
   <circle cx="19" cy="19" r="13.8" fill="${fill}" opacity="0.914"/>`,
   )
 

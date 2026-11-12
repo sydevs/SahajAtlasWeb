@@ -134,9 +134,10 @@ const DARK_MIN_LIGHTNESS = 60
 
 // Dark mode caps its lightness too. White passes `surface` on the dark page, so
 // without a cap a near-white brand renders near-white — and three near-white
-// seeds render three pins nobody can tell apart. At 80 the seed's hue survives,
-// so pale tan, pale blue and pale pink stay tan, blue and pink.
-const DARK_MAX_LIGHTNESS = 80
+// seeds render three pins nobody can tell apart. At 65 the seed's hue reads as a
+// colour rather than a tint, so pale tan, pale blue and pale pink become tan,
+// blue and pink.
+const DARK_MAX_LIGHTNESS = 65
 
 // The page and panel surface, `--background`, uses the ladder's app-background step.
 // So a themed background is a near-white tint of the seed's hue in light mode, and a near-black tint in dark mode.
@@ -348,7 +349,11 @@ export type RoleReport = {
    * moves a ladder step no seed can express.
    */
   suggested: string | null
+  /** Every check that moved a step, in either mode. */
   adjustedBy: PaletteCheck[]
+  /** The checks that moved a step in light mode alone, and in dark mode alone. */
+  lightAdjustedBy: PaletteCheck[]
+  darkAdjustedBy: PaletteCheck[]
 }
 
 export type PaletteReport = Partial<Record<BrandRole, RoleReport>>
@@ -402,7 +407,9 @@ export function paletteReport(palette: PaletteRoles): PaletteReport {
     report[role] = {
       adjustedBy: [...new Set([...inLight.adjustedBy, ...dark[role].adjustedBy])],
       dark: hexOf(dark[role].scale[SOLID_STEP]),
+      darkAdjustedBy: [...dark[role].adjustedBy],
       entered: palette[role] ?? null,
+      lightAdjustedBy: [...inLight.adjustedBy],
       light: lightHex,
       suggested: movedSolid ? settledSeed(lightHex, palette, role) : null,
     }

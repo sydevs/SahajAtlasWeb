@@ -57,7 +57,7 @@ describe('buildScale', () => {
     // White passes `surface` on the dark page, so nothing else would move it.
     const solid = parse(buildScale('#fffdfa', 'dark')[9])
 
-    expect(solid.l).toBeLessThanOrEqual(80)
+    expect(solid.l).toBeLessThanOrEqual(65)
     expect(solid.h).toBe(colord('#fffdfa').toHsl().h)
   })
 
@@ -323,6 +323,17 @@ describe('paletteReport', () => {
 
     expect(report.primary?.entered).toBe('#ffff00')
     expect(report.primary?.adjustedBy).toContain('surface')
+  })
+
+  it('reports each mode on its own', () => {
+    // `#ffff00` is too light for the white page and dark enough for the dark one.
+    const report = paletteReport({ primary: '#ffff00' }).primary!
+
+    expect(report.lightAdjustedBy).toContain('surface')
+    expect(report.darkAdjustedBy).not.toContain('surface')
+    expect(report.adjustedBy).toEqual([
+      ...new Set([...report.lightAdjustedBy, ...report.darkAdjustedBy]),
+    ])
   })
 
   it('reports a near-white seed as moved away from near-white', () => {

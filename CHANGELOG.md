@@ -48,7 +48,9 @@ cover everything a host would notice since the widget was first deployed.
   dark map a near-white colour used to render near-white, so a service whose colours were all
   pale got pins, chips and buttons that looked alike. It now keeps its hue at a paler but visible
   shade, as the light map already did. Only what the widget paints moves; the colour you stored
-  is unchanged. No change to your CSP, your Permissions Policy or any parameter.
+  is unchanged. The outline on pins and cluster bubbles is also drawn at half strength, so it
+  separates a pin from the map without framing it in a hard line. No change to your CSP, your
+  Permissions Policy or any parameter.
 
 - **Pins, cluster bubbles and area rings now carry a fixed outline, and a brand colour may be
   adjusted so visitors can read it.** ([#392]) The outline is one colour per basemap — dark on
