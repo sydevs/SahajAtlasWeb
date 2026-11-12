@@ -528,6 +528,14 @@ html.sy-atlas {
   @apply text-[16px] md:pointer-fine:text-sm;
 }
 
+/* The field height that goes with `field-size`, on the same switch: 44px where the text is 16px
+   and the field is a thumb's target, 40px with a wide screen and a mouse. A utility rather than
+   the class pair, so a caller's core `h-*` (a textarea's `h-auto`) outranks both arms at once —
+   tailwind-merge would drop only the unprefixed one. */
+@utility field-height {
+  @apply h-11 md:pointer-fine:h-10;
+}
+
 /* Applied wherever this app renders host-authored rich text. Wrapping is a
    property of THAT — not of the panel it happens to sit in — so it lives
    here, and the next prose surface inherits it: one unbreakable run (a

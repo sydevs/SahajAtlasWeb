@@ -1,20 +1,129 @@
 import type { Story, StoryDefault } from '@ladle/react'
 
+import { useState } from 'react'
+import { ClipboardList, ExternalLink, MapPin, Monitor } from 'lucide-react'
+
 import { StorySection, StoryWrapper } from '../../ladle'
 
-import { FormField, fieldDescribedBy } from './FormField'
+import { FormField } from './FormField'
 
+import { Checkbox } from '@/components/atoms/Checkbox'
 import { Input } from '@/components/atoms/Input'
+import { RadioGroup } from '@/components/atoms/RadioGroup'
+import { Select, SelectItem } from '@/components/atoms/Select'
 import { Textarea } from '@/components/atoms/Textarea'
+import { ToggleGroup, ToggleGroupItem } from '@/components/atoms/ToggleGroup'
 
 export default { title: 'Molecules' } satisfies StoryDefault
 
+const DAYS = ['M', 'T', 'W', 'T', 'F', 'S', 'S']
+
+/** The set every form is built from, each control in its field: the "Form atoms" section. */
+function FormKit() {
+  const [place, setPlace] = useState('offline')
+  const [day, setDay] = useState('')
+  const [signup, setSignup] = useState('elsewhere')
+  const [topic, setTopic] = useState('')
+
+  return (
+    <div className="flex max-w-sm flex-col gap-5">
+      <FormField htmlFor="kit-text" label="Text — Input">
+        {(control) => <Input {...control} defaultValue="Balham Library" />}
+      </FormField>
+      <FormField optional htmlFor="kit-long" label="Long text — Textarea">
+        {(control) => <Textarea {...control} rows={2} />}
+      </FormField>
+      <FormField htmlFor="kit-select" label="A list to pick from — Select">
+        {(control) => (
+          <Select
+            aria-describedby={control['aria-describedby']}
+            aria-label="Topic"
+            isInvalid={control.isInvalid}
+            placeholder="Choose one"
+            value={topic}
+            onValueChange={setTopic}
+          >
+            <SelectItem value="wrong">Something is wrong</SelectItem>
+            <SelectItem value="idea">An idea</SelectItem>
+          </Select>
+        )}
+      </FormField>
+      <FormField as="fieldset" label="One tap, with a hint — RadioGroup cards" name="kit-place">
+        {(control) => (
+          <RadioGroup
+            {...control}
+            className="grid grid-cols-2"
+            name="kit-place"
+            options={[
+              { value: 'offline', label: 'In person', hint: 'At a venue', icon: MapPin },
+              { value: 'online', label: 'Online', hint: 'Zoom or similar', icon: Monitor },
+            ]}
+            value={place}
+            onChange={setPlace}
+          />
+        )}
+      </FormField>
+      <FormField
+        required
+        as="fieldset"
+        error={day ? undefined : 'Choose the day it meets.'}
+        label="Short choices — ToggleGroup"
+        name="kit-day"
+      >
+        {(control) => (
+          <ToggleGroup
+            {...control}
+            required
+            className="grid grid-cols-7"
+            size="md"
+            type="single"
+            value={day}
+            onValueChange={setDay}
+          >
+            {DAYS.map((label, index) => (
+              <ToggleGroupItem key={index} value={String(index + 1)}>
+                {label}
+              </ToggleGroupItem>
+            ))}
+          </ToggleGroup>
+        )}
+      </FormField>
+      <FormField as="fieldset" label="Longer choices — RadioGroup" name="kit-signup">
+        {(control) => (
+          <RadioGroup
+            {...control}
+            name="kit-signup"
+            options={[
+              {
+                value: 'here',
+                label: 'On the class’s page',
+                hint: 'People fill in a short form there.',
+                icon: ClipboardList,
+              },
+              {
+                value: 'elsewhere',
+                label: 'On Meetup or another site',
+                hint: 'We’ll ask our admins to link the button to your page.',
+                icon: ExternalLink,
+              },
+            ]}
+            value={signup}
+            onChange={setSignup}
+          />
+        )}
+      </FormField>
+      <Checkbox appearance="checkbox">Yes or no — Checkbox</Checkbox>
+    </div>
+  )
+}
+
 /**
- * FormField — label, control, and help or error: the shell the registration, report-issue and
- * add-a-class forms share. It owns the required and optional markers, the rule that an error
- * replaces the help text while it shows, and the `aria-describedby` ids, so the control and its
- * help or error can't be wired apart. The caller passes the same id as `htmlFor` and to
- * `fieldDescribedBy`.
+ * FormField — label, control, and help or error: the shell every form shares (the registration
+ * form, the report-issue form, adding and correcting a class). It owns the required and optional
+ * markers, the rule that an error replaces the help text while it shows, and the
+ * `aria-describedby` ids. Pass the control as a function to receive its wiring (id, describedby,
+ * required, invalid), so no form wires it by hand. A group of controls is a fieldset, named by
+ * its legend.
  */
 export const Default: Story = () => (
   <StoryWrapper>
@@ -22,7 +131,7 @@ export const Default: Story = () => (
       <StorySection title="Minimal" variant="subsection">
         <div className="max-w-sm">
           <FormField htmlFor="ff-name" label="Your name">
-            <Input id="ff-name" />
+            {(control) => <Input {...control} />}
           </FormField>
         </div>
       </StorySection>
@@ -34,11 +143,7 @@ export const Default: Story = () => (
             htmlFor="ff-email"
             label="Email address"
           >
-            <Input
-              aria-describedby={fieldDescribedBy({ name: 'ff-email', help: true })}
-              id="ff-email"
-              type="email"
-            />
+            {(control) => <Input {...control} type="email" />}
           </FormField>
         </div>
       </StorySection>
@@ -50,10 +155,10 @@ export const Default: Story = () => (
     >
       <div className="flex max-w-sm flex-col gap-4">
         <FormField required htmlFor="ff-required" label="Name">
-          <Input required id="ff-required" />
+          {(control) => <Input {...control} />}
         </FormField>
         <FormField optional htmlFor="ff-optional" label="Phone">
-          <Input id="ff-optional" type="tel" />
+          {(control) => <Input {...control} type="tel" />}
         </FormField>
       </div>
     </StorySection>
@@ -70,15 +175,16 @@ export const Default: Story = () => (
           htmlFor="ff-invalid"
           label="Email address"
         >
-          <Input
-            isInvalid
-            aria-describedby={fieldDescribedBy({ name: 'ff-invalid', error: true })}
-            defaultValue="anna@"
-            id="ff-invalid"
-            type="email"
-          />
+          {(control) => <Input {...control} defaultValue="anna@" type="email" />}
         </FormField>
       </div>
+    </StorySection>
+
+    <StorySection
+      description="Every control a form uses, each in its field. Fields are 44px tall on a touch screen and 40px with a mouse, whichever form they are in."
+      title="Form atoms"
+    >
+      <FormKit />
     </StorySection>
 
     <StorySection
@@ -88,7 +194,7 @@ export const Default: Story = () => (
     >
       <div className="flex max-w-sm flex-col gap-4">
         <FormField required htmlFor="ff-ex-name" label="Your name">
-          <Input required defaultValue="Anna" id="ff-ex-name" />
+          {(control) => <Input {...control} defaultValue="Anna" />}
         </FormField>
         <FormField
           optional
@@ -96,14 +202,10 @@ export const Default: Story = () => (
           htmlFor="ff-ex-email"
           label="Email address"
         >
-          <Input
-            aria-describedby={fieldDescribedBy({ name: 'ff-ex-email', help: true })}
-            id="ff-ex-email"
-            type="email"
-          />
+          {(control) => <Input {...control} type="email" />}
         </FormField>
         <FormField required htmlFor="ff-ex-message" label="What's wrong?">
-          <Textarea required id="ff-ex-message" rows={3} />
+          {(control) => <Textarea {...control} rows={3} />}
         </FormField>
       </div>
     </StorySection>

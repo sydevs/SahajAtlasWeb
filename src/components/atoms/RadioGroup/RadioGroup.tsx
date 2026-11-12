@@ -1,5 +1,6 @@
+import type { LucideIcon } from 'lucide-react'
+
 import { type ReactNode, forwardRef, useState } from 'react'
-import clsx from 'clsx'
 import { tv } from 'tailwind-variants'
 
 // A vertical radio list, rendered as selectable cards. It is controlled
@@ -9,9 +10,19 @@ import { tv } from 'tailwind-variants'
 // not a Radix primitive, so every option is visible at a glance, since the
 // common case is picking the first. Domain formatting, such as dates and
 // counts, stays in the caller: `label` accepts any node.
+//
+// An option may carry a `hint` under its label and an `icon`: a choice
+// card, for a question answered with one tap (in person or online). With an
+// icon, the icon's circle shows the choice and the radio mark itself is
+// visually hidden — still the native input, so arrow keys and focus behave
+// as a radio group's do, and the card draws the focus ring.
 export type RadioOption = {
   value: string
   label: ReactNode
+  /** A line under the label that says what the choice means. */
+  hint?: ReactNode
+  /** Shown in a circle before the label, in place of the radio mark. */
+  icon?: LucideIcon
 }
 
 // The selected option is a pale tint with a primary border and a filled mark. A solid fill
@@ -20,18 +31,38 @@ export type RadioOption = {
 // colour only, with no wrapper and no size change, so an active field
 // stands out without shifting the layout.
 // The mark is a slot of the same recipe because it follows the card's colour.
+// A stacked list by default. A caller's layout (`grid grid-cols-2` for two cards side by side)
+// replaces it, merged rather than appended so the two displays cannot fight.
+const radioGroup = tv({ base: 'flex flex-col gap-2' })
+
 const radioOption = tv({
   slots: {
     card: 'flex min-h-11 cursor-pointer items-center gap-3 rounded border px-3 py-2.5 text-sm transition-colors',
     mark: 'h-4 w-4 shrink-0 dark:[color-scheme:dark]',
+    icon: 'flex size-9 shrink-0 items-center justify-center rounded-full transition-colors',
+    hint: 'text-xs leading-snug font-normal',
   },
   variants: {
     checked: {
       true: {
         card: 'border-primary-9 bg-primary-3 font-medium text-foreground',
         mark: 'accent-primary',
+        icon: 'bg-primary-9 text-primary-foreground',
+        hint: 'text-primary-11',
       },
-      false: { card: 'border-gray-7 text-foreground hover:bg-gray-2', mark: 'accent-primary' },
+      false: {
+        card: 'border-gray-7 text-foreground hover:bg-gray-2',
+        mark: 'accent-primary',
+        icon: 'bg-gray-3 text-gray-11',
+        hint: 'text-gray-11',
+      },
+    },
+    // The radio mark is hidden behind the icon, so the card shows where focus is.
+    withIcon: {
+      true: {
+        card: 'min-h-14 has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-focus',
+        mark: 'sr-only',
+      },
     },
     highlight: { true: {} },
     // This recolours to danger. The unselected cards get a danger border.
@@ -71,8 +102,11 @@ export type RadioGroupProps = {
   onChange: (value: string) => void
   onBlur?: () => void
   'aria-label'?: string
+  /** The group's visible name, such as a `FormField` legend (`fieldLabelId`). */
+  'aria-labelledby'?: string
   /** Id of the group's error or description text. It is forwarded for screen readers. */
   'aria-describedby'?: string
+  'aria-required'?: boolean | 'true' | 'false'
   /** Danger-border the group and set `aria-invalid` to flag a validation error. */
   isInvalid?: boolean
   /** Primary-tint the group to flag it as an active field. This mirrors the other atoms. */
@@ -108,7 +142,9 @@ export const RadioGroup = forwardRef<HTMLInputElement, RadioGroupProps>(function
     onChange,
     onBlur,
     'aria-label': ariaLabel,
+    'aria-labelledby': labelledBy,
     'aria-describedby': describedBy,
+    'aria-required': ariaRequired,
     isInvalid,
     highlight,
     collapseAfter,
@@ -127,26 +163,41 @@ export const RadioGroup = forwardRef<HTMLInputElement, RadioGroupProps>(function
       aria-describedby={describedBy}
       aria-invalid={isInvalid || undefined}
       aria-label={ariaLabel}
-      className={clsx('flex flex-col gap-2', className)}
+      aria-labelledby={labelledBy}
+      aria-required={ariaRequired}
+      className={radioGroup({ className })}
       role="radiogroup"
     >
       {visible.map((option, index) => {
         const checked = value === option.value
-        const { card, mark } = radioOption({ checked, highlight, isInvalid })
+        const Icon = option.icon
+        const slots = radioOption({ checked, highlight, isInvalid, withIcon: Boolean(Icon) })
 
         return (
-          <label key={option.value} className={card()}>
+          <label key={option.value} className={slots.card()}>
             <input
               ref={index === 0 ? ref : undefined}
               checked={checked}
-              className={mark()}
+              className={slots.mark()}
               name={name}
               type="radio"
               value={option.value}
               onBlur={onBlur}
               onChange={() => onChange(option.value)}
             />
-            <span className="min-w-0">{option.label}</span>
+            {Icon && (
+              <span className={slots.icon()}>
+                <Icon aria-hidden size={18} />
+              </span>
+            )}
+            {option.hint ? (
+              <span className="flex min-w-0 flex-col gap-0.5">
+                <span className="leading-tight font-semibold">{option.label}</span>
+                <span className={slots.hint()}>{option.hint}</span>
+              </span>
+            ) : (
+              <span className="min-w-0">{option.label}</span>
+            )}
           </label>
         )
       })}

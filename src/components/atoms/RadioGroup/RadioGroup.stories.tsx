@@ -1,6 +1,7 @@
 import type { Story, StoryDefault } from '@ladle/react'
 
 import { useState } from 'react'
+import { ExternalLink, ClipboardList, MapPin, Monitor } from 'lucide-react'
 
 import { StoryWrapper, StorySection } from '../../ladle'
 
@@ -16,15 +17,38 @@ const options: RadioOption[] = [
   { value: 'e', label: 'In 4 weeks — Wed, Aug 26' },
 ]
 
+const places: RadioOption[] = [
+  { value: 'offline', label: 'In person', hint: 'At a venue', icon: MapPin },
+  { value: 'online', label: 'Online', hint: 'Zoom or similar', icon: Monitor },
+]
+
+const signups: RadioOption[] = [
+  {
+    value: 'here',
+    label: 'On the class’s page',
+    hint: 'People fill in a short form there.',
+    icon: ClipboardList,
+  },
+  {
+    value: 'elsewhere',
+    label: 'On Meetup or another site',
+    hint: 'We’ll ask our admins to link the button to your page.',
+    icon: ExternalLink,
+  },
+]
+
 /**
  * RadioGroup — a controlled radio list, rendered as selectable cards. The
  * chosen card is highlighted. `collapseAfter` hides the tail behind a
  * reveal link, so a long list, such as the registration date picker, does
- * not flood the form.
+ * not flood the form. Options with an `icon` and a `hint` are choice cards,
+ * for a question answered with one tap.
  */
 export const Default: Story = () => {
   const [simple, setSimple] = useState('a')
   const [collapsed, setCollapsed] = useState('a')
+  const [place, setPlace] = useState('offline')
+  const [signup, setSignup] = useState('elsewhere')
 
   return (
     <StoryWrapper>
@@ -89,6 +113,29 @@ export const Default: Story = () => {
             options={options.slice(0, 3)}
             value={simple}
             onChange={setSimple}
+          />
+        </div>
+      </StorySection>
+
+      <StorySection
+        description="`icon` and `hint` make choice cards: the icon's circle shows the choice, the radio mark is hidden but still the native input. Side by side or stacked, by the caller's layout."
+        title="Choice cards"
+      >
+        <div className="flex max-w-sm flex-col gap-4">
+          <RadioGroup
+            aria-label="Where does the class take place?"
+            className="grid grid-cols-2"
+            name="place"
+            options={places}
+            value={place}
+            onChange={setPlace}
+          />
+          <RadioGroup
+            aria-label="How do people sign up?"
+            name="signup"
+            options={signups}
+            value={signup}
+            onChange={setSignup}
           />
         </div>
       </StorySection>

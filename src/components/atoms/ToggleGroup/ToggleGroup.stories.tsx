@@ -12,10 +12,16 @@ export default {
 
 const WEEKDAYS = ['M', 'T', 'W', 'T', 'F', 'S', 'S']
 
-/** ToggleGroup — single- or multi-select. Separate pills or a joined segmented bar. */
+/**
+ * ToggleGroup — single- or multi-select. Separate pills or a joined segmented bar. `size="md"` is
+ * the form size (44px, as tall as a field on a phone); `required` keeps a single choice answered,
+ * as a radio group does.
+ */
 export const Default: Story = () => {
   const [format, setFormat] = useState('any')
   const [days, setDays] = useState<string[]>(['1', '3'])
+  const [repeats, setRepeats] = useState('weekly')
+  const [day, setDay] = useState('2')
 
   return (
     <StoryWrapper>
@@ -88,6 +94,43 @@ export const Default: Story = () => {
             </ToggleGroupItem>
           ))}
         </ToggleGroup>
+      </StorySection>
+
+      <StorySection
+        description="The form size, as adding a class asks how often and which day: `size` md and `required`, laid out by the caller's grid. Pressing the chosen item keeps it."
+        title="In a form"
+      >
+        <div className="flex max-w-sm flex-col gap-4">
+          <ToggleGroup
+            joined
+            required
+            aria-label="How often?"
+            className="grid grid-cols-3"
+            size="md"
+            type="single"
+            value={repeats}
+            onValueChange={setRepeats}
+          >
+            <ToggleGroupItem value="weekly">Every week</ToggleGroupItem>
+            <ToggleGroupItem value="monthly">Every month</ToggleGroupItem>
+            <ToggleGroupItem value="once">Just once</ToggleGroupItem>
+          </ToggleGroup>
+          <ToggleGroup
+            required
+            aria-label="On which day?"
+            className="grid grid-cols-7"
+            size="md"
+            type="single"
+            value={day}
+            onValueChange={setDay}
+          >
+            {WEEKDAYS.map((label, index) => (
+              <ToggleGroupItem key={index} value={String(index + 1)}>
+                {label}
+              </ToggleGroupItem>
+            ))}
+          </ToggleGroup>
+        </div>
       </StorySection>
 
       <div />

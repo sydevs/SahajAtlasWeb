@@ -1,2 +1,2 @@
-export { FormField, fieldErrorId, fieldHelpId, fieldDescribedBy } from './FormField'
-export type { FormFieldProps } from './FormField'
+export { FormField, fieldErrorId, fieldHelpId, fieldLabelId, fieldDescribedBy } from './FormField'
+export type { FieldControlProps, FormFieldProps } from './FormField'

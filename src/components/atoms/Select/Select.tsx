@@ -17,13 +17,17 @@ import { frameCollision, overlayContainer } from '@/lib/overlay'
 // which owns the argument for the sizes it picks. A caller must not pass a `text-*` through
 // `className` — a core `text-*` emits after `field-size` and silently outranks it
 // (`src/styles/mobile-zoom.test.ts` refuses it).
+//
+// **`field-height` goes with it, on the same switch** (`globals.css`): 44px on a touch screen,
+// 40px with a mouse. Every form shares it, so a field in the report form, the sign-up and adding a
+// class is one size. A caller's own `h-*` still wins, being a core utility.
 export const fieldChrome = tv({
-  base: 'w-full rounded border bg-background px-3 field-size text-foreground transition-colors outline-none focus-visible:ring-2 focus-visible:ring-focus disabled:opacity-disabled',
+  base: 'field-height w-full rounded border bg-background px-3 field-size text-foreground transition-colors outline-none focus-visible:ring-2 focus-visible:ring-focus disabled:opacity-disabled',
   variants: {
     isInvalid: { true: 'border-danger-7', false: 'border-gray-7' },
     /** A trigger lays its value out against the chevron. A plain input does not. */
-    trigger: { true: 'inline-flex h-10 items-center justify-between gap-2', false: 'h-10' },
-    /** Textareas grow with their content instead of holding the 40px field height. */
+    trigger: { true: 'inline-flex items-center justify-between gap-2' },
+    /** Textareas grow with their content instead of holding the field height. */
     multiline: { true: 'h-auto py-2' },
     /** Active-filter tint: a primary background makes an in-use field stand out. */
     highlight: { true: 'border-primary-7 bg-primary-2' },
