@@ -4,6 +4,7 @@ import type { GroupOrder, PlaceScope } from './sections'
 import { describe, expect, it } from 'vitest'
 
 import {
+  areaCount,
   asGiven,
   boundsWith,
   localResults,
@@ -252,6 +253,25 @@ describe('splitResults', () => {
     expect(size).toBe('spot')
     expect(ids(here)).toEqual([14])
     expect(ids(justOutside)).toEqual([15])
+  })
+})
+
+describe('areaCount', () => {
+  // "3 more classes in this area" counts what the groups place around the search, before the
+  // farther ones: an online class is in no area.
+  it('counts the place, just outside it and other cities, never online or farther', () => {
+    const groups = splitResults(
+      [
+        inPerson(1, 14.45, 50.08, 2),
+        inPerson(2, 14.63, 50.1, 15),
+        inPerson(3, 15.06, 50.77, 88),
+        inPerson(4, 2.35, 48.85, 880, 'FR'),
+        online(5),
+      ],
+      { bbox: PRAGUE, searchCountry: 'CZ' },
+    )
+
+    expect(areaCount(groups)).toBe(3)
   })
 })
 

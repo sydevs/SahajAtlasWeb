@@ -253,6 +253,15 @@ export function splitResults<T extends Sectionable>(
 }
 
 /**
+ * How many in-person classes the groups place around the search: in the place, just outside it,
+ * and in other cities. The filter line says "3 more classes in this area" with the difference this
+ * makes with and without the filters, so the number is what "Remove filters" gives back. Online
+ * classes are in no area, and farther ones wait behind their own button.
+ */
+export const areaCount = ({ here, justOutside, nearby }: ResultSections<unknown>): number =>
+  here.length + justOutside.length + nearby.length
+
+/**
  * The classes a search covers in full, and the filter counts count: the place, just outside it,
  * and online. Other cities and farther ones wait behind their own fold, under their own count.
  */

@@ -9,7 +9,6 @@ import { MapPinOff } from 'lucide-react'
 
 import { EventsList } from './EventsList'
 import { LoadMore } from './LoadMore'
-import { reliefCopy } from './relief-copy'
 
 import { Alert } from '@/components/atoms/Alert'
 import { Button } from '@/components/atoms/Button'
@@ -25,6 +24,7 @@ import {
   DEFAULT_REVEAL,
   EXCLUDE_EVENT_PARAM,
   addClassPath,
+  areaCount,
   asGiven,
   boundsWith,
   hasActiveFilters,
@@ -303,11 +303,10 @@ export function DynamicEventsList({
     const filterNotice = hasActiveFilters(filters) && !nothing && (
       <FilterRelief
         bbox={bbox}
-        here={here.length}
+        excludedId={excludedId}
         latitude={latitude}
         longitude={longitude}
-        nearby={justOutside.length + nearby.length}
-        place={place}
+        shown={areaCount(sections)}
       />
     )
 
@@ -571,68 +570,52 @@ function ReliefActions({
   )
 }
 
+// What the filters hide around the place, and the way back, in one sentence for every kind of
+// filter (Devindra, 12 Nov): "3 more classes in this area. Remove filters". It counts what removing
+// them all gives back, so the number and the button agree. Classes may well be on screen, and the
+// filter may be the visitor's only free day, so this mentions the cost and never presses for the
+// filters to go.
 function FilterRelief({
   latitude,
   longitude,
   bbox,
-  place,
-  here,
-  nearby,
+  shown,
+  excludedId,
 }: {
   latitude: number
   longitude: number
   bbox?: BBox
-  place: string
-  here: number
-  nearby: number
+  /** `areaCount` of the filtered groups on screen. */
+  shown: number
+  /** The class a "see alternatives" search leaves out, left out of the count too. */
+  excludedId: number
 }) {
   const { t } = useTranslation()
   const { locale } = useLocale()
   const { clearFilters } = useSetFilters()
   const scope = usePlaceScope([longitude, latitude], bbox)
   const { data: unfiltered } = useQuery(eventsQuery(latitude, longitude, DEFAULT_FILTERS, locale))
-  const all = useMemo(
-    () => (unfiltered ? splitResults(unfiltered, scope) : null),
-    [unfiltered, scope],
-  )
-  const hiddenHere = all ? all.here.length - here : 0
-  const hiddenNearby = all ? all.justOutside.length + all.nearby.length - nearby : 0
-  // A class back in the place itself is worth more than one in the next town. The step offered
-  // counts whichever of the two this sentence is about.
-  const inPlace = hiddenHere > 0
-  const relief = useFilterRelief(latitude, longitude, (events) => {
-    const groups = splitResults(events, scope)
+  const hidden = useMemo(() => {
+    if (!unfiltered) return 0
+    const listed = unfiltered.filter((event) => event.id !== excludedId)
 
-    return inPlace
-      ? groups.here.length - here
-      : groups.justOutside.length + groups.nearby.length - nearby
-  })
+    return areaCount(splitResults(listed, { ...scope, order: asGiven })) - shown
+  }, [unfiltered, excludedId, scope, shown])
 
-  if (!inPlace && hiddenNearby <= 0) return null
+  if (hidden <= 0) return null
 
-  const best = relief[0]
-  const { sentence, action } = reliefCopy(t, {
-    here,
-    hiddenHere,
-    hiddenNearby,
-    place,
-    best: best && { key: best.pill.key, label: best.pill.label, count: best.count },
-  })
-
-  // One quiet line. Classes may well be on screen, and the filter may be the visitor's only free
-  // day, so this mentions the cost and never presses for the filter to go.
   return (
     <p
       className="flex flex-wrap items-center gap-x-2 px-gutter pt-1 text-sm text-gray-11"
       role="status"
     >
-      <span>{sentence}</span>
+      <span>{t('search.filtered.more_area', { count: hidden })}</span>
       <button
         className="min-h-11 text-start font-medium text-primary underline outline-none focus-visible:ring-2 focus-visible:ring-primary-8"
         type="button"
-        onClick={best ? best.pill.onRemove : clearFilters}
+        onClick={clearFilters}
       >
-        {action}
+        {t('search.filtered.remove_all')}
       </button>
     </p>
   )
@@ -704,7 +687,7 @@ function NoClassesHere({
         : t(spot ? 'search.no_classes.near' : 'search.no_classes.here', { place })
 
   return (
-    <div className="px-gutter pt-3 pb-2">
+    <div className="px-gutter pt-3 pb-5">
       <Alert color="neutral" icon={<MapPinOff className="h-5 w-5" />} size="lg" title={title} />
     </div>
   )

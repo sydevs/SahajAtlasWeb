@@ -17,7 +17,13 @@ import {
 import { SearchView } from '@/views/SearchView/SearchView'
 import { useLocale } from '@/hooks/use-locale'
 import { eventsQuery } from '@/config/api'
-import { FOREIGN_NEARBY_KM, NEARBY_KM, filtersFromParams, parseCenter } from '@/lib/shape'
+import {
+  DEFAULT_FILTERS,
+  FOREIGN_NEARBY_KM,
+  NEARBY_KM,
+  filtersFromParams,
+  parseCenter,
+} from '@/lib/shape'
 
 export default { title: 'Views' } satisfies StoryDefault
 
@@ -29,6 +35,8 @@ type Example = {
   /** The case's `?…` query (`''` for the bare, unparameterized search). */
   search: string
   events: EventSlim[]
+  /** What the same place holds with no filters, when the filters hide some of it. */
+  unfiltered?: EventSlim[]
 }
 
 // Reykjavík, marked as a search in Iceland. Iceland is absent from the seeded region
@@ -56,6 +64,10 @@ const FILTERED = 'format=offline&days=1,3&langs=en&center=0,0'
 const SEARCHED = 'q=Cambridge&center=0.12,52.21&cc=GB'
 const SEARCHED_SPARSE = 'q=Dover&center=1.31,51.13&cc=GB'
 const SEARCHED_BORDER = 'q=Folkestone&center=1.18,51.08&cc=GB'
+// A town search with a day filter on, for the line after the town's classes.
+const SEARCHED_FILTERED = 'q=Ely&center=0.26,52.4&cc=GB&days=2'
+// A town with no class of its own, for the box that says so and the space after it.
+const SEARCHED_EMPTY_TOWN = 'q=Hunstanton&center=0.49,52.94&cc=GB'
 
 const EXAMPLES: Record<string, Example> = {
   Results: { search: '', events: mockEventVariants },
@@ -95,6 +107,24 @@ const EXAMPLES: Record<string, Example> = {
   // COUNTRY lists no programs at all, which needs `?cc=IS` and so is a property of the
   // search rather than a state of it (issue #82).
   'Country website': { search: ICELAND, events: [] },
+  // Two of the town's five classes are on the chosen day. The line after them reads "3 more classes
+  // in this area. Remove filters", whatever kind of filter is on.
+  'Filters hide classes': {
+    search: SEARCHED_FILTERED,
+    events: mockEventSeries(2, { from: 2, step: 6, offset: 300 }),
+    unfiltered: [
+      ...mockEventSeries(2, { from: 2, step: 6, offset: 300 }),
+      ...mockEventSeries(3, { from: 4, step: 3, offset: 310 }),
+    ],
+  },
+  // "No classes near Hunstanton yet", with some room before the other cities and online classes.
+  'No classes in the town': {
+    search: SEARCHED_EMPTY_TOWN,
+    events: [
+      ...mockEventSeries(3, { from: 40, step: 15, offset: 400 }),
+      ...mockEventVariants.filter((event) => event.eventType === 'online'),
+    ],
+  },
   Filtered: {
     search: FILTERED,
     events: mockEventVariants.filter(
@@ -115,6 +145,14 @@ const eventsKey = (search: string, locale: string) => {
   return eventsQuery(latitude, longitude, filtersFromParams(params), locale).queryKey
 }
 
+// The same place with no filters: what the filter line and the "No classes" box compare against.
+const unfilteredKey = (search: string, locale: string) => {
+  const [longitude, latitude] =
+    parseCenter(new URLSearchParams(search).get('center')) ?? DEFAULT_CENTER
+
+  return eventsQuery(latitude, longitude, DEFAULT_FILTERS, locale).queryKey
+}
+
 /**
  * SearchView — the distance-ranked results screen. It shows the geocoder header over the
  * event list, with the Filters and Sort toolbar in its own fixed band between the two — a
@@ -125,8 +163,10 @@ const eventsKey = (search: string, locale: string) => {
  * "Distant events" covers the boundary where that stops and a deliberate press takes over.
  * "Across a border" covers the same boundary, tightened to half the distance for another
  * country. "Empty" is the no-results state. "Country website" is the offer that replaces it
- * when the searched country lists no programs at all. "Filtered" shows the toolbar badge and
- * active-filter pills over a list.
+ * when the searched country lists no programs at all. "Filters hide classes" is the one line after
+ * a town's classes that says how many more the filters hide, with "Remove filters". "No classes in
+ * the town" is the box a town with none of its own opens on. "Filtered" shows the toolbar badge
+ * and active-filter pills over a list.
  *
  * Cases that need a URL seed it onto the decorator's OWN router, via `SeedSearchParams` —
  * react-router v7 throws on a nested `<Router>`. That lands one render in, so each case
@@ -148,7 +188,8 @@ export const Default: Story<{ example: ExampleKey; state: StoryFallbackArg }> = 
   // `Empty` is a state of whichever search is selected, not a search of its own — so it
   // strips the results and leaves the query (and therefore the header, the pills and the
   // distance boundary) exactly as that example had them.
-  const events = state === EMPTY ? [] : (EXAMPLES[example] ?? EXAMPLES.Results).events
+  const current = EXAMPLES[example] ?? EXAMPLES.Results
+  const events = state === EMPTY ? [] : current.events
   // Stable per case. SeedSearchParams keys its effect on this, so a fresh object every
   // render would re-seed the URL in a loop. This memoizes on the CASE, not on its query
   // string. Two cases sharing a query would otherwise share one object and one seed, so
@@ -169,7 +210,13 @@ export const Default: Story<{ example: ExampleKey; state: StoryFallbackArg }> = 
         // miss on that first render and fire a real request at the absent backend.
         for (const query of new Set(['', ...Object.values(EXAMPLES).map((e) => e.search)])) {
           client.setQueryData<EventSlim[]>(eventsKey(query, locale), events)
+          client.setQueryData<EventSlim[]>(unfilteredKey(query, locale), events)
         }
+        // A filtered case also reads its place with no filters, which is no case's own key.
+        client.setQueryData<EventSlim[]>(
+          unfilteredKey(current.search, locale),
+          state === EMPTY ? [] : (current.unfiltered ?? events),
+        )
       }}
       state={state}
     >
