@@ -17,6 +17,8 @@ servers per-user in `.claude/settings.local.json`
 ### playwright (`mcp__playwright__*`)
 
 - Transport: stdio (`npx -y @playwright/mcp@latest`).
+- SahajCloud and WeMeditateWeb run the same server, so Claude drives a browser
+  the same way in all three repos.
 - A real browser for driving the running widget: navigate, click the map,
   fill the registration form, take screenshots. This is the **visual
   verification** path for a map-heavy UI with no automated test suite.

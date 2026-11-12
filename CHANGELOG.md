@@ -44,6 +44,43 @@ cover everything a host would notice since the widget was first deployed.
 
 ### Changed
 
+- **Pins, cluster bubbles and area rings now carry a fixed outline, and a brand colour may be
+  adjusted so visitors can read it.** ([#392]) The outline is one colour per basemap — dark on
+  the light map, pale on the dark one — so nothing about the colour of a pin depends on what the
+  map is showing underneath it, and every pin has a visible edge over pale land, over sea, and
+  over a coastline. Separately, a colour that would leave panel text, a chip or the selected
+  class unreadable is shifted in lightness until it is readable, and the pins are painted from
+  that same adjusted colour; the colour you stored is unchanged, and only what the widget paints
+  moves. Our own default colours are adjusted by the same rules, so an unbranded embed's panels
+  and buttons shift slightly too. No change to your CSP, your Permissions Policy or any
+  parameter.
+
+- **A page that _replaces_ `<sahaj-atlas>` now keeps the widget's data too.** ([#349]) [#149] made
+  the same element returning keep it; a host that destroys the element and creates a new one still
+  lost everything, which is exactly what Wix's router does on Back and Forward. The new element now
+  takes over the classes, regions and API key the old one had read, so it opens at the route your
+  URL names without asking the API for anything it already holds — a Back press used to cost a
+  full reload of the feed. It has to carry the same `key` and arrive inside the same moment [#149]
+  already allowed; a different key still drops everything read under the first, which it must. The
+  panels the visitor had opened, their place in the widget's own Back history and a half-filled
+  registration all come back with it — only what the old element's React tree held, such as a
+  scrolled list's position, starts over. Remove the old element before you insert the new one: the
+  opposite order leaves the page with no widget at all. No parameter, origin or CSP change. See
+  [If your page replaces the element].
+
+- **"Add to calendar" subscribes, so a class keeps itself up to date.** ([#393]) Apple Calendar
+  and Google Calendar now open a subscribe prompt for the class rather than copying one event
+  into the visitor's calendar, so a session the host cancels disappears from their calendar
+  within a day, without them doing anything. Outlook.com, Office 365 and Yahoo still add the
+  next session only — Microsoft publishes no subscribe address we can use — and **"Download .ics
+  file" is now its own row, last**, where it was the Apple row's label. ⚠ **In a sandboxed
+  iframe, `allow-downloads` now matters for that last row alone**, and the four rows that open a
+  page need `allow-popups` as before — while the Apple Calendar row needs neither, and no flag
+  covers it: a sandbox may refuse the `webcal:` address, which the operating system opens rather
+  than the browser. See
+  [Embedding in an iframe]. **No CSP or Permissions-Policy change**: every row is a navigation,
+  not a fetch. A script embed and an unsandboxed frame need nothing.
+
 - **The captcha on the registration and report forms is hidden unless it needs a click.**
   ([SahajCloud#1090]) Most visitors now see no security check at all; the 300×65 box opens only
   when Cloudflare asks for an interaction, and closes again after. The collapsed slot also leaves
@@ -132,6 +169,15 @@ cover everything a host would notice since the widget was first deployed.
   report. What travels is unchanged, and omitting the origin is still supported — see [#123] for
   both.
 
+- **A blocked security check now produces a crash report, and an error-level console line.**
+  ([#387]) When the widget's security check cannot load, the whole widget fails — and that was
+  the one failure it reported to nobody, printing a console warning and sending nothing. A build
+  with a DSN now sends one crash report for it, and logs an error beside the existing warning
+  that names the fix. No parameter, origin or CSP change: `connect-src https://*.sentry.io`
+  already covers it. A page that leaves that origin out now makes one refused request where it
+  made none, and the widget then stops trying for the rest of that page's life, as that row has
+  always said. What your visitor sees is unchanged: the same message, and still a retry.
+
 - **"Report an issue" is managed in SahajCloud.** ([#216]) The form's questions, its submit
   label and its confirmation message are authored there, on the contact form named in the atlas
   configuration, and the message reaches that form's own recipient. Where no form is named, the
@@ -217,6 +263,13 @@ cover everything a host would notice since the widget was first deployed.
   CSP already allows, so your policy is unchanged.
 - **Registrants can join a mailing list.** ([#147]) Where a list exists for the class's area,
   the registration form shows an opt-in box. Ticking it subscribes them once they register.
+- **The guide now documents Wix, and sends you to a setup screen that fills it in for you.**
+  ([#349]) Wix has nowhere to paste a `<script>` tag, so the script embed goes in a **Custom
+  Element** — Server URL `https://sahajatlas.com/auto.js?key=YOUR_KEY`, tag name `sahaj-atlas` —
+  never Embed HTML, which Wix serves from a sandboxed frame the widget cannot route from. Search
+  listings need a Velo router on top, which the **Install** tab on your client record in the
+  Atlas admin generates for your site, alongside step-by-step tracks for WordPress, a custom site
+  and an iframe. See [On Wix, the script embed is a Custom Element].
 - **A region's panel has a filter control.** ([#311]) It sits beside search on every country,
   city and venue panel, with the same active-count badge the country list's carries. It opens
   the filters scoped to that region, so applying them lists the region's matching classes, not
@@ -988,7 +1041,9 @@ must-revalidate`, pinned rather than left to the CDN default. The production dom
 [#374]: https://github.com/sydevs/SahajAtlasWeb/pull/374
 [#380]: https://github.com/sydevs/SahajAtlasWeb/pull/380
 [#370]: https://github.com/sydevs/SahajAtlasWeb/pull/370
+[#392]: https://github.com/sydevs/SahajAtlasWeb/pull/392
 [#371]: https://github.com/sydevs/SahajAtlasWeb/pull/371
+[#393]: https://github.com/sydevs/SahajAtlasWeb/issues/393
 [#363]: https://github.com/sydevs/SahajAtlasWeb/pull/363
 [#369]: https://github.com/sydevs/SahajAtlasWeb/pull/369
 [#351]: https://github.com/sydevs/SahajAtlasWeb/pull/351
@@ -1014,3 +1069,7 @@ must-revalidate`, pinned rather than left to the CDN default. The production dom
 [#365]: https://github.com/sydevs/SahajAtlasWeb/pull/365
 [#366]: https://github.com/sydevs/SahajAtlasWeb/pull/366
 [SahajCloud#1085]: https://github.com/sydevs/SahajCloud/pull/1085
+[#349]: https://github.com/sydevs/SahajAtlasWeb/issues/349
+[If your page replaces the element]: docs/embedding.md#if-your-page-replaces-the-element
+[On Wix, the script embed is a Custom Element]: docs/embedding.md#on-wix-the-script-embed-is-a-custom-element
+[#387]: https://github.com/sydevs/SahajAtlasWeb/issues/387

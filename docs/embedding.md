@@ -5,6 +5,12 @@ after them is optional: parameters, sizing, the Content-Security-Policy contract
 touches on your page, what leaves your visitor's browser, and what to check when something looks
 wrong.
 
+**Setting the atlas up on your own site? Start from the Install tab, not from here.** Open your
+client record in the Atlas admin (`https://cloud.sydevelopers.com/admin`, then **Install**) and it
+walks you through WordPress, Wix, a custom site or an iframe step by step, with your key and your
+page's address already in every snippet, and checks the finished install for you. This page is the
+reference behind it, for when you want to know why.
+
 This is the host-facing reference. [`AGENTS.md`](../AGENTS.md) is the developer guide.
 [`CHANGELOG.md`](../CHANGELOG.md) records what changes under an embed that updates itself.
 
@@ -78,7 +84,9 @@ Everything either snippet needs is in it. Specifically:
 - **`title` on the iframe is required for accessibility.** Without one it is announced as an
   unlabelled frame. Write it for your visitors, in your language.
 - **Do not sandbox the iframe.** If your platform insists, add `allow-popups` and
-  `allow-downloads` — see [Embedding in an iframe](#embedding-in-an-iframe).
+  `allow-downloads` — see [Embedding in an iframe](#embedding-in-an-iframe). ⚠ No flag covers the
+  calendar menu's Apple Calendar row: a sandbox may refuse the `webcal:` protocol handler it
+  opens.
 
 Three rules for the script tag specifically:
 
@@ -93,6 +101,60 @@ Three rules for the script tag specifically:
 `auto.js` is a ~3 KiB loader, not the widget. It works out what your page supports, then fetches
 the widget itself only when the embed is about to come into view — so an embed further down your
 page costs your visitors almost nothing until they scroll to it.
+
+### On Wix, the script embed is a Custom Element
+
+Wix gives you nowhere to paste a `<script>` tag, so the same loader arrives declared instead of
+written. Add a **Custom Element** and give it two values:
+
+| Field          | Value                                         |
+| -------------- | --------------------------------------------- |
+| **Server URL** | `https://sahajatlas.com/auto.js?key=YOUR_KEY` |
+| **Tag name**   | `sahaj-atlas`                                 |
+
+It is **Add Elements (+) → Embed Code → Custom element** in the Wix Editor, and **Add Elements
+(+) → Embed & Social → Custom Element** in Wix Studio. Give it the page's full width and about
+the height of the screen; [Sizing the element](#sizing-the-element) has the rules. The map appears
+on your published site, not in the editor.
+
+⚠ **Not Embed HTML, and not an HTML iframe element.** Wix serves both from a sandboxed frame on an
+origin of its own, so those two get you the iframe embed's trade-offs
+([Which one, and what you give up](#which-one-and-what-you-give-up)) on the one platform where a
+Custom Element gets you the script's.
+
+**Wix wants two things before a Custom Element works at all:** a Premium plan and your own
+connected domain. Until the site has both, use
+[the iframe](#2-iframe--when-you-cannot-add-a-script).
+
+**Search engines need one more step on Wix, and it is not a parameter.** Nothing of the atlas is
+in the HTML a crawler reads until a Velo router serves the route, so the Install tab generates
+that router — `backend/routers.js` and the router page's own code — filled in for your site. Add
+no `routing=path` here: the router owns the addresses.
+
+### If your page replaces the element
+
+Some platforms re-render a page rather than navigating it — Wix's router does this on Back and
+Forward — so `<sahaj-atlas>` is destroyed and a new element takes its place. (A page builder
+relocating the element is the gentler case: the same element comes back, and that already kept
+its data.)
+
+⚠ **Remove the old element before you insert the new one.** `replaceWith` does, and so does a
+framework re-render. Insert first and the page is left with no map at all: only one
+`<sahaj-atlas>` may run, so the arriving element is turned away while the old one is still in the
+document, and nothing asks it again once the old one leaves.
+
+**The widget carries its state across either way, as long as the new element has the same `key`
+and arrives within a second.** It opens at the route your page's URL now names, from the classes
+and regions it has already read, so a Back press asks nothing new of the network. A replacement
+under a **different** key drops everything read under the first one instead, which it must: that
+data belongs to the key it was read under. An element gone for longer than a second is treated as
+gone.
+
+What a replacement costs is small and visual. React mounts fresh in the new element, so a list the
+visitor had scrolled down starts at the top again. Their open panels, their place in the widget's
+own Back history and a half-filled registration all come back — the first two because your page's
+address and the browser's own history entry hold them, the third because it is held against the
+event being registered for.
 
 ### What you can add later
 
@@ -250,6 +312,14 @@ headings already use, in both light and dark. Your second colour does not reach 
 record that leaves the colours unset keeps the widget's own teal and orange everywhere, map
 included. Nothing new is requested from the network, so your CSP and
 your Permissions Policy are unchanged.
+
+**A colour you choose is never refused, and never overwritten — but it may be adjusted where it
+would be unreadable.** A colour that would leave panel text, a chip or the selected class too
+faint is shifted in lightness until it can be read, keeping its hue; the pins and bubbles are
+painted from the same adjusted colour, so the map and the panels agree. What is stored on your
+record never changes — only what the widget paints does. Separately, every pin, bubble and ring
+carries a fixed outline for the basemap it is drawn on, so nothing about your colour depends on
+what the map is showing underneath it.
 
 Identity is the same on every page you embed on, so making it per-embed only risks two of your
 pages disagreeing about what the product is called. The routing prefix is worse than merely
@@ -549,10 +619,14 @@ Five things about that snippet are load-bearing:
 - **`allow="geolocation; clipboard-write; web-share"`** — see [Permissions Policy](#permissions-policy).
   Without these the relevant features fail **silently**, the worst way to find out.
 - **Do not sandbox the frame.** If you must, include **`allow-popups`** — without it the compact
-  card's button cannot open anything, and the browser blocks it silently with nothing in your
-  console to say why. Include **`allow-downloads`** too: "Add to calendar" offers Apple Calendar
-  as an `.ics` file the widget builds and hands to the browser, and a sandbox without that flag
-  refuses the download — the menu item does nothing a visitor can see. Add
+  card's button cannot open anything, and neither can the Google Calendar, Outlook.com, Office 365
+  or Yahoo row of "Add to calendar", and the browser blocks each one silently with nothing in your
+  console to say why. ⚠ **No flag covers the Apple Calendar row.** It opens an address the
+  operating system handles rather than a page, in the frame rather than a new tab, so
+  `allow-popups` has nothing to do with it — and a sandbox is entitled to refuse a protocol
+  handler regardless. Include **`allow-downloads`** too, for the
+  **last** row alone: it builds an `.ics` file in the browser and hands it over as a download,
+  which a sandbox without that flag refuses — the row does nothing a visitor can see. Add
   **`allow-same-origin`** as well if you want the widget to keep its own settings between visits,
   since a sandbox gives the frame an opaque origin, which makes storage throw. (A sandbox does
   _not_ stop the widget writing its own URL, contrary to what this guide used to say — measured
@@ -1309,8 +1383,9 @@ Three things to check when you migrate:
 | **Country flags are missing, everything else fine**                          | `img-src https://react-circle-flags.pages.dev`. Cosmetic.                                                                                                                                                                                                                                                                                                                                                                                                                                                     |
 | **The widget shows "its security check was blocked" and nothing else**       | Read the browser console, which names both fixes. If the browser also logged a refused frame, your CSP is missing `frame-src https://cloud.sydevelopers.com`; otherwise your page's domain is not on your client record — ask us to add it. Since the atlas cannot take a registration without the captcha, this fails outright rather than degrading the form.                                                                                                                                               |
 | **The widget's route never appears in the address bar**                      | The document refuses `history.replaceState` — most often `file://`. The widget detects that and routes in memory.                                                                                                                                                                                                                                                                                                                                                                                             |
-| **A button or a calendar row does nothing, in an iframe**                    | The frame is sandboxed without `allow-popups`, so a `target="_blank"` link cannot open. Two places need one: the compact card's button, and the Google, Outlook.com, Office 365 and Yahoo rows of "Add to calendar". It fails silently, with nothing in the console. Add `allow-popups`, or drop `sandbox`.                                                                                                                                                                                                   |
-| **Add to calendar → Apple Calendar does nothing, in an iframe**              | The frame is sandboxed without `allow-downloads`. That row builds the `.ics` file in the browser and hands it over as a download, which a sandbox refuses — silently, like the popup above. The four link-out rows are unaffected. Add `allow-downloads`, or drop `sandbox`.                                                                                                                                                                                                                                  |
+| **A button or a calendar row does nothing, in an iframe**                    | The frame is sandboxed without `allow-popups`, so a `target="_blank"` link cannot open. Two places need one: the compact card's button, and the "Add to calendar" rows that open a page — Google Calendar, Outlook.com, Office 365 and Yahoo. It fails silently, with nothing in the console. Add `allow-popups`, or drop `sandbox`.                                                                                                                                                                                                                            |
+| **Apple Calendar does nothing, with `allow-popups` set**                     | That row opens a `webcal:` address the operating system handles, not a page, and a sandbox may refuse a protocol handler whatever flags it carries. There is nothing to add: drop `sandbox`, or tell your visitors to use the last row and open the file themselves. Google Calendar, Outlook.com, Office 365 and Yahoo are ordinary links and need only `allow-popups`. |
+| **Add to calendar → Download .ics file does nothing, in an iframe**          | The frame is sandboxed without `allow-downloads`. That row — the **last** one — builds the `.ics` file in the browser and hands it over as a download, which a sandbox refuses, silently like the popup above. The five rows above it are unaffected. Add `allow-downloads`, or drop `sandbox`.                                                                                                                                                                                                              |
 | **`atlas=` on the script URL seems to be ignored**                           | The page's own URL already carries an `?atlas=` route, which always wins. That is intended — see [`atlas`, and how the route is chosen](#atlas-and-how-the-route-is-chosen).                                                                                                                                                                                                                                                                                                                                  |
 | **Sharing offers no link**                                                   | The same memory-routing mode, on a page with no canonical atlas URL to offer instead.                                                                                                                                                                                                                                                                                                                                                                                                                         |
 | **The widget covers the rest of the page**                                   | A map embed with no height of its own renders `position: fixed; inset: 0`. Give the element a `display: block` and a height to keep the map inside it, or use `map=false` for an embed with no map.                                                                                                                                                                                                                                                                                                           |

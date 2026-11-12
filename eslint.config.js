@@ -83,6 +83,11 @@ export default [
       'jsx-a11y/no-static-element-interactions': 'warn',
       'prettier/prettier': 'warn',
       'no-unused-vars': 'off',
+      // A redeclaration written by hand fails here instead of waiting for `pnpm typecheck`.
+      // ⚠ It did not catch #370 because that merge went past the merge queue, not because the
+      // rule is blind to a merged tree: the gate job runs `pnpm lint` on a `merge_group` entry
+      // too, against the tree the merge will produce (#375).
+      '@typescript-eslint/no-redeclare': 'error',
       'unused-imports/no-unused-vars': 'off',
       'unused-imports/no-unused-imports': 'warn',
       '@typescript-eslint/no-unused-vars': [

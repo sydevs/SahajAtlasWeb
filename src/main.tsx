@@ -1,3 +1,5 @@
+import type { PaletteRoles } from './config/theme/palette'
+
 import ReactDOM from 'react-dom/client'
 import { BrowserRouter } from 'react-router'
 
@@ -7,6 +9,7 @@ import atlasAuth from './config/api/auth'
 import embed from './config/embed'
 import livePreview from './config/live-preview/protocol'
 import { activateLivePreview, captureLivePreview } from './config/live-preview/boot'
+import { startClientsPreview } from './config/live-preview/clients'
 import { attributeEnabled } from './config/attributes'
 import { initTheme } from './hooks/use-theme'
 import { reportIntegrationWarning } from './lib/report'
@@ -131,21 +134,31 @@ function mount() {
    * A branch whose only remaining case is a configuration we do not support is a branch that is
    * never exercised and never right, so it is gone rather than kept as insurance.
    */
-  ReactDOM.createRoot(document.getElementById('syatlas')!).render(
-    <RoutingContext.Provider value={hrefFor}>
-      <BrowserRouter>
-        <App
-          standalone
-          apiKey={atlasAuth.apiKey}
-          compact={compact}
-          contained={contained}
-          framed={!topLevel}
-          hasMap={hasMap}
-          inline={embed.config.inline}
-        />
-      </BrowserRouter>
-    </RoutingContext.Provider>,
-  )
+  // The root is kept, and a preview message re-renders through it with the new
+  // `brand`. `BrandTheme` prefers the prop over the client record's colours, so a
+  // manager's unsaved pick wins for as long as the session is open — and the map
+  // follows, since `useBrandPalette` feeds `markerColors` and the layer factories.
+  const root = ReactDOM.createRoot(document.getElementById('syatlas')!)
+  const render = (brand?: PaletteRoles) =>
+    root.render(
+      <RoutingContext.Provider value={hrefFor}>
+        <BrowserRouter>
+          <App
+            standalone
+            apiKey={atlasAuth.apiKey}
+            brand={brand}
+            compact={compact}
+            contained={contained}
+            framed={!topLevel}
+            hasMap={hasMap}
+            inline={embed.config.inline}
+          />
+        </BrowserRouter>
+      </RoutingContext.Provider>,
+    )
+
+  render()
+  startClientsPreview(render)
 }
 
 // ⚠ **Nothing renders until the token has been proven.** `applyRequestContext` already fails

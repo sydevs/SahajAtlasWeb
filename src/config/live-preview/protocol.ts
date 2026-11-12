@@ -81,8 +81,12 @@ export const LIVE_PREVIEW_SCOPE_PARAM = 'scope'
  * ⚠ **The set has a second home.** `readLivePreviewParams` (`boot.ts`) narrows the raw
  * parameter against the same literal, so a member added here still compiles and is still
  * never parsed. Add it in both places. `collection` above carries the same split.
+ *
+ * `clients` is a service's own record previewed from its Atlas tab: the manager moves a colour
+ * picker and the map repaints, with no save. It keeps navigation and the drawers usable, which
+ * is what lets them open a class and see the selected colour.
  */
-export type LivePreviewScope = 'sy-atlas-translations'
+export type LivePreviewScope = 'clients' | 'sy-atlas-translations'
 
 /**
  * What `applyRequestContext` (`config/api/client.ts`) calls last, for context that graph is

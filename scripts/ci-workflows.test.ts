@@ -187,6 +187,24 @@ describe('ci.yml', () => {
     expect(smoke).toMatch(/^\s{12}\*\)$/m)
   })
 
+  // ⚠ A wrong `on:` block here fails silently, in both directions. `docs/testing.md` § "The merge
+  // queue is the only gate that reads the tree a merge will produce" says how (#375).
+  it('triggers on the pull request and the merge queue, and on no push', () => {
+    const lines = ci.split('\n')
+    const opens = lines.indexOf('on:')
+
+    if (opens < 0) throw new Error('ci.yml has no `on:` block — the assertion below would vacuum')
+
+    const after = lines.slice(opens + 1)
+    const closes = after.findIndex((line) => /^\S/.test(line))
+
+    expect(
+      (closes < 0 ? after : after.slice(0, closes))
+        .flatMap((line) => /^ {2}(\w+):/.exec(line)?.[1] ?? [])
+        .sort(),
+    ).toEqual(['merge_group', 'pull_request'])
+  })
+
   // The guard is what refuses the `-design` playground's host. A publish step whose address
   // nothing checks is the silent green this whole lane exists to prevent.
   it('checks the published address against the app Worker', () => {

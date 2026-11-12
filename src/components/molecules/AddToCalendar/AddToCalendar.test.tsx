@@ -3,14 +3,14 @@ import type { EventSchedule } from '@/types'
 import { renderToStaticMarkup } from 'react-dom/server'
 import { describe, it, expect, vi } from 'vitest'
 
-import { AddToCalendar } from './AddToCalendar'
+import { AddToCalendar, calendarLinkTargets } from './AddToCalendar'
 
 // Mock the i18n boundary, so the accessible name renders as real copy
 // without booting i18next (the ShareContent/GeolocationPrompt template).
 // This is the node lane, with no jsdom. See docs/testing.md.
 vi.mock('react-i18next', () => ({
   useTranslation: () => ({
-    t: (key: string) => (key === 'event.actions.download_ics' ? 'Download .ics file' : key),
+    t: (key: string) => (key === 'event.actions.add_calendar' ? 'Add to calendar' : key),
   }),
 }))
 
@@ -26,76 +26,117 @@ const schedule: EventSchedule = {
   upcomingDates: [new Date('2026-07-22T17:30:00Z')],
 }
 
+const FEED = 'https://cloud.sydevelopers.com/api/events/calendar/eyJhb.eyJldg.s1gn.ics'
+
 const event = {
   id: 42,
   title: 'Evening Meditation',
   schedule,
   location: '5 Market St, Prague',
   url: 'https://atlas.example/e/42',
+  calendarFeedUrl: FEED,
 }
 
-// The rendered markup HTML-escapes query separators. So assert against a
-// decoded copy. Otherwise every `&` is `&amp;`, and the assertions read as
-// noise.
-const render = (node: Parameters<typeof renderToStaticMarkup>[0]) =>
-  renderToStaticMarkup(node)
-    .replace(/&amp;/g, '&')
-    .replace(/&#x27;/g, "'")
+const hrefs = (input: Parameters<typeof calendarLinkTargets>[0]) =>
+  calendarLinkTargets(input)
+    .map(({ href }) => href)
+    .join('\n')
+
+const labels = (input: Parameters<typeof calendarLinkTargets>[0]) =>
+  calendarLinkTargets(input).map(({ label }) => label)
 
 describe('AddToCalendar', () => {
-  it('offers all five providers', () => {
-    const html = render(<AddToCalendar event={event} />)
+  // The menu's rows live in a Radix portal, which SSR does not render, so the trigger is
+  // asserted here and the rows through `calendarLinkTargets`, the list they map over.
+  it('renders one closed menu trigger, not a row of providers', () => {
+    const html = renderToStaticMarkup(<AddToCalendar event={event} />)
 
-    expect(html).toContain('calendar.google.com/calendar/render')
-    expect(html).toContain('outlook.live.com/calendar/0/deeplink/compose')
-    expect(html).toContain('outlook.office.com/calendar/0/deeplink/compose')
-    expect(html).toContain('calendar.yahoo.com')
-    // Apple is the .ics download: a button, not a link, because it synthesises
-    // a file, instead of navigating.
-    expect(html).toContain('Apple')
+    expect(html).toContain('Add to calendar')
+    expect(html).toContain('aria-haspopup="menu"')
+    expect(html).not.toContain('calendar.google.com')
+    expect(html).not.toContain('webcal:')
   })
 
-  it('names the .ics control so its purpose survives the brand label', () => {
-    const html = render(<AddToCalendar event={event} />)
-
-    // WCAG 2.5.3: the accessible name must CONTAIN the visible label, so a voice
-    // user saying "click Apple" still matches.
-    expect(html).toContain('aria-label="Apple · Download .ics file"')
+  it('offers the five providers in menu order, Apple first', () => {
+    expect(labels(event)).toEqual([
+      'Apple Calendar',
+      'Google Calendar',
+      'Outlook.com',
+      'Office 365',
+      'Yahoo',
+    ])
   })
 
-  it('opens the link-outs in a new tab without leaking the opener', () => {
-    const html = render(<AddToCalendar event={event} />)
+  it('offers every provider its own address', () => {
+    const all = hrefs(event)
 
-    expect(html).not.toContain('rel="noopener noreferrer" target="_blank" href="https://calendar')
-    for (const fragment of html.split('<a ').slice(1)) {
-      expect(fragment).toContain('target="_blank"')
-      expect(fragment).toContain('noopener')
+    expect(all).toContain('webcal://cloud.sydevelopers.com/api/events/calendar/')
+    expect(all).toContain('calendar.google.com/calendar/r?cid=webcal%3A%2F%2F')
+    expect(all).toContain('outlook.live.com/calendar/0/deeplink/compose')
+    expect(all).toContain('outlook.office.com/calendar/0/deeplink/compose')
+    expect(all).toContain('calendar.yahoo.com')
+    // The template link Google used to get added one event the viewer then owned
+    // a copy of, so a cancelled session stayed with them for good.
+    expect(all).not.toContain('calendar/render')
+    expect(all).not.toContain('action=TEMPLATE')
+  })
+
+  /**
+   * Only the `webcal:` row is a handoff to the operating system. A new tab would show
+   * nothing, and a sandboxed host page would have to grant `allow-popups` for that nothing.
+   */
+  it('asks for a new tab on every row that opens a page, and on no other', () => {
+    expect(calendarLinkTargets(event).map(({ label, opensPage }) => [label, opensPage])).toEqual([
+      ['Apple Calendar', false],
+      ['Google Calendar', true],
+      ['Outlook.com', true],
+      ['Office 365', true],
+      ['Yahoo', true],
+    ])
+  })
+
+  /**
+   * A subscribe row with no address to subscribe to cannot work, and an inert menu entry
+   * reads as a broken one. The three single-session rows compose their own URL from the
+   * schedule, so they must survive — dropping them would retire working rows for nothing.
+   */
+  it('drops only the two subscribing rows for a class with no feed address', () => {
+    for (const address of [null, undefined]) {
+      expect(labels({ ...event, calendarFeedUrl: address })).toEqual([
+        'Outlook.com',
+        'Office 365',
+        'Yahoo',
+      ])
     }
   })
 
-  it('sends every provider the NEXT session, not the 2019 start', () => {
-    const html = render(<AddToCalendar event={event} />)
+  it('sends the recurrence-less providers the NEXT session, not the 2019 start', () => {
+    const all = hrefs(event)
 
     // Outlook and Yahoo take no recurrence parameter, so they get one
-    // occurrence. Google carries the RRULE, and its series starts there too.
-    // The series began in 2019: a link carrying that date would be useless.
-    expect(html).toContain('startdt=2026-07-22T17%3A30%3A00.000Z')
-    expect(html).toContain('st=20260722T173000Z')
-    expect(html).toContain('dates=20260722T193000%2F20260722T204500')
-    expect(html).not.toContain('2019')
+    // occurrence. The series began in 2019. A link carrying that date
+    // would be useless.
+    expect(all).toContain('startdt=2026-07-22T17%3A30%3A00.000Z')
+    expect(all).toContain('st=20260722T173000Z')
+    expect(all).not.toContain('startdt=2019')
+    expect(all).not.toContain('st=2019')
   })
 
-  // What this spec asserts HERE is the wiring: that `event`, including
-  // `from`, reaches the right builder per button. The URL shapes themselves
-  // belong to `src/lib/ics.test.ts`, which pins them against a parsed `URL`,
-  // instead of a decoded markup string.
-  it('anchors every provider on the registered session when given', () => {
-    const html = render(
-      <AddToCalendar event={{ ...event, from: new Date('2026-08-05T17:30:00Z') }} />,
-    )
+  // The URL shapes themselves belong to `src/lib/ics.test.ts`. This pins the wiring:
+  // that `from` reaches the right builder per provider.
+  it('anchors the recurrence-less providers on the registered session when given', () => {
+    const all = hrefs({ ...event, from: new Date('2026-08-05T17:30:00Z') })
 
-    expect(html).toContain('startdt=2026-08-05T17%3A30%3A00.000Z')
-    // Google's series starts on that session too, with its RRULE.
-    expect(html).toContain('dates=20260805T193000%2F20260805T204500')
+    expect(all).toContain('startdt=2026-08-05T17%3A30%3A00.000Z')
+    // The two subscribing rows carry no anchor to move: their address is the
+    // feed's, which lists every session. Compared per row, since the Outlook rows
+    // in the same list legitimately do carry the date.
+    const anchored = calendarLinkTargets({ ...event, from: new Date('2026-08-05T17:30:00Z') })
+    const plain = calendarLinkTargets(event)
+
+    for (const index of [0, 1]) {
+      expect(anchored[index]!.href).toBe(plain[index]!.href)
+      expect(anchored[index]!.href).not.toContain('2026-08-05')
+    }
   })
 })

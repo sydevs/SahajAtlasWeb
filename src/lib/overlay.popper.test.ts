@@ -42,6 +42,7 @@ const POPPER_PACKAGES =
 
 /** The Radix dropdown menus, which also share one skin — the second block below. */
 const MENUS: Record<string, string> = {
+  'components/molecules/AddToCalendar/AddToCalendar.tsx': 'the add-to-calendar provider menu',
   'components/molecules/SettingsMenu/SettingsMenu.tsx': 'the cog, and its language submenu',
   'components/molecules/SortMenu/SortMenu.tsx': 'the results-list sort menu',
 }
@@ -93,7 +94,7 @@ describe('Radix poppers are bounded by the frame', () => {
  * this lane — goes red while two menus drift apart.
  *
  * Asserted here, with the recipe in `atoms/Menu`, for the reason the panel block below gives:
- * this file holds the closed list both menus belong to, so one file answers which popper
+ * this file holds the closed list all three menus belong to, so one file answers which popper
  * surfaces exist and which skin each reads.
  */
 const SKIN_RUNS = [
@@ -167,7 +168,7 @@ describe('the dropdown menus share one skin', () => {
 
   it('leaves no menu spelling a skin class of its own', () => {
     // The surface width is a variant of the recipe, so a menu setting its own has started a
-    // third copy. `min-w-0` is exempt: that is the flex-shrink idiom a dozen components use to
+    // fourth copy. `min-w-0` is exempt: that is the flex-shrink idiom a dozen components use to
     // let `truncate` engage, not a width.
     for (const relative of Object.keys(MENUS)) {
       expect(read(relative)).not.toMatch(/\bmin-w-(?!0\b)(\d|\[)/)

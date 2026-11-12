@@ -1,13 +1,18 @@
+import { colord } from 'colord'
 import { describe, it, expect } from 'vitest'
 
 import {
+  buildPalette,
   buildScale,
   applyPalette,
   onHex,
+  paletteReport,
   shiftHex,
+  SOLID_STEP,
   stepHex,
   type ColorScale,
   type Step,
+  type ThemeMode,
 } from './palette'
 
 const parse = (s: string) => {
@@ -207,5 +212,113 @@ describe('the hex accessors', () => {
     expect(shiftHex('#fafafa', { lightness: 21, saturation: -16, maxLightness: 92 })).toBe(
       '#ebebeb',
     )
+  })
+})
+
+/**
+ * The three legibility checks, against seeds chosen to break them.
+ *
+ * ⚠ **Every case here asserts the rendered colour, never the correction.** What a
+ * service is owed is a map and a panel they can read; which step moved to get
+ * there is this file's business.
+ */
+describe('legibility', () => {
+  /** Step 11 is panel text, read on steps 1 to 3 — `text-*-11` on `bg-*-3` is the pairing. */
+  const panelText = (scale: ColorScale) =>
+    Math.min(
+      ...[1, 2, 3].map((step) =>
+        colord(`hsl(${scale[11]})`).contrast(colord(`hsl(${scale[step as Step]})`)),
+      ),
+    )
+
+  const APP_BACKGROUND = { dark: '#121212', light: '#ffffff' } as const
+
+  // Pale yellow (the deliberately awkward choice), a near-white blue, a navy, our
+  // own three, and a pair a service could plausibly pick that read almost alike.
+  const SEEDS = [
+    '#ffff00',
+    '#f0f0ff',
+    '#000080',
+    '#1E6C71',
+    '#5e98ba',
+    '#d8735a',
+    '#2f7f84',
+  ] as const
+
+  for (const mode of ['light', 'dark'] as ThemeMode[]) {
+    it.each(SEEDS)(`keeps %s legible in ${mode}`, (seed) => {
+      const { contrast, primary } = buildPalette({ contrast: seed, primary: seed }, mode)
+
+      for (const role of [primary!, contrast!]) {
+        expect(panelText(role.scale)).toBeGreaterThanOrEqual(4.5)
+        expect(
+          colord(`hsl(${role.scale[SOLID_STEP]})`).contrast(APP_BACKGROUND[mode]),
+        ).toBeGreaterThanOrEqual(3)
+      }
+    })
+
+    it.each(SEEDS)(`separates the selected class from %s in ${mode}`, (seed) => {
+      // One seed for both roles is the worst case the check exists for: without it
+      // the selected pin is the same colour as every pin around it.
+      const { contrast, primary } = buildPalette({ contrast: seed, primary: seed }, mode)
+      const selected = colord(`hsl(${contrast!.scale[SOLID_STEP]})`)
+
+      // ⚠ `delta()` answers CIEDE2000 ÷ 100, so this reads 0.2 and means ΔE2000 20.
+      expect(selected.delta(`hsl(${primary!.scale[SOLID_STEP]})`)).toBeGreaterThanOrEqual(0.2)
+    })
+  }
+
+  it('leaves a seed that already passes exactly where it was', () => {
+    // Our own primary passes `surface` and needs no separation from itself-as-contrast
+    // at a different hue, so step 9 is the seed's own lightness, uncorrected.
+    const { primary } = buildPalette({ contrast: '#d8735a', primary: '#1E6C71' }, 'light')
+
+    expect(primary!.scale[SOLID_STEP]).toBe('184 58% 28%')
+    expect(primary!.adjustedBy).not.toContain('surface')
+  })
+})
+
+describe('paletteReport', () => {
+  // `#f8f1f4` is the case this exists for: its rendered step 9 is not a seed that
+  // renders itself, found by sweeping ~37k seeds.
+  it.each(['#f8f1f4', '#ffff00', '#f0f0ff', '#A1C3D7', '#e08e79', '#00ff7f'])(
+    'offers a seed for %s that renders itself, with nothing left to correct',
+    (seed) => {
+      // ⚠ The ladder works in HSL and emits a quantised hex, so the rendered
+      // colour is not always a seed that renders itself. Offering one that is not
+      // would change the volunteer's colour a second time, the moment they
+      // accepted the first suggestion.
+      const { suggested } = paletteReport({ contrast: '#d8735a', primary: seed }).primary!
+
+      if (!suggested) return
+
+      const again = paletteReport({ contrast: '#d8735a', primary: suggested }).primary!
+
+      expect(again.light).toBe(suggested)
+      expect(again.suggested).toBeNull()
+    },
+  )
+
+  it('names the entered colour and the check that moved it', () => {
+    const report = paletteReport({ contrast: '#d8735a', primary: '#ffff00' })
+
+    expect(report.primary?.entered).toBe('#ffff00')
+    expect(report.primary?.adjustedBy).toContain('surface')
+  })
+
+  it('offers no suggestion for a role only `panel-text` moved', () => {
+    // `panel-text` moves step 11, which takes a fixed lightness — no seed can
+    // express it, so there is nothing to offer and the CMS shows no button.
+    const report = paletteReport({ primary: '#1E6C71' })
+
+    expect(report.primary?.adjustedBy).toEqual(['panel-text'])
+    expect(report.primary?.suggested).toBeNull()
+  })
+
+  it('answers for a role with a usable seed and no other', () => {
+    const report = paletteReport({ primary: '#1E6C71', secondary: '#000000' })
+
+    expect(report.primary).toBeDefined()
+    expect(report.secondary).toBeUndefined()
   })
 })

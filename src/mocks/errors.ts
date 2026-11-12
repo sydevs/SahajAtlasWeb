@@ -79,7 +79,7 @@ export const mockErrorNotes: Record<ErrorKind, string> = {
     "A dead link — the empty state's register, not a malfunction. In the drawer it offers the recovery ladder plus a field; at the app level, where no drawer stack is mounted for either to lead anywhere, `visibleActions` restores the report CTA in their place.",
   config: 'A rejected API key. Report only; nothing a viewer can press will help.',
   'captcha-blocked':
-    "A host CSP that blocks Turnstile. The only row offering NOTHING at all — not even a report, because the report form is captcha-gated too, so it would be a second form that can't submit. The fix belongs to the site's developer, who gets it on the console.",
+    "A host CSP that blocks Turnstile. The only row offering NOTHING at all — not even a report, because the report form is captcha-gated too, so it would be a second form that can't submit. The fix belongs to the site's developer, who gets it on the console — and to us, who get a Sentry event.",
   unknown:
     "Unrecognized — including a zod parse failure, where SahajCloud's shape drifted from ours. Both a retry and a report: the cause is for the report, not the screen.",
 }
