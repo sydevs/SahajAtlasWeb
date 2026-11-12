@@ -582,6 +582,14 @@ invalid field via react-hook-form's `shouldFocusError`, so a custom form control
 `RadioGroup` is a `forwardRef`). Set `announceError={false}` on a form that checks
 validity as the viewer types.
 
+**Every form is one kit** (Devindra, 12 Nov). A field is `FormField` around a form atom —
+`Input`, `Textarea`, `Select`, `Combobox`, a `size="md"` `ToggleGroup` for short choices,
+`RadioGroup` (choice cards with `icon` and `hint`) for longer ones, `Checkbox` — and takes its
+wiring from `FormField`'s render prop (`{(control) => <Input {...control} />}`), a group as
+`as="fieldset"`. Don't hand-roll a radio, a segmented control or a field shell; the report,
+registration and add-a-class forms share these, and the FormField story's "Form atoms" section
+shows them all.
+
 **Copy stays a prop, even for screen-reader-only text.** No atom calls
 `useTranslation` — `Spinner`'s `srLabel` defaults to English instead, since a spinner
 can render in a Suspense fallback before translation bundles load.
