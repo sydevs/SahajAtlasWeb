@@ -64,10 +64,11 @@ export const BASEMAP_SURFACES: Record<ThemeMode, { land: string; water: string }
   dark: { land: '#5a8bbf', water: '#33567a' },
 }
 
-// Thin enough to read as an edge rather than a second colour. The pin's own
-// stroke overhangs the SVG canvas by at most 0.6 user units at the head's widest
-// point and at the tip — a fifth of a device pixel at `SCALE`, and the tip is
-// where the pin meets the map anyway.
+// Thin enough to read as an edge rather than a second colour. The pin's path is
+// left uninset, unlike the bubble's, so the canvas clips its stroke: 0.1 user
+// units at the head's left edge, where the arc reaches x=0.5, and 0.2 at the
+// rounded tip, which is 0.2 and 0.4 device pixels at `SCALE`. The tip is where
+// the pin meets the map anyway.
 const OUTLINE_WIDTH = 1.2
 
 // Rasterisation scale — the images are drawn at 2× and registered with
