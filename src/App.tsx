@@ -235,7 +235,13 @@ export default function App({
               own content height at the top of the screen. A contained map, a map-less embed,
               and the compact card all have a real box, and there `h-full` is already right. */}
           <Suspense
-            fallback={hasMap && !contained && !boxed ? <BootFallback /> : <LoadingFallback />}
+            fallback={
+              hasMap && !contained && !boxed ? (
+                <BootFallback listFirst={embed.config.listFirst} />
+              ) : (
+                <LoadingFallback />
+              )
+            }
           >
             {/* `context` names this one in a report: everything below is a drawer failing
                 to load. This is the widget failing to boot. That is also why it, and the root
@@ -445,7 +451,15 @@ function AppShell({
     // has its own box and a deliberate margin — taking the viewport would paint over
     // the margin the dialog keeps precisely so the host's page shows through and can
     // be clicked to close.
-    <Suspense fallback={hasMap && !contained && !boxed ? <BootFallback /> : <LoadingFallback />}>
+    <Suspense
+      fallback={
+        hasMap && !contained && !boxed ? (
+          <BootFallback listFirst={embed.config.listFirst} />
+        ) : (
+          <LoadingFallback />
+        )
+      }
+    >
       <FullInterface
         clientLoaded={clientLoaded}
         contained={contained}

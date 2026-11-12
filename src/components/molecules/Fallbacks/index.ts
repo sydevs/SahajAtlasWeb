@@ -13,4 +13,4 @@ export {
   ResetErrorBoundary,
   CENTERED_BODY,
 } from './Fallbacks'
-export type { FallbackAlign, FallbackKind } from './Fallbacks'
+export type { BootFallbackProps, FallbackAlign, FallbackKind } from './Fallbacks'

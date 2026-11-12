@@ -50,7 +50,7 @@ export {
   ResetErrorBoundary,
   CENTERED_BODY,
 } from './Fallbacks'
-export type { FallbackAlign, FallbackKind } from './Fallbacks'
+export type { BootFallbackProps, FallbackAlign, FallbackKind } from './Fallbacks'
 
 // Skeleton — the placeholder shapes loading states compose, each shaped like
 // what it stands in for: a list of places, a search field, a view's title,

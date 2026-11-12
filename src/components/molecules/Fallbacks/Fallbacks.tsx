@@ -87,6 +87,14 @@ export function LoadingFallback({ unboxed = false }: LoadingFallbackProps) {
   )
 }
 
+export interface BootFallbackProps {
+  /**
+   * `view=list`: the interface opens on its list, which fills the window in a centred column
+   * with no map behind it, so the boot panel takes that shape instead.
+   */
+  listFirst?: boolean
+}
+
 /**
  * What the full-window map form shows for the moment before its code has arrived: the panel
  * already in its real place and at the height the sheet opens at, over a plain map-toned surface,
@@ -97,7 +105,7 @@ export function LoadingFallback({ unboxed = false }: LoadingFallbackProps) {
  * Only for the form that fills the window. A form with a box of its own keeps `LoadingFallback`,
  * since taking the viewport there would paint over the host's page.
  */
-export function BootFallback() {
+export function BootFallback({ listFirst = false }: BootFallbackProps) {
   const isWide = useIsWide(null)
   const { pathname } = useLocation()
   const kind = resolveStack(pathname).at(-1)?.kind
@@ -107,7 +115,49 @@ export function BootFallback() {
     kind === 'event'
       ? `calc(${CLASS_SHEET_PX}px + env(safe-area-inset-bottom, 0px))`
       : `${HOME_SHEET_PX}px`
-  const header = clsx('px-gutter pb-2', isWide ? 'pt-4' : 'pt-2')
+  // A filled (map-less) drawer's header takes the top itself, as the side panel's does.
+  const header = clsx('px-gutter pb-2', isWide || listFirst ? 'pt-4' : 'pt-2')
+  // The bottom sheet's handle, where vaul draws it (`atoms/Drawer`). Map-less, only a view with
+  // somewhere to go back to has one.
+  const handle = !isWide && (!listFirst || kind !== undefined) && (
+    <div aria-hidden className="mx-auto mt-2.5 mb-1 h-[5px] w-8 rounded-2xl bg-gray-7/70" />
+  )
+  const shape =
+    kind === undefined ? (
+      <>
+        <div className={header}>
+          <TitleSkeleton />
+        </div>
+        <FieldSkeleton prompt className="mx-gutter mb-2" />
+        <ListSkeleton icons rows={6} />
+      </>
+    ) : kind === 'event' ? (
+      <>
+        <div className={header}>
+          <TitleSkeleton back lines={2} />
+        </div>
+        <EventSkeleton actions={isWide || listFirst} />
+      </>
+    ) : (
+      <>
+        <div className={header}>
+          <TitleSkeleton back />
+        </div>
+        <FieldSkeleton className="mx-gutter mb-2" />
+        <ListSkeleton />
+      </>
+    )
+
+  if (listFirst) {
+    return (
+      <div className="fixed inset-0 overflow-clip bg-background">
+        <div className="mx-auto w-full max-w-[var(--sy-content-max,512px)]">
+          {handle}
+          {shape}
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className="fixed inset-0 bg-gray-3">
@@ -119,34 +169,8 @@ export function BootFallback() {
         }
         style={isWide ? undefined : { height: sheetHeight }}
       >
-        {/* The bottom sheet's handle, where vaul draws it (`atoms/Drawer`). */}
-        {!isWide && (
-          <div aria-hidden className="mx-auto mt-2.5 mb-1 h-[5px] w-8 rounded-2xl bg-gray-7/70" />
-        )}
-        {kind === undefined ? (
-          <>
-            <div className={header}>
-              <TitleSkeleton />
-            </div>
-            <FieldSkeleton prompt className="mx-gutter mb-2" />
-            <ListSkeleton icons rows={6} />
-          </>
-        ) : kind === 'event' ? (
-          <>
-            <div className={header}>
-              <TitleSkeleton back lines={2} />
-            </div>
-            <EventSkeleton actions={isWide} />
-          </>
-        ) : (
-          <>
-            <div className={header}>
-              <TitleSkeleton back />
-            </div>
-            <FieldSkeleton className="mx-gutter mb-2" />
-            <ListSkeleton />
-          </>
-        )}
+        {handle}
+        {shape}
       </div>
     </div>
   )
