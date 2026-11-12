@@ -53,6 +53,7 @@ function FilterChip({
     <Dropdown
       align="end"
       aria-label={label}
+      className="pointer-events-auto"
       role="dialog"
       trigger={
         <span
@@ -150,17 +151,19 @@ export function FilterChipBar() {
     </div>
   )
 
+  // The row spans the map between the panel and the control column, so the map keeps every press
+  // but the chips' own. Physical sides, as the panel and the control column have.
   return (
     <div
       aria-label={t('filters.chrome.title')}
-      className="pointer-events-auto fixed end-16 top-4 z-30 flex flex-wrap items-center justify-end gap-1.5 ps-[calc(var(--sy-drawer-w,352px)+88px)]"
+      className="pointer-events-none fixed top-4 right-16 left-[calc(var(--sy-drawer-w,352px)+88px)] z-30 flex flex-wrap items-center justify-end gap-1.5"
       role="group"
     >
       {/* First in a right-aligned row, so its arrival moves nothing that's already there: a chip
           whose popover is open must not slide away from under the pointer. */}
       {canClear && (
         <button
-          className="flex h-10 items-center gap-1 rounded-full border border-divider bg-background ps-3 pe-3 text-sm font-medium text-foreground shadow-md hover:bg-gray-3"
+          className="pointer-events-auto flex h-10 items-center gap-1 rounded-full border border-divider bg-background ps-3 pe-3 text-sm font-medium text-foreground shadow-md hover:bg-gray-3"
           type="button"
           onClick={clear}
         >

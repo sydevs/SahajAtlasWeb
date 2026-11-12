@@ -71,6 +71,21 @@ describe('FilterChipBar — the chips', () => {
     expect(bar('/search')).not.toContain('filters.chrome.clear_one')
     expect(bar('/search?days=2')).toContain('filters.chrome.clear_one')
   })
+
+  // The row spans the map beside the panel: were it to take presses, every drag, pin click and pin
+  // hover across that strip would land on nothing.
+  it('leaves the map every press but the chips’ own', () => {
+    const html = bar('/search?days=2')
+    const row = html.match(/<div[^>]*role="group"[^>]*>/)?.[0] ?? ''
+    const chips = html.match(/<div[^>]*role="button"[^>]*>/g) ?? []
+
+    expect(row).toContain('pointer-events-none')
+    expect(chips).toHaveLength(3)
+    chips.forEach((chip) => expect(chip).toContain('pointer-events-auto'))
+    expect(html).toMatch(
+      /<button class="pointer-events-auto[^"]*"[^>]*>.*filters\.chrome\.clear_one/,
+    )
+  })
 })
 
 describe('FilterChipBar — an answered chip', () => {
