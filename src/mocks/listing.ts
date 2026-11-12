@@ -1,26 +1,22 @@
+import type { AddLink, ListingDraft, PickedPlace } from '@/lib/proposal'
 import type { GeoFeature } from '@/types'
-import type { AddLink } from './deep-link'
-import type { ListingDraft } from './draft'
-import type { PickedPlace } from './place'
 
-import { DateTime } from 'luxon'
-
-import { LISTING_STEPS } from './draft'
-import { scheduleToDraft } from './event'
-import { placeFromAddress } from './place'
-import { nextWeekdayDate, todayIn } from './schedule'
-
-import { scheduleTimeZone } from '@/lib/shape'
+import { LISTING_STEPS, nextWeekdayDate, todayIn } from '@/lib/proposal'
 
 /**
- * The sample answers an add link (`deep-link.ts`) fills in, so a stage opened on its own shows
- * what a host would see there: the stages before it answered, and Check fully filled.
+ * A sample new listing: what the add-a-class stage links fill in, and what the Ladle stories open
+ * on.
+ *
+ * PROTOTYPE, review only: the stage links (`lib/proposal/deep-link.ts`) exist so each stage can be
+ * reviewed on its own, and they go with the review (`config/review-options.ts`). A sampled draft
+ * is a real draft — sent, it reaches SahajCloud like any other — so no visitor is ever linked to
+ * one.
  *
  * One host, in London, where the review previews open: Balham Library, on a Thursday evening.
  * The library's own listed classes meet on Wednesdays, so the sample is also the case Devindra
  * named — the same address on another day is not a duplicate — and `?duplicate=` shows the
- * opposite. These are answers a host types, not interface copy, so they are not translated.
- * The Ladle stories open on the same sample.
+ * opposite. Its title names no day or hour, so it still reads true over a copied class's time.
+ * These are answers a host types, not interface copy, so they are not translated.
  */
 
 const ZONE = 'Europe/London'
@@ -40,6 +36,27 @@ export const SAMPLE_PLACE: PickedPlace = {
 /** Where a host who signs people up on Meetup would point the button. */
 export const SAMPLE_SIGNUP_LINK = 'https://www.meetup.com/balham-meditation/'
 
+/** Balham Library's own Wednesday class, as the live feed carried it on 12 Nov 2026. */
+export const SAMPLE_LISTED_CLASS: GeoFeature = {
+  type: 'Feature',
+  geometry: { type: 'Point', coordinates: [-0.1521182, 51.4454169] },
+  properties: {
+    id: 939,
+    eventType: 'offline',
+    languages: ['en'],
+    address: { street: '16 Ramsden Rd', city: 'London', postCode: 'SW12 8QY', country: 'GB' },
+    schedule: {
+      firstDate: new Date('2023-11-08T19:30:00Z'),
+      firstDate_tz: 'Europe/London',
+      endTime: '20:45',
+      recurrenceType: 'WEEKLY',
+      weekdays: ['WE'],
+      upcomingDates: [new Date('2026-11-18T19:30:00Z'), new Date('2026-11-25T19:30:00Z')],
+    },
+    region: { id: 1258, slug: 'balham-library', name: 'Balham Library', level: 'venue' },
+  },
+}
+
 const THURSDAY = 4
 
 const placeAnswers = (): Partial<ListingDraft> => ({
@@ -58,7 +75,7 @@ const timeAnswers = (today: string): Partial<ListingDraft> => ({
 })
 
 const detailAnswers: Partial<ListingDraft> = {
-  title: 'Thursday evening meditation',
+  title: 'Meditation for beginners',
   contactName: 'Ada',
   contactPhone: '+44 20 7946 0000',
   contactEmail: 'ada@example.org',
@@ -87,36 +104,5 @@ export const sampleDraft = (
       signup: link.signup,
       ...(link.signup === 'elsewhere' && { website: SAMPLE_SIGNUP_LINK }),
     }),
-  }
-}
-
-/**
- * The draft re-adding a listed class: its place and its time, copied from the feed — so the
- * duplicate suggestion has the class to name. The time starts at its next session, as a new
- * listing would; its venue's name comes from its venue region.
- */
-export const copyPlaceAndTime = (draft: ListingDraft, listed: GeoFeature): ListingDraft => {
-  const { properties, geometry } = listed
-  const schedule = properties.schedule
-  const fields = scheduleToDraft(schedule)
-  const next = schedule?.upcomingDates?.[0]
-  const firstDate = next
-    ? DateTime.fromJSDate(next).setZone(scheduleTimeZone(schedule)).toISODate()
-    : null
-
-  return {
-    ...draft,
-    ...fields,
-    firstDate: firstDate ?? fields.firstDate,
-    eventType: 'offline',
-    address: {
-      ...placeFromAddress(properties.address ?? {}),
-      ...(geometry && {
-        longitude: geometry.coordinates[0],
-        latitude: geometry.coordinates[1],
-      }),
-    },
-    venueName: properties.region.level === 'venue' ? (properties.region.name ?? '') : '',
-    room: properties.address?.room ?? '',
   }
 }

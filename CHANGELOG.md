@@ -261,10 +261,6 @@ cover everything a host would notice since the widget was first deployed.
   `<region>/add` and `<class>/correct` — and sends nothing to anyone until the visitor submits;
   a local coordinator reviews it before it appears. It uses the Mapbox and Turnstile origins your
   CSP already allows, so your policy is unchanged.
-- **Adding or correcting a class can open at one stage**, for review and previews:
-  `…/add?step=time`, `…/add?signup=elsewhere`, `…/add?duplicate=<class id>` and
-  `…/correct?fix=place`. The `add` ones fill in a sample class, so link visitors to `…/add`
-  itself. See [Opening adding or correcting a class at one stage].
 - **Adding a class says when it may already be listed** — only when a class at about the same
   place also meets at the same time, so a centre's other days never count — and takes "It's a
   different class" as an answer.
@@ -1079,5 +1075,4 @@ must-revalidate`, pinned rather than left to the CDN default. The production dom
 [#349]: https://github.com/sydevs/SahajAtlasWeb/issues/349
 [If your page replaces the element]: docs/embedding.md#if-your-page-replaces-the-element
 [On Wix, the script embed is a Custom Element]: docs/embedding.md#on-wix-the-script-embed-is-a-custom-element
-[Opening adding or correcting a class at one stage]: docs/embedding.md#opening-adding-or-correcting-a-class-at-one-stage
 [#387]: https://github.com/sydevs/SahajAtlasWeb/issues/387

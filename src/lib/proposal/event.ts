@@ -1,4 +1,4 @@
-import type { Event, EventSchedule } from '@/types'
+import type { Event, EventSchedule, GeoFeature } from '@/types'
 import type { FixIntent, ListingDraft, ListingRepeats, ListingStep } from './draft'
 
 import { DateTime } from 'luxon'
@@ -90,6 +90,37 @@ export const eventToDraft = (event: Event): ListingDraft => {
     website: event.website ?? '',
     // Only a new listing asks: a correction's sign-up mode stays as the class has it.
     signup: 'here',
+  }
+}
+
+/**
+ * A draft re-adding a listed class: its place and its time, copied from the feed, so the
+ * duplicate suggestion has the class to name (the `?duplicate=` review link). The time starts at
+ * its next session, as a new listing would; its venue's name comes from its venue region.
+ */
+export const copyPlaceAndTime = (draft: ListingDraft, listed: GeoFeature): ListingDraft => {
+  const { properties, geometry } = listed
+  const schedule = properties.schedule
+  const fields = scheduleToDraft(schedule)
+  const next = schedule?.upcomingDates?.[0]
+  const firstDate = next
+    ? DateTime.fromJSDate(next).setZone(scheduleTimeZone(schedule)).toISODate()
+    : null
+
+  return {
+    ...draft,
+    ...fields,
+    firstDate: firstDate ?? fields.firstDate,
+    eventType: 'offline',
+    address: {
+      ...placeFromAddress(properties.address ?? {}),
+      ...(geometry && {
+        longitude: geometry.coordinates[0],
+        latitude: geometry.coordinates[1],
+      }),
+    },
+    venueName: properties.region.level === 'venue' ? (properties.region.name ?? '') : '',
+    room: properties.address?.room ?? '',
   }
 }
 

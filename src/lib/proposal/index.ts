@@ -28,6 +28,7 @@ export {
 } from './deep-link'
 export { SAME_PLACE_KM, possibleDuplicates, schedulesOverlap } from './duplicates'
 export {
+  copyPlaceAndTime,
   eventToDraft,
   openListing,
   scheduleToDraft,
@@ -45,7 +46,6 @@ export {
   type ScheduleFields,
 } from './patch'
 export { featureToPlace, searchProximity, type PickedPlace } from './place'
-export { SAMPLE_PLACE, SAMPLE_SIGNUP_LINK, copyPlaceAndTime, sampleDraft } from './sample'
 export {
   acceptedEvent,
   draftPreviewSchedule,

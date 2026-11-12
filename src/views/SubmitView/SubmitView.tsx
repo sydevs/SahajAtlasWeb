@@ -31,9 +31,9 @@ import {
   nearestTimeZone,
   openListing,
   previewEvent,
-  sampleDraft,
   searchProximity,
 } from '@/lib/proposal'
+import { sampleDraft } from '@/mocks/listing'
 import { buildReportContext } from '@/lib/report'
 import { viewerTimeZone } from '@/lib/time'
 import { CloseButton, useDrawerControl, useEventFromPath, useFrameOnTop } from '@/views/shared'
@@ -45,8 +45,9 @@ import { CloseButton, useDrawerControl, useEventFromPath, useFrameOnTop } from '
  * One surface, in the stack's own sheet like any other view: the step form, and under it the
  * listing built live from the same draft, held in `useListingDraft`.
  *
- * Each opens at one stage from a deep link in the route's query (`lib/proposal/deep-link.ts`):
- * `…/add?step=time`, `…/add?signup=elsewhere`, `…/add?duplicate=939`, `…/correct?fix=place`.
+ * For the review, each opens at one stage from a link in the route's query
+ * (`lib/proposal/deep-link.ts`, PROTOTYPE): `…/add?step=time`, `…/add?signup=elsewhere`,
+ * `…/add?duplicate=939`, `…/correct?fix=place`.
  */
 
 /** What a flow opened on: the route's own draft, and whatever place or class it opened over. */

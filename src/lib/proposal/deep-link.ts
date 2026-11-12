@@ -1,9 +1,14 @@
 import type { FixIntent, ListingSignup, ListingStep } from './draft'
 
 /**
- * Deep links that open the add-a-class and correction flows at one stage, so each stage can be
- * reviewed — and previewed by the pipeline — on its own. They ride in the route's own query, as
- * `?sort=` and the filters do (`?atlas=/gb/south-east/london/add?step=time` in query routing,
+ * PROTOTYPE, review only: links that open the add-a-class and correction flows at one stage, so
+ * each stage can be reviewed — and previewed by the pipeline — on its own (Devindra, 12 Nov). They
+ * are not part of the host contract (`docs/embedding.md`), and they go with the review
+ * (`config/review-options.ts`). The add links fill in a sample class (`mocks/listing.ts`), so a
+ * visitor is never linked to one.
+ *
+ * They ride in the route's own query, as `?sort=` and the filters do
+ * (`?atlas=/gb/south-east/london/add?step=time` in query routing,
  * `/map/gb/south-east/london/add?step=time` in path routing).
  *
  * | Route        | Parameter                                 | Opens                                                  |

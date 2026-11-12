@@ -9,6 +9,7 @@ import {
   type ListingDraft,
   acceptedEvent,
   buildProposal,
+  copyPlaceAndTime,
   scheduleSessions,
   diffPatch,
   draftPreviewSchedule,
@@ -39,6 +40,7 @@ import {
 } from '.'
 
 import { PROPOSABLE_EVENT_FIELDS } from '@/config/api/proposal'
+import { SAMPLE_LISTED_CLASS } from '@/mocks/listing'
 
 // The two shapes Mapbox Geocoding v6 retrieves: an address, whose city, state and country sit
 // in `context`, and a city, which is its own `place` layer. Only the fields the flow reads.
@@ -626,6 +628,23 @@ describe('openListing', () => {
       intent: 'stopped',
     })
     expect(openListing({ event, fix: null }).step).toBe('fix')
+  })
+})
+
+describe('copyPlaceAndTime', () => {
+  it('takes a listed class’s place and its weekly time, from its next session on', () => {
+    const draft = copyPlaceAndTime(emptyDraft('Europe/Prague', ['en']), SAMPLE_LISTED_CLASS)
+
+    expect(draft).toMatchObject({
+      eventType: 'offline',
+      venueName: 'Balham Library',
+      repeats: 'weekly',
+      firstDate: '2026-11-18',
+      startTime: '19:30',
+      endTime: '20:45',
+      timeZone: 'Europe/London',
+    })
+    expect(draft.address).toMatchObject({ latitude: 51.4454169, longitude: -0.1521182 })
   })
 })
 

@@ -10,7 +10,8 @@ import { StorySection, StoryWrapper } from '../../ladle'
 
 import { ProposalForm } from './ProposalForm'
 
-import { draftPreviewSchedule, emptyDraft, previewEvent, sampleDraft } from '@/lib/proposal'
+import { draftPreviewSchedule, emptyDraft, previewEvent } from '@/lib/proposal'
+import { sampleDraft } from '@/mocks/listing'
 import { EMPTY_SENDER } from '@/config/store'
 
 export default { title: 'Organisms' } satisfies StoryDefault

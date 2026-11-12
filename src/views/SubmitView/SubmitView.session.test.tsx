@@ -10,7 +10,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { SubmitView } from './SubmitView'
 
 import { useListingDraft } from '@/config/store'
-import { SAMPLE_PLACE, SAMPLE_SIGNUP_LINK } from '@/lib/proposal'
+import { SAMPLE_PLACE, SAMPLE_SIGNUP_LINK } from '@/mocks/listing'
 
 // The flow's view remounts when the widget crosses its breakpoint (the sheet changes direction).
 // Whether the session survives that is a mount-and-remount question, which only a mounted tree
