@@ -28,6 +28,8 @@ import { ClientGate } from '@/config/client-gate'
 import {
   CLASS_SHEET_PX,
   HOME_SHEET_PX,
+  NEAR_FULL_SHARE,
+  OPEN_SHEET_PX,
   SEARCH_SHEET_PX,
   WidgetWidthContext,
   useFitsWidth,
@@ -39,7 +41,6 @@ import { useBrowsedCountry, useClassSheet, useMapTap } from '@/config/store'
 import { frameElement, overlayContainer } from '@/lib/overlay'
 import { scheduleIdle } from '@/lib/schedule-idle'
 import {
-  filtersFromParams,
   climbDestination,
   type StackEntry,
   CALENDAR_VIEW_LIST,
@@ -59,7 +60,7 @@ import {
 } from '@/lib/shape'
 import { popupOwnsEscape } from '@/views/DrawerStack/escape-owner'
 import { wakesSheetLoop } from '@/views/DrawerStack/sheet-wake'
-import { openStop, sheetOpens } from '@/views/DrawerStack/sheet-open'
+import { listsOnlineOnly, openStop, sheetOpens } from '@/lib/sheet-open'
 import { ViewLayer } from '@/views/DrawerStack/ViewLayer'
 import { DrawerControlContext, FilterChipsContext, useClimbInputs } from '@/views/shared'
 import { useFitSnap } from '@/views/DrawerStack/use-fit-snap'
@@ -128,8 +129,7 @@ const SEARCH_SNAP = `${SEARCH_SHEET_PX}px` // a searched place: the answer, and 
 // 8px to spare. At 88px, before NavRow's gap, the title's lower half fell off the screen.
 const PEEK_PX = 104
 const PEEK_SNAP = `${PEEK_PX}px` // the collapsed peek
-const NEAR_FULL_SHARE = 0.97 // the near-full stop, as a share of the screen
-const OPEN_SNAP = '356px' // default, and what the peek expands to
+const OPEN_SNAP = `${OPEN_SHEET_PX}px` // default, and what the peek expands to
 // What the first screen opens at. A fitting view also holds it while its content loads, so a deep
 // link's boot panel (`BootFallback`, which shares the number), the loading sheet and the content
 // stand at one height until the content can say its own.
@@ -458,13 +458,8 @@ export function DrawerStack() {
       : top
         ? OPEN_SNAP
         : HOME_SNAP
-  // A list of online classes only: a place's Online classes, or results filtered to online. Online
-  // classes have no place on the map, so the phone sheet opens near full rather than leaving a map
-  // with nothing on it above the list (Anton, 6 Nov).
-  const onlineOnly =
-    top?.kind === 'online' ||
-    (top?.kind === 'search' &&
-      filtersFromParams(new URLSearchParams(location.search)).format === 'online')
+  // A list of online classes only opens near full (`listsOnlineOnly`).
+  const onlineOnly = listsOnlineOnly(top?.kind, location.search)
   // Each opening stop's value; the opening effect below sets one.
   const stopSnap = {
     fit: FIT_SNAP,

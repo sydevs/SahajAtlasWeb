@@ -49,6 +49,23 @@ describe('BootFallback', () => {
     expect(html).not.toContain('h-11')
   })
 
+  // The real sheet opens at `openStop`'s stop, and the panel stood at 380px for all of them, so
+  // these jumped in one frame when the drawer took over in place (464 → 404, and 464 → 25).
+  it("stands a searched place at the search stop, as the sheet opens there", () => {
+    expect(boot('/search?q=Brighton&center=-0.14,50.82')).toContain('height:440px')
+  })
+
+  it('stands an online-only list near full: a place’s Online classes, or results filtered to online', () => {
+    for (const route of ['/online', '/gb/online', '/search?format=online']) {
+      expect(boot(route)).toContain('height:calc(var(--sy-frame-h, 100dvh) * 0.97)')
+    }
+  })
+
+  it('stands a form near full, and a search with no place at the usual open stop', () => {
+    expect(boot('/gb/south-east/london/1207/register')).toContain('* 0.97)')
+    expect(boot('/search?q=Brighton')).toContain('height:356px')
+  })
+
   it('takes the list-first shape: the list in its column, over no map', () => {
     const html = boot('/gb/south-east', true)
 

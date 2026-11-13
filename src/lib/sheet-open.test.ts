@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import { type SheetView, openStop, sheetOpens } from './sheet-open'
+import { type SheetView, listsOnlineOnly, openStop, sheetOpens } from './sheet-open'
 
 const phone = { direction: 'bottom', framed: false } as const
 const view = (kind: SheetView['kind'], path?: string): SheetView => ({ ...phone, kind, path })
@@ -108,5 +108,16 @@ describe('openStop', () => {
     expect(stop({ framed: true, kind: 'event', asked: true })).toBe('open')
     expect(stop({ framed: true, kind: 'region' })).toBe('open')
     expect(stop({ framed: true, kind: 'region', asked: true })).toBe('full')
+  })
+})
+
+describe('listsOnlineOnly', () => {
+  it("is a place's Online classes, or results filtered to online, and nothing else", () => {
+    expect(listsOnlineOnly('online', '')).toBe(true)
+    expect(listsOnlineOnly('search', '?format=online')).toBe(true)
+    expect(listsOnlineOnly('search', '?format=offline')).toBe(false)
+    expect(listsOnlineOnly('search', '')).toBe(false)
+    // The query belongs to a search; a place's list is not narrowed by it.
+    expect(listsOnlineOnly('region', '?format=online')).toBe(false)
   })
 })

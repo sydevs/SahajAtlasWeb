@@ -1,4 +1,4 @@
-import { type StackEntry, opensTall } from '@/lib/shape'
+import { type StackEntry, filtersFromParams, opensTall } from '@/lib/shape'
 
 type Kind = StackEntry['kind'] | undefined
 
@@ -36,7 +36,20 @@ export function sheetOpens(last: string | null, view: SheetView, asked: boolean)
 /** A stop the sheet opens at, by role. DrawerStack holds the numbers. */
 export type OpenStop = 'fit' | 'tall' | 'search' | 'open' | 'full'
 
-/** Where the bottom sheet opens for a view that `sheetOpens` let through. */
+/**
+ * A list of online classes only: a place's Online classes, or results filtered to online. Online
+ * classes have no place on the map, so the phone sheet opens near full rather than leaving a map
+ * with nothing on it above the list (Anton, 6 Nov). `search` is the route's query string.
+ */
+export const listsOnlineOnly = (kind: Kind, search: string): boolean =>
+  kind === 'online' ||
+  (kind === 'search' && filtersFromParams(new URLSearchParams(search)).format === 'online')
+
+/**
+ * Where the bottom sheet opens for a view that `sheetOpens` let through. DrawerStack reads it for
+ * the real sheet, and the boot panel (`BootFallback`) for the panel it stands in its place before
+ * the interface's code arrives, so the two open at one height.
+ */
 export function openStop({
   asked,
   framed,

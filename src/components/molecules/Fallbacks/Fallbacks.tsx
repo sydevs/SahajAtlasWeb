@@ -22,13 +22,21 @@ import {
   ListSkeleton,
   TitleSkeleton,
 } from '@/components/molecules/Skeleton'
-import { CLASS_SHEET_PX, HOME_SHEET_PX, useIsWide } from '@/config/responsive'
+import {
+  CLASS_SHEET_PX,
+  HOME_SHEET_PX,
+  NEAR_FULL_SHARE,
+  OPEN_SHEET_PX,
+  SEARCH_SHEET_PX,
+  useIsWide,
+} from '@/config/responsive'
 import { useReportModal } from '@/config/store'
 import { rewordedKey } from '@/config/reworded-keys'
 import { useReportForm } from '@/hooks/use-report-form'
 import { useRecoveryOffer } from '@/hooks/use-recovery-offer'
 import { classifyError, errorMessage, reportInternalError } from '@/lib/report'
-import { resolveStack } from '@/lib/shape'
+import { type StackEntry, resolveStack } from '@/lib/shape'
+import { listsOnlineOnly, openStop } from '@/lib/sheet-open'
 
 /**
  * This is the whole-widget surface. It fills the embed when the app has no content to
@@ -95,6 +103,38 @@ export interface BootFallbackProps {
   listFirst?: boolean
 }
 
+/** The near-full stop, as vaul reads a fraction: a share of the window this form fills. */
+const NEAR_FULL_HEIGHT = `calc(var(--sy-frame-h, 100dvh) * ${NEAR_FULL_SHARE})`
+
+/**
+ * How tall the boot panel stands on a phone: where DrawerStack's sheet will open for this address,
+ * by the same `openStop` and the same stops, so the real sheet takes over without a jump. A view
+ * that fits its content holds the first screen's height until the content can say its own, as the
+ * sheet does (a class, its own height plus the home-indicator inset). A searched place opens at its
+ * search stop, and an online-only list or a form near full.
+ */
+function bootSheetHeight(kind: StackEntry['kind'] | undefined, search: string): string {
+  const stop = openStop({
+    asked: false,
+    framed: false,
+    from: undefined,
+    kind,
+    onlineOnly: listsOnlineOnly(kind, search),
+    searched: new URLSearchParams(search).has('center'),
+  })
+
+  if (stop === 'fit') {
+    return kind === 'event'
+      ? `calc(${CLASS_SHEET_PX}px + env(safe-area-inset-bottom, 0px))`
+      : `${HOME_SHEET_PX}px`
+  }
+  if (stop === 'search') return `${SEARCH_SHEET_PX}px`
+  // DrawerStack's open stop: the first screen's own height, or the usual one under a view.
+  if (stop === 'open') return kind === undefined ? `${HOME_SHEET_PX}px` : `${OPEN_SHEET_PX}px`
+
+  return NEAR_FULL_HEIGHT
+}
+
 /**
  * What the full-window map form shows for the moment before its code has arrived: the panel
  * already in its real place and at the height the sheet opens at, over a plain map-toned surface,
@@ -107,14 +147,9 @@ export interface BootFallbackProps {
  */
 export function BootFallback({ listFirst = false }: BootFallbackProps) {
   const isWide = useIsWide(null)
-  const { pathname } = useLocation()
+  const { pathname, search } = useLocation()
   const kind = resolveStack(pathname).at(-1)?.kind
-  // The phone sheet's first stop, as DrawerStack opens it: a class at its own height plus the
-  // home-indicator inset, and everything else at the first screen's.
-  const sheetHeight =
-    kind === 'event'
-      ? `calc(${CLASS_SHEET_PX}px + env(safe-area-inset-bottom, 0px))`
-      : `${HOME_SHEET_PX}px`
+  const sheetHeight = bootSheetHeight(kind, search)
   // A filled (map-less) drawer's header takes the top itself, as the side panel's does.
   const header = clsx('px-gutter pb-2', isWide || listFirst ? 'pt-4' : 'pt-2')
   // The bottom sheet's handle, where vaul draws it (`atoms/Drawer`). Map-less, only a view with

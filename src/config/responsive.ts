@@ -15,6 +15,14 @@ export const HOME_SHEET_PX = 380
  *  home-indicator inset), which the boot panel matches on a class's deep link. */
 export const CLASS_SHEET_PX = 380
 
+/** The phone sheet's usual open stop, and what its peek expands to: a place page's Back row,
+ *  title, breadcrumbs, a list row and a peek of the next. */
+export const OPEN_SHEET_PX = 356
+
+/** The phone sheet's near-full stop, as a share of the window: online-only lists, the calendar,
+ *  the forms, and results reached from the filters open at it. */
+export const NEAR_FULL_SHARE = 0.97
+
 /**
  * # Responsive signals, and which question each one answers
  *
