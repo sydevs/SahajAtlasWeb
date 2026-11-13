@@ -8,8 +8,8 @@ import { ShareTargets } from './platform-buttons'
 
 import { Button } from '@/components/atoms/Button'
 import { panelChrome } from '@/components/atoms/Select'
+import { CopyFallback } from '@/components/molecules/CopyFallback'
 import { QrPoster } from '@/components/molecules/QrPoster'
-import { useCoarsePointer } from '@/config/responsive'
 import { useWebShare } from '@/hooks/use-web-share'
 import { frameCollision, overlayContainer } from '@/lib/overlay'
 
@@ -72,13 +72,13 @@ const COPIED_MS = 2500
 
 // The copy control: a real button that says what it does, and says "Link copied" when it has.
 // The button itself changes, under the visitor's thumb, so the answer is where they are already
-// looking. The raw URL stays below as a quiet caption, to see what is being shared and to select
-// by hand where a host page blocks the clipboard.
+// looking. The raw URL stays below as a quiet caption, to see what is being shared, and where a
+// host page blocks the clipboard `CopyFallback` takes its place.
 function CopyLinkButton({ url }: { url: string }) {
   const { t } = useTranslation()
-  const touch = useCoarsePointer()
   const [status, setStatus] = useState<'idle' | 'copied' | 'failed'>('idle')
-  const captionRef = useRef<HTMLParagraphElement>(null)
+  // Each refusal remounts the fallback, which selects the link again and repeats its alert.
+  const [refusals, setRefusals] = useState(0)
   const timer = useRef<number>()
 
   useEffect(() => () => window.clearTimeout(timer.current), [])
@@ -91,10 +91,8 @@ function CopyLinkButton({ url }: { url: string }) {
       setStatus('copied')
       timer.current = window.setTimeout(() => setStatus('idle'), COPIED_MS)
     } catch {
-      // A host's Permissions-Policy, or a page that is not https, refuses the clipboard. So
-      // this says so and selects the link, rather than a tap that appears to do nothing.
       setStatus('failed')
-      if (captionRef.current) window.getSelection()?.selectAllChildren(captionRef.current)
+      setRefusals((count) => count + 1)
     }
   }
 
@@ -113,22 +111,16 @@ function CopyLinkButton({ url }: { url: string }) {
         {copied ? <Check aria-hidden size={18} strokeWidth={3} /> : <Link aria-hidden size={18} />}
         <span aria-live="polite">{copied ? t('share.link_copied') : t('share.copy_link')}</span>
       </Button>
-      {status === 'failed' && (
-        <p className="text-sm text-danger-11" role="alert">
-          {t(touch ? 'share.copy_failed_touch' : 'share.copy_failed_pointer')}
+      {status === 'failed' ? (
+        <CopyFallback key={refusals} url={url} />
+      ) : (
+        <p className="truncate text-center text-xs text-gray-11 select-all" title={url}>
+          {url}
         </p>
       )}
-      <p ref={captionRef} className={copyCaption({ wrap: status === 'failed' })} title={url}>
-        {url}
-      </p>
     </div>
   )
 }
-
-const copyCaption = tv({
-  base: 'text-center text-xs text-gray-11 select-all',
-  variants: { wrap: { true: 'break-all', false: 'truncate' } },
-})
 
 type ShareButtonProps = { label: string; url: string; country?: string }
 

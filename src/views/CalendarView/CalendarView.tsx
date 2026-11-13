@@ -1,17 +1,17 @@
-import { type CSSProperties, Suspense, useEffect, useMemo, useRef, useState } from 'react'
+import { type CSSProperties, Suspense, useEffect, useMemo, useRef } from 'react'
 import { useQuery, useSuspenseQuery } from '@tanstack/react-query'
-import { useSearchParams } from 'react-router'
 import { useTranslation } from 'react-i18next'
 import { DateTime } from 'luxon'
 import { useNextCalendarApp } from '@schedule-x/react'
 import { createViewMonthAgenda, createViewMonthGrid } from '@schedule-x/calendar'
 import { createCalendarControlsPlugin } from '@schedule-x/calendar-controls'
-import { Check, ChevronRight, Share } from 'lucide-react'
+import { ChevronRight } from 'lucide-react'
 
 import '@schedule-x/theme-default/dist/index.css'
 
 import { type CalendarRenderers, CalendarMount } from './CalendarMount'
 import { dayHeadingParts } from './DayHeading'
+import { ShareDates } from './ShareDates'
 import { TimesNote } from './TimesNote'
 import { WeekList } from './WeekList'
 
@@ -21,14 +21,12 @@ import { ToggleGroup, ToggleGroupItem } from '@/components/atoms/ToggleGroup'
 import { ActiveFilterPills, ResetErrorBoundary } from '@/components/molecules'
 import { calendarQuery, regionQuery, regionsQuery } from '@/config/api'
 import { useIsWideWidget } from '@/config/responsive'
-import { useHrefFor } from '@/config/routing'
 import { useCalendarPosition } from '@/config/store'
 import { useAtlasNavigate } from '@/hooks/use-atlas-navigate'
 import { useCalendarView, useSetCalendarView } from '@/hooks/use-calendar-view'
 import { useEventFilters, useSetFilters } from '@/hooks/use-filters'
 import { useLocale } from '@/hooks/use-locale'
 import { useMapController } from '@/hooks/use-map-controller'
-import { useWebShare } from '@/hooks/use-web-share'
 import { useAreaNames } from '@/hooks/use-area-names'
 import { type AreaNames, areaKey, areaLabel, areaLookupPoints } from '@/lib/area-names'
 import {
@@ -46,7 +44,6 @@ import {
   CALENDAR_VIEW_MONTH,
   type CalendarEntry,
   type EventFilters,
-  calendarShareRoute,
   calendarWindow,
   chosenCalendarFilters,
   eventsToCalendarEntries,
@@ -162,49 +159,6 @@ const drive = (controls: CalendarControlsPlugin, fn: (c: CalendarControlsPlugin)
   } catch {
     // Pre-mount: the plugin has no `$app` yet — the store write above seeds it on mount.
   }
-}
-
-// Shares the dates on screen, with the scope and filters that were applied. The dates are written
-// into the link even when the visitor is looking at the next seven days, because a link sent today
-// should still mean those days when it is opened next Tuesday. A phone opens its own share sheet;
-// anywhere else (most computers have none), or when that is blocked or dismissed, the link is
-// copied. The button keeps its size when it confirms, so the header doesn't move.
-function ShareDates({ start, end, label }: { start: string; end: string; label: string }) {
-  const { t } = useTranslation()
-  const hrefFor = useHrefFor()
-  const { share } = useWebShare()
-  const [copied, setCopied] = useState(false)
-  const [searchParams] = useSearchParams()
-
-  // Memory-routed embeds have no address to link to, so there is nothing to offer.
-  if (!hrefFor) return null
-
-  const onShare = async () => {
-    const url = hrefFor(calendarShareRoute(searchParams, start, end))
-
-    // `share` always answers with a word, never `false`: only `shared` means the job is done.
-    if ((await share({ title: t('calendar.share_title', { dates: label }), url })) === 'shared')
-      return
-
-    await navigator.clipboard
-      ?.writeText(url)
-      .then(() => {
-        setCopied(true)
-        globalThis.setTimeout(() => setCopied(false), 2000)
-      })
-      // A host page that blocks the clipboard leaves the button as it was, rather than throwing.
-      .catch(() => {})
-  }
-  const name = copied ? t('calendar.link_copied') : t('event.actions.share')
-
-  return (
-    <Button isIconOnly aria-label={name} size="sm" title={name} variant="ghost" onClick={onShare}>
-      {copied ? <Check className="text-primary-11" size={20} /> : <Share size={20} />}
-      <span aria-live="polite" className="sr-only">
-        {copied ? name : ''}
-      </span>
-    </Button>
-  )
 }
 
 // This drives Schedule-X from this project's own header, rather than styling its built-in

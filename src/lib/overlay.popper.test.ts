@@ -54,6 +54,7 @@ const BOUNDED: Record<string, string> = {
     'the search-in-the-field region picker (Popover + cmdk)',
   'components/molecules/ShareContent/ShareContent.tsx':
     "the Share button's targets, where the device has no share sheet",
+  'views/CalendarView/ShareDates.tsx': "the week Share's link, where the clipboard is refused",
   ...MENUS,
 }
 
@@ -108,7 +109,7 @@ const SKIN_RUNS = [
 
 /**
  * The two field pickers share the panel their triggers open, and spell none of it (#367 review).
- * The Share button's fallback popover reads the same panel.
+ * The two Share fallback popovers read the same panel.
  *
  * Here rather than beside the atom because this file already holds the closed list both
  * surfaces belong to, so one file answers which popper surfaces exist and which skin each
@@ -118,6 +119,7 @@ const PANELS: Record<string, string> = {
   'components/atoms/Select/Select.tsx': 'the listbox, and the recipe the others read',
   'components/atoms/Combobox/Combobox.tsx': 'the search-in-the-field panel',
   'components/molecules/ShareContent/ShareContent.tsx': "the Share button's fallback popover",
+  'views/CalendarView/ShareDates.tsx': "the week Share's copy-fallback popover",
 }
 
 /**

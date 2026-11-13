@@ -124,7 +124,9 @@ export type { EventListItemProps } from './EventListItem'
 // chunk: EventActions and ImageCarousel from EventDetails, ShareContent
 // from EventActions, RegistrationForm and ShareView. That is the
 // readiness report's "Swiper bundled twice" finding. `index.test.ts` pins
-// it (issue #96).
+// it (issue #96). CopyFallback is light, but both its callers (ShareContent
+// and the calendar's week Share) load lazily, so it is reached by leaf path
+// too, rather than adding to the eager graph.
 
 export { EventMetadata } from './EventMetadata'
 export type { EventMetadataProps } from './EventMetadata'
