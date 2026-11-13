@@ -29,9 +29,16 @@ vi.mock('@payloadcms/sdk', () => ({
   },
 }))
 vi.mock('@/config/i18n', () => ({ default: { resolvedLanguage: 'en' } }))
+// The note to admins names each class its own way (`distinct_class`) inside a list the language
+// joins, so those two keys echo what they were given.
 vi.mock('react-i18next', () => ({
   useTranslation: () => ({
-    t: (key: string) => key,
+    t: (key: string, values?: { classes?: string; title?: string; id?: number }) =>
+      key === 'submit.note.distinct'
+        ? `${key}: ${values?.classes}`
+        : key === 'submit.note.distinct_class'
+          ? `[${values?.title} #${values?.id}]`
+          : key,
     i18n: { language: 'en', resolvedLanguage: 'en', on: () => {}, off: () => {} },
   }),
 }))
@@ -817,7 +824,8 @@ describe('ProposalForm possible duplicates', () => {
   it('takes "it’s a different class" as an answer, and tells the admins', async () => {
     sdk.request.mockResolvedValue({ json: async () => ({ doc: { id: 15 } }) })
 
-    const root = await mount({ initial: inPerson, duplicates: [balham] })
+    const upstairs = { ...balham, id: 717, title: 'Upstairs hall', path: `${balham.path}/717` }
+    const root = await mount({ initial: inPerson, duplicates: [balham, upstairs] })
 
     await press('submit.duplicate.distinct')
     expect(container.textContent).not.toContain('submit.duplicate.title')
@@ -825,9 +833,11 @@ describe('ProposalForm possible duplicates', () => {
     await type('#submit-sender-email', 'ada@example.org')
     await submit()
 
+    // Each class in the copy's own punctuation, the list joined by `Intl.ListFormat`.
     expect(sdk.request.mock.calls[0][0].json.submissionData).toContainEqual({
       field: 'note',
-      value: 'submit.note.distinct',
+      value:
+        'submit.note.distinct: [Evening Meditation at Balham Library #939] and [Upstairs hall #717]',
     })
 
     await act(async () => root.unmount())

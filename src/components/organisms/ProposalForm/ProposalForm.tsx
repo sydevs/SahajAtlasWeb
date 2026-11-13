@@ -588,9 +588,12 @@ function ReviewStage({
         // Proposals may not set the registration fields, so the admins are asked to.
         draft.signup === 'elsewhere' && t('submit.note.signup_elsewhere'),
         // The admins would otherwise check the same possible duplicate again.
+        // The punctuation around each class is the copy's; the list is the language's own.
         different.length > 0 &&
           t('submit.note.distinct', {
-            classes: different.map(({ id, title }) => `“${title}” (${id})`).join(', '),
+            classes: new Intl.ListFormat(locale, { style: 'long', type: 'conjunction' }).format(
+              different.map(({ id, title }) => t('submit.note.distinct_class', { title, id })),
+            ),
           }),
         sender.note.trim(),
       ]

@@ -584,7 +584,8 @@
       "nobody_placeholder": "For example: the door was locked and the room was dark.",
       "nobody_default": "Someone went to this class and found nobody there.",
       "nobody_default_on": "Someone went to this class on %{date} and found nobody there.",
-      "distinct": "The sender says this is a different class from %{classes}, which meets at the same place and time."
+      "distinct": "The sender says this is a different class from %{classes}, which meets at the same place and time.",
+      "distinct_class": "“%{title}” (%{id})"
     },
     "changes": {
       "title": "Check your suggestion",
