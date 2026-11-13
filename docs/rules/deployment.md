@@ -45,6 +45,13 @@ move ran one site at a time, and the app's own cutover was split from building i
   `gh-readonly-queue/*` and `mockup/*` with `12002 Invalid request body`, although the docs
   show prefix wildcards — so merge-queue and mockup branches do start preview builds here, which
   the Pages app's own rules had excluded while it existed (#266).
+  ⚠ **`@swc/core` is pinned to 1.16.2 by a `pnpm.overrides` entry — do not let it pass 1.16.11.**
+  Ladle compiles through it. From 1.16.12 its addon ships compressed and unpacks itself into a
+  cache directory, refusing any whose ancestors another user can write without a sticky bit. On
+  the Workers build image since 2026-11-13 that rules out both `~/.cache` and `/tmp`, so every
+  playground build died with `ERR_SWC_NATIVE_CACHE` before Ladle ran; 1.16.22 still does (#401).
+  1.16.2 is the last release that loads its `.node` file directly. Lift the pin only once a
+  newer release builds on Workers Builds.
 
 Two deploy files live in `public/`, copied into both build outputs, and both govern both sites:
 
