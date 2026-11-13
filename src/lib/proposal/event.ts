@@ -79,8 +79,6 @@ export const eventToDraft = (event: Event): ListingDraft => {
     ...scheduleToDraft(event.schedule),
     contactName: event.contactName ?? '',
     contactPhone: event.contactPhone ?? '',
-    // The widget never reads a class's contact address, so a correction starts it blank.
-    contactEmail: '',
     description: lexicalToText(event.description),
     title: event.title,
     languages: event.languages,

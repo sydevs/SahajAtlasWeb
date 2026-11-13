@@ -217,9 +217,7 @@ function ListingSummary({
   const autoTitle = useAutoTitle(draft)
   const online = draft.eventType === 'online'
   const place = online ? draft.city : draft.address
-  const contact = [draft.contactName, draft.contactPhone, draft.contactEmail]
-    .map((line) => line.trim())
-    .filter(Boolean)
+  const contact = [draft.contactName, draft.contactPhone].map((line) => line.trim()).filter(Boolean)
   const description = draft.description.trim()
   const website = draft.website.trim()
   const leftOut = [

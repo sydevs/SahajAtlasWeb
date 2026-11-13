@@ -23,8 +23,8 @@ export type SummaryRow = {
  * reads a new listing back from these, and a correction diffs two sets of them — so whatever is
  * sent is shown, in the same words, either way.
  *
- * `correction` drops the two values the widget never reads from a published class (its join link
- * and contact address): an unknown is not a blank, and must not read as one being changed.
+ * `correction` drops the one value the widget never reads from a published class, its join link:
+ * an unknown is not a blank, and must not read as one being changed.
  */
 /**
  * The published line for this class, read in the class's own zone. The listing shows an online
@@ -147,12 +147,6 @@ export function useSummaryRows(
         .map((line) => line.trim())
         .filter(Boolean)
         .join('\n'),
-      section: 'details',
-    },
-    !(correction && !draft.contactEmail.trim()) && {
-      key: 'contact_email',
-      label: t('submit.summary.contact_email'),
-      value: draft.contactEmail.trim(),
       section: 'details',
     },
     {

@@ -416,7 +416,6 @@
       "correct_entry": "Suggest a correction"
     },
     "contact": {
-      "email_label": "Email",
       "name_label": "Name",
       "phone_label": "Phone",
       "title": "Who can people contact?"
@@ -615,7 +614,6 @@
       "schedule": "When",
       "no_end": "No end date",
       "zone": "Time zone",
-      "contact_email": "Contact email",
       "address": "Address",
       "contact": "Contact",
       "manual": "On the map",

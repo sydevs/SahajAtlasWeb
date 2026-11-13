@@ -78,7 +78,6 @@ const detailAnswers: Partial<ListingDraft> = {
   title: 'Meditation for beginners',
   contactName: 'Ada',
   contactPhone: '+44 20 7946 0000',
-  contactEmail: 'ada@example.org',
   description: 'A guided meditation for beginners. Chairs and mats are provided.',
 }
 

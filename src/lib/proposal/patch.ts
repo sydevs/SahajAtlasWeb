@@ -92,7 +92,6 @@ export const draftToPatch = (
         : undefined,
     contactName: text(draft.contactName),
     contactPhone: text(draft.contactPhone),
-    contactEmail: text(draft.contactEmail),
     website: isWebUrl(draft.website) ? draft.website.trim() : null,
     description: plainTextToLexical(draft.description) as ProposedEventPatch['description'],
     ...(online

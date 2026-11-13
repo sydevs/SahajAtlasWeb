@@ -81,7 +81,6 @@ const UNDO_FIELDS: Partial<Record<ChangeKey, (keyof ListingDraft)[]>> = {
   zone: ['timeZone'],
   languages: ['languages'],
   contact: ['contactName', 'contactPhone'],
-  contact_email: ['contactEmail'],
   description: ['description'],
   title: ['title'],
   website: ['website'],

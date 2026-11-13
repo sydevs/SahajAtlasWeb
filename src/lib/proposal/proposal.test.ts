@@ -183,11 +183,8 @@ describe('stepErrors', () => {
     expect(stepErrors('details', inPerson({ languages: [] }))).toEqual({ languages: true })
   })
 
-  it('lets Details be skipped, but not filled with a broken address', () => {
+  it('lets Details be skipped', () => {
     expect(stepErrors('details', inPerson())).toEqual({})
-    expect(stepErrors('details', inPerson({ contactEmail: 'nope' }))).toEqual({
-      contactEmail: true,
-    })
   })
 
   it('refuses a website that is not an absolute web address, rather than dropping it', () => {

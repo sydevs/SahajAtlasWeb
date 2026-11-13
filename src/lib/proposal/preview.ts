@@ -135,7 +135,6 @@ const REPLACED = [
   'languages',
   'contactName',
   'contactPhone',
-  'contactEmail',
   'website',
 ] as const
 

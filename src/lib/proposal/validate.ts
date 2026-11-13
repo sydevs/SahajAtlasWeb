@@ -14,7 +14,6 @@ export type ListingField =
   | 'onlineUrl'
   | 'firstDate'
   | 'startTime'
-  | 'contactEmail'
   | 'website'
   | 'endDate'
   | 'languages'
@@ -63,9 +62,6 @@ export const stepErrors = (
 
   // A class is held in some language, and an empty list could never be sent as a correction.
   if (step === 'details' && draft.languages.length === 0) errors.languages = true
-  if (step === 'details' && draft.contactEmail.trim() && !isEmail(draft.contactEmail)) {
-    errors.contactEmail = true
-  }
 
   // Refused here rather than dropped by the patch, where it would silently clear a stored one.
   if (step === 'details' && draft.website.trim() && !isWebUrl(draft.website)) {
@@ -113,7 +109,6 @@ const STEP_FIELDS: Record<ListingSection, (keyof ListingDraft)[]> = {
     'languages',
     'contactName',
     'contactPhone',
-    'contactEmail',
     'description',
     'title',
     'website',

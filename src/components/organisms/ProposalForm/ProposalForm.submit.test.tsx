@@ -408,6 +408,9 @@ describe('ProposalForm steps', () => {
 
     await press('submit.chrome.continue')
     expect(container.textContent).toContain('submit.details.title')
+    // The contact shown on the listing is a name and a phone: a listing never shows an email.
+    expect(container.querySelector('#submit-contact-phone')).not.toBeNull()
+    expect(container.querySelector('#submit-contact-email')).toBeNull()
     // Details are all optional: Continue goes straight on.
     await press('submit.chrome.continue')
     expect(container.querySelector('#submit-sender-email')).not.toBeNull()

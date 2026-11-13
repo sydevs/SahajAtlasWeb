@@ -153,29 +153,16 @@ export function DetailsStep({
           value={draft.contactName}
           onChange={(event) => onChange({ contactName: event.target.value })}
         />
-        <div className="grid grid-cols-1 gap-3 min-[420px]:grid-cols-2">
-          <TextField
-            autoComplete="off"
-            id="submit-contact-phone"
-            inputMode="tel"
-            label={t('submit.contact.phone_label')}
-            maxLength={CONTACT_MAX}
-            type="tel"
-            value={draft.contactPhone}
-            onChange={(event) => onChange({ contactPhone: event.target.value })}
-          />
-          <TextField
-            autoComplete="off"
-            error={errors.contactEmail && t('submit.errors.email')}
-            id="submit-contact-email"
-            inputMode="email"
-            label={t('submit.contact.email_label')}
-            maxLength={CONTACT_MAX}
-            type="email"
-            value={draft.contactEmail}
-            onChange={(event) => onChange({ contactEmail: event.target.value })}
-          />
-        </div>
+        <TextField
+          autoComplete="off"
+          id="submit-contact-phone"
+          inputMode="tel"
+          label={t('submit.contact.phone_label')}
+          maxLength={CONTACT_MAX}
+          type="tel"
+          value={draft.contactPhone}
+          onChange={(event) => onChange({ contactPhone: event.target.value })}
+        />
       </section>
 
       <FormField htmlFor="submit-description" label={t('submit.about.title')}>

@@ -22,7 +22,6 @@ export const PROPOSABLE_EVENT_FIELDS = [
   'languages',
   'contactName',
   'contactPhone',
-  'contactEmail',
   'description',
   'website',
   'eventType',

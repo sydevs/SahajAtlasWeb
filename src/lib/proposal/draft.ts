@@ -73,7 +73,6 @@ export type ListingDraft = {
   timeZone: string
   contactName: string
   contactPhone: string
-  contactEmail: string
   description: string
   title: string
   languages: string[]
@@ -102,7 +101,6 @@ export const emptyDraft = (timeZone: string, languages: string[] = []): ListingD
   timeZone,
   contactName: '',
   contactPhone: '',
-  contactEmail: '',
   description: '',
   title: '',
   languages,
