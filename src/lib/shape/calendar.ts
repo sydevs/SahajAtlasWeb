@@ -199,23 +199,18 @@ const addDays = (iso: string, days: number): string =>
   DateTime.fromISO(iso).plus({ days }).toISODate() ?? iso
 
 /**
- * The window a date range shows in the List view. With no range it is this week. With a range it
- * is that range, so a shared link and the Filters date picker both land on the dates they name.
+ * The seven days the Week view shows for a date range: from its first day, or from today with
+ * none. The Week strictly shows seven days (Devindra, 12 Nov), so a range of another length, from
+ * a link or the month grid, shows the week it starts.
  */
 export const calendarWindow = (range: DateRange, today: string): CalendarWindow => {
   const start = range.start ?? today
-  const end = range.end ?? addDays(start, CALENDAR_WEEK_DAYS - 1)
 
-  return {
-    start,
-    end,
-    isThisWeek: start === today && end === addDays(today, CALENDAR_WEEK_DAYS - 1),
-  }
+  return { start, end: addDays(start, CALENDAR_WEEK_DAYS - 1), isThisWeek: start === today }
 }
 
 /**
- * The seven days next to a window, whatever its own length: a link opened mid-week, or a single
- * day, still pages a week at a time. Nothing before today has classes, so a step back stops there,
+ * The seven days next to a window. Nothing before today has classes, so a step back stops there,
  * and landing on the next seven days clears the range entirely.
  */
 export const shiftCalendarWindow = (

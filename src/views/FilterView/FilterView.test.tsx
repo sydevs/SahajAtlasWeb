@@ -24,7 +24,12 @@ vi.mock('@/hooks/use-filter-facets', () => ({ useFilterFacets: () => undefined }
 vi.mock('./WhereFilter', () => ({ WhereFilter: () => null }))
 vi.mock('./RecoveryButton', () => ({ RecoveryButton: () => null }))
 vi.mock('@/components/molecules', () => ({
-  SearchFilters: ({ value }: { value: EventFilters }) => <i>draft-region:{value.region ?? '∅'}</i>,
+  SearchFilters: ({ value, dates }: { value: EventFilters; dates?: boolean }) => (
+    <i>
+      draft-region:{value.region ?? '∅'}
+      {dates === false && ' no-dates'}
+    </i>
+  ),
 }))
 vi.mock('@/views/nav', () => ({
   NavHeader: () => null,
@@ -69,5 +74,28 @@ describe('FilterView — the footer', () => {
 
   it('offers Clear once a filter is set', () => {
     expect(view('/filters?days=2')).toContain('filters.chrome.clear_one')
+  })
+})
+
+// The Week strictly shows seven days, set by its own arrows and date picker, so the panel over it
+// neither asks for dates nor counts them as something to clear.
+describe('FilterView — over the calendar', () => {
+  const week = '2026-11-16,2026-11-22'
+
+  it("leaves the dates to the Week's own controls", () => {
+    const html = view(`/calendar/filters?region=gb&view=list&dates=${week}`)
+
+    expect(html).toContain('no-dates')
+    expect(html).not.toContain('filters.chrome.clear_one')
+    expect(view(`/calendar/filters?region=gb&view=list&dates=${week}&days=2`)).toContain(
+      'filters.chrome.clear_one',
+    )
+  })
+
+  it('still asks for dates over the month grid, where they narrow it', () => {
+    const html = view(`/calendar/filters?region=gb&dates=${week}`)
+
+    expect(html).not.toContain('no-dates')
+    expect(html).toContain('filters.chrome.clear_one')
   })
 })

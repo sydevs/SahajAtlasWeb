@@ -11,16 +11,19 @@ import { Button } from '@/components/atoms/Button'
 import { SearchFilters } from '@/components/molecules'
 import { regionQuery } from '@/config/api'
 import { useIsWideWidget } from '@/config/responsive'
+import { useCalendarView } from '@/hooks/use-calendar-view'
 import { useEventFilters } from '@/hooks/use-filters'
 import { useFilterFacets } from '@/hooks/use-filter-facets'
 import { useLocale } from '@/hooks/use-locale'
 import { useMapController } from '@/hooks/use-map-controller'
 import {
+  CALENDAR_VIEW_LIST,
   DEFAULT_FILTERS,
   type EventFilters,
   type PlaceSearch,
   activeFilterCount,
   atlasDepth,
+  chosenCalendarFilters,
   filterCloseTarget,
   filterOriginRegion,
   filtersToParams,
@@ -52,6 +55,7 @@ export function FilterView() {
   const isWide = useIsWideWidget()
   const { frameRegion, frameSearch, reset } = useMapController()
   const { locale } = useLocale()
+  const calendarView = useCalendarView()
   const originRegion = filterOriginRegion(location.pathname)
 
   // A region's drawer is scoped to that region without saying so in the URL. So an untouched
@@ -129,8 +133,20 @@ export function FilterView() {
       new URLSearchParams(noPlaceSearch(new URLSearchParams(location.search))),
     )
 
+  // The calendar's Week sets its own seven days with its arrows and date picker, so here they are
+  // neither asked nor cleared (`chosenCalendarFilters`).
+  const overWeek =
+    parentOf(location.pathname) === '/calendar' && calendarView === CALENDAR_VIEW_LIST
   // Clear resets the questions, not the Where: the visitor is still looking in the same place.
-  const canClear = activeFilterCount({ ...filters, region: null }) > 0
+  const canClear =
+    activeFilterCount(
+      overWeek ? chosenCalendarFilters(filters, true) : { ...filters, region: null },
+    ) > 0
+  const cleared = {
+    ...DEFAULT_FILTERS,
+    region: filters.region,
+    ...(overWeek && { dateRange: filters.dateRange }),
+  }
   // Nothing matches, and removing any one answer still finds nothing: Clear is the only way out.
   const noWayOut = count === 0 && !facets?.recovery
   // With nothing chosen, closing just goes back, so the button mustn't promise results.
@@ -147,6 +163,7 @@ export function FilterView() {
       />
       <DrawerBody className="scroll-pb-[calc(var(--sy-footer-h,0px)_+_var(--sy-sheet-top,0px))] px-gutter py-4">
         <SearchFilters
+          dates={!overWeek}
           facets={facets}
           value={filters}
           where={
@@ -179,7 +196,7 @@ export function FilterView() {
               className={noWayOut ? 'h-11 flex-1' : 'h-11'}
               color={noWayOut ? 'primary' : 'neutral'}
               variant={noWayOut ? 'solid' : 'flat'}
-              onClick={() => write({ ...DEFAULT_FILTERS, region: filters.region })}
+              onClick={() => write(cleared)}
             >
               {t('filters.chrome.clear_one')}
             </Button>

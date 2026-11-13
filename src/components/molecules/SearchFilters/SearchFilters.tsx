@@ -351,11 +351,19 @@ function DateBound({
   )
 }
 
-/** The rarely useful filters, folded away: most classes are weekly, so neither narrows much. */
-export function MoreFilters({ value, patch, facets }: FilterControlProps) {
+/**
+ * The rarely useful filters, folded away: most classes are weekly, so neither narrows much.
+ * `dates={false}` leaves the dates out, where the view sets them itself (the calendar's Week).
+ */
+export function MoreFilters({
+  value,
+  patch,
+  facets,
+  dates = true,
+}: FilterControlProps & { dates?: boolean }) {
   const { t } = useTranslation()
   const { cadence, dateRange } = value
-  const active = cadence !== 'any' || isDateRestricted(dateRange)
+  const active = cadence !== 'any' || (dates && isDateRestricted(dateRange))
   const [open, setOpen] = useState(active)
   // Bounded to today through today plus 12 months, the window the URL codec clamps to.
   const { min: dateMin, max: dateMax } = dateWindow()
@@ -364,6 +372,8 @@ export function MoreFilters({ value, patch, facets }: FilterControlProps) {
   const cadenceOptions = CADENCE_OPTIONS.filter(
     (option) => option !== 'any' && (!counts || counts[option] > 0 || option === cadence),
   )
+
+  if (!showCadence && !dates) return null
 
   return (
     <div className="flex flex-col">
@@ -403,26 +413,28 @@ export function MoreFilters({ value, patch, facets }: FilterControlProps) {
               </ToggleGroup>
             </FilterGroup>
           )}
-          <FilterGroup label={t('filters.dates.label')}>
-            <div className="grid grid-cols-2 gap-2">
-              <DateBound
-                highlight={dateRange.start !== null}
-                label={t('filters.dates.from')}
-                max={dateRange.end ?? dateMax}
-                min={dateMin}
-                value={dateRange.start ?? ''}
-                onChange={(start) => patch({ dateRange: { ...dateRange, start } })}
-              />
-              <DateBound
-                highlight={dateRange.end !== null}
-                label={t('filters.dates.to')}
-                max={dateMax}
-                min={dateRange.start ?? dateMin}
-                value={dateRange.end ?? ''}
-                onChange={(end) => patch({ dateRange: { ...dateRange, end } })}
-              />
-            </div>
-          </FilterGroup>
+          {dates && (
+            <FilterGroup label={t('filters.dates.label')}>
+              <div className="grid grid-cols-2 gap-2">
+                <DateBound
+                  highlight={dateRange.start !== null}
+                  label={t('filters.dates.from')}
+                  max={dateRange.end ?? dateMax}
+                  min={dateMin}
+                  value={dateRange.start ?? ''}
+                  onChange={(start) => patch({ dateRange: { ...dateRange, start } })}
+                />
+                <DateBound
+                  highlight={dateRange.end !== null}
+                  label={t('filters.dates.to')}
+                  max={dateMax}
+                  min={dateRange.start ?? dateMin}
+                  value={dateRange.end ?? ''}
+                  onChange={(end) => patch({ dateRange: { ...dateRange, end } })}
+                />
+              </div>
+            </FilterGroup>
+          )}
         </div>
       )}
     </div>
@@ -438,6 +450,8 @@ export type SearchFiltersProps = {
   where?: ReactNode
   /** Live counts and relevance. Without them, every group shows, with no numbers. */
   facets?: FilterFacets
+  /** False leaves out the From and To dates, for a view that sets its own (`MoreFilters`). */
+  dates?: boolean
 }
 
 /**
@@ -448,7 +462,7 @@ export type SearchFiltersProps = {
  * Every option is one chip style. The groups differ by how they're laid out (a pair, a week
  * strip, a 2x2), not by how a chip is drawn, so nothing has to be learned twice.
  */
-export function SearchFilters({ value, onChange, where, facets }: SearchFiltersProps) {
+export function SearchFilters({ value, onChange, where, facets, dates }: SearchFiltersProps) {
   const { t } = useTranslation()
   const shown = shownGroups(value, facets)
   const control: FilterControlProps = {
@@ -480,7 +494,7 @@ export function SearchFilters({ value, onChange, where, facets }: SearchFiltersP
           <LanguageFilter {...control} />
         </FilterGroup>
       )}
-      <MoreFilters {...control} />
+      <MoreFilters {...control} dates={dates} />
     </div>
   )
 }

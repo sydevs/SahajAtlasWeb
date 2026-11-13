@@ -103,6 +103,31 @@ describe('SearchFilters — More filters', () => {
 
     expect(html).toContain('filters.dates.from')
   })
+
+  // The calendar's Week sets its own seven days.
+  it('leaves the dates out for a view that sets them itself', () => {
+    const week = { start: '2026-11-16', end: '2026-11-22' }
+    const html = renderToStaticMarkup(
+      <SearchFilters
+        dates={false}
+        value={{ ...DEFAULT_FILTERS, cadence: 'WEEKLY', dateRange: week }}
+        onChange={() => {}}
+      />,
+    )
+
+    expect(html).toContain('filters.cadence.label')
+    expect(html).not.toContain('filters.dates.from')
+    // A set week alone does not open the fold, as a chosen filter would.
+    expect(
+      renderToStaticMarkup(
+        <SearchFilters
+          dates={false}
+          value={{ ...DEFAULT_FILTERS, dateRange: week }}
+          onChange={() => {}}
+        />,
+      ),
+    ).not.toContain('filters.cadence.label')
+  })
 })
 
 describe('SearchFilters — times of day', () => {

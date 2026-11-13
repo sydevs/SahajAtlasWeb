@@ -305,33 +305,42 @@ describe('the week list window', () => {
   const NONE = { start: null, end: null }
   const today = '2026-11-05'
 
-  it('is this week when the URL names no dates, or names exactly those dates', () => {
+  it('is this week when the URL names no dates, or dates starting today', () => {
     expect(calendarWindow(NONE, today)).toEqual({
       start: today,
       end: '2026-11-11',
       isThisWeek: true,
     })
     expect(calendarWindow({ start: today, end: '2026-11-11' }, today).isThisWeek).toBe(true)
-    expect(calendarWindow({ start: today, end: '2026-11-08' }, today).isThisWeek).toBe(false)
+    expect(calendarWindow({ start: '2026-11-06', end: '2026-11-12' }, today).isThisWeek).toBe(false)
   })
 
-  it('steps by its own length, and clears the range on landing back on this week', () => {
+  // Devindra (12 Nov): the Week strictly shows a week. A link naming three weeks, or the month
+  // grid's "+N more" naming one day, shows the seven days from the first one.
+  it('shows seven days from the first day a range names, whatever its length', () => {
+    expect(calendarWindow({ start: '2026-11-16', end: '2026-12-06' }, today)).toEqual({
+      start: '2026-11-16',
+      end: '2026-11-22',
+      isThisWeek: false,
+    })
+    expect(calendarWindow({ start: '2026-11-18', end: '2026-11-18' }, today).end).toBe('2026-11-24')
+    expect(calendarWindow({ start: null, end: '2026-11-08' }, today).end).toBe('2026-11-11')
+  })
+
+  it('steps a week, and clears the range on landing back on this week', () => {
     const week = calendarWindow(NONE, today)
     const next = shiftCalendarWindow(week, 1, today)
 
     expect(next).toEqual({ start: '2026-11-12', end: '2026-11-18' })
     expect(shiftCalendarWindow(calendarWindow(next, today), -1, today)).toEqual(NONE)
-    expect(
-      shiftCalendarWindow(calendarWindow({ start: today, end: today }, today), 1, today),
-    ).toEqual({ start: '2026-11-06', end: '2026-11-12' })
   })
 
-  it('pages seven days from a shorter window, such as a link opened mid-week', () => {
+  it('pages seven days on from a link opened mid-week', () => {
     const window = calendarWindow({ start: '2026-11-08', end: '2026-11-10' }, today)
 
     expect(shiftCalendarWindow(window, 1, today)).toEqual({
-      start: '2026-11-11',
-      end: '2026-11-17',
+      start: '2026-11-15',
+      end: '2026-11-21',
     })
   })
 

@@ -471,9 +471,11 @@ function CalendarGrid({
         },
         // Persist the focused date as the user pages through the calendar (drives the header label).
         onSelectedDateUpdate: (date) => useCalendarPosition.getState().setDate(date),
-        // The month grid's "+N more" opens the list on that one day.
+        // The month grid's "+N more" opens the Week on the seven days from that day.
         onClickPlusEvents: (date) =>
-          setCalendarView(CALENDAR_VIEW_LIST, (next) => next.set('dates', `${date},${date}`)),
+          setCalendarView(CALENDAR_VIEW_LIST, (next) =>
+            next.set('dates', `${date},${weekFrom(date).end}`),
+          ),
       },
     },
     [controls],
