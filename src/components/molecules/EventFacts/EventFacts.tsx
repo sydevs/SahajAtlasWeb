@@ -1,7 +1,7 @@
 import type { LucideIcon } from 'lucide-react'
 import type { ReactNode } from 'react'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { tv } from 'tailwind-variants'
 import { CalendarDays, Check, Copy, MapPin, Monitor } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
@@ -255,12 +255,14 @@ const COPIED_MS = 2000
 /**
  * The class page's address, which copies itself when tapped: one way people get directions is to
  * paste it into Google Maps (Anton, 6 Nov). For two seconds the line says "Address copied" in its
- * place, so nothing moves, and a screen reader hears it. A host page that blocks the clipboard
- * leaves the line as it was: the address is still there to select.
+ * place, so nothing moves, and a screen reader hears it. A copy the clipboard refuses (a host
+ * page can block it) selects the address instead, ready to copy by hand, as `CopyFallback` does
+ * for a link.
  */
 function CopyAddress({ value }: { value: string }) {
   const { t } = useTranslation()
   const [copied, setCopied] = useState(false)
+  const address = useRef<HTMLSpanElement>(null)
 
   useEffect(() => {
     if (!copied) return
@@ -269,11 +271,15 @@ function CopyAddress({ value }: { value: string }) {
     return () => window.clearTimeout(timer)
   }, [copied])
 
+  const selectAddress = () => {
+    if (address.current) window.getSelection()?.selectAllChildren(address.current)
+  }
   const copy = () => {
+    if (!navigator.clipboard) return selectAddress()
     navigator.clipboard
-      ?.writeText(value)
+      .writeText(value)
       .then(() => setCopied(true))
-      .catch(() => {})
+      .catch(selectAddress)
   }
 
   return (
@@ -290,7 +296,7 @@ function CopyAddress({ value }: { value: string }) {
         </span>
       ) : (
         <>
-          <span>{value}</span>
+          <span ref={address}>{value}</span>
           <Copy aria-hidden className="shrink-0 text-gray-9" size={14} />
         </>
       )}
