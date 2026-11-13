@@ -595,7 +595,10 @@ cores. Re-measured 2026-11-11, at 21 — `markers.outline.test.ts` reads two rep
 the fixed marker outline against the basemap surfaces it was measured from (#389): **6.5s** for
 the widest and **7.0s** for `i18n.ts`, medians of three. At 22 (2026-11-12, the merge of that
 with #318's `add-class-entry.test.ts`), timed only on 14 cores: **1.38s** for the widest and
-**3.02s** for `i18n.ts`, medians of three — not comparable with the 4-core figures. The slowest
+**3.02s** for `i18n.ts`, medians of three — not comparable with the 4-core figures. At 23
+(2026-11-13, on `src/hooks/use-locale.ts`, once `InactiveListing.test.tsx` stubbed the locale for
+the real `useEventDisplay`), again on 14 cores: **1.68s** for the widest and **2.44s** for
+`i18n.ts`, medians of three. The slowest
 edit sits at about half the bound, so the ceiling is the narrower constraint of the two — a slot
 is spent long before a second is.
 ⚠ **The 0.12s class is smaller than #289 found it**: `src/views/FullInterface.tsx` selected

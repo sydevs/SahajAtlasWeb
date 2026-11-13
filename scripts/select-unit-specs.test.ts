@@ -246,7 +246,8 @@ describe('this repository', () => {
     // 12, four of them jsdom, and measured 7.0s against the widest selection's 6.5s at
     // twenty-one. So this bounds width as a proxy, and the answer when it trips is to time the
     // hook and ratchet, never to drop a spec from the selection. `docs/testing.md` carries the
-    // times and the method.
-    expect(worst.count, `widest selection: ${worst.source}`).toBeLessThanOrEqual(22)
+    // times and the method. 23 since 2026-11-13, on `src/hooks/use-locale.ts`: the
+    // inactive-listing card's spec now runs the real `useEventDisplay`, so it stubs the locale.
+    expect(worst.count, `widest selection: ${worst.source}`).toBeLessThanOrEqual(23)
   })
 })
