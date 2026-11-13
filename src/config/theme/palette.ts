@@ -123,7 +123,7 @@ const foregroundFor = (c: Colord) =>
 // Lifting is reported (`saturation`), since it changes the colour visibly.
 // A seed with no hue at all, a true grey, white or black, stays neutral: there is no
 // colour to lift.
-const MIN_SATURATION = 60
+const MIN_SATURATION = 40
 const MAX_SATURATION = 60
 
 // ⚠ HSL saturation overstates a colour near white or black: `#fffdfa` reads as 100%
@@ -228,8 +228,17 @@ function buildRole(seedHex: string, mode: ThemeMode): RoleScale {
   if (s > 0 && colourfulness < MIN_SATURATION - NOTICEABLE_LIFT) adjustedBy.push('saturation')
 
   // Step 9, the solid, uses the seed's own lightness, held inside the band.
+  // ⚠ A hued solid is also kept far enough from white and black to SHOW the floor:
+  // near either extreme no saturation is visible, so a near-white seed lifted to the
+  // floor still rendered near-white on the dark page, where nothing else moves it.
+  // `reach` is how close to an extreme the solid's chroma still clears the floor.
+  const reach = s === 0 ? 0 : (50 * MIN_SATURATION) / (CHROMA_GAIN * saturation)
   const [lowest, highest] = TONE_RANGE[mode]
-  const clamped = clamp(l, lowest, highest)
+  const clamped = clamp(l, Math.max(lowest, reach), Math.min(highest, 100 - reach))
+
+  if ((l < reach || l > 100 - reach) && !adjustedBy.includes('saturation')) {
+    adjustedBy.push('saturation')
+  }
 
   const l9 = correct(clamped, mode, (c) => tone(c).contrast(APP_BACKGROUND[mode]) >= SURFACE_RATIO)
 

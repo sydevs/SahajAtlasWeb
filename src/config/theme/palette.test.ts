@@ -42,7 +42,7 @@ describe('buildScale', () => {
     expect(maroon.s).toBe(60) // capped from 94
 
     // A muted seed is lifted to the floor, so it still reads as a colour.
-    expect(parse(buildScale('#82b1ae', 'light')[9]).s).toBe(60)
+    expect(parse(buildScale('#82b1ae', 'light')[9]).s).toBe(40)
   })
 
   it('keeps a seed with no hue neutral (there is no colour to lift)', () => {
@@ -122,13 +122,13 @@ describe('applyPalette', () => {
     // The hue is honored, at the brand saturation.
     // The shade is the ladder's near-white app-background step, not the seed's own 91% lightness.
     applyPalette(light.root, { background: '#f0ece2' }, 'light')
-    expect(light.props.get('--background')).toBe('43 60% 99%')
+    expect(light.props.get('--background')).toBe('43 40% 99%')
 
     // Dark mode now applies too, tinting the near-black app-background step.
     const dark = fakeRoot()
 
     applyPalette(dark.root, { background: '#f0ece2' }, 'dark')
-    expect(dark.props.get('--background')).toBe('43 60% 9%')
+    expect(dark.props.get('--background')).toBe('43 40% 9%')
   })
 
   it('lifts a near-black background seed to a readable light surface (no black panel)', () => {
@@ -211,11 +211,16 @@ describe('the hex accessors', () => {
     for (const mode of ['light', 'dark'] as const) {
       const scale = buildScale('#fffdfa', mode)
 
-      for (const step of [3, 9, 11] as const) expect(parse(scale[step]).s).toBe(60)
+      for (const step of [3, 9, 11] as const) expect(parse(scale[step]).s).toBe(40)
     }
 
+    // The solid moves off white far enough to show it, on the dark page too, where
+    // the canvas-side limit alone would leave it near-white.
+    expect(parse(buildScale('#fffdfa', 'dark')[9]).l).toBeLessThanOrEqual(75)
+    expect(paletteReport({ primary: '#fffdfa' }).primary?.darkAdjustedBy).toContain('saturation')
+
     expect(paletteReport({ primary: '#fffdfa' }).primary?.lightAdjustedBy).toContain('saturation')
-    // Our own teal sits two points under the floor: lifted, and not worth a banner.
+    // Our own teal is already over the floor.
     expect(paletteReport({ primary: '#1E6C71' }).primary?.lightAdjustedBy).not.toContain(
       'saturation',
     )
@@ -297,7 +302,7 @@ describe('legibility', () => {
     // at a different hue, so step 9 is the seed's own lightness, uncorrected.
     const { primary } = buildPalette({ contrast: '#d8735a', primary: '#1E6C71' }, 'light')
 
-    expect(primary!.scale[SOLID_STEP]).toBe('184 60% 28%')
+    expect(primary!.scale[SOLID_STEP]).toBe('184 58% 28%')
     expect(primary!.adjustedBy).not.toContain('surface')
   })
 })

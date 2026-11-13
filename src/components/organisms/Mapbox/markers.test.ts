@@ -66,9 +66,9 @@ describe('markerColors', () => {
     // solid lifted for the dark panel would wash out on it too.
     expect(markerColors({ primary: MAROON, contrast: '#1E6C71' })).toEqual({
       [MARKER_IDS.point]: { fill: '#521430', ring: '#983a64' },
-      [MARKER_IDS.pointSelected]: { fill: '#1d6d72', ring: '#47acb3' },
+      [MARKER_IDS.pointSelected]: { fill: '#1e6b71', ring: '#48aab1' },
       [MARKER_IDS.cluster]: { fill: '#521430', ring: '#983a64' },
-      [MARKER_IDS.clusterSelected]: { fill: '#1d6d72', ring: '#47acb3' },
+      [MARKER_IDS.clusterSelected]: { fill: '#1e6b71', ring: '#48aab1' },
     })
   })
 
