@@ -44,10 +44,11 @@ cover everything a host would notice since the widget was first deployed.
 
 ### Changed
 
-- **A near-white brand colour is toned down on the dark map as well as the light one.** On the
-  dark map a near-white colour used to render near-white, so a service whose colours were all
-  pale got pins, chips and buttons that looked alike. It now keeps its hue at a paler but visible
-  shade, as the light map already did. Only what the widget paints moves; the colour you stored
+- **A brand colour near white or near black is moved to a visible shade on the map that would
+  hide it.** On the dark map a near-white colour used to render near-white, so a service whose
+  colours were all pale got pins, chips and buttons that looked alike; it now renders at the same
+  mid-light shade as every other colour there, keeping its hue. On the light map a near-black
+  colour is lightened just enough to keep its hue. Only what the widget paints moves; the colour you stored
   is unchanged. The outline on pins and cluster bubbles is also drawn at half strength, so it
   separates a pin from the map without framing it in a hard line. No change to your CSP, your
   Permissions Policy or any parameter.

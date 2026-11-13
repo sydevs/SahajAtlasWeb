@@ -125,19 +125,19 @@ const foregroundFor = (c: Colord) =>
 // So a gray seed stays gray.
 const MAX_SATURATION = 60
 
-// This keeps the solid step, step 9, visible against the canvas at either extreme.
-// Light mode caps its lightness, so a near-white brand still shows on the light page.
-// Dark mode floors its lightness, so a near-black brand still shows on the dark page.
-// A normal mid-toned brand sits between these limits and passes through as-is.
-const LIGHT_MAX_LIGHTNESS = 70
-const DARK_MIN_LIGHTNESS = 60
-
-// Dark mode caps its lightness too. White passes `surface` on the dark page, so
-// without a cap a near-white brand renders near-white — and three near-white
-// seeds render three pins nobody can tell apart. At 65 the seed's hue reads as a
-// colour rather than a tint, so pale tan, pale blue and pale pink become tan,
-// blue and pink.
-const DARK_MAX_LIGHTNESS = 65
+// The band step 9, the solid, is held inside, per mode. The edge facing the canvas
+// keeps a brand visible on its own page: 70 on white, 60 on dark. The far edge
+// keeps it from reaching the opposite extreme, where it reads as no colour at all —
+// white passes `surface` on the dark page, so three pale seeds once rendered three
+// pins nobody could tell apart. Only the far edge is reported (`near-black`,
+// `near-white`): the near edge moves every dark brand on the dark map, our own
+// teal included, and is not news to the service that chose it.
+// ⚠ The dark band is a single lightness: every brand renders at 60 on the dark
+// map, told apart by hue. Widen its far edge if that reads too uniform.
+const TONE_RANGE: Record<ThemeMode, readonly [number, number]> = {
+  light: [20, 70],
+  dark: [60, 60],
+}
 
 // The page and panel surface, `--background`, uses the ladder's app-background step.
 // So a themed background is a near-white tint of the seed's hue in light mode, and a near-black tint in dark mode.
@@ -159,7 +159,13 @@ const clamp = (n: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, n
  * fixed outline for the style they are drawn on (`Mapbox/markers.ts`), so no brand
  * colour is ever measured against the map.
  */
-export const PALETTE_CHECKS = ['panel-text', 'surface', 'selected-distinct', 'near-white'] as const
+export const PALETTE_CHECKS = [
+  'panel-text',
+  'surface',
+  'selected-distinct',
+  'near-white',
+  'near-black',
+] as const
 
 export type PaletteCheck = (typeof PALETTE_CHECKS)[number]
 
@@ -181,15 +187,13 @@ const APP_BACKGROUND: Record<ThemeMode, string> = { light: '#ffffff', dark: '#12
 // states the rule rather than its shortcut.
 const PANEL_STEPS = [1, 2, 3] as const
 
-// How far step 9 may travel for `selected-distinct`. The same two limits the clamp
-// below applies, taken as a range rather than a nudge: near hue 60 or 184 two
-// same-hue seeds need about 35 lightness points between them.
+// How far step 9 may travel for `selected-distinct`: everything visible on the
+// mode's canvas, past the tone band. Near hue 60 or 184 two same-hue seeds need
+// about 35 lightness points between them, and a selected pin that matches its
+// neighbours is worse than one at an extreme.
 const SOLID_RANGE: Record<ThemeMode, readonly [number, number]> = {
-  light: [0, LIGHT_MAX_LIGHTNESS],
-  // ⚠ Up to 100, past the near-white cap: two same-hue seeds can need the extra
-  // room to separate, and a selected pin that matches its neighbours is worse
-  // than a pale one.
-  dark: [DARK_MIN_LIGHTNESS, 100],
+  light: [0, TONE_RANGE.light[1]],
+  dark: [TONE_RANGE.dark[0], 100],
 }
 
 // Light mode darkens, dark mode lightens — both move a step away from its own
@@ -219,14 +223,13 @@ function buildRole(seedHex: string, mode: ThemeMode): RoleScale {
   const tone = (lightness: number) => colord({ h, s: saturation, l: lightness })
   const adjustedBy: PaletteCheck[] = []
 
-  // Step 9, the solid, uses the seed's own lightness, clamped to stay visible.
-  const maxLightness = mode === 'dark' ? DARK_MAX_LIGHTNESS : LIGHT_MAX_LIGHTNESS
-  const clamped =
-    mode === 'dark' ? clamp(l, DARK_MIN_LIGHTNESS, maxLightness) : Math.min(l, maxLightness)
+  // Step 9, the solid, uses the seed's own lightness, held inside the band.
+  const [lowest, highest] = TONE_RANGE[mode]
+  const clamped = clamp(l, lowest, highest)
 
-  // Reported, unlike the near-black floor: it is the cap that turns a pale brand
-  // into a visibly different colour, which is what a volunteer needs telling.
-  if (l > maxLightness) adjustedBy.push('near-white')
+  if (mode === 'dark' && l > highest) adjustedBy.push('near-white')
+  if (mode === 'light' && l < lowest) adjustedBy.push('near-black')
+
   const l9 = correct(clamped, mode, (c) => tone(c).contrast(APP_BACKGROUND[mode]) >= SURFACE_RATIO)
 
   if (l9 !== clamped) adjustedBy.push('surface')
