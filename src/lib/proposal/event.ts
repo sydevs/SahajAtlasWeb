@@ -5,7 +5,7 @@ import { DateTime } from 'luxon'
 
 import { FIX_STEPS, emptyDraft } from './draft'
 import { placeFromAddress } from './place'
-import { firstRuleDate } from './schedule'
+import { firstRuleDate, untilDay } from './schedule'
 
 import { WeekdaySchema } from '@/types/event'
 import { lexicalToText, scheduleStart, scheduleTimeZone } from '@/lib/shape'
@@ -32,10 +32,7 @@ export const scheduleToDraft = (
 ): DraftScheduleFields => {
   const timeZone = schedule ? scheduleTimeZone(schedule) : 'UTC'
   const start = schedule ? scheduleStart(schedule) : null
-  const until =
-    schedule?.endingType === 'until' && schedule.untilDate
-      ? DateTime.fromJSDate(schedule.untilDate).setZone(timeZone)
-      : null
+  const until = schedule ? untilDay(schedule) : null
   const ruleStart =
     start &&
     schedule?.recurrenceType === 'MONTHLY' &&

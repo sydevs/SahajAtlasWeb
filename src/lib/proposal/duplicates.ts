@@ -2,6 +2,8 @@ import type { EventSchedule, GeoFeature } from '@/types'
 
 import { DateTime } from 'luxon'
 
+import { untilDay } from './schedule'
+
 import { distanceKm } from '@/lib/geo'
 import { occursOn } from '@/lib/ics'
 import { DEFAULT_DURATION, scheduleStart, scheduleTimeZone, withEndTime } from '@/lib/shape'
@@ -79,13 +81,9 @@ const weeksApart = (a: DateTime, b: DateTime, zone: string) =>
  * `null` for a class with no end.
  */
 const lastDay = (schedule: EventSchedule): DateTime | null => {
-  if (schedule.endingType === 'until' && schedule.untilDate) {
-    // SahajCloud reads the until date by its UTC calendar day, on any clock
-    // (`src/lib/schedule/scheduleHooks.ts` there).
-    const { year, month, day } = DateTime.fromJSDate(schedule.untilDate, { zone: 'UTC' })
+  const until = untilDay(schedule)
 
-    return DateTime.fromObject({ year, month, day }, { zone: scheduleTimeZone(schedule) })
-  }
+  if (until) return until
   if (schedule.endingType !== 'count' || !schedule.count) return null
 
   const first = scheduleStart(schedule).startOf('day')

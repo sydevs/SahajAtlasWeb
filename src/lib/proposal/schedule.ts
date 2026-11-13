@@ -1,8 +1,11 @@
+import type { EventSchedule } from '@/types'
 import type { ListingDraft, MonthlyBy } from './draft'
 
 import { DateTime } from 'luxon'
 
 import { DATE, HHMM } from './shared'
+
+import { scheduleTimeZone } from '@/lib/shape'
 
 /** How a host thinks about a schedule — "every Tuesday, for an hour" — read onto the draft's fields. */
 
@@ -147,3 +150,22 @@ export const firstRuleDate = (
     day: ruleDay(next, rule.weekday, rule.weekNumber),
   })
 }
+
+/**
+ * The day a course's until date names, on the class's own clock. SahajCloud reads the stored
+ * instant by its UTC calendar day, on any clock (`src/lib/schedule/scheduleHooks.ts` there);
+ * read in the class's zone instead, it lands a day off on one side of UTC or the other.
+ */
+export const untilDay = (schedule: EventSchedule): DateTime | null => {
+  if (schedule.endingType !== 'until' || !schedule.untilDate) return null
+
+  const { year, month, day } = DateTime.fromJSDate(schedule.untilDate, { zone: 'UTC' })
+
+  return DateTime.fromObject({ year, month, day }, { zone: scheduleTimeZone(schedule) })
+}
+
+/**
+ * An end date as SahajCloud stores one: noon UTC on that day, as Payload's own day picker writes
+ * it, so the reviewer who accepts the change sees the same day on any clock within 12 hours of UTC.
+ */
+export const untilInstant = (date: string): string => `${date}T12:00:00.000Z`

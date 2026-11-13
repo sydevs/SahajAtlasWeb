@@ -4,7 +4,7 @@ import type { ListingDraft } from './draft'
 import { DateTime } from 'luxon'
 
 import { draftLocation, draftPlace } from './draft'
-import { monthWeekNumber, resolvedMonthlyBy } from './schedule'
+import { monthWeekNumber, resolvedMonthlyBy, untilInstant } from './schedule'
 import { DATE, HHMM, compact, isGroup, same, text } from './shared'
 
 import { WeekdaySchema } from '@/types/event'
@@ -66,10 +66,7 @@ export const draftSchedule = (draft: ScheduleFields): DraftSchedule | undefined 
       : {}),
     ...(draft.repeats === 'monthly' ? monthlyRule(draft, start) : {}),
     endingType: until ? 'until' : null,
-    untilDate: until
-      ? (DateTime.fromISO(until, { zone: draft.timeZone }).endOf('day').toUTC().toISO() ??
-        undefined)
-      : null,
+    untilDate: until ? untilInstant(until) : null,
   }
 }
 

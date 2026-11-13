@@ -6,6 +6,7 @@ import { DateTime } from 'luxon'
 
 import { draftTitle } from './draft'
 import { correctionPatch, draftSchedule, draftToPatch } from './patch'
+import { untilDay } from './schedule'
 import { same } from './shared'
 
 import { exclusionDates, occursOn } from '@/lib/ics'
@@ -35,10 +36,7 @@ export const scheduleSessions = (
   const zone = scheduleTimeZone(schedule)
   const today = now.setZone(zone).startOf('day')
   const first = start.startOf('day')
-  const until =
-    schedule.endingType === 'until' && schedule.untilDate
-      ? DateTime.fromJSDate(schedule.untilDate).setZone(zone).endOf('day')
-      : null
+  const until = untilDay(schedule)?.endOf('day') ?? null
   const count = schedule.endingType === 'count' ? (schedule.count ?? null) : null
   const skipped = new Set(exclusionDates(schedule).map((at) => at.toISODate()))
   // A course's count runs from its first session, so it is counted from there.

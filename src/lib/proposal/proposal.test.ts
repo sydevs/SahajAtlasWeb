@@ -32,6 +32,7 @@ import {
   previewEvent,
   previewSessions,
   resolvedMonthlyBy,
+  scheduleToDraft,
   searchProximity,
   stepChanged,
   stepErrors,
@@ -504,6 +505,41 @@ describe('scheduleSessions', () => {
     const once = { firstDate: new Date('2026-12-01T19:00:00Z'), firstDate_tz: 'Europe/London' }
 
     expect(scheduleSessions(once, now)).toEqual([once.firstDate])
+  })
+})
+
+// SahajCloud reads an until date by the date before its `T`, on any clock.
+describe('a course’s end date', () => {
+  const now = DateTime.fromISO('2026-11-01T12:00:00Z')
+  /** Tuesdays 3 to 24 Nov 2026, at 19:00 on the class's own clock. */
+  const course = (timeZone: string) =>
+    inPerson({ timeZone, firstDate: '2026-11-03', endDate: '2026-11-24' })
+  const days = (sessions: Date[], timeZone: string) =>
+    sessions.map((at) => DateTime.fromJSDate(at).setZone(timeZone).toISODate())
+  const TUESDAYS = ['2026-11-03', '2026-11-10', '2026-11-17', '2026-11-24']
+
+  it.each(['America/Toronto', 'Pacific/Auckland'])(
+    'goes out, previews and reads back as the chosen day in %s',
+    (timeZone) => {
+      const draft = course(timeZone)
+
+      expect(newListingPatch(draft).schedule?.untilDate?.split('T')[0]).toBe('2026-11-24')
+      expect(days(previewSessions(draft, now), timeZone)).toEqual(TUESDAYS)
+      expect(scheduleToDraft(draftPreviewSchedule(draft)).endDate).toBe('2026-11-24')
+    },
+  )
+
+  // Payload's day picker stores noon UTC on the day; the CSV import, midnight UTC.
+  it.each([
+    ['America/Toronto', '2026-11-24T00:00:00Z'],
+    ['America/Toronto', '2026-11-24T12:00:00Z'],
+    ['Pacific/Auckland', '2026-11-24T00:00:00Z'],
+    ['Pacific/Auckland', '2026-11-24T12:00:00Z'],
+  ])('reads a published end date on its day in %s, stored as %s', (timeZone, stored) => {
+    const published = { ...draftPreviewSchedule(course(timeZone))!, untilDate: new Date(stored) }
+
+    expect(scheduleToDraft(published).endDate).toBe('2026-11-24')
+    expect(days(scheduleSessions(published, now), timeZone)).toEqual(TUESDAYS)
   })
 })
 

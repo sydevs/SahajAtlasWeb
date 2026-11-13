@@ -1,7 +1,7 @@
 import type { EventSchedule, GeoFeature } from '@/types'
 
 import { DateTime } from 'luxon'
-import { describe, expect, it } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { draftPreviewSchedule, possibleDuplicates, schedulesOverlap } from '.'
 
@@ -252,5 +252,39 @@ describe('schedulesOverlap', () => {
     expect(schedulesOverlap(draft({ startTime: '19:30', endTime: '20:30' }), fortnightly)).toBe(
       true,
     )
+  })
+})
+
+// A draft's own end date goes out as SahajCloud reads it, so its last day holds on any clock.
+describe('a new course’s own end date', () => {
+  beforeEach(() => {
+    vi.useFakeTimers()
+    vi.setSystemTime(new Date('2026-11-01T12:00:00Z'))
+  })
+  afterEach(() => {
+    vi.useRealTimers()
+  })
+
+  /** A class listed in `zone`, weekly at 18:00 from `first`. */
+  const weekly = (first: string, zone: string): EventSchedule => {
+    const start = DateTime.fromISO(first, { zone })
+
+    return {
+      firstDate: start.toJSDate(),
+      firstDate_tz: zone,
+      endTime: '21:00',
+      recurrenceType: 'WEEKLY',
+      interval: 1,
+      upcomingDates: [0, 1, 2, 3, 4, 5].map((week) => start.plus({ weeks: week }).toJSDate()),
+    }
+  }
+
+  it.each(['America/Toronto', 'Pacific/Auckland'])('ends on the chosen day in %s', (timeZone) => {
+    // Both end on Monday 30 Nov: Tuesdays from 3 Nov, and Mondays from 2 Nov.
+    const tuesdays = draft({ firstDate: '2026-11-03', endDate: '2026-11-30', timeZone })
+    const mondays = draft({ firstDate: '2026-11-02', endDate: '2026-11-30', timeZone })
+
+    expect(schedulesOverlap(tuesdays, weekly('2026-12-01T18:00', timeZone))).toBe(false)
+    expect(schedulesOverlap(mondays, weekly('2026-11-30T18:00', timeZone))).toBe(true)
   })
 })
