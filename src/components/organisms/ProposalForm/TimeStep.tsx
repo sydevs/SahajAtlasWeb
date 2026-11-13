@@ -98,8 +98,8 @@ export function TimeStep({
   // in, so the question stays away.
   const sinceLongAgo =
     correcting && weekly && Boolean(draft.firstDate) && draft.firstDate < DateTime.now().toISODate()
-  const weekdays = weekdayNames(locale, 'short')
-  const weekdaysLong = weekdayNames(locale)
+  const weekdays = weekdayNames(regionalLocale(locale), 'short')
+  const weekdaysLong = weekdayNames(regionalLocale(locale))
   // The length a session runs, as one of the offered ones — read off the two times, so a class
   // opened for correction shows its own. "Set the end time" is for every other length.
   const stored = sessionMinutes(draft.startTime, draft.endTime)
@@ -112,7 +112,7 @@ export function TimeStep({
   const monthlyBy = resolvedMonthlyBy(draft.firstDate, draft.monthlyBy)
   const monthly = monthlyOptions(draft.firstDate).map((by) => {
     const date = DateTime.fromISO(draft.firstDate)
-    const name = formatWeekday(date, locale)
+    const name = formatWeekday(date, regionalLocale(locale))
     const label =
       by === 'date'
         ? t('event.recurrence.monthly_date', { day: date.day })
@@ -178,7 +178,7 @@ export function TimeStep({
                   className="px-0"
                   value={String(index + 1)}
                 >
-                  {label.replace(/\.$/, '')}
+                  {label}
                 </ToggleGroupItem>
               ))}
             </ToggleGroup>

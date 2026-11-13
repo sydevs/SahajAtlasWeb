@@ -5,7 +5,7 @@ import { useTranslation } from 'react-i18next'
 
 import { Button } from '@/components/atoms/Button'
 import { useLocale } from '@/hooks/use-locale'
-import { weekdayNames } from '@/lib/time'
+import { regionalLocale, weekdayNames } from '@/lib/time'
 
 export type RecoveryButtonProps = {
   recovery: FilterRecovery
@@ -18,7 +18,7 @@ export type RecoveryButtonProps = {
 export function RecoveryButton({ recovery, filters, onApply, className }: RecoveryButtonProps) {
   const { t } = useTranslation()
   const { locale, languageLabel } = useLocale()
-  const weekdays = weekdayNames(locale)
+  const weekdays = weekdayNames(regionalLocale(locale))
   const labels: Record<FilterRecovery['group'], () => string> = {
     format: () => t(`filters.format.${filters.format}` as TranslationKey),
     days: () => filters.daysOfWeek.map((day) => weekdays[day - 1]).join(', '),

@@ -36,7 +36,7 @@ export function useFilterPills(filters?: EventFilters): FilterPill[] {
     setRegion,
   } = useSetFilters()
 
-  const weekdaysShort = useMemo(() => weekdayNames(locale, 'short'), [locale])
+  const weekdaysShort = useMemo(() => weekdayNames(regionalLocale(locale), 'short'), [locale])
 
   // The cache-once region tree, to resolve the selected slug to its display name below.
   const { data: regions } = useQuery(regionsQuery())

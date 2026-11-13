@@ -24,7 +24,7 @@ import { regionsQuery } from '@/config/api'
 import { useLocale } from '@/hooks/use-locale'
 import { useNearVisitor } from '@/hooks/use-near-me'
 import { isDateRestricted, parseCenter, shownGroups } from '@/lib/shape'
-import { weekdayNames } from '@/lib/time'
+import { regionalLocale, weekdayNames } from '@/lib/time'
 
 /** The parts of a chip's summary that are set, as one line: "Tue, Wed · Evening". */
 const summarize = (parts: (string | false | null | undefined)[]): string | undefined =>
@@ -114,7 +114,7 @@ export function FilterChipBar() {
   const [searchParams] = useSearchParams()
   const nearVisitor = useNearVisitor(parseCenter(searchParams.get('center')))
   const { data: regions } = useQuery(regionsQuery())
-  const weekdays = weekdayNames(locale, 'short')
+  const weekdays = weekdayNames(regionalLocale(locale), 'short')
 
   // A place's name is an address, so its first part is what fits on a chip.
   const placeLabel = nearVisitor

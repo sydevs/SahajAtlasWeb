@@ -14,7 +14,7 @@ import { ToggleGroup, ToggleGroupItem } from '@/components/atoms/ToggleGroup'
 import { fieldChrome } from '@/components/atoms/Select'
 import { useLocale } from '@/hooks/use-locale'
 import { formatTimePeriods } from '@/lib/events'
-import { weekdayNames } from '@/lib/time'
+import { regionalLocale, weekdayNames } from '@/lib/time'
 import {
   type EventCadence,
   type EventFilters,
@@ -128,8 +128,8 @@ export function DayFilter({ value, patch, facets, className }: FilterControlProp
   const { locale } = useLocale()
   // Monday first, so index + 1 is the ISO weekday, the store's day encoding.
   const weekdays = useMemo(() => {
-    const short = weekdayNames(locale, 'short')
-    const long = weekdayNames(locale)
+    const short = weekdayNames(regionalLocale(locale), 'short')
+    const long = weekdayNames(regionalLocale(locale))
 
     return short.map((label, index) => ({ value: index + 1, label, full: long[index] }))
   }, [locale])
