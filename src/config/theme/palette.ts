@@ -125,6 +125,17 @@ const foregroundFor = (c: Colord) =>
 // So a gray seed stays gray.
 const MAX_SATURATION = 60
 
+// ⚠ HSL saturation overstates a colour near white or black: `#fffdfa` reads as 100%
+// saturated with almost no colour in it. Every ladder step reuses the saturation at
+// its own lightness, so that seed painted vivid tan chips and icons the manager never
+// chose. So the saturation is also held to twice the seed's chroma — which leaves
+// every mid-toned brand, our three defaults included, exactly as it was, and turns a
+// near-white or near-black one into the near-neutral ramp it actually is.
+const CHROMA_GAIN = 2
+
+const chromaOf = (saturation: number, lightness: number) =>
+  saturation * (1 - Math.abs((2 * lightness) / 100 - 1))
+
 // The band step 9, the solid, is held inside, per mode — limited on the side facing
 // the canvas alone, so a brand stays visible on its own page: at most 70 on white,
 // at least 60 on dark. The far side is open: a deep brand stays deep on the white
@@ -204,7 +215,7 @@ export type RoleScale = { scale: ColorScale; adjustedBy: PaletteCheck[] }
 // `on` is the readable on-color for the solid, computed after the correction.
 function buildRole(seedHex: string, mode: ThemeMode): RoleScale {
   const { h, s, l } = colord(seedHex).toHsl()
-  const saturation = Math.min(s, MAX_SATURATION)
+  const saturation = Math.min(s, MAX_SATURATION, chromaOf(s, l) * CHROMA_GAIN)
   const ladder = mode === 'dark' ? DARK_L : LIGHT_L
   const tone = (lightness: number) => colord({ h, s: saturation, l: lightness })
   const adjustedBy: PaletteCheck[] = []
@@ -401,19 +412,20 @@ export function paletteReport(palette: PaletteRoles): PaletteReport {
   return report
 }
 
-// A brand seed must carry a real hue.
-// A fully desaturated seed, black, white, or grey, is the backend's "unconfigured" sentinel, not a brand color.
-// The client record defaults `color1` through `color3` to `#000000`.
-// Painting that seed's ramp would wash the whole widget grey, since a `#000000` seed produces a 0%-saturation ramp.
-// So this code treats an achromatic seed like an invalid one.
-// It does not write that role, and the static `globals.css` default, the built-in teal or orange, stands instead.
+// A brand seed is any valid colour but `#000000`, which is SahajCloud's "unconfigured"
+// sentinel: client records once defaulted `color1`–`color3` to it. That one value is
+// not written, and the static `globals.css` default, the built-in teal or orange,
+// stands instead.
+// ⚠ Only that value. A grey, a white or a near-white is somebody's choice and is
+// painted as a neutral ramp — treating every achromatic seed as unset snapped a
+// manager's pick to our teal, which read as the picker ignoring them.
 // `background` is handled separately. Its shade always snaps to the near-white or near-black app-background step, regardless.
-const MIN_BRAND_SATURATION = 5
+const UNCONFIGURED_SEED = '#000000'
 
 const isBrandSeed = (seedHex: string): boolean => {
   const c = colord(seedHex)
 
-  return c.isValid() && c.toHsl().s >= MIN_BRAND_SATURATION
+  return c.isValid() && c.toHex() !== UNCONFIGURED_SEED
 }
 
 // The map paints in hex. An SVG `fill` attribute and a Mapbox paint both refuse the channel

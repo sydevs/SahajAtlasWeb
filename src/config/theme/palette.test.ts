@@ -119,16 +119,16 @@ describe('applyPalette', () => {
   it('derives the background surface from the ladder app-bg step (both modes)', () => {
     const light = fakeRoot()
 
-    // Hue and capped saturation are honored.
+    // Hue and saturation, held to the seed's chroma, are honored.
     // The shade is the ladder's near-white app-background step, not the seed's own 91% lightness.
     applyPalette(light.root, { background: '#f0ece2' }, 'light')
-    expect(light.props.get('--background')).toBe('43 32% 99%')
+    expect(light.props.get('--background')).toBe('43 12% 99%')
 
     // Dark mode now applies too, tinting the near-black app-background step.
     const dark = fakeRoot()
 
     applyPalette(dark.root, { background: '#f0ece2' }, 'dark')
-    expect(dark.props.get('--background')).toBe('43 32% 9%')
+    expect(dark.props.get('--background')).toBe('43 12% 9%')
   })
 
   it('lifts a near-black background seed to a readable light surface (no black panel)', () => {
@@ -188,12 +188,29 @@ describe('the hex accessors', () => {
     expect(stepHex('#64032e', 'light', 8)).toBe('#d9689b')
   })
 
-  it('refuses a seed that is absent, invalid or achromatic', () => {
+  it('refuses a seed that is absent, invalid or the unconfigured sentinel', () => {
     // The refusal `setRole` already makes by writing nothing. Every caller then
-    // keeps its own built-in default rather than painting a grey ramp.
-    for (const seed of [undefined, null, '', 'not-a-color', '#000000', '#ffffff', '#333333']) {
+    // keeps its own built-in default.
+    for (const seed of [undefined, null, '', 'not-a-color', '#000000']) {
       expect(stepHex(seed, 'light', 9)).toBeNull()
       expect(onHex(seed, 'light')).toBeNull()
+    }
+  })
+
+  it('paints a grey or white seed as the neutral ramp it is, not the default', () => {
+    // Snapping these to our teal read as the picker ignoring the manager.
+    for (const seed of ['#ffffff', '#f2f2f2', '#333333']) {
+      expect(parse(buildScale(seed, 'light')[9]).s).toBe(0)
+      expect(stepHex(seed, 'light', 9)).not.toBeNull()
+    }
+  })
+
+  it('keeps a near-white seed near-neutral on every step, as its chroma says', () => {
+    // HSL calls `#fffdfa` 100% saturated; its chips and icons must not come out tan.
+    for (const mode of ['light', 'dark'] as const) {
+      const scale = buildScale('#fffdfa', mode)
+
+      for (const step of [3, 9, 11] as const) expect(parse(scale[step]).s).toBeLessThanOrEqual(5)
     }
   })
 
