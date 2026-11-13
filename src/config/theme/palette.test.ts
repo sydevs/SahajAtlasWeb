@@ -53,16 +53,16 @@ describe('buildScale', () => {
     expect(parse(buildScale('#fafafa', 'light')[9]).l).toBeLessThanOrEqual(70)
   })
 
-  it('keeps a solid off the far extreme, and says so', () => {
+  it('keeps a solid 20 from the far extreme, and says so', () => {
     // A grey has no colour to lift, so only the far margin moves it.
     expect(parse(buildScale('#f5f5f5', 'dark')[9]).l).toBeLessThanOrEqual(80)
-    expect(parse(buildScale('#0a0a0a', 'light')[9]).l).toBeGreaterThanOrEqual(10)
+    expect(parse(buildScale('#0a0a0a', 'light')[9]).l).toBeGreaterThanOrEqual(20)
     expect(paletteReport({ primary: '#f5f5f5' }).primary?.darkAdjustedBy).toContain('near-white')
     expect(paletteReport({ primary: '#0a0a0a' }).primary?.lightAdjustedBy).toContain('near-black')
   })
 
   it('floors a near-black solid so it stays visible on the dark canvas', () => {
-    expect(parse(buildScale('#64032e', 'dark')[9]).l).toBeGreaterThanOrEqual(50)
+    expect(parse(buildScale('#64032e', 'dark')[9]).l).toBeGreaterThanOrEqual(60)
   })
 })
 
@@ -112,7 +112,7 @@ describe('applyPalette', () => {
 
     expect(solid.h).toBe(333) // hue preserved
     expect(solid.s).toBe(60) // the brand saturation
-    expect(solid.l).toBe(50) // lifted from the seed's dark 20 to the dark minimum
+    expect(solid.l).toBe(60) // lifted from the seed's dark 20 to the dark minimum
   })
 
   it('leaves omitted roles untouched', () => {
@@ -192,7 +192,7 @@ describe('the hex accessors', () => {
   it('gives a step as #rrggbb, per mode', () => {
     expect(stepHex('#64032e', 'light', 9)).toBe('#521430')
     // Dark mode floors the solid's lightness at 60, so the same seed is lighter.
-    expect(stepHex('#64032e', 'dark', 9)).toBe('#cc3378')
+    expect(stepHex('#64032e', 'dark', 9)).toBe('#d65c93')
     expect(stepHex('#64032e', 'light', 8)).toBe('#d9689b')
   })
 
@@ -236,8 +236,8 @@ describe('the hex accessors', () => {
 
   it('gives the solid step a readable on-color', () => {
     expect(onHex('#64032e', 'light')).toBe('#ffffff')
-    // Dark mode lifts it only to 50, which still reads better under white.
-    expect(onHex('#64032e', 'dark')).toBe('#ffffff')
+    // Dark mode's lighter solid reads better under black.
+    expect(onHex('#64032e', 'dark')).toBe('#000000')
   })
 
   it('shifts a hex in HSL, clamped', () => {

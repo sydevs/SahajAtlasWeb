@@ -200,7 +200,7 @@ describe('boundsLayer', () => {
 
   it('draws the brand solid otherwise, per mode', () => {
     expect(paintOf(boundsLayer({ primary: MAROON }, 'light'))['line-color']).toBe('#521430')
-    expect(paintOf(boundsLayer({ primary: MAROON }, 'dark'))['line-color']).toBe('#cc3378')
+    expect(paintOf(boundsLayer({ primary: MAROON }, 'dark'))['line-color']).toBe('#d65c93')
   })
 
   it('keeps its width', () => {

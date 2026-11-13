@@ -138,13 +138,15 @@ const chromaOf = (saturation: number, lightness: number) =>
   saturation * (1 - Math.abs((2 * lightness) / 100 - 1))
 
 // The band step 9, the solid, is held inside, per mode. The side facing the canvas
-// keeps a brand visible on its own page: at most 70 on white, at least 50 on dark.
-// The far side keeps it from the opposite extreme, so a brand never reaches
-// near-black on the white page (10) or near-white on the dark one (80), reported as
-// `near-black` and `near-white`.
+// keeps a brand visible on its own page: at most 70 on white, at least 60 on dark.
+// The far side keeps it 20 from the opposite extreme, so a brand never reaches
+// near-black on the white page or near-white on the dark one (`near-black`,
+// `near-white`).
+const FAR_MARGIN = 20
+
 const TONE_RANGE: Record<ThemeMode, readonly [number, number]> = {
-  light: [10, 70],
-  dark: [50, 80],
+  light: [FAR_MARGIN, 70],
+  dark: [60, 100 - FAR_MARGIN],
 }
 
 // The page and panel surface, `--background`, uses the ladder's app-background step.
