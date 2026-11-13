@@ -1218,10 +1218,18 @@ export function DrawerStack() {
           dismissible={false}
           measureAgainst={frameElement()}
         >
+          {/* It opens beside the page, so it takes focus; and Escape closes it, as it closes the
+              phone's sheet (the draft is kept). An open popup still takes Escape first. */}
           <DrawerContent
+            focusOnOpen
             aria-label={t(submitTitleKey(submitEntry.kind))}
             className={SUBMIT_PANEL}
             handle={false}
+            onEscapeKeyDown={(event) => {
+              event.preventDefault()
+              if (!popupOwnsEscape(event.composedPath(), overlayContainer()))
+                submitControl.dismiss()
+            }}
           >
             <Suspense fallback={<DrawerLoading />}>
               <ResetErrorBoundary

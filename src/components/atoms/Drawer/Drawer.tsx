@@ -374,6 +374,12 @@ export type DrawerContentProps = {
    * receive it (issue #161).
    */
   onEscapeKeyDown?: (event: KeyboardEvent) => void
+  /**
+   * Moves focus to the panel itself when it opens, so Tab continues inside it. For a panel that
+   * opens beside the page rather than replacing it. The panel, not its first control: content
+   * still loading would take focus with it when it is swapped out.
+   */
+  focusOnOpen?: boolean
 }
 
 /** The portaled, positioned drawer panel. Compose Header/Body/Footer inside. */
@@ -383,6 +389,7 @@ export function DrawerContent({
   className,
   handle,
   onEscapeKeyDown,
+  focusOnOpen = false,
 }: DrawerContentProps) {
   const { slots, direction, mode, container, initialTransform } = useDrawerSlots()
   // State, not a ref: the portal mounts the panel a pass after this component does.
@@ -406,6 +413,14 @@ export function DrawerContent({
             : undefined
         }
         onEscapeKeyDown={onEscapeKeyDown}
+        onOpenAutoFocus={
+          focusOnOpen
+            ? (event) => {
+                event.preventDefault()
+                ;(event.currentTarget as HTMLElement | null)?.focus({ preventScroll: true })
+              }
+            : undefined
+        }
       >
         {/* One Radix title, sr-only. The visible header, if any, is a separate
             child. So this never renders two <Dialog.Title>s. */}
