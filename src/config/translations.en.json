@@ -3,7 +3,6 @@
     "clear_filters": "Clear filters",
     "day_count_one": "%{count} class",
     "day_count_other": "%{count} classes",
-    "link_copied": "Link copied",
     "next": "Next",
     "next_7_days": "Next 7 days",
     "next_class": "Next class: %{date}",

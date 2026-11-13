@@ -56,9 +56,7 @@ describe('ShareDates', () => {
     const root = await pressShare(writeText)
 
     expect(writeText).toHaveBeenCalledWith(expect.stringContaining('dates=2026-11-13'))
-    expect(container.querySelector('button')?.getAttribute('aria-label')).toBe(
-      'calendar.link_copied',
-    )
+    expect(container.querySelector('button')?.getAttribute('aria-label')).toBe('share.link_copied')
     expect(document.body.textContent).not.toContain('share.copy_failed_pointer')
 
     await act(async () => root.unmount())

@@ -62,7 +62,7 @@ export function ShareDates({ start, end, label }: ShareDatesProps) {
     }
   }
   const copied = status === 'copied'
-  const name = copied ? t('calendar.link_copied') : t('event.actions.share')
+  const name = copied ? t('share.link_copied') : t('event.actions.share')
 
   return (
     <Popover.Root
