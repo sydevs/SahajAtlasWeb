@@ -65,6 +65,9 @@ export const geocodeBounds = (feature: GeocodingFeature): BBox | undefined => {
  *
  * No CSP consequence: `api.mapbox.com` is already in the documented `connect-src`, because the
  * forward geocoder behind the search field calls the same host.
+ *
+ * **Deliberately not a `permanent` lookup.** Nothing it answers reaches a row SahajCloud stores,
+ * so Mapbox's storage terms never apply.
  */
 export const reverseGeocode = async (
   point: [number, number],
