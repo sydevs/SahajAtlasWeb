@@ -134,9 +134,6 @@ const CHROMA_GAIN = 2
 
 const NOTICEABLE_LIFT = 10
 
-const chromaOf = (saturation: number, lightness: number) =>
-  saturation * (1 - Math.abs((2 * lightness) / 100 - 1))
-
 // The band step 9, the solid, is held inside, per mode: light 20–80, dark 60–90.
 // The darker edge keeps a brand off near-black on the white page and visible on the
 // dark one; the lighter edge keeps it off near-white on either. `surface` then
@@ -227,9 +224,10 @@ export type RoleScale = { scale: ColorScale; adjustedBy: PaletteCheck[] }
 // `on` is the readable on-color for the solid, computed after the correction.
 function buildRole(seedHex: string, mode: ThemeMode): RoleScale {
   const { h, s, l } = colord(seedHex).toHsl()
-  const colourfulness = Math.min(s, chromaOf(s, l) * CHROMA_GAIN)
-  const saturation =
-    s === 0 ? 0 : clamp(colourfulness, MIN_SATURATION, Math.max(MIN_SATURATION, MAX_SATURATION))
+  const { s: hsvSaturation, v } = colord(seedHex).toHsv()
+  const chroma = (hsvSaturation * v) / 100
+  const colourfulness = Math.min(s, chroma * CHROMA_GAIN)
+  const saturation = s === 0 ? 0 : clamp(colourfulness, MIN_SATURATION, MAX_SATURATION)
   const ladder = mode === 'dark' ? DARK_L : LIGHT_L
   const tone = (lightness: number) => colord({ h, s: saturation, l: lightness })
   const adjustedBy: PaletteCheck[] = []
