@@ -55,7 +55,8 @@ cover everything a host would notice since the widget was first deployed.
   shows it.** A colourless choice used to be replaced by the built-in teal or orange; now only
   `#000000`, the old "unconfigured" value, is, and a true grey stays grey. A muted, pale or
   near-white colour that has a hue is lifted to at least 40% saturation and kept far enough from
-  white or black for that to show, in both modes; a vivid one is toned down to 60% as before. Our
+  white or black for that to show, in both modes; a vivid one is toned down to 60% as before. Any
+  colour is also kept at least 20% from black on the light map and from white on the dark one. Our
   own default colours are unchanged.
 
 - **Pins, cluster bubbles and area rings now carry a fixed outline, and a brand colour may be

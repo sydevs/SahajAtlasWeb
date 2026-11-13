@@ -137,15 +137,16 @@ const NOTICEABLE_LIFT = 10
 const chromaOf = (saturation: number, lightness: number) =>
   saturation * (1 - Math.abs((2 * lightness) / 100 - 1))
 
-// The band step 9, the solid, is held inside, per mode — limited on the side facing
-// the canvas alone, so a brand stays visible on its own page: at most 70 on white,
-// at least 60 on dark. The far side is open: a deep brand stays deep on the white
-// page and a pale one stays pale on the dark page, where both still read. The map's
-// marks never take the dark band (`MARKER_MODE`), so a pale brand's pins stay
-// coloured on the dark basemap.
+// The band step 9, the solid, is held inside, per mode. The side facing the canvas
+// keeps a brand visible on its own page: at most 70 on white, at least 60 on dark.
+// The far side keeps it 20 from the opposite extreme, so a brand never reaches
+// near-black on the white page or near-white on the dark one (`near-black`,
+// `near-white`).
+const FAR_MARGIN = 20
+
 const TONE_RANGE: Record<ThemeMode, readonly [number, number]> = {
-  light: [0, 70],
-  dark: [60, 100],
+  light: [FAR_MARGIN, 70],
+  dark: [60, 100 - FAR_MARGIN],
 }
 
 // The page and panel surface, `--background`, uses the ladder's app-background step.
@@ -168,7 +169,14 @@ const clamp = (n: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, n
  * fixed outline for the style they are drawn on (`Mapbox/markers.ts`), so no brand
  * colour is ever measured against the map.
  */
-export const PALETTE_CHECKS = ['panel-text', 'surface', 'selected-distinct', 'saturation'] as const
+export const PALETTE_CHECKS = [
+  'panel-text',
+  'surface',
+  'selected-distinct',
+  'saturation',
+  'near-white',
+  'near-black',
+] as const
 
 export type PaletteCheck = (typeof PALETTE_CHECKS)[number]
 
@@ -190,9 +198,14 @@ const APP_BACKGROUND: Record<ThemeMode, string> = { light: '#ffffff', dark: '#12
 // states the rule rather than its shortcut.
 const PANEL_STEPS = [1, 2, 3] as const
 
-// How far step 9 may travel for `selected-distinct`: the whole band. Near hue 60
-// or 184 two same-hue seeds need about 35 lightness points between them.
-const SOLID_RANGE = TONE_RANGE
+// How far step 9 may travel for `selected-distinct`: everything visible on the
+// mode's canvas, past the far margin. Near hue 60 or 184 two same-hue seeds need
+// about 35 lightness points between them, and a selected pin that matches its
+// neighbours is worse than one near an extreme.
+const SOLID_RANGE: Record<ThemeMode, readonly [number, number]> = {
+  light: [0, TONE_RANGE.light[1]],
+  dark: [TONE_RANGE.dark[0], 100],
+}
 
 // Light mode darkens, dark mode lightens — both move a step away from its own
 // background. The smallest shift that passes, so a seed that already passes never
@@ -238,6 +251,10 @@ function buildRole(seedHex: string, mode: ThemeMode): RoleScale {
 
   if ((l < reach || l > 100 - reach) && !adjustedBy.includes('saturation')) {
     adjustedBy.push('saturation')
+  } else if (mode === 'light' && l < lowest) {
+    adjustedBy.push('near-black')
+  } else if (mode === 'dark' && l > highest) {
+    adjustedBy.push('near-white')
   }
 
   const l9 = correct(clamped, mode, (c) => tone(c).contrast(APP_BACKGROUND[mode]) >= SURFACE_RATIO)
