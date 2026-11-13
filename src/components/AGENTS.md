@@ -583,7 +583,8 @@ invalid field via react-hook-form's `shouldFocusError`, so a custom form control
 validity as the viewer types.
 
 **Every form is one kit** (Devindra, 12 Nov). A field is `FormField` around a form atom —
-`Input`, `Textarea`, `Select`, `Combobox`, a `size="md"` `ToggleGroup` for short choices,
+`TextField` for text (an `Input`, or a `Textarea` with `multiline`; a required one is starred the
+same way in every form), `Select`, `Combobox`, a `size="md"` `ToggleGroup` for short choices,
 `RadioGroup` (choice cards with `icon` and `hint`) for longer ones, `Checkbox` — and takes its
 wiring from `FormField`'s render prop (`{(control) => <Input {...control} />}`), a group as
 `as="fieldset"`. Don't hand-roll a radio, a segmented control or a field shell; the report,

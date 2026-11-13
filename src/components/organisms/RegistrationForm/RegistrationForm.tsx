@@ -7,7 +7,6 @@ import {
   type FieldError,
   type FieldErrors,
   type UseFormRegister,
-  type UseFormRegisterReturn,
   type UseFormTrigger,
   Controller,
   useForm,
@@ -22,12 +21,10 @@ import { type ReactNode, useEffect, useMemo, useRef, useState } from 'react'
 import { Button } from '@/components/atoms/Button'
 import { Alert } from '@/components/atoms/Alert'
 import { Checkbox } from '@/components/atoms/Checkbox'
-import { Input } from '@/components/atoms/Input'
 import { Link } from '@/components/atoms/Link'
 import { Select, SelectItem } from '@/components/atoms/Select'
-import { Textarea } from '@/components/atoms/Textarea'
 import { AddToCalendar } from '@/components/molecules/AddToCalendar'
-import { FormField } from '@/components/molecules/FormField'
+import { FormField, TextField } from '@/components/molecules/FormField'
 import { INPUT_REFUSAL_KEYS } from '@/components/organisms/ReportIssueForm/refusal-copy'
 import { ShareContent } from '@/components/molecules/ShareContent'
 import api from '@/config/api'
@@ -615,63 +612,9 @@ const errorCopy = (
   return schemaKey ? t(schemaKey) : error.message
 }
 
-// The label, control, and error shell is the shared `FormField` molecule, and the controls are
-// the shared Input, Textarea and Select atoms, as in the report form. So the required marker, the
+// The label, control, and error shell is the shared `FormField` molecule, and the text fields are
+// the shared `TextField`, as in the add-a-class form. So the required marker, the
 // aria-describedby id convention, the field size and the error border are defined once.
-
-function LabeledInput({
-  label,
-  maxLength,
-  error,
-  type = 'text',
-  autoComplete,
-  inputMode,
-  registration,
-}: {
-  label: ReactNode
-  maxLength?: number
-  error?: ReactNode
-  type?: string
-  /** Lets the phone offer the visitor's own name and address. */
-  autoComplete?: string
-  inputMode?: 'email' | 'text'
-  registration: UseFormRegisterReturn
-}) {
-  return (
-    <FormField error={error} htmlFor={registration.name} label={label}>
-      {/* Required, but unmarked: in this form only the optional box says so. */}
-      {(control) => (
-        <Input
-          {...control}
-          aria-required
-          autoComplete={autoComplete}
-          inputMode={inputMode}
-          maxLength={maxLength}
-          type={type}
-          {...registration}
-        />
-      )}
-    </FormField>
-  )
-}
-
-function LabeledTextarea({
-  label,
-  maxLength,
-  error,
-  registration,
-}: {
-  label: ReactNode
-  maxLength?: number
-  error?: ReactNode
-  registration: UseFormRegisterReturn
-}) {
-  return (
-    <FormField optional error={error} htmlFor={registration.name} label={label}>
-      {(control) => <Textarea {...control} maxLength={maxLength} rows={2} {...registration} />}
-    </FormField>
-  )
-}
 
 type RegistrationFieldsProps = {
   upcomingDates: Date[]
@@ -744,38 +687,46 @@ function RegistrationFields({
         rules={{ required: true }}
       />
 
-      <LabeledInput
+      <TextField
+        required
         autoComplete="name"
         error={errorCopy(errors.name, t, 'registration.errors.name')}
+        id="name"
         label={t('registration.form.name')}
         maxLength={USER_SUBMISSION_VALUE_MAX}
-        registration={register('name', { required: true })}
         type="text"
+        {...register('name', { required: true })}
       />
 
-      <LabeledInput
+      <TextField
+        required
         autoComplete="email"
         error={errorCopy(errors.email, t, 'registration.errors.email')}
+        id="email"
         inputMode="email"
         label={t('registration.form.email')}
+        type="email"
         // A typo in the address is worth saying as soon as they leave the field. An empty field is
         // not: that may just be someone looking around, and it waits for Register.
-        registration={register('email', {
+        {...register('email', {
           required: true,
           onBlur: (event) => {
             if (event.target.value) void trigger('email')
           },
         })}
-        type="email"
       />
 
       {questions.map((question, index) => (
-        <LabeledTextarea
+        <TextField
           key={index}
+          multiline
+          optional
           error={errorCopy(errors.questions?.[question], t)}
+          id={`questions.${question}`}
           label={t(`registration.questions.${question}`)}
           maxLength={USER_SUBMISSION_VALUE_MAX}
-          registration={register(`questions.${question}`)}
+          rows={2}
+          {...register(`questions.${question}`)}
         />
       ))}
     </div>

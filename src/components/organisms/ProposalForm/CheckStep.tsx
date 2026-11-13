@@ -16,14 +16,14 @@ import {
   UserRound,
 } from 'lucide-react'
 
-import { GroupHeading, StepHeading, TextField } from './fields'
+import { GroupHeading, StepHeading } from './fields'
 import { type SummaryRow, useAutoTitle, useScheduleLines, useSummaryRows } from './summary'
 
 import { Alert } from '@/components/atoms/Alert'
 import { Button } from '@/components/atoms/Button'
 import { Textarea } from '@/components/atoms/Textarea'
 import { EventChips } from '@/components/molecules/EventChips'
-import { FormField } from '@/components/molecules/FormField'
+import { FormField, TextField } from '@/components/molecules/FormField'
 import { userSubmissionValueMax } from '@/config/api/mutate'
 import { rewordedKey } from '@/config/reworded-keys'
 import { useLocale } from '@/hooks/use-locale'

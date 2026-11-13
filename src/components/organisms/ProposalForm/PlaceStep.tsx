@@ -6,11 +6,11 @@ import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { MapPin, Monitor } from 'lucide-react'
 
-import { NameHelp, StepHeading, TextField } from './fields'
+import { NameHelp, StepHeading } from './fields'
 
 import { Button } from '@/components/atoms/Button'
 import { RadioGroup } from '@/components/atoms/RadioGroup'
-import { FormField } from '@/components/molecules/FormField'
+import { FormField, TextField } from '@/components/molecules/FormField'
 import { rewordedKey } from '@/config/reworded-keys'
 import { MapSearch, type MapSearchProps } from '@/components/organisms/Mapbox/MapSearch'
 import { staticMapUrl } from '@/lib/static-map'

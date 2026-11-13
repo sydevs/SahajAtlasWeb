@@ -67,8 +67,15 @@ export type {
 // FormField — the label, control, and help-or-error shell shared by the
 // app's forms, and `fieldErrorId`, the single definition of the
 // aria-describedby id convention.
-export { FormField, fieldErrorId, fieldHelpId, fieldLabelId, fieldDescribedBy } from './FormField'
-export type { FieldControlProps, FormFieldProps } from './FormField'
+export {
+  FormField,
+  TextField,
+  fieldErrorId,
+  fieldHelpId,
+  fieldLabelId,
+  fieldDescribedBy,
+} from './FormField'
+export type { FieldControlProps, FormFieldProps, TextFieldProps } from './FormField'
 
 // ActionRow / ActionButton — the quiet labelled secondary actions
 // under an event's Register CTA (Directions, Website, Contact, Share).

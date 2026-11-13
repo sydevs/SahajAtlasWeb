@@ -15,11 +15,11 @@ import {
   UserX,
 } from 'lucide-react'
 
-import { StepHeading, TextField } from './fields'
+import { StepHeading } from './fields'
 
 import { Textarea } from '@/components/atoms/Textarea'
 import { ToggleGroup, ToggleGroupItem } from '@/components/atoms/ToggleGroup'
-import { FormField } from '@/components/molecules/FormField'
+import { FormField, TextField } from '@/components/molecules/FormField'
 import { userSubmissionValueMax } from '@/config/api/mutate'
 
 const INTENTS: { intent: FixIntent; icon: LucideIcon; label: TranslationKey }[] = [

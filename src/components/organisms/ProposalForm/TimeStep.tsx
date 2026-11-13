@@ -7,14 +7,14 @@ import { useTranslation } from 'react-i18next'
 import { DateTime } from 'luxon'
 import { CalendarDays } from 'lucide-react'
 
-import { StepHeading, TextField } from './fields'
+import { StepHeading } from './fields'
 import { useScheduleLines } from './summary'
 
 import { Checkbox } from '@/components/atoms/Checkbox'
 import { Combobox } from '@/components/atoms/Combobox'
 import { RadioGroup } from '@/components/atoms/RadioGroup'
 import { ToggleGroup, ToggleGroupItem } from '@/components/atoms/ToggleGroup'
-import { FormField } from '@/components/molecules/FormField'
+import { FormField, TextField } from '@/components/molecules/FormField'
 import { useLocale } from '@/hooks/use-locale'
 import {
   draftWeekday,

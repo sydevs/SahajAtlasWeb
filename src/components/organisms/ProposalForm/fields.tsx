@@ -1,42 +1,17 @@
-import type { InputProps } from '@/components/atoms/Input'
 import type { NameIssue } from '@/lib/proposal'
 import type { TranslationKey } from '@/types/i18next'
 import type { ReactNode } from 'react'
 
 import { useTranslation } from 'react-i18next'
 
-import { Input } from '@/components/atoms/Input'
-import { FormField } from '@/components/molecules/FormField'
 import { nameIssues } from '@/lib/proposal'
 
 /**
  * The flow's pieces that are not form controls. Its controls are the shared form kit —
- * `FormField` around `Input`, `Textarea`, `ToggleGroup`, `RadioGroup` and `Checkbox` — exactly
- * as the report-issue and registration forms use them (`DESIGN_SYSTEM.md`, "One form kit").
+ * `FormField` around `Input`, `Textarea`, `ToggleGroup`, `RadioGroup` and `Checkbox`, and the
+ * shared `TextField` — exactly as the report-issue and registration forms use them
+ * (`DESIGN_SYSTEM.md`, "One form kit").
  */
-
-/** `FormField` around an `Input`: a labelled text field, wired by its field. */
-export function TextField({
-  id,
-  label,
-  required,
-  help,
-  error,
-  ...input
-}: Omit<InputProps, 'id' | 'isInvalid'> & {
-  id: string
-  label: ReactNode
-  required?: boolean
-  help?: ReactNode
-  /** The error sentence, shown in place of the help while set. */
-  error?: string | false
-}) {
-  return (
-    <FormField error={error} help={help} htmlFor={id} label={label} required={required}>
-      {(control) => <Input {...control} {...input} />}
-    </FormField>
-  )
-}
 
 const NAME_ISSUE_KEYS: Record<NameIssue, TranslationKey> = {
   link: 'submit.details.issue_link',
