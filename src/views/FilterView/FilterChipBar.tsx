@@ -31,8 +31,10 @@ const summarize = (parts: (string | false | null | undefined)[]): string | undef
   parts.filter(Boolean).join(' · ') || undefined
 
 /**
- * One chip and its popover. An active chip fills and names what's chosen; its screen-reader name
- * still starts with the question, so "Tue · Evening" is heard as "When: Tue · Evening".
+ * One chip and its popover. A chip with a summary names it in place of the question; its
+ * screen-reader name still starts with the question, so "Tue · Evening" is heard as "When: Tue ·
+ * Evening". It fills only when the visitor chose something (`active`, by default whenever there is
+ * a summary): the Where chip names the place in scope without having been asked.
  *
  * The popover opens under the chip's end edge, so it stays on the map's right side, clear of the
  * list (Devindra, 12 Nov). Inside it the gutter is the popover's own 16px padding, so a full-width
@@ -41,11 +43,13 @@ const summarize = (parts: (string | false | null | undefined)[]): string | undef
 function FilterChip({
   label,
   summary,
+  active = Boolean(summary),
   children,
   footer,
 }: {
   label: string
   summary?: string
+  active?: boolean
   children: ReactNode
   footer: ReactNode
 }) {
@@ -59,7 +63,7 @@ function FilterChip({
         <span
           className={clsx(
             'flex h-10 max-w-56 items-center gap-1.5 rounded-full border ps-4 pe-3 text-sm font-medium shadow-md transition-colors',
-            summary
+            active
               ? 'border-primary-9 bg-primary-9 text-primary-foreground'
               : 'border-divider bg-background text-foreground hover:bg-gray-3',
           )}
@@ -121,6 +125,10 @@ export function FilterChipBar() {
     placeLabel,
     filters.format !== 'any' && t(`filters.format.${filters.format}`),
   ])
+  // The place in scope is where the visitor is browsing, not a filter they set: a place page names
+  // it unfilled, and only a searched place, Near me or a format fills the chip, as an answered When
+  // or Language does.
+  const whereChosen = nearVisitor || Boolean(searchParams.get('q')) || filters.format !== 'any'
   const whenSummary = summarize([
     filters.daysOfWeek.map((day) => weekdays[day - 1]).join(', '),
     filters.timeOfDay.map((period) => t(`filters.time.${period}`)).join(', '),
@@ -171,7 +179,12 @@ export function FilterChipBar() {
           {t('filters.chrome.clear_one')}
         </button>
       )}
-      <FilterChip footer={footer} label={t('filters.where.label')} summary={whereSummary}>
+      <FilterChip
+        active={whereChosen}
+        footer={footer}
+        label={t('filters.where.label')}
+        summary={whereSummary}
+      >
         <WhereFilter
           counts={
             facets && {

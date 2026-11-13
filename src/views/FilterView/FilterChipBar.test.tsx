@@ -101,6 +101,18 @@ describe('FilterChipBar — an answered chip', () => {
     expect(bar('/gb?format=online')).toContain('United Kingdom · filters.format.online')
   })
 
+  // The place in scope is where the visitor is browsing, not a filter they chose (review, 13 Nov):
+  // 'London' filled on every place page read as an answered question.
+  it('names the place in scope unfilled, and fills Where only for a choice', () => {
+    // The first chip, up to the second: Clear, when it shows, is a plain button before them.
+    const whereChip = (entry: string) => bar(entry).split('role="button"')[1] ?? ''
+
+    expect(whereChip('/gb')).toContain('United Kingdom')
+    expect(whereChip('/gb')).not.toContain('bg-primary-9')
+    expect(whereChip('/gb?format=online')).toContain('bg-primary-9')
+    expect(whereChip('/search?q=Brighton&center=-0.14,50.82')).toContain('bg-primary-9')
+  })
+
   it('names the chosen languages under Language', () => {
     expect(bar('/search?langs=cs,en')).toContain('CS, EN')
   })

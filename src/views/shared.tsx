@@ -11,7 +11,7 @@ import { CalendarDays, Funnel, List, MapIcon, Search, X } from 'lucide-react'
 import clsx from 'clsx'
 
 import { Button } from '@/components/atoms/Button'
-import { FallbackPanel, GeolocationPrompt } from '@/components/molecules'
+import { ActiveFilterPills, FallbackPanel, GeolocationPrompt } from '@/components/molecules'
 import { MapSearch } from '@/components/organisms'
 import api, { eventQuery, regionQuery, regionsQuery } from '@/config/api'
 import { GEOJSON_STALE_TIME } from '@/config/query-client'
@@ -289,6 +289,17 @@ export function ExpandSheetButton({ label }: { label?: string }) {
 // nothing to do. Otherwise the filters sit behind it, in their drawer. DrawerStack owns the
 // measurement.
 export const FilterChipsContext = createContext(false)
+
+/**
+ * The panel's own tags for the active filters, left out where the chips over the map already show
+ * every one of them (`FilterChipsContext`): the same filters in two places at once is the repeated
+ * information Devindra asked us to drop. `inline` is `ActiveFilterPills`'s, for the list toolbar.
+ */
+export function PanelFilterPills({ inline = false }: { inline?: boolean }) {
+  const chips = useContext(FilterChipsContext)
+
+  return chips ? null : <ActiveFilterPills inline={inline} />
+}
 
 // The event-filters trigger that opens the filter drawer by navigating to
 // `<current>/filters` (root to `/filters`, `/search` to `/search/filters`),

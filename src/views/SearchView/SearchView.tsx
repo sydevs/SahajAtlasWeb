@@ -3,12 +3,7 @@ import { useSearchParams } from 'react-router'
 import { useQuery } from '@tanstack/react-query'
 
 import { DrawerBody, DrawerHeader, DrawerToolbar } from '@/components/atoms/Drawer'
-import {
-  ActiveFilterPills,
-  ListToolbar,
-  ResetErrorBoundary,
-  SortMenu,
-} from '@/components/molecules'
+import { ListToolbar, ResetErrorBoundary, SortMenu } from '@/components/molecules'
 import { DynamicEventsList } from '@/components/organisms'
 import { eventsQuery } from '@/config/api'
 import { useViewState } from '@/config/store'
@@ -26,6 +21,7 @@ import {
 } from '@/lib/shape'
 import { BackButton } from '@/views/nav'
 import {
+  PanelFilterPills,
   ExpandSheetButton,
   FilterButton,
   MapButton,
@@ -101,7 +97,7 @@ export function SearchView() {
           and Sort matter most is the moment a body-mounted toolbar would be gone. */}
       <DrawerToolbar>
         {/* The tags are up here so an active filter stays in sight however far the list scrolls. */}
-        <ListToolbar end={<SortMenu />} tags={<ActiveFilterPills inline />}>
+        <ListToolbar end={<SortMenu />} tags={<PanelFilterPills inline />}>
           <FilterButton />
         </ListToolbar>
       </DrawerToolbar>

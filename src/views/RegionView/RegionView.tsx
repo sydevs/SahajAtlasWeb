@@ -8,7 +8,6 @@ import { Alert } from '@/components/atoms/Alert'
 import { Link } from '@/components/atoms/Link'
 import { DrawerBody, DrawerToolbar } from '@/components/atoms/Drawer'
 import {
-  ActiveFilterPills,
   AddClassEntry,
   EventListItem,
   FallbackPanel,
@@ -43,6 +42,7 @@ import {
 import { validateWebUrl } from '@/lib/url'
 import { NavHeader } from '@/views/nav'
 import {
+  PanelFilterPills,
   CalendarButton,
   EmptyEventList,
   FilterButton,
@@ -173,7 +173,7 @@ export function RegionView({ slug }: { slug: string }) {
             The tags are up here so an active filter stays in sight however far the list scrolls. */}
         <ListToolbar
           end={hasEventList && <SortMenu orders={PLACE_SORTS} />}
-          tags={<ActiveFilterPills inline />}
+          tags={<PanelFilterPills inline />}
         >
           <FilterButton />
         </ListToolbar>

@@ -9,7 +9,6 @@ import { NearMeRow } from './NearMeRow'
 import { WmIcon } from '@/components/atoms/Icons/wm'
 import { DrawerBody, DrawerHeader } from '@/components/atoms/Drawer'
 import {
-  ActiveFilterPills,
   AddClassEntry,
   FallbackPanel,
   List,
@@ -33,6 +32,7 @@ import {
 } from '@/lib/shape'
 import { validateWebUrl } from '@/lib/url'
 import {
+  PanelFilterPills,
   DrawerTitle,
   ExpandSheetButton,
   FilterButton,
@@ -135,7 +135,7 @@ export function CountriesView() {
       </DrawerHeader>
       <DrawerBody>
         <NearMeRow />
-        <ActiveFilterPills />
+        <PanelFilterPills />
         {filterSearch && (
           <ResultCountStatus
             total={countries.reduce((sum, country) => sum + country.eventCount, onlineCount)}
