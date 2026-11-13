@@ -843,6 +843,38 @@ describe('ProposalForm possible duplicates', () => {
     await act(async () => root.unmount())
   })
 
+  it('answers only for the classes it names, then names the rest', async () => {
+    sdk.request.mockResolvedValue({ json: async () => ({ doc: { id: 15 } }) })
+
+    const more = [701, 702, 703].map((id) => ({
+      ...balham,
+      id,
+      title: `Class ${id}`,
+      path: `${balham.path}/${id}`,
+    }))
+    const root = await mount({ initial: inPerson, duplicates: [balham, ...more] })
+    const named = () =>
+      [...container.querySelectorAll<HTMLAnchorElement>('a[href*="balham-library/939"]')].map(
+        (link) => link.getAttribute('href'),
+      )
+
+    expect(named()).toHaveLength(3)
+    await press('submit.duplicate.distinct')
+    // The fourth was never shown, so it is still a question, now on screen.
+    expect(named()).toEqual([`${balham.path}/703`])
+
+    await type('#submit-sender-email', 'ada@example.org')
+    await submit()
+
+    expect(sdk.request.mock.calls[0][0].json.submissionData).toContainEqual({
+      field: 'note',
+      value:
+        'submit.note.distinct: [Evening Meditation at Balham Library #939], [Class 701 #701], and [Class 702 #702]',
+    })
+
+    await act(async () => root.unmount())
+  })
+
   it('says nothing on a correction, which moves a listed class rather than adding one', async () => {
     const root = await mount({
       initial: { ...inPerson, room: 'Hall B' },

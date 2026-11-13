@@ -20,9 +20,13 @@ export type DuplicateClass = {
 
 export type DuplicateNoticeProps = {
   classes: DuplicateClass[]
-  /** The sender says the new class is none of these. */
-  onDistinct: () => void
+  /** The sender says the new class is none of `ids`, the classes on screen. */
+  onDistinct: (ids: number[]) => void
 }
+
+// Enough to recognise one's own class without burying Send. A sender answers for the classes shown
+// only, so a longer list shows its rest after each answer.
+const SHOWN = 3
 
 /**
  * "Is this class already listed?" — on Check, when a class at about the same place already meets
@@ -34,6 +38,8 @@ export function DuplicateNotice({ classes, onDistinct }: DuplicateNoticeProps) {
 
   if (classes.length === 0) return null
 
+  const shown = classes.slice(0, SHOWN)
+
   return (
     <Alert
       align="start"
@@ -42,13 +48,19 @@ export function DuplicateNotice({ classes, onDistinct }: DuplicateNoticeProps) {
       title={t('submit.duplicate.title')}
     >
       <ul className="mt-3 flex flex-col gap-1.5">
-        {classes.slice(0, 3).map((listed) => (
+        {shown.map((listed) => (
           <li key={listed.id}>
             <DuplicateRow listed={listed} />
           </li>
         ))}
       </ul>
-      <Button className="mt-3" color="primary" size="sm" variant="flat" onClick={onDistinct}>
+      <Button
+        className="mt-3"
+        color="primary"
+        size="sm"
+        variant="flat"
+        onClick={() => onDistinct(shown.map(({ id }) => id))}
+      >
         {t('submit.duplicate.distinct')}
       </Button>
     </Alert>

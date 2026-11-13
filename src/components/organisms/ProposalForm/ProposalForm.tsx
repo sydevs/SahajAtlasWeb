@@ -649,10 +649,7 @@ function ReviewStage({
             noChanges={noChanges}
             notice={
               !correction && (
-                <DuplicateNotice
-                  classes={unanswered}
-                  onDistinct={() => onDistinct?.(unanswered.map(({ id }) => id))}
-                />
+                <DuplicateNotice classes={unanswered} onDistinct={(ids) => onDistinct?.(ids)} />
               )
             }
             preview={preview}
