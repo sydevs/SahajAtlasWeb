@@ -83,7 +83,7 @@ describe('FilterChipBar — the chips', () => {
     expect(chips).toHaveLength(3)
     chips.forEach((chip) => expect(chip).toContain('pointer-events-auto'))
     expect(html).toMatch(
-      /<button class="pointer-events-auto[^"]*"[^>]*>.*filters\.chrome\.clear_one/,
+      /<button class="[^"]*\bpointer-events-auto\b[^"]*"[^>]*>.*filters\.chrome\.clear_one/,
     )
   })
 })

@@ -5,7 +5,7 @@ import { useQuery } from '@tanstack/react-query'
 import { useSearchParams } from 'react-router'
 import { useTranslation } from 'react-i18next'
 import { ChevronDown, X } from 'lucide-react'
-import clsx from 'clsx'
+import { tv } from 'tailwind-variants'
 
 import { RecoveryButton } from './RecoveryButton'
 import { usePanelFilters } from './use-panel-filters'
@@ -25,6 +25,18 @@ import { useLocale } from '@/hooks/use-locale'
 import { useNearVisitor } from '@/hooks/use-near-me'
 import { isDateRestricted, parseCenter, shownGroups } from '@/lib/shape'
 import { regionalLocale, weekdayNames } from '@/lib/time'
+
+/** The row's pill: each chip, filled once answered, and the Clear button beside them. */
+const filterPill = tv({
+  base: 'flex h-10 items-center rounded-full border text-sm font-medium shadow-md transition-colors',
+  variants: {
+    active: {
+      true: 'border-primary-9 bg-primary-9 text-primary-foreground',
+      false: 'border-divider bg-background text-foreground hover:bg-gray-3',
+    },
+  },
+  defaultVariants: { active: false },
+})
 
 /** The parts of a chip's summary that are set, as one line: "Tue, Wed · Evening". */
 const summarize = (parts: (string | false | null | undefined)[]): string | undefined =>
@@ -60,14 +72,7 @@ function FilterChip({
       className="pointer-events-auto"
       role="dialog"
       trigger={
-        <span
-          className={clsx(
-            'flex h-10 max-w-56 items-center gap-1.5 rounded-full border ps-4 pe-3 text-sm font-medium shadow-md transition-colors',
-            active
-              ? 'border-primary-9 bg-primary-9 text-primary-foreground'
-              : 'border-divider bg-background text-foreground hover:bg-gray-3',
-          )}
-        >
+        <span className={filterPill({ active, className: 'max-w-56 gap-1.5 ps-4 pe-3' })}>
           <span className="truncate">
             {summary ? (
               <>
@@ -171,7 +176,7 @@ export function FilterChipBar() {
           whose popover is open must not slide away from under the pointer. */}
       {canClear && (
         <button
-          className="pointer-events-auto flex h-10 items-center gap-1 rounded-full border border-divider bg-background ps-3 pe-3 text-sm font-medium text-foreground shadow-md hover:bg-gray-3"
+          className={filterPill({ className: 'pointer-events-auto gap-1 px-3' })}
           type="button"
           onClick={clear}
         >
