@@ -8,13 +8,15 @@ import { mockEventSlim } from '@/mocks/events'
 
 // Node-only SSR assertions (see `docs/testing.md`), mocked at the boundary like EventListItem's:
 // i18next echoes the key and the city, and the map controller, the prefetch and the chips (which
-// pull the resolver and React Query) are stubbed.
+// pull React Query) are stubbed. The when-line runs the real `useEventDisplay`.
 vi.mock('react-i18next', () => ({
   initReactI18next: { type: '3rdParty', init: () => {} },
   useTranslation: () => ({
     t: (key: string, values?: { city?: string }) => (values?.city ? `${key}:${values.city}` : key),
+    i18n: { language: 'en' },
   }),
 }))
+vi.mock('@/hooks/use-locale', () => ({ useLocale: () => ({ locale: 'en' }) }))
 vi.mock('@/hooks/use-map-controller', () => ({
   useMapController: () => ({ highlightEvent: () => {} }),
 }))
@@ -40,8 +42,20 @@ describe('InactiveListingRow', () => {
     expect(html).not.toContain('Murray Pl')
   })
 
-  it('says to call, in place of a time and an address', () => {
-    expect(render(inactive)).toContain('event.display.inactive_hint')
+  it("reads the class page's own when-line, in place of a time and an address", () => {
+    const html = render(inactive)
+
+    expect(html).toContain('event.display.contact_for_timing')
+    expect(html).not.toContain('inactive_hint')
+  })
+
+  it('promises no phone call: the feed does not say how the host can be reached', () => {
+    // lucide marks each glyph with its own class; a phone glyph here would promise a call to a
+    // listing whose only contact may be a website.
+    const html = render(inactive)
+
+    expect(html).not.toContain('lucide-phone')
+    expect(html).toContain('lucide-calendar-days')
   })
 
   it('keeps its own title when no town is known', () => {

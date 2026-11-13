@@ -32,8 +32,9 @@ const inactiveOtherLanguage: EventSlim = {
 
 /**
  * InactiveListing — an inactive (by-request) listing's card in a list: "Meditation in <City>",
- * whatever title its host typed, and a line saying to call. The `inactive` flag alone makes a
- * listing one. Its page is the ordinary class page, which shows the host's description.
+ * whatever title its host typed, and the class page's own "Contact host for timings" line. The
+ * `inactive` flag alone makes a listing one. Its page is the ordinary class page, which shows the
+ * host's description.
  */
 export const Default: Story = () => (
   <StoryWrapper>

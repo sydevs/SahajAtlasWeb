@@ -1,11 +1,10 @@
-import { memo, useEffect, useRef } from 'react'
+import { memo } from 'react'
 import { useTranslation } from 'react-i18next'
 import { ChevronRight } from 'lucide-react'
 
 import { listRow } from '@/components/molecules/List/List'
 import { useLocale } from '@/hooks/use-locale'
-import { useMapController } from '@/hooks/use-map-controller'
-import { useHoverPrefetch } from '@/hooks/use-prefetch-event'
+import { useEventRowHover } from '@/hooks/use-event-row-hover'
 import { formatDistance } from '@/lib'
 import { isOnline } from '@/lib/shape'
 import { regionalLocale } from '@/lib/time'
@@ -83,21 +82,8 @@ function ClassRow({
 }: EventListItemProps) {
   const { t } = useTranslation()
   const { locale } = useLocale()
-  const { highlightEvent } = useMapController()
-  const prefetch = useHoverPrefetch()
-
-  // This highlights the event's pin while the card is hovered or focused,
-  // with no camera move. The unmount cleanup clears any lingering
-  // highlight when the card unmounts mid-hover, for example clicking
-  // through before the pointer leaves. This calls through a ref, so the
-  // effect stays mount-once (`[]`). `highlightEvent`'s identity can
-  // change, since a breakpoint-driven map-padding update rebuilds the
-  // controller. Depending on it directly would re-run the cleanup
-  // mid-hover, and wipe the live highlight.
-  const highlightRef = useRef(highlightEvent)
-
-  highlightRef.current = highlightEvent
-  useEffect(() => () => highlightRef.current(null), [])
+  // Hover or focus marks the pin and warms the page (`useEventRowHover`).
+  const hover = useEventRowHover(event)
 
   const online = isOnline(event)
 
@@ -125,26 +111,6 @@ function ClassRow({
     : null
   const distanceLabel = distance ? t('event.display.distance_from_search', { distance }) : undefined
 
-  // Hover or focus: highlight this card's pin, AND warm its detail query,
-  // so opening it becomes a cache hit. Pointer and keyboard entry share
-  // this, so the two cannot drift.
-  //
-  // The highlight is immediate. It is a local paint, and lagging it would
-  // make the map feel unresponsive. The warm is a request, so it waits out
-  // a dwell in the shared gate. Otherwise, dragging the cursor down a
-  // paged-out list would fire one `GET /events/:id` per row crossed.
-  // `deactivate` is the half that makes the dwell real, not merely
-  // delayed: leaving the row cancels the warm it started.
-  const activate = () => {
-    highlightEvent(event)
-    prefetch.enter(event.id)
-  }
-
-  const deactivate = () => {
-    highlightEvent(null)
-    prefetch.leave(event.id)
-  }
-
   return (
     <li>
       {/* `data-event-row` marks the row's focusable element, so
@@ -156,10 +122,7 @@ function ClassRow({
         data-event-row
         className={listRow({ className: 'flex flex-row items-center gap-1 py-4' })}
         href={event.path}
-        onBlur={deactivate}
-        onFocus={activate}
-        onMouseEnter={activate}
-        onMouseLeave={deactivate}
+        {...hover}
       >
         <EventSummary
           className="flex-1"
