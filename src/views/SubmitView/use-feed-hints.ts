@@ -4,9 +4,7 @@ import type { Geojson } from '@/types'
 import { useMemo } from 'react'
 import { useQuery } from '@tanstack/react-query'
 
-import api from '@/config/api'
-import { GEOJSON_QUERY_KEY } from '@/config/api/fetch'
-import { GEOJSON_STALE_TIME } from '@/config/query-client'
+import { geojsonQuery } from '@/config/api'
 import { feedLanguageCodes } from '@/lib/events'
 
 /**
@@ -15,12 +13,7 @@ import { feedLanguageCodes } from '@/lib/events'
  * fetcher: the shared entry can take this observer's options, and a refetch without one fails.
  */
 export function useFeedHints() {
-  const { data: feed } = useQuery<Geojson>({
-    queryKey: GEOJSON_QUERY_KEY,
-    queryFn: () => api.getGeojson(),
-    staleTime: GEOJSON_STALE_TIME,
-    enabled: false,
-  })
+  const { data: feed } = useQuery<Geojson>({ ...geojsonQuery(), enabled: false })
 
   return useMemo(() => {
     const points: ZonedPoint[] = []

@@ -244,6 +244,18 @@ const getGeojson = async (): Promise<Geojson> => {
 
 export const GEOJSON_QUERY_KEY = ['geojson'] as const
 
+/**
+ * The feed's query contract: its key, fetcher and cache windows together. The loader below
+ * shares it, and so does each React reader, which sets its own `enabled`. It lives here, beside
+ * its fetcher, for the reason `eventTitlesQuery` does; `index.ts` re-exports it.
+ */
+export const geojsonQuery = () => ({
+  queryKey: GEOJSON_QUERY_KEY,
+  queryFn: getGeojson,
+  staleTime: GEOJSON_STALE_TIME,
+  gcTime: WHOLESALE_GC_TIME,
+})
+
 // The hierarchy fetchers and the events fetchers all need the same feed.
 // This reads the feed through the shared React Query cache, under the same key the map uses.
 // So the app fetches and parses the feed once per stale window, not on every navigation.
@@ -251,10 +263,7 @@ export const GEOJSON_QUERY_KEY = ['geojson'] as const
 // A language switch does not refetch the feed. It refetches only the titles sliver.
 const loadGeojson = (): Promise<Geojson> =>
   queryClient.ensureQueryData({
-    queryKey: GEOJSON_QUERY_KEY,
-    queryFn: getGeojson,
-    staleTime: GEOJSON_STALE_TIME,
-    gcTime: WHOLESALE_GC_TIME,
+    ...geojsonQuery(),
     retry: false,
     revalidateIfStale: true,
   })

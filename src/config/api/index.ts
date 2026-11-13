@@ -86,11 +86,11 @@ export const eventsQuery = (
   gcTime: EVENTS_GC_TIME,
 })
 
-// This is the localized titles sliver's contract.
-// It is declared in `fetch.ts`, beside the fetcher it wraps.
-// Declaring it here instead would close an import cycle, since this module imports that one.
-// This re-exports it here with the rest, so callers still find every factory in one place.
-export { eventTitlesQuery } from './fetch'
+// These are the localized titles sliver's and the feed's contracts.
+// They are declared in `fetch.ts`, beside the fetchers they wrap.
+// Declaring them here instead would close an import cycle, since this module imports that one.
+// This re-exports them here with the rest, so callers still find every factory in one place.
+export { eventTitlesQuery, geojsonQuery } from './fetch'
 
 // This is the authored report form's contract, in one place.
 // The modal host's warm read and the panel's suspending read inside the boundary both share it, so the key can never drift.

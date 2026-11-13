@@ -5,9 +5,7 @@ import type { EventSchedule, Geojson } from '@/types'
 import { useMemo } from 'react'
 import { useQuery } from '@tanstack/react-query'
 
-import api from '@/config/api'
-import { GEOJSON_QUERY_KEY, eventTitlesQuery } from '@/config/api/fetch'
-import { GEOJSON_STALE_TIME } from '@/config/query-client'
+import { eventTitlesQuery, geojsonQuery } from '@/config/api'
 import { useLocale } from '@/hooks/use-locale'
 import { possibleDuplicates } from '@/lib/proposal'
 import { safePath } from '@/lib/shape'
@@ -27,12 +25,7 @@ export function usePossibleDuplicates(
 ): DuplicateClass[] {
   const { locale } = useLocale()
   // Disabled, so it never fetches; it names the fetcher so a shared refetch still has one.
-  const { data: feed } = useQuery<Geojson>({
-    queryKey: GEOJSON_QUERY_KEY,
-    queryFn: () => api.getGeojson(),
-    staleTime: GEOJSON_STALE_TIME,
-    enabled: false,
-  })
+  const { data: feed } = useQuery<Geojson>({ ...geojsonQuery(), enabled: false })
   const candidates = useMemo(
     () => possibleDuplicates(place, schedule, feed?.features ?? []),
     [place, schedule, feed],

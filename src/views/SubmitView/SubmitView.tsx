@@ -14,9 +14,7 @@ import { usePossibleDuplicates } from './use-possible-duplicates'
 import { type SubmitEntry } from '@/lib/shape'
 import { IpLookupContext } from '@/hooks/use-ip-location'
 import { ProposalForm } from '@/components/organisms/ProposalForm'
-import api, { regionQuery } from '@/config/api'
-import { GEOJSON_QUERY_KEY } from '@/config/api/fetch'
-import { GEOJSON_STALE_TIME } from '@/config/query-client'
+import { geojsonQuery, regionQuery } from '@/config/api'
 import { useWidgetMode } from '@/config/mode'
 import { useIsWideWidget } from '@/config/responsive'
 import { useListingDraft } from '@/config/store'
@@ -86,12 +84,7 @@ function AddTarget({
   // `?duplicate=` copies a listed class, so the flow waits for the feed that holds it. A feed
   // that fails opens on the sample alone.
   const copying = link?.duplicateOf !== undefined
-  const { data: feed, isError } = useQuery<Geojson>({
-    queryKey: GEOJSON_QUERY_KEY,
-    queryFn: () => api.getGeojson(),
-    staleTime: GEOJSON_STALE_TIME,
-    enabled: copying,
-  })
+  const { data: feed, isError } = useQuery<Geojson>({ ...geojsonQuery(), enabled: copying })
 
   if (copying && !feed && !isError) return null
 
