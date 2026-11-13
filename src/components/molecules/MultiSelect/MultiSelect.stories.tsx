@@ -18,12 +18,21 @@ const OPTIONS = [
 const labelOf = (codes: string[]) =>
   codes.map((code) => OPTIONS.find((option) => option.value === code)?.label ?? code).join(', ')
 
-function Picker({ initial, highlight }: { initial: string[]; highlight?: boolean }) {
+function Picker({
+  initial,
+  highlight,
+  isInvalid,
+}: {
+  initial: string[]
+  highlight?: boolean
+  isInvalid?: boolean
+}) {
   const [value, setValue] = useState(initial)
 
   return (
     <MultiSelect
       highlight={highlight && value.length > 0}
+      isInvalid={isInvalid && value.length === 0}
       label="Language"
       options={OPTIONS}
       triggerLabel={value.length === 0 ? 'All languages' : labelOf(value)}
@@ -34,9 +43,8 @@ function Picker({ initial, highlight }: { initial: string[]; highlight?: boolean
 }
 
 /**
- * MultiSelect opens a checklist behind a field. Both of its users pick languages: the search
- * filters tint it while one is chosen, and the add-a-class details step does not, since a
- * class always has one.
+ * MultiSelect opens a checklist behind a field: the add-a-class details step's languages.
+ * `highlight` tints it as an active filter; `isInvalid` marks a failed Continue with nothing chosen.
  */
 export const Default: Story = () => (
   <StoryWrapper>
@@ -49,6 +57,11 @@ export const Default: Story = () => (
       <StorySection title="An active filter" variant="subsection">
         <div className="max-w-xs">
           <Picker highlight initial={['fr', 'en']} />
+        </div>
+      </StorySection>
+      <StorySection title="Invalid" variant="subsection">
+        <div className="max-w-xs">
+          <Picker isInvalid initial={[]} />
         </div>
       </StorySection>
     </StorySection>

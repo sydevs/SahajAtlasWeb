@@ -87,15 +87,19 @@ export function DetailsStep({
         required
         error={errors.languages && t('submit.errors.languages')}
         help={t('submit.details.languages_help')}
+        htmlFor="submit-languages"
         label={t('submit.more.languages_label')}
       >
-        <MultiSelect
-          label={t('submit.more.languages_label')}
-          options={options}
-          triggerLabel={draft.languages.map(languageLabel).join(', ')}
-          value={draft.languages}
-          onChange={(languages) => onChange({ languages })}
-        />
+        {(control) => (
+          <MultiSelect
+            {...control}
+            label={t('submit.more.languages_label')}
+            options={options}
+            triggerLabel={draft.languages.map(languageLabel).join(', ')}
+            value={draft.languages}
+            onChange={(languages) => onChange({ languages })}
+          />
+        )}
       </FormField>
 
       {!keepTitle && (

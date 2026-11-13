@@ -11,8 +11,7 @@ export type { AddClassEntryProps } from './AddClassEntry'
 export { SettingsMenu } from './SettingsMenu'
 export type { SettingsMenuProps } from './SettingsMenu'
 
-// MultiSelect — a checklist behind a field: the Language filter and the
-// add-a-class details step.
+// MultiSelect — a checklist behind a field: the add-a-class details step's languages.
 export { MultiSelect } from './MultiSelect'
 export type { MultiSelectOption, MultiSelectProps } from './MultiSelect'
 

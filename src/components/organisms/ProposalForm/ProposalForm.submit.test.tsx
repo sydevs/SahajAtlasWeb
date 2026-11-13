@@ -428,6 +428,27 @@ describe('ProposalForm steps', () => {
     await act(async () => root.unmount())
   })
 
+  it('holds Details with no language, and takes the visitor to the languages field', async () => {
+    const root = await mount({ initial: { ...inPerson, languages: [] }, startAt: 'details' })
+
+    await press('submit.chrome.continue')
+
+    const field = container.querySelector<HTMLElement>('#submit-languages')
+
+    expect(container.textContent).toContain('submit.details.title')
+    expect(document.activeElement).toBe(field)
+    expect(field?.getAttribute('aria-invalid')).toBe('true')
+    expect(field?.getAttribute('aria-required')).toBe('true')
+    expect(field?.getAttribute('aria-describedby')).toBe('submit-languages-error')
+    expect(container.querySelector('#submit-languages-error')?.textContent).toBe(
+      'submit.errors.languages',
+    )
+    // Named by the field even with nothing chosen.
+    expect(field?.textContent?.trim()).toBe('submit.more.languages_label')
+
+    await act(async () => root.unmount())
+  })
+
   it('holds Time, on Back as on Continue, once "it ends on a set date" is on with no date', async () => {
     const root = await mount({ initial: inPerson, startAt: 'when' })
 

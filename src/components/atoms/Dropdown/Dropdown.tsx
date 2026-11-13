@@ -1,4 +1,4 @@
-import { ReactNode } from 'react'
+import { type HTMLAttributes, ReactNode } from 'react'
 import { FloatingPortal, FloatingFocusManager, type Placement } from '@floating-ui/react'
 import { tv } from 'tailwind-variants'
 
@@ -51,6 +51,14 @@ export interface DropdownProps {
   className?: string
   /** Make the panel width match the trigger width */
   fullWidth?: boolean
+  /**
+   * The trigger's id and ARIA wiring, for a dropdown that is a form field (`FormField`'s help or
+   * error, required, invalid). Its role and tab stop stay the atom's own.
+   */
+  triggerProps?: Pick<
+    HTMLAttributes<HTMLDivElement>,
+    'id' | 'aria-describedby' | 'aria-invalid' | 'aria-labelledby' | 'aria-required'
+  >
 }
 
 const dropdownTrigger = tv({
@@ -112,6 +120,7 @@ export function Dropdown({
   size: sizeVariant = 'md',
   className = '',
   fullWidth = false,
+  triggerProps,
 }: DropdownProps) {
   const { isOpen, refs, floatingStyles, context, getReferenceProps, getFloatingProps } = usePopover(
     {
@@ -127,7 +136,7 @@ export function Dropdown({
         ref={refs.setReference}
         // The wrapper is the focusable button, so callers may keep their inner
         // control out of the tab order.
-        {...getReferenceProps({ role: 'button', tabIndex: 0 })}
+        {...getReferenceProps({ ...triggerProps, role: 'button', tabIndex: 0 })}
         className={dropdownTrigger({ fullWidth, className })}
       >
         {trigger}
