@@ -288,6 +288,12 @@ source of truth, so all three stay linkable and shareable:
   opened from, so the address names the flow while the side panel still shows that
   page. The panel's `DrawerControl.viewPath` says which page it shows, and its Back
   and breadcrumbs climb from there, as a fresh link would; the flow's own X goes back.
+  **Clearing every filter undoes the step a first filter took.** On a place page the first
+  answer opens that place's results (`usePanelFilters`), so Clear on those results goes
+  back (`navigate(-1)`) to the place page when `clearsBackToPlace`
+  (`src/lib/shape/navigation.ts`) holds: in-widget history, the same place still in scope,
+  and no place searched since (`?center`). A fresh link or a searched place keeps Clear on
+  the results.
 
 Camera control always goes through the `MapController` seam
 (`src/hooks/use-map-controller.tsx`) — never a store, never the map directly.
