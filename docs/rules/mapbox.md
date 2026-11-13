@@ -369,17 +369,12 @@ it gets back. Set `permanent` on a mount whose answer is submitted, and on no ot
 `reverseGeocode` (`lib/geocode.ts`) stays temporary — its answer fills the search field and `?cc`,
 never a stored row.
 
-⚠ **`permanent: false` is not the same as leaving it out.** `GeocodingCore` drops only a `null` or
-`undefined` option, so an explicit `false` reaches the request as a parameter. Both `country` and
-`permanent` are therefore spread conditionally in `MapSearch`.
-
-⚠ **A conditionally spread option is NOT type-checked for its name.** TypeScript applies the
-excess-property check to an object literal's own keys, never to one spread into it, so
-`...(permanent ? { permanentt } : {})` compiles clean — measured, and `satisfies
-Partial<GeocodingOptions>` on the literal does not close it either. A plainly written key does
-fail (TS2561). So a spec, not the type, is what holds a conditional option:
-`MapSearch.permanent.test.tsx` asserts what the mount hands `<Geocoder options>`. Add one for any
-option you spread.
+⚠ **An option that may be absent is spread conditionally, and a spec is the only thing holding
+it.** `GeocodingCore` drops a `null` or `undefined` option but serializes a `false`, so `country`
+and `permanent` are both spread rather than passed as themselves — and a spread's keys escape
+TypeScript's excess-property check, which a plainly written key does not. Give every option you
+spread a case in `MapSearch.permanent.test.tsx`, which asserts what each mount hands
+`<Geocoder options>`.
 
 ## Geo helpers
 
