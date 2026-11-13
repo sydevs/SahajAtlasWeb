@@ -248,6 +248,7 @@ describe('this repository', () => {
     // hook and ratchet, never to drop a spec from the selection. `docs/testing.md` carries the
     // times and the method. 23 since 2026-11-13, on `src/hooks/use-locale.ts`: the
     // inactive-listing card's spec now runs the real `useEventDisplay`, so it stubs the locale.
-    expect(worst.count, `widest selection: ${worst.source}`).toBeLessThanOrEqual(23)
+    // 24, the same day and file: the address copy's jsdom spec stubs it too.
+    expect(worst.count, `widest selection: ${worst.source}`).toBeLessThanOrEqual(24)
   })
 })
