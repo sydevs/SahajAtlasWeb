@@ -226,7 +226,7 @@ function CalendarControls({ controls }: { controls: CalendarControlsPlugin }) {
     drive(controls, (c) => c.setView(resolveCalendarView(next, isWide).view))
   }
 
-  // Page one period: a month in Month, and in Week as many days as are on screen.
+  // Page one period: a month in Month, seven days in Week.
   const step = (dir: -1 | 1) => {
     if (isList) {
       setDateRange(shiftCalendarWindow(window, dir, today))
