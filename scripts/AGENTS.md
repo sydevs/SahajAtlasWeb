@@ -17,6 +17,13 @@ It is built so passing proves something real:
   `src/loader/literals.ts` states this rule. #153 broke it anyway with a one-line string
   join, since prose was the only enforcement. Fix: never import across the seam.
   Duplicate the value into `literals.ts` and pin both copies in `literals.test.ts`.
+- **An eager module never imports a tier barrel.** `@/components/molecules` re-exports every
+  molecule, and a molecule with module-level work (a `tv()` recipe is a call) cannot be
+  tree-shaken, so one barrel import from `App.tsx` or `Widget.tsx` puts every molecule — and
+  the Radix and Floating UI code behind them — in the payload every embed pays for, used or
+  not. The two entries import their fallbacks by folder (`@/components/molecules/Fallbacks`);
+  that alone took about 32 KiB off both graphs on `ux/all-proposals` (2026-11-13). A mode only
+  some hosts use (the PROTOTYPE inline card) loads behind `lazy()`, as `FullInterface` does.
 - **`pnpm size` in CI reads under production**, because the Sentry plugin needs credentials
   CI lacks — that gap is its per-chunk debug-ID snippet. **The gap is per-graph, not a
   constant**: it scales with chunk count, not bytes. Measured on the same commit

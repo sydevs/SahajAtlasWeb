@@ -20,12 +20,15 @@ import { atlasError, reportInternalError } from '@/lib/report'
 import { clearReadiness } from '@/lib/readiness'
 import { announceEmbed } from '@/lib/embed-announce'
 import embed from '@/config/embed'
+// The fallbacks' own folder, not the molecules barrel: every molecule in that barrel that has
+// module-level work (a `tv()` recipe) would otherwise ride into the eager payload every embed
+// pays for, used or not (`pnpm size`).
 import {
   BootFallback,
   ErrorFallback,
   LoadingFallback,
   ResetErrorBoundary,
-} from '@/components/molecules'
+} from '@/components/molecules/Fallbacks'
 import { ClientGate } from '@/config/client-gate'
 // ⚠ Imports the component's own path, NOT the `@/components/organisms` barrel. The barrel
 // re-exports `Mapbox`, so importing ANYTHING through it pulls `react-map-gl` — whose
@@ -35,7 +38,6 @@ import { ClientGate } from '@/config/client-gate'
 import { ReportIssueModal } from '@/components/organisms/ReportIssueForm'
 import { NoExpansionProvider } from '@/hooks/use-expansion'
 import { CompactEmbedView } from '@/views/CompactEmbedView'
-import { InlineEmbedView, ReturnShell } from '@/views/InlineEmbedView'
 import returnTo from '@/config/return-to'
 import { isAllowedReturn } from '@/lib/full-view'
 import { WidgetModeContext } from '@/config/mode'
@@ -54,6 +56,15 @@ import { useAvailableLocales } from '@/hooks/use-available-locales'
 // compact embed's payload. Live preview is lazy for its own reason: it is admin-only, so
 // the controller lands in a chunk nobody else fetches.
 const FullInterface = lazy(() => import('@/views/FullInterface'))
+// PROTOTYPE (`ux/embed-inline`): the in-page card and the page a frame sends a phone to. Only a
+// host that asks for `inline=` (or a frame's return) renders either, so neither is in the eager
+// payload every other embed pays for (`pnpm size`).
+const InlineEmbedView = lazy(() =>
+  import('@/views/InlineEmbedView/InlineEmbedView').then((m) => ({ default: m.InlineEmbedView })),
+)
+const ReturnShell = lazy(() =>
+  import('@/views/InlineEmbedView/FullView').then((m) => ({ default: m.ReturnShell })),
+)
 
 const LivePreviewController = lazy(() =>
   import('@/components/live-preview/LivePreviewController').then((m) => ({
@@ -502,13 +513,19 @@ function AppShell({
         </Suspense>
       )}
       {inline ? (
-        <InlineEmbedView autoOpen={autoOpen} framed={framed} mode={inline}>
-          {interfaceElement}
-        </InlineEmbedView>
+        // The card's slot is the host's own box, so its loading state fills that box.
+        <Suspense fallback={<LoadingFallback />}>
+          <InlineEmbedView autoOpen={autoOpen} framed={framed} mode={inline}>
+            {interfaceElement}
+          </InlineEmbedView>
+        </Suspense>
       ) : returnTo.value?.host ? (
-        <ReturnShell host={returnTo.value.host} onBack={returnBack(client?.allowedDomains)}>
-          {interfaceElement}
-        </ReturnShell>
+        // The return page fills the window, as its shell does.
+        <Suspense fallback={<LoadingFallback unboxed />}>
+          <ReturnShell host={returnTo.value.host} onBack={returnBack(client?.allowedDomains)}>
+            {interfaceElement}
+          </ReturnShell>
+        </Suspense>
       ) : compact ? (
         <CompactEmbedView compact={compact}>{interfaceElement}</CompactEmbedView>
       ) : (

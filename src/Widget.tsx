@@ -24,7 +24,8 @@ import { FULL_SLOT, type SlotDecision, decideSlot } from './lib/slot-decision'
 import { WIDGET_SCOPE_CLASS } from './lib/scope'
 import { adoptStyles } from './styles/sheet'
 import { Spinner } from './components/atoms/Spinner'
-import { ErrorFallback, ResetErrorBoundary } from './components/molecules'
+// The folder, not the molecules barrel, for the eager payload (see `App.tsx`).
+import { ErrorFallback, ResetErrorBoundary } from './components/molecules/Fallbacks'
 import { mountDecision, mountPrefix } from './lib/shape'
 
 // This implements the embeddable widget's custom element.
