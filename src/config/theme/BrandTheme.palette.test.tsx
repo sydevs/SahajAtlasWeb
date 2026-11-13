@@ -77,6 +77,36 @@ describe('BrandTheme', () => {
     expect(document.documentElement.style.getPropertyValue('--primary-9')).toBe('')
   })
 
+  it('lets a cleared role show the default rather than the saved colour', () => {
+    // A SahajCloud preview sends `null` for a colour the manager reset. Falling
+    // through to the client record would repaint the colour the reset undid.
+    const client = new QueryClient({
+      defaultOptions: { queries: { retry: false, staleTime: Infinity } },
+    })
+
+    client.setQueryData(['client', 'key'], { color1: '#64032e' })
+
+    const host = document.createElement('div')
+
+    document.body.append(host)
+
+    const root = createRoot(host)
+
+    act(() =>
+      root.render(
+        <QueryClientProvider client={client}>
+          <BrandTheme apiKey="key" palette={{ primary: null }}>
+            <Probe />
+          </BrandTheme>
+        </QueryClientProvider>,
+      ),
+    )
+    cleanup = () => act(() => root.unmount())
+
+    expect(seen.at(-1)?.primary).toBeNull()
+    expect(document.documentElement.style.getPropertyValue('--primary-9')).toBe('')
+  })
+
   it('hands down the same object while the seeds do not change', () => {
     const render = mount({ primary: '#64032e' })
 

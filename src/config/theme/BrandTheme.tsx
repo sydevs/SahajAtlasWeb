@@ -11,6 +11,7 @@ type BrandThemeProps = {
   // Its key is also `BrandTheme`'s query key, so it shares AppRouter's `['client']` fetch.
   apiKey?: string | null
   // This is the per-embed palette from the widget's color props. It wins over the client record.
+  // A role set to `null` is a deliberate "no colour" and wins too; only `undefined` falls through.
   palette?: PaletteRoles
   children: ReactNode
 }
@@ -31,11 +32,11 @@ export function BrandTheme({ apiKey, palette, children }: BrandThemeProps) {
 
   const resolved = useMemo<PaletteRoles>(
     () => ({
-      primary: palette?.primary ?? client?.color1,
-      secondary: palette?.secondary ?? client?.color2,
+      primary: own(palette?.primary, client?.color1),
+      secondary: own(palette?.secondary, client?.color2),
       // `color3` now themes the `contrast` role.
       // Background is no longer tenant-wired. It uses the fixed `globals.css` default on every component.
-      contrast: palette?.contrast ?? client?.color3,
+      contrast: own(palette?.contrast, client?.color3),
     }),
     [
       palette?.primary,
@@ -63,3 +64,9 @@ export function BrandTheme({ apiKey, palette, children }: BrandThemeProps) {
   // This is the same `resolved` object the paint above came from, so the two cannot disagree.
   return <BrandPaletteContext.Provider value={resolved}>{children}</BrandPaletteContext.Provider>
 }
+
+// ⚠ `undefined`, not nullish, is "not set here". A SahajCloud preview sends `null` for a
+// colour the manager cleared, and that has to show the default — `??` fell through to the
+// saved colour instead, so Reset left the map on the colours it was meant to undo.
+const own = <T,>(value: T | null | undefined, fallback: T | null | undefined) =>
+  value === undefined ? fallback : value
