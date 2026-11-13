@@ -302,8 +302,6 @@ export function regionalLocale(
 // back to en-US chrome. This project's own header stays fully localized via i18n.
 const SCHEDULE_X_LOCALES: Record<string, string> = {
   en: 'en-US',
-  'en-GB': 'en-GB',
-  'en-AU': 'en-GB',
   de: 'de-DE',
   fr: 'fr-FR',
   es: 'es-ES',
@@ -314,12 +312,32 @@ const SCHEDULE_X_LOCALES: Record<string, string> = {
   'pt-BR': 'pt-BR',
 }
 
+/** Whether `locale` writes the day before the month, as en-GB does and en-US does not. */
+const dayFirst = (locale: string): boolean => {
+  try {
+    const order = new Intl.DateTimeFormat(locale, { day: 'numeric', month: 'long' })
+      .formatToParts(0)
+      .map((part) => part.type)
+
+    return order.indexOf('day') < order.indexOf('month')
+  } catch {
+    return false
+  }
+}
+
 /**
  * The Schedule-X locale for a locale tag: the exact tag, then its base language, so a `de-AT` or
- * `fr-CA` browser (see `regionalLocale`) keeps calendar labels in its own language.
+ * `fr-CA` browser (see `regionalLocale`) keeps calendar labels in its own language. A regional
+ * English runs as en-GB or en-US by its date order, so the grid's dates read like the lists'
+ * (`en-CZ` and `en-AU` day first, `en-CA` month first).
  */
-export const scheduleXLocale = (locale: string): string =>
-  SCHEDULE_X_LOCALES[locale] ?? SCHEDULE_X_LOCALES[locale.split('-')[0].toLowerCase()] ?? 'en-US'
+export const scheduleXLocale = (locale: string): string => {
+  const language = locale.split('-')[0].toLowerCase()
+
+  if (language === 'en' && locale !== 'en') return dayFirst(locale) ? 'en-GB' : 'en-US'
+
+  return SCHEDULE_X_LOCALES[locale] ?? SCHEDULE_X_LOCALES[language] ?? 'en-US'
+}
 
 /**
  * The name Schedule-X files a locale's strings under: its code without the hyphen (`en-GB` →

@@ -314,7 +314,19 @@ describe('scheduleXLocale', () => {
     expect(scheduleXLocale('de-AT')).toBe('de-DE')
     expect(scheduleXLocale('fr-CA')).toBe('fr-FR')
     expect(scheduleXLocale('es-MX')).toBe('es-ES')
-    expect(scheduleXLocale('en-ZA')).toBe('en-US')
+  })
+
+  // The lists beside the grid read `regionalLocale`'s tag, so a Czech browser's en-CZ dates are day
+  // first there; the grid's dates must not switch to US order.
+  it('runs a regional English as en-GB or en-US by its date order', () => {
+    expect(scheduleXLocale('en')).toBe('en-US')
+    expect(scheduleXLocale('en-US')).toBe('en-US')
+    expect(scheduleXLocale(regionalLocale('en', ['cs-CZ', 'en-US']))).toBe('en-GB')
+    expect(scheduleXLocale('en-DE')).toBe('en-GB')
+    expect(scheduleXLocale('en-AU')).toBe('en-GB')
+    expect(scheduleXLocale('en-ZA')).toBe('en-GB')
+    expect(scheduleXLocale('en-CA')).toBe('en-US')
+    expect(scheduleXLocale(regionalLocale('en', ['pt-BR']))).toBe('en-US')
   })
 
   it('falls back to en-US for a language Schedule-X lacks', () => {
