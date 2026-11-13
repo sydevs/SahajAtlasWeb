@@ -297,8 +297,9 @@ export function useEventDisplay(event: DisplayableEvent): EventDisplayStrings {
     const roomLine = !display.online && !townOnly && room ? t('event.display.room', { room }) : null
     // For an online event only, the host's own clock, faded under the where line, such as
     // "Wed 7:30 PM Prague time", named like the viewer's time above it, so the two clocks read
-    // the same way. The weekday shows ONLY when the host's day differs from the viewer's.
-    // Otherwise it is noise.
+    // the same way. The weekday shows ONLY when the host's day differs from the viewer's, and the
+    // class is not held every day: otherwise it is noise, and on a daily class it names one day of
+    // seven.
     //
     // This is skipped entirely when the viewer shares the host's offset, since it would just
     // restate the time above. Comparing the OFFSET, not the zone id, also catches distinct zones
@@ -308,8 +309,16 @@ export function useEventDisplay(event: DisplayableEvent): EventDisplayStrings {
     let whereSubtext: string | null = null
 
     if (origin && next && !sameWallClock(origin, next)) {
+      const everyDay =
+        recurrence === 'DAILY' ||
+        (recurrence === 'WEEKLY' &&
+          (schedule?.interval ?? 1) === 1 &&
+          new Set(schedule?.weekdays).size === 7)
+
       whereSubtext = [
-        origin.weekday !== next.weekday ? formatWeekday(origin, formatLocale, 'short') : null,
+        origin.weekday !== next.weekday && !everyDay
+          ? formatWeekday(origin, formatLocale, 'short')
+          : null,
         formatTime(origin, formatLocale),
         namesZone ? t('event.display.zone_time', { city: zoneCity(origin.zoneName) }) : null,
       ]

@@ -151,6 +151,21 @@ describe('useEventDisplay — an online class seen from another zone', () => {
       subtext: 'Wed 5:30 PM',
     })
   })
+
+  // A class held every day is held every day on the host's clock too, so a weekday there would
+  // name one day out of seven, under a Tuesday filter as much as any.
+  it("names no host weekday for a class held every day, though the host's day differs", () => {
+    const daily = { recurrenceType: 'DAILY' as const, weekdays: null }
+    const everyWeekday = { weekdays: ['MO', 'TU', 'WE', 'TH', 'FR', 'SA', 'SU'] as const }
+
+    for (const rule of [daily, everyWeekday]) {
+      const event = { ...pragueClass, schedule: { ...pragueClass.schedule!, ...rule } }
+
+      expect(linesFrom('Australia/Sydney', event as DisplayableEvent).subtext).toBe(
+        '7:30 PM Prague time',
+      )
+    }
+  })
 })
 
 describe('useEventDisplay — an in-person class names its clock only for a viewer elsewhere', () => {
