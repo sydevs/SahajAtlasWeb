@@ -147,6 +147,10 @@ export function ToggleGroup({
   // `isInvalid` variants). So the root itself stays unstyled by them. This
   // passes both down through context, for the items to read.
   const { root } = toggleGroup({ joined })
+  // Only a single choice's root is a `radiogroup`, which takes `aria-required` and `aria-invalid`.
+  // A multiple choice's root (Radix's `toolbar`) supports neither, so there the field carries them:
+  // its legend's ` *` and the error its `aria-describedby` names.
+  const single = props.type === 'single'
 
   return (
     <ToggleGroupContext.Provider
@@ -157,10 +161,10 @@ export function ToggleGroup({
           Root, with no per-type arms. */}
       <RadixToggleGroup.Root
         aria-describedby={describedBy}
-        aria-invalid={isInvalid || undefined}
+        aria-invalid={(single && isInvalid) || undefined}
         aria-label={ariaLabel}
         aria-labelledby={labelledBy}
-        aria-required={ariaRequired || (props.type === 'single' && props.required) || undefined}
+        aria-required={(single && (ariaRequired || props.required)) || undefined}
         className={root({ className })}
         disabled={disabled}
         {...answered(props)}
