@@ -40,8 +40,7 @@ const signups: RadioOption[] = [
 /**
  * RadioGroup — a controlled radio list, rendered as selectable cards. The
  * chosen card is highlighted. `collapseAfter` hides the tail behind a
- * reveal link, so a long list, such as the registration date picker, does
- * not flood the form. Options with an `icon` and a `hint` are choice cards,
+ * reveal link, so a long list does not flood the form. Options with an `icon` and a `hint` are choice cards,
  * for a question answered with one tap.
  */
 export const Default: Story = () => {
