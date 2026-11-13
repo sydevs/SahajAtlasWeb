@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
 
-import { formatDistance, usesMiles } from './distance'
+import { formatDistance, roundsToZero, usesMiles } from './distance'
 
 describe('formatDistance', () => {
   it('shows metres below 1 km, rounded to tens', () => {
@@ -31,5 +31,19 @@ describe('formatDistance', () => {
     // French: comma decimal separator + narrow no-break space (U+202F) before
     // the unit.
     expect(formatDistance(1.24, 'fr')).toBe('1,2 km')
+  })
+})
+
+describe('roundsToZero', () => {
+  it('is true only where formatDistance would write zero', () => {
+    expect(formatDistance(0.07, 'en-GB')).toBe('0 mi')
+    expect(roundsToZero(0.07, 'en-GB')).toBe(true)
+    expect(formatDistance(0.09, 'en-GB')).toBe('0.1 mi')
+    expect(roundsToZero(0.09, 'en-GB')).toBe(false)
+
+    expect(formatDistance(0.004, 'en')).toBe('0 m')
+    expect(roundsToZero(0.004, 'en')).toBe(true)
+    expect(roundsToZero(0.006, 'en')).toBe(false)
+    expect(roundsToZero(12, 'en')).toBe(false)
   })
 })

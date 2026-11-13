@@ -17,7 +17,7 @@ import { AddClassEntry } from '@/components/molecules/AddClassEntry'
 import { FallbackPanel } from '@/components/molecules/Fallbacks'
 import { ResultCountStatus } from '@/components/molecules/ResultCountStatus'
 import { FoldSection } from '@/components/molecules/FoldSection'
-import { formatDistance } from '@/lib'
+import { formatDistance, roundsToZero } from '@/lib'
 import { regionalLocale } from '@/lib/time'
 import {
   DEFAULT_FILTERS,
@@ -213,9 +213,14 @@ export function DynamicEventsList({
           ? `${city}, ${regionNames.of(country) ?? country}`
           : city
 
-      return sections?.size === 'area' || !named || event.distance === undefined
+      const formatLocale = regionalLocale(locale)
+
+      return sections?.size === 'area' ||
+        !named ||
+        event.distance === undefined ||
+        roundsToZero(event.distance, formatLocale)
         ? name
-        : `${name} · ${formatDistance(event.distance, regionalLocale(locale))}`
+        : `${name} · ${formatDistance(event.distance, formatLocale)}`
     },
     [searchCountry, regionNames, locale, sections?.size, named],
   )

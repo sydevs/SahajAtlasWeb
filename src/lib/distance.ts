@@ -33,15 +33,30 @@ const format = (locale: string, value: number, unit: string, maximumFractionDigi
   return formatter.format(value)
 }
 
-export function formatDistance(km: number, locale: string): string {
+type Measure = { value: number; unit: 'mile' | 'meter' | 'kilometer'; digits: number }
+
+const measure = (km: number, locale: string): Measure => {
   if (usesMiles(locale)) {
     const miles = km / KM_PER_MILE
 
-    return format(locale, miles, 'mile', miles < 10 ? 1 : 0)
+    return { value: miles, unit: 'mile', digits: miles < 10 ? 1 : 0 }
   }
 
   // Sub-kilometre distances read better as metres, rounded to tens.
-  if (km < 1) return format(locale, Math.round((km * 1000) / 10) * 10, 'meter', 0)
+  if (km < 1) return { value: Math.round((km * 1000) / 10) * 10, unit: 'meter', digits: 0 }
 
-  return format(locale, km, 'kilometer', km < 10 ? 1 : 0)
+  return { value: km, unit: 'kilometer', digits: km < 10 ? 1 : 0 }
+}
+
+export function formatDistance(km: number, locale: string): string {
+  const { value, unit, digits } = measure(km, locale)
+
+  return format(locale, value, unit, digits)
+}
+
+/** Whether `formatDistance` would write zero ("0 mi", "0 m"), which says nothing about how far. */
+export const roundsToZero = (km: number, locale: string): boolean => {
+  const { value, digits } = measure(km, locale)
+
+  return Math.round(value * 10 ** digits) === 0
 }

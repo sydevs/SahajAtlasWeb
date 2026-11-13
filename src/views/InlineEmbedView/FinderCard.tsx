@@ -15,7 +15,7 @@ import { eventTitlesQuery } from '@/config/api'
 import { composeCalendarLine, useEventDisplay } from '@/hooks/use-event-display'
 import { useIpLocation } from '@/hooks/use-ip-location'
 import { useLocale } from '@/hooks/use-locale'
-import { formatDistance } from '@/lib'
+import { formatDistance, roundsToZero } from '@/lib'
 import { approxBounds } from '@/lib/geo'
 import { NEARBY_RADIUS_KM } from '@/lib/geolocation'
 import { NEARBY_KM, isoCountryCode, placeSearchPath, safePath } from '@/lib/shape'
@@ -86,12 +86,14 @@ function ClassRow({
             <span className="truncate @min-[560px]:line-clamp-2 @min-[560px]:whitespace-normal">
               {whereLine}
             </span>
-            <span className="shrink-0 tabular-nums">
-              <span aria-hidden className="@min-[560px]:hidden">
-                ·{' '}
+            {!roundsToZero(km, locale) && (
+              <span className="shrink-0 tabular-nums">
+                <span aria-hidden className="@min-[560px]:hidden">
+                  ·{' '}
+                </span>
+                {formatDistance(km, locale)}
               </span>
-              {formatDistance(km, locale)}
-            </span>
+            )}
           </span>
         </span>
         <ChevronRight

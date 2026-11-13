@@ -7,7 +7,7 @@ import { ChevronRight } from 'lucide-react'
 import { listRow } from '@/components/molecules/List/List'
 import { useLocale } from '@/hooks/use-locale'
 import { useEventRowHover } from '@/hooks/use-event-row-hover'
-import { formatDistance } from '@/lib'
+import { formatDistance, roundsToZero } from '@/lib'
 import { isOnline } from '@/lib/shape'
 import { regionalLocale } from '@/lib/time'
 import { InactiveListingRow } from '@/components/molecules/InactiveListing'
@@ -45,7 +45,8 @@ export interface EventListItemProps {
 // searched town is "close", and a line on every card becomes noise. This
 // compares in km, regardless of the unit the locale renders it in. It never
 // applies from the visitor's own position: there, "1.4 km from you" is the
-// answer to Near me, not noise.
+// answer to Near me, not noise. Only a distance that reads as zero ("0 mi")
+// is left out there, since it says nothing about how far.
 const MIN_DISTANCE_KM = 5
 
 /**
@@ -72,7 +73,7 @@ function EventListItemImpl({ event, placeLine, ...from }: EventListItemProps) {
   const distance = useDistanceLine(event, from)
 
   // An inactive listing has its own card: the flag alone decides it (Devindra, 12 Nov). It says
-  // how far it is as a class's card does, so a Near me list has no row without a distance.
+  // how far it is as a class's card does, so in a Near me list it reads like its neighbours.
   if (event.inactive)
     return <InactiveListingRow distance={distance} event={event} placeLine={placeLine} />
 
@@ -97,6 +98,7 @@ function useDistanceLine(
 ): ReactNode {
   const { t } = useTranslation()
   const { locale } = useLocale()
+  const formatLocale = regionalLocale(locale)
 
   const named = distanceFrom !== undefined || Boolean(searchedPlace)
   const distance =
@@ -104,8 +106,9 @@ function useDistanceLine(
     !isOnline(event) &&
     !hideDistance &&
     event.distance !== undefined &&
-    (distanceFrom === 'you' || event.distance >= MIN_DISTANCE_KM)
-      ? formatDistance(event.distance, regionalLocale(locale))
+    (distanceFrom === 'you' || event.distance >= MIN_DISTANCE_KM) &&
+    !roundsToZero(event.distance, formatLocale)
+      ? formatDistance(event.distance, formatLocale)
       : null
 
   if (!distance) return null

@@ -178,4 +178,21 @@ describe('EventListItem — an inactive listing', () => {
     expect(near({ distanceFrom: 'centre' })).not.toContain('event.display.distance')
     vi.unstubAllGlobals()
   })
+
+  // Near me from a spot within a few dozen metres of the listing would otherwise say "0 mi".
+  it('says no distance when it rounds to zero', () => {
+    vi.stubGlobal('navigator', { languages: ['en-GB', 'en'] })
+    const html = renderToStaticMarkup(
+      <MemoryRouter>
+        <EventListItem
+          distanceFrom="you"
+          event={{ ...inactive, eventType: 'offline', distance: 0.05 }}
+        />
+      </MemoryRouter>,
+    )
+
+    expect(html).not.toContain('event.display.distance')
+    expect(html).not.toContain('0 mi')
+    vi.unstubAllGlobals()
+  })
 })
