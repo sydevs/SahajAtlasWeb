@@ -223,12 +223,13 @@ const PANEL_BORDER_PX = 2
 const MAPBOX_WORDMARK_TOP_PX = 29
 const ADD_CLASS_GAP_PX = 16 // from the map's right edge, and above the wordmark
 // The docked add-a-class panel: the right-hand drawer, sized to its content and lifted to the
-// "Add a class" button's corner, so the flow opens where it was asked for. Its top stays below the
-// map's control column (settings and attribution, 120px), so a long step scrolls inside instead.
-// Tailwind reads only literal classes, so the 45px is `MAPBOX_WORDMARK_TOP_PX + ADD_CLASS_GAP_PX`
-// written out, and 165px adds the 120px: change them together.
+// "Add a class" button's corner, so the flow opens where it was asked for. Its top stays 16px below
+// the map's control column (settings, locate and attribution: three discs, `globals.css`), so a
+// long step scrolls inside instead. Tailwind reads only literal classes, so the 45px is
+// `MAPBOX_WORDMARK_TOP_PX + ADD_CLASS_GAP_PX` written out, and 61px adds the 16px: change them
+// together.
 const SUBMIT_PANEL =
-  '!top-auto !right-4 !bottom-[45px] !h-auto max-h-[calc(var(--sy-frame-h)_-_165px)] rounded-2xl shadow-xl lg:!top-auto lg:!bottom-[45px]'
+  '!top-auto !right-4 !bottom-[45px] !h-auto max-h-[calc(var(--sy-frame-h)_-_61px_-_var(--sy-map-ctrl-top)_-_3_*_var(--sy-map-ctrl-size)_-_2_*_var(--sy-map-ctrl-gap))] rounded-2xl shadow-xl lg:!top-auto lg:!bottom-[45px]'
 
 // What a tap on the sheet leaves alone: anything that acts on its own when tapped.
 const INTERACTIVE =
