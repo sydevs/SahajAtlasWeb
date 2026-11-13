@@ -20,6 +20,10 @@ const PULSE = 'motion-safe:animate-pulse'
 /** Two rows share a width in places, so a row's position is its key. */
 const ROW_WIDTHS = ['w-2/5', 'w-1/2', 'w-1/3', 'w-2/5', 'w-1/4', 'w-1/3']
 
+/** One width per row, the pattern repeating past its six, so any count of rows draws. */
+const rowWidths = (rows: number): string[] =>
+  Array.from({ length: Math.max(0, rows) }, (_, row) => ROW_WIDTHS[row % ROW_WIDTHS.length])
+
 export interface ListSkeletonProps {
   /**
    * `places`: a name, its count and the chevron, at a place row's height (`ListItem`).
@@ -44,7 +48,7 @@ export function ListSkeleton({ variant = 'places', icons = false, rows = 5 }: Li
         </p>
         <div aria-hidden className={PULSE}>
           <List>
-            {ROW_WIDTHS.slice(0, rows).map((width, row) => (
+            {rowWidths(rows).map((width, row) => (
               <li key={row} className="flex items-center gap-1 px-gutter py-4">
                 <div className="flex flex-grow flex-col gap-2.5">
                   <div className={clsx('h-4.5 w-3/5', BAR)} />
@@ -68,7 +72,7 @@ export function ListSkeleton({ variant = 'places', icons = false, rows = 5 }: Li
       </p>
       <div aria-hidden className={PULSE}>
         <List>
-          {ROW_WIDTHS.slice(0, rows).map((width, row) => (
+          {rowWidths(rows).map((width, row) => (
             <li key={row} className="flex min-h-14 items-center px-gutter py-3">
               {icons && <div className="me-3 h-6 w-6 shrink-0 rounded-full bg-gray-3" />}
               <div className="flex-grow">

@@ -39,6 +39,12 @@ describe('ListSkeleton', () => {
     expect(html).not.toContain('min-h-14')
   })
 
+  // `rows` past the six widths was cut to six without a word.
+  it('draws as many rows as asked, past the six widths', () => {
+    expect(rows(renderToStaticMarkup(<ListSkeleton rows={9} />))).toBe(9)
+    expect(rows(renderToStaticMarkup(<ListSkeleton rows={8} variant="classes" />))).toBe(8)
+  })
+
   it('hides every bar from assistive tech', () => {
     expect(renderToStaticMarkup(<ListSkeleton />)).toContain('aria-hidden="true"')
   })
