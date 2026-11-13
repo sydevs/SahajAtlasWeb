@@ -51,10 +51,11 @@ cover everything a host would notice since the widget was first deployed.
   thinner ring of the same kind. Only what the widget paints moves; the colour you stored is
   unchanged. No change to your CSP, your Permissions Policy or any parameter.
 
-- **A grey, white or near-white brand colour is now painted as chosen.** It used to be treated as
-  unset and replaced by the built-in teal or orange; now only `#000000`, the old "unconfigured"
-  value, is. A colour close to white or black also keeps its tints close to neutral, where it used
-  to tint chips and icons with a strong hue it barely had.
+- **A grey, white or black brand colour is now painted as chosen, and every colour with a hue is
+  painted at one brand saturation.** A colourless choice used to be replaced by the built-in teal
+  or orange; now only `#000000`, the old "unconfigured" value, is, and a true grey stays grey. A
+  muted, pale or near-white colour that has a hue is lifted until it reads as a colour, and a vivid
+  one is toned down as before — so our own default blue and teal are a little more saturated too.
 
 - **Pins, cluster bubbles and area rings now carry a fixed outline, and a brand colour may be
   adjusted so visitors can read it.** ([#392]) The outline is one colour per basemap — dark on

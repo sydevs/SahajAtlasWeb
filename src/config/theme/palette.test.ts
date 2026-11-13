@@ -33,7 +33,7 @@ describe('buildScale', () => {
     }
   })
 
-  it('makes step 9 the brand solid: respects seed hue + lightness, caps saturation', () => {
+  it('makes step 9 the brand solid: respects seed hue + lightness, sets saturation', () => {
     // Dark maroon stays dark. Its saturation, about 94%, is capped to the muted register.
     const maroon = parse(buildScale('#64032e', 'light')[9])
 
@@ -41,11 +41,11 @@ describe('buildScale', () => {
     expect(maroon.l).toBe(20) // the seed's own lightness, preserved
     expect(maroon.s).toBe(60) // capped from 94
 
-    // A muted seed keeps its low saturation (not pushed up to the cap).
-    expect(parse(buildScale('#82b1ae', 'light')[9]).s).toBe(23)
+    // A muted seed is lifted to the floor, so it still reads as a colour.
+    expect(parse(buildScale('#82b1ae', 'light')[9]).s).toBe(60)
   })
 
-  it('keeps a near-neutral seed neutral (the cap leaves low saturation alone)', () => {
+  it('keeps a seed with no hue neutral (there is no colour to lift)', () => {
     expect(parse(buildScale('#333333', 'light')[9]).s).toBeLessThan(10)
   })
 
@@ -103,7 +103,7 @@ describe('applyPalette', () => {
     const solid = parse(props.get('--primary-9')!)
 
     expect(solid.h).toBe(333) // hue preserved
-    expect(solid.s).toBe(60) // capped saturation
+    expect(solid.s).toBe(60) // the brand saturation
     expect(solid.l).toBe(60) // lifted from the seed's dark 20 to the dark minimum
   })
 
@@ -119,16 +119,16 @@ describe('applyPalette', () => {
   it('derives the background surface from the ladder app-bg step (both modes)', () => {
     const light = fakeRoot()
 
-    // Hue and saturation, held to the seed's chroma, are honored.
+    // The hue is honored, at the brand saturation.
     // The shade is the ladder's near-white app-background step, not the seed's own 91% lightness.
     applyPalette(light.root, { background: '#f0ece2' }, 'light')
-    expect(light.props.get('--background')).toBe('43 12% 99%')
+    expect(light.props.get('--background')).toBe('43 60% 99%')
 
     // Dark mode now applies too, tinting the near-black app-background step.
     const dark = fakeRoot()
 
     applyPalette(dark.root, { background: '#f0ece2' }, 'dark')
-    expect(dark.props.get('--background')).toBe('43 12% 9%')
+    expect(dark.props.get('--background')).toBe('43 60% 9%')
   })
 
   it('lifts a near-black background seed to a readable light surface (no black panel)', () => {
@@ -205,13 +205,20 @@ describe('the hex accessors', () => {
     }
   })
 
-  it('keeps a near-white seed near-neutral on every step, as its chroma says', () => {
-    // HSL calls `#fffdfa` 100% saturated; its chips and icons must not come out tan.
+  it('lifts a near-white seed into a colour on every step, and says so', () => {
+    // HSL calls `#fffdfa` 100% saturated with almost no colour in it, so what
+    // decides the lift is its chroma — and the lift is reported, since it shows.
     for (const mode of ['light', 'dark'] as const) {
       const scale = buildScale('#fffdfa', mode)
 
-      for (const step of [3, 9, 11] as const) expect(parse(scale[step]).s).toBeLessThanOrEqual(5)
+      for (const step of [3, 9, 11] as const) expect(parse(scale[step]).s).toBe(60)
     }
+
+    expect(paletteReport({ primary: '#fffdfa' }).primary?.lightAdjustedBy).toContain('saturation')
+    // Our own teal sits two points under the floor: lifted, and not worth a banner.
+    expect(paletteReport({ primary: '#1E6C71' }).primary?.lightAdjustedBy).not.toContain(
+      'saturation',
+    )
   })
 
   it('gives the solid step a readable on-color', () => {
@@ -290,7 +297,7 @@ describe('legibility', () => {
     // at a different hue, so step 9 is the seed's own lightness, uncorrected.
     const { primary } = buildPalette({ contrast: '#d8735a', primary: '#1E6C71' }, 'light')
 
-    expect(primary!.scale[SOLID_STEP]).toBe('184 58% 28%')
+    expect(primary!.scale[SOLID_STEP]).toBe('184 60% 28%')
     expect(primary!.adjustedBy).not.toContain('surface')
   })
 })

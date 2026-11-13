@@ -115,23 +115,24 @@ const WHITE = '0 0% 100%'
 const foregroundFor = (c: Colord) =>
   c.contrast('#000000') >= c.contrast('#ffffff') ? BLACK : WHITE
 
-// Generated scales keep the seed's hue and its lightness.
+// Generated scales keep the seed's hue and its lightness, and set its saturation.
 // A dark brand color stays dark. A light one stays light.
-// This code caps only the saturation.
-// The cap is the one normalization step.
-// It pulls a vivid or neon seed into the muted brand register, near 23% for the built-in teal and 62% for orange.
-// This keeps its tints from reading as glaring.
-// A muted or neutral seed passes through untouched, through `min(s, 60)`.
-// So a gray seed stays gray.
+// Every ramp with a hue is held between these two: a vivid or neon seed is pulled
+// down into the brand register, and a muted, pale or near-neutral one is lifted
+// until it reads as a colour — a brand that renders as grey tells a visitor nothing.
+// Lifting is reported (`saturation`), since it changes the colour visibly.
+// A seed with no hue at all, a true grey, white or black, stays neutral: there is no
+// colour to lift.
+const MIN_SATURATION = 60
 const MAX_SATURATION = 60
 
 // ⚠ HSL saturation overstates a colour near white or black: `#fffdfa` reads as 100%
-// saturated with almost no colour in it. Every ladder step reuses the saturation at
-// its own lightness, so that seed painted vivid tan chips and icons the manager never
-// chose. So the saturation is also held to twice the seed's chroma — which leaves
-// every mid-toned brand, our three defaults included, exactly as it was, and turns a
-// near-white or near-black one into the near-neutral ramp it actually is.
+// saturated with almost no colour in it. So "how colourful is this seed" is its
+// chroma, doubled to the scale of HSL saturation at mid-lightness — which is what
+// decides whether it needs lifting.
 const CHROMA_GAIN = 2
+
+const NOTICEABLE_LIFT = 10
 
 const chromaOf = (saturation: number, lightness: number) =>
   saturation * (1 - Math.abs((2 * lightness) / 100 - 1))
@@ -167,7 +168,7 @@ const clamp = (n: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, n
  * fixed outline for the style they are drawn on (`Mapbox/markers.ts`), so no brand
  * colour is ever measured against the map.
  */
-export const PALETTE_CHECKS = ['panel-text', 'surface', 'selected-distinct'] as const
+export const PALETTE_CHECKS = ['panel-text', 'surface', 'selected-distinct', 'saturation'] as const
 
 export type PaletteCheck = (typeof PALETTE_CHECKS)[number]
 
@@ -208,17 +209,23 @@ function correct(start: number, mode: ThemeMode, passes: (lightness: number) => 
 export type RoleScale = { scale: ColorScale; adjustedBy: PaletteCheck[] }
 
 // This derives a 12-step color scale from a seed hex, for the given mode.
-// Steps 1 through 8, and 12, walk the fixed lightness ladder at the seed's hue and capped saturation.
+// Steps 1 through 8, and 12, walk the fixed lightness ladder at the seed's hue and the brand saturation.
 // Step 9 is the brand solid: the seed's own lightness, clamped to stay visible, then corrected until it passes `surface`.
 // Step 10 is its hover tone.
 // Step 11 is panel text, corrected until it passes `panel-text`.
 // `on` is the readable on-color for the solid, computed after the correction.
 function buildRole(seedHex: string, mode: ThemeMode): RoleScale {
   const { h, s, l } = colord(seedHex).toHsl()
-  const saturation = Math.min(s, MAX_SATURATION, chromaOf(s, l) * CHROMA_GAIN)
+  const colourfulness = Math.min(s, chromaOf(s, l) * CHROMA_GAIN)
+  const saturation =
+    s === 0 ? 0 : clamp(colourfulness, MIN_SATURATION, Math.max(MIN_SATURATION, MAX_SATURATION))
   const ladder = mode === 'dark' ? DARK_L : LIGHT_L
   const tone = (lightness: number) => colord({ h, s: saturation, l: lightness })
   const adjustedBy: PaletteCheck[] = []
+
+  // Reported only past a lift anyone would notice: our own teal sits two points under
+  // the floor, and a banner over that would be noise.
+  if (s > 0 && colourfulness < MIN_SATURATION - NOTICEABLE_LIFT) adjustedBy.push('saturation')
 
   // Step 9, the solid, uses the seed's own lightness, held inside the band.
   const [lowest, highest] = TONE_RANGE[mode]
@@ -516,7 +523,7 @@ export function applyPalette(root: HTMLElement, palette: PaletteRoles, mode: The
   }
 
   // The background surface derives like every other role.
-  // It honors the seed's hue and capped saturation.
+  // It honors the seed's hue, at the brand saturation.
   // Its shade comes from the Radix ladder's app-background step for the active mode, never from the seed's own lightness.
   // So a near-black seed, such as an unset `#000000` default, still yields a readable near-white surface in light mode, and a near-black surface in dark mode.
   // This keeps the fixed neutral text legible.

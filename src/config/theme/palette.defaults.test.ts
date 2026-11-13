@@ -6,7 +6,7 @@ import { readRepoSource } from '@/test-support/repo-source'
 
 // The built-in brand defaults are hand-frozen in `globals.css` as static CSS. The runtime engine writes the same variables at runtime.
 // This gate asserts that those frozen values exactly match what `buildScale()` produces from `DEFAULT_SEEDS`.
-// So a change to the ladder, the saturation cap, or the clamp logic cannot silently desync the no-tenant theme from every tenant theme, without turning this test red.
+// So a change to the ladder, the saturation band, or the clamp logic cannot silently desync the no-tenant theme from every tenant theme, without turning this test red.
 
 const css = readRepoSource('src/styles/globals.css')
 
