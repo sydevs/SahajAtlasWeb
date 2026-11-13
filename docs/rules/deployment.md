@@ -50,8 +50,13 @@ move ran one site at a time, and the app's own cutover was split from building i
   cache directory, refusing any whose ancestors another user can write without a sticky bit. On
   the Workers build image since 2026-11-13 that rules out both `~/.cache` and `/tmp`, so every
   playground build died with `ERR_SWC_NATIVE_CACHE` before Ladle ran; 1.16.22 still does (#401).
-  1.16.2 is the last release that loads its `.node` file directly. Lift the pin only once a
-  newer release builds on Workers Builds.
+  1.16.2 is the last release that loads its `.node` file directly. Lift the pin once a newer SWC
+  loads there — an upstream release is one route, not the only one. The addon reads
+  `SWC_NATIVE_BINDING_CACHE`, an absolute mode-0700 root it judges by that same ancestor rule, and
+  `SWC_NATIVE_BINDING_CACHE_SKIP_SECURITY_CHECK` turns that one check off while leaving its
+  integrity check on. Neither has been tried on the build image (#405). Only the playground loads
+  SWC — `vite.config.ts` compiles the app through `@vitejs/plugin-react` — so no `sahajatlas-web`
+  deploy rides on this.
 
 Two deploy files live in `public/`, copied into both build outputs, and both govern both sites:
 
