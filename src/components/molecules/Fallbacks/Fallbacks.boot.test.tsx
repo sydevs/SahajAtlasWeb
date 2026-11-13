@@ -51,7 +51,7 @@ describe('BootFallback', () => {
 
   // The real sheet opens at `openStop`'s stop, and the panel stood at 380px for all of them, so
   // these jumped in one frame when the drawer took over in place (464 → 404, and 464 → 25).
-  it("stands a searched place at the search stop, as the sheet opens there", () => {
+  it('stands a searched place at the search stop, as the sheet opens there', () => {
     expect(boot('/search?q=Brighton&center=-0.14,50.82')).toContain('height:440px')
   })
 
