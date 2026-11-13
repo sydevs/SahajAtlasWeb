@@ -28,6 +28,9 @@ const at = (iso: string, zone = 'Europe/London') => DateTime.fromISO(iso, { zone
 // Intl renders the range separator as an en dash, sometimes with non-breaking
 // spaces around it — normalize whitespace so assertions stay readable.
 const norm = (value: string) => value.replace(/\s+/g, ' ').trim()
+// Whether a date range's dash is spaced is the ICU version's call, not ours: ICU 77 writes
+// "12–18 Nov" in en-GB and ICU 78 "12 – 18 Nov". So the dates are compared, and the spacing is not.
+const range = (value: string) => norm(value).replace(/ ?– ?/g, '–')
 
 describe('formatTimeRange', () => {
   // Devindra (12 Nov): never our own am/pm. Each locale reads its own clock, as Intl writes it.
@@ -188,17 +191,17 @@ describe('the calendar’s dates', () => {
   })
 
   it('writes a run of days as one range, across a month too', () => {
-    expect(norm(formatDateRange(day, at('2026-11-18T00:00'), 'en-GB'))).toBe('12–18 Nov')
-    expect(norm(formatDateRange(day, at('2026-11-18T00:00'), 'en-US'))).toBe('Nov 12 – 18')
-    expect(norm(formatDateRange(at('2026-11-30T00:00'), at('2026-12-06T00:00'), 'en-GB'))).toBe(
-      '30 Nov – 6 Dec',
+    expect(range(formatDateRange(day, at('2026-11-18T00:00'), 'en-GB'))).toBe('12–18 Nov')
+    expect(range(formatDateRange(day, at('2026-11-18T00:00'), 'en-US'))).toBe('Nov 12–18')
+    expect(range(formatDateRange(at('2026-11-30T00:00'), at('2026-12-06T00:00'), 'en-GB'))).toBe(
+      '30 Nov–6 Dec',
     )
   })
 
   it('reads each end of a range as its calendar date, whatever its zone', () => {
     const lateInTokyo = DateTime.fromISO('2026-11-12T23:30', { zone: 'Asia/Tokyo' })
 
-    expect(norm(formatDateRange(lateInTokyo, at('2026-11-13T00:00'), 'en-GB'))).toBe('12–13 Nov')
+    expect(range(formatDateRange(lateInTokyo, at('2026-11-13T00:00'), 'en-GB'))).toBe('12–13 Nov')
   })
 
   it('says how far off a date is to lead a phrase', () => {
