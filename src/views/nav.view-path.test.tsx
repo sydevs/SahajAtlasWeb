@@ -22,12 +22,6 @@ vi.mock('react-i18next', async (importOriginal) => ({
     i18n: { language: 'en' },
   }),
 }))
-vi.mock('@/hooks/use-locale', () => ({
-  useLocale: () => ({
-    locale: 'en',
-    regionNames: new Intl.DisplayNames(['en'], { type: 'region' }),
-  }),
-}))
 vi.mock('@mapbox/search-js-react', () => ({ Geocoder: () => null }))
 vi.mock('react-map-gl', () => ({ useMap: () => ({}) }))
 
