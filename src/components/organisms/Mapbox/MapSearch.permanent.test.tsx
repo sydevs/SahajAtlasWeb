@@ -39,9 +39,9 @@ vi.mock('@/config/api', () => ({
   regionsQuery: () => ({ queryKey: ['regions'] }),
 }))
 
-const optionsOf = (element: ReactNode) => {
+const optionsOf = (element: ReactNode, route = '/') => {
   geocoder.mounts.length = 0
-  renderToStaticMarkup(<MemoryRouter>{element}</MemoryRouter>)
+  renderToStaticMarkup(<MemoryRouter initialEntries={[route]}>{element}</MemoryRouter>)
 
   // A field that never reached the stub would make every absence assertion below vacuous.
   if (geocoder.mounts.length !== 1) throw new Error(`${geocoder.mounts.length} geocoders mounted`)
@@ -49,8 +49,10 @@ const optionsOf = (element: ReactNode) => {
   return geocoder.mounts[0]
 }
 
-// Mapbox bills a permanent lookup separately, and allows storing an id only from one.
-describe('MapSearch — which lookups may be stored', () => {
+// A spread key escapes the excess-property check, so every option spread into `<Geocoder options>`
+// needs a case here. Mapbox also bills a permanent lookup separately, and allows storing an id
+// only from one.
+describe('MapSearch — the options a mount hands the geocoder', () => {
   it('asks for a permanent answer where the caller says the answer is submitted', () => {
     expect(optionsOf(<MapSearch permanent onSelect={() => {}} />).permanent).toBe(true)
   })
@@ -62,5 +64,10 @@ describe('MapSearch — which lookups may be stored', () => {
 
   it('leaves the header search field temporary', () => {
     expect(optionsOf(<SearchField />)).not.toHaveProperty('permanent')
+  })
+
+  it('scopes the lookup to the country the route names, and to none without one', () => {
+    expect(optionsOf(<MapSearch onSelect={() => {}} />, '/gb').country).toBe('GB')
+    expect(optionsOf(<MapSearch onSelect={() => {}} />)).not.toHaveProperty('country')
   })
 })
