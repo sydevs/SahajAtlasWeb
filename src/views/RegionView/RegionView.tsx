@@ -1,5 +1,5 @@
 import { useMemo } from 'react'
-import { useSuspenseQuery } from '@tanstack/react-query'
+import { useQuery, useSuspenseQuery } from '@tanstack/react-query'
 import { Helmet } from 'react-helmet-async'
 import { useTranslation } from 'react-i18next'
 import { Navigate, useLocation } from 'react-router'
@@ -18,7 +18,7 @@ import {
   SortMenu,
 } from '@/components/molecules'
 import { useEventFilters, useFilterSearch, useSetFilters } from '@/hooks/use-filters'
-import { regionQuery } from '@/config/api'
+import { regionQuery, regionsQuery } from '@/config/api'
 import { useLocale } from '@/hooks/use-locale'
 import { useSortOrder } from '@/hooks/use-sort'
 import { useMapController } from '@/hooks/use-map-controller'
@@ -28,6 +28,7 @@ import { useWidgetMode } from '@/config/mode'
 import {
   DEFAULT_FILTERS,
   addClassPath,
+  addClassPlaceName,
   cameUpFrom,
   childRoute,
   climbedUpFrom,
@@ -77,6 +78,8 @@ export function RegionView({ slug }: { slug: string }) {
   const filterSearch = useFilterSearch()
   const { setFilters } = useSetFilters()
   const { data: region } = useSuspenseQuery(regionQuery(slug, locale, filters))
+  // Already cached: the region itself is read from this tree. It names a venue's town.
+  const { data: regions } = useQuery(regionsQuery())
 
   // A place page sorts its own classes as the search results do, by `?sort=`. It has no point to
   // measure "Closest" from, so that one reads as the default here (and `SortMenu` doesn't offer it).
@@ -260,7 +263,9 @@ export function RegionView({ slug }: { slug: string }) {
         <AddClassEntry
           hint={t('submit.chrome.add_hint')}
           href={addClassPath(region.path)}
-          label={t('submit.chrome.add_row_in', { place: region.name })}
+          label={t('submit.chrome.add_row_in', {
+            place: addClassPlaceName(regions ?? [], region.slug) ?? region.name,
+          })}
         />
       </DrawerBody>
     </>

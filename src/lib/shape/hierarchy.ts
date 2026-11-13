@@ -73,6 +73,23 @@ export const listsPlaces = (level: RegionLevel): boolean =>
   level === 'country' || level === 'region'
 
 /**
+ * The place a class is added "in": a region's own name, or for a venue, the town it stands in,
+ * since a class is held at a building, not in it. `undefined` when the tree does not hold it.
+ */
+export const addClassPlaceName = <
+  T extends RegionTreeNode & { level: RegionLevel; name?: string | null },
+>(
+  nodes: readonly T[],
+  slug: string,
+): string | undefined => {
+  const node = nodes.find((candidate) => candidate.slug === slug)
+  const named =
+    node?.level === 'venue' ? nodes.find((candidate) => candidate.id === node.parent) : node
+
+  return named?.name ?? undefined
+}
+
+/**
  * A region's full ancestry ids, self-inclusive (self → parent → … → country),
  * walked up the `parent` links. Replaces the feed's `breadcrumbs` chain now that
  * the wholesale regions dict carries every parent link. A `seen` guard stops a

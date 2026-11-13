@@ -3,6 +3,7 @@ import type { GeoEvent } from './hierarchy'
 import { describe, it, expect } from 'vitest'
 
 import {
+  addClassPlaceName,
   ancestorIds,
   ancestorSlugs,
   boundsUnder,
@@ -55,6 +56,24 @@ describe('listsPlaces', () => {
   it('is false for a city and a venue, which list their own classes', () => {
     expect(listsPlaces('city')).toBe(false)
     expect(listsPlaces('venue')).toBe(false)
+  })
+})
+
+describe('addClassPlaceName', () => {
+  const named = [
+    { id: 28, slug: 'belgium', parent: null, level: 'country' as const, name: 'Belgium' },
+    { id: 470, slug: 'brussels', parent: 28, level: 'city' as const, name: 'Brussels' },
+    { id: 513, slug: 'town-hall', parent: 470, level: 'venue' as const, name: 'Town Hall' },
+  ]
+
+  it("names a region by its own name, and a venue by its town's", () => {
+    expect(addClassPlaceName(named, 'brussels')).toBe('Brussels')
+    expect(addClassPlaceName(named, 'town-hall')).toBe('Brussels')
+  })
+
+  it('names nothing the tree does not hold', () => {
+    expect(addClassPlaceName(named, 'atlantis')).toBeUndefined()
+    expect(addClassPlaceName(named.slice(2), 'town-hall')).toBeUndefined()
   })
 })
 

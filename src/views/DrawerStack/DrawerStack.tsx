@@ -47,6 +47,7 @@ import {
   atlasDepth,
   dismissAction,
   addClassPath,
+  addClassPlaceName,
   baseStackEntry,
   filterCloseTarget,
   isFilterOverlay,
@@ -1297,7 +1298,7 @@ export function DrawerStack() {
   // right: the full-width calendar, and the filter overlay over the calendar. It opens over the
   // place on screen, or at the root where no one place shows.
   const place = placeInStack(baseEntries)
-  const placeName = place && regions?.find((node) => node.slug === place.slug)?.name
+  const placeName = place && regions && addClassPlaceName(regions, place.slug)
   const showAddClass = isWide && !wide && !filterOverlay && !submitOverlay && !isSubmitEntry(top)
 
   return (
