@@ -166,6 +166,16 @@ describe('useEventDisplay — an online class seen from another zone', () => {
       )
     }
   })
+
+  // Every second day is not every day, so the host's day still says which one.
+  it('keeps the host weekday for a class held every few days', () => {
+    const everyOtherDay = { recurrenceType: 'DAILY' as const, interval: 2, weekdays: null }
+    const event = { ...pragueClass, schedule: { ...pragueClass.schedule!, ...everyOtherDay } }
+
+    expect(linesFrom('Australia/Sydney', event as DisplayableEvent).subtext).toBe(
+      'Wed 7:30 PM Prague time',
+    )
+  })
 })
 
 describe('useEventDisplay — an in-person class names its clock only for a viewer elsewhere', () => {

@@ -310,10 +310,9 @@ export function useEventDisplay(event: DisplayableEvent): EventDisplayStrings {
 
     if (origin && next && !sameWallClock(origin, next)) {
       const everyDay =
-        recurrence === 'DAILY' ||
-        (recurrence === 'WEEKLY' &&
-          (schedule?.interval ?? 1) === 1 &&
-          new Set(schedule?.weekdays).size === 7)
+        (schedule?.interval ?? 1) === 1 &&
+        (recurrence === 'DAILY' ||
+          (recurrence === 'WEEKLY' && new Set(schedule?.weekdays).size === 7))
 
       whereSubtext = [
         origin.weekday !== next.weekday && !everyDay
