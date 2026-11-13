@@ -10,6 +10,7 @@ import {
   type EventFilters,
   type PlaceSearch,
   activeFilterCount,
+  clearsBackToPlace,
   filtersToParams,
   noPlaceSearch,
   placeSearchPath,
@@ -51,8 +52,14 @@ export function usePanelFilters() {
     write,
     count: facets?.counts.total,
     canClear: activeFilterCount({ ...filters, region: null }) > 0,
-    /** Clear resets the questions, not the Where: the visitor is still looking in the same place. */
-    clear: () => write({ ...DEFAULT_FILTERS, region: filters.region }),
+    /**
+     * Clear resets the questions, not the Where: the visitor is still looking in the same place.
+     * Results opened from that place's page go back to it, as if the filters were never touched.
+     */
+    clear: () =>
+      clearsBackToPlace(location, filters.region)
+        ? push(-1)
+        : write({ ...DEFAULT_FILTERS, region: filters.region }),
     pickPlace: (place: PlaceSearch) => push(placeSearchPath(params(), place)),
     /** Back to everywhere: the place and the region go, and the other filters stay. */
     clearWhere: () => {

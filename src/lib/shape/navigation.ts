@@ -7,7 +7,14 @@
  * import), so the decision is unit-testable in isolation from the components
  * that apply it.
  */
-import { type StackEntry, isCanonicalPath, placeInStack, resolveStack, safePath } from './path'
+import {
+  type StackEntry,
+  isCanonicalPath,
+  placeInStack,
+  resolveStack,
+  safePath,
+  viewRegion,
+} from './path'
 
 /**
  * The `state` shape we stamp on in-widget pushes (via the Link atom + useAtlasNavigate). A
@@ -242,4 +249,26 @@ const leadsTo = (value: unknown, path: string): boolean => {
   const route = value.split('?')[0]
 
   return route === path || path.startsWith(`${route}/`)
+}
+
+/**
+ * Whether clearing every filter on the results goes back to the place page they were opened from,
+ * rather than leaving that place's unfiltered list. The first filter change on a place page opens
+ * the results (`usePanelFilters`), so with that place still in scope and no place searched since
+ * (`center`), clearing undoes that step.
+ */
+export const clearsBackToPlace = (
+  location: { pathname: string; search?: string; state?: unknown },
+  region: string | null,
+): boolean => {
+  const from = (location.state as { from?: unknown } | null | undefined)?.from
+
+  return (
+    location.pathname === '/search' &&
+    atlasDepth(location) > 0 &&
+    typeof from === 'string' &&
+    region !== null &&
+    viewRegion(from.split('?')[0]) === region &&
+    !new URLSearchParams(location.search).has('center')
+  )
 }

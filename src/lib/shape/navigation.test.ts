@@ -8,6 +8,7 @@ import {
   cameUpFrom,
   climbDestination,
   climbedUpFrom,
+  clearsBackToPlace,
   dismissAction,
   loneClassPath,
   placedPathname,
@@ -269,6 +270,30 @@ describe('placedPathname', () => {
     expect(climbDestination('/united-kingdom/south-east', [], new Set(), pathOf)).toBe('/gb')
     expect(backDestination({ pathname: '/united-kingdom/south-east' }, [], new Set(), pathOf)).toBe(
       '/gb',
+    )
+  })
+})
+
+describe('clearsBackToPlace — Clear returns to the place page the results came from', () => {
+  const opened = (search: string, from = '/gb') => ({
+    pathname: '/search',
+    search,
+    state: { depth: 1, from },
+  })
+
+  it('goes back when the results were opened from that place and searched no place since', () => {
+    expect(clearsBackToPlace(opened('?days=2&region=gb'), 'gb')).toBe(true)
+    expect(
+      clearsBackToPlace(opened('?days=2&region=london', '/gb/south-east/london'), 'london'),
+    ).toBe(true)
+  })
+
+  it('stays on the results for a searched place, another place, or a fresh link', () => {
+    expect(clearsBackToPlace(opened('?days=2&center=-0.1,51.5&region=gb'), 'gb')).toBe(false)
+    expect(clearsBackToPlace(opened('?days=2&region=fr'), 'fr')).toBe(false)
+    expect(clearsBackToPlace(opened('?days=2&region=gb', '/search?region=gb'), 'gb')).toBe(false)
+    expect(clearsBackToPlace({ pathname: '/search', search: '?days=2&region=gb' }, 'gb')).toBe(
+      false,
     )
   })
 })
