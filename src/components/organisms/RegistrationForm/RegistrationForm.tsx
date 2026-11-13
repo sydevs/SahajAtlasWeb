@@ -37,6 +37,7 @@ import {
   USER_SUBMISSION_VALUE_MAX,
 } from '@/config/api/mutate'
 import livePreview from '@/config/live-preview/protocol'
+import { rewordedKey } from '@/config/reworded-keys'
 import { classifyError } from '@/lib/report'
 import { useRegistrationDraft } from '@/config/store'
 import {
@@ -48,7 +49,7 @@ import {
 } from '@/types'
 import { useLocale } from '@/hooks/use-locale'
 import { useTurnstile } from '@/hooks/use-turnstile'
-import { regionalLocale } from '@/lib/time'
+import { formatDate, formatLongDate, formatRelativeDate, regionalLocale } from '@/lib/time'
 import { useViewerCountry } from '@/hooks/use-viewer-country'
 
 const PRIVACY_POLICY_URL = 'https://wemeditate.com/privacy'
@@ -64,13 +65,15 @@ const LINK_SLOT = '\uE000'
  * `pnpm types:cms` that adds or renames a code fails the build here,
  * instead of silently degrading to the generic error. Three of the four
  * reuse the display copy the panel already shows for the same state, so the
- * form and the panel cannot word it differently.
+ * form and the panel cannot word it differently: ended and full name the
+ * reworded keys `useEventDisplay` reads ("This class has ended"), and the
+ * render resolves them through `rewordedKey` the same way.
  */
 const STATE_MESSAGE_KEYS: Record<EventRegistrationErrorCode, TranslationKey> = {
   external_registration: 'event.display.registration_external',
-  event_ended: 'event.display.event_ended',
+  event_ended: 'event.display.class_ended',
   registration_closed: 'event.display.registration_closed',
-  event_full: 'event.display.event_full',
+  event_full: 'event.display.class_full',
 }
 
 /**
@@ -240,7 +243,7 @@ export function RegistrationForm({
   initialRefusal,
 }: RegistrationFormProps) {
   const [submitted, setSubmitted] = useState(initialSubmitted)
-  const { t } = useTranslation()
+  const { t, i18n } = useTranslation()
   // The consent sentence, split where the privacy link goes. A translation without the slot still
   // reads whole, with the link after it.
   const consentText = t('registration.form.consent', { link: LINK_SLOT })
@@ -488,7 +491,7 @@ export function RegistrationForm({
               color={refusalMessage ? 'secondary' : 'danger'}
               description={failureDescription && t(failureDescription)}
               role="alert"
-              title={t(refusalMessage ?? 'registration.form.error_title')}
+              title={t(rewordedKey(i18n, refusalMessage ?? 'registration.form.error_title'))}
             />
           )}
 
@@ -794,17 +797,16 @@ const RELATIVE_UNIT: Record<RecurrenceType, 'days' | 'weeks' | 'months'> = {
   MONTHLY: 'months',
 }
 
-const sentenceCase = (text: string) => text.charAt(0).toLocaleUpperCase() + text.slice(1)
+/** A starting date in the class's own zone, which is the clock its dates are listed in. */
+const inClassZone = (date: Date, timeZone: string | undefined) =>
+  DateTime.fromJSDate(date).setZone(timeZone ?? 'local')
 
 /**
  * "Tuesday 10 November" (en-GB) or "Tuesday, November 10" (en-US) in the class's own zone, for
  * the confirmation line. The same regional locale as the date list above, so the two agree.
  */
 const longDate = (date: Date, timeZone: string | undefined, locale: string) =>
-  DateTime.fromJSDate(date)
-    .setZone(timeZone ?? 'local')
-    .setLocale(regionalLocale(locale))
-    .toLocaleString({ weekday: 'long', month: 'long', day: 'numeric' })
+  formatLongDate(inClassZone(date, timeZone), regionalLocale(locale))
 
 /** One starting date: the ISO value, its rendered label, and the same words as plain text for
  *  the listbox's type-ahead. */
@@ -817,13 +819,12 @@ function dateOptions(
   locale: string,
 ): DateOption[] {
   const unit = recurrenceType ? RELATIVE_UNIT[recurrenceType] : undefined
+  const formatLocale = regionalLocale(locale)
 
   return dates.map((date) => {
-    const dateTime = DateTime.fromJSDate(date)
-      .setZone(timeZone ?? 'local')
-      .setLocale(regionalLocale(locale))
-    const day = dateTime.toLocaleString({ weekday: 'short', month: 'short', day: 'numeric' })
-    const relative = sentenceCase(dateTime.toRelativeCalendar(unit ? { unit } : undefined) ?? '')
+    const at = inClassZone(date, timeZone)
+    const day = formatDate(at, formatLocale)
+    const relative = formatRelativeDate(at, formatLocale, unit)
 
     return {
       value: date.toISOString(),

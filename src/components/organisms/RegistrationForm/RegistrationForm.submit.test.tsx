@@ -225,7 +225,8 @@ describe('RegistrationForm refusals', () => {
     ['captcha_unavailable', 500, 'registration.form.captcha_retry'],
     ['content_unscannable', 400, 'registration.form.captcha_retry'],
     ['event_not_found', 404, 'common.errors.unavailable'],
-    ['event_full', 409, 'event.display.event_full'],
+    ['event_full', 409, 'event.display.class_full'],
+    ['event_ended', 409, 'event.display.class_ended'],
     // A link refusal naming no field this form renders still gets its sentence.
     ['urls_not_allowed', 400, 'common.report_errors.urls_not_allowed'],
   ])('says %s in its own sentence, not the generic one', async (code, status, key) => {
