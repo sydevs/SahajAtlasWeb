@@ -60,11 +60,14 @@ export type DistanceOf<T> = (event: T) => number | undefined
 
 const ownDistance: DistanceOf<{ distance?: number }> = (event) => event.distance
 
+/** Whether a class is held in `language` — among any it lists, since their order means nothing. */
+const offers = (event: EventSlim, language: string) => event.languages.includes(language)
+
 /**
  * Recommended: the distance, weighted. These are the first Atlas's weights (3b807fb4), with the
  * unverified one from #221. Each multiplies, so a large enough gap in distance still wins:
  *
- *  - a language other than the map's: +100%
+ *  - not held in the map's language: +100%
  *  - starting soon: -50% (online within the hour, in person within the week, `isSoon`)
  *  - online: +50%
  *  - unverified (no manager, brought in by bulk import): +50%
@@ -74,10 +77,9 @@ const ownDistance: DistanceOf<{ distance?: number }> = (event) => event.distance
 function calculateOrder(event: EventSlim, language: string, distance: number | undefined) {
   let order = distance ?? 100
   const online = isOnline(event)
-  const languageCode = event.languages[0] ?? ''
   const next = nextOccurrence(event)
 
-  if (language != languageCode) order *= 2
+  if (!offers(event, language)) order *= 2
   if (next && isSoon(DateTime.fromJSDate(next), online)) order *= 0.5
   if (online) order *= 1.5
   // A factor, not a partition: a partition would outrank distance and language both.
@@ -112,7 +114,7 @@ export function sortEvents<T extends EventSlim>(
       return [...events].sort(
         (x, y) =>
           byDistance({ distance: distanceOf(x) }, { distance: distanceOf(y) }) ||
-          Number(y.languages[0] === language) - Number(x.languages[0] === language),
+          Number(offers(y, language)) - Number(offers(x, language)),
       )
     case 'soonest':
       return [...events].sort(byNextOccurrence)

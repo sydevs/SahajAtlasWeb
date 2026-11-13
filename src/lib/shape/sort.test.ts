@@ -22,6 +22,17 @@ describe('sortEvents closest', () => {
       3, 2, 1,
     ])
   })
+
+  // A class lists its languages in no meaningful order, so English second counts as English.
+  it.each([[['cs', 'en']], [['en', 'cs']]])(
+    'counts the visitor language anywhere in %j',
+    (both) => {
+      const czech = { ...mockEventSlim, id: 1, distance: 1, languages: ['cs'] } as EventSlim
+      const bilingual = { ...mockEventSlim, id: 2, distance: 1, languages: both } as EventSlim
+
+      expect(sortEvents([czech, bilingual], 'closest', 'en').map((e) => e.id)).toEqual([2, 1])
+    },
+  )
 })
 
 describe('sortFromParams', () => {
@@ -155,6 +166,17 @@ describe('sortEvents', () => {
     expect(ranked(events)).toEqual([1, 2])
     expect(ids(sortEvents(events, 'recommended', 'de'))).toEqual([2, 1])
   })
+
+  // The bilingual class is nearer, so a penalty on it for listing English second would put the
+  // English-only one first.
+  it.each([[['cs', 'en']], [['en', 'cs']]])(
+    'counts the visitor language anywhere in %j',
+    (both) => {
+      const events = [at(1, 7), at(2, 5, { languages: both })]
+
+      expect(ranked(events)).toEqual([2, 1])
+    },
+  )
 
   // ⚠ The parameter is a base subtag, and an event's language is always an ISO 639-1 code, so a
   // regional tag matches nothing: the penalty lands on every event, cancels out, and distance
