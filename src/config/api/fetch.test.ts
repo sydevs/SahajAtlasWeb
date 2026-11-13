@@ -8,8 +8,9 @@ import livePreview, { LIVE_PREVIEW_INACTIVE } from '@/config/live-preview/protoc
 import { previewRequestDecorator } from '@/config/live-preview/request'
 import { eventsQuery } from '@/config/api'
 import { queryClient } from '@/config/query-client'
+import { draftPreviewSchedule, schedulesOverlap } from '@/lib/proposal'
 import { DEFAULT_FILTERS } from '@/lib/shape'
-import { EventDocSchema } from '@/types'
+import { type EventSchedule, EventDocSchema } from '@/types'
 
 // This mocks `@payloadcms/sdk` at the boundary, the same way earlier tests mocked axios.
 // The `PayloadSDK` constructor returns a stub. Its `find`, `findByID`, and `request` methods are what the fetchers call.
@@ -212,6 +213,49 @@ describe('getGeojson', () => {
     // `confidenceScore` is named because nothing displays it, so nothing should fetch it.
     expect((options.args.select as Record<string, unknown>).verificationStage).toBe(true)
     expect(options.args.select).not.toHaveProperty('confidenceScore')
+  })
+
+  // The add-a-class duplicate check reads the feed's schedules. A course whose end the select
+  // drops reads there as running for ever, and is named against every later class at its hours.
+  it('selects every schedule field the duplicate check reads', async () => {
+    sdk.request.mockResolvedValue(
+      jsonResponse({ type: 'FeatureCollection', totalPages: 1, features: [] }),
+    )
+
+    await api.getGeojson()
+
+    const [options] = sdk.request.mock.calls[0] as [
+      { args: { select: { schedule: Record<string, boolean> } } },
+    ]
+    const asFed = (schedule: EventSchedule) =>
+      Object.fromEntries(
+        Object.entries(schedule).filter(([key]) => options.args.select.schedule[key]),
+      ) as EventSchedule
+    // Tuesdays from 3 Nov 2026 until Monday 30 Nov, and a new Tuesday class from 1 Dec.
+    const tuesday = (date: string) => new Date(`${date}T18:00:00Z`)
+    const course: EventSchedule = {
+      firstDate: tuesday('2026-11-03'),
+      firstDate_tz: 'Europe/London',
+      endTime: '21:00',
+      recurrenceType: 'WEEKLY',
+      interval: 1,
+      weekdays: ['TU'],
+      endingType: 'until',
+      untilDate: new Date('2026-11-30T00:00:00Z'),
+      upcomingDates: ['2026-11-03', '2026-11-10', '2026-11-17', '2026-11-24'].map(tuesday),
+    }
+    const later = draftPreviewSchedule({
+      firstDate: '2026-12-01',
+      startTime: '18:00',
+      endTime: '19:30',
+      repeats: 'weekly',
+      monthlyBy: 'date',
+      endDate: '',
+      timeZone: 'Europe/London',
+    })!
+
+    expect(schedulesOverlap(later, course)).toBe(false)
+    expect(schedulesOverlap(later, asFed(course))).toBe(false)
   })
 })
 

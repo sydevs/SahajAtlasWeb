@@ -96,8 +96,9 @@ const FEED_SELECT = {
   // The feed carries the structured recurrence fields that the resolver and cards read.
   // Issue #52 verified this pass-through.
   // So cards derive event type and status the same way the panel does.
-  // The feed does not include calendar-export-only fields: monthDay, weekdayOfMonth, untilDate, exclusions.
-  // The export reads those fields from the full event document.
+  // `untilDate` ends a course for the add-a-class duplicate check; without it a course reads as
+  // running for ever. The feed does not include calendar-export-only fields: monthDay,
+  // weekdayOfMonth, exclusions. The export reads those fields from the full event document.
   schedule: {
     firstDate: true,
     firstDate_tz: true,
@@ -109,6 +110,7 @@ const FEED_SELECT = {
     weekNumber: true,
     endingType: true,
     count: true,
+    untilDate: true,
     upcomingDates: true,
     icalRule: true,
   },

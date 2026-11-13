@@ -58,8 +58,8 @@ import { DEFAULT_DURATION, scheduleStart, scheduleTimeZone, withEndTime } from '
  *
  * So the RRULE is rebuilt here from the structured fields, which the full
  * event doc carries in full (`getEventDoc` selects `schedule: true`). Note
- * that the feed does not carry `monthDay` / `weekdayOfMonth` / `untilDate` /
- * `exclusions`. Build the export from the full doc, never from a feed event.
+ * that the feed does not carry `monthDay` / `weekdayOfMonth` / `exclusions`.
+ * Build the export from the full doc, never from a feed event.
  */
 
 export type IcsEventInput = {
