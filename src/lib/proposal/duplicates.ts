@@ -80,7 +80,11 @@ const weeksApart = (a: DateTime, b: DateTime, zone: string) =>
  */
 const lastDay = (schedule: EventSchedule): DateTime | null => {
   if (schedule.endingType === 'until' && schedule.untilDate) {
-    return DateTime.fromJSDate(schedule.untilDate).setZone(scheduleTimeZone(schedule))
+    // SahajCloud reads the until date by its UTC calendar day, on any clock
+    // (`src/lib/schedule/scheduleHooks.ts` there).
+    const { year, month, day } = DateTime.fromJSDate(schedule.untilDate, { zone: 'UTC' })
+
+    return DateTime.fromObject({ year, month, day }, { zone: scheduleTimeZone(schedule) })
   }
   if (schedule.endingType !== 'count' || !schedule.count) return null
 
@@ -98,15 +102,26 @@ const lastDay = (schedule: EventSchedule): DateTime | null => {
   return day
 }
 
-/** The weeks a schedule meets in, from its first to its last, counted from `origin`'s week. */
-const activeWeeks = (schedule: EventSchedule, origin: DateTime, zone: string): [number, number] => {
-  const last = lastDay(schedule)
+/** The days a schedule meets between: its first date, and its last day or none. */
+type Run = { first: DateTime; last: DateTime | null }
 
-  return [
-    weeksApart(origin, scheduleStart(schedule), zone),
-    last ? weeksApart(origin, last, zone) : Infinity,
-  ]
+const runOf = (schedule: EventSchedule): Run => ({
+  first: scheduleStart(schedule).startOf('day'),
+  last: lastDay(schedule),
+})
+
+/** Whether a session (on its schedule's clock) falls within that schedule's run, by the day. */
+const within = (at: DateTime, { first, last }: Run) => {
+  const day = at.startOf('day')
+
+  return day >= first && (last === null || day <= last)
 }
+
+/** The weeks a run spans, from its first to its last, counted from `origin`'s week. */
+const runWeeks = ({ first, last }: Run, origin: DateTime, zone: string): [number, number] => [
+  weeksApart(origin, first, zone),
+  last ? weeksApart(origin, last, zone) : Infinity,
+]
 
 /**
  * Whether two schedules meet at the same time. Two weekly classes clash when they share a
@@ -130,11 +145,13 @@ export const schedulesOverlap = (a: EventSchedule, b: EventSchedule): boolean =>
     // them are a multiple of the two steps' common divisor.
     const cycle = gcd(stepA, stepB)
     const lcm = (stepA / cycle) * stepB
+    const runA = runOf(a)
+    const runB = runOf(b)
 
     return ours.some((x) => {
       // Weeks counted from `x`'s, so `a` meets in the weeks that are multiples of `stepA`.
-      const [firstA, lastA] = activeWeeks(a, x.start, zone)
-      const [firstB, lastB] = activeWeeks(b, x.start, zone)
+      const [firstA, lastA] = runWeeks(runA, x.start, zone)
+      const [firstB, lastB] = runWeeks(runB, x.start, zone)
 
       return theirs.some((y) => {
         const offset = weeksApart(x.start, y.start, zone)
@@ -142,13 +159,21 @@ export const schedulesOverlap = (a: EventSchedule, b: EventSchedule): boolean =>
         return meetingShifts(weekSpan(x, zone), weekSpan(y, zone)).some((shift) => {
           if (mod(offset - shift, cycle) !== 0) return false
 
-          // `b`'s session `shift` weeks on from `a`'s week must fall in a week both still meet.
+          // In week `week`, `a` meets `week` weeks on from `x`, and `b` in the week `shift` after.
+          const meet = (week: number) =>
+            mod(week, stepA) === 0 &&
+            mod(week + shift - offset, stepB) === 0 &&
+            within(x.start.plus({ weeks: week }), runA) &&
+            within(y.start.plus({ weeks: week + shift - offset }), runB)
           const from = Math.max(firstA, firstB - shift)
           const to = Math.min(lastA, lastB - shift)
 
-          if (to - from + 1 >= lcm) return true
+          // A first or last week can be partial (a course ending on the Monday before), so those
+          // are checked by the day. Every week between is inside both runs, and a full cycle of
+          // them holds a meeting.
+          if (to - from - 1 >= lcm) return true
           for (let week = from; week <= to; week += 1) {
-            if (mod(week, stepA) === 0 && mod(week + shift - offset, stepB) === 0) return true
+            if (meet(week)) return true
           }
 
           return false

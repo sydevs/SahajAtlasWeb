@@ -57,7 +57,13 @@ const feature = (
 
 /** A new weekly class, starting on a Tuesday in January, 18:00 to 19:30. */
 const draft = (
-  fields: { firstDate?: string; startTime?: string; endTime?: string; endDate?: string } = {},
+  fields: {
+    firstDate?: string
+    startTime?: string
+    endTime?: string
+    endDate?: string
+    timeZone?: string
+  } = {},
 ) =>
   draftPreviewSchedule({
     firstDate: '2027-01-05',
@@ -188,6 +194,56 @@ describe('schedulesOverlap', () => {
         listed('2027-01-05T18:00'),
       ),
     ).toBe(false)
+  })
+
+  // A course's first and last weeks can be partial, so its ends are read by the day.
+  it('does not flag a course that ends the day before the other class meets', () => {
+    // Tuesdays 3 to 24 Nov, until Monday 30 Nov.
+    const course = {
+      ...listed('2026-11-03T18:00', { count: 4 }),
+      endingType: 'until' as const,
+      untilDate: new Date('2026-11-30T00:00:00Z'),
+    }
+    const newCourse = draft({ firstDate: '2026-11-03', endDate: '2026-11-30' })
+
+    expect(schedulesOverlap(draft({ firstDate: '2026-12-01' }), course)).toBe(false)
+    expect(schedulesOverlap(draft({ firstDate: '2026-11-24' }), course)).toBe(true)
+    // A new course ending on that Monday, against a listed class from Tuesday 1 Dec.
+    expect(schedulesOverlap(newCourse, listed('2026-12-01T18:00'))).toBe(false)
+  })
+
+  it('does not flag a class that starts later in the week a course ends', () => {
+    // Meets on Tuesdays from 8 Dec; its first date is Wednesday 2 Dec.
+    const tuesdays = listed('2026-12-08T18:00')
+    const fromWednesday = {
+      ...tuesdays,
+      firstDate: DateTime.fromISO('2026-12-02T18:00', { zone: ZONE }).toJSDate(),
+    }
+    const endsTuesday = draft({ firstDate: '2026-11-03', endDate: '2026-12-01' })
+    const endsNextTuesday = draft({ firstDate: '2026-11-03', endDate: '2026-12-08' })
+
+    expect(schedulesOverlap(endsTuesday, fromWednesday)).toBe(false)
+    expect(schedulesOverlap(endsNextTuesday, fromWednesday)).toBe(true)
+  })
+
+  it('reads an until date by its UTC day, as SahajCloud does, west of UTC too', () => {
+    const toronto = 'America/Toronto'
+    const start = DateTime.fromISO('2026-11-02T18:00', { zone: toronto })
+    // Mondays 2 to 30 Nov, stored as midnight UTC on 30 Nov: Sunday evening in Toronto.
+    const course: EventSchedule = {
+      firstDate: start.toJSDate(),
+      firstDate_tz: toronto,
+      endTime: '21:00',
+      recurrenceType: 'WEEKLY',
+      interval: 1,
+      endingType: 'until',
+      untilDate: new Date('2026-11-30T00:00:00Z'),
+      upcomingDates: [0, 1, 2, 3, 4].map((week) => start.plus({ weeks: week }).toJSDate()),
+    }
+
+    expect(schedulesOverlap(draft({ firstDate: '2026-11-30', timeZone: toronto }), course)).toBe(
+      true,
+    )
   })
 
   it('still flags a fortnightly class against a weekly one on its evening', () => {
