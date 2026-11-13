@@ -35,6 +35,13 @@ export interface MapSearchProps {
    * events when the field sits in an error body instead.
    */
   label?: string
+  /**
+   * Ask Mapbox for a result that may be stored. Its terms allow keeping an id
+   * only when the lookup that produced it carried this, and such lookups bill
+   * separately — so only a mount whose answer is submitted to SahajCloud sets
+   * it. Plain browsing stays temporary.
+   */
+  permanent?: boolean
 }
 
 // The geocoder is a custom element from @mapbox/search-js-web. It fails to
@@ -74,7 +81,7 @@ const LOCAL_BIAS_MIN_ZOOM = 3
 const searchBias = (zoom: number | undefined, center: LngLatLike | undefined) =>
   zoom !== undefined && zoom >= LOCAL_BIAS_MIN_ZOOM && center ? center : 'ip'
 
-export function MapSearch({ onSelect, label }: MapSearchProps) {
+export function MapSearch({ onSelect, label, permanent }: MapSearchProps) {
   const [searchParams] = useSearchParams()
   const { pathname } = useLocation()
   const [searchQuery, setSearchQuery] = React.useState(searchParams.get('q') || '')
@@ -171,8 +178,10 @@ export function MapSearch({ onSelect, label }: MapSearchProps) {
           map={mapbox?.getMap()}
           options={{
             language: locale, // TODO: Make sure this switches when locale changes
-            // `country` is left out rather than undefined: the geocoder serializes what it's given.
+            // `country` and `permanent` are left out rather than undefined: the geocoder
+            // serializes what it's given.
             ...(scope ? { country: scope } : {}),
+            ...(permanent ? { permanent } : {}),
             proximity: searchBias(mapbox?.getZoom(), mapbox?.getCenter()),
             types: PLACE_TYPES,
           }}
