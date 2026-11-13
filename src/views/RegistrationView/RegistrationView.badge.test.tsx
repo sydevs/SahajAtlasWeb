@@ -1,4 +1,5 @@
 import { renderToStaticMarkup } from 'react-dom/server'
+import { MemoryRouter } from 'react-router'
 import { describe, it, expect, vi } from 'vitest'
 
 import { RegistrationView } from './RegistrationView'
@@ -25,7 +26,9 @@ vi.mock('@/components/molecules', () => ({
   FallbackPanel: () => <i>blocked-panel</i>,
 }))
 vi.mock('@/components/organisms/RegistrationForm', () => ({
-  RegistrationForm: () => <i>registration-form</i>,
+  RegistrationForm: ({ initialSubmitted }: { initialSubmitted?: boolean }) => (
+    <i>{initialSubmitted ? 'registration-confirmation' : 'registration-form'}</i>
+  ),
 }))
 vi.mock('@/components/organisms/EventDetails/EventRegister', () => ({
   EventRegisterBar: () => <i>external-cta</i>,
@@ -49,7 +52,7 @@ vi.mock('@/hooks/use-event-display', () => ({
 
 const { eventMock } = vi.hoisted(() => ({ eventMock: { current: null as unknown } }))
 
-vi.mock('@/views/nav', () => ({ NavHeader: () => null }))
+vi.mock('@/views/nav', () => ({ NavHeader: ({ title }: { title: string }) => <h2>{title}</h2> }))
 
 vi.mock('@/views/shared', () => ({
   useDrawerControl: () => ({ dismiss: () => {} }),
@@ -60,12 +63,14 @@ vi.mock('@/views/shared', () => ({
 const TITLE_KEY = 'event.display.unverified_title'
 const NOTE_KEY = 'event.display.unverified_note'
 
-const view = (verificationStage: string | null, registration = 'open') => {
+const view = (verificationStage: string | null, registration = 'open', search = '') => {
   eventMock.current = { ...mockEvent, verificationStage }
   displayMock.registration = registration
 
   return renderToStaticMarkup(
-    <RegistrationView eventPath={mockEvent.path} parentPath="/gb/london" />,
+    <MemoryRouter initialEntries={[`${mockEvent.path}/register${search}`]}>
+      <RegistrationView eventPath={mockEvent.path} parentPath="/gb/london" />
+    </MemoryRouter>,
   )
 }
 
@@ -91,5 +96,22 @@ describe('unverified caveat on the registration screen', () => {
 
     expect(markup).toContain('blocked-panel')
     expect(markup).toContain(TITLE_KEY)
+  })
+})
+
+// PROTOTYPE, review only (`config/review-options.ts`): the review blocks every submission, so a
+// link opens the confirmation instead. It is read from the route's own query, never the host
+// page's address, where a host's own `?registered=1` would have made registering impossible.
+describe('the review’s ?registered=1', () => {
+  it('opens the route on the confirmation when its own query asks', () => {
+    const markup = view(null, 'open', '?registered=1')
+
+    expect(markup).toContain('registration.form.confirmed_title')
+    expect(markup).toContain('registration-confirmation')
+  })
+
+  it('opens on the form otherwise', () => {
+    expect(view(null)).toContain('registration.form.title_class')
+    expect(view(null, 'open', '?registered=0')).toContain('registration-form')
   })
 })

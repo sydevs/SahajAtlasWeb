@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
+import { useSearchParams } from 'react-router'
 
 import { Alert } from '@/components/atoms/Alert'
 import { DrawerBody } from '@/components/atoms/Drawer'
@@ -8,7 +9,7 @@ import { EventRegisterBar } from '@/components/organisms/EventDetails/EventRegis
 import { RegistrationForm } from '@/components/organisms/RegistrationForm'
 import { useEventDisplay, useListingTitle } from '@/hooks/use-event-display'
 import { useShareUrl } from '@/hooks/use-share-url'
-import { REGISTERED_PREVIEW } from '@/config/review-options'
+import { registeredPreview } from '@/config/review-options'
 import { enabledQuestions, eventTimeZone, isOnline, isUnverified } from '@/lib/shape'
 import { NavHeader } from '@/views/nav'
 import { useEventFromPath, useFrameEventOnTop } from '@/views/shared'
@@ -24,16 +25,19 @@ import { useEventFromPath, useFrameEventOnTop } from '@/views/shared'
 export function RegistrationView({
   eventPath,
   parentPath,
-  initialSubmitted = REGISTERED_PREVIEW,
+  initialSubmitted,
 }: {
   eventPath: string
   parentPath: string
-  /** Preview-only: start the native form on its confirmation screen (see stories, and the
-   *  review's `?registered=1`). */
+  /** Preview-only: start the native form on its confirmation screen (see stories). Without it,
+   *  the review's `?registered=1` in this route's own query decides (`config/review-options`). */
   initialSubmitted?: boolean
 }) {
   const { t } = useTranslation()
-  const [submitted, setSubmitted] = useState(initialSubmitted)
+  const [params] = useSearchParams()
+  // Read once, as the view opens, for the view and its form alike.
+  const [opensConfirmed] = useState(() => initialSubmitted ?? registeredPreview(params))
+  const [submitted, setSubmitted] = useState(opensConfirmed)
 
   const { data: event } = useEventFromPath(eventPath)
   const { display, blockedMessage, whereLine } = useEventDisplay(event)
@@ -132,7 +136,7 @@ export function RegistrationView({
             eventTitle={title}
             eventUrl={eventUrl}
             hasMailingList={event.offersMailingList === true}
-            initialSubmitted={initialSubmitted}
+            initialSubmitted={opensConfirmed}
             isOnline={isOnline(event)}
             questions={enabledQuestions(event)}
             recurrenceType={event.schedule?.recurrenceType}
