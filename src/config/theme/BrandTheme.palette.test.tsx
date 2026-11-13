@@ -146,13 +146,11 @@ describe('the wiring', () => {
     const source = readRepoSource('src/components/organisms/Mapbox/Map.tsx')
 
     expect(source).toContain('useBrandPalette()')
-    expect(source).toContain('markerColors(palette, theme)')
-    // The mode too: the art's outline is fixed per basemap, and `markerColors`
-    // carries no mode for an unbranded embed.
-    expect(source).toContain('registerMarkerImages(mapbox, colors, theme)')
+    expect(source).toContain('markerColors(palette)')
+    expect(source).toContain('registerMarkerImages(mapbox, colors)')
     // The colors are a dependency, so a palette change re-registers. Asserted as
     // its own literal rather than one regex spanning both, which would also pin
     // the whitespace between them — Prettier's to choose, not this spec's.
-    expect(source).toContain('}, [mapbox, colors, theme])')
+    expect(source).toContain('}, [mapbox, colors])')
   })
 })

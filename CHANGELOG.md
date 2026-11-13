@@ -49,8 +49,10 @@ cover everything a host would notice since the widget was first deployed.
   colours were all pale got pins, chips and buttons that looked alike; it now renders at the same
   mid-light shade as every other colour there, keeping its hue. On the light map a near-black
   colour is lightened just enough to keep its hue. Only what the widget paints moves; the colour you stored
-  is unchanged. The outline on pins and cluster bubbles is also drawn at half strength, so it
-  separates a pin from the map without framing it in a hard line. No change to your CSP, your
+  is unchanged. Pins and cluster bubbles drop their black or white outline: a bubble keeps its
+  translucent ring as its only edge, and a pin gains a thinner ring of the same kind. Both take
+  their colour from the light-map shade on the dark map too, so they stay deep rather than
+  washing out on its mid-toned basemap. No change to your CSP, your
   Permissions Policy or any parameter.
 
 - **Pins, cluster bubbles and area rings now carry a fixed outline, and a brand colour may be

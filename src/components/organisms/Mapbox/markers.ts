@@ -40,9 +40,9 @@ const CLUSTER_RING = '#8CCDC4'
 const CLUSTER_SELECTED_FILL = '#E47C5A'
 const CLUSTER_SELECTED_RING = '#F2A179'
 
-// Every pin, bubble, ring and dot carries a fixed edge for the style it is drawn
-// on, so the brand colour is never measured against the basemap and a service's
-// own colour survives onto the map unchanged.
+// The vague-place ring and dot (`layers.ts`) carry a fixed edge for the style
+// they are drawn on, so the brand colour is never measured against the basemap.
+// A pin and a bubble carry their own translucent ring instead (below).
 //
 // Measured once from each Studio style's own JSON — the two ids are in
 // `Map.tsx`'s `MAP_STYLES`. Light `ck7g6nag70rn11io09f45odkq`: land `#f3ead8`,
@@ -64,17 +64,20 @@ export const BASEMAP_SURFACES: Record<ThemeMode, { land: string; water: string }
   dark: { land: '#5a8bbf', water: '#33567a' },
 }
 
-// Thin enough to read as an edge rather than a second colour. The pin's path is
-// left uninset, unlike the bubble's, so the canvas clips its stroke: 0.1 user
-// units at the head's left edge, where the arc reaches x=0.5, and 0.2 at the
-// rounded tip, which is 0.2 and 0.4 device pixels at `SCALE`. The tip is where
-// the pin meets the map anyway.
-const OUTLINE_WIDTH = 1.2
+// The pin's own ring, in the bubble's ring colour and opacity, visibly this wide
+// outside the head: wide enough to read as a halo, well short of the bubble's 5.2.
+const PIN_RING_WIDTH = 2.2
+const RING_OPACITY = 0.706
 
-// Half strength, so the edge separates a pin from the map without framing it in a
-// hard line. ⚠ On the stroke alone: an element-wide `opacity` would fade the fill
-// with it (`markers.outline.test.ts`).
-export const OUTLINE_OPACITY = 0.5
+// The head shrinks about the tip to make room for that ring inside the 34×38 box,
+// so the tip stays on the bottom edge `icon-anchor: 'bottom'` pins and the outer
+// edge stays where the head used to end.
+const PIN_SCALE = 0.86
+
+// The map's marks take their colours from the LIGHT-mode palette in both modes.
+// The dark basemap is mid-toned and washed out, so a dark-mode solid — lifted to
+// read on the near-black panel — washes out on it too.
+export const MARKER_MODE: ThemeMode = 'light'
 
 // Rasterisation scale — the images are drawn at 2× and registered with
 // `pixelRatio: 2`, matching the @2x Studio sprite they replace.
@@ -107,7 +110,11 @@ const svg = (width: number, height: number, body: string): MarkerImage => ({
 /** The teardrop pin's image width, before a layer's `icon-size`. */
 export const PIN_WIDTH = 34
 
-const pin = (fill: string, outline: string): MarkerImage =>
+// The ring is a stroke on a copy of the outline drawn BEHIND the head, so only its
+// outer half shows and the head's own fill is never tinted by it.
+const PIN_PATH = 'M4.71 26.42a15 15 0 1 1 21.58 0L15.5 37.6Z'
+
+const pin = (fill: string, ring: string): MarkerImage =>
   svg(
     PIN_WIDTH,
     38,
@@ -116,23 +123,24 @@ const pin = (fill: string, outline: string): MarkerImage =>
       <feDropShadow dx="1.2" dy="0.8" stdDeviation="0.9" flood-color="#4A5350" flood-opacity="0.45"/>
     </filter>
   </defs>
-  <path d="M4.71 26.42a15 15 0 1 1 21.58 0L15.5 37.6Z" fill="${fill}" filter="url(#shadow)" stroke="${outline}" stroke-opacity="${OUTLINE_OPACITY}" stroke-width="${OUTLINE_WIDTH}" stroke-linejoin="round"/>
-  <circle cx="15.5" cy="16" r="4.5" fill="#FFFFFF"/>`,
+  <g transform="translate(15.5 37.6) scale(${PIN_SCALE}) translate(-15.5 -37.6)">
+  <path d="${PIN_PATH}" fill="none" stroke="${ring}" stroke-opacity="${RING_OPACITY}" stroke-width="${round((PIN_RING_WIDTH * 2) / PIN_SCALE)}" stroke-linejoin="round"/>
+  <path d="${PIN_PATH}" fill="${fill}" filter="url(#shadow)"/>
+  <circle cx="15.5" cy="16" r="4.5" fill="#FFFFFF"/>
+  </g>`,
   )
+
+const round = (n: number) => Math.round(n * 100) / 100
 
 // This is the cluster bubble: a solid disc inside a wider translucent ring.
 // The count label is a `text-field` on the layer, so the art carries no
 // text.
-// The ring's radius is inset by half the stroke, so the edge's outer rim lands
-// where the ring used to end rather than being clipped by the canvas.
-// ⚠ The ring's translucency is `fill-opacity`, never `opacity`: the latter
-// applies to the whole element, so it would composite the edge away too and
-// leave it short of the ratio `markers.outline.test.ts` holds the colour to.
-const cluster = (fill: string, ring: string, outline: string): MarkerImage =>
+// The translucent ring is the whole edge: no outline, which clashed with it.
+const cluster = (fill: string, ring: string): MarkerImage =>
   svg(
     38,
     38,
-    `<circle cx="19" cy="19" r="${19 - OUTLINE_WIDTH / 2}" fill="${ring}" fill-opacity="0.706" stroke="${outline}" stroke-opacity="${OUTLINE_OPACITY}" stroke-width="${OUTLINE_WIDTH}"/>
+    `<circle cx="19" cy="19" r="19" fill="${ring}" fill-opacity="${RING_OPACITY}"/>
   <circle cx="19" cy="19" r="13.8" fill="${fill}" opacity="0.914"/>`,
   )
 
@@ -144,22 +152,20 @@ export const MARKER_IDS = {
   clusterSelected: 'sy-cluster-selected',
 } as const
 
-type PinColors = { fill: string }
-
 /** A cluster bubble's two colors: the solid disc, and the wider translucent ring. */
 type ClusterColors = { fill: string; ring: string }
 
 export type MarkerColors = Readonly<{
-  [MARKER_IDS.point]: PinColors
-  [MARKER_IDS.pointSelected]: PinColors
+  [MARKER_IDS.point]: ClusterColors
+  [MARKER_IDS.pointSelected]: ClusterColors
   [MARKER_IDS.cluster]: ClusterColors
   [MARKER_IDS.clusterSelected]: ClusterColors
 }>
 
 /** What an embed with no tenant seed renders. */
 export const DEFAULT_MARKER_COLORS: MarkerColors = {
-  [MARKER_IDS.point]: { fill: POINT_FILL },
-  [MARKER_IDS.pointSelected]: { fill: POINT_SELECTED_FILL },
+  [MARKER_IDS.point]: { fill: POINT_FILL, ring: CLUSTER_RING },
+  [MARKER_IDS.pointSelected]: { fill: POINT_SELECTED_FILL, ring: CLUSTER_SELECTED_RING },
   [MARKER_IDS.cluster]: { fill: CLUSTER_FILL, ring: CLUSTER_RING },
   [MARKER_IDS.clusterSelected]: { fill: CLUSTER_SELECTED_FILL, ring: CLUSTER_SELECTED_RING },
 }
@@ -171,7 +177,8 @@ const ringOf = (fill: string) =>
   shiftHex(fill, { lightness: 21, saturation: -16, maxLightness: 92 })
 
 /**
- * The four images' colors for a resolved palette, in the active mode.
+ * The four images' colors for a resolved palette, the same in both modes
+ * (`MARKER_MODE`).
  *
  * Pure, and the only thing in this module that is: `markers.ts` must stay
  * importable with no DOM, and the node lane asserts these values.
@@ -179,27 +186,25 @@ const ringOf = (fill: string) =>
  * A role with no usable seed keeps its default verbatim, per role rather than
  * per palette — a tenant that configured `color1` alone still gets its own
  * pins and the stock selected accent.
- *
- * ⚠ It carries no mode for an unbranded embed, which is why `markerImages` takes
- * one: the art's outline is per-basemap whatever the colours are.
  */
-export function markerColors(palette: PaletteRoles, mode: ThemeMode): MarkerColors {
+export function markerColors(palette: PaletteRoles): MarkerColors {
   // Through `buildPalette`, not `stepHex`, so the selected pin carries
   // `selected-distinct` — the check that keeps it from matching every pin around it.
-  const built = buildPalette(palette, mode)
+  const built = buildPalette(palette, MARKER_MODE)
   const primary = built.primary ? scaleHex(built.primary.scale, SOLID_STEP) : null
   const contrast = built.contrast ? scaleHex(built.contrast.scale, SOLID_STEP) : null
 
   // ⚠ The same object, not an equal one. `Map.tsx` memoises this and the
   // registration effect depends on it, so a new identity costs an unbranded
-  // embed a re-subscription and four rebuilt SVGs on every light/dark flip —
-  // where before this file carried colors, a flip ran nothing here at all.
+  // embed a re-subscription and four rebuilt SVGs.
   if (!primary && !contrast) return DEFAULT_MARKER_COLORS
 
   return {
-    [MARKER_IDS.point]: primary ? { fill: primary } : DEFAULT_MARKER_COLORS[MARKER_IDS.point],
+    [MARKER_IDS.point]: primary
+      ? { fill: primary, ring: ringOf(primary) }
+      : DEFAULT_MARKER_COLORS[MARKER_IDS.point],
     [MARKER_IDS.pointSelected]: contrast
-      ? { fill: contrast }
+      ? { fill: contrast, ring: ringOf(contrast) }
       : DEFAULT_MARKER_COLORS[MARKER_IDS.pointSelected],
     [MARKER_IDS.cluster]: primary
       ? { fill: primary, ring: ringOf(primary) }
@@ -218,18 +223,14 @@ export function markerColors(palette: PaletteRoles, mode: ThemeMode): MarkerColo
  * like `constructor` would resolve up an object's prototype chain to a
  * non-marker.
  */
-// ⚠ The mode belongs here rather than in `markerColors`, which returns the shared
-// `DEFAULT_MARKER_COLORS` object by identity for an unbranded embed and carries no
-// mode at all — so an unbranded embed is outlined too.
-export function markerImages(colors: MarkerColors, mode: ThemeMode): Map<string, MarkerImage> {
+export function markerImages(colors: MarkerColors): Map<string, MarkerImage> {
   const { point, cluster: bubble, clusterSelected, pointSelected } = MARKER_IDS
-  const edge = MARKER_OUTLINE[mode]
 
   return new Map<string, MarkerImage>([
-    [point, pin(colors[point].fill, edge)],
-    [pointSelected, pin(colors[pointSelected].fill, edge)],
-    [bubble, cluster(colors[bubble].fill, colors[bubble].ring, edge)],
-    [clusterSelected, cluster(colors[clusterSelected].fill, colors[clusterSelected].ring, edge)],
+    [point, pin(colors[point].fill, colors[point].ring)],
+    [pointSelected, pin(colors[pointSelected].fill, colors[pointSelected].ring)],
+    [bubble, cluster(colors[bubble].fill, colors[bubble].ring)],
+    [clusterSelected, cluster(colors[clusterSelected].fill, colors[clusterSelected].ring)],
   ])
 }
 
@@ -238,19 +239,8 @@ export function markerImages(colors: MarkerColors, mode: ThemeMode): Map<string,
 // SVG string IS the art, so this cannot miss a difference and needs no separate
 // list of the colors that went into it.
 //
-// At most one entry per image per mode survives an ordinary visit — eight per
-// embed — so none of them needs eviction.
-//
-// ⚠ **The stock art is per-mode too since the outline landed**, so an unbranded
-// embed takes eight entries rather than four, and its first theme switch decodes
-// rather than answering from a warm cache. Before the outline it was identical in
-// both modes and stayed warm across a switch.
-//
-// shortcut: an embed's first switch into a mode decodes that mode's four images,
-// so those pins land a tick after the new style's first frame rather than on it.
-// Measure before warming the counterpart mode at mount — that trades four
-// rasterisations and four texture uploads at boot for a mode the visitor may
-// never ask for.
+// The art is the same in both modes, so one entry per image survives an ordinary
+// visit — four per embed — and a theme switch answers from a warm cache.
 //
 // shortcut: a `clients` preview session repaints per colour-picker message, and
 // each new palette retains four more bitmaps for the life of that tab — about
@@ -323,12 +313,8 @@ function decodeMarker(key: string, { svg, width, height }: MarkerImage) {
  * effect in `Map.tsx` does, since the set is one of its dependencies — and
  * each image whose colors changed is removed and added again.
  */
-export function registerMarkerImages(
-  map: MapRef,
-  colors: MarkerColors,
-  mode: ThemeMode,
-): () => void {
-  const images = markerImages(colors, mode)
+export function registerMarkerImages(map: MapRef, colors: MarkerColors): () => void {
+  const images = markerImages(colors)
   // What this subscription has already put on the map. Mapbox re-fires
   // `styleimagemissing` per missing id PER TILE BATCH, and without this each
   // repeat would replace the image again. It needs no color of its own: the
