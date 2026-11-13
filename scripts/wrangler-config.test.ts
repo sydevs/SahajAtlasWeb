@@ -138,12 +138,6 @@ describe('the targets', () => {
     expect(PACKAGE.scripts[script]).toContain(`rm -f ${directory}/_redirects`)
   })
 
-  // The Workers build image's home fails SWC's cache-root check, so without this every
-  // playground build dies before Ladle runs (docs/rules/deployment.md).
-  it('builds the playground with the SWC native cache outside the build home', () => {
-    expect(PACKAGE.scripts['ladle:build']).toMatch(/^SWC_NATIVE_BINDING_CACHE=\S*\/tmp\//)
-  })
-
   // ⚠ The guard above deletes the whole file, which is safe only while there is no file. #252
   // brings `public/_redirects` back with a `/map  /  301` rule a Worker accepts, and a blanket
   // `rm -f` would strip that rule from every build while the pairing above stayed green. So the

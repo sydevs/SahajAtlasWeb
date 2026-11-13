@@ -45,11 +45,11 @@ move ran one site at a time, and the app's own cutover was split from building i
   `gh-readonly-queue/*` and `mockup/*` with `12002 Invalid request body`, although the docs
   show prefix wildcards — so merge-queue and mockup branches do start preview builds here, which
   the Pages app's own rules had excluded while it existed (#266).
-  ⚠ **`ladle:build` points SWC's native cache at `/tmp`.** Ladle compiles with `@swc/core`,
-  whose addon unpacks itself into `~/.cache` and refuses a cache whose parent another user can
-  write without a sticky bit. The build image's `/opt/buildhome` became one on 2026-11-13, and
-  every playground build failed with `ERR_SWC_NATIVE_CACHE` before Ladle ran. `/tmp` is sticky.
-  Where it is not, SWC falls back to the user cache, so a local build is unaffected.
+  ⚠ **`@swc/core` must stay at 1.16.18 or newer.** Ladle compiles with it, and its addon
+  unpacks itself into `~/.cache`, refusing a cache root whose parent another user can write
+  without a sticky bit. The build image's `/opt/buildhome` became one on 2026-11-13, and every
+  playground build died with `ERR_SWC_NATIVE_CACHE` before Ladle ran (#401). 1.16.18 stopped
+  refusing it. Nothing in this repo pins the version, so only `pnpm-lock.yaml` holds that floor.
 
 Two deploy files live in `public/`, copied into both build outputs, and both govern both sites:
 
