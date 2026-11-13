@@ -8,6 +8,7 @@ import { ChevronLeft, ChevronRight, X } from 'lucide-react'
 
 import { Button } from '@/components/atoms/Button'
 import { DrawerHeader } from '@/components/atoms/Drawer'
+import { TitleSkeleton } from '@/components/molecules/Skeleton'
 import { eventQuery, eventTitlesQuery, regionsQuery } from '@/config/api'
 import { useWidgetMode } from '@/config/mode'
 import { useIsWideWidget } from '@/config/responsive'
@@ -217,6 +218,11 @@ export type NavHeaderProps = {
   breadcrumbs?: boolean
   /** An overlay over a view still on screen: a title and an X, with no Back row. */
   overlay?: boolean
+  /**
+   * The title is still on its way: a placeholder line stands in its place, at its height, so a
+   * loading state can render the view's own header and nothing moves when the name lands.
+   */
+  titlePending?: boolean
 }
 
 /**
@@ -231,6 +237,7 @@ export function NavHeader({
   actions,
   breadcrumbs = false,
   overlay = false,
+  titlePending = false,
 }: NavHeaderProps) {
   if (overlay) {
     return (
@@ -244,7 +251,7 @@ export function NavHeader({
   return (
     <DrawerHeader stacked>
       <NavRow>{actions}</NavRow>
-      {title && <DrawerTitle title={title} />}
+      {title ? <DrawerTitle title={title} /> : titlePending && <TitleSkeleton />}
       {breadcrumbs && <Breadcrumbs />}
       {subtitle && <div className="truncate text-sm text-gray-11">{subtitle}</div>}
     </DrawerHeader>

@@ -585,10 +585,18 @@ export function EmptyEventList() {
 // conditions. Only the close button persists a session-scoped dismissal. Accepting merely
 // navigates. The prompt self-hides while the visitor views that area, but returns once they
 // leave it.
-export function useIpSuggestion(region?: {
-  center?: [number, number] | null
-  countryCode?: string | null
-}) {
+export function useIpSuggestion(
+  region?: {
+    center?: [number, number] | null
+    countryCode?: string | null
+  },
+  /**
+   * `cacheOnly`: answer from what is already cached, starting neither the IP lookup nor the feed
+   * read — for a loading placeholder that asks whether the page it stands in for will show the
+   * suggestion.
+   */
+  { cacheOnly = false }: { cacheOnly?: boolean } = {},
+) {
   const navigate = useAtlasNavigate()
   const [searchParams] = useSearchParams()
   const [dismissed, setDismissed] = useState(readGeolocationDismissed)
@@ -596,13 +604,14 @@ export function useIpSuggestion(region?: {
   // place search is already active — so those cases never ping the third-party
   // service.
   const activeSearch = hasActivePlaceSearch(searchParams)
-  const ipLocation = useIpLocation(!dismissed && !activeSearch)
+  const ipLocation = useIpLocation(!cacheOnly && !dismissed && !activeSearch)
 
   // The cached event feed powers the "is anything actually near?" guard.
   const { data: geojson } = useQuery({
     queryKey: ['geojson'],
     queryFn: () => api.getGeojson(),
     staleTime: GEOJSON_STALE_TIME,
+    enabled: !cacheOnly,
   })
 
   const show = useMemo(

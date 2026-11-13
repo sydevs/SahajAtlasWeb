@@ -17,7 +17,6 @@ import {
   FieldSkeleton,
   ListSkeleton,
   ListToolbar,
-  TitleSkeleton,
 } from '@/components/molecules'
 import { eventQuery, eventTitlesQuery, regionQuery, regionsQuery } from '@/config/api'
 import { GEOJSON_QUERY_KEY } from '@/config/api/fetch'
@@ -35,17 +34,19 @@ import {
   resolveStack,
   submitTitleKey,
 } from '@/lib/shape'
+import { ClassHeader } from '@/components/organisms/EventDetails/EventHeader'
 import { LOADING_ATTR } from '@/views/DrawerStack/use-fit-snap'
-import { BackButton, Breadcrumbs, NavHeader, NavRow } from '@/views/nav'
+import { CountriesHeader } from '@/views/CountriesView/CountriesHeader'
+import { RegionHeader } from '@/views/RegionView/RegionHeader'
+import { BackButton, NavHeader, NavRow } from '@/views/nav'
 import {
   ExpandSheetButton,
   CalendarButton,
-  DrawerTitle,
   FilterButton,
-  MapButton,
   SearchButton,
   SearchField,
   useDrawerControl,
+  useIpSuggestion,
 } from '@/views/shared'
 
 /**
@@ -306,26 +307,9 @@ const LOADING = { [LOADING_ATTR]: '' }
 
 /** The first screen loading: CountriesView's own header, then its field and its country list. */
 function HomeLoading() {
-  const { t } = useTranslation()
-  const { collapsed } = useDrawerControl()
-
   return (
     <>
-      <DrawerHeader>
-        <div className="min-w-0 flex-1">
-          <DrawerTitle
-            title={t('common.chrome.widget_label', { defaultValue: 'Free meditation classes' })}
-          />
-        </div>
-        {collapsed ? (
-          <ExpandSheetButton />
-        ) : (
-          <div className="flex items-center gap-1">
-            <MapButton />
-            <FilterButton iconOnly isLast />
-          </div>
-        )}
-      </DrawerHeader>
+      <CountriesHeader />
       <DrawerBody>
         <div {...LOADING}>
           <FieldSkeleton prompt className="mx-gutter mb-2" />
@@ -337,15 +321,23 @@ function HomeLoading() {
 }
 
 /**
- * A place loading: RegionView's header (the Back row and the calendar work already, and the name
- * shows once it is known — a country's at once), its field and Filters row, then its list: class
- * cards where classes are coming, place rows where places are. A place's Online classes is a list
- * of classes under its title.
+ * A place loading: RegionView's own header (`RegionHeader` — the Back row and the calendar work
+ * already, the name shows once it is known, a country's at once, and the line under it as the page
+ * will say it), its field and Filters row, then its list: class cards where classes are coming,
+ * place rows where places are. A country's field carries the location prompt only when the page
+ * will show one, as far as the cache can already tell. A place's Online classes is a list of
+ * classes under its title.
  */
 function PlaceLoading({ entry }: { entry: Extract<StackEntry, { kind: 'region' | 'online' }> }) {
   const { t } = useTranslation()
   const { regionNames: displayNames } = useLocale()
   const { data: regions } = useQuery({ ...regionsQuery(), enabled: false })
+  const countryCode = entry.kind === 'region' ? isoCountryCode(entry.slug) : undefined
+  // Only a country offers the visitor's own town under the field, and only when the guess is in
+  // and leads somewhere. Read from the cache: a loading state starts no lookup of its own.
+  const prompt =
+    Boolean(useIpSuggestion(countryCode ? { countryCode } : undefined, { cacheOnly: true })) &&
+    Boolean(countryCode)
 
   if (entry.kind === 'online') {
     return (
@@ -363,22 +355,21 @@ function PlaceLoading({ entry }: { entry: Extract<StackEntry, { kind: 'region' |
   const node = regions?.find(({ slug }) => slug === entry.slug)
   const code = isoCountryCode(entry.slug)
   // RegionView's own heading for a country, which needs no region tree.
-  const name = (code && displayNames.of(code)) || node?.name
+  const name = (code && displayNames.of(code)) || node?.name || undefined
   // Before the region tree arrives, the route guesses: nothing three levels down lists places.
   const places = node ? listsPlaces(node.level) : entry.path.split('/').filter(Boolean).length < 3
 
   return (
     <>
-      <DrawerHeader stacked>
-        <NavRow>
-          <CalendarButton regionSlug={entry.slug} />
-        </NavRow>
-        {name ? <DrawerTitle title={name} /> : <TitleSkeleton />}
-        <Breadcrumbs />
-      </DrawerHeader>
+      <RegionHeader
+        level={node?.level}
+        listsClasses={!places}
+        ownSubtitle={node?.subtitle}
+        slug={entry.slug}
+        title={name}
+      />
       <DrawerToolbar>
-        {/* A country page offers the visitor's own town under the field. */}
-        <FieldSkeleton className="px-gutter pb-2" prompt={Boolean(isoCountryCode(entry.slug))} />
+        <FieldSkeleton className="px-gutter pb-2" prompt={prompt} />
         <ListToolbar>
           <FilterButton />
         </ListToolbar>
@@ -393,7 +384,8 @@ function PlaceLoading({ entry }: { entry: Extract<StackEntry, { kind: 'region' |
 }
 
 /**
- * A class loading: EventView's header (the Back row, then the title once anything has it), then
+ * A class loading: EventView's own header (`ClassHeader` — the Back row, then the title once
+ * anything has it), then
  * its page as placeholders. On the phone sheet Register pins to the screen's foot when the class
  * arrives, so the placeholder leaves it out there.
  */
@@ -404,14 +396,7 @@ function ClassLoading({ id }: { id: number }) {
 
   return (
     <>
-      <DrawerHeader stacked>
-        <NavRow />
-        {title ? (
-          <h1 className="line-clamp-3 text-xl break-words">{title}</h1>
-        ) : (
-          <TitleSkeleton lines={2} />
-        )}
-      </DrawerHeader>
+      <ClassHeader nav={<NavRow />} title={title} />
       <DrawerBody>
         <div {...LOADING}>
           <EventSkeleton actions={isWide || !hasMap} />

@@ -4,10 +4,11 @@ import { Helmet } from 'react-helmet-async'
 import { CircleFlag } from 'react-circle-flags'
 import { useTranslation } from 'react-i18next'
 
+import { CountriesHeader } from './CountriesHeader'
 import { NearMeRow } from './NearMeRow'
 
 import { WmIcon } from '@/components/atoms/Icons/wm'
-import { DrawerBody, DrawerHeader } from '@/components/atoms/Drawer'
+import { DrawerBody } from '@/components/atoms/Drawer'
 import {
   AddClassEntry,
   FallbackPanel,
@@ -31,15 +32,7 @@ import {
   isoCountryCode,
 } from '@/lib/shape'
 import { validateWebUrl } from '@/lib/url'
-import {
-  PanelFilterPills,
-  DrawerTitle,
-  ExpandSheetButton,
-  FilterButton,
-  MapButton,
-  useDrawerControl,
-  useFrameOnTop,
-} from '@/views/shared'
+import { PanelFilterPills, useFrameOnTop } from '@/views/shared'
 
 // The base view, at route `/`. It opens on the ways to reach a class near the visitor (near me,
 // then a town search), then online classes, and only then the global country list. It renders as inner content of the persistent drawer — DrawerStack owns
@@ -48,7 +41,6 @@ import {
 export function CountriesView() {
   const { t } = useTranslation()
   const { regionNames } = useLocale()
-  const { collapsed } = useDrawerControl()
   const { standalone } = useWidgetMode()
   const { reset } = useMapController()
   // A shared link can carry filters (`/?days=2`). The map already applies them to its pins, so
@@ -117,22 +109,7 @@ export function CountriesView() {
           {canonicalUrl && <meta content={canonicalUrl} property="og:url" />}
         </Helmet>
       )}
-      {/* The country list is a browse index, not a filterable results list. So its filter
-          access lives as an icon control in the header, not a list toolbar. Sorting a country
-          index is meaningless, so there is no sort menu here. */}
-      <DrawerHeader>
-        <div className="min-w-0 flex-1">
-          <DrawerTitle title={t('common.chrome.widget_label')} />
-        </div>
-        {collapsed ? (
-          <ExpandSheetButton />
-        ) : (
-          <div className="flex items-center gap-1">
-            <MapButton />
-            <FilterButton iconOnly isLast />
-          </div>
-        )}
-      </DrawerHeader>
+      <CountriesHeader />
       <DrawerBody>
         <NearMeRow />
         <PanelFilterPills />

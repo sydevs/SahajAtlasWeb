@@ -40,10 +40,9 @@ import {
   parentOf,
 } from '@/lib/shape'
 import { validateWebUrl } from '@/lib/url'
-import { NavHeader } from '@/views/nav'
+import { RegionHeader } from '@/views/RegionView/RegionHeader'
 import {
   PanelFilterPills,
-  CalendarButton,
   EmptyEventList,
   FilterButton,
   GeolocationSuggestion,
@@ -120,12 +119,6 @@ export function RegionView({ slug }: { slug: string }) {
   // no button on an error page could help here (issue #89). So the drawer says so plainly,
   // instead of rendering an empty <List>.
   const isEmpty = region.subregions.length === 0 && !hasEventList
-  // "All events are free" is the subtitle FALLBACK. It states this once per list — no Free
-  // chip repeats on cards — but only where events are actually listed. A city's own subtitle
-  // takes the slot when present.
-  const subheader =
-    (region.level === 'city' ? region.subtitle : undefined) ??
-    (hasEventList ? t('common.chrome.all_classes_free') : undefined)
 
   // A place with one class opens it: a list of one is an extra tap (Anton, 6 Nov). Only while
   // this view is the page on screen, not while it plays its exit. Reached by climbing out of that
@@ -155,10 +148,11 @@ export function RegionView({ slug }: { slug: string }) {
       )}
       {/* The calendar opens pre-scoped to this region. Filters and Sort sit in the row under the
           search field, as on the search results, on every page but the world view (Anton, 6 Nov). */}
-      <NavHeader
-        breadcrumbs
-        actions={<CalendarButton regionSlug={region.slug} />}
-        subtitle={subheader}
+      <RegionHeader
+        level={region.level}
+        listsClasses={hasEventList}
+        ownSubtitle={region.subtitle}
+        slug={region.slug}
         title={header}
       />
       {/* The field at every level, not an icon that leads to it. The location guess sits under

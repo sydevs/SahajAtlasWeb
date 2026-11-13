@@ -1,15 +1,41 @@
 import type { ReactNode } from 'react'
 
 import { DrawerHeader } from '@/components/atoms/Drawer'
+import { TitleSkeleton } from '@/components/molecules/Skeleton'
 import { useListingTitle } from '@/hooks/use-event-display'
 import { Event } from '@/types'
 
-export type EventHeaderProps = {
-  event: Event
+export type ClassHeaderProps = {
+  /** The class's title, or nothing while it is still on its way (two placeholder lines). */
+  title?: string
   /** The row above the title: the way back. */
   nav?: ReactNode
   /** The line below the title: where this class sits. */
   below?: ReactNode
+}
+
+/**
+ * A class page's header, from its title alone: the way back, the title, and the line below it.
+ * `EventHeader` renders it for a loaded class, and the class's loading placeholder
+ * (`views/fallbacks`) renders it with the title it can already tell, or placeholder lines where
+ * the title will go, so the header keeps its height and its type when the page arrives.
+ */
+export function ClassHeader({ title, nav, below }: ClassHeaderProps) {
+  return (
+    <DrawerHeader stacked>
+      {nav}
+      {title ? (
+        <h1 className="line-clamp-3 text-xl break-words">{title}</h1>
+      ) : (
+        <TitleSkeleton lines={2} />
+      )}
+      {below}
+    </DrawerHeader>
+  )
+}
+
+export type EventHeaderProps = Omit<ClassHeaderProps, 'title'> & {
+  event: Event
 }
 
 /**
@@ -22,11 +48,5 @@ export type EventHeaderProps = {
 export function EventHeader({ event, nav, below }: EventHeaderProps) {
   const title = useListingTitle(event)
 
-  return (
-    <DrawerHeader stacked>
-      {nav}
-      <h1 className="line-clamp-3 text-xl break-words">{title}</h1>
-      {below}
-    </DrawerHeader>
-  )
+  return <ClassHeader below={below} nav={nav} title={title} />
 }
