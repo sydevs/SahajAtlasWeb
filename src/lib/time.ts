@@ -268,25 +268,22 @@ const inBrowserRegion = (language: string, browser: string): string | null => {
 const regional = new Map<string, string>()
 
 /**
- * The locale to format dates and times in: the visitor's own regional variant when its language
- * is the one on screen, so an English page reads "Tue, 10 Nov" and "19:30" for a browser set to
- * en-GB, and "Tue, Nov 10" and "7:30 PM" for en-US. The interface's language alone says nothing
- * about the region. A browser in another language keeps the interface's words, in the region and
- * on the clock of its first language (`inBrowserRegion`): a Czech or Brazilian browser reads
- * "17:45" on an English page, not "5:45 PM".
+ * The locale to format dates and times in. The browser's FIRST language decides, as it does for
+ * `toLocaleTimeString()`: an English page reads "Tue, 10 Nov" and "19:30" for a browser set to
+ * en-GB, and "Tue, Nov 10" and "7:30 PM" for en-US. A browser whose first language is another
+ * keeps the interface's words, in that language's region and on its clock (`inBrowserRegion`): a
+ * Czech or German browser reads "17:45" on an English page, not "5:45 PM", though Chrome and
+ * Firefox list en-US after the visitor's own language by default.
  */
 export function regionalLocale(
   locale: string,
   browserLocales: readonly string[] = typeof navigator === 'undefined' ? [] : navigator.languages,
 ): string {
   const language = locale.split('-')[0].toLowerCase()
-  const match = browserLocales.find((tag) => tag.split('-')[0].toLowerCase() === language)
-
-  if (match) return match
-
   const [first] = browserLocales
 
   if (!first) return locale
+  if (first.split('-')[0].toLowerCase() === language) return first
 
   const key = `${locale}|${first}`
   let found = regional.get(key)

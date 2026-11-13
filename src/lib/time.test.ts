@@ -262,8 +262,18 @@ describe('regionalLocale', () => {
     expect(regionalLocale('pt-BR', ['pt-PT'])).toBe('pt-PT')
   })
 
-  it('reads past a first language that does not match', () => {
-    expect(regionalLocale('en', ['fr-FR', 'en-AU'])).toBe('en-AU')
+  // Chrome and Firefox list en-US after the visitor's own language by default, so an English entry
+  // further down says nothing about the clock they read.
+  it("follows the browser's first language, not an English one further down", () => {
+    const time = (browsers: string[]) =>
+      norm(formatTime(wallClock(17, 45), regionalLocale('en', browsers)))
+
+    expect(regionalLocale('en', ['fr-FR', 'en-AU'])).toBe('en-FR')
+    expect(regionalLocale('en', ['de-DE', 'de', 'en-US', 'en'])).toBe('en-DE')
+    expect(time(['de-DE', 'de', 'en-US', 'en'])).toBe('17:45')
+    expect(time(['fr-FR', 'fr', 'en-US', 'en'])).toBe('17:45')
+    expect(time(['de', 'en-US', 'en'])).toBe('17:45')
+    expect(time(['en-US', 'de-DE'])).toBe('5:45 PM')
   })
 
   it('keeps the interface locale when the browser names no language', () => {
