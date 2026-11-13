@@ -50,12 +50,12 @@ describe('buildScale', () => {
   })
 
   it('caps a near-white solid so it stays visible on the light canvas', () => {
-    expect(parse(buildScale('#fafafa', 'light')[9]).l).toBeLessThanOrEqual(70)
+    expect(parse(buildScale('#fafafa', 'light')[9]).l).toBeLessThanOrEqual(80)
   })
 
-  it('keeps a solid 20 from the far extreme, and says so', () => {
+  it('keeps a solid off the far extreme, and says so', () => {
     // A grey has no colour to lift, so only the far margin moves it.
-    expect(parse(buildScale('#f5f5f5', 'dark')[9]).l).toBeLessThanOrEqual(80)
+    expect(parse(buildScale('#f5f5f5', 'dark')[9]).l).toBeLessThanOrEqual(90)
     expect(parse(buildScale('#0a0a0a', 'light')[9]).l).toBeGreaterThanOrEqual(20)
     expect(paletteReport({ primary: '#f5f5f5' }).primary?.darkAdjustedBy).toContain('near-white')
     expect(paletteReport({ primary: '#0a0a0a' }).primary?.lightAdjustedBy).toContain('near-black')

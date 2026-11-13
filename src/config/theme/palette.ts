@@ -137,16 +137,14 @@ const NOTICEABLE_LIFT = 10
 const chromaOf = (saturation: number, lightness: number) =>
   saturation * (1 - Math.abs((2 * lightness) / 100 - 1))
 
-// The band step 9, the solid, is held inside, per mode. The side facing the canvas
-// keeps a brand visible on its own page: at most 70 on white, at least 60 on dark.
-// The far side keeps it 20 from the opposite extreme, so a brand never reaches
-// near-black on the white page or near-white on the dark one (`near-black`,
-// `near-white`).
-const FAR_MARGIN = 20
-
+// The band step 9, the solid, is held inside, per mode: light 20–80, dark 60–90.
+// The darker edge keeps a brand off near-black on the white page and visible on the
+// dark one; the lighter edge keeps it off near-white on either. `surface` then
+// darkens whatever is still too pale for the white page. A move past the far edge
+// is reported as `near-black` (light) or `near-white` (dark).
 const TONE_RANGE: Record<ThemeMode, readonly [number, number]> = {
-  light: [FAR_MARGIN, 70],
-  dark: [60, 100 - FAR_MARGIN],
+  light: [20, 80],
+  dark: [60, 90],
 }
 
 // The page and panel surface, `--background`, uses the ladder's app-background step.
