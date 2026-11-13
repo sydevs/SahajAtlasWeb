@@ -77,6 +77,36 @@ describe('BrandTheme', () => {
     expect(document.documentElement.style.getPropertyValue('--primary-9')).toBe('')
   })
 
+  it('lets a cleared role show the default rather than the saved colour', () => {
+    // A SahajCloud preview sends `null` for a colour the manager reset. Falling
+    // through to the client record would repaint the colour the reset undid.
+    const client = new QueryClient({
+      defaultOptions: { queries: { retry: false, staleTime: Infinity } },
+    })
+
+    client.setQueryData(['client', 'key'], { color1: '#64032e' })
+
+    const host = document.createElement('div')
+
+    document.body.append(host)
+
+    const root = createRoot(host)
+
+    act(() =>
+      root.render(
+        <QueryClientProvider client={client}>
+          <BrandTheme apiKey="key" palette={{ primary: null }}>
+            <Probe />
+          </BrandTheme>
+        </QueryClientProvider>,
+      ),
+    )
+    cleanup = () => act(() => root.unmount())
+
+    expect(seen.at(-1)?.primary).toBeNull()
+    expect(document.documentElement.style.getPropertyValue('--primary-9')).toBe('')
+  })
+
   it('hands down the same object while the seeds do not change', () => {
     const render = mount({ primary: '#64032e' })
 
@@ -116,13 +146,11 @@ describe('the wiring', () => {
     const source = readRepoSource('src/components/organisms/Mapbox/Map.tsx')
 
     expect(source).toContain('useBrandPalette()')
-    expect(source).toContain('markerColors(palette, theme)')
-    // The mode too: the art's outline is fixed per basemap, and `markerColors`
-    // carries no mode for an unbranded embed.
-    expect(source).toContain('registerMarkerImages(mapbox, colors, theme)')
+    expect(source).toContain('markerColors(palette)')
+    expect(source).toContain('registerMarkerImages(mapbox, colors)')
     // The colors are a dependency, so a palette change re-registers. Asserted as
     // its own literal rather than one regex spanning both, which would also pin
     // the whitespace between them — Prettier's to choose, not this spec's.
-    expect(source).toContain('}, [mapbox, colors, theme])')
+    expect(source).toContain('}, [mapbox, colors])')
   })
 })

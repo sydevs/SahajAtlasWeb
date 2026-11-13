@@ -33,7 +33,7 @@ describe('buildScale', () => {
     }
   })
 
-  it('makes step 9 the brand solid: respects seed hue + lightness, caps saturation', () => {
+  it('makes step 9 the brand solid: respects seed hue + lightness, sets saturation', () => {
     // Dark maroon stays dark. Its saturation, about 94%, is capped to the muted register.
     const maroon = parse(buildScale('#64032e', 'light')[9])
 
@@ -41,16 +41,24 @@ describe('buildScale', () => {
     expect(maroon.l).toBe(20) // the seed's own lightness, preserved
     expect(maroon.s).toBe(60) // capped from 94
 
-    // A muted seed keeps its low saturation (not pushed up to the cap).
-    expect(parse(buildScale('#82b1ae', 'light')[9]).s).toBe(23)
+    // A muted seed is lifted to the floor, so it still reads as a colour.
+    expect(parse(buildScale('#82b1ae', 'light')[9]).s).toBe(40)
   })
 
-  it('keeps a near-neutral seed neutral (the cap leaves low saturation alone)', () => {
+  it('keeps a seed with no hue neutral (there is no colour to lift)', () => {
     expect(parse(buildScale('#333333', 'light')[9]).s).toBeLessThan(10)
   })
 
   it('caps a near-white solid so it stays visible on the light canvas', () => {
-    expect(parse(buildScale('#fafafa', 'light')[9]).l).toBeLessThanOrEqual(70)
+    expect(parse(buildScale('#fafafa', 'light')[9]).l).toBeLessThanOrEqual(80)
+  })
+
+  it('keeps a solid off the far extreme, and says so', () => {
+    // A grey has no colour to lift, so only the far margin moves it.
+    expect(parse(buildScale('#f5f5f5', 'dark')[9]).l).toBeLessThanOrEqual(90)
+    expect(parse(buildScale('#0a0a0a', 'light')[9]).l).toBeGreaterThanOrEqual(20)
+    expect(paletteReport({ primary: '#f5f5f5' }).primary?.darkAdjustedBy).toContain('near-white')
+    expect(paletteReport({ primary: '#0a0a0a' }).primary?.lightAdjustedBy).toContain('near-black')
   })
 
   it('floors a near-black solid so it stays visible on the dark canvas', () => {
@@ -103,7 +111,7 @@ describe('applyPalette', () => {
     const solid = parse(props.get('--primary-9')!)
 
     expect(solid.h).toBe(333) // hue preserved
-    expect(solid.s).toBe(60) // capped saturation
+    expect(solid.s).toBe(60) // the brand saturation
     expect(solid.l).toBe(60) // lifted from the seed's dark 20 to the dark minimum
   })
 
@@ -119,16 +127,16 @@ describe('applyPalette', () => {
   it('derives the background surface from the ladder app-bg step (both modes)', () => {
     const light = fakeRoot()
 
-    // Hue and capped saturation are honored.
+    // The hue is honored, at the brand saturation.
     // The shade is the ladder's near-white app-background step, not the seed's own 91% lightness.
     applyPalette(light.root, { background: '#f0ece2' }, 'light')
-    expect(light.props.get('--background')).toBe('43 32% 99%')
+    expect(light.props.get('--background')).toBe('43 40% 99%')
 
     // Dark mode now applies too, tinting the near-black app-background step.
     const dark = fakeRoot()
 
     applyPalette(dark.root, { background: '#f0ece2' }, 'dark')
-    expect(dark.props.get('--background')).toBe('43 32% 9%')
+    expect(dark.props.get('--background')).toBe('43 40% 9%')
   })
 
   it('lifts a near-black background seed to a readable light surface (no black panel)', () => {
@@ -188,13 +196,56 @@ describe('the hex accessors', () => {
     expect(stepHex('#64032e', 'light', 8)).toBe('#d9689b')
   })
 
-  it('refuses a seed that is absent, invalid or achromatic', () => {
+  it('refuses a seed that is absent, invalid or the unconfigured sentinel', () => {
     // The refusal `setRole` already makes by writing nothing. Every caller then
-    // keeps its own built-in default rather than painting a grey ramp.
-    for (const seed of [undefined, null, '', 'not-a-color', '#000000', '#ffffff', '#333333']) {
+    // keeps its own built-in default.
+    for (const seed of [undefined, null, '', 'not-a-color', '#000000']) {
       expect(stepHex(seed, 'light', 9)).toBeNull()
       expect(onHex(seed, 'light')).toBeNull()
     }
+  })
+
+  it('paints a grey or white seed as the neutral ramp it is, not the default', () => {
+    // Snapping these to our teal read as the picker ignoring the manager.
+    for (const seed of ['#ffffff', '#f2f2f2', '#333333']) {
+      expect(parse(buildScale(seed, 'light')[9]).s).toBe(0)
+      expect(stepHex(seed, 'light', 9)).not.toBeNull()
+    }
+  })
+
+  it('lifts a near-white seed into a colour on every step, and says so', () => {
+    // HSL calls `#fffdfa` 100% saturated with almost no colour in it, so what
+    // decides the lift is its chroma — and the lift is reported, since it shows.
+    for (const mode of ['light', 'dark'] as const) {
+      const scale = buildScale('#fffdfa', mode)
+
+      for (const step of [3, 9, 11] as const) expect(parse(scale[step]).s).toBe(40)
+    }
+
+    // The solid moves off white far enough to show it, on the dark page too, where
+    // the canvas-side limit alone would leave it near-white.
+    expect(parse(buildScale('#fffdfa', 'dark')[9]).l).toBeLessThanOrEqual(75)
+    expect(paletteReport({ primary: '#fffdfa' }).primary?.darkAdjustedBy).toContain('saturation')
+
+    expect(paletteReport({ primary: '#fffdfa' }).primary?.lightAdjustedBy).toContain('saturation')
+    // Our own teal is already over the floor.
+    expect(paletteReport({ primary: '#1E6C71' }).primary?.lightAdjustedBy).not.toContain(
+      'saturation',
+    )
+  })
+
+  it('reports a band crossing on its own, not off the size of the lift', () => {
+    // Both land past the dark band's far edge. `#ffd6d6` starts near enough the
+    // saturation floor to earn no lift banner, and used to lose `near-white` with it.
+    for (const seed of ['#fffdfa', '#ffd6d6']) {
+      const report = paletteReport({ primary: seed }).primary
+
+      expect(report?.darkAdjustedBy).toContain('near-white')
+    }
+
+    expect(paletteReport({ primary: '#ffd6d6' }).primary?.darkAdjustedBy).not.toContain(
+      'near-black',
+    )
   })
 
   it('gives the solid step a readable on-color', () => {
@@ -303,7 +354,15 @@ describe('paletteReport', () => {
     const report = paletteReport({ contrast: '#d8735a', primary: '#ffff00' })
 
     expect(report.primary?.entered).toBe('#ffff00')
-    expect(report.primary?.adjustedBy).toContain('surface')
+    expect(report.primary?.lightAdjustedBy).toContain('surface')
+  })
+
+  it('reports each mode on its own', () => {
+    // `#ffff00` is too light for the white page and dark enough for the dark one.
+    const report = paletteReport({ primary: '#ffff00' }).primary!
+
+    expect(report.lightAdjustedBy).toContain('surface')
+    expect(report.darkAdjustedBy).not.toContain('surface')
   })
 
   it('offers no suggestion for a role only `panel-text` moved', () => {
@@ -311,7 +370,9 @@ describe('paletteReport', () => {
     // express it, so there is nothing to offer and the CMS shows no button.
     const report = paletteReport({ primary: '#1E6C71' })
 
-    expect(report.primary?.adjustedBy).toEqual(['panel-text'])
+    expect([
+      ...new Set([...report.primary!.lightAdjustedBy, ...report.primary!.darkAdjustedBy]),
+    ]).toEqual(['panel-text'])
     expect(report.primary?.suggested).toBeNull()
   })
 

@@ -44,6 +44,23 @@ cover everything a host would notice since the widget was first deployed.
 
 ### Changed
 
+- **Pins and cluster bubbles are drawn in your brand colour's light-map shade on the dark map
+  too, and lose their black or white outline.** ([#399]) The dark basemap is mid-toned, so the
+  paler shade the panels use on it washed the pins out — and a service whose colours were all
+  pale got pins that looked alike. A bubble keeps its translucent ring as its only edge, and a
+  pin gains a thinner ring of the same kind. Only what the widget paints moves; the colour you
+  stored is unchanged. No change to your CSP, your Permissions Policy or any parameter.
+
+- **A grey, white or black brand colour is now painted as chosen, and a colour with a hue always
+  shows it.** ([#399]) A colourless choice used to be replaced by the built-in teal or orange;
+  now only `#000000`, the old "unconfigured" value, is, and a true grey stays grey. A muted, pale or
+  near-white colour that has a hue is lifted to at least 40% saturation and kept far enough from
+  white or black for that to show, in both modes; a vivid one is toned down to 60% as before. Any
+  colour is also kept between 20 and 80 lightness in light mode and between 60 and 90 in dark
+  mode — except the selected pin's, which is pushed away from the pin colour when the two you
+  chose are too close to tell apart, and may leave that range to do it. Our own default colours
+  are unchanged.
+
 - **Pins, cluster bubbles and area rings now carry a fixed outline, and a brand colour may be
   adjusted so visitors can read it.** ([#392]) The outline is one colour per basemap — dark on
   the light map, pale on the dark one — so nothing about the colour of a pin depends on what the
@@ -53,7 +70,8 @@ cover everything a host would notice since the widget was first deployed.
   that same adjusted colour; the colour you stored is unchanged, and only what the widget paints
   moves. Our own default colours are adjusted by the same rules, so an unbranded embed's panels
   and buttons shift slightly too. No change to your CSP, your Permissions Policy or any
-  parameter.
+  parameter. ⚠ [#399] took the outline off pins and cluster bubbles again; the area ring and its
+  dot keep theirs.
 
 - **A page that _replaces_ `<sahaj-atlas>` now keeps the widget's data too.** ([#349]) [#149] made
   the same element returning keep it; a host that destroys the element and creates a new one still
@@ -1031,6 +1049,7 @@ must-revalidate`, pinned rather than left to the CDN default. The production dom
 [#380]: https://github.com/sydevs/SahajAtlasWeb/pull/380
 [#370]: https://github.com/sydevs/SahajAtlasWeb/pull/370
 [#392]: https://github.com/sydevs/SahajAtlasWeb/pull/392
+[#399]: https://github.com/sydevs/SahajAtlasWeb/pull/399
 [#371]: https://github.com/sydevs/SahajAtlasWeb/pull/371
 [#393]: https://github.com/sydevs/SahajAtlasWeb/issues/393
 [#363]: https://github.com/sydevs/SahajAtlasWeb/pull/363

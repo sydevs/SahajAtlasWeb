@@ -55,7 +55,7 @@ describe('LAYER_IDS', () => {
   })
 
   it('is what every layer identifies itself as', () => {
-    expect(clusterLayer({}, 'light').id).toBe(LAYER_IDS.cluster)
+    expect(clusterLayer({}).id).toBe(LAYER_IDS.cluster)
     expect(boundsLayer({}, 'light').id).toBe(LAYER_IDS.bounds)
     expect(unclusteredPointLayer.id).toBe(LAYER_IDS.unclusteredPoint)
     expect(selectedPointLayer.id).toBe(LAYER_IDS.selectedPoint)
@@ -149,22 +149,19 @@ describe('the vague-place layers', () => {
 })
 
 describe('clusterLayer', () => {
-  for (const mode of ['light', 'dark'] as const) {
-    it(`counts in white on the stock bubble in ${mode}`, () => {
-      expect(paintOf(clusterLayer({}, mode))['text-color']).toBe('#FFFFFF')
-      expect(paintOf(clusterLayer({ primary: '#000000' }, mode))['text-color']).toBe('#FFFFFF')
-    })
-  }
+  it('counts in white on the stock bubble', () => {
+    expect(paintOf(clusterLayer({}))['text-color']).toBe('#FFFFFF')
+    expect(paintOf(clusterLayer({ primary: '#000000' }))['text-color']).toBe('#FFFFFF')
+  })
 
   it('takes the on-color of the bubble it sits on', () => {
-    // The bubble is `primary` step 9, so the count follows that ramp: white on
-    // the dark maroon solid, black on the lighter one dark mode floors it to.
-    expect(paintOf(clusterLayer({ primary: MAROON }, 'light'))['text-color']).toBe('#ffffff')
-    expect(paintOf(clusterLayer({ primary: MAROON }, 'dark'))['text-color']).toBe('#000000')
+    // The bubble is `primary`'s light-mode step 9 in both modes, so the count
+    // follows that ramp: white on the dark maroon solid.
+    expect(paintOf(clusterLayer({ primary: MAROON }))['text-color']).toBe('#ffffff')
   })
 
   it('ignores the other roles', () => {
-    const layer = clusterLayer({ contrast: MAROON, secondary: MAROON }, 'light')
+    const layer = clusterLayer({ contrast: MAROON, secondary: MAROON })
 
     expect(paintOf(layer)['text-color']).toBe('#FFFFFF')
   })
@@ -185,12 +182,10 @@ describe('clusterLayer', () => {
   // 4.58:1, so a seed landing near it passes here at about 4.2 on screen.
   // Blending needs a basemap colour this lane has no business asserting.
   it('keeps the count legible on the bubble markerColors fills', () => {
-    for (const mode of ['light', 'dark'] as const) {
-      const { fill } = markerColors({ primary: MAROON }, mode)[MARKER_IDS.cluster]
-      const label = paintOf(clusterLayer({ primary: MAROON }, mode))['text-color'] as string
+    const { fill } = markerColors({ primary: MAROON })[MARKER_IDS.cluster]
+    const label = paintOf(clusterLayer({ primary: MAROON }))['text-color'] as string
 
-      expect(colord(fill).contrast(label)).toBeGreaterThanOrEqual(4.5)
-    }
+    expect(colord(fill).contrast(label)).toBeGreaterThanOrEqual(4.5)
   })
 })
 

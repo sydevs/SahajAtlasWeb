@@ -49,32 +49,29 @@ The map is the heart of the app and its hottest render path. Treat it carefully.
   re-fires the event per missing id **per tile batch**, and the warm path must
   add the image _synchronously_ inside the handler, or the new style's first
   frame paints pinless.
-- **Every pin, bubble, ring and dot carries a fixed outline for the basemap it is
-  drawn on** (#389), so no brand colour is ever measured against the map and a
-  service's own colour survives onto it unchanged. `MARKER_OUTLINE` and the
-  `BASEMAP_SURFACES` it was measured against live in `markers.ts`;
-  `markers.outline.test.ts` holds both against ≥ 3:1, since a style swap would
-  otherwise dissolve the pins into a basemap that renders perfectly.
+- **A pin and a bubble carry their own translucent ring; only the vague ring and dot
+  carry a fixed outline** (#389). The bubble's ring is its whole edge, and a pin has a
+  thinner ring of the same colour and opacity, drawn behind the head. A black or white
+  outline on either clashed with that ring. `MARKER_OUTLINE` and the
+  `BASEMAP_SURFACES` it was measured against live in `markers.ts`, for the vague
+  layers; `markers.outline.test.ts` holds both against ≥ 3:1.
   ⚠ **Dark edge on the light map, pale edge on the dark one.** The dark style is
   mid-toned and its land is lighter than its water. Do not swap them.
-  ⚠ **The mode is an argument to `markerImages`, not to `markerColors`**, which
-  returns the shared `DEFAULT_MARKER_COLORS` object by identity for an unbranded
-  embed and carries no mode at all — so an unbranded embed is outlined too.
-- **The four images carry the tenant's colors** (#17). `markerColors(palette,
-  mode)` derives them from the palette `BrandTheme` resolved and hands down
+- **The marks take the LIGHT-mode palette in both modes** (`MARKER_MODE`). The dark
+  basemap is mid-toned and washed out, so a dark-mode solid — lifted to read on the
+  near-black panel — washed out on it. So `markerColors`, `markerImages`,
+  `registerMarkerImages` and `clusterLayer` take no mode, and the stock art is one
+  set of four images whichever basemap is up.
+- **The four images carry the tenant's colors** (#17). `markerColors(palette)`
+  derives them from the palette `BrandTheme` resolved and hands down
   (`config/theme/brand-palette.ts`) — the pin and cluster from `primary` step 9,
-  the selected pair from `contrast` step 9, each cluster ring from its own fill.
+  the selected pair from `contrast` step 9, each ring from its own fill.
   It reads them through `buildPalette`, not `stepHex`, so the selected pin carries
   `selected-distinct` — the check that keeps it from matching every pin around it.
   ⚠ **A role with no usable seed keeps the `markers.ts` constants verbatim.**
   Deriving them from `DEFAULT_SEEDS` instead changes every unbranded embed's
   pin, in both modes; `markers.test.ts` freezes the four stock SVGs byte for
   byte against exactly that.
-  ⚠ **The stock art is no longer identical in both modes** (#389) — its outline
-  is per-basemap — so an unbranded embed holds eight cache entries rather than
-  four, and its first theme switch decodes instead of answering warm. The
-  `shortcut:` note beside `artKey` carries that cost and the second one the
-  `clients` preview session adds.
 - **Every cache is keyed by the id AND its colors**, and a live map is
   repainted with **`removeImage` then `addImage`**. A second `addImage` alone
   makes Mapbox fire an `error` event. ⚠ `map.updateImage` looks right and is

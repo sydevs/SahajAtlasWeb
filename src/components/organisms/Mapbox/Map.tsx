@@ -324,14 +324,12 @@ export function Mapbox({ cooperative = false }: { cooperative?: boolean } = {}) 
   // every `styledata` event, so a factory called in the JSX below would rebuild
   // a ramp per tile batch. `docs/rules/mapbox.md` states the rule.
   //
-  // The mode is inside each derivation, since every step is mode-aware, so a
-  // light/dark switch repaints through the same dependency a palette change
-  // does. ⚠ The art's outline is per-basemap, so the registration below takes
-  // the mode as well — an unbranded embed's colours still re-run nothing, but
-  // its images are no longer identical in both modes.
+  // The pins, bubbles and count take the light-mode palette in both modes
+  // (`MARKER_MODE`), so a light/dark switch repaints only what is mode-aware:
+  // the vague ring and dot's edge, and the debug bounds.
   const palette = useBrandPalette()
-  const colors = useMemo(() => markerColors(palette, theme), [palette, theme])
-  const clusters = useMemo(() => clusterLayer(palette, theme), [palette, theme])
+  const colors = useMemo(() => markerColors(palette), [palette])
+  const clusters = useMemo(() => clusterLayer(palette), [palette])
   const bounds = useMemo(() => boundsLayer(palette, theme), [palette, theme])
   const vagueRing = useMemo(() => vagueRingLayer(palette, theme), [palette, theme])
   const vagueDot = useMemo(() => vagueDotLayer(palette, theme), [palette, theme])
@@ -340,8 +338,8 @@ export function Mapbox({ cooperative = false }: { cooperative?: boolean } = {}) 
   // the why, the theme-switch handling, and the in-place repaint. There is
   // one subscription per map instance and set of colors.
   useEffect(() => {
-    if (mapbox) return registerMarkerImages(mapbox, colors, theme)
-  }, [mapbox, colors, theme])
+    if (mapbox) return registerMarkerImages(mapbox, colors)
+  }, [mapbox, colors])
 
   // This holds the canvas until the camera has arrived somewhere, so a deep
   // link never paints the boot-time world view before jumping off it.

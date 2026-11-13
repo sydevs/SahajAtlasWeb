@@ -78,7 +78,8 @@ describe('the clients preview session', () => {
       type: 'sahaj-atlas:palette-report',
     })
     expect(
-      (message as { roles: { primary: { adjustedBy: string[] } } }).roles.primary.adjustedBy,
+      (message as { roles: { primary: { lightAdjustedBy: string[] } } }).roles.primary
+        .lightAdjustedBy,
     ).toContain('surface')
   })
 
