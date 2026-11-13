@@ -2,7 +2,13 @@ import type { EventSchedule, Weekday } from '@/types'
 
 import { DateTime } from 'luxon'
 
-import { DEFAULT_DURATION, scheduleStart, scheduleTimeZone, withEndTime } from './shape/event'
+import {
+  DEFAULT_DURATION,
+  scheduleDay,
+  scheduleStart,
+  scheduleTimeZone,
+  withEndTime,
+} from './shape/event'
 
 /**
  * A hand-rolled iCalendar (RFC 5545) export, with no runtime dependency. The
@@ -130,16 +136,6 @@ const occurrenceEnd = (start: DateTime, schedule: EventSchedule): DateTime => {
 }
 
 /**
- * The calendar day a date-only wire value means, in the event's zone. The
- * CMS stores date pickers as instants at midnight in *some* zone (UTC or the
- * admin's). Read naively in a zone west of that, the instant lands on the
- * previous local day. Normalizing via noon absorbs any offset up to plus or
- * minus 12 hours.
- */
-const dateOnlyIn = (value: Date, zone: string): DateTime =>
-  DateTime.fromJSDate(value).setZone(zone).plus({ hours: 12 }).startOf('day')
-
-/**
  * The RRULE for a schedule, or null for a one-off. This reads only the fields
  * the discriminators (`recurrenceType`/`monthlyMode`/`endingType`) make
  * meaningful — the CMS form leaves stale values in the rest. `remaining`
@@ -170,9 +166,8 @@ export const buildRrule = (schedule: EventSchedule, remaining?: number): string 
     parts.push(`COUNT=${remaining ?? schedule.count}`)
   } else if (schedule.endingType === 'until' && schedule.untilDate) {
     // UNTIL must be UTC when DTSTART carries a TZID: the end of the until-DAY
-    // in the event's own zone (a date-only value — normalized so a
-    // west-of-UTC zone does not lose the final occurrence).
-    const until = dateOnlyIn(schedule.untilDate, eventZone(schedule)).endOf('day')
+    // in the event's own zone.
+    const until = scheduleDay(schedule.untilDate, schedule).endOf('day')
 
     parts.push(`UNTIL=${utcStamp(until)}`)
   }
@@ -234,15 +229,12 @@ const MAX_EXCLUSION_DAYS = 400
 
 /** The occurrence instants (event-zone) skipped by the exclusion windows. */
 export const exclusionDates = (schedule: EventSchedule): DateTime[] => {
-  const zone = eventZone(schedule)
   const start = seriesStart(schedule)
   const dates: DateTime[] = []
 
   for (const exclusion of schedule.exclusions ?? []) {
-    // Date-only values — normalized so the window lands on the intended days
-    // in zones west of where the CMS stamped the midnight instant.
-    const from = dateOnlyIn(exclusion.startDate, zone)
-    const to = dateOnlyIn(exclusion.endDate ?? exclusion.startDate, zone)
+    const from = scheduleDay(exclusion.startDate, schedule)
+    const to = scheduleDay(exclusion.endDate ?? exclusion.startDate, schedule)
 
     for (
       let day = from, steps = 0;

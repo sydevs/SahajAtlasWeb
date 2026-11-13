@@ -247,6 +247,18 @@ export const scheduleNamesZone = (schedule: EventSchedule | null | undefined): b
 export const scheduleStart = (schedule: EventSchedule): DateTime =>
   DateTime.fromJSDate(schedule.firstDate).setZone(scheduleTimeZone(schedule))
 
+/**
+ * The day a date-only schedule value names (an until date, an exclusion), as the start of that day
+ * on the schedule's own clock. SahajCloud reads the stored instant by its UTC calendar day
+ * (`src/lib/schedule/scheduleHooks.ts` there), and Payload's day picker stores noon UTC on the day
+ * picked, so a reading in the class's zone lands a day late at or east of UTC.
+ */
+export const scheduleDay = (value: Date, schedule: EventSchedule): DateTime => {
+  const { year, month, day } = DateTime.fromJSDate(value, { zone: 'UTC' })
+
+  return DateTime.fromObject({ year, month, day }, { zone: scheduleTimeZone(schedule) })
+}
+
 /** `start` moved to the "HH:MM" `endTime`, or null when unset or malformed. This
  *  is the one place the endTime wire format is parsed. An end strictly before
  *  the start wall-clock rolls to the next day (a 23:00–00:30 session ends

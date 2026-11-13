@@ -117,6 +117,23 @@ describe('buildRrule', () => {
     expect(ny).toBe('FREQ=WEEKLY;BYDAY=WE;UNTIL=20260827T035959Z')
   })
 
+  // Payload's day picker stores noon UTC on the day picked, and SahajCloud reads the UTC date. Read
+  // in the class's zone, noon UTC is already the afternoon at or east of UTC, and went a day late.
+  it('reads a noon-UTC until date by its UTC day, at or east of UTC', () => {
+    const until = (zone: string) =>
+      buildRrule({
+        ...weekly,
+        firstDate_tz: zone,
+        endingType: 'until',
+        untilDate: new Date('2026-08-26T12:00:00Z'),
+      })
+
+    expect(until('Europe/Prague')).toBe('FREQ=WEEKLY;BYDAY=WE;UNTIL=20260826T215959Z')
+    expect(until('Europe/London')).toBe('FREQ=WEEKLY;BYDAY=WE;UNTIL=20260826T225959Z')
+    expect(until('Pacific/Auckland')).toBe('FREQ=WEEKLY;BYDAY=WE;UNTIL=20260826T115959Z')
+    expect(until('America/New_York')).toBe('FREQ=WEEKLY;BYDAY=WE;UNTIL=20260827T035959Z')
+  })
+
   it('ignores stale ending fields the discriminator does not select', () => {
     // The CMS form leaves `count` populated on until-ended schedules.
     expect(
@@ -205,6 +222,20 @@ describe('exclusionDates', () => {
     expect(exclusionDates(ny).map((d) => d.toFormat('yyyy-MM-dd HH:mm'))).toEqual([
       '2026-07-08 19:30',
     ])
+  })
+
+  // A cancelled Wednesday picked in Payload is stored at noon UTC. Read a day late, it named the
+  // Thursday, which the class never meets on, so the downloaded calendar kept the cancelled session.
+  it('skips the day a noon-UTC exclusion names, at or east of UTC', () => {
+    const skipped = (zone: string) =>
+      exclusionDates({
+        ...weekly,
+        firstDate_tz: zone,
+        exclusions: [{ startDate: new Date('2026-07-08T12:00:00Z') }],
+      }).map((d) => d.toFormat('yyyy-MM-dd'))
+
+    expect(skipped('Europe/Prague')).toEqual(['2026-07-08'])
+    expect(skipped('Pacific/Auckland')).toEqual(['2026-07-08'])
   })
 
   it('monthly by-weekday exclusions match the nth weekday only', () => {
