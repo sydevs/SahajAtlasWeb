@@ -152,14 +152,14 @@ export const MARKER_IDS = {
   clusterSelected: 'sy-cluster-selected',
 } as const
 
-/** A cluster bubble's two colors: the solid disc, and the wider translucent ring. */
-type ClusterColors = { fill: string; ring: string }
+/** One mark's two colors: the shape it fills, and the ring around it. */
+type MarkColors = { fill: string; ring: string }
 
 export type MarkerColors = Readonly<{
-  [MARKER_IDS.point]: ClusterColors
-  [MARKER_IDS.pointSelected]: ClusterColors
-  [MARKER_IDS.cluster]: ClusterColors
-  [MARKER_IDS.clusterSelected]: ClusterColors
+  [MARKER_IDS.point]: MarkColors
+  [MARKER_IDS.pointSelected]: MarkColors
+  [MARKER_IDS.cluster]: MarkColors
+  [MARKER_IDS.clusterSelected]: MarkColors
 }>
 
 /** What an embed with no tenant seed renders. */
