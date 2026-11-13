@@ -59,6 +59,18 @@ export const Default: Story = () => (
     </StorySection>
 
     <StorySection
+      description="In Near me's own results, which carry no place line: the distance alone, worded as the class cards beside it word theirs."
+      title="Near me"
+    >
+      <div className="max-w-md overflow-hidden rounded-lg border border-divider">
+        <List>
+          <EventListItem distanceFrom="you" event={{ ...mockEventSlim, distance: 0.8 }} />
+          <EventListItem distanceFrom="you" event={{ ...inactive, distance: 1.4 }} />
+        </List>
+      </div>
+    </StorySection>
+
+    <StorySection
       description="Among ordinary cards, in a place's list."
       inContext={true}
       title="Examples"

@@ -1,4 +1,5 @@
 import type { EventSlim } from '@/types'
+import type { ReactNode } from 'react'
 
 import { CalendarDays, ChevronRight, MapPin } from 'lucide-react'
 
@@ -15,6 +16,8 @@ export interface InactiveListingRowProps {
    * sorted by distance has no row without one.
    */
   placeLine?: string
+  /** How far the listing is from the search, worded as a class's card words it ("1.4 km from you"). */
+  distance?: ReactNode
 }
 
 /**
@@ -25,13 +28,13 @@ export interface InactiveListingRowProps {
  * place of the time and street it doesn't have. The line names no way of getting in touch: the
  * feed doesn't say whether the host gave a phone number or only a website, and the page shows
  * whichever it is. The town is in the title, so no line repeats it, except the `placeLine` a group
- * read by place gives each of its rows. Its language chip still shows when it differs from the
- * visitor's.
+ * read by place gives each of its rows; a row without one carries its `distance` alone. Its
+ * language chip still shows when it differs from the visitor's.
  *
  * Otherwise it behaves like a class's card (`EventListItem`): the whole row opens the listing, and
  * hovering or focusing it marks its area on the map and warms its page (`useEventRowHover`).
  */
-export function InactiveListingRow({ event, placeLine }: InactiveListingRowProps) {
+export function InactiveListingRow({ event, placeLine, distance }: InactiveListingRowProps) {
   const title = useListingTitle(event)
   const { whenLine } = useEventDisplay(event)
   const hover = useEventRowHover(event)
@@ -51,11 +54,19 @@ export function InactiveListingRow({ event, placeLine }: InactiveListingRowProps
             <CalendarDays aria-hidden className="shrink-0 text-gray-11" size={16} />
             {whenLine}
           </div>
-          {placeLine && (
+          {placeLine ? (
             <div className="flex items-center gap-2 text-sm leading-snug font-medium">
               <MapPin aria-hidden className="shrink-0 text-gray-11" size={16} />
               {placeLine}
             </div>
+          ) : (
+            distance && (
+              // Grey and regular, as the distance under a class card's address is.
+              <div className="flex items-center gap-2 text-sm leading-snug text-gray-11">
+                <MapPin aria-hidden className="shrink-0" size={16} />
+                {distance}
+              </div>
+            )
           )}
           <EventChips className="mt-1" event={event} variant="compact" />
         </div>

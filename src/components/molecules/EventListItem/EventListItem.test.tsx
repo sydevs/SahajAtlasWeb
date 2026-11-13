@@ -158,4 +158,24 @@ describe('EventListItem — an inactive listing', () => {
   it('adds no place line where the group gives none', () => {
     expect(render()).not.toContain('lucide-map-pin')
   })
+
+  // Near me's own results pass no place line, only what the distance counts from.
+  it('says how far it is from the visitor, as the class cards beside it do', () => {
+    vi.stubGlobal('navigator', { languages: ['en'] })
+    const near = (props: Partial<Parameters<typeof EventListItem>[0]>) =>
+      renderToStaticMarkup(
+        <MemoryRouter>
+          <EventListItem event={{ ...inactive, eventType: 'offline', distance: 1.4 }} {...props} />
+        </MemoryRouter>,
+      )
+
+    expect(near({ distanceFrom: 'you' })).toContain('event.display.distance_from_you | 1.4 km')
+    expect(near({ distanceFrom: 'you' })).toContain('lucide-map-pin')
+    // A group's place line already carries the distance.
+    expect(near({ distanceFrom: 'you', placeLine: 'Sevenoaks · 1.4 km' })).not.toContain(
+      'event.display.distance_from_you',
+    )
+    expect(near({ distanceFrom: 'centre' })).not.toContain('event.display.distance')
+    vi.unstubAllGlobals()
+  })
 })

@@ -1,3 +1,5 @@
+import type { ReactNode } from 'react'
+
 import { memo } from 'react'
 import { useTranslation } from 'react-i18next'
 import { ChevronRight } from 'lucide-react'
@@ -66,51 +68,68 @@ const MIN_DISTANCE_KM = 5
  * re-render the rows above on every press, which is most of the work and
  * none of the value.
  */
-function EventListItemImpl(props: EventListItemProps) {
-  // An inactive listing has its own card: the flag alone decides it (Devindra, 12 Nov).
-  if (props.event.inactive)
-    return <InactiveListingRow event={props.event} placeLine={props.placeLine} />
+function EventListItemImpl({ event, placeLine, ...from }: EventListItemProps) {
+  const distance = useDistanceLine(event, from)
 
-  return <ClassRow {...props} />
+  // An inactive listing has its own card: the flag alone decides it (Devindra, 12 Nov). It says
+  // how far it is as a class's card does, so a Near me list has no row without a distance.
+  if (event.inactive)
+    return <InactiveListingRow distance={distance} event={event} placeLine={placeLine} />
+
+  return <ClassRow distance={distance} event={event} placeLine={placeLine} />
 }
 
-function ClassRow({
-  event,
-  searchedPlace,
-  placeLine,
-  hideDistance,
-  distanceFrom,
-}: EventListItemProps) {
+/**
+ * This is distance from the SEARCHED location, so it always says from where: "3.6 km from
+ * Brussels", "from the centre" under "In London", or "from you" after Near me (`distanceFrom`).
+ * With no point to name it shows nothing: "away" reads as "from you", and misleads the moment
+ * someone searches a city they are not in. The list container derives the place itself from `?q`
+ * and hands it down (see the prop). It is in the visitor's own units, as the filters' "within
+ * 16 mi" is: miles in the UK and the US.
+ */
+function useDistanceLine(
+  event: EventSlim,
+  {
+    searchedPlace,
+    hideDistance,
+    distanceFrom,
+  }: Pick<EventListItemProps, 'searchedPlace' | 'hideDistance' | 'distanceFrom'>,
+): ReactNode {
   const { t } = useTranslation()
   const { locale } = useLocale()
-  // Hover or focus marks the pin and warms the page (`useEventRowHover`).
-  const hover = useEventRowHover(event)
 
-  const online = isOnline(event)
-
-  // This is distance from the SEARCHED location, so it always says from where: "3.6 km from
-  // Brussels", "from the centre" under "In London", or "from you" after Near me (`distanceFrom`).
-  // With no point to name it shows nothing: "away" reads as "from you", and misleads the moment
-  // someone searches a city they are not in. The list container derives the place itself from
-  // `?q` and hands it down (see the prop). It is in the visitor's own units, as the filters'
-  // "within 16 mi" is: miles in the UK and the US.
   const named = distanceFrom !== undefined || Boolean(searchedPlace)
   const distance =
     named &&
-    !online &&
+    !isOnline(event) &&
     !hideDistance &&
     event.distance !== undefined &&
     (distanceFrom === 'you' || event.distance >= MIN_DISTANCE_KM)
       ? formatDistance(event.distance, regionalLocale(locale))
       : null
-  const distanceText = distance
-    ? distanceFrom === 'you'
-      ? t('event.display.distance_from_you', { distance })
-      : distanceFrom === 'centre'
-        ? t('event.display.distance_from_centre', { distance })
-        : t('event.display.distance_from_place', { distance, place: searchedPlace })
-    : null
-  const distanceLabel = distance ? t('event.display.distance_from_search', { distance }) : undefined
+
+  if (!distance) return null
+
+  const label = t('event.display.distance_from_search', { distance })
+
+  return (
+    <span aria-label={label} title={label}>
+      {distanceFrom === 'you'
+        ? t('event.display.distance_from_you', { distance })
+        : distanceFrom === 'centre'
+          ? t('event.display.distance_from_centre', { distance })
+          : t('event.display.distance_from_place', { distance, place: searchedPlace })}
+    </span>
+  )
+}
+
+function ClassRow({
+  event,
+  placeLine,
+  distance,
+}: Pick<EventListItemProps, 'event' | 'placeLine'> & { distance: ReactNode }) {
+  // Hover or focus marks the pin and warms the page (`useEventRowHover`).
+  const hover = useEventRowHover(event)
 
   return (
     <li>
@@ -125,18 +144,7 @@ function ClassRow({
         href={event.path}
         {...hover}
       >
-        <EventSummary
-          className="flex-1"
-          distance={
-            distanceText && (
-              <span aria-label={distanceLabel} title={distanceLabel}>
-                {distanceText}
-              </span>
-            )
-          }
-          event={event}
-          where={placeLine}
-        />
+        <EventSummary className="flex-1" distance={distance} event={event} where={placeLine} />
         <ChevronRight className="shrink-0 text-gray-9 rtl:-scale-x-100" size={20} />
       </Link>
     </li>
