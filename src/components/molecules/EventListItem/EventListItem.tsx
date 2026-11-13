@@ -68,7 +68,8 @@ const MIN_DISTANCE_KM = 5
  */
 function EventListItemImpl(props: EventListItemProps) {
   // An inactive listing has its own card: the flag alone decides it (Devindra, 12 Nov).
-  if (props.event.inactive) return <InactiveListingRow event={props.event} />
+  if (props.event.inactive)
+    return <InactiveListingRow event={props.event} placeLine={props.placeLine} />
 
   return <ClassRow {...props} />
 }

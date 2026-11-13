@@ -48,6 +48,17 @@ export const Default: Story = () => (
     </StorySection>
 
     <StorySection
+      description="In a group read by place, as other cities are: the town and distance every row there carries."
+      title="In a group read by place"
+    >
+      <div className="max-w-md">
+        <List>
+          <InactiveListingRow event={inactive} placeLine="Cambridge · 49 mi" />
+        </List>
+      </div>
+    </StorySection>
+
+    <StorySection
       description="Among ordinary cards, in a place's list."
       inContext={true}
       title="Examples"

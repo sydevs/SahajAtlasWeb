@@ -137,3 +137,25 @@ describe('EventListItem distance', () => {
     expect(render({ distanceFrom: 'centre' })).toContain('7.5 mi')
   })
 })
+
+describe('EventListItem — an inactive listing', () => {
+  const inactive = { ...mockEventSlim, inactive: true }
+  const render = (placeLine?: string) =>
+    renderToStaticMarkup(
+      <MemoryRouter>
+        <EventListItem event={inactive} placeLine={placeLine} />
+      </MemoryRouter>,
+    )
+
+  // A list sorted by distance should have no row without one.
+  it('carries the town and distance its group gives every row', () => {
+    const html = render('Sevenoaks · 21 mi')
+
+    expect(html).toContain('Sevenoaks · 21 mi')
+    expect(html).toContain('lucide-map-pin')
+  })
+
+  it('adds no place line where the group gives none', () => {
+    expect(render()).not.toContain('lucide-map-pin')
+  })
+})
