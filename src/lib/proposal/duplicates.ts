@@ -3,7 +3,8 @@ import type { EventSchedule, GeoFeature } from '@/types'
 import { DateTime } from 'luxon'
 
 import { distanceKm } from '@/lib/geo'
-import { DEFAULT_DURATION, scheduleTimeZone, withEndTime } from '@/lib/shape'
+import { occursOn } from '@/lib/ics'
+import { DEFAULT_DURATION, scheduleStart, scheduleTimeZone, withEndTime } from '@/lib/shape'
 
 /**
  * Whether a new listing may already be on the map: one check over place AND time together.
@@ -74,11 +75,46 @@ const weeksApart = (a: DateTime, b: DateTime, zone: string) =>
   Math.round(b.setZone(zone).startOf('week').diff(a.setZone(zone).startOf('week'), 'weeks').weeks)
 
 /**
+ * The day a course's last session falls on: its until date, or the day its count runs out.
+ * `null` for a class with no end.
+ */
+const lastDay = (schedule: EventSchedule): DateTime | null => {
+  if (schedule.endingType === 'until' && schedule.untilDate) {
+    return DateTime.fromJSDate(schedule.untilDate).setZone(scheduleTimeZone(schedule))
+  }
+  if (schedule.endingType !== 'count' || !schedule.count) return null
+
+  const first = scheduleStart(schedule).startOf('day')
+  // A week's worth of days per session is past any weekly or daily count, so a pattern that never
+  // lands (bad data) stops there rather than looping.
+  const stop = first.plus({ weeks: schedule.count * Math.max(1, schedule.interval ?? 1) })
+  let held = 0
+  let day = first
+
+  for (; day < stop; day = day.plus({ days: 1 })) {
+    if (occursOn(day, schedule) && ++held === schedule.count) break
+  }
+
+  return day
+}
+
+/** The weeks a schedule meets in, from its first to its last, counted from `origin`'s week. */
+const activeWeeks = (schedule: EventSchedule, origin: DateTime, zone: string): [number, number] => {
+  const last = lastDay(schedule)
+
+  return [
+    weeksApart(origin, scheduleStart(schedule), zone),
+    last ? weeksApart(origin, last, zone) : Infinity,
+  ]
+}
+
+/**
  * Whether two schedules meet at the same time. Two weekly classes clash when they share a
  * weekday and overlapping hours, in a week both meet: one that meets every week always does, so
  * the dates in hand do not matter, and a class starting next month still clashes. Two fortnightly
- * classes on alternate weeks never meet, so they are not duplicates. Any other pair — a monthly or
- * one-off class — clashes only on a date both actually meet.
+ * classes on alternate weeks never meet, so they are not duplicates, and nor does a course that
+ * ends before the other class starts. Any other pair — a monthly or one-off class — clashes only
+ * on a date both actually meet.
  */
 export const schedulesOverlap = (a: EventSchedule, b: EventSchedule): boolean => {
   const ours = sessionsOf(a)
@@ -89,17 +125,36 @@ export const schedulesOverlap = (a: EventSchedule, b: EventSchedule): boolean =>
   if (stepA !== null && stepB !== null) {
     // Both are at the same place, so on the same clock; read on the listed one's to be sure.
     const zone = scheduleTimeZone(b)
-    // `a` meets every `stepA` weeks and `b` every `stepB` from their own weeks, so some week holds
-    // both exactly when the weeks between them are a multiple of the two steps' common divisor.
+    // `a` meets every `stepA` weeks and `b` every `stepB` from their own weeks, so the weeks that
+    // hold both repeat every `lcm` weeks, and some week holds both exactly when the weeks between
+    // them are a multiple of the two steps' common divisor.
     const cycle = gcd(stepA, stepB)
+    const lcm = (stepA / cycle) * stepB
 
-    return ours.some((x) =>
-      theirs.some((y) =>
-        meetingShifts(weekSpan(x, zone), weekSpan(y, zone)).some(
-          (shift) => mod(weeksApart(x.start, y.start, zone) - shift, cycle) === 0,
-        ),
-      ),
-    )
+    return ours.some((x) => {
+      // Weeks counted from `x`'s, so `a` meets in the weeks that are multiples of `stepA`.
+      const [firstA, lastA] = activeWeeks(a, x.start, zone)
+      const [firstB, lastB] = activeWeeks(b, x.start, zone)
+
+      return theirs.some((y) => {
+        const offset = weeksApart(x.start, y.start, zone)
+
+        return meetingShifts(weekSpan(x, zone), weekSpan(y, zone)).some((shift) => {
+          if (mod(offset - shift, cycle) !== 0) return false
+
+          // `b`'s session `shift` weeks on from `a`'s week must fall in a week both still meet.
+          const from = Math.max(firstA, firstB - shift)
+          const to = Math.min(lastA, lastB - shift)
+
+          if (to - from + 1 >= lcm) return true
+          for (let week = from; week <= to; week += 1) {
+            if (mod(week, stepA) === 0 && mod(week + shift - offset, stepB) === 0) return true
+          }
+
+          return false
+        })
+      })
+    })
   }
 
   return ours.some((x) => theirs.some((y) => x.start < y.end && y.start < x.end))

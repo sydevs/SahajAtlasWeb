@@ -56,7 +56,9 @@ const feature = (
 })
 
 /** A new weekly class, starting on a Tuesday in January, 18:00 to 19:30. */
-const draft = (fields: { firstDate?: string; startTime?: string; endTime?: string } = {}) =>
+const draft = (
+  fields: { firstDate?: string; startTime?: string; endTime?: string; endDate?: string } = {},
+) =>
   draftPreviewSchedule({
     firstDate: '2027-01-05',
     startTime: '18:00',
@@ -162,6 +164,30 @@ describe('schedulesOverlap', () => {
 
     expect(schedulesOverlap(oddWeeks, evenWeeks)).toBe(false)
     expect(schedulesOverlap(oddWeeks, sameWeeks)).toBe(true)
+  })
+
+  // A course has an end, so a class at its hours that starts after it never meets it.
+  it('does not flag a course that ends before the new class starts', () => {
+    const course = (ending: Pick<EventSchedule, 'endingType' | 'count' | 'untilDate'>) => ({
+      ...listed('2026-11-03T18:00', { count: 6 }), // Tuesdays 3 Nov to 8 Dec, 18:00–21:00
+      ...ending,
+    })
+    const byDate = course({ endingType: 'until', untilDate: new Date('2026-12-08T12:00:00Z') })
+    const byCount = course({ endingType: 'count', count: 6 })
+    const december = draft({ firstDate: '2026-12-08' })
+
+    expect(schedulesOverlap(draft(), byDate)).toBe(false)
+    expect(schedulesOverlap(draft(), byCount)).toBe(false)
+    // Starting on the course's last evening, it does meet it.
+    expect(schedulesOverlap(december, byDate)).toBe(true)
+    expect(schedulesOverlap(december, byCount)).toBe(true)
+    // Nor does a new course that ends before a listed class starts.
+    expect(
+      schedulesOverlap(
+        draft({ firstDate: '2026-11-03', endDate: '2026-12-01' }),
+        listed('2027-01-05T18:00'),
+      ),
+    ).toBe(false)
   })
 
   it('still flags a fortnightly class against a weekly one on its evening', () => {
