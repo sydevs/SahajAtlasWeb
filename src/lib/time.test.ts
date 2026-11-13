@@ -266,9 +266,30 @@ describe('regionalLocale', () => {
     expect(regionalLocale('en', ['fr-FR', 'en-AU'])).toBe('en-AU')
   })
 
-  it('keeps the interface locale when the browser has no such language', () => {
-    expect(regionalLocale('en', ['fr-FR'])).toBe('en')
+  it('keeps the interface locale when the browser names no language', () => {
     expect(regionalLocale('en', [])).toBe('en')
+  })
+
+  // Devindra (12 Nov): the format familiar for the visitor's locale, as `toLocaleTimeString` gives
+  // it. So a browser in another language keeps its own clock and date order, in English words.
+  it("reads another language's clock and date order, in the interface's words", () => {
+    const time = (browser: string) =>
+      norm(formatTime(wallClock(17, 45), regionalLocale('en', [browser])))
+    const day = (browser: string) =>
+      formatDayHeading(DateTime.fromISO('2026-11-13'), regionalLocale('en', [browser]), {
+        now: DateTime.fromISO('2026-11-01'),
+      })
+
+    expect(time('cs-CZ')).toBe('17:45')
+    expect(day('cs-CZ')).toBe('Friday, 13 Nov')
+    // CLDR has no English for Brazil, which would fall back to US English and its 12-hour clock.
+    expect(time('pt-BR')).toBe('17:45')
+    expect(day('pt-BR')).toMatch(/^Friday/)
+    expect(time('es-MX')).toBe('5:45 PM')
+  })
+
+  it('keeps the interface locale for a browser tag Intl refuses', () => {
+    expect(regionalLocale('en', ['x'])).toBe('en')
   })
 })
 

@@ -245,11 +245,35 @@ export function zoneLabel(zone: string, locale: string, at: Date = new Date()): 
 }
 
 /**
+ * `language` in a browser locale's region, on that locale's clock: `en-CZ` for cs-CZ ("17:45",
+ * "Fri, 13 Nov"). CLDR writes English for many regions but not all, and one it lacks (`en-BR`)
+ * falls back to US English and its 12-hour clock, so the clock is then stated outright
+ * (`en-BR-u-hc-h23`). Null for a tag Intl refuses.
+ */
+const inBrowserRegion = (language: string, browser: string): string | null => {
+  try {
+    const { region } = new Intl.Locale(browser).maximize()
+    const tag = region ? `${language}-${region}` : language
+    const hourCycle = (of: string) =>
+      new Intl.DateTimeFormat(of, { hour: 'numeric' }).resolvedOptions().hourCycle
+    const browserCycle = hourCycle(browser)
+
+    return browserCycle && hourCycle(tag) !== browserCycle ? `${tag}-u-hc-${browserCycle}` : tag
+  } catch {
+    return null
+  }
+}
+
+// Asked per card on every render, and each answer builds two Intl formatters.
+const regional = new Map<string, string>()
+
+/**
  * The locale to format dates and times in: the visitor's own regional variant when its language
  * is the one on screen, so an English page reads "Tue, 10 Nov" and "19:30" for a browser set to
  * en-GB, and "Tue, Nov 10" and "7:30 PM" for en-US. The interface's language alone says nothing
- * about the region. A browser in another language keeps the interface's own format, since
- * mixing a French date pattern into an English sentence would read worse.
+ * about the region. A browser in another language keeps the interface's words, in the region and
+ * on the clock of its first language (`inBrowserRegion`): a Czech or Brazilian browser reads
+ * "17:45" on an English page, not "5:45 PM".
  */
 export function regionalLocale(
   locale: string,
@@ -258,7 +282,21 @@ export function regionalLocale(
   const language = locale.split('-')[0].toLowerCase()
   const match = browserLocales.find((tag) => tag.split('-')[0].toLowerCase() === language)
 
-  return match ?? locale
+  if (match) return match
+
+  const [first] = browserLocales
+
+  if (!first) return locale
+
+  const key = `${locale}|${first}`
+  let found = regional.get(key)
+
+  if (found === undefined) {
+    found = inBrowserRegion(language, first) ?? locale
+    regional.set(key, found)
+  }
+
+  return found
 }
 
 // Schedule-X validates `locale` against its own supported BCP-47 set, and THROWS
