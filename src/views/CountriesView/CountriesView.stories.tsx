@@ -77,7 +77,7 @@ export const ListFirst: Story = () => (
   </ViewStory>
 )
 
-ListFirst.storyName = 'Countries · list first'
+ListFirst.storyName = 'Countries list first'
 ListFirst.meta = { width: 'xsmall' }
 
 /** Where the map mounts once asked for, saying what the drawer stack under it is told. */
