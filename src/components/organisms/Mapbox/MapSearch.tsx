@@ -36,11 +36,6 @@ export interface MapSearchProps {
    */
   label?: string
   /**
-   * Whether the field starts from, and follows, `?q` (default `true`). The filter form says
-   * `false`: its field is only a way to pick a place, and the picked place shows beside it.
-   */
-  seedFromUrl?: boolean
-  /**
    * The field's text, when its owner keeps it — the add-a-class Where step keeps it beside the
    * draft (#147). Left out, the field keeps its own, seeded from `?q`.
    */
@@ -100,7 +95,6 @@ const searchBias = (zoom: number | undefined, center: LngLatLike | undefined) =>
 export function MapSearch({
   onSelect,
   label,
-  seedFromUrl = true,
   value,
   onChange,
   types,
@@ -109,7 +103,7 @@ export function MapSearch({
 }: MapSearchProps) {
   const [searchParams] = useSearchParams()
   const location = useLocation()
-  const [ownQuery, setOwnQuery] = React.useState(seedFromUrl ? searchParams.get('q') || '' : '')
+  const [ownQuery, setOwnQuery] = React.useState(searchParams.get('q') || '')
   // An owner that passes `value` keeps the text; otherwise the field keeps its own.
   const searchQuery = value ?? ownQuery
   const setSearchQuery = (text: string) =>
@@ -151,8 +145,8 @@ export function MapSearch({
   }, [])
 
   React.useEffect(() => {
-    if (seedFromUrl && value === undefined) setOwnQuery(urlQuery)
-  }, [urlQuery, seedFromUrl, value])
+    if (value === undefined) setOwnQuery(urlQuery)
+  }, [urlQuery, value])
 
   const searchEverywhere = () => {
     if (country) setReleased({ country, query: searchQuery })

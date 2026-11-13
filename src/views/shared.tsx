@@ -372,9 +372,8 @@ export function FilterButton({
 // behaviour that used to live in the removed SearchBar.
 export function SearchField({
   label,
-  seedFromUrl,
   onPlace,
-}: Pick<MapSearchProps, 'label' | 'seedFromUrl'> & {
+}: Pick<MapSearchProps, 'label'> & {
   /** Handle the picked place here, instead of opening the search route. */
   onPlace?: (place: PlaceSearch) => void
 } = {}) {
@@ -408,7 +407,7 @@ export function SearchField({
   return (
     // Focus raises a phone's sheet, so the suggestions (and the keyboard) have room.
     <div className="min-w-0 flex-1" onFocus={raise}>
-      <MapSearch label={label} seedFromUrl={seedFromUrl} onSelect={handleSelect} />
+      <MapSearch label={label} onSelect={handleSelect} />
     </div>
   )
 }
