@@ -62,7 +62,7 @@ captureReturnTo()
 // PROTOTYPE (the filters-near-me review): `nearme=1` opens a search as the visitor who pressed Near
 // me sees it ("Near you", closest first, "2 km from you"), taking the link's own `center` as where
 // they are. Near me keeps that point in memory only, so no real link can carry it, and a review
-// frame can't be asked for a location. Delete with the review.
+// frame can't be asked for a location. Listed in `config/review-options.ts`; goes with it.
 if (searchParams.get('nearme') === '1') {
   const center = parseCenter(searchParams.get('center'))
 

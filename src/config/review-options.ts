@@ -12,6 +12,11 @@
 // The add-a-class and correction stage links (`…/add?step=time`, `…/correct?fix=place`) are
 // review-only too. They live in `lib/proposal/deep-link.ts`, with their sample in
 // `mocks/listing.ts`; they go with this file.
+//
+// `nearme=1` (the filters-near-me review) opens a search as Near me shows it, with the link's own
+// `center` as where the visitor is. The one exception to the route-query rule above: `main.tsx`,
+// the standalone entry, reads it off the page's address, so no embed can carry it. It goes with
+// this file.
 
 export const REGISTERED_PARAM = 'registered'
 
