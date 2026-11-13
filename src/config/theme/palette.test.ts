@@ -234,6 +234,20 @@ describe('the hex accessors', () => {
     )
   })
 
+  it('reports a band crossing on its own, not off the size of the lift', () => {
+    // Both land past the dark band's far edge. `#ffd6d6` starts near enough the
+    // saturation floor to earn no lift banner, and used to lose `near-white` with it.
+    for (const seed of ['#fffdfa', '#ffd6d6']) {
+      const report = paletteReport({ primary: seed }).primary
+
+      expect(report?.darkAdjustedBy).toContain('near-white')
+    }
+
+    expect(paletteReport({ primary: '#ffd6d6' }).primary?.darkAdjustedBy).not.toContain(
+      'near-black',
+    )
+  })
+
   it('gives the solid step a readable on-color', () => {
     expect(onHex('#64032e', 'light')).toBe('#ffffff')
     // Dark mode's lighter solid reads better under black.

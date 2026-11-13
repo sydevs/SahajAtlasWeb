@@ -234,10 +234,6 @@ function buildRole(seedHex: string, mode: ThemeMode): RoleScale {
   const tone = (lightness: number) => colord({ h, s: saturation, l: lightness })
   const adjustedBy: PaletteCheck[] = []
 
-  // Reported only past a lift anyone would notice: our own teal sits two points under
-  // the floor, and a banner over that would be noise.
-  if (s > 0 && colourfulness < MIN_SATURATION - NOTICEABLE_LIFT) adjustedBy.push('saturation')
-
   // Step 9, the solid, uses the seed's own lightness, held inside the band.
   // ⚠ A hued solid is also kept far enough from white and black to SHOW the floor:
   // near either extreme no saturation is visible, so a near-white seed lifted to the
@@ -247,9 +243,16 @@ function buildRole(seedHex: string, mode: ThemeMode): RoleScale {
   const [lowest, highest] = TONE_RANGE[mode]
   const clamped = clamp(l, Math.max(lowest, reach), Math.min(highest, 100 - reach))
 
-  if ((l < reach || l > 100 - reach) && !adjustedBy.includes('saturation')) {
+  // ⚠ The lift and the band are two independent moves, so each reports itself. Deciding
+  // one from whether the other had already reported gave two near-white seeds different
+  // banners for the same journey, on nothing but how far under the floor they started.
+  // The lift is reported only past one anyone would notice: our own teal sits two points
+  // under the floor, and a banner over that would be noise.
+  if (s > 0 && (colourfulness < MIN_SATURATION - NOTICEABLE_LIFT || l < reach || l > 100 - reach)) {
     adjustedBy.push('saturation')
-  } else if (mode === 'light' && l < lowest) {
+  }
+
+  if (mode === 'light' && l < lowest) {
     adjustedBy.push('near-black')
   } else if (mode === 'dark' && l > highest) {
     adjustedBy.push('near-white')
