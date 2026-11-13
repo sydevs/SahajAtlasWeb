@@ -49,16 +49,13 @@ const optionsOf = (element: ReactNode) => {
   return geocoder.mounts[0]
 }
 
-// Mapbox bills a permanent lookup separately and allows storing an id only from one, so the two
-// directions are a billing and a licensing fact, not a preference. A mount whose answer reaches
-// SahajCloud asks for permanence; one that only moves the map does not.
+// Mapbox bills a permanent lookup separately, and allows storing an id only from one.
 describe('MapSearch — which lookups may be stored', () => {
   it('asks for a permanent answer where the caller says the answer is submitted', () => {
     expect(optionsOf(<MapSearch permanent onSelect={() => {}} />).permanent).toBe(true)
   })
 
-  // Absent, not `false`: the geocoder serializes what it is given, so an explicit `false` would
-  // put the parameter on a request that should carry none at all.
+  // Absent, not `false` — the geocoder serializes what it is given.
   it('sends no permanent option by default', () => {
     expect(optionsOf(<MapSearch onSelect={() => {}} />)).not.toHaveProperty('permanent')
   })

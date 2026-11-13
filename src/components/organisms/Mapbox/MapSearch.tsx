@@ -38,8 +38,7 @@ export interface MapSearchProps {
   /**
    * Ask Mapbox for a result that may be stored. Its terms allow keeping an id
    * only when the lookup that produced it carried this, and such lookups bill
-   * separately — so only a mount whose answer is submitted to SahajCloud sets
-   * it. Plain browsing stays temporary.
+   * separately — so only a mount whose answer is submitted to SahajCloud sets it.
    */
   permanent?: boolean
 }
@@ -179,7 +178,8 @@ export function MapSearch({ onSelect, label, permanent }: MapSearchProps) {
           options={{
             language: locale, // TODO: Make sure this switches when locale changes
             // `country` and `permanent` are left out rather than undefined: the geocoder
-            // serializes what it's given.
+            // serializes what it's given. ⚠ A spread's keys escape the excess-property check,
+            // so only `MapSearch.permanent.test.tsx` catches a misspelled one here.
             ...(scope ? { country: scope } : {}),
             ...(permanent ? { permanent } : {}),
             proximity: searchBias(mapbox?.getZoom(), mapbox?.getCenter()),
