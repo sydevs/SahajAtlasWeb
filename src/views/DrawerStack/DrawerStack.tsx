@@ -951,9 +951,15 @@ export function DrawerStack() {
     // (the view's own header is inside the boundary that caught the error) and must
     // not offer a close that no-ops: at the root there is nothing to climb to, and
     // `navigate(-1)` would take the HOST page back (issue #89).
-    const action = dismissAction({ hasParent: Boolean(parentPath), depth })
+    // Behind the docked add-a-class panel, this drawer shows the page the flow opened over. Its
+    // Back climbs from that page, as a fresh link would: history only knows the flow, and going
+    // back through it would land on this same page. The panel's own X goes back to it.
+    const viewPath = submitOverlay ? (top?.path ?? '/') : undefined
+    const action = dismissAction({ hasParent: Boolean(parentPath), depth: viewPath ? 0 : depth })
+    const fromPath = viewPath ?? location.pathname
 
     return {
+      viewPath,
       collapsed: snap === PEEK_SNAP,
       canCollapse,
       canDismiss: action !== 'collapse',
@@ -995,14 +1001,9 @@ export function DrawerStack() {
             else if (parentPath)
               navigate(
                 toStackTarget(
-                  climbDestination(
-                    location.pathname,
-                    climb.classes,
-                    climb.venueSlugs,
-                    climb.pathOf,
-                  ),
+                  climbDestination(fromPath, climb.classes, climb.venueSlugs, climb.pathOf),
                 ),
-                { state: { climbedFrom: location.pathname } },
+                { state: { climbedFrom: fromPath } },
               )
           })
       },
@@ -1018,6 +1019,8 @@ export function DrawerStack() {
     toStackTarget,
     direction,
     top?.kind,
+    top?.path,
+    submitOverlay,
     fullSnap,
     climb,
   ])

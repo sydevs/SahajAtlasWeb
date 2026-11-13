@@ -284,6 +284,10 @@ source of truth, so all three stay linkable and shareable:
   the `['regions']` tree and the event caches **cache-only**, so naming a control can
   never become a fetch. The breadcrumb's links are plain climbs with no depth stamp,
   so Back and the breadcrumb always agree about what is above what.
+  ⚠ On a wide map the add-a-class and correction flows dock over the page they
+  opened from, so the address names the flow while the side panel still shows that
+  page. The panel's `DrawerControl.viewPath` says which page it shows, and its Back
+  and breadcrumbs climb from there, as a fresh link would; the flow's own X goes back.
 
 Camera control always goes through the `MapController` seam
 (`src/hooks/use-map-controller.tsx`) — never a store, never the map directly.

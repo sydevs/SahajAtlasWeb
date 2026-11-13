@@ -66,13 +66,19 @@ export function BackButton({ iconOnly = false }: { iconOnly?: boolean }) {
   const { locale } = useLocale()
   const { hasMap } = useWidgetMode()
   const location = useLocation()
-  const { dismiss } = useDrawerControl()
+  const { dismiss, viewPath } = useDrawerControl()
   const queryClient = useQueryClient()
   const names = useNavNames()
   // Cache-only, like the names: on a fresh deep link the climb passes over the venue and any
   // one-class place, and the label names where it really lands (`climbDestination`).
   const { classes, venueSlugs, pathOf } = useClimbInputs()
-  const route = backDestination(location, classes, venueSlugs, pathOf)
+  // A drawer showing less than the address climbs from its own page, as its dismiss does.
+  const route = backDestination(
+    viewPath ? { pathname: viewPath, search: location.search } : location,
+    classes,
+    venueSlugs,
+    pathOf,
+  )
 
   // The filters' X is the way out while they cover the calendar. Back would say "Calendar"
   // on the calendar itself: history can't say where the calendar came from until they close.
@@ -131,10 +137,11 @@ export function Breadcrumbs() {
   const location = useLocation()
   const names = useNavNames()
   const { pathOf } = useClimbInputs()
+  const { viewPath } = useDrawerControl()
   const isWide = useIsWideWidget()
   // The real ancestry, not the words typed: `/united-kingdom/south-east/london` still names and
   // links United Kingdom (`/gb`), the country London is in (`placedPathname`).
-  const trail = breadcrumbTrail(placedPathname(location.pathname, pathOf))
+  const trail = breadcrumbTrail(placedPathname(viewPath ?? location.pathname, pathOf))
 
   if (!isWide || trail.length === 0) return null
 

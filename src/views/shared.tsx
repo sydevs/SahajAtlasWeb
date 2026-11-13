@@ -73,6 +73,12 @@ export type DrawerControl = {
   setOpenHeight: (px: number | null) => void
   /** Lifts a bottom sheet to its near-full height, for content that just grew. */
   expand?: () => void
+  /**
+   * The page this drawer shows, where the address names more: the page behind the docked
+   * add-a-class panel on a wide map. Back and the breadcrumbs then name that page's own parents,
+   * not the page itself.
+   */
+  viewPath?: string
 }
 
 export const DrawerControlContext = createContext<DrawerControl>({
