@@ -357,6 +357,30 @@ cannot move into the settings menu.
 nudges the whole column down 40px to clear the expanded surface's collapse
 control — two controls now, not one.
 
+## A geocoder lookup whose answer is STORED asks for `permanent`
+
+Mapbox's terms allow keeping a feature id only when the lookup that returned it carried
+`permanent=true`, and such lookups bill separately. SahajCloud stores the ids a client sends with
+a class proposal, so its client contract requires them (sydevs/SahajCloud#893).
+
+So permanence is a **`MapSearch` prop**, absent by default, not a constant inside the control: one
+component serves both plain map browsing and the submit flow, and only the second may store what
+it gets back. Set `permanent` on a mount whose answer is submitted, and on no other.
+`reverseGeocode` (`lib/geocode.ts`) stays temporary — its answer fills the search field and `?cc`,
+never a stored row.
+
+⚠ **`permanent: false` is not the same as leaving it out.** `GeocodingCore` drops only a `null` or
+`undefined` option, so an explicit `false` reaches the request as a parameter. Both `country` and
+`permanent` are therefore spread conditionally in `MapSearch`.
+
+⚠ **A conditionally spread option is NOT type-checked for its name.** TypeScript applies the
+excess-property check to an object literal's own keys, never to one spread into it, so
+`...(permanent ? { permanentt } : {})` compiles clean — measured, and `satisfies
+Partial<GeocodingOptions>` on the literal does not close it either. A plainly written key does
+fail (TS2561). So a spec, not the type, is what holds a conditional option:
+`MapSearch.permanent.test.tsx` asserts what the mount hands `<Geocoder options>`. Add one for any
+option you spread.
+
 ## Geo helpers
 
 Use `@turf/*` (`bbox`, `bbox-polygon`, `circle`) for geometry math — bounding
