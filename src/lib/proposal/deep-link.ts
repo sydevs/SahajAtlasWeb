@@ -7,9 +7,14 @@ import type { FixIntent, ListingSignup, ListingStep } from './draft'
  * (`config/review-options.ts`). The add links fill in a sample class (`mocks/listing.ts`), so a
  * visitor is never linked to one.
  *
- * They ride in the route's own query, as `?sort=` and the filters do
- * (`?atlas=/gb/south-east/london/add?step=time` in query routing,
- * `/map/gb/south-east/london/add?step=time` in path routing).
+ * They ride in the route's own query, as `?sort=` and the filters do, so each embedding writes
+ * them its own way (`lib/shape/routing.ts`):
+ *
+ * - standalone (the review site's frames): `/gb/south-east/london/add?step=time`
+ * - query routing: `?atlas=/gb/south-east/london/add?step=time`
+ * - path routing, under a `/map` prefix: `/map/gb/south-east/london/add?atlas=step%3Dtime` — the
+ *   path holds the route's path and `?atlas=` only its query, so a bare `?step=time` is the host's
+ *   and opens Place
  *
  * | Route        | Parameter                                 | Opens                                                  |
  * | ------------ | ----------------------------------------- | ------------------------------------------------------ |
