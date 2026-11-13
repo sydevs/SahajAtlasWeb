@@ -160,9 +160,11 @@ const clamp = (n: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, n
 /**
  * The legibility checks every role is corrected until it passes.
  *
- * There is deliberately no basemap check: a pin, a bubble and a ring each carry a
- * fixed outline for the style they are drawn on (`Mapbox/markers.ts`), so no brand
- * colour is ever measured against the map.
+ * There is deliberately no basemap check. The marks take the light-mode palette in
+ * both modes and each carries a ring of its own colour, so what sets a mark off from
+ * the map is that ring and its shadow rather than a measured contrast
+ * (`Mapbox/markers.ts`). Only the vague ring and dot still carry a fixed per-basemap
+ * outline.
  */
 export const PALETTE_CHECKS = [
   'panel-text',
