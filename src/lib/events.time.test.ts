@@ -32,9 +32,13 @@ describe('formatTimePeriods', () => {
     }
   })
 
-  it('keeps another language on its own clock', () => {
-    browser(['en-US', 'en'])
+  // The interface's words, on the visitor's clock: a German page reads AM/PM for a US browser.
+  it('keeps the visitor’s clock under another interface language', () => {
+    browser(['en-GB', 'en'])
     expect(norm(formatTimePeriods('de', ['evening']))).toBe('17:00–00:00 Uhr')
+
+    browser(['en-US', 'en'])
+    expect(norm(formatTimePeriods('de', ['evening']))).toBe('5:00 PM – 12:00 AM')
   })
 
   it('is empty with nothing chosen', () => {
