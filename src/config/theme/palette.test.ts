@@ -53,30 +53,6 @@ describe('buildScale', () => {
     expect(parse(buildScale('#fafafa', 'light')[9]).l).toBeLessThanOrEqual(70)
   })
 
-  it('caps a near-white solid in dark mode too, keeping its hue', () => {
-    // White passes `surface` on the dark page, so nothing else would move it.
-    const solid = parse(buildScale('#fffdfa', 'dark')[9])
-
-    expect(solid.l).toBe(60)
-    expect(solid.h).toBe(colord('#fffdfa').toHsl().h)
-  })
-
-  it('floors a near-black solid in light mode, and says so', () => {
-    expect(parse(buildScale('#1a0033', 'light')[9]).l).toBeGreaterThanOrEqual(20)
-    expect(paletteReport({ primary: '#1a0033' }).primary?.lightAdjustedBy).toContain('near-black')
-  })
-
-  it('tells three near-white seeds apart in dark mode', () => {
-    // The palette that prompted the cap: a service's three colours, all near-white.
-    const solids = ['#fffdfa', '#fafcff', '#fff7f5'].map((seed) =>
-      colord(`hsl(${buildScale(seed, 'dark')[9]})`),
-    )
-
-    for (const [i, a] of solids.entries()) {
-      for (const b of solids.slice(i + 1)) expect(a.delta(b)).toBeGreaterThanOrEqual(0.1)
-    }
-  })
-
   it('floors a near-black solid so it stays visible on the dark canvas', () => {
     expect(parse(buildScale('#64032e', 'dark')[9]).l).toBeGreaterThanOrEqual(60)
   })
@@ -336,14 +312,6 @@ describe('paletteReport', () => {
 
     expect(report.lightAdjustedBy).toContain('surface')
     expect(report.darkAdjustedBy).not.toContain('surface')
-  })
-
-  it('reports a near-white seed as moved away from near-white', () => {
-    const nearWhite = paletteReport({ primary: '#fffdfa' }).primary!
-    const teal = paletteReport({ primary: '#1E6C71' }).primary!
-
-    expect([...nearWhite.lightAdjustedBy, ...nearWhite.darkAdjustedBy]).toContain('near-white')
-    expect([...teal.lightAdjustedBy, ...teal.darkAdjustedBy]).not.toContain('near-white')
   })
 
   it('offers no suggestion for a role only `panel-text` moved', () => {

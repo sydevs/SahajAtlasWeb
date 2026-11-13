@@ -125,18 +125,15 @@ const foregroundFor = (c: Colord) =>
 // So a gray seed stays gray.
 const MAX_SATURATION = 60
 
-// The band step 9, the solid, is held inside, per mode. The edge facing the canvas
-// keeps a brand visible on its own page: 70 on white, 60 on dark. The far edge
-// keeps it from reaching the opposite extreme, where it reads as no colour at all —
-// white passes `surface` on the dark page, so three pale seeds once rendered three
-// pins nobody could tell apart. Only the far edge is reported (`near-black`,
-// `near-white`): the near edge moves every dark brand on the dark map, our own
-// teal included, and is not news to the service that chose it.
-// ⚠ The dark band is a single lightness: every brand renders at 60 on the dark
-// map, told apart by hue. Widen its far edge if that reads too uniform.
+// The band step 9, the solid, is held inside, per mode — limited on the side facing
+// the canvas alone, so a brand stays visible on its own page: at most 70 on white,
+// at least 60 on dark. The far side is open: a deep brand stays deep on the white
+// page and a pale one stays pale on the dark page, where both still read. The map's
+// marks never take the dark band (`MARKER_MODE`), so a pale brand's pins stay
+// coloured on the dark basemap.
 const TONE_RANGE: Record<ThemeMode, readonly [number, number]> = {
-  light: [20, 70],
-  dark: [60, 60],
+  light: [0, 70],
+  dark: [60, 100],
 }
 
 // The page and panel surface, `--background`, uses the ladder's app-background step.
@@ -159,13 +156,7 @@ const clamp = (n: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, n
  * fixed outline for the style they are drawn on (`Mapbox/markers.ts`), so no brand
  * colour is ever measured against the map.
  */
-export const PALETTE_CHECKS = [
-  'panel-text',
-  'surface',
-  'selected-distinct',
-  'near-white',
-  'near-black',
-] as const
+export const PALETTE_CHECKS = ['panel-text', 'surface', 'selected-distinct'] as const
 
 export type PaletteCheck = (typeof PALETTE_CHECKS)[number]
 
@@ -187,14 +178,9 @@ const APP_BACKGROUND: Record<ThemeMode, string> = { light: '#ffffff', dark: '#12
 // states the rule rather than its shortcut.
 const PANEL_STEPS = [1, 2, 3] as const
 
-// How far step 9 may travel for `selected-distinct`: everything visible on the
-// mode's canvas, past the tone band. Near hue 60 or 184 two same-hue seeds need
-// about 35 lightness points between them, and a selected pin that matches its
-// neighbours is worse than one at an extreme.
-const SOLID_RANGE: Record<ThemeMode, readonly [number, number]> = {
-  light: [0, TONE_RANGE.light[1]],
-  dark: [TONE_RANGE.dark[0], 100],
-}
+// How far step 9 may travel for `selected-distinct`: the whole band. Near hue 60
+// or 184 two same-hue seeds need about 35 lightness points between them.
+const SOLID_RANGE = TONE_RANGE
 
 // Light mode darkens, dark mode lightens — both move a step away from its own
 // background. The smallest shift that passes, so a seed that already passes never
@@ -226,9 +212,6 @@ function buildRole(seedHex: string, mode: ThemeMode): RoleScale {
   // Step 9, the solid, uses the seed's own lightness, held inside the band.
   const [lowest, highest] = TONE_RANGE[mode]
   const clamped = clamp(l, lowest, highest)
-
-  if (mode === 'dark' && l > highest) adjustedBy.push('near-white')
-  if (mode === 'light' && l < lowest) adjustedBy.push('near-black')
 
   const l9 = correct(clamped, mode, (c) => tone(c).contrast(APP_BACKGROUND[mode]) >= SURFACE_RATIO)
 

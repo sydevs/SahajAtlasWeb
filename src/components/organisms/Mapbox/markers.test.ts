@@ -1,3 +1,4 @@
+import { colord } from 'colord'
 import { describe, it, expect } from 'vitest'
 
 import { DEFAULT_MARKER_COLORS, MARKER_IDS, markerColors, markerImages } from './markers'
@@ -77,6 +78,17 @@ describe('markerColors', () => {
     const colors = markerColors({ primary: MAROON, contrast: MAROON })
 
     expect(colors[MARKER_IDS.pointSelected].fill).not.toBe(colors[MARKER_IDS.point].fill)
+  })
+
+  it('keeps three near-white brands apart on either basemap', () => {
+    // The palette that prompted `MARKER_MODE`: on the dark palette all three
+    // rendered near-white, and the pins could not be told apart.
+    const fills = ['#fffdfa', '#fafcff', '#fff7f5'].map(
+      (primary) => markerColors({ primary })[MARKER_IDS.point].fill,
+    )
+
+    expect(new Set(fills).size).toBe(3)
+    for (const fill of fills) expect(colord(fill).toHsl().l).toBeLessThanOrEqual(70)
   })
 
   it('falls back per role, not per palette', () => {

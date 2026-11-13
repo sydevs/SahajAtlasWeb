@@ -44,16 +44,12 @@ cover everything a host would notice since the widget was first deployed.
 
 ### Changed
 
-- **A brand colour near white or near black is moved to a visible shade on the map that would
-  hide it.** On the dark map a near-white colour used to render near-white, so a service whose
-  colours were all pale got pins, chips and buttons that looked alike; it now renders at the same
-  mid-light shade as every other colour there, keeping its hue. On the light map a near-black
-  colour is lightened just enough to keep its hue. Only what the widget paints moves; the colour you stored
-  is unchanged. Pins and cluster bubbles drop their black or white outline: a bubble keeps its
-  translucent ring as its only edge, and a pin gains a thinner ring of the same kind. Both take
-  their colour from the light-map shade on the dark map too, so they stay deep rather than
-  washing out on its mid-toned basemap. No change to your CSP, your
-  Permissions Policy or any parameter.
+- **Pins and cluster bubbles are drawn in your brand colour's light-map shade on the dark map
+  too, and lose their black or white outline.** The dark basemap is mid-toned, so the paler shade
+  the panels use on it washed the pins out — and a service whose colours were all pale got pins
+  that looked alike. A bubble keeps its translucent ring as its only edge, and a pin gains a
+  thinner ring of the same kind. Only what the widget paints moves; the colour you stored is
+  unchanged. No change to your CSP, your Permissions Policy or any parameter.
 
 - **Pins, cluster bubbles and area rings now carry a fixed outline, and a brand colour may be
   adjusted so visitors can read it.** ([#392]) The outline is one colour per basemap — dark on
