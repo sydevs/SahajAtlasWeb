@@ -5,6 +5,8 @@ import type { RegionListItem } from '@/types'
 
 import { NO_ERROR, ViewStory, stateControl } from '@/views/story-harness'
 import { CountriesView } from '@/views/CountriesView/CountriesView'
+import { ListFirstMap } from '@/views/ListFirstMap'
+import { useMapAsked, useShowMap } from '@/config/mode'
 import { mockCountries } from '@/mocks/regions'
 
 export default { title: 'Views' } satisfies StoryDefault
@@ -53,4 +55,41 @@ Default.argTypes = {
     defaultValue: 'All countries',
   },
   state: stateControl(),
+}
+
+/**
+ * `view=list` — the interface opens on its list, with no map behind it, and a Map button in the
+ * header (`MapButton`). Pressing it opens the map for good (`ListFirstMap`): there is no way back
+ * to the list (Devindra, 12 Nov), and the phone sheet starts at its open stop, below the map the
+ * visitor asked for. The real map needs its own token and frame, so a plain panel stands in for it
+ * here; press Map to see the swap.
+ */
+export const ListFirst: Story = () => (
+  <ViewStory
+    example="list-first"
+    seed={(client: QueryClient) =>
+      client.setQueryData<RegionListItem[]>(['countries'], mockCountries)
+    }
+  >
+    <ListFirstMap list={<CountriesView />}>
+      <MapStandIn />
+    </ListFirstMap>
+  </ViewStory>
+)
+
+ListFirst.storyName = 'Countries · list first'
+ListFirst.meta = { width: 'xsmall' }
+
+/** Where the map mounts once asked for, saying what the drawer stack under it is told. */
+function MapStandIn() {
+  const asked = useMapAsked()
+  const mapButton = Boolean(useShowMap())
+
+  return (
+    <div className="flex h-full flex-col items-center justify-center gap-2 bg-gray-3 p-6 text-center text-sm text-gray-11">
+      <p className="font-medium text-foreground">The map, mounted only now</p>
+      <p>Asked for: {String(asked)} · the sheet opens at its open stop below it</p>
+      <p>Map button under it: {String(mapButton)}</p>
+    </div>
+  )
 }

@@ -1,15 +1,16 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef } from 'react'
 import * as Fathom from 'fathom-client'
 import { useLocation, useNavigate } from 'react-router'
 import { MapProvider } from 'react-map-gl'
 
-import { MapAskedContext, ShowMapContext, WidgetModeContext, useWidgetMode } from '@/config/mode'
+import { WidgetModeContext, useWidgetMode } from '@/config/mode'
 import { useCameraSettled } from '@/config/store'
 import { Mapbox } from '@/components/organisms/Mapbox'
 import { NoopMapControllerProvider } from '@/hooks/use-map-controller'
 import { RealMapControllerProvider } from '@/hooks/use-map-controller-real'
 import { useTurnstileGuard } from '@/hooks/use-turnstile-guard'
 import { DrawerStack } from '@/views'
+import { ListFirstMap } from '@/views/ListFirstMap'
 import { MapFrame } from '@/views/MapFrame'
 import api from '@/config/api'
 import embed from '@/config/embed'
@@ -187,22 +188,7 @@ function FullInterface({
     api.warmCaches()
   }, [])
 
-  // `view=list`: the map is not mounted until the visitor asks for it, so nothing is requested
-  // from Mapbox before then. ⚠ The library still downloads: this module imports `react-map-gl`
-  // (see above). The route lives in the URL, so opening the map keeps the visitor's place. It is
-  // one way: once open, the map stays (`ShowMapContext`). With the map turned off there is no
-  // Map button at all — `hasMap` gates this — since that is the host's choice to make.
-  const [mapShown, setMapShown] = useState(false)
-
-  if (hasMap && embed.config.listFirst && !mapShown) {
-    return (
-      <ShowMapContext.Provider value={() => setMapShown(true)}>
-        <ListSurface contained={contained} />
-      </ShowMapContext.Provider>
-    )
-  }
-
-  return hasMap ? (
+  const interfaceWithMap = hasMap ? (
     <MapProvider>
       {/* ⚠ **`MapFrame` is the ONLY thing that differs between a viewport map and a contained
           one.** Everything below is byte-identical in both. The canvas stays `position: fixed;
@@ -229,9 +215,7 @@ function FullInterface({
           <MapCurtain />
         </div>
         <RealMapControllerProvider>
-          <MapAskedContext.Provider value={mapShown}>
-            <DrawerStack />
-          </MapAskedContext.Provider>
+          <DrawerStack />
         </RealMapControllerProvider>
       </MapFrame>
     </MapProvider>
@@ -240,6 +224,19 @@ function FullInterface({
       <DrawerStack />
     </NoopMapControllerProvider>
   )
+
+  // `view=list`: the map is not mounted until the visitor asks for it (`ListFirstMap`), so nothing
+  // is requested from Mapbox before then. ⚠ The library still downloads: this module imports
+  // `react-map-gl` (see above). The route lives in the URL, so opening the map keeps the visitor's
+  // place. With the map turned off there is no Map button at all — `hasMap` gates this — since
+  // that is the host's choice to make.
+  if (hasMap && embed.config.listFirst) {
+    return (
+      <ListFirstMap list={<ListSurface contained={contained} />}>{interfaceWithMap}</ListFirstMap>
+    )
+  }
+
+  return interfaceWithMap
 }
 
 /** `view=list` before the visitor asks for the map: the map-less interface, in the map's box. */
