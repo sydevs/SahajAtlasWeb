@@ -2,3 +2,5 @@
 // the same code-split rule as `RegistrationForm`. Import it by folder path.
 export { ProposalForm } from './ProposalForm'
 export type { ProposalFormProps } from './ProposalForm'
+// The view finds the possible duplicates the form names, so it shares their shape.
+export type { DuplicateClass } from './DuplicateNotice'

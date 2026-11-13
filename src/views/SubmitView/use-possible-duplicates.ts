@@ -1,4 +1,4 @@
-import type { DuplicateClass } from '@/components/organisms/ProposalForm/DuplicateNotice'
+import type { DuplicateClass } from '@/components/organisms/ProposalForm'
 import type { PickedPlace } from '@/lib/proposal'
 import type { EventSchedule, Geojson } from '@/types'
 
