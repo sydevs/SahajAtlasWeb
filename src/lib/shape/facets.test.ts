@@ -146,6 +146,19 @@ describe('bestRecovery', () => {
   it('is null when nothing has been answered', () => {
     expect(bestRecovery([event({})], DEFAULT_FILTERS)).toBeNull()
   })
+
+  // Over the calendar's Week the dates are its own seven days, with no control in the panel.
+  it('never offers to drop a group the view sets by itself', () => {
+    // A Tuesday class on the 10th, asked for on Tuesdays between the 12th and the 13th.
+    const filters = {
+      ...DEFAULT_FILTERS,
+      daysOfWeek: [2],
+      dateRange: { start: '2026-11-12', end: '2026-11-13' },
+    }
+
+    expect(bestRecovery([event({})], filters, today)?.group).toBe('dates')
+    expect(bestRecovery([event({})], filters, today, undefined, ['dates'])).toBeNull()
+  })
 })
 
 describe('facetScope', () => {

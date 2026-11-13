@@ -34,6 +34,8 @@ import {
   placeFiltersPath,
   isFilterOverlay,
   resolveStack,
+  todayISO,
+  weekWindowFilters,
 } from '@/lib/shape'
 import { useWidgetMode } from '@/config/mode'
 import { NavHeader } from '@/views/nav'
@@ -64,7 +66,16 @@ export function FilterView() {
     () => ({ ...applied, region: applied.region ?? originRegion }),
     [applied, originRegion],
   )
-  const facets = useFilterFacets(filters)
+  // The calendar's Week sets its own seven days with its arrows and date picker, so here they are
+  // neither asked nor cleared (`chosenCalendarFilters`). The counts read those seven days, whatever
+  // range the URL names.
+  const overWeek =
+    parentOf(location.pathname) === '/calendar' && calendarView === CALENDAR_VIEW_LIST
+  const counted = useMemo(
+    () => (overWeek ? weekWindowFilters(filters, todayISO()) : filters),
+    [overWeek, filters],
+  )
+  const facets = useFilterFacets(counted, { datesFixed: overWeek })
   const count = facets?.counts.total
 
   // The camera follows Where. Every other filter leaves it alone, so the visitor sees pins
@@ -133,10 +144,6 @@ export function FilterView() {
       new URLSearchParams(noPlaceSearch(new URLSearchParams(location.search))),
     )
 
-  // The calendar's Week sets its own seven days with its arrows and date picker, so here they are
-  // neither asked nor cleared (`chosenCalendarFilters`).
-  const overWeek =
-    parentOf(location.pathname) === '/calendar' && calendarView === CALENDAR_VIEW_LIST
   // Clear resets the questions, not the Where: the visitor is still looking in the same place.
   const canClear =
     activeFilterCount(

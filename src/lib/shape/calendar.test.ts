@@ -10,6 +10,7 @@ import {
   groupEntriesByDay,
   chosenCalendarFilters,
   shiftCalendarWindow,
+  weekWindowFilters,
   isCalendarViewOption,
   resolveCalendarView,
   tidyPlaceCase,
@@ -325,6 +326,25 @@ describe('the week list window', () => {
     })
     expect(calendarWindow({ start: '2026-11-18', end: '2026-11-18' }, today).end).toBe('2026-11-24')
     expect(calendarWindow({ start: null, end: '2026-11-08' }, today).end).toBe('2026-11-11')
+  })
+
+  // The Filters panel over the Week counts what it shows, not the range the link named.
+  it("counts over the Week's own seven days", () => {
+    const filters = { ...DEFAULT_FILTERS, daysOfWeek: [2] }
+
+    expect(
+      weekWindowFilters(
+        { ...filters, dateRange: { start: '2026-11-16', end: '2026-11-16' } },
+        today,
+      ),
+    ).toEqual({ ...filters, dateRange: { start: '2026-11-16', end: '2026-11-22' } })
+    expect(
+      weekWindowFilters(
+        { ...filters, dateRange: { start: '2026-11-16', end: '2026-12-06' } },
+        today,
+      ).dateRange,
+    ).toEqual({ start: '2026-11-16', end: '2026-11-22' })
+    expect(weekWindowFilters(filters, today).dateRange).toEqual({ start: today, end: '2026-11-11' })
   })
 
   it('steps a week, and clears the range on landing back on this week', () => {

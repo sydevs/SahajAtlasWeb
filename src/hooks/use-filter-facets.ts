@@ -34,8 +34,14 @@ export type FilterFacets = {
  * groups by, less the class a "see alternatives" search leaves out), else the selected region,
  * else the whole feed. `undefined` until the feed has loaded, and the form then simply shows every
  * group without numbers.
+ *
+ * `datesFixed` says the view sets the dates by itself (the calendar's Week): they still narrow the
+ * counts, but no way out offers to drop them.
  */
-export function useFilterFacets(filters: EventFilters): FilterFacets | undefined {
+export function useFilterFacets(
+  filters: EventFilters,
+  { datesFixed = false }: { datesFixed?: boolean } = {},
+): FilterFacets | undefined {
   const [searchParams] = useSearchParams()
   const center = parseCenter(searchParams.get('center'))
   const centerKey = center?.join(',')
@@ -74,7 +80,10 @@ export function useFilterFacets(filters: EventFilters): FilterFacets | undefined
     return {
       counts,
       relevance,
-      recovery: counts.total === 0 ? bestRecovery(events, filters, undefined, shownOf) : null,
+      recovery:
+        counts.total === 0
+          ? bestRecovery(events, filters, undefined, shownOf, datesFixed ? ['dates'] : [])
+          : null,
     }
-  }, [scoped, relevance, filters])
+  }, [scoped, relevance, filters, datesFixed])
 }

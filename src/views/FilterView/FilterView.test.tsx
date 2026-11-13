@@ -6,6 +6,8 @@ import { describe, expect, it, vi } from 'vitest'
 
 import { FilterView } from './FilterView'
 
+import { todayISO, weekFrom } from '@/lib/shape'
+
 // Node-only SSR assertions (see `docs/testing.md`). What is under test is the scope the drawer
 // opens with, which the form stub prints, and the footer.
 vi.mock('react-i18next', () => ({
@@ -20,7 +22,15 @@ vi.mock('@/config/api', () => ({
   regionQuery: (slug: string) => ({ queryKey: ['region', slug], queryFn: () => null }),
 }))
 vi.mock('@/hooks/use-locale', () => ({ useLocale: () => ({ locale: 'en' }) }))
-vi.mock('@/hooks/use-filter-facets', () => ({ useFilterFacets: () => undefined }))
+const counted = vi.hoisted(() => [] as { filters: EventFilters; datesFixed?: boolean }[])
+
+vi.mock('@/hooks/use-filter-facets', () => ({
+  useFilterFacets: (filters: EventFilters, options?: { datesFixed?: boolean }) => {
+    counted.push({ filters, datesFixed: options?.datesFixed })
+
+    return undefined
+  },
+}))
 vi.mock('./WhereFilter', () => ({ WhereFilter: () => null }))
 vi.mock('./RecoveryButton', () => ({ RecoveryButton: () => null }))
 vi.mock('@/components/molecules', () => ({
@@ -97,5 +107,34 @@ describe('FilterView — over the calendar', () => {
 
     expect(html).not.toContain('no-dates')
     expect(html).toContain('filters.chrome.clear_one')
+  })
+
+  // The Week shows the seven days from a range's first day, so the counts read those days: a
+  // one-day link counted that Monday alone, and greyed out the Tuesday the Week lists.
+  it("counts the Week's seven days, whatever range the link names", () => {
+    const countedFor = (entry: string) => {
+      counted.length = 0
+      view(entry)
+
+      return counted.at(-1)
+    }
+
+    for (const dates of ['2026-11-16,2026-11-16', '2026-11-16,2026-12-06']) {
+      expect(countedFor(`/calendar/filters?region=gb&view=list&dates=${dates}`)).toEqual({
+        filters: expect.objectContaining({ dateRange: { start: '2026-11-16', end: '2026-11-22' } }),
+        datesFixed: true,
+      })
+    }
+    expect(countedFor('/calendar/filters?region=gb&view=list')?.filters.dateRange).toEqual(
+      weekFrom(todayISO()),
+    )
+    // Over the month grid the dates are a filter, counted as the link names them.
+    expect(countedFor(`/calendar/filters?region=gb&dates=${week}`)).toEqual({
+      filters: expect.objectContaining({ dateRange: { start: '2026-11-16', end: '2026-11-22' } }),
+      datesFixed: false,
+    })
+    expect(
+      countedFor('/calendar/filters?region=gb&dates=2026-11-16,2026-11-16')?.filters.dateRange,
+    ).toEqual({ start: '2026-11-16', end: '2026-11-16' })
   })
 })

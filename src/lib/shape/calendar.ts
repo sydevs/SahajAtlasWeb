@@ -241,6 +241,16 @@ export const chosenCalendarFilters = (filters: EventFilters, isList: boolean): E
 })
 
 /**
+ * The filters as the Week shows them, for what counts its classes (the Filters panel's numbers):
+ * its own seven days in place of the URL's range, which may be shorter, longer or absent.
+ */
+export const weekWindowFilters = (filters: EventFilters, today: string): EventFilters => {
+  const { start, end } = calendarWindow(filters.dateRange, today)
+
+  return { ...filters, dateRange: { start, end } }
+}
+
+/**
  * What a region's "Next 7 days" row counts and opens: the visitor's filters, in that region, over
  * the next seven days. So with Tuesday chosen, the row counts Tuesday's classes, as the list below
  * it does. A date filter is left out, because the row names its own days.

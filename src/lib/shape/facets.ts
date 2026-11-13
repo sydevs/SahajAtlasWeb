@@ -199,13 +199,15 @@ export type FilterRecovery = {
 
 /**
  * The most useful single way out of an empty result: the answered group whose removal brings back
- * the most classes. `null` when removing any one of them still leaves nothing.
+ * the most classes. `null` when removing any one of them still leaves nothing. A `fixed` group is
+ * one the view sets by itself (the calendar Week's dates), so it is never offered.
  */
 export const bestRecovery = <T extends FacetEvent>(
   events: readonly T[],
   filters: EventFilters,
   today: string = todayISO(),
   shownOf?: ShownOf<T>,
+  fixed: readonly FilterRecovery['group'][] = [],
 ): FilterRecovery | null => {
   const candidates: Pick<FilterRecovery, 'group' | 'patch'>[] = []
 
@@ -219,11 +221,13 @@ export const bestRecovery = <T extends FacetEvent>(
     candidates.push({ group: 'dates', patch: { dateRange: { start: null, end: null } } })
   }
 
-  return candidates.reduce<FilterRecovery | null>((best, candidate) => {
-    const count = countPassing(events, { ...filters, ...candidate.patch }, today, shownOf)
+  return candidates
+    .filter((candidate) => !fixed.includes(candidate.group))
+    .reduce<FilterRecovery | null>((best, candidate) => {
+      const count = countPassing(events, { ...filters, ...candidate.patch }, today, shownOf)
 
-    return count > (best?.count ?? 0) ? { ...candidate, count } : best
-  }, null)
+      return count > (best?.count ?? 0) ? { ...candidate, count } : best
+    }, null)
 }
 
 export type FacetRelevance = {
