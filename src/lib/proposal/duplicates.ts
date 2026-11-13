@@ -35,9 +35,24 @@ const sessionsOf = (schedule: EventSchedule): Session[] => {
   })
 }
 
-/** A class that meets every week (or every day) clashes on its weekday, whatever the date. */
-const meetsWeekly = (schedule: EventSchedule) =>
-  schedule.recurrenceType === 'WEEKLY' || schedule.recurrenceType === 'DAILY'
+/**
+ * How many weeks apart a class's weekly pattern repeats: 1 for every week (or every day), 2 for
+ * fortnightly, and so on. `null` for a pattern that is not weekly — monthly, one-off, every few
+ * days — which is compared by its dates instead.
+ */
+const weekStep = (schedule: EventSchedule): number | null => {
+  const interval = Math.max(1, schedule.interval ?? 1)
+
+  if (schedule.recurrenceType === 'WEEKLY') return interval
+  if (schedule.recurrenceType === 'DAILY') return interval === 1 ? 1 : null
+
+  return null
+}
+
+const gcd = (a: number, b: number): number => (b === 0 ? a : gcd(b, a % b))
+
+/** `n` modulo `m`, never negative. */
+const mod = (n: number, m: number) => ((n % m) + m) % m
 
 /** Where a session falls in its week, in minutes from Monday 00:00, read on `zone`'s clock. */
 const weekSpan = ({ start, end }: Session, zone: string): [number, number] => {
@@ -47,25 +62,44 @@ const weekSpan = ({ start, end }: Session, zone: string): [number, number] => {
   return [from, from + Math.max(1, end.diff(start, 'minutes').minutes)]
 }
 
-/** Two spans of a week overlap — counting one that runs past Sunday midnight into Monday. */
-const spansMeet = ([a1, a2]: [number, number], [b1, b2]: [number, number]) =>
-  [-WEEK_MINUTES, 0, WEEK_MINUTES].some((shift) => a1 < b2 + shift && b1 + shift < a2)
+/**
+ * The week offsets at which two spans of a week overlap: 0 in the same week, or ±1 for one that
+ * runs past Sunday midnight into the other's Monday (the second span that many weeks on).
+ */
+const meetingShifts = ([a1, a2]: [number, number], [b1, b2]: [number, number]): number[] =>
+  [-1, 0, 1].filter((shift) => a1 < b2 + shift * WEEK_MINUTES && b1 + shift * WEEK_MINUTES < a2)
+
+/** Whole weeks from `a`'s week to `b`'s, Monday to Monday on `zone`'s clock. */
+const weeksApart = (a: DateTime, b: DateTime, zone: string) =>
+  Math.round(b.setZone(zone).startOf('week').diff(a.setZone(zone).startOf('week'), 'weeks').weeks)
 
 /**
  * Whether two schedules meet at the same time. Two weekly classes clash when they share a
- * weekday and overlapping hours: they meet every week, so the dates in hand do not matter, and a
- * class starting next month still clashes. Any other pair — a monthly or one-off class — clashes
- * only on a date both actually meet.
+ * weekday and overlapping hours, in a week both meet: one that meets every week always does, so
+ * the dates in hand do not matter, and a class starting next month still clashes. Two fortnightly
+ * classes on alternate weeks never meet, so they are not duplicates. Any other pair — a monthly or
+ * one-off class — clashes only on a date both actually meet.
  */
 export const schedulesOverlap = (a: EventSchedule, b: EventSchedule): boolean => {
   const ours = sessionsOf(a)
   const theirs = sessionsOf(b)
+  const stepA = weekStep(a)
+  const stepB = weekStep(b)
 
-  if (meetsWeekly(a) && meetsWeekly(b)) {
+  if (stepA !== null && stepB !== null) {
     // Both are at the same place, so on the same clock; read on the listed one's to be sure.
     const zone = scheduleTimeZone(b)
+    // `a` meets every `stepA` weeks and `b` every `stepB` from their own weeks, so some week holds
+    // both exactly when the weeks between them are a multiple of the two steps' common divisor.
+    const cycle = gcd(stepA, stepB)
 
-    return ours.some((x) => theirs.some((y) => spansMeet(weekSpan(x, zone), weekSpan(y, zone))))
+    return ours.some((x) =>
+      theirs.some((y) =>
+        meetingShifts(weekSpan(x, zone), weekSpan(y, zone)).some(
+          (shift) => mod(weeksApart(x.start, y.start, zone) - shift, cycle) === 0,
+        ),
+      ),
+    )
   }
 
   return ours.some((x) => theirs.some((y) => x.start < y.end && y.start < x.end))

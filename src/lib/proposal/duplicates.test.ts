@@ -17,19 +17,22 @@ const listed = (
     recurrenceType?: EventSchedule['recurrenceType']
     endTime?: string | null
     count?: number
+    /** Every this many weeks (or months): 2 is fortnightly. */
+    interval?: number
   } = {},
 ): EventSchedule => {
-  const { recurrenceType = 'WEEKLY', endTime = '21:00', count = 6 } = options
+  const { recurrenceType = 'WEEKLY', endTime = '21:00', count = 6, interval = 1 } = options
   const start = DateTime.fromISO(first, { zone: ZONE })
-  const step = recurrenceType === 'MONTHLY' ? { months: 1 } : { weeks: 1 }
+  const unit = recurrenceType === 'MONTHLY' ? 'months' : 'weeks'
 
   return {
     firstDate: start.toJSDate(),
     firstDate_tz: ZONE,
     endTime,
     recurrenceType,
+    interval,
     upcomingDates: Array.from({ length: recurrenceType ? count : 1 }, (_, index) =>
-      start.plus({ [Object.keys(step)[0]]: index }).toJSDate(),
+      start.plus({ [unit]: index * interval }).toJSDate(),
     ),
   }
 }
@@ -148,5 +151,24 @@ describe('schedulesOverlap', () => {
     const earlyMonday = draft({ firstDate: '2027-01-04', startTime: '00:30', endTime: '01:30' })
 
     expect(schedulesOverlap(earlyMonday, late)).toBe(true)
+  })
+
+  // A centre can run two fortnightly classes at one door on the same evening, on alternate weeks:
+  // they never meet, so neither duplicates the other.
+  it('compares fortnightly classes week by week', () => {
+    const oddWeeks = listed('2026-11-17T19:00', { interval: 2 }) // Tuesdays 17 Nov, 1 Dec…
+    const evenWeeks = listed('2026-11-24T19:00', { interval: 2 }) // Tuesdays 24 Nov, 8 Dec…
+    const sameWeeks = listed('2027-01-12T19:00', { interval: 2 }) // in step with the first
+
+    expect(schedulesOverlap(oddWeeks, evenWeeks)).toBe(false)
+    expect(schedulesOverlap(oddWeeks, sameWeeks)).toBe(true)
+  })
+
+  it('still flags a fortnightly class against a weekly one on its evening', () => {
+    const fortnightly = listed('2026-11-24T19:00', { interval: 2 })
+
+    expect(schedulesOverlap(draft({ startTime: '19:30', endTime: '20:30' }), fortnightly)).toBe(
+      true,
+    )
   })
 })
