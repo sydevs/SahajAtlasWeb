@@ -357,6 +357,25 @@ cannot move into the settings menu.
 nudges the whole column down 40px to clear the expanded surface's collapse
 control — two controls now, not one.
 
+## A geocoder lookup whose answer is STORED asks for `permanent`
+
+Mapbox's terms allow keeping a feature id only when the lookup that returned it carried
+`permanent=true`, and such lookups bill separately. SahajCloud stores the ids a client sends with
+a class proposal, so its client contract requires them (sydevs/SahajCloud#893).
+
+So permanence is a **`MapSearch` prop**, absent by default, not a constant inside the control: one
+component serves both plain map browsing and the submit flow, and only the second may store what
+it gets back. Set `permanent` on a mount whose answer is submitted, and on no other.
+`reverseGeocode` (`lib/geocode.ts`) stays temporary — its answer fills the search field and `?cc`,
+never a stored row.
+
+⚠ **An option that may be absent is spread conditionally, and a spec is the only thing holding
+it.** `GeocodingCore` drops a `null` or `undefined` option but serializes a `false`, so `country`
+and `permanent` are both spread rather than passed as themselves — and a spread's keys escape
+TypeScript's excess-property check, which a plainly written key does not. Give every option you
+spread a case in `MapSearch.permanent.test.tsx`, which asserts what each mount hands
+`<Geocoder options>`.
+
 ## Geo helpers
 
 Use `@turf/*` (`bbox`, `bbox-polygon`, `circle`) for geometry math — bounding
