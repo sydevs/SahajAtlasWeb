@@ -94,13 +94,14 @@ Three rules for the script tag specifically:
   before the script tag. A snippet in `<head>` has nowhere to render and says so in the console.
 - **No `async` or `defer`.** The loader reads its own script tag to find both its settings and
   its position, and those attributes hide it.
-- **`type="module"` is required** — the loader is an ES module. Keep script optimizers away
-  from it: a tag rewritten without the type, or `auto.js` combined into a classic bundle, fails
-  before any of the widget runs — see [Troubleshooting](#troubleshooting).
+- **Keep `type="module"`.** `auto.js` also runs without it — that is how Wix loads it — but a
+  plain `<script>` in the body holds up the rest of your page while it downloads, and a module
+  never does. Keep script optimizers from combining or inlining `auto.js` into another file: the
+  loader finds its settings by that filename — see [Troubleshooting](#troubleshooting).
 
-`auto.js` is a ~3 KiB loader, not the widget. It works out what your page supports, then fetches
-the widget itself only when the embed is about to come into view — so an embed further down your
-page costs your visitors almost nothing until they scroll to it.
+`auto.js` starts a ~3 KiB loader, not the widget. The loader works out what your page supports,
+then fetches the widget itself only when the embed is about to come into view — so an embed
+further down your page costs your visitors almost nothing until they scroll to it.
 
 ### On Wix, the script embed is a Custom Element
 
@@ -1087,12 +1088,13 @@ the events — the widget ships an English copy compiled in and fetches every ot
 the CMS, so a blocked `connect-src` leaves a non-English page reading English rather than showing
 raw key names.
 
-Two files sit at that origin's root, and only the first is one you reference:
+Three files sit at that origin's root, and only the first is one you reference:
 
-| File       | What it is                                         |
-| ---------- | -------------------------------------------------- |
-| `auto.js`  | the loader — the one you install                   |
-| `embed.js` | the widget itself, fetched by the loader on demand |
+| File        | What it is                                                     |
+| ----------- | -------------------------------------------------------------- |
+| `auto.js`   | the one you install — it starts the loader, as a module or not |
+| `loader.js` | the loader, which `auto.js` adds to your page                  |
+| `embed.js`  | the widget itself, fetched by the loader on demand             |
 
 ## Browser support
 
@@ -1321,11 +1323,11 @@ our origin and updated in place, roughly daily, so every host serves the current
 [`CHANGELOG.md`](../CHANGELOG.md) is written for embedding sites and records what you can
 observe — parameters, origins, CSP, visible behaviour.
 
-**We serve both root files with `Cache-Control: public, max-age=0, must-revalidate`**, so a
-browser always asks before reusing one. That is deliberate, and it is the contract: the files
+**We serve all three root files with `Cache-Control: public, max-age=0, must-revalidate`**, so
+a browser always asks before reusing one. That is deliberate, and it is the contract: the files
 are unhashed and mutable, and they import content-hashed chunks by name.
 
-- **Don't cache `auto.js` or `embed.js` aggressively at your edge.** A stale copy held by a proxy
+- **Don't cache `auto.js`, `loader.js` or `embed.js` aggressively at your edge.** A stale copy held by a proxy
   or service worker will ask for chunk filenames the CDN no longer serves, and those 404s kill
   the widget with no fallback. Let it revalidate. The hashed chunks underneath it are immutable
   and safe to cache hard.
@@ -1382,9 +1384,10 @@ Three things to check when you migrate:
 | **Sharing offers no link**                                                   | The same memory-routing mode, on a page with no canonical atlas URL to offer instead.                                                                                                                                                                                                                                                                                                                                                                                                                         |
 | **The widget covers the rest of the page**                                   | A map embed with no height of its own renders `position: fixed; inset: 0`. Give the element a `display: block` and a height to keep the map inside it, or use `map=false` for an embed with no map.                                                                                                                                                                                                                                                                                                           |
 | **The widget looks wrong on your site only**                                 | Not a selector of yours — the shadow root stops those. Look instead at an inherited property the widget does not restate on its own root, your root `font-size` (the calendar only), or the `sahaj-atlas-fonts` `<style>` missing from your `<head>` — or sitting there inert, which is what a `style-src` without `'unsafe-inline'` leaves behind. See [what the widget does to your page](#what-the-widget-does-to-your-page).                                                                              |
-| **It broke after working yesterday**                                         | The embed updates in place. Check [`CHANGELOG.md`](../CHANGELOG.md). Then look for a cached `auto.js` or `embed.js` at your edge requesting chunk names that no longer exist.                                                                                                                                                                                                                                                                                                                                 |
+| **It broke after working yesterday**                                         | The embed updates in place. Check [`CHANGELOG.md`](../CHANGELOG.md). Then look for a cached `auto.js`, `loader.js` or `embed.js` at your edge requesting chunk names that no longer exist.                                                                                                                                                                                                                                                                                                                                 |
 | **Console: "could not find a place to render"**                              | The snippet is in `<head>`, or carries `async`/`defer`. Move it into the body without those attributes, or add an empty `<sahaj-atlas></sahaj-atlas>` where the widget should appear.                                                                                                                                                                                                                                                                                                                         |
-| **Nothing renders; console: "Cannot use import statement outside a module"** | The script tag lost its `type="module"`. An optimizer or an HTML5-cleanup filter rewrote the tag, or combined `auto.js` into a classic bundle. Exclude `auto.js` from minifying, combining and delaying, and from any filter that rewrites script tags. None of the widget runs in this state, so this browser error is the only report you get.                                                                                                                                                              |
+| **Nothing renders; console: "Cannot use import statement outside a module"** | Something loaded `loader.js` or `embed.js` as a plain script. Install only `auto.js`, which loads the rest itself. If your tag already names `auto.js`, a cache at your edge is serving an old copy of it — let it revalidate (see [Updates and caching](#updates-and-caching)). None of the widget runs in this state, so this browser error is the only report you get.                                                                                                                                     |
+| **Console: "could not find the auto.js script tag"**                         | An optimizer combined or inlined `auto.js` into another file, so no `<script>` on the page names it any more, and the loader finds its settings by that name. Exclude `auto.js` from minifying, combining and delaying, and from any filter that rewrites script tags.                                                                                                                                                                                                                                        |
 | **Console: "could not load the widget"**                                     | The loader ran, but `embed.js` or one of its `assets/` chunks did not load — the error printed with it names the URL. Look for that request in the network panel: a blocker, a CSP rule, or a stale copy cached at your edge (see [Updates and caching](#updates-and-caching)).                                                                                                                                                                                                                               |
 | **The widget shows an error after the page is translated**                   | A translation plugin rewrote the widget's text in the browser and ignored its `translate="no"`. Add `sahaj-atlas` to the plugin's excluded elements — see [the widget follows your page's language](#the-widget-follows-your-pages-language).                                                                                                                                                                                                                                                                 |
 | **Console: "no `key` parameter on the embed script URL"**                    | The query string is missing or was stripped. Some page builders drop everything after `?` from a script URL — if so, that platform cannot host the widget this way. Talk to the maintainers.                                                                                                                                                                                                                                                                                                                  |

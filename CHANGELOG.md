@@ -413,6 +413,14 @@ cover everything a host would notice since the widget was first deployed.
 
 ### Fixed
 
+- **The script embed now loads on Wix.** ([#409]) Wix's Custom Element adds `auto.js` without
+  `type="module"`, and the file could not run that way: the console said "Cannot use import
+  statement outside a module" and nothing rendered. `auto.js` now runs either way and starts the
+  loader from a second file on the same origin, `loader.js`, so your snippet and your CSP stay as
+  they are. Keep `type="module"` wherever you write the tag yourself — a plain script tag holds up
+  your page while it downloads. If an optimizer combines or inlines `auto.js` into another file,
+  the console now says "could not find the auto.js script tag"; exclude it.
+
 - **A class with no real venue shows an area, not a pin.** ([#374]) About a dozen listings give
   only a town, such as a class at a volunteer's home, so the map pinned the town's centre as if it
   were the venue — one landed on a supermarket, with Directions to it. Those listings, and every
@@ -1081,3 +1089,4 @@ must-revalidate`, pinned rather than left to the CDN default. The production dom
 [If your page replaces the element]: docs/embedding.md#if-your-page-replaces-the-element
 [On Wix, the script embed is a Custom Element]: docs/embedding.md#on-wix-the-script-embed-is-a-custom-element
 [#387]: https://github.com/sydevs/SahajAtlasWeb/issues/387
+[#409]: https://github.com/sydevs/SahajAtlasWeb/pull/409

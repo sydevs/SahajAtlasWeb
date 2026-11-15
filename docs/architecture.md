@@ -15,6 +15,7 @@ widget container sits behind them instead.
 
 ```
 Host page  →  <script src="…/auto.js?key=…&locale=…&map=true|false">
+                 │  src/loader/bridge.ts inserts loader.js as a module
                  │  src/loader/ adopts or creates <sahaj-atlas> (no attributes)
                  │  (@r2wc/react-to-web-component, src/Widget.tsx)
                  ▼

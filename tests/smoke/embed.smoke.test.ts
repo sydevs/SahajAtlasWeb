@@ -1,13 +1,16 @@
 import { describe, expect, test } from 'vitest'
 
+import { auditBridge } from '../../scripts/assert-classic-bridge.mjs'
+
 import { fetchPreview, skipWithoutPreview } from './_helpers/preview'
 
 // Smoke test: does the deploy serve the file a host installs?
 //
 // The other two specs in this lane fetch the standalone page (`index.html`), the dev
-// and demo surface. The real product is the embed. Since #149, the file a host installs
-// is `auto.js`, the loader, and it fetches `embed.js` on demand. So the crawl below
-// starts at the loader instead of the widget. Starting at `embed.js` would still prove
+// and demo surface. The real product is the embed. A host installs `auto.js`, a
+// classic-script bridge that starts `loader.js`, which fetches `embed.js` on demand
+// (#149). So the crawl below starts at `auto.js` instead of the widget. Starting at
+// `embed.js` would still prove
 // the widget deployed, but it would miss the one file every host actually references. A
 // broken embed next to a healthy standalone page would otherwise pass a green Smoke
 // check (issue #99).
@@ -16,7 +19,7 @@ import { fetchPreview, skipWithoutPreview } from './_helpers/preview'
 // in a real browser belongs to local Playwright verification, not CI.
 
 /**
- * The embed bundle, fetched once and shared. Both specs need the same body, and
+ * `auto.js`, fetched once and shared. Two specs need the same body, and
  * `retry: 2` in the smoke config would otherwise triple the round trips. This stays
  * lazy instead of a `beforeAll`, so a run with no preview URL skips without touching
  * the network.
@@ -70,7 +73,7 @@ function crawlDeploy() {
 async function crawlFromLoader() {
   const { body } = await fetchEmbed()
 
-  // `auto.js` and `embed.js` are unhashed and mutable. The chunks they name are
+  // `auto.js`, `loader.js` and `embed.js` are unhashed and mutable. The chunks they name are
   // hashed. A host or a proxy holding a stale copy can request names the deploy no
   // longer contains, and the widget then never appears. This spec catches the
   // deploy-side half of that mismatch: a loader published without the graph behind
@@ -81,7 +84,7 @@ async function crawlFromLoader() {
   //
   // The crawl is transitive, not one level deep, and that matters more now than
   // before. The whole widget sits behind one dynamic import from the loader. A
-  // one-level crawl from `auto.js` would reach `embed.js` and stop, missing every
+  // one-level crawl from `loader.js` would reach `embed.js` and stop, missing every
   // chunk the widget needs. The views behind a lazy seam load from a chunk that
   // names them, not from the entry file. A one-level crawl stopped covering the
   // calendar, registration, and share chunks the moment those moved behind
@@ -142,10 +145,24 @@ async function crawlFromLoader() {
 }
 
 describe('embed bundle', () => {
-  test.skipIf(skipWithoutPreview)('serves auto.js as a loader, not as the widget', async () => {
-    const { status, body } = await fetchEmbed()
+  // Wix executes `auto.js` as a classic script, where one `import` stops everything before
+  // a line of ours runs. The build gate reads `dist/`; this reads the bytes hosts get,
+  // including production's, which alone carry the Sentry debug-ID snippet.
+  test.skipIf(skipWithoutPreview)(
+    'serves auto.js as a bridge that runs as a classic script',
+    async () => {
+      const { status, body } = await fetchEmbed()
 
-    expect(status).toBe(200)
+      expect(status).toBe(200)
+      expect(auditBridge(body)).toEqual([])
+    },
+  )
+
+  test.skipIf(skipWithoutPreview)('serves loader.js as a loader, not as the widget', async () => {
+    const res = await fetchPreview('/loader.js')
+    const body = await res.text()
+
+    expect(res.status).toBe(200)
     expect(body.length).toBeGreaterThan(0)
 
     // Two markers together show the file is the loader, not an SPA-fallback HTML page

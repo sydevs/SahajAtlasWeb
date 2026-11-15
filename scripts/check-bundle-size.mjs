@@ -121,6 +121,13 @@ import { annotate, report } from './_ci-output.mjs'
 // ships 2.8, so the budget must stay above that too. 3.5 would put the CI
 // number on the slack boundary exactly; 3.2 is strictly inside it either
 // way the comparison below is read.
+//
+// 3.6 since the loader split in two: `auto.js` became a classic-script
+// bridge to `loader.js`, because Wix loads it with no `type`. The bridge is
+// its own chunk, so it adds its bytes and one more debug-ID snippet:
+//
+//   loader   2.78 KiB  uncredentialed  ← CI, 0.82 spare, inside the 1 KiB floor
+//   loader   3.26 KiB  credentialed    ← production, built offline, 0.34 spare
 // `standalone` and `embed` were 318 until zod 4 (GHSA-mrhx-c7xc-m3w5). zod 4's
 // classic API is bigger than 3.25.76's in this graph, and the schemas are eager
 // because every fetcher parses through one. Measured uncredentialed, which is
@@ -152,7 +159,7 @@ import { annotate, report } from './_ci-output.mjs'
 // slack the ratchet below reads.
 const BUDGET_KIB = {
   standalone: 334,
-  loader: 3.2,
+  loader: 3.6,
   embed: 334,
 }
 
@@ -178,8 +185,9 @@ const SLACK_RATIO = 0.15
 // chunk, and CI has no token to trigger that. The gap is therefore
 // per-graph, not a constant: it scales with chunk count, not bytes.
 // Measured on this build: **+1.1 KiB on `standalone`, +1.2 KiB on
-// `embed`, +0.3 KiB on `loader`**. The absolute cost is small. The RATIO
-// is not small: 0.3 KiB is 12% of the 2.6 KiB loader graph, while 1.2 KiB
+// `embed`, +0.5 KiB on `loader`** (+0.3 until the loader split into the
+// `auto.js` bridge and `loader.js`). The absolute cost is small. The RATIO
+// is not small: 0.5 KiB is 17% of the 2.8 KiB loader graph, while 1.2 KiB
 // is 0.4% of the embed graph.
 //
 // So on a graph this small, the two rules collide head-on. A budget high
@@ -294,12 +302,13 @@ function main() {
   const indexHtml = join(DIST, 'index.html')
   const embedJs = join(DIST, 'embed.js')
   const autoJs = join(DIST, 'auto.js')
+  const loaderJs = join(DIST, 'loader.js')
 
   // This names the missing paths. If the build succeeded and one of these
   // files was renamed instead — `entryFileNames` sets the embed filename
   // in vite.config.ts — the error message points at the rename. It does
   // not send someone to rebuild a build they just ran.
-  const missing = [indexHtml, embedJs].filter((f) => !existsSync(f))
+  const missing = [indexHtml, embedJs, autoJs, loaderJs].filter((f) => !existsSync(f))
 
   if (missing.length) {
     annotate(
@@ -330,9 +339,11 @@ function main() {
 
   const loaded = importClosure(declared[0])
   const embedGraph = importClosure(embedJs)
-  const loaderGraph = importClosure(autoJs)
+  // A host pays for both halves of the loader on every page view: `auto.js`, the classic-script
+  // bridge that imports nothing (`pnpm assert:classic` holds that), and the module it inserts.
+  const loaderGraph = [autoJs, ...importClosure(loaderJs)]
 
-  // The whole loader split rests on this seam: `auto.js` must reach
+  // The whole loader split rests on this seam: `loader.js` must reach
   // `embed.js` only through a DYNAMIC import, never a static one.
   // Rolldown would happily hoist `embed.js` into the loader's graph if
   // someone replaced the `import(…)` call with a top-level import. The
@@ -343,7 +354,7 @@ function main() {
   if (loaderGraph.some((file) => basename(file) === 'embed.js')) {
     annotate(
       'error',
-      "auto.js statically imports embed.js — the widget is back in the loader's eager graph, " +
+      "loader.js statically imports embed.js — the widget is back in the loader's eager graph, " +
         'so every host pays the full payload up front again. The import in src/loader/index.ts ' +
         'must stay a dynamic `import()`.',
     )
@@ -353,7 +364,7 @@ function main() {
   // This checks the same seam, one size down — the half of the problem
   // that actually got through (#153). A single VALUE import from `src/`
   // into the loader, or out of it, makes that module reachable from both
-  // entries. Rolldown then factors it into a chunk that BOTH `auto.js`
+  // entries. Rolldown then factors it into a chunk that BOTH `loader.js`
   // and `embed.js` import statically. The check above cannot see this,
   // because the shared chunk is not named `embed.js`. The size budget
   // cannot see it either, because a shared helper costs only a couple
@@ -380,7 +391,7 @@ function main() {
   if (shared.length) {
     annotate(
       'error',
-      `auto.js and embed.js share ${shared.length} chunk(s) — ${shared.map((f) => basename(f)).join(', ')}. ` +
+      `loader.js and embed.js share ${shared.length} chunk(s) — ${shared.map((f) => basename(f)).join(', ')}. ` +
         'A value import across the loader/widget seam puts a chunk in both graphs, so every host ' +
         'fetches it up front whether or not the widget ever renders. Duplicate the value into ' +
         'src/loader/literals.ts and pin it in literals.test.ts instead — or, if rolldown has ' +

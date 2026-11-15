@@ -8,9 +8,9 @@
 /assets/*
   Cache-Control: public, max-age=31536000, immutable
 
-# The two unhashed entry files at the output root (#148). Everything above is
-# content-hashed and so may be cached forever; these carry stable names precisely so hosts
-# can hardcode them, which means the CDN must revalidate instead.
+# The three unhashed entry files at the output root (#148). Everything above is
+# content-hashed and so may be cached forever; these carry stable names — hosts hardcode
+# `auto.js`, which names `loader.js`, which names `embed.js` — so the CDN must revalidate.
 #
 # **This rule is a fix, not a formality.** The file's previous version left `embed.js`
 # outside `/assets/*` and said it "must stay revalidated" — but nothing enforced it, so the
@@ -24,6 +24,9 @@
 # `max-age=0, must-revalidate` rather than `no-store`: a conditional request that answers 304
 # is cheap, and it keeps the browser cache useful while making staleness impossible.
 /auto.js
+  Cache-Control: public, max-age=0, must-revalidate
+
+/loader.js
   Cache-Control: public, max-age=0, must-revalidate
 
 /embed.js
