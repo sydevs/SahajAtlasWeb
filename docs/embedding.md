@@ -88,14 +88,12 @@ Everything either snippet needs is in it. Specifically:
   calendar menu's Apple Calendar row: a sandbox may refuse the `webcal:` protocol handler it
   opens.
 
-Three rules for the script tag specifically:
+Two rules for the script tag specifically:
 
 - **Put it in the body, where the widget should appear.** The element is inserted immediately
   before the script tag. A snippet in `<head>` has nowhere to render and says so in the console.
-- **`async` and `defer` are harmless.** The loader reads its own script tag to find both its
-  settings and its position, and waits for your page to finish parsing before it looks, so
-  neither attribute hides it. Neither rescues a snippet in `<head>` either — there is still
-  nowhere to render.
+  `async` and `defer` are fine there — the loader waits for your page to finish parsing before it
+  looks for its own tag — and neither rescues a snippet left in `<head>`.
 - **Keep `type="module"`.** `auto.js` also runs without it — that is how Wix loads it — but a
   plain `<script>` in the body holds up the rest of your page while it downloads, and a module
   never does. Keep script optimizers from combining or inlining `auto.js` into another file: the
