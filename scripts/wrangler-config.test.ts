@@ -155,10 +155,8 @@ describe('the targets', () => {
     expect(PACKAGE.scripts.build).not.toContain('_redirects')
   })
 
-  // The build image fails SWC's cache-root ancestor check for every directory it tries, so the
-  // playground builds only with the check off (#405). `WORKERS_CI` is Workers Builds' own, which
-  // keeps the check on locally and in CI — and both of those pass it, so nothing else would
-  // notice this prefix going missing.
+  // GitHub's runners and macOS pass SWC's cache-root ancestor check, so nothing but the Workers
+  // build image would notice this prefix going missing (#405).
   it('lets Ladle load SWC on Workers Builds only', () => {
     expect(PACKAGE.scripts['ladle:build']).toMatch(
       /^SWC_NATIVE_BINDING_CACHE_SKIP_SECURITY_CHECK=\$\{WORKERS_CI:\+1\} ladle build\b/,
