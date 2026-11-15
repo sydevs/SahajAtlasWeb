@@ -256,6 +256,13 @@ function stripDsStore(): Plugin {
   }
 }
 
+/** The build entries emitted under a fixed name, by `rolldownOptions.input` key. */
+const STABLE_ENTRY_FILES = new Map([
+  ['bridge', 'auto.js'],
+  ['loader', 'loader.js'],
+  ['widget', 'embed.js'],
+])
+
 // https://vitejs.dev/config/
 export default defineConfig(({ command }) => ({
   // Port 5174, not Vite's default 5173. WeMeditateWeb's dev server owns
@@ -273,8 +280,8 @@ export default defineConfig(({ command }) => ({
     react(),
     tsconfigPaths(),
     // `loader` is the input key below. Its `entryFileNames` setting
-    // emits `auto.js`, the one script a host installs, and the entry
-    // whose eager import graph is worth flattening. The host no longer
+    // emits `loader.js`, which `auto.js` starts on every page, and the
+    // entry whose eager import graph is worth flattening. The host no longer
     // fetches `widget` (`embed.js`) directly. The loader imports it
     // dynamically once the element nears the viewport. So the browser
     // discovers its graph from that dynamic import, not from a
@@ -308,23 +315,23 @@ export default defineConfig(({ command }) => ({
     rolldownOptions: {
       input: {
         main: resolve(import.meta.dirname, 'index.html'),
-        // This is the one script a host installs. Nobody loads
-        // `embed.js` directly any more — the loader imports it
-        // dynamically. It stays an explicit entry so it keeps a stable,
-        // unhashed filename. `pnpm size` measures it as its own graph,
-        // and the smoke lane fetches it by name.
+        // `auto.js`, the one script a host installs. It must parse as a
+        // classic script, because Wix writes its tag with no `type`, so
+        // it only starts `loader.js` (`src/loader/bridge.ts`).
+        bridge: './src/loader/bridge.ts',
         loader: './src/loader/index.ts',
+        // Nobody loads `embed.js` directly any more — the loader imports
+        // it dynamically. It stays an explicit entry so it keeps a
+        // stable, unhashed filename. `pnpm size` measures it as its own
+        // graph, and the smoke lane fetches it by name.
         widget: './src/Widget.tsx',
       },
       output: {
-        // Both files stay unhashed, at the dist root. `auto.js` is the
-        // URL hosts hardcode. `embed.js` is the name `auto.js` imports
-        // by.
-        entryFileNames: (assetInfo) => {
-          if (assetInfo.name === 'loader') return 'auto.js'
-
-          return assetInfo.name === 'widget' ? 'embed.js' : 'assets/[name]-[hash].js'
-        },
+        // All three stay unhashed, at the dist root. `auto.js` is the
+        // URL hosts hardcode, and `loader.js` and `embed.js` are the
+        // names the file before each one asks for.
+        entryFileNames: (assetInfo) =>
+          STABLE_ENTRY_FILES.get(assetInfo.name) ?? 'assets/[name]-[hash].js',
       },
     },
   },

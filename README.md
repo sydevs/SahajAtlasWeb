@@ -8,8 +8,9 @@ full Mapbox experience: country → region → area → venue → event.
 <script type="module" src="https://sahajatlas.com/auto.js?key=…"></script>
 ```
 
-That is the whole snippet — no element, no attribute. `auto.js` is a ~3 KiB
-loader (`src/loader/`). It reads its settings from its own URL, creates the
+That is the whole snippet — no element, no attribute. `auto.js` starts a ~3 KiB
+loader (`src/loader/`), and parses as a classic script too, which is how Wix
+loads it. The loader reads its settings from that URL, creates the
 element where you place the tag, and loads the widget itself (`embed.js`,
 built from `src/Widget.tsx`) only when the embed is about to enter the
 viewport.

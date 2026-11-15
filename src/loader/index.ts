@@ -1,13 +1,14 @@
 /**
- * `auto.js` — the one script a host installs (#149).
+ * `loader.js` — the loader behind `auto.js`, the one script a host installs (#149). `auto.js`
+ * only starts this file, because it has to parse as a classic script too (`./bridge.ts`).
  *
  * ```html
- * <script src="https://atlas.example/auto.js?key=…"></script>
+ * <script type="module" src="https://atlas.example/auto.js?key=…"></script>
  * ```
  *
  * That is the entire snippet. There is no `<sahaj-atlas>` element in host markup, and no
- * attribute to misspell. The loader creates the element. Every parameter rides on this script's
- * own URL (`./config.ts` explains why).
+ * attribute to misspell. The loader creates the element. Every parameter rides on the `auto.js`
+ * URL (`./config.ts` explains why).
  *
  * **What this buys.** The widget's eager payload is about 370 KiB gz. Loading it on every page
  * view of every embed — including the ones nobody scrolls to — spends that budget on the host's
@@ -207,10 +208,9 @@ function resolveElement(script: HTMLScriptElement | null): HTMLElement | null {
     return element
   }
 
-  // `async` and `defer` both null `document.currentScript`. The fallback lookup can miss, and
-  // a snippet in `<head>` has nowhere sensible to render. This code reports the problem instead
-  // of guessing at a position. A widget in the wrong place is harder to diagnose than one that
-  // explains why it is absent.
+  // The lookup can miss, and a snippet in `<head>` has nowhere sensible to render. This code
+  // reports the problem instead of guessing at a position. A widget in the wrong place is harder
+  // to diagnose than one that explains why it is absent.
   error(
     'could not find a place to render. Load auto.js from the page body, without `async` or ' +
       `\`defer\`, or put an empty <${ELEMENT_NAME}></${ELEMENT_NAME}> where the widget should appear.`,
@@ -336,13 +336,7 @@ function start(script: HTMLScriptElement | null): void {
   }
 }
 
-// This capture happens at module top level, because `document.currentScript` is only valid
-// while the script executes. It is null inside any later callback, and null outright under
-// `async` or `defer`. The fallback covers the deferred case without guessing. It looks for a
-// script whose src is this bundle's own filename — the one thing this code can recognise about
-// itself.
-const currentScript =
-  (document.currentScript as HTMLScriptElement | null) ??
-  document.querySelector<HTMLScriptElement>('script[src*="auto.js"]')
-
-start(currentScript)
+// The host's `auto.js` tag, not this file's own: it carries every parameter, and it marks where
+// the widget goes. This file always runs as a module, which has no `document.currentScript`, so
+// the tag is found by the one filename every host installs.
+start(document.querySelector<HTMLScriptElement>('script[src*="auto.js"]'))

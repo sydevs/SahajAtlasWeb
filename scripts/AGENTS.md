@@ -22,7 +22,8 @@ It is built so passing proves something real:
   constant**: it scales with chunk count, not bytes. Measured on the same commit
   (uncredentialed vs the offline dry run in `docs/rules/deployment.md`):
   **`standalone` +1.1 KiB, `embed` +1.2 KiB,
-  `loader` +0.3 KiB**. So never lower a budget to within *that graph's own measured gap* of
+  `loader` +0.5 KiB** (+0.3 until `auto.js` became a bridge chunk of its own in front of
+  `loader.js`). So never lower a budget to within *that graph's own measured gap* of
   the CI number, and record both numbers beside the budget in
   `scripts/check-bundle-size.mjs`. A flat figure is wrong in both directions — read as
-  2.1 KiB the loader's 3.2 KiB budget would have to be ≥ 4.5, above every figure it has held.
+  2.1 KiB the loader's 3.6 KiB budget would have to be ≥ 4.9, above every figure it has held.

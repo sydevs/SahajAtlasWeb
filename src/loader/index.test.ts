@@ -20,8 +20,8 @@ function stubHostPage({ url = 'https://host.example/classes', rendered = true } 
 
   vi.stubGlobal('HTMLElement', class {})
   vi.stubGlobal('document', {
-    currentScript: script,
-    querySelector: () => null,
+    currentScript: null,
+    querySelector: (selector: string) => (selector === 'script[src*="auto.js"]' ? script : null),
     createElement: () => ({
       setAttribute: () => undefined,
       // A box with no layout (inside `display: none`) has no client rects at all.

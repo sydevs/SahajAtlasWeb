@@ -9,10 +9,11 @@
   },
   "scripts": {
     "dev": "vite",
-    "build": "tsc && vite build && pnpm assert:css && pnpm assert:maps",
+    "build": "tsc && vite build && pnpm assert:css && pnpm assert:maps && pnpm assert:classic",
     "build:worker": "pnpm build && rm -f dist/_redirects",
     "assert:css": "node scripts/assert-css-scoped.mjs",
     "assert:maps": "node scripts/assert-no-sourcemaps.mjs",
+    "assert:classic": "node scripts/assert-classic-bridge.mjs",
     "typecheck": "tsc --noEmit && tsc -p tsconfig.test.json --noEmit",
     "lint": "eslint . --max-warnings 0",
     "lint:fix": "eslint . --fix",

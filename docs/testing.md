@@ -237,7 +237,7 @@ values changed; the gap did not.) The `VITE_HOST` story above is that hole in on
 production origin blanked by a dashboard edit is the same hole in the other, and running the PR
 gate more often closes neither.
 
-`.github/workflows/production-smoke.yml` runs these same 18 specs against production. Five things
+`.github/workflows/production-smoke.yml` runs these same 22 specs against production. Five things
 about it are deliberate:
 
 - **The deploy fires it, not the clock.** What the lane reads is deployed file *content*, which
@@ -294,7 +294,7 @@ alert. The lane's last step opens an issue instead, and three things about it ar
   production read, and a ticket claiming production is red when nothing read it is worse than no
   ticket. `ci-workflows.test.ts` pins that gate and the token, since both fail silently.
 
-Every spec reads both hosts alike. The lane is **17 cases**, from 13 declarations — count it rather
+Every spec reads both hosts alike. The lane is **22 cases**, from 16 declarations — count it rather
 than trusting a figure, since `.each` makes the two differ. Measured 2026-10-06 against the 16 it
 was then: all 16 passed against `sahajatlas.com`. Re-measured 2026-10-13 against the playground
 on its Worker (`PREVIEW_URL=https://design.sahajatlas.com pnpm test:smoke`, #279): **10 of the 17
@@ -593,9 +593,12 @@ read the two figures as a pair taken on one machine, never as a trend. Re-measur
 2026-11-07, at 20: **4.0s** for the widest and **4.4s** for `i18n.ts`, medians of three on 4
 cores. Re-measured 2026-11-11, at 21 — `markers.outline.test.ts` reads two repo files to hold
 the fixed marker outline against the basemap surfaces it was measured from (#389): **6.5s** for
-the widest and **7.0s** for `i18n.ts`, medians of three. The slowest edit sits at about half the
-bound, so the ceiling is the narrower constraint of the two — a slot is spent long before a
-second is.
+the widest and **7.0s** for `i18n.ts`, medians of three. Re-measured 2026-11-15, at 22 —
+`assert-classic-bridge.test.ts` reads the bridge's source to compile it as its build entry is:
+**3.3s** for the widest and **4.4s** for `i18n.ts`, medians of three on 11 cores rather than 4,
+so read that pair against each other, never against the figures before it. The slowest edit sits
+at about half the bound, so the ceiling is the narrower constraint of the two — a slot is spent
+long before a second is.
 ⚠ **The 0.12s class is smaller than #289 found it**: `src/views/FullInterface.tsx` selected
 nothing until `MapFrame.test.tsx` named it as a quoted repo-relative path, and now costs **2.2s**
 per edit for the wiring pin it previously had no per-edit coverage from at all. A quoted literal
@@ -653,13 +656,14 @@ to select from. The full lane still runs in the lean gate (`.claude/skills/pr-pr
 in CI, so this narrows the inner loop, not the gate.
 
 **What holds the budget is the selection's width, and `scripts/select-unit-specs.test.ts` pins
-that**: the widest edit in the tree, exhaustively through the real composition, at 21 against a
-ceiling of 21 — no headroom, so the next spec reading a repo file through `repo-source` trips it,
+that**: the widest edit in the tree, exhaustively through the real composition, at 22 against a
+ceiling of 22 — no headroom, so the next spec reading a repo file through `repo-source` trips it,
 and the answer is to time the hook and ratchet, never to drop a spec. ⚠ **Two PRs can trip it
 without either one doing so alone**: #322's `mobile-zoom.test.ts` and #324's `attribution.test.ts`
 each took a slot, and the pin went red on the merge rather than on either branch; #328's
 `Drawer.scroll.test.tsx` ratcheted it from 17 to 18, #17's
-`BrandTheme.palette.test.tsx` from 18 to 19, and `theme-color.test.ts` from 19 to 20. ⚠ Width is not time, and which of
+`BrandTheme.palette.test.tsx` from 18 to 19, `theme-color.test.ts` from 19 to 20, and
+`assert-classic-bridge.test.ts` from 21 to 22. ⚠ Width is not time, and which of
 the pair is slower has flipped across machines — `i18n.ts` selects 12, four of them jsdom, and
 measured 6.2s against the widest's 5.5s at nineteen (2026-11-01, 4 cores), having been the faster
 of the two at eighteen — so width
