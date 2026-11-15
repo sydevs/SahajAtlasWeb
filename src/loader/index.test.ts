@@ -11,12 +11,23 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
  */
 const widget = vi.hoisted(() => ({ boot: vi.fn() }))
 
+/** A `<sahaj-atlas>` the host page parsed in, which `resolveElement` adopts rather than creates. */
+class StubElement {
+  hasAttribute() {
+    return false
+  }
+  setAttribute() {}
+  getClientRects() {
+    return [{}]
+  }
+}
+
 /** What the host page has parsed so far, by the selector the loader looks it up with. */
 let parsed: Record<string, unknown>
 /** The loader's `DOMContentLoaded` listener, once it has asked for one. */
 let domReady: (() => void) | undefined
 
-/** The loader's whole host page: one script tag, in the body unless asked. The node lane has no DOM. */
+/** The loader's whole host page: one script tag, in the body unless asked. No DOM in this lane. */
 function stubHostPage({
   url = 'https://host.example/classes',
   rendered = true,
@@ -31,7 +42,7 @@ function stubHostPage({
 
   parsed = { 'script[src*="auto.js"]': script }
   domReady = undefined
-  vi.stubGlobal('HTMLElement', class {})
+  vi.stubGlobal('HTMLElement', StubElement)
   vi.stubGlobal('document', {
     currentScript: null,
     readyState,
@@ -206,7 +217,7 @@ describe('a widget chunk that fails to load', () => {
 /**
  * `auto.js` is a classic script since #409, and Wix writes its tag into `<head>` with no `type`.
  * So this file's own tag can be inserted and run while the document is still parsing, when the
- * element it renders into — the host's, or the position of the `auto.js` tag — does not exist yet.
+ * element it renders into — the host's, or the position of the `auto.js` tag — is not there yet.
  */
 describe('a host page that is still parsing', () => {
   beforeEach(() => {
@@ -214,21 +225,14 @@ describe('a host page that is still parsing', () => {
     stubHostPage({ readyState: 'loading', parent: 'HEAD' })
   })
 
-  it('adopts a <sahaj-atlas> parsed after it ran, instead of refusing to render', async () => {
+  it('adopts a <sahaj-atlas> parsed in after it ran, instead of refusing', async () => {
     await loadAutoJs()
     await vi.advanceTimersByTimeAsync(2000)
 
     expect(logged).toEqual([])
     expect(widget.boot).not.toHaveBeenCalled()
 
-    const HostElement = globalThis.HTMLElement as unknown as new () => Record<string, unknown>
-    const element = Object.assign(new HostElement(), {
-      hasAttribute: () => false,
-      setAttribute: () => undefined,
-      getClientRects: () => [{}],
-    })
-
-    parsed['sahaj-atlas'] = element
+    parsed['sahaj-atlas'] = new StubElement()
     domReady?.()
     await vi.waitFor(() => expect(widget.boot).toHaveBeenCalledOnce(), { timeout: 3000 })
     expect(logged).toEqual([])
