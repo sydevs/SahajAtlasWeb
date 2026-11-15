@@ -56,8 +56,8 @@ move ran one site at a time, and the app's own cutover was split from building i
   Builds injects and nothing else does, so the check stays on locally and in CI. It has to be a
   script prefix: Ladle loads SWC when it starts, before it reads `.ladle/config.mjs`. GitHub's
   runners and macOS both pass the check, so `scripts/wrangler-config.test.ts` pins the prefix.
-  WeMeditateWeb's playground uses the same prefix on the same `@swc/core`
-  (sydevs/WeMeditateWeb#233). Only the playground loads SWC — `vite.config.ts` compiles the app
+  WeMeditateWeb's playground resolves the same `@swc/core` and takes the same prefix in
+  sydevs/WeMeditateWeb#236. Only the playground loads SWC — `vite.config.ts` compiles the app
   through `@vitejs/plugin-react` — so no `sahajatlas-web` deploy rides on this.
 
 Two deploy files live in `public/`, copied into both build outputs, and both govern both sites:
