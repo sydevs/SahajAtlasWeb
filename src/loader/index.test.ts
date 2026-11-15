@@ -11,17 +11,34 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
  */
 const widget = vi.hoisted(() => ({ boot: vi.fn() }))
 
-/** The loader's whole host page: one script tag in the body. The node lane has no DOM. */
-function stubHostPage({ url = 'https://host.example/classes', rendered = true } = {}) {
+/** What the host page has parsed so far, by the selector the loader looks it up with. */
+let parsed: Record<string, unknown>
+/** The loader's `DOMContentLoaded` listener, once it has asked for one. */
+let domReady: (() => void) | undefined
+
+/** The loader's whole host page: one script tag, in the body unless asked. The node lane has no DOM. */
+function stubHostPage({
+  url = 'https://host.example/classes',
+  rendered = true,
+  // A module tag is deferred, so every host that loads this file as one is already past parsing.
+  readyState = 'interactive',
+  parent = 'BODY',
+} = {}) {
   const script = {
     getAttribute: () => 'https://atlas.example/auto.js?key=test-key',
-    parentNode: { nodeName: 'BODY', insertBefore: () => undefined },
+    parentNode: { nodeName: parent, insertBefore: () => undefined },
   }
 
+  parsed = { 'script[src*="auto.js"]': script }
+  domReady = undefined
   vi.stubGlobal('HTMLElement', class {})
   vi.stubGlobal('document', {
     currentScript: null,
-    querySelector: (selector: string) => (selector === 'script[src*="auto.js"]' ? script : null),
+    readyState,
+    addEventListener: (type: string, listener: () => void) => {
+      if (type === 'DOMContentLoaded') domReady = listener
+    },
+    querySelector: (selector: string) => parsed[selector] ?? null,
     createElement: () => ({
       setAttribute: () => undefined,
       // A box with no layout (inside `display: none`) has no client rects at all.
@@ -183,5 +200,37 @@ describe('a widget chunk that fails to load', () => {
     expect(logged[0]).toMatch(/^\[sahaj-atlas\] could not load the widget/)
     expect(unhandled).toEqual([])
     expect(widget.boot).not.toHaveBeenCalled()
+  })
+})
+
+/**
+ * `auto.js` is a classic script since #409, and Wix writes its tag into `<head>` with no `type`.
+ * So this file's own tag can be inserted and run while the document is still parsing, when the
+ * element it renders into — the host's, or the position of the `auto.js` tag — does not exist yet.
+ */
+describe('a host page that is still parsing', () => {
+  beforeEach(() => {
+    vi.useFakeTimers()
+    stubHostPage({ readyState: 'loading', parent: 'HEAD' })
+  })
+
+  it('adopts a <sahaj-atlas> parsed after it ran, instead of refusing to render', async () => {
+    await loadAutoJs()
+    await vi.advanceTimersByTimeAsync(2000)
+
+    expect(logged).toEqual([])
+    expect(widget.boot).not.toHaveBeenCalled()
+
+    const HostElement = globalThis.HTMLElement as unknown as new () => Record<string, unknown>
+    const element = Object.assign(new HostElement(), {
+      hasAttribute: () => false,
+      setAttribute: () => undefined,
+      getClientRects: () => [{}],
+    })
+
+    parsed['sahaj-atlas'] = element
+    domReady?.()
+    await vi.waitFor(() => expect(widget.boot).toHaveBeenCalledOnce(), { timeout: 3000 })
+    expect(logged).toEqual([])
   })
 })

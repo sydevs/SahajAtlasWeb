@@ -339,4 +339,15 @@ function start(script: HTMLScriptElement | null): void {
 // The host's `auto.js` tag, not this file's own: it carries every parameter, and it marks where
 // the widget goes. This file always runs as a module, which has no `document.currentScript`, so
 // the tag is found by the one filename every host installs.
-start(document.querySelector<HTMLScriptElement>('script[src*="auto.js"]'))
+const run = () => start(document.querySelector<HTMLScriptElement>('script[src*="auto.js"]'))
+
+// ⚠ **The document may still be parsing.** `auto.js` is a classic script since #409, so a host
+// that writes its tag into `<head>` — Wix's Custom Element does — runs it before `<body>` exists,
+// and the module tag it inserts for this file is `async` by default. `resolveElement` would then
+// find no `<sahaj-atlas>` and a `<head>` parent, and refuse to render a page that was about to
+// have both. Every module host already runs at `interactive`, so this waits for nobody.
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', run, { once: true })
+} else {
+  run()
+}
