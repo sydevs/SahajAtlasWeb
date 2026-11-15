@@ -1132,8 +1132,13 @@ elements. On top of that, every selector is still confined to the widget's own s
 fails the build if a rule escapes. Your headings, links, lists, forms, `.container`, a `.dark`
 theme class, and your own Swiper or Mapbox instances are all left alone.
 
-Seven honest exceptions, none of them styling your content:
+Eight honest exceptions, none of them styling your content:
 
+- **One `<script>` is appended to your `<head>`, and it stays there.** `auto.js` is a bridge: it
+  adds `<script type="module" src="…/loader.js?…">` to start the loader. That tag carries your own
+  tag's query string, and its `nonce` when it has one — so a nonce-only
+  [CSP](#content-security-policy) admits the loader with nothing further to list. It is the one
+  element the widget leaves on your page for good; removing it does not unload the loader.
 - Opening a modal panel inside the widget sets `overflow: hidden` on your `<body>` while open —
   standard scroll-lock, reverted on close.
 - It writes to your page's query string, to exactly two parameters: **`atlas`**, carrying the
