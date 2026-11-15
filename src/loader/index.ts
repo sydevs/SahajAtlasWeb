@@ -212,8 +212,8 @@ function resolveElement(script: HTMLScriptElement | null): HTMLElement | null {
   // reports the problem instead of guessing at a position. A widget in the wrong place is harder
   // to diagnose than one that explains why it is absent.
   error(
-    'could not find a place to render. Load auto.js from the page body, without `async` or ' +
-      `\`defer\`, or put an empty <${ELEMENT_NAME}></${ELEMENT_NAME}> where the widget should appear.`,
+    `could not find a place to render. Put an empty <${ELEMENT_NAME}></${ELEMENT_NAME}> where ` +
+      'the widget should appear, or load auto.js from the page body instead of `<head>`.',
   )
 
   return null
