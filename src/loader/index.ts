@@ -23,6 +23,9 @@
  *    `getBoundingClientRect`, frozen `history`, or be serving a `file://` document. An uncaught
  *    throw in a top-level script is the host's problem to debug, and this code's job to prevent —
  *    the same argument `Widget.tsx` already makes around its slot-measurement probe.
+ *    **One exception, at the entry below:** `document.readyState`, `addEventListener` and
+ *    `querySelector` run unguarded. A host that patched one into throwing has not been measured,
+ *    and a `try` there costs bytes in the one graph with a budget.
  * 2. **Block.** Do no synchronous work beyond parsing a URL, and start no network request before
  *    idle.
  * 3. **Write the host's URL.** The probes below are no-ops by construction (`replaceState` to
