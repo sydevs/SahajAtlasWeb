@@ -45,18 +45,22 @@ move ran one site at a time, and the app's own cutover was split from building i
   `gh-readonly-queue/*` and `mockup/*` with `12002 Invalid request body`, although the docs
   show prefix wildcards — so merge-queue and mockup branches do start preview builds here, which
   the Pages app's own rules had excluded while it existed (#266).
-  ⚠ **`@swc/core` is pinned to 1.16.2 by a `pnpm.overrides` entry — do not let it pass 1.16.11.**
-  Ladle compiles through it. From 1.16.12 its addon ships compressed and unpacks itself into a
-  cache directory, refusing any whose ancestors another user can write without a sticky bit. On
-  the Workers build image since 2026-11-13 that rules out both `~/.cache` and `/tmp`, so every
-  playground build died with `ERR_SWC_NATIVE_CACHE` before Ladle ran; 1.16.22 still does (#401).
-  1.16.2 is the last release that loads its `.node` file directly. Lift the pin once a newer SWC
-  loads there — an upstream release is one route, not the only one. The addon reads
-  `SWC_NATIVE_BINDING_CACHE`, an absolute mode-0700 root it judges by that same ancestor rule, and
-  `SWC_NATIVE_BINDING_CACHE_SKIP_SECURITY_CHECK` turns that one check off while leaving its
-  integrity check on. Neither has been tried on the build image (#405). Only the playground loads
-  SWC — `vite.config.ts` compiles the app through `@vitejs/plugin-react` — so no `sahajatlas-web`
-  deploy rides on this.
+  ⚠ **`pnpm ladle:build` starts with `SWC_NATIVE_BINDING_CACHE_SKIP_SECURITY_CHECK=${WORKERS_CI:+1}`.
+  Without it, no `@swc/core` past 1.16.11 builds here.** Ladle compiles through SWC. From 1.16.12
+  SWC's addon ships compressed and unpacks itself into a cache directory. It refuses any directory
+  whose ancestors another user can write without a sticky bit. Since 2026-11-13 the Workers build
+  image fails that rule for both `~/.cache` and `/tmp`, so every playground build died with
+  `ERR_SWC_NATIVE_CACHE` before Ladle ran (#401). `SWC_NATIVE_BINDING_CACHE=/tmp/…` did not help,
+  because `/tmp` is refused too (#405). Route A from #405, a cache root inside the checkout, was
+  never measured: `~/.cache`'s refusal puts the offending ancestor at or above `$HOME`, which a
+  checkout under `$HOME` inherits. The prefix turns off that one ancestor check, and the addon's
+  integrity check stays on. It does so only where `WORKERS_CI` is set, which Workers Builds
+  injects and nothing else does, so the check stays on locally and in CI. It has to be a
+  script prefix: Ladle loads SWC when it starts, before it reads `.ladle/config.mjs`. GitHub's
+  runners and macOS both pass the check, so `scripts/wrangler-config.test.ts` pins the prefix.
+  WeMeditateWeb's playground resolves the same `@swc/core` and takes the same prefix in
+  sydevs/WeMeditateWeb#236. Only the playground loads SWC — `vite.config.ts` compiles the app
+  through `@vitejs/plugin-react` — so no `sahajatlas-web` deploy rides on this.
 
 Two deploy files live in `public/`, copied into both build outputs, and both govern both sites:
 
