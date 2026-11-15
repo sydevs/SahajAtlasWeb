@@ -51,9 +51,11 @@ move ran one site at a time, and the app's own cutover was split from building i
   whose ancestors another user can write without a sticky bit. Since 2026-11-13 the Workers build
   image fails that rule for both `~/.cache` and `/tmp`, so every playground build died with
   `ERR_SWC_NATIVE_CACHE` before Ladle ran (#401). `SWC_NATIVE_BINDING_CACHE=/tmp/…` did not help,
-  because `/tmp` is refused too (#405). The prefix turns off that one ancestor check, and the
-  addon's integrity check stays on. It does so only where `WORKERS_CI` is set, which Workers
-  Builds injects and nothing else does, so the check stays on locally and in CI. It has to be a
+  because `/tmp` is refused too (#405). Route A from #405, a cache root inside the checkout, was
+  never measured: `~/.cache`'s refusal puts the offending ancestor at or above `$HOME`, which a
+  checkout under `$HOME` inherits. The prefix turns off that one ancestor check, and the addon's
+  integrity check stays on. It does so only where `WORKERS_CI` is set, which Workers Builds
+  injects and nothing else does, so the check stays on locally and in CI. It has to be a
   script prefix: Ladle loads SWC when it starts, before it reads `.ladle/config.mjs`. GitHub's
   runners and macOS both pass the check, so `scripts/wrangler-config.test.ts` pins the prefix.
   WeMeditateWeb's playground resolves the same `@swc/core` and takes the same prefix in
