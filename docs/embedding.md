@@ -928,6 +928,13 @@ frame-src   https://cloud.sydevelopers.com
 first**, so splitting `script-src` across two lines silently drops the second, leaving you
 believing you allowed something you hadn't.
 
+**A `nonce` on your own `auto.js` tag reaches the loader.** `auto.js` copies it onto the
+`<script>` it appends to your `<head>` ([what the widget does to your
+page](#what-the-widget-does-to-your-page)), so that tag passes a nonce-based `script-src` without
+one. It changes nothing above it: the sources in `script-src` still cover the widget's own
+chunks, Mapbox's RTL plugin and analytics, and `style-src`, `font-src`, `img-src`, `connect-src`,
+`frame-src` and `worker-src` are owed in full.
+
 ### Why each one, and what breaks without it
 
 | Directive                  | Source                                        | Why                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   | Blocked ⇒                                                                                                                                                                                                     |
@@ -1136,8 +1143,9 @@ Eight honest exceptions, none of them styling your content:
 
 - **One `<script>` is appended to your `<head>`, and it stays there.** `auto.js` is a bridge: it
   adds `<script type="module" src="…/loader.js?…">` to start the loader. That tag carries your own
-  tag's query string, and its `nonce` when it has one — so a nonce-only
-  [CSP](#content-security-policy) admits the loader with nothing further to list. It is the one
+  tag's query string, and its `nonce` when it has one — so a nonce-based
+  [`script-src`](#content-security-policy) admits that tag with no source of its own. It settles
+  `script-src` only; every other directive in that section is owed as listed. It is the one
   element the widget leaves on your page for good; removing it does not unload the loader.
 - Opening a modal panel inside the widget sets `overflow: hidden` on your `<body>` while open —
   standard scroll-lock, reverted on close.
