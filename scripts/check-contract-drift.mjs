@@ -36,14 +36,9 @@ import { dirname, join, resolve } from 'node:path'
 import process from 'node:process'
 import { fileURLToPath, pathToFileURL } from 'node:url'
 
-const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..')
+import { CMS_TYPE_SOURCES, normaliseCopy } from './fetch-cms-types.mjs'
 
-/** Pairs each `curl -o <local path> <url>` in the `types:cms` script, so package.json stays the one place URLs live. */
-export const parseCmsTypeSources = (script) =>
-  [...script.matchAll(/curl\s+-\S+\s+-o\s+(\S+)\s+(https?:\/\/\S+)/g)].map(([, path, url]) => ({
-    path,
-    url,
-  }))
+const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..')
 
 /** @typedef {{ name: string, status: string, detail: string, fix: string }} Result */
 
@@ -102,18 +97,13 @@ const runSync = (name, script, fix, env = {}) => {
 }
 
 const checkTypes = async () => {
-  const pkg = JSON.parse(readFileSync(join(ROOT, 'package.json'), 'utf8'))
-  const sources = parseCmsTypeSources(pkg.scripts['types:cms'] ?? '')
   const fix = 'pnpm types:cms'
 
-  if (!sources.length) {
+  // An emptied list would otherwise report nothing and exit 0, which is the one way this lane
+  // can be green having read no upstream file at all.
+  if (!CMS_TYPE_SOURCES.length) {
     return [
-      {
-        name: 'types:cms',
-        status: 'error',
-        detail: 'No curl pairs found in the types:cms script.',
-        fix,
-      },
+      { name: 'types:cms', status: 'error', detail: 'fetch-cms-types.mjs names no source.', fix },
     ]
   }
 
@@ -121,7 +111,7 @@ const checkTypes = async () => {
 
   try {
     return await Promise.all(
-      sources.map(async ({ path, url }, index) => {
+      CMS_TYPE_SOURCES.map(async ({ path, url }, index) => {
         const name = path
         const copy = join(dir, `${index}-${path.split('/').pop()}`)
 
@@ -134,17 +124,9 @@ const checkTypes = async () => {
 
           writeFileSync(copy, await response.text())
 
-          // Same normalisation `pnpm types:cms` applies, on the temp copy.
-          if (path.endsWith('payload-types.ts')) {
-            const strip = spawnSync(
-              process.execPath,
-              [join(ROOT, 'scripts/strip-payload-augmentation.mjs'), copy],
-              { encoding: 'utf8' },
-            )
+          const failed = normaliseCopy(path, copy)
 
-            if (strip.status !== 0)
-              return { name, status: 'error', detail: tail(strip.stderr), fix }
-          }
+          if (failed) return { name, status: 'error', detail: tail(failed), fix }
 
           if (readFileSync(copy, 'utf8') === readFileSync(join(ROOT, path), 'utf8')) {
             return { name, status: 'ok', detail: '', fix }

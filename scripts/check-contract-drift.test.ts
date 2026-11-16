@@ -3,13 +3,8 @@ import { resolve } from 'node:path'
 
 import { describe, expect, it } from 'vitest'
 
-import {
-  exitCodeFor,
-  head,
-  parseCmsTypeSources,
-  renderReport,
-  tail,
-} from './check-contract-drift.mjs'
+import { exitCodeFor, head, renderReport, tail } from './check-contract-drift.mjs'
+import { CMS_TYPE_SOURCES } from './fetch-cms-types.mjs'
 
 // Read directly: `readRepoSource` is a hub whose dependent count `select-unit-specs.test.ts` ratchets.
 const readRepoSource = (path: string) => readFileSync(resolve(__dirname, '..', path), 'utf8')
@@ -21,24 +16,25 @@ const result = (status: 'ok' | 'drift' | 'error' | 'skipped') => ({
   fix: 'pnpm fix',
 })
 
-describe('parseCmsTypeSources', () => {
-  // The checker takes its URLs from the `types:cms` script, so a reshaped script must fail here
-  // rather than leave the checker comparing nothing.
-  it('finds every file `pnpm types:cms` downloads, in the repo as committed', () => {
-    const { scripts } = JSON.parse(readRepoSource('package.json'))
-    const sources = parseCmsTypeSources(scripts['types:cms'])
-
-    expect(sources.map((s: { path: string }) => s.path)).toEqual([
+describe('CMS_TYPE_SOURCES', () => {
+  // The checker fetches each `url` into a temp dir and diffs it against the `path` beside it, so
+  // a pair naming a file this repo does not commit leaves that copy unwatched rather than red.
+  it('names every file `pnpm types:cms` writes, as the repo commits it', () => {
+    expect(CMS_TYPE_SOURCES.map((source: { path: string }) => source.path)).toEqual([
       'src/types/payload/payload-types.ts',
       'src/types/payload/response-types.ts',
     ])
-    for (const { url } of sources) {
+    for (const { url } of CMS_TYPE_SOURCES as { url: string }[]) {
       expect(url).toMatch(/^https:\/\/raw\.githubusercontent\.com\/sydevs\/SahajCloud\/.*\/main\//)
     }
   })
 
-  it('finds nothing in a script with no curl', () => {
-    expect(parseCmsTypeSources('echo hi')).toEqual([])
+  // The pairing is structural only while `types:cms` is the thing running this list. A command
+  // that downloads the copies some other way puts the checker back to watching stale addresses.
+  it('is the list `pnpm types:cms` downloads from', () => {
+    const { scripts } = JSON.parse(readRepoSource('package.json'))
+
+    expect(scripts['types:cms']).toContain('scripts/fetch-cms-types.mjs')
   })
 })
 
