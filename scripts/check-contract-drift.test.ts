@@ -3,7 +3,13 @@ import { resolve } from 'node:path'
 
 import { describe, expect, it } from 'vitest'
 
-import { exitCodeFor, parseCmsTypeSources, renderReport } from './check-contract-drift.mjs'
+import {
+  exitCodeFor,
+  head,
+  parseCmsTypeSources,
+  renderReport,
+  tail,
+} from './check-contract-drift.mjs'
 
 // Read directly: `readRepoSource` is a hub whose dependent count `select-unit-specs.test.ts` ratchets.
 const readRepoSource = (path: string) => readFileSync(resolve(__dirname, '..', path), 'utf8')
@@ -41,6 +47,22 @@ describe('exitCodeFor', () => {
     expect(exitCodeFor([result('ok'), result('skipped')])).toBe(0)
     expect(exitCodeFor([result('ok'), result('error')])).toBe(2)
     expect(exitCodeFor([result('error'), result('drift')])).toBe(1)
+  })
+})
+
+describe('head and tail', () => {
+  const long = Array.from({ length: 50 }, (_, index) => `line ${index + 1}`).join('\n')
+
+  // A unified diff states the file and its first hunk at the top; a script that failed says WHY
+  // at the bottom. One trim serving both dropped the reason out of every error row.
+  it('keeps the opening of a diff and the close of a failure', () => {
+    expect(head(long, 2)).toBe('line 1\nline 2\n… 48 more lines')
+    expect(tail(long, 2)).toBe('… 48 more lines\nline 49\nline 50')
+  })
+
+  it('leaves a detail under the limit whole', () => {
+    expect(head('one\ntwo', 40)).toBe('one\ntwo')
+    expect(tail('one\ntwo', 40)).toBe('one\ntwo')
   })
 })
 

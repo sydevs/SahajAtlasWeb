@@ -71,13 +71,21 @@ export const renderReport = (results) => {
   ].join('\n')
 }
 
-const tail = (text, lines = 40) => {
+const trim = (text, lines, fromEnd) => {
   const all = text.trimEnd().split('\n')
 
-  return all.length > lines
-    ? [...all.slice(0, lines), `… ${all.length - lines} more lines`].join('\n')
-    : all.join('\n')
+  if (all.length <= lines) return all.join('\n')
+
+  const cut = `… ${all.length - lines} more lines`
+
+  return fromEnd ? [cut, ...all.slice(-lines)].join('\n') : [...all.slice(0, lines), cut].join('\n')
 }
+
+/** The opening of a long detail. A unified diff states the file and the first hunk there. */
+export const head = (text, lines = 40) => trim(text, lines, false)
+
+/** The close of a long detail. A script that failed says WHY last, so a head drops the reason. */
+export const tail = (text, lines = 40) => trim(text, lines, true)
 
 /** Runs a sync script in its own check mode and maps its exit code (0 / 1 / 2) onto a status. */
 const runSync = (name, script, fix, env = {}) => {
@@ -88,8 +96,9 @@ const runSync = (name, script, fix, env = {}) => {
   })
   const detail = `${run.stdout ?? ''}${run.stderr ?? ''}`
   const status = run.status === 0 ? 'ok' : run.status === 1 ? 'drift' : 'error'
+  const trimmed = status === 'drift' ? head(detail) : tail(detail)
 
-  return { name, status, detail: status === 'ok' ? '' : tail(detail), fix }
+  return { name, status, detail: status === 'ok' ? '' : trimmed, fix }
 }
 
 const checkTypes = async () => {
@@ -143,7 +152,7 @@ const checkTypes = async () => {
 
           const diff = spawnSync('diff', ['-u', join(ROOT, path), copy], { encoding: 'utf8' })
 
-          return { name, status: 'drift', detail: `${url}\n\n${tail(diff.stdout ?? '')}`, fix }
+          return { name, status: 'drift', detail: `${url}\n\n${head(diff.stdout ?? '')}`, fix }
         } catch (error) {
           return {
             name,
