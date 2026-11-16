@@ -111,7 +111,7 @@ const MIME = {
  * viewport" has to be full-bleed, or it demonstrates the opposite of its
  * own note on any large monitor.
  */
-const page = (title, body, note, full = false) => `<!doctype html>
+const page = (title, body, note, full = false, head = '') => `<!doctype html>
 <html lang="en"><head><meta charset="utf-8"><title>${title}</title>
 <style>
   body { font: 16px/1.6 system-ui, sans-serif; margin: 0; color: #111; }
@@ -119,14 +119,48 @@ const page = (title, body, note, full = false) => `<!doctype html>
   .note { position: ${full ? 'absolute' : 'static'}; z-index: 1; }
   .note { background: #fffbe6; border-left: 4px solid #e6b800; padding: 12px 16px; margin-bottom: 24px; font-size: 14px; }
   aside { border: 2px solid #333; }
-</style></head>
+</style>${head}</head>
 <body><div class="wrap"><div class="note"><strong>${title}</strong> — ${note}</div>
 ${body}</div></body></html>`
 
+/**
+ * Not markup: the server stops the response here and finishes it
+ * `STREAM_PAUSE_MS` later. Only `classic-head.html` carries one.
+ */
+const STREAM_PAUSE = '<!--pause-->'
+
+/**
+ * ⚠ Long enough that `loader.js` is fetched, parsed and run before the
+ * rest of the document arrives — which is the entire bug. Served whole,
+ * the body is already parsed by then and the page passes either way: a
+ * build with the `DOMContentLoaded` guard removed still claimed the
+ * element, so this page is a gate only because of the pause.
+ */
+const STREAM_PAUSE_MS = 400
+
 function pages(src) {
   const loader = (params) => `<script type="module" src="${src}?${params}"></script>`
+  const classicLoader = (params) => `<script src="${src}?${params}"></script>`
 
   return {
+    // The shape #410 was filed for, and the only one here that is not a
+    // module tag in the body. Wix's Custom Element writes a CLASSIC
+    // `auto.js` into `<head>`, where the bridge appends `loader.js`
+    // force-async — so the entry can run before `<body>` exists, find no
+    // element, and leave the host's own one unclaimed. Watch for a widget
+    // INSIDE the element below and an empty console: "could not find a
+    // place to render" is the regression this page exists to catch.
+    'classic-head.html': page(
+      'Classic auto.js in the head',
+      `${STREAM_PAUSE}<h1>An article whose snippet sits in the head</h1>
+    <p>The element below is the host's own markup, not one the loader inserted. It arrives
+    ${STREAM_PAUSE_MS}ms after the head does, so the loader runs while the page is still parsing.</p>
+    <sahaj-atlas style="display:block;height:640px;border:2px solid #333"></sahaj-atlas>`,
+      'expect the widget INSIDE the bordered element and NOTHING in the console.',
+      false,
+      classicLoader('key=KEY&map=false'),
+    ),
+
     // The default product. Map mode owns the viewport. At phone width,
     // the drawer is a bottom sheet with snap points — the shape whose
     // offsets #161 inverted, by handing vaul a `display: contents`
@@ -286,7 +320,7 @@ const written = pages(`http://localhost:${port}/auto.js`)
 // earlier version wrote the index into `dist/`, which left a stray file
 // for `assert-no-sourcemaps` to scan on the next build. It also implied
 // the same-origin property came from living there. It actually comes
-// from the server, as the other six pages already demonstrate.
+// from the server, as every other page already demonstrates.
 const index = page(
   'Embed review',
   '<ul>' +
@@ -334,7 +368,16 @@ const server = createServer((req, res) => {
 
   if (review && written[review]) {
     res.writeHead(200, { 'content-type': MIME['.html'] })
-    res.end(written[review].replaceAll('KEY', key))
+
+    const [head, rest] = written[review].replaceAll('KEY', key).split(STREAM_PAUSE)
+
+    if (rest === undefined) {
+      res.end(head)
+    } else {
+      res.write(head)
+      setTimeout(() => res.end(rest), STREAM_PAUSE_MS)
+    }
+
     return
   }
 

@@ -88,12 +88,12 @@ Everything either snippet needs is in it. Specifically:
   calendar menu's Apple Calendar row: a sandbox may refuse the `webcal:` protocol handler it
   opens.
 
-Three rules for the script tag specifically:
+Two rules for the script tag specifically:
 
 - **Put it in the body, where the widget should appear.** The element is inserted immediately
   before the script tag. A snippet in `<head>` has nowhere to render and says so in the console.
-- **No `async` or `defer`.** The loader reads its own script tag to find both its settings and
-  its position, and those attributes hide it.
+  `async` and `defer` are fine there — the loader waits for your page to finish parsing before it
+  looks for its own tag — and neither rescues a snippet left in `<head>`.
 - **Keep `type="module"`.** `auto.js` also runs without it — that is how Wix loads it — but a
   plain `<script>` in the body holds up the rest of your page while it downloads, and a module
   never does. Keep script optimizers from combining or inlining `auto.js` into another file: the
@@ -928,6 +928,13 @@ frame-src   https://cloud.sydevelopers.com
 first**, so splitting `script-src` across two lines silently drops the second, leaving you
 believing you allowed something you hadn't.
 
+**A `nonce` on your own `auto.js` tag reaches the loader.** `auto.js` copies it onto the
+`<script>` it appends to your `<head>` ([what the widget does to your
+page](#what-the-widget-does-to-your-page)), so that tag passes a nonce-based `script-src` without
+one. It changes nothing above it: the sources in `script-src` still cover the widget's own
+chunks, Mapbox's RTL plugin and analytics, and `style-src`, `font-src`, `img-src`, `connect-src`,
+`frame-src` and `worker-src` are owed in full.
+
 ### Why each one, and what breaks without it
 
 | Directive                  | Source                                        | Why                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   | Blocked ⇒                                                                                                                                                                                                     |
@@ -1132,8 +1139,14 @@ elements. On top of that, every selector is still confined to the widget's own s
 fails the build if a rule escapes. Your headings, links, lists, forms, `.container`, a `.dark`
 theme class, and your own Swiper or Mapbox instances are all left alone.
 
-Seven honest exceptions, none of them styling your content:
+Eight honest exceptions, none of them styling your content:
 
+- **One `<script>` is appended to your `<head>`, and it stays there.** `auto.js` is a bridge: it
+  adds `<script type="module" src="…/loader.js?…">` to start the loader. That tag carries your own
+  tag's query string, and its `nonce` when it has one — so a nonce-based
+  [`script-src`](#content-security-policy) admits that tag with no source of its own. It settles
+  `script-src` only; every other directive in that section is owed as listed. It is the one
+  element the widget leaves on your page for good; removing it does not unload the loader.
 - Opening a modal panel inside the widget sets `overflow: hidden` on your `<body>` while open —
   standard scroll-lock, reverted on close.
 - It writes to your page's query string, to exactly two parameters: **`atlas`**, carrying the
@@ -1385,12 +1398,12 @@ Three things to check when you migrate:
 | **The widget covers the rest of the page**                                   | A map embed with no height of its own renders `position: fixed; inset: 0`. Give the element a `display: block` and a height to keep the map inside it, or use `map=false` for an embed with no map.                                                                                                                                                                                                                                                                                                           |
 | **The widget looks wrong on your site only**                                 | Not a selector of yours — the shadow root stops those. Look instead at an inherited property the widget does not restate on its own root, your root `font-size` (the calendar only), or the `sahaj-atlas-fonts` `<style>` missing from your `<head>` — or sitting there inert, which is what a `style-src` without `'unsafe-inline'` leaves behind. See [what the widget does to your page](#what-the-widget-does-to-your-page).                                                                              |
 | **It broke after working yesterday**                                         | The embed updates in place. Check [`CHANGELOG.md`](../CHANGELOG.md). Then look for a cached `auto.js`, `loader.js` or `embed.js` at your edge requesting chunk names that no longer exist.                                                                                                                                                                                                                                                                                                                                 |
-| **Console: "could not find a place to render"**                              | The snippet is in `<head>`, or carries `async`/`defer`. Move it into the body without those attributes, or add an empty `<sahaj-atlas></sahaj-atlas>` where the widget should appear.                                                                                                                                                                                                                                                                                                                         |
+| **Console: "could not find a place to render"**                              | The snippet is in `<head>`: add an empty `<sahaj-atlas></sahaj-atlas>` where the widget should appear, or move the snippet into the body. `async` and `defer` are fine on a snippet in the body — the loader waits for your page either way. **Or the snippet is no longer on the page** when the loader looks, which is after your page finishes parsing — a tag something removed, or replaced wholesale. Every setting rides on that tag's URL, so this comes with **"no `key` parameter on the embed script URL"** beside it, and adding the element alone then gets you the configuration-error screen instead. Leave the tag where it is.                                                                                                                                                                                                                                                                                                                         |
 | **Nothing renders; console: "Cannot use import statement outside a module"** | Something loaded `loader.js` or `embed.js` as a plain script. Install only `auto.js`, which loads the rest itself. If your tag already names `auto.js`, a cache at your edge is serving an old copy of it — let it revalidate (see [Updates and caching](#updates-and-caching)). None of the widget runs in this state, so this browser error is the only report you get.                                                                                                                                     |
 | **Console: "could not find the auto.js script tag"**                         | An optimizer combined or inlined `auto.js` into another file, so no `<script>` on the page names it any more, and the loader finds its settings by that name. Exclude `auto.js` from minifying, combining and delaying, and from any filter that rewrites script tags.                                                                                                                                                                                                                                        |
 | **Console: "could not load the widget"**                                     | The loader ran, but `embed.js` or one of its `assets/` chunks did not load — the error printed with it names the URL. Look for that request in the network panel: a blocker, a CSP rule, or a stale copy cached at your edge (see [Updates and caching](#updates-and-caching)).                                                                                                                                                                                                                               |
 | **The widget shows an error after the page is translated**                   | A translation plugin rewrote the widget's text in the browser and ignored its `translate="no"`. Add `sahaj-atlas` to the plugin's excluded elements — see [the widget follows your page's language](#the-widget-follows-your-pages-language).                                                                                                                                                                                                                                                                 |
-| **Console: "no `key` parameter on the embed script URL"**                    | The query string is missing or was stripped. Some page builders drop everything after `?` from a script URL — if so, that platform cannot host the widget this way. Talk to the maintainers.                                                                                                                                                                                                                                                                                                                  |
+| **Console: "no `key` parameter on the embed script URL"**                    | The query string is missing or was stripped. Some page builders drop everything after `?` from a script URL — if so, that platform cannot host the widget this way. Talk to the maintainers. The snippet having left the page reads the same way, since the settings go with it — see the row above.                                                                                                                                                                                                                                                                                                                  |
 | **The widget only appears when you scroll to it**                            | Intended. The loader defers fetching the widget until it nears the viewport. A below-the-fold widget therefore costs visitors nothing until they reach it.                                                                                                                                                                                                                                                                                                                                                    |
 
 If none of these fit, the widget's own **Report an issue** form (behind the settings
