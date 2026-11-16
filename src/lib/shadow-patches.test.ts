@@ -393,7 +393,7 @@ describe('Schedule-X through a shadow boundary', () => {
  * The copy that matters is the one each consumer resolves, and the two are different questions.
  *
  * Radix pins its own primitives EXACTLY — dialog, menu, popover and select each declare
- * `"@radix-ui/react-focus-scope": "1.1.16"`. So a newer dialog pins a newer exact focus-scope,
+ * `"@radix-ui/react-focus-scope": "1.3.1"`. So a newer dialog pins a newer exact focus-scope,
  * a SECOND copy arrives unpatched, and ours stays in the tree as a direct devDependency. The
  * patch then applies to a module nothing renders. Nothing fails, and every defect this file
  * documents comes back. The same four declare `aria-hidden: ^1.2.4`, a caret, so there one
@@ -401,7 +401,7 @@ describe('Schedule-X through a shadow boundary', () => {
  *
  * Measured, not feared: `pnpm update` on dialog, popover, select and dropdown-menu put all
  * four consumers — `react-menu` included — on an unpatched focus-scope 1.3.1, while our own
- * pin stayed 1.1.16 and patched and the pins above stayed green.
+ * pin stayed 1.3.1 and patched and the pins above stayed green.
  *
  * ⚠ The consumer set is the runtime dependency closure, not `dependencies` filtered by name.
  * Only 3 of our 9 direct `@radix-ui/react-*` packages declare focus-scope; the other 6 resolve
