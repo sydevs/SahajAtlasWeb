@@ -1,4 +1,4 @@
-import type { TranslationKey } from '@/types/i18next'
+import type { TFunction } from 'i18next'
 import type { StackEntry } from '@/lib/shape'
 
 /**
@@ -19,13 +19,11 @@ import type { StackEntry } from '@/lib/shape'
  * view into the node lane. The caches arrive as plain data for the same reason.
  */
 /**
- * Only the two shapes of call this module makes.
- *
- * This type is narrower than i18next's `TFunction` on purpose. It accepts the `t` from either
- * `useTranslation()` or `useLocale()` — whose type targets the default namespace —
- * without either caller casting.
+ * i18next's own `TFunction`, because i18next 27's type is not assignable to a hand-narrowed call signature. It is
+ * the `t` from either `useTranslation()` or `useLocale()`, both of which target the default
+ * namespace.
  */
-export type StripTranslate = (key: TranslationKey, options?: { title: string }) => string
+export type StripTranslate = TFunction
 
 export type StripNaming = {
   t: StripTranslate
