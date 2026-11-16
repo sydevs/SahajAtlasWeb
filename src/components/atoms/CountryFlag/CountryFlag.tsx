@@ -8,8 +8,8 @@ export interface CountryFlagProps {
 
 /**
  * A round country flag served from the widget's own origin (`lib/flag-url.ts`). Decorative:
- * the country's name is always printed beside it. `referrerPolicy` stays `no-referrer` so the
- * host page's URL is never sent with the request, as it was when flags came from a third party.
+ * the country's name is always printed beside it, and `referrerPolicy="no-referrer"` keeps the
+ * host page's URL out of the request.
  */
 export function CountryFlag({ countryCode, className }: CountryFlagProps) {
   const src = flagUrl(countryCode)

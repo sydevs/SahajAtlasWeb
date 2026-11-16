@@ -71,8 +71,8 @@ describe('MapSearch — the options a mount hands the geocoder', () => {
     expect(optionsOf(<MapSearch onSelect={() => {}} />)).not.toHaveProperty('country')
   })
 
-  // The TODO this pins said the geocoder would not switch. The locale is read per render, so a
-  // switch reaches the options the element is handed.
+  // The locale is read per render, so a switch reaches the options the element is handed and the
+  // geocoder needs no relabelling call of its own — unlike the map, which reads `language` once.
   it('hands the geocoder the current locale, and the next one after a switch', () => {
     geocoder.locale = 'en'
     expect(optionsOf(<MapSearch onSelect={() => {}} />).language).toBe('en')
