@@ -81,9 +81,16 @@ describe('public/_headers', () => {
   // calls the hardest kind to notice. These pin what the file is known to contain.
   it('parses the rules it is known to carry', () => {
     expect(rules.map((rule) => rule.pattern)).toEqual(
-      expect.arrayContaining(['/assets/*', '/auto.js', '/loader.js', '/embed.js', '/*']),
+      expect.arrayContaining([
+        '/assets/*',
+        '/flags/*',
+        '/auto.js',
+        '/loader.js',
+        '/embed.js',
+        '/*',
+      ]),
     )
-    expect(rules.length).toBeGreaterThanOrEqual(5)
+    expect(rules.length).toBeGreaterThanOrEqual(6)
     expect(rules.every((rule) => rule.headers.length > 0)).toBe(true)
   })
 
