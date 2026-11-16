@@ -51,7 +51,7 @@ i18n
     // resolution to a later tick. With this, `i18n.isInitialized` is true by the time an
     // importer's next statement runs, which is what lets `Widget.tsx` and the views drop their
     // `useSuspense: false` escape hatches.
-    initAsync: false,
+    initImmediate: false,
     react: {
       // `applyLocale` ADDS a locale's bundle after init, so components must re-render when a
       // bundle lands, not only when the language changes. Without this, a `?locale=fr` page whose
