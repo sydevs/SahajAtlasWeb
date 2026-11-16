@@ -1,4 +1,5 @@
-import type { GeocodingFeature } from '@mapbox/search-js-core'
+import type { GeocodingFeature, GeocodingOptions } from '@mapbox/search-js-core'
+import type { ListingDraft } from '@/lib/proposal'
 
 import { renderToStaticMarkup } from 'react-dom/server'
 import { MemoryRouter } from 'react-router'
@@ -12,12 +13,22 @@ import { EMPTY_SENDER } from '@/config/store'
 import { viewerTimeZone } from '@/lib/time'
 
 // Picking a place is the geocoder's retrieve, stood in for here by capturing the callback the
-// form hands it during render.
-const geocoder = vi.hoisted(() => ({ retrieve: (_feature: unknown) => {} }))
+// form hands it during render, beside the options that become the Mapbox request.
+const geocoder = vi.hoisted(() => ({
+  retrieve: (_feature: unknown) => {},
+  options: {} as Partial<GeocodingOptions>,
+}))
 
 vi.mock('@mapbox/search-js-react', () => ({
-  Geocoder: ({ onRetrieve }: { onRetrieve: (feature: unknown) => void }) => {
+  Geocoder: ({
+    onRetrieve,
+    options,
+  }: {
+    onRetrieve: (feature: unknown) => void
+    options: Partial<GeocodingOptions>
+  }) => {
     geocoder.retrieve = onRetrieve
+    geocoder.options = options
 
     return null
   },
@@ -36,15 +47,17 @@ const placeFeature = {
   },
 } as unknown as GeocodingFeature
 
-const pick = (zoneNearby: string | undefined) => {
-  const onChange = vi.fn()
-
+const renderWhere = (
+  zoneNearby: string | undefined,
+  onChange: (patch: Partial<ListingDraft>) => void,
+  draft = emptyDraft('Pacific/Kiritimati'),
+) =>
   renderToStaticMarkup(
     <MemoryRouter>
       <QueryClientProvider client={new QueryClient()}>
         <ProposalForm
           context={{ path: '/add', pageUrl: 'https://host.example', locale: 'en', userAgent: 'x' }}
-          draft={emptyDraft('Pacific/Kiritimati')}
+          draft={draft}
           sender={EMPTY_SENDER}
           sent={false}
           step="where"
@@ -58,6 +71,11 @@ const pick = (zoneNearby: string | undefined) => {
       </QueryClientProvider>
     </MemoryRouter>,
   )
+
+const pick = (zoneNearby: string | undefined) => {
+  const onChange = vi.fn()
+
+  renderWhere(zoneNearby, onChange)
   geocoder.retrieve(placeFeature)
 
   return onChange.mock.calls[0][0]
@@ -70,5 +88,13 @@ describe('ProposalForm picking a place', () => {
 
   it('falls back to the visitor’s own zone, never a zone inferred for an earlier place', () => {
     expect(pick(undefined).timeZone).toBe(viewerTimeZone())
+  })
+
+  // SahajCloud keeps the ids a proposal sends, and Mapbox allows storing one only from a
+  // permanent lookup. The header field's half is `MapSearch.permanent.test.tsx`.
+  it.each(['offline', 'online'] as const)('asks for a storable answer for an %s class', (type) => {
+    renderWhere(undefined, () => {}, { ...emptyDraft('Pacific/Kiritimati'), eventType: type })
+
+    expect(geocoder.options.permanent).toBe(true)
   })
 })

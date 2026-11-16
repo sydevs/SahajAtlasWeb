@@ -95,7 +95,8 @@ export function WhereStep({
 
 /**
  * A geocoder field whose text belongs to the step, not to `?q`: a step reached through an Edit
- * link reopens on what the draft already holds.
+ * link reopens on what the draft already holds. SahajCloud stores the ids it picks, so its lookups
+ * are permanent (#404).
  */
 function PlaceField({
   initial,
@@ -103,5 +104,5 @@ function PlaceField({
 }: { initial: string } & Omit<MapSearchProps, 'value' | 'onChange'>) {
   const [text, setText] = useState(initial)
 
-  return <MapSearch value={text} onChange={setText} {...field} />
+  return <MapSearch permanent value={text} onChange={setText} {...field} />
 }
