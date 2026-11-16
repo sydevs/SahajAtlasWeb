@@ -34,13 +34,17 @@ jobs:
 
       # `translations.en.json` is read from PRODUCTION, which needs a production
       # `sahaj-atlas-client` key. `ATLAS_API_KEY` is the intended secret (docs/environment.md);
-      # until it exists, `VITE_SAHAJCLOUD_API_KEY`, which ci.yml already holds, is tried. With
-      # neither the value is the empty string, and the script reports that check as `skipped`
-      # in the table and the step summary instead of passing as if it had read production.
+      # until it exists, `VITE_SAHAJCLOUD_API_KEY`, which ci.yml already holds, is tried.
+      # ⚠ Each secret keeps its OWN name. Promoting the second into `ATLAS_API_KEY` returns it
+      # at `resolveKey`'s first line, so the guard refusing a key whose `VITE_SAHAJCLOUD_URL` is
+      # not production never runs (`scripts/sync-translations.mjs`). With neither secret both
+      # values are the empty string, and the script reports that check as `skipped` in the table
+      # and the step summary instead of passing as if it had read production.
       - name: Check each contract against SahajCloud
         id: check
         env:
-          ATLAS_API_KEY: ${{ secrets.ATLAS_API_KEY || secrets.VITE_SAHAJCLOUD_API_KEY }}
+          ATLAS_API_KEY: ${{ secrets.ATLAS_API_KEY }}
+          VITE_SAHAJCLOUD_API_KEY: ${{ secrets.VITE_SAHAJCLOUD_API_KEY }}
         run: pnpm check:contracts --report "$RUNNER_TEMP/drift.md"
 
       # Only a real drift files an issue. An unreachable upstream (exit 2) fails the run and

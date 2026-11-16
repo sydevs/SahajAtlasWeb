@@ -19,10 +19,11 @@
  * Exit codes: 0 every copy matches (a skipped check does not count against it), 1 at least one
  * copy has drifted, 2 nothing drifted but a check could not run (upstream unreachable, refusal).
  *
- * A check is `skipped`, visibly, when the translations key is missing: the workflow passes
- * `ATLAS_API_KEY` as an EMPTY string when its secret is unset, and an empty value means "no key
- * was provisioned", so a green run never claims to have read production without a credential.
- * Run by hand with the variable unset and the script resolves a key itself (`sync-translations.mjs`).
+ * A check is `skipped`, visibly, when no translations key was provisioned: the workflow passes
+ * both key variables and an unset secret arrives as an EMPTY string, so a green run never claims
+ * to have read production without a credential. It passes each under its own name, leaving
+ * `sync-translations.mjs` to apply the guard that refuses a key minted against another CMS.
+ * Run by hand with both unset and the script resolves a key itself (`sync-translations.mjs`).
  *
  * ⚠ The unit lane must never touch the network (`docs/testing.md`), which is why this is a script
  * run on a schedule and not a spec. A drift is a behaviour change to read, not a merge conflict
@@ -163,16 +164,17 @@ const main = async () => {
   const reportPath = at > 0 ? process.argv[at + 1] : null
 
   const translationsFix = 'pnpm sync:translations --write'
-  const translations =
-    process.env.ATLAS_API_KEY === ''
-      ? {
-          name: 'src/config/translations.en.json',
-          status: 'skipped',
-          detail:
-            'No production key: set the ATLAS_API_KEY repository secret (a production sahaj-atlas-client key). Not read.',
-          fix: translationsFix,
-        }
-      : runSync('src/config/translations.en.json', 'sync-translations.mjs', translationsFix)
+  const noKeyProvisioned =
+    process.env.ATLAS_API_KEY === '' && process.env.VITE_SAHAJCLOUD_API_KEY === ''
+  const translations = noKeyProvisioned
+    ? {
+        name: 'src/config/translations.en.json',
+        status: 'skipped',
+        detail:
+          'No production key: set the ATLAS_API_KEY repository secret (a production sahaj-atlas-client key). Not read.',
+        fix: translationsFix,
+      }
+    : runSync('src/config/translations.en.json', 'sync-translations.mjs', translationsFix)
 
   /** @type {Result[]} */
   const results = [

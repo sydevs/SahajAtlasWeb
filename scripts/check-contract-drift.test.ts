@@ -65,6 +65,15 @@ describe('contract-drift.yml', () => {
     expect(lane).not.toMatch(/^\s*(pull_request|pull_request_target|push|merge_group):/m)
   })
 
+  // ⚠ `resolveKey` returns `ATLAS_API_KEY` at its first line, so a fallback promoted into that
+  // name skips the guard refusing a key whose `VITE_SAHAJCLOUD_URL` is not production
+  // (`scripts/sync-translations.mjs`). That bypass is invisible: the read succeeds.
+  it('hands each translations key to the script under its own name', () => {
+    expect(lane).toContain('ATLAS_API_KEY: ${{ secrets.ATLAS_API_KEY }}')
+    expect(lane).toContain('VITE_SAHAJCLOUD_API_KEY: ${{ secrets.VITE_SAHAJCLOUD_API_KEY }}')
+    expect(lane).not.toMatch(/ATLAS_API_KEY: \$\{\{[^}]*\|\|/)
+  })
+
   it('files the issue as the bot and writes nothing to the repo', () => {
     expect(lane).toContain('GH_TOKEN: ${{ secrets.SYDEVS_BOT_PAT }}')
     expect(lane).not.toContain('secrets.GITHUB_TOKEN')
