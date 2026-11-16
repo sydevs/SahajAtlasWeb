@@ -20,13 +20,15 @@ It is built so passing proves something real:
   join, since prose was the only enforcement. Fix: never import across the seam.
   Duplicate the value into `literals.ts` and pin both copies in `literals.test.ts`.
 - **`pnpm size` usually measures a build no visitor downloads**, because the Sentry
-  plugin's per-chunk debug-ID snippet needs credentials no local build, CI run or fork
-  build holds. `SENTRY_GAP_KIB` in the script holds that difference and the gate adds it
-  back, rather than leaving it to whoever reads the budget (#414 — before it, the gate
-  reported 1.0 KiB spare on a payload that shipped 0.2 KiB over, in #413). A build that
-  did emit the snippet is detected and charged nothing, so the figures stay honest either
-  way. **The gap is per-graph, not a constant**: it scales with chunk count, not bytes,
-  so one flat figure is wrong in both directions at once. The values and their provenance
-  live beside the constant — **measure a new graph on a credentialed build before giving
-  it an entry**, and re-measure when chunking changes shape, as it did when `auto.js`
-  became a bridge chunk in front of `loader.js`.
+  plugin's per-chunk debug-ID snippet is emitted only under `SENTRY_AUTH_TOKEN`, which
+  the gate's own build does not set. `SENTRY_GAP_KIB` in the script holds that difference
+  and the gate adds it back, rather than leaving it to whoever reads the budget (#414 —
+  before it, the gate reported 1.0 KiB spare on a payload that shipped 0.2 KiB over, in
+  #413). A build that _did_ emit the snippet is detected from the chunks themselves and
+  charged nothing, so the figures stay honest either way. **The gap is per-graph, not a
+  constant**: it scales with chunk count, not bytes, so one flat figure is wrong in both
+  directions at once. The values, the commit and the chunk counts they were taken at live
+  beside the constant — **measure a new graph before giving it an entry**, and re-measure
+  all three when a chunk count moves. Set the token to re-measure: `ci.yml`'s
+  "Source-map upload chain (offline dry run)" step is a credentialed build needing no
+  real credential.

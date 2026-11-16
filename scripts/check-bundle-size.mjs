@@ -184,19 +184,22 @@ export const BUDGET_KIB = {
 // rather than bytes, so it is per-graph: 0.5 KiB is 17% of the loader graph and
 // 1.2 KiB is 0.4% of the embed graph.
 //
-// Measured on ca3f207, built both ways — `pnpm build`, then again under
+// Measured on 7eac927, built both ways — `pnpm build`, then again under
 // `ci.yml`'s "Source-map upload chain (offline dry run)" environment, which is
 // the only credentialed build reachable without a real token
-// (`docs/rules/deployment.md`):
+// (`docs/rules/deployment.md`). The chunk count each figure was taken at is
+// what dates it:
 //
-//   standalone  330.341 → 331.465 KiB
-//   loader        2.759 →   3.224 KiB
-//   embed       331.422 → 332.574 KiB
+//   standalone  331.923 → 333.113 KiB   8 chunks
+//   loader        2.792 →   3.259 KiB   3 chunks
+//   embed       333.003 → 334.222 KiB   8 chunks
 //
-// ⚠ Measure a new graph before giving it an entry. Deriving one from a
-// neighbour is how the figure stops being a measurement.
+// ⚠ Measure a new graph before giving it an entry, and re-measure all three
+// when a graph's chunk count moves. Deriving a figure from a neighbour, or
+// leaving one at a count it was not taken at, is how it stops being a
+// measurement: `standalone` read 1.1 at ca3f207 and reads 1.2 here.
 export const SENTRY_GAP_KIB = {
-  standalone: 1.1,
+  standalone: 1.2,
   loader: 0.5,
   embed: 1.2,
 }
@@ -208,6 +211,11 @@ export const SENTRY_GAP_KIB = {
 // graphs today, so the looser match happens to read the same — one re-chunk
 // away from declaring every build credentialed and scoring the gap at zero.
 const DEBUG_ID_MARKER = '_sentryDebugIdIdentifier'
+
+/** Did a credentialed build already inject the snippet into this graph? */
+export function hasDebugIds(files, read) {
+  return files.some((file) => read(file).includes(DEBUG_ID_MARKER))
+}
 
 // A budget set far above the real payload is a green check that checks
 // nothing. That is the exact failure this script was written against,
@@ -306,7 +314,8 @@ function htmlGraph(html) {
  * `kib` is what this build contains. `shipped` is what a visitor downloads,
  * and it is the only figure the verdicts read — a gate that judged `kib`
  * reports spare space on a payload that is over budget, which is what
- * happened on #413: 333.0 KiB measured against a 334 budget, 334.2 shipped.
+ * happened on #413: 333.0 KiB measured against the 334 budget of the day,
+ * 334.2 shipped.
  *
  * `credentialed` says this build already emitted the debug-ID snippet, so its
  * measured size IS its shipped size. Adding the gap anyway would red a loader
@@ -353,9 +362,15 @@ function measure(name, files) {
     .sort((a, b) => b.bytes - a.bytes)
 
   const kib = parts.reduce((sum, p) => sum + p.bytes, 0) / KIB
-  const credentialed = files.some((file) => readFileSync(file, 'utf8').includes(DEBUG_ID_MARKER))
 
-  return { parts, ...score(name, kib, credentialed) }
+  return {
+    parts,
+    ...score(
+      name,
+      kib,
+      hasDebugIds(files, (f) => readFileSync(f, 'utf8')),
+    ),
+  }
 }
 
 function main() {
@@ -503,11 +518,17 @@ function main() {
     )
   }
 
-  // Otherwise the two columns agreeing reads as a bug in the gate.
-  if (graphs.every((g) => g.credentialed)) {
+  // Otherwise the two columns agreeing reads as a bug in the gate. Named per
+  // graph rather than per build, so a `dist/` holding chunks from both kinds of
+  // build says so instead of looking uniform.
+  const asShipped = graphs.filter((g) => g.credentialed)
+
+  if (asShipped.length) {
     lines.push(
       '',
-      '> This build emitted the Sentry debug-ID snippet, so it IS the shipped payload and no gap was added.',
+      `> ${asShipped.map((g) => `\`${g.name}\``).join(', ')} already ` +
+        `${asShipped.length === 1 ? 'carries' : 'carry'} the Sentry debug-ID snippet, so ` +
+        'the measurement IS the shipped payload and no gap was added.',
     )
   }
 
@@ -536,7 +557,9 @@ function main() {
 
   const over = graphs.filter((g) => g.over)
   const under = graphs.filter((g) => g.under)
-  const name = (list) => list.map((g) => `${g.name} ${g.shipped.toFixed(1)} KiB`).join('; ')
+  // Each graph carries its own budget: two graphs can fail against different ones.
+  const name = (list) =>
+    list.map((g) => `${g.name} ships ${g.shipped.toFixed(1)} of ${g.budget} KiB`).join('; ')
 
   if (under.length) {
     lines.push(
@@ -552,10 +575,10 @@ function main() {
   if (over.length) {
     annotate(
       'error',
-      `Bundle size over budget: ${name(over)} shipped (budget ${over[0].budget} KiB). Either ` +
-        'reduce the eager payload, or — if the growth is intended and justified — raise ' +
-        'BUDGET_KIB in scripts/check-bundle-size.mjs in the same commit, with the reason ' +
-        'in the commit message.',
+      `Bundle size over budget: ${name(over)}. Either reduce the eager payload, or — if ` +
+        'the growth is intended and justified — raise BUDGET_KIB in ' +
+        'scripts/check-bundle-size.mjs in the same commit, with the reason in the commit ' +
+        'message.',
     )
     process.exit(1)
   }
@@ -568,7 +591,7 @@ function main() {
   if (under.length) {
     annotate(
       'error',
-      `Bundle size is far UNDER budget: ${name(under)} shipped against ${under[0].budget} KiB. ` +
+      `Bundle size is far UNDER budget: ${name(under)}. ` +
         'If the payload really shrank, lower BUDGET_KIB in scripts/check-bundle-size.mjs ' +
         'to match — a budget this loose stops detecting anything. If it did not, the ' +
         'import walker has stopped seeing part of the graph and these numbers are wrong.',
