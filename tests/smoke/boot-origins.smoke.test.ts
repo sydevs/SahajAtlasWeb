@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'vitest'
 
-import { fetchPreview, skipWithoutPreview } from './_helpers/preview'
+import { fetchPreview, PREVIEW_URL, skipWithoutPreview } from './_helpers/preview'
 
 // Smoke test: does the deploy fetch from itself, or from a developer machine?
 //
@@ -170,6 +170,33 @@ describe('boot origins', () => {
       // always the next question, and naming the variable gives the answer someone
       // must set.
       expect(offenders).toEqual([])
+    },
+  )
+
+  // ⚠ Cross-repo contract with SahajCloud's `cors.headers` (`src/payload.config.ts` there).
+  // Every registration and report rides `x-turnstile-token` cross-origin, so a preflight that
+  // omits it makes the browser drop the POST unsent: the form fails, and SahajCloud logs only
+  // the OPTIONS. Until SahajCloud#1085 that was every atlas submission, with every lane green.
+  // A preflight writes nothing, so this reads production's intake safely from any preview.
+  test.skipIf(skipWithoutPreview)(
+    'SahajCloud lets the browser send the captcha token header',
+    async () => {
+      const api = (await requestOrigins()).find(({ label }) => label.includes('SahajCloud'))
+
+      expect(api, 'no SahajCloud origin in the eager graph').toBeDefined()
+
+      const res = await fetch(`${api!.origin}/api/user-submissions`, {
+        method: 'OPTIONS',
+        headers: {
+          Origin: new URL(PREVIEW_URL!).origin,
+          'Access-Control-Request-Method': 'POST',
+          'Access-Control-Request-Headers': 'authorization, content-type, x-turnstile-token',
+        },
+      })
+      const allowed = (res.headers.get('access-control-allow-headers') ?? '').toLowerCase()
+
+      expect(res.ok, `preflight answered ${res.status}`).toBe(true)
+      expect(allowed, `${api!.origin} allow-list: ${allowed}`).toContain('x-turnstile-token')
     },
   )
 })

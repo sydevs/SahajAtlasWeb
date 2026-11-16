@@ -1,4 +1,5 @@
 import type { FeatureCollection, Geometry } from 'geojson'
+import type { MapRef } from 'react-map-gl'
 import type { Geojson } from '@/types'
 import type { DisplayableEvent } from '@/hooks/use-event-display'
 
@@ -18,6 +19,9 @@ import { useShallow } from 'zustand/react/shallow'
 import { CalendarDays } from 'lucide-react'
 
 import {
+  vagueDotLayer,
+  vaguePinLayer,
+  vagueRingLayer,
   clusterLayer,
   selectedPointLayer,
   unclusteredPointLayer,
@@ -25,18 +29,33 @@ import {
   hoveredPointLayer,
   hoveredAreaLayer,
   boundsLayer,
+  INTERACTIVE_LAYER_IDS,
+  RING_ZOOM,
+  LAYER_IDS,
 } from './layers'
-import { registerMarkerImages } from './markers'
+import { markerColors, registerMarkerImages } from './markers'
+import { pinPopoverPlacement, type PopoverAnchor } from './pin-popover'
 
+import { Button } from '@/components/atoms/Button'
+import { Modal, ModalClose, ModalContent, ModalFooter } from '@/components/atoms/Modal'
 import { calendarLineParts, useEventDisplay } from '@/hooks/use-event-display'
-import { useCameraSettled, useViewState, type MapPoint } from '@/config/store'
+import { useCameraSettled, useCameraTarget, useViewState, type MapPoint } from '@/config/store'
 import { useAtlasNavigate } from '@/hooks/use-atlas-navigate'
 import { useEventFilters } from '@/hooks/use-filters'
 import { useGeolocateToSearch } from '@/hooks/use-geolocate'
 import { useRegionMatcher } from '@/hooks/use-region-matcher'
-import api from '@/config/api'
+import api, { eventTitlesQuery } from '@/config/api'
+import { useHasRealPointer } from '@/config/responsive'
+import { useBrandPalette } from '@/config/theme/brand-palette'
 import { GEOJSON_STALE_TIME } from '@/config/query-client'
-import { hasActiveFilters, matchesFilters, safePath, todayISO } from '@/lib/shape'
+import { worldMinZoom } from '@/lib/camera'
+import {
+  hasActiveFilters,
+  hasApproximatePlace,
+  matchesFilters,
+  safePath,
+  todayISO,
+} from '@/lib/shape'
 import { useLocale } from '@/hooks/use-locale'
 import { useTheme } from '@/hooks/use-theme'
 import { useMapbox } from '@/hooks/use-mapbox'
@@ -61,6 +80,9 @@ const MAP_STYLES = {
  * the visitor has now seen where it starts from.
  */
 const REVEAL_TIMEOUT_MS = 1500
+// Mapbox's locate default is six seconds. iOS Safari appears to count that while its permission
+// prompt is open, so a visitor who took a moment to press Allow saw a failure.
+const LOCATE_POSITION_OPTIONS: PositionOptions = { timeout: 30_000 }
 
 const MAP_WORLDVIEWS: Record<string, string> = {
   zh: 'CN', // Chinese
@@ -91,7 +113,16 @@ const toMapSource = (features: Geojson['features']): FeatureCollection<Geometry 
   features: features.map((feature) => ({
     type: 'Feature',
     geometry: feature.geometry,
-    properties: { id: feature.properties.id, webPath: feature.properties.webPath ?? null },
+    properties: {
+      id: feature.properties.id,
+      webPath: feature.properties.webPath ?? null,
+      vague: hasApproximatePlace(feature.properties),
+      // What the ring's radius divides by, since an expression cannot read a point's latitude.
+      cosLat:
+        feature.geometry?.type === 'Point'
+          ? Math.cos((feature.geometry.coordinates[1] * Math.PI) / 180)
+          : null,
+    },
   })),
 })
 
@@ -100,8 +131,9 @@ const DEBUG_PADDING = false
 
 // This renders a single emphasized point — the committed `selection` or the
 // transient card `hover` — as its own GeoJSON source. This way, the sprite
-// shows even when the base pin sits inside a cluster. `approximate` picks
-// the softer area sprite over the pin sprite.
+// shows even when the base pin sits inside a cluster. `MapPoint.approximate`
+// picks the softer area sprite over the pin sprite, and `vague` hands the two
+// over at `RING_ZOOM`, as the base layers do.
 function PointSource({
   id,
   point,
@@ -127,18 +159,31 @@ function PointSource({
       id={id}
       type="geojson"
     >
-      <Layer {...(point.approximate ? areaLayer : pointLayer)} />
+      {point.vague ? (
+        <>
+          <Layer {...pointLayer} maxzoom={RING_ZOOM} />
+          <Layer {...areaLayer} minzoom={RING_ZOOM} />
+        </>
+      ) : (
+        <Layer {...(point.approximate ? areaLayer : pointLayer)} />
+      )}
     </Source>
   )
 }
 
-// This is the card shown inside the hover popover: a calendar glyph beside
-// the event's timing, with the recurrence (for example, "Every Thursday")
-// stacked above its start time, so the card stays narrow. It renders the
-// SAME calendar parts that the list card's `composeCalendarLine` joins (via
-// the shared `calendarLineParts` gate). Here they stack across two lines
-// instead of joining with a `·`, so the two never drift apart (#72).
-function EventPinCard({ event }: { event: DisplayableEvent }) {
+// This is the card shown inside the hover popover: the class name, then its
+// timing, with the recurrence (for example, "Every Thursday") stacked above its
+// start time. It renders the SAME calendar parts that the list card's
+// `composeCalendarLine` joins (via the shared `calendarLineParts` gate). Here
+// they stack instead of joining with a `·`, so the two never drift apart (#72).
+// The name comes from the per-locale titles sliver, since the feed carries none. It is read
+// CACHE-ONLY, like the drawer's fallback chrome: a live observer here would make one mouse-move
+// over a pin fetch every title in the locale. Until a view that needs them has loaded them, the
+// card shows the timing alone.
+function EventPinCard({ event }: { event: DisplayableEvent & { id: number } }) {
+  const { locale } = useLocale()
+  const { data: titles } = useQuery({ ...eventTitlesQuery(locale), enabled: false })
+  const title = titles?.get(event.id)
   const { display, recurrenceLine, whenLine, eventStartTime } = useEventDisplay(event)
   const { primary, time } = calendarLineParts({
     recurrenceLine,
@@ -147,23 +192,26 @@ function EventPinCard({ event }: { event: DisplayableEvent }) {
     hasNext: Boolean(display.next),
   })
 
-  if (!primary) return null
+  if (!title && !primary) return null
 
   return (
-    <div className="inline-flex items-center gap-1.5 rounded-lg border border-divider bg-background px-2.5 py-1.5 text-foreground shadow-md">
-      <CalendarDays className="shrink-0 text-gray-11" size={16} />
-      <div className="flex flex-col text-sm leading-tight font-medium">
-        <span>{primary}</span>
-        {time && <span className="text-xs font-normal text-gray-11">{time}</span>}
-      </div>
+    <div className="flex max-w-60 flex-col gap-0.5 rounded-lg border border-divider bg-background px-3 py-2 text-foreground shadow-md">
+      {title && <span className="line-clamp-2 text-sm font-semibold">{title}</span>}
+      {primary && (
+        <span className="flex items-center gap-1.5 text-xs text-gray-11">
+          <CalendarDays className="shrink-0" size={14} />
+          <span>
+            {primary}
+            {time && ` · ${time}`}
+          </span>
+        </span>
+      )}
     </div>
   )
 }
 
-// This is a non-interactive hover popover over an individual event pin. It
-// shows that event's timing (recurrence stacked above start time) via
-// EventPinCard. It carries no title, so the locale-agnostic feed event alone
-// is enough — there is no titles sliver to join.
+// This is a non-interactive hover popover over an individual event pin, on
+// devices with a real pointer only (see `useHasRealPointer` where it is wired).
 //
 // This renders only for `unclustered-point` pins, never clusters, since one
 // recurrence line is meaningless for a cluster of events. The caller
@@ -176,21 +224,25 @@ function EventPinPopover({
   event,
   longitude,
   latitude,
+  anchor,
+  offset,
 }: {
-  event: DisplayableEvent
+  event: DisplayableEvent & { id: number }
   longitude: number
   latitude: number
+  anchor: PopoverAnchor
+  offset: [number, number]
 }) {
   return (
     <Popup
-      anchor="bottom"
+      anchor={anchor}
       className="event-pin-popover"
       closeButton={false}
       closeOnClick={false}
       focusAfterOpen={false}
       latitude={latitude}
       longitude={longitude}
-      offset={34}
+      offset={offset}
     >
       <EventPinCard event={event} />
     </Popup>
@@ -266,12 +318,28 @@ export function Mapbox({ cooperative = false }: { cooperative?: boolean } = {}) 
   // nearest classes in it.
   const geolocateToSearch = useGeolocateToSearch(data)
 
+  // The tenant's resolved palette, as `BrandTheme` painted the UI from it.
+  //
+  // ⚠ Each result is memoised because react-map-gl's `Layer` force-renders on
+  // every `styledata` event, so a factory called in the JSX below would rebuild
+  // a ramp per tile batch. `docs/rules/mapbox.md` states the rule.
+  //
+  // The pins, bubbles and count take the light-mode palette in both modes
+  // (`MARKER_MODE`), so a light/dark switch repaints only what is mode-aware:
+  // the vague ring and dot's edge, and the debug bounds.
+  const palette = useBrandPalette()
+  const colors = useMemo(() => markerColors(palette), [palette])
+  const clusters = useMemo(() => clusterLayer(palette), [palette])
+  const bounds = useMemo(() => boundsLayer(palette, theme), [palette, theme])
+  const vagueRing = useMemo(() => vagueRingLayer(palette, theme), [palette, theme])
+  const vagueDot = useMemo(() => vagueDotLayer(palette, theme), [palette, theme])
+
   // This supplies the app's own pin and cluster images. `markers.ts` owns
-  // the why and the theme-switch handling. There is one subscription per
-  // map instance.
+  // the why, the theme-switch handling, and the in-place repaint. There is
+  // one subscription per map instance and set of colors.
   useEffect(() => {
-    if (mapbox) return registerMarkerImages(mapbox)
-  }, [mapbox])
+    if (mapbox) return registerMarkerImages(mapbox, colors)
+  }, [mapbox, colors])
 
   // This holds the canvas until the camera has arrived somewhere, so a deep
   // link never paints the boot-time world view before jumping off it.
@@ -326,6 +394,18 @@ export function Mapbox({ cooperative = false }: { cooperative?: boolean } = {}) 
   // the pointer moves to empty map or leaves the canvas. This is local
   // state, not zustand: it is purely a map-view detail.
   const [hoveredId, setHoveredId] = useState<number | null>(null)
+  // Zooming out stops where one world fills the map's width. The map keeps Mapbox's world copies,
+  // so it still pans across the Pacific, and this stops a wide screen from showing the world two
+  // or three times over.
+  const [minZoom, setMinZoom] = useState(0)
+  // A touch device gets no hover at all, so one tap opens the class. iOS sends a fake mouse move
+  // before a tap, and when that reveals content Safari treats the tap as a hover and doesn't click.
+  const hasRealPointer = useHasRealPointer()
+
+  // Mapbox's locate control fails silently otherwise (#321). ⚠ A permission already denied when
+  // the map loads never reaches `onError`: mapbox renders the control disabled instead.
+  const [locationFailed, setLocationFailed] = useState(false)
+  const mapRef = useRef<MapRef>(null)
 
   // This filters the feed before it reaches the clustering source, so
   // cluster counts reflect the filters — a layer-level `filter` would leave
@@ -356,9 +436,21 @@ export function Mapbox({ cooperative = false }: { cooperative?: boolean } = {}) 
     if (!feature || feature.geometry?.type !== 'Point') return undefined
 
     const [longitude, latitude] = feature.geometry.coordinates
+    const container = mapbox?.getContainer()
+    const placement = pinPopoverPlacement(
+      mapbox?.project([longitude, latitude]) ?? { x: 0, y: 0 },
+      { width: container?.clientWidth ?? 0, height: container?.clientHeight ?? 0 },
+      {
+        top: 0,
+        right: 0,
+        bottom: 0,
+        left: 0,
+        ...mapbox?.getPadding(),
+      },
+    )
 
-    return { event: feature.properties, longitude, latitude }
-  }, [hoveredId, data])
+    return { event: feature.properties, longitude, latitude, ...placement }
+  }, [hoveredId, data, mapbox])
 
   const selectFeature = useCallback(
     (evt: MapMouseEvent) => {
@@ -370,7 +462,7 @@ export function Mapbox({ cooperative = false }: { cooperative?: boolean } = {}) 
       // cannot linger over the pin.
       setHoveredId(null)
 
-      if (feature.layer?.id === clusterLayer.id) {
+      if (feature.layer?.id === LAYER_IDS.cluster) {
         const source = mapbox.getSource('events') as GeoJSONSource
 
         source.getClusterExpansionZoom(feature.properties?.cluster_id, (err, zoom) => {
@@ -383,7 +475,8 @@ export function Mapbox({ cooperative = false }: { cooperative?: boolean } = {}) 
             duration: 500,
           })
         })
-      } else if (feature.layer?.id === unclusteredPointLayer.id) {
+      } else {
+        // Every other feature `interactiveLayerIds` can deliver stands for one class.
         navigate(safePath(feature.properties?.webPath) ?? `/${feature.properties?.id}`)
       }
     },
@@ -406,7 +499,7 @@ export function Mapbox({ cooperative = false }: { cooperative?: boolean } = {}) 
       // React skips a re-render when the id is unchanged (Object.is), so
       // this stays a no-op while the pointer sits on one pin.
       const pinId =
-        feature?.layer?.id === unclusteredPointLayer.id ? Number(feature.properties?.id) : NaN
+        feature && feature.layer?.id !== LAYER_IDS.cluster ? Number(feature.properties?.id) : NaN
 
       setHoveredId(Number.isFinite(pinId) ? pinId : null)
     },
@@ -420,124 +513,174 @@ export function Mapbox({ cooperative = false }: { cooperative?: boolean } = {}) 
   // hooks/use-map-controller.tsx.
 
   return (
-    <ReactMapGL
-      reuseMaps
-      attributionControl={false}
-      cooperativeGestures={cooperative}
-      // Symbols — pins, clusters, the selection and hover highlights —
-      // appear instantly instead of Mapbox's default ~300ms icon fade-in.
-      // The card-hover highlight must track the pointer immediately.
-      // `fadeDuration` is a global map option, with no per-layer control, so
-      // this also removes the fade on the base pins and clusters and on the
-      // selection pin.
-      fadeDuration={0}
-      id="mapbox"
-      interactiveLayerIds={[clusterLayer.id, unclusteredPointLayer.id]}
-      // @ts-ignore - Language is a valid property
-      language={locale} // TODO: Make sure this switches when locale changes
-      locale={mapLocale}
-      logoPosition="bottom-right"
-      mapStyle={MAP_STYLES[theme]}
-      mapboxAccessToken={import.meta.env.VITE_MAPBOX_ACCESSTOKEN}
-      style={canvasStyle}
-      worldview={MAP_WORLDVIEWS[languageCode] || MAP_WORLDVIEWS.default}
-      onClick={selectFeature}
-      // This is the backstop on the reveal. A route that never frames the
-      // camera — CalendarView is the one that deliberately does not — must
-      // not leave the map hidden for the whole session.
-      onLoad={armReveal}
-      onMouseMove={hoverOnFeature}
-      // This dismisses the timing popover when the pointer leaves the
-      // canvas. `mouseout` (react-map-gl `onMouseOut`) is the canvas-exit
-      // event. `hoverOnFeature` above handles moving between pins or onto
-      // empty map.
-      onMouseOut={() => setHoveredId(null)}
-      // This is DELIBERATELY UNCONTROLLED — no `viewState`, and no
-      // `initialViewState` either.
-      //
-      // The camera is driven imperatively through `useMapbox` — the
-      // MapController seam owns every move. `onMoveEnd` mirrors the result
-      // back into the store, which is what `rememberCamera` and the search
-      // ranking read. A controlled `viewState` would put React in the
-      // middle of every frame of a fly.
-      //
-      // So nothing seeds the initial camera, and the map boots at [0, 0]
-      // zoom 0. That is why the session's first framing jumps rather than
-      // flies (`use-mapbox.ts`), and why the canvas stays held until it
-      // does. Seeding it instead would mean resolving a center before the
-      // map may mount, only to save one frame nobody ever sees.
-      onMoveEnd={(evt) => setViewState(evt.viewState)}
-    >
-      {DEBUG_PADDING && (
-        <div
-          className="pointer-events-none absolute border-4 border-dashed border-danger-9"
-          style={padding}
+    <>
+      <ReactMapGL
+        ref={mapRef}
+        reuseMaps
+        attributionControl={false}
+        cooperativeGestures={cooperative}
+        // Symbols — pins, clusters, the selection and hover highlights —
+        // appear instantly instead of Mapbox's default ~300ms icon fade-in.
+        // The card-hover highlight must track the pointer immediately.
+        // `fadeDuration` is a global map option, with no per-layer control, so
+        // this also removes the fade on the base pins and clusters and on the
+        // selection pin.
+        fadeDuration={0}
+        id="mapbox"
+        interactiveLayerIds={INTERACTIVE_LAYER_IDS}
+        // @ts-ignore - Language is a valid property
+        language={locale} // TODO: Make sure this switches when locale changes
+        locale={mapLocale}
+        logoPosition="bottom-right"
+        mapStyle={MAP_STYLES[theme]}
+        mapboxAccessToken={import.meta.env.VITE_MAPBOX_ACCESSTOKEN}
+        minZoom={minZoom}
+        style={canvasStyle}
+        worldview={MAP_WORLDVIEWS[languageCode] || MAP_WORLDVIEWS.default}
+        onClick={selectFeature}
+        // This is the backstop on the reveal. A route that never frames the
+        // camera — CalendarView is the one that deliberately does not — must
+        // not leave the map hidden for the whole session.
+        onLoad={(event) => {
+          armReveal()
+          setMinZoom(worldMinZoom(event.target.getContainer().clientWidth))
+        }}
+        onMouseMove={hasRealPointer ? hoverOnFeature : undefined}
+        // This dismisses the timing popover when the pointer leaves the
+        // canvas. `mouseout` (react-map-gl `onMouseOut`) is the canvas-exit
+        // event. `hoverOnFeature` above handles moving between pins or onto
+        // empty map.
+        onMouseOut={() => setHoveredId(null)}
+        // This is DELIBERATELY UNCONTROLLED — no `viewState`, and no
+        // `initialViewState` either.
+        //
+        // The camera is driven imperatively through `useMapbox` — the
+        // MapController seam owns every move. `onMoveEnd` mirrors the result
+        // back into the store, which is what `rememberCamera` and the search
+        // ranking read. A controlled `viewState` would put React in the
+        // middle of every frame of a fly.
+        //
+        // So nothing seeds the initial camera, and the map boots at [0, 0]
+        // zoom 0. That is why the session's first framing jumps rather than
+        // flies (`use-mapbox.ts`), and why the canvas stays held until it
+        // does. Seeding it instead would mean resolving a center before the
+        // map may mount, only to save one frame nobody ever sees.
+        onMoveEnd={(evt) => {
+          setViewState(evt.viewState)
+          useCameraTarget.setState({ target: null })
+        }}
+        onResize={(event) => setMinZoom(worldMinZoom(event.target.getContainer().clientWidth))}
+      >
+        {DEBUG_PADDING && (
+          <div
+            className="pointer-events-none absolute border-4 border-dashed border-danger-9"
+            style={padding}
+          />
+        )}
+        {filtered && (
+          <Source
+            cluster={true}
+            clusterMaxZoom={14}
+            clusterRadius={50}
+            data={filtered}
+            id="events"
+            type="geojson"
+          >
+            {/* First, so a ring lies under every pin and cluster. */}
+            <Layer {...vagueRing} />
+            <Layer {...clusters} />
+            <Layer {...unclusteredPointLayer} />
+            <Layer {...vaguePinLayer} />
+            <Layer {...vagueDot} />
+          </Source>
+        )}
+        {DEBUG_BOUNDARY && boundary && (
+          <Source data={boundary} id="bounds" type="geojson">
+            <Layer {...bounds} />
+          </Source>
+        )}
+        {selection && (
+          <PointSource
+            areaLayer={selectedAreaLayer}
+            id="selection"
+            point={selection}
+            pointLayer={selectedPointLayer}
+          />
+        )}
+        {hover && (
+          <PointSource
+            areaLayer={hoveredAreaLayer}
+            id="hover"
+            point={hover}
+            pointLayer={hoveredPointLayer}
+          />
+        )}
+        {hovered && (
+          <EventPinPopover
+            anchor={hovered.anchor}
+            event={hovered.event}
+            latitude={hovered.latitude}
+            longitude={hovered.longitude}
+            offset={hovered.offset}
+          />
+        )}
+        {/* `followUserLocation={false}` stops Mapbox from moving the camera itself.
+            Its `_updateCamera` method fits the accuracy circle at zoom 15 — a
+            street corner — with its own curve and speed, and it fires BEFORE
+            the `geolocate` event. So it would race the framing our handler asks
+            for through the URL. The flag is read in `_onSuccess`, and it gates
+            only that one call. `_updateMarker` is separate, so the blue dot,
+            the accuracy circle, the permission flow, and the localized labels
+            above all stay.
+            ⚠ Mapbox's own .d.ts file claims this option still recenters. Its
+            source code says otherwise. This was verified against the running
+            control, rather than trusting either claim. */}
+        <GeolocateControl
+          followUserLocation={false}
+          positionOptions={LOCATE_POSITION_OPTIONS}
+          onError={() => setLocationFailed(true)}
+          // An answer that arrives after a reported failure wins: the map and list are right,
+          // and an error on top of them would be false.
+          onGeolocate={(position) => {
+            setLocationFailed(false)
+            geolocateToSearch(position)
+          }}
         />
-      )}
-      {filtered && (
-        <Source
-          cluster={true}
-          clusterMaxZoom={14}
-          clusterRadius={50}
-          data={filtered}
-          id="events"
-          type="geojson"
+        {/* Mapbox's terms require both the wordmark and the attribution, and both must stay on the
+            map view. Mapbox adds its own attribution in a corner no prop can change, so
+            `attributionControl` above declines it and this replaces it — in the top right, the one
+            corner no drawer takes: the side panel covers the bottom left, and the bottom sheet's
+            peek covers the whole bottom edge at every snap. `logoPosition` above puts the wordmark
+            bottom right instead, clear of the panel on a wide embed and covered by that peek on a
+            narrow one — accepted, rather than paid for with a measured per-layout corner (#330). Both
+            props are read once, when the map is constructed, which is all a corner that never moves
+            needs. `compact` keeps it a round button until a visitor opens it, rather than a strip
+            of text across an embed's map. */}
+        <AttributionControl compact position="top-right" />
+      </ReactMapGL>
+      <Modal open={locationFailed} onOpenChange={setLocationFailed}>
+        <ModalContent
+          closeLabel={t('common.chrome.close')}
+          description={t('common.map.location_failed')}
+          title={t('common.map.location_not_available')}
+          onCloseAutoFocus={(event) => {
+            // Radix returns focus to a `Dialog.Trigger`, and the locate control is not one.
+            event.preventDefault()
+            mapRef.current
+              ?.getContainer()
+              .querySelector<HTMLElement>('.mapboxgl-ctrl-geolocate')
+              ?.focus()
+          }}
         >
-          <Layer {...clusterLayer} />
-          <Layer {...unclusteredPointLayer} />
-        </Source>
-      )}
-      {DEBUG_BOUNDARY && boundary && (
-        <Source data={boundary} id="bounds" type="geojson">
-          <Layer {...boundsLayer} />
-        </Source>
-      )}
-      {selection && (
-        <PointSource
-          areaLayer={selectedAreaLayer}
-          id="selection"
-          point={selection}
-          pointLayer={selectedPointLayer}
-        />
-      )}
-      {hover && (
-        <PointSource
-          areaLayer={hoveredAreaLayer}
-          id="hover"
-          point={hover}
-          pointLayer={hoveredPointLayer}
-        />
-      )}
-      {hovered && (
-        <EventPinPopover
-          event={hovered.event}
-          latitude={hovered.latitude}
-          longitude={hovered.longitude}
-        />
-      )}
-      {/* `followUserLocation={false}` stops Mapbox from moving the camera itself.
-          Its `_updateCamera` method fits the accuracy circle at zoom 15 — a
-          street corner — with its own curve and speed, and it fires BEFORE
-          the `geolocate` event. So it would race the framing our handler asks
-          for through the URL. The flag is read in `_onSuccess`, and it gates
-          only that one call. `_updateMarker` is separate, so the blue dot,
-          the accuracy circle, the permission flow, and the localized labels
-          above all stay.
-          ⚠ Mapbox's own .d.ts file claims this option still recenters. Its
-          source code says otherwise. This was verified against the running
-          control, rather than trusting either claim. */}
-      <GeolocateControl followUserLocation={false} onGeolocate={geolocateToSearch} />
-      {/* Mapbox's terms require both the wordmark and the attribution, and both must stay on the
-          map view. Mapbox adds its own attribution in a corner no prop can change, so
-          `attributionControl` above declines it and this replaces it — in the top right, the one
-          corner no drawer takes: the side panel covers the bottom left, and the bottom sheet's
-          peek covers the whole bottom edge at every snap. `logoPosition` above puts the wordmark
-          bottom right instead, clear of the panel on a wide embed and covered by that peek on a
-          narrow one — accepted, rather than paid for with a measured per-layout corner (#330). Both
-          props are read once, when the map is constructed, which is all a corner that never moves
-          needs. `compact` keeps it a round button until a visitor opens it, rather than a strip
-          of text across an embed's map. */}
-      <AttributionControl compact position="top-right" />
-    </ReactMapGL>
+          <ModalFooter>
+            <ModalClose>
+              <Button color="primary" variant="flat">
+                {t('common.chrome.close')}
+              </Button>
+            </ModalClose>
+          </ModalFooter>
+        </ModalContent>
+      </Modal>
+    </>
   )
 }

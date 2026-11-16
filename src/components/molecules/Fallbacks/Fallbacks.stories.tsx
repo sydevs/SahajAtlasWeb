@@ -165,7 +165,7 @@ export const Default: Story = () => (
         >
           <div className="h-80 w-full">
             <FallbackPanel kind={kind} {...props}>
-              {field && <SearchField label="Or search for a place" query="read-only" />}
+              {field && <SearchField label="Or search for a place" />}
             </FallbackPanel>
           </div>
         </StorySection>

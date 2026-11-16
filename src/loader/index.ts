@@ -1,13 +1,14 @@
 /**
- * `auto.js` — the one script a host installs (#149).
+ * `loader.js` — the loader behind `auto.js`, the one script a host installs (#149). `auto.js`
+ * only starts this file, because it has to parse as a classic script too (`./bridge.ts`).
  *
  * ```html
- * <script src="https://atlas.example/auto.js?key=…"></script>
+ * <script type="module" src="https://atlas.example/auto.js?key=…"></script>
  * ```
  *
  * That is the entire snippet. There is no `<sahaj-atlas>` element in host markup, and no
- * attribute to misspell. The loader creates the element. Every parameter rides on this script's
- * own URL (`./config.ts` explains why).
+ * attribute to misspell. The loader creates the element. Every parameter rides on the `auto.js`
+ * URL (`./config.ts` explains why).
  *
  * **What this buys.** The widget's eager payload is about 370 KiB gz. Loading it on every page
  * view of every embed — including the ones nobody scrolls to — spends that budget on the host's
@@ -22,6 +23,9 @@
  *    `getBoundingClientRect`, frozen `history`, or be serving a `file://` document. An uncaught
  *    throw in a top-level script is the host's problem to debug, and this code's job to prevent —
  *    the same argument `Widget.tsx` already makes around its slot-measurement probe.
+ *    **One exception, at the entry below:** `document.readyState`, `addEventListener` and
+ *    `querySelector` run unguarded. A host that patched one into throwing has not been measured,
+ *    and a `try` there costs bytes in the one graph with a budget.
  * 2. **Block.** Do no synchronous work beyond parsing a URL, and start no network request before
  *    idle.
  * 3. **Write the host's URL.** The probes below are no-ops by construction (`replaceState` to
@@ -34,7 +38,7 @@ import type { DetectionSignals, EmbedFingerprint } from './detect'
 
 import { parseConfig } from './config'
 import { fingerprint } from './detect'
-import { ELEMENT_NAME, safeLoaderPath } from './literals'
+import { ELEMENT_NAME } from './literals'
 
 /** The console prefix. Duplicated from `reportIntegrationWarning`'s — see `./literals.ts`. */
 const LOG_PREFIX = '[sahaj-atlas]'
@@ -196,12 +200,9 @@ function resolveElement(script: HTMLScriptElement | null): HTMLElement | null {
   element.setAttribute(CLAIMED_ATTR, '')
   const parent = script?.parentNode
 
-  // `<head>` is never where the widget goes. Two paths can put the script there: a host that
-  // put the snippet there, and the classic shim. The shim bridges to this module by appending a
-  // module script to `<head>`. Inserting the element there would leave it in the document, let
-  // it upgrade normally, but paint nothing — the worst kind of failure. On the shim's path, an
-  // element already exists (Wix creates it), so this branch fires only when something is
-  // genuinely wrong.
+  // `<head>` is never where the widget goes, though a host can put the snippet there. Inserting
+  // the element there would leave it in the document, let it upgrade normally, but paint
+  // nothing — the worst kind of failure.
   if (parent && parent.nodeName !== 'HEAD') {
     // This places the element immediately before the script tag, so the widget appears where
     // the host put the snippet. The host needs no wrapper, and has no selector to set wrong.
@@ -210,13 +211,12 @@ function resolveElement(script: HTMLScriptElement | null): HTMLElement | null {
     return element
   }
 
-  // `async` and `defer` both null `document.currentScript`. The fallback lookup can miss, and
-  // a snippet in `<head>` has nowhere sensible to render. This code reports the problem instead
-  // of guessing at a position. A widget in the wrong place is harder to diagnose than one that
-  // explains why it is absent.
+  // The lookup can miss, and a snippet in `<head>` has nowhere sensible to render. This code
+  // reports the problem instead of guessing at a position. A widget in the wrong place is harder
+  // to diagnose than one that explains why it is absent.
   error(
-    'could not find a place to render. Load auto.js from the page body, without `async` or ' +
-      `\`defer\`, or put an empty <${ELEMENT_NAME}></${ELEMENT_NAME}> where the widget should appear.`,
+    `could not find a place to render. Put an empty <${ELEMENT_NAME}></${ELEMENT_NAME}> where ` +
+      'the widget should appear, or load auto.js from the page body instead of `<head>`.',
   )
 
   return null
@@ -279,13 +279,8 @@ function whenIdle(run: () => void): void {
   setTimeout(once, 0)
 }
 
-/**
- * Boots from a script element.
- *
- * This is exported so the classic shim can hand over its own `document.currentScript`, which it
- * must capture before the dynamic import loses it.
- */
-export function start(script: HTMLScriptElement | null): void {
+/** Boots from a script element. */
+function start(script: HTMLScriptElement | null): void {
   const config = parseConfig(script?.getAttribute('src'), window.location.search)
 
   if (!config.key) {
@@ -302,6 +297,12 @@ export function start(script: HTMLScriptElement | null): void {
   // MID-SCROLL, where auto-opening would slam a modal over the page and lock its scroll.
   // Eager-loading the deep link removes that situation, rather than detecting it. A route from
   // the SCRIPT url is the host's default view, and stays lazy.
+  //
+  // ⚠ **Eager only into a box that is on the page.** An element inside a closed tab or accordion
+  // has no box at all, and the widget decides its layout ONCE, from the element's size at its
+  // first render (`decideSlot`). Measured at 0×0 it read as an unsized embed and took the whole
+  // viewport, painting over the host's page when the tab opened while its own box stayed blank.
+  // So a deep link into a hidden element waits for it to be shown, as a lazy one does.
   const mount = () => {
     // This resolves to `src/Widget.tsx`, its own build entry. It is the seam that keeps the
     // widget out of the loader's graph, and `pnpm size` asserts the two closures stay disjoint.
@@ -331,24 +332,24 @@ export function start(script: HTMLScriptElement | null): void {
       })
   }
 
-  if (config.routeFromPage) {
+  if (config.routeFromPage && element.getClientRects().length > 0) {
     mount()
   } else {
     whenVisible(element, mount)
   }
 }
 
-// This capture happens at module top level, because `document.currentScript` is only valid
-// while the script executes. It is null inside any later callback, and null outright under
-// `async` or `defer`. The fallback covers the deferred case without guessing. It looks for a
-// script whose src is this bundle's own filename — the one thing this code can recognise about
-// itself.
-const currentScript =
-  (document.currentScript as HTMLScriptElement | null) ??
-  document.querySelector<HTMLScriptElement>('script[src*="auto.js"]')
+// The host's `auto.js` tag, not this file's own: it carries every parameter, and it marks where
+// the widget goes. This file always runs as a module, which has no `document.currentScript`, so
+// the tag is found by the one filename every host installs.
+const run = () => start(document.querySelector<HTMLScriptElement>('script[src*="auto.js"]'))
 
-start(currentScript)
-
-// Exported for the classic shim and for tests. `safeLoaderPath` is re-exported so the pin spec
-// can reach it without importing the entry's side effects.
-export { safeLoaderPath }
+// ⚠ **The document may still be parsing.** Since #409 `auto.js` is a classic script, so a tag in
+// `<head>` — Wix's Custom Element writes one — runs before `<body>` exists, and the module tag it
+// inserts for this file is `async`. A module host already runs at `interactive`, so this waits
+// for nobody.
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', run, { once: true })
+} else {
+  run()
+}

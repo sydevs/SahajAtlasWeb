@@ -1,4 +1,4 @@
-import { DateTime, IANAZone } from 'luxon'
+import { DateTime } from 'luxon'
 
 /** The visitor's own IANA zone, UTC where the runtime cannot name one. */
 export const viewerTimeZone = (): string => DateTime.local().zoneName ?? 'UTC'
@@ -8,7 +8,7 @@ export const viewerTimeZone = (): string => DateTime.local().zoneName ?? 'UTC'
  * offset at that moment, so converting between them changes nothing. Compares
  * the OFFSET rather than the zone id so it also catches distinct zones that
  * agree right now (Europe/London and Europe/Lisbon in winter), which is what
- * matters when deciding whether a "…in <region>" conversion adds any
+ * matters when deciding whether a "…in <city>" conversion adds any
  * information.
  */
 export const sameWallClock = (a: DateTime | null, b: DateTime | null): boolean =>
@@ -28,27 +28,6 @@ export function zoneCity(zone: string | null | undefined): string {
   const city = zone?.split('/').pop()
 
   return city ? city.replace(/_/g, ' ') : ''
-}
-
-/**
- * The place name to attach to an online event's converted time, or null for
- * the safe bare-time form. The clock the time is quoted in is `at`'s own
- * zone (the viewer's OS zone). The region name comes from a *separate*
- * source (IP geolocation), so naming it is only honest when its zone shares
- * that clock: the same UTC offset at this instant (mirroring
- * `sameWallClock`). When they disagree (VPN, a traveller on home time, a
- * mislocating IP DB), or the region or zone is missing or invalid, this
- * returns null. The caller then shows the bare converted time with no
- * place, never a region whose local time is not the one shown (#64).
- */
-export const reconciledViewerPlace = (
-  region: string | null | undefined,
-  zone: string | null | undefined,
-  at: DateTime,
-): string | null => {
-  if (!region || !zone || !IANAZone.isValidZone(zone)) return null
-
-  return at.setZone(zone).offset === at.offset ? region : null
 }
 
 /**
@@ -88,8 +67,8 @@ const wallClockOnOneDay = (at: DateTime): Date => new Date(Date.UTC(2000, 0, 1, 
  * hand-splicing the parts would reintroduce exactly the locale bugs this
  * avoids).
  *
- * Both endpoints are read in the start's (the event's) zone — a caller may hand
- * over either — and pinned to one calendar day, so an overnight range keeps its
+ * Both endpoints are read in the start's zone — a caller may hand over either
+ * — and pinned to one calendar day, so an overnight range keeps its
  * locale's hour-range pattern instead of widening into two full dates
  * (`wallClockOnOneDay`).
  */

@@ -2,6 +2,7 @@ import { useLayoutEffect, useMemo, type ReactNode } from 'react'
 import { useQuery } from '@tanstack/react-query'
 
 import { clientQuery } from '@/config/api'
+import { BrandPaletteContext } from '@/config/theme/brand-palette'
 import { applyPalette, type PaletteRoles } from '@/config/theme/palette'
 import { getThemeRoot, stopSystemWatch, useTheme } from '@/hooks/use-theme'
 
@@ -10,6 +11,7 @@ type BrandThemeProps = {
   // Its key is also `BrandTheme`'s query key, so it shares AppRouter's `['client']` fetch.
   apiKey?: string | null
   // This is the per-embed palette from the widget's color props. It wins over the client record.
+  // A role set to `null` is a deliberate "no colour" and wins too; only `undefined` falls through.
   palette?: PaletteRoles
   children: ReactNode
 }
@@ -30,11 +32,11 @@ export function BrandTheme({ apiKey, palette, children }: BrandThemeProps) {
 
   const resolved = useMemo<PaletteRoles>(
     () => ({
-      primary: palette?.primary ?? client?.color1,
-      secondary: palette?.secondary ?? client?.color2,
+      primary: own(palette?.primary, client?.color1),
+      secondary: own(palette?.secondary, client?.color2),
       // `color3` now themes the `contrast` role.
       // Background is no longer tenant-wired. It uses the fixed `globals.css` default on every component.
-      contrast: palette?.contrast ?? client?.color3,
+      contrast: own(palette?.contrast, client?.color3),
     }),
     [
       palette?.primary,
@@ -56,8 +58,15 @@ export function BrandTheme({ apiKey, palette, children }: BrandThemeProps) {
   // This stops the system-theme watcher when this widget unmounts, so no `matchMedia` listener fires after teardown.
   // ⚠ It must not release the theme root too. The wrapper's callback ref does that, and this component sits inside
   // `StrictMode`, whose simulated unmount would clear a root nothing then publishes again.
-  // This assumes one widget per page. A second concurrent embed would share these singletons.
   useLayoutEffect(() => () => stopSystemWatch(), [])
 
-  return <>{children}</>
+  // The map paints in hex rather than CSS variables, so it reads these roles rather than the paint.
+  // This is the same `resolved` object the paint above came from, so the two cannot disagree.
+  return <BrandPaletteContext.Provider value={resolved}>{children}</BrandPaletteContext.Provider>
 }
+
+// ⚠ `undefined`, not nullish, is "not set here". A SahajCloud preview sends `null` for a
+// colour the manager cleared, and that has to show the default — `??` fell through to the
+// saved colour instead, so Reset left the map on the colours it was meant to undo.
+const own = <T,>(value: T | null | undefined, fallback: T | null | undefined) =>
+  value === undefined ? fallback : value

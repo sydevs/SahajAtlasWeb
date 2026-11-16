@@ -62,7 +62,6 @@ const mockIpLocation: IpLocation = {
   latitude: 52.2,
   longitude: 0.12,
   city: 'Cambridge',
-  region: 'Cambridgeshire',
   country: 'United Kingdom',
   // A real guess carries the code, and two features read it: the share grid's
   // region ordering (`useViewerCountry`) and the `?cc` the accepted suggestion

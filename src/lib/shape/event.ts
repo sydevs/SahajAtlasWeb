@@ -1,4 +1,5 @@
 import type {
+  EventAddress,
   EventSchedule,
   EventType,
   RegistrationQuestionName,
@@ -25,9 +26,108 @@ export type DisplayEventLike = EventLike & {
   website?: string | null
   /** CMS capacity flag (SahajCloud#601). Absent/null reads as not-full. */
   registrationsFull?: boolean | null
+  /** Read only to decide whether the place is real enough to give directions to. */
+  address?: VagueAddress | null
 }
 
+/** All `hasVagueAddress` reads, so a feed event and a full document both satisfy it. */
+type VagueAddress = Pick<EventAddress, 'street' | 'city'>
+
 export const isOnline = (event: EventLike): boolean => event.eventType === 'online'
+
+// Accents folded off, so a street compares against its town exactly as `streetAndCity` compares
+// them (`localeCompare` at `sensitivity: 'base'`), in a form the prefix strip below can slice.
+const fold = (text?: string | null) =>
+  (text ?? '')
+    .normalize('NFD')
+    .replace(/\p{Diacritic}/gu, '')
+    .trim()
+    .toLowerCase()
+
+// What hosts type when they have no address yet. These are matched whole, after the city name is
+// removed, so a real street that merely contains one of these words ("Av. Centro 12") stays exact.
+// Folded on the way in, so one entry covers every accented spelling of it.
+const NO_PLACE_STREETS = new Set(
+  [
+    '',
+    'none',
+    'n/a',
+    'tba',
+    'tbc',
+    'tbd',
+    'to be announced',
+    'to be confirmed',
+    'wird noch angekündigt',
+    'a definir',
+    'a confirmar',
+    'por definir',
+    'zentrum',
+    'innenstadt',
+    'stadtmitte',
+    'centro',
+    'centre',
+    'centre-ville',
+    'center',
+    'city centre',
+    'city center',
+    'cbd',
+    'downtown',
+  ].map(fold),
+)
+
+/**
+ * Whether an in-person class's street names no real place (#15).
+ *
+ * SahajCloud has no such field, and a street is required, so a host with no venue types the town
+ * again or "to be announced", and the stored point is the town's centre — once, a supermarket.
+ * This reads the street conservatively: a placeholder, the town's own name, or a "city centre"
+ * word, and nothing else. A lone "-" is not on the list: the one listing that has it is a park
+ * whose point is the park. ⚠ The word list is load-bearing until the next Atlas sync, which applies
+ * SahajCloud's rewrite of each placeholder street to the town's own name (`seeds/atlas/dedupe.ts`,
+ * caught by the town-repeat rule in any language). Until then, each entry guards a live listing.
+ */
+export const hasVagueAddress = (address?: VagueAddress | null): boolean => {
+  if (!address) return false
+
+  const city = fold(address.city)
+  const street = fold(address.street)
+  const afterCity = city && street.startsWith(city) ? street.slice(city.length) : street
+
+  return NO_PLACE_STREETS.has(afterCity.replace(/^[\s,]+/, ''))
+}
+
+/**
+ * Which of the three shapes a listing is, from the schedule's own discriminators. `resolveEventDisplay`
+ * and `hasApproximatePlace` both read it, so neither can disagree about what a class is.
+ */
+const eventKind = (schedule?: EventSchedule | null): EventKind =>
+  !schedule?.recurrenceType ? 'oneoff' : schedule.endingType ? 'course' : 'class'
+
+/**
+ * Whether an in-person listing's stored point stands for its town rather than a door, so the map
+ * draws an area and nothing offers directions to it: a listing `resolveEventDisplay` calls
+ * inactive, or one whose street names no place (`hasVagueAddress`).
+ *
+ * ⚠ "Inactive" has to mean here what it means there, or the map and the panel disagree about the
+ * same listing — the disagreement this predicate exists to remove. So it covers a dateless class
+ * too, not only the flag and a missing schedule: `resolveEventDisplay` reports every class with no
+ * occurrence left as inactive, and the panel already hides its street on that verdict.
+ *
+ * This reads no clock, which leaves one narrow residue: a schedule whose `upcomingDates` is empty
+ * while its first session has not finished reads dateless here, where `resolveEventDisplay` falls
+ * back to that session. That is upstream drift, and an area is the safe answer to it.
+ */
+export const hasApproximatePlace = (
+  event: EventLike & {
+    inactive?: boolean | null
+    address?: VagueAddress | null
+  },
+): boolean =>
+  !isOnline(event) &&
+  (Boolean(event.inactive) ||
+    !event.schedule ||
+    (eventKind(event.schedule) === 'class' && !nextOccurrence(event)) ||
+    hasVagueAddress(event.address))
 
 /**
  * Published with nobody vouching for it — the one stage that means that. The reminder
@@ -119,6 +219,12 @@ export const scheduleTimeZone = (schedule: EventSchedule): string =>
     ? schedule.firstDate_tz
     : 'UTC'
 
+/** Whether the schedule names a zone of its own, rather than leaning on the UTC
+ *  `scheduleTimeZone` falls back to. A label that names the venue's clock must stay silent
+ *  here: that UTC is our placeholder for missing data, not a clock anyone keeps. */
+export const scheduleNamesZone = (schedule: EventSchedule | null | undefined): boolean =>
+  Boolean(schedule?.firstDate_tz && IANAZone.isValidZone(schedule.firstDate_tz))
+
 /** The series' first session as an instant in the schedule's own zone. */
 export const scheduleStart = (schedule: EventSchedule): DateTime =>
   DateTime.fromJSDate(schedule.firstDate).setZone(scheduleTimeZone(schedule))
@@ -197,9 +303,6 @@ export type EventDisplay = {
   /** Course total sessions — only meaningful when `endingType` is 'count'. */
   sessions: number | null
   registration: RegistrationState
-  /** Physical events never convert ('local' hint when the viewer is elsewhere).
-   *  Online events convert to viewer time ('viewer' hint, which is load-bearing). */
-  timeHint: 'local' | 'viewer' | null
   /** One occurrence per distinct display-zone weekday of the upcoming dates —
    *  weekday labels derive from these instants, never from the raw pattern. */
   weekdayInstants: DateTime[]
@@ -239,7 +342,6 @@ const terminalDisplay = (
   firstSession: null,
   sessions: null,
   registration: 'hidden',
-  timeHint: null,
   weekdayInstants: [],
   // Ended: nothing to act on. "See nearby events" is the only affordance.
   // Inactive: contact leads (emphasized), plus the host's site, then share. There
@@ -275,7 +377,7 @@ export function resolveEventDisplay(
   const hasWebsite = Boolean(event.website)
 
   const recurrence = schedule?.recurrenceType ?? null
-  const kind: EventKind = !recurrence ? 'oneoff' : schedule?.endingType ? 'course' : 'class'
+  const kind = eventKind(schedule)
   // Capacity is a server-owned boolean (SahajCloud#601). The widget never counts
   // registrations. This is coalesced so an absent flag degrades to not-full.
   const atCapacity = event.registrationsFull ?? false
@@ -358,8 +460,9 @@ export function resolveEventDisplay(
     }
   }
 
+  // A class whose street names no place has no door to route to, like an inactive one.
   const actions: EventActionId[] = [
-    ...(online ? [] : (['directions'] as const)),
+    ...(online || hasVagueAddress(event.address) ? [] : (['directions'] as const)),
     ...(hasWebsite ? (['website'] as const) : []),
     ...(hasContact ? (['contact'] as const) : []),
     'share',
@@ -375,9 +478,25 @@ export function resolveEventDisplay(
     firstSession: firstStart.setZone(displayZone),
     sessions: schedule.endingType === 'count' ? (schedule.count ?? null) : null,
     registration,
-    timeHint: online ? 'viewer' : viewerTz !== eventTz ? 'local' : null,
     weekdayInstants,
     actions,
     showNearby: full,
   }
+}
+
+/**
+ * An in-person class's street and town as one line, without saying the town twice. Hosts often
+ * type the town into the street field as well ("32 Cejl, 602 00, Brno", or just "Sneek"), and a
+ * plain join read "Brno, Brno". Only a last comma-separated part that IS the town counts, so
+ * "Rue de Paris" in Paris keeps its town.
+ */
+export const streetAndCity = (street?: string | null, city?: string | null): string => {
+  const s = street?.trim() ?? ''
+  const c = city?.trim() ?? ''
+
+  if (!s || !c) return s || c
+
+  const last = s.split(',').at(-1)?.trim() ?? ''
+
+  return last.localeCompare(c, undefined, { sensitivity: 'base' }) === 0 ? s : `${s}, ${c}`
 }

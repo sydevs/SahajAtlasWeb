@@ -39,13 +39,11 @@ describe('production-smoke.yml', () => {
   // spec at collection. The `ci.yml` environment value that used to carry it went with the
   // discovery subsystem (#282).
   //
-  // ⚠ The integration prefix is part of the match, because the app Worker took the Pages
-  // project's own name: `Workers Builds: sahajatlas` and `Cloudflare Pages: sahajatlas` differed
-  // in nothing else, and only one of them was ever this lane's (#280, #297). A Pages check run
-  // stops arriving once that project is deleted; the prefix stays, because it is what told the
-  // two apart while both posted. And the comparison must stay `==`: `sahajatlas` is a prefix of
-  // `sahajatlas-design`, so a `startsWith` would let the playground's deploy fire the atlas's
-  // lane.
+  // ⚠ The integration prefix is part of the match: while the `sahajatlas` Pages project and a
+  // Worker of the same name both posted, `Workers Builds: sahajatlas` and
+  // `Cloudflare Pages: sahajatlas` differed in nothing else (#280, #297). And the comparison must
+  // stay `==`: a `startsWith` or a `contains` accepts any check-run name that EXTENDS this one,
+  // and this repo already builds a second Worker.
   it('waits on the Workers build of the Worker wrangler.jsonc names', () => {
     expect(match(lane, /check_run\.name == '(.+?)'/)).toBe(`Workers Builds: ${appWorkerName()}`)
   })
@@ -187,6 +185,24 @@ describe('ci.yml', () => {
     // Without the fallback, a state added to the plan step and not here would inherit the
     // previous case's advice instead of going loud.
     expect(smoke).toMatch(/^\s{12}\*\)$/m)
+  })
+
+  // ⚠ A wrong `on:` block here fails silently, in both directions. `docs/testing.md` § "The merge
+  // queue is the only gate that reads the tree a merge will produce" says how (#375).
+  it('triggers on the pull request and the merge queue, and on no push', () => {
+    const lines = ci.split('\n')
+    const opens = lines.indexOf('on:')
+
+    if (opens < 0) throw new Error('ci.yml has no `on:` block — the assertion below would vacuum')
+
+    const after = lines.slice(opens + 1)
+    const closes = after.findIndex((line) => /^\S/.test(line))
+
+    expect(
+      (closes < 0 ? after : after.slice(0, closes))
+        .flatMap((line) => /^ {2}(\w+):/.exec(line)?.[1] ?? [])
+        .sort(),
+    ).toEqual(['merge_group', 'pull_request'])
   })
 
   // The guard is what refuses the `-design` playground's host. A publish step whose address

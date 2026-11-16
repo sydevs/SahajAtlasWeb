@@ -7,10 +7,7 @@
 //
 // This barrel uses explicit named exports only, never `export *`. So each
 // folder's public surface is its primary component or components, plus its
-// `Props` type. `Icons/` is the one icon-set module that keeps a wildcard
-// re-export. See DESIGN_SYSTEM.md.
-export * from './Icons'
-
+// `Props` type. See DESIGN_SYSTEM.md.
 export { Alert } from './Alert'
 export type { AlertProps } from './Alert'
 

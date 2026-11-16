@@ -117,7 +117,9 @@ or HTML descriptions — the client derives all of these:
   is `country / region / city / venue`, routed `city` → area and `venue` → venue
   (`src/lib/shape/path.ts`). ⚠ SahajCloud used to spell the leaf level `center`
   (before its #605) — nothing serves that spelling any more, and
-  `RegionLevelSchema` tracks only the current one.
+  `RegionLevelSchema` tracks only the current one. **`getOnlineCount`** derives the home
+  list's online badge from the same two caches, so one predicate — `visibleFeatures` —
+  answers for the badge, the country counts and the map's pins.
 - **`getEvents`** → the whole matching set from the feed, sorted by
   `@turf/distance`, **uncapped** (like `getCalendarEvents`). Do not reintroduce a
   `.slice()` here: an earlier cap truncated the pool _before_ the client-side sort,
@@ -169,11 +171,15 @@ browser the off-origin URL. `src/lib/shape/path.test.ts` pins each case.
 ### `isSafeHref` is the sink-level gate
 
 **`isSafeHref` (`src/lib/shape/href.ts`) is the last check an href passes before it
-reaches a JSX `<a>`.** It requires `safePath`-clean, or one of three allowed
-schemes (`https:` / `mailto:` / `tel:`, case-insensitive, matching `SafeUrlSchema`
-and `validateWebUrl` upstream). A refusal reports via `reportInternalError` and
-degrades to inert content — a `javascript:` string reaching an anchor would run in
-the HOST page's realm.
+reaches a JSX `<a>`.** It requires `safePath`-clean, or one of four allowed
+schemes (`https:` / `mailto:` / `tel:` / `webcal:`, case-insensitive). A refusal reports
+via `reportInternalError` and degrades to inert content — a `javascript:` string reaching
+an anchor would run in the HOST page's realm.
+
+The first three match `SafeUrlSchema` and `validateWebUrl` upstream. ⚠ **`webcal:` matches
+neither**: it is an address the widget builds itself, by swapping the scheme on a
+`calendarFeedUrl` those guards parsed as `http(s)` (`src/lib/ics.ts`), so this list is the
+only thing judging the value it admits.
 
 Only three components render a JSX anchor, and all three call it (#114): the
 `Link` atom, the `Button` atom's href form, and `ActionRow` / `ActionCircle`. The
@@ -292,11 +298,21 @@ senderEmail }` plus `name`, `locale` and the question answers as pairs. The
   widget observed about the host page it mounted on. Send it once per page from
   `lib/embed-announce.ts`, never from a component and never through React Query:
   it renders nothing, caches nothing, and a retry would replay a write the server
-  already collapses by the hour.
-  - Keep its response schema at `{ ok: true }` only. The endpoint also returns a
-    `mount` key and a `stored: false` flag, and nothing reads either — pinning
-    them would turn a harmless CMS rename into a false "could not record this
-    embed" warning on every host's console.
+  already collapses.
+  - **Reporting on every page load stays** (#160). The cadence is cheap at the
+    server in three independent ways, each checkable in SahajCloud: `clients` is
+    excluded from the usage plugin, so nothing meters the route (SahajCloud's
+    `src/collections/Clients/endpoints/report.ts`, above `embedMergeSql`);
+    `req.user` is the full client doc, so a repeat reads `embedMetadata` off it and
+    answers `updated: false` with no query and no write (same file, the no-op
+    path); and an unchanged report collapses within 6 h, per SahajCloud's
+    `EMBED_REPORT_REFRESH_MS` (`src/lib/clients/embedMetadata.ts`). Revisit only
+    if Railway CPU spent on `POST /api/clients/report` becomes noticeable.
+  - Keep its response schema at `{ ok: true }` only. The endpoint also returns
+    `mounts`, the number it now holds for this service, and `updated: false` when
+    it suppressed an unchanged report, and nothing reads either — pinning them
+    would turn a harmless CMS rename into a false "could not record this embed"
+    warning on every host's console.
   - Declare its request type, `EmbedReportBody`, here rather than in the loader. A
     payload is the observation joined to the thing it describes, and that join
     belongs at the transport, not scattered across two overlapping domain types.

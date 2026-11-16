@@ -1,6 +1,19 @@
+import { colord } from 'colord'
 import { describe, it, expect } from 'vitest'
 
-import { buildScale, applyPalette, type ColorScale, type Step } from './palette'
+import {
+  buildPalette,
+  buildScale,
+  applyPalette,
+  onHex,
+  paletteReport,
+  shiftHex,
+  SOLID_STEP,
+  stepHex,
+  type ColorScale,
+  type Step,
+  type ThemeMode,
+} from './palette'
 
 const parse = (s: string) => {
   const [h, sPct, lPct] = s.split(' ')
@@ -20,7 +33,7 @@ describe('buildScale', () => {
     }
   })
 
-  it('makes step 9 the brand solid: respects seed hue + lightness, caps saturation', () => {
+  it('makes step 9 the brand solid: respects seed hue + lightness, sets saturation', () => {
     // Dark maroon stays dark. Its saturation, about 94%, is capped to the muted register.
     const maroon = parse(buildScale('#64032e', 'light')[9])
 
@@ -28,16 +41,24 @@ describe('buildScale', () => {
     expect(maroon.l).toBe(20) // the seed's own lightness, preserved
     expect(maroon.s).toBe(60) // capped from 94
 
-    // A muted seed keeps its low saturation (not pushed up to the cap).
-    expect(parse(buildScale('#82b1ae', 'light')[9]).s).toBe(23)
+    // A muted seed is lifted to the floor, so it still reads as a colour.
+    expect(parse(buildScale('#82b1ae', 'light')[9]).s).toBe(40)
   })
 
-  it('keeps a near-neutral seed neutral (the cap leaves low saturation alone)', () => {
+  it('keeps a seed with no hue neutral (there is no colour to lift)', () => {
     expect(parse(buildScale('#333333', 'light')[9]).s).toBeLessThan(10)
   })
 
   it('caps a near-white solid so it stays visible on the light canvas', () => {
-    expect(parse(buildScale('#fafafa', 'light')[9]).l).toBeLessThanOrEqual(70)
+    expect(parse(buildScale('#fafafa', 'light')[9]).l).toBeLessThanOrEqual(80)
+  })
+
+  it('keeps a solid off the far extreme, and says so', () => {
+    // A grey has no colour to lift, so only the far margin moves it.
+    expect(parse(buildScale('#f5f5f5', 'dark')[9]).l).toBeLessThanOrEqual(90)
+    expect(parse(buildScale('#0a0a0a', 'light')[9]).l).toBeGreaterThanOrEqual(20)
+    expect(paletteReport({ primary: '#f5f5f5' }).primary?.darkAdjustedBy).toContain('near-white')
+    expect(paletteReport({ primary: '#0a0a0a' }).primary?.lightAdjustedBy).toContain('near-black')
   })
 
   it('floors a near-black solid so it stays visible on the dark canvas', () => {
@@ -90,7 +111,7 @@ describe('applyPalette', () => {
     const solid = parse(props.get('--primary-9')!)
 
     expect(solid.h).toBe(333) // hue preserved
-    expect(solid.s).toBe(60) // capped saturation
+    expect(solid.s).toBe(60) // the brand saturation
     expect(solid.l).toBe(60) // lifted from the seed's dark 20 to the dark minimum
   })
 
@@ -106,16 +127,16 @@ describe('applyPalette', () => {
   it('derives the background surface from the ladder app-bg step (both modes)', () => {
     const light = fakeRoot()
 
-    // Hue and capped saturation are honored.
+    // The hue is honored, at the brand saturation.
     // The shade is the ladder's near-white app-background step, not the seed's own 91% lightness.
     applyPalette(light.root, { background: '#f0ece2' }, 'light')
-    expect(light.props.get('--background')).toBe('43 32% 99%')
+    expect(light.props.get('--background')).toBe('43 40% 99%')
 
     // Dark mode now applies too, tinting the near-black app-background step.
     const dark = fakeRoot()
 
     applyPalette(dark.root, { background: '#f0ece2' }, 'dark')
-    expect(dark.props.get('--background')).toBe('43 32% 9%')
+    expect(dark.props.get('--background')).toBe('43 40% 9%')
   })
 
   it('lifts a near-black background seed to a readable light surface (no black panel)', () => {
@@ -162,5 +183,203 @@ describe('applyPalette', () => {
     expect(props.has('--secondary-1')).toBe(false)
     expect(props.has('--background')).toBe(false)
     expect(props.get('--primary-9')).toBe('333 60% 20%')
+  })
+})
+
+// The map paints with literal colors, not CSS variables, so it reads the ramp
+// through these three rather than through `applyPalette`.
+describe('the hex accessors', () => {
+  it('gives a step as #rrggbb, per mode', () => {
+    expect(stepHex('#64032e', 'light', 9)).toBe('#521430')
+    // Dark mode floors the solid's lightness at 60, so the same seed is lighter.
+    expect(stepHex('#64032e', 'dark', 9)).toBe('#d65c93')
+    expect(stepHex('#64032e', 'light', 8)).toBe('#d9689b')
+  })
+
+  it('refuses a seed that is absent, invalid or the unconfigured sentinel', () => {
+    // The refusal `setRole` already makes by writing nothing. Every caller then
+    // keeps its own built-in default.
+    for (const seed of [undefined, null, '', 'not-a-color', '#000000']) {
+      expect(stepHex(seed, 'light', 9)).toBeNull()
+      expect(onHex(seed, 'light')).toBeNull()
+    }
+  })
+
+  it('paints a grey or white seed as the neutral ramp it is, not the default', () => {
+    // Snapping these to our teal read as the picker ignoring the manager.
+    for (const seed of ['#ffffff', '#f2f2f2', '#333333']) {
+      expect(parse(buildScale(seed, 'light')[9]).s).toBe(0)
+      expect(stepHex(seed, 'light', 9)).not.toBeNull()
+    }
+  })
+
+  it('lifts a near-white seed into a colour on every step, and says so', () => {
+    // HSL calls `#fffdfa` 100% saturated with almost no colour in it, so what
+    // decides the lift is its chroma — and the lift is reported, since it shows.
+    for (const mode of ['light', 'dark'] as const) {
+      const scale = buildScale('#fffdfa', mode)
+
+      for (const step of [3, 9, 11] as const) expect(parse(scale[step]).s).toBe(40)
+    }
+
+    // The solid moves off white far enough to show it, on the dark page too, where
+    // the canvas-side limit alone would leave it near-white.
+    expect(parse(buildScale('#fffdfa', 'dark')[9]).l).toBeLessThanOrEqual(75)
+    expect(paletteReport({ primary: '#fffdfa' }).primary?.darkAdjustedBy).toContain('saturation')
+
+    expect(paletteReport({ primary: '#fffdfa' }).primary?.lightAdjustedBy).toContain('saturation')
+    // Our own teal is already over the floor.
+    expect(paletteReport({ primary: '#1E6C71' }).primary?.lightAdjustedBy).not.toContain(
+      'saturation',
+    )
+  })
+
+  it('reports a band crossing on its own, not off the size of the lift', () => {
+    // Both land past the dark band's far edge. `#ffd6d6` starts near enough the
+    // saturation floor to earn no lift banner, and used to lose `near-white` with it.
+    for (const seed of ['#fffdfa', '#ffd6d6']) {
+      const report = paletteReport({ primary: seed }).primary
+
+      expect(report?.darkAdjustedBy).toContain('near-white')
+    }
+
+    expect(paletteReport({ primary: '#ffd6d6' }).primary?.darkAdjustedBy).not.toContain(
+      'near-black',
+    )
+  })
+
+  it('gives the solid step a readable on-color', () => {
+    expect(onHex('#64032e', 'light')).toBe('#ffffff')
+    // Dark mode's lighter solid reads better under black.
+    expect(onHex('#64032e', 'dark')).toBe('#000000')
+  })
+
+  it('shifts a hex in HSL, clamped', () => {
+    // The marker rings: each one is its own fill, lighter and less saturated.
+    expect(shiftHex('#521430', { lightness: 21, saturation: -16, maxLightness: 92 })).toBe(
+      '#983a64',
+    )
+    // A near-white seed hits both clamps: lightness at the cap, saturation at 0.
+    expect(shiftHex('#fafafa', { lightness: 21, saturation: -16, maxLightness: 92 })).toBe(
+      '#ebebeb',
+    )
+  })
+})
+
+/**
+ * The three legibility checks, against seeds chosen to break them.
+ *
+ * ⚠ **Every case here asserts the rendered colour, never the correction.** What a
+ * service is owed is a map and a panel they can read; which step moved to get
+ * there is this file's business.
+ */
+describe('legibility', () => {
+  /** Step 11 is panel text, read on steps 1 to 3 — `text-*-11` on `bg-*-3` is the pairing. */
+  const panelText = (scale: ColorScale) =>
+    Math.min(
+      ...[1, 2, 3].map((step) =>
+        colord(`hsl(${scale[11]})`).contrast(colord(`hsl(${scale[step as Step]})`)),
+      ),
+    )
+
+  const APP_BACKGROUND = { dark: '#121212', light: '#ffffff' } as const
+
+  // Pale yellow (the deliberately awkward choice), a near-white blue, a navy, our
+  // own three, and a pair a service could plausibly pick that read almost alike.
+  const SEEDS = [
+    '#ffff00',
+    '#f0f0ff',
+    '#000080',
+    '#1E6C71',
+    '#5e98ba',
+    '#d8735a',
+    '#2f7f84',
+  ] as const
+
+  for (const mode of ['light', 'dark'] as ThemeMode[]) {
+    it.each(SEEDS)(`keeps %s legible in ${mode}`, (seed) => {
+      const { contrast, primary } = buildPalette({ contrast: seed, primary: seed }, mode)
+
+      for (const role of [primary!, contrast!]) {
+        expect(panelText(role.scale)).toBeGreaterThanOrEqual(4.5)
+        expect(
+          colord(`hsl(${role.scale[SOLID_STEP]})`).contrast(APP_BACKGROUND[mode]),
+        ).toBeGreaterThanOrEqual(3)
+      }
+    })
+
+    it.each(SEEDS)(`separates the selected class from %s in ${mode}`, (seed) => {
+      // One seed for both roles is the worst case the check exists for: without it
+      // the selected pin is the same colour as every pin around it.
+      const { contrast, primary } = buildPalette({ contrast: seed, primary: seed }, mode)
+      const selected = colord(`hsl(${contrast!.scale[SOLID_STEP]})`)
+
+      // ⚠ `delta()` answers CIEDE2000 ÷ 100, so this reads 0.2 and means ΔE2000 20.
+      expect(selected.delta(`hsl(${primary!.scale[SOLID_STEP]})`)).toBeGreaterThanOrEqual(0.2)
+    })
+  }
+
+  it('leaves a seed that already passes exactly where it was', () => {
+    // Our own primary passes `surface` and needs no separation from itself-as-contrast
+    // at a different hue, so step 9 is the seed's own lightness, uncorrected.
+    const { primary } = buildPalette({ contrast: '#d8735a', primary: '#1E6C71' }, 'light')
+
+    expect(primary!.scale[SOLID_STEP]).toBe('184 58% 28%')
+    expect(primary!.adjustedBy).not.toContain('surface')
+  })
+})
+
+describe('paletteReport', () => {
+  // `#f8f1f4` is the case this exists for: its rendered step 9 is not a seed that
+  // renders itself, found by sweeping ~37k seeds.
+  it.each(['#f8f1f4', '#ffff00', '#f0f0ff', '#A1C3D7', '#e08e79', '#00ff7f'])(
+    'offers a seed for %s that renders itself, with nothing left to correct',
+    (seed) => {
+      // ⚠ The ladder works in HSL and emits a quantised hex, so the rendered
+      // colour is not always a seed that renders itself. Offering one that is not
+      // would change the volunteer's colour a second time, the moment they
+      // accepted the first suggestion.
+      const { suggested } = paletteReport({ contrast: '#d8735a', primary: seed }).primary!
+
+      if (!suggested) return
+
+      const again = paletteReport({ contrast: '#d8735a', primary: suggested }).primary!
+
+      expect(again.light).toBe(suggested)
+      expect(again.suggested).toBeNull()
+    },
+  )
+
+  it('names the entered colour and the check that moved it', () => {
+    const report = paletteReport({ contrast: '#d8735a', primary: '#ffff00' })
+
+    expect(report.primary?.entered).toBe('#ffff00')
+    expect(report.primary?.lightAdjustedBy).toContain('surface')
+  })
+
+  it('reports each mode on its own', () => {
+    // `#ffff00` is too light for the white page and dark enough for the dark one.
+    const report = paletteReport({ primary: '#ffff00' }).primary!
+
+    expect(report.lightAdjustedBy).toContain('surface')
+    expect(report.darkAdjustedBy).not.toContain('surface')
+  })
+
+  it('offers no suggestion for a role only `panel-text` moved', () => {
+    // `panel-text` moves step 11, which takes a fixed lightness — no seed can
+    // express it, so there is nothing to offer and the CMS shows no button.
+    const report = paletteReport({ primary: '#1E6C71' })
+
+    expect([
+      ...new Set([...report.primary!.lightAdjustedBy, ...report.primary!.darkAdjustedBy]),
+    ]).toEqual(['panel-text'])
+    expect(report.primary?.suggested).toBeNull()
+  })
+
+  it('answers for a role with a usable seed and no other', () => {
+    const report = paletteReport({ primary: '#1E6C71', secondary: '#000000' })
+
+    expect(report.primary).toBeDefined()
+    expect(report.secondary).toBeUndefined()
   })
 })

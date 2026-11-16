@@ -98,6 +98,9 @@ Four CI gates exist because each one once missed something, unnoticed (#99): `pn
 - **`src/lib/`** is pure domain helpers — no React, no i18n. Static country-keyed tables live
   there (`share/platforms.ts`, `country-sites.ts`), not in a `src/data/`. Failure KIND is domain
   (`lib/report.ts`); its copy and buttons are UI, so `ERROR_POLICY` lives with the fallbacks.
+  ⚠ **`lib/overlay.ts` is the one presentation module here**, and always was: it reads the theme
+  root and holds the frame every fixed descendant resolves against. `DESIGN_SYSTEM.md` § Styling
+  says where a shared skin belongs.
 - **API layer**: every fetcher in `src/config/api/fetch.ts` parses the response through a
   zod schema from `src/types/`. Keep that contract. See `docs/rules/data-layer.md`.
 - **State**: zustand stores (`src/config/store.ts`) are the single source of truth for the
@@ -142,9 +145,9 @@ secrets must never reach client code — the bundle is public.
 ## Deployment
 
 Two Cloudflare sites deploy from this repo, both on Workers static assets: the app,
-`sahajatlas`, serving `sahajatlas.com`, and the Ladle playground, `sahajatlas-design`
+`sahajatlas-web`, serving `sahajatlas.com`, and the Ladle playground, `sahajatlas-design`
 (#266, #279, #280, #283). ⚠ `sahajatlas.pages.dev` is withdrawn rather than redirected, and
-claimable by anyone once #283's last phase deletes the project behind it. Source maps are
+claimable by anyone since #283 deleted the project behind it. Source maps are
 uploaded, then deleted — never deployed (#130). Topology, the `public/` deploy files, the
 source-map policy and the deploy-side CI gates: `docs/rules/deployment.md`.
 

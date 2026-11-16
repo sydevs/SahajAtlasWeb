@@ -1,9 +1,11 @@
 import { type ReactNode } from 'react'
 import * as DropdownMenu from '@radix-ui/react-dropdown-menu'
+import clsx from 'clsx'
 import { useTranslation } from 'react-i18next'
 import { Check, ChevronRight, Info, Languages, Monitor, Moon, Settings, Sun } from 'lucide-react'
 
 import { frameCollision } from '@/lib/overlay'
+import { menuChrome } from '@/components/atoms/Menu'
 import { useAvailableLocales } from '@/hooks/use-available-locales'
 import { useWidgetMode } from '@/config/mode'
 import { useReportModal } from '@/config/store'
@@ -13,10 +15,9 @@ import { type ThemePreference, useThemePreference } from '@/hooks/use-theme'
 import { overlayContainer } from '@/lib/overlay'
 import { publishLocale } from '@/lib/shape'
 
-const menu =
-  'z-50 min-w-44 rounded-xl border border-divider bg-background p-1 text-foreground shadow-xl'
-const item =
-  'flex cursor-pointer select-none items-center gap-2 rounded-lg px-2 py-2 text-sm outline-none data-[highlighted]:bg-primary-3 data-[state=open]:bg-primary-3'
+const { surface, row } = menuChrome({ submenus: true })
+const menu = surface()
+const item = row()
 
 // The radio-selected checkmark, in a fixed-width slot so labels line up whether or
 // not the row is the current choice.
@@ -41,9 +42,14 @@ export type SettingsMenuProps = {
   className?: string
   /** Which side the menu opens toward the trigger (bottom for a top cog, top for a bottom cog). */
   side?: DropdownMenu.DropdownMenuContentProps['side']
+  /**
+   * The cog sits in a toolbar row instead of floating, so it takes the header icons' flat look
+   * and a 44px tap area.
+   */
+  toolbar?: boolean
 }
 
-export function SettingsMenu({ className, side = 'bottom' }: SettingsMenuProps) {
+export function SettingsMenu({ className, side = 'bottom', toolbar = false }: SettingsMenuProps) {
   const { t } = useTranslation()
   const { locale, setLocale } = useLocale()
   // The set an operator publishes in SahajCloud, never a list compiled in here (#198). Every row
@@ -88,10 +94,16 @@ export function SettingsMenu({ className, side = 'bottom' }: SettingsMenuProps) 
       <DropdownMenu.Trigger asChild>
         <button
           aria-label={t('common.settings.title')}
-          className={`flex h-8 w-8 items-center justify-center rounded-full border border-divider bg-background text-gray-11 shadow-lg transition-colors hover:text-foreground ${className ?? ''}`}
+          className={clsx(
+            'flex items-center justify-center text-gray-11 transition-colors hover:text-foreground',
+            toolbar
+              ? '-ms-3 h-11 w-11 rounded-lg outline-none focus-visible:ring-2 focus-visible:ring-focus focus-visible:ring-inset'
+              : 'h-8 w-8 rounded-full border border-divider bg-background shadow-lg',
+            className,
+          )}
           type="button"
         >
-          <Settings size={16} />
+          <Settings size={toolbar ? 20 : 16} />
         </button>
       </DropdownMenu.Trigger>
 

@@ -8,8 +8,9 @@ full Mapbox experience: country → region → area → venue → event.
 <script type="module" src="https://sahajatlas.com/auto.js?key=…"></script>
 ```
 
-That is the whole snippet — no element, no attribute. `auto.js` is a ~3 KiB
-loader (`src/loader/`). It reads its settings from its own URL, creates the
+That is the whole snippet — no element, no attribute. `auto.js` starts a ~3 KiB
+loader (`src/loader/`), and parses as a classic script too, which is how Wix
+loads it. The loader reads its settings from that URL, creates the
 element where you place the tag, and loads the widget itself (`embed.js`,
 built from `src/Widget.tsx`) only when the embed is about to enter the
 viewport.
@@ -101,7 +102,9 @@ SahajCloud's:
 - **`react-circle-flags.pages.dev`** serves the country flag SVGs
   (`referrer-policy: no-referrer`). **`challenges.cloudflare.com`** loads
   Turnstile as soon as the interface mounts, not when a visitor opens a form
-  (#182). Both are in the CSP table in
+  (#182) — from a challenge page SahajCloud serves, not from the host's page
+  (#343), so the host allows that page under `frame-src` instead. Both are in
+  the CSP table in
   [`docs/embedding.md`](docs/embedding.md#content-security-policy).
 
 None of these has a script-URL opt-out (#149) — each is built so it does not

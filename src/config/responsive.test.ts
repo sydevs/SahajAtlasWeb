@@ -121,7 +121,7 @@ describe('the container-vs-viewport decision table', () => {
     // A second hardcoded crossing in a component would be the same duplication growing back somewhere the rule file cannot see it.
     //
     // This matches a WIDTH, such as `768px` or `min-width: 768`, not the bare number.
-    // The bare number is a perfectly ordinary SVG path coordinate. `atoms/Icons/symbols.tsx` has one.
+    // The bare number is a perfectly ordinary SVG path coordinate.
     // This also matches over comment-stripped source, so prose may name the crossing freely.
     const hardcoded = SOURCE_FILES.filter(
       (relative) =>
@@ -143,6 +143,8 @@ describe('the container-vs-viewport decision table', () => {
  * The next component that wants "is the widget wide" will copy the nearest precedent, and a raw read in `src/lib/` is now that precedent.
  */
 const RAW_VIEWPORT_READERS: Record<string, string> = {
+  // The height of the box the sheet covers, when no frame owns it, to cap the camera padding.
+  'hooks/use-map-controller-real.tsx': 'caps camera padding for a short viewport',
   'lib/slot-decision.ts':
     'the slot decision: compares the host slot to the viewport, and a frame to the screen, before React renders',
 }

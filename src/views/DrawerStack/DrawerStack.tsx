@@ -13,7 +13,7 @@ import {
 } from 'react'
 import { createPortal } from 'react-dom'
 import { useLocation, useNavigate } from 'react-router'
-import { useQueryClient } from '@tanstack/react-query'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { AnimatePresence, motion } from 'framer-motion'
 import clsx from 'clsx'
 
@@ -24,7 +24,7 @@ import { Drawer, DrawerContent } from '@/components/atoms/Drawer'
 import { ResetErrorBoundary, SettingsMenu } from '@/components/molecules'
 import { WidgetWidthContext, useIsWide } from '@/config/responsive'
 import { useWidgetMode } from '@/config/mode'
-import { useCalendarPosition } from '@/config/store'
+import { useBrowsedCountry, useCalendarPosition, useSheetCover } from '@/config/store'
 import { frameElement, overlayContainer } from '@/lib/overlay'
 import {
   type StackEntry,
@@ -36,6 +36,9 @@ import {
   isFilterOverlay,
   isSubmitEntry,
   opensTall,
+  isoCountryCode,
+  placePathsOf,
+  placedPathname,
   resolveStack,
   submitPanelPlacement,
   submitTitleKey,
@@ -44,6 +47,7 @@ import { wakesSheetLoop } from '@/views/DrawerStack/sheet-wake'
 import { stripLabel } from '@/views/DrawerStack/strip-label'
 import { submitSheetChrome } from '@/views/DrawerStack/submit-panel'
 import { ViewLayer } from '@/views/DrawerStack/ViewLayer'
+import { useFitSnap } from '@/views/DrawerStack/use-fit-snap'
 import { DrawerControlContext } from '@/views/shared'
 import { DrawerErrorFallback, DrawerLoading } from '@/views/fallbacks'
 import { CountriesView } from '@/views/CountriesView/CountriesView'
@@ -105,6 +109,9 @@ const SNAP_POINTS = ['80px', '300px', 0.97]
 const PEEK_SNAP = '80px' // the collapsed peek
 const OPEN_SNAP = '300px' // default, and what the peek expands to
 const WIDE_SNAP = SNAP_POINTS[2] // the near-full snap the full-width calendar opens at
+// Stands for "as tall as the content" in `snap`. The pixel value moves with the content, so the
+// state holds this token and the ladder carries the live number (`useFitSnap`).
+const FIT_SNAP = 'fit'
 
 // How far each stacked ancestor peeks out behind the active sheet. Wide enough to read as
 // a deliberate stack of cards from across the screen. An earlier few-pixel sliver was easy
@@ -218,7 +225,7 @@ function PeekStrip({
     // renders at ≥768px, where `352px` always fits — which is exactly why it is worth fixing
     // before that stops being true.
     className =
-      'inset-y-0 start-0 w-[var(--sy-drawer-w,352px)] max-w-[calc(100%-32px)] rounded-none border border-divider bg-background shadow-xl lg:inset-y-4 lg:start-4 lg:rounded-2xl'
+      'inset-y-0 start-0 w-[calc(var(--sy-drawer-w,352px)+env(safe-area-inset-left,0px))] max-w-[calc(100%-32px)] rounded-none border border-divider bg-background shadow-xl lg:inset-y-4 lg:start-4 lg:rounded-2xl'
   } else {
     style.left = 0
     style.right = 0
@@ -294,6 +301,7 @@ export function DrawerStack() {
   const [snap, setSnap] = useState<number | string | null>(OPEN_SNAP)
   // Whether the add-a-class step panel is the review bar, as the panel itself reports it.
   const stripsRef = useRef<HTMLDivElement>(null)
+  const sheetOriginRef = useRef<HTMLDivElement>(null)
   // The lazy components ARE the retry state — the boundary's reset swaps in fresh ones.
   // Same shape, and the same reasoning, as EventView's `EventDetails`.
   const [secondary, setSecondary] = useState(loadSecondaryViews)
@@ -305,12 +313,8 @@ export function DrawerStack() {
   // `filters` entry peels off into the overlay below. (Map-less keeps the plain
   // replace-stack behaviour.)
   const filterOverlay = isFilterOverlay(entries, hasMap)
-  const baseEntries = useMemo(
-    () => (filterOverlay ? entries.slice(0, -1) : entries),
-    [filterOverlay, entries],
-  )
 
-  // Reads through `baseStackEntry` rather than `baseEntries.at(-1)` — the same value
+  // Reads through `baseStackEntry` rather than the last non-overlay entry — the same value
   // either way, but stated in the shared vocabulary, so `top.path` is provably
   // `topViewKey(location.pathname, hasMap)`. `useFrameOnTop` compares itself against
   // that key to tell whether it is still the view on top, and the two agreeing is what
@@ -324,13 +328,79 @@ export function DrawerStack() {
   // switching it resizes the drawer. Date changes do not re-render this component.
   const calendarView = useCalendarPosition((s) => s.view)
   const wide = top?.kind === 'calendar' && isWide && calendarView !== CALENDAR_VIEW_LIST
+  // What sits behind the top view follows the region tree, not the words typed. A place opens by
+  // its last slug, so `/united-kingdom/south-east/london` shows London, and its panels and climb
+  // must name and lead to the UK at `/gb`, not a `/united-kingdom` that doesn't exist. The top view
+  // keeps the address as typed (`top.path` above). A disabled observer follows the cache only.
+  const { data: regionTree } = useQuery({ ...regionsQuery(), enabled: false })
+  const pathOf = useMemo(() => placePathsOf(regionTree), [regionTree])
+  const ancestry = useMemo(() => {
+    const placed = resolveStack(placedPathname(location.pathname, pathOf))
+
+    return isFilterOverlay(placed, hasMap) ? placed.slice(0, -1) : placed
+  }, [location.pathname, pathOf, hasMap])
+  // The country on screen, kept through the routes that name none (search, calendar), so the
+  // place search a country page opens stays in that country. The world view clears it.
+  const setBrowsedCountry = useBrowsedCountry((s) => s.setCode)
+
+  useEffect(() => {
+    const first = location.pathname.split('/')[1]
+    const code = isoCountryCode(first)
+
+    if (!first || code) setBrowsedCountry(code)
+  }, [location.pathname, setBrowsedCountry])
+
   // Ancestor paths below the top view, root-first (empty at CountriesView).
   const parentPaths = useMemo(
-    () => (baseEntries.length === 0 ? [] : ['/', ...baseEntries.slice(0, -1).map((e) => e.path)]),
-    [baseEntries],
+    () => (ancestry.length === 0 ? [] : ['/', ...ancestry.slice(0, -1).map((e) => e.path)]),
+    [ancestry],
   )
   const parentPath = parentPaths.at(-1)
   const canCollapse = hasMap && direction === 'bottom'
+
+  // A class opens as tall as its content and footer, up to the near-full snap. At the
+  // third-height snap the sticky Register bar covered the address, and on a small phone it
+  // sliced the "Next session" line in half. It never opens lower than that snap: the loading
+  // skeleton is short, and a sheet that dipped under it would only climb again once the class
+  // arrived. One drag down still stops there, with the map and the class's pin above.
+  const fit = useFitSnap(
+    direction === 'bottom' && hasMap && top?.kind === 'event',
+    location.pathname,
+  )
+  const fitPx = typeof fit === 'number' && fit > parseFloat(OPEN_SNAP) ? fit : null
+  const fitSnap = fitPx === null ? null : `${fitPx}px`
+  const snapPoints = useMemo(
+    () => (fitSnap === null ? SNAP_POINTS : [PEEK_SNAP, OPEN_SNAP, fitSnap, WIDE_SNAP]),
+    [fitSnap],
+  )
+  const openSnap = top?.kind === 'event' ? FIT_SNAP : OPEN_SNAP
+  const vaulSnap = snap === FIT_SNAP ? (fit === 'full' ? WIDE_SNAP : (fitSnap ?? OPEN_SNAP)) : snap
+  // vaul echoes every `activeSnapPoint` it is handed back through this setter. Taking the echo
+  // literally would swap the token for whatever it resolved to that render, and the sheet would
+  // stop following its content.
+  const setVaulSnap = (next: number | string | null) => {
+    if (next === vaulSnap) return
+    setSnap(fitSnap !== null && next === fitSnap ? FIT_SNAP : next)
+  }
+  // What the sheet covers of the map, resolved from the snap it sits at, so the camera reserves
+  // the collapsed peek while the sheet is collapsed and a class's taller sheet while it is open.
+  // The near-full snap reports the open snap instead: the pin is hidden there whatever the camera
+  // does, so the framing serves the third-height stop one drag below.
+  const sheetCover =
+    direction !== 'bottom' || !hasMap
+      ? null
+      : snap === PEEK_SNAP
+        ? parseFloat(PEEK_SNAP)
+        : snap === FIT_SNAP && fitPx !== null
+          ? fitPx
+          : parseFloat(OPEN_SNAP)
+  const setSheetCover = useSheetCover((s) => s.setBottom)
+
+  useEffect(() => {
+    setSheetCover(sheetCover)
+
+    return () => setSheetCover(null)
+  }, [sheetCover, setSheetCover])
 
   // The stack must show the panels a repeated X actually goes through, which is a history
   // question, not a URL one (see `dismissDepth`). `entryAncestors` is the structural height
@@ -480,8 +550,18 @@ export function DrawerStack() {
         let top = Number.NaN
 
         try {
-          top =
-            sheet.getBoundingClientRect().top - (frameElement()?.getBoundingClientRect().top ?? 0)
+          // ⚠ Read against a `fixed` origin on the same layer, not against the viewport. While
+          // the iOS keyboard is up, Safari pans the page, and a rect read alone shifts by that
+          // pan. The loop then parks on the panned value, because the pan ending fires nothing
+          // that wakes it, and the peek strips stay stranded across the map as a see-through
+          // panel. Both rects shift together, so the difference holds through a pan, and the
+          // origin lands on a frame's edge where one contains the layer.
+          const origin =
+            sheetOriginRef.current?.getBoundingClientRect().top ??
+            frameElement()?.getBoundingClientRect().top ??
+            0
+
+          top = sheet.getBoundingClientRect().top - origin
         } catch {
           top = Number.NaN
         }
@@ -535,13 +615,15 @@ export function DrawerStack() {
     }
   }, [hasMap, direction])
 
-  // A few views open at the near-full snap on mobile (`opensTall`), while every other view
-  // keeps the third-height open snap. Keyed on the view KIND (not `wide`), so switching the
+  // A few views open at the near-full snap on mobile (`opensTall`), and an event at the height of
+  // its own content, while every other view keeps the third-height open snap. Keyed on the view KIND (not `wide`), so switching the
   // calendar between month/week/list keeps it tall, rather than collapsing the list to the
   // short snap. This runs only when navigating between kinds, so it never fights a manual
   // drag within one view.
   useEffect(() => {
-    if (direction === 'bottom') setSnap(opensTall(top?.kind) ? WIDE_SNAP : OPEN_SNAP)
+    if (direction === 'bottom') {
+      setSnap(opensTall(top?.kind) ? WIDE_SNAP : top?.kind === 'event' ? FIT_SNAP : OPEN_SNAP)
+    }
   }, [direction, top?.kind])
 
   // A new searched place lifts the sheet out of its peek, so results are never
@@ -588,7 +670,7 @@ export function DrawerStack() {
       collapsed: snap === PEEK_SNAP,
       canCollapse,
       canDismiss: action !== 'collapse',
-      toggle: () => setSnap((s) => (s === PEEK_SNAP ? OPEN_SNAP : PEEK_SNAP)),
+      toggle: () => setSnap((s) => (s === PEEK_SNAP ? openSnap : PEEK_SNAP)),
       dismiss: () => {
         // Marks the dismiss navigation as a transition: unmounting a heavy view (the
         // calendar's large grid) would otherwise reconcile synchronously and freeze
@@ -602,7 +684,7 @@ export function DrawerStack() {
           })
       },
     }
-  }, [snap, canCollapse, parentPath, depth, location, navigate, toStackTarget])
+  }, [snap, openSnap, canCollapse, parentPath, depth, location, navigate, toStackTarget])
 
   // The filter overlay's own dismiss (its X / swipe / Esc): back to the calendar it
   // opened over — chronologically when there is in-widget history, otherwise a direct
@@ -765,32 +847,33 @@ export function DrawerStack() {
               measured overflowing here, since the sheet takes no snap ladder map-less — the
               invariant stated, not a defect repaired. */}
           <div
-            ref={setContainer}
-            className="relative w-full overflow-clip bg-background"
+            className="flex w-full flex-col overflow-clip bg-background"
             style={{ height: standalone ? '100dvh' : '100%' }}
           >
-            <Drawer
-              key={direction}
-              open
-              container={container}
-              direction={direction}
-              dismissible={parentPaths.length > 0}
-              // Same as the map drawer: the left panel (≥md) has no handle, so
-              // handle-only drag would make it undraggable — dismiss stays the close
-              // button only.
-              handleOnly={direction === 'left'}
-              mode="filled"
-              onOpenChange={(o) => !o && control.dismiss()}
-            >
-              {sheet}
-            </Drawer>
-            {/* Map-less, the drawer fills the container and its search header owns
-              the top, so a top-left cog would cover the search field. This keeps it
-              on the left but at the bottom, clear of the header. side="top" opens
-              the menu upward from there. z-50 so it sits above the fill-the-container
-              drawer content (z-40, and portaled in last) — otherwise a list row
-              would intercept its clicks. */}
-            <SettingsMenu className="absolute start-3 bottom-3 z-50" side="top" />
+            <div ref={setContainer} className="relative min-h-0 w-full flex-1 overflow-clip">
+              <Drawer
+                key={direction}
+                open
+                container={container}
+                direction={direction}
+                dismissible={parentPaths.length > 0}
+                // Same as the map drawer: the left panel (≥md) has no handle, so
+                // handle-only drag would make it undraggable — dismiss stays the close
+                // button only.
+                handleOnly={direction === 'left'}
+                mode="filled"
+                onOpenChange={(o) => !o && control.dismiss()}
+              >
+                {sheet}
+              </Drawer>
+            </div>
+            {/* Map-less, the drawer fills its box and its header owns the top, so the cog
+                gets its own strip below the views. Floating over them, it sat on list rows and
+                form fields, and the narrower the box the more it covered. side="top" opens
+                the menu upward from there. */}
+            <div className="flex h-12 shrink-0 items-center border-t border-divider px-4">
+              <SettingsMenu toolbar side="top" />
+            </div>
           </div>
         </DrawerControlContext.Provider>
       </WidgetWidthContext.Provider>
@@ -807,13 +890,14 @@ export function DrawerStack() {
   // removed strip animates out on the way back to the root, instead of vanishing.
   const strips = (
     <div ref={stripsRef}>
+      <div ref={sheetOriginRef} aria-hidden className="pointer-events-none fixed top-0 h-0 w-0" />
       <AnimatePresence>
         {stackPaths.map((path, i) => {
           const stripDepth = stackPaths.length - i
-          // `parentPaths` is `['/', ...baseEntries.slice(0, -1).map(e => e.path)]`, so
+          // `parentPaths` is `['/', ...ancestry.slice(0, -1).map(e => e.path)]`, so
           // strip `i` is entry `i - 1`, and strip 0 is the root (no entry). `stackPaths`
           // only slices that array, so the alignment survives.
-          const ancestor = baseEntries[i - 1]
+          const ancestor = ancestry[i - 1]
 
           return (
             <PeekStrip
@@ -871,7 +955,7 @@ export function DrawerStack() {
                     // clips it away entirely. Outside a frame, `isWide` IS the
                     // viewport's answer, so this stays the same offset it always was.
                     isWide
-                      ? 'start-[calc(var(--sy-drawer-w,352px)+32px)] lg:start-[calc(var(--sy-drawer-w,352px)+48px)] lg:top-4'
+                      ? 'start-[calc(var(--sy-drawer-w,352px)+32px+env(safe-area-inset-left,0px))] lg:start-[calc(var(--sy-drawer-w,352px)+48px+env(safe-area-inset-left,0px))] lg:top-4'
                       : 'start-3',
                   )}
                 />
@@ -883,7 +967,7 @@ export function DrawerStack() {
           key={direction}
           dismissible
           open
-          activeSnapPoint={direction === 'bottom' ? snap : undefined}
+          activeSnapPoint={direction === 'bottom' ? vaulSnap : undefined}
           container={target}
           direction={direction}
           // The left panel (≥md) has no handle and no snap points, so restricting
@@ -896,8 +980,8 @@ export function DrawerStack() {
           // the `display: contents` theme root and measures 0×0. See the note in
           // `Drawer.tsx`.
           measureAgainst={frameElement()}
-          setActiveSnapPoint={direction === 'bottom' ? setSnap : undefined}
-          snapPoints={direction === 'bottom' ? SNAP_POINTS : undefined}
+          setActiveSnapPoint={direction === 'bottom' ? setVaulSnap : undefined}
+          snapPoints={direction === 'bottom' ? snapPoints : undefined}
           wide={wide}
           onOpenChange={(o) => !o && control.dismiss()}
         >

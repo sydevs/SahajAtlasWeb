@@ -2,7 +2,7 @@ import type { FallbackProps } from 'react-error-boundary'
 import type { FallbackAlign, FallbackKind } from '@/components/molecules'
 import type { StackEntry } from '@/lib/shape'
 
-import { useMemo } from 'react'
+import { useEffect, useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useLocation } from 'react-router'
 import { useQuery } from '@tanstack/react-query'
@@ -10,11 +10,12 @@ import { useQuery } from '@tanstack/react-query'
 import { DrawerBody, DrawerHeader, DrawerToolbar } from '@/components/atoms/Drawer'
 import { Spinner } from '@/components/atoms/Spinner'
 import { CENTERED_BODY, FallbackPanel, ListToolbar } from '@/components/molecules'
-import { eventTitlesQuery, regionsQuery } from '@/config/api'
+import { eventTitlesQuery, regionQuery, regionsQuery } from '@/config/api'
 import { useWidgetMode } from '@/config/mode'
 import { useLocale } from '@/hooks/use-locale'
+import { useMapController } from '@/hooks/use-map-controller'
 import { classifyError, errorMessage } from '@/lib/report'
-import { baseStackEntry, resolveStack, submitTitleKey } from '@/lib/shape'
+import { baseStackEntry, nearestKnownRegion, resolveStack, submitTitleKey } from '@/lib/shape'
 import {
   CalendarButton,
   CloseButton,
@@ -110,7 +111,14 @@ function SearchFieldSkeleton() {
  * second way to do it — but making the locale read non-suspending is an app-wide
  * decision, not this component's.
  */
-export function DrawerChrome({ interactive = true }: { interactive?: boolean }) {
+export function DrawerChrome({
+  interactive = true,
+  notFound = false,
+}: {
+  interactive?: boolean
+  /** The page failed because the place doesn't exist, so nothing can be scoped to it. */
+  notFound?: boolean
+}) {
   const { t } = useTranslation()
   const { locale } = useLocale()
   const { hasMap } = useWidgetMode()
@@ -187,15 +195,8 @@ export function DrawerChrome({ interactive = true }: { interactive?: boolean }) 
               fallback is freshly mounted per path inside DrawerStack's keyed motion.div, so on
               a cold start it would instantiate one while the map is still initialising, then
               tear it down again the moment CountriesView mounts its own. An ERROR chrome keeps
-              the real field. There it is the escape hatch.
-
-              `query="read-only"` for the same reason the BODY's field sets it. The only
-              interactive case here is the error chrome, whose URL is the dead one this
-              boundary just reported. Embedded, that URL lives in the host page's `#!`
-              fragment, so writing keystrokes into it spreads a broken link into anything the
-              visitor copies. Selecting a place still navigates. Only the `?q` echo is
-              dropped. */}
-          {interactive ? <SearchField query="read-only" /> : <SearchFieldSkeleton />}
+              the real field. There it is the escape hatch. */}
+          {interactive ? <SearchField /> : <SearchFieldSkeleton />}
           {dismiss}
         </DrawerHeader>
         <DrawerToolbar>
@@ -216,8 +217,10 @@ export function DrawerChrome({ interactive = true }: { interactive?: boolean }) 
       <div className="flex shrink-0 items-center gap-2">
         {/* A region's own header offers these three, and all still work — they navigate
             rather than read. The calendar and the filters are scoped to the region whose page
-            failed, which is exactly where a viewer wanted to be. */}
-        {entry.kind === 'region' && (
+            failed, which is exactly where a viewer wanted to be. Not for a place that doesn't
+            exist: there is nothing to scope them to, and the message's own way out is the
+            only one that leads anywhere. */}
+        {entry.kind === 'region' && !notFound && (
           <>
             <CalendarButton regionSlug={entry.slug} />
             <SearchButton />
@@ -354,12 +357,8 @@ export function ErrorPanel({ error, resetErrorBoundary }: FallbackProps) {
       reportContext={errorMessage(error) ?? undefined}
       resetErrorBoundary={resetErrorBoundary}
     >
-      {/* `query="read-only"`. This URL is the dead one this boundary just reported. Embedded,
-          it lives in the host page's `#!` fragment, so writing keystrokes into it spreads a
-          broken link into anything the visitor copies. */}
       <SearchField
         label={t('common.errors.search_label', { defaultValue: 'Or search for a place' })}
-        query="read-only"
       />
     </FallbackPanel>
   )
@@ -373,6 +372,28 @@ export function DrawerErrorBody(props: FallbackProps) {
       <ErrorPanel {...props} />
     </DrawerBody>
   )
+}
+
+/**
+ * A dead link still names a place. The body offers that place's classes, so the map shows it
+ * rather than sitting on the world behind that sentence. Rendered only for a not-found: after a
+ * server or network failure, this read would go at the backend that just failed.
+ */
+function FrameNearestRegion() {
+  const { locale } = useLocale()
+  const location = useLocation()
+  const { frameRegion } = useMapController()
+  const { data: regions } = useQuery({ ...regionsQuery(), enabled: false })
+  const slug = regions
+    ? nearestKnownRegion(location.pathname, new Set(regions.map((node) => node.slug)))
+    : undefined
+  const { data: region } = useQuery({ ...regionQuery(slug ?? '', locale), enabled: Boolean(slug) })
+
+  useEffect(() => {
+    if (region) frameRegion(region)
+  }, [region, frameRegion])
+
+  return null
 }
 
 /**
@@ -390,7 +411,8 @@ export function DrawerErrorBody(props: FallbackProps) {
 export function DrawerErrorFallback({ error, resetErrorBoundary }: FallbackProps) {
   return (
     <>
-      <DrawerChrome />
+      {classifyError(error) === 'not-found' && <FrameNearestRegion />}
+      <DrawerChrome notFound={classifyError(error) === 'not-found'} />
       <DrawerErrorBody error={error} resetErrorBoundary={resetErrorBoundary} />
     </>
   )

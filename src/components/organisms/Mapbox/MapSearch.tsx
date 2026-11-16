@@ -1,13 +1,24 @@
 import React, { Component, type ReactNode } from 'react'
 import { Geocoder } from '@mapbox/search-js-react'
-import { GeocodingFeature } from '@mapbox/search-js-core'
+import { type GeocodingResponse, GeocodingFeature, type LngLatLike } from '@mapbox/search-js-core'
+import { useLocation, useSearchParams } from 'react-router'
+import { useQuery } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
 
 import { hoistGeocoderLiveRegion } from './aria-live'
 import { controlTheme } from './themes'
 
+import { clientQuery } from '@/config/api'
+import { useBrowsedCountry } from '@/config/store'
+import atlasAuth from '@/config/api/auth'
 import { useLocale } from '@/hooks/use-locale'
 import { useMapbox } from '@/hooks/use-mapbox'
+import {
+  type ReleasedScope,
+  SEARCH_COUNTRY_PARAM,
+  isoCountryCode,
+  searchCountryScope,
+} from '@/lib/shape'
 
 export interface MapSearchProps {
   /** Called with the geocoded place the user picked from the suggestions. */
@@ -24,14 +35,20 @@ export interface MapSearchProps {
   label?: string
   /**
    * Restricts suggestions to these Geocoding feature types, comma-separated — `place` for an
-   * online class's city, `address` for a venue (#147). Every type is offered when omitted.
+   * online class's city, `address` for a venue (#147). `PLACE_TYPES` when omitted.
    */
   types?: string
   /**
-   * Biases suggestions toward this point rather than the map's centre — the region an
-   * add-a-class flow opened from, which a map-less embed has no camera to say.
+   * Biases suggestions toward this point rather than the map's centre or the visitor's own area —
+   * the region an add-a-class flow opened from, which a map-less embed has no camera to say.
    */
   proximity?: { lng: number; lat: number }
+  /**
+   * Ask Mapbox for a result that may be stored. Its terms allow keeping an id
+   * only when the lookup that produced it carried this, and such lookups bill
+   * separately — so only a mount whose answer is submitted to SahajCloud sets it.
+   */
+  permanent?: boolean
 }
 
 // The geocoder is a custom element from @mapbox/search-js-web. It fails to
@@ -58,23 +75,81 @@ class GeocoderBoundary extends Component<
   }
 }
 
+// Places a visitor would name, not bare streets or house numbers. A street name matches hundreds of
+// towns, so "Hampstead" offered four streets near Manchester above the London district.
+const PLACE_TYPES = 'country,region,postcode,district,place,locality,neighborhood'
+
+// Below this zoom the map shows a continent or more, so its centre says nothing about the visitor.
+const LOCAL_BIAS_MIN_ZOOM = 3
+
+// Which place the geocoder ranks results near: the map's centre once it has settled on a country or
+// closer. At world level, or with no map, the visitor's own area, which Mapbox reads from the
+// request it already receives.
+const searchBias = (zoom: number | undefined, center: LngLatLike | undefined) =>
+  zoom !== undefined && zoom >= LOCAL_BIAS_MIN_ZOOM && center ? center : 'ip'
+
 /**
- * The geocoder field itself, and nothing else: it renders what it is given and reports what was
- * picked. Where the text lives is its owner's question — `SearchField` keeps it in `?q`, the
- * add-a-class Where step keeps it beside the draft.
+ * The geocoder field. It renders the text it is given and reports what was picked. Where that text
+ * lives is its owner's question — `SearchField` follows `?q`, the add-a-class Where step keeps it
+ * beside the draft.
  */
-export function MapSearch({ onSelect, value, onChange, label, types, proximity }: MapSearchProps) {
+export function MapSearch({
+  onSelect,
+  value,
+  onChange,
+  label,
+  types,
+  proximity,
+  permanent,
+}: MapSearchProps) {
+  const [searchParams] = useSearchParams()
+  const { pathname } = useLocation()
   const { mapbox } = useMapbox()
   const { locale } = useLocale()
   const { t } = useTranslation()
   const fieldLabel = label ?? t('search.chrome.placeholder')
+  // Search stays in one country: the one on screen, else the searched place's (`?cc`), else the
+  // last country page shown, else the one a client's home region sits in. Mapbox's ranking alone
+  // puts Hampstead, Quebec above Hampstead, London even when told it is near the UK, and it offers
+  // no way to prefer a country short of this filter. A search that finds nothing in that country
+  // looks everywhere instead, by itself, so a visitor on the UK page can still find Prague. The
+  // client comes from the bootstrap's cache; the field never fetches it.
+  const browsed = useBrowsedCountry((s) => s.code)
+  const { data: client } = useQuery({ ...clientQuery(atlasAuth.apiKey), enabled: false })
+  const home = client?.region && typeof client.region === 'object' ? client.region : null
+  const country =
+    isoCountryCode(pathname.split('/')[1]) ??
+    isoCountryCode(searchParams.get(SEARCH_COUNTRY_PARAM)) ??
+    browsed ??
+    isoCountryCode(home?.webPath?.split('/').filter(Boolean)[0])
+  const [released, setReleased] = React.useState<ReleasedScope>()
+  const scope = searchCountryScope(country, value, released)
+  const [foundNothing, setFoundNothing] = React.useState(false)
   const field = React.useRef<HTMLDivElement>(null)
 
   React.useEffect(() => {
-    const scope = field.current
+    const node = field.current
 
-    return scope ? hoistGeocoderLiveRegion(scope) : undefined
+    return node ? hoistGeocoderLiveRegion(node) : undefined
   }, [])
+
+  const onSuggest = (response: GeocodingResponse) => {
+    const none = response.features.length === 0
+
+    if (none && scope) {
+      setReleased({ country: scope, query: value })
+      setFoundNothing(false)
+      // The geocoder searches on input, so wait for it to take the wider options, then repeat the
+      // query.
+      requestAnimationFrame(() => {
+        field.current?.querySelector('input')?.dispatchEvent(new Event('input', { bubbles: true }))
+      })
+
+      return
+    }
+
+    setFoundNothing(none)
+  }
 
   return (
     // The Geocoder permanently reserves ~40px of right padding for its
@@ -110,16 +185,28 @@ export function MapSearch({ onSelect, value, onChange, label, types, proximity }
           map={mapbox?.getMap()}
           options={{
             language: locale, // TODO: Make sure this switches when locale changes
-            proximity: proximity ?? mapbox?.getCenter(),
-            ...(types ? { types } : {}),
+            // `country` and `permanent` are left out rather than undefined: the geocoder
+            // serializes what it's given. ⚠ A spread's keys escape the excess-property check,
+            // so only `MapSearch.permanent.test.tsx` catches a misspelled one here.
+            ...(scope ? { country: scope } : {}),
+            ...(permanent ? { permanent } : {}),
+            proximity: proximity ?? searchBias(mapbox?.getZoom(), mapbox?.getCenter()),
+            types: types ?? PLACE_TYPES,
           }}
           placeholder={fieldLabel}
           theme={controlTheme}
           value={value}
           onChange={onChange}
           onRetrieve={onSelect}
+          onSuggest={onSuggest}
         />
       </GeocoderBoundary>
+      {/* Without this a place that doesn't exist left the list as it was, with no answer at all. */}
+      {foundNothing && value.trim() && (
+        <p className="pt-2 text-sm text-gray-11" role="status">
+          {t('common.errors.not_found_region')}
+        </p>
+      )}
     </div>
   )
 }

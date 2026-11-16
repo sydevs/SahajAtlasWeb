@@ -2,20 +2,22 @@
 import { act } from 'react'
 import { createRoot } from 'react-dom/client'
 import { MemoryRouter, useLocation } from 'react-router'
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import { SearchField } from './shared'
 
-// Whether typing reaches `?q` is a write the header's own wrapper makes on change, which only a
-// mounted component does. `MapSearch` itself holds no text. The geocoder is stood in for at the
-// vendor boundary by a plain callback.
+// `?q` belongs to the header's own wrapper, and only a mounted component would write it on change.
+// `MapSearch` itself holds no text. The geocoder is stood in for at the vendor boundary by a plain
+// callback.
 ;(globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true
 
-const typed = vi.hoisted(() => ({ change: (_value: string) => {} }))
+const typed = vi.hoisted(() => ({ change: (_value: string) => {}, shown: '' }))
 
 vi.mock('@mapbox/search-js-react', () => ({
-  Geocoder: ({ onChange }: { onChange: (value: string) => void }) => {
+  Geocoder: ({ onChange, value }: { onChange: (value: string) => void; value: string }) => {
     typed.change = onChange
+    typed.shown = value
 
     return null
   },
@@ -32,14 +34,16 @@ function Url() {
 
 let root: ReturnType<typeof createRoot> | undefined
 
-const type = async (query: 'url' | 'read-only', text: string) => {
+const type = async (text: string) => {
   root = createRoot(document.createElement('div'))
   await act(async () =>
     root!.render(
-      <MemoryRouter initialEntries={['/search']}>
-        <SearchField query={query} />
-        <Url />
-      </MemoryRouter>,
+      <QueryClientProvider client={new QueryClient()}>
+        <MemoryRouter initialEntries={['/search?q=London']}>
+          <SearchField />
+          <Url />
+        </MemoryRouter>
+      </QueryClientProvider>,
     ),
   )
   await act(async () => typed.change(text))
@@ -47,14 +51,13 @@ const type = async (query: 'url' | 'read-only', text: string) => {
   return new URLSearchParams(search).get('q')
 }
 
-describe('SearchField writing ?q', () => {
+describe('SearchField and ?q', () => {
   afterEach(() => act(() => root?.unmount()))
 
-  it('mirrors what is typed into ?q in the default mode', async () => {
-    expect(await type('url', 'Lisbon')).toBe('Lisbon')
-  })
-
-  it('never writes ?q in read-only mode', async () => {
-    expect(await type('read-only', 'Lisbon')).toBeNull()
+  // The cards read their "from" place off `?q`, so half-typed text there said "5.1 km from Prag"
+  // over London's classes. Only a picked place moves it.
+  it('leaves ?q alone while the visitor types', async () => {
+    expect(await type('Prag')).toBe('London')
+    expect(typed.shown).toBe('Prag')
   })
 })

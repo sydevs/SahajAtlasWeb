@@ -12,7 +12,13 @@ vi.mock('@mapbox/search-js-react', () => ({
   ),
 }))
 vi.mock('react-map-gl', () => ({
-  useMap: () => ({ mapbox: { getCenter: () => ({ lng: 9, lat: 9 }), getMap: () => undefined } }),
+  useMap: () => ({
+    mapbox: { getCenter: () => ({ lng: 9, lat: 9 }), getMap: () => undefined, getZoom: () => 10 },
+  }),
+}))
+vi.mock('@tanstack/react-query', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@tanstack/react-query')>()),
+  useQuery: () => ({ data: undefined }),
 }))
 vi.mock('@/config/i18n', () => ({ default: { resolvedLanguage: 'en' } }))
 vi.mock('react-i18next', () => ({
@@ -31,11 +37,12 @@ const render = (ui: JSX.Element, url = '/?q=from-the-url') => {
 }
 
 describe('MapSearch', () => {
-  it('biases suggestions toward the map centre by default, with every type offered', () => {
+  it('biases suggestions toward the map centre by default, offering places rather than streets', () => {
     const { options } = render(<MapSearch value="" onChange={() => {}} onSelect={() => {}} />)
 
     expect(options.proximity).toEqual({ lng: 9, lat: 9 })
-    expect(options).not.toHaveProperty('types')
+    expect(options.types).toContain('place')
+    expect(options.types).not.toContain('address')
   })
 
   it('starts near the place it is given, and narrows to the types asked for', () => {

@@ -10,7 +10,12 @@ import { EventChips } from './EventChips'
 // The UI language is `en`. `languageLabel` echoes the code, so the
 // combined language text is greppable.
 const { d } = vi.hoisted(() => ({
-  d: { status: 'upcoming', full: false, typeLabel: 'Weekly class', isDefaultType: true },
+  d: {
+    status: 'upcoming',
+    full: false,
+    typeLabel: 'Weekly class' as string | null,
+    isDefaultType: true,
+  },
 }))
 
 vi.mock('react-i18next', () => ({ useTranslation: () => ({ t: (key: string) => key }) }))
@@ -67,6 +72,16 @@ describe('EventChips', () => {
 
     expect(html).toContain('event.display.chip_today')
     expect(html).toContain('text-contrast-11')
+  })
+
+  it('renders no type chip where the listing has no type to name', () => {
+    d.typeLabel = null
+    d.isDefaultType = false
+
+    expect(render(['en'])).not.toContain('text-primary-11')
+    expect(render(['fr'], 'compact')).not.toContain('text-primary-11')
+    // The language still shows.
+    expect(render(['en'])).toContain('>en<')
   })
 
   it('shows a "Full" chip when the event is at capacity', () => {

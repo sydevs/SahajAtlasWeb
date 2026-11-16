@@ -24,8 +24,8 @@ import { fetchPreview, skipWithoutPreview } from './_helpers/preview'
 // the deploy no longer serves. `docs/embedding.md` states the result plainly: those
 // 404 errors kill the widget with no fallback.
 
-/** The unhashed files at the dist root. Hosts hardcode the first. The loader fetches the second. */
-const ENTRY_FILES = ['/auto.js', '/embed.js']
+/** The unhashed files at the dist root. Hosts hardcode the first, and each names the next. */
+const ENTRY_FILES = ['/auto.js', '/loader.js', '/embed.js']
 
 /** Seconds a cached copy may be reused without asking. Anything above this is the #148 defect. */
 const MAX_FRESHNESS_SECONDS = 60

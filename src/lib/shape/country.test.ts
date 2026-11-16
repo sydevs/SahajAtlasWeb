@@ -2,7 +2,7 @@ import type { CountryTreeNode, RegionedFeature } from './country'
 
 import { describe, it, expect } from 'vitest'
 
-import { countryHasPrograms, isoCountryCode } from './country'
+import { countryHasPrograms, isoCountryCode, searchCountryScope } from './country'
 
 // Country slugs are lowercase ISO codes (SahajCloud#556); Iceland is deliberately
 // absent — the "no programs" country the offer exists for. `as` is a two-letter slug
@@ -88,5 +88,33 @@ describe('isoCountryCode', () => {
     expect(isoCountryCode('gb\n')).toBeUndefined()
     expect(isoCountryCode('gb.')).toBeUndefined()
     expect(isoCountryCode(' gb')).toBeUndefined()
+  })
+})
+
+describe('searchCountryScope', () => {
+  it('restricts the search to the country being looked at', () => {
+    expect(searchCountryScope('GB', 'Hampstead', undefined)).toBe('GB')
+  })
+
+  it('drops the country for the one query that came back empty inside it', () => {
+    expect(searchCountryScope('GB', 'Prague', { country: 'GB', query: 'Prague' })).toBeUndefined()
+  })
+
+  it('keeps the country for every other query', () => {
+    // The defect this holds: an unkeyed release let the typo that proves #34 hand every later
+    // search the worldwide ranking, which puts Hampstead, Quebec above Hampstead, London.
+    const released = { country: 'GB', query: 'zzqqxx' }
+
+    expect(searchCountryScope('GB', 'Hampstead', released)).toBe('GB')
+    expect(searchCountryScope('GB', 'zzqqx', released)).toBe('GB')
+    expect(searchCountryScope('GB', '', released)).toBe('GB')
+  })
+
+  it('keeps the country once the visitor moves to another one', () => {
+    expect(searchCountryScope('CZ', 'Prague', { country: 'GB', query: 'Prague' })).toBe('CZ')
+  })
+
+  it('stays worldwide where there is no country to stay in', () => {
+    expect(searchCountryScope(undefined, 'Hampstead', undefined)).toBeUndefined()
   })
 })

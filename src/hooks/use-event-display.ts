@@ -5,11 +5,15 @@ import { DateTime } from 'luxon'
 import { useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 
-import { useIpLocation } from './use-ip-location'
 import { useLocale } from './use-locale'
 
-import { isOnline, resolveEventDisplay } from '@/lib/shape'
-import { formatTimeRange, reconciledViewerPlace, sameWallClock, zoneCity } from '@/lib/time'
+import {
+  hasApproximatePlace,
+  resolveEventDisplay,
+  scheduleNamesZone,
+  streetAndCity,
+} from '@/lib/shape'
+import { formatTimeRange, sameWallClock, zoneCity } from '@/lib/time'
 
 /** This is what the formatting layer reads on top of the resolver input: the address and
  *  region refs that feed the where and origin strings, when the surface has them. */
@@ -21,8 +25,9 @@ export type DisplayableEvent = DisplayEventLike & {
 export type EventDisplayStrings = {
   /** The raw resolved state, for surfaces that need more than strings. */
   display: EventDisplay
-  /** "Weekly class" / "Course · 8 sessions" / "One-off event" */
-  typeLabel: string
+  /** "Weekly class" / "Course · 8 sessions" / "One-off event". Null for a by-request listing,
+   *  which carries no schedule and so has no type to name. */
+  typeLabel: string | null
   /** This is true for a plain weekly class, the default shape. Its `typeLabel` adds
    *  nothing on a compact surface, so the list card skips its type pill. */
   isDefaultType: boolean
@@ -32,15 +37,19 @@ export type EventDisplayStrings = {
   recurrenceLine: string | null
   /** This is the authoritative next-session, first-session, or terminal line. */
   whenLine: string
-  /** This is the next occurrence's start and end time, in the EVENT's own local time,
-   *  with no label, such as "7:30 PM – 8:30 PM." This is null in terminal states. */
+  /** This is the next occurrence's start and end time, in the display zone, such as
+   *  "7:30 PM – 8:30 PM London time." The clock is named only where it tells the viewer
+   *  something (see the times block below). This is null in terminal states. */
   eventTimeRange: string | null
-  /** This is the next occurrence's start time only, in event-local time, such as "7:30 PM." The compact card uses this. */
+  /** This is the next occurrence's start time only, such as "7:30 PM London time," named on the
+   *  same terms as the range. The compact card uses this. */
   eventStartTime: string | null
   /** This is a one-line location: hosted-from for an online event, street and city for a physical one. */
   whereLine: string
-  /** For an online event only, this shows the next occurrence in the VIEWER's local
-   *  time, faded below the where line, such as "Thu, 4:00 AM." This is null for a physical event. */
+  /** The room inside the venue, such as "Room: Hall B", for a physical, non-inactive event that names one. */
+  roomLine: string | null
+  /** For an online event only, the HOST's clock, faded below the where line, such as
+   *  "Wed 7:30 PM Prague time." This is null for a physical event. */
   whereSubtext: string | null
   registerLabel: string
   /** This is under-button microcopy, in render order. It is a closed set. See issue #52. */
@@ -110,13 +119,6 @@ export function composeCalendarLine(args: CalendarLineArgs): string {
 export function useEventDisplay(event: DisplayableEvent): EventDisplayStrings {
   const { t } = useTranslation()
   const { locale } = useLocale()
-  // Only ONLINE events name the viewer's place in their converted time.
-  // So the third-party IP lookup gates on that. A list of in-person events never pings it.
-  // The query is session-cached, so many cards share one lookup.
-  // This keeps the whole guess, not only `region`.
-  // So the label can reconcile the region name, state or province, not the often-neighborhood-level `city`,
-  // against the IP's own `timezone` before trusting it. See the where-subtext block below.
-  const viewerIp = useIpLocation(isOnline(event))
   // The resolver reads the wall clock.
   // A stable event identity, through TanStack's structural sharing, would otherwise freeze
   // "Today" and open-versus-closed for as long as a surface stays mounted.
@@ -137,9 +139,14 @@ export function useEventDisplay(event: DisplayableEvent): EventDisplayStrings {
       sessions != null ? t('event.display.sessions_count', { count: sessions }) : null
 
     // ── Type label (derived, never host-set) ──
-    let typeLabel: string
+    let typeLabel: string | null
 
-    if (kind === 'oneoff') typeLabel = t('event.display.type_oneoff')
+    // A by-request listing carries no schedule, so the resolver derives `oneoff` from the
+    // absent recurrence and "One-off event" would be simply wrong. "Contact host for timings"
+    // already says what it is. A real one-off has a schedule, inactive or not, and keeps its
+    // label.
+    if (!schedule) typeLabel = null
+    else if (kind === 'oneoff') typeLabel = t('event.display.type_oneoff')
     else if (kind === 'course')
       typeLabel = sessionsLabel
         ? `${t('event.display.type_course')} · ${sessionsLabel}`
@@ -230,56 +237,62 @@ export function useEventDisplay(event: DisplayableEvent): EventDisplayStrings {
     else whenLine = t('event.display.next_session', { date: next ? date(next) : '' })
 
     // ── Times ──
-    // These are ALWAYS the event's own local time, with no label. Issue #52 dropped the local-versus-your-time labels.
-    // For an online event, `origin` is the event-local instant. `next` is the viewer-local instant, used for the where-line hint.
-    const eventStart = display.online ? origin : next
-    const eventStartTime = eventStart ? formatTimeRange(eventStart, null, locale) : null
-    const eventTimeRange = eventStart
-      ? formatTimeRange(eventStart, schedule?.endTime ? nextEnd : null, locale)
+    // These are in the display zone, the viewer's for an online event, so they agree with the
+    // weekday, the date and the calendar. Each names its clock by the zone's own city ("8:00 PM
+    // Prague time"), since the viewer's zone and the venue's both reach this line. An online time
+    // is always the viewer's, and always says so. An in-person time is the venue's, and says so
+    // only when the viewer's clock differs at that moment. The zone's city needs no lookup and
+    // exists for every zone, where an abbreviation like EST does not.
+    // A schedule naming no usable zone reads as UTC, which is a placeholder rather than a
+    // venue's clock, so an in-person time says nothing instead of claiming "UTC time". An
+    // online time is the VIEWER's zone, which is real whatever the schedule carries.
+    const namesZone = scheduleNamesZone(schedule)
+    const zoneLabel =
+      next && (display.online || (namesZone && !sameWallClock(next, next.toLocal())))
+        ? t('event.display.zone_time', { city: zoneCity(next.zoneName) })
+        : null
+    const withZone = (time: string) => (zoneLabel ? `${time} ${zoneLabel}` : time)
+    const eventStartTime = next ? withZone(formatTimeRange(next, null, locale)) : null
+    const eventTimeRange = next
+      ? withZone(formatTimeRange(next, schedule?.endTime ? nextEnd : null, locale))
       : null
 
     const originCity = event.address?.city ?? event.region?.name ?? zoneCity(origin?.zoneName)
 
     // ── Where ──
-    // An inactive venue has no precise location.
+    // An inactive venue, or a street that names no place, has no precise location (#15).
     // This shows only the municipality, city or region name, never the street address.
+    // One predicate, which the map reads too, so the two cannot describe the same listing
+    // differently — `hasApproximatePlace` owns what counts as inactive.
+    const townOnly = hasApproximatePlace(event)
     const whereLine = display.online
       ? `${t('event.display.online')} • ${t('event.display.hosted_from', { city: originCity })}`
-      : display.status === 'inactive'
+      : townOnly
         ? event.address?.city || event.region?.name || ''
-        : [event.address?.street, event.address?.city].filter(Boolean).join(', ') ||
-          event.region?.name ||
-          ''
-    // For an online event only, this shows the viewer's local time, faded under the where line,
-    // named with their region, such as "10 AM in British Columbia."
-    // So the conversion says whose clock it is, with no "(your time)" label.
-    // This carries the weekday ONLY when the conversion lands on a different day. Otherwise it is noise.
+        : streetAndCity(event.address?.street, event.address?.city) || event.region?.name || ''
+    // A listing that hides the street hides its room too, as the same wrong answer.
+    const room = event.address?.room?.trim()
+    const roomLine = !display.online && !townOnly && room ? t('event.display.room', { room }) : null
+    // For an online event only, the host's own clock, faded under the where line, such as
+    // "Wed 7:30 PM Prague time" — named like the viewer's time above it, so the two clocks read
+    // the same way. The weekday shows ONLY when the host's day differs from the viewer's.
+    // Otherwise it is noise.
     //
-    // This is skipped entirely when the viewer shares the event's offset.
-    // The converted time would just restate the time already shown above it.
-    // Comparing the OFFSET, not the zone id, also catches distinct zones that happen to agree right now,
-    // such as Europe/London and Europe/Lisbon in winter.
+    // This is skipped entirely when the viewer shares the host's offset, since it would just
+    // restate the time above. Comparing the OFFSET, not the zone id, also catches distinct zones
+    // that happen to agree right now, such as Europe/London and Europe/Lisbon in winter.
     let whereSubtext: string | null = null
 
-    if (display.online && next && !sameWallClock(origin, next)) {
-      const viewerShiftsDay = Boolean(origin && origin.weekday !== next.weekday)
-      const clock = [
-        viewerShiftsDay ? next.setLocale(locale).toLocaleString({ weekday: 'short' }) : null,
-        formatTimeRange(next, null, locale),
+    if (origin && next && !sameWallClock(origin, next)) {
+      whereSubtext = [
+        origin.weekday !== next.weekday
+          ? origin.setLocale(locale).toLocaleString({ weekday: 'short' })
+          : null,
+        formatTimeRange(origin, null, locale),
+        namesZone ? t('event.display.zone_time', { city: zoneCity(origin.zoneName) }) : null,
       ]
         .filter(Boolean)
         .join(' ')
-
-      // The clock is quoted in the viewer's OS zone, `next`.
-      // The region name is an independent guess, from IP geolocation.
-      // This names the region ONLY when the IP's own zone shares that offset.
-      // Otherwise it drops the region and shows the bare time.
-      // So the label can never assert a place whose local clock is not the one shown. See #64.
-      const viewerPlace = reconciledViewerPlace(viewerIp?.region, viewerIp?.timezone?.id, next)
-
-      whereSubtext = viewerPlace
-        ? t('event.display.time_in_place', { time: clock, city: viewerPlace })
-        : clock
     }
 
     // ── Register slot ──
@@ -326,11 +339,12 @@ export function useEventDisplay(event: DisplayableEvent): EventDisplayStrings {
       eventTimeRange,
       eventStartTime,
       whereLine,
+      roomLine,
       whereSubtext,
       registerLabel,
       microcopy,
       contactHelper,
       blockedMessage,
     }
-  }, [event, locale, t, minute, viewerIp])
+  }, [event, locale, t, minute])
 }

@@ -36,6 +36,6 @@ Client code reads env vars through `import.meta.env.VITE_*`. See `docs/environme
 ## Icons and emojis
 
 - Do not use emojis as UI icons. Interface glyphs come from **`lucide-react`**, imported at the call site: one 24px grid, 2px stroke, round caps and joins, outline only. Radix primitives and our atoms accept icon slots.
-- **`src/components/atoms/Icons/` holds brand marks only**: the Sahaja Yoga `Logo` and the three meeting-platform glyphs behind `SocialIcon`. Lucide dropped its brand icons, and redrawing them is a trademark problem, so these stay hand-drawn on `BaseIcon`. Do not add an interface glyph here.
-- **A directional glyph needs `rtl:-scale-x-100` at its call site.** `BaseIcon`'s old `flipRtl` prop carried this centrally. Lucide has no equivalent, so each drill-in chevron and the directions signpost declares it directly. Symmetric glyphs (globe, calendar, pin, share) never mirror, and neither does the external-link arrow.
+- **`src/components/atoms/Icons/` holds no icons**, only the Icons story and its usage spec. Lucide ships no brand icons, and redrawing one is a trademark problem.
+- **A directional glyph needs `rtl:-scale-x-100` at its call site.** Lucide has no mirroring prop, so each drill-in chevron and the directions signpost declares it directly. Symmetric glyphs (globe, calendar, pin, share) never mirror, and neither does the external-link arrow.
 - **The Icons story's gallery shows real USAGE, not a catalogue**. An icon earns a row only when code outside a story or test imports it. The story links to lucide.dev for every other icon. `Icons.usage.test.tsx` checks both directions agree. A newly used glyph fails the lane until listed, and one that loses its last call site cannot stay listed either.

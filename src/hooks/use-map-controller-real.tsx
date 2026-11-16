@@ -7,15 +7,16 @@ import { bboxPolygon } from '@turf/bbox-polygon'
 import { MapControllerContext } from './use-map-controller'
 
 import { useMapbox, usePaddingState } from '@/hooks/use-mapbox'
-import { useViewState } from '@/config/store'
+import { useSheetCover, useViewState } from '@/config/store'
 import { useIsWide } from '@/config/responsive'
-import { eventFrameZoom } from '@/lib/camera'
-import { isOnline } from '@/lib/shape'
+import { eventFrameZoom, hasMapPoint, worldViewCamera } from '@/lib/camera'
+import { hasApproximatePlace, isOnline } from '@/lib/shape'
 import { frameElement } from '@/lib/overlay'
 
-// These are the fixed left-drawer footprint and the mobile peek height.
+// These are the fixed left-drawer footprint and the mobile sheet's open height.
 // The code feeds them to map padding directly, so the camera and controls stay unoccluded.
-// This never DOM-measures the panel.
+// This never DOM-measures the panel. The bottom sheet's own height is the one exception, which
+// `DrawerStack` resolves from its active snap and hands over (`useSheetCover`).
 //
 // **`DRAWER_W_PX` is one half of a pair. See the other half before you change it.**
 // The drawer's actual width comes from a `352px` fallback baked into its Tailwind classes.
@@ -36,7 +37,14 @@ import { frameElement } from '@/lib/overlay'
 // This code rejects that approach, because it would put a DOM read in the map's hot path, to serve an override that is not a supported feature yet.
 // If a host is ever invited to set that variable, this is the constant that must start resolving it.
 const DRAWER_W_PX = 352
-const MOBILE_PEEK_PX = 128
+// `OPEN_SNAP` in `DrawerStack`, the height the phone sheet opens at. Only a fallback: the stack
+// publishes what the sheet actually covers. Padding for the peek alone centred a framed place on
+// map the open sheet hides, and on /fr/paris the classes listed first sat under it.
+const MOBILE_SHEET_PX = 300
+// What the sheet must still leave of the map above it, for the pin the camera just framed. It also
+// keeps the padding inside a short contained embed (#169), where padding past the canvas makes
+// `fitBounds` refuse the fit outright.
+const MIN_MAP_STRIP_PX = 160
 const MAP_MARGIN = 20
 
 // These constants keep zoom consistent.
@@ -50,18 +58,28 @@ const REGION_FIT_PADDING = 48
 // An online event has only an approximate location.
 // This frames it wide, at city or area level, when a deep link makes it the session entry point.
 const ONLINE_ZOOM = 7
+// An in-person class with no real place frames its neighbourhood, with its whole area in view.
+const VAGUE_ZOOM = 11
 
 // This is the map point an event emphasizes: its stored coordinates.
-// It tags online events as `approximate`, which gives them a softer area sprite and a wider zoom.
+// It tags online events and in-person listings with no real place (`hasApproximatePlace`) as
+// `approximate`, which gives them a softer area sprite, and the second kind as `vague` too,
+// which is the only one with a neighbourhood to fly to.
 // It returns null when the event has no coordinates, since there is nothing to frame or highlight.
 // `frameEvent` and `highlightEvent` share this function, so both derive the point identically.
 // `frameEvent` commits the point to `selection` and moves the camera. `highlightEvent` only sets `hover`.
-const eventPoint = (event: Pick<EventSlim, 'address' | 'eventType'>) => {
-  const { latitude, longitude } = event.address ?? {}
+//
+// `hasMapPoint` is the one test for whether those coordinates are there.
+// `useFrameEventOnTop` reads the same verdict to decide whether to fall back to the region.
+// A second test here could disagree with it, and then `frameEvent` would run and frame nothing.
+const eventPoint = (event: Pick<EventSlim, 'address' | 'eventType' | 'inactive' | 'schedule'>) => {
+  if (!hasMapPoint(event)) return null
 
-  if (latitude == null || longitude == null) return null
+  const { latitude, longitude } = event.address
 
-  return { latitude, longitude, approximate: isOnline(event) }
+  const vague = hasApproximatePlace(event)
+
+  return { latitude, longitude, approximate: isOnline(event) || vague, vague }
 }
 
 /**
@@ -72,11 +90,12 @@ const eventPoint = (event: Pick<EventSlim, 'address' | 'eventType'>) => {
  * So a compact embed never loads this provider or mapbox-gl.
  */
 export function RealMapControllerProvider({ children }: { children: ReactNode }) {
-  const { mapbox, moveMap, fitBounds, isPointVisible, flyTo } = useMapbox()
+  const { mapbox, padding, moveMap, fitBounds, isPointVisible, flyTo } = useMapbox()
   const setPadding = usePaddingState((s) => s.setPadding)
   const setSelection = useViewState((s) => s.setSelection)
   const setHover = useViewState((s) => s.setHover)
   const setBoundary = useViewState((s) => s.setBoundary)
+  const sheetCover = useSheetCover((s) => s.bottom)
   // This is the box the map actually occupies.
   // It is the frame when a contained embed, or the compact card's expanded dialog, has taken the containing block. See issue #169.
   // Otherwise it is the viewport, which is what this value computed before frames existed.
@@ -95,13 +114,16 @@ export function RealMapControllerProvider({ children }: { children: ReactNode })
 
   // Keep the drawer's known footprint out of the usable camera area.
   useEffect(() => {
+    const boxHeight = frameElement()?.clientHeight ?? window.innerHeight
+    const sheet = Math.max(0, Math.min(sheetCover ?? MOBILE_SHEET_PX, boxHeight - MIN_MAP_STRIP_PX))
+
     setPadding({
       left: MAP_MARGIN + (isWide ? DRAWER_W_PX : 0),
       right: MAP_MARGIN,
       top: MAP_MARGIN,
-      bottom: MAP_MARGIN + (isWide ? 0 : MOBILE_PEEK_PX),
+      bottom: MAP_MARGIN + (isWide ? 0 : sheet),
     })
-  }, [isWide, setPadding])
+  }, [isWide, sheetCover, setPadding])
 
   const controller = useMemo<MapController>(
     () => ({
@@ -136,11 +158,11 @@ export function RealMapControllerProvider({ children }: { children: ReactNode })
         // So a genuine pin click at a detail zoom keeps that zoom.
         // A deep link, a wide-view click, or an off-screen click still eases in.
         const zoom = eventFrameZoom({
-          approximate: point.approximate,
+          online: isOnline(event),
           visible: isPointVisible(point.longitude, point.latitude),
           atDetailZoom: (mapbox?.getZoom() ?? 0) >= REGION_MAX_ZOOM,
           isEntry: opts?.isEntry ?? false,
-          eventZoom: EVENT_ZOOM,
+          eventZoom: point.approximate ? VAGUE_ZOOM : EVENT_ZOOM,
           onlineZoom: ONLINE_ZOOM,
         })
 
@@ -184,10 +206,33 @@ export function RealMapControllerProvider({ children }: { children: ReactNode })
         // `restore` would have reinstated the pin only for a POP.
         setSelection(null)
         setBoundary(undefined)
-        moveMap({ zoom: 0 })
+        // One world, filling the map at any window size, so no copy shows at the sides.
+        // `worldViewCamera` picks a zoom and centre that fill it around our lopsided padding, the
+        // padding `moveMap` moves with.
+        // Latitude 20 leans north, where most classes are.
+        const container = mapbox?.getContainer()
+
+        if (!container) return
+        moveMap(
+          worldViewCamera(
+            { width: container.clientWidth, height: container.clientHeight },
+            padding,
+            [0, 20],
+          ),
+        )
       },
     }),
-    [mapbox, moveMap, fitBounds, isPointVisible, flyTo, setSelection, setHover, setBoundary],
+    [
+      mapbox,
+      padding,
+      moveMap,
+      fitBounds,
+      isPointVisible,
+      flyTo,
+      setSelection,
+      setHover,
+      setBoundary,
+    ],
   )
 
   return (

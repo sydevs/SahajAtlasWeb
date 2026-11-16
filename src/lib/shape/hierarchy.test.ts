@@ -4,6 +4,7 @@ import { describe, it, expect } from 'vitest'
 
 import {
   ancestorIds,
+  ancestorSlugs,
   boundsUnder,
   childrenOf,
   countUnder,
@@ -63,6 +64,17 @@ describe('ancestorIds', () => {
     ])
 
     expect(ancestorIds(cyclic, 1)).toEqual([1, 2])
+  })
+})
+
+describe('ancestorSlugs', () => {
+  it('walks parent links to a self-inclusive nearest-first slug chain', () => {
+    expect(ancestorSlugs(regionTree, 'town-hall')).toEqual(['town-hall', 'brussels', 'belgium'])
+    expect(ancestorSlugs(regionTree, 'belgium')).toEqual(['belgium'])
+  })
+
+  it('returns just the slug when the region is not in the tree', () => {
+    expect(ancestorSlugs(regionTree, 'atlantis')).toEqual(['atlantis'])
   })
 })
 

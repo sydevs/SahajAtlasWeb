@@ -24,6 +24,9 @@ import {
  * - **`config/live-preview/boot.ts`** rewrites `window.location`. Embedded, that URL is the
  *   HOST's, and the widget would be rewriting a URL it does not own — in their address bar, on
  *   their analytics, in their `document.referrer`, in whatever their page does with `location`.
+ * - **`config/live-preview/clients.ts`** repaints the whole app from a message and answers the
+ *   CMS with what it rendered. Embedded, nothing can open that session, so the widget would
+ *   carry a listener and a handshake no host page can ever reach.
  * - **`config/live-preview/token.ts`** is bytes the widget has no use for, in a graph with a
  *   hard budget and single-digit KiB spare.
  * - **`config/live-preview/request.ts`** spends the credential. No host page can open a
@@ -112,10 +115,11 @@ function importGraph(entry: string): Set<string> {
 }
 
 const BOOT = 'config/live-preview/boot.ts'
+const CLIENTS = 'config/live-preview/clients.ts'
 const REQUEST = 'config/live-preview/request.ts'
 
 /** The modules only the standalone entry may reach. */
-const STANDALONE_ONLY = [BOOT, 'config/live-preview/token.ts', REQUEST]
+const STANDALONE_ONLY = [BOOT, CLIENTS, 'config/live-preview/token.ts', REQUEST]
 
 /** Which of a set of modules spell a string in code, rather than in a comment about it. */
 const modulesCarrying = (modules: Iterable<string>, literal: string) =>
@@ -170,10 +174,13 @@ describe('the Payload live-preview library', () => {
     ),
   )
 
-  it('is imported by the lazily-mounted controller, its arms, and nothing else', () => {
+  it('is imported by the lazily-mounted controller, its arms, and the clients session', () => {
     expect(importers).toEqual([
       'components/live-preview/LivePreviewController.tsx',
       'components/live-preview/SubmissionLivePreview.tsx',
+      // Standalone-only, and the list above keeps it out of the embed graph, so
+      // the ready handshake costs a host nothing. It takes one 6-line function.
+      CLIENTS,
     ])
   })
 })
@@ -197,6 +204,7 @@ const importersOf = (module: string) =>
  */
 describe.each([
   [BOOT, ['main.tsx']],
+  [CLIENTS, ['main.tsx']],
   [REQUEST, [BOOT]],
 ])('%s', (module, expected) => {
   it('is imported by that list and by nothing else', () => {

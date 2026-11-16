@@ -3,34 +3,47 @@ import { useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 
 import { DrawerBody, DrawerHeader } from '@/components/atoms/Drawer'
-import { EventListItem, List } from '@/components/molecules'
+import { ActiveFilterPills, EventListItem, FallbackPanel, List } from '@/components/molecules'
 import { regionQuery } from '@/config/api'
+import { useEventFilters, useSetFilters } from '@/hooks/use-filters'
 import { useLocale } from '@/hooks/use-locale'
 import { useMapController } from '@/hooks/use-map-controller'
-import { childRoute } from '@/lib/shape'
-import { CloseButton, DrawerTitle, EmptyEventList, useFrameOnTop } from '@/views/shared'
+import { DEFAULT_FILTERS, childRoute, hasActiveFilters } from '@/lib/shape'
+import {
+  CloseButton,
+  DrawerTitle,
+  EmptyEventList,
+  useFrameOnTop,
+  useFrameableRegion,
+} from '@/views/shared'
 
 // The online-classes drawer, at route `<region-path>/online`. It lists the placeless online
 // events rolled up under a region, on their own, so the region page's list stays a clean set
 // of places. It reuses the parent region's already-cached data (`['region', slug, locale]`, so
-// navigating here is usually a cache hit), and frames the map to that region — online events
-// have no location of their own. `path` is this drawer's own route, so each event nests under
+// navigating here is usually a cache hit), and frames the map to the nearest region it can
+// frame — online events have no location of their own. `path` is this drawer's own route, so each event nests under
 // it, and dismissing an event returns here.
 export function OnlineView({ regionSlug, path }: { regionSlug: string; path: string }) {
   const { t } = useTranslation()
   const { regionNames, locale } = useLocale()
   const { frameRegion } = useMapController()
 
-  const { data: region } = useSuspenseQuery(regionQuery(regionSlug, locale))
+  const filters = useEventFilters()
+  const { setFilters } = useSetFilters()
+  const { data: region } = useSuspenseQuery(regionQuery(regionSlug, locale, filters))
+  // Not `region` itself: a region whose only classes are online has no bounds, so framing it
+  // moves nothing — exactly the region this drawer lists. The camera climbs to the nearest
+  // ancestor it can frame; the list still renders `region`.
+  const framed = useFrameableRegion(regionSlug)
 
-  // Frame the parent region only when this drawer is the session entry point, meaning a
-  // fresh deep link. Opening it in-session leaves the camera where it is. Online events have
-  // no location of their own, so there is nothing to move the camera to.
+  // Frame it only when this drawer is the session entry point, meaning a fresh deep link.
+  // Opening it in-session leaves the camera where it is. Online events have no location of
+  // their own, so there is nothing to move the camera to.
   useFrameOnTop(
     ({ isEntry }) => {
-      if (isEntry) frameRegion(region)
+      if (isEntry && framed) frameRegion(framed)
     },
-    [region, frameRegion],
+    [framed, frameRegion],
   )
 
   const regionName = (region.countryCode && regionNames.of(region.countryCode)) || region.name
@@ -54,7 +67,14 @@ export function OnlineView({ regionSlug, path }: { regionSlug: string; path: str
         <CloseButton />
       </DrawerHeader>
       <DrawerBody>
-        {events.length === 0 ? (
+        <ActiveFilterPills />
+        {events.length === 0 && hasActiveFilters(filters) ? (
+          <FallbackPanel
+            align="start"
+            kind="no-results"
+            onClearFilters={() => setFilters(DEFAULT_FILTERS)}
+          />
+        ) : events.length === 0 ? (
           <EmptyEventList />
         ) : (
           <List>

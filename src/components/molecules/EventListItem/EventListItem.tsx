@@ -17,10 +17,16 @@ export interface EventListItemProps {
   /**
    * The searched place, for the distance line. This is passed in, instead
    * of read from `?q` here. Subscribing every card to the URL re-renders
-   * the whole list on each geocoder keystroke, which defeats the memo
-   * below (see `EventsList`).
+   * the whole list on every URL change, which defeats the memo below (see
+   * `EventsList`).
    */
   searchedPlace?: string
+  /**
+   * Whether the distance means anything (default `true`). With no searched place, results are
+   * still measured from somewhere — the middle of the map — and a "5,652 km away" read as "from
+   * you".
+   */
+  showDistance?: boolean
 }
 
 // Below this, the distance stops being decision-useful. Everything in the
@@ -48,7 +54,7 @@ const MIN_DISTANCE_KM = 5
  * re-render the rows above on every press, which is most of the work and
  * none of the value.
  */
-function EventListItemImpl({ event, searchedPlace }: EventListItemProps) {
+function EventListItemImpl({ event, searchedPlace, showDistance = true }: EventListItemProps) {
   const { t } = useTranslation()
   const { locale } = useLocale()
   const { highlightEvent } = useMapController()
@@ -76,7 +82,7 @@ function EventListItemImpl({ event, searchedPlace }: EventListItemProps) {
   // itself from `?q` and hands it down (see the prop). The precise
   // reference point stays in the accessible label either way.
   const distance =
-    !online && event.distance !== undefined && event.distance >= MIN_DISTANCE_KM
+    showDistance && !online && event.distance !== undefined && event.distance >= MIN_DISTANCE_KM
       ? formatDistance(event.distance, locale)
       : null
   const distanceText = distance

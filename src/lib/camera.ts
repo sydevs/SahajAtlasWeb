@@ -56,9 +56,9 @@ export const isWithinPaddedViewport = (
  * The zoom `frameEvent` should ease to, or `null` to stay put: "move only as needed"
  * (selecting the marker happens unconditionally, separately).
  *
- * - **Online / approximate** events have no real location. This frames their stored
- *   point only as the session entry point (a deep link). In-session, selecting one
- *   never moves the camera.
+ * - **Online** events have no location at all, so `online` is theirs alone — a vague listing
+ *   has a neighbourhood, and frames it. This frames an online event's stored point only as the
+ *   session entry point (a deep link). In-session, selecting one never moves the camera.
  * - **Located** events ease in to the event zoom on entry, from a wider view, or when
  *   off-screen. Only a genuine pin click — already on-screen *and* already at a detail
  *   zoom (`atDetailZoom`) — keeps the current zoom, so it does not nudge the camera.
@@ -66,15 +66,109 @@ export const isWithinPaddedViewport = (
  *   point projects as "visible") from reading as "already showing the event".
  */
 export const eventFrameZoom = (opts: {
-  approximate: boolean
+  online: boolean
   visible: boolean
   atDetailZoom: boolean
   isEntry: boolean
   eventZoom: number
   onlineZoom: number
 }): number | null => {
-  if (opts.approximate) return opts.isEntry ? opts.onlineZoom : null
+  if (opts.online) return opts.isEntry ? opts.onlineZoom : null
   if (!opts.isEntry && opts.visible && opts.atDetailZoom) return null
 
   return opts.eventZoom
+}
+
+/** An event as the feed may serve it: either stored coordinate can be absent or null. */
+type MaybePlacedEvent = {
+  address?: { latitude?: number | null; longitude?: number | null } | null
+}
+
+/** The same event once both coordinates are known to be there. */
+type PlacedEvent = { address: { latitude: number; longitude: number } }
+
+/**
+ * Whether an event has a stored point to frame. An online event often has none: it has
+ * no place of its own, so a deep link to it frames its parent region instead.
+ *
+ * It narrows, so `eventPoint` (`use-map-controller-real.tsx`) reads the coordinates
+ * through this one verdict instead of re-testing them. Two tests that disagreed would
+ * leave `frameEvent` running on an event it then frames nothing for.
+ */
+export const hasMapPoint = <T extends MaybePlacedEvent>(event: T): event is T & PlacedEvent =>
+  event.address?.latitude != null && event.address?.longitude != null
+
+/** Mapbox's world is this many px wide at zoom 0, and doubles with each zoom level. */
+const WORLD_PX_AT_ZOOM_0 = 512
+
+/**
+ * The lowest zoom at which one world is as wide as the map, so zooming out never shows it twice.
+ * Only the width counts: a tall phone map may still show the poles' empty band, as it always has,
+ * and a wide region's fit on a phone keeps the zoom it needs.
+ */
+export const worldMinZoom = (width: number): number =>
+  width > WORLD_PX_AT_ZOOM_0 ? Math.log2(width / WORLD_PX_AT_ZOOM_0) : 0
+
+/** Metres one px covers on the equator at zoom 0: Earth's circumference over the zoom-0 world. */
+const EQUATOR_M_PER_PX_AT_ZOOM_0 = 40_075_016.686 / WORLD_PX_AT_ZOOM_0
+
+const cosDeg = (degrees: number) => Math.cos((degrees * Math.PI) / 180)
+
+/** How many px a ground distance of `radiusKm` spans at `zoom` and `latitude`. */
+export const ringRadiusPx = (radiusKm: number, zoom: number, latitude: number): number =>
+  (radiusKm * 1000 * 2 ** zoom) / (EQUATOR_M_PER_PX_AT_ZOOM_0 * cosDeg(latitude))
+
+/** The zoom at which `radiusKm` of ground spans `px` at `latitude` — `ringRadiusPx` inverted. */
+export const ringZoom = (radiusKm: number, px: number, latitude: number): number =>
+  Math.log2((px * EQUATOR_M_PER_PX_AT_ZOOM_0 * cosDeg(latitude)) / (radiusKm * 1000))
+
+/**
+ * The camera for the world view: the world once, filling the map, with no blank edge.
+ *
+ * The map keeps Mapbox's world copies, so it still wraps across the antimeridian. The world view
+ * shows the world once by making it at least as wide (and as tall) as the canvas, with no edge
+ * left for a copy to show in. Our padding is lopsided, though: the side panel on the left, only a
+ * margin on the right. So the padded centre sits right of the canvas centre, and a world exactly
+ * as wide as the canvas would be drawn shifted right by half the difference, with a copy's edge
+ * in a strip at the map's left (176px on a desktop).
+ *
+ * This makes the world as wide as the canvas plus the whole padding difference, so `center` can
+ * stay in the middle of the padded area (where the world view has always put it) with the world
+ * still reaching both edges of the map. Half that zoom would do if the centre moved east instead,
+ * but then the list would cover North America on screens under 1200px. Should the centre asked
+ * for leave an edge open anyway, the longitude moves just enough to fill it. The latitude is
+ * passed through for Mapbox to clamp, as before.
+ *
+ * Only the sides are handled. On a phone the sheet makes the padding lopsided top to bottom too,
+ * which leaves a blank band low on the map. It shows only with the sheet pulled down to its peek,
+ * and curing it would zoom the phone's world view in by about a fifth.
+ */
+export const worldViewCamera = (
+  size: { width: number; height: number },
+  padding: PaddingOptions,
+  center: [number, number],
+): { center: [number, number]; zoom: number } => {
+  const { width, height } = size
+
+  // Nothing to measure (a hidden map): leave the clamp to Mapbox, as before.
+  if (width <= 0 || height <= 0) return { center, zoom: 0 }
+
+  // How far right of the canvas centre the padded centre sits (left of it when negative).
+  const shift = ((padding.left ?? 0) - (padding.right ?? 0)) / 2
+  // The whole difference (twice the shift), and one px spare so the edge is never a sub-pixel short.
+  const worldPx = Math.max(width + (shift ? Math.abs(shift) * 2 + 1 : 0), height)
+  const paddedCentre = width / 2 + shift
+  // `edge` is where the world's left edge lands on screen. With no blank edge it is at or left of
+  // the map's left edge, and the world reaches the right one. Mapbox's clamp (the camera centre
+  // half a canvas inside the world) allows only `[shift + width - worldPx, shift]`.
+  const lowest = Math.max(width - worldPx, shift + width - worldPx)
+  const highest = Math.min(0, shift)
+  const wanted = paddedCentre - ((center[0] + 180) / 360) * worldPx
+  const edge = Math.min(highest, Math.max(lowest, wanted))
+  const longitude = ((paddedCentre - edge) / worldPx) * 360 - 180
+
+  return {
+    center: [longitude, center[1]],
+    zoom: Math.log2(worldPx / WORLD_PX_AT_ZOOM_0),
+  }
 }

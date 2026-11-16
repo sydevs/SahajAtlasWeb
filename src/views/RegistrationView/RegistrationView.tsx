@@ -6,7 +6,6 @@ import { EventFacts, FallbackPanel } from '@/components/molecules'
 import { EventRegisterBar } from '@/components/organisms/EventDetails/EventRegister'
 import { RegistrationForm } from '@/components/organisms/RegistrationForm'
 import { useEventDisplay } from '@/hooks/use-event-display'
-import { useMapController } from '@/hooks/use-map-controller'
 import { useShareUrl } from '@/hooks/use-share-url'
 import { enabledQuestions, eventTimeZone, isOnline, isUnverified } from '@/lib/shape'
 import {
@@ -14,7 +13,7 @@ import {
   DrawerTitle,
   useDrawerControl,
   useEventFromPath,
-  useFrameOnTop,
+  useFrameEventOnTop,
 } from '@/views/shared'
 
 // The registration form for an event, at route `<event-path>/register`. The event's Register
@@ -37,7 +36,6 @@ export function RegistrationView({
 }) {
   const { t } = useTranslation()
   const { dismiss } = useDrawerControl()
-  const { frameEvent } = useMapController()
 
   const { data: event } = useEventFromPath(eventPath)
   const { display, blockedMessage, whereLine } = useEventDisplay(event)
@@ -47,7 +45,7 @@ export function RegistrationView({
   // carry the host page's address.
   const eventUrl = useShareUrl(event.webUrl, event.path)
 
-  useFrameOnTop(({ isEntry }) => frameEvent(event, { isEntry }), [event, frameEvent])
+  useFrameEventOnTop(event)
 
   const open = display.registration === 'open'
   // Registration for an external event never happens on Atlas — a deep link
@@ -97,6 +95,10 @@ export function RegistrationView({
         // `lib/ics.ts` takes `url` as nullish and simply omits the `URL:` line, which is the
         // right outcome when there is no honest link to put in the calendar entry.
         url: eventUrl,
+        // The address SahajCloud minted for this class, never one composed here:
+        // it carries a signed token (`lib/ics.ts`). Null for a class whose feed
+        // address did not come back, which renders the download row alone.
+        calendarFeedUrl: event.calendarFeedUrl,
       }
     : undefined
 

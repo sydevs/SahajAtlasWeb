@@ -1,17 +1,18 @@
 import type { MapSearchProps } from '@/components/organisms/Mapbox/MapSearch'
 import type { GeocodingFeature } from '@mapbox/search-js-core'
 import type { DependencyList, ReactNode } from 'react'
+import type { Event, Region } from '@/types'
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react'
 import { useLocation, useNavigationType, useSearchParams } from 'react-router'
 import { useTranslation } from 'react-i18next'
-import { useQuery, useSuspenseQuery } from '@tanstack/react-query'
+import { useQueries, useQuery, useSuspenseQuery } from '@tanstack/react-query'
 import { CalendarDays, Funnel, Menu, Search, X } from 'lucide-react'
 
 import { Button } from '@/components/atoms/Button'
 import { FallbackPanel, GeolocationPrompt } from '@/components/molecules'
 import { MapSearch } from '@/components/organisms'
-import api, { eventQuery } from '@/config/api'
+import api, { eventQuery, regionQuery, regionsQuery } from '@/config/api'
 import { GEOJSON_STALE_TIME } from '@/config/query-client'
 import { useCameraHistory } from '@/config/store'
 import { useAtlasNavigate } from '@/hooks/use-atlas-navigate'
@@ -19,6 +20,7 @@ import { useEventFilters } from '@/hooks/use-filters'
 import { useIpLocation } from '@/hooks/use-ip-location'
 import { useLocale } from '@/hooks/use-locale'
 import { useMapController } from '@/hooks/use-map-controller'
+import { hasMapPoint } from '@/lib/camera'
 import { approxBounds } from '@/lib/geo'
 import { geocodeBounds, geocodeCountryCode } from '@/lib/geocode'
 import { atlasError } from '@/lib/report'
@@ -31,6 +33,7 @@ import {
 } from '@/lib/geolocation'
 import {
   activeFilterCount,
+  ancestorSlugs,
   searchPath,
   atlasDepth,
   calendarPath,
@@ -252,58 +255,24 @@ export function FilterButton({ iconOnly = false }: { iconOnly?: boolean }) {
 // place navigates to /search with the geocoded bbox and centre (the SearchView
 // ranks events by distance from there). This carries the geocode-to-search
 // behaviour that used to live in the removed SearchBar.
-export function SearchField({
-  label,
-  query = 'url',
-}: { label?: MapSearchProps['label']; query?: 'url' | 'read-only' } = {}) {
+// What is typed stays in the field: the URL changes only when a place is picked, never per
+// keystroke. Half-typed text in `?q` renamed everything that reads it, so every result card said
+// "5.1 km from Prag" over London's classes.
+export function SearchField({ label }: Pick<MapSearchProps, 'label'> = {}) {
   const navigate = useAtlasNavigate()
-  const location = useLocation()
-  const [searchParams, setSearchParams] = useSearchParams()
+  const [searchParams] = useSearchParams()
   const urlQuery = searchParams.get('q') ?? ''
   const [text, setText] = useState(urlQuery)
-  // This guards on the last value written here, rather than on equality with the field. So the
-  // per-keystroke mirroring below can never fight it: typing records its own write, sees the
-  // URL agree, and does nothing.
-  //
-  // This adopts a `?q` that somebody ELSE wrote. The field seeds from the URL once, above,
-  // which is right while typing is the only writer. But the geolocate control names the place
-  // it found AFTER navigating, and `placeSearchPath` clears `?q` on every re-search. Neither
-  // one remounts this component when the view on top is unchanged. So without this effect, the
-  // field keeps showing a place the results are no longer about.
-  const ownWrite = useRef(urlQuery)
 
+  // This follows a new `?q`. The field seeds from the URL once, in the state initializer above.
+  // But a pick writes a new place name, the geolocate control names the place it found AFTER
+  // navigating, and `placeSearchPath` clears `?q` on every re-search. None of them remounts this
+  // component when the view on top is unchanged, so without this effect the field would keep
+  // showing a place the results are no longer about. Typing never writes `?q`, so the two can't
+  // fight: half-typed text stays until the URL names a place.
   useEffect(() => {
-    if (urlQuery === ownWrite.current) return
-
-    ownWrite.current = urlQuery
     setText(urlQuery)
   }, [urlQuery])
-
-  // This merges `q` into the existing query, so the active filters (and bbox and center)
-  // survive typing — they live only in the URL now. `replace` means per-keystroke edits do not
-  // stack history.
-  //
-  // `state` is carried explicitly. `setSearchParams` forwards only what it is given, so a bare
-  // `{ replace: true }` replaces the entry with a state-less one and drops its `atlasDepth`.
-  // After ONE keystroke, the drawer's dismissal (X, swipe, or Esc) would then push to the
-  // structural parent, instead of going chronologically back. The filter and sort setters carry
-  // it for the same reason.
-  const handleChange = (next: string) => {
-    setText(next)
-    ownWrite.current = next
-    if (query !== 'url') return
-
-    setSearchParams(
-      (prev) => {
-        const params = new URLSearchParams(prev)
-
-        params.set('q', next)
-
-        return params
-      },
-      { replace: true, state: location.state },
-    )
-  }
 
   const handleSelect = useCallback(
     (value: GeocodingFeature) => {
@@ -329,7 +298,7 @@ export function SearchField({
 
   return (
     <div className="min-w-0 flex-1">
-      <MapSearch label={label} value={text} onChange={handleChange} onSelect={handleSelect} />
+      <MapSearch label={label} value={text} onChange={setText} onSelect={handleSelect} />
     </div>
   )
 }
@@ -383,6 +352,64 @@ export function useFrameOnTop(frame: (ctx: FrameContext) => void, deps: Dependen
   }, [...deps])
 }
 
+/**
+ * The region a placeless view should frame: the nearest one at or above `regionSlug` that
+ * `frameRegion` can actually move the camera to. Undefined for no slug, for `map=false`,
+ * or while the reads are in flight.
+ *
+ * ⚠ The climb is not defensive. A region's `bounds` are the bounds of the LOCATED events
+ * under it (`boundsUnder` drops placeless points), so a city whose only classes are online
+ * has none, and `frameRegion` moves nothing for it — which is the very city an online
+ * class most often sits in. `center` is derived from `bounds`, so one test covers a venue
+ * too.
+ *
+ * It resolves a region and frames nothing. Each caller keeps its own `useFrameOnTop`, because
+ * that hook also owns the POP restore: a second instance in one view would restore twice, and
+ * `frameRegion` clears the emphasized point the other instance had just set.
+ */
+export function useFrameableRegion(regionSlug: string | undefined): Region | undefined {
+  const { hasMap } = useMapController()
+  const { locale } = useLocale()
+  const enabled = hasMap && regionSlug != null
+  // Not a suspense read: the drawer must not wait on a fetch only the camera needs. The
+  // `['region', slug, locale]` key is shared with RegionView, so this is usually a cache hit.
+  const { data: own } = useQuery({ ...regionQuery(regionSlug ?? '', locale), enabled })
+  // Only an unframeable region pays for the ancestry, so the common case stays one read.
+  const climbing = enabled && own != null && own.bounds == null
+  const { data: regions } = useQuery({ ...regionsQuery(), enabled: climbing })
+  const ancestors = useMemo(
+    () => (climbing && regionSlug ? ancestorSlugs(regions ?? [], regionSlug).slice(1) : []),
+    [climbing, regionSlug, regions],
+  )
+  const climbed = useQueries({ queries: ancestors.map((slug) => regionQuery(slug, locale)) })
+
+  if (own?.bounds) return own
+
+  return climbed.find((result) => result.data?.bounds)?.data
+}
+
+/**
+ * Frames an event-level view (the event, its register and share drawers) on the map.
+ *
+ * An event with no stored point, typically an online one, has nothing for `frameEvent` to fly
+ * to. Without this fallback a deep link to it left the camera on the boot-time world view.
+ * It frames the region instead, only as the session entry point, like `OnlineView`:
+ * opening it in-session leaves the camera where the visitor already is.
+ */
+export function useFrameEventOnTop(event: Event) {
+  const { frameEvent, frameRegion } = useMapController()
+  const located = hasMapPoint(event)
+  const region = useFrameableRegion(located ? undefined : event.region?.slug)
+
+  useFrameOnTop(
+    ({ isEntry }) => {
+      if (located) frameEvent(event, { isEntry })
+      else if (isEntry && region) frameRegion(region)
+    },
+    [event, located, region, frameEvent, frameRegion],
+  )
+}
+
 // RegistrationView and ShareView both resolve an event from its route path, and suspense-fetch
 // it. This is shared here, so the resolvePath-plus-queryKey convention stays in one place.
 // EventView, one level up in the stack, already fetches the same event. TanStack Query's
@@ -434,7 +461,6 @@ export function EmptyEventList() {
           reads on this screen as a promise that there ARE nearby events. */}
       <SearchField
         label={t('common.errors.search_label', { defaultValue: 'Or search for a place' })}
-        query="read-only"
       />
     </FallbackPanel>
   )
@@ -450,10 +476,17 @@ export function EmptyEventList() {
 // conditions. Only the close button persists a session-scoped dismissal. Accepting merely
 // navigates. The prompt self-hides while the visitor views that area, but returns once they
 // leave it.
+//
+// The lookup can land seconds after the list has painted, and a banner pushed in above rows the
+// visitor may be about to tap moved them 48px under the finger. So a view mounts this twice:
+// `above` shows only if the answer was already known at the first paint, `below` only if it came
+// later, where it moves nothing.
 export function GeolocationSuggestion({
   regionCenter,
+  position,
 }: {
   regionCenter?: [number, number] | null
+  position: 'above' | 'below'
 }) {
   const navigate = useAtlasNavigate()
   const [searchParams] = useSearchParams()
@@ -482,6 +515,7 @@ export function GeolocationSuggestion({
       }),
     [ipLocation, dismissed, activeSearch, geojson, regionCenter],
   )
+  const knownAtFirstPaint = useRef(show)
 
   const handleSelect = useCallback(() => {
     if (!ipLocation) return
@@ -516,9 +550,11 @@ export function GeolocationSuggestion({
   }, [])
 
   // `!ipLocation` is implied by `!show`, but narrows the type for the render below.
-  if (!ipLocation || !show) return null
+  if (!ipLocation || !show || knownAtFirstPaint.current !== (position === 'above')) return null
 
   return (
-    <GeolocationPrompt city={ipLocation.city} onAccept={handleSelect} onClose={handleDismiss} />
+    <div className={position === 'below' ? 'pt-3' : undefined}>
+      <GeolocationPrompt city={ipLocation.city} onAccept={handleSelect} onClose={handleDismiss} />
+    </div>
   )
 }

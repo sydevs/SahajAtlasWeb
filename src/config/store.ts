@@ -10,8 +10,16 @@ import { deepActiveElement } from '@/lib/active-element'
 
 // This is a point the map emphasizes with a sprite.
 // The committed `selection`, from `frameEvent`, and the transient `hover`, from `highlightEvent`, share this shape.
-// `approximate` swaps the crisp pin for the softer area sprite, used for online events.
-export type MapPoint = { latitude: number; longitude: number; approximate: boolean }
+// `approximate` swaps the crisp pin for the softer area sprite. It covers both listings with no
+// real place to draw: an online one, which has none at all, and a `vague` one, whose point is its
+// town's centre. The map's own feature property for the second is `vague`, not this field.
+export type MapPoint = {
+  latitude: number
+  longitude: number
+  approximate: boolean
+  /** An in-person listing with no real place: a pin zoomed out, its area zoomed in (#15). */
+  vague?: boolean
+}
 
 type ViewState = {
   zoom: number
@@ -88,15 +96,30 @@ export const useCameraHistory = create<CameraHistoryState>((set, get) => ({
   read: (key) => get().snapshots[key],
 }))
 
+type CameraTarget = Pick<CameraSnapshot, 'zoom' | 'latitude' | 'longitude'>
+
 /**
- * This snapshots the live camera, from `useViewState`, under a history key.
+ * Where a camera move in flight will end, or `null` when the map is at rest.
+ *
+ * `useViewState` mirrors the camera only when the map STOPS moving. So during a fly it still
+ * holds the place the fly left. Someone who clicks during the fly-back from a class, a
+ * natural thing to do, would have that old place remembered as the camera of the screen
+ * they are on. Going back later flies them there, with the list saying somewhere else.
+ * Non-reactive, like the history itself: nothing renders from it.
+ */
+export const useCameraTarget = create<{ target: CameraTarget | null }>(() => ({ target: null }))
+
+/**
+ * This snapshots the camera, from `useViewState`, under a history key: the destination of a
+ * fly in flight if there is one, because that is the place this screen is showing.
  * The app calls it right before an in-widget push.
  * So a later POP back to that entry can restore the camera.
  */
 export const rememberCamera = (key: string): void => {
   const { zoom, latitude, longitude, selection, boundary } = useViewState.getState()
+  const camera = useCameraTarget.getState().target ?? { zoom, latitude, longitude }
 
-  useCameraHistory.getState().save(key, { zoom, latitude, longitude, selection, boundary })
+  useCameraHistory.getState().save(key, { ...camera, selection, boundary })
 }
 
 // ===== CAMERA SETTLED ===== //
@@ -333,4 +356,42 @@ export const useListingDraft = create<ListingDraftState & ListingDraftAction>((s
   update: (patch) => set((state) => (state.draft ? { draft: { ...state.draft, ...patch } } : {})),
   setStep: (step) => set((state) => ({ step, reviewed: state.reviewed || step === 'review' })),
   markSent: () => set(() => ({ sent: true })),
+}))
+
+type SheetCoverState = {
+  /** What the phone sheet covers of the map, in px, or null where there is no bottom sheet. */
+  bottom: number | null
+  setBottom: (bottom: number | null) => void
+}
+
+/**
+ * The drawer resolves its active snap to this and the map camera reads it, so a framed pin clears
+ * the sheet at whatever height the sheet is actually at.
+ * Neither side renders the other's context, and the drawer must not import the map's hooks.
+ */
+export const useSheetCover = create<SheetCoverState>((set) => ({
+  bottom: null,
+  setBottom: (bottom) => set(() => ({ bottom })),
+}))
+
+type BrowsedCountryState = {
+  /** ISO alpha-2 of the last country page shown, or undefined after the world view. */
+  code: string | undefined
+  setCode: (code: string | undefined) => void
+}
+
+/**
+ * The country the visitor was last looking at, for the place search's country scope. Search is a
+ * route of its own (`/search`), so by the time its field is on screen the URL no longer names the
+ * country page it was opened from. `DrawerStack` records it, since it sees every route.
+ *
+ * Not the URL, and not `?cc`, though both carry a country. The URL holds what a link must
+ * reproduce for whoever opens it, and where the reader came from is not that: a shared `/search`
+ * link would pin the recipient's suggestions to a country they never browsed. `?cc` answers a
+ * different question — the country of the place that WAS searched, written once a place is
+ * picked — and it is already ahead of this one in `MapSearch`'s fallback chain.
+ */
+export const useBrowsedCountry = create<BrowsedCountryState>((set) => ({
+  code: undefined,
+  setCode: (code) => set(() => ({ code })),
 }))

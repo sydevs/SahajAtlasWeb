@@ -44,8 +44,8 @@ export const useCountrySite = (): CountrySite | undefined => {
   })
 
   // This is memoized because the feed scan builds a region index and a subtree set.
-  // This renders under a URL that churns. The geocoder field rewrites `?q` on every keystroke.
-  // So an unmemoized scan would rebuild the whole index per character.
+  // This renders under a URL that changes with every filter and sort edit, so an unmemoized
+  // scan would rebuild the whole index each time.
   return useMemo(() => {
     if (!countryCode || !href || !regions || !geojson) return undefined
     if (hasActiveFilters(filters)) return undefined

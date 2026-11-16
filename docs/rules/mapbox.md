@@ -13,10 +13,21 @@ The map is the heart of the app and its hottest render path. Treat it carefully.
 ## Layer definitions live in `layers.ts`
 
 - Define every layer's `id`, `type`, `paint`, and `layout` in
-  `Mapbox/layers.ts`, and spread it into `<Layer {...clusterLayer} />`. Never
+  `Mapbox/layers.ts`, and spread it into `<Layer {...clusters} />`. Never
   inline paint/layout objects in JSX — React would recreate them every render and
   reflow the map. Existing layers: `clusterLayer`, `unclusteredPointLayer`,
   `selectedPointLayer`, `selectedAreaLayer`, `boundsLayer`.
+- **Two of them are factories, because their paint follows the brand palette**
+  (#17): `clusterLayer(palette, mode)` for the cluster count's color and
+  `boundsLayer(palette, mode)` for the debug outline. `Map.tsx` memoises each
+  result on the palette and the mode — a factory called in the JSX would hand
+  `<Layer>` a fresh paint object every render, which is the same reflow the rule
+  above forbids. The other five carry no color paint and stay constants.
+- **Layer ids live in `LAYER_IDS`, never read off a layer object.** A factory
+  has no id until it is called, and the ids are a contract with the click
+  handler and with `INTERACTIVE_LAYER_IDS` — one module-level array, passed to
+  `<ReactMapGL>` by identity. `layers.test.ts` pins every id as the string it
+  has always been.
 
 ## The app owns its marker images (`markers.ts`)
 
@@ -27,8 +38,9 @@ The map is the heart of the app and its hottest render path. Treat it carefully.
   the four images as SVG and registers them itself, so both themes match and a
   Studio edit cannot silently drop a marker.
 - `icon-image` in `layers.ts` always references a `MARKER_IDS.*` constant (all
-  `sy-`-prefixed so they cannot collide with a style sprite). Add a new marker to
-  `MARKER_IMAGES` — never reference a bare sprite name.
+  `sy-`-prefixed so they cannot collide with a style sprite). A new marker needs
+  an id there, its stock colours in `DEFAULT_MARKER_COLORS`, a case in
+  `markerColors`, and a row in `markerImages` — never a bare sprite name.
 - Registration hangs off Mapbox's **`styleimagemissing`** event
   (`registerMarkerImages`, one `useEffect` in `Map.tsx`). That event re-fires
   after every style load, so the one subscription covers both the initial load
@@ -37,6 +49,43 @@ The map is the heart of the app and its hottest render path. Treat it carefully.
   re-fires the event per missing id **per tile batch**, and the warm path must
   add the image _synchronously_ inside the handler, or the new style's first
   frame paints pinless.
+- **A pin and a bubble carry their own translucent ring; only the vague ring and dot
+  carry a fixed outline** (#389). The bubble's ring is its whole edge, and a pin has a
+  thinner ring of the same colour and opacity, drawn behind the head. A black or white
+  outline on either clashed with that ring. `MARKER_OUTLINE` and the
+  `BASEMAP_SURFACES` it was measured against live in `markers.ts`, for the vague
+  layers; `markers.outline.test.ts` holds both against ≥ 3:1.
+  ⚠ **Dark edge on the light map, pale edge on the dark one.** The dark style is
+  mid-toned and its land is lighter than its water. Do not swap them.
+- **The marks take the LIGHT-mode palette in both modes** (`MARKER_MODE`). The dark
+  basemap is mid-toned and washed out, so a dark-mode solid — lifted to read on the
+  near-black panel — washed out on it. So `markerColors`, `markerImages`,
+  `registerMarkerImages` and `clusterLayer` take no mode, and the stock art is one
+  set of four images whichever basemap is up.
+- **The four images carry the tenant's colors** (#17). `markerColors(palette)`
+  derives them from the palette `BrandTheme` resolved and hands down
+  (`config/theme/brand-palette.ts`) — the pin and cluster from `primary` step 9,
+  the selected pair from `contrast` step 9, each ring from its own fill.
+  It reads them through `buildPalette`, not `stepHex`, so the selected pin carries
+  `selected-distinct` — the check that keeps it from matching every pin around it.
+  ⚠ **A role with no usable seed keeps the `markers.ts` constants verbatim.**
+  Deriving them from `DEFAULT_SEEDS` instead changes every unbranded embed's
+  pin, in both modes; `markers.test.ts` freezes the four stock SVGs byte for
+  byte against exactly that.
+- **Every cache is keyed by the id AND its colors**, and a live map is
+  repainted with **`removeImage` then `addImage`**. A second `addImage` alone
+  makes Mapbox fire an `error` event. ⚠ `map.updateImage` looks right and is
+  not: its icon-atlas patch is discarded by any frame that re-evaluates the
+  style first, and a palette change starts the cluster count's paint transition,
+  so the pins silently kept their old colors. `add` returns early only when the id is on the
+  map in the colors asked for, so the eager pass is what repaints after a
+  palette change: nothing reloads the style, so nothing re-fires
+  `styleimagemissing`.
+- **Read the palette from its context, never with `getComputedStyle`.** The map
+  would then need its own change signal, and a role that fell back to the
+  default writes no variable at all (`palette.ts`). `markers.ts` must also stay
+  importable with no DOM, so its color builder is pure and the node lane
+  asserts it.
 - The images rasterize from an inline `data:` URI, so an embedding host needs
   **`img-src … data:`** in its CSP — the same allowance Mapbox GL's own
   recommended policy carries. Drop a failed decode from the cache instead of
@@ -57,8 +106,45 @@ The map is the heart of the app and its hottest render path. Treat it carefully.
   `api.getGeojson()`. Read from the cache — never fetch it ad-hoc in a
   component.
 
+## Classes with no real place
+
+- `hasApproximatePlace` (`lib/shape/event.ts`) decides it: an **inactive** listing (it
+  meets only on request), or one whose street names no place — `hasVagueAddress` reads a
+  placeholder, the town's own name, or a "city centre" word (#15). Those show only the
+  town, offer no directions, and frame at `VAGUE_ZOOM`.
+- **On the map it is a pin, then a ring, then a dot — one of the three at every zoom.**
+  Below `RING_ZOOM` the listing is the ordinary pin (`vaguePinLayer`); from it, a soft
+  `VAGUE_RADIUS_KM` circle drawn to scale (`vagueRingLayer`); from
+  `RING_MAX_ZOOM`, a fixed-size dot (`vagueDotLayer`). `RING_ZOOM` is where the ring's
+  radius is as wide as the pin and `RING_MAX_ZOOM` where it is as wide as the narrowest map
+  the interface renders in, both at 45° — about zoom 9 and zoom 11.7 for 3km. The selection
+  and hover highlights hand over at `RING_ZOOM` (`MapPoint.vague`) and need no second bound,
+  since their sprite is a fixed size.
+  ⚠ **The ring needs that upper bound because its radius doubles per level.** Past it the
+  stroke is off screen, so an unselected listing was a flat tint carrying no marker — and a
+  tint that answered every click and hover across the map, stacked with its neighbours'. The
+  dot marks the stored point, which is the town's centre rather than the venue; what stops
+  that reading as a doorstep is the panel, which shows only the town and offers no directions.
+- ⚠ **All three read the clustering `events` source, behind `!has point_count`.** So the
+  listing joins a cluster like any other, and never shows a ring while it is counted in a
+  bubble beside it — which a separate, unclustered area source did. The ring is a `circle`
+  layer rather than a polygon: its radius interpolates `exponential` 2 on zoom, exactly
+  Mercator's doubling, divided by each feature's `cosLat`, which `toMapSource` precomputes
+  because an expression cannot read a point's latitude.
+- It's a text heuristic, because SahajCloud has no such field and requires a street. ⚠ The
+  word list is load-bearing until the next Atlas sync: SahajCloud's importer rewrites each
+  placeholder street it knows to the town's own name (`VENUE_FIELD_OVERRIDES` in
+  `seeds/atlas/dedupe.ts`), which the town-repeat rule catches in any language. Until that
+  sync runs, dropping an entry drops a production listing with it.
+  A lone `-` is deliberately not a placeholder — its one listing is a park whose point is
+  the park.
+
 ## Pin-hover timing popover
 
+- Only on a device with a real pointer (`useHasRealPointer`). iOS sends a fake mouse
+  move before a tap, and a tap that reveals content never clicks, so `onMouseMove` is
+  not wired on touch. It shows the class name above the timing, and
+  `pinPopoverPlacement` keeps it inside the visible map, side panel included.
 - Hovering a pin displays a small non-interactive popover with that event's
   timing — `EventPinPopover` plus `EventPinCard`, module-private helpers
   inlined in `Map.tsx` (the popover is inherently map-bound, since it renders a
@@ -113,7 +199,11 @@ The map is the heart of the app and its hottest render path. Treat it carefully.
   `fitBounds` (a bbox) both carry the tuned arc. `moveMap` is the plain
   `easeTo`, kept only for the instant world reset and cluster expansion. Map
   padding comes from the known drawer width per breakpoint, set by
-  `MapController` — never a DOM measurement.
+  `MapController` — never a DOM measurement of the panel. The bottom sheet's
+  height is the one exception, and it arrives rather than being read:
+  `DrawerStack` resolves its active snap and publishes it through
+  `useSheetCover`, so the camera reserves the peek while the sheet is collapsed
+  and a class's measured height while it is open.
 - **The FIRST camera command of a session arrives instead of flying, and the
   canvas is held until it does.** `<ReactMapGL>` is uncontrolled with no
   `initialViewState`, so the map boots at `[0,0]` zoom 0 while a deep-linked
@@ -129,6 +219,24 @@ The map is the heart of the app and its hottest render path. Treat it carefully.
   that honors `animate` when `linear` is set). Clear the settled flag
   **on unmount**, or a compact embed's second expansion inherits a
   stale `true` and both defects come back.
+
+## One world through a minimum zoom, not `renderWorldCopies={false}`
+
+The map keeps Mapbox's world copies, so it pans on across the Pacific. Two things keep a wide
+screen from showing the world two or three times over:
+
+- **The world view (`reset()`) fills the map**: `worldViewCamera` picks a zoom and centre that
+  make one world at least as wide as the canvas plus the panel's padding, with no edge left for a
+  copy to show in.
+- **Zooming out stops there too**: `Map.tsx` sets `minZoom` to `worldMinZoom(width)`, the zoom at
+  which one world is as wide as the map, on load and on every resize. A map narrower than the
+  world (a phone) keeps zoom 0, so a wide country's fit there is never clamped.
+
+⚠ **Do not reach for `renderWorldCopies={false}` instead.** It is map-wide, and Mapbox then
+clamps the camera centre to keep the world over the canvas, ignoring padding. Measured on
+mapbox-gl 3.34.1 at 1280px: the reachable centre is ±123.75° at zoom 3, ±172.97° at zoom 6, and
+±179.56° at zoom 10. The pan across ±180° goes, and a New Zealand or Fiji region fit below
+about zoom 8 lands west of its bbox (#370's review).
 
 ## Reduced motion is the library's job here, not ours
 
@@ -154,14 +262,17 @@ exposes no `setLocale`, and `locale` is not in react-map-gl's reconciliation
 whitelist — so a mid-session language switch never relabels a control. Keys not
 overridden stay English (the full set is `defaultLocale` in mapbox-gl).
 
-⚠ **Construction-only applies to a control's HANDLERS too, and that one bites
-silently.** Mapbox reads `onGeolocate` once, when it constructs the control, so
-a handler that closes over router state keeps the values from the render the
-map mounted in — forever. `use-geolocate.ts` shipped exactly that way for one
-commit, and rewrote `/search?center=…` back to the route the widget had booted
-on, dropping the search a viewer had just performed. Every gate stayed green —
-only a browser found it. The fix is a ref refreshed every render, which the
-hook keeps. Treat anything handed to a Mapbox control as bound once, for good.
+⚠ **It does NOT apply to a control's handlers — those are live.** react-map-gl
+re-assigns `thisRef.current.props = props` on every render
+(`dist/esm/components/geolocate-control.js`), and each listener it registers on
+the mapbox control reads its handler off that ref, so a new `onGeolocate` or
+`onError` takes effect at once. What shipped stale for one commit was
+`use-geolocate.ts`'s own `useCallback(…, [])`: the handler itself never changed
+identity, so the router values it closed over stayed at the render the map
+mounted in, and it rewrote `/search?center=…` back to the route the widget had
+booted on — dropping the search a viewer had just performed. Every gate stayed
+green; only a browser found it. The hook's empty deps are still correct, because
+the ref beside them is what refreshes those values.
 
 ## "Find my location" is a NAVIGATION, not a camera move
 
@@ -245,6 +356,25 @@ cannot move into the settings menu.
 ⚠ The top-right container also holds `GeolocateControl`, and `[data-sy-expanded]`
 nudges the whole column down 40px to clear the expanded surface's collapse
 control — two controls now, not one.
+
+## A geocoder lookup whose answer is STORED asks for `permanent`
+
+Mapbox's terms allow keeping a feature id only when the lookup that returned it carried
+`permanent=true`, and such lookups bill separately. SahajCloud stores the ids a client sends with
+a class proposal, so its client contract requires them (sydevs/SahajCloud#893).
+
+So permanence is a **`MapSearch` prop**, absent by default, not a constant inside the control: one
+component serves both plain map browsing and the submit flow, and only the second may store what
+it gets back. Set `permanent` on a mount whose answer is submitted, and on no other.
+`reverseGeocode` (`lib/geocode.ts`) stays temporary — its answer fills the search field and `?cc`,
+never a stored row.
+
+⚠ **An option that may be absent is spread conditionally, and a spec is the only thing holding
+it.** `GeocodingCore` drops a `null` or `undefined` option but serializes a `false`, so `country`
+and `permanent` are both spread rather than passed as themselves — and a spread's keys escape
+TypeScript's excess-property check, which a plainly written key does not. Give every option you
+spread a case in `MapSearch.permanent.test.tsx`, which asserts what each mount hands
+`<Geocoder options>`.
 
 ## Geo helpers
 
@@ -345,7 +475,7 @@ The embed renders in a shadow root, so a _document_-level DOM lookup made from i
 answers about the host's document instead. Each line below was read off the installed
 version, because the folklore on this is older than the code.
 
-- **mapbox-gl 3.33.0 needs no accommodation.** It calls `elementFromPoint` nowhere, and
+- **mapbox-gl 3.35.0 needs no accommodation.** It calls `elementFromPoint` nowhere, and
   reads neither `document.body` nor `ownerDocument`. Pointer position is
   `getBoundingClientRect` against a stored element reference (`mousePos`), and the
   window-level drag listeners pass the event to it rather than reading `e.target`, so

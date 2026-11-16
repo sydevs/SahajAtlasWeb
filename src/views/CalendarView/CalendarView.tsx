@@ -38,6 +38,7 @@ import {
   isCalendarViewOption,
   resolveCalendarView,
 } from '@/lib/shape'
+import { zoneCity } from '@/lib/time'
 import { CloseButton, FilterButton } from '@/views/shared'
 import { DrawerErrorBody, DrawerLoadingBody } from '@/views/fallbacks'
 
@@ -361,11 +362,25 @@ function CalendarGrid({
     [controls],
   )
 
+  // Says whose clock the grid is in: an in-person class reads in its own zone and an online one
+  // in the viewer's (`eventTimeZone`), so a London visitor's 1:00 AM Toronto class looks like a
+  // mistake without it (#25). It sits under the grid, costing no first-screen rows. Any online
+  // entry in the expansion earns it: gating on the focused month would hide it from a week
+  // straddling two months, and from the list view, which pages past the month it starts in.
+  const hasOnline = events.some((entry) => entry.calendarId === 'online')
+
   return (
-    <DrawerBody className="max-w-none overflow-hidden p-4">
-      <div className="sx-calendar">
-        <CalendarMount calendar={calendar} />
-      </div>
-    </DrawerBody>
+    <>
+      <DrawerBody className="max-w-none overflow-hidden p-4">
+        <div className="sx-calendar">
+          <CalendarMount calendar={calendar} />
+        </div>
+      </DrawerBody>
+      {hasOnline && (
+        <p className="shrink-0 border-t border-divider px-4 py-2 text-xs text-gray-11">
+          {t('calendar.times_note', { zone: zoneCity(DateTime.local().zoneName) })}
+        </p>
+      )}
+    </>
   )
 }

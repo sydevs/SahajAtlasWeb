@@ -160,7 +160,7 @@ export function createQueryHistory({
 
     // ⚠ Never write an identical URL. React-router will happily push a duplicate entry, and the
     // visible symptom is a Back press that appears to do nothing — the filter and sort writers
-    // rewrite `?q` on every keystroke, so this is reached constantly.
+    // replace the URL on every edit, so this is reached constantly.
     const unchanged = url === win.location.href
 
     index = replace ? index : index + 1

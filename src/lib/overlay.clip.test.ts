@@ -46,7 +46,7 @@ const BOXES: Record<string, { marker: string; why: string }> = {
     why: "the compact card's expanded dialog (#161)",
   },
   'views/DrawerStack/DrawerStack.tsx': {
-    marker: 'relative w-full',
+    marker: 'relative min-h-0 w-full',
     why: 'the map-less container the filled panel is absolute against',
   },
 }

@@ -16,6 +16,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { ProposalForm } from './ProposalForm'
 
 import { emptyDraft, featureToPlace } from '@/lib/proposal'
+import { challengeFrameStub } from '@/test-support/turnstile-frame'
 
 const sdk = vi.hoisted(() => ({ find: vi.fn(), findByID: vi.fn(), request: vi.fn() }))
 
@@ -73,15 +74,6 @@ let container: HTMLDivElement
 
 beforeEach(() => {
   sdk.request.mockReset()
-  window.turnstile = {
-    render: (_el, options) => {
-      options.callback?.('tok-live')
-
-      return 'widget-1'
-    },
-    remove: () => {},
-    reset: () => {},
-  }
   vi.stubGlobal(
     'ResizeObserver',
     class {
@@ -96,7 +88,6 @@ beforeEach(() => {
 
 afterEach(() => {
   container.remove()
-  delete window.turnstile
   vi.unstubAllGlobals()
 })
 
@@ -153,6 +144,11 @@ async function mount(props: Parameters<typeof Harness>[0]) {
       </MemoryRouter>,
     )
   })
+  // The challenge page, not our hook. Its frame mounts with the review bar, so a step before
+  // review has none to solve.
+  if (container.querySelector('iframe')) {
+    await act(async () => challengeFrameStub(container).solve())
+  }
 
   return root
 }

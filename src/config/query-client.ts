@@ -182,7 +182,9 @@ export const queryClient = new QueryClient({
     mutations: {
       // This is explicit even though it matches React Query's default. The default is not the reason.
       // Both mutations this app has are unsafe to repeat.
-      // A re-sent registration is a duplicate signup to `user-submissions`, not a recovered one.
+      // A re-sent registration is not a recovered one: since sydevs/SahajCloud#1092 the server
+      // folds a repeat signup into the row this app already created, clearing its screening
+      // verdict and re-sending the registrant's confirmation.
       // A re-sent report would replay a single-use Turnstile token the server has already redeemed.
       // That replay would be refused anyway, or worse, it could send the report twice.
       // A `retry` value added to `queries` above must never be assumed to cover mutations too.

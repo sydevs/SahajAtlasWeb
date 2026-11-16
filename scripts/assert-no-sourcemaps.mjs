@@ -32,7 +32,7 @@
  *      point at a 404.
  *
  * **This gate runs on both build outputs, and each needs its own path.**
- * This repo ships two Cloudflare sites (#279, #280, #283): `sahajatlas`
+ * This repo ships two Cloudflare sites (#279, #280, #283): `sahajatlas-web`
  * builds with `pnpm build`, into `dist/`, which the app Worker serves, and
  * `sahajatlas-design` builds with `pnpm ladle:build`, into `build/`. Both
  * are Workers static assets. `pnpm ladle:build` never runs

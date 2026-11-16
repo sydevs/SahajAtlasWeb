@@ -18,7 +18,7 @@ import { useMediaQuery } from 'react-responsive'
  *    because a contained map's frame and the viewport stopped being the same box.
  *    It survives as `useIsWide`'s own fallback, which is how a widget with nothing to measure still gets the right answer,
  *    and in a Ladle story, where the viewport really is the container.
- *  - **input** (`useCoarsePointer`): this is for affordances that depend on the DEVICE, not the space, such as whether `tel:` reaches a dialer.
+ *  - **input** (`useCoarsePointer`, `useHasRealPointer`): this is for affordances that depend on the DEVICE, not the space, such as whether `tel:` reaches a dialer.
  *    Narrowing a desktop window has never given it a phone.
  *
  * ## Why the container signal is a strict generalization, not a behavior change
@@ -81,6 +81,19 @@ export function useIsWideViewport(): boolean {
  */
 export function useCoarsePointer(): boolean {
   return useMediaQuery({ query: '(hover: none) and (pointer: coarse)' })
+}
+
+/** The device has a real pointer that can rest on something, so hover can carry content. */
+export const REAL_POINTER_QUERY = '(hover: hover) and (pointer: fine)'
+
+/**
+ * This checks for a mouse or trackpad, the opposite question to `useCoarsePointer`.
+ *
+ * Anything revealed on hover needs this gate. iOS sends a fake mouse move before a tap, and when
+ * that reveals content Safari treats the tap as a hover and doesn't click.
+ */
+export function useHasRealPointer(): boolean {
+  return useMediaQuery({ query: REAL_POINTER_QUERY })
 }
 
 /**

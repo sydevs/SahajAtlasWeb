@@ -21,18 +21,19 @@ points here. Two Cloudflare sites deploy from this repo, both on **Workers stati
 move ran one site at a time, and the app's own cutover was split from building it (#266, #279,
 #280, #283):
 
-- **`sahajatlas`, the app** — from `wrangler.jsonc`, assets-only, pointed at `dist/`, which
+- **`sahajatlas-web`, the app** — from `wrangler.jsonc`, assets-only, pointed at `dist/`, which
   `pnpm build:worker` fills. Served at `sahajatlas.com` as a Workers Custom Domain and at its own
   `workers.dev` host. Workers Builds holds the build command and the trigger's variables and
   branch rules **per trigger**, not per project — which is what `docs/environment.md` works out
-  for each variable.
-  ⚠ **`sahajatlas.pages.dev` is withdrawn, not redirected**, so no request to it reaches what
-  serves the domain. The `sahajatlas` Pages project itself goes at #283's last phase, after the
-  Custom Domain is verified — until then its last deployment stands as the cutover's rollback,
-  which is the one thing merging this earlier would deny. Deletion is one-way: the route back is
-  a Pages project built from scratch, and Cloudflare reserves no released `pages.dev` name, so
-  the host is then first-come-first-served for anyone — `docs/testing.md` carries this repo's own
-  measurement of that.
+  for each variable. Its one trigger builds `main` alone; PR previews come from `ci.yml`'s own
+  `versions upload`, never from Workers Builds (#282).
+  ⚠ **The Worker was named `sahajatlas` until 2026-11-01**, and `wrangler.jsonc`'s `name` must
+  follow any dashboard rename: the PR preview uploads by that name, and the production lane
+  waits on the check run that carries it (#266).
+  ⚠ **`sahajatlas.pages.dev` is gone, not redirected.** The `sahajatlas` Pages project was
+  deleted on 2026-10-30 (#283), so the route back is a Pages project built from scratch, and
+  Cloudflare reserves no released `pages.dev` name — the host is first-come-first-served for
+  anyone.
 - **`sahajatlas-design`** — the Ladle component playground, on **Workers static assets**.
   Builds with `pnpm ladle:build` into `build/`, served at `design.sahajatlas.com`.
   `wrangler.design.jsonc` in the repo root is its config: assets-only (no `main`),
@@ -44,11 +45,27 @@ move ran one site at a time, and the app's own cutover was split from building i
   `gh-readonly-queue/*` and `mockup/*` with `12002 Invalid request body`, although the docs
   show prefix wildcards — so merge-queue and mockup branches do start preview builds here, which
   the Pages app's own rules had excluded while it existed (#266).
+  ⚠ **`pnpm ladle:build` starts with `SWC_NATIVE_BINDING_CACHE_SKIP_SECURITY_CHECK=${WORKERS_CI:+1}`.
+  Without it, no `@swc/core` past 1.16.11 builds here.** Ladle compiles through SWC. From 1.16.12
+  SWC's addon ships compressed and unpacks itself into a cache directory. It refuses any directory
+  whose ancestors another user can write without a sticky bit. Since 2026-11-13 the Workers build
+  image fails that rule for both `~/.cache` and `/tmp`, so every playground build died with
+  `ERR_SWC_NATIVE_CACHE` before Ladle ran (#401). `SWC_NATIVE_BINDING_CACHE=/tmp/…` did not help,
+  because `/tmp` is refused too (#405). Route A from #405, a cache root inside the checkout, was
+  never measured: `~/.cache`'s refusal puts the offending ancestor at or above `$HOME`, which a
+  checkout under `$HOME` inherits. The prefix turns off that one ancestor check, and the addon's
+  integrity check stays on. It does so only where `WORKERS_CI` is set, which Workers Builds
+  injects and nothing else does, so the check stays on locally and in CI. It has to be a
+  script prefix: Ladle loads SWC when it starts, before it reads `.ladle/config.mjs`. GitHub's
+  runners and macOS both pass the check, so `scripts/wrangler-config.test.ts` pins the prefix.
+  WeMeditateWeb's playground resolves the same `@swc/core` and takes the same prefix in
+  sydevs/WeMeditateWeb#236. Only the playground loads SWC — `vite.config.ts` compiles the app
+  through `@vitejs/plugin-react` — so no `sahajatlas-web` deploy rides on this.
 
 Two deploy files live in `public/`, copied into both build outputs, and both govern both sites:
 
 - **`_headers`** — one site-wide `/*` rule carrying CORS (#91: a font always fetches in CORS
-  mode) and `X-Robots-Tag: noindex` (#106), plus `Cache-Control` on `/assets/*` and the two
+  mode) and `X-Robots-Tag: noindex` (#106), plus `Cache-Control` on `/assets/*` and the three
   unhashed entry files (#148). The `/locales/*` rule went with the bundles in #198.
   ⚠ **No two rules may set the same header name on paths that overlap** — the platform applies
   every matching rule and comma-joins a repeated value, so two would serve `<value>, <value>`.

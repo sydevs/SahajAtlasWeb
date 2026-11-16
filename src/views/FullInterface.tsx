@@ -172,21 +172,22 @@ function FullInterface({
   useTurnstileGuard()
 
   // The home route — a path-mode host's `atlas` default, else the configured home region
-  // (`homePathFor`) — opens as a RegionView over CountriesView on first load. Back
-  // returns to the global list. This runs once — re-visiting `/` shows the list, not a redirect
-  // loop.
+  // (`homePathFor`) — opens as a RegionView over CountriesView on first load. It replaces the
+  // root entry, so opening adds no host history entry (#112). This runs once — re-visiting `/`
+  // shows the list, not a redirect loop.
   //
   // ⚠ **It lives here, rather than in `AppShell`, and that placement is the point.** This
   // component renders only when the interface is actually on screen — always in the full form,
   // and only once the dialog opens in the compact one. In `AppShell` it fired while a collapsed
-  // card was the only thing rendered, and `navigate` pushes `?atlas=/nl` onto the HOST's URL. A
+  // card was the only thing rendered, and `navigate` writes `?atlas=/nl` onto the HOST's URL. A
   // visitor who then reloaded, bookmarked, or shared that address got a full-screen dialog over
   // the host's page on load, having never asked for one — auto-open triggered by this project's
   // own bookkeeping, rather than by a link anybody followed.
   useEffect(() => {
     if (didInit.current) return
     didInit.current = true
-    if (location.pathname === '/' && homePath && homePath !== '/') navigate(homePath)
+    if (location.pathname === '/' && homePath && homePath !== '/')
+      navigate(homePath, { replace: true })
   }, [homePath, location.pathname, navigate])
 
   // The feed and region tree, warmed when the interface actually mounts. `App` skips this for a

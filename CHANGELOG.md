@@ -44,6 +44,107 @@ cover everything a host would notice since the widget was first deployed.
 
 ### Changed
 
+- **Pins and cluster bubbles are drawn in your brand colour's light-map shade on the dark map
+  too, and lose their black or white outline.** ([#399]) The dark basemap is mid-toned, so the
+  paler shade the panels use on it washed the pins out — and a service whose colours were all
+  pale got pins that looked alike. A bubble keeps its translucent ring as its only edge, and a
+  pin gains a thinner ring of the same kind. Only what the widget paints moves; the colour you
+  stored is unchanged. No change to your CSP, your Permissions Policy or any parameter.
+
+- **A grey, white or black brand colour is now painted as chosen, and a colour with a hue always
+  shows it.** ([#399]) A colourless choice used to be replaced by the built-in teal or orange;
+  now only `#000000`, the old "unconfigured" value, is, and a true grey stays grey. A muted, pale or
+  near-white colour that has a hue is lifted to at least 40% saturation and kept far enough from
+  white or black for that to show, in both modes; a vivid one is toned down to 60% as before. Any
+  colour is also kept between 20 and 80 lightness in light mode and between 60 and 90 in dark
+  mode — except the selected pin's, which is pushed away from the pin colour when the two you
+  chose are too close to tell apart, and may leave that range to do it. Our own default colours
+  are unchanged.
+
+- **Pins, cluster bubbles and area rings now carry a fixed outline, and a brand colour may be
+  adjusted so visitors can read it.** ([#392]) The outline is one colour per basemap — dark on
+  the light map, pale on the dark one — so nothing about the colour of a pin depends on what the
+  map is showing underneath it, and every pin has a visible edge over pale land, over sea, and
+  over a coastline. Separately, a colour that would leave panel text, a chip or the selected
+  class unreadable is shifted in lightness until it is readable, and the pins are painted from
+  that same adjusted colour; the colour you stored is unchanged, and only what the widget paints
+  moves. Our own default colours are adjusted by the same rules, so an unbranded embed's panels
+  and buttons shift slightly too. No change to your CSP, your Permissions Policy or any
+  parameter. ⚠ [#399] took the outline off pins and cluster bubbles again; the area ring and its
+  dot keep theirs.
+
+- **A page that _replaces_ `<sahaj-atlas>` now keeps the widget's data too.** ([#349]) [#149] made
+  the same element returning keep it; a host that destroys the element and creates a new one still
+  lost everything, which is exactly what Wix's router does on Back and Forward. The new element now
+  takes over the classes, regions and API key the old one had read, so it opens at the route your
+  URL names without asking the API for anything it already holds — a Back press used to cost a
+  full reload of the feed. It has to carry the same `key` and arrive inside the same moment [#149]
+  already allowed; a different key still drops everything read under the first, which it must. The
+  panels the visitor had opened, their place in the widget's own Back history and a half-filled
+  registration all come back with it — only what the old element's React tree held, such as a
+  scrolled list's position, starts over. Remove the old element before you insert the new one: the
+  opposite order leaves the page with no widget at all. No parameter, origin or CSP change. See
+  [If your page replaces the element].
+
+- **"Add to calendar" subscribes, so a class keeps itself up to date.** ([#393]) Apple Calendar
+  and Google Calendar now open a subscribe prompt for the class rather than copying one event
+  into the visitor's calendar, so a session the host cancels disappears from their calendar
+  within a day, without them doing anything. Outlook.com, Office 365 and Yahoo still add the
+  next session only — Microsoft publishes no subscribe address we can use — and **"Download .ics
+  file" is now its own row, last**, where it was the Apple row's label. ⚠ **In a sandboxed
+  iframe, `allow-downloads` now matters for that last row alone**, and the four rows that open a
+  page need `allow-popups` as before — while the Apple Calendar row needs neither, and no flag
+  covers it: a sandbox may refuse the `webcal:` address, which the operating system opens rather
+  than the browser. See
+  [Embedding in an iframe]. **No CSP or Permissions-Policy change**: every row is a navigation,
+  not a fetch. A script embed and an unsandboxed frame need nothing.
+
+- **The captcha on the registration and report forms is hidden unless it needs a click.**
+  ([SahajCloud#1090]) Most visitors now see no security check at all; the 300×65 box opens only
+  when Cloudflare asks for an interaction, and closes again after. The collapsed slot also leaves
+  no gap of its own in the form ([#371]) — it had kept a row's worth of space where the box would
+  have been. No change to your CSP.
+
+- **The registration confirmation leads with one notice about the email.** ([#366]) It names what
+  arrives by email and, for an online class, that the join link is in it, in place of a bare line
+  of text. No parameter, origin or CSP change.
+
+- **"Add to calendar" is one button that opens a menu of calendars.** ([#366]) It was a row of
+  provider buttons, and now shares a row with "Okay". Apple Calendar downloads an `.ics` file; the
+  others open the provider in a new tab. ⚠ **In a sandboxed iframe that download needs
+  `allow-downloads`**, beside the `allow-popups` the rest of the menu needs — see
+  [Embedding in an iframe]. A script embed and an unsandboxed frame need nothing.
+
+- **Your brand colours now reach the map.** ([#17]) The event pins, the cluster bubbles and the
+  numbers on them are drawn from the **first** of your client record's three brand colours, and
+  the selected event's pin from the **third** — the same two that already theme the panels and
+  buttons, in both light and dark. Your second colour does not reach the map. A record that
+  leaves those colours unset is
+  unchanged: the map keeps the widget's own teal and orange, pixel for pixel. The basemap
+  itself is untouched, nothing new is requested from the network, and your CSP, your
+  [Permissions Policy] and your snippet all stay as they are. See
+  [the CMS settings](docs/embedding.md#what-you-configure-in-the-cms-instead).
+
+- ⚠ **BREAKING: your CSP needs `frame-src https://cloud.sydevelopers.com`, and the three
+  `challenges.cloudflare.com` entries can go.** ([#343], [SahajCloud#1072]) The captcha that
+  gates every form now renders in a small frame `cloud.sydevelopers.com` serves — the origin
+  already in your `connect-src` — instead of in your document. A policy that does not allow the
+  frame shows the error screen, and the console names the fix.
+
+  ⚠ **The captcha renders only on a domain your client record lists** — the same list that
+  already gates the API. Any other domain shows the error screen. An iframe embed needs nothing
+  listed: there the challenge's parent is the widget's own page.
+
+  **Onboarding a site needs no Turnstile step**: Turnstile checks the hostname of the document
+  that renders the challenge, which is now always `cloud.sydevelopers.com`. No script of
+  Cloudflare's runs in your document, and your `Permissions-Policy` needs nothing for the captcha.
+
+- **A repeat embed report turns into at most one write in any 6 h window.** ([#160]) The widget
+  still reports on every page load, and an unchanged report inside that window is answered
+  without a write. This guide and the embedding guide had both published the window as one hour.
+  It bounds writes on our side, not requests from your page — those are still one per load.
+  Nothing in your snippet, your CSP or what the widget sends changes.
+
 - ⚠ **BREAKING: your own children of `<sahaj-atlas>` stop rendering.** ([#236]) The element
   attaches its shadow root in its constructor, so anything you nest inside the tag is hidden
   from the moment the element upgrades — before the widget can decline. There is no `<slot>`,
@@ -72,19 +173,28 @@ cover everything a host would notice since the widget was first deployed.
   the published floor is Tailwind 4's own declared minimum, and Chrome 111 and Safari 16.4
   already met it. A Firefox between 114 and 127 is **not** unstyled — Tailwind ships an
   `@supports`-guarded fallback for exactly those versions and this build keeps it, so the
-  widget still renders. See [Browser support](embedding.md#browser-support). No CSP row
+  widget still renders. See [Browser support](docs/embedding.md#browser-support). No CSP row
   changes, no new origin, and no change to the snippet or its attributes.
 
 - **The widget registers 62 document-global `@property` names, all `--tw-…`.** ([#246]) Tailwind
   4 composes its utilities through them, and a registered name carries a typed initial value and
   `inherits: false` into your document. The build gate allows that one prefix and fails on any
-  other. See [What the widget does to your page](embedding.md#what-the-widget-does-to-your-page).
+  other. See [What the widget does to your page](docs/embedding.md#what-the-widget-does-to-your-page).
 
 - **Where the build carries a Sentry DSN, the widget requests `https://*.sentry.io`, so that
   `connect-src` row stops being hypothetical.** ([#232]) The row has described such a build since
   [#123]. The DSN is a deploy-time variable, so a host cannot tell from the snippet which deploys
   report. What travels is unchanged, and omitting the origin is still supported — see [#123] for
   both.
+
+- **A blocked security check now produces a crash report, and an error-level console line.**
+  ([#387]) When the widget's security check cannot load, the whole widget fails — and that was
+  the one failure it reported to nobody, printing a console warning and sending nothing. A build
+  with a DSN now sends one crash report for it, and logs an error beside the existing warning
+  that names the fix. No parameter, origin or CSP change: `connect-src https://*.sentry.io`
+  already covers it. A page that leaves that origin out now makes one refused request where it
+  made none, and the widget then stops trying for the rest of that page's life, as that row has
+  always said. What your visitor sees is unchanged: the same message, and still a retry.
 
 - **"Report an issue" is managed in SahajCloud.** ([#216]) The form's questions, its submit
   label and its confirmation message are authored there, on the contact form named in the atlas
@@ -148,8 +258,8 @@ cover everything a host would notice since the widget was first deployed.
   the one family name, so no page ever mixes them. If you were keying off the old family name, or
   overriding it with `--sy-font-sans`, update the name.
 
-- **"Report an issue" sends again, and its thank-you now means *received* rather than
-  *delivered*.** ([#187]) The intake it posted to was replaced on the CMS side, so for two days
+- **"Report an issue" sends again, and its thank-you now means _received_ rather than
+  _delivered_.** ([#187]) The intake it posted to was replaced on the CMS side, so for two days
   the form failed for every visitor who used it; it now posts to the replacement. **Nothing
   changes for your CSP** — it is the same origin (`cloud.sydevelopers.com`) on a different path.
 
@@ -165,10 +275,17 @@ cover everything a host would notice since the widget was first deployed.
   list ends with a link to add a class; a region or venue page offers to add one there, and a
   class page offers a correction. The flow opens new routes under your page's URL — `/add`,
   `<region>/add` and `<class>/correct` — and sends nothing to anyone until the visitor submits;
-  a local coordinator reviews it before it appears. It uses the Mapbox and Turnstile origins your
-  CSP already allows, so your policy is unchanged.
+  a local coordinator reviews it before it appears. It uses the Mapbox origins and the captcha
+  frame your CSP already allows, so your policy is unchanged.
 - **Registrants can join a mailing list.** ([#147]) Where a list exists for the class's area,
   the registration form shows an opt-in box. Ticking it subscribes them once they register.
+- **The guide now documents Wix, and sends you to a setup screen that fills it in for you.**
+  ([#349]) Wix has nowhere to paste a `<script>` tag, so the script embed goes in a **Custom
+  Element** — Server URL `https://sahajatlas.com/auto.js?key=YOUR_KEY`, tag name `sahaj-atlas` —
+  never Embed HTML, which Wix serves from a sandboxed frame the widget cannot route from. Search
+  listings need a Velo router on top, which the **Install** tab on your client record in the
+  Atlas admin generates for your site, alongside step-by-step tracks for WordPress, a custom site
+  and an iframe. See [On Wix, the script embed is a Custom Element].
 - **A region's panel has a filter control.** ([#311]) It sits beside search on every country,
   city and venue panel, with the same active-count badge the country list's carries. It opens
   the filters scoped to that region, so applying them lists the region's matching classes, not
@@ -304,6 +421,148 @@ cover everything a host would notice since the widget was first deployed.
 
 ### Fixed
 
+- **A snippet in your `<head>` now waits for your page before it renders.** ([#411]) Since [#409]
+  `auto.js` runs as a plain script, so a tag in `<head>` — which is where Wix's Custom Element
+  puts it — could run before the browser had read your `<body>`. The widget then had nowhere to
+  go: the console said "could not find a place to render" and nothing appeared, or, from a tag in
+  the body, a second `<sahaj-atlas>` was created above your own and yours stayed empty. The loader
+  now waits for your page to finish parsing. Nothing to change in your snippet or your CSP, and a
+  tag written with `type="module"` never reached this — it was already waiting.
+
+- **The script embed now loads on Wix.** ([#409]) Wix's Custom Element adds `auto.js` without
+  `type="module"`, and the file could not run that way: the console said "Cannot use import
+  statement outside a module" and nothing rendered. `auto.js` now runs either way and starts the
+  loader from a second file on the same origin, `loader.js`, so your snippet and your CSP stay as
+  they are. Keep `type="module"` wherever you write the tag yourself — a plain script tag holds up
+  your page while it downloads. If an optimizer combines or inlines `auto.js` into another file,
+  the console now says "could not find the auto.js script tag"; exclude it.
+
+- **A class with no real venue shows an area, not a pin.** ([#374]) About a dozen listings give
+  only a town, such as a class at a volunteer's home, so the map pinned the town's centre as if it
+  were the venue — one landed on a supermarket, with Directions to it. Those listings, and every
+  inactive one, now draw a soft area around the town, show only the town's name, and offer no
+  directions. No change to your snippet or CSP.
+
+- **Class times say whose clock they are.** ([#380]) An online class showed the visitor's time, then
+  the host's with no label, and the two could fall on different days. Each time now names its
+  city, such as "3 AM London time" with "Mon 8 PM Toronto time" under it. An in-person time is
+  named only when the visitor's clock differs from the venue's, and stays unlabelled where the
+  listing names no timezone. The calendar says the same in one line under the grid whenever it
+  holds an online class. No change to your snippet or CSP.
+
+- **The map draws the world once.** ([#370]) On a wide embed the whole world repeated two or
+  three times across the map, so a class near the dateline appeared as two or three circles. The
+  world view now fills the map with a single world, and zooming out stops where one world is as
+  wide as the map. The map still pans on across the Pacific, and a link or a search still frames
+  any class exactly where it sits. No parameter, origin or CSP change.
+
+- **The dark theme is readable throughout, and the browser's own chrome follows it.** ([#370])
+  Typed search text was almost invisible on the dark panel and its focused box drew a dotted
+  border; the locate and info controls on the map stayed white; date fields showed dark icons on a
+  dark field and opened light pickers; and the calendar turned purple. All four now take the
+  atlas's own colours. On the standalone page `sahajatlas.com` the document background and the
+  `theme-color` meta follow the theme too, so a phone tints its status bar to match. Within an
+  embed the host's page keeps its own `theme-color`; only the widget's own surfaces change. No
+  parameter, origin or CSP change.
+
+- **Smaller display repairs.** ([#370]) Search suggestions span the panel instead of sitting
+  narrower than it, with the result counts no longer peeking out beside them. A class available by
+  request is no longer labelled "ONE-OFF EVENT". An address no longer repeats the town ("Brno,
+  Brno"). The settings cog no longer covers the list and the sign-up form on a map-less embed
+  (`map=0`). The × on a filter tag keeps its drawn size but takes a 44px tap area on a touch
+  screen. No parameter, origin or CSP change.
+
+- **An embed inside a closed tab or accordion now fills its box when opened from a shared
+  link.** ([#371]) A page whose URL carried `?atlas=` loaded the widget at once, while the element
+  was still hidden and measured 0×0, so the widget took the whole browser window: when the tab
+  opened, its panel floated over your page's top-left corner and your box stayed blank. A deep
+  link now loads at once only into an element that is on the page, and otherwise waits for it to
+  be shown, as an embed with no route always has. No change to your snippet. See
+  [Sizing the element](docs/embedding.md#sizing-the-element).
+
+- **A slow security check no longer replaces the Atlas with an error.** ([#371]) The widget used
+  to give the hidden captcha check 10 seconds before showing "This Atlas can't run on this page".
+  It now waits 20 seconds and tries once more before deciding, so a page whose CSP refuses
+  `cloud.sydevelopers.com` under `frame-src` sees that screen after about 40 seconds rather than
+  10. A domain SahajCloud refuses outright is still reported at once.
+
+- **Phone fixes from the 6 November check of the live site.** ([#369]) A class's bottom sheet now
+  opens as tall as the class needs, up to near full, so the Register bar no longer covers its
+  address and no longer slices a line in half on a small phone — one drag down still stops at the
+  usual third-height. A place's first classes are framed above the open sheet instead of under it,
+  and a link to a class that is no longer there frames the place the link names rather than the
+  whole world. On a touchscreen the first tap on a pin opens the class: the timing popover now
+  shows only where there is a real pointer, and on a desktop it names the class above its timing.
+  "Find my location" waits 30 seconds rather than 6, so allowing location slowly no longer puts
+  "Location not available" over the right results. On iPhone the From and To date filters no
+  longer overlap, tapping a sign-up field no longer hides the form, no see-through panel is left
+  over the map when the keyboard closes, and dragging the panel down from its list no longer
+  shakes or pulls Safari's page with it. No parameter, origin or CSP change.
+
+- **A full-window map on a phone keeps clear of a notch — if your page asks for it.** ([#369])
+  The widget now reads `env(safe-area-inset-*)` for its panel, its peek strips and the map's own
+  controls, so a phone held sideways no longer puts a camera cut-out over them. Those values are
+  **zero** unless your viewport meta tag carries `viewport-fit=cover`, which is your page's call
+  rather than ours — see "Sizing the element" in the embedding guide. Nothing breaks without it,
+  and a contained embed is unaffected either way.
+
+- **Closing your phone's own share sheet no longer takes the Share button away.** ([#366]) The
+  browser reports a dismissal the same way it reports being refused, so cancelling the sheet
+  swapped the button for the copy-and-links list. Only a sheet the browser will not open falls
+  back to that list now, which is what the [Permissions Policy] table describes.
+
+- **A registration that never reached us no longer blames the security check.** ([#365]) Atlas
+  registrations were failing in production: SahajCloud refused the browser's preflight for the
+  header carrying the security check's token, so the sign-up was never sent, and the form asked
+  the visitor to do the check again — advice that could not work, since the check had passed.
+  The refusal itself was fixed in SahajCloud ([SahajCloud#1085]). Here, a request that got no
+  response at all now says the connection or the server is at fault, in the error colour rather
+  than the blue a refusal uses; a response that may have spent the token keeps the old sentence. A
+  smoke case now replays the widget's own preflight, so the next such break fails a test lane
+  rather than every visitor.
+
+- **A direct link to an online class now zooms the map to its region.** ([#363]) An online
+  class usually has no location of its own, so a link to one, such as `…/ca/ontario/toronto/720`,
+  opened the class over the whole-world map. It now frames the class's region, as a region link
+  does, and a direct link to an Online Classes drawer frames the same way. A region is drawn
+  from the in-person classes under it, so where it has none the map climbs to the nearest
+  region that has some — a city running only online classes zooms to its province rather than
+  staying on the world map. A link whose whole country runs only online classes still opens on
+  the world map, since there is nothing to zoom to. Opening the class from inside the widget
+  still leaves the map where the visitor has it. No parameter, origin or CSP change.
+
+- **Under `routing=path`, a failed client-record read no longer drops you to query routing.** ([#351])
+  Any failure to read the record — SahajCloud down or erroring, not only a refused key — fell
+  back to query routing, printed a warning blaming your record for a missing canonical embed, and
+  once the visitor pressed "Try again" wrote `?atlas=` URLs under your path prefix. Only a refused
+  key falls back now, to the configuration-error screen as before. Anything else — a 5xx, an
+  offline visitor — reaches the widget's own error screen, with a "Try again" that re-reads the
+  record: the same screen a query-mode embed already showed for the same failure, so neither mode
+  answers an outage worse than the other. Its copy is translated like the rest of the widget, so
+  an outage that takes the translations too leaves it in English. It offers no "Report an issue"
+  control, since the report form mounts below the point where path mode waits. No parameter,
+  origin or CSP change.
+- **Opening on your client record's home region no longer adds a history entry.** ([#351]) The first
+  open navigated to the region by pushing an entry onto your page's history, so the visitor's
+  first Back press only moved the widget back to the world list and a second one was needed to
+  leave your page. It now replaces your page's entry, as the widget's own mount already did
+  ([#112]). Your `atlas` default under `routing=path` opens the same way. No parameter, origin or
+  CSP change.
+- **An online class reads in the visitor's own time throughout.** ([#351]) Its weekday and date were the
+  visitor's but its time was the host's, so a Wednesday 7:30 PM class hosted from Prague read
+  "Every Thursday · 7:30 PM" in Sydney. The whole line is now the visitor's — "Every Thursday ·
+  3:30 AM", as the calendar and the date filters already had it — and the faded line under
+  "Hosted from Prague" gives the host's own clock, "Wed 7:30 PM", wherever the two differ — with
+  no place name, since the line above it already names the city. That line used to name the visitor's region from the `ipwho.is` lookup, so an online
+  class no longer starts that lookup: it runs only for the "classes near you" prompt. No
+  parameter, origin or CSP change.
+- **"Find my location" says when it could not get a location.** ([#321]) A declined prompt, an
+  unavailable position or a timeout used to leave the button doing nothing; a short dialog now
+  says so and points at the place search. A permission the visitor had already blocked before
+  the map loaded still shows the control disabled, as before. Nothing to change on your side.
+- **A class shows the room inside its venue.** ([#316]) Where a manager has set one, the class
+  view names the room on its own line above the street address. List cards and the
+  registration summary are unchanged.
 - **The map credits Mapbox again, where you can see them.** ([#324]) The Mapbox wordmark sat
   in the corner the panel covers on a wide embed and the bottom sheet covers on a narrow one,
   so it was never visible, and the attribution control was switched off altogether — both are
@@ -660,8 +919,8 @@ must-revalidate`, pinned rather than left to the CDN default. The production dom
   origin your CSP already allows — no policy change needed. Three things a host can
   observe. It reports on **every** load rather than only when something changed, so "last
   seen" distinguishes a live embed from a removed one; repeat reports of an unchanged page
-  collapse server-side into at most one write an hour. It still sends your **origin and
-  path only**, with one exception: a WordPress **`?p=<number>`** permalink is preserved,
+  collapse server-side into at most one write in any 6 h window. It still sends your
+  **origin and path only**, with one exception: a WordPress **`?p=<number>`** permalink is preserved,
   because discarding it reported every post on a default-permalink site as the same page.
   Anything else in the query is still dropped, `?p=123&utm_source=…` included. And a
   refusal — your domain missing from the service's allowed-domains list, or the 50-mount
@@ -811,9 +1070,22 @@ must-revalidate`, pinned rather than left to the CDN default. The production dom
 [#147]: https://github.com/sydevs/SahajAtlasWeb/issues/147
 [#283]: https://github.com/sydevs/SahajAtlasWeb/issues/283
 [#311]: https://github.com/sydevs/SahajAtlasWeb/pull/311
+[#374]: https://github.com/sydevs/SahajAtlasWeb/pull/374
+[#380]: https://github.com/sydevs/SahajAtlasWeb/pull/380
+[#370]: https://github.com/sydevs/SahajAtlasWeb/pull/370
+[#392]: https://github.com/sydevs/SahajAtlasWeb/pull/392
+[#399]: https://github.com/sydevs/SahajAtlasWeb/pull/399
+[#371]: https://github.com/sydevs/SahajAtlasWeb/pull/371
+[#393]: https://github.com/sydevs/SahajAtlasWeb/issues/393
+[#363]: https://github.com/sydevs/SahajAtlasWeb/pull/363
+[#369]: https://github.com/sydevs/SahajAtlasWeb/pull/369
+[#351]: https://github.com/sydevs/SahajAtlasWeb/pull/351
 [#312]: https://github.com/sydevs/SahajAtlasWeb/pull/312
 [#320]: https://github.com/sydevs/SahajAtlasWeb/issues/320
 [#326]: https://github.com/sydevs/SahajAtlasWeb/issues/326
+[#343]: https://github.com/sydevs/SahajAtlasWeb/issues/343
+[SahajCloud#1072]: https://github.com/sydevs/SahajCloud/issues/1072
+[SahajCloud#1090]: https://github.com/sydevs/SahajCloud/pull/1090
 [#322]: https://github.com/sydevs/SahajAtlasWeb/issues/322
 [#329]: https://github.com/sydevs/SahajAtlasWeb/pull/329
 [#325]: https://github.com/sydevs/SahajAtlasWeb/issues/325
@@ -823,3 +1095,16 @@ must-revalidate`, pinned rather than left to the CDN default. The production dom
 [Embedding in an iframe]: docs/embedding.md#embedding-in-an-iframe
 [Permissions Policy]: docs/embedding.md#permissions-policy
 [#324]: https://github.com/sydevs/SahajAtlasWeb/issues/324
+[#160]: https://github.com/sydevs/SahajAtlasWeb/issues/160
+[#321]: https://github.com/sydevs/SahajAtlasWeb/issues/321
+[#316]: https://github.com/sydevs/SahajAtlasWeb/issues/316
+[#17]: https://github.com/sydevs/SahajAtlasWeb/issues/17
+[#365]: https://github.com/sydevs/SahajAtlasWeb/pull/365
+[#366]: https://github.com/sydevs/SahajAtlasWeb/pull/366
+[SahajCloud#1085]: https://github.com/sydevs/SahajCloud/pull/1085
+[#349]: https://github.com/sydevs/SahajAtlasWeb/issues/349
+[If your page replaces the element]: docs/embedding.md#if-your-page-replaces-the-element
+[On Wix, the script embed is a Custom Element]: docs/embedding.md#on-wix-the-script-embed-is-a-custom-element
+[#387]: https://github.com/sydevs/SahajAtlasWeb/issues/387
+[#409]: https://github.com/sydevs/SahajAtlasWeb/pull/409
+[#411]: https://github.com/sydevs/SahajAtlasWeb/pull/411
