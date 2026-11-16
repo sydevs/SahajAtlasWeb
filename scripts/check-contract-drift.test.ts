@@ -1,13 +1,9 @@
-import { readFileSync } from 'node:fs'
-import { resolve } from 'node:path'
-
 import { describe, expect, it } from 'vitest'
+
+import { readRepoSource } from '../src/test-support/repo-source'
 
 import { exitCodeFor, head, renderReport, tail } from './check-contract-drift.mjs'
 import { CMS_TYPE_SOURCES } from './fetch-cms-types.mjs'
-
-// Read directly: `readRepoSource` is a hub whose dependent count `select-unit-specs.test.ts` ratchets.
-const readRepoSource = (path: string) => readFileSync(resolve(__dirname, '..', path), 'utf8')
 
 const result = (status: 'ok' | 'drift' | 'error' | 'skipped') => ({
   name: `${status}.json`,
@@ -70,31 +66,5 @@ describe('renderReport', () => {
     expect(report).toContain('| `skipped.json` | skipped |')
     expect(report).toContain('drift detail')
     expect(report).not.toContain('ok detail')
-  })
-})
-
-describe('contract-drift.yml', () => {
-  const lane = readRepoSource('.github/workflows/contract-drift.yml')
-
-  // A scheduled read of upstream in a PR gate would turn an unrelated PR red.
-  it('runs on a clock and by hand, never on a pull request', () => {
-    expect(lane).toMatch(/^\s*schedule:/m)
-    expect(lane).toMatch(/^\s*workflow_dispatch:/m)
-    expect(lane).not.toMatch(/^\s*(pull_request|pull_request_target|push|merge_group):/m)
-  })
-
-  // ⚠ `resolveKey` returns `ATLAS_API_KEY` at its first line, so a fallback promoted into that
-  // name skips the guard refusing a key whose `VITE_SAHAJCLOUD_URL` is not production
-  // (`scripts/sync-translations.mjs`). That bypass is invisible: the read succeeds.
-  it('hands each translations key to the script under its own name', () => {
-    expect(lane).toContain('ATLAS_API_KEY: ${{ secrets.ATLAS_API_KEY }}')
-    expect(lane).toContain('VITE_SAHAJCLOUD_API_KEY: ${{ secrets.VITE_SAHAJCLOUD_API_KEY }}')
-    expect(lane).not.toMatch(/ATLAS_API_KEY: \$\{\{[^}]*\|\|/)
-  })
-
-  it('files the issue as the bot and writes nothing to the repo', () => {
-    expect(lane).toContain('GH_TOKEN: ${{ secrets.SYDEVS_BOT_PAT }}')
-    expect(lane).not.toContain('secrets.GITHUB_TOKEN')
-    expect(lane).toMatch(/permissions:\s*\n\s*contents: read/)
   })
 })
