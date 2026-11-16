@@ -49,7 +49,7 @@
  * bytes sent over the wire.
  */
 
-import { existsSync, readFileSync } from 'node:fs'
+import { existsSync, readFileSync, realpathSync } from 'node:fs'
 import { basename, dirname, join, relative, resolve, sep } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { gzipSync } from 'node:zlib'
@@ -179,32 +179,35 @@ export const BUDGET_KIB = {
   embed: 336,
 }
 
-// What a credentialed build adds to each graph, in KiB. `@sentry/vite-plugin`
-// injects a debug-ID snippet into every chunk, and no local build, CI run or
-// fork build holds the token that triggers it. So the files this script
-// measures are not the files a visitor downloads, and the difference is what
-// the budget above is actually about.
+// What `@sentry/vite-plugin`'s per-chunk debug-ID snippet adds to each graph,
+// in KiB, for a build with no token to trigger it. It scales with chunk count
+// rather than bytes, so it is per-graph: 0.5 KiB is 17% of the loader graph and
+// 1.2 KiB is 0.4% of the embed graph.
 //
-// The gap scales with chunk count, not bytes, so it is per-graph: 0.5 KiB is
-// 17% of the loader graph and 1.2 KiB is 0.4% of the embed graph. A flat
-// figure is wrong in both directions.
-//
-// Measured on ca3f207, one commit built both ways — `pnpm build`, and again
-// under `ci.yml`'s "Source-map upload chain (offline dry run)" environment,
-// which is the only credentialed build reachable without a real token
+// Measured on ca3f207, built both ways — `pnpm build`, then again under
+// `ci.yml`'s "Source-map upload chain (offline dry run)" environment, which is
+// the only credentialed build reachable without a real token
 // (`docs/rules/deployment.md`):
 //
 //   standalone  330.341 → 331.465 KiB
 //   loader        2.759 →   3.224 KiB
 //   embed       331.422 → 332.574 KiB
 //
-// ⚠ A new graph needs its own measurement before it gets an entry here.
-// Deriving one from a neighbour is how the figure stops being a measurement.
+// ⚠ Measure a new graph before giving it an entry. Deriving one from a
+// neighbour is how the figure stops being a measurement.
 export const SENTRY_GAP_KIB = {
   standalone: 1.1,
   loader: 0.5,
   embed: 1.2,
 }
+
+// `@sentry/vite-plugin` names the snippet it injects, so a build that already
+// carries it is recognisable and the gap must not be added twice. ⚠ Match this
+// identifier, never `_sentryDebugIds`: the Sentry SDK's own lookup code spells
+// that one and every build emits it. It sits in a lazy chunk outside all three
+// graphs today, so the looser match happens to read the same — one re-chunk
+// away from declaring every build credentialed and scoring the gap at zero.
+const DEBUG_ID_MARKER = '_sentryDebugIdIdentifier'
 
 // A budget set far above the real payload is a green check that checks
 // nothing. That is the exact failure this script was written against,
@@ -218,12 +221,9 @@ export const SENTRY_GAP_KIB = {
 // over-budget check alone would then report a comfortable pass, on a
 // payload it never actually measured.
 //
-// A `SLACK_FLOOR_KIB = 1` sat beside this ratio until #414. It existed
-// because the two rules read different numbers — a budget had to clear the
-// credentialed payload while the ratchet measured slack against the
-// uncredentialed one, leaving the loader a window about 0.03 KiB wide. Both
-// read the shipped figure now, so that window is the 3.28-to-3.86 KiB the
-// ratio allows, and a floor would only loosen the ratchet.
+// No floor under this ratio since #414: both rules read the shipped figure
+// now, so the loader budget has the whole 3.26-to-3.83 KiB window the ratio
+// allows, and a floor would only loosen the ratchet on the smallest graph.
 const SLACK_RATIO = 0.15
 
 const DIST = resolve(import.meta.dirname, '..', 'dist')
@@ -305,10 +305,14 @@ function htmlGraph(html) {
  *
  * `kib` is what this build contains. `shipped` is what a visitor downloads,
  * and it is the only figure the verdicts read — a gate that judged `kib`
- * would report spare space on a payload that is over budget, which is what
- * it did on #413.
+ * reports spare space on a payload that is over budget, which is what
+ * happened on #413: 333.0 KiB measured against a 334 budget, 334.2 shipped.
+ *
+ * `credentialed` says this build already emitted the debug-ID snippet, so its
+ * measured size IS its shipped size. Adding the gap anyway would red a loader
+ * graph sitting 0.34 KiB inside its budget.
  */
-export function score(name, kib) {
+export function score(name, kib, credentialed = false) {
   const budget = BUDGET_KIB[name]
   const gap = SENTRY_GAP_KIB[name]
 
@@ -327,16 +331,16 @@ export function score(name, kib) {
     )
   }
 
-  const shipped = kib + gap
+  const shipped = credentialed ? kib : kib + gap
   const spare = budget - shipped
 
   return {
     name,
     kib,
-    gap,
     shipped,
     budget,
     spare,
+    credentialed,
     over: spare < 0,
     under: spare > budget * SLACK_RATIO,
   }
@@ -348,7 +352,10 @@ function measure(name, files) {
     .map((file) => ({ file: relative(DIST, file), bytes: gzipBytes(file) }))
     .sort((a, b) => b.bytes - a.bytes)
 
-  return { parts, ...score(name, parts.reduce((sum, p) => sum + p.bytes, 0) / KIB) }
+  const kib = parts.reduce((sum, p) => sum + p.bytes, 0) / KIB
+  const credentialed = files.some((file) => readFileSync(file, 'utf8').includes(DEBUG_ID_MARKER))
+
+  return { parts, ...score(name, kib, credentialed) }
 }
 
 function main() {
@@ -479,9 +486,6 @@ function main() {
     measure('embed', embedGraph),
   ]
 
-  // Both figures, because a reader who sees only one cannot tell which rule
-  // a budget edit has to clear. `measured` is these files; `shipped` is
-  // those files plus the Sentry debug-ID snippet no build here emits.
   const lines = [
     '### Bundle size — eager payload (gzipped)',
     '',
@@ -496,6 +500,14 @@ function main() {
 
     lines.push(
       `| \`${g.name}\` | ${g.kib.toFixed(1)} KiB | ${g.shipped.toFixed(1)} KiB | ${g.budget} KiB | ${verdict} |`,
+    )
+  }
+
+  // Otherwise the two columns agreeing reads as a bug in the gate.
+  if (graphs.every((g) => g.credentialed)) {
+    lines.push(
+      '',
+      '> This build emitted the Sentry debug-ID snippet, so it IS the shipped payload and no gap was added.',
     )
   }
 
@@ -540,12 +552,10 @@ function main() {
   if (over.length) {
     annotate(
       'error',
-      `Bundle size over budget: ${name(over)} shipped (budget ${over[0].budget} KiB). ` +
-        'That is the measured graph plus its SENTRY_GAP_KIB entry, so a measured figure ' +
-        'inside the budget still fails here. Either reduce the eager payload, or — if the ' +
-        'growth is intended and justified — raise BUDGET_KIB in ' +
-        'scripts/check-bundle-size.mjs in the same commit, with the reason in the commit ' +
-        'message.',
+      `Bundle size over budget: ${name(over)} shipped (budget ${over[0].budget} KiB). Either ` +
+        'reduce the eager payload, or — if the growth is intended and justified — raise ' +
+        'BUDGET_KIB in scripts/check-bundle-size.mjs in the same commit, with the reason ' +
+        'in the commit message.',
     )
     process.exit(1)
   }
@@ -567,6 +577,13 @@ function main() {
   }
 }
 
-if (process.argv[1] === fileURLToPath(import.meta.url)) {
+// Lets the spec import `score` without running the check. `realpathSync` on both sides, as
+// `assert-preview-host.mjs` does, because `process.argv[1]` keeps a symlink's path while
+// `import.meta.url` resolves to the target — and a guard that reads false here exits 0 having
+// measured nothing, which is the silent green this whole script refuses. ⚠ It is tested first:
+// `realpathSync('')` throws ENOENT, so a defaulted empty would crash the import.
+const invokedAs = process.argv[1]
+
+if (invokedAs && realpathSync(invokedAs) === realpathSync(fileURLToPath(import.meta.url))) {
   main()
 }

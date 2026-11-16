@@ -3,10 +3,10 @@ import { describe, expect, it } from 'vitest'
 import { BUDGET_KIB, SENTRY_GAP_KIB, score } from './check-bundle-size.mjs'
 
 /**
- * The gate measures an uncredentialed build and production ships a credentialed
- * one, so the files on disk are not the files a visitor downloads. These cases
- * pin that the verdicts read the shipped figure. #413 is why: 333.0 KiB measured
- * against a 334 budget reported spare space, on a payload that shipped 334.2.
+ * A build with no Sentry token emits none of the per-chunk debug-ID snippet
+ * production ships, so the files on disk are not the files a visitor downloads.
+ * These cases pin that the verdicts read the shipped figure, and that a build
+ * already carrying the snippet is not charged for it twice (#413, #414).
  */
 describe('score', () => {
   it('fails a graph whose shipped size is over budget though its measured size is not', () => {
@@ -19,6 +19,12 @@ describe('score', () => {
 
   it('passes a graph inside its budget in shipped terms', () => {
     expect(score('embed', 331.4)).toMatchObject({ over: false, under: false })
+  })
+
+  // 3.224 is the loader graph of a credentialed build, 0.34 KiB inside its
+  // budget. Charged the gap a second time it reads 3.72 and fails.
+  it('adds no gap to a build that already emitted the snippet', () => {
+    expect(score('loader', 3.224, true)).toMatchObject({ shipped: 3.224, over: false })
   })
 
   // 2.759 sits 0.84 KiB under the 3.6 budget — past the 15% the ratchet
@@ -36,19 +42,8 @@ describe('score', () => {
     expect(() => score('ghost', 1)).toThrow(/BUDGET_KIB/)
   })
 
-  // The only way to reach the gap's own guard: every budgeted graph has a gap
-  // entry, which the case below holds. Without the guard an ungapped graph
-  // scores `NaN` and passes every comparison in the script.
-  it('refuses a budgeted graph with no measured Sentry gap', () => {
-    BUDGET_KIB.ghost = 1
-
-    try {
-      expect(() => score('ghost', 1)).toThrow(/SENTRY_GAP_KIB/)
-    } finally {
-      delete BUDGET_KIB.ghost
-    }
-  })
-
+  // What keeps score()'s own SENTRY_GAP_KIB guard unreachable. An ungapped
+  // graph would score `NaN`, which fails every comparison the script makes.
   it('gaps every graph it budgets', () => {
     expect(Object.keys(SENTRY_GAP_KIB).sort()).toEqual(Object.keys(BUDGET_KIB).sort())
   })
