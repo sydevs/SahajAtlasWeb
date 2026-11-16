@@ -29,7 +29,8 @@
     "sync:atlas-contract": "node scripts/sync-atlas-contract.mjs",
     "sync:translations": "node scripts/sync-translations.mjs",
     "types:cms": "mkdir -p src/types/payload && curl -fsSL -o src/types/payload/payload-types.ts https://raw.githubusercontent.com/sydevs/SahajCloud/refs/heads/main/src/payload-types.ts && curl -fsSL -o src/types/payload/response-types.ts https://raw.githubusercontent.com/sydevs/SahajCloud/refs/heads/main/src/collections/Events/endpoints/responseTypes.ts && node scripts/strip-payload-augmentation.mjs",
-    "types:openapi": "node scripts/fetch-openapi.mjs"
+    "types:openapi": "node scripts/fetch-openapi.mjs",
+    "check:contracts": "node scripts/check-contract-drift.mjs"
   },
   "dependencies": {
     "@floating-ui/react": "^0.27.20",

@@ -83,6 +83,7 @@ Permissions Policy table holds the specifics.
 pnpm build:worker # the app Worker's Builds command (#280) — pnpm build, plus a dormant rm -f
 pnpm test:smoke   # smoke specs vs a deployed preview (needs PREVIEW_URL)
 pnpm size         # eager-payload budget (CI gate — run after pnpm build)
+pnpm check:contracts # diff the committed SahajCloud copies against upstream (daily contract-drift.yml)
 pnpm review:embed # serve dist/ as REAL host-page embeds for browser review (after pnpm build)
 pnpm check:wrangler # both Worker configs, dry run (CI gate — after pnpm build + ladle:build)
 ```

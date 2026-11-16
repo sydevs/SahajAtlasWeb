@@ -9,6 +9,9 @@
 //   pnpm sync:translations           # reports drift, exits 1 if there is any
 //   pnpm sync:translations --write   # rewrites the snapshot
 //
+// Exit codes: 0 in sync, 1 drift, 2 could not read production (no key, refusal, blank copy).
+// `scripts/check-contract-drift.mjs` runs this in check mode on a schedule and relies on 1 vs 2.
+//
 // ⚠ **It reads PRODUCTION, always.** A snapshot taken from a local or preview CMS would ship
 // somebody's half-finished copy edit to every host page. `VITE_SAHAJCLOUD_URL` is deliberately
 // not consulted for the origin.
@@ -157,5 +160,5 @@ const main = async () => {
 
 main().catch((error) => {
   console.error(error.message)
-  process.exitCode = 1
+  process.exitCode = 2
 })

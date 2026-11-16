@@ -12,6 +12,7 @@ paths:
   - '.claude/hooks/unit-test.mjs'
   - '.github/workflows/ci.yml'
   - '.github/workflows/production-smoke.yml'
+  - '.github/workflows/contract-drift.yml'
 ---
 
 # Testing
@@ -236,6 +237,15 @@ Pages building Preview and Production out of separate dashboard environments. Th
 values changed; the gap did not.) The `VITE_HOST` story above is that hole in one direction. A
 production origin blanked by a dashboard edit is the same hole in the other, and running the PR
 gate more often closes neither.
+
+**Drift from SahajCloud is a scheduled check, not a spec and not a PR gate.** The unit lane
+never touches the network, and an upstream merge is nothing a PR here caused, so
+`.github/workflows/contract-drift.yml` runs `pnpm check:contracts` daily and by hand. It diffs
+the four committed copies (`atlas-url-contract.json`, `translations.en.json`, `payload-types.ts`,
+`response-types.ts`) against upstream without writing anything, fails its own run, and keeps ONE
+open `contract-drift` issue. The translations check reads production with `ATLAS_API_KEY` (falling
+back to `VITE_SAHAJCLOUD_API_KEY`) and shows as `skipped` in the summary when neither secret
+exists. `openapi.json` is gitignored, so it has no copy to drift.
 
 `.github/workflows/production-smoke.yml` runs these same 22 specs against production. Five things
 about it are deliberate:

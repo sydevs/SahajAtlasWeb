@@ -1,0 +1,96 @@
+name: Contract drift
+
+# Checks every copy of a SahajCloud contract this repo commits against upstream, on a clock
+# (issue: nothing ran `sync:atlas-contract`, `sync:translations` or `types:cms` until a human
+# remembered to). What it checks and how: `scripts/check-contract-drift.mjs`.
+#
+# ⚠ Never a PR check, and never a `ci.yml` job. An upstream SahajCloud merge is not something a
+# PR here caused, so a gate would turn an unrelated PR red. This lane reads upstream on a
+# schedule, fails its own run, and keeps ONE open issue. It writes nothing to the repo: a drift
+# is a behaviour change to read, then re-sync in a PR (`pnpm types:cms`,
+# `pnpm sync:atlas-contract --write`, `pnpm sync:translations --write`, then `pnpm test:run`).
+
+on:
+  schedule:
+    - cron: '17 6 * * *' # daily, off the hour
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  drift:
+    name: Contract drift
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+      - uses: pnpm/action-setup@v6 # reads packageManager from package.json
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .node-version
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+
+      # `translations.en.json` is read from PRODUCTION, which needs a production
+      # `sahaj-atlas-client` key. `ATLAS_API_KEY` is the intended secret (docs/environment.md);
+      # until it exists, `VITE_SAHAJCLOUD_API_KEY`, which ci.yml already holds, is tried. With
+      # neither the value is the empty string, and the script reports that check as `skipped`
+      # in the table and the step summary instead of passing as if it had read production.
+      - name: Check each contract against SahajCloud
+        id: check
+        env:
+          ATLAS_API_KEY: ${{ secrets.ATLAS_API_KEY || secrets.VITE_SAHAJCLOUD_API_KEY }}
+        run: pnpm check:contracts --report "$RUNNER_TEMP/drift.md"
+
+      # Only a real drift files an issue. An unreachable upstream (exit 2) fails the run and
+      # stops there: it is not a finding about the copies. It files as sydevs-bot for the
+      # reason production-smoke.yml gives: the dispatcher's worklist keys on the author.
+      # ONE open issue, found by label, gets a comment per later red run; nothing closes it.
+      - name: Open or update the drift issue
+        if: failure() && steps.check.conclusion == 'failure'
+        env:
+          GH_TOKEN: ${{ secrets.SYDEVS_BOT_PAT }}
+          ALERT_LABEL: contract-drift
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          REPORT: ${{ runner.temp }}/drift.md
+        run: |
+          if ! grep -q '| DRIFT |' "$REPORT" 2>/dev/null; then
+            echo "No drift in the report (a check could not run), so no issue. Read $RUN_URL" >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+          if [ -z "$GH_TOKEN" ]; then
+            echo "::error::No SYDEVS_BOT_PAT, so this drift reaches nobody. Alert by hand: $RUN_URL"
+            exit 1
+          fi
+          gh label create "$ALERT_LABEL" --repo "$GITHUB_REPOSITORY" --color FBCA04 \
+            --description "A committed copy of a SahajCloud contract differs from upstream" --force
+          existing=$(gh api \
+            "repos/$GITHUB_REPOSITORY/issues?state=open&labels=$ALERT_LABEL&per_page=1" \
+            --jq '.[0].number // empty')
+          marker='<sub>🤖 Written by the sydevs autonomous loop — see [what this is](https://github.com/sydevs/claude-workflow#the-loop)</sub>'
+          if [ -n "$existing" ]; then
+            gh issue comment "$existing" --repo "$GITHUB_REPOSITORY" --body "$(printf '%s\n\n%s\n\n%s\n' \
+              "Still drifted on \`$GITHUB_SHA\` — $RUN_URL." "$(cat "$REPORT")" "$marker")"
+            echo "Commented on #$existing." >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+          gh issue create --repo "$GITHUB_REPOSITORY" --label "$ALERT_LABEL" \
+            --title "A committed SahajCloud contract has drifted from upstream" \
+            --body "$(printf '%s\n' \
+              "A scheduled check found a copy in this repo that differs from SahajCloud's current one." \
+              "" \
+              "- Run: $RUN_URL" \
+              "- Commit: \`$GITHUB_SHA\`" \
+              "" \
+              "$(cat "$REPORT")" \
+              "" \
+              "A drift is a behaviour change to read before it is taken: read the diff, run the" \
+              "re-sync command in the table, then \`pnpm test:run\`. A red contract spec after the" \
+              "sync is the finding, not a fault. A check marked \`skipped\` was not read." \
+              "" \
+              "Later red runs comment here rather than filing again, and nothing closes this" \
+              "issue. Close it once \`pnpm check:contracts\` is clean." \
+              "" \
+              "$marker")"
+          echo "Filed a new drift issue." >> "$GITHUB_STEP_SUMMARY"

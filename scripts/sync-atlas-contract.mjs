@@ -19,9 +19,11 @@
  * it by raw URL, rather than re-deriving the rules. This script does
  * exactly that, as one command.
  *
- * Nothing runs it automatically: no workflow in this repo calls
- * `sync:atlas-contract`. SahajAtlasWordpress's CI is the only job that diffs
- * a copy against upstream.
+ * The check mode (no `--write`) runs on a schedule: `.github/workflows/contract-drift.yml`
+ * calls it through `scripts/check-contract-drift.mjs`, together with the
+ * translations snapshot and the `types:cms` copies, and files one issue when
+ * any of them differs. Exit codes: 0 identical, 1 drift, 2 SahajCloud could not
+ * be read. SahajAtlasWordpress's CI also diffs its own copy against upstream.
  *
  * **Why a script, and not a test.** The unit lane must never touch the
  * network (`docs/testing.md`). A fixture that fetches on every run would
