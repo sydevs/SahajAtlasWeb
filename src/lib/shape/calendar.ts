@@ -227,9 +227,7 @@ export type CalendarViewName =
  * leaving the switch able to hold a value with no matching item.
  */
 export type CalendarViewOption =
-  | typeof CALENDAR_VIEW_MONTH
-  | typeof CALENDAR_VIEW_WEEK
-  | typeof CALENDAR_VIEW_LIST
+  typeof CALENDAR_VIEW_MONTH | typeof CALENDAR_VIEW_WEEK | typeof CALENDAR_VIEW_LIST
 
 const CALENDAR_VIEW_OPTIONS: readonly CalendarViewOption[] = [
   CALENDAR_VIEW_MONTH,

@@ -73,9 +73,7 @@ const submissionData = (entries: Record<string, string | undefined>) =>
  * `RegistrationRefusedError` and takes the generic sentence.
  */
 export type RegistrationErrorCode =
-  | EventRegistrationErrorCode
-  | UserSubmissionErrorCode
-  | 'event_not_found'
+  EventRegistrationErrorCode | UserSubmissionErrorCode | 'event_not_found'
 
 export class RegistrationRefusedError extends Error {
   readonly code: RegistrationErrorCode
