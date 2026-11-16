@@ -157,10 +157,28 @@ import { annotate, report } from './_ci-output.mjs'
 // derived rather than built, since no credentialed build ran here. So the budget
 // clears the credentialed pair by about 1.6 KiB, and sits far inside the 15%
 // slack the ratchet below reads.
+//
+// 336 since #413's routine dependency batch, which took `embed` to 333.0
+// uncredentialed. Production then shipped 334.2 — past 334, while the gate read
+// 1.0 KiB spare. That is the #367 blind spot above, biting. Measured
+// uncredentialed, which is what CI reads:
+//
+//   standalone  331.9 KiB
+//   embed       333.0 KiB
+//
+// Production ships each plus this graph's Sentry gap above — 333.0 and 334.2,
+// derived rather than built, since no credentialed build ran here. 336 clears
+// the credentialed pair by 1.8 KiB, the margin #389 left.
+//
+// Nothing in that batch could be held back to win the 1.6 KiB. Reverted one at
+// a time against the rest, the largest single contributor was `react-hook-form`
+// at 0.4 KiB, and `vite` 8.3.5 and 8.3.8 emit a byte-identical `sheet` chunk
+// (520,264 B raw either way) that gzips 1.5 KiB larger than main's 521,993 B.
+// Gzip is paying for a different mix, not the minifier.
 const BUDGET_KIB = {
-  standalone: 334,
+  standalone: 336,
   loader: 3.6,
-  embed: 334,
+  embed: 336,
 }
 
 // A budget set far above the real payload is a green check that checks
