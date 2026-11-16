@@ -99,11 +99,13 @@ SahajCloud's:
   search sends the visitor's typed query and the map centre there. Mapbox GL
   posts load telemetry to `events.mapbox.com`. `map=false` drops the whole
   subtree.
-- **`react-circle-flags.pages.dev`** serves the country flag SVGs
-  (`referrer-policy: no-referrer`). **`challenges.cloudflare.com`** loads
+- The country flag SVGs are served from the widget's own origin
+  (`/flags/`, `referrer-policy: no-referrer`), so a host's `img-src` needs the widget's own origin
+  and nothing third-party.
+  **`challenges.cloudflare.com`** loads
   Turnstile as soon as the interface mounts, not when a visitor opens a form
   (#182) — from a challenge page SahajCloud serves, not from the host's page
-  (#343), so the host allows that page under `frame-src` instead. Both are in
+  (#343), so the host allows that page under `frame-src` instead. Every origin is in
   the CSP table in
   [`docs/embedding.md`](docs/embedding.md#content-security-policy).
 

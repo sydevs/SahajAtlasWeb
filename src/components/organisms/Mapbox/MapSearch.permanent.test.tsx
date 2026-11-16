@@ -12,7 +12,7 @@ import { SearchField } from '@/views/shared'
 // Node-only SSR assertions (see `docs/testing.md`). The geocoder is a custom element that cannot
 // mount here, so it is stood in for by a stub recording the options it was handed — the request
 // Mapbox will receive, which is the only place `permanent` is observable.
-const geocoder = vi.hoisted(() => ({ mounts: [] as Partial<GeocodingOptions>[] }))
+const geocoder = vi.hoisted(() => ({ mounts: [] as Partial<GeocodingOptions>[], locale: 'en' }))
 
 vi.mock('@mapbox/search-js-react', () => ({
   Geocoder: ({ options }: { options: Partial<GeocodingOptions> }) => {
@@ -25,7 +25,7 @@ vi.mock('react-i18next', () => ({
   useTranslation: () => ({ t: (key: string) => key }),
 }))
 vi.mock('@/config/i18n', () => ({ default: { resolvedLanguage: 'en' } }))
-vi.mock('@/hooks/use-locale', () => ({ useLocale: () => ({ locale: 'en' }) }))
+vi.mock('@/hooks/use-locale', () => ({ useLocale: () => ({ locale: geocoder.locale }) }))
 vi.mock('@/hooks/use-mapbox', () => ({ useMapbox: () => ({ mapbox: undefined }) }))
 vi.mock('@tanstack/react-query', async (importOriginal) => ({
   ...(await importOriginal<typeof import('@tanstack/react-query')>()),
@@ -69,5 +69,15 @@ describe('MapSearch — the options a mount hands the geocoder', () => {
   it('scopes the lookup to the country the route names, and to none without one', () => {
     expect(optionsOf(<MapSearch onSelect={() => {}} />, '/gb').country).toBe('GB')
     expect(optionsOf(<MapSearch onSelect={() => {}} />)).not.toHaveProperty('country')
+  })
+
+  // The TODO this pins said the geocoder would not switch. The locale is read per render, so a
+  // switch reaches the options the element is handed.
+  it('hands the geocoder the current locale, and the next one after a switch', () => {
+    geocoder.locale = 'en'
+    expect(optionsOf(<MapSearch onSelect={() => {}} />).language).toBe('en')
+    geocoder.locale = 'fr'
+    expect(optionsOf(<MapSearch onSelect={() => {}} />).language).toBe('fr')
+    geocoder.locale = 'en'
   })
 })

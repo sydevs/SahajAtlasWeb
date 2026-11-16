@@ -33,6 +33,7 @@ import {
   RING_ZOOM,
   LAYER_IDS,
 } from './layers'
+import { syncMapLanguage } from './map-language'
 import { markerColors, registerMarkerImages } from './markers'
 import { pinPopoverPlacement, type PopoverAnchor } from './pin-popover'
 
@@ -59,6 +60,7 @@ import {
 import { useLocale } from '@/hooks/use-locale'
 import { useTheme } from '@/hooks/use-theme'
 import { useMapbox } from '@/hooks/use-mapbox'
+import { pointCoordinates } from '@/lib/geo'
 
 const MAP_STYLES = {
   light: 'mapbox://styles/sydevadmin/ck7g6nag70rn11io09f45odkq',
@@ -273,6 +275,11 @@ export function Mapbox({ cooperative = false }: { cooperative?: boolean } = {}) 
   const { t, locale, languageCode } = useLocale()
   const { theme } = useTheme()
 
+  // The labels follow the widget's locale through a switch, not only at construction.
+  useEffect(() => {
+    syncMapLanguage(mapbox, locale)
+  }, [mapbox, locale])
+
   // Mapbox's own control strings are otherwise English on every embed. The
   // GeolocateControl's whole accessible name comes from these two strings
   // (issue #102).
@@ -469,8 +476,7 @@ export function Mapbox({ cooperative = false }: { cooperative?: boolean } = {}) 
           if (err || !mapbox) return console.error(err)
 
           moveMap({
-            // @ts-ignore
-            center: feature.geometry.coordinates,
+            center: pointCoordinates(feature.geometry),
             zoom: (zoom || mapbox.getZoom()) + 1,
             duration: 500,
           })
@@ -528,8 +534,10 @@ export function Mapbox({ cooperative = false }: { cooperative?: boolean } = {}) 
         fadeDuration={0}
         id="mapbox"
         interactiveLayerIds={INTERACTIVE_LAYER_IDS}
-        // @ts-ignore - Language is a valid property
-        language={locale} // TODO: Make sure this switches when locale changes
+        // The first language only: react-map-gl never updates `language` after construction, and
+        // its props type does not list it. It rides in a spread (which escapes the excess-property
+        // check) and `syncMapLanguage` keeps it current from then on.
+        {...{ language: locale }}
         locale={mapLocale}
         logoPosition="bottom-right"
         mapStyle={MAP_STYLES[theme]}

@@ -95,6 +95,11 @@ The map is the heart of the app and its hottest render path. Treat it carefully.
   responds to clicks or hover.
 - Map styles (light/dark) live in `Map.tsx`'s `MAP_STYLES`. Theme switches
   through `useTheme()`.
+- **Label language follows the locale through `syncMapLanguage`** (`map-language.ts`, one
+  `useEffect` in `Map.tsx`). react-map-gl reads the `language` prop once, at construction, so the
+  effect calls mapbox-gl's own `setLanguage` on every switch. The geocoder needs nothing: its
+  options are rebuilt per render and the wrapper re-applies them. ⚠ `locale` (the control
+  strings) is still construction-only.
 
 ## Sources and clustering
 

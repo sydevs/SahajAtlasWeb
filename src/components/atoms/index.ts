@@ -23,6 +23,9 @@ export type { ChipProps } from './Chip'
 export { Combobox } from './Combobox'
 export type { ComboboxProps, ComboboxOption } from './Combobox'
 
+export { CountryFlag } from './CountryFlag'
+export type { CountryFlagProps } from './CountryFlag'
+
 export {
   Drawer,
   DrawerContent,

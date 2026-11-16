@@ -44,6 +44,23 @@ cover everything a host would notice since the widget was first deployed.
 
 ### Changed
 
+- **Country flags are now served from the widget's own origin, not from `react-circle-flags.pages.dev`.** ([#PR]) The
+  flags on the country list and the country-website offer were fetched from a third-party
+  `pages.dev` project nobody here controls: were it ever deleted and re-registered, its new
+  owner could have served images into every embedding site, the same hole #283 closed for our own
+  host. The SVGs (MIT, from HatScripts/circle-flags, licence beside them) now ship under
+  `https://sahajatlas.com/flags/`. ⚠ **Add `https://sahajatlas.com` to your `img-src`** if you
+  send a Content-Security-Policy: your `script-src` and `font-src` already name it, but `img-src`
+  is a separate directive, and a strict policy blocks the flags until it lists the origin
+  (cosmetic: the lists still render). Once it does, `https://react-circle-flags.pages.dev` can be
+  removed from `img-src`; keeping it is harmless. Requests still carry `referrer-policy:
+  no-referrer`.
+
+- **The map's labels and the place search now follow the language you switch to.** ([#PR]) Both
+  were set once, in the language the page loaded with, so a visitor who changed language kept
+  English street and city names on the map until they reloaded. No change to your CSP or to any
+  parameter.
+
 - **Pins and cluster bubbles are drawn in your brand colour's light-map shade on the dark map
   too, and lose their black or white outline.** ([#399]) The dark basemap is mid-toned, so the
   paler shade the panels use on it washed the pins out — and a service whose colours were all

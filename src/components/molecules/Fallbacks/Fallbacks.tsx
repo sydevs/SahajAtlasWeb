@@ -4,7 +4,6 @@ import type { ErrorKind } from '@/lib/report'
 import type { RecoveryOffer } from '@/hooks/use-recovery-offer'
 
 import { useEffect, useRef } from 'react'
-import { CircleFlag } from 'react-circle-flags'
 import { useTranslation } from 'react-i18next'
 import { ErrorBoundary } from 'react-error-boundary'
 import { QueryErrorResetBoundary } from '@tanstack/react-query'
@@ -13,6 +12,7 @@ import { PhoneOutgoing } from 'lucide-react'
 import { Spinner } from '@/components/atoms/Spinner/Spinner'
 import { Alert } from '@/components/atoms/Alert/Alert'
 import { Button, controlSurface } from '@/components/atoms/Button'
+import { CountryFlag } from '@/components/atoms/CountryFlag'
 import { Link } from '@/components/atoms/Link'
 import { useReportModal } from '@/config/store'
 import { useReportForm } from '@/hooks/use-report-form'
@@ -559,13 +559,9 @@ export function OnwardLink({ offer }: { offer: RecoveryOffer }) {
       showAnchorIcon={offer.kind === 'country-site'}
     >
       {offer.kind === 'country-site' && (
-        <CircleFlag
+        <CountryFlag
           className="h-5 w-5 shrink-0 rounded-full border border-divider bg-divider"
-          countryCode={offer.countryCode.toLowerCase()}
-          // The flag SVG loads from react-circle-flags' own CDN. Without this
-          // attribute, the embedding host's URL would ride along to that third
-          // party on every render.
-          referrerPolicy="no-referrer"
+          countryCode={offer.countryCode}
         />
       )}
       {offerLabel(t, offer)}

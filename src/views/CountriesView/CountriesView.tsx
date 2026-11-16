@@ -1,10 +1,10 @@
 import { useMemo } from 'react'
 import { useQuery, useSuspenseQuery } from '@tanstack/react-query'
 import { Helmet } from 'react-helmet-async'
-import { CircleFlag } from 'react-circle-flags'
 import { useTranslation } from 'react-i18next'
 import { Monitor } from 'lucide-react'
 
+import { CountryFlag } from '@/components/atoms/CountryFlag'
 import { DrawerBody, DrawerHeader } from '@/components/atoms/Drawer'
 import { ActiveFilterPills, FallbackPanel, List, ListItem } from '@/components/molecules'
 import api, { clientQuery } from '@/config/api'
@@ -117,13 +117,9 @@ export function CountriesView() {
                 href={`${country.path}${filterSearch}`}
                 icon={
                   country.countryCode ? (
-                    <CircleFlag
+                    <CountryFlag
                       className="h-full w-full rounded-full border border-divider bg-divider"
-                      countryCode={country.countryCode.toLocaleLowerCase()}
-                      // Matches the country-site recovery rung (molecules/Fallbacks). The flag SVG
-                      // comes from react-circle-flags' CDN, and this request must not send the
-                      // host page's URL as a referrer.
-                      referrerPolicy="no-referrer"
+                      countryCode={country.countryCode}
                     />
                   ) : undefined
                 }
