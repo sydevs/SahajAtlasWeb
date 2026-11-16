@@ -27,14 +27,16 @@ moves, in the same bump as `@payloadcms/sdk`.
   schema to the generated ones is `PinnedToSahajCloud`, and its helpers are `SahajCloudFormField`
   and `SahajCloudBlock` (`src/types/report.ts` is the worked example). The same preference holds
   in identifiers and in prose — `src/AGENTS.md` carries it as a naming rule.
-- Each generated file is its own curl inside `types:cms`. Add a new line for a new
-  endpoint contract — it never appears by magic.
+- Each generated file is its own entry in `CMS_TYPE_SOURCES` (`scripts/fetch-cms-types.mjs`,
+  which `types:cms` runs). Add a pair for a new endpoint contract — it never appears by magic.
+  ⚠ `check-contract-drift.mjs` reads that same list, so a download added anywhere else is
+  fetched and never watched.
 - ⚠ A deleted upstream file can still resolve. SahajCloud deleted `POST
 /api/contact-admin` (SahajCloud#632/#653) along with its `contact-types.ts`
-  export, but the old curl URL kept resolving — it just started serving unrelated
+  export, but the old URL kept resolving — it just started serving unrelated
   SEO/sitemap types into a file still named after contact. Nothing here consumes
-  that content any more, and we deleted the line from `types:cms`. Check what a curled
-  URL actually serves, not only whether the curl succeeds.
+  that content any more, and we dropped the pair. Check what a fetched
+  URL actually serves, not only whether the fetch succeeds.
 
 ## The shared SDK client (`src/config/api/client.ts`)
 
