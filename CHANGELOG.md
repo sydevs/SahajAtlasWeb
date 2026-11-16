@@ -44,7 +44,7 @@ cover everything a host would notice since the widget was first deployed.
 
 ### Changed
 
-- **Country flags are now served from the widget's own origin, not from `react-circle-flags.pages.dev`.** ([#PR]) The
+- **Country flags are now served from the widget's own origin, not from `react-circle-flags.pages.dev`.** ([#418]) The
   flags on the country list and the country-website offer were fetched from a third-party
   `pages.dev` project nobody here controls: were it ever deleted and re-registered, its new
   owner could have served images into every embedding site, the same hole #283 closed for our own
@@ -56,7 +56,7 @@ cover everything a host would notice since the widget was first deployed.
   removed from `img-src`; keeping it is harmless. Requests still carry `referrer-policy:
   no-referrer`.
 
-- **The map's labels and the place search now follow the language you switch to.** ([#PR]) Both
+- **The map's labels and the place search now follow the language you switch to.** ([#418]) Both
   were set once, in the language the page loaded with, so a visitor who changed language kept
   English street and city names on the map until they reloaded. No change to your CSP or to any
   parameter.
@@ -1116,3 +1116,4 @@ must-revalidate`, pinned rather than left to the CDN default. The production dom
 [#387]: https://github.com/sydevs/SahajAtlasWeb/issues/387
 [#409]: https://github.com/sydevs/SahajAtlasWeb/pull/409
 [#411]: https://github.com/sydevs/SahajAtlasWeb/pull/411
+[#418]: https://github.com/sydevs/SahajAtlasWeb/pull/418
