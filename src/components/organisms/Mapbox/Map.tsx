@@ -112,20 +112,21 @@ const MAP_WORLDVIEWS: Record<string, string> = {
 // separate lean feed query.
 const toMapSource = (features: Geojson['features']): FeatureCollection<Geometry | null> => ({
   type: 'FeatureCollection',
-  features: features.map((feature) => ({
-    type: 'Feature',
-    geometry: feature.geometry,
-    properties: {
-      id: feature.properties.id,
-      webPath: feature.properties.webPath ?? null,
-      vague: hasApproximatePlace(feature.properties),
-      // What the ring's radius divides by, since an expression cannot read a point's latitude.
-      cosLat:
-        feature.geometry?.type === 'Point'
-          ? Math.cos((feature.geometry.coordinates[1] * Math.PI) / 180)
-          : null,
-    },
-  })),
+  features: features.map((feature) => {
+    const coordinates = pointCoordinates(feature.geometry)
+
+    return {
+      type: 'Feature',
+      geometry: feature.geometry,
+      properties: {
+        id: feature.properties.id,
+        webPath: feature.properties.webPath ?? null,
+        vague: hasApproximatePlace(feature.properties),
+        // What the ring's radius divides by, since an expression cannot read a point's latitude.
+        cosLat: coordinates ? Math.cos((coordinates[1] * Math.PI) / 180) : null,
+      },
+    }
+  }),
 })
 
 const DEBUG_BOUNDARY = false
@@ -439,10 +440,11 @@ export function Mapbox({ cooperative = false }: { cooperative?: boolean } = {}) 
     if (hoveredId == null || !data) return undefined
 
     const feature = data.features.find((f) => f.properties.id === hoveredId)
+    const coordinates = feature && pointCoordinates(feature.geometry)
 
-    if (!feature || feature.geometry?.type !== 'Point') return undefined
+    if (!feature || !coordinates) return undefined
 
-    const [longitude, latitude] = feature.geometry.coordinates
+    const [longitude, latitude] = coordinates
     const container = mapbox?.getContainer()
     const placement = pinPopoverPlacement(
       mapbox?.project([longitude, latitude]) ?? { x: 0, y: 0 },

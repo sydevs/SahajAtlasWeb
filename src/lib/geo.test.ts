@@ -43,8 +43,10 @@ describe('pointCoordinates', () => {
     expect(pointCoordinates({ type: 'Point', coordinates: [1, 2] } as never)).toEqual([1, 2])
   })
 
+  // `null` is the feed's own spelling for an online event, which carries no place at all.
   it('refuses any other geometry, and none', () => {
     expect(pointCoordinates({ type: 'LineString' })).toBeUndefined()
     expect(pointCoordinates(undefined)).toBeUndefined()
+    expect(pointCoordinates(null)).toBeUndefined()
   })
 })

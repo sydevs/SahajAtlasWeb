@@ -50,12 +50,13 @@ export const approxBounds = (center: Position, radiusKm: number): BBox =>
   bbox(circle(center, radiusKm, { units: 'kilometers' }))
 
 /**
- * A feature geometry's `[lng, lat]` when it is a Point, else `undefined`. A rendered Mapbox
+ * A feature geometry's `[lng, lat]` when it is a Point, else `undefined` — the one Point
+ * narrowing the map makes, over both the typed feed and a rendered feature. A rendered Mapbox
  * feature's geometry is a union of every GeoJSON shape, so `.coordinates` is not a position
  * until narrowed — and a cluster is always a Point, but the types cannot know that.
  */
 export const pointCoordinates = (
-  geometry: { type: string } | undefined,
+  geometry: { type: string } | null | undefined,
 ): [number, number] | undefined => {
   if (geometry?.type !== 'Point') return undefined
   const { coordinates } = geometry as Point
