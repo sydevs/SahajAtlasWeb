@@ -59,120 +59,51 @@ import { annotate, report } from './_ci-output.mjs'
 // ---------------------------------------------------------------------------
 // THE BUDGET. One constant, deliberately easy to edit.
 //
-// ⚠ A budget is judged against the SHIPPED payload — a graph's measured
-// size plus its `SENTRY_GAP_KIB` entry. A figure quoted below is the
-// uncredentialed measurement unless its line says credentialed, so a budget
-// edit has to clear that figure plus the graph's own gap.
+// ⚠ A budget is judged against the SHIPPED payload — a graph's measured size
+// plus its `SENTRY_GAP_KIB` entry. A figure quoted below is the uncredentialed
+// measurement unless its line says credentialed, so a budget edit has to clear
+// that figure plus the graph's own gap.
 //
-// This value sits just above the payload as measured on 2026-08-20. It
-// catches unnoticed *growth* without failing on the day this comment was
-// written. The headroom is about 3%. That is enough to absorb a
-// dependency patch bump, and tight enough that a newly-eager view still
-// trips it.
+// A budget sits just above the payload of the day, at about 3% headroom: enough
+// to absorb a dependency patch bump, tight enough that a newly-eager view still
+// trips it. RATCHET IT DOWN again whenever the payload shrinks, or the budget
+// quietly re-accumulates the slack it just won. `SLACK_RATIO` below enforces
+// that rather than trusting this comment to be read.
 //
-//   standalone  307.8 KiB  →  318
-//   embed       309.6 KiB  →  318
+// `loader` is the graph a host pays on every page view (#149). This script
+// budgets it an order of magnitude tighter than the other two, on purpose. The
+// whole justification for the loader is that a host embedding the widget below
+// the fold pays almost nothing until someone scrolls to it. A loader that
+// quietly grew to 30 KiB would still pass a lax budget, and give that benefit
+// away. The `embed` graph now fetches only on reveal, so it is a deferred cost
+// rather than an eager one. This script still budgets it, though, because
+// "deferred" does not mean "free". It is the cost a visitor who does look at
+// the widget waits for.
 //
-// The tailwindcss 3 → 4 upgrade (#246) raised this budget from 308, the
-// first raise since #161. Measured against origin/main at 5c85fda, built
-// the same uncredentialed way:
+// Every step to today's three figures, newest first, as standalone/embed and as
+// loader. `git log -p` on this constant holds each one in full, dated.
 //
-//   standalone  301.9 → 307.8 KiB
-//   embed       303.7 → 309.6 KiB
-//   loader        2.7 →   2.7 KiB
+//   336  331.9/333.0  #413  dependency batch; gzip paid for a different mix
+//   334  330.1/331.2  #389  `colord/plugins/lab`, which every embed owes
+//   330  326.8/328.6  #367  zod 4 (GHSA-mrhx-c7xc-m3w5), eager via every fetcher
+//   318  307.8/309.6  #246  tailwindcss 3 → 4
+//   310  299.3/301.3  #161  the map interface went behind a lazy seam, −83 KiB
+//   395  382.1/383.6  #96   calendar, registration and share drawers lazied
+//   495  479.5/480.4  #99
 //
-// The Lucide icon swap (#003) ratcheted this budget down. It took about
-// 3 KiB off both graphs. The tree-shaken glyphs cost less than the
-// hand-drawn path data they replaced, even after adding a dependency.
-// Note the direction: a swap that ADDS a package can still win space. The
-// ratchet stops that win from being quietly spent again later.
+//   3.6  2.84/3.31 credentialed  `auto.js` split off as a classic-script bridge,
+//                                for Wix, so the graph gained a whole chunk
+//   3.2  2.5                     vite 8.3.5's `__vitePreload` is 1519 raw bytes
+//                                against 8.3.4's 2444
+//   3.8  2.9                     #199's dependency batch took 0.3 KiB off the
+//                                graph and tripped the ratchet
 //
-// The previous budget was 310/310, against a measured 299.3/301.3 (issue
-// #161). That issue took about 83 KiB off both graphs, by moving the
-// whole map-bearing interface behind a lazy `FullInterface` seam. This is
-// what makes a compact embed cheap: a slot too small for the interface
-// mounts a card and one dialog, and it never fetches mapbox-gl at all.
-// Before that, the budget was 395/395, against 382.1/383.6 (issue #96,
-// which lazied the calendar, registration, and share drawers, saving
-// 99.7 KiB). Before that, the budget was 495/495, against 479.5/480.4
-// (issue #99).
+// ⚠ Ratchet `standalone` and `embed` back below 330 if the zod schemas ever
+// leave the eager graph.
 //
-// RATCHET THIS DOWN again whenever the payload shrinks. Otherwise the
-// budget quietly re-accumulates the slack it just won. `SLACK_RATIO`
-// below enforces this rule, rather than trusting this comment to be read.
-// ---------------------------------------------------------------------------
-// `loader` is the graph a host pays on every page view (#149). This
-// script budgets it an order of magnitude tighter than the other two, on
-// purpose. The whole justification for the loader is that a host
-// embedding the widget below the fold pays almost nothing until someone
-// scrolls to it. A loader that quietly grew to 30 KiB would still pass a
-// lax budget, and give that benefit away. The `embed` graph now fetches
-// only on reveal, so it is a deferred cost rather than an eager one. This
-// script still budgets it, though, because "deferred" does not mean
-// "free". It is the cost a visitor who does look at the widget waits for.
-//
-// The loader budget was 3.8 against a measured 2.9 (#199's routine
-// dependency batch took 0.3 KiB off the graph, which tripped the ratchet
-// below). It is 3.2 now, because vite 8.3.5 emits a smaller
-// `__vitePreload` helper than 8.3.4 — 1519 bytes against 2444, raw.
-//
-//   loader   2.5 KiB  uncredentialed  ← the number CI measures
-//   loader   2.8 KiB  credentialed    ← what production ships, derived
-//
-// 3.2 clears the 2.8 production ships and stays inside the slack window.
-//
-// 3.6 since the loader split in two: `auto.js` became a classic-script
-// bridge to `loader.js`, because Wix loads it with no `type`. The bridge is
-// its own chunk, so it adds its bytes and one more debug-ID snippet:
-//
-//   loader   2.78 KiB  uncredentialed  ← the number CI measures
-//   loader   3.26 KiB  credentialed    ← what the gate scores, 0.34 spare
-// `standalone` and `embed` were 318 until zod 4 (GHSA-mrhx-c7xc-m3w5). zod 4's
-// classic API is bigger than 3.25.76's in this graph, and the schemas are eager
-// because every fetcher parses through one. Measured uncredentialed, which is
-// what CI reads:
-//
-//   standalone  326.8 KiB
-//   embed       328.6 KiB
-//
-// Production ships each plus this graph's Sentry gap below — 328.0 and 329.8,
-// derived rather than built, since no credentialed build ran here.
-//
-// ⚠ `embed` shipped 0.2 KiB inside the 330 this budget was then, and the gate
-// could not see it: it read 328.6 and reported 1.4 KiB spare. The pair was
-// 324.4/326.2 when 330 was set, so the margin went unmeasured until #367, and
-// #414 is what put the gap inside the comparison. Ratchet the budget back if
-// the schemas ever leave the eager graph.
-//
-// 334 since #389. `colord/plugins/lab` is the eager cost: `selected-distinct`
-// compares the selected pin against the ordinary one, which is a colour-versus-
-// colour measure the a11y plugin cannot make, and every embed owes that check.
-// Measured uncredentialed, which is what CI reads:
-//
-//   standalone  330.1 KiB
-//   embed       331.2 KiB
-//
-// Production ships each plus this graph's Sentry gap below — 331.3 and 332.4 —
-// which is what the gate scores. So the budget clears the shipped pair by about
-// 1.6 KiB, and sits far inside the 15% slack the ratchet below reads.
-//
-// 336 since #413's routine dependency batch, which took `embed` to 333.0
-// uncredentialed. Production then shipped 334.2 — past 334, while the gate read
-// 1.0 KiB spare. That is the #367 blind spot above, biting, and #414 is what put
-// the gap inside the comparison so it cannot bite again. Measured
-// uncredentialed, which is what CI reads:
-//
-//   standalone  331.9 KiB
-//   embed       333.0 KiB
-//
-// Production ships each plus this graph's Sentry gap below — 333.1 and 334.2.
-// 336 clears the shipped pair by 1.8 KiB, the margin #389 left.
-//
-// Nothing in that batch could be held back to win the 1.6 KiB. Reverted one at
-// a time against the rest, the largest single contributor was `react-hook-form`
-// at 0.4 KiB, and `vite` 8.3.5 and 8.3.8 emit a byte-identical `sheet` chunk
-// (520,264 B raw either way) that gzips 1.5 KiB larger than main's 521,993 B.
-// Gzip is paying for a different mix, not the minifier.
+// ⚠ #003 ratcheted a budget down while ADDING a package: Lucide's tree-shaken
+// glyphs cost less than the hand-drawn path data they replaced. A swap that
+// adds a dependency can still win space.
 export const BUDGET_KIB = {
   standalone: 336,
   loader: 3.6,
