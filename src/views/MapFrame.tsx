@@ -120,12 +120,8 @@ function ContainedFrame({ children }: { children: ReactNode }) {
     // ⚠ Clip, never hidden — `components/AGENTS.md` carries why (#326). Nothing here was
     // measured overflowing: the invariant stated, not a defect repaired.
     //
-    // ⚠ `translateZ(0)` is for WebKit's compositor, not for layout — `contain: layout` already
-    // re-parents the fixed layer. WebKit clips a composited layer under a `position: fixed`
-    // ancestor in viewport coordinates whenever its compositing root is the page, and does not
-    // recompute that clip on scroll. Mapbox's WebGL canvas is one, so on iOS the map lagged its own
-    // box, then vanished, while the page scrolled. Making the frame the compositing root keeps
-    // those clips in frame coordinates.
+    // ⚠ `transform-gpu` is for WebKit's compositor, not for layout — `components/AGENTS.md`
+    // carries why (#424).
     <div
       ref={adopt}
       className="h-full w-full transform-gpu overflow-clip [contain:layout]"
