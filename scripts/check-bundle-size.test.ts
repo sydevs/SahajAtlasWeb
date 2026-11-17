@@ -59,16 +59,28 @@ const detect = (files: Record<string, string>) =>
 
 // A chunk shaped like the real output, so a passing case is not vacuously empty.
 const CHUNK = 'import{a as e}from"./shared-BcnT2Sen.js";const t=()=>e();export{t};'
+const INJECTED = `${CHUNK}var _sentryDebugIdIdentifier="sentry-dbid-8f2a";`
 
 describe('hasDebugIds', () => {
   it('reads a build that emitted no snippet as uncredentialed', () => {
     expect(detect({ 'embed.js': CHUNK, 'assets/shared-BcnT2Sen.js': CHUNK })).toBe(false)
   })
 
-  it('finds the snippet in any one chunk of the graph', () => {
-    const injected = `${CHUNK}var _sentryDebugIdIdentifier="sentry-dbid-8f2a";`
+  it('reads a build whose every chunk carries the snippet as credentialed', () => {
+    expect(detect({ 'embed.js': INJECTED, 'assets/shared-BcnT2Sen.js': INJECTED })).toBe(true)
+  })
 
-    expect(detect({ 'embed.js': CHUNK, 'assets/shared-BcnT2Sen.js': injected })).toBe(true)
+  // The plugin injects into every chunk, so one plain chunk means this `dist/`
+  // holds output from two builds. Reading it as credentialed would score the
+  // gap at zero on a payload that ships it — #413's under-charge again.
+  it('reads a graph mixing injected and plain chunks as uncredentialed', () => {
+    expect(detect({ 'embed.js': INJECTED, 'assets/shared-BcnT2Sen.js': CHUNK })).toBe(false)
+  })
+
+  // `[].every()` is true, so the guard rather than the predicate is what keeps
+  // an empty graph off the credentialed branch.
+  it('reads an empty graph as uncredentialed', () => {
+    expect(detect({})).toBe(false)
   })
 
   // The SDK's own lookup table spells `_sentryDebugIds`, and every build emits

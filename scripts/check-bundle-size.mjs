@@ -212,9 +212,16 @@ export const SENTRY_GAP_KIB = {
 // away from declaring every build credentialed and scoring the gap at zero.
 const DEBUG_ID_MARKER = '_sentryDebugIdIdentifier'
 
-/** Did a credentialed build already inject the snippet into this graph? */
+/**
+ * Did a credentialed build already inject the snippet into every chunk here?
+ *
+ * ⚠ Every chunk, not any. The plugin injects into all of them — 26 of 26
+ * emitted files under a token, 0 of 26 without one — so a `dist/` mixing the
+ * two kinds of build scores as uncredentialed and is charged the gap. That is
+ * the direction #413 was wrong in, and the only one this detection may fail in.
+ */
 export function hasDebugIds(files, read) {
-  return files.some((file) => read(file).includes(DEBUG_ID_MARKER))
+  return files.length > 0 && files.every((file) => read(file).includes(DEBUG_ID_MARKER))
 }
 
 // A budget set far above the real payload is a green check that checks
