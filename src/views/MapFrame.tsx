@@ -128,7 +128,7 @@ function ContainedFrame({ children }: { children: ReactNode }) {
     // those clips in frame coordinates.
     <div
       ref={adopt}
-      className="h-full w-full [transform:translateZ(0)] overflow-clip [contain:layout]"
+      className="h-full w-full transform-gpu overflow-clip [contain:layout]"
       data-sy-frame=""
     >
       {/* Held back until `adopt` has published this node, so the first drawer portals inside
