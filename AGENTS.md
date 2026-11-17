@@ -135,9 +135,7 @@ Four CI gates exist because each one once missed something, unnoticed (#99): `pn
 
 ## Environment
 
-Vite env vars are prefixed `VITE_` and read via `import.meta.env`. Public defaults live
-in `.env`. Secrets live in `.env.local` (gitignored, matched by `*.local`). See
-`docs/environment.md` for the full variable reference and the client-exposure rule.
+See `docs/environment.md` for the full variable reference and the client-exposure rule.
 
 Never commit a real secret. `MAPBOX_SECRET_ACCESSTOKEN` (`sk.…`) and other non-`VITE_`
 secrets must never reach client code — the bundle is public.
@@ -154,14 +152,6 @@ source-map policy and the deploy-side CI gates: `docs/rules/deployment.md`.
 Use the **cloudflare-docs** MCP for Cloudflare Workers questions. ⚠ Its published
 docs do not cover every wrangler config key — see `docs/mcp-setup.md` for what settles one
 when they are silent (#279).
-
-This repo once ran two Accent translation workflows
-(`.github/workflows/{push,sync}-accent.yml`, `accent.json`). #99 deleted them: every run
-had failed since 2026-06-22 on EOL Node 16, so the sync was already dead, and reviving it
-would have re-armed a push-to-`main` job with repo write access running an unpinned
-global install alongside `ACCENT_API_KEY`. Locale JSON under `public/locales/` is gone
-altogether since #198 — SahajCloud owns the copy, and its own translator tooling owns the
-workflow those two workflows were for.
 
 ## Git / PR workflow
 
@@ -187,30 +177,8 @@ stacked on `feat/calendar-view`). Two consequences:
   conflicts for no real reason. It once produced over 20 conflicts, including
   `pnpm-lock.yaml` and add/add conflicts on files neither side had meaningfully touched.
 
-**To rebase a stacked branch:**
-
-1. Size the real overlap first, so you know what to expect (usually a handful of files):
-
-   ```bash
-   git diff --name-only <your-branch-base> <your-branch> | sort > /tmp/mine
-   git diff --name-only <your-branch-base> origin/main | sort > /tmp/theirs
-   comm -12 /tmp/mine /tmp/theirs   # only these need hand-merging
-   ```
-
-2. Fetch `main` and rebase onto it:
-
-   ```bash
-   git fetch origin main
-   git rebase --onto origin/main <old-base> <your-branch>
-   ```
-
-**If the rebase needs approval you don't have yet:**
-
-1. Create a fresh branch off `origin/main`.
-2. Cherry-pick your commits: `git cherry-pick <old-base>..<your-branch>`.
-3. For every non-overlapping file, take your version wholesale:
-   `git checkout <your-branch> -- <paths>`.
-4. Hand-merge only the files the overlap check in step 1 found.
+**To rebase one** — the overlap check, the `--onto` rebase, and the cherry-pick fallback
+when the rebase needs approval you don't have yet — follow `docs/stacked-prs.md`.
 
 ### PR workflow (3 phases)
 

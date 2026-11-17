@@ -152,3 +152,13 @@ Each is built so passing proves something real:
   names a missing directory and reads like a broken gate.
   `scripts/wrangler-config.test.ts` pins which configs the gate names, since a script that
   dry-runs one of them exits 0.
+
+## Retired: the Accent translation workflows (#99)
+
+This repo once ran two Accent translation workflows
+(`.github/workflows/{push,sync}-accent.yml`, `accent.json`). #99 deleted them: every run
+had failed since 2026-06-22 on EOL Node 16, so the sync was already dead, and reviving it
+would have re-armed a push-to-`main` job with repo write access running an unpinned
+global install alongside `ACCENT_API_KEY`. Locale JSON under `public/locales/` is gone
+altogether since #198 — SahajCloud owns the copy, and its own translator tooling owns the
+workflow those two workflows were for.

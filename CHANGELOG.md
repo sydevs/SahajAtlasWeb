@@ -413,6 +413,14 @@ cover everything a host would notice since the widget was first deployed.
 
 ### Fixed
 
+- **A snippet in your `<head>` now waits for your page before it renders.** ([#411]) Since [#409]
+  `auto.js` runs as a plain script, so a tag in `<head>` — which is where Wix's Custom Element
+  puts it — could run before the browser had read your `<body>`. The widget then had nowhere to
+  go: the console said "could not find a place to render" and nothing appeared, or, from a tag in
+  the body, a second `<sahaj-atlas>` was created above your own and yours stayed empty. The loader
+  now waits for your page to finish parsing. Nothing to change in your snippet or your CSP, and a
+  tag written with `type="module"` never reached this — it was already waiting.
+
 - **The script embed now loads on Wix.** ([#409]) Wix's Custom Element adds `auto.js` without
   `type="module"`, and the file could not run that way: the console said "Cannot use import
   statement outside a module" and nothing rendered. `auto.js` now runs either way and starts the
@@ -1090,3 +1098,4 @@ must-revalidate`, pinned rather than left to the CDN default. The production dom
 [On Wix, the script embed is a Custom Element]: docs/embedding.md#on-wix-the-script-embed-is-a-custom-element
 [#387]: https://github.com/sydevs/SahajAtlasWeb/issues/387
 [#409]: https://github.com/sydevs/SahajAtlasWeb/pull/409
+[#411]: https://github.com/sydevs/SahajAtlasWeb/pull/411

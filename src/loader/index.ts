@@ -23,6 +23,9 @@
  *    `getBoundingClientRect`, frozen `history`, or be serving a `file://` document. An uncaught
  *    throw in a top-level script is the host's problem to debug, and this code's job to prevent —
  *    the same argument `Widget.tsx` already makes around its slot-measurement probe.
+ *    **One exception, at the entry below:** `document.readyState`, `addEventListener` and
+ *    `querySelector` run unguarded. A host that patched one into throwing has not been measured,
+ *    and a `try` there costs bytes in the one graph with a budget.
  * 2. **Block.** Do no synchronous work beyond parsing a URL, and start no network request before
  *    idle.
  * 3. **Write the host's URL.** The probes below are no-ops by construction (`replaceState` to
@@ -212,8 +215,8 @@ function resolveElement(script: HTMLScriptElement | null): HTMLElement | null {
   // reports the problem instead of guessing at a position. A widget in the wrong place is harder
   // to diagnose than one that explains why it is absent.
   error(
-    'could not find a place to render. Load auto.js from the page body, without `async` or ' +
-      `\`defer\`, or put an empty <${ELEMENT_NAME}></${ELEMENT_NAME}> where the widget should appear.`,
+    `could not find a place to render. Put an empty <${ELEMENT_NAME}></${ELEMENT_NAME}> where ` +
+      'the widget should appear, or load auto.js from the page body instead of `<head>`.',
   )
 
   return null
@@ -339,4 +342,14 @@ function start(script: HTMLScriptElement | null): void {
 // The host's `auto.js` tag, not this file's own: it carries every parameter, and it marks where
 // the widget goes. This file always runs as a module, which has no `document.currentScript`, so
 // the tag is found by the one filename every host installs.
-start(document.querySelector<HTMLScriptElement>('script[src*="auto.js"]'))
+const run = () => start(document.querySelector<HTMLScriptElement>('script[src*="auto.js"]'))
+
+// ⚠ **The document may still be parsing.** Since #409 `auto.js` is a classic script, so a tag in
+// `<head>` — Wix's Custom Element writes one — runs before `<body>` exists, and the module tag it
+// inserts for this file is `async`. A module host already runs at `interactive`, so this waits
+// for nobody.
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', run, { once: true })
+} else {
+  run()
+}
