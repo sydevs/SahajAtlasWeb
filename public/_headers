@@ -8,12 +8,13 @@
 /assets/*
   Cache-Control: public, max-age=31536000, immutable
 
-# The vendored country flags. Without a rule these 265 URLs take the platform default, which
+# The country flags, copied from the pinned `circle-flags` package at build time
+# (`scripts/circle-flags.mjs`). Without a rule these 265 URLs take the platform default, which
 # #148 measured at `max-age=14400` on sahajatlas.com — the freshness this file calls "a fix, not
 # a formality" for the unhashed files below.
 #
-# Deliberately not `/assets/*`'s immutable year: a flag carries no content hash, so a re-vendored
-# SVG ships under the same URL and an immutable response could not be replaced for its lifetime.
+# Deliberately not `/assets/*`'s immutable year: a flag carries no content hash, so a bumped
+# package version ships under the same URL and an immutable response could not be replaced for its lifetime.
 # A month, revalidated after, keeps that door open at a cost only a returning visitor pays.
 /flags/*
   Cache-Control: public, max-age=2592000

@@ -48,13 +48,13 @@ cover everything a host would notice since the widget was first deployed.
   flags on the country list and the country-website offer were fetched from a third-party
   `pages.dev` project nobody here controls: were it ever deleted and re-registered, its new
   owner could have served images into every embedding site, the same hole #283 closed for our own
-  host. The SVGs (MIT, from HatScripts/circle-flags, licence beside them) now ship under
-  `https://sahajatlas.com/flags/`. ⚠ **Add `https://sahajatlas.com` to your `img-src`** if you
+  host. The SVGs (MIT, from the pinned HatScripts `circle-flags` package, licence beside them) are
+  copied into the build and now ship under `https://sahajatlas.com/flags/`. ⚠ **Add `https://sahajatlas.com` to your `img-src`** if you
   send a Content-Security-Policy: your `script-src` and `font-src` already name it, but `img-src`
   is a separate directive, and a strict policy blocks the flags until it lists the origin
   (cosmetic: the lists still render). Once it does, `https://react-circle-flags.pages.dev` can be
   removed from `img-src`; keeping it is harmless. Requests still carry `referrer-policy:
-  no-referrer`.
+no-referrer`.
 
 - **The map's labels and the place search now follow the language you switch to.** ([#418]) Both
   were set once, in the language the page loaded with, so a visitor who changed language kept
@@ -492,8 +492,7 @@ cover everything a host would notice since the widget was first deployed.
 - **A slow security check no longer replaces the Atlas with an error.** ([#371]) The widget used
   to give the hidden captcha check 10 seconds before showing "This Atlas can't run on this page".
   It now waits 20 seconds and tries once more before deciding, so a page whose CSP refuses
-  `cloud.sydevelopers.com` under `frame-src` sees that screen after about 40 seconds rather than
-  10. A domain SahajCloud refuses outright is still reported at once.
+  `cloud.sydevelopers.com` under `frame-src` sees that screen after about 40 seconds rather than 10. A domain SahajCloud refuses outright is still reported at once.
 
 - **Phone fixes from the 6 November check of the live site.** ([#369]) A class's bottom sheet now
   opens as tall as the class needs, up to near full, so the Register bar no longer covers its

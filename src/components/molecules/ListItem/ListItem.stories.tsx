@@ -1,12 +1,13 @@
 import type { Story, StoryDefault } from '@ladle/react'
 
+import { CircleFlag } from 'react-circle-flags'
 import { Monitor } from 'lucide-react'
 
 import { StoryWrapper, StorySection } from '../../ladle'
 
 import { ListItem } from './ListItem'
 
-import { CountryFlag } from '@/components/atoms/CountryFlag'
+import { FLAG_CDN_URL } from '@/lib/flag-cdn'
 import { List } from '@/components/molecules/List'
 
 export default { title: 'Molecules / List' } satisfies StoryDefault
@@ -36,7 +37,7 @@ export const Default: Story = () => (
             <ListItem
               count={7}
               href="#area"
-              icon={<CountryFlag className={FLAG_CLASS} countryCode="gb" />}
+              icon={<CircleFlag cdnUrl={FLAG_CDN_URL} className={FLAG_CLASS} countryCode="gb" />}
               label="Oxford"
               subtitle="Oxfordshire"
             />
@@ -55,7 +56,7 @@ export const Default: Story = () => (
           <ListItem
             count={12}
             href="#country"
-            icon={<CountryFlag className={FLAG_CLASS} countryCode="in" />}
+            icon={<CircleFlag cdnUrl={FLAG_CDN_URL} className={FLAG_CLASS} countryCode="in" />}
             label="India"
           />
           <ListItem count={3} href="#country" label="No flag available" />
@@ -74,19 +75,19 @@ export const Default: Story = () => (
           <ListItem
             count={128}
             href="#country"
-            icon={<CountryFlag className={FLAG_CLASS} countryCode="in" />}
+            icon={<CircleFlag cdnUrl={FLAG_CDN_URL} className={FLAG_CLASS} countryCode="in" />}
             label="India"
           />
           <ListItem
             count={64}
             href="#country"
-            icon={<CountryFlag className={FLAG_CLASS} countryCode="gb" />}
+            icon={<CircleFlag cdnUrl={FLAG_CDN_URL} className={FLAG_CLASS} countryCode="gb" />}
             label="United Kingdom"
           />
           <ListItem
             count={22}
             href="#country"
-            icon={<CountryFlag className={FLAG_CLASS} countryCode="it" />}
+            icon={<CircleFlag cdnUrl={FLAG_CDN_URL} className={FLAG_CLASS} countryCode="it" />}
             label="Italy"
           />
         </List>

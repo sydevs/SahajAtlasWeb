@@ -10,6 +10,7 @@ import { existsSync } from 'node:fs'
 import process from 'node:process'
 import { resolve } from 'path'
 
+import circleFlags from './scripts/circle-flags.mjs'
 import flattenEntryImports from './scripts/flatten-entry-imports.mjs'
 
 /**
@@ -288,6 +289,7 @@ export default defineConfig(({ command }) => ({
     // `<script>` tag parsed up front.
     flattenEntryImports('loader'),
     stripDsStore(),
+    circleFlags(),
     // This plugin's position in the array does not set its order.
     // `sentryVitePlugin` returns `enforce: 'pre'`, so Vite hoists it
     // ahead of every plugin above, regardless of array order. What makes

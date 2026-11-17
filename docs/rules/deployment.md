@@ -65,10 +65,10 @@ move ran one site at a time, and the app's own cutover was split from building i
 Two deploy files live in `public/`, copied into both build outputs, and both govern both sites:
 
 - **`_headers`** — one site-wide `/*` rule carrying CORS (#91: a font always fetches in CORS
-  mode) and `X-Robots-Tag: noindex` (#106), plus `Cache-Control` on `/assets/*`, on the vendored
-  `/flags/*`, and on the three unhashed entry files (#148). The `/locales/*` rule went with the
+  mode) and `X-Robots-Tag: noindex` (#106), plus `Cache-Control` on `/assets/*`, on the country-flag
+  `/flags/*` (built from the pinned `circle-flags` package by `scripts/circle-flags.mjs`), and on the three unhashed entry files (#148). The `/locales/*` rule went with the
   bundles in #198. ⚠ **`/flags/*` takes a month, not `/assets/*`'s immutable year**: a flag SVG
-  carries no content hash, so a re-vendored one ships under the same URL and an immutable
+  carries no content hash, so a flag from a bumped `circle-flags` version ships under the same URL and an immutable
   response could never be replaced.
   ⚠ **No two rules may set the same header name on paths that overlap** — the platform applies
   every matching rule and comma-joins a repeated value, so two would serve `<value>, <value>`.
@@ -136,7 +136,7 @@ runbook is in `docs/environment.md`.
 Two of the four CI gates that exist because each one once missed something, unnoticed (#99).
 Each is built so passing proves something real:
 
-- **Dependency Review** (shared from `sydevs/claude-workflow`) fails only when a PR *adds*
+- **Dependency Review** (shared from `sydevs/claude-workflow`) fails only when a PR _adds_
   a dependency with a high or critical runtime advisory. An advisory against a dependency
   already on `main` never blocks a PR: the loop's daily Dependabot check fires `audit-deps`
   to fix it. The full-lockfile `pnpm audit:check` gate it replaced failed four unrelated
