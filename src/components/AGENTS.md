@@ -388,7 +388,7 @@ these two earn it because neither failure is reachable from our own code: the re
 inside the libraries, and every call site we own already passes the right arguments.
 Where our own code can reach the failure it fixes it itself, as `Mapbox/aria-live.ts` does.
 
-- **`@radix-ui/react-focus-scope@1.1.16`** listens for `focusin`/`focusout` on
+- **`@radix-ui/react-focus-scope@1.3.1`** listens for `focusin`/`focusout` on
   `document` and asks `container.contains(event.target)`. Inside a shadow root that
   target retargets to `<sahaj-atlas>`, the container's own *ancestor*, so the test is
   always false. Three consequences, not one: `lastFocusedElementRef` is never set and
@@ -436,20 +436,31 @@ reads covering all four primitives, or replacing all four. `focus-lock@1.3.6` ho
 `deepActiveElement` verbatim and does not export it — only a path inside its `dist/`.
 `aria-hidden@1.2.6` is still the newest published, so that patch waits on no upstream
 release.
-⚠ **`@radix-ui/react-focus-scope` is not — 1.3.1 is out, and this is now a BLOCK on the
-Radix family rather than a wait.** The patch is keyed to `1.1.16`, and every Radix
-primitive declares its own `^` range on focus-scope, so bumping any of them — dialog is
-at `1.1.23` and its next release is `1.1.24`, nowhere near `1.3.x` — resolves
-focus-scope `1.3.x` underneath all four, a second UNPATCHED copy, while the patched one
-stays in the tree as our direct devDependency. Nothing fails: the shadow boundary
-defects above come back silently. Measured on `pnpm update`, 2026-10-19.
-`pnpm.overrides` now holds focus-scope at `1.1.16` for every consumer, so a bump
-resolves the patched copy rather than an unpatched `1.3.x`. ⚠ That is a pin, not a
-refusal — pnpm violates a primitive's own range silently, so one that genuinely needs
-`1.3.x` would get `1.1.16` with no warning. Moving the family forward means re-basing
-the patch onto `1.3.1` and dropping the override in one change. `shadow-dom-utils`
-scopes itself to tests in its own README. Six expressions in non-test `src/` touch the
-boundary at all.
+⚠ **The focus-scope patch is keyed to one exact version, and the pin is deliberate.** Every
+Radix primitive declares its own `^` range on focus-scope, so a bump of any of them can
+resolve a second, UNPATCHED copy underneath all four while the patched one stays in the
+tree as our direct devDependency. Nothing fails at runtime: the shadow-boundary defects
+above come back silently. `pnpm.overrides` holds focus-scope at the patched version for
+every consumer, and `shadow-patches.test.ts` ("the patched copy each consumer resolves")
+fails if any package resolves a different or unpatched copy. ⚠ The override is a pin, not a
+refusal — pnpm violates a primitive's own range silently — so moving focus-scope forward
+means re-basing the patch, the `patchedDependencies` key and the override in one change.
+`shadow-dom-utils` scopes itself to tests in its own README. Six expressions in non-test
+`src/` touch the boundary at all.
+
+### Patch register
+
+`pnpm install` already fails hard (`ERR_PNPM_PATCH_FAILED`, `ERR_PNPM_PATCH_NOT_APPLIED`)
+when a patch does not apply or its keyed version is no longer installed, so no extra guard
+exists for that. The one silent case, a second unpatched copy, is covered for focus-scope and
+aria-hidden by the spec above. Check this table whenever a patched package has a release.
+
+| Patch | Fixes | Upstream | Remove when |
+| --- | --- | --- | --- |
+| `vaul@1.1.2` | Stops vaul injecting its unscoped `<style>` (global `@keyframes`) into the host's `<head>`; forwards `modal` to Radix so `modal={false}` is really non-modal (#30, #91) | [vaul#497](https://github.com/emilkowalski/vaul/issues/497), [vaul#192](https://github.com/emilkowalski/vaul/issues/192); 1.1.2 is the newest release | A vaul release forwards `modal` and stops injecting CSS, or we move off vaul |
+| `@radix-ui/react-focus-scope@1.3.1` | `focusin`/`focusout`/`activeElement` retarget to the shadow host, so the modal trap, Tab cycle and mount auto-focus break (#236) | [primitives#3353](https://github.com/radix-ui/primitives/issues/3353) (open) | FocusScope resolves `composedPath()` and the deep active element itself |
+| `aria-hidden@1.2.6` | `hideOthers` cannot cross a shadow boundary, so a modal never hides the background (#236) | [aria-hidden#14](https://github.com/theKashey/aria-hidden/issues/14) is the related closed report; 1.2.6 is the newest release | A release that climbs `ShadowRoot.host` and descends into kept roots |
+| `@schedule-x/calendar@2.36.0` | Looks up ids and selectors on `document` and writes CSS variables on `<html>`; breaks inside a shadow root (#236) | [schedule-x#1223](https://github.com/schedule-x/schedule-x/issues/1223) (open); the newest release is 4.9.1, a major jump not yet evaluated | A release whose lookups and variables are scoped to the rendered root |
 
 ⚠ **The margin means nothing inside the dialog may size itself off the viewport.**
 Every drawer, peek strip, and sheet is `position: fixed`, so `100dvh` is only right

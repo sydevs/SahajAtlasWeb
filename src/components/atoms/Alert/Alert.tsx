@@ -73,8 +73,7 @@ const DefaultIcon = () => <Info className="h-5 w-5" />
 
 /** See `ChipCloseProps`. The dismiss button and its label travel together. */
 type AlertCloseProps =
-  | { onClose: () => void; closeLabel: string }
-  | { onClose?: never; closeLabel?: never }
+  { onClose: () => void; closeLabel: string } | { onClose?: never; closeLabel?: never }
 
 export type AlertProps = VariantProps<typeof alert> & {
   title?: ReactNode

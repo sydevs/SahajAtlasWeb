@@ -83,8 +83,7 @@ const chip = tv({
  * what a doc-comment can only assert.
  */
 type ChipCloseProps =
-  | { onClose: () => void; closeLabel: string }
-  | { onClose?: never; closeLabel?: never }
+  { onClose: () => void; closeLabel: string } | { onClose?: never; closeLabel?: never }
 
 export type ChipProps = VariantProps<typeof chip> & {
   children: React.ReactNode

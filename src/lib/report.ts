@@ -53,12 +53,7 @@ export function errorMessage(error: unknown): string | undefined {
  * wastes everyone's time.
  */
 export type ErrorKind =
-  | 'offline'
-  | 'server'
-  | 'not-found'
-  | 'config'
-  | 'captcha-blocked'
-  | 'unknown'
+  'offline' | 'server' | 'not-found' | 'config' | 'captcha-blocked' | 'unknown'
 
 /**
  * Throws a failure that already knows its own kind.
