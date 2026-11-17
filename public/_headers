@@ -1,12 +1,23 @@
 # Cloudflare reads this from the build output (like public/robots.txt) — from dist/ on the
 # app Worker, and from build/ on the design Worker. CORS and the indexing policy are set once,
-# site-wide, at the bottom; these three rules carry Cache-Control only.
+# site-wide, at the bottom; every rule above that carries Cache-Control only.
 #
 # Everything Vite emits under /assets/ is content-hashed, so the long immutable cache is
 # safe — a change ships under a new URL. `embed.js` deliberately sits outside this rule at
 # the output root: it is the one stable URL hosts hardcode, and it must stay revalidated.
 /assets/*
   Cache-Control: public, max-age=31536000, immutable
+
+# The country flags, copied from the pinned `circle-flags` package at build time
+# (`scripts/circle-flags.mjs`). Without a rule these 265 URLs take the platform default, which
+# #148 measured at `max-age=14400` on sahajatlas.com — the freshness this file calls "a fix, not
+# a formality" for the unhashed files below.
+#
+# Deliberately not `/assets/*`'s immutable year: a flag carries no content hash, so a bumped
+# package version ships under the same URL and an immutable response could not be replaced for its lifetime.
+# A month, revalidated after, keeps that door open at a cost only a returning visitor pays.
+/flags/*
+  Cache-Control: public, max-age=2592000
 
 # The three unhashed entry files at the output root (#148). Everything above is
 # content-hashed and so may be cached forever; these carry stable names — hosts hardcode

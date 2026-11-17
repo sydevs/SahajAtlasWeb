@@ -14,6 +14,7 @@ import { useLocale } from '@/hooks/use-locale'
 import { useMapController } from '@/hooks/use-map-controller'
 import { useWidgetMode } from '@/config/mode'
 import { DEFAULT_FILTERS, filtersKey, filtersToParams, hasActiveFilters } from '@/lib/shape'
+import { FLAG_CDN_URL } from '@/lib/flag-cdn'
 import { validateWebUrl } from '@/lib/url'
 import {
   CollapseToggle,
@@ -118,11 +119,11 @@ export function CountriesView() {
                 icon={
                   country.countryCode ? (
                     <CircleFlag
+                      cdnUrl={FLAG_CDN_URL}
                       className="h-full w-full rounded-full border border-divider bg-divider"
                       countryCode={country.countryCode.toLocaleLowerCase()}
-                      // Matches the country-site recovery rung (molecules/Fallbacks). The flag SVG
-                      // comes from react-circle-flags' CDN, and this request must not send the
-                      // host page's URL as a referrer.
+                      // Matches the country-site recovery rung (molecules/Fallbacks): our own
+                      // origin serves the SVG, but it still gets no host-page referrer.
                       referrerPolicy="no-referrer"
                     />
                   ) : undefined
