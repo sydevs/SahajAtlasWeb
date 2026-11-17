@@ -265,6 +265,15 @@ answers "what is our z-index relative to the host's": the widget's `z-30`…`z-5
 competing with the host's CSS. `lib/overlay.ts` holds the one reference
 (`setFrame` / `frameElement`) — there is only ever one.
 
+⚠ **For layout, that one property does all of it. WebKit's compositor needs a second one,
+`transform: translateZ(0)`, on the same frame.** WebKit computes the clip of a composited layer
+under a `position: fixed` ancestor in viewport coordinates when its compositing root is the page,
+and never refreshes it on scroll. Mapbox's WebGL canvas is such a layer.
+On sahajayoga.bg's 640px embed, iOS Safari showed the map lagging its box, then vanishing, while
+the page scrolled. Layout was correct the whole time, so neither `getBoundingClientRect` nor a
+Playwright WebKit screenshot shows the bug. Only a real touch scroll on a device does. Making
+the frame a compositing layer gives those clips frame coordinates.
+
 ⚠ **`contain: layout` must never go on the scope root, and this rule does not
 change.** Same mechanism, opposite direction: on the root it would re-parent the
 fixed layer onto the HOST's element, a box a map-less embed shares with the host's

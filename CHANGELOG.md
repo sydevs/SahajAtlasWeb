@@ -430,6 +430,10 @@ no-referrer`.
 
 ### Fixed
 
+- **A map you gave a height now scrolls with your page on iPhone and iPad.** On iOS, the map
+  inside a sized `<sahaj-atlas>` fell behind its box as the page scrolled, and could disappear
+  from the box entirely. Android and desktop browsers were not affected. Nothing to change in your snippet or your CSP.
+
 - **A snippet in your `<head>` now waits for your page before it renders.** ([#411]) Since [#409]
   `auto.js` runs as a plain script, so a tag in `<head>` — which is where Wix's Custom Element
   puts it — could run before the browser had read your `<body>`. The widget then had nowhere to
