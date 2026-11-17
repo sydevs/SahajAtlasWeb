@@ -135,7 +135,7 @@ import { annotate, report } from './_ci-output.mjs'
 //   standalone  326.8 KiB
 //   embed       328.6 KiB
 //
-// Production ships each plus this graph's Sentry gap above — 327.9 and 329.8,
+// Production ships each plus this graph's Sentry gap below — 328.0 and 329.8,
 // derived rather than built, since no credentialed build ran here.
 //
 // ⚠ `embed` shipped 0.2 KiB inside the 330 this budget was then, and the gate
@@ -152,7 +152,7 @@ import { annotate, report } from './_ci-output.mjs'
 //   standalone  330.1 KiB
 //   embed       331.2 KiB
 //
-// Production ships each plus this graph's Sentry gap below — 331.2 and 332.4 —
+// Production ships each plus this graph's Sentry gap below — 331.3 and 332.4 —
 // which is what the gate scores. So the budget clears the shipped pair by about
 // 1.6 KiB, and sits far inside the 15% slack the ratchet below reads.
 //
@@ -165,7 +165,7 @@ import { annotate, report } from './_ci-output.mjs'
 //   standalone  331.9 KiB
 //   embed       333.0 KiB
 //
-// Production ships each plus this graph's Sentry gap below — 333.0 and 334.2.
+// Production ships each plus this graph's Sentry gap below — 333.1 and 334.2.
 // 336 clears the shipped pair by 1.8 KiB, the margin #389 left.
 //
 // Nothing in that batch could be held back to win the 1.6 KiB. Reverted one at
@@ -184,20 +184,22 @@ export const BUDGET_KIB = {
 // rather than bytes, so it is per-graph: 0.5 KiB is 17% of the loader graph and
 // 1.2 KiB is 0.4% of the embed graph.
 //
-// Measured on 7eac927, built both ways — `pnpm build`, then again under
+// Measured on 5eb5621, built both ways — `pnpm build`, then again under
 // `ci.yml`'s "Source-map upload chain (offline dry run)" environment, which is
 // the only credentialed build reachable without a real token
 // (`docs/rules/deployment.md`). The chunk count each figure was taken at is
 // what dates it:
 //
 //   standalone  331.923 → 333.113 KiB   8 chunks
-//   loader        2.792 →   3.259 KiB   3 chunks
+//   loader        2.840 →   3.310 KiB   3 chunks
 //   embed       333.003 → 334.222 KiB   8 chunks
 //
 // ⚠ Measure a new graph before giving it an entry, and re-measure all three
 // when a graph's chunk count moves. Deriving a figure from a neighbour, or
 // leaving one at a count it was not taken at, is how it stops being a
-// measurement: `standalone` read 1.1 at ca3f207 and reads 1.2 here.
+// measurement: `standalone` read 1.1 at ca3f207 and reads 1.2 here. Every
+// derived figure in the block above is the one these entries produce, so a
+// re-measure moves them too.
 export const SENTRY_GAP_KIB = {
   standalone: 1.2,
   loader: 0.5,
