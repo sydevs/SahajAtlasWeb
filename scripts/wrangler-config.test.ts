@@ -138,11 +138,11 @@ describe('the targets', () => {
     expect(PACKAGE.scripts[script]).toContain(`rm -f ${directory}/_redirects`)
   })
 
-  // ⚠ The guard above deletes the whole file, which is safe only while there is no file. #252
-  // brings `public/_redirects` back with a `/map  /  301` rule a Worker accepts, and a blanket
-  // `rm -f` would strip that rule from every build while the pairing above stayed green. So the
-  // narrowing is held here rather than by a comment: whoever adds the file fails this, and makes
-  // both guards drop the splat alone.
+  // ⚠ The guard above deletes the whole file, which is safe only while there is no file. A
+  // `public/_redirects` carrying a rule a Worker accepts — #252 planned a `/map  /  301` before
+  // withdrawing it — would be stripped from every build while the pairing above stayed green. So
+  // the narrowing is held here rather than by a comment: whoever adds the file fails this, and
+  // makes both guards drop the splat alone.
   it('has no `public/_redirects` for that blanket guard to delete', () => {
     expect(existsSync(join(REPO_ROOT, 'public/_redirects'))).toBe(false)
   })
