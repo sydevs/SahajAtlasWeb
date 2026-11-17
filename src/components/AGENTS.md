@@ -528,8 +528,10 @@ Chrome 151:
 So `container-type` is _not_ the hazard. `contain` and `transform` are. Do not "fix"
 code to match the common assumption — it is the assumption that is wrong. If a
 genuine CSS-side case ever appears, this table does not block adopting the plugin —
-but keep `contain: layout` and any transform off every ancestor of the fixed layer,
-and re-measure rather than trust either this table or the folklore it fixes.
+but keep `contain: layout` and any transform off every ancestor of the fixed layer
+**above the frame**, the scope root included, and re-measure rather than trust either
+this table or the folklore it fixes. On the frame itself both are deliberate, and
+§ "Map mode is contained by a FRAME" above owns why.
 
 ## Structure
 
