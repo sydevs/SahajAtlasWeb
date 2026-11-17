@@ -265,6 +265,21 @@ answers "what is our z-index relative to the host's": the widget's `z-30`…`z-5
 competing with the host's CSS. `lib/overlay.ts` holds the one reference
 (`setFrame` / `frameElement`) — there is only ever one.
 
+⚠ **For layout, that one property does all of it. WebKit's compositor needs a second one,
+`transform: translateZ(0)` — the `transform-gpu` utility — on the same frame** (#424). WebKit
+computes the clip of a composited layer under a `position: fixed` ancestor in viewport
+coordinates when its compositing root is the page, and never refreshes it on scroll. Mapbox's
+WebGL canvas is such a layer.
+On sahajayoga.bg's 640px embed, iOS Safari showed the map lagging its box, then vanishing, while
+the page scrolled. Layout was correct the whole time, so neither `getBoundingClientRect` nor a
+Playwright WebKit screenshot shows the bug. Only a real touch scroll on a device does. Making
+the frame a compositing layer gives those clips frame coordinates.
+
+⚠ **The compact card's expanded dialog needs none of this**, though `lib/overlay.clip.test.ts`
+names it beside the frame as the other box that takes the containing block and renders the
+canvas. It is itself `fixed inset-2`, so the viewport-relative clip under it is right at every
+scroll offset and cannot go stale. The frame is what scrolls.
+
 ⚠ **`contain: layout` must never go on the scope root, and this rule does not
 change.** Same mechanism, opposite direction: on the root it would re-parent the
 fixed layer onto the HOST's element, a box a map-less embed shares with the host's
@@ -513,8 +528,10 @@ Chrome 151:
 So `container-type` is _not_ the hazard. `contain` and `transform` are. Do not "fix"
 code to match the common assumption — it is the assumption that is wrong. If a
 genuine CSS-side case ever appears, this table does not block adopting the plugin —
-but keep `contain: layout` and any transform off every ancestor of the fixed layer,
-and re-measure rather than trust either this table or the folklore it fixes.
+but keep `contain: layout` and any transform off every ancestor of the fixed layer
+**above the frame**, the scope root included, and re-measure rather than trust either
+this table or the folklore it fixes. On the frame itself both are deliberate, and
+§ "Map mode is contained by a FRAME" above owns why.
 
 ## Structure
 

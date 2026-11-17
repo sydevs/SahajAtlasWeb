@@ -149,6 +149,8 @@ describe('MapFrame, contained', () => {
 
     expect(frame).not.toBeNull()
     expect(frame?.className).toContain('[contain:layout]')
+    // WebKit's compositor needs the frame as its own compositing root (#424).
+    expect(frame?.className).toContain('transform-gpu')
     // The host's own height is what the widget fills, exactly as in `map=false`.
     expect(frame?.className).toContain('h-full')
     expect(wrapper.textContent).toContain(CHILD)
