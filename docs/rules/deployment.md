@@ -117,9 +117,11 @@ Three facts to remember:
   bug fix, so a green deploy alone does not prove the maps got there — only `assert:maps`
   and the build log do. Deletion runs in `writeBundle`'s `finally` block, the one path a
   map could reach the output by, and the gate closes it.
-- **`pnpm size` in CI reads under production**, because the Sentry plugin's per-chunk
-  debug-ID snippet needs credentials CI lacks. The gap is per-graph; the measurements and
-  the rule they set for a budget are in `scripts/AGENTS.md`.
+- **`pnpm size` measures under production**, because the Sentry plugin's per-chunk
+  debug-ID snippet needs credentials no build outside the deploy holds. The gate adds that
+  gap back and judges the sum, so its verdict is about the shipped payload. The gap is
+  per-graph; the measurements and the rule they set for a budget are in
+  `scripts/AGENTS.md`.
 - **A credentialed build still runs in CI, offline.** The "Source-map upload chain
   (offline dry run)" step in `ci.yml` builds with a dummy token against a closed port, so
   emission, the non-fatal handler, deletion, and the gate are all proven on a runner
