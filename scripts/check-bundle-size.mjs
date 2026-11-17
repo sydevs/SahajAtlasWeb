@@ -83,6 +83,8 @@ import { annotate, report } from './_ci-output.mjs'
 // Every step to today's three figures, newest first, as standalone/embed and as
 // loader. `git log -p` on this constant holds each one in full, dated.
 //
+//   338  333.8/334.9  #318  `add`/`correct` routes, the mailing-list schema field,
+//                           and the submission helpers all three forms share
 //   336  331.9/333.0  #413  dependency batch; gzip paid for a different mix
 //   334  330.1/331.2  #389  `colord/plugins/lab`, which every embed owes
 //   330  326.8/328.6  #367  zod 4 (GHSA-mrhx-c7xc-m3w5), eager via every fetcher
@@ -105,9 +107,9 @@ import { annotate, report } from './_ci-output.mjs'
 // glyphs cost less than the hand-drawn path data they replaced. A swap that
 // adds a dependency can still win space.
 export const BUDGET_KIB = {
-  standalone: 336,
+  standalone: 338,
   loader: 3.6,
-  embed: 336,
+  embed: 338,
 }
 
 // What `@sentry/vite-plugin`'s per-chunk debug-ID snippet adds to each graph,
