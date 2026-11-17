@@ -17,6 +17,7 @@ import { Link } from '@/components/atoms/Link'
 import { useReportModal } from '@/config/store'
 import { useReportForm } from '@/hooks/use-report-form'
 import { useRecoveryOffer } from '@/hooks/use-recovery-offer'
+import { FLAG_CDN_URL } from '@/lib/flag-cdn'
 import { classifyError, errorMessage, reportInternalError } from '@/lib/report'
 
 /**
@@ -560,11 +561,11 @@ export function OnwardLink({ offer }: { offer: RecoveryOffer }) {
     >
       {offer.kind === 'country-site' && (
         <CircleFlag
+          cdnUrl={FLAG_CDN_URL}
           className="h-5 w-5 shrink-0 rounded-full border border-divider bg-divider"
           countryCode={offer.countryCode.toLowerCase()}
-          // The flag SVG loads from react-circle-flags' own CDN. Without this
-          // attribute, the embedding host's URL would ride along to that third
-          // party on every render.
+          // The flag SVG loads from our own origin (`cdnUrl`), but the request
+          // still must not carry the embedding host's URL as a referrer.
           referrerPolicy="no-referrer"
         />
       )}

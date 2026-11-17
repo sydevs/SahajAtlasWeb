@@ -33,6 +33,7 @@ import {
   RING_ZOOM,
   LAYER_IDS,
 } from './layers'
+import { syncMapLanguage } from './map-language'
 import { markerColors, registerMarkerImages } from './markers'
 import { pinPopoverPlacement, type PopoverAnchor } from './pin-popover'
 
@@ -59,6 +60,7 @@ import {
 import { useLocale } from '@/hooks/use-locale'
 import { useTheme } from '@/hooks/use-theme'
 import { useMapbox } from '@/hooks/use-mapbox'
+import { pointCoordinates } from '@/lib/geo'
 
 const MAP_STYLES = {
   light: 'mapbox://styles/sydevadmin/ck7g6nag70rn11io09f45odkq',
@@ -110,20 +112,21 @@ const MAP_WORLDVIEWS: Record<string, string> = {
 // separate lean feed query.
 const toMapSource = (features: Geojson['features']): FeatureCollection<Geometry | null> => ({
   type: 'FeatureCollection',
-  features: features.map((feature) => ({
-    type: 'Feature',
-    geometry: feature.geometry,
-    properties: {
-      id: feature.properties.id,
-      webPath: feature.properties.webPath ?? null,
-      vague: hasApproximatePlace(feature.properties),
-      // What the ring's radius divides by, since an expression cannot read a point's latitude.
-      cosLat:
-        feature.geometry?.type === 'Point'
-          ? Math.cos((feature.geometry.coordinates[1] * Math.PI) / 180)
-          : null,
-    },
-  })),
+  features: features.map((feature) => {
+    const coordinates = pointCoordinates(feature.geometry)
+
+    return {
+      type: 'Feature',
+      geometry: feature.geometry,
+      properties: {
+        id: feature.properties.id,
+        webPath: feature.properties.webPath ?? null,
+        vague: hasApproximatePlace(feature.properties),
+        // What the ring's radius divides by, since an expression cannot read a point's latitude.
+        cosLat: coordinates ? Math.cos((coordinates[1] * Math.PI) / 180) : null,
+      },
+    }
+  }),
 })
 
 const DEBUG_BOUNDARY = false
@@ -272,6 +275,11 @@ export function Mapbox({ cooperative = false }: { cooperative?: boolean } = {}) 
   // subscription on the app's hottest render path.
   const { t, locale, languageCode } = useLocale()
   const { theme } = useTheme()
+
+  // The labels follow the widget's locale through a switch, not only at construction.
+  useEffect(() => {
+    syncMapLanguage(mapbox, locale)
+  }, [mapbox, locale])
 
   // Mapbox's own control strings are otherwise English on every embed. The
   // GeolocateControl's whole accessible name comes from these two strings
@@ -432,10 +440,11 @@ export function Mapbox({ cooperative = false }: { cooperative?: boolean } = {}) 
     if (hoveredId == null || !data) return undefined
 
     const feature = data.features.find((f) => f.properties.id === hoveredId)
+    const coordinates = feature && pointCoordinates(feature.geometry)
 
-    if (!feature || feature.geometry?.type !== 'Point') return undefined
+    if (!feature || !coordinates) return undefined
 
-    const [longitude, latitude] = feature.geometry.coordinates
+    const [longitude, latitude] = coordinates
     const container = mapbox?.getContainer()
     const placement = pinPopoverPlacement(
       mapbox?.project([longitude, latitude]) ?? { x: 0, y: 0 },
@@ -469,8 +478,7 @@ export function Mapbox({ cooperative = false }: { cooperative?: boolean } = {}) 
           if (err || !mapbox) return console.error(err)
 
           moveMap({
-            // @ts-ignore
-            center: feature.geometry.coordinates,
+            center: pointCoordinates(feature.geometry),
             zoom: (zoom || mapbox.getZoom()) + 1,
             duration: 500,
           })
@@ -528,8 +536,10 @@ export function Mapbox({ cooperative = false }: { cooperative?: boolean } = {}) 
         fadeDuration={0}
         id="mapbox"
         interactiveLayerIds={INTERACTIVE_LAYER_IDS}
-        // @ts-ignore - Language is a valid property
-        language={locale} // TODO: Make sure this switches when locale changes
+        // The first language only: react-map-gl never updates `language` after construction, and
+        // its props type does not list it. It rides in a spread (which escapes the excess-property
+        // check) and `syncMapLanguage` keeps it current from then on.
+        {...{ language: locale }}
         locale={mapLocale}
         logoPosition="bottom-right"
         mapStyle={MAP_STYLES[theme]}

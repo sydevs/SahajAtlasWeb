@@ -9,13 +9,7 @@ import { isWebUrl } from '@/lib/url'
 /** What a step refuses to move on from, and which step a submit would be refused at. */
 
 export type ListingField =
-  | 'address'
-  | 'city'
-  | 'onlineUrl'
-  | 'firstDate'
-  | 'startTime'
-  | 'contactEmail'
-  | 'website'
+  'address' | 'city' | 'onlineUrl' | 'firstDate' | 'startTime' | 'contactEmail' | 'website'
 
 export type ListingErrors = Partial<Record<ListingField, true>>
 

@@ -2,6 +2,8 @@ import { fileURLToPath } from 'url'
 
 import { defineConfig } from 'vite'
 
+import circleFlags from '../scripts/circle-flags.mjs'
+
 // Ladle runs its own Vite and React (SWC) plugin, and it sets Vite's
 // `root` to its own app directory. This breaks vite-tsconfig-paths: it
 // cannot find our tsconfig.json from there. So the app's usual `@/*`
@@ -17,6 +19,7 @@ import { defineConfig } from 'vite'
 const srcDir = fileURLToPath(new URL('../src', import.meta.url))
 
 export default defineConfig({
+  plugins: [circleFlags()],
   // Give Ladle its own dependency-optimization cache. Ladle force-includes
   // react, react-dom, and its own dependencies in optimizeDeps. So its
   // `configHash` differs from `pnpm dev`'s. Under rolldown-vite (Vite 8),

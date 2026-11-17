@@ -82,6 +82,28 @@ describe('a refused location request', () => {
   })
 })
 
+// react-map-gl reads `language` once, when it constructs the map, and its props type does not
+// list it — so the prop rides in a spread, and a spread's keys escape the excess-property check.
+// A misspelling type-checks, and every label silently stays in the basemap's own language. The
+// effect beside it is the other half: with `locale` out of its deps the map never relabels on a
+// switch, which is the whole reason `syncMapLanguage` exists. `map-language.test.ts` covers the
+// helper; nothing but this reaches the two wirings.
+describe('the map label language', () => {
+  const map = read(MAP)
+  const element = map.slice(map.indexOf('<ReactMapGL'), map.indexOf('</ReactMapGL>'))
+
+  it('is the widget locale when the map is constructed', () => {
+    expect(element, 'the map element').toMatch(/\{\.\.\.\s*\{\s*language:\s*locale\s*\}\s*\}/)
+  })
+
+  it('follows a mid-session switch', () => {
+    const effect = /useEffect\(\(\) => \{\s*syncMapLanguage\([^)]*\)\s*\}, \[([^\]]*)\]\)/.exec(map)
+
+    expect(effect?.[0], 'a syncMapLanguage effect').toBeTruthy()
+    expect(effect?.[1], "the effect's dependencies").toContain('locale')
+  })
+})
+
 // iOS sends a fake mouse move before a tap, and treats a tap that reveals content as a hover, so
 // the click never fires. Nothing in the node lane can run that, so the wiring is what is pinned.
 describe('the pin hover popover', () => {

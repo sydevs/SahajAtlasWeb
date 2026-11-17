@@ -95,6 +95,11 @@ The map is the heart of the app and its hottest render path. Treat it carefully.
   responds to clicks or hover.
 - Map styles (light/dark) live in `Map.tsx`'s `MAP_STYLES`. Theme switches
   through `useTheme()`.
+- **Label language follows the locale through `syncMapLanguage`** (`map-language.ts`, one
+  `useEffect` in `Map.tsx`). react-map-gl reads the `language` prop once, at construction, so the
+  effect calls mapbox-gl's own `setLanguage` on every switch. The geocoder needs nothing: its
+  options are rebuilt per render and the wrapper re-applies them. ⚠ `locale` (the control
+  strings) is still construction-only.
 
 ## Sources and clustering
 
@@ -504,6 +509,9 @@ version, because the folklore on this is older than the code.
 - `worldview` and `language` are set from the active locale
   (`MAP_WORLDVIEWS`, `useLocale`). When you add a locale, check whether it
   needs a worldview entry.
-- The few `// @ts-ignore` lines are deliberate (react-map-gl type gaps for
-  `language`/`coordinates`). Do not "fix" them by loosening types elsewhere —
-  keep each ignore narrow and commented.
+- **One type suppression is left here**: a `@ts-expect-error` on `<Geocoder>` in
+  `MapSearch.tsx`, which is typed against its own React types and so is refused
+  as a JSX component. react-map-gl's own type gaps are covered without one:
+  `language` rides in a spread, and `pointCoordinates` (`lib/geo.ts`) narrows a
+  rendered feature's geometry. Keep any suppression narrow and commented, and
+  never loosen a type elsewhere to remove one.

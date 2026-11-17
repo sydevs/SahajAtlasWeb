@@ -178,13 +178,15 @@ export function MapSearch({
           />
         }
       >
-        {/* @ts-ignore: 'Geocoder' cannot be used as a JSX component. */}
+        {/* @ts-expect-error: @mapbox/search-js-react's `Geocoder` is typed against its own React types, so TS rejects it as a JSX component. */}
         <Geocoder
           accessToken={import.meta.env.VITE_MAPBOX_ACCESSTOKEN}
-          // @ts-ignore: Type 'Map$1' is not assignable to type 'Map'.
           map={mapbox?.getMap()}
           options={{
-            language: locale, // TODO: Make sure this switches when locale changes
+            // Follows a locale switch: this object is rebuilt every render, and the React wrapper
+            // re-applies `options` to the element whenever it changes. Pinned in
+            // `MapSearch.permanent.test.tsx`.
+            language: locale,
             // `country` and `permanent` are left out rather than undefined: the geocoder
             // serializes what it's given. ⚠ A spread's keys escape the excess-property check,
             // so only `MapSearch.permanent.test.tsx` catches a misspelled one here.

@@ -295,8 +295,7 @@ describe('the submission arm (issue #163)', () => {
 
   const previewed = () =>
     queryClient.getQueryData(eventQuery(PREVIEW_EVENT_ID, 'fr').queryKey) as
-      | Record<string, unknown>
-      | undefined
+      Record<string, unknown> | undefined
 
   /** The waiting overlay, by the only thing it puts in the document: the Spinner's status. */
   const skeleton = () => document.querySelector('[role="status"]')

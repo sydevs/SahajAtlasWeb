@@ -2,12 +2,7 @@ type Box = { top: number; right: number; bottom: number; left: number }
 
 /** Mapbox's anchor names: the corner or edge of the popover that sits on the map point. */
 export type PopoverAnchor =
-  | 'top'
-  | 'bottom'
-  | 'top-left'
-  | 'top-right'
-  | 'bottom-left'
-  | 'bottom-right'
+  'top' | 'bottom' | 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right'
 
 // The largest card: `max-w-60` wide, and a two-line title plus two lines of timing tall.
 const CARD_W = 240

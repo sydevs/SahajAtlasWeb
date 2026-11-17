@@ -49,8 +49,9 @@
  * bytes sent over the wire.
  */
 
-import { existsSync, readFileSync } from 'node:fs'
+import { existsSync, readFileSync, realpathSync } from 'node:fs'
 import { basename, dirname, join, relative, resolve, sep } from 'node:path'
+import { fileURLToPath } from 'node:url'
 import { gzipSync } from 'node:zlib'
 
 import { annotate, report } from './_ci-output.mjs'
@@ -58,127 +59,102 @@ import { annotate, report } from './_ci-output.mjs'
 // ---------------------------------------------------------------------------
 // THE BUDGET. One constant, deliberately easy to edit.
 //
-// This value sits just above the payload as measured on 2026-08-20. It
-// catches unnoticed *growth* without failing on the day this comment was
-// written. The headroom is about 3%. That is enough to absorb a
-// dependency patch bump, and tight enough that a newly-eager view still
-// trips it. It also sits comfortably above the 1.1-1.2 KiB a credentialed
-// build adds to these two graphs that CI cannot see — a per-graph gap,
-// measured, not a constant (see SLACK_FLOOR_KIB below).
+// ⚠ A budget is judged against the SHIPPED payload — a graph's measured size
+// plus its `SENTRY_GAP_KIB` entry. A figure quoted below is the uncredentialed
+// measurement unless its line says credentialed, so a budget edit has to clear
+// that figure plus the graph's own gap.
 //
-//   standalone  307.8 KiB  →  318
-//   embed       309.6 KiB  →  318
+// A budget sits just above the payload of the day, at about 3% headroom: enough
+// to absorb a dependency patch bump, tight enough that a newly-eager view still
+// trips it. RATCHET IT DOWN again whenever the payload shrinks, or the budget
+// quietly re-accumulates the slack it just won. `SLACK_RATIO` below enforces
+// that rather than trusting this comment to be read.
 //
-// The tailwindcss 3 → 4 upgrade (#246) raised this budget from 308, the
-// first raise since #161. Measured against origin/main at 5c85fda, built
-// the same uncredentialed way:
+// `loader` is the graph a host pays on every page view (#149). This script
+// budgets it an order of magnitude tighter than the other two, on purpose. The
+// whole justification for the loader is that a host embedding the widget below
+// the fold pays almost nothing until someone scrolls to it. A loader that
+// quietly grew to 30 KiB would still pass a lax budget, and give that benefit
+// away. The `embed` graph now fetches only on reveal, so it is a deferred cost
+// rather than an eager one. This script still budgets it, though, because
+// "deferred" does not mean "free". It is the cost a visitor who does look at
+// the widget waits for.
 //
-//   standalone  301.9 → 307.8 KiB
-//   embed       303.7 → 309.6 KiB
-//   loader        2.7 →   2.7 KiB
+// Every step to today's three figures, newest first, as standalone/embed and as
+// loader. `git log -p` on this constant holds each one in full, dated.
 //
-// The Lucide icon swap (#003) ratcheted this budget down. It took about
-// 3 KiB off both graphs. The tree-shaken glyphs cost less than the
-// hand-drawn path data they replaced, even after adding a dependency.
-// Note the direction: a swap that ADDS a package can still win space. The
-// ratchet stops that win from being quietly spent again later.
+//   336  331.9/333.0  #413  dependency batch; gzip paid for a different mix
+//   334  330.1/331.2  #389  `colord/plugins/lab`, which every embed owes
+//   330  326.8/328.6  #367  zod 4 (GHSA-mrhx-c7xc-m3w5), eager via every fetcher
+//   318  307.8/309.6  #246  tailwindcss 3 → 4
+//   310  299.3/301.3  #161  the map interface went behind a lazy seam, −83 KiB
+//   395  382.1/383.6  #96   calendar, registration and share drawers lazied
+//   495  479.5/480.4  #99
 //
-// The previous budget was 310/310, against a measured 299.3/301.3 (issue
-// #161). That issue took about 83 KiB off both graphs, by moving the
-// whole map-bearing interface behind a lazy `FullInterface` seam. This is
-// what makes a compact embed cheap: a slot too small for the interface
-// mounts a card and one dialog, and it never fetches mapbox-gl at all.
-// Before that, the budget was 395/395, against 382.1/383.6 (issue #96,
-// which lazied the calendar, registration, and share drawers, saving
-// 99.7 KiB). Before that, the budget was 495/495, against 479.5/480.4
-// (issue #99).
+//   3.6  2.84/3.31 credentialed  `auto.js` split off as a classic-script bridge,
+//                                for Wix, so the graph gained a whole chunk
+//   3.2  2.5                     vite 8.3.5's `__vitePreload` is 1519 raw bytes
+//                                against 8.3.4's 2444
+//   3.8  2.9                     #199's dependency batch took 0.3 KiB off the
+//                                graph and tripped the ratchet
 //
-// RATCHET THIS DOWN again whenever the payload shrinks. Otherwise the
-// budget quietly re-accumulates the slack it just won. `SLACK_RATIO`
-// below enforces this rule, rather than trusting this comment to be read.
-// ---------------------------------------------------------------------------
-// `loader` is the graph a host pays on every page view (#149). This
-// script budgets it an order of magnitude tighter than the other two, on
-// purpose. The whole justification for the loader is that a host
-// embedding the widget below the fold pays almost nothing until someone
-// scrolls to it. A loader that quietly grew to 30 KiB would still pass a
-// lax budget, and give that benefit away. The `embed` graph now fetches
-// only on reveal, so it is a deferred cost rather than an eager one. This
-// script still budgets it, though, because "deferred" does not mean
-// "free". It is the cost a visitor who does look at the widget waits for.
+// ⚠ Ratchet `standalone` and `embed` back below 330 if the zod schemas ever
+// leave the eager graph.
 //
-// The loader budget was 3.8 against a measured 2.9 (#199's routine
-// dependency batch took 0.3 KiB off the graph, which tripped the ratchet
-// below). It is 3.2 now, because vite 8.3.5 emits a smaller
-// `__vitePreload` helper than 8.3.4 — 1519 bytes against 2444, raw.
-//
-//   loader   2.5 KiB  uncredentialed  ← the number CI measures
-//   loader   2.8 KiB  credentialed    ← what production ships, derived
-//
-// Both numbers matter, and neither alone is enough. `ci.yml:32-38` runs
-// `pnpm build` then `pnpm size` with no Sentry token, so the gate reads
-// 2.5 and needs at most 3.5 to stay inside the slack window. Production
-// ships 2.8, so the budget must stay above that too. 3.5 would put the CI
-// number on the slack boundary exactly; 3.2 is strictly inside it either
-// way the comparison below is read.
-//
-// 3.6 since the loader split in two: `auto.js` became a classic-script
-// bridge to `loader.js`, because Wix loads it with no `type`. The bridge is
-// its own chunk, so it adds its bytes and one more debug-ID snippet:
-//
-//   loader   2.78 KiB  uncredentialed  ← CI, 0.82 spare, inside the 1 KiB floor
-//   loader   3.26 KiB  credentialed    ← production, built offline, 0.34 spare
-// `standalone` and `embed` were 318 until zod 4 (GHSA-mrhx-c7xc-m3w5). zod 4's
-// classic API is bigger than 3.25.76's in this graph, and the schemas are eager
-// because every fetcher parses through one. Measured uncredentialed, which is
-// what CI reads:
-//
-//   standalone  326.8 KiB
-//   embed       328.6 KiB
-//
-// Production ships each plus this graph's Sentry gap above — 327.9 and 329.8,
-// derived rather than built, since no credentialed build ran here.
-//
-// ⚠ `embed` ships 0.2 KiB inside this budget, and CI cannot see that: the gate
-// reads 328.6 and reports 1.4 KiB spare. The pair was 324.4/326.2 when 330 was
-// set, so the margin went unmeasured until #367. Take space off the eager graph,
-// or move the budget deliberately — and ratchet it back if the schemas ever leave
-// that graph.
-//
-// 334 since #389. `colord/plugins/lab` is the eager cost: `selected-distinct`
-// compares the selected pin against the ordinary one, which is a colour-versus-
-// colour measure the a11y plugin cannot make, and every embed owes that check.
-// Measured uncredentialed, which is what CI reads:
-//
-//   standalone  330.1 KiB
-//   embed       331.2 KiB
-//
-// Production ships each plus this graph's Sentry gap above — 331.2 and 332.4,
-// derived rather than built, since no credentialed build ran here. So the budget
-// clears the credentialed pair by about 1.6 KiB, and sits far inside the 15%
-// slack the ratchet below reads.
-//
-// 336 since #413's routine dependency batch, which took `embed` to 333.0
-// uncredentialed. Production then shipped 334.2 — past 334, while the gate read
-// 1.0 KiB spare. That is the #367 blind spot above, biting. Measured
-// uncredentialed, which is what CI reads:
-//
-//   standalone  331.9 KiB
-//   embed       333.0 KiB
-//
-// Production ships each plus this graph's Sentry gap above — 333.0 and 334.2,
-// derived rather than built, since no credentialed build ran here. 336 clears
-// the credentialed pair by 1.8 KiB, the margin #389 left.
-//
-// Nothing in that batch could be held back to win the 1.6 KiB. Reverted one at
-// a time against the rest, the largest single contributor was `react-hook-form`
-// at 0.4 KiB, and `vite` 8.3.5 and 8.3.8 emit a byte-identical `sheet` chunk
-// (520,264 B raw either way) that gzips 1.5 KiB larger than main's 521,993 B.
-// Gzip is paying for a different mix, not the minifier.
-const BUDGET_KIB = {
+// ⚠ #003 ratcheted a budget down while ADDING a package: Lucide's tree-shaken
+// glyphs cost less than the hand-drawn path data they replaced. A swap that
+// adds a dependency can still win space.
+export const BUDGET_KIB = {
   standalone: 336,
   loader: 3.6,
   embed: 336,
+}
+
+// What `@sentry/vite-plugin`'s per-chunk debug-ID snippet adds to each graph,
+// in KiB, for a build with no token to trigger it. It scales with chunk count
+// rather than bytes, so it is per-graph: 0.5 KiB is 17% of the loader graph and
+// 1.2 KiB is 0.4% of the embed graph.
+//
+// Measured on 5eb5621, built both ways — `pnpm build`, then again under
+// `ci.yml`'s "Source-map upload chain (offline dry run)" environment, which is
+// the only credentialed build reachable without a real token
+// (`docs/rules/deployment.md`). The chunk count each figure was taken at is
+// what dates it:
+//
+//   standalone  331.923 → 333.113 KiB   8 chunks
+//   loader        2.840 →   3.310 KiB   3 chunks
+//   embed       333.003 → 334.222 KiB   8 chunks
+//
+// ⚠ Measure a new graph before giving it an entry, and re-measure all three
+// when a graph's chunk count moves. Deriving a figure from a neighbour, or
+// leaving one at a count it was not taken at, is how it stops being a
+// measurement: `standalone` read 1.1 at ca3f207 and reads 1.2 here. Every
+// derived figure in the block above is the one these entries produce, so a
+// re-measure moves them too.
+export const SENTRY_GAP_KIB = {
+  standalone: 1.2,
+  loader: 0.5,
+  embed: 1.2,
+}
+
+// `@sentry/vite-plugin` names the snippet it injects, so a build that already
+// carries it is recognisable and the gap must not be added twice. ⚠ Match this
+// identifier, never `_sentryDebugIds`: the Sentry SDK's own lookup code spells
+// that one and every build emits it. It sits in a lazy chunk outside all three
+// graphs today, so the looser match happens to read the same — one re-chunk
+// away from declaring every build credentialed and scoring the gap at zero.
+const DEBUG_ID_MARKER = '_sentryDebugIdIdentifier'
+
+/**
+ * Did a credentialed build already inject the snippet into every chunk here?
+ *
+ * ⚠ Every chunk, not any. The plugin injects into all of them — 26 of 26
+ * emitted files under a token, 0 of 26 without one — so a `dist/` mixing the
+ * two kinds of build scores as uncredentialed and is charged the gap. That is
+ * the direction #413 was wrong in, and the only one this detection may fail in.
+ */
+export function hasDebugIds(files, read) {
+  return files.length > 0 && files.every((file) => read(file).includes(DEBUG_ID_MARKER))
 }
 
 // A budget set far above the real payload is a green check that checks
@@ -192,36 +168,11 @@ const BUDGET_KIB = {
 // some import shape, the graph shrinks, and the total collapses. An
 // over-budget check alone would then report a comfortable pass, on a
 // payload it never actually measured.
+//
+// No floor under this ratio since #414: both rules read the shipped figure
+// now, so the loader budget has the whole 3.26-to-3.83 KiB window the ratio
+// allows, and a floor would only loosen the ratchet on the smallest graph.
 const SLACK_RATIO = 0.15
-
-// A FLOOR under the slack allowance, measured in KiB. Without this floor,
-// the ratchet rule and the leave-headroom-for-Sentry rule cannot both
-// hold on a small graph.
-//
-// `scripts/AGENTS.md` records that a credentialed build ships more than CI
-// measures. `@sentry/vite-plugin` injects a debug-ID snippet into every
-// chunk, and CI has no token to trigger that. The gap is therefore
-// per-graph, not a constant: it scales with chunk count, not bytes.
-// Measured on this build: **+1.1 KiB on `standalone`, +1.2 KiB on
-// `embed`, +0.5 KiB on `loader`** (+0.3 until the loader split into the
-// `auto.js` bridge and `loader.js`). The absolute cost is small. The RATIO
-// is not small: 0.5 KiB is 17% of the 2.8 KiB loader graph, while 1.2 KiB
-// is 0.4% of the embed graph.
-//
-// So on a graph this small, the two rules collide head-on. A budget high
-// enough to clear the credentialed build leaves spare space against the
-// uncredentialed one CI measures. A flat 15% rule then calls that spare
-// space "far under budget".
-// The only numbers that satisfy both rules sit in a window about 0.03 KiB
-// wide. That is not a budget — it is a knife edge, and the next person to
-// touch the loader would have hit it.
-//
-// The floor resolves this without weakening anything else. On the big
-// graphs, 15% is far larger than this floor, so it still governs there,
-// and their ratchet behavior stays unchanged. The floor only applies
-// where the percentage rule would be tighter than the known, unavoidable
-// gap between what CI can measure and what production ships.
-const SLACK_FLOOR_KIB = 1
 
 const DIST = resolve(import.meta.dirname, '..', 'dist')
 const KIB = 1024
@@ -297,6 +248,53 @@ function htmlGraph(html) {
   return hrefs.map((href) => join(DIST, href.replace(/^\//, ''))).filter(inDist)
 }
 
+/**
+ * Scores one graph's measured size against its budget, in shipped terms.
+ *
+ * `kib` is what this build contains. `shipped` is what a visitor downloads,
+ * and it is the only figure the verdicts read — a gate that judged `kib`
+ * reports spare space on a payload that is over budget, which is what
+ * happened on #413: 333.0 KiB measured against the 334 budget of the day,
+ * 334.2 shipped.
+ *
+ * `credentialed` says this build already emitted the debug-ID snippet, so its
+ * measured size IS its shipped size. Adding the gap anyway would red a loader
+ * graph sitting 0.34 KiB inside its budget.
+ */
+export function score(name, kib, credentialed = false) {
+  const budget = BUDGET_KIB[name]
+  const gap = SENTRY_GAP_KIB[name]
+
+  // Without these checks, an unentered graph makes `spare` equal `NaN`.
+  // `NaN` fails every comparison below, so a new entry would report
+  // `undefined KiB` and pass the check.
+  if (budget === undefined) {
+    throw new Error(`No BUDGET_KIB entry for the "${name}" graph.`)
+  }
+
+  if (gap === undefined) {
+    throw new Error(
+      `No SENTRY_GAP_KIB entry for the "${name}" graph. Build it twice — once plain, ` +
+        "once under ci.yml's offline source-map dry run — and enter the difference in " +
+        'scripts/check-bundle-size.mjs.',
+    )
+  }
+
+  const shipped = credentialed ? kib : kib + gap
+  const spare = budget - shipped
+
+  return {
+    name,
+    kib,
+    shipped,
+    budget,
+    spare,
+    credentialed,
+    over: spare < 0,
+    under: spare > budget * SLACK_RATIO,
+  }
+}
+
 /** Measures one named graph: per-file gzip sizes, sorted heaviest first. */
 function measure(name, files) {
   const parts = files
@@ -304,16 +302,15 @@ function measure(name, files) {
     .sort((a, b) => b.bytes - a.bytes)
 
   const kib = parts.reduce((sum, p) => sum + p.bytes, 0) / KIB
-  const budget = BUDGET_KIB[name]
 
-  // Without this check, an unbudgeted graph makes `spare` equal `NaN`.
-  // `NaN` fails every comparison below, so a new entry would report
-  // `undefined KiB` and pass the check.
-  if (budget === undefined) {
-    throw new Error(`No BUDGET_KIB entry for the "${name}" graph.`)
+  return {
+    parts,
+    ...score(
+      name,
+      kib,
+      hasDebugIds(files, (f) => readFileSync(f, 'utf8')),
+    ),
   }
-
-  return { name, parts, kib, budget, spare: budget - kib }
 }
 
 function main() {
@@ -447,15 +444,32 @@ function main() {
   const lines = [
     '### Bundle size — eager payload (gzipped)',
     '',
-    '| Graph | Size | Budget | |',
-    '| --- | ---: | ---: | :-- |',
+    '| Graph | Measured | Shipped | Budget | |',
+    '| --- | ---: | ---: | ---: | :-- |',
   ]
 
   for (const g of graphs) {
-    const verdict =
-      g.spare < 0 ? `❌ over by ${(-g.spare).toFixed(1)} KiB` : `✅ ${g.spare.toFixed(1)} KiB spare`
+    const verdict = g.over
+      ? `❌ over by ${(-g.spare).toFixed(1)} KiB`
+      : `✅ ${g.spare.toFixed(1)} KiB spare`
 
-    lines.push(`| \`${g.name}\` | ${g.kib.toFixed(1)} KiB | ${g.budget} KiB | ${verdict} |`)
+    lines.push(
+      `| \`${g.name}\` | ${g.kib.toFixed(1)} KiB | ${g.shipped.toFixed(1)} KiB | ${g.budget} KiB | ${verdict} |`,
+    )
+  }
+
+  // Otherwise the two columns agreeing reads as a bug in the gate. Named per
+  // graph rather than per build, so a `dist/` holding chunks from both kinds of
+  // build says so instead of looking uniform.
+  const asShipped = graphs.filter((g) => g.credentialed)
+
+  if (asShipped.length) {
+    lines.push(
+      '',
+      `> ${asShipped.map((g) => `\`${g.name}\``).join(', ')} already ` +
+        `${asShipped.length === 1 ? 'carries' : 'carry'} the Sentry debug-ID snippet, so ` +
+        'the measurement IS the shipped payload and no gap was added.',
+    )
   }
 
   lines.push('', '<details><summary>Chunks in each graph</summary>', '')
@@ -481,18 +495,18 @@ function main() {
     )
   }
 
-  const over = graphs.filter((g) => g.spare < 0)
-  const slackFor = (g) => Math.max(g.budget * SLACK_RATIO, SLACK_FLOOR_KIB)
-  const under = graphs.filter((g) => g.spare > slackFor(g))
-  const name = (list) => list.map((g) => `${g.name} ${g.kib.toFixed(1)} KiB`).join('; ')
+  const over = graphs.filter((g) => g.over)
+  const under = graphs.filter((g) => g.under)
+  // Each graph carries its own budget: two graphs can fail against different ones.
+  const name = (list) =>
+    list.map((g) => `${g.name} ships ${g.shipped.toFixed(1)} of ${g.budget} KiB`).join('; ')
 
   if (under.length) {
     lines.push(
       '',
       `> 📉 ${under.map((g) => `\`${g.name}\``).join(' and ')} now ` +
-        `${under.length === 1 ? 'runs' : 'run'} further under budget than ` +
-        `${SLACK_RATIO * 100}% (or ${SLACK_FLOOR_KIB} KiB, whichever is larger). ` +
-        'Lower `BUDGET_KIB` to lock the win in.',
+        `${under.length === 1 ? 'ships' : 'ship'} further under budget than ` +
+        `${SLACK_RATIO * 100}%. Lower \`BUDGET_KIB\` to lock the win in.`,
     )
   }
 
@@ -501,10 +515,10 @@ function main() {
   if (over.length) {
     annotate(
       'error',
-      `Bundle size over budget: ${name(over)} (budget ${over[0].budget} KiB). Either ` +
-        'reduce the eager payload, or — if the growth is intended and justified — raise ' +
-        'BUDGET_KIB in scripts/check-bundle-size.mjs in the same commit, with the reason ' +
-        'in the commit message.',
+      `Bundle size over budget: ${name(over)}. Either reduce the eager payload, or — if ` +
+        'the growth is intended and justified — raise BUDGET_KIB in ' +
+        'scripts/check-bundle-size.mjs in the same commit, with the reason in the commit ' +
+        'message.',
     )
     process.exit(1)
   }
@@ -517,7 +531,7 @@ function main() {
   if (under.length) {
     annotate(
       'error',
-      `Bundle size is far UNDER budget: ${name(under)} against ${under[0].budget} KiB. ` +
+      `Bundle size is far UNDER budget: ${name(under)}. ` +
         'If the payload really shrank, lower BUDGET_KIB in scripts/check-bundle-size.mjs ' +
         'to match — a budget this loose stops detecting anything. If it did not, the ' +
         'import walker has stopped seeing part of the graph and these numbers are wrong.',
@@ -526,4 +540,13 @@ function main() {
   }
 }
 
-main()
+// Lets the spec import `score` without running the check. `realpathSync` on both sides, as
+// `assert-preview-host.mjs` does, because `process.argv[1]` keeps a symlink's path while
+// `import.meta.url` resolves to the target — and a guard that reads false here exits 0 having
+// measured nothing, which is the silent green this whole script refuses. ⚠ It is tested first:
+// `realpathSync('')` throws ENOENT, so a defaulted empty would crash the import.
+const invokedAs = process.argv[1]
+
+if (invokedAs && realpathSync(invokedAs) === realpathSync(fileURLToPath(import.meta.url))) {
+  main()
+}
