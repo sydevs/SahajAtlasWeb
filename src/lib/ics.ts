@@ -480,10 +480,10 @@ export type OutlookFlavor = keyof typeof OUTLOOK_HOSTS
  * `url` carries the `https://` address, not the `webcal:` one: Outlook on the web
  * is a page rather than a calendar app, so it fetches the feed itself.
  *
- * `undefined` for a class with no feed address. `buildOutlookCalendarUrl` below
- * is what each row actually calls, and it resolves that case.
+ * `undefined` for a class with no feed address, which `buildOutlookCalendarUrl`
+ * below resolves.
  */
-export function buildOutlookSubscribeUrl(
+function buildOutlookSubscribeUrl(
   input: IcsEventInput,
   flavor: OutlookFlavor,
 ): string | undefined {
