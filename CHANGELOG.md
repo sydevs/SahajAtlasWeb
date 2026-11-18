@@ -44,6 +44,18 @@ cover everything a host would notice since the widget was first deployed.
 
 ### Changed
 
+- **The Outlook.com and Office 365 rows of "Add to calendar" now subscribe too.** ([#428]) They
+  added one session of a weekly class, so a visitor on Outlook got the next class and then
+  nothing. Both rows now open Outlook's "subscribe from web" route for the class's own calendar
+  feed, the same feed Apple Calendar and Google Calendar already use, so every session appears
+  and a cancelled one disappears within a day without the visitor doing anything. **Yahoo still
+  adds the next session only**, and a class with no feed address leaves both Outlook rows exactly
+  as they were. ⚠ **Microsoft documents no subscribe address**, so this is a route observed in
+  use rather than a published one; if a row ever opens an add-event form instead, tell us and it
+  goes back. Both rows are ordinary links to the same two hosts as before. **No parameter,
+  origin, CSP or Permissions-Policy change**, and the sandbox flags are unchanged — see
+  [Embedding in an iframe].
+
 - **Country flags are now served from the widget's own origin, not from `react-circle-flags.pages.dev`.** ([#418]) The
   flags on the country list and the country-website offer were fetched from a third-party
   `pages.dev` project nobody here controls: were it ever deleted and re-registered, its new
@@ -1122,3 +1134,4 @@ must-revalidate`, pinned rather than left to the CDN default. The production dom
 [#411]: https://github.com/sydevs/SahajAtlasWeb/pull/411
 [#418]: https://github.com/sydevs/SahajAtlasWeb/pull/418
 [#424]: https://github.com/sydevs/SahajAtlasWeb/pull/424
+[#428]: https://github.com/sydevs/SahajAtlasWeb/issues/428

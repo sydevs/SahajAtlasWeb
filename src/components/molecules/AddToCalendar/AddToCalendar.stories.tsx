@@ -31,10 +31,10 @@ const oneOff: EventSchedule = {
 
 /**
  * AddToCalendar — one "Add to calendar" button opening a menu of calendar
- * services, offered on the registration confirmation. Apple and Google
- * **subscribe** to the class's own feed, so a later change or cancellation
- * reaches the viewer on its own; Outlook, Office 365 and Yahoo add the next
- * session alone; the last row downloads a file.
+ * services, offered on the registration confirmation. Apple, Google and both
+ * Outlook rows **subscribe** to the class's own feed, so a later change or
+ * cancellation reaches the viewer on its own; Yahoo adds the next session
+ * alone; the last row downloads a file.
  *
  * ⚠ **The feed addresses here are fictional, so no subscribe row can work in
  * Ladle.** They are minted by SahajCloud and carry a signed token. What this
@@ -47,7 +47,7 @@ const oneOff: EventSchedule = {
 export const Default: Story = () => (
   <StoryWrapper>
     <StorySection
-      description="A weekly class with a cancelled week. Apple and Google subscribe to its feed, which carries every session and clears itself when one is cancelled. Outlook, Office 365 and Yahoo have no verified subscribe route, so they receive the single next session. The downloaded .ics carries DTSTART;TZID + RRULE + EXDATE."
+      description="A weekly class with a cancelled week. Apple, Google, Outlook.com and Office 365 subscribe to its feed, which carries every session and clears itself when one is cancelled. Yahoo has no subscribe route, so it receives the single next session. The downloaded .ics carries DTSTART;TZID + RRULE + EXDATE."
       title="Recurring"
     >
       <div className="max-w-md rounded-lg border border-divider p-4">
@@ -100,7 +100,7 @@ export const Default: Story = () => (
     </StorySection>
 
     <StorySection
-      description="No feed address — an unpublished class, a finished one, or an event read that came back without the field. Apple and Google drop out, since a subscribe row with nothing to subscribe to is inert. The three single-session rows compose their own URL and stay, as does the download."
+      description="No feed address — an unpublished class, a finished one, or an event read that came back without the field. Apple and Google drop out, since a subscribe row with nothing to subscribe to is inert. Outlook.com and Office 365 fall back to the single-session compose link Yahoo uses throughout: all three compose their own URL and stay, as does the download."
       title="No feed address"
     >
       <div className="max-w-md rounded-lg border border-divider p-4">
