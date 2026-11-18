@@ -429,9 +429,9 @@ function feedAddress(input: IcsEventInput): string | undefined {
 export function buildFeedSubscribeUrl(input: IcsEventInput): string | undefined {
   const address = feedAddress(input)
 
-  // The swap drops whatever scheme the guard above admitted, rather than asking a
-  // second pattern that could stop agreeing with it — which would turn a refusal
-  // into a malformed href.
+  // Slicing from the colon the guard admitted keeps this agreeing with it: a second
+  // `/^https?:/i` here would refuse a scheme `validateWebUrl` was widened to admit,
+  // dropping the row rather than swapping its scheme.
   return address ? `webcal:${address.slice(address.indexOf(':') + 1)}` : undefined
 }
 
