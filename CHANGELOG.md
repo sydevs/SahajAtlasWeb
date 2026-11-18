@@ -118,9 +118,9 @@ no-referrer`.
 - **"Add to calendar" subscribes, so a class keeps itself up to date.** ([#393]) Apple Calendar
   and Google Calendar now open a subscribe prompt for the class rather than copying one event
   into the visitor's calendar, so a session the host cancels disappears from their calendar
-  within a day, without them doing anything. Outlook.com, Office 365 and Yahoo still add the
-  next session only — Microsoft publishes no subscribe address we can use — and **"Download .ics
-  file" is now its own row, last**, where it was the Apple row's label. ⚠ **In a sandboxed
+  within a day, without them doing anything. Yahoo still adds the next session only, as did
+  Outlook.com and Office 365 until [#428] above, and **"Download .ics file" is now its own row,
+  last**, where it was the Apple row's label. ⚠ **In a sandboxed
   iframe, `allow-downloads` now matters for that last row alone**, and the four rows that open a
   page need `allow-popups` as before — while the Apple Calendar row needs neither, and no flag
   covers it: a sandbox may refuse the `webcal:` address, which the operating system opens rather

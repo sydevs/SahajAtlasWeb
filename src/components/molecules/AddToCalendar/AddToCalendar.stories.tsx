@@ -65,7 +65,7 @@ export const Default: Story = () => (
     </StorySection>
 
     <StorySection
-      description="A one-off. No RRULE, and every provider gets the same single date."
+      description="A one-off, with a feed address. No RRULE, so the downloaded .ics and Yahoo carry the same single date; the four subscribing rows still point at the feed, which carries that one session and nothing else."
       title="One-off"
     >
       <div className="max-w-md rounded-lg border border-divider p-4">

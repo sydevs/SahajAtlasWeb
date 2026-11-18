@@ -395,8 +395,6 @@ export function buildEventIcs(input: IcsEventInput, options: BuildIcsOptions = {
 const details = (input: IcsEventInput): string =>
   [input.description, input.url].filter(Boolean).join('\n\n')
 
-const FEED_SCHEME = /^https?:/i
-
 /**
  * The class's feed address as SahajCloud minted it, or `undefined` for a class
  * with no address and for one that is not `http(s)`. Every subscribing row
@@ -407,7 +405,8 @@ const FEED_SCHEME = /^https?:/i
  * minted. `EventDocSchema` already refuses a non-http value, which makes this
  * the second of two checks, deliberately — and it asks `validateWebUrl` rather
  * than restating the regex, so `shape/href.ts`'s list of the http(s) guards
- * stays the whole list.
+ * stays the whole list. Nothing below re-tests the scheme, so widening that
+ * guard cannot leave a caller here disagreeing with it.
  */
 function feedAddress(input: IcsEventInput): string | undefined {
   return validateWebUrl(input.calendarFeedUrl?.trim())
@@ -430,7 +429,10 @@ function feedAddress(input: IcsEventInput): string | undefined {
 export function buildFeedSubscribeUrl(input: IcsEventInput): string | undefined {
   const address = feedAddress(input)
 
-  return address ? `webcal:${address.replace(FEED_SCHEME, '')}` : undefined
+  // The swap drops whatever scheme the guard above admitted, rather than asking a
+  // second pattern that could stop agreeing with it — which would turn a refusal
+  // into a malformed href.
+  return address ? `webcal:${address.slice(address.indexOf(':') + 1)}` : undefined
 }
 
 /**
