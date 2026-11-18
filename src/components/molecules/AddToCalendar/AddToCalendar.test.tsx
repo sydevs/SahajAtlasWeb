@@ -72,13 +72,28 @@ describe('AddToCalendar', () => {
 
     expect(all).toContain('webcal://cloud.sydevelopers.com/api/events/calendar/')
     expect(all).toContain('calendar.google.com/calendar/r?cid=webcal%3A%2F%2F')
-    expect(all).toContain('outlook.live.com/calendar/0/deeplink/compose')
-    expect(all).toContain('outlook.office.com/calendar/0/deeplink/compose')
+    expect(all).toContain('outlook.live.com/calendar/0/addfromweb')
+    expect(all).toContain('outlook.office.com/calendar/0/addfromweb')
     expect(all).toContain('calendar.yahoo.com')
     // The template link Google used to get added one event the viewer then owned
-    // a copy of, so a cancelled session stayed with them for good.
+    // a copy of, so a cancelled session stayed with them for good. The Outlook
+    // compose link did the same, and is the fallback below rather than the default.
     expect(all).not.toContain('calendar/render')
     expect(all).not.toContain('action=TEMPLATE')
+    expect(all).not.toContain('deeplink/compose')
+  })
+
+  /**
+   * The row stays, and changes what it does. Dropping it would retire a working row,
+   * since the compose link needs no feed address — this is the one case that separates
+   * the Outlook rows from Apple's and Google's, which do drop.
+   */
+  it('falls back to the single-session compose link when the class has no feed address', () => {
+    const all = hrefs({ ...event, calendarFeedUrl: null })
+
+    expect(all).toContain('outlook.live.com/calendar/0/deeplink/compose')
+    expect(all).toContain('outlook.office.com/calendar/0/deeplink/compose')
+    expect(all).not.toContain('addfromweb')
   })
 
   /**
@@ -111,30 +126,35 @@ describe('AddToCalendar', () => {
   })
 
   it('sends the recurrence-less providers the NEXT session, not the 2019 start', () => {
-    const all = hrefs(event)
+    // Yahoo is the only row still recurrence-less for a subscribable class. The
+    // Outlook rows reach the same builder, so they are measured without an address.
+    expect(hrefs(event)).toContain('st=20260722T173000Z')
+    expect(hrefs(event)).not.toContain('st=2019')
 
-    // Outlook and Yahoo take no recurrence parameter, so they get one
-    // occurrence. The series began in 2019. A link carrying that date
-    // would be useless.
-    expect(all).toContain('startdt=2026-07-22T17%3A30%3A00.000Z')
-    expect(all).toContain('st=20260722T173000Z')
-    expect(all).not.toContain('startdt=2019')
-    expect(all).not.toContain('st=2019')
+    // The series began in 2019. A link carrying that date would be useless.
+    const fallback = hrefs({ ...event, calendarFeedUrl: null })
+
+    expect(fallback).toContain('startdt=2026-07-22T17%3A30%3A00.000Z')
+    expect(fallback).not.toContain('startdt=2019')
   })
 
   // The URL shapes themselves belong to `src/lib/ics.test.ts`. This pins the wiring:
   // that `from` reaches the right builder per provider.
   it('anchors the recurrence-less providers on the registered session when given', () => {
-    const all = hrefs({ ...event, from: new Date('2026-08-05T17:30:00Z') })
+    const from = new Date('2026-08-05T17:30:00Z')
 
-    expect(all).toContain('startdt=2026-08-05T17%3A30%3A00.000Z')
-    // The two subscribing rows carry no anchor to move: their address is the
-    // feed's, which lists every session. Compared per row, since the Outlook rows
-    // in the same list legitimately do carry the date.
-    const anchored = calendarLinkTargets({ ...event, from: new Date('2026-08-05T17:30:00Z') })
+    expect(hrefs({ ...event, from })).toContain('et=20260805T184500Z')
+    expect(hrefs({ ...event, calendarFeedUrl: null, from })).toContain(
+      'startdt=2026-08-05T17%3A30%3A00.000Z',
+    )
+
+    // Every subscribing row carries no anchor to move: its address is the feed's,
+    // which lists every session. That is now all four rows above Yahoo, which is
+    // the one row in this list that legitimately does carry the date.
+    const anchored = calendarLinkTargets({ ...event, from })
     const plain = calendarLinkTargets(event)
 
-    for (const index of [0, 1]) {
+    for (const index of [0, 1, 2, 3]) {
       expect(anchored[index]!.href).toBe(plain[index]!.href)
       expect(anchored[index]!.href).not.toContain('2026-08-05')
     }

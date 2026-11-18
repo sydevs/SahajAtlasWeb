@@ -7,10 +7,12 @@ import { Link } from '@/components/atoms/Link'
 import { menuChrome } from '@/components/atoms/Menu'
 import {
   type IcsEventInput,
+  type OutlookFlavor,
   buildEventIcs,
   buildFeedSubscribeUrl,
   buildGoogleCalendarUrl,
   buildOutlookCalendarUrl,
+  buildOutlookSubscribeUrl,
   buildYahooCalendarUrl,
   icsFileName,
 } from '@/lib/ics'
@@ -34,14 +36,15 @@ export type CalendarLinkTarget = { label: string; href: string; opensPage: boole
 
 /**
  * The link-out providers, in menu order. `lib/ics.ts` decides what each URL can carry:
- * Apple and Google subscribe to the class's own feed, so a later change or cancellation
- * reaches the viewer on its own; Outlook, Office 365 and Yahoo have no subscribe route that
- * anybody has verified, and their URL APIs carry no recurrence, so they get the one session
- * the viewer registered for.
+ * Apple, Google and both Outlook rows subscribe to the class's own feed, so a later change
+ * or cancellation reaches the viewer on its own. Yahoo has no subscribe route, and its URL
+ * API carries no recurrence, so it gets the one session the viewer registered for.
  *
- * ⚠ **Only the first two rows depend on the feed address.** With none, those two are
- * dropped and the three single-session link-outs stay — they compose their own URL from the
- * schedule and work regardless, so dropping them would retire working rows for nothing.
+ * ⚠ **A missing feed address removes two rows and demotes two others.** Apple and Google are
+ * dropped, since a subscribe row with nothing to subscribe to is inert. The Outlook rows fall
+ * back to the single-session compose link instead, because, like Yahoo, they compose their own
+ * URL from the schedule and work regardless — dropping them would retire working rows for
+ * nothing.
  *
  * No row says in words whether it subscribes. The two strings for that were CMS copy, and
  * sydevs/SahajCloud#1134 dropped the keys rather than ship them, so adding a sub-label here
@@ -50,12 +53,14 @@ export type CalendarLinkTarget = { label: string; href: string; opensPage: boole
 export function calendarLinkTargets(event: IcsEventInput): CalendarLinkTarget[] {
   const feed = buildFeedSubscribeUrl(event)
   const google = buildGoogleCalendarUrl(event)
+  const outlook = (flavor: OutlookFlavor) =>
+    buildOutlookSubscribeUrl(event, flavor) ?? buildOutlookCalendarUrl(event, flavor)
 
   return [
     ...(feed ? [{ label: 'Apple Calendar', href: feed, opensPage: false }] : []),
     ...(google ? [{ label: 'Google Calendar', href: google, opensPage: true }] : []),
-    { label: 'Outlook.com', href: buildOutlookCalendarUrl(event, 'live'), opensPage: true },
-    { label: 'Office 365', href: buildOutlookCalendarUrl(event, 'office'), opensPage: true },
+    { label: 'Outlook.com', href: outlook('live'), opensPage: true },
+    { label: 'Office 365', href: outlook('office'), opensPage: true },
     { label: 'Yahoo', href: buildYahooCalendarUrl(event), opensPage: true },
   ]
 }
@@ -89,9 +94,10 @@ const item = row()
  * now (#368) — but the escape hatch for every other client (Thunderbird, Proton, desktop
  * Outlook), so its row says plainly that it downloads a file.
  *
- * **A class with no feed address loses the two subscribing rows, and keeps the rest.** A
+ * **A class with no feed address loses the Apple and Google rows, and keeps the rest.** A
  * subscribe row whose address is missing cannot work, and an inert menu entry is worse than an
- * absent one — but the three single-session link-outs need no address and still work.
+ * absent one — but the three single-session link-outs need no address and still work, so the
+ * two Outlook rows fall back to one rather than disappear.
  *
  * Built on Radix DropdownMenu (as SortMenu is) for real menu semantics: roving focus,
  * typeahead, and Escape.

@@ -7,6 +7,7 @@ import {
   buildFeedSubscribeUrl,
   buildGoogleCalendarUrl,
   buildOutlookCalendarUrl,
+  buildOutlookSubscribeUrl,
   buildRrule,
   buildYahooCalendarUrl,
   exclusionDates,
@@ -412,6 +413,48 @@ describe('recurrence-less providers anchor on the right occurrence', () => {
     expect(url.searchParams.get('v')).toBe('60')
     expect(url.searchParams.get('st')).toBe('20260722T173000Z')
     expect(url.searchParams.get('et')).toBe('20260722T184500Z')
+  })
+})
+
+describe('buildOutlookSubscribeUrl', () => {
+  it('subscribes through add-from-web, against the personal or the work host', () => {
+    for (const [flavor, host] of [
+      ['live', 'https://outlook.live.com'],
+      ['office', 'https://outlook.office.com'],
+    ] as const) {
+      const url = new URL(buildOutlookSubscribeUrl(subscribable, flavor)!)
+
+      expect(url.origin + url.pathname).toBe(`${host}/calendar/0/addfromweb`)
+      expect(url.searchParams.get('url')).toBe(FEED)
+      expect(url.searchParams.get('name')).toBe('Evening Meditation')
+    }
+  })
+
+  // Outlook on the web is a page, not a calendar app: it fetches the feed itself,
+  // so handing it `webcal:` would give it a scheme its own fetch cannot follow.
+  it('carries the https address, percent-encoded, and never the webcal form', () => {
+    const url = buildOutlookSubscribeUrl(subscribable, 'live')!
+
+    expect(url).toContain(`url=${encodeURIComponent(FEED)}`)
+    expect(url).toContain('%3A%2F%2Fcloud.sydevelopers.com')
+    expect(url).not.toContain('webcal')
+  })
+
+  it('ignores `from` entirely — a subscription has no anchor to move', () => {
+    expect(buildOutlookSubscribeUrl({ ...subscribable, from: SESSION }, 'live')).toBe(
+      buildOutlookSubscribeUrl(subscribable, 'live'),
+    )
+  })
+
+  it('is undefined with no feed address, and for one that is not http(s)', () => {
+    for (const address of [undefined, null, '', '   ', 'javascript:alert(1)', '//cloud/f.ics']) {
+      expect(
+        buildOutlookSubscribeUrl({ ...input, calendarFeedUrl: address }, 'live'),
+      ).toBeUndefined()
+      expect(
+        buildOutlookSubscribeUrl({ ...input, calendarFeedUrl: address }, 'office'),
+      ).toBeUndefined()
+    }
   })
 })
 
