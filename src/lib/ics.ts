@@ -3,6 +3,7 @@ import type { EventSchedule, Weekday } from '@/types'
 import { DateTime } from 'luxon'
 
 import { DEFAULT_DURATION, scheduleStart, scheduleTimeZone, withEndTime } from './shape/event'
+import { validateWebUrl } from './url'
 
 /**
  * A hand-rolled iCalendar (RFC 5545) export, with no runtime dependency. The
@@ -81,9 +82,9 @@ export type IcsEventInput = {
   /**
    * The specific session to anchor a recurrence-less target on: the date the
    * viewer actually registered for. Only the providers whose URL API has no
-   * recurrence parameter (Outlook, Office 365, Yahoo) read it. The ICS and
-   * the Google link carry the real RRULE, and so must stay anchored on the
-   * series.
+   * recurrence parameter read it — Yahoo, and the two Outlook rows on their
+   * compose fallback alone. Every subscribing row ignores it, since a feed
+   * lists every session.
    */
   from?: Date | null
 }
@@ -322,8 +323,8 @@ const exportStart = (schedule: EventSchedule, from?: Date | null): DateTime =>
   schedule.recurrenceType ? seriesStart(schedule) : occurrenceStart(schedule, from)
 
 /**
- * The anchor for a target that cannot carry recurrence (Outlook, Office 365,
- * Yahoo: none of their URL APIs has a recurrence parameter). Those get a
+ * The anchor for a target that cannot carry recurrence (Yahoo, and Outlook's
+ * compose fallback: neither URL API has a recurrence parameter). Those get a
  * single event, so it has to be the right single event: the session the
  * viewer registered for, or the next upcoming one otherwise.
  *
@@ -404,12 +405,12 @@ const FEED_SCHEME = /^https?:/i
  * Refusing a foreign scheme is the point: each row below rewrites or re-encodes
  * this string, so anything else would be guesswork about a value somebody else
  * minted. `EventDocSchema` already refuses a non-http value, which makes this
- * the second of two checks, deliberately.
+ * the second of two checks, deliberately — and it asks `validateWebUrl` rather
+ * than restating the regex, so `shape/href.ts`'s list of the http(s) guards
+ * stays the whole list.
  */
 function feedAddress(input: IcsEventInput): string | undefined {
-  const address = input.calendarFeedUrl?.trim()
-
-  return address && FEED_SCHEME.test(address) ? address : undefined
+  return validateWebUrl(input.calendarFeedUrl?.trim())
 }
 
 /**
@@ -477,8 +478,8 @@ export type OutlookFlavor = keyof typeof OUTLOOK_HOSTS
  * `url` carries the `https://` address, not the `webcal:` one: Outlook on the web
  * is a page rather than a calendar app, so it fetches the feed itself.
  *
- * `undefined` for a class with no feed address, which leaves that row on
- * `buildOutlookCalendarUrl` below.
+ * `undefined` for a class with no feed address. `buildOutlookCalendarUrl` below
+ * is what each row actually calls, and it resolves that case.
  */
 export function buildOutlookSubscribeUrl(
   input: IcsEventInput,
@@ -494,13 +495,24 @@ export function buildOutlookSubscribeUrl(
 }
 
 /**
+ * What the Outlook.com and Office 365 rows link to: the subscription where the
+ * class has a feed address, and the compose link below otherwise.
+ *
+ * ⚠ **The choice lives here rather than in the menu**, because every fact behind
+ * it is in this file — which endpoint can carry a series, and what each one needs.
+ * It also keeps the revert one file wide, should a signed-in click find the
+ * add-from-web route opening an add-event form (#428).
+ */
+export function buildOutlookCalendarUrl(input: IcsEventInput, flavor: OutlookFlavor): string {
+  return buildOutlookSubscribeUrl(input, flavor) ?? outlookComposeUrl(input, flavor)
+}
+
+/**
  * An Outlook.com / Office 365 compose link — one session, not the series.
  *
  * ⚠ **The fallback for a class with no feed address, not the default any more.**
- * `buildOutlookSubscribeUrl` above is what both rows take when there is an address
- * to subscribe to. This stays because the three recurrence-less rows need no
- * address and still work without one, so dropping them would retire working rows
- * for nothing.
+ * It stays because, unlike Apple's and Google's, this row needs no address to
+ * work: dropping it would retire a working row for nothing.
  *
  * `startdt`/`enddt` are absolute UTC instants. The compose API takes no
  * timezone parameter, so the instant is the only unambiguous thing to send.
@@ -509,7 +521,7 @@ export function buildOutlookSubscribeUrl(
  * is deliberately a single occurrence anchored by `occurrenceStart`. The
  * ICS download is the lossless path for a series, and the UI says so.
  */
-export function buildOutlookCalendarUrl(input: IcsEventInput, flavor: OutlookFlavor): string {
+function outlookComposeUrl(input: IcsEventInput, flavor: OutlookFlavor): string {
   const { schedule } = input
   const start = occurrenceStart(schedule, input.from)
   const end = occurrenceEnd(start, schedule)

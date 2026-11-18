@@ -7,12 +7,10 @@ import { Link } from '@/components/atoms/Link'
 import { menuChrome } from '@/components/atoms/Menu'
 import {
   type IcsEventInput,
-  type OutlookFlavor,
   buildEventIcs,
   buildFeedSubscribeUrl,
   buildGoogleCalendarUrl,
   buildOutlookCalendarUrl,
-  buildOutlookSubscribeUrl,
   buildYahooCalendarUrl,
   icsFileName,
 } from '@/lib/ics'
@@ -53,14 +51,12 @@ export type CalendarLinkTarget = { label: string; href: string; opensPage: boole
 export function calendarLinkTargets(event: IcsEventInput): CalendarLinkTarget[] {
   const feed = buildFeedSubscribeUrl(event)
   const google = buildGoogleCalendarUrl(event)
-  const outlook = (flavor: OutlookFlavor) =>
-    buildOutlookSubscribeUrl(event, flavor) ?? buildOutlookCalendarUrl(event, flavor)
 
   return [
     ...(feed ? [{ label: 'Apple Calendar', href: feed, opensPage: false }] : []),
     ...(google ? [{ label: 'Google Calendar', href: google, opensPage: true }] : []),
-    { label: 'Outlook.com', href: outlook('live'), opensPage: true },
-    { label: 'Office 365', href: outlook('office'), opensPage: true },
+    { label: 'Outlook.com', href: buildOutlookCalendarUrl(event, 'live'), opensPage: true },
+    { label: 'Office 365', href: buildOutlookCalendarUrl(event, 'office'), opensPage: true },
     { label: 'Yahoo', href: buildYahooCalendarUrl(event), opensPage: true },
   ]
 }

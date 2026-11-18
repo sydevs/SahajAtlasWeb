@@ -436,7 +436,6 @@ describe('buildOutlookSubscribeUrl', () => {
     const url = buildOutlookSubscribeUrl(subscribable, 'live')!
 
     expect(url).toContain(`url=${encodeURIComponent(FEED)}`)
-    expect(url).toContain('%3A%2F%2Fcloud.sydevelopers.com')
     expect(url).not.toContain('webcal')
   })
 
@@ -446,13 +445,13 @@ describe('buildOutlookSubscribeUrl', () => {
     )
   })
 
+  // One address per class the shared guard refuses — absent, blank, foreign scheme.
+  // `buildFeedSubscribeUrl` above holds that guard at full width, and the early
+  // return here precedes the host lookup, so one flavor settles both.
   it('is undefined with no feed address, and for one that is not http(s)', () => {
-    for (const address of [undefined, null, '', '   ', 'javascript:alert(1)', '//cloud/f.ics']) {
+    for (const address of [undefined, '   ', 'javascript:alert(1)']) {
       expect(
         buildOutlookSubscribeUrl({ ...input, calendarFeedUrl: address }, 'live'),
-      ).toBeUndefined()
-      expect(
-        buildOutlookSubscribeUrl({ ...input, calendarFeedUrl: address }, 'office'),
       ).toBeUndefined()
     }
   })

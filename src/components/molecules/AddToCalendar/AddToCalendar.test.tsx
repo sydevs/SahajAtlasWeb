@@ -128,12 +128,13 @@ describe('AddToCalendar', () => {
   it('sends the recurrence-less providers the NEXT session, not the 2019 start', () => {
     // Yahoo is the only row still recurrence-less for a subscribable class. The
     // Outlook rows reach the same builder, so they are measured without an address.
-    expect(hrefs(event)).toContain('st=20260722T173000Z')
-    expect(hrefs(event)).not.toContain('st=2019')
-
-    // The series began in 2019. A link carrying that date would be useless.
+    const all = hrefs(event)
     const fallback = hrefs({ ...event, calendarFeedUrl: null })
 
+    expect(all).toContain('st=20260722T173000Z')
+    expect(all).not.toContain('st=2019')
+
+    // The series began in 2019. A link carrying that date would be useless.
     expect(fallback).toContain('startdt=2026-07-22T17%3A30%3A00.000Z')
     expect(fallback).not.toContain('startdt=2019')
   })
@@ -142,21 +143,20 @@ describe('AddToCalendar', () => {
   // that `from` reaches the right builder per provider.
   it('anchors the recurrence-less providers on the registered session when given', () => {
     const from = new Date('2026-08-05T17:30:00Z')
+    const anchored = calendarLinkTargets({ ...event, from })
+    const plain = calendarLinkTargets(event)
 
-    expect(hrefs({ ...event, from })).toContain('et=20260805T184500Z')
+    expect(anchored.at(-1)!.href).toContain('et=20260805T184500Z')
     expect(hrefs({ ...event, calendarFeedUrl: null, from })).toContain(
       'startdt=2026-08-05T17%3A30%3A00.000Z',
     )
 
     // Every subscribing row carries no anchor to move: its address is the feed's,
-    // which lists every session. That is now all four rows above Yahoo, which is
-    // the one row in this list that legitimately does carry the date.
-    const anchored = calendarLinkTargets({ ...event, from })
-    const plain = calendarLinkTargets(event)
-
-    for (const index of [0, 1, 2, 3]) {
-      expect(anchored[index]!.href).toBe(plain[index]!.href)
-      expect(anchored[index]!.href).not.toContain('2026-08-05')
-    }
+    // which lists every session. That is every row but the last, Yahoo being the
+    // one here that legitimately does carry the date.
+    anchored.slice(0, -1).forEach(({ href }, index) => {
+      expect(href).toBe(plain[index]!.href)
+      expect(href).not.toContain('2026-08-05')
+    })
   })
 })
