@@ -3,6 +3,7 @@ import type { EventSchedule, Weekday } from '@/types'
 import { DateTime } from 'luxon'
 
 import { DEFAULT_DURATION, scheduleStart, scheduleTimeZone, withEndTime } from './shape/event'
+import { validateWebUrl } from './url'
 
 /**
  * A hand-rolled iCalendar (RFC 5545) export, with no runtime dependency. The
@@ -18,14 +19,17 @@ import { DEFAULT_DURATION, scheduleStart, scheduleTimeZone, withEndTime } from '
  *
  * ## Which rows each builder serves
  *
- * Apple and Google **subscribe** to SahajCloud's own per-class feed, so they read
- * nothing this file emits: `buildFeedSubscribeUrl` and `buildGoogleCalendarUrl`
- * are a scheme swap and a percent-encoding over the address the event document
- * carries. Everything else is still built here — the `.ics` download
- * (`buildEventIcs`, the last menu row and the escape hatch for every other
- * client), and the three single-session link-outs with no subscribe route this
- * repo can use: Yahoo, which has none, and both Outlooks until a signed-in click
- * settles one of the two candidate shapes.
+ * ⚠ **This block owns that policy, and no builder's doc below restates it.** A
+ * roster repeated beside each builder goes stale one site at a time.
+ *
+ * Apple, Google and both Outlooks **subscribe** to SahajCloud's own per-class
+ * feed, so they read nothing this file emits: `buildFeedSubscribeUrl`,
+ * `buildGoogleCalendarUrl` and `buildOutlookCalendarUrl` are a scheme swap and
+ * two encodings over the address the event document carries. Yahoo has no
+ * subscribe route at all, and with no feed address the first two return
+ * `undefined` while the Outlook rows fall back to a compose link. Everything
+ * else is still built here — the `.ics` download (`buildEventIcs`, the last menu
+ * row and the escape hatch for every other client).
  *
  * ## Why this is hand-rolled, instead of a dependency (issue #105)
  *
@@ -80,10 +84,9 @@ export type IcsEventInput = {
   calendarFeedUrl?: string | null
   /**
    * The specific session to anchor a recurrence-less target on: the date the
-   * viewer actually registered for. Only the providers whose URL API has no
-   * recurrence parameter (Outlook, Office 365, Yahoo) read it. The ICS and
-   * the Google link carry the real RRULE, and so must stay anchored on the
-   * series.
+   * viewer actually registered for. Only a target whose URL API has no
+   * recurrence parameter reads it; a feed lists every session, so a subscribing
+   * one has no anchor to move.
    */
   from?: Date | null
 }
@@ -322,9 +325,8 @@ const exportStart = (schedule: EventSchedule, from?: Date | null): DateTime =>
   schedule.recurrenceType ? seriesStart(schedule) : occurrenceStart(schedule, from)
 
 /**
- * The anchor for a target that cannot carry recurrence (Outlook, Office 365,
- * Yahoo: none of their URL APIs has a recurrence parameter). Those get a
- * single event, so it has to be the right single event: the session the
+ * The anchor for a target whose URL API has no recurrence parameter. Those get
+ * a single event, so it has to be the right single event: the session the
  * viewer registered for, or the next upcoming one otherwise.
  *
  * This is never the series start, which is what `exportStart` gives a
@@ -395,10 +397,25 @@ const details = (input: IcsEventInput): string =>
   [input.description, input.url].filter(Boolean).join('\n\n')
 
 /**
+ * The class's feed address as SahajCloud minted it, or `undefined` for a class
+ * with no address and for one that is not `http(s)`. Every subscribing row
+ * starts here, and they differ only in the form they want it in.
+ *
+ * Refusing a foreign scheme is the point: each row below rewrites or re-encodes
+ * this string, so anything else would be guesswork about a value somebody else
+ * minted. `EventDocSchema` already refuses a non-http value, which makes this
+ * the second of two checks, deliberately — and it asks `validateWebUrl` rather
+ * than restating the regex, so `shape/href.ts`'s list of the http(s) guards
+ * stays the whole list. Nothing below re-tests the scheme, so widening that
+ * guard cannot leave a caller here disagreeing with it.
+ */
+function feedAddress(input: IcsEventInput): string | undefined {
+  return validateWebUrl(input.calendarFeedUrl?.trim())
+}
+
+/**
  * The `webcal://` form of the class's feed address — the one URL that makes a
- * calendar app offer to SUBSCRIBE rather than download. Both subscribing rows
- * carry this one string: the Apple row opens it, and Google percent-encodes it
- * onto `cid`.
+ * calendar APP offer to subscribe rather than download.
  *
  * Nothing here keeps a subscription current: SahajCloud serves that address as a
  * live `.ics` document, and the subscriber's calendar re-reads it on its own
@@ -407,17 +424,14 @@ const details = (input: IcsEventInput): string =>
  * Opening it hands macOS and iOS to Calendar.app, which asks whether to
  * subscribe. There is no add-by-URL endpoint to go through, and no file to find
  * in Downloads — which was the whole complaint behind #368.
- *
- * `undefined` for a class with no address, and for an address that is not
- * `http(s)`: the scheme swap is a rewrite, so anything else would be guesswork
- * about a string somebody else minted. `EventDocSchema` already refuses a
- * non-http value, which makes this the second of two checks, deliberately.
  */
 export function buildFeedSubscribeUrl(input: IcsEventInput): string | undefined {
-  const address = input.calendarFeedUrl?.trim()
-  const scheme = /^https?:/i.exec(address ?? '')
+  const address = feedAddress(input)
 
-  return address && scheme ? `webcal:${address.slice(scheme[0].length)}` : undefined
+  // Slicing from the colon the guard admitted keeps this agreeing with it: a second
+  // `/^https?:/i` here would refuse a scheme `validateWebUrl` was widened to admit,
+  // dropping the row rather than swapping its scheme.
+  return address ? `webcal:${address.slice(address.indexOf(':') + 1)}` : undefined
 }
 
 /**
@@ -437,8 +451,8 @@ export function buildGoogleCalendarUrl(input: IcsEventInput): string | undefined
 }
 
 /**
- * Outlook's two deep-link hosts. Same compose endpoint and the same
- * parameters. Only the host differs — `outlook.live.com` is a personal
+ * Outlook's two deep-link hosts. Both serve the same routes under the same
+ * paths. Only the host differs — `outlook.live.com` is a personal
  * Microsoft account, and `outlook.office.com` is a work/school (Microsoft 365)
  * one. A viewer signed into the wrong one gets asked to sign in, which is why
  * both are offered, rather than this code guessing.
@@ -451,16 +465,51 @@ const OUTLOOK_HOSTS = {
 export type OutlookFlavor = keyof typeof OUTLOOK_HOSTS
 
 /**
+ * Outlook's add-from-web route: the class's feed address, so a subscription
+ * carries every session and clears a cancelled one.
+ *
+ * ⚠ **Microsoft documents neither this route nor any other subscribe route**, and
+ * both hosts answer 417 to every path a script can try, a bogus one included — so
+ * nothing automated can tell a subscribe prompt from the add-event modal one
+ * report describes, and the only evidence is a signed-in click on each host. The
+ * shape is the one the established add-to-calendar libraries ship. The rejected
+ * sibling is `deeplink/compose`'s own `rru=addsubscription`, which a Microsoft Q&A
+ * thread reports as superseded.
+ *
+ * `url` carries the `https://` address, not the `webcal:` one: Outlook on the web
+ * is a page rather than a calendar app, so it fetches the feed itself.
+ *
+ * `undefined` for a class with no feed address, which `buildOutlookCalendarUrl`
+ * below resolves.
+ */
+function buildOutlookSubscribeUrl(input: IcsEventInput, flavor: OutlookFlavor): string | undefined {
+  const address = feedAddress(input)
+
+  if (!address) return undefined
+
+  const params = new URLSearchParams({ url: address, name: input.title })
+
+  return `${OUTLOOK_HOSTS[flavor]}/calendar/0/addfromweb?${params.toString()}`
+}
+
+/**
+ * What the Outlook.com and Office 365 rows link to: the subscription where the
+ * class has a feed address, and the compose link below otherwise.
+ *
+ * ⚠ **The choice lives here rather than in the menu**, because every fact behind
+ * it is in this file — which endpoint can carry a series, and what each one needs.
+ * It also keeps the revert one file wide, should a signed-in click find the
+ * add-from-web route opening an add-event form (#428).
+ */
+export function buildOutlookCalendarUrl(input: IcsEventInput, flavor: OutlookFlavor): string {
+  return buildOutlookSubscribeUrl(input, flavor) ?? outlookComposeUrl(input, flavor)
+}
+
+/**
  * An Outlook.com / Office 365 compose link — one session, not the series.
  *
- * ⚠ **Still what the two Outlook rows use, and that costs the series.** Microsoft
- * documents no subscribe route. Two shapes are plausible —
- * `/calendar/0/addfromweb?url=…` and this endpoint's own
- * `rru=addsubscription` sibling — and both hosts answer 417 to every path a
- * script can try, a bogus one included, so only a signed-in click on each host
- * can tell a subscribe dialog from the add-event modal one report describes.
- * Until somebody runs that click, these rows get the link that demonstrably
- * works and say they add the next session only — the treatment Yahoo gets.
+ * ⚠ **The fallback for a class with no feed address.** It stays because this row
+ * needs no address to work: dropping it would retire a working row for nothing.
  *
  * `startdt`/`enddt` are absolute UTC instants. The compose API takes no
  * timezone parameter, so the instant is the only unambiguous thing to send.
@@ -469,7 +518,7 @@ export type OutlookFlavor = keyof typeof OUTLOOK_HOSTS
  * is deliberately a single occurrence anchored by `occurrenceStart`. The
  * ICS download is the lossless path for a series, and the UI says so.
  */
-export function buildOutlookCalendarUrl(input: IcsEventInput, flavor: OutlookFlavor): string {
+function outlookComposeUrl(input: IcsEventInput, flavor: OutlookFlavor): string {
   const { schedule } = input
   const start = occurrenceStart(schedule, input.from)
   const end = occurrenceEnd(start, schedule)

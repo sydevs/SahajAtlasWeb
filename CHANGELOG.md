@@ -44,6 +44,18 @@ cover everything a host would notice since the widget was first deployed.
 
 ### Changed
 
+- **The Outlook.com and Office 365 rows of "Add to calendar" now subscribe too.** ([#428]) They
+  added one session of a weekly class, so a visitor on Outlook got the next class and then
+  nothing. Both rows now open Outlook's "subscribe from web" route for the class's own calendar
+  feed, the same feed Apple Calendar and Google Calendar already use, so every session appears
+  and a cancelled one disappears within a day without the visitor doing anything. **Yahoo still
+  adds the next session only**, and a class with no feed address leaves both Outlook rows exactly
+  as they were. ⚠ **Microsoft documents no subscribe address**, so this is a route observed in
+  use rather than a published one; if a row ever opens an add-event form instead, tell us and it
+  goes back. Both rows are ordinary links to the same two hosts as before. **No parameter,
+  origin, CSP or Permissions-Policy change**, and the sandbox flags are unchanged — see
+  [Embedding in an iframe].
+
 - **Country flags are now served from the widget's own origin, not from `react-circle-flags.pages.dev`.** ([#418]) The
   flags on the country list and the country-website offer were fetched from a third-party
   `pages.dev` project nobody here controls: were it ever deleted and re-registered, its new
@@ -106,9 +118,9 @@ no-referrer`.
 - **"Add to calendar" subscribes, so a class keeps itself up to date.** ([#393]) Apple Calendar
   and Google Calendar now open a subscribe prompt for the class rather than copying one event
   into the visitor's calendar, so a session the host cancels disappears from their calendar
-  within a day, without them doing anything. Outlook.com, Office 365 and Yahoo still add the
-  next session only — Microsoft publishes no subscribe address we can use — and **"Download .ics
-  file" is now its own row, last**, where it was the Apple row's label. ⚠ **In a sandboxed
+  within a day, without them doing anything. Yahoo still adds the next session only, as did
+  Outlook.com and Office 365 until [#428] above, and **"Download .ics file" is now its own row,
+  last**, where it was the Apple row's label. ⚠ **In a sandboxed
   iframe, `allow-downloads` now matters for that last row alone**, and the four rows that open a
   page need `allow-popups` as before — while the Apple Calendar row needs neither, and no flag
   covers it: a sandbox may refuse the `webcal:` address, which the operating system opens rather
@@ -1122,3 +1134,4 @@ must-revalidate`, pinned rather than left to the CDN default. The production dom
 [#411]: https://github.com/sydevs/SahajAtlasWeb/pull/411
 [#418]: https://github.com/sydevs/SahajAtlasWeb/pull/418
 [#424]: https://github.com/sydevs/SahajAtlasWeb/pull/424
+[#428]: https://github.com/sydevs/SahajAtlasWeb/issues/428
