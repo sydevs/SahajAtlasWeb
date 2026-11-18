@@ -33,16 +33,14 @@ export type AddToCalendarProps = {
 export type CalendarLinkTarget = { label: string; href: string; opensPage: boolean }
 
 /**
- * The link-out providers, in menu order. `lib/ics.ts` decides what each URL can carry:
- * Apple, Google and both Outlook rows subscribe to the class's own feed, so a later change
- * or cancellation reaches the viewer on its own. Yahoo has no subscribe route, and its URL
- * API carries no recurrence, so it gets the one session the viewer registered for.
+ * The link-out providers, in menu order. `lib/ics.ts`'s header owns which rows subscribe:
+ * a subscribing row keeps itself current as the class changes, and the rest carry the one
+ * session the viewer registered for.
  *
  * ⚠ **A missing feed address removes two rows and demotes two others.** Apple and Google are
  * dropped, since a subscribe row with nothing to subscribe to is inert. The Outlook rows fall
- * back to the single-session compose link instead, because, like Yahoo, they compose their own
- * URL from the schedule and work regardless — dropping them would retire working rows for
- * nothing.
+ * back to a single-session compose link instead, because they compose their own URL from the
+ * schedule and work regardless — dropping them would retire working rows for nothing.
  *
  * No row says in words whether it subscribes. The two strings for that were CMS copy, and
  * sydevs/SahajCloud#1134 dropped the keys rather than ship them, so adding a sub-label here
@@ -89,11 +87,6 @@ const item = row()
  * and it is **last**: it is no longer the Apple path — Apple subscribes to the class's feed
  * now (#368) — but the escape hatch for every other client (Thunderbird, Proton, desktop
  * Outlook), so its row says plainly that it downloads a file.
- *
- * **A class with no feed address loses the Apple and Google rows, and keeps the rest.** A
- * subscribe row whose address is missing cannot work, and an inert menu entry is worse than an
- * absent one — but the three single-session link-outs need no address and still work, so the
- * two Outlook rows fall back to one rather than disappear.
  *
  * Built on Radix DropdownMenu (as SortMenu is) for real menu semantics: roving focus,
  * typeahead, and Escape.

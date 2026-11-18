@@ -19,14 +19,17 @@ import { validateWebUrl } from './url'
  *
  * ## Which rows each builder serves
  *
+ * ⚠ **This block owns that policy, and no builder's doc below restates it.** A
+ * roster repeated beside each builder goes stale one site at a time.
+ *
  * Apple, Google and both Outlooks **subscribe** to SahajCloud's own per-class
  * feed, so they read nothing this file emits: `buildFeedSubscribeUrl`,
- * `buildGoogleCalendarUrl` and `buildOutlookSubscribeUrl` are a scheme swap and
- * two encodings over the address the event document carries. Everything else is
- * still built here — the `.ics` download (`buildEventIcs`, the last menu row and
- * the escape hatch for every other client), Yahoo, which has no subscribe route
- * at all, and the Outlook compose link, now the fallback for a class with no
- * feed address.
+ * `buildGoogleCalendarUrl` and `buildOutlookCalendarUrl` are a scheme swap and
+ * two encodings over the address the event document carries. Yahoo has no
+ * subscribe route at all, and with no feed address the first two return
+ * `undefined` while the Outlook rows fall back to a compose link. Everything
+ * else is still built here — the `.ics` download (`buildEventIcs`, the last menu
+ * row and the escape hatch for every other client).
  *
  * ## Why this is hand-rolled, instead of a dependency (issue #105)
  *
@@ -81,10 +84,9 @@ export type IcsEventInput = {
   calendarFeedUrl?: string | null
   /**
    * The specific session to anchor a recurrence-less target on: the date the
-   * viewer actually registered for. Only the providers whose URL API has no
-   * recurrence parameter read it — Yahoo, and the two Outlook rows on their
-   * compose fallback alone. Every subscribing row ignores it, since a feed
-   * lists every session.
+   * viewer actually registered for. Only a target whose URL API has no
+   * recurrence parameter reads it; a feed lists every session, so a subscribing
+   * one has no anchor to move.
    */
   from?: Date | null
 }
@@ -323,9 +325,8 @@ const exportStart = (schedule: EventSchedule, from?: Date | null): DateTime =>
   schedule.recurrenceType ? seriesStart(schedule) : occurrenceStart(schedule, from)
 
 /**
- * The anchor for a target that cannot carry recurrence (Yahoo, and Outlook's
- * compose fallback: neither URL API has a recurrence parameter). Those get a
- * single event, so it has to be the right single event: the session the
+ * The anchor for a target whose URL API has no recurrence parameter. Those get
+ * a single event, so it has to be the right single event: the session the
  * viewer registered for, or the next upcoming one otherwise.
  *
  * This is never the series start, which is what `exportStart` gives a
@@ -398,7 +399,7 @@ const details = (input: IcsEventInput): string =>
 /**
  * The class's feed address as SahajCloud minted it, or `undefined` for a class
  * with no address and for one that is not `http(s)`. Every subscribing row
- * starts here, and the four disagree only about the form they want it in.
+ * starts here, and they differ only in the form they want it in.
  *
  * Refusing a foreign scheme is the point: each row below rewrites or re-encodes
  * this string, so anything else would be guesswork about a value somebody else
@@ -414,9 +415,7 @@ function feedAddress(input: IcsEventInput): string | undefined {
 
 /**
  * The `webcal://` form of the class's feed address — the one URL that makes a
- * calendar APP offer to subscribe rather than download. The Apple row opens it,
- * and Google percent-encodes it onto `cid`. The two Outlook rows want the
- * `https://` form instead, so they read `feedAddress` directly.
+ * calendar APP offer to subscribe rather than download.
  *
  * Nothing here keeps a subscription current: SahajCloud serves that address as a
  * live `.ics` document, and the subscriber's calendar re-reads it on its own
@@ -483,10 +482,7 @@ export type OutlookFlavor = keyof typeof OUTLOOK_HOSTS
  * `undefined` for a class with no feed address, which `buildOutlookCalendarUrl`
  * below resolves.
  */
-function buildOutlookSubscribeUrl(
-  input: IcsEventInput,
-  flavor: OutlookFlavor,
-): string | undefined {
+function buildOutlookSubscribeUrl(input: IcsEventInput, flavor: OutlookFlavor): string | undefined {
   const address = feedAddress(input)
 
   if (!address) return undefined
@@ -512,9 +508,8 @@ export function buildOutlookCalendarUrl(input: IcsEventInput, flavor: OutlookFla
 /**
  * An Outlook.com / Office 365 compose link — one session, not the series.
  *
- * ⚠ **The fallback for a class with no feed address, not the default any more.**
- * It stays because, unlike Apple's and Google's, this row needs no address to
- * work: dropping it would retire a working row for nothing.
+ * ⚠ **The fallback for a class with no feed address.** It stays because this row
+ * needs no address to work: dropping it would retire a working row for nothing.
  *
  * `startdt`/`enddt` are absolute UTC instants. The compose API takes no
  * timezone parameter, so the instant is the only unambiguous thing to send.
