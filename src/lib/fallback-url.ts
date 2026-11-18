@@ -13,10 +13,9 @@
  * client record can answer. Resolving it through a function rather than reading
  * `import.meta.env` at the call site is what keeps that a one-line change later.
  *
- * ⚠ **The link carries no route today.** `wemeditate.com/map` serves the legacy hash-routing
- * build until the origin cutover (#148 Part 2), so an appended `?atlas=` is silently dropped —
- * and a link advertising a route it does not honour is worse than one that plainly does not.
- * Revisit in the commit that lands the cutover.
+ * ⚠ **The link carries no route today.** An appended `?atlas=` is dropped (#252), and a link
+ * advertising a route it does not honour is worse than one that plainly does not. Why, in
+ * `docs/environment.md`.
  */
 
 /** Shipped default, and the value every misconfiguration falls back to. */
