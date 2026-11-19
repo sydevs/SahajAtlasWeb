@@ -24,13 +24,12 @@ cover everything a host would notice since the widget was first deployed.
 ### Removed
 
 - ⚠ **BREAKING: `sahajatlas.pages.dev` is no longer a supported origin.** ([#283]) Load the
-  script from `https://sahajatlas.com`, which serves the identical bundle. If your snippet's
+  script from `https://sahajatlas.com`, the one origin that serves the bundle. If your snippet's
   `src`, or your CSP's `script-src` and `font-src`, name the `pages.dev` host, point all three at
   `https://sahajatlas.com`. The guide used to offer that host as a second origin and no longer
-  does. ⚠ **The old host is withdrawn, not redirected**: what it still answers with is a frozen
-  copy, and once the project behind it is deleted it answers with nothing — Cloudflare reserves
-  no released `pages.dev` name, so anybody may then take it. Treat a script still loaded from
-  there as a third party either way.
+  does. ⚠ **The old host is gone, not redirected**: the project behind it was deleted on
+  2026-10-30, and Cloudflare reserves no released `pages.dev` name, so anybody can claim it now.
+  A snippet or a CSP that still names it trusts whoever does: a third party, not us.
 
 - ⚠ **BREAKING: the `sahaj-atlas-style` style tag is gone.** ([#236]) The widget's stylesheet
   moved into its shadow root, so there is no longer a `<style>` element in your `<head>` to

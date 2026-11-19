@@ -86,7 +86,7 @@ Two deploy files live in `public/`, copied into both build outputs, and both gov
 `BrowserRouter` build needs one — `/search` and `/countries/:code` are real paths — while the
 embeddable widget routes off a query parameter on the host's page and needs none.
 `public/_redirects` (`/* /index.html 200`) carried it for the Pages app until #283 deleted the
-file; the Pages project itself goes later, as above.
+file, and then the Pages project itself, as above.
 ⚠ **Workers static assets do read `_redirects`, and reject that splat** as an infinite loop
 (API code 100324), failing the whole deploy — and `pnpm check:wrangler` cannot catch it, since
 the dry run never reaches the API. So `pnpm build:worker` and `pnpm ladle:build` each still end

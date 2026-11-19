@@ -1084,10 +1084,10 @@ One host serves the bundle:
 | `https://sahajatlas.com` | the production domain |
 
 ⚠ **`sahajatlas.pages.dev` used to serve the same bundle and is no longer an origin of ours.**
-If your snippet or your CSP still names it, move both to `https://sahajatlas.com`. The name is
-withdrawn rather than redirected, so no request to it reaches what serves the domain, and once
-the project behind it is deleted the name is claimable by anybody — treat a script still loaded
-from there as a third party, not as us.
+If your snippet or your CSP still names it, move both to `https://sahajatlas.com`. The project
+behind that name was deleted on 2026-10-30 (#283), nothing redirects it, and Cloudflare reserves
+no released `pages.dev` name, so anybody can claim it now. A snippet or a CSP that still names it
+trusts whoever does: a third party, not us.
 
 **The widget's data all comes from one other origin: `cloud.sydevelopers.com`.** That is the only
 host `connect-src` has to name for the atlas itself. Its UI strings come from there too, alongside
