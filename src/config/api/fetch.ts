@@ -954,7 +954,7 @@ const warmCaches = (): void => {
   void loadRegions().catch(() => {})
   // The unfiltered root list derives from those two with no request of its own. Cold, the root
   // drawer suspends the moment the app's boundary reveals, and React 19 holds each fallback it
-  // shows for at least 300 ms, so every boot paid that twice.
+  // shows for at least 300 ms, so a boot would pay that hold twice.
   void queryClient.prefetchQuery(countriesQuery()).catch(() => {})
 }
 
