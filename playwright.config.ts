@@ -49,7 +49,9 @@ export default defineConfig({
   webServer: {
     // The same server as `pnpm review:embed`, over the lane's own build and key.
     command: `node scripts/serve-embed-review.mjs --dist ${LANE_DIST} --port ${LANE_PORT} --key ${WIRE_API_KEY}`,
-    url: `http://localhost:${LANE_PORT}/`,
+    // The address the server binds. `localhost` would send the runner to the system resolver,
+    // which on a machine whose hosts file has no `::1` line asks a real DNS server.
+    url: `http://127.0.0.1:${LANE_PORT}/`,
     // ⚠ Never reuse: a server already on the port may be serving another build (trap 4 in the
     // server's own header), and every scenario would then read the wrong document.
     reuseExistingServer: false,
