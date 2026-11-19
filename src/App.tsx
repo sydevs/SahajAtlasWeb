@@ -20,7 +20,7 @@ import { clearReadiness } from '@/lib/readiness'
 import { announceEmbed } from '@/lib/embed-announce'
 import embed from '@/config/embed'
 // ⚠ By folder path, NOT the `@/components/molecules` barrel, for the reason below: through the
-// barrel these three bring every molecule the interface renders into the eager graph, 30.8 KiB gz.
+// barrel these three bring every molecule the interface renders into the eager graph, 30.9 KiB gz.
 import {
   ErrorFallback,
   LoadingFallback,

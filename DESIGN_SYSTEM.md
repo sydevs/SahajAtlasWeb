@@ -208,7 +208,7 @@ Folder-per-component, not re-exported through the component barrels.
   through a tier barrel. The
   bundler places a module by which entries can reach it, not by which exports they
   use, so one barrel import puts everything the barrel re-exports in the first
-  download — through the molecules barrel, 30.8 KiB gz of components only the
+  download — through the molecules barrel, 30.9 KiB gz of components only the
   lazily-loaded interface renders. `src/Widget.standalone.test.ts` pins the shell's
   barrels and its packages, because `pnpm size` keeps headroom that hides this.
 - Component folders and files are **PascalCase** (`Chip/Chip.tsx`). Non-component

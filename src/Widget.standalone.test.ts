@@ -364,7 +364,7 @@ const SHELL_PACKAGES = [
  * Rolldown places a module by which entries can reach it, not by which exports they use, so
  * one import through a tier barrel carries everything the barrel re-exports into the first
  * download. Three fallbacks taken from the molecules barrel once brought the filter form, the
- * settings menu and the event cards with them: 30.8 KiB gzipped only the lazy interface renders.
+ * settings menu and the event cards with them: 30.9 KiB gzipped only the lazy interface renders.
  *
  * ⚠ **`pnpm size` does not hold this**: its budget carries headroom on purpose, and all of
  * that fits inside it. A package joining the list is not automatically wrong, but it is

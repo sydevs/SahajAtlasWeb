@@ -94,7 +94,7 @@ import { annotate, report } from './_ci-output.mjs'
 //   336  288.1/289.2        framer-motion's `m` with the animation features
 //                          alone, −13.2 KiB; budget held, as above
 //   336  301.3/302.4        the shell stopped importing the molecules barrel,
-//                          −30.8 KiB; budget held, as above
+//                          −30.9 KiB; budget held, as above
 //   336  331.9/333.0  #413  dependency batch; gzip paid for a different mix
 //   334  330.1/331.2  #389  `colord/plugins/lab`, which every embed owes
 //   330  326.8/328.6  #367  zod 4 (GHSA-mrhx-c7xc-m3w5), eager via every fetcher
