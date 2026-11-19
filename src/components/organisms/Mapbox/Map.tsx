@@ -1,19 +1,18 @@
 import type { FeatureCollection, Geometry } from 'geojson'
-import type { MapRef } from 'react-map-gl'
+import type { GeoJSONSource } from 'mapbox-gl'
+import type { MapRef } from 'react-map-gl/mapbox'
 import type { Geojson } from '@/types'
 import type { DisplayableEvent } from '@/hooks/use-event-display'
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import ReactMapGL, {
   AttributionControl,
-  GeoJSONSource,
   GeolocateControl,
   Layer,
-  LayerProps,
   MapMouseEvent,
   Popup,
   Source,
-} from 'react-map-gl'
+} from 'react-map-gl/mapbox'
 import { useQuery } from '@tanstack/react-query'
 import { useShallow } from 'zustand/react/shallow'
 import { CalendarDays } from 'lucide-react'
@@ -32,6 +31,7 @@ import {
   INTERACTIVE_LAYER_IDS,
   RING_ZOOM,
   LAYER_IDS,
+  type SymbolLayerProps,
 } from './layers'
 import { syncMapLanguage } from './map-language'
 import { markerColors, registerMarkerImages } from './markers'
@@ -103,6 +103,13 @@ const MAP_WORLDVIEWS: Record<string, string> = {
   default: 'US', // Default
 }
 
+type GeoFeature = Geojson['features'][number]
+
+const hasPoint = (
+  feature: GeoFeature,
+): feature is GeoFeature & { geometry: NonNullable<GeoFeature['geometry']> } =>
+  feature.geometry !== null
+
 // Mapbox renders geometry and injects its own cluster properties. The click
 // handler needs only `id` and `webPath`. This strips every other feature
 // property before handing the collection to the vector source. So the map
@@ -110,9 +117,12 @@ const MAP_WORLDVIEWS: Record<string, string> = {
 // schedule, languages, region — never reach Mapbox. This confirms the spike
 // finding: map-source leanness is a client-side trim, not a reason for a
 // separate lean feed query.
-const toMapSource = (features: Geojson['features']): FeatureCollection<Geometry | null> => ({
+//
+// An online class has no point. Mapbox skips a null geometry anyway, clustering included, and its
+// types refuse one, so it is dropped here.
+const toMapSource = (features: Geojson['features']): FeatureCollection<Geometry> => ({
   type: 'FeatureCollection',
-  features: features.map((feature) => {
+  features: features.filter(hasPoint).map((feature) => {
     const coordinates = pointCoordinates(feature.geometry)
 
     return {
@@ -145,8 +155,8 @@ function PointSource({
 }: {
   id: string
   point: MapPoint
-  pointLayer: LayerProps
-  areaLayer: LayerProps
+  pointLayer: SymbolLayerProps
+  areaLayer: SymbolLayerProps
 }) {
   return (
     <Source
@@ -156,6 +166,7 @@ function PointSource({
           {
             type: 'Feature',
             geometry: { type: 'Point', coordinates: [point.longitude, point.latitude] },
+            properties: {},
           },
         ],
       }}

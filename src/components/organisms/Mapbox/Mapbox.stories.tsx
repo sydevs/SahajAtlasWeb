@@ -1,6 +1,6 @@
 import type { Story, StoryDefault } from '@ladle/react'
 
-import { MapProvider } from 'react-map-gl'
+import { MapProvider } from 'react-map-gl/mapbox'
 
 import { StoryWrapper, StorySection } from '../../ladle'
 

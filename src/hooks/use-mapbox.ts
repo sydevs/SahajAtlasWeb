@@ -1,6 +1,6 @@
 import { EasingOptions, PaddingOptions, LngLatBoundsLike } from 'mapbox-gl'
 import { useCallback } from 'react'
-import { useMap } from 'react-map-gl'
+import { useMap } from 'react-map-gl/mapbox'
 import { create } from 'zustand/react'
 
 import { type FitOptions, fitBoundsOptions, isWithinPaddedViewport } from '@/lib/camera'

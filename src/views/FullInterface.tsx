@@ -1,7 +1,7 @@
 import { useEffect, useRef } from 'react'
 import * as Fathom from 'fathom-client'
 import { useLocation, useNavigate } from 'react-router'
-import { MapProvider } from 'react-map-gl'
+import { MapProvider } from 'react-map-gl/mapbox'
 import { useTranslation } from 'react-i18next'
 
 import { Spinner } from '@/components/atoms/Spinner'
