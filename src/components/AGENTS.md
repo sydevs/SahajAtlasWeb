@@ -469,11 +469,14 @@ means re-basing the patch, the `patchedDependencies` key and the override in one
 `pnpm install` already fails hard (`ERR_PNPM_PATCH_FAILED`, `ERR_PNPM_PATCH_NOT_APPLIED`)
 when a patch does not apply or its keyed version is no longer installed, so no extra guard
 exists for that. The one silent case, a second unpatched copy, is covered for focus-scope and
-aria-hidden by the spec above. Check this table whenever a patched package has a release.
+aria-hidden by the spec above. Every row is pinned in `src/lib/shadow-patches.test.ts` — a
+behavioural spec wherever jsdom can show the defect, plus a drift pin on the built files — and
+that spec fails if `pnpm.patchedDependencies` gains a patch it does not pin. Check this table
+whenever a patched package has a release.
 
 | Patch | Fixes | Upstream | Remove when |
 | --- | --- | --- | --- |
-| `vaul@1.1.2` | Stops vaul injecting its unscoped `<style>` (global `@keyframes`) into the host's `<head>`; forwards `modal` to Radix so `modal={false}` is really non-modal (#30, #91) | [vaul#497](https://github.com/emilkowalski/vaul/issues/497), [vaul#192](https://github.com/emilkowalski/vaul/issues/192); 1.1.2 is the newest release | A vaul release forwards `modal` and stops injecting CSS, or we move off vaul |
+| `vaul@1.1.2` | Stops vaul injecting its unscoped `<style>` (global `@keyframes`) into the host's `<head>`; forwards `modal` to Radix so `modal={false}` is really non-modal (#30, #91). ⚠ The `modal` hunk is in `dist/index.mjs` alone — the build every consumer loads (bundle, dev pre-bundle, Ladle, both lane environments); the `require` build has only the CSS hunk | [vaul#497](https://github.com/emilkowalski/vaul/issues/497), [vaul#192](https://github.com/emilkowalski/vaul/issues/192). **Unmaintained**: the upstream README says so, and 1.1.2 (2024-12-14) was still the newest release on 2026-11-19. Re-check with `npm view vaul version time.modified` and the note atop the README at github.com/emilkowalski/vaul | A vaul release forwards `modal` and stops injecting CSS, or we move off vaul |
 | `@radix-ui/react-focus-scope@1.3.1` | `focusin`/`focusout`/`activeElement` retarget to the shadow host, so the modal trap, Tab cycle and mount auto-focus break (#236) | [primitives#3353](https://github.com/radix-ui/primitives/issues/3353) (open) | FocusScope resolves `composedPath()` and the deep active element itself |
 | `aria-hidden@1.2.6` | `hideOthers` cannot cross a shadow boundary, so a modal never hides the background (#236) | [aria-hidden#14](https://github.com/theKashey/aria-hidden/issues/14) is the related closed report; 1.2.6 is the newest release | A release that climbs `ShadowRoot.host` and descends into kept roots |
 | `@schedule-x/calendar@2.36.0` | Looks up ids and selectors on `document` and writes CSS variables on `<html>`; breaks inside a shadow root (#236) | [schedule-x#1223](https://github.com/schedule-x/schedule-x/issues/1223) (open); the newest release is 4.9.1, a major jump not yet evaluated | A release whose lookups and variables are scoped to the rendered root |
