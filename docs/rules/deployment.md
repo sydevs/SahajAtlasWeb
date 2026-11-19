@@ -166,8 +166,10 @@ is what moves a pin: weekly, GitHub Actions only, one pull request per action ti
 workflows follow `@main` on purpose and are exempt from both.
 ⚠ **A run Dependabot triggers reads Dependabot secrets, never Actions secrets.** Until the five
 secrets the Smoke job gates on are entered under both, each of those pull requests fails Smoke as
-`no-credentials`. ⚠ A `cloudflare/wrangler-action` bump also moves the commit the guard step's
-comment in `ci.yml` read the action's outputs at: re-read them before merging it.
+`no-credentials`. Entering them is a decision, not a chore: the bumped action then runs in a job
+holding the Cloudflare token before anyone has read the bump.
+⚠ A `cloudflare/wrangler-action` bump also moves the commit the guard step's comment in `ci.yml`
+read the action's outputs at: re-read them before merging it.
 
 ## Rolling production back
 
