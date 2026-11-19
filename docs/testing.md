@@ -29,6 +29,15 @@ step returned (#282). The **same** smoke specs also run against production, fire
 deploy rather than by a PR (`.github/workflows/production-smoke.yml`) — see "The PR gate can
 only ever read a preview" below.
 
+**Coverage is measured, not gated.** `pnpm test:coverage` is the unit lane with V8 coverage on,
+and `vitest.config.ts` sets no threshold, so a run never fails on a figure. The config names
+`src/**` outright, so a source file no spec loads counts as uncovered, and leaves out what never
+ships: the generated SahajCloud types, stories and their harness, mocks, and test support.
+`ci.yml`'s gate job runs the lane through this script, once, and writes the totals to the job
+summary; the per-edit hook and the lean gate stay on `pnpm test:run`. ⚠ `@vitest/coverage-v8`
+is pinned exactly, because its peer range is one exact `vitest` version: bump the two together.
+Read the figures off a run, never off a doc.
+
 ## The smoke lane's three invariants (issues #99, #138)
 
 - **A green Smoke check means the specs ran — nothing more.** Given no `PREVIEW_URL` the specs

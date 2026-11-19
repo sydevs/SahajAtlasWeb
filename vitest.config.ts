@@ -40,5 +40,27 @@ export default defineConfig({
     // spec the whole tree is related to is paid on every one of them.
     // This ceiling exists so a slow spec fails for a real reason.
     testTimeout: 20_000,
+    // Collected only by `pnpm test:coverage`. It measures and gates nothing: there are no
+    // `thresholds`, so a run never fails on a figure.
+    coverage: {
+      provider: 'v8',
+      // Named outright, so a source file no spec loads still counts as uncovered. Left to its
+      // default, the report holds only the files a spec happened to import, which flatters it.
+      include: ['src/**/*.{ts,tsx}'],
+      // What never ships: generated types, stories and their harness, mocks, and test support.
+      // Vitest drops the spec files itself, and they are named so the list reads whole.
+      exclude: [
+        'src/types/payload/**',
+        'src/**/*.d.ts',
+        'src/**/*.{test,spec}.{ts,tsx}',
+        'src/**/*.stories.tsx',
+        'src/components/ladle/**',
+        'src/views/story-harness.tsx',
+        'src/mocks/**',
+        'src/test-support/**',
+      ],
+      // The terminal headline, and the file `ci.yml` turns into the job summary.
+      reporter: ['text-summary', 'json-summary'],
+    },
   },
 })

@@ -217,3 +217,45 @@ describe('ci.yml', () => {
     expect(guard).toContain('appWorkerName()')
   })
 })
+
+// The gate job runs the unit lane through the coverage script, so one step is both the lane and
+// its measurement. Each way of getting that wrong is silent: a second step paying for the lane
+// twice, a tolerance that lets a red spec through, or a summary reading a file nothing writes.
+describe("ci.yml's gate job, on the unit lane", () => {
+  const ci = readRepoSource('.github/workflows/ci.yml')
+  const opens = ci.indexOf('\n  gate:')
+  const closes = ci.indexOf('\n  dependencies:')
+
+  // Same rule as the `smoke:` slice above: a renamed job must fail, not leave a slice every
+  // negative assertion passes against.
+  if (opens < 0 || closes < opens)
+    throw new Error('ci.yml has no `gate:` job before `dependencies:`')
+
+  const gate = ci.slice(opens, closes)
+
+  it('runs the lane once, as the same vitest run the lean gate makes', () => {
+    const lanes = [...gate.matchAll(/^\s*(?:- )?run: (pnpm test\S*)/gm)].map((m) => m[1])
+    const { scripts } = readPackage()
+
+    expect(lanes).toEqual(['pnpm test:coverage'])
+    expect(scripts['test:coverage']).toBe(`${scripts['test:run']} --coverage`)
+  })
+
+  // The step is the bare command: no `|| true` after it, and no key under it such as
+  // `continue-on-error`, either of which would report a red spec as a green gate.
+  it('lets a failing spec fail the job', () => {
+    expect(gate).toMatch(/^ {6}- run: pnpm test:coverage\n(?! {8}\S)/m)
+  })
+
+  // The path is the `json-summary` reporter's own, under vitest's default reports directory.
+  // Nothing else couples the two, and a summary step that finds no file only annotates.
+  it('summarises the report the coverage config writes, into a directory git ignores', () => {
+    const config = readRepoSource('vitest.config.ts')
+    const [directory, file] = match(gate, /^\s*SUMMARY=(\S+)$/m).split('/')
+
+    expect(file).toBe('coverage-summary.json')
+    expect(config).toContain("'json-summary'")
+    expect(config).not.toContain('reportsDirectory')
+    expect(readRepoSource('.gitignore').split('\n')).toContain(directory)
+  })
+})

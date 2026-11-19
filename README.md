@@ -153,11 +153,12 @@ Mapbox token and a SahajCloud API key. See
 pnpm dev          # Vite dev server
 pnpm build        # typecheck + production build → dist/ (+ the two output assertions)
 pnpm preview      # serve the production build
-pnpm typecheck    # tsc --noEmit (app + tests/scripts)
+pnpm typecheck    # tsc --noEmit (app + tests, scripts and the Vite configs)
 pnpm lint         # eslint, fails on any warning (CI gate)
 pnpm lint:fix     # eslint --fix + Prettier
 pnpm test         # vitest watch (fast unit lane)
-pnpm test:run     # vitest run (CI + pre-PR gate)
+pnpm test:run     # vitest run (pre-PR gate)
+pnpm test:coverage # the same run with coverage (CI gate — measured, no threshold)
 pnpm test:smoke   # smoke specs vs the Cloudflare preview (needs PREVIEW_URL)
 pnpm ladle        # component previews → http://localhost:61000
 pnpm ladle:build  # static Ladle build (CI gate)

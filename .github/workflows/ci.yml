@@ -32,7 +32,27 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - run: pnpm lint
       - run: pnpm typecheck
-      - run: pnpm test:run # unit lane — smoke specs are excluded in vitest.config.ts
+      # The unit lane, run once, with coverage collected on that same run — smoke specs are
+      # excluded in vitest.config.ts. A failing spec fails this step exactly as `pnpm test:run`
+      # would: coverage adds a report, never a second run and never a tolerance.
+      - run: pnpm test:coverage
+      # Measured, not gated: `vitest.config.ts` sets no threshold, so these figures inform a
+      # review and fail nothing. A missing report is annotated rather than failed for the same
+      # reason — the specs above already passed.
+      - name: Coverage summary
+        run: |
+          SUMMARY=coverage/coverage-summary.json
+          if [ ! -f "$SUMMARY" ]; then
+            echo "::warning::The unit lane passed but wrote no $SUMMARY, so this run reports no coverage."
+            exit 0
+          fi
+          {
+            echo "### Unit-lane coverage — measured, not gated"
+            echo ""
+            echo "| | Covered | Of | |"
+            echo "| --- | ---: | ---: | ---: |"
+            jq -r '.total | to_entries[] | select(.key != "branchesTrue") | "| \(.key) | \(.value.covered) | \(.value.total) | \(.value.pct)% |"' "$SUMMARY"
+          } >> "$GITHUB_STEP_SUMMARY"
       - run: pnpm build
       - name: Bundle-size budget
         # Measures the eager first-load payload, gzipped: the standalone
