@@ -607,9 +607,12 @@ the fixed marker outline against the basemap surfaces it was measured from (#389
 the widest and **7.0s** for `i18n.ts`, medians of three. Re-measured 2026-11-15, at 22 —
 `assert-classic-bridge.test.ts` reads the bridge's source to compile it as its build entry is:
 **3.3s** for the widest and **4.4s** for `i18n.ts`, medians of three on 11 cores rather than 4,
-so read that pair against each other, never against the figures before it. The slowest edit sits
-at about half the bound, so the ceiling is the narrower constraint of the two — a slot is spent
-long before a second is.
+so read that pair against each other, never against the figures before it. Re-measured
+2026-11-19, still at 22, with `i18n.ts` now selecting 14 specs and `src/hooks/use-locale.ts` 13:
+**5.4s** for the widest, **5.8s** for `i18n.ts` and **5.2s** for `use-locale.ts`, medians of
+three on 4 cores while another checkout held one of them, so read all three as upper bounds. The
+slowest edit sits at about half the bound, so the ceiling is the narrower constraint of the two —
+a slot is spent long before a second is.
 ⚠ **The 0.12s class is smaller than #289 found it**: `src/views/FullInterface.tsx` selected
 nothing until `MapFrame.test.tsx` named it as a quoted repo-relative path, and now costs **2.2s**
 per edit for the wiring pin it previously had no per-edit coverage from at all. A quoted literal
