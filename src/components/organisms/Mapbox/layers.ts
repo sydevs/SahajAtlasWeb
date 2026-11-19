@@ -1,4 +1,4 @@
-import type { LayerProps } from 'react-map-gl'
+import type { LayerProps } from 'react-map-gl/mapbox'
 
 import { MARKER_IDS, MARKER_MODE, MARKER_OUTLINE, PIN_WIDTH } from './markers'
 
@@ -15,6 +15,12 @@ import { MIN_INTERFACE_WIDTH_PX } from '@/lib/embed-slot'
 type Props = {
   id: string
 } & LayerProps
+
+/**
+ * A symbol layer: what the selection and hover highlights are. `PointSource` bounds them by zoom,
+ * and `LayerProps` alone also admits a `slot` layer, which takes no zoom range.
+ */
+export type SymbolLayerProps = Extract<LayerProps, { type: 'symbol' }>
 
 /**
  * Every layer id, in one place.
@@ -204,7 +210,7 @@ export const vagueDotLayer = (palette: PaletteRoles, mode: ThemeMode): Props => 
   }
 }
 
-export const selectedPointLayer: LayerProps = {
+export const selectedPointLayer: SymbolLayerProps = {
   id: LAYER_IDS.selectedPoint,
   type: 'symbol',
   source: 'selection',
@@ -216,7 +222,7 @@ export const selectedPointLayer: LayerProps = {
   },
 }
 
-export const selectedAreaLayer: LayerProps = {
+export const selectedAreaLayer: SymbolLayerProps = {
   id: LAYER_IDS.selectedArea,
   type: 'symbol',
   source: 'selection',
@@ -235,7 +241,7 @@ export const selectedAreaLayer: LayerProps = {
 // It is fed by the `hover` source, not `selection`, and it
 // is never added to `interactiveLayerIds`, so the highlight stays purely
 // visual.
-export const hoveredPointLayer: LayerProps = {
+export const hoveredPointLayer: SymbolLayerProps = {
   id: LAYER_IDS.hoveredPoint,
   type: 'symbol',
   source: 'hover',
@@ -250,7 +256,7 @@ export const hoveredPointLayer: LayerProps = {
   },
 }
 
-export const hoveredAreaLayer: LayerProps = {
+export const hoveredAreaLayer: SymbolLayerProps = {
   id: LAYER_IDS.hoveredArea,
   type: 'symbol',
   source: 'hover',

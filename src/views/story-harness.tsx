@@ -6,7 +6,7 @@ import clsx from 'clsx'
 import { useLocation, useNavigate } from 'react-router'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { ErrorBoundary } from 'react-error-boundary'
-import { MapProvider } from 'react-map-gl'
+import { MapProvider } from 'react-map-gl/mapbox'
 
 import { DrawerSlotsProvider } from '@/components/atoms/Drawer'
 import { DrawerControlContext } from '@/views/shared'

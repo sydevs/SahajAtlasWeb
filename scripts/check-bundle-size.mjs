@@ -32,7 +32,7 @@
  * This script excludes dynamic `import()` targets. Read that exclusion
  * carefully — it hid a real regression for the length of one PR. A dynamic
  * import only becomes a second hop when the module HOLDING it is itself
- * lazy. `react-map-gl` runs `const mapLib = import('mapbox-gl')` at module
+ * lazy. `react-map-gl` 7 ran `const mapLib = import('mapbox-gl')` at module
  * scope. So while anything in the eager graph imported it, including one
  * re-export through the `organisms` barrel, 485 KiB gzipped was fetched at
  * the same time as the rest of the payload. This gate still reported a

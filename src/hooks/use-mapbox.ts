@@ -1,6 +1,6 @@
 import { EasingOptions, PaddingOptions, LngLatBoundsLike } from 'mapbox-gl'
 import { useCallback } from 'react'
-import { useMap } from 'react-map-gl'
+import { useMap } from 'react-map-gl/mapbox'
 import { create } from 'zustand/react'
 
 import { type FitOptions, fitBoundsOptions, isWithinPaddedViewport } from '@/lib/camera'
@@ -80,7 +80,7 @@ const FLY_SPEED = 1.0
  * So the operations below do not re-render every consumer of this hook. The map is the hottest render path in the app.
  * This also means the flag is consumed at CALL time.
  * That timing matters: `useFrameOnTop` fires once before react-map-gl has registered the instance.
- * That instance resolves in a microtask after the mounting commit.
+ * That instance resolves after the mounting commit, once mapbox-gl has loaded.
  * Each operation bails out on `!mapbox` before reaching here.
  * So that no-op run cannot spend the first move and leave the real one flying.
  */

@@ -43,6 +43,11 @@ cover everything a host would notice since the widget was first deployed.
 
 ### Changed
 
+- **A `map=false` embed no longer downloads the map library.** ([#445]) Opening the interface
+  fetched and ran Mapbox GL's script — about 510 KiB gzipped, from `sahajatlas.com` — even with
+  no map to draw. It now loads only when a map renders, and a map embed starts it at the same
+  moment as before. **No parameter, origin, CSP or Permissions-Policy change.**
+
 - **The widget's first download is about 44 KiB gzipped smaller** ([#442]), 336 → 292 KiB for the embed.
   The filter form, the settings menu and the class cards were riding in it, though only the open
   interface draws them. They now arrive with the interface, which was already a separate
@@ -1164,3 +1169,4 @@ must-revalidate`, pinned rather than left to the CDN default. The production dom
 [#424]: https://github.com/sydevs/SahajAtlasWeb/pull/424
 [#428]: https://github.com/sydevs/SahajAtlasWeb/issues/428
 [#442]: https://github.com/sydevs/SahajAtlasWeb/pull/442
+[#445]: https://github.com/sydevs/SahajAtlasWeb/pull/445

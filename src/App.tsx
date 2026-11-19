@@ -27,10 +27,10 @@ import {
   ResetErrorBoundary,
 } from '@/components/molecules/Fallbacks'
 // ⚠ Imports the component's own path, NOT the `@/components/organisms` barrel. The barrel
-// re-exports `Mapbox`, so importing ANYTHING through it pulls `react-map-gl` — whose
-// `exports-mapbox.js` fires `import('mapbox-gl')` at module scope — straight back into the
-// eager graph. Splitting `FullInterface` behind `lazy` was not enough on its own: measured in
-// a browser, the compact embed still fetched all 485 KiB gz through this one barrel import.
+// re-exports `Mapbox`, so importing ANYTHING through it pulls the map and `react-map-gl`
+// straight back into the eager graph. Under react-map-gl 7, which fired `import('mapbox-gl')` at
+// module scope, splitting `FullInterface` behind `lazy` was not enough on its own: measured in a
+// browser, the compact embed still fetched all 485 KiB gz through this one barrel import.
 import { ReportIssueModal } from '@/components/organisms/ReportIssueForm'
 import { NoExpansionProvider } from '@/hooks/use-expansion'
 import { CompactEmbedView } from '@/views/CompactEmbedView'
