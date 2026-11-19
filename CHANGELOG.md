@@ -52,16 +52,16 @@ cover everything a host would notice since the widget was first deployed.
   CSP.
 
 - **The widget runs on React 19, which makes it 23 KiB heavier for a visitor who reveals it.**
-  What your page loads up front is unchanged: `auto.js` and the loader it starts still come to
-  about 3 KiB, so an embed nobody scrolls to costs exactly what it did. The widget itself, fetched
-  as the embed comes into view, grows by 23 KiB gzipped, 22.6 KiB of it React's own renderer: from
-  291.7 KiB with the saving above to 314.8 KiB, still 20 KiB under the 334.5 KiB it was before
-  both. **Content can appear a little later.** A loading spinner, once shown, now stays for
-  at least about 0.3 seconds rather than flashing when the content arrives sooner, so each loading
-  step can add up to that. Measured against a fast backend, the first list arrives about 0.2 to
-  0.3 seconds later than before, both when the embed comes into view and when the compact card is
-  opened. **No parameter, origin, CSP or Permissions-Policy change**, and the widget writes
-  nothing new to your page outside its own shadow root.
+  ([#446]) What your page loads up front is unchanged: `auto.js` and the loader it starts still come
+  to about 3 KiB, so an embed nobody scrolls to costs exactly what it did. The widget itself,
+  fetched as the embed comes into view, grows by 23 KiB gzipped, 22.6 KiB of it React's own
+  renderer: from 291.7 KiB with the saving above to 314.8 KiB, still 20 KiB under the 334.5 KiB it
+  was before both. **Content can appear a little later.** A loading spinner, once shown, now stays
+  for at least about 0.3 seconds rather than flashing when the content arrives sooner, so each
+  loading step can add up to that. Measured against a fast backend, the first list arrives about 0.2
+  to 0.3 seconds later than before, both when the embed comes into view and when the compact card is
+  opened. **No parameter, origin, CSP or Permissions-Policy change**, and the widget writes nothing
+  new to your page outside its own shadow root.
 
 - **The Outlook.com and Office 365 rows of "Add to calendar" now subscribe too.** ([#428]) They
   added one session of a weekly class, so a visitor on Outlook got the next class and then
@@ -1176,3 +1176,4 @@ must-revalidate`, pinned rather than left to the CDN default. The production dom
 [#424]: https://github.com/sydevs/SahajAtlasWeb/pull/424
 [#428]: https://github.com/sydevs/SahajAtlasWeb/issues/428
 [#442]: https://github.com/sydevs/SahajAtlasWeb/pull/442
+[#446]: https://github.com/sydevs/SahajAtlasWeb/pull/446

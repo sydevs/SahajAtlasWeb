@@ -92,7 +92,7 @@ import { annotate, report } from './_ci-output.mjs'
 // Every step to today's three figures, newest first, as standalone/embed and as
 // loader. `git log -p` on this constant holds each one in full, dated.
 //
-//   336  312.5/313.6        React 19: `react` + `react-dom/client` alone gzip
+//   336  312.5/313.6  #446  React 19: `react` + `react-dom/client` alone gzip
 //                           22.6 KiB larger than 18.3.1, helmet-async 3 0.7
 //                           more; budget held, as above
 //   336  288.1/289.2  #442  framer-motion's `m` with the animation features
