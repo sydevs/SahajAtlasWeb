@@ -1,5 +1,5 @@
 ---
-description: The two test lanes, the smoke lane's invariants, the node-only decision and its jsdom exception, the portal traps, spec conventions, and the per-edit budget.
+description: The three test lanes (unit, smoke, browser), the smoke lane's invariants, the node-only decision and its jsdom exception, the portal traps, spec conventions, and the per-edit budget.
 paths:
   - '**/*.test.ts'
   - '**/*.test.tsx'
