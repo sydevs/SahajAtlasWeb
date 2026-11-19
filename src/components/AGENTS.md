@@ -599,10 +599,15 @@ the carousel actually autoplays.
 **The rest of the app's motion is off under that preference too, through three
 seams — one per animation technology** (issue #102):
 
-- **framer-motion** — `MotionConfig` in `src/providers.tsx` covers every `motion.*`
+- **framer-motion** — `MotionConfig` in `src/providers.tsx` covers every `m.*`
   in the tree, driven by `usePrefersReducedMotion()`, NOT framer's own
   `reducedMotion="user"` (which reads the media query once at mount and misses a
   mid-session change).
+  ⚠ **Write `m.*`, never `motion.*`** — lint refuses the import. `motion` bundles every
+  framer-motion feature into the eager graph (13.3 KiB gz, measured), where `m` draws
+  the one bundle the same file's `LazyMotion` loads: `initial`, `animate`, `exit` and
+  `transition`, and nothing else. ⚠ An `m.*` rendered outside `Providers` never leaves
+  its `initial` values, so a spec or story that mounts one goes through `Providers`.
 - **vaul's drawers** animate in CSS, so an additive
   `@media (prefers-reduced-motion: reduce)` block at the foot of
   `src/styles/vaul.css` kills both `animation` and `transition` — vaul's own

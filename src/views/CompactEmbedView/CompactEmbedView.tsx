@@ -2,7 +2,7 @@ import type { CompactState } from '@/lib/slot-decision'
 
 import { type ReactNode, useCallback, useEffect, useRef } from 'react'
 import * as Primitive from '@radix-ui/react-dialog'
-import { motion } from 'framer-motion'
+import { m } from 'framer-motion'
 import { useTranslation } from 'react-i18next'
 import { X } from 'lucide-react'
 
@@ -270,7 +270,7 @@ function ExpandedDialog({
               mounted while closed, and not mounting it is the entire point of the compact
               form. This uses framer, rather than CSS, so `MotionConfig` covers it, which
               keeps reduced motion to three seams instead of four (`src/components/AGENTS.md`). */}
-          <motion.div
+          <m.div
             ref={adopt}
             animate={{ opacity: 1 }}
             className={contentClass}
@@ -297,7 +297,7 @@ function ExpandedDialog({
                 <X size={16} />
               </Button>
             </Primitive.Close>
-          </motion.div>
+          </m.div>
         </Primitive.Content>
       </Primitive.Portal>
     </Primitive.Root>

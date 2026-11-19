@@ -44,12 +44,13 @@ cover everything a host would notice since the widget was first deployed.
 
 ### Changed
 
-- **The widget's first download is about 31 KiB gzipped smaller**, 334 → 304 KiB for the embed.
+- **The widget's first download is about 44 KiB gzipped smaller**, 334 → 290 KiB for the embed.
   The filter form, the settings menu and the class cards were riding in it, though only the open
   interface draws them. They now arrive with the interface, which was already a separate
   download, so the loading state paints sooner and a compact card nobody opens never fetches
-  them. Nothing looks or behaves differently, and there is nothing to change in your snippet or
-  your CSP.
+  them. The animation library also ships without the drag and layout engines nothing here used.
+  Nothing looks or behaves differently, and there is nothing to change in your snippet or your
+  CSP.
 
 - **The Outlook.com and Office 365 rows of "Add to calendar" now subscribe too.** ([#428]) They
   added one session of a weekly class, so a visitor on Outlook got the next class and then

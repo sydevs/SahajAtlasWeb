@@ -14,7 +14,7 @@ import {
 import { createPortal } from 'react-dom'
 import { useLocation, useNavigate } from 'react-router'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { AnimatePresence, motion } from 'framer-motion'
+import { AnimatePresence, m } from 'framer-motion'
 import clsx from 'clsx'
 
 import { eventTitlesQuery, regionsQuery } from '@/config/api'
@@ -229,7 +229,7 @@ function PeekStrip({
   const flush = isLeft ? { x: 0 } : { y: 0 }
 
   return (
-    <motion.button
+    <m.button
       animate={{ ...offset, opacity }}
       aria-label={label}
       className={clsx(className, PEEK_FOCUS)}

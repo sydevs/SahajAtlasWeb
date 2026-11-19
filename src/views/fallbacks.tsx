@@ -190,7 +190,7 @@ export function DrawerChrome({
         <DrawerHeader>
           {/* A LOADING chrome gets the field's shape, not a working field. `SearchField` mounts
               a Mapbox Geocoder — a shadow-DOM custom element bound to the live map. This
-              fallback is freshly mounted per path inside DrawerStack's keyed motion.div, so on
+              fallback is freshly mounted per path inside DrawerStack's keyed view layer, so on
               a cold start it would instantiate one while the map is still initialising, then
               tear it down again the moment CountriesView mounts its own. An ERROR chrome keeps
               the real field. There it is the escape hatch. */}

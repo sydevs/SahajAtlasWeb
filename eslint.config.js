@@ -169,6 +169,10 @@ export default [
     // drawer's views flickered in halfway down the panel until
     // `src/views/DrawerStack/ViewLayer.tsx` replaced it. Shipped code only, so this scope
     // overlaps neither block below.
+    //
+    // `motion` is refused beside it: each `motion.*` bundles every feature framer-motion has,
+    // which no size budget notices at 13.3 KiB gz, where `m.*` draws the ones
+    // `src/providers.tsx` loads.
     files: ['src/**/*.tsx'],
     ignores: ['**/*.{test,spec}.tsx', 'src/test-support/**'],
     rules: {
@@ -178,6 +182,12 @@ export default [
           selector: 'Literal[value="popLayout"]',
           message:
             'popLayout styles the host document, not the shadow root — overlap the layers absolutely instead (src/views/DrawerStack/ViewLayer.tsx).',
+        },
+        {
+          selector:
+            'ImportDeclaration[source.value="framer-motion"] > ImportSpecifier[imported.name="motion"]',
+          message:
+            'Import `m`, not `motion`: `motion` bundles every framer-motion feature into the eager graph (src/providers.tsx).',
         },
       ],
     },
