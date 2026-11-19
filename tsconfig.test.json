@@ -1,9 +1,12 @@
 {
   // This file type-checks the files the app tsconfig excludes.
   // The app tsconfig includes only "src" and ".ladle".
-  // This file covers the smoke specs and the build and CI scripts.
+  // This file covers the smoke specs, the build and CI scripts, and the Vite and vitest configs.
   // Co-located unit specs live under src/. The app project already checks them.
   // `pnpm typecheck` runs this file as its second step. See package.json.
+  //
+  // Both Vite configs are checked here and nowhere else: they import plugins from
+  // scripts/*.mjs, which only a project with allowJs can type.
   //
   // allowJs and checkJs also check the .mjs scripts.
   // noImplicitAny is off because these node utilities are untyped on purpose.
@@ -16,5 +19,12 @@
     "checkJs": true,
     "noImplicitAny": false
   },
-  "include": ["tests", "scripts", "vitest.config.ts", "vitest.smoke.config.ts"]
+  "include": [
+    "tests",
+    "scripts",
+    "vite.config.ts",
+    "vitest.config.ts",
+    "vitest.smoke.config.ts",
+    ".ladle/vite.config.ts"
+  ]
 }

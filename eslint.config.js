@@ -37,8 +37,6 @@ export default [
       'coverage/**',
       '.claude/**',
       'src/types/payload/**', // generated/synced from SahajCloud via `pnpm types:cms`
-      '*.config.js',
-      '*.config.ts',
     ],
   },
   {
@@ -213,8 +211,7 @@ export default [
           // repo-relative reader can serve.
           selector:
             'CallExpression[callee.name="fileURLToPath"][arguments.0.object.type="MetaProperty"][arguments.0.property.name="url"]',
-          message:
-            'Read a repo file with readRepoSource (src/test-support/repo-source.ts) (#289).',
+          message: 'Read a repo file with readRepoSource (src/test-support/repo-source.ts) (#289).',
         },
       ],
     },
