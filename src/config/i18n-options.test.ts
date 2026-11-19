@@ -15,8 +15,10 @@ beforeAll(async () => {
     ...i18nSharedOptions,
     lng: 'fr',
     resources: {
-      en: { translation: { greeting: 'Hello %{name}', onlyEnglish: 'English only' } },
-      fr: { translation: { greeting: 'Bonjour %{name}' } },
+      en: {
+        translation: { greeting: 'Hello %{name}', onlyEnglish: 'English only', blank: 'English' },
+      },
+      fr: { translation: { greeting: 'Bonjour %{name}', blank: '' } },
     },
   })
 })
@@ -28,6 +30,12 @@ describe('i18nSharedOptions', () => {
 
   it('falls back to en for keys missing in the active language', () => {
     expect(i18n.t('onlyEnglish' as never)).toBe('English only')
+  })
+
+  // i18next 27's default falls back instead. Whether blank copy should fall back to English is a
+  // copy decision (#92 is the case for it), not one a library upgrade gets to make.
+  it('renders a blank translation blank, rather than falling back to en', () => {
+    expect(i18n.t('blank' as never)).toBe('')
   })
 
   it('resolves text direction via i18next (feeds the widget root dir attr)', () => {

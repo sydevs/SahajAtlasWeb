@@ -72,6 +72,9 @@ export const i18nSharedOptions = {
   // split has nothing left to divide.
   defaultNS: 'translation',
   ns: ['translation'],
+  // shortcut: a blank translation renders blank, not as English. Drop this line, and its twin in
+  // `types/i18next.d.ts`, to take i18next's default once falling back is wanted (#92).
+  returnEmptyString: true,
   interpolation: {
     escapeValue: false, // React escapes by default
     prefix: '%{',
