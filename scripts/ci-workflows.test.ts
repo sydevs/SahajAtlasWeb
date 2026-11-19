@@ -255,8 +255,15 @@ describe('ci.yml browser lane', () => {
   })
 
   it('fails the workflow on the first failure, with no retry to hide a flake', () => {
+    // The lane step runs a package script, so a flag there reaches CI as surely as one here.
+    const runners = Object.values(readPackage().scripts).filter((script) =>
+      /\bplaywright test\b/.test(script),
+    )
+
     expect(job).not.toMatch(/continue-on-error/)
     expect(job).not.toMatch(/--retries/)
+    expect(runners.length).toBeGreaterThan(0)
+    for (const script of runners) expect(script).not.toMatch(/--retries/)
     expect(match(readRepoSource('playwright.config.ts'), /^\s*retries: (\S+),$/m)).toBe('0')
   })
 
