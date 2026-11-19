@@ -5,6 +5,7 @@ import {
   PROBE_STEP_PX,
   TAP_EXCEPTIONS,
   formatFailures,
+  formatUnmeasured,
   spanFrom,
 } from './check-a11y.mjs'
 
@@ -64,6 +65,30 @@ describe('formatFailures', () => {
 
   it('says nothing at all when nothing failed', () => {
     expect(formatFailures([])).toEqual([])
+  })
+})
+
+describe('formatUnmeasured', () => {
+  // A count cannot be acted on. The control that lands here is the one whose centre sits within
+  // half the floor of a viewport edge — a narrow control pinned to a corner, which is the shape
+  // the floor exists to catch — so the report has to say which control, in which story.
+  it('names each control and the story it sat in', () => {
+    const lines = formatUnmeasured([
+      { story: 'views--filter', el: 'button "Clear"' },
+      { story: 'views--filter', el: 'a "Terms"' },
+      { story: 'atoms--chip', el: 'button "Remove"' },
+    ])
+
+    expect(lines.filter((line) => line.startsWith('###'))).toEqual([
+      '### `views--filter`',
+      '### `atoms--chip`',
+    ])
+    expect(lines).toContain('- **unmeasured** — button "Clear"')
+    expect(lines.some((line) => line.includes('3 control(s)'))).toBe(true)
+  })
+
+  it('says nothing at all when every control was measured', () => {
+    expect(formatUnmeasured([])).toEqual([])
   })
 })
 

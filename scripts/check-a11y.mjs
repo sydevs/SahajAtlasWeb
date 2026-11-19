@@ -231,6 +231,27 @@ export function formatFailures(failures) {
 }
 
 /**
+ * Names every control the probe could not measure, grouped by story.
+ *
+ * @param {{ story: string, el: string }[]} unmeasured
+ * @returns {string[]} Report lines, empty when every control was measured.
+ */
+export function formatUnmeasured(unmeasured) {
+  if (unmeasured.length === 0) return []
+
+  return [
+    '',
+    `## Unmeasured — ${unmeasured.length} control(s) against a viewport edge`,
+    '',
+    `A probe off the viewport answers \`null\`, so the ${MIN_TAP_PX}px floor did not apply to these.`,
+    '',
+    ...formatFailures(
+      unmeasured.map(({ story, el }) => ({ story, kind: 'unmeasured', detail: el })),
+    ),
+  ]
+}
+
+/**
  * Runs in the page. Returns axe's violations, one probe grid per visible control, and the
  * tabbable inventory with each element's resting paint, which the keyboard walk compares
  * against.
@@ -537,8 +558,9 @@ export async function run({ only, origin } = {}) {
 
   /** @type {{ story: string, kind: string, detail: string }[]} */
   const failures = []
+  /** @type {{ story: string, el: string }[]} */
+  const unmeasured = []
   let controls = 0
-  let unmeasured = 0
 
   for (const id of ids) {
     try {
@@ -577,10 +599,12 @@ export async function run({ only, origin } = {}) {
         if (width >= MIN_TAP_PX && height >= MIN_TAP_PX) continue
 
         // A control whose probes left the viewport was not measured, and reporting it as
-        // short would be reporting where it sat rather than how big it is. Counted and
-        // printed, so a story that quietly stopped being measured is visible.
+        // short would be reporting where it sat rather than how big it is. ⚠ Each one is
+        // NAMED rather than counted: the shape that lands here — a control narrower than 44px
+        // pinned to a corner — is the shape this floor exists to catch, so a number alone
+        // cannot say whether the floor quietly stopped applying to a story.
         if (target.clipped) {
-          unmeasured += 1
+          unmeasured.push({ story: id, el: target.el })
           continue
         }
 
@@ -660,14 +684,22 @@ async function main() {
   }
 
   const { failures, controls, unmeasured, stories } = await run({ origin, only: option('story') })
+  const aside = formatUnmeasured(unmeasured)
 
-  const aside = unmeasured
-    ? ` ${unmeasured} control(s) sat against a viewport edge and could not be probed.`
-    : ''
+  // A warning, not a failure: a control the page has no room to scroll past is pinned where it
+  // sits, and failing on that would red the gate for a layout rather than for a tap area. The
+  // annotation is what carries it onto the run, where a summary nobody opens cannot hide it.
+  if (unmeasured.length > 0) {
+    annotate(
+      'warning',
+      `Accessibility gate: ${unmeasured.length} control(s) sat against a viewport edge, so the ${MIN_TAP_PX}px floor did not apply to them. They are named in the job summary.`,
+    )
+  }
 
   if (failures.length === 0) {
     report([
-      `Accessibility gate: **${stories} stories**, ${controls} controls measured, clean.${aside}`,
+      `Accessibility gate: **${stories} stories**, ${controls} controls measured, clean.`,
+      ...aside,
     ])
 
     return
@@ -681,9 +713,9 @@ async function main() {
   )
   report([
     `## Accessibility gate — ${failures.length} findings`,
-    ...(aside ? ['', aside.trim()] : []),
     '',
     ...formatFailures(failures),
+    ...aside,
   ])
   process.exit(1)
 }
