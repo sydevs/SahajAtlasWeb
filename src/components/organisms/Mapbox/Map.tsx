@@ -67,6 +67,14 @@ const MAP_STYLES = {
   dark: 'mapbox://styles/sydevadmin/cl4nw934f001j14l8jnof3a7w',
 }
 
+// mapbox-gl, imported once per page and handed to react-map-gl as `mapLib`. Left to itself,
+// react-map-gl imports it from `<Map>`'s mount effect, which waits for the whole interface to
+// commit — about 450ms after this module loads, on a local production build — and the library is
+// the map's long pole. The map's first render starts it instead. Nothing imports it at module
+// scope, so a map-less embed never downloads it.
+let mapLib: Promise<typeof import('mapbox-gl')> | undefined
+const loadMapLib = () => (mapLib ??= import('mapbox-gl'))
+
 /**
  * This constant sets how long to wait after the style loads before it
  * reveals the map, even when nothing has framed it yet.
@@ -552,6 +560,7 @@ export function Mapbox({ cooperative = false }: { cooperative?: boolean } = {}) 
         language={locale}
         locale={mapLocale}
         logoPosition="bottom-right"
+        mapLib={loadMapLib()}
         mapStyle={MAP_STYLES[theme]}
         mapboxAccessToken={import.meta.env.VITE_MAPBOX_ACCESSTOKEN}
         minZoom={minZoom}

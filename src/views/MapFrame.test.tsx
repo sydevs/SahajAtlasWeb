@@ -214,9 +214,8 @@ describe('MapFrame, contained', () => {
  * `docs/testing.md` records the `timeoutStatus` lesson twice over. A helper can be
  * exhaustively specced, return the right answer, and never be wired to its caller — and no pure
  * spec can see that. Everything above proves `MapFrame` works. None of it proves the map is
- * inside one. Rendering `FullInterface` here to close that gap is not an option. It mounts a
- * react-map-gl `<Map>`, whose mount fires `import('mapbox-gl')`, which is precisely what the node
- * lane must never pull in.
+ * inside one. Rendering `FullInterface` here to close that gap is not an option. Rendering the
+ * map fires `import('mapbox-gl')`, which is precisely what the node lane must never pull in.
  */
 describe('the wiring', () => {
   it('is what FullInterface wraps the map and the drawer stack in', () => {

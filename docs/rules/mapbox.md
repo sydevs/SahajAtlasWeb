@@ -506,6 +506,13 @@ version, because the folklore on this is older than the code.
 
 ## Gotchas
 
+- **mapbox-gl reaches react-map-gl as `mapLib`, started by the map's first
+  render** (`loadMapLib` in `Map.tsx`). react-map-gl's own import runs from
+  `<Map>`'s mount effect, after the whole interface commits — about 450ms later
+  on a local build — and the library is the map's long pole. Keep it out of
+  module scope too: `FullInterface` imports `Map.tsx` on a `map=false` embed,
+  which would then download a library it never runs. `attribution.test.ts` pins
+  both.
 - `worldview` and `language` are set from the active locale
   (`MAP_WORLDVIEWS`, `useLocale`). When you add a locale, check whether it
   needs a worldview entry.

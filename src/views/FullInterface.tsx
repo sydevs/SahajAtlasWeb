@@ -19,8 +19,8 @@ import embed from '@/config/embed'
  * ⚠ **This module is lazy-loaded, and that is what makes the compact card's promise true.**
  *
  * A compact embed — a heading and one button in a 300px sidebar — must not download the map.
- * react-map-gl 8 fetches mapbox-gl only when a `<Map>` mounts, and everything importing
- * react-map-gl is reached from here, so none of it is in the eager graph.
+ * mapbox-gl is fetched only when the map renders (`mapLib` in `Map.tsx`), and everything
+ * importing react-map-gl is reached from here, so none of it is in the eager graph.
  *
  * Not rendering an element is not always the same as not importing its module. react-map-gl 7
  * fired that `import('mapbox-gl')` at MODULE scope, so while this lived in `App.tsx` the compact

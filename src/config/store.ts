@@ -145,7 +145,7 @@ export const rememberCamera = (key: string): void => {
  *
  * ⚠ **This flag lives here, not beside `usePaddingState` in `use-mapbox.ts`.**
  * That module imported react-map-gl 7, which ran `import('mapbox-gl')` at module scope, so the node lane could not load it.
- * react-map-gl 8 imports mapbox-gl only when a map mounts, and the node lane loads either module.
+ * react-map-gl 8 has no module-scope import, and the node lane loads either module.
  */
 type CameraSettled = {
   settled: boolean

@@ -110,3 +110,21 @@ describe('the pin hover popover', () => {
     expect(read(MAP)).toContain('onMouseMove={hasRealPointer ? hoverOnFeature : undefined}')
   })
 })
+
+// react-map-gl imports mapbox-gl from `<Map>`'s mount effect, which waits for the whole interface
+// to commit. Handed the import as `mapLib`, started by the map's first render, the library's
+// download no longer waits on that. A module-scope import would start it sooner still, and also on
+// every map-less embed, which imports this module without rendering a map.
+describe('the map library', () => {
+  const map = read(MAP)
+  const element = map.slice(map.indexOf('<ReactMapGL'), map.indexOf('</ReactMapGL>'))
+
+  it('is handed to react-map-gl, started by the first render', () => {
+    expect(element, 'the map element').toMatch(/\bmapLib=\{loadMapLib\(\)\}/)
+  })
+
+  it('is imported only inside the loader, never at module scope', () => {
+    expect(map.match(/(?<!typeof )import\('mapbox-gl'\)/g), 'imports of mapbox-gl').toHaveLength(1)
+    expect(map).toMatch(/const loadMapLib = \(\) => \(mapLib \?\?= import\('mapbox-gl'\)\)/)
+  })
+})
