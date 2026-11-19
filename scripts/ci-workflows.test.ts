@@ -69,6 +69,16 @@ describe('production-smoke.yml', () => {
       `steps.${match(lane, /^\s*id: (\S+)$/m)}.conclusion`,
     )
   })
+
+  // The alert is all a responder is handed, and it names a section of another file. A renamed
+  // heading would leave it pointing at nothing.
+  it('points the alert at the rollback runbook, by a heading that exists', () => {
+    const [, file, heading] =
+      /To roll production back: \\`([^\\]+)\\`, section '([^']+)'/.exec(lane) ?? []
+
+    expect(file).toBe('docs/rules/deployment.md')
+    expect(readRepoSource(file)).toContain(`\n## ${heading}\n`)
+  })
 })
 
 // The smoke job publishes the preview it reads (#282), so what used to be a discovery

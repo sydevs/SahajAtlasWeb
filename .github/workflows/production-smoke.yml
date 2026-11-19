@@ -156,6 +156,8 @@ jobs:
               "means production differs from the preview the gate read. #148 was a zone cache" \
               "setting, not a commit, so read the run before assuming the last merge caused it." \
               "" \
+              "To roll production back: \`docs/rules/deployment.md\`, section 'Rolling production back'." \
+              "" \
               "Later red runs comment here rather than filing again, and nothing closes this" \
               "issue — close it once the read is green." \
               "" \
