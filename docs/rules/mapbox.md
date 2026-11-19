@@ -507,12 +507,20 @@ version, because the folklore on this is older than the code.
 ## Gotchas
 
 - **mapbox-gl reaches react-map-gl as `mapLib`, started by the map's first
-  render** (`loadMapLib` in `Map.tsx`). react-map-gl's own import runs from
-  `<Map>`'s mount effect, after the whole interface commits — about 450ms later
-  on a local build — and the library is the map's long pole. Keep it out of
-  module scope too: `FullInterface` imports `Map.tsx` on a `map=false` embed,
-  which would then download a library it never runs. `attribution.test.ts` pins
-  both.
+  render** (`loadMapLib` in `Mapbox/map-lib.ts`). react-map-gl's own import
+  runs from `<Map>`'s mount effect, after the whole interface commits — about
+  450ms later on a local build — and the library is the map's long pole. Keep
+  the call out of module scope too: `FullInterface` imports `Map.tsx` on a
+  `map=false` embed, which would then download a library it draws nothing with.
+  `map-lib.test.ts` pins the loader, `attribution.test.ts` where `Map.tsx`
+  calls it.
+- ⚠ **`loadMapLib` refuses a GPU that fails mapbox-gl's strict support check**
+  (`supported(true)`: a software renderer or a blocklisted driver). That visitor
+  keeps the curtain, and the console logs "Map is not supported by this
+  browser". react-map-gl 7's `<Map>` ran this check itself; react-map-gl 8
+  does not, and mapbox-gl's constructor accepts such a GPU. Without WebGL at
+  all, the check also stops mapbox building a half map in `#mapbox` before it
+  throws.
 - `worldview` and `language` are set from the active locale
   (`MAP_WORLDVIEWS`, `useLocale`). When you add a locale, check whether it
   needs a worldview entry.

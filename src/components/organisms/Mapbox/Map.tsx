@@ -34,6 +34,7 @@ import {
   type SymbolLayerProps,
 } from './layers'
 import { syncMapLanguage } from './map-language'
+import { loadMapLib } from './map-lib'
 import { markerColors, registerMarkerImages } from './markers'
 import { pinPopoverPlacement, type PopoverAnchor } from './pin-popover'
 
@@ -66,14 +67,6 @@ const MAP_STYLES = {
   light: 'mapbox://styles/sydevadmin/ck7g6nag70rn11io09f45odkq',
   dark: 'mapbox://styles/sydevadmin/cl4nw934f001j14l8jnof3a7w',
 }
-
-// mapbox-gl, imported once per page and handed to react-map-gl as `mapLib`. Left to itself,
-// react-map-gl imports it from `<Map>`'s mount effect, which waits for the whole interface to
-// commit — about 450ms after this module loads, on a local production build — and the library is
-// the map's long pole. The map's first render starts it instead. Nothing imports it at module
-// scope, so a map-less embed never downloads it.
-let mapLib: Promise<typeof import('mapbox-gl')> | undefined
-const loadMapLib = () => (mapLib ??= import('mapbox-gl'))
 
 /**
  * This constant sets how long to wait after the style loads before it

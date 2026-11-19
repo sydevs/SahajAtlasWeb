@@ -111,10 +111,9 @@ describe('the pin hover popover', () => {
   })
 })
 
-// react-map-gl imports mapbox-gl from `<Map>`'s mount effect, which waits for the whole interface
-// to commit. Handed the import as `mapLib`, started by the map's first render, the library's
-// download no longer waits on that. A module-scope import would start it sooner still, and also on
-// every map-less embed, which imports this module without rendering a map.
+// `map-lib.test.ts` covers the loader. What it cannot see is where `Map.tsx` calls it: anywhere but
+// the map element — a prefetch at module scope, say — fetches mapbox-gl on every map-less embed,
+// which imports the module without rendering a map.
 describe('the map library', () => {
   const map = read(MAP)
   const element = map.slice(map.indexOf('<ReactMapGL'), map.indexOf('</ReactMapGL>'))
@@ -123,8 +122,8 @@ describe('the map library', () => {
     expect(element, 'the map element').toMatch(/\bmapLib=\{loadMapLib\(\)\}/)
   })
 
-  it('is imported only inside the loader, never at module scope', () => {
-    expect(map.match(/(?<!typeof )import\('mapbox-gl'\)/g), 'imports of mapbox-gl').toHaveLength(1)
-    expect(map).toMatch(/const loadMapLib = \(\) => \(mapLib \?\?= import\('mapbox-gl'\)\)/)
+  it('is loaded nowhere else in the map module', () => {
+    expect(map.match(/\bloadMapLib\(\)/g), 'calls of the loader').toHaveLength(1)
+    expect(map, 'an import of mapbox-gl').not.toMatch(/(?<!typeof )import\('mapbox-gl'\)/)
   })
 })
