@@ -144,8 +144,7 @@ export const rememberCamera = (key: string): void => {
  * "Has the camera moved yet" is a fact about the map, and it is exactly the condition under which a fly is disorienting.
  *
  * ⚠ **This flag lives here, not beside `usePaddingState` in `use-mapbox.ts`.**
- * That module imported react-map-gl 7, which ran `import('mapbox-gl')` at module scope, so the node lane could not load it.
- * react-map-gl 8 has no module-scope import, and the node lane loads either module.
+ * That module imports react-map-gl and this one is eager, so an eager reader of the flag there would put react-map-gl in every embed's payload (`use-map-controller.tsx`).
  */
 type CameraSettled = {
   settled: boolean

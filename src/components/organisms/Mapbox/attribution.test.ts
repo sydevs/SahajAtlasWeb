@@ -10,8 +10,8 @@ import { readRepoSource as read } from '@/test-support/repo-source'
 // mapbox reads each once, at construction. They name different corners on purpose, so each is
 // pinned on its own.
 //
-// This reads the file rather than importing `Map.tsx`: importing the map would pull react-map-gl,
-// and so the whole of mapbox-gl, into the node lane.
+// This reads the file rather than rendering `Map.tsx`: mapbox reads these literals only when it
+// constructs a map, which takes a WebGL context the node lane does not have.
 const MAP = 'src/components/organisms/Mapbox/Map.tsx'
 // Where the bottom sheet's lowest snap lives, which is what rules out both bottom corners for the
 // attribution.
