@@ -517,10 +517,10 @@ version, because the folklore on this is older than the code.
 - ⚠ **`loadMapLib` refuses a GPU that fails mapbox-gl's strict support check**
   (`supported(true)`: a browser that reports a major performance caveat, for
   example a blocklisted GPU driver). That visitor keeps the curtain, and the
-  console logs "Map is not supported by this browser". react-map-gl 7's `<Map>` ran this check itself; react-map-gl 8
-  does not, and mapbox-gl's constructor accepts such a GPU. Without WebGL at
-  all, the check also stops mapbox building a half map in `#mapbox` before it
-  throws.
+  console logs "Map is not supported by this browser". react-map-gl 7's `<Map>`
+  ran this check itself; react-map-gl 8 does not, and mapbox-gl's constructor
+  accepts such a GPU. Without WebGL at all, the check also stops mapbox building
+  a half map in `#mapbox` before it throws.
 - `worldview` and `language` are set from the active locale
   (`MAP_WORLDVIEWS`, `useLocale`). When you add a locale, check whether it
   needs a worldview entry.
