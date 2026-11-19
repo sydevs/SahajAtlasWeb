@@ -115,5 +115,6 @@ export function usePrefetchEvents(ids: number[]) {
     if (!leading.length) return
 
     return scheduleIdle(() => leading.forEach((id) => void prefetch(id)))
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- `key` stands in for `leading`, a fresh array each render
   }, [key, prefetch])
 }

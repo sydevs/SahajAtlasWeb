@@ -97,18 +97,21 @@ export function useMapbox() {
   const padding = usePaddingState((s) => s.padding)
   const setPadding = usePaddingState((s) => s.setPadding)
 
-  const changePadding = (pad: number | PaddingOptions) => {
-    if (typeof pad === 'number') {
-      setPadding({ left: pad, right: pad, top: pad, bottom: pad })
-    } else {
-      setPadding({
-        left: pad.left || 0,
-        right: pad.right || 0,
-        top: pad.top || 0,
-        bottom: pad.bottom || 0,
-      })
-    }
-  }
+  const changePadding = useCallback(
+    (pad: number | PaddingOptions) => {
+      if (typeof pad === 'number') {
+        setPadding({ left: pad, right: pad, top: pad, bottom: pad })
+      } else {
+        setPadding({
+          left: pad.left || 0,
+          right: pad.right || 0,
+          top: pad.top || 0,
+          bottom: pad.bottom || 0,
+        })
+      }
+    },
+    [setPadding],
+  )
 
   return {
     mapbox,
@@ -191,7 +194,7 @@ export function useMapbox() {
           },
         })
       },
-      [mapbox, padding],
+      [mapbox, padding, changePadding],
     ),
     // This is the app's standard "move between levels" transition to a point and zoom.
     // It uses Mapbox's built-in `flyTo`, ONE smooth, coordinated pan-and-zoom arc.

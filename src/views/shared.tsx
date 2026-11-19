@@ -334,6 +334,7 @@ export function useFrameOnTop(frame: (ctx: FrameContext) => void, deps: Dependen
 
     if (hasMap && snapshot) restore(snapshot)
     else frame({ isEntry: atlasDepth(location) === 0 })
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- the caller's `deps` alone decide when a view re-frames, and `frame` is a fresh closure each render
   }, [...deps])
 }
 

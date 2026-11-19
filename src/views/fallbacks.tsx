@@ -140,12 +140,13 @@ export function DrawerChrome({
   // The region tree is the whole global list, and this re-renders on every location
   // and drawer-control change, so this does not re-scan it for a name that only
   // moves with the slug.
+  const regionSlug = entry?.kind === 'region' ? entry.slug : undefined
   const regionName = useMemo(
     () =>
-      entry?.kind === 'region'
-        ? (regions?.find((node) => node.slug === entry.slug)?.name ?? undefined)
-        : undefined,
-    [regions, entry?.kind === 'region' ? entry.slug : undefined],
+      regionSlug === undefined
+        ? undefined
+        : (regions?.find((node) => node.slug === regionSlug)?.name ?? undefined),
+    [regions, regionSlug],
   )
 
   const title = (() => {

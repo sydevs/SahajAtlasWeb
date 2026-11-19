@@ -341,7 +341,7 @@ export function ReportIssueForm({
   const resolver = useMemo(() => zodResolver(schema), [schema])
   const defaultValues = useMemo(
     () => ({ ...reportDefaultValues(fields), ...initialValues }),
-    // Mount-only in effect: RHF reads this once. `initialValues` is story-only.
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- mount-only in effect: RHF reads this once, and `initialValues` is story-only
     [fields],
   )
 
@@ -407,8 +407,7 @@ export function ReportIssueForm({
   // Pre-filled values are shown already validated — an empty form still starts clean.
   useEffect(() => {
     if (initialValues) void trigger()
-    // Mount-only: re-validating on every `initialValues` identity change would fight
-    // the user's own edits.
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- mount-only: re-validating on every `initialValues` identity change would fight the user's own edits
   }, [])
 
   if (submitted) {

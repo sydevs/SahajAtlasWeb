@@ -75,7 +75,9 @@ export default [
       'react/react-in-jsx-scope': 'off',
       'react/no-unescaped-entities': 'off',
       'react-hooks/rules-of-hooks': 'warn',
-      'react-hooks/exhaustive-deps': 'off',
+      // A deliberate omission or re-run trigger takes a narrow `eslint-disable-next-line` with its
+      // reason after `--`, never a wider disable: the next array in the same file is still checked.
+      'react-hooks/exhaustive-deps': 'warn',
       'jsx-a11y/click-events-have-key-events': 'warn',
       'jsx-a11y/interactive-supports-focus': 'warn',
       'jsx-a11y/no-static-element-interactions': 'warn',

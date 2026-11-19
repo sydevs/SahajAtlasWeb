@@ -370,6 +370,7 @@ function AppShell({
       pageLocaleOverride(window.location.search, locales) ?? initialLocale.current ?? i18n.language
 
     void applyLocale(requested, locales)
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- keyed on the set's content: `locales` is rebuilt per render, and each run re-applies the boot locale
   }, [locales.join(',')])
 
   // Fathom injects OUR tracker script into the HOST's page. ⚠ There is NO host-side

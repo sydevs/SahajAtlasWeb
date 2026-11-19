@@ -297,7 +297,7 @@ export function ViewHarness({
     seed?.(c)
 
     return c
-    // Re-seeds only when the case changes. `seed` is a fresh closure each render.
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- re-seeds only when the case changes: `seed` is a fresh closure each render
   }, [seedKey])
 
   return (
