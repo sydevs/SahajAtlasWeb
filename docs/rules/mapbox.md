@@ -512,8 +512,8 @@ version, because the folklore on this is older than the code.
 - **One type suppression is left here**: a `@ts-expect-error` on `<Geocoder>` in
   `MapSearch.tsx`, which is typed against its own React types and so is refused
   as a JSX component. react-map-gl's own type gaps are covered without one:
-  `language` rides in a spread, `pointCoordinates` (`lib/geo.ts`) narrows a
-  rendered feature's geometry, and `SymbolLayerProps` (`layers.ts`) narrows the
-  highlight layers `PointSource` bounds by zoom, which `LayerProps` alone refuses
-  because it also admits a `slot` layer. Keep any suppression narrow and
-  commented, and never loosen a type elsewhere to remove one.
+  `pointCoordinates` (`lib/geo.ts`) narrows a rendered feature's geometry, and
+  `SymbolLayerProps` (`layers.ts`) narrows the highlight layers `PointSource`
+  bounds by zoom, which `LayerProps` alone refuses because it also admits a
+  `slot` layer. Keep any suppression narrow and commented, and never loosen a
+  type elsewhere to remove one.

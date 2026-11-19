@@ -82,18 +82,17 @@ describe('a refused location request', () => {
   })
 })
 
-// react-map-gl reads `language` once, when it constructs the map, and its props type does not
-// list it — so the prop rides in a spread, and a spread's keys escape the excess-property check.
-// A misspelling type-checks, and every label silently stays in the basemap's own language. The
-// effect beside it is the other half: with `locale` out of its deps the map never relabels on a
-// switch, which is the whole reason `syncMapLanguage` exists. `map-language.test.ts` covers the
-// helper; nothing but this reaches the two wirings.
+// react-map-gl reads `language` once, when it constructs the map. Any other string there — the
+// region-less `languageCode` the worldview reads, say — type-checks, and every label silently
+// starts in the wrong language. The effect beside it is the other half: with `locale` out of its
+// deps the map never relabels on a switch, which is the whole reason `syncMapLanguage` exists.
+// `map-language.test.ts` covers the helper; nothing but this reaches the two wirings.
 describe('the map label language', () => {
   const map = read(MAP)
   const element = map.slice(map.indexOf('<ReactMapGL'), map.indexOf('</ReactMapGL>'))
 
   it('is the widget locale when the map is constructed', () => {
-    expect(element, 'the map element').toMatch(/\{\.\.\.\s*\{\s*language:\s*locale\s*\}\s*\}/)
+    expect(element, 'the map element').toMatch(/\blanguage=\{locale\}/)
   })
 
   it('follows a mid-session switch', () => {

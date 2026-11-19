@@ -547,10 +547,9 @@ export function Mapbox({ cooperative = false }: { cooperative?: boolean } = {}) 
         fadeDuration={0}
         id="mapbox"
         interactiveLayerIds={INTERACTIVE_LAYER_IDS}
-        // The first language only: react-map-gl never updates `language` after construction, and
-        // its props type does not list it. It rides in a spread (which escapes the excess-property
-        // check) and `syncMapLanguage` keeps it current from then on.
-        {...{ language: locale }}
+        // The first language only: react-map-gl never updates `language` after construction, so
+        // `syncMapLanguage` keeps it current from then on.
+        language={locale}
         locale={mapLocale}
         logoPosition="bottom-right"
         mapStyle={MAP_STYLES[theme]}
