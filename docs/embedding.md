@@ -1275,8 +1275,18 @@ content at phone widths. The desktop layout is unchanged but for one control —
 sheet's round network icons, which are 44px on every device, because that library sizes its
 button off the icon. Nothing here changes your CSP or your Permissions Policy.
 
-**The map canvas itself is Mapbox GL's**, and its keyboard behaviour is theirs rather than ours.
-The controls over it — locate, attribution, zoom — are covered by the list above.
+**The map canvas and the two controls over it are Mapbox GL's, and the list above does not
+cover them.** The canvas's keyboard behaviour is theirs rather than ours, and so is the
+geometry of "find my location" and of the attribution — there is no zoom control. Measured
+against mapbox-gl 3.35.0, unchanged by us: the locate button answers to 32 × 32 CSS px and the
+attribution's information button to 24 × 24, both under the 44px floor. The attribution is also
+the one control we may not resize, since Mapbox's attribution guide sanctions exactly one
+collapsed form of it.
+
+**Nor does the check reach them**, for a mechanical reason worth stating rather than leaving
+you to assume: it drives our component library, where the map renders a "needs an access token"
+notice in place of itself, so no map control is ever loaded for it to measure. Those two are
+checked by hand against a real map instead.
 
 ## Privacy, storage and third-party requests
 

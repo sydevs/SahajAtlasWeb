@@ -55,8 +55,10 @@ cover everything a host would notice since the widget was first deployed.
   touch: the share sheet's round network icons go from 40px to 44px, because `react-share` sizes
   its button off the icon and there is no invisible area to grow. A text link also reads in the ramp's readable
   step rather than its solid one, so link colour is slightly deeper on light backgrounds, and
-  the neutral solid button is now near-black rather than mid-grey. **No parameter, origin, CSP
-  or Permissions-Policy change.**
+  the neutral solid button is now near-black rather than mid-grey. ⚠ **The map's own two
+  controls are Mapbox GL's and are not covered**: "find my location" and the attribution keep
+  the library's geometry, both under the floor. `docs/embedding.md` § Accessibility says what
+  each one measures. **No parameter, origin, CSP or Permissions-Policy change.**
 
 - **The place-search field is a named `search` landmark.** ([#432]) The widget was already one
   labelled `region` on your page; a screen-reader viewer can now jump to the search inside it,
