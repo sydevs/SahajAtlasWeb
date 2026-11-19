@@ -70,13 +70,14 @@ import { annotate, report } from './_ci-output.mjs'
 // quietly re-accumulates the slack it just won. `SLACK_RATIO` below enforces
 // that rather than trusting this comment to be read.
 //
-// ⚠ `standalone` and `embed` deliberately hold about 13% instead, since the top
-// two rows below. The four steps before them were all raises, and under 1%
-// spare most dependency bumps collided with the gate, so the space those rows
-// won back is kept as headroom. A newly-eager view no longer trips these two
-// budgets — `src/Widget.standalone.test.ts` holds the eager graph's barrels
-// and packages by name instead. ⚠ `SLACK_RATIO` still bites at 15%: about
-// 5 KiB more off `standalone` and the ratchet asks for a lower budget.
+// ⚠ `standalone` and `embed` deliberately hold more, since the two #442 rows
+// below. The four steps before them were all raises, and under 1% spare most
+// dependency bumps collided with the gate, so the space those rows won back is
+// kept as headroom; React 19 spent half of it, leaving about 7%. A newly-eager
+// view no longer trips these two budgets — `src/Widget.standalone.test.ts`
+// holds the eager graph's barrels and packages by name instead. ⚠ `SLACK_RATIO`
+// still bites at 15%: about 28 KiB more off `standalone` and the ratchet asks
+// for a lower budget.
 //
 // `loader` is the graph a host pays on every page view (#149). This script
 // budgets it an order of magnitude tighter than the other two, on purpose. The
@@ -91,6 +92,9 @@ import { annotate, report } from './_ci-output.mjs'
 // Every step to today's three figures, newest first, as standalone/embed and as
 // loader. `git log -p` on this constant holds each one in full, dated.
 //
+//   336  312.5/313.6        React 19: `react` + `react-dom/client` alone gzip
+//                           22.6 KiB larger than 18.3.1, helmet-async 3 0.7
+//                           more; budget held, as above
 //   336  288.1/289.2  #442  framer-motion's `m` with the animation features
 //                          alone, −13.2 KiB; budget held, as above
 //   336  301.3/302.4  #442  the shell stopped importing the molecules barrel,
