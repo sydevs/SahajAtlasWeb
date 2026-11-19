@@ -414,7 +414,8 @@ Three things hold it hermetic, in `tests/browser/fixtures.ts` and `playwright.co
 - **An auto fixture routes the whole context.** A request off the review server's origin is
   answered from a fixture or aborted, and a test that made one no fixture answered **fails at
   teardown, naming it** — measured with a request from a dedicated Web Worker too, which the
-  routing reaches. So does any uncaught error in the page.
+  routing reaches. A WebSocket, which no route sees, is recorded off the page's `websocket`
+  event and fails it the same way. So does any uncaught error in the page.
 - **`--host-resolver-rules` resolves nothing but `localhost`**, so a request that somehow
   bypassed routing fails to connect rather than reaching a real host.
 - **The lane's SahajCloud origin is `https://sahajcloud.invalid`**, a name that never resolves
@@ -434,6 +435,11 @@ the navigation scenarios click, so a fixture edit that breaks the lane fails in 
 When the widget starts asking for something new, the lane fails naming the request. Answer it:
 a SahajCloud read in `wire.ts` (and `wire.test.ts`), anything else in `fixtures.ts`. Never widen
 the catch-all to let it through.
+
+A spec that says a request never happens awaits `rendered` (`fixtures.ts`) first: the embed
+report the first real render sends, then 500 ms with nothing in flight. The report alone is no
+barrier, since a lazy import an effect starts can leave after it — measured, and it let an injected
+chunk prefetch through 1 run in 20.
 
 ### The map draws for real
 

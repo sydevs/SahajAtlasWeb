@@ -30,15 +30,44 @@ export const copy = (text: string, values: Record<string, string> = {}) =>
 /** The mapbox-gl library chunk, which only an interface that draws a map has any use for. */
 export const MAPBOX_CHUNK = /\/assets\/mapbox-gl-[\w-]+\.js$/
 
+/** How long the page must go with nothing in flight before a spec may say a request never came. */
+const QUIET_MS = 500
+
 /**
- * Resolves once the widget has rendered for real: `AppShell` reports the embed to SahajCloud
- * only after its first genuine render, so a request a spec says never happens has had every
- * chance to by then. Register it before navigating.
+ * Resolves once the widget has rendered for real — `AppShell` reports the embed to SahajCloud
+ * only after its first genuine render — and the network has then gone quiet, so a request a spec
+ * says never happens has had every chance to. Register it before navigating.
+ *
+ * ⚠ **The report alone orders nothing.** An effect's lazy import can leave after it, and did
+ * (the mapbox-gl chunk, up to 116 ms later). Nor is `waitForLoadState('networkidle')` the
+ * barrier: Playwright fires it once per navigation and never re-arms it, so when it fired before
+ * the report it resolves at once.
  */
-export const rendered = (page: Page) =>
-  page.waitForRequest((request) =>
+export const rendered = async (page: Page) => {
+  const inflight = new Set<Request>()
+  let lastActivity = Date.now()
+  const started = (request: Request) => {
+    inflight.add(request)
+    lastActivity = Date.now()
+  }
+  const ended = (request: Request) => {
+    inflight.delete(request)
+    lastActivity = Date.now()
+  }
+
+  page.on('request', started)
+  page.on('requestfinished', ended)
+  page.on('requestfailed', ended)
+
+  await page.waitForRequest((request) =>
     request.url().startsWith(`${LANE_API_ORIGIN}/api/clients/report`),
   )
+  await expect
+    .poll(() => inflight.size === 0 && Date.now() - lastActivity >= QUIET_MS, {
+      message: 'the network went quiet after the first render',
+    })
+    .toBe(true)
+}
 
 const json = (body: unknown, status = 200) => ({
   status,
@@ -182,6 +211,15 @@ export const test = base.extend<{ lane: Lane }>({
       await context.route('https://ipwho.is/**', routeTo(answerIpLookup))
       await context.route(/^https:\/\/[a-z]+\.mapbox\.com\//, routeTo(answerMapbox))
       await context.route(`${LANE_API_ORIGIN}/**`, routeTo(answerSahajCloudRoute))
+      // ⚠ **`context.route` never sees a WebSocket**, and a refused one fires no
+      // `requestfailed`. The review server speaks none, so every socket is one no fixture
+      // answers. The page's `websocket` event reports a dedicated Worker's socket too, which
+      // `routeWebSocket` (it patches the page's `WebSocket`) never sees.
+      const watchSockets = (page: Page) =>
+        page.on('websocket', (socket) => unrouted.push(`WebSocket ${socket.url()}`))
+
+      context.pages().forEach(watchSockets)
+      context.on('page', watchSockets)
 
       await use({
         answerSahajCloud: async (path, response) => {
