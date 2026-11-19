@@ -442,9 +442,9 @@ pattern) against the seeded local backend.
   rejected key. Playwright matches the **most recently registered** route
   first, so a later catch-all silently shadows this one. A host serving a
   whole subtree needs `page.route('**/prefix/**', …)` returning the page,
-  since the review server 404s by design. This is currently the only way to
-  see a rendered interface, since the seeded local backend rejects every key
-  in `.env.local`.
+  since the review server 404s by design. The seeded local backend rejects
+  every key in `.env.local`, so a rendered interface needs this stub, or the
+  browser lane, which answers every request from fixtures (`docs/testing.md`).
 
 - **`data-sahaj-atlas-ready` is the best single observable.** It attests what
   the router _actually_ did (`{"v":2,"routing":"path",…}`), not what was

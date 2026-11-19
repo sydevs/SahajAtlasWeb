@@ -159,6 +159,7 @@ pnpm lint:fix     # eslint --fix + Prettier
 pnpm test         # vitest watch (fast unit lane)
 pnpm test:run     # vitest run (CI + pre-PR gate)
 pnpm test:smoke   # smoke specs vs the Cloudflare preview (needs PREVIEW_URL)
+pnpm test:browser # the built widget in Chromium, every request from fixtures (CI gate)
 pnpm ladle        # component previews → http://localhost:61000
 pnpm ladle:build  # static Ladle build (CI gate)
 ```

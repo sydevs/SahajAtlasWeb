@@ -7,6 +7,7 @@ paths:
   - 'src/test-support/**'
   - 'vitest.config.ts'
   - 'vitest.smoke.config.ts'
+  - 'playwright.config.ts'
   - 'scripts/select-unit-specs.mjs'
   - 'scripts/assert-preview-host.mjs'
   - '.claude/hooks/unit-test.mjs'
@@ -20,9 +21,11 @@ This file is also a path-scoped rule: `.claude/rules/testing.md` symlinks here, 
 when a session reads a spec, a vitest config or the test tooling. The always-loaded summary —
 the validation policy and the never-rules — is the root `AGENTS.md` § Testing.
 
-Two lanes, kept separate so the fast one never touches the network: the **unit** lane
-(`vitest.config.ts`, every `*.test.ts(x)` outside `tests/smoke/`, node) and the **smoke** lane
-(`vitest.smoke.config.ts`, `tests/smoke/**`, fetch against a deployed preview).
+Three lanes, kept separate so the fast one never touches the network: the **unit** lane
+(`vitest.config.ts`, every `*.test.ts(x)` outside `tests/smoke/` and `tests/browser/`, node), the
+**smoke** lane (`vitest.smoke.config.ts`, `tests/smoke/**`, fetch against a deployed preview), and
+the **browser** lane (`playwright.config.ts`, `tests/browser/**`, this commit's build in Chromium,
+every request answered from fixtures — § "The browser lane" below).
 `pnpm test:smoke` needs `PREVIEW_URL` and skips gracefully without one. In CI the smoke job
 builds the app and **publishes its own Workers preview**, then reads the address its publish
 step returned (#282). The **same** smoke specs also run against production, fired by the
@@ -219,8 +222,9 @@ live in the spec's own comment, where whoever edits it reads them.
 
 ⚠ **This still does not prove the widget renders**, and no fetch-based spec can — reading a
 string back is a direct observation only because this particular defect *is* a string in the
-bundle. A failure that only appears at runtime still needs a browser, which belongs to local
-Playwright verification (see the note atop `embed.smoke.test.ts`).
+bundle. A failure that only appears at runtime needs a browser: the browser lane below, which
+renders this commit's build. What neither lane reads is a deploy's runtime, so a render that
+breaks only on the deployed origins is still found by eye.
 
 ### The PR gate can only ever read a preview (issue #244)
 
@@ -375,6 +379,108 @@ Both costs were measured first. A merge waits one queue run — 2m23s to 2m50s a
 that site's Workers Builds branch rules take a literal branch name or a lone `*` and cannot exclude
 the prefix (`docs/rules/deployment.md`).
 
+## The browser lane
+
+`pnpm test:browser` builds the widget into `dist-browser/` (`tests/browser/build.mjs`: the
+production build, with the lane's own SahajCloud origin and a dummy Mapbox token), serves it with
+the same server and host pages as `pnpm review:embed`, and drives it in Chromium with
+`@playwright/test`. CI runs it as **`Browser lane`** on every pull request and merge-queue entry,
+and it blocks: no retries, no `if:` that could skip it, no `continue-on-error`
+(`scripts/ci-workflows.test.ts` pins all three).
+
+| scenario (`tests/browser/`)                   | host page              | watched failing against                                              |
+| --------------------------------------------- | ---------------------- | -------------------------------------------------------------------- |
+| the map embed boots, lists, draws its map     | `full-map.html`        | no Mapbox token passed to the map                                    |
+| browse in, then Close and Back retrace it     | `full-map.html`        | Close climbing to the parent instead of going back                   |
+| a deep link opens its event; Close climbs     | `full-map.html?atlas=` | Close going `navigate(-1)` at depth 0 (#89)                          |
+| `map=false` lists and draws no map            | `sidebar-mapless.html` | the map rendered whatever `hasMap` said                              |
+| a slot too small renders the compact card     | `sidebar-map.html`     | the slot decision never choosing the card                            |
+| host CSS does not reach the widget            | `hostile-css.html`     | no shadow root (#236); the baseline's `letter-spacing` reset dropped |
+| registration accepted, and failing with a 500 | `sidebar-mapless.html` | a drifted create envelope; the thank-you shown on failure (#103)     |
+
+### Why hermetic: it answers the missing-backend problem
+
+The widget reads SahajCloud before it renders anything (`clients/me`), so a browser check needs a
+backend, and a key that backend accepts. The seeded local backend refuses both keys in
+`.env.local` (the header of `scripts/serve-embed-review.mjs`), a fork's CI holds no key at all, and
+a run against production would test production's data rather than this commit. So the lane
+brings its own backend: every SahajCloud request is answered from `src/mocks/wire.ts`, keyed to
+`WIRE_API_KEY`, Mapbox from a minimal style, and the IP lookup from a refusal. That also makes the
+lane deterministic, since nothing it reads changes under it, and lets a fork and a merge-queue
+entry run it exactly as a pull request does — which is what lets it be a required check.
+
+Three things hold it hermetic, in `tests/browser/fixtures.ts` and `playwright.config.ts`:
+
+- **An auto fixture routes the whole context.** A request off the review server's origin is
+  answered from a fixture or aborted, and a test that made one no fixture answered **fails at
+  teardown, naming it** — measured with a request from a dedicated Web Worker too, which the
+  routing reaches. So does any uncaught error in the page.
+- **`--host-resolver-rules` resolves nothing but `localhost`**, so a request that somehow
+  bypassed routing fails to connect rather than reaching a real host.
+- **The lane's SahajCloud origin is `https://sahajcloud.invalid`**, a name that never resolves
+  (`tests/browser/lane.mjs`), and its build pins every `VITE_*` the bundle reads, so a
+  developer's `.env.local` — a real DSN, a real key — never reaches it.
+
+### The fixtures are wire shape
+
+`src/mocks/wire.ts` holds what SahajCloud sends over HTTP: ISO date strings, the region tree flat
+and linked by `parent`, Payload's envelopes and pagination members, relationships populated only
+as far as each fetcher's `select` asks. It derives them from the view-model mocks beside it, which
+are what a fetcher RETURNS — answering a browser with those would skip the parse the lane exists
+to exercise. `src/mocks/wire.test.ts`, in the unit lane, runs every fixture through the real
+fetchers and the real SDK with only `fetch` swapped for the lane's router, and pins the drill-down
+the navigation scenarios click, so a fixture edit that breaks the lane fails in seconds there.
+
+When the widget starts asking for something new, the lane fails naming the request. Answer it:
+a SahajCloud read in `wire.ts` (and `wire.test.ts`), anything else in `fixtures.ts`. Never widen
+the catch-all to let it through.
+
+### The map draws for real
+
+Mapbox GL needs WebGL2 and a runner has no GPU, so Chromium renders through SwiftShader, its
+software renderer, forced with `--use-angle=swiftshader` and opted into with
+`--enable-unsafe-swiftshader` (Chromium's `docs/gpu/swiftshader.md`). Measured 2026-11-19 on
+Chromium 153: the context reports `ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (Subzero)…))`,
+the map loads the fixture style, and the app's own pins draw at Cambridge. The full-map scenario
+asserts a live WebGL2 context on the map's canvas and that the map asked for its style.
+
+### A known defect, kept running
+
+⚠ **A `map=false` embed downloads the 1.9 MB mapbox-gl chunk and never uses it.** react-map-gl's
+`exports-mapbox.js` runs `import('mapbox-gl')` at module load, and the views share a chunk with
+it. No Mapbox ORIGIN is contacted, so `docs/embedding.md`'s promise holds, and the lane asserts
+that half as an ordinary test. The chunk half runs under `test.fail`: Playwright turns it red the
+moment it passes, so the fix deletes the annotation and the scenario becomes a gate.
+
+### Running it locally
+
+```bash
+pnpm exec playwright install --with-deps --no-shell chromium  # once per Playwright version
+pnpm test:browser                       # build dist-browser/, then every scenario
+pnpm exec playwright test               # again, without rebuilding
+pnpm exec playwright test navigation    # one file; add --headed, --debug or --ui to watch it
+```
+
+Locally traces are off, and `--trace on` records one per test. The server listens on
+`BROWSER_LANE_PORT` (5310 by default) and, like `pnpm review:embed`, refuses a port already in
+use. On a machine whose preinstalled Chromium is not the one the pinned Playwright expects — a
+sandbox image, say — point `PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH` at it instead of installing.
+
+### Debugging a failure
+
+- **In CI**, download the `browser-lane-report` artifact, uploaded only on failure. It holds the
+  HTML report (`pnpm exec playwright show-report <folder>`) and, under `test-results/browser/`,
+  each failed test's trace (`pnpm exec playwright show-trace <trace.zip>`) and an
+  `error-context.md` with the page's accessibility tree at the moment it failed.
+- **`requests no fixture answered`** names a request the widget made that nothing answered —
+  answer it, as above. **`uncaught errors in the page`** is a throw the widget did not catch.
+- **A timeout on a busy machine is not a broken scenario.** Re-run that one alone first. No
+  scenario sleeps for a fixed time, so a slow run waits longer rather than reading early.
+
+Measured 2026-11-19 on 4 cores shared with other work: five full runs in a row green, then each
+scenario twice over (`--repeat-each=2`) with four more CPU-bound processes running, load average
+15, also green. Re-measure after a large change; nothing checks these figures.
+
 ## Decision: node-only (no jsdom / Testing Library)
 
 This mirrors WeMeditateWeb. The unit lane runs in the `node` environment by default, with **no
@@ -385,7 +491,7 @@ This mirrors WeMeditateWeb. The unit lane runs in the `node` environment by defa
   which is why there is no `client.test.ts`.
 - **Presentational components** — assert the SSR output with `renderToStaticMarkup` from
   `react-dom/server` (see `src/components/molecules/EventFacts/EventFacts.test.tsx` for the template). Hover,
-  portals, focus, and map interaction belong in Ladle or the browser, not here.
+  portals, focus, and map interaction belong in Ladle or the browser lane, not here.
 
 ### The jsdom exception (issue #89)
 
@@ -501,13 +607,14 @@ still right. It just is not enough on its own when the pure part encodes a forei
 ## Conventions
 
 - **Co-locate** specs next to the code they cover: `Foo.tsx` → `Foo.test.tsx`, `store.ts` →
-  `store.test.ts`. Smoke specs are the only ones under `tests/`.
+  `store.test.ts`. Smoke and browser-lane specs are the only ones under `tests/`.
 - **Import explicitly** from `vitest` (`import { describe, it, expect, vi }`), and use `it` in
   the unit lane (smoke specs keep `test` / `test.skipIf`). `globals: true` is set, but explicit
   imports keep the files honest under the type-checker.
 - **Fixtures**: reuse the schema-typed Ladle mocks (`src/mocks/`) and inline small factory
   objects in the spec. Do not add a `tests/fixtures/` dump — keep fixtures next to the assertions
-  that use them.
+  that use them. The browser lane's SahajCloud responses are the one wire-shape set, in
+  `src/mocks/wire.ts`, derived from those mocks.
 - **Mock at the boundary** with `vi.mock` + `vi.hoisted` (see `src/config/api/fetch.test.ts`):
   mock `@payloadcms/sdk` and `@/config/i18n`, not our own logic. Do not test Radix, react-map-gl,
   or library internals — only *our* contracts.
