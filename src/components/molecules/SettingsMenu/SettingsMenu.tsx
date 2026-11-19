@@ -1,9 +1,9 @@
 import { type ReactNode } from 'react'
 import * as DropdownMenu from '@radix-ui/react-dropdown-menu'
-import { tv } from 'tailwind-variants'
 import { useTranslation } from 'react-i18next'
 import { Check, ChevronRight, Info, Languages, Monitor, Moon, Settings, Sun } from 'lucide-react'
 
+import { tv } from '@/styles/tv'
 import { frameCollision } from '@/lib/overlay'
 import { menuChrome } from '@/components/atoms/Menu'
 import { useAvailableLocales } from '@/hooks/use-available-locales'
