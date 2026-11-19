@@ -1,11 +1,7 @@
-// ⚠ **This module must stay free of `react-map-gl`. Nothing here will tell you if it stops.**
-// The chain App → DrawerStack → the views imports this module EAGERLY.
-// react-map-gl's `exports-mapbox.js` runs `const mapLib = import('mapbox-gl')` at MODULE scope.
-// So a single import here re-arms the 485 KiB gz fetch that the compact card exists to avoid, on every page view of every embed.
-//
-// `pnpm size` CANNOT catch this.
-// The budget walks the static graph, and a top-level `import()` inside that graph is a fetch the walker never counts.
-// This claim was wrong in three docblocks before someone measured it in a browser.
+// ⚠ **This module must stay free of `react-map-gl`.**
+// The chain App → DrawerStack → the views imports this module EAGERLY, so an import here puts react-map-gl in every embed's eager payload, a collapsed compact card's included.
+// `pnpm size` counts that, because react-map-gl 8 is static code: it fetches mapbox-gl only when a `<Map>` mounts.
+// react-map-gl 7 fired that `import()` at MODULE scope instead, which the budget never counts, so one import here fetched the whole library on every page view.
 // The real provider, and every react-map-gl edge with it, lives in `use-map-controller-real.tsx`, behind the lazy `FullInterface` boundary.
 
 import type { CameraSnapshot } from '@/config/store'

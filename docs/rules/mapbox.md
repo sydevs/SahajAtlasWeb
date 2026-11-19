@@ -269,15 +269,15 @@ overridden stay English (the full set is `defaultLocale` in mapbox-gl).
 
 ⚠ **It does NOT apply to a control's handlers — those are live.** react-map-gl
 re-assigns `thisRef.current.props = props` on every render
-(`dist/esm/components/geolocate-control.js`), and each listener it registers on
-the mapbox control reads its handler off that ref, so a new `onGeolocate` or
-`onError` takes effect at once. What shipped stale for one commit was
-`use-geolocate.ts`'s own `useCallback(…, [])`: the handler itself never changed
-identity, so the router values it closed over stayed at the render the map
-mounted in, and it rewrote `/search?center=…` back to the route the widget had
-booted on — dropping the search a viewer had just performed. Every gate stayed
-green; only a browser found it. The hook's empty deps are still correct, because
-the ref beside them is what refreshes those values.
+(`@vis.gl/react-mapbox`'s `dist/components/geolocate-control.js`), and each
+listener it registers on the mapbox control reads its handler off that ref, so a
+new `onGeolocate` or `onError` takes effect at once. What shipped stale for one
+commit was `use-geolocate.ts`'s own `useCallback(…, [])`: the handler itself
+never changed identity, so the router values it closed over stayed at the render
+the map mounted in, and it rewrote `/search?center=…` back to the route the
+widget had booted on — dropping the search a viewer had just performed. Every
+gate stayed green; only a browser found it. The hook's empty deps are still
+correct, because the ref beside them is what refreshes those values.
 
 ## "Find my location" is a NAVIGATION, not a camera move
 

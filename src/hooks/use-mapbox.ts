@@ -80,7 +80,7 @@ const FLY_SPEED = 1.0
  * So the operations below do not re-render every consumer of this hook. The map is the hottest render path in the app.
  * This also means the flag is consumed at CALL time.
  * That timing matters: `useFrameOnTop` fires once before react-map-gl has registered the instance.
- * That instance resolves in a microtask after the mounting commit.
+ * That instance resolves after the mounting commit, once the `<Map>`'s own `import('mapbox-gl')` has.
  * Each operation bails out on `!mapbox` before reaching here.
  * So that no-op run cannot spend the first move and leave the real one flying.
  */
