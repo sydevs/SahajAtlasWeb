@@ -401,6 +401,10 @@ Four things about it are deliberate:
   answers across 44px and a 44px control under an overlay answers to nothing — only a hit test
   tells those two apart. `spanFrom` walks outward from the centre and stops at the first miss on
   each side, so a control crowded on one side reports the room it has rather than two patches.
+  ⚠ A control the page has no room to centre has probe points off the viewport, so the floor does
+  not apply to it: each one is **named** in the report and raises a warning annotation, and none
+  of them fails the gate — failing would red a required check for where a control sat rather than
+  for how big it is.
 - **`region` and `landmark-unique` are off**, and `scripts/check-a11y.mjs` says why: a story is
   one component in a bare div, and a story page is a catalogue of six of them. Both would report
   the page rather than the widget. Everything axe enables by default stays on, and the tap
