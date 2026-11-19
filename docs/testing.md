@@ -544,8 +544,8 @@ throws AT IMPORT and the file dies before one assertion runs. It killed `source-
 the one expression, not the property, and `src/styles/fonts.ts` and `.ladle/` keep the same form
 as Vite's asset-URL idiom.
 
-**The first rule reaches `scripts/**/*.mjs` because five of them are imported by a spec**, which
-puts them in the same module graph as `source-tree.ts` was — the module the defect actually killed
+**The first rule reaches `scripts/**/*.mjs` because specs import them** — ten of the seventeen on
+2026-11-19 — which puts them in the same module graph as `source-tree.ts` was — the module the defect actually killed
 was no spec either. A `.mjs` cannot import the `.ts` reader, so its root is
 `dirname(fileURLToPath(import.meta.url))` and the lint message says so.
 

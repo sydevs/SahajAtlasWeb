@@ -194,8 +194,8 @@ export default [
   },
   {
     // The non-spec half of the lane's module graph: `source-tree.ts` is what the defect actually
-    // killed and it is no spec, and six `scripts/*.mjs` are in the graph one directory over,
-    // five of them imported by a spec. Shipped code and the build configs are out —
+    // killed and it is no spec, and every `scripts/*.mjs` a spec imports is in the graph one
+    // directory over, with the helpers those import. Shipped code and the build configs are out —
     // `src/styles/fonts.ts` and `.ladle/` write the same form as the Vite asset-URL idiom, which
     // is what the form is for.
     //

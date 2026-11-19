@@ -1,6 +1,8 @@
 {
   // This file type-checks the files the app tsconfig excludes.
-  // The app tsconfig includes only "src" and ".ladle".
+  // The app tsconfig names "src" and ".ladle". ⚠ Its ".ladle" entry matches no file
+  // (`tsc --listFilesOnly` lists none), so `.ladle/components.tsx` and `.ladle/i18n.ts` are in
+  // no project. TODO: check them. `components.tsx` has a type error to fix first.
   // This file covers the smoke specs, the build and CI scripts, and the Vite and vitest configs.
   // Co-located unit specs live under src/. The app project already checks them.
   // `pnpm typecheck` runs this file as its second step. See package.json.

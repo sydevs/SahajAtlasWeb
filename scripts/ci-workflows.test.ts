@@ -318,8 +318,8 @@ describe('every workflow', () => {
   const thirdParty = uses.filter(({ ref }) => !/^(sydevs\/|\.\/)/.test(ref))
 
   it('pins each third-party action by commit SHA, with its version beside it', () => {
-    // Four today. A count of zero means the pattern above stopped matching, and every
-    // expectation below would pass on nothing.
+    // A count of zero means the pattern above stopped matching, and every expectation below
+    // would pass on nothing.
     expect(thirdParty.length).toBeGreaterThan(0)
 
     expect(thirdParty.filter(({ ref }) => !/@[0-9a-f]{40}$/.test(ref))).toEqual([])
