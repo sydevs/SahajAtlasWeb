@@ -54,6 +54,11 @@ cover everything a host would notice since the widget was first deployed.
   installs nothing on your page: the library's new date objects come from a module bundled with
   the widget, never from a page-wide `Temporal` or a replaced `Intl.DateTimeFormat`.
 
+- **A `map=false` embed no longer downloads the map library.** ([#445]) Opening the interface
+  fetched and ran Mapbox GL's script — about 510 KiB gzipped, from `sahajatlas.com` — even with
+  no map to draw. It now loads only when a map renders, and a map embed starts it at the same
+  moment as before. **No parameter, origin, CSP or Permissions-Policy change.**
+
 - **The Outlook.com and Office 365 rows of "Add to calendar" now subscribe too.** ([#428]) They
   added one session of a weekly class, so a visitor on Outlook got the next class and then
   nothing. Both rows now open Outlook's "subscribe from web" route for the class's own calendar
@@ -1145,3 +1150,4 @@ must-revalidate`, pinned rather than left to the CDN default. The production dom
 [#418]: https://github.com/sydevs/SahajAtlasWeb/pull/418
 [#424]: https://github.com/sydevs/SahajAtlasWeb/pull/424
 [#428]: https://github.com/sydevs/SahajAtlasWeb/issues/428
+[#445]: https://github.com/sydevs/SahajAtlasWeb/pull/445

@@ -19,15 +19,24 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import { deepActiveElement } from './active-element'
 
+import { Drawer, DrawerContent } from '@/components/atoms/Drawer/Drawer'
+
 type Resolver = ReturnType<typeof createRequire>
 
 type Patch = {
+  /**
+   * The patch file, as `pnpm.patchedDependencies` names it. Also how the per-edit hook reaches
+   * this spec from an edit to that file (`scripts/select-unit-specs.mjs`).
+   */
+  patch: string
   /** Every built file the patch rewrites, relative to the package root. */
   files: string[]
   /** `[what the hunk does, a string only a PATCHED build contains]`. */
   hunks: [string, string][]
   /** `[what the hunk replaced, a string only an UNPATCHED build contains]`. */
   gone: [string, string][]
+  /** `hunks` the patch makes to one of `files` alone, keyed by that file. */
+  onlyIn?: Record<string, [string, string][]>
 }
 
 const require_ = createRequire(import.meta.url)
@@ -38,8 +47,11 @@ const ARIA_HIDDEN = 'aria-hidden'
 
 const SCHEDULE_X = '@schedule-x/calendar'
 
+const VAUL = 'vaul'
+
 const PATCHES: Record<string, Patch> = {
   [FOCUS_SCOPE]: {
+    patch: 'patches/@radix-ui__react-focus-scope@1.3.1.patch',
     files: ['dist/index.js', 'dist/index.mjs'],
     hunks: [
       ['focusin reads the composed path', 'const target = getEventTarget(event);'],
@@ -52,6 +64,7 @@ const PATCHES: Record<string, Patch> = {
     gone: [],
   },
   [ARIA_HIDDEN]: {
+    patch: 'patches/aria-hidden@1.2.6.patch',
     files: ['dist/es2015/index.js', 'dist/es2019/index.js', 'dist/es5/index.js'],
     hunks: [
       ['the sweep climbs out of a shadow root', 'keep(el.parentNode || el.host);'],
@@ -66,6 +79,7 @@ const PATCHES: Record<string, Patch> = {
   // ⚠ All three builds, since the bundle loads `core.js` (`module`) while this lane loads
   // `core.cjs.js` (`main`) — a spec green against one says nothing about the other.
   [SCHEDULE_X]: {
+    patch: 'patches/@schedule-x__calendar@4.9.1.patch',
     files: ['dist/core.js', 'dist/core.cjs.js', 'dist/core.umd.js'],
     hunks: [
       [
@@ -105,6 +119,16 @@ const PATCHES: Record<string, Patch> = {
       ],
     ],
   },
+  // ⚠ `modal` is forwarded in the ESM build alone: the one every consumer loads, measured — the
+  // bundle, the dev server's pre-bundle, Ladle, and this lane in node and jsdom alike.
+  // shortcut: the `require` build never forwards it; patch it too once anything `require`s vaul.
+  [VAUL]: {
+    patch: 'patches/vaul@1.1.2.patch',
+    files: ['dist/index.js', 'dist/index.mjs'],
+    hunks: [],
+    gone: [['the stylesheet is appended to the page’s <head>', 'head.appendChild(style)']],
+    onlyIn: { 'dist/index.mjs': [['Dialog.Root is handed `modal`', 'modal: modal,']] },
+  },
 }
 
 function readManifest(root: string) {
@@ -141,12 +165,17 @@ function packageRoot(from: Resolver, name: string) {
 }
 
 function expectPatched(module: string, root: string, label: string) {
-  const { files, hunks, gone } = PATCHES[module]
+  const { files, hunks, gone, onlyIn } = PATCHES[module]
+
+  // The loop below reads `files` alone, so a key outside it would leave its hunks unchecked.
+  for (const file of Object.keys(onlyIn ?? {}))
+    expect(files, `${label}: onlyIn names an unlisted file`).toContain(file)
 
   for (const file of files) {
     const src = readFileSync(join(root, file), 'utf8')
 
-    for (const [what, hunk] of hunks) expect(src, `${label} ${file}: ${what}`).toContain(hunk)
+    for (const [what, hunk] of [...hunks, ...(onlyIn?.[file] ?? [])])
+      expect(src, `${label} ${file}: ${what}`).toContain(hunk)
 
     for (const [what, hunk] of gone) expect(src, `${label} ${file}: ${what}`).not.toContain(hunk)
   }
@@ -202,6 +231,10 @@ function consumersOf(module: string) {
  * defect is observable.
  *
  * jsdom, because a shadow root and its retargeting ARE the subject.
+ *
+ * vaul's patch (#30, #91) has nothing to do with the boundary, but fails just as silently — a
+ * host page's own `fadeIn` replaced by ours, a map that keyboard and screen reader cannot reach
+ * behind an open drawer — so it is pinned here too.
  */
 
 function mountShadowHost() {
@@ -474,6 +507,90 @@ describe('Schedule-X through a shadow boundary', () => {
   })
 })
 
+/** vaul's only caller, our `Drawer` atom, with a control inside it and one on the page behind. */
+async function mountDrawer(modal: boolean) {
+  const outside = document.createElement('button')
+  const container = document.createElement('div')
+
+  document.body.append(outside, container)
+
+  const reactRoot = createRoot(container)
+
+  await act(async () => {
+    // Children as props: the atom's types require them there, createElement never checks its
+    // rest arguments against that, and a `.ts` spec has no JSX to pass them with.
+    /* eslint-disable react/no-children-prop */
+    reactRoot.render(
+      createElement(Drawer, {
+        open: true,
+        modal,
+        children: createElement(DrawerContent, {
+          'aria-label': 'drawer',
+          children: createElement('button', { id: 'inside' }, 'inside'),
+        }),
+      }),
+    )
+    /* eslint-enable react/no-children-prop */
+  })
+
+  const inside = document.getElementById('inside') as HTMLButtonElement
+
+  await act(async () => {
+    inside.focus()
+  })
+  await act(async () => {
+    outside.focus()
+  })
+
+  return {
+    outside,
+    inside,
+    unmount: () =>
+      act(async () => {
+        reactRoot.unmount()
+      }),
+  }
+}
+
+describe('vaul', () => {
+  // Unpatched, vaul appends its stylesheet to `document.head` at module scope, and its bare
+  // `@keyframes fadeIn` is document-global, so it replaced a host page's own (#91).
+  it('adds no stylesheet to the page it loads into', async () => {
+    // A fresh evaluation, so that call meets THIS document whatever the worker loaded before.
+    await import(/* @vite-ignore */ `${import.meta.resolve(VAUL)}?${Date.now()}`)
+
+    const sheets = [...document.querySelectorAll('style')].map((style) => style.textContent ?? '')
+
+    expect(sheets.filter((css) => css.includes('[data-vaul-drawer]'))).toEqual([])
+  })
+
+  // Unpatched, `modal` never reaches Radix, which defaults to modal: the page behind every
+  // non-modal drawer was aria-hidden, and focus could not leave the drawer (#30).
+  it('leaves the page behind a non-modal drawer reachable', async () => {
+    const { outside, unmount } = await mountDrawer(false)
+
+    expect(outside.getAttribute('aria-hidden')).toBeNull()
+    expect(deepActiveElement()).toBe(outside)
+
+    await unmount()
+  })
+
+  // What keeps the spec above from passing vacuously: jsdom shows both effects when they occur.
+  it('still hides the page and traps focus behind a modal one', async () => {
+    const { outside, inside, unmount } = await mountDrawer(true)
+
+    expect(outside.getAttribute('aria-hidden')).toBe('true')
+    expect(deepActiveElement()).toBe(inside)
+
+    await unmount()
+  })
+
+  // No consumer pin below: nothing else in the graph declares vaul.
+  it('keeps every hunk in our own pinned copy', () => {
+    expectPatched(VAUL, packageRoot(require_, VAUL), 'our pin')
+  })
+})
+
 /**
  * ⚠ The focus-scope and aria-hidden pins above answer for the copy OUR patch is keyed to, so
  * neither can report drift.
@@ -520,4 +637,22 @@ describe('the patched copy each consumer resolves', () => {
       expect([...copies], `more than one ${module} copy resolved`).toHaveLength(1)
     },
   )
+})
+
+/**
+ * A patch with no entry in `PATCHES` has no pin at all, and nothing else says so: `pnpm install`
+ * fails a patch that stops applying, never one whose defect quietly comes back.
+ */
+describe('the patch register', () => {
+  it('pins every patch pnpm applies', () => {
+    const { pnpm } = require_('../../package.json') as {
+      pnpm: { patchedDependencies: Record<string, string> }
+    }
+
+    expect(
+      Object.values(PATCHES)
+        .map(({ patch }) => patch)
+        .sort(),
+    ).toEqual(Object.values(pnpm.patchedDependencies).sort())
+  })
 })
