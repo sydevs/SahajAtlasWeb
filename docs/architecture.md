@@ -74,10 +74,12 @@ Host page  →  <script src="…/auto.js?key=…&locale=…&map=true|false">
 1. The loader parses six parameters off its own script URL
    (`src/loader/config.ts`): `key`, plus optional `map`, `locale`, `routing`,
    `atlas` and `gestures`. The widget reads them through `config/embed.ts`.
-   The display name and the brand colours come from the client record.
-2. `App` fetches the **client** record (domain, default locale, home region)
-   using React Query. It configures the locale and analytics, then navigates
-   to the home region on first load.
+   The brand colours come from the client record.
+2. `App` fetches the **client** record (allowed domains, brand colours, home
+   region) using React Query. It configures analytics from the first allowed
+   domain, then navigates to the home region on first load. ⚠ The record's
+   `locale` is deliberately not read: the language follows the page
+   (`docs/embedding.md` § "The widget follows your page's language").
 3. `DrawerStack` resolves the current pathname (`resolveStack`) into an
    ancestor chain, then renders CountriesView (the base) plus one drawer per
    ancestor. Each drawer runs a normal Suspense query, deep-link-safe by
