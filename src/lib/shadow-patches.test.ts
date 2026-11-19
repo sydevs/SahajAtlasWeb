@@ -79,6 +79,14 @@ const PATCHES: Record<string, Patch> = {
       ['the hour rows are sized on that element', "sydevsSetProperty('--sx-week-grid-hour-height'"],
       ['calendar colours are set on that element', 'sydevsSetProperty(`--sx-color-${colorName}`'],
       ['render sets the colours again', 'const sydevsColors = new EventColors(this.$app.config);'],
+      [
+        'a start already in the calendar’s zone is read as is',
+        'if (this._start.timeZoneId === this._config.timezone.value) return this._start;',
+      ],
+      [
+        'an end already in the calendar’s zone is read as is',
+        'if (this._end.timeZoneId === this._config.timezone.value) return this._end;',
+      ],
     ],
     gone: [
       [
@@ -429,6 +437,34 @@ describe('Schedule-X through a shadow boundary', () => {
     await act(async () => {
       calendar.destroy()
     })
+  })
+
+  // Unpatched, every read of an event's start or end re-zones it, even into the zone it is
+  // already in. A full feed's sort and layout read each event thousands of times, which made
+  // the calendar several times slower than on 2.x.
+  it('reads an event already in the calendar’s zone as is, and re-zones any other', () => {
+    const elsewhere = {
+      ...meditation,
+      id: 2,
+      start: meditation.start.withTimeZone('Asia/Kolkata'),
+      end: meditation.end.withTimeZone('Asia/Kolkata'),
+    }
+    const calendar = createCalendar({
+      views: [createViewMonthGrid()],
+      timezone: 'UTC',
+      events: [meditation, elsewhere],
+    })
+
+    type Read = { start: Temporal.ZonedDateTime; end: Temporal.ZonedDateTime }
+    const [same, other] = (
+      calendar as unknown as { $app: { calendarEvents: { list: { value: Read[] } } } }
+    ).$app.calendarEvents.list.value
+
+    expect(same.start).toBe(same.start)
+    expect(same.end).toBe(same.end)
+    expect(other.start.timeZoneId).toBe('UTC')
+    expect(other.end.timeZoneId).toBe('UTC')
+    expect(other.start.equals(meditation.start)).toBe(true)
   })
 
   // No consumer pin below: only `@schedule-x/react` reaches this package besides us, as a peer,
