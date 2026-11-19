@@ -1,5 +1,6 @@
 import * as RadixSlider from '@radix-ui/react-slider'
-import { tv } from 'tailwind-variants'
+
+import { tv } from '@/styles/tv'
 
 // A range slider on the brand tokens, wrapping @radix-ui/react-slider. The
 // number of thumbs follows the `value` or `defaultValue` length, so a

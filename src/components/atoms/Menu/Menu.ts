@@ -1,4 +1,4 @@
-import { tv } from 'tailwind-variants'
+import { tv } from '@/styles/tv'
 
 /**
  * The skin the app's three Radix dropdown menus share.

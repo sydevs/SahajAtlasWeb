@@ -1,6 +1,7 @@
 import { type ReactNode, createContext, useContext } from 'react'
 import * as RadixToggleGroup from '@radix-ui/react-toggle-group'
-import { tv } from 'tailwind-variants'
+
+import { tv } from '@/styles/tv'
 
 // A single- or multi-select on the brand tokens, wrapping
 // @radix-ui/react-toggle-group. Compose it with ToggleGroupItem (this
