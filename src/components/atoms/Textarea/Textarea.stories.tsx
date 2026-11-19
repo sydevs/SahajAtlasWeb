@@ -33,7 +33,12 @@ export const Default: Story = () => {
         title="Highlighted"
       >
         <div className="max-w-sm">
-          <Textarea highlight aria-label="Note" defaultValue="A note that's been filled in." rows={4} />
+          <Textarea
+            highlight
+            aria-label="Note"
+            defaultValue="A note that's been filled in."
+            rows={4}
+          />
         </div>
       </StorySection>
 

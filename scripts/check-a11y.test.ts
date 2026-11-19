@@ -1,6 +1,12 @@
 import { describe, expect, it } from 'vitest'
 
-import { MIN_TAP_PX, PROBE_STEP_PX, TAP_EXCEPTIONS, formatFailures, spanFrom } from './check-a11y.mjs'
+import {
+  MIN_TAP_PX,
+  PROBE_STEP_PX,
+  TAP_EXCEPTIONS,
+  formatFailures,
+  spanFrom,
+} from './check-a11y.mjs'
 
 // `spanFrom` is the arithmetic behind every tap-target verdict the gate prints, and it is the
 // one part of this gate a browser is not needed to judge. The probe order it reads is

@@ -177,7 +177,7 @@ export function MapSearch({ onSelect, label, permanent }: MapSearchProps) {
         fallback={
           <input
             aria-label={fieldLabel}
-            className="w-full rounded-lg border border-divider bg-gray-2 px-3 py-2 field-size text-foreground pointer-coarse:min-h-11 placeholder:text-gray-11"
+            className="w-full rounded-lg border border-divider bg-gray-2 px-3 py-2 field-size text-foreground placeholder:text-gray-11 pointer-coarse:min-h-11"
             placeholder={fieldLabel}
             type="search"
             value={searchQuery}

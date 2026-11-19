@@ -45,7 +45,12 @@ export const Default: Story = () => {
         title="Invalid"
       >
         <div className="max-w-sm">
-          <Input isInvalid aria-describedby="email-error" aria-label="Email" defaultValue="not-an-email" />
+          <Input
+            isInvalid
+            aria-describedby="email-error"
+            aria-label="Email"
+            defaultValue="not-an-email"
+          />
         </div>
       </StorySection>
 

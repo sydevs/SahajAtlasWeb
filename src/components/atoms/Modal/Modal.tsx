@@ -1,9 +1,17 @@
-import { type ReactNode } from 'react'
+import {
+  type MutableRefObject,
+  type ReactNode,
+  createContext,
+  useContext,
+  useEffect,
+  useRef,
+} from 'react'
 import * as Dialog from '@radix-ui/react-dialog'
 import { X } from 'lucide-react'
 
 import { Button } from '@/components/atoms/Button'
-import { overlayContainer } from '@/lib/overlay'
+import { deepActiveElement } from '@/lib/active-element'
+import { overlayContainer, widgetOverlayContainer } from '@/lib/overlay'
 
 // A centred, ephemeral dialog on @radix-ui/react-dialog (issue #79). Radix
 // owns the focus trap, Esc, and scroll lock. This atom owns the Tailwind
@@ -48,12 +56,67 @@ export type ModalProps = {
   children: ReactNode
 }
 
+/**
+ * Where the root leaves the control that opened the dialog, for the content to restore focus
+ * to. Module-private: nothing outside this file has a use for it, and a caller that wants
+ * focus elsewhere takes `onCloseAutoFocus` instead.
+ */
+type OpenerTracking = {
+  /** The control the dialog was opened from. */
+  opener: MutableRefObject<HTMLElement | null>
+  /** The dialog's own panel, which the recorder must never mistake for the opener. */
+  content: MutableRefObject<HTMLDivElement | null>
+}
+
+const OpenerContext = createContext<OpenerTracking | null>(null)
+
 /** The modal root. Compose `ModalContent` (+ Body/Footer) inside. */
 export function Modal({ open, onOpenChange, children }: ModalProps) {
+  const opener = useRef<HTMLElement | null>(null)
+  const content = useRef<HTMLDivElement | null>(null)
+  const tracking = useRef<OpenerTracking>({ opener, content }).current
+
+  // ⚠ Tracked while CLOSED, and from the ROOT, which is the only part of this atom that knows
+  // the dialog's state. By the time anything inside the portal could read it, Radix's focus
+  // scope has already moved focus into the dialog — and a read during the content's render is
+  // worse than it looks: a render React discards and repeats would re-read it, after the move,
+  // which is exactly how it behaved (#432).
+  //
+  // **Scoped to the widget's own root, and that is a correctness fix, not hygiene.** Safari and
+  // Firefox on macOS do not focus a `<button>` on click, so the opening control fires no
+  // `focusin`. A document-wide listener would leave this pointing at whatever the HOST page had
+  // focused — a search box, a login field — and closing would focus it, scrolling their page
+  // and raising the keyboard on a phone. `CompactEmbedView`'s surface records its opener the
+  // same way, for the same reasons.
+  useEffect(() => {
+    const root = widgetOverlayContainer()
+
+    if (open || !root) return
+
+    const remember = () => {
+      const active = deepActiveElement() as HTMLElement | null
+
+      // ⚠ Never something inside the dialog itself. This effect re-runs as the dialog CLOSES,
+      // and the × that closed it is still focused and still inside this root — recording it
+      // would make the restore focus a node on its way out, which lands on `<body>`: the very
+      // outcome the restore exists to prevent.
+      if (!active || !root.contains(active) || content.current?.contains(active)) return
+
+      opener.current = active
+    }
+
+    remember()
+    root.addEventListener('focusin', remember)
+
+    return () => root.removeEventListener('focusin', remember)
+  }, [open])
+
   return (
-    <Dialog.Root open={open} onOpenChange={onOpenChange}>
-      {children}
-    </Dialog.Root>
+    <OpenerContext.Provider value={tracking}>
+      <Dialog.Root open={open} onOpenChange={onOpenChange}>
+        {children}
+      </Dialog.Root>
+    </OpenerContext.Provider>
   )
 }
 
@@ -65,10 +128,15 @@ export type ModalContentProps = {
   /** Accessible label for the × control. Atoms take their copy as props, not from i18n. */
   closeLabel: string
   /**
-   * Radix's focus-return target is whatever had focus when the dialog
-   * mounted. That is not always the control that opened it, since a menu
-   * item is gone by then. Handle this event to send focus somewhere
-   * specific: call `preventDefault()`, then `.focus()` your own element.
+   * ⚠ **Radix restores focus to a `Dialog.Trigger`, and this atom renders none** — it is
+   * controlled through `open`. With no trigger, Radix's own handler calls `preventDefault()`
+   * and focuses nothing, so closing dropped the viewer on `<body>` and a keyboard viewer
+   * started again from the top of the host's page (measured, #432). The atom records the
+   * opener itself instead, and restores to it.
+   *
+   * Handle this event to send focus somewhere else — a menu item that opened the dialog is
+   * gone by the time it closes, for instance. Call `preventDefault()`, then `.focus()` your
+   * own element; the atom's own restore stands down when you do.
    */
   onCloseAutoFocus?: (event: Event) => void
   children: ReactNode
@@ -90,12 +158,36 @@ export function ModalContent({
   // only when there is no description.
   const describedBy = description ? {} : { 'aria-describedby': undefined }
 
+  const tracking = useContext(OpenerContext)
+
+  const restoreFocus = (event: Event) => {
+    onCloseAutoFocus?.(event)
+
+    // The caller took it. Theirs wins, and calling ours after would move focus twice.
+    if (event.defaultPrevented) return
+
+    const root = widgetOverlayContainer()
+
+    // ⚠ `preventDefault()` only where there is somewhere to send focus: unprevented, Radix
+    // still tries the trigger, and a dialog opened from one (none today) would keep working.
+    // The containment test is what keeps a stale opener — or the HOST's own focused field,
+    // which Safari and Firefox leave focused when a button is clicked — from being focused
+    // here, scrolling somebody else's page and raising a phone keyboard.
+    const opening = tracking?.opener.current
+
+    if (!opening?.isConnected || !root?.contains(opening)) return
+
+    event.preventDefault()
+    opening.focus()
+  }
+
   return (
     <Dialog.Portal container={overlayContainer()}>
       <Dialog.Overlay className={overlay} />
       <Dialog.Content
+        ref={tracking?.content}
         className={`${content} ${className ?? ''}`}
-        onCloseAutoFocus={onCloseAutoFocus}
+        onCloseAutoFocus={restoreFocus}
         {...describedBy}
       >
         <div className={header}>

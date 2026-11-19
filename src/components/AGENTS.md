@@ -602,6 +602,18 @@ three things defeat it:
 `relative` is later than `absolute` and `fixed` in Tailwind's own order, so a joined list wins
 the cascade and unpins the caller's control. `SettingsMenu`'s trigger carries that story.
 
+⚠ **Radix restores focus to a `Dialog.Trigger`, and neither of this app's dialogs has one.**
+Its own `onCloseAutoFocus` calls `preventDefault()` and focuses the trigger it does not have, so
+closing dropped the viewer on `<body>` — measured in a browser for the `Modal` atom (#432), and
+the same mechanism `CompactEmbedView`'s surface already handled. Both record the opener
+themselves, from the component that knows the dialog is CLOSED, and three things about that are
+load-bearing: it listens on the widget's own root, never `document`, because Safari and Firefox
+on macOS focus no `<button>` on click and a document-wide listener would point at the host
+page's own field; it ignores anything inside the dialog, because the effect re-runs as the
+dialog closes while the × is still focused; and it must not read focus during the dialog's own
+render, because a render React discards and repeats re-reads it after the focus trap has moved
+focus — measured as an intermittent failure, not a theoretical one.
+
 **An accessible name must contain the control's own visible text** (WCAG 2.5.3): a speech-input
 viewer says what they can see. So a weekday pill reading `Mon` is named `Mon`, not `Monday`; a
 value-showing trigger is named `<field>: <value>`; and a copy button whose content is a URL

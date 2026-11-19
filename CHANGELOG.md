@@ -458,6 +458,11 @@ no-referrer`.
 
 ### Fixed
 
+- **Closing a dialog puts the keyboard back on the control that opened it.** ([#432]) The
+  "Report an issue" dialog returned focus to the top of your page instead, so a keyboard viewer
+  who closed it started again from the beginning. Escape and the × both land back where they
+  came from now.
+
 - **A keyboard no longer stops on the spam check before it has anything to show.** ([#432]) The
   registration and report forms mount a challenge frame that stays empty until Cloudflare wants
   a click. It was still a Tab stop, so a keyboard viewer landed twice on something invisible.

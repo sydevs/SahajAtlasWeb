@@ -136,7 +136,7 @@ export async function serveDirectory(dir) {
       })
   })
 
-  await new Promise((done) => server.listen(0, '127.0.0.1', done))
+  await new Promise((done) => server.listen({ host: '127.0.0.1', port: 0 }, () => done(undefined)))
 
   const { port } = /** @type {import('node:net').AddressInfo} */ (server.address())
 
@@ -201,14 +201,17 @@ export function formatFailures(failures) {
  *
  * @param {{ disabledRules: string[], minTap: number, selectors: string[] }} options
  */
-/* eslint-disable */
+ 
 async function pageAudit({ disabledRules, minTap, selectors }) {
   const root = document.body
   const rules = {}
 
   for (const id of disabledRules) rules[id] = { enabled: false }
 
-  const axeResults = await window.axe.run(root, { resultTypes: ['violations'], rules })
+  const axeResults = await /** @type {any} */ (window).axe.run(root, {
+    resultTypes: ['violations'],
+    rules,
+  })
 
   const INTERACTIVE = [
     'a[href]',
@@ -265,7 +268,9 @@ async function pageAudit({ disabledRules, minTap, selectors }) {
   const reach = Math.ceil(minTap / 2)
   const probed = []
 
-  for (const el of root.querySelectorAll(INTERACTIVE)) {
+  for (const node of root.querySelectorAll(INTERACTIVE)) {
+    const el = /** @type {any} */ (node)
+
     if (el.disabled || !visible(el) || exempt(el)) continue
 
     // Centred first. A probe that leaves the viewport answers `null`, so a control resting
@@ -334,12 +339,12 @@ async function pageAudit({ disabledRules, minTap, selectors }) {
     })),
     probed,
     resting: Object.fromEntries(resting),
-    stops: [...root.querySelectorAll(`${INTERACTIVE},[tabindex]`)].filter(
-      (el) => !el.disabled && el.tabIndex >= 0 && visible(el) && !exempt(el),
-    ).length,
+    stops: [...root.querySelectorAll(`${INTERACTIVE},[tabindex]`)]
+      .map((node) => /** @type {any} */ (node))
+      .filter((el) => !el.disabled && el.tabIndex >= 0 && visible(el) && !exempt(el)).length,
   }
 }
-/* eslint-enable */
+ 
 
 /**
  * Presses Tab once per control the page offers and reports where focus landed: its position in
@@ -357,7 +362,7 @@ async function keyboardWalk(page, count, resting, selectors) {
   for (let i = 0; i < count; i += 1) {
     await page.keyboard.press('Tab')
 
-    /* eslint-disable */
+     
     const stop = await page.evaluate((exceptions) => {
       const el = document.activeElement
 
@@ -391,7 +396,7 @@ async function keyboardWalk(page, count, resting, selectors) {
         ].join('|'),
       }
     }, selectors)
-    /* eslint-enable */
+     
 
     if (!stop) break
     if (stop.skip) continue
@@ -401,7 +406,9 @@ async function keyboardWalk(page, count, resting, selectors) {
       // An element the audit never stamped is one the page added after it ran — a portal that
       // opened on focus. It has no resting style to compare against, so the indicator check
       // abstains rather than guessing.
-      indicated: resting[stop.order] === undefined || stop.painted !== resting[stop.order],
+      indicated:
+        resting[String(stop.order)] === undefined ||
+        stop.painted !== resting[String(stop.order)],
     })
   }
 

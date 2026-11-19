@@ -15,7 +15,7 @@ const toggleGroup = tv({
     // ⚠ The `pointer-coarse` pair is the 44px tap floor (#432), and it is a drawn size rather
     // than the `touch-target` utility on purpose: the items are flush, so an invisible area
     // wider than an item would sit over its neighbour and take the neighbour's taps instead.
-    item: 'relative inline-flex h-8 min-w-8 pointer-coarse:h-11 pointer-coarse:min-w-11 items-center justify-center border border-gray-6 bg-background px-2 text-sm font-medium text-gray-11 transition-colors outline-none select-none hover:bg-gray-3 focus-visible:z-10 focus-visible:ring-2 focus-visible:ring-focus disabled:opacity-disabled data-[state=on]:z-10 data-[state=on]:border-primary-9 data-[state=on]:bg-primary-9 data-[state=on]:text-primary-foreground',
+    item: 'relative inline-flex h-8 min-w-8 items-center justify-center border border-gray-6 bg-background px-2 text-sm font-medium text-gray-11 transition-colors outline-none select-none hover:bg-gray-3 focus-visible:z-10 focus-visible:ring-2 focus-visible:ring-focus disabled:opacity-disabled data-[state=on]:z-10 data-[state=on]:border-primary-9 data-[state=on]:bg-primary-9 data-[state=on]:text-primary-foreground pointer-coarse:h-11 pointer-coarse:min-w-11',
   },
   variants: {
     joined: {
@@ -25,7 +25,7 @@ const toggleGroup = tv({
       true: {
         // ⚠ One pixel over the 44px floor on a touch screen: `-ms-px` collapses the shared
         // border, so the neighbour owns that column and a 44px item answers to 43 (#432).
-        item: '-ms-px rounded-none pointer-coarse:min-w-[45px] first:ms-0 first:rounded-s last:rounded-e',
+        item: '-ms-px rounded-none first:ms-0 first:rounded-s last:rounded-e pointer-coarse:min-w-[45px]',
       },
     },
     // Active-filter tint. This colours the UNSELECTED items primary. The
@@ -138,6 +138,10 @@ export type ToggleGroupItemProps = {
   value: string
   disabled?: boolean
   'aria-label'?: string
+  /** A tooltip for an item whose visible text is an abbreviation. ⚠ It is NOT a substitute for
+   *  an accessible name: the name must contain what a viewer can see (WCAG 2.5.3), so an item
+   *  reading `Mon` is named `Mon` and says `Monday` here instead. */
+  title?: string
   className?: string
   children: ReactNode
 }
@@ -146,6 +150,7 @@ export function ToggleGroupItem({
   value,
   disabled,
   'aria-label': ariaLabel,
+  title,
   className,
   children,
 }: ToggleGroupItemProps) {
@@ -157,6 +162,7 @@ export function ToggleGroupItem({
       aria-label={ariaLabel}
       className={item({ className })}
       disabled={disabled}
+      title={title}
       value={value}
     >
       {children}

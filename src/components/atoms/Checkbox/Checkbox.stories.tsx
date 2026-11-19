@@ -55,7 +55,12 @@ export const Default: Story = () => {
                   <Checkbox checked aria-label={`${color} switch`} color={color} />
                 </StoryGridCell>
                 <StoryGridCell>
-                  <Checkbox checked appearance="checkbox" aria-label={`${color} checkbox`} color={color} />
+                  <Checkbox
+                    checked
+                    appearance="checkbox"
+                    aria-label={`${color} checkbox`}
+                    color={color}
+                  />
                 </StoryGridCell>
               </StoryGridRow>
             ))}
@@ -88,10 +93,20 @@ export const Default: Story = () => {
                   <Checkbox checked aria-label="Switch on" disabled={disabled} />
                 </StoryGridCell>
                 <StoryGridCell>
-                  <Checkbox appearance="checkbox" aria-label="Checkbox off" checked={false} disabled={disabled} />
+                  <Checkbox
+                    appearance="checkbox"
+                    aria-label="Checkbox off"
+                    checked={false}
+                    disabled={disabled}
+                  />
                 </StoryGridCell>
                 <StoryGridCell>
-                  <Checkbox checked appearance="checkbox" aria-label="Checkbox on" disabled={disabled} />
+                  <Checkbox
+                    checked
+                    appearance="checkbox"
+                    aria-label="Checkbox on"
+                    disabled={disabled}
+                  />
                 </StoryGridCell>
               </StoryGridRow>
             ))}
