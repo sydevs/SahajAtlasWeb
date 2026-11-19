@@ -54,15 +54,22 @@ jobs:
       # ⚠ It must follow `pnpm ladle:build`: the gate reads `build/`, never the dev server, so a
       # story that failed to compile cannot pass by never having been opened.
       # ⚠ Cached, because this step is on the critical path of the one required check and the
-      # merge queue pays it a second time for every merge. The key is the pinned `playwright`
-      # version, so a bump re-downloads and nothing else does. A miss costs what it always
-      # cost; a hit skips ~170 MB.
+      # merge queue pays it a second time for every merge. A miss costs what it always cost; a
+      # hit skips ~170 MB.
+      #
+      # ⚠ The key is the pinned version ITSELF, read out of `package.json`, not a hash of the
+      # file. `hashFiles('package.json')` re-downloaded the browser on every dependency bump,
+      # every new script and every edit to any field — on the critical path of the one required
+      # check — while the version Chromium is keyed to had not moved.
+      - name: Read the pinned Playwright version
+        id: playwright
+        run: echo "version=$(node -p "require('./package.json').devDependencies.playwright")" >> "$GITHUB_OUTPUT"
       - name: Cache the Chromium the accessibility gate drives
         id: browser-cache
         uses: actions/cache@v4
         with:
           path: ~/.cache/ms-playwright
-          key: playwright-${{ runner.os }}-${{ hashFiles('package.json') }}
+          key: playwright-${{ runner.os }}-${{ steps.playwright.outputs.version }}
       - name: Install Chromium for the accessibility gate
         # `--with-deps` installs system libraries outside the cached directory, so it runs on a
         # hit too; the browser download itself is what the cache removes.
