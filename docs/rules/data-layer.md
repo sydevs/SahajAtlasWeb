@@ -325,6 +325,13 @@ refusal carrying a zod issue code; zod 4 renamed that field `issues`, which clos
 the collision by luck rather than by design. Keep the parse outside regardless —
 the placement is what makes the refusal path unable to see a parse failure at all.
 
+**A form's mutation neither retries nor waits for the network, and the client says so once.**
+`query-client.ts`'s `mutations` default sets `retry: 0` and `networkMode: 'always'`. Both writes
+are unsafe to repeat, and React Query's default `'online'` pauses a submit fired offline: no
+request, no `onError`, then a send by itself on the `online` event. Set neither per form, so a
+third mutation inherits both. Each form's `*.submit.test.tsx` drives an offline submit through
+the shared client.
+
 ## Consuming data — TanStack Query only
 
 - Fetch via `useQuery` / `useSuspenseQuery`. Never call the SDK fetcher directly

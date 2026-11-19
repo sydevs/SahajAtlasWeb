@@ -455,6 +455,14 @@ no-referrer`.
   cluster in under the sheet, or far above it, until the map was next moved by hand. Nothing to
   change in your snippet or your CSP.
 
+- **Registering with no connection now fails and says so, instead of spinning.** A visitor whose
+  browser was offline when they pressed Register got a button that spun with no message, and the
+  registration was then sent by itself once the connection came back, for as long as the page
+  stayed open — after they might have given up, or registered a second time. The attempt is now
+  made straight away, the form reports "You appear to be offline.", and nothing is left waiting
+  to send later. The report form already behaved this way. Nothing to change in your snippet or
+  your CSP.
+
 - **A map you gave a height now scrolls with your page on iPhone and iPad.** ([#424]) On iOS, the
   map inside a sized `<sahaj-atlas>` fell behind its box as the page scrolled, and could disappear
   from the box entirely. Android and desktop browsers were not affected. Nothing to change in your
