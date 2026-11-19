@@ -477,8 +477,8 @@ describe('vaul', () => {
     expect(sheets.filter((css) => css.includes('[data-vaul-drawer]'))).toEqual([])
   })
 
-  // Unpatched, `modal` never reaches Radix, which defaults to modal: the page behind every drawer
-  // in the app — all non-modal — was aria-hidden, and focus could not leave the drawer (#30).
+  // Unpatched, `modal` never reaches Radix, which defaults to modal: the page behind every
+  // non-modal drawer was aria-hidden, and focus could not leave the drawer (#30).
   it('leaves the page behind a non-modal drawer reachable', async () => {
     const { outside, unmount } = await mountDrawer(false)
 
