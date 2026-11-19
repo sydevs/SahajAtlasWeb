@@ -401,7 +401,7 @@ stays `node` regardless.
 A spec opts in per file with a `// @vitest-environment jsdom` docblock on line 1, keeping the fast
 path fast. ⚠ **Re-measure before quoting either half of this trade — nothing checks these two
 numbers.** Measured 2026-10-13 on 4 cores, when the lane was 115 node-only files and 25 jsdom
-ones: **~20s**, and **~15s** on top, over 1714 tests. On 2026-11-19 it is 139 and 37, and the
+ones: **~20s**, and **~15s** on top, over 1714 tests. On 2026-11-19 it is 140 and 39, and the
 times were not re-taken: the machine was shared, and a figure taken under load misleads. The
 per-file opt-in is what keeps the first number from becoming the second. **Neither half is the
 per-edit cost** — the hook runs a slice, against the budget at the end of this file.
@@ -630,9 +630,9 @@ coupling the other cannot:
 
 - **Co-located** — the stem's own siblings, so `Foo.tsx` reaches `Foo.test.tsx` and
   `Foo.mount.test.tsx` but not every spec in their folder. This is what covers `scripts/`, whose
-  twelve specs the lane indexes and whose own edits select at most four — 1.7s, the median of
+  thirteen specs the lane indexes and whose own edits select at most four — 1.7s, the median of
   three on 4 cores on 2026-11-19, with the build gates at 0.8 to 1.0s — or nothing at all for the
-  six of its 29 sources no spec names.
+  six of its 30 sources no spec names.
 - **Referencing** — a spec that names the module. It **resolves** every quoted specifier in every
   spec rather than matching the module's name, because one module is addressed three ways and a
   spec picks whichever its own directory makes natural: `@/config/api/client`, `./client`, or the
@@ -656,8 +656,8 @@ saving.
 ⚠ **What that gives up is per-edit immediacy, and it applies to every edit, not to a subset.** No
 edit runs an inventory now, so an unregistered viewport read, JSX anchor, Radix popper, SahajCloud
 read or `t()` key draws no immediate signal wherever it is added — `src/config/translations.test.ts`
-is selected for 7 of 420 lane sources, by reference alone. 116 of those 420 select nothing at all
-and spawn no vitest. The inventory that refuses the change still goes red in the lean gate
+is selected for 7 of 472 lane sources, by reference alone. 100 of those 472 select nothing at all
+and spawn no vitest (counted 2026-11-19). The inventory that refuses the change still goes red in the lean gate
 (`.claude/skills/pr-prep/check.sh`) and in CI, so the break surfaces in the same session: the lane
 covers it, the inner loop no longer does.
 

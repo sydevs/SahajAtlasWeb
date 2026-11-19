@@ -43,7 +43,7 @@ cover everything a host would notice since the widget was first deployed.
 
 ### Changed
 
-- **The widget's first download is about 44 KiB gzipped smaller**, 334 → 290 KiB for the embed.
+- **The widget's first download is about 44 KiB gzipped smaller**, 336 → 292 KiB for the embed.
   The filter form, the settings menu and the class cards were riding in it, though only the open
   interface draws them. They now arrive with the interface, which was already a separate
   download, so the loading state paints sooner and a compact card nobody opens never fetches
