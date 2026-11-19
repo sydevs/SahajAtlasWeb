@@ -55,14 +55,12 @@ test.describe('a map-less embed', () => {
     expect(requests.filter((url) => new URL(url).hostname.endsWith('mapbox.com'))).toEqual([])
   })
 
-  // ⚠ **A known defect, kept running.** react-map-gl's `exports-mapbox` starts
-  // `import('mapbox-gl')` at module load, and the views share a chunk with it, so a map-less
-  // embed downloads the whole library (1.9 MB before compression) and never uses it. `test.fail`
-  // turns this red the moment it PASSES, so the fix must delete the annotation, and the scenario
-  // becomes a gate.
-  test('never fetches the mapbox-gl chunk', async ({ page }) => {
-    test.fail(true, 'the views chunk evaluates react-map-gl, which imports mapbox-gl eagerly')
-
+  // ⚠ **A known defect, pinned.** react-map-gl's `exports-mapbox` starts `import('mapbox-gl')` at
+  // module load, and the views share a chunk with it, so a map-less embed downloads the whole
+  // library (1.9 MB before compression) and never uses it. The goal is `toEqual([])`; until the
+  // fix lands this asserts the defect, so the fix turns it red and flips it. Not `test.fail`,
+  // which takes ANY failure for the expected one: a widget that never boots, an unrouted request.
+  test('still fetches the mapbox-gl chunk, a known defect', async ({ page }) => {
     const chunks: string[] = []
     const settled = rendered(page)
 
@@ -73,7 +71,11 @@ test.describe('a map-less embed', () => {
     await expect(widget(page).getByRole('link', { name: UNITED_KINGDOM })).toBeVisible()
     await settled
 
-    expect(chunks).toEqual([])
+    await expect
+      .poll(() => chunks.length, {
+        message: 'the defect is fixed: assert `toEqual([])` here and drop the note above',
+      })
+      .toBeGreaterThan(0)
   })
 })
 

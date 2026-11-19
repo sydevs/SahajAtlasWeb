@@ -450,13 +450,15 @@ Chromium 153: the context reports `ANGLE (Google, Vulkan 1.3.0 (SwiftShader Devi
 the map loads the fixture style, and the app's own pins draw at Cambridge. The full-map scenario
 asserts a live WebGL2 context on the map's canvas and that the map asked for its style.
 
-### A known defect, kept running
+### A known defect, pinned
 
 ⚠ **A `map=false` embed downloads the 1.9 MB mapbox-gl chunk and never uses it.** react-map-gl's
 `exports-mapbox.js` runs `import('mapbox-gl')` at module load, and the views share a chunk with
 it. No Mapbox ORIGIN is contacted, so `docs/embedding.md`'s promise holds, and the lane asserts
-that half as an ordinary test. The chunk half runs under `test.fail`: Playwright turns it red the
-moment it passes, so the fix deletes the annotation and the scenario becomes a gate.
+that half as an ordinary test. The chunk half asserts the defect is still there, so the fix turns
+it red and flips it to `toEqual([])`, and the scenario becomes a gate. It is not `test.fail`,
+which takes any failure for the expected one: a widget that never boots, a request no fixture
+answered.
 
 ### Running it locally
 
