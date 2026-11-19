@@ -121,7 +121,7 @@ the browser.
 
 ## Stack
 
-- [Vite](https://vitejs.dev/guide/) (rolldown) + React 18 + TypeScript
+- [Vite](https://vitejs.dev/guide/) (rolldown) + React 19 + TypeScript
   (strict)
 - [Radix UI](https://www.radix-ui.com) + [Tailwind CSS](https://tailwindcss.com)
   and [Tailwind Variants](https://tailwind-variants.org)

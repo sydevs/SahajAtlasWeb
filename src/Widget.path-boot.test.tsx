@@ -7,8 +7,8 @@
 // dropped to query routing renders perfectly well, which is why every gate stayed green
 // through two separate defects here (see the comments in `Widget.tsx`).
 //
-// Deliberately no @testing-library/react, like `views/reset-boundary.test.tsx`: React 18.3
-// exports `act`, and `createRoot` is all this needs.
+// Deliberately no @testing-library/react, like `views/reset-boundary.test.tsx`: React exports
+// `act`, and `createRoot` is all this needs.
 import { act } from 'react'
 import { createRoot } from 'react-dom/client'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
@@ -52,14 +52,11 @@ const SERVER_MESSAGE = 'Our servers are having trouble right now.'
 
 let container: HTMLDivElement
 
-// React's development build re-throws a caught error through a synthetic `error` event. Every
-// case here throws on purpose, so this keeps a passing run readable.
-const muteExpectedThrow = (event: ErrorEvent) => event.preventDefault()
-
 beforeEach(() => {
   container = document.createElement('div')
   document.body.append(container)
-  window.addEventListener('error', muteExpectedThrow)
+  // React logs every error a boundary catches. Every case here throws on purpose, so this keeps
+  // a passing run readable.
   vi.spyOn(console, 'error').mockImplementation(() => {})
 
   // Nothing in the unit lane may reach the network, and the surfaces under test read the
@@ -79,7 +76,6 @@ beforeEach(() => {
 })
 
 afterEach(() => {
-  window.removeEventListener('error', muteExpectedThrow)
   container.remove()
   queryClient.clear()
   atlasAuth.apiKey = null
