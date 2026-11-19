@@ -8,8 +8,8 @@ import { atlasError, reportInternalError } from '@/lib/report'
 import { atlasPushState, hasAllowedScheme, isSafeHref } from '@/lib/shape'
 
 // The app's link atom. Internal targets route through react-router's
-// <Link>, client-side and hash-aware. External targets, and any
-// target="_blank", render a plain <a> with a safe rel.
+// <Link>, client-side. External targets, and any target="_blank",
+// render a plain <a> with a safe rel.
 //
 // Each `color` sets a plain colour utility. They were once `!`-modified, to
 // beat a global `a { color: inherit !important }` reset. That rule leaked

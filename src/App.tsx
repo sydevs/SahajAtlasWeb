@@ -118,7 +118,7 @@ type AppProps = {
   // the client's colors onto <html>).
   brand?: PaletteRoles
   // Standalone SPA build (BrowserRouter) — advertises canonical/og:url. The
-  // embedded <sahaj-atlas> element passes false (its hash URLs aren't canonical).
+  // embedded <sahaj-atlas> element passes false (the <head> there is the host's).
   standalone?: boolean
   // Render the Mapbox canvas (default true). map=false omits the whole map subtree.
   hasMap?: boolean
@@ -138,9 +138,9 @@ type AppProps = {
    * plus its satellites, so a caller cannot pass an auto-open that nothing reads.
    */
   compact?: CompactState | null
-  // Is the route on screen in the URL, and therefore shareable? True for both routers
-  // that write one (BrowserRouter standalone, the query router embedded). The embedded widget
-  // passes false when it mounted a MemoryRouter over a host anchor it declined to take.
+  // Is the route on screen in the URL, and therefore shareable? True for every router
+  // that writes one (BrowserRouter standalone, the query and path routers embedded). The
+  // embedded widget passes false in memory mode, taken where the document refuses `replaceState`.
   // Defaults true — see config/mode.ts.
   linkable?: boolean
   // The URL shape the router actually uses, from `mountDecision` — what the readiness marker
@@ -349,9 +349,9 @@ function AppShell({
   // script's `locale=` here would revert them on the very next load, on exactly the
   // hosts that pin one, and the shared link would carry a language it does not honour.
   //
-  // `pageLocaleOverride` insists the parameter names a language this repo actually
-  // ships, rather than merely being present: a junk `?locale=zz` resolves to English
-  // through `supportedLngs`, and letting that suppress a host's `locale=fr` would be a
+  // `pageLocaleOverride` insists the parameter names a language the operator
+  // published, rather than merely being present: a junk `?locale=zz` resolves to English
+  // through `preferredLocale`, and letting that suppress a host's `locale=fr` would be a
   // worse answer than either party asked for. It reads `window.location` directly,
   // because this is the HOST's URL, which no router of ours describes.
   //
@@ -419,8 +419,8 @@ function AppShell({
   return (
     <WidgetModeContext.Provider value={{ standalone, hasMap, linkable }}>
       {/* Standalone only. Embedded, this <head> is the HOST page's: their og:locale
-          describes their document, not the widget inside it, and the widget's hash URLs
-          were never canonical anyway (hence `standalone` existing at all).
+          describes their document, not the widget inside it (hence `standalone` existing
+          at all).
 
           ⚠ **`lang`/`dir` on <html> are an OUTPUT here, not an input**, and that is the whole
           asymmetry with the embedded case. Embedded, the host's `<html lang>` describes THEIR

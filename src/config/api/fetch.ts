@@ -504,7 +504,7 @@ const getOnlineCount = async (filters?: EventFilters): Promise<number> => {
 
 // This is one fetcher for every region level.
 // Parent levels, `country` and `region`, list their child regions as cards.
-// Leaf levels, `city` and `center`, list their located events instead.
+// Leaf levels, `city` and `venue`, list their located events instead.
 // Every level also rolls up the placeless online events under it.
 // The cached region tree supplies the node, its children, and its ancestry.
 // The feed supplies bounds, center, and counts.
