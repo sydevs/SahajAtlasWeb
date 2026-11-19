@@ -19,6 +19,7 @@ import { Temporal } from 'temporal-polyfill'
 import '@schedule-x/theme-default/dist/index.css'
 
 import { CalendarMount } from './CalendarMount'
+import { scheduleXTimeline } from './timeline'
 
 import { Button } from '@/components/atoms/Button'
 import { DrawerBody, DrawerHeader } from '@/components/atoms/Drawer'
@@ -78,13 +79,6 @@ const ONLINE_COLORS = {
 const CALENDARS = {
   online: { colorName: 'online', lightColors: ONLINE_COLORS, darkColors: ONLINE_COLORS },
 }
-
-// Schedule-X draws every event in its one `timezone`, so an entry's wall clock is anchored there
-// rather than in its own zone, or an in-person class would read in the viewer's clock instead of
-// its own (`eventTimeZone`).
-// shortcut: a wall clock inside that zone's spring-forward gap reads an hour late, upgrade if a class is ever scheduled into one.
-const anchorWallClock = (wallClock: string, zone: string): Temporal.ZonedDateTime =>
-  Temporal.PlainDateTime.from(wallClock).toZonedDateTime(zone)
 
 type CalendarControlsPlugin = ReturnType<typeof createCalendarControlsPlugin>
 
@@ -319,14 +313,15 @@ function CalendarGrid({
     () => computeDayBoundaries(events, filters.timeOfDay),
     [events, filters.timeOfDay],
   )
+  // Memoized although the config below is captured once: this grid re-renders on every route
+  // change, and converting a full feed costs a visible pause each time.
+  const timeline = useMemo(() => scheduleXTimeline(events), [events])
 
   // Seed from the last position — view and focused date. This reads once, non-reactively, for
   // the capture-config-once hook. The header and the callback below keep it current, so at the
   // next remount — a filter apply captures config during *render* — the seed is already up to
   // date.
   const position = useCalendarPosition.getState()
-  // The viewer's, because "today" is theirs. Schedule-X would otherwise default to UTC.
-  const zone = DateTime.local().zoneName ?? 'UTC'
 
   const calendar = useNextCalendarApp(
     {
@@ -338,12 +333,7 @@ function CalendarGrid({
       // hot-swappable), remounting this grid with it. Should that stop, so does this.
       defaultView: resolveCalendarView(position.view, isWide).view,
       selectedDate: position.date ? Temporal.PlainDate.from(position.date) : undefined,
-      timezone: zone,
-      events: events.map((entry) => ({
-        ...entry,
-        start: anchorWallClock(entry.start, zone),
-        end: anchorWallClock(entry.end, zone),
-      })),
+      ...timeline,
       // Online programs render in the secondary colour (see CALENDARS + `calendarId`).
       calendars: CALENDARS,
       // Undefined leaves Schedule-X's default grid (whole day).
