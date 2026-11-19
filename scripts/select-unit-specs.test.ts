@@ -164,11 +164,12 @@ describe('this repository', () => {
    * and nowhere else.
    *
    * The eleven `src/` inventories and `source-tree.test.ts` are found by importing the shared walk
-   * (#286); the rest by an enumerating call. `wrangler-config.test.ts` lists only the repo root,
-   * so no lane edit can break it, but the detector over-includes on purpose and it costs nothing
-   * measurable.
+   * (#286); the rest by an enumerating call. `wrangler-config.test.ts` lists only the repo root
+   * and `ci-workflows.test.ts` only `.github/workflows`, so no lane edit can break either, but the
+   * detector over-includes on purpose and it costs nothing measurable.
    */
   const WALKERS = [
+    'scripts/ci-workflows.test.ts',
     'scripts/select-unit-specs.test.ts',
     'scripts/wrangler-config.test.ts',
     'src/Widget.standalone.test.ts',

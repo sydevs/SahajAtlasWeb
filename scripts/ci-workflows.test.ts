@@ -5,9 +5,12 @@
 // from, or wait on a check run nobody posts again. Silence is the thing issue #244 exists to
 // end.
 
+import { readdirSync } from 'node:fs'
+import { join } from 'node:path'
+
 import { describe, expect, it } from 'vitest'
 
-import { readRepoSource } from '../src/test-support/repo-source'
+import { REPO_ROOT, readRepoSource } from '../src/test-support/repo-source'
 
 import { APP_CONFIG, appWorkerName, readPackage } from './_wrangler-config.mjs'
 
@@ -257,5 +260,37 @@ describe("ci.yml's gate job, on the unit lane", () => {
     expect(config).toContain("'json-summary'")
     expect(config).not.toContain('reportsDirectory')
     expect(readRepoSource('.gitignore').split('\n')).toContain(directory)
+  })
+})
+
+// A tag is a name its owner can move, and a workflow that names one runs whatever the tag points
+// at on the day — with this repository's secrets in reach. A commit SHA cannot move, so a new
+// release arrives only as a pull request somebody reads (`.github/dependabot.yml` opens it).
+describe('every workflow', () => {
+  const DIR = '.github/workflows'
+  const uses = readdirSync(join(REPO_ROOT, DIR))
+    .filter((name) => /\.ya?ml$/.test(name))
+    .flatMap((name) =>
+      [
+        ...readRepoSource(`${DIR}/${name}`).matchAll(
+          /^[ \t]*(?:-[ \t]+)?uses:[ \t]*['"]?([^'"\s#]+)['"]?[ \t]*(#.*)?$/gm,
+        ),
+      ].map((m) => ({ file: name, ref: m[1], comment: m[2] ?? '' })),
+    )
+
+  // `sydevs/` is this organisation's own shared workflow, followed at `@main` on purpose, and a
+  // `./` path is this repository at the commit under test. Everything else is somebody else's.
+  const thirdParty = uses.filter(({ ref }) => !/^(sydevs\/|\.\/)/.test(ref))
+
+  it('pins each third-party action by commit SHA, with its version beside it', () => {
+    // Four today. A count of zero means the pattern above stopped matching, and every
+    // expectation below would pass on nothing.
+    expect(thirdParty.length).toBeGreaterThan(0)
+
+    expect(thirdParty.filter(({ ref }) => !/@[0-9a-f]{40}$/.test(ref))).toEqual([])
+
+    // The comment is the only readable half of a pin, and it is what Dependabot rewrites when it
+    // moves the SHA — on the same line, or it is left behind.
+    expect(thirdParty.filter(({ comment }) => !/^#\s*v\d/.test(comment))).toEqual([])
   })
 })

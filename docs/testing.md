@@ -331,8 +331,8 @@ the repair.
 ## The merge queue is the only gate that reads the tree a merge will produce (issue #375)
 
 ⚠ **`pull_request` already reads a merged tree — the trap is that it is merged against a stale
-base.** GitHub sets `github.ref` to `refs/pull/<n>/merge` and `ci.yml`'s bare
-`actions/checkout@v7` takes it, so the gate does read the head merged into `main`. But it reads
+base.** GitHub sets `github.ref` to `refs/pull/<n>/merge` and `ci.yml`'s `actions/checkout`
+step, which passes no `ref`, takes it, so the gate does read the head merged into `main`. But it reads
 the `main` of whenever that run fired, and a base that moves afterwards fires nothing. So two
 branches that are each green alone can still land a defect neither one carried.
 
@@ -639,11 +639,11 @@ coupling the other cannot:
   reaches it as `'./client'`, and `Chip.test.tsx` imports its own folder as `'.'`.
 
 **A third source selected the tree-walking specs until #293, and it was the whole floor.**
-Fourteen specs enumerate the source tree instead of importing from it — the eleven `src/`
-inventories and `source-tree.test.ts`, found because they import the shared walk (#286), plus two
+Fifteen specs enumerate the source tree instead of importing from it — the eleven `src/`
+inventories and `source-tree.test.ts`, found because they import the shared walk (#286), plus three
 `scripts/` specs found by an enumerating call (`readdirSync(` and its kin). Nothing in them
-references the file that breaks them, so no reference can select one, and every one of them ran on
-every edit. `readLane` still reports the set, because
+references the file that breaks them, so no reference can select one, and until #293 every such
+spec ran on every edit. `readLane` still reports the set, because
 `select-unit-specs.test.ts` pins it as a closed list. `selectFrom` no longer takes it, and the hook
 needed no edit to stop running it — it exits before spawning vitest on an empty selection
 (`.claude/hooks/unit-test.mjs:32`), which is also what keeps this change out of `.claude/`, a

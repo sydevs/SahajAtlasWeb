@@ -12,6 +12,7 @@ paths:
   - 'scripts/deploy-headers.test.ts'
   - 'scripts/wrangler-config.test.ts'
   - '.github/workflows/*.yml'
+  - '.github/dependabot.yml'
 ---
 
 # Deployment
@@ -157,6 +158,16 @@ Each is built so passing proves something real:
   names a missing directory and reads like a broken gate.
   `scripts/wrangler-config.test.ts` pins which configs the gate names, since a script that
   dry-runs one of them exits 0.
+
+**Every third-party action is pinned by commit SHA**, with its version in a comment on the same
+line, and `scripts/ci-workflows.test.ts` fails on a tag in any workflow. `.github/dependabot.yml`
+is what moves a pin: weekly, GitHub Actions only, one pull request per action titled
+`ci: bump …`, which rewrites the SHA and that comment together. The two `sydevs/claude-workflow`
+workflows follow `@main` on purpose and are exempt from both.
+⚠ **A run Dependabot triggers reads Dependabot secrets, never Actions secrets.** Until the five
+secrets the Smoke job gates on are entered under both, each of those pull requests fails Smoke as
+`no-credentials`. ⚠ A `cloudflare/wrangler-action` bump also moves the commit the guard step's
+comment in `ci.yml` read the action's outputs at: re-read them before merging it.
 
 ## Retired: the Accent translation workflows (#99)
 
