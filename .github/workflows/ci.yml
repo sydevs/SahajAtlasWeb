@@ -63,7 +63,15 @@ jobs:
       # check — while the version Chromium is keyed to had not moved.
       - name: Read the pinned Playwright version
         id: playwright
-        run: echo "version=$(node -p "require('./package.json').devDependencies.playwright")" >> "$GITHUB_OUTPUT"
+        # ⚠ Checked before it is written. A step output is repository text, which on a fork's
+        # pull request nobody here has reviewed, and a newline inside it forges further outputs.
+        run: |
+          node -e '
+            const version = require("./package.json").devDependencies.playwright
+            if (!/^[0-9]+\.[0-9]+\.[0-9]+$/.test(version))
+              throw new Error("unexpected playwright version: " + version)
+            require("node:fs").appendFileSync(process.env.GITHUB_OUTPUT, "version=" + version + "\n")
+          '
       - name: Cache the Chromium the accessibility gate drives
         id: browser-cache
         uses: actions/cache@v4
