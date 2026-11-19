@@ -31,7 +31,10 @@ export default [
   {
     ignores: [
       'dist/**',
+      'dist-browser/**', // the browser lane's own build (pnpm build:browser)
       'build/**', // Ladle's static build output (pnpm ladle:build)
+      'playwright-report/**',
+      'test-results/**',
       'node_modules/**',
       'public/**',
       'coverage/**',
