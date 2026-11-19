@@ -13,6 +13,16 @@ import { widgetOverlayContainer } from '@/lib/overlay'
  * viewer on `<body>` — the top of the HOST's page, not the control they pressed. Measured in
  * Chromium against the component library.
  *
+ * ⚠ **`Dialog.Trigger asChild` is the platform's answer, and no opener here can take it.** A
+ * trigger renders inside `Dialog.Root`, and none of the three does: `Map.tsx`'s failure dialog
+ * is opened by mapbox-gl's own locate button, from an async `onError`; `ReportIssueModal`'s
+ * opener is a settings-menu item that has unmounted by the time the dialog closes, leaving the
+ * ref null; and the compact embed is expanded through the `useExpansion` seam, from a control
+ * in another subtree. Radix's `FocusScope` does hold the right node — the #236 patch resolves
+ * that read through the shadow boundary — but `DialogContent` composes
+ * `event.preventDefault(); triggerRef.current?.focus()` after the caller's handler, so without
+ * a trigger that record is unreachable rather than merely unused.
+ *
  * ⚠ **Three properties are load-bearing, each for a failure that was measured, and they are
  * the reason this is one hook rather than a shape copied per dialog.**
  *
