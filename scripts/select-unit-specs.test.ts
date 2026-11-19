@@ -209,6 +209,19 @@ describe('this repository', () => {
     )
   })
 
+  // Nothing imports a build gate but its own spec, so a spec that stops naming its gate leaves
+  // the gate with no per-edit signal at all. The last row is a coupling through a second module,
+  // reached only because the spec names it: the CSS gate reads back what the scoping pass
+  // writes, and its spec runs that pass to hold the two together.
+  it.each([
+    ['assert-css-scoped.mjs', 'assert-css-scoped.test.ts'],
+    ['check-bundle-size.mjs', 'check-bundle-size.test.ts'],
+    ['flatten-entry-imports.mjs', 'flatten-entry-imports.test.ts'],
+    ['postcss-scope-widget.mjs', 'assert-css-scoped.test.ts'],
+  ])('selects, for an edit to the build script %s, the spec %s', (script, spec) => {
+    expect(selectSpecs(`scripts/${script}`, ROOT)).toContain(`scripts/${spec}`)
+  })
+
   it('looks where the lane collects, so a spec outside those two directories fails here', () => {
     const config = readFileSync(join(ROOT, 'vitest.config.ts'), 'utf8')
     const array = (key: string): string[] =>
