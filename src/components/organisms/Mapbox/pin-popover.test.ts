@@ -29,6 +29,23 @@ describe('pinPopoverPlacement', () => {
   it('pushes left near the right edge', () => {
     expect(pinPopoverPlacement({ x: 1240, y: 60 }, MAP, NONE).anchor).toBe('top-right')
   })
+
+  // react-map-gl 8's `<Popup>` applies a new `anchor` only when `offset` changes with it, and the
+  // popover stays mounted while the pointer crosses from one pin to the next. Two anchors sharing an
+  // offset would leave the second pin's card on the first pin's side.
+  it('gives every anchor its own offset', () => {
+    const placements = [
+      { x: 640, y: 400 },
+      { x: 640, y: 60 },
+      { x: 20, y: 400 },
+      { x: 20, y: 60 },
+      { x: 1260, y: 400 },
+      { x: 1260, y: 60 },
+    ].map((point) => pinPopoverPlacement(point, MAP, NONE))
+
+    expect(new Set(placements.map(({ anchor }) => anchor)).size, 'anchors reached').toBe(6)
+    expect(new Set(placements.map(({ offset }) => offset.join())).size, 'offsets').toBe(6)
+  })
 })
 
 describe('the pin hover gate', () => {

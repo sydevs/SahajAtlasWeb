@@ -44,6 +44,11 @@ cover everything a host would notice since the widget was first deployed.
 
 ### Changed
 
+- **A `map=false` embed no longer downloads the map library.** ([#445]) Opening the interface
+  fetched and ran Mapbox GL's script — about 510 KiB gzipped, from `sahajatlas.com` — even with
+  no map to draw. It now loads only when a map renders, and a map embed starts it at the same
+  moment as before. **No parameter, origin, CSP or Permissions-Policy change.**
+
 - **Every control the widget draws now answers to a 44px tap on a phone, and says what it is.**
   ([#432]) Nothing moves on a desktop: the small controls keep the size they are drawn at and
   grow an invisible tap area around them, and the few that sit flush in a row — the filter
@@ -1170,3 +1175,4 @@ must-revalidate`, pinned rather than left to the CDN default. The production dom
 [#424]: https://github.com/sydevs/SahajAtlasWeb/pull/424
 [#428]: https://github.com/sydevs/SahajAtlasWeb/issues/428
 [#432]: https://github.com/sydevs/SahajAtlasWeb/issues/432
+[#445]: https://github.com/sydevs/SahajAtlasWeb/pull/445
