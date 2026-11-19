@@ -309,6 +309,15 @@ describe('eagerGraphs', () => {
     )
   })
 
+  // Only an entry may start the walk. This shell's first hint imports a chunk of its own, so a
+  // walk started there is a plausible graph with the entry chunk missing from the total.
+  it('refuses a shell whose entry script it cannot read, rather than walking from a hint', () => {
+    const reordered = `<script src="/${MAIN}" type="module" crossorigin></script>`
+    const dist = build({ 'index.html': shell(reordered, hint(SHEET), hint(RUNTIME), hint(HELPER)) })
+
+    expect(failureOf(dist)).toMatch(/^Found no entry script in dist\/index\.html/)
+  })
+
   it('refuses a shell that declares nothing it can read', () => {
     const dist = build({
       'index.html': shell('<script src="https://cdn.example/app.js"></script>'),
@@ -378,6 +387,9 @@ describe('htmlGraph', () => {
       ),
     })
 
-    expect(htmlGraph(join(dist, 'index.html'), dist)).toEqual([join(dist, MAIN), join(dist, SHEET)])
+    expect(htmlGraph(join(dist, 'index.html'), dist)).toEqual({
+      entries: [join(dist, MAIN)],
+      hints: [join(dist, SHEET)],
+    })
   })
 })

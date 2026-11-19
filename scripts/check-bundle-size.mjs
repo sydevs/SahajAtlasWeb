@@ -246,20 +246,27 @@ export function importClosure(entry, dist = DIST) {
   return [...seen]
 }
 
-/** The entry script plus every modulepreload hint declared by an HTML shell. */
+/**
+ * What an HTML shell declares: its entry scripts, and its modulepreload hints.
+ *
+ * ⚠ Kept apart, because only an entry may start a walk. A hint is a chunk the entry imports,
+ * so a closure walked from one is a plausible graph with the entry chunk missing.
+ */
 export function htmlGraph(html, dist = DIST) {
   const source = readFileSync(html, 'utf8')
-  const hrefs = [
-    ...[...source.matchAll(/<script[^>]+type="module"[^>]+src="([^"]+)"/g)].map((m) => m[1]),
-    ...[...source.matchAll(/<link[^>]+rel="modulepreload"[^>]+href="([^"]+)"/g)].map((m) => m[1]),
-  ]
 
   // This applies the same containment rule as the walker above. An
   // absolute or CDN href would otherwise become a bogus path, and reach
   // `gzipBytes` as a bare `ENOENT` error.
-  return hrefs
-    .map((href) => join(dist, href.replace(/^\//, '')))
-    .filter((file) => inDist(file, dist))
+  const inside = (pattern) =>
+    [...source.matchAll(pattern)]
+      .map((m) => join(dist, m[1].replace(/^\//, '')))
+      .filter((file) => inDist(file, dist))
+
+  return {
+    entries: inside(/<script[^>]+type="module"[^>]+src="([^"]+)"/g),
+    hints: inside(/<link[^>]+rel="modulepreload"[^>]+href="([^"]+)"/g),
+  }
 }
 
 /**
@@ -365,9 +372,10 @@ export function eagerGraphs(dist = DIST) {
   // The two agree today. This script scores their UNION, so a dropped
   // preload hint can never make the payload look smaller than it really
   // is. It can only show up as the warning in the report.
-  const declared = htmlGraph(indexHtml, dist)
+  const shell = htmlGraph(indexHtml, dist)
+  const declared = [...shell.entries, ...shell.hints]
 
-  if (!declared.length) {
+  if (!shell.entries.length) {
     return {
       failure:
         'Found no entry script in dist/index.html — the shell markup has changed, so ' +
@@ -376,7 +384,7 @@ export function eagerGraphs(dist = DIST) {
     }
   }
 
-  const loaded = importClosure(declared[0], dist)
+  const loaded = importClosure(shell.entries[0], dist)
   const embedGraph = importClosure(embedJs, dist)
   // A host pays for both halves of the loader on every page view: `auto.js`, the classic-script
   // bridge that imports nothing (`pnpm assert:classic` holds that), and the module it inserts.
