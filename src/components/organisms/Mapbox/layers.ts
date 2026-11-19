@@ -169,7 +169,7 @@ export const vagueRingLayer = (palette: PaletteRoles, mode: ThemeMode): Props =>
       ],
       'circle-color': color,
       'circle-opacity': 0.14,
-      // The style's own fixed edge, like the pins and bubbles: the ring's fill is
+      // The style's own fixed edge, like the pins: the ring's fill is
       // the brand colour, and only its edge changes between the two basemaps.
       'circle-stroke-color': MARKER_OUTLINE[mode],
       'circle-stroke-opacity': 0.6,

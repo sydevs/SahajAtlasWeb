@@ -31,12 +31,12 @@ const STOCK = {
   [MARKER_IDS.cluster]: {
     width: 38,
     height: 38,
-    svg: '<svg xmlns="http://www.w3.org/2000/svg" width="76" height="76" viewBox="0 0 38 38"><circle cx="19" cy="19" r="18.4" fill="#9ED8C2" fill-opacity="0.706" stroke="#000000" stroke-width="1.2"/>\n  <circle cx="19" cy="19" r="13.8" fill="#268264"/></svg>',
+    svg: '<svg xmlns="http://www.w3.org/2000/svg" width="76" height="76" viewBox="0 0 38 38"><circle cx="19" cy="19" r="19" fill="#9ED8C2" fill-opacity="0.706"/>\n  <circle cx="19" cy="19" r="13.8" fill="#268264"/></svg>',
   },
   [MARKER_IDS.clusterSelected]: {
     width: 38,
     height: 38,
-    svg: '<svg xmlns="http://www.w3.org/2000/svg" width="76" height="76" viewBox="0 0 38 38"><circle cx="19" cy="19" r="18.4" fill="#F4B9A6" fill-opacity="0.706" stroke="#000000" stroke-width="1.2"/>\n  <circle cx="19" cy="19" r="13.8" fill="#DD785D"/></svg>',
+    svg: '<svg xmlns="http://www.w3.org/2000/svg" width="76" height="76" viewBox="0 0 38 38"><circle cx="19" cy="19" r="19" fill="#F4B9A6" fill-opacity="0.706"/>\n  <circle cx="19" cy="19" r="13.8" fill="#DD785D"/></svg>',
   },
 } as const
 
@@ -67,12 +67,12 @@ describe('markerColors', () => {
       )
     })
 
-    it(`outlines the stock art for the ${mode} basemap`, () => {
+    it(`outlines the stock pins, not the clusters, for the ${mode} basemap`, () => {
       const images = markerImages(markerColors({}, mode), mode)
 
       for (const id of Object.values(MARKER_IDS)) {
-        // Only the edge differs between the two basemaps, so the dark art is the
-        // frozen light art with its one outline attribute swapped. A fill that
+        // Only the pins' edge differs between the two basemaps, so the dark art is
+        // the frozen light art with its one outline attribute swapped. A fill that
         // moved in either mode fails here.
         expect(images.get(id)).toEqual({
           ...STOCK[id],
@@ -81,7 +81,13 @@ describe('markerColors', () => {
             `stroke="${MARKER_OUTLINE[mode]}"`,
           ),
         })
+      }
+      for (const id of [MARKER_IDS.point, MARKER_IDS.pointSelected]) {
         expect(images.get(id)?.svg).toContain(`stroke="${MARKER_OUTLINE[mode]}"`)
+      }
+      // The clusters keep the soft halo with no edge (Anton, 19 Nov).
+      for (const id of [MARKER_IDS.cluster, MARKER_IDS.clusterSelected]) {
+        expect(images.get(id)?.svg).not.toContain('stroke=')
       }
     })
   }

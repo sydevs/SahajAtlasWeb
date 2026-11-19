@@ -49,9 +49,10 @@ The map is the heart of the app and its hottest render path. Treat it carefully.
   re-fires the event per missing id **per tile batch**, and the warm path must
   add the image _synchronously_ inside the handler, or the new style's first
   frame paints pinless.
-- **Every pin, bubble, ring and dot carries a fixed outline for the basemap it is
+- **Every pin, ring and dot carries a fixed outline for the basemap it is
   drawn on** (#389), so no brand colour is ever measured against the map and a
-  service's own colour survives onto it unchanged. `MARKER_OUTLINE` and the
+  service's own colour survives onto it unchanged. **Cluster bubbles have no
+  outline**: Anton (19 Nov) asked for the soft halo back without the dark edge. `MARKER_OUTLINE` and the
   `BASEMAP_SURFACES` it was measured against live in `markers.ts`;
   `markers.outline.test.ts` holds both against ≥ 3:1, since a style swap would
   otherwise dissolve the pins into a basemap that renders perfectly.

@@ -46,9 +46,9 @@ const CLUSTER_RING = '#9ED8C2'
 const CLUSTER_SELECTED_FILL = '#DD785D'
 const CLUSTER_SELECTED_RING = '#F4B9A6'
 
-// Every pin, bubble, ring and dot carries a fixed edge for the style it is drawn
-// on, so the brand colour is never measured against the basemap and a service's
-// own colour survives onto the map unchanged.
+// Every pin carries a fixed edge for the style it is drawn on, so the brand colour
+// is never measured against the basemap and a service's own colour survives onto
+// the map unchanged. Cluster bubbles have no edge (see `cluster` below).
 //
 // Measured once from each Studio style's own JSON — the two ids are in
 // `Map.tsx`'s `MAP_STYLES`. Light `ck7g6nag70rn11io09f45odkq`: land `#f3ead8`,
@@ -71,7 +71,7 @@ export const BASEMAP_SURFACES: Record<ThemeMode, { land: string; water: string }
 }
 
 // Thin enough to read as an edge rather than a second colour. The pin's path is
-// left uninset, unlike the bubble's, so the canvas clips its stroke: 0.1 user
+// left uninset, so the canvas clips its stroke: 0.1 user
 // units at the head's left edge, where the arc reaches x=0.5, and 0.2 at the
 // rounded tip, which is 0.2 and 0.4 device pixels at `SCALE`. The tip is where
 // the pin meets the map anyway.
@@ -125,16 +125,14 @@ const pin = (fill: string, outline: string): MarkerImage =>
 // soft halo. The disc is opaque, so a pale feature underneath cannot show through
 // and thin the count's contrast. The count label is a `text-field` on the layer,
 // so the art carries no text.
-// The ring's radius is inset by half the stroke, so the edge's outer rim lands
-// where the ring used to end rather than being clipped by the canvas.
-// ⚠ The ring's translucency is `fill-opacity`, never `opacity`: the latter
-// applies to the whole element, so it would composite the edge away too and
-// leave it short of the ratio `markers.outline.test.ts` holds the colour to.
-const cluster = (fill: string, ring: string, outline: string): MarkerImage =>
+// The bubble has no edge, unlike the pin: Anton (19 Nov) asked for the outline
+// round the clusters to go and for the soft halo back. The translucent ring
+// already sets the bubble apart from both basemaps.
+const cluster = (fill: string, ring: string): MarkerImage =>
   svg(
     38,
     38,
-    `<circle cx="19" cy="19" r="${19 - OUTLINE_WIDTH / 2}" fill="${ring}" fill-opacity="0.706" stroke="${outline}" stroke-width="${OUTLINE_WIDTH}"/>
+    `<circle cx="19" cy="19" r="19" fill="${ring}" fill-opacity="0.706"/>
   <circle cx="19" cy="19" r="13.8" fill="${fill}"/>`,
   )
 
@@ -222,7 +220,7 @@ export function markerColors(palette: PaletteRoles, mode: ThemeMode): MarkerColo
  */
 // ⚠ The mode belongs here rather than in `markerColors`, which returns the shared
 // `DEFAULT_MARKER_COLORS` object by identity for an unbranded embed and carries no
-// mode at all — so an unbranded embed is outlined too.
+// mode at all — so an unbranded embed's pins are outlined too.
 export function markerImages(colors: MarkerColors, mode: ThemeMode): Map<string, MarkerImage> {
   const { point, cluster: bubble, clusterSelected, pointSelected } = MARKER_IDS
   const edge = MARKER_OUTLINE[mode]
@@ -230,8 +228,8 @@ export function markerImages(colors: MarkerColors, mode: ThemeMode): Map<string,
   return new Map<string, MarkerImage>([
     [point, pin(colors[point].fill, edge)],
     [pointSelected, pin(colors[pointSelected].fill, edge)],
-    [bubble, cluster(colors[bubble].fill, colors[bubble].ring, edge)],
-    [clusterSelected, cluster(colors[clusterSelected].fill, colors[clusterSelected].ring, edge)],
+    [bubble, cluster(colors[bubble].fill, colors[bubble].ring)],
+    [clusterSelected, cluster(colors[clusterSelected].fill, colors[clusterSelected].ring)],
   ])
 }
 
