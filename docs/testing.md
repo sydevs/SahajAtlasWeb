@@ -419,8 +419,9 @@ Three things hold it hermetic, in `tests/browser/fixtures.ts` and `playwright.co
 - **`--host-resolver-rules` resolves nothing but `localhost`**, so a request that somehow
   bypassed routing fails to connect rather than reaching a real host.
 - **The lane's SahajCloud origin is `https://sahajcloud.invalid`**, a name that never resolves
-  (`tests/browser/lane.mjs`), and its build pins every `VITE_*` the bundle reads, so a
-  developer's `.env.local` — a real DSN, a real key — never reaches it.
+  (`tests/browser/lane.mjs`), and its build reads no env file and drops every `VITE_*` but the
+  lane's own (`tests/browser/build.mjs`), so a developer's `.env.local` or shell — a real DSN, a
+  real key — never reaches it.
 
 ### The fixtures are wire shape
 

@@ -22,15 +22,11 @@ export const LANE_MAPBOX_TOKEN = `pk.${Buffer.from(
 ).toString('base64')}.browser-lane`
 
 /**
- * Every `VITE_*` the bundle reads, pinned, because a variable in `process.env` outranks the env
- * files (Vite's `loadEnv`). An empty value is what keeps a developer's `.env.local` — a real
- * Sentry DSN, a Fathom id, a real API key — out of a build whose every request is a fixture.
+ * The only `VITE_*` values the lane's build sees (`build.mjs` drops every other one, and reads no
+ * env file). Every variable not named here is unset, so the bundle takes its own default: no
+ * Sentry, no Fathom, no build-time API key, the default fallback URL.
  */
 export const LANE_BUILD_ENV = {
   VITE_SAHAJCLOUD_URL: LANE_API_ORIGIN,
   VITE_MAPBOX_ACCESSTOKEN: LANE_MAPBOX_TOKEN,
-  VITE_SAHAJCLOUD_API_KEY: '',
-  VITE_SENTRY_DSN: '',
-  VITE_SENTRY_ENVIRONMENT: '',
-  VITE_FATHOM_ID: '',
 }
