@@ -150,6 +150,11 @@ const button = tv({
     'outline-none',
     'focus-visible:ring-2 focus-visible:ring-focus focus-visible:ring-offset-1',
     'disabled:pointer-events-none disabled:opacity-disabled',
+    // Every size on the scale is drawn under 44px — `md`, the default, is 40 — so on a touch
+    // screen each one grows the invisible 44px tap area instead of being redrawn (#432). The
+    // drawn control is unchanged on every device, and `scripts/check-a11y.mjs` measures the
+    // result by hit test rather than off this class.
+    'touch-target relative',
   ],
 })
 
