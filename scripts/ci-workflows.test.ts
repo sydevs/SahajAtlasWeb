@@ -280,6 +280,12 @@ describe("ci.yml's gate job, on the unit lane", () => {
     expect(config).not.toContain('reportsDirectory')
     expect(readRepoSource('.gitignore').split('\n')).toContain(directory)
   })
+
+  // The step above is also the unit lane, so one threshold turns a coverage figure into a red
+  // gate that no spec caused — and one set under today's figures does it on a later pull request.
+  it('fails on no coverage figure', () => {
+    expect(readRepoSource('vitest.config.ts')).not.toMatch(/['"]?thresholds['"]?\s*:/)
+  })
 })
 
 // A tag is a name its owner can move, and a workflow that names one runs whatever the tag points
