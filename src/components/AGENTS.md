@@ -605,7 +605,7 @@ seams — one per animation technology** (issue #102):
   `reducedMotion="user"` (which reads the media query once at mount and misses a
   mid-session change).
   ⚠ **Write `m.*`, never `motion.*`** — lint refuses the import. `motion` bundles every
-  framer-motion feature into the eager graph (13.2 KiB gz, measured), where `m` draws
+  framer-motion feature into the eager graph (17.5 KiB gz, measured), where `m` draws
   the one bundle the same file's `LazyMotion` loads: `initial`, `animate`, `exit` and
   `transition`, and nothing else. ⚠ An `m.*` rendered outside `Providers` never leaves
   its `initial` values, so a spec or story that mounts one goes through `Providers`.
