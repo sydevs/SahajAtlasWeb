@@ -27,14 +27,25 @@ moves, in the same bump as `@payloadcms/sdk`.
   schema to the generated ones is `PinnedToSahajCloud`, and its helpers are `SahajCloudFormField`
   and `SahajCloudBlock` (`src/types/report.ts` is the worked example). The same preference holds
   in identifiers and in prose — `src/AGENTS.md` carries it as a naming rule.
-- Each generated file is its own curl inside `types:cms`. Add a new line for a new
+- **`pnpm types:cms` is `scripts/sync-cms-types.mjs`, and it fetches every file at ONE
+  commit.** It resolves `refs/heads/main` to a SHA with `git ls-remote`, fetches each file
+  at that SHA, then strips the `payload` augmentation. Fetching each file off the branch
+  name let a push land between two fetches. `pnpm types:cms <branch|tag|40-char-sha>`
+  takes another commit, which is how a snapshot is reproduced.
+- **`src/types/payload/provenance.json` records that commit**, with a hash of each
+  generated file. Commit it with the types, and never edit it by hand. ⚠ It moves only when
+  a generated file does: upstream's branch moves far more often than its types, so a run
+  that finds them unchanged leaves the record naming the older commit, where they were
+  already these. `scripts/sync-cms-types.test.ts` fails on types that no longer match
+  their record, and is skipped while no record is checked in.
+- Each generated file is one entry in that script's `SOURCES`. Add an entry for a new
   endpoint contract — it never appears by magic.
 - ⚠ A deleted upstream file can still resolve. SahajCloud deleted `POST
 /api/contact-admin` (SahajCloud#632/#653) along with its `contact-types.ts`
   export, but the old curl URL kept resolving — it just started serving unrelated
   SEO/sitemap types into a file still named after contact. Nothing here consumes
-  that content any more, and we deleted the line from `types:cms`. Check what a curled
-  URL actually serves, not only whether the curl succeeds.
+  that content any more, and we deleted its entry from `types:cms`. Check what a fetched
+  URL actually serves, not only whether the fetch succeeds.
 
 ## The shared SDK client (`src/config/api/client.ts`)
 
