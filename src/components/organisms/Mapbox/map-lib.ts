@@ -22,7 +22,8 @@ export function loadMapLib(): Promise<MapLib> {
 /**
  * ⚠ **A GPU that fails mapbox-gl's strict check gets no map**, as under react-map-gl 7, whose
  * `<Map>` checked first. react-map-gl 8 constructs without asking, and mapbox-gl's constructor
- * accepts a software renderer or a blocklisted GPU, where it is dramatically slower.
+ * accepts a browser that reports a major performance caveat (a blocklisted GPU driver, for
+ * example), where it is dramatically slower.
  */
 function refuseUnsupported(module: MapLib): MapLib {
   if (!module.default.supported(true)) throw new Error('Map is not supported by this browser')

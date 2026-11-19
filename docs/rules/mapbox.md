@@ -515,9 +515,9 @@ version, because the folklore on this is older than the code.
   `map-lib.test.ts` pins the loader, `attribution.test.ts` where `Map.tsx`
   calls it.
 - ⚠ **`loadMapLib` refuses a GPU that fails mapbox-gl's strict support check**
-  (`supported(true)`: a software renderer or a blocklisted driver). That visitor
-  keeps the curtain, and the console logs "Map is not supported by this
-  browser". react-map-gl 7's `<Map>` ran this check itself; react-map-gl 8
+  (`supported(true)`: a browser that reports a major performance caveat, for
+  example a blocklisted GPU driver). That visitor keeps the curtain, and the
+  console logs "Map is not supported by this browser". react-map-gl 7's `<Map>` ran this check itself; react-map-gl 8
   does not, and mapbox-gl's constructor accepts such a GPU. Without WebGL at
   all, the check also stops mapbox building a half map in `#mapbox` before it
   throws.

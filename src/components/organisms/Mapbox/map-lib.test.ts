@@ -1,14 +1,14 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 // A stand-in for mapbox-gl: it counts its own evaluations, and its support check refuses a strict
-// request whenever `gpu` says the browser would draw in software.
-const mapbox = { evaluations: 0, gpu: 'hardware' as 'hardware' | 'software' }
+// request whenever `gpu` says the browser reports a major performance caveat.
+const mapbox = { evaluations: 0, gpu: 'clean' as 'clean' | 'caveat' }
 
 const fakeMapboxGl = () => {
   mapbox.evaluations += 1
 
   const supported = (failIfMajorPerformanceCaveat?: boolean) =>
-    !failIfMajorPerformanceCaveat || mapbox.gpu === 'hardware'
+    !failIfMajorPerformanceCaveat || mapbox.gpu === 'clean'
 
   return { default: { Map: class {}, supported } }
 }
@@ -20,7 +20,7 @@ beforeEach(() => {
   vi.resetModules()
   vi.doMock('mapbox-gl', fakeMapboxGl)
   mapbox.evaluations = 0
-  mapbox.gpu = 'hardware'
+  mapbox.gpu = 'clean'
 })
 
 const load = async () => (await import('./map-lib')).loadMapLib
@@ -53,8 +53,8 @@ describe('loadMapLib', () => {
 
   // react-map-gl 7 refused such a browser before constructing; react-map-gl 8 constructs, and
   // mapbox-gl's own constructor accepts a GPU that only passes the lax check.
-  it('refuses a browser that would draw the map in software', async () => {
-    mapbox.gpu = 'software'
+  it('refuses a browser that reports a major performance caveat', async () => {
+    mapbox.gpu = 'caveat'
     const loadMapLib = await load()
 
     await expect(loadMapLib()).rejects.toThrow('Map is not supported by this browser')
@@ -75,7 +75,7 @@ describe('loadMapLib', () => {
     // `<Map>`'s mount effect, where react-map-gl catches and logs it, can run after the import has
     // settled. An unhandled rejection reaches the host page's own error handlers.
     it('is not an unhandled rejection', async () => {
-      mapbox.gpu = 'software'
+      mapbox.gpu = 'caveat'
       const loadMapLib = await load()
       const pending = loadMapLib()
 
