@@ -43,6 +43,13 @@ cover everything a host would notice since the widget was first deployed.
 
 ### Changed
 
+- **A plural form a translation leaves out now falls back within that language, not to English.**
+  Where a language's copy in SahajCloud lacks a plural form it needs, such as the "few" or "many"
+  form of a class's session count in Ukrainian or Russian, the widget showed that one phrase in
+  English ("5 sessions") in the middle of the translated page. It now uses the same language's
+  general ("other") form. Copy with every form filled in renders exactly as before. **No
+  parameter, origin, CSP, storage or Permissions-Policy change.**
+
 - **The widget's first download is about 44 KiB gzipped smaller** ([#442]), 336 → 292 KiB for the embed.
   The filter form, the settings menu and the class cards were riding in it, though only the open
   interface draws them. They now arrive with the interface, which was already a separate
