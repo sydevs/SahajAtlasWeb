@@ -159,14 +159,20 @@ Each is built so passing proves something real:
   `scripts/wrangler-config.test.ts` pins which configs the gate names, since a script that
   dry-runs one of them exits 0.
 
-**Every third-party action is pinned by commit SHA**, with its version in a comment on the same
-line, and `scripts/ci-workflows.test.ts` fails on a tag in any workflow. `.github/dependabot.yml`
-is what moves a pin: weekly, GitHub Actions only, one pull request per action titled
-`ci: bump …`, which rewrites the SHA and that comment together. The two `sydevs/claude-workflow`
-workflows follow `@main` on purpose and are exempt from both.
+**Every third-party action this repo's workflows name is pinned by commit SHA**, with its
+version in a comment on the same line, and `scripts/ci-workflows.test.ts` fails on a tag in any
+workflow here. `.github/dependabot.yml` is what moves a pin: weekly, GitHub Actions only, one pull
+request per action titled `ci: bump …`, which rewrites the SHA and that comment together. The two
+`sydevs/claude-workflow` workflows follow `@main` on purpose and are exempt from both.
+⚠ **Those two run third-party actions of their own, by tag** (read 2026-11-19:
+`actions/checkout`, `actions/setup-node`, `pnpm/action-setup`, `actions/github-script` and
+`actions/dependency-review-action`), and one of them is called with `secrets: inherit`. A moved
+tag there runs in this repo's CI while the pin spec stays green. Pinning them is a change in
+sydevs/claude-workflow.
 ⚠ **A run Dependabot triggers reads Dependabot secrets, never Actions secrets.** Until the five
-secrets the Smoke job gates on are entered under both, each of those pull requests fails Smoke as
-`no-credentials`. Entering them is a decision, not a chore: the bumped action then runs in a job
+secrets the Smoke job gates on are entered under both, each of those pull requests fails Smoke,
+with `dependabot` as its stated reason: the advice for a missing Actions secret would be false
+there. Entering them is a decision, not a chore: the bumped action then runs in a job
 holding the Cloudflare token before anyone has read the bump.
 ⚠ A `cloudflare/wrangler-action` bump also moves the commit the guard step's comment in `ci.yml`
 read the action's outputs at: re-read them before merging it.

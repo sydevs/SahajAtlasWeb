@@ -190,6 +190,25 @@ describe('ci.yml', () => {
     expect(smoke).toMatch(/^\s{12}\*\)$/m)
   })
 
+  // A Dependabot branch is same-repo, and a run Dependabot triggers reads the Dependabot secrets,
+  // never the Actions ones. Left to `no-credentials`, its red tells the reader to add Actions
+  // secrets that are already entered. The test sits INSIDE the same-repo branch, so a fork stays
+  // a fork, and the vocabulary pin above keeps the reason loud: only the advice differs.
+  it('gives a run Dependabot triggered its own reason, inside the same-repo branch', () => {
+    expect(match(smoke, /^\s*ACTOR: (.+)$/m)).toBe('${{ github.actor }}')
+    expect(smoke).toMatch(
+      /\[ "\$SAME_REPO" = "true" \]; then\n\s*if \[ "\$ACTOR" = "dependabot\[bot\]" \]; then\n\s*reason=dependabot\n\s*else\n\s*reason=no-credentials\n\s*fi\n\s*else\n\s*reason=fork\n/,
+    )
+
+    // The advice names a section of another file, and a renamed heading is dead advice.
+    const advice = match(smoke, /^\s{12}dependabot\)\n([\s\S]*?)^\s{14};;$/m)
+
+    expect(advice).toContain('docs/rules/deployment.md')
+    expect(readRepoSource('docs/rules/deployment.md')).toContain(
+      `\n## ${match(advice, /'([^']+)'/)}\n`,
+    )
+  })
+
   // ⚠ A wrong `on:` block here fails silently, in both directions. `docs/testing.md` § "The merge
   // queue is the only gate that reads the tree a merge will produce" says how (#375).
   it('triggers on the pull request and the merge queue, and on no push', () => {
