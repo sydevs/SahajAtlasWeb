@@ -536,6 +536,12 @@ export async function run({ only, origin } = {}) {
   // One address, whether this run serves the build or was pointed at a dev server, so the
   // story list and the pages come from the same place by construction.
   const site = origin ? { origin, close: async () => {} } : await serveDirectory(BUILD_DIR)
+  // ⚠ Why a server of ours and two injection paths, rather than `@axe-core/playwright`: that
+  // package injects axe's source through the debugging protocol into every frame, which is the
+  // 650 KB the `url` branch below exists to avoid, 52 times over. It also audits only axe, and
+  // two of this gate's three checks are the tap probe and the keyboard walk, which need the
+  // page either way. So the dependency would serve the one path we deliberately do not take.
+  //
   // A dev server knows nothing of `AXE_PATH`, so the fix loop pays the inline cost the gate
   // does not. It audits one story at a time, where 650 KB over the protocol is not worth a
   // second server to avoid.
