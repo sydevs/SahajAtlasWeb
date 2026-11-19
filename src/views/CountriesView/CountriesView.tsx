@@ -7,7 +7,7 @@ import { Monitor } from 'lucide-react'
 
 import { DrawerBody, DrawerHeader } from '@/components/atoms/Drawer'
 import { ActiveFilterPills, FallbackPanel, List, ListItem } from '@/components/molecules'
-import api, { clientQuery } from '@/config/api'
+import api, { clientQuery, countriesQuery } from '@/config/api'
 import atlasAuth from '@/config/api/auth'
 import { useEventFilters, useFilterSearch, useSetFilters } from '@/hooks/use-filters'
 import { useLocale } from '@/hooks/use-locale'
@@ -40,10 +40,7 @@ export function CountriesView() {
   const filterSearch = useFilterSearch()
   const { setFilters } = useSetFilters()
 
-  const { data: countries } = useSuspenseQuery({
-    queryKey: hasActiveFilters(filters) ? ['countries', filtersKey(filters)] : ['countries'],
-    queryFn: () => api.getCountries(filters),
-  })
+  const { data: countries } = useSuspenseQuery(countriesQuery(filters))
   // Busiest countries first. This component owns the list's display order, so it holds
   // whatever the source — the live feed, or a seeded story — provides.
   const sortedCountries = useMemo(

@@ -3,7 +3,13 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 
 import atlasAuth from './auth'
 import { applyRequestContext, interceptFetch } from './client'
-import api, { eventTitlesQuery, geojsonQuery, regionsQuery, shapeEventDoc } from './fetch'
+import api, {
+  countriesQuery,
+  eventTitlesQuery,
+  geojsonQuery,
+  regionsQuery,
+  shapeEventDoc,
+} from './fetch'
 
 import livePreview, { LIVE_PREVIEW_INACTIVE } from '@/config/live-preview/protocol'
 import { previewRequestDecorator } from '@/config/live-preview/request'
@@ -514,6 +520,22 @@ describe('getRegion (region-tree derivation)', () => {
     expect(await api.getOnlineCount()).toBe(2)
     expect(await api.getOnlineCount({ ...DEFAULT_FILTERS, region: 'antwerpen' })).toBe(1)
     expect(await api.getOnlineCount({ ...DEFAULT_FILTERS, region: 'brussels' })).toBe(0)
+  })
+
+  // A cold entry here makes the root drawer suspend straight after the app's boundary reveals,
+  // and React 19 holds each fallback it shows for at least 300 ms.
+  it('warms the unfiltered country list the root view reads, at boot', async () => {
+    mockBackend()
+
+    api.warmCaches()
+
+    const { queryKey } = countriesQuery(DEFAULT_FILTERS)
+
+    await vi.waitFor(() => expect(queryClient.getQueryData(queryKey)).toBeDefined())
+    expect(queryClient.getQueryData(queryKey)).toEqual(await api.getCountries(DEFAULT_FILTERS))
+    // Derived from the tree and the feed already in flight: no read of its own.
+    expect(sdk.find).toHaveBeenCalledTimes(1)
+    expect(sdk.request).toHaveBeenCalledTimes(1)
   })
 
   it('derives an UPPERCASE country code from an ISO slug (post-#556), with no legacyData', async () => {
