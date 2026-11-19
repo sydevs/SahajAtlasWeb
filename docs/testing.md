@@ -626,7 +626,10 @@ coupling the other cannot:
   spec picks whichever its own directory makes natural: `@/config/api/client`, `./client`, or the
   quoted repo-relative path `src/App.tsx` that `src/lib/brand.test.ts`'s `COPY_FILES` holds. A
   name match misses two of the three — `fetch.test.ts` is the only spec for `client.ts` and
-  reaches it as `'./client'`, and `Chip.test.tsx` imports its own folder as `'.'`.
+  reaches it as `'./client'`, and `Chip.test.tsx` imports its own folder as `'.'`. A
+  `patches/*.patch` is reached by the third form alone, through the path
+  `src/lib/shadow-patches.test.ts` names it by — ⚠ but the pins there read the INSTALLED package,
+  which an edit to the patch reaches only at the next `pnpm install`.
 
 **A third source selected the tree-walking specs until #293, and it was the whole floor.**
 Fourteen specs enumerate the source tree instead of importing from it — the eleven `src/`
