@@ -91,9 +91,9 @@ import { annotate, report } from './_ci-output.mjs'
 // Every step to today's three figures, newest first, as standalone/embed and as
 // loader. `git log -p` on this constant holds each one in full, dated.
 //
-//   336  288.1/289.2        framer-motion's `m` with the animation features
+//   336  288.1/289.2  #442  framer-motion's `m` with the animation features
 //                          alone, −13.2 KiB; budget held, as above
-//   336  301.3/302.4        the shell stopped importing the molecules barrel,
+//   336  301.3/302.4  #442  the shell stopped importing the molecules barrel,
 //                          −30.9 KiB; budget held, as above
 //   336  331.9/333.0  #413  dependency batch; gzip paid for a different mix
 //   334  330.1/331.2  #389  `colord/plugins/lab`, which every embed owes

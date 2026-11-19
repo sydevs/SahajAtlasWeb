@@ -43,7 +43,7 @@ cover everything a host would notice since the widget was first deployed.
 
 ### Changed
 
-- **The widget's first download is about 44 KiB gzipped smaller**, 336 → 292 KiB for the embed.
+- **The widget's first download is about 44 KiB gzipped smaller** ([#442]), 336 → 292 KiB for the embed.
   The filter form, the settings menu and the class cards were riding in it, though only the open
   interface draws them. They now arrive with the interface, which was already a separate
   download, so the loading state paints sooner and a compact card nobody opens never fetches
@@ -449,20 +449,20 @@ no-referrer`.
 
 ### Fixed
 
-- **A map that opens in Japanese now asks Mapbox for its Japan worldview**, which decides how
+- **A map that opens in Japanese now asks Mapbox for its Japan worldview** ([#442]), which decides how
   disputed borders are drawn. The widget picks a worldview by the language it starts in, and
   Japanese was listed under a code no locale uses, so those visitors got the default (US) one.
   Chinese and the Indian languages already had theirs and are unchanged. The worldview is picked
   when the map is built, so switching language mid-visit still does not redraw a border. Nothing
   to change in your snippet or your CSP.
 
-- **A cluster tapped after the bottom sheet moved now zooms in around where the sheet is.** On a
+- **A cluster tapped after the bottom sheet moved now zooms in around where the sheet is.** ([#442]) On a
   phone, a view that leaves the camera alone — the calendar, or the online classes opened from
   another view — kept the spacing from before the sheet was dragged, so the tap could zoom the
   cluster in under the sheet, or far above it, until the map was next moved by hand. Nothing to
   change in your snippet or your CSP.
 
-- **Registering with no connection now fails and says so, instead of spinning.** A visitor whose
+- **Registering with no connection now fails and says so, instead of spinning.** ([#442]) A visitor whose
   browser was offline when they pressed Register got a button that spun with no message, and the
   registration was then sent by itself once the connection came back, for as long as the page
   stayed open — after they might have given up, or registered a second time. The attempt is now
@@ -1163,3 +1163,4 @@ must-revalidate`, pinned rather than left to the CDN default. The production dom
 [#418]: https://github.com/sydevs/SahajAtlasWeb/pull/418
 [#424]: https://github.com/sydevs/SahajAtlasWeb/pull/424
 [#428]: https://github.com/sydevs/SahajAtlasWeb/issues/428
+[#442]: https://github.com/sydevs/SahajAtlasWeb/pull/442
