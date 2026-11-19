@@ -2,8 +2,8 @@
  * Pins the values the loader duplicates against the widget's copies (#149).
  *
  * The loader must not import from the widget at runtime. That is what keeps a host's eager cost
- * at about 3 KiB instead of about 370, so a handful of values exist twice. Duplication is only
- * safe while something asserts the copies agree — this file does that. It is the same
+ * at about 3 KiB instead of the whole widget, so a handful of values exist twice. Duplication
+ * is only safe while something asserts the copies agree — this file does that. It is the same
  * arrangement `src/lib/scope.ts` and `scripts/postcss-scope-widget.test.ts` use across the
  * PostCSS boundary.
  *

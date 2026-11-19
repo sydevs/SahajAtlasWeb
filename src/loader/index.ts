@@ -10,7 +10,7 @@
  * attribute to misspell. The loader creates the element. Every parameter rides on the `auto.js`
  * URL (`./config.ts` explains why).
  *
- * **What this buys.** The widget's eager payload is about 370 KiB gz. Loading it on every page
+ * **What this buys.** The widget's eager payload is about 290 KiB gz. Loading it on every page
  * view of every embed — including the ones nobody scrolls to — spends that budget on the host's
  * LCP and INP. Those are ranking signals for the very pages this program tries to get indexed.
  * The loader is about 3 KiB, and fetches the rest only when the widget is about to become
