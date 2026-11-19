@@ -291,11 +291,13 @@ export default defineConfig(({ command }) => ({
     stripDsStore(),
     circleFlags(),
     // This plugin's position in the array does not set its order.
-    // `sentryVitePlugin` returns `enforce: 'pre'`, so Vite hoists it
-    // ahead of every plugin above, regardless of array order. What makes
-    // that safe is the build phase, not the order. It uploads and
-    // deletes in `writeBundle`, after Rollup has already written every
-    // file to disk. So no earlier plugin's output can be missed.
+    // `sentryVitePlugin` returns an `enforce: 'pre'` plugin, which Vite
+    // hoists ahead of every plugin above, plus an `enforce: 'post'` one
+    // that stages maps the plugin itself switched on — none here, since
+    // `build.sourcemap` is set. What makes that safe is the build phase,
+    // not the order. It uploads and deletes in `writeBundle`, after
+    // Rollup has already written every file to disk. So no earlier
+    // plugin's output can be missed.
     // (`flattenEntryImports` only appends to the tail of `embed.js`,
     // inside `generateBundle`, which shifts no mappings before it.)
     sentrySourcemapUpload(command),
