@@ -44,6 +44,16 @@ cover everything a host would notice since the widget was first deployed.
 
 ### Changed
 
+- **The calendar's week view lays out staggered classes differently.** Its calendar library moved
+  up two major versions. A class that starts after an earlier overlapping one has finished now
+  takes that free column, drawn beneath the classes still running beside it, so on a busy evening
+  its time can be hidden behind theirs. Classes that start together lay out as before. The
+  calendar's own download, fetched only when a visitor opens the calendar, is about 26 KiB
+  (gzipped) larger, and with well over a thousand sessions in view it draws somewhat more slowly
+  than before. **No parameter, origin, CSP or Permissions-Policy change**, and the widget
+  installs nothing on your page: the library's new date objects come from a module bundled with
+  the widget, never from a page-wide `Temporal` or a replaced `Intl.DateTimeFormat`.
+
 - **The Outlook.com and Office 365 rows of "Add to calendar" now subscribe too.** ([#428]) They
   added one session of a weekly class, so a visitor on Outlook got the next class and then
   nothing. Both rows now open Outlook's "subscribe from web" route for the class's own calendar
