@@ -242,11 +242,10 @@ function EventPinPopover({
 export function Mapbox({ cooperative = false }: { cooperative?: boolean } = {}) {
   let navigate = useAtlasNavigate()
   const { mapbox, padding, moveMap } = useMapbox()
-  const { zoom, latitude, longitude, setViewState, selection, hover, boundary } = useViewState(
+  // ⚠ Not `zoom`, `latitude` or `longitude`: the map is uncontrolled, so nothing here draws from
+  // them, and selecting them re-renders every source and layer each time the camera stops.
+  const { setViewState, selection, hover, boundary } = useViewState(
     useShallow((s) => ({
-      zoom: s.zoom,
-      latitude: s.latitude,
-      longitude: s.longitude,
       selection: s.selection,
       hover: s.hover,
       boundary: s.boundary,
@@ -471,7 +470,7 @@ export function Mapbox({ cooperative = false }: { cooperative?: boolean } = {}) 
         navigate(safePath(feature.properties?.webPath) ?? `/${feature.properties?.id}`)
       }
     },
-    [navigate, mapbox, zoom, latitude, longitude],
+    [navigate, mapbox, moveMap],
   )
 
   const hoverOnFeature = useCallback(

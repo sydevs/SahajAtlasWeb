@@ -171,6 +171,11 @@ The map is the heart of the app and its hottest render path. Treat it carefully.
 - `useViewState` holds `zoom` / `latitude` / `longitude` / `selection` /
   `boundary`. Read it with a **`useShallow`** selector, as `Map.tsx` does, so
   the map re-renders only on the fields it uses.
+  ⚠ **`Map.tsx` selects none of the three camera fields.** The map is uncontrolled, so
+  `onMoveEnd` mirrors the camera into the store for other readers and nothing in the map
+  draws from it. Selecting one re-renders every source and layer each time the camera stops;
+  `Map.click.test.tsx` holds that, and that a cluster click eases through the current
+  `moveMap` — `useMapbox` hands out a new one whenever the padding changes.
 - **Views never touch the map directly.** Camera framing always goes through
   the `MapController` seam (`use-map-controller.tsx`): call
   `useMapController().frameRegion/frameEvent/highlightEvent/frameSearch/restore/reset`

@@ -449,6 +449,12 @@ no-referrer`.
   so switching language mid-visit still does not redraw a border. Nothing to change in your
   snippet or your CSP.
 
+- **A cluster tapped after the bottom sheet moved now opens into the map the sheet leaves free.**
+  On a phone, a view that leaves the camera alone — the calendar, or the online classes opened
+  from another view — kept the spacing from before the sheet was dragged. The tap then zoomed the
+  cluster in under the sheet, or far above it, until the map was next moved by hand. Nothing to
+  change in your snippet or your CSP.
+
 - **A map you gave a height now scrolls with your page on iPhone and iPad.** ([#424]) On iOS, the
   map inside a sized `<sahaj-atlas>` fell behind its box as the page scrolled, and could disappear
   from the box entirely. Android and desktop browsers were not affected. Nothing to change in your
