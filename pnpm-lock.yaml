@@ -195,7 +195,7 @@ importers:
         specifier: ^12.2.0
         version: 12.2.0
       tailwind-merge:
-        specifier: ^3.7.0
+        specifier: 3.7.0
         version: 3.7.0
       tailwind-variants:
         specifier: 4.0.2

@@ -10,6 +10,9 @@ import { createTV, type VariantProps } from 'tailwind-variants/lite'
  * bundles a second merge engine with compiled tables: at 4.0.2 it cost both eager graphs 2.7 KiB
  * gzipped more than this pairing, and about 12 KiB beside it. Bare `lite` merges nothing, so a
  * variant's or caller's `px-6` ships beside the base `px-2` instead of replacing it.
+ *
+ * `tailwind-merge` is pinned exactly: it decides every recipe's conflicts, and no gate diffs them
+ * all across a bump.
  */
 export const tv = createTV({ twMerge })
 
