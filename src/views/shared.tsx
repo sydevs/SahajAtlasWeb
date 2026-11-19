@@ -12,8 +12,7 @@ import { CalendarDays, Funnel, Menu, Search, X } from 'lucide-react'
 import { Button } from '@/components/atoms/Button'
 import { FallbackPanel, GeolocationPrompt } from '@/components/molecules'
 import { MapSearch } from '@/components/organisms'
-import api, { eventQuery, regionQuery, regionsQuery } from '@/config/api'
-import { GEOJSON_STALE_TIME } from '@/config/query-client'
+import { eventQuery, geojsonQuery, regionQuery, regionsQuery } from '@/config/api'
 import { useCameraHistory } from '@/config/store'
 import { useAtlasNavigate } from '@/hooks/use-atlas-navigate'
 import { useEventFilters } from '@/hooks/use-filters'
@@ -484,11 +483,7 @@ export function GeolocationSuggestion({
   const ipLocation = useIpLocation(!dismissed && !activeSearch)
 
   // The cached event feed powers the "is anything actually near?" guard.
-  const { data: geojson } = useQuery({
-    queryKey: ['geojson'],
-    queryFn: () => api.getGeojson(),
-    staleTime: GEOJSON_STALE_TIME,
-  })
+  const { data: geojson } = useQuery(geojsonQuery())
 
   const show = useMemo(
     () =>

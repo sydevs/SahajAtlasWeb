@@ -365,11 +365,22 @@ the shared client.
   read cannot drift. `eventsQuery(latitude, longitude, filters, locale)` carries
   the same contract for the distance-ranked results list.
 - **Query factories live in `src/config/api/index.ts`.** That module imports
-  `fetch.ts`, so a factory `fetch.ts` itself consumes — `eventTitlesQuery`,
-  `atlasConfigQuery` and `translationsQuery`, each read by a warm-up in that file
-  — has to be declared beside its fetcher and re-exported here, or the import
-  closes a cycle. A factory nothing in `fetch.ts` calls has no such excuse.
-  Declare it in `index.ts` with the rest, so every contract stays in one place.
+  `fetch.ts`, so a factory `fetch.ts` itself consumes has to be declared beside its
+  fetcher, or the import closes a cycle: `geojsonQuery`, `regionsQuery` and
+  `eventTitlesQuery`, each spread by its loader, and `atlasConfigQuery` and
+  `translationsQuery`, each read by a warm-up. `index.ts` re-exports the first
+  three; the last two are imported from `fetch.ts`. A factory nothing in
+  `fetch.ts` calls has no such excuse. Declare it in `index.ts` with the rest,
+  so every contract stays in one place.
+- **A wholesale cache has one contract, and every reader spreads it.**
+  `geojsonQuery()`, `regionsQuery()` and `eventTitlesQuery(locale)` each hold the
+  key, the fetcher, `staleTime` and `gcTime`. A screen adds only what is its own
+  (`enabled`, `select`). The loader adds `revalidateIfStale` and `retry: false`,
+  the one deliberate per-fetch option on these keys: a loader runs inside a query
+  that already retries. ⚠ `gcTime` sits in the contract because React Query keeps
+  the longest one any writer of a key has stated, so a reader that omits it leaves
+  the retention to whoever built the entry first. `reads.inventory.test.ts` fails
+  on one of the three keys written out anywhere but its contract.
 - **Read a cache-only key through its own factory.** `eventTitlesQuery(locale)` is
   shared by the loader that fetches the sliver and by the drawer's loading/error
   chrome, which reads it with `enabled: false` to name the event whose view

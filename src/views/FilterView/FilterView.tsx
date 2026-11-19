@@ -6,8 +6,7 @@ import { useTranslation } from 'react-i18next'
 import { DrawerBody, DrawerFooter, DrawerHeader } from '@/components/atoms/Drawer'
 import { Button } from '@/components/atoms/Button'
 import { SearchFilters } from '@/components/molecules'
-import api from '@/config/api'
-import { GEOJSON_STALE_TIME } from '@/config/query-client'
+import { geojsonQuery } from '@/config/api'
 import { useEventFilters } from '@/hooks/use-filters'
 import { useRegionMatcher } from '@/hooks/use-region-matcher'
 import {
@@ -53,11 +52,7 @@ export function FilterView({ initialDraft }: { initialDraft?: EventFilters } = {
   // Region cut for the live count, from the draft's selected region (see matchesFilters).
   const matchesRegion = useRegionMatcher(draft.region)
 
-  const { data: geojson } = useQuery({
-    queryKey: ['geojson'],
-    queryFn: () => api.getGeojson(),
-    staleTime: GEOJSON_STALE_TIME,
-  })
+  const { data: geojson } = useQuery(geojsonQuery())
 
   // A live preview of how many events the draft filters match. Skip the full-feed
   // predicate scan when the draft is all-default (every event matches).

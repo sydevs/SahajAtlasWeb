@@ -107,9 +107,9 @@ The map is the heart of the app and its hottest render path. Treat it carefully.
   `clusterMaxZoom`, `clusterRadius`. Use `getClusterExpansionZoom` on the
   `GeoJSONSource` for expansion — follow `selectFeature`'s existing pattern
   rather than re-implementing zoom math.
-- GeoJSON fetches via React Query (`queryKey: ['geojson']`) from
-  `api.getGeojson()`. Read from the cache — never fetch it ad-hoc in a
-  component.
+- GeoJSON fetches via React Query, through `geojsonQuery()` (`@/config/api`): the
+  `['geojson']` key over `api.getGeojson()`. Read from the cache — never fetch it
+  ad-hoc in a component, and never write the key out beside a `queryFn` of your own.
 
 ## Classes with no real place
 

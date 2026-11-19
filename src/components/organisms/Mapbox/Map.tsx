@@ -45,10 +45,9 @@ import { useAtlasNavigate } from '@/hooks/use-atlas-navigate'
 import { useEventFilters } from '@/hooks/use-filters'
 import { useGeolocateToSearch } from '@/hooks/use-geolocate'
 import { useRegionMatcher } from '@/hooks/use-region-matcher'
-import api, { eventTitlesQuery } from '@/config/api'
+import { eventTitlesQuery, geojsonQuery } from '@/config/api'
 import { useHasRealPointer } from '@/config/responsive'
 import { useBrandPalette } from '@/config/theme/brand-palette'
-import { GEOJSON_STALE_TIME } from '@/config/query-client'
 import { worldMinZoom } from '@/lib/camera'
 import {
   hasActiveFilters,
@@ -295,11 +294,7 @@ export function Mapbox({ cooperative = false }: { cooperative?: boolean } = {}) 
   // so pan and zoom never rebuild it.
   const matchesRegion = useRegionMatcher(filters.region)
 
-  const { data } = useQuery({
-    queryKey: ['geojson'],
-    queryFn: () => api.getGeojson(),
-    staleTime: GEOJSON_STALE_TIME,
-  })
+  const { data } = useQuery(geojsonQuery())
 
   // "Find my location" opens the results centered on the visitor, rather
   // than just moving the camera. See the hook, and the `followUserLocation`

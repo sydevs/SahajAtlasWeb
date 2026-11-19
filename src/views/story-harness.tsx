@@ -12,7 +12,7 @@ import { DrawerSlotsProvider } from '@/components/atoms/Drawer'
 import { DrawerControlContext } from '@/views/shared'
 import { DrawerErrorFallback, DrawerLoading } from '@/views/fallbacks'
 import { WidgetModeContext, type WidgetMode } from '@/config/mode'
-import { clientQuery, regionsQuery } from '@/config/api'
+import { clientQuery, geojsonQuery, regionsQuery } from '@/config/api'
 import atlasAuth from '@/config/api/auth'
 import { Mapbox } from '@/components/organisms/Mapbox/Map'
 import { NoopMapControllerProvider } from '@/hooks/use-map-controller'
@@ -290,7 +290,7 @@ export function ViewHarness({
     // region tree is read by anything filter-adjacent (the Region filter's
     // options, the active-pill name lookup, the country-website check), which is
     // why it is global rather than per-case.
-    c.setQueryData(['geojson'], mockGeojson)
+    c.setQueryData(geojsonQuery().queryKey, mockGeojson)
     c.setQueryData(regionsQuery().queryKey, mockRegionNodes)
     c.setQueryData(clientQuery(atlasAuth.apiKey).queryKey, mockClient)
     c.setQueryData(['ip-location'], mockIpLocation)

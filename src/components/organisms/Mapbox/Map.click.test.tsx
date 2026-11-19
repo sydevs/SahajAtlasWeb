@@ -68,7 +68,10 @@ vi.mock('@/hooks/use-event-display', () => ({
   useEventDisplay: () => ({}),
 }))
 vi.mock('@/config/responsive', () => ({ useHasRealPointer: () => true }))
-vi.mock('@/config/api', () => ({ default: {}, eventTitlesQuery: () => ({ queryKey: ['titles'] }) }))
+vi.mock('@/config/api', () => ({
+  eventTitlesQuery: () => ({ queryKey: ['titles'] }),
+  geojsonQuery: () => ({ queryKey: ['geojson'] }),
+}))
 vi.mock('@tanstack/react-query', async (importOriginal) => ({
   ...(await importOriginal<typeof import('@tanstack/react-query')>()),
   useQuery: () => ({ data: undefined }),
