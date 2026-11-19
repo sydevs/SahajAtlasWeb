@@ -1,5 +1,5 @@
 ---
-description: Deploy topology (Cloudflare Workers), the `public/` deploy files, the source-map policy, and the deploy-side CI gates.
+description: Deploy topology (Cloudflare Workers), the `public/` deploy files, the source-map policy, the deploy-side CI gates, and the rollback runbook.
 paths:
   - 'public/_headers'
   - 'public/_redirects'
@@ -168,6 +168,76 @@ workflows follow `@main` on purpose and are exempt from both.
 secrets the Smoke job gates on are entered under both, each of those pull requests fails Smoke as
 `no-credentials`. ⚠ A `cloudflare/wrangler-action` bump also moves the commit the guard step's
 comment in `ci.yml` read the action's outputs at: re-read them before merging it.
+
+## Rolling production back
+
+⚠ **Not rehearsed.** These steps are read off Cloudflare's documentation as of 2026-11-19 and off
+wrangler 4.150.0's own `--help`. Nobody has run them against this account. The first person who
+does confirms each step and deletes this note.
+
+**How a responder learns production is red.** `production-smoke.yml` reads `sahajatlas.com` after
+each production build of `sahajatlas-web`. A red read opens an issue labelled `production-red`, or
+comments on the open one (`docs/testing.md` § "A red run files its own ticket"). The lane sees only
+what the smoke specs read, so a fault they cannot see arrives another way. The steps are the same.
+
+1. **Read the failing run first.** A rollback restores an earlier build. It does not undo a zone
+   setting, or a variable on the Workers Builds trigger that the next build reads again.
+
+2. **Find the last good version**: the one the deployment before the faulty one served. In the
+   dashboard, Workers & Pages → `sahajatlas-web` → Deployments. Or, from the repo root, with a
+   Cloudflare login, the ten most recent deployments and their version IDs:
+
+   ```bash
+   pnpm exec wrangler deployments list --config wrangler.jsonc
+   ```
+
+3. **Roll back to it.** In the dashboard, the three-dot menu on that version → Rollback. Or:
+
+   ```bash
+   pnpm exec wrangler rollback <version-id> --config wrangler.jsonc --message "<why>"
+   ```
+
+   ⚠ **Always pass the version ID.** With none, wrangler takes "the version uploaded before the
+   latest version", and every pull-request push uploads a version to this Worker (`ci.yml`), so
+   that default can be a pull request's preview build. For the same reason, choose a version that
+   was deployed before, never one that was only uploaded: a preview is built with the preview's
+   variables.
+
+4. **Open a revert pull request at once.** Workers Builds builds and deploys `main` on every push
+   to it, so the next merge ships the fault again over the rollback. Merging the revert deploys a
+   fresh build, and that build's check run fires the smoke lane by itself.
+
+5. **Confirm.** A rollback is not a build, so nothing fires the lane. Run it by hand — Actions →
+   Production Smoke → Run workflow, or `gh workflow run production-smoke.yml` — and close the
+   `production-red` issue once it is green. Nothing else closes it.
+
+**What a rollback covers.** It creates a new deployment that sends all traffic to the chosen
+version, on every route and domain of the Worker. A version holds the Worker's configuration and
+its static assets, so the earlier build's files come back whole. Cloudflare allows a rollback only
+to "the 100 most recently published versions". Its documentation does not say whether a preview
+upload counts toward that hundred, and each pull-request push makes one. The limits it lists for
+bindings do not apply: this Worker has none.
+
+**`sahajatlas-design` is a separate Worker with its own versions.** Rolling the app back leaves it
+alone. It rolls back the same way, with `--config wrangler.design.jsonc`, and no lane reads it
+after a deploy.
+
+**How long until a visitor has it.** Cloudflare gives "up to a few seconds" for a deployment
+change to reach every location. After that, `public/_headers` decides what a browser still holds:
+
+- `/auto.js`, `/loader.js` and `/embed.js` are `max-age=0, must-revalidate`, so a host page's next
+  load reads the restored files.
+- `/assets/*` is cached for a year as `immutable`, and safely: every file there is content-hashed,
+  so a cached copy is never the wrong content for its URL.
+- `/flags/*` is cached for 30 days and carries no hash. A faulty flag a browser already holds stays
+  until that expires, whatever is deployed.
+- No rule there sets `Cache-Control` for `index.html` or any other path, so the standalone page
+  takes the platform's default. Cloudflare documents that default as
+  `public, max-age=0, must-revalidate`. Read it off the live response all the same: #148 was a
+  default nobody had read.
+
+A page that was already open keeps running the faulty build until it reloads. It can fail to load
+a further chunk meanwhile, because the restored version does not hold the faulty build's files.
 
 ## Retired: the Accent translation workflows (#99)
 
