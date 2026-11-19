@@ -23,9 +23,11 @@ function listFor(scope: HTMLElement, input: Element): Element | null {
 
   if (!id) return null
 
-  // The library mounts the list on the geocoder's own `parentElement`, inside `scope`. A
-  // document-wide lookup would answer about the host's page from inside the shadow root.
-  return scope.querySelector(`[id="${CSS.escape(id)}"]`)
+  // Walked rather than selected: the id is the library's, so it reaches this as data, and a
+  // selector built from it would be a selector built from somebody else's string. A
+  // document-wide lookup is wrong for a second reason — inside the shadow root it would
+  // answer about the HOST's page.
+  return [...scope.querySelectorAll('[id]')].find((node) => node.id === id) ?? null
 }
 
 /** Whether the suggestion list the input names is on screen with something in it. */

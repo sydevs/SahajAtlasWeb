@@ -1,6 +1,6 @@
 import { type ReactNode } from 'react'
 import * as DropdownMenu from '@radix-ui/react-dropdown-menu'
-import clsx from 'clsx'
+import { tv } from 'tailwind-variants'
 import { useTranslation } from 'react-i18next'
 import { Check, ChevronRight, Info, Languages, Monitor, Moon, Settings, Sun } from 'lucide-react'
 
@@ -14,6 +14,23 @@ import { nativeLanguageLabel, useLocale } from '@/hooks/use-locale'
 import { type ThemePreference, useThemePreference } from '@/hooks/use-theme'
 import { overlayContainer } from '@/lib/overlay'
 import { publishLocale } from '@/lib/shape'
+
+// A recipe rather than a `clsx` join, because the merge is load-bearing: the floating cog
+// needs `relative` for its `touch-target` area, and both callers pass their own `fixed` or
+// `absolute`. `clsx` resolves nothing, and `relative` is later in Tailwind's own position
+// order, so a joined class list would win the cascade and unpin the cog (#432).
+const trigger = tv({
+  base: 'flex items-center justify-center text-gray-11 transition-colors hover:text-foreground',
+  variants: {
+    toolbar: {
+      true: '-ms-3 h-11 w-11 rounded-lg outline-none focus-visible:ring-2 focus-visible:ring-focus focus-visible:ring-inset',
+      // Drawn at 32px, and kept there: `touch-target` is what gives a finger 44px to reach
+      // it, and nothing sits close enough to take that area.
+      false:
+        'touch-target relative h-8 w-8 rounded-full border border-divider bg-background shadow-lg',
+    },
+  },
+})
 
 const { surface, row } = menuChrome({ submenus: true })
 const menu = surface()
@@ -94,13 +111,7 @@ export function SettingsMenu({ className, side = 'bottom', toolbar = false }: Se
       <DropdownMenu.Trigger asChild>
         <button
           aria-label={t('common.settings.title')}
-          className={clsx(
-            'flex items-center justify-center text-gray-11 transition-colors hover:text-foreground',
-            toolbar
-              ? '-ms-3 h-11 w-11 rounded-lg outline-none focus-visible:ring-2 focus-visible:ring-focus focus-visible:ring-inset'
-              : 'h-8 w-8 rounded-full border border-divider bg-background shadow-lg',
-            className,
-          )}
+          className={trigger({ toolbar, className })}
           type="button"
         >
           <Settings size={toolbar ? 20 : 16} />

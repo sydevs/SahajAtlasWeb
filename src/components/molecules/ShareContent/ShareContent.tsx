@@ -10,7 +10,10 @@ import { useWebShare } from '@/hooks/use-web-share'
 import { platformsForCountry } from '@/lib/share/platforms'
 
 const copyField = tv({
-  base: 'touch-target relative w-full truncate rounded px-3 py-2 text-start text-sm text-secondary-11 transition-colors select-all',
+  // ⚠ `truncate` sits on the inner span, not here. It carries `overflow: hidden`, which clips
+  // this button's own `touch-target` pseudo-element back to the drawn box — the 44px tap area
+  // was there in the style and answered to nothing (#432).
+  base: 'touch-target relative w-full rounded px-3 py-2 text-start text-sm text-secondary-11 transition-colors select-all',
   variants: { copied: { true: 'bg-secondary-5', false: 'bg-secondary-3' } },
   defaultVariants: { copied: false },
 })
@@ -43,7 +46,7 @@ export function CopyField({ value }: { value: string }) {
         type="button"
         onClick={copy}
       >
-        {value}
+        <span className="block truncate">{value}</span>
       </button>
       {/* Success was previously signalled ONLY by a secondary-3 to
           secondary-5 tint, a roughly 1.15:1 shift. A screen reader cannot

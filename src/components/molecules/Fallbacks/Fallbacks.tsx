@@ -550,7 +550,10 @@ export function OnwardLink({ offer }: { offer: RecoveryOffer }) {
 
   return (
     <Link
-      className="mt-2 text-sm font-medium"
+      // ⚠ Step 12, over the atom's own step 11, because of the surface under it: this link
+      // renders INSIDE the neutral Alert, whose `gray-3` tint takes `primary-11` to 4.36:1 —
+      // the ramp guarantees step 11 against steps 1 and 2, not 3 (#432).
+      className="mt-2 text-sm font-medium text-primary-12"
       color="primary"
       href={offer.path}
       // The country-site rung leaves the widget entirely. So it gets the external

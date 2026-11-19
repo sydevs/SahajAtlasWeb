@@ -1255,6 +1255,27 @@ you needed than have you reach through the boundary.
 The widget renders as a labelled `role="region"` landmark, so a screen-reader user can jump to
 and out of it rather than meeting an unbounded run of content mid-page. It carries its own `lang`
 and `dir`, tracking the active locale — your page's `<html lang>` is almost never the widget's.
+The place-search field inside it is a named `search` landmark, and each panel is a dialog with a
+name, so the search, the filters and the results are told apart.
+
+Inside that landmark, every control the widget draws:
+
+- is reached by Tab, in the order it appears, and shows a focus ring where it lands;
+- is never a Tab stop while it is invisible;
+- carries a name in the page's language, icon-only controls included;
+- answers to a tap of at least 44 × 44 CSS pixels on a touch screen.
+
+**Each of those is checked on every change we make**, in a real browser at phone size, over every
+component in the library — `axe-core` for the rule set, a hit test for the tap areas, and a
+keyboard walk for the rest. A change that breaks one does not merge.
+
+**What that costs you**: on a touch screen a few rows are a little taller than they would
+otherwise be, so a `<sahaj-atlas>` you have given a fixed height has slightly less room for its
+content at phone widths. The desktop layout is unchanged. Nothing here changes your CSP or your
+Permissions Policy.
+
+**The map canvas itself is Mapbox GL's**, and its keyboard behaviour is theirs rather than ours.
+The controls over it — locate, attribution, zoom — are covered by the list above.
 
 ## Privacy, storage and third-party requests
 

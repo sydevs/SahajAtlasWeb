@@ -52,10 +52,10 @@ export const Default: Story = () => {
               <StoryGridRow key={color}>
                 <StoryGridCell isLabel>{color}</StoryGridCell>
                 <StoryGridCell>
-                  <Checkbox checked color={color} />
+                  <Checkbox checked aria-label={`${color} switch`} color={color} />
                 </StoryGridCell>
                 <StoryGridCell>
-                  <Checkbox checked appearance="checkbox" color={color} />
+                  <Checkbox checked appearance="checkbox" aria-label={`${color} checkbox`} color={color} />
                 </StoryGridCell>
               </StoryGridRow>
             ))}
@@ -82,16 +82,16 @@ export const Default: Story = () => {
               <StoryGridRow key={String(disabled)}>
                 <StoryGridCell isLabel>{disabled ? 'disabled' : 'enabled'}</StoryGridCell>
                 <StoryGridCell>
-                  <Checkbox checked={false} disabled={disabled} />
+                  <Checkbox aria-label="Switch off" checked={false} disabled={disabled} />
                 </StoryGridCell>
                 <StoryGridCell>
-                  <Checkbox checked disabled={disabled} />
+                  <Checkbox checked aria-label="Switch on" disabled={disabled} />
                 </StoryGridCell>
                 <StoryGridCell>
-                  <Checkbox appearance="checkbox" checked={false} disabled={disabled} />
+                  <Checkbox appearance="checkbox" aria-label="Checkbox off" checked={false} disabled={disabled} />
                 </StoryGridCell>
                 <StoryGridCell>
-                  <Checkbox checked appearance="checkbox" disabled={disabled} />
+                  <Checkbox checked appearance="checkbox" aria-label="Checkbox on" disabled={disabled} />
                 </StoryGridCell>
               </StoryGridRow>
             ))}

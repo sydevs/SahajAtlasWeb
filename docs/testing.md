@@ -20,7 +20,7 @@ This file is also a path-scoped rule: `.claude/rules/testing.md` symlinks here, 
 when a session reads a spec, a vitest config or the test tooling. The always-loaded summary —
 the validation policy and the never-rules — is the root `AGENTS.md` § Testing.
 
-Two lanes, kept separate so the fast one never touches the network: the **unit** lane
+Three lanes. Two of them are vitest, kept separate so the fast one never touches the network: the **unit** lane
 (`vitest.config.ts`, every `*.test.ts(x)` outside `tests/smoke/`, node) and the **smoke** lane
 (`vitest.smoke.config.ts`, `tests/smoke/**`, fetch against a deployed preview).
 `pnpm test:smoke` needs `PREVIEW_URL` and skips gracefully without one. In CI the smoke job
@@ -28,6 +28,10 @@ builds the app and **publishes its own Workers preview**, then reads the address
 step returned (#282). The **same** smoke specs also run against production, fired by the
 deploy rather than by a PR (`.github/workflows/production-smoke.yml`) — see "The PR gate can
 only ever read a preview" below.
+
+The third is the **accessibility** gate, `pnpm test:a11y` (`scripts/check-a11y.mjs`, #432): a
+browser, over the built component library, in CI's `gate` job right after `pnpm ladle:build`.
+See "The accessibility lane needs a browser, and that is not a preference" below.
 
 ## The smoke lane's three invariants (issues #99, #138)
 
@@ -369,6 +373,40 @@ Both costs were measured first. A merge waits one queue run — 2m23s to 2m50s a
 `gh-readonly-queue/main/pr-<n>-<sha>` branch, which starts a `sahajatlas-design` preview build:
 that site's Workers Builds branch rules take a literal branch name or a lone `*` and cannot exclude
 the prefix (`docs/rules/deployment.md`).
+
+## The accessibility lane needs a browser, and that is not a preference (#432)
+
+`pnpm test:a11y` drives `build/` in Chromium at 390×844 with a coarse pointer, and asks three
+things of every story: axe-core's rule set, a tap area of at least 44px **probed with
+`document.elementFromPoint`**, and a keyboard walk that each stop is visible, in document order,
+and paints a focus indicator.
+
+**The unit lane cannot host it, and measuring said so.** jsdom has no layout at all: a tap area
+cannot be measured, and `color-contrast` resolves to nothing. Measured 2026-11-19 over the same
+52 stories with the same axe configuration: **jsdom returned 23 findings, the browser 127**, and
+none of the browser's 80 contrast failures were among the 23.
+
+Four things about it are deliberate:
+
+- **It reads a BUILD, never `ladle serve`.** The dev server compiles a story when it is opened,
+  so a story that failed to build would pass by never having been built. `--origin
+  http://localhost:61000` points it at the dev server anyway, for the local fix loop only.
+- **It is a step in CI's existing `gate` job, not a job of its own.** The ruleset requires that
+  job's check by name, so a step blocks a merge on the day it lands; a new job would report a
+  check nothing requires until somebody edits the ruleset in a browser.
+- **The tap floor is probed, not read off a class list**, because the widget's small controls
+  keep their drawn size and grow an invisible 44px area. A 32px control carrying `touch-target`
+  answers across 44px and a 44px control under an overlay answers to nothing — only a hit test
+  tells those two apart. `spanFrom` walks outward from the centre and stops at the first miss on
+  each side, so a control crowded on one side reports the room it has rather than two patches.
+- **`region` and `landmark-unique` are off**, and `scripts/check-a11y.mjs` says why: a story is
+  one component in a bare div, and a story page is a catalogue of six of them. Both would report
+  the page rather than the widget. Everything else is on, and the exemptions are three selectors
+  with a reason each, pinned as a closed list by `scripts/check-a11y.test.ts`.
+
+⚠ **The gate's own arithmetic is in the unit lane** (`scripts/check-a11y.test.ts`) — the span
+measurement, the report's grouping, and the exemption list. Only the browser half needs a
+browser.
 
 ## Decision: node-only (no jsdom / Testing Library)
 

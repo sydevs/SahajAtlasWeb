@@ -10,7 +10,11 @@ export default {
   title: 'Atoms / Inputs',
 } satisfies StoryDefault
 
-/** Input — a native text input on the shared field chrome (the registration form and date bounds). */
+/** Input — a native text input on the shared field chrome (the registration form and date bounds).
+ *
+ *  Every example carries its own `aria-label`: the atom renders a bare `<input>` and takes its
+ *  name from the caller, so an unlabelled example would document a field no screen reader can
+ *  announce — and the accessibility gate reads these pages (#432). */
 export const Default: Story = () => {
   const [value, setValue] = useState('')
 
@@ -19,6 +23,7 @@ export const Default: Story = () => {
       <StorySection description="A plain text input." title="Default">
         <div className="max-w-sm">
           <Input
+            aria-label="Your name"
             placeholder="Your name"
             value={value}
             onChange={(event) => setValue(event.target.value)}
@@ -31,7 +36,7 @@ export const Default: Story = () => {
         title="Highlighted"
       >
         <div className="max-w-sm">
-          <Input highlight defaultValue="Berlin" />
+          <Input highlight aria-label="City" defaultValue="Berlin" />
         </div>
       </StorySection>
 
@@ -40,19 +45,19 @@ export const Default: Story = () => {
         title="Invalid"
       >
         <div className="max-w-sm">
-          <Input isInvalid aria-describedby="email-error" defaultValue="not-an-email" />
+          <Input isInvalid aria-describedby="email-error" aria-label="Email" defaultValue="not-an-email" />
         </div>
       </StorySection>
 
       <StorySection description="Native `type` variants still apply." title="Date">
         <div className="max-w-sm">
-          <Input type="date" />
+          <Input aria-label="Start date" type="date" />
         </div>
       </StorySection>
 
       <StorySection description="Disabled." title="Disabled">
         <div className="max-w-sm">
-          <Input disabled defaultValue="Read only" />
+          <Input disabled aria-label="Read only field" defaultValue="Read only" />
         </div>
       </StorySection>
 

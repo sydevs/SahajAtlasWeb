@@ -85,11 +85,14 @@ pnpm test:smoke   # smoke specs vs a deployed preview (needs PREVIEW_URL)
 pnpm size         # eager-payload budget (CI gate — run after pnpm build)
 pnpm review:embed # serve dist/ as REAL host-page embeds for browser review (after pnpm build)
 pnpm check:wrangler # both Worker configs, dry run (CI gate — after pnpm build + ladle:build)
+pnpm test:a11y    # the accessibility gate, in a browser (CI gate — after pnpm ladle:build)
 ```
 
-Four CI gates exist because each one once missed something, unnoticed (#99): `pnpm size`
+Five CI gates exist because each one once missed something, unnoticed (#99): `pnpm size`
 (`scripts/AGENTS.md`), Dependency Review and `pnpm check:wrangler`
-(`docs/rules/deployment.md`), and Smoke (`docs/testing.md`). Never import a value across the
+(`docs/rules/deployment.md`), Smoke (`docs/testing.md`), and `pnpm test:a11y`, which drives the
+component library in Chromium and refuses an axe violation, a tap area under 44px or a keyboard
+stop with no focus indicator (#432, `docs/testing.md`). Never import a value across the
 `src/loader/` seam — duplicate it into `literals.ts` and pin both copies in
 `literals.test.ts` (#153).
 

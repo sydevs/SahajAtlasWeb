@@ -54,10 +54,13 @@ export const PROBE_STEP_PX = 1
 /**
  * `region` asks that every node sit inside a landmark. A story renders one component into a
  * bare div, so it would fail for every one of them and say nothing: the widget's own landmark
- * is on the element `Widget.tsx` mounts, which no story renders.
- * `src/Widget.landmark.test.tsx` holds that one instead.
+ * is the `role="region"` on the element `Widget.tsx` mounts, which no story renders.
+ *
+ * `landmark-unique` goes with it, for the same reason pointed the other way: a story page is a
+ * CATALOGUE, so it stacks six copies of a panel the app mounts one of, and six `search`
+ * landmarks named alike is a property of the page rather than of the widget.
  */
-export const DISABLED_RULES = ['region']
+export const DISABLED_RULES = ['region', 'landmark-unique']
 
 /**
  * Elements whose tap area may be under the floor, by selector, each with the reason. WCAG
@@ -346,7 +349,7 @@ async function pageAudit({ disabledRules, minTap, selectors }) {
  * @param {number} count
  * @param {Record<string, string>} resting
  */
-async function keyboardWalk(page, count, resting) {
+async function keyboardWalk(page, count, resting, selectors) {
   const stops = []
 
   await page.evaluate(() => document.body.focus())
@@ -355,10 +358,14 @@ async function keyboardWalk(page, count, resting) {
     await page.keyboard.press('Tab')
 
     /* eslint-disable */
-    const stop = await page.evaluate(() => {
+    const stop = await page.evaluate((exceptions) => {
       const el = document.activeElement
 
       if (!el || el === document.body || el === document.documentElement) return null
+      // The same list the tap probe reads. Radix's focus sentinels are the reason it is
+      // needed here: they are empty, invisible and deliberately focusable, one either side of
+      // every trap, so every drawer and dialog would report two findings nobody can fix.
+      if (exceptions.some((selector) => el.closest(selector))) return { skip: true }
 
       const r = el.getBoundingClientRect()
       const s = getComputedStyle(el)
@@ -383,10 +390,11 @@ async function keyboardWalk(page, count, resting) {
           s.backgroundColor,
         ].join('|'),
       }
-    })
+    }, selectors)
     /* eslint-enable */
 
     if (!stop) break
+    if (stop.skip) continue
 
     stops.push({
       ...stop,
@@ -439,10 +447,11 @@ export async function run({ dir, only, origin }) {
       await page.waitForTimeout(600)
       await page.addScriptTag({ content: axeSource })
 
+      const selectors = TAP_EXCEPTIONS.map(({ selector }) => selector)
       const result = await page.evaluate(pageAudit, {
         disabledRules: DISABLED_RULES,
         minTap: MIN_TAP_PX,
-        selectors: TAP_EXCEPTIONS.map(({ selector }) => selector),
+        selectors,
       })
 
       controls += result.probed.length
@@ -471,7 +480,7 @@ export async function run({ dir, only, origin }) {
       let reached = -1
       const checked = new Set()
 
-      for (const stop of await keyboardWalk(page, result.stops, result.resting)) {
+      for (const stop of await keyboardWalk(page, result.stops, result.resting, selectors)) {
         const at = Number(stop.order)
 
         // `<`, not `<=`: Chromium's own date field moves focus between the segments of ONE

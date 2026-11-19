@@ -43,8 +43,8 @@ export const StoryGridHeaderCell = ({
 }: StoryGridHeaderCellProps) => {
   const className =
     size === 'primary'
-      ? 'px-2 sm:px-3 py-1.5 sm:py-2 text-center text-sm sm:text-base font-semibold text-gray-11'
-      : 'px-2 sm:px-3 py-1.5 sm:py-2 text-center text-xs sm:text-sm font-medium text-gray-11'
+      ? 'px-2 sm:px-3 py-1.5 sm:py-2 pointer-coarse:px-3 pointer-coarse:py-3 text-center text-sm sm:text-base font-semibold text-gray-11'
+      : 'px-2 sm:px-3 py-1.5 sm:py-2 pointer-coarse:px-3 pointer-coarse:py-3 text-center text-xs sm:text-sm font-medium text-gray-11'
 
   // The corner cell above a column of row labels names nothing, and a header cell with no text
   // is a header a screen reader announces as empty. Plain `<td>` is what a corner is.
@@ -83,8 +83,11 @@ export interface StoryGridCellProps {
 
 export const StoryGridCell = ({ children, isLabel = false }: StoryGridCellProps) => {
   const className = isLabel
-    ? 'block sm:table-cell px-2 sm:px-3 py-1.5 sm:py-2 text-xs sm:text-sm font-semibold sm:font-medium text-gray-11'
-    : 'block sm:table-cell px-2 sm:px-3 py-1.5 sm:py-2 text-start sm:text-center'
+    ? 'block sm:table-cell px-2 sm:px-3 py-1.5 sm:py-2 pointer-coarse:px-3 pointer-coarse:py-3 text-xs sm:text-sm font-semibold sm:font-medium text-gray-11'
+    // ⚠ The looser padding on a touch screen is what keeps the demo controls' own 44px tap
+    // areas apart. Packed into a matrix they overlapped, and each cell but the last measured
+    // short — a defect of the page, not of the component it shows (#432).
+    : 'block sm:table-cell px-2 sm:px-3 py-1.5 sm:py-2 pointer-coarse:px-3 pointer-coarse:py-3 text-start sm:text-center'
 
   return (
     <td className={className}>

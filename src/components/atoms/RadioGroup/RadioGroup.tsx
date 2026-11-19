@@ -25,7 +25,9 @@ export type RadioOption = {
 // reads as unchosen (#323).
 const radioOption = tv({
   slots: {
-    card: 'flex cursor-pointer items-center gap-3 rounded border px-3 py-2.5 text-sm transition-colors',
+    // The card IS the radio's tap target — a native mark is 16px, and the label activates the
+    // input it wraps — so the 44px floor sits here on a touch screen (#432).
+    card: 'flex cursor-pointer items-center gap-3 rounded border px-3 py-2.5 text-sm transition-colors pointer-coarse:min-h-11',
     mark: 'h-4 w-4 shrink-0',
   },
   variants: {
@@ -130,7 +132,10 @@ export const RadioGroup = forwardRef<HTMLInputElement, RadioGroupProps>(function
       aria-describedby={describedBy}
       aria-invalid={isInvalid || undefined}
       aria-label={ariaLabel}
-      className={clsx('flex flex-col gap-2', className)}
+      // ⚠ The wider gap on a touch screen is the reveal link's doing: it is one line tall and
+      // carries its own invisible 44px area, which at an 8px gap reached over the card above
+      // and took 5px of it (#432).
+      className={clsx('flex flex-col gap-2 pointer-coarse:gap-4', className)}
       role="radiogroup"
     >
       {visible.map((option, index) => {
@@ -156,7 +161,7 @@ export const RadioGroup = forwardRef<HTMLInputElement, RadioGroupProps>(function
 
       {collapsible && !expanded && (
         <button
-          className="self-start text-sm font-medium text-primary-11 underline underline-offset-2 hover:opacity-hover"
+          className="touch-target relative self-start text-sm font-medium text-primary-11 underline underline-offset-2 hover:opacity-hover"
           type="button"
           onClick={() => setExpanded(true)}
         >

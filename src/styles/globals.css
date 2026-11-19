@@ -265,7 +265,11 @@
   --color-contrast-12: hsl(var(--contrast-12));
 
   --color-danger: var(--red-9);
-  --color-danger-foreground: #ffffff;
+  /* ⚠ Near-black, not white, and measured rather than chosen: `danger-9` is the same red in
+     both themes, and white on it is 3.91:1 — under the 4.5 floor for text, which the selected
+     invalid states of RadioGroup, ToggleGroup and Checkbox all put on it. Black reads 5.37:1
+     on that same red in both themes (#432). */
+  --color-danger-foreground: #111111;
   --color-danger-1: var(--red-1);
   --color-danger-2: var(--red-2);
   --color-danger-3: var(--red-3);

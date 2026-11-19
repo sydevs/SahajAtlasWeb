@@ -125,6 +125,9 @@ export type CheckboxProps = VariantProps<typeof toggle> & {
   isInvalid?: boolean
   /** Id of the field's error/description text, forwarded for screen readers. */
   'aria-describedby'?: string
+  /** The control's name where it has no `children` to take one from. Radix renders a
+   *  `<button>`, so without either it is a control a screen reader announces unnamed. */
+  'aria-label'?: string
   /** Optional label rendered after the control. */
   children?: ReactNode
   className?: string
@@ -142,6 +145,7 @@ export function Checkbox({
   highlight,
   isInvalid,
   'aria-describedby': describedBy,
+  'aria-label': ariaLabel,
   children,
   className,
 }: CheckboxProps) {
@@ -154,6 +158,7 @@ export function Checkbox({
       <RadixCheckbox.Root
         aria-describedby={describedBy}
         aria-invalid={isInvalid || undefined}
+        aria-label={ariaLabel}
         checked={checked}
         className={root({ className: children ? undefined : className })}
         defaultChecked={defaultChecked}
@@ -173,6 +178,7 @@ export function Checkbox({
       <RadixSwitch.Root
         aria-describedby={describedBy}
         aria-invalid={isInvalid || undefined}
+        aria-label={ariaLabel}
         checked={checked}
         className={root({ className: children ? undefined : className })}
         defaultChecked={defaultChecked}
@@ -193,7 +199,10 @@ export function Checkbox({
   return (
     <label
       className={clsx(
-        'inline-flex items-center gap-2',
+        // The row is the tap target — the label activates the control it wraps — so it holds
+        // the 44px floor on a touch screen, which also keeps the control's own area inside
+        // the row rather than over the one above (#432).
+        'inline-flex items-center gap-2 pointer-coarse:min-h-11',
         disabled ? 'cursor-not-allowed text-gray-11' : 'cursor-pointer',
         className,
       )}

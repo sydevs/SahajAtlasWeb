@@ -192,7 +192,9 @@ function CalendarControls({ controls }: { controls: CalendarControlsPlugin }) {
               anything under 16px is the defect, so the floor goes on now rather than later. */}
           <div className="relative">
             <button
-              className="inline-flex items-center rounded px-1.5 py-1 text-sm font-medium hover:bg-primary-3"
+              // A drawn 44px on a touch screen, like the arrows either side (#432): an
+              // invisible tap area would reach over them at this 2px gap, and they would take it.
+              className="inline-flex items-center rounded px-1.5 py-1 text-sm font-medium pointer-coarse:min-h-11 pointer-coarse:px-3 hover:bg-primary-3"
               type="button"
               onClick={() => dateInputRef.current?.showPicker?.()}
             >

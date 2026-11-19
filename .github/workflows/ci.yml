@@ -42,6 +42,22 @@ jobs:
         run: pnpm size
       - run: pnpm ladle:build # fail the gate on broken component stories
 
+      # The accessibility gate (#432). It drives the library `pnpm ladle:build` just wrote, in
+      # Chromium at phone size with a coarse pointer, and fails on an axe violation, a tap area
+      # under 44px measured by hit test, or a keyboard stop that is invisible or paints no focus.
+      #
+      # ⚠ It is a step INSIDE this job, not a job of its own, and that is what makes it block: the
+      # ruleset requires this job's check by name (`Lint, Typecheck & Build`), and a new job would
+      # report a check nothing requires until somebody edits the ruleset in a browser. Keep the
+      # job's `name:` byte-identical for the same reason.
+      #
+      # ⚠ It must follow `pnpm ladle:build`: the gate reads `build/`, never the dev server, so a
+      # story that failed to compile cannot pass by never having been opened.
+      - name: Install Chromium for the accessibility gate
+        run: pnpm exec playwright install --with-deps chromium
+      - name: Accessibility gate
+        run: pnpm test:a11y
+
       # Validates BOTH Worker configs against the pinned Wrangler's own schema — the app's
       # `wrangler.jsonc` and the playground's `wrangler.design.jsonc` (#297). Nothing else
       # in this repo deploys from either, because Workers Builds holds the dashboard's copy

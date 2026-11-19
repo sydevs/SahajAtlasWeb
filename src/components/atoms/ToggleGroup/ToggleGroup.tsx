@@ -23,7 +23,9 @@ const toggleGroup = tv({
       // Segmented: natural-width items in a single row, flush with overlapping
       // (collapsed) borders, only the outer corners rounded.
       true: {
-        item: '-ms-px rounded-none first:ms-0 first:rounded-s last:rounded-e',
+        // ⚠ One pixel over the 44px floor on a touch screen: `-ms-px` collapses the shared
+        // border, so the neighbour owns that column and a 44px item answers to 43 (#432).
+        item: '-ms-px rounded-none pointer-coarse:min-w-[45px] first:ms-0 first:rounded-s last:rounded-e',
       },
     },
     // Active-filter tint. This colours the UNSELECTED items primary. The
