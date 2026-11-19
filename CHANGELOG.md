@@ -442,16 +442,16 @@ no-referrer`.
 
 ### Fixed
 
-- **A map that opens in Japanese now draws disputed borders in Mapbox's Japan worldview.** The
-  widget asks Mapbox for a worldview by the language it starts in, and Japanese was listed under
-  a code no locale uses, so those visitors got the default (US) one. Chinese and the Indian
-  languages already had theirs and are unchanged. The worldview is picked when the map is built,
-  so switching language mid-visit still does not redraw a border. Nothing to change in your
-  snippet or your CSP.
+- **A map that opens in Japanese now asks Mapbox for its Japan worldview**, which decides how
+  disputed borders are drawn. The widget picks a worldview by the language it starts in, and
+  Japanese was listed under a code no locale uses, so those visitors got the default (US) one.
+  Chinese and the Indian languages already had theirs and are unchanged. The worldview is picked
+  when the map is built, so switching language mid-visit still does not redraw a border. Nothing
+  to change in your snippet or your CSP.
 
-- **A cluster tapped after the bottom sheet moved now opens into the map the sheet leaves free.**
-  On a phone, a view that leaves the camera alone — the calendar, or the online classes opened
-  from another view — kept the spacing from before the sheet was dragged. The tap then zoomed the
+- **A cluster tapped after the bottom sheet moved now zooms in around where the sheet is.** On a
+  phone, a view that leaves the camera alone — the calendar, or the online classes opened from
+  another view — kept the spacing from before the sheet was dragged, so the tap could zoom the
   cluster in under the sheet, or far above it, until the map was next moved by hand. Nothing to
   change in your snippet or your CSP.
 
