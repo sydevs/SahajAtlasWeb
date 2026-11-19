@@ -347,6 +347,7 @@ const SHELL_PACKAGES = [
   'react-i18next',
   'react-responsive',
   'react-router',
+  'tailwind-merge',
   'tailwind-variants',
   'zod',
   'zustand',
