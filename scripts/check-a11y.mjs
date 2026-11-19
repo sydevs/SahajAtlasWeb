@@ -77,9 +77,9 @@ export const TAP_EXCEPTIONS = [
     reason: "Mapbox's own attribution control, and its links. Vendor DOM, vendor geometry.",
   },
   {
-    selector: '[data-story-scaffold]',
+    selector: '[data-radix-focus-guard]',
     reason:
-      'The story pages’ own demo chrome (grids, sections). It is not shipped to a host page.',
+      'Radix\'s own focus sentinels. They are deliberately empty and focusable, one either side of a trap.',
   },
 ]
 
@@ -265,9 +265,17 @@ async function pageAudit({ disabledRules, minTap, selectors }) {
   for (const el of root.querySelectorAll(INTERACTIVE)) {
     if (el.disabled || !visible(el) || exempt(el)) continue
 
+    // Centred first. A probe that leaves the viewport answers `null`, so a control resting
+    // against an edge would measure short for where it happened to sit rather than for how
+    // big it is.
+    el.scrollIntoView({ block: 'center', inline: 'center' })
+
     const r = el.getBoundingClientRect()
     const cx = Math.round(r.left + r.width / 2)
     const cy = Math.round(r.top + r.height / 2)
+    // A label activates the control it names, so the label's own box is part of the target —
+    // which is the whole tap area of a checkbox or a radio, whose drawn box is 16px by design.
+    const owners = [el, ...(el.labels ?? [])]
     const owns = (x, y) => {
       if (x < 0 || y < 0 || x > window.innerWidth - 1 || y > window.innerHeight - 1) return false
 
@@ -276,7 +284,7 @@ async function pageAudit({ disabledRules, minTap, selectors }) {
       // The control itself, or something drawn inside it — a glyph, a badge, its own `::after`
       // tap area, which hit-tests as the element. An ANCESTOR is not a hit: accepting one
       // would let every control pass, since the page always has a box under the probe.
-      return !!hit && (hit === el || el.contains(hit))
+      return !!hit && owners.some((owner) => hit === owner || owner.contains(hit))
     }
 
     // A control the page does not hand back at its own centre is covered by something else.
@@ -297,9 +305,21 @@ async function pageAudit({ disabledRules, minTap, selectors }) {
     probed.push({ el: describe(el), w: axis(true), h: axis(false) })
   }
 
-  const tabbable = [...root.querySelectorAll(`${INTERACTIVE},[tabindex]`)].filter(
-    (el) => !el.disabled && el.tabIndex >= 0 && visible(el) && !exempt(el),
-  )
+  // Every element is stamped with its position in document order, and the walk reads the stamp
+  // back off whatever Tab focused. That is what lets the order be checked without ALSO
+  // claiming to know which elements Tab should stop on: a roving-tabindex group (every Radix
+  // toggle group, menu and select here) deliberately exposes one stop for the whole set, so a
+  // list of expected stops would be wrong by construction.
+  const order = new Map()
+  const resting = new Map()
+  let index = 0
+
+  for (const el of root.querySelectorAll('*')) {
+    el.setAttribute('data-a11y-order', String(index))
+    order.set(el, index)
+    resting.set(String(index), paint(el))
+    index += 1
+  }
 
   return {
     violations: axeResults.violations.map((v) => ({
@@ -310,26 +330,28 @@ async function pageAudit({ disabledRules, minTap, selectors }) {
       first: v.nodes[0]?.html.slice(0, 160) ?? '',
     })),
     probed,
-    tabbable: tabbable.map(describe),
-    resting: tabbable.map(paint),
+    resting: Object.fromEntries(resting),
+    stops: [...root.querySelectorAll(`${INTERACTIVE},[tabindex]`)].filter(
+      (el) => !el.disabled && el.tabIndex >= 0 && visible(el) && !exempt(el),
+    ).length,
   }
 }
 /* eslint-enable */
 
 /**
- * Presses Tab once per known control and reports where focus landed, whether that element is
- * visible, and whether focus changed how it is painted.
+ * Presses Tab once per control the page offers and reports where focus landed: its position in
+ * document order, whether it is visible there, and whether focus changed how it is painted.
  *
  * @param {import('playwright').Page} page
- * @param {string[]} expected
- * @param {string[]} resting
+ * @param {number} count
+ * @param {Record<string, string>} resting
  */
-async function keyboardWalk(page, expected, resting) {
+async function keyboardWalk(page, count, resting) {
   const stops = []
 
   await page.evaluate(() => document.body.focus())
 
-  for (let i = 0; i < expected.length; i += 1) {
+  for (let i = 0; i < count; i += 1) {
     await page.keyboard.press('Tab')
 
     /* eslint-disable */
@@ -351,6 +373,7 @@ async function keyboardWalk(page, expected, resting) {
 
       return {
         el: `${el.tagName.toLowerCase()}${el.id ? `#${el.id}` : ''} "${name}"`,
+        order: el.getAttribute('data-a11y-order'),
         visible: r.width > 0 && r.height > 0 && s.visibility !== 'hidden' && s.opacity !== '0',
         painted: [
           s.outlineWidth,
@@ -364,7 +387,14 @@ async function keyboardWalk(page, expected, resting) {
     /* eslint-enable */
 
     if (!stop) break
-    stops.push({ ...stop, expected: expected[i], indicated: stop.painted !== resting[i] })
+
+    stops.push({
+      ...stop,
+      // An element the audit never stamped is one the page added after it ran — a portal that
+      // opened on focus. It has no resting style to compare against, so the indicator check
+      // abstains rather than guessing.
+      indicated: resting[stop.order] === undefined || stop.painted !== resting[stop.order],
+    })
   }
 
   return stops
@@ -438,29 +468,44 @@ export async function run({ dir, only, origin }) {
         }
       }
 
-      for (const stop of await keyboardWalk(page, result.tabbable, result.resting)) {
-        if (stop.el !== stop.expected) {
+      let reached = -1
+      const checked = new Set()
+
+      for (const stop of await keyboardWalk(page, result.stops, result.resting)) {
+        const at = Number(stop.order)
+
+        // `<`, not `<=`: Chromium's own date field moves focus between the segments of ONE
+        // input, so the same element is a stop twice in a row, and that is not an order defect.
+        if (Number.isFinite(at) && at < reached) {
           failures.push({
             story: id,
             kind: 'tab-order',
-            detail: `Tab reached ${stop.el} where the DOM puts ${stop.expected}`,
+            detail: `Tab went backwards to ${stop.el}, which the DOM puts before the previous stop`,
           })
-          // One report per story. After the first swap every later stop disagrees too, and a
-          // list of those would bury the one place the order actually diverged.
+          // One report per story. Past the first jump every later stop is measured against a
+          // sequence that has already diverged, and the list would bury the one place it did.
           break
         }
+
+        reached = Number.isFinite(at) ? at : reached
 
         if (!stop.visible) {
           failures.push({ story: id, kind: 'focus-hidden', detail: `${stop.el} is not visible` })
         }
 
-        if (!stop.indicated) {
+        // One element can be several stops — Chromium walks the segments of a date input one
+        // Tab at a time without leaving it, and only the first of those carries
+        // `:focus-visible`. The question is whether the CONTROL shows focus, so it is asked
+        // once per control.
+        if (!stop.indicated && !checked.has(stop.order)) {
           failures.push({
             story: id,
             kind: 'focus-indicator',
             detail: `${stop.el} paints nothing when it is focused`,
           })
         }
+
+        checked.add(stop.order)
       }
     } catch (error) {
       failures.push({ story: id, kind: 'render', detail: String(error).split('\n')[0] })

@@ -21,10 +21,20 @@ export const fieldChrome = tv({
   base: 'w-full rounded border bg-background px-3 field-size text-foreground transition-colors outline-none focus-visible:ring-2 focus-visible:ring-focus disabled:opacity-disabled',
   variants: {
     isInvalid: { true: 'border-danger-7', false: 'border-gray-7' },
-    /** A trigger lays its value out against the chevron. A plain input does not. */
-    trigger: { true: 'inline-flex h-10 items-center justify-between gap-2', false: 'h-10' },
+    /**
+     * A trigger lays its value out against the chevron. A plain input does not.
+     *
+     * ⚠ The 44px floor is a real height here, not the `touch-target` utility the Button atom
+     * takes: an `<input>` renders no `::after`, so the invisible tap area has nowhere to go
+     * (#432). It is a drawn 4px on a touch screen alone, where the keyboard covers the layout
+     * anyway — `pointer-coarse` is the same hardware question `field-size` above asks.
+     */
+    trigger: {
+      true: 'inline-flex h-10 items-center justify-between gap-2 pointer-coarse:h-11',
+      false: 'h-10 pointer-coarse:h-11',
+    },
     /** Textareas grow with their content instead of holding the 40px field height. */
-    multiline: { true: 'h-auto py-2' },
+    multiline: { true: 'h-auto py-2 pointer-coarse:h-auto' },
     /** Active-filter tint: a primary background makes an in-use field stand out. */
     highlight: { true: 'border-primary-7 bg-primary-2' },
   },

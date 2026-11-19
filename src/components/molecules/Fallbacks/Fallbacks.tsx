@@ -664,11 +664,16 @@ export function FallbackActions({
         // off. This row has buttons instead.) The accessible name states what the
         // control does.
         <Link
-          aria-label={
-            contact.name
-              ? `${t('event.actions.contact', { defaultValue: 'Contact' })} — ${contact.name}`
-              : t('event.actions.contact', { defaultValue: 'Contact' })
-          }
+          // The number is in the name as well as on screen: it is this link's visible
+          // text, and a name that dropped it would leave a speech-input viewer with
+          // nothing to say (WCAG 2.5.3).
+          aria-label={[
+            t('event.actions.contact', { defaultValue: 'Contact' }),
+            contact.name,
+            contact.phone,
+          ]
+            .filter(Boolean)
+            .join(' — ')}
           className={callSkin}
           color="neutral"
           // The code strips whitespace from the URI, but keeps it in the label. RFC

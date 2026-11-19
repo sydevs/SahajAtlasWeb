@@ -43,11 +43,13 @@ export function ListItem({ label, subtitle, count, href, icon }: ListItemProps) 
           {subtitle && <div className="mt-0.5 text-md font-normal">{subtitle}</div>}
         </div>
         {/* Both step down from the title, but not to the same place. The
-            count is still information, so it keeps a readable step. The
-            chevron only restates what tapping the row already does, so it
-            goes one step further. The title stays `text-foreground`
-            (gray-12), and remains the loudest thing in the row. */}
-        <div className="me-1 text-end text-gray-10">{count}</div>
+            count is still information, so it keeps gray-11, the ramp's
+            readable low-contrast TEXT step — gray-10 is a hover solid and
+            measured under 4.5:1 here (#432). The chevron only restates what
+            tapping the row already does, so it goes one step further. The
+            title stays `text-foreground` (gray-12), and remains the loudest
+            thing in the row. */}
+        <div className="me-1 text-end text-gray-11">{count}</div>
         <ChevronRight className="text-gray-9 rtl:-scale-x-100" size={20} />
       </Link>
     </li>

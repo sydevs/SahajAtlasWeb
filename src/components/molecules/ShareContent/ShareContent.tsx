@@ -10,7 +10,7 @@ import { useWebShare } from '@/hooks/use-web-share'
 import { platformsForCountry } from '@/lib/share/platforms'
 
 const copyField = tv({
-  base: 'w-full truncate rounded px-3 py-2 text-start text-sm text-secondary-11 transition-colors select-all',
+  base: 'touch-target relative w-full truncate rounded px-3 py-2 text-start text-sm text-secondary-11 transition-colors select-all',
   variants: { copied: { true: 'bg-secondary-5', false: 'bg-secondary-3' } },
   defaultVariants: { copied: false },
 })
@@ -35,7 +35,9 @@ export function CopyField({ value }: { value: string }) {
   return (
     <div className="flex flex-col gap-1">
       <button
-        aria-label={t('share.copy_link')}
+        // The URL is the button's visible text, so the name carries it too: a name that
+        // omitted it would leave a speech-input viewer with nothing to say (WCAG 2.5.3).
+        aria-label={`${t('share.copy_link')}: ${value}`}
         className={copyField({ copied })}
         title={value}
         type="button"
