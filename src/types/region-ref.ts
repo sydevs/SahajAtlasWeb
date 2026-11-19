@@ -1,3 +1,6 @@
+import type { Region as SahajCloudRegion } from '@/types/payload/payload-types'
+import type { SahajCloudFields, SameAsSahajCloud } from './pinned'
+
 import z from 'zod'
 
 // Low-level region primitives referenced by *events* and *clients* (which embed a
@@ -14,6 +17,9 @@ import z from 'zod'
 export const RegionLevelSchema = z.enum(['country', 'region', 'city', 'venue'])
 export type RegionLevel = z.infer<typeof RegionLevelSchema>
 
+// Exported because nothing consumes it: the type-checker reading it IS the check.
+export type RegionPinnedToSahajCloud = [SameAsSahajCloud<RegionLevel, SahajCloudRegion['level']>]
+
 // Populated region reference — the subset selected in the geojson feed's
 // `populate[regions]` and on raw region reads. `webPath` is the server-computed
 // canonical route (ancestor slug chain incl. self). `webUrl` is its absolute form.
@@ -26,5 +32,5 @@ export const RegionRefSchema = z.object({
   subtitle: z.string().nullish(),
   webPath: z.string().nullish(),
   webUrl: z.string().nullish(),
-})
+} satisfies SahajCloudFields<SahajCloudRegion>)
 export type RegionRef = z.infer<typeof RegionRefSchema>

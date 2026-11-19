@@ -1,8 +1,12 @@
-import type { Event as CmsEvent } from '@/types/payload/payload-types'
+import type { Event as CmsEvent, Image as SahajCloudImage } from '@/types/payload/payload-types'
+import type { SahajCloudFields, SameAsSahajCloud } from './pinned'
 
 import z from 'zod'
 
 import { RegionRefSchema } from './region-ref'
+
+type SahajCloudAddress = NonNullable<CmsEvent['address']>
+type SahajCloudSchedule = NonNullable<CmsEvent['schedule']>
 
 export const EventTypeSchema = z.enum(['offline', 'online'])
 export type EventType = z.infer<typeof EventTypeSchema>
@@ -21,7 +25,7 @@ export type Weekday = z.infer<typeof WeekdaySchema>
 export const ScheduleExclusionSchema = z.object({
   startDate: z.coerce.date(),
   endDate: z.coerce.date().nullish(),
-})
+} satisfies SahajCloudFields<NonNullable<SahajCloudSchedule['exclusions']>[number]>)
 export type ScheduleExclusion = z.infer<typeof ScheduleExclusionSchema>
 
 // Offline event location (`event.address` group). All fields are nullable. The
@@ -36,7 +40,7 @@ export const EventAddressSchema = z.object({
   city: z.string().nullish(),
   latitude: z.number().nullish(),
   longitude: z.number().nullish(),
-})
+} satisfies SahajCloudFields<SahajCloudAddress>)
 export type EventAddress = z.infer<typeof EventAddressSchema>
 
 // `event.schedule` group. `upcomingDates` is a virtual field of ISO date strings
@@ -64,7 +68,7 @@ export const EventScheduleSchema = z.object({
   exclusions: z.array(ScheduleExclusionSchema).nullish(),
   upcomingDates: z.array(z.coerce.date()).nullish(),
   icalRule: z.string().nullish(),
-})
+} satisfies SahajCloudFields<SahajCloudSchedule>)
 export type EventSchedule = z.infer<typeof EventScheduleSchema>
 
 // Populated `images` upload (the SahajCloud `Image` collection). `url` is a
@@ -74,7 +78,7 @@ export type EventSchedule = z.infer<typeof EventScheduleSchema>
 export const EventImageSchema = z.object({
   url: z.string().nullish(),
   alt: z.string().nullish(),
-})
+} satisfies SahajCloudFields<SahajCloudImage>)
 export type EventImage = z.infer<typeof EventImageSchema>
 
 // The registration questions a manager can enable per event — SahajCloud's
@@ -168,19 +172,24 @@ export const AgnosticFeedEventSchema = z.object({
   // Server-computed canonical route (region chain + `/<id>`). The list/map
   // navigate to it directly.
   webPath: z.string().nullish(),
-})
+} satisfies SahajCloudFields<CmsEvent>)
 export type AgnosticFeedEvent = z.infer<typeof AgnosticFeedEventSchema>
 
 // The agnostic feed event with its localized `title` joined back in (by id) — the
 // shape map/list view-models build on. `title` is the ONLY localized feed field.
-export const FeedEventSchema = AgnosticFeedEventSchema.extend({ title: z.string() })
+export const FeedEventSchema = AgnosticFeedEventSchema.extend({
+  title: z.string(),
+} satisfies SahajCloudFields<CmsEvent>)
 export type FeedEvent = z.infer<typeof FeedEventSchema>
 
 // The per-locale id→title sliver from `GET /api/events` (select `title` only), kept
 // separate from the feed so a language switch refetches only this (~5% of the feed).
 // `title` is tolerant: a single event with a null localized title degrades to a
 // blank card (coalesced in `getEventTitles`) rather than failing the whole read.
-export const EventTitleSchema = z.object({ id: z.number(), title: z.string().nullish() })
+export const EventTitleSchema = z.object({
+  id: z.number(),
+  title: z.string().nullish(),
+} satisfies SahajCloudFields<CmsEvent>)
 export type EventTitle = z.infer<typeof EventTitleSchema>
 
 // Derived list/map view-model: a feed event plus its route and (when sorting by
@@ -230,8 +239,37 @@ export const EventDocSchema = z.object({
   // rows, so a non-http value dropping to null costs those rows and not the
   // whole event read. Absent for an unpublished class, and on every list read.
   calendarFeedUrl: SafeUrlSchema,
-})
+} satisfies SahajCloudFields<CmsEvent>)
 export type EventDoc = z.infer<typeof EventDocSchema>
+
+/**
+ * Every enum above, held to the synced SahajCloud union it mirrors.
+ *
+ * `languages` and `verificationStage` are open strings on purpose and are not here.
+ * `UNVERIFIED_STAGE` pins the one stage this code compares against.
+ *
+ * It is exported because nothing consumes it. The type-checker reading it IS the check, and an
+ * unexported one would fail `noUnusedLocals` instead of the drift it is watching for.
+ */
+export type EventPinnedToSahajCloud = [
+  SameAsSahajCloud<EventType, CmsEvent['eventType']>,
+  SameAsSahajCloud<RecurrenceType, NonNullable<SahajCloudSchedule['recurrenceType']>>,
+  SameAsSahajCloud<Weekday, NonNullable<SahajCloudSchedule['weekdays']>[number]>,
+  SameAsSahajCloud<Weekday, NonNullable<SahajCloudSchedule['weekdayOfMonth']>>,
+  SameAsSahajCloud<
+    NonNullable<EventSchedule['monthlyMode']>,
+    NonNullable<SahajCloudSchedule['monthlyMode']>
+  >,
+  SameAsSahajCloud<
+    NonNullable<EventSchedule['weekNumber']>,
+    NonNullable<SahajCloudSchedule['weekNumber']>
+  >,
+  SameAsSahajCloud<
+    NonNullable<EventSchedule['endingType']>,
+    NonNullable<SahajCloudSchedule['endingType']>
+  >,
+  SameAsSahajCloud<EventDoc['registrationMode'], CmsEvent['registrationMode']>,
+]
 
 // Derived event-detail view-model: the document plus its route.
 export const EventSchema = EventDocSchema.extend({

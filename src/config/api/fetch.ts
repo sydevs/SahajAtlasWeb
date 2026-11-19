@@ -1,7 +1,10 @@
 import type {
+  AgnosticFeedEvent,
   AtlasConfig,
   Event,
+  EventAddress,
   EventDoc,
+  EventSchedule,
   EventSlim,
   GeoFeature,
   Geojson,
@@ -73,8 +76,23 @@ const REGION_POPULATE = {
   regions: { slug: true, name: true, level: true, subtitle: true },
 } as const
 
+/**
+ * A select over exactly the fields `AgnosticFeedEventSchema` parses, `id` aside, which always
+ * comes back. A field the schema parses and this omits never arrives. One this adds is fetched
+ * and then stripped.
+ *
+ * The two groups may select fewer members than their schema parses: the feed leaves out what
+ * only the event page reads.
+ *
+ * ⚠ The select reaches `requestJson` as an untyped query string, so this type is the only thing
+ * that checks it. The schema's own keys are pinned to the synced SahajCloud types in turn.
+ */
+type FeedSelect = Record<Exclude<keyof AgnosticFeedEvent, 'id' | 'address' | 'schedule'>, true> & {
+  address: Partial<Record<keyof EventAddress, true>>
+  schedule: Partial<Record<keyof EventSchedule, true>>
+}
+
 // These are the event fields the locale-agnostic geojson feed selects.
-// This list must match `AgnosticFeedEventSchema`.
 // `title` is the only localized field, so it is not in this list.
 // `loadEventTitles` joins the title in later, per locale.
 // `webPath` is the canonical route the server computes. The app navigates to it directly.
@@ -120,7 +138,7 @@ const FEED_SELECT = {
   // reads the same.
   verificationStage: true,
   webPath: true,
-}
+} as const satisfies FeedSelect
 
 // ── Wholesale region tree (agnostic, cache-once) ────────────────────────────────
 

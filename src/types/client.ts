@@ -1,3 +1,6 @@
+import type { Client as SahajCloudClient } from '@/types/payload/payload-types'
+import type { SahajCloudFields } from './pinned'
+
 import z from 'zod'
 
 import { RegionRefSchema } from './region-ref'
@@ -18,6 +21,9 @@ import { RegionRefSchema } from './region-ref'
 // serving an iframe. That is the whole argument for `src/loader/detect.ts`.
 export const ClientSchema = z.object({
   id: z.number(),
+  // ⚠ Not a field of the synced `Client`, which has `label` (internal) and `title` (the public
+  // name). It is admitted by name below so the rest of the shape stays pinned. Whether
+  // `/clients/me` still answers one decides whether `EventMetadata` ever names an organizer.
   name: z.string().nullish(),
   color1: z.string().nullish(),
   color2: z.string().nullish(),
@@ -38,9 +44,12 @@ export const ClientSchema = z.object({
    */
   canonical: z
     .object({
+      // ⚠ Not a field of the synced group, which has `owned`. Nothing reads it.
       enabled: z.boolean().nullish(),
       embed: z.string().nullish(),
+    } satisfies SahajCloudFields<NonNullable<SahajCloudClient['canonical']>> & {
+      enabled?: z.ZodTypeAny
     })
     .nullish(),
-})
+} satisfies SahajCloudFields<SahajCloudClient> & { name?: z.ZodTypeAny })
 export type Client = z.infer<typeof ClientSchema>
