@@ -108,7 +108,7 @@ const uploadsSourcemaps = (command: 'build' | 'serve') =>
  *    `window.SENTRY_RELEASE` onto the host page. The installed plugin
  *    source confirms the snippet: `var e = window…;
  *    e.SENTRY_RELEASE={id:"…"}`. Issue #108 refused this mirror hazard.
- *    It pinned `release: undefined`, so a host's own global could not
+ *    It pinned our `release` to nothing, so a host's own global could not
  *    stamp our events. Injecting our own release would let us stamp
  *    theirs instead, since a site running its own Sentry reads that
  *    global by default. Frames resolve by debug ID instead, which needs
@@ -116,7 +116,8 @@ const uploadsSourcemaps = (command: 'build' | 'serve') =>
  *  - `telemetry` defaults to true, and it posts build data to Sentry
  *    from inside the deploy's critical path. Nothing in that data is
  *    secret, but an outbound call from the deploy path is still a
- *    decision worth making on purpose.
+ *    decision worth making on purpose. The CLI the plugin drives keeps a
+ *    telemetry switch of its own, set below.
  *
  * This config DOES write two things onto the host page, and accepts that
  * on purpose. Refusing `release.inject` for writing a global would be
@@ -149,6 +150,12 @@ function sentrySourcemapUpload(command: 'build' | 'serve'): PluginOption {
         'Set all three to upload source maps, or none to build without them.',
     )
   }
+
+  // `telemetry: false` reaches only the plugin's own client. The `sentry`
+  // CLI it runs in-process reports every command to Sentry's telemetry
+  // project — upload directory and git SHA included — unless this is set.
+  // No plugin option reaches it, and the CLI reads `process.env` per call.
+  process.env.SENTRY_CLI_NO_TELEMETRY = '1'
 
   return sentryVitePlugin({
     org,
@@ -291,11 +298,13 @@ export default defineConfig(({ command }) => ({
     stripDsStore(),
     circleFlags(),
     // This plugin's position in the array does not set its order.
-    // `sentryVitePlugin` returns `enforce: 'pre'`, so Vite hoists it
-    // ahead of every plugin above, regardless of array order. What makes
-    // that safe is the build phase, not the order. It uploads and
-    // deletes in `writeBundle`, after Rollup has already written every
-    // file to disk. So no earlier plugin's output can be missed.
+    // `sentryVitePlugin` returns an `enforce: 'pre'` plugin, which Vite
+    // hoists ahead of every plugin above, plus an `enforce: 'post'` one
+    // that stages maps the plugin itself switched on — none here, since
+    // `build.sourcemap` is set. What makes that safe is the build phase,
+    // not the order. It uploads and deletes in `writeBundle`, after
+    // Rollup has already written every file to disk. So no earlier
+    // plugin's output can be missed.
     // (`flattenEntryImports` only appends to the tail of `embed.js`,
     // inside `generateBundle`, which shifts no mappings before it.)
     sentrySourcemapUpload(command),

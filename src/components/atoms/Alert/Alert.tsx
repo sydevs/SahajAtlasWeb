@@ -1,7 +1,7 @@
 import { type ReactNode } from 'react'
-import { tv, type VariantProps } from 'tailwind-variants'
 import { Info, X } from 'lucide-react'
 
+import { tv, type VariantProps } from '@/styles/tv'
 import { Button } from '@/components/atoms/Button'
 
 // A status banner. It replaces NextUI's Alert and uses the Radix-semantic tokens.

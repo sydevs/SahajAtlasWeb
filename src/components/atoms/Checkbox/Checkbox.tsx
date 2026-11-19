@@ -2,8 +2,9 @@ import { type ReactNode } from 'react'
 import clsx from 'clsx'
 import * as RadixCheckbox from '@radix-ui/react-checkbox'
 import * as RadixSwitch from '@radix-ui/react-switch'
-import { tv, type VariantProps } from 'tailwind-variants'
 import { Check } from 'lucide-react'
+
+import { tv, type VariantProps } from '@/styles/tv'
 
 // A two-in-one boolean control. The default `switch` appearance is the brand
 // track/thumb toggle. It is unchanged from the former Switch atom, with

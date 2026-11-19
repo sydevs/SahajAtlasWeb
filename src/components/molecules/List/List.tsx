@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react'
 
-import { tv } from 'tailwind-variants'
+import { tv } from '@/styles/tv'
 
 // The list row's chrome and its horizontal gutter live here, not in each
 // card. EventListItem and ListItem used to hand-maintain the same class

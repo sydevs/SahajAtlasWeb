@@ -1,4 +1,5 @@
-import { Event as EventSchema } from 'schema-dts'
+import type { Event as EventSchema } from 'schema-dts'
+
 import { useQuery } from '@tanstack/react-query'
 import { Helmet } from 'react-helmet-async'
 import { useMemo } from 'react'

@@ -1,10 +1,10 @@
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { tv } from 'tailwind-variants'
 import { Share } from 'lucide-react'
 
 import { PlatformButton } from './platform-buttons'
 
+import { tv } from '@/styles/tv'
 import { Button } from '@/components/atoms/Button'
 import { useWebShare } from '@/hooks/use-web-share'
 import { platformsForCountry } from '@/lib/share/platforms'

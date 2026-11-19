@@ -1,6 +1,6 @@
 import { type ReactNode, forwardRef } from 'react'
-import { tv, type VariantProps } from 'tailwind-variants'
 
+import { tv, type VariantProps } from '@/styles/tv'
 import { controlSurface } from '@/components/atoms/Button'
 import { atlasError, reportInternalError } from '@/lib/report'
 import { isSafeHref } from '@/lib/shape'

@@ -1,5 +1,6 @@
 import { LoaderCircle } from 'lucide-react'
-import { tv, type VariantProps } from 'tailwind-variants'
+
+import { tv, type VariantProps } from '@/styles/tv'
 
 // Radix Primitives ships no spinner. Only Radix Themes does. So this uses
 // Lucide's `LoaderCircle`, with `animate-spin` and the colour driven by

@@ -1,7 +1,7 @@
 import React from 'react'
-import { tv, type VariantProps } from 'tailwind-variants'
 import { X } from 'lucide-react'
 
+import { tv, type VariantProps } from '@/styles/tv'
 import { IconSvgProps } from '@/types'
 
 // A compact, uppercase label. It is the design system's reference

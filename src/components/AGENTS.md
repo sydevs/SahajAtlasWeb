@@ -32,9 +32,10 @@ Before hand-rolling UI, check in this order:
 ## Styling
 
 - Tailwind 4 utility classes are the default. For components with variants
-  (size, color, state), use **`tailwind-variants`** (`tv(...)`) instead of ad-hoc
-  `clsx` string concatenation — it is already a dependency and matches the Radix +
-  Tailwind styling model. See `src/components/atoms/Chip/Chip.tsx` for the reference.
+  (size, color, state), use **`tailwind-variants`** (`tv(...)`, imported from
+  `@/styles/tv`) instead of ad-hoc `clsx` string concatenation — it is already a dependency
+  and matches the Radix + Tailwind styling model. See `src/components/atoms/Chip/Chip.tsx`
+  for the reference.
 - `clsx` is fine for simple conditional class joins.
 - Global styles and Tailwind layers live in `src/styles/globals.css`. The build hands
   every CSS chunk to `src/styles/sheet.ts` (`vite-plugin-css-injected-by-js` with an

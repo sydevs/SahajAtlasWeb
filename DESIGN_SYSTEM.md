@@ -231,6 +231,10 @@ Folder-per-component, not re-exported through the component barrels.
   **`tailwind-variants` (`tv()`)** instead of ad-hoc string concatenation — it is
   already a dependency and matches the Radix + Tailwind styling model. `Chip.tsx` is the
   reference implementation (variant-driven content/colour styling).
+- **Import `tv` and `VariantProps` from `@/styles/tv`, never from `tailwind-variants` or a
+  subpath of it** — lint refuses them all. `@/styles/tv` is the package's lite runtime merging
+  through `tailwind-merge`. The package's default entry ships a second merge engine (about 12 KiB
+  gzipped beside this one), and its bare `lite` entry merges no conflicting classes at all.
 - **A skin more than one component spells is one recipe, not a copy each, and it lives in the
   atom that owns the chrome.** `fieldChrome` (`atoms/Select`) covers the field controls,
   `panelChrome` beside it the panel a Select or Combobox trigger opens, `listRow` the card rows,
