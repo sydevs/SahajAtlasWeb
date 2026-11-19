@@ -43,6 +43,13 @@ cover everything a host would notice since the widget was first deployed.
 
 ### Changed
 
+- **The widget is about 6 KiB heavier for a visitor who reveals it.** Its animation library,
+  framer-motion, moved from 11 to 14. What your page loads up front is unchanged: the ~3 KiB
+  loader. The widget itself, fetched as the embed comes into view, grows from 291.7 to 297.3 KiB
+  gzipped (290.6 to 296.3 KiB standalone). The peek strips, the drawer's cross-fade and the
+  compact card's fade use the same timings, and `prefers-reduced-motion` is honoured as before.
+  **No parameter, origin, CSP or Permissions-Policy change.**
+
 - **The widget's first download is about 44 KiB gzipped smaller** ([#442]), 336 → 292 KiB for the embed.
   The filter form, the settings menu and the class cards were riding in it, though only the open
   interface draws them. They now arrive with the interface, which was already a separate
