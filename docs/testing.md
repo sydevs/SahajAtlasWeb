@@ -13,6 +13,7 @@ paths:
   - '.claude/hooks/unit-test.mjs'
   - '.github/workflows/ci.yml'
   - '.github/workflows/production-smoke.yml'
+  - '.github/workflows/browser-cache.yml'
 ---
 
 # Testing
@@ -387,6 +388,12 @@ the same server and host pages as `pnpm review:embed`, and drives it in Chromium
 `@playwright/test`. CI runs it as **`Browser lane`** on every pull request and merge-queue entry,
 and it blocks: no retries, no `if:` that could skip it, no `continue-on-error`
 (`scripts/ci-workflows.test.ts` pins all three).
+
+The job restores Chromium from a cache it never writes. `browser-cache.yml` saves it on each push
+to `main`, the one cache scope a pull request and a merge-queue run can both read; one they saved
+themselves would be scoped to their own ref, and read by that pull request alone or by nothing.
+A miss costs a download, never a failure, and Playwright's own CI guide advises against caching
+browsers at all, so dropping both halves would leave the lane as it is.
 
 | scenario (`tests/browser/`)                   | host page              | watched failing against                                              |
 | --------------------------------------------- | ---------------------- | -------------------------------------------------------------------- |

@@ -273,4 +273,44 @@ describe('ci.yml browser lane', () => {
     expect(refs.length).toBeGreaterThan(0)
     for (const ref of refs) expect(ref).toMatch(/^[0-9a-f]{40}$/)
   })
+
+  // Both halves fail silently: a key or path a character apart never hits, and a save here
+  // writes a cache only this run's own ref can read. `browser-cache.yml` says why.
+  it('restores the browser `browser-cache.yml` saves, and saves none itself', () => {
+    const caches = [...job.matchAll(/^\s*(?:- )?uses: (actions\/cache\S*)@/gm)].map((m) => m[1])
+    const lane = browserCache(job)
+
+    expect(caches).toEqual(['actions/cache/restore'])
+    expect(lane.keys).toHaveLength(1)
+    expect(lane.paths).toHaveLength(1)
+    expect(browserCache(readRepoSource('.github/workflows/browser-cache.yml'))).toEqual(lane)
+  })
+})
+
+/** How a workflow names the lane's browser cache: the version it keys on, its keys, its paths. */
+const browserCache = (workflow: string) => ({
+  version: match(workflow, /^\s*run: (echo "version=.+)$/m),
+  keys: [...new Set([...workflow.matchAll(/^\s*key: (.+)$/gm)].map((m) => m[1]))],
+  paths: [...new Set([...workflow.matchAll(/^\s*path: (~\/.+)$/gm)].map((m) => m[1]))],
+})
+
+describe('browser-cache.yml', () => {
+  const warm = readRepoSource('.github/workflows/browser-cache.yml')
+
+  // The default branch is the one cache scope a pull request and a merge-queue run share.
+  it('saves on main, the scope every lane run can restore from', () => {
+    expect(workflowEvents(warm)).toEqual(['push', 'workflow_dispatch'])
+    expect(match(warm, /^ {4}branches: (.+)$/m)).toBe('[main]')
+    expect([...warm.matchAll(/^\s*(?:- )?uses: (actions\/cache\S*)@/gm)].map((m) => m[1])).toEqual([
+      'actions/cache/restore',
+      'actions/cache/save',
+    ])
+  })
+
+  it('pins every action it uses by commit SHA', () => {
+    const refs = [...warm.matchAll(/^\s*(?:- )?uses: \S+@(\S+)/gm)].map((m) => m[1])
+
+    expect(refs.length).toBeGreaterThan(0)
+    for (const ref of refs) expect(ref).toMatch(/^[0-9a-f]{40}$/)
+  })
 })
