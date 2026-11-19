@@ -498,13 +498,17 @@ version, because the folklore on this is older than the code.
   its own `parentElement`, inside our root.
 - **Its live region does not survive the boundary, and carrying it is ours.** See
   `Mapbox/aria-live.ts`.
-- **Its input claims `role="combobox"` and never says whether it is expanded**, which ARIA
-  makes required on that role — so a screen reader was never told that suggestions had
-  appeared, the one thing the role exists to announce. `Mapbox/combobox-expanded.ts` sets it
-  from our side, by the same argument `aria-live.ts` makes: the input is a node in our subtree
-  and the list it names is beside it, so our own code can reach the failure (#432). ⚠ Its
-  observer watches children and never attributes — it writes an attribute itself, and an
-  attribute observer would see that write and run again, for ever.
+- **Its input claims `role="combobox"` and renders without `aria-expanded`**, which ARIA makes
+  required on that role — so a screen reader meeting the field is not told that suggestions
+  appeared under it, the one thing the role exists to announce. `Mapbox/combobox-expanded.ts`
+  seeds it, by the same argument `aria-live.ts` makes: the input is a node in our own subtree,
+  so our code can reach the failure without a fifth `patches/` entry (#432).
+  ⚠ **The library maintains the value itself and we must not** — `hideResults()` writes
+  `"false"` and the show path writes `"true"`, read off the installed bundle. Only the INITIAL
+  state is missing, so that module seeds an input that has no value and never writes again; a
+  second writer would overwrite a correct `"false"` the moment anything else in the wrapper
+  mutated. ⚠ Its observer watches children and never attributes — it writes an attribute
+  itself, and an attribute observer would see that write and run again, for ever.
 - **Three `document.activeElement` comparisons inside the geocoder can never be true in a
   root**, since that read names the host element. One is reachable: a suggest response
   finds `Geocoder.contains(document.activeElement)` false and re-focuses the input, which

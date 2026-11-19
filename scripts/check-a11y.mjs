@@ -328,8 +328,11 @@ async function pageAudit({ disabledRules, minTap, selectors, step }) {
     // A label activates the control it names, so the label's own box is part of the target —
     // which is the whole tap area of a checkbox or a radio, whose drawn box is 16px by design.
     const owners = [el, ...(el.labels ?? [])]
+    const inView = (x, y) =>
+      x >= 0 && y >= 0 && x <= window.innerWidth - 1 && y <= window.innerHeight - 1
+
     const owns = (x, y) => {
-      if (x < 0 || y < 0 || x > window.innerWidth - 1 || y > window.innerHeight - 1) return false
+      if (!inView(x, y)) return false
 
       const hit = document.elementFromPoint(x, y)
 
@@ -345,16 +348,29 @@ async function pageAudit({ disabledRules, minTap, selectors, step }) {
 
     const axis = (horizontal) => {
       const hits = [true]
+      // ⚠ Whether the probe ever left the VIEWPORT, which is not the same as being covered.
+      // `scrollIntoView` cannot centre a control the page has no room to scroll past, so a
+      // control resting against a clamped edge has probe points off screen — and an off-screen
+      // point answers `null`, which would read as a crowded control and fail a required check
+      // for where it happened to sit.
+      let clipped = false
 
       for (let d = step; d <= reach; d += step) {
-        hits.push(owns(horizontal ? cx - d : cx, horizontal ? cy : cy - d))
-        hits.push(owns(horizontal ? cx + d : cx, horizontal ? cy : cy + d))
+        const before = [horizontal ? cx - d : cx, horizontal ? cy : cy - d]
+        const after = [horizontal ? cx + d : cx, horizontal ? cy : cy + d]
+
+        clipped = clipped || !inView(before[0], before[1]) || !inView(after[0], after[1])
+        hits.push(owns(before[0], before[1]))
+        hits.push(owns(after[0], after[1]))
       }
 
-      return hits
+      return { hits, clipped }
     }
 
-    probed.push({ el: describe(el), w: axis(true), h: axis(false) })
+    const w = axis(true)
+    const h = axis(false)
+
+    probed.push({ el: describe(el), w: w.hits, h: h.hits, clipped: w.clipped || h.clipped })
   }
 
   // Every element is stamped with its position in document order, and the walk reads the stamp
@@ -522,6 +538,7 @@ export async function run({ only, origin } = {}) {
   /** @type {{ story: string, kind: string, detail: string }[]} */
   const failures = []
   let controls = 0
+  let unmeasured = 0
 
   for (const id of ids) {
     try {
@@ -557,13 +574,21 @@ export async function run({ only, origin } = {}) {
         const width = spanFrom(target.w, PROBE_STEP_PX)
         const height = spanFrom(target.h, PROBE_STEP_PX)
 
-        if (width < MIN_TAP_PX || height < MIN_TAP_PX) {
-          failures.push({
-            story: id,
-            kind: 'tap-target',
-            detail: `${target.el} answers to ${width}×${height}px, under ${MIN_TAP_PX}×${MIN_TAP_PX}`,
-          })
+        if (width >= MIN_TAP_PX && height >= MIN_TAP_PX) continue
+
+        // A control whose probes left the viewport was not measured, and reporting it as
+        // short would be reporting where it sat rather than how big it is. Counted and
+        // printed, so a story that quietly stopped being measured is visible.
+        if (target.clipped) {
+          unmeasured += 1
+          continue
         }
+
+        failures.push({
+          story: id,
+          kind: 'tap-target',
+          detail: `${target.el} answers to ${width}×${height}px, under ${MIN_TAP_PX}×${MIN_TAP_PX}`,
+        })
       }
 
       let reached = -1
@@ -613,7 +638,7 @@ export async function run({ only, origin } = {}) {
   await browser.close()
   await site.close()
 
-  return { failures, controls, stories: ids.length }
+  return { failures, controls, unmeasured, stories: ids.length }
 }
 
 async function main() {
@@ -634,10 +659,16 @@ async function main() {
     process.exit(1)
   }
 
-  const { failures, controls, stories } = await run({ origin, only: option('story') })
+  const { failures, controls, unmeasured, stories } = await run({ origin, only: option('story') })
+
+  const aside = unmeasured
+    ? ` ${unmeasured} control(s) sat against a viewport edge and could not be probed.`
+    : ''
 
   if (failures.length === 0) {
-    report([`Accessibility gate: **${stories} stories**, ${controls} controls measured, clean.`])
+    report([
+      `Accessibility gate: **${stories} stories**, ${controls} controls measured, clean.${aside}`,
+    ])
 
     return
   }
@@ -648,7 +679,12 @@ async function main() {
     'error',
     `Accessibility gate: ${failures.length} findings across ${affected} of ${stories} stories.`,
   )
-  report([`## Accessibility gate — ${failures.length} findings`, '', ...formatFailures(failures)])
+  report([
+    `## Accessibility gate — ${failures.length} findings`,
+    ...(aside ? ['', aside.trim()] : []),
+    '',
+    ...formatFailures(failures),
+  ])
   process.exit(1)
 }
 

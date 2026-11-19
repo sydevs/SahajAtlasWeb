@@ -583,11 +583,17 @@ export function OnwardLink({ offer }: { offer: RecoveryOffer }) {
  * `h-auto min-h-10 whitespace-normal py-2` relaxes the recipe's fixed height and its
  * no-wrap rule. This lets a long international number wrap, instead of overflowing a
  * 375px sheet.
+ *
+ * ⚠ **The coarse-pointer pair relaxes it a second time, and both are needed** (#432). The
+ * recipe's 44px tap floor is `pointer-coarse:h-11`, which tailwind-merge does NOT cancel with
+ * the `h-auto` above — a different variant is a different key — so without this the number is
+ * pinned to 44px on exactly the phone where it wraps. `min-h` keeps the floor while letting it
+ * grow.
  */
 const callSkin = controlSurface({
   color: 'primary',
   variant: 'flat',
-  className: 'h-auto min-h-10 whitespace-normal py-2',
+  className: 'h-auto min-h-10 whitespace-normal py-2 pointer-coarse:h-auto pointer-coarse:min-h-11',
 })
 
 /** Who to call when a class cannot be joined: the organiser on the event. */

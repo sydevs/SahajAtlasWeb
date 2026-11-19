@@ -122,9 +122,19 @@ const collapseSlot = (slot: HTMLElement, collapsed: boolean) => {
  */
 const collapseFrame = (frame: HTMLIFrameElement, collapsed: boolean) => {
   frame.height = collapsed ? '0' : String(FRAME_HEIGHT)
-  frame.tabIndex = collapsed ? -1 : 0
-  if (collapsed) frame.setAttribute('aria-hidden', 'true')
-  else frame.removeAttribute('aria-hidden')
+
+  if (collapsed) {
+    frame.tabIndex = -1
+    frame.setAttribute('aria-hidden', 'true')
+
+    return
+  }
+
+  // ⚠ The attributes are REMOVED, not set to a neutral value. `tabindex="0"` on an `<iframe>`
+  // makes the frame element its own tab stop in front of the challenge inside it, which is one
+  // stop more than the viewer had before any of this.
+  frame.removeAttribute('tabindex')
+  frame.removeAttribute('aria-hidden')
 }
 
 type FrameOptions = { theme: 'light' | 'dark' | 'auto'; language: string; probe?: boolean }
