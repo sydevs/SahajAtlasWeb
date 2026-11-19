@@ -51,6 +51,16 @@ cover everything a host would notice since the widget was first deployed.
   Nothing looks or behaves differently, and there is nothing to change in your snippet or your
   CSP.
 
+- **The widget runs on React 19, which makes it 23 KiB heavier for a visitor who reveals it.**
+  What your page loads up front is unchanged: `auto.js` and the loader it starts still come to
+  about 3 KiB, so an embed nobody scrolls to costs exactly what it did. The widget itself, fetched
+  as the embed comes into view, grows by 23 KiB gzipped, 22.6 KiB of it React's own renderer: from
+  291.7 KiB with the saving above to 314.7 KiB, still 20 KiB under the 334.5 KiB it was before
+  both. One visible difference: a loading spinner, once shown, now stays for at least about 0.3
+  seconds rather than flashing when the content arrives sooner. **No parameter, origin, CSP or
+  Permissions-Policy change**, and the widget writes nothing new to your page outside its own
+  shadow root.
+
 - **The Outlook.com and Office 365 rows of "Add to calendar" now subscribe too.** ([#428]) They
   added one session of a weekly class, so a visitor on Outlook got the next class and then
   nothing. Both rows now open Outlook's "subscribe from web" route for the class's own calendar
