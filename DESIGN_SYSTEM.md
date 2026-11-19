@@ -203,6 +203,14 @@ Folder-per-component, not re-exported through the component barrels.
   so a barrel import doesn't pull it back into the static graph. Such components —
   and any reached only through them (`RegistrationForm`) — are imported by direct
   folder path. See `organisms/index.ts`.
+- **Eager-shell exception:** the two entries (`Widget.tsx`, `main.tsx`), `App.tsx` and
+  every module they import statically take a component by its folder path, never
+  through a tier barrel. The
+  bundler places a module by which entries can reach it, not by which exports they
+  use, so one barrel import puts everything the barrel re-exports in the first
+  download — through the molecules barrel, 30.8 KiB gz of components only the
+  lazily-loaded interface renders. `src/Widget.standalone.test.ts` pins the shell's
+  barrels and its packages, because `pnpm size` keeps headroom that hides this.
 - Component folders and files are **PascalCase** (`Chip/Chip.tsx`). Non-component
   files stay kebab-case (hooks `use-x.ts` exporting `useX`, config, types, pages,
   layouts). Zustand stores are plain `useX` hooks (see [`src/AGENTS.md`](src/AGENTS.md)).

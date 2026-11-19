@@ -4,6 +4,12 @@
 // explicit named exports only. Each folder surfaces its primary
 // component or components, plus its `Props` type. Single-use internals
 // stay private.
+//
+// ⚠ For the views, never for the shell: the two entries, `App.tsx` and
+// whatever they import statically take a molecule by its folder path. The
+// bundler follows every re-export edge below, used or not, so one import
+// of this barrel from the shell puts all of it in the first download:
+// 30.8 KiB gz, measured. `src/Widget.standalone.test.ts` pins it.
 export { SettingsMenu } from './SettingsMenu'
 export type { SettingsMenuProps } from './SettingsMenu'
 

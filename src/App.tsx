@@ -19,7 +19,13 @@ import { atlasError, reportInternalError } from '@/lib/report'
 import { clearReadiness } from '@/lib/readiness'
 import { announceEmbed } from '@/lib/embed-announce'
 import embed from '@/config/embed'
-import { ErrorFallback, LoadingFallback, ResetErrorBoundary } from '@/components/molecules'
+// ⚠ By folder path, NOT the `@/components/molecules` barrel, for the reason below: through the
+// barrel these three bring every molecule the interface renders into the eager graph, 30.8 KiB gz.
+import {
+  ErrorFallback,
+  LoadingFallback,
+  ResetErrorBoundary,
+} from '@/components/molecules/Fallbacks'
 // ⚠ Imports the component's own path, NOT the `@/components/organisms` barrel. The barrel
 // re-exports `Mapbox`, so importing ANYTHING through it pulls `react-map-gl` — whose
 // `exports-mapbox.js` fires `import('mapbox-gl')` at module scope — straight back into the

@@ -548,6 +548,10 @@ this table or the folklore it fixes. On the frame itself both are deliberate, an
   several files). `src/views/` holds the route screens. App code imports from the
   tier barrels. Components import each other by component-folder path. See
   `DESIGN_SYSTEM.md`.
+  ⚠ **The eager shell imports by component-folder path too** — the two entries,
+  `App.tsx` and everything they import statically. A barrel import there carries every
+  component the barrel re-exports into the first download (`DESIGN_SYSTEM.md`,
+  "Eager-shell exception"), and `Widget.standalone.test.ts` fails on one.
 - **Explicit named exports — no `export *`.** Every component and tier barrel lists
   exactly what it surfaces: the primary component(s) plus the `<Name>Props` type.
   Keep single-use internals (private modals, row primitives, helper sub-cards)

@@ -23,8 +23,10 @@ import { classifyError, reportIntegrationWarning } from './lib/report'
 import { type SlotDecision, decideSlot } from './lib/slot-decision'
 import { WIDGET_SCOPE_CLASS } from './lib/scope'
 import { adoptStyles } from './styles/sheet'
+// ⚠ Both by folder path, never a tier barrel: a barrel carries everything it re-exports into
+// this entry's eager graph (`App.tsx` has the measurement).
 import { Spinner } from './components/atoms/Spinner'
-import { ErrorFallback, ResetErrorBoundary } from './components/molecules'
+import { ErrorFallback, ResetErrorBoundary } from './components/molecules/Fallbacks'
 import { mountDecision, mountPrefix } from './lib/shape'
 
 // This implements the embeddable widget's custom element.
