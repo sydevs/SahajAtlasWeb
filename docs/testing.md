@@ -394,8 +394,8 @@ This mirrors WeMeditateWeb. The unit lane runs in the `node` environment by defa
 
 ### The jsdom exception (issue #89)
 
-`jsdom` **is** a devDependency, pinned to the `27.x` line (28+ raises the engine floor above this
-repo's `engines.node`, locking out a contributor on Node 20). The lane's default environment
+`jsdom` **is** a devDependency, pinned to the `27.x` line (29+ raises its Node 22 floor above this
+repo's `engines.node`, locking out a contributor on Node 22.12). The lane's default environment
 stays `node` regardless.
 
 A spec opts in per file with a `// @vitest-environment jsdom` docblock on line 1, keeping the fast
