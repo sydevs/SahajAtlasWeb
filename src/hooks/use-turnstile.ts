@@ -239,7 +239,7 @@ export type UseTurnstileOptions = {
 
 export type UseTurnstile = {
   /** Attach to the element the challenge frame is appended to. */
-  challengeRef: RefObject<HTMLDivElement>
+  challengeRef: RefObject<HTMLDivElement | null>
   /** The solved token, or null while unsolved or expired. */
   token: string | null
   status: TurnstileStatus

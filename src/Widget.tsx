@@ -291,7 +291,7 @@ function Atlas({ prefix }: { prefix?: string }) {
   //
   // Re-entrancy: React may discard and retry this render. This stays safe, because
   // this is a pure read of the URL plus the config — it writes nothing.
-  const mount = useRef<MountDecision>()
+  const mount = useRef<MountDecision>(undefined)
 
   if (!mount.current) {
     mount.current = mountDecision({
@@ -368,7 +368,7 @@ function Atlas({ prefix }: { prefix?: string }) {
   // Re-entrancy: `useLocale` below can suspend on a cold i18n boot and make React
   // discard this render. This stays safe — the ref makes it once-only, and the
   // measurement writes nothing.
-  const slot = useRef<SlotDecision>()
+  const slot = useRef<SlotDecision>(undefined)
 
   if (!slot.current) {
     slot.current = decideSlot({
