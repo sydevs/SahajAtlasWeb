@@ -247,11 +247,12 @@ export default function App({
               reports on. Failing to nothing is right, since it stays off screen until
               asked for.
 
-              Not lazy-loaded: it renders at mount (to stay reachable from the error
-              fallbacks), so a chunk would be fetched immediately anyway, and its
-              dependencies — react-hook-form, zod — are already in the eager graph via
-              the registration form. Splitting it measured 0.6 kB gz LARGER across the
-              first paint, for four extra requests. */}
+              Not lazy-loaded: the host renders at mount (to stay reachable from the error
+              fallbacks), and the form inside is reached mostly from a failure, where a
+              chunk fetched on open is what `use-report-form.ts` reads the form at mount
+              to avoid. ⚠ The price is 37.6 KiB gz of eager graph for this form alone —
+              react-hook-form and Radix's select, checkbox and switch, measured with the
+              form behind `lazy` — since the registration form went lazy (#96). */}
             <ErrorBoundary
               fallbackRender={() => null}
               // Failing to nothing is right on screen, but it must not also fail to
