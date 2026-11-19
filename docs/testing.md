@@ -353,16 +353,21 @@ things hold that up, and each fails silently:
 way, so this table is the repo's only record of it and only a browser can confirm it. Under the
 ruleset covering `main`:
 
-| setting                | to be set to                                                      | observed |
-| ---------------------- | ----------------------------------------------------------------- | -------- |
-| Require merge queue    | on                                                                |          |
-| Bypass list            | empty — a bypass is the hole this closes                          |          |
-| Required status checks | `Lint, Typecheck & Build`, `Dependency Review / review`, `Smoke`  |          |
+| setting                | to be set to                                                                      | observed |
+| ---------------------- | --------------------------------------------------------------------------------- | -------- |
+| Require merge queue    | on                                                                                |          |
+| Bypass list            | empty — a bypass is the hole this closes                                          |          |
+| Required status checks | `Lint, Typecheck & Build`, `Dependency Review / review`, `Smoke`, `Browser lane`  |          |
 
 ⚠ **Nothing has been set yet, so every `observed` cell is blank.** The two halves above ship from
 the repo; the ruleset edit is an attended browser step. Whoever makes it fills that column in with
 what the dashboard actually showed, and dates it. A target read as a record is the failure this
 section is about.
+
+⚠ **`Browser lane` blocks nothing until a maintainer adds it to that list in Settings → Rules.**
+The job reports on every pull request and queue entry from the day it merges, so the check name
+exists to pick; `scripts/ci-workflows.test.ts` pins it against this row, so a rename has to move
+both.
 
 Both costs were measured first. A merge waits one queue run — 2m23s to 2m50s across runs
 `42417964616`, `42528479577` and `42534049552`. And every merge creates a

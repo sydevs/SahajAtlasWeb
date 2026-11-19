@@ -20,6 +20,21 @@ const match = (text: string, re: RegExp) => {
   return found as string
 }
 
+/** The events under a workflow's `on:` block, sorted. */
+const workflowEvents = (workflow: string) => {
+  const lines = workflow.split('\n')
+  const opens = lines.indexOf('on:')
+
+  if (opens < 0) throw new Error('the workflow has no `on:` block — the assertion would vacuum')
+
+  const after = lines.slice(opens + 1)
+  const closes = after.findIndex((line) => /^\S/.test(line))
+
+  return (closes < 0 ? after : after.slice(0, closes))
+    .flatMap((line) => /^ {2}(\w+):/.exec(line)?.[1] ?? [])
+    .sort()
+}
+
 describe('production-smoke.yml', () => {
   const lane = readRepoSource('.github/workflows/production-smoke.yml')
   const target = match(lane, /^\s*PREVIEW_URL: (\S+)$/m)
@@ -190,19 +205,7 @@ describe('ci.yml', () => {
   // ⚠ A wrong `on:` block here fails silently, in both directions. `docs/testing.md` § "The merge
   // queue is the only gate that reads the tree a merge will produce" says how (#375).
   it('triggers on the pull request and the merge queue, and on no push', () => {
-    const lines = ci.split('\n')
-    const opens = lines.indexOf('on:')
-
-    if (opens < 0) throw new Error('ci.yml has no `on:` block — the assertion below would vacuum')
-
-    const after = lines.slice(opens + 1)
-    const closes = after.findIndex((line) => /^\S/.test(line))
-
-    expect(
-      (closes < 0 ? after : after.slice(0, closes))
-        .flatMap((line) => /^ {2}(\w+):/.exec(line)?.[1] ?? [])
-        .sort(),
-    ).toEqual(['merge_group', 'pull_request'])
+    expect(workflowEvents(ci)).toEqual(['merge_group', 'pull_request'])
   })
 
   // The guard is what refuses the `-design` playground's host. A publish step whose address
@@ -215,5 +218,52 @@ describe('ci.yml', () => {
     // The name comes off the config, never typed in: a rename has to break the guard rather
     // than leave it anchored on a Worker that no longer exists.
     expect(guard).toContain('appWorkerName()')
+  })
+})
+
+// The browser lane is meant to be a REQUIRED check, and a required check fails silently in both
+// directions: renamed, the ruleset waits on a check nothing posts any more; skipped or softened,
+// it reports a green that refuses no merge. `docs/testing.md` § "The browser lane" says why it
+// blocks.
+describe('ci.yml browser lane', () => {
+  const ci = readRepoSource('.github/workflows/ci.yml')
+  const at = ci.indexOf('\n  browser:\n')
+
+  if (at < 0) throw new Error('ci.yml has no `browser:` job — every assertion below would vacuum')
+
+  // Up to the next job, so no assertion here can be satisfied by another job's text.
+  const rest = ci.slice(at + 1)
+  const next = rest.slice(1).search(/^ {2}\S/m)
+  const job = next < 0 ? rest : rest.slice(0, next + 1)
+  const steps = job.split(/^ {6}- /m).slice(1)
+  const lane = steps.filter((step) => /^\s*run: pnpm test:browser$/m.test(step))
+
+  it('posts the check name the ruleset records', () => {
+    const name = match(job, /^ {4}name: (.+)$/m)
+
+    expect(name).toBe('Browser lane')
+    expect(
+      match(readRepoSource('docs/testing.md'), /^\| Required status checks \|(.+)\|/m),
+    ).toContain(`\`${name}\``)
+  })
+
+  it('runs on the pull request and in the merge queue alike, with nothing to skip it', () => {
+    expect(workflowEvents(ci)).toEqual(['merge_group', 'pull_request'])
+    expect(job).not.toMatch(/^ {4}if:/m)
+    expect(lane).toHaveLength(1)
+    expect(lane[0]).not.toMatch(/^\s*if:/m)
+  })
+
+  it('fails the workflow on the first failure, with no retry to hide a flake', () => {
+    expect(job).not.toMatch(/continue-on-error/)
+    expect(job).not.toMatch(/--retries/)
+    expect(match(readRepoSource('playwright.config.ts'), /^\s*retries: (\S+),$/m)).toBe('0')
+  })
+
+  it('pins every action it uses by commit SHA', () => {
+    const refs = [...job.matchAll(/^\s*(?:- )?uses: \S+@(\S+)/gm)].map((m) => m[1])
+
+    expect(refs.length).toBeGreaterThan(0)
+    for (const ref of refs) expect(ref).toMatch(/^[0-9a-f]{40}$/)
   })
 })
