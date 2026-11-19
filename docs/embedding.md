@@ -1271,8 +1271,9 @@ keyboard walk for the rest. A change that breaks one does not merge.
 
 **What that costs you**: on a touch screen a few rows are a little taller than they would
 otherwise be, so a `<sahaj-atlas>` you have given a fixed height has slightly less room for its
-content at phone widths. The desktop layout is unchanged. Nothing here changes your CSP or your
-Permissions Policy.
+content at phone widths. The desktop layout is unchanged but for one control — the share
+sheet's round network icons, which are 44px on every device, because that library sizes its
+button off the icon. Nothing here changes your CSP or your Permissions Policy.
 
 **The map canvas itself is Mapbox GL's**, and its keyboard behaviour is theirs rather than ours.
 The controls over it — locate, attribution, zoom — are covered by the list above.

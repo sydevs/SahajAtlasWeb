@@ -51,7 +51,9 @@ cover everything a host would notice since the widget was first deployed.
   gained a little breathing space on touch for the same reason, since two tap areas that meet
   take each other's taps: a drawer header's controls, a filter group's **Clear**, and the
   reveal link under a list of dates. **If you size the element yourself, a phone-width embed is
-  a few pixels taller in places than it was.** A text link also reads in the ramp's readable
+  a few pixels taller in places than it was.** One control moves on every device, not only on
+  touch: the share sheet's round network icons go from 40px to 44px, because `react-share` sizes
+  its button off the icon and there is no invisible area to grow. A text link also reads in the ramp's readable
   step rather than its solid one, so link colour is slightly deeper on light backgrounds, and
   the neutral solid button is now near-black rather than mid-grey. **No parameter, origin, CSP
   or Permissions-Policy change.**

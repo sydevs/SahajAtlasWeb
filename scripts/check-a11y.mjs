@@ -18,15 +18,15 @@
  *
  * ⚠ **It is a browser and not another vitest file, and that is not a preference.** The unit
  * lane is node with a per-file jsdom opt-in, and jsdom has no layout: contrast resolves to
- * nothing and a tap area cannot be measured at all. Measured 2026-11-19 over these 52 stories:
- * the same axe configuration under jsdom returned 23 findings, this one returns 127, and none
- * of the 80 contrast failures were among the 23.
+ * nothing and a tap area cannot be measured at all. Measured 2026-11-19 over these 52 stories,
+ * counting violation nodes: the same axe configuration under jsdom returned 31, this one 131,
+ * and the 80 contrast failures and 24 label-in-name failures were not among the 31.
  *
  * ⚠ It reads `build/`, which `pnpm ladle:build` writes, rather than `ladle serve`. The dev
  * server compiles a story when it is opened, so a story that failed to build would pass here by
  * never having been built.
  *
- * Usage: `node scripts/check-a11y.mjs [--dir build] [--story <id>] [--origin <url>]`.
+ * Usage: `node scripts/check-a11y.mjs [--story <id>] [--origin <url>]`.
  * Exit 1 names every story that failed and what it failed on. `--origin` audits an address
  * already serving the library — `pnpm ladle` on :61000, which recompiles as you edit — and is
  * the local fix loop. CI passes neither, so it reads the build.
@@ -39,6 +39,7 @@ import { dirname, extname, join, normalize, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 import { annotate, report } from './_ci-output.mjs'
+import { MIME } from './_mime.mjs'
 
 const HERE = dirname(fileURLToPath(import.meta.url))
 
@@ -51,14 +52,36 @@ export const MIN_TAP_PX = 44
 /** Pixels between hit-test probes. See the note beside the probe loop for why it is not 2. */
 export const PROBE_STEP_PX = 1
 
+/** Where the library is built, and the one directory this gate reads. */
+const BUILD_DIR = 'build'
+
 /**
+ * The address the local server answers with axe-core's own bundle, so the page fetches it like
+ * any other script. The two leading underscores keep it clear of anything Ladle emits.
+ */
+const AXE_PATH = '/__axe-core.js'
+
+/**
+ * Two of axe's own rules, turned off, each for a property of a STORY page rather than of the
+ * widget. Everything axe enables by default stays on.
+ *
  * `region` asks that every node sit inside a landmark. A story renders one component into a
  * bare div, so it would fail for every one of them and say nothing: the widget's own landmark
  * is the `role="region"` on the element `Widget.tsx` mounts, which no story renders.
  *
- * `landmark-unique` goes with it, for the same reason pointed the other way: a story page is a
- * CATALOGUE, so it stacks six copies of a panel the app mounts one of, and six `search`
- * landmarks named alike is a property of the page rather than of the widget.
+ * `landmark-unique` goes with it, pointed the other way: a story page is a CATALOGUE, so it
+ * stacks six copies of a panel the app mounts one of, and six `search` landmarks named alike
+ * is a property of the page.
+ *
+ * ⚠ **axe ships `target-size`, and this gate does not turn it on** — it is one of the handful
+ * axe itself leaves disabled, along with `color-contrast-enhanced` and `duplicate-id`. It is
+ * not turned on because it cannot answer the question here: it measures
+ * `getBoundingClientRect`, which cannot see the absolutely-positioned `::after` the
+ * `touch-target` utility draws, so it would fail every control the widget deliberately leaves
+ * small — the 32px cog, the 16px slider thumb, the 12px chip close — while passing a 44px
+ * control an overlay covers. The hit-test probe below is what tells those two apart. Its
+ * `target-offset` companion, the crowding rule, is the same story: the areas it would measure
+ * are the drawn boxes, not the ones a finger reaches.
  */
 export const DISABLED_RULES = ['region', 'landmark-unique']
 
@@ -86,23 +109,6 @@ export const TAP_EXCEPTIONS = [
   },
 ]
 
-/** The MIME types the preview build serves. Anything else is refused rather than guessed. */
-const MIME = {
-  '.html': 'text/html; charset=utf-8',
-  '.js': 'text/javascript; charset=utf-8',
-  '.mjs': 'text/javascript; charset=utf-8',
-  '.css': 'text/css; charset=utf-8',
-  '.json': 'application/json; charset=utf-8',
-  '.svg': 'image/svg+xml',
-  '.png': 'image/png',
-  '.jpg': 'image/jpeg',
-  '.jpeg': 'image/jpeg',
-  '.webp': 'image/webp',
-  '.woff': 'font/woff',
-  '.woff2': 'font/woff2',
-  '.ico': 'image/x-icon',
-}
-
 /**
  * Serves the built library on an ephemeral port.
  *
@@ -118,6 +124,23 @@ export async function serveDirectory(dir) {
 
   const server = createServer((req, res) => {
     const path = new URL(req.url ?? '/', 'http://localhost').pathname
+
+    if (path === AXE_PATH) {
+      readFile(join(HERE, '..', 'node_modules', 'axe-core', 'axe.min.js'))
+        .then((body) => {
+          res.writeHead(200, {
+            'content-type': MIME['.js'],
+            'cache-control': 'public, max-age=31536000, immutable',
+          })
+          res.end(body)
+        })
+        .catch(() => {
+          res.writeHead(404).end()
+        })
+
+      return
+    }
+
     // `normalize` first, then the prefix test: a `..` segment resolves outside `root` and falls
     // through to the shell rather than reading a file the build never contained.
     const target = normalize(join(root, decodeURIComponent(path)))
@@ -128,7 +151,16 @@ export async function serveDirectory(dir) {
 
     readFile(file)
       .then((body) => {
-        res.writeHead(200, { 'content-type': MIME[extname(file)] ?? 'application/octet-stream' })
+        res.writeHead(200, {
+          'content-type': MIME[extname(file)] ?? 'application/octet-stream',
+          // Every asset name is content-hashed, so this is the same promise `public/_headers`
+          // makes in production. Without it the browser revalidates on all 52 navigations and
+          // re-compiles a ~950 KB shell each time, because an unvalidatable response cannot
+          // enter V8's code cache either.
+          'cache-control': file.includes('/assets/')
+            ? 'public, max-age=31536000, immutable'
+            : 'no-cache',
+        })
         res.end(body)
       })
       .catch(() => {
@@ -160,13 +192,17 @@ export async function serveDirectory(dir) {
 export function spanFrom(hits, step) {
   if (!hits[0]) return 0
 
-  let before = 0
-  let after = 0
+  // Indexing past the end answers `undefined`, which ends the walk, so neither side needs a
+  // bound of its own. The two sides differ only in where they start.
+  const run = (start) => {
+    let reached = 0
 
-  while (hits[1 + before * 2] && before < (hits.length - 1) / 2) before += 1
-  while (hits[2 + after * 2] && after < (hits.length - 1) / 2) after += 1
+    while (hits[start + reached * 2]) reached += 1
 
-  return (before + after) * step + 1
+    return reached
+  }
+
+  return (run(1) + run(2)) * step + 1
 }
 
 /**
@@ -199,10 +235,10 @@ export function formatFailures(failures) {
  * tabbable inventory with each element's resting paint, which the keyboard walk compares
  * against.
  *
- * @param {{ disabledRules: string[], minTap: number, selectors: string[] }} options
+ * @param {{ disabledRules: string[], minTap: number, selectors: string[], step: number }} options
  */
  
-async function pageAudit({ disabledRules, minTap, selectors }) {
+async function pageAudit({ disabledRules, minTap, selectors, step }) {
   const root = document.body
   const rules = {}
 
@@ -261,10 +297,18 @@ async function pageAudit({ disabledRules, minTap, selectors }) {
   }
 
   const exempt = (el) => selectors.some((selector) => el.closest(selector))
+  const tabbable = (el) => !el.disabled && el.tabIndex >= 0 && visible(el) && !exempt(el)
 
-  // One pixel per probe. At two, a 44px area centred on a fractional pixel measures 43 and the
-  // gate reports a control it had just been given the room it asked for.
-  const step = 1
+  // ⚠ Left on the page for the keyboard walk's own `evaluate`, which runs next without a
+  // navigation between. `page.evaluate` serialises the function it is given, so a helper
+  // cannot be closed over — and `paint` in particular MUST be the same function on both
+  // sides: the walk's verdict is `painted !== resting[order]`, so two lists that drifted
+  // apart by one property would report a focus indicator on every control, for ever, with
+  // nothing failing.
+  const shared = /** @type {any} */ (window)
+
+  shared.__a11y = { describe, paint, visible, tabbable }
+
   const reach = Math.ceil(minTap / 2)
   const probed = []
 
@@ -318,14 +362,17 @@ async function pageAudit({ disabledRules, minTap, selectors }) {
   // claiming to know which elements Tab should stop on: a roving-tabindex group (every Radix
   // toggle group, menu and select here) deliberately exposes one stop for the whole set, so a
   // list of expected stops would be wrong by construction.
-  const order = new Map()
+  // The stamp goes on every element, because the order comparison is against document order.
+  // The resting paint does not: only an element Tab can land on is ever looked up, and
+  // resolving a computed style for every node of every story buys nothing.
   const resting = new Map()
   let index = 0
 
-  for (const el of root.querySelectorAll('*')) {
+  for (const node of root.querySelectorAll('*')) {
+    const el = /** @type {any} */ (node)
+
     el.setAttribute('data-a11y-order', String(index))
-    order.set(el, index)
-    resting.set(String(index), paint(el))
+    if (tabbable(el)) resting.set(String(index), paint(el))
     index += 1
   }
 
@@ -341,10 +388,52 @@ async function pageAudit({ disabledRules, minTap, selectors }) {
     resting: Object.fromEntries(resting),
     stops: [...root.querySelectorAll(`${INTERACTIVE},[tabindex]`)]
       .map((node) => /** @type {any} */ (node))
-      .filter((el) => !el.disabled && el.tabIndex >= 0 && visible(el) && !exempt(el)).length,
+      .filter(tabbable).length,
   }
 }
  
+
+/** How long the DOM must sit still before a story counts as rendered, and the cap on waiting. */
+const QUIET_MS = 250
+const SETTLE_CAP_MS = 4000
+
+/**
+ * Waits until the story has stopped changing.
+ *
+ * ⚠ **A fixed sleep and a "has it rendered anything" check are both wrong here, and the second
+ * one is wrong in the way that matters.** `#ladle-root` gains a child long before a component
+ * that themes itself on mount has painted — `views--calendar` reported 28 contrast failures
+ * against Schedule-X's own default palette that way, every run, because the gate looked while
+ * the calendar was still unthemed. A quiet period answers the question actually being asked:
+ * nothing has changed for a while, so what is on screen is what a visitor would see. Fonts are
+ * waited on for the same reason, since a contrast verdict is taken against painted text.
+ *
+ * @param {import('playwright').Page} page
+ */
+async function settled(page) {
+  await page.evaluate(
+    ([quiet, cap]) =>
+      new Promise((done) => {
+        let timer = setTimeout(finish, quiet)
+        const observer = new MutationObserver(() => {
+          clearTimeout(timer)
+          timer = setTimeout(finish, quiet)
+        })
+
+        function finish() {
+          observer.disconnect()
+          clearTimeout(timer)
+          clearTimeout(ceiling)
+          document.fonts.ready.then(() => requestAnimationFrame(() => done(undefined)))
+        }
+
+        const ceiling = setTimeout(finish, cap)
+
+        observer.observe(document.body, { childList: true, subtree: true, attributes: true })
+      }),
+    [QUIET_MS, SETTLE_CAP_MS],
+  )
+}
 
 /**
  * Presses Tab once per control the page offers and reports where focus landed: its position in
@@ -364,7 +453,7 @@ async function keyboardWalk(page, count, resting, selectors) {
 
      
     const stop = await page.evaluate((exceptions) => {
-      const el = document.activeElement
+      const el = /** @type {any} */ (document.activeElement)
 
       if (!el || el === document.body || el === document.documentElement) return null
       // The same list the tap probe reads. Radix's focus sentinels are the reason it is
@@ -372,28 +461,13 @@ async function keyboardWalk(page, count, resting, selectors) {
       // every trap, so every drawer and dialog would report two findings nobody can fix.
       if (exceptions.some((selector) => el.closest(selector))) return { skip: true }
 
-      const r = el.getBoundingClientRect()
-      const s = getComputedStyle(el)
-      const name = (
-        el.getAttribute('aria-label') ||
-        el.textContent ||
-        el.getAttribute('title') ||
-        el.tagName
-      )
-        .trim()
-        .slice(0, 48)
+      const { describe, paint, visible } = /** @type {any} */ (window).__a11y
 
       return {
-        el: `${el.tagName.toLowerCase()}${el.id ? `#${el.id}` : ''} "${name}"`,
+        el: describe(el),
         order: el.getAttribute('data-a11y-order'),
-        visible: r.width > 0 && r.height > 0 && s.visibility !== 'hidden' && s.opacity !== '0',
-        painted: [
-          s.outlineWidth,
-          s.outlineColor,
-          s.boxShadow,
-          s.borderColor,
-          s.backgroundColor,
-        ].join('|'),
+        visible: visible(el),
+        painted: paint(el),
       }
     }, selectors)
      
@@ -416,19 +490,23 @@ async function keyboardWalk(page, count, resting, selectors) {
 }
 
 /**
- * @param {{ dir: string, only?: string, origin?: string }} options
+ * @param {{ only?: string, origin?: string }} options
  */
-export async function run({ dir, only, origin }) {
+export async function run({ only, origin } = {}) {
   const { chromium } = await import('playwright')
-  const meta = origin
-    ? await (await fetch(`${origin}/meta.json`)).json()
-    : JSON.parse(readFileSync(join(dir, 'meta.json'), 'utf8'))
-  const ids = Object.keys(meta.stories).filter((id) => !only || id === only)
-  const axeSource = readFileSync(join(HERE, '..', 'node_modules', 'axe-core', 'axe.min.js'), 'utf8')
+  const selectors = TAP_EXCEPTIONS.map(({ selector }) => selector)
 
-  const site = origin
-    ? { origin, close: async () => {} }
-    : await serveDirectory(dir)
+  // One address, whether this run serves the build or was pointed at a dev server, so the
+  // story list and the pages come from the same place by construction.
+  const site = origin ? { origin, close: async () => {} } : await serveDirectory(BUILD_DIR)
+  // A dev server knows nothing of `AXE_PATH`, so the fix loop pays the inline cost the gate
+  // does not. It audits one story at a time, where 650 KB over the protocol is not worth a
+  // second server to avoid.
+  const axeTag = origin
+    ? { content: readFileSync(join(HERE, '..', 'node_modules', 'axe-core', 'axe.min.js'), 'utf8') }
+    : { url: AXE_PATH }
+  const meta = await (await fetch(`${site.origin}/meta.json`)).json()
+  const ids = Object.keys(meta.stories).filter((id) => !only || id === only)
   const browser = await chromium.launch()
   // `isMobile` is what makes `(pointer: coarse)` match, and the `touch-target` utility is
   // written against that query — on a fine pointer every small control would be reported and
@@ -451,14 +529,18 @@ export async function run({ dir, only, origin }) {
         waitUntil: 'load',
         timeout: 30_000,
       })
-      await page.waitForTimeout(600)
-      await page.addScriptTag({ content: axeSource })
+      await settled(page)
+      // ⚠ By URL, never `content`. axe-core is 650 KB, and inlining it would push that
+      // through the debugging protocol and recompile it once per story — 34 MB and 52
+      // compiles across this run. A URL is fetched from the server above, cached, and
+      // compiled once.
+      await page.addScriptTag(axeTag)
 
-      const selectors = TAP_EXCEPTIONS.map(({ selector }) => selector)
       const result = await page.evaluate(pageAudit, {
         disabledRules: DISABLED_RULES,
         minTap: MIN_TAP_PX,
         selectors,
+        step: PROBE_STEP_PX,
       })
 
       controls += result.probed.length
@@ -542,18 +624,17 @@ async function main() {
     return at === -1 ? fallback : args[at + 1]
   }
 
-  const dir = option('dir', 'build')
   const origin = option('origin')
 
-  if (!origin && !existsSync(join(dir, 'meta.json'))) {
+  if (!origin && !existsSync(join(BUILD_DIR, 'meta.json'))) {
     annotate(
       'error',
-      `No component library at \`${dir}/\`. Run \`pnpm ladle:build\` first — this gate reads a build, never the dev server.`,
+      `No component library at \`${BUILD_DIR}/\`. Run \`pnpm ladle:build\` first — this gate reads a build, never the dev server.`,
     )
     process.exit(1)
   }
 
-  const { failures, controls, stories } = await run({ dir, origin, only: option('story') })
+  const { failures, controls, stories } = await run({ origin, only: option('story') })
 
   if (failures.length === 0) {
     report([`Accessibility gate: **${stories} stories**, ${controls} controls measured, clean.`])

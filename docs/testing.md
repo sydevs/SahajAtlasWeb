@@ -383,8 +383,10 @@ and paints a focus indicator.
 
 **The unit lane cannot host it, and measuring said so.** jsdom has no layout at all: a tap area
 cannot be measured, and `color-contrast` resolves to nothing. Measured 2026-11-19 over the same
-52 stories with the same axe configuration: **jsdom returned 23 findings, the browser 127**, and
-none of the browser's 80 contrast failures were among the 23.
+52 stories with the same axe configuration, counting violation NODES: **jsdom returned 31, the
+browser 131** — and the browser's 80 contrast failures and 24 label-in-name failures were not
+among the 31, which is the whole argument. (The browser figure is from the 49 stories that
+rendered; three forms timed out in that first pass.)
 
 Four things about it are deliberate:
 
@@ -401,8 +403,15 @@ Four things about it are deliberate:
   each side, so a control crowded on one side reports the room it has rather than two patches.
 - **`region` and `landmark-unique` are off**, and `scripts/check-a11y.mjs` says why: a story is
   one component in a bare div, and a story page is a catalogue of six of them. Both would report
-  the page rather than the widget. Everything else is on, and the exemptions are three selectors
-  with a reason each, pinned as a closed list by `scripts/check-a11y.test.ts`.
+  the page rather than the widget. Everything axe enables by default stays on, and the tap
+  exemptions are three selectors with a reason each, pinned as a closed list by
+  `scripts/check-a11y.test.ts`.
+  ⚠ **axe ships `target-size`, one of the handful it leaves disabled itself, and this gate does
+  not turn it on.** That is deliberate and the script says why: the rule measures
+  `getBoundingClientRect`, which cannot see the absolutely-positioned `::after` the
+  `touch-target` utility draws, so it would fail every control the widget deliberately leaves
+  small while passing a 44px control an overlay covers. Do not read "everything else is on" as a
+  claim that no axe rule was left out.
 
 ⚠ **The gate's own arithmetic is in the unit lane** (`scripts/check-a11y.test.ts`) — the span
 measurement, the report's grouping, and the exemption list. Only the browser half needs a
@@ -484,6 +493,26 @@ more, opted in the same way (`grep -rl '@vitest-environment jsdom' src/`); this 
   Its submission arm (#163) is the same argument twice over: the waiting overlay is a portal, so
   only a DOM can say whether it is on screen, and the cache cannot — a later message carrying no
   `previewEvent` leaves the cache entry exactly as it was while covering it with the skeleton.
+
+### One dialog per jsdom FILE, and assert the focus call rather than where focus ends up (#432)
+
+Two Radix dialogs in one spec file share one `document`, and React finishes one case's
+teardown while the next case is already running. Radix's focus scope then moves focus from the
+case that has already ended, and the next case's `document.activeElement` is whatever that
+teardown decided. Measured on `Modal.focus.test.tsx`: three cases in one file failed about one
+run in five, two about one in eight, one passed fifteen times out of fifteen. So the second
+property lives in `Modal.focus-opener.test.tsx`, as its own file.
+
+⚠ **It is a scheduling race, not a slow read.** Flushing harder makes it worse, not better —
+an extra `act` flush after the close took it from one in six to one in four, because the extra
+microtasks give the previous case's teardown more room to run. Waiting for `activeElement` to
+stop changing does not fix it either: it comes to rest on the wrong element.
+
+What a dialog atom owns is **asking** for focus back, so these specs spy on
+`HTMLElement.prototype.focus` and assert the last element the close path asked for. Where focus
+settles after a torn-down sibling has had its say is not a property of the atom under test, and
+a browser is what settles the end state — `pnpm test:a11y` walks the keyboard over every story,
+and the pull request records the manual Escape pass.
 
 ### A CLOSED portal renders nothing under SSR — an "absence" assertion proves nothing
 

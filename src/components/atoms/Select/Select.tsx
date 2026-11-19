@@ -18,23 +18,18 @@ import { frameCollision, overlayContainer } from '@/lib/overlay'
 // `className` — a core `text-*` emits after `field-size` and silently outranks it
 // (`src/styles/mobile-zoom.test.ts` refuses it).
 export const fieldChrome = tv({
-  base: 'w-full rounded border bg-background px-3 field-size text-foreground transition-colors outline-none focus-visible:ring-2 focus-visible:ring-focus disabled:opacity-disabled',
+  // ⚠ `min-h-11` on the base, not a height per variant: the 44px tap floor (#432) has to hold
+  // for the input, the trigger and the textarea alike, and a fixed height on each would have
+  // to be cancelled again by the one variant that grows with its content. It is a drawn size
+  // rather than the `touch-target` utility because an `<input>` renders no `::after` for that
+  // utility to use. `pointer-coarse` is the same hardware question `field-size` below asks.
+  base: 'w-full rounded border bg-background px-3 field-size text-foreground transition-colors outline-none focus-visible:ring-2 focus-visible:ring-focus disabled:opacity-disabled pointer-coarse:min-h-11',
   variants: {
     isInvalid: { true: 'border-danger-7', false: 'border-gray-7' },
-    /**
-     * A trigger lays its value out against the chevron. A plain input does not.
-     *
-     * ⚠ The 44px floor is a real height here, not the `touch-target` utility the Button atom
-     * takes: an `<input>` renders no `::after`, so the invisible tap area has nowhere to go
-     * (#432). It is a drawn 4px on a touch screen alone, where the keyboard covers the layout
-     * anyway — `pointer-coarse` is the same hardware question `field-size` above asks.
-     */
-    trigger: {
-      true: 'inline-flex h-10 items-center justify-between gap-2 pointer-coarse:h-11',
-      false: 'h-10 pointer-coarse:h-11',
-    },
+    /** A trigger lays its value out against the chevron. A plain input does not. */
+    trigger: { true: 'inline-flex h-10 items-center justify-between gap-2', false: 'h-10' },
     /** Textareas grow with their content instead of holding the 40px field height. */
-    multiline: { true: 'h-auto py-2 pointer-coarse:h-auto' },
+    multiline: { true: 'h-auto py-2' },
     /** Active-filter tint: a primary background makes an in-use field stand out. */
     highlight: { true: 'border-primary-7 bg-primary-2' },
   },

@@ -27,7 +27,11 @@ function listFor(scope: HTMLElement, input: Element): Element | null {
   // selector built from it would be a selector built from somebody else's string. A
   // document-wide lookup is wrong for a second reason — inside the shadow root it would
   // answer about the HOST's page.
-  return [...scope.querySelectorAll('[id]')].find((node) => node.id === id) ?? null
+  for (const node of scope.querySelectorAll('[id]')) {
+    if (node.id === id) return node
+  }
+
+  return null
 }
 
 /** Whether the suggestion list the input names is on screen with something in it. */
@@ -44,7 +48,11 @@ export function isExpanded(scope: HTMLElement, input: Element): boolean {
 export function syncGeocoderExpanded(scope: HTMLElement): () => void {
   const sync = () => {
     for (const input of scope.querySelectorAll(INPUT)) {
-      input.setAttribute('aria-expanded', String(isExpanded(scope, input)))
+      const next = String(isExpanded(scope, input))
+
+      // Written only on a change. An unconditional write is a mutation record for every other
+      // observer on this subtree, for a value that did not move.
+      if (input.getAttribute('aria-expanded') !== next) input.setAttribute('aria-expanded', next)
     }
   }
 

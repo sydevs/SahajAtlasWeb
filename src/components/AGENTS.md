@@ -580,6 +580,8 @@ Never silence a `jsx-a11y` warning on an interactive element.
 **`pnpm test:a11y` is the gate, and it runs in a browser** (`scripts/check-a11y.mjs`, #432). It
 drives the built component library in Chromium at 390×844 with a coarse pointer and fails on an
 axe violation, a tap area under 44px, or a keyboard stop that is invisible or paints no focus.
+⚠ It measures the tap area by hit test, so **never read a 44px claim off a class list** — the
+`sm` Button draws 43px wide for a two-letter label, and only the probe says so.
 `pnpm lint`'s `jsx-a11y` rules are the static half of the same question; neither replaces the
 other. The gate needs `pnpm ladle:build` first, and `--origin http://localhost:61000` points it
 at `pnpm ladle` for the fix loop.
@@ -602,17 +604,12 @@ three things defeat it:
 `relative` is later than `absolute` and `fixed` in Tailwind's own order, so a joined list wins
 the cascade and unpins the caller's control. `SettingsMenu`'s trigger carries that story.
 
-⚠ **Radix restores focus to a `Dialog.Trigger`, and neither of this app's dialogs has one.**
-Its own `onCloseAutoFocus` calls `preventDefault()` and focuses the trigger it does not have, so
-closing dropped the viewer on `<body>` — measured in a browser for the `Modal` atom (#432), and
-the same mechanism `CompactEmbedView`'s surface already handled. Both record the opener
-themselves, from the component that knows the dialog is CLOSED, and three things about that are
-load-bearing: it listens on the widget's own root, never `document`, because Safari and Firefox
-on macOS focus no `<button>` on click and a document-wide listener would point at the host
-page's own field; it ignores anything inside the dialog, because the effect re-runs as the
-dialog closes while the × is still focused; and it must not read focus during the dialog's own
-render, because a render React discards and repeats re-reads it after the focus trap has moved
-focus — measured as an intermittent failure, not a theoretical one.
+⚠ **Radix restores focus to a `Dialog.Trigger`, and neither of this app's dialogs has one**, so
+closing dropped the viewer on `<body>` (#432). `useOpenerRestore` (`src/hooks/`) is the one
+implementation for both — the `Modal` atom and `CompactEmbedView`'s surface — and its docblock
+owns the three measured properties that make it work. Read it before changing either dialog.
+`ReportIssueModal` adds a click-time capture in front of it; that is a chain, not a duplicate,
+and the comment there says why neither end is spare.
 
 **An accessible name must contain the control's own visible text** (WCAG 2.5.3): a speech-input
 viewer says what they can see. So a weekday pill reading `Mon` is named `Mon`, not `Monday`; a

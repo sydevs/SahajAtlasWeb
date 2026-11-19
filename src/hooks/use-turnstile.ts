@@ -155,11 +155,8 @@ function createChallengeFrame(
 
   frame.src = url.href
   frame.width = String(FRAME_WIDTH)
-  frame.height = '0'
-  // Collapsed is the frame's starting state, so it starts out of the tab order too. The probe
-  // below hides its own copy the same way.
-  frame.tabIndex = -1
-  frame.setAttribute('aria-hidden', 'true')
+  // Collapsed is the frame's starting state, so it starts out of the tab order too.
+  collapseFrame(frame, true)
   frame.style.border = '0'
   frame.style.display = 'block'
   frame.title = 'Security check'
