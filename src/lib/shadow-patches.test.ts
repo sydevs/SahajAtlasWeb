@@ -150,6 +150,10 @@ function packageRoot(from: Resolver, name: string) {
 function expectPatched(module: string, root: string, label: string) {
   const { files, hunks, gone, onlyIn } = PATCHES[module]
 
+  // The loop below reads `files` alone, so a key outside it would leave its hunks unchecked.
+  for (const file of Object.keys(onlyIn ?? {}))
+    expect(files, `${label}: onlyIn names an unlisted file`).toContain(file)
+
   for (const file of files) {
     const src = readFileSync(join(root, file), 'utf8')
 
