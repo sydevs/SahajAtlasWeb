@@ -401,7 +401,7 @@ patched rather than worked around (#236).** `patches/` holds them, under
 `pnpm.patchedDependencies` beside the vaul patch. Patching stays the LAST resort, and
 these two earn it because neither failure is reachable from our own code: the reads are
 inside the libraries, and every call site we own already passes the right arguments.
-Where our own code can reach the failure it fixes it itself, as `Mapbox/aria-live.ts` does.
+Where our own code can reach the failure it fixes it itself, as `Mapbox/geocoder-dom.ts` does.
 
 - **`@radix-ui/react-focus-scope@1.3.1`** listens for `focusin`/`focusout` on
   `document` and asks `container.contains(event.target)`. Inside a shadow root that

@@ -497,12 +497,14 @@ version, because the folklore on this is older than the code.
   detection — neither of which we render. The Geocoder mounts its suggestion listbox on
   its own `parentElement`, inside our root.
 - **Its live region does not survive the boundary, and carrying it is ours.** See
-  `Mapbox/aria-live.ts`.
+  `Mapbox/geocoder-dom.ts`, which owns both repairs below.
 - **Its input claims `role="combobox"` and renders without `aria-expanded`**, which ARIA makes
   required on that role — so a screen reader meeting the field is not told that suggestions
-  appeared under it, the one thing the role exists to announce. `Mapbox/combobox-expanded.ts`
-  seeds it, by the same argument `aria-live.ts` makes: the input is a node in our own subtree,
-  so our code can reach the failure without a fifth `patches/` entry (#432).
+  appeared under it, the one thing the role exists to announce. `Mapbox/geocoder-dom.ts`
+  seeds it, by the same argument it makes for the region: the input is a node in our own
+  subtree, so our code can reach the failure without a fifth `patches/` entry (#432).
+  ⚠ **Both repairs share one observer**, over one node with one lifetime. They run on the same
+  subtree for the same reason, and two subscriptions over it was one change made twice.
   ⚠ **The library maintains the value itself and we must not** — `hideResults()` writes
   `"false"` and the show path writes `"true"`, read off the installed bundle. Only the INITIAL
   state is missing, so that module seeds an input that has no value and never writes again; a

@@ -5,8 +5,7 @@ import { useLocation, useSearchParams } from 'react-router'
 import { useQuery } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
 
-import { hoistGeocoderLiveRegion } from './aria-live'
-import { syncGeocoderExpanded } from './combobox-expanded'
+import { repairGeocoderDom } from './geocoder-dom'
 import { controlTheme } from './themes'
 
 import { clientQuery } from '@/config/api'
@@ -121,13 +120,7 @@ export function MapSearch({ onSelect, label, permanent }: MapSearchProps) {
 
     if (!node) return undefined
 
-    const releaseLiveRegion = hoistGeocoderLiveRegion(node)
-    const releaseExpanded = syncGeocoderExpanded(node)
-
-    return () => {
-      releaseLiveRegion()
-      releaseExpanded()
-    }
+    return repairGeocoderDom(node)
   }, [])
 
   React.useEffect(() => {
