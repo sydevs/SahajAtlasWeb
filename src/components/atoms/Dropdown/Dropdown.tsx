@@ -1,7 +1,7 @@
 import { ReactNode } from 'react'
 import { FloatingPortal, FloatingFocusManager, type Placement } from '@floating-ui/react'
-import { tv } from 'tailwind-variants'
 
+import { tv } from '@/styles/tv'
 import { overlayContainer } from '@/lib/overlay'
 import { usePopover } from '@/hooks/use-popover'
 

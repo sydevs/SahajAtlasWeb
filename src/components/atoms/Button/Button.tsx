@@ -1,6 +1,6 @@
 import { type ComponentProps, type ReactNode, type Ref, forwardRef } from 'react'
-import { tv, type VariantProps } from 'tailwind-variants'
 
+import { tv, type VariantProps } from '@/styles/tv'
 import { Spinner } from '@/components/atoms/Spinner/Spinner'
 import { atlasError, reportInternalError } from '@/lib/report'
 import { isSafeHref } from '@/lib/shape'

@@ -1,8 +1,8 @@
 import { type ComponentProps, type MouseEvent, type ReactNode, forwardRef } from 'react'
 import { Link as RouterLink, useLocation } from 'react-router'
-import { tv, type VariantProps } from 'tailwind-variants'
 import { ArrowUpRight } from 'lucide-react'
 
+import { tv, type VariantProps } from '@/styles/tv'
 import { rememberCamera } from '@/config/store'
 import { atlasError, reportInternalError } from '@/lib/report'
 import { atlasPushState, hasAllowedScheme, isSafeHref } from '@/lib/shape'

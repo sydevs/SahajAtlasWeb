@@ -1,6 +1,7 @@
 import { type ReactNode, forwardRef, useState } from 'react'
 import clsx from 'clsx'
-import { tv } from 'tailwind-variants'
+
+import { tv } from '@/styles/tv'
 
 // A vertical radio list, rendered as selectable cards. It is controlled
 // through `value` and `onChange` (pair it with react-hook-form's
