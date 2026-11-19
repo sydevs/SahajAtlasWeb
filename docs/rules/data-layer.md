@@ -388,7 +388,10 @@ the shared client.
 - **Warm the bootstrap caches in parallel with the client bootstrap.**
   `api.warmCaches()` (fired from `App`'s mount effect) kicks the locale-agnostic
   feed and region-tree reads alongside the suspended `clients/me` read, breaking
-  the waterfall. Do not warm titles there — the UI locale is not resolved yet at
+  the waterfall. It also prefetches the unfiltered `countriesQuery()`, which
+  derives from those two: cold, the root drawer suspends right after the app
+  boundary reveals, and React 19 holds every fallback it shows for at least
+  300 ms. Do not warm titles there — the UI locale is not resolved yet at
   mount, so it would fetch under the wrong key.
 - **Prefetch event details.** Warm `['event', id, locale]` on hover/focus
   (`useHoverPrefetch`) and a region's first few cards on idle
@@ -399,11 +402,11 @@ the shared client.
 - **Query factories live in `src/config/api/index.ts`.** That module imports
   `fetch.ts`, so a factory `fetch.ts` itself consumes has to be declared beside its
   fetcher, or the import closes a cycle: `geojsonQuery`, `regionsQuery` and
-  `eventTitlesQuery`, each spread by its loader, and `atlasConfigQuery` and
-  `translationsQuery`, each read by a warm-up. `index.ts` re-exports the first
-  three; the last two are imported from `fetch.ts`. A factory nothing in
-  `fetch.ts` calls has no such excuse. Declare it in `index.ts` with the rest,
-  so every contract stays in one place.
+  `eventTitlesQuery`, each spread by its loader, and `countriesQuery`,
+  `atlasConfigQuery` and `translationsQuery`, each read by a warm-up.
+  `index.ts` re-exports the first four; the last two are imported from
+  `fetch.ts`. A factory nothing in `fetch.ts` calls has no such excuse. Declare
+  it in `index.ts` with the rest, so every contract stays in one place.
 - **A wholesale cache has one contract, and every reader spreads it.**
   `geojsonQuery()`, `regionsQuery()` and `eventTitlesQuery(locale)` each hold the
   key, the fetcher, `staleTime` and `gcTime`. A screen adds only what is its own
