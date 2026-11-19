@@ -22,6 +22,7 @@ const entry = (start: string, end: string): CalendarEntry => ({
 afterEach(() => {
   Settings.defaultZone = 'system'
   vi.useRealTimers()
+  vi.restoreAllMocks()
   document.body.innerHTML = ''
 })
 
@@ -59,6 +60,21 @@ describe('scheduleXTimeline', () => {
     await act(async () => {
       calendar.destroy()
     })
+  })
+
+  // Schedule-X reads an entry's string thousands of times over a full feed.
+  it('formats each time once, and still formats on request', () => {
+    const [event] = scheduleXTimeline(
+      [entry('2026-11-19 19:00', '2026-11-19 20:00')],
+      'Europe/London',
+    ).events
+    const format = vi.spyOn(Temporal.ZonedDateTime.prototype, 'toString')
+
+    expect(event.start).toBeInstanceOf(Temporal.ZonedDateTime)
+    expect(event.start.toString()).toBe('2026-11-19T19:00:00+00:00[Europe/London]')
+    expect(event.start.toString()).toBe('2026-11-19T19:00:00+00:00[Europe/London]')
+    expect(format).toHaveBeenCalledOnce()
+    expect(event.start.toString({ timeZoneName: 'never' })).toBe('2026-11-19T19:00:00+00:00')
   })
 
   // London springs forward at 01:00 on 2027-03-28, so 01:30 does not exist there.

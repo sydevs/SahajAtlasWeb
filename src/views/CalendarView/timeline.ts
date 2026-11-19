@@ -4,6 +4,23 @@ import { DateTime } from 'luxon'
 // ⚠ The module, never `temporal-polyfill/global` (see CalendarView.tsx).
 import { Temporal } from 'temporal-polyfill'
 
+// Schedule-X sorts, groups and labels events through `toString()`, thousands of times over a full
+// feed, and the polyfill formats afresh on every call: on its own several times the cost of a
+// 2.x grid. A time never changes, so neither does its string. ⚠ This only pays because the
+// patched core hands this same object back on every read (`src/components/AGENTS.md`).
+class ScheduleXTime extends Temporal.ZonedDateTime {
+  #string: string | undefined
+
+  override toString(options?: Temporal.ZonedDateTimeToStringOptions): string {
+    if (options) return super.toString(options)
+
+    return (this.#string ??= super.toString())
+  }
+}
+
+const memoized = (time: Temporal.ZonedDateTime) =>
+  new ScheduleXTime(time.epochNanoseconds, time.timeZoneId, time.calendarId)
+
 const toScheduleXEvent = (entry: CalendarEntry, zone: string) => {
   const wallStart = Temporal.PlainDateTime.from(entry.start)
   const wallEnd = Temporal.PlainDateTime.from(entry.end)
@@ -15,7 +32,7 @@ const toScheduleXEvent = (entry: CalendarEntry, zone: string) => {
     ? wallEnd.toZonedDateTime(zone)
     : start.add(wallStart.until(wallEnd))
 
-  return { ...entry, start, end }
+  return { ...entry, start: memoized(start), end: memoized(end) }
 }
 
 /**
