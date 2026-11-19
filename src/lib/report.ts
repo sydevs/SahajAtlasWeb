@@ -341,21 +341,10 @@ async function loadReporter(dsn: string): Promise<Reporter | null> {
     // Unset, `dataCollection` collects every category. `userInfo` is the one this
     // client reaches: left on, every event asks Sentry to store the visitor's IP
     // (`infer_ip: 'auto'`), read off the request itself, where no `beforeSend` can
-    // scrub it. The rest gate integrations this client never installs. They are
-    // off anyway, because this file treats what we do not send as a decision, not
-    // an inherited default.
-    dataCollection: {
-      userInfo: false,
-      cookies: false,
-      httpHeaders: false,
-      httpBodies: [],
-      urlQueryParams: false,
-      graphQL: { document: false, variables: false },
-      genAI: { inputs: false, outputs: false },
-      mcp: { inputs: false, outputs: false },
-      databaseQueryData: false,
-      queues: false,
-    },
+    // scrub it. Every other category is read only by an integration this client
+    // does not install. ⚠ An integration added below brings its category with it,
+    // on, unless it is switched off here.
+    dataCollection: { userInfo: false },
     // On by default, this gives a thrown string a synthetic stack trace of this
     // seam's own frames: it points at the reporter, never at the failure.
     attachStacktrace: false,
