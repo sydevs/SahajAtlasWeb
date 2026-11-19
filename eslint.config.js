@@ -153,11 +153,19 @@ export default [
       'no-restricted-imports': [
         'error',
         {
-          paths: ['node:fs', 'fs'].map((name) => ({
-            name,
-            importNames: ['readdirSync'],
-            message: 'Walk src/ through src/test-support/source-tree.ts (#286).',
-          })),
+          paths: [
+            ...['node:fs', 'fs'].map((name) => ({
+              name,
+              importNames: ['readdirSync'],
+              message: 'Walk src/ through src/test-support/source-tree.ts (#286).',
+            })),
+            // `src/styles/tv.ts` carries why.
+            {
+              name: 'tailwind-variants',
+              message:
+                'Import tv from @/styles/tv. This entry bundles a second merge engine (2.7 KiB gzipped).',
+            },
+          ],
         },
       ],
     },
