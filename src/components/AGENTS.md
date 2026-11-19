@@ -477,6 +477,13 @@ aria-hidden by the spec above. Check this table whenever a patched package has a
 | `aria-hidden@1.2.6` | `hideOthers` cannot cross a shadow boundary, so a modal never hides the background (#236) | [aria-hidden#14](https://github.com/theKashey/aria-hidden/issues/14) is the related closed report; 1.2.6 is the newest release | A release that climbs `ShadowRoot.host` and descends into kept roots |
 | `@schedule-x/calendar@2.36.0` | Looks up ids and selectors on `document` and writes CSS variables on `<html>`; breaks inside a shadow root (#236) | [schedule-x#1223](https://github.com/schedule-x/schedule-x/issues/1223) (open); the newest release is 4.9.1, a major jump not yet evaluated | A release whose lookups and variables are scoped to the rendered root |
 
+**`pnpm.overrides` also holds `undici`, which pins no patch.** It is a security floor for
+build tooling: `wrangler`'s `miniflare` declares `undici` at exactly `7.29.1`, an exact pin
+no patch release can lift, and eight advisories cover that version (four high, all fixed in
+7.30.1). `pnpm audit` reports all eight the moment the override goes. Nothing here ships
+`undici` to a browser. Remove it when `pnpm why undici` shows every consumer asking for
+7.30.1 or later by itself — `payload` already does.
+
 ⚠ **The margin means nothing inside the dialog may size itself off the viewport.**
 Every drawer, peek strip, and sheet is `position: fixed`, so `100dvh` is only right
 while nothing has taken the containing block — and the dialog takes it, 16–32px
