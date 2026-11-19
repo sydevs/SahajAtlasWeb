@@ -1,7 +1,7 @@
 import { useEffect, useRef } from 'react'
 import * as Fathom from 'fathom-client'
 import { useLocation, useNavigate } from 'react-router'
-import { MapProvider } from 'react-map-gl'
+import { MapProvider } from 'react-map-gl/mapbox'
 import { useTranslation } from 'react-i18next'
 
 import { Spinner } from '@/components/atoms/Spinner'
@@ -18,16 +18,15 @@ import embed from '@/config/embed'
 /**
  * ⚠ **This module is lazy-loaded, and that is what makes the compact card's promise true.**
  *
- * `react-map-gl`'s `exports-mapbox.js` runs `const mapLib = import('mapbox-gl')` at MODULE
- * scope. So importing it anywhere in the eager graph fetches 485 KiB gz of mapbox-gl, whether
- * or not a map renders. While this lived in `App.tsx`, a compact embed — a heading and one
- * button in a 300px sidebar — downloaded the entire map library on every page view, and three
- * docblocks claimed the opposite. A production build measured this: the chunk firing that
- * import was in `embed.js`'s STATIC closure.
+ * A compact embed — a heading and one button in a 300px sidebar — must not download the map.
+ * mapbox-gl is fetched only when the map renders (`mapLib` in `Map.tsx`), and everything
+ * importing react-map-gl is reached from here, so none of it is in the eager graph.
  *
- * Not rendering an element is not the same as not importing its module. `pnpm size` cannot see
- * the difference. It budgets the static graph, and a top-level `import()` inside it is a fetch
- * the budget never counts — which is why the claim survived review for as long as it did.
+ * Not rendering an element is not always the same as not importing its module. react-map-gl 7
+ * fired that `import('mapbox-gl')` at MODULE scope, so while this lived in `App.tsx` the compact
+ * embed downloaded the entire map library on every page view, and three docblocks claimed the
+ * opposite. `pnpm size` could not see it: it budgets the static graph, and a top-level
+ * `import()` inside it is a fetch the budget never counts.
  *
  * Keep every `react-map-gl` edge behind this boundary: the map, `MapProvider`, and the REAL
  * camera provider. `NoopMapControllerProvider` is deliberately imported from the seam module,
