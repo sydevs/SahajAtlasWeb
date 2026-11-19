@@ -83,7 +83,7 @@ Two deploy files live in `public/`, copied into both build outputs, and both gov
   there. Read this file before you change either of the two.
 
 **The deep-link fallback is `assets.not_found_handling`, not a file.** The standalone
-`BrowserRouter` build needs one — `/search` and `/countries/:code` are real paths — while the
+`BrowserRouter` build needs one — `/search` and `/gb/london` are real paths — while the
 embeddable widget routes off a query parameter on the host's page and needs none.
 `public/_redirects` (`/* /index.html 200`) carried it for the Pages app until #283 deleted the
 file, and then the Pages project itself, as above.

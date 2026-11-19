@@ -151,7 +151,7 @@ Mapbox token and a SahajCloud API key. See
 
 ```bash
 pnpm dev          # Vite dev server
-pnpm build        # typecheck + production build → dist/ (+ the two output assertions)
+pnpm build        # typecheck + production build → dist/ (+ the three output assertions)
 pnpm preview      # serve the production build
 pnpm typecheck    # tsc --noEmit (app + tests, scripts and the Vite configs)
 pnpm lint         # eslint, fails on any warning (CI gate)

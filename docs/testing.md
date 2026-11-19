@@ -246,7 +246,7 @@ values changed; the gap did not.) The `VITE_HOST` story above is that hole in on
 production origin blanked by a dashboard edit is the same hole in the other, and running the PR
 gate more often closes neither.
 
-`.github/workflows/production-smoke.yml` runs these same 22 specs against production. Five things
+`.github/workflows/production-smoke.yml` runs these same specs against production. Five things
 about it are deliberate:
 
 - **The deploy fires it, not the clock.** What the lane reads is deployed file *content*, which
@@ -274,7 +274,7 @@ about it are deliberate:
   matches a scalar, so putting an expression back fails the spec at collection. The lane takes no
   `workflow_dispatch` input for it: that input was the one way a dispatcher could aim a green
   `Production Smoke` check at a host of their choosing. A guard still fails the job on an empty
-  value, because `skipWithoutPreview` would otherwise turn one into sixteen self-skipping specs and
+  value, because `skipWithoutPreview` would otherwise turn one into a lane of self-skipping specs and
   a green check — the first invariant above, one level up. It cannot fire against a literal, and
   it shares its step with the specs so no `if:` can route around it once something makes it able
   to.
@@ -303,7 +303,7 @@ alert. The lane's last step opens an issue instead, and three things about it ar
   production read, and a ticket claiming production is red when nothing read it is worse than no
   ticket. `ci-workflows.test.ts` pins that gate and the token, since both fail silently.
 
-Every spec reads both hosts alike. The lane is **22 cases**, from 16 declarations — count it rather
+Every spec reads both hosts alike. The lane is **22 cases**, from 15 declarations — count it rather
 than trusting a figure, since `.each` makes the two differ. Measured 2026-10-06 against the 16 it
 was then: all 16 passed against `sahajatlas.com`. Re-measured 2026-10-13 against the playground
 on its Worker (`PREVIEW_URL=https://design.sahajatlas.com pnpm test:smoke`, #279): **10 of the 17
@@ -399,10 +399,11 @@ stays `node` regardless.
 
 A spec opts in per file with a `// @vitest-environment jsdom` docblock on line 1, keeping the fast
 path fast. ⚠ **Re-measure before quoting either half of this trade — nothing checks these two
-numbers.** Measured 2026-10-13 on 4 cores: the 115 node-only files take **~20s**, and the 25 jsdom
-files add **~15s** on top, over 1714 tests. The per-file opt-in is what keeps the first number from
-becoming the second. **Neither half is the per-edit cost** — the hook runs a slice, against the
-budget at the end of this file.
+numbers.** Measured 2026-10-13 on 4 cores, when the lane was 115 node-only files and 25 jsdom
+ones: **~20s**, and **~15s** on top, over 1714 tests. On 2026-11-19 it is 139 and 37, and the
+times were not re-taken: the machine was shared, and a figure taken under load misleads. The
+per-file opt-in is what keeps the first number from becoming the second. **Neither half is the
+per-edit cost** — the hook runs a slice, against the budget at the end of this file.
 
 **Reach for jsdom only when the behaviour is a re-render SSR markup cannot express, an agreement
 with a router or DOM API a pure test can only assume, or a library whose whole job IS the DOM.**

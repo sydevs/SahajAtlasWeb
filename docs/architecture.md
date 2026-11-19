@@ -71,9 +71,10 @@ Host page  →  <script src="…/auto.js?key=…&locale=…&map=true|false">
 
 ## Data flow
 
-1. The widget receives `apiKey` (+ optional `locale`, `map`, `analytics`,
-   `geolocation`, `errorReporting`, `basePath`, `primaryColor`,
-   `secondaryColor`) from the host page.
+1. The loader parses six parameters off its own script URL
+   (`src/loader/config.ts`): `key`, plus optional `map`, `locale`, `routing`,
+   `atlas` and `gestures`. The widget reads them through `config/embed.ts`.
+   The display name and the brand colours come from the client record.
 2. `App` fetches the **client** record (domain, default locale, home region)
    using React Query. It configures the locale and analytics, then navigates
    to the home region on first load.
@@ -116,10 +117,11 @@ Host page  →  <script src="…/auto.js?key=…&locale=…&map=true|false">
   still deletes it. See `docs/rules/deployment.md` (#280, #283). The widget
   build routes off a query parameter on the host's page, so it needs no
   fallback of its own.
-- **Translations**: there is no sync pipeline. Locale JSON under
-  SahajCloud owns every string since #198 (`pnpm sync:translations`). The two **Accent**
-  translation-sync workflows were removed in #99 (see `AGENTS.md` →
-  Deployment).
+- **Translations**: SahajCloud owns every string since #198, and no locale
+  JSON ships under `public/`. `pnpm sync:translations --write` regenerates
+  the committed English snapshot, `src/config/translations.en.json`. The two
+  **Accent** translation-sync workflows were removed in #99 (see
+  `docs/rules/deployment.md` → "Retired: the Accent translation workflows").
 
 ## Conventions index
 
