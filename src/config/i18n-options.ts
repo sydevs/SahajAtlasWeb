@@ -80,6 +80,15 @@ export const i18nSharedOptions = {
     prefix: '%{',
     suffix: '}',
   },
+  react: {
+    // `applyLocale` ADDS a locale's bundle after init, so components must re-render when a
+    // bundle lands, not only when the language changes. Without this, a `?locale=fr` page whose
+    // French bundle arrives a beat after mount would keep painting English until something else
+    // happened to re-render it.
+    // ⚠ Shared, not app-only: react-i18next reads these per instance, so Ladle's story instance
+    // has only what this object carries.
+    bindI18nStore: 'added',
+  },
 }
 
 /**
