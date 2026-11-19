@@ -14,6 +14,7 @@ import { hideOthers } from 'aria-hidden'
 import { createElement } from 'react'
 import { act } from 'react'
 import { createRoot } from 'react-dom/client'
+import { Temporal } from 'temporal-polyfill'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import { deepActiveElement } from './active-element'
@@ -67,6 +68,10 @@ const PATCHES: Record<string, Patch> = {
   [SCHEDULE_X]: {
     files: ['dist/core.js', 'dist/core.cjs.js', 'dist/core.umd.js'],
     hunks: [
+      [
+        'Temporal is the polyfill module, not a global',
+        'const Temporal = temporalPolyfill.Temporal;',
+      ],
       ['ids resolve through the rendered roots too', 'const sydevsById = (id) => {'],
       ['selectors resolve through the rendered roots too', 'const sydevsQuery = (selector) => {'],
       ['render records the element it rendered into', 'sydevsContainers.add(el);'],
@@ -82,6 +87,10 @@ const PATCHES: Record<string, Patch> = {
       ],
       ['the wrapper lookup reads only the document', 'document.getElementById(calendarId)'],
       ['view teardown reads only the document', 'document.getElementById(this.randomId)'],
+      [
+        'the month agenda observes only the document',
+        'const monthViewElement = document.getElementById(id)',
+      ],
       [
         'a variable is written onto the host page’s <html>',
         'document.documentElement.style.setProperty(',
@@ -316,6 +325,18 @@ describe('FocusScope through a shadow boundary', () => {
 })
 
 describe('Schedule-X through a shadow boundary', () => {
+  const meditation = {
+    id: 1,
+    title: 'Meditation',
+    start: Temporal.ZonedDateTime.from('2026-10-20T19:00[UTC]'),
+    end: Temporal.ZonedDateTime.from('2026-10-20T20:00[UTC]'),
+  }
+
+  // A spec that throws must not leave its stubbed `Temporal` to the next one.
+  afterEach(() => {
+    vi.unstubAllGlobals()
+  })
+
   // Unpatched, the core finds its view container with `document.getElementById`, which
   // cannot see into the root, so the grid never renders: the embed showed the calendar's
   // header over an empty body.
@@ -327,8 +348,8 @@ describe('Schedule-X through a shadow boundary', () => {
 
     const calendar = createCalendar({
       views: [createViewMonthGrid(), createViewList()],
-      selectedDate: '2026-10-19',
-      events: [{ id: 1, title: 'Meditation', start: '2026-10-20 19:00', end: '2026-10-20 20:00' }],
+      selectedDate: Temporal.PlainDate.from('2026-10-19'),
+      events: [meditation],
     })
 
     await act(async () => {
@@ -338,6 +359,36 @@ describe('Schedule-X through a shadow boundary', () => {
     // The view mounts a beat after the wrapper, from an effect.
     await vi.waitFor(() => {
       expect(root.querySelector('.sx__view-container .sx__month-grid-wrapper')).not.toBeNull()
+    })
+
+    await act(async () => {
+      calendar.destroy()
+    })
+  })
+
+  // Unpatched, the core reads the PAGE's `Temporal`: a browser's own, or a host's copy. Every
+  // `instanceof` against the polyfill objects the widget hands it then fails, and the polyfill's
+  // documented cure overwrites that global for the whole host page.
+  it('reads the polyfill module, never the page’s own Temporal', async () => {
+    vi.stubGlobal('Temporal', { PlainDate: class {}, ZonedDateTime: class {}, Now: {} })
+
+    const root = mountShadowHost()
+    const container = document.createElement('div')
+
+    root.append(container)
+
+    const calendar = createCalendar({
+      views: [createViewMonthGrid()],
+      selectedDate: Temporal.PlainDate.from('2026-10-19'),
+      events: [meditation],
+    })
+
+    await act(async () => {
+      calendar.render(container)
+    })
+
+    await vi.waitFor(() => {
+      expect(root.querySelector('.sx__month-grid-event')?.textContent).toContain('Meditation')
     })
 
     await act(async () => {
@@ -359,7 +410,7 @@ describe('Schedule-X through a shadow boundary', () => {
     const online = { main: 'red', container: 'pink', onContainer: 'black' }
     const calendar = createCalendar({
       views: [createViewWeek()],
-      selectedDate: '2026-10-19',
+      selectedDate: Temporal.PlainDate.from('2026-10-19'),
       weekOptions: { gridHeight: 1200 },
       calendars: { online: { colorName: 'online', lightColors: online, darkColors: online } },
     })

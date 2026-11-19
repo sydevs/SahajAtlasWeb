@@ -1,11 +1,17 @@
 diff --git a/dist/core.cjs.js b/dist/core.cjs.js
-index ef7c28982627459075ea30daa7a787aaa694a8d4..f1fc64cbcb6492258833bdf7a0127d52de471739 100644
+index cb3eedc71366782dba660d1681b2b45a6b0c3708..89b139bfc9ca81a2b73f1d2e0115aee822e38df3 100644
 --- a/dist/core.cjs.js
 +++ b/dist/core.cjs.js
-@@ -6,6 +6,37 @@ var hooks = require('preact/hooks');
+@@ -6,6 +6,43 @@ var hooks = require('preact/hooks');
  var compat = require('preact/compat');
  var signals = require('@preact/signals');
  
++// sydevs: Schedule-X reads a global `Temporal`, and the polyfill installs one by overwriting
++// the HOST page's `Temporal`, `Intl.DateTimeFormat` and `Date.prototype.toTemporalInstant`.
++// The SahajAtlasWeb embed binds the polyfill module here instead, so the page is left alone.
++var temporalPolyfill = require('temporal-polyfill');
++const Temporal = temporalPolyfill.Temporal;
++
 +// sydevs: Schedule-X reaches its own elements through `document`, and writes its sizing and
 +// colour variables onto the page's <html>. Inside the SahajAtlasWeb embed's shadow root the
 +// lookups find nothing, so the grid never mounted; and <html> is the HOST page's, where the
@@ -39,9 +45,9 @@ index ef7c28982627459075ea30daa7a787aaa694a8d4..f1fc64cbcb6492258833bdf7a0127d52
 +
  const AppContext$1 = preact.createContext({});
  
- const DateFormats = {
-@@ -95,7 +126,7 @@ function AppInput() {
-     }, [$app.datePickerState.selectedDate.value, $app.config.locale.value]);
+ var img = "data:image/svg+xml,%3c%3fxml version='1.0' encoding='utf-8'%3f%3e%3c!-- Uploaded to: SVG Repo%2c www.svgrepo.com%2c Generator: SVG Repo Mixer Tools --%3e%3csvg width='800px' height='800px' viewBox='0 0 24 24' fill='none' xmlns='http://www.w3.org/2000/svg'%3e%3cpath d='M6 9L12 15L18 9' stroke='%23B8B5B8' stroke-width='4' stroke-linecap='round' stroke-linejoin='round'/%3e%3c/svg%3e";
+@@ -26,7 +63,7 @@ function AppInput() {
+     const $app = hooks.useContext(AppContext$1);
      const [wrapperClasses, setWrapperClasses] = hooks.useState([]);
      const setInputElement = () => {
 -        const inputWrapperEl = document.getElementById(inputWrapperId);
@@ -49,16 +55,16 @@ index ef7c28982627459075ea30daa7a787aaa694a8d4..f1fc64cbcb6492258833bdf7a0127d52
          $app.datePickerState.inputWrapperElement.value =
              inputWrapperEl instanceof HTMLDivElement ? inputWrapperEl : undefined;
      };
-@@ -122,7 +153,7 @@ function AppInput() {
-         }
+@@ -54,7 +91,7 @@ function AppInput() {
      };
      hooks.useEffect(() => {
--        const inputElement = document.getElementById(datePickerInputId);
-+        const inputElement = sydevsById(datePickerInputId);
-         if (inputElement === null)
+         const inputElement = typeof document !== 'undefined' &&
+-            document.getElementById(datePickerInputId);
++            sydevsById(datePickerInputId);
+         if (typeof HTMLElement === 'undefined' ||
+             !(inputElement instanceof HTMLElement))
              return;
-         inputElement.addEventListener('change', handleInputValue); // Preact onChange triggers on every input
-@@ -137,7 +168,7 @@ function AppInput() {
+@@ -75,7 +112,7 @@ function AppInput() {
              keyboardEvent.preventDefault();
              $app.datePickerState.open();
              setTimeout(() => {
@@ -67,25 +73,7 @@ index ef7c28982627459075ea30daa7a787aaa694a8d4..f1fc64cbcb6492258833bdf7a0127d52
                  if (element instanceof HTMLElement)
                      element.focus();
              }, 50);
-@@ -791,7 +822,7 @@ function MonthView({ seatYearsView }) {
-                     mutatedElement.focus();
-             });
-         });
--        const monthViewElement = document.getElementById(elementId);
-+        const monthViewElement = sydevsById(elementId);
-         observer.observe(monthViewElement, {
-             childList: true,
-             subtree: true,
-@@ -1213,7 +1244,7 @@ function ForwardBackwardNavigation() {
- /**
-  * Get an element in the DOM by their custom component id
-  * */
--const getElementByCCID = (customComponentId) => document.querySelector(`[data-ccid="${customComponentId}"]`);
-+const getElementByCCID = (customComponentId) => sydevsQuery(`[data-ccid="${customComponentId}"]`);
- 
- class PreactView {
-     constructor(config) {
-@@ -1284,7 +1315,7 @@ class PreactView {
+@@ -923,7 +960,7 @@ class PreactView {
          preact.render(preact.createElement(this.Component, { $app, id: this.randomId }), onElement);
      }
      destroy() {
@@ -94,25 +82,43 @@ index ef7c28982627459075ea30daa7a787aaa694a8d4..f1fc64cbcb6492258833bdf7a0127d52
          if (el) {
              el.remove();
          }
-@@ -1857,7 +1888,7 @@ function TimeAxis() {
-         setHours(getTimeAxisHours($app.config.dayBoundaries.value, $app.config.isHybridDay));
-         const hoursPerDay = $app.config.timePointsPerDay / 100;
-         const pixelsPerHour = $app.config.weekOptions.value.gridHeight / hoursPerDay;
--        document.documentElement.style.setProperty('--sx-week-grid-hour-height', `${pixelsPerHour}px`);
-+        sydevsSetProperty('--sx-week-grid-hour-height', `${pixelsPerHour}px`);
+@@ -1009,7 +1046,7 @@ function MonthView({ seatYearsView }) {
+                     mutatedElement.focus();
+             });
+         });
+-        const monthViewElement = document.getElementById(elementId);
++        const monthViewElement = sydevsById(elementId);
+         observer.observe(monthViewElement, {
+             childList: true,
+             subtree: true,
+@@ -1485,7 +1522,7 @@ function ForwardBackwardNavigation() {
+ /**
+  * Get an element in the DOM by their custom component id
+  * */
+-const getElementByCCID = (customComponentId) => document.querySelector(`[data-ccid="${customComponentId}"]`);
++const getElementByCCID = (customComponentId) => sydevsQuery(`[data-ccid="${customComponentId}"]`);
+ 
+ const getEventHeight = (start, end, dayBoundaries, pointsPerDay) => {
+     if (Temporal.ZonedDateTime.compare(start, end) === 0) {
+@@ -2091,7 +2128,7 @@ function TimeAxis() {
+         setGridSteps(result);
+         const pixelsPerGridStep = $app.config.weekOptions.value.gridHeight / result.length;
+         // TODO v4: rename --sx-week-grid-hour-height to --sx-week-grid-grid-step-height
+-        document.documentElement.style.setProperty('--sx-week-grid-hour-height', `${pixelsPerGridStep}px`);
++        sydevsSetProperty('--sx-week-grid-hour-height', `${pixelsPerGridStep}px`);
      });
      const formatter = new Intl.DateTimeFormat($app.config.locale.value, $app.config.weekOptions.value.timeAxisFormatOptions);
      const hourCustomComponentFn = $app.config._customComponentFns.weekGridHour;
-@@ -1869,7 +1900,7 @@ function TimeAxis() {
+@@ -2103,7 +2140,7 @@ function TimeAxis() {
      hooks.useEffect(() => {
          if (hourCustomComponentFn && hourCCIDs.length) {
-             hours.forEach((hour, idx) => {
+             gridSteps.forEach((gridStep, idx) => {
 -                const el = document.querySelector(`[data-ccid="${hourCCIDs[idx]}"]`);
 +                const el = sydevsQuery(`[data-ccid="${hourCCIDs[idx]}"]`);
                  if (!(el instanceof HTMLElement)) {
                      return console.warn('Could not find element for custom component weekGridHour');
                  }
-@@ -1897,7 +1928,7 @@ function DateAxis({ week }) {
+@@ -2131,7 +2168,7 @@ function DateAxis({ week }) {
      hooks.useEffect(() => {
          if (weekGridDateCustomComponentFn) {
              week.forEach((date, idx) => {
@@ -121,7 +127,7 @@ index ef7c28982627459075ea30daa7a787aaa694a8d4..f1fc64cbcb6492258833bdf7a0127d52
                  if (!(el instanceof HTMLElement)) {
                      return console.warn('Could not find element for custom component weekGridDate');
                  }
-@@ -2229,7 +2260,7 @@ const filterByRange = (events, range) => {
+@@ -2524,7 +2561,7 @@ const filterByRange = (events, range, timezone) => {
  };
  
  const WeekWrapper = ({ $app, id }) => {
@@ -130,7 +136,7 @@ index ef7c28982627459075ea30daa7a787aaa694a8d4..f1fc64cbcb6492258833bdf7a0127d52
      const week = signals.useComputed(() => {
          var _a, _b;
          const rangeStart = (_a = $app.calendarState.range.value) === null || _a === void 0 ? void 0 : _a.start;
-@@ -2407,7 +2438,7 @@ function CalendarHeader() {
+@@ -2816,7 +2853,7 @@ function ViewHeader({ $app, view }) {
  }
  
  const setWrapperElement = ($app, calendarId) => {
@@ -139,7 +145,7 @@ index ef7c28982627459075ea30daa7a787aaa694a8d4..f1fc64cbcb6492258833bdf7a0127d52
  };
  
  const setScreenSizeCompatibleView = ($app, isSmall) => {
-@@ -2520,7 +2551,7 @@ function CalendarWrapper({ $app }) {
+@@ -3001,7 +3038,7 @@ function CalendarWrapper({ $app }) {
      const [currentView, setCurrentView] = hooks.useState();
      signals.useSignalEffect(() => {
          const newView = $app.config.views.value.find((view) => view.name === $app.calendarState.view.value);
@@ -148,7 +154,7 @@ index ef7c28982627459075ea30daa7a787aaa694a8d4..f1fc64cbcb6492258833bdf7a0127d52
          if (!newView || !viewElement || newView.name === (currentView === null || currentView === void 0 ? void 0 : currentView.name))
              return;
          if (currentView)
-@@ -2641,6 +2672,10 @@ class CalendarApp {
+@@ -3111,6 +3148,10 @@ class CalendarApp {
      }
      render(el) {
          this.calendarContainerEl = el;
@@ -159,7 +165,7 @@ index ef7c28982627459075ea30daa7a787aaa694a8d4..f1fc64cbcb6492258833bdf7a0127d52
          preact.render(preact.createElement(CalendarWrapper, { $app: this.$app }), el);
      }
      destroy() {
-@@ -2651,6 +2686,7 @@ class CalendarApp {
+@@ -3121,6 +3162,7 @@ class CalendarApp {
          });
          if (this.calendarContainerEl) {
              preact.render(null, this.calendarContainerEl);
@@ -167,7 +173,7 @@ index ef7c28982627459075ea30daa7a787aaa694a8d4..f1fc64cbcb6492258833bdf7a0127d52
          }
      }
      setTheme(theme) {
-@@ -4546,9 +4582,9 @@ class EventColors {
+@@ -5145,9 +5187,9 @@ class EventColors {
          });
      }
      setColors(colorName, colorDefinition) {
@@ -180,7 +186,7 @@ index ef7c28982627459075ea30daa7a787aaa694a8d4..f1fc64cbcb6492258833bdf7a0127d52
      }
  }
  
-@@ -5707,7 +5743,7 @@ function MonthGridDay({ day, isFirstWeek, isLastWeek }) {
+@@ -6523,7 +6565,7 @@ function MonthGridDay({ day, isFirstWeek, isLastWeek }) {
      hooks.useEffect(() => {
          if (!monthGridDayNameCustomComponent)
              return;
@@ -189,7 +195,7 @@ index ef7c28982627459075ea30daa7a787aaa694a8d4..f1fc64cbcb6492258833bdf7a0127d52
          if (!(dayNameEl instanceof HTMLElement)) {
              return;
          }
-@@ -5720,7 +5756,7 @@ function MonthGridDay({ day, isFirstWeek, isLastWeek }) {
+@@ -6536,7 +6578,7 @@ function MonthGridDay({ day, isFirstWeek, isLastWeek }) {
      hooks.useEffect(() => {
          if (!monthGridDateCustomComponent)
              return;
@@ -198,7 +204,16 @@ index ef7c28982627459075ea30daa7a787aaa694a8d4..f1fc64cbcb6492258833bdf7a0127d52
          if (!(dateEl instanceof HTMLElement))
              return;
          monthGridDateCustomComponent(dateEl, {
-@@ -6037,7 +6073,7 @@ const MonthAgendaWrapper = ({ $app, id }) => {
+@@ -6717,7 +6759,7 @@ function MonthAgendaDay({ day, isActive, setActiveDate, isLeadingOrTrailing, })
+     hooks.useEffect(() => {
+         if (!monthAgendaDateDotsCustomComponent)
+             return;
+-        const dotsEl = document.querySelector(`[data-ccid="${monthAgendaDateDotsCCID}"]`);
++        const dotsEl = sydevsQuery(`[data-ccid="${monthAgendaDateDotsCCID}"]`);
+         if (!(dotsEl instanceof HTMLElement))
+             return;
+         monthAgendaDateDotsCustomComponent(dotsEl, {
+@@ -6907,7 +6949,7 @@ const MonthAgendaWrapper = ({ $app, id }) => {
                      mutatedElement.focus();
              });
          });
@@ -207,14 +222,29 @@ index ef7c28982627459075ea30daa7a787aaa694a8d4..f1fc64cbcb6492258833bdf7a0127d52
          observer.observe(monthViewElement, {
              childList: true,
              subtree: true,
+@@ -6958,7 +7000,7 @@ const WeekAgendaWrapper = ({ $app, id }) => {
+                     mutatedElement.focus();
+             });
+         });
+-        const viewElement = document.getElementById(id);
++        const viewElement = sydevsById(id);
+         observer.observe(viewElement, {
+             childList: true,
+             subtree: true,
 diff --git a/dist/core.js b/dist/core.js
-index 4b9a234da202d170604bc12aee5e39a18fc2adb3..a94244f44df809d3d5e2390d4a70a3eec90efcfa 100644
+index 156906c11625f3a200af9d48c54aa09d449f3bcb..9e20a739997adc94384c64f6efaf18b605014cb9 100644
 --- a/dist/core.js
 +++ b/dist/core.js
-@@ -4,6 +4,37 @@ import { useContext, useEffect, useState, useMemo, useRef } from 'preact/hooks';
- import { createPortal } from 'preact/compat';
+@@ -4,6 +4,43 @@ import { useContext, useState, useEffect, useMemo, useRef as useRef$1, useLayout
+ import { useRef, createPortal } from 'preact/compat';
  import { useSignalEffect, useComputed, signal, effect, computed, batch } from '@preact/signals';
  
++// sydevs: Schedule-X reads a global `Temporal`, and the polyfill installs one by overwriting
++// the HOST page's `Temporal`, `Intl.DateTimeFormat` and `Date.prototype.toTemporalInstant`.
++// The SahajAtlasWeb embed binds the polyfill module here instead, so the page is left alone.
++import * as temporalPolyfill from 'temporal-polyfill';
++const Temporal = temporalPolyfill.Temporal;
++
 +// sydevs: Schedule-X reaches its own elements through `document`, and writes its sizing and
 +// colour variables onto the page's <html>. Inside the SahajAtlasWeb embed's shadow root the
 +// lookups find nothing, so the grid never mounted; and <html> is the HOST page's, where the
@@ -248,9 +278,9 @@ index 4b9a234da202d170604bc12aee5e39a18fc2adb3..a94244f44df809d3d5e2390d4a70a3ee
 +
  const AppContext$1 = createContext({});
  
- const DateFormats = {
-@@ -93,7 +124,7 @@ function AppInput() {
-     }, [$app.datePickerState.selectedDate.value, $app.config.locale.value]);
+ var img = "data:image/svg+xml,%3c%3fxml version='1.0' encoding='utf-8'%3f%3e%3c!-- Uploaded to: SVG Repo%2c www.svgrepo.com%2c Generator: SVG Repo Mixer Tools --%3e%3csvg width='800px' height='800px' viewBox='0 0 24 24' fill='none' xmlns='http://www.w3.org/2000/svg'%3e%3cpath d='M6 9L12 15L18 9' stroke='%23B8B5B8' stroke-width='4' stroke-linecap='round' stroke-linejoin='round'/%3e%3c/svg%3e";
+@@ -24,7 +61,7 @@ function AppInput() {
+     const $app = useContext(AppContext$1);
      const [wrapperClasses, setWrapperClasses] = useState([]);
      const setInputElement = () => {
 -        const inputWrapperEl = document.getElementById(inputWrapperId);
@@ -258,16 +288,16 @@ index 4b9a234da202d170604bc12aee5e39a18fc2adb3..a94244f44df809d3d5e2390d4a70a3ee
          $app.datePickerState.inputWrapperElement.value =
              inputWrapperEl instanceof HTMLDivElement ? inputWrapperEl : undefined;
      };
-@@ -120,7 +151,7 @@ function AppInput() {
-         }
+@@ -52,7 +89,7 @@ function AppInput() {
      };
      useEffect(() => {
--        const inputElement = document.getElementById(datePickerInputId);
-+        const inputElement = sydevsById(datePickerInputId);
-         if (inputElement === null)
+         const inputElement = typeof document !== 'undefined' &&
+-            document.getElementById(datePickerInputId);
++            sydevsById(datePickerInputId);
+         if (typeof HTMLElement === 'undefined' ||
+             !(inputElement instanceof HTMLElement))
              return;
-         inputElement.addEventListener('change', handleInputValue); // Preact onChange triggers on every input
-@@ -135,7 +166,7 @@ function AppInput() {
+@@ -73,7 +110,7 @@ function AppInput() {
              keyboardEvent.preventDefault();
              $app.datePickerState.open();
              setTimeout(() => {
@@ -276,25 +306,7 @@ index 4b9a234da202d170604bc12aee5e39a18fc2adb3..a94244f44df809d3d5e2390d4a70a3ee
                  if (element instanceof HTMLElement)
                      element.focus();
              }, 50);
-@@ -789,7 +820,7 @@ function MonthView({ seatYearsView }) {
-                     mutatedElement.focus();
-             });
-         });
--        const monthViewElement = document.getElementById(elementId);
-+        const monthViewElement = sydevsById(elementId);
-         observer.observe(monthViewElement, {
-             childList: true,
-             subtree: true,
-@@ -1211,7 +1242,7 @@ function ForwardBackwardNavigation() {
- /**
-  * Get an element in the DOM by their custom component id
-  * */
--const getElementByCCID = (customComponentId) => document.querySelector(`[data-ccid="${customComponentId}"]`);
-+const getElementByCCID = (customComponentId) => sydevsQuery(`[data-ccid="${customComponentId}"]`);
- 
- class PreactView {
-     constructor(config) {
-@@ -1282,7 +1313,7 @@ class PreactView {
+@@ -921,7 +958,7 @@ class PreactView {
          render(createElement(this.Component, { $app, id: this.randomId }), onElement);
      }
      destroy() {
@@ -303,25 +315,43 @@ index 4b9a234da202d170604bc12aee5e39a18fc2adb3..a94244f44df809d3d5e2390d4a70a3ee
          if (el) {
              el.remove();
          }
-@@ -1855,7 +1886,7 @@ function TimeAxis() {
-         setHours(getTimeAxisHours($app.config.dayBoundaries.value, $app.config.isHybridDay));
-         const hoursPerDay = $app.config.timePointsPerDay / 100;
-         const pixelsPerHour = $app.config.weekOptions.value.gridHeight / hoursPerDay;
--        document.documentElement.style.setProperty('--sx-week-grid-hour-height', `${pixelsPerHour}px`);
-+        sydevsSetProperty('--sx-week-grid-hour-height', `${pixelsPerHour}px`);
+@@ -1007,7 +1044,7 @@ function MonthView({ seatYearsView }) {
+                     mutatedElement.focus();
+             });
+         });
+-        const monthViewElement = document.getElementById(elementId);
++        const monthViewElement = sydevsById(elementId);
+         observer.observe(monthViewElement, {
+             childList: true,
+             subtree: true,
+@@ -1483,7 +1520,7 @@ function ForwardBackwardNavigation() {
+ /**
+  * Get an element in the DOM by their custom component id
+  * */
+-const getElementByCCID = (customComponentId) => document.querySelector(`[data-ccid="${customComponentId}"]`);
++const getElementByCCID = (customComponentId) => sydevsQuery(`[data-ccid="${customComponentId}"]`);
+ 
+ const getEventHeight = (start, end, dayBoundaries, pointsPerDay) => {
+     if (Temporal.ZonedDateTime.compare(start, end) === 0) {
+@@ -2089,7 +2126,7 @@ function TimeAxis() {
+         setGridSteps(result);
+         const pixelsPerGridStep = $app.config.weekOptions.value.gridHeight / result.length;
+         // TODO v4: rename --sx-week-grid-hour-height to --sx-week-grid-grid-step-height
+-        document.documentElement.style.setProperty('--sx-week-grid-hour-height', `${pixelsPerGridStep}px`);
++        sydevsSetProperty('--sx-week-grid-hour-height', `${pixelsPerGridStep}px`);
      });
      const formatter = new Intl.DateTimeFormat($app.config.locale.value, $app.config.weekOptions.value.timeAxisFormatOptions);
      const hourCustomComponentFn = $app.config._customComponentFns.weekGridHour;
-@@ -1867,7 +1898,7 @@ function TimeAxis() {
+@@ -2101,7 +2138,7 @@ function TimeAxis() {
      useEffect(() => {
          if (hourCustomComponentFn && hourCCIDs.length) {
-             hours.forEach((hour, idx) => {
+             gridSteps.forEach((gridStep, idx) => {
 -                const el = document.querySelector(`[data-ccid="${hourCCIDs[idx]}"]`);
 +                const el = sydevsQuery(`[data-ccid="${hourCCIDs[idx]}"]`);
                  if (!(el instanceof HTMLElement)) {
                      return console.warn('Could not find element for custom component weekGridHour');
                  }
-@@ -1895,7 +1926,7 @@ function DateAxis({ week }) {
+@@ -2129,7 +2166,7 @@ function DateAxis({ week }) {
      useEffect(() => {
          if (weekGridDateCustomComponentFn) {
              week.forEach((date, idx) => {
@@ -330,7 +360,7 @@ index 4b9a234da202d170604bc12aee5e39a18fc2adb3..a94244f44df809d3d5e2390d4a70a3ee
                  if (!(el instanceof HTMLElement)) {
                      return console.warn('Could not find element for custom component weekGridDate');
                  }
-@@ -2227,7 +2258,7 @@ const filterByRange = (events, range) => {
+@@ -2522,7 +2559,7 @@ const filterByRange = (events, range, timezone) => {
  };
  
  const WeekWrapper = ({ $app, id }) => {
@@ -339,7 +369,7 @@ index 4b9a234da202d170604bc12aee5e39a18fc2adb3..a94244f44df809d3d5e2390d4a70a3ee
      const week = useComputed(() => {
          var _a, _b;
          const rangeStart = (_a = $app.calendarState.range.value) === null || _a === void 0 ? void 0 : _a.start;
-@@ -2405,7 +2436,7 @@ function CalendarHeader() {
+@@ -2814,7 +2851,7 @@ function ViewHeader({ $app, view }) {
  }
  
  const setWrapperElement = ($app, calendarId) => {
@@ -348,7 +378,7 @@ index 4b9a234da202d170604bc12aee5e39a18fc2adb3..a94244f44df809d3d5e2390d4a70a3ee
  };
  
  const setScreenSizeCompatibleView = ($app, isSmall) => {
-@@ -2518,7 +2549,7 @@ function CalendarWrapper({ $app }) {
+@@ -2999,7 +3036,7 @@ function CalendarWrapper({ $app }) {
      const [currentView, setCurrentView] = useState();
      useSignalEffect(() => {
          const newView = $app.config.views.value.find((view) => view.name === $app.calendarState.view.value);
@@ -357,7 +387,7 @@ index 4b9a234da202d170604bc12aee5e39a18fc2adb3..a94244f44df809d3d5e2390d4a70a3ee
          if (!newView || !viewElement || newView.name === (currentView === null || currentView === void 0 ? void 0 : currentView.name))
              return;
          if (currentView)
-@@ -2639,6 +2670,10 @@ class CalendarApp {
+@@ -3109,6 +3146,10 @@ class CalendarApp {
      }
      render(el) {
          this.calendarContainerEl = el;
@@ -368,7 +398,7 @@ index 4b9a234da202d170604bc12aee5e39a18fc2adb3..a94244f44df809d3d5e2390d4a70a3ee
          render(createElement(CalendarWrapper, { $app: this.$app }), el);
      }
      destroy() {
-@@ -2649,6 +2684,7 @@ class CalendarApp {
+@@ -3119,6 +3160,7 @@ class CalendarApp {
          });
          if (this.calendarContainerEl) {
              render(null, this.calendarContainerEl);
@@ -376,7 +406,7 @@ index 4b9a234da202d170604bc12aee5e39a18fc2adb3..a94244f44df809d3d5e2390d4a70a3ee
          }
      }
      setTheme(theme) {
-@@ -4544,9 +4580,9 @@ class EventColors {
+@@ -5143,9 +5185,9 @@ class EventColors {
          });
      }
      setColors(colorName, colorDefinition) {
@@ -389,7 +419,7 @@ index 4b9a234da202d170604bc12aee5e39a18fc2adb3..a94244f44df809d3d5e2390d4a70a3ee
      }
  }
  
-@@ -5705,7 +5741,7 @@ function MonthGridDay({ day, isFirstWeek, isLastWeek }) {
+@@ -6521,7 +6563,7 @@ function MonthGridDay({ day, isFirstWeek, isLastWeek }) {
      useEffect(() => {
          if (!monthGridDayNameCustomComponent)
              return;
@@ -398,7 +428,7 @@ index 4b9a234da202d170604bc12aee5e39a18fc2adb3..a94244f44df809d3d5e2390d4a70a3ee
          if (!(dayNameEl instanceof HTMLElement)) {
              return;
          }
-@@ -5718,7 +5754,7 @@ function MonthGridDay({ day, isFirstWeek, isLastWeek }) {
+@@ -6534,7 +6576,7 @@ function MonthGridDay({ day, isFirstWeek, isLastWeek }) {
      useEffect(() => {
          if (!monthGridDateCustomComponent)
              return;
@@ -407,7 +437,16 @@ index 4b9a234da202d170604bc12aee5e39a18fc2adb3..a94244f44df809d3d5e2390d4a70a3ee
          if (!(dateEl instanceof HTMLElement))
              return;
          monthGridDateCustomComponent(dateEl, {
-@@ -6035,7 +6071,7 @@ const MonthAgendaWrapper = ({ $app, id }) => {
+@@ -6715,7 +6757,7 @@ function MonthAgendaDay({ day, isActive, setActiveDate, isLeadingOrTrailing, })
+     useEffect(() => {
+         if (!monthAgendaDateDotsCustomComponent)
+             return;
+-        const dotsEl = document.querySelector(`[data-ccid="${monthAgendaDateDotsCCID}"]`);
++        const dotsEl = sydevsQuery(`[data-ccid="${monthAgendaDateDotsCCID}"]`);
+         if (!(dotsEl instanceof HTMLElement))
+             return;
+         monthAgendaDateDotsCustomComponent(dotsEl, {
+@@ -6905,7 +6947,7 @@ const MonthAgendaWrapper = ({ $app, id }) => {
                      mutatedElement.focus();
              });
          });
@@ -416,14 +455,35 @@ index 4b9a234da202d170604bc12aee5e39a18fc2adb3..a94244f44df809d3d5e2390d4a70a3ee
          observer.observe(monthViewElement, {
              childList: true,
              subtree: true,
+@@ -6956,7 +6998,7 @@ const WeekAgendaWrapper = ({ $app, id }) => {
+                     mutatedElement.focus();
+             });
+         });
+-        const viewElement = document.getElementById(id);
++        const viewElement = sydevsById(id);
+         observer.observe(viewElement, {
+             childList: true,
+             subtree: true,
 diff --git a/dist/core.umd.js b/dist/core.umd.js
-index dced0ca53681c3d64eaa0472a1e69c3621b91c42..a960709ffe020b2f40a069b7679da4b3a0154a64 100644
+index 961a9bffb3897f072023fcd98cf2552da8aaa3c8..f8fe23ffc2f74c90c25743e914df0d4a2a226620 100644
 --- a/dist/core.umd.js
 +++ b/dist/core.umd.js
-@@ -4,6 +4,37 @@
-   (global = typeof globalThis !== 'undefined' ? globalThis : global || self, factory(global.SXCalendar = {}, global.preact, global.jsxRuntime, global.preactHooks, global.preactCompat, global.preactSignals));
- })(this, (function (exports, preact, jsxRuntime, hooks, compat, signals) { 'use strict';
- 
+@@ -1,8 +1,44 @@
+ (function (global, factory) {
+-  typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports, require('preact'), require('preact/jsx-runtime'), require('preact/hooks'), require('preact/compat'), require('@preact/signals')) :
+-  typeof define === 'function' && define.amd ? define(['exports', 'preact', 'preact/jsx-runtime', 'preact/hooks', 'preact/compat', '@preact/signals'], factory) :
+-  (global = typeof globalThis !== 'undefined' ? globalThis : global || self, factory(global.SXCalendar = {}, global.preact, global.jsxRuntime, global.preactHooks, global.preactCompat, global.preactSignals));
+-})(this, (function (exports, preact, jsxRuntime, hooks, compat, signals) { 'use strict';
++  typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports, require('preact'), require('preact/jsx-runtime'), require('preact/hooks'), require('preact/compat'), require('@preact/signals'), require('temporal-polyfill')) :
++  typeof define === 'function' && define.amd ? define(['exports', 'preact', 'preact/jsx-runtime', 'preact/hooks', 'preact/compat', '@preact/signals', 'temporal-polyfill'], factory) :
++  (global = typeof globalThis !== 'undefined' ? globalThis : global || self, factory(global.SXCalendar = {}, global.preact, global.jsxRuntime, global.preactHooks, global.preactCompat, global.preactSignals, { Temporal: global.Temporal }));
++})(this, (function (exports, preact, jsxRuntime, hooks, compat, signals, temporalPolyfill) { 'use strict';
++
++  // sydevs: Schedule-X reads a global `Temporal`, and the polyfill installs one by overwriting
++  // the HOST page's `Temporal`, `Intl.DateTimeFormat` and `Date.prototype.toTemporalInstant`.
++  // The SahajAtlasWeb embed binds the polyfill module here instead, so the page is left alone.
++  const Temporal = temporalPolyfill.Temporal;
++
 +  // sydevs: Schedule-X reaches its own elements through `document`, and writes its sizing and
 +  // colour variables onto the page's <html>. Inside the SahajAtlasWeb embed's shadow root the
 +  // lookups find nothing, so the grid never mounted; and <html> is the HOST page's, where the
@@ -454,12 +514,11 @@ index dced0ca53681c3d64eaa0472a1e69c3621b91c42..a960709ffe020b2f40a069b7679da4b3
 +  const sydevsSetProperty = (name, value) => {
 +      for (const container of sydevsContainers) container.style.setProperty(name, value);
 +  };
-+
+ 
    const AppContext$1 = preact.createContext({});
  
-   const DateFormats = {
-@@ -93,7 +124,7 @@
-       }, [$app.datePickerState.selectedDate.value, $app.config.locale.value]);
+@@ -24,7 +60,7 @@
+       const $app = hooks.useContext(AppContext$1);
        const [wrapperClasses, setWrapperClasses] = hooks.useState([]);
        const setInputElement = () => {
 -          const inputWrapperEl = document.getElementById(inputWrapperId);
@@ -467,16 +526,16 @@ index dced0ca53681c3d64eaa0472a1e69c3621b91c42..a960709ffe020b2f40a069b7679da4b3
            $app.datePickerState.inputWrapperElement.value =
                inputWrapperEl instanceof HTMLDivElement ? inputWrapperEl : undefined;
        };
-@@ -120,7 +151,7 @@
-           }
+@@ -52,7 +88,7 @@
        };
        hooks.useEffect(() => {
--          const inputElement = document.getElementById(datePickerInputId);
-+          const inputElement = sydevsById(datePickerInputId);
-           if (inputElement === null)
+           const inputElement = typeof document !== 'undefined' &&
+-              document.getElementById(datePickerInputId);
++              sydevsById(datePickerInputId);
+           if (typeof HTMLElement === 'undefined' ||
+               !(inputElement instanceof HTMLElement))
                return;
-           inputElement.addEventListener('change', handleInputValue); // Preact onChange triggers on every input
-@@ -135,7 +166,7 @@
+@@ -73,7 +109,7 @@
                keyboardEvent.preventDefault();
                $app.datePickerState.open();
                setTimeout(() => {
@@ -485,25 +544,7 @@ index dced0ca53681c3d64eaa0472a1e69c3621b91c42..a960709ffe020b2f40a069b7679da4b3
                    if (element instanceof HTMLElement)
                        element.focus();
                }, 50);
-@@ -789,7 +820,7 @@
-                       mutatedElement.focus();
-               });
-           });
--          const monthViewElement = document.getElementById(elementId);
-+          const monthViewElement = sydevsById(elementId);
-           observer.observe(monthViewElement, {
-               childList: true,
-               subtree: true,
-@@ -1211,7 +1242,7 @@
-   /**
-    * Get an element in the DOM by their custom component id
-    * */
--  const getElementByCCID = (customComponentId) => document.querySelector(`[data-ccid="${customComponentId}"]`);
-+  const getElementByCCID = (customComponentId) => sydevsQuery(`[data-ccid="${customComponentId}"]`);
- 
-   class PreactView {
-       constructor(config) {
-@@ -1282,7 +1313,7 @@
+@@ -921,7 +957,7 @@
            preact.render(preact.createElement(this.Component, { $app, id: this.randomId }), onElement);
        }
        destroy() {
@@ -512,25 +553,43 @@ index dced0ca53681c3d64eaa0472a1e69c3621b91c42..a960709ffe020b2f40a069b7679da4b3
            if (el) {
                el.remove();
            }
-@@ -1855,7 +1886,7 @@
-           setHours(getTimeAxisHours($app.config.dayBoundaries.value, $app.config.isHybridDay));
-           const hoursPerDay = $app.config.timePointsPerDay / 100;
-           const pixelsPerHour = $app.config.weekOptions.value.gridHeight / hoursPerDay;
--          document.documentElement.style.setProperty('--sx-week-grid-hour-height', `${pixelsPerHour}px`);
-+          sydevsSetProperty('--sx-week-grid-hour-height', `${pixelsPerHour}px`);
+@@ -1007,7 +1043,7 @@
+                       mutatedElement.focus();
+               });
+           });
+-          const monthViewElement = document.getElementById(elementId);
++          const monthViewElement = sydevsById(elementId);
+           observer.observe(monthViewElement, {
+               childList: true,
+               subtree: true,
+@@ -1483,7 +1519,7 @@
+   /**
+    * Get an element in the DOM by their custom component id
+    * */
+-  const getElementByCCID = (customComponentId) => document.querySelector(`[data-ccid="${customComponentId}"]`);
++  const getElementByCCID = (customComponentId) => sydevsQuery(`[data-ccid="${customComponentId}"]`);
+ 
+   const getEventHeight = (start, end, dayBoundaries, pointsPerDay) => {
+       if (Temporal.ZonedDateTime.compare(start, end) === 0) {
+@@ -2089,7 +2125,7 @@
+           setGridSteps(result);
+           const pixelsPerGridStep = $app.config.weekOptions.value.gridHeight / result.length;
+           // TODO v4: rename --sx-week-grid-hour-height to --sx-week-grid-grid-step-height
+-          document.documentElement.style.setProperty('--sx-week-grid-hour-height', `${pixelsPerGridStep}px`);
++          sydevsSetProperty('--sx-week-grid-hour-height', `${pixelsPerGridStep}px`);
        });
        const formatter = new Intl.DateTimeFormat($app.config.locale.value, $app.config.weekOptions.value.timeAxisFormatOptions);
        const hourCustomComponentFn = $app.config._customComponentFns.weekGridHour;
-@@ -1867,7 +1898,7 @@
+@@ -2101,7 +2137,7 @@
        hooks.useEffect(() => {
            if (hourCustomComponentFn && hourCCIDs.length) {
-               hours.forEach((hour, idx) => {
+               gridSteps.forEach((gridStep, idx) => {
 -                  const el = document.querySelector(`[data-ccid="${hourCCIDs[idx]}"]`);
 +                  const el = sydevsQuery(`[data-ccid="${hourCCIDs[idx]}"]`);
                    if (!(el instanceof HTMLElement)) {
                        return console.warn('Could not find element for custom component weekGridHour');
                    }
-@@ -1895,7 +1926,7 @@
+@@ -2129,7 +2165,7 @@
        hooks.useEffect(() => {
            if (weekGridDateCustomComponentFn) {
                week.forEach((date, idx) => {
@@ -539,7 +598,7 @@ index dced0ca53681c3d64eaa0472a1e69c3621b91c42..a960709ffe020b2f40a069b7679da4b3
                    if (!(el instanceof HTMLElement)) {
                        return console.warn('Could not find element for custom component weekGridDate');
                    }
-@@ -2227,7 +2258,7 @@
+@@ -2522,7 +2558,7 @@
    };
  
    const WeekWrapper = ({ $app, id }) => {
@@ -548,7 +607,7 @@ index dced0ca53681c3d64eaa0472a1e69c3621b91c42..a960709ffe020b2f40a069b7679da4b3
        const week = signals.useComputed(() => {
            var _a, _b;
            const rangeStart = (_a = $app.calendarState.range.value) === null || _a === void 0 ? void 0 : _a.start;
-@@ -2405,7 +2436,7 @@
+@@ -2814,7 +2850,7 @@
    }
  
    const setWrapperElement = ($app, calendarId) => {
@@ -557,7 +616,7 @@ index dced0ca53681c3d64eaa0472a1e69c3621b91c42..a960709ffe020b2f40a069b7679da4b3
    };
  
    const setScreenSizeCompatibleView = ($app, isSmall) => {
-@@ -2518,7 +2549,7 @@
+@@ -2999,7 +3035,7 @@
        const [currentView, setCurrentView] = hooks.useState();
        signals.useSignalEffect(() => {
            const newView = $app.config.views.value.find((view) => view.name === $app.calendarState.view.value);
@@ -566,7 +625,7 @@ index dced0ca53681c3d64eaa0472a1e69c3621b91c42..a960709ffe020b2f40a069b7679da4b3
            if (!newView || !viewElement || newView.name === (currentView === null || currentView === void 0 ? void 0 : currentView.name))
                return;
            if (currentView)
-@@ -2639,6 +2670,10 @@
+@@ -3109,6 +3145,10 @@
        }
        render(el) {
            this.calendarContainerEl = el;
@@ -577,7 +636,7 @@ index dced0ca53681c3d64eaa0472a1e69c3621b91c42..a960709ffe020b2f40a069b7679da4b3
            preact.render(preact.createElement(CalendarWrapper, { $app: this.$app }), el);
        }
        destroy() {
-@@ -2649,6 +2684,7 @@
+@@ -3119,6 +3159,7 @@
            });
            if (this.calendarContainerEl) {
                preact.render(null, this.calendarContainerEl);
@@ -585,7 +644,7 @@ index dced0ca53681c3d64eaa0472a1e69c3621b91c42..a960709ffe020b2f40a069b7679da4b3
            }
        }
        setTheme(theme) {
-@@ -4544,9 +4580,9 @@
+@@ -5143,9 +5184,9 @@
            });
        }
        setColors(colorName, colorDefinition) {
@@ -598,7 +657,7 @@ index dced0ca53681c3d64eaa0472a1e69c3621b91c42..a960709ffe020b2f40a069b7679da4b3
        }
    }
  
-@@ -5705,7 +5741,7 @@
+@@ -6521,7 +6562,7 @@
        hooks.useEffect(() => {
            if (!monthGridDayNameCustomComponent)
                return;
@@ -607,7 +666,7 @@ index dced0ca53681c3d64eaa0472a1e69c3621b91c42..a960709ffe020b2f40a069b7679da4b3
            if (!(dayNameEl instanceof HTMLElement)) {
                return;
            }
-@@ -5718,7 +5754,7 @@
+@@ -6534,7 +6575,7 @@
        hooks.useEffect(() => {
            if (!monthGridDateCustomComponent)
                return;
@@ -616,12 +675,30 @@ index dced0ca53681c3d64eaa0472a1e69c3621b91c42..a960709ffe020b2f40a069b7679da4b3
            if (!(dateEl instanceof HTMLElement))
                return;
            monthGridDateCustomComponent(dateEl, {
-@@ -6035,7 +6071,7 @@
+@@ -6715,7 +6756,7 @@
+       hooks.useEffect(() => {
+           if (!monthAgendaDateDotsCustomComponent)
+               return;
+-          const dotsEl = document.querySelector(`[data-ccid="${monthAgendaDateDotsCCID}"]`);
++          const dotsEl = sydevsQuery(`[data-ccid="${monthAgendaDateDotsCCID}"]`);
+           if (!(dotsEl instanceof HTMLElement))
+               return;
+           monthAgendaDateDotsCustomComponent(dotsEl, {
+@@ -6905,7 +6946,7 @@
                        mutatedElement.focus();
                });
            });
 -          const monthViewElement = document.getElementById(id);
 +          const monthViewElement = sydevsById(id);
            observer.observe(monthViewElement, {
+               childList: true,
+               subtree: true,
+@@ -6956,7 +6997,7 @@
+                       mutatedElement.focus();
+               });
+           });
+-          const viewElement = document.getElementById(id);
++          const viewElement = sydevsById(id);
+           observer.observe(viewElement, {
                childList: true,
                subtree: true,

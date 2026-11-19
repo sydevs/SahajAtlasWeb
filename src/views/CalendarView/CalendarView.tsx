@@ -11,6 +11,10 @@ import {
 } from '@schedule-x/calendar'
 import { createCalendarControlsPlugin } from '@schedule-x/calendar-controls'
 import { ChevronRight } from 'lucide-react'
+// ⚠ The module, never `temporal-polyfill/global`: that overwrites the host page's own
+// `Temporal` and `Intl.DateTimeFormat`. The patched Schedule-X core binds this same module,
+// and its `instanceof` checks need both sides on one copy.
+import { Temporal } from 'temporal-polyfill'
 
 import '@schedule-x/theme-default/dist/index.css'
 
@@ -44,7 +48,7 @@ import { DrawerErrorBody, DrawerLoadingBody } from '@/views/fallbacks'
 
 // Schedule-X validates `locale` against its own supported BCP-47 set, and THROWS
 // (`InvalidLocaleError`) on an unknown code — this project's short `en`/`de`/… crash it. This
-// maps this project's locales to the closest one SX 2.36 ships. Anything unmapped, including
+// maps this project's locales to the closest one SX ships. Anything unmapped, including
 // Hungarian, which SX lacks, falls back to en-US chrome. This project's own header stays fully
 // localized via i18n.
 const SX_LOCALES: Record<string, string> = {
@@ -74,6 +78,13 @@ const ONLINE_COLORS = {
 const CALENDARS = {
   online: { colorName: 'online', lightColors: ONLINE_COLORS, darkColors: ONLINE_COLORS },
 }
+
+// Schedule-X draws every event in its one `timezone`, so an entry's wall clock is anchored there
+// rather than in its own zone, or an in-person class would read in the viewer's clock instead of
+// its own (`eventTimeZone`).
+// shortcut: a wall clock inside that zone's spring-forward gap reads an hour late, upgrade if a class is ever scheduled into one.
+const anchorWallClock = (wallClock: string, zone: string): Temporal.ZonedDateTime =>
+  Temporal.PlainDateTime.from(wallClock).toZonedDateTime(zone)
 
 type CalendarControlsPlugin = ReturnType<typeof createCalendarControlsPlugin>
 
@@ -124,7 +135,7 @@ function CalendarControls({ controls }: { controls: CalendarControlsPlugin }) {
 
   const applyDate = (next: string) => {
     useCalendarPosition.getState().setDate(next)
-    drive(controls, (c) => c.setDate(next))
+    drive(controls, (c) => c.setDate(Temporal.PlainDate.from(next)))
   }
 
   // The store takes what was PICKED, never the width-specific view that renders for it, so a
@@ -314,6 +325,8 @@ function CalendarGrid({
   // next remount — a filter apply captures config during *render* — the seed is already up to
   // date.
   const position = useCalendarPosition.getState()
+  // The viewer's, because "today" is theirs. Schedule-X would otherwise default to UTC.
+  const zone = DateTime.local().zoneName ?? 'UTC'
 
   const calendar = useNextCalendarApp(
     {
@@ -324,8 +337,13 @@ function CalendarGrid({
       // remounts the whole drawer when `isWide` flips (vaul's `direction` is not
       // hot-swappable), remounting this grid with it. Should that stop, so does this.
       defaultView: resolveCalendarView(position.view, isWide).view,
-      selectedDate: position.date ?? undefined,
-      events,
+      selectedDate: position.date ? Temporal.PlainDate.from(position.date) : undefined,
+      timezone: zone,
+      events: events.map((entry) => ({
+        ...entry,
+        start: anchorWallClock(entry.start, zone),
+        end: anchorWallClock(entry.end, zone),
+      })),
       // Online programs render in the secondary colour (see CALENDARS + `calendarId`).
       calendars: CALENDARS,
       // Undefined leaves Schedule-X's default grid (whole day).
@@ -346,12 +364,12 @@ function CalendarGrid({
           if (typeof event.path === 'string') navigate(event.path)
         },
         // Persist the focused date as the user pages through the calendar (drives the header label).
-        onSelectedDateUpdate: (date) => useCalendarPosition.getState().setDate(date),
+        onSelectedDateUpdate: (date) => useCalendarPosition.getState().setDate(date.toString()),
         // The month grid's "+N more" jumps to the list view focused on that day.
         onClickPlusEvents: (date) => {
           controls.setDate(date)
           controls.setView(CALENDAR_VIEW_LIST)
-          useCalendarPosition.getState().setDate(date)
+          useCalendarPosition.getState().setDate(date.toString())
           useCalendarPosition.getState().setView(CALENDAR_VIEW_LIST)
         },
       },
