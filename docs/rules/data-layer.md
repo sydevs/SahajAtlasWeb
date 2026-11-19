@@ -46,11 +46,19 @@ moves, in the same bump as `@payloadcms/sdk`.
   name let a push land between two fetches. `pnpm types:cms <branch|tag|40-char-sha>`
   takes another commit, which is how a snapshot is reproduced.
 - **`src/types/payload/provenance.json` records that commit**, with a hash of each
-  generated file. Commit it with the types, and never edit it by hand. ⚠ It moves only when
-  a generated file does: upstream's branch moves far more often than its types, so a run
-  that finds them unchanged leaves the record naming the older commit, where they were
-  already these. `scripts/sync-cms-types.test.ts` fails on types that no longer match
-  their record, and is skipped while no record is checked in.
+  generated file. Never edit it by hand. ⚠ It moves only when a generated file does:
+  upstream's branch moves far more often than its types, so a run that finds them unchanged
+  leaves the record naming the older commit, where they were already these.
+  `scripts/sync-cms-types.test.ts` fails on types that no longer match their record, and is
+  skipped while no record is checked in.
+- ⚠ **No record is checked in yet, and one must not be until the shared re-sync commits
+  it.** That job runs `pnpm types:cms` and stages only the paths its own list names
+  (sydevs/claude-workflow, `loop-config.json`, `contractSync.consumers.SahajAtlasWeb.paths`),
+  and the list names the generated files alone. A record committed first goes stale on the
+  next re-sync, and the spec then fails that pull request. So a plain run keeps a record
+  that exists and never starts one. Once the list names
+  `src/types/payload/provenance.json`, `pnpm types:cms --record` starts it: commit it with
+  the types from then on.
 - Each generated file is one entry in that script's `SOURCES`. Add an entry for a new
   endpoint contract — it never appears by magic.
 - ⚠ A deleted upstream file can still resolve. SahajCloud deleted `POST

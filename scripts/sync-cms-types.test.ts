@@ -3,17 +3,21 @@ import { describe, expect, it } from 'vitest'
 import { readPackage } from './_wrangler-config.mjs'
 import {
   DEFAULT_REF,
+  RECORD_FLAG,
   REPOSITORY,
   SOURCES,
+  capture,
   commitFromLsRemote,
   describesSnapshot,
   hashOf,
   isCommitSha,
   isRefName,
+  parseArgs,
   provenanceFor,
   rawUrl,
   readProvenance,
   readSnapshot,
+  recordStep,
   serializeProvenance,
 } from './sync-cms-types.mjs'
 
@@ -81,6 +85,19 @@ describe('what the script accepts as an argument', () => {
     expect(isRefName('-x')).toBe(false)
     expect(isRefName('main; rm')).toBe(false)
   })
+
+  it('reads the flag apart from the ref, in either order', () => {
+    expect(parseArgs([])).toEqual({ ref: DEFAULT_REF, starts: false })
+    expect(parseArgs([MAIN])).toEqual({ ref: MAIN, starts: false })
+    expect(parseArgs([RECORD_FLAG])).toEqual({ ref: DEFAULT_REF, starts: true })
+    expect(parseArgs([RECORD_FLAG, MAIN])).toEqual({ ref: MAIN, starts: true })
+    expect(parseArgs(['staging', RECORD_FLAG])).toEqual({ ref: 'staging', starts: true })
+  })
+
+  // Any other option stays the ref, where `isRefName` refuses it.
+  it('takes no other option', () => {
+    expect(isRefName(parseArgs(['--force']).ref)).toBe(false)
+  })
 })
 
 describe('where each file is fetched from', () => {
@@ -93,6 +110,15 @@ describe('where each file is fetched from', () => {
       `https://raw.githubusercontent.com/sydevs/SahajCloud/${MAIN}/src/collections/Events/endpoints/responseTypes.ts`,
     ])
     expect(urls.join('\n')).not.toMatch(/refs\/heads|\/main\//)
+  })
+
+  // `execFileSync` throws `ENOBUFS` past 1 MiB of output unless told otherwise, and the script
+  // reports any throw as a failed download. Node stands in for curl: the lane spawns nothing else.
+  it('takes a file larger than the 1 MiB a child process is allowed by default', () => {
+    const bytes = 2 * 1024 * 1024
+    const output = capture(process.execPath, ['-e', `process.stdout.write('x'.repeat(${bytes}))`])
+
+    expect(output.length).toBe(bytes)
   })
 })
 
@@ -151,6 +177,29 @@ describe('the provenance record', () => {
     expect(hashOf('a\r\nb\r\n')).toBe(hashOf('a\nb\n'))
     expect(hashOf('a\nb\n')).not.toBe(hashOf('a\nb'))
   })
+
+  // The shared re-sync commits only the paths its own list names. A record a plain run started
+  // would sit untracked in every checkout that ran the contract step, and one committed from
+  // there would go stale on the bot's next re-sync.
+  it('is not started by a plain run', () => {
+    expect(recordStep({ previous: null, contents, starts: false })).toBe('none')
+  })
+
+  it('is started when the run asks for one', () => {
+    expect(recordStep({ previous: null, contents, starts: true })).toBe('write')
+  })
+
+  it('is kept while it describes the files, and rewritten once it does not', () => {
+    const [{ file }] = SOURCES
+    const moved = { ...contents, [file]: `${contents[file]}// more\n` }
+
+    for (const starts of [false, true]) {
+      expect(recordStep({ previous: record, contents, starts })).toBe('keep')
+      expect(recordStep({ previous: record, contents: moved, starts })).toBe('write')
+      // What an unreadable record is read as.
+      expect(recordStep({ previous: {}, contents, starts })).toBe('write')
+    }
+  })
 })
 
 describe('what is checked in', () => {
@@ -169,8 +218,8 @@ describe('what is checked in', () => {
   // A record that parses but no longer matches is the failure this is for: types that were
   // edited by hand, or fetched some other way, while the record still names the old commit.
   //
-  // ⚠ Skipped while no record is checked in. The snapshot predates the record, and a record is
-  // first written by the first run that changes a generated file.
+  // ⚠ Skipped while no record is checked in. `pnpm types:cms --record` starts one, and must wait
+  // for the shared re-sync to commit it: `docs/rules/data-layer.md`.
   const record = readProvenance()
 
   it.skipIf(record === null)('has a record that describes exactly those files', () => {

@@ -13,6 +13,12 @@
  * often than its types. A run that rewrote the commit every time would leave a diff in every
  * checkout that ran the contract step, and open a re-sync for a merge that changed no type.
  *
+ * ⚠ **A run keeps a record that is checked in, and never starts one: `--record` does.** The
+ * shared re-sync runs this command and commits only the paths its own list names
+ * (sydevs/claude-workflow, `loop-config.json`, `contractSync.consumers.SahajAtlasWeb.paths`).
+ * A record checked in before that list names it goes stale on the next re-sync, and the spec
+ * then fails that pull request. Keep the two in step.
+ *
  * With no argument it reads `refs/heads/main`. A branch, a tag or a full ref is resolved the
  * same way. A commit is taken as given, and needs all 40 characters.
  */
@@ -40,6 +46,12 @@ export const SOURCES = [
 ]
 
 const PROVENANCE_FILE = 'provenance.json'
+
+export const RECORD_FLAG = '--record'
+
+// `payload-types.ts` is 281 KiB and grows with every collection. `execFileSync` keeps 1 MiB of
+// a command's output by default and throws past it, which reads as a failed download.
+const MAX_FILE_BYTES = 64 * 1024 * 1024
 
 const SCRIPT_DIR = dirname(fileURLToPath(import.meta.url))
 const TYPES_DIR = join(SCRIPT_DIR, '../src/types/payload')
@@ -154,6 +166,37 @@ export function describesSnapshot(provenance, contents) {
   })
 }
 
+/**
+ * What a run does with the record, once the generated files are on disk.
+ *
+ * `previous` is `null` where none is checked in, and starting one is opt-in: this file's header
+ * says why.
+ * @param {{ previous: unknown, contents: Record<string, string | undefined>, starts: boolean }} run
+ * @returns {'keep' | 'write' | 'none'}
+ */
+export function recordStep({ previous, contents, starts }) {
+  if (previous === null) return starts ? 'write' : 'none'
+
+  return describesSnapshot(previous, contents) ? 'keep' : 'write'
+}
+
+/**
+ * @param {string[]} args
+ * @returns {{ ref: string, starts: boolean }}
+ */
+export function parseArgs(args) {
+  const rest = args.filter((arg) => arg !== RECORD_FLAG)
+
+  return { ref: rest[0] ?? DEFAULT_REF, starts: rest.length < args.length }
+}
+
+/**
+ * A command's whole stdout.
+ * @param {string} command
+ * @param {string[]} args
+ */
+export const capture = (command, args) => execFileSync(command, args, { maxBuffer: MAX_FILE_BYTES })
+
 /** @param {Provenance} provenance */
 export const serializeProvenance = (provenance) => `${JSON.stringify(provenance, null, 2)}\n`
 
@@ -218,13 +261,13 @@ function resolveCommit(ref) {
 }
 
 function main() {
-  const ref = process.argv[2] ?? DEFAULT_REF
+  const { ref, starts } = parseArgs(process.argv.slice(2))
   const commit = resolveCommit(ref)
 
   // Every file is fetched before one is written, so a failed fetch leaves the snapshot whole.
   const fetched = SOURCES.map(({ file, upstream }) => {
     try {
-      return { file, bytes: execFileSync('curl', ['-fsSL', rawUrl(commit, upstream)]) }
+      return { file, bytes: capture('curl', ['-fsSL', rawUrl(commit, upstream)]) }
     } catch {
       return fail(`Could not fetch ${upstream} at ${commit}. Nothing was written.`)
     }
@@ -241,18 +284,29 @@ function main() {
   })
 
   const contents = readSnapshot()
-  /** @type {Provenance | null} */
-  let previous = null
+  /** @type {unknown} */
+  let previous
 
   try {
     previous = readProvenance()
   } catch {
     // An unreadable record describes nothing, so it is written again below.
+    previous = {}
   }
 
-  if (previous && describesSnapshot(previous, contents)) {
+  const step = recordStep({ previous, contents, starts })
+
+  if (step === 'keep') {
     console.log(
-      `[types:cms] No generated file changed at ${commit}. ${PROVENANCE_FILE} still names ${previous.commit}.`,
+      `[types:cms] No generated file changed at ${commit}. ${PROVENANCE_FILE} still names ${/** @type {Provenance} */ (previous).commit}.`,
+    )
+
+    return
+  }
+
+  if (step === 'none') {
+    console.log(
+      `[types:cms] Wrote ${SOURCES.length} files from ${commit} (${ref}). No ${PROVENANCE_FILE} is checked in, so none was written: \`${RECORD_FLAG}\` starts one (docs/rules/data-layer.md).`,
     )
 
     return
