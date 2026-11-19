@@ -442,6 +442,13 @@ no-referrer`.
 
 ### Fixed
 
+- **A map that opens in Japanese now draws disputed borders in Mapbox's Japan worldview.** The
+  widget asks Mapbox for a worldview by the language it starts in, and Japanese was listed under
+  a code no locale uses, so those visitors got the default (US) one. Chinese and the Indian
+  languages already had theirs and are unchanged. The worldview is picked when the map is built,
+  so switching language mid-visit still does not redraw a border. Nothing to change in your
+  snippet or your CSP.
+
 - **A map you gave a height now scrolls with your page on iPhone and iPad.** ([#424]) On iOS, the
   map inside a sized `<sahaj-atlas>` fell behind its box as the page scrolled, and could disappear
   from the box entirely. Android and desktop browsers were not affected. Nothing to change in your

@@ -33,7 +33,7 @@ import {
   RING_ZOOM,
   LAYER_IDS,
 } from './layers'
-import { syncMapLanguage } from './map-language'
+import { mapWorldview, syncMapLanguage } from './map-language'
 import { markerColors, registerMarkerImages } from './markers'
 import { pinPopoverPlacement, type PopoverAnchor } from './pin-popover'
 
@@ -85,23 +85,6 @@ const REVEAL_TIMEOUT_MS = 1500
 // Mapbox's locate default is six seconds. iOS Safari appears to count that while its permission
 // prompt is open, so a visitor who took a moment to press Allow saw a failure.
 const LOCATE_POSITION_OPTIONS: PositionOptions = { timeout: 30_000 }
-
-const MAP_WORLDVIEWS: Record<string, string> = {
-  zh: 'CN', // Chinese
-  jp: 'JP', // Japanese
-  hi: 'IN', // Hindi
-  bn: 'IN', // Bengali
-  pa: 'IN', // Punjabi
-  gu: 'IN', // Gujarati
-  kn: 'IN', // Kannada
-  kok: 'IN', // Konkani
-  ml: 'IN', // Malayalam
-  mr: 'IN', // Marathi
-  sa: 'IN', // Sanskrit
-  ta: 'IN', // Tamil
-  te: 'IN', // Telugu
-  default: 'US', // Default
-}
 
 // Mapbox renders geometry and injects its own cluster properties. The click
 // handler needs only `id` and `webPath`. This strips every other feature
@@ -546,7 +529,7 @@ export function Mapbox({ cooperative = false }: { cooperative?: boolean } = {}) 
         mapboxAccessToken={import.meta.env.VITE_MAPBOX_ACCESSTOKEN}
         minZoom={minZoom}
         style={canvasStyle}
-        worldview={MAP_WORLDVIEWS[languageCode] || MAP_WORLDVIEWS.default}
+        worldview={mapWorldview(languageCode)}
         onClick={selectFeature}
         // This is the backstop on the reveal. A route that never frames the
         // camera — CalendarView is the one that deliberately does not — must

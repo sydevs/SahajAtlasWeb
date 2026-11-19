@@ -507,8 +507,11 @@ version, because the folklore on this is older than the code.
 ## Gotchas
 
 - `worldview` and `language` are set from the active locale
-  (`MAP_WORLDVIEWS`, `useLocale`). When you add a locale, check whether it
-  needs a worldview entry.
+  (`MAP_WORLDVIEWS` in `map-language.ts`, `useLocale`). When you add a locale, check whether it
+  needs a worldview entry. ⚠ The key is the locale's **language** code and the value a
+  **country** code: Japanese sat under `jp` and never matched, since its locale is `ja`.
+  `map-language.test.ts` refuses a key ICU cannot name as a language. `worldview` is read once,
+  at construction, like `locale`.
 - **One type suppression is left here**: a `@ts-expect-error` on `<Geocoder>` in
   `MapSearch.tsx`, which is typed against its own React types and so is refused
   as a JSX component. react-map-gl's own type gaps are covered without one:
