@@ -298,7 +298,7 @@ function AppShell({
   if (!apiKey) throw atlasError('config', 'Missing api key.')
 
   const { data: client } = useSuspenseQuery(clientQuery(apiKey))
-  const { locale } = useLocale()
+  const { locale, t } = useLocale()
   const { theme } = useTheme()
 
   // Where the interface goes when it first opens on the root view: a path-mode host's
@@ -435,6 +435,10 @@ function AppShell({
           scope class, so writing this back can never become the thing it detects next time. */}
       {standalone && (
         <Helmet htmlAttributes={{ lang: locale, dir: i18n.dir(locale) }}>
+          {/* The title for every view that names none; a view's own overrides it. On React 19
+              Helmet's `<title>` leaves `<head>` with the view that rendered it, so without this a
+              region view would fall back to `index.html`'s English placeholder. */}
+          <title>{t('countries.title')}</title>
           <meta content={locale} property="og:locale" />
           {/* The browser's own chrome (iOS's status bar, Android's toolbar) follows the theme
               picked in the settings menu, not the device's. */}
