@@ -893,8 +893,8 @@ const getTranslations = async (locale: string): Promise<TranslationTree> => {
 
 /**
  * These two contracts live here, beside their fetchers, for the reason `eventTitlesQuery` does:
- * `config/api/index.ts` imports this module, so declaring them there would close a cycle. That
- * module re-exports both, so callers still find every factory in one place.
+ * `config/api/index.ts` imports this module, so declaring them there would close a cycle.
+ * Their callers import them from here: that module re-exports the three wholesale caches only.
  *
  * Both windows match the region tree's. This is operator-set copy on a human editing cadence,
  * not event data, and `WHOLESALE_GC_TIME` keeps a bundle for the session rather than re-reading
