@@ -135,7 +135,7 @@ export type ViewHarnessProps = {
 
 /**
  * Seeds the pathname onto the decorator's own MemoryRouter (nesting a second Router
- * throws in react-router v7), and holds `children` back until it lands.
+ * throws in react-router), and holds `children` back until it lands.
  *
  * The gate is the point: `SeedSearchParams` accepts being one render late, because a
  * filter pill appearing a frame later is invisible. Here the first render would resolve

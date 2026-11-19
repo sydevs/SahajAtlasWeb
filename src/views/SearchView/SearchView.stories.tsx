@@ -129,7 +129,7 @@ const eventsKey = (search: string, locale: string) => {
  * active-filter pills over a list.
  *
  * Cases that need a URL seed it onto the decorator's OWN router, via `SeedSearchParams` —
- * react-router v7 throws on a nested `<Router>`. That lands one render in, so each case
+ * react-router throws on a nested `<Router>`. That lands one render in, so each case
  * seeds both the default key the first render reads and the key its own params resolve to,
  * and neither render ever reaches the absent backend.
  *

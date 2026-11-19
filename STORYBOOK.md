@@ -67,7 +67,7 @@ divider.
 
 `import { SeedSearchParams } from '../../ladle'` seeds URL search params
 (the filters' source of truth, read via `useEventFilters`) onto the
-decorator's router — react-router v7 forbids nesting a second `<Router>`.
+decorator's router — react-router forbids nesting a second `<Router>`.
 Pass a **stable** `params` prop (a module-level `filtersToParams(...)`, or a
 `useMemo`d one): it seeds once per `params` **identity**, so the story's own
 writes (paging, clearing a filter) survive instead of being overwritten by a
