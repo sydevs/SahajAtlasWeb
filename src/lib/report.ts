@@ -338,24 +338,34 @@ async function loadReporter(dsn: string): Promise<Reporter | null> {
     },
     stackParser: defaultStackParser,
     environment: reportingEnvironment(),
-    // This value is explicit, not inherited. `false` is already the default. But
-    // this file's whole posture treats what we do not send as a decision, not an
-    // accident.
-    sendDefaultPii: false,
+    // Unset, `dataCollection` collects every category. `userInfo` is the one this
+    // client reaches: left on, every event asks Sentry to store the visitor's IP
+    // (`infer_ip: 'auto'`), read off the request itself, where no `beforeSend` can
+    // scrub it. Every other category is read only by an integration this client
+    // does not install. ⚠ An integration added below brings its category with it,
+    // on, unless it is switched off here.
+    dataCollection: { userInfo: false },
+    // On by default, this gives a thrown string a synthetic stack trace of this
+    // seam's own frames: it points at the reporter, never at the failure.
+    attachStacktrace: false,
     // This applies the same cap the human report uses for a thrown message, for
     // the same reason, now from one place. `exception.value` is otherwise
-    // uncapped: v10's `applyClientOptions` truncates only `if (maxValueLength)`,
-    // and there is no default. A thrown message is not always ours. Engines build
+    // uncapped: `applyClientOptions` truncates only `if (maxValueLength)`, and
+    // there is no default. A thrown message is not always ours. Engines build
     // their own, sometimes out of the very URL this file is careful never to send.
     maxValueLength: MAX_ERROR_LENGTH,
     // Both settings below override a default that reaches outside the widget. That
     // is the one class of default a thing embedded in someone else's page cannot
     // accept:
     //
-    //  - `release` defaults to `window.SENTRY_RELEASE?.id`, a global that belongs
-    //    to the host. A site running its own Sentry would silently stamp every one
-    //    of our events with their release version. Our issues would then claim to
-    //    come from a deploy that is not ours. **This value stays pinned to
+    //  - `release` defaults to what the host publishes: `window.SENTRY_RELEASE?.id`,
+    //    a `__SENTRY_RELEASE__` global, or a `<meta name="sentry-release">` tag. A
+    //    site running its own Sentry would silently stamp every one of our events
+    //    with their release version. Our issues would then claim to come from a
+    //    deploy that is not ours.
+    //    ⚠ It is pinned with `''`, never `undefined`: the client fills the default
+    //    in with `??`, so `undefined` reads the host's value, and an empty release
+    //    is never written to an event. **This value stays pinned to
     //    nothing now that source maps upload (#130), not despite that.** Frames
     //    resolve by debug ID, which the bundler plugin injects into each chunk and
     //    its map. Symbolication needs no release, so this hazard stays shut. A
@@ -377,7 +387,7 @@ async function loadReporter(dsn: string): Promise<Reporter | null> {
     //    summary to the ingest endpoint when the page is hidden. This is SDK
     //    bookkeeping we have no use for. It would also turn one crash into a
     //    second, uninvited request from their page.
-    release: undefined,
+    release: '',
     sendClientReports: false,
     // **This list is explicit and minimal. It is required, and not for the reason
     // it looks like.**

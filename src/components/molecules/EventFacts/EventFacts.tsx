@@ -1,9 +1,9 @@
 import type { LucideIcon } from 'lucide-react'
 import type { ReactNode } from 'react'
 
-import { tv } from 'tailwind-variants'
 import { CalendarDays, MapPin, Monitor } from 'lucide-react'
 
+import { tv } from '@/styles/tv'
 import {
   composeCalendarLine,
   useEventDisplay,

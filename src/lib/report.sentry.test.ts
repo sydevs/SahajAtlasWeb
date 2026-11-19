@@ -243,15 +243,17 @@ describe('what is allowed to travel with an event', () => {
       'Dedupe',
       'LinkedErrors',
     ])
-    expect(options.sendDefaultPii).toBe(false)
+    expect((options.dataCollection as { userInfo?: boolean }).userInfo).toBe(false)
     expect(options.maxValueLength).toBe(500)
 
     // Two defaults that reach outside the widget, pinned because a version
     // bump could reinstate either one silently. `release` otherwise reads
     // `window.SENTRY_RELEASE`, the host's global, which would stamp our
     // events with their deploy version. `sendClientReports` otherwise posts
-    // an extra outcome beacon from their page.
-    expect(options).toHaveProperty('release', undefined)
+    // an extra outcome beacon from their page. ⚠ This proves only what we
+    // pass, not what the SDK does with it: `report.sdk.test.ts` drives the
+    // real one.
+    expect(options).toHaveProperty('release', '')
     expect(options.sendClientReports).toBe(false)
   })
 

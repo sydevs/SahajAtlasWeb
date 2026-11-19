@@ -97,10 +97,10 @@ dashboard, per Workers Builds trigger (`docs/rules/deployment.md`).
    **`project:releases` and `org:read`** — and check them against Sentry's docs when you
    provision.
    **The plugin's `create`/`finalize`/`setCommits: false` settings do not mean the token needs
-   no release scope.** Those settings only switch off the extra `releases new`, `finalize`, and
-   `set-commits` calls. The upload command itself stays release-scoped: the actual call is
-   `sourcemaps upload -p <project> --release <sha> …`, because the plugin infers a release name
-   from git even with all four release actions off. An under-scoped token receives a 403.
+   no release scope.** Those settings only switch off the extra release create, finalize, and
+   set-commits calls. The upload itself stays release-scoped: the plugin runs the `sentry` CLI's
+   `sourcemap upload` in-process with `release: <sha>`, because it infers a release name from
+   git even with all four release actions off. An under-scoped token receives a 403.
    `errorHandler` logs it, the deploy goes green, and production ships minified forever — the
    exact state #130 exists to end, reached through its own runbook. So **check the build log
    after the first credentialed deploy.** Do not assume it worked.

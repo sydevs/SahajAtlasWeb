@@ -127,15 +127,15 @@ export const BUDGET_KIB = {
 // rather than bytes, so it is per-graph: 0.5 KiB is 17% of the loader graph and
 // 1.2 KiB is 0.4% of the embed graph.
 //
-// Measured on 5eb5621, built both ways — `pnpm build`, then again under
-// `ci.yml`'s "Source-map upload chain (offline dry run)" environment, which is
-// the only credentialed build reachable without a real token
-// (`docs/rules/deployment.md`). The chunk count each figure was taken at is
-// what dates it:
+// Measured with `@sentry/vite-plugin` 11.15.0, built both ways — `pnpm build`,
+// then again under `ci.yml`'s "Source-map upload chain (offline dry run)"
+// environment, which is the only credentialed build reachable without a real
+// token (`docs/rules/deployment.md`). The chunk count each figure was taken at
+// is what dates it, and the plugin version, which writes the snippet:
 //
-//   standalone  331.923 → 333.113 KiB   8 chunks
-//   loader        2.840 →   3.310 KiB   3 chunks
-//   embed       333.003 → 334.222 KiB   8 chunks
+//   standalone  332.224 → 333.385 KiB   8 chunks
+//   loader        2.840 →   3.305 KiB   3 chunks
+//   embed       333.305 → 334.503 KiB   8 chunks
 //
 // ⚠ Measure a new graph before giving it an entry, and re-measure all three
 // when a graph's chunk count moves. Deriving a figure from a neighbour, or

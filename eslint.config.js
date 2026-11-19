@@ -158,6 +158,14 @@ export default [
             importNames: ['readdirSync'],
             message: 'Walk src/ through src/test-support/source-tree.ts (#286).',
           })),
+          // `src/styles/tv.ts` carries why, and is the one importer.
+          patterns: [
+            {
+              group: ['tailwind-variants', 'tailwind-variants/*'],
+              message:
+                'Import tv from @/styles/tv: the package entry ships a second merge engine, and bare lite merges nothing.',
+            },
+          ],
         },
       ],
     },

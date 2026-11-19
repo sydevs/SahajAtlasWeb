@@ -1,8 +1,8 @@
 import { type ReactNode } from 'react'
 import * as RadixSelect from '@radix-ui/react-select'
-import { tv } from 'tailwind-variants'
 import { ChevronDown } from 'lucide-react'
 
+import { tv } from '@/styles/tv'
 import { frameCollision, overlayContainer } from '@/lib/overlay'
 
 // Shared chrome for every field-like control: this Select's trigger, the

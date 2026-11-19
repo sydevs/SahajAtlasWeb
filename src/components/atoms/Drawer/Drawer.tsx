@@ -1,9 +1,9 @@
 import { type ReactNode, createContext, useContext, useEffect, useRef, useState } from 'react'
 import { Drawer as Vaul } from 'vaul'
-import { tv, type VariantProps } from 'tailwind-variants'
 
 import { isIOS, useSheetDragClaim } from './sheet-touch'
 
+import { tv, type VariantProps } from '@/styles/tv'
 import { overlayContainer } from '@/lib/overlay'
 
 // A drawer built on vaul (see issue #30). It uses a tailwind-variants slot set,
