@@ -5,7 +5,7 @@ import { useLocation, useSearchParams } from 'react-router'
 import { useQuery } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
 
-import { hoistGeocoderLiveRegion } from './aria-live'
+import { repairGeocoderDom } from './geocoder-dom'
 import { controlTheme } from './themes'
 
 import { clientQuery } from '@/config/api'
@@ -130,7 +130,9 @@ export function MapSearch({
   React.useEffect(() => {
     const node = field.current
 
-    return node ? hoistGeocoderLiveRegion(node) : undefined
+    if (!node) return undefined
+
+    return repairGeocoderDom(node)
   }, [])
 
   const onSuggest = (response: GeocodingResponse) => {
@@ -165,12 +167,18 @@ export function MapSearch({
     // (#322), reached from out here because that input inherits its size from a container
     // `themes.ts` sizes with `unit` — the control's whole spacing scale, which also
     // drives the suggestion list and its `padding: 1em`.
-    <div ref={field} className="[&_input]:field-size [&_input:placeholder-shown]:!pe-3">
+    <div
+      ref={field}
+      // ⚠ The min-height is the 44px tap floor reaching the geocoder's OWN input (#432), the
+      // same way `field-size` reaches it: that element is the library's, so a class cannot be
+      // put on it, and an `<input>` renders no `::after` for `touch-target` to use.
+      className="[&_input]:field-size [&_input]:pointer-coarse:min-h-11 [&_input:placeholder-shown]:!pe-3"
+    >
       <GeocoderBoundary
         fallback={
           <input
             aria-label={fieldLabel}
-            className="w-full rounded-lg border border-divider bg-gray-2 px-3 py-2 field-size text-foreground placeholder:text-gray-11"
+            className="w-full rounded-lg border border-divider bg-gray-2 px-3 py-2 field-size text-foreground placeholder:text-gray-11 pointer-coarse:min-h-11"
             placeholder={fieldLabel}
             type="search"
             value={value}

@@ -1,8 +1,9 @@
-import { type ReactNode } from 'react'
+import { type ReactNode, createContext, useContext } from 'react'
 import * as Dialog from '@radix-ui/react-dialog'
 import { X } from 'lucide-react'
 
 import { Button } from '@/components/atoms/Button'
+import { useOpenerRestore } from '@/hooks/use-opener-restore'
 import { overlayContainer } from '@/lib/overlay'
 
 // A centred, ephemeral dialog on @radix-ui/react-dialog (issue #79). Radix
@@ -48,12 +49,27 @@ export type ModalProps = {
   children: ReactNode
 }
 
+/**
+ * What the root records for the content to use, since the content unmounts while the dialog is
+ * closed and the recorder has to run exactly then. Module-private: a caller that wants focus
+ * somewhere else takes `onCloseAutoFocus` instead.
+ */
+const OpenerContext = createContext<ReturnType<typeof useOpenerRestore<HTMLDivElement>> | null>(
+  null,
+)
+
 /** The modal root. Compose `ModalContent` (+ Body/Footer) inside. */
 export function Modal({ open, onOpenChange, children }: ModalProps) {
+  // The root is the only part of this atom that knows whether the dialog is open, and the
+  // recorder has to run while it is closed — `use-opener-restore.ts` owns why.
+  const restore = useOpenerRestore<HTMLDivElement>(open)
+
   return (
-    <Dialog.Root open={open} onOpenChange={onOpenChange}>
-      {children}
-    </Dialog.Root>
+    <OpenerContext.Provider value={restore}>
+      <Dialog.Root open={open} onOpenChange={onOpenChange}>
+        {children}
+      </Dialog.Root>
+    </OpenerContext.Provider>
   )
 }
 
@@ -65,10 +81,15 @@ export type ModalContentProps = {
   /** Accessible label for the × control. Atoms take their copy as props, not from i18n. */
   closeLabel: string
   /**
-   * Radix's focus-return target is whatever had focus when the dialog
-   * mounted. That is not always the control that opened it, since a menu
-   * item is gone by then. Handle this event to send focus somewhere
-   * specific: call `preventDefault()`, then `.focus()` your own element.
+   * ⚠ **Radix restores focus to a `Dialog.Trigger`, and this atom renders none** — it is
+   * controlled through `open`. With no trigger, Radix's own handler calls `preventDefault()`
+   * and focuses nothing, so closing dropped the viewer on `<body>` and a keyboard viewer
+   * started again from the top of the host's page (measured, #432). The atom records the
+   * opener itself instead, and restores to it.
+   *
+   * Handle this event to send focus somewhere else — a menu item that opened the dialog is
+   * gone by the time it closes, for instance. Call `preventDefault()`, then `.focus()` your
+   * own element; the atom's own restore stands down when you do.
    */
   onCloseAutoFocus?: (event: Event) => void
   children: ReactNode
@@ -90,12 +111,24 @@ export function ModalContent({
   // only when there is no description.
   const describedBy = description ? {} : { 'aria-describedby': undefined }
 
+  const restore = useContext(OpenerContext)
+
+  const onClose = (event: Event) => {
+    onCloseAutoFocus?.(event)
+
+    // The caller took it. Theirs wins, and calling ours after would move focus twice.
+    if (event.defaultPrevented) return
+
+    restore?.restoreFocus(event)
+  }
+
   return (
     <Dialog.Portal container={overlayContainer()}>
       <Dialog.Overlay className={overlay} />
       <Dialog.Content
+        ref={restore?.adoptContent}
         className={`${content} ${className ?? ''}`}
-        onCloseAutoFocus={onCloseAutoFocus}
+        onCloseAutoFocus={onClose}
         {...describedBy}
       >
         <div className={header}>

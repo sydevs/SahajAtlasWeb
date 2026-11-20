@@ -22,7 +22,7 @@ vi.mock('@mapbox/search-js-react', () => ({
     return null
   },
 }))
-vi.mock('react-map-gl', () => ({ useMap: () => ({}) }))
+vi.mock('react-map-gl/mapbox', () => ({ useMap: () => ({}) }))
 
 let search = ''
 

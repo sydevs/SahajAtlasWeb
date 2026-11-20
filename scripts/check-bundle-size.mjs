@@ -32,7 +32,7 @@
  * This script excludes dynamic `import()` targets. Read that exclusion
  * carefully — it hid a real regression for the length of one PR. A dynamic
  * import only becomes a second hop when the module HOLDING it is itself
- * lazy. `react-map-gl` runs `const mapLib = import('mapbox-gl')` at module
+ * lazy. `react-map-gl` 7 ran `const mapLib = import('mapbox-gl')` at module
  * scope. So while anything in the eager graph imported it, including one
  * re-export through the `organisms` barrel, 485 KiB gzipped was fetched at
  * the same time as the rest of the payload. This gate still reported a
@@ -83,8 +83,12 @@ import { annotate, report } from './_ci-output.mjs'
 // Every step to today's three figures, newest first, as standalone/embed and as
 // loader. `git log -p` on this constant holds each one in full, dated.
 //
-//   338  333.8/334.9  #318  `add`/`correct` routes, the mailing-list schema field,
-//                           and the submission helpers all three forms share
+//   338  335.5/336.6  #318  `add`/`correct` routes, the mailing-list schema field,
+//                           and the submission helpers all three forms share, on
+//                           top of #435's CSS — both steps fit the one 338 budget
+//   338  333.9/335.0  #435  embed only. The 44px tap areas, the row spacing
+//                           they need and the contrast fixes are 0.4 KiB of
+//                           generated CSS, on a graph main left 0.2 spare
 //   336  331.9/333.0  #413  dependency batch; gzip paid for a different mix
 //   334  330.1/331.2  #389  `colord/plugins/lab`, which every embed owes
 //   330  326.8/328.6  #367  zod 4 (GHSA-mrhx-c7xc-m3w5), eager via every fetcher
@@ -117,15 +121,15 @@ export const BUDGET_KIB = {
 // rather than bytes, so it is per-graph: 0.5 KiB is 17% of the loader graph and
 // 1.2 KiB is 0.4% of the embed graph.
 //
-// Measured on 5eb5621, built both ways — `pnpm build`, then again under
-// `ci.yml`'s "Source-map upload chain (offline dry run)" environment, which is
-// the only credentialed build reachable without a real token
-// (`docs/rules/deployment.md`). The chunk count each figure was taken at is
-// what dates it:
+// Measured with `@sentry/vite-plugin` 11.15.0, built both ways — `pnpm build`,
+// then again under `ci.yml`'s "Source-map upload chain (offline dry run)"
+// environment, which is the only credentialed build reachable without a real
+// token (`docs/rules/deployment.md`). The chunk count each figure was taken at
+// is what dates it, and the plugin version, which writes the snippet:
 //
-//   standalone  331.923 → 333.113 KiB   8 chunks
-//   loader        2.840 →   3.310 KiB   3 chunks
-//   embed       333.003 → 334.222 KiB   8 chunks
+//   standalone  332.224 → 333.385 KiB   8 chunks
+//   loader        2.840 →   3.305 KiB   3 chunks
+//   embed       333.305 → 334.503 KiB   8 chunks
 //
 // ⚠ Measure a new graph before giving it an entry, and re-measure all three
 // when a graph's chunk count moves. Deriving a figure from a neighbour, or

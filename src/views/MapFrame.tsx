@@ -119,7 +119,14 @@ function ContainedFrame({ children }: { children: ReactNode }) {
     //
     // ⚠ Clip, never hidden — `components/AGENTS.md` carries why (#326). Nothing here was
     // measured overflowing: the invariant stated, not a defect repaired.
-    <div ref={adopt} className="h-full w-full overflow-clip [contain:layout]" data-sy-frame="">
+    //
+    // ⚠ `transform-gpu` is for WebKit's compositor, not for layout — `components/AGENTS.md`
+    // carries why (#424).
+    <div
+      ref={adopt}
+      className="h-full w-full transform-gpu overflow-clip [contain:layout]"
+      data-sy-frame=""
+    >
       {/* Held back until `adopt` has published this node, so the first drawer portals inside
           the frame rather than beside it. `usePublishedNode` carries the argument. */}
       {node && children}

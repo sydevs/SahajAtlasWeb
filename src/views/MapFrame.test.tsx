@@ -149,6 +149,8 @@ describe('MapFrame, contained', () => {
 
     expect(frame).not.toBeNull()
     expect(frame?.className).toContain('[contain:layout]')
+    // WebKit's compositor needs the frame as its own compositing root (#424).
+    expect(frame?.className).toContain('transform-gpu')
     // The host's own height is what the widget fills, exactly as in `map=false`.
     expect(frame?.className).toContain('h-full')
     expect(wrapper.textContent).toContain(CHILD)
@@ -212,9 +214,8 @@ describe('MapFrame, contained', () => {
  * `docs/testing.md` records the `timeoutStatus` lesson twice over. A helper can be
  * exhaustively specced, return the right answer, and never be wired to its caller — and no pure
  * spec can see that. Everything above proves `MapFrame` works. None of it proves the map is
- * inside one. Rendering `FullInterface` here to close that gap is not an option. It imports
- * `react-map-gl`, whose `exports-mapbox.js` fires `import('mapbox-gl')` at module scope, which
- * is precisely what the node lane must never pull in.
+ * inside one. Rendering `FullInterface` here to close that gap is not an option. Rendering the
+ * map fires `import('mapbox-gl')`, which is precisely what the node lane must never pull in.
  */
 describe('the wiring', () => {
   it('is what FullInterface wraps the map and the drawer stack in', () => {

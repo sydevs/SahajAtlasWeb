@@ -1,5 +1,6 @@
 import * as RadixSlider from '@radix-ui/react-slider'
-import { tv } from 'tailwind-variants'
+
+import { tv } from '@/styles/tv'
 
 // A range slider on the brand tokens, wrapping @radix-ui/react-slider. The
 // number of thumbs follows the `value` or `defaultValue` length, so a
@@ -11,8 +12,10 @@ const slider = tv({
     root: 'relative flex w-full touch-none items-center select-none data-[disabled]:opacity-disabled',
     track: 'relative h-1.5 grow rounded-full bg-gray-6',
     range: 'absolute h-full rounded-full bg-primary-9',
+    // `touch-target` keeps the 16px dot and gives a finger 44px to catch it on a touch
+    // screen (#432). It needs the positioned element beside it.
     thumb:
-      'block h-4 w-4 rounded-full border border-gray-7 bg-gray-1 shadow transition-colors outline-none focus-visible:ring-2 focus-visible:ring-focus',
+      'touch-target relative block h-4 w-4 rounded-full border border-gray-7 bg-gray-1 shadow transition-colors outline-none focus-visible:ring-2 focus-visible:ring-focus',
   },
   variants: {
     // Active-filter tint. This colours the UNFILLED track and thumb border

@@ -16,7 +16,7 @@ import { useListingDraft } from '@/config/store'
 ;(globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true
 
 vi.mock('@mapbox/search-js-react', () => ({ Geocoder: () => null }))
-vi.mock('react-map-gl', () => ({ useMap: () => ({}) }))
+vi.mock('react-map-gl/mapbox', () => ({ useMap: () => ({}) }))
 
 const entry: SubmitEntry = { kind: 'add', regionSlug: null, path: '/add' }
 let navigate: NavigateFunction = () => {}

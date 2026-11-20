@@ -24,8 +24,9 @@
   //
   // ⚠ Build this Worker with **`pnpm build:worker`**, never `pnpm build`. A Worker reads
   // `_redirects` and its API rejects that splat as an infinite loop (100324), failing the
-  // deploy. `build:worker` is `build` plus the `rm -f`, now a dormant guard against the file
-  // returning — #252 plans to, with a `/map  /  301` rule a Worker accepts (#280, #283).
+  // deploy. `build:worker` is `build` plus the `rm -f`, a dormant guard against the file
+  // returning (#280, #283). #252 planned to bring it back with a `/map  /  301` rule a Worker
+  // accepts, then withdrew that step and closed: the legacy forward already drops `/map`.
   // `check:wrangler` cannot catch a regression here — the dry run never reaches the API — so
   // `scripts/wrangler-config.test.ts` pins the pairing instead.
   "assets": {

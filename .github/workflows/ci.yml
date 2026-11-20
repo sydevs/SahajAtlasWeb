@@ -42,6 +42,49 @@ jobs:
         run: pnpm size
       - run: pnpm ladle:build # fail the gate on broken component stories
 
+      # The accessibility gate (#432). It drives the library `pnpm ladle:build` just wrote, in
+      # Chromium at phone size with a coarse pointer, and fails on an axe violation, a tap area
+      # under 44px measured by hit test, or a keyboard stop that is invisible or paints no focus.
+      #
+      # ⚠ It is a step INSIDE this job, not a job of its own, and that is what makes it block: the
+      # ruleset requires this job's check by name (`Lint, Typecheck & Build`), and a new job would
+      # report a check nothing requires until somebody edits the ruleset in a browser. Keep the
+      # job's `name:` byte-identical for the same reason.
+      #
+      # ⚠ It must follow `pnpm ladle:build`: the gate reads `build/`, never the dev server, so a
+      # story that failed to compile cannot pass by never having been opened.
+      # ⚠ Cached, because this step is on the critical path of the one required check and the
+      # merge queue pays it a second time for every merge. A miss costs what it always cost; a
+      # hit skips ~170 MB.
+      #
+      # ⚠ The key is the pinned version ITSELF, read out of `package.json`, not a hash of the
+      # file. `hashFiles('package.json')` re-downloaded the browser on every dependency bump,
+      # every new script and every edit to any field — on the critical path of the one required
+      # check — while the version Chromium is keyed to had not moved.
+      - name: Read the pinned Playwright version
+        id: playwright
+        # ⚠ Checked before it is written. A step output is repository text, which on a fork's
+        # pull request nobody here has reviewed, and a newline inside it forges further outputs.
+        run: |
+          node -e '
+            const version = require("./package.json").devDependencies.playwright
+            if (!/^[0-9]+\.[0-9]+\.[0-9]+$/.test(version))
+              throw new Error("unexpected playwright version: " + version)
+            require("node:fs").appendFileSync(process.env.GITHUB_OUTPUT, "version=" + version + "\n")
+          '
+      - name: Cache the Chromium the accessibility gate drives
+        id: browser-cache
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ steps.playwright.outputs.version }}
+      - name: Install Chromium for the accessibility gate
+        # `--with-deps` installs system libraries outside the cached directory, so it runs on a
+        # hit too; the browser download itself is what the cache removes.
+        run: pnpm exec playwright install --with-deps chromium
+      - name: Accessibility gate
+        run: pnpm test:a11y
+
       # Validates BOTH Worker configs against the pinned Wrangler's own schema — the app's
       # `wrangler.jsonc` and the playground's `wrangler.design.jsonc` (#297). Nothing else
       # in this repo deploys from either, because Workers Builds holds the dashboard's copy
@@ -173,8 +216,9 @@ jobs:
       # rejects its `/* /index.html 200` splat as an infinite loop (code 100324), failing the
       # WHOLE upload rather than one route. `pnpm build` kept the file while the Pages project
       # serving sahajatlas.com deployed the same `dist/`; #283 deleted the file and moved the
-      # domain, so the `rm -f` in `build:worker` is now a dormant guard against #252 bringing it
-      # back (#280, #295, #283).
+      # domain, so the `rm -f` in `build:worker` is now a dormant guard against the file
+      # returning (#280, #295, #283). #252 planned to bring it back, then withdrew that step and
+      # closed, so no ticket plans it today.
       #
       # `VITE_SENTRY_DSN` is here because `tests/smoke/boot-origins.smoke.test.ts` FAILS when an
       # origin pattern finds nothing, and the DSN is one of its two (#232). The API key and the

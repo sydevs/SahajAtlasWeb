@@ -20,7 +20,7 @@ This file is also a path-scoped rule: `.claude/rules/testing.md` symlinks here, 
 when a session reads a spec, a vitest config or the test tooling. The always-loaded summary —
 the validation policy and the never-rules — is the root `AGENTS.md` § Testing.
 
-Two lanes, kept separate so the fast one never touches the network: the **unit** lane
+Three lanes. Two of them are vitest, kept separate so the fast one never touches the network: the **unit** lane
 (`vitest.config.ts`, every `*.test.ts(x)` outside `tests/smoke/`, node) and the **smoke** lane
 (`vitest.smoke.config.ts`, `tests/smoke/**`, fetch against a deployed preview).
 `pnpm test:smoke` needs `PREVIEW_URL` and skips gracefully without one. In CI the smoke job
@@ -28,6 +28,10 @@ builds the app and **publishes its own Workers preview**, then reads the address
 step returned (#282). The **same** smoke specs also run against production, fired by the
 deploy rather than by a PR (`.github/workflows/production-smoke.yml`) — see "The PR gate can
 only ever read a preview" below.
+
+The third is the **accessibility** gate, `pnpm test:a11y` (`scripts/check-a11y.mjs`, #432): a
+browser, over the built component library, in CI's `gate` job right after `pnpm ladle:build`.
+See "The accessibility lane needs a browser, and that is not a preference" below.
 
 ## The smoke lane's three invariants (issues #99, #138)
 
@@ -370,6 +374,53 @@ Both costs were measured first. A merge waits one queue run — 2m23s to 2m50s a
 that site's Workers Builds branch rules take a literal branch name or a lone `*` and cannot exclude
 the prefix (`docs/rules/deployment.md`).
 
+## The accessibility lane needs a browser, and that is not a preference (#432)
+
+`pnpm test:a11y` drives `build/` in Chromium at 390×844 with a coarse pointer, and asks three
+things of every story: axe-core's rule set, a tap area of at least 44px **probed with
+`document.elementFromPoint`**, and a keyboard walk that each stop is visible, in document order,
+and paints a focus indicator.
+
+**The unit lane cannot host it, and measuring said so.** jsdom has no layout at all: a tap area
+cannot be measured, and `color-contrast` resolves to nothing. Measured 2026-11-19 over the same
+52 stories with the same axe configuration, counting violation NODES: **jsdom returned 31, the
+browser 131** — and the browser's 80 contrast failures and 24 label-in-name failures were not
+among the 31, which is the whole argument. (The browser figure is from the 49 stories that
+rendered; three forms timed out in that first pass.)
+
+Four things about it are deliberate:
+
+- **It reads a BUILD, never `ladle serve`.** The dev server compiles a story when it is opened,
+  so a story that failed to build would pass by never having been built. `--origin
+  http://localhost:61000` points it at the dev server anyway, for the local fix loop only.
+- **It is a step in CI's existing `gate` job, not a job of its own.** The ruleset requires that
+  job's check by name, so a step blocks a merge on the day it lands; a new job would report a
+  check nothing requires until somebody edits the ruleset in a browser.
+- **The tap floor is probed, not read off a class list**, because the widget's small controls
+  keep their drawn size and grow an invisible 44px area. A 32px control carrying `touch-target`
+  answers across 44px and a 44px control under an overlay answers to nothing — only a hit test
+  tells those two apart. `spanFrom` walks outward from the centre and stops at the first miss on
+  each side, so a control crowded on one side reports the room it has rather than two patches.
+  ⚠ A control the page has no room to centre has probe points off the viewport, so the floor does
+  not apply to it: each one is **named** in the report and raises a warning annotation, and none
+  of them fails the gate — failing would red a required check for where a control sat rather than
+  for how big it is.
+- **`region` and `landmark-unique` are off**, and `scripts/check-a11y.mjs` says why: a story is
+  one component in a bare div, and a story page is a catalogue of six of them. Both would report
+  the page rather than the widget. Everything axe enables by default stays on, and the tap
+  exemptions are three selectors with a reason each, pinned as a closed list by
+  `scripts/check-a11y.test.ts`.
+  ⚠ **axe ships `target-size`, one of the handful it leaves disabled itself, and this gate does
+  not turn it on.** That is deliberate and the script says why: the rule measures
+  `getBoundingClientRect`, which cannot see the absolutely-positioned `::after` the
+  `touch-target` utility draws, so it would fail every control the widget deliberately leaves
+  small while passing a 44px control an overlay covers. Do not read "everything else is on" as a
+  claim that no axe rule was left out.
+
+⚠ **The gate's own arithmetic is in the unit lane** (`scripts/check-a11y.test.ts`) — the span
+measurement, the report's grouping, and the exemption list. Only the browser half needs a
+browser.
+
 ## Decision: node-only (no jsdom / Testing Library)
 
 This mirrors WeMeditateWeb. The unit lane runs in the `node` environment by default, with **no
@@ -446,6 +497,26 @@ more, opted in the same way (`grep -rl '@vitest-environment jsdom' src/`); this 
   Its submission arm (#163) is the same argument twice over: the waiting overlay is a portal, so
   only a DOM can say whether it is on screen, and the cache cannot — a later message carrying no
   `previewEvent` leaves the cache entry exactly as it was while covering it with the skeleton.
+
+### One dialog per jsdom FILE, and assert the focus call rather than where focus ends up (#432)
+
+Two Radix dialogs in one spec file share one `document`, and React finishes one case's
+teardown while the next case is already running. Radix's focus scope then moves focus from the
+case that has already ended, and the next case's `document.activeElement` is whatever that
+teardown decided. Measured on `Modal.focus.test.tsx`: three cases in one file failed about one
+run in five, two about one in eight, one passed fifteen times out of fifteen. So the second
+property lives in `Modal.focus-opener.test.tsx`, as its own file.
+
+⚠ **It is a scheduling race, not a slow read.** Flushing harder makes it worse, not better —
+an extra `act` flush after the close took it from one in six to one in four, because the extra
+microtasks give the previous case's teardown more room to run. Waiting for `activeElement` to
+stop changing does not fix it either: it comes to rest on the wrong element.
+
+What a dialog atom owns is **asking** for focus back, so these specs spy on
+`HTMLElement.prototype.focus` and assert the last element the close path asked for. Where focus
+settles after a torn-down sibling has had its say is not a property of the atom under test, and
+a browser is what settles the end state — `pnpm test:a11y` walks the keyboard over every story,
+and the pull request records the manual Escape pass.
 
 ### A CLOSED portal renders nothing under SSR — an "absence" assertion proves nothing
 
@@ -628,7 +699,10 @@ coupling the other cannot:
   spec picks whichever its own directory makes natural: `@/config/api/client`, `./client`, or the
   quoted repo-relative path `src/App.tsx` that `src/lib/brand.test.ts`'s `COPY_FILES` holds. A
   name match misses two of the three — `fetch.test.ts` is the only spec for `client.ts` and
-  reaches it as `'./client'`, and `Chip.test.tsx` imports its own folder as `'.'`.
+  reaches it as `'./client'`, and `Chip.test.tsx` imports its own folder as `'.'`. A
+  `patches/*.patch` is reached by the third form alone, through the path
+  `src/lib/shadow-patches.test.ts` names it by — ⚠ but the pins there read the INSTALLED package,
+  which an edit to the patch reaches only at the next `pnpm install`.
 
 **A third source selected the tree-walking specs until #293, and it was the whole floor.**
 Fourteen specs enumerate the source tree instead of importing from it — the eleven `src/`

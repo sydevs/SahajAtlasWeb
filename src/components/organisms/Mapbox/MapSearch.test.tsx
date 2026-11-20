@@ -11,7 +11,7 @@ vi.mock('@mapbox/search-js-react', () => ({
     <output data-options={JSON.stringify(options)} data-value={value} />
   ),
 }))
-vi.mock('react-map-gl', () => ({
+vi.mock('react-map-gl/mapbox', () => ({
   useMap: () => ({
     mapbox: { getCenter: () => ({ lng: 9, lat: 9 }), getMap: () => undefined, getZoom: () => 10 },
   }),

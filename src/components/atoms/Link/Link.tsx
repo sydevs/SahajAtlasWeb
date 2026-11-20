@@ -1,8 +1,8 @@
 import { type ComponentProps, type MouseEvent, type ReactNode, forwardRef } from 'react'
 import { Link as RouterLink, useLocation } from 'react-router'
-import { tv, type VariantProps } from 'tailwind-variants'
 import { ArrowUpRight } from 'lucide-react'
 
+import { tv, type VariantProps } from '@/styles/tv'
 import { rememberCamera } from '@/config/store'
 import { atlasError, reportInternalError } from '@/lib/report'
 import { atlasPushState, hasAllowedScheme, isSafeHref } from '@/lib/shape'
@@ -15,13 +15,17 @@ import { atlasPushState, hasAllowedScheme, isSafeHref } from '@/lib/shape'
 // beat a global `a { color: inherit !important }` reset. That rule leaked
 // into host pages and has been removed, so the overrides went with it.
 const link = tv({
-  base: 'inline-flex items-center gap-1 rounded-sm transition-opacity outline-none hover:opacity-hover focus-visible:ring-2 focus-visible:ring-focus',
+  // `touch-target` is what gives a line of link text a 44px tap area on a touch screen,
+  // without changing where it sits in the line (#432).
+  base: 'touch-target relative inline-flex items-center gap-1 rounded-sm transition-opacity outline-none hover:opacity-hover focus-visible:ring-2 focus-visible:ring-focus',
   variants: {
+    // ⚠ Step 11, the ramp's readable TEXT step, never the bare token, which is step 9 — a
+    // solid-background colour. `text-contrast` measured 3.22:1 on the light background (#432).
     color: {
       foreground: 'text-foreground',
-      primary: 'text-primary',
-      secondary: 'text-secondary',
-      contrast: 'text-contrast',
+      primary: 'text-primary-11',
+      secondary: 'text-secondary-11',
+      contrast: 'text-contrast-11',
       neutral: 'text-inherit',
     },
     // The quiet foot-of-panel line into the add-a-class flow (#147), replacing a wrapper

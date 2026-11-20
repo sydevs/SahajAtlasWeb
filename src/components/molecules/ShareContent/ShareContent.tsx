@@ -1,16 +1,19 @@
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { tv } from 'tailwind-variants'
 import { Share } from 'lucide-react'
 
 import { PlatformButton } from './platform-buttons'
 
+import { tv } from '@/styles/tv'
 import { Button } from '@/components/atoms/Button'
 import { useWebShare } from '@/hooks/use-web-share'
 import { platformsForCountry } from '@/lib/share/platforms'
 
 const copyField = tv({
-  base: 'w-full truncate rounded px-3 py-2 text-start text-sm text-secondary-11 transition-colors select-all',
+  // ⚠ `truncate` sits on the inner span, not here. It carries `overflow: hidden`, which clips
+  // this button's own `touch-target` pseudo-element back to the drawn box — the 44px tap area
+  // was there in the style and answered to nothing (#432).
+  base: 'touch-target relative w-full rounded px-3 py-2 text-start text-sm text-secondary-11 transition-colors select-all',
   variants: { copied: { true: 'bg-secondary-5', false: 'bg-secondary-3' } },
   defaultVariants: { copied: false },
 })
@@ -35,13 +38,15 @@ export function CopyField({ value }: { value: string }) {
   return (
     <div className="flex flex-col gap-1">
       <button
-        aria-label={t('share.copy_link')}
+        // The URL is the button's visible text, so the name carries it too: a name that
+        // omitted it would leave a speech-input viewer with nothing to say (WCAG 2.5.3).
+        aria-label={`${t('share.copy_link')}: ${value}`}
         className={copyField({ copied })}
         title={value}
         type="button"
         onClick={copy}
       >
-        {value}
+        <span className="block truncate">{value}</span>
       </button>
       {/* Success was previously signalled ONLY by a secondary-3 to
           secondary-5 tint, a roughly 1.15:1 shift. A screen reader cannot

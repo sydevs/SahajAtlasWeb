@@ -1,7 +1,7 @@
 import { type ReactNode } from 'react'
-import { tv, type VariantProps } from 'tailwind-variants'
 import { Info, X } from 'lucide-react'
 
+import { tv, type VariantProps } from '@/styles/tv'
 import { Button } from '@/components/atoms/Button'
 
 // A status banner. It replaces NextUI's Alert and uses the Radix-semantic tokens.
@@ -13,7 +13,9 @@ const alert = tv({
     iconWrapper: 'shrink-0',
     content: 'min-w-0 flex-1',
     title: 'text-sm font-medium',
-    description: 'text-sm opacity-90',
+    // No opacity step. The colour pairs below are already a step-11 text on a step-3 surface,
+    // which is 4.5:1 exactly — any transparency over it lands under the floor (#432).
+    description: 'text-sm',
     close: '-me-1 shrink-0 opacity-60 hover:opacity-100',
   },
   variants: {

@@ -259,6 +259,7 @@ export function FilterButton({ iconOnly = false }: { iconOnly?: boolean }) {
 // keystroke. Half-typed text in `?q` renamed everything that reads it, so every result card said
 // "5.1 km from Prag" over London's classes.
 export function SearchField({ label }: Pick<MapSearchProps, 'label'> = {}) {
+  const { t } = useTranslation()
   const navigate = useAtlasNavigate()
   const [searchParams] = useSearchParams()
   const urlQuery = searchParams.get('q') ?? ''
@@ -297,7 +298,12 @@ export function SearchField({ label }: Pick<MapSearchProps, 'label'> = {}) {
   )
 
   return (
-    <div className="min-w-0 flex-1">
+    // A `search` landmark, named from the widget's own translations. The widget as a whole is
+    // one `region` on the host's page (`Widget.tsx`), and each drawer is a named dialog, so
+    // this is what lets a screen-reader viewer tell the place search from the results under it
+    // and from the Filters dialog beside it (#432). The name is the field's, not the view's:
+    // `SearchView` is itself a dialog called Search.
+    <div aria-label={t('search.chrome.title')} className="min-w-0 flex-1" role="search">
       <MapSearch label={label} value={text} onChange={setText} onSelect={handleSelect} />
     </div>
   )

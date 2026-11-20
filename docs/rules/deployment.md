@@ -89,9 +89,11 @@ file; the Pages project itself goes later, as above.
 ⚠ **Workers static assets do read `_redirects`, and reject that splat** as an infinite loop
 (API code 100324), failing the whole deploy — and `pnpm check:wrangler` cannot catch it, since
 the dry run never reaches the API. So `pnpm build:worker` and `pnpm ladle:build` each still end
-in an `rm -f <dir>/_redirects`: dormant guards, kept because #252 plans to bring the file back
-with a `/map  /  301` rule, which a Worker accepts. ⚠ **That guard has to become selective when
-#252 lands**, or it deletes the rule along with the splat it is there for — which is why
+in an `rm -f <dir>/_redirects`: dormant guards against the file returning. #252 planned to bring
+it back with a `/map  /  301` rule, which a Worker accepts, then withdrew that step and closed —
+the legacy forward already drops `/map`, so no ticket plans the file today. ⚠ **Whichever one
+does has to make that guard selective**, or it deletes the rule along with the splat it is there
+for — which is why
 `scripts/wrangler-config.test.ts` fails the moment the file returns, rather than leaving the
 narrowing to this paragraph. `pnpm build:worker`, not `pnpm build`, is the Workers Builds build
 command for the app (#280); that same spec pins both pairings, since nothing else reads them.
@@ -135,7 +137,7 @@ runbook is in `docs/environment.md`.
 
 ## Deploy-side CI gates
 
-Two of the four CI gates that exist because each one once missed something, unnoticed (#99).
+Two of the five CI gates that exist because each one once missed something, unnoticed (#99).
 Each is built so passing proves something real:
 
 - **Dependency Review** (shared from `sydevs/claude-workflow`) fails only when a PR _adds_

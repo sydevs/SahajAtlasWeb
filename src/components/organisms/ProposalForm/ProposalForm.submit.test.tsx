@@ -36,7 +36,7 @@ vi.mock('react-i18next', () => ({
 }))
 // The geocoder is a custom element and the map a WebGL canvas; neither is under test here.
 vi.mock('@mapbox/search-js-react', () => ({ Geocoder: () => null }))
-vi.mock('react-map-gl', () => ({ useMap: () => ({}) }))
+vi.mock('react-map-gl/mapbox', () => ({ useMap: () => ({}) }))
 
 const addressFeature = {
   type: 'Feature',

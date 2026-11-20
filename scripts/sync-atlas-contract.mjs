@@ -19,9 +19,14 @@
  * it by raw URL, rather than re-deriving the rules. This script does
  * exactly that, as one command.
  *
- * Nothing runs it automatically: no workflow in this repo calls
- * `sync:atlas-contract`. SahajAtlasWordpress's CI is the only job that diffs
- * a copy against upstream.
+ * This script is the manual check/write tool, and no workflow in this repo
+ * calls it. Two things do run automatically, and neither uses it
+ * (sydevs/claude-workflow#269): the review loop's `contractSync`, on every
+ * SahajCloud merge that touches `src/lib/atlas/atlas-url-contract.json`, and
+ * its alternate-Monday `audit-contracts` sweep. Both fetch the raw upstream
+ * file directly, re-write `src/lib/shape/atlas-url-contract.json`, and open a
+ * `chore(contracts)` sync PR. SahajAtlasWordpress's CI also diffs its own copy
+ * against upstream.
  *
  * **Why a script, and not a test.** The unit lane must never touch the
  * network (`docs/testing.md`). A fixture that fetches on every run would

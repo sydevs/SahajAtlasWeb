@@ -416,6 +416,45 @@ describe('recurrence-less providers anchor on the right occurrence', () => {
 })
 
 describe('buildOutlookCalendarUrl', () => {
+  it('subscribes through add-from-web, against the personal or the work host', () => {
+    for (const [flavor, host] of [
+      ['live', 'https://outlook.live.com'],
+      ['office', 'https://outlook.office.com'],
+    ] as const) {
+      const url = new URL(buildOutlookCalendarUrl(subscribable, flavor))
+
+      expect(url.origin + url.pathname).toBe(`${host}/calendar/0/addfromweb`)
+      expect(url.searchParams.get('url')).toBe(FEED)
+      expect(url.searchParams.get('name')).toBe('Evening Meditation')
+    }
+  })
+
+  // Outlook on the web is a page, not a calendar app: it fetches the feed itself,
+  // so handing it `webcal:` would give it a scheme its own fetch cannot follow.
+  it('carries the https address, percent-encoded, and never the webcal form', () => {
+    const url = buildOutlookCalendarUrl(subscribable, 'live')
+
+    expect(url).toContain(`url=${encodeURIComponent(FEED)}`)
+    expect(url).not.toContain('webcal')
+  })
+
+  it('ignores `from` entirely — a subscription has no anchor to move', () => {
+    expect(buildOutlookCalendarUrl({ ...subscribable, from: SESSION }, 'live')).toBe(
+      buildOutlookCalendarUrl(subscribable, 'live'),
+    )
+  })
+
+  // One address per class the shared guard refuses — absent, blank, foreign scheme.
+  // `buildFeedSubscribeUrl` above holds that guard at full width, and the subscribe
+  // builder's early return precedes the host lookup, so one flavor settles both.
+  it('demotes to compose with no feed address, and for one that is not http(s)', () => {
+    for (const address of [undefined, '   ', 'javascript:alert(1)']) {
+      expect(buildOutlookCalendarUrl({ ...input, calendarFeedUrl: address }, 'live')).toContain(
+        'https://outlook.live.com/calendar/0/deeplink/compose',
+      )
+    }
+  })
+
   it('composes against the personal or the work host', () => {
     expect(buildOutlookCalendarUrl(input, 'live')).toContain(
       'https://outlook.live.com/calendar/0/deeplink/compose',

@@ -1,6 +1,6 @@
 import { type ComponentProps, type ReactNode, type Ref, forwardRef } from 'react'
-import { tv, type VariantProps } from 'tailwind-variants'
 
+import { tv, type VariantProps } from '@/styles/tv'
 import { Spinner } from '@/components/atoms/Spinner/Spinner'
 import { atlasError, reportInternalError } from '@/lib/report'
 import { isSafeHref } from '@/lib/shape'
@@ -27,9 +27,16 @@ export const controlSurface = tv({
       /** No surface shows until hovered. Toolbar and header controls must recede. */
       ghost: 'bg-transparent',
     },
+    /**
+     * ⚠ `sm` and `md` are drawn at 44px on a touch screen, which is the tap floor (#432).
+     * They are a real height rather than the invisible `touch-target` area the base applies,
+     * because controls of this size sit in rows — a header's four, the calendar's nav pair at
+     * a 2px gap — and two invisible areas that meet take each other's pixels, leaving both
+     * controls measuring short. `lg` is already past the floor.
+     */
     size: {
-      sm: 'h-8 px-3 text-sm',
-      md: 'h-10 px-4 text-sm',
+      sm: 'h-8 px-3 text-sm pointer-coarse:h-11',
+      md: 'h-10 px-4 text-sm pointer-coarse:h-11',
       lg: 'h-12 px-6 text-base',
     },
     /**
@@ -74,7 +81,10 @@ export const controlSurface = tv({
       class:
         'bg-contrast-12 text-white hover:bg-contrast-11 dark:bg-contrast-9 dark:text-contrast-foreground dark:hover:bg-contrast-10',
     },
-    { color: 'neutral', variant: 'solid', class: 'bg-gray-9 text-gray-1 hover:bg-gray-10' },
+    // ⚠ `gray-12`, not `gray-9`: a mid grey carries its own `gray-1` label at 3.24:1 in light
+    // and 3.7:1 in dark, both under the floor. This is also what the three brand solids above
+    // already do — step 12 in light, with the ramp's own on-colour (#432).
+    { color: 'neutral', variant: 'solid', class: 'bg-gray-12 text-gray-1 hover:bg-gray-11' },
     // flat (soft tint)
     {
       color: 'primary',
@@ -127,8 +137,8 @@ export const controlSurface = tv({
     },
     // Icon-only controls are square. The width tracks the height from the size
     // scale. So the control stays square, and the circle stays round, at every size.
-    { isIconOnly: true, size: 'sm', class: 'w-8' },
-    { isIconOnly: true, size: 'md', class: 'w-10' },
+    { isIconOnly: true, size: 'sm', class: 'w-8 pointer-coarse:w-11' },
+    { isIconOnly: true, size: 'md', class: 'w-10 pointer-coarse:w-11' },
     { isIconOnly: true, size: 'lg', class: 'w-12' },
     // Icon-only bordered controls keep a slightly heavier 1.5px outline. A 1px
     // hairline looks like a rendering artifact around a small circle. Labelled
@@ -150,6 +160,10 @@ const button = tv({
     'outline-none',
     'focus-visible:ring-2 focus-visible:ring-focus focus-visible:ring-offset-1',
     'disabled:pointer-events-none disabled:opacity-disabled',
+    // ⚠ This covers WIDTH, and only width — the heights above are drawn, and `pointer-coarse:w-11`
+    // reaches the icon-only pair alone. A short label is what is left: `sm` reading "sm" draws
+    // 43px wide and measured 43 without this, so the gate caught its removal (#432).
+    'touch-target relative',
   ],
 })
 

@@ -2,8 +2,9 @@ import { type ReactNode } from 'react'
 import clsx from 'clsx'
 import * as RadixCheckbox from '@radix-ui/react-checkbox'
 import * as RadixSwitch from '@radix-ui/react-switch'
-import { tv, type VariantProps } from 'tailwind-variants'
 import { Check } from 'lucide-react'
+
+import { tv, type VariantProps } from '@/styles/tv'
 
 // A two-in-one boolean control. The default `switch` appearance is the brand
 // track/thumb toggle. It is unchanged from the former Switch atom, with
@@ -27,7 +28,7 @@ import { Check } from 'lucide-react'
 // different property, so an errored control keeps its ring while it goes grey.
 const toggle = tv({
   slots: {
-    root: 'relative shrink-0 cursor-pointer rounded-full bg-gray-6 transition-colors outline-none focus-visible:ring-2 focus-visible:ring-focus data-[disabled]:cursor-not-allowed data-[disabled]:bg-gray-5 data-[disabled]:data-[state=checked]:bg-gray-9 dark:data-[disabled]:data-[state=checked]:bg-gray-9',
+    root: 'touch-target relative shrink-0 cursor-pointer rounded-full bg-gray-6 transition-colors outline-none focus-visible:ring-2 focus-visible:ring-focus data-[disabled]:cursor-not-allowed data-[disabled]:bg-gray-5 data-[disabled]:data-[state=checked]:bg-gray-9 dark:data-[disabled]:data-[state=checked]:bg-gray-9',
     thumb:
       'block translate-x-[2px] rounded-full bg-gray-1 shadow transition-transform will-change-transform data-[disabled]:bg-gray-2 data-[disabled]:shadow-none',
   },
@@ -73,7 +74,7 @@ const toggle = tv({
 // unchecked one.
 const box = tv({
   slots: {
-    root: 'flex shrink-0 items-center justify-center rounded border border-gray-7 bg-background transition-colors outline-none focus-visible:ring-2 focus-visible:ring-focus data-[disabled]:cursor-not-allowed data-[disabled]:border-gray-7 data-[disabled]:bg-gray-4 data-[disabled]:data-[state=checked]:border-gray-9 data-[disabled]:data-[state=checked]:bg-gray-9 data-[disabled]:data-[state=checked]:text-gray-1 dark:data-[disabled]:data-[state=checked]:border-gray-9 dark:data-[disabled]:data-[state=checked]:bg-gray-9 dark:data-[disabled]:data-[state=checked]:text-gray-1',
+    root: 'touch-target relative flex shrink-0 items-center justify-center rounded border border-gray-7 bg-background transition-colors outline-none focus-visible:ring-2 focus-visible:ring-focus data-[disabled]:cursor-not-allowed data-[disabled]:border-gray-7 data-[disabled]:bg-gray-4 data-[disabled]:data-[state=checked]:border-gray-9 data-[disabled]:data-[state=checked]:bg-gray-9 data-[disabled]:data-[state=checked]:text-gray-1 dark:data-[disabled]:data-[state=checked]:border-gray-9 dark:data-[disabled]:data-[state=checked]:bg-gray-9 dark:data-[disabled]:data-[state=checked]:text-gray-1',
     indicator: 'flex items-center justify-center',
   },
   variants: {
@@ -125,6 +126,9 @@ export type CheckboxProps = VariantProps<typeof toggle> & {
   isInvalid?: boolean
   /** Id of the field's error/description text, forwarded for screen readers. */
   'aria-describedby'?: string
+  /** The control's name where it has no `children` to take one from. Radix renders a
+   *  `<button>`, so without either it is a control a screen reader announces unnamed. */
+  'aria-label'?: string
   /** Optional label rendered after the control. */
   children?: ReactNode
   className?: string
@@ -142,6 +146,7 @@ export function Checkbox({
   highlight,
   isInvalid,
   'aria-describedby': describedBy,
+  'aria-label': ariaLabel,
   children,
   className,
 }: CheckboxProps) {
@@ -154,6 +159,7 @@ export function Checkbox({
       <RadixCheckbox.Root
         aria-describedby={describedBy}
         aria-invalid={isInvalid || undefined}
+        aria-label={ariaLabel}
         checked={checked}
         className={root({ className: children ? undefined : className })}
         defaultChecked={defaultChecked}
@@ -173,6 +179,7 @@ export function Checkbox({
       <RadixSwitch.Root
         aria-describedby={describedBy}
         aria-invalid={isInvalid || undefined}
+        aria-label={ariaLabel}
         checked={checked}
         className={root({ className: children ? undefined : className })}
         defaultChecked={defaultChecked}
@@ -193,7 +200,10 @@ export function Checkbox({
   return (
     <label
       className={clsx(
-        'inline-flex items-center gap-2',
+        // The row is the tap target — the label activates the control it wraps — so it holds
+        // the 44px floor on a touch screen, which also keeps the control's own area inside
+        // the row rather than over the one above (#432).
+        'inline-flex items-center gap-2 pointer-coarse:min-h-11',
         disabled ? 'cursor-not-allowed text-gray-11' : 'cursor-pointer',
         className,
       )}
