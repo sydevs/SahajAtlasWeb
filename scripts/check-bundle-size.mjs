@@ -91,6 +91,9 @@ import { annotate, report } from './_ci-output.mjs'
 // Every step to today's three figures, newest first, as standalone/embed and as
 // loader. `git log -p` on this constant holds each one in full, dated.
 //
+//   336  289.8/290.9  #442  the zod enums moved to `z.enum`'s object form, so
+//                          `satisfies Record<Theirs, Theirs>` could replace a
+//                          hand-rolled equality type, +0.1
 //   336  289.7/290.8  #442  framer-motion's `m` with the animation features
 //                          alone, −13.2 KiB; budget held, as above, and `embed`
 //                          back to 336 — #435 raised it for 0.4 KiB on 0.2
