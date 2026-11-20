@@ -217,8 +217,8 @@ export type DrawerProps = VariantProps<typeof drawer> & {
   /**
    * The box vaul measures snap points against. **This is not the same
    * question as `container`.** Conflating the two inverts the sheet. See the
-   * note on `rootProps` below. Omit this prop to measure the window instead.
-   * That is right for every mount except inside the expanded dialog.
+   * note on `rootProps` below. Omit this prop to measure the window instead,
+   * which is right for every mount outside a frame.
    */
   measureAgainst?: HTMLElement | null
   children: ReactNode

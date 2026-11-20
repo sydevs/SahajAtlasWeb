@@ -30,6 +30,13 @@ jobs:
           node-version-file: .node-version
           cache: pnpm
       - run: pnpm install --frozen-lockfile
+      # A PR that changes a copied contract (the SahajCloud types and the atlas URL contract,
+      # `contractSync` in sydevs/claude-workflow's loop-config.json) must leave it exactly as
+      # its sync command writes it. A PR that leaves them alone passes, however far SahajCloud
+      # has moved: the contract sync fixes drift on main, never every open PR.
+      # why: sydevs/claude-workflow/docs/why.md#a-contract-check-checks-what-a-pr-changes
+      - name: Contract check
+        uses: sydevs/claude-workflow/.github/actions/contract-check@main
       - run: pnpm lint
       - run: pnpm typecheck
       - run: pnpm test:run # unit lane — smoke specs are excluded in vitest.config.ts
