@@ -458,8 +458,7 @@ no-referrer`.
   reads that name from the public name on your client record, and had been reading a field the
   CMS does not have, so `schema.org/Event` carried no `organizer` for any host. Set the public
   name on your record to have it appear; leave it empty and the organizer is omitted, as before.
-  The report form's "client" context line was reading the same missing field and now carries that
-  name too. Nothing to change in your snippet or your CSP.
+  Nothing to change in your snippet or your CSP.
 
 - **A map that opens in Japanese now asks Mapbox for its Japan worldview** ([#442]), which decides how
   disputed borders are drawn. The widget picks a worldview by the language it starts in, and
