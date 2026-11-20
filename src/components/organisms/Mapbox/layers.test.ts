@@ -1,4 +1,4 @@
-import type { LayerProps } from 'react-map-gl'
+import type { LayerProps } from 'react-map-gl/mapbox'
 
 import { colord, extend } from 'colord'
 import a11yPlugin from 'colord/plugins/a11y'

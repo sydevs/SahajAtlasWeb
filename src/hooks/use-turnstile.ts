@@ -112,6 +112,31 @@ const collapseSlot = (slot: HTMLElement, collapsed: boolean) => {
   slot.style.position = collapsed ? 'absolute' : ''
 }
 
+/**
+ * Holds the collapsed frame out of the tab order and the accessibility tree (#432).
+ *
+ * A 0px-high frame is still focusable, so Tab landed on a "Security check" nothing had drawn —
+ * twice on the registration form, since the probe mounts one too — and the viewer had no way
+ * to tell where focus had gone. The probe's frame was already hidden this way; this is the
+ * same treatment for the one a form mounts, applied whenever its height changes.
+ */
+const collapseFrame = (frame: HTMLIFrameElement, collapsed: boolean) => {
+  frame.height = collapsed ? '0' : String(FRAME_HEIGHT)
+
+  if (collapsed) {
+    frame.tabIndex = -1
+    frame.setAttribute('aria-hidden', 'true')
+
+    return
+  }
+
+  // ⚠ The attributes are REMOVED, not set to a neutral value. `tabindex="0"` on an `<iframe>`
+  // makes the frame element its own tab stop in front of the challenge inside it, which is one
+  // stop more than the viewer had before any of this.
+  frame.removeAttribute('tabindex')
+  frame.removeAttribute('aria-hidden')
+}
+
 type FrameOptions = { theme: 'light' | 'dark' | 'auto'; language: string; probe?: boolean }
 
 /**
@@ -140,7 +165,8 @@ function createChallengeFrame(
 
   frame.src = url.href
   frame.width = String(FRAME_WIDTH)
-  frame.height = '0'
+  // Collapsed is the frame's starting state, so it starts out of the tab order too.
+  collapseFrame(frame, true)
   frame.style.border = '0'
   frame.style.display = 'block'
   frame.title = 'Security check'
@@ -285,11 +311,11 @@ export function useTurnstile({ disabled = false }: UseTurnstileOptions = {}): Us
             setStatus('ready')
             break
           case 'interactive':
-            frame.height = String(FRAME_HEIGHT)
+            collapseFrame(frame, false)
             collapseSlot(slot, false)
             break
           case 'settled':
-            frame.height = '0'
+            collapseFrame(frame, true)
             collapseSlot(slot, true)
             break
           // Turnstile's `retry` defaults to `auto`, so a transient failure is often followed by a

@@ -195,10 +195,10 @@ The map is the heart of the app and its hottest render path. Treat it carefully.
 - **`frameSearch({})` does NOT reset to the world.** No bbox and no center means
   nothing was searched, so the camera stays put. Only the root view wants the
   whole world, and it asks by name via `reset()`.
-- **Framing moves only as needed, and flies** (zoom constants in
-  `use-map-controller-real.tsx`: `EVENT_ZOOM=15`, `REGION_MAX_ZOOM=13`,
-  `REGION_FIT_PADDING=48`, `ONLINE_ZOOM=7`. The feel is tuned by `FLY_CURVE` /
-  `FLY_SPEED` in `use-mapbox.ts`). `frameEvent` keeps the current zoom only for
+- **Framing moves only as needed, and flies** (the zoom constants — `EVENT_ZOOM`,
+  `REGION_MAX_ZOOM`, `REGION_FIT_PADDING`, `ONLINE_ZOOM` — are in
+  `use-map-controller-real.tsx`; the feel is tuned by `FLY_CURVE` / `FLY_SPEED` in
+  `use-mapbox.ts`). `frameEvent` keeps the current zoom only for
   an on-screen pin already at detail zoom, and flies in otherwise. Region fits cap at
   `REGION_MAX_ZOOM` with edge padding, so a tight region cannot over-zoom.
   Every in-app level transition — an event, a region, a search, or `restore()`
@@ -274,15 +274,15 @@ overridden stay English (the full set is `defaultLocale` in mapbox-gl).
 
 ⚠ **It does NOT apply to a control's handlers — those are live.** react-map-gl
 re-assigns `thisRef.current.props = props` on every render
-(`dist/esm/components/geolocate-control.js`), and each listener it registers on
-the mapbox control reads its handler off that ref, so a new `onGeolocate` or
-`onError` takes effect at once. What shipped stale for one commit was
-`use-geolocate.ts`'s own `useCallback(…, [])`: the handler itself never changed
-identity, so the router values it closed over stayed at the render the map
-mounted in, and it rewrote `/search?center=…` back to the route the widget had
-booted on — dropping the search a viewer had just performed. Every gate stayed
-green; only a browser found it. The hook's empty deps are still correct, because
-the ref beside them is what refreshes those values.
+(`@vis.gl/react-mapbox`'s `dist/components/geolocate-control.js`), and each
+listener it registers on the mapbox control reads its handler off that ref, so a
+new `onGeolocate` or `onError` takes effect at once. What shipped stale for one
+commit was `use-geolocate.ts`'s own `useCallback(…, [])`: the handler itself
+never changed identity, so the router values it closed over stayed at the render
+the map mounted in, and it rewrote `/search?center=…` back to the route the
+widget had booted on — dropping the search a viewer had just performed. Every
+gate stayed green; only a browser found it. The hook's empty deps are still
+correct, because the ref beside them is what refreshes those values.
 
 ## "Find my location" is a NAVIGATION, not a camera move
 
@@ -502,7 +502,20 @@ version, because the folklore on this is older than the code.
   detection — neither of which we render. The Geocoder mounts its suggestion listbox on
   its own `parentElement`, inside our root.
 - **Its live region does not survive the boundary, and carrying it is ours.** See
-  `Mapbox/aria-live.ts`.
+  `Mapbox/geocoder-dom.ts`, which owns both repairs below.
+- **Its input claims `role="combobox"` and renders without `aria-expanded`**, which ARIA makes
+  required on that role — so a screen reader meeting the field is not told that suggestions
+  appeared under it, the one thing the role exists to announce. `Mapbox/geocoder-dom.ts`
+  seeds it, by the same argument it makes for the region: the input is a node in our own
+  subtree, so our code can reach the failure without a fifth `patches/` entry (#432).
+  ⚠ **Both repairs share one observer**, over one node with one lifetime. They run on the same
+  subtree for the same reason, and two subscriptions over it was one change made twice.
+  ⚠ **The library maintains the value itself and we must not** — `hideResults()` writes
+  `"false"` and the show path writes `"true"`, read off the installed bundle. Only the INITIAL
+  state is missing, so that module seeds an input that has no value and never writes again; a
+  second writer would overwrite a correct `"false"` the moment anything else in the wrapper
+  mutated. ⚠ Its observer watches children and never attributes — it writes an attribute
+  itself, and an attribute observer would see that write and run again, for ever.
 - **Three `document.activeElement` comparisons inside the geocoder can never be true in a
   root**, since that read names the host element. One is reachable: a suggest response
   finds `Geocoder.contains(document.activeElement)` false and re-focuses the input, which
@@ -511,6 +524,21 @@ version, because the folklore on this is older than the code.
 
 ## Gotchas
 
+- **mapbox-gl reaches react-map-gl as `mapLib`, started by the map's first
+  render** (`loadMapLib` in `Mapbox/map-lib.ts`). react-map-gl's own import
+  runs from `<Map>`'s mount effect, after the whole interface commits — about
+  450ms later on a local build — and the library is the map's long pole. Keep
+  the call out of module scope too: `FullInterface` imports `Map.tsx` on a
+  `map=false` embed, which would then download a library it draws nothing with.
+  `map-lib.test.ts` pins the loader, `attribution.test.ts` where `Map.tsx`
+  calls it.
+- ⚠ **`loadMapLib` refuses a GPU that fails mapbox-gl's strict support check**
+  (`supported(true)`: a browser that reports a major performance caveat, for
+  example a blocklisted GPU driver). That visitor keeps the curtain, and the
+  console logs "Map is not supported by this browser". react-map-gl 7's `<Map>`
+  ran this check itself; react-map-gl 8 does not, and mapbox-gl's constructor
+  accepts such a GPU. Without WebGL at all, the check also stops mapbox building
+  a half map in `#mapbox` before it throws.
 - `worldview` and `language` are set from the active locale
   (`MAP_WORLDVIEWS` in `map-language.ts`, `useLocale`). When you add a locale, check whether it
   needs a worldview entry. ⚠ The key is the locale's **language** code and the value a
@@ -520,6 +548,8 @@ version, because the folklore on this is older than the code.
 - **One type suppression is left here**: a `@ts-expect-error` on `<Geocoder>` in
   `MapSearch.tsx`, which is typed against its own React types and so is refused
   as a JSX component. react-map-gl's own type gaps are covered without one:
-  `language` rides in a spread, and `pointCoordinates` (`lib/geo.ts`) narrows a
-  rendered feature's geometry. Keep any suppression narrow and commented, and
-  never loosen a type elsewhere to remove one.
+  `pointCoordinates` (`lib/geo.ts`) narrows a rendered feature's geometry, and
+  `SymbolLayerProps` (`layers.ts`) narrows the highlight layers `PointSource`
+  bounds by zoom, which `LayerProps` alone refuses because it also admits a
+  `slot` layer. Keep any suppression narrow and commented, and never loosen a
+  type elsewhere to remove one.

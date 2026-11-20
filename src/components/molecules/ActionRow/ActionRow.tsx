@@ -39,7 +39,10 @@ import { isSafeHref } from '@/lib/shape'
 // that role.
 const actionCircle = tv({
   slots: {
-    base: 'group flex max-w-[96px] min-w-0 flex-1 basis-0 flex-col items-center gap-1.5 rounded-lg outline-none focus-visible:ring-2 focus-visible:ring-focus',
+    // The whole column is the target — the circle and its label are one control — so it takes
+    // the 44px floor on a touch screen. `min-w-0` stays beside it for the label's truncation;
+    // the floor only applies where a row is narrow enough to push the columns under it (#432).
+    base: 'group flex max-w-[96px] min-w-0 flex-1 basis-0 flex-col items-center gap-1.5 rounded-lg outline-none focus-visible:ring-2 focus-visible:ring-focus pointer-coarse:min-w-11',
     circle: 'shrink-0 transition-colors group-hover:opacity-90 group-active:scale-95',
     label: 'line-clamp-2 w-full text-center text-xs leading-tight break-words',
   },

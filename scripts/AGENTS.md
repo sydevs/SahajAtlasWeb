@@ -1,8 +1,25 @@
 # Scripts
 
+## `pnpm test:a11y` — the accessibility gate
+
+`scripts/check-a11y.mjs` drives the built component library (`build/`, from `pnpm ladle:build`)
+in Chromium at a phone viewport with a coarse pointer, and fails on an axe-core violation, a tap
+area under 44px measured by hit test, or a keyboard stop that is invisible, out of
+document order, or paints no focus indicator (#432).
+
+- **Read `docs/testing.md` § "The accessibility lane needs a browser" before changing it.** It
+  carries the measurement that put this in a browser rather than in the unit lane, and the four
+  deliberate properties — the build it reads, the job it is a step of, why the tap floor is
+  probed, and the two axe rules that are off.
+- **The pure half is in the unit lane** (`scripts/check-a11y.test.ts`): the span arithmetic, both
+  report formatters, and the exemption list as a closed set. An exemption is a hole in the floor,
+  so each one carries its reason beside the selector, and the spec asserts both.
+- `--origin http://localhost:61000` audits `pnpm ladle` instead, which recompiles as you edit.
+  That is the fix loop, never the gate.
+
 ## `pnpm size` — the eager-payload budget
 
-One of the four CI gates that exist because each one once missed something, unnoticed (#99).
+One of the CI gates that exist because each one once missed something, unnoticed (#99).
 It is built so passing proves something real:
 
 - **`pnpm size`** (`scripts/check-bundle-size.mjs`) budgets the gzipped eager payload —
@@ -10,11 +27,10 @@ It is built so passing proves something real:
   graph. Never budget a single chunk — the build re-chunks freely. A graph far under
   budget also fails, since that is both a ratchet (lower `BUDGET_KIB` in the same commit)
   and a sign of a half-broken import walker.
-  ⚠ **`standalone` and `embed` sit about 13% under budget on purpose, just inside that
-  ratchet's 15%.** The comment beside `BUDGET_KIB` says why the space is held as headroom
-  instead of ratcheted away, and `src/Widget.standalone.test.ts` holds what the slack can no
-  longer see: the eager graph's barrels and packages, by name. About 5 KiB more off
-  `standalone` and the gate asks for a lower budget.
+  ⚠ **`standalone` and `embed` hold headroom on purpose, just inside that ratchet.** The
+  comment beside `BUDGET_KIB` says why the space is held instead of ratcheted away, and
+  `src/Widget.standalone.test.ts` holds what the slack can no longer see: the eager graph's
+  barrels and packages, by name.
   **It judges the shipped figure, prints it beside the measured one, and a `BUDGET_KIB`
   edit has to clear the shipped column.**
   It also checks that the loader and embed graphs share no chunk. The size budget alone

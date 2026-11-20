@@ -3,7 +3,7 @@
 // jsdom, because both properties are about a RE-RENDER: a click handler memoised in one render
 // and called after a later one, and whether a store write causes a render at all. SSR markup
 // expresses neither (`docs/testing.md`).
-import type { MapMouseEvent } from 'react-map-gl'
+import type { MapMouseEvent } from 'react-map-gl/mapbox'
 
 import { act } from 'react'
 import { createRoot, type Root } from 'react-dom/client'
@@ -35,7 +35,7 @@ const harness = vi.hoisted(() => ({
   },
 }))
 
-vi.mock('react-map-gl', async () => {
+vi.mock('react-map-gl/mapbox', async () => {
   const { forwardRef } = await import('react')
   const none = () => null
 

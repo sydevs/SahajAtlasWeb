@@ -266,8 +266,13 @@ describe("ci.yml's gate job, on the unit lane", () => {
   const gate = ci.slice(opens, closes)
 
   it('runs the lane once, as the same vitest run the lean gate makes', () => {
-    const lanes = [...gate.matchAll(/^\s*(?:- )?run: (pnpm test\S*)/gm)].map((m) => m[1])
     const { scripts } = readPackage()
+    // ⚠ Which `pnpm test:*` steps are vitest is read off package.json, never listed here: the
+    // accessibility gate is a step of this same job and drives a browser, not the lane. A
+    // second vitest step still fails this, which is the whole point.
+    const lanes = [...gate.matchAll(/^\s*(?:- )?run: (pnpm test\S*)/gm)]
+      .map((m) => m[1])
+      .filter((command) => scripts[command.replace(/^pnpm /, '')]?.includes('vitest'))
 
     expect(lanes).toEqual(['pnpm test:coverage'])
     expect(scripts['test:coverage']).toBe(`${scripts['test:run']} --coverage`)

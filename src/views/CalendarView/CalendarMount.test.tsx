@@ -2,6 +2,7 @@
 import { act, createElement } from 'react'
 import { createRoot } from 'react-dom/client'
 import { createCalendar, createViewMonthGrid } from '@schedule-x/calendar'
+import { Temporal } from 'temporal-polyfill'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import { CalendarMount } from './CalendarMount'
@@ -35,7 +36,10 @@ function shadowContainer() {
 describe('CalendarMount', () => {
   it('renders the month grid inside a shadow root', async () => {
     const { root, container } = shadowContainer()
-    const calendar = createCalendar({ views: [createViewMonthGrid()], selectedDate: '2026-10-19' })
+    const calendar = createCalendar({
+      views: [createViewMonthGrid()],
+      selectedDate: Temporal.PlainDate.from('2026-10-19'),
+    })
     const reactRoot = createRoot(container)
 
     await act(async () => {

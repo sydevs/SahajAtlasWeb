@@ -771,7 +771,7 @@ const getClient = async () => {
     args: {
       depth: 1,
       select: {
-        name: true,
+        title: true,
         color1: true,
         color2: true,
         color3: true,

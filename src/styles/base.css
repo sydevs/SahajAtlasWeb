@@ -52,6 +52,20 @@
   box-shadow:
     0 0 2px rgb(0 0 0 / 0.7),
     0 1px 3px rgb(0 0 0 / 0.5);
+  /* An 8px dot is an 8px tap target, and a finger is not 8px (#432). The utility carries its
+     own `(pointer: coarse)` guard and the geometry; `relative` is the one part a
+     library-owned element forces us to supply, since there is no class to put it on. */
+  @apply touch-target relative;
+}
+
+/* The ROW has to grow with the tap areas above: at Swiper's own 4px gap two 44px areas
+   overlap, the later sibling wins every shared pixel, and each bullet but the last would
+   answer across less than it did before. 8px dot + 2 × 18px = 44, so they stay disjoint. The
+   dots themselves are unchanged at every size. */
+@media (pointer: coarse) {
+  .sy-carousel {
+    --swiper-pagination-bullet-horizontal-gap: 18px;
+  }
 }
 
 /* Removed: bare `main {}` and `a {}` element rules. Both leaked into the host

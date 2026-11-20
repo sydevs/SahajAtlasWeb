@@ -138,7 +138,7 @@ runbook is in `docs/environment.md`.
 
 ## Deploy-side CI gates
 
-Two of the four CI gates that exist because each one once missed something, unnoticed (#99).
+Two of the five CI gates that exist because each one once missed something, unnoticed (#99).
 Each is built so passing proves something real:
 
 - **Dependency Review** (shared from `sydevs/claude-workflow`) fails only when a PR _adds_
@@ -164,12 +164,11 @@ version in a comment on the same line, and `scripts/ci-workflows.test.ts` fails 
 workflow here. `.github/dependabot.yml` is what moves a pin: weekly, GitHub Actions only, one pull
 request per action titled `ci: bump …`, which rewrites the SHA and that comment together. The two
 `sydevs/claude-workflow` workflows follow `@main` on purpose and are exempt from both.
-⚠ **Those two run third-party actions of their own, by tag** (read 2026-11-19:
-`actions/checkout`, `actions/setup-node`, `pnpm/action-setup`, `actions/github-script` and
-`actions/dependency-review-action`), and one of them is called with `secrets: inherit`. A moved
+⚠ **Those two run third-party actions of their own, by tag**, and one of them is called with
+`secrets: inherit`. A moved
 tag there runs in this repo's CI while the pin spec stays green. Pinning them is a change in
 sydevs/claude-workflow.
-⚠ **A run Dependabot triggers reads Dependabot secrets, never Actions secrets.** Until the five
+⚠ **A run Dependabot triggers reads Dependabot secrets, never Actions secrets.** Until the
 secrets the Smoke job gates on are entered under both, each of those pull requests fails Smoke,
 with `dependabot` as its stated reason: the advice for a missing Actions secret would be false
 there. Entering them is a decision, not a chore: the bumped action then runs in a job
@@ -233,12 +232,12 @@ after a deploy.
 **How long until a visitor has it.** Cloudflare gives "up to a few seconds" for a deployment
 change to reach every location. After that, `public/_headers` decides what a browser still holds:
 
-- `/auto.js`, `/loader.js` and `/embed.js` are `max-age=0, must-revalidate`, so a host page's next
-  load reads the restored files.
-- `/assets/*` is cached for a year as `immutable`, and safely: every file there is content-hashed,
-  so a cached copy is never the wrong content for its URL.
-- `/flags/*` is cached for 30 days and carries no hash. A faulty flag a browser already holds stays
-  until that expires, whatever is deployed.
+- The unhashed loader scripts revalidate on every load, so a host page's next load reads the
+  restored files.
+- `/assets/*` is `immutable`, and safely: every file there is content-hashed, so a cached copy is
+  never the wrong content for its URL.
+- `/flags/*` is cached long and carries no hash. A faulty flag a browser already holds stays until
+  its rule's `max-age` expires, whatever is deployed.
 - No rule there sets `Cache-Control` for `index.html` or any other path, so the standalone page
   takes the platform's default. Cloudflare documents that default as
   `public, max-age=0, must-revalidate`. Read it off the live response all the same: #148 was a
