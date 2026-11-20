@@ -552,7 +552,10 @@ export function OnwardLink({ offer }: { offer: RecoveryOffer }) {
 
   return (
     <Link
-      className="mt-2 text-sm font-medium"
+      // ⚠ Step 12, over the atom's own step 11, because of the surface under it: this link
+      // renders INSIDE the neutral Alert, whose `gray-3` tint takes `primary-11` to 4.36:1 —
+      // the ramp guarantees step 11 against steps 1 and 2, not 3 (#432).
+      className="mt-2 text-sm font-medium text-primary-12"
       color="primary"
       href={offer.path}
       // The country-site rung leaves the widget entirely. So it gets the external
@@ -582,11 +585,17 @@ export function OnwardLink({ offer }: { offer: RecoveryOffer }) {
  * `h-auto min-h-10 whitespace-normal py-2` relaxes the recipe's fixed height and its
  * no-wrap rule. This lets a long international number wrap, instead of overflowing a
  * 375px sheet.
+ *
+ * ⚠ **The coarse-pointer pair relaxes it a second time, and both are needed** (#432). The
+ * recipe's 44px tap floor is `pointer-coarse:h-11`, which tailwind-merge does NOT cancel with
+ * the `h-auto` above — a different variant is a different key — so without this the number is
+ * pinned to 44px on exactly the phone where it wraps. `min-h` keeps the floor while letting it
+ * grow.
  */
 const callSkin = controlSurface({
   color: 'primary',
   variant: 'flat',
-  className: 'h-auto min-h-10 whitespace-normal py-2',
+  className: 'h-auto min-h-10 whitespace-normal py-2 pointer-coarse:h-auto pointer-coarse:min-h-11',
 })
 
 /** Who to call when a class cannot be joined: the organiser on the event. */
@@ -666,11 +675,16 @@ export function FallbackActions({
         // off. This row has buttons instead.) The accessible name states what the
         // control does.
         <Link
-          aria-label={
-            contact.name
-              ? `${t('event.actions.contact', { defaultValue: 'Contact' })} — ${contact.name}`
-              : t('event.actions.contact', { defaultValue: 'Contact' })
-          }
+          // The number is in the name as well as on screen: it is this link's visible
+          // text, and a name that dropped it would leave a speech-input viewer with
+          // nothing to say (WCAG 2.5.3).
+          aria-label={[
+            t('event.actions.contact', { defaultValue: 'Contact' }),
+            contact.name,
+            contact.phone,
+          ]
+            .filter(Boolean)
+            .join(' — ')}
           className={callSkin}
           color="neutral"
           // The code strips whitespace from the URI, but keeps it in the label. RFC

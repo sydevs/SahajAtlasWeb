@@ -56,6 +56,26 @@ cover everything a host would notice since the widget was first deployed.
   Nothing looks or behaves differently, and there is nothing to change in your snippet or your
   CSP.
 
+- **Every control the widget draws now answers to a 44px tap on a phone, and says what it is.**
+  ([#432]) Nothing moves on a desktop: the small controls keep the size they are drawn at and
+  grow an invisible tap area around them, and the few that sit flush in a row — the filter
+  toggles, the calendar's view switch — are drawn larger on a touch screen instead. Three rows
+  gained a little breathing space on touch for the same reason, since two tap areas that meet
+  take each other's taps: a drawer header's controls, a filter group's **Clear**, and the
+  reveal link under a list of dates. **If you size the element yourself, a phone-width embed is
+  a few pixels taller in places than it was.** One control moves on every device, not only on
+  touch: the share sheet's round network icons go from 40px to 44px, because `react-share` sizes
+  its button off the icon and there is no invisible area to grow. A text link also reads in the ramp's readable
+  step rather than its solid one, so link colour is slightly deeper on light backgrounds, and
+  the neutral solid button is now near-black rather than mid-grey. ⚠ **The map's own two
+  controls are Mapbox GL's and are not covered**: "find my location" and the attribution keep
+  the library's geometry, both under the floor. `docs/embedding.md` § Accessibility says what
+  each one measures. **No parameter, origin, CSP or Permissions-Policy change.**
+
+- **The place-search field is a named `search` landmark.** ([#432]) The widget was already one
+  labelled `region` on your page; a screen-reader viewer can now jump to the search inside it,
+  and tell it from the results under it and from the Filters dialog beside it.
+
 - **The Outlook.com and Office 365 rows of "Add to calendar" now subscribe too.** ([#428]) They
   added one session of a weekly class, so a visitor on Outlook got the next class and then
   nothing. Both rows now open Outlook's "subscribe from web" route for the class's own calendar
@@ -480,6 +500,20 @@ no-referrer`.
   made straight away, the form reports "You appear to be offline.", and nothing is left waiting
   to send later. The report form already behaved this way. Nothing to change in your snippet or
   your CSP.
+
+- **Closing a dialog puts the keyboard back on the control that opened it.** ([#432]) The
+  "Report an issue" dialog returned focus to the top of your page instead, so a keyboard viewer
+  who closed it started again from the beginning. Escape and the × both land back where they
+  came from now.
+
+- **A keyboard no longer stops on the spam check before it has anything to show.** ([#432]) The
+  registration and report forms mount a challenge frame that stays empty until Cloudflare wants
+  a click. It was still a Tab stop, so a keyboard viewer landed twice on something invisible.
+  It now leaves the tab order and the accessibility tree until it is asked for.
+
+- **The place-search field now tells a screen reader when suggestions appear.** ([#432]) The
+  field announces itself as a combobox, and never said whether its suggestion list was open, so
+  the one thing that announcement exists for was never read out.
 
 - **A map you gave a height now scrolls with your page on iPhone and iPad.** ([#424]) On iOS, the
   map inside a sized `<sahaj-atlas>` fell behind its box as the page scrolled, and could disappear
@@ -1174,5 +1208,6 @@ must-revalidate`, pinned rather than left to the CDN default. The production dom
 [#418]: https://github.com/sydevs/SahajAtlasWeb/pull/418
 [#424]: https://github.com/sydevs/SahajAtlasWeb/pull/424
 [#428]: https://github.com/sydevs/SahajAtlasWeb/issues/428
+[#432]: https://github.com/sydevs/SahajAtlasWeb/issues/432
 [#442]: https://github.com/sydevs/SahajAtlasWeb/pull/442
 [#445]: https://github.com/sydevs/SahajAtlasWeb/pull/445

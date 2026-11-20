@@ -138,7 +138,7 @@ runbook is in `docs/environment.md`.
 
 ## Deploy-side CI gates
 
-Two of the four CI gates that exist because each one once missed something, unnoticed (#99).
+Two of the five CI gates that exist because each one once missed something, unnoticed (#99).
 Each is built so passing proves something real:
 
 - **Dependency Review** (shared from `sydevs/claude-workflow`) fails only when a PR _adds_
