@@ -25,7 +25,7 @@ export type WhereFilterProps = {
   onClear: () => void
   /** Near me only makes sense where the results rank by place. */
   searchable?: boolean
-  /** Off where the surface is already named Where (the chip on a computer). */
+  /** Off where the surface around it is already named Where. */
   titled?: boolean
   /** What a place's scope really holds, so "near" can't suggest more locality than it has. */
   counts?: { inPerson: number; online: number }

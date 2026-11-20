@@ -259,9 +259,6 @@
       "morning": "Morning",
       "night": "Night"
     },
-    "when": {
-      "label": "When"
-    },
     "where": {
       "label": "Where",
       "near_me": "Near me",

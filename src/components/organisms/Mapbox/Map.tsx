@@ -3,7 +3,7 @@ import type { MapRef } from 'react-map-gl'
 import type { Geojson } from '@/types'
 import type { DisplayableEvent } from '@/hooks/use-event-display'
 
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { type CSSProperties, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import ReactMapGL, {
   AttributionControl,
   GeoJSONSource,
@@ -42,6 +42,7 @@ import { calendarLineParts, useEventDisplay } from '@/hooks/use-event-display'
 import {
   useCameraSettled,
   useCameraTarget,
+  useFilterPanelState,
   useMapTap,
   useViewState,
   type MapPoint,
@@ -52,7 +53,7 @@ import { useGeolocateToSearch } from '@/hooks/use-geolocate'
 import { LOCATE_TIMEOUT_MS } from '@/hooks/use-near-me'
 import { useRegionMatcher } from '@/hooks/use-region-matcher'
 import api from '@/config/api'
-import { useHasRealPointer } from '@/config/responsive'
+import { FILTER_PANEL_PX, useHasRealPointer } from '@/config/responsive'
 import { useBrandPalette } from '@/config/theme/brand-palette'
 import { GEOJSON_STALE_TIME } from '@/config/query-client'
 import { worldMinZoom } from '@/lib/camera'
@@ -242,6 +243,10 @@ function EventPinPopover({
   )
 }
 
+// While the filters panel is up, the top-right control column moves in beside it, by the same
+// footprint the camera pads for (`.mapboxgl-ctrl-top-right` in globals.css adds it).
+const CONTROLS_BESIDE_PANEL = { '--sy-map-end': `${FILTER_PANEL_PX}px` } as CSSProperties
+
 /**
  * @param cooperative Leave one-finger and wheel scrolling to the host page, moving the map only on
  *   two fingers or Ctrl/⌘ + wheel (`gestures=cooperative`, contained maps only).
@@ -341,6 +346,7 @@ export function Mapbox({ cooperative = false }: { cooperative?: boolean } = {}) 
   // arrival reads as the map resolving, not as a panel being swapped out.
   const settled = useCameraSettled((s) => s.settled)
   const reveal = useCameraSettled((s) => s.markSettled)
+  const filterPanelUp = useFilterPanelState((s) => s.onScreen)
   const canvasStyle = useMemo(
     () => ({
       width: '100%',
@@ -564,7 +570,7 @@ export function Mapbox({ cooperative = false }: { cooperative?: boolean } = {}) 
         mapStyle={MAP_STYLES[theme]}
         mapboxAccessToken={import.meta.env.VITE_MAPBOX_ACCESSTOKEN}
         minZoom={minZoom}
-        style={canvasStyle}
+        style={filterPanelUp ? { ...canvasStyle, ...CONTROLS_BESIDE_PANEL } : canvasStyle}
         worldview={MAP_WORLDVIEWS[languageCode] || MAP_WORLDVIEWS.default}
         onClick={selectFeature}
         // This is the backstop on the reveal. A route that never frames the

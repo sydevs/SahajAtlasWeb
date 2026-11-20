@@ -82,7 +82,7 @@ export type FilterControlProps = {
   /** Patch one or more fields of the current filters. */
   patch: (next: Partial<EventFilters>) => void
   facets?: FilterFacets
-  /** Passed by the dropdown chips, where the group's heading is the chip itself. */
+  /** Extra classes for the control's own wrapper, for a surface that lays it out itself. */
   className?: string
 }
 
@@ -213,7 +213,7 @@ export function TimeFilter({ value, patch, facets, className }: FilterControlPro
 export type LanguageFilterProps = FilterControlProps & {
   /**
    * `list` always shows the options as a list of checkboxes, for a surface that is already a
-   * popover (the Language chip on a computer), where a dropdown would open inside another one.
+   * popover, where a dropdown would open inside another one.
    */
   layout?: 'auto' | 'list'
 }
@@ -457,7 +457,7 @@ export type SearchFiltersProps = {
 /**
  * The filter form, in the order a visitor decides: where, then online or in person, then when,
  * then language, with the rarely useful ones folded away. Which groups it asks follows
- * `shownGroups`, the same rule as the filter chips on a computer, so both ask the same questions.
+ * `shownGroups`, in the phone's drawer and the computer's panel alike.
  *
  * Every option is one chip style. The groups differ by how they're laid out (a pair, a week
  * strip, a 2x2), not by how a chip is drawn, so nothing has to be learned twice.

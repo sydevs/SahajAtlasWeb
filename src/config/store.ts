@@ -316,6 +316,44 @@ export const useNearMeState = create<NearMeState>((set) => ({
   setCenter: (center) => set(() => ({ center })),
 }))
 
+// ===== FILTER PANEL ===== //
+
+// The wide-container filter panel. `open` is what the visitor last chose, remembered, and open by
+// default: `onScreen` is whether it's actually showing, which also depends on the view and the
+// room, and is what the camera's padding reads.
+const FILTER_PANEL_KEY = 'atlas.filtersPanel'
+
+// Open by default on every visit: closing lasts for this visit only (sessionStorage), so the
+// next visit starts with the filters showing again.
+const readPanelOpen = (): boolean => {
+  try {
+    return sessionStorage.getItem(FILTER_PANEL_KEY) !== 'closed'
+  } catch {
+    return true
+  }
+}
+
+type FilterPanelState = {
+  open: boolean
+  onScreen: boolean
+  setOpen: (open: boolean) => void
+  setOnScreen: (onScreen: boolean) => void
+}
+
+export const useFilterPanelState = create<FilterPanelState>((set) => ({
+  open: typeof window === 'undefined' ? true : readPanelOpen(),
+  onScreen: false,
+  setOpen: (open) => {
+    try {
+      sessionStorage.setItem(FILTER_PANEL_KEY, open ? 'open' : 'closed')
+    } catch {
+      // Storage can throw in sandboxed iframes. The choice then lasts for this visit only.
+    }
+    set(() => ({ open }))
+  },
+  setOnScreen: (onScreen) => set(() => ({ onScreen })),
+}))
+
 // ===== REGISTRATION DRAFT ===== //
 
 // This holds in-progress registration form values, hoisted out of the form.

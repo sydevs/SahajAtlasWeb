@@ -270,8 +270,8 @@ export type ShownGroups = Pick<FacetRelevance, 'format' | 'days' | 'time' | 'lan
  *
  * Language is the exception: it shows whenever the scope's classes have a language, even only one,
  * because it tells the visitor what language the classes are in. Hiding it where every class is in
- * English read as a filter missing from the phone, and the computer's chip bar keeps three fixed
- * entries (Devindra, 12 Nov). The phone form and the chips both read this, so they ask alike.
+ * English read as a filter missing from the phone (Devindra, 12 Nov). The phone's filter drawer
+ * and the computer's filters panel both ask through `SearchFilters`, so they ask alike.
  */
 export const shownGroups = (
   filters: EventFilters,

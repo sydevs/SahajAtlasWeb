@@ -2,7 +2,7 @@ import type { Story, StoryDefault } from '@ladle/react'
 
 import { SeedSearchParams } from '@/components/ladle/SeedSearchParams'
 import { ViewHarness } from '@/views/story-harness'
-import { FilterChipBar } from '@/views/FilterView/FilterChipBar'
+import { FiltersPanel } from '@/views/FilterView/FiltersPanel'
 import { FilterView } from '@/views/FilterView/FilterView'
 
 export default { title: 'Views' } satisfies StoryDefault
@@ -27,30 +27,31 @@ Default.storyName = 'Filter'
 Default.meta = { width: 'xsmall' }
 
 // Stable per case, as `SeedSearchParams` asks.
-const CHIP_CASES = {
+const PANEL_CASES = {
   'Nothing chosen': new URLSearchParams(),
   'Tuesday evening, online': new URLSearchParams('days=2&time=evening&format=online'),
 } as const
 
 /**
- * FilterChipBar — the filters on a computer: Where, When and Language along the top of the map,
- * each opening a small popover, and none open until pressed. Press a chip to see its popover; an
- * answered chip fills and names what's chosen, and Clear appears at the row's start.
+ * FiltersPanel — the filters on a computer: a panel over the map's right side, open from the first
+ * load with every question showing. Each tap applies at once; the footer counts the classes and
+ * offers Clear once something is chosen. Closing it lasts for the visit (the Filters button opens
+ * it again).
  */
-export const Chips: Story<{ state: keyof typeof CHIP_CASES }> = ({ state }) => (
-  <ViewHarness path="/search" seedKey={`chips·${state}`}>
-    <SeedSearchParams params={CHIP_CASES[state]}>
-      <FilterChipBar />
+export const Panel: Story<{ state: keyof typeof PANEL_CASES }> = ({ state }) => (
+  <ViewHarness path="/search" seedKey={`panel·${state}`}>
+    <SeedSearchParams params={PANEL_CASES[state]}>
+      <FiltersPanel />
     </SeedSearchParams>
   </ViewHarness>
 )
 
-Chips.storyName = 'Filter chips'
-Chips.args = { state: 'Nothing chosen' }
-Chips.argTypes = {
+Panel.storyName = 'Filters panel'
+Panel.args = { state: 'Nothing chosen' }
+Panel.argTypes = {
   state: {
     name: 'State',
-    options: Object.keys(CHIP_CASES),
+    options: Object.keys(PANEL_CASES),
     control: { type: 'radio' },
     defaultValue: 'Nothing chosen',
   },

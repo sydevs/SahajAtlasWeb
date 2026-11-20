@@ -17,7 +17,7 @@ import api, { eventQuery, regionQuery, regionsQuery } from '@/config/api'
 import { GEOJSON_STALE_TIME } from '@/config/query-client'
 import embed from '@/config/embed'
 import { useShowMap } from '@/config/mode'
-import { useCameraHistory } from '@/config/store'
+import { useCameraHistory, useFilterPanelState } from '@/config/store'
 import { useAtlasNavigate } from '@/hooks/use-atlas-navigate'
 import { useEventFilters } from '@/hooks/use-filters'
 import { useIpLocation } from '@/hooks/use-ip-location'
@@ -291,20 +291,20 @@ export function ExpandSheetButton({ label }: { label?: string }) {
   )
 }
 
-// Whether this layout shows the filters as chips over the map, which leaves the Filters button
-// nothing to do. Otherwise the filters sit behind it, in their drawer. DrawerStack owns the
-// measurement.
-export const FilterChipsContext = createContext(false)
+// The filters panel over the map: `open` while it shows, `closed` where it has room but the visitor
+// closed it, so the Filters button opens and closes it there, and `null` where it doesn't fit, so
+// the filters sit behind the button, in their drawer. DrawerStack owns the measurement.
+export const FilterPanelContext = createContext<'open' | 'closed' | null>(null)
 
 /**
- * The panel's own tags for the active filters, left out where the chips over the map already show
- * every one of them (`FilterChipsContext`): the same filters in two places at once is the repeated
+ * The list's own tags for the active filters, left out while the filters panel is on screen: it
+ * already shows every one of them, and the same filters in two places at once is the repeated
  * information Devindra asked us to drop. `inline` is `ActiveFilterPills`'s, for the list toolbar.
  */
 export function PanelFilterPills({ inline = false }: { inline?: boolean }) {
-  const chips = useContext(FilterChipsContext)
+  const panel = useContext(FilterPanelContext)
 
-  return chips ? null : <ActiveFilterPills inline={inline} />
+  return panel === 'open' ? null : <ActiveFilterPills inline={inline} />
 }
 
 // The event-filters trigger that opens the filter drawer by navigating to
@@ -336,10 +336,22 @@ export function FilterButton({
 
   const label = count > 0 ? `${t('filters.chrome.title')} (${count})` : t('filters.chrome.title')
   const to = `${location.pathname === '/' ? '' : location.pathname}/filters`
-  const chips = useContext(FilterChipsContext)
-  const open = () => navigate({ pathname: to, search: location.search })
+  const panelAvailable = useContext(FilterPanelContext) !== null
+  const panelOpen = useFilterPanelState((s) => s.open)
+  const setPanelOpen = useFilterPanelState((s) => s.setOpen)
+  const open = () =>
+    panelAvailable ? setPanelOpen(!panelOpen) : navigate({ pathname: to, search: location.search })
+  // Closing the side panel sends the filters back to this icon, so it ripples twice there and
+  // the visitor sees where they went (Anton, 6 Nov). Not on load: only an open-to-closed change.
+  const wasOpen = useRef(panelOpen)
+  const [ripple, setRipple] = useState(0)
 
-  if (chips || !embed.config.filters) return null
+  useEffect(() => {
+    if (panelAvailable && wasOpen.current && !panelOpen) setRipple((n) => n + 1)
+    wasOpen.current = panelOpen
+  }, [panelOpen, panelAvailable])
+
+  if (!embed.config.filters) return null
 
   if (iconOnly) {
     return (
@@ -349,6 +361,14 @@ export function FilterButton({
         className={clsx('relative', isLast && HEADER_LAST_CONTROL)}
         onClick={open}
       >
+        {ripple > 0 && (
+          <span
+            key={ripple}
+            aria-hidden
+            className="pointer-events-none absolute inset-0 rounded-full bg-primary-9/40 [animation-iteration-count:2] motion-safe:animate-ping motion-reduce:hidden"
+            onAnimationEnd={() => setRipple(0)}
+          />
+        )}
         <Funnel size={20} />
         {count > 0 && (
           <span
@@ -619,8 +639,11 @@ export function useIpSuggestion(
     enabled: !cacheOnly,
   })
 
+  // Beside the filter panel's Near me, a second "near you" offer is one location control too many.
+  const filterPanelUp = useFilterPanelState((s) => s.onScreen)
   const show = useMemo(
     () =>
+      !filterPanelUp &&
       shouldShowGeolocationPrompt({
         guess: ipLocation,
         dismissed,
@@ -629,7 +652,15 @@ export function useIpSuggestion(
         regionCenter: region?.center,
         viewedCountry: region?.countryCode,
       }),
-    [ipLocation, dismissed, activeSearch, geojson, region?.center, region?.countryCode],
+    [
+      filterPanelUp,
+      ipLocation,
+      dismissed,
+      activeSearch,
+      geojson,
+      region?.center,
+      region?.countryCode,
+    ],
   )
 
   const accept = useCallback(() => {

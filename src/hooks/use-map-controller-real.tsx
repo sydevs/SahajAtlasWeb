@@ -7,8 +7,8 @@ import { bboxPolygon } from '@turf/bbox-polygon'
 import { MapControllerContext } from './use-map-controller'
 
 import { useMapbox, usePaddingState } from '@/hooks/use-mapbox'
-import { SEARCH_SHEET_PX } from '@/config/responsive'
-import { useClassSheet, useViewState } from '@/config/store'
+import { FILTER_PANEL_PX, SEARCH_SHEET_PX } from '@/config/responsive'
+import { useClassSheet, useFilterPanelState, useViewState } from '@/config/store'
 import { useIsWide } from '@/config/responsive'
 import { eventFrameZoom, hasMapPoint, sheetInset, worldViewCamera } from '@/lib/camera'
 import { hasApproximatePlace, isOnline } from '@/lib/shape'
@@ -123,6 +123,7 @@ export function RealMapControllerProvider({ children }: { children: ReactNode })
   // `frameElement()` is a shared node, not a shared context, so both sides can reach it.
   // This is also why `MapFrame` publishes that node in the layout phase, before either side first renders.
   const isWide = useIsWide(frameElement())
+  const filterPanelUp = useFilterPanelState((s) => s.onScreen)
 
   // Keep the drawer's known footprint out of the usable camera area.
   useEffect(() => {
@@ -135,7 +136,7 @@ export function RealMapControllerProvider({ children }: { children: ReactNode })
 
     setPadding({
       left: MAP_MARGIN + (isWide ? DRAWER_W_PX : 0),
-      right: MAP_MARGIN,
+      right: MAP_MARGIN + (filterPanelUp ? FILTER_PANEL_PX : 0),
       top: MAP_MARGIN,
       // A class's sheet, a place's list and the filters (as tall as their content) are taller than
       // the usual allowance, and the place they frame must show above them.
@@ -143,7 +144,7 @@ export function RealMapControllerProvider({ children }: { children: ReactNode })
         MAP_MARGIN +
         (isWide ? 0 : sheetInset(sheetBottom ?? sheet, window.innerHeight, MIN_STRIP_PX)),
     })
-  }, [isWide, sheetBottom, setPadding])
+  }, [isWide, filterPanelUp, sheetBottom, setPadding])
 
   const controller = useMemo<MapController>(
     () => ({
@@ -241,7 +242,7 @@ export function RealMapControllerProvider({ children }: { children: ReactNode })
         // keeps Mapbox's world copies (it still pans across the Pacific), so `worldViewCamera`
         // picks a zoom and centre that fill it around our lopsided padding. It reads the same
         // padding `moveMap` moves with, and this runs again whenever that padding changes (the
-        // panel crossing between side and bottom), because `moveMap` changes with it.
+        // filters panel opening or closing), because `moveMap` changes with it.
         const container = mapbox?.getContainer()
 
         if (!container) return
