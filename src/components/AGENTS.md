@@ -465,7 +465,7 @@ own top must be subtracted from its viewport-coordinate source.
 
 **vaul is handled by its own API, not a patch.** It measures `container` when given
 one and `window.innerHeight` otherwise, so the Drawer atom forwards its `measureAgainst`
-prop to `Vaul.Root` inside the expanded dialog. ⚠ That box is **not** the portal target:
+prop to `Vaul.Root` inside a frame. ⚠ That box is **not** the portal target:
 conflating the two inverts the sheet, and `measureAgainst`'s docblock in `Drawer.tsx` says
 why.
 
