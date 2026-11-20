@@ -455,33 +455,25 @@ whenever a patched package has a release.
 | `aria-hidden@1.2.6` | `hideOthers` cannot cross a shadow boundary, so a modal never hides the background (#236) | [aria-hidden#14](https://github.com/theKashey/aria-hidden/issues/14) is the related closed report; 1.2.6 is the newest release | A release that climbs `ShadowRoot.host` and descends into kept roots |
 | `@schedule-x/calendar@4.9.1` | Looks up ids and selectors on `document` and writes CSS variables on `<html>`; breaks inside a shadow root (#236). Also reads a global `Temporal`, which the polyfill only provides by overwriting the host page's `Temporal`, `Intl.DateTimeFormat` and `Date.prototype.toTemporalInstant`. And re-zones an event on every read of its start or end, which made a full feed several times slower to lay out than 2.36 | [schedule-x#1223](https://github.com/schedule-x/schedule-x/issues/1223) (open, no fix linked; 4.9.1 is the newest release). Nothing filed for `Temporal` or the re-zoning | A release whose lookups and variables are scoped to the rendered root; for `Temporal`, one that imports it or takes it in config; for the re-zoning, one that skips it for an event already in the calendar's zone |
 
-**The Schedule-X patch, change by change**, each made in all three builds (`core.js`,
-`core.cjs.js`, `core.umd.js`), re-derived for 4.9.1 by
-`pnpm patch @schedule-x/calendar@4.9.1`:
+**The Schedule-X patch** is made in all three builds (`core.js`, `core.cjs.js`, `core.umd.js`)
+and re-derived with `pnpm patch` on every upgrade. Its hunks do four things:
 
-- **`Temporal` is the `temporal-polyfill` module**, bound once at the top (an import, a require, a
-  UMD factory argument), so the core never reads the page's global. ⚠ CalendarView imports the
-  same module: the core's `instanceof` checks fail against a second copy.
-- **Three helpers.** `sydevsById` and `sydevsQuery` try `document`, then the root of every element
-  a calendar rendered into; `sydevsSetProperty` writes onto those elements.
-- **15 lookups go through them**: the date picker's input wrapper, input, focus target and month
-  view; view teardown; the calendar wrapper; the view container; the month agenda and week agenda
-  wrappers; and the custom-component lookups (the shared one, week-grid hour and date, month-grid
-  day name and date, month-agenda dots).
-- **5 writes go onto the element**: the week grid height, the hour-row height, and each calendar's
-  three colour variables.
+- **`Temporal` is the `temporal-polyfill` module**, bound once at the top, so the core never reads
+  the page's global. ⚠ CalendarView imports the same module: the core's `instanceof` checks fail
+  against a second copy.
+- **Every `document` lookup and `<html>` variable write the rendered calendar reaches goes through
+  three helpers**, `sydevsById`, `sydevsQuery` and `sydevsSetProperty`, which try `document`, then
+  the root of every element a calendar rendered into. `shadow-patches.test.ts` pins the built
+  files.
 - **`render` records its element and sets the colours again**, since the ones `createCalendar` set
   reached no element; `destroy` forgets it.
 - **An event's `start` and `end` getters return an event already in the calendar's `timezone` as
   is**, rather than re-zoning it on every read. CalendarView anchors every entry in that zone
   (`timeline.ts`), so none is re-zoned.
 
-New against the 2.36.0 patch: the `Temporal` binding and the getter shortcut, both for 4.x's
-`Temporal` dates, and the month-agenda dots and week-agenda lookups, both added upstream in 4.x.
-Still on `document`, unpatched as in 2.36.0: `getDirection`, which reads the HOST page's
-`<html dir>`; the outside-click and Escape listeners of the date picker, the view dropdown and the
-year grid's day modal, and the date picker's root font size, all UI this app hides or never
-registers; and the resize handler, which only `isResponsive` registers.
+Deliberately left on `document`: `getDirection`, which reads the HOST page's `<html dir>`, and
+UI this app hides or never registers — the date picker, the view dropdown, the year grid's day
+modal, and the resize handler only `isResponsive` registers.
 
 ⚠ **The margin means nothing inside the dialog may size itself off the viewport.**
 Every drawer, peek strip, and sheet is `position: fixed`, so `100dvh` is only right
