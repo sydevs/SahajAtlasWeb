@@ -40,8 +40,9 @@ moves, in the same bump as `@payloadcms/sdk`.
     `satisfies Record<Theirs, Theirs>` on that literal, which holds its members both ways: a
     member SahajCloud adds is a missing key, and one it renames or drops is an excess property
     on a fresh literal. A strict enum refuses either at runtime, so each would fail a whole
-    read. `WeekdaySchema` keys from `weekdays` and values to `weekdayOfMonth`, so the two
-    schedule fields carrying that union are also pinned to each other.
+    read. ⚠ `WeekdaySchema`'s union is carried by two separate SahajCloud option lists, so its
+    pin is an intersection of two `Record`s, each keying from one field and valuing to the
+    other. One `Record` alone leaves the other field free to gain a member in silence.
   - ⚠ **zod's own `satisfies z.ZodType<T>` does not do either job.** It pins the whole output
     type, which every shape here fails by design — each is the subset a `select` asks for. And
     `z.ZodType<Partial<T>>`, which admits the subset, admits an undeclared field name too.

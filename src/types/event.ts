@@ -11,6 +11,8 @@ type SahajCloudRecurrence = NonNullable<SahajCloudSchedule['recurrenceType']>
 type SahajCloudMonthlyMode = NonNullable<SahajCloudSchedule['monthlyMode']>
 type SahajCloudWeekNumber = NonNullable<SahajCloudSchedule['weekNumber']>
 type SahajCloudEndingType = NonNullable<SahajCloudSchedule['endingType']>
+type SahajCloudWeekday = NonNullable<SahajCloudSchedule['weekdays']>[number]
+type SahajCloudWeekdayOfMonth = NonNullable<SahajCloudSchedule['weekdayOfMonth']>
 
 // Every enum here is in `z.enum`'s object form so `satisfies Record<Theirs, Theirs>` can hold
 // its members to the synced union in both directions (`docs/rules/data-layer.md`).
@@ -30,8 +32,10 @@ export const RecurrenceTypeSchema = z.enum({
 } satisfies Record<SahajCloudRecurrence, SahajCloudRecurrence>)
 export type RecurrenceType = z.infer<typeof RecurrenceTypeSchema>
 
-// Keys from `weekdays` and values to `weekdayOfMonth`, so the two schedule fields carrying this
-// union are pinned to each other too.
+// Two schedule fields carry this union, and they are separate SahajCloud option lists. Each
+// `Record` keys from one and values to the other, so a member added to EITHER is a missing key
+// and one dropped from either is an unassignable value. One `Record` alone leaves the other
+// field free to gain a member in silence.
 export const WeekdaySchema = z.enum({
   MO: 'MO',
   TU: 'TU',
@@ -40,10 +44,8 @@ export const WeekdaySchema = z.enum({
   FR: 'FR',
   SA: 'SA',
   SU: 'SU',
-} satisfies Record<
-  NonNullable<SahajCloudSchedule['weekdays']>[number],
-  NonNullable<SahajCloudSchedule['weekdayOfMonth']>
->)
+} satisfies Record<SahajCloudWeekday, SahajCloudWeekdayOfMonth> &
+  Record<SahajCloudWeekdayOfMonth, SahajCloudWeekday>)
 export type Weekday = z.infer<typeof WeekdaySchema>
 
 // A recurring event's skipped window (holiday/seasonal break). `endDate` is
