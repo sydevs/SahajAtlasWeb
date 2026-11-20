@@ -10,6 +10,7 @@ import { describe, expect, it } from 'vitest'
 import { readRepoSource } from '../src/test-support/repo-source'
 
 import { APP_CONFIG, appWorkerName, readPackage } from './_wrangler-config.mjs'
+import { REASONS, SMOKE_CHECK_NAME } from './plan-preview.mjs'
 
 /** A missing match must fail, not pass vacuously on `undefined`. */
 const match = (text: string, re: RegExp) => {
@@ -168,61 +169,37 @@ describe('ci.yml', () => {
     )
   })
 
-  // The plan step names the states, and the report step decides which are loud. Two copies of
-  // one vocabulary, in one file, with nothing between them: a reason the report does not know
-  // reddens a fork's pull request, and a reason nothing emits is dead advice. Only `docs`,
-  // `fork` and `queue` may exit 0 — every other route to no preview fails the job, which is
-  // this lane's first invariant (`docs/testing.md`).
-  it('reports every state the plan step can emit, and makes only three of them quiet', () => {
+  // The two plan steps name the states, and the report step decides which are loud. Two copies
+  // of one vocabulary, with nothing between them: a reason the report does not know reddens a
+  // fork's pull request, and a reason nothing emits is dead advice. Only `fork`, `queue` and
+  // `unread` may exit 0 — every other route to no preview fails the job, which is this lane's
+  // first invariant (`docs/testing.md`).
+  it('reports every state either plan step can emit, and makes only three of them quiet', () => {
     const emitted = [...smoke.matchAll(/^\s*reason=(\S+)$/gm)].map((m) => m[1])
     const handled = [...smoke.matchAll(/^\s{12}([a-z|-]+)\)$/gm)].map((m) => m[1])
     const quiet = [...smoke.matchAll(/^\s{12}(\S+)\)\n\s*FATAL=false$/gm)].map((m) => m[1])
 
     expect(emitted.length).toBeGreaterThan(1)
-    expect([...emitted].sort()).toEqual([...handled].sort())
-    expect(quiet.sort()).toEqual(['docs', 'fork', 'queue'])
+    expect([...new Set([...emitted, ...REASONS])].sort()).toEqual([...handled].sort())
+    expect(quiet.sort()).toEqual(['fork', 'queue', 'unread'])
 
-    // Without the fallback, a state added to the plan step and not here would inherit the
+    // Without the fallback, a state added to a plan step and not here would inherit the
     // previous case's advice instead of going loud.
     expect(smoke).toMatch(/^\s{12}\*\)$/m)
   })
 
-  // A docs-only push publishes nothing, so a DOCS pattern that reached a built or tested file
-  // would be a green Smoke check over code no spec read. The ERE is also a valid JS regex, so
-  // it is read off the file and tested as written.
-  it('skips the preview only for files nothing in the build or the smoke lane reads', () => {
-    const docs = new RegExp(match(smoke, /^\s*DOCS: '(.+)'$/m))
-
-    for (const path of [
-      'README.md',
-      'CHANGELOG.md',
-      'docs/embedding.md',
-      'docs/rules/deployment.md',
-      'src/components/AGENTS.md',
-      '.claude/workflow.json',
-    ])
-      expect(path).toMatch(docs)
-    for (const path of [
-      'src/App.tsx',
-      'src/config/translations.en.json',
-      'public/_headers',
-      'public/robots.txt',
-      'tests/smoke/root.smoke.test.ts',
-      '.github/workflows/ci.yml',
-      'scripts/assert-preview-host.mjs',
-      'package.json',
-      'pnpm-lock.yaml',
-      'wrangler.jsonc',
-      'index.html',
-      'docs.ts',
-    ])
-      expect(path).not.toMatch(docs)
+  // The second half of the decision is a script, so its own spec holds the cases. What no spec
+  // of it can see is whether this job still runs it: a renamed step or a dropped `run:` would
+  // publish every push, silently, and nothing would be red.
+  it('decides what the push changed with the script whose spec holds the cases', () => {
+    expect(smoke).toContain('run: node scripts/plan-preview.mjs')
+    expect(smoke).toMatch(/^\s*if: steps\.unread\.outputs\.reason == 'publish'$/m)
   })
 
   // The predecessor lookup names this job's check run. A rename would leave it finding none,
-  // which is safe — every docs-only push publishes again — but silently undoes the skip.
+  // which is safe — every unread push publishes again — but silently undoes the skip.
   it("looks up the previous head's check run by this job's own name", () => {
-    expect(match(smoke, /check-runs\?check_name=(\w+)/)).toBe(match(smoke, /^ {4}name: (.+)$/m))
+    expect(SMOKE_CHECK_NAME).toBe(match(smoke, /^ {4}name: (.+)$/m))
   })
 
   // ⚠ A wrong `on:` block here fails silently, in both directions. `docs/testing.md` § "The merge
