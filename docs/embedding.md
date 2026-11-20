@@ -304,6 +304,11 @@ Some things are **not** parameters, on purpose:
 | The path prefix for `routing=path` | your client record — the same value your canonical URLs are built from |
 | The domains you embed on           | your client record — the API refuses reads from anywhere else, and the captcha renders nowhere else |
 
+**Your display name is the organizer in an event's structured data.** It is the public name on
+your client record — not the internal one — and the widget names it as the `organizer` of every
+event it describes to a search engine. Leave it empty and the event carries no organizer, which is
+better structured data than somebody else's name.
+
 **Your brand colours reach the map, not only the panels.** The event pins, the cluster bubbles
 and the numbers on them are drawn from the **first** of your record's three brand colours, and
 the pin of whichever event is selected from the **third** — the same two your buttons and
@@ -1255,6 +1260,38 @@ you needed than have you reach through the boundary.
 The widget renders as a labelled `role="region"` landmark, so a screen-reader user can jump to
 and out of it rather than meeting an unbounded run of content mid-page. It carries its own `lang`
 and `dir`, tracking the active locale — your page's `<html lang>` is almost never the widget's.
+The place-search field inside it is a named `search` landmark, and each panel is a dialog with a
+name, so the search, the filters and the results are told apart.
+
+Inside that landmark, every control the widget draws:
+
+- is reached by Tab, in the order it appears, and shows a focus ring where it lands;
+- is never a Tab stop while it is invisible;
+- carries a name in the page's language, icon-only controls included;
+- answers to a tap of at least 44 × 44 CSS pixels on a touch screen.
+
+**Each of those is checked on every change we make**, in a real browser at phone size, over every
+component in the library — `axe-core` for the rule set, a hit test for the tap areas, and a
+keyboard walk for the rest. A change that breaks one does not merge.
+
+**What that costs you**: on a touch screen a few rows are a little taller than they would
+otherwise be, so a `<sahaj-atlas>` you have given a fixed height has slightly less room for its
+content at phone widths. The desktop layout is unchanged but for one control — the share
+sheet's round network icons, which are 44px on every device, because that library sizes its
+button off the icon. Nothing here changes your CSP or your Permissions Policy.
+
+**The map canvas and the two controls over it are Mapbox GL's, and the list above does not
+cover them.** The canvas's keyboard behaviour is theirs rather than ours, and so is the
+geometry of "find my location" and of the attribution — there is no zoom control. Measured
+against mapbox-gl 3.35.0, unchanged by us: the locate button answers to 32 × 32 CSS px and the
+attribution's information button to 24 × 24, both under the 44px floor. The attribution is also
+the one control we may not resize, since Mapbox's attribution guide sanctions exactly one
+collapsed form of it.
+
+**Nor does the check reach them**, for a mechanical reason worth stating rather than leaving
+you to assume: it drives our component library, where the map renders a "needs an access token"
+notice in place of itself, so no map control is ever loaded for it to measure. Those two are
+checked by hand against a real map instead.
 
 ## Privacy, storage and third-party requests
 

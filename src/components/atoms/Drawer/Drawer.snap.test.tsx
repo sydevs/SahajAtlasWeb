@@ -60,7 +60,7 @@ describe('Drawer — the box vaul measures', () => {
     )
 
     // 'false' is vaul recording that it fell through to `window.innerHeight`.
-    // That is the correct reference for every mount except inside the expanded dialog.
+    // That is the correct reference for every mount outside a frame.
     expect(sheet()?.getAttribute('data-vaul-custom-container')).toBe('false')
   })
 

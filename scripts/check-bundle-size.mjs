@@ -32,7 +32,7 @@
  * This script excludes dynamic `import()` targets. Read that exclusion
  * carefully — it hid a real regression for the length of one PR. A dynamic
  * import only becomes a second hop when the module HOLDING it is itself
- * lazy. `react-map-gl` runs `const mapLib = import('mapbox-gl')` at module
+ * lazy. `react-map-gl` 7 ran `const mapLib = import('mapbox-gl')` at module
  * scope. So while anything in the eager graph imported it, including one
  * re-export through the `organisms` barrel, 485 KiB gzipped was fetched at
  * the same time as the rest of the payload. This gate still reported a
@@ -91,10 +91,18 @@ import { annotate, report } from './_ci-output.mjs'
 // Every step to today's three figures, newest first, as standalone/embed and as
 // loader. `git log -p` on this constant holds each one in full, dated.
 //
-//   336  288.1/289.2  #442  framer-motion's `m` with the animation features
-//                          alone, −13.2 KiB; budget held, as above
+//   336  289.8/290.9  #442  the zod enums moved to `z.enum`'s object form, so
+//                          `satisfies Record<Theirs, Theirs>` could replace a
+//                          hand-rolled equality type, +0.1
+//   336  289.7/290.8  #442  framer-motion's `m` with the animation features
+//                          alone, −13.2 KiB; budget held, as above, and `embed`
+//                          back to 336 — #435 raised it for 0.4 KiB on 0.2
+//                          spare, and this row leaves 44
 //   336  301.3/302.4  #442  the shell stopped importing the molecules barrel,
 //                          −30.9 KiB; budget held, as above
+//   338  333.9/335.0  #435  embed only. The 44px tap areas, the row spacing
+//                           they need and the contrast fixes are 0.4 KiB of
+//                           generated CSS, on a graph main left 0.2 spare
 //   336  331.9/333.0  #413  dependency batch; gzip paid for a different mix
 //   334  330.1/331.2  #389  `colord/plugins/lab`, which every embed owes
 //   330  326.8/328.6  #367  zod 4 (GHSA-mrhx-c7xc-m3w5), eager via every fetcher

@@ -22,7 +22,7 @@ export const Default: Story = () => (
       description="The trigger is an icon-only button with an accessible name. Opening it reveals the theme radio group and the language submenu."
       title="Trigger"
     >
-      <div className="flex items-center gap-6">
+      <div className="flex items-center gap-6 py-3">
         <SettingsMenu />
       </div>
     </StorySection>
@@ -31,7 +31,7 @@ export const Default: Story = () => (
       description="`side` points the panel away from the trigger's screen position — bottom for the top-left cog on the map, top for the bottom-left cog when map-less."
       title="Sides"
     >
-      <div className="flex items-center gap-10">
+      <div className="flex items-center gap-10 py-3">
         <StorySection title='side="bottom"' variant="subsection">
           <SettingsMenu side="bottom" />
         </StorySection>

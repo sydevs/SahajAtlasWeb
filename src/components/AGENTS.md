@@ -16,12 +16,9 @@ Before hand-rolling UI, check in this order:
 1. **`src/components/atoms/`** — its atoms already exist and carry the app's tokens
    and focus behavior. Drawer (vaul) is the surface for anything that is a _place_ in
    the URL-driven stack. Modal (Radix Dialog) is the ephemeral surface that never
-   touches the URL or history. Input and Textarea wrap the native controls on the
-   shared `fieldChrome` recipe. `Combobox` is the search-in-the-field picker (Radix
-   Popover + cmdk — the region filter). `Select` is the plain list picker.
-   `Menu/` holds no component, only the `menuChrome` recipe the three Radix
-   dropdown menus share. Every
-   form-control atom shares one error and active-state interface: **`isInvalid`**
+   touches the URL or history. `Combobox` is the search-in-the-field picker; `Select` is
+   the plain list picker. Every form-control atom shares one error and active-state
+   interface: **`isInvalid`**
    (danger visual plus `aria-invalid`, with `aria-describedby` for the error text)
    and **`highlight`** (tints the _unselected_ state, no layout shift, to flag an
    active filter). See `DESIGN_SYSTEM.md`.
@@ -38,9 +35,8 @@ Before hand-rolling UI, check in this order:
   for the reference.
 - `clsx` is fine for simple conditional class joins.
 - Global styles and Tailwind layers live in `src/styles/globals.css`. The build hands
-  every CSS chunk to `src/styles/sheet.ts` (`vite-plugin-css-injected-by-js` with an
-  `injectCodeFunction`), and each entry adopts it into the root that owns it — the
-  embed's shadow root, or the standalone shell's document (#236). Do not rely on a
+  every CSS chunk to `src/styles/sheet.ts`, and each entry adopts it into the root that
+  owns it — the embed's shadow root, or the standalone shell's document (#236). Do not rely on a
   separate stylesheet `<link>`, and do not append a `<style>` to `document.head`: a
   document sheet cannot reach into the shadow root.
 
@@ -65,18 +61,11 @@ pipeline or its check.
   selector to scope: `@keyframes`, which the pass renames, plus `@font-face` families
   and `@property` names, which it cannot — Tailwind writes the `var()` refs itself — so
   the gate allowlists those two by name. Registering one of our own fails the build.
-- **Why the check walks left instead of anchoring the head** (issue #104): swiper 12
-  shipped native CSS nesting, and the scoping pass correctly leaves a nested rule to
-  its parent's prefix. The MINIFIER then runs after us and flattens that nesting,
-  folding the scope into the middle or the subject of the selector
-  (`.swiper-pagination-disabled > :is(:where(.sy-atlas) .swiper-pagination)`). A
-  head-anchored check called that a leak and failed a sound build. So
-  `isSelectorScoped` walks left from the subject, looking for a compound pinned to
-  the scope. Two results: we are **not** the last stage to rewrite a selector, so do
-  not assume the emitted form matches what the pass wrote. The check also refuses a
-  scope reached across a sibling combinator on purpose (a sibling of the scope ROOT
-  is a host element), so a red gate can mean "not confined" rather than "leaks" — the
-  message says which.
+- **The check walks left from the subject instead of anchoring the head** (issue #104);
+  `isSelectorScoped`'s docblock in `scripts/postcss-scope-widget.mjs` says why. Two
+  results: we are **not** the last stage to rewrite a selector, so do not assume the
+  emitted form matches what the pass wrote; and a red gate can mean "not confined"
+  rather than "leaks" — the message says which.
 - **Three things the pass does NOT cover:**
   - A selector you write against `.sy-atlas` yourself passes through untouched. Use
     this to address the theme ROOT (also where the light/dark class lives), not
@@ -190,9 +179,8 @@ host pages, and it also runs standalone in dev. Because of that:
   ids. It is the only doc an embedding site reads, so a change here that a host
   could notice is not finished until that guide (and `CHANGELOG.md`) says so, in
   the same PR. See the root `AGENTS.md` for the full rule.
-- Provider stack lives in `src/providers.tsx` (`StrictMode`, React Query, Helmet, and the
-  reduced-motion `MotionConfig`); `BrandTheme` mounts in `App`. Add new context providers
-  to `providers.tsx`, not scattered across the tree.
+- Provider stack lives in `src/providers.tsx`; `BrandTheme` mounts in `App`. Add new context
+  providers to `providers.tsx`, not scattered across the tree.
 
 ## Responsive: which signal answers which question (issue #107)
 
@@ -246,17 +234,9 @@ Two properties of the mechanism are load-bearing:
 ### Map mode is contained by a FRAME, or it takes the viewport (issue #169)
 
 **⚠ This section used to say containment was intractable. It is implemented — do not
-restore that claim.** Every premise of the old argument has been retired:
-
-- vaul computed a snap-point sheet's translate from the **window** height, so a
-  contained sheet was pushed off-screen by the library's own math → its `container`
-  prop is now passed (`measureAgainst`, distinct from the portal target).
-- `--sy-sheet-top`, which pins the sticky Register bar, is a viewport-relative
-  `getBoundingClientRect().top` → the frame's own top is now subtracted, zero where
-  there is no frame.
-- every drawer, peek strip, and cog is `position: fixed` and `100dvh` overshot →
-  **`--sy-frame-h`** is `100dvh` on `.sy-atlas` and `100%` under `[data-sy-frame]`,
-  right in both.
+restore that claim.** Each premise of the old argument — vaul's window-height math,
+a viewport-relative `--sy-sheet-top`, and `100dvh` overshooting a frame — is answered
+below the patch register.
 
 **The frame is `contain: layout`, and that one property does all of it.** It makes
 the element the containing block for every fixed descendant, so the canvas, the
@@ -325,8 +305,8 @@ and one task-named button that opens the interface somewhere it fits.
   should be.** It is whether the local viewport is bigger than the slot. Framing
   only picks the fallback when it is not. A frame IS a viewport (`position: fixed`
   resolves against it), so a framed map embed at 400×600 must stay full.
-- **`SLOT_GAIN` is one ratio where there were three** — 0.8, ratcheted in both
-  directions against real false positives and false negatives.
+- **`SLOT_GAIN` is one ratio where there were three**, ratcheted in both directions
+  against real false positives and false negatives.
 - **`AppShell` owns the decision, above `MapProvider`**, so the whole map subtree can
   stay unmounted, keeping mapbox-gl unfetched. That saving is invisible to `pnpm size`
   by design, since mapbox-gl is a dynamic import never in the eager graph.
@@ -378,7 +358,7 @@ Two effects deliberately still fire from a collapsed card: the readiness marker 
 the embed report, since both attest that the widget booted, whether or not anyone
 opened it. `clients/me` also stays, since the card is themed and localized from it.
 
-**Three things about the dialog were found in a browser, and could not have been
+**Two things about the dialog were found in a browser, and could not have been
 found any other way.**
 
 - Escape never reaches the surface's own dialog on its own: the drawer stack inside
@@ -391,18 +371,13 @@ found any other way.**
   itself, scoped to the widget root rather than `document` — Safari and Firefox on
   macOS do not focus a `<button>` on click, and a document-wide recorder would let
   collapse steal focus from whatever the HOST had focused earlier.
-- **The dialog keeps a margin, and clicking it closes the dialog.** This retired an
-  earlier `ResizeObserver` (`surfaceCoversPage`) that watched its own box and closed
-  itself when it stopped covering the viewport. With an outside to click and Escape
-  reaching the ladder above, Radix already maintains two exits for free, so a
-  confined dialog is a cosmetic problem, not a trap.
 
 ⚠ **Two dependencies read the DOM in ways the shadow boundary defeats, and both are
 patched rather than worked around (#236).** `patches/` holds them, under
 `pnpm.patchedDependencies` beside the vaul patch. Patching stays the LAST resort, and
 these two earn it because neither failure is reachable from our own code: the reads are
 inside the libraries, and every call site we own already passes the right arguments.
-Where our own code can reach the failure it fixes it itself, as `Mapbox/aria-live.ts` does.
+Where our own code can reach the failure it fixes it itself, as `Mapbox/geocoder-dom.ts` does.
 
 - **`@radix-ui/react-focus-scope@1.3.1`** listens for `focusin`/`focusout` on
   `document` and asks `container.contains(event.target)`. Inside a shadow root that
@@ -461,29 +436,50 @@ every consumer, and `shadow-patches.test.ts` ("the patched copy each consumer re
 fails if any package resolves a different or unpatched copy. ⚠ The override is a pin, not a
 refusal — pnpm violates a primitive's own range silently — so moving focus-scope forward
 means re-basing the patch, the `patchedDependencies` key and the override in one change.
-`shadow-dom-utils` scopes itself to tests in its own README. Six expressions in non-test
-`src/` touch the boundary at all.
+`shadow-dom-utils` scopes itself to tests in its own README.
 
 ### Patch register
 
 `pnpm install` already fails hard (`ERR_PNPM_PATCH_FAILED`, `ERR_PNPM_PATCH_NOT_APPLIED`)
 when a patch does not apply or its keyed version is no longer installed, so no extra guard
 exists for that. The one silent case, a second unpatched copy, is covered for focus-scope and
-aria-hidden by the spec above. Check this table whenever a patched package has a release.
+aria-hidden by the spec above. Every row is pinned in `src/lib/shadow-patches.test.ts` — a
+behavioural spec wherever jsdom can show the defect, plus a drift pin on the built files — and
+that spec fails if `pnpm.patchedDependencies` gains a patch it does not pin. Check this table
+whenever a patched package has a release.
 
 | Patch | Fixes | Upstream | Remove when |
 | --- | --- | --- | --- |
-| `vaul@1.1.2` | Stops vaul injecting its unscoped `<style>` (global `@keyframes`) into the host's `<head>`; forwards `modal` to Radix so `modal={false}` is really non-modal (#30, #91) | [vaul#497](https://github.com/emilkowalski/vaul/issues/497), [vaul#192](https://github.com/emilkowalski/vaul/issues/192); 1.1.2 is the newest release | A vaul release forwards `modal` and stops injecting CSS, or we move off vaul |
+| `vaul@1.1.2` | Stops vaul injecting its unscoped `<style>` (global `@keyframes`) into the host's `<head>`; forwards `modal` to Radix so `modal={false}` is really non-modal (#30, #91). ⚠ The `modal` hunk is in `dist/index.mjs` alone — the build every consumer loads (bundle, dev pre-bundle, Ladle, both lane environments); the `require` build has only the CSS hunk | [vaul#497](https://github.com/emilkowalski/vaul/issues/497), [vaul#192](https://github.com/emilkowalski/vaul/issues/192). **Unmaintained**: the upstream README says so, and 1.1.2 (2024-12-14) was still the newest release on 2026-11-19. Re-check with `npm view vaul version time.modified` and the note atop the README at github.com/emilkowalski/vaul | A vaul release forwards `modal` and stops injecting CSS, or we move off vaul |
 | `@radix-ui/react-focus-scope@1.3.1` | `focusin`/`focusout`/`activeElement` retarget to the shadow host, so the modal trap, Tab cycle and mount auto-focus break (#236) | [primitives#3353](https://github.com/radix-ui/primitives/issues/3353) (open) | FocusScope resolves `composedPath()` and the deep active element itself |
 | `aria-hidden@1.2.6` | `hideOthers` cannot cross a shadow boundary, so a modal never hides the background (#236) | [aria-hidden#14](https://github.com/theKashey/aria-hidden/issues/14) is the related closed report; 1.2.6 is the newest release | A release that climbs `ShadowRoot.host` and descends into kept roots |
-| `@schedule-x/calendar@2.36.0` | Looks up ids and selectors on `document` and writes CSS variables on `<html>`; breaks inside a shadow root (#236) | [schedule-x#1223](https://github.com/schedule-x/schedule-x/issues/1223) (open); the newest release is 4.9.1, a major jump not yet evaluated | A release whose lookups and variables are scoped to the rendered root |
+| `@schedule-x/calendar@4.9.1` | Looks up ids and selectors on `document` and writes CSS variables on `<html>`; breaks inside a shadow root (#236). Also reads a global `Temporal`, which the polyfill only provides by overwriting the host page's `Temporal`, `Intl.DateTimeFormat` and `Date.prototype.toTemporalInstant`. And re-zones an event on every read of its start or end, which made a full feed several times slower to lay out than 2.36 | [schedule-x#1223](https://github.com/schedule-x/schedule-x/issues/1223) (open, no fix linked; 4.9.1 is the newest release). Nothing filed for `Temporal` or the re-zoning | A release whose lookups and variables are scoped to the rendered root; for `Temporal`, one that imports it or takes it in config; for the re-zoning, one that skips it for an event already in the calendar's zone |
+
+**The Schedule-X patch** is made in all three builds (`core.js`, `core.cjs.js`, `core.umd.js`)
+and re-derived with `pnpm patch` on every upgrade. Its hunks do four things:
+
+- **`Temporal` is the `temporal-polyfill` module**, bound once at the top, so the core never reads
+  the page's global. ⚠ CalendarView imports the same module: the core's `instanceof` checks fail
+  against a second copy.
+- **Every `document` lookup and `<html>` variable write the rendered calendar reaches goes through
+  three helpers**, `sydevsById`, `sydevsQuery` and `sydevsSetProperty`, which try `document`, then
+  the root of every element a calendar rendered into. `shadow-patches.test.ts` pins the built
+  files.
+- **`render` records its element and sets the colours again**, since the ones `createCalendar` set
+  reached no element; `destroy` forgets it.
+- **An event's `start` and `end` getters return an event already in the calendar's `timezone` as
+  is**, rather than re-zoning it on every read. CalendarView anchors every entry in that zone
+  (`timeline.ts`), so none is re-zoned.
+
+Deliberately left on `document`: `getDirection`, which reads the HOST page's `<html dir>`, and
+UI this app hides or never registers — the date picker, the view dropdown, the year grid's day
+modal, and the resize handler only `isResponsive` registers.
 
 **`pnpm.overrides` also holds `undici`, which pins no patch.** It is a security floor for
-build tooling: `wrangler`'s `miniflare` declares `undici` at exactly `7.29.1`, an exact pin
-no patch release can lift, and eight advisories cover that version (four high, all fixed in
-7.30.1). `pnpm audit` reports all eight the moment the override goes. Nothing here ships
-`undici` to a browser. Remove it when `pnpm why undici` shows every consumer asking for
-7.30.1 or later by itself — `payload` already does.
+build tooling: `wrangler`'s `miniflare` pins `undici` to one exact version that carries known
+advisories, and no patch release can lift an exact pin. `pnpm audit` reports them the moment
+the override goes. Nothing here ships `undici` to a browser. Remove it once `pnpm audit` stays
+clean with the override gone.
 
 ⚠ **The margin means nothing inside the dialog may size itself off the viewport.**
 Every drawer, peek strip, and sheet is `position: fixed`, so `100dvh` is only right
@@ -494,9 +490,10 @@ in both places. `--sy-sheet-top` needed the matching correction, since the dialo
 own top must be subtracted from its viewport-coordinate source.
 
 **vaul is handled by its own API, not a patch.** It measures `container` when given
-one and `window.innerHeight` otherwise, so the Drawer atom forwards `container` to
-`Vaul.Root` — the same element it portals into, so the box vaul measures can never
-differ from the box it renders in.
+one and `window.innerHeight` otherwise, so the Drawer atom forwards its `measureAgainst`
+prop to `Vaul.Root` inside a frame. ⚠ That box is **not** the portal target:
+conflating the two inverts the sheet, and `measureAgainst`'s docblock in `Drawer.tsx` says
+why.
 
 ⚠ **A host ancestor carrying `transform`, `filter`, `perspective`, `contain`, or a
 `will-change` naming one of them confines the surface to that element** — re-measure
@@ -505,9 +502,9 @@ list, however often it is claimed to be.
 
 **Nothing detects this at runtime any more, and that is the settled answer, not an
 omission.** An earlier ~80-line `getComputedStyle` walk and an earlier
-`ResizeObserver` are both **removed** and are not coming back — the margin retired
-both, since clicking outside and Escape are two exits Radix already maintains for
-free.
+`ResizeObserver` (`surfaceCoversPage`) are both **removed** and are not coming back —
+the margin retired both, since clicking outside and Escape are two exits Radix already
+maintains for free, so a confined dialog is a cosmetic problem, not a trap.
 
 ⚠ If you find yourself citing `SURFACE_CONFINED_MESSAGE` or `surfaceCoversPage`,
 neither exists any more — grep before relying on either.
@@ -549,10 +546,9 @@ this table or the folklore it fixes. On the frame itself both are deliberate, an
   several files). `src/views/` holds the route screens. App code imports from the
   tier barrels. Components import each other by component-folder path. See
   `DESIGN_SYSTEM.md`.
-  ⚠ **The eager shell imports by component-folder path too** — the two entries,
-  `App.tsx` and everything they import statically. A barrel import there carries every
-  component the barrel re-exports into the first download (`DESIGN_SYSTEM.md`,
-  "Eager-shell exception"), and `Widget.standalone.test.ts` fails on one.
+  ⚠ **The eager shell imports by component-folder path too** — `DESIGN_SYSTEM.md`,
+  "Eager-shell exception", says which modules and why, and `Widget.standalone.test.ts`
+  fails on a barrel import there.
 - **Explicit named exports — no `export *`.** Every component and tier barrel lists
   exactly what it surfaces: the primary component(s) plus the `<Name>Props` type.
   Keep single-use internals (private modals, row primitives, helper sub-cards)
@@ -589,6 +585,48 @@ touching an anchor.
 
 Never silence a `jsx-a11y` warning on an interactive element.
 
+**`pnpm test:a11y` is the gate, and it runs in a browser** — `scripts/AGENTS.md` says what it
+checks and how to run it (#432). ⚠ It measures the tap area by hit test, so **never read a 44px
+claim off a class list** — the `sm` Button draws 43px wide for a two-letter label, and only the
+probe says so. `pnpm lint`'s `jsx-a11y` rules are the static half of the same question; neither
+replaces the other.
+
+**The 44px tap floor is met by growing an invisible area, not by redrawing the control.**
+`touch-target` (`globals.css`) puts a 44px `::after` on a smaller control, under
+`(pointer: coarse)` alone, so nothing moves on a desktop. It needs `relative` beside it, and
+three things defeat it:
+
+- **`overflow: hidden` clips it**, so a `truncate` on the control itself takes the area away and
+  leaves the class in the DOM saying nothing. Put `truncate` on an inner span.
+- **An `<input>` renders no pseudo-element at all**, so a field takes a drawn
+  `pointer-coarse:h-11` instead — `fieldChrome` and the geocoder's own input both do.
+- **Two such areas that meet take each other's pixels**, the later element winning every shared
+  one, so both controls measure short. Controls that sit flush — the toggle group's items — are
+  drawn at 44px instead, and rows that sit close get `pointer-coarse:` spacing. The gate
+  measures the result by hit test, so neither fix can be assumed from the class list.
+
+⚠ **Join the classes with `tv()`, never `clsx`, wherever a caller may pass its own position.**
+`relative` is later than `absolute` and `fixed` in Tailwind's own order, so a joined list wins
+the cascade and unpins the caller's control. `SettingsMenu`'s trigger carries that story.
+
+⚠ **Radix restores focus to a `Dialog.Trigger`, and neither of this app's dialogs has one**, so
+closing dropped the viewer on `<body>` (#432). `useOpenerRestore` (`src/hooks/`) is the one
+implementation for both — the `Modal` atom and `CompactEmbedView`'s surface — and its docblock
+owns the three measured properties that make it work. Read it before changing either dialog.
+`ReportIssueModal` adds a click-time capture in front of it; that is a chain, not a duplicate,
+and the comment there says why neither end is spare.
+
+**An accessible name must contain the control's own visible text** (WCAG 2.5.3): a speech-input
+viewer says what they can see. So a weekday pill reading `Mon` is named `Mon`, not `Monday`; a
+value-showing trigger is named `<field>: <value>`; and a copy button whose content is a URL
+carries that URL in its name. Radix's `Select` trigger is exempt by taking `role="combobox"`,
+which our `Combobox`'s trigger deliberately does not.
+
+**Text colour comes from the ramp's step 11, never the bare token, which is step 9** — a solid
+background colour. `text-contrast` measured 3.22:1 on the light background. ⚠ Step 11 is
+guaranteed against steps 1 and 2 only, so a link on a step-3 surface (an Alert's tint, a story
+section's panel) needs step 12 or a lighter surface — measure it, do not assume.
+
 **Motion needs a way out** (WCAG 2.2.2, issue #104). Anything that moves on its own
 for more than five seconds needs a visible, keyboard-operable control to stop it, and
 must not move at all under `prefers-reduced-motion: reduce` — read live via
@@ -605,9 +643,8 @@ seams — one per animation technology** (issue #102):
   `reducedMotion="user"` (which reads the media query once at mount and misses a
   mid-session change).
   ⚠ **Write `m.*`, never `motion.*`** — lint refuses the import. `motion` bundles every
-  framer-motion feature into the eager graph (17.5 KiB gz, measured), where `m` draws
-  the one bundle the same file's `LazyMotion` loads: `initial`, `animate`, `exit` and
-  `transition`, and nothing else. ⚠ An `m.*` rendered outside `Providers` never leaves
+  framer-motion feature into the eager graph, where `m` draws only the features the same
+  file's `LazyMotion` loads. ⚠ An `m.*` rendered outside `Providers` never leaves
   its `initial` values, so a spec or story that mounts one goes through `Providers`.
 - **vaul's drawers** animate in CSS, so an additive
   `@media (prefers-reduced-motion: reduce)` block at the foot of

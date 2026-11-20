@@ -3,7 +3,7 @@ import type {
   EventFeatureCollection,
   GeoJsonPoint,
 } from '@/types/payload/response-types'
-import type { SahajCloudFields } from './pinned'
+import type { PartialZodShape } from './zod-shape'
 
 import z from 'zod'
 
@@ -20,14 +20,14 @@ export const GeoFeatureSchema = z.object({
     .object({
       type: z.literal('Point'),
       coordinates: z.tuple([z.number(), z.number()]),
-    } satisfies SahajCloudFields<GeoJsonPoint>)
+    } satisfies PartialZodShape<GeoJsonPoint>)
     .nullable(),
   properties: AgnosticFeedEventSchema,
-} satisfies SahajCloudFields<EventFeature>)
+} satisfies PartialZodShape<EventFeature>)
 export type GeoFeature = z.infer<typeof GeoFeatureSchema>
 
 export const GeojsonSchema = z.object({
   type: z.literal('FeatureCollection'),
   features: z.array(GeoFeatureSchema),
-} satisfies SahajCloudFields<EventFeatureCollection>)
+} satisfies PartialZodShape<EventFeatureCollection>)
 export type Geojson = z.infer<typeof GeojsonSchema>

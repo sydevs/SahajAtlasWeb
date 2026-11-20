@@ -61,6 +61,8 @@ beforeAll(() => {
   write(fixture, 'src/views/importer.test.tsx', "import { thing } from '@/lib/thing'\n")
   write(fixture, 'src/views/prefix.test.tsx', "import { other } from '@/lib/thing-other'\n")
   write(fixture, 'src/views/lister.test.tsx', "const COPY = ['src/lib/thing.ts']\n")
+  write(fixture, 'patches/thing@1.0.0.patch', 'diff --git a/dist/index.js b/dist/index.js\n')
+  write(fixture, 'src/lib/pin.test.ts', "const PATCH = 'patches/thing@1.0.0.patch'\n")
   write(fixture, 'src/views/walker.test.tsx', 'readdirSync(SRC, { recursive: true })\n')
   write(fixture, 'src/test-support/source-tree.ts', 'export const sourceFiles = () => []\n')
   write(
@@ -84,6 +86,12 @@ describe('isLaneSource', () => {
     expect(isLaneSource('src/components/atoms/Chip/Chip.stories.tsx')).toBe(false)
     expect(isLaneSource('docs/testing.md')).toBe(false)
   })
+
+  it('covers a dependency patch, which no spec imports', () => {
+    expect(isLaneSource('patches/vaul@1.1.2.patch')).toBe(true)
+    expect(isLaneSource('patches/@radix-ui__react-focus-scope@1.3.1.patch')).toBe(true)
+    expect(isLaneSource('patches/notes.md')).toBe(false)
+  })
 })
 
 describe('resolveSpecifier', () => {
@@ -93,6 +101,7 @@ describe('resolveSpecifier', () => {
     expect(resolveSpecifier('../geo', 'src/lib/shape')).toBe('src/lib/geo')
     expect(resolveSpecifier('.', 'src/components/atoms/Chip')).toBe('src/components/atoms/Chip')
     expect(resolveSpecifier('src/App.tsx', 'src/lib')).toBe('src/App.tsx')
+    expect(resolveSpecifier('patches/vaul@1.1.2.patch', 'src/lib')).toBe('patches/vaul@1.1.2.patch')
   })
 
   it('ignores a bare package, so node_modules never enters the index', () => {
@@ -141,6 +150,12 @@ describe('selectFrom', () => {
       'src/lib/thing.test.ts',
       'src/views/importer.test.tsx',
       'src/views/lister.test.tsx',
+    ])
+  })
+
+  it('selects the spec that names a patch by path', () => {
+    expect(selectFrom('patches/thing@1.0.0.patch', readLane(fixture))).toEqual([
+      'src/lib/pin.test.ts',
     ])
   })
 
@@ -201,6 +216,22 @@ describe('this repository', () => {
     expect(selectSpecs('src/config/api/client.ts', ROOT)).toContain('src/config/api/fetch.test.ts')
     expect(selectSpecs('src/components/atoms/Chip/index.ts', ROOT)).toContain(
       'src/components/atoms/Chip/Chip.test.tsx',
+    )
+  })
+
+  it('reaches the patch pins from every patch pnpm applies, and the vaul pin from its caller', () => {
+    const { pnpm } = JSON.parse(readFileSync(join(ROOT, 'package.json'), 'utf8')) as {
+      pnpm: { patchedDependencies: Record<string, string> }
+    }
+    const patches = Object.values(pnpm.patchedDependencies)
+
+    expect(patches.length).toBeGreaterThan(0)
+
+    for (const patch of patches)
+      expect(selectSpecs(patch, ROOT), patch).toContain('src/lib/shadow-patches.test.ts')
+
+    expect(selectSpecs('src/components/atoms/Drawer/Drawer.tsx', ROOT)).toContain(
+      'src/lib/shadow-patches.test.ts',
     )
   })
 

@@ -24,26 +24,35 @@ moves, in the same bump as `@payloadcms/sdk`.
 - Keep the zod schemas aligned with the generated types in `src/types/payload/` — they are
   the SDK's compile-time source of truth.
 - **Name the producer, not the category: `SahajCloud`, never `CMS`.** The type that pins a
-  schema to the generated ones is `PinnedToSahajCloud`, and its helpers are `SahajCloudFormField`
-  and `SahajCloudBlock` (`src/types/report.ts` is the worked example). The same preference holds
-  in identifiers and in prose — `src/AGENTS.md` carries it as a naming rule.
-- **Every schema that mirrors a generated type is pinned to it at compile time**
-  (`src/types/pinned.ts`). A zod shape carries `satisfies SahajCloudFields<T>`, so it can
-  name only fields the generated type declares: most fields are `.nullish()`, and a renamed
-  one otherwise parses as `undefined`, in silence (#191). A zod enum sits in its module's
-  `…PinnedToSahajCloud` tuple through `SameAsSahajCloud`, which fails on a member SahajCloud
-  dropped and on one it added, since a strict enum refuses either at runtime. Give a new
-  mirror the same pin. ⚠ It pins names, never value types: `firstDate_tz` is nullish here and
-  required there, on purpose. `FEED_SELECT` is typed against `AgnosticFeedEventSchema` the
-  same way, because the feed's select reaches `requestJson` unchecked.
-- ⚠ **`ClientSchema` admits two names the synced `Client` does not have**: `name` (it has
-  `label` and `title`) and `canonical.enabled` (it has `owned`). Each is admitted by name so
-  the rest of the shape stays pinned. `/clients/me` selects through `requestJson`, which
-  nothing type-checks, so only the pin sees either.
+  schema to the generated ones is `PinnedToSahajCloud`, and its helpers are
+  `SahajCloudFormField` and `SahajCloudBlock` (`src/types/report.ts` is the worked example). The same preference holds
+  in identifiers and in prose — `src/AGENTS.md` carries it as a naming rule. ⚠ A helper that
+  names no SahajCloud type is named for its function instead: `PartialZodShape<T>` takes any
+  `T`, and a producer in its name would be a claim about where it may be used.
+- **Every schema that mirrors a generated type is pinned to it at compile time, and every pin
+  is `satisfies` over `keyof`, `Record` or `Pick`** — TypeScript's own operators, never a
+  hand-rolled equality type. Give a new mirror the same pin.
+  - **A zod shape** carries `satisfies PartialZodShape<T>` (`src/types/zod-shape.ts`), so it can
+    name only fields the generated type declares: most fields are `.nullish()`, and a renamed
+    one otherwise parses as `undefined`, in silence (#191). ⚠ It pins names, never value types:
+    `firstDate_tz` is nullish here and required there, on purpose. `FEED_SELECT` is typed
+    against `AgnosticFeedEventSchema` the same way, because the feed's select reaches
+    `requestJson` unchecked.
+  - **A zod enum** is declared in `z.enum`'s OBJECT form and carries
+    `satisfies Record<Theirs, Theirs>` on that literal, which holds its members both ways: a
+    member SahajCloud adds is a missing key, and one it renames or drops is an excess property
+    on a fresh literal. A strict enum refuses either at runtime, so each would fail a whole
+    read. ⚠ `WeekdaySchema`'s union is carried by two separate SahajCloud option lists, so its
+    pin is an intersection of two `Record`s, each keying from one field and valuing to the
+    other. One `Record` alone leaves the other field free to gain a member in silence.
+  - ⚠ **zod's own `satisfies z.ZodType<T>` does not do either job** — `src/types/zod-shape.ts`
+    says why, beside the type.
+- ⚠ **No schema widens the pin, and none should.** An intersection beside
+  `satisfies PartialZodShape<T>` admits exactly the drift the pin exists to refuse, and a read
+  through `requestJson`, which nothing type-checks, has no other reader of it. Fix a name the pin
+  refuses; never admit it.
 - **`pnpm types:cms` is `scripts/sync-cms-types.mjs`, and it fetches every file at ONE
-  commit.** It resolves `refs/heads/main` to a SHA with `git ls-remote`, fetches each file
-  at that SHA, then strips the `payload` augmentation. Fetching each file off the branch
-  name let a push land between two fetches. `pnpm types:cms <branch|tag|40-char-sha>`
+  commit.** Fetching each file off the branch name let a push land between two fetches. `pnpm types:cms <branch|tag|40-char-sha>`
   takes another commit, which is how a snapshot is reproduced.
 - **`src/types/payload/provenance.json` records that commit**, with a hash of each
   generated file. Never edit it by hand. ⚠ It moves only when a generated file does:
@@ -397,22 +406,19 @@ the shared client.
   read cannot drift. `eventsQuery(latitude, longitude, filters, locale)` carries
   the same contract for the distance-ranked results list.
 - **Query factories live in `src/config/api/index.ts`.** That module imports
-  `fetch.ts`, so a factory `fetch.ts` itself consumes has to be declared beside its
-  fetcher, or the import closes a cycle: `geojsonQuery`, `regionsQuery` and
-  `eventTitlesQuery`, each spread by its loader, and `atlasConfigQuery` and
-  `translationsQuery`, each read by a warm-up. `index.ts` re-exports the first
-  three; the last two are imported from `fetch.ts`. A factory nothing in
+  `fetch.ts`, so a factory `fetch.ts` itself consumes — spread by a loader or read by a
+  warm-up there — has to be declared beside its fetcher, or the import closes a cycle.
+  A factory nothing in
   `fetch.ts` calls has no such excuse. Declare it in `index.ts` with the rest,
   so every contract stays in one place.
 - **A wholesale cache has one contract, and every reader spreads it.**
-  `geojsonQuery()`, `regionsQuery()` and `eventTitlesQuery(locale)` each hold the
-  key, the fetcher, `staleTime` and `gcTime`. A screen adds only what is its own
-  (`enabled`, `select`). The loader adds `revalidateIfStale` and `retry: false`,
-  the one deliberate per-fetch option on these keys: a loader runs inside a query
-  that already retries. ⚠ `gcTime` sits in the contract because React Query keeps
-  the longest one any writer of a key has stated, so a reader that omits it leaves
-  the retention to whoever built the entry first. `reads.inventory.test.ts` fails
-  on one of the three keys written out anywhere but its contract.
+  The factory holds the key, the fetcher, `staleTime` and `gcTime`, and a reader adds
+  only what is its own. The loader's `retry: false` is the one deliberate per-fetch
+  option: a loader runs inside a query that already retries. ⚠ `gcTime` sits in the
+  contract because React Query keeps the longest one any writer of a key has stated,
+  so a reader that omits it leaves the retention to whoever built the entry first.
+  `reads.inventory.test.ts` names the wholesale keys and fails on one written out
+  anywhere but its contract.
 - **Read a cache-only key through its own factory.** `eventTitlesQuery(locale)` is
   shared by the loader that fetches the sliver and by the drawer's loading/error
   chrome, which reads it with `enabled: false` to name the event whose view

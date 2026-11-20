@@ -13,7 +13,10 @@ import { IconSvgProps } from '@/types'
 // active-filter pills do.
 const chip = tv({
   slots: {
-    base: 'inline-flex max-w-full items-center gap-1',
+    // ⚠ The 44px minimum on a touch screen is what CONTAINS the close button's own invisible
+    // 44px area (#432). On a 24px pill that area reached ~9px past the chip on both sides, and
+    // the wrapped row below took it, so every row but the last measured short.
+    base: 'inline-flex max-w-full items-center gap-1 pointer-coarse:min-h-11',
     content: 'min-w-0 truncate leading-none uppercase',
     // The close button carries the app's standard focus ring, not only the
     // opacity lift it used to have on its own (issue #102). Opacity is also

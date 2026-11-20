@@ -40,8 +40,13 @@ const drawer = tv({
     // inside the field's border on each side, hence the 2px. This belongs to the slot rather
     // than the three views that mount a field, which drifted: the error chrome mounts a live
     // field (`views/fallbacks.tsx`) and had neither declaration.
+    // ⚠ The wider gap and bottom padding on a touch screen are the 44px tap floor, not
+    // spacing taste (#432): the header's controls are drawn at 32px and each grows an
+    // invisible 44px area, 6px past its own box on every side. At the 8px gap two of those
+    // areas overlapped, the later control took the shared pixels, and every control but the
+    // last measured 40px wide. The room is what lets each one have its own.
     header:
-      '[container-type:inline-size] mx-auto flex w-full max-w-[var(--sy-content-max,512px)] shrink-0 items-center gap-2 px-4 pt-4 pb-2 [--sy-results-w:calc(100cqi_-_2px)]',
+      '[container-type:inline-size] mx-auto flex w-full max-w-[var(--sy-content-max,512px)] shrink-0 items-center gap-2 px-4 pt-4 pb-2 [--sy-results-w:calc(100cqi_-_2px)] pointer-coarse:gap-3 pointer-coarse:pb-3',
     // A second fixed band under the header, for controls that act on the
     // scrolling content below, such as SearchView's Filters and Sort. It
     // shares the header's width cap and `shrink-0`. It sits OUTSIDE the body,
@@ -212,8 +217,8 @@ export type DrawerProps = VariantProps<typeof drawer> & {
   /**
    * The box vaul measures snap points against. **This is not the same
    * question as `container`.** Conflating the two inverts the sheet. See the
-   * note on `rootProps` below. Omit this prop to measure the window instead.
-   * That is right for every mount except inside the expanded dialog.
+   * note on `rootProps` below. Omit this prop to measure the window instead,
+   * which is right for every mount outside a frame.
    */
   measureAgainst?: HTMLElement | null
   children: ReactNode

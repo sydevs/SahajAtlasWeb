@@ -87,11 +87,15 @@ export function Combobox({
     >
       {/* A disclosure button. Radix supplies aria-expanded and aria-haspopup. The
           actual combobox is cmdk's CommandInput inside, so role="combobox" does not
-          belong on the trigger too. */}
+          belong on the trigger too.
+
+          ⚠ The name carries the CHOSEN VALUE as well as the field, because the value is
+          this button's visible text (WCAG 2.5.3). Radix's own Select trigger is exempt from
+          that rule by taking `role="combobox"`, which this one deliberately does not. */}
       <Popover.Trigger
         aria-describedby={describedBy}
         aria-invalid={isInvalid || undefined}
-        aria-label={ariaLabel}
+        aria-label={[ariaLabel, selected?.label ?? placeholder].filter(Boolean).join(': ')}
         className={fieldChrome({ isInvalid, highlight, trigger: true, className })}
         disabled={disabled}
       >

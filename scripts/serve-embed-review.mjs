@@ -63,6 +63,8 @@ import { extname, join, normalize, resolve } from 'node:path'
 
 import { loadEnv } from 'vite'
 
+import { MIME } from './_mime.mjs'
+
 const DIST = resolve('dist')
 
 /**
@@ -81,20 +83,6 @@ const viteEnv = loadEnv('development', process.cwd(), 'VITE_')
  * `docs/embedding.md` keep meaning the same thing.
  */
 const port = 5174
-
-const MIME = {
-  '.html': 'text/html; charset=utf-8',
-  '.js': 'text/javascript; charset=utf-8',
-  '.mjs': 'text/javascript; charset=utf-8',
-  '.css': 'text/css; charset=utf-8',
-  '.json': 'application/json; charset=utf-8',
-  '.svg': 'image/svg+xml',
-  '.png': 'image/png',
-  '.jpg': 'image/jpeg',
-  '.webp': 'image/webp',
-  '.woff2': 'font/woff2',
-  '.woff': 'font/woff',
-}
 
 // ---------------------------------------------------------------------------
 // The host pages. Each one is a shape that has actually produced a bug.
