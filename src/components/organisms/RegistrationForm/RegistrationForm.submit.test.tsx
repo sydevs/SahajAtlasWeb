@@ -6,11 +6,12 @@
 // and its refusal re-cast stay inside the system under test.
 import { act } from 'react'
 import { createRoot } from 'react-dom/client'
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import { QueryClient, QueryClientProvider, onlineManager } from '@tanstack/react-query'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { RegistrationForm } from './RegistrationForm'
 
+import { queryClient } from '@/config/query-client'
 import { challengeFrameStub } from '@/test-support/turnstile-frame'
 
 const sdk = vi.hoisted(() => ({ find: vi.fn(), findByID: vi.fn(), request: vi.fn() }))
@@ -282,4 +283,39 @@ describe('RegistrationForm refusals', () => {
       await act(async () => root.unmount())
     },
   )
+})
+
+// The cases above reject the request while React Query still believes it is online: it never
+// reads `navigator.onLine`, only the `online` and `offline` events. Here it has seen the browser
+// go offline, and the form mounts under the app's own client, because what answers for an
+// offline submit is that client's mutation default rather than anything the form sets.
+describe('RegistrationForm, submitted while the browser is offline', () => {
+  afterEach(() => {
+    onlineManager.setOnline(true)
+    queryClient.clear()
+  })
+
+  it('makes the attempt and says the connection failed, instead of pausing until it returns', async () => {
+    const onLine = vi.spyOn(navigator, 'onLine', 'get').mockReturnValue(false)
+
+    sdk.request.mockRejectedValue(new TypeError('Failed to fetch'))
+
+    const root = await mountForm(queryClient)
+
+    onlineManager.setOnline(false)
+    await submitFilled()
+
+    expect(sdk.request).toHaveBeenCalledTimes(1)
+    expect(alertText()).toContain('registration.form.error_title')
+    expect(alertText()).toContain('common.errors.offline')
+    expect(challenge.resetCount()).toBe(1)
+
+    // Nothing is left queued to send by itself once the connection is back.
+    await act(async () => onlineManager.setOnline(true))
+
+    expect(sdk.request).toHaveBeenCalledTimes(1)
+
+    onLine.mockRestore()
+    await act(async () => root.unmount())
+  })
 })

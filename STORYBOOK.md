@@ -23,7 +23,7 @@ pnpm ladle:build  # static build (also the CI gate — broken stories fail it)
 | ----------------------- | -------------------------------------------------------------------------------------- |
 | `.ladle/config.mjs`     | Story glob (`src/**/*.stories.{ts,tsx}`), title, port, `viteConfig`.                  |
 | `.ladle/vite.config.ts` | Resolves the `@/` alias to `src/` (Ladle relocates Vite's root).                      |
-| `.ladle/i18n.ts`        | Self-contained i18next with en/fr bundled (the app loads over HTTP, Ladle has no backend). |
+| `.ladle/i18n.ts`        | Self-contained i18next over the committed English snapshot, English only (Ladle talks to no API). |
 | `.ladle/components.tsx` | The **global decorator**: React Query + Helmet + a `MemoryRouter` + `<I18nextProvider>`. |
 
 **Theme and canvas.** Ladle's theme toggle drives the **whole canvas** — the

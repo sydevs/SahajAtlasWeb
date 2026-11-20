@@ -346,5 +346,6 @@ export function useEventDisplay(event: DisplayableEvent): EventDisplayStrings {
       contactHelper,
       blockedMessage,
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- `minute` is the invalidation trigger: the resolver reads the wall clock itself
   }, [event, locale, t, minute])
 }

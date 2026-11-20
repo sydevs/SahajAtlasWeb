@@ -189,6 +189,11 @@ export const queryClient = new QueryClient({
       // That replay would be refused anyway, or worse, it could send the report twice.
       // A `retry` value added to `queries` above must never be assumed to cover mutations too.
       retry: 0,
+      // React Query's default, `'online'`, PAUSES a mutation fired while the browser reports itself offline.
+      // It makes no request and calls no `onError`, so the form spins with nothing to say.
+      // It then sends by itself on the `online` event, after the visitor may have left or sent a second one.
+      // `'always'` makes the attempt and lets it fail, which is the state each form's failure copy describes.
+      networkMode: 'always',
     },
   },
 })

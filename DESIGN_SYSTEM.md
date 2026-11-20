@@ -106,12 +106,13 @@ Radix-wrapping atoms carry their own `isInvalid` `tv()` variant.
 | -------------------- | ------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `ActionRow/`         | `ActionRow`, `ActionCircle`                                                                | The labelled tonal-circle action row under an event's Register CTA. Always one line. Metrics assume a **four-action max**, with width-capped columns so a short set clusters instead of sprawling |
 | `ActiveFilterPills/` | `ActiveFilterPills`                                                                        | Removable pills for the active URL filters |
+| `AddToCalendar/`     | `AddToCalendar`                                                                            | The "Add to calendar" menu on the registration confirmation: one link-out row per calendar provider plus an `.ics` download, on Radix DropdownMenu with `menuChrome`. Reached only through the lazy registration chunk, so **not** in the barrel |
 | `EventActions/`      | `EventActions`                                                                             | The secondary action row under an event's Register CTA (directions/calendar/contact/share), set per resolver state |
 | `EventChips/`        | `EventChips`                                                                               | The shared triage chips (type · language(s) · Today). `variant="compact"` trims the redundant ones for the list card. Used by both the list card and the top of the event body, so the two never drift |
 | `EventListItem/`     | `EventListItem`                                                                            | Per-event row in an event list (title, facts, chips) |
-| `EventFacts/`        | `EventFacts`, `EventSummary`                                                               | The shared calendar/location fact block. `variant="compact"` for result cards. `variant="card"` is the boxed details card, wrapped by `EventSummary` (title + embed backlink) on the share/registration drawers |
+| `EventFacts/`        | `EventFacts`                                                                               | The shared calendar/location fact block. `variant="compact"` for result cards. `variant="card"` is the boxed details card, headed by its `title`, on the share and registration drawers                         |
 | `EventMetadata/`     | `EventMetadata`                                                                            | Schema.org / OG `<head>` tags (Helmet). Renders no visible UI, so it has **no story** |
-| `Fallbacks/`         | `LoadingFallback`, `ErrorFallback`, `FallbackPanel`, `ResetErrorBoundary`, `CENTERED_BODY` | **Every state that leaves a viewer with no content**, from one table (issue #89). `ERROR_POLICY`, its narrowing function `visibleActions`, the action row, and the display hooks stay **module-private** (tests reach them by module path). Exporting any of them would let the next view hand-roll its own panel — the drift #89 removed. `ERROR_POLICY` maps each `FallbackKind` to its localized copy, its `color` register, and its controls (`retry`/`onward`/`search`/`clearFilters`/`contact`/`report`). A `FallbackKind` is one of the five classified failures (`classifyError`, `src/lib/report.ts`), or a way a list can legitimately come back empty. `FallbackPanel` is the shared body. A dead link, a broken query, and an empty list read one component and one row, rather than three components agreeing by hand. `visibleActions` narrows by surface (no boundary to reset, nowhere to navigate, a geocoder already in the chrome) and never strands a viewer. `align` gives two postures: `center` for a drawer whose whole content the panel replaces, and `start` for list views, standing in for content that begins top-left. The onward rung renders inside the banner (`OnwardLink`), since it continues the sentence. The actions sit outside it, since they act on the screen. `ErrorFallback` is the whole-widget screen. `views/fallbacks.tsx` adds the drawer's chrome |
+| `Fallbacks/`         | `LoadingFallback`, `ErrorFallback`, `FallbackPanel`, `ResetErrorBoundary`, `CENTERED_BODY` | **Every state that leaves a viewer with no content**, from one table (issue #89). `ERROR_POLICY`, its narrowing function `visibleActions`, the action row, and the display hooks stay **module-private** (tests reach them by module path). Exporting any of them would let the next view hand-roll its own panel — the drift #89 removed. `ERROR_POLICY` maps each `FallbackKind` to its localized copy, its `color` register, and its controls (`retry`/`onward`/`search`/`clearFilters`/`contact`/`report`). A `FallbackKind` is one of the classified failures (`classifyError`, `src/lib/report.ts`), or a way a list can legitimately come back empty. `FallbackPanel` is the shared body. A dead link, a broken query, and an empty list read one component and one row, rather than three components agreeing by hand. `visibleActions` narrows by surface (no boundary to reset, nowhere to navigate, a geocoder already in the chrome) and never strands a viewer. `align` gives two postures: `center` for a drawer whose whole content the panel replaces, and `start` for list views, standing in for content that begins top-left. The onward rung renders inside the banner (`OnwardLink`), since it continues the sentence. The actions sit outside it, since they act on the screen. `ErrorFallback` is the whole-widget screen. `views/fallbacks.tsx` adds the drawer's chrome |
 | `FormField/`         | `FormField`, `fieldErrorId`, `fieldHelpId`, `fieldDescribedBy`                             | Label + control + help/error shell shared by the registration and report forms. Owns the required marker and the `aria-describedby` id convention |
 | `ImageCarousel/`     | `ImageCarousel`, `Slide`                                                                   | Generic Swiper carousel (`slides`). Folds in the lazy YARL lightbox (own chunk) |
 | `List/`              | `List`, `listRow`                                                                          | Scrollable `<ul>` for region/event rows. `listRow` is the shared row chrome and gutter |
@@ -131,6 +132,7 @@ Radix-wrapping atoms carry their own `isInvalid` `tv()` variant.
 | `EventsList/`          | `DynamicEventsList`                                                    | Distance-sorted fetch. The presentational `EventsList` is module-private (single-use) |
 | `EventDetails/`        | `EventDetails`, `EventHeader`, `EventRegisterBar`, `EventSurfaceProps` | The event panel family — chips → facts → Register → actions → About → images. Takes `EventSurfaceProps` (`{ event, basePath }`). Lazy-loaded, **not** in the tier barrel. `EventHeader` is the pinned title alone (the chips lead the body). The secondary action row is the `EventActions` molecule |
 | `RegistrationForm/`    | `RegistrationForm`                                                     | Form-only, config-driven registration (field chrome is private). Rendered in the RegistrationView drawer body. **Not** in the barrel |
+| `ReportIssueForm/`     | `ReportIssueModal`                                                     | The report-an-issue dialog. `ReportIssueModal` is the one mounted host, in `App` outside the app boundary so the error fallbacks can open it; the form inside is module-private. In the barrel, and in the eager graph |
 
 **Views** — `src/views/` holds the URL-driven drawer views (`DrawerStack` +
 `CountriesView`/`SearchView`/`RegionView`/`OnlineView`/`EventView`/
@@ -203,6 +205,13 @@ Folder-per-component, not re-exported through the component barrels.
   so a barrel import doesn't pull it back into the static graph. Such components —
   and any reached only through them (`RegistrationForm`) — are imported by direct
   folder path. See `organisms/index.ts`.
+- **Eager-shell exception:** the two entries (`Widget.tsx`, `main.tsx`), `App.tsx` and
+  every module they import statically take a component by its folder path, never
+  through a tier barrel. The
+  bundler places a module by which entries can reach it, not by which exports they
+  use, so one barrel import puts everything the barrel re-exports in the first
+  download, components only the lazily-loaded interface renders included. `src/Widget.standalone.test.ts` pins the shell's
+  barrels and its packages, because `pnpm size` keeps headroom that hides this.
 - Component folders and files are **PascalCase** (`Chip/Chip.tsx`). Non-component
   files stay kebab-case (hooks `use-x.ts` exporting `useX`, config, types, pages,
   layouts). Zustand stores are plain `useX` hooks (see [`src/AGENTS.md`](src/AGENTS.md)).
@@ -215,9 +224,9 @@ Folder-per-component, not re-exported through the component barrels.
   ours — e.g. a wrapper aliases the primitive's props as `RadixXProps` so our exported
   type stays `ChipProps`.
 - **Prop-naming rule:** state/behavior booleans use `isX` (`isOpen`), with
-  `showX` / `hideX` accepted for visibility toggles (`showTimeZone`). Event
+  `showX` / `hideX` accepted for visibility toggles (`showDistance`). Event
   handlers use `onX` (`onClose`). A prop that forwards a router link uses
-  `href` / `backHref`. A prop that passes a zod/schema field through keeps that
+  `href`. A prop that passes a zod/schema field through keeps that
   field's name (`online`, matching the `Event` schema) instead of inventing `isX`.
 - Use an **`interface`** for a plain object shape. Use a **`type`** when composing
   with `&` (extending a primitive's or a DOM element's props). Don't inline

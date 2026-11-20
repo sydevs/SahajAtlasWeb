@@ -1,3 +1,6 @@
+import type { Client as SahajCloudClient } from '@/types/payload/payload-types'
+import type { PartialZodShape } from './zod-shape'
+
 import z from 'zod'
 
 import { RegionRefSchema } from './region-ref'
@@ -18,7 +21,10 @@ import { RegionRefSchema } from './region-ref'
 // serving an iframe. That is the whole argument for `src/loader/detect.ts`.
 export const ClientSchema = z.object({
   id: z.number(),
-  name: z.string().nullish(),
+  // The public name of the service, which `EventMetadata` names as the JSON-LD organizer.
+  // SahajCloud leaves it empty to mean "use the site's domain", so empty is an answer and the
+  // organizer is omitted. `label` is the internal name and is deliberately not read.
+  title: z.string().nullish(),
   color1: z.string().nullish(),
   color2: z.string().nullish(),
   color3: z.string().nullish(),
@@ -38,9 +44,8 @@ export const ClientSchema = z.object({
    */
   canonical: z
     .object({
-      enabled: z.boolean().nullish(),
       embed: z.string().nullish(),
-    })
+    } satisfies PartialZodShape<NonNullable<SahajCloudClient['canonical']>>)
     .nullish(),
-})
+} satisfies PartialZodShape<SahajCloudClient>)
 export type Client = z.infer<typeof ClientSchema>

@@ -24,13 +24,12 @@ cover everything a host would notice since the widget was first deployed.
 ### Removed
 
 - ⚠ **BREAKING: `sahajatlas.pages.dev` is no longer a supported origin.** ([#283]) Load the
-  script from `https://sahajatlas.com`, which serves the identical bundle. If your snippet's
+  script from `https://sahajatlas.com`, the one origin that serves the bundle. If your snippet's
   `src`, or your CSP's `script-src` and `font-src`, name the `pages.dev` host, point all three at
   `https://sahajatlas.com`. The guide used to offer that host as a second origin and no longer
-  does. ⚠ **The old host is withdrawn, not redirected**: what it still answers with is a frozen
-  copy, and once the project behind it is deleted it answers with nothing — Cloudflare reserves
-  no released `pages.dev` name, so anybody may then take it. Treat a script still loaded from
-  there as a third party either way.
+  does. ⚠ **The old host is gone, not redirected**: the project behind it was deleted on
+  2026-10-30, and Cloudflare reserves no released `pages.dev` name, so anybody can claim it now.
+  A snippet or a CSP that still names it trusts whoever does: a third party, not us.
 
 - ⚠ **BREAKING: the `sahaj-atlas-style` style tag is gone.** ([#236]) The widget's stylesheet
   moved into its shadow root, so there is no longer a `<style>` element in your `<head>` to
@@ -58,6 +57,14 @@ cover everything a host would notice since the widget was first deployed.
   fetched and ran Mapbox GL's script — about 510 KiB gzipped, from `sahajatlas.com` — even with
   no map to draw. It now loads only when a map renders, and a map embed starts it at the same
   moment as before. **No parameter, origin, CSP or Permissions-Policy change.**
+
+- **The widget's first download is about 44 KiB gzipped smaller** ([#442]), 336 → 292 KiB for the embed.
+  The filter form, the settings menu and the class cards were riding in it, though only the open
+  interface draws them. They now arrive with the interface, which was already a separate
+  download, so the loading state paints sooner and a compact card nobody opens never fetches
+  them. The animation library also ships without the drag and layout engines nothing here used.
+  Nothing looks or behaves differently, and there is nothing to change in your snippet or your
+  CSP.
 
 - **Every control the widget draws now answers to a 44px tap on a phone, and says what it is.**
   ([#432]) Nothing moves on a desktop: the small controls keep the size they are drawn at and
@@ -476,6 +483,33 @@ no-referrer`.
   opens — so there was no way to discover this from the widget. See [Permissions Policy].
 
 ### Fixed
+
+- **An event's structured data now names your organization as the organizer.** ([#442]) The widget
+  reads that name from the public name on your client record, and had been reading a field the
+  CMS does not have, so `schema.org/Event` carried no `organizer` for any host. Set the public
+  name on your record to have it appear; leave it empty and the organizer is omitted, as before.
+  Nothing to change in your snippet or your CSP.
+
+- **A map that opens in Japanese now asks Mapbox for its Japan worldview** ([#442]), which decides how
+  disputed borders are drawn. The widget picks a worldview by the language it starts in, and
+  Japanese was listed under a code no locale uses, so those visitors got the default (US) one.
+  Chinese and the Indian languages already had theirs and are unchanged. The worldview is picked
+  when the map is built, so switching language mid-visit still does not redraw a border. Nothing
+  to change in your snippet or your CSP.
+
+- **A cluster tapped after the bottom sheet moved now zooms in around where the sheet is.** ([#442]) On a
+  phone, a view that leaves the camera alone — the calendar, or the online classes opened from
+  another view — kept the spacing from before the sheet was dragged, so the tap could zoom the
+  cluster in under the sheet, or far above it, until the map was next moved by hand. Nothing to
+  change in your snippet or your CSP.
+
+- **Registering with no connection now fails and says so, instead of spinning.** ([#442]) A visitor whose
+  browser was offline when they pressed Register got a button that spun with no message, and the
+  registration was then sent by itself once the connection came back, for as long as the page
+  stayed open — after they might have given up, or registered a second time. The attempt is now
+  made straight away, the form reports "You appear to be offline.", and nothing is left waiting
+  to send later. The report form already behaved this way. Nothing to change in your snippet or
+  your CSP.
 
 - **Closing a dialog puts the keyboard back on the control that opened it.** ([#432]) The
   "Report an issue" dialog returned focus to the top of your page instead, so a keyboard viewer
@@ -1185,5 +1219,6 @@ must-revalidate`, pinned rather than left to the CDN default. The production dom
 [#424]: https://github.com/sydevs/SahajAtlasWeb/pull/424
 [#428]: https://github.com/sydevs/SahajAtlasWeb/issues/428
 [#432]: https://github.com/sydevs/SahajAtlasWeb/issues/432
+[#442]: https://github.com/sydevs/SahajAtlasWeb/pull/442
 [#445]: https://github.com/sydevs/SahajAtlasWeb/pull/445
 [#450]: https://github.com/sydevs/SahajAtlasWeb/pull/450

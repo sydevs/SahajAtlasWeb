@@ -25,7 +25,7 @@ vi.mock('@tanstack/react-query', async (importOriginal) => ({
 }))
 // Mocked so the import chain never reaches `config/i18n`, which boots i18next on import.
 vi.mock('@/config/api', () => ({
-  default: { getGeojson: () => Promise.resolve(undefined) },
+  geojsonQuery: () => ({ queryKey: ['geojson'] }),
   regionsQuery: () => ({ queryKey: ['regions'] }),
 }))
 

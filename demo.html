@@ -49,7 +49,7 @@
       placeholder rather than a value.
     -->
     <script
-      src="http://localhost:4173/auto.js?key=REPLACE_WITH_VITE_SAHAJCLOUD_API_KEY&locale=fr"
+      src="http://localhost:5174/auto.js?key=REPLACE_WITH_VITE_SAHAJCLOUD_API_KEY&locale=fr"
       type="module"
     ></script>
 
@@ -80,16 +80,18 @@
           }
         </style>
         <script
-          src="http://localhost:4173/auto.js?key=…&map=false&atlas=/507/register"
+          src="http://localhost:5174/auto.js?key=…&map=false&atlas=/507/register"
           type="module"
         ></script>
 
-      Style-scoping caveat (honest limits): the widget is deliberately
-      shadow-DOM-free — its theme is scoped to a wrapper div and its CSS is
-      injected by JS — so "no style inheritance from the host page" is
-      approximate, not a hard guarantee. Aggressive host CSS (e.g. global
-      `button { … }` rules) can still bleed in; a hard boundary would need
-      shadow DOM, which conflicts with the widget's portal/drawer architecture.
+      Style boundary: the widget renders inside an open shadow root (#236), and its
+      stylesheet is adopted by that root rather than added to this document. A selector
+      in the host page's CSS cannot match an element inside it at any specificity, so a
+      global `button { … }` rule does not reach the widget. Two things still cross:
+      inherited properties arrive from `<sahaj-atlas>` as they do at any element, and a
+      host rule aimed at `sahaj-atlas` itself sets that element's own box. Children the
+      host puts inside `<sahaj-atlas>` never paint. docs/embedding.md § "What the widget
+      does to your page" is the full statement.
     -->
   </body>
 </html>

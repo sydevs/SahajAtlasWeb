@@ -1,7 +1,7 @@
-import { QueryClient, QueryObserver } from '@tanstack/react-query'
-import { describe, it, expect, vi } from 'vitest'
+import { QueryClient, QueryObserver, environmentManager } from '@tanstack/react-query'
+import { afterEach, beforeEach, describe, it, expect, vi } from 'vitest'
 
-import { eventTitlesQuery, eventsQuery, regionsQuery } from '@/config/api'
+import { eventTitlesQuery, eventsQuery, geojsonQuery, regionsQuery } from '@/config/api'
 import { WHOLESALE_GC_TIME } from '@/config/query-client'
 import { DEFAULT_FILTERS } from '@/lib/shape'
 
@@ -81,9 +81,54 @@ describe('the wholesale factories carry their retention pin', () => {
   // This checks the FACTORIES, not the constants.
   // A `gcTime` that is defined but never wired into the query contract reads exactly like one that is.
   // The default, 5 minutes, would then quietly evict the caches the whole fetch-once architecture is built on.
-  it('pins the region tree and the titles sliver for the session', () => {
+  it('pins the feed, the region tree and the titles sliver for the session', () => {
+    expect(geojsonQuery().gcTime).toBe(WHOLESALE_GC_TIME)
     expect(regionsQuery().gcTime).toBe(WHOLESALE_GC_TIME)
     expect(eventTitlesQuery('en').gcTime).toBe(WHOLESALE_GC_TIME)
+  })
+
+  // React Query keeps the longest `gcTime` any writer of a key has stated, and the first writer
+  // is whoever asks first. A screen that leaves the pin to the loader builds an entry on the
+  // 5-minute default, which holds until the loader next fetches for itself.
+  describe('when a screen, not the loader, builds the feed entry', () => {
+    const feed = { type: 'FeatureCollection' as const, features: [] }
+
+    /** Mounts and unmounts one observer, then idles for ten minutes. */
+    const idleAfter = async (overrides: { gcTime?: number } = {}) => {
+      const client = new QueryClient()
+      const observer = new QueryObserver(client, {
+        ...geojsonQuery(),
+        queryFn: async () => feed,
+        ...overrides,
+      })
+      const unsubscribe = observer.subscribe(() => {})
+
+      await vi.advanceTimersByTimeAsync(0)
+      unsubscribe()
+      await vi.advanceTimersByTimeAsync(10 * 60 * 1000)
+
+      return client.getQueryData(geojsonQuery().queryKey)
+    }
+
+    beforeEach(() => {
+      // To React Query the node lane is a server, where an unpinned entry is never collected.
+      // The 5-minute default is a browser's, so these two cases run as one.
+      environmentManager.setIsServer(() => false)
+      vi.useFakeTimers()
+    })
+
+    afterEach(() => {
+      vi.useRealTimers()
+      environmentManager.setIsServer(() => typeof window === 'undefined')
+    })
+
+    it('holds the feed past the default window', async () => {
+      expect(await idleAfter()).toBe(feed)
+    })
+
+    it('proves the guarantee is the pin — the default has collected it by then', async () => {
+      expect(await idleAfter({ gcTime: undefined })).toBeUndefined()
+    })
   })
 
   it('keeps the titles sliver per-locale, so a language switch refetches only it', () => {

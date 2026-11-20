@@ -1,3 +1,6 @@
+import type { Region as SahajCloudRegion } from '@/types/payload/payload-types'
+import type { PartialZodShape } from './zod-shape'
+
 import z from 'zod'
 
 import { EventSlimSchema } from './event'
@@ -27,7 +30,7 @@ export const RegionNodeSchema = z.object({
   parent: z.number().nullish(),
   webPath: z.string().nullish(),
   webUrl: z.string().nullish(),
-})
+} satisfies PartialZodShape<SahajCloudRegion>)
 export type RegionNode = z.infer<typeof RegionNodeSchema>
 
 // Derived list item for a region shown under a parent (country/region page) or in

@@ -78,8 +78,9 @@ export function LoadingFallback({ unboxed = false }: LoadingFallbackProps) {
 }
 
 /**
- * This covers every state that leaves a viewer looking at no content. That is the five
- * classified failures, plus the three ways a list can legitimately end up empty.
+ * This covers every state that leaves a viewer looking at no content. That is the
+ * classified failures (`ErrorKind`), plus the other states this union names, among
+ * them the ways a list can legitimately end up empty.
  *
  * The empty states are NOT errors. Nothing throws to produce them. They share this table
  * because they share the screen. A region whose programs have all ended, and a URL that
@@ -102,10 +103,9 @@ export type FallbackPolicy = {
   /** `common` namespace key for the sentence shown in place of the thrown string. */
   messageKey: string
   /**
-   * English text for when that key cannot resolve. Nothing is bundled. Every namespace
-   * loads over HTTP. So a failure before the locale JSON arrives would otherwise show
-   * the raw key, like "error.offline", to the viewer. A network failure never recovers
-   * this way. The JSON travels the same link that just broke.
+   * English text for when that key cannot resolve. The English snapshot is bundled
+   * (`config/i18n.ts`), so that is a key the snapshot does not hold, where the viewer
+   * would otherwise read the raw key, like "error.offline".
    */
   fallbackText: string
   /**
@@ -393,10 +393,12 @@ export type FallbackValues = Record<string, string | number>
  * states, which have nothing to classify, can reach the same table by naming their kind
  * directly.
  *
- * `useSuspense: false`, because this can render before any locale JSON arrives. An
- * embed with no API key throws on the very first render. Suspending HERE would push the
- * tree back to the parent's loading fallback, and show nothing at all. An untranslated
- * label beats a blank widget, when the whole point is to show the failure.
+ * The read cannot suspend: the English snapshot is bundled and i18next initialises
+ * synchronously (`config/i18n.ts`). That has to hold, because this can render before
+ * SahajCloud's copy arrives. An embed with no API key throws on the very first render.
+ * Suspending HERE would push the tree back to the parent's loading fallback, and show
+ * nothing at all. An untranslated label beats a blank widget, when the whole point is to
+ * show the failure.
  */
 export function useFallbackDisplay(kind: FallbackKind, values?: FallbackValues) {
   const { t } = useTranslation()
@@ -410,7 +412,7 @@ export function useFallbackDisplay(kind: FallbackKind, values?: FallbackValues) 
 
   return {
     policy,
-    // `defaultValue` makes an unloaded namespace render English, not the raw
+    // `defaultValue` makes a key that cannot resolve render English, not the raw
     // key. See `fallbackText`.
     message: t(policy.messageKey, { ...values, defaultValue: policy.fallbackText }),
   }
@@ -635,10 +637,10 @@ export function FallbackActions({
   onClearFilters,
   align = 'center',
 }: FallbackActionsProps) {
-  // `useSuspense: false`, for the same reason `useFallbackDisplay` sets it:
-  // this can render before any locale JSON arrives. `defaultValue` on each label,
-  // for the same reason again. A raw "error.retry" on a button is worse than an
-  // untranslated one.
+  // Like `useFallbackDisplay`, this can render before SahajCloud's copy arrives, and
+  // reads the bundled English snapshot without suspending. `defaultValue` on each
+  // label covers a key the snapshot lacks. A raw "error.retry" on a button is worse
+  // than an untranslated one.
   const { t } = useTranslation()
   const openReport = useReportModal((state) => state.openReport)
 
@@ -991,8 +993,8 @@ export function FallbackPanel({
     offer,
   }
 
-  // Only the rows that can SHOW a rung pay the cost of resolving one. Six of
-  // the eleven policy rows set `onward: false`, and `country-site` brings its
+  // Only the rows that can SHOW a rung pay the cost of resolving one. Eight of
+  // the fourteen policy rows set `onward: false`, and `country-site` brings its
   // own rung. Three of those rows — the two empty-list rows and the country
   // offer — render during normal operation, not just on failure. There, the
   // ladder's cache reads and region scan would be pure waste. Hook order is
@@ -1044,15 +1046,18 @@ export type ResetErrorBoundaryProps = ErrorBoundaryProps & {
  * nothing. Pairing every boundary with `QueryErrorResetBoundary`'s `reset` fixes that.
  * Wiring it here means a new boundary cannot be added without it (issue #89).
  *
- * This deliberately does NOT bundle a `Suspense`. The five call sites nest one
+ * This deliberately does NOT bundle a `Suspense`. Its call sites nest one
  * differently: outside the boundary, inside it, or not at all. Normalizing that would
  * move loading states nobody asked to move.
  *
  * **This is also where an ordinary boundary trip becomes telemetry** (issue #108).
- * Reporting lives here for the same reason `reset` does. Every boundary in the app
- * goes through this component, so one wiring covers all of them. A boundary added
- * later cannot forget to report here. Six hand-written `onError` props would instead
- * drift the moment one call site got copied without it. Before this component
+ * Reporting lives here for the same reason `reset` does. One wiring covers every
+ * boundary that goes through this component, and one added through it later cannot
+ * forget to report. ⚠ Not every boundary does. `RootBoundary`, the report-modal host
+ * in `App.tsx` and `FallbackPanel`'s floor are bare `ErrorBoundary`s that report by
+ * hand. The one inside `ReportIssueModal` and `MapSearch`'s `GeocoderBoundary` report
+ * nothing. A hand-written `onError` prop per call site would instead drift the moment
+ * one call site got copied without it. Before this component
  * existed, the seam had five callers. Every one of them was a failure the code had
  * already caught and worked around by hand: a refused href, an unclaimable fragment, a
  * recovery ladder that could not resolve a rung, the fallback-of-the-fallback. Not one

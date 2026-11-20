@@ -475,6 +475,12 @@ Deliberately left on `document`: `getDirection`, which reads the HOST page's `<h
 UI this app hides or never registers — the date picker, the view dropdown, the year grid's day
 modal, and the resize handler only `isResponsive` registers.
 
+**`pnpm.overrides` also holds `undici`, which pins no patch.** It is a security floor for
+build tooling: `wrangler`'s `miniflare` pins `undici` to one exact version that carries known
+advisories, and no patch release can lift an exact pin. `pnpm audit` reports them the moment
+the override goes. Nothing here ships `undici` to a browser. Remove it once `pnpm audit` stays
+clean with the override gone.
+
 ⚠ **The margin means nothing inside the dialog may size itself off the viewport.**
 Every drawer, peek strip, and sheet is `position: fixed`, so `100dvh` is only right
 while nothing has taken the containing block — and the dialog takes it, 16–32px
@@ -540,6 +546,9 @@ this table or the folklore it fixes. On the frame itself both are deliberate, an
   several files). `src/views/` holds the route screens. App code imports from the
   tier barrels. Components import each other by component-folder path. See
   `DESIGN_SYSTEM.md`.
+  ⚠ **The eager shell imports by component-folder path too** — `DESIGN_SYSTEM.md`,
+  "Eager-shell exception", says which modules and why, and `Widget.standalone.test.ts`
+  fails on a barrel import there.
 - **Explicit named exports — no `export *`.** Every component and tier barrel lists
   exactly what it surfaces: the primary component(s) plus the `<Name>Props` type.
   Keep single-use internals (private modals, row primitives, helper sub-cards)
@@ -629,10 +638,14 @@ the carousel actually autoplays.
 **The rest of the app's motion is off under that preference too, through three
 seams — one per animation technology** (issue #102):
 
-- **framer-motion** — `MotionConfig` in `src/providers.tsx` covers every `motion.*`
+- **framer-motion** — `MotionConfig` in `src/providers.tsx` covers every `m.*`
   in the tree, driven by `usePrefersReducedMotion()`, NOT framer's own
   `reducedMotion="user"` (which reads the media query once at mount and misses a
   mid-session change).
+  ⚠ **Write `m.*`, never `motion.*`** — lint refuses the import. `motion` bundles every
+  framer-motion feature into the eager graph, where `m` draws only the features the same
+  file's `LazyMotion` loads. ⚠ An `m.*` rendered outside `Providers` never leaves
+  its `initial` values, so a spec or story that mounts one goes through `Providers`.
 - **vaul's drawers** animate in CSS, so an additive
   `@media (prefers-reduced-motion: reduce)` block at the foot of
   `src/styles/vaul.css` kills both `animation` and `transition` — vaul's own

@@ -74,8 +74,8 @@ which is the simplest correct state.
   Actions secrets above, and it is still the only one a **deploy** build reads.
 
 (`ACCENT_API_KEY` used to live here, for the Accent translation-sync workflows. Those were
-deleted in #99 — see `AGENTS.md` → Deployment — so nothing in this repo reads that secret now,
-and it can be revoked.)
+deleted in #99 — see `docs/rules/deployment.md` → "Retired: the Accent translation workflows" —
+so nothing in this repo reads that secret now, and it can be revoked.)
 
 ## Runbook — provisioning Sentry source-map upload (issue #130)
 

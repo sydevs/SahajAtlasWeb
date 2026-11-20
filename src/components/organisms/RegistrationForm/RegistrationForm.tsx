@@ -314,7 +314,7 @@ export function RegistrationForm({
 
   useEffect(() => {
     if (initialRefusal) flagRefusal(initialRefusal, false)
-    // Mount-only: the story's refusal never changes.
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- mount-only: the story's refusal never changes
   }, [])
 
   const mutation = useMutation({

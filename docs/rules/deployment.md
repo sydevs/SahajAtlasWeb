@@ -1,5 +1,5 @@
 ---
-description: Deploy topology (Cloudflare Workers), the `public/` deploy files, the source-map policy, and the deploy-side CI gates.
+description: Deploy topology (Cloudflare Workers), the `public/` deploy files, the source-map policy, the deploy-side CI gates, and the rollback runbook.
 paths:
   - 'public/_headers'
   - 'public/_redirects'
@@ -12,6 +12,7 @@ paths:
   - 'scripts/deploy-headers.test.ts'
   - 'scripts/wrangler-config.test.ts'
   - '.github/workflows/*.yml'
+  - '.github/dependabot.yml'
 ---
 
 # Deployment
@@ -82,10 +83,10 @@ Two deploy files live in `public/`, copied into both build outputs, and both gov
   there. Read this file before you change either of the two.
 
 **The deep-link fallback is `assets.not_found_handling`, not a file.** The standalone
-`BrowserRouter` build needs one — `/search` and `/countries/:code` are real paths — while the
+`BrowserRouter` build needs one — `/search` and `/gb/london` are real paths — while the
 embeddable widget routes off a query parameter on the host's page and needs none.
 `public/_redirects` (`/* /index.html 200`) carried it for the Pages app until #283 deleted the
-file; the Pages project itself goes later, as above.
+file, and then the Pages project itself, as above.
 ⚠ **Workers static assets do read `_redirects`, and reject that splat** as an infinite loop
 (API code 100324), failing the whole deploy — and `pnpm check:wrangler` cannot catch it, since
 the dry run never reaches the API. So `pnpm build:worker` and `pnpm ladle:build` each still end
@@ -157,6 +158,93 @@ Each is built so passing proves something real:
   names a missing directory and reads like a broken gate.
   `scripts/wrangler-config.test.ts` pins which configs the gate names, since a script that
   dry-runs one of them exits 0.
+
+**Every third-party action this repo's workflows name is pinned by commit SHA**, with its
+version in a comment on the same line, and `scripts/ci-workflows.test.ts` fails on a tag in any
+workflow here. `.github/dependabot.yml` is what moves a pin: weekly, GitHub Actions only, one pull
+request per action titled `ci: bump …`, which rewrites the SHA and that comment together. The two
+`sydevs/claude-workflow` workflows follow `@main` on purpose and are exempt from both.
+⚠ **Those two run third-party actions of their own, by tag**, and one of them is called with
+`secrets: inherit`. A moved
+tag there runs in this repo's CI while the pin spec stays green. Pinning them is a change in
+sydevs/claude-workflow.
+⚠ **A run Dependabot triggers reads Dependabot secrets, never Actions secrets.** Until the
+secrets the Smoke job gates on are entered under both, each of those pull requests fails Smoke,
+with `dependabot` as its stated reason: the advice for a missing Actions secret would be false
+there. Entering them is a decision, not a chore: the bumped action then runs in a job
+holding the Cloudflare token before anyone has read the bump.
+⚠ A `cloudflare/wrangler-action` bump also moves the commit the guard step's comment in `ci.yml`
+read the action's outputs at: re-read them before merging it.
+
+## Rolling production back
+
+⚠ **Not rehearsed.** These steps are read off Cloudflare's documentation as of 2026-11-19 and off
+wrangler 4.150.0's own `--help`. Nobody has run them against this account. The first person who
+does confirms each step and deletes this note.
+
+**How a responder learns production is red.** `production-smoke.yml` reads `sahajatlas.com` after
+each production build of `sahajatlas-web`. A red read opens an issue labelled `production-red`, or
+comments on the open one (`docs/testing.md` § "A red run files its own ticket"). The lane sees only
+what the smoke specs read, so a fault they cannot see arrives another way. The steps are the same.
+
+1. **Read the failing run first.** A rollback restores an earlier build. It does not undo a zone
+   setting, or a variable on the Workers Builds trigger that the next build reads again.
+
+2. **Find the last good version**: the one the deployment before the faulty one served. In the
+   dashboard, Workers & Pages → `sahajatlas-web` → Deployments. Or, from the repo root, with a
+   Cloudflare login, the ten most recent deployments and their version IDs:
+
+   ```bash
+   pnpm exec wrangler deployments list --config wrangler.jsonc
+   ```
+
+3. **Roll back to it.** In the dashboard, the three-dot menu on that version → Rollback. Or:
+
+   ```bash
+   pnpm exec wrangler rollback <version-id> --config wrangler.jsonc --message "<why>"
+   ```
+
+   ⚠ **Always pass the version ID.** With none, wrangler takes "the version uploaded before the
+   latest version", and every pull-request push uploads a version to this Worker (`ci.yml`), so
+   that default can be a pull request's preview build. For the same reason, choose a version that
+   was deployed before, never one that was only uploaded: a preview is built with the preview's
+   variables.
+
+4. **Open a revert pull request at once.** Workers Builds builds and deploys `main` on every push
+   to it, so the next merge ships the fault again over the rollback. Merging the revert deploys a
+   fresh build, and that build's check run fires the smoke lane by itself.
+
+5. **Confirm.** A rollback is not a build, so nothing fires the lane. Run it by hand — Actions →
+   Production Smoke → Run workflow, or `gh workflow run production-smoke.yml` — and close the
+   `production-red` issue once it is green. Nothing else closes it.
+
+**What a rollback covers.** It creates a new deployment that sends all traffic to the chosen
+version, on every route and domain of the Worker. A version holds the Worker's configuration and
+its static assets, so the earlier build's files come back whole. Cloudflare allows a rollback only
+to "the 100 most recently published versions". Its documentation does not say whether a preview
+upload counts toward that hundred, and each pull-request push makes one. The limits it lists for
+bindings do not apply: this Worker has none.
+
+**`sahajatlas-design` is a separate Worker with its own versions.** Rolling the app back leaves it
+alone. It rolls back the same way, with `--config wrangler.design.jsonc`, and no lane reads it
+after a deploy.
+
+**How long until a visitor has it.** Cloudflare gives "up to a few seconds" for a deployment
+change to reach every location. After that, `public/_headers` decides what a browser still holds:
+
+- The unhashed loader scripts revalidate on every load, so a host page's next load reads the
+  restored files.
+- `/assets/*` is `immutable`, and safely: every file there is content-hashed, so a cached copy is
+  never the wrong content for its URL.
+- `/flags/*` is cached long and carries no hash. A faulty flag a browser already holds stays until
+  its rule's `max-age` expires, whatever is deployed.
+- No rule there sets `Cache-Control` for `index.html` or any other path, so the standalone page
+  takes the platform's default. Cloudflare documents that default as
+  `public, max-age=0, must-revalidate`. Read it off the live response all the same: #148 was a
+  default nobody had read.
+
+A page that was already open keeps running the faulty build until it reloads. It can fail to load
+a further chunk meanwhile, because the restored version does not hold the faulty build's files.
 
 ## Retired: the Accent translation workflows (#99)
 
