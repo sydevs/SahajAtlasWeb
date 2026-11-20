@@ -35,8 +35,8 @@ See "The accessibility lane needs a browser, and that is not a preference" below
 
 **Coverage is measured, not gated.** `pnpm test:coverage` is the unit lane with V8 coverage on,
 and `vitest.config.ts` sets no threshold, so a run never fails on a figure. The config names
-`src/**` outright, so a source file no spec loads counts as uncovered, and leaves out what never
-ships: the generated SahajCloud types, stories and their harness, mocks, and test support.
+`src/**` outright, so a source file no spec loads counts as uncovered, and its `exclude` list
+leaves out what never ships.
 `ci.yml`'s gate job runs the lane through this script, once, and writes the totals to the job
 summary; the per-edit hook and the lean gate stay on `pnpm test:run`. ⚠ `@vitest/coverage-v8`
 is pinned exactly, because its peer range is one exact `vitest` version: bump the two together.
@@ -308,8 +308,8 @@ alert. The lane's last step opens an issue instead, and three things about it ar
   production read, and a ticket claiming production is red when nothing read it is worse than no
   ticket. `ci-workflows.test.ts` pins that gate and the token, since both fail silently.
 
-Every spec reads both hosts alike. The lane is **22 cases**, from 15 declarations — count it rather
-than trusting a figure, since `.each` makes the two differ. Measured 2026-10-06 against the 16 it
+Every spec reads both hosts alike. Count the lane rather than trusting a figure, since `.each`
+makes its cases and its declarations differ. Measured 2026-10-06 against the 16 it
 was then: all 16 passed against `sahajatlas.com`. Re-measured 2026-10-13 against the playground
 on its Worker (`PREVIEW_URL=https://design.sahajatlas.com pnpm test:smoke`, #279): **10 of the 17
 failed**, so the lane is not vacuously green. The ten are every spec that reads the app's own
@@ -452,9 +452,7 @@ stays `node` regardless.
 A spec opts in per file with a `// @vitest-environment jsdom` docblock on line 1, keeping the fast
 path fast. ⚠ **Re-measure before quoting either half of this trade — nothing checks these two
 numbers.** Measured 2026-10-13 on 4 cores, when the lane was 115 node-only files and 25 jsdom
-ones: **~20s**, and **~15s** on top, over 1714 tests. On 2026-11-19 it is 140 and 39, and the
-times were not re-taken: the machine was shared, and a figure taken under load misleads. The
-per-file opt-in is what keeps the first number from becoming the second. **Neither half is the
+ones: **~20s**, and **~15s** on top, over 1714 tests. The per-file opt-in is what keeps the first number from becoming the second. **Neither half is the
 per-edit cost** — the hook runs a slice, against the budget at the end of this file.
 
 **Reach for jsdom only when the behaviour is a re-render SSR markup cannot express, an agreement
@@ -615,8 +613,7 @@ throws AT IMPORT and the file dies before one assertion runs. It killed `source-
 the one expression, not the property, and `src/styles/fonts.ts` and `.ladle/` keep the same form
 as Vite's asset-URL idiom.
 
-**The first rule reaches `scripts/**/*.mjs` because specs import them** — ten of the seventeen on
-2026-11-19 — which puts them in the same module graph as `source-tree.ts` was — the module the defect actually killed
+**The first rule reaches `scripts/**/*.mjs` because specs import them**, which puts them in the same module graph as `source-tree.ts` was — the module the defect actually killed
 was no spec either. A `.mjs` cannot import the `.ts` reader, so its root is
 `dirname(fileURLToPath(import.meta.url))` and the lint message says so.
 
@@ -668,22 +665,9 @@ That is the hook's whole command, wall clock, not the lane, which takes ~36s. Me
 on 4 cores, median of three: **0.12s** for a lane source with no spec of its own, **6.6s** for
 `src/config/i18n.ts` (12 specs, the slowest edit in the tree), and **4.5s** for
 `src/test-support/repo-source.ts` (the widest — #289 moved it there). The slowest edit
-sits at about half the bound. Re-measured 2026-10-26, at 17 specs rather than 15: **4.2s** for the
-widest and **5.0s** for `i18n.ts`, medians of three. Both fell while the widest selection grew, so
-read the two figures as a pair taken on one machine, never as a trend. Re-measured 2026-11-01, at
-19: **5.5s** for the widest and **6.2s** for `i18n.ts`, medians of three on 4 cores. Re-measured
-2026-11-07, at 20: **4.0s** for the widest and **4.4s** for `i18n.ts`, medians of three on 4
-cores. Re-measured 2026-11-11, at 21 — `markers.outline.test.ts` reads two repo files to hold
-the fixed marker outline against the basemap surfaces it was measured from (#389): **6.5s** for
-the widest and **7.0s** for `i18n.ts`, medians of three. Re-measured 2026-11-15, at 22 —
-`assert-classic-bridge.test.ts` reads the bridge's source to compile it as its build entry is:
-**3.3s** for the widest and **4.4s** for `i18n.ts`, medians of three on 11 cores rather than 4,
-so read that pair against each other, never against the figures before it. Re-measured
-2026-11-19, still at 22, with `i18n.ts` now selecting 14 specs and `src/hooks/use-locale.ts` 13:
-**5.4s** for the widest, **5.8s** for `i18n.ts` and **5.2s** for `use-locale.ts`, medians of
-three on 4 cores while another checkout held one of them, so read all three as upper bounds. The
-slowest edit sits at about half the bound, so the ceiling is the narrower constraint of the two —
-a slot is spent long before a second is.
+sits at about half the bound, and has in every re-measurement since, on 4 cores and on 11, as the
+widest selection grew. Time the hook (below) rather than quoting a figure: the ceiling is the
+narrower constraint of the two — a slot is spent long before a second is.
 ⚠ **The 0.12s class is smaller than #289 found it**: `src/views/FullInterface.tsx` selected
 nothing until `MapFrame.test.tsx` named it as a quoted repo-relative path, and now costs **2.2s**
 per edit for the wiring pin it previously had no per-edit coverage from at all. A quoted literal
@@ -704,9 +688,7 @@ coupling the other cannot:
 
 - **Co-located** — the stem's own siblings, so `Foo.tsx` reaches `Foo.test.tsx` and
   `Foo.mount.test.tsx` but not every spec in their folder. This is what covers `scripts/`, whose
-  thirteen specs the lane indexes and whose own edits select at most four — 1.7s, the median of
-  three on 4 cores on 2026-11-19, with the build gates at 0.8 to 1.0s — or nothing at all for the
-  six of its 30 sources no spec names.
+  own edits select only their siblings, or nothing at all for a source no spec names.
 - **Referencing** — a spec that names the module. It **resolves** every quoted specifier in every
   spec rather than matching the module's name, because one module is addressed three ways and a
   spec picks whichever its own directory makes natural: `@/config/api/client`, `./client`, or the
@@ -718,14 +700,14 @@ coupling the other cannot:
   which an edit to the patch reaches only at the next `pnpm install`.
 
 **A third source selected the tree-walking specs until #293, and it was the whole floor.**
-Fifteen specs enumerate the source tree instead of importing from it — the eleven `src/`
-inventories and `source-tree.test.ts`, found because they import the shared walk (#286), plus three
-`scripts/` specs found by an enumerating call (`readdirSync(` and its kin). Nothing in them
+Some specs enumerate the source tree instead of importing from it — the `src/` inventories and
+`source-tree.test.ts`, found because they import the shared walk (#286), plus the `scripts/` specs
+found by an enumerating call (`readdirSync(` and its kin). Nothing in them
 references the file that breaks them, so no reference can select one, and until #293 every such
 spec ran on every edit. `readLane` still reports the set, because
 `select-unit-specs.test.ts` pins it as a closed list. `selectFrom` no longer takes it, and the hook
 needed no edit to stop running it — it exits before spawning vitest on an empty selection
-(`.claude/hooks/unit-test.mjs:32`), which is also what keeps this change out of `.claude/`, a
+(`.claude/hooks/unit-test.mjs`), which is also what keeps this change out of `.claude/`, a
 protected path no unattended run can write. A separate vitest project for the inventories, which
 #293 was filed with, was rejected on that: a config split and a `.claude/` edit for the same
 saving.
@@ -733,8 +715,8 @@ saving.
 ⚠ **What that gives up is per-edit immediacy, and it applies to every edit, not to a subset.** No
 edit runs an inventory now, so an unregistered viewport read, JSX anchor, Radix popper, SahajCloud
 read or `t()` key draws no immediate signal wherever it is added — `src/config/translations.test.ts`
-is selected for 7 of 472 lane sources, by reference alone. 100 of those 472 select nothing at all
-and spawn no vitest (counted 2026-11-19). The inventory that refuses the change still goes red in the lean gate
+is selected for a handful of lane sources, by reference alone, and many select nothing at all and
+spawn no vitest. The inventory that refuses the change still goes red in the lean gate
 (`.claude/skills/pr-prep/check.sh`) and in CI, so the break surfaces in the same session: the lane
 covers it, the inner loop no longer does.
 

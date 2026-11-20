@@ -195,10 +195,10 @@ The map is the heart of the app and its hottest render path. Treat it carefully.
 - **`frameSearch({})` does NOT reset to the world.** No bbox and no center means
   nothing was searched, so the camera stays put. Only the root view wants the
   whole world, and it asks by name via `reset()`.
-- **Framing moves only as needed, and flies** (zoom constants in
-  `use-map-controller-real.tsx`: `EVENT_ZOOM=15`, `REGION_MAX_ZOOM=13`,
-  `REGION_FIT_PADDING=48`, `ONLINE_ZOOM=7`. The feel is tuned by `FLY_CURVE` /
-  `FLY_SPEED` in `use-mapbox.ts`). `frameEvent` keeps the current zoom only for
+- **Framing moves only as needed, and flies** (the zoom constants — `EVENT_ZOOM`,
+  `REGION_MAX_ZOOM`, `REGION_FIT_PADDING`, `ONLINE_ZOOM` — are in
+  `use-map-controller-real.tsx`; the feel is tuned by `FLY_CURVE` / `FLY_SPEED` in
+  `use-mapbox.ts`). `frameEvent` keeps the current zoom only for
   an on-screen pin already at detail zoom, and flies in otherwise. Region fits cap at
   `REGION_MAX_ZOOM` with edge padding, so a tight region cannot over-zoom.
   Every in-app level transition — an event, a region, a search, or `restore()`

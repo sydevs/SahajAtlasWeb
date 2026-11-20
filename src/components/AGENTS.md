@@ -476,11 +476,10 @@ UI this app hides or never registers — the date picker, the view dropdown, the
 modal, and the resize handler only `isResponsive` registers.
 
 **`pnpm.overrides` also holds `undici`, which pins no patch.** It is a security floor for
-build tooling: `wrangler`'s `miniflare` declares `undici` at exactly `7.29.1`, an exact pin
-no patch release can lift, and eight advisories cover that version (four high, all fixed in
-7.30.1). `pnpm audit` reports all eight the moment the override goes. Nothing here ships
-`undici` to a browser. Remove it when `pnpm why undici` shows every consumer asking for
-7.30.1 or later by itself — `payload` already does.
+build tooling: `wrangler`'s `miniflare` pins `undici` to one exact version that carries known
+advisories, and no patch release can lift an exact pin. `pnpm audit` reports them the moment
+the override goes. Nothing here ships `undici` to a browser. Remove it once `pnpm audit` stays
+clean with the override gone.
 
 ⚠ **The margin means nothing inside the dialog may size itself off the viewport.**
 Every drawer, peek strip, and sheet is `position: fixed`, so `100dvh` is only right
@@ -547,10 +546,9 @@ this table or the folklore it fixes. On the frame itself both are deliberate, an
   several files). `src/views/` holds the route screens. App code imports from the
   tier barrels. Components import each other by component-folder path. See
   `DESIGN_SYSTEM.md`.
-  ⚠ **The eager shell imports by component-folder path too** — the two entries,
-  `App.tsx` and everything they import statically. A barrel import there carries every
-  component the barrel re-exports into the first download (`DESIGN_SYSTEM.md`,
-  "Eager-shell exception"), and `Widget.standalone.test.ts` fails on one.
+  ⚠ **The eager shell imports by component-folder path too** — `DESIGN_SYSTEM.md`,
+  "Eager-shell exception", says which modules and why, and `Widget.standalone.test.ts`
+  fails on a barrel import there.
 - **Explicit named exports — no `export *`.** Every component and tier barrel lists
   exactly what it surfaces: the primary component(s) plus the `<Name>Props` type.
   Keep single-use internals (private modals, row primitives, helper sub-cards)
@@ -645,9 +643,8 @@ seams — one per animation technology** (issue #102):
   `reducedMotion="user"` (which reads the media query once at mount and misses a
   mid-session change).
   ⚠ **Write `m.*`, never `motion.*`** — lint refuses the import. `motion` bundles every
-  framer-motion feature into the eager graph (13.2 KiB gz, measured), where `m` draws
-  the one bundle the same file's `LazyMotion` loads: `initial`, `animate`, `exit` and
-  `transition`, and nothing else. ⚠ An `m.*` rendered outside `Providers` never leaves
+  framer-motion feature into the eager graph, where `m` draws only the features the same
+  file's `LazyMotion` loads. ⚠ An `m.*` rendered outside `Providers` never leaves
   its `initial` values, so a spec or story that mounts one goes through `Providers`.
 - **vaul's drawers** animate in CSS, so an additive
   `@media (prefers-reduced-motion: reduce)` block at the foot of

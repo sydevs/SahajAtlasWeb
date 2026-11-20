@@ -45,20 +45,14 @@ moves, in the same bump as `@payloadcms/sdk`.
     read. ⚠ `WeekdaySchema`'s union is carried by two separate SahajCloud option lists, so its
     pin is an intersection of two `Record`s, each keying from one field and valuing to the
     other. One `Record` alone leaves the other field free to gain a member in silence.
-  - ⚠ **zod's own `satisfies z.ZodType<T>` does not do either job.** It pins the whole output
-    type, which every shape here fails by design — each is the subset a `select` asks for. And
-    `z.ZodType<Partial<T>>`, which admits the subset, admits an undeclared field name too.
-    `src/types/zod-shape.ts` carries this beside the type.
-- ⚠ **No schema widens the pin, and none should.** `ClientSchema` named two fields the synced
-  `Client` does not have — `name` (it has `label` and `title`) and `canonical.enabled` (it has
-  `owned`) — and admitted each through an intersection beside `satisfies PartialZodShape<T>`.
-  `/clients/me` selects through `requestJson`, which nothing type-checks, so the pin was the only
-  reader of either drift: the organizer and the report context both read `title` now, and
-  `enabled` is gone. Fix a name the pin refuses; never admit it.
+  - ⚠ **zod's own `satisfies z.ZodType<T>` does not do either job** — `src/types/zod-shape.ts`
+    says why, beside the type.
+- ⚠ **No schema widens the pin, and none should.** An intersection beside
+  `satisfies PartialZodShape<T>` admits exactly the drift the pin exists to refuse, and a read
+  through `requestJson`, which nothing type-checks, has no other reader of it. Fix a name the pin
+  refuses; never admit it.
 - **`pnpm types:cms` is `scripts/sync-cms-types.mjs`, and it fetches every file at ONE
-  commit.** It resolves `refs/heads/main` to a SHA with `git ls-remote`, fetches each file
-  at that SHA, then strips the `payload` augmentation. Fetching each file off the branch
-  name let a push land between two fetches. `pnpm types:cms <branch|tag|40-char-sha>`
+  commit.** Fetching each file off the branch name let a push land between two fetches. `pnpm types:cms <branch|tag|40-char-sha>`
   takes another commit, which is how a snapshot is reproduced.
 - **`src/types/payload/provenance.json` records that commit**, with a hash of each
   generated file. Never edit it by hand. ⚠ It moves only when a generated file does:
@@ -412,22 +406,19 @@ the shared client.
   read cannot drift. `eventsQuery(latitude, longitude, filters, locale)` carries
   the same contract for the distance-ranked results list.
 - **Query factories live in `src/config/api/index.ts`.** That module imports
-  `fetch.ts`, so a factory `fetch.ts` itself consumes has to be declared beside its
-  fetcher, or the import closes a cycle: `geojsonQuery`, `regionsQuery` and
-  `eventTitlesQuery`, each spread by its loader, and `atlasConfigQuery` and
-  `translationsQuery`, each read by a warm-up. `index.ts` re-exports the first
-  three; the last two are imported from `fetch.ts`. A factory nothing in
+  `fetch.ts`, so a factory `fetch.ts` itself consumes — spread by a loader or read by a
+  warm-up there — has to be declared beside its fetcher, or the import closes a cycle.
+  A factory nothing in
   `fetch.ts` calls has no such excuse. Declare it in `index.ts` with the rest,
   so every contract stays in one place.
 - **A wholesale cache has one contract, and every reader spreads it.**
-  `geojsonQuery()`, `regionsQuery()` and `eventTitlesQuery(locale)` each hold the
-  key, the fetcher, `staleTime` and `gcTime`. A screen adds only what is its own
-  (`enabled`, `select`). The loader adds `revalidateIfStale` and `retry: false`,
-  the one deliberate per-fetch option on these keys: a loader runs inside a query
-  that already retries. ⚠ `gcTime` sits in the contract because React Query keeps
-  the longest one any writer of a key has stated, so a reader that omits it leaves
-  the retention to whoever built the entry first. `reads.inventory.test.ts` fails
-  on one of the three keys written out anywhere but its contract.
+  The factory holds the key, the fetcher, `staleTime` and `gcTime`, and a reader adds
+  only what is its own. The loader's `retry: false` is the one deliberate per-fetch
+  option: a loader runs inside a query that already retries. ⚠ `gcTime` sits in the
+  contract because React Query keeps the longest one any writer of a key has stated,
+  so a reader that omits it leaves the retention to whoever built the entry first.
+  `reads.inventory.test.ts` names the wholesale keys and fails on one written out
+  anywhere but its contract.
 - **Read a cache-only key through its own factory.** `eventTitlesQuery(locale)` is
   shared by the loader that fetches the sliver and by the drawer's loading/error
   chrome, which reads it with `enabled: false` to name the event whose view

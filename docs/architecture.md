@@ -71,9 +71,9 @@ Host page  →  <script src="…/auto.js?key=…&locale=…&map=true|false">
 
 ## Data flow
 
-1. The loader parses six parameters off its own script URL
-   (`src/loader/config.ts`): `key`, plus optional `map`, `locale`, `routing`,
-   `atlas` and `gestures`. The widget reads them through `config/embed.ts`.
+1. The loader parses its parameters off its own script URL
+   (`src/loader/config.ts`; the host-facing list is `docs/embedding.md`
+   § Parameters). The widget reads them through `config/embed.ts`.
    The brand colours come from the client record.
 2. `App` fetches the **client** record (allowed domains, brand colours, home
    region) using React Query. It configures analytics from the first allowed
