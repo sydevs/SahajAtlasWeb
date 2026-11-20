@@ -43,6 +43,13 @@ cover everything a host would notice since the widget was first deployed.
 
 ### Changed
 
+- **A plural form a translation leaves out now falls back within that language, not to English.**
+  ([#448]) Where a language's copy in SahajCloud lacks a plural form it needs, such as the "few" or
+  "many" form of a class's session count in Ukrainian or Russian, the widget showed that one phrase
+  in English ("5 sessions") in the middle of the translated page. It now uses the same language's
+  general ("other") form. Copy with every form filled in renders exactly as before. **No parameter,
+  origin, CSP, storage or Permissions-Policy change.**
+
 - **The calendar's week view lays out staggered classes differently.** ([#450]) Its calendar library moved
   up two major versions. A class that starts after an earlier overlapping one has finished now
   takes that free column, drawn beneath the classes still running beside it, so on a busy evening
@@ -1230,3 +1237,4 @@ must-revalidate`, pinned rather than left to the CDN default. The production dom
 [#445]: https://github.com/sydevs/SahajAtlasWeb/pull/445
 [#449]: https://github.com/sydevs/SahajAtlasWeb/pull/449
 [#450]: https://github.com/sydevs/SahajAtlasWeb/pull/450
+[#448]: https://github.com/sydevs/SahajAtlasWeb/pull/448
