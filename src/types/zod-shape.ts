@@ -1,10 +1,11 @@
 import type z from 'zod'
 
 /**
- * A zod shape that names only fields the synced SahajCloud type `T` declares.
+ * A zod shape that may name only fields `T` declares.
  *
- * It is `satisfies` over `Partial<Record<keyof T, …>>`, named once rather than retyped at the
- * sixteen shapes that carry it.
+ * `satisfies PartialZodShape<T>` on a shape literal is how every schema mirroring a generated
+ * `./payload/` type is held to it, named once rather than retyped at the sixteen shapes that
+ * carry it.
  *
  * ⚠ **zod's own `satisfies z.ZodType<T>` cannot stand in here**, and neither can
  * `z.ZodType<Partial<T>>`. The first pins the whole output type, which every shape here fails by
@@ -21,6 +22,6 @@ import type z from 'zod'
  * vacuous. It gets a shape no schema satisfies instead. No type pinned today has one, and
  * `payload-types.ts` generates them elsewhere in the file.
  */
-export type SahajCloudFields<T> = string extends keyof T
-  ? { '⚠ This SahajCloud type has an index signature, so it can pin no field name.': never }
+export type PartialZodShape<T> = string extends keyof T
+  ? { '⚠ This type has an index signature, so it can pin no field name.': never }
   : Partial<Record<keyof T, z.ZodTypeAny>>

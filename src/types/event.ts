@@ -1,5 +1,5 @@
 import type { Event as CmsEvent, Image as SahajCloudImage } from '@/types/payload/payload-types'
-import type { SahajCloudFields } from './pinned'
+import type { PartialZodShape } from './zod-shape'
 
 import z from 'zod'
 
@@ -53,7 +53,7 @@ export type Weekday = z.infer<typeof WeekdaySchema>
 export const ScheduleExclusionSchema = z.object({
   startDate: z.coerce.date(),
   endDate: z.coerce.date().nullish(),
-} satisfies SahajCloudFields<NonNullable<SahajCloudSchedule['exclusions']>[number]>)
+} satisfies PartialZodShape<NonNullable<SahajCloudSchedule['exclusions']>[number]>)
 export type ScheduleExclusion = z.infer<typeof ScheduleExclusionSchema>
 
 // Offline event location (`event.address` group). All fields are nullable. The
@@ -68,7 +68,7 @@ export const EventAddressSchema = z.object({
   city: z.string().nullish(),
   latitude: z.number().nullish(),
   longitude: z.number().nullish(),
-} satisfies SahajCloudFields<SahajCloudAddress>)
+} satisfies PartialZodShape<SahajCloudAddress>)
 export type EventAddress = z.infer<typeof EventAddressSchema>
 
 const MonthlyModeSchema = z.enum({
@@ -114,7 +114,7 @@ export const EventScheduleSchema = z.object({
   exclusions: z.array(ScheduleExclusionSchema).nullish(),
   upcomingDates: z.array(z.coerce.date()).nullish(),
   icalRule: z.string().nullish(),
-} satisfies SahajCloudFields<SahajCloudSchedule>)
+} satisfies PartialZodShape<SahajCloudSchedule>)
 export type EventSchedule = z.infer<typeof EventScheduleSchema>
 
 // Populated `images` upload (the SahajCloud `Image` collection). `url` is a
@@ -124,7 +124,7 @@ export type EventSchedule = z.infer<typeof EventScheduleSchema>
 export const EventImageSchema = z.object({
   url: z.string().nullish(),
   alt: z.string().nullish(),
-} satisfies SahajCloudFields<SahajCloudImage>)
+} satisfies PartialZodShape<SahajCloudImage>)
 export type EventImage = z.infer<typeof EventImageSchema>
 
 // The registration questions a manager can enable per event — SahajCloud's
@@ -218,14 +218,14 @@ export const AgnosticFeedEventSchema = z.object({
   // Server-computed canonical route (region chain + `/<id>`). The list/map
   // navigate to it directly.
   webPath: z.string().nullish(),
-} satisfies SahajCloudFields<CmsEvent>)
+} satisfies PartialZodShape<CmsEvent>)
 export type AgnosticFeedEvent = z.infer<typeof AgnosticFeedEventSchema>
 
 // The agnostic feed event with its localized `title` joined back in (by id) — the
 // shape map/list view-models build on. `title` is the ONLY localized feed field.
 export const FeedEventSchema = AgnosticFeedEventSchema.extend({
   title: z.string(),
-} satisfies SahajCloudFields<CmsEvent>)
+} satisfies PartialZodShape<CmsEvent>)
 export type FeedEvent = z.infer<typeof FeedEventSchema>
 
 // The per-locale id→title sliver from `GET /api/events` (select `title` only), kept
@@ -235,7 +235,7 @@ export type FeedEvent = z.infer<typeof FeedEventSchema>
 export const EventTitleSchema = z.object({
   id: z.number(),
   title: z.string().nullish(),
-} satisfies SahajCloudFields<CmsEvent>)
+} satisfies PartialZodShape<CmsEvent>)
 export type EventTitle = z.infer<typeof EventTitleSchema>
 
 // Derived list/map view-model: a feed event plus its route and (when sorting by
@@ -290,7 +290,7 @@ export const EventDocSchema = z.object({
   // rows, so a non-http value dropping to null costs those rows and not the
   // whole event read. Absent for an unpublished class, and on every list read.
   calendarFeedUrl: SafeUrlSchema,
-} satisfies SahajCloudFields<CmsEvent>)
+} satisfies PartialZodShape<CmsEvent>)
 export type EventDoc = z.infer<typeof EventDocSchema>
 
 // Derived event-detail view-model: the document plus its route.

@@ -1,5 +1,5 @@
 import type { Client as SahajCloudClient } from '@/types/payload/payload-types'
-import type { SahajCloudFields } from './pinned'
+import type { PartialZodShape } from './zod-shape'
 
 import z from 'zod'
 
@@ -45,7 +45,7 @@ export const ClientSchema = z.object({
   canonical: z
     .object({
       embed: z.string().nullish(),
-    } satisfies SahajCloudFields<NonNullable<SahajCloudClient['canonical']>>)
+    } satisfies PartialZodShape<NonNullable<SahajCloudClient['canonical']>>)
     .nullish(),
-} satisfies SahajCloudFields<SahajCloudClient>)
+} satisfies PartialZodShape<SahajCloudClient>)
 export type Client = z.infer<typeof ClientSchema>

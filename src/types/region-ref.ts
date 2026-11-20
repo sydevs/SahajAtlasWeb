@@ -1,5 +1,5 @@
 import type { Region as SahajCloudRegion } from '@/types/payload/payload-types'
-import type { SahajCloudFields } from './pinned'
+import type { PartialZodShape } from './zod-shape'
 
 import z from 'zod'
 
@@ -37,5 +37,5 @@ export const RegionRefSchema = z.object({
   subtitle: z.string().nullish(),
   webPath: z.string().nullish(),
   webUrl: z.string().nullish(),
-} satisfies SahajCloudFields<SahajCloudRegion>)
+} satisfies PartialZodShape<SahajCloudRegion>)
 export type RegionRef = z.infer<typeof RegionRefSchema>

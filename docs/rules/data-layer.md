@@ -24,13 +24,15 @@ moves, in the same bump as `@payloadcms/sdk`.
 - Keep the zod schemas aligned with the generated types in `src/types/payload/` — they are
   the SDK's compile-time source of truth.
 - **Name the producer, not the category: `SahajCloud`, never `CMS`.** The type that pins a
-  schema to the generated ones is `PinnedToSahajCloud`, and its helpers are `SahajCloudFields`,
+  schema to the generated ones is `PinnedToSahajCloud`, and its helpers are
   `SahajCloudFormField` and `SahajCloudBlock` (`src/types/report.ts` is the worked example). The same preference holds
-  in identifiers and in prose — `src/AGENTS.md` carries it as a naming rule.
+  in identifiers and in prose — `src/AGENTS.md` carries it as a naming rule. ⚠ A helper that
+  names no SahajCloud type is named for its function instead: `PartialZodShape<T>` takes any
+  `T`, and a producer in its name would be a claim about where it may be used.
 - **Every schema that mirrors a generated type is pinned to it at compile time, and every pin
   is `satisfies` over `keyof`, `Record` or `Pick`** — TypeScript's own operators, never a
   hand-rolled equality type. Give a new mirror the same pin.
-  - **A zod shape** carries `satisfies SahajCloudFields<T>` (`src/types/pinned.ts`), so it can
+  - **A zod shape** carries `satisfies PartialZodShape<T>` (`src/types/zod-shape.ts`), so it can
     name only fields the generated type declares: most fields are `.nullish()`, and a renamed
     one otherwise parses as `undefined`, in silence (#191). ⚠ It pins names, never value types:
     `firstDate_tz` is nullish here and required there, on purpose. `FEED_SELECT` is typed
@@ -46,10 +48,10 @@ moves, in the same bump as `@payloadcms/sdk`.
   - ⚠ **zod's own `satisfies z.ZodType<T>` does not do either job.** It pins the whole output
     type, which every shape here fails by design — each is the subset a `select` asks for. And
     `z.ZodType<Partial<T>>`, which admits the subset, admits an undeclared field name too.
-    `src/types/pinned.ts` carries this beside the type.
+    `src/types/zod-shape.ts` carries this beside the type.
 - ⚠ **No schema widens the pin, and none should.** `ClientSchema` named two fields the synced
   `Client` does not have — `name` (it has `label` and `title`) and `canonical.enabled` (it has
-  `owned`) — and admitted each through an intersection beside `satisfies SahajCloudFields<T>`.
+  `owned`) — and admitted each through an intersection beside `satisfies PartialZodShape<T>`.
   `/clients/me` selects through `requestJson`, which nothing type-checks, so the pin was the only
   reader of either drift: the organizer and the report context both read `title` now, and
   `enabled` is gone. Fix a name the pin refuses; never admit it.
