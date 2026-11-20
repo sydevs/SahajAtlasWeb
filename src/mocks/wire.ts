@@ -8,7 +8,7 @@
 // in view-model shape skips the parse the lane exists to exercise. `wire.test.ts` runs every
 // fixture through the real fetchers, against `answerSahajCloud`, so neither can drift from the
 // contract the app reads.
-import type { GeoFeature, RegionNode } from '@/types'
+import type { RegionNode } from '@/types'
 
 import { mockEvent, mockEventImages, mockEventSlimList } from './events'
 import { mockGeojson, mockRegionNodes } from './regions'
@@ -29,54 +29,54 @@ export const WIRE_API_KEY = 'browser-lane-key'
 
 // ── The region tree ─────────────────────────────────────────────────────────────
 
-// `webPath` is the server's: the ancestor slug chain, self included. The mocks spell it per
-// story, and the one city they share with the feed still carries the display slug its country
-// had before SahajCloud#556 — a path no node in this tree answers to.
 const nodeById = new Map(mockRegionNodes.map((node) => [node.id, node]))
 
-const pathOf = (node: RegionNode): string => {
-  const parent = node.parent == null ? undefined : nodeById.get(node.parent)
-
-  return `${parent ? pathOf(parent) : ''}/${node.slug}`
-}
-
-const regionNodes = mockRegionNodes.map((node) => ({
-  ...node,
-  webPath: pathOf(node),
-  webUrl: null,
-}))
-
-const regionPath = (id: number): string => {
+const regionNode = (id: number): RegionNode => {
   const node = nodeById.get(id)
 
   if (!node) throw new Error(`wire fixtures: no region ${id} in the tree`)
 
-  return pathOf(node)
+  return node
 }
+
+// `webPath` is the server's: the ancestor slug chain, self included. The mocks spell it per
+// story, and the one city they share with the feed still carries the display slug its country
+// had before SahajCloud#556 — a path no node in this tree answers to.
+const regionPath = (id: number): string => {
+  const { parent, slug } = regionNode(id)
+
+  return `${parent == null ? '' : regionPath(parent)}/${slug}`
+}
+
+const regionNodes = mockRegionNodes.map((node) => ({
+  ...node,
+  webPath: regionPath(node.id),
+  webUrl: null,
+}))
 
 /** A region as `REGION_POPULATE` selects it onto an event: no route, no parent. */
 const regionRef = (id: number) => {
-  const { slug, name, level, subtitle } = nodeById.get(id) as RegionNode
+  const { slug, name, level, subtitle } = regionNode(id)
 
   return { id, slug, name, level, subtitle }
 }
 
 // ── The feed and the events behind it ───────────────────────────────────────────
 
-/** An event's canonical route, as the server composes it: its region's chain, then its id. */
-const eventPath = (feature: GeoFeature) =>
-  `${regionPath(feature.properties.region.id)}/${feature.properties.id}`
-
 const features = mockGeojson.features.map((feature) => ({
   ...feature,
   properties: {
     ...feature.properties,
     region: regionRef(feature.properties.region.id),
-    webPath: eventPath(feature),
+    // The canonical route, as the server composes it: the region's chain, then the event's id.
+    webPath: `${regionPath(feature.properties.region.id)}/${feature.properties.id}`,
   },
 }))
 
 const titles = new Map(mockEventSlimList.map((event) => [event.id, event.title]))
+
+/** The feed carries a title for every class it lists; `mockEvent`'s own covers anything else. */
+const title = (id: number) => titles.get(id) ?? mockEvent.title
 
 /** The upload rows `getEventDoc` populates. Relative, the way SahajCloud serves a file it holds. */
 const images = mockEventImages.map((image, index) => {
@@ -90,13 +90,13 @@ const images = mockEventImages.map((image, index) => {
  * answer. The detail-only fields come from `mockEvent`; everything the feed also carries comes
  * from the feature, so the panel and the card describe the same class.
  */
-const eventDoc = ({ properties }: (typeof features)[number]) =>
-  [
+const eventDocs: Record<string, Json> = Object.fromEntries(
+  features.map(({ properties }) => [
     String(properties.id),
     toJson({
       ...mockEvent,
       ...properties,
-      title: titles.get(properties.id) ?? mockEvent.title,
+      title: title(properties.id),
       address: properties.address ?? null,
       schedule: properties.schedule ?? mockEvent.schedule,
       images,
@@ -104,15 +104,18 @@ const eventDoc = ({ properties }: (typeof features)[number]) =>
       // The view-model's own route, which no response carries. `undefined` drops it from the JSON.
       path: undefined,
     }),
-  ] as const
+  ]),
+)
 
-const eventDocs: Record<string, Json> = Object.fromEntries(features.map(eventDoc))
+const wireEventFeature = features.find(({ properties }) => properties.id === mockEvent.id)
+
+if (!wireEventFeature) throw new Error(`wire fixtures: no feed feature for event ${mockEvent.id}`)
 
 /** The event every scenario that opens one opens: the located class, under its city. */
 export const WIRE_EVENT = {
   id: mockEvent.id,
-  title: titles.get(mockEvent.id) as string,
-  path: eventPath(mockGeojson.features.find((f) => f.properties.id === mockEvent.id) as GeoFeature),
+  title: title(mockEvent.id),
+  path: wireEventFeature.properties.webPath,
 }
 
 // ── Payload's envelopes ─────────────────────────────────────────────────────────
