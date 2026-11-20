@@ -44,7 +44,7 @@ cover everything a host would notice since the widget was first deployed.
 
 ### Changed
 
-- **The calendar's week view lays out staggered classes differently.** Its calendar library moved
+- **The calendar's week view lays out staggered classes differently.** ([#450]) Its calendar library moved
   up two major versions. A class that starts after an earlier overlapping one has finished now
   takes that free column, drawn beneath the classes still running beside it, so on a busy evening
   its time can be hidden behind theirs. Classes that start together lay out as before. The
@@ -1151,3 +1151,4 @@ must-revalidate`, pinned rather than left to the CDN default. The production dom
 [#424]: https://github.com/sydevs/SahajAtlasWeb/pull/424
 [#428]: https://github.com/sydevs/SahajAtlasWeb/issues/428
 [#445]: https://github.com/sydevs/SahajAtlasWeb/pull/445
+[#450]: https://github.com/sydevs/SahajAtlasWeb/pull/450
