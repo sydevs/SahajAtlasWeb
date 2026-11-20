@@ -27,15 +27,25 @@ moves, in the same bump as `@payloadcms/sdk`.
   schema to the generated ones is `PinnedToSahajCloud`, and its helpers are `SahajCloudFormField`
   and `SahajCloudBlock` (`src/types/report.ts` is the worked example). The same preference holds
   in identifiers and in prose — `src/AGENTS.md` carries it as a naming rule.
-- **Every schema that mirrors a generated type is pinned to it at compile time**
-  (`src/types/pinned.ts`). A zod shape carries `satisfies SahajCloudFields<T>`, so it can
-  name only fields the generated type declares: most fields are `.nullish()`, and a renamed
-  one otherwise parses as `undefined`, in silence (#191). A zod enum sits in its module's
-  `…PinnedToSahajCloud` tuple through `SameAsSahajCloud`, which fails on a member SahajCloud
-  dropped and on one it added, since a strict enum refuses either at runtime. Give a new
-  mirror the same pin. ⚠ It pins names, never value types: `firstDate_tz` is nullish here and
-  required there, on purpose. `FEED_SELECT` is typed against `AgnosticFeedEventSchema` the
-  same way, because the feed's select reaches `requestJson` unchecked.
+- **Every schema that mirrors a generated type is pinned to it at compile time, and every pin
+  is `satisfies` over `keyof`, `Record` or `Pick`** — TypeScript's own operators, never a
+  hand-rolled equality type. Give a new mirror the same pin.
+  - **A zod shape** carries `satisfies SahajCloudFields<T>` (`src/types/pinned.ts`), so it can
+    name only fields the generated type declares: most fields are `.nullish()`, and a renamed
+    one otherwise parses as `undefined`, in silence (#191). ⚠ It pins names, never value types:
+    `firstDate_tz` is nullish here and required there, on purpose. `FEED_SELECT` is typed
+    against `AgnosticFeedEventSchema` the same way, because the feed's select reaches
+    `requestJson` unchecked.
+  - **A zod enum** is declared in `z.enum`'s OBJECT form and carries
+    `satisfies Record<Theirs, Theirs>` on that literal, which holds its members both ways: a
+    member SahajCloud adds is a missing key, and one it renames or drops is an excess property
+    on a fresh literal. A strict enum refuses either at runtime, so each would fail a whole
+    read. `WeekdaySchema` keys from `weekdays` and values to `weekdayOfMonth`, so the two
+    schedule fields carrying that union are also pinned to each other.
+  - ⚠ **zod's own `satisfies z.ZodType<T>` does not do either job.** It pins the whole output
+    type, which every shape here fails by design — each is the subset a `select` asks for. And
+    `z.ZodType<Partial<T>>`, which admits the subset, admits an undeclared field name too.
+    `src/types/pinned.ts` carries this beside the type.
 - ⚠ **No schema widens the pin, and none should.** `ClientSchema` named two fields the synced
   `Client` does not have — `name` (it has `label` and `title`) and `canonical.enabled` (it has
   `owned`) — and admitted each through an intersection beside `satisfies SahajCloudFields<T>`.

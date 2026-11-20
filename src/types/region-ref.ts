@@ -1,5 +1,5 @@
 import type { Region as SahajCloudRegion } from '@/types/payload/payload-types'
-import type { SahajCloudFields, SameAsSahajCloud } from './pinned'
+import type { SahajCloudFields } from './pinned'
 
 import z from 'zod'
 
@@ -14,11 +14,16 @@ import z from 'zod'
 // serves the old spelling, so this tracks the new one only.
 //
 // (Unrelated to the `center` FIELD on RegionSchema — that one is a lat/lng point.)
-export const RegionLevelSchema = z.enum(['country', 'region', 'city', 'venue'])
+//
+// The object form plus `satisfies Record<Theirs, Theirs>` is what holds these members to
+// SahajCloud's own union, in both directions (`docs/rules/data-layer.md`).
+export const RegionLevelSchema = z.enum({
+  country: 'country',
+  region: 'region',
+  city: 'city',
+  venue: 'venue',
+} satisfies Record<SahajCloudRegion['level'], SahajCloudRegion['level']>)
 export type RegionLevel = z.infer<typeof RegionLevelSchema>
-
-// Exported because nothing consumes it: the type-checker reading it IS the check.
-export type RegionPinnedToSahajCloud = [SameAsSahajCloud<RegionLevel, SahajCloudRegion['level']>]
 
 // Populated region reference — the subset selected in the geojson feed's
 // `populate[regions]` and on raw region reads. `webPath` is the server-computed
