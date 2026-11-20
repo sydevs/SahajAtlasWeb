@@ -30,8 +30,8 @@ experience, with a country → region → area → venue → event hierarchy.
     own path because the specs cite it there; § Testing below is its always-loaded summary.
     Each declares a `paths:` front-matter list and loads on a glob match.
     ⚠ The key is `paths:`, not Cursor's `globs:`/`alwaysApply:` — Claude Code ignores
-    those. A rule with no valid `paths:` loads unconditionally (the first three did, silently,
-    before). List them: `ls -l .claude/rules`.
+    those. A rule with no valid `paths:` loads unconditionally — several here once did,
+    silently. List them: `ls -l .claude/rules`.
 
   **The rule bodies live in `docs/` (`docs/rules/`, plus `docs/testing.md`), symlinked into
   `.claude/rules/` on purpose:** a
