@@ -1,8 +1,7 @@
 import { useMemo } from 'react'
 import { useQuery } from '@tanstack/react-query'
 
-import api, { regionsQuery } from '@/config/api'
-import { GEOJSON_STALE_TIME } from '@/config/query-client'
+import { geojsonQuery, regionsQuery } from '@/config/api'
 import { useEventFilters } from '@/hooks/use-filters'
 import { useSearchCountry } from '@/hooks/use-search-country'
 import { countrySite } from '@/lib/country-sites'
@@ -37,11 +36,7 @@ export const useCountrySite = (): CountrySite | undefined => {
   const href = countrySite(countryCode)
 
   const { data: regions } = useQuery(regionsQuery())
-  const { data: geojson } = useQuery({
-    queryKey: ['geojson'],
-    queryFn: () => api.getGeojson(),
-    staleTime: GEOJSON_STALE_TIME,
-  })
+  const { data: geojson } = useQuery(geojsonQuery())
 
   // This is memoized because the feed scan builds a region index and a subtree set.
   // This renders under a URL that changes with every filter and sort edit, so an unmemoized

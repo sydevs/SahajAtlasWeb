@@ -16,11 +16,12 @@
 // POST.
 import { act } from 'react'
 import { createRoot } from 'react-dom/client'
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import { QueryClient, QueryClientProvider, onlineManager } from '@tanstack/react-query'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { ReportIssueForm } from './ReportIssueForm'
 
+import { queryClient } from '@/config/query-client'
 import { challengeFrameStub } from '@/test-support/turnstile-frame'
 import { type ReportContext } from '@/lib/report'
 import { mockReportForm } from '@/mocks/report-form'
@@ -78,8 +79,9 @@ afterEach(() => {
 })
 
 /** Mount the form and let the captcha's callback settle, so Send is enabled. */
-async function mountForm() {
-  const client = new QueryClient({ defaultOptions: { mutations: { retry: 0 } } })
+async function mountForm(
+  client = new QueryClient({ defaultOptions: { mutations: { retry: 0 } } }),
+) {
   const root = createRoot(container)
 
   await act(async () => {
@@ -242,6 +244,39 @@ describe('ReportIssueForm submit', () => {
     await submit()
 
     expect(container.querySelector('[role="alert"]')?.textContent).toBe(key)
+
+    await act(async () => root.unmount())
+  })
+})
+
+// This form is reached because something already failed, often the network. The cases above
+// reject the request while React Query still believes it is online; here it has seen the browser
+// go offline, and the form mounts under the app's own client, whose mutation default is what
+// answers for an offline send.
+describe('ReportIssueForm, sent while the browser is offline', () => {
+  afterEach(() => {
+    onlineManager.setOnline(true)
+    queryClient.clear()
+  })
+
+  it('makes the attempt and shows the failure, instead of pausing until the connection returns', async () => {
+    sdk.request.mockRejectedValue(new TypeError('Failed to fetch'))
+
+    const root = await mountForm(queryClient)
+
+    await type('#report-field-0', MESSAGE)
+    onlineManager.setOnline(false)
+    await submit()
+
+    expect(sdk.request).toHaveBeenCalledTimes(1)
+    expect(container.textContent).toContain('SEND_FAILED')
+    expect(challenge.resetCount()).toBe(1)
+
+    // Nothing is left queued to send by itself once the connection is back.
+    await act(async () => onlineManager.setOnline(true))
+
+    expect(sdk.request).toHaveBeenCalledTimes(1)
+    expect(container.textContent).not.toContain('THANKYOU')
 
     await act(async () => root.unmount())
   })

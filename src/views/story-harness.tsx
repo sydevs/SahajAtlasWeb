@@ -12,7 +12,7 @@ import { DrawerSlotsProvider } from '@/components/atoms/Drawer'
 import { DrawerControlContext } from '@/views/shared'
 import { DrawerErrorFallback, DrawerLoading } from '@/views/fallbacks'
 import { WidgetModeContext, type WidgetMode } from '@/config/mode'
-import { clientQuery, regionsQuery } from '@/config/api'
+import { clientQuery, geojsonQuery, regionsQuery } from '@/config/api'
 import atlasAuth from '@/config/api/auth'
 import { Mapbox } from '@/components/organisms/Mapbox/Map'
 import { NoopMapControllerProvider } from '@/hooks/use-map-controller'
@@ -51,7 +51,7 @@ export { mockEventSeries, mockEventVariants } from '@/mocks/events'
 
 /** A minimal host-client record — CountriesView suspends on this (theme plus home
  *  region bootstrap). With no home region, it emits no canonical link. */
-const mockClient: Client = { id: 1, name: 'Demo Host', region: null }
+const mockClient: Client = { id: 1, title: 'Demo Host', region: null }
 
 /** A passive IP guess (Cambridge), so the nearby-suggestion prompt renders on the
  *  views that show it (Countries / Region / Search). It sits where the feed has a
@@ -290,14 +290,14 @@ export function ViewHarness({
     // region tree is read by anything filter-adjacent (the Region filter's
     // options, the active-pill name lookup, the country-website check), which is
     // why it is global rather than per-case.
-    c.setQueryData(['geojson'], mockGeojson)
+    c.setQueryData(geojsonQuery().queryKey, mockGeojson)
     c.setQueryData(regionsQuery().queryKey, mockRegionNodes)
     c.setQueryData(clientQuery(atlasAuth.apiKey).queryKey, mockClient)
     c.setQueryData(['ip-location'], mockIpLocation)
     seed?.(c)
 
     return c
-    // Re-seeds only when the case changes. `seed` is a fresh closure each render.
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- re-seeds only when the case changes: `seed` is a fresh closure each render
   }, [seedKey])
 
   return (

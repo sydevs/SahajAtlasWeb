@@ -12,6 +12,7 @@ dist
 dist-ssr
 dist-browser
 build
+coverage
 *.local
 
 # The browser lane's report and per-test output (playwright.config.ts)

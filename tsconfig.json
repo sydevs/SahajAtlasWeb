@@ -23,6 +23,5 @@
     "noUnusedParameters": true,
     "noFallthroughCasesInSwitch": true
   },
-  "include": ["src", ".ladle"],
-  "references": [{ "path": "./tsconfig.node.json" }]
+  "include": ["src", ".ladle"]
 }

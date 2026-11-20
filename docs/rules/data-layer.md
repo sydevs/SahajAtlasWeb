@@ -24,17 +24,58 @@ moves, in the same bump as `@payloadcms/sdk`.
 - Keep the zod schemas aligned with the generated types in `src/types/payload/` — they are
   the SDK's compile-time source of truth.
 - **Name the producer, not the category: `SahajCloud`, never `CMS`.** The type that pins a
-  schema to the generated ones is `PinnedToSahajCloud`, and its helpers are `SahajCloudFormField`
-  and `SahajCloudBlock` (`src/types/report.ts` is the worked example). The same preference holds
-  in identifiers and in prose — `src/AGENTS.md` carries it as a naming rule.
-- Each generated file is its own curl inside `types:cms`. Add a new line for a new
+  schema to the generated ones is `PinnedToSahajCloud`, and its helpers are
+  `SahajCloudFormField` and `SahajCloudBlock` (`src/types/report.ts` is the worked example). The same preference holds
+  in identifiers and in prose — `src/AGENTS.md` carries it as a naming rule. ⚠ A helper that
+  names no SahajCloud type is named for its function instead: `PartialZodShape<T>` takes any
+  `T`, and a producer in its name would be a claim about where it may be used.
+- **Every schema that mirrors a generated type is pinned to it at compile time, and every pin
+  is `satisfies` over `keyof`, `Record` or `Pick`** — TypeScript's own operators, never a
+  hand-rolled equality type. Give a new mirror the same pin.
+  - **A zod shape** carries `satisfies PartialZodShape<T>` (`src/types/zod-shape.ts`), so it can
+    name only fields the generated type declares: most fields are `.nullish()`, and a renamed
+    one otherwise parses as `undefined`, in silence (#191). ⚠ It pins names, never value types:
+    `firstDate_tz` is nullish here and required there, on purpose. `FEED_SELECT` is typed
+    against `AgnosticFeedEventSchema` the same way, because the feed's select reaches
+    `requestJson` unchecked.
+  - **A zod enum** is declared in `z.enum`'s OBJECT form and carries
+    `satisfies Record<Theirs, Theirs>` on that literal, which holds its members both ways: a
+    member SahajCloud adds is a missing key, and one it renames or drops is an excess property
+    on a fresh literal. A strict enum refuses either at runtime, so each would fail a whole
+    read. ⚠ `WeekdaySchema`'s union is carried by two separate SahajCloud option lists, so its
+    pin is an intersection of two `Record`s, each keying from one field and valuing to the
+    other. One `Record` alone leaves the other field free to gain a member in silence.
+  - ⚠ **zod's own `satisfies z.ZodType<T>` does not do either job** — `src/types/zod-shape.ts`
+    says why, beside the type.
+- ⚠ **No schema widens the pin, and none should.** An intersection beside
+  `satisfies PartialZodShape<T>` admits exactly the drift the pin exists to refuse, and a read
+  through `requestJson`, which nothing type-checks, has no other reader of it. Fix a name the pin
+  refuses; never admit it.
+- **`pnpm types:cms` is `scripts/sync-cms-types.mjs`, and it fetches every file at ONE
+  commit.** Fetching each file off the branch name let a push land between two fetches. `pnpm types:cms <branch|tag|40-char-sha>`
+  takes another commit, which is how a snapshot is reproduced.
+- **`src/types/payload/provenance.json` records that commit**, with a hash of each
+  generated file. Never edit it by hand. ⚠ It moves only when a generated file does:
+  upstream's branch moves far more often than its types, so a run that finds them unchanged
+  leaves the record naming the older commit, where they were already these.
+  `scripts/sync-cms-types.test.ts` fails on types that no longer match their record, and is
+  skipped while no record is checked in.
+- ⚠ **No record is checked in yet, and one must not be until the shared re-sync commits
+  it.** That job runs `pnpm types:cms` and stages only the paths its own list names
+  (sydevs/claude-workflow, `loop-config.json`, `contractSync.consumers.SahajAtlasWeb.paths`),
+  and the list names the generated files alone. A record committed first goes stale on the
+  next re-sync, and the spec then fails that pull request. So a plain run keeps a record
+  that exists and never starts one. Once the list names
+  `src/types/payload/provenance.json`, `pnpm types:cms --record` starts it: commit it with
+  the types from then on.
+- Each generated file is one entry in that script's `SOURCES`. Add an entry for a new
   endpoint contract — it never appears by magic.
 - ⚠ A deleted upstream file can still resolve. SahajCloud deleted `POST
 /api/contact-admin` (SahajCloud#632/#653) along with its `contact-types.ts`
   export, but the old curl URL kept resolving — it just started serving unrelated
   SEO/sitemap types into a file still named after contact. Nothing here consumes
-  that content any more, and we deleted the line from `types:cms`. Check what a curled
-  URL actually serves, not only whether the curl succeeds.
+  that content any more, and we deleted its entry from `types:cms`. Check what a fetched
+  URL actually serves, not only whether the fetch succeeds.
 
 ## The shared SDK client (`src/config/api/client.ts`)
 
@@ -325,6 +366,13 @@ refusal carrying a zod issue code; zod 4 renamed that field `issues`, which clos
 the collision by luck rather than by design. Keep the parse outside regardless —
 the placement is what makes the refusal path unable to see a parse failure at all.
 
+**A form's mutation neither retries nor waits for the network, and the client says so once.**
+`query-client.ts`'s `mutations` default sets `retry: 0` and `networkMode: 'always'`. Both writes
+are unsafe to repeat, and React Query's default `'online'` pauses a submit fired offline: no
+request, no `onError`, then a send by itself on the `online` event. Set neither per form, so a
+third mutation inherits both. Each form's `*.submit.test.tsx` drives an offline submit through
+the shared client.
+
 ## Consuming data — TanStack Query only
 
 - Fetch via `useQuery` / `useSuspenseQuery`. Never call the SDK fetcher directly
@@ -358,11 +406,19 @@ the placement is what makes the refusal path unable to see a parse failure at al
   read cannot drift. `eventsQuery(latitude, longitude, filters, locale)` carries
   the same contract for the distance-ranked results list.
 - **Query factories live in `src/config/api/index.ts`.** That module imports
-  `fetch.ts`, so a factory `fetch.ts` itself consumes — `eventTitlesQuery`,
-  `atlasConfigQuery` and `translationsQuery`, each read by a warm-up in that file
-  — has to be declared beside its fetcher and re-exported here, or the import
-  closes a cycle. A factory nothing in `fetch.ts` calls has no such excuse.
-  Declare it in `index.ts` with the rest, so every contract stays in one place.
+  `fetch.ts`, so a factory `fetch.ts` itself consumes — spread by a loader or read by a
+  warm-up there — has to be declared beside its fetcher, or the import closes a cycle.
+  A factory nothing in
+  `fetch.ts` calls has no such excuse. Declare it in `index.ts` with the rest,
+  so every contract stays in one place.
+- **A wholesale cache has one contract, and every reader spreads it.**
+  The factory holds the key, the fetcher, `staleTime` and `gcTime`, and a reader adds
+  only what is its own. The loader's `retry: false` is the one deliberate per-fetch
+  option: a loader runs inside a query that already retries. ⚠ `gcTime` sits in the
+  contract because React Query keeps the longest one any writer of a key has stated,
+  so a reader that omits it leaves the retention to whoever built the entry first.
+  `reads.inventory.test.ts` names the wholesale keys and fails on one written out
+  anywhere but its contract.
 - **Read a cache-only key through its own factory.** `eventTitlesQuery(locale)` is
   shared by the loader that fetches the sliver and by the drawer's loading/error
   chrome, which reads it with `enabled: false` to name the event whose view

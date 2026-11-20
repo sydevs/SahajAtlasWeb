@@ -33,7 +33,7 @@ import {
   LAYER_IDS,
   type SymbolLayerProps,
 } from './layers'
-import { syncMapLanguage } from './map-language'
+import { mapWorldview, syncMapLanguage } from './map-language'
 import { loadMapLib } from './map-lib'
 import { markerColors, registerMarkerImages } from './markers'
 import { pinPopoverPlacement, type PopoverAnchor } from './pin-popover'
@@ -46,10 +46,9 @@ import { useAtlasNavigate } from '@/hooks/use-atlas-navigate'
 import { useEventFilters } from '@/hooks/use-filters'
 import { useGeolocateToSearch } from '@/hooks/use-geolocate'
 import { useRegionMatcher } from '@/hooks/use-region-matcher'
-import api, { eventTitlesQuery } from '@/config/api'
+import { eventTitlesQuery, geojsonQuery } from '@/config/api'
 import { useHasRealPointer } from '@/config/responsive'
 import { useBrandPalette } from '@/config/theme/brand-palette'
-import { GEOJSON_STALE_TIME } from '@/config/query-client'
 import { worldMinZoom } from '@/lib/camera'
 import {
   hasActiveFilters,
@@ -86,23 +85,6 @@ const REVEAL_TIMEOUT_MS = 1500
 // Mapbox's locate default is six seconds. iOS Safari appears to count that while its permission
 // prompt is open, so a visitor who took a moment to press Allow saw a failure.
 const LOCATE_POSITION_OPTIONS: PositionOptions = { timeout: 30_000 }
-
-const MAP_WORLDVIEWS: Record<string, string> = {
-  zh: 'CN', // Chinese
-  jp: 'JP', // Japanese
-  hi: 'IN', // Hindi
-  bn: 'IN', // Bengali
-  pa: 'IN', // Punjabi
-  gu: 'IN', // Gujarati
-  kn: 'IN', // Kannada
-  kok: 'IN', // Konkani
-  ml: 'IN', // Malayalam
-  mr: 'IN', // Marathi
-  sa: 'IN', // Sanskrit
-  ta: 'IN', // Tamil
-  te: 'IN', // Telugu
-  default: 'US', // Default
-}
 
 type GeoFeature = Geojson['features'][number]
 
@@ -271,11 +253,10 @@ function EventPinPopover({
 export function Mapbox({ cooperative = false }: { cooperative?: boolean } = {}) {
   let navigate = useAtlasNavigate()
   const { mapbox, padding, moveMap } = useMapbox()
-  const { zoom, latitude, longitude, setViewState, selection, hover, boundary } = useViewState(
+  // ⚠ Not `zoom`, `latitude` or `longitude`: the map is uncontrolled, so nothing here draws from
+  // them, and selecting them re-renders every source and layer each time the camera stops.
+  const { setViewState, selection, hover, boundary } = useViewState(
     useShallow((s) => ({
-      zoom: s.zoom,
-      latitude: s.latitude,
-      longitude: s.longitude,
       selection: s.selection,
       hover: s.hover,
       boundary: s.boundary,
@@ -325,11 +306,7 @@ export function Mapbox({ cooperative = false }: { cooperative?: boolean } = {}) 
   // so pan and zoom never rebuild it.
   const matchesRegion = useRegionMatcher(filters.region)
 
-  const { data } = useQuery({
-    queryKey: ['geojson'],
-    queryFn: () => api.getGeojson(),
-    staleTime: GEOJSON_STALE_TIME,
-  })
+  const { data } = useQuery(geojsonQuery())
 
   // "Find my location" opens the results centered on the visitor, rather
   // than just moving the camera. See the hook, and the `followUserLocation`
@@ -500,7 +477,7 @@ export function Mapbox({ cooperative = false }: { cooperative?: boolean } = {}) 
         navigate(safePath(feature.properties?.webPath) ?? `/${feature.properties?.id}`)
       }
     },
-    [navigate, mapbox, zoom, latitude, longitude],
+    [navigate, mapbox, moveMap],
   )
 
   const hoverOnFeature = useCallback(
@@ -558,7 +535,7 @@ export function Mapbox({ cooperative = false }: { cooperative?: boolean } = {}) 
         mapboxAccessToken={import.meta.env.VITE_MAPBOX_ACCESSTOKEN}
         minZoom={minZoom}
         style={canvasStyle}
-        worldview={MAP_WORLDVIEWS[languageCode] || MAP_WORLDVIEWS.default}
+        worldview={mapWorldview(languageCode)}
         onClick={selectFeature}
         // This is the backstop on the reveal. A route that never frames the
         // camera — CalendarView is the one that deliberately does not — must

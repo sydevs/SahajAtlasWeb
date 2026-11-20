@@ -80,6 +80,7 @@ Permissions Policy table holds the specifics.
 pnpm build:worker # the app Worker's Builds command (#280) — pnpm build, plus a dormant rm -f
 pnpm test:smoke   # smoke specs vs a deployed preview (needs PREVIEW_URL)
 pnpm test:browser # build for the browser lane, then Playwright against fixtures (CI gate)
+pnpm test:coverage # the unit lane with coverage — measured, not gated (CI's gate job runs this one)
 pnpm size         # eager-payload budget (CI gate — run after pnpm build)
 pnpm review:embed # serve dist/ as REAL host-page embeds for browser review (after pnpm build)
 pnpm check:wrangler # both Worker configs, dry run (CI gate — after pnpm build + ladle:build)
@@ -143,7 +144,7 @@ Two Cloudflare sites deploy from this repo, both on Workers static assets: the a
 (#266, #279, #280, #283). ⚠ `sahajatlas.pages.dev` is withdrawn rather than redirected, and
 claimable by anyone since #283 deleted the project behind it. Source maps are
 uploaded, then deleted — never deployed (#130). Topology, the `public/` deploy files, the
-source-map policy and the deploy-side CI gates: `docs/rules/deployment.md`.
+source-map policy, the deploy-side CI gates and the rollback runbook: `docs/rules/deployment.md`.
 
 Use the **cloudflare-docs** MCP for Cloudflare Workers questions. ⚠ Its published
 docs do not cover every wrangler config key — see `docs/mcp-setup.md` for what settles one

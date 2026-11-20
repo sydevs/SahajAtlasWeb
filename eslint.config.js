@@ -40,8 +40,6 @@ export default [
       'coverage/**',
       '.claude/**',
       'src/types/payload/**', // generated/synced from SahajCloud via `pnpm types:cms`
-      '*.config.js',
-      '*.config.ts',
     ],
   },
   {
@@ -80,7 +78,9 @@ export default [
       'react/react-in-jsx-scope': 'off',
       'react/no-unescaped-entities': 'off',
       'react-hooks/rules-of-hooks': 'warn',
-      'react-hooks/exhaustive-deps': 'off',
+      // A deliberate omission or re-run trigger takes a narrow `eslint-disable-next-line` with its
+      // reason after `--`, never a wider disable: the next array in the same file is still checked.
+      'react-hooks/exhaustive-deps': 'warn',
       'jsx-a11y/click-events-have-key-events': 'warn',
       'jsx-a11y/interactive-supports-focus': 'warn',
       'jsx-a11y/no-static-element-interactions': 'warn',
@@ -180,6 +180,10 @@ export default [
     // drawer's views flickered in halfway down the panel until
     // `src/views/DrawerStack/ViewLayer.tsx` replaced it. Shipped code only, so this scope
     // overlaps neither block below.
+    //
+    // `motion` is refused beside it: each `motion.*` bundles every feature framer-motion has,
+    // which no size budget notices at 13.2 KiB gz, where `m.*` draws the ones
+    // `src/providers.tsx` loads.
     files: ['src/**/*.tsx'],
     ignores: ['**/*.{test,spec}.tsx', 'src/test-support/**'],
     rules: {
@@ -190,13 +194,19 @@ export default [
           message:
             'popLayout styles the host document, not the shadow root — overlap the layers absolutely instead (src/views/DrawerStack/ViewLayer.tsx).',
         },
+        {
+          selector:
+            'ImportDeclaration[source.value="framer-motion"] > ImportSpecifier[imported.name="motion"]',
+          message:
+            'Import `m`, not `motion`: `motion` bundles every framer-motion feature into the eager graph (src/providers.tsx).',
+        },
       ],
     },
   },
   {
     // The non-spec half of the lane's module graph: `source-tree.ts` is what the defect actually
-    // killed and it is no spec, and six `scripts/*.mjs` are in the graph one directory over,
-    // five of them imported by a spec. Shipped code and the build configs are out —
+    // killed and it is no spec, and every `scripts/*.mjs` a spec imports is in the graph one
+    // directory over, with the helpers those import. Shipped code and the build configs are out —
     // `src/styles/fonts.ts` and `.ladle/` write the same form as the Vite asset-URL idiom, which
     // is what the form is for.
     //
@@ -224,8 +234,7 @@ export default [
           // repo-relative reader can serve.
           selector:
             'CallExpression[callee.name="fileURLToPath"][arguments.0.object.type="MetaProperty"][arguments.0.property.name="url"]',
-          message:
-            'Read a repo file with readRepoSource (src/test-support/repo-source.ts) (#289).',
+          message: 'Read a repo file with readRepoSource (src/test-support/repo-source.ts) (#289).',
         },
       ],
     },

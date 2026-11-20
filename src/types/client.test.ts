@@ -4,7 +4,7 @@ import { ClientSchema } from './client'
 
 const client = {
   id: 7,
-  name: 'Host Site',
+  title: 'Host Site',
   color1: '#000000',
   allowedDomains: 'host.example\nwww.host.example',
   clientId: 'sahaj-atlas-client',
@@ -19,11 +19,23 @@ describe('ClientSchema', () => {
   })
 
   it('allows an unset region', () => {
-    expect(ClientSchema.parse({ id: 7, name: 'Host Site' }).region).toBeUndefined()
+    expect(ClientSchema.parse({ id: 7, title: 'Host Site' }).region).toBeUndefined()
   })
 
   it('rejects a missing id', () => {
-    expect(() => ClientSchema.parse({ name: 'Host Site' })).toThrow()
+    expect(() => ClientSchema.parse({ title: 'Host Site' })).toThrow()
+  })
+
+  /**
+   * The public name is `title`. The schema named `name` for its whole life, which the synced
+   * `Client` has never had, so `/clients/me` answered none and the JSON-LD organizer it fed was
+   * never emitted.
+   */
+  it('reads the public name from title, and strips a name key', () => {
+    const parsed = ClientSchema.parse({ ...client, name: 'Internal Label' })
+
+    expect(parsed.title).toBe('Host Site')
+    expect(parsed).not.toHaveProperty('name')
   })
 
   /**

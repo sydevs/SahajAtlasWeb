@@ -41,7 +41,7 @@ describe('the Mapbox wordmark and attribution corners', () => {
     expect(peek, "the bottom sheet's peek").toBeGreaterThan(0)
     // The remaining side is the cog's: it takes the inline start in both layouts, so the
     // attribution takes the other. Physical, and paired with the drawer's deferred RTL flip
-    // (`atoms/Drawer`'s `TODO(rtl, #52 WS8)`) — the cog is on the left under RTL today too.
+    // (`atoms/Drawer`'s `TODO(rtl, #52 WS8)`) — under RTL the cog's `start-3` is this corner.
     expect(cornerIn(control, 'position')).toBe('top-right')
   })
 

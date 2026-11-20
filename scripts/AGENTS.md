@@ -27,6 +27,10 @@ It is built so passing proves something real:
   graph. Never budget a single chunk — the build re-chunks freely. A graph far under
   budget also fails, since that is both a ratchet (lower `BUDGET_KIB` in the same commit)
   and a sign of a half-broken import walker.
+  ⚠ **`standalone` and `embed` hold headroom on purpose, just inside that ratchet.** The
+  comment beside `BUDGET_KIB` says why the space is held instead of ratcheted away, and
+  `src/Widget.standalone.test.ts` holds what the slack can no longer see: the eager graph's
+  barrels and packages, by name.
   **It judges the shipped figure, prints it beside the measured one, and a `BUDGET_KIB`
   edit has to clear the shipped column.**
   It also checks that the loader and embed graphs share no chunk. The size budget alone

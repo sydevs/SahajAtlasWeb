@@ -1,14 +1,15 @@
 import type { Plugin, PluginOption } from 'vite'
 
+import { readdir, rm } from 'node:fs/promises'
+import { existsSync } from 'node:fs'
+import process from 'node:process'
+import { resolve } from 'path'
+
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import tsconfigPaths from 'vite-tsconfig-paths'
 import cssInjectedByJsPlugin from 'vite-plugin-css-injected-by-js'
 import { sentryVitePlugin } from '@sentry/vite-plugin'
-import { readdir, rm } from 'node:fs/promises'
-import { existsSync } from 'node:fs'
-import process from 'node:process'
-import { resolve } from 'path'
 
 import circleFlags from './scripts/circle-flags.mjs'
 import flattenEntryImports from './scripts/flatten-entry-imports.mjs'

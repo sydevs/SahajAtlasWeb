@@ -2,10 +2,10 @@ import { useTranslation } from 'react-i18next'
 
 import { DrawerBody, DrawerHeader } from '@/components/atoms/Drawer'
 import { EventFacts, FallbackPanel } from '@/components/molecules'
-// This imports the leaf path, not the barrel. ShareContent owns react-share, and eager views
-// import the barrel — so a re-export there would keep react-share in the eager graph, even
-// though this view itself is lazy (issue #96). EventDetails reaches EventActions the same way,
-// for the same reason.
+// This imports the leaf path, not the barrel. ShareContent owns react-share, and the views
+// that open with the interface import the barrel — so a re-export there would put react-share
+// in the interface's own download, even though this view is lazy (issue #96). EventDetails
+// reaches EventActions the same way, for the same reason.
 import { ShareContent } from '@/components/molecules/ShareContent'
 import { useShareUrl } from '@/hooks/use-share-url'
 import { useViewerCountry } from '@/hooks/use-viewer-country'

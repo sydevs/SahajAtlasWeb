@@ -137,7 +137,7 @@ describe('pageLocaleOverride', () => {
     expect(override('?locale=pt-BR')).toBe('pt-BR')
   })
 
-  // The load-bearing rejection. An unshipped code falls back to English via `supportedLngs`, so
+  // The load-bearing rejection. An unshipped code falls back to English via `preferredLocale`, so
   // treating its mere presence as a viewer's choice would suppress a host's own `locale=fr` in
   // favour of English — worse than either party asked for.
   it('rejects a language the widget does not ship, rather than counting it as a choice', () => {

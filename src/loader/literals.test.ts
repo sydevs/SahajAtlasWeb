@@ -2,8 +2,8 @@
  * Pins the values the loader duplicates against the widget's copies (#149).
  *
  * The loader must not import from the widget at runtime. That is what keeps a host's eager cost
- * at about 3 KiB instead of about 370, so a handful of values exist twice. Duplication is only
- * safe while something asserts the copies agree — this file does that. It is the same
+ * at about 3 KiB instead of the whole widget, so a handful of values exist twice. Duplication
+ * is only safe while something asserts the copies agree — this file does that. It is the same
  * arrangement `src/lib/scope.ts` and `scripts/postcss-scope-widget.test.ts` use across the
  * PostCSS boundary.
  *
@@ -15,11 +15,12 @@
 import { describe, expect, it } from 'vitest'
 
 import { ELEMENT_NAME as LOADER_ELEMENT_NAME, safeLoaderPath } from './literals'
-import { parseConfig } from './config'
+import { ROUTE_PARAM as LOADER_ROUTE_PARAM, parseConfig } from './config'
 
 import { attributeEnabled } from '@/config/attributes'
 import { ELEMENT_NAME as WIDGET_ELEMENT_NAME } from '@/lib/element'
 import { safePath } from '@/lib/shape'
+import { ROUTE_PARAM as WIDGET_ROUTE_PARAM } from '@/lib/shape/routing'
 
 describe('the loader/widget duplication pins', () => {
   it('agrees on the custom element name', () => {
@@ -31,6 +32,13 @@ describe('the loader/widget duplication pins', () => {
   // means a rename must be a deliberate act in three places, not a refactor in one.
   it('is still `sahaj-atlas`', () => {
     expect(WIDGET_ELEMENT_NAME).toBe('sahaj-atlas')
+  })
+
+  // The widget writes the route into this parameter and the loader reads it back off the same
+  // page URL, to tell a deep link from a host's default view. Drifted, nothing throws: the
+  // loader stops seeing a link the widget wrote, so it mounts lazily and opens nothing.
+  it('agrees on the route parameter', () => {
+    expect(LOADER_ROUTE_PARAM).toBe(WIDGET_ROUTE_PARAM)
   })
 
   describe('safeLoaderPath matches safePath', () => {

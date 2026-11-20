@@ -8,6 +8,7 @@ import { StoryWrapper, StorySection } from '../../ladle'
 
 import { SearchFilters } from './SearchFilters'
 
+import { geojsonQuery } from '@/config/api'
 import { mockEventSlimList } from '@/mocks/events'
 import { DEFAULT_FILTERS } from '@/lib/shape'
 
@@ -44,7 +45,7 @@ export const Default: Story = () => {
   const [filters, setFilters] = useState(DEFAULT_FILTERS)
 
   useEffect(() => {
-    queryClient.setQueryData(['geojson'], mockGeojson)
+    queryClient.setQueryData(geojsonQuery().queryKey, mockGeojson)
   }, [queryClient])
 
   return (

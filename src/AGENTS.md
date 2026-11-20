@@ -23,11 +23,15 @@ Do not format files by hand. PostToolUse hooks run Prettier and `eslint --fix` a
 - Components export as PascalCase. Hooks export as camelCase `useX`. Zustand stores are `useX` hooks too — `State` is not a suffix convention.
 - **Export style**: components and hooks use **named** exports. Pages, layouts, and entry/singleton modules (`App`, `Widget`, `providers`, `config/api/*`, `config/i18n`) use default exports.
 - **Props types**: name them `<Component>Props` (e.g. `EventListItemProps`). On a name clash with an imported type, alias the **import**, not ours — the exported type keeps its name (see `DESIGN_SYSTEM.md`).
-- **Say `SahajCloud`, never `CMS`** — in type names, identifiers and prose. The API has a name, and `CMS` reads as a category. A type pinning a schema to the synced types is `PinnedToSahajCloud`, and its helpers are `SahajCloudFormField`, `SahajCloudBlock` (see `src/types/report.ts` and `docs/rules/data-layer.md`).
+- **Say `SahajCloud`, never `CMS`** — in type names, identifiers and prose. The API has a name, and `CMS` reads as a category. A type pinning a schema to the synced types is `PinnedToSahajCloud`, and its helpers are `SahajCloudFormField` and `SahajCloudBlock` (see `src/types/report.ts` and `docs/rules/data-layer.md`). ⚠ A helper that names no SahajCloud type is named for its function instead — `PartialZodShape<T>` (`src/types/zod-shape.ts`) takes any `T`.
 
 ## TypeScript
 
 - Run `pnpm typecheck` before you open a PR. No hook type-checks an edit: per-file errors come from the TypeScript language server, if one is attached, and cross-file breakage needs the full run.
+
+## Hook dependencies
+
+- **`react-hooks/exhaustive-deps` is on, and `pnpm lint` fails on it.** Correct the array where every value it would add is stable. Where the array is the design — a mount-only effect, a dependency listed purely to re-run a read, a key standing in for a fresh array — keep it and say why on a narrow `// eslint-disable-next-line react-hooks/exhaustive-deps -- <reason>`. ⚠ Adding the "missing" dependency to one of those changes when the effect runs: `useFrameOnTop` would re-frame the camera on every render, and `AppShell`'s locale effect would re-apply the boot locale.
 
 ## Environment variables
 

@@ -63,9 +63,10 @@ jobs:
     env:
       PREVIEW_URL: https://sahajatlas.com
     steps:
-      - uses: actions/checkout@v7
-      - uses: pnpm/action-setup@v6 # reads packageManager from package.json
-      - uses: actions/setup-node@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      # Reads `packageManager` from package.json.
+      - uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
         with:
           node-version-file: .node-version
           cache: pnpm
@@ -151,9 +152,11 @@ jobs:
               "- Failing run: $RUN_URL" \
               "- Commit: \`$GITHUB_SHA\`" \
               "" \
-              "The same 18 specs pass on every PR against a published Workers preview, so a red here" \
+              "The same specs pass on every PR against a published Workers preview, so a red here" \
               "means production differs from the preview the gate read. #148 was a zone cache" \
               "setting, not a commit, so read the run before assuming the last merge caused it." \
+              "" \
+              "To roll production back: \`docs/rules/deployment.md\`, section 'Rolling production back'." \
               "" \
               "Later red runs comment here rather than filing again, and nothing closes this" \
               "issue — close it once the read is green." \
