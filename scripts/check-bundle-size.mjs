@@ -70,6 +70,14 @@ import { annotate, report } from './_ci-output.mjs'
 // quietly re-accumulates the slack it just won. `SLACK_RATIO` below enforces
 // that rather than trusting this comment to be read.
 //
+// ⚠ `standalone` and `embed` deliberately hold about 13% instead, since the top
+// two rows below. The four steps before them were all raises, and under 1%
+// spare most dependency bumps collided with the gate, so the space those rows
+// won back is kept as headroom. A newly-eager view no longer trips these two
+// budgets — `src/Widget.standalone.test.ts` holds the eager graph's barrels
+// and packages by name instead. ⚠ `SLACK_RATIO` still bites at 15%: about
+// 5 KiB more off `standalone` and the ratchet asks for a lower budget.
+//
 // `loader` is the graph a host pays on every page view (#149). This script
 // budgets it an order of magnitude tighter than the other two, on purpose. The
 // whole justification for the loader is that a host embedding the widget below
@@ -83,9 +91,19 @@ import { annotate, report } from './_ci-output.mjs'
 // Every step to today's three figures, newest first, as standalone/embed and as
 // loader. `git log -p` on this constant holds each one in full, dated.
 //
-//   338  335.5/336.6  #318  `add`/`correct` routes, the mailing-list schema field,
-//                           and the submission helpers all three forms share, on
-//                           top of #435's CSS — both steps fit the one 338 budget
+//   338/336  292.7/293.8  #318  `add`/`correct` routes, the mailing-list schema
+//                                 field, and the submission helpers all three
+//                                 forms share, +2.9 KiB on both graphs. Budgets
+//                                 held; the two differ, so this column pairs them
+//   336  289.8/290.9  #442  the zod enums moved to `z.enum`'s object form, so
+//                          `satisfies Record<Theirs, Theirs>` could replace a
+//                          hand-rolled equality type, +0.1
+//   336  289.7/290.8  #442  framer-motion's `m` with the animation features
+//                          alone, −13.2 KiB; budget held, as above, and `embed`
+//                          back to 336 — #435 raised it for 0.4 KiB on 0.2
+//                          spare, and this row leaves 44
+//   336  301.3/302.4  #442  the shell stopped importing the molecules barrel,
+//                          −30.9 KiB; budget held, as above
 //   338  333.9/335.0  #435  embed only. The 44px tap areas, the row spacing
 //                           they need and the contrast fixes are 0.4 KiB of
 //                           generated CSS, on a graph main left 0.2 spare
@@ -113,7 +131,7 @@ import { annotate, report } from './_ci-output.mjs'
 export const BUDGET_KIB = {
   standalone: 338,
   loader: 3.6,
-  embed: 338,
+  embed: 336,
 }
 
 // What `@sentry/vite-plugin`'s per-chunk debug-ID snippet adds to each graph,
@@ -198,7 +216,7 @@ function gzipBytes(file) {
  * to a file outside `dist/`. A stray string literal that happens to look
  * like a specifier cannot inflate the total.
  */
-function staticImports(file) {
+export function staticImports(file, dist = DIST) {
   const code = readFileSync(file, 'utf8')
   const here = dirname(file)
   const specifiers = [
@@ -209,7 +227,7 @@ function staticImports(file) {
   return [...new Set(specifiers)]
     .filter((s) => s.startsWith('.'))
     .map((s) => join(here, s))
-    .filter(inDist)
+    .filter((target) => inDist(target, dist))
 }
 
 /**
@@ -220,17 +238,17 @@ function staticImports(file) {
  * summary. Checking containment is what makes the claim above true: "a
  * stray literal cannot inflate the total".
  */
-function inDist(file) {
-  return resolve(file).startsWith(DIST + sep) && existsSync(file)
+function inDist(file, dist) {
+  return resolve(file).startsWith(dist + sep) && existsSync(file)
 }
 
 /** Walks the static import closure from an entry file. Returns absolute paths. */
-function importClosure(entry) {
+export function importClosure(entry, dist = DIST) {
   const seen = new Set([entry])
   const queue = [entry]
 
   while (queue.length) {
-    for (const next of staticImports(queue.pop())) {
+    for (const next of staticImports(queue.pop(), dist)) {
       if (seen.has(next)) continue
       seen.add(next)
       queue.push(next)
@@ -240,18 +258,27 @@ function importClosure(entry) {
   return [...seen]
 }
 
-/** The entry script plus every modulepreload hint declared by an HTML shell. */
-function htmlGraph(html) {
+/**
+ * What an HTML shell declares: its entry scripts, and its modulepreload hints.
+ *
+ * ⚠ Kept apart, because only an entry may start a walk. A hint is a chunk the entry imports,
+ * so a closure walked from one is a plausible graph with the entry chunk missing.
+ */
+export function htmlGraph(html, dist = DIST) {
   const source = readFileSync(html, 'utf8')
-  const hrefs = [
-    ...[...source.matchAll(/<script[^>]+type="module"[^>]+src="([^"]+)"/g)].map((m) => m[1]),
-    ...[...source.matchAll(/<link[^>]+rel="modulepreload"[^>]+href="([^"]+)"/g)].map((m) => m[1]),
-  ]
 
   // This applies the same containment rule as the walker above. An
   // absolute or CDN href would otherwise become a bogus path, and reach
   // `gzipBytes` as a bare `ENOENT` error.
-  return hrefs.map((href) => join(DIST, href.replace(/^\//, ''))).filter(inDist)
+  const inside = (pattern) =>
+    [...source.matchAll(pattern)]
+      .map((m) => join(dist, m[1].replace(/^\//, '')))
+      .filter((file) => inDist(file, dist))
+
+  return {
+    entries: inside(/<script[^>]+type="module"[^>]+src="([^"]+)"/g),
+    hints: inside(/<link[^>]+rel="modulepreload"[^>]+href="([^"]+)"/g),
+  }
 }
 
 /**
@@ -319,11 +346,23 @@ function measure(name, files) {
   }
 }
 
-function main() {
-  const indexHtml = join(DIST, 'index.html')
-  const embedJs = join(DIST, 'embed.js')
-  const autoJs = join(DIST, 'auto.js')
-  const loaderJs = join(DIST, 'loader.js')
+/**
+ * The graphs `main` scores, as absolute paths — or `failure`, the first reason the build in
+ * `dist` cannot be measured.
+ *
+ * A function of the directory so `check-bundle-size.test.ts` can hand it a build shaped to trip
+ * each refusal. The walkers are regexes over a bundler's output, and nothing else says they
+ * still match it.
+ *
+ * @param {string} [dist]
+ * @returns {{ failure: string } | { declared: string[], loaded: string[], embedGraph: string[],
+ *   loaderGraph: string[] }}
+ */
+export function eagerGraphs(dist = DIST) {
+  const indexHtml = join(dist, 'index.html')
+  const embedJs = join(dist, 'embed.js')
+  const autoJs = join(dist, 'auto.js')
+  const loaderJs = join(dist, 'loader.js')
 
   // This names the missing paths. If the build succeeded and one of these
   // files was renamed instead — `entryFileNames` sets the embed filename
@@ -332,37 +371,36 @@ function main() {
   const missing = [indexHtml, embedJs, autoJs, loaderJs].filter((f) => !existsSync(f))
 
   if (missing.length) {
-    annotate(
-      'error',
-      `Bundle-size check found no build output at ${missing.map((f) => relative(DIST, f)).join(', ')} ` +
+    return {
+      failure:
+        `Bundle-size check found no build output at ${missing.map((f) => relative(dist, f)).join(', ')} ` +
         '— run `pnpm build` first, or update the entry names in scripts/check-bundle-size.mjs ' +
         'if vite.config.ts renamed them.',
-    )
-    process.exit(1)
+    }
   }
 
   // The shell's own preload list is what the readiness report measured.
   // The closure walked from the entry is what the browser actually pulls.
   // The two agree today. This script scores their UNION, so a dropped
   // preload hint can never make the payload look smaller than it really
-  // is. It can only show up as the warning below.
-  const declared = htmlGraph(indexHtml)
+  // is. It can only show up as the warning in the report.
+  const shell = htmlGraph(indexHtml, dist)
+  const declared = [...shell.entries, ...shell.hints]
 
-  if (!declared.length) {
-    annotate(
-      'error',
-      'Found no entry script in dist/index.html — the shell markup has changed, so ' +
+  if (!shell.entries.length) {
+    return {
+      failure:
+        'Found no entry script in dist/index.html — the shell markup has changed, so ' +
         'the standalone payload cannot be measured. Fix htmlGraph() in ' +
         'scripts/check-bundle-size.mjs.',
-    )
-    process.exit(1)
+    }
   }
 
-  const loaded = importClosure(declared[0])
-  const embedGraph = importClosure(embedJs)
+  const loaded = importClosure(shell.entries[0], dist)
+  const embedGraph = importClosure(embedJs, dist)
   // A host pays for both halves of the loader on every page view: `auto.js`, the classic-script
   // bridge that imports nothing (`pnpm assert:classic` holds that), and the module it inserts.
-  const loaderGraph = [autoJs, ...importClosure(loaderJs)]
+  const loaderGraph = [autoJs, ...importClosure(loaderJs, dist)]
 
   // The whole loader split rests on this seam: `loader.js` must reach
   // `embed.js` only through a DYNAMIC import, never a static one.
@@ -373,13 +411,12 @@ function main() {
   // The budget check above would catch this, but only as a number. This
   // check names the actual mistake.
   if (loaderGraph.some((file) => basename(file) === 'embed.js')) {
-    annotate(
-      'error',
-      "loader.js statically imports embed.js — the widget is back in the loader's eager graph, " +
+    return {
+      failure:
+        "loader.js statically imports embed.js — the widget is back in the loader's eager graph, " +
         'so every host pays the full payload up front again. The import in src/loader/index.ts ' +
         'must stay a dynamic `import()`.',
-    )
-    process.exit(1)
+    }
   }
 
   // This checks the same seam, one size down — the half of the problem
@@ -410,15 +447,14 @@ function main() {
   )
 
   if (shared.length) {
-    annotate(
-      'error',
-      `loader.js and embed.js share ${shared.length} chunk(s) — ${shared.map((f) => basename(f)).join(', ')}. ` +
+    return {
+      failure:
+        `loader.js and embed.js share ${shared.length} chunk(s) — ${shared.map((f) => basename(f)).join(', ')}. ` +
         'A value import across the loader/widget seam puts a chunk in both graphs, so every host ' +
         'fetches it up front whether or not the widget ever renders. Duplicate the value into ' +
         'src/loader/literals.ts and pin it in literals.test.ts instead — or, if rolldown has ' +
         'renamed its runtime helpers, add the new name to BUNDLER_HELPER here.',
-    )
-    process.exit(1)
+    }
   }
 
   // The walkers are regexes over minified output. Their silent failure
@@ -431,16 +467,27 @@ function main() {
     ['embed.js', embedGraph],
   ]) {
     if (graph.length < 2) {
-      annotate(
-        'error',
-        `Import walker found no chunks for ${entry} — the build's output shape has ` +
+      return {
+        failure:
+          `Import walker found no chunks for ${entry} — the build's output shape has ` +
           'probably changed, and these sizes cannot be trusted. Fix staticImports() ' +
           'in scripts/check-bundle-size.mjs.',
-      )
-      process.exit(1)
+      }
     }
   }
 
+  return { declared, loaded, embedGraph, loaderGraph }
+}
+
+function main() {
+  const eager = eagerGraphs()
+
+  if ('failure' in eager) {
+    annotate('error', eager.failure)
+    process.exit(1)
+  }
+
+  const { declared, loaded, embedGraph, loaderGraph } = eager
   const graphs = [
     measure('standalone', [...new Set([...declared, ...loaded])]),
     measure('loader', loaderGraph),

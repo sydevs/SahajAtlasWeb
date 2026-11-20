@@ -15,7 +15,7 @@ vi.mock('@tanstack/react-query', async (importOriginal) => ({
   ...(await importOriginal<typeof import('@tanstack/react-query')>()),
   useQuery: () => ({ data: undefined }),
 }))
-vi.mock('@/config/api', () => ({ default: {} }))
+vi.mock('@/config/api', () => ({ geojsonQuery: () => ({ queryKey: ['geojson'] }) }))
 vi.mock('@/hooks/use-region-matcher', () => ({ useRegionMatcher: () => undefined }))
 vi.mock('@/components/molecules', () => ({
   SearchFilters: ({ value }: { value: EventFilters }) => <i>draft-region:{value.region ?? '∅'}</i>,

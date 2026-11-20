@@ -5,9 +5,12 @@
 // from, or wait on a check run nobody posts again. Silence is the thing issue #244 exists to
 // end.
 
+import { readdirSync } from 'node:fs'
+import { join } from 'node:path'
+
 import { describe, expect, it } from 'vitest'
 
-import { readRepoSource } from '../src/test-support/repo-source'
+import { REPO_ROOT, readRepoSource } from '../src/test-support/repo-source'
 
 import { APP_CONFIG, appWorkerName, readPackage } from './_wrangler-config.mjs'
 
@@ -65,6 +68,16 @@ describe('production-smoke.yml', () => {
     expect(match(lane, /^\s*if: (failure\(\) && steps\.\S+\.conclusion == 'failure')$/m)).toContain(
       `steps.${match(lane, /^\s*id: (\S+)$/m)}.conclusion`,
     )
+  })
+
+  // The alert is all a responder is handed, and it names a section of another file. A renamed
+  // heading would leave it pointing at nothing.
+  it('points the alert at the rollback runbook, by a heading that exists', () => {
+    const [, file, heading] =
+      /To roll production back: \\`([^\\]+)\\`, section '([^']+)'/.exec(lane) ?? []
+
+    expect(file).toBe('docs/rules/deployment.md')
+    expect(readRepoSource(file)).toContain(`\n## ${heading}\n`)
   })
 })
 
@@ -187,6 +200,25 @@ describe('ci.yml', () => {
     expect(smoke).toMatch(/^\s{12}\*\)$/m)
   })
 
+  // A Dependabot branch is same-repo, and a run Dependabot triggers reads the Dependabot secrets,
+  // never the Actions ones. Left to `no-credentials`, its red tells the reader to add Actions
+  // secrets that are already entered. The test sits INSIDE the same-repo branch, so a fork stays
+  // a fork, and the vocabulary pin above keeps the reason loud: only the advice differs.
+  it('gives a run Dependabot triggered its own reason, inside the same-repo branch', () => {
+    expect(match(smoke, /^\s*ACTOR: (.+)$/m)).toBe('${{ github.actor }}')
+    expect(smoke).toMatch(
+      /\[ "\$SAME_REPO" = "true" \]; then\n\s*if \[ "\$ACTOR" = "dependabot\[bot\]" \]; then\n\s*reason=dependabot\n\s*else\n\s*reason=no-credentials\n\s*fi\n\s*else\n\s*reason=fork\n/,
+    )
+
+    // The advice names a section of another file, and a renamed heading is dead advice.
+    const advice = match(smoke, /^\s{12}dependabot\)\n([\s\S]*?)^\s{14};;$/m)
+
+    expect(advice).toContain('docs/rules/deployment.md')
+    expect(readRepoSource('docs/rules/deployment.md')).toContain(
+      `\n## ${match(advice, /'([^']+)'/)}\n`,
+    )
+  })
+
   // ⚠ A wrong `on:` block here fails silently, in both directions. `docs/testing.md` § "The merge
   // queue is the only gate that reads the tree a merge will produce" says how (#375).
   it('triggers on the pull request and the merge queue, and on no push', () => {
@@ -215,5 +247,90 @@ describe('ci.yml', () => {
     // The name comes off the config, never typed in: a rename has to break the guard rather
     // than leave it anchored on a Worker that no longer exists.
     expect(guard).toContain('appWorkerName()')
+  })
+})
+
+// The gate job runs the unit lane through the coverage script, so one step is both the lane and
+// its measurement. Each way of getting that wrong is silent: a second step paying for the lane
+// twice, a tolerance that lets a red spec through, or a summary reading a file nothing writes.
+describe("ci.yml's gate job, on the unit lane", () => {
+  const ci = readRepoSource('.github/workflows/ci.yml')
+  const opens = ci.indexOf('\n  gate:')
+  const closes = ci.indexOf('\n  dependencies:')
+
+  // Same rule as the `smoke:` slice above: a renamed job must fail, not leave a slice every
+  // negative assertion passes against.
+  if (opens < 0 || closes < opens)
+    throw new Error('ci.yml has no `gate:` job before `dependencies:`')
+
+  const gate = ci.slice(opens, closes)
+
+  it('runs the lane once, as the same vitest run the lean gate makes', () => {
+    const { scripts } = readPackage()
+    // ⚠ Which `pnpm test:*` steps are vitest is read off package.json, never listed here: the
+    // accessibility gate is a step of this same job and drives a browser, not the lane. A
+    // second vitest step still fails this, which is the whole point.
+    const lanes = [...gate.matchAll(/^\s*(?:- )?run: (pnpm test\S*)/gm)]
+      .map((m) => m[1])
+      .filter((command) => scripts[command.replace(/^pnpm /, '')]?.includes('vitest'))
+
+    expect(lanes).toEqual(['pnpm test:coverage'])
+    expect(scripts['test:coverage']).toBe(`${scripts['test:run']} --coverage`)
+  })
+
+  // The step is the bare command: no `|| true` after it, and no key under it such as
+  // `continue-on-error`, either of which would report a red spec as a green gate.
+  it('lets a failing spec fail the job', () => {
+    expect(gate).toMatch(/^ {6}- run: pnpm test:coverage\n(?! {8}\S)/m)
+  })
+
+  // The path is the `json-summary` reporter's own, under vitest's default reports directory.
+  // Nothing else couples the two, and a summary step that finds no file only annotates.
+  it('summarises the report the coverage config writes, into a directory git ignores', () => {
+    const config = readRepoSource('vitest.config.ts')
+    const [directory, file] = match(gate, /^\s*SUMMARY=(\S+)$/m).split('/')
+
+    expect(file).toBe('coverage-summary.json')
+    expect(config).toContain("'json-summary'")
+    expect(config).not.toContain('reportsDirectory')
+    expect(readRepoSource('.gitignore').split('\n')).toContain(directory)
+  })
+
+  // The step above is also the unit lane, so one threshold turns a coverage figure into a red
+  // gate that no spec caused — and one set under today's figures does it on a later pull request.
+  it('fails on no coverage figure', () => {
+    expect(readRepoSource('vitest.config.ts')).not.toMatch(/['"]?thresholds['"]?\s*:/)
+  })
+})
+
+// A tag is a name its owner can move, and a workflow that names one runs whatever the tag points
+// at on the day — with this repository's secrets in reach. A commit SHA cannot move, so a new
+// release arrives only as a pull request somebody reads (`.github/dependabot.yml` opens it).
+describe('every workflow', () => {
+  const DIR = '.github/workflows'
+  const uses = readdirSync(join(REPO_ROOT, DIR))
+    .filter((name) => /\.ya?ml$/.test(name))
+    .flatMap((name) =>
+      [
+        ...readRepoSource(`${DIR}/${name}`).matchAll(
+          /^[ \t]*(?:-[ \t]+)?uses:[ \t]*['"]?([^'"\s#]+)['"]?[ \t]*(#.*)?$/gm,
+        ),
+      ].map((m) => ({ file: name, ref: m[1], comment: m[2] ?? '' })),
+    )
+
+  // `sydevs/` is this organisation's own shared workflow, followed at `@main` on purpose, and a
+  // `./` path is this repository at the commit under test. Everything else is somebody else's.
+  const thirdParty = uses.filter(({ ref }) => !/^(sydevs\/|\.\/)/.test(ref))
+
+  it('pins each third-party action by commit SHA, with its version beside it', () => {
+    // A count of zero means the pattern above stopped matching, and every expectation below
+    // would pass on nothing.
+    expect(thirdParty.length).toBeGreaterThan(0)
+
+    expect(thirdParty.filter(({ ref }) => !/@[0-9a-f]{40}$/.test(ref))).toEqual([])
+
+    // The comment is the only readable half of a pin, and it is what Dependabot rewrites when it
+    // moves the SHA — on the same line, or it is left behind.
+    expect(thirdParty.filter(({ comment }) => !/^#\s*v\d/.test(comment))).toEqual([])
   })
 })

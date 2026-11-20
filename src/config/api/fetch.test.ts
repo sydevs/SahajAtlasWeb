@@ -1,13 +1,14 @@
+import { QueryObserver } from '@tanstack/react-query'
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 
 import atlasAuth from './auth'
 import { applyRequestContext, interceptFetch } from './client'
-import api, { eventTitlesQuery, shapeEventDoc } from './fetch'
+import api, { eventTitlesQuery, geojsonQuery, regionsQuery, shapeEventDoc } from './fetch'
 
 import livePreview, { LIVE_PREVIEW_INACTIVE } from '@/config/live-preview/protocol'
 import { previewRequestDecorator } from '@/config/live-preview/request'
 import { eventsQuery } from '@/config/api'
-import { queryClient } from '@/config/query-client'
+import { MAX_RETRY_DELAY, queryClient } from '@/config/query-client'
 import { DEFAULT_FILTERS } from '@/lib/shape'
 import { EventDocSchema } from '@/types'
 
@@ -295,6 +296,61 @@ describe('the three wholesale reads walk every page', () => {
     )
 
     await expect(api.getGeojson()).rejects.toThrow(/over the \d+-page cap/)
+  })
+})
+
+// The loaders spread the same contract the screens observe, and add only what is theirs.
+describe('the wholesale loaders and the screens that observe the same caches', () => {
+  const stubBackend = () => {
+    sdk.find.mockResolvedValue({ docs: [], totalPages: 1 })
+    sdk.request.mockResolvedValue(
+      jsonResponse({ type: 'FeatureCollection', features: [], totalPages: 1 }),
+    )
+  }
+
+  it('leave what they fetched under the key each screen reads, so a screen asks for nothing', async () => {
+    stubBackend()
+
+    await api.getCountries()
+
+    expect(queryClient.getQueryData(geojsonQuery().queryKey)).toEqual({
+      type: 'FeatureCollection',
+      features: [],
+    })
+    expect(queryClient.getQueryData(regionsQuery().queryKey)).toEqual([])
+
+    const observer = new QueryObserver(queryClient, geojsonQuery())
+    const unsubscribe = observer.subscribe(() => {})
+
+    unsubscribe()
+
+    expect(observer.getCurrentResult().isFetching).toBe(false)
+    expect(sdk.request).toHaveBeenCalledTimes(1)
+  })
+
+  it('make one attempt at a failing read, and leave retrying to whoever observes it', async () => {
+    // A loader runs INSIDE a query that already retries. A second policy here would multiply
+    // with that one, so `retry: false` is the loader's own and the contract names none.
+    vi.useFakeTimers()
+
+    try {
+      sdk.find.mockRejectedValue(Object.assign(new Error('HTTP 503'), { status: 503 }))
+      sdk.request.mockRejectedValue(Object.assign(new Error('HTTP 503'), { status: 503 }))
+
+      const failure = api.getCountries().catch((error: unknown) => error)
+
+      // Past the longest backoff, so a retry that was coming has come.
+      await vi.advanceTimersByTimeAsync(MAX_RETRY_DELAY + 1)
+
+      expect(await failure).toBeInstanceOf(Error)
+      expect(sdk.request).toHaveBeenCalledTimes(1)
+      expect(sdk.find).toHaveBeenCalledTimes(1)
+    } finally {
+      vi.useRealTimers()
+    }
+
+    expect(geojsonQuery()).not.toHaveProperty('retry')
+    expect(regionsQuery()).not.toHaveProperty('retry')
   })
 })
 

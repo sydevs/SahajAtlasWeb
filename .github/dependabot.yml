@@ -1,0 +1,19 @@
+# Third-party actions are pinned by commit SHA, and `scripts/ci-workflows.test.ts` holds that, so
+# nothing moves one but a pull request. This file is what opens it: Dependabot moves the SHA and
+# rewrites the version comment beside it. What a run it triggers can and cannot read is in
+# `docs/rules/deployment.md` § "Deploy-side CI gates".
+#
+# ⚠ GitHub Actions only. The sydevs loop owns npm updates (see the Dependency Review job in
+# `.github/workflows/ci.yml`), and an npm entry here would open pull requests that race it.
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    commit-message:
+      # Titles each pull request `ci: bump …`, as this repo titles a workflow change.
+      prefix: ci
+    ignore:
+      # First-party, followed at `@main` on purpose.
+      - dependency-name: 'sydevs/*'

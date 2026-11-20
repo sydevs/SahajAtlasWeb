@@ -1,10 +1,9 @@
 import type { ZonedPoint } from '@/lib/proposal'
-import type { Geojson } from '@/types'
 
 import { useMemo } from 'react'
 import { useQuery } from '@tanstack/react-query'
 
-import { GEOJSON_QUERY_KEY } from '@/config/api/fetch'
+import { geojsonQuery } from '@/config/api'
 import { feedLanguageCodes } from '@/lib/events'
 
 /**
@@ -12,7 +11,7 @@ import { feedLanguageCodes } from '@/lib/events'
  * feed, so the hints follow it into the cache without this ever fetching it.
  */
 export function useFeedHints() {
-  const { data: feed } = useQuery<Geojson>({ queryKey: GEOJSON_QUERY_KEY, enabled: false })
+  const { data: feed } = useQuery({ ...geojsonQuery(), enabled: false })
 
   return useMemo(() => {
     const points: ZonedPoint[] = []

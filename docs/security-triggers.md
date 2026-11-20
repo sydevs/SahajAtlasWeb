@@ -1,7 +1,3 @@
----
-globs: ['.claude/workflow.json', 'src/**']
----
-
 # Why the security-review trigger list looks like this
 
 `.claude/workflow.json`'s `securityReview.triggerPattern` decides when `/finalize-pr` runs a
@@ -12,9 +8,10 @@ only points here — **advisory only**, enforced by no script.
 
 This widget ships a **public bundle embedded in untrusted host pages**, so the risky surface is
 client-side: the API-key/auth data layer, the widget's host-prop trust boundary, the guards on
-where a data-driven `href` may point, untrusted-HTML (XSS) sinks, the stylesheet we inject into
-somebody else's `<head>`, the host's privacy opt-outs, dependencies, and anything touching
-secrets or env.
+where a data-driven `href` may point, untrusted-HTML (XSS) sinks, the styles we ship into
+somebody else's page (a stylesheet adopted by the widget's shadow root, and the `@font-face` rules
+still installed in their `<head>`), what leaves a visitor's browser, dependencies, and anything
+touching secrets or env.
 
 **Widen the list on purpose, never to the maximum.** A trigger that fires on everything stops
 getting read, which makes it worth no more than one that never fires.

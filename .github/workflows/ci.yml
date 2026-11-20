@@ -23,16 +23,44 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
-      - uses: actions/checkout@v7
-      - uses: pnpm/action-setup@v6 # reads packageManager from package.json
-      - uses: actions/setup-node@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      # Reads `packageManager` from package.json.
+      - uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
         with:
           node-version-file: .node-version
           cache: pnpm
       - run: pnpm install --frozen-lockfile
+      # A PR that changes a copied contract (the SahajCloud types and the atlas URL contract,
+      # `contractSync` in sydevs/claude-workflow's loop-config.json) must leave it exactly as
+      # its sync command writes it. A PR that leaves them alone passes, however far SahajCloud
+      # has moved: the contract sync fixes drift on main, never every open PR.
+      # why: sydevs/claude-workflow/docs/why.md#a-contract-check-checks-what-a-pr-changes
+      - name: Contract check
+        uses: sydevs/claude-workflow/.github/actions/contract-check@main
       - run: pnpm lint
       - run: pnpm typecheck
-      - run: pnpm test:run # unit lane — smoke specs are excluded in vitest.config.ts
+      # The unit lane, run once, with coverage collected on that same run — smoke specs are
+      # excluded in vitest.config.ts. A failing spec fails this step exactly as `pnpm test:run`
+      # would: coverage adds a report, never a second run and never a tolerance.
+      - run: pnpm test:coverage
+      # Measured, not gated: `vitest.config.ts` sets no threshold, so these figures inform a
+      # review and fail nothing. A missing report is annotated rather than failed for the same
+      # reason — the specs above already passed.
+      - name: Coverage summary
+        run: |
+          SUMMARY=coverage/coverage-summary.json
+          if [ ! -f "$SUMMARY" ]; then
+            echo "::warning::The unit lane passed but wrote no $SUMMARY, so this run reports no coverage."
+            exit 0
+          fi
+          {
+            echo "### Unit-lane coverage — measured, not gated"
+            echo ""
+            echo "| | Covered | Of | |"
+            echo "| --- | ---: | ---: | ---: |"
+            jq -r '.total | to_entries[] | select(.key != "branchesTrue") | "| \(.key) | \(.value.covered) | \(.value.total) | \(.value.pct)% |"' "$SUMMARY"
+          } >> "$GITHUB_STEP_SUMMARY"
       - run: pnpm build
       - name: Bundle-size budget
         # Measures the eager first-load payload, gzipped: the standalone
@@ -74,7 +102,7 @@ jobs:
           '
       - name: Cache the Chromium the accessibility gate drives
         id: browser-cache
-        uses: actions/cache@v4
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
         with:
           path: ~/.cache/ms-playwright
           key: playwright-${{ runner.os }}-${{ steps.playwright.outputs.version }}
@@ -165,6 +193,11 @@ jobs:
       # pull request missing a secret is neither: that is an Actions secret nobody has
       # entered, so it goes red and names which.
       #
+      # ⚠ A run Dependabot triggers is the one same-repo case where that advice is false. It
+      # reads the Dependabot secrets and never the Actions ones, so it takes a reason of its
+      # own. Still red: whether to enter the five there is a decision
+      # (`docs/rules/deployment.md` § "Deploy-side CI gates"), and a quiet skip would hide it.
+      #
       # ⚠ All five, not just the Cloudflare pair. Gating on the pair alone lets a run with the
       # three `VITE_*` secrets missing reach `publish`, upload successfully, and then fail
       # `boot-origins.smoke.test.ts` on an origin vite inlined as empty — a missing secret
@@ -183,23 +216,28 @@ jobs:
           HAS_SECRETS: ${{ secrets.CLOUDFLARE_API_TOKEN != '' && secrets.CLOUDFLARE_ACCOUNT_ID != '' && secrets.VITE_SENTRY_DSN != '' && secrets.VITE_SAHAJCLOUD_API_KEY != '' && secrets.VITE_MAPBOX_ACCESSTOKEN != '' }}
           PR_NUMBER: ${{ github.event.pull_request.number }}
           SAME_REPO: ${{ github.event.pull_request.head.repo.full_name == github.repository }}
+          ACTOR: ${{ github.actor }}
         run: |
           if [ -z "$PR_NUMBER" ]; then
             reason=queue
           elif [ "$HAS_SECRETS" = "true" ]; then
             reason=publish
           elif [ "$SAME_REPO" = "true" ]; then
-            reason=no-credentials
+            if [ "$ACTOR" = "dependabot[bot]" ]; then
+              reason=dependabot
+            else
+              reason=no-credentials
+            fi
           else
             reason=fork
           fi
           echo "reason=$reason" >> "$GITHUB_OUTPUT"
 
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         if: steps.plan.outputs.reason == 'publish'
-      - uses: pnpm/action-setup@v6
+      - uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6
         if: steps.plan.outputs.reason == 'publish'
-      - uses: actions/setup-node@v7
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
         if: steps.plan.outputs.reason == 'publish'
         with:
           node-version-file: .node-version
@@ -377,6 +415,10 @@ jobs:
             no-credentials)
               MSG="This repository is missing at least one of the five Actions secrets the preview needs, so none could be published — NO smoke specs ran."
               HINT="Add CLOUDFLARE_API_TOKEN and CLOUDFLARE_ACCOUNT_ID, scoped to Workers only, plus VITE_SENTRY_DSN, VITE_SAHAJCLOUD_API_KEY and VITE_MAPBOX_ACCESSTOKEN. Until all five exist every same-repo pull request fails here instead of reporting a green check that read nothing."
+              ;;
+            dependabot)
+              MSG="Dependabot triggered this run, and such a run reads the Dependabot secrets, never the Actions secrets. At least one of the five the preview needs is not entered there, so none could be published — NO smoke specs ran."
+              HINT="No Actions secret is missing, and adding one changes nothing here. Entering the five as Dependabot secrets is a decision, not a chore: docs/rules/deployment.md, 'Deploy-side CI gates', says what that hands a bumped action."
               ;;
             publish)
               # Two causes reach here, and sending the reader to the wrong step is how #132's

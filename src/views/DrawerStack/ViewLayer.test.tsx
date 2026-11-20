@@ -6,6 +6,8 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import { ViewLayer } from './ViewLayer'
 
+import Providers from '@/providers'
+
 /**
  * The drawer's view cross-fade, mid-fade.
  *
@@ -41,10 +43,14 @@ function mountInShadowRoot() {
   return { root: host.shadowRoot as ShadowRoot, reactRoot: createRoot(container) }
 }
 
+// Through the app's own `Providers`, because that is where an `m.*` gets its animation
+// features: mounted bare, the layer has no exit to play and is gone before it can overlap.
 const stack = (view: string) => (
-  <AnimatePresence>
-    <ViewLayer key={view}>{view}</ViewLayer>
-  </AnimatePresence>
+  <Providers>
+    <AnimatePresence>
+      <ViewLayer key={view}>{view}</ViewLayer>
+    </AnimatePresence>
+  </Providers>
 )
 
 describe('ViewLayer', () => {

@@ -104,12 +104,10 @@ function SearchFieldSkeleton() {
  * `undefined`. Its own `t()` calls carry a `defaultValue`. An unrecognised route
  * simply omits the title — a header with only a close control still beats no header.
  *
- * It can still SUSPEND, in one case, and that is deliberate, not overlooked.
- * `useLocale()` reads i18next through a plain `useTranslation()`, so switching
- * language while this is on screen suspends here as it does everywhere else in the
- * app. The controls this renders all pass `useSuspense: false`, so they add no
- * second way to do it — but making the locale read non-suspending is an app-wide
- * decision, not this component's.
+ * Nor can it SUSPEND on a string. `useLocale()` and every control this renders read
+ * i18next through a plain `useTranslation()`, which is always ready: the English
+ * snapshot is bundled and there is no backend to wait on (`config/i18n.ts`). So a
+ * language switch re-renders this in place.
  */
 export function DrawerChrome({
   interactive = true,
@@ -140,12 +138,13 @@ export function DrawerChrome({
   // The region tree is the whole global list, and this re-renders on every location
   // and drawer-control change, so this does not re-scan it for a name that only
   // moves with the slug.
+  const regionSlug = entry?.kind === 'region' ? entry.slug : undefined
   const regionName = useMemo(
     () =>
-      entry?.kind === 'region'
-        ? (regions?.find((node) => node.slug === entry.slug)?.name ?? undefined)
-        : undefined,
-    [regions, entry?.kind === 'region' ? entry.slug : undefined],
+      regionSlug === undefined
+        ? undefined
+        : (regions?.find((node) => node.slug === regionSlug)?.name ?? undefined),
+    [regions, regionSlug],
   )
 
   const title = (() => {
@@ -192,7 +191,7 @@ export function DrawerChrome({
         <DrawerHeader>
           {/* A LOADING chrome gets the field's shape, not a working field. `SearchField` mounts
               a Mapbox Geocoder — a shadow-DOM custom element bound to the live map. This
-              fallback is freshly mounted per path inside DrawerStack's keyed motion.div, so on
+              fallback is freshly mounted per path inside DrawerStack's keyed view layer, so on
               a cold start it would instantiate one while the map is still initialising, then
               tear it down again the moment CountriesView mounts its own. An ERROR chrome keeps
               the real field. There it is the escape hatch. */}

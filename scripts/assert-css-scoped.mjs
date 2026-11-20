@@ -21,7 +21,7 @@
  *
  * This script reads the CSS back out of `dist/**\/*.js`. There are no
  * separate .css assets — the injector inlines each stylesheet as a JS
- * string literal. The script checks five things:
+ * string literal. The script checks six things:
  *
  *   1. every top-level selector is scoped to the widget class,
  *   2. every `@keyframes` name carries the widget namespace — keyframe
@@ -47,8 +47,12 @@
  *
  * `pnpm build` runs this gate, so both CI and the Cloudflare Workers build
  * enforce it.
+ *
+ * Every check is a function of the emitted text, because each one's failure
+ * mode is to stop firing, which a build with nothing to find cannot show.
+ * `assert-css-scoped.test.ts` hands each a sheet built to fail it.
  */
-import { readFileSync, readdirSync, existsSync } from 'node:fs'
+import { existsSync, readFileSync, readdirSync, realpathSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import process from 'node:process'
@@ -78,14 +82,6 @@ const DIST = join(dirname(fileURLToPath(import.meta.url)), '../dist')
 // back the GDPR exposure, and the two CSP origins the README no longer
 // asks hosts to allow.
 const FORBIDDEN_ORIGINS = ['fonts.googleapis.com', 'fonts.gstatic.com']
-
-const distFiles = (ext) => {
-  if (!existsSync(DIST)) fail(`no ${DIST}/ — run \`vite build\` first`)
-
-  return readdirSync(DIST, { recursive: true, encoding: 'utf8' })
-    .filter((name) => name.endsWith(ext))
-    .map((name) => join(DIST, name))
-}
 
 /**
  * Pulls out every stylesheet the injector embedded.
@@ -143,11 +139,6 @@ export function extractInjectedCss(source) {
   }
 
   return found
-}
-
-function fail(message) {
-  console.error(`\n✗ assert-css-scoped: ${message}\n`)
-  process.exit(1)
 }
 
 // A stylesheet can reach the host document without being scoped by
@@ -219,7 +210,7 @@ const BARE_VAR = /var\(\s*(--[\w-]+)\s*\)/g
  *
  * @param {import('postcss').Root} root
  */
-function collectVars(root) {
+export function collectVars(root) {
   const declared = new Set()
   const refs = []
 
@@ -242,8 +233,13 @@ function collectVars(root) {
   return { declared, refs }
 }
 
-/** @param {import('postcss').Root} root */
-function remLengths(root) {
+/**
+ * Check 4's detector: every declaration in a sheet that carries a `rem` length.
+ *
+ * @param {import('postcss').Root} root
+ * @returns {string[]}
+ */
+export function remLengths(root) {
   const found = []
 
   root.walkDecls((decl) => {
@@ -259,217 +255,372 @@ function remLengths(root) {
   return found
 }
 
-let sheets = 0
-let rules = 0
-let properties = 0
-let varRefs = 0
-
-// Pooled across every sheet, then reported per sheet — see `collectVars`.
-const declaredVars = new Set()
-const refsByFile = []
-
-// The exemption belongs to a FILE, so this is checked per injection, not per
-// unique sheet: an identical copy injected from another chunk must not ride
-// on the calendar's pass.
-const remByCss = new Map()
-const injections = []
-
-// The injector emits one copy of the same stylesheet per build entry, so
-// the shared App chunk carries it twice. Checking an already-checked sheet
-// again adds no coverage, and it doubles the parse time of a roughly
-// 150 KB string. The `sheets` counter still counts every copy — it only
-// needs to answer one question: did this gate find any CSS at all?
-const checked = new Set()
-
-// A .css asset in the build output means the injector failed to inline
-// one stylesheet. Nothing hands that file to `src/styles/sheet.ts`, so no
-// root adopts it — and this gate, which reads CSS out of the JS, would
-// never see it.
-const strayCss = distFiles('.css')
-
-if (strayCss.length > 0) {
-  fail(`${strayCss.join(', ')}: CSS emitted as a separate asset, outside what this gate reads`)
+/**
+ * How many injection sites a chunk holds.
+ *
+ * Every injection site carries one copy of the stringified sink, so the marker names
+ * each one exactly once. That counts sites independently of how the CSS itself is quoted — the
+ * extractor above only recognizes a template literal, and that shape is a minifier
+ * artifact rather than a guaranteed contract. Without this separate count, a chunk whose
+ * injection came out double-quoted would be skipped silently, and the `sheets === 0`
+ * guard in `auditBuild` would stay quiet as long as some other chunk still matched.
+ *
+ * @param {string} source
+ * @returns {number}
+ */
+export function countInjectionSites(source) {
+  return source.split(INJECTION_MARKER).length - 1
 }
 
-// Every injection site carries one copy of the stringified sink, so the marker names
-// each one exactly once. That counts sites independently of how the CSS itself is quoted — the
-// extractor above only recognizes a template literal, and that shape is a minifier
-// artifact rather than a guaranteed contract. Without this separate count, a chunk whose
-// injection came out double-quoted would be skipped silently, and the `sheets === 0`
-// guard below would stay quiet as long as some other chunk still matched.
-let injectionSites = 0
+/**
+ * Check 3: the font origins a chunk names.
+ *
+ * This check scans the whole chunk, not only the stylesheets inside it.
+ * `src/styles/fonts.ts` now registers the font faces, so a regression
+ * could reappear as a CSS `@import` or as a plain URL in JS.
+ *
+ * @param {string} source
+ * @returns {string[]}
+ */
+export function forbiddenOrigins(source) {
+  return FORBIDDEN_ORIGINS.filter((origin) => source.includes(origin))
+}
 
-for (const file of distFiles('.js')) {
-  const source = readFileSync(file, 'utf8')
+/**
+ * Check 1: why a sheet is not confined to the widget scope. `rules` is how many it read, for
+ * the count a passing run reports.
+ *
+ * @param {import('postcss').Root} root
+ * @returns {{ rules: number, failures: string[] }}
+ */
+export function scopeFailures(root) {
+  try {
+    return { rules: assertScoped(root), failures: [] }
+  } catch (error) {
+    return { rules: 0, failures: [error instanceof Error ? error.message : String(error)] }
+  }
+}
 
-  injectionSites += source.split(INJECTION_MARKER).length - 1
+/**
+ * Check 2: each `@keyframes` a sheet declares outside the widget namespace.
+ *
+ * @param {import('postcss').Root} root
+ * @returns {string[]}
+ */
+export function keyframeFailures(root) {
+  const failures = []
 
-  // This check scans the whole chunk, not only the stylesheets inside it.
-  // `src/styles/fonts.ts` now registers the font faces, so a regression
-  // could reappear as a CSS `@import` or as a plain URL in JS.
-  for (const origin of FORBIDDEN_ORIGINS) {
-    if (source.includes(origin)) {
-      fail(`${file} ships a request to ${origin} — the font must stay self-hosted`)
+  root.walkAtRules(/^(-\w+-)?keyframes$/i, (atRule) => {
+    if (!atRule.params.trim().startsWith(`${WIDGET_SCOPE}-`)) {
+      failures.push(
+        `@keyframes ${atRule.params} is not namespaced — it would override a host animation`,
+      )
     }
+  })
+
+  return failures
+}
+
+/**
+ * Each `@font-face` a sheet declares under a family `ALLOWED_FONT_FAMILIES` does not name.
+ *
+ * @param {import('postcss').Root} root
+ * @returns {string[]}
+ */
+export function fontFaceFailures(root) {
+  const failures = []
+
+  root.walkAtRules('font-face', (atRule) => {
+    let family
+
+    atRule.walkDecls('font-family', (decl) => {
+      family = decl.value.replace(/^['"]|['"]$/g, '').trim()
+    })
+
+    if (!family || !ALLOWED_FONT_FAMILIES.has(family)) {
+      failures.push(
+        `@font-face declares "${family}" — font families are document-global, so it would override that face on a host page`,
+      )
+    }
+  })
+
+  return failures
+}
+
+/**
+ * Check 6, with the name allowlist that guards the same at-rule: each `@property` a sheet
+ * registers under a name `ALLOWED_PROPERTY` refuses, then whether `PROPERTY_RULE` lifts
+ * exactly the registrations the parser finds.
+ *
+ * @param {import('postcss').Root} root
+ * @param {string} css The text `root` was parsed from, which is what `PROPERTY_RULE` reads
+ *   at runtime.
+ * @returns {{ registrations: number, failures: string[] }}
+ */
+export function propertyFailures(root, css) {
+  const failures = []
+  let registrations = 0
+
+  root.walkAtRules('property', (atRule) => {
+    const name = atRule.params.trim()
+
+    registrations += 1
+
+    if (!ALLOWED_PROPERTY.test(name)) {
+      failures.push(
+        `@property ${name} registers a document-global name — it would impose our initial value and \`inherits: false\` on a host page's own ${name}`,
+      )
+    }
+  })
+
+  const liftable = css.match(PROPERTY_RULE)?.length ?? 0
+
+  if (liftable !== registrations) {
+    failures.push(
+      `${registrations} @property rule(s), but PROPERTY_RULE matches ${liftable} — ` +
+        `src/styles/sheet.ts lifts only what it matches onto the document, and a registration ` +
+        `left in the shadow root is ignored, so its borders and shadows compute to none`,
+    )
   }
 
-  for (const css of extractInjectedCss(source)) {
-    // `t.cssText`-style dynamic calls in the injector's runtime are not stylesheets.
-    if (!css.includes('{')) continue
+  return { registrations, failures }
+}
 
-    sheets += 1
-    injections.push({ file, css })
+/**
+ * Check 4's verdict, over every injection in the build.
+ *
+ * The exemption belongs to a FILE, so this is checked per injection, not per
+ * unique sheet: an identical copy injected from another chunk must not ride
+ * on the calendar's pass.
+ *
+ * @param {{ file: string, rem: string[] }[]} injections Each with what `remLengths` found
+ *   in its sheet.
+ * @returns {string[]}
+ */
+export function remFailures(injections) {
+  const failures = []
+  let calendarRem = 0
 
-    if (checked.has(css)) continue
-    checked.add(css)
-
-    const root = postcss.parse(css, { from: file })
-
-    remByCss.set(css, remLengths(root))
-
-    try {
-      rules += assertScoped(root)
-    } catch (error) {
-      fail(`${file}: ${error instanceof Error ? error.message : String(error)}`)
+  for (const { file, rem } of injections) {
+    if (REM_EXEMPT_CHUNK.test(file)) {
+      calendarRem += rem.length
+      continue
     }
 
-    root.walkAtRules(/^(-\w+-)?keyframes$/i, (atRule) => {
-      if (!atRule.params.trim().startsWith(`${WIDGET_SCOPE}-`)) {
-        fail(
-          `${file}: @keyframes ${atRule.params} is not namespaced — it would override a host animation`,
-        )
-      }
-    })
-
-    root.walkAtRules('font-face', (atRule) => {
-      let family
-
-      atRule.walkDecls('font-family', (decl) => {
-        family = decl.value.replace(/^['"]|['"]$/g, '').trim()
-      })
-
-      if (!family || !ALLOWED_FONT_FAMILIES.has(family)) {
-        fail(
-          `${file}: @font-face declares "${family}" — font families are document-global, so it would override that face on a host page`,
-        )
-      }
-    })
-
-    const vars = collectVars(root)
-
-    varRefs += vars.refs.length
-
-    for (const name of vars.declared) declaredVars.add(name)
-
-    refsByFile.push({ file, refs: vars.refs })
-
-    let sheetProperties = 0
-
-    root.walkAtRules('property', (atRule) => {
-      const name = atRule.params.trim()
-
-      properties += 1
-      sheetProperties += 1
-
-      if (!ALLOWED_PROPERTY.test(name)) {
-        fail(
-          `${file}: @property ${name} registers a document-global name — it would impose our initial value and \`inherits: false\` on a host page's own ${name}`,
-        )
-      }
-    })
-
-    const liftable = css.match(PROPERTY_RULE)?.length ?? 0
-
-    if (liftable !== sheetProperties) {
-      fail(
-        `${file}: ${sheetProperties} @property rule(s), but PROPERTY_RULE matches ${liftable} — ` +
-          `src/styles/sheet.ts lifts only what it matches onto the document, and a registration ` +
-          `left in the shadow root is ignored, so its borders and shadows compute to none`,
+    if (rem.length > 0) {
+      failures.push(
+        `${file}: ${rem.length} rem length(s) — a host's root font size rescales them, so write px ` +
+          `(1rem = 16px). If this is the calendar's chunk under a new name, update REM_EXEMPT_CHUNK.\n  ` +
+          rem.slice(0, 5).join('\n  '),
       )
     }
   }
-}
 
-if (sheets === 0) {
-  fail(
-    'found no injected CSS in dist/ — either the build emitted none, or the injector changed shape and this extractor needs updating',
-  )
-}
-
-if (sheets !== injectionSites) {
-  fail(
-    `found ${sheets} stylesheet(s) but ${injectionSites} injection site(s) — a chunk's CSS was not extracted, so it went unchecked`,
-  )
-}
-
-let calendarRem = 0
-
-for (const { file, css } of injections) {
-  const found = remByCss.get(css) ?? []
-
-  if (REM_EXEMPT_CHUNK.test(file)) {
-    calendarRem += found.length
-    continue
-  }
-
-  if (found.length > 0) {
-    fail(
-      `${file}: ${found.length} rem length(s) — a host's root font size rescales them, so write px ` +
-        `(1rem = 16px). If this is the calendar's chunk under a new name, update REM_EXEMPT_CHUNK.\n  ` +
-        found.slice(0, 5).join('\n  '),
+  if (calendarRem === 0) {
+    failures.push(
+      'found no rem in the calendar chunk — either REM_EXEMPT_CHUNK names no file any more, or the ' +
+        'rem detector stopped matching the emitted CSS and checked nothing',
     )
   }
+
+  return failures
 }
 
-if (calendarRem === 0) {
-  fail(
-    'found no rem in the calendar chunk — either REM_EXEMPT_CHUNK names no file any more, or the ' +
-      'rem detector stopped matching the emitted CSS and checked nothing',
-  )
-}
+/**
+ * Check 5's verdict, over every sheet in the build.
+ *
+ * @param {{ file: string, refs: { name: string, where: string }[] }[]} sheets Each with the
+ *   references `collectVars` found in it.
+ * @param {Set<string>} declared Pooled across every sheet — see `collectVars`.
+ * @returns {string[]}
+ */
+export function varFailures(sheets, declared) {
+  const failures = []
 
-// Tailwind 4 registers these for every composed utility in the sheet, so
-// none at all means the walk stopped matching, not that the sheet stopped
-// registering. Without this the check above would pass vacuously.
-if (properties === 0) {
-  fail(
-    'found no @property in the injected CSS — Tailwind registers one per composed utility, so ' +
-      'either the sheet no longer reaches this gate or the walk stopped matching',
-  )
-}
-
-// Every composed Tailwind utility reads its `--tw-*` through a bare var(), so
-// none at all means the detector stopped matching, not that the sheet stopped
-// referencing. Without this the resolution check would pass vacuously.
-if (varRefs === 0) {
-  fail(
-    'found no fallbackless var() in the injected CSS — Tailwind composes utilities through ' +
-      'them, so either the sheet no longer reaches this gate or BARE_VAR stopped matching',
-  )
-}
-
-for (const { file, refs } of refsByFile) {
-  const missing = refs.filter(
-    ({ name }) => !declaredVars.has(name) && !RUNTIME_SET_PROPERTY.test(name),
-  )
-
-  if (missing.length > 0) {
-    fail(
-      `${file}: ${missing.length} declaration(s) reference a custom property nothing this build ` +
-        `ships declares, so each one is invalid at computed-value time — and an inherited ` +
-        `property then falls back to the HOST page's value (#262). Declare it, give the ` +
-        `var() a fallback, or — only for a property a pinned library's own JS sets — add its ` +
-        `prefix to RUNTIME_SET_PROPERTY.\n  ` +
-        missing
-          .slice(0, 8)
-          .map(({ name, where }) => `${name}  <-  ${where}`)
-          .join('\n  '),
+  // Every composed Tailwind utility reads its `--tw-*` through a bare var(), so
+  // none at all means the detector stopped matching, not that the sheet stopped
+  // referencing. Without this the resolution check would pass vacuously.
+  if (sheets.every(({ refs }) => refs.length === 0)) {
+    failures.push(
+      'found no fallbackless var() in the injected CSS — Tailwind composes utilities through ' +
+        'them, so either the sheet no longer reaches this gate or BARE_VAR stopped matching',
     )
   }
+
+  for (const { file, refs } of sheets) {
+    const missing = refs.filter(
+      ({ name }) => !declared.has(name) && !RUNTIME_SET_PROPERTY.test(name),
+    )
+
+    if (missing.length > 0) {
+      failures.push(
+        `${file}: ${missing.length} declaration(s) reference a custom property nothing this build ` +
+          `ships declares, so each one is invalid at computed-value time — and an inherited ` +
+          `property then falls back to the HOST page's value (#262). Declare it, give the ` +
+          `var() a fallback, or — only for a property a pinned library's own JS sets — add its ` +
+          `prefix to RUNTIME_SET_PROPERTY.\n  ` +
+          missing
+            .slice(0, 8)
+            .map(({ name, where }) => `${name}  <-  ${where}`)
+            .join('\n  '),
+      )
+    }
+  }
+
+  return failures
 }
 
-console.log(
-  `✓ assert-css-scoped: ${rules} rules across ${sheets} injected stylesheet(s) confined to .${WIDGET_SCOPE}, ` +
-    `${properties} @property registration(s) allowlisted, ${varRefs} var() reference(s) resolved, ` +
-    `with no rem outside the calendar chunk`,
-)
+/**
+ * The whole gate, as a function of the emitted files.
+ *
+ * ⚠ `fail` is called once per failure, in the order the gate meets them, and the order is the
+ * contract: the command line passes one that exits, so a run reports the first failure and
+ * reads no further. The spec passes one that collects.
+ *
+ * @param {string[]} files Every emitted file, as a failure should name it.
+ * @param {(file: string) => string} read
+ * @param {(message: string) => void} fail
+ * @returns {{ sheets: number, rules: number, properties: number, varRefs: number }}
+ */
+export function auditBuild(files, read, fail) {
+  let sheets = 0
+  let rules = 0
+  let properties = 0
+  let varRefs = 0
+
+  // Pooled across every sheet, then reported per sheet — see `collectVars`.
+  const declaredVars = new Set()
+  const refsByFile = []
+
+  // Keyed by sheet, then read per injection — see `remFailures`.
+  const remByCss = new Map()
+  const injections = []
+
+  // The injector emits one copy of the same stylesheet per build entry, so
+  // the shared App chunk carries it twice. Checking an already-checked sheet
+  // again adds no coverage, and it doubles the parse time of a roughly
+  // 150 KB string. The `sheets` counter still counts every copy — it only
+  // needs to answer one question: did this gate find any CSS at all?
+  const checked = new Set()
+
+  // A .css asset in the build output means the injector failed to inline
+  // one stylesheet. Nothing hands that file to `src/styles/sheet.ts`, so no
+  // root adopts it — and this gate, which reads CSS out of the JS, would
+  // never see it.
+  const strayCss = files.filter((file) => file.endsWith('.css'))
+
+  if (strayCss.length > 0) {
+    fail(`${strayCss.join(', ')}: CSS emitted as a separate asset, outside what this gate reads`)
+  }
+
+  let injectionSites = 0
+
+  for (const file of files.filter((name) => name.endsWith('.js'))) {
+    const source = read(file)
+
+    injectionSites += countInjectionSites(source)
+
+    for (const origin of forbiddenOrigins(source)) {
+      fail(`${file} ships a request to ${origin} — the font must stay self-hosted`)
+    }
+
+    for (const css of extractInjectedCss(source)) {
+      // `t.cssText`-style dynamic calls in the injector's runtime are not stylesheets.
+      if (!css.includes('{')) continue
+
+      sheets += 1
+      injections.push({ file, css })
+
+      if (checked.has(css)) continue
+      checked.add(css)
+
+      const root = postcss.parse(css, { from: file })
+
+      remByCss.set(css, remLengths(root))
+
+      const scope = scopeFailures(root)
+      const vars = collectVars(root)
+      const registered = propertyFailures(root, css)
+
+      rules += scope.rules
+      varRefs += vars.refs.length
+      properties += registered.registrations
+
+      for (const name of vars.declared) declaredVars.add(name)
+
+      refsByFile.push({ file, refs: vars.refs })
+
+      for (const reason of [
+        ...scope.failures,
+        ...keyframeFailures(root),
+        ...fontFaceFailures(root),
+        ...registered.failures,
+      ]) {
+        fail(`${file}: ${reason}`)
+      }
+    }
+  }
+
+  if (sheets === 0) {
+    fail(
+      'found no injected CSS in dist/ — either the build emitted none, or the injector changed shape and this extractor needs updating',
+    )
+  }
+
+  if (sheets !== injectionSites) {
+    fail(
+      `found ${sheets} stylesheet(s) but ${injectionSites} injection site(s) — a chunk's CSS was not extracted, so it went unchecked`,
+    )
+  }
+
+  for (const failure of remFailures(
+    injections.map(({ file, css }) => ({ file, rem: remByCss.get(css) ?? [] })),
+  )) {
+    fail(failure)
+  }
+
+  // Tailwind 4 registers these for every composed utility in the sheet, so
+  // none at all means the walk stopped matching, not that the sheet stopped
+  // registering. Without this the check above would pass vacuously.
+  if (properties === 0) {
+    fail(
+      'found no @property in the injected CSS — Tailwind registers one per composed utility, so ' +
+        'either the sheet no longer reaches this gate or the walk stopped matching',
+    )
+  }
+
+  for (const failure of varFailures(refsByFile, declaredVars)) fail(failure)
+
+  return { sheets, rules, properties, varRefs }
+}
+
+function fail(message) {
+  console.error(`\n✗ assert-css-scoped: ${message}\n`)
+  process.exit(1)
+}
+
+function main() {
+  if (!existsSync(DIST)) fail(`no ${DIST}/ — run \`vite build\` first`)
+
+  const { sheets, rules, properties, varRefs } = auditBuild(
+    readdirSync(DIST, { recursive: true, encoding: 'utf8' }).map((name) => join(DIST, name)),
+    (file) => readFileSync(file, 'utf8'),
+    fail,
+  )
+
+  console.log(
+    `✓ assert-css-scoped: ${rules} rules across ${sheets} injected stylesheet(s) confined to .${WIDGET_SCOPE}, ` +
+      `${properties} @property registration(s) allowlisted, ${varRefs} var() reference(s) resolved, ` +
+      `with no rem outside the calendar chunk`,
+  )
+}
+
+// A spec imports this module for its exports, and must not run the gate on a missing `dist/`.
+// `realpathSync` on both sides, as `check-bundle-size.mjs` does, because `process.argv[1]` keeps
+// a symlink's path while `import.meta.url` resolves to the target — and a guard that reads false
+// here exits 0 having read no CSS at all. ⚠ It is tested first: `realpathSync('')` throws ENOENT.
+const invokedAs = process.argv[1]
+
+if (invokedAs && realpathSync(invokedAs) === realpathSync(fileURLToPath(import.meta.url))) {
+  main()
+}

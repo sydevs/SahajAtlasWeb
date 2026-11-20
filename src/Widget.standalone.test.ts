@@ -70,6 +70,34 @@ function specifiers(source: string): string[] {
   return found
 }
 
+/**
+ * Only the specifiers that survive the build as a STATIC edge: a value import, a value
+ * re-export, a side-effect import. `import type`, an all-`type` brace list and `import('…')`
+ * are each erased or deferred, so none of them puts a module in an entry's first download.
+ *
+ * ⚠ A type imported without the `type` keyword reads as a value here, though the build erases
+ * it. Say `import type`.
+ */
+function staticSpecifiers(source: string): string[] {
+  const code = stripComments(source)
+  const found: string[] = []
+  const clauses = /\b(?:import|export)\s+(type\s+)?([\w$\s,{}*]+?)\s+from\s+['"]([^'"]+)['"]/g
+
+  for (const [, typeOnly, clause, specifier] of code.matchAll(clauses)) {
+    const names = clause
+      .trim()
+      .match(/^\{([^}]*)\}$/)?.[1]
+      .split(',')
+    const erased = names?.every((name) => !name.trim() || name.trim().startsWith('type '))
+
+    if (!typeOnly && !erased) found.push(specifier)
+  }
+
+  for (const match of code.matchAll(/\bimport\s+['"]([^'"]+)['"]/g)) found.push(match[1])
+
+  return found
+}
+
 /** Our own modules only. A package specifier resolves to nothing here, which is the point. */
 function resolveModule(specifier: string, fromFile: string): string | null {
   const base = specifier.startsWith('@/')
@@ -94,7 +122,7 @@ function resolveModule(specifier: string, fromFile: string): string | null {
   return null
 }
 
-function importGraph(entry: string): Set<string> {
+function importGraph(entry: string, specifiersOf = specifiers): Set<string> {
   const seen = new Set<string>()
   const pending = [entry]
 
@@ -104,7 +132,7 @@ function importGraph(entry: string): Set<string> {
     if (seen.has(file)) continue
     seen.add(file)
 
-    for (const specifier of specifiers(readFileSync(file, 'utf8'))) {
+    for (const specifier of specifiersOf(readFileSync(file, 'utf8'))) {
       const resolved = resolveModule(specifier, file)
 
       if (resolved) pending.push(resolved)
@@ -262,5 +290,109 @@ describe('the live-preview session', () => {
 
   it('is opened by the standalone boot module and by nothing else', () => {
     expect(writers).toEqual([STANDALONE_ONLY[0]])
+  })
+})
+
+/** The package a specifier names, or `null` for one of our own files. */
+const packageOf = (specifier: string): string | null =>
+  specifier.startsWith('.') || specifier.startsWith('@/')
+    ? null
+    : specifier
+        .split('/')
+        .slice(0, specifier.startsWith('@') ? 2 : 1)
+        .join('/')
+
+/** Every package the modules of a graph import statically, sorted. */
+const packagesOf = (modules: Iterable<string>): string[] =>
+  [
+    ...new Set(
+      [...modules].flatMap((module) =>
+        staticSpecifiers(readSource(module)).flatMap((specifier) => packageOf(specifier) ?? []),
+      ),
+    ),
+  ].sort()
+
+/**
+ * The tier barrels and the route screens' own. The interface behind `lazy` imports all four;
+ * nothing that loads before it may.
+ */
+const BARRELS = [
+  'components/atoms/index.ts',
+  'components/molecules/index.ts',
+  'components/organisms/index.ts',
+  'views/index.ts',
+]
+
+/** What both entries load before they render. */
+const SHELL_PACKAGES = [
+  '@fontsource-variable/raleway',
+  '@fontsource-variable/rethink-sans',
+  '@payloadcms/sdk',
+  '@radix-ui/react-dialog',
+  '@tanstack/react-query',
+  '@turf/bbox',
+  '@turf/circle',
+  '@turf/distance',
+  'clsx',
+  'colord',
+  'framer-motion',
+  'i18next',
+  'i18next-browser-languagedetector',
+  'lucide-react',
+  'luxon',
+  'react',
+  'react-circle-flags',
+  'react-error-boundary',
+  'react-helmet-async',
+  'react-i18next',
+  'react-responsive',
+  'react-router',
+  'tailwind-merge',
+  'tailwind-variants',
+  'zod',
+  'zustand',
+  // The report form's alone: it is mounted with the app, so its controls ride in the shell.
+  '@hookform/resolvers',
+  '@radix-ui/react-checkbox',
+  '@radix-ui/react-select',
+  '@radix-ui/react-switch',
+  'react-hook-form',
+]
+
+/**
+ * What an entry downloads BEFORE it renders: its static value imports, all the way down.
+ *
+ * Rolldown places a module by which entries can reach it, not by which exports they use, so
+ * one import through a tier barrel carries everything the barrel re-exports into the first
+ * download. Three fallbacks taken from the molecules barrel once brought the filter form, the
+ * settings menu and the event cards with them: 30.9 KiB gzipped only the lazy interface renders.
+ *
+ * ⚠ **`pnpm size` does not hold this**: its budget carries headroom on purpose, and all of
+ * that fits inside it. A package joining the list is not automatically wrong, but it is
+ * always a decision, and this is where it is made.
+ */
+describe.each([
+  ['Widget.tsx', ['@r2wc/react-to-web-component']],
+  // `main.tsx` mounts with `react-dom` by name, where the embed reaches it through r2wc. The
+  // clients-preview handshake is standalone-only.
+  ['main.tsx', ['@payloadcms/live-preview', 'react-dom']],
+])('what %s loads before it renders', (entry, own) => {
+  const eager = importGraph(join(SRC, entry), staticSpecifiers)
+
+  it.each(BARRELS)('does not include %s', (barrel) => {
+    expect(eager).not.toContain(barrel)
+  })
+
+  it('stops at the interface, which is behind `lazy`', () => {
+    expect(eager).not.toContain('views/FullInterface.tsx')
+  })
+
+  it('does include the app and its fallbacks, or the walk above saw nothing', () => {
+    expect(eager).toContain('App.tsx')
+    expect(eager).toContain('components/molecules/Fallbacks/Fallbacks.tsx')
+  })
+
+  it('imports the packages named here, and no others', () => {
+    expect(packagesOf(eager)).toEqual([...SHELL_PACKAGES, ...own].sort())
   })
 })

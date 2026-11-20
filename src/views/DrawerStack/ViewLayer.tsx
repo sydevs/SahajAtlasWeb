@@ -1,5 +1,5 @@
 import { type ReactNode } from 'react'
-import { motion, useIsPresent } from 'framer-motion'
+import { m, useIsPresent } from 'framer-motion'
 import clsx from 'clsx'
 
 // One view's layer in the sheet's cross-fade. The outgoing and incoming views overlap for
@@ -17,7 +17,7 @@ export function ViewLayer({ children }: { children: ReactNode }) {
   const isPresent = useIsPresent()
 
   return (
-    <motion.div
+    <m.div
       animate={{ opacity: 1 }}
       aria-hidden={isPresent ? undefined : true}
       className={clsx('absolute inset-0 flex flex-col', !isPresent && 'pointer-events-none')}
@@ -26,6 +26,6 @@ export function ViewLayer({ children }: { children: ReactNode }) {
       transition={{ duration: 0.15 }}
     >
       {children}
-    </motion.div>
+    </m.div>
   )
 }

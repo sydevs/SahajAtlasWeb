@@ -14,7 +14,7 @@ import {
 import { createPortal } from 'react-dom'
 import { useLocation, useNavigate } from 'react-router'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { AnimatePresence, motion } from 'framer-motion'
+import { AnimatePresence, m } from 'framer-motion'
 import clsx from 'clsx'
 
 import { eventTitlesQuery, regionsQuery } from '@/config/api'
@@ -245,7 +245,7 @@ function PeekStrip({
   const flush = isLeft ? { x: 0 } : { y: 0 }
 
   return (
-    <motion.button
+    <m.button
       animate={{ ...offset, opacity }}
       aria-label={label}
       className={clsx(className, PEEK_FOCUS)}
@@ -470,6 +470,7 @@ export function DrawerStack() {
       ),
       titles: queryClient.getQueryData<Map<number, string>>(eventTitlesQuery(locale).queryKey),
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- `location.pathname` is the re-read trigger for a cache nothing here subscribes to
   }, [queryClient, locale, location.pathname])
 
   // Mirrors the active sheet's live top onto the peek strips AND the sheet itself,
@@ -684,7 +685,7 @@ export function DrawerStack() {
           })
       },
     }
-  }, [snap, openSnap, canCollapse, parentPath, depth, location, navigate, toStackTarget])
+  }, [snap, openSnap, canCollapse, parentPath, depth, navigate, toStackTarget])
 
   // The filter overlay's own dismiss (its X / swipe / Esc): back to the calendar it
   // opened over — chronologically when there is in-widget history, otherwise a direct
@@ -704,7 +705,7 @@ export function DrawerStack() {
           ? navigate(-1)
           : navigate({ pathname: '/calendar', search: location.search }),
     }),
-    [location, navigate],
+    [depth, location, navigate],
   )
 
   // Whether the sheet advertises its drag affordance (issue #107). The atom's default is

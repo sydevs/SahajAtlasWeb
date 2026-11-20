@@ -66,11 +66,11 @@ export function EventMetadata({ event }: EventMetadataProps) {
   // absent optional property is better structured data than a confidently
   // false one, and `schema.org/Event` does not require `organizer`.
   //
-  // This has no URL and no logo. The client record carries neither today.
+  // This has no URL and no logo: the `/clients/me` select asks for neither.
   // Inventing one from `allowedDomains` would be a guess published as a
   // fact.
-  if (client?.name) {
-    schema.organizer = { '@type': 'Organization', name: client.name }
+  if (client?.title) {
+    schema.organizer = { '@type': 'Organization', name: client.title }
   }
 
   if (online) {

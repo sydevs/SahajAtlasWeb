@@ -107,9 +107,9 @@ The map is the heart of the app and its hottest render path. Treat it carefully.
   `clusterMaxZoom`, `clusterRadius`. Use `getClusterExpansionZoom` on the
   `GeoJSONSource` for expansion — follow `selectFeature`'s existing pattern
   rather than re-implementing zoom math.
-- GeoJSON fetches via React Query (`queryKey: ['geojson']`) from
-  `api.getGeojson()`. Read from the cache — never fetch it ad-hoc in a
-  component.
+- GeoJSON fetches via React Query, through `geojsonQuery()` (`@/config/api`): the
+  `['geojson']` key over `api.getGeojson()`. Read from the cache — never fetch it
+  ad-hoc in a component, and never write the key out beside a `queryFn` of your own.
 
 ## Classes with no real place
 
@@ -171,6 +171,11 @@ The map is the heart of the app and its hottest render path. Treat it carefully.
 - `useViewState` holds `zoom` / `latitude` / `longitude` / `selection` /
   `boundary`. Read it with a **`useShallow`** selector, as `Map.tsx` does, so
   the map re-renders only on the fields it uses.
+  ⚠ **`Map.tsx` selects none of the three camera fields.** The map is uncontrolled, so
+  `onMoveEnd` mirrors the camera into the store for other readers and nothing in the map
+  draws from it. Selecting one re-renders every source and layer each time the camera stops;
+  `Map.click.test.tsx` holds that, and that a cluster click eases through the current
+  `moveMap` — `useMapbox` hands out a new one whenever the padding changes.
 - **Views never touch the map directly.** Camera framing always goes through
   the `MapController` seam (`use-map-controller.tsx`): call
   `useMapController().frameRegion/frameEvent/highlightEvent/frameSearch/restore/reset`
@@ -190,11 +195,11 @@ The map is the heart of the app and its hottest render path. Treat it carefully.
 - **`frameSearch({})` does NOT reset to the world.** No bbox and no center means
   nothing was searched, so the camera stays put. Only the root view wants the
   whole world, and it asks by name via `reset()`.
-- **Framing moves only as needed, and flies** (zoom constants beside
-  `LEFT_DRAWER_PX`: `EVENT_ZOOM=15`, `REGION_MAX_ZOOM=13`,
-  `REGION_FIT_PADDING=48`, `ONLINE_ZOOM=7`. The feel is tuned by `FLY_CURVE` /
-  `FLY_SPEED`). `frameEvent` keeps the current zoom only for an on-screen pin
-  already at detail zoom, and flies in otherwise. Region fits cap at
+- **Framing moves only as needed, and flies** (the zoom constants — `EVENT_ZOOM`,
+  `REGION_MAX_ZOOM`, `REGION_FIT_PADDING`, `ONLINE_ZOOM` — are in
+  `use-map-controller-real.tsx`; the feel is tuned by `FLY_CURVE` / `FLY_SPEED` in
+  `use-mapbox.ts`). `frameEvent` keeps the current zoom only for
+  an on-screen pin already at detail zoom, and flies in otherwise. Region fits cap at
   `REGION_MAX_ZOOM` with edge padding, so a tight region cannot over-zoom.
   Every in-app level transition — an event, a region, a search, or `restore()`
   on a back navigation — flies one tuned arc, so zooming in and out feel
@@ -535,8 +540,11 @@ version, because the folklore on this is older than the code.
   accepts such a GPU. Without WebGL at all, the check also stops mapbox building
   a half map in `#mapbox` before it throws.
 - `worldview` and `language` are set from the active locale
-  (`MAP_WORLDVIEWS`, `useLocale`). When you add a locale, check whether it
-  needs a worldview entry.
+  (`MAP_WORLDVIEWS` in `map-language.ts`, `useLocale`). When you add a locale, check whether it
+  needs a worldview entry. ⚠ The key is the locale's **language** code and the value a
+  **country** code: Japanese sat under `jp` and never matched, since its locale is `ja`.
+  `map-language.test.ts` refuses a key ICU cannot name as a language. `worldview` is read once,
+  at construction, like `locale`.
 - **One type suppression is left here**: a `@ts-expect-error` on `<Geocoder>` in
   `MapSearch.tsx`, which is typed against its own React types and so is refused
   as a JSX component. react-map-gl's own type gaps are covered without one:

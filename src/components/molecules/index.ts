@@ -4,6 +4,12 @@
 // explicit named exports only. Each folder surfaces its primary
 // component or components, plus its `Props` type. Single-use internals
 // stay private.
+//
+// ⚠ For the views, never for the shell: the two entries, `App.tsx` and
+// whatever they import statically take a molecule by its folder path. The
+// bundler follows every re-export edge below, used or not, so one import
+// of this barrel from the shell puts all of it in the first download:
+// 30.9 KiB gz, measured. `src/Widget.standalone.test.ts` pins it.
 export { SettingsMenu } from './SettingsMenu'
 export type { SettingsMenuProps } from './SettingsMenu'
 
@@ -84,16 +90,17 @@ export type { EventListItemProps } from './EventListItem'
 // NOTE: ImageCarousel, EventActions, ShareContent/CopyField, and
 // AddToCalendar are deliberately NOT re-exported. The organisms barrel
 // states the same rule for EventDetails and RegistrationForm. Between
-// them, these own Swiper and react-share. This barrel is imported by
-// EAGER views, so the re-export edge alone kept both in the first-load
-// payload of every host page (about 45 KiB gz), even though nothing
+// them, these own Swiper and react-share. The interface's views import
+// this barrel, so the re-export edge alone would put both in the download
+// every opened interface waits for (about 45 KiB gz), even though nothing
 // imported them through it. Tree-shaking will not drop them, since their
 // `swiper/*` and react-share imports carry side effects. Every real
 // consumer already reaches them by leaf path from inside a lazily-loaded
 // chunk: EventActions and ImageCarousel from EventDetails, ShareContent
 // from EventActions, RegistrationForm and ShareView. That is the
 // readiness report's "Swiper bundled twice" finding. `index.test.ts` pins
-// it (issue #96).
+// it (issue #96). ⚠ Nothing else does: the interface loads behind a lazy
+// seam, outside the graphs `pnpm size` budgets.
 
 export { EventMetadata } from './EventMetadata'
 export type { EventMetadataProps } from './EventMetadata'

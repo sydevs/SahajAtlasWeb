@@ -88,7 +88,7 @@ export function publishLocale(locale: string, win: Window = window): void {
  * reloading it, or opening it from someone who shared it, would silently revert.
  *
  * ⚠ **Resolvable, not merely present.** A junk `?locale=zz` falls back to English through
- * `supportedLngs`, so treating its mere presence as a choice would suppress the host's own
+ * `preferredLocale`, so treating its mere presence as a choice would suppress the host's own
  * `locale=fr` in favour of English — a worse answer than either party asked for. Regional tags
  * resolve by base tag the same way i18next does (`de-DE` → `de`), so a link that survives a
  * round trip through a browser's language list still counts.

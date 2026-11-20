@@ -1,7 +1,10 @@
 import type {
+  AgnosticFeedEvent,
   AtlasConfig,
   Event,
+  EventAddress,
   EventDoc,
+  EventSchedule,
   EventSlim,
   GeoFeature,
   Geojson,
@@ -73,8 +76,23 @@ const REGION_POPULATE = {
   regions: { slug: true, name: true, level: true, subtitle: true },
 } as const
 
+/**
+ * A select over exactly the fields `AgnosticFeedEventSchema` parses, `id` aside, which always
+ * comes back. A field the schema parses and this omits never arrives. One this adds is fetched
+ * and then stripped.
+ *
+ * The two groups may select fewer members than their schema parses: the feed leaves out what
+ * only the event page reads.
+ *
+ * ⚠ The select reaches `requestJson` as an untyped query string, so this type is the only thing
+ * that checks it. The schema's own keys are pinned to the synced SahajCloud types in turn.
+ */
+type FeedSelect = Record<Exclude<keyof AgnosticFeedEvent, 'id' | 'address' | 'schedule'>, true> & {
+  address: Partial<Record<keyof EventAddress, true>>
+  schedule: Partial<Record<keyof EventSchedule, true>>
+}
+
 // These are the event fields the locale-agnostic geojson feed selects.
-// This list must match `AgnosticFeedEventSchema`.
 // `title` is the only localized field, so it is not in this list.
 // `loadEventTitles` joins the title in later, per locale.
 // `webPath` is the canonical route the server computes. The app navigates to it directly.
@@ -120,7 +138,7 @@ const FEED_SELECT = {
   // reads the same.
   verificationStage: true,
   webPath: true,
-}
+} as const satisfies FeedSelect
 
 // ── Wholesale region tree (agnostic, cache-once) ────────────────────────────────
 
@@ -152,7 +170,7 @@ const REGIONS_SELECT = {
 // That slow refetch used to cause the "sometimes slow" region open.
 // A plain `fetchQuery` call would block on that refetch instead.
 //
-// Each loader also pins `gcTime`.
+// Each contract below pins `gcTime`, for its loader and its observers alike.
 // These three caches fetch once and serve every reader, which is the point of this design.
 // React Query counts retention from the moment the last observer unmounts.
 // Some of these caches have only intermittent observers, like the titles sliver.
@@ -161,8 +179,10 @@ const REGIONS_SELECT = {
 // So the 5-minute default would evict the wholesale data during a normal idle gap.
 // The next navigation would then re-download all of it.
 // See `WHOLESALE_GC_TIME`.
+// ⚠ The pin sits in the contract because React Query keeps the longest `gcTime` any writer of a key has stated.
+// A reader that omits it leaves the retention to whoever built the entry first.
 //
-// Each loader also pins `retry: false`. This is not a new policy.
+// Each loader also pins `retry: false`, which stays OUT of the contract. This is not a new policy.
 // `fetchQuery` used to apply this same default for free, through a guard that checked for an undefined `retry` option.
 // `query-client.ts` later gave the client its own `retry` default, so that guard became dead code.
 //
@@ -190,21 +210,27 @@ const getRegions = (): Promise<RegionNode[]> =>
     return { rows: RegionNodeSchema.array().parse(docs), totalPages }
   })
 
+/**
+ * This is the wholesale region tree's query contract: its key, fetcher, and windows together.
+ * The loader below shares it with every screen that reads the tree.
+ * Region names carry no locale, so the tree stays locale-agnostic, and this key carries no locale.
+ * It is declared here and re-exported from `config/api/index.ts`, for the reason `eventTitlesQuery` gives.
+ */
+export const regionsQuery = () => ({
+  queryKey: ['regions'] as const,
+  queryFn: getRegions,
+  staleTime: REGIONS_STALE_TIME,
+  // This is pinned because the default `gcTime`, 5 minutes, is SHORTER than the stale window above.
+  // The tree could be evicted while still nominally fresh.
+  // Every navigation after an idle gap would then re-read the whole of `/regions`. See `WHOLESALE_GC_TIME`.
+  gcTime: WHOLESALE_GC_TIME,
+})
+
 // This reads the region tree through the shared React Query cache.
 // So the whole app fetches and parses it once per stale window, not on every navigation.
-//
-// NOTE: this repeats the key, fetcher, and cache windows that `regionsQuery()` in `config/api/index.ts` declares for React call sites.
-// Two places define one cache entry, kept equal by hand.
-// `eventTitlesQuery` shows this repo's real fix: it is declared HERE, beside its own fetcher, then re-exported from `index.ts` to avoid an import cycle.
-// Moving `regionsQuery` onto that same pattern is the right fix.
-// That change is out of scope for #97, because it restructures a loader that a sibling branch may also hold.
-// Change one copy only together with the other.
 const loadRegions = (): Promise<RegionNode[]> =>
   queryClient.ensureQueryData({
-    queryKey: ['regions'],
-    queryFn: getRegions,
-    staleTime: REGIONS_STALE_TIME,
-    gcTime: WHOLESALE_GC_TIME,
+    ...regionsQuery(),
     retry: false,
     revalidateIfStale: true,
   })
@@ -239,19 +265,26 @@ const getGeojson = async (): Promise<Geojson> => {
   return { type: 'FeatureCollection', features }
 }
 
-export const GEOJSON_QUERY_KEY = ['geojson'] as const
+/**
+ * This is the feed's query contract: its key, fetcher, and windows together.
+ * The loader below shares it with every screen that observes the feed, the map included.
+ * The feed does not depend on locale, so its key carries no locale value.
+ * A language switch does not refetch the feed. It refetches only the titles sliver.
+ * It is declared here and re-exported from `config/api/index.ts`, for the reason `eventTitlesQuery` gives.
+ */
+export const geojsonQuery = () => ({
+  queryKey: ['geojson'] as const,
+  queryFn: getGeojson,
+  staleTime: GEOJSON_STALE_TIME,
+  gcTime: WHOLESALE_GC_TIME,
+})
 
 // The hierarchy fetchers and the events fetchers all need the same feed.
 // This reads the feed through the shared React Query cache, under the same key the map uses.
 // So the app fetches and parses the feed once per stale window, not on every navigation.
-// The feed does not depend on locale, so its key `['geojson']` carries no locale value.
-// A language switch does not refetch the feed. It refetches only the titles sliver.
 const loadGeojson = (): Promise<Geojson> =>
   queryClient.ensureQueryData({
-    queryKey: GEOJSON_QUERY_KEY,
-    queryFn: getGeojson,
-    staleTime: GEOJSON_STALE_TIME,
-    gcTime: WHOLESALE_GC_TIME,
+    ...geojsonQuery(),
     retry: false,
     revalidateIfStale: true,
   })
@@ -471,7 +504,7 @@ const getOnlineCount = async (filters?: EventFilters): Promise<number> => {
 
 // This is one fetcher for every region level.
 // Parent levels, `country` and `region`, list their child regions as cards.
-// Leaf levels, `city` and `center`, list their located events instead.
+// Leaf levels, `city` and `venue`, list their located events instead.
 // Every level also rolls up the placeless online events under it.
 // The cached region tree supplies the node, its children, and its ancestry.
 // The feed supplies bounds, center, and counts.
@@ -742,7 +775,7 @@ const getClient = async () => {
     args: {
       depth: 1,
       select: {
-        name: true,
+        title: true,
         color1: true,
         color2: true,
         color3: true,
@@ -865,8 +898,8 @@ const getTranslations = async (locale: string): Promise<TranslationTree> => {
 
 /**
  * These two contracts live here, beside their fetchers, for the reason `eventTitlesQuery` does:
- * `config/api/index.ts` imports this module, so declaring them there would close a cycle. That
- * module re-exports both, so callers still find every factory in one place.
+ * `config/api/index.ts` imports this module, so declaring them there would close a cycle.
+ * Their callers import them from here: that module re-exports the three wholesale caches only.
  *
  * Both windows match the region tree's. This is operator-set copy on a human editing cadence,
  * not event data, and `WHOLESALE_GC_TIME` keeps a bundle for the session rather than re-reading

@@ -34,7 +34,7 @@ vi.mock('@tanstack/react-query', async (importOriginal) => ({
   useQuery: () => ({ data: undefined }),
 }))
 vi.mock('@/config/api', () => ({
-  default: { getGeojson: () => Promise.resolve(undefined) },
+  geojsonQuery: () => ({ queryKey: ['geojson'] }),
   regionsQuery: () => ({ queryKey: ['regions'] }),
 }))
 

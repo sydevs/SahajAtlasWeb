@@ -71,12 +71,15 @@ Host page  →  <script src="…/auto.js?key=…&locale=…&map=true|false">
 
 ## Data flow
 
-1. The widget receives `apiKey` (+ optional `locale`, `map`, `analytics`,
-   `geolocation`, `errorReporting`, `basePath`, `primaryColor`,
-   `secondaryColor`) from the host page.
-2. `App` fetches the **client** record (domain, default locale, home region)
-   using React Query. It configures the locale and analytics, then navigates
-   to the home region on first load.
+1. The loader parses its parameters off its own script URL
+   (`src/loader/config.ts`; the host-facing list is `docs/embedding.md`
+   § Parameters). The widget reads them through `config/embed.ts`.
+   The brand colours come from the client record.
+2. `App` fetches the **client** record (allowed domains, brand colours, home
+   region) using React Query. It configures analytics from the first allowed
+   domain, then navigates to the home region on first load. ⚠ The record's
+   `locale` is deliberately not read: the language follows the page
+   (`docs/embedding.md` § "The widget follows your page's language").
 3. `DrawerStack` resolves the current pathname (`resolveStack`) into an
    ancestor chain, then renders CountriesView (the base) plus one drawer per
    ancestor. Each drawer runs a normal Suspense query, deep-link-safe by
@@ -116,10 +119,11 @@ Host page  →  <script src="…/auto.js?key=…&locale=…&map=true|false">
   still deletes it. See `docs/rules/deployment.md` (#280, #283). The widget
   build routes off a query parameter on the host's page, so it needs no
   fallback of its own.
-- **Translations**: there is no sync pipeline. Locale JSON under
-  SahajCloud owns every string since #198 (`pnpm sync:translations`). The two **Accent**
-  translation-sync workflows were removed in #99 (see `AGENTS.md` →
-  Deployment).
+- **Translations**: SahajCloud owns every string since #198, and no locale
+  JSON ships under `public/`. `pnpm sync:translations --write` regenerates
+  the committed English snapshot, `src/config/translations.en.json`. The two
+  **Accent** translation-sync workflows were removed in #99 (see
+  `docs/rules/deployment.md` → "Retired: the Accent translation workflows").
 
 ## Conventions index
 

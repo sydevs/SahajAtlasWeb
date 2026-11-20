@@ -11,10 +11,15 @@ import {
 } from '@schedule-x/calendar'
 import { createCalendarControlsPlugin } from '@schedule-x/calendar-controls'
 import { ChevronRight } from 'lucide-react'
+// ⚠ The module, never `temporal-polyfill/global`: that overwrites the host page's own
+// `Temporal` and `Intl.DateTimeFormat`. The patched Schedule-X core binds this same module,
+// and its `instanceof` checks need both sides on one copy.
+import { Temporal } from 'temporal-polyfill'
 
 import '@schedule-x/theme-default/dist/index.css'
 
 import { CalendarMount } from './CalendarMount'
+import { scheduleXTimeline } from './timeline'
 
 import { Button } from '@/components/atoms/Button'
 import { DrawerBody, DrawerHeader } from '@/components/atoms/Drawer'
@@ -44,7 +49,7 @@ import { DrawerErrorBody, DrawerLoadingBody } from '@/views/fallbacks'
 
 // Schedule-X validates `locale` against its own supported BCP-47 set, and THROWS
 // (`InvalidLocaleError`) on an unknown code — this project's short `en`/`de`/… crash it. This
-// maps this project's locales to the closest one SX 2.36 ships. Anything unmapped, including
+// maps this project's locales to the closest one SX ships. Anything unmapped, including
 // Hungarian, which SX lacks, falls back to en-US chrome. This project's own header stays fully
 // localized via i18n.
 const SX_LOCALES: Record<string, string> = {
@@ -124,7 +129,7 @@ function CalendarControls({ controls }: { controls: CalendarControlsPlugin }) {
 
   const applyDate = (next: string) => {
     useCalendarPosition.getState().setDate(next)
-    drive(controls, (c) => c.setDate(next))
+    drive(controls, (c) => c.setDate(Temporal.PlainDate.from(next)))
   }
 
   // The store takes what was PICKED, never the width-specific view that renders for it, so a
@@ -310,6 +315,9 @@ function CalendarGrid({
     () => computeDayBoundaries(events, filters.timeOfDay),
     [events, filters.timeOfDay],
   )
+  // Memoized although the config below is captured once: this grid re-renders on every route
+  // change, and converting a full feed costs a visible pause each time.
+  const timeline = useMemo(() => scheduleXTimeline(events), [events])
 
   // Seed from the last position — view and focused date. This reads once, non-reactively, for
   // the capture-config-once hook. The header and the callback below keep it current, so at the
@@ -326,8 +334,8 @@ function CalendarGrid({
       // remounts the whole drawer when `isWide` flips (vaul's `direction` is not
       // hot-swappable), remounting this grid with it. Should that stop, so does this.
       defaultView: resolveCalendarView(position.view, isWide).view,
-      selectedDate: position.date ?? undefined,
-      events,
+      selectedDate: position.date ? Temporal.PlainDate.from(position.date) : undefined,
+      ...timeline,
       // Online programs render in the secondary colour (see CALENDARS + `calendarId`).
       calendars: CALENDARS,
       // Undefined leaves Schedule-X's default grid (whole day).
@@ -348,12 +356,12 @@ function CalendarGrid({
           if (typeof event.path === 'string') navigate(event.path)
         },
         // Persist the focused date as the user pages through the calendar (drives the header label).
-        onSelectedDateUpdate: (date) => useCalendarPosition.getState().setDate(date),
+        onSelectedDateUpdate: (date) => useCalendarPosition.getState().setDate(date.toString()),
         // The month grid's "+N more" jumps to the list view focused on that day.
         onClickPlusEvents: (date) => {
           controls.setDate(date)
           controls.setView(CALENDAR_VIEW_LIST)
-          useCalendarPosition.getState().setDate(date)
+          useCalendarPosition.getState().setDate(date.toString())
           useCalendarPosition.getState().setView(CALENDAR_VIEW_LIST)
         },
       },

@@ -18,3 +18,26 @@ export function syncMapLanguage(map: LanguageMap | undefined, locale: string): b
 
   return true
 }
+
+// ⚠ Keyed by LANGUAGE (ISO 639), valued by COUNTRY (ISO 3166), and the two differ where they look
+// alike: Japanese is `ja`, and `jp` is Japan, a key no locale ever produces.
+export const MAP_WORLDVIEWS: Record<string, string> = {
+  zh: 'CN', // Chinese
+  ja: 'JP', // Japanese
+  hi: 'IN', // Hindi
+  bn: 'IN', // Bengali
+  pa: 'IN', // Punjabi
+  gu: 'IN', // Gujarati
+  kn: 'IN', // Kannada
+  kok: 'IN', // Konkani
+  ml: 'IN', // Malayalam
+  mr: 'IN', // Marathi
+  sa: 'IN', // Sanskrit
+  ta: 'IN', // Tamil
+  te: 'IN', // Telugu
+  default: 'US', // Default
+}
+
+/** The worldview — whose version of a disputed border Mapbox draws — for a locale's language subtag. */
+export const mapWorldview = (languageCode: string): string =>
+  MAP_WORLDVIEWS[languageCode] || MAP_WORLDVIEWS.default

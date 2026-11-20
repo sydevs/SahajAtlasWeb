@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import { flattenedImports, importClosure } from './flatten-entry-imports.mjs'
+import flattenEntryImports, { flattenedImports, importClosure } from './flatten-entry-imports.mjs'
 
 /**
  * The plugin exists so `embed.js` declares its whole eager graph, the same
@@ -83,5 +83,97 @@ describe('flattenedImports', () => {
     const entry = { fileName: 'assets/entry.js', imports: ['assets/a.js'] }
 
     expect(flattenedImports(flat, entry).code).toBe('import "./b.js";')
+  })
+})
+
+// The two functions above are only as good as the hook that calls them, and the hook rests on
+// what rolldown names things: it finds its entry by `isEntry` and `name` (the input KEY, not the
+// filename) and tells a hashed filename by its shape. The build passes either way — flattening
+// changes discovery, not bytes — so nothing but this says the hook still does its work.
+describe('flattenEntryImports', () => {
+  type Hook = (this: { error(message: string): never }, options: object, output: object) => void
+
+  /** Runs the hook as rolldown does. `this.error` throws there too, which is what fails a build. */
+  const generate = (entryName: string, output: Record<string, object>) => {
+    const hook = flattenEntryImports(entryName).generateBundle as unknown as Hook
+    const error = (message: string): never => {
+      throw new Error(message)
+    }
+
+    hook.call({ error }, {}, output)
+  }
+
+  const CODE = 'import{t}from"./assets/App.js";t();'
+
+  /** An entry as rolldown's `OutputChunk` describes it, reaching three chunks through one. */
+  const entry = (fields: object = {}) => ({
+    type: 'chunk',
+    isEntry: true,
+    name: 'loader',
+    fileName: 'loader.js',
+    imports: ['assets/App.js'],
+    code: CODE,
+    ...fields,
+  })
+
+  it('appends what the entry reaches indirectly, to its code and to its import list', () => {
+    const loader = entry()
+
+    generate('loader', { ...bundle, 'loader.js': loader })
+
+    expect(loader.code).toBe(
+      `${CODE}\nimport "./assets/fallbacks.js";\nimport "./assets/runtime.js";\nimport "./assets/shared.js";\n`,
+    )
+    expect(loader.imports).toEqual([
+      'assets/App.js',
+      'assets/fallbacks.js',
+      'assets/runtime.js',
+      'assets/shared.js',
+    ])
+  })
+
+  it('leaves an entry that imports its whole closure byte for byte', () => {
+    const loader = entry({ imports: ['assets/runtime.js'] })
+
+    generate('loader', { ...bundle, 'loader.js': loader })
+
+    expect(loader).toEqual(entry({ imports: ['assets/runtime.js'] }))
+  })
+
+  // Silence here would revert the whole optimisation with every gate green.
+  it('fails the build when no entry carries the input key', () => {
+    expect(() => generate('widget', { ...bundle, 'loader.js': entry() })).toThrow(
+      /no entry chunk named "widget"/,
+    )
+  })
+
+  it('does not take a lazy chunk of the same name for the entry', () => {
+    const lazy = entry({ isEntry: false, fileName: 'assets/loader-BbhIzGzF.js' })
+
+    expect(() => generate('loader', { ...bundle, [lazy.fileName]: lazy })).toThrow(
+      /no entry chunk named "loader"/,
+    )
+  })
+
+  // `generateBundle` runs after hashing, so appending here would ship bytes the hash in the
+  // filename no longer describes, under a URL served as immutable for a year.
+  it.each(['assets/loader-BbhIzGzF.js', 'assets/loader--2LVzWk4.js', 'assets/loader-CoraX_2-.js'])(
+    'refuses to rewrite the hash-named %s',
+    (fileName) => {
+      const hashed = entry({ fileName })
+
+      expect(() => generate('loader', { ...bundle, [fileName]: hashed })).toThrow(
+        /refusing to rewrite hash-named/,
+      )
+      expect(hashed.code).toBe(CODE)
+    },
+  )
+
+  it.each(['auto.js', 'loader.js', 'embed.js'])('rewrites the stable name %s', (fileName) => {
+    const stable = entry({ fileName })
+
+    generate('loader', { ...bundle, [fileName]: stable })
+
+    expect(stable.imports).toHaveLength(4)
   })
 })

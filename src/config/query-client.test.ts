@@ -132,4 +132,10 @@ describe('the shared client actually carries the policy', () => {
     // The one mutation is a registration. A retry is a duplicate signup, not a recovery.
     expect(queryClient.getDefaultOptions().mutations?.retry).toBe(0)
   })
+
+  it('never holds a mutation back for the connection to return', () => {
+    // The default would pause an offline submit and send it by itself later. Both forms' submit
+    // specs drive the behaviour through this client; this is the wiring they depend on.
+    expect(queryClient.getDefaultOptions().mutations?.networkMode).toBe('always')
+  })
 })

@@ -304,6 +304,11 @@ Some things are **not** parameters, on purpose:
 | The path prefix for `routing=path` | your client record — the same value your canonical URLs are built from |
 | The domains you embed on           | your client record — the API refuses reads from anywhere else, and the captcha renders nowhere else |
 
+**Your display name is the organizer in an event's structured data.** It is the public name on
+your client record — not the internal one — and the widget names it as the `organizer` of every
+event it describes to a search engine. Leave it empty and the event carries no organizer, which is
+better structured data than somebody else's name.
+
 **Your brand colours reach the map, not only the panels.** The event pins, the cluster bubbles
 and the numbers on them are drawn from the **first** of your record's three brand colours, and
 the pin of whichever event is selected from the **third** — the same two your buttons and
@@ -1084,10 +1089,10 @@ One host serves the bundle:
 | `https://sahajatlas.com` | the production domain |
 
 ⚠ **`sahajatlas.pages.dev` used to serve the same bundle and is no longer an origin of ours.**
-If your snippet or your CSP still names it, move both to `https://sahajatlas.com`. The name is
-withdrawn rather than redirected, so no request to it reaches what serves the domain, and once
-the project behind it is deleted the name is claimable by anybody — treat a script still loaded
-from there as a third party, not as us.
+If your snippet or your CSP still names it, move both to `https://sahajatlas.com`. The project
+behind that name was deleted on 2026-10-30 (#283), nothing redirects it, and Cloudflare reserves
+no released `pages.dev` name, so anybody can claim it now. A snippet or a CSP that still names it
+trusts whoever does: a third party, not us.
 
 **The widget's data all comes from one other origin: `cloud.sydevelopers.com`.** That is the only
 host `connect-src` has to name for the atlas itself. Its UI strings come from there too, alongside

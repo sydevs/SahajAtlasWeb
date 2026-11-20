@@ -6,7 +6,7 @@ import { describe, expect, it } from 'vitest'
 
 import { useFeedHints } from './use-feed-hints'
 
-import { GEOJSON_QUERY_KEY } from '@/config/api/fetch'
+import { geojsonQuery } from '@/config/api'
 import { mockGeojson } from '@/mocks/regions'
 
 // Whether the hints follow the feed into the cache is a re-render, which only a mounted
@@ -46,7 +46,7 @@ describe('useFeedHints', () => {
     }
 
     await act(async () => {
-      client.setQueryData(GEOJSON_QUERY_KEY, { ...mockGeojson, features: [zoned, ...rest] })
+      client.setQueryData(geojsonQuery().queryKey, { ...mockGeojson, features: [zoned, ...rest] })
       // React Query notifies its observers on a timeout, not a microtask.
       await new Promise((resolve) => setTimeout(resolve, 0))
     })

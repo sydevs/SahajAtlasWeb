@@ -11,6 +11,7 @@ node_modules
 dist
 dist-ssr
 build
+coverage
 *.local
 
 # @sentry/vite-plugin reads this file at build time and Object.assign's it over process.env

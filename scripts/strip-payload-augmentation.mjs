@@ -10,7 +10,7 @@
  *       export interface GeneratedTypes extends Config {}
  *     }
  *
- * This widget talks to SahajCloud over plain axios and zod. It does not
+ * This widget talks to SahajCloud through `@payloadcms/sdk` and zod. It does not
  * depend on the `payload` package — the synced types are supplementary
  * compile-time types, used to keep our zod schemas and
  * `select`/`populate` objects honest. With `payload` absent, the

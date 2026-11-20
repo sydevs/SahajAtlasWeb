@@ -336,33 +336,12 @@ export function ReportIssueForm({
   const resolver = useMemo(() => zodResolver(schema), [schema])
   const defaultValues = useMemo(
     () => ({ ...reportDefaultValues(fields), ...initialValues }),
-    // Mount-only in effect: RHF reads this once. `initialValues` is story-only.
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- mount-only in effect: RHF reads this once, and `initialValues` is story-only
     [fields],
   )
 
   const mutation = useMutation({
     mutationFn: api.sendReport,
-    /**
-     * React Query's default `networkMode: 'online'` **pauses** a mutation
-     * fired while the browser reports itself offline: no request, no
-     * throw, no `onError`. It sits `isPending` until connectivity returns.
-     *
-     * That default is wrong for this form specifically, in both
-     * directions.
-     *
-     * Forward: the viewer gets a spinner that never resolves, on the one
-     * screen in the widget that exists BECAUSE something already failed —
-     * often the network. So the honest failure state this ticket is about
-     * would be the one state it could never reach.
-     *
-     * Backward: a paused mutation outlives the modal. The query client
-     * resumes it on the `online` event. So a viewer who gave up, reopened
-     * the form, and sent a second report would have both delivered.
-     *
-     * `'always'` makes the fetch attempt and fail like any other error,
-     * which is what the failure copy already describes.
-     */
-    networkMode: 'always',
     // A Turnstile token is single-use, and the write-guard redeems it
     // during verification — BEFORE the collection accepts the row. So
     // after any later failure, the token is already spent, and
@@ -402,8 +381,7 @@ export function ReportIssueForm({
   // Pre-filled values are shown already validated — an empty form still starts clean.
   useEffect(() => {
     if (initialValues) void trigger()
-    // Mount-only: re-validating on every `initialValues` identity change would fight
-    // the user's own edits.
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- mount-only: re-validating on every `initialValues` identity change would fight the user's own edits
   }, [])
 
   if (submitted) {

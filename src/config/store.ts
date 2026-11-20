@@ -1,8 +1,8 @@
 import type { ListingDraft, ListingSender, ListingStep, OpenedListing } from '@/lib/proposal'
 import type { CalendarViewOption } from '@/lib/shape'
+import type { Feature } from 'geojson'
 
 import { create } from 'zustand'
-import { Feature } from 'geojson'
 
 import { deepActiveElement } from '@/lib/active-element'
 

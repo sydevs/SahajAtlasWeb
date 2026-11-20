@@ -179,11 +179,12 @@ describe('this repository', () => {
    * and nowhere else.
    *
    * The eleven `src/` inventories and `source-tree.test.ts` are found by importing the shared walk
-   * (#286); the rest by an enumerating call. `wrangler-config.test.ts` lists only the repo root,
-   * so no lane edit can break it, but the detector over-includes on purpose and it costs nothing
-   * measurable.
+   * (#286); the rest by an enumerating call. `wrangler-config.test.ts` lists only the repo root
+   * and `ci-workflows.test.ts` only `.github/workflows`, so no lane edit can break either, but the
+   * detector over-includes on purpose and it costs nothing measurable.
    */
   const WALKERS = [
+    'scripts/ci-workflows.test.ts',
     'scripts/select-unit-specs.test.ts',
     'scripts/wrangler-config.test.ts',
     'src/Widget.standalone.test.ts',
@@ -238,6 +239,19 @@ describe('this repository', () => {
     expect(selectSpecs('scripts/select-unit-specs.mjs', ROOT)).toContain(
       'scripts/select-unit-specs.test.ts',
     )
+  })
+
+  // Nothing imports a build gate but its own spec, so a spec that stops naming its gate leaves
+  // the gate with no per-edit signal at all. The last row is a coupling through a second module,
+  // reached only because the spec names it: the CSS gate reads back what the scoping pass
+  // writes, and its spec runs that pass to hold the two together.
+  it.each([
+    ['assert-css-scoped.mjs', 'assert-css-scoped.test.ts'],
+    ['check-bundle-size.mjs', 'check-bundle-size.test.ts'],
+    ['flatten-entry-imports.mjs', 'flatten-entry-imports.test.ts'],
+    ['postcss-scope-widget.mjs', 'assert-css-scoped.test.ts'],
+  ])('selects, for an edit to the build script %s, the spec %s', (script, spec) => {
+    expect(selectSpecs(`scripts/${script}`, ROOT)).toContain(`scripts/${spec}`)
   })
 
   it('looks where the lane collects, so a spec outside those two directories fails here', () => {

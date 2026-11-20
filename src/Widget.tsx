@@ -23,8 +23,10 @@ import { classifyError, reportIntegrationWarning } from './lib/report'
 import { type SlotDecision, decideSlot } from './lib/slot-decision'
 import { WIDGET_SCOPE_CLASS } from './lib/scope'
 import { adoptStyles } from './styles/sheet'
+// ⚠ Both by folder path, never a tier barrel: a barrel carries everything it re-exports into
+// this entry's eager graph (`App.tsx` has the measurement).
 import { Spinner } from './components/atoms/Spinner'
-import { ErrorFallback, ResetErrorBoundary } from './components/molecules'
+import { ErrorFallback, ResetErrorBoundary } from './components/molecules/Fallbacks'
 import { mountDecision, mountPrefix } from './lib/shape'
 
 // This implements the embeddable widget's custom element.
@@ -275,10 +277,11 @@ function Atlas({ prefix }: { prefix?: string }) {
   // `path` is the opt-in third case: the route is the pathname under the client
   // record's mount. `query` is the normal case: the route lives in `?atlas=` on the
   // host's own URL, which is a real, indexable, shareable link on their domain.
-  // `memory` is a degradation, taken only where the URL cannot be written at all — a
-  // sandboxed iframe, a `file://` document — which the loader has already probed. The
-  // widget no longer reads or writes the fragment, so a host's `#respond` anchor is
-  // simply none of its business (the whole of #92 goes with it).
+  // `memory` is a degradation, taken only where the document refuses `replaceState`,
+  // which the loader has already probed. ⚠ A sandboxed iframe is not that case: it still
+  // permits the write (`src/components/AGENTS.md`). The widget no longer reads or
+  // writes the fragment, so a host's `#respond` anchor is simply none of its business
+  // (the whole of #92 goes with it).
   //
   // Memory mode still costs the two things it always did, and `linkable` is how the
   // tree asks, rather than finding out by handing a viewer a wrong link (#115): the
@@ -286,9 +289,8 @@ function Atlas({ prefix }: { prefix?: string }) {
   // hrefs resolving against the host origin — is fixed everywhere else by
   // `createHref`.
   //
-  // Re-entrancy: `useLocale` can suspend on a cold i18n boot, which makes React
-  // discard and retry this render. This stays safe, because this is a pure read of
-  // the URL plus the config — it writes nothing.
+  // Re-entrancy: React may discard and retry this render. This stays safe, because
+  // this is a pure read of the URL plus the config — it writes nothing.
   const mount = useRef<MountDecision>()
 
   if (!mount.current) {

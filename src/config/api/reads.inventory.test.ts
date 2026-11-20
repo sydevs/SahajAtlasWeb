@@ -503,3 +503,48 @@ describe('the SahajCloud collection-read inventory', () => {
     ).toEqual([])
   })
 })
+
+/**
+ * The wholesale caches, by the first member of their key.
+ *
+ * Each has ONE contract — key, fetcher and windows — declared beside its fetcher, which its loader
+ * and every screen spread. A key spelled out anywhere else is a second definition of one cache
+ * entry: it reads, and it states options of its own that React Query writes onto the shared entry.
+ */
+const WHOLESALE_KEYS = ['geojson', 'regions', 'event-titles']
+
+const wholesaleKeySites = (): string[] => {
+  const sites: string[] = []
+
+  for (const source of parsed.values()) {
+    const visit = (node: ts.Node): void => {
+      if (ts.isArrayLiteralExpression(node)) {
+        const [first] = node.elements
+
+        if (first && ts.isStringLiteralLike(first) && WHOLESALE_KEYS.includes(first.text)) {
+          sites.push(at(source, node, `['${first.text}', …]`))
+        }
+      }
+
+      ts.forEachChild(node, visit)
+    }
+
+    ts.forEachChild(source, visit)
+  }
+
+  return sites
+}
+
+describe('the wholesale cache keys', () => {
+  it('are each spelled once, in the contract beside the fetcher', () => {
+    const sites = wholesaleKeySites()
+    const strays = sites.filter((site) => !site.startsWith('config/api/fetch.ts:'))
+
+    expect(
+      strays,
+      `A wholesale cache key is written out where its contract should be spread. Use \`geojsonQuery()\`, \`regionsQuery()\` or \`eventTitlesQuery(locale)\` from \`@/config/api\`, adding only what is this reader's own (\`enabled\`, \`select\`), and its \`.queryKey\` for a cache write.\n\n${strays.join('\n')}\n`,
+    ).toEqual([])
+    // One declaration each, so a stray cannot hide as a second copy inside the contract's own file.
+    expect(sites).toHaveLength(WHOLESALE_KEYS.length)
+  })
+})

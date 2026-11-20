@@ -12,8 +12,7 @@ import { CalendarDays, Funnel, Menu, Search, X } from 'lucide-react'
 import { Button } from '@/components/atoms/Button'
 import { FallbackPanel, GeolocationPrompt } from '@/components/molecules'
 import { MapSearch } from '@/components/organisms'
-import api, { eventQuery, regionQuery, regionsQuery } from '@/config/api'
-import { GEOJSON_STALE_TIME } from '@/config/query-client'
+import { eventQuery, geojsonQuery, regionQuery, regionsQuery } from '@/config/api'
 import { useCameraHistory } from '@/config/store'
 import { useAtlasNavigate } from '@/hooks/use-atlas-navigate'
 import { useEventFilters } from '@/hooks/use-filters'
@@ -118,9 +117,10 @@ export function DrawerTitle({ title, subtitle, note }: DrawerTitleProps) {
 const HEADER_CONTROL = { variant: 'ghost', isIconOnly: true, size: 'sm' } as const
 
 export function CloseButton({ className }: { className?: string }) {
-  // `useSuspense: false` — this renders inside the error/loading chrome, where
-  // suspending on an in-flight namespace (a language switch mid-error) would
-  // escape the boundary and blank the widget instead of showing the failure.
+  // This renders inside the error/loading chrome, where a suspend would escape the
+  // boundary and blank the widget instead of showing the failure. `useTranslation()`
+  // cannot suspend: the English snapshot is bundled, and i18next initialises
+  // synchronously with no backend to wait on (`config/i18n.ts`).
   const { t } = useTranslation()
   const { dismiss } = useDrawerControl()
 
@@ -141,10 +141,9 @@ export function CloseButton({ className }: { className?: string }) {
 // Region filter). This uses the same header-control chrome as the close control,
 // so the header reads as one set of buttons.
 export function CalendarButton({ regionSlug }: { regionSlug: string }) {
-  // `useSuspense: false` — also rendered by the fallback chrome
-  // (views/fallbacks.tsx), where suspending on an in-flight namespace would
-  // escape the boundary and blank the widget instead of showing the failure. See
-  // CloseButton.
+  // Also rendered by the fallback chrome (views/fallbacks.tsx), where a suspend
+  // would escape the boundary and blank the widget instead of showing the failure.
+  // See CloseButton for why this read cannot.
   const { t } = useTranslation()
   const navigate = useAtlasNavigate()
 
@@ -163,10 +162,9 @@ export function CalendarButton({ regionSlug }: { regionSlug: string }) {
 // distance-ranked search view. This renders the same header-control chrome as the
 // close/filter controls, so the header reads as one set of buttons.
 export function SearchButton() {
-  // `useSuspense: false` — also rendered by the fallback chrome
-  // (views/fallbacks.tsx), where suspending on an in-flight namespace would
-  // escape the boundary and blank the widget instead of showing the failure. See
-  // CloseButton.
+  // Also rendered by the fallback chrome (views/fallbacks.tsx), where a suspend
+  // would escape the boundary and blank the widget instead of showing the failure.
+  // See CloseButton for why this read cannot.
   const { t } = useTranslation()
   const navigate = useAtlasNavigate()
 
@@ -214,10 +212,9 @@ export function CollapseToggle() {
 // active count as a badge (CountriesView's header), so it reads as one set with
 // the close/collapse chrome.
 export function FilterButton({ iconOnly = false }: { iconOnly?: boolean }) {
-  // `useSuspense: false` — also rendered by the fallback chrome
-  // (views/fallbacks.tsx), where suspending on an in-flight namespace would
-  // escape the boundary and blank the widget instead of showing the failure. See
-  // CloseButton.
+  // Also rendered by the fallback chrome (views/fallbacks.tsx), where a suspend
+  // would escape the boundary and blank the widget instead of showing the failure.
+  // See CloseButton for why this read cannot.
   const { t } = useTranslation()
   const navigate = useAtlasNavigate()
   const location = useLocation()
@@ -355,6 +352,7 @@ export function useFrameOnTop(frame: (ctx: FrameContext) => void, deps: Dependen
 
     if (hasMap && snapshot) restore(snapshot)
     else frame({ isEntry: atlasDepth(location) === 0 })
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- the caller's `deps` alone decide when a view re-frames, and `frame` is a fresh closure each render
   }, [...deps])
 }
 
@@ -451,10 +449,9 @@ export function useEventFromPath(eventPath: string) {
  * same panel.
  */
 export function EmptyEventList() {
-  // `useSuspense: false` — also rendered by the fallback chrome
-  // (views/fallbacks.tsx), where suspending on an in-flight namespace would
-  // escape the boundary and blank the widget instead of showing the failure. See
-  // CloseButton.
+  // Also rendered by the fallback chrome (views/fallbacks.tsx), where a suspend
+  // would escape the boundary and blank the widget instead of showing the failure.
+  // See CloseButton for why this read cannot.
   const { t } = useTranslation()
 
   return (
@@ -504,11 +501,7 @@ export function GeolocationSuggestion({
   const ipLocation = useIpLocation(!dismissed && !activeSearch)
 
   // The cached event feed powers the "is anything actually near?" guard.
-  const { data: geojson } = useQuery({
-    queryKey: ['geojson'],
-    queryFn: () => api.getGeojson(),
-    staleTime: GEOJSON_STALE_TIME,
-  })
+  const { data: geojson } = useQuery(geojsonQuery())
 
   const show = useMemo(
     () =>
