@@ -69,7 +69,11 @@ function FilterGroup({
   const { t } = useTranslation()
 
   return (
-    <section className="flex flex-col gap-2">
+    // ⚠ The wider gap on a touch screen is not spacing taste: `Clear` is a small text control,
+    // and its invisible 44px tap area (#432) reaches into whatever sits under the row. At the
+    // 8px gap the toggles below — positioned, so painted later — took those taps, and both
+    // controls measured short. The gap is what lets each one have its own.
+    <section className="flex flex-col gap-2 pointer-coarse:gap-4">
       <div className="flex items-baseline justify-between gap-2">
         <div className="flex items-baseline gap-2">
           <span className="text-sm font-medium text-foreground">{label}</span>
@@ -85,7 +89,7 @@ function FilterGroup({
               `tabIndex` is needed to stop a hidden control being reachable. */}
           {onClear && (
             <button
-              className={`text-xs font-medium text-primary-11 hover:underline ${active ? '' : 'invisible'}`}
+              className={`touch-target relative text-xs font-medium text-primary-11 hover:underline ${active ? '' : 'invisible'}`}
               type="button"
               onClick={onClear}
             >
@@ -308,8 +312,12 @@ export function SearchFilters({ value, onChange }: SearchFiltersProps) {
           value={daysOfWeek.map(String)}
           onValueChange={(next) => patch({ daysOfWeek: next.map(Number) })}
         >
+          {/* The abbreviation is the accessible name, not the full day. A name a viewer
+              cannot see is a name a speech-input viewer cannot say (WCAG 2.5.3), and the
+              group above already says these are days. `title` keeps the full name within
+              reach of a pointer. */}
           {weekdays.map((day) => (
-            <ToggleGroupItem key={day.value} aria-label={day.full} value={day.value}>
+            <ToggleGroupItem key={day.value} title={day.full} value={day.value}>
               {day.label}
             </ToggleGroupItem>
           ))}

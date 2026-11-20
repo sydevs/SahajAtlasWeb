@@ -55,12 +55,10 @@ test.describe('a map-less embed', () => {
     expect(requests.filter((url) => new URL(url).hostname.endsWith('mapbox.com'))).toEqual([])
   })
 
-  // ⚠ **A known defect, pinned.** react-map-gl's `exports-mapbox` starts `import('mapbox-gl')` at
-  // module load, and the views share a chunk with it, so a map-less embed downloads the whole
-  // library (1.9 MB before compression) and never uses it. The goal is `toEqual([])`; until the
-  // fix lands this asserts the defect, so the fix turns it red and flips it. Not `test.fail`,
-  // which takes ANY failure for the expected one: a widget that never boots, an unrouted request.
-  test('still fetches the mapbox-gl chunk, a known defect', async ({ page }) => {
+  // The 1.9 MB library must not be downloaded by an embed that draws no map. Only the map's first
+  // render starts it (`loadMapLib`, #445), so nothing at module scope may import mapbox-gl again
+  // — `FullInterface` imports `Map.tsx` whatever `hasMap` says.
+  test('never fetches the mapbox-gl chunk', async ({ page }) => {
     const chunks: string[] = []
     const settled = rendered(page)
 
@@ -71,11 +69,7 @@ test.describe('a map-less embed', () => {
     await expect(widget(page).getByRole('link', { name: UNITED_KINGDOM })).toBeVisible()
     await settled
 
-    await expect
-      .poll(() => chunks.length, {
-        message: 'the defect is fixed: assert `toEqual([])` here and drop the note above',
-      })
-      .toBeGreaterThan(0)
+    expect(chunks).toEqual([])
   })
 })
 

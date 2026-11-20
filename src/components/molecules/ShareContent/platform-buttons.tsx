@@ -29,7 +29,9 @@ import {
 
 import { type PlatformKey } from '@/lib/share/platforms'
 
-const ICON_SIZE = 40
+// 44px, not a smaller round icon: react-share sizes its button to the icon, so this IS the tap
+// target, and these are the one control on the share sheet (#432).
+const ICON_SIZE = 44
 
 type RenderArgs = { url: string; title: string; ariaLabel: string }
 

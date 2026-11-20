@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { afterEach, describe, expect, it } from 'vitest'
 
-import { hoistGeocoderLiveRegion } from './aria-live'
+import { repairGeocoderDom } from './geocoder-dom'
 
 /**
  * jsdom, because the subject is one DOM disagreement: a node inside a shadow root against
@@ -56,7 +56,7 @@ function mountGeocoder() {
   return { scope, mountRegion }
 }
 
-describe('hoistGeocoderLiveRegion', () => {
+describe('repairGeocoderDom — the live region', () => {
   it('puts a region the library could not reach back in its view', () => {
     const { scope, mountRegion } = mountGeocoder()
 
@@ -65,7 +65,7 @@ describe('hoistGeocoderLiveRegion', () => {
     // The defect, asserted rather than assumed: this is the read that goes quiet.
     expect(LOOKUP()).toBe(null)
 
-    hoistGeocoderLiveRegion(scope)
+    repairGeocoderDom(scope)
 
     expect(LOOKUP()).not.toBe(null)
     expect(LOOKUP()?.parentElement?.getAttribute('aria-live')).toBe('polite')
@@ -76,7 +76,7 @@ describe('hoistGeocoderLiveRegion', () => {
 
     // Nothing to hoist at mount. A read-once version would stop here, and the region the
     // custom element inserts a tick later would stay unreachable.
-    hoistGeocoderLiveRegion(scope)
+    repairGeocoderDom(scope)
     mountRegion()
 
     expect(LOOKUP()).toBe(null)
@@ -96,7 +96,7 @@ describe('hoistGeocoderLiveRegion', () => {
     scope.querySelector('[aria-live]')?.removeAttribute('aria-live')
     scope.setAttribute('aria-live', 'polite')
 
-    hoistGeocoderLiveRegion(scope)
+    repairGeocoderDom(scope)
 
     expect(scope.parentNode).not.toBe(document.body)
     expect(LOOKUP()).toBe(null)
@@ -107,7 +107,7 @@ describe('hoistGeocoderLiveRegion', () => {
 
     mountRegion()
 
-    const stop = hoistGeocoderLiveRegion(scope)
+    const stop = repairGeocoderDom(scope)
 
     expect(LOOKUP()).not.toBe(null)
 
@@ -120,5 +120,88 @@ describe('hoistGeocoderLiveRegion', () => {
     await Promise.resolve()
 
     expect(LOOKUP()).toBe(null)
+  })
+})
+
+/**
+ * The library case, in its purest form: the geocoder's input is the library's own node, and
+ * what is asserted is a property of the one attribute our code writes onto it. There is no
+ * pure half — the state is read off the live tree — so this spec drives a real one.
+ *
+ * ⚠ **The second case is the load-bearing one.** `@mapbox/search-js-web` maintains
+ * `aria-expanded` from its own show and hide paths, so the defect this module could introduce
+ * is overwriting a value the library has already set. The seed must happen once and never
+ * again.
+ */
+
+const field = (attributes = '') => {
+  const scope = document.createElement('div')
+
+  scope.innerHTML = `<input role="combobox" aria-autocomplete="list" ${attributes} />`
+  document.body.append(scope)
+
+  return scope
+}
+
+const input = (scope: HTMLElement) => scope.querySelector('input') as HTMLInputElement
+
+describe('repairGeocoderDom — the combobox state', () => {
+  it('seeds the attribute the role requires, which the library renders without', () => {
+    const scope = field()
+    const release = repairGeocoderDom(scope)
+
+    expect(input(scope).getAttribute('aria-expanded')).toBe('false')
+    release()
+  })
+
+  it('never writes over a value the library has set', async () => {
+    const scope = field('aria-expanded="true"')
+    const release = repairGeocoderDom(scope)
+
+    expect(input(scope).getAttribute('aria-expanded')).toBe('true')
+
+    // The library opens its list, which is a childList mutation inside the observed scope —
+    // exactly the moment a second writer would overwrite the value it had just set.
+    const list = document.createElement('div')
+
+    list.innerHTML = '<div role="option">Cambridge</div>'
+    scope.append(list)
+
+    await Promise.resolve()
+    expect(input(scope).getAttribute('aria-expanded')).toBe('true')
+
+    release()
+  })
+
+  it('seeds an input the library adds after the first pass', async () => {
+    const scope = field('aria-expanded="false"')
+    const release = repairGeocoderDom(scope)
+    const late = document.createElement('input')
+
+    late.setAttribute('role', 'combobox')
+    scope.append(late)
+
+    await Promise.resolve()
+    expect(late.getAttribute('aria-expanded')).toBe('false')
+
+    release()
+  })
+
+  it('stops writing once released, so a remounted geocoder is not two observers', async () => {
+    const scope = document.createElement('div')
+
+    document.body.append(scope)
+
+    const release = repairGeocoderDom(scope)
+
+    release()
+
+    const late = document.createElement('input')
+
+    late.setAttribute('role', 'combobox')
+    scope.append(late)
+
+    await Promise.resolve()
+    expect(late.hasAttribute('aria-expanded')).toBe(false)
   })
 })

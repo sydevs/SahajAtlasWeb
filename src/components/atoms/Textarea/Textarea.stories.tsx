@@ -19,6 +19,7 @@ export const Default: Story = () => {
       <StorySection description="A plain multiline input." title="Default">
         <div className="max-w-sm">
           <Textarea
+            aria-label="Anything you'd like us to know?"
             placeholder="Anything you'd like us to know?"
             rows={4}
             value={value}
@@ -32,7 +33,12 @@ export const Default: Story = () => {
         title="Highlighted"
       >
         <div className="max-w-sm">
-          <Textarea highlight defaultValue="A note that's been filled in." rows={4} />
+          <Textarea
+            highlight
+            aria-label="Note"
+            defaultValue="A note that's been filled in."
+            rows={4}
+          />
         </div>
       </StorySection>
 
@@ -41,13 +47,19 @@ export const Default: Story = () => {
         title="Invalid"
       >
         <div className="max-w-sm">
-          <Textarea isInvalid aria-describedby="bio-error" defaultValue="Too short" rows={4} />
+          <Textarea
+            isInvalid
+            aria-describedby="bio-error"
+            aria-label="Bio"
+            defaultValue="Too short"
+            rows={4}
+          />
         </div>
       </StorySection>
 
       <StorySection description="Disabled." title="Disabled">
         <div className="max-w-sm">
-          <Textarea disabled defaultValue="Read only" rows={4} />
+          <Textarea disabled aria-label="Read only field" defaultValue="Read only" rows={4} />
         </div>
       </StorySection>
 

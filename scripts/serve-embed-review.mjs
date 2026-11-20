@@ -69,6 +69,8 @@ import { parseArgs } from 'node:util'
 
 import { loadEnv } from 'vite'
 
+import { MIME } from './_mime.mjs'
+
 /**
  * One origin for the built app and every host page, which keeps the
  * review pages same-origin with `embed.js` and `auto.js`. It matches the
@@ -91,20 +93,6 @@ const DIST = resolve(args.dist)
 if (!Number.isInteger(port) || port < 1 || port > 65535) {
   console.error(`✖ --port ${args.port} is not a port number.`)
   process.exit(1)
-}
-
-const MIME = {
-  '.html': 'text/html; charset=utf-8',
-  '.js': 'text/javascript; charset=utf-8',
-  '.mjs': 'text/javascript; charset=utf-8',
-  '.css': 'text/css; charset=utf-8',
-  '.json': 'application/json; charset=utf-8',
-  '.svg': 'image/svg+xml',
-  '.png': 'image/png',
-  '.jpg': 'image/jpeg',
-  '.webp': 'image/webp',
-  '.woff2': 'font/woff2',
-  '.woff': 'font/woff',
 }
 
 // ---------------------------------------------------------------------------

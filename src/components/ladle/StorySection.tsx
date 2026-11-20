@@ -37,7 +37,9 @@ export const StorySection = ({
   // white to read in both themes. Neutral uses a theme-aware semantic
   // surface token instead.
   const getBackgroundStyles = () => {
-    if (background === 'neutral') return 'bg-gray-3 p-6 rounded-lg'
+    // ⚠ `gray-2`, not `gray-3`: the ramp guarantees its step-11 text 4.5:1 against steps 1 and
+    // 2 only, and a `text-primary-11` link measured 4.36:1 on step 3 (#432).
+    if (background === 'neutral') return 'bg-gray-2 p-6 rounded-lg'
     if (background === 'gradient')
       return 'bg-gradient-to-b from-teal-600 to-teal-700 p-6 rounded-lg text-white'
 

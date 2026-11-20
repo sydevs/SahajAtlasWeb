@@ -10,8 +10,9 @@ import { fileURLToPath } from 'node:url'
  *      `Foo.mount.test.tsx` but not every spec sharing their folder.
  *   2. **Referencing** — a spec that names the module, by any specifier the repo writes: the `@/`
  *      alias, a relative sibling, or a quoted repo-relative path the way `src/lib/brand.test.ts`
- *      does. Specifiers are resolved, never matched by name, because the three forms address one
- *      module and a spec picks whichever its own directory makes natural.
+ *      does — the one form that reaches a dependency patch (`PATCH`). Specifiers are resolved,
+ *      never matched by name, because the three forms address one module and a spec picks
+ *      whichever its own directory makes natural.
  *
  * `readLane` reports a third set this does not select: the **tree-walking** specs, whose fixture
  * is the source tree, so no reference to the edited file exists in them and nothing here can
@@ -43,6 +44,13 @@ const LANE_DIRS = ['src', 'scripts']
 const SPEC = /\.(test|spec)\.(ts|tsx)$/
 /** `.mjs` is here for `scripts/`, which ships its sources as modules and its specs as TypeScript. */
 const SOURCE_EXT = /\.(ts|tsx|mjs)$/
+
+/**
+ * A dependency patch (`pnpm.patchedDependencies`). No spec imports one, so it is reached by the
+ * quoted repo-relative path `src/lib/shadow-patches.test.ts` names it by. ⚠ The pins there read
+ * the INSTALLED package, which an edit to the patch reaches only at the next `pnpm install`.
+ */
+const PATCH = /^patches\/[^/]+\.patch$/
 
 /** Anything quoted. Most matches are prose, and resolve to nothing. */
 const QUOTED = /['"]([^'"\n]+)['"]/g
@@ -87,6 +95,8 @@ const dirOf = (rel) => rel.slice(0, rel.lastIndexOf('/'))
 
 /** Whether the per-edit hook covers this path at all. Stories are not in the unit lane. */
 export function isLaneSource(rel) {
+  if (PATCH.test(rel)) return true
+
   return (
     LANE_DIRS.some((dir) => rel.startsWith(`${dir}/`)) &&
     SOURCE_EXT.test(rel) &&
@@ -101,15 +111,17 @@ export function listSpecs(root) {
 
 /** Every path the hook acts on — what the budget's width ceiling is measured over. */
 export function listLaneSources(root) {
-  return LANE_DIRS.flatMap((dir) =>
-    listUnder(root, dir, (entry) => SOURCE_EXT.test(entry)),
-  ).filter(isLaneSource)
+  return [
+    ...LANE_DIRS.flatMap((dir) => listUnder(root, dir, (entry) => SOURCE_EXT.test(entry))),
+    ...listUnder(root, 'patches', (entry) => entry.endsWith('.patch')),
+  ].filter(isLaneSource)
 }
 
 /** The repo-relative module a specifier addresses from `fromDir`, or null for a bare package. */
 export function resolveSpecifier(specifier, fromDir) {
   if (specifier.startsWith('@/')) return `src/${specifier.slice(2)}`
-  if (specifier.startsWith('src/') || specifier.startsWith('scripts/')) return specifier
+  if (specifier.startsWith('src/') || specifier.startsWith('scripts/') || PATCH.test(specifier))
+    return specifier
   if (specifier !== '.' && !specifier.startsWith('./') && !specifier.startsWith('../')) return null
 
   const parts = fromDir.split('/')
