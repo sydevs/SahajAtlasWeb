@@ -16,12 +16,9 @@ Before hand-rolling UI, check in this order:
 1. **`src/components/atoms/`** — its atoms already exist and carry the app's tokens
    and focus behavior. Drawer (vaul) is the surface for anything that is a _place_ in
    the URL-driven stack. Modal (Radix Dialog) is the ephemeral surface that never
-   touches the URL or history. Input and Textarea wrap the native controls on the
-   shared `fieldChrome` recipe. `Combobox` is the search-in-the-field picker (Radix
-   Popover + cmdk — the region filter). `Select` is the plain list picker.
-   `Menu/` holds no component, only the `menuChrome` recipe the three Radix
-   dropdown menus share. Every
-   form-control atom shares one error and active-state interface: **`isInvalid`**
+   touches the URL or history. `Combobox` is the search-in-the-field picker; `Select` is
+   the plain list picker. Every form-control atom shares one error and active-state
+   interface: **`isInvalid`**
    (danger visual plus `aria-invalid`, with `aria-describedby` for the error text)
    and **`highlight`** (tints the _unselected_ state, no layout shift, to flag an
    active filter). See `DESIGN_SYSTEM.md`.
@@ -38,9 +35,8 @@ Before hand-rolling UI, check in this order:
   for the reference.
 - `clsx` is fine for simple conditional class joins.
 - Global styles and Tailwind layers live in `src/styles/globals.css`. The build hands
-  every CSS chunk to `src/styles/sheet.ts` (`vite-plugin-css-injected-by-js` with an
-  `injectCodeFunction`), and each entry adopts it into the root that owns it — the
-  embed's shadow root, or the standalone shell's document (#236). Do not rely on a
+  every CSS chunk to `src/styles/sheet.ts`, and each entry adopts it into the root that
+  owns it — the embed's shadow root, or the standalone shell's document (#236). Do not rely on a
   separate stylesheet `<link>`, and do not append a `<style>` to `document.head`: a
   document sheet cannot reach into the shadow root.
 
@@ -65,18 +61,11 @@ pipeline or its check.
   selector to scope: `@keyframes`, which the pass renames, plus `@font-face` families
   and `@property` names, which it cannot — Tailwind writes the `var()` refs itself — so
   the gate allowlists those two by name. Registering one of our own fails the build.
-- **Why the check walks left instead of anchoring the head** (issue #104): swiper 12
-  shipped native CSS nesting, and the scoping pass correctly leaves a nested rule to
-  its parent's prefix. The MINIFIER then runs after us and flattens that nesting,
-  folding the scope into the middle or the subject of the selector
-  (`.swiper-pagination-disabled > :is(:where(.sy-atlas) .swiper-pagination)`). A
-  head-anchored check called that a leak and failed a sound build. So
-  `isSelectorScoped` walks left from the subject, looking for a compound pinned to
-  the scope. Two results: we are **not** the last stage to rewrite a selector, so do
-  not assume the emitted form matches what the pass wrote. The check also refuses a
-  scope reached across a sibling combinator on purpose (a sibling of the scope ROOT
-  is a host element), so a red gate can mean "not confined" rather than "leaks" — the
-  message says which.
+- **The check walks left from the subject instead of anchoring the head** (issue #104);
+  `isSelectorScoped`'s docblock in `scripts/postcss-scope-widget.mjs` says why. Two
+  results: we are **not** the last stage to rewrite a selector, so do not assume the
+  emitted form matches what the pass wrote; and a red gate can mean "not confined"
+  rather than "leaks" — the message says which.
 - **Three things the pass does NOT cover:**
   - A selector you write against `.sy-atlas` yourself passes through untouched. Use
     this to address the theme ROOT (also where the light/dark class lives), not
@@ -190,9 +179,8 @@ host pages, and it also runs standalone in dev. Because of that:
   ids. It is the only doc an embedding site reads, so a change here that a host
   could notice is not finished until that guide (and `CHANGELOG.md`) says so, in
   the same PR. See the root `AGENTS.md` for the full rule.
-- Provider stack lives in `src/providers.tsx` (`StrictMode`, React Query, Helmet, and the
-  reduced-motion `MotionConfig`); `BrandTheme` mounts in `App`. Add new context providers
-  to `providers.tsx`, not scattered across the tree.
+- Provider stack lives in `src/providers.tsx`; `BrandTheme` mounts in `App`. Add new context
+  providers to `providers.tsx`, not scattered across the tree.
 
 ## Responsive: which signal answers which question (issue #107)
 
@@ -246,17 +234,9 @@ Two properties of the mechanism are load-bearing:
 ### Map mode is contained by a FRAME, or it takes the viewport (issue #169)
 
 **⚠ This section used to say containment was intractable. It is implemented — do not
-restore that claim.** Every premise of the old argument has been retired:
-
-- vaul computed a snap-point sheet's translate from the **window** height, so a
-  contained sheet was pushed off-screen by the library's own math → its `container`
-  prop is now passed (`measureAgainst`, distinct from the portal target).
-- `--sy-sheet-top`, which pins the sticky Register bar, is a viewport-relative
-  `getBoundingClientRect().top` → the frame's own top is now subtracted, zero where
-  there is no frame.
-- every drawer, peek strip, and cog is `position: fixed` and `100dvh` overshot →
-  **`--sy-frame-h`** is `100dvh` on `.sy-atlas` and `100%` under `[data-sy-frame]`,
-  right in both.
+restore that claim.** Each premise of the old argument — vaul's window-height math,
+a viewport-relative `--sy-sheet-top`, and `100dvh` overshooting a frame — is answered
+below the patch register.
 
 **The frame is `contain: layout`, and that one property does all of it.** It makes
 the element the containing block for every fixed descendant, so the canvas, the
@@ -325,8 +305,8 @@ and one task-named button that opens the interface somewhere it fits.
   should be.** It is whether the local viewport is bigger than the slot. Framing
   only picks the fallback when it is not. A frame IS a viewport (`position: fixed`
   resolves against it), so a framed map embed at 400×600 must stay full.
-- **`SLOT_GAIN` is one ratio where there were three** — 0.8, ratcheted in both
-  directions against real false positives and false negatives.
+- **`SLOT_GAIN` is one ratio where there were three**, ratcheted in both directions
+  against real false positives and false negatives.
 - **`AppShell` owns the decision, above `MapProvider`**, so the whole map subtree can
   stay unmounted, keeping mapbox-gl unfetched. That saving is invisible to `pnpm size`
   by design, since mapbox-gl is a dynamic import never in the eager graph.
@@ -378,7 +358,7 @@ Two effects deliberately still fire from a collapsed card: the readiness marker 
 the embed report, since both attest that the widget booted, whether or not anyone
 opened it. `clients/me` also stays, since the card is themed and localized from it.
 
-**Three things about the dialog were found in a browser, and could not have been
+**Two things about the dialog were found in a browser, and could not have been
 found any other way.**
 
 - Escape never reaches the surface's own dialog on its own: the drawer stack inside
@@ -391,11 +371,6 @@ found any other way.**
   itself, scoped to the widget root rather than `document` — Safari and Firefox on
   macOS do not focus a `<button>` on click, and a document-wide recorder would let
   collapse steal focus from whatever the HOST had focused earlier.
-- **The dialog keeps a margin, and clicking it closes the dialog.** This retired an
-  earlier `ResizeObserver` (`surfaceCoversPage`) that watched its own box and closed
-  itself when it stopped covering the viewport. With an outside to click and Escape
-  reaching the ladder above, Radix already maintains two exits for free, so a
-  confined dialog is a cosmetic problem, not a trap.
 
 ⚠ **Two dependencies read the DOM in ways the shadow boundary defeats, and both are
 patched rather than worked around (#236).** `patches/` holds them, under
@@ -461,8 +436,7 @@ every consumer, and `shadow-patches.test.ts` ("the patched copy each consumer re
 fails if any package resolves a different or unpatched copy. ⚠ The override is a pin, not a
 refusal — pnpm violates a primitive's own range silently — so moving focus-scope forward
 means re-basing the patch, the `patchedDependencies` key and the override in one change.
-`shadow-dom-utils` scopes itself to tests in its own README. Six expressions in non-test
-`src/` touch the boundary at all.
+`shadow-dom-utils` scopes itself to tests in its own README.
 
 ### Patch register
 
@@ -490,9 +464,10 @@ in both places. `--sy-sheet-top` needed the matching correction, since the dialo
 own top must be subtracted from its viewport-coordinate source.
 
 **vaul is handled by its own API, not a patch.** It measures `container` when given
-one and `window.innerHeight` otherwise, so the Drawer atom forwards `container` to
-`Vaul.Root` — the same element it portals into, so the box vaul measures can never
-differ from the box it renders in.
+one and `window.innerHeight` otherwise, so the Drawer atom forwards its `measureAgainst`
+prop to `Vaul.Root` inside the expanded dialog. ⚠ That box is **not** the portal target:
+conflating the two inverts the sheet, and `measureAgainst`'s docblock in `Drawer.tsx` says
+why.
 
 ⚠ **A host ancestor carrying `transform`, `filter`, `perspective`, `contain`, or a
 `will-change` naming one of them confines the surface to that element** — re-measure
@@ -501,9 +476,9 @@ list, however often it is claimed to be.
 
 **Nothing detects this at runtime any more, and that is the settled answer, not an
 omission.** An earlier ~80-line `getComputedStyle` walk and an earlier
-`ResizeObserver` are both **removed** and are not coming back — the margin retired
-both, since clicking outside and Escape are two exits Radix already maintains for
-free.
+`ResizeObserver` (`surfaceCoversPage`) are both **removed** and are not coming back —
+the margin retired both, since clicking outside and Escape are two exits Radix already
+maintains for free, so a confined dialog is a cosmetic problem, not a trap.
 
 ⚠ If you find yourself citing `SURFACE_CONFINED_MESSAGE` or `surfaceCoversPage`,
 neither exists any more — grep before relying on either.
@@ -581,14 +556,11 @@ touching an anchor.
 
 Never silence a `jsx-a11y` warning on an interactive element.
 
-**`pnpm test:a11y` is the gate, and it runs in a browser** (`scripts/check-a11y.mjs`, #432). It
-drives the built component library in Chromium at 390×844 with a coarse pointer and fails on an
-axe violation, a tap area under 44px, or a keyboard stop that is invisible or paints no focus.
-⚠ It measures the tap area by hit test, so **never read a 44px claim off a class list** — the
-`sm` Button draws 43px wide for a two-letter label, and only the probe says so.
-`pnpm lint`'s `jsx-a11y` rules are the static half of the same question; neither replaces the
-other. The gate needs `pnpm ladle:build` first, and `--origin http://localhost:61000` points it
-at `pnpm ladle` for the fix loop.
+**`pnpm test:a11y` is the gate, and it runs in a browser** — `scripts/AGENTS.md` says what it
+checks and how to run it (#432). ⚠ It measures the tap area by hit test, so **never read a 44px
+claim off a class list** — the `sm` Button draws 43px wide for a two-letter label, and only the
+probe says so. `pnpm lint`'s `jsx-a11y` rules are the static half of the same question; neither
+replaces the other.
 
 **The 44px tap floor is met by growing an invisible area, not by redrawing the control.**
 `touch-target` (`globals.css`) puts a 44px `::after` on a smaller control, under
