@@ -21,6 +21,8 @@ declare module 'i18next' {
   interface CustomTypeOptions {
     defaultNS: 'translation'
     resources: { translation: typeof snapshot }
+    // Mirrors the runtime option in `config/i18n-options.ts`.
+    returnEmptyString: true
   }
 }
 
