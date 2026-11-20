@@ -11,28 +11,15 @@ import { Temporal } from 'temporal-polyfill'
 class ScheduleXTime extends Temporal.ZonedDateTime {
   #string: string | undefined
 
+  constructor(time: Temporal.ZonedDateTime) {
+    super(time.epochNanoseconds, time.timeZoneId, time.calendarId)
+  }
+
   override toString(options?: Temporal.ZonedDateTimeToStringOptions): string {
     if (options) return super.toString(options)
 
     return (this.#string ??= super.toString())
   }
-}
-
-const memoized = (time: Temporal.ZonedDateTime) =>
-  new ScheduleXTime(time.epochNanoseconds, time.timeZoneId, time.calendarId)
-
-const toScheduleXEvent = (entry: CalendarEntry, zone: string) => {
-  const wallStart = Temporal.PlainDateTime.from(entry.start)
-  const wallEnd = Temporal.PlainDateTime.from(entry.end)
-  // shortcut: a wall clock inside the viewer's spring-forward gap shows an hour late, upgrade if a class is ever scheduled into one.
-  const start = wallStart.toZonedDateTime(zone)
-  // Such a start lands an hour later, so the end keeps the length: anchored on its own, it could
-  // sit before the start.
-  const end = start.toPlainDateTime().equals(wallStart)
-    ? wallEnd.toZonedDateTime(zone)
-    : start.add(wallStart.until(wallEnd))
-
-  return { ...entry, start: memoized(start), end: memoized(end) }
 }
 
 /**
@@ -45,5 +32,17 @@ export const scheduleXTimeline = (
   zone = DateTime.local().zoneName ?? 'UTC',
 ) => ({
   timezone: zone,
-  events: entries.map((entry) => toScheduleXEvent(entry, zone)),
+  events: entries.map((entry) => {
+    const wallStart = Temporal.PlainDateTime.from(entry.start)
+    const wallEnd = Temporal.PlainDateTime.from(entry.end)
+    // shortcut: a wall clock inside the viewer's spring-forward gap shows an hour late, upgrade if a class is ever scheduled into one.
+    const start = wallStart.toZonedDateTime(zone)
+    // Such a start lands an hour later, so the end keeps the length: anchored on its own, it
+    // could sit before the start.
+    const end = start.toPlainDateTime().equals(wallStart)
+      ? wallEnd.toZonedDateTime(zone)
+      : start.add(wallStart.until(wallEnd))
+
+    return { ...entry, start: new ScheduleXTime(start), end: new ScheduleXTime(end) }
+  }),
 })
