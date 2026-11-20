@@ -1,4 +1,4 @@
-import type { Page, Request, Route } from '@playwright/test'
+import type { BrowserContext, Page, Request, Route } from '@playwright/test'
 import type { Json } from '../../src/mocks/wire'
 
 import { test as base, expect } from '@playwright/test'
@@ -158,6 +158,54 @@ const answerMapbox: Answer = (url) => {
 // "classes near you" prompt appears in any scenario.
 const answerIpLookup: Answer = () => json({ success: false, message: 'Reserved range' })
 
+const named = (request: Request) => `${request.method()} ${request.url()}`
+
+/**
+ * Collects what teardown fails the test on, and hands back the only way to answer a request —
+ * so nothing a fixture answered can also be reported as unanswered.
+ */
+const laneGuards = (context: BrowserContext) => {
+  const unrouted: string[] = []
+  const crashes: string[] = []
+  const answered = new WeakSet<Request>()
+
+  context.on('weberror', (error) => crashes.push(String(error.error())))
+
+  // A request that never reached a handler — one that bypassed interception — cannot resolve
+  // a host under `--host-resolver-rules`, so it fails, and lands here. Aborted is a cancelled
+  // request (a navigation, the page closing), not an unanswered one.
+  context.on('requestfailed', (request) => {
+    const failure = request.failure()?.errorText ?? ''
+    const external = /^https?:/.test(request.url()) && !request.url().startsWith(LANE_ORIGIN)
+
+    if (external && !answered.has(request) && !/BLOCKED_BY_CLIENT|ABORTED/.test(failure)) {
+      unrouted.push(`${named(request)} (${failure})`)
+    }
+  })
+
+  // ⚠ **`context.route` never sees a WebSocket**, and a refused one fires no
+  // `requestfailed`. The review server speaks none, so every socket is one no fixture
+  // answers. The page's `websocket` event reports a dedicated Worker's socket too, which
+  // `routeWebSocket` (it patches the page's `WebSocket`) never sees.
+  const watchSockets = (page: Page) =>
+    page.on('websocket', (socket) => unrouted.push(`WebSocket ${socket.url()}`))
+
+  context.pages().forEach(watchSockets)
+  context.on('page', watchSockets)
+
+  const routeTo = (answer: Answer) => async (route: Route) => {
+    const request = route.request()
+    const response = await answer(new URL(request.url()), request)
+
+    if (!response) return route.fallback()
+
+    answered.add(request)
+    await route.fulfill(response)
+  }
+
+  return { crashes, routeTo, unrouted }
+}
+
 export type Lane = {
   /** Answers one SahajCloud API path from `response` for the rest of the test. */
   answerSahajCloud: (path: string, response: { status: number; json: Json }) => Promise<void>
@@ -170,34 +218,7 @@ export const test = base.extend<{ lane: Lane }>({
   // quietly passing on whatever that host happened to answer.
   lane: [
     async ({ context }, use) => {
-      const unrouted: string[] = []
-      const answered = new WeakSet<Request>()
-      const crashes: string[] = []
-      const named = (request: Request) => `${request.method()} ${request.url()}`
-
-      context.on('weberror', (error) => crashes.push(String(error.error())))
-
-      // A request that never reached a handler — one that bypassed interception — cannot resolve
-      // a host under `--host-resolver-rules`, so it fails, and lands here. Aborted is a cancelled
-      // request (a navigation, the page closing), not an unanswered one.
-      context.on('requestfailed', (request) => {
-        const failure = request.failure()?.errorText ?? ''
-        const external = /^https?:/.test(request.url()) && !request.url().startsWith(LANE_ORIGIN)
-
-        if (external && !answered.has(request) && !/BLOCKED_BY_CLIENT|ABORTED/.test(failure)) {
-          unrouted.push(`${named(request)} (${failure})`)
-        }
-      })
-
-      const routeTo = (answer: Answer) => async (route: Route) => {
-        const request = route.request()
-        const response = await answer(new URL(request.url()), request)
-
-        if (!response) return route.fallback()
-
-        answered.add(request)
-        await route.fulfill(response)
-      }
+      const { crashes, routeTo, unrouted } = laneGuards(context)
 
       // ⚠ **Playwright tries the NEWEST matching route first**, so the catch-all is registered
       // first and only sees what every later handler falls back on.
@@ -211,15 +232,6 @@ export const test = base.extend<{ lane: Lane }>({
       await context.route('https://ipwho.is/**', routeTo(answerIpLookup))
       await context.route(/^https:\/\/[a-z]+\.mapbox\.com\//, routeTo(answerMapbox))
       await context.route(`${LANE_API_ORIGIN}/**`, routeTo(answerSahajCloudRoute))
-      // ⚠ **`context.route` never sees a WebSocket**, and a refused one fires no
-      // `requestfailed`. The review server speaks none, so every socket is one no fixture
-      // answers. The page's `websocket` event reports a dedicated Worker's socket too, which
-      // `routeWebSocket` (it patches the page's `WebSocket`) never sees.
-      const watchSockets = (page: Page) =>
-        page.on('websocket', (socket) => unrouted.push(`WebSocket ${socket.url()}`))
-
-      context.pages().forEach(watchSockets)
-      context.on('page', watchSockets)
 
       await use({
         answerSahajCloud: async (path, response) => {
