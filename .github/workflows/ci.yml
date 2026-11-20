@@ -151,10 +151,11 @@ jobs:
   # build, and no address is scraped out of text anyone can edit (#282, replacing the discovery
   # subsystem of #122 and #138 — `docs/testing.md` carries what it measured).
   #
-  # A green Smoke check still means the specs RAN. Only two states skip them quietly, and both
-  # say so: a forked pull request, which has no Cloudflare credential by design, and a
-  # merge-queue entry, which has no pull-request number to key a preview on. Every other way of
-  # reaching no preview fails the job.
+  # A green Smoke check still means the specs RAN. Only three states skip them quietly, and all
+  # say so: a forked pull request, which has no Cloudflare credential by design, a merge-queue
+  # entry, which has no pull-request number to key a preview on, and a push that changed only
+  # documentation, which nothing in the build reads. Every other way of reaching no preview
+  # fails the job.
   smoke:
     name: Smoke
     runs-on: ubuntu-latest
@@ -184,17 +185,55 @@ jobs:
       # It runs FIRST, before the checkout, so the states that cannot publish pay for no setup
       # at all. A `merge_group` entry is the common case — one per merge — and it has nothing to
       # install for.
+      #
+      # `docs` is a push whose every changed file matches DOCS: the files changed since the
+      # push's `before` SHA, or since the PR base when the PR opens. A failed compare, an empty
+      # one, or one at the API's 300-file cap publishes as usual. It is checked only once
+      # publishing is otherwise possible, so a missing secret stays loud.
+      #
+      # ⚠ On a later push it also needs the previous head's own `Smoke` check to have
+      # passed. Otherwise a docs-only push would put a green check over a red one for the same
+      # code. A cancelled or missing predecessor publishes as usual.
+      #
+      # ⚠ DOCS must match nothing the app build, `public/` or a smoke spec reads.
+      # `scripts/ci-workflows.test.ts` pins it both ways. Never add `tests/` or `.github/`: a
+      # change to either is what the smoke lane exists to run.
       - name: Decide whether a preview can be published
         id: plan
         env:
           HAS_SECRETS: ${{ secrets.CLOUDFLARE_API_TOKEN != '' && secrets.CLOUDFLARE_ACCOUNT_ID != '' && secrets.VITE_SENTRY_DSN != '' && secrets.VITE_SAHAJCLOUD_API_KEY != '' && secrets.VITE_MAPBOX_ACCESSTOKEN != '' }}
           PR_NUMBER: ${{ github.event.pull_request.number }}
           SAME_REPO: ${{ github.event.pull_request.head.repo.full_name == github.repository }}
+          GH_TOKEN: ${{ github.token }}
+          ACTION: ${{ github.event.action }}
+          BASE: ${{ github.event.action == 'synchronize' && github.event.before || github.event.pull_request.base.sha }}
+          HEAD: ${{ github.event.pull_request.head.sha }}
+          DOCS: '(^|/)[^/]*\.md$|^(docs|\.claude)/'
         run: |
+          # No pipes below: under pipefail, `grep -q` exiting early can SIGPIPE its writer and
+          # turn a match into a failure.
+          docs_only() {
+            local diff count files last
+            diff=$(gh api "repos/$GITHUB_REPOSITORY/compare/$BASE...$HEAD" \
+              --jq '"\(.files | length)", .files[].filename') || return 1
+            read -r count <<< "$diff"
+            (( count > 0 && count < 300 )) || return 1
+            files=$(tail -n +2 <<< "$diff")
+            ! grep -Evq "$DOCS" <<< "$files" || return 1
+            [ "$ACTION" = synchronize ] || return 0
+            last=$(gh api "repos/$GITHUB_REPOSITORY/commits/$BASE/check-runs?check_name=Smoke" \
+              --jq '.check_runs | map(select(.app.slug == "github-actions")) | sort_by(.started_at) | last | .conclusion // ""') || return 1
+            [ "$last" = success ]
+          }
+
           if [ -z "$PR_NUMBER" ]; then
             reason=queue
           elif [ "$HAS_SECRETS" = "true" ]; then
-            reason=publish
+            if docs_only; then
+              reason=docs
+            else
+              reason=publish
+            fi
           elif [ "$SAME_REPO" = "true" ]; then
             reason=no-credentials
           else
@@ -380,6 +419,11 @@ jobs:
               FATAL=false
               MSG="A merge-queue entry has no pull-request number to key a preview on — NO smoke specs ran."
               HINT="Expected: the queue runs the required checks against a merge_group ref, and the specs already ran on the pull request itself."
+              ;;
+            docs)
+              FATAL=false
+              MSG="This push changed only documentation, which nothing in the build reads, so no preview was published — NO smoke specs ran."
+              HINT="Expected: the build is unchanged. On a later push this applies only when the previous head's Smoke check passed, so the specs last ran green on this same code."
               ;;
             no-credentials)
               MSG="This repository is missing at least one of the five Actions secrets the preview needs, so none could be published — NO smoke specs ran."
