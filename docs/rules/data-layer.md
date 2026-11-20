@@ -36,10 +36,12 @@ moves, in the same bump as `@payloadcms/sdk`.
   mirror the same pin. ⚠ It pins names, never value types: `firstDate_tz` is nullish here and
   required there, on purpose. `FEED_SELECT` is typed against `AgnosticFeedEventSchema` the
   same way, because the feed's select reaches `requestJson` unchecked.
-- ⚠ **`ClientSchema` admits two names the synced `Client` does not have**: `name` (it has
-  `label` and `title`) and `canonical.enabled` (it has `owned`). Each is admitted by name so
-  the rest of the shape stays pinned. `/clients/me` selects through `requestJson`, which
-  nothing type-checks, so only the pin sees either.
+- ⚠ **No schema widens the pin, and none should.** `ClientSchema` named two fields the synced
+  `Client` does not have — `name` (it has `label` and `title`) and `canonical.enabled` (it has
+  `owned`) — and admitted each through an intersection beside `satisfies SahajCloudFields<T>`.
+  `/clients/me` selects through `requestJson`, which nothing type-checks, so the pin was the only
+  reader of either drift: the organizer and the report context both read `title` now, and
+  `enabled` is gone. Fix a name the pin refuses; never admit it.
 - **`pnpm types:cms` is `scripts/sync-cms-types.mjs`, and it fetches every file at ONE
   commit.** It resolves `refs/heads/main` to a SHA with `git ls-remote`, fetches each file
   at that SHA, then strips the `payload` augmentation. Fetching each file off the branch

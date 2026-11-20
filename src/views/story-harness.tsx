@@ -51,7 +51,7 @@ export { mockEventSeries, mockEventVariants } from '@/mocks/events'
 
 /** A minimal host-client record — CountriesView suspends on this (theme plus home
  *  region bootstrap). With no home region, it emits no canonical link. */
-const mockClient: Client = { id: 1, name: 'Demo Host', region: null }
+const mockClient: Client = { id: 1, title: 'Demo Host', region: null }
 
 /** A passive IP guess (Cambridge), so the nearby-suggestion prompt renders on the
  *  views that show it (Countries / Region / Search). It sits where the feed has a

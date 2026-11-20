@@ -124,7 +124,7 @@ function ReportIssuePanel({ apiKey, error, formId, onClose }: ReportIssuePanelPr
       context={buildReportContext({
         path: location.pathname,
         locale,
-        client: queryClient.getQueryData<Client>(clientQuery(apiKey).queryKey)?.name,
+        client: queryClient.getQueryData<Client>(clientQuery(apiKey).queryKey)?.title,
         error,
       })}
       form={form}
