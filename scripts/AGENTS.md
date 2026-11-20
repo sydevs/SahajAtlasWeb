@@ -3,8 +3,8 @@
 ## `pnpm test:a11y` — the accessibility gate
 
 `scripts/check-a11y.mjs` drives the built component library (`build/`, from `pnpm ladle:build`)
-in Chromium at 390×844 with a coarse pointer, and fails on an axe-core violation, a tap area
-under 44px measured by `document.elementFromPoint`, or a keyboard stop that is invisible, out of
+in Chromium at a phone viewport with a coarse pointer, and fails on an axe-core violation, a tap
+area under 44px measured by hit test, or a keyboard stop that is invisible, out of
 document order, or paints no focus indicator (#432).
 
 - **Read `docs/testing.md` § "The accessibility lane needs a browser" before changing it.** It
@@ -19,7 +19,7 @@ document order, or paints no focus indicator (#432).
 
 ## `pnpm size` — the eager-payload budget
 
-One of the five CI gates that exist because each one once missed something, unnoticed (#99).
+One of the CI gates that exist because each one once missed something, unnoticed (#99).
 It is built so passing proves something real:
 
 - **`pnpm size`** (`scripts/check-bundle-size.mjs`) budgets the gzipped eager payload —
