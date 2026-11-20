@@ -135,8 +135,8 @@ Nine stores, each the single source of truth for its own slice:
   grids to the FIRST registered compat view and emitted nothing. With it off,
   neither registration order nor SX's own breakpoint matters. Nothing is lost —
   the `isCalendarSmall` signal it drops feeds SX's view dropdown and the
-  `sx__is-calendar-small` class, whose rules all target the header bar
-  `globals.css` hides.
+  `sx__is-calendar-small` class, whose rules target the header bar
+  `globals.css` hides, and the year grid this app never registers.
 - **`useReportModal`** — whether the report-issue modal is open, plus the thrown
   message when an error CTA opened it. A store, not local state, because its
   three triggers (the settings cog, `ErrorFallback`, `DrawerErrorFallback`) sit

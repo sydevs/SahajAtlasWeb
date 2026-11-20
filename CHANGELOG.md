@@ -43,6 +43,16 @@ cover everything a host would notice since the widget was first deployed.
 
 ### Changed
 
+- **The calendar's week view lays out staggered classes differently.** ([#450]) Its calendar library moved
+  up two major versions. A class that starts after an earlier overlapping one has finished now
+  takes that free column, drawn beneath the classes still running beside it, so on a busy evening
+  its time can be hidden behind theirs. Classes that start together lay out as before. The
+  calendar's own download, fetched only when a visitor opens the calendar, is about 26 KiB
+  (gzipped) larger, and with well over a thousand sessions in view it draws somewhat more slowly
+  than before. **No parameter, origin, CSP or Permissions-Policy change**, and the widget
+  installs nothing on your page: the library's new date objects come from a module bundled with
+  the widget, never from a page-wide `Temporal` or a replaced `Intl.DateTimeFormat`.
+
 - **A `map=false` embed no longer downloads the map library.** ([#445]) Opening the interface
   fetched and ran Mapbox GL's script — about 510 KiB gzipped, from `sahajatlas.com` — even with
   no map to draw. It now loads only when a map renders, and a map embed starts it at the same
@@ -1211,3 +1221,4 @@ must-revalidate`, pinned rather than left to the CDN default. The production dom
 [#432]: https://github.com/sydevs/SahajAtlasWeb/issues/432
 [#442]: https://github.com/sydevs/SahajAtlasWeb/pull/442
 [#445]: https://github.com/sydevs/SahajAtlasWeb/pull/445
+[#450]: https://github.com/sydevs/SahajAtlasWeb/pull/450
