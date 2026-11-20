@@ -24,8 +24,8 @@ moves, in the same bump as `@payloadcms/sdk`.
 - Keep the zod schemas aligned with the generated types in `src/types/payload/` — they are
   the SDK's compile-time source of truth.
 - **Name the producer, not the category: `SahajCloud`, never `CMS`.** The type that pins a
-  schema to the generated ones is `PinnedToSahajCloud`, and its helpers are `SahajCloudFormField`
-  and `SahajCloudBlock` (`src/types/report.ts` is the worked example). The same preference holds
+  schema to the generated ones is `PinnedToSahajCloud`, and its helpers are `SahajCloudFields`,
+  `SahajCloudFormField` and `SahajCloudBlock` (`src/types/report.ts` is the worked example). The same preference holds
   in identifiers and in prose — `src/AGENTS.md` carries it as a naming rule.
 - **Every schema that mirrors a generated type is pinned to it at compile time, and every pin
   is `satisfies` over `keyof`, `Record` or `Pick`** — TypeScript's own operators, never a

@@ -12,11 +12,8 @@ type SahajCloudMonthlyMode = NonNullable<SahajCloudSchedule['monthlyMode']>
 type SahajCloudWeekNumber = NonNullable<SahajCloudSchedule['weekNumber']>
 type SahajCloudEndingType = NonNullable<SahajCloudSchedule['endingType']>
 
-// Every enum in this file is declared in `z.enum`'s object form and carries
-// `satisfies Record<Theirs, Theirs>`, which holds its members to the synced SahajCloud union in
-// both directions: a member SahajCloud adds is a missing key, one it renames or drops is an
-// excess property. A strict zod enum refuses either at runtime, so both fail a whole read
-// (`docs/rules/data-layer.md`).
+// Every enum here is in `z.enum`'s object form so `satisfies Record<Theirs, Theirs>` can hold
+// its members to the synced union in both directions (`docs/rules/data-layer.md`).
 export const EventTypeSchema = z.enum({
   offline: 'offline',
   online: 'online',
@@ -33,8 +30,8 @@ export const RecurrenceTypeSchema = z.enum({
 } satisfies Record<SahajCloudRecurrence, SahajCloudRecurrence>)
 export type RecurrenceType = z.infer<typeof RecurrenceTypeSchema>
 
-// Keys from `weekdays`, values to `weekdayOfMonth`: the two schedule fields that carry this
-// union are pinned to the same list, and to each other.
+// Keys from `weekdays` and values to `weekdayOfMonth`, so the two schedule fields carrying this
+// union are pinned to each other too.
 export const WeekdaySchema = z.enum({
   MO: 'MO',
   TU: 'TU',
