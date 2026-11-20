@@ -402,7 +402,7 @@ patched rather than worked around (#236).** `patches/` holds them, under
 `pnpm.patchedDependencies` beside the vaul patch. Patching stays the LAST resort, and
 these two earn it because neither failure is reachable from our own code: the reads are
 inside the libraries, and every call site we own already passes the right arguments.
-Where our own code can reach the failure it fixes it itself, as `Mapbox/aria-live.ts` does.
+Where our own code can reach the failure it fixes it itself, as `Mapbox/geocoder-dom.ts` does.
 
 - **`@radix-ui/react-focus-scope@1.3.1`** listens for `focusin`/`focusout` on
   `document` and asks `container.contains(event.target)`. Inside a shadow root that
@@ -580,6 +580,51 @@ touching an anchor.
 ## Accessibility
 
 Never silence a `jsx-a11y` warning on an interactive element.
+
+**`pnpm test:a11y` is the gate, and it runs in a browser** (`scripts/check-a11y.mjs`, #432). It
+drives the built component library in Chromium at 390×844 with a coarse pointer and fails on an
+axe violation, a tap area under 44px, or a keyboard stop that is invisible or paints no focus.
+⚠ It measures the tap area by hit test, so **never read a 44px claim off a class list** — the
+`sm` Button draws 43px wide for a two-letter label, and only the probe says so.
+`pnpm lint`'s `jsx-a11y` rules are the static half of the same question; neither replaces the
+other. The gate needs `pnpm ladle:build` first, and `--origin http://localhost:61000` points it
+at `pnpm ladle` for the fix loop.
+
+**The 44px tap floor is met by growing an invisible area, not by redrawing the control.**
+`touch-target` (`globals.css`) puts a 44px `::after` on a smaller control, under
+`(pointer: coarse)` alone, so nothing moves on a desktop. It needs `relative` beside it, and
+three things defeat it:
+
+- **`overflow: hidden` clips it**, so a `truncate` on the control itself takes the area away and
+  leaves the class in the DOM saying nothing. Put `truncate` on an inner span.
+- **An `<input>` renders no pseudo-element at all**, so a field takes a drawn
+  `pointer-coarse:h-11` instead — `fieldChrome` and the geocoder's own input both do.
+- **Two such areas that meet take each other's pixels**, the later element winning every shared
+  one, so both controls measure short. Controls that sit flush — the toggle group's items — are
+  drawn at 44px instead, and rows that sit close get `pointer-coarse:` spacing. The gate
+  measures the result by hit test, so neither fix can be assumed from the class list.
+
+⚠ **Join the classes with `tv()`, never `clsx`, wherever a caller may pass its own position.**
+`relative` is later than `absolute` and `fixed` in Tailwind's own order, so a joined list wins
+the cascade and unpins the caller's control. `SettingsMenu`'s trigger carries that story.
+
+⚠ **Radix restores focus to a `Dialog.Trigger`, and neither of this app's dialogs has one**, so
+closing dropped the viewer on `<body>` (#432). `useOpenerRestore` (`src/hooks/`) is the one
+implementation for both — the `Modal` atom and `CompactEmbedView`'s surface — and its docblock
+owns the three measured properties that make it work. Read it before changing either dialog.
+`ReportIssueModal` adds a click-time capture in front of it; that is a chain, not a duplicate,
+and the comment there says why neither end is spare.
+
+**An accessible name must contain the control's own visible text** (WCAG 2.5.3): a speech-input
+viewer says what they can see. So a weekday pill reading `Mon` is named `Mon`, not `Monday`; a
+value-showing trigger is named `<field>: <value>`; and a copy button whose content is a URL
+carries that URL in its name. Radix's `Select` trigger is exempt by taking `role="combobox"`,
+which our `Combobox`'s trigger deliberately does not.
+
+**Text colour comes from the ramp's step 11, never the bare token, which is step 9** — a solid
+background colour. `text-contrast` measured 3.22:1 on the light background. ⚠ Step 11 is
+guaranteed against steps 1 and 2 only, so a link on a step-3 surface (an Alert's tint, a story
+section's panel) needs step 12 or a lighter surface — measure it, do not assume.
 
 **Motion needs a way out** (WCAG 2.2.2, issue #104). Anything that moves on its own
 for more than five seconds needs a visible, keyboard-operable control to stop it, and

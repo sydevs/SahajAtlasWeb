@@ -83,6 +83,9 @@ import { annotate, report } from './_ci-output.mjs'
 // Every step to today's three figures, newest first, as standalone/embed and as
 // loader. `git log -p` on this constant holds each one in full, dated.
 //
+//   338  333.9/335.0  #435  embed only. The 44px tap areas, the row spacing
+//                           they need and the contrast fixes are 0.4 KiB of
+//                           generated CSS, on a graph main left 0.2 spare
 //   336  331.9/333.0  #413  dependency batch; gzip paid for a different mix
 //   334  330.1/331.2  #389  `colord/plugins/lab`, which every embed owes
 //   330  326.8/328.6  #367  zod 4 (GHSA-mrhx-c7xc-m3w5), eager via every fetcher
@@ -107,7 +110,7 @@ import { annotate, report } from './_ci-output.mjs'
 export const BUDGET_KIB = {
   standalone: 336,
   loader: 3.6,
-  embed: 336,
+  embed: 338,
 }
 
 // What `@sentry/vite-plugin`'s per-chunk debug-ID snippet adds to each graph,

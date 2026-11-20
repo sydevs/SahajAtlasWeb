@@ -127,7 +127,7 @@ Host page  →  <script src="…/auto.js?key=…&locale=…&map=true|false">
 - Data layer: `docs/rules/data-layer.md`
 - i18n + state: `docs/rules/i18n-and-state.md`
 - Deployment: `docs/rules/deployment.md`
-- Bundle-size budget: `scripts/AGENTS.md`
+- Bundle-size budget, and the accessibility gate: `scripts/AGENTS.md`
 - Components: `src/components/AGENTS.md`
 - Code style: `src/AGENTS.md`
 - Tests: `docs/testing.md`

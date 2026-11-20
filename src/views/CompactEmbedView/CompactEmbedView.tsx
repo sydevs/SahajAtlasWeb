@@ -1,6 +1,6 @@
 import type { CompactState } from '@/lib/slot-decision'
 
-import { type ReactNode, useCallback, useEffect, useRef } from 'react'
+import { type ReactNode, useCallback, useRef } from 'react'
 import * as Primitive from '@radix-ui/react-dialog'
 import { motion } from 'framer-motion'
 import { useTranslation } from 'react-i18next'
@@ -8,8 +8,8 @@ import { X } from 'lucide-react'
 
 import { Button } from '@/components/atoms/Button'
 import { LocalExpansionProvider, NoExpansionProvider, useExpansion } from '@/hooks/use-expansion'
+import { useOpenerRestore } from '@/hooks/use-opener-restore'
 import { usePublishedNode } from '@/hooks/use-published-node'
-import { deepActiveElement } from '@/lib/active-element'
 import { setFrame, widgetOverlayContainer } from '@/lib/overlay'
 import { useReportModal } from '@/config/store'
 
@@ -177,59 +177,21 @@ function ExpandedDialog({
   // Published as the widget's frame, and the children wait for it — `usePublishedNode`
   // carries the timing argument, which `MapFrame` depends on identically.
   //
-  // The extra `contentRef` is this component's own: the focus handlers below read
-  // the node synchronously from callbacks that must not re-subscribe when it
-  // changes.
+  // The extra `contentRef` is this component's own: `onOpenAutoFocus` below reads the node
+  // synchronously from a callback that must not re-subscribe when it changes. The same node
+  // goes to `useOpenerRestore`, which needs it to tell this dialog's panel from the control
+  // that opened it.
   const { node, adopt: adoptFrame } = usePublishedNode<HTMLDivElement>(setFrame)
+  const { adoptContent, restoreFocus } = useOpenerRestore<HTMLDivElement>(open)
   const contentRef = useRef<HTMLDivElement | null>(null)
   const adopt = useCallback(
     (element: HTMLDivElement | null) => {
       contentRef.current = element
+      adoptContent(element)
       adoptFrame(element)
     },
-    [adoptFrame],
+    [adoptContent, adoptFrame],
   )
-
-  // Who to give focus back to on close.
-  //
-  // **Radix's own restore targets `Primitive.Trigger`, and there is deliberately
-  // none here**: opening is requested through the `useExpansion` seam, from a
-  // control that may be anywhere. With no trigger, Radix focuses nothing, so a
-  // keyboard viewer who closes is dropped on `<body>` — the top of the HOST's page,
-  // not the control they pressed.
-  //
-  // Tracked while CLOSED, because by the time an effect could run on open, Radix
-  // has already moved focus inside — child effects run before the parent's.
-  //
-  // **Scoped to the widget's own root, and that is a correctness fix, not hygiene.**
-  // Safari and Firefox on macOS do not focus a `<button>` on click, so pressing the
-  // opening control fires no `focusin` at all. Listening on `document` would leave this
-  // pointing at whatever the HOST had focused earlier — a search box, a login field.
-  // Closing would then focus it, scrolling their page there and raising the keyboard
-  // on a phone.
-  const opener = useRef<HTMLElement | null>(null)
-
-  useEffect(() => {
-    const root = widgetOverlayContainer()
-
-    if (open || !root) return
-
-    const remember = () => {
-      const active = deepActiveElement() as HTMLElement | null
-
-      // Never something inside the dialog itself: it is a descendant of this root,
-      // and the dialog's mount focus can land before React has run this effect's
-      // cleanup.
-      if (!active || !root.contains(active) || contentRef.current?.contains(active)) return
-
-      opener.current = active
-    }
-
-    remember()
-    root.addEventListener('focusin', remember)
-
-    return () => root.removeEventListener('focusin', remember)
-  }, [open])
 
   return (
     <Primitive.Root open={open} onOpenChange={onOpenChange}>
@@ -241,22 +203,7 @@ function ExpandedDialog({
         <Primitive.Content
           asChild
           aria-describedby={undefined}
-          onCloseAutoFocus={(event) => {
-            const root = widgetOverlayContainer()
-            const opening = opener.current
-
-            // ⚠ This calls `preventDefault()` ONLY when there is somewhere to send focus.
-            // Called unconditionally, it would also suppress Radix's own restore. `opener`
-            // is empty on two real paths: the auto-open one, where the dialog is open on
-            // its first render so the recorder effect never runs, and Safari/Firefox on
-            // macOS, which fires no `focusin` from a button click. Both then dropped the
-            // visitor on the HOST page's `<body>`, which is the outcome this handler
-            // exists to prevent.
-            if (!opening?.isConnected || !root?.contains(opening)) return
-
-            event.preventDefault()
-            opening.focus()
-          }}
+          onCloseAutoFocus={restoreFocus}
           // Focuses the container, not the first control inside it. Radix's default
           // sends focus to the first tabbable — here, whatever chrome the interface
           // renders first, announced with no word about what just opened.
