@@ -660,7 +660,10 @@ export type ReportContext = {
   pageUrl: string
   /** The active UI locale. */
   locale: string
-  /** The API client's name, so a report lands identified with the site it came from. */
+  /**
+   * The client record's public name. ⚠ `sendReport` deliberately drops it rather than sending it,
+   * and says why, so nothing downstream of this type has ever read it.
+   */
   client?: string
   /** The browser string, for reproducing rendering / CSP-specific breakage. */
   userAgent: string

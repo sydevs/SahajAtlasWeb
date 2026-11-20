@@ -10,8 +10,8 @@ import { readRepoSource as read } from '@/test-support/repo-source'
 // mapbox reads each once, at construction. They name different corners on purpose, so each is
 // pinned on its own.
 //
-// This reads the file rather than importing `Map.tsx`: importing the map would pull react-map-gl,
-// and so the whole of mapbox-gl, into the node lane.
+// This reads the file rather than rendering `Map.tsx`: mapbox reads these literals only when it
+// constructs a map, which takes a WebGL context the node lane does not have.
 const MAP = 'src/components/organisms/Mapbox/Map.tsx'
 // Where the bottom sheet's lowest snap lives, which is what rules out both bottom corners for the
 // attribution.
@@ -82,18 +82,17 @@ describe('a refused location request', () => {
   })
 })
 
-// react-map-gl reads `language` once, when it constructs the map, and its props type does not
-// list it — so the prop rides in a spread, and a spread's keys escape the excess-property check.
-// A misspelling type-checks, and every label silently stays in the basemap's own language. The
-// effect beside it is the other half: with `locale` out of its deps the map never relabels on a
-// switch, which is the whole reason `syncMapLanguage` exists. `map-language.test.ts` covers the
-// helper; nothing but this reaches the two wirings.
+// react-map-gl reads `language` once, when it constructs the map. Any other string there — the
+// region-less `languageCode` the worldview reads, say — type-checks, and every label silently
+// starts in the wrong language. The effect beside it is the other half: with `locale` out of its
+// deps the map never relabels on a switch, which is the whole reason `syncMapLanguage` exists.
+// `map-language.test.ts` covers the helper; nothing but this reaches the two wirings.
 describe('the map label language', () => {
   const map = read(MAP)
   const element = map.slice(map.indexOf('<ReactMapGL'), map.indexOf('</ReactMapGL>'))
 
   it('is the widget locale when the map is constructed', () => {
-    expect(element, 'the map element').toMatch(/\{\.\.\.\s*\{\s*language:\s*locale\s*\}\s*\}/)
+    expect(element, 'the map element').toMatch(/\blanguage=\{locale\}/)
   })
 
   it('follows a mid-session switch', () => {
@@ -109,5 +108,22 @@ describe('the map label language', () => {
 describe('the pin hover popover', () => {
   it('is wired only on a device with a real pointer', () => {
     expect(read(MAP)).toContain('onMouseMove={hasRealPointer ? hoverOnFeature : undefined}')
+  })
+})
+
+// `map-lib.test.ts` covers the loader. What it cannot see is where `Map.tsx` calls it: anywhere but
+// the map element — a prefetch at module scope, say — fetches mapbox-gl on every map-less embed,
+// which imports the module without rendering a map.
+describe('the map library', () => {
+  const map = read(MAP)
+  const element = map.slice(map.indexOf('<ReactMapGL'), map.indexOf('</ReactMapGL>'))
+
+  it('is handed to react-map-gl, started by the first render', () => {
+    expect(element, 'the map element').toMatch(/\bmapLib=\{loadMapLib\(\)\}/)
+  })
+
+  it('is loaded nowhere else in the map module', () => {
+    expect(map.match(/\bloadMapLib\(\)/g), 'calls of the loader').toHaveLength(1)
+    expect(map, 'an import of mapbox-gl').not.toMatch(/(?<!typeof )import\('mapbox-gl'\)/)
   })
 })

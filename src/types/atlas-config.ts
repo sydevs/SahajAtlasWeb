@@ -1,5 +1,5 @@
 import type { SyAtlasConfig } from '@/types/payload/payload-types'
-import type { SahajCloudFields } from './pinned'
+import type { PartialZodShape } from './zod-shape'
 
 import { z } from 'zod'
 
@@ -23,6 +23,6 @@ import { z } from 'zod'
 export const AtlasConfigSchema = z.object({
   availableLocales: z.array(z.string()).nullish(),
   reportIssueForm: z.number().nullish(),
-} satisfies SahajCloudFields<SyAtlasConfig>)
+} satisfies PartialZodShape<SyAtlasConfig>)
 
 export type AtlasConfig = z.infer<typeof AtlasConfigSchema>

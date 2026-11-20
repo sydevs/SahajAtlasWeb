@@ -20,7 +20,7 @@ This file is also a path-scoped rule: `.claude/rules/testing.md` symlinks here, 
 when a session reads a spec, a vitest config or the test tooling. The always-loaded summary —
 the validation policy and the never-rules — is the root `AGENTS.md` § Testing.
 
-Two lanes, kept separate so the fast one never touches the network: the **unit** lane
+Three lanes. Two of them are vitest, kept separate so the fast one never touches the network: the **unit** lane
 (`vitest.config.ts`, every `*.test.ts(x)` outside `tests/smoke/`, node) and the **smoke** lane
 (`vitest.smoke.config.ts`, `tests/smoke/**`, fetch against a deployed preview).
 `pnpm test:smoke` needs `PREVIEW_URL` and skips gracefully without one. In CI the smoke job
@@ -29,10 +29,14 @@ step returned (#282). The **same** smoke specs also run against production, fire
 deploy rather than by a PR (`.github/workflows/production-smoke.yml`) — see "The PR gate can
 only ever read a preview" below.
 
+The third is the **accessibility** gate, `pnpm test:a11y` (`scripts/check-a11y.mjs`, #432): a
+browser, over the built component library, in CI's `gate` job right after `pnpm ladle:build`.
+See "The accessibility lane needs a browser, and that is not a preference" below.
+
 **Coverage is measured, not gated.** `pnpm test:coverage` is the unit lane with V8 coverage on,
 and `vitest.config.ts` sets no threshold, so a run never fails on a figure. The config names
-`src/**` outright, so a source file no spec loads counts as uncovered, and leaves out what never
-ships: the generated SahajCloud types, stories and their harness, mocks, and test support.
+`src/**` outright, so a source file no spec loads counts as uncovered, and its `exclude` list
+leaves out what never ships.
 `ci.yml`'s gate job runs the lane through this script, once, and writes the totals to the job
 summary; the per-edit hook and the lean gate stay on `pnpm test:run`. ⚠ `@vitest/coverage-v8`
 is pinned exactly, because its peer range is one exact `vitest` version: bump the two together.
@@ -304,8 +308,8 @@ alert. The lane's last step opens an issue instead, and three things about it ar
   production read, and a ticket claiming production is red when nothing read it is worse than no
   ticket. `ci-workflows.test.ts` pins that gate and the token, since both fail silently.
 
-Every spec reads both hosts alike. The lane is **22 cases**, from 15 declarations — count it rather
-than trusting a figure, since `.each` makes the two differ. Measured 2026-10-06 against the 16 it
+Every spec reads both hosts alike. Count the lane rather than trusting a figure, since `.each`
+makes its cases and its declarations differ. Measured 2026-10-06 against the 16 it
 was then: all 16 passed against `sahajatlas.com`. Re-measured 2026-10-13 against the playground
 on its Worker (`PREVIEW_URL=https://design.sahajatlas.com pnpm test:smoke`, #279): **10 of the 17
 failed**, so the lane is not vacuously green. The ten are every spec that reads the app's own
@@ -380,6 +384,53 @@ Both costs were measured first. A merge waits one queue run — 2m23s to 2m50s a
 that site's Workers Builds branch rules take a literal branch name or a lone `*` and cannot exclude
 the prefix (`docs/rules/deployment.md`).
 
+## The accessibility lane needs a browser, and that is not a preference (#432)
+
+`pnpm test:a11y` drives `build/` in Chromium at 390×844 with a coarse pointer, and asks three
+things of every story: axe-core's rule set, a tap area of at least 44px **probed with
+`document.elementFromPoint`**, and a keyboard walk that each stop is visible, in document order,
+and paints a focus indicator.
+
+**The unit lane cannot host it, and measuring said so.** jsdom has no layout at all: a tap area
+cannot be measured, and `color-contrast` resolves to nothing. Measured 2026-11-19 over the same
+52 stories with the same axe configuration, counting violation NODES: **jsdom returned 31, the
+browser 131** — and the browser's 80 contrast failures and 24 label-in-name failures were not
+among the 31, which is the whole argument. (The browser figure is from the 49 stories that
+rendered; three forms timed out in that first pass.)
+
+Four things about it are deliberate:
+
+- **It reads a BUILD, never `ladle serve`.** The dev server compiles a story when it is opened,
+  so a story that failed to build would pass by never having been built. `--origin
+  http://localhost:61000` points it at the dev server anyway, for the local fix loop only.
+- **It is a step in CI's existing `gate` job, not a job of its own.** The ruleset requires that
+  job's check by name, so a step blocks a merge on the day it lands; a new job would report a
+  check nothing requires until somebody edits the ruleset in a browser.
+- **The tap floor is probed, not read off a class list**, because the widget's small controls
+  keep their drawn size and grow an invisible 44px area. A 32px control carrying `touch-target`
+  answers across 44px and a 44px control under an overlay answers to nothing — only a hit test
+  tells those two apart. `spanFrom` walks outward from the centre and stops at the first miss on
+  each side, so a control crowded on one side reports the room it has rather than two patches.
+  ⚠ A control the page has no room to centre has probe points off the viewport, so the floor does
+  not apply to it: each one is **named** in the report and raises a warning annotation, and none
+  of them fails the gate — failing would red a required check for where a control sat rather than
+  for how big it is.
+- **`region` and `landmark-unique` are off**, and `scripts/check-a11y.mjs` says why: a story is
+  one component in a bare div, and a story page is a catalogue of six of them. Both would report
+  the page rather than the widget. Everything axe enables by default stays on, and the tap
+  exemptions are three selectors with a reason each, pinned as a closed list by
+  `scripts/check-a11y.test.ts`.
+  ⚠ **axe ships `target-size`, one of the handful it leaves disabled itself, and this gate does
+  not turn it on.** That is deliberate and the script says why: the rule measures
+  `getBoundingClientRect`, which cannot see the absolutely-positioned `::after` the
+  `touch-target` utility draws, so it would fail every control the widget deliberately leaves
+  small while passing a 44px control an overlay covers. Do not read "everything else is on" as a
+  claim that no axe rule was left out.
+
+⚠ **The gate's own arithmetic is in the unit lane** (`scripts/check-a11y.test.ts`) — the span
+measurement, the report's grouping, and the exemption list. Only the browser half needs a
+browser.
+
 ## Decision: node-only (no jsdom / Testing Library)
 
 This mirrors WeMeditateWeb. The unit lane runs in the `node` environment by default, with **no
@@ -401,9 +452,7 @@ stays `node` regardless.
 A spec opts in per file with a `// @vitest-environment jsdom` docblock on line 1, keeping the fast
 path fast. ⚠ **Re-measure before quoting either half of this trade — nothing checks these two
 numbers.** Measured 2026-10-13 on 4 cores, when the lane was 115 node-only files and 25 jsdom
-ones: **~20s**, and **~15s** on top, over 1714 tests. On 2026-11-19 it is 140 and 39, and the
-times were not re-taken: the machine was shared, and a figure taken under load misleads. The
-per-file opt-in is what keeps the first number from becoming the second. **Neither half is the
+ones: **~20s**, and **~15s** on top, over 1714 tests. The per-file opt-in is what keeps the first number from becoming the second. **Neither half is the
 per-edit cost** — the hook runs a slice, against the budget at the end of this file.
 
 **Reach for jsdom only when the behaviour is a re-render SSR markup cannot express, an agreement
@@ -457,6 +506,26 @@ more, opted in the same way (`grep -rl '@vitest-environment jsdom' src/`); this 
   Its submission arm (#163) is the same argument twice over: the waiting overlay is a portal, so
   only a DOM can say whether it is on screen, and the cache cannot — a later message carrying no
   `previewEvent` leaves the cache entry exactly as it was while covering it with the skeleton.
+
+### One dialog per jsdom FILE, and assert the focus call rather than where focus ends up (#432)
+
+Two Radix dialogs in one spec file share one `document`, and React finishes one case's
+teardown while the next case is already running. Radix's focus scope then moves focus from the
+case that has already ended, and the next case's `document.activeElement` is whatever that
+teardown decided. Measured on `Modal.focus.test.tsx`: three cases in one file failed about one
+run in five, two about one in eight, one passed fifteen times out of fifteen. So the second
+property lives in `Modal.focus-opener.test.tsx`, as its own file.
+
+⚠ **It is a scheduling race, not a slow read.** Flushing harder makes it worse, not better —
+an extra `act` flush after the close took it from one in six to one in four, because the extra
+microtasks give the previous case's teardown more room to run. Waiting for `activeElement` to
+stop changing does not fix it either: it comes to rest on the wrong element.
+
+What a dialog atom owns is **asking** for focus back, so these specs spy on
+`HTMLElement.prototype.focus` and assert the last element the close path asked for. Where focus
+settles after a torn-down sibling has had its say is not a property of the atom under test, and
+a browser is what settles the end state — `pnpm test:a11y` walks the keyboard over every story,
+and the pull request records the manual Escape pass.
 
 ### A CLOSED portal renders nothing under SSR — an "absence" assertion proves nothing
 
@@ -544,8 +613,7 @@ throws AT IMPORT and the file dies before one assertion runs. It killed `source-
 the one expression, not the property, and `src/styles/fonts.ts` and `.ladle/` keep the same form
 as Vite's asset-URL idiom.
 
-**The first rule reaches `scripts/**/*.mjs` because specs import them** — ten of the seventeen on
-2026-11-19 — which puts them in the same module graph as `source-tree.ts` was — the module the defect actually killed
+**The first rule reaches `scripts/**/*.mjs` because specs import them**, which puts them in the same module graph as `source-tree.ts` was — the module the defect actually killed
 was no spec either. A `.mjs` cannot import the `.ts` reader, so its root is
 `dirname(fileURLToPath(import.meta.url))` and the lint message says so.
 
@@ -597,22 +665,9 @@ That is the hook's whole command, wall clock, not the lane, which takes ~36s. Me
 on 4 cores, median of three: **0.12s** for a lane source with no spec of its own, **6.6s** for
 `src/config/i18n.ts` (12 specs, the slowest edit in the tree), and **4.5s** for
 `src/test-support/repo-source.ts` (the widest — #289 moved it there). The slowest edit
-sits at about half the bound. Re-measured 2026-10-26, at 17 specs rather than 15: **4.2s** for the
-widest and **5.0s** for `i18n.ts`, medians of three. Both fell while the widest selection grew, so
-read the two figures as a pair taken on one machine, never as a trend. Re-measured 2026-11-01, at
-19: **5.5s** for the widest and **6.2s** for `i18n.ts`, medians of three on 4 cores. Re-measured
-2026-11-07, at 20: **4.0s** for the widest and **4.4s** for `i18n.ts`, medians of three on 4
-cores. Re-measured 2026-11-11, at 21 — `markers.outline.test.ts` reads two repo files to hold
-the fixed marker outline against the basemap surfaces it was measured from (#389): **6.5s** for
-the widest and **7.0s** for `i18n.ts`, medians of three. Re-measured 2026-11-15, at 22 —
-`assert-classic-bridge.test.ts` reads the bridge's source to compile it as its build entry is:
-**3.3s** for the widest and **4.4s** for `i18n.ts`, medians of three on 11 cores rather than 4,
-so read that pair against each other, never against the figures before it. Re-measured
-2026-11-19, still at 22, with `i18n.ts` now selecting 14 specs and `src/hooks/use-locale.ts` 13:
-**5.4s** for the widest, **5.8s** for `i18n.ts` and **5.2s** for `use-locale.ts`, medians of
-three on 4 cores while another checkout held one of them, so read all three as upper bounds. The
-slowest edit sits at about half the bound, so the ceiling is the narrower constraint of the two —
-a slot is spent long before a second is.
+sits at about half the bound, and has in every re-measurement since, on 4 cores and on 11, as the
+widest selection grew. Time the hook (below) rather than quoting a figure: the ceiling is the
+narrower constraint of the two — a slot is spent long before a second is.
 ⚠ **The 0.12s class is smaller than #289 found it**: `src/views/FullInterface.tsx` selected
 nothing until `MapFrame.test.tsx` named it as a quoted repo-relative path, and now costs **2.2s**
 per edit for the wiring pin it previously had no per-edit coverage from at all. A quoted literal
@@ -633,25 +688,26 @@ coupling the other cannot:
 
 - **Co-located** — the stem's own siblings, so `Foo.tsx` reaches `Foo.test.tsx` and
   `Foo.mount.test.tsx` but not every spec in their folder. This is what covers `scripts/`, whose
-  thirteen specs the lane indexes and whose own edits select at most four — 1.7s, the median of
-  three on 4 cores on 2026-11-19, with the build gates at 0.8 to 1.0s — or nothing at all for the
-  six of its 30 sources no spec names.
+  own edits select only their siblings, or nothing at all for a source no spec names.
 - **Referencing** — a spec that names the module. It **resolves** every quoted specifier in every
   spec rather than matching the module's name, because one module is addressed three ways and a
   spec picks whichever its own directory makes natural: `@/config/api/client`, `./client`, or the
   quoted repo-relative path `src/App.tsx` that `src/lib/brand.test.ts`'s `COPY_FILES` holds. A
   name match misses two of the three — `fetch.test.ts` is the only spec for `client.ts` and
-  reaches it as `'./client'`, and `Chip.test.tsx` imports its own folder as `'.'`.
+  reaches it as `'./client'`, and `Chip.test.tsx` imports its own folder as `'.'`. A
+  `patches/*.patch` is reached by the third form alone, through the path
+  `src/lib/shadow-patches.test.ts` names it by — ⚠ but the pins there read the INSTALLED package,
+  which an edit to the patch reaches only at the next `pnpm install`.
 
 **A third source selected the tree-walking specs until #293, and it was the whole floor.**
-Fifteen specs enumerate the source tree instead of importing from it — the eleven `src/`
-inventories and `source-tree.test.ts`, found because they import the shared walk (#286), plus three
-`scripts/` specs found by an enumerating call (`readdirSync(` and its kin). Nothing in them
+Some specs enumerate the source tree instead of importing from it — the `src/` inventories and
+`source-tree.test.ts`, found because they import the shared walk (#286), plus the `scripts/` specs
+found by an enumerating call (`readdirSync(` and its kin). Nothing in them
 references the file that breaks them, so no reference can select one, and until #293 every such
 spec ran on every edit. `readLane` still reports the set, because
 `select-unit-specs.test.ts` pins it as a closed list. `selectFrom` no longer takes it, and the hook
 needed no edit to stop running it — it exits before spawning vitest on an empty selection
-(`.claude/hooks/unit-test.mjs:32`), which is also what keeps this change out of `.claude/`, a
+(`.claude/hooks/unit-test.mjs`), which is also what keeps this change out of `.claude/`, a
 protected path no unattended run can write. A separate vitest project for the inventories, which
 #293 was filed with, was rejected on that: a config split and a `.claude/` edit for the same
 saving.
@@ -659,8 +715,8 @@ saving.
 ⚠ **What that gives up is per-edit immediacy, and it applies to every edit, not to a subset.** No
 edit runs an inventory now, so an unregistered viewport read, JSX anchor, Radix popper, SahajCloud
 read or `t()` key draws no immediate signal wherever it is added — `src/config/translations.test.ts`
-is selected for 7 of 472 lane sources, by reference alone. 100 of those 472 select nothing at all
-and spawn no vitest (counted 2026-11-19). The inventory that refuses the change still goes red in the lean gate
+is selected for a handful of lane sources, by reference alone, and many select nothing at all and
+spawn no vitest. The inventory that refuses the change still goes red in the lean gate
 (`.claude/skills/pr-prep/check.sh`) and in CI, so the break surfaces in the same session: the lane
 covers it, the inner loop no longer does.
 

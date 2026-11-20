@@ -48,7 +48,7 @@ const placeOf = (event: CalendarSourceEvent, regionScoped: boolean): string | un
 const calendarLabel = (event: CalendarSourceEvent, regionScoped: boolean): string =>
   placeOf(event, regionScoped) || event.title
 
-/** One occurrence, in Schedule-X's wall-clock shape (`YYYY-MM-DD HH:mm`, no zone). */
+/** One occurrence, as the wall clock of its display zone (`YYYY-MM-DD HH:mm`, no zone). */
 export type CalendarEntry = {
   /** Unique per occurrence: `${eventId}-${startMillis}`. */
   id: string
@@ -64,10 +64,9 @@ export type CalendarEntry = {
   location?: string
 }
 
-// Schedule-X reads a plain wall-clock string. This hands it the occurrence
-// already resolved into its display zone, so what the grid shows is the
-// local class time.
-const SX_FORMAT = 'yyyy-MM-dd HH:mm'
+// The occurrence already resolved into its display zone, so what the grid shows is the local
+// class time. CalendarView hands this wall clock to Schedule-X.
+const WALL_CLOCK = 'yyyy-MM-dd HH:mm'
 
 /**
  * Expands events into calendar entries: one per `upcomingDates` occurrence whose start
@@ -131,8 +130,8 @@ export const eventsToCalendarEntries = (
       entries.push({
         id: `${event.id}-${start.toMillis()}`,
         title: label,
-        start: start.toFormat(SX_FORMAT),
-        end: finish.toFormat(SX_FORMAT),
+        start: start.toFormat(WALL_CLOCK),
+        end: finish.toFormat(WALL_CLOCK),
         path: event.path,
         calendarId,
         location,

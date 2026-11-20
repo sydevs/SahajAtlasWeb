@@ -1,4 +1,4 @@
-import type { MapRef } from 'react-map-gl'
+import type { MapRef } from 'react-map-gl/mapbox'
 
 import {
   buildPalette,

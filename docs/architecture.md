@@ -71,9 +71,9 @@ Host page  →  <script src="…/auto.js?key=…&locale=…&map=true|false">
 
 ## Data flow
 
-1. The loader parses six parameters off its own script URL
-   (`src/loader/config.ts`): `key`, plus optional `map`, `locale`, `routing`,
-   `atlas` and `gestures`. The widget reads them through `config/embed.ts`.
+1. The loader parses its parameters off its own script URL
+   (`src/loader/config.ts`; the host-facing list is `docs/embedding.md`
+   § Parameters). The widget reads them through `config/embed.ts`.
    The brand colours come from the client record.
 2. `App` fetches the **client** record (allowed domains, brand colours, home
    region) using React Query. It configures analytics from the first allowed
@@ -131,7 +131,7 @@ Host page  →  <script src="…/auto.js?key=…&locale=…&map=true|false">
 - Data layer: `docs/rules/data-layer.md`
 - i18n + state: `docs/rules/i18n-and-state.md`
 - Deployment: `docs/rules/deployment.md`
-- Bundle-size budget: `scripts/AGENTS.md`
+- Bundle-size budget, and the accessibility gate: `scripts/AGENTS.md`
 - Components: `src/components/AGENTS.md`
 - Code style: `src/AGENTS.md`
 - Tests: `docs/testing.md`
