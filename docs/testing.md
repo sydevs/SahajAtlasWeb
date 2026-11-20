@@ -40,11 +40,10 @@ See "The accessibility lane needs a browser, and that is not a preference" below
   preview loud. Exactly three states skip quietly, and each says so in the step summary: a forked
   pull request, which holds no Cloudflare credential by design, a `merge_group` entry, which
   has no pull-request number to key a preview on and whose required check the merge queue would
-  stall on, and a push that changed only documentation (`DOCS` in `ci.yml`), which nothing in
-  the build or the smoke lane reads. ⚠ On a later push of the same PR the last one also needs
-  the previous head's own `Smoke` check to have passed, so a docs-only push can never put a
-  green check over a red one for the same code. Every other route to no preview fails the
-  job — a same-repo pull request with the credential missing, a publish that produced no
+  stall on, and an `unread` push, which changed nothing the build or the smoke lane reads.
+  ⚠ `scripts/plan-preview.mjs` decides that last one alone, and its docblock owns both of its
+  guards. Read it before widening what counts as unread. Every other route to no preview fails
+  the job — a same-repo pull request with the credential missing, a publish that produced no
   address, an address refused as not the app Worker's, and any state the report does not
   recognise. If you add a spec, guard it with `test.skipIf(skipWithoutPreview)` like its
   siblings — the loudness belongs to the job, not the spec.
@@ -112,7 +111,7 @@ preview" is not one thing. The job's last step names the cause:
 | ----------------------------------------- | --------------------------------------------------------------- |
 | a forked pull request (no credential)     | expected — annotated, exit 0                                    |
 | a `merge_group` entry (no PR number)      | expected — annotated, exit 0, so the queue completes            |
-| a docs-only push (`DOCS` in `ci.yml`)     | expected — annotated, exit 0; the build is unchanged            |
+| an `unread` push (`plan-preview.mjs`)     | expected — annotated, exit 0; the build is unchanged            |
 | a missing Actions secret on a same-repo PR  | **enter all five** — the plan step gates on every one, so a half-entered set cannot reach a build whose output a spec then blames |
 | the publish produced no address           | **read the publish step** — it is the upload's own log          |
 | the address was refused                   | **read the guard step** — a wrong `--config` is the usual cause |
