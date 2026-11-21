@@ -34,6 +34,15 @@ export const Default: Story = () => (
       </div>
     </StorySection>
 
+    <StorySection
+      description="The quiet line at the foot of a panel. It owns the whole row, so no caller wraps it."
+      title="Footnote"
+    >
+      <Link appearance="footnote" href="/">
+        Don&apos;t see your class? Add it
+      </Link>
+    </StorySection>
+
     <StorySection title="External (new tab)">
       <Link isExternal showAnchorIcon href="https://example.com">
         Opens in a new tab

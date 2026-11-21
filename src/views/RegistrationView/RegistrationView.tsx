@@ -125,6 +125,7 @@ export function RegistrationView({
             eventId={event.id}
             eventTitle={event.title}
             eventUrl={eventUrl}
+            hasMailingList={event.offersMailingList === true}
             initialSubmitted={initialSubmitted}
             isOnline={isOnline(event)}
             questions={enabledQuestions(event)}

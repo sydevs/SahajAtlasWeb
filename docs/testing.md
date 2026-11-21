@@ -727,15 +727,16 @@ to select from. The full lane still runs in the lean gate (`.claude/skills/pr-pr
 in CI, so this narrows the inner loop, not the gate.
 
 **What holds the budget is the selection's width, and `scripts/select-unit-specs.test.ts` pins
-that**: the widest edit in the tree, exhaustively through the real composition, at 22 against a
-ceiling of 22 — no headroom, so the next spec reading a repo file through `repo-source` trips it,
+that**: the widest edit in the tree, exhaustively through the real composition, at 23 against a
+ceiling of 23 — no headroom, so the next spec reading a repo file through `repo-source` trips it,
 and the answer is to time the hook and ratchet, never to drop a spec. ⚠ **Two PRs can trip it
 without either one doing so alone**: #322's `mobile-zoom.test.ts` and #324's `attribution.test.ts`
 each took a slot, and the pin went red on the merge rather than on either branch; #328's
 `Drawer.scroll.test.tsx` ratcheted it from 17 to 18, #17's
-`BrandTheme.palette.test.tsx` from 18 to 19, `theme-color.test.ts` from 19 to 20, and
-`assert-classic-bridge.test.ts` from 21 to 22. ⚠ Width is not time, and which of
-the pair is slower has flipped across machines — `i18n.ts` selects 12, four of them jsdom, and
+`BrandTheme.palette.test.tsx` from 18 to 19, `theme-color.test.ts` from 19 to 20,
+`assert-classic-bridge.test.ts` from 21 to 22, and #318's `add-class-entry.test.ts` from 22 to
+23 — on the merge again, since neither #318 nor the base trips it alone. ⚠ Width is not time, and
+which of the pair is slower has flipped across machines — `i18n.ts` selects 12, four of them jsdom, and
 measured 6.2s against the widest's 5.5s at nineteen (2026-11-01, 4 cores), having been the faster
 of the two at eighteen — so width
 bounds the slice, never the time, and a jump in either is a re-measure of both. It also pins each

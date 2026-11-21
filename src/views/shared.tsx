@@ -252,10 +252,25 @@ export function FilterButton({ iconOnly = false }: { iconOnly?: boolean }) {
 // place navigates to /search with the geocoded bbox and centre (the SearchView
 // ranks events by distance from there). This carries the geocode-to-search
 // behaviour that used to live in the removed SearchBar.
+// What is typed stays in the field: the URL changes only when a place is picked, never per
+// keystroke. Half-typed text in `?q` renamed everything that reads it, so every result card said
+// "5.1 km from Prag" over London's classes.
 export function SearchField({ label }: Pick<MapSearchProps, 'label'> = {}) {
   const { t } = useTranslation()
   const navigate = useAtlasNavigate()
   const [searchParams] = useSearchParams()
+  const urlQuery = searchParams.get('q') ?? ''
+  const [text, setText] = useState(urlQuery)
+
+  // This follows a new `?q`. The field seeds from the URL once, in the state initializer above.
+  // But a pick writes a new place name, the geolocate control names the place it found AFTER
+  // navigating, and `placeSearchPath` clears `?q` on every re-search. None of them remounts this
+  // component when the view on top is unchanged, so without this effect the field would keep
+  // showing a place the results are no longer about. Typing never writes `?q`, so the two can't
+  // fight: half-typed text stays until the URL names a place.
+  useEffect(() => {
+    setText(urlQuery)
+  }, [urlQuery])
 
   const handleSelect = useCallback(
     (value: GeocodingFeature) => {
@@ -286,7 +301,7 @@ export function SearchField({ label }: Pick<MapSearchProps, 'label'> = {}) {
     // and from the Filters dialog beside it (#432). The name is the field's, not the view's:
     // `SearchView` is itself a dialog called Search.
     <div aria-label={t('search.chrome.title')} className="min-w-0 flex-1" role="search">
-      <MapSearch label={label} onSelect={handleSelect} />
+      <MapSearch label={label} value={text} onChange={setText} onSelect={handleSelect} />
     </div>
   )
 }

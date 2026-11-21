@@ -20,6 +20,7 @@ import { type ReactNode, useEffect, useMemo, useState } from 'react'
 
 import { Button } from '@/components/atoms/Button'
 import { Alert } from '@/components/atoms/Alert'
+import { Checkbox } from '@/components/atoms/Checkbox'
 import { Link } from '@/components/atoms/Link'
 import { RadioGroup, type RadioOption } from '@/components/atoms/RadioGroup'
 import { fieldChrome } from '@/components/atoms/Select'
@@ -214,6 +215,12 @@ export type RegistrationFormProps = {
    *  starting-date labels read in the class's own cadence ("Next week" and
    *  "Next month," for example). */
   recurrenceType?: RecurrenceType | null
+  /**
+   * Whether this event's region, an ancestor of it, or the atlas fallback offers a mailing list.
+   * The opt-in box renders only when this is `true` — never where no list would receive the
+   * subscription.
+   */
+  hasMailingList?: boolean
   /** This is an optional close callback. The footer also closes the
    *  enclosing Modal via ModalClose. */
   onClose?: () => void
@@ -248,6 +255,7 @@ export function RegistrationForm({
   eventTitle,
   eventUrl,
   calendar,
+  hasMailingList = false,
   onClose,
   initialSubmitted = false,
   initialRefusal,
@@ -403,6 +411,7 @@ export function RegistrationForm({
           <RegistrationFields
             control={control}
             errors={errors}
+            hasMailingList={hasMailingList}
             questions={questions}
             recurrenceType={recurrenceType}
             register={register}
@@ -572,6 +581,7 @@ type RegistrationFieldsProps = {
   timeZone?: string
   recurrenceType?: RecurrenceType | null
   questions: RegistrationQuestionName[]
+  hasMailingList: boolean
   register: UseFormRegister<RegistrationInput>
   control: Control<RegistrationInput, unknown, Registration>
   errors: FieldErrors<RegistrationInput>
@@ -582,6 +592,7 @@ function RegistrationFields({
   timeZone,
   recurrenceType,
   questions,
+  hasMailingList,
   register,
   control,
   errors,
@@ -667,6 +678,24 @@ function RegistrationFields({
           registration={register(`questions.${question}`)}
         />
       ))}
+
+      {hasMailingList && (
+        <Controller
+          control={control}
+          name="subscribe"
+          render={({ field }) => (
+            <Checkbox
+              appearance="checkbox"
+              checked={field.value === true}
+              className="text-sm"
+              id={field.name}
+              onCheckedChange={field.onChange}
+            >
+              {t('registration.form.subscribe')}
+            </Checkbox>
+          )}
+        />
+      )}
 
       <ConsentNote text={t('registration.form.privacy_policy')} />
     </div>

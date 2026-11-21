@@ -34,13 +34,18 @@ import {
   dismissDepth,
   baseStackEntry,
   isFilterOverlay,
+  isSubmitEntry,
+  opensTall,
   isoCountryCode,
   placePathsOf,
   placedPathname,
   resolveStack,
+  submitPanelPlacement,
+  submitTitleKey,
 } from '@/lib/shape'
 import { wakesSheetLoop } from '@/views/DrawerStack/sheet-wake'
 import { stripLabel } from '@/views/DrawerStack/strip-label'
+import { submitSheetChrome } from '@/views/DrawerStack/submit-panel'
 import { ViewLayer } from '@/views/DrawerStack/ViewLayer'
 import { useFitSnap } from '@/views/DrawerStack/use-fit-snap'
 import { DrawerControlContext } from '@/views/shared'
@@ -82,6 +87,14 @@ const loadSecondaryViews = () => ({
   ),
   ShareView: lazy(() =>
     import('@/views/ShareView/ShareView').then((m) => ({ default: m.ShareView })),
+  ),
+  // The add-a-class and correction flows (#147): the listing in this sheet, and the step
+  // panel in a sheet of its own beside it. One module, so one chunk serves both.
+  SubmitView: lazy(() =>
+    import('@/views/SubmitView/SubmitView').then((m) => ({ default: m.SubmitView })),
+  ),
+  SubmitPanel: lazy(() =>
+    import('@/views/SubmitView/SubmitView').then((m) => ({ default: m.SubmitPanel })),
   ),
 })
 
@@ -158,6 +171,9 @@ function TopView({
       return <secondary.RegistrationView eventPath={entry.eventPath} parentPath={parentPath} />
     case 'share':
       return <secondary.ShareView eventPath={entry.eventPath} />
+    case 'add':
+    case 'correct':
+      return <secondary.SubmitView entry={entry} />
   }
 }
 
@@ -283,6 +299,7 @@ export function DrawerStack() {
   const isWide = useIsWide(container ?? frameElement())
   const direction: Direction = isWide ? 'left' : 'bottom'
   const [snap, setSnap] = useState<number | string | null>(OPEN_SNAP)
+  // Whether the add-a-class step panel is the review bar, as the panel itself reports it.
   const stripsRef = useRef<HTMLDivElement>(null)
   const sheetOriginRef = useRef<HTMLDivElement>(null)
   // The lazy components ARE the retry state — the boundary's reset swaps in fresh ones.
@@ -599,15 +616,14 @@ export function DrawerStack() {
     }
   }, [hasMap, direction])
 
-  // The calendar opens at the near-full snap on mobile — its month grid AND its list
-  // both need the height — while every other view keeps the third-height open snap.
-  // Keyed on the view KIND (not `wide`), so switching the calendar between
-  // month/week/list keeps it tall, rather than collapsing the list to the short snap.
-  // This runs only when navigating to or from the calendar, so it never fights a
-  // manual drag on a non-calendar view.
+  // A few views open at the near-full snap on mobile (`opensTall`), and an event at the height of
+  // its own content, while every other view keeps the third-height open snap. Keyed on the view KIND (not `wide`), so switching the
+  // calendar between month/week/list keeps it tall, rather than collapsing the list to the
+  // short snap. This runs only when navigating between kinds, so it never fights a manual
+  // drag within one view.
   useEffect(() => {
     if (direction === 'bottom') {
-      setSnap(top?.kind === 'calendar' ? WIDE_SNAP : top?.kind === 'event' ? FIT_SNAP : OPEN_SNAP)
+      setSnap(opensTall(top?.kind) ? WIDE_SNAP : top?.kind === 'event' ? FIT_SNAP : OPEN_SNAP)
     }
   }, [direction, top?.kind])
 
@@ -787,6 +803,40 @@ export function DrawerStack() {
     </DrawerControlContext.Provider>
   ) : null
 
+  // The add-a-class step panel (#147). NON-modal, unlike the filter overlay, because the
+  // listing behind it stays live: its Edit links are how review returns to a step. Not
+  // dismissible, because the flow closes from its own X, which is the stack's dismiss.
+  const sheetChrome = submitSheetChrome(isWide)
+  const submitPanel =
+    isSubmitEntry(top) && submitPanelPlacement(top, hasMap) === 'sheet' ? (
+      <DrawerControlContext.Provider value={control}>
+        <Drawer
+          key={`submit-panel-${direction}`}
+          handleOnly
+          open
+          container={overlayContainer()}
+          direction={sheetChrome.direction}
+          dismissible={false}
+          measureAgainst={frameElement()}
+        >
+          <DrawerContent
+            aria-label={t(submitTitleKey(top.kind))}
+            className={sheetChrome.className}
+            handle={false}
+          >
+            <Suspense fallback={<DrawerLoading />}>
+              <ResetErrorBoundary
+                FallbackComponent={DrawerErrorFallback}
+                onReset={() => setSecondary(loadSecondaryViews())}
+              >
+                <secondary.SubmitPanel entry={top} />
+              </ResetErrorBoundary>
+            </Suspense>
+          </DrawerContent>
+        </Drawer>
+      </DrawerControlContext.Provider>
+    ) : null
+
   // Map-less: one contained drawer fills the widget container (there is no map to
   // reveal, so no peek strips or snap ladder). Standalone owns the viewport
   // (100dvh). Embedded fills the host's slot (100%).
@@ -939,6 +989,7 @@ export function DrawerStack() {
           {sheet}
         </Drawer>
         {filterDrawer}
+        {submitPanel}
       </DrawerControlContext.Provider>
     </WidgetWidthContext.Provider>
   )

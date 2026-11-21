@@ -31,7 +31,7 @@ const facts = tv({
     base: 'flex flex-col',
     item: 'flex',
     icon: 'shrink-0',
-    text: 'min-w-0 text-sm leading-snug font-medium',
+    text: 'min-w-0 flex-1 text-sm leading-snug font-medium',
     subtext: 'font-normal text-gray-11',
   },
   variants: {
@@ -69,6 +69,7 @@ type Fact = {
   icon: LucideIcon
   text: ReactNode
   subtext?: ReactNode
+  trailing?: ReactNode
   /** The text itself spans two lines, so the icon hangs from the first even with no subtext. */
   stacked?: boolean
 }
@@ -84,6 +85,8 @@ export type EventFactsProps = {
   /** Distance from the searched location, shown faded under the address. List
    *  cards only: the panel has no search origin to measure from. */
   distance?: ReactNode
+  /** Content at the end of the calendar fact and of the location fact. */
+  trailing?: { when?: ReactNode; where?: ReactNode }
   className?: string
 }
 
@@ -105,6 +108,7 @@ export function EventFacts({
   title,
   children,
   distance,
+  trailing,
   className,
 }: EventFactsProps) {
   const {
@@ -147,6 +151,7 @@ export function EventFacts({
         hasNext: Boolean(display.next),
       }),
       subtext: timingDetail,
+      trailing: trailing?.when,
     },
   ]
 
@@ -167,6 +172,7 @@ export function EventFacts({
       ),
       stacked: Boolean(room),
       subtext: display.online ? (whereSubtext ?? undefined) : (distance ?? undefined),
+      trailing: trailing?.where,
     })
   }
 
@@ -179,7 +185,7 @@ export function EventFacts({
   // variants render just the fact column, and take `className` on it.
   const body = (
     <div className={card ? slots.base() : slots.base({ className })}>
-      {items.map(({ icon: Icon, text, subtext, stacked }, index) => {
+      {items.map(({ icon: Icon, text, subtext, stacked, trailing: end }, index) => {
         // Alignment is per-fact. Only a stacked fact, one with two lines,
         // hangs its icon from the first line.
         const styles = facts({ variant, stacked: Boolean(subtext) || Boolean(stacked) })
@@ -193,6 +199,7 @@ export function EventFacts({
               <div>{text}</div>
               {subtext && <div className={styles.subtext()}>{subtext}</div>}
             </div>
+            {end}
           </div>
         )
       })}

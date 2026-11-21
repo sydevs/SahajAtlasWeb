@@ -66,6 +66,7 @@ const WIDGET_TABS = [
   'event',
   'calendar',
   'registration',
+  'submit',
   'share',
   'compact',
 ]

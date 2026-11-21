@@ -15,7 +15,7 @@ import { useWidgetMode } from '@/config/mode'
 import { useLocale } from '@/hooks/use-locale'
 import { useMapController } from '@/hooks/use-map-controller'
 import { classifyError, errorMessage } from '@/lib/report'
-import { baseStackEntry, nearestKnownRegion, resolveStack } from '@/lib/shape'
+import { baseStackEntry, nearestKnownRegion, resolveStack, submitTitleKey } from '@/lib/shape'
 import {
   CalendarButton,
   CloseButton,
@@ -167,6 +167,9 @@ export function DrawerChrome({
         })
       case 'share':
         return t('share.title', { defaultValue: 'Share Meditation' })
+      case 'add':
+      case 'correct':
+        return t(submitTitleKey(entry.kind))
       default:
         return undefined
     }
@@ -306,6 +309,7 @@ const notFoundKind = (kind: StackEntry['kind'] | undefined): FallbackKind => {
     case 'event':
     case 'register':
     case 'share':
+    case 'correct':
       return 'not-found-event'
     case 'region':
     case 'online':

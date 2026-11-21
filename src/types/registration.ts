@@ -12,6 +12,9 @@ export const RegistrationSchema = z.object({
   // `partialRecord`, not `record`: an event enables a SUBSET of the questions, and
   // zod's `record` over an enum key requires every member.
   questions: z.partialRecord(RegistrationQuestionNameSchema, z.string()).optional(),
+  // The mailing-list opt-in. Offered only where the event's `offersMailingList` is true, so
+  // an absent value and `false` both mean no.
+  subscribe: z.boolean().optional(),
 })
 
 export type Registration = z.infer<typeof RegistrationSchema>
