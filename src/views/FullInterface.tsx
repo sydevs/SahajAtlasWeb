@@ -2,7 +2,6 @@ import { useEffect, useRef } from 'react'
 import * as Fathom from 'fathom-client'
 import { useLocation, useNavigate } from 'react-router'
 import { MapProvider } from 'react-map-gl/mapbox'
-import { useTranslation } from 'react-i18next'
 
 import { Spinner } from '@/components/atoms/Spinner'
 import { useCameraSettled } from '@/config/store'
@@ -118,7 +117,6 @@ function useAnalytics(primaryDomain: string, pathname: string) {
  */
 function MapCurtain() {
   const settled = useCameraSettled((s) => s.settled)
-  const { t } = useTranslation()
 
   if (settled) return null
 
@@ -130,7 +128,7 @@ function MapCurtain() {
       className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center bg-background/20 backdrop-blur-sm"
     >
       <span className="sy-map-curtain-spinner">
-        <Spinner decorative size="lg" srLabel={t('common.a11y.loading')} />
+        <Spinner decorative size="lg" />
       </span>
     </div>
   )
