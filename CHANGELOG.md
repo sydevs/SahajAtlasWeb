@@ -112,7 +112,7 @@ cover everything a host would notice since the widget was first deployed.
   new to your page outside its own shadow root.
 
 - **The widget's router moves to React Router 8, which adds 0.5 KiB.** ([#447]) The widget fetched
-  as the embed comes into view grows from 314.8 to 315.3 KiB gzipped; `auto.js` and the loader are
+  as the embed comes into view grows from 324.1 to 324.6 KiB gzipped; `auto.js` and the loader are
   unchanged. Everything the router does on your page behaves as before: the `?atlas=` parameter and
   the other parameters beside it, `routing=path`, deep links, Back and Forward, and what closing a
   panel does to your history. **No parameter, origin, CSP or Permissions-Policy change.**
