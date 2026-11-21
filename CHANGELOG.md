@@ -43,6 +43,13 @@ cover everything a host would notice since the widget was first deployed.
 
 ### Changed
 
+- **A plural form a translation leaves out now falls back within that language, not to English.**
+  ([#448]) Where a language's copy in SahajCloud lacks a plural form it needs, such as the "few" or
+  "many" form of a class's session count in Ukrainian or Russian, the widget showed that one phrase
+  in English ("5 sessions") in the middle of the translated page. It now uses the same language's
+  general ("other") form. Copy with every form filled in renders exactly as before. **No parameter,
+  origin, CSP, storage or Permissions-Policy change.**
+
 - **The calendar's week view lays out staggered classes differently.** ([#450]) Its calendar library moved
   up two major versions. A class that starts after an earlier overlapping one has finished now
   takes that free column, drawn beneath the classes still running beside it, so on a busy evening
@@ -89,7 +96,7 @@ cover everything a host would notice since the widget was first deployed.
   ([#446]) What your page loads up front is unchanged: `auto.js` and the loader it starts still come
   to about 3 KiB, so an embed nobody scrolls to costs exactly what it did. The widget itself,
   fetched as the embed comes into view, grows by 23 KiB gzipped, 22.6 KiB of it React's own
-  renderer: from 292.1 KiB with the saving above to 315.3 KiB, still 21 KiB under the 336.2 KiB it
+  renderer: from 295.2 KiB on `main` to 318.4 KiB, still 18 KiB under the 336.2 KiB it
   was before both. **Content can appear a little later.** A loading spinner, once shown, now stays
   for at least about 0.3 seconds rather than flashing when the content arrives sooner, so each
   loading step can add up to that. Measured against a fast backend, the first list arrives about 0.2
@@ -1233,4 +1240,5 @@ must-revalidate`, pinned rather than left to the CDN default. The production dom
 [#442]: https://github.com/sydevs/SahajAtlasWeb/pull/442
 [#445]: https://github.com/sydevs/SahajAtlasWeb/pull/445
 [#450]: https://github.com/sydevs/SahajAtlasWeb/pull/450
+[#448]: https://github.com/sydevs/SahajAtlasWeb/pull/448
 [#446]: https://github.com/sydevs/SahajAtlasWeb/pull/446

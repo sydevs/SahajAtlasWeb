@@ -73,10 +73,10 @@ import { annotate, report } from './_ci-output.mjs'
 // ⚠ `standalone` and `embed` deliberately hold more, since the #442 rows
 // below. The four steps before them were all raises, and under 1% spare most
 // dependency bumps collided with the gate, so the space those rows won back is
-// kept as headroom; React 19 spent half of it, leaving about 7%. A newly-eager
+// kept as headroom; React 19 spent most of it, leaving about 5%. A newly-eager
 // view no longer trips these two budgets — `src/Widget.standalone.test.ts` holds the eager
 // graph's barrels and packages by name instead. ⚠ `SLACK_RATIO` still bites at
-// 15%: about 27 KiB more off `standalone` and the ratchet asks for a lower
+// 15%: about 32 KiB more off `standalone` and the ratchet asks for a lower
 // budget.
 //
 // `loader` is the graph a host pays on every page view (#149). This script
@@ -92,7 +92,7 @@ import { annotate, report } from './_ci-output.mjs'
 // Every step to today's three figures, newest first, as standalone/embed and as
 // loader. `git log -p` on this constant holds each one in full, dated.
 //
-//   336  313.0/314.1  #446  React 19: `react` + `react-dom/client` alone gzip
+//   336  316.1/317.2  #446  React 19: `react` + `react-dom/client` alone gzip
 //                           22.6 KiB larger than 18.3.1, helmet-async 3 0.7
 //                           more; budget held, as above
 //   336  289.8/290.9  #442  the zod enums moved to `z.enum`'s object form, so
