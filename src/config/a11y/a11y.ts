@@ -47,17 +47,14 @@ const LOCALE_FILES = import.meta.glob<TranslationTree>(
   },
 )
 
-/** The file for a locale: its own, else its base tag's (`de-AT` → `de`), else none. */
-export function a11yFileFor(locale: string): (() => Promise<TranslationTree>) | undefined {
-  return LOCALE_FILES[`./${locale}.json`] ?? LOCALE_FILES[`./${locale.split('-')[0]}.json`]
-}
-
 /**
  * One locale's strings. English — and any locale without a file — answers the English set, and a
  * key a file lacks falls back to it through i18next's `fallbackLng`.
+ *
+ * ⚠ **An exact filename is the whole lookup, with no base-tag narrowing.** `preferredLocale`
+ * already resolved the tag against the offered set before this is reached
+ * (`config/i18n-options.ts`), and every offered locale has a file (`a11y.test.ts`).
  */
 export async function loadA11yStrings(locale: string): Promise<TranslationTree> {
-  const load = a11yFileFor(locale)
-
-  return load ? load() : EN_A11Y
+  return LOCALE_FILES[`./${locale}.json`]?.() ?? EN_A11Y
 }

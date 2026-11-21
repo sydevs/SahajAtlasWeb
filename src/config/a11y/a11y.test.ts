@@ -5,7 +5,7 @@ import { describe, expect, it } from 'vitest'
 
 import snapshot from '../translations.en.json'
 
-import { EN_A11Y, a11yFileFor, loadA11yStrings, withA11y } from './a11y'
+import { EN_A11Y, loadA11yStrings, withA11y } from './a11y'
 import context from './context.json'
 
 /**
@@ -102,29 +102,15 @@ describe('the screen-reader files', () => {
   })
 })
 
-describe('a11yFileFor', () => {
-  it("answers a regional tag with its base locale's file", () => {
-    expect(a11yFileFor('de-AT')).toBe(a11yFileFor('de'))
-    expect(a11yFileFor('de')).toBeDefined()
-  })
-
-  it('prefers an exact regional file to its base tag', () => {
-    expect(a11yFileFor('pt-BR')).toBeDefined()
-  })
-
-  it('answers nothing for English or an unknown locale', () => {
-    expect(a11yFileFor('en')).toBeUndefined()
-    expect(a11yFileFor('xx')).toBeUndefined()
-  })
-})
-
 describe('loadA11yStrings', () => {
   it('answers English for a locale without a file', async () => {
     expect(await loadA11yStrings('en-AU')).toBe(EN_A11Y)
+    expect(await loadA11yStrings('xx')).toBe(EN_A11Y)
   })
 
   it("answers a locale's own file", async () => {
     expect(await loadA11yStrings('fr')).toBe(FILES['./fr.json'])
+    expect(await loadA11yStrings('pt-BR')).toBe(FILES['./pt-BR.json'])
   })
 })
 
