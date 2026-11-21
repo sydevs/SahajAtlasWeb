@@ -261,7 +261,7 @@ export function DrawerLoadingBody() {
           the glyph itself off centre — the column centres, so the label's height sits half
           of it below the middle. Screen readers still get it through the Spinner's own
           `role="status"`. */}
-      <Spinner color="secondary" srLabel={t('common.a11y.loading', { defaultValue: 'Loading…' })} />
+      <Spinner color="secondary" srLabel={t('common.a11y.loading')} />
     </DrawerBody>
   )
 }

@@ -130,11 +130,7 @@ function MapCurtain() {
       className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center bg-background/20 backdrop-blur-sm"
     >
       <span className="sy-map-curtain-spinner">
-        <Spinner
-          decorative
-          size="lg"
-          srLabel={t('common.a11y.loading', { defaultValue: 'Loading' })}
-        />
+        <Spinner decorative size="lg" srLabel={t('common.a11y.loading')} />
       </span>
     </div>
   )
