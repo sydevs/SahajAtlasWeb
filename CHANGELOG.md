@@ -60,6 +60,13 @@ cover everything a host would notice since the widget was first deployed.
   installs nothing on your page: the library's new date objects come from a module bundled with
   the widget, never from a page-wide `Temporal` or a replaced `Intl.DateTimeFormat`.
 
+- **The widget is about 6 KiB heavier for a visitor who reveals it.** ([#449]) Its animation
+  library, framer-motion, moved from 11 to 14. What your page loads up front is unchanged: the
+  ~3 KiB loader. The widget itself, fetched as the embed comes into view, grows from 291.7 to
+  297.3 KiB gzipped (290.6 to 296.3 KiB standalone). The peek strips, the drawer's cross-fade and
+  the compact card's fade use the same timings, and `prefers-reduced-motion` is honoured as before.
+  **No parameter, origin, CSP or Permissions-Policy change.**
+
 - **A `map=false` embed no longer downloads the map library.** ([#445]) Opening the interface
   fetched and ran Mapbox GL's script — about 510 KiB gzipped, from `sahajatlas.com` — even with
   no map to draw. It now loads only when a map renders, and a map embed starts it at the same
@@ -1228,5 +1235,6 @@ must-revalidate`, pinned rather than left to the CDN default. The production dom
 [#432]: https://github.com/sydevs/SahajAtlasWeb/issues/432
 [#442]: https://github.com/sydevs/SahajAtlasWeb/pull/442
 [#445]: https://github.com/sydevs/SahajAtlasWeb/pull/445
+[#449]: https://github.com/sydevs/SahajAtlasWeb/pull/449
 [#450]: https://github.com/sydevs/SahajAtlasWeb/pull/450
 [#448]: https://github.com/sydevs/SahajAtlasWeb/pull/448
