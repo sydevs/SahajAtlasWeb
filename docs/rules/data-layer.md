@@ -397,7 +397,10 @@ the shared client.
 - **Warm the bootstrap caches in parallel with the client bootstrap.**
   `api.warmCaches()` (fired from `App`'s mount effect) kicks the locale-agnostic
   feed and region-tree reads alongside the suspended `clients/me` read, breaking
-  the waterfall. Do not warm titles there — the UI locale is not resolved yet at
+  the waterfall. It also prefetches the unfiltered `countriesQuery()`, which
+  derives from those two: cold, the root drawer suspends right after the app
+  boundary reveals, and React 19 holds every fallback it shows for at least
+  300 ms. Do not warm titles there — the UI locale is not resolved yet at
   mount, so it would fetch under the wrong key.
 - **Prefetch event details.** Warm `['event', id, locale]` on hover/focus
   (`useHoverPrefetch`) and a region's first few cards on idle

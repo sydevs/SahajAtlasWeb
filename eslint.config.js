@@ -182,7 +182,7 @@ export default [
     // overlaps neither block below.
     //
     // `motion` is refused beside it: each `motion.*` bundles every feature framer-motion has,
-    // which no size budget notices at 13.2 KiB gz, where `m.*` draws the ones
+    // which no size budget notices at 17.5 KiB gz, where `m.*` draws the ones
     // `src/providers.tsx` loads.
     files: ['src/**/*.tsx'],
     ignores: ['**/*.{test,spec}.tsx', 'src/test-support/**'],

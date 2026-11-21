@@ -11,7 +11,7 @@
 // that, one failed fetch pins its error over every later attempt, and the boundary added to
 // contain a failure instead *creates* a permanent dead end.
 //
-// Deliberately no @testing-library/react. React 18.3 exports `act`, and `createRoot` is all
+// Deliberately no @testing-library/react. React exports `act`, and `createRoot` is all
 // this needs. One new devDependency (jsdom), not two.
 import { StrictMode, act, useState } from 'react'
 import { createRoot } from 'react-dom/client'
@@ -34,20 +34,12 @@ vi.mock('@/lib/report', async (importOriginal) => ({
 
 let container: HTMLDivElement
 
-// React's development build re-throws a caught error through a synthetic `error` event, so
-// DevTools can surface it. jsdom then prints the whole stack. Both specs here throw ON
-// PURPOSE, so this swallows that — a passing run should be readable, and a real failure still
-// surfaces through the assertions.
-const muteExpectedThrow = (event: ErrorEvent) => event.preventDefault()
-
 beforeEach(() => {
   container = document.createElement('div')
   document.body.append(container)
-  window.addEventListener('error', muteExpectedThrow)
 })
 
 afterEach(() => {
-  window.removeEventListener('error', muteExpectedThrow)
   container.remove()
   vi.restoreAllMocks()
 })

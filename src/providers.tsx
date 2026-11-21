@@ -26,7 +26,7 @@ function ReducedMotion({ children }: { children: React.ReactNode }) {
 
 /**
  * All of framer-motion this app ships. An `m.*` component draws its engine from here, where a
- * `motion.*` one bundles every feature the library has: 13.2 KiB gz more in the eager graph,
+ * `motion.*` one bundles every feature the library has: 17.5 KiB gz more in the eager graph,
  * for drag and layout projection nothing uses.
  *
  * ⚠ **`domMin` is `initial`, `animate`, `exit` and `transition`, and nothing else.** A

@@ -43,6 +43,13 @@ cover everything a host would notice since the widget was first deployed.
 
 ### Changed
 
+- **A plural form a translation leaves out now falls back within that language, not to English.**
+  ([#448]) Where a language's copy in SahajCloud lacks a plural form it needs, such as the "few" or
+  "many" form of a class's session count in Ukrainian or Russian, the widget showed that one phrase
+  in English ("5 sessions") in the middle of the translated page. It now uses the same language's
+  general ("other") form. Copy with every form filled in renders exactly as before. **No parameter,
+  origin, CSP, storage or Permissions-Policy change.**
+
 - **The calendar's week view lays out staggered classes differently.** ([#450]) Its calendar library moved
   up two major versions. A class that starts after an earlier overlapping one has finished now
   takes that free column, drawn beneath the classes still running beside it, so on a busy evening
@@ -52,6 +59,13 @@ cover everything a host would notice since the widget was first deployed.
   than before. **No parameter, origin, CSP or Permissions-Policy change**, and the widget
   installs nothing on your page: the library's new date objects come from a module bundled with
   the widget, never from a page-wide `Temporal` or a replaced `Intl.DateTimeFormat`.
+
+- **The widget is about 6 KiB heavier for a visitor who reveals it.** ([#449]) Its animation
+  library, framer-motion, moved from 11 to 14. What your page loads up front is unchanged: the
+  ~3 KiB loader. The widget itself, fetched as the embed comes into view, grows from 291.7 to
+  297.3 KiB gzipped (290.6 to 296.3 KiB standalone). The peek strips, the drawer's cross-fade and
+  the compact card's fade use the same timings, and `prefers-reduced-motion` is honoured as before.
+  **No parameter, origin, CSP or Permissions-Policy change.**
 
 - **A `map=false` embed no longer downloads the map library.** ([#445]) Opening the interface
   fetched and ran Mapbox GL's script — about 510 KiB gzipped, from `sahajatlas.com` — even with
@@ -85,6 +99,17 @@ cover everything a host would notice since the widget was first deployed.
 - **The place-search field is a named `search` landmark.** ([#432]) The widget was already one
   labelled `region` on your page; a screen-reader viewer can now jump to the search inside it,
   and tell it from the results under it and from the Filters dialog beside it.
+- **The widget runs on React 19, which makes it 23 KiB heavier for a visitor who reveals it.**
+  ([#446]) What your page loads up front is unchanged: `auto.js` and the loader it starts still come
+  to about 3 KiB, so an embed nobody scrolls to costs exactly what it did. The widget itself,
+  fetched as the embed comes into view, grows by 23 KiB gzipped, 22.6 KiB of it React's own
+  renderer: from 300.9 KiB on `main` to 324.1 KiB, still 12 KiB under the 336.2 KiB it
+  was before both. **Content can appear a little later.** A loading spinner, once shown, now stays
+  for at least about 0.3 seconds rather than flashing when the content arrives sooner, so each
+  loading step can add up to that. Measured against a fast backend, the first list arrives about 0.2
+  to 0.3 seconds later than before, both when the embed comes into view and when the compact card is
+  opened. **No parameter, origin, CSP or Permissions-Policy change**, and the widget writes nothing
+  new to your page outside its own shadow root.
 
 - **The Outlook.com and Office 365 rows of "Add to calendar" now subscribe too.** ([#428]) They
   added one session of a weekly class, so a visitor on Outlook got the next class and then
@@ -1221,4 +1246,7 @@ must-revalidate`, pinned rather than left to the CDN default. The production dom
 [#432]: https://github.com/sydevs/SahajAtlasWeb/issues/432
 [#442]: https://github.com/sydevs/SahajAtlasWeb/pull/442
 [#445]: https://github.com/sydevs/SahajAtlasWeb/pull/445
+[#449]: https://github.com/sydevs/SahajAtlasWeb/pull/449
 [#450]: https://github.com/sydevs/SahajAtlasWeb/pull/450
+[#448]: https://github.com/sydevs/SahajAtlasWeb/pull/448
+[#446]: https://github.com/sydevs/SahajAtlasWeb/pull/446

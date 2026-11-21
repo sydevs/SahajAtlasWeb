@@ -24,8 +24,15 @@ import type { StackEntry } from '@/lib/shape'
  * This type is narrower than i18next's `TFunction` on purpose. It accepts the `t` from either
  * `useTranslation()` or `useLocale()` — whose type targets the default namespace —
  * without either caller casting.
+ *
+ * ⚠ Two signatures, not one with `options?`. Under `strictInterpolationChecks`, on by default
+ * since i18next 27, `TFunction` takes a key with options or a key alone, and an optional
+ * parameter matches neither.
  */
-export type StripTranslate = (key: TranslationKey, options?: { title: string }) => string
+export type StripTranslate = {
+  (key: TranslationKey): string
+  (key: TranslationKey, options: { title: string }): string
+}
 
 export type StripNaming = {
   t: StripTranslate
