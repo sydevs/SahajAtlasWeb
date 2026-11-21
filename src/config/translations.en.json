@@ -1,5 +1,8 @@
 {
   "calendar": {
+    "next": "Next",
+    "pick_date": "Pick a date",
+    "previous": "Previous",
     "times_note": "Times are local to each class. Online classes show your time (%{zone}).",
     "title": "Calendar",
     "view_list": "List",
@@ -13,6 +16,8 @@
       "back_to": "Back to %{title}",
       "cancel": "Cancel",
       "close": "Close",
+      "explore": "Explore",
+      "loading": "Loading…",
       "widget_label": "Free meditation classes"
     },
     "errors": {
@@ -70,7 +75,8 @@
     "settings": {
       "theme_auto": "System (Auto)",
       "theme_dark": "Dark Theme",
-      "theme_light": "Light Theme"
+      "theme_light": "Light Theme",
+      "title": "Settings"
     }
   },
   "compact": {
@@ -85,7 +91,9 @@
       "contact": "Contact",
       "directions": "Directions",
       "download_ics": "Download .ics file",
+      "pause_slideshow": "Pause slideshow",
       "share": "Share",
+      "view_photo": "View photo",
       "website": "Website"
     },
     "display": {
@@ -158,6 +166,7 @@
       "clear": "Clear all",
       "clear_one": "Clear",
       "no_results": "No events match your filters.",
+      "remove": "Remove %{label}",
       "title": "Filters"
     },
     "dates": {
@@ -239,12 +248,14 @@
       "title": "No classes listed in %{country} yet."
     },
     "nearby_prompt": {
+      "dismiss": "Dismiss",
       "title": "Looking for classes near %{city}?"
     },
     "results": {
       "farther": "Show distant events",
       "more": "Show more",
-      "no_nearby": "No events within %{km} km."
+      "no_nearby": "No events within %{km} km.",
+      "showing": "Showing %{shown} of %{total} events"
     },
     "sort": {
       "closest": "Closest",
@@ -255,7 +266,9 @@
   },
   "share": {
     "copied": "Copied",
+    "copy_link": "Copy link",
     "native": "Share…",
+    "share_on": "Share on %{platform}",
     "title": "Share Meditation"
   }
 }
