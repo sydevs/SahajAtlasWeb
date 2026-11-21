@@ -1,5 +1,5 @@
 import type { Event as CmsEvent, Image as SahajCloudImage } from '@/types/payload/payload-types'
-import type { SahajCloudFields, SameAsSahajCloud } from './pinned'
+import type { PartialZodShape } from './zod-shape'
 
 import z from 'zod'
 
@@ -7,17 +7,45 @@ import { RegionRefSchema } from './region-ref'
 
 type SahajCloudAddress = NonNullable<CmsEvent['address']>
 type SahajCloudSchedule = NonNullable<CmsEvent['schedule']>
+type SahajCloudRecurrence = NonNullable<SahajCloudSchedule['recurrenceType']>
+type SahajCloudMonthlyMode = NonNullable<SahajCloudSchedule['monthlyMode']>
+type SahajCloudWeekNumber = NonNullable<SahajCloudSchedule['weekNumber']>
+type SahajCloudEndingType = NonNullable<SahajCloudSchedule['endingType']>
+type SahajCloudWeekday = NonNullable<SahajCloudSchedule['weekdays']>[number]
+type SahajCloudWeekdayOfMonth = NonNullable<SahajCloudSchedule['weekdayOfMonth']>
 
-export const EventTypeSchema = z.enum(['offline', 'online'])
+// Every enum here is in `z.enum`'s object form so `satisfies Record<Theirs, Theirs>` can hold
+// its members to the synced union in both directions (`docs/rules/data-layer.md`).
+export const EventTypeSchema = z.enum({
+  offline: 'offline',
+  online: 'online',
+} satisfies Record<CmsEvent['eventType'], CmsEvent['eventType']>)
 export type EventType = z.infer<typeof EventTypeSchema>
 
 // SahajCloud recurrence basis. Occurrence *instants* are pre-computed server-side
 // into `upcomingDates` (exclusions applied). The structured pattern fields below
 // drive the derived event type, the recurrence label, and the calendar grid.
-export const RecurrenceTypeSchema = z.enum(['DAILY', 'WEEKLY', 'MONTHLY'])
+export const RecurrenceTypeSchema = z.enum({
+  DAILY: 'DAILY',
+  WEEKLY: 'WEEKLY',
+  MONTHLY: 'MONTHLY',
+} satisfies Record<SahajCloudRecurrence, SahajCloudRecurrence>)
 export type RecurrenceType = z.infer<typeof RecurrenceTypeSchema>
 
-export const WeekdaySchema = z.enum(['MO', 'TU', 'WE', 'TH', 'FR', 'SA', 'SU'])
+// Two schedule fields carry this union, and they are separate SahajCloud option lists. Each
+// `Record` keys from one and values to the other, so a member added to EITHER is a missing key
+// and one dropped from either is an unassignable value. One `Record` alone leaves the other
+// field free to gain a member in silence.
+export const WeekdaySchema = z.enum({
+  MO: 'MO',
+  TU: 'TU',
+  WE: 'WE',
+  TH: 'TH',
+  FR: 'FR',
+  SA: 'SA',
+  SU: 'SU',
+} satisfies Record<SahajCloudWeekday, SahajCloudWeekdayOfMonth> &
+  Record<SahajCloudWeekdayOfMonth, SahajCloudWeekday>)
 export type Weekday = z.infer<typeof WeekdaySchema>
 
 // A recurring event's skipped window (holiday/seasonal break). `endDate` is
@@ -25,7 +53,7 @@ export type Weekday = z.infer<typeof WeekdaySchema>
 export const ScheduleExclusionSchema = z.object({
   startDate: z.coerce.date(),
   endDate: z.coerce.date().nullish(),
-} satisfies SahajCloudFields<NonNullable<SahajCloudSchedule['exclusions']>[number]>)
+} satisfies PartialZodShape<NonNullable<SahajCloudSchedule['exclusions']>[number]>)
 export type ScheduleExclusion = z.infer<typeof ScheduleExclusionSchema>
 
 // Offline event location (`event.address` group). All fields are nullable. The
@@ -40,8 +68,26 @@ export const EventAddressSchema = z.object({
   city: z.string().nullish(),
   latitude: z.number().nullish(),
   longitude: z.number().nullish(),
-} satisfies SahajCloudFields<SahajCloudAddress>)
+} satisfies PartialZodShape<SahajCloudAddress>)
 export type EventAddress = z.infer<typeof EventAddressSchema>
+
+const MonthlyModeSchema = z.enum({
+  date: 'date',
+  weekday: 'weekday',
+} satisfies Record<SahajCloudMonthlyMode, SahajCloudMonthlyMode>)
+
+const WeekNumberSchema = z.enum({
+  '1': '1',
+  '2': '2',
+  '3': '3',
+  '4': '4',
+  '-1': '-1',
+} satisfies Record<SahajCloudWeekNumber, SahajCloudWeekNumber>)
+
+const EndingTypeSchema = z.enum({
+  count: 'count',
+  until: 'until',
+} satisfies Record<SahajCloudEndingType, SahajCloudEndingType>)
 
 // `event.schedule` group. `upcomingDates` is a virtual field of ISO date strings
 // pre-computed by SahajCloud. `upcomingDates[0]` is the next occurrence.
@@ -58,17 +104,17 @@ export const EventScheduleSchema = z.object({
   recurrenceType: RecurrenceTypeSchema.nullish(),
   interval: z.number().nullish(), // repeat every N days/weeks/months
   weekdays: z.array(WeekdaySchema).nullish(), // WEEKLY only. Multi-day is authorable
-  monthlyMode: z.enum(['date', 'weekday']).nullish(),
+  monthlyMode: MonthlyModeSchema.nullish(),
   monthDay: z.number().nullish(), // MONTHLY 'date' mode: day of month (1-31)
-  weekNumber: z.enum(['1', '2', '3', '4', '-1']).nullish(), // MONTHLY 'weekday' mode
+  weekNumber: WeekNumberSchema.nullish(), // MONTHLY 'weekday' mode
   weekdayOfMonth: WeekdaySchema.nullish(), // MONTHLY 'weekday' mode
-  endingType: z.enum(['count', 'until']).nullish(), // set = limited-run course
+  endingType: EndingTypeSchema.nullish(), // set = limited-run course
   count: z.number().nullish(), // 'count' ending: total sessions
   untilDate: z.coerce.date().nullish(), // 'until' ending: last possible date
   exclusions: z.array(ScheduleExclusionSchema).nullish(),
   upcomingDates: z.array(z.coerce.date()).nullish(),
   icalRule: z.string().nullish(),
-} satisfies SahajCloudFields<SahajCloudSchedule>)
+} satisfies PartialZodShape<SahajCloudSchedule>)
 export type EventSchedule = z.infer<typeof EventScheduleSchema>
 
 // Populated `images` upload (the SahajCloud `Image` collection). `url` is a
@@ -78,7 +124,7 @@ export type EventSchedule = z.infer<typeof EventScheduleSchema>
 export const EventImageSchema = z.object({
   url: z.string().nullish(),
   alt: z.string().nullish(),
-} satisfies SahajCloudFields<SahajCloudImage>)
+} satisfies PartialZodShape<SahajCloudImage>)
 export type EventImage = z.infer<typeof EventImageSchema>
 
 // The registration questions a manager can enable per event — SahajCloud's
@@ -172,14 +218,14 @@ export const AgnosticFeedEventSchema = z.object({
   // Server-computed canonical route (region chain + `/<id>`). The list/map
   // navigate to it directly.
   webPath: z.string().nullish(),
-} satisfies SahajCloudFields<CmsEvent>)
+} satisfies PartialZodShape<CmsEvent>)
 export type AgnosticFeedEvent = z.infer<typeof AgnosticFeedEventSchema>
 
 // The agnostic feed event with its localized `title` joined back in (by id) — the
 // shape map/list view-models build on. `title` is the ONLY localized feed field.
 export const FeedEventSchema = AgnosticFeedEventSchema.extend({
   title: z.string(),
-} satisfies SahajCloudFields<CmsEvent>)
+} satisfies PartialZodShape<CmsEvent>)
 export type FeedEvent = z.infer<typeof FeedEventSchema>
 
 // The per-locale id→title sliver from `GET /api/events` (select `title` only), kept
@@ -189,7 +235,7 @@ export type FeedEvent = z.infer<typeof FeedEventSchema>
 export const EventTitleSchema = z.object({
   id: z.number(),
   title: z.string().nullish(),
-} satisfies SahajCloudFields<CmsEvent>)
+} satisfies PartialZodShape<CmsEvent>)
 export type EventTitle = z.infer<typeof EventTitleSchema>
 
 // Derived list/map view-model: a feed event plus its route and (when sorting by
@@ -199,6 +245,11 @@ export const EventSlimSchema = FeedEventSchema.extend({
   distance: z.number().optional(),
 })
 export type EventSlim = z.infer<typeof EventSlimSchema>
+
+const RegistrationModeSchema = z.enum({
+  'sahaj-atlas': 'sahaj-atlas',
+  external: 'external',
+} satisfies Record<CmsEvent['registrationMode'], CmsEvent['registrationMode']>)
 
 // Raw full event document from `GET /api/events/:id`.
 // No `onlineUrl` here: joining details are delivered CMS-side after registration,
@@ -219,7 +270,7 @@ export const EventDocSchema = z.object({
   // SafeUrlSchema like the other CMS-authored hrefs — a `javascript:`/`data:`
   // value is dropped rather than failing the whole event read.
   website: SafeUrlSchema,
-  registrationMode: z.enum(['sahaj-atlas', 'external']),
+  registrationMode: RegistrationModeSchema,
   externalRegistrationUrl: SafeUrlSchema,
   registrationLimit: z.number().nullish(),
   // See AgnosticFeedEventSchema — the widget's only capacity signal (the raw
@@ -239,37 +290,8 @@ export const EventDocSchema = z.object({
   // rows, so a non-http value dropping to null costs those rows and not the
   // whole event read. Absent for an unpublished class, and on every list read.
   calendarFeedUrl: SafeUrlSchema,
-} satisfies SahajCloudFields<CmsEvent>)
+} satisfies PartialZodShape<CmsEvent>)
 export type EventDoc = z.infer<typeof EventDocSchema>
-
-/**
- * Every enum above, held to the synced SahajCloud union it mirrors.
- *
- * `languages` and `verificationStage` are open strings on purpose and are not here.
- * `UNVERIFIED_STAGE` pins the one stage this code compares against.
- *
- * It is exported because nothing consumes it. The type-checker reading it IS the check, and an
- * unexported one would fail `noUnusedLocals` instead of the drift it is watching for.
- */
-export type EventPinnedToSahajCloud = [
-  SameAsSahajCloud<EventType, CmsEvent['eventType']>,
-  SameAsSahajCloud<RecurrenceType, NonNullable<SahajCloudSchedule['recurrenceType']>>,
-  SameAsSahajCloud<Weekday, NonNullable<SahajCloudSchedule['weekdays']>[number]>,
-  SameAsSahajCloud<Weekday, NonNullable<SahajCloudSchedule['weekdayOfMonth']>>,
-  SameAsSahajCloud<
-    NonNullable<EventSchedule['monthlyMode']>,
-    NonNullable<SahajCloudSchedule['monthlyMode']>
-  >,
-  SameAsSahajCloud<
-    NonNullable<EventSchedule['weekNumber']>,
-    NonNullable<SahajCloudSchedule['weekNumber']>
-  >,
-  SameAsSahajCloud<
-    NonNullable<EventSchedule['endingType']>,
-    NonNullable<SahajCloudSchedule['endingType']>
-  >,
-  SameAsSahajCloud<EventDoc['registrationMode'], CmsEvent['registrationMode']>,
-]
 
 // Derived event-detail view-model: the document plus its route.
 export const EventSchema = EventDocSchema.extend({

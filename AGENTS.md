@@ -22,19 +22,16 @@ experience, with a country → region → area → venue → event hierarchy.
   `docs/mcp-setup.md`.
 - **Modular rules and docs: two loaders**, split by scope, not by subject.
 
-  - **Nested `AGENTS.md` files** cover a directory's own scope: `src/AGENTS.md` (code
-    style), `src/components/AGENTS.md` (components — `src/views/AGENTS.md` references
-    it), `scripts/AGENTS.md` (the bundle-size budget). Each loads when an agent reads a file
-    in that directory.
-    Find them all: `find . -name AGENTS.md -not -path './node_modules/*'`.
+  - **Nested `AGENTS.md` files** cover a directory's own scope, and each loads when an agent
+    reads a file in that directory. Find them all:
+    `find . -name AGENTS.md -not -path './node_modules/*'`.
   - **`docs/rules/*.md`**, symlinked into `.claude/rules/`, cover a set of files no single
-    directory names: `i18n-and-state.md`, `mapbox.md`, `data-layer.md`, `deployment.md`.
-    `docs/testing.md` is one too (`.claude/rules/testing.md`), kept at its own path because
-    the specs cite it there; § Testing below is its always-loaded summary.
+    directory names. `docs/testing.md` is one too (`.claude/rules/testing.md`), kept at its
+    own path because the specs cite it there; § Testing below is its always-loaded summary.
     Each declares a `paths:` front-matter list and loads on a glob match.
     ⚠ The key is `paths:`, not Cursor's `globs:`/`alwaysApply:` — Claude Code ignores
-    those. A rule with no valid `paths:` loads unconditionally (the first three did, silently,
-    before). List them: `ls -l .claude/rules`.
+    those. A rule with no valid `paths:` loads unconditionally — several here once did,
+    silently. List them: `ls -l .claude/rules`.
 
   **The rule bodies live in `docs/` (`docs/rules/`, plus `docs/testing.md`), symlinked into
   `.claude/rules/` on purpose:** a
@@ -58,7 +55,7 @@ experience, with a country → region → area → venue → event hierarchy.
 | --- | --- |
 | Routing | `react-router` v8 over a hand-written history (`src/router.tsx`, `src/lib/shape/routing.ts`). The route is the `?atlas=` query parameter on the host's page URL — indexable, shareable, and it never touches `#anchor`. `routing=path` puts it in the pathname instead, under a prefix from the client record's `canonical.embed`, so path mode waits for that record before it routes. It uses in-memory routing only where the document refuses `replaceState` (#154). |
 | i18n | `i18next` plus `react-i18next`. One namespace, served per locale by SahajCloud's `sy-atlas-translations` global; `src/config/translations.en.json` is the committed English snapshot i18next boots from (#198). |
-| Calendar | **Schedule-X** (`@schedule-x/*`, pinned `2.36.0`) drives CalendarView's month/week/list grid, plus a month agenda below the width crossing. Our own header replaces SX's, via the `calendar-controls` plugin. ⚠ SX's `isResponsive` is **off**: it otherwise rewrites the rendered view at its own breakpoint and emits no callback, so the switch lit a view that was not there (#331). `resolveCalendarView` (`src/lib/shape/calendar.ts`) is the only thing that picks a view — see `docs/rules/i18n-and-state.md`. |
+| Calendar | **Schedule-X** (`@schedule-x/*`, pinned and patched) drives CalendarView's month/week/list grid, plus a month agenda below the width crossing. Our own header replaces SX's, via the `calendar-controls` plugin. Its dates are `Temporal` objects from the `temporal-polyfill` module. ⚠ Never import `temporal-polyfill/global`: it overwrites the host page's `Temporal` and `Intl.DateTimeFormat`, so the patch binds SX to the module instead (`src/components/AGENTS.md` § Patch register). ⚠ SX's `isResponsive` is **off**: it otherwise rewrites the rendered view at its own breakpoint and emits no callback, so the switch lit a view that was not there (#331). `resolveCalendarView` (`src/lib/shape/calendar.ts`) is the only thing that picks a view — see `docs/rules/i18n-and-state.md`. |
 | Deploy | **Cloudflare Workers** static assets — see `docs/rules/deployment.md` (#266, #279, #280, #283). Deep-link fallback via `assets.not_found_handling`, headers via `public/_headers`, indexing policy in `public/robots.txt`. |
 
 **The host-facing contract lives in `docs/embedding.md`** (the integrator guide) and
@@ -86,10 +83,11 @@ pnpm test:coverage # the unit lane with coverage — measured, not gated (CI's g
 pnpm size         # eager-payload budget (CI gate — run after pnpm build)
 pnpm review:embed # serve dist/ as REAL host-page embeds for browser review (after pnpm build)
 pnpm check:wrangler # both Worker configs, dry run (CI gate — after pnpm build + ladle:build)
+pnpm test:a11y    # the accessibility gate, in a browser (CI gate — after pnpm ladle:build)
 ```
 
-Four CI gates exist because each one once missed something, unnoticed (#99): `pnpm size`
-(`scripts/AGENTS.md`), Dependency Review and `pnpm check:wrangler`
+These CI gates exist because each one once missed something, unnoticed (#99): `pnpm size`
+and `pnpm test:a11y` (`scripts/AGENTS.md`, #432), Dependency Review and `pnpm check:wrangler`
 (`docs/rules/deployment.md`), and Smoke (`docs/testing.md`). Never import a value across the
 `src/loader/` seam — duplicate it into `literals.ts` and pin both copies in
 `literals.test.ts` (#153).
@@ -117,14 +115,11 @@ Four CI gates exist because each one once missed something, unnoticed (#99): `pn
   in this repo. `src/config/translations.test.ts` pins the snapshot against every call site, in
   both directions. Key shape and the single-writer rule live in
   `docs/rules/i18n-and-state.md`.
-- **Navigation**: the UI is a URL-driven drawer stack (`src/views/`). `resolveStack`
-  (`src/lib/shape/path.ts`) turns the pathname into open drawers, and `DrawerStack`
-  renders `CountriesView` as the base plus one nested vaul drawer per ancestor — there is
-  no drawer-stack store. Dismissal is history-aware: each push stamps
-  `location.state.depth` (`atlasPushState`, via `Link` and `useAtlasNavigate`), so X,
-  swipe, and Esc go chronologically back (`navigate(-1)`, restoring the prior camera) when
-  in-widget history exists, and climb to the structural parent only for a fresh deep link
-  (depth 0) — never popping the host page's history. See `docs/rules/i18n-and-state.md`.
+- **Navigation**: the UI is a URL-driven drawer stack (`src/views/`) — the pathname decides
+  which drawers are open, and there is no drawer-stack store. Dismissal is history-aware: it
+  goes chronologically back when in-widget history exists, and climbs to the structural parent
+  only for a fresh deep link — never popping the host page's history. The mechanism is in
+  `docs/rules/i18n-and-state.md`.
 - **Map containment, layout, responsive**: the widget adapts to its own box, not the window,
   and a slot too small for any layout gets a compact card. Detail and reasoning:
   `src/components/AGENTS.md` (#107, #161, #169). Never put `contain: layout` on the widget's
@@ -196,8 +191,8 @@ step, the security-review trigger paths, and the autonomy allowlist.
 Two lanes: the node-only **unit** lane (`pnpm test:run`) and the fetch-only **smoke** lane
 (`pnpm test:smoke`, against a deployed preview). Validate only what your change can break:
 
-- **Per edit**, the PostToolUse hook runs the specs that edit selects, inside a 12-second
-  budget. To run more, name them: `pnpm test:run <spec>…`.
+- **Per edit**, the PostToolUse hook runs the specs that edit selects, inside a time budget
+  (`docs/testing.md`). To run more, name them: `pnpm test:run <spec>…`.
 - **Before a PR**, run the lean gate, `.claude/skills/pr-prep/check.sh` (lint, typecheck,
   `test:run`); `--full` adds the build and `pnpm size`. Leave `ladle:build`, `check:wrangler`
   and smoke to CI unless you are debugging one.

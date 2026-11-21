@@ -43,6 +43,35 @@ cover everything a host would notice since the widget was first deployed.
 
 ### Changed
 
+- **A plural form a translation leaves out now falls back within that language, not to English.**
+  ([#448]) Where a language's copy in SahajCloud lacks a plural form it needs, such as the "few" or
+  "many" form of a class's session count in Ukrainian or Russian, the widget showed that one phrase
+  in English ("5 sessions") in the middle of the translated page. It now uses the same language's
+  general ("other") form. Copy with every form filled in renders exactly as before. **No parameter,
+  origin, CSP, storage or Permissions-Policy change.**
+
+- **The calendar's week view lays out staggered classes differently.** ([#450]) Its calendar library moved
+  up two major versions. A class that starts after an earlier overlapping one has finished now
+  takes that free column, drawn beneath the classes still running beside it, so on a busy evening
+  its time can be hidden behind theirs. Classes that start together lay out as before. The
+  calendar's own download, fetched only when a visitor opens the calendar, is about 26 KiB
+  (gzipped) larger, and with well over a thousand sessions in view it draws somewhat more slowly
+  than before. **No parameter, origin, CSP or Permissions-Policy change**, and the widget
+  installs nothing on your page: the library's new date objects come from a module bundled with
+  the widget, never from a page-wide `Temporal` or a replaced `Intl.DateTimeFormat`.
+
+- **The widget is about 6 KiB heavier for a visitor who reveals it.** ([#449]) Its animation
+  library, framer-motion, moved from 11 to 14. What your page loads up front is unchanged: the
+  ~3 KiB loader. The widget itself, fetched as the embed comes into view, grows from 291.7 to
+  297.3 KiB gzipped (290.6 to 296.3 KiB standalone). The peek strips, the drawer's cross-fade and
+  the compact card's fade use the same timings, and `prefers-reduced-motion` is honoured as before.
+  **No parameter, origin, CSP or Permissions-Policy change.**
+
+- **A `map=false` embed no longer downloads the map library.** ([#445]) Opening the interface
+  fetched and ran Mapbox GL's script — about 510 KiB gzipped, from `sahajatlas.com` — even with
+  no map to draw. It now loads only when a map renders, and a map embed starts it at the same
+  moment as before. **No parameter, origin, CSP or Permissions-Policy change.**
+
 - **The widget's first download is about 44 KiB gzipped smaller** ([#442]), 336 → 292 KiB for the embed.
   The filter form, the settings menu and the class cards were riding in it, though only the open
   interface draws them. They now arrive with the interface, which was already a separate
@@ -51,17 +80,36 @@ cover everything a host would notice since the widget was first deployed.
   Nothing looks or behaves differently, and there is nothing to change in your snippet or your
   CSP.
 
+- **Every control the widget draws now answers to a 44px tap on a phone, and says what it is.**
+  ([#432]) Nothing moves on a desktop: the small controls keep the size they are drawn at and
+  grow an invisible tap area around them, and the few that sit flush in a row — the filter
+  toggles, the calendar's view switch — are drawn larger on a touch screen instead. Three rows
+  gained a little breathing space on touch for the same reason, since two tap areas that meet
+  take each other's taps: a drawer header's controls, a filter group's **Clear**, and the
+  reveal link under a list of dates. **If you size the element yourself, a phone-width embed is
+  a few pixels taller in places than it was.** One control moves on every device, not only on
+  touch: the share sheet's round network icons go from 40px to 44px, because `react-share` sizes
+  its button off the icon and there is no invisible area to grow. A text link also reads in the ramp's readable
+  step rather than its solid one, so link colour is slightly deeper on light backgrounds, and
+  the neutral solid button is now near-black rather than mid-grey. ⚠ **The map's own two
+  controls are Mapbox GL's and are not covered**: "find my location" and the attribution keep
+  the library's geometry, both under the floor. `docs/embedding.md` § Accessibility says what
+  each one measures. **No parameter, origin, CSP or Permissions-Policy change.**
+
+- **The place-search field is a named `search` landmark.** ([#432]) The widget was already one
+  labelled `region` on your page; a screen-reader viewer can now jump to the search inside it,
+  and tell it from the results under it and from the Filters dialog beside it.
 - **The widget runs on React 19, which makes it 23 KiB heavier for a visitor who reveals it.**
-  What your page loads up front is unchanged: `auto.js` and the loader it starts still come to
-  about 3 KiB, so an embed nobody scrolls to costs exactly what it did. The widget itself, fetched
-  as the embed comes into view, grows by 23 KiB gzipped, 22.6 KiB of it React's own renderer: from
-  291.7 KiB with the saving above to 314.8 KiB, still 20 KiB under the 334.5 KiB it was before
-  both. **Content can appear a little later.** A loading spinner, once shown, now stays for
-  at least about 0.3 seconds rather than flashing when the content arrives sooner, so each loading
-  step can add up to that. Measured against a fast backend, the first list arrives about 0.2 to
-  0.3 seconds later than before, both when the embed comes into view and when the compact card is
-  opened. **No parameter, origin, CSP or Permissions-Policy change**, and the widget writes
-  nothing new to your page outside its own shadow root.
+  ([#446]) What your page loads up front is unchanged: `auto.js` and the loader it starts still come
+  to about 3 KiB, so an embed nobody scrolls to costs exactly what it did. The widget itself,
+  fetched as the embed comes into view, grows by 23 KiB gzipped, 22.6 KiB of it React's own
+  renderer: from 300.9 KiB on `main` to 324.1 KiB, still 12 KiB under the 336.2 KiB it
+  was before both. **Content can appear a little later.** A loading spinner, once shown, now stays
+  for at least about 0.3 seconds rather than flashing when the content arrives sooner, so each
+  loading step can add up to that. Measured against a fast backend, the first list arrives about 0.2
+  to 0.3 seconds later than before, both when the embed comes into view and when the compact card is
+  opened. **No parameter, origin, CSP or Permissions-Policy change**, and the widget writes nothing
+  new to your page outside its own shadow root.
 
 - **The widget's router moves to React Router 8, which adds 0.5 KiB.** ([#447]) The widget fetched
   as the embed comes into view grows from 314.8 to 315.3 KiB gzipped; `auto.js` and the loader are
@@ -467,6 +515,12 @@ no-referrer`.
 
 ### Fixed
 
+- **An event's structured data now names your organization as the organizer.** ([#442]) The widget
+  reads that name from the public name on your client record, and had been reading a field the
+  CMS does not have, so `schema.org/Event` carried no `organizer` for any host. Set the public
+  name on your record to have it appear; leave it empty and the organizer is omitted, as before.
+  Nothing to change in your snippet or your CSP.
+
 - **A map that opens in Japanese now asks Mapbox for its Japan worldview** ([#442]), which decides how
   disputed borders are drawn. The widget picks a worldview by the language it starts in, and
   Japanese was listed under a code no locale uses, so those visitors got the default (US) one.
@@ -487,6 +541,20 @@ no-referrer`.
   made straight away, the form reports "You appear to be offline.", and nothing is left waiting
   to send later. The report form already behaved this way. Nothing to change in your snippet or
   your CSP.
+
+- **Closing a dialog puts the keyboard back on the control that opened it.** ([#432]) The
+  "Report an issue" dialog returned focus to the top of your page instead, so a keyboard viewer
+  who closed it started again from the beginning. Escape and the × both land back where they
+  came from now.
+
+- **A keyboard no longer stops on the spam check before it has anything to show.** ([#432]) The
+  registration and report forms mount a challenge frame that stays empty until Cloudflare wants
+  a click. It was still a Tab stop, so a keyboard viewer landed twice on something invisible.
+  It now leaves the tab order and the accessibility tree until it is asked for.
+
+- **The place-search field now tells a screen reader when suggestions appear.** ([#432]) The
+  field announces itself as a combobox, and never said whether its suggestion list was open, so
+  the one thing that announcement exists for was never read out.
 
 - **A map you gave a height now scrolls with your page on iPhone and iPad.** ([#424]) On iOS, the
   map inside a sized `<sahaj-atlas>` fell behind its box as the page scrolled, and could disappear
@@ -1181,5 +1249,11 @@ must-revalidate`, pinned rather than left to the CDN default. The production dom
 [#418]: https://github.com/sydevs/SahajAtlasWeb/pull/418
 [#424]: https://github.com/sydevs/SahajAtlasWeb/pull/424
 [#428]: https://github.com/sydevs/SahajAtlasWeb/issues/428
+[#432]: https://github.com/sydevs/SahajAtlasWeb/issues/432
 [#442]: https://github.com/sydevs/SahajAtlasWeb/pull/442
+[#445]: https://github.com/sydevs/SahajAtlasWeb/pull/445
+[#449]: https://github.com/sydevs/SahajAtlasWeb/pull/449
+[#450]: https://github.com/sydevs/SahajAtlasWeb/pull/450
+[#448]: https://github.com/sydevs/SahajAtlasWeb/pull/448
+[#446]: https://github.com/sydevs/SahajAtlasWeb/pull/446
 [#447]: https://github.com/sydevs/SahajAtlasWeb/pull/447

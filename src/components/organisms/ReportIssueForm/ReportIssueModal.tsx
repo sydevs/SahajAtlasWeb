@@ -54,6 +54,11 @@ export function ReportIssueModal({ apiKey }: ReportIssueModalProps) {
           closeLabel={t('common.chrome.close')}
           description={t('common.report.description')}
           title={t('common.report.title')}
+          // ⚠ Two mechanisms in a chain, and neither end is spare (#432). This one captures
+          // the opener at CLICK time, which is the only thing that survives a settings-menu
+          // item unmounting before the dialog mounts. The atom's own `useOpenerRestore`
+          // fallback runs after it, unprevented, and is the only thing that survives Safari
+          // and Firefox focusing no `<button>` on click. Deleting either looks safe.
           onCloseAutoFocus={(event) => {
             const opener = reportReturnFocus()
 
@@ -124,7 +129,7 @@ function ReportIssuePanel({ apiKey, error, formId, onClose }: ReportIssuePanelPr
       context={buildReportContext({
         path: location.pathname,
         locale,
-        client: queryClient.getQueryData<Client>(clientQuery(apiKey).queryKey)?.name,
+        client: queryClient.getQueryData<Client>(clientQuery(apiKey).queryKey)?.title,
         error,
       })}
       form={form}
