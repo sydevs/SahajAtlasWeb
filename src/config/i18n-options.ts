@@ -72,10 +72,22 @@ export const i18nSharedOptions = {
   // split has nothing left to divide.
   defaultNS: 'translation',
   ns: ['translation'],
+  // shortcut: a blank translation renders blank, not as English. Drop this line, and its twin in
+  // `types/i18next.d.ts`, to take i18next's default once falling back is wanted (#92).
+  returnEmptyString: true,
   interpolation: {
     escapeValue: false, // React escapes by default
     prefix: '%{',
     suffix: '}',
+  },
+  react: {
+    // `applyLocale` ADDS a locale's bundle after init, so components must re-render when a
+    // bundle lands, not only when the language changes. Without this, a `?locale=fr` page whose
+    // French bundle arrives a beat after mount would keep painting English until something else
+    // happened to re-render it.
+    // ⚠ Shared, not app-only: react-i18next reads these per instance, so Ladle's story instance
+    // has only what this object carries.
+    bindI18nStore: 'added',
   },
 }
 

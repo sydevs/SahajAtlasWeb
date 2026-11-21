@@ -39,6 +39,7 @@ import {
   childRoute,
   childrenOf,
   DEFAULT_FILTERS,
+  filtersKey,
   hasActiveFilters,
   indexRegions,
   isOnline,
@@ -491,6 +492,20 @@ const getCountries = async (filters?: EventFilters): Promise<RegionListItem[]> =
     .filter((country) => country.eventCount > 0)
 }
 
+/**
+ * This is the country list's query contract: its key and fetcher together.
+ * `CountriesView`'s suspending read and the boot warm-up both build it here, since a warm-up
+ * under a divergent key would silently never hit. Filters join the key only when active.
+ * It is declared here and re-exported from `config/api/index.ts`, for the reason `eventTitlesQuery` gives.
+ */
+export const countriesQuery = (filters?: EventFilters) => ({
+  queryKey:
+    filters && hasActiveFilters(filters)
+      ? (['countries', filtersKey(filters)] as const)
+      : (['countries'] as const),
+  queryFn: () => getCountries(filters),
+})
+
 // The placeless online classes the home list badges, through the same `visibleFeatures` predicate
 // its country counts use. `matchesFilters` alone reads a selected region as no restriction
 // (`filters.ts`), so a view counting the feed itself would badge online classes worldwide while
@@ -942,6 +957,10 @@ export const translationsQuery = (locale: string) => ({
 const warmCaches = (): void => {
   void loadGeojson().catch(() => {})
   void loadRegions().catch(() => {})
+  // The unfiltered root list derives from those two with no request of its own. Cold, the root
+  // drawer suspends the moment the app's boundary reveals, and React 19 holds each fallback it
+  // shows for at least 300 ms, so a boot would pay that hold twice.
+  void queryClient.prefetchQuery(countriesQuery()).catch(() => {})
 }
 
 /**
