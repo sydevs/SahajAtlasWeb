@@ -135,7 +135,7 @@ export function EventView({ id, basePath }: { id: number; basePath: string }) {
             fallback={
               <Spinner
                 className="mx-auto my-16"
-                srLabel={t('common.chrome.loading', { defaultValue: 'Loading…' })}
+                srLabel={t('common.a11y.loading', { defaultValue: 'Loading…' })}
               />
             }
           >

@@ -107,8 +107,12 @@ and `pnpm test:a11y` (`scripts/AGENTS.md`, #432), Dependency Review and `pnpm ch
   map view and the registration draft. Search filters and the list sort order live in the
   URL query instead (`use-filters.ts`, `use-sort.ts`). Read stores with `useShallow`
   selectors in hot paths, such as the map. See `docs/rules/i18n-and-state.md`.
-- **i18n**: **translations are CMS-owned.** Every string lives in SahajCloud's
-  `sy-atlas-translations` global — do not hand-edit copy here, and never hand-edit
+- **i18n**: **visible copy is CMS-owned; screen-reader copy is ours.** A string only a screen
+  reader speaks — an `aria-label`, an `sr-only` span, a live-region announcement — lives in
+  `src/config/a11y/` and is read as `t('<group>.a11y.<key>')`: add it to `en.json`, describe it in
+  `context.json`, and machine-translate it into every other locale's file in the same PR
+  (`a11y.test.ts` refuses a gap). SahajCloud declares no `a11y` key. Every other string lives in
+  SahajCloud's `sy-atlas-translations` global — do not hand-edit copy here, and never hand-edit
   `src/config/translations.en.json`, which `pnpm sync:translations --write` generates. To add,
   rename or remove a key, open an issue on `sydevs/SahajCloud` (search the open ones first), and
   once the CMS ships it, sync and wire the `t()`. The offered languages come from

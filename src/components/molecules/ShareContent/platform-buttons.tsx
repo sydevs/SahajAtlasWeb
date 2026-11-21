@@ -159,5 +159,5 @@ export function PlatformButton({ platform, url, title }: PlatformButtonProps) {
   const { t } = useTranslation()
   const { name, render } = PLATFORMS[platform]
 
-  return render({ url, title, ariaLabel: t('share.share_on', { platform: name }) })
+  return render({ url, title, ariaLabel: t('share.a11y.share_on', { platform: name }) })
 }

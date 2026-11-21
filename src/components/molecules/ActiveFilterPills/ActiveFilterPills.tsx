@@ -110,7 +110,7 @@ export function ActiveFilterPills() {
       {pills.map((pill) => (
         <Chip
           key={pill.key}
-          closeLabel={t('filters.chrome.remove', { label: pill.label })}
+          closeLabel={t('filters.a11y.remove', { label: pill.label })}
           color="neutral"
           radius="full"
           onClose={pill.onRemove}

@@ -9,6 +9,7 @@ paths:
   - 'src/hooks/use-reveal.ts'
   - 'src/hooks/use-sort.ts'
   - 'src/config/translations.en.json'
+  - 'src/config/a11y/**'
   - 'src/config/locale.ts'
   - 'src/hooks/use-available-locales.ts'
 ---
@@ -31,7 +32,14 @@ paths:
 
   The rename that established this is only worth keeping if it holds. A new symbol
   that resolves, narrows, stores or fetches a tag says `locale`, never `language`.
-- **Translations are CMS-owned.** All Sahaj Atlas UI copy lives in SahajCloud's
+- **Screen-reader strings are this repo's** (`src/config/a11y/`). A string that is only ever
+  spoken lives in `<locale>.json`, mounted at `<group>.a11y.<key>`, machine-translated by whoever
+  adds it; translators never see it. English is mounted into the boot resource
+  (`config/i18n.ts`); every other locale's file is a lazy chunk, mounted onto its SahajCloud
+  bundle inside `translationsQuery`, so the cache, the warm-up and `applyLocale` hold one tree. A
+  key a file lacks falls back to English through `fallbackLng`. A string that is both seen and
+  spoken stays in SahajCloud.
+- **Every other translation is CMS-owned.** All other Sahaj Atlas UI copy lives in SahajCloud's
   `sy-atlas-translations` global — do not hand-edit strings in this app;
   `src/config/translations.en.json` is generated. To add, rename or remove a key,
   open an issue on `sydevs/SahajCloud` — search the open ones first and update the

@@ -1,0 +1,27 @@
+{
+  "calendar": {
+    "previous": "Önceki",
+    "next": "Sonraki",
+    "pick_date": "Tarih seç"
+  },
+  "common": {
+    "explore": "Keşfet",
+    "loading": "Yükleniyor…",
+    "settings": "Ayarlar"
+  },
+  "event": {
+    "view_photo": "Fotoğrafı görüntüle",
+    "pause_slideshow": "Slayt gösterisini duraklat"
+  },
+  "filters": {
+    "remove": "Kaldır: %{label}"
+  },
+  "search": {
+    "results_showing": "%{total} etkinliğin %{shown} tanesi gösteriliyor",
+    "dismiss_nearby_prompt": "Yoksay"
+  },
+  "share": {
+    "copy_link": "Bağlantıyı kopyala",
+    "share_on": "Paylaş: %{platform}"
+  }
+}

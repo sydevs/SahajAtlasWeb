@@ -1,0 +1,27 @@
+{
+  "calendar": {
+    "previous": "Попередній",
+    "next": "Наступний",
+    "pick_date": "Оберіть дату"
+  },
+  "common": {
+    "explore": "Огляд",
+    "loading": "Завантаження…",
+    "settings": "Налаштування"
+  },
+  "event": {
+    "view_photo": "Відкрити фото",
+    "pause_slideshow": "Призупинити слайд-шоу"
+  },
+  "filters": {
+    "remove": "Вилучити: %{label}"
+  },
+  "search": {
+    "results_showing": "Показано подій: %{shown} з %{total}",
+    "dismiss_nearby_prompt": "Приховати"
+  },
+  "share": {
+    "copy_link": "Копіювати посилання",
+    "share_on": "Поділитися: %{platform}"
+  }
+}

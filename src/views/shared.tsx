@@ -196,7 +196,7 @@ export function CollapseToggle() {
     <Button
       {...HEADER_CONTROL}
       aria-expanded={!collapsed}
-      aria-label={collapsed ? t('common.chrome.explore') : t('common.chrome.close')}
+      aria-label={collapsed ? t('common.a11y.explore') : t('common.chrome.close')}
       onClick={toggle}
     >
       {collapsed ? <Menu size={24} /> : <X size={20} />}

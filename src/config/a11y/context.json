@@ -1,0 +1,27 @@
+{
+  "calendar": {
+    "previous": "Names the arrow button that steps the calendar back one month, week or page.",
+    "next": "Names the arrow button that steps the calendar forward one month, week or page.",
+    "pick_date": "Names the hidden date input behind the calendar heading, which opens the browser’s date picker."
+  },
+  "common": {
+    "explore": "Names the toggle that expands the collapsed base drawer.",
+    "loading": "Read for every loading spinner.",
+    "settings": "Names the settings cog button."
+  },
+  "event": {
+    "view_photo": "Names a photo in an event’s image carousel that has no description of its own; activating it opens the photo full size.",
+    "pause_slideshow": "Names the toggle button that stops the image carousel advancing on its own. The name stays the same whether paused or not; the button’s pressed state carries that."
+  },
+  "filters": {
+    "remove": "Names the remove button on an active-filter chip. `%{label}` = the filter’s own label."
+  },
+  "search": {
+    "results_showing": "Announced after more results load. `%{shown}` = results now listed, `%{total}` = results found.",
+    "dismiss_nearby_prompt": "Names the close button on the “use my location” prompt, which hides it for this visit."
+  },
+  "share": {
+    "copy_link": "Names the button that copies the event link; the link itself is read right after it, as “Copy link: https://…”.",
+    "share_on": "Names one share button. `%{platform}` = the platform’s name, e.g. WhatsApp."
+  }
+}

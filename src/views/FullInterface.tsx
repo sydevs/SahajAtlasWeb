@@ -133,7 +133,7 @@ function MapCurtain() {
         <Spinner
           decorative
           size="lg"
-          srLabel={t('common.chrome.loading', { defaultValue: 'Loading' })}
+          srLabel={t('common.a11y.loading', { defaultValue: 'Loading' })}
         />
       </span>
     </div>

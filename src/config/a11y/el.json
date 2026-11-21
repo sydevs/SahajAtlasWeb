@@ -1,0 +1,27 @@
+{
+  "calendar": {
+    "previous": "Προηγούμενο",
+    "next": "Επόμενο",
+    "pick_date": "Επιλογή ημερομηνίας"
+  },
+  "common": {
+    "explore": "Εξερεύνηση",
+    "loading": "Φόρτωση…",
+    "settings": "Ρυθμίσεις"
+  },
+  "event": {
+    "view_photo": "Προβολή φωτογραφίας",
+    "pause_slideshow": "Παύση προβολής διαφανειών"
+  },
+  "filters": {
+    "remove": "Αφαίρεση: %{label}"
+  },
+  "search": {
+    "results_showing": "Εμφανίζονται %{shown} από %{total} εκδηλώσεις",
+    "dismiss_nearby_prompt": "Απόρριψη"
+  },
+  "share": {
+    "copy_link": "Αντιγραφή συνδέσμου",
+    "share_on": "Κοινοποίηση: %{platform}"
+  }
+}

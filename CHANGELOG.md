@@ -43,6 +43,14 @@ cover everything a host would notice since the widget was first deployed.
 
 ### Changed
 
+- **Screen-reader labels in every language now ship with the widget.** ([#PRNUM]) The names a
+  screen reader speaks for icon-only controls (calendar arrows, the settings cog, a filter chip's
+  remove button, share buttons, loading spinners) are now translated into every language
+  SahajCloud offers, rather than depending on each translation being filled in. A page in a
+  language other than English fetches one more small file for them, from the widget's own origin,
+  which the existing `script-src` already covers. **No parameter, origin, CSP, storage or
+  Permissions-Policy change.**
+
 - **A plural form a translation leaves out now falls back within that language, not to English.**
   ([#448]) Where a language's copy in SahajCloud lacks a plural form it needs, such as the "few" or
   "many" form of a class's session count in Ukrainian or Russian, the widget showed that one phrase
@@ -1245,6 +1253,7 @@ must-revalidate`, pinned rather than left to the CDN default. The production dom
 [On Wix, the script embed is a Custom Element]: docs/embedding.md#on-wix-the-script-embed-is-a-custom-element
 [#387]: https://github.com/sydevs/SahajAtlasWeb/issues/387
 [#409]: https://github.com/sydevs/SahajAtlasWeb/pull/409
+[#PRNUM]: https://github.com/sydevs/SahajAtlasWeb/pull/PRNUM
 [#411]: https://github.com/sydevs/SahajAtlasWeb/pull/411
 [#418]: https://github.com/sydevs/SahajAtlasWeb/pull/418
 [#424]: https://github.com/sydevs/SahajAtlasWeb/pull/424

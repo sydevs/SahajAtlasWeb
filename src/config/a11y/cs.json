@@ -1,0 +1,27 @@
+{
+  "calendar": {
+    "previous": "Předchozí",
+    "next": "Další",
+    "pick_date": "Vyberte datum"
+  },
+  "common": {
+    "explore": "Prozkoumat",
+    "loading": "Načítání…",
+    "settings": "Nastavení"
+  },
+  "event": {
+    "view_photo": "Zobrazit fotku",
+    "pause_slideshow": "Pozastavit prezentaci"
+  },
+  "filters": {
+    "remove": "Odebrat: %{label}"
+  },
+  "search": {
+    "results_showing": "Zobrazeno událostí: %{shown} z %{total}",
+    "dismiss_nearby_prompt": "Skrýt"
+  },
+  "share": {
+    "copy_link": "Kopírovat odkaz",
+    "share_on": "Sdílet: %{platform}"
+  }
+}
