@@ -111,6 +111,12 @@ cover everything a host would notice since the widget was first deployed.
   opened. **No parameter, origin, CSP or Permissions-Policy change**, and the widget writes nothing
   new to your page outside its own shadow root.
 
+- **The widget's router moves to React Router 8, which adds 0.5 KiB.** ([#447]) The widget fetched
+  as the embed comes into view grows from 324.1 to 324.6 KiB gzipped; `auto.js` and the loader are
+  unchanged. Everything the router does on your page behaves as before: the `?atlas=` parameter and
+  the other parameters beside it, `routing=path`, deep links, Back and Forward, and what closing a
+  panel does to your history. **No parameter, origin, CSP or Permissions-Policy change.**
+
 - **The Outlook.com and Office 365 rows of "Add to calendar" now subscribe too.** ([#428]) They
   added one session of a weekly class, so a visitor on Outlook got the next class and then
   nothing. Both rows now open Outlook's "subscribe from web" route for the class's own calendar
@@ -1250,3 +1256,4 @@ must-revalidate`, pinned rather than left to the CDN default. The production dom
 [#450]: https://github.com/sydevs/SahajAtlasWeb/pull/450
 [#448]: https://github.com/sydevs/SahajAtlasWeb/pull/448
 [#446]: https://github.com/sydevs/SahajAtlasWeb/pull/446
+[#447]: https://github.com/sydevs/SahajAtlasWeb/pull/447

@@ -10,9 +10,9 @@ export type SeedSearchParamsProps = {
 }
 
 // This seeds URL search params, the filters' source of truth, onto the
-// decorator's OWN router. Nesting a second <Router> throws in react-router
-// v7. Filter-driven stories, such as ActiveFilterPills and CalendarView,
-// use this to preview the applied-filter state.
+// decorator's OWN router. Nesting a second <Router> throws in react-router.
+// Filter-driven stories, such as ActiveFilterPills and CalendarView, use
+// this to preview the applied-filter state.
 //
 // It seeds each `params` value ONCE, tracked by a ref. The deps alone
 // cannot express that. react-router rebuilds `setSearchParams` whenever the
