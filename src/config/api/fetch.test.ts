@@ -9,6 +9,7 @@ import api, {
   geojsonQuery,
   regionsQuery,
   shapeEventDoc,
+  translationsQuery,
 } from './fetch'
 
 import livePreview, { LIVE_PREVIEW_INACTIVE } from '@/config/live-preview/protocol'
@@ -17,6 +18,7 @@ import { eventsQuery } from '@/config/api'
 import { MAX_RETRY_DELAY, queryClient } from '@/config/query-client'
 import { DEFAULT_FILTERS } from '@/lib/shape'
 import { EventDocSchema } from '@/types'
+import de from '@/config/a11y/de.json'
 
 // This mocks `@payloadcms/sdk` at the boundary, the same way earlier tests mocked axios.
 // The `PayloadSDK` constructor returns a stub. Its `find`, `findByID`, and `request` methods are what the fetchers call.
@@ -26,7 +28,12 @@ import { EventDocSchema } from '@/types'
 //
 // `vi.hoisted` runs before the hoisted `vi.mock` factory.
 // So `sdk` is already spied when `client.ts` calls `new PayloadSDK(...)`.
-const sdk = vi.hoisted(() => ({ find: vi.fn(), findByID: vi.fn(), request: vi.fn() }))
+const sdk = vi.hoisted(() => ({
+  find: vi.fn(),
+  findByID: vi.fn(),
+  findGlobal: vi.fn(),
+  request: vi.fn(),
+}))
 
 vi.mock('@payloadcms/sdk', () => ({
   // This is a class, so `new PayloadSDK(...)` in `client.ts` constructs cleanly.
@@ -34,6 +41,7 @@ vi.mock('@payloadcms/sdk', () => ({
   PayloadSDK: class {
     find = sdk.find
     findByID = sdk.findByID
+    findGlobal = sdk.findGlobal
     request = sdk.request
   },
 }))
@@ -49,6 +57,7 @@ const jsonResponse = (data: unknown) => ({ json: async () => data })
 beforeEach(() => {
   sdk.find.mockReset()
   sdk.findByID.mockReset()
+  sdk.findGlobal.mockReset()
   sdk.request.mockReset()
   // This resets the shared preview singleton, so only tests that opt in see preview mode.
   Object.assign(livePreview, LIVE_PREVIEW_INACTIVE)
@@ -782,5 +791,16 @@ describe('eventsQuery (the results-list query contract)', () => {
 
   it('omits the sort — it reorders the fetched list rather than refetching', () => {
     expect(key(51.5072, -0.1276)).not.toContain('soonest')
+  })
+})
+
+describe('translationsQuery', () => {
+  it("mounts the locale's screen-reader strings on SahajCloud's bundle", async () => {
+    sdk.findGlobal.mockResolvedValue({ id: 1, calendar: { title: 'Kalender' } })
+
+    const bundle = await queryClient.fetchQuery(translationsQuery('de'))
+
+    expect(bundle.calendar).toEqual({ title: 'Kalender', a11y: de.calendar })
+    expect(bundle.share).toEqual({ a11y: de.share })
   })
 })

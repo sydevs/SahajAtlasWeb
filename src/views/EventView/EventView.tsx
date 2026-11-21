@@ -132,12 +132,7 @@ export function EventView({ id, basePath }: { id: number; basePath: string }) {
               text to English. This is a view, well past the i18n boot, so it can hand over
               the translated word (issue #102). */}
           <Suspense
-            fallback={
-              <Spinner
-                className="mx-auto my-16"
-                srLabel={t('common.chrome.loading', { defaultValue: 'Loading…' })}
-              />
-            }
+            fallback={<Spinner className="mx-auto my-16" srLabel={t('common.a11y.loading')} />}
           >
             <EventDetails basePath={basePath} ctaInline={!stickyRegister} event={event}>
               {/* This is passed as the panel's slot, so it lands immediately above Register,

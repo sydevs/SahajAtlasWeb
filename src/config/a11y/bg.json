@@ -1,0 +1,27 @@
+{
+  "calendar": {
+    "previous": "Предишен",
+    "next": "Следващ",
+    "pick_date": "Изберете дата"
+  },
+  "common": {
+    "explore": "Разгледайте",
+    "loading": "Зареждане…",
+    "settings": "Настройки"
+  },
+  "event": {
+    "view_photo": "Преглед на снимката",
+    "pause_slideshow": "Пауза на слайдшоуто"
+  },
+  "filters": {
+    "remove": "Премахване: %{label}"
+  },
+  "search": {
+    "results_showing": "Показани събития: %{shown} от %{total}",
+    "dismiss_nearby_prompt": "Скриване"
+  },
+  "share": {
+    "copy_link": "Копиране на връзката",
+    "share_on": "Споделяне: %{platform}"
+  }
+}

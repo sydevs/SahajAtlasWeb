@@ -1,0 +1,27 @@
+{
+  "calendar": {
+    "previous": "Precedente",
+    "next": "Successivo",
+    "pick_date": "Scegli una data"
+  },
+  "common": {
+    "explore": "Esplora",
+    "loading": "Caricamento…",
+    "settings": "Impostazioni"
+  },
+  "event": {
+    "view_photo": "Visualizza foto",
+    "pause_slideshow": "Metti in pausa la presentazione"
+  },
+  "filters": {
+    "remove": "Rimuovi %{label}"
+  },
+  "search": {
+    "results_showing": "Visualizzati %{shown} eventi su %{total}",
+    "dismiss_nearby_prompt": "Chiudi"
+  },
+  "share": {
+    "copy_link": "Copia link",
+    "share_on": "Condividi su %{platform}"
+  }
+}

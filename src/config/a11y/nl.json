@@ -1,0 +1,27 @@
+{
+  "calendar": {
+    "previous": "Vorige",
+    "next": "Volgende",
+    "pick_date": "Kies een datum"
+  },
+  "common": {
+    "explore": "Ontdekken",
+    "loading": "Laden…",
+    "settings": "Instellingen"
+  },
+  "event": {
+    "view_photo": "Foto bekijken",
+    "pause_slideshow": "Diavoorstelling pauzeren"
+  },
+  "filters": {
+    "remove": "%{label} verwijderen"
+  },
+  "search": {
+    "results_showing": "%{shown} van %{total} evenementen weergegeven",
+    "dismiss_nearby_prompt": "Negeren"
+  },
+  "share": {
+    "copy_link": "Link kopiëren",
+    "share_on": "Delen op %{platform}"
+  }
+}

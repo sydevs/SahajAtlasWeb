@@ -31,7 +31,7 @@ export function GeolocationPrompt({ city, onAccept, onClose }: GeolocationPrompt
   return (
     <Alert
       className="px-4"
-      closeLabel={t('search.nearby_prompt.dismiss')}
+      closeLabel={t('search.a11y.dismiss_nearby_prompt')}
       color="secondary"
       icon={<MapPin size={18} />}
       role="status"

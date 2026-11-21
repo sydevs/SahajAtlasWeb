@@ -110,7 +110,7 @@ export function SettingsMenu({ className, side = 'bottom', toolbar = false }: Se
     <DropdownMenu.Root>
       <DropdownMenu.Trigger asChild>
         <button
-          aria-label={t('common.settings.title')}
+          aria-label={t('common.a11y.settings')}
           className={trigger({ toolbar, className })}
           type="button"
         >

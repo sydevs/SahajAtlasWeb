@@ -1,0 +1,27 @@
+{
+  "calendar": {
+    "previous": "Предыдущий",
+    "next": "Следующий",
+    "pick_date": "Выберите дату"
+  },
+  "common": {
+    "explore": "Обзор",
+    "loading": "Загрузка…",
+    "settings": "Настройки"
+  },
+  "event": {
+    "view_photo": "Открыть фото",
+    "pause_slideshow": "Приостановить слайд-шоу"
+  },
+  "filters": {
+    "remove": "Удалить: %{label}"
+  },
+  "search": {
+    "results_showing": "Показано событий: %{shown} из %{total}",
+    "dismiss_nearby_prompt": "Скрыть"
+  },
+  "share": {
+    "copy_link": "Копировать ссылку",
+    "share_on": "Поделиться: %{platform}"
+  }
+}

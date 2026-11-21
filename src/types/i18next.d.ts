@@ -1,6 +1,7 @@
 import 'i18next'
 
 import type { WidgetTranslations } from './translations'
+import type { MountedA11y } from '@/config/a11y/a11y'
 
 import snapshot from '@/config/translations.en.json'
 
@@ -20,7 +21,8 @@ import snapshot from '@/config/translations.en.json'
 declare module 'i18next' {
   interface CustomTypeOptions {
     defaultNS: 'translation'
-    resources: { translation: typeof snapshot }
+    // The snapshot is SahajCloud's; the `a11y` groups are this repo's (`config/a11y/`).
+    resources: { translation: typeof snapshot & MountedA11y }
     // Mirrors the runtime option in `config/i18n-options.ts`.
     returnEmptyString: true
   }
