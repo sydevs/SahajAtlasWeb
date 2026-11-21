@@ -70,13 +70,14 @@ import { annotate, report } from './_ci-output.mjs'
 // quietly re-accumulates the slack it just won. `SLACK_RATIO` below enforces
 // that rather than trusting this comment to be read.
 //
-// ⚠ `standalone` and `embed` deliberately hold about 12% instead, since the top
-// two rows below. The four steps before them were all raises, and under 1%
-// spare most dependency bumps collided with the gate, so the space those rows
-// won back is kept as headroom. A newly-eager view no longer trips these two
-// budgets — `src/Widget.standalone.test.ts` holds the eager graph's barrels
-// and packages by name instead. ⚠ `SLACK_RATIO` still bites at 15%: about
-// 11 KiB more off `standalone` and the ratchet asks for a lower budget.
+// ⚠ `standalone` and `embed` deliberately hold more, since the #442 rows
+// below. The four steps before them were all raises, and under 1% spare most
+// dependency bumps collided with the gate, so the space those rows won back is
+// kept as headroom; React 19 and framer-motion 14 spent most of it, leaving
+// about 4%. A newly-eager view no longer trips these two budgets —
+// `src/Widget.standalone.test.ts` holds the eager graph's barrels and packages
+// by name instead. ⚠ `SLACK_RATIO` still bites at 15%: about 37 KiB more off
+// `standalone` and the ratchet asks for a lower budget.
 //
 // `loader` is the graph a host pays on every page view (#149). This script
 // budgets it an order of magnitude tighter than the other two, on purpose. The
@@ -91,6 +92,11 @@ import { annotate, report } from './_ci-output.mjs'
 // Every step to today's three figures, newest first, as standalone/embed and as
 // loader. `git log -p` on this constant holds each one in full, dated.
 //
+//   336  321.9/323.1  #449  framer-motion 14, merged in from `main`, +5.8 KiB;
+//                           budget held, as above
+//   336  316.1/317.2  #446  React 19: `react` + `react-dom/client` alone gzip
+//                           22.6 KiB larger than 18.3.1, helmet-async 3 0.7
+//                           more; budget held, as above
 //   336  289.8/290.9  #442  the zod enums moved to `z.enum`'s object form, so
 //                          `satisfies Record<Theirs, Theirs>` could replace a
 //                          hand-rolled equality type, +0.1

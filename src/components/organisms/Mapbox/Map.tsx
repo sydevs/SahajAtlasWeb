@@ -372,7 +372,7 @@ export function Mapbox({ cooperative = false }: { cooperative?: boolean } = {}) 
   const armReveal = useCallback(() => {
     revealTimer.current = window.setTimeout(reveal, REVEAL_TIMEOUT_MS)
   }, [reveal])
-  const revealTimer = useRef<number>()
+  const revealTimer = useRef<number>(undefined)
 
   // The flag describes THIS map instance, so it dies with the instance. A
   // compact embed unmounts the whole interface when its dialog closes. A

@@ -18,7 +18,7 @@
 // The harness below IS that shape — a view mounted at `/search` that stays mounted across the
 // navigation — rather than a mock of AnimatePresence, which could not fail.
 //
-// Deliberately no @testing-library/react. React 18.3 exports `act`, and `createRoot` is enough.
+// Deliberately no @testing-library/react. React exports `act`, and `createRoot` is enough.
 import type { MapController } from '@/hooks/use-map-controller'
 
 import { act } from 'react'

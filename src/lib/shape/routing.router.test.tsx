@@ -34,7 +34,7 @@ function visit(href: string) {
 }
 
 beforeEach(() => {
-  // React 18 requires this to be set for `act` to be recognised outside a test renderer.
+  // React requires this to be set for `act` to be recognised outside a test renderer.
   ;(globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true
   visit(HOST)
   container = document.createElement('div')
