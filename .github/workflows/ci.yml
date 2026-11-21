@@ -167,6 +167,67 @@ jobs:
     permissions:
       contents: read
 
+  # The built widget on real host pages, in Chromium, every request answered from fixtures
+  # (`docs/testing.md` § "The browser lane"). It needs no secret, so a fork and a merge-queue
+  # entry run it exactly as a pull request does, which is what lets it be a required check.
+  #
+  # ⚠ It blocks: no `if:` on the job or the lane step, no `continue-on-error`, and no retries
+  # (`playwright.config.ts`), since a retry turns a flaky scenario green. `ci-workflows.test.ts`
+  # pins all three, and every action here by SHA.
+  browser:
+    name: Browser lane
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .node-version
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+
+      # Each Playwright release pins its own Chromium build, so the cache keys on the version
+      # the lockfile installed, and a bump downloads the browser that goes with it.
+      - name: Read the pinned Playwright version
+        id: playwright
+        run: echo "version=$(node -p "require('@playwright/test/package.json').version")" >> "$GITHUB_OUTPUT"
+      # ⚠ Restore only. A cache saved here is scoped to this run's own ref, which no other pull
+      # request and no later queue entry can read, so `browser-cache.yml` saves it on `main`.
+      - name: Restore the browser
+        id: browser-cache
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-chromium-${{ runner.os }}-${{ steps.playwright.outputs.version }}
+      # `--no-shell`: the lane runs the full Chromium (`channel: 'chromium'`), not the headless shell.
+      - name: Install Chromium
+        if: steps.browser-cache.outputs.cache-hit != 'true'
+        run: pnpm exec playwright install --with-deps --no-shell chromium
+      # The cache restores the browser, not the system libraries it links against.
+      - name: Install Chromium's system libraries
+        if: steps.browser-cache.outputs.cache-hit == 'true'
+        run: pnpm exec playwright install-deps chromium
+
+      # Builds the widget for the lane (`dist-browser/`), then runs every scenario.
+      - name: Run the browser lane
+        run: pnpm test:browser
+
+      # Traces are kept only for a failed test (`playwright.config.ts`), so this is the report
+      # plus one trace per failure, which `pnpm exec playwright show-trace` opens.
+      - name: Upload the report and the failures' traces
+        if: failure()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: browser-lane-report
+          path: |
+            playwright-report/
+            test-results/browser/
+          retention-days: 14
+          if-no-files-found: ignore
+
   # Smoke specs run against a preview THIS job publishes. Nothing is discovered any more: the
   # publish step returns the address, so a green Smoke check cannot have read somebody else's
   # build, and no address is scraped out of text anyone can edit (#282, replacing the discovery

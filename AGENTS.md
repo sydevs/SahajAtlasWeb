@@ -79,6 +79,7 @@ Permissions Policy table holds the specifics.
 ```bash
 pnpm build:worker # the app Worker's Builds command (#280) — pnpm build, plus a dormant rm -f
 pnpm test:smoke   # smoke specs vs a deployed preview (needs PREVIEW_URL)
+pnpm test:browser # build for the browser lane, then Playwright against fixtures (CI gate)
 pnpm test:coverage # the unit lane with coverage — measured, not gated (CI's gate job runs this one)
 pnpm size         # eager-payload budget (CI gate — run after pnpm build)
 pnpm review:embed # serve dist/ as REAL host-page embeds for browser review (after pnpm build)
@@ -188,19 +189,24 @@ step, the security-review trigger paths, and the autonomy allowlist.
 
 ## Testing
 
-Two lanes: the node-only **unit** lane (`pnpm test:run`) and the fetch-only **smoke** lane
-(`pnpm test:smoke`, against a deployed preview). Validate only what your change can break:
+Three lanes: the node-only **unit** lane (`pnpm test:run`), the fetch-only **smoke** lane
+(`pnpm test:smoke`, against a deployed preview), and the **browser** lane (`pnpm test:browser`:
+this commit's build on real host pages in Chromium, every request answered from fixtures).
+Validate only what your change can break:
 
 - **Per edit**, the PostToolUse hook runs the specs that edit selects, inside a time budget
   (`docs/testing.md`). To run more, name them: `pnpm test:run <spec>…`.
 - **Before a PR**, run the lean gate, `.claude/skills/pr-prep/check.sh` (lint, typecheck,
-  `test:run`); `--full` adds the build and `pnpm size`. Leave `ladle:build`, `check:wrangler`
-  and smoke to CI unless you are debugging one.
+  `test:run`); `--full` adds the build and `pnpm size`. Run `pnpm test:browser` when the change
+  reaches what a host page renders or requests. Leave `ladle:build`, `check:wrangler` and smoke
+  to CI unless you are debugging one.
 
 Never add `@testing-library/react` or make jsdom the default — a spec opts in per file with
 `// @vitest-environment jsdom`. Never count a new assertion as coverage until you have watched
 it fail against the defect. Never assert a bare 200 in a smoke spec: the SPA fallback answers
-200 for any path. Never publish the smoke preview with `wrangler preview`.
+200 for any path. Never publish the smoke preview with `wrangler preview`. Never let a
+browser-lane test retry or reach a real host: fix the flake, and answer a new request from a
+fixture (`src/mocks/wire.ts` for SahajCloud).
 
 `docs/testing.md` holds the reasons, the measurements and the rest of the conventions. It
 loads by itself when you read a spec, a vitest config or the test tooling.

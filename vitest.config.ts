@@ -19,11 +19,14 @@ export default defineConfig({
     environment: 'node',
     include: ['**/*.{test,spec}.{ts,tsx}'],
     // Co-located specs live under src/. Smoke specs hit the network and
-    // run through their own config. This lane excludes smoke specs and
-    // build output. `.claude/worktrees` holds gitignored git worktrees,
+    // run through their own config, and the browser lane's are Playwright's
+    // (`playwright.config.ts`). This lane excludes both, and build output.
+    // `.claude/worktrees` holds gitignored git worktrees,
     // each a full checkout with its own node_modules. Never scan that
     // folder — it would run duplicate or foreign specs.
-    exclude: ['node_modules', 'dist', 'build', '.ladle', 'tests/smoke/**', '.claude/worktrees/**'],
+    // One line: `scripts/select-unit-specs.test.ts` reads this array back as JSON.
+    // prettier-ignore
+    exclude: ['node_modules', 'dist', 'build', '.ladle', 'tests/smoke/**', 'tests/browser/**', '.claude/worktrees/**'],
     // This raises the timeout from vitest's 5-second default. Three
     // specs flaked in the full run but passed alone: `href.test.ts` and
     // two jsdom `CompactEmbedView` specs. `href.test.ts` walks the

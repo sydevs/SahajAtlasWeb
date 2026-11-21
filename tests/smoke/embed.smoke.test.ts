@@ -16,7 +16,8 @@ import { fetchPreview, skipWithoutPreview } from './_helpers/preview'
 // check (issue #99).
 //
 // This lane stays fetch-level only, by design (`docs/testing.md`). Running the widget
-// in a real browser belongs to local Playwright verification, not CI.
+// in a real browser is the browser lane's job (`tests/browser/`), against this commit's
+// build rather than the deploy.
 
 /**
  * `auto.js`, fetched once and shared. Two specs need the same body, and
