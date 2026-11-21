@@ -43,7 +43,7 @@ cover everything a host would notice since the widget was first deployed.
 
 ### Changed
 
-- **Screen-reader labels in every language now ship with the widget.** ([#PRNUM]) The names a
+- **Screen-reader labels in every language now ship with the widget.** ([#456]) The names a
   screen reader speaks for icon-only controls (calendar arrows, the settings cog, a filter chip's
   remove button, share buttons, loading spinners) are now translated into every language
   SahajCloud offers, rather than depending on each translation being filled in. A page in a
@@ -1253,7 +1253,7 @@ must-revalidate`, pinned rather than left to the CDN default. The production dom
 [On Wix, the script embed is a Custom Element]: docs/embedding.md#on-wix-the-script-embed-is-a-custom-element
 [#387]: https://github.com/sydevs/SahajAtlasWeb/issues/387
 [#409]: https://github.com/sydevs/SahajAtlasWeb/pull/409
-[#PRNUM]: https://github.com/sydevs/SahajAtlasWeb/pull/PRNUM
+[#456]: https://github.com/sydevs/SahajAtlasWeb/pull/456
 [#411]: https://github.com/sydevs/SahajAtlasWeb/pull/411
 [#418]: https://github.com/sydevs/SahajAtlasWeb/pull/418
 [#424]: https://github.com/sydevs/SahajAtlasWeb/pull/424
