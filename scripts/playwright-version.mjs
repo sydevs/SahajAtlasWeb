@@ -41,11 +41,14 @@ export const readPinnedPlaywrightVersion = () =>
     JSON.parse(readFileSync(join(ROOT, 'package.json'), 'utf8')).devDependencies,
   )
 
+/** This file's own path. Exported so the spec can run the command the workflows run. */
+export const SCRIPT = fileURLToPath(import.meta.url)
+
 // Lets the spec import the reader without printing. `realpathSync` on both sides, because
 // `process.argv[1]` keeps a symlink's path while `import.meta.url` resolves to the target file.
 // ⚠ It is tested first: `realpathSync('')` throws ENOENT.
 const invokedAs = process.argv[1]
 
-if (invokedAs && realpathSync(invokedAs) === realpathSync(fileURLToPath(import.meta.url))) {
+if (invokedAs && realpathSync(invokedAs) === realpathSync(SCRIPT)) {
   process.stdout.write(`version=${readPinnedPlaywrightVersion()}\n`)
 }

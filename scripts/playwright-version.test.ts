@@ -1,6 +1,12 @@
+import { execFileSync } from 'node:child_process'
+
 import { describe, expect, it } from 'vitest'
 
-import { pinnedPlaywrightVersion, readPinnedPlaywrightVersion } from './playwright-version.mjs'
+import {
+  SCRIPT,
+  pinnedPlaywrightVersion,
+  readPinnedPlaywrightVersion,
+} from './playwright-version.mjs'
 
 /**
  * One row per refusal point in the pattern: a leading non-digit, the segment count, trailing
@@ -29,5 +35,16 @@ describe('pinnedPlaywrightVersion', () => {
 describe('readPinnedPlaywrightVersion', () => {
   it('accepts this repository’s own pin', () => {
     expect(() => readPinnedPlaywrightVersion()).not.toThrow()
+  })
+
+  // ⚠ Run as a command, because nothing else covers the step output itself. A guard that stopped
+  // firing would write nothing and still exit 0, and all three keys would degrade to the same
+  // `playwright-chromium-<os>-` at once — so the cache would keep hitting while it tracked no
+  // version at all, with nothing red (`docs/testing.md`, #132's lesson).
+  it('prints the step output the workflows append to `GITHUB_OUTPUT`', () => {
+    const printed = execFileSync(process.execPath, [SCRIPT], { encoding: 'utf8' })
+
+    expect(printed).toMatch(/^version=\d+\.\d+\.\d+\n$/)
+    expect(printed).toBe(`version=${readPinnedPlaywrightVersion()}\n`)
   })
 })

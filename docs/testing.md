@@ -10,6 +10,7 @@ paths:
   - 'playwright.config.ts'
   - 'scripts/select-unit-specs.mjs'
   - 'scripts/assert-preview-host.mjs'
+  - 'scripts/playwright-version.mjs'
   - '.claude/hooks/unit-test.mjs'
   - '.github/workflows/ci.yml'
   - '.github/workflows/production-smoke.yml'
