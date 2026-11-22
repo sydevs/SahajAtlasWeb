@@ -500,7 +500,7 @@ with every gate green.
 ### Running it locally
 
 ```bash
-pnpm exec playwright install --with-deps --no-shell chromium  # once per Playwright version
+pnpm exec playwright install --with-deps chromium  # both builds, once per Playwright version
 pnpm test:browser                       # build dist-browser/, then every scenario
 pnpm exec playwright test               # again, without rebuilding
 pnpm exec playwright test navigation    # one file; add --headed, --debug or --ui to watch it
@@ -535,8 +535,10 @@ and paints a focus indicator.
 
 ⚠ **The Chromium it drives is the headless shell**, since `chromium.launch()` passes no
 `channel`: a download of its own, beside the full browser the browser lane drives. In CI both come
-out of one `main`-warmed cache (§ "The browser lane"). Locally,
-`pnpm exec playwright install --with-deps chromium` — without `--no-shell` — installs both.
+out of one `main`-warmed cache, and locally out of the one install § "The browser lane" gives.
+**Giving this gate `channel: 'chromium'` would converge the two on one build** — rejected for now
+because it changes what a required check renders, and every figure above was measured on the
+shell, so it needs a re-measure of its own (#459).
 
 **The unit lane cannot host it, and measuring said so.** jsdom has no layout at all: a tap area
 cannot be measured, and `color-contrast` resolves to nothing. Measured 2026-11-19 over the same
