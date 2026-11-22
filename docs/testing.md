@@ -414,12 +414,9 @@ themselves would be scoped to their own ref, and read by that pull request alone
 A miss costs a download, never a failure, and Playwright's own CI guide advises against caching
 browsers at all, so dropping both halves would leave the lane as it is.
 
-⚠ **The accessibility gate restores the same entry** (#459), which is why the warm job installs
-the headless shell as well as the full Chromium: one key, one payload, two consumers that drive
-different builds out of it. The gate saved its own cache under a key of its own until then, on
-`pull_request` and `merge_group` — refs no later run can read — so it paid the download every
-time and wrote an entry for nobody. Both halves of that are silent, and
-`scripts/ci-workflows.test.ts` pins each job restore-only against the warm job's key and path.
+⚠ **The accessibility gate restores the same entry** (#459): the warm job installs the headless
+shell too, so one key serves two consumers that launch different builds.
+`scripts/ci-workflows.test.ts` pins both restore-only.
 
 | scenario (`tests/browser/`)                   | host page              | watched failing against                                              |
 | --------------------------------------------- | ---------------------- | -------------------------------------------------------------------- |
