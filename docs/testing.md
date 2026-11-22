@@ -38,9 +38,8 @@ widget in Chromium, on the real host pages, every request answered from fixtures
 browser lane" below. The **accessibility** gate is `pnpm test:a11y` (`scripts/check-a11y.mjs`,
 #432), over the built component library, in CI's `gate` job right after `pnpm ladle:build` — see
 "The accessibility lane needs a browser, and that is not a preference" below. Both drive the same
-Chromium and one warmed cache serves both, keyed on the `playwright` devDependency that
-`scripts/playwright-version.mjs` reads for every job that keys it —
-`scripts/ci-workflows.test.ts` fails a job that reads the version a second way.
+Chromium, keyed on the pinned `playwright` devDependency, and one warmed cache serves both —
+see "The browser lane" below.
 
 **Coverage is measured, not gated.** `pnpm test:coverage` is the unit lane with V8 coverage on,
 and `vitest.config.ts` sets no threshold, so a run never fails on a figure. The config names
@@ -421,10 +420,12 @@ shell. `scripts/ci-workflows.test.ts` pins both restore-only, and that channel a
 job's `--no-shell`.
 
 ⚠ **All three jobs read the version through `scripts/playwright-version.mjs`** (#462), which
-refuses a pin that is not an exact version — a step output is repository text, and a newline
-inside one forges further outputs on a fork's pull request. Each consumer then installs
-unconditionally, because an `if:` on a cache hit hands a partially restored entry on as a
-browser. `scripts/playwright-version.test.ts` holds the refusals.
+refuses a pin that is not an exact version: a step output is repository text, and a newline inside
+one forges further outputs on a fork's pull request. Both consumers then install unconditionally,
+because an `if:` on a cache hit hands a partially restored entry on as a browser.
+`scripts/ci-workflows.test.ts` pins the single reader and the key it builds, and refuses a
+one-sided bump of the two Playwright pins — the key names `playwright`, the lanes launch through
+`@playwright/test`.
 
 | scenario (`tests/browser/`)                   | host page              | watched failing against                                              |
 | --------------------------------------------- | ---------------------- | -------------------------------------------------------------------- |

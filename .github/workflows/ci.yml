@@ -88,9 +88,6 @@ jobs:
       # file. `hashFiles('package.json')` re-downloaded the browser on every dependency bump,
       # every new script and every edit to any field — on the critical path of the one required
       # check — while the version Chromium is keyed to had not moved.
-      # ⚠ `scripts/playwright-version.mjs` is the one reader for every job that keys this cache,
-      # and it refuses anything but an exact version: a step output is repository text, and a
-      # newline inside one forges further outputs on a fork's pull request.
       - name: Read the pinned Playwright version
         id: playwright
         run: node scripts/playwright-version.mjs >> "$GITHUB_OUTPUT"
@@ -188,9 +185,7 @@ jobs:
       - run: pnpm install --frozen-lockfile
 
       # Each Playwright release pins its own Chromium build, so the cache keys on the pinned
-      # version, and a bump downloads the browser that goes with it. ⚠ Read through the one
-      # reader every consumer shares, which refuses a pin that is not an exact version — see the
-      # gate job's own restore above.
+      # version, and a bump downloads the browser that goes with it.
       - name: Read the pinned Playwright version
         id: playwright
         run: node scripts/playwright-version.mjs >> "$GITHUB_OUTPUT"
@@ -202,8 +197,8 @@ jobs:
           path: ~/.cache/ms-playwright
           key: playwright-chromium-${{ runner.os }}-${{ steps.playwright.outputs.version }}
       - name: Install Chromium
-        # ⚠ No `if:`, and the same flags as the gate job's install step, whose comment says why:
-        # an `if:` hands a partially restored entry to the lane as a browser.
+        # ⚠ No `if:`: it would hand a partially restored entry to the lane as a browser.
+        # `--no-shell`: the lane runs the full Chromium (`channel: 'chromium'`), not the shell.
         run: pnpm exec playwright install --with-deps --no-shell chromium
 
       # Builds the widget for the lane (`dist-browser/`), then runs every scenario.

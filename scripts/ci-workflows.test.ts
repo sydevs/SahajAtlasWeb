@@ -339,18 +339,8 @@ describe('ci.yml browser lane', () => {
     for (const ref of refs) expect(ref).toMatch(/^[0-9a-f]{40}$/)
   })
 
-  // Every half fails silently: a key or path a character apart never hits, and a save here writes
-  // an entry only this run's own ref can read. `browser-cache.yml` says why.
   it('restores the browser `browser-cache.yml` saves, and saves none itself', () => {
     expectRestoresWarmedCache(job)
-  })
-
-  it('installs the browser and its system libraries whether the cache hit or missed', () => {
-    expectInstallsWhateverTheCacheRestored(job)
-  })
-
-  it('reads the key’s version through the one reader, and no other way', () => {
-    expectReadsTheVersionThroughTheOneReader(job)
   })
 })
 
@@ -368,48 +358,11 @@ const expectRestoresWarmedCache = (job: string) => {
   expect(cache).toEqual(browserCache(warmWorkflow))
 }
 
-/**
- * One reader produces the version every Chromium cache key is built from (#462). The gate read
- * `package.json` and refused anything but an exact version; the lane and the warm job read the
- * installed package unvalidated. So one key had two sources, and only one of them refused a range
- * pin — or a newline, which forges a further step output on a fork's pull request. A key reads
- * `steps.playwright.outputs.version`, so the step writing that output is where a second read
- * would grow back.
- */
-const expectReadsTheVersionThroughTheOneReader = (scope: string) => {
-  const writes = steps(scope).filter((step) => /GITHUB_OUTPUT/.test(step))
-
-  expect(writes).toHaveLength(1)
-  expect(writes[0]).toMatch(/^\s*id: playwright$/m)
-  expect(match(writes[0], /^\s*run: (.+)$/m)).toBe(
-    'node scripts/playwright-version.mjs >> "$GITHUB_OUTPUT"',
-  )
-}
-
 /** How a workflow names the browser cache: its keys, its paths. */
 const browserCache = (workflow: string) => ({
   keys: [...new Set([...workflow.matchAll(/^\s*key: (.+)$/gm)].map((m) => m[1]))],
   paths: [...new Set([...workflow.matchAll(/^\s*path: (~\/.+)$/gm)].map((m) => m[1]))],
 })
-
-/**
- * One install step, on a hit as on a miss. An `if:` hands a partially restored entry to a
- * consumer as a browser, `--with-deps` installs system libraries no cache holds, and
- * `--no-shell` keeps what a miss downloads equal to what the key promises: neither consumer
- * launches the headless shell.
- */
-const expectInstallsWhateverTheCacheRestored = (job: string) => {
-  const install = steps(job).filter((step) => /playwright install\b/.test(step))
-
-  expect(install).toHaveLength(1)
-  // ⚠ The run line, never the step: a step's own comment names both flags, so a step-wide
-  // `toContain` passes on the prose after the command has lost the flag.
-  const run = match(install[0], /^\s*run: (.+playwright install.+)$/m)
-
-  expect(run).toContain('--with-deps')
-  expect(run).toContain('--no-shell')
-  expect(install[0]).not.toMatch(/^\s*if:/m)
-}
 
 describe('browser-cache.yml', () => {
   // The default branch is the one cache scope a pull request and a merge-queue run share.
@@ -438,15 +391,11 @@ describe('browser-cache.yml', () => {
     expect(refs.length).toBeGreaterThan(0)
     for (const ref of refs) expect(ref).toMatch(/^[0-9a-f]{40}$/)
   })
-
-  // The entry this job writes is keyed on the same read its consumers make, so a bump cannot
-  // leave either side keyed on a version the other never saw.
-  it('reads the key’s version through the one reader, and no other way', () => {
-    expectReadsTheVersionThroughTheOneReader(warmWorkflow)
-  })
 })
 
-const gateJob = jobIn(readRepoSource('.github/workflows/ci.yml'), 'gate')
+const ciWorkflow = readRepoSource('.github/workflows/ci.yml')
+const gateJob = jobIn(ciWorkflow, 'gate')
+const browserJob = jobIn(ciWorkflow, 'browser')
 
 // The accessibility step is on the critical path of the one required check, and the merge queue
 // pays it again per merge, so where its browser comes from is a cost the gate carries (#459).
@@ -454,13 +403,56 @@ describe("ci.yml's gate job, on the browser its accessibility step drives", () =
   it('restores the browser `browser-cache.yml` saves, and saves none itself', () => {
     expectRestoresWarmedCache(gateJob)
   })
+})
 
-  it('installs the browser and its system libraries whether the cache hit or missed', () => {
-    expectInstallsWhateverTheCacheRestored(gateJob)
+// One key, built by one reader, for the warm job that writes the entry and the two jobs that
+// restore it. Every way of breaking that is silent: a key a character apart never hits, and a
+// second read of the version decides half a key nothing wrote (#462).
+describe('the Chromium cache key', () => {
+  const SCOPES: [string, string][] = [
+    ["ci.yml's gate job", gateJob],
+    ["ci.yml's browser lane", browserJob],
+    ['browser-cache.yml', warmWorkflow],
+  ]
+
+  it.each(SCOPES)('%s builds it from the one reader, and nothing else', (_where, scope) => {
+    const reader = steps(scope).filter((step) => /^\s*id: playwright$/m.test(step))
+
+    expect(reader).toHaveLength(1)
+    expect(match(reader[0], /^\s*run: (.+)$/m)).toBe(
+      'node scripts/playwright-version.mjs >> "$GITHUB_OUTPUT"',
+    )
+    expect(browserCache(scope).keys).toEqual([
+      'playwright-chromium-${{ runner.os }}-${{ steps.playwright.outputs.version }}',
+    ])
   })
 
-  it('reads the key’s version through the one reader, and no other way', () => {
-    expectReadsTheVersionThroughTheOneReader(gateJob)
+  // ⚠ The two consumers, never the warm job: it saves the browser without the system libraries
+  // it will never launch.
+  it.each(SCOPES.slice(0, 2))('%s installs whatever the restore left behind', (_where, job) => {
+    const install = steps(job).filter((step) => /playwright install\b/.test(step))
+
+    expect(install).toHaveLength(1)
+    // ⚠ The run line, never the step: a step's own comment names both flags, so a step-wide
+    // `toContain` passes on the prose after the command has lost the flag.
+    const run = match(install[0], /^\s*run: (.+playwright install.+)$/m)
+
+    // An `if:` hands a partially restored entry on as a browser; `--with-deps` installs system
+    // libraries no cache holds; `--no-shell` keeps what a miss downloads to what the key promises.
+    expect(run).toContain('--with-deps')
+    expect(run).toContain('--no-shell')
+    expect(install[0]).not.toMatch(/^\s*if:/m)
+  })
+
+  // The key names the `playwright` pin, which is what `pnpm exec playwright install` downloads,
+  // while both consumers launch through `@playwright/test`. Bump one alone and pnpm installs a
+  // second, nested `playwright`: the lane then hunts a Chromium revision nothing downloaded and
+  // tells the reader to run the install that just ran. ⚠ #461 held these equal for a reason that
+  // is gone — two readers decided one key, and one reader does now.
+  it('names a version the package both consumers launch through agrees with', () => {
+    const { devDependencies } = readPackage()
+
+    expect(devDependencies.playwright).toBe(devDependencies['@playwright/test'])
   })
 })
 

@@ -39,8 +39,6 @@ jobs:
 
       # ⚠ The key and the path must match both consumers' restores exactly, or neither hits.
       # `ci-workflows.test.ts` pins both, and that the payload is what both consumers launch.
-      # ⚠ Read through the one reader every consumer shares (`scripts/playwright-version.mjs`),
-      # so the entry this job writes cannot be keyed on a version a consumer reads differently.
       - name: Read the pinned Playwright version
         id: playwright
         run: node scripts/playwright-version.mjs >> "$GITHUB_OUTPUT"
