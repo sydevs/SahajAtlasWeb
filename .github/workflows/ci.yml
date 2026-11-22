@@ -233,10 +233,11 @@ jobs:
   # build, and no address is scraped out of text anyone can edit (#282, replacing the discovery
   # subsystem of #122 and #138 — `docs/testing.md` carries what it measured).
   #
-  # A green Smoke check still means the specs RAN. Only two states skip them quietly, and both
-  # say so: a forked pull request, which has no Cloudflare credential by design, and a
-  # merge-queue entry, which has no pull-request number to key a preview on. Every other way of
-  # reaching no preview fails the job.
+  # A green Smoke check still means the specs RAN. Only three states skip them quietly, and each
+  # says so: a forked pull request, which has no Cloudflare credential by design, a merge-queue
+  # entry, which has no pull-request number to key a preview on, and a run Dependabot triggered,
+  # which reads neither the Actions secrets nor the deployed bundle. Every other way of reaching
+  # no preview fails the job.
   smoke:
     name: Smoke
     runs-on: ubuntu-latest
@@ -256,8 +257,9 @@ jobs:
       #
       # ⚠ A run Dependabot triggers is the one same-repo case where that advice is false. It
       # reads the Dependabot secrets and never the Actions ones, so it takes a reason of its
-      # own. Still red: whether to enter the five there is a decision
-      # (`docs/rules/deployment.md` § "Deploy-side CI gates"), and a quiet skip would hide it.
+      # own, and that reason skips quietly: `.github/dependabot.yml` updates `github-actions`
+      # only, so no Dependabot pull request here changes the deployed bundle and a preview read
+      # would cover nothing. ⚠ An npm entry added there would make that false.
       #
       # ⚠ All five, not just the Cloudflare pair. Gating on the pair alone lets a run with the
       # three `VITE_*` secrets missing reach `publish`, upload successfully, and then fail
@@ -478,8 +480,9 @@ jobs:
               HINT="Add CLOUDFLARE_API_TOKEN and CLOUDFLARE_ACCOUNT_ID, scoped to Workers only, plus VITE_SENTRY_DSN, VITE_SAHAJCLOUD_API_KEY and VITE_MAPBOX_ACCESSTOKEN. Until all five exist every same-repo pull request fails here instead of reporting a green check that read nothing."
               ;;
             dependabot)
-              MSG="Dependabot triggered this run, and such a run reads the Dependabot secrets, never the Actions secrets. At least one of the five the preview needs is not entered there, so none could be published — NO smoke specs ran."
-              HINT="No Actions secret is missing, and adding one changes nothing here. Entering the five as Dependabot secrets is a decision, not a chore: docs/rules/deployment.md, 'Deploy-side CI gates', says what that hands a bumped action."
+              FATAL=false
+              MSG="Dependabot triggered this run, and such a run reads the Dependabot secrets, never the Actions secrets, so no preview was published — NO smoke specs ran."
+              HINT="Expected: .github/dependabot.yml updates github-actions only, so this pull request cannot change the deployed bundle and a preview read would cover nothing. Entering the five as Dependabot secrets stays an option, and docs/rules/deployment.md, 'Deploy-side CI gates', says what that hands a bumped action."
               ;;
             publish)
               # Two causes reach here, and sending the reader to the wrong step is how #132's

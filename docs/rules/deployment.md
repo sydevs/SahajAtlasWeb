@@ -168,11 +168,13 @@ request per action titled `ci: bump …`, which rewrites the SHA and that commen
 `secrets: inherit`. A moved
 tag there runs in this repo's CI while the pin spec stays green. Pinning them is a change in
 sydevs/claude-workflow.
-⚠ **A run Dependabot triggers reads Dependabot secrets, never Actions secrets.** Until the
-secrets the Smoke job gates on are entered under both, each of those pull requests fails Smoke,
-with `dependabot` as its stated reason: the advice for a missing Actions secret would be false
-there. Entering them is a decision, not a chore: the bumped action then runs in a job
-holding the Cloudflare token before anyone has read the bump.
+⚠ **A run Dependabot triggers reads Dependabot secrets, never Actions secrets.** With the secrets
+the Smoke job gates on entered under Actions alone, each of those pull requests publishes no
+preview and Smoke skips quietly, with `dependabot` as its stated reason — the advice for a missing
+Actions secret would be false there. That skip is safe only while `.github/dependabot.yml` stays
+`github-actions` only, so no pull request from it can change the deployed bundle. Entering the
+five as Dependabot secrets stays an option, and a decision rather than a chore: the bumped action
+then runs in a job holding the Cloudflare token before anyone has read the bump.
 ⚠ A `cloudflare/wrangler-action` bump also moves the commit the guard step's comment in `ci.yml`
 read the action's outputs at: re-read them before merging it.
 

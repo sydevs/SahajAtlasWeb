@@ -198,17 +198,17 @@ describe('ci.yml', () => {
 
   // The plan step names the states, and the report step decides which are loud. Two copies of
   // one vocabulary, in one file, with nothing between them: a reason the report does not know
-  // reddens a fork's pull request, and a reason nothing emits is dead advice. Only `fork` and
-  // `queue` may exit 0 — every other route to no preview fails the job, which is this lane's
-  // first invariant (`docs/testing.md`).
-  it('reports every state the plan step can emit, and makes only two of them quiet', () => {
+  // reddens a fork's pull request, and a reason nothing emits is dead advice. Only `dependabot`,
+  // `fork` and `queue` may exit 0 — every other route to no preview fails the job, which is this
+  // lane's first invariant (`docs/testing.md`).
+  it('reports every state the plan step can emit, and makes only three of them quiet', () => {
     const emitted = [...smoke.matchAll(/^\s*reason=(\S+)$/gm)].map((m) => m[1])
     const handled = [...smoke.matchAll(/^\s{12}([a-z|-]+)\)$/gm)].map((m) => m[1])
     const quiet = [...smoke.matchAll(/^\s{12}(\S+)\)\n\s*FATAL=false$/gm)].map((m) => m[1])
 
     expect(emitted.length).toBeGreaterThan(1)
     expect([...emitted].sort()).toEqual([...handled].sort())
-    expect(quiet.sort()).toEqual(['fork', 'queue'])
+    expect(quiet.sort()).toEqual(['dependabot', 'fork', 'queue'])
 
     // Without the fallback, a state added to the plan step and not here would inherit the
     // previous case's advice instead of going loud.
@@ -218,7 +218,7 @@ describe('ci.yml', () => {
   // A Dependabot branch is same-repo, and a run Dependabot triggers reads the Dependabot secrets,
   // never the Actions ones. Left to `no-credentials`, its red tells the reader to add Actions
   // secrets that are already entered. The test sits INSIDE the same-repo branch, so a fork stays
-  // a fork, and the vocabulary pin above keeps the reason loud: only the advice differs.
+  // a fork, and the vocabulary pin above holds which reasons exit 0.
   it('gives a run Dependabot triggered its own reason, inside the same-repo branch', () => {
     expect(match(smoke, /^\s*ACTOR: (.+)$/m)).toBe('${{ github.actor }}')
     expect(smoke).toMatch(
