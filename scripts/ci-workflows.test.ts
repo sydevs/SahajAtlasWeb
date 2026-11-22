@@ -240,8 +240,10 @@ describe('ci.yml', () => {
   // that DO change it — collect a green Smoke check that read nothing, with no red anywhere. So
   // the premise is pinned here rather than left to the prose beside each copy of the reason.
   it('keeps the quiet skip safe by updating actions alone', () => {
+    // Matched loosely on purpose: a second entry written with another spacing, quoted, or in a
+    // flow-style list must fail here rather than leave the first match passing for the file.
     const ecosystems = [
-      ...readRepoSource('.github/dependabot.yml').matchAll(/^\s*- package-ecosystem: (\S+)$/gm),
+      ...readRepoSource('.github/dependabot.yml').matchAll(/package-ecosystem:\s*['"]?([\w-]+)/g),
     ].map((m) => m[1])
 
     expect(ecosystems).toEqual(['github-actions'])

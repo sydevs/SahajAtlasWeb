@@ -257,9 +257,11 @@ jobs:
       # ⚠ A run Dependabot triggers is the one same-repo case where that advice is false. It
       # reads the Dependabot secrets and never the Actions ones, so it takes a reason of its
       # own, and that reason skips quietly: `.github/dependabot.yml` updates `github-actions`
-      # only, so no Dependabot pull request here changes the deployed bundle and a preview read
-      # would cover nothing. ⚠ An npm entry added there would make that false, which is why
-      # `scripts/ci-workflows.test.ts` pins the ecosystem rather than this comment.
+      # only, so no version update from it changes the deployed bundle and a preview read would
+      # cover nothing. ⚠ An npm entry added there would make that false, which is why
+      # `scripts/ci-workflows.test.ts` pins the ecosystem rather than this comment. ⚠ A security
+      # update answers to a repository setting instead, not to that file —
+      # `docs/rules/deployment.md` § "Deploy-side CI gates" holds what the skip gives up.
       #
       # ⚠ All five, not just the Cloudflare pair. Gating on the pair alone lets a run with the
       # three `VITE_*` secrets missing reach `publish`, upload successfully, and then fail

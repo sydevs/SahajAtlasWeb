@@ -172,12 +172,21 @@ sydevs/claude-workflow.
 the Smoke job gates on entered under Actions alone, each of those pull requests publishes no
 preview and Smoke skips quietly, with `dependabot` as its stated reason — the advice for a missing
 Actions secret would be false there. That skip is safe only while `.github/dependabot.yml` stays
-`github-actions` only, so no pull request from it can change the deployed bundle, and
+`github-actions` only, so no **version** update from it can change the deployed bundle, and
 `scripts/ci-workflows.test.ts` pins that rather than trusting the comment beside it. Entering the
 five as Dependabot secrets is still a decision rather than a chore: the bumped action
 then runs in a job holding the Cloudflare token before anyone has read the bump.
+⚠ **That premise covers version updates only, and `dependabot.yml` is not what decides the rest.**
+Dependabot **security** updates are a repository setting, readable from no `mcp__github__*` tool
+and so recorded here rather than asserted: with them on, an alert against a runtime npm
+dependency opens a `pnpm-lock.yaml` pull request with no entry in that file, which **does** change
+the deployed bundle and now takes the quiet skip. One Dependabot pull request has ever been opened
+in this repo (#455, an action pin), so the exposure is unmeasured rather than observed, and the
+loop's own `audit-deps` fixes a vulnerability on a `claude/fix-deps-` branch instead.
 ⚠ A `cloudflare/wrangler-action` bump also moves the commit the guard step's comment in `ci.yml`
-read the action's outputs at: re-read them before merging it.
+read the action's outputs at: re-read them before merging it. **The red `Smoke` check used to force
+that re-read and no longer does** — this job is the only place the repo runs that action, so such a
+bump now merges with the publish and guard path never exercised.
 
 ## Rolling production back
 

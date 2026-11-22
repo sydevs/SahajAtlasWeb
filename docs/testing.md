@@ -127,7 +127,7 @@ preview" is not one thing. The job's last step names the cause:
 | ----------------------------------------- | --------------------------------------------------------------- |
 | a forked pull request (no credential)     | expected — annotated, exit 0                                    |
 | a `merge_group` entry (no PR number)      | expected — annotated, exit 0, so the queue completes            |
-| a run Dependabot triggered, with a secret missing from the **Dependabot** set | expected — annotated, exit 0; such a run never reads the Actions secrets, and its bumps change no bundle |
+| a run Dependabot triggered, with a secret missing from the **Dependabot** set | expected — annotated, exit 0; such a run never reads the Actions secrets, and its **version** updates change no bundle (`docs/rules/deployment.md` § "Deploy-side CI gates" holds what this gives up) |
 | a missing Actions secret on a same-repo PR  | **enter all five** — the plan step gates on every one, so a half-entered set cannot reach a build whose output a spec then blames |
 | the publish produced no address           | **read the publish step** — it is the upload's own log          |
 | the address was refused                   | **read the guard step** — a wrong `--config` is the usual cause |
