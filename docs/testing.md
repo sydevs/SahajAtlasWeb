@@ -39,7 +39,8 @@ browser lane" below. The **accessibility** gate is `pnpm test:a11y` (`scripts/ch
 #432), over the built component library, in CI's `gate` job right after `pnpm ladle:build` — see
 "The accessibility lane needs a browser, and that is not a preference" below. Both pin the same
 Playwright version, from the one `playwright` devDependency and the `@playwright/test` beside it,
-so one installed Chromium serves both.
+and one warmed cache serves both — `scripts/ci-workflows.test.ts` holds the two pins equal, since
+they decide one cache key between them.
 
 **Coverage is measured, not gated.** `pnpm test:coverage` is the unit lane with V8 coverage on,
 and `vitest.config.ts` sets no threshold, so a run never fails on a figure. The config names
@@ -414,6 +415,11 @@ themselves would be scoped to their own ref, and read by that pull request alone
 A miss costs a download, never a failure, and Playwright's own CI guide advises against caching
 browsers at all, so dropping both halves would leave the lane as it is.
 
+⚠ **The accessibility gate restores the same entry** (#459): it launches the same full Chromium,
+through `channel: 'chromium'`, so one key serves both consumers and neither downloads the headless
+shell. `scripts/ci-workflows.test.ts` pins both restore-only, and that channel against the warm
+job's `--no-shell`.
+
 | scenario (`tests/browser/`)                   | host page              | watched failing against                                              |
 | --------------------------------------------- | ---------------------- | -------------------------------------------------------------------- |
 | the map embed boots, lists, draws its map     | `full-map.html`        | no Mapbox token passed to the map                                    |
@@ -493,7 +499,7 @@ with every gate green.
 ### Running it locally
 
 ```bash
-pnpm exec playwright install --with-deps --no-shell chromium  # once per Playwright version
+pnpm exec playwright install --with-deps --no-shell chromium  # the build both lanes drive
 pnpm test:browser                       # build dist-browser/, then every scenario
 pnpm exec playwright test               # again, without rebuilding
 pnpm exec playwright test navigation    # one file; add --headed, --debug or --ui to watch it
@@ -526,15 +532,29 @@ things of every story: axe-core's rule set, a tap area of at least 44px **probed
 `document.elementFromPoint`**, and a keyboard walk that each stop is visible, in document order,
 and paints a focus indicator.
 
-**The unit lane cannot host it, and measuring said so.** jsdom has no layout at all: a tap area
+⚠ **The Chromium it drives is the full browser**, asked for by `channel: 'chromium'` — the one
+the browser lane drives, so one `main`-warmed entry serves both in CI and one install serves both
+locally (#459). It drove the headless shell until then, a separate download under the same
+directory. Re-measured 2026-11-22 on the converged build: 52 stories, clean.
+
+**The unit lane cannot host it, and measuring said so.** ⚠ Both figures below were taken on the
+headless shell, the build this gate drove then; what they weigh is layout against no layout, which
+the Chromium build does not move. jsdom has no layout at all: a tap area
 cannot be measured, and `color-contrast` resolves to nothing. Measured 2026-11-19 over the same
 52 stories with the same axe configuration, counting violation NODES: **jsdom returned 31, the
 browser 131** — and the browser's 80 contrast failures and 24 label-in-name failures were not
 among the 31, which is the whole argument. (The browser figure is from the 49 stories that
 rendered; three forms timed out in that first pass.)
 
-Four things about it are deliberate:
+Five things about it are deliberate:
 
+- **The quiet period it waits for cannot close until the story has changed the page once.** `load`
+  fires before React mounts, so a run that looked in that gap found the page quiet because nothing
+  had started, and audited an empty body. Measured over the 52 stories: the tap probe reached
+  between 1 and 126 controls across runs on one unchanged tree, and axe reported no violation
+  either way — a green required check that had read nothing. With the first mutation required,
+  three runs measured 645, 655 and 655 controls, clean, in about 43s (2026-11-22, 4 cores).
+  ⚠ A story that mutates nothing is still released by the 4s cap, so the wait cannot hang the gate.
 - **It reads a BUILD, never `ladle serve`.** The dev server compiles a story when it is opened,
   so a story that failed to build would pass by never having been built. `--origin
   http://localhost:61000` points it at the dev server anyway, for the local fix loop only.

@@ -445,13 +445,20 @@ const SETTLE_CAP_MS = 4000
  * nothing has changed for a while, so what is on screen is what a visitor would see. Fonts are
  * waited on for the same reason, since a contrast verdict is taken against painted text.
  *
+ * ⚠ **The quiet window may not close before the story has mutated the page once.** `load`
+ * fires before React mounts, so a run that looked during that gap found the page quiet because
+ * nothing had started, and audited an empty body: measured over the 52 stories, the tap probe
+ * reached between 1 and 126 controls across runs on one unchanged tree, and axe reported no
+ * violation either way — green having read nothing. The cap still bounds a story that never
+ * mutates.
+ *
  * @param {import('playwright').Page} page
  */
 async function settled(page) {
   await page.evaluate(
     ([quiet, cap]) =>
       new Promise((done) => {
-        let timer = setTimeout(finish, quiet)
+        let timer
         const observer = new MutationObserver(() => {
           clearTimeout(timer)
           timer = setTimeout(finish, quiet)
@@ -550,7 +557,10 @@ export async function run({ only, origin } = {}) {
     : { url: AXE_PATH }
   const meta = await (await fetch(`${site.origin}/meta.json`)).json()
   const ids = Object.keys(meta.stories).filter((id) => !only || id === only)
-  const browser = await chromium.launch()
+  // `channel: 'chromium'` launches the full browser, which the browser lane drives too, so one
+  // warmed cache entry serves both CI consumers. The default launches the headless shell, a
+  // download of its own under the same directory (#459).
+  const browser = await chromium.launch({ channel: 'chromium' })
   // `isMobile` is what makes `(pointer: coarse)` match, and the `touch-target` utility is
   // written against that query — on a fine pointer every small control would be reported and
   // the gate would be measuring a device nobody taps.

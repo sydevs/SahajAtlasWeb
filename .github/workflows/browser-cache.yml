@@ -1,10 +1,15 @@
 name: Browser cache
 
-# Saves the Chromium the browser lane runs (`ci.yml` → `Browser lane`) where every lane run can
-# restore it. A run restores only from its own ref, its pull request's base, or the default
-# branch. So a cache a pull request saved is read by that pull request alone, and one a
-# merge-queue entry saved by nothing at all. The default branch is the one scope they share,
-# and this is its only writer: the lane job restores and never saves.
+# Saves the Chromium both browser consumers in `ci.yml` run — the `Browser lane` job and the
+# accessibility step of the `gate` job — where every one of their runs can restore it. A run
+# restores only from its own ref, its pull request's base, or the default branch. So a cache a
+# pull request saved is read by that pull request alone, and one a merge-queue entry saved by
+# nothing at all. The default branch is the one scope they share, and this is its only writer:
+# both consumers restore and neither saves.
+#
+# ⚠ One entry serves both because both launch the full Chromium: the lane through its own
+# config and the accessibility gate through `channel: 'chromium'` in `scripts/check-a11y.mjs`.
+# So `--no-shell` holds — the headless shell is a download neither one launches (#459).
 #
 # Playwright's CI guide advises against caching browsers, since a restore costs about what a
 # download does. The cache is here because the lane was specified with one. A miss costs a
@@ -32,8 +37,8 @@ jobs:
           cache: pnpm
       - run: pnpm install --frozen-lockfile
 
-      # ⚠ The key and the path must match the lane job's restore exactly, or it never hits.
-      # `ci-workflows.test.ts` pins both.
+      # ⚠ The key and the path must match both consumers' restores exactly, or neither hits.
+      # `ci-workflows.test.ts` pins both, and that the payload is what both consumers launch.
       - name: Read the pinned Playwright version
         id: playwright
         run: echo "version=$(node -p "require('@playwright/test/package.json').version")" >> "$GITHUB_OUTPUT"

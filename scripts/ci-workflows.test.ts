@@ -38,6 +38,32 @@ const workflowEvents = (workflow: string) => {
     .sort()
 }
 
+/**
+ * One job's text, up to the next job at column 2, so no assertion can be satisfied by a
+ * neighbouring job's steps. A renamed job throws rather than leaving a slice every negative
+ * assertion passes against.
+ */
+const jobIn = (workflow: string, name: string) => {
+  const at = workflow.indexOf(`\n  ${name}:\n`)
+
+  if (at < 0) throw new Error(`no \`${name}:\` job — every assertion about it would vacuum`)
+
+  const rest = workflow.slice(at + 1)
+  const next = rest.slice(1).search(/^ {2}\S/m)
+
+  return next < 0 ? rest : rest.slice(0, next + 1)
+}
+
+/** A job's steps, one per `- ` at step indentation. */
+const steps = (job: string) => job.split(/^ {6}- /m).slice(1)
+
+/** The `actions/cache*` actions a workflow or a job uses, in order. */
+const cacheActions = (scope: string) =>
+  [...scope.matchAll(/^\s*(?:- )?uses: (actions\/cache\S*)@/gm)].map((m) => m[1])
+
+/** `browser-cache.yml`, the one writer of the browser cache both `ci.yml` consumers restore. */
+const warmWorkflow = readRepoSource('.github/workflows/browser-cache.yml')
+
 describe('production-smoke.yml', () => {
   const lane = readRepoSource('.github/workflows/production-smoke.yml')
   const target = match(lane, /^\s*PREVIEW_URL: (\S+)$/m)
@@ -274,16 +300,8 @@ describe('ci.yml', () => {
 // blocks.
 describe('ci.yml browser lane', () => {
   const ci = readRepoSource('.github/workflows/ci.yml')
-  const at = ci.indexOf('\n  browser:\n')
-
-  if (at < 0) throw new Error('ci.yml has no `browser:` job — every assertion below would vacuum')
-
-  // Up to the next job, so no assertion here can be satisfied by another job's text.
-  const rest = ci.slice(at + 1)
-  const next = rest.slice(1).search(/^ {2}\S/m)
-  const job = next < 0 ? rest : rest.slice(0, next + 1)
-  const steps = job.split(/^ {6}- /m).slice(1)
-  const lane = steps.filter((step) => /^\s*run: pnpm test:browser$/m.test(step))
+  const job = jobIn(ci, 'browser')
+  const lane = steps(job).filter((step) => /^\s*run: pnpm test:browser$/m.test(step))
 
   it('posts the check name the ruleset records', () => {
     const name = match(job, /^ {4}name: (.+)$/m)
@@ -321,44 +339,104 @@ describe('ci.yml browser lane', () => {
     for (const ref of refs) expect(ref).toMatch(/^[0-9a-f]{40}$/)
   })
 
-  // Both halves fail silently: a key or path a character apart never hits, and a save here
-  // writes a cache only this run's own ref can read. `browser-cache.yml` says why.
+  // Every half fails silently: a key or path a character apart never hits, a save here writes an
+  // entry only this run's own ref can read, and a hit that skips the system libraries leaves a
+  // browser that cannot launch. `browser-cache.yml` says why.
   it('restores the browser `browser-cache.yml` saves, and saves none itself', () => {
-    const caches = [...job.matchAll(/^\s*(?:- )?uses: (actions\/cache\S*)@/gm)].map((m) => m[1])
-    const lane = browserCache(job)
+    const hit = steps(job).filter((step) => /cache-hit == 'true'/.test(step))
 
-    expect(caches).toEqual(['actions/cache/restore'])
-    expect(lane.keys).toHaveLength(1)
-    expect(lane.paths).toHaveLength(1)
-    expect(browserCache(readRepoSource('.github/workflows/browser-cache.yml'))).toEqual(lane)
+    expectRestoresWarmedCache(job)
+    expect(versionRead(job)).toBe(versionRead(warmWorkflow))
+    expect(hit, 'no step in this job runs on a cache hit').toHaveLength(1)
+    expect(hit[0]).toMatch(/playwright install-deps chromium/)
   })
 })
 
-/** How a workflow names the lane's browser cache: the version it keys on, its keys, its paths. */
+/**
+ * Both `ci.yml` consumers read the one entry `browser-cache.yml` writes on `main`, and each half
+ * fails silently: a key or path a character apart never hits, and a save in `ci.yml` writes an
+ * entry no later ref can read (#459).
+ */
+const expectRestoresWarmedCache = (job: string) => {
+  const cache = browserCache(job)
+
+  expect(cacheActions(job)).toEqual(['actions/cache/restore'])
+  expect(cache.keys).toHaveLength(1)
+  expect(cache.paths).toHaveLength(1)
+  expect(cache).toEqual(browserCache(warmWorkflow))
+}
+
+/** How a workflow names the browser cache: its keys, its paths. */
 const browserCache = (workflow: string) => ({
-  version: match(workflow, /^\s*run: (echo "version=.+)$/m),
   keys: [...new Set([...workflow.matchAll(/^\s*key: (.+)$/gm)].map((m) => m[1]))],
   paths: [...new Set([...workflow.matchAll(/^\s*path: (~\/.+)$/gm)].map((m) => m[1]))],
 })
 
-describe('browser-cache.yml', () => {
-  const warm = readRepoSource('.github/workflows/browser-cache.yml')
+/**
+ * The one-liner a workflow reads the key's version with. The gate reads the same version its own
+ * way — out of `package.json`, validated — so only the lane and the warm job share this line.
+ */
+const versionRead = (workflow: string) => match(workflow, /^\s*run: (echo "version=.+)$/m)
 
+describe('browser-cache.yml', () => {
   // The default branch is the one cache scope a pull request and a merge-queue run share.
-  it('saves on main, the scope every lane run can restore from', () => {
-    expect(workflowEvents(warm)).toEqual(['push', 'workflow_dispatch'])
-    expect(match(warm, /^ {4}branches: (.+)$/m)).toBe('[main]')
-    expect([...warm.matchAll(/^\s*(?:- )?uses: (actions\/cache\S*)@/gm)].map((m) => m[1])).toEqual([
-      'actions/cache/restore',
-      'actions/cache/save',
-    ])
+  it('saves on main, the scope every consumer can restore from', () => {
+    expect(workflowEvents(warmWorkflow)).toEqual(['push', 'workflow_dispatch'])
+    expect(match(warmWorkflow, /^ {4}branches: (.+)$/m)).toBe('[main]')
+    expect(cacheActions(warmWorkflow)).toEqual(['actions/cache/restore', 'actions/cache/save'])
+  })
+
+  // What makes one entry serve both consumers: the warm job saves the full Chromium alone, and
+  // the accessibility gate asks for that build by channel. Drop the channel and the gate
+  // launches the headless shell, which this entry does not hold, on a required check.
+  it('saves the one build both consumers launch', () => {
+    const install = steps(warmWorkflow).filter((step) => /playwright install\b/.test(step))
+
+    expect(install).toHaveLength(1)
+    expect(match(install[0], /^\s*run: (.+playwright install.+)$/m)).toContain('--no-shell')
+    expect(readRepoSource('scripts/check-a11y.mjs')).toContain(
+      "chromium.launch({ channel: 'chromium' })",
+    )
   })
 
   it('pins every action it uses by commit SHA', () => {
-    const refs = [...warm.matchAll(/^\s*(?:- )?uses: \S+@(\S+)/gm)].map((m) => m[1])
+    const refs = [...warmWorkflow.matchAll(/^\s*(?:- )?uses: \S+@(\S+)/gm)].map((m) => m[1])
 
     expect(refs.length).toBeGreaterThan(0)
     for (const ref of refs) expect(ref).toMatch(/^[0-9a-f]{40}$/)
+  })
+})
+
+const gateJob = jobIn(readRepoSource('.github/workflows/ci.yml'), 'gate')
+
+// The accessibility step is on the critical path of the one required check, and the merge queue
+// pays it again per merge, so where its browser comes from is a cost the gate carries (#459).
+describe("ci.yml's gate job, on the browser its accessibility step drives", () => {
+  it('restores the browser `browser-cache.yml` saves, and saves none itself', () => {
+    expectRestoresWarmedCache(gateJob)
+  })
+
+  // One step, on a hit as on a miss. An `if:` here would hand a partial entry to `pnpm test:a11y`
+  // as a browser, and `--with-deps` installs libraries no cache holds anyway. `--no-shell` keeps
+  // what a miss downloads equal to what the key promises.
+  it('installs the browser and its system libraries whether the cache hit or missed', () => {
+    const install = steps(gateJob).filter((step) => /playwright install\b/.test(step))
+    // ⚠ The run line, never the step: this step's own comment names both flags, so a step-wide
+    // `toContain` passes on the prose after the command has lost the flag.
+    const run = match(install[0], /^\s*run: (.+playwright install.+)$/m)
+
+    expect(install).toHaveLength(1)
+    expect(run).toContain('--with-deps')
+    expect(run).toContain('--no-shell')
+    expect(install[0]).not.toMatch(/^\s*if:/m)
+  })
+
+  // Two pins decide one key — the gate's own read and the warm job's — so a bump moving one
+  // alone would key the gate on an entry nothing writes, and nothing but a download would say so.
+  it('keys on a version both Playwright pins agree on', () => {
+    const { devDependencies } = readPackage()
+
+    expect(devDependencies.playwright).toBe(devDependencies['@playwright/test'])
   })
 })
 
@@ -366,23 +444,12 @@ describe('browser-cache.yml', () => {
 // its measurement. Each way of getting that wrong is silent: a second step paying for the lane
 // twice, a tolerance that lets a red spec through, or a summary reading a file nothing writes.
 describe("ci.yml's gate job, on the unit lane", () => {
-  const ci = readRepoSource('.github/workflows/ci.yml')
-  const opens = ci.indexOf('\n  gate:')
-  const closes = ci.indexOf('\n  dependencies:')
-
-  // Same rule as the `smoke:` slice above: a renamed job must fail, not leave a slice every
-  // negative assertion passes against.
-  if (opens < 0 || closes < opens)
-    throw new Error('ci.yml has no `gate:` job before `dependencies:`')
-
-  const gate = ci.slice(opens, closes)
-
   it('runs the lane once, as the same vitest run the lean gate makes', () => {
     const { scripts } = readPackage()
     // ⚠ Which `pnpm test:*` steps are vitest is read off package.json, never listed here: the
     // accessibility gate is a step of this same job and drives a browser, not the lane. A
     // second vitest step still fails this, which is the whole point.
-    const lanes = [...gate.matchAll(/^\s*(?:- )?run: (pnpm test\S*)/gm)]
+    const lanes = [...gateJob.matchAll(/^\s*(?:- )?run: (pnpm test\S*)/gm)]
       .map((m) => m[1])
       .filter((command) => scripts[command.replace(/^pnpm /, '')]?.includes('vitest'))
 
@@ -393,14 +460,14 @@ describe("ci.yml's gate job, on the unit lane", () => {
   // The step is the bare command: no `|| true` after it, and no key under it such as
   // `continue-on-error`, either of which would report a red spec as a green gate.
   it('lets a failing spec fail the job', () => {
-    expect(gate).toMatch(/^ {6}- run: pnpm test:coverage\n(?! {8}\S)/m)
+    expect(gateJob).toMatch(/^ {6}- run: pnpm test:coverage\n(?! {8}\S)/m)
   })
 
   // The path is the `json-summary` reporter's own, under vitest's default reports directory.
   // Nothing else couples the two, and a summary step that finds no file only annotates.
   it('summarises the report the coverage config writes, into a directory git ignores', () => {
     const config = readRepoSource('vitest.config.ts')
-    const [directory, file] = match(gate, /^\s*SUMMARY=(\S+)$/m).split('/')
+    const [directory, file] = match(gateJob, /^\s*SUMMARY=(\S+)$/m).split('/')
 
     expect(file).toBe('coverage-summary.json')
     expect(config).toContain("'json-summary'")
