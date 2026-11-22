@@ -51,15 +51,13 @@ smoke run is an annotated skip rather than a red check.
 | `VITE_SAHAJCLOUD_API_KEY` | Without it the preview serves the configuration-error screen instead of the keyless world list, and a reviewer reads nothing off it. |
 | `VITE_MAPBOX_ACCESSTOKEN` | Without it the preview draws an empty canvas instead of tiles. |
 
-⚠ **Until all five exist, every same-repo pull request a person pushed fails its `Smoke` check**,
-with a message
-naming all five. The plan step gates on each one, so a half-entered set cannot publish a preview
-whose build silently lacks a `VITE_*` value — that would arrive as a spec failure blaming the
-deploy. That is deliberate: the alternative is a green check that read nothing,
-which is the hole #99 closed.
-A run Dependabot triggered is the exception: it is given the Dependabot set and never reads these,
-so entering them changes nothing for it and it skips quietly instead (`docs/testing.md` § "The
-smoke lane's three invariants").
+⚠ **Until all five exist, every same-repo pull request but a Dependabot-triggered one fails its
+`Smoke` check**, with a message naming all five. The plan step gates on each one, so a
+half-entered set cannot publish a preview whose build silently lacks a `VITE_*` value — that would
+arrive as a spec failure blaming the deploy. That is deliberate: the alternative is a green check
+that read nothing, which is the hole #99 closed. A run Dependabot triggered is given the
+Dependabot set and never reads these, so entering them changes nothing for it and it skips
+quietly instead (`docs/testing.md` § "The smoke lane's three invariants").
 
 `VITE_SENTRY_ENVIRONMENT: preview` is a plain workflow value in `ci.yml`, not a secret — unset, a
 build tags itself `production`. `VITE_SAHAJCLOUD_URL` keeps `.env`'s committed default.
