@@ -306,25 +306,47 @@ describe('ci.yml browser lane', () => {
     for (const ref of refs) expect(ref).toMatch(/^[0-9a-f]{40}$/)
   })
 
-  // Both halves fail silently: a key or path a character apart never hits, and a save here
-  // writes a cache only this run's own ref can read. `browser-cache.yml` says why.
+  // Every half fails silently: a key or path a character apart never hits, a save here writes a
+  // cache only this run's own ref can read, and a hit that skips the system libraries leaves a
+  // browser that cannot launch. `browser-cache.yml` says why.
   it('restores the browser `browser-cache.yml` saves, and saves none itself', () => {
     const caches = [...job.matchAll(/^\s*(?:- )?uses: (actions\/cache\S*)@/gm)].map((m) => m[1])
     const lane = browserCache(job)
 
+    const warm = readRepoSource('.github/workflows/browser-cache.yml')
+
     expect(caches).toEqual(['actions/cache/restore'])
     expect(lane.keys).toHaveLength(1)
     expect(lane.paths).toHaveLength(1)
-    expect(browserCache(readRepoSource('.github/workflows/browser-cache.yml'))).toEqual(lane)
+    expect(browserCache(warm)).toEqual(lane)
+    expect(versionRead(job)).toBe(versionRead(warm))
+    expect(onCacheHit(job)).toMatch(/playwright install-deps chromium/)
   })
 })
 
-/** How a workflow names the lane's browser cache: the version it keys on, its keys, its paths. */
+/**
+ * The step a cache hit runs in place of the download. A restore brings the browser back and
+ * nothing else — the system libraries it links against live outside the cached directory.
+ */
+const onCacheHit = (job: string) => {
+  const hit = job.split(/^ {6}- /m).filter((step) => /cache-hit == 'true'/.test(step))
+
+  expect(hit, 'no step in this job runs on a cache hit').toHaveLength(1)
+
+  return hit[0]
+}
+
+/** How a workflow names the browser cache: its keys, its paths. */
 const browserCache = (workflow: string) => ({
-  version: match(workflow, /^\s*run: (echo "version=.+)$/m),
   keys: [...new Set([...workflow.matchAll(/^\s*key: (.+)$/gm)].map((m) => m[1]))],
   paths: [...new Set([...workflow.matchAll(/^\s*path: (~\/.+)$/gm)].map((m) => m[1]))],
 })
+
+/**
+ * The one-liner a workflow reads the key's version with. The gate reads the same version its own
+ * way — out of `package.json`, validated — so only the lane and the warm job share this line.
+ */
+const versionRead = (workflow: string) => match(workflow, /^\s*run: (echo "version=.+)$/m)
 
 describe('browser-cache.yml', () => {
   const warm = readRepoSource('.github/workflows/browser-cache.yml')
@@ -347,20 +369,51 @@ describe('browser-cache.yml', () => {
   })
 })
 
-// The gate job runs the unit lane through the coverage script, so one step is both the lane and
-// its measurement. Each way of getting that wrong is silent: a second step paying for the lane
-// twice, a tolerance that lets a red spec through, or a summary reading a file nothing writes.
-describe("ci.yml's gate job, on the unit lane", () => {
+// Same rule as the `smoke:` and `browser:` slices above: a renamed job must fail, not leave a
+// slice every negative assertion passes against.
+const gateJob = (() => {
   const ci = readRepoSource('.github/workflows/ci.yml')
   const opens = ci.indexOf('\n  gate:')
   const closes = ci.indexOf('\n  dependencies:')
 
-  // Same rule as the `smoke:` slice above: a renamed job must fail, not leave a slice every
-  // negative assertion passes against.
   if (opens < 0 || closes < opens)
     throw new Error('ci.yml has no `gate:` job before `dependencies:`')
 
-  const gate = ci.slice(opens, closes)
+  return ci.slice(opens, closes)
+})()
+
+// The accessibility step is on the critical path of the one required check, and the merge queue
+// pays it again per merge, so where its browser comes from is a cost the gate carries (#459).
+describe("ci.yml's gate job, on the browser its accessibility step drives", () => {
+  const warm = browserCache(readRepoSource('.github/workflows/browser-cache.yml'))
+
+  // The step saved as well as restored until #459, on `pull_request` and `merge_group` alone —
+  // so it wrote a cache no later run could read, and paid the download every time regardless.
+  it('restores the browser `browser-cache.yml` saves, and saves none itself', () => {
+    const caches = [...gateJob.matchAll(/^\s*(?:- )?uses: (actions\/cache\S*)@/gm)].map((m) => m[1])
+
+    expect(caches).toEqual(['actions/cache/restore'])
+    expect(warm.keys).toHaveLength(1)
+    expect(warm.paths).toHaveLength(1)
+    expect(browserCache(gateJob)).toEqual(warm)
+    expect(onCacheHit(gateJob)).toMatch(/playwright install-deps chromium/)
+  })
+
+  // The gate reads the version out of `package.json` and the warm job out of the installed
+  // `@playwright/test`, so two pins decide one key. A bump moving one alone leaves the gate
+  // keying on an entry nothing writes, and nothing but a download says so.
+  it('keys on a version both Playwright pins agree on', () => {
+    const { devDependencies } = readPackage()
+
+    expect(devDependencies.playwright).toBe(devDependencies['@playwright/test'])
+  })
+})
+
+// The gate job runs the unit lane through the coverage script, so one step is both the lane and
+// its measurement. Each way of getting that wrong is silent: a second step paying for the lane
+// twice, a tolerance that lets a red spec through, or a summary reading a file nothing writes.
+describe("ci.yml's gate job, on the unit lane", () => {
+  const gate = gateJob
 
   it('runs the lane once, as the same vitest run the lean gate makes', () => {
     const { scripts } = readPackage()

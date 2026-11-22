@@ -39,7 +39,8 @@ browser lane" below. The **accessibility** gate is `pnpm test:a11y` (`scripts/ch
 #432), over the built component library, in CI's `gate` job right after `pnpm ladle:build` — see
 "The accessibility lane needs a browser, and that is not a preference" below. Both pin the same
 Playwright version, from the one `playwright` devDependency and the `@playwright/test` beside it,
-so one installed Chromium serves both.
+and one warmed cache serves both — `scripts/ci-workflows.test.ts` holds the two pins equal, since
+they decide one cache key between them.
 
 **Coverage is measured, not gated.** `pnpm test:coverage` is the unit lane with V8 coverage on,
 and `vitest.config.ts` sets no threshold, so a run never fails on a figure. The config names
@@ -413,6 +414,13 @@ themselves would be scoped to their own ref, and read by that pull request alone
 A miss costs a download, never a failure, and Playwright's own CI guide advises against caching
 browsers at all, so dropping both halves would leave the lane as it is.
 
+⚠ **The accessibility gate restores the same entry** (#459), which is why the warm job installs
+the headless shell as well as the full Chromium: one key, one payload, two consumers that drive
+different builds out of it. The gate saved its own cache under a key of its own until then, on
+`pull_request` and `merge_group` — refs no later run can read — so it paid the download every
+time and wrote an entry for nobody. Both halves of that are silent, and
+`scripts/ci-workflows.test.ts` pins each job restore-only against the warm job's key and path.
+
 | scenario (`tests/browser/`)                   | host page              | watched failing against                                              |
 | --------------------------------------------- | ---------------------- | -------------------------------------------------------------------- |
 | the map embed boots, lists, draws its map     | `full-map.html`        | no Mapbox token passed to the map                                    |
@@ -524,6 +532,11 @@ scenario twice over (`--repeat-each=2`) with four more CPU-bound processes runni
 things of every story: axe-core's rule set, a tap area of at least 44px **probed with
 `document.elementFromPoint`**, and a keyboard walk that each stop is visible, in document order,
 and paints a focus indicator.
+
+⚠ **The Chromium it drives is the headless shell**, since `chromium.launch()` passes no
+`channel`: a download of its own, beside the full browser the browser lane drives. In CI both come
+out of one `main`-warmed cache (§ "The browser lane"). Locally,
+`pnpm exec playwright install --with-deps chromium` — without `--no-shell` — installs both.
 
 **The unit lane cannot host it, and measuring said so.** jsdom has no layout at all: a tap area
 cannot be measured, and `color-contrast` resolves to nothing. Measured 2026-11-19 over the same
