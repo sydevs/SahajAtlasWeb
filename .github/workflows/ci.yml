@@ -235,8 +235,7 @@ jobs:
   # A green Smoke check still means the specs RAN. Only three states skip them quietly, and each
   # says so: a forked pull request, which has no Cloudflare credential by design, a merge-queue
   # entry, which has no pull-request number to key a preview on, and a run Dependabot triggered,
-  # which reads the Dependabot secrets and whose bumps cannot change the bundle. Every other way
-  # of reaching no preview fails the job.
+  # which reads the Dependabot secrets. Every other way of reaching no preview fails the job.
   smoke:
     name: Smoke
     runs-on: ubuntu-latest
