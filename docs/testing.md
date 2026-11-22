@@ -545,8 +545,15 @@ browser 131** — and the browser's 80 contrast failures and 24 label-in-name fa
 among the 31, which is the whole argument. (The browser figure is from the 49 stories that
 rendered; three forms timed out in that first pass.)
 
-Four things about it are deliberate:
+Five things about it are deliberate:
 
+- **The quiet period it waits for cannot close until the story has changed the page once.** `load`
+  fires before React mounts, so a run that looked in that gap found the page quiet because nothing
+  had started, and audited an empty body. Measured over the 52 stories: the tap probe reached
+  between 1 and 126 controls across runs on one unchanged tree, and axe reported no violation
+  either way — a green required check that had read nothing. With the first mutation required,
+  three runs measured 645, 655 and 655 controls, clean, in about 43s (2026-11-22, 4 cores).
+  ⚠ A story that mutates nothing is still released by the 4s cap, so the wait cannot hang the gate.
 - **It reads a BUILD, never `ladle serve`.** The dev server compiles a story when it is opened,
   so a story that failed to build would pass by never having been built. `--origin
   http://localhost:61000` points it at the dev server anyway, for the local fix loop only.

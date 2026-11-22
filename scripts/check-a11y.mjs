@@ -445,13 +445,20 @@ const SETTLE_CAP_MS = 4000
  * nothing has changed for a while, so what is on screen is what a visitor would see. Fonts are
  * waited on for the same reason, since a contrast verdict is taken against painted text.
  *
+ * ⚠ **The quiet window may not close before the story has mutated the page once.** `load`
+ * fires before React mounts, so a run that looked during that gap found the page quiet because
+ * nothing had started, and audited an empty body: measured over the 52 stories, the tap probe
+ * reached between 1 and 126 controls across runs on one unchanged tree, and axe reported no
+ * violation either way — green having read nothing. The cap still bounds a story that never
+ * mutates.
+ *
  * @param {import('playwright').Page} page
  */
 async function settled(page) {
   await page.evaluate(
     ([quiet, cap]) =>
       new Promise((done) => {
-        let timer = setTimeout(finish, quiet)
+        let timer
         const observer = new MutationObserver(() => {
           clearTimeout(timer)
           timer = setTimeout(finish, quiet)
