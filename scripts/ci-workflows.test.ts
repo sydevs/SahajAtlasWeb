@@ -216,9 +216,9 @@ describe('ci.yml', () => {
   })
 
   // A Dependabot branch is same-repo, and a run Dependabot triggers reads the Dependabot secrets,
-  // never the Actions ones. Left to `no-credentials`, its red tells the reader to add Actions
-  // secrets that are already entered. The test sits INSIDE the same-repo branch, so a fork stays
-  // a fork, and the vocabulary pin above holds which reasons exit 0.
+  // never the Actions ones. Left to `no-credentials` it would go red, telling the reader to add
+  // Actions secrets that are already entered. The test sits INSIDE the same-repo branch, so a
+  // fork stays a fork.
   it('gives a run Dependabot triggered its own reason, inside the same-repo branch', () => {
     expect(match(smoke, /^\s*ACTOR: (.+)$/m)).toBe('${{ github.actor }}')
     expect(smoke).toMatch(
@@ -232,6 +232,19 @@ describe('ci.yml', () => {
     expect(readRepoSource('docs/rules/deployment.md')).toContain(
       `\n## ${match(advice, /'([^']+)'/)}\n`,
     )
+  })
+
+  // The quiet skip above costs a Dependabot pull request its preview read, and what makes that
+  // safe is `.github/dependabot.yml` updating actions alone: such a pull request cannot change
+  // the deployed bundle. An npm entry there would make every dependency bump — the pull requests
+  // that DO change it — collect a green Smoke check that read nothing, with no red anywhere. So
+  // the premise is pinned here rather than left to the prose beside each copy of the reason.
+  it('keeps the quiet skip safe by updating actions alone', () => {
+    const ecosystems = [
+      ...readRepoSource('.github/dependabot.yml').matchAll(/^\s*- package-ecosystem: (\S+)$/gm),
+    ].map((m) => m[1])
+
+    expect(ecosystems).toEqual(['github-actions'])
   })
 
   // ⚠ A wrong `on:` block here fails silently, in both directions. `docs/testing.md` § "The merge

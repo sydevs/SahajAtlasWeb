@@ -172,8 +172,9 @@ sydevs/claude-workflow.
 the Smoke job gates on entered under Actions alone, each of those pull requests publishes no
 preview and Smoke skips quietly, with `dependabot` as its stated reason — the advice for a missing
 Actions secret would be false there. That skip is safe only while `.github/dependabot.yml` stays
-`github-actions` only, so no pull request from it can change the deployed bundle. Entering the
-five as Dependabot secrets stays an option, and a decision rather than a chore: the bumped action
+`github-actions` only, so no pull request from it can change the deployed bundle, and
+`scripts/ci-workflows.test.ts` pins that rather than trusting the comment beside it. Entering the
+five as Dependabot secrets is still a decision rather than a chore: the bumped action
 then runs in a job holding the Cloudflare token before anyone has read the bump.
 ⚠ A `cloudflare/wrangler-action` bump also moves the commit the guard step's comment in `ci.yml`
 read the action's outputs at: re-read them before merging it.

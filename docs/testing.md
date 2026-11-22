@@ -58,9 +58,7 @@ Read the figures off a run, never off a doc.
   pull request, which holds no Cloudflare credential by design, a `merge_group` entry, which
   has no pull-request number to key a preview on and whose required check the merge queue would
   stall on, and a run Dependabot triggered, which reads the Dependabot secrets rather than the
-  Actions ones and, while `.github/dependabot.yml` stays `github-actions` only, cannot change the
-  bundle a preview would be read for. Every other route to no preview fails the job — a same-repo
-  pull request with the
+  Actions ones. Every other route to no preview fails the job — a same-repo pull request with the
   credential missing, a publish that produced no address, an address refused as not the app
   Worker's, and any state the report does not recognise. If you add a spec, guard it with
   `test.skipIf(skipWithoutPreview)` like its siblings — the loudness belongs to the job, not the
@@ -129,7 +127,7 @@ preview" is not one thing. The job's last step names the cause:
 | ----------------------------------------- | --------------------------------------------------------------- |
 | a forked pull request (no credential)     | expected — annotated, exit 0                                    |
 | a `merge_group` entry (no PR number)      | expected — annotated, exit 0, so the queue completes            |
-| a run Dependabot triggered, with a secret missing from the **Dependabot** set | expected — annotated, exit 0; such a run never reads the Actions secrets, and a `github-actions`-only bump cannot change the bundle a preview would be read for. Entering the five there stays an option, and `docs/rules/deployment.md` § "Deploy-side CI gates" says what that hands a bumped action |
+| a run Dependabot triggered, with a secret missing from the **Dependabot** set | expected — annotated, exit 0; such a run never reads the Actions secrets, and its bumps change no bundle |
 | a missing Actions secret on a same-repo PR  | **enter all five** — the plan step gates on every one, so a half-entered set cannot reach a build whose output a spec then blames |
 | the publish produced no address           | **read the publish step** — it is the upload's own log          |
 | the address was refused                   | **read the guard step** — a wrong `--config` is the usual cause |
