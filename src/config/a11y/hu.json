@@ -1,0 +1,27 @@
+{
+  "calendar": {
+    "previous": "Előző",
+    "next": "Következő",
+    "pick_date": "Dátum kiválasztása"
+  },
+  "common": {
+    "explore": "Felfedezés",
+    "loading": "Betöltés…",
+    "settings": "Beállítások"
+  },
+  "event": {
+    "view_photo": "Fotó megtekintése",
+    "pause_slideshow": "Diavetítés szüneteltetése"
+  },
+  "filters": {
+    "remove": "Eltávolítás: %{label}"
+  },
+  "search": {
+    "results_showing": "Megjelenítve: %{shown} / %{total} esemény",
+    "dismiss_nearby_prompt": "Elvetés"
+  },
+  "share": {
+    "copy_link": "Hivatkozás másolása",
+    "share_on": "Megosztás: %{platform}"
+  }
+}

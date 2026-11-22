@@ -40,7 +40,7 @@ export function CopyField({ value }: { value: string }) {
       <button
         // The URL is the button's visible text, so the name carries it too: a name that
         // omitted it would leave a speech-input viewer with nothing to say (WCAG 2.5.3).
-        aria-label={`${t('share.copy_link')}: ${value}`}
+        aria-label={`${t('share.a11y.copy_link')}: ${value}`}
         className={copyField({ copied })}
         title={value}
         type="button"

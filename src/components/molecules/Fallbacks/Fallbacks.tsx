@@ -72,7 +72,7 @@ export function LoadingFallback({ unboxed = false }: LoadingFallbackProps) {
           on screen. `DrawerLoadingBody` makes the same choice. A visible "Loading…"
           text adds nothing the spinner has not already said. Its height would also
           push the spinner off centre. */}
-      <Spinner color="secondary" srLabel={t('common.chrome.loading')} />
+      <Spinner color="secondary" srLabel={t('common.a11y.loading')} />
     </div>
   )
 }

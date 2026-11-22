@@ -1,0 +1,27 @@
+{
+  "calendar": {
+    "previous": "قبلی",
+    "next": "بعدی",
+    "pick_date": "انتخاب تاریخ"
+  },
+  "common": {
+    "explore": "کاوش",
+    "loading": "در حال بارگذاری…",
+    "settings": "تنظیمات"
+  },
+  "event": {
+    "view_photo": "مشاهده عکس",
+    "pause_slideshow": "توقف نمایش اسلاید"
+  },
+  "filters": {
+    "remove": "حذف %{label}"
+  },
+  "search": {
+    "results_showing": "نمایش %{shown} از %{total} رویداد",
+    "dismiss_nearby_prompt": "رد کردن"
+  },
+  "share": {
+    "copy_link": "کپی پیوند",
+    "share_on": "اشتراک‌گذاری در %{platform}"
+  }
+}

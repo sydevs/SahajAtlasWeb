@@ -11,7 +11,7 @@ import { ShareContent } from './ShareContent'
 vi.mock('react-i18next', () => ({
   useTranslation: () => ({
     t: (key: string, opts?: { platform?: string }) =>
-      key === 'share.share_on'
+      key === 'share.a11y.share_on'
         ? `Share on ${opts?.platform}`
         : key === 'share.native'
           ? 'Share…'

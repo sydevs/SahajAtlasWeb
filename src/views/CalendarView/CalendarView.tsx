@@ -181,7 +181,7 @@ function CalendarControls({ controls }: { controls: CalendarControlsPlugin }) {
         <div className="flex items-center gap-0.5">
           <Button
             isIconOnly
-            aria-label={t('calendar.previous')}
+            aria-label={t('calendar.a11y.previous')}
             size="sm"
             variant="ghost"
             onClick={() => step(-1)}
@@ -207,7 +207,7 @@ function CalendarControls({ controls }: { controls: CalendarControlsPlugin }) {
             </button>
             <input
               ref={dateInputRef}
-              aria-label={t('calendar.pick_date')}
+              aria-label={t('calendar.a11y.pick_date')}
               className="pointer-events-none absolute inset-0 h-full w-full field-size opacity-0"
               tabIndex={-1}
               type="date"
@@ -218,7 +218,7 @@ function CalendarControls({ controls }: { controls: CalendarControlsPlugin }) {
 
           <Button
             isIconOnly
-            aria-label={t('calendar.next')}
+            aria-label={t('calendar.a11y.next')}
             size="sm"
             variant="ghost"
             onClick={() => step(1)}

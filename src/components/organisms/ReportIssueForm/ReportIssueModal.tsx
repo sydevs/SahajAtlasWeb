@@ -79,7 +79,7 @@ export function ReportIssueModal({ apiKey }: ReportIssueModalProps) {
               fallback={
                 <ModalBody>
                   <div className="flex justify-center py-8">
-                    <Spinner color="secondary" srLabel={t('common.chrome.loading')} />
+                    <Spinner color="secondary" srLabel={t('common.a11y.loading')} />
                   </div>
                 </ModalBody>
               }
