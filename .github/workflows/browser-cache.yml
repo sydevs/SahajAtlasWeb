@@ -9,9 +9,7 @@ name: Browser cache
 #
 # ⚠ One key serves two different builds, so this job installs BOTH: the lane drives the full
 # Chromium (`channel: 'chromium'`) and `scripts/check-a11y.mjs` drives the headless shell, which
-# is a separate download under the same directory. Adding `--no-shell` back here would leave the
-# accessibility gate with a cache it still has to download into, and `install-deps` on a hit
-# would then leave it with no browser at all.
+# is a separate download under the same directory.
 #
 # Playwright's CI guide advises against caching browsers, since a restore costs about what a
 # download does. The cache is here because the lane was specified with one. A miss costs a
@@ -40,8 +38,7 @@ jobs:
       - run: pnpm install --frozen-lockfile
 
       # ⚠ The key and the path must match both consumers' restores exactly, or neither hits.
-      # `ci-workflows.test.ts` pins both. ⚠ The key names the payload rather than carrying a
-      # revision number: an entry saved under a key that says `with-shell` holds the shell.
+      # `ci-workflows.test.ts` pins both, and that the payload is what the key's name says.
       - name: Read the pinned Playwright version
         id: playwright
         run: echo "version=$(node -p "require('@playwright/test/package.json').version")" >> "$GITHUB_OUTPUT"

@@ -81,11 +81,9 @@ jobs:
       #
       # ⚠ It must follow `pnpm ladle:build`: the gate reads `build/`, never the dev server, so a
       # story that failed to compile cannot pass by never having been opened.
-      # ⚠ Restored, never saved. A cache is readable from the ref that wrote it, that ref's
-      # pull-request base, or the default branch — and this workflow runs on `pull_request` and
-      # `merge_group` alone, so a save here is read by nothing, a queue entry's ref being new
-      # per entry. `browser-cache.yml` writes the entry on `main` instead (#459). The hit is
-      # worth ~170 MB on the critical path of the one required check, paid again per merge.
+      # ⚠ Restored, never saved: a save on `pull_request` or `merge_group`, the only two events
+      # here, is read by nothing, so `browser-cache.yml` writes the entry on `main` (#459). The
+      # hit is worth ~170 MB on the critical path of the one required check, paid again per merge.
       #
       # ⚠ The key is the pinned version ITSELF, read out of `package.json`, not a hash of the
       # file. `hashFiles('package.json')` re-downloaded the browser on every dependency bump,
@@ -103,22 +101,19 @@ jobs:
             require("node:fs").appendFileSync(process.env.GITHUB_OUTPUT, "version=" + version + "\n")
           '
       # ⚠ The key and the path are the browser lane's and `browser-cache.yml`'s to the
-      # character, so one warmed entry serves both; `ci-workflows.test.ts` pins that. ⚠ This
-      # gate drives the headless shell (`chromium.launch()`, no `channel`), a download of its
-      # own, so the entry has to have been saved without `--no-shell`.
+      # character, so one warmed entry serves both. This gate launches the headless shell
+      # (`chromium.launch()`, no `channel`), which is a download of its own, so the entry has to
+      # have been saved without `--no-shell`.
       - name: Restore the Chromium the accessibility gate drives
-        id: browser-cache
         uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: ~/.cache/ms-playwright
           key: playwright-chromium-with-shell-${{ runner.os }}-${{ steps.playwright.outputs.version }}
       - name: Install Chromium for the accessibility gate
-        if: steps.browser-cache.outputs.cache-hit != 'true'
+        # ⚠ No `if:`, on purpose. `--with-deps` installs system libraries outside the cached
+        # directory, and Playwright skips a browser whose marker the restore brought back — so
+        # this step heals a partial or shell-less entry instead of launching into one.
         run: pnpm exec playwright install --with-deps chromium
-      # The cache restores the browser, not the system libraries it links against.
-      - name: Install Chromium's system libraries
-        if: steps.browser-cache.outputs.cache-hit == 'true'
-        run: pnpm exec playwright install-deps chromium
       - name: Accessibility gate
         run: pnpm test:a11y
 
