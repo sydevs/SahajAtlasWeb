@@ -198,17 +198,17 @@ describe('ci.yml', () => {
 
   // The plan step names the states, and the report step decides which are loud. Two copies of
   // one vocabulary, in one file, with nothing between them: a reason the report does not know
-  // reddens a fork's pull request, and a reason nothing emits is dead advice. Only `fork` and
-  // `queue` may exit 0 — every other route to no preview fails the job, which is this lane's
-  // first invariant (`docs/testing.md`).
-  it('reports every state the plan step can emit, and makes only two of them quiet', () => {
+  // reddens a fork's pull request, and a reason nothing emits is dead advice. Only `dependabot`,
+  // `fork` and `queue` may exit 0 — every other route to no preview fails the job, which is this
+  // lane's first invariant (`docs/testing.md`).
+  it('reports every state the plan step can emit, and makes only three of them quiet', () => {
     const emitted = [...smoke.matchAll(/^\s*reason=(\S+)$/gm)].map((m) => m[1])
     const handled = [...smoke.matchAll(/^\s{12}([a-z|-]+)\)$/gm)].map((m) => m[1])
     const quiet = [...smoke.matchAll(/^\s{12}(\S+)\)\n\s*FATAL=false$/gm)].map((m) => m[1])
 
     expect(emitted.length).toBeGreaterThan(1)
     expect([...emitted].sort()).toEqual([...handled].sort())
-    expect(quiet.sort()).toEqual(['fork', 'queue'])
+    expect(quiet.sort()).toEqual(['dependabot', 'fork', 'queue'])
 
     // Without the fallback, a state added to the plan step and not here would inherit the
     // previous case's advice instead of going loud.
@@ -216,9 +216,9 @@ describe('ci.yml', () => {
   })
 
   // A Dependabot branch is same-repo, and a run Dependabot triggers reads the Dependabot secrets,
-  // never the Actions ones. Left to `no-credentials`, its red tells the reader to add Actions
-  // secrets that are already entered. The test sits INSIDE the same-repo branch, so a fork stays
-  // a fork, and the vocabulary pin above keeps the reason loud: only the advice differs.
+  // never the Actions ones. Left to `no-credentials` it would go red, telling the reader to add
+  // Actions secrets that are already entered. The test sits INSIDE the same-repo branch, so a
+  // fork stays a fork.
   it('gives a run Dependabot triggered its own reason, inside the same-repo branch', () => {
     expect(match(smoke, /^\s*ACTOR: (.+)$/m)).toBe('${{ github.actor }}')
     expect(smoke).toMatch(
@@ -232,6 +232,21 @@ describe('ci.yml', () => {
     expect(readRepoSource('docs/rules/deployment.md')).toContain(
       `\n## ${match(advice, /'([^']+)'/)}\n`,
     )
+  })
+
+  // The quiet skip above costs a Dependabot pull request its preview read, and what makes that
+  // safe is `.github/dependabot.yml` updating actions alone: such a pull request cannot change
+  // the deployed bundle. An npm entry there would make every dependency bump — the pull requests
+  // that DO change it — collect a green Smoke check that read nothing, with no red anywhere. So
+  // the premise is pinned here rather than left to the prose beside each copy of the reason.
+  it('keeps the quiet skip safe by updating actions alone', () => {
+    // Matched loosely on purpose: a second entry written with another spacing, quoted, or in a
+    // flow-style list must fail here rather than leave the first match passing for the file.
+    const ecosystems = [
+      ...readRepoSource('.github/dependabot.yml').matchAll(/package-ecosystem:\s*['"]?([\w-]+)/g),
+    ].map((m) => m[1])
+
+    expect(ecosystems).toEqual(['github-actions'])
   })
 
   // ⚠ A wrong `on:` block here fails silently, in both directions. `docs/testing.md` § "The merge
