@@ -81,9 +81,8 @@ jobs:
       #
       # ⚠ It must follow `pnpm ladle:build`: the gate reads `build/`, never the dev server, so a
       # story that failed to compile cannot pass by never having been opened.
-      # ⚠ Restored, never saved: a save on `pull_request` or `merge_group`, the only two events
-      # here, is read by nothing, so `browser-cache.yml` writes the entry on `main` (#459). The
-      # hit is worth ~170 MB on the critical path of the one required check, paid again per merge.
+      # ⚠ Restore only, as in the browser lane: a save here is scoped to this run's own ref (#459).
+      # The hit is worth ~170 MB on the one required check's critical path, paid again per merge.
       #
       # ⚠ The key is the pinned version ITSELF, read out of `package.json`, not a hash of the
       # file. `hashFiles('package.json')` re-downloaded the browser on every dependency bump,
