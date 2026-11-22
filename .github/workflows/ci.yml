@@ -101,7 +101,6 @@ jobs:
             require("node:fs").appendFileSync(process.env.GITHUB_OUTPUT, "version=" + version + "\n")
           '
       - name: Cache the Chromium the accessibility gate drives
-        id: browser-cache
         uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: ~/.cache/ms-playwright
