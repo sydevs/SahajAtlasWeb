@@ -371,14 +371,17 @@ describe('browser-cache.yml', () => {
     expect(cacheActions(warmWorkflow)).toEqual(['actions/cache/restore', 'actions/cache/save'])
   })
 
-  // What makes the key's name true. The accessibility gate launches the headless shell, a
-  // download of its own, so `--no-shell` here costs that gate the download this cache removes.
-  it('saves the headless shell beside the full browser, as its key says', () => {
+  // What makes one entry serve both consumers: the warm job saves the full Chromium alone, and
+  // the accessibility gate asks for that build by channel. Drop the channel and the gate
+  // launches the headless shell, which this entry does not hold, on a required check.
+  it('saves the one build both consumers launch', () => {
     const install = steps(warmWorkflow).filter((step) => /playwright install\b/.test(step))
 
     expect(install).toHaveLength(1)
-    expect(match(install[0], /^\s*run: (.+playwright install.+)$/m)).not.toContain('--no-shell')
-    expect(browserCache(warmWorkflow).keys[0]).toContain('with-shell')
+    expect(match(install[0], /^\s*run: (.+playwright install.+)$/m)).toContain('--no-shell')
+    expect(readRepoSource('scripts/check-a11y.mjs')).toContain(
+      "chromium.launch({ channel: 'chromium' })",
+    )
   })
 
   it('pins every action it uses by commit SHA', () => {
@@ -398,13 +401,18 @@ describe("ci.yml's gate job, on the browser its accessibility step drives", () =
     expectRestoresWarmedCache(gateJob)
   })
 
-  // One step, on a hit as on a miss. An `if:` here would hand a partial or shell-less entry to
-  // `pnpm test:a11y` as a browser, and `--with-deps` installs libraries no cache holds anyway.
+  // One step, on a hit as on a miss. An `if:` here would hand a partial entry to `pnpm test:a11y`
+  // as a browser, and `--with-deps` installs libraries no cache holds anyway. `--no-shell` keeps
+  // what a miss downloads equal to what the key promises.
   it('installs the browser and its system libraries whether the cache hit or missed', () => {
     const install = steps(gateJob).filter((step) => /playwright install\b/.test(step))
+    // ⚠ The run line, never the step: this step's own comment names both flags, so a step-wide
+    // `toContain` passes on the prose after the command has lost the flag.
+    const run = match(install[0], /^\s*run: (.+playwright install.+)$/m)
 
     expect(install).toHaveLength(1)
-    expect(install[0]).toContain('--with-deps')
+    expect(run).toContain('--with-deps')
+    expect(run).toContain('--no-shell')
     expect(install[0]).not.toMatch(/^\s*if:/m)
   })
 

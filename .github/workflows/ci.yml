@@ -100,19 +100,19 @@ jobs:
             require("node:fs").appendFileSync(process.env.GITHUB_OUTPUT, "version=" + version + "\n")
           '
       # ⚠ The key and the path are the browser lane's and `browser-cache.yml`'s to the
-      # character, so one warmed entry serves both. This gate launches the headless shell
-      # (`chromium.launch()`, no `channel`), which is a download of its own, so the entry has to
-      # have been saved without `--no-shell`.
+      # character, so one warmed entry serves both. That holds because `scripts/check-a11y.mjs`
+      # passes `channel: 'chromium'`, launching the same full browser the lane drives.
       - name: Restore the Chromium the accessibility gate drives
         uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: ~/.cache/ms-playwright
-          key: playwright-chromium-with-shell-${{ runner.os }}-${{ steps.playwright.outputs.version }}
+          key: playwright-chromium-${{ runner.os }}-${{ steps.playwright.outputs.version }}
       - name: Install Chromium for the accessibility gate
         # ⚠ No `if:`, on purpose. `--with-deps` installs system libraries outside the cached
         # directory, and Playwright skips a browser whose marker the restore brought back — so
-        # this step heals a partial or shell-less entry instead of launching into one.
-        run: pnpm exec playwright install --with-deps chromium
+        # this step heals a partial entry instead of launching into one. `--no-shell` keeps the
+        # payload what the key says: neither consumer launches the headless shell.
+        run: pnpm exec playwright install --with-deps --no-shell chromium
       - name: Accessibility gate
         run: pnpm test:a11y
 
@@ -204,9 +204,8 @@ jobs:
         uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: ~/.cache/ms-playwright
-          key: playwright-chromium-with-shell-${{ runner.os }}-${{ steps.playwright.outputs.version }}
-      # `--no-shell`: the lane runs the full Chromium (`channel: 'chromium'`), not the headless
-      # shell — which the warmed entry carries anyway, for the accessibility gate that does.
+          key: playwright-chromium-${{ runner.os }}-${{ steps.playwright.outputs.version }}
+      # `--no-shell`: the lane runs the full Chromium (`channel: 'chromium'`), not the headless shell.
       - name: Install Chromium
         if: steps.browser-cache.outputs.cache-hit != 'true'
         run: pnpm exec playwright install --with-deps --no-shell chromium

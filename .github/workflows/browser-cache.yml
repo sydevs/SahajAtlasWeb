@@ -7,9 +7,9 @@ name: Browser cache
 # nothing at all. The default branch is the one scope they share, and this is its only writer:
 # both consumers restore and neither saves.
 #
-# ⚠ One key serves two different builds, so this job installs BOTH: the lane drives the full
-# Chromium (`channel: 'chromium'`) and `scripts/check-a11y.mjs` drives the headless shell, which
-# is a separate download under the same directory.
+# ⚠ One entry serves both because both launch the full Chromium: the lane through its own
+# config and the accessibility gate through `channel: 'chromium'` in `scripts/check-a11y.mjs`.
+# So `--no-shell` holds — the headless shell is a download neither one launches (#459).
 #
 # Playwright's CI guide advises against caching browsers, since a restore costs about what a
 # download does. The cache is here because the lane was specified with one. A miss costs a
@@ -38,7 +38,7 @@ jobs:
       - run: pnpm install --frozen-lockfile
 
       # ⚠ The key and the path must match both consumers' restores exactly, or neither hits.
-      # `ci-workflows.test.ts` pins both, and that the payload is what the key's name says.
+      # `ci-workflows.test.ts` pins both, and that the payload is what both consumers launch.
       - name: Read the pinned Playwright version
         id: playwright
         run: echo "version=$(node -p "require('@playwright/test/package.json').version")" >> "$GITHUB_OUTPUT"
@@ -48,16 +48,15 @@ jobs:
         uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: ~/.cache/ms-playwright
-          key: playwright-chromium-with-shell-${{ runner.os }}-${{ steps.playwright.outputs.version }}
+          key: playwright-chromium-${{ runner.os }}-${{ steps.playwright.outputs.version }}
           lookup-only: true
-      # No `--with-deps`: a cache holds the browser, never the system libraries. No `--no-shell`
-      # either: see the header — this one entry has to hold both builds.
-      - name: Download Chromium and its headless shell
+      # No `--with-deps`: a cache holds the browser, never the system libraries.
+      - name: Download Chromium
         if: steps.browser-cache.outputs.cache-hit != 'true'
-        run: pnpm exec playwright install chromium
-      - name: Save the browsers
+        run: pnpm exec playwright install --no-shell chromium
+      - name: Save the browser
         if: steps.browser-cache.outputs.cache-hit != 'true'
         uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: ~/.cache/ms-playwright
-          key: playwright-chromium-with-shell-${{ runner.os }}-${{ steps.playwright.outputs.version }}
+          key: playwright-chromium-${{ runner.os }}-${{ steps.playwright.outputs.version }}

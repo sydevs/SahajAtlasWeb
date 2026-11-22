@@ -550,7 +550,10 @@ export async function run({ only, origin } = {}) {
     : { url: AXE_PATH }
   const meta = await (await fetch(`${site.origin}/meta.json`)).json()
   const ids = Object.keys(meta.stories).filter((id) => !only || id === only)
-  const browser = await chromium.launch()
+  // `channel: 'chromium'` launches the full browser, which the browser lane drives too, so one
+  // warmed cache entry serves both CI consumers. The default launches the headless shell, a
+  // download of its own under the same directory (#459).
+  const browser = await chromium.launch({ channel: 'chromium' })
   // `isMobile` is what makes `(pointer: coarse)` match, and the `touch-target` utility is
   // written against that query — on a fine pointer every small control would be reported and
   // the gate would be measuring a device nobody taps.

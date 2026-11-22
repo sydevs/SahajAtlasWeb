@@ -414,9 +414,10 @@ themselves would be scoped to their own ref, and read by that pull request alone
 A miss costs a download, never a failure, and Playwright's own CI guide advises against caching
 browsers at all, so dropping both halves would leave the lane as it is.
 
-⚠ **The accessibility gate restores the same entry** (#459): the warm job installs the headless
-shell too, so one key serves two consumers that launch different builds.
-`scripts/ci-workflows.test.ts` pins both restore-only.
+⚠ **The accessibility gate restores the same entry** (#459): it launches the same full Chromium,
+through `channel: 'chromium'`, so one key serves both consumers and neither downloads the headless
+shell. `scripts/ci-workflows.test.ts` pins both restore-only, and that channel against the warm
+job's `--no-shell`.
 
 | scenario (`tests/browser/`)                   | host page              | watched failing against                                              |
 | --------------------------------------------- | ---------------------- | -------------------------------------------------------------------- |
@@ -497,7 +498,7 @@ with every gate green.
 ### Running it locally
 
 ```bash
-pnpm exec playwright install --with-deps chromium  # both builds, once per Playwright version
+pnpm exec playwright install --with-deps --no-shell chromium  # the build both lanes drive
 pnpm test:browser                       # build dist-browser/, then every scenario
 pnpm exec playwright test               # again, without rebuilding
 pnpm exec playwright test navigation    # one file; add --headed, --debug or --ui to watch it
@@ -530,14 +531,14 @@ things of every story: axe-core's rule set, a tap area of at least 44px **probed
 `document.elementFromPoint`**, and a keyboard walk that each stop is visible, in document order,
 and paints a focus indicator.
 
-⚠ **The Chromium it drives is the headless shell**, since `chromium.launch()` passes no
-`channel`: a download of its own, beside the full browser the browser lane drives. In CI both come
-out of one `main`-warmed cache, and locally out of the one install § "The browser lane" gives.
-**Giving this gate `channel: 'chromium'` would converge the two on one build** — rejected for now
-because it changes what a required check renders, and every figure above was measured on the
-shell, so it needs a re-measure of its own (#459).
+⚠ **The Chromium it drives is the full browser**, asked for by `channel: 'chromium'` — the one
+the browser lane drives, so one `main`-warmed entry serves both in CI and one install serves both
+locally (#459). It drove the headless shell until then, a separate download under the same
+directory. Re-measured 2026-11-22 on the converged build: 52 stories, clean.
 
-**The unit lane cannot host it, and measuring said so.** jsdom has no layout at all: a tap area
+**The unit lane cannot host it, and measuring said so.** ⚠ Both figures below were taken on the
+headless shell, the build this gate drove then; what they weigh is layout against no layout, which
+the Chromium build does not move. jsdom has no layout at all: a tap area
 cannot be measured, and `color-contrast` resolves to nothing. Measured 2026-11-19 over the same
 52 stories with the same axe configuration, counting violation NODES: **jsdom returned 31, the
 browser 131** — and the browser's 80 contrast failures and 24 label-in-name failures were not
