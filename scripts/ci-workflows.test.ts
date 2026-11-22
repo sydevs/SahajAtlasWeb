@@ -328,23 +328,14 @@ describe('ci.yml browser lane', () => {
   // entry only this run's own ref can read, and a hit that skips the system libraries leaves a
   // browser that cannot launch. `browser-cache.yml` says why.
   it('restores the browser `browser-cache.yml` saves, and saves none itself', () => {
+    const hit = steps(job).filter((step) => /cache-hit == 'true'/.test(step))
+
     expectRestoresWarmedCache(job)
     expect(versionRead(job)).toBe(versionRead(warmWorkflow))
-    expect(onCacheHit(job)).toMatch(/playwright install-deps chromium/)
+    expect(hit, 'no step in this job runs on a cache hit').toHaveLength(1)
+    expect(hit[0]).toMatch(/playwright install-deps chromium/)
   })
 })
-
-/**
- * The step a cache hit runs in place of the download. A restore brings the browser back and
- * nothing else — the system libraries it links against live outside the cached directory.
- */
-const onCacheHit = (job: string) => {
-  const hit = steps(job).filter((step) => /cache-hit == 'true'/.test(step))
-
-  expect(hit, 'no step in this job runs on a cache hit').toHaveLength(1)
-
-  return hit[0]
-}
 
 /**
  * Both `ci.yml` consumers read the one entry `browser-cache.yml` writes on `main`, and each half
