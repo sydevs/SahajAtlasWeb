@@ -1100,7 +1100,8 @@ the events — the widget ships an English copy compiled in and fetches every ot
 the CMS, so a blocked `connect-src` leaves a non-English page reading English rather than showing
 raw key names.
 
-Three files sit at that origin's root, and only the first is one you reference:
+Three files sit at the widget's own origin, `https://sahajatlas.com`, and only the first is
+one you reference:
 
 | File        | What it is                                                     |
 | ----------- | -------------------------------------------------------------- |
