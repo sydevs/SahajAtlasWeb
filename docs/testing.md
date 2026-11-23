@@ -422,11 +422,7 @@ job's `--no-shell`.
 
 ⚠ **All three jobs read the version through `scripts/playwright-version.mjs`** (#462), which
 refuses a pin that is not an exact version: a step output is repository text, and a newline inside
-one forges further outputs on a fork's pull request. Both consumers then install unconditionally,
-because an `if:` on a cache hit hands a partially restored entry on as a browser.
-`scripts/ci-workflows.test.ts` pins the single reader and the key it builds, and refuses a
-one-sided bump of the two Playwright pins — the key names `playwright`, the lanes launch through
-`@playwright/test`.
+one forges further outputs on a fork's pull request.
 
 | scenario (`tests/browser/`)                   | host page              | watched failing against                                              |
 | --------------------------------------------- | ---------------------- | -------------------------------------------------------------------- |
