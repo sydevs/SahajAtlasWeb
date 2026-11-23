@@ -138,18 +138,15 @@ describe('the container-vs-viewport decision table', () => {
  *
  * The hook-based list above scans for `useIsWideViewport` and `react-responsive`.
  * So a module that reads `window.innerWidth` or `screen.avail*` directly is invisible to it, and #161 added exactly such a module.
- * That reading is sanctioned. The slot decision genuinely needs the viewport and the screen, and it runs before any hook could.
+ * Each reading below is sanctioned, because the window itself is what it asks about.
  * But it must stay a CLOSED list, for the same reason the hooks do.
  * The next component that wants "is the widget wide" will copy the nearest precedent, and a raw read in `src/lib/` is now that precedent.
  */
 const RAW_VIEWPORT_READERS: Record<string, string> = {
   // The height of the box the sheet covers, when no frame owns it, to cap the camera padding.
   'hooks/use-map-controller-real.tsx': 'caps camera padding for a short viewport',
-  'lib/slot-decision.ts':
-    'the slot decision: compares the host slot to the viewport, and a frame to the screen, before React renders',
-  // The height of the box the sheet slides in, when no frame owns it: to tell the peek, and to
-  // keep a short window's stops clear of the top.
-  'views/DrawerStack/DrawerStack.tsx': 'marks the sheet at its peek, and caps its stops when short',
+  'views/InlineEmbedView/host-page.ts':
+    "finds the host's header across the top of the window, where the expanded map starts",
 }
 
 describe('raw viewport reads are a closed list too', () => {
@@ -162,6 +159,6 @@ describe('raw viewport reads are a closed list too', () => {
   })
 
   it('is a real scan — it still finds the module it is meant to police', () => {
-    expect(RAW.test(read('lib/slot-decision.ts'))).toBe(true)
+    expect(RAW.test(read('views/InlineEmbedView/host-page.ts'))).toBe(true)
   })
 })

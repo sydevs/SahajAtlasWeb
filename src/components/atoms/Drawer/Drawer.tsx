@@ -148,6 +148,17 @@ const drawer = tv({
       filled: {
         content: '!absolute !inset-0 !h-full !max-h-none !w-full !max-w-none !rounded-none !pb-0',
       },
+      /**
+       * In the host page's flow, with no drawer at all: the inline embed's content column.
+       * Nothing scrolls inside it, so the page grows to fit, and nothing centres itself in a
+       * column the page heading is aligned to.
+       */
+      inline: {
+        header: '!mx-0 !max-w-none',
+        toolbar: '!mx-0 !max-w-none',
+        body: '!mx-0 !max-w-none !flex-none !overflow-visible after:hidden',
+        footer: '!mx-0 !max-w-none',
+      },
     },
     // A full-width surface, such as CalendarView, instead of the 352px
     // left panel, so a month grid stays legible. This only matters with
@@ -178,11 +189,13 @@ const drawer = tv({
 
 type DrawerSlots = ReturnType<typeof drawer>
 
+type DrawerMode = 'anchored' | 'filled' | 'inline'
+
 type DrawerCtx = {
   slots: DrawerSlots
   direction: DrawerDirection
   // A `filled` drawer, map-less, hides the drag handle. There is nothing to drag.
-  mode: 'anchored' | 'filled'
+  mode: DrawerMode
   // The portal target for a real drawer. Map-less mode passes the widget container.
   container?: HTMLElement | null
 }
@@ -194,6 +207,9 @@ const DrawerContext = createContext<DrawerCtx>({
 })
 
 const useDrawerSlots = () => useContext(DrawerContext)
+
+/** Which surface a view's `Drawer*` subtree renders in. */
+export const useDrawerMode = () => useContext(DrawerContext).mode
 
 export type DrawerProps = VariantProps<typeof drawer> & {
   /** Controlled open state. */
@@ -247,10 +263,10 @@ export function Drawer({
   const rootProps = {
     // ⚠ Vaul measures the CONTAINER when given one, and `window.innerHeight`
     // otherwise (`snapPointsOffset`, vaul dist). Passing one is what makes a
-    // fractional snap point correct inside `CompactEmbedView`'s dialog. That
-    // dialog keeps a margin, so it is 16-32px shorter than the window.
-    // Without this prop, the near-full snap sat that far out, and the sheet
-    // overran the clip edge.
+    // fractional snap point correct inside the expanded dialog, which starts
+    // below the host's header and so is shorter than the window. Without
+    // this prop, the near-full snap sat that far out, and the sheet overran
+    // the clip edge.
     //
     // ⚠ **But it must be a box, and the portal target is not always one.**
     // This code briefly passed `container`, the element this drawer portals
@@ -267,9 +283,9 @@ export function Drawer({
     // through it.
     //
     // So the measurement box is its own prop. `DrawerStack` supplies
-    // `frameElement()`: the compact card's expanded dialog, or a contained
-    // map's `MapFrame` (#169). It supplies `undefined` wherever there is no
-    // frame, and that is where vaul's own `window.innerHeight` is correct.
+    // `frameElement()`: the expanded dialog. It supplies `undefined` wherever
+    // there is no frame, and that is where vaul's own `window.innerHeight` is
+    // correct.
     container: measureAgainst ?? undefined,
     direction,
     dismissible,
@@ -312,7 +328,7 @@ export function DrawerSlotsProvider({
   direction = 'bottom',
   children,
 }: {
-  mode?: 'anchored' | 'filled'
+  mode?: DrawerMode
   direction?: DrawerDirection
   children: ReactNode
 }) {
@@ -465,10 +481,14 @@ export function DrawerFooter({
    * top of the published height: the body's bottom edge sits that far below the
    * viewport at any snap but the top one, and the bar paints at the viewport
    * (#326).
+   *
+   * Ignored inline, where there is no sheet to pin to: the footer ends the content in the
+   * page's own flow.
    */
   sticky?: boolean
 }) {
-  const { slots } = useDrawerSlots()
+  const { slots, mode } = useDrawerSlots()
+  const pinned = sticky && mode !== 'inline'
   const ref = useRef<HTMLDivElement>(null)
 
   // The body clears this footer by its own trailing length, and no caller can
@@ -491,7 +511,7 @@ export function DrawerFooter({
     const el = ref.current
     const layer = el?.parentElement
 
-    if (!sticky || !el || !layer || typeof ResizeObserver === 'undefined') return
+    if (!pinned || !el || !layer || typeof ResizeObserver === 'undefined') return
 
     const observer = new ResizeObserver(([entry]) => {
       const height = entry?.borderBoxSize?.[0]?.blockSize ?? el.offsetHeight
@@ -505,13 +525,13 @@ export function DrawerFooter({
       observer.disconnect()
       layer.style.removeProperty('--sy-footer-h')
     }
-  }, [sticky])
+  }, [pinned])
 
   return (
     <div
       ref={ref}
       className={slots.footer({
-        className: `${sticky ? 'fixed inset-x-0 bottom-[var(--sy-sheet-top,0px)] z-10 bg-background' : ''} ${className ?? ''}`,
+        className: `${pinned ? 'fixed inset-x-0 bottom-[var(--sy-sheet-top,0px)] z-10 bg-background' : ''} ${className ?? ''}`,
       })}
     >
       {children}
@@ -519,7 +539,7 @@ export function DrawerFooter({
           home indicator, so a bar flush with it puts its control in the gesture
           area. The spacer carries the inset rather than the footer's padding,
           which a caller's own `py-*` would merge away. */}
-      {sticky && <div className="h-[env(safe-area-inset-bottom)]" />}
+      {pinned && <div className="h-[env(safe-area-inset-bottom)]" />}
     </div>
   )
 }

@@ -69,17 +69,15 @@ export type LoaderConfig = {
    * Did that route come from the PAGE's `?atlas=`, rather than the script URL's?
    *
    * The two mean opposite things, and `route` above cannot tell them apart once resolved. A page
-   * route means a visitor followed a link, so the widget mounts **eagerly** and opens straight
-   * onto it. A script route is the host's default view, so the widget stays lazy and opens
-   * nothing. This same boolean feeds `MountDecision.fromPage`, so the eager decision and the
-   * auto-open decision cannot disagree.
+   * route means a visitor followed a link, so the widget mounts **eagerly**. A script route is
+   * the host's default view, so the widget stays lazy.
    */
   routeFromPage: boolean
   /**
-   * `gestures=cooperative`: a contained map leaves one-finger and wheel scrolling to the page, and
+   * `gestures=cooperative`: the inline map leaves one-finger and wheel scrolling to the page, and
    * moves only on two fingers or Ctrl/⌘ + wheel. For a map partway down a page the visitor must
-   * be able to scroll past. A full-window map and the compact card's overlay ignore it — there
-   * is no page to scroll there.
+   * be able to scroll past. The expanded map and the map-first page ignore it — there is no page
+   * to scroll there.
    */
   cooperative: boolean
 }

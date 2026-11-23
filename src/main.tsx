@@ -11,8 +11,6 @@ import { activateLivePreview, captureLivePreview } from './config/live-preview/b
 import { startClientsPreview } from './config/live-preview/clients'
 import { attributeEnabled } from './config/attributes'
 import { initTheme } from './hooks/use-theme'
-import { reportIntegrationWarning } from './lib/report'
-import { FULL_SLOT, decideSlot, framed } from './lib/slot-decision'
 import { adoptStyles } from './styles/sheet'
 
 // The embed's sheet is adopted by its shadow root, so the build stopped appending a
@@ -47,8 +45,16 @@ initTheme()
  * **This build is the frame target** — the documented secondary delivery for hosts that cannot
  * run the loader (`docs/embedding.md`) — and framing changes two things below: where a link may
  * point, and whether a route is worth handing to anybody.
+ *
+ * A cross-origin parent can refuse the comparison itself, and that is framed too.
  */
-const topLevel = !framed()
+const topLevel = (() => {
+  try {
+    return window.self === window.top
+  } catch {
+    return false
+  }
+})()
 
 /**
  * Where a link to this route should point, or `undefined` when there is honestly nowhere.
@@ -71,26 +77,15 @@ const hrefFor = topLevel
 /**
  * Mount, once whatever has to be settled first is settled.
  *
- * ⚠ **The slot decision is inside here because it reads the live-preview verdict**, and that
+ * ⚠ **The form decision is inside here because it reads the live-preview verdict**, and that
  * verdict does not exist until the verify resolves.
  */
 function mount() {
-  // Does the interface fit? With no element to measure, the slot is the viewport — which for a
-  // framed build is the frame. `fromPage: false` because a framed embed never auto-opens: its
-  // button is an anchor to another document, and following it on mount would be a redirect
-  // nobody asked for.
-  //
-  // ⚠ **A live-preview session skips the question entirely.** The slot is SahajCloud's preview
-  // panel: framed, and free to be dragged under the 360×420 the interface needs. Asked, this
-  // would answer `compact` — and a reviewer would get a one-button card where the document they
-  // are editing should be, with the button leading off to another site. There is nowhere bigger
-  // to offer an editor inside their own admin panel, so the premise of the whole decision is
-  // absent. Cramped beats absent.
-  const { compact, contained, warning } = livePreview.active
-    ? FULL_SLOT
-    : decideSlot({ element: null, hasMap, fromPage: false })
-
-  if (warning) reportIntegrationWarning(warning)
+  // A frame is an embed, so it opens inline, like the script embed does; opened directly, this
+  // is the map-first page. ⚠ **A live-preview session is framed and stays map-first**: it is
+  // SahajCloud's preview panel, where an editor checks the interface they are editing, and
+  // "Expand map" would lead them off to another site.
+  const inline = !topLevel && !livePreview.active
 
   /**
    * `BrowserRouter`, unconditionally.
@@ -115,14 +110,7 @@ function mount() {
     root.render(
       <RoutingContext.Provider value={hrefFor}>
         <BrowserRouter>
-          <App
-            standalone
-            apiKey={atlasAuth.apiKey}
-            brand={brand}
-            compact={compact}
-            contained={contained}
-            hasMap={hasMap}
-          />
+          <App standalone apiKey={atlasAuth.apiKey} brand={brand} hasMap={hasMap} inline={inline} />
         </BrowserRouter>
       </RoutingContext.Provider>,
     )

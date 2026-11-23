@@ -97,6 +97,28 @@ cover everything a host would notice since the widget was first deployed.
   unset, the whole widget, panels included, takes the new green and coral. **No parameter,
   origin, CSP, storage or Permissions-Policy change.**
 
+- ⚠ **Every embed now opens inline, as part of your page, and the map opens over it on request.**
+  The widget shows a heading — "Free Meditation classes in London" — above two columns: the
+  classes on the left, and a square map on the right that stays in view below your header. A
+  narrow widget stacks a short map strip above the classes; `map=false` shows the classes alone.
+  "Expand map" opens the full map, with its panel, in a modal covering the screen below your
+  header, and "Close map" brings the visitor back. See
+  [Sizing the element](docs/embedding.md#sizing-the-element). What you can observe:
+  - **The widget overrides your element's height.** It writes `height: auto`, `max-height: none`
+    and `overflow: visible` onto `<sahaj-atlas>` as inline `!important` styles, so a height you
+    set for the old full-screen or contained map gives way and the page grows to fit. Where your
+    element cannot grow, the widget scrolls inside it.
+  - **The full-screen map, the contained map and the compact card are gone.** A deep link opens
+    inline on its route instead of opening an overlay.
+  - **A new, optional CSS custom property, `--sahaj-atlas-top`**, says where your header ends. The
+    widget looks for your header itself when it is absent.
+  - **The widget adds a heading to your page**: an `<h1>`, or an `<h2>` when your page has an
+    `<h1>` of its own.
+  - **In an iframe**, the widget opens inline and scrolls inside the frame; "Expand map" opens a
+    new tab. Opened directly, `sahajatlas.com` keeps its map-first page.
+
+  **No parameter, origin, CSP, storage or Permissions-Policy change.**
+
 - **Screen-reader labels in every language now ship with the widget.** ([#456]) The names a
   screen reader speaks for icon-only controls (calendar arrows, the settings cog, a filter chip's
   remove button, share buttons, loading spinners) are now translated into every language

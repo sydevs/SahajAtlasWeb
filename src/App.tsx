@@ -1,6 +1,5 @@
 import type { PaletteRoles } from '@/config/theme/palette'
 import type { RoutingMode } from '@/loader/config'
-import type { CompactState } from '@/lib/slot-decision'
 
 import { type ReactNode, Suspense, lazy, useEffect, useLayoutEffect, useMemo, useRef } from 'react'
 import { Helmet } from 'react-helmet-async'
@@ -30,10 +29,9 @@ import {
 // re-exports `Mapbox`, so importing ANYTHING through it pulls the map and `react-map-gl`
 // straight back into the eager graph. Under react-map-gl 7, which fired `import('mapbox-gl')` at
 // module scope, splitting `FullInterface` behind `lazy` was not enough on its own: measured in a
-// browser, the compact embed still fetched all 485 KiB gz through this one barrel import.
+// browser, an embed still fetched all 485 KiB gz through this one barrel import.
 import { ReportIssueModal } from '@/components/organisms/ReportIssueForm'
 import { NoExpansionProvider } from '@/hooks/use-expansion'
-import { CompactEmbedView } from '@/views/CompactEmbedView'
 import { WidgetModeContext } from '@/config/mode'
 import livePreview from '@/config/live-preview/protocol'
 import '@/styles/globals.css'
@@ -46,10 +44,11 @@ import i18n from '@/config/i18n'
 import { applyLocale, bootLocale } from '@/config/locale'
 import { useAvailableLocales } from '@/hooks/use-available-locales'
 
-// This is the boundary that keeps `react-map-gl` (and therefore mapbox-gl) out of a
-// compact embed's payload. Live preview is lazy for its own reason: it is admin-only, so
-// the controller lands in a chunk nobody else fetches.
+// The boundary that keeps `react-map-gl` (and therefore mapbox-gl) out of the eager graph:
+// every interface form is a lazy chunk. Live preview is lazy for its own reason: it is
+// admin-only, so the controller lands in a chunk nobody else fetches.
 const FullInterface = lazy(() => import('@/views/FullInterface'))
+const InlineEmbedView = lazy(() => import('@/views/InlineEmbedView/InlineEmbedView'))
 
 const LivePreviewController = lazy(() =>
   import('@/components/live-preview/LivePreviewController').then((m) => ({
@@ -123,21 +122,11 @@ type AppProps = {
   // Render the Mapbox canvas (default true). map=false omits the whole map subtree.
   hasMap?: boolean
   /**
-   * Map mode lives inside the host's element, rather than filling the window (issue
-   * #169) — decided by the same single measurement as `compact`, and never true at the
-   * same time.
+   * The atlas in the host's own page, with the map one button away — every embed and every
+   * framed page. `false` is the map-first interface: the standalone page opened directly.
+   * Decided once, by the entry.
    */
-  contained?: boolean
-  /**
-   * Render the compact card instead of the interface, and everything that decision
-   * carries with it — decided once at mount by the entry that can measure the slot
-   * (#161).
-   *
-   * `null`/absent means the full interface, and is the only answer the standalone
-   * build gives when it is not framed. This is one nullable object, rather than a flag
-   * plus its satellites, so a caller cannot pass an auto-open that nothing reads.
-   */
-  compact?: CompactState | null
+  inline?: boolean
   // Is the route on screen in the URL, and therefore shareable? True for every router
   // that writes one (BrowserRouter standalone, the query and path routers embedded). The
   // embedded widget passes false in memory mode, taken where the document refuses `replaceState`.
@@ -158,8 +147,7 @@ export default function App({
   brand,
   standalone = false,
   hasMap = true,
-  contained = false,
-  compact = null,
+  inline = false,
   linkable = true,
   routing = 'query',
   prefix,
@@ -168,29 +156,15 @@ export default function App({
   // current-locale titles the moment the API key is available, in parallel with the
   // client bootstrap the tree suspends on — so region/map data is not serialized
   // behind clients/me. This is fire-and-forget and idempotent (React Query dedupes).
-  // AppShell still performs the real reads.
-  //
-  // ⚠ **Not while a compact card is all that renders.** The feed and the region tree
-  // exist to serve the interface, and a collapsed card shows neither. So warming them
-  // would turn every page view of a sidebar embed nobody presses into two reads of the
-  // whole dataset. That is the exact cost #161 removed by deleting the card's preview
-  // rows, and it came straight back in through here: `CompactEmbedView.test.tsx`
-  // asserts the ROWS are absent, which a fetch two components above it satisfies while
-  // still making the requests. This was found in a browser, because no unit spec can
-  // see a request the component under test never issues.
-  //
-  // `FullInterface` warms on mount instead, so pressing the button still warms them.
-  // This stays here for the full form, because there the point is the PARALLELISM —
-  // moving it behind a lazy chunk would put the feed back behind a round trip it
-  // currently overlaps.
+  // AppShell still performs the real reads. It stays here, rather than behind the lazy
+  // interface chunk, because the point is the PARALLELISM — moving it there would put the
+  // feed back behind a round trip it currently overlaps.
   useEffect(() => {
-    if (apiKey && !compact) api.warmCaches()
-  }, [apiKey, compact])
+    if (apiKey) api.warmCaches()
+  }, [apiKey])
 
-  // ⚠ **Ungated by `compact`, unlike the warm-up above.** The compact card is one localized
-  // sentence, so it needs the language set and the copy as much as the full interface does —
-  // and it needs them at the same moment, beside `clients/me`, or the card paints in English and
-  // then switches in front of the viewer. That is the boot order PR #168 measured: warmed in
+  // The language and the copy are warmed beside `clients/me`, or the widget paints in English
+  // and then switches in front of the viewer. That is the boot order PR #168 measured: warmed in
   // parallel, the config settled 1 ms after `clients/me`; serialized behind it, the flip was
   // visible. `PathBoot` in `Widget.tsx` fires the same pair, because in path mode it reads the
   // client record above this component.
@@ -212,9 +186,9 @@ export default function App({
         <BrandTheme apiKey={apiKey} palette={brand}>
           {/* `unboxed` is the map form that fills the window: its interface is fixed and
               inset-0, so a fallback standing in for it must be too, or it collapses to its
-              own content height at the top of the screen. A contained map, a map-less embed,
-              and the compact card all have a real box, and there `h-full` is already right. */}
-          <Suspense fallback={<LoadingFallback unboxed={hasMap && !contained && !compact} />}>
+              own content height at the top of the screen. The inline form and a map-less
+              page have a real box, and there `h-full` is already right. */}
+          <Suspense fallback={<LoadingFallback unboxed={hasMap && !inline} />}>
             {/* `context` names this one in a report: everything below is a drawer failing
                 to load. This is the widget failing to boot. That is also why it, and the root
                 boundary above, are the only two that take the readiness marker down (#153):
@@ -227,10 +201,9 @@ export default function App({
             >
               <AppShell
                 apiKey={apiKey}
-                compact={compact}
-                contained={contained}
                 defaultLocale={defaultLocale}
                 hasMap={hasMap}
+                inline={inline}
                 linkable={linkable}
                 prefix={prefix}
                 routing={routing}
@@ -277,8 +250,7 @@ type AppShellProps = {
   defaultLocale?: string | null
   standalone: boolean
   hasMap: boolean
-  contained: boolean
-  compact: CompactState | null
+  inline: boolean
   linkable: boolean
   routing: RoutingMode
   prefix?: string
@@ -289,8 +261,7 @@ function AppShell({
   defaultLocale,
   standalone,
   hasMap,
-  contained,
-  compact,
+  inline,
   linkable,
   routing,
   prefix,
@@ -303,8 +274,7 @@ function AppShell({
 
   // Where the interface goes when it first opens on the root view: a path-mode host's
   // `atlas` default, else the client record's home region (`homePathFor`). The redirect
-  // that consumes it lives in `FullInterface`, which renders only once the interface is on
-  // screen — see the note there.
+  // that consumes it is `useInterfaceBoot`'s, in the interface chunk.
   const homePath = homePathFor({
     routing,
     route: embed.config.route,
@@ -395,27 +365,6 @@ function AppShell({
     [client.allowedDomains],
   )
 
-  // Built as an ELEMENT, not rendered here: in the compact form it is handed to the
-  // surface, and React never renders it until that opens — which is what keeps
-  // mapbox-gl unfetched. It carries its own Suspense, so the boundary travels WITH the
-  // element: in the compact form this renders inside the dialog, and suspending to
-  // `AppShell`'s boundary would replace the card with a loading panel, instead of
-  // showing one where the interface is about to appear.
-  const interfaceElement = (
-    // Not `unboxed` when compact: this one renders INSIDE the expanded dialog, which
-    // has its own box and a deliberate margin — taking the viewport would paint over
-    // the margin the dialog keeps precisely so the host's page shows through and can
-    // be clicked to close.
-    <Suspense fallback={<LoadingFallback unboxed={hasMap && !contained && !compact} />}>
-      <FullInterface
-        contained={contained}
-        hasMap={hasMap}
-        homePath={homePath}
-        primaryDomain={primaryDomain}
-      />
-    </Suspense>
-  )
-
   return (
     <WidgetModeContext.Provider value={{ standalone, hasMap, linkable }}>
       {/* Standalone only. Embedded, this <head> is the HOST page's: their og:locale
@@ -450,11 +399,15 @@ function AppShell({
           <LivePreviewController />
         </Suspense>
       )}
-      {compact ? (
-        <CompactEmbedView compact={compact}>{interfaceElement}</CompactEmbedView>
-      ) : (
-        <NoExpansionProvider>{interfaceElement}</NoExpansionProvider>
-      )}
+      <Suspense fallback={<LoadingFallback unboxed={hasMap && !inline} />}>
+        {inline ? (
+          <InlineEmbedView hasMap={hasMap} homePath={homePath} primaryDomain={primaryDomain} />
+        ) : (
+          <NoExpansionProvider>
+            <FullInterface hasMap={hasMap} homePath={homePath} primaryDomain={primaryDomain} />
+          </NoExpansionProvider>
+        )}
+      </Suspense>
     </WidgetModeContext.Provider>
   )
 }

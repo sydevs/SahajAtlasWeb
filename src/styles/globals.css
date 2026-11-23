@@ -619,9 +619,7 @@ html.sy-atlas {
 }
 
 /* Inside a frame the fixed layer is contained by it, so the frame IS the box to fill.
-   Carried by `CompactEmbedView`'s expanded dialog and by `MapFrame`. See
-   `lib/overlay.ts` for why there is only ever one. `data-sy-expanded` below is the
-   narrower, dialog-only marker. */
+   Carried by `InlineEmbedView`'s expanded dialog. See `lib/overlay.ts`. */
 [data-sy-frame] {
   --sy-frame-h: 100%;
 }
@@ -632,16 +630,6 @@ html.sy-atlas {
 .mapboxgl-ctrl-top-right,
 .mapboxgl-ctrl-bottom-right {
   right: env(safe-area-inset-right, 0px);
-}
-
-/* Keeps Mapbox's own control column clear of the expanded surface's collapse control.
-   Both sit in the top-inline-end corner (`CompactEmbedView`'s `ExpandedDialog`), and map
-   mode renders the geolocate button and the attribution there. This is unconditional,
-   rather than direction-aware: under RTL the collapse control moves to the other corner
-   and this nudge is merely unnecessary, which is a better failure than two round buttons
-   on top of each other. */
-[data-sy-expanded] .mapboxgl-ctrl-top-right {
-  margin-top: 40px;
 }
 
 /* Mapbox paints its locate and attribution controls white, with glyphs drawn in fixed colours,

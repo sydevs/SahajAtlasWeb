@@ -209,9 +209,9 @@ describe('this repository', () => {
   it('reaches the three specifier forms the repo actually writes', () => {
     // One end-to-end `selectSpecs` call per form, against the real tree, because a pure test of
     // the parts cannot say the composition reaches them. `brand.test.ts` only names
-    // `CompactEmbedView.tsx` in `COPY_FILES`; `fetch.test.ts` is the only spec for `client.ts`
+    // `InlineEmbedView.tsx` in `COPY_FILES`; `fetch.test.ts` is the only spec for `client.ts`
     // and imports it as `./client`; `Chip.test.tsx` imports its folder as `'.'`.
-    expect(selectSpecs('src/views/CompactEmbedView/CompactEmbedView.tsx', ROOT)).toContain(
+    expect(selectSpecs('src/views/InlineEmbedView/InlineEmbedView.tsx', ROOT)).toContain(
       'src/lib/brand.test.ts',
     )
     expect(selectSpecs('src/config/api/client.ts', ROOT)).toContain('src/config/api/fetch.test.ts')

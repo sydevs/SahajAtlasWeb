@@ -7,5 +7,6 @@ export {
   DrawerFooter,
   DrawerClose,
   DrawerSlotsProvider,
+  useDrawerMode,
 } from './Drawer'
 export type { DrawerProps, DrawerContentProps, DrawerDirection } from './Drawer'

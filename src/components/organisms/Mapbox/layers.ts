@@ -12,7 +12,9 @@ import {
   type ThemeMode,
 } from '@/config/theme/palette'
 import { ringRadiusPx, ringZoom } from '@/lib/camera'
-import { MIN_INTERFACE_WIDTH_PX } from '@/lib/embed-slot'
+
+// The narrowest map the interface is drawn at: a phone's inline strip, or a small frame.
+const NARROWEST_MAP_PX = 360
 
 type Props = {
   id: string
@@ -114,12 +116,12 @@ export const RING_ZOOM = ringZoom(VAGUE_RADIUS_KM, PIN_WIDTH * PIN_SIZE, 45)
 
 /**
  * Where the ring stops being a shape and becomes a wash: the zoom at which it is as wide as the
- * narrowest map the full interface renders in, so one more level puts its outline off every
- * screen. The radius doubles per level, so without a bound the stroke leaves the viewport and an
+ * narrowest map the interface renders in, so one more level puts its outline off every screen.
+ * The radius doubles per level, so without a bound the stroke leaves the viewport and an
  * unselected listing is a flat tint with no marker in it — and a tint that takes every click and
  * hover across the map, stacked with its neighbours'. Above it the ring hands over to a dot.
  */
-export const RING_MAX_ZOOM = ringZoom(VAGUE_RADIUS_KM, MIN_INTERFACE_WIDTH_PX / 2, 45)
+export const RING_MAX_ZOOM = ringZoom(VAGUE_RADIUS_KM, NARROWEST_MAP_PX / 2, 45)
 
 /**
  * A listing with no real place, zoomed out: the ordinary pin. It reads the clustering source, so it

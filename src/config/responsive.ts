@@ -23,17 +23,13 @@ import { useMediaQuery } from 'react-responsive'
  *
  * ## Why the container signal is a strict generalization, not a behavior change
  *
- * In an UNBOXED map embed, the widget has no container to measure, by construction.
- * The theme root is `display: contents`, the map canvas is `position: fixed; inset: 0`, and every drawer is `fixed` too.
- * So `<sahaj-atlas>` has no box at all, and the widget occupies the viewport, whatever slot the host put it in.
+ * In the map-first page, the widget has no container to measure, by construction.
+ * The map canvas is `position: fixed; inset: 0`, and every drawer is `fixed` too, so the widget occupies the viewport.
  * With nothing to observe, `useIsWide` falls through to the viewport, and returns exactly the answer `useIsDesktop` used to.
- * In MAP-LESS mode, the host sizes the element and the widget fills its slot.
- * So there is a real box, and that box is what the app now reads.
+ * Inline, the content column is a real box in the host's page, and that box is what the app reads.
  *
- * **Map mode can have a box too, since #169.**
- * That box is a `MapFrame` where the host sized the element, or the compact card's expanded dialog.
- * Both take the containing block with `contain: layout`.
- * So the panel a fit question is asking about is genuinely inside them.
+ * **The expanded map has a box too: its dialog**, which takes the containing block with `contain: layout`.
+ * So the panel a fit question is asking about is genuinely inside it.
  * `frameElement()`, in `lib/overlay.ts`, is what that box is passed as, and `null` there still means the viewport.
  */
 

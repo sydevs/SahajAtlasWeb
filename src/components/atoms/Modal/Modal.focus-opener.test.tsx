@@ -10,7 +10,7 @@ import { setThemeRoot } from '@/hooks/use-theme'
 /**
  * The opener is whatever had FOCUS, not whatever the dialog renders first (#432).
  *
- * `CompactEmbedView` opens its own surface through the `useExpansion` seam, from a control
+ * `InlineEmbedView` opens its expanded map through the `useExpansion` seam, from a control
  * that may be anywhere, so "the control that opened it" cannot be read off the dialog. What
  * `useOpenerRestore` records is the element that held focus while the dialog was closed.
  *

@@ -236,7 +236,7 @@ The map is the heart of the app and its hottest render path. Treat it carefully.
   `padding` survives the jump). An instant bounds fit needs **both**
   `linear: true` and `animate: false` (`_fitInternal` only reaches the `easeTo`
   that honors `animate` when `linear` is set). Clear the settled flag
-  **on unmount**, or a compact embed's second expansion inherits a
+  **on unmount**, or the map an inline embed swaps in on expanding inherits a
   stale `true` and both defects come back.
 
 ## One world through a minimum zoom, not `renderWorldCopies={false}`

@@ -64,18 +64,6 @@ export type MountDecision = {
   routing: 'query' | 'path'
   /** The resolved path prefix, when `mode === 'path'`. The router composes hrefs from it. */
   prefix?: string
-  /**
-   * Whether `path` came from the page's `?atlas=`, rather than the embed's configured
-   * default.
-   *
-   * These are two very different facts, and `path` alone cannot distinguish them once
-   * resolved. A page route means a visitor deep-linked, or followed a shared link. A
-   * script route means the host is saying "start here when nobody asked". Only the
-   * first earns the compact card opening itself on mount. Otherwise every host who
-   * configures a default view would get a full-screen overlay over their content on
-   * every page load.
-   */
-  fromPage: boolean
   /** Set when the requested mode could not be honoured, for the caller to report. */
   warning?: string
 }
@@ -153,11 +141,6 @@ export function mountDecision(input: {
   // A route already in the page's URL always wins. That visitor deep-linked, or
   // followed a shared link. The embed's default is only ever an answer to "nobody
   // asked for anything".
-  //
-  // This reads the page route into its own binding, instead of inlining it. Whether
-  // there was one is a fact the tree needs (`fromPage`), and it is unrecoverable from
-  // `path` afterwards. This cannot be derived by comparing against `route`: the
-  // loader's `resolveRoute` has already folded the page route into it.
   const pageRoute = routeFromParam(search)
 
   // Every outcome but path mode makes the same decision: boot at the page's route, or
@@ -169,7 +152,6 @@ export function mountDecision(input: {
     mode,
     path: pageRoute ?? route ?? '/',
     routing: 'query',
-    fromPage: pageRoute !== undefined,
     warning,
   })
 
@@ -210,7 +192,7 @@ export function mountDecision(input: {
   // no "nobody asked" state that falls back to a configured default — the prefix root IS
   // the root view, with no other URL. The script's `atlas` default reaches it another way:
   // as the home route, below.
-  return { mode: 'path', path: fromPath, routing: 'path', fromPage: fromPath !== '/', prefix }
+  return { mode: 'path', path: fromPath, routing: 'path', prefix }
 }
 
 /**

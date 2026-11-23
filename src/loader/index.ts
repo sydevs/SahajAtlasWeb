@@ -299,10 +299,10 @@ function start(script: HTMLScriptElement | null): void {
   // the SCRIPT url is the host's default view, and stays lazy.
   //
   // ⚠ **Eager only into a box that is on the page.** An element inside a closed tab or accordion
-  // has no box at all, and the widget decides its layout ONCE, from the element's size at its
-  // first render (`decideSlot`). Measured at 0×0 it read as an unsized embed and took the whole
-  // viewport, painting over the host's page when the tab opened while its own box stayed blank.
-  // So a deep link into a hidden element waits for it to be shown, as a lazy one does.
+  // has no box at all, and the widget measures what it renders in — its content column, the
+  // host's header. Measured while hidden, a deep link once took the whole viewport and painted
+  // over the host's page when the tab opened. So a deep link into a hidden element waits for it
+  // to be shown, as a lazy one does.
   const mount = () => {
     // This resolves to `src/Widget.tsx`, its own build entry. It is the seam that keeps the
     // widget out of the loader's graph, and `pnpm size` asserts the two closures stay disjoint.

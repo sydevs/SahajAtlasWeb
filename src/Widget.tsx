@@ -20,7 +20,6 @@ import { getInitialTheme, setThemeRoot } from './hooks/use-theme'
 import { ELEMENT_NAME } from './lib/element'
 import { releaseAnnouncement } from './lib/embed-announce'
 import { classifyError, reportIntegrationWarning } from './lib/report'
-import { type SlotDecision, decideSlot } from './lib/slot-decision'
 import { WIDGET_SCOPE_CLASS } from './lib/scope'
 import { adoptStyles } from './styles/sheet'
 // ⚠ Both by folder path, never a tier barrel: a barrel carries everything it re-exports into
@@ -350,51 +349,6 @@ function Atlas({ prefix }: { prefix?: string }) {
   // to take it down. See the effect in `App.tsx`.
   const attested = mount.current.routing
 
-  // Does the interface fit the slot the host gave us, and what do they need to hear
-  // about it? Decided ONCE, on the first render, from the element itself — which is
-  // reachable here without a ref, because exactly one runs per page (see `owner`,
-  // below).
-  //
-  // **Once, and not on resize, deliberately.** Switching form remounts the whole
-  // widget: the query cache survives, but the router's in-widget history, the drawer
-  // stack, and any half-filled registration do not. A host page animating a sidebar,
-  // or a phone rotating, would otherwise throw a visitor's session away mid-read,
-  // which is a far worse failure than a widget that keeps the layout its initial size
-  // implied. `docs/embedding.md` says so.
-  // There is deliberately no override parameter: `compact` was one, and a documented
-  // knob for a measurement we can simply get right is a permanent edge case traded
-  // for a misconfiguration we would rather fix.
-  //
-  // Re-entrancy: `useLocale` below can suspend on a cold i18n boot and make React
-  // discard this render. This stays safe — the ref makes it once-only, and the
-  // measurement writes nothing.
-  const slot = useRef<SlotDecision>(undefined)
-
-  if (!slot.current) {
-    slot.current = decideSlot({
-      element: owner,
-      hasMap,
-      // BOTH reads must agree, and they are taken at different moments: the
-      // loader's at script execution, ours at React render, separated by a
-      // dynamic import and `requestIdleCallback`. A host SPA that adds `?atlas=`
-      // after boot would otherwise lazy-mount (the loader saw no route) and then
-      // auto-open anyway — a modal over the page mid-scroll, exactly the situation
-      // eager-loading exists to prevent.
-      fromPage: mount.current.fromPage && config.routeFromPage,
-    })
-  }
-
-  const compact = slot.current.compact
-  const contained = slot.current.contained
-  const slotWarning = slot.current.warning
-
-  // Reported from an effect, rather than from the decision above, exactly like the
-  // routing warning: a discarded render must not put a line in a stranger's console
-  // twice.
-  useEffect(() => {
-    if (slotWarning) reportIntegrationWarning(slotWarning)
-  }, [slotWarning])
-
   const atlas = (
     /* display:contents keeps the wrapper out of the layout while still carrying the theme
        class and brand CSS vars down to every descendant. `lang` tracks the ACTIVE locale
@@ -425,9 +379,8 @@ function Atlas({ prefix }: { prefix?: string }) {
     >
       {themeRoot && (
         <App
+          inline
           apiKey={config.key ?? ''}
-          compact={compact}
-          contained={contained}
           defaultLocale={config.locale}
           hasMap={hasMap}
           linkable={linkable}

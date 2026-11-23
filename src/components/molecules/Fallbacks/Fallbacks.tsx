@@ -48,8 +48,8 @@ const APP_SURFACE = 'flex-center h-full w-full flex-col gap-3 bg-background p-10
  * spinner centred in that 140px, not on the screen.
  *
  * So this fallback copies the shape of what it replaces. The interface it stands in for
- * is fixed and inset-0 in that form, and so is this. Where the widget HAS a box — a
- * contained map, a map-less embed, the compact card — `h-full` is already correct. Taking
+ * is fixed and inset-0 in that form, and so is this. Where the widget HAS a box — the
+ * inline embed, a map-less page — `h-full` is already correct. Taking
  * the viewport there would paint over the host's page. So the caller decides the form.
  * This component does not guess it.
  */

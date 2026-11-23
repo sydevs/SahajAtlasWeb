@@ -98,10 +98,9 @@ describe('Radix poppers are bounded by the frame', () => {
  * surfaces exist and which skin each reads.
  */
 const SKIN_RUNS = [
-  // Each run is distinctive as a run, not by its first class: `CompactEmbedView` and the Modal
-  // also round to `2xl` (the Modal with the same border), and the Select atom also highlights, on
-  // `primary-4`.
-  'rounded-2xl border border-divider bg-background p-1',
+  // Each run is distinctive as a run, not by its first class: other surfaces also round to
+  // `xl`, and the Select atom also highlights, on `primary-4`.
+  'rounded-xl border border-divider',
   'data-[highlighted]:bg-primary-3',
 ]
 

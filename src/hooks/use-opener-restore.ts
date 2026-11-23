@@ -7,7 +7,7 @@ import { widgetOverlayContainer } from '@/lib/overlay'
  * Who a dialog gives focus back to when it closes (#432).
  *
  * **Radix restores focus to a `Dialog.Trigger`, and neither of this app's dialogs has one.**
- * `Modal` is controlled through `open`; the compact embed's surface is opened through the
+ * `Modal` is controlled through `open`; the inline embed's expanded map is opened through the
  * `useExpansion` seam, from a control that may be anywhere. Radix's own handler then calls
  * `preventDefault()` and focuses the trigger it does not have, so closing dropped a keyboard
  * viewer on `<body>` — the top of the HOST's page, not the control they pressed. Measured in
@@ -17,7 +17,7 @@ import { widgetOverlayContainer } from '@/lib/overlay'
  * trigger renders inside `Dialog.Root`, and none of the three does: `Map.tsx`'s failure dialog
  * is opened by mapbox-gl's own locate button, from an async `onError`; `ReportIssueModal`'s
  * opener is a settings-menu item that has unmounted by the time the dialog closes, leaving the
- * ref null; and the compact embed is expanded through the `useExpansion` seam, from a control
+ * ref null; and the inline embed is expanded through the `useExpansion` seam, from a control
  * in another subtree. Radix's `FocusScope` does hold the right node — the #236 patch resolves
  * that read through the shadow boundary — but `DialogContent` composes
  * `event.preventDefault(); triggerRef.current?.focus()` after the caller's handler, so without

@@ -41,11 +41,9 @@ const captchaAdvice = (serverOrigin: string, hostname: string) =>
  * Failing loudly gets the CSP fixed instead.
  * That trade is the decision recorded on the ticket, not one taken here.
  *
- * ⚠ **Call this from the INTERFACE, never from the shell.**
- * `.claude/rules/components.md` is explicit that anything that fetches or injects a script must mount with `FullInterface`.
- * Four separate bugs, the home-region redirect, `warmCaches`, and both Fathom effects, came from effects firing for a collapsed compact card.
- * Mounting a challenge frame for a card nobody has pressed would be the fifth.
- * `CompactEmbedView.mount.test.tsx` asserts that this does not happen.
+ * ⚠ **Call this from the INTERFACE, never from the shell** — from `useInterfaceBoot`, beside the analytics and the
+ * cache warm, which every interface form runs once. The shell renders before any interface does, and through the error
+ * screens too.
  *
  * This throws during render, not from the effect.
  * So the failure is an ordinary render throw that the nearest boundary catches.

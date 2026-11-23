@@ -11,9 +11,8 @@ describe('fallbackUrl', () => {
     'falls back to the default for %s',
     (value) => {
       // Validated HERE rather than at the sink, because the sink fails silently and badly: the
-      // `Button` atom's href arm refuses an unsafe href by rendering a props-less `<span>`, and
-      // on a card whose only content is that control that is a dead, unlabelled box where the
-      // way out should be. A typo'd env var would ship a compact embed with no exit.
+      // `Button` atom's href arm refuses an unsafe href by rendering a props-less `<span>`: a
+      // dead, unlabelled box where a framed embed's "Expand map" should be.
       expect(fallbackUrl(value)).toBe(DEFAULT_FALLBACK_URL)
     },
   )

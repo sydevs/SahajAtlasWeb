@@ -1,5 +1,5 @@
 // ⚠ **This module must stay free of `react-map-gl`.**
-// The chain App → DrawerStack → the views imports this module EAGERLY, so an import here puts react-map-gl in every embed's eager payload, a collapsed compact card's included.
+// The chain App → DrawerStack → the views imports this module EAGERLY, so an import here puts react-map-gl in every embed's eager payload, a map-less one's included.
 // `pnpm size` counts that, because react-map-gl 8 is static code: it has no module-scope `import('mapbox-gl')`.
 // react-map-gl 7 fired that `import()` at MODULE scope instead, which the budget never counts, so one import here fetched the whole library on every page view.
 // The real provider, and every react-map-gl edge with it, lives in `use-map-controller-real.tsx`, behind the lazy `FullInterface` boundary.

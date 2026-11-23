@@ -15,28 +15,25 @@ import { getThemeRoot } from '@/hooks/use-theme'
  *
  * Everything the interface renders — the map canvas, every drawer, the cog —
  * is `position: fixed`, so by default it all resolves against the viewport. An ancestor
- * carrying `contain: layout` takes that containing block instead, and the widget has exactly
- * two elements that deliberately do so. This is the one reference to whichever is live, and the
- * ONE reason this module has state rather than being a pure read of the theme root.
+ * carrying `contain: layout` takes that containing block instead. The one element that does so
+ * AND hosts portals is the inline embed's expanded dialog (`InlineEmbedView`): the map-first
+ * interface in a modal Radix Dialog over the host's page. This is the one reference to it, and
+ * the ONE reason this module has state rather than being a pure read of the theme root.
  *
- * - **The expanded dialog** (`CompactEmbedView`, issue #161) — a compact embed grows out of its
- *   slot into a modal Radix Dialog over the host's page.
- * - **`MapFrame`** (issue #169) — a map embed whose host gave the element a box of its own,
- *   so the map lives *in* their page instead of painting over it.
+ * It needs this for two reasons. Mechanically, a portal target outside the frame renders a
+ * `fixed` child that resolves against the viewport and escapes the box — the map is contained
+ * and its drawers are not. On top of that, a modal dialog traps focus in its own content, marks
+ * everything outside it `aria-hidden` and blocks pointer events there, so a drawer portaled
+ * beside it would be unreachable by keyboard as well as misplaced.
  *
- * **Both need this for the same mechanical reason, and the dialog needs it for a second one.**
- * Mechanically, a portal target outside the frame renders a `fixed` child that resolves against
- * the viewport and escapes the box — the map is contained and its drawers are not. On top of
- * that, a modal dialog traps focus in its own content, marks everything outside it
- * `aria-hidden` and blocks pointer events there, so a drawer portaled beside it would be
- * unreachable by keyboard as well as misplaced.
+ * ⚠ The inline map's own box takes the containing block too, for its canvas, and is
+ * deliberately NOT published: a dialog opened from the content beside it must not be confined to
+ * the map.
  *
  * It is a module singleton for the same reason the theme root is: `overlayContainer()` is
  * called from component render bodies all over the app, including from inside third-party
  * portals (vaul, Floating UI) that no context of ours reaches. One widget runs per page
- * (`Widget.tsx` enforces it), and the two frames are mutually exclusive — a compact embed does
- * not render the interface until its dialog opens, and `decideSlot` never answers `contained`
- * and `compact` together — so one frame is the honest shape.
+ * (`Widget.tsx` enforces it), so one frame is the honest shape.
  */
 let frame: HTMLElement | null = null
 

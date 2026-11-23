@@ -58,9 +58,9 @@ const COPY_FILES = [
   'src/styles/fonts.ts',
   'src/components/molecules/Fallbacks/Fallbacks.tsx',
   'src/components/molecules/EventMetadata/EventMetadata.tsx',
-  // The compact form's whole visible surface is a heading and one button (#161), which makes
-  // it the single easiest screen in the app to name after the product by accident.
-  'src/views/CompactEmbedView/CompactEmbedView.tsx',
+  // The inline form's page heading and its expand control sit on the host's own page, which
+  // makes them the easiest copy in the app to name after the product by accident.
+  'src/views/InlineEmbedView/InlineEmbedView.tsx',
 ]
 
 describe('no brand names reach a visitor', () => {

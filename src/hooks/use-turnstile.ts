@@ -206,7 +206,7 @@ let availability: Promise<boolean> | null = null
 /**
  * Whether Turnstile can run on this page at all — the host's CSP, SahajCloud's allowlist and the
  * network, not any one form (#182). Resolves rather than rejecting: every caller wants a verdict.
- * Memoized, so a compact embed's open/close/open does not pay for a browsing context each time.
+ * Memoized, so a remounted interface does not pay for a browsing context each time.
  *
  * ⚠ **Weaker than a real render, deliberately.** The probe hands back the handshake without
  * rendering, so it sees whatever stops the page loading Turnstile, but not a challenge that

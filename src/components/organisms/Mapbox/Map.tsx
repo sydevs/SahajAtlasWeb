@@ -374,10 +374,10 @@ export function Mapbox({ cooperative = false }: { cooperative?: boolean } = {}) 
   }, [reveal])
   const revealTimer = useRef<number>(undefined)
 
-  // The flag describes THIS map instance, so it dies with the instance. A
-  // compact embed unmounts the whole interface when its dialog closes. A
-  // stale `true` would then meet the next map at the world view, with
-  // neither the curtain nor the arrival jump. See `forgetSettled`.
+  // The flag describes THIS map instance, so it dies with the instance. The
+  // inline embed swaps its own map for the expanded one and back. A stale
+  // `true` would then meet the next map at the world view, with neither the
+  // curtain nor the arrival jump. See `forgetSettled`.
   useEffect(
     () => () => {
       window.clearTimeout(revealTimer.current)

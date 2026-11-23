@@ -23,22 +23,9 @@
       <p>This is a test</p>
     </header>
     <!--
-      Full map (default). Add &map=false to render content-only (no map canvas).
-
-      A MAP EMBED WITH NO HEIGHT OF ITS OWN TAKES THE WHOLE WINDOW: the canvas is
-      `position: fixed; inset: 0` and the panels over it are fixed too, so it covers the
-      viewport whatever box the element is in. That is what this tag does, and it is
-      right for a dedicated atlas page.
-
-      GIVE `<sahaj-atlas>` A `display: block` AND A HEIGHT AND THE MAP LIVES IN THAT BOX
-      instead (issue #169) — `MapFrame` takes the containing block with `contain: layout`,
-      so the canvas, the drawers and the cog all resolve against your element and
-      nothing paints outside it. That is the shape to reach for when the page has a header
-      above the atlas. `map=false` (below) is the third option: no map at all, and
-      container-relative throughout.
-
-      An unsized map embed that does not have the page to itself degrades to the compact
-      card and says so in the console, rather than leaving you to find out.
+      Inline (default): a heading, the classes, and a map beside them, as tall as what it
+      shows. "Expand map" opens the full map over the page, below the page's header. Add
+      &map=false for the classes alone, with no map canvas. Nothing here needs sizing.
 
       PUT A WORKING KEY IN THE `key` PARAMETER BEFORE LOADING THIS PAGE. The literal
       that used to sit here was dead — SahajCloud answers 403 to it, exactly as it does
