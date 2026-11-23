@@ -1,0 +1,3 @@
+/* The prototype's Tailwind utilities belong only in the Ladle build. */
+@import '../src/styles/globals.css';
+@source '../stories/class-page';

@@ -49,6 +49,8 @@ experience, with a country → region → area → venue → event hierarchy.
   release, and did. Take both lines from the session's own attribution, or read them off
   `git log` when unsure.
 
+The [class page prototype](src/views/EventView/ClassPage.stories.tsx) belongs to Ladle. Keep its fixtures, mock submissions and host-page treatments in `stories/class-page/`. The live Atlas class view ships independently.
+
 ## Project overview
 
 | Concern | Choice |

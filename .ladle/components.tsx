@@ -14,7 +14,7 @@ import { BrandPaletteContext, NO_BRAND_PALETTE } from '@/config/theme/brand-pale
 import { applyPalette, type PaletteRoles } from '@/config/theme/palette'
 import { WIDGET_SCOPE_CLASS } from '@/lib/scope'
 
-import '@/styles/globals.css'
+import './ladle.css'
 // Stories mount components without App. So this file also registers the
 // self-hosted faces (#91). Without this line, every preview renders in
 // the fallback system sans-serif font.
@@ -66,7 +66,7 @@ const DEFAULT_PALETTE = PALETTE_NAMES[0]
 //      I18nextProvider.
 //
 // In production, the widget injects its CSS through JS. So each story
-// must import globals.css directly.
+// imports the shared widget stylesheet through ladle.css.
 //
 // Theme: Ladle's own light, dark, and auto toggle drives the whole
 // canvas. This decorator maps the active theme onto the root `light` or

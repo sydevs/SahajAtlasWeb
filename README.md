@@ -180,6 +180,7 @@ components through `renderToStaticMarkup`, not jsdom. See
 - [`DESIGN_SYSTEM.md`](DESIGN_SYSTEM.md) — component taxonomy, exports,
   styling
 - [`STORYBOOK.md`](STORYBOOK.md) — Ladle story conventions
+- [Class page prototype](stories/class-page/ClassPage.tsx) — open **Views → Class page** in Ladle to edit the desktop and iPhone layouts. The story has switches for the host banner, photos and a short description. **Story notes** holds the SEO requirements for a published page. Registration and corrections run locally with mock data.
 - nested `AGENTS.md` files (`src/`, `src/components/`, `src/views/`, `scripts/`) —
   directory-scoped guidance. Run `find . -name AGENTS.md -not -path './node_modules/*'` for the inventory
 - [`docs/rules/`](docs/rules/) — guidance scoped to files no single
