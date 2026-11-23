@@ -338,18 +338,6 @@ describe('ci.yml browser lane', () => {
     expect(refs.length).toBeGreaterThan(0)
     for (const ref of refs) expect(ref).toMatch(/^[0-9a-f]{40}$/)
   })
-
-  // Every half fails silently: a key or path a character apart never hits, a save here writes an
-  // entry only this run's own ref can read, and a hit that skips the system libraries leaves a
-  // browser that cannot launch. `browser-cache.yml` says why.
-  it('restores the browser `browser-cache.yml` saves, and saves none itself', () => {
-    const hit = steps(job).filter((step) => /cache-hit == 'true'/.test(step))
-
-    expectRestoresWarmedCache(job)
-    expect(versionRead(job)).toBe(versionRead(warmWorkflow))
-    expect(hit, 'no step in this job runs on a cache hit').toHaveLength(1)
-    expect(hit[0]).toMatch(/playwright install-deps chromium/)
-  })
 })
 
 /**
@@ -371,12 +359,6 @@ const browserCache = (workflow: string) => ({
   keys: [...new Set([...workflow.matchAll(/^\s*key: (.+)$/gm)].map((m) => m[1]))],
   paths: [...new Set([...workflow.matchAll(/^\s*path: (~\/.+)$/gm)].map((m) => m[1]))],
 })
-
-/**
- * The one-liner a workflow reads the key's version with. The gate reads the same version its own
- * way — out of `package.json`, validated — so only the lane and the warm job share this line.
- */
-const versionRead = (workflow: string) => match(workflow, /^\s*run: (echo "version=.+)$/m)
 
 describe('browser-cache.yml', () => {
   // The default branch is the one cache scope a pull request and a merge-queue run share.
@@ -407,33 +389,61 @@ describe('browser-cache.yml', () => {
   })
 })
 
-const gateJob = jobIn(readRepoSource('.github/workflows/ci.yml'), 'gate')
+const ciWorkflow = readRepoSource('.github/workflows/ci.yml')
+const gateJob = jobIn(ciWorkflow, 'gate')
+const browserJob = jobIn(ciWorkflow, 'browser')
 
-// The accessibility step is on the critical path of the one required check, and the merge queue
-// pays it again per merge, so where its browser comes from is a cost the gate carries (#459).
-describe("ci.yml's gate job, on the browser its accessibility step drives", () => {
-  it('restores the browser `browser-cache.yml` saves, and saves none itself', () => {
-    expectRestoresWarmedCache(gateJob)
+// One key, built by one reader, for the warm job that writes the entry and the two jobs that
+// restore it. Every way of breaking that is silent: a key a character apart never hits, and a
+// second read of the version decides half a key nothing wrote (#462).
+describe('the Chromium cache key', () => {
+  const SCOPES: [string, string][] = [
+    ["ci.yml's gate job", gateJob],
+    ["ci.yml's browser lane", browserJob],
+    ['browser-cache.yml', warmWorkflow],
+  ]
+
+  it.each(SCOPES)('%s builds it from the one reader, and nothing else', (_where, scope) => {
+    const reader = steps(scope).filter((step) => /^\s*id: playwright$/m.test(step))
+
+    expect(reader).toHaveLength(1)
+    expect(match(reader[0], /^\s*run: (.+)$/m)).toBe(
+      'node scripts/playwright-version.mjs >> "$GITHUB_OUTPUT"',
+    )
+    expect(browserCache(scope).keys).toEqual([
+      'playwright-chromium-${{ runner.os }}-${{ steps.playwright.outputs.version }}',
+    ])
   })
 
-  // One step, on a hit as on a miss. An `if:` here would hand a partial entry to `pnpm test:a11y`
-  // as a browser, and `--with-deps` installs libraries no cache holds anyway. `--no-shell` keeps
-  // what a miss downloads equal to what the key promises.
-  it('installs the browser and its system libraries whether the cache hit or missed', () => {
-    const install = steps(gateJob).filter((step) => /playwright install\b/.test(step))
-    // ⚠ The run line, never the step: this step's own comment names both flags, so a step-wide
+  // ⚠ The two consumers, never the warm job, for this row and the next: it is the one that
+  // saves. The accessibility step is on the critical path of the one required check and the merge
+  // queue pays it again per merge, so where its browser comes from is a cost the gate carries
+  // (#459).
+  it.each(SCOPES.slice(0, 2))('%s restores the warmed entry, saving none', (_where, job) => {
+    expectRestoresWarmedCache(job)
+  })
+
+  it.each(SCOPES.slice(0, 2))('%s installs whatever the restore left behind', (_where, job) => {
+    const install = steps(job).filter((step) => /playwright install\b/.test(step))
+
+    expect(install).toHaveLength(1)
+    // ⚠ The run line, never the step: a step's own comment names both flags, so a step-wide
     // `toContain` passes on the prose after the command has lost the flag.
     const run = match(install[0], /^\s*run: (.+playwright install.+)$/m)
 
-    expect(install).toHaveLength(1)
+    // An `if:` hands a partially restored entry on as a browser; `--with-deps` installs system
+    // libraries no cache holds; `--no-shell` keeps what a miss downloads to what the key promises.
     expect(run).toContain('--with-deps')
     expect(run).toContain('--no-shell')
     expect(install[0]).not.toMatch(/^\s*if:/m)
   })
 
-  // Two pins decide one key — the gate's own read and the warm job's — so a bump moving one
-  // alone would key the gate on an entry nothing writes, and nothing but a download would say so.
-  it('keys on a version both Playwright pins agree on', () => {
+  // The key names the `playwright` pin, which is what `pnpm exec playwright install` downloads,
+  // while both consumers launch through `@playwright/test`. Bump one alone and pnpm installs a
+  // second, nested `playwright`: the lane then hunts a Chromium revision nothing downloaded and
+  // tells the reader to run the install that just ran. ⚠ #461 held these equal for a reason that
+  // is gone — two readers decided one key, and one reader does now.
+  it('names a version the package both consumers launch through agrees with', () => {
     const { devDependencies } = readPackage()
 
     expect(devDependencies.playwright).toBe(devDependencies['@playwright/test'])

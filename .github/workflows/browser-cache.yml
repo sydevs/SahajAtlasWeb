@@ -41,7 +41,7 @@ jobs:
       # `ci-workflows.test.ts` pins both, and that the payload is what both consumers launch.
       - name: Read the pinned Playwright version
         id: playwright
-        run: echo "version=$(node -p "require('@playwright/test/package.json').version")" >> "$GITHUB_OUTPUT"
+        run: node scripts/playwright-version.mjs >> "$GITHUB_OUTPUT"
       # `lookup-only`: on a hit there is nothing to do, so nothing is downloaded.
       - name: Look the browser up
         id: browser-cache

@@ -10,6 +10,7 @@ paths:
   - 'playwright.config.ts'
   - 'scripts/select-unit-specs.mjs'
   - 'scripts/assert-preview-host.mjs'
+  - 'scripts/playwright-version.mjs'
   - '.claude/hooks/unit-test.mjs'
   - '.github/workflows/ci.yml'
   - '.github/workflows/production-smoke.yml'
@@ -37,10 +38,9 @@ The other two drive a real browser, and they drive different artifacts. The **br
 widget in Chromium, on the real host pages, every request answered from fixtures — see "The
 browser lane" below. The **accessibility** gate is `pnpm test:a11y` (`scripts/check-a11y.mjs`,
 #432), over the built component library, in CI's `gate` job right after `pnpm ladle:build` — see
-"The accessibility lane needs a browser, and that is not a preference" below. Both pin the same
-Playwright version, from the one `playwright` devDependency and the `@playwright/test` beside it,
-and one warmed cache serves both — `scripts/ci-workflows.test.ts` holds the two pins equal, since
-they decide one cache key between them.
+"The accessibility lane needs a browser, and that is not a preference" below. Both drive the same
+Chromium, keyed on the pinned `playwright` devDependency, and one warmed cache serves both —
+see "The browser lane" below.
 
 **Coverage is measured, not gated.** `pnpm test:coverage` is the unit lane with V8 coverage on,
 and `vitest.config.ts` sets no threshold, so a run never fails on a figure. The config names
@@ -419,6 +419,10 @@ browsers at all, so dropping both halves would leave the lane as it is.
 through `channel: 'chromium'`, so one key serves both consumers and neither downloads the headless
 shell. `scripts/ci-workflows.test.ts` pins both restore-only, and that channel against the warm
 job's `--no-shell`.
+
+⚠ **All three jobs read the version through `scripts/playwright-version.mjs`** (#462), which
+refuses a pin that is not an exact version: a step output is repository text, and a newline inside
+one forges further outputs on a fork's pull request.
 
 | scenario (`tests/browser/`)                   | host page              | watched failing against                                              |
 | --------------------------------------------- | ---------------------- | -------------------------------------------------------------------- |
