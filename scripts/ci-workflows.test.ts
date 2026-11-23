@@ -338,10 +338,6 @@ describe('ci.yml browser lane', () => {
     expect(refs.length).toBeGreaterThan(0)
     for (const ref of refs) expect(ref).toMatch(/^[0-9a-f]{40}$/)
   })
-
-  it('restores the browser `browser-cache.yml` saves, and saves none itself', () => {
-    expectRestoresWarmedCache(job)
-  })
 })
 
 /**
@@ -397,14 +393,6 @@ const ciWorkflow = readRepoSource('.github/workflows/ci.yml')
 const gateJob = jobIn(ciWorkflow, 'gate')
 const browserJob = jobIn(ciWorkflow, 'browser')
 
-// The accessibility step is on the critical path of the one required check, and the merge queue
-// pays it again per merge, so where its browser comes from is a cost the gate carries (#459).
-describe("ci.yml's gate job, on the browser its accessibility step drives", () => {
-  it('restores the browser `browser-cache.yml` saves, and saves none itself', () => {
-    expectRestoresWarmedCache(gateJob)
-  })
-})
-
 // One key, built by one reader, for the warm job that writes the entry and the two jobs that
 // restore it. Every way of breaking that is silent: a key a character apart never hits, and a
 // second read of the version decides half a key nothing wrote (#462).
@@ -427,8 +415,14 @@ describe('the Chromium cache key', () => {
     ])
   })
 
-  // ⚠ The two consumers, never the warm job: it saves the browser without the system libraries
-  // it will never launch.
+  // ⚠ The two consumers, never the warm job, for this row and the next: it is the one that
+  // saves. The accessibility step is on the critical path of the one required check and the merge
+  // queue pays it again per merge, so where its browser comes from is a cost the gate carries
+  // (#459).
+  it.each(SCOPES.slice(0, 2))('%s restores the warmed entry, saving none', (_where, job) => {
+    expectRestoresWarmedCache(job)
+  })
+
   it.each(SCOPES.slice(0, 2))('%s installs whatever the restore left behind', (_where, job) => {
     const install = steps(job).filter((step) => /playwright install\b/.test(step))
 
