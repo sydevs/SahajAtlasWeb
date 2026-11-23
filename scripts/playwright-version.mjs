@@ -26,13 +26,6 @@ export function pinnedPlaywrightVersion(devDependencies) {
   return version
 }
 
-/**
- * The pin as `package.json` has it.
- * @returns {string}
- */
-export const readPinnedPlaywrightVersion = () =>
-  pinnedPlaywrightVersion(readPackage().devDependencies)
-
 /** This file's own path. Exported so the spec can run the command the workflows run. */
 export const SCRIPT = fileURLToPath(import.meta.url)
 
@@ -42,5 +35,5 @@ export const SCRIPT = fileURLToPath(import.meta.url)
 const invokedAs = process.argv[1]
 
 if (invokedAs && realpathSync(invokedAs) === realpathSync(SCRIPT)) {
-  process.stdout.write(`version=${readPinnedPlaywrightVersion()}\n`)
+  process.stdout.write(`version=${pinnedPlaywrightVersion(readPackage().devDependencies)}\n`)
 }
