@@ -129,7 +129,7 @@ export function ClassFacts({ event, detailed = false }: { event: Event; detailed
           icon={
             <span
               className="size-8 bg-current"
-              style={{ mask: 'url(' + meditation + ') center/contain no-repeat' }}
+              style={{ mask: `url("${meditation}") center/contain no-repeat` }}
             />
           }
           label="Cost"
