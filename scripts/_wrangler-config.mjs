@@ -16,10 +16,9 @@
  */
 
 import { readFileSync } from 'node:fs'
+import { createRequire } from 'node:module'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
-
-import ts from 'typescript'
 
 /** The app Worker's config. `wrangler.design.jsonc` is the Ladle playground's. */
 export const APP_CONFIG = 'wrangler.jsonc'
@@ -49,6 +48,9 @@ const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..')
  * @returns {WranglerConfig}
  */
 export function readWranglerConfig(file) {
+  // ⚠ Required here, not imported: the compiler costs ~0.35 s at module scope, and three CI
+  // steps on a required check's critical path import this module for `readPackage` alone.
+  const ts = createRequire(import.meta.url)('typescript')
   const text = readFileSync(join(ROOT, file), 'utf8')
   const { config, error } = ts.parseConfigFileTextToJson(file, text)
 

@@ -7,13 +7,10 @@
  * here has reviewed, and a newline inside one forges further outputs — hence the refusal below.
  */
 
-import { readFileSync, realpathSync } from 'node:fs'
-import { dirname, join } from 'node:path'
+import { realpathSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 
-// ⚠ Never `new URL(<path>, import.meta.url)` (#302): a spec imports this module, and Vite rewrites
-// that expression under the transform vitest picks, so `fileURLToPath` throws AT import.
-const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..')
+import { readPackage } from './_wrangler-config.mjs'
 
 /**
  * The `playwright` devDependency, refused unless it is an exact version.
@@ -31,15 +28,10 @@ export function pinnedPlaywrightVersion(devDependencies) {
 
 /**
  * The pin as `package.json` has it.
- *
- * ⚠ Not `readPackage()` from `_wrangler-config.mjs`: that module loads the TypeScript compiler to
- * parse the wrangler JSONC configs, 350 ms this read has no use for and three CI jobs would pay.
  * @returns {string}
  */
 export const readPinnedPlaywrightVersion = () =>
-  pinnedPlaywrightVersion(
-    JSON.parse(readFileSync(join(ROOT, 'package.json'), 'utf8')).devDependencies,
-  )
+  pinnedPlaywrightVersion(readPackage().devDependencies)
 
 /** This file's own path. Exported so the spec can run the command the workflows run. */
 export const SCRIPT = fileURLToPath(import.meta.url)
