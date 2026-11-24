@@ -276,20 +276,14 @@ source of truth, so all three stay linkable and shareable:
   place reached by one climbs on instead of bouncing back into the class, even
   before the feed has loaded. An X is left only on an overlay over a page still
   on screen: the filters over the calendar (`OverlayCloseButton`).
-  **How many peek strips the stack draws is that same history question, not the
-  URL's ancestor count** — `dismissDepth` counts what a repeated X actually
-  traverses. A pin clicked from the root sits at depth 1 under three URL
-  ancestors, and one press returns to the root, so three cards would be a lie.
-  `DrawerStack` keeps the depth-0 entry's height in a **ref** (non-reactive): it
-  reads only at depth > 0 and writes only at depth 0, so a write can never change
-  the current render.
-  **Each strip is named for where it lands** (`stripLabel`, `views/nav-names.ts`, #102) — they used to
-  all say "Back," giving a three-deep stack three identically-named buttons going
-  three different places. Names come from the `['regions']` tree and the
-  event-titles sliver, read **cache-only** (`enabled: false`), so naming a strip
-  can never become a fetch. It is a separate pure module because importing
-  `DrawerStack.tsx` to test one string would drag mapbox-gl and vaul into the
-  node lane.
+  **Nothing draws the history behind the view.** Back names where it goes, so
+  the stacked edges that once stood for each panel a repeated X would pass
+  through are gone, and with them the depth bookkeeping they needed.
+  **Back's label is read cache-only** (`views/nav-names.ts`): names come from
+  the `['regions']` tree and the event-titles sliver, never a fetch, so a miss
+  costs the name and never the control. It is a separate pure module because
+  importing `DrawerStack.tsx` to test one string would drag mapbox-gl and vaul
+  into the node lane.
 
 Camera control always goes through the `MapController` seam
 (`src/hooks/use-map-controller.tsx`) — never a store, never the map directly.

@@ -8,8 +8,8 @@ import { reportIntegrationWarning } from '@/lib/report'
 /**
  * The box a **contained** map embed lives in (issue #169).
  *
- * Map mode renders the canvas with `position: fixed; inset: 0`, and every drawer, peek strip,
- * and cog over it is fixed too. So by default it fills the browser window, whatever slot the
+ * Map mode renders the canvas with `position: fixed; inset: 0`, and every drawer and
+ * the cog over it are fixed too. So by default it fills the browser window, whatever slot the
  * host gave `<sahaj-atlas>`, and #107 settled that as a documented requirement of the mode.
  * That requirement blocked the shape the WordPress plugin needs: a site's own header, then the
  * atlas below it. A static header got painted over. A sticky one floated above the map *and*

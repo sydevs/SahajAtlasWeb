@@ -393,9 +393,8 @@ function FrameNearestRegion() {
  * differing only in chrome.
  *
  * Renders `DrawerChrome` above the body, because the view's own header went down
- * with it. Before that, an error left the drawer with no close button — and in the
- * configurations with no peek strips (desktop, map-less), no swipe and no Esc
- * either, so the viewer was stuck on the error screen with no way back to the map
+ * with it. Before that, an error left the drawer with no way back — and in the
+ * configurations with no swipe (desktop, map-less), no Esc either, so the viewer was stuck on the error screen with no way back to the map
  * (issue #89).
  */
 export function DrawerErrorFallback({ error, resetErrorBoundary }: FallbackProps) {

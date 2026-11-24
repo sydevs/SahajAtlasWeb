@@ -18,8 +18,7 @@ const PATH = [
 
 const COUNTRY = PATH[0]
 
-// Back is the sheet's own button. The peek strips behind it carry the same names, since the
-// nearest one goes to the same place, so the lookup stays inside the sheet.
+// Back is the sheet's own button, looked up inside the sheet.
 const backTo = (atlas: ReturnType<typeof widget>, title: string) =>
   atlas
     .getByRole('dialog')

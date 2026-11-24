@@ -4,11 +4,7 @@ import type { StackEntry } from '@/lib/shape'
 import { isoCountryCode, resolveStack } from '@/lib/shape'
 
 /**
- * What a place in the widget is CALLED, for the Back button and the peek strips.
- *
- * Every strip used to say `t('common.chrome.back')`. So a three-deep stack handed a screen-reader
- * user three identically-named buttons, each going to a different place — the duplicate
- * accessible-name finding in issue #102.
+ * What a place in the widget is CALLED, for the Back button.
  *
  * Names come from caches the app has already filled, read cache-only, so a miss costs the
  * specific name and never the control. This is pure, so it tests without pulling mapbox-gl, vaul
@@ -32,8 +28,8 @@ export type NavTranslate = {
 export type NavNaming = {
   t: NavTranslate
   /**
-   * Region names by slug. A Map, not the region array it comes from: this runs per strip per
-   * render, and the region tree is the whole world's list.
+   * Region names by slug. A Map, not the region array it comes from: the region tree is the
+   * whole world's list.
    */
   regionNames?: ReadonlyMap<string, string>
   /**
@@ -112,7 +108,3 @@ export function backLabel(route: string, naming: NavNaming): string {
 
   return title ? t('common.chrome.back_to', { title }) : t('common.chrome.back')
 }
-
-/** A peek strip's name: where pressing it goes. The root strip goes to the world map. */
-export const stripLabel = (entry: StackEntry | undefined, naming: NavNaming): string =>
-  backLabel(entry?.path ?? '/', naming)

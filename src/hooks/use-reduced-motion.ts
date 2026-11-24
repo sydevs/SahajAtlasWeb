@@ -14,7 +14,7 @@ import { useMediaQuery } from 'react-responsive'
  * This is NOT framer-motion's `useReducedMotion`, despite that already being a dependency.
  * That hook reads the preference ONCE at mount, through `useState(prefersReducedMotion.current)`, and never updates.
  *
- * That mattered for the drawers and peek strips, and issue #102 settled it.
+ * That mattered for the drawers, and issue #102 settled it.
  * `providers.tsx` passes `MotionConfig` an explicit `always` or `never` value, computed from THIS hook.
  * It does not pass `reducedMotion="user"`, which would have been the obvious spelling.
  * `"user"` runs on framer's own mount-once read.

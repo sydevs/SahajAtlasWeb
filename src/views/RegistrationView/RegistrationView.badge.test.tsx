@@ -62,9 +62,7 @@ const view = (verificationStage: string | null, registration = 'open') => {
   eventMock.current = { ...mockEvent, verificationStage }
   displayMock.registration = registration
 
-  return renderToStaticMarkup(
-    <RegistrationView eventPath={mockEvent.path} parentPath="/gb/london" />,
-  )
+  return renderToStaticMarkup(<RegistrationView eventPath={mockEvent.path} />)
 }
 
 describe('unverified caveat on the registration screen', () => {

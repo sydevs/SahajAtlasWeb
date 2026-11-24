@@ -190,7 +190,7 @@ function pages(src) {
       <sahaj-atlas style="display:block;height:640px;border:2px solid #333"></sahaj-atlas>
       <p style="height:80vh">Content below the atlas, to scroll against.</p>
     </div>${loader('key=KEY&map=true')}`,
-      'the map must stay INSIDE the bordered box. Drawers, peek strips and the cog too.',
+      'the map must stay INSIDE the bordered box. Drawers and the cog too.',
       true,
     ),
 

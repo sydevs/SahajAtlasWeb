@@ -7,8 +7,8 @@ import { queryClient } from './config/query-client'
 import { usePrefersReducedMotion } from './hooks/use-reduced-motion'
 
 /**
- * One switch for every `m.*` in the tree — today the peek strips and the
- * drawer-content cross-fade (issue #102). framer reduces an animation by jumping
+ * One switch for every `m.*` in the tree — today the drawer-content cross-fade
+ * (issue #102). framer reduces an animation by jumping
  * straight to the target values, so the UI still ARRIVES; it just stops travelling.
  *
  * Driven by our own `usePrefersReducedMotion` rather than framer's built-in

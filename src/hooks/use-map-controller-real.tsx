@@ -205,7 +205,7 @@ export function RealMapControllerProvider({ children }: { children: ReactNode })
       reset() {
         // Like the two framing calls, this function owns the emphasized point.
         // The root view shows the whole world, and a pin for the class a viewer was just looking at has no place on it.
-        // A viewer reaches this by pressing the root peek strip out of an event, which is a PUSH.
+        // A viewer can reach this by a PUSH to the root, such as a link out of an event.
         // `restore` would have reinstated the pin only for a POP.
         setSelection(null)
         setBoundary(undefined)

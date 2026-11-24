@@ -21,11 +21,9 @@ import { useDrawerControl, useEventFromPath, useFrameEventOnTop } from '@/views/
 // same copy this renders.
 export function RegistrationView({
   eventPath,
-  parentPath,
   initialSubmitted,
 }: {
   eventPath: string
-  parentPath: string
   /** Preview-only: start the native form on its confirmation screen (see stories). */
   initialSubmitted?: boolean
 }) {
@@ -131,7 +129,7 @@ export function RegistrationView({
           // register slot, so it falls through to the state message below rather than
           // rendering an empty EventRegisterBar (issue #52).
           <div className="mx-auto w-full max-w-md py-4">
-            <EventRegisterBar basePath={parentPath} event={event} />
+            <EventRegisterBar basePath={eventPath} event={event} />
           </div>
         ) : (
           // Full, ended, or registration closed. The class is real, it just cannot be

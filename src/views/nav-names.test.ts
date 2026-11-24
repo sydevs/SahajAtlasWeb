@@ -3,7 +3,7 @@ import type { StackEntry } from '@/lib/shape'
 
 import { describe, it, expect } from 'vitest'
 
-import { backLabel, stripLabel } from './nav-names'
+import { type NavNaming, backLabel } from './nav-names'
 
 // A stand-in for i18next. It returns the en copy for the handful of keys this test
 // reaches, so the assertions read as the sentence a screen reader would speak, not a key.
@@ -28,32 +28,36 @@ const regionNames = new Map([
 ])
 const titles = new Map([[7, 'Monday Evening Meditation']])
 
-describe('stripLabel', () => {
-  it('names the root strip as the world map, which cannot collide because there is only one root', () => {
-    expect(stripLabel(undefined, { t, regionNames, titles })).toBe('Back to the world map')
+// What Back says when it goes to `entry` (the root when there is none).
+const label = (entry: StackEntry | undefined, naming: NavNaming) =>
+  backLabel(entry?.path ?? '/', naming)
+
+describe('backLabel — every kind of place Back can go to', () => {
+  it('names the root as the world map', () => {
+    expect(label(undefined, { t, regionNames, titles })).toBe('Back to the world map')
   })
 
   it('gives nested regions different names — the case the generic label failed', () => {
     const gb: StackEntry = { kind: 'region', slug: 'gb', path: '/gb' }
     const london: StackEntry = { kind: 'region', slug: 'london', path: '/gb/london' }
 
-    expect(stripLabel(gb, { t, regionNames, titles })).toBe('Back to United Kingdom')
-    expect(stripLabel(london, { t, regionNames, titles })).toBe('Back to London')
+    expect(label(gb, { t, regionNames, titles })).toBe('Back to United Kingdom')
+    expect(label(london, { t, regionNames, titles })).toBe('Back to London')
   })
 
   it('falls back to a readable slug when the region cache has not been filled', () => {
     // The read is cache-only by design, so a miss has to cost the pretty name and
-    // nothing else. A slug is still unique per strip, so the names stay distinct.
+    // nothing else.
     const entry: StackEntry = { kind: 'region', slug: 'united-kingdom', path: '/united-kingdom' }
 
-    expect(stripLabel(entry, { t })).toBe('Back to United Kingdom')
-    expect(stripLabel({ kind: 'region', slug: 'gb', path: '/gb' }, { t })).toBe('Back to GB')
+    expect(label(entry, { t })).toBe('Back to United Kingdom')
+    expect(label({ kind: 'region', slug: 'gb', path: '/gb' }, { t })).toBe('Back to GB')
   })
 
   it("prefers a country's display name, as RegionView's heading does", () => {
     const countryName = (code: string) => (code === 'GB' ? 'Royaume-Uni' : undefined)
 
-    expect(stripLabel({ kind: 'region', slug: 'gb', path: '/gb' }, { t, countryName })).toBe(
+    expect(label({ kind: 'region', slug: 'gb', path: '/gb' }, { t, countryName })).toBe(
       'Back to Royaume-Uni',
     )
   })
@@ -61,13 +65,13 @@ describe('stripLabel', () => {
   it('names an event from the titles sliver', () => {
     const entry: StackEntry = { kind: 'event', id: 7, path: '/gb/london/7' }
 
-    expect(stripLabel(entry, { t, regionNames, titles })).toBe('Back to Monday Evening Meditation')
+    expect(label(entry, { t, regionNames, titles })).toBe('Back to Monday Evening Meditation')
   })
 
   it('degrades to plain "Back" for an event whose title is not cached', () => {
     const entry: StackEntry = { kind: 'event', id: 99, path: '/gb/london/99' }
 
-    expect(stripLabel(entry, { t, regionNames, titles })).toBe('Back')
+    expect(label(entry, { t, regionNames, titles })).toBe('Back')
   })
 
   it('names the standalone views from the copy they already own', () => {
@@ -79,13 +83,13 @@ describe('stripLabel', () => {
     ]
 
     for (const [entry, expected] of cases) {
-      expect(stripLabel(entry, { t, regionNames, titles })).toBe(expected)
+      expect(label(entry, { t, regionNames, titles })).toBe(expected)
     }
   })
 
   it('never returns an empty name', () => {
-    // Whatever the caches hold, a strip is a button. A button with no accessible name is
-    // a worse outcome than a vague one.
+    // Whatever the caches hold, Back is a button. A button with no accessible name is a
+    // worse outcome than a vague one.
     const entries: (StackEntry | undefined)[] = [
       undefined,
       { kind: 'register', eventPath: '/gb/london/7', path: '/gb/london/7/register' },
@@ -93,7 +97,7 @@ describe('stripLabel', () => {
     ]
 
     for (const entry of entries) {
-      expect(stripLabel(entry, { t })).toBeTruthy()
+      expect(label(entry, { t })).toBeTruthy()
     }
   })
 })
