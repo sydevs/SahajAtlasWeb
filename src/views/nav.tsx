@@ -126,7 +126,7 @@ export function NavHeader({ title, subtitle, actions, close = false }: NavHeader
   }
 
   return (
-    <DrawerHeader stacked>
+    <DrawerHeader className="flex-col items-stretch gap-0">
       <NavRow>{actions}</NavRow>
       {title && <DrawerTitle subtitle={subtitle} title={title} />}
     </DrawerHeader>
