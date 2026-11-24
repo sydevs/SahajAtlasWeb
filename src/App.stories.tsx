@@ -11,19 +11,19 @@ export default { title: 'Interactive' } satisfies StoryDefault
 /**
  * A stand-in for the page an embed sits in. Raw markup on purpose: this is the host's page, not
  * ours. Its sticky header is what the inline map sticks below and the expanded map opens under,
- * and its `h1` is why the widget's own heading is an `h2`. `blend` paints it in the widget's own
+ * and its `h1` is why the widget's own heading is an `h2`. `white` paints it in the widget's own
  * background, so the inline form runs on in the page rather than sitting on a card.
  */
-function HostPage({ blend, children }: { blend: boolean; children: ReactNode }) {
+function HostPage({ white, children }: { white: boolean; children: ReactNode }) {
   return (
-    <div className={clsx('flex min-h-screen flex-col', blend ? 'bg-background' : 'bg-gray-2')}>
+    <div className={clsx('flex min-h-screen flex-col', white ? 'bg-background' : 'bg-gray-2')}>
       <header className="sticky top-0 z-10 flex h-14 shrink-0 items-center border-b border-divider bg-background px-6 font-semibold">
         A host site
       </header>
       <article className="mx-auto flex w-full max-w-6xl flex-col gap-4 px-4 py-8">
         <h1 className="text-2xl font-semibold">Meditate with us</h1>
         <p className="text-gray-11">The host page&apos;s own copy, above the widget.</p>
-        <div className={clsx(!blend && 'overflow-clip rounded-2xl bg-background')}>{children}</div>
+        <div className={clsx(!white && 'overflow-clip rounded-2xl bg-background')}>{children}</div>
         <p className="text-gray-11">And more of it below, so the page scrolls past the widget.</p>
       </article>
     </div>
@@ -42,7 +42,7 @@ export const Default: Story<{ map: boolean; white: boolean }> = ({ map, white })
   const hasMap = map && Boolean(import.meta.env.VITE_MAPBOX_ACCESSTOKEN)
 
   return (
-    <HostPage blend={white}>
+    <HostPage white={white}>
       <App key={String(hasMap)} inline apiKey={WIRE_API_KEY} hasMap={hasMap} />
     </HostPage>
   )

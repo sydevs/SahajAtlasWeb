@@ -5,7 +5,7 @@
 // these are what it PARSES: dates as ISO strings, regions as one flat tree linked by `parent`, the
 // feed as a FeatureCollection carrying Payload's pagination members, relationships populated only
 // as far as each fetcher's `select` asks, and Payload's own envelopes around all of it. A fixture
-// in view-model shape skips the parse the lane exists to exercise. `sahajcloud.test.ts` runs every
+// in view-model shape skips the parse the lane exists to exercise. `wire.test.ts` runs every
 // fixture through the real fetchers, against `answerSahajCloud`, so neither can drift from the
 // contract the app reads.
 import type { RegionNode } from '@/types'
@@ -25,7 +25,7 @@ export const toJson = (value: unknown): Json => JSON.parse(JSON.stringify(value)
 const STAMP = '2026-01-01T00:00:00.000Z'
 
 /** The key `clients/me` recognises. Any other answers as Payload does a stranger: `{ user: null }`. */
-export const SAHAJCLOUD_API_KEY = 'browser-lane-key'
+export const WIRE_API_KEY = 'browser-lane-key'
 
 // ── The region tree ─────────────────────────────────────────────────────────────
 
@@ -34,7 +34,7 @@ const nodeById = new Map(mockRegionNodes.map((node) => [node.id, node]))
 const regionNode = (id: number): RegionNode => {
   const node = nodeById.get(id)
 
-  if (!node) throw new Error(`SahajCloud fixtures: no region ${id} in the tree`)
+  if (!node) throw new Error(`wire fixtures: no region ${id} in the tree`)
 
   return node
 }
@@ -111,15 +111,15 @@ const eventDocs: Record<string, Json> = Object.fromEntries(
   ]),
 )
 
-const eventFeature = features.find(({ properties }) => properties.id === mockEvent.id)
+const wireEventFeature = features.find(({ properties }) => properties.id === mockEvent.id)
 
-if (!eventFeature) throw new Error(`SahajCloud fixtures: no feed feature for event ${mockEvent.id}`)
+if (!wireEventFeature) throw new Error(`wire fixtures: no feed feature for event ${mockEvent.id}`)
 
 /** The event every scenario that opens one opens: the located class, under its city. */
-export const SAHAJCLOUD_EVENT = {
+export const WIRE_EVENT = {
   id: mockEvent.id,
   title: title(mockEvent.id),
-  path: eventFeature.properties.webPath,
+  path: wireEventFeature.properties.webPath,
 }
 
 // ── Payload's envelopes ─────────────────────────────────────────────────────────
@@ -139,7 +139,7 @@ export const onePage = (totalDocs: number) => ({
 
 export const paginated = (docs: unknown[]) => toJson({ docs, ...onePage(docs.length) })
 
-export const sahajCloud = {
+export const wire = {
   /** `GET /api/clients/me`. Payload's `me` adds `collection` and `_strategy` to the user row. */
   clientMe: toJson({
     user: {
@@ -191,23 +191,27 @@ export const sahajCloud = {
 
 // ── The router ──────────────────────────────────────────────────────────────────
 
+export type WireAnswer = { status: number; json: Json }
+
+export type WireRequest = { method: string; url: URL; authorization?: string | null }
+
 /**
  * SahajCloud's answer to one request, by method and path under `/api`, or `undefined` for a
  * request these fixtures do not model — which the browser lane fails a test for, rather than
  * inventing a reply the app could misread as data. `fixtures` swaps in a bigger set of the same
- * shape, as Ladle's demo atlas does (`sahajcloud-demo.ts`).
+ * shape, as Ladle's demo atlas does (`wire-demo.ts`).
  */
 export function answerSahajCloud(
-  request: { method: string; url: URL; authorization?: string | null },
-  fixtures: typeof sahajCloud = sahajCloud,
-): { status: number; json: Json } | undefined {
+  request: WireRequest,
+  fixtures: typeof wire = wire,
+): WireAnswer | undefined {
   const { method, url } = request
   const path = url.pathname.replace(/^\/api(?=\/)/, '')
   const ok = (json: Json, status = 200) => ({ status, json })
 
   if (method === 'GET') {
     if (path === '/clients/me') {
-      return request.authorization === `clients API-Key ${SAHAJCLOUD_API_KEY}`
+      return request.authorization === `clients API-Key ${WIRE_API_KEY}`
         ? ok(fixtures.clientMe)
         : ok({ user: null })
     }

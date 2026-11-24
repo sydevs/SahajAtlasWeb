@@ -194,7 +194,7 @@ export const controlSurface = tv({
  */
 export const floatingChrome = tv({
   base: 'border-divider bg-background shadow-lg',
-  variants: { bordered: { true: 'rounded-full border', false: '' } },
+  variants: { bordered: { true: 'rounded-full border' } },
 })
 
 const button = tv({

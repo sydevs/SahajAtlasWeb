@@ -240,16 +240,16 @@ function ExpandButton() {
  * The view stories render one view in it, which is why it takes its content as children.
  */
 export function InlineColumns({
-  hasMap,
   map,
   top = 0,
   children,
 }: {
-  hasMap: boolean
   map: ReactNode
   top?: number
   children: ReactNode
 }) {
+  const { hasMap } = useWidgetMode()
+
   return (
     <div className={clsx('grid gap-4', hasMap && '@min-sy-cols:grid-cols-2')}>
       {/* The page heading sets the width here, so the bands' own cap is lifted. */}
@@ -304,23 +304,6 @@ function InlineLayout() {
     // eslint-disable-next-line react-hooks/exhaustive-deps -- a navigation, or closing the map after one, is the only trigger
   }, [pathname, expanded])
 
-  const columns = (
-    <InlineColumns
-      hasMap={hasMap}
-      // The expanded dialog runs its own map, and two maps would fight over the one
-      // camera-settled flag; this one comes back, and re-frames, on collapse.
-      map={!expanded && <MapLayer cooperative={embed.config.cooperative} />}
-      top={top}
-    >
-      {/* Hidden while the expanded map shows the same view: its effects would frame a map that
-          is not there and write the stores the expanded one reads, and its live regions would
-          speak from behind the modal. Its state is kept for the way back. */}
-      <Activity mode={expanded ? 'hidden' : 'visible'}>
-        <DrawerStack inline />
-      </Activity>
-    </InlineColumns>
-  )
-
   return (
     <>
       <div
@@ -342,7 +325,22 @@ function InlineLayout() {
             <PlaceHeading />
             <SettingsMenu toolbar className="ms-auto" />
           </div>
-          <MapProviders inline>{columns}</MapProviders>
+          <MapProviders inline>
+            <InlineColumns
+              // The expanded dialog runs its own map, and two maps would fight over the one
+              // camera-settled flag; this one comes back, and re-frames, on collapse.
+              map={!expanded && <MapLayer cooperative={embed.config.cooperative} />}
+              top={top}
+            >
+              {/* Hidden while the expanded map shows the same view: its effects would frame a
+                  map that is not there and write the stores the expanded one reads, and its
+                  live regions would speak from behind the modal. Its state is kept for the way
+                  back. */}
+              <Activity mode={expanded ? 'hidden' : 'visible'}>
+                <DrawerStack inline />
+              </Activity>
+            </InlineColumns>
+          </MapProviders>
         </div>
       </div>
       {hasMap && (

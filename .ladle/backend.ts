@@ -1,7 +1,8 @@
 import type { Json } from '@/mocks/wire'
 
-import { mockEventImages } from '@/mocks/events'
-import { wire, WIRE_API_KEY } from '@/mocks/wire'
+import { IP_LOCATION_ENDPOINT } from '@/hooks/use-ip-location'
+import { mockIpLocation } from '@/mocks/regions'
+import { WIRE_API_KEY, wire } from '@/mocks/wire'
 import { answerDemo } from '@/mocks/wire-demo'
 
 /**
@@ -15,63 +16,33 @@ import { answerDemo } from '@/mocks/wire-demo'
  * (`interceptFetch`, `config/api/client.ts`), and a patched module would skip the parse.
  */
 export function installBackend() {
-  // Resolved against the page, as the SDK's own base is, so an unset origin still matches.
-  const apiBase = new URL(`${import.meta.env.VITE_SAHAJCLOUD_URL}/api/`, window.location.href)
-  const network = window.fetch.bind(window)
+  const api = new URL(`${import.meta.env.VITE_SAHAJCLOUD_URL}/api/`, window.location.href).href
+  const ipLookup = new URL(IP_LOCATION_ENDPOINT).origin
+  // The browser's own, kept across reloads of this module, so each install replaces the last
+  // rather than wrapping it.
+  const network = ((window as { ladleNetwork?: typeof fetch }).ladleNetwork ??=
+    window.fetch.bind(window))
 
   window.fetch = async (input, init) => {
-    const request = new Request(input, init)
+    // Read off the arguments, never through `new Request(input, init)`: that spends a Request's
+    // body, and the untouched call below would then refuse it.
+    const url = new URL(input instanceof Request ? input.url : String(input), window.location.href)
 
-    if (request.url.startsWith(apiBase.href)) {
-      const url = new URL(`/api/${request.url.slice(apiBase.href.length)}`, 'https://wire.invalid')
-      const answer = answerDemo({
-        method: request.method,
-        url,
-        // Whatever key a story's client holds, it is the one the fixtures recognise.
-        authorization: `clients API-Key ${WIRE_API_KEY}`,
-      })
+    if (url.href.startsWith(api)) {
+      const method = init?.method ?? (input instanceof Request ? input.method : 'GET')
+      // Whatever key a story's client holds, it is the one the fixtures recognise.
+      const answer = answerDemo({ method, url, authorization: `clients API-Key ${WIRE_API_KEY}` })
 
-      if (!answer) console.warn(`Ladle: no wire fixture answers ${request.method} ${url.pathname}`)
+      if (!answer) console.warn(`Ladle: no wire fixture answers ${method} ${url.pathname}`)
 
-      return respond(answer?.status ?? 404, withStoryImages(answer?.json ?? wire.notFound))
+      return respond(answer?.status ?? 404, answer?.json ?? wire.notFound)
     }
 
-    if (new URL(request.url).origin === IP_LOOKUP) return respond(200, IP_GUESS)
+    if (url.origin === ipLookup) return respond(200, { success: true, ...mockIpLocation })
 
     return network(input, init)
   }
 }
 
-const IP_LOOKUP = 'https://ipwho.is'
-
-/** Cambridge, the guess `story-harness.tsx` seeds, as ipwho.is sends it. */
-const IP_GUESS = {
-  success: true,
-  latitude: 52.2,
-  longitude: 0.12,
-  city: 'Cambridge',
-  country: 'United Kingdom',
-  country_code: 'GB',
-}
-
 const respond = (status: number, json: Json) =>
   new Response(JSON.stringify(json), { status, headers: { 'Content-Type': 'application/json' } })
-
-/**
- * The wire's images are relative, as SahajCloud serves a file it holds, so an `<img>` would ask
- * production for a file it does not have. A story shows the mocks' own pictures instead.
- */
-function withStoryImages(json: Json): Json {
-  if (!json || typeof json !== 'object' || Array.isArray(json) || !Array.isArray(json.images)) {
-    return json
-  }
-
-  return {
-    ...json,
-    images: json.images.map((image, index) =>
-      image && typeof image === 'object' && !Array.isArray(image)
-        ? { ...image, url: mockEventImages[index % mockEventImages.length].url }
-        : image,
-    ),
-  }
-}

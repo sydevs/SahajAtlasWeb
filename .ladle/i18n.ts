@@ -1,10 +1,7 @@
 import i18n from 'i18next'
 import { initReactI18next } from 'react-i18next'
 
-import snapshot from '../src/config/translations.en.json'
-
-import { EN_A11Y, withA11y } from '@/config/a11y/a11y'
-import { i18nSharedOptions } from '@/config/i18n-options'
+import { bootResources, i18nSharedOptions } from '@/config/i18n-options'
 
 // A self-contained i18next instance for Ladle.
 //
@@ -28,9 +25,9 @@ const storyI18n = i18n.createInstance()
 storyI18n.use(initReactI18next).init({
   lng: 'en',
   ...i18nSharedOptions,
-  // With the English screen-reader strings, as the app's instance has them, or every
+  // The app's own boot resources: without the screen-reader strings among them, every
   // `aria-label` they name read as its raw key in a story and to the accessibility gate.
-  resources: { en: { translation: withA11y(snapshot, EN_A11Y) } },
+  resources: bootResources,
 })
 
 export default storyI18n

@@ -213,6 +213,14 @@ export const CALENDAR_VIEW_MONTH_AGENDA = 'month-agenda'
 export const CALENDAR_VIEW_WEEK = 'week'
 export const CALENDAR_VIEW_LIST = 'list'
 
+/**
+ * Whether the calendar takes the widget's full width instead of the side panel: only where a side
+ * panel exists at all, and never in its list view, one narrow column that reads better at the
+ * panel's width.
+ */
+export const calendarFillsWidth = (isWide: boolean, view: string | null) =>
+  isWide && view !== CALENDAR_VIEW_LIST
+
 /** Every Schedule-X view this app registers. */
 export type CalendarViewName =
   | typeof CALENDAR_VIEW_MONTH

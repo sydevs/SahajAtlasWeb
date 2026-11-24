@@ -14,7 +14,7 @@ import { applyTheme, useTheme } from '@/hooks/use-theme'
 import { BrandPaletteContext, NO_BRAND_PALETTE } from '@/config/theme/brand-palette'
 import { applyPalette, type PaletteRoles } from '@/config/theme/palette'
 import { WIDGET_SCOPE_CLASS } from '@/lib/scope'
-import { VIEW_CONTROLS } from '@/views/story-harness'
+import { VIEW_CONTROLS } from '@/views/story-controls'
 
 import '@/styles/globals.css'
 // Stories mount components without App. So this file also registers the
@@ -37,27 +37,6 @@ import '@/styles/fonts'
 // also carries the class. That is what makes this work in any document.
 if (typeof document !== 'undefined') {
   document.documentElement.classList.add(WIDGET_SCOPE_CLASS)
-}
-
-// The same iframe puts every element a story renders in the iframe's realm, while the story's
-// code runs in this one. mapbox-gl refuses a container that fails `instanceof HTMLElement`
-// against this window's class, so a view story at any set width could not draw its map. This
-// lets the HTMLElement family match an element of another same-origin realm by that realm's
-// class of the same name. Ladle alone needs it: the widget renders in the realm its code runs in.
-if (typeof window !== 'undefined') {
-  const ownRealm = Function.prototype[Symbol.hasInstance]
-
-  Object.defineProperty(HTMLElement, Symbol.hasInstance, {
-    value(this: { name: string }, value: unknown) {
-      if (ownRealm.call(this, value)) return true
-
-      const realm = (value as Node | null | undefined)?.ownerDocument?.defaultView as
-        (Window & Record<string, unknown>) | null | undefined
-      const own = realm && realm !== window ? realm[this.name] : undefined
-
-      return typeof own === 'function' && ownRealm.call(own, value)
-    },
-  })
 }
 
 // Every SahajCloud read a story makes is answered from fixtures (`./backend.ts`).
@@ -87,7 +66,7 @@ const PALETTE_CONTROL = {
   description: 'Tenant brand palette applied via the production applyPalette',
 }
 
-// The view stories' own controls' values (`src/views/story-harness.tsx`), kept from story to
+// The view stories' own controls' values (`src/views/story-controls.ts`), kept from story to
 // story, so a reviewer browsing the views in one setup stays in it.
 const viewControlValues: Record<string, unknown> = {}
 
@@ -144,21 +123,6 @@ export const Provider: GlobalProvider = ({ children }) => {
   const wrapperRef = useRef<HTMLElement>(null)
   const { theme } = useTheme()
 
-  // mapbox-gl sizes its canvas on this window's `resize`, and the viewport control resizes only
-  // the iframe's window, so a map kept the size it first drew at. The iframe's resizes are passed
-  // on. A story moving into or out of the iframe remounts this decorator, so it runs once.
-  useEffect(() => {
-    const frame = wrapperRef.current?.ownerDocument.defaultView
-
-    if (!frame || frame === window) return
-
-    const forward = () => window.dispatchEvent(new Event('resize'))
-
-    frame.addEventListener('resize', forward)
-
-    return () => frame.removeEventListener('resize', forward)
-  }, [])
-
   // View stories are full-view drawer pages, each owning the whole canvas
   // through the ViewHarness, and the whole widget's story is a host page. So
   // both fill Ladle's main area edge to edge: no component-preview padding of
@@ -180,14 +144,6 @@ export const Provider: GlobalProvider = ({ children }) => {
     }
   }, [fullBleed])
 
-  // The brand palette is a first-class Ladle control, in the Controls
-  // panel, not a custom <select>. Ladle wipes control state on each
-  // story change. The args provider only re-seeds a story's own args. So
-  // this effect re-adds the palette control whenever it is missing, but
-  // only after the story's controls finish initializing. This effect
-  // merges onto the story's own controls. It never overwrites them. The
-  // args provider's effect runs once per story (deps []), so it never
-  // wipes the palette control back out afterward.
   const { control, controlInitialized } = globalState
 
   useEffect(() => {
@@ -196,24 +152,33 @@ export const Provider: GlobalProvider = ({ children }) => {
     }
   }, [control])
 
+  // The brand palette is a first-class Ladle control, in the Controls
+  // panel, not a custom <select>. Ladle wipes control state on each
+  // story change. The args provider only re-seeds a story's own args. So
+  // this effect re-adds the palette control whenever it is missing, but
+  // only after the story's controls finish initializing. This effect
+  // merges onto the story's own controls. It never overwrites them. The
+  // args provider's effect runs once per story (deps []), so it never
+  // wipes the palette control back out afterward.
+  //
+  // Every view, and only views, gets the view controls too.
   useEffect(() => {
     if (!controlInitialized) return
 
-    // Every view, and only views, gets the view controls.
-    const views = isView
+    const missing = isView
       ? Object.entries(VIEW_CONTROLS)
           .filter(([key]) => !control[key])
           .map(([key, def]) => [key, { ...def, value: viewControlValues[key] ?? def.defaultValue }])
       : []
 
-    if (control.palette && views.length === 0) return
+    if (control.palette && missing.length === 0) return
 
     dispatch({
       type: ActionType.UpdateControl,
       value: {
         ...control,
         palette: control.palette ?? PALETTE_CONTROL,
-        ...Object.fromEntries(views),
+        ...Object.fromEntries(missing),
       },
     })
   }, [control, controlInitialized, isView, dispatch])

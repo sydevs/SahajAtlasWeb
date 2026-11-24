@@ -46,8 +46,6 @@ const MOBILE_SHEET_PX = 300
 // the fit outright.
 const MIN_MAP_STRIP_PX = 160
 const MAP_MARGIN = 20
-// The padding a map with nothing over it wants, and `usePaddingState`'s own default.
-const MARGIN_ONLY = { left: MAP_MARGIN, right: MAP_MARGIN, top: MAP_MARGIN, bottom: MAP_MARGIN }
 
 // These constants keep zoom consistent.
 // An event frames at `EVENT_ZOOM`.
@@ -92,8 +90,8 @@ const eventPoint = (event: Pick<EventSlim, 'address' | 'eventType' | 'inactive' 
  * never loads this provider or mapbox-gl.
  *
  * `inline` is the inline embed's own map, which no drawer covers, so it writes no drawer padding:
- * the store's margin-only default is its padding. A provider gives that default back as it
- * unmounts, so the expanded map's drawer padding cannot outlive it.
+ * the store's margin-only default is its padding. A drawer's provider gives that default back
+ * when it unmounts or turns inline, so the expanded map's drawer padding cannot outlive it.
  */
 export function RealMapControllerProvider({
   children,
@@ -136,9 +134,14 @@ export function RealMapControllerProvider({
     })
   }, [inline, isWide, sheetCover, setPadding])
 
-  // Its own effect, so the default comes back when this provider goes and at no other time. Sharing
-  // the effect above restored it on every `isWide` and `sheetCover` change — twice per sheet drag.
-  useEffect(() => () => setPadding(MARGIN_ONLY), [setPadding])
+  // Its own effect, so the default comes back when the drawer padding stops and at no other time.
+  // Sharing the effect above restored it on every `isWide` and `sheetCover` change — twice per
+  // sheet drag.
+  useEffect(() => {
+    if (inline) return
+
+    return () => setPadding(usePaddingState.getInitialState().padding)
+  }, [inline, setPadding])
 
   const controller = useMemo<MapController>(
     () => ({

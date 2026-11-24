@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react'
-import type { Client, IpLocation } from '@/types'
+import type { Client } from '@/types'
 
 import { Suspense, useEffect, useMemo, useState } from 'react'
 import clsx from 'clsx'
@@ -11,18 +11,19 @@ import { ErrorBoundary } from 'react-error-boundary'
 import { DrawerSlotsProvider } from '@/components/atoms/Drawer'
 import { DrawerControlContext } from '@/views/shared'
 import { DrawerErrorFallback, DrawerLoading } from '@/views/fallbacks'
-import { WidgetModeContext, type WidgetMode } from '@/config/mode'
+import { WidgetModeContext, type WidgetMode, useWidgetMode } from '@/config/mode'
 import { clientQuery, geojsonQuery, regionsQuery } from '@/config/api'
 import atlasAuth from '@/config/api/auth'
 import { WidgetWidthContext, useIsWide } from '@/config/responsive'
 import { useCalendarPosition } from '@/config/store'
-import { CALENDAR_VIEW_LIST } from '@/lib/shape/calendar'
+import { calendarFillsWidth } from '@/lib/shape/calendar'
 import { setFrame } from '@/lib/overlay'
 import { usePublishedNode } from '@/hooks/use-published-node'
 import { mockErrors, mockNotFound } from '@/mocks/errors'
-import { mockGeojson, mockRegionNodes } from '@/mocks/regions'
+import { mockGeojson, mockIpLocation, mockRegionNodes } from '@/mocks/regions'
 import { MapLayer, MapProviders } from '@/views/FullInterface'
 import { InlineColumns, PlaceHeading } from '@/views/InlineEmbedView/InlineEmbedView'
+import { VIEW_CONTROLS } from '@/views/story-controls'
 
 // The comprehensive event-variant list, re-exported here so the event-list view
 // stories (Region / Online / Search) build their lists from ONE shared source.
@@ -56,22 +57,6 @@ export { mockEventSeries, mockEventVariants } from '@/mocks/events'
 /** A minimal host-client record — CountriesView suspends on this (theme plus home
  *  region bootstrap). With no home region, it emits no canonical link. */
 const mockClient: Client = { id: 1, title: 'Demo Host', region: null }
-
-/** A passive IP guess (Cambridge), so the nearby-suggestion prompt renders on the
- *  views that show it (Countries / Region / Search). It sits where the feed has a
- *  located class within reach, and far from the country/region the default example
- *  frames, so `shouldShowGeolocationPrompt` resolves true (a region already being
- *  viewed locally correctly suppresses it). */
-const mockIpLocation: IpLocation = {
-  latitude: 52.2,
-  longitude: 0.12,
-  city: 'Cambridge',
-  country: 'United Kingdom',
-  // A real guess carries the code, and two features read it: the share grid's
-  // region ordering (`useViewerCountry`) and the `?cc` the accepted suggestion
-  // writes — neither of which a code-less guess would exercise.
-  country_code: 'GB',
-}
 
 /** A drawer control for stories: dismissable (so the fallbacks render their close
  *  control), but with nowhere to actually go. */
@@ -247,30 +232,6 @@ export function ViewStory({ example, state = NO_ERROR, children, ...harness }: V
   )
 }
 
-/** The two forms a view renders in: inline in a host's page, or in the expanded map's panel. */
-export const STORY_FORMS = ['Inline', 'Expanded'] as const
-
-/**
- * The controls every view story shows. The Ladle decorator adds them to each `views--` story and
- * keeps their values from story to story (`.ladle/components.tsx`), so no view declares them and
- * none can be left without them.
- */
-export const VIEW_CONTROLS = {
-  form: {
-    type: 'radio',
-    name: 'Form',
-    options: [...STORY_FORMS],
-    defaultValue: STORY_FORMS[0],
-    description: 'Inline in a host page, or the expanded map panel',
-  },
-  map: {
-    type: 'boolean',
-    name: 'Map',
-    defaultValue: true,
-    description: 'The live map a map embed draws. Off is a map=false embed',
-  },
-}
-
 /** Each control's value, or its default until the decorator has added it. */
 function useViewControls() {
   const { control } = useLadleContext().globalState
@@ -338,16 +299,11 @@ export function ViewHarness({
             all, and without a provider every story would preview the root's control
             set (issue #89). `dismiss` is a no-op — a story has nowhere to dismiss to. */}
         <DrawerControlContext.Provider value={STORY_DRAWER_CONTROL}>
-          {/* One controller per form, as the app has one per map: the expanded one gives the
-              sheet's padding back as it unmounts, which a prop change would never do, and the
-              inline map then framed past its own box. */}
-          <MapProviders key={inline ? 'inline' : 'expanded'} inline={inline}>
+          <MapProviders inline={inline}>
             {inline ? (
-              <InlineForm withMap={withMap}>{view}</InlineForm>
+              <InlineForm>{view}</InlineForm>
             ) : (
-              <ExpandedForm wide={wide} withMap={withMap}>
-                {view}
-              </ExpandedForm>
+              <ExpandedForm wide={wide}>{view}</ExpandedForm>
             )}
           </MapProviders>
         </DrawerControlContext.Provider>
@@ -363,7 +319,7 @@ export function ViewHarness({
  * title gives way to the heading where it names a place. "Expand map" is inert here: the Form
  * control is the way to the expanded form.
  */
-function InlineForm({ withMap, children }: { withMap: boolean; children: ReactNode }) {
+function InlineForm({ children }: { children: ReactNode }) {
   const [column, setColumn] = useState<HTMLDivElement | null>(null)
   const isWide = useIsWide(column)
 
@@ -372,7 +328,7 @@ function InlineForm({ withMap, children }: { withMap: boolean; children: ReactNo
       <div className="flex items-center gap-3 px-4">
         <PlaceHeading />
       </div>
-      <InlineColumns hasMap={withMap} map={<MapLayer />}>
+      <InlineColumns map={<MapLayer />}>
         <WidgetWidthContext.Provider value={isWide}>
           <div ref={setColumn} className="flex flex-col">
             <DrawerSlotsProvider mode="inline">{children}</DrawerSlotsProvider>
@@ -393,25 +349,18 @@ function InlineForm({ withMap, children }: { withMap: boolean; children: ReactNo
  * The header and body take the `filled` slots, a map-less panel's padding: no vaul root sits
  * around them here to give a sheet its handle.
  */
-function ExpandedForm({
-  withMap,
-  wide,
-  children,
-}: {
-  withMap: boolean
-  wide: boolean
-  children: ReactNode
-}) {
+function ExpandedForm({ wide, children }: { wide: boolean; children: ReactNode }) {
+  const { hasMap } = useWidgetMode()
   // Published as the widget's frame, as the dialog is, so the camera's padding measures the
   // panel this frame's width gives it, and a view's own dialogs portal into the frame.
   const { node: frame, adopt } = usePublishedNode<HTMLDivElement>(setFrame)
   const isWide = useIsWide(frame)
   const calendarView = useCalendarPosition((s) => s.view)
-  const fullWidth = wide && isWide && calendarView !== CALENDAR_VIEW_LIST
+  const fullWidth = wide && calendarFillsWidth(isWide, calendarView)
 
   return (
     <div ref={adopt} className="relative h-screen overflow-clip [contain:layout]" data-sy-frame="">
-      {frame && withMap && <MapLayer />}
+      {frame && hasMap && <MapLayer />}
       {frame && (
         <WidgetWidthContext.Provider value={isWide}>
           <DrawerSlotsProvider direction="bottom" mode="filled">
@@ -424,18 +373,16 @@ function ExpandedForm({
                 // — this hand-copies the panel's own chrome, so `overflow-hidden` would
                 // preview #326.
                 'absolute z-10 flex flex-col overflow-clip bg-background text-foreground',
-                !withMap
+                hasMap && 'border-divider shadow-2xl',
+                // The sheet is at its open snap, which the camera's padding assumes until a real
+                // sheet reports its height.
+                !hasMap
                   ? 'inset-0'
-                  : clsx(
-                      'border-divider shadow-2xl',
-                      fullWidth
-                        ? 'inset-4 rounded-2xl border'
-                        : isWide
-                          ? 'inset-y-0 start-0 w-[352px] max-w-full border-e'
-                          : // The sheet's open snap, which the camera's padding assumes until a
-                            // real sheet reports its height.
-                            'inset-x-0 bottom-0 h-[300px] max-h-[calc(100%-160px)] rounded-t-2xl border-t',
-                    ),
+                  : fullWidth
+                    ? 'inset-4 rounded-2xl border'
+                    : isWide
+                      ? 'inset-y-0 start-0 w-[var(--sy-drawer-w,352px)] max-w-full border-e'
+                      : 'inset-x-0 bottom-0 h-[300px] max-h-[calc(100%-160px)] rounded-t-2xl border-t',
               )}
             >
               {children}

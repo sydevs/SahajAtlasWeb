@@ -30,8 +30,8 @@ import { useBrowsedCountry, useCalendarPosition, useSheetCover } from '@/config/
 import { frameElement, overlayContainer } from '@/lib/overlay'
 import {
   type StackEntry,
-  CALENDAR_VIEW_LIST,
   atlasDepth,
+  calendarFillsWidth,
   dismissAction,
   dismissDepth,
   baseStackEntry,
@@ -346,7 +346,7 @@ export function DrawerStack({ inline = false }: { inline?: boolean } = {}) {
   // cog alone, which a phone in month view had lost (#331). The view is read reactively, so
   // switching it resizes the drawer. Date changes do not re-render this component.
   const calendarView = useCalendarPosition((s) => s.view)
-  const wide = top?.kind === 'calendar' && isWide && calendarView !== CALENDAR_VIEW_LIST
+  const wide = top?.kind === 'calendar' && calendarFillsWidth(isWide, calendarView)
   // What sits behind the top view follows the region tree, not the words typed. A place opens by
   // its last slug, so `/united-kingdom/south-east/london` shows London, and its panels and climb
   // must name and lead to the UK at `/gb`, not a `/united-kingdom` that doesn't exist. The top view

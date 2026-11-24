@@ -4,11 +4,21 @@
 //
 // Real places at their real coordinates, with classes made up around them. Dates are computed
 // from the clock, as `events.ts`'s are, so a class is never in the past.
-import type { Json, WireAnswer } from './wire'
+import type { Json, WireAnswer, WireRequest } from './wire'
 
 import { DateTime } from 'luxon'
 
-import { WIRE_EVENT, answerSahajCloud, wire } from './wire'
+import { WEEKDAY_CODES, mockEventImages } from './events'
+import {
+  WIRE_EVENT,
+  answerSahajCloud,
+  onePage,
+  paginated,
+  regionNodes,
+  regionRefOf,
+  toJson,
+  wire,
+} from './wire'
 
 type City = readonly [name: string, latitude: number, longitude: number]
 /** A region, its cities, and the zone its classes run in where it differs from the country's. */
@@ -343,37 +353,31 @@ const STARTS = [
   [19, 0],
   [19, 30],
 ] as const
-const WEEKDAY_CODES = ['MO', 'TU', 'WE', 'TH', 'FR', 'SA', 'SU'] as const
 
 // ── The region tree ─────────────────────────────────────────────────────────────
 
-type Node = {
-  id: number
-  slug: string
-  name: string
-  subtitle: null
-  level: 'country' | 'region' | 'city'
-  parent: number | null
-  webPath: string
-  webUrl: null
-}
+type DemoNode = (typeof regionNodes)[number]
 
-const wireNodes = (wire.regions as { docs: Node[] }).docs
-const nodes: Node[] = [...wireNodes]
-const taken = new Set(wireNodes.map((node) => node.slug))
+const nodes: DemoNode[] = [...regionNodes]
+const taken = new Set(regionNodes.map((node) => node.slug))
 let nextRegionId = 60_000
 
 const kebab = (name: string) =>
   name
     .normalize('NFD')
-    .replace(/[̀-ͯ]/g, '')
+    .replace(/\p{M}/gu, '')
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, '-')
     .replace(/^-|-$/g, '')
 
 /** The wire's own node where one already sits there, so its classes join the demo's. */
-function place(name: string, level: Node['level'], parent: Node | null, slug = kebab(name)): Node {
-  const existing = wireNodes.find(
+function place(
+  name: string,
+  level: DemoNode['level'],
+  parent: DemoNode | null,
+  slug = kebab(name),
+): DemoNode {
+  const existing = regionNodes.find(
     (node) => node.slug === slug && node.level === level && node.parent === (parent?.id ?? null),
   )
 
@@ -382,7 +386,7 @@ function place(name: string, level: Node['level'], parent: Node | null, slug = k
   // Slugs are one namespace across the tree, as SahajCloud's are: a city named for its region
   // takes the country's code.
   const unique = taken.has(slug) ? `${slug}-${parent?.webPath.split('/')[1] ?? 'x'}` : slug
-  const node: Node = {
+  const node: DemoNode = {
     id: nextRegionId++,
     slug: unique,
     name,
@@ -399,23 +403,12 @@ function place(name: string, level: Node['level'], parent: Node | null, slug = k
   return node
 }
 
-const regionRef = ({ id, slug, name, level, subtitle }: Node) => ({
-  id,
-  slug,
-  name,
-  level,
-  subtitle,
-})
-
 // ── The classes ─────────────────────────────────────────────────────────────────
-
-const toJson = (value: unknown): Json => JSON.parse(JSON.stringify(value))
 
 const features: Json[] = []
 const titles: { id: number; title: string }[] = []
 const docs: Record<string, Json> = {}
 const template = wire.events[String(WIRE_EVENT.id)] as Record<string, Json>
-let nextEventId = 20_000
 
 /** The next time `weekday` comes round at `start`, in `zone`, strictly after now. */
 function nextAt(zone: string, weekday: number, [hour, minute]: readonly [number, number]) {
@@ -427,11 +420,11 @@ function nextAt(zone: string, weekday: number, [hour, minute]: readonly [number,
 }
 
 /**
- * One class. Most are weekly classes already running; every sixth is an eight-session course
+ * Class `n`. Most are weekly classes already running; every sixth is an eight-session course
  * starting soon, and every seventeenth is full, so the list shows each state a card can.
  */
-function addClass(n: number, zone: string, language: string, region: Node, city?: City) {
-  const id = nextEventId++
+function addClass(n: number, country: Country, zone: string, region: DemoNode, city?: City) {
+  const id = 20_000 + n
   const weekday = (n % 7) + 1
   const start = STARTS[n % STARTS.length]
   const next = nextAt(zone, weekday, start)
@@ -443,10 +436,11 @@ function addClass(n: number, zone: string, language: string, region: Node, city?
   const address = city && {
     street: `${10 + ((n * 7) % 90)} ${STREETS[n % STREETS.length]}`,
     city: city[0],
-    country: region.webPath.split('/')[1].toUpperCase(),
+    country: country.code,
     latitude: city[1] + jitter,
     longitude: city[2] - jitter,
   }
+  const { language } = country
   const properties = {
     id,
     eventType: city ? 'offline' : 'online',
@@ -463,7 +457,7 @@ function addClass(n: number, zone: string, language: string, region: Node, city?
       ...(course && { endingType: 'count', count: 8 }),
       upcomingDates: dates.map((date) => date.toUTC().toISO()),
     },
-    region: regionRef(region),
+    region: regionRefOf(region),
     registrationsFull: n % 17 === 16,
     verificationStage: null,
     webPath: `${region.webPath}/${id}`,
@@ -483,7 +477,7 @@ function addClass(n: number, zone: string, language: string, region: Node, city?
 
 let n = 0
 
-for (const country of COUNTRIES) {
+for (const [index, country] of COUNTRIES.entries()) {
   const countryNode = place(country.name, 'country', null, country.code.toLowerCase())
 
   for (const [areaName, cities, zone = country.zone] of country.areas) {
@@ -493,44 +487,43 @@ for (const country of COUNTRIES) {
       const cityNode = place(city[0], 'city', area)
       const count = BUSY_CITIES[city[0]] ?? 2 + (n % 4)
 
-      for (let i = 0; i < count; i++) addClass(n++, zone, country.language, cityNode, city)
+      for (let i = 0; i < count; i++) addClass(n++, country, zone, cityNode, city)
     }
   }
 
   // Every third country also teaches online, which rolls up at every level of its tree.
-  if (COUNTRIES.indexOf(country) % 3 === 0)
-    addClass(n++, country.zone, country.language, countryNode)
+  if (index % 3 === 0) addClass(n++, country, country.zone, countryNode)
 }
 
-// ── Payload's envelopes, and the router ─────────────────────────────────────────
+// ── The atlas ───────────────────────────────────────────────────────────────────
 
-const feedEnvelope = wire.feed as Record<string, Json> & { features: Json[] }
-const allFeatures = [...feedEnvelope.features, ...features]
-const wireTitles = (wire.eventTitles as { docs: Json[] }).docs
-const allTitles = [...wireTitles, ...titles]
+const allFeatures = [...(wire.feed as { features: Json[] }).features, ...features]
 
-export const demo = {
-  regions: toJson({ ...(wire.regions as object), docs: nodes, totalDocs: nodes.length }),
-  feed: toJson({ ...feedEnvelope, features: allFeatures, totalDocs: allFeatures.length }),
-  eventTitles: toJson({ ...(wire.eventTitles as object), docs: allTitles, totalDocs: allTitles.length }), // prettier-ignore
-  events: { ...wire.events, ...docs } as Record<string, Json>,
+/**
+ * A class's pictures are the mocks' own. The wire's are relative, as SahajCloud serves a file it
+ * holds, so a story would ask its own origin for a file nobody serves.
+ */
+const withStoryImages = (doc: Json) =>
+  toJson({
+    ...(doc as object),
+    images: mockEventImages.map(({ url, alt }, index) => ({ id: index + 1, url, alt })),
+  })
+
+/** The wire's fixtures, with the bigger atlas in place of its tree, its feed and its classes. */
+export const demo: typeof wire = {
+  ...wire,
+  regions: paginated(nodes),
+  feed: toJson({
+    type: 'FeatureCollection',
+    features: allFeatures,
+    ...onePage(allFeatures.length),
+  }),
+  eventTitles: paginated([...(wire.eventTitles as { docs: Json[] }).docs, ...titles]),
+  events: Object.fromEntries(
+    Object.entries({ ...wire.events, ...docs }).map(([id, doc]) => [id, withStoryImages(doc)]),
+  ),
 }
 
-/** `answerSahajCloud`, over the bigger atlas: the tree, the feed, the titles and each class. */
-export function answerDemo(
-  request: Parameters<typeof answerSahajCloud>[0],
-): WireAnswer | undefined {
-  const path = request.url.pathname.replace(/^\/api(?=\/)/, '')
-
-  if (request.method === 'GET') {
-    if (path === '/regions') return { status: 200, json: demo.regions }
-    if (path === '/events/geojson') return { status: 200, json: demo.feed }
-    if (path === '/events') return { status: 200, json: demo.eventTitles }
-
-    const id = /^\/events\/(\d+)$/.exec(path)?.[1]
-
-    if (id && demo.events[id]) return { status: 200, json: demo.events[id] }
-  }
-
-  return answerSahajCloud(request)
-}
+/** `answerSahajCloud`, over the bigger atlas. */
+export const answerDemo = (request: WireRequest): WireAnswer | undefined =>
+  answerSahajCloud(request, demo)
