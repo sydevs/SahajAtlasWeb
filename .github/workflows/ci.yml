@@ -222,9 +222,10 @@ jobs:
   # (`docs/testing.md` § "The browser lane"). It needs no secret, so a fork and a merge-queue
   # entry run it exactly as a pull request does, which is what lets it be a required check.
   #
-  # ⚠ It blocks: no `if:` on the job or the lane step, no `continue-on-error`, and no retries
-  # (`playwright.config.ts`), since a retry turns a flaky scenario green. `ci-workflows.test.ts`
-  # pins all three, and every action here by SHA.
+  # ⚠ It blocks: no `if:` on the job, no `continue-on-error`, and no retries
+  # (`playwright.config.ts`), since a retry turns a flaky scenario green. The lane step carries
+  # the light lane's condition and no other. `ci-workflows.test.ts` pins all three, and every
+  # action here by SHA.
   browser:
     name: Browser lane
     runs-on: ubuntu-latest
