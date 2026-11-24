@@ -9,11 +9,7 @@ import { setThemeRoot } from '@/hooks/use-theme'
 
 /**
  * Closing a dialog must leave focus where it was, and Radix does not do that here (#432).
- *
- * `DialogContent` restores focus to a `Dialog.Trigger`, and this atom renders none — it is
- * controlled through `open`. Radix's handler calls `preventDefault()` and focuses the trigger
- * it does not have, so focus landed on `<body>`: measured in Chromium against the component
- * library before `useOpenerRestore` recorded the opener itself.
+ * `use-opener-restore.ts` owns the why: there is no `Dialog.Trigger` here to restore to.
  *
  * jsdom, because the whole property is where focus goes across a portal's unmount, which
  * `renderToStaticMarkup` runs none of.
