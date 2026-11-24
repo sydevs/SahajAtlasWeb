@@ -14,6 +14,7 @@ import { applyTheme, useTheme } from '@/hooks/use-theme'
 import { BrandPaletteContext, NO_BRAND_PALETTE } from '@/config/theme/brand-palette'
 import { applyPalette, type PaletteRoles } from '@/config/theme/palette'
 import { WIDGET_SCOPE_CLASS } from '@/lib/scope'
+import { STORY_FORMS, type StoryForm } from '@/views/story-harness'
 
 import '@/styles/globals.css'
 // Stories mount components without App. So this file also registers the
@@ -55,6 +56,10 @@ const PALETTES: Record<string, PaletteRoles> = {
 
 const PALETTE_NAMES = Object.keys(PALETTES)
 const DEFAULT_PALETTE = PALETTE_NAMES[0]
+
+// The form a view story renders in (`src/views/story-harness.tsx`). Kept across stories, so a
+// reviewer browsing the views in one form stays in it.
+let viewForm: StoryForm = STORY_FORMS[0]
 
 // Global decorator for every story.
 //
@@ -140,24 +145,42 @@ export const Provider: GlobalProvider = ({ children }) => {
   // merges onto the story's own controls. It never overwrites them. The
   // args provider's effect runs once per story (deps []), so it never
   // wipes the palette control back out afterward.
+  const form = globalState.control.form?.value
+
   useEffect(() => {
-    if (!globalState.controlInitialized || globalState.control.palette) return
+    if (form) viewForm = form
+  }, [form])
+
+  useEffect(() => {
+    if (!globalState.controlInitialized) return
+
+    const palette = globalState.control.palette ?? {
+      type: 'select',
+      name: 'Brand palette',
+      options: PALETTE_NAMES,
+      defaultValue: DEFAULT_PALETTE,
+      value: DEFAULT_PALETTE,
+      description: 'Tenant brand palette applied via the production applyPalette',
+    }
+    // Every view, and only views, renders in either form of the embed.
+    const formControl = !isView
+      ? undefined
+      : (globalState.control.form ?? {
+          type: 'radio',
+          name: 'Form',
+          options: [...STORY_FORMS],
+          defaultValue: STORY_FORMS[0],
+          value: viewForm,
+          description: 'Inline in a host page, or the expanded map panel',
+        })
+
+    if (palette === globalState.control.palette && formControl === globalState.control.form) return
 
     dispatch({
       type: ActionType.UpdateControl,
-      value: {
-        ...globalState.control,
-        palette: {
-          type: 'select',
-          name: 'Brand palette',
-          options: PALETTE_NAMES,
-          defaultValue: DEFAULT_PALETTE,
-          value: DEFAULT_PALETTE,
-          description: 'Tenant brand palette applied via the production applyPalette',
-        },
-      },
+      value: { ...globalState.control, palette, ...(formControl && { form: formControl }) },
     })
-  }, [globalState.control, globalState.controlInitialized, dispatch])
+  }, [globalState.control, globalState.controlInitialized, isView, dispatch])
 
   const palette =
     PALETTES[globalState.control.palette?.value ?? DEFAULT_PALETTE] ?? NO_BRAND_PALETTE

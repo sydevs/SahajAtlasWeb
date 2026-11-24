@@ -64,7 +64,7 @@ import {
  * world's own title. A venue or a class keeps its own name as the panel's smaller heading below.
  * It is the page's main heading only where the host's page has none of its own.
  */
-function PlaceHeading() {
+export function PlaceHeading() {
   const { t, regionNames } = useLocale()
   const { pathname } = useLocation()
   const { data: tree } = useQuery(regionsQuery())
@@ -231,6 +231,47 @@ function ExpandButton() {
   )
 }
 
+/**
+ * The inline embed's body: the content column, and the square map box beside it from
+ * `--container-sy-cols` wide, measured on the widget rather than the window (#107). A narrower one
+ * stacks a short map strip above the content, and it does not stick. `top` is the host header the
+ * map sticks below.
+ *
+ * The view stories render one view in it, which is why it takes its content as children.
+ */
+export function InlineColumns({
+  hasMap,
+  map,
+  top = 0,
+  children,
+}: {
+  hasMap: boolean
+  map: ReactNode
+  top?: number
+  children: ReactNode
+}) {
+  return (
+    <div className={clsx('grid gap-4', hasMap && '@min-sy-cols:grid-cols-2')}>
+      {/* The page heading sets the width here, so the bands' own cap is lifted. */}
+      <div className="flex min-w-0 flex-col [--sy-content-max:none]">{children}</div>
+      {hasMap && (
+        <div className="order-first px-4 @min-sy-cols:order-none @min-sy-cols:ps-0">
+          <div
+            // ⚠ `contain: layout` makes this box the containing block for the canvas, which is
+            // fixed. `transform-gpu` gives WebKit's compositor the same box to clip it to (#424).
+            // The square is capped to what fits below the header, so all of it stays in view.
+            className="relative h-[clamp(180px,33vh,320px)] transform-gpu overflow-clip rounded-2xl border border-divider [contain:layout] @min-sy-cols:sticky @min-sy-cols:top-[calc(var(--sy-inline-top,0px)+16px)] @min-sy-cols:ms-auto @min-sy-cols:aspect-square @min-sy-cols:h-auto @min-sy-cols:max-w-[calc(100vh-var(--sy-inline-top,0px)-32px)]"
+            style={{ '--sy-inline-top': `${top}px` } as CSSProperties}
+          >
+            {map}
+            <ExpandButton />
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
 function InlineLayout() {
   const { pathname } = useLocation()
   const navigationType = useNavigationType()
@@ -263,33 +304,21 @@ function InlineLayout() {
     // eslint-disable-next-line react-hooks/exhaustive-deps -- a navigation, or closing the map after one, is the only trigger
   }, [pathname, expanded])
 
-  // Side by side from `--container-sy-cols` wide, measured on the widget rather than the window
-  // (#107). A narrower one stacks a short map strip above the content, and it does not stick.
   const columns = (
-    <div className={clsx('grid gap-4', hasMap && '@min-sy-cols:grid-cols-2')}>
+    <InlineColumns
+      hasMap={hasMap}
+      // The expanded dialog runs its own map, and two maps would fight over the one
+      // camera-settled flag; this one comes back, and re-frames, on collapse.
+      map={!expanded && <MapLayer cooperative={embed.config.cooperative} />}
+      top={top}
+    >
       {/* Hidden while the expanded map shows the same view: its effects would frame a map that
           is not there and write the stores the expanded one reads, and its live regions would
           speak from behind the modal. Its state is kept for the way back. */}
       <Activity mode={expanded ? 'hidden' : 'visible'}>
         <DrawerStack inline />
       </Activity>
-      {hasMap && (
-        <div className="order-first px-4 @min-sy-cols:order-none @min-sy-cols:ps-0">
-          <div
-            // ⚠ `contain: layout` makes this box the containing block for the canvas, which is
-            // fixed. `transform-gpu` gives WebKit's compositor the same box to clip it to (#424).
-            // The square is capped to what fits below the header, so all of it stays in view.
-            className="relative h-[clamp(180px,33vh,320px)] transform-gpu overflow-clip rounded-2xl border border-divider [contain:layout] @min-sy-cols:sticky @min-sy-cols:top-[calc(var(--sy-inline-top,0px)+16px)] @min-sy-cols:ms-auto @min-sy-cols:aspect-square @min-sy-cols:h-auto @min-sy-cols:max-w-[calc(100vh-var(--sy-inline-top,0px)-32px)]"
-            style={{ '--sy-inline-top': `${top}px` } as CSSProperties}
-          >
-            {/* The expanded dialog runs its own map, and two maps would fight over the one
-                camera-settled flag; this one comes back, and re-frames, on collapse. */}
-            {!expanded && <MapLayer cooperative={embed.config.cooperative} />}
-            <ExpandButton />
-          </div>
-        </div>
-      )}
-    </div>
+    </InlineColumns>
   )
 
   return (

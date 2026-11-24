@@ -827,8 +827,7 @@ export function DrawerStack({ inline = false }: { inline?: boolean } = {}) {
     return (
       <WidgetWidthContext.Provider value={isWide}>
         <DrawerControlContext.Provider value={control}>
-          {/* The page heading sets the width here, so the bands' own cap is lifted. */}
-          <div ref={setContainer} className="flex min-w-0 flex-col [--sy-content-max:none]">
+          <div ref={setContainer} className="flex flex-col">
             <DrawerSlotsProvider mode="inline">
               <div key={top?.path ?? '/'} className="flex flex-col">
                 {topView}
