@@ -1,12 +1,14 @@
 import type { Json } from '@/mocks/wire'
 
 import { mockEventImages } from '@/mocks/events'
-import { answerSahajCloud, wire, WIRE_API_KEY } from '@/mocks/wire'
+import { wire, WIRE_API_KEY } from '@/mocks/wire'
+import { answerDemo } from '@/mocks/wire-demo'
 
 /**
  * Ladle talks to no API. Every SahajCloud request a story makes is answered from the browser
- * lane's wire fixtures (`src/mocks/wire.ts`), through the app's real fetchers, so the interactive
- * widget can browse, open and register, and a view's own idle prefetch never reaches production.
+ * lane's wire fixtures (`src/mocks/wire.ts`), over the bigger atlas `wire-demo.ts` adds, through
+ * the app's real fetchers. So the interactive widget can browse, open and register with lists long
+ * enough to scroll, and a view's own idle prefetch never reaches production.
  * The IP lookup gets the guess the view stories seed. Mapbox and picsum go out as normal.
  *
  * It patches `fetch` rather than mocking a module, because the app's SDK calls the global one
@@ -22,7 +24,7 @@ export function installBackend() {
 
     if (request.url.startsWith(apiBase.href)) {
       const url = new URL(`/api/${request.url.slice(apiBase.href.length)}`, 'https://wire.invalid')
-      const answer = answerSahajCloud({
+      const answer = answerDemo({
         method: request.method,
         url,
         // Whatever key a story's client holds, it is the one the fixtures recognise.

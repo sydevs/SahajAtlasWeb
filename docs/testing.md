@@ -478,7 +478,8 @@ the catch-all to let it through.
 
 Ladle answers every story's SahajCloud reads from the same fixtures (`.ladle/backend.ts`), and
 frames the same challenge page (`src/mocks/challenge-page.ts`), so a fixture added for the lane
-also reaches the whole widget's story, `Widget / Interactive`.
+also reaches the whole widget's story, `Interactive / Full Widget`. That story reads a bigger atlas
+on top (`src/mocks/wire-demo.ts`), which the lane never does.
 
 A spec that says a request never happens awaits `rendered` (`fixtures.ts`) first: the embed
 report the first real render sends, then 500 ms with nothing in flight. The report alone is no

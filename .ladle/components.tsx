@@ -159,13 +159,26 @@ export const Provider: GlobalProvider = ({ children }) => {
     return () => frame.removeEventListener('resize', forward)
   }, [])
 
-  // View stories are full-view drawer pages. Each one owns the whole
-  // canvas through the ViewHarness. So view stories drop the usual
-  // component-preview padding, and fill their width-xsmall frame edge to
-  // edge, as the whole widget's story does with its host page. Every other
-  // tier keeps the padded gutter.
+  // View stories are full-view drawer pages, each owning the whole canvas
+  // through the ViewHarness, and the whole widget's story is a host page. So
+  // both fill Ladle's main area edge to edge: no component-preview padding of
+  // ours, and none of Ladle's own around it. Every other tier keeps both.
   const isView = globalState.story?.startsWith('views--')
-  const fullBleed = isView || globalState.story?.startsWith('widget--')
+  const fullBleed = isView || globalState.story?.startsWith('interactive--')
+
+  useEffect(() => {
+    if (!fullBleed) return
+
+    const root = document.documentElement.style
+
+    root.setProperty('--ladle-main-padding', '0')
+    root.setProperty('--ladle-main-padding-mobile', '0')
+
+    return () => {
+      root.removeProperty('--ladle-main-padding')
+      root.removeProperty('--ladle-main-padding-mobile')
+    }
+  }, [fullBleed])
 
   // The brand palette is a first-class Ladle control, in the Controls
   // panel, not a custom <select>. Ladle wipes control state on each

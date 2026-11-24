@@ -122,25 +122,27 @@ free, and their values hold as you move between views.
   frames it as it does in the app. Off is a `map=false` embed. It needs
   `VITE_MAPBOX_ACCESSTOKEN`, and without one every view renders map-less.
 
-Widen the story viewport to 768px or more to see the inline form's two columns.
-The map draws at any viewport width: the decorator bridges the two things
-mapbox-gl cannot see across Ladle's viewport iframe, its container check and
-the window's `resize`.
+A view sets no viewport of its own, so it fills Ladle's main area, with
+Ladle's padding taken away (`.ladle/components.tsx`); narrow the window or
+pick a viewport to see the narrow forms. The map draws at any viewport width:
+the decorator bridges the two things mapbox-gl cannot see across Ladle's
+viewport iframe, its container check and the window's `resize`.
 
 ⚠ **With a token, the accessibility gate fails every view story on the map's
 own controls** — the locate button and the Mapbox wordmark measure under the
 44px floor, as `organisms--mapbox` already did. CI's library build carries no
 token, so its gate renders the views map-less and does not see them.
 
-### The whole widget (`Widget / Interactive`)
+### The whole widget (`Interactive / Full Widget`)
 
 `src/App.stories.tsx` renders the real `App`, inline, on a stand-in host page:
 browse, open a class and register, search, filter, expand the map and close it.
-Its data is the wire fixtures' small tree, through the app's real fetchers, so a
-fixture the widget newly needs is added in `src/mocks/wire.ts`, where the browser
-lane reads it too. Its **Map** control is a `map=false` embed. Fullscreen (`f`)
-gives it the window: in Ladle's frame its header never reaches the top of the
-window, so the expanded map does not find it and opens over it.
+Its data is the wire fixtures, through the app's real fetchers, with a bigger
+atlas of real places on top (`src/mocks/wire-demo.ts`) so every list scrolls.
+A fixture the widget newly needs goes in `src/mocks/wire.ts`, where the browser
+lane reads it too. **Map** off is a `map=false` embed; **White background**
+paints the host page in the widget's own background, so the inline form
+blends in.
 
 ### StoryGrid (matrices)
 

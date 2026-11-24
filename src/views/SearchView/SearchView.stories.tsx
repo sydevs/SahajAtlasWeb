@@ -181,7 +181,6 @@ export const Default: Story<{ example: ExampleKey; state: StoryFallbackArg }> = 
 }
 
 Default.storyName = 'Search'
-Default.meta = { width: 'xsmall' }
 Default.args = { example: 'Results', state: NO_ERROR }
 Default.argTypes = {
   example: {

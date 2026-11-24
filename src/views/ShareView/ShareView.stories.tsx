@@ -114,7 +114,6 @@ export const Default: Story<{ region: RegionKey; share: ShareKey; state: StoryFa
 }
 
 Default.storyName = 'Share'
-Default.meta = { width: 'xsmall' }
 Default.args = { region: 'Default', share: 'canonical', state: NO_ERROR }
 Default.argTypes = {
   region: {

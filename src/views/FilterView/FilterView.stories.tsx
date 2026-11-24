@@ -38,4 +38,3 @@ export const Default: Story = () => (
 )
 
 Default.storyName = 'Filter'
-Default.meta = { width: 'xsmall' }

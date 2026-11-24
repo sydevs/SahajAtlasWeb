@@ -80,7 +80,6 @@ export const Default: Story<{ example: ExampleKey; state: StoryFallbackArg }> = 
 }
 
 Default.storyName = 'Event'
-Default.meta = { width: 'xsmall' }
 Default.args = { example: 'In person', state: NO_ERROR }
 Default.argTypes = {
   example: {
