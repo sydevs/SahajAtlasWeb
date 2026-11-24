@@ -40,7 +40,7 @@ if (typeof document !== 'undefined') {
 // Brand presets sampled from real tenants (issue #16). Selecting one runs
 // the production applyPalette on the story wrapper, so Ladle previews
 // exactly what an embed renders. The first preset is the default. It
-// applies no override, so it uses the built-in teal and orange colors.
+// applies no override, so it uses the built-in green and coral colors.
 // ⚠ Each preset is one module object: the map memoises its marker colors on
 // the palette's identity, so a fresh object per render would re-register them.
 const PALETTES: Record<string, PaletteRoles> = {

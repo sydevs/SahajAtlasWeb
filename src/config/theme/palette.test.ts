@@ -5,11 +5,13 @@ import {
   buildPalette,
   buildScale,
   applyPalette,
-  onHex,
+  DEFAULT_SEEDS,
   paletteReport,
+  readableOn,
+  scaleHex,
+  seedOrDefault,
   shiftHex,
   SOLID_STEP,
-  stepHex,
   type ColorScale,
   type Step,
   type ThemeMode,
@@ -161,7 +163,7 @@ describe('applyPalette', () => {
 
     // The local client record defaults `color1` through `color3` to `#000000`.
     // An achromatic primary or secondary must NOT paint a grey ramp.
-    // Those roles fall back to the `globals.css` default, the built-in teal or orange.
+    // Those roles fall back to the `globals.css` default, built from `DEFAULT_SEEDS`.
     // Background still snaps to the readable near-white app-background step, as it does for any near-black seed.
     applyPalette(root, { primary: '#000000', secondary: '#000000', background: '#000000' }, 'light')
 
@@ -187,29 +189,28 @@ describe('applyPalette', () => {
 })
 
 // The map paints with literal colors, not CSS variables, so it reads the ramp
-// through these three rather than through `applyPalette`.
+// through these rather than through `applyPalette`.
 describe('the hex accessors', () => {
   it('gives a step as #rrggbb, per mode', () => {
-    expect(stepHex('#64032e', 'light', 9)).toBe('#521430')
+    expect(scaleHex(buildScale('#64032e', 'light'), 9)).toBe('#521430')
     // Dark mode floors the solid's lightness at 60, so the same seed is lighter.
-    expect(stepHex('#64032e', 'dark', 9)).toBe('#d65c93')
-    expect(stepHex('#64032e', 'light', 8)).toBe('#d9689b')
+    expect(scaleHex(buildScale('#64032e', 'dark'), 9)).toBe('#d65c93')
+    expect(scaleHex(buildScale('#64032e', 'light'), 8)).toBe('#d9689b')
   })
 
   it('refuses a seed that is absent, invalid or the unconfigured sentinel', () => {
-    // The refusal `setRole` already makes by writing nothing. Every caller then
-    // keeps its own built-in default.
+    // The refusal `setRole` already makes by writing nothing, so the map takes the
+    // same default the static theme does.
     for (const seed of [undefined, null, '', 'not-a-color', '#000000']) {
-      expect(stepHex(seed, 'light', 9)).toBeNull()
-      expect(onHex(seed, 'light')).toBeNull()
+      expect(seedOrDefault('primary', seed)).toBe(DEFAULT_SEEDS.primary)
     }
   })
 
   it('paints a grey or white seed as the neutral ramp it is, not the default', () => {
-    // Snapping these to our teal read as the picker ignoring the manager.
+    // Snapping these to our default read as the picker ignoring the manager.
     for (const seed of ['#ffffff', '#f2f2f2', '#333333']) {
       expect(parse(buildScale(seed, 'light')[9]).s).toBe(0)
-      expect(stepHex(seed, 'light', 9)).not.toBeNull()
+      expect(seedOrDefault('primary', seed)).toBe(seed)
     }
   })
 
@@ -228,10 +229,10 @@ describe('the hex accessors', () => {
     expect(paletteReport({ primary: '#fffdfa' }).primary?.darkAdjustedBy).toContain('saturation')
 
     expect(paletteReport({ primary: '#fffdfa' }).primary?.lightAdjustedBy).toContain('saturation')
-    // Our own teal is already over the floor.
-    expect(paletteReport({ primary: '#1E6C71' }).primary?.lightAdjustedBy).not.toContain(
-      'saturation',
-    )
+    // Our own primary is already over the floor.
+    expect(
+      paletteReport({ primary: DEFAULT_SEEDS.primary }).primary?.lightAdjustedBy,
+    ).not.toContain('saturation')
   })
 
   it('reports a band crossing on its own, not off the size of the lift', () => {
@@ -248,10 +249,12 @@ describe('the hex accessors', () => {
     )
   })
 
-  it('gives the solid step a readable on-color', () => {
-    expect(onHex('#64032e', 'light')).toBe('#ffffff')
-    // Dark mode's lighter solid reads better under black.
-    expect(onHex('#64032e', 'dark')).toBe('#000000')
+  it('picks black or white for any fill, by the rule behind the solid step on-color', () => {
+    expect(readableOn('#521430')).toBe('#ffffff')
+    expect(readableOn('#d65c93')).toBe('#000000')
+    expect(readableOn(scaleHex(buildScale('#64032e', 'light'), 9))).toBe(
+      colord(`hsl(${buildScale('#64032e', 'light').on})`).toHex(),
+    )
   })
 
   it('shifts a hex in HSL, clamped', () => {
@@ -290,9 +293,8 @@ describe('legibility', () => {
     '#ffff00',
     '#f0f0ff',
     '#000080',
+    ...Object.values(DEFAULT_SEEDS),
     '#1E6C71',
-    '#5e98ba',
-    '#d8735a',
     '#2f7f84',
   ] as const
 
@@ -322,9 +324,9 @@ describe('legibility', () => {
   it('leaves a seed that already passes exactly where it was', () => {
     // Our own primary passes `surface` and needs no separation from itself-as-contrast
     // at a different hue, so step 9 is the seed's own lightness, uncorrected.
-    const { primary } = buildPalette({ contrast: '#d8735a', primary: '#1E6C71' }, 'light')
+    const { primary } = buildPalette(DEFAULT_SEEDS, 'light')
 
-    expect(primary!.scale[SOLID_STEP]).toBe('184 58% 28%')
+    expect(primary!.scale[SOLID_STEP]).toBe('160 55% 39%')
     expect(primary!.adjustedBy).not.toContain('surface')
   })
 })
