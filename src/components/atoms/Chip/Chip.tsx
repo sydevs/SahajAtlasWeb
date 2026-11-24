@@ -26,8 +26,10 @@ const chip = tv({
     // the same `focus-visible:ring-2 ring-focus` every other control draws.
     // `touch-target` gives the 12px × an invisible 44px tap area on touch screens, at the same
     // drawn size.
+    // Dimmed only as far as 3:1 on the chip's own tint allows: a tinted chip's glyph measures
+    // 3.2:1 at 80% in light mode, and 2.3:1 at 60% (#432).
     close:
-      'touch-target relative shrink-0 rounded-full opacity-60 transition-opacity outline-none hover:opacity-100 focus-visible:opacity-100 focus-visible:ring-2 focus-visible:ring-focus',
+      'touch-target relative shrink-0 rounded-full opacity-80 transition-opacity outline-none hover:opacity-100 focus-visible:opacity-100 focus-visible:ring-2 focus-visible:ring-focus',
   },
   variants: {
     color: { primary: '', secondary: '', contrast: '', neutral: '' },
