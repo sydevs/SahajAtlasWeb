@@ -823,7 +823,7 @@ export function DrawerStack() {
                 form fields, and the narrower the box the more it covered. side="top" opens
                 the menu upward from there. */}
             <div className="flex h-12 shrink-0 items-center border-t border-divider px-4">
-              <SettingsMenu toolbar side="top" />
+              <SettingsMenu side="top" variant="ghost" />
             </div>
           </div>
         </DrawerControlContext.Provider>

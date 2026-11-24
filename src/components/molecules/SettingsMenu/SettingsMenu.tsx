@@ -3,7 +3,6 @@ import * as DropdownMenu from '@radix-ui/react-dropdown-menu'
 import { useTranslation } from 'react-i18next'
 import { Check, ChevronRight, Info, Languages, Monitor, Moon, Settings, Sun } from 'lucide-react'
 
-import { tv } from '@/styles/tv'
 import { frameCollision } from '@/lib/overlay'
 import { Button } from '@/components/atoms/Button'
 import { menuChrome } from '@/components/atoms/Menu'
@@ -16,10 +15,12 @@ import { type ThemePreference, useThemePreference } from '@/hooks/use-theme'
 import { overlayContainer } from '@/lib/overlay'
 import { publishLocale } from '@/lib/shape'
 
-// The toolbar cog takes the header icons' flat look.
-const toolbarTrigger = tv({
-  base: '-ms-3 flex h-11 w-11 items-center justify-center rounded-lg text-gray-11 transition-colors outline-none hover:text-foreground focus-visible:ring-2 focus-visible:ring-focus focus-visible:ring-inset',
-})
+// The cog over the map is a round pill; the one in a row of controls matches the drawer
+// header's icon buttons, which are ghost, square-cornered and draw a 20px glyph.
+const TRIGGER = {
+  floating: { radius: 'full', glyph: 16 },
+  ghost: { radius: 'sm', glyph: 20 },
+} as const
 
 const { surface, row } = menuChrome({ submenus: true })
 const menu = surface()
@@ -44,18 +45,19 @@ function ItemCheck() {
 // footer's LanguageSelector and ThemeSwitch. `className` positions the
 // trigger button.
 export type SettingsMenuProps = {
-  /** Positions the trigger button (the cog floats over the map or the panel). */
+  /** Positions the trigger button. */
   className?: string
   /** Which side the menu opens toward the trigger (bottom for a top cog, top for a bottom cog). */
   side?: DropdownMenu.DropdownMenuContentProps['side']
-  /**
-   * The cog sits in a toolbar row instead of floating, so it takes the header icons' flat look
-   * and a 44px tap area.
-   */
-  toolbar?: boolean
+  /** `floating` over the map; `ghost` in a row of controls, such as a header. */
+  variant?: keyof typeof TRIGGER
 }
 
-export function SettingsMenu({ className, side = 'bottom', toolbar = false }: SettingsMenuProps) {
+export function SettingsMenu({
+  className,
+  side = 'bottom',
+  variant = 'floating',
+}: SettingsMenuProps) {
   const { t } = useTranslation()
   const { locale, setLocale } = useLocale()
   // The set an operator publishes in SahajCloud, never a list compiled in here (#198). Every row
@@ -98,29 +100,19 @@ export function SettingsMenu({ className, side = 'bottom', toolbar = false }: Se
   return (
     <DropdownMenu.Root>
       <DropdownMenu.Trigger asChild>
-        {toolbar ? (
-          <button
-            aria-label={t('common.a11y.settings')}
-            className={toolbarTrigger({ className })}
-            type="button"
-          >
-            <Settings size={20} />
-          </button>
-        ) : (
-          // ⚠ The caller's `fixed` or `absolute` reaches the Button's recipe, which merges it over
-          // the `relative` its `touch-target` needs; a `clsx` join would let `relative` win the
-          // cascade and unpin the cog (#432).
-          <Button
-            isIconOnly
-            aria-label={t('common.a11y.settings')}
-            className={className}
-            radius="full"
-            size="sm"
-            variant="floating"
-          >
-            <Settings size={16} />
-          </Button>
-        )}
+        {/* ⚠ The caller's `fixed` or `absolute` reaches the Button's recipe, which merges it over
+            the `relative` its `touch-target` needs; a `clsx` join would let `relative` win the
+            cascade and unpin the cog (#432). */}
+        <Button
+          isIconOnly
+          aria-label={t('common.a11y.settings')}
+          className={className}
+          radius={TRIGGER[variant].radius}
+          size="sm"
+          variant={variant}
+        >
+          <Settings size={TRIGGER[variant].glyph} />
+        </Button>
       </DropdownMenu.Trigger>
 
       <DropdownMenu.Portal container={container}>
