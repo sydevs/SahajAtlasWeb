@@ -20,13 +20,11 @@ permissions:
 # ── Docs-only changes take the light lane ──────────────────────────────────
 # A change touching nothing but agent guides, notes under docs/, .claude/ or .vscode/ can
 # break nothing the expensive steps measure, so those steps skip and the check reports green
-# in seconds instead of 12–16 minutes (sydevs/SahajCloud#1265). The STEPS are gated, never the
-# workflow: a workflow-level `paths-ignore` leaves a required check that never reports, and
-# that blocks the merge forever. Each job decides for itself with the `scope` step, so the
-# required names never change; `Smoke`, which is a job apart, reads the `scope` job instead,
-# because `needs: gate` would queue it behind the 12 minute job. A job skipped by `if` reports
-# SKIPPED, which the ruleset accepts. Dependency Review always runs.
-# (why: sydevs/claude-workflow docs/why.md#a-docs-only-change-takes-the-light-lane)
+# in seconds instead of 12–16 minutes (sydevs/SahajCloud#1265). `change-scope`'s own header
+# carries why the steps are gated and never the workflow, and the `why:` anchor behind it.
+# Each job decides for itself with the `scope` step, so the required names never change;
+# `Smoke`, which is a job apart, reads the `scope` job instead, because `needs: gate` would
+# queue it behind the 12 minute job. Dependency Review always runs.
 #
 # ⚠ `light` is an explicit list, not the action's default `\.md$|^docs/|…`, because specs READ
 # some of these files: `ci-workflows.test.ts` parses `docs/embedding.md`, `docs/testing.md` and
