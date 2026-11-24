@@ -45,15 +45,17 @@ export function BackButton({ iconOnly = false }: { iconOnly?: boolean }) {
   }
 
   return (
-    // The atom's own `sm` padding, pulled out by it so the chevron lines up with the title.
+    // The atom's own `sm` padding, pulled out by it so the chevron lines up with the title. The
+    // glyph sits 7.5px inside its 20px box, so the icon is pulled in by about that much, which
+    // leaves the same 12px of hover either side of what is drawn.
     <Button
-      className="-ms-3 min-w-0 justify-start gap-1"
+      className="-ms-3 min-w-0 justify-start gap-0.5"
       color="primary"
       size="sm"
       variant="ghost"
       onClick={dismiss}
     >
-      <ChevronLeft className="shrink-0 rtl:-scale-x-100" size={20} />
+      <ChevronLeft className="-ms-2 shrink-0 rtl:-scale-x-100" size={20} />
       <span className="min-w-0 truncate">{label}</span>
     </Button>
   )
