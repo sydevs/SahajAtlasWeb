@@ -354,7 +354,7 @@ function InlineLayout() {
               style={{ scrollMarginTop: top + 16 }}
             >
               <PlaceHeading />
-              <SettingsMenu toolbar className="ms-auto" />
+              <SettingsMenu className="ms-auto" variant="ghost" />
             </div>
             <MapProviders inline>
               <InlineColumns
