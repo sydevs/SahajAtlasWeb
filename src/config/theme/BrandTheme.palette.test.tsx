@@ -15,7 +15,7 @@ import { readRepoSource } from '@/test-support/repo-source'
  *
  * jsdom, because the paint IS a layout effect: an SSR render runs no effects at all.
  * Two halves of one resolution drifting apart is exactly the wiring defect a pure
- * spec cannot see — the UI would stay branded while the pins reverted to teal, with
+ * spec cannot see — the UI would stay branded while the pins reverted to the default, with
  * every gate green.
  */
 
@@ -70,9 +70,9 @@ describe('BrandTheme', () => {
   it('substitutes no default for an unconfigured role', () => {
     mount(undefined)
 
-    // An unseeded role must reach the map as absent, which is what keeps the stock
-    // pins stock. Filling in `DEFAULT_SEEDS` here would recolor every unbranded
-    // embed, and make its pins mode-dependent.
+    // An unseeded role must reach the map as absent: `markerColors` resolves the
+    // default itself and answers one shared object for it, and the panel keeps the
+    // static `globals.css` ramps rather than an inline copy of them.
     expect(Object.values(seen.at(-1) ?? {}).every((seed) => seed === undefined)).toBe(true)
     expect(document.documentElement.style.getPropertyValue('--primary-9')).toBe('')
   })
@@ -147,10 +147,11 @@ describe('the wiring', () => {
 
     expect(source).toContain('useBrandPalette()')
     expect(source).toContain('markerColors(palette)')
-    expect(source).toContain('registerMarkerImages(mapbox, colors)')
-    // The colors are a dependency, so a palette change re-registers. Asserted as
+    expect(source).toContain('registerMarkerImages(mapbox, colors, theme)')
+    // The colors and the theme are dependencies, so a palette change re-registers,
+    // and so does a theme switch, which changes the pins' edge. Asserted as
     // its own literal rather than one regex spanning both, which would also pin
     // the whitespace between them — Prettier's to choose, not this spec's.
-    expect(source).toContain('}, [mapbox, colors])')
+    expect(source).toContain('}, [mapbox, colors, theme])')
   })
 })

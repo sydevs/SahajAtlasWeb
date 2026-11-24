@@ -1,0 +1,27 @@
+{
+  "calendar": {
+    "previous": "Anterior",
+    "next": "Următorul",
+    "pick_date": "Alege o dată"
+  },
+  "common": {
+    "explore": "Explorează",
+    "loading": "Se încarcă…",
+    "settings": "Setări"
+  },
+  "event": {
+    "view_photo": "Vezi fotografia",
+    "pause_slideshow": "Pune pe pauză prezentarea"
+  },
+  "filters": {
+    "remove": "Elimină %{label}"
+  },
+  "search": {
+    "results_showing": "Se afișează %{shown} din %{total} evenimente",
+    "dismiss_nearby_prompt": "Respinge"
+  },
+  "share": {
+    "copy_link": "Copiază linkul",
+    "share_on": "Distribuie pe %{platform}"
+  }
+}

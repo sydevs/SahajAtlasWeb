@@ -11,7 +11,7 @@ vi.mock('react-i18next', () => ({
     t: (key: string, opts?: { city?: string }) =>
       ({
         'search.nearby_prompt.title': `Looking for classes near ${opts?.city}?`,
-        'search.nearby_prompt.dismiss': 'Dismiss',
+        'search.a11y.dismiss_nearby_prompt': 'Dismiss',
       })[key] ?? key,
   }),
 }))
@@ -55,7 +55,7 @@ describe('GeolocationPrompt', () => {
 
     expect(html).toContain('bg-secondary-3')
     expect(html).toContain('items-center')
-    // This aligns the horizontal padding with the drawer header (px-4).
-    expect(html).toContain('px-4')
+    // Inset by the panel gutter, the same edge as the header above and the rows below.
+    expect(html).toContain('mx-gutter')
   })
 })

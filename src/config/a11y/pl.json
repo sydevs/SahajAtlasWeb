@@ -1,0 +1,27 @@
+{
+  "calendar": {
+    "previous": "Poprzedni",
+    "next": "Następny",
+    "pick_date": "Wybierz datę"
+  },
+  "common": {
+    "explore": "Przeglądaj",
+    "loading": "Wczytywanie…",
+    "settings": "Ustawienia"
+  },
+  "event": {
+    "view_photo": "Wyświetl zdjęcie",
+    "pause_slideshow": "Wstrzymaj pokaz slajdów"
+  },
+  "filters": {
+    "remove": "Usuń: %{label}"
+  },
+  "search": {
+    "results_showing": "Wyświetlono wydarzeń: %{shown} z %{total}",
+    "dismiss_nearby_prompt": "Odrzuć"
+  },
+  "share": {
+    "copy_link": "Kopiuj link",
+    "share_on": "Udostępnij: %{platform}"
+  }
+}

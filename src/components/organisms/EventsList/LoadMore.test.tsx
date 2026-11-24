@@ -12,7 +12,7 @@ vi.mock('react-i18next', () => ({
       ({
         'search.results.more': 'Show more',
         'search.results.farther': 'Show distant events',
-        'search.results.showing': `Showing ${opts?.shown} of ${opts?.total} events`,
+        'search.a11y.results_showing': `Showing ${opts?.shown} of ${opts?.total} events`,
       })[key] ?? key,
     i18n: { resolvedLanguage: 'en', on: () => {}, off: () => {} },
   }),

@@ -28,7 +28,8 @@ import {
   queryClient,
 } from '@/config/query-client'
 import { centerOfBounds, distanceKm } from '@/lib/geo'
-import { atlasError } from '@/lib/report'
+import { EN_A11Y, loadA11yStrings, withA11y } from '@/config/a11y/a11y'
+import { atlasError, reportInternalError } from '@/lib/report'
 import {
   ancestorIds,
   boundsUnder,
@@ -935,9 +936,29 @@ export const atlasConfigQuery = () => ({
   retryOnMount: false,
 })
 
+/**
+ * A locale's bundle is SahajCloud's copy with this repo's screen-reader strings mounted on it
+ * (`config/a11y/`), so the cache, the warm-up and `applyLocale` all hold the one tree.
+ *
+ * A strings chunk that fails to load is reported and leaves those keys to English: a viewer
+ * should not lose the whole language over the copy only a screen reader speaks.
+ */
+const getLocaleBundle = async (locale: string): Promise<TranslationTree> => {
+  const [bundle, a11y] = await Promise.all([
+    getTranslations(locale),
+    loadA11yStrings(locale).catch((error: unknown) => {
+      reportInternalError(error, `screen-reader strings (${locale})`)
+
+      return EN_A11Y
+    }),
+  ])
+
+  return withA11y(bundle, a11y)
+}
+
 export const translationsQuery = (locale: string) => ({
   queryKey: ['translations', locale] as const,
-  queryFn: () => getTranslations(locale),
+  queryFn: () => getLocaleBundle(locale),
   staleTime: ATLAS_CONFIG_STALE_TIME,
   gcTime: WHOLESALE_GC_TIME,
   retryOnMount: false,

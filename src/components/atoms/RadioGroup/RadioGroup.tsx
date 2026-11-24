@@ -28,14 +28,16 @@ const radioOption = tv({
   slots: {
     // The card IS the radio's tap target — a native mark is 16px, and the label activates the
     // input it wraps — so the 44px floor sits here on a touch screen (#432).
-    card: 'flex cursor-pointer items-center gap-3 rounded border px-3 py-2.5 text-sm transition-colors pointer-coarse:min-h-11',
+    card: 'flex cursor-pointer items-center gap-3 rounded-lg border px-3 py-2.5 text-sm transition-colors pointer-coarse:min-h-11',
     mark: 'h-4 w-4 shrink-0',
   },
   variants: {
     checked: {
       true: {
-        card: 'border-primary-9 bg-primary-9 font-medium text-primary-foreground',
-        mark: 'accent-primary-foreground',
+        // As the solid Button and the checked Checkbox: the dark step 12 under white in
+        // light mode, the ramp's solid and its on-colour in dark.
+        card: 'border-primary-12 bg-primary-12 font-medium text-white dark:border-primary-9 dark:bg-primary-9 dark:text-primary-foreground',
+        mark: 'accent-white dark:accent-primary-foreground',
       },
       false: { card: 'border-gray-7 text-foreground hover:bg-gray-2', mark: 'accent-primary' },
     },
@@ -62,8 +64,8 @@ const radioOption = tv({
       checked: true,
       isInvalid: true,
       class: {
-        card: 'border-danger-9 bg-danger-9 text-danger-foreground',
-        mark: 'accent-danger-foreground',
+        card: 'border-danger-9 bg-danger-9 text-danger-foreground dark:border-danger-9 dark:bg-danger-9 dark:text-danger-foreground',
+        mark: 'accent-danger-foreground dark:accent-danger-foreground',
       },
     },
   ],

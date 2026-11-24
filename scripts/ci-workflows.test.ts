@@ -23,6 +23,47 @@ const match = (text: string, re: RegExp) => {
   return found as string
 }
 
+/** The events under a workflow's `on:` block, sorted. */
+const workflowEvents = (workflow: string) => {
+  const lines = workflow.split('\n')
+  const opens = lines.indexOf('on:')
+
+  if (opens < 0) throw new Error('the workflow has no `on:` block — the assertion would vacuum')
+
+  const after = lines.slice(opens + 1)
+  const closes = after.findIndex((line) => /^\S/.test(line))
+
+  return (closes < 0 ? after : after.slice(0, closes))
+    .flatMap((line) => /^ {2}(\w+):/.exec(line)?.[1] ?? [])
+    .sort()
+}
+
+/**
+ * One job's text, up to the next job at column 2, so no assertion can be satisfied by a
+ * neighbouring job's steps. A renamed job throws rather than leaving a slice every negative
+ * assertion passes against.
+ */
+const jobIn = (workflow: string, name: string) => {
+  const at = workflow.indexOf(`\n  ${name}:\n`)
+
+  if (at < 0) throw new Error(`no \`${name}:\` job — every assertion about it would vacuum`)
+
+  const rest = workflow.slice(at + 1)
+  const next = rest.slice(1).search(/^ {2}\S/m)
+
+  return next < 0 ? rest : rest.slice(0, next + 1)
+}
+
+/** A job's steps, one per `- ` at step indentation. */
+const steps = (job: string) => job.split(/^ {6}- /m).slice(1)
+
+/** The `actions/cache*` actions a workflow or a job uses, in order. */
+const cacheActions = (scope: string) =>
+  [...scope.matchAll(/^\s*(?:- )?uses: (actions\/cache\S*)@/gm)].map((m) => m[1])
+
+/** `browser-cache.yml`, the one writer of the browser cache both `ci.yml` consumers restore. */
+const warmWorkflow = readRepoSource('.github/workflows/browser-cache.yml')
+
 describe('production-smoke.yml', () => {
   const lane = readRepoSource('.github/workflows/production-smoke.yml')
   const target = match(lane, /^\s*PREVIEW_URL: (\S+)$/m)
@@ -183,17 +224,17 @@ describe('ci.yml', () => {
 
   // The plan step names the states, and the report step decides which are loud. Two copies of
   // one vocabulary, in one file, with nothing between them: a reason the report does not know
-  // reddens a fork's pull request, and a reason nothing emits is dead advice. Only `fork` and
-  // `queue` may exit 0 — every other route to no preview fails the job, which is this lane's
-  // first invariant (`docs/testing.md`).
-  it('reports every state the plan step can emit, and makes only two of them quiet', () => {
+  // reddens a fork's pull request, and a reason nothing emits is dead advice. Only `dependabot`,
+  // `fork` and `queue` may exit 0 — every other route to no preview fails the job, which is this
+  // lane's first invariant (`docs/testing.md`).
+  it('reports every state the plan step can emit, and makes only three of them quiet', () => {
     const emitted = [...smoke.matchAll(/^\s*reason=(\S+)$/gm)].map((m) => m[1])
     const handled = [...smoke.matchAll(/^\s{12}([a-z|-]+)\)$/gm)].map((m) => m[1])
     const quiet = [...smoke.matchAll(/^\s{12}(\S+)\)\n\s*FATAL=false$/gm)].map((m) => m[1])
 
     expect(emitted.length).toBeGreaterThan(1)
     expect([...emitted].sort()).toEqual([...handled].sort())
-    expect(quiet.sort()).toEqual(['fork', 'queue'])
+    expect(quiet.sort()).toEqual(['dependabot', 'fork', 'queue'])
 
     // Without the fallback, a state added to the plan step and not here would inherit the
     // previous case's advice instead of going loud.
@@ -201,9 +242,9 @@ describe('ci.yml', () => {
   })
 
   // A Dependabot branch is same-repo, and a run Dependabot triggers reads the Dependabot secrets,
-  // never the Actions ones. Left to `no-credentials`, its red tells the reader to add Actions
-  // secrets that are already entered. The test sits INSIDE the same-repo branch, so a fork stays
-  // a fork, and the vocabulary pin above keeps the reason loud: only the advice differs.
+  // never the Actions ones. Left to `no-credentials` it would go red, telling the reader to add
+  // Actions secrets that are already entered. The test sits INSIDE the same-repo branch, so a
+  // fork stays a fork.
   it('gives a run Dependabot triggered its own reason, inside the same-repo branch', () => {
     expect(match(smoke, /^\s*ACTOR: (.+)$/m)).toBe('${{ github.actor }}')
     expect(smoke).toMatch(
@@ -219,22 +260,25 @@ describe('ci.yml', () => {
     )
   })
 
+  // The quiet skip above costs a Dependabot pull request its preview read, and what makes that
+  // safe is `.github/dependabot.yml` updating actions alone: such a pull request cannot change
+  // the deployed bundle. An npm entry there would make every dependency bump — the pull requests
+  // that DO change it — collect a green Smoke check that read nothing, with no red anywhere. So
+  // the premise is pinned here rather than left to the prose beside each copy of the reason.
+  it('keeps the quiet skip safe by updating actions alone', () => {
+    // Matched loosely on purpose: a second entry written with another spacing, quoted, or in a
+    // flow-style list must fail here rather than leave the first match passing for the file.
+    const ecosystems = [
+      ...readRepoSource('.github/dependabot.yml').matchAll(/package-ecosystem:\s*['"]?([\w-]+)/g),
+    ].map((m) => m[1])
+
+    expect(ecosystems).toEqual(['github-actions'])
+  })
+
   // ⚠ A wrong `on:` block here fails silently, in both directions. `docs/testing.md` § "The merge
   // queue is the only gate that reads the tree a merge will produce" says how (#375).
   it('triggers on the pull request and the merge queue, and on no push', () => {
-    const lines = ci.split('\n')
-    const opens = lines.indexOf('on:')
-
-    if (opens < 0) throw new Error('ci.yml has no `on:` block — the assertion below would vacuum')
-
-    const after = lines.slice(opens + 1)
-    const closes = after.findIndex((line) => /^\S/.test(line))
-
-    expect(
-      (closes < 0 ? after : after.slice(0, closes))
-        .flatMap((line) => /^ {2}(\w+):/.exec(line)?.[1] ?? [])
-        .sort(),
-    ).toEqual(['merge_group', 'pull_request'])
+    expect(workflowEvents(ci)).toEqual(['merge_group', 'pull_request'])
   })
 
   // The guard is what refuses the `-design` playground's host. A publish step whose address
@@ -250,27 +294,172 @@ describe('ci.yml', () => {
   })
 })
 
+// The browser lane is meant to be a REQUIRED check, and a required check fails silently in both
+// directions: renamed, the ruleset waits on a check nothing posts any more; skipped or softened,
+// it reports a green that refuses no merge. `docs/testing.md` § "The browser lane" says why it
+// blocks.
+describe('ci.yml browser lane', () => {
+  const ci = readRepoSource('.github/workflows/ci.yml')
+  const job = jobIn(ci, 'browser')
+  const lane = steps(job).filter((step) => /^\s*run: pnpm test:browser$/m.test(step))
+
+  it('posts the check name the ruleset records', () => {
+    const name = match(job, /^ {4}name: (.+)$/m)
+
+    expect(name).toBe('Browser lane')
+    expect(
+      match(readRepoSource('docs/testing.md'), /^\| Required status checks \|(.+)\|/m),
+    ).toContain(`\`${name}\``)
+  })
+
+  it('runs on the pull request and in the merge queue alike, with nothing to skip it', () => {
+    expect(workflowEvents(ci)).toEqual(['merge_group', 'pull_request'])
+    expect(job).not.toMatch(/^ {4}if:/m)
+    expect(lane).toHaveLength(1)
+    expect(lane[0]).not.toMatch(/^\s*if:/m)
+  })
+
+  it('fails the workflow on the first failure, with no retry to hide a flake', () => {
+    // The lane step runs a package script, so a flag there reaches CI as surely as one here.
+    const runners = Object.values(readPackage().scripts).filter((script) =>
+      /\bplaywright test\b/.test(script),
+    )
+
+    expect(job).not.toMatch(/continue-on-error/)
+    expect(job).not.toMatch(/--retries/)
+    expect(runners.length).toBeGreaterThan(0)
+    for (const script of runners) expect(script).not.toMatch(/--retries/)
+    expect(match(readRepoSource('playwright.config.ts'), /^\s*retries: (\S+),$/m)).toBe('0')
+  })
+
+  it('pins every action it uses by commit SHA', () => {
+    const refs = [...job.matchAll(/^\s*(?:- )?uses: \S+@(\S+)/gm)].map((m) => m[1])
+
+    expect(refs.length).toBeGreaterThan(0)
+    for (const ref of refs) expect(ref).toMatch(/^[0-9a-f]{40}$/)
+  })
+})
+
+/**
+ * Both `ci.yml` consumers read the one entry `browser-cache.yml` writes on `main`, and each half
+ * fails silently: a key or path a character apart never hits, and a save in `ci.yml` writes an
+ * entry no later ref can read (#459).
+ */
+const expectRestoresWarmedCache = (job: string) => {
+  const cache = browserCache(job)
+
+  expect(cacheActions(job)).toEqual(['actions/cache/restore'])
+  expect(cache.keys).toHaveLength(1)
+  expect(cache.paths).toHaveLength(1)
+  expect(cache).toEqual(browserCache(warmWorkflow))
+}
+
+/** How a workflow names the browser cache: its keys, its paths. */
+const browserCache = (workflow: string) => ({
+  keys: [...new Set([...workflow.matchAll(/^\s*key: (.+)$/gm)].map((m) => m[1]))],
+  paths: [...new Set([...workflow.matchAll(/^\s*path: (~\/.+)$/gm)].map((m) => m[1]))],
+})
+
+describe('browser-cache.yml', () => {
+  // The default branch is the one cache scope a pull request and a merge-queue run share.
+  it('saves on main, the scope every consumer can restore from', () => {
+    expect(workflowEvents(warmWorkflow)).toEqual(['push', 'workflow_dispatch'])
+    expect(match(warmWorkflow, /^ {4}branches: (.+)$/m)).toBe('[main]')
+    expect(cacheActions(warmWorkflow)).toEqual(['actions/cache/restore', 'actions/cache/save'])
+  })
+
+  // What makes one entry serve both consumers: the warm job saves the full Chromium alone, and
+  // the accessibility gate asks for that build by channel. Drop the channel and the gate
+  // launches the headless shell, which this entry does not hold, on a required check.
+  it('saves the one build both consumers launch', () => {
+    const install = steps(warmWorkflow).filter((step) => /playwright install\b/.test(step))
+
+    expect(install).toHaveLength(1)
+    expect(match(install[0], /^\s*run: (.+playwright install.+)$/m)).toContain('--no-shell')
+    expect(readRepoSource('scripts/check-a11y.mjs')).toContain(
+      "chromium.launch({ channel: 'chromium' })",
+    )
+  })
+
+  it('pins every action it uses by commit SHA', () => {
+    const refs = [...warmWorkflow.matchAll(/^\s*(?:- )?uses: \S+@(\S+)/gm)].map((m) => m[1])
+
+    expect(refs.length).toBeGreaterThan(0)
+    for (const ref of refs) expect(ref).toMatch(/^[0-9a-f]{40}$/)
+  })
+})
+
+const ciWorkflow = readRepoSource('.github/workflows/ci.yml')
+const gateJob = jobIn(ciWorkflow, 'gate')
+const browserJob = jobIn(ciWorkflow, 'browser')
+
+// One key, built by one reader, for the warm job that writes the entry and the two jobs that
+// restore it. Every way of breaking that is silent: a key a character apart never hits, and a
+// second read of the version decides half a key nothing wrote (#462).
+describe('the Chromium cache key', () => {
+  const SCOPES: [string, string][] = [
+    ["ci.yml's gate job", gateJob],
+    ["ci.yml's browser lane", browserJob],
+    ['browser-cache.yml', warmWorkflow],
+  ]
+
+  it.each(SCOPES)('%s builds it from the one reader, and nothing else', (_where, scope) => {
+    const reader = steps(scope).filter((step) => /^\s*id: playwright$/m.test(step))
+
+    expect(reader).toHaveLength(1)
+    expect(match(reader[0], /^\s*run: (.+)$/m)).toBe(
+      'node scripts/playwright-version.mjs >> "$GITHUB_OUTPUT"',
+    )
+    expect(browserCache(scope).keys).toEqual([
+      'playwright-chromium-${{ runner.os }}-${{ steps.playwright.outputs.version }}',
+    ])
+  })
+
+  // ⚠ The two consumers, never the warm job, for this row and the next: it is the one that
+  // saves. The accessibility step is on the critical path of the one required check and the merge
+  // queue pays it again per merge, so where its browser comes from is a cost the gate carries
+  // (#459).
+  it.each(SCOPES.slice(0, 2))('%s restores the warmed entry, saving none', (_where, job) => {
+    expectRestoresWarmedCache(job)
+  })
+
+  it.each(SCOPES.slice(0, 2))('%s installs whatever the restore left behind', (_where, job) => {
+    const install = steps(job).filter((step) => /playwright install\b/.test(step))
+
+    expect(install).toHaveLength(1)
+    // ⚠ The run line, never the step: a step's own comment names both flags, so a step-wide
+    // `toContain` passes on the prose after the command has lost the flag.
+    const run = match(install[0], /^\s*run: (.+playwright install.+)$/m)
+
+    // An `if:` hands a partially restored entry on as a browser; `--with-deps` installs system
+    // libraries no cache holds; `--no-shell` keeps what a miss downloads to what the key promises.
+    expect(run).toContain('--with-deps')
+    expect(run).toContain('--no-shell')
+    expect(install[0]).not.toMatch(/^\s*if:/m)
+  })
+
+  // The key names the `playwright` pin, which is what `pnpm exec playwright install` downloads,
+  // while both consumers launch through `@playwright/test`. Bump one alone and pnpm installs a
+  // second, nested `playwright`: the lane then hunts a Chromium revision nothing downloaded and
+  // tells the reader to run the install that just ran. ⚠ #461 held these equal for a reason that
+  // is gone — two readers decided one key, and one reader does now.
+  it('names a version the package both consumers launch through agrees with', () => {
+    const { devDependencies } = readPackage()
+
+    expect(devDependencies.playwright).toBe(devDependencies['@playwright/test'])
+  })
+})
+
 // The gate job runs the unit lane through the coverage script, so one step is both the lane and
 // its measurement. Each way of getting that wrong is silent: a second step paying for the lane
 // twice, a tolerance that lets a red spec through, or a summary reading a file nothing writes.
 describe("ci.yml's gate job, on the unit lane", () => {
-  const ci = readRepoSource('.github/workflows/ci.yml')
-  const opens = ci.indexOf('\n  gate:')
-  const closes = ci.indexOf('\n  dependencies:')
-
-  // Same rule as the `smoke:` slice above: a renamed job must fail, not leave a slice every
-  // negative assertion passes against.
-  if (opens < 0 || closes < opens)
-    throw new Error('ci.yml has no `gate:` job before `dependencies:`')
-
-  const gate = ci.slice(opens, closes)
-
   it('runs the lane once, as the same vitest run the lean gate makes', () => {
     const { scripts } = readPackage()
     // ⚠ Which `pnpm test:*` steps are vitest is read off package.json, never listed here: the
     // accessibility gate is a step of this same job and drives a browser, not the lane. A
     // second vitest step still fails this, which is the whole point.
-    const lanes = [...gate.matchAll(/^\s*(?:- )?run: (pnpm test\S*)/gm)]
+    const lanes = [...gateJob.matchAll(/^\s*(?:- )?run: (pnpm test\S*)/gm)]
       .map((m) => m[1])
       .filter((command) => scripts[command.replace(/^pnpm /, '')]?.includes('vitest'))
 
@@ -281,14 +470,14 @@ describe("ci.yml's gate job, on the unit lane", () => {
   // The step is the bare command: no `|| true` after it, and no key under it such as
   // `continue-on-error`, either of which would report a red spec as a green gate.
   it('lets a failing spec fail the job', () => {
-    expect(gate).toMatch(/^ {6}- run: pnpm test:coverage\n(?! {8}\S)/m)
+    expect(gateJob).toMatch(/^ {6}- run: pnpm test:coverage\n(?! {8}\S)/m)
   })
 
   // The path is the `json-summary` reporter's own, under vitest's default reports directory.
   // Nothing else couples the two, and a summary step that finds no file only annotates.
   it('summarises the report the coverage config writes, into a directory git ignores', () => {
     const config = readRepoSource('vitest.config.ts')
-    const [directory, file] = match(gate, /^\s*SUMMARY=(\S+)$/m).split('/')
+    const [directory, file] = match(gateJob, /^\s*SUMMARY=(\S+)$/m).split('/')
 
     expect(file).toBe('coverage-summary.json')
     expect(config).toContain("'json-summary'")

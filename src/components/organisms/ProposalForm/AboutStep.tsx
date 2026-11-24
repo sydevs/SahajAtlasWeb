@@ -11,7 +11,7 @@ export function AboutStep({ draft, onChange }: StepProps) {
 
   return (
     <div className="flex flex-col gap-4">
-      <h3 className="text-md font-semibold">{t('submit.about.title')}</h3>
+      <h3 className="text-base font-semibold">{t('submit.about.title')}</h3>
       <FormField htmlFor="submit-description" label={t('submit.about.description_label')}>
         <Textarea
           id="submit-description"

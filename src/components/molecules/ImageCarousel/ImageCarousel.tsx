@@ -111,7 +111,7 @@ export function ImageCarousel({ slides }: ImageCarouselProps) {
             // them butted against the image's edge.
             <SwiperSlide key={slide.src}>
               <button
-                aria-label={slide.alt ?? t('event.actions.view_photo')}
+                aria-label={slide.alt ?? t('event.a11y.view_photo')}
                 className="block w-full cursor-zoom-in"
                 type="button"
                 onClick={() => openAt(index)}
@@ -150,7 +150,7 @@ export function ImageCarousel({ slides }: ImageCarouselProps) {
         {autoplays && (
           <button
             data-vaul-no-drag
-            aria-label={t('event.actions.pause_slideshow')}
+            aria-label={t('event.a11y.pause_slideshow')}
             aria-pressed={paused}
             className="touch-target absolute end-2 bottom-2 z-10 flex h-8 w-8 items-center justify-center rounded-full bg-black/50 text-white transition-colors outline-none hover:bg-black/70 focus-visible:ring-2 focus-visible:ring-focus"
             type="button"

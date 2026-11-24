@@ -132,12 +132,7 @@ export function EventView({ id, basePath }: { id: number; basePath: string }) {
               text to English. This is a view, well past the i18n boot, so it can hand over
               the translated word (issue #102). */}
           <Suspense
-            fallback={
-              <Spinner
-                className="mx-auto my-16"
-                srLabel={t('common.chrome.loading', { defaultValue: 'Loading…' })}
-              />
-            }
+            fallback={<Spinner className="mx-auto my-16" srLabel={t('common.a11y.loading')} />}
           >
             <EventDetails basePath={basePath} ctaInline={!stickyRegister} event={event}>
               {/* This is passed as the panel's slot, so it lands immediately above Register,
@@ -186,7 +181,7 @@ export function EventView({ id, basePath }: { id: number; basePath: string }) {
       {stickyRegister && (
         <DrawerFooter
           sticky
-          className={`px-4 py-3 transition-transform ${collapsed ? 'translate-y-full opacity-0' : ''}`}
+          className={`px-gutter py-3 transition-transform ${collapsed ? 'translate-y-full opacity-0' : ''}`}
         >
           {/* The two rows are gapped inside a wrapper, not by the footer itself, so the
               footer's own safe-area spacer is not a third gapped sibling. */}

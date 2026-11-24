@@ -4,6 +4,7 @@ import LanguageDetector from 'i18next-browser-languagedetector'
 
 import { hostHtmlLangDetector, i18nDetectionOptions, i18nSharedOptions } from './i18n-options'
 import snapshot from './translations.en.json'
+import { EN_A11Y, withA11y } from './a11y/a11y'
 
 const languageDetector = new LanguageDetector()
 
@@ -46,7 +47,9 @@ i18n
      * that failure mode unreachable: the worst a failed CMS read can now do is leave the widget
      * in English.
      */
-    resources: { en: { translation: snapshot } },
+    // The English screen-reader strings ride in the snapshot's place (`config/a11y/`); every other
+    // locale's arrive inside its SahajCloud bundle (`translationsQuery`).
+    resources: { en: { translation: withA11y(snapshot, EN_A11Y) } },
     // Nothing is loaded asynchronously any more, so there is no reason to defer the first
     // resolution to a later tick. With this, `i18n.isInitialized` is true by the time an
     // importer's next statement runs, which is what lets `Widget.tsx` and the views drop their

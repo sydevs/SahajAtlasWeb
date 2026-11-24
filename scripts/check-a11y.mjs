@@ -330,7 +330,13 @@ async function pageAudit({ disabledRules, minTap, selectors, step }) {
 
   shared.__a11y = { describe, paint, visible, tabbable }
 
-  const reach = Math.ceil(minTap / 2)
+  // ⚠ The window reaches a whole tap area either side, not half of one. The centre it walks out
+  // from is the CONTROL's, and what it measures is the `touch-target` `::after` around it, so the
+  // two part company by a fraction of a pixel — which costs the outermost probe on one side and
+  // reports 43 for an area that is exactly 44. Measured on `atoms--inputs--checkbox`: the
+  // control's centre on 421.86, its area on [399, 443). A window wide enough to find both ends
+  // of the run measures the area wherever its centre sits, so no story needs slack of its own.
+  const reach = minTap
   const probed = []
 
   for (const node of root.querySelectorAll(INTERACTIVE)) {
@@ -369,20 +375,38 @@ async function pageAudit({ disabledRules, minTap, selectors, step }) {
 
     const axis = (horizontal) => {
       const hits = [true]
-      // ⚠ Whether the probe ever left the VIEWPORT, which is not the same as being covered.
-      // `scrollIntoView` cannot centre a control the page has no room to scroll past, so a
-      // control resting against a clamped edge has probe points off screen — and an off-screen
-      // point answers `null`, which would read as a crowded control and fail a required check
-      // for where it happened to sit.
+      // ⚠ Whether the run ENDED on a point off the VIEWPORT, which is not the same as being
+      // covered. `scrollIntoView` cannot centre a control the page has no room to scroll past,
+      // so a control resting against a clamped edge has probe points off screen — and an
+      // off-screen point answers `null`, which would read as a crowded control and fail a
+      // required check for where it happened to sit. A point past the end of a run changes no
+      // measurement, so only the point that ended a side is asked.
       let clipped = false
+      // Each side stops at its own first miss, which is also what bounds the probe count now
+      // that the window is twice the area.
+      const open = [true, true]
 
-      for (let d = step; d <= reach; d += step) {
-        const before = [horizontal ? cx - d : cx, horizontal ? cy : cy - d]
-        const after = [horizontal ? cx + d : cx, horizontal ? cy : cy + d]
+      for (let d = step; d <= reach && (open[0] || open[1]); d += step) {
+        const points = horizontal
+          ? [
+              [cx - d, cy],
+              [cx + d, cy],
+            ]
+          : [
+              [cx, cy - d],
+              [cx, cy + d],
+            ]
 
-        clipped = clipped || !inView(before[0], before[1]) || !inView(after[0], after[1])
-        hits.push(owns(before[0], before[1]))
-        hits.push(owns(after[0], after[1]))
+        for (const [side, [x, y]] of points.entries()) {
+          const hit = open[side] && owns(x, y)
+
+          if (open[side] && !hit) {
+            clipped = clipped || !inView(x, y)
+            open[side] = false
+          }
+
+          hits.push(hit)
+        }
       }
 
       return { hits, clipped }
@@ -445,13 +469,20 @@ const SETTLE_CAP_MS = 4000
  * nothing has changed for a while, so what is on screen is what a visitor would see. Fonts are
  * waited on for the same reason, since a contrast verdict is taken against painted text.
  *
+ * ⚠ **The quiet window may not close before the story has mutated the page once.** `load`
+ * fires before React mounts, so a run that looked during that gap found the page quiet because
+ * nothing had started, and audited an empty body: measured over the 52 stories, the tap probe
+ * reached between 1 and 126 controls across runs on one unchanged tree, and axe reported no
+ * violation either way — green having read nothing. The cap still bounds a story that never
+ * mutates.
+ *
  * @param {import('playwright').Page} page
  */
 async function settled(page) {
   await page.evaluate(
     ([quiet, cap]) =>
       new Promise((done) => {
-        let timer = setTimeout(finish, quiet)
+        let timer
         const observer = new MutationObserver(() => {
           clearTimeout(timer)
           timer = setTimeout(finish, quiet)
@@ -550,7 +581,10 @@ export async function run({ only, origin } = {}) {
     : { url: AXE_PATH }
   const meta = await (await fetch(`${site.origin}/meta.json`)).json()
   const ids = Object.keys(meta.stories).filter((id) => !only || id === only)
-  const browser = await chromium.launch()
+  // `channel: 'chromium'` launches the full browser, which the browser lane drives too, so one
+  // warmed cache entry serves both CI consumers. The default launches the headless shell, a
+  // download of its own under the same directory (#459).
+  const browser = await chromium.launch({ channel: 'chromium' })
   // `isMobile` is what makes `(pointer: coarse)` match, and the `touch-target` utility is
   // written against that query — on a fine pointer every small control would be reported and
   // the gate would be measuring a device nobody taps.

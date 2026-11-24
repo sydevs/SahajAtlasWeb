@@ -53,7 +53,7 @@ export function MultiSelect({
             key={option.value}
             appearance="checkbox"
             checked={value.includes(option.value)}
-            className="w-full rounded px-2 py-1.5 hover:bg-gray-3"
+            className="w-full rounded-lg px-2 py-1.5 hover:bg-gray-3"
             onCheckedChange={() => toggle(option.value)}
           >
             {option.label}

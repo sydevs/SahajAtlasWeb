@@ -24,7 +24,7 @@ export function WhereStep({
 
   return (
     <div className="flex flex-col gap-4">
-      <h3 className="text-md font-semibold">{t('submit.where.title')}</h3>
+      <h3 className="text-base font-semibold">{t('submit.where.title')}</h3>
       <ToggleGroup
         joined
         aria-label={t('submit.where.title')}

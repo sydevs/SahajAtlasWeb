@@ -25,7 +25,7 @@ export function MoreStep({
 
   return (
     <div className="flex flex-col gap-4">
-      <h3 className="text-md font-semibold">{t('submit.more.title')}</h3>
+      <h3 className="text-base font-semibold">{t('submit.more.title')}</h3>
       <ValidatedInput
         help={t('submit.more.title_help')}
         id="submit-title"

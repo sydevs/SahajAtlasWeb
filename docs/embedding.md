@@ -309,13 +309,14 @@ your client record — not the internal one — and the widget names it as the `
 event it describes to a search engine. Leave it empty and the event carries no organizer, which is
 better structured data than somebody else's name.
 
-**Your brand colours reach the map, not only the panels.** The event pins, the cluster bubbles
-and the numbers on them are drawn from the **first** of your record's three brand colours, and
-the pin of whichever event is selected from the **third** — the same two your buttons and
-headings already use. Your second colour does not reach the map. **The map paints the light-mode
-shade of both, on the dark page too**: the basemap is mid-toned either way, so after dark the
-pins keep the shade the panels around them used in daylight. A colour you leave unset, or set to
-`#000000` — the old "unconfigured" value — keeps the widget's own teal or orange, map included.
+**Your brand colours reach the map, not only the panels.** The event pins and the cluster bubbles
+are drawn from the **first** of your record's three brand colours, and the pin of whichever event
+is selected from the **third** — the same two your buttons and headings already use. A bubble is
+one shade deeper than a pin, and its number is black or white, whichever reads better on it. Your
+second colour does not reach the map. **The map paints the light-mode shades, on the dark page
+too**: the basemap is mid-toned either way, so after dark the pins keep the shade the panels
+around them used in daylight. A colour you leave unset, or set to `#000000` — the old
+"unconfigured" value — keeps the widget's own green or coral, map included.
 Nothing new is requested from the network, so your CSP and your Permissions Policy are unchanged.
 
 **A colour you choose is never refused, and never overwritten — but it may be adjusted where it
@@ -326,8 +327,8 @@ rather than as a grey. A grey or a white you pick stays neutral — there is no 
 selected pin's colour is also pushed away from the pin colour when the two you chose
 are too close to tell apart, which can take it near black or near white. What is stored on your
 record never changes — only what the widget paints does. Separately, a cluster bubble's edge is
-its own translucent ring and a pin carries a thinner ring of the same kind, so nothing about your
-colour depends on what the map is showing underneath it.
+its own translucent ring and a pin's edge is a thin black line on the light map and a white one on
+the dark map, so nothing about your colour depends on what the map is showing underneath it.
 
 Identity is the same on every page you embed on, so making it per-embed only risks two of your
 pages disagreeing about what the product is called. The routing prefix is worse than merely
@@ -944,7 +945,7 @@ chunks, Mapbox's RTL plugin and analytics, and `style-src`, `font-src`, `img-src
 
 | Directive                  | Source                                        | Why                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   | Blocked ⇒                                                                                                                                                                                                     |
 | -------------------------- | --------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `script-src`               | the widget's origin                           | The `<script>` tag fetches a small entry that pulls the rest of the bundle from the same origin. It also pulls the calendar, registration and share panels, but only once a viewer opens them.                                                                                                                                                                                                                                                                                        | nothing renders — or worse, it renders and then dies on one of those three presses                                                                                                                            |
+| `script-src`               | the widget's origin                           | The `<script>` tag fetches a small entry that pulls the rest of the bundle from the same origin. It also pulls the calendar, registration and share panels, but only once a viewer opens them, and a non-English page's screen-reader labels.                                                                                                                                                                                                                                                                                        | nothing renders — or worse, it renders and then dies on one of those three presses                                                                                                                            |
 |                            | `api.mapbox.com`                              | Mapbox GL's right-to-left text plugin, loaded on demand from inside the map's worker on first RTL text. Workers inherit the document's policy, so this lands on `script-src` rather than `worker-src`.                                                                                                                                                                                                                                                                                | Arabic, Hebrew and Persian labels on the map render in the wrong order                                                                                                                                        |
 |                            | `cdn.usefathom.com`                           | analytics, only on a build with an analytics ID                                                                                                                                                                                                                                                                                                                                                                                                                                       | analytics only                                                                                                                                                                                                |
 | `worker-src` / `child-src` | `blob:`                                       | Mapbox GL compiles its worker bundle into a `Blob` and starts a module Worker from the resulting `blob:` URL. `child-src` is the fallback for engines predating `worker-src`.                                                                                                                                                                                                                                                                                                         | **the map fails**, the rest of the widget is unaffected                                                                                                                                                       |
@@ -1100,7 +1101,8 @@ the events — the widget ships an English copy compiled in and fetches every ot
 the CMS, so a blocked `connect-src` leaves a non-English page reading English rather than showing
 raw key names.
 
-Three files sit at that origin's root, and only the first is one you reference:
+Three files sit at the widget's own origin, `https://sahajatlas.com`, and only the first is
+one you reference:
 
 | File        | What it is                                                     |
 | ----------- | -------------------------------------------------------------- |

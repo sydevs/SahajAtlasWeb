@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest'
 
 import snapshot from './translations.en.json'
 import { TRANSLATION_SELECT } from './api/fetch'
+import { EN_A11Y, withA11y } from './a11y/a11y'
 
 import { REGISTRATION_QUESTION_NAMES, WIDGET_TRANSLATION_TABS } from '@/types'
 import { SORT_ORDERS, TIME_PERIODS } from '@/lib/shape'
@@ -47,7 +48,9 @@ const flatten = (node: unknown, prefix = ''): [string, unknown][] =>
     ? Object.entries(node).flatMap(([key, child]) => flatten(child, `${prefix}${key}.`))
     : [[prefix.slice(0, -1), node]]
 
-const entries = flatten(snapshot)
+// The boot resource is the snapshot with the English screen-reader strings mounted on it
+// (`config/a11y/`), so both directions below cover this repo's own copy as well as SahajCloud's.
+const entries = flatten(withA11y(snapshot, EN_A11Y))
 const keys = new Set(entries.map(([key]) => key))
 
 /** A key the snapshot must answer, whether or not a literal in the source spells it out. */
@@ -232,7 +235,21 @@ const PENDING_KEYS: Record<string, string> = {}
  * choice between an unwired key and a red lane, and the honest answer is neither.
  * Delete an entry in the sync PR that drops the key: the pin below fails until you do.
  */
-const RETIRING_KEYS: Record<string, string> = {}
+const RETIRING_KEYS: Record<string, string> = {
+  'calendar.next': 'sydevs/SahajCloud#1246',
+  'calendar.pick_date': 'sydevs/SahajCloud#1246',
+  'calendar.previous': 'sydevs/SahajCloud#1246',
+  'common.chrome.explore': 'sydevs/SahajCloud#1246',
+  'common.chrome.loading': 'sydevs/SahajCloud#1246',
+  'common.settings.title': 'sydevs/SahajCloud#1246',
+  'event.actions.pause_slideshow': 'sydevs/SahajCloud#1246',
+  'event.actions.view_photo': 'sydevs/SahajCloud#1246',
+  'filters.chrome.remove': 'sydevs/SahajCloud#1246',
+  'search.nearby_prompt.dismiss': 'sydevs/SahajCloud#1246',
+  'search.results.showing': 'sydevs/SahajCloud#1246',
+  'share.copy_link': 'sydevs/SahajCloud#1246',
+  'share.share_on': 'sydevs/SahajCloud#1246',
+}
 
 describe('every key the snapshot holds', () => {
   // Quoted ANYWHERE in the source, not only inside a `t()` call: a key can legitimately be held in

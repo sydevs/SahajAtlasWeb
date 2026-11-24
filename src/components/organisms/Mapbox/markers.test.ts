@@ -4,34 +4,37 @@ import { describe, it, expect } from 'vitest'
 import { DEFAULT_MARKER_COLORS, MARKER_IDS, markerColors, markerImages } from './markers'
 
 /**
- * The art an embed with no tenant seed renders, on either basemap, frozen byte
+ * The art an embed with no tenant seed renders on the light basemap, frozen byte
  * for byte.
  *
- * Taken off `main` and compared in both modes, because "unchanged" is the whole
- * promise `markerColors` makes for an unseeded role: `DEFAULT_SEEDS.primary`'s
- * own step 9 is a different teal, and a different one again in dark mode. A
- * change here is a visible change to every unbranded embed.
+ * `DEFAULT_SEEDS` through a tenant's own rules, frozen so a change to the seeds,
+ * the ladder or the marker steps shows here as what it is: a visible change to
+ * every unbranded embed.
  */
 const STOCK = {
   [MARKER_IDS.point]: {
-    width: 34,
-    height: 38,
-    svg: '<svg xmlns="http://www.w3.org/2000/svg" width="68" height="76" viewBox="0 0 34 38"><defs>\n    <filter id="shadow" x="-40%" y="-40%" width="200%" height="200%">\n      <feDropShadow dx="1.2" dy="0.8" stdDeviation="0.9" flood-color="#4A5350" flood-opacity="0.45"/>\n    </filter>\n  </defs>\n  <g transform="translate(15.5 37.6) scale(0.86) translate(-15.5 -37.6)">\n  <path d="M4.71 26.42a15 15 0 1 1 21.58 0L15.5 37.6Z" fill="none" stroke="#8CCDC4" stroke-opacity="0.706" stroke-width="5.12" stroke-linejoin="round"/>\n  <path d="M4.71 26.42a15 15 0 1 1 21.58 0L15.5 37.6Z" fill="#21C1A2" filter="url(#shadow)"/>\n  <circle cx="15.5" cy="16" r="4.5" fill="#FFFFFF"/>\n  </g></svg>',
+    width: 58,
+    height: 65,
+    ratio: 2,
+    svg: '<svg xmlns="http://www.w3.org/2000/svg" width="58" height="65" viewBox="0 0 34 38"><defs>\n    <filter id="shadow" x="-40%" y="-40%" width="200%" height="200%">\n      <feDropShadow dx="1.2" dy="0.8" stdDeviation="0.9" flood-color="#4A5350" flood-opacity="0.45"/>\n    </filter>\n  </defs>\n  <path d="M4.71 26.42a15 15 0 1 1 21.58 0L15.5 37.6Z" fill="#2d9a76" filter="url(#shadow)" stroke="#000000" stroke-width="1.2" stroke-linejoin="round"/>\n  <circle cx="15.5" cy="16" r="4.5" fill="#FFFFFF"/></svg>',
   },
   [MARKER_IDS.pointSelected]: {
-    width: 34,
-    height: 38,
-    svg: '<svg xmlns="http://www.w3.org/2000/svg" width="68" height="76" viewBox="0 0 34 38"><defs>\n    <filter id="shadow" x="-40%" y="-40%" width="200%" height="200%">\n      <feDropShadow dx="1.2" dy="0.8" stdDeviation="0.9" flood-color="#4A5350" flood-opacity="0.45"/>\n    </filter>\n  </defs>\n  <g transform="translate(15.5 37.6) scale(0.86) translate(-15.5 -37.6)">\n  <path d="M4.71 26.42a15 15 0 1 1 21.58 0L15.5 37.6Z" fill="none" stroke="#F2A179" stroke-opacity="0.706" stroke-width="5.12" stroke-linejoin="round"/>\n  <path d="M4.71 26.42a15 15 0 1 1 21.58 0L15.5 37.6Z" fill="#E87952" filter="url(#shadow)"/>\n  <circle cx="15.5" cy="16" r="4.5" fill="#FFFFFF"/>\n  </g></svg>',
+    width: 58,
+    height: 65,
+    ratio: 2,
+    svg: '<svg xmlns="http://www.w3.org/2000/svg" width="58" height="65" viewBox="0 0 34 38"><defs>\n    <filter id="shadow" x="-40%" y="-40%" width="200%" height="200%">\n      <feDropShadow dx="1.2" dy="0.8" stdDeviation="0.9" flood-color="#4A5350" flood-opacity="0.45"/>\n    </filter>\n  </defs>\n  <path d="M4.71 26.42a15 15 0 1 1 21.58 0L15.5 37.6Z" fill="#d87b64" filter="url(#shadow)" stroke="#000000" stroke-width="1.2" stroke-linejoin="round"/>\n  <circle cx="15.5" cy="16" r="4.5" fill="#FFFFFF"/></svg>',
   },
   [MARKER_IDS.cluster]: {
-    width: 38,
-    height: 38,
-    svg: '<svg xmlns="http://www.w3.org/2000/svg" width="76" height="76" viewBox="0 0 38 38"><circle cx="19" cy="19" r="19" fill="#8CCDC4" fill-opacity="0.706"/>\n  <circle cx="19" cy="19" r="13.8" fill="#37BB92" opacity="0.914"/></svg>',
+    width: 76,
+    height: 76,
+    ratio: 2,
+    svg: '<svg xmlns="http://www.w3.org/2000/svg" width="76" height="76" viewBox="0 0 38 38"><circle cx="19" cy="19" r="19" fill="#9cd8c4" fill-opacity="0.706"/>\n  <circle cx="19" cy="19" r="13.8" fill="#268264"/></svg>',
   },
   [MARKER_IDS.clusterSelected]: {
-    width: 38,
-    height: 38,
-    svg: '<svg xmlns="http://www.w3.org/2000/svg" width="76" height="76" viewBox="0 0 38 38"><circle cx="19" cy="19" r="19" fill="#F2A179" fill-opacity="0.706"/>\n  <circle cx="19" cy="19" r="13.8" fill="#E47C5A" opacity="0.914"/></svg>',
+    width: 76,
+    height: 76,
+    ratio: 2,
+    svg: '<svg xmlns="http://www.w3.org/2000/svg" width="76" height="76" viewBox="0 0 38 38"><circle cx="19" cy="19" r="19" fill="#e8c4bb" fill-opacity="0.706"/>\n  <circle cx="19" cy="19" r="13.8" fill="#d2664b"/></svg>',
   },
 } as const
 
@@ -39,7 +42,7 @@ const STOCK = {
 const MAROON = '#64032e'
 
 describe('markerColors', () => {
-  it('keeps the stock colors when no role has a usable seed', () => {
+  it('takes the default seeds when no role has a usable seed', () => {
     expect(markerColors({})).toEqual(DEFAULT_MARKER_COLORS)
     // `#000000` is what the client record defaults `color1`–`color3` to, so an
     // unconfigured tenant takes the same path as an absent palette.
@@ -56,19 +59,29 @@ describe('markerColors', () => {
   })
 
   it('renders the stock art', () => {
-    const images = markerImages(markerColors({}))
+    const images = markerImages(markerColors({}), 'light', 2)
 
     for (const id of Object.values(MARKER_IDS)) expect(images.get(id)).toEqual(STOCK[id])
   })
 
-  it('fills the pins from primary step 9, light-mode, and rings them in the bubble ring', () => {
-    // The light-mode solid in both modes: the dark basemap is washed out, so a
+  it('changes only the pins’ edge on the dark basemap', () => {
+    const images = markerImages(markerColors({}), 'dark', 2)
+
+    for (const id of Object.values(MARKER_IDS)) {
+      expect(images.get(id)?.svg).toBe(
+        STOCK[id].svg.replace('stroke="#000000"', 'stroke="#ffffff"'),
+      )
+    }
+  })
+
+  it('fills the pin from step 9 and the bubble from step 10, light-mode', () => {
+    // The light-mode ramp in both modes: the dark basemap is washed out, so a
     // solid lifted for the dark panel would wash out on it too.
     expect(markerColors({ primary: MAROON, contrast: '#1E6C71' })).toEqual({
-      [MARKER_IDS.point]: { fill: '#521430', ring: '#983a64' },
-      [MARKER_IDS.pointSelected]: { fill: '#1e6b71', ring: '#48aab1' },
-      [MARKER_IDS.cluster]: { fill: '#521430', ring: '#983a64' },
-      [MARKER_IDS.clusterSelected]: { fill: '#1e6b71', ring: '#48aab1' },
+      [MARKER_IDS.point]: { fill: '#521430' },
+      [MARKER_IDS.pointSelected]: { fill: '#1e6b71' },
+      [MARKER_IDS.cluster]: { fill: '#390e22', ring: '#c44f84' },
+      [MARKER_IDS.clusterSelected]: { fill: '#185459', ring: '#71c6cc' },
     })
   })
 
@@ -94,9 +107,9 @@ describe('markerColors', () => {
   it('falls back per role, not per palette', () => {
     const colors = markerColors({ primary: MAROON })
 
-    expect(colors[MARKER_IDS.point]).toEqual({ fill: '#521430', ring: '#983a64' })
-    expect(colors[MARKER_IDS.cluster]).toEqual({ fill: '#521430', ring: '#983a64' })
-    // A tenant that configured `color1` alone keeps the stock selected accent.
+    expect(colors[MARKER_IDS.point]).toEqual({ fill: '#521430' })
+    expect(colors[MARKER_IDS.cluster]).toEqual({ fill: '#390e22', ring: '#c44f84' })
+    // A tenant that configured `color1` alone keeps the default selected accent.
     expect(colors[MARKER_IDS.pointSelected]).toEqual(
       DEFAULT_MARKER_COLORS[MARKER_IDS.pointSelected],
     )
@@ -108,19 +121,34 @@ describe('markerColors', () => {
 
 describe('markerImages', () => {
   it('paints the derived fill and ring into the SVG', () => {
-    const images = markerImages(markerColors({ primary: MAROON }))
+    const images = markerImages(markerColors({ primary: MAROON }), 'light', 2)
 
     expect(images.get(MARKER_IDS.point)?.svg).toContain('fill="#521430"')
-    expect(images.get(MARKER_IDS.point)?.svg).toContain('stroke="#983a64"')
-    expect(images.get(MARKER_IDS.cluster)?.svg).toContain('fill="#521430"')
-    expect(images.get(MARKER_IDS.cluster)?.svg).toContain('fill="#983a64"')
+    expect(images.get(MARKER_IDS.point)?.svg).toContain('stroke="#000000"')
+    expect(images.get(MARKER_IDS.cluster)?.svg).toContain('fill="#390e22"')
+    expect(images.get(MARKER_IDS.cluster)?.svg).toContain('fill="#c44f84"')
     // A palette moves only the fills, never the box the art is placed in.
-    expect(images.get(MARKER_IDS.point)).toMatchObject({ width: 34, height: 38 })
-    expect(images.get(MARKER_IDS.cluster)).toMatchObject({ width: 38, height: 38 })
+    expect(images.get(MARKER_IDS.point)).toMatchObject({ width: 58, height: 65 })
+    expect(images.get(MARKER_IDS.cluster)).toMatchObject({ width: 76, height: 76 })
+  })
+
+  it('rasterises at the screen’s pixel ratio and the size each image shows', () => {
+    // A pin shows at 0.85 of its 34×38 art, so Mapbox needs no `icon-size` to shrink
+    // it: a scaled icon is resampled with no mipmaps, which stair-steps its edge.
+    for (const ratio of [1, 1.5, 3]) {
+      const images = markerImages(DEFAULT_MARKER_COLORS, 'light', ratio)
+
+      expect(images.get(MARKER_IDS.point)).toMatchObject({
+        width: Math.round(34 * 0.85 * ratio),
+        height: Math.round(38 * 0.85 * ratio),
+        ratio,
+      })
+      expect(images.get(MARKER_IDS.cluster)).toMatchObject({ width: 38 * ratio, ratio })
+    }
   })
 
   it('answers nothing for an id that is not a marker', () => {
-    const images = markerImages(DEFAULT_MARKER_COLORS)
+    const images = markerImages(DEFAULT_MARKER_COLORS, 'light', 2)
 
     // `styleimagemissing` carries the basemap's own layer ids too, which is why
     // this is a Map rather than an object literal.

@@ -6,6 +6,10 @@
  *
  *   pnpm build && pnpm review:embed
  *
+ * `--port`, `--dist` and `--key` override the defaults below. The browser lane
+ * (`tests/browser/`, `pnpm test:browser`) starts this same server over its own
+ * build, so the pages a reviewer opens and the pages CI drives are one source.
+ *
  * Browser verification is where this repo's embedding bugs actually get
  * found. Issue #161's inverted bottom sheet, its collapsed card fetching
  * the whole feed, and the `all: revert` rule that erased every icon were
@@ -54,27 +58,18 @@
  * unaffected in principle, since it renders before any of that, but
  * confirm rather than assume. What needs no backend at all: which chunks
  * are fetched (mapbox-gl in particular), the slot decision's console
- * message, CSS scoping, and icon rendering.
+ * message, CSS scoping, and icon rendering. The browser lane needs none
+ * either: it answers SahajCloud from `src/mocks/wire.ts`.
  */
 
 import { createReadStream, existsSync, statSync } from 'node:fs'
 import { createServer } from 'node:http'
 import { extname, join, normalize, resolve } from 'node:path'
+import { parseArgs } from 'node:util'
 
 import { loadEnv } from 'vite'
 
 import { MIME } from './_mime.mjs'
-
-const DIST = resolve('dist')
-
-/**
- * This uses Vite's own env loader, not a hand-rolled one. It applies
- * `.env` then `.env.local` precedence, and it handles quoting and inline
- * comments correctly. A 15-line reader here once got both subtly wrong.
- * `fallback-url.ts` on this same branch is the cautionary tale for
- * validating one string and using another.
- */
-const viteEnv = loadEnv('development', process.cwd(), 'VITE_')
 
 /**
  * One origin for the built app and every host page, which keeps the
@@ -82,7 +77,23 @@ const viteEnv = loadEnv('development', process.cwd(), 'VITE_')
  * dev server's port so a reviewer's bookmarks and any CSP note in
  * `docs/embedding.md` keep meaning the same thing.
  */
-const port = 5174
+const DEFAULT_PORT = 5174
+
+const { values: args } = parseArgs({
+  options: {
+    port: { type: 'string', default: String(DEFAULT_PORT) },
+    dist: { type: 'string', default: 'dist' },
+    key: { type: 'string' },
+  },
+})
+
+const port = Number(args.port)
+const DIST = resolve(args.dist)
+
+if (!Number.isInteger(port) || port < 1 || port > 65535) {
+  console.error(`✖ --port ${args.port} is not a port number.`)
+  process.exit(1)
+}
 
 // ---------------------------------------------------------------------------
 // The host pages. Each one is a shape that has actually produced a bug.
@@ -294,11 +305,20 @@ function pages(src) {
 // ---------------------------------------------------------------------------
 
 if (!existsSync(join(DIST, 'auto.js'))) {
-  console.error('✖ No dist/auto.js — run `pnpm build` first.')
+  console.error(
+    `✖ No ${args.dist}/auto.js — run \`pnpm build\` first (\`pnpm build:browser\` for the browser lane's).`,
+  )
   process.exit(1)
 }
 
-const key = viteEnv.VITE_SAHAJCLOUD_API_KEY ?? ''
+/**
+ * This uses Vite's own env loader, not a hand-rolled one. It applies
+ * `.env` then `.env.local` precedence, and it handles quoting and inline
+ * comments correctly. A 15-line reader here once got both subtly wrong.
+ * `fallback-url.ts` on this same branch is the cautionary tale for
+ * validating one string and using another.
+ */
+const key = args.key ?? loadEnv('development', process.cwd(), 'VITE_').VITE_SAHAJCLOUD_API_KEY ?? ''
 
 if (!key) console.warn('⚠ No VITE_SAHAJCLOUD_API_KEY in .env.local — the widget will not boot.')
 
@@ -416,7 +436,7 @@ server.on('error', (/** @type {NodeJS.ErrnoException} */ error) => {
 // `127.0.0.1` costs nothing.
 server.listen(port, '127.0.0.1', () => {
   console.log(`\n  Embed review → http://localhost:${port}/\n`)
-  console.log(`  Serving dist/ and every host page on ${port}, from one origin.`)
+  console.log(`  Serving ${args.dist}/ and every host page on ${port}, from one origin.`)
   for (const name of Object.keys(written)) console.log(`    /__review/${name}`)
   console.log('\n  Ctrl-C to stop.\n')
 })

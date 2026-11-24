@@ -9,14 +9,16 @@ import { Button } from '@/components/atoms/Button'
 // `danger` always keeps the fixed status red, never the brand tint.
 const alert = tv({
   slots: {
-    base: 'flex gap-3 rounded p-3',
+    base: 'flex gap-3 rounded-lg p-3',
     iconWrapper: 'shrink-0',
     content: 'min-w-0 flex-1',
     title: 'text-sm font-medium',
     // No opacity step. The colour pairs below are already a step-11 text on a step-3 surface,
     // which is 4.5:1 exactly — any transparency over it lands under the floor (#432).
     description: 'text-sm',
-    close: '-me-1 shrink-0 opacity-60 hover:opacity-100',
+    // Dimmed only as far as 3:1 on the Alert's tinted fill allows: the location notice's
+    // glyph measures 3.2:1 at 80% in light mode, and 2.3:1 at 60%.
+    close: '-me-1 shrink-0 opacity-80 hover:opacity-100',
   },
   variants: {
     color: { primary: '', secondary: '', contrast: '', neutral: '', danger: '' },

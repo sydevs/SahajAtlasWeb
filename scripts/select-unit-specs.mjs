@@ -35,9 +35,9 @@ import { fileURLToPath } from 'node:url'
 export const REPO_ROOT = join(dirname(fileURLToPath(import.meta.url)), '..')
 
 /**
- * Where the unit lane's specs and their subjects both live. `tests/` holds only smoke specs,
- * which the lane excludes. One list, because a directory whose specs are indexed but whose
- * sources are refused selects nothing for its own edits.
+ * Where the unit lane's specs and their subjects both live. `tests/` holds only the smoke and
+ * browser lanes' specs, which this lane excludes. One list, because a directory whose specs are
+ * indexed but whose sources are refused selects nothing for its own edits.
  */
 const LANE_DIRS = ['src', 'scripts']
 

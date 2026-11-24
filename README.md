@@ -160,6 +160,7 @@ pnpm test         # vitest watch (fast unit lane)
 pnpm test:run     # vitest run (pre-PR gate)
 pnpm test:coverage # the same run with coverage (CI gate — measured, no threshold)
 pnpm test:smoke   # smoke specs vs the Cloudflare preview (needs PREVIEW_URL)
+pnpm test:browser # the built widget in Chromium, every request from fixtures (CI gate)
 pnpm ladle        # component previews → http://localhost:61000
 pnpm ladle:build  # static Ladle build (CI gate)
 ```

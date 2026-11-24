@@ -8,7 +8,7 @@ export function ContactStep({ draft, errors = {}, onChange }: StepProps) {
   return (
     <div className="flex flex-col gap-4">
       <div>
-        <h3 className="text-md font-semibold">{t('submit.contact.title')}</h3>
+        <h3 className="text-base font-semibold">{t('submit.contact.title')}</h3>
         <p className="text-sm text-gray-11">{t('submit.contact.help')}</p>
       </div>
       <ValidatedInput

@@ -106,11 +106,11 @@ export function ActiveFilterPills() {
   if (pills.length === 0) return null
 
   return (
-    <div className="flex flex-wrap gap-1.5 px-4 pt-1 pb-2">
+    <div className="flex flex-wrap gap-1.5 px-gutter pt-1 pb-2">
       {pills.map((pill) => (
         <Chip
           key={pill.key}
-          closeLabel={t('filters.chrome.remove', { label: pill.label })}
+          closeLabel={t('filters.a11y.remove', { label: pill.label })}
           color="neutral"
           radius="full"
           onClose={pill.onRemove}

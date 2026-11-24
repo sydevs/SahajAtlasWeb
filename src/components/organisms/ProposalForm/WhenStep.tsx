@@ -13,7 +13,7 @@ export function WhenStep({ draft, errors = {}, onChange }: StepProps) {
 
   return (
     <div className="flex flex-col gap-4">
-      <h3 className="text-md font-semibold">{t('submit.when.title')}</h3>
+      <h3 className="text-base font-semibold">{t('submit.when.title')}</h3>
       <ValidatedInput
         required
         error={errors.firstDate && t('submit.errors.first_date')}

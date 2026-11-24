@@ -1,0 +1,62 @@
+name: Browser cache
+
+# Saves the Chromium both browser consumers in `ci.yml` run — the `Browser lane` job and the
+# accessibility step of the `gate` job — where every one of their runs can restore it. A run
+# restores only from its own ref, its pull request's base, or the default branch. So a cache a
+# pull request saved is read by that pull request alone, and one a merge-queue entry saved by
+# nothing at all. The default branch is the one scope they share, and this is its only writer:
+# both consumers restore and neither saves.
+#
+# ⚠ One entry serves both because both launch the full Chromium: the lane through its own
+# config and the accessibility gate through `channel: 'chromium'` in `scripts/check-a11y.mjs`.
+# So `--no-shell` holds — the headless shell is a download neither one launches (#459).
+#
+# Playwright's CI guide advises against caching browsers, since a restore costs about what a
+# download does. The cache is here because the lane was specified with one. A miss costs a
+# download, never a failure.
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  chromium:
+    name: Warm the Chromium cache
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .node-version
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+
+      # ⚠ The key and the path must match both consumers' restores exactly, or neither hits.
+      # `ci-workflows.test.ts` pins both, and that the payload is what both consumers launch.
+      - name: Read the pinned Playwright version
+        id: playwright
+        run: node scripts/playwright-version.mjs >> "$GITHUB_OUTPUT"
+      # `lookup-only`: on a hit there is nothing to do, so nothing is downloaded.
+      - name: Look the browser up
+        id: browser-cache
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-chromium-${{ runner.os }}-${{ steps.playwright.outputs.version }}
+          lookup-only: true
+      # No `--with-deps`: a cache holds the browser, never the system libraries.
+      - name: Download Chromium
+        if: steps.browser-cache.outputs.cache-hit != 'true'
+        run: pnpm exec playwright install --no-shell chromium
+      - name: Save the browser
+        if: steps.browser-cache.outputs.cache-hit != 'true'
+        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-chromium-${{ runner.os }}-${{ steps.playwright.outputs.version }}

@@ -3,9 +3,12 @@
   // The app tsconfig names "src" and ".ladle". ⚠ Its ".ladle" entry matches no file
   // (`tsc --listFilesOnly` lists none), so `.ladle/components.tsx` and `.ladle/i18n.ts` are in
   // no project. TODO: check them. `components.tsx` has a type error to fix first.
-  // This file covers the smoke specs, the build and CI scripts, and the Vite and vitest configs.
+  // This file covers the smoke and browser-lane specs, the build and CI scripts, and the Vite
+  // and vitest configs.
   // Co-located unit specs live under src/. The app project already checks them.
   // `pnpm typecheck` runs this file as its second step. See package.json.
+  // `src/vite-env.d.ts` is here for `import.meta.env`, which `src/` modules the browser lane
+  // imports read.
   //
   // Both Vite configs are checked here and nowhere else: they import plugins from
   // scripts/*.mjs, which only a project with allowJs can type.
@@ -27,6 +30,8 @@
     "vite.config.ts",
     "vitest.config.ts",
     "vitest.smoke.config.ts",
-    ".ladle/vite.config.ts"
+    ".ladle/vite.config.ts",
+    "playwright.config.ts",
+    "src/vite-env.d.ts"
   ]
 }

@@ -72,7 +72,7 @@ export function LoadingFallback({ unboxed = false }: LoadingFallbackProps) {
           on screen. `DrawerLoadingBody` makes the same choice. A visible "Loading…"
           text adds nothing the spinner has not already said. Its height would also
           push the spinner off centre. */}
-      <Spinner color="secondary" srLabel={t('common.chrome.loading')} />
+      <Spinner color="secondary" srLabel={t('common.a11y.loading')} />
     </div>
   )
 }
@@ -804,7 +804,7 @@ export function FallbackRegion({
  *    failure mode this fix avoids.
  */
 export const CENTERED_BODY =
-  'flex h-full max-h-[calc(var(--sy-frame-h)_-_var(--sy-sheet-top,0px))] flex-col items-center p-6 text-center [&>:first-child]:mt-auto [&>:last-child]:mb-auto'
+  'flex h-full max-h-[calc(var(--sy-frame-h)_-_var(--sy-sheet-top,0px))] flex-col items-center px-gutter py-6 text-center [&>:first-child]:mt-auto [&>:last-child]:mb-auto'
 
 /**
  * The other posture: top-left, with no centring at all.
@@ -816,7 +816,7 @@ export const CENTERED_BODY =
  * guard: content that starts at the top is on screen by construction. That is exactly
  * what `CENTERED_BODY` has to work to achieve.
  */
-export const START_BODY = 'flex h-full flex-col items-start p-6 text-start'
+export const START_BODY = 'flex h-full flex-col items-start px-gutter py-6 text-start'
 
 /** Which posture a surface renders in — see `CENTERED_BODY` / `START_BODY`. */
 export type FallbackAlign = 'center' | 'start'

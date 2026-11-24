@@ -1,0 +1,27 @@
+{
+  "calendar": {
+    "previous": "Previous",
+    "next": "Next",
+    "pick_date": "Pick a date"
+  },
+  "common": {
+    "explore": "Explore",
+    "loading": "Loading…",
+    "settings": "Settings"
+  },
+  "event": {
+    "view_photo": "View photo",
+    "pause_slideshow": "Pause slideshow"
+  },
+  "filters": {
+    "remove": "Remove %{label}"
+  },
+  "search": {
+    "results_showing": "Showing %{shown} of %{total} events",
+    "dismiss_nearby_prompt": "Dismiss"
+  },
+  "share": {
+    "copy_link": "Copy link",
+    "share_on": "Share on %{platform}"
+  }
+}

@@ -24,15 +24,6 @@ export const Default: Story = () => (
       </div>
     </StorySection>
 
-    <StorySection title="With Subtitles">
-      <div className="max-w-md">
-        <List>
-          <ListItem count={12} href="#area" label="Cambridge" subtitle="Cambridgeshire" />
-          <ListItem count={7} href="#area" label="Oxford" subtitle="Oxfordshire" />
-        </List>
-      </div>
-    </StorySection>
-
     <div />
   </StoryWrapper>
 )

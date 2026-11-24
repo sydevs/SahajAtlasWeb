@@ -19,7 +19,7 @@ export default { title: 'Organisms' } satisfies StoryDefault
 const hasToken = Boolean(import.meta.env.VITE_MAPBOX_ACCESSTOKEN)
 
 const NeedsToken = ({ what }: { what: string }) => (
-  <div className="max-w-md rounded border border-gray-6 p-4 text-sm text-gray-11">
+  <div className="max-w-md rounded-lg border border-gray-6 p-4 text-sm text-gray-11">
     Set <code>VITE_MAPBOX_ACCESSTOKEN</code> in <code>.env.local</code> to preview the {what}.
   </div>
 )
