@@ -154,7 +154,7 @@ export type MarkerColors = Readonly<{
 const ringOf = (fill: string) =>
   shiftHex(fill, { lightness: 34, saturation: -11, maxLightness: 82 })
 
-// Through `buildPalette`, not `stepHex`, so the selected pair carries
+// Through `buildPalette`, not `buildScale`, so the selected pair carries
 // `selected-distinct` — the check that keeps it from matching every pin around it.
 //
 // The pin is the ramp's solid. The cluster disc is its hovered solid, one tone

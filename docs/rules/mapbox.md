@@ -68,7 +68,7 @@ The map is the heart of the app and its hottest render path. Treat it carefully.
   disc from step 10, the selected pair the same from `contrast`, and one pale ring
   per role from its step 9. The cluster count is black or white, whichever reads
   better on that disc (`readableOn`), and the disc is opaque.
-  It reads them through `buildPalette`, not `stepHex`, so the selected pin carries
+  It reads them through `buildPalette`, not `buildScale`, so the selected pin carries
   `selected-distinct` — the check that keeps it from matching every pin around it.
   ⚠ **An unbranded embed follows the same rules.** A role with no usable seed takes
   its `DEFAULT_SEEDS` entry, so the stock green and coral are seeds, not constants,
