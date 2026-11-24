@@ -193,6 +193,9 @@ export function DrawerStack() {
   const isWide = useIsWide(container ?? frameElement())
   const direction: Direction = isWide ? 'left' : 'bottom'
   const [snap, setSnap] = useState<number | string | null>(OPEN_SNAP)
+  // Whether the sheet is sitting at its peek, measured by the sheet-top loop below. Never true
+  // where the sheet cannot collapse, since the loop does not run there.
+  const [atPeek, setAtPeek] = useState(false)
   const sheetOriginRef = useRef<HTMLDivElement>(null)
   // The lazy components ARE the retry state — the boundary's reset swaps in fresh ones.
   // Same shape, and the same reasoning, as EventView's `EventDetails`.
@@ -435,9 +438,16 @@ export function DrawerStack() {
           still = 0
           last = top
           sheet.style.setProperty('--sy-sheet-top', `${top}px`)
-          // Live rather than from `collapsed`, so a sheet dragged up fills in as it rises
-          // instead of when it lands (ViewLayer hides what the peek cannot show).
-          sheet.toggleAttribute('data-sy-peek', box - top < SHEET_PEEK_PX + 8)
+          // One answer for the peek, from the live top rather than from the settled snap, so a
+          // sheet dragged up fills in as it rises instead of when it lands. ViewLayer hides what
+          // the peek cannot show off the attribute; the header's controls read `collapsed`, which
+          // is this same boolean — decided twice, they disagreed for the length of a drag and the
+          // row offered a view's actions over an invisible body. The state setter bails out on an
+          // unchanged value, so this re-renders once per crossing, not once per frame.
+          const atPeekNow = box - top < SHEET_PEEK_PX + 8
+
+          sheet.toggleAttribute('data-sy-peek', atPeekNow)
+          setAtPeek(atPeekNow)
         }
       }
 
@@ -512,7 +522,7 @@ export function DrawerStack() {
     () => ({
       // The filter overlay's X is the way out while it covers the calendar.
       backTo: filterOverlay ? undefined : step?.to,
-      collapsed: canCollapse && snap === PEEK_SNAP,
+      collapsed: canCollapse && atPeek,
       toggle: () => setSnap((s) => (s === PEEK_SNAP ? openSnap : PEEK_SNAP)),
       dismiss: () => {
         if (!step) return setSnap(PEEK_SNAP)
@@ -526,7 +536,7 @@ export function DrawerStack() {
         })
       },
     }),
-    [filterOverlay, step, snap, openSnap, canCollapse, navigate, location.pathname],
+    [filterOverlay, step, atPeek, openSnap, canCollapse, navigate, location.pathname],
   )
 
   // The filter overlay's own dismiss (its X / swipe / Esc): back to the calendar it opened over,
