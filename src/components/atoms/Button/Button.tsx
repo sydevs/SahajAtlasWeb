@@ -144,7 +144,14 @@ export const controlSurface = tv({
       variant: 'floating',
       class: 'border-contrast-7 text-contrast-11 hover:bg-contrast-3',
     },
-    { color: 'neutral', variant: 'floating', class: 'border-divider text-gray-12 hover:bg-gray-3' },
+    // ⚠ The glyph rests at step 11 and darkens on hover, the same pair the `ghost` row below
+    // uses. The two are one set of neutral controls — the settings cog renders as either — so a
+    // step of their own here would rest the same cog at two different weights.
+    {
+      color: 'neutral',
+      variant: 'floating',
+      class: 'border-divider text-gray-11 hover:bg-gray-3 hover:text-foreground',
+    },
     // ghost (surface only on hover)
     { color: 'primary', variant: 'ghost', class: 'text-primary-11 hover:bg-primary-3' },
     { color: 'secondary', variant: 'ghost', class: 'text-secondary-11 hover:bg-secondary-3' },
