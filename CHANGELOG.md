@@ -43,60 +43,6 @@ cover everything a host would notice since the widget was first deployed.
 
 ### Changed
 
-- **The panel's text, edges and corners follow one system.** ([#471]) Titles are larger (20px)
-  than the rows under them (16px); times, addresses, Filters, Sort and the Register button are a
-  touch larger, without letter spacing. The header, search box, notices, list and buttons share
-  one 24px left and right edge. Buttons, fields, boxes and tags have 8px corners, the panel and
-  menus 16px, and filter tags stay round. Long place names wrap to a second line instead of
-  ending in "…", a region's place rows show only the name and the number of classes, and
-  desktop flags are smaller. **No parameter, origin, CSP, storage or Permissions-Policy change.**
-
-- **The settings cog is bigger on a phone, and the controls floating over the widget are drawn
-  by one recipe.** ([#470]) The cog over the map is drawn at 44px on a touch screen, where it was
-  32px with an invisible 44px tap area, and its gear glyph is 20px rather than 16px on every
-  device. Where the widget has no map, the cog sits in its own strip and is now drawn at 32px on
-  a desktop, with the same hover tint the panel's other icon controls have. The close control on
-  the collapsed card's full-screen layer takes the same surface: a 1px border in place of 1.5px,
-  and that hover tint. Nothing moves, nothing is harder to reach, and there is **no parameter,
-  origin, CSP, storage or Permissions-Policy change**.
-
-- **The calendar's today highlight takes the buttons' dark green in light mode.** ([#478]) It
-  was the bright primary solid under black text; it is now the same dark shade under white that
-  the solid buttons use, from your own primary colour or the default green. Dark mode is
-  unchanged. **No parameter, origin, CSP, storage or Permissions-Policy change.**
-
-- **Every place and class page says "Back to …" where it leads, instead of an X.** ([#476]) The
-  control at the top of a country, region, city, class, registration or share page now names the
-  page it returns to ("Back to United Kingdom", "Back to the world map", "Back to results near
-  Prague", "Back to class"). It still never takes your page's own history back: with no earlier step inside the
-  widget, it goes up a level, past the building a class meets in and any place holding only that
-  class. An X remains only on the filters, and the faint panels that stacked
-  behind the current one are gone. On a phone the panel opens at 356px rather than 300px and pulls
-  down to 104px, enough for Back, the first line of the name and a "Show more" button, which
-  replaces the menu button; on a window 480px tall or less, every stop stays 75px below the top.
-  **No parameter, origin, CSP, storage or Permissions-Policy change.**
-
-- **A place with a single class opens that class.** ([#476]) A link to such a place, such as
-  `?atlas=/gb/cambridgeshire`, now replaces itself in your page's address with the class's own
-  route, and its row in a list links straight to the class. The URL shape is unchanged.
-
-- **Cities, regions and countries open showing the whole place.** ([#476]) The map no longer zooms
-  closer than 11.5 when it frames an area (it was 13), so a city whose classes meet a few streets
-  apart shows the whole city.
-
-- **A warmer default look, and map circles whose numbers are easy to read.** ([#469]) The
-  widget's built-in colours change: the default primary is now a green (`#2D9A76`, was the teal
-  `#1E6C71`) and the default accent a coral (`#E0775C`, was `#d8735a`), and the panel's greys are
-  faintly warm. A cluster circle is now solid and one shade deeper than a single class's pin, and
-  its number is black or white, whichever reads better on it — white on the default green, at
-  4.7:1. A circle wears a paler halo, and a pin a thin black edge on the light map and a white
-  one on the dark map, in place of its halo. **If you set your own brand colours, your map
-  changes too:** your circles turn one shade deeper than your pins and become solid, their
-  number may switch between black and white, the halos turn paler, and the pins take the
-  hard edge. If you leave the colours
-  unset, the whole widget, panels included, takes the new green and coral. **No parameter,
-  origin, CSP, storage or Permissions-Policy change.**
-
 - ⚠ **Every embed now opens inline, as part of your page, and the map opens over it on request.**
   ([#466]) The widget shows a heading — "Free Meditation classes in London" — above two
   columns: the classes on the left, and a square map on the right that stays in view below
@@ -127,6 +73,30 @@ cover everything a host would notice since the widget was first deployed.
     new tab. Opened directly, `sahajatlas.com` keeps its map-first page.
 
   **No parameter, origin, CSP, storage or Permissions-Policy change.**
+
+- **The settings cog is bigger on a phone, and the controls floating over the widget are drawn
+  by one recipe.** ([#470]) The cog over the map is drawn at 44px on a touch screen, where it was
+  32px with an invisible 44px tap area, and its gear glyph is 20px rather than 16px on every
+  device. Nothing moves, nothing is harder to reach, and there is **no parameter, origin, CSP,
+  storage or Permissions-Policy change**.
+
+- **The calendar's today highlight takes the buttons' dark green in light mode.** ([#478]) It
+  was the bright primary solid under black text; it is now the same dark shade under white that
+  the solid buttons use, from your own primary colour or the default green. Dark mode is
+  unchanged. **No parameter, origin, CSP, storage or Permissions-Policy change.**
+
+- **A warmer default look, and map circles whose numbers are easy to read.** ([#469]) The
+  widget's built-in colours change: the default primary is now a green (`#2D9A76`, was the teal
+  `#1E6C71`) and the default accent a coral (`#E0775C`, was `#d8735a`), and the panel's greys are
+  faintly warm. A cluster circle is now solid and one shade deeper than a single class's pin, and
+  its number is black or white, whichever reads better on it — white on the default green, at
+  4.7:1. A circle wears a paler halo, and a pin a thin black edge on the light map and a white
+  one on the dark map, in place of its halo. **If you set your own brand colours, your map
+  changes too:** your circles turn one shade deeper than your pins and become solid, their
+  number may switch between black and white, the halos turn paler, and the pins take the
+  hard edge. If you leave the colours
+  unset, the whole widget, panels included, takes the new green and coral. **No parameter,
+  origin, CSP, storage or Permissions-Policy change.**
 
 - **Screen-reader labels in every language now ship with the widget.** ([#456]) The names a
   screen reader speaks for icon-only controls (calendar arrows, the settings cog, a filter chip's
@@ -1341,9 +1311,7 @@ must-revalidate`, pinned rather than left to the CDN default. The production dom
 [On Wix, the script embed is a Custom Element]: docs/embedding.md#on-wix-the-script-embed-is-a-custom-element
 [#387]: https://github.com/sydevs/SahajAtlasWeb/issues/387
 [#409]: https://github.com/sydevs/SahajAtlasWeb/pull/409
-[#476]: https://github.com/sydevs/SahajAtlasWeb/pull/476
 [#456]: https://github.com/sydevs/SahajAtlasWeb/pull/456
-[#471]: https://github.com/sydevs/SahajAtlasWeb/pull/471
 [#411]: https://github.com/sydevs/SahajAtlasWeb/pull/411
 [#418]: https://github.com/sydevs/SahajAtlasWeb/pull/418
 [#424]: https://github.com/sydevs/SahajAtlasWeb/pull/424
