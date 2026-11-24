@@ -462,7 +462,11 @@ const singleEventPath = (under: IndexedFeature[], node: RegionNode): string | un
   return own?.startsWith(`${route}/`) ? own : childRoute(route, id)
 }
 
-const toListItem = (node: RegionNode, eventCount: number): RegionListItem =>
+const toListItem = (
+  node: RegionNode,
+  eventCount: number,
+  singleEventPath?: string,
+): RegionListItem =>
   RegionListItemSchema.parse({
     id: node.id,
     slug: node.slug,
@@ -471,6 +475,7 @@ const toListItem = (node: RegionNode, eventCount: number): RegionListItem =>
     subtitle: node.subtitle,
     eventCount,
     path: regionRoute(node),
+    singleEventPath,
   })
 
 // This orders a region list by event count, from busiest to quietest.
@@ -592,10 +597,7 @@ const getRegion = async (slug: string, filters?: EventFilters): Promise<Region> 
         : located
 
     if (located.length > 0)
-      subregions.push({
-        ...toListItem(child, located.length),
-        singleEventPath: singleEventPath(under, child),
-      })
+      subregions.push(toListItem(child, located.length, singleEventPath(under, child)))
   }
   subregions.sort(byEventCountDesc)
 
