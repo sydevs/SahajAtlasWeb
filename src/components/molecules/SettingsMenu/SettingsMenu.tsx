@@ -24,7 +24,8 @@ const trigger = tv({
   base: 'flex items-center justify-center text-gray-11 transition-colors hover:text-foreground',
   variants: {
     toolbar: {
-      true: '-ms-3 h-11 w-11 rounded-lg outline-none focus-visible:ring-2 focus-visible:ring-focus focus-visible:ring-inset',
+      // `shrink-0`: in the inline embed's heading row a long place name squeezed it to 36px wide.
+      true: '-ms-3 h-11 w-11 shrink-0 rounded-lg outline-none focus-visible:ring-2 focus-visible:ring-focus focus-visible:ring-inset',
       // Drawn at 32px, and kept there: `touch-target` is what gives a finger 44px to reach
       // it, and nothing sits close enough to take that area.
       false: floatingChrome({ bordered: true, className: 'touch-target relative h-8 w-8' }),
