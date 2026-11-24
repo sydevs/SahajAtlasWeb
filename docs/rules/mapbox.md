@@ -39,8 +39,8 @@ The map is the heart of the app and its hottest render path. Treat it carefully.
   Studio edit cannot silently drop a marker.
 - `icon-image` in `layers.ts` always references a `MARKER_IDS.*` constant (all
   `sy-`-prefixed so they cannot collide with a style sprite). A new marker needs
-  an id there, its stock colours in `DEFAULT_MARKER_COLORS`, a case in
-  `markerColors`, and a row in `markerImages` — never a bare sprite name.
+  an id there, its colours in `markerColors` (which `DEFAULT_MARKER_COLORS`
+  follows), and a row in `markerImages` — never a bare sprite name.
 - Registration hangs off Mapbox's **`styleimagemissing`** event
   (`registerMarkerImages`, one `useEffect` in `Map.tsx`). That event re-fires
   after every style load, so the one subscription covers both the initial load
@@ -49,29 +49,36 @@ The map is the heart of the app and its hottest render path. Treat it carefully.
   re-fires the event per missing id **per tile batch**, and the warm path must
   add the image _synchronously_ inside the handler, or the new style's first
   frame paints pinless.
-- **A pin and a bubble carry their own translucent ring; only the vague ring and dot
-  carry a fixed outline** (#389). The bubble's ring is its whole edge, and a pin has a
-  thinner ring of the same colour and opacity, drawn behind the head. A black or white
-  outline on either clashed with that ring. `MARKER_OUTLINE` and the
-  `BASEMAP_SURFACES` it was measured against live in `markers.ts`, for the vague
-  layers; `markers.outline.test.ts` holds both against ≥ 3:1.
+- **A pin carries a fixed outline; a bubble carries its own translucent ring** (#389,
+  #469). The pin's edge is `MARKER_OUTLINE` for the basemap that is up, 1.2 wide, and
+  so is the vague ring and dot's. The bubble's ring is its whole edge: a black or white
+  outline beside it clashed. `MARKER_OUTLINE` and the `BASEMAP_SURFACES` it was measured
+  against live in `markers.ts`; `markers.outline.test.ts` holds both against ≥ 3:1, and
+  holds the pins edged and the bubbles not.
   ⚠ **Dark edge on the light map, pale edge on the dark one.** The dark style is
   mid-toned and its land is lighter than its water. Do not swap them.
+- **Each image is rasterised at the size it shows, at the screen's pixel ratio, and
+  drawn with no `icon-size`** (`PIN_SIZE`, `markers.ts`). ⚠ Mapbox resamples a scaled
+  icon from its atlas with no mipmaps, which stair-stepped the pins' 1.2 outline at
+  both 1× and 2×. Only the transient hover and area highlights still scale.
 - **The marks take the LIGHT-mode palette in both modes** (`MARKER_MODE`). The dark
   basemap is mid-toned and washed out, so a dark-mode solid — lifted to read on the
-  near-black panel — washed out on it. So `markerColors`, `markerImages`,
-  `registerMarkerImages` and `clusterLayer` take no mode, and the stock art is one
-  set of four images whichever basemap is up.
+  near-black panel — washed out on it. So `markerColors` and `clusterLayer` take no
+  mode. `markerImages` and `registerMarkerImages` take one for the pins' edge alone,
+  so `Map.tsx` re-registers on a theme switch, and the first switch into a mode
+  decodes that mode's pins.
 - **The four images carry the tenant's colors** (#17). `markerColors(palette)`
   derives them from the palette `BrandTheme` resolved and hands down
-  (`config/theme/brand-palette.ts`) — the pin and cluster from `primary` step 9,
-  the selected pair from `contrast` step 9, each ring from its own fill.
-  It reads them through `buildPalette`, not `stepHex`, so the selected pin carries
+  (`config/theme/brand-palette.ts`) — the pin from `primary` step 9 and the cluster
+  disc from step 10, the selected pair the same from `contrast`, and each bubble's
+  pale ring from its role's step 9. The cluster count is black or white, whichever reads
+  better on that disc (`readableOn`), and the disc is opaque.
+  It reads them through `buildPalette`, not `buildScale`, so the selected pin carries
   `selected-distinct` — the check that keeps it from matching every pin around it.
-  ⚠ **A role with no usable seed keeps the `markers.ts` constants verbatim.**
-  Deriving them from `DEFAULT_SEEDS` instead changes every unbranded embed's
-  pin, in both modes; `markers.test.ts` freezes the four stock SVGs byte for
-  byte against exactly that.
+  ⚠ **An unbranded embed follows the same rules.** A role with no usable seed takes
+  its `DEFAULT_SEEDS` entry, so the stock green and coral are seeds, not constants,
+  and a seed change moves the panel and the map together. `markers.test.ts` freezes
+  the four stock SVGs byte for byte, so that change is visible as one.
 - **Every cache is keyed by the id AND its colors**, and a live map is
   repainted with **`removeImage` then `addImage`**. A second `addImage` alone
   makes Mapbox fire an `error` event. ⚠ `map.updateImage` looks right and is

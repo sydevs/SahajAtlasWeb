@@ -43,6 +43,11 @@ cover everything a host would notice since the widget was first deployed.
 
 ### Changed
 
+- **The calendar's today highlight takes the buttons' dark green in light mode.** ([#478]) It
+  was the bright primary solid under black text; it is now the same dark shade under white that
+  the solid buttons use, from your own primary colour or the default green. Dark mode is
+  unchanged. **No parameter, origin, CSP, storage or Permissions-Policy change.**
+
 - **Every place and class page says "Back to …" where it leads, instead of an X.** ([#476]) The
   control at the top of a country, region, city, class, registration or share page now names the
   page it returns to ("Back to United Kingdom", "Back to the world map", "Back to results near
@@ -61,6 +66,19 @@ cover everything a host would notice since the widget was first deployed.
 - **Cities, regions and countries open showing the whole place.** ([#476]) The map no longer zooms
   closer than 11.5 when it frames an area (it was 13), so a city whose classes meet a few streets
   apart shows the whole city.
+
+- **A warmer default look, and map circles whose numbers are easy to read.** ([#469]) The
+  widget's built-in colours change: the default primary is now a green (`#2D9A76`, was the teal
+  `#1E6C71`) and the default accent a coral (`#E0775C`, was `#d8735a`), and the panel's greys are
+  faintly warm. A cluster circle is now solid and one shade deeper than a single class's pin, and
+  its number is black or white, whichever reads better on it — white on the default green, at
+  4.7:1. A circle wears a paler halo, and a pin a thin black edge on the light map and a white
+  one on the dark map, in place of its halo. **If you set your own brand colours, your map
+  changes too:** your circles turn one shade deeper than your pins and become solid, their
+  number may switch between black and white, the halos turn paler, and the pins take the
+  hard edge. If you leave the colours
+  unset, the whole widget, panels included, takes the new green and coral. **No parameter,
+  origin, CSP, storage or Permissions-Policy change.**
 
 - **Screen-reader labels in every language now ship with the widget.** ([#456]) The names a
   screen reader speaks for icon-only controls (calendar arrows, the settings cog, a filter chip's
@@ -1186,6 +1204,8 @@ must-revalidate`, pinned rather than left to the CDN default. The production dom
   (`//evil.com`) and non-allowlisted-scheme hrefs. Defense in depth — no live hole was
   found. ([#111], [#136])
 
+[#478]: https://github.com/sydevs/SahajAtlasWeb/pull/478
+[#469]: https://github.com/sydevs/SahajAtlasWeb/pull/469
 [#192]: https://github.com/sydevs/SahajAtlasWeb/pull/192
 [#187]: https://github.com/sydevs/SahajAtlasWeb/pull/187
 [#159]: https://github.com/sydevs/SahajAtlasWeb/pull/159
