@@ -187,8 +187,6 @@ export const sahajCloud = {
 
 // ── The router ──────────────────────────────────────────────────────────────────
 
-export type WireAnswer = { status: number; json: Json }
-
 /**
  * SahajCloud's answer to one request, by method and path under `/api`, or `undefined` for a
  * request these fixtures do not model — which the browser lane fails a test for, rather than
@@ -198,7 +196,7 @@ export function answerSahajCloud(request: {
   method: string
   url: URL
   authorization?: string | null
-}): WireAnswer | undefined {
+}): { status: number; json: Json } | undefined {
   const { method, url } = request
   const path = url.pathname.replace(/^\/api(?=\/)/, '')
   const ok = (json: Json, status = 200) => ({ status, json })
