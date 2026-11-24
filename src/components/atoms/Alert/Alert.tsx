@@ -16,7 +16,9 @@ const alert = tv({
     // No opacity step. The colour pairs below are already a step-11 text on a step-3 surface,
     // which is 4.5:1 exactly — any transparency over it lands under the floor (#432).
     description: 'text-sm',
-    close: '-me-1 shrink-0 opacity-60 hover:opacity-100',
+    // 80%, not 60%: the dimmed glyph must clear 3:1 on the Alert's tinted fill (the location
+    // notice measured 2.3:1 at 60% and 3.2:1 at 80%, light mode).
+    close: '-me-1 shrink-0 opacity-80 hover:opacity-100',
   },
   variants: {
     color: { primary: '', secondary: '', contrast: '', neutral: '', danger: '' },

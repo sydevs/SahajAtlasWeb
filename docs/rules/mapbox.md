@@ -64,14 +64,16 @@ The map is the heart of the app and its hottest render path. Treat it carefully.
   set of four images whichever basemap is up.
 - **The four images carry the tenant's colors** (#17). `markerColors(palette)`
   derives them from the palette `BrandTheme` resolved and hands down
-  (`config/theme/brand-palette.ts`) — the pin and cluster from `primary` step 9,
-  the selected pair from `contrast` step 9, each ring from its own fill.
+  (`config/theme/brand-palette.ts`) — the pin from `primary` step 9 and the cluster
+  disc from step 10, the selected pair the same from `contrast`, and one pale ring
+  per role from its step 9. The cluster count is black or white, whichever reads
+  better on that disc (`readableOn`), and the disc is opaque.
   It reads them through `buildPalette`, not `stepHex`, so the selected pin carries
   `selected-distinct` — the check that keeps it from matching every pin around it.
-  ⚠ **A role with no usable seed keeps the `markers.ts` constants verbatim.**
-  Deriving them from `DEFAULT_SEEDS` instead changes every unbranded embed's
-  pin, in both modes; `markers.test.ts` freezes the four stock SVGs byte for
-  byte against exactly that.
+  ⚠ **An unbranded embed follows the same rules.** A role with no usable seed takes
+  its `DEFAULT_SEEDS` entry, so the stock green and coral are seeds, not constants,
+  and a seed change moves the panel and the map together. `markers.test.ts` freezes
+  the four stock SVGs byte for byte, so that change is visible as one.
 - **Every cache is keyed by the id AND its colors**, and a live map is
   repainted with **`removeImage` then `addImage`**. A second `addImage` alone
   makes Mapbox fire an `error` event. ⚠ `map.updateImage` looks right and is

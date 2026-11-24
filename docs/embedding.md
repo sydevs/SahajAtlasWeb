@@ -309,13 +309,14 @@ your client record — not the internal one — and the widget names it as the `
 event it describes to a search engine. Leave it empty and the event carries no organizer, which is
 better structured data than somebody else's name.
 
-**Your brand colours reach the map, not only the panels.** The event pins, the cluster bubbles
-and the numbers on them are drawn from the **first** of your record's three brand colours, and
-the pin of whichever event is selected from the **third** — the same two your buttons and
-headings already use. Your second colour does not reach the map. **The map paints the light-mode
-shade of both, on the dark page too**: the basemap is mid-toned either way, so after dark the
-pins keep the shade the panels around them used in daylight. A colour you leave unset, or set to
-`#000000` — the old "unconfigured" value — keeps the widget's own teal or orange, map included.
+**Your brand colours reach the map, not only the panels.** The event pins and the cluster bubbles
+are drawn from the **first** of your record's three brand colours, and the pin of whichever event
+is selected from the **third** — the same two your buttons and headings already use. A bubble is
+one shade deeper than a pin, and its number is black or white, whichever reads better on it. Your
+second colour does not reach the map. **The map paints the light-mode shades, on the dark page
+too**: the basemap is mid-toned either way, so after dark the pins keep the shade the panels
+around them used in daylight. A colour you leave unset, or set to `#000000` — the old
+"unconfigured" value — keeps the widget's own green or coral, map included.
 Nothing new is requested from the network, so your CSP and your Permissions Policy are unchanged.
 
 **A colour you choose is never refused, and never overwritten — but it may be adjusted where it

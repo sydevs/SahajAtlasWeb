@@ -43,6 +43,17 @@ cover everything a host would notice since the widget was first deployed.
 
 ### Changed
 
+- **A warmer default look, and map circles whose numbers are easy to read.** ([#PRNUM]) The
+  widget's built-in colours change: the default primary is now a green (`#2D9A76`, was the teal
+  `#1E6C71`) and the default accent a coral (`#E0775C`, was `#d8735a`), and the panel's greys are
+  faintly warm. A cluster circle is now solid and one shade deeper than a single class's pin, and
+  its number is black or white, whichever reads better on it — white on the default green, at
+  4.7:1. Each pin and circle wears a paler halo. **If you set your own brand colours, your map
+  changes too:** your circles turn one shade deeper than your pins and become solid, their
+  number may switch between black and white, and the halos turn paler. If you leave the colours
+  unset, the whole widget, panels included, takes the new green and coral. **No parameter,
+  origin, CSP, storage or Permissions-Policy change.**
+
 - **Screen-reader labels in every language now ship with the widget.** ([#456]) The names a
   screen reader speaks for icon-only controls (calendar arrows, the settings cog, a filter chip's
   remove button, share buttons, loading spinners) are now translated into every language

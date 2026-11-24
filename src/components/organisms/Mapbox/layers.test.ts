@@ -117,6 +117,15 @@ describe('the vague-place layers', () => {
 
   // The dot stands in for an area wider than the screen, so it is a marker rather than ground:
   // a fixed size at every zoom, where the ring's radius is an expression that doubles.
+  it('draws in the pin colour, branded or by default', () => {
+    for (const palette of [{}, { primary: MAROON }]) {
+      const pin = markerColors(palette)[MARKER_IDS.point].fill
+
+      expect(paintOf(vagueRingLayer(palette, 'light'))['circle-color']).toBe(pin)
+      expect(paintOf(vagueDotLayer(palette, 'dark'))['circle-color']).toBe(pin)
+    }
+  })
+
   it('draws the dot at a fixed size, in the ring colours', () => {
     expect(paintOf(dot)['circle-radius']).toBe(8)
     expect(paintOf(dot)['circle-color']).toBe(paintOf(ring)['circle-color'])
@@ -149,43 +158,37 @@ describe('the vague-place layers', () => {
 })
 
 describe('clusterLayer', () => {
-  it('counts in white on the stock bubble', () => {
-    expect(paintOf(clusterLayer({}))['text-color']).toBe('#FFFFFF')
-    expect(paintOf(clusterLayer({ primary: '#000000' }))['text-color']).toBe('#FFFFFF')
+  it('counts in white on the default green bubble', () => {
+    expect(paintOf(clusterLayer({}))['text-color']).toBe('#ffffff')
+    expect(paintOf(clusterLayer({ primary: '#000000' }))['text-color']).toBe('#ffffff')
   })
 
-  it('takes the on-color of the bubble it sits on', () => {
-    // The bubble is `primary`'s light-mode step 9 in both modes, so the count
-    // follows that ramp: white on the dark maroon solid.
+  it('takes whichever of black or white reads better on the bubble it sits on', () => {
+    // The bubble is `primary`'s light-mode step 10 in both modes: white on the
+    // deep maroon, black on a yellow.
     expect(paintOf(clusterLayer({ primary: MAROON }))['text-color']).toBe('#ffffff')
+    expect(paintOf(clusterLayer({ primary: '#ffff00' }))['text-color']).toBe('#000000')
   })
 
   it('ignores the other roles', () => {
     const layer = clusterLayer({ contrast: MAROON, secondary: MAROON })
 
-    expect(paintOf(layer)['text-color']).toBe('#FFFFFF')
+    expect(paintOf(layer)['text-color']).toBe(paintOf(clusterLayer({}))['text-color'])
   })
 
-  // ⚠ This layer and `markerColors` derive the count and the disc it sits on
-  // SEPARATELY, and they agree only because both read `primary` step 9. So the
-  // invariant is asserted as contrast against the fill actually produced, not as
-  // the two expressions matching — a change to either side that broke the
-  // agreement would still satisfy a value comparison.
-  //
-  // Only for a branded tenant. The stock pair is `#FFFFFF` on the Studio art's
-  // own `#37BB92`, which measures 2.4:1 and is inherited rather than chosen; see
-  // `layers.ts`.
-  //
-  // ⚠ 4.5 is the OPAQUE figure. The disc renders at `opacity="0.914"`
-  // (`markers.ts`), so what a reader sees is that fill composited over the
-  // basemap, a little lower — `foregroundFor`'s black-versus-white crossover is
-  // 4.58:1, so a seed landing near it passes here at about 4.2 on screen.
-  // Blending needs a basemap colour this lane has no business asserting.
-  it('keeps the count legible on the bubble markerColors fills', () => {
-    const { fill } = markerColors({ primary: MAROON })[MARKER_IDS.cluster]
-    const label = paintOf(clusterLayer({ primary: MAROON }))['text-color'] as string
+  // Asserted as contrast against the fill `markerColors` actually paints, not as
+  // the count's own value, so a disc and a count that stopped agreeing fail here.
+  // The disc is opaque (`markers.ts`), so this is the figure a reader sees. The
+  // count is 12px bold, which is normal text rather than large, so the bar is 4.5.
+  it('keeps the count at 4.5:1 on every bubble, the default included', () => {
+    expect(clusterLayer({}).layout).toMatchObject({ 'text-size': 12 })
 
-    expect(colord(fill).contrast(label)).toBeGreaterThanOrEqual(4.5)
+    for (const primary of [undefined, MAROON, '#ffff00', '#3a7bd5', '#5e98ba', '#fffdfa']) {
+      const { fill } = markerColors({ primary })[MARKER_IDS.cluster]
+      const label = paintOf(clusterLayer({ primary }))['text-color'] as string
+
+      expect(colord(fill).contrast(label)).toBeGreaterThanOrEqual(4.5)
+    }
   })
 })
 

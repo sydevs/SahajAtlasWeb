@@ -70,9 +70,9 @@ describe('BrandTheme', () => {
   it('substitutes no default for an unconfigured role', () => {
     mount(undefined)
 
-    // An unseeded role must reach the map as absent, which is what keeps the stock
-    // pins stock. Filling in `DEFAULT_SEEDS` here would recolor every unbranded
-    // embed, and make its pins mode-dependent.
+    // An unseeded role must reach the map as absent: `markerColors` resolves the
+    // default itself and answers one shared object for it, and the panel keeps the
+    // static `globals.css` ramps rather than an inline copy of them.
     expect(Object.values(seen.at(-1) ?? {}).every((seed) => seed === undefined)).toBe(true)
     expect(document.documentElement.style.getPropertyValue('--primary-9')).toBe('')
   })

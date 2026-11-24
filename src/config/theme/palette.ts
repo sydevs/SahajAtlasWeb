@@ -19,7 +19,7 @@
 // `buildScale` derives the full ramp from that seed, aware of the current mode.
 // `applyPalette` writes the resulting variables onto the root element.
 // When no palette is supplied, none of this code runs.
-// The static `globals.css` defaults, the built-in teal and orange, then stand unchanged.
+// The static `globals.css` defaults, built from `DEFAULT_SEEDS`, then stand unchanged.
 
 import { colord, extend, type Colord } from 'colord'
 import a11yPlugin from 'colord/plugins/a11y'
@@ -55,21 +55,23 @@ export type Step = 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12
 // This field is named `on`, not `contrast`, so it does not collide with the `contrast` brand role.
 export type ColorScale = Record<Step, string> & { on: string }
 
-// These are the built-in brand seeds, used when no tenant supplies its own.
-// They are the SY teal primary, the soft blue secondary, and the warm contrast.
+// These are the built-in brand seeds, used when no tenant supplies its own: the
+// map's green primary, the soft blue secondary, and the coral contrast.
 // The static defaults in `globals.css` are these seeds run through `buildScale()`.
 // The `palette.defaults.test.ts` gate asserts that both stay in sync.
 // So a ladder change cannot silently desync the default theme from every tenant theme.
-// ⚠ `secondary` and `contrast` are retuned from `#A1C3D7` and `#e08e79`, which
-// rendered at 2.0:1 and 2.5:1 against white and so failed `surface`. `primary`
-// keeps its seed: no teal passes `panel-text` at any saturation worth calling
-// teal, so the correction below moves its text step instead.
+// An unbranded map takes its marks from these too, by the rules a tenant's go
+// through (`Mapbox/markers.ts`): the pin is `primary` step 9 and the cluster disc
+// step 10, which carries a white count at 4.7:1.
+// ⚠ `secondary` was retuned from `#A1C3D7`, which rendered at 2.0:1 against white and
+// so failed `surface`. `primary`'s step 11 is corrected for `panel-text` rather than
+// its seed moved, which would also move the pins.
 // ⚠ SahajCloud's `ATLAS_DEFAULT_COLORS` (`src/lib/clients/appearance.ts`) mirrors
 // these three.
 export const DEFAULT_SEEDS = {
-  primary: '#1E6C71',
+  primary: '#2D9A76',
   secondary: '#5e98ba',
-  contrast: '#d8735a',
+  contrast: '#E0775C',
 } as const
 
 // This holds fixed per-step lightness, as HSL L%, for steps 1 through 8 and 11 through 12.
@@ -246,7 +248,7 @@ function buildRole(seedHex: string, mode: ThemeMode): RoleScale {
   // ⚠ The lift and the band are two independent moves, so each reports itself. Deciding
   // one from whether the other had already reported gave two near-white seeds different
   // banners for the same journey, on nothing but how far under the floor they started.
-  // The lift is reported only past one anyone would notice: our own teal sits two points
+  // The lift is reported only past one anyone would notice: a teal like `#1E6C71` sits two points
   // under the floor, and a banner over that would be noise.
   if (s > 0 && (colourfulness < MIN_SATURATION - NOTICEABLE_LIFT || l < reach || l > 100 - reach)) {
     adjustedBy.push('saturation')
@@ -448,15 +450,14 @@ export function paletteReport(palette: PaletteRoles): PaletteReport {
 
 // A brand seed is any valid colour but `#000000`, which is SahajCloud's "unconfigured"
 // sentinel: client records once defaulted `color1`–`color3` to it. That one value is
-// not written, and the static `globals.css` default, the built-in teal or orange,
-// stands instead.
+// not written, and the static `globals.css` default stands instead.
 // ⚠ Only that value. A grey, a white or a near-white is somebody's choice and is
 // painted as a neutral ramp — treating every achromatic seed as unset snapped a
-// manager's pick to our teal, which read as the picker ignoring them.
+// manager's pick to our default, which read as the picker ignoring them.
 // `background` is handled separately. Its shade always snaps to the near-white or near-black app-background step, regardless.
 const UNCONFIGURED_SEED = '#000000'
 
-const isBrandSeed = (seedHex: string): boolean => {
+export const isBrandSeed = (seedHex: string): boolean => {
   const c = colord(seedHex)
 
   return c.isValid() && c.toHex() !== UNCONFIGURED_SEED
@@ -464,9 +465,9 @@ const isBrandSeed = (seedHex: string): boolean => {
 
 // The map paints in hex. An SVG `fill` attribute and a Mapbox paint both refuse the channel
 // triples above, and neither can read a CSS variable.
-// So these three accessors exist, and `colord` stays in this file, the only one that knows the ladder.
+// So these accessors exist, and `colord` stays in this file, the only one that knows the ladder.
 //
-// `stepHex` and `onHex` return null for a seed that is absent, invalid or achromatic.
+// `stepHex` returns null for a seed that is absent, invalid or achromatic.
 // That is the refusal `setRole` already makes by writing nothing.
 // So each caller falls back to its own built-in default, rather than to a washed-out grey ramp.
 
@@ -489,12 +490,11 @@ export function stepHex(
   return hexOf(buildScale(seedHex, mode)[step])
 }
 
-/** The readable on-color for a seed's solid step, as `#rrggbb`. */
-export function onHex(seedHex: string | null | undefined, mode: ThemeMode): string | null {
-  if (!seedHex || !isBrandSeed(seedHex)) return null
-
-  return hexOf(buildScale(seedHex, mode).on)
-}
+/**
+ * Black or white, whichever reads better on a colour, as `#rrggbb` — the rule
+ * `ColorScale.on` applies to step 9, for a fill taken from any other step.
+ */
+export const readableOn = (hex: string): string => hexOf(foregroundFor(colord(hex)))
 
 // ⚠ This one sits BELOW the ladder: no mode, no `isBrandSeed`, and no saturation
 // cap. Feed it only a color the ladder produced, and only a negative saturation

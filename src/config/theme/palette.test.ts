@@ -5,8 +5,9 @@ import {
   buildPalette,
   buildScale,
   applyPalette,
-  onHex,
+  isBrandSeed,
   paletteReport,
+  readableOn,
   shiftHex,
   SOLID_STEP,
   stepHex,
@@ -201,7 +202,7 @@ describe('the hex accessors', () => {
     // keeps its own built-in default.
     for (const seed of [undefined, null, '', 'not-a-color', '#000000']) {
       expect(stepHex(seed, 'light', 9)).toBeNull()
-      expect(onHex(seed, 'light')).toBeNull()
+      expect(isBrandSeed(seed ?? '')).toBe(false)
     }
   })
 
@@ -228,8 +229,8 @@ describe('the hex accessors', () => {
     expect(paletteReport({ primary: '#fffdfa' }).primary?.darkAdjustedBy).toContain('saturation')
 
     expect(paletteReport({ primary: '#fffdfa' }).primary?.lightAdjustedBy).toContain('saturation')
-    // Our own teal is already over the floor.
-    expect(paletteReport({ primary: '#1E6C71' }).primary?.lightAdjustedBy).not.toContain(
+    // Our own primary is already over the floor.
+    expect(paletteReport({ primary: '#2D9A76' }).primary?.lightAdjustedBy).not.toContain(
       'saturation',
     )
   })
@@ -248,10 +249,12 @@ describe('the hex accessors', () => {
     )
   })
 
-  it('gives the solid step a readable on-color', () => {
-    expect(onHex('#64032e', 'light')).toBe('#ffffff')
-    // Dark mode's lighter solid reads better under black.
-    expect(onHex('#64032e', 'dark')).toBe('#000000')
+  it('picks black or white for any fill, by the rule behind the solid step on-color', () => {
+    expect(readableOn('#521430')).toBe('#ffffff')
+    expect(readableOn('#d65c93')).toBe('#000000')
+    expect(readableOn(stepHex('#64032e', 'light', 9)!)).toBe(
+      colord(`hsl(${buildScale('#64032e', 'light').on})`).toHex(),
+    )
   })
 
   it('shifts a hex in HSL, clamped', () => {
@@ -290,9 +293,10 @@ describe('legibility', () => {
     '#ffff00',
     '#f0f0ff',
     '#000080',
-    '#1E6C71',
+    '#2D9A76',
     '#5e98ba',
-    '#d8735a',
+    '#E0775C',
+    '#1E6C71',
     '#2f7f84',
   ] as const
 
@@ -322,9 +326,9 @@ describe('legibility', () => {
   it('leaves a seed that already passes exactly where it was', () => {
     // Our own primary passes `surface` and needs no separation from itself-as-contrast
     // at a different hue, so step 9 is the seed's own lightness, uncorrected.
-    const { primary } = buildPalette({ contrast: '#d8735a', primary: '#1E6C71' }, 'light')
+    const { primary } = buildPalette({ contrast: '#E0775C', primary: '#2D9A76' }, 'light')
 
-    expect(primary!.scale[SOLID_STEP]).toBe('184 58% 28%')
+    expect(primary!.scale[SOLID_STEP]).toBe('160 55% 39%')
     expect(primary!.adjustedBy).not.toContain('surface')
   })
 })

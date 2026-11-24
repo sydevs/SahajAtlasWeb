@@ -2,10 +2,13 @@ import type { MapRef } from 'react-map-gl/mapbox'
 
 import {
   buildPalette,
+  DEFAULT_SEEDS,
+  isBrandSeed,
   scaleHex,
   shiftHex,
   SOLID_STEP,
   type PaletteRoles,
+  type Step,
   type ThemeMode,
 } from '@/config/theme/palette'
 
@@ -22,23 +25,6 @@ import {
 // to carry.
 //
 // Names are `sy-`-prefixed, so they can never collide with a style sprite.
-
-// These are the Studio artwork's colors, kept verbatim: a teal pin and cluster
-// for a normal event, the warm accent for the selected one.
-//
-// ⚠ These are what an embed with no tenant seed renders, in BOTH modes, and
-// `markerColors` below must keep returning them unchanged for that case.
-// Deriving them from `DEFAULT_SEEDS` instead would change the unbranded pin:
-// `DEFAULT_SEEDS.primary`'s step 9 is hsl(184 58% 28%), 16pp darker and 16°
-// bluer than the teal below, and hsl(184 58% 60%) in dark mode — while this
-// pin is identical in both. `applyPalette` makes the same promise for the CSS
-// variables: with no palette supplied, none of the derivation runs.
-const POINT_FILL = '#21C1A2'
-const POINT_SELECTED_FILL = '#E87952'
-const CLUSTER_FILL = '#37BB92'
-const CLUSTER_RING = '#8CCDC4'
-const CLUSTER_SELECTED_FILL = '#E47C5A'
-const CLUSTER_SELECTED_RING = '#F2A179'
 
 // The vague-place ring and dot (`layers.ts`) carry a fixed edge for the style
 // they are drawn on, so the brand colour is never measured against the basemap.
@@ -136,12 +122,13 @@ const round = (n: number) => Math.round(n * 100) / 100
 // The count label is a `text-field` on the layer, so the art carries no
 // text.
 // The translucent ring is the whole edge: no outline, which clashed with it.
+// The disc is opaque, so a pale feature underneath cannot thin its count.
 const cluster = (fill: string, ring: string): MarkerImage =>
   svg(
     38,
     38,
     `<circle cx="19" cy="19" r="19" fill="${ring}" fill-opacity="${RING_OPACITY}"/>
-  <circle cx="19" cy="19" r="13.8" fill="${fill}" opacity="0.914"/>`,
+  <circle cx="19" cy="19" r="13.8" fill="${fill}"/>`,
   )
 
 /** Marker image ids — referenced by `icon-image` in `layers.ts`. */
@@ -162,19 +149,50 @@ export type MarkerColors = Readonly<{
   [MARKER_IDS.clusterSelected]: MarkColors
 }>
 
-/** What an embed with no tenant seed renders. */
-export const DEFAULT_MARKER_COLORS: MarkerColors = {
-  [MARKER_IDS.point]: { fill: POINT_FILL, ring: CLUSTER_RING },
-  [MARKER_IDS.pointSelected]: { fill: POINT_SELECTED_FILL, ring: CLUSTER_SELECTED_RING },
-  [MARKER_IDS.cluster]: { fill: CLUSTER_FILL, ring: CLUSTER_RING },
-  [MARKER_IDS.clusterSelected]: { fill: CLUSTER_SELECTED_FILL, ring: CLUSTER_SELECTED_RING },
+// The pin is the ramp's solid. The cluster disc is its hovered solid, one tone
+// deeper, so a circle reads as a heavier mark than a single class and carries its
+// count: on the default green, white at 4.7:1, where step 9 would give 3.5:1.
+const PIN_STEP: Step = SOLID_STEP
+const CLUSTER_STEP: Step = 10
+
+// One pale halo per role, taken from the pin's fill, so a pin and a bubble wear the
+// same ring. The cap keeps a light fill's ring a colour rather than white.
+const ringOf = (fill: string) =>
+  shiftHex(fill, { lightness: 34, saturation: -11, maxLightness: 82 })
+
+const seedOf = (seed: string | null | undefined, fallback: string) =>
+  seed && isBrandSeed(seed) ? seed : fallback
+
+// Through `buildPalette`, not `stepHex`, so the selected pair carries
+// `selected-distinct` — the check that keeps it from matching every pin around it.
+function deriveMarkerColors(primarySeed: string, contrastSeed: string): MarkerColors {
+  const built = buildPalette({ primary: primarySeed, contrast: contrastSeed }, MARKER_MODE)
+  const pair = (role: 'primary' | 'contrast'): [MarkColors, MarkColors] => {
+    // Both seeds passed `isBrandSeed`, so `buildPalette` built both roles.
+    const { scale } = built[role]!
+    const ring = ringOf(scaleHex(scale, PIN_STEP))
+
+    return [
+      { fill: scaleHex(scale, PIN_STEP), ring },
+      { fill: scaleHex(scale, CLUSTER_STEP), ring },
+    ]
+  }
+  const [point, bubble] = pair('primary')
+  const [pointSelected, bubbleSelected] = pair('contrast')
+
+  return {
+    [MARKER_IDS.point]: point,
+    [MARKER_IDS.pointSelected]: pointSelected,
+    [MARKER_IDS.cluster]: bubble,
+    [MARKER_IDS.clusterSelected]: bubbleSelected,
+  }
 }
 
-// The Studio art's own two fill→ring deltas disagree — +21 L / −16 S for the
-// unclustered pair, +9 / +9 for the selected one — so one transform replaces
-// both rather than preserving a difference nobody chose.
-const ringOf = (fill: string) =>
-  shiftHex(fill, { lightness: 21, saturation: -16, maxLightness: 92 })
+/** What an embed with no tenant seed renders: `DEFAULT_SEEDS`, by a tenant's own rules. */
+export const DEFAULT_MARKER_COLORS: MarkerColors = deriveMarkerColors(
+  DEFAULT_SEEDS.primary,
+  DEFAULT_SEEDS.contrast,
+)
 
 /**
  * The four images' colors for a resolved palette, the same in both modes
@@ -183,36 +201,21 @@ const ringOf = (fill: string) =>
  * Pure, and the only thing in this module that is: `markers.ts` must stay
  * importable with no DOM, and the node lane asserts these values.
  *
- * A role with no usable seed keeps its default verbatim, per role rather than
- * per palette — a tenant that configured `color1` alone still gets its own
- * pins and the stock selected accent.
+ * A role with no usable seed takes its `DEFAULT_SEEDS` entry, per role rather
+ * than per palette, and goes through the same rules as a tenant's.
  */
 export function markerColors(palette: PaletteRoles): MarkerColors {
-  // Through `buildPalette`, not `stepHex`, so the selected pin carries
-  // `selected-distinct` — the check that keeps it from matching every pin around it.
-  const built = buildPalette(palette, MARKER_MODE)
-  const primary = built.primary ? scaleHex(built.primary.scale, SOLID_STEP) : null
-  const contrast = built.contrast ? scaleHex(built.contrast.scale, SOLID_STEP) : null
+  const primary = seedOf(palette.primary, DEFAULT_SEEDS.primary)
+  const contrast = seedOf(palette.contrast, DEFAULT_SEEDS.contrast)
 
   // ⚠ The same object, not an equal one. `Map.tsx` memoises this and the
   // registration effect depends on it, so a new identity costs an unbranded
   // embed a re-subscription and four rebuilt SVGs.
-  if (!primary && !contrast) return DEFAULT_MARKER_COLORS
-
-  return {
-    [MARKER_IDS.point]: primary
-      ? { fill: primary, ring: ringOf(primary) }
-      : DEFAULT_MARKER_COLORS[MARKER_IDS.point],
-    [MARKER_IDS.pointSelected]: contrast
-      ? { fill: contrast, ring: ringOf(contrast) }
-      : DEFAULT_MARKER_COLORS[MARKER_IDS.pointSelected],
-    [MARKER_IDS.cluster]: primary
-      ? { fill: primary, ring: ringOf(primary) }
-      : DEFAULT_MARKER_COLORS[MARKER_IDS.cluster],
-    [MARKER_IDS.clusterSelected]: contrast
-      ? { fill: contrast, ring: ringOf(contrast) }
-      : DEFAULT_MARKER_COLORS[MARKER_IDS.clusterSelected],
+  if (primary === DEFAULT_SEEDS.primary && contrast === DEFAULT_SEEDS.contrast) {
+    return DEFAULT_MARKER_COLORS
   }
+
+  return deriveMarkerColors(primary, contrast)
 }
 
 /**

@@ -29,13 +29,17 @@
 /* vaul drawer slide/snap transforms + handle — vendored (see src/styles/vaul.css header) */
 @import './vaul.css';
 
-/* Radix Colors — the neutral (gray) and status (danger=red) ramps. Each file
+/* Radix Colors — the neutral (sand) and status (danger=red) ramps. Each file
    scopes its scale to `:root, .light` (light) / `.dark` (dark), which matches the
    theme root's light/dark class, so the steps cascade into the widget wrapper.
    The brand ramps (primary/secondary) are NOT from here — they come from the
-   runtime engine's vars (src/config/theme/palette.ts), defaulted below. */
-@import '@radix-ui/colors/gray.css';
-@import '@radix-ui/colors/gray-dark.css';
+   runtime engine's vars (src/config/theme/palette.ts), defaulted below.
+
+   The neutral is Radix sand, a faintly warm grey, so text and borders read warm
+   rather than blue-grey. The app still says `gray-*`: `--gray-N` is aliased to
+   `--sand-N` below, so no call site names the ramp. */
+@import '@radix-ui/colors/sand.css';
+@import '@radix-ui/colors/sand-dark.css';
 @import '@radix-ui/colors/red.css';
 @import '@radix-ui/colors/red-dark.css';
 
@@ -290,8 +294,32 @@
   --color-focus: hsl(var(--primary-9));
 }
 
-/* Built-in brand defaults — the three themeable roles (primary teal #1E6C71,
-   secondary blue #A1C3D7, contrast orange #e08e79) as a 12-step ramp each, in the
+/* The neutral alias. Each declaration resolves on the theme root that carries the
+   light/dark class, where the matching `--sand-*` values are set, and is inherited
+   from there already resolved — so one block serves both modes.
+   ⚠ Keep `.dark-theme` before `.dark` here: `palette.defaults.test.ts` finds the
+   brand defaults below by their selector lists, which name the two the other way. */
+:root,
+.light,
+.light-theme,
+.dark-theme,
+.dark {
+  --gray-1: var(--sand-1);
+  --gray-2: var(--sand-2);
+  --gray-3: var(--sand-3);
+  --gray-4: var(--sand-4);
+  --gray-5: var(--sand-5);
+  --gray-6: var(--sand-6);
+  --gray-7: var(--sand-7);
+  --gray-8: var(--sand-8);
+  --gray-9: var(--sand-9);
+  --gray-10: var(--sand-10);
+  --gray-11: var(--sand-11);
+  --gray-12: var(--sand-12);
+}
+
+/* Built-in brand defaults — the three themeable roles (primary green #2D9A76,
+   secondary blue #5e98ba, contrast coral #E0775C) as a 12-step ramp each, in the
    same channel format the runtime engine writes. `--{role}-on` is the readable
    on-color for the solid (step 9). A tenant palette overrides these by setting the
    vars inline on the theme root (inline beats these selectors). When none is set,
@@ -300,19 +328,19 @@
 :root,
 .light,
 .light-theme {
-  --primary-on: 0 0% 100%;
-  --primary-1: 184 58% 99%;
-  --primary-2: 184 58% 97%;
-  --primary-3: 184 58% 94%;
-  --primary-4: 184 58% 90%;
-  --primary-5: 184 58% 85%;
-  --primary-6: 184 58% 79%;
-  --primary-7: 184 58% 72%;
-  --primary-8: 184 58% 63%;
-  --primary-9: 184 58% 28%;
-  --primary-10: 184 58% 22%;
-  --primary-11: 184 58% 32%;
-  --primary-12: 184 58% 24%;
+  --primary-on: 0 0% 0%;
+  --primary-1: 160 55% 99%;
+  --primary-2: 160 55% 97%;
+  --primary-3: 160 55% 94%;
+  --primary-4: 160 55% 90%;
+  --primary-5: 160 55% 85%;
+  --primary-6: 160 55% 79%;
+  --primary-7: 160 55% 72%;
+  --primary-8: 160 55% 63%;
+  --primary-9: 160 55% 39%;
+  --primary-10: 160 55% 33%;
+  --primary-11: 160 55% 31%;
+  --primary-12: 160 55% 24%;
   --secondary-on: 0 0% 0%;
   --secondary-1: 202 40% 99%;
   --secondary-2: 202 40% 97%;
@@ -335,8 +363,8 @@
   --contrast-6: 12 60% 79%;
   --contrast-7: 12 60% 72%;
   --contrast-8: 12 60% 63%;
-  --contrast-9: 12 60% 60%;
-  --contrast-10: 12 60% 54%;
+  --contrast-9: 12 60% 62%;
+  --contrast-10: 12 60% 56%;
   --contrast-11: 12 60% 40%;
   --contrast-12: 12 60% 24%;
   --background: 0 0% 100%;
@@ -345,18 +373,18 @@
 .dark,
 .dark-theme {
   --primary-on: 0 0% 0%;
-  --primary-1: 184 58% 9%;
-  --primary-2: 184 58% 12%;
-  --primary-3: 184 58% 16%;
-  --primary-4: 184 58% 20%;
-  --primary-5: 184 58% 24%;
-  --primary-6: 184 58% 28%;
-  --primary-7: 184 58% 34%;
-  --primary-8: 184 58% 42%;
-  --primary-9: 184 58% 60%;
-  --primary-10: 184 58% 66%;
-  --primary-11: 184 58% 72%;
-  --primary-12: 184 58% 90%;
+  --primary-1: 160 55% 9%;
+  --primary-2: 160 55% 12%;
+  --primary-3: 160 55% 16%;
+  --primary-4: 160 55% 20%;
+  --primary-5: 160 55% 24%;
+  --primary-6: 160 55% 28%;
+  --primary-7: 160 55% 34%;
+  --primary-8: 160 55% 42%;
+  --primary-9: 160 55% 60%;
+  --primary-10: 160 55% 66%;
+  --primary-11: 160 55% 72%;
+  --primary-12: 160 55% 90%;
   --secondary-on: 0 0% 0%;
   --secondary-1: 202 40% 9%;
   --secondary-2: 202 40% 12%;
@@ -379,8 +407,8 @@
   --contrast-6: 12 60% 28%;
   --contrast-7: 12 60% 34%;
   --contrast-8: 12 60% 42%;
-  --contrast-9: 12 60% 60%;
-  --contrast-10: 12 60% 66%;
+  --contrast-9: 12 60% 62%;
+  --contrast-10: 12 60% 68%;
   --contrast-11: 12 60% 72%;
   --contrast-12: 12 60% 90%;
   --background: 0 0% 7%;
