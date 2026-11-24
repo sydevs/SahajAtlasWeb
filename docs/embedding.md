@@ -422,13 +422,15 @@ to the console while the widget carries on working:
 Once the widget has genuinely mounted, it sets one attribute on your page's `<html>` element:
 
 ```html
-<html data-sahaj-atlas-ready='{"v":2,"routing":"query","topLevel":true,"urlWritable":true}'></html>
+<html data-sahaj-atlas-ready='{"v":3,"routing":"query","topLevel":true,"urlWritable":true,"tooSmall":null}'></html>
 ```
 
 It is written **after** the widget renders, never on script load, and removed again if the widget
 unmounts. It exists so our CMS can confirm the embed works, from your own page, before treating
 it as your region's canonical page — a claim the widget makes about itself is not evidence.
-Nothing on your page needs to read it.
+`tooSmall` is the element's box, `{"width":220,"height":640}`, while it is too small to browse in
+([Sizing the element](#sizing-the-element)), and `null` while it fits. Nothing on your page needs
+to read it.
 
 ## Sizing the element
 
@@ -439,6 +441,7 @@ Nothing on your page needs to read it.
 | 720px wide or more          | A heading, then two columns: the classes on the left, and a square map on the right that stays in view below your header while the visitor scrolls the list. |
 | Narrower                    | A heading, a short map strip, then the classes.                                                                                                                |
 | Loaded with `map=false`     | A heading and the classes, in one column. No map, and no way to open one.                                                                                     |
+| Under 280px wide, or under 360px tall where it cannot grow | The heading and "Expand map" alone, which opens the map over your page — in a new tab from a frame, or with `map=false`. See below. |
 
 The width is **the widget's own**, not the browser window's (issue #107): a 320px column on a large
 desktop screen gets the narrow layout.
@@ -458,6 +461,12 @@ flex or grid item takes its track's size whatever its own height says, a site bu
 box from outside, and an app shell with `overflow: hidden` around a full-height `<main>` clips
 whatever grows past it. The widget then keeps your element's own height — `height: 100%` of its
 parent — and scrolls within it, so nothing is cut off and nothing spills over the content below.
+
+⚠ **Too small to browse in, the widget shows only its heading and "Expand map".** That is under
+280px wide anywhere, or under 360px tall where it cannot grow: a box your page clips, or an
+`<iframe>`, whose height is yours alone. It writes one console warning naming the size it
+measured, and records that size on [the readiness marker](#the-readiness-marker), so the Atlas
+admin can tell you too. Give the element more room and the classes come back, with no reload.
 
 ⚠ **An ancestor with `overflow` set takes the map's stickiness away**, even where the page itself
 scrolls: a sticky element sticks within its nearest scrolling ancestor. The map then scrolls away
@@ -525,10 +534,11 @@ link reaches a dialer is hardware.
 
 ### When the slot is too small
 
-**No slot is too small any more.** A narrow one gets the narrow layout above, and a short one grows.
-The compact card — a heading and one button standing in for the whole interface — is gone, and so
-is its console warning. A deep link no longer opens a full-screen overlay on load: it opens inline,
-on its route, and the map opens only when the visitor asks.
+**A short slot grows, so only a very narrow one, or one that cannot grow, is too small** — under
+280px wide, or under 360px tall in a clipped box or an `<iframe>`. There the widget shows its
+heading and "Expand map" alone, warns once in the console, and records the box on the readiness
+marker ([Sizing the element](#sizing-the-element)). A deep link no longer opens a full-screen
+overlay on load: it opens inline, on its route, and the map opens only when the visitor asks.
 
 ## Embedding in an iframe
 

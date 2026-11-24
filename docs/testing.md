@@ -434,6 +434,7 @@ one forges further outputs on a fork's pull request.
 | a deep link opens inline; Close climbs        | `full-map.html?atlas=` | Close going `navigate(-1)` at depth 0 (#89)                          |
 | `map=false` lists and draws no map            | `sidebar-mapless.html` | the map rendered whatever `hasMap` said                              |
 | a sized slot opens inline, grows, and expands | `sidebar-map.html`     | the compact card the inline embed replaced                           |
+| a box too small shows the heading alone       | `too-narrow.html`      | the full inline atlas rendered in a 220px column                     |
 | host CSS does not reach the widget            | `hostile-css.html`     | no shadow root (#236); the baseline's `letter-spacing` reset dropped |
 | registration accepted, and failing with a 500 | `sidebar-mapless.html` | a drifted create envelope; the thank-you shown on failure (#103)     |
 

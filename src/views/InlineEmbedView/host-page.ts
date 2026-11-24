@@ -1,6 +1,7 @@
 import { useEffect, useLayoutEffect, useMemo, useState } from 'react'
 
 import { getThemeRoot } from '@/hooks/use-theme'
+import { type Box, tooSmall } from '@/views/InlineEmbedView/fit'
 
 /**
  * What the inline embed reads off, and writes onto, the HOST's page: its own element, the
@@ -258,4 +259,57 @@ export function useGrowHost(host: HTMLElement | null, content: HTMLElement | nul
   }, [host, content, boxed])
 
   return boxed
+}
+
+/** Is this document in a frame? A frame is a box its page cannot grow past. */
+function framed(): boolean {
+  try {
+    return window.self !== window.top
+  } catch {
+    // A cross-origin parent that refuses the comparison is a frame too.
+    return true
+  }
+}
+
+/**
+ * The widget's box while it is too small for the inline atlas (`fit.ts`), else `null`.
+ *
+ * `box` is the widget's outermost element, which fills the host element when `boxed`. A framed
+ * document cannot grow past its frame either, so there the window's height is the box's height.
+ * The box is the one measured as it crossed the floor: a resize either side of it re-renders
+ * nothing.
+ */
+export function useTooSmall(box: HTMLElement | null, boxed: boolean): Box | null {
+  const [small, setSmall] = useState<Box | null>(null)
+
+  useLayoutEffect(() => {
+    if (!box || typeof ResizeObserver === 'undefined') return
+
+    const inFrame = framed()
+    const measure = () => {
+      try {
+        const { width, height } = box.getBoundingClientRect()
+        const next = tooSmall(
+          { width, height: inFrame && !boxed ? window.innerHeight : height },
+          !boxed && !inFrame,
+        )
+
+        setSmall((previous) => ((previous === null) === (next === null) ? previous : next))
+      } catch {
+        // A host that broke the measurement keeps the atlas it had.
+      }
+    }
+    const observer = new ResizeObserver(measure)
+
+    observer.observe(box)
+    window.addEventListener('resize', measure)
+    measure()
+
+    return () => {
+      observer.disconnect()
+      window.removeEventListener('resize', measure)
+    }
+  }, [box, boxed])
+
+  return small
 }

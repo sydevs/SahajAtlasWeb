@@ -26,6 +26,8 @@ import { useLocale } from '@/hooks/use-locale'
 import { useOpenerRestore } from '@/hooks/use-opener-restore'
 import { usePublishedNode } from '@/hooks/use-published-node'
 import { fallbackUrl } from '@/lib/fallback-url'
+import { publishFit } from '@/lib/readiness'
+import { reportIntegrationWarning } from '@/lib/report'
 import { setFrame, widgetOverlayContainer } from '@/lib/overlay'
 import { DrawerStack } from '@/views/DrawerStack/DrawerStack'
 import {
@@ -35,12 +37,14 @@ import {
   MapProviders,
   useInterfaceBoot,
 } from '@/views/FullInterface'
+import { type Box, MIN_INLINE_HEIGHT_PX, MIN_INLINE_WIDTH_PX } from '@/views/InlineEmbedView/fit'
 import { headingPlace } from '@/views/InlineEmbedView/heading-place'
 import {
   hostElement,
   pageHasHeading,
   useGrowHost,
   useHeaderOffset,
+  useTooSmall,
 } from '@/views/InlineEmbedView/host-page'
 
 /**
@@ -193,24 +197,20 @@ function ExpandedDialog({ children }: { children: ReactNode }) {
 
 // ===== THE VIEW ===== //
 
-const EXPAND_BUTTON = {
-  className: 'absolute top-3 left-3 z-10',
-  radius: 'full',
-  size: 'sm',
-  variant: 'floating',
-} as const
-
 /**
  * Over the inline map's top-left corner — physically left, since the attribution and the
- * locate control hold the top right and the wordmark the bottom right.
+ * locate control hold the top right and the wordmark the bottom right — or under the heading of
+ * an atlas too small for its box.
  *
  * A frame cannot grow where it is — the standalone page framed, or a host page that is itself
- * framed — so there the button opens a page that fits, in a new tab.
+ * framed — so there the button opens a page that fits, in a new tab. So does a map-less atlas,
+ * which has no map of its own to expand.
  */
-function ExpandButton() {
+function ExpandButton({ className }: { className?: string }) {
   const { t } = useLocale()
-  const { standalone } = useWidgetMode()
+  const { standalone, hasMap } = useWidgetMode()
   const { expand } = useExpansion()
+  const props = { className, radius: 'full', size: 'sm', variant: 'floating' } as const
   const label = (
     <>
       <Expand size={16} />
@@ -220,12 +220,12 @@ function ExpandButton() {
 
   // Two JSX branches, not a conditional `href`: `ButtonProps` is a discriminated union, so a
   // maybe-undefined href does not narrow into the anchor arm.
-  return standalone || embed.observed?.topLevel === false ? (
-    <Button {...EXPAND_BUTTON} href={fallbackUrl()} target="_blank">
+  return standalone || !hasMap || embed.observed?.topLevel === false ? (
+    <Button {...props} href={fallbackUrl()} target="_blank">
       {label}
     </Button>
   ) : (
-    <Button {...EXPAND_BUTTON} onClick={expand}>
+    <Button {...props} onClick={expand}>
       {label}
     </Button>
   )
@@ -264,13 +264,19 @@ export function InlineColumns({
             style={{ '--sy-inline-top': `${top}px` } as CSSProperties}
           >
             {map}
-            <ExpandButton />
+            <ExpandButton className="absolute top-3 left-3 z-10" />
           </div>
         </div>
       )}
     </div>
   )
 }
+
+const tooSmallMessage = ({ width, height }: Box) =>
+  `this embed has ${width}×${height}px, under the ${MIN_INLINE_WIDTH_PX}px width the atlas needs ` +
+  `(and ${MIN_INLINE_HEIGHT_PX}px of height where the page cannot let it grow), so it shows only ` +
+  'its heading and "Expand map". Give the element more room to show the classes — see ' +
+  '"Sizing the element" in the embedding guide.'
 
 function InlineLayout() {
   const { pathname } = useLocation()
@@ -281,6 +287,8 @@ function InlineLayout() {
   const stickTop = useHeaderOffset(host, 'stuck')
   const [content, setContent] = useState<HTMLDivElement | null>(null)
   const boxed = useGrowHost(host, content)
+  const [box, setBox] = useState<HTMLDivElement | null>(null)
+  const small = useTooSmall(box, boxed)
   const heading = useRef<HTMLDivElement>(null)
   const lastPath = useRef(pathname)
   // Whether a navigation since the heading was last placed opened a view. A replace — the home
@@ -291,6 +299,13 @@ function InlineLayout() {
   // and the visitor keeps their place in it.
   // eslint-disable-next-line react-hooks/exhaustive-deps -- measured once, at each opening
   const pinnedHeight = useMemo(() => (expanded ? content?.offsetHeight : undefined), [expanded])
+
+  // Told to the verifier, and to whoever reads the host's console: they can give it the room.
+  useEffect(() => {
+    publishFit(small)
+    if (small) reportIntegrationWarning(tooSmallMessage(small))
+  }, [small])
+  useEffect(() => () => publishFit(null), [])
 
   useEffect(() => {
     if (pathname !== lastPath.current && navigationType !== 'REPLACE') opened.current = true
@@ -315,41 +330,50 @@ function InlineLayout() {
   return (
     <>
       <div
+        ref={setBox}
         className={clsx(
           '@container w-full bg-background text-foreground',
           boxed && 'h-full overflow-y-auto',
         )}
       >
-        <div
-          ref={setContent}
-          className="flex flex-col gap-2 py-4"
-          style={{ minHeight: pinnedHeight }}
-        >
-          <div
-            ref={heading}
-            className="flex items-center gap-3 px-4"
-            style={{ scrollMarginTop: top + 16 }}
-          >
+        {small ? (
+          // Too small to browse in: the place, and the way to an atlas that fits.
+          <div ref={setContent} className="flex flex-col items-start gap-3 p-4">
             <PlaceHeading />
-            <SettingsMenu toolbar className="ms-auto" />
+            <ExpandButton />
           </div>
-          <MapProviders inline>
-            <InlineColumns
-              // The expanded dialog runs its own map, and two maps would fight over the one
-              // camera-settled flag; this one comes back, and re-frames, on collapse.
-              map={!expanded && <MapLayer cooperative={embed.config.cooperative} />}
-              top={top}
+        ) : (
+          <div
+            ref={setContent}
+            className="flex flex-col gap-2 py-4"
+            style={{ minHeight: pinnedHeight }}
+          >
+            <div
+              ref={heading}
+              className="flex items-center gap-3 px-4"
+              style={{ scrollMarginTop: top + 16 }}
             >
-              {/* Hidden while the expanded map shows the same view: its effects would frame a
+              <PlaceHeading />
+              <SettingsMenu toolbar className="ms-auto" />
+            </div>
+            <MapProviders inline>
+              <InlineColumns
+                // The expanded dialog runs its own map, and two maps would fight over the one
+                // camera-settled flag; this one comes back, and re-frames, on collapse.
+                map={!expanded && <MapLayer cooperative={embed.config.cooperative} />}
+                top={top}
+              >
+                {/* Hidden while the expanded map shows the same view: its effects would frame a
                   map that is not there and write the stores the expanded one reads, and its
                   live regions would speak from behind the modal. Its state is kept for the way
                   back. */}
-              <Activity mode={expanded ? 'hidden' : 'visible'}>
-                <DrawerStack inline />
-              </Activity>
-            </InlineColumns>
-          </MapProviders>
-        </div>
+                <Activity mode={expanded ? 'hidden' : 'visible'}>
+                  <DrawerStack inline />
+                </Activity>
+              </InlineColumns>
+            </MapProviders>
+          </div>
+        )}
       </div>
       {hasMap && (
         <ExpandedDialog>

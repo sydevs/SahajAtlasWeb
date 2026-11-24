@@ -261,7 +261,9 @@ once. The expanded map is `MapInterface`, the same interface without that boot.
   `useGrowHost` overrides the element's height rule and gives it back; `boxed` is its answer where
   an ancestor clips what grows, and WeMeditate's `/map` shell is the case that exists for.
   `headerOffset` says where the host's header ends, and `pageHasHeading` makes the page heading an
-  `h2` under a host `h1`.
+  `h2` under a host `h1`. `useTooSmall` answers whether the box is too small to browse in (`fit.ts`
+  holds the floor): then the view shows its heading and "Expand map" alone, and the box goes on
+  the readiness marker for SahajCloud's verifier. A frame counts as a box that cannot grow.
 - **The expanded dialog is module-private in `InlineEmbedView`.** It publishes itself as the
   app's portal target, needs `contain: layout`, and has one caller, so it is not an atom;
   `Modal` stays the generic dialog. It starts below the host's header rather than over it, and

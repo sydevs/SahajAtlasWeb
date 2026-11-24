@@ -99,6 +99,33 @@ test('a sized slot opens inline, grows to its content, and expands the map on re
   await expect(atlas.getByRole('link', { name: UNITED_KINGDOM })).toBeVisible()
 })
 
+// Too narrow to browse in: the place and the way to a map that fits, and the box on the readiness
+// marker, where SahajCloud's verifier reads it.
+test('a box too small for the atlas shows its heading and "Expand map" alone', async ({ page }) => {
+  await page.goto(hostPage('too-narrow.html'))
+
+  const atlas = widget(page)
+  const expand = atlas.getByRole('button', { name: en.common.map.expand, exact: true })
+
+  await expect(atlas.getByRole('heading', { name: en.countries.title, exact: true })).toBeVisible()
+  await expect(expand).toBeVisible()
+  await expect(atlas.getByRole('link', { name: UNITED_KINGDOM })).toHaveCount(0)
+  await expect
+    .poll(() =>
+      page.evaluate(
+        () => JSON.parse(document.documentElement.dataset.sahajAtlasReady ?? '{}').tooSmall,
+      ),
+    )
+    .toEqual({ width: 220, height: expect.any(Number) })
+
+  await expand.click()
+
+  const expanded = atlas.getByRole('dialog', { name: en.common.chrome.widget_label, exact: true })
+
+  await expect(expanded).toBeVisible()
+  await expect(expanded.getByRole('link', { name: UNITED_KINGDOM })).toBeVisible()
+})
+
 // WeMeditate's own atlas page never scrolls: its shell clips whatever grows past it. So the widget
 // keeps the box it was given and scrolls inside it, and its last row stays reachable.
 test('a shell that never scrolls keeps the atlas in its box, scrolling inside', async ({

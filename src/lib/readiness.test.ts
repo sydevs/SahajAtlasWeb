@@ -4,6 +4,7 @@ import {
   READY_ATTR,
   READY_CONTRACT_VERSION,
   clearReadiness,
+  publishFit,
   publishReadiness,
   readinessMarker,
 } from './readiness'
@@ -24,22 +25,25 @@ function stubDocument() {
 }
 
 afterEach(() => {
+  clearReadiness()
+  publishFit(null)
   vi.unstubAllGlobals()
 })
 
 describe('readinessMarker', () => {
   /**
-   * The JSON is a cross-repo contract: SahajCloud's verifier reads these four fields off the
-   * rendered page and stores them as the `VerifiedEmbed` a canonical URL is built from. A field
-   * renamed here is a verification that silently starts failing there, so the shape is pinned
-   * exactly rather than by `toMatchObject`.
+   * The JSON is a cross-repo contract: SahajCloud's verifier reads these fields off the rendered
+   * page and stores them as the `VerifiedEmbed` a canonical URL is built from. A field renamed here
+   * is a verification that silently starts failing there, so the shape is pinned exactly rather
+   * than by `toMatchObject`.
    */
-  it('carries exactly the four fields the verifier reads', () => {
+  it('carries exactly the five fields the verifier reads', () => {
     expect(readinessMarker(observed)).toEqual({
       v: READY_CONTRACT_VERSION,
       routing: 'query',
       topLevel: true,
       urlWritable: true,
+      tooSmall: null,
     })
   })
 
@@ -62,6 +66,46 @@ describe('publishReadiness', () => {
     publishReadiness(observed)
 
     expect(JSON.parse(attributes.get(READY_ATTR) ?? '')).toEqual(readinessMarker(observed))
+  })
+
+  it('carries the box while the widget is too small for it, and drops it once it fits', () => {
+    const attributes = stubDocument()
+    const read = () => JSON.parse(attributes.get(READY_ATTR) ?? '').tooSmall
+
+    publishReadiness(observed)
+    publishFit({ width: 240, height: 200 })
+
+    expect(read()).toEqual({ width: 240, height: 200 })
+
+    publishFit(null)
+
+    expect(read()).toBeNull()
+  })
+
+  // The inline view measures after the entry has attested the mount, or before it on a remount.
+  it('keeps a fit measured before the mount was attested', () => {
+    const attributes = stubDocument()
+
+    publishFit({ width: 240, height: 200 })
+
+    expect(attributes.has(READY_ATTR)).toBe(false)
+
+    publishReadiness(observed)
+
+    expect(JSON.parse(attributes.get(READY_ATTR) ?? '').tooSmall).toEqual({
+      width: 240,
+      height: 200,
+    })
+  })
+
+  it('puts up no marker for a fit alone, once the widget has stopped vouching', () => {
+    const attributes = stubDocument()
+
+    publishReadiness(observed)
+    clearReadiness()
+    publishFit({ width: 240, height: 200 })
+
+    expect(attributes.has(READY_ATTR)).toBe(false)
   })
 
   it('takes the marker down again, so it cannot outlive the widget', () => {

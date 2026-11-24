@@ -203,6 +203,18 @@ function pages(src) {
       'expect the narrow layout, and the box grown past its 520px to fit the list.',
     ),
 
+    // A column too narrow to browse in: the atlas shows its heading and "Expand map" alone, says
+    // so in the console, and records the box on its readiness marker for SahajCloud.
+    'too-narrow.html': page(
+      'Too narrow to browse in',
+      `<div style="display:flex;gap:32px;align-items:flex-start">
+      <div style="flex:1"><h1>An article on somebody else's site</h1>
+      <p>The widget is in a 220px sidebar, under the width the atlas needs.</p></div>
+      <aside style="width:220px;flex:none"><sahaj-atlas></sahaj-atlas></aside>
+    </div>${loader('key=KEY&map=true')}`,
+      'expect only the heading and "Expand map", which opens the map over the page.',
+    ),
+
     // Map-less, which is container-relative and is what most hosts should embed.
     'sidebar-mapless.html': page(
       'Narrow column, map=false',

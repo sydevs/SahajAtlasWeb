@@ -110,6 +110,13 @@ cover everything a host would notice since the widget was first deployed.
     element cannot grow, the widget scrolls inside it.
   - **The full-screen map, the contained map and the compact card are gone.** A deep link opens
     inline on its route instead of opening an overlay.
+  - **A box too small to browse in shows the heading and "Expand map" alone**: under 280px wide,
+    or under 360px tall where the widget cannot grow (a clipped box, an `<iframe>`). It logs one
+    console warning naming the size.
+  - **The readiness marker is version 3**, with a `tooSmall` field: the element's box while it is
+    too small, else `null`.
+  - **The standalone page opened directly with `map=false` is inline too**, as it already was in
+    a frame.
   - **A new, optional CSS custom property, `--sahaj-atlas-header`**, says how tall your sticky
     header is. The widget looks for your header itself when it is absent.
   - **Where your page cannot let the widget grow** — an app shell that never scrolls, a site
