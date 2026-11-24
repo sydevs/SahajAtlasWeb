@@ -536,10 +536,11 @@ html.sy-atlas {
 .sx-calendar,
 .sx-calendar .is-dark {
   --sx-color-primary: hsl(var(--primary-9));
-  /* The on-primary/secondary colours are the theme-adaptive `--*-on` tokens (light: white,
-     dark: black — the same on-color the solid Button uses), NOT a `--*-contrast` token, which
-     doesn't exist: that resolved to an invalid colour and fell back to black, which was only
-     legible on dark mode's lighter primary-9 (the today-highlight readability bug). */
+  /* The on-primary/secondary colours are the theme-adaptive `--*-on` tokens (black or white,
+     whichever reads on that role's own solid — the same on-color the solid Button uses), NOT a
+     `--*-contrast` token, which doesn't exist: that resolved to an invalid colour and fell back
+     to black, which was only legible on dark mode's lighter primary-9 (the today-highlight
+     readability bug). */
   --sx-color-on-primary: hsl(var(--primary-on));
   --sx-color-primary-container: hsl(var(--primary-4));
   --sx-color-on-primary-container: hsl(var(--primary-11));
