@@ -3,7 +3,6 @@ import type { Json } from '@/mocks/wire'
 import { IP_LOCATION_ENDPOINT } from '@/hooks/use-ip-location'
 import { mockIpLocation } from '@/mocks/regions'
 import { WIRE_API_KEY, wire } from '@/mocks/wire'
-import { answerDemo } from '@/mocks/wire-demo'
 
 /**
  * Ladle talks to no API. Every SahajCloud request a story makes is answered from the browser
@@ -30,7 +29,10 @@ export function installBackend() {
 
     if (url.href.startsWith(api)) {
       const method = init?.method ?? (input instanceof Request ? input.method : 'GET')
-      // Whatever key a story's client holds, it is the one the fixtures recognise.
+      // Loaded on the first read, so a story that never reads pays nothing for the atlas, about
+      // 100 ms of building at import. Whatever key a story's client holds, it is the one the
+      // fixtures recognise.
+      const { answerDemo } = await import('@/mocks/wire-demo')
       const answer = answerDemo({ method, url, authorization: `clients API-Key ${WIRE_API_KEY}` })
 
       if (!answer) console.warn(`Ladle: no wire fixture answers ${method} ${url.pathname}`)

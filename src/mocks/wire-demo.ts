@@ -410,13 +410,14 @@ const titles: { id: number; title: string }[] = []
 const docs: Record<string, Json> = {}
 const template = wire.events[String(WIRE_EVENT.id)] as Record<string, Json>
 
+const now = DateTime.now()
+
 /** The next time `weekday` comes round at `start`, in `zone`, strictly after now. */
 function nextAt(zone: string, weekday: number, [hour, minute]: readonly [number, number]) {
-  let at = DateTime.now().setZone(zone).set({ hour, minute, second: 0, millisecond: 0 })
+  const today = now.setZone(zone).set({ hour, minute, second: 0, millisecond: 0 })
+  const at = today.plus({ days: (weekday - today.weekday + 7) % 7 })
 
-  while (at.weekday !== weekday || at <= DateTime.now()) at = at.plus({ days: 1 })
-
-  return at
+  return at <= now ? at.plus({ weeks: 1 }) : at
 }
 
 /**
