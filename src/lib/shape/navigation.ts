@@ -143,24 +143,28 @@ const classIdOf = (route: string): string | undefined => /\/(\d+)$/.exec(route)?
 const sameClass = (route: string, lone: string): boolean =>
   route === lone || (classIdOf(route) !== undefined && classIdOf(route) === classIdOf(lone))
 
-/** Whether a structural climb (Back, swipe or Escape at depth 0) left `lone` or a place above it. */
-export const climbedUpFrom = (location: { state?: unknown }, lone: string): boolean => {
-  const route = routeOf(navState(location).climbedFrom)
-
-  return route !== undefined && (sameClass(route, lone) || lone.startsWith(`${route}/`))
-}
-
 /**
- * Whether this location was reached by leaving the class at `lone`: a climb out of it, or a push
- * from the class or a page stacked on it (its Register or Share). A place that opens its lone
- * class shows its own page then, so leaving the class never bounces back into it. A push from a
- * place above does not count: that is an arrival, and the place opens its class.
+ * How this location was reached, for a place whose only class sits at `lone`. Such a place opens
+ * that class, so leaving the class must never bounce back into it:
+ *
+ * - `'climbed'` — a structural climb (Back, swipe or Escape at depth 0) left the class or a place
+ *   above it, so the place climbs on, as Back already said it would.
+ * - `'back'` — a step back from the class, or from a page stacked on it (its Register or Share),
+ *   so the place shows its own page.
+ * - `undefined` — an arrival, a push from a place above included, so the place opens its class.
  */
-export const cameUpFrom = (location: { state?: unknown }, lone: string): boolean => {
-  const route = routeOf(navState(location).from)
+export const loneClassExit = (
+  location: { state?: unknown },
+  lone: string,
+): 'climbed' | 'back' | undefined => {
+  const climbed = routeOf(navState(location).climbedFrom)
 
-  return (
-    climbedUpFrom(location, lone) ||
-    (route !== undefined && (sameClass(route, lone) || route.startsWith(`${lone}/`)))
-  )
+  if (climbed !== undefined && (sameClass(climbed, lone) || lone.startsWith(`${climbed}/`)))
+    return 'climbed'
+
+  const from = routeOf(navState(location).from)
+
+  if (from !== undefined && (sameClass(from, lone) || from.startsWith(`${lone}/`))) return 'back'
+
+  return undefined
 }

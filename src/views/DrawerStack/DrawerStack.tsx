@@ -531,7 +531,7 @@ export function DrawerStack() {
         startTransition(() => {
           if (step.history) navigate(-1)
           // A climb says where it climbed from, so a place that opens its lone class climbs on
-          // rather than bouncing back into it (RegionView, `climbedUpFrom`).
+          // rather than bouncing back into it (RegionView, `loneClassExit`).
           else navigate(step.to, { state: { climbedFrom: location.pathname } })
         })
       },

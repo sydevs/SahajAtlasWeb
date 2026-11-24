@@ -5,9 +5,8 @@ import {
   atlasDepth,
   atlasPushState,
   backStep,
-  cameUpFrom,
   climbDestination,
-  climbedUpFrom,
+  loneClassExit,
   passablePlaces,
 } from './navigation'
 
@@ -149,32 +148,46 @@ describe('backStep', () => {
   })
 })
 
-describe('cameUpFrom', () => {
-  it('is true after a climb or a step back from that class, query ignored', () => {
-    expect(cameUpFrom({ state: { climbedFrom: '/lu/1185' } }, '/lu/1185')).toBe(true)
-    expect(cameUpFrom({ state: { depth: 1, from: '/lu/1185?locale=fr' } }, '/lu/1185')).toBe(true)
-  })
-
-  it('is true two levels up: from the city that holds the class, to its country', () => {
-    expect(climbedUpFrom({ state: { climbedFrom: '/lu/luxembourg' } }, '/lu/luxembourg/1185')).toBe(
-      true,
+describe('loneClassExit', () => {
+  it('tells a climb out of the class from a step back out of it, query ignored', () => {
+    expect(loneClassExit({ state: { climbedFrom: '/lu/1185' } }, '/lu/1185')).toBe('climbed')
+    expect(loneClassExit({ state: { depth: 1, from: '/lu/1185?locale=fr' } }, '/lu/1185')).toBe(
+      'back',
     )
   })
 
-  it('is true from a page stacked on the class, and for the class at its other address', () => {
-    expect(cameUpFrom({ state: { depth: 2, from: '/lu/1185/register' } }, '/lu/1185')).toBe(true)
-    expect(climbedUpFrom({ state: { climbedFrom: '/lu/luxembourg/hall/1185' } }, '/lu/1185')).toBe(
-      true,
+  it('reads a climb two levels up: from the city that holds the class, to its country', () => {
+    expect(loneClassExit({ state: { climbedFrom: '/lu/luxembourg' } }, '/lu/luxembourg/1185')).toBe(
+      'climbed',
     )
   })
 
-  it('is false after a push from a place above, which is an arrival', () => {
-    expect(cameUpFrom({ state: { depth: 1, from: '/lu' } }, '/lu/luxembourg/1185')).toBe(false)
+  it('reads a page stacked on the class, and the class at its other address', () => {
+    expect(loneClassExit({ state: { depth: 2, from: '/lu/1185/register' } }, '/lu/1185')).toBe(
+      'back',
+    )
+    expect(loneClassExit({ state: { climbedFrom: '/lu/luxembourg/hall/1185' } }, '/lu/1185')).toBe(
+      'climbed',
+    )
   })
 
-  it('is false on a fresh arrival or from somewhere else', () => {
-    expect(cameUpFrom({ state: null }, '/lu/1185')).toBe(false)
-    expect(cameUpFrom({ state: { depth: 1, from: '/' } }, '/lu/1185')).toBe(false)
-    expect(cameUpFrom({ state: { climbedFrom: '/lu/lux' } }, '/lu/luxembourg/1185')).toBe(false)
+  it('is an arrival after a push from a place above', () => {
+    expect(
+      loneClassExit({ state: { depth: 1, from: '/lu' } }, '/lu/luxembourg/1185'),
+    ).toBeUndefined()
+  })
+
+  it('is an arrival on a fresh deep link or from somewhere else', () => {
+    expect(loneClassExit({ state: null }, '/lu/1185')).toBeUndefined()
+    expect(loneClassExit({ state: { depth: 1, from: '/' } }, '/lu/1185')).toBeUndefined()
+    expect(
+      loneClassExit({ state: { climbedFrom: '/lu/lux' } }, '/lu/luxembourg/1185'),
+    ).toBeUndefined()
+  })
+
+  it('prefers the climb when a location carries both stamps', () => {
+    expect(
+      loneClassExit({ state: { depth: 1, climbedFrom: '/lu/1185', from: '/lu' } }, '/lu/1185'),
+    ).toBe('climbed')
   })
 })

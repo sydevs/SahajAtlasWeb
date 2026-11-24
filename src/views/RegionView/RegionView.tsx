@@ -23,11 +23,10 @@ import { usePrefetchEvents } from '@/hooks/use-prefetch-event'
 import { useWidgetMode } from '@/config/mode'
 import {
   DEFAULT_FILTERS,
-  cameUpFrom,
   childRoute,
   climbDestination,
-  climbedUpFrom,
   hasActiveFilters,
+  loneClassExit,
   searchPath,
   viewRegion,
 } from '@/lib/shape'
@@ -75,12 +74,12 @@ export function RegionView({ slug }: { slug: string }) {
   // as Back already said it would; reached by a step back from the class, it shows its page.
   const lone =
     feedback || viewRegion(location.pathname) !== slug ? undefined : region.singleEventPath
-  const redirect = !lone
-    ? undefined
-    : climbedUpFrom(location, lone)
-      ? { to: climbDestination(location.pathname), state: { climbedFrom: location.pathname } }
-      : cameUpFrom(location, lone)
-        ? undefined
+  const exit = lone ? loneClassExit(location, lone) : undefined
+  const redirect =
+    !lone || exit === 'back'
+      ? undefined
+      : exit === 'climbed'
+        ? { to: climbDestination(location.pathname), state: { climbedFrom: location.pathname } }
         : { to: lone, state: location.state }
 
   // The page it redirects to frames the map itself, so framing this one too flew the camera twice.
