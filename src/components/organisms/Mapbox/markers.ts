@@ -3,12 +3,12 @@ import type { MapRef } from 'react-map-gl/mapbox'
 import {
   buildPalette,
   DEFAULT_SEEDS,
-  isBrandSeed,
+  HOVER_STEP,
   scaleHex,
+  seedOrDefault,
   shiftHex,
   SOLID_STEP,
   type PaletteRoles,
-  type Step,
   type ThemeMode,
 } from '@/config/theme/palette'
 
@@ -63,7 +63,7 @@ const PIN_SCALE = 0.86
 // The map's marks take their colours from the LIGHT-mode palette in both modes.
 // The dark basemap is mid-toned and washed out, so a dark-mode solid — lifted to
 // read on the near-black panel — washes out on it too.
-export const MARKER_MODE: ThemeMode = 'light'
+const MARKER_MODE: ThemeMode = 'light'
 
 // Rasterisation scale — the images are drawn at 2× and registered with
 // `pixelRatio: 2`, matching the @2x Studio sprite they replace.
@@ -149,32 +149,28 @@ export type MarkerColors = Readonly<{
   [MARKER_IDS.clusterSelected]: MarkColors
 }>
 
-// The pin is the ramp's solid. The cluster disc is its hovered solid, one tone
-// deeper, so a circle reads as a heavier mark than a single class and carries its
-// count: on the default green, white at 4.7:1, where step 9 would give 3.5:1.
-const PIN_STEP: Step = SOLID_STEP
-const CLUSTER_STEP: Step = 10
-
 // One pale halo per role, taken from the pin's fill, so a pin and a bubble wear the
 // same ring. The cap keeps a light fill's ring a colour rather than white.
 const ringOf = (fill: string) =>
   shiftHex(fill, { lightness: 34, saturation: -11, maxLightness: 82 })
 
-const seedOf = (seed: string | null | undefined, fallback: string) =>
-  seed && isBrandSeed(seed) ? seed : fallback
-
 // Through `buildPalette`, not `stepHex`, so the selected pair carries
 // `selected-distinct` — the check that keeps it from matching every pin around it.
+//
+// The pin is the ramp's solid. The cluster disc is its hovered solid, one tone
+// deeper, so a circle reads as a heavier mark than a single class and carries its
+// count: white at 4.7:1 on the default green, where the solid would give 3.5:1.
 function deriveMarkerColors(primarySeed: string, contrastSeed: string): MarkerColors {
   const built = buildPalette({ primary: primarySeed, contrast: contrastSeed }, MARKER_MODE)
   const pair = (role: 'primary' | 'contrast'): [MarkColors, MarkColors] => {
-    // Both seeds passed `isBrandSeed`, so `buildPalette` built both roles.
+    // Both seeds are usable (`seedOrDefault`), so `buildPalette` built both roles.
     const { scale } = built[role]!
-    const ring = ringOf(scaleHex(scale, PIN_STEP))
+    const fill = scaleHex(scale, SOLID_STEP)
+    const ring = ringOf(fill)
 
     return [
-      { fill: scaleHex(scale, PIN_STEP), ring },
-      { fill: scaleHex(scale, CLUSTER_STEP), ring },
+      { fill, ring },
+      { fill: scaleHex(scale, HOVER_STEP), ring },
     ]
   }
   const [point, bubble] = pair('primary')
@@ -205,8 +201,8 @@ export const DEFAULT_MARKER_COLORS: MarkerColors = deriveMarkerColors(
  * than per palette, and goes through the same rules as a tenant's.
  */
 export function markerColors(palette: PaletteRoles): MarkerColors {
-  const primary = seedOf(palette.primary, DEFAULT_SEEDS.primary)
-  const contrast = seedOf(palette.contrast, DEFAULT_SEEDS.contrast)
+  const primary = seedOrDefault('primary', palette.primary)
+  const contrast = seedOrDefault('contrast', palette.contrast)
 
   // ⚠ The same object, not an equal one. `Map.tsx` memoises this and the
   // registration effect depends on it, so a new identity costs an unbranded

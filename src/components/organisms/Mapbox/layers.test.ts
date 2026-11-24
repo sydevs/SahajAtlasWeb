@@ -115,8 +115,6 @@ describe('the vague-place layers', () => {
     expect(RING_MAX_ZOOM).toBeGreaterThan(RING_ZOOM)
   })
 
-  // The dot stands in for an area wider than the screen, so it is a marker rather than ground:
-  // a fixed size at every zoom, where the ring's radius is an expression that doubles.
   it('draws in the pin colour, branded or by default', () => {
     for (const palette of [{}, { primary: MAROON }]) {
       const pin = markerColors(palette)[MARKER_IDS.point].fill
@@ -126,6 +124,8 @@ describe('the vague-place layers', () => {
     }
   })
 
+  // The dot stands in for an area wider than the screen, so it is a marker rather than ground:
+  // a fixed size at every zoom, where the ring's radius is an expression that doubles.
   it('draws the dot at a fixed size, in the ring colours', () => {
     expect(paintOf(dot)['circle-radius']).toBe(8)
     expect(paintOf(dot)['circle-color']).toBe(paintOf(ring)['circle-color'])

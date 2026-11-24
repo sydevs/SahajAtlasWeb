@@ -5,9 +5,10 @@ import {
   buildPalette,
   buildScale,
   applyPalette,
-  isBrandSeed,
+  DEFAULT_SEEDS,
   paletteReport,
   readableOn,
+  seedOrDefault,
   shiftHex,
   SOLID_STEP,
   stepHex,
@@ -162,7 +163,7 @@ describe('applyPalette', () => {
 
     // The local client record defaults `color1` through `color3` to `#000000`.
     // An achromatic primary or secondary must NOT paint a grey ramp.
-    // Those roles fall back to the `globals.css` default, the built-in teal or orange.
+    // Those roles fall back to the `globals.css` default, built from `DEFAULT_SEEDS`.
     // Background still snaps to the readable near-white app-background step, as it does for any near-black seed.
     applyPalette(root, { primary: '#000000', secondary: '#000000', background: '#000000' }, 'light')
 
@@ -202,12 +203,12 @@ describe('the hex accessors', () => {
     // keeps its own built-in default.
     for (const seed of [undefined, null, '', 'not-a-color', '#000000']) {
       expect(stepHex(seed, 'light', 9)).toBeNull()
-      expect(isBrandSeed(seed ?? '')).toBe(false)
+      expect(seedOrDefault('primary', seed)).toBe(DEFAULT_SEEDS.primary)
     }
   })
 
   it('paints a grey or white seed as the neutral ramp it is, not the default', () => {
-    // Snapping these to our teal read as the picker ignoring the manager.
+    // Snapping these to our default read as the picker ignoring the manager.
     for (const seed of ['#ffffff', '#f2f2f2', '#333333']) {
       expect(parse(buildScale(seed, 'light')[9]).s).toBe(0)
       expect(stepHex(seed, 'light', 9)).not.toBeNull()
@@ -230,9 +231,9 @@ describe('the hex accessors', () => {
 
     expect(paletteReport({ primary: '#fffdfa' }).primary?.lightAdjustedBy).toContain('saturation')
     // Our own primary is already over the floor.
-    expect(paletteReport({ primary: '#2D9A76' }).primary?.lightAdjustedBy).not.toContain(
-      'saturation',
-    )
+    expect(
+      paletteReport({ primary: DEFAULT_SEEDS.primary }).primary?.lightAdjustedBy,
+    ).not.toContain('saturation')
   })
 
   it('reports a band crossing on its own, not off the size of the lift', () => {
@@ -293,9 +294,7 @@ describe('legibility', () => {
     '#ffff00',
     '#f0f0ff',
     '#000080',
-    '#2D9A76',
-    '#5e98ba',
-    '#E0775C',
+    ...Object.values(DEFAULT_SEEDS),
     '#1E6C71',
     '#2f7f84',
   ] as const
@@ -326,7 +325,7 @@ describe('legibility', () => {
   it('leaves a seed that already passes exactly where it was', () => {
     // Our own primary passes `surface` and needs no separation from itself-as-contrast
     // at a different hue, so step 9 is the seed's own lightness, uncorrected.
-    const { primary } = buildPalette({ contrast: '#E0775C', primary: '#2D9A76' }, 'light')
+    const { primary } = buildPalette(DEFAULT_SEEDS, 'light')
 
     expect(primary!.scale[SOLID_STEP]).toBe('160 55% 39%')
     expect(primary!.adjustedBy).not.toContain('surface')

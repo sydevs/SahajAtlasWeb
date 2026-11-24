@@ -36,8 +36,7 @@
    runtime engine's vars (src/config/theme/palette.ts), defaulted below.
 
    The neutral is Radix sand, a faintly warm grey, so text and borders read warm
-   rather than blue-grey. The app still says `gray-*`: `--gray-N` is aliased to
-   `--sand-N` below, so no call site names the ramp. */
+   rather than blue-grey. Every call site still says `gray-*` (the alias below). */
 @import '@radix-ui/colors/sand.css';
 @import '@radix-ui/colors/sand-dark.css';
 @import '@radix-ui/colors/red.css';
@@ -294,16 +293,10 @@
   --color-focus: hsl(var(--primary-9));
 }
 
-/* The neutral alias. Each declaration resolves on the theme root that carries the
-   light/dark class, where the matching `--sand-*` values are set, and is inherited
-   from there already resolved — so one block serves both modes.
-   ⚠ Keep `.dark-theme` before `.dark` here: `palette.defaults.test.ts` finds the
-   brand defaults below by their selector lists, which name the two the other way. */
-:root,
-.light,
-.light-theme,
-.dark-theme,
-.dark {
+/* The neutral alias, on the theme root alone: that element carries the light/dark
+   class and so the matching `--sand-*` values, and its descendants inherit the
+   resolved steps. */
+:root {
   --gray-1: var(--sand-1);
   --gray-2: var(--sand-2);
   --gray-3: var(--sand-3);

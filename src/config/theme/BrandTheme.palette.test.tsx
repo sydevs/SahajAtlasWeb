@@ -15,7 +15,7 @@ import { readRepoSource } from '@/test-support/repo-source'
  *
  * jsdom, because the paint IS a layout effect: an SSR render runs no effects at all.
  * Two halves of one resolution drifting apart is exactly the wiring defect a pure
- * spec cannot see — the UI would stay branded while the pins reverted to teal, with
+ * spec cannot see — the UI would stay branded while the pins reverted to the default, with
  * every gate green.
  */
 

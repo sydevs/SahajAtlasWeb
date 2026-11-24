@@ -18,7 +18,7 @@
 // A tenant supplies one seed hex value for each role.
 // `buildScale` derives the full ramp from that seed, aware of the current mode.
 // `applyPalette` writes the resulting variables onto the root element.
-// When no palette is supplied, none of this code runs.
+// When no palette is supplied, `applyPalette` writes nothing.
 // The static `globals.css` defaults, built from `DEFAULT_SEEDS`, then stand unchanged.
 
 import { colord, extend, type Colord } from 'colord'
@@ -61,8 +61,7 @@ export type ColorScale = Record<Step, string> & { on: string }
 // The `palette.defaults.test.ts` gate asserts that both stay in sync.
 // So a ladder change cannot silently desync the default theme from every tenant theme.
 // An unbranded map takes its marks from these too, by the rules a tenant's go
-// through (`Mapbox/markers.ts`): the pin is `primary` step 9 and the cluster disc
-// step 10, which carries a white count at 4.7:1.
+// through (`Mapbox/markers.ts`).
 // ⚠ `secondary` was retuned from `#A1C3D7`, which rendered at 2.0:1 against white and
 // so failed `surface`. `primary`'s step 11 is corrected for `panel-text` rather than
 // its seed moved, which would also move the pins.
@@ -152,10 +151,11 @@ const TONE_RANGE: Record<ThemeMode, readonly [number, number]> = {
 // The surface never uses the seed's raw shade, which would otherwise blacken the panel for a near-black seed.
 const BACKGROUND_STEP: Step = 1
 
-// The brand solid. `ColorScale.on` is this step's on-color by definition, and the
-// map's pins and cluster bubbles are filled from it, so it is exported rather
-// than re-declared in each consumer.
+// The brand solid, and its hovered tone one step deeper. `ColorScale.on` is the
+// solid's on-color by definition. The map fills its pins from the one and its
+// cluster bubbles from the other, so both are exported rather than re-declared.
 export const SOLID_STEP: Step = 9
+export const HOVER_STEP: Step = 10
 
 const clamp = (n: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, n))
 
@@ -279,7 +279,7 @@ function buildRole(seedHex: string, mode: ThemeMode): RoleScale {
     const stepL =
       step === SOLID_STEP
         ? l9
-        : step === 10
+        : step === HOVER_STEP
           ? l10
           : step === 11
             ? l11
@@ -457,11 +457,15 @@ export function paletteReport(palette: PaletteRoles): PaletteReport {
 // `background` is handled separately. Its shade always snaps to the near-white or near-black app-background step, regardless.
 const UNCONFIGURED_SEED = '#000000'
 
-export const isBrandSeed = (seedHex: string): boolean => {
+const isBrandSeed = (seedHex: string): boolean => {
   const c = colord(seedHex)
 
   return c.isValid() && c.toHex() !== UNCONFIGURED_SEED
 }
+
+/** A role's seed where it is usable, else its `DEFAULT_SEEDS` entry. */
+export const seedOrDefault = (role: BrandRole, seedHex: string | null | undefined): string =>
+  seedHex && isBrandSeed(seedHex) ? seedHex : DEFAULT_SEEDS[role]
 
 // The map paints in hex. An SVG `fill` attribute and a Mapbox paint both refuse the channel
 // triples above, and neither can read a CSS variable.
