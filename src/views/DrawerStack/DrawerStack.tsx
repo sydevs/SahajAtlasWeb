@@ -519,7 +519,6 @@ export function DrawerStack() {
       // The filter overlay's X is the way out while it covers the calendar.
       backTo: filterOverlay ? undefined : step?.to,
       collapsed: canCollapse && snap === PEEK_SNAP,
-      canCollapse,
       toggle: () => setSnap((s) => (s === PEEK_SNAP ? openSnap : PEEK_SNAP)),
       dismiss: () => {
         if (!step) return setSnap(PEEK_SNAP)
@@ -582,7 +581,7 @@ export function DrawerStack() {
        * the sheet is either already collapsed or has no snap points left to collapse to.
        */
       onEscapeKeyDown={(event) => {
-        if (step || (control.canCollapse && !control.collapsed)) return
+        if (step || (canCollapse && snap !== PEEK_SNAP)) return
 
         event.preventDefault()
         collapse()

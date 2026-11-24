@@ -59,7 +59,6 @@ export type DrawerControl = {
   overlay?: boolean
   /** The phone sheet sits at its peek. Never true where the sheet cannot collapse. */
   collapsed: boolean
-  canCollapse: boolean
   toggle: () => void
   dismiss: () => void
 }
@@ -67,7 +66,6 @@ export type DrawerControl = {
 /** A control with nowhere to go: the default outside DrawerStack, and the base for stand-ins. */
 export const NO_DRAWER_CONTROL: DrawerControl = {
   collapsed: false,
-  canCollapse: false,
   toggle: () => {},
   dismiss: () => {},
 }
