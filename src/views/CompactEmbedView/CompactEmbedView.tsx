@@ -108,11 +108,10 @@ const overlayClass = `fixed inset-0 ${aboveHost} bg-black/50`
 // ⚠ Clip, never hidden — `components/AGENTS.md` carries why (#326). Measured here, since
 // this is where it was caught: 528px of scrollable overflow at 390×844.
 const contentClass = `fixed inset-2 ${aboveHost} overflow-clip rounded-2xl bg-background text-foreground shadow-2xl outline-none [contain:layout] sm:inset-4`
-// Deliberately the SettingsMenu cog's chrome, down to the shadow: they are the two
-// floating controls over the same surface, at opposite corners, and they should read
-// as one system.
-const closeClass =
-  'absolute end-3 top-3 z-50 border-divider bg-background text-gray-11 shadow-lg hover:text-foreground'
+// Position only. The chrome is the Button atom's `floating` variant, the same one the
+// SettingsMenu cog takes: they are the two floating controls over this surface, at
+// opposite corners, and one recipe is what keeps them reading as one system.
+const closeClass = 'absolute end-3 top-3 z-50'
 
 /**
  * The widget's own interface, over the host's page rather than in it.
@@ -239,7 +238,7 @@ function ExpandedDialog({
                 className={closeClass}
                 radius="full"
                 size="sm"
-                variant="bordered"
+                variant="floating"
               >
                 <X size={16} />
               </Button>

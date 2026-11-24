@@ -1,6 +1,6 @@
 import type { Story, StoryDefault } from '@ladle/react'
 
-import { Funnel, Menu, X } from 'lucide-react'
+import { Expand, Funnel, Menu, Settings, X } from 'lucide-react'
 
 import {
   StoryWrapper,
@@ -21,7 +21,7 @@ export default {
 } satisfies StoryDefault
 
 const colors = ['primary', 'secondary', 'contrast', 'neutral'] as const
-const variants = ['solid', 'flat', 'bordered', 'ghost'] as const
+const variants = ['solid', 'flat', 'bordered', 'ghost', 'floating'] as const
 const sizes = ['sm', 'md', 'lg'] as const
 const radii = ['sm', 'full'] as const
 
@@ -119,6 +119,22 @@ export const Default: Story = () => (
             radius={radius}
           </Button>
         ))}
+      </div>
+    </StorySection>
+
+    <StorySection
+      background="gradient"
+      description="`variant=floating` is a control over the map or the page: the app's opaque surface and a shadow. Over a gradient, which is the one thing the colour grids above cannot show. The settings cog is the app's own; the pill is a sample."
+      title="Floating"
+    >
+      <div className="flex flex-wrap items-center gap-3">
+        <Button radius="full" size="sm" variant="floating">
+          <Expand size={16} />
+          Sample pill
+        </Button>
+        <Button isIconOnly aria-label="Settings" radius="full" size="sm" variant="floating">
+          <Settings size={20} />
+        </Button>
       </div>
     </StorySection>
 

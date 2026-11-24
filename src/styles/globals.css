@@ -534,21 +534,21 @@ html.sy-atlas {
    class, on an element inside this wrapper, which beat the inherited values. */
 .sx-calendar,
 .sx-calendar .is-dark {
-  --sx-color-primary: hsl(var(--primary-9));
-  /* The on-primary/secondary colours are the theme-adaptive `--*-on` tokens (black or white,
-     whichever reads on that role's own solid — the same on-color the solid Button uses), NOT a
-     `--*-contrast` token, which doesn't exist: that resolved to an invalid colour and fell back
-     to black, which was only legible on dark mode's lighter primary-9 (the today-highlight
-     readability bug). */
-  --sx-color-on-primary: hsl(var(--primary-on));
+  /* The primary fill is the solid Button's: step 12 under white in light mode, and
+     (below) step 9 under its on-colour in dark — so the today highlight is never the
+     bright solid under black beside the buttons. The on-colours are the `--*-on` tokens,
+     NOT a `--*-contrast` token, which doesn't exist: that resolved to an invalid colour
+     and fell back to black (the today-highlight readability bug). */
+  --sx-color-primary: hsl(var(--primary-12));
+  --sx-color-on-primary: #ffffff;
   --sx-color-primary-container: hsl(var(--primary-4));
   --sx-color-on-primary-container: hsl(var(--primary-11));
   --sx-color-secondary: hsl(var(--secondary-9));
   --sx-color-on-secondary: hsl(var(--secondary-on));
   --sx-color-secondary-container: hsl(var(--secondary-4));
   --sx-color-on-secondary-container: hsl(var(--secondary-11));
-  --sx-color-tertiary: hsl(var(--primary-9));
-  --sx-color-on-tertiary: hsl(var(--primary-on));
+  --sx-color-tertiary: hsl(var(--primary-12));
+  --sx-color-on-tertiary: #ffffff;
   --sx-color-tertiary-container: hsl(var(--primary-4));
   --sx-color-on-tertiary-container: hsl(var(--primary-11));
   --sx-color-surface: hsl(var(--background));
@@ -567,6 +567,14 @@ html.sy-atlas {
   --sx-internal-color-text: var(--gray-12);
   --sx-internal-color-light-gray: var(--gray-4);
   --sx-border: var(--gray-6);
+}
+
+.dark .sx-calendar,
+.dark .sx-calendar .is-dark {
+  --sx-color-primary: hsl(var(--primary-9));
+  --sx-color-on-primary: hsl(var(--primary-on));
+  --sx-color-tertiary: hsl(var(--primary-9));
+  --sx-color-on-tertiary: hsl(var(--primary-on));
 }
 
 .sx-calendar {
