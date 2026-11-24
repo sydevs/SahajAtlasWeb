@@ -70,7 +70,26 @@ export function RegionView({ slug }: { slug: string }) {
   const { setFilters } = useSetFilters()
   const { data: region } = useSuspenseQuery(regionQuery(slug, locale, filters))
 
-  useFrameOnTop(() => frameRegion(region), [region, frameRegion])
+  // A place with one class opens it: a list of one is an extra tap. Only while this view is the
+  // page on screen, not while it plays its exit, and not while it answers the post-event email,
+  // whose acknowledgement is this page's. Reached by climbing out of that class, it climbs on,
+  // as Back already said it would; reached by a step back from the class, it shows its page.
+  const lone =
+    feedback || viewRegion(location.pathname) !== slug
+      ? undefined
+      : loneClassPath(region, hasActiveFilters(filters))
+  const redirect = !lone
+    ? undefined
+    : climbedUpFrom(location, lone)
+      ? { to: climbDestination(location.pathname), state: { climbedFrom: location.pathname } }
+      : cameUpFrom(location, lone)
+        ? undefined
+        : { to: lone, state: location.state }
+
+  // The page it redirects to frames the map itself, so framing this one too flew the camera twice.
+  useFrameOnTop(() => {
+    if (!redirect) frameRegion(region)
+  }, [region, frameRegion, Boolean(redirect)])
 
   const header = (region.countryCode && regionNames.of(region.countryCode)) || region.name
   const canonicalUrl = validateWebUrl(region.webUrl)
@@ -101,22 +120,7 @@ export function RegionView({ slug }: { slug: string }) {
     (region.level === 'city' ? region.subtitle : undefined) ??
     (hasEventList ? t('common.chrome.all_classes_free') : undefined)
 
-  // A place with one class opens it: a list of one is an extra tap. Only while this view is the
-  // page on screen, not while it plays its exit. Reached by climbing out of that class, it climbs
-  // on, as Back already said it would; reached by a step back in history, it shows its page.
-  const lone = loneClassPath(region, hasActiveFilters(filters))
-
-  if (lone && viewRegion(location.pathname) === slug) {
-    if (climbedUpFrom(location, lone))
-      return (
-        <Navigate
-          replace
-          state={{ climbedFrom: location.pathname }}
-          to={climbDestination(location.pathname)}
-        />
-      )
-    if (!cameUpFrom(location, lone)) return <Navigate replace state={location.state} to={lone} />
-  }
+  if (redirect) return <Navigate replace state={redirect.state} to={redirect.to} />
 
   return (
     <>
@@ -207,7 +211,7 @@ export function RegionView({ slug }: { slug: string }) {
               <ListItem
                 key={`region-${child.id}`}
                 count={child.eventCount}
-                href={child.singleEventPath ?? `${child.path}${filterSearch}`}
+                href={`${child.singleEventPath ?? child.path}${filterSearch}`}
                 label={child.name}
                 subtitle={child.subtitle}
               />

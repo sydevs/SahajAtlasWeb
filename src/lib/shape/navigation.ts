@@ -155,22 +155,34 @@ export const loneClassPath = (
   return undefined
 }
 
-// Whether `value` is `path` itself or a place on the way down to it, query ignored.
-const leadsTo = (value: unknown, path: string): boolean => {
-  if (typeof value !== 'string') return false
-  const route = value.split('?')[0]
+const routeOf = (value: unknown): string | undefined =>
+  typeof value === 'string' ? value.split('?')[0] : undefined
 
-  return route === path || path.startsWith(`${route}/`)
+// The class an address ends on, by id: a class's own `webPath` and its place's path plus its id
+// are two addresses for one class.
+const classIdOf = (route: string): string | undefined => /\/(\d+)$/.exec(route)?.[1]
+
+const sameClass = (route: string, lone: string): boolean =>
+  route === lone || (classIdOf(route) !== undefined && classIdOf(route) === classIdOf(lone))
+
+/** Whether a structural climb (Back, swipe or Escape at depth 0) left `lone` or a place above it. */
+export const climbedUpFrom = (location: { state?: unknown }, lone: string): boolean => {
+  const route = routeOf(navState(location).climbedFrom)
+
+  return route !== undefined && (sameClass(route, lone) || lone.startsWith(`${route}/`))
 }
 
-/** Whether a structural climb (Back, swipe or Escape at depth 0) left `path` or a place above it. */
-export const climbedUpFrom = (location: { state?: unknown }, path: string): boolean =>
-  leadsTo(navState(location).climbedFrom, path)
-
 /**
- * Whether this location was reached by leaving `path`, or a place on the way down to it: a
- * climb, or a history step back (`from`). A place that opens its lone class shows its own page
- * then, so leaving the class never bounces back into it, even two levels up.
+ * Whether this location was reached by leaving the class at `lone`: a climb out of it, or a push
+ * from the class or a page stacked on it (its Register or Share). A place that opens its lone
+ * class shows its own page then, so leaving the class never bounces back into it. A push from a
+ * place above does not count: that is an arrival, and the place opens its class.
  */
-export const cameUpFrom = (location: { state?: unknown }, path: string): boolean =>
-  climbedUpFrom(location, path) || leadsTo(navState(location).from, path)
+export const cameUpFrom = (location: { state?: unknown }, lone: string): boolean => {
+  const route = routeOf(navState(location).from)
+
+  return (
+    climbedUpFrom(location, lone) ||
+    (route !== undefined && (sameClass(route, lone) || route.startsWith(`${lone}/`)))
+  )
+}

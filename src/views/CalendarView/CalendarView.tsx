@@ -45,7 +45,7 @@ import {
 } from '@/lib/shape'
 import { zoneCity } from '@/lib/time'
 import { BackButton } from '@/views/nav'
-import { FilterButton } from '@/views/shared'
+import { ExpandSheetButton, FilterButton } from '@/views/shared'
 import { DrawerErrorBody, DrawerLoadingBody } from '@/views/fallbacks'
 
 // Schedule-X validates `locale` against its own supported BCP-47 set, and THROWS
@@ -161,6 +161,8 @@ function CalendarControls({ controls }: { controls: CalendarControlsPlugin }) {
   return (
     <>
       <BackButton />
+      {/* Pulled down to the peek, the way to raise the sheet again, as every other header has. */}
+      <ExpandSheetButton />
       {/* Mode picker — holds the top row with Back when the rest wraps below. */}
       <ToggleGroup
         joined

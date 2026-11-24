@@ -192,6 +192,17 @@ describe('cameUpFrom', () => {
     )
   })
 
+  it('is true from a page stacked on the class, and for the class at its other address', () => {
+    expect(cameUpFrom({ state: { depth: 2, from: '/lu/1185/register' } }, '/lu/1185')).toBe(true)
+    expect(climbedUpFrom({ state: { climbedFrom: '/lu/luxembourg/hall/1185' } }, '/lu/1185')).toBe(
+      true,
+    )
+  })
+
+  it('is false after a push from a place above, which is an arrival', () => {
+    expect(cameUpFrom({ state: { depth: 1, from: '/lu' } }, '/lu/luxembourg/1185')).toBe(false)
+  })
+
   it('is false on a fresh arrival or from somewhere else', () => {
     expect(cameUpFrom({ state: null }, '/lu/1185')).toBe(false)
     expect(cameUpFrom({ state: { depth: 1, from: '/' } }, '/lu/1185')).toBe(false)

@@ -23,7 +23,6 @@ import {
   FilterButton,
   SearchButton,
   SearchField,
-  useDrawerControl,
 } from '@/views/shared'
 
 /**
@@ -120,7 +119,6 @@ export function DrawerChrome({
   const { locale } = useLocale()
   const { hasMap } = useWidgetMode()
   const location = useLocation()
-  const { backTo } = useDrawerControl()
   // This is cache-only (`enabled: false`), not merely non-suspending. It renders on EVERY
   // loading and error state, so a fetch here would re-issue a read on exactly the failures
   // where the backend is already the problem. A miss costs the title, never the frame. Both go
@@ -188,9 +186,8 @@ export function DrawerChrome({
               the real field. There it is the escape hatch. */}
           <BackButton iconOnly />
           {interactive ? <SearchField /> : <SearchFieldSkeleton />}
-          {/* At the root there is nothing to climb to: `navigate(-1)` would take the host page
-              back. So Back renders only below it, and the root offers to raise the sheet. */}
-          {!backTo && <ExpandSheetButton />}
+          {/* Back renders only below the root, where there is somewhere to go. */}
+          <ExpandSheetButton />
         </DrawerHeader>
         <DrawerToolbar>
           <ListToolbar>

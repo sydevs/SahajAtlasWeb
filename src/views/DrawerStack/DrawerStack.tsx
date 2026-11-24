@@ -1,6 +1,16 @@
 import type { Geojson, RegionNode } from '@/types'
 
-import { Suspense, lazy, startTransition, useEffect, useMemo, useRef, useState } from 'react'
+import {
+  Suspense,
+  lazy,
+  startTransition,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  useSyncExternalStore,
+} from 'react'
 import { createPortal } from 'react-dom'
 import { useLocation, useNavigate } from 'react-router'
 import { useQueryClient } from '@tanstack/react-query'
@@ -233,7 +243,18 @@ export function DrawerStack() {
   // Back must lead to the UK at `/gb`, not a `/united-kingdom` that doesn't exist. It also passes
   // over venues and one-class places. The caches are read, never observed: this component stays
   // mounted all session, and an observer would keep the wholesale caches from ever being
-  // collected. A miss climbs to the plain parent until the next navigation reads them filled.
+  // collected. `cachesFilled` re-reads them when either arrives, since a deep link renders this
+  // before they do.
+  const cachesFilled = useSyncExternalStore(
+    useCallback(
+      (onChange: () => void) => queryClient.getQueryCache().subscribe(onChange),
+      [queryClient],
+    ),
+    () =>
+      `${queryClient.getQueryState(regionsQuery().queryKey)?.dataUpdatedAt}:${
+        queryClient.getQueryState(geojsonQuery().queryKey)?.dataUpdatedAt
+      }`,
+  )
   const step = useMemo(() => {
     const regions = queryClient.getQueryData<RegionNode[]>(regionsQuery().queryKey)
     const feed = queryClient.getQueryData<Geojson>(geojsonQuery().queryKey)
@@ -242,7 +263,8 @@ export function DrawerStack() {
       pathOf: placePathsOf(regions),
       passable: regions && feed ? passableFor(regions, feed) : undefined,
     })
-  }, [queryClient, location])
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- `cachesFilled` is the re-read trigger for caches nothing here observes
+  }, [queryClient, location, cachesFilled])
   // The country on screen, kept through the routes that name none (search, calendar), so the
   // place search a country page opens stays in that country. The world view clears it.
   const setBrowsedCountry = useBrowsedCountry((s) => s.setCode)
