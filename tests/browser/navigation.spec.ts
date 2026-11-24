@@ -1,4 +1,4 @@
-import { WIRE_EVENT } from '../../src/mocks/sahajcloud'
+import { SAHAJCLOUD_EVENT } from '../../src/mocks/sahajcloud'
 import en from '../../src/config/translations.en.json' with { type: 'json' }
 
 import { atlasRoute, copy, expect, hostPage, test, widget } from './fixtures'
@@ -12,7 +12,7 @@ const PATH = [
   { link: /United Kingdom/, route: '/gb', title: 'United Kingdom' },
   { link: /^Cambridgeshire \d+$/, route: '/gb/cambridgeshire', title: 'Cambridgeshire' },
   { link: /^Cambridge \d+$/, route: '/gb/cambridgeshire/cambridge', title: 'Cambridge' },
-  { link: WIRE_EVENT.title, route: WIRE_EVENT.path, title: WIRE_EVENT.title },
+  { link: SAHAJCLOUD_EVENT.title, route: SAHAJCLOUD_EVENT.path, title: SAHAJCLOUD_EVENT.title },
 ]
 
 const CITY = PATH[2]
@@ -37,11 +37,11 @@ test('browsing in moves the URL and the drawers, and Back retraces it', async ({
   // since climbing to the city would have pushed a new entry and left nothing to go forward to.
   await atlas.getByRole('button', { name: en.common.chrome.close, exact: true }).click()
   await expect.poll(() => atlasRoute(page)).toBe(CITY.route)
-  await expect(heading(WIRE_EVENT.title)).toHaveCount(0)
+  await expect(heading(SAHAJCLOUD_EVENT.title)).toHaveCount(0)
 
   await page.goForward()
-  await expect.poll(() => atlasRoute(page)).toBe(WIRE_EVENT.path)
-  await expect(heading(WIRE_EVENT.title)).toBeVisible()
+  await expect.poll(() => atlasRoute(page)).toBe(SAHAJCLOUD_EVENT.path)
+  await expect(heading(SAHAJCLOUD_EVENT.title)).toBeVisible()
 
   // The browser's Back retraces every step, and the last one leaves the host page as it was.
   for (const step of PATH.slice(0, -1).reverse()) {
@@ -59,11 +59,13 @@ test('browsing in moves the URL and the drawers, and Back retraces it', async ({
 test('a deep link opens straight onto its event, and closing it climbs to its city', async ({
   page,
 }) => {
-  await page.goto(hostPage('full-map.html', WIRE_EVENT.path))
+  await page.goto(hostPage('full-map.html', SAHAJCLOUD_EVENT.path))
 
   const atlas = widget(page)
 
-  await expect(atlas.getByRole('heading', { name: WIRE_EVENT.title, exact: true })).toBeVisible()
+  await expect(
+    atlas.getByRole('heading', { name: SAHAJCLOUD_EVENT.title, exact: true }),
+  ).toBeVisible()
 
   // A deep link has no in-widget history, so `navigate(-1)` here would take the HOST page back
   // to wherever the visitor came from (#89). It climbs to the class's city instead.

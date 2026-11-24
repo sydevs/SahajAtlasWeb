@@ -1,6 +1,6 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
 
-import { WIRE_API_KEY, WIRE_EVENT, answerSahajCloud, sahajCloud } from './sahajcloud'
+import { SAHAJCLOUD_API_KEY, SAHAJCLOUD_EVENT, answerSahajCloud, sahajCloud } from './sahajcloud'
 
 import atlasAuth from '@/config/api/auth'
 import api, { eventTitlesQuery } from '@/config/api/fetch'
@@ -23,7 +23,7 @@ const requests: string[] = []
 const json = (body: unknown, status: number) =>
   new Response(JSON.stringify(body), { status, headers: { 'content-type': 'application/json' } })
 
-const serveWire = async (input: RequestInfo | URL, init?: RequestInit) => {
+const serveSahajCloud = async (input: RequestInfo | URL, init?: RequestInit) => {
   const url = new URL(String(input))
   const method = init?.method ?? 'GET'
   const answer = answerSahajCloud({
@@ -40,7 +40,7 @@ const serveWire = async (input: RequestInfo | URL, init?: RequestInit) => {
 }
 
 beforeAll(() => {
-  vi.stubGlobal('fetch', serveWire)
+  vi.stubGlobal('fetch', serveSahajCloud)
 })
 
 afterAll(() => {
@@ -51,7 +51,7 @@ afterAll(() => {
 beforeEach(() => {
   requests.length = 0
   queryClient.clear()
-  atlasAuth.apiKey = WIRE_API_KEY
+  atlasAuth.apiKey = SAHAJCLOUD_API_KEY
 })
 
 describe('SahajCloud fixtures, read through the fetchers', () => {
@@ -105,7 +105,9 @@ describe('SahajCloud fixtures, read through the fetchers', () => {
       '/gb/cambridgeshire',
       '/gb/cambridgeshire/cambridge',
     ])
-    expect(city.events.map(({ id, title, path }) => ({ id, title, path }))).toEqual([WIRE_EVENT])
+    expect(city.events.map(({ id, title, path }) => ({ id, title, path }))).toEqual([
+      SAHAJCLOUD_EVENT,
+    ])
   })
 
   it('accepts a registration and an embed report with the envelopes the mutations parse', async () => {
@@ -115,7 +117,9 @@ describe('SahajCloud fixtures, read through the fetchers', () => {
       startingAt: new Date('2026-01-02T09:30:00Z'),
     }
 
-    await expect(mutate.createRegistration(WIRE_EVENT.id, registration, 'token')).resolves.toEqual({
+    await expect(
+      mutate.createRegistration(SAHAJCLOUD_EVENT.id, registration, 'token'),
+    ).resolves.toEqual({
       doc: expect.objectContaining({ id: expect.any(Number) }),
     })
     await expect(
@@ -130,7 +134,7 @@ describe('SahajCloud fixtures, read through the fetchers', () => {
 
     try {
       const sent = mutate.createRegistration(
-        WIRE_EVENT.id,
+        SAHAJCLOUD_EVENT.id,
         { name: 'Ada Lovelace', email: 'ada@example.org', startingAt: new Date() },
         'token',
       )
@@ -138,7 +142,7 @@ describe('SahajCloud fixtures, read through the fetchers', () => {
       await expect(sent).rejects.toMatchObject({ status: 500 })
       await expect(sent).rejects.not.toBeInstanceOf(RegistrationRefusedError)
     } finally {
-      vi.stubGlobal('fetch', serveWire)
+      vi.stubGlobal('fetch', serveSahajCloud)
     }
   })
 })

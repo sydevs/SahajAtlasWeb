@@ -25,7 +25,7 @@ const toJson = (value: unknown): Json => JSON.parse(JSON.stringify(value))
 const STAMP = '2026-01-01T00:00:00.000Z'
 
 /** The key `clients/me` recognises. Any other answers as Payload does a stranger: `{ user: null }`. */
-export const WIRE_API_KEY = 'browser-lane-key'
+export const SAHAJCLOUD_API_KEY = 'browser-lane-key'
 
 // ── The region tree ─────────────────────────────────────────────────────────────
 
@@ -107,16 +107,15 @@ const eventDocs: Record<string, Json> = Object.fromEntries(
   ]),
 )
 
-const wireEventFeature = features.find(({ properties }) => properties.id === mockEvent.id)
+const eventFeature = features.find(({ properties }) => properties.id === mockEvent.id)
 
-if (!wireEventFeature)
-  throw new Error(`SahajCloud fixtures: no feed feature for event ${mockEvent.id}`)
+if (!eventFeature) throw new Error(`SahajCloud fixtures: no feed feature for event ${mockEvent.id}`)
 
 /** The event every scenario that opens one opens: the located class, under its city. */
-export const WIRE_EVENT = {
+export const SAHAJCLOUD_EVENT = {
   id: mockEvent.id,
   title: title(mockEvent.id),
-  path: wireEventFeature.properties.webPath,
+  path: eventFeature.properties.webPath,
 }
 
 // ── Payload's envelopes ─────────────────────────────────────────────────────────
@@ -206,7 +205,7 @@ export function answerSahajCloud(request: {
 
   if (method === 'GET') {
     if (path === '/clients/me') {
-      return request.authorization === `clients API-Key ${WIRE_API_KEY}`
+      return request.authorization === `clients API-Key ${SAHAJCLOUD_API_KEY}`
         ? ok(sahajCloud.clientMe)
         : ok({ user: null })
     }

@@ -1,7 +1,7 @@
 import { defineConfig, devices } from '@playwright/test'
 
 import { LANE_DIST, LANE_PORT } from './tests/browser/lane.mjs'
-import { WIRE_API_KEY } from './src/mocks/sahajcloud'
+import { SAHAJCLOUD_API_KEY } from './src/mocks/sahajcloud'
 
 // The browser lane: the built widget, on real host pages, in a real Chromium, with every
 // request answered from fixtures (`tests/browser/fixtures.ts`). `docs/testing.md` § "The
@@ -48,7 +48,7 @@ export default defineConfig({
   },
   webServer: {
     // The same server as `pnpm review:embed`, over the lane's own build and key.
-    command: `node scripts/serve-embed-review.mjs --dist ${LANE_DIST} --port ${LANE_PORT} --key ${WIRE_API_KEY}`,
+    command: `node scripts/serve-embed-review.mjs --dist ${LANE_DIST} --port ${LANE_PORT} --key ${SAHAJCLOUD_API_KEY}`,
     // The address the server binds. `localhost` would send the runner to the system resolver,
     // which on a machine whose hosts file has no `::1` line asks a real DNS server.
     url: `http://127.0.0.1:${LANE_PORT}/`,
