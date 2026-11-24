@@ -64,7 +64,7 @@ export type ClimbInputs = {
  * - a venue: a class page already names its venue ("Evening Meditation at Balham Library"),
  *   so "Back to Balham Library" reads as going nowhere. Back goes to the city instead.
  * - a place holding a single in-person class and nothing else, which would only open that
- *   class again (`loneClassPath`).
+ *   class again (the `singleEventPath` such a place carries).
  */
 export const passablePlaces = (
   regions: readonly { id: number; slug: string; level?: string | null; parent?: number | null }[],
@@ -131,28 +131,6 @@ export const backStep = (
 
   // A search keeps its query when something stacked over it climbs back.
   return { to: parent === '/search' ? `${parent}${location.search ?? ''}` : parent, history: false }
-}
-
-/**
- * The one class a place holds, when that is all it holds: exactly one in-person class, no
- * online class, and no filter narrowing the list. Opening such a place opens that class, the
- * shortcut its row already takes in a list (`singleEventPath`). A sole child place with one
- * class counts too: Luxembourg holds only the city of Luxembourg, which holds one class.
- */
-export const loneClassPath = (
-  region: {
-    subregions: { singleEventPath?: string }[]
-    events: { path: string }[]
-    onlineEvents: unknown[]
-  },
-  filtered: boolean,
-): string | undefined => {
-  if (filtered || region.onlineEvents.length > 0) return undefined
-  if (region.events.length === 0 && region.subregions.length === 1)
-    return region.subregions[0].singleEventPath
-  if (region.subregions.length === 0 && region.events.length === 1) return region.events[0].path
-
-  return undefined
 }
 
 const routeOf = (value: unknown): string | undefined =>

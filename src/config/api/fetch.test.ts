@@ -511,6 +511,20 @@ describe('getRegion (region-tree derivation)', () => {
     expect(region.onlineEvents.every((event) => event.eventType === 'online')).toBe(true)
   })
 
+  // A place holding one class and nothing else opens that class, so its page carries the class's
+  // own address — derived beside the rows' own, off one reading of the list.
+  it('names the one class a place holds, and keeps the page under a filter', async () => {
+    mockBackend()
+
+    expect((await api.getRegion('brussels')).singleEventPath).toBe('/belgium/brussels/3')
+    // Belgium cards two child places and rolls up online classes: a list worth showing.
+    expect((await api.getRegion('belgium')).singleEventPath).toBeUndefined()
+    // Under a filter the one class left is only what passed it, so the list stays.
+    expect(
+      (await api.getRegion('brussels', { ...DEFAULT_FILTERS, region: 'brussels' })).singleEventPath,
+    ).toBeUndefined()
+  })
+
   // A filtered link (`/belgium?format=online`) shows filtered pins. The list and the counts must
   // agree with them, while framing still covers every class.
   it('counts and lists only what the filters let through, framing on everything', async () => {

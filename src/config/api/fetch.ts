@@ -613,6 +613,19 @@ const getRegion = async (slug: string, filters?: EventFilters): Promise<Region> 
 
   const directEvents = direct.map(nest)
 
+  // A place holding exactly one in-person class and nothing else opens that class: a list of one
+  // is an extra tap, and its row already takes that shortcut. A sole child place with one class
+  // counts too — Luxembourg holds only the city of Luxembourg, which holds one class. A filter
+  // keeps the page, since the one class left is only what passed it.
+  const loneClass =
+    (filters && hasActiveFilters(filters)) || online.length > 0
+      ? undefined
+      : directEvents.length === 0 && subregions.length === 1
+        ? subregions[0].singleEventPath
+        : subregions.length === 0 && directEvents.length === 1
+          ? directEvents[0].path
+          : undefined
+
   return RegionSchema.parse({
     id: node.id,
     slug: node.slug,
@@ -629,6 +642,7 @@ const getRegion = async (slug: string, filters?: EventFilters): Promise<Region> 
     parentPath: parentOf(path),
     webUrl: node.webUrl,
     subregions,
+    singleEventPath: loneClass,
     // These are located events directly under this region.
     // For a leaf, these are its own events.
     // A parent region usually has none. A viewer reaches a child's events through the child's card instead.

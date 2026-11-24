@@ -28,7 +28,6 @@ import {
   climbDestination,
   climbedUpFrom,
   hasActiveFilters,
-  loneClassPath,
   searchPath,
   viewRegion,
 } from '@/lib/shape'
@@ -75,9 +74,7 @@ export function RegionView({ slug }: { slug: string }) {
   // whose acknowledgement is this page's. Reached by climbing out of that class, it climbs on,
   // as Back already said it would; reached by a step back from the class, it shows its page.
   const lone =
-    feedback || viewRegion(location.pathname) !== slug
-      ? undefined
-      : loneClassPath(region, hasActiveFilters(filters))
+    feedback || viewRegion(location.pathname) !== slug ? undefined : region.singleEventPath
   const redirect = !lone
     ? undefined
     : climbedUpFrom(location, lone)

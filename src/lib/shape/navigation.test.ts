@@ -8,7 +8,6 @@ import {
   cameUpFrom,
   climbDestination,
   climbedUpFrom,
-  loneClassPath,
   passablePlaces,
 } from './navigation'
 
@@ -147,36 +146,6 @@ describe('backStep', () => {
       to: '/search?q=Prague',
       history: false,
     })
-  })
-})
-
-describe('loneClassPath', () => {
-  const place = (over: Partial<Parameters<typeof loneClassPath>[0]> = {}) => ({
-    subregions: [],
-    events: [],
-    onlineEvents: [],
-    ...over,
-  })
-
-  it('opens the class of a country whose only city holds one class', () => {
-    expect(
-      loneClassPath(place({ subregions: [{ singleEventPath: '/lu/luxembourg/1185' }] }), false),
-    ).toBe('/lu/luxembourg/1185')
-  })
-
-  it('opens the one class a leaf place lists itself', () => {
-    expect(loneClassPath(place({ events: [{ path: '/lu/1185' }] }), false)).toBe('/lu/1185')
-  })
-
-  it('keeps the page when there is more than one to choose from', () => {
-    expect(loneClassPath(place({ subregions: [{}] }), false)).toBeUndefined()
-    expect(
-      loneClassPath(place({ events: [{ path: '/x/1' }], onlineEvents: [{}] }), false),
-    ).toBeUndefined()
-  })
-
-  it('keeps the page while a filter narrows the list', () => {
-    expect(loneClassPath(place({ events: [{ path: '/lu/1185' }] }), true)).toBeUndefined()
   })
 })
 

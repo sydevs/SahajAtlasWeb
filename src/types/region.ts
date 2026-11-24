@@ -71,6 +71,12 @@ export const RegionSchema = z.object({
   // Absolute canonical URL (server webUrl) for the page's <link rel="canonical">.
   webUrl: z.string().nullish(),
   subregions: z.array(RegionListItemSchema),
+  /**
+   * Set when this place holds exactly one in-person class and nothing else, filters included:
+   * opening the place opens that class. Derived beside the rows' own `singleEventPath`, so the
+   * row shortcut and the page redirect cannot read the list differently.
+   */
+  singleEventPath: z.string().optional(),
   // This region's own located events (those under no child — a leaf's whole list).
   // Never online — those live in `onlineEvents`. The two sets are disjoint.
   events: z.array(EventSlimSchema),
