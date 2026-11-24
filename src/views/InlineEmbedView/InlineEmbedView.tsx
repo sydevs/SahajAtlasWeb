@@ -12,7 +12,6 @@ import * as Primitive from '@radix-ui/react-dialog'
 import { m } from 'framer-motion'
 import { useLocation, useNavigationType } from 'react-router'
 import { useQuery } from '@tanstack/react-query'
-import { MapProvider } from 'react-map-gl/mapbox'
 import { Expand } from 'lucide-react'
 import clsx from 'clsx'
 
@@ -24,8 +23,6 @@ import { useWidgetMode } from '@/config/mode'
 import { useReportModal } from '@/config/store'
 import { LocalExpansionProvider, useExpansion } from '@/hooks/use-expansion'
 import { useLocale } from '@/hooks/use-locale'
-import { NoopMapControllerProvider } from '@/hooks/use-map-controller'
-import { RealMapControllerProvider } from '@/hooks/use-map-controller-real'
 import { useOpenerRestore } from '@/hooks/use-opener-restore'
 import { usePublishedNode } from '@/hooks/use-published-node'
 import { fallbackUrl } from '@/lib/fallback-url'
@@ -35,6 +32,7 @@ import {
   type InterfaceProps,
   MapInterface,
   MapLayer,
+  MapProviders,
   useInterfaceBoot,
 } from '@/views/FullInterface'
 import { headingPlace } from '@/views/InlineEmbedView/heading-place'
@@ -315,13 +313,7 @@ function InlineLayout() {
             <PlaceHeading />
             <SettingsMenu toolbar className="ms-auto" />
           </div>
-          {hasMap ? (
-            <MapProvider>
-              <RealMapControllerProvider inline>{columns}</RealMapControllerProvider>
-            </MapProvider>
-          ) : (
-            <NoopMapControllerProvider>{columns}</NoopMapControllerProvider>
-          )}
+          <MapProviders inline>{columns}</MapProviders>
         </div>
       </div>
       {hasMap && (

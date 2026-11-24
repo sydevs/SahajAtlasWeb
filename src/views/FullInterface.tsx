@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react'
+import { type ReactNode, useEffect, useRef } from 'react'
 import * as Fathom from 'fathom-client'
 import { useLocation, useNavigate } from 'react-router'
 import { MapProvider } from 'react-map-gl/mapbox'
@@ -175,19 +175,35 @@ export function MapLayer({ cooperative = false }: { cooperative?: boolean }) {
   )
 }
 
-/** The map (or not) and the drawer stack over it. */
-export function MapInterface() {
+/**
+ * The react-map-gl and camera providers a map needs, or the no-op seam where `map=false` leaves
+ * nothing to control. It lives here because this module already owns the react-map-gl boundary.
+ */
+export function MapProviders({
+  children,
+  inline = false,
+}: {
+  children: ReactNode
+  inline?: boolean
+}) {
   return useWidgetMode().hasMap ? (
     <MapProvider>
-      <MapLayer />
-      <RealMapControllerProvider>
-        <DrawerStack />
-      </RealMapControllerProvider>
+      <RealMapControllerProvider inline={inline}>{children}</RealMapControllerProvider>
     </MapProvider>
   ) : (
-    <NoopMapControllerProvider>
+    <NoopMapControllerProvider>{children}</NoopMapControllerProvider>
+  )
+}
+
+/** The map (or not) and the drawer stack over it. */
+export function MapInterface() {
+  const { hasMap } = useWidgetMode()
+
+  return (
+    <MapProviders>
+      {hasMap && <MapLayer />}
       <DrawerStack />
-    </NoopMapControllerProvider>
+    </MapProviders>
   )
 }
 
