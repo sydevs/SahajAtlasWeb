@@ -24,7 +24,7 @@ pnpm ladle:build  # static build (also the CI gate — broken stories fail it)
 | `.ladle/config.mjs`     | Story glob (`src/**/*.stories.{ts,tsx}`), title, port, `viteConfig`, and the story order: alphabetical, with `Interactive` last. |
 | `.ladle/vite.config.ts` | Resolves the `@/` alias to `src/` (Ladle relocates Vite's root). Points the app's SahajCloud origin at Ladle's own, serves the Turnstile challenge there, and swaps in `react-map-gl.tsx`. |
 | `.ladle/backend.ts`     | Answers every SahajCloud read from the browser lane's wire fixtures (`src/mocks/wire.ts`), and the IP lookup with Cambridge. Ladle talks to no API. |
-| `.ladle/react-map-gl.tsx` | react-map-gl with `reuseMaps` off: a map carried between Ladle's iframe and its page drew nothing. |
+| `.ladle/react-map-gl.tsx` | react-map-gl as a story needs it: `reuseMaps` off (a map carried between Ladle's iframe and its page drew nothing), a canvas that follows its own box, and the realm bridge mapbox-gl needs inside the viewport iframe. |
 | `.ladle/i18n.ts`        | Self-contained i18next over the committed English snapshot and the screen-reader strings, English only. |
 | `.ladle/components.tsx` | The **global decorator**: React Query + Helmet + a `MemoryRouter` (fresh per story) + `<I18nextProvider>`. |
 
@@ -125,8 +125,8 @@ free, and their values hold as you move between views.
 A view sets no viewport of its own, so it fills Ladle's main area, with
 Ladle's padding taken away (`.ladle/components.tsx`); narrow the window or
 pick a viewport to see the narrow forms. The map draws at any viewport width:
-the decorator bridges the two things mapbox-gl cannot see across Ladle's
-viewport iframe, its container check and the window's `resize`.
+`.ladle/react-map-gl.tsx` bridges its container check across Ladle's viewport
+iframe, and resizes the canvas with its box.
 
 ⚠ **With a token, the accessibility gate fails every view story on the map's
 own controls** — the locate button and the Mapbox wordmark measure under the
