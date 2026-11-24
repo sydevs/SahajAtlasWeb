@@ -12,7 +12,7 @@
  * and that guarantee lives entirely in the wiring — a `.catch` that was never attached looks
  * exactly like one that was, to every pure test of the pieces. Importing `Widget.tsx` to exercise
  * it would drag mapbox-gl, vaul and every eager view into the node lane, the same argument
- * `views/DrawerStack/strip-label.ts` makes.
+ * `views/nav-names.ts` makes.
  *
  * `Widget.tsx` still owns *when* this runs — once, after a real mount, released with page-global
  * ownership. Calling it early is the failure this whole mechanism exists to prevent.

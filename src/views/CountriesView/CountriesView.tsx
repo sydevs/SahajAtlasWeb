@@ -17,10 +17,11 @@ import { DEFAULT_FILTERS, filtersKey, filtersToParams, hasActiveFilters } from '
 import { FLAG_CDN_URL } from '@/lib/flag-cdn'
 import { validateWebUrl } from '@/lib/url'
 import {
-  CollapseToggle,
+  ExpandSheetButton,
   FilterButton,
   GeolocationSuggestion,
   SearchField,
+  useDrawerControl,
   useFrameOnTop,
 } from '@/views/shared'
 
@@ -33,6 +34,7 @@ export function CountriesView() {
   const { t } = useTranslation()
   const { regionNames } = useLocale()
   const { standalone } = useWidgetMode()
+  const { collapsed } = useDrawerControl()
   const { reset } = useMapController()
   // A shared link can carry filters (`/?days=2`). The map already applies them to its pins, so
   // the counts and the onward links must too, or the two disagree.
@@ -84,8 +86,7 @@ export function CountriesView() {
           index is meaningless, so there is no sort menu here. */}
       <DrawerHeader>
         <SearchField />
-        <FilterButton iconOnly />
-        <CollapseToggle />
+        {collapsed ? <ExpandSheetButton /> : <FilterButton iconOnly />}
       </DrawerHeader>
       <DrawerBody>
         <ActiveFilterPills />
@@ -112,7 +113,7 @@ export function CountriesView() {
               <ListItem
                 key={country.id}
                 count={country.eventCount}
-                href={`${country.path}${filterSearch}`}
+                href={country.singleEventPath ?? `${country.path}${filterSearch}`}
                 icon={
                   country.countryCode ? (
                     <CircleFlag

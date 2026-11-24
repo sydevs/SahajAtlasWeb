@@ -44,7 +44,8 @@ import {
   resolveCalendarView,
 } from '@/lib/shape'
 import { zoneCity } from '@/lib/time'
-import { CloseButton, FilterButton } from '@/views/shared'
+import { BackButton } from '@/views/nav'
+import { FilterButton } from '@/views/shared'
 import { DrawerErrorBody, DrawerLoadingBody } from '@/views/fallbacks'
 
 // Schedule-X validates `locale` against its own supported BCP-47 set, and THROWS
@@ -159,7 +160,8 @@ function CalendarControls({ controls }: { controls: CalendarControlsPlugin }) {
 
   return (
     <>
-      {/* Mode picker — first item, so it holds the top row when the rest wraps below. */}
+      <BackButton />
+      {/* Mode picker — holds the top row with Back when the rest wraps below. */}
       <ToggleGroup
         joined
         aria-label={t('calendar.title')}
@@ -229,10 +231,6 @@ function CalendarControls({ controls }: { controls: CalendarControlsPlugin }) {
 
         <FilterButton />
       </div>
-
-      {/* Close — pinned top-right so it sits in the same spot as every other drawer, even when
-          the header wraps to two rows. */}
-      <CloseButton className="absolute end-4 top-4" />
     </>
   )
 }
@@ -261,7 +259,7 @@ export function CalendarView() {
 
   return (
     <>
-      <DrawerHeader className="relative max-w-none flex-wrap items-center gap-x-3 gap-y-2 pe-12">
+      <DrawerHeader className="max-w-none flex-wrap items-center gap-x-3 gap-y-2">
         <CalendarControls controls={controls} />
       </DrawerHeader>
       <ActiveFilterPills />

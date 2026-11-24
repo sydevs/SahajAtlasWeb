@@ -3,14 +3,16 @@ import type { StackEntry } from '@/lib/shape'
 
 import { describe, it, expect } from 'vitest'
 
-import { stripLabel } from './strip-label'
+import { backLabel, stripLabel } from './nav-names'
 
 // A stand-in for i18next. It returns the en copy for the handful of keys this test
 // reaches, so the assertions read as the sentence a screen reader would speak, not a key.
-const t = ((key: string, opts?: { title?: string }) => {
+const t = ((key: string, opts?: { title?: string; place?: string }) => {
   const copy: Record<string, string> = {
     'common.chrome.back': 'Back',
     'common.chrome.back_to': `Back to ${opts?.title}`,
+    'common.chrome.back_to_world_map': 'Back to the world map',
+    'common.chrome.back_to_results_near': `Back to results near ${opts?.place}`,
     'search.chrome.title': 'Search',
     'online.title': 'Online Classes',
     'calendar.title': 'Calendar',
@@ -27,8 +29,8 @@ const regionNames = new Map([
 const titles = new Map([[7, 'Monday Evening Meditation']])
 
 describe('stripLabel', () => {
-  it('names the root strip "Back", which cannot collide because there is only one root', () => {
-    expect(stripLabel(undefined, { t, regionNames, titles })).toBe('Back')
+  it('names the root strip as the world map, which cannot collide because there is only one root', () => {
+    expect(stripLabel(undefined, { t, regionNames, titles })).toBe('Back to the world map')
   })
 
   it('gives nested regions different names — the case the generic label failed', () => {
@@ -39,12 +41,21 @@ describe('stripLabel', () => {
     expect(stripLabel(london, { t, regionNames, titles })).toBe('Back to London')
   })
 
-  it('falls back to the slug when the region cache has not been filled', () => {
+  it('falls back to a readable slug when the region cache has not been filled', () => {
     // The read is cache-only by design, so a miss has to cost the pretty name and
     // nothing else. A slug is still unique per strip, so the names stay distinct.
-    const entry: StackEntry = { kind: 'region', slug: 'brussels', path: '/be/brussels' }
+    const entry: StackEntry = { kind: 'region', slug: 'united-kingdom', path: '/united-kingdom' }
 
-    expect(stripLabel(entry, { t })).toBe('Back to brussels')
+    expect(stripLabel(entry, { t })).toBe('Back to United Kingdom')
+    expect(stripLabel({ kind: 'region', slug: 'gb', path: '/gb' }, { t })).toBe('Back to GB')
+  })
+
+  it("prefers a country's display name, as RegionView's heading does", () => {
+    const countryName = (code: string) => (code === 'GB' ? 'Royaume-Uni' : undefined)
+
+    expect(stripLabel({ kind: 'region', slug: 'gb', path: '/gb' }, { t, countryName })).toBe(
+      'Back to Royaume-Uni',
+    )
   })
 
   it('names an event from the titles sliver', () => {
@@ -84,5 +95,25 @@ describe('stripLabel', () => {
     for (const entry of entries) {
       expect(stripLabel(entry, { t })).toBeTruthy()
     }
+  })
+})
+
+describe('backLabel', () => {
+  const naming = { t, regionNames, titles }
+
+  it('says a country goes back to the world map', () => {
+    expect(backLabel('/', naming)).toBe('Back to the world map')
+  })
+
+  it('names the place a class or place goes back to', () => {
+    expect(backLabel('/gb/london', naming)).toBe('Back to London')
+    expect(backLabel('/gb/london/7', naming)).toBe('Back to Monday Evening Meditation')
+  })
+
+  it('names the place a search was for, by its first part', () => {
+    expect(backLabel('/search?q=Prague%2C+Czechia&center=14.4,50.1', naming)).toBe(
+      'Back to results near Prague',
+    )
+    expect(backLabel('/search', naming)).toBe('Back to Search')
   })
 })

@@ -137,8 +137,9 @@ Radix-wrapping atoms carry their own `isInvalid` `tv()` variant.
 **Views** — `src/views/` holds the URL-driven drawer views (`DrawerStack` +
 `CountriesView`/`SearchView`/`RegionView`/`OnlineView`/`EventView`/
 `FilterView`/`RegistrationView`/`ShareView`), with shared pieces (`DrawerTitle`,
-`CloseButton`, `FilterButton`, `SearchField`, `GeolocationSuggestion`) in
-`views/shared.tsx`. `DrawerStack` derives the stack from the pathname
+`FilterButton`, `SearchField`, `GeolocationSuggestion`) in `views/shared.tsx`, and
+the header every view below the root opens with (`NavHeader`, `BackButton`) in
+`views/nav.tsx`. `DrawerStack` derives the stack from the pathname
 (`resolveStack`) and renders ONE vaul drawer holding the active view, with peek
 cards behind it — one per panel a repeated dismiss traverses (`dismissDepth`), not
 per URL ancestor. Map-less, it renders a single `mode="filled"` drawer.

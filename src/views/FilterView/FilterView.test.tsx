@@ -20,10 +20,7 @@ vi.mock('@/hooks/use-region-matcher', () => ({ useRegionMatcher: () => undefined
 vi.mock('@/components/molecules', () => ({
   SearchFilters: ({ value }: { value: EventFilters }) => <i>draft-region:{value.region ?? '∅'}</i>,
 }))
-vi.mock('@/views/shared', () => ({
-  CloseButton: () => null,
-  DrawerTitle: () => null,
-}))
+vi.mock('@/views/nav', () => ({ NavHeader: () => null }))
 
 const view = (entry: string) =>
   renderToStaticMarkup(

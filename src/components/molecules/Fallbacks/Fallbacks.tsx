@@ -784,7 +784,7 @@ export function FallbackRegion({
  * see.
  *
  * `DrawerBody` fills a bottom sheet set to `h-dvh` (vaul computes its snap translates
- * from the window height). The mobile snap view shows only its top 300px. So a plain
+ * from the window height). The mobile snap view shows only its top 300px (the open snap then). So a plain
  * `justify-center` would place content at roughly `1.5 × viewport − 300` from the top —
  * measured at 643px in a 667px viewport, off screen. That is why these states were
  * invisible on every phone.

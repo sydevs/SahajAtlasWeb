@@ -448,6 +448,21 @@ export const regionRoute = (node: RegionNode): string =>
 // A non-ISO slug, such as an un-migrated local dev seed, yields no flag instead of an error.
 const countryCodeOf = (node: RegionNode): string | undefined => isoCountryCode(node.slug)
 
+// A place holding exactly one class has no list worth showing, so its row opens the class, at
+// its own address under the place, so the drawers behind it name every place above it. An online
+// class stays out: one located class beside an online one is still two to choose from.
+const singleEventPath = (events: IndexedFeature[], node: RegionNode): string | undefined => {
+  const under = events.filter((event) => event.ancestorIds.includes(node.id))
+
+  if (under.length !== 1 || under[0].online) return undefined
+
+  const route = regionRoute(node)
+  const { id, webPath } = under[0].feature.properties
+  const own = safePath(webPath)
+
+  return own?.startsWith(`${route}/`) ? own : childRoute(route, id)
+}
+
 const toListItem = (node: RegionNode, eventCount: number): RegionListItem =>
   RegionListItemSchema.parse({
     id: node.id,
@@ -488,6 +503,7 @@ const getCountries = async (filters?: EventFilters): Promise<RegionListItem[]> =
         countryCode: countryCodeOf(node),
         eventCount: countUnder(events, node.id),
         path: regionRoute(node),
+        singleEventPath: singleEventPath(events, node),
       }),
     )
     .filter((country) => country.eventCount > 0)
@@ -568,7 +584,11 @@ const getRegion = async (slug: string, filters?: EventFilters): Promise<Region> 
   for (const child of children) {
     const located = byChild.get(child.id)?.length ?? 0
 
-    if (located > 0) subregions.push(toListItem(child, located))
+    if (located > 0)
+      subregions.push({
+        ...toListItem(child, located),
+        singleEventPath: singleEventPath(visible, child),
+      })
   }
   subregions.sort(byEventCountDesc)
 

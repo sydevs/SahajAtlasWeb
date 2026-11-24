@@ -1,6 +1,6 @@
 import { useTranslation } from 'react-i18next'
 
-import { DrawerBody, DrawerHeader } from '@/components/atoms/Drawer'
+import { DrawerBody } from '@/components/atoms/Drawer'
 import { EventFacts, FallbackPanel } from '@/components/molecules'
 // This imports the leaf path, not the barrel. ShareContent owns react-share, and the views
 // that open with the interface import the barrel — so a re-export there would put react-share
@@ -9,7 +9,8 @@ import { EventFacts, FallbackPanel } from '@/components/molecules'
 import { ShareContent } from '@/components/molecules/ShareContent'
 import { useShareUrl } from '@/hooks/use-share-url'
 import { useViewerCountry } from '@/hooks/use-viewer-country'
-import { CloseButton, DrawerTitle, useEventFromPath, useFrameEventOnTop } from '@/views/shared'
+import { NavHeader } from '@/views/nav'
+import { useEventFromPath, useFrameEventOnTop } from '@/views/shared'
 
 // Share links for an event, at route `<event-path>/share`. The event's Share CTA reaches
 // this view, and the route is deep-linkable. So it repeats the compact resolver summary —
@@ -31,10 +32,7 @@ export function ShareView({ eventPath }: { eventPath: string }) {
 
   return (
     <>
-      <DrawerHeader className="justify-between">
-        <DrawerTitle title={t('share.title')} />
-        <CloseButton />
-      </DrawerHeader>
+      <NavHeader title={t('share.title')} />
       <DrawerBody className="p-4">
         <EventFacts
           className="mx-auto mb-4 w-full max-w-md"

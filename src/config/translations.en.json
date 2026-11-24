@@ -14,10 +14,13 @@
       "all_classes_free": "All classes are free",
       "back": "Back",
       "back_to": "Back to %{title}",
+      "back_to_results_near": "Back to results near %{place}",
+      "back_to_world_map": "Back to the world map",
       "cancel": "Cancel",
       "close": "Close",
       "explore": "Explore",
       "loading": "Loading…",
+      "show_more": "Show more",
       "widget_label": "Free meditation classes"
     },
     "errors": {

@@ -380,10 +380,27 @@ export function DrawerContent({
   )
 }
 
-export function DrawerHeader({ children, className }: { children: ReactNode; className?: string }) {
+export function DrawerHeader({
+  children,
+  className,
+  stacked = false,
+}: {
+  children: ReactNode
+  className?: string
+  /** Rows on top of each other (Back, then the title) instead of one row of controls. */
+  stacked?: boolean
+}) {
   const { slots } = useDrawerSlots()
 
-  return <div className={slots.header({ className })}>{children}</div>
+  return (
+    <div
+      className={slots.header({
+        className: [stacked && 'flex-col items-stretch gap-0', className].filter(Boolean).join(' '),
+      })}
+    >
+      {children}
+    </div>
+  )
 }
 
 /**

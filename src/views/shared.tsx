@@ -7,7 +7,7 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useRef, use
 import { useLocation, useNavigationType, useSearchParams } from 'react-router'
 import { useTranslation } from 'react-i18next'
 import { useQueries, useQuery, useSuspenseQuery } from '@tanstack/react-query'
-import { CalendarDays, Funnel, Menu, Search, X } from 'lucide-react'
+import { CalendarDays, Funnel, Search } from 'lucide-react'
 
 import { Button } from '@/components/atoms/Button'
 import { FallbackPanel, GeolocationPrompt } from '@/components/molecules'
@@ -48,6 +48,8 @@ import {
 // closing a drawer — which is what kept the sheet from sliding out and back in on
 // every transition.
 export type DrawerControl = {
+  /** Where `dismiss()` lands, as a route with its query, for Back to name. Unset at the root. */
+  backTo?: string
   collapsed: boolean
   canCollapse: boolean
   /**
@@ -73,10 +75,6 @@ export const DrawerControlContext = createContext<DrawerControl>({
 
 export const useDrawerControl = () => useContext(DrawerControlContext)
 
-// The close affordance for the drawer views. This dismisses via the control seam
-// (a navigation to the parent), rather than vaul's Close — closing the real drawer
-// made the sheet animate shut and then re-open with the parent, which read as
-// jarring.
 export type DrawerTitleProps = {
   /** The drawer's visible heading. */
   title: ReactNode
@@ -102,7 +100,7 @@ export type DrawerTitleProps = {
 export function DrawerTitle({ title, subtitle, note }: DrawerTitleProps) {
   return (
     <div className="min-w-0">
-      <h2 className="truncate text-lg font-semibold">{title}</h2>
+      <h2 className="line-clamp-2 text-lg font-semibold break-words">{title}</h2>
       {subtitle && <div className="truncate text-sm text-gray-11">{subtitle}</div>}
       {note && <div className="truncate text-xs text-gray-11">{note}</div>}
     </div>
@@ -110,40 +108,21 @@ export function DrawerTitle({ title, subtitle, note }: DrawerTitleProps) {
 }
 
 /**
- * The drawer header's icon controls (close, list-toggle, filter) are all the same
- * Button preset, kept here as values, rather than as a wrapper component, so the
- * three provably render identical chrome — the header reads as one set of buttons.
+ * The drawer header's icon controls (back, overlay close, calendar, search, filter) are all
+ * the same Button preset, kept here as values, rather than as a wrapper component, so they
+ * provably render identical chrome — the header reads as one set of buttons.
  */
-const HEADER_CONTROL = { variant: 'ghost', isIconOnly: true, size: 'sm' } as const
-
-export function CloseButton({ className }: { className?: string }) {
-  // This renders inside the error/loading chrome, where a suspend would escape the
-  // boundary and blank the widget instead of showing the failure. `useTranslation()`
-  // cannot suspend: the English snapshot is bundled, and i18next initialises
-  // synchronously with no backend to wait on (`config/i18n.ts`).
-  const { t } = useTranslation()
-  const { dismiss } = useDrawerControl()
-
-  return (
-    <Button
-      {...HEADER_CONTROL}
-      aria-label={t('common.chrome.close')}
-      className={className}
-      onClick={dismiss}
-    >
-      <X size={20} />
-    </Button>
-  )
-}
+export const HEADER_CONTROL = { variant: 'ghost', isIconOnly: true, size: 'sm' } as const
 
 // The calendar affordance for region headers (RegionView): opens the full-width
 // calendar pre-scoped to this region (`/calendar?region=<slug>`, pre-setting the
-// Region filter). This uses the same header-control chrome as the close control,
+// Region filter). This uses the same header-control chrome as the other header controls,
 // so the header reads as one set of buttons.
 export function CalendarButton({ regionSlug }: { regionSlug: string }) {
   // Also rendered by the fallback chrome (views/fallbacks.tsx), where a suspend
   // would escape the boundary and blank the widget instead of showing the failure.
-  // See CloseButton for why this read cannot.
+  // `useTranslation()` cannot suspend: the English snapshot is bundled, and i18next
+  // initialises synchronously with no backend to wait on (`config/i18n.ts`).
   const { t } = useTranslation()
   const navigate = useAtlasNavigate()
 
@@ -160,11 +139,12 @@ export function CalendarButton({ regionSlug }: { regionSlug: string }) {
 
 // The search affordance for region headers (RegionView): jumps to the
 // distance-ranked search view. This renders the same header-control chrome as the
-// close/filter controls, so the header reads as one set of buttons.
+// other header controls, so the header reads as one set of buttons.
 export function SearchButton() {
   // Also rendered by the fallback chrome (views/fallbacks.tsx), where a suspend
   // would escape the boundary and blank the widget instead of showing the failure.
-  // See CloseButton for why this read cannot.
+  // `useTranslation()` cannot suspend: the English snapshot is bundled, and i18next
+  // initialises synchronously with no backend to wait on (`config/i18n.ts`).
   const { t } = useTranslation()
   const navigate = useAtlasNavigate()
 
@@ -179,27 +159,19 @@ export function SearchButton() {
   )
 }
 
-// The stacked-list toggle in CountriesView's header: expands the collapsed peek
-// into the country list, or collapses the open list back to the peek. Hidden where
-// the sheet cannot collapse (desktop or map-less).
-export function CollapseToggle() {
-  // See CloseButton: also rendered by the error/loading chrome, so it must not
-  // suspend.
+// A sheet pulled down to its peek says how to raise it again. The handle does this too, but a
+// thin handle is easy to miss, and a keyboard can't use it. Hidden where the sheet cannot
+// collapse (a wide panel, or map-less) and while it is open.
+export function ExpandSheetButton() {
+  // Also rendered by the error/loading chrome, so it must not suspend (see CalendarButton).
   const { t } = useTranslation()
   const { collapsed, canCollapse, toggle } = useDrawerControl()
 
-  if (!canCollapse) return null
+  if (!canCollapse || !collapsed) return null
 
-  // At the peek, it is a list toggle (expand the countries list). Once opened past
-  // the peek it becomes the usual close control (collapse back to the peek).
   return (
-    <Button
-      {...HEADER_CONTROL}
-      aria-expanded={!collapsed}
-      aria-label={collapsed ? t('common.a11y.explore') : t('common.chrome.close')}
-      onClick={toggle}
-    >
-      {collapsed ? <Menu size={24} /> : <X size={20} />}
+    <Button className="shrink-0" color="primary" size="sm" variant="flat" onClick={toggle}>
+      {t('common.chrome.show_more')}
     </Button>
   )
 }
@@ -210,11 +182,12 @@ export function CollapseToggle() {
 // over one nav plus count: the labeled ghost button for the list toolbar
 // (SearchView), and — with `iconOnly` — an icon-only header control carrying the
 // active count as a badge (CountriesView's header), so it reads as one set with
-// the close/collapse chrome.
+// the other header controls.
 export function FilterButton({ iconOnly = false }: { iconOnly?: boolean }) {
   // Also rendered by the fallback chrome (views/fallbacks.tsx), where a suspend
   // would escape the boundary and blank the widget instead of showing the failure.
-  // See CloseButton for why this read cannot.
+  // `useTranslation()` cannot suspend: the English snapshot is bundled, and i18next
+  // initialises synchronously with no backend to wait on (`config/i18n.ts`).
   const { t } = useTranslation()
   const navigate = useAtlasNavigate()
   const location = useLocation()
@@ -436,7 +409,8 @@ export function useEventFromPath(eventPath: string) {
 export function EmptyEventList() {
   // Also rendered by the fallback chrome (views/fallbacks.tsx), where a suspend
   // would escape the boundary and blank the widget instead of showing the failure.
-  // See CloseButton for why this read cannot.
+  // `useTranslation()` cannot suspend: the English snapshot is bundled, and i18next
+  // initialises synchronously with no backend to wait on (`config/i18n.ts`).
   const { t } = useTranslation()
 
   return (

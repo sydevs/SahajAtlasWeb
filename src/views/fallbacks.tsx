@@ -15,12 +15,11 @@ import { useWidgetMode } from '@/config/mode'
 import { useLocale } from '@/hooks/use-locale'
 import { useMapController } from '@/hooks/use-map-controller'
 import { classifyError, errorMessage } from '@/lib/report'
-import { baseStackEntry, nearestKnownRegion, resolveStack } from '@/lib/shape'
+import { baseStackEntry, isFilterOverlay, nearestKnownRegion, resolveStack } from '@/lib/shape'
+import { BackButton, NavHeader } from '@/views/nav'
 import {
   CalendarButton,
-  CloseButton,
-  CollapseToggle,
-  DrawerTitle,
+  ExpandSheetButton,
   FilterButton,
   SearchButton,
   SearchField,
@@ -54,7 +53,7 @@ const leadsWithGeocoder = (
 // whole widget inside someone else's page. So it is built in layers, and a failure in
 // an outer one costs only that layer:
 //
-//   0 — the frame (`DrawerChrome`): a header plus a working close control, rebuilt
+//   0 — the frame (`DrawerChrome`): a header plus a working way back, rebuilt
 //       from the URL and already-cached data. Only total calls — `t()` with
 //       `defaultValue`, a context read, non-suspending cache reads, and
 //       `resolveStack`, which is pure.
@@ -102,7 +101,7 @@ function SearchFieldSkeleton() {
  *
  * It cannot THROW. Every lookup is a non-suspending cache read that degrades to
  * `undefined`. Its own `t()` calls carry a `defaultValue`. An unrecognised route
- * simply omits the title — a header with only a close control still beats no header.
+ * simply omits the title — a header with only a way back still beats no header.
  *
  * Nor can it SUSPEND on a string. `useLocale()` and every control this renders read
  * i18next through a plain `useTranslation()`, which is always ready: the English
@@ -172,11 +171,6 @@ export function DrawerChrome({
     }
   })()
 
-  // At the root there is nothing to climb to, and `navigate(-1)` would take the host
-  // page back. So this offers the collapse (which self-hides where it cannot
-  // collapse), rather than a close that silently does nothing.
-  const dismiss = canDismiss ? <CloseButton /> : <CollapseToggle />
-
   // The root and the search view lead with the geocoder, rather than a title, so
   // they get the header their view would render. Everything in it is a NAVIGATION —
   // a new search, a filter drawer — not a read of the data that failed, so none of
@@ -192,8 +186,11 @@ export function DrawerChrome({
               a cold start it would instantiate one while the map is still initialising, then
               tear it down again the moment CountriesView mounts its own. An ERROR chrome keeps
               the real field. There it is the escape hatch. */}
+          {canDismiss && <BackButton iconOnly />}
           {interactive ? <SearchField /> : <SearchFieldSkeleton />}
-          {dismiss}
+          {/* At the root there is nothing to climb to: `navigate(-1)` would take the host page
+              back. So Back renders only below it, and the root offers to raise the sheet. */}
+          {!canDismiss && <ExpandSheetButton />}
         </DrawerHeader>
         <DrawerToolbar>
           <ListToolbar>
@@ -204,35 +201,36 @@ export function DrawerChrome({
     )
   }
 
+  // The view's own header, so nothing moves when the view arrives. No title when nothing
+  // resolved: a blank <h2> is a heading with no name, worse for a screen reader than none.
   return (
-    <DrawerHeader className="justify-between">
-      {/* An empty <div> rather than an empty DrawerTitle when nothing resolved: a blank
-          <h2> is a heading with no name, which is worse for a screen reader than no
-          heading at all. It still holds the left slot so the control stays right-aligned. */}
-      {title ? <DrawerTitle title={title} /> : <div />}
-      <div className="flex shrink-0 items-center gap-2">
-        {/* A region's own header offers these three, and all still work — they navigate
-            rather than read. The calendar and the filters are scoped to the region whose page
-            failed, which is exactly where a viewer wanted to be. Not for a place that doesn't
-            exist: there is nothing to scope them to, and the message's own way out is the
-            only one that leads anywhere. */}
-        {entry.kind === 'region' && !notFound && (
-          <>
-            <CalendarButton regionSlug={entry.slug} />
-            <SearchButton />
-            <FilterButton iconOnly />
-          </>
-        )}
-        {entry.kind === 'online' && <SearchButton />}
-        {entry.kind === 'calendar' && <FilterButton iconOnly />}
-        {dismiss}
-      </div>
-    </DrawerHeader>
+    <NavHeader
+      actions={
+        <>
+          {/* A region's own header offers these three, and all still work — they navigate
+              rather than read. The calendar and the filters are scoped to the region whose page
+              failed, which is exactly where a viewer wanted to be. Not for a place that doesn't
+              exist: there is nothing to scope them to, and the message's own way out is the
+              only one that leads anywhere. */}
+          {entry.kind === 'region' && !notFound && (
+            <>
+              <CalendarButton regionSlug={entry.slug} />
+              <SearchButton />
+              <FilterButton iconOnly />
+            </>
+          )}
+          {entry.kind === 'online' && <SearchButton />}
+          {entry.kind === 'calendar' && <FilterButton iconOnly />}
+        </>
+      }
+      overlay={isFilterOverlay(resolveStack(location.pathname), hasMap)}
+      title={title}
+    />
   )
 }
 
 // The Suspense fallback for a view whose data is still loading — the shared chrome
-// (so the drawer keeps its identity and its close control) over a spinner.
+// (so the drawer keeps its identity and its way back) over a spinner.
 // `interactive={false}`: see `SearchFieldSkeleton`.
 export function DrawerLoading() {
   return (

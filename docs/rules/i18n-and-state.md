@@ -260,10 +260,22 @@ source of truth, so all three stay linkable and shareable:
   (`resolveStack`) — of the *router's* location, which on a host page whose
   anchor the widget declined to take is a `MemoryRouter`'s location rather than
   the address bar's (`mountDecision`). Nothing below the router can tell, which
-  is the point. Dismissal is history-aware: `dismissAction` maps X, swipe, or Esc
-  to a chronological `navigate(-1)` when in-widget `atlasDepth(location) > 0`
-  (restoring the prior camera), and only to the structural parent for a fresh
-  deep link (depth 0) — never popping the host page's own history.
+  is the point. Dismissal is history-aware: `dismissAction` maps Back, swipe, or
+  Esc to a chronological `navigate(-1)` when in-widget `atlasDepth(location) > 0`
+  (restoring the prior camera), and only to a structural climb for a fresh deep
+  link (depth 0) — never popping the host page's own history.
+  **Back says where it goes, and the label and the press read one decision.**
+  Every push stamps `from` (path and query) beside `depth`, because history can
+  be moved through but never read; `backDestination` returns that at depth > 0,
+  else `climbDestination`, and DrawerStack hands the result to Back as
+  `DrawerControl.backTo`. The climb follows the region tree's real ancestry
+  (`placedPathname`), and passes over a venue and any place holding a single
+  in-person class (`passablePlaces`): "Back to Balham Library" on a class there
+  read as going nowhere, and a one-class place only opens that class again
+  (`loneClassPath`, RegionView). A climb stamps `climbedFrom`, so a one-class
+  place reached by one climbs on instead of bouncing back into the class, even
+  before the feed has loaded. An X is left only on an overlay over a page still
+  on screen: the filters over the calendar (`OverlayCloseButton`).
   **How many peek strips the stack draws is that same history question, not the
   URL's ancestor count** — `dismissDepth` counts what a repeated X actually
   traverses. A pin clicked from the root sits at depth 1 under three URL
@@ -271,7 +283,7 @@ source of truth, so all three stay linkable and shareable:
   `DrawerStack` keeps the depth-0 entry's height in a **ref** (non-reactive): it
   reads only at depth > 0 and writes only at depth 0, so a write can never change
   the current render.
-  **Each strip is named for where it lands** (`stripLabel`, #102) — they used to
+  **Each strip is named for where it lands** (`stripLabel`, `views/nav-names.ts`, #102) — they used to
   all say "Back," giving a three-deep stack three identically-named buttons going
   three different places. Names come from the `['regions']` tree and the
   event-titles sliver, read **cache-only** (`enabled: false`), so naming a strip

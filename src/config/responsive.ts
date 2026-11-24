@@ -83,6 +83,14 @@ export function useCoarsePointer(): boolean {
   return useMediaQuery({ query: '(hover: none) and (pointer: coarse)' })
 }
 
+/**
+ * Whether the window is a phone on its side, or as short. It reads the viewport on purpose: only
+ * the frameless phone sheet asks, and that sheet is measured against the window too.
+ */
+export function useIsShortViewport(): boolean {
+  return useMediaQuery({ query: '(max-height: 480px)' })
+}
+
 /** The device has a real pointer that can rest on something, so hover can carry content. */
 export const REAL_POINTER_QUERY = '(hover: hover) and (pointer: fine)'
 

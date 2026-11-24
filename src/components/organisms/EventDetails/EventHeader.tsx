@@ -4,22 +4,24 @@ import { Event } from '@/types'
 
 export type EventHeaderProps = {
   event: Event
-  /** Trailing header control (the drawer close button). */
-  trailing?: ReactNode
+  /** The row above the title: the way back. */
+  nav?: ReactNode
 }
 
 /**
- * This is the event surface header. It shows only the title. The header
+ * This is the event surface header: the way back, then the title. The header
  * renders outside the drawer body, so it stays pinned while content scrolls
- * and so the mobile sheet's 80px peek shows it (issue #52, WS4). The triage
+ * and so the mobile sheet's peek shows it (issue #52, WS4). The triage
  * chips (type, language, Today) open the body instead of sitting here. The
  * date and location facts follow the chips.
  */
-export function EventHeader({ event, trailing }: EventHeaderProps) {
+export function EventHeader({ event, nav }: EventHeaderProps) {
   return (
-    <div className="flex shrink-0 items-start justify-between gap-2 px-6 pt-1 pb-2 md:pt-4">
-      <h1 className="line-clamp-3 text-lg leading-6 font-semibold tracking-wide">{event.title}</h1>
-      {trailing}
+    <div className="flex shrink-0 flex-col px-6 pt-1 pb-2 md:pt-4">
+      {nav}
+      <h1 className="line-clamp-3 text-lg leading-6 font-semibold tracking-wide break-words">
+        {event.title}
+      </h1>
     </div>
   )
 }

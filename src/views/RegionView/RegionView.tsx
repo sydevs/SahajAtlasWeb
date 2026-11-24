@@ -2,10 +2,11 @@ import { useSuspenseQuery } from '@tanstack/react-query'
 import { Helmet } from 'react-helmet-async'
 import { useTranslation } from 'react-i18next'
 import { Monitor } from 'lucide-react'
+import { Navigate, useLocation } from 'react-router'
 
 import { Alert } from '@/components/atoms/Alert'
 import { Link } from '@/components/atoms/Link'
-import { DrawerBody, DrawerHeader } from '@/components/atoms/Drawer'
+import { DrawerBody } from '@/components/atoms/Drawer'
 import {
   ActiveFilterPills,
   EventListItem,
@@ -20,12 +21,21 @@ import { useMapController } from '@/hooks/use-map-controller'
 import { usePostEventFeedback } from '@/hooks/use-post-event-feedback'
 import { usePrefetchEvents } from '@/hooks/use-prefetch-event'
 import { useWidgetMode } from '@/config/mode'
-import { DEFAULT_FILTERS, childRoute, hasActiveFilters, searchPath } from '@/lib/shape'
+import {
+  DEFAULT_FILTERS,
+  cameUpFrom,
+  childRoute,
+  climbedUpFrom,
+  hasActiveFilters,
+  loneClassPath,
+  parentOf,
+  searchPath,
+  viewRegion,
+} from '@/lib/shape'
 import { validateWebUrl } from '@/lib/url'
+import { NavHeader } from '@/views/nav'
 import {
   CalendarButton,
-  CloseButton,
-  DrawerTitle,
   EmptyEventList,
   FilterButton,
   GeolocationSuggestion,
@@ -44,6 +54,7 @@ import {
 // canonical tag is standalone-only.
 export function RegionView({ slug }: { slug: string }) {
   const { t } = useTranslation()
+  const location = useLocation()
   const { regionNames, locale } = useLocale()
   const { standalone } = useWidgetMode()
   const { frameRegion } = useMapController()
@@ -90,6 +101,23 @@ export function RegionView({ slug }: { slug: string }) {
     (region.level === 'city' ? region.subtitle : undefined) ??
     (hasEventList ? t('common.chrome.all_classes_free') : undefined)
 
+  // A place with one class opens it: a list of one is an extra tap. Only while this view is the
+  // page on screen, not while it plays its exit. Reached by climbing out of that class, it climbs
+  // on, as Back already said it would; reached by a step back in history, it shows its page.
+  const lone = loneClassPath(region, hasActiveFilters(filters))
+
+  if (lone && viewRegion(location.pathname) === slug) {
+    if (climbedUpFrom(location, lone))
+      return (
+        <Navigate
+          replace
+          state={{ climbedFrom: location.pathname }}
+          to={parentOf(location.pathname) ?? '/'}
+        />
+      )
+    if (!cameUpFrom(location, lone)) return <Navigate replace state={location.state} to={lone} />
+  }
+
   return (
     <>
       {standalone && canonicalUrl && (
@@ -98,18 +126,18 @@ export function RegionView({ slug }: { slug: string }) {
           <meta content={canonicalUrl} property="og:url" />
         </Helmet>
       )}
-      <DrawerHeader className="justify-between">
-        <DrawerTitle subtitle={subheader} title={header} />
-        {/* Calendar, search, filters and close form one right-aligned control group.
-            justify-between keeps the title left. The calendar and the filters both open
-            pre-scoped to this region. */}
-        <div className="flex shrink-0 items-center gap-2">
-          <CalendarButton regionSlug={region.slug} />
-          <SearchButton />
-          <FilterButton iconOnly />
-          <CloseButton />
-        </div>
-      </DrawerHeader>
+      {/* The calendar and the filters both open pre-scoped to this region. */}
+      <NavHeader
+        actions={
+          <>
+            <CalendarButton regionSlug={region.slug} />
+            <SearchButton />
+            <FilterButton iconOnly />
+          </>
+        }
+        subtitle={subheader}
+        title={header}
+      />
       <DrawerBody>
         <ActiveFilterPills />
         {/* Above the region's own content, which IS the "other classes near them" the
@@ -179,7 +207,7 @@ export function RegionView({ slug }: { slug: string }) {
               <ListItem
                 key={`region-${child.id}`}
                 count={child.eventCount}
-                href={`${child.path}${filterSearch}`}
+                href={child.singleEventPath ?? `${child.path}${filterSearch}`}
                 label={child.name}
                 subtitle={child.subtitle}
               />
