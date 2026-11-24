@@ -110,7 +110,7 @@ export function useHasRealPointer(): boolean {
 /**
  * This checks whether the widget itself is wide, measured, not inferred.
  *
- * Pass the widget's own layout root: the map-less container, or map mode's frame.
+ * Pass the widget's own layout root: the inline column, or map mode's frame.
  * Pass `null` when there is none, such as an unboxed map embed. The viewport then stands in.
  * That is the same answer, because such an embed spans the viewport.
  *

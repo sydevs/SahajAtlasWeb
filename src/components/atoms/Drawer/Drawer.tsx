@@ -16,9 +16,8 @@ import { overlayContainer } from '@/lib/overlay'
 // `DrawerStack` renders a SINGLE drawer, holding the active (top) view. Parent
 // views appear as static peek cards behind it, not real nested drawers.
 // Direction is left at ≥md, and bottom on mobile. `snapPoints` are the mobile
-// peek, third, and full ladder. Map-less, the drawer uses `mode="filled"`. It
-// is then absolute and fills the widget container, instead of fixed to the
-// viewport.
+// peek, third, and full ladder. A map-less atlas renders no drawer at all: its
+// views sit in the inline embed's column, in `DrawerSlotsProvider mode="inline"`.
 
 export type DrawerDirection = 'left' | 'right' | 'top' | 'bottom'
 
@@ -30,8 +29,7 @@ const drawer = tv({
     content:
       'pointer-events-auto fixed z-40 flex flex-col overflow-clip bg-background text-foreground shadow-2xl outline-none',
     // Every content band is capped at `--sy-content-max` (default 512px) and
-    // centred. So on a wide surface, such as a map-less embed or a large-mobile
-    // bottom sheet, the views read as a centred column, instead of stretching
+    // centred. So on a wide surface, such as a large-mobile bottom sheet, the views read as a centred column, instead of stretching
     // edge to edge. This has no effect on the 352px anchored panel,
     // which is already narrower.
     // A header hosting a `SearchField` also hands the geocoder's suggestion list its width
@@ -86,7 +84,8 @@ const drawer = tv({
   variants: {
     direction: {
       // Flush to the edge on tablet (md–lg). At ≥lg it floats with a margin, so
-      // the map shows around it, rounded. (`full` cancels the float map-less.)
+      // the map shows around it, rounded to match the stacked ancestor panels.
+      // The divider border matches those panels too.
       //
       // TODO(rtl, #52 WS8): the remaining RTL gap is vaul's own `direction`
       // prop. That prop is physically left or right, and it drives both the
@@ -122,7 +121,7 @@ const drawer = tv({
       // its snap translate from the window height, so a content-sized sheet
       // would get pushed off-screen. The 3dvh bottom padding keeps the
       // footer above the fold at the 0.97 top snap, since the last 3% stays
-      // hidden. `full` cancels this map-less.
+      // hidden.
       bottom: {
         content:
           'inset-x-0 bottom-0 h-[var(--sy-frame-h)] rounded-t-2xl border-t border-divider pb-[calc(var(--sy-frame-h)*0.03)]',
@@ -131,23 +130,10 @@ const drawer = tv({
         content: 'inset-x-0 top-0 h-[var(--sy-frame-h)] rounded-b-2xl border-b border-divider',
       },
     },
-    // How the panel relates to its container. This used to be two
-    // independent booleans, `contained` and `full`. But only two of the four
-    // possible states ever occurred in practice. DrawerStack always set both
-    // together, and `filled`'s class list is entirely `!important` overrides
-    // that cancel the other one. That pattern is the signature of a variant
-    // that wanted to be a mode.
+    // How the panel relates to the page: a drawer over the map, or no drawer at all.
     mode: {
       /** Fixed to the viewport, anchored to the `direction` edge. This is the map layout. */
       anchored: {},
-      /**
-       * Absolute within the widget container, filling it. This is the
-       * map-less single panel. It is still a real vaul root, so the header
-       * close button keeps working.
-       */
-      filled: {
-        content: '!absolute !inset-0 !h-full !max-h-none !w-full !max-w-none !rounded-none !pb-0',
-      },
       /**
        * In the host page's flow, with no drawer at all: the inline embed's content column.
        * Nothing scrolls inside it, so the page grows to fit. The column lifts the bands' width
@@ -164,20 +150,17 @@ const drawer = tv({
     // A full-width surface, such as CalendarView, instead of the 352px
     // left panel, so a month grid stays legible. This only matters with
     // the anchored `left` panel, in map mode at ≥md. The bottom sheet is
-    // already full-width, and `filled` (map-less) already fills the
-    // container. So both ignore this variant (see the compound below).
+    // already full-width, so it ignores this variant (see the compound below).
     wide: { true: {}, false: {} },
   },
   compoundVariants: [
     // The bottom sheet shows a drag handle that already spaces the header
     // from the sheet's top edge. So this relaxes the header's top padding,
-    // for a balanced handle-to-header gap. This does not apply when `filled`
-    // hides the handle, map-less, where the header owns the top instead.
+    // for a balanced handle-to-header gap.
     { direction: 'bottom', mode: 'anchored', class: { header: 'pt-2' } },
     // Wide, plus the anchored left panel: this fills the container, flush at
     // md and floating at lg, instead of the narrow left panel. `!important`
-    // overrides the left variant's fixed width and edge insets. This mirrors
-    // how `filled` overrides them map-less.
+    // overrides the left variant's fixed width and edge insets.
     {
       direction: 'left',
       mode: 'anchored',
@@ -190,14 +173,13 @@ const drawer = tv({
 
 type DrawerSlots = ReturnType<typeof drawer>
 
-type DrawerMode = 'anchored' | 'filled' | 'inline'
+type DrawerMode = 'anchored' | 'inline'
 
 type DrawerCtx = {
   slots: DrawerSlots
   direction: DrawerDirection
-  // A `filled` drawer, map-less, hides the drag handle. There is nothing to drag.
   mode: DrawerMode
-  // The portal target for a real drawer. Map-less mode passes the widget container.
+  // The portal target for a real drawer.
   container?: HTMLElement | null
 }
 
@@ -209,16 +191,15 @@ const DrawerContext = createContext<DrawerCtx>({
 
 const useDrawerSlots = () => useContext(DrawerContext)
 
-// A real drawer is anchored or filled. `inline` is a surface with no drawer at all, reached
-// only through `DrawerSlotsProvider`.
+// A real drawer is anchored. `inline` is a surface with no drawer at all, reached only through
+// `DrawerSlotsProvider`.
 export type DrawerProps = Omit<VariantProps<typeof drawer>, 'mode'> & {
-  mode?: 'anchored' | 'filled'
   /** Controlled open state. */
   open?: boolean
   onOpenChange?: (open: boolean) => void
   /** Non-modal by default. The map and content behind it stay interactive. */
   modal?: boolean
-  /** When false, the drawer cannot be closed by swipe, Esc, or clicking outside (map-less root). */
+  /** When false, the drawer cannot be closed by swipe, Esc, or clicking outside. */
   dismissible?: boolean
   /** Restricts dragging to the handle. When no handle renders (the left panel),
    *  this makes the drawer undraggable, but the close button still dismisses it. */
@@ -227,7 +208,7 @@ export type DrawerProps = Omit<VariantProps<typeof drawer>, 'mode'> & {
   snapPoints?: (number | string)[]
   activeSnapPoint?: number | string | null
   setActiveSnapPoint?: (snapPoint: number | string | null) => void
-  /** The portal target. Map-less passes the widget container. The default is the theme root. */
+  /** The portal target. The default is the theme root. */
   container?: HTMLElement | null
   /**
    * The box vaul measures snap points against. **This is not the same
@@ -247,7 +228,6 @@ export function Drawer({
   modal = false,
   dismissible = true,
   handleOnly = false,
-  mode = 'anchored',
   wide = false,
   snapPoints,
   activeSnapPoint,
@@ -256,7 +236,7 @@ export function Drawer({
   measureAgainst,
   children,
 }: DrawerProps) {
-  const slots = drawer({ direction, mode, wide })
+  const slots = drawer({ direction, mode: 'anchored', wide })
 
   // This passes the snap props unconditionally. `undefined` means no snap
   // points. This lets the WithFadeFrom/WithoutFadeFrom discriminated union
@@ -310,7 +290,9 @@ export function Drawer({
   }
 
   return (
-    <DrawerContext.Provider value={{ slots, direction: direction ?? 'bottom', mode, container }}>
+    <DrawerContext.Provider
+      value={{ slots, direction: direction ?? 'bottom', mode: 'anchored', container }}
+    >
       <Vaul.Root {...rootProps} />
     </DrawerContext.Provider>
   )
@@ -321,11 +303,10 @@ export function Drawer({
  * mode plus direction) WITHOUT a vaul root, so a view's `Drawer*` subtree can be
  * previewed outside a real drawer (the story harness) with the SAME chrome the app
  * renders. The app itself always goes through `<Drawer>`/`<DrawerContent>`. This is
- * only for rendering the inner content standalone. It defaults to the map-less
- * `filled` bottom drawer, which is what the harness simulates.
+ * only for rendering the inner content standalone, and for the inline embed's column.
  */
 export function DrawerSlotsProvider({
-  mode = 'filled',
+  mode = 'anchored',
   direction = 'bottom',
   children,
 }: {
@@ -345,7 +326,7 @@ export type DrawerContentProps = {
   'aria-label': string
   children: ReactNode
   className?: string
-  /** Shows the drag handle. Defaults to true for bottom sheets (never when filled). */
+  /** Shows the drag handle. Defaults to true for bottom sheets. */
   handle?: boolean
   /**
    * Escape, before vaul acts on it.
@@ -367,13 +348,13 @@ export function DrawerContent({
   handle,
   onEscapeKeyDown,
 }: DrawerContentProps) {
-  const { slots, direction, mode, container } = useDrawerSlots()
+  const { slots, direction, container } = useDrawerSlots()
   // State, not a ref: the portal mounts the panel a pass after this component does.
   const [panel, setPanel] = useState<HTMLDivElement | null>(null)
 
-  useSheetDragClaim(direction === 'bottom' && mode !== 'filled' ? panel : null)
+  useSheetDragClaim(direction === 'bottom' ? panel : null)
 
-  const showHandle = handle ?? (direction === 'bottom' && mode !== 'filled')
+  const showHandle = handle ?? direction === 'bottom'
   // `undefined` means use the default themed root. An explicit `null` opts out.
   const target = container === undefined ? overlayContainer() : container
 

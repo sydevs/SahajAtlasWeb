@@ -25,7 +25,6 @@ import { Button } from '@/components/atoms/Button'
 import { Drawer, DrawerContent, DrawerSlotsProvider } from '@/components/atoms/Drawer'
 import { ResetErrorBoundary, SettingsMenu } from '@/components/molecules'
 import { WidgetWidthContext, useIsWide } from '@/config/responsive'
-import { useWidgetMode } from '@/config/mode'
 import { useBrowsedCountry, useCalendarPosition, useSheetCover } from '@/config/store'
 import { frameElement, overlayContainer } from '@/lib/overlay'
 import {
@@ -280,8 +279,7 @@ function CloseMapButton({ beside }: { beside: boolean }) {
 // are just its inner content. So navigating never remounts or re-slides the drawer. The
 // inner content cross-fades instead. Every view is handled the same way: dismissing
 // navigates to the parent, and the one view with no parent (CountriesView) collapses to
-// its peek instead of closing. Direction is left at ≥md, bottom on mobile. Map-less, the
-// single drawer fills the widget container.
+// its peek instead of closing. Direction is left at ≥md, bottom on mobile.
 //
 // `inline` is the inline embed's content column: the same stack and the same views, in the
 // page's own flow, with no drawer, no sheet and no peek strips. Its map, where it has one, sits
@@ -292,7 +290,6 @@ export function DrawerStack({ inline = false }: { inline?: boolean } = {}) {
   // second subscription for a value this component already re-renders on.
   const searchCenter = new URLSearchParams(location.search).get('center')
   const navigate = useNavigate()
-  const { hasMap, standalone } = useWidgetMode()
   // `t` comes off `useLocale`, not a second `useTranslation` call: the hook already
   // holds one for the default (`common`) namespace, and hands it back for exactly this
   // reason. A second call would double this component's i18next subscription, and
@@ -302,12 +299,13 @@ export function DrawerStack({ inline = false }: { inline?: boolean } = {}) {
   // component, it is the no-op provider, and the Escape ladder below simply ends where
   // it always did.
   const { expanded, collapse } = useExpansion()
-  // A sheet over a map: every snap, peek and camera-cover behaviour below needs one.
-  const sheeted = hasMap && !inline
+  // A sheet over a map: every snap, peek and camera-cover behaviour below needs one. Only the
+  // inline column has none — a map-less atlas is always inline (`App`).
+  const sheeted = !inline
   const queryClient = useQueryClient()
   const [container, setContainer] = useState<HTMLDivElement | null>(null)
-  // How wide the WIDGET is, not the screen (issue #107). `container` is the map-less layout
-  // root below, or the inline content column. In map mode there is no such element, but there
+  // How wide the WIDGET is, not the screen (issue #107). `container` is the inline content
+  // column. In map mode there is no such element, but there
   // can be a FRAME — the expanded dialog. Where one exists, it is the honest answer to "does a
   // 352px side panel leave usable space beside it?", because the panel sits inside it. With
   // no frame, this call is `useIsWide(null)`, the viewport. This value is shared with the
@@ -326,8 +324,8 @@ export function DrawerStack({ inline = false }: { inline?: boolean } = {}) {
   // Filters over the full-width calendar (map mode) render as a separate modal drawer
   // OVER the still-mounted calendar — from the right at ≥md, a bottom sheet on mobile —
   // rather than replacing it. So the calendar stays the base view, and the trailing
-  // `filters` entry peels off into the overlay below. (Map-less and inline keep the plain
-  // replace-stack behaviour: an overlay belongs to a sheet over a map.)
+  // `filters` entry peels off into the overlay below. (Inline keeps the plain replace-stack
+  // behaviour: an overlay belongs to a sheet over a map.)
   const filterOverlay = isFilterOverlay(entries, sheeted)
 
   // Reads through `baseStackEntry` rather than the last non-overlay entry — the same value
@@ -725,18 +723,6 @@ export function DrawerStack({ inline = false }: { inline?: boolean } = {}) {
     [depth, location, navigate],
   )
 
-  // Whether the sheet advertises its drag affordance (issue #107). The atom's default is
-  // `direction === 'bottom' && mode !== 'filled'`, which was right while `filled` (map-less)
-  // could only ever be the wide left panel — "nothing to drag". Once the sheet is
-  // container-aware, a narrow map-less embed becomes a `filled` BOTTOM sheet that IS
-  // drag-dismissible. That default would then leave it dismissible with nothing on screen
-  // saying so — an invisible affordance.
-  //
-  // This is keyed on dismissibility, rather than on the mode, so it can never claim one
-  // that is not there. The map-less ROOT view sets `dismissible={false}`, since there is no
-  // parent to climb to, and correctly keeps no handle. Map mode is always dismissible, so
-  // this resolves to the atom's old answer there.
-  const sheetDismissible = hasMap || parentPaths.length > 0
   // Suspense sits OUTSIDE the boundary, so a lazy view's chunk load is a suspend that shows
   // `DrawerLoading` — the shared chrome (header plus close control, rebuilt from the URL) over a
   // spinner — and only a FAILED load throws inward to the boundary. That is what keeps a first
@@ -755,7 +741,6 @@ export function DrawerStack({ inline = false }: { inline?: boolean } = {}) {
   const sheet = (
     <DrawerContent
       aria-label={t('countries.title')}
-      handle={direction === 'bottom' && sheetDismissible}
       /**
        * The last rung of the Escape ladder, and the only place it can be built.
        *
@@ -831,54 +816,6 @@ export function DrawerStack({ inline = false }: { inline?: boolean } = {}) {
                 {topView}
               </div>
             </DrawerSlotsProvider>
-          </div>
-        </DrawerControlContext.Provider>
-      </WidgetWidthContext.Provider>
-    )
-  }
-
-  // Map-less: one contained drawer fills the widget container (there is no map to
-  // reveal, so no peek strips or snap ladder). Standalone owns the viewport
-  // (100dvh). Embedded fills the host's slot (100%).
-  if (!hasMap) {
-    return (
-      <WidgetWidthContext.Provider value={isWide}>
-        <DrawerControlContext.Provider value={control}>
-          {/* ⚠ Clip, never hidden — `components/AGENTS.md` carries why (#326). Nothing was
-              measured overflowing here, since the sheet takes no snap ladder map-less — the
-              invariant stated, not a defect repaired. */}
-          <div
-            className="flex w-full flex-col overflow-clip bg-background"
-            style={{ height: standalone ? '100dvh' : '100%' }}
-          >
-            <div ref={setContainer} className="relative min-h-0 w-full flex-1 overflow-clip">
-              <Drawer
-                key={direction}
-                open
-                container={container}
-                direction={direction}
-                dismissible={parentPaths.length > 0}
-                // Same as the map drawer: the left panel (≥md) has no handle, so
-                // handle-only drag would make it undraggable — dismiss stays the close
-                // button only.
-                handleOnly={direction === 'left'}
-                mode="filled"
-                onOpenChange={(o) => !o && control.dismiss()}
-              >
-                {sheet}
-              </Drawer>
-            </div>
-            {/* Map-less, the drawer fills its box and its header owns the top, so the cog
-                gets its own strip below the views. Floating over them, it sat on list rows and
-                form fields, and the narrower the box the more it covered. side="top" opens
-                the menu upward from there. */}
-            <div className="flex h-12 shrink-0 items-center border-t border-divider px-gutter">
-              {/* ⚠ The negative start margin pulls the control back so its 20px GLYPH, not its
-                  box, sits on the strip's gutter — lining the cog up with the drawer content
-                  above it. The box is 32px on a fine pointer and 44px on a coarse one, so the
-                  pull is half of each difference. */}
-              <SettingsMenu className="-ms-1.5 pointer-coarse:-ms-3" side="top" variant="ghost" />
-            </div>
           </div>
         </DrawerControlContext.Provider>
       </WidgetWidthContext.Provider>

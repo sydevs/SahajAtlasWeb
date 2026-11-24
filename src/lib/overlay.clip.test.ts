@@ -12,11 +12,10 @@ import { readSourceWithoutComments as read, sourceFiles } from '@/test-support/s
  * at 390×844: focusing a registration field below the fold put the then compact card's dialog
  * at `scrollTop: 528`, carrying the entire widget out of its own surface.
  *
- * ⚠ **There is no one property to scan for, which is why this list is named rather than
- * derived.** `contain: layout` re-parents the fixed layer onto the expanded dialog and onto the
- * inline map's box; `DrawerStack`'s map-less container does the same job through
- * `position: relative`, because the filled panel is `!absolute !inset-0` against it. A scan for
- * `[contain:layout]` alone would silently miss that box. So the names carry the list, and the
+ * ⚠ **The list is named rather than derived.** `contain: layout` re-parents the fixed layer onto
+ * the expanded dialog and onto the inline map's box, but a box can take the containing block
+ * another way — `DrawerStack`'s map-less container once did, through `position: relative` — and a
+ * scan for `[contain:layout]` alone would silently miss it. So the names carry the list, and the
  * `[contain:layout]` scan runs beside it only to catch another module added that way.
  *
  * Asserted rather than written down for the reason `overlay.popper.test.ts` gives: this repo's
@@ -40,10 +39,6 @@ const BOXES: Record<string, { marker: string; why: string }> = {
   'views/InlineEmbedView/InlineEmbedView.tsx': {
     marker: CONTAINING_BLOCK,
     why: "the expanded map's dialog, and the inline map's own box",
-  },
-  'views/DrawerStack/DrawerStack.tsx': {
-    marker: 'relative min-h-0 w-full',
-    why: 'the map-less container the filled panel is absolute against',
   },
   'views/story-harness.tsx': {
     marker: CONTAINING_BLOCK,

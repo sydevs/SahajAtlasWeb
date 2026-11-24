@@ -123,7 +123,8 @@ type AppProps = {
   /**
    * The atlas in the host's own page, with the map one button away — every embed and every
    * framed page. `false` is the map-first interface: the standalone page opened directly.
-   * Decided once, by the entry.
+   * Decided once, by the entry — and overruled by `hasMap: false`, which is always inline,
+   * since the map-first form has nothing to put first.
    */
   inline?: boolean
   // Is the route on screen in the URL, and therefore shareable? True for every router
@@ -146,11 +147,13 @@ export default function App({
   brand,
   standalone = false,
   hasMap = true,
-  inline = false,
+  inline: inlineAsked = false,
   linkable = true,
   routing = 'query',
   prefix,
 }: AppProps) {
+  const inline = inlineAsked || !hasMap
+
   // Warms the agnostic map/hierarchy caches (feed plus region tree) and the
   // current-locale titles the moment the API key is available, in parallel with the
   // client bootstrap the tree suspends on — so region/map data is not serialized
@@ -185,9 +188,9 @@ export default function App({
         <BrandTheme apiKey={apiKey} palette={brand}>
           {/* `unboxed` is the map form that fills the window: its interface is fixed and
               inset-0, so a fallback standing in for it must be too, or it collapses to its
-              own content height at the top of the screen. The inline form and a map-less
-              page have a real box, and there `h-full` is already right. */}
-          <Suspense fallback={<LoadingFallback unboxed={hasMap && !inline} />}>
+              own content height at the top of the screen. The inline form has a real box,
+              and there `h-full` is already right. */}
+          <Suspense fallback={<LoadingFallback unboxed={!inline} />}>
             {/* `context` names this one in a report: everything below is a drawer failing
                 to load. This is the widget failing to boot. That is also why it, and the root
                 boundary above, are the only two that take the readiness marker down (#153):
@@ -398,7 +401,7 @@ function AppShell({
           <LivePreviewController />
         </Suspense>
       )}
-      <Suspense fallback={<LoadingFallback unboxed={hasMap && !inline} />}>
+      <Suspense fallback={<LoadingFallback unboxed={!inline} />}>
         {inline ? (
           <InlineEmbedView homePath={homePath} primaryDomain={primaryDomain} />
         ) : (

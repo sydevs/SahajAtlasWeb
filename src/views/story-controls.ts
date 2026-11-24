@@ -19,6 +19,6 @@ export const VIEW_CONTROLS = {
     type: 'boolean',
     name: 'Map',
     defaultValue: true,
-    description: 'The live map a map embed draws. Off is a map=false embed',
+    description: 'The live map a map embed draws. Off is a map=false embed, always inline',
   },
 }

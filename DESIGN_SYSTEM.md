@@ -64,7 +64,7 @@ here is **organisms own data/network/map lifecycles. Atoms and molecules don't.*
 | `Checkbox/`           | `Checkbox`                                                           | Radix toggle with `appearance: 'switch' \| 'checkbox'` (default `switch`). The checkbox appearance backs the registration consent field. `isInvalid` recolours to danger. Disabled repaints on the **neutral ramp** off Radix's `data-disabled`, rather than fading the brand fill. A pale brand tint read as "a lighter shade of on." There is no `neutral` colour: grey means disabled |
 | `Chip/`               | `Chip`                                                               | Pure presentational atom, brand-token styling (`tv()`). `onClose`/`closeLabel` form a union — a close button always has a label |
 | `Combobox/`           | `Combobox`, `ComboboxOption`                                         | Search-in-the-field single-select (Radix Popover + cmdk) — the region filter. Type to filter by label or `hint`, click to select. The trigger displays only the short label. Radix's portal survives the modal calendar filter sheet, where a Floating-UI popover is pointer-locked out |
-| `Drawer/`             | `Drawer`, `DrawerContent`/`Header`/`Toolbar`/`Body`/`Footer`/`Close` | vaul drawer, left ≥md, bottom sheet on mobile, non-modal, portals into the themed root. `mode: 'anchored' \| 'filled'` (filled = map-less). The single surface abstraction. `DrawerToolbar` is a fixed band between header and body, outside the scroll container. It holds controls that act on the scrolling content, such as SearchView's Filters and Sort. Without it, those controls would scroll away just when a long list makes them useful |
+| `Drawer/`             | `Drawer`, `DrawerContent`/`Header`/`Toolbar`/`Body`/`Footer`/`Close` | vaul drawer, left ≥md, bottom sheet on mobile, non-modal, portals into the themed root. The single surface abstraction; `DrawerSlotsProvider mode="inline"` gives its parts to the inline embed's column, where no drawer renders. `DrawerToolbar` is a fixed band between header and body, outside the scroll container. It holds controls that act on the scrolling content, such as SearchView's Filters and Sort. Without it, those controls would scroll away just when a long list makes them useful |
 | `Dropdown/`           | `Dropdown`                                                           | Floating-UI popover shell: portaled, flip/shift (`tv()`). Not a menu — menus use Radix DropdownMenu (see `SettingsMenu`) |
 | `Input/`              | `Input`                                                              | Native `<input>` on the shared `fieldChrome` recipe, forwarding its ref for react-hook-form. `isInvalid` swaps to danger, `highlight` primary-tints an active field. Replaces hand-rolled `<input className={fieldChrome(...)}>` call sites |
 | `Link/`               | `Link`                                                               | Router link, or `<a>` for external/`mailto:`/`tel:`. Forwards a ref (used as a whole-card hit target) |
@@ -137,12 +137,11 @@ Radix-wrapping atoms carry their own `isInvalid` `tv()` variant.
 **Views** — `src/views/` holds the URL-driven drawer views (`DrawerStack` +
 `CountriesView`/`SearchView`/`RegionView`/`OnlineView`/`EventView`/
 `FilterView`/`RegistrationView`/`ShareView`), with shared pieces (`DrawerTitle`,
-`FilterButton`, `SearchField`, `GeolocationSuggestion`) in `views/shared.tsx`, and
-the header every view below the root opens with (`NavHeader`, `BackButton`) in
-`views/nav.tsx`. `DrawerStack` derives the stack from the pathname
-(`resolveStack`) and renders ONE vaul drawer holding the active view; Back, not
-a stack of cards behind it, says where the visitor came from. Map-less, it renders a
-single `mode="filled"` drawer.
+`CloseButton`, `FilterButton`, `SearchField`, `GeolocationSuggestion`) in
+`views/shared.tsx`. `DrawerStack` derives the stack from the pathname
+(`resolveStack`) and renders ONE vaul drawer holding the active view, with peek
+cards behind it — one per panel a repeated dismiss traverses (`dismissDepth`), not
+per URL ancestor. Inline, and so map-less, it renders the active view in the page's flow, with no drawer.
 Folder-per-component, not re-exported through the component barrels.
 
 ## Conventions
@@ -168,8 +167,7 @@ Folder-per-component, not re-exported through the component barrels.
      field-like control shares.
   5. **`Drawer/`** — `Drawer` + the `DrawerContent`/`DrawerHeader`/`DrawerToolbar`/
      `DrawerBody`/`DrawerFooter` layout parts + `DrawerClose`. The single surface abstraction: a
-     `Drawer` is `open`/`onOpenChange` controlled with `mode: 'anchored' | 'filled'`
-     (filled = map-less), and every View composes it.
+     `Drawer` is `open`/`onOpenChange` controlled, and every View composes it.
   6. **`ActionRow/`** — `ActionRow` + `ActionCircle` (the row and its one child type).
   8. **`List/`** — `List` + the `listRow` recipe its card children share.
   9. **`ShareContent/`** (molecules) — `ShareContent` + `CopyField` (also used by

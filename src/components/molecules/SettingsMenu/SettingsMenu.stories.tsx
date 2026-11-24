@@ -19,16 +19,11 @@ export default { title: 'Molecules' } satisfies StoryDefault
 export const Default: Story = () => (
   <StoryWrapper>
     <StorySection
-      description="The trigger is an icon-only Button with an accessible name: `floating` (the default) over the map, `ghost` in a row of controls such as a header. Opening it reveals the theme radio group and the language submenu."
-      title="Variants"
+      description="The trigger is an icon-only button with an accessible name. Opening it reveals the theme radio group and the language submenu."
+      title="Trigger"
     >
-      <div className="flex items-center gap-10 py-3">
-        <StorySection title='variant="floating"' variant="subsection">
-          <SettingsMenu />
-        </StorySection>
-        <StorySection title='variant="ghost"' variant="subsection">
-          <SettingsMenu variant="ghost" />
-        </StorySection>
+      <div className="flex items-center gap-6 py-3">
+        <SettingsMenu />
       </div>
     </StorySection>
 
@@ -47,7 +42,7 @@ export const Default: Story = () => (
     </StorySection>
 
     <StorySection
-      description="The cog floats over whatever is behind it (the map, or a filled panel), so it is a `floating` Button: its own surface, border and shadow rather than the surface under it."
+      description="The cog floats over whatever is behind it, the map, so it is a `floating` Button: its own surface, border and shadow rather than the surface under it."
       inContext={true}
       title="Examples"
     >

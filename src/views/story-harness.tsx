@@ -11,7 +11,7 @@ import { ErrorBoundary } from 'react-error-boundary'
 import { DrawerSlotsProvider } from '@/components/atoms/Drawer'
 import { DrawerControlContext } from '@/views/shared'
 import { DrawerErrorFallback, DrawerLoading } from '@/views/fallbacks'
-import { WidgetModeContext, type WidgetMode, useWidgetMode } from '@/config/mode'
+import { WidgetModeContext, type WidgetMode } from '@/config/mode'
 import { clientQuery, geojsonQuery, regionsQuery } from '@/config/api'
 import atlasAuth from '@/config/api/auth'
 import { WidgetWidthContext, useIsWide } from '@/config/responsive'
@@ -250,10 +250,12 @@ export function ViewHarness({
   wide = false,
   children,
 }: ViewHarnessProps) {
-  const { inline, map } = useViewControls()
+  const controls = useViewControls()
   // A token-less environment gets the map-less arm: a canvas that cannot load tiles
   // previews nothing and fills the console with Mapbox errors.
-  const withMap = map && Boolean(import.meta.env.VITE_MAPBOX_ACCESSTOKEN)
+  const withMap = controls.map && Boolean(import.meta.env.VITE_MAPBOX_ACCESSTOKEN)
+  // A map-less atlas is always inline, as `App` renders it: there is no map to expand.
+  const inline = controls.inline || !withMap
 
   const client = useMemo(() => {
     const c = new QueryClient({
@@ -342,15 +344,14 @@ function InlineForm({ children }: { children: ReactNode }) {
 /**
  * The expanded map's frame around one view: the canvas filling it, and the view's panel over it.
  * The panel takes the shape `DrawerStack` gives it at the frame's width — the side panel where it
- * is wide, a bottom sheet where it is not, the calendar's full-width surface — and fills the
- * frame map-less. The frame takes the containing block with `contain: layout`, as the expanded
- * dialog does, so the fixed canvas fills it rather than the window.
+ * is wide, a bottom sheet where it is not, the calendar's full-width surface. The frame takes the
+ * containing block with `contain: layout`, as the expanded dialog does, so the fixed canvas fills
+ * it rather than the window.
  *
- * The header and body take the `filled` slots, a map-less panel's padding: no vaul root sits
- * around them here to give a sheet its handle.
+ * The header and body take the side panel's slots whatever the shape: no vaul root sits around
+ * them here to give a sheet its handle, and the sheet's header leaves the handle its room.
  */
 function ExpandedForm({ wide, children }: { wide: boolean; children: ReactNode }) {
-  const { hasMap } = useWidgetMode()
   // Published as the widget's frame, as the dialog is, so the camera's padding measures the
   // panel this frame's width gives it, and a view's own dialogs portal into the frame.
   const { node: frame, adopt } = usePublishedNode<HTMLDivElement>(setFrame)
@@ -360,10 +361,10 @@ function ExpandedForm({ wide, children }: { wide: boolean; children: ReactNode }
 
   return (
     <div ref={adopt} className="relative h-screen overflow-clip [contain:layout]" data-sy-frame="">
-      {frame && hasMap && <MapLayer />}
+      {frame && <MapLayer />}
       {frame && (
         <WidgetWidthContext.Provider value={isWide}>
-          <DrawerSlotsProvider direction="bottom" mode="filled">
+          <DrawerSlotsProvider direction="left">
             <div
               className={clsx(
                 // ⚠ Every shape is `absolute`, and only this line positions the panel: a
@@ -372,17 +373,14 @@ function ExpandedForm({ wide, children }: { wide: boolean; children: ReactNode }
                 // after `absolute`) and let the column grow past its frame. Clip, never hidden
                 // — this hand-copies the panel's own chrome, so `overflow-hidden` would
                 // preview #326.
-                'absolute z-10 flex flex-col overflow-clip bg-background text-foreground',
-                hasMap && 'border-divider shadow-2xl',
+                'absolute z-10 flex flex-col overflow-clip border-divider bg-background text-foreground shadow-2xl',
                 // The sheet is at its open snap, which the camera's padding assumes until a real
                 // sheet reports its height.
-                !hasMap
-                  ? 'inset-0'
-                  : fullWidth
-                    ? 'inset-4 rounded-2xl border'
-                    : isWide
-                      ? 'inset-y-0 start-0 w-[var(--sy-drawer-w,352px)] max-w-full border-e'
-                      : 'inset-x-0 bottom-0 h-[300px] max-h-[calc(100%-160px)] rounded-t-2xl border-t',
+                fullWidth
+                  ? 'inset-4 rounded-2xl border'
+                  : isWide
+                    ? 'inset-y-0 start-0 w-[var(--sy-drawer-w,352px)] max-w-full border-e'
+                    : 'inset-x-0 bottom-0 h-[300px] max-h-[calc(100%-160px)] rounded-t-2xl border-t',
               )}
             >
               {children}

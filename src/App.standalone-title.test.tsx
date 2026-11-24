@@ -96,7 +96,7 @@ const mount = async () => {
   await act(async () => {
     root?.render(
       <MemoryRouter>
-        <App standalone apiKey="sy-test-key" hasMap={false} />
+        <App standalone apiKey="sy-test-key" />
       </MemoryRouter>,
     )
   })

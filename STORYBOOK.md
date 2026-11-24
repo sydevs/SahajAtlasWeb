@@ -119,7 +119,8 @@ free, and their values hold as you move between views.
   frame with the view's panel over the map — a side panel where the frame is
   wide, a bottom sheet where it is not.
 - **Map**, on by default: the live map, with a real `MapController`, so a view
-  frames it as it does in the app. Off is a `map=false` embed. It needs
+  frames it as it does in the app. Off is a `map=false` embed, which is always
+  inline whatever **Form** says, since there is no map to expand. It needs
   `VITE_MAPBOX_ACCESSTOKEN`, and without one every view renders map-less.
 
 A view sets no viewport of its own, so it fills Ladle's main area, with

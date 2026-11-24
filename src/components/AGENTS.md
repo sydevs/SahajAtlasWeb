@@ -203,8 +203,8 @@ shipping a narrow embed that quietly behaves like a desktop.
 
 | Behavior | Signal | Why |
 | --- | --- | --- |
-| Drawer direction — left panel vs. bottom sheet (`DrawerStack`) | container (the map-less root, the inline column, or the frame) | A fit question: does a 352px side panel leave usable space beside it? The expanded map's frame is its dialog. |
-| Drag handle, swipe-dismiss, `handleOnly`, the snap ladder | container (follows direction) | The handle exists only for a bottom sheet. `DrawerStack` passes it explicitly rather than trust the atom's own default, which would leave a narrow map-less sheet draggable with nothing on screen saying so. |
+| Drawer direction — left panel vs. bottom sheet (`DrawerStack`) | container (the inline column, or the frame) | A fit question: does a 352px side panel leave usable space beside it? The expanded map's frame is its dialog. |
+| Drag handle, swipe-dismiss, `handleOnly`, the snap ladder | container (follows direction) | The handle exists only for a bottom sheet, which is the Drawer atom's own default. Every drawer sits over a map and is dismissible, so the handle never advertises a drag that is not there. |
 | Filter-overlay direction (right vs. bottom) | container | Same panel-vs-sheet question, same answer. |
 | Sticky Register bar (`EventView`) | container | A snap sheet can scroll the CTA out of sight. This is a property of the sheet. |
 | Contact — `tel:` vs. number + copy popover (`EventActions`) | input | Whether `tel:` reaches a dialer is hardware, not window width. This is the one place "narrow ⇒ mobile" reads wrong. |
@@ -237,7 +237,8 @@ Two properties of the mechanism are load-bearing:
 **There is one embedded form, `InlineEmbedView`** (`src/views/`), and the entry picks it
 once: every `<sahaj-atlas>`, and the standalone build when framed. Only the standalone page
 opened directly — and a SahajCloud live-preview session — renders the map-first
-`FullInterface`. Both are lazy chunks, so `react-map-gl` stays out of the eager graph, and both
+`FullInterface`, and only with a map: `App` makes every map-less atlas inline, so no drawer
+ever renders without a map behind it. Both are lazy chunks, so `react-map-gl` stays out of the eager graph, and both
 run `useInterfaceBoot` (the pageview, the captcha guard, the home redirect, the cache warm)
 once. The expanded map is `MapInterface`, the same interface without that boot.
 
@@ -302,10 +303,8 @@ to scroll back. Measured at 390×844: focusing a registration field carried the 
 528px out of the then compact card's dialog.
 
 Two mechanisms produce the overflow, and both are ours to clip. A **snap-translated
-sheet** contributes its own translate to whatever holds it — the dialog, or `DrawerStack`'s
-map-less container, which takes the containing block through `position: relative` rather than
-`contain: layout` and so is invisible to a scan for the latter. And the **panel itself** carries
-vaul's `::after` background filler (`styles/vaul.css`, `top: 100%; height: 200%`), ~1688px on a
+sheet** contributes its own translate to whatever holds it, the dialog. And the **panel
+itself** carries vaul's `::after` background filler (`styles/vaul.css`, `top: 100%; height: 200%`), ~1688px on a
 phone sheet, which no view creates and none can decline — so the Drawer atom's `content` slot
 clips too. `lib/overlay.clip.test.ts` names the boxes and `Drawer.scroll.test.tsx` holds the
 panel, because this is a rule that gets applied in one place and missed in the other.
@@ -465,9 +464,8 @@ neither exists any more — grep before relying on either.
 
 It was evaluated and rejected for one reason: **there is no CSS-side case for it to
 serve.** Every layout-critical Tailwind variant in the app is either in the map-mode
-anchored path, where viewport equals container, or has no effect at all in `filled`
-map-less mode — measured at a 1440px viewport, where a `filled` drawer computes to
-`position: absolute`, `max-width: none`, filling its box to the pixel.
+anchored path, where viewport equals container, or in the inline embed, which already
+measures itself with Tailwind 4's own `@container` (`@min-sy-cols:`) and needs no plugin.
 
 **A caution against a plausible-sounding claim that is FALSE.** It is widely
 repeated that `container-type: inline-size` makes an element a containing block for

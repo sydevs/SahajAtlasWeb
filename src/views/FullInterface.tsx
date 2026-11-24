@@ -195,13 +195,11 @@ export function MapProviders({
   )
 }
 
-/** The map (or not) and the drawer stack over it. */
+/** The map and the drawer stack over it. A map-less atlas is always inline (`App`). */
 export function MapInterface() {
-  const { hasMap } = useWidgetMode()
-
   return (
     <MapProviders>
-      {hasMap && <MapLayer />}
+      <MapLayer />
       <DrawerStack />
     </MapProviders>
   )
