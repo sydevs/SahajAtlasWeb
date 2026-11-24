@@ -7,6 +7,7 @@ import {
   formatFailures,
   formatUnmeasured,
   spanFrom,
+  stampedOrder,
 } from './check-a11y.mjs'
 
 // `spanFrom` is the arithmetic behind every tap-target verdict the gate prints, and it is the
@@ -111,5 +112,22 @@ describe('TAP_EXCEPTIONS', () => {
       '.mapboxgl-ctrl-attrib',
       '[data-radix-focus-guard]',
     ])
+  })
+})
+
+// The keyboard walk's order verdict is `stampedOrder(stop) < reached`, so what this returns for
+// an element the audit never stamped decides whether a late arrival is reported as a defect.
+describe('stampedOrder', () => {
+  it('reads a stamp back as its document position', () => {
+    expect(stampedOrder('0')).toBe(0)
+    expect(stampedOrder('162')).toBe(162)
+  })
+
+  // `Number(null)` is 0, which the walk reads as "first in the document" and reports as a
+  // backwards jump. A lazy chunk landing mid-walk reddened `views--event` that way.
+  it('has no position for an element the audit never stamped', () => {
+    expect(stampedOrder(null)).toBeNaN()
+    expect(stampedOrder(undefined)).toBeNaN()
+    expect(stampedOrder('')).toBeNaN()
   })
 })

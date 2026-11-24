@@ -562,6 +562,17 @@ Five things about it are deliberate:
   either way — a green required check that had read nothing. With the first mutation required,
   three runs measured 645, 655 and 655 controls, clean, in about 43s (2026-11-22, 4 cores).
   ⚠ A story that mutates nothing is still released by the 4s cap, so the wait cannot hang the gate.
+  ⚠ **A quiet DOM is not a finished one: a chunk in flight mutates nothing.** A story behind a
+  `lazy` import holds its Suspense fallback without a single mutation while the chunk loads, so
+  the window closes inside the fetch. Measured on `views--event` with that chunk held 1.5s: the
+  audit read **2 controls instead of 12**, and the panel landing mid-walk was reported as out of
+  document order, naming the first control it brought. So the network is waited on first, out of
+  the same 4s budget — **our own scripts and sheets only**, since a wait on the whole network is a
+  wait on `views--registration`'s Turnstile iframe, whose focus indicator is Cloudflare's. A stop
+  the audit never stamped also abstains from the order check now, as it already did from the
+  focus-indicator one — it has no document position to be compared against. ⚠ The wait costs
+  real time: measured 2026-11-24 on 4 cores, 54 stories, 790 controls, **52s before it and 2m20
+  after**, of which the settle itself accounts for about 0.3s a story. The rest is unexplained.
 - **It reads a BUILD, never `ladle serve`.** The dev server compiles a story when it is opened,
   so a story that failed to build would pass by never having been built. `--origin
   http://localhost:61000` points it at the dev server anyway, for the local fix loop only.

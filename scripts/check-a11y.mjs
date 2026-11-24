@@ -457,6 +457,52 @@ async function pageAudit({ disabledRules, minTap, selectors, step }) {
 /** How long the DOM must sit still before a story counts as rendered, and the cap on waiting. */
 const QUIET_MS = 250
 const SETTLE_CAP_MS = 4000
+/** How long the page must ask for nothing before a chunk counts as landed. */
+const NETWORK_QUIET_MS = 150
+
+/**
+ * Counts the story's own code in flight, so `settled` can tell a story that has finished from
+ * one waiting on a chunk.
+ *
+ * ⚠ **Scope is what makes this usable: the library's own scripts and sheets, nothing else.** A
+ * wait on the whole network is a wait on whatever a story embeds: `views--registration`'s
+ * Turnstile iframe loads from Cloudflare, and waiting for it reported a focus indicator inside
+ * somebody else's document. Our own chunks are the ones that can arrive after the audit, and they
+ * are the ones this counts. `playwright`'s own `networkidle` state cannot be scoped and waits
+ * 500ms besides — measured at 0.9 to 1.8s a story, against 150ms here.
+ *
+ * ⚠ Attach it once per page, not once per story: the listeners outlive a navigation, and a
+ * second set would double every count.
+ *
+ * @param {import('playwright').Page} page
+ * @param {string} origin The address the component library is served from
+ */
+function requestTracker(page, origin) {
+  /** @type {Set<unknown>} */
+  const open = new Set()
+  let last = 0
+
+  page.on('request', (request) => {
+    if (!request.url().startsWith(`${origin}/`)) return
+    if (request.resourceType() !== 'script' && request.resourceType() !== 'stylesheet') return
+
+    open.add(request)
+    last = Date.now()
+  })
+
+  const closed = (/** @type {unknown} */ request) => {
+    if (!open.delete(request)) return
+
+    last = Date.now()
+  }
+
+  page.on('requestfinished', closed)
+  page.on('requestfailed', closed)
+
+  // ⚠ A request that neither finishes nor fails holds this forever, so the caller's own cap is
+  // what releases it. Nothing here may block the gate on a story that keeps the network busy.
+  return { quiet: () => open.size === 0 && Date.now() - last >= NETWORK_QUIET_MS }
+}
 
 /**
  * Waits until the story has stopped changing.
@@ -476,13 +522,47 @@ const SETTLE_CAP_MS = 4000
  * violation either way — green having read nothing. The cap still bounds a story that never
  * mutates.
  *
+ * ⚠ **A quiet DOM is not a finished one: a chunk in flight mutates nothing.** A story behind a
+ * `lazy` import holds its Suspense fallback with no mutation at all while the chunk loads, so
+ * the window closes inside the fetch. `views--event` audited 2 controls instead of 12 that way,
+ * and the panel arriving mid-walk was reported as out of document order. Only the network knows
+ * a chunk is still coming, so both are waited on, in turn, out of one cap — a chunk whose own
+ * render starts the next import is why this alternates rather than asking each once.
+ *
  * @param {import('playwright').Page} page
+ * @param {{ quiet: () => boolean }} network
  */
-async function settled(page) {
+async function settled(page, network) {
+  const deadline = Date.now() + SETTLE_CAP_MS
+
+  for (let pass = 0; ; pass += 1) {
+    while (!network.quiet() && Date.now() < deadline) {
+      await page.waitForTimeout(NETWORK_QUIET_MS)
+    }
+
+    await domQuiet(page, Math.max(QUIET_MS, deadline - Date.now()), pass === 0)
+
+    if (network.quiet() || Date.now() >= deadline) return
+  }
+}
+
+/**
+ * The quiet window itself.
+ *
+ * ⚠ **Only the first pass may insist on a mutation.** A later one is entered because something
+ * was still in flight, and that chunk can land without changing the page at all — a prefetch, a
+ * sheet, a module nothing renders. Insisting again would leave the window with nothing to
+ * release it but the cap.
+ *
+ * @param {import('playwright').Page} page
+ * @param {number} cap
+ * @param {boolean} awaitMutation
+ */
+async function domQuiet(page, cap, awaitMutation) {
   await page.evaluate(
-    ([quiet, cap]) =>
+    ([quiet, cap, awaitMutation]) =>
       new Promise((done) => {
-        let timer
+        let timer = awaitMutation ? undefined : setTimeout(finish, quiet)
         const observer = new MutationObserver(() => {
           clearTimeout(timer)
           timer = setTimeout(finish, quiet)
@@ -499,8 +579,23 @@ async function settled(page) {
 
         observer.observe(document.body, { childList: true, subtree: true, attributes: true })
       }),
-    [QUIET_MS, SETTLE_CAP_MS],
+    /** @type {[number, number, boolean]} */ ([QUIET_MS, cap, awaitMutation]),
   )
+}
+
+/**
+ * The document position the walk compares a stop against, or `NaN` for an element the audit
+ * never stamped.
+ *
+ * ⚠ `Number(null)` is `0`, which reads as "first in the document", so an element the page added
+ * after the stamping pass — a portal opening on focus, a lazy chunk landing — turned every stop
+ * already behind it into a backwards jump. An unstamped stop has no position to compare, so the
+ * order check abstains on it, as the indicator check already does.
+ *
+ * @param {string | null | undefined} order
+ */
+export function stampedOrder(order) {
+  return order === null || order === undefined || order === '' ? NaN : Number(order)
 }
 
 /**
@@ -595,6 +690,7 @@ export async function run({ only, origin } = {}) {
     isMobile: true,
   })
   const page = await context.newPage()
+  const network = requestTracker(page, site.origin)
 
   /** @type {{ story: string, kind: string, detail: string }[]} */
   const failures = []
@@ -608,7 +704,7 @@ export async function run({ only, origin } = {}) {
         waitUntil: 'load',
         timeout: 30_000,
       })
-      await settled(page)
+      await settled(page, network)
       // ⚠ By URL, never `content`. axe-core is 650 KB, and inlining it would push that
       // through the debugging protocol and recompile it once per story — 34 MB and 52
       // compiles across this run. A URL is fetched from the server above, cached, and
@@ -659,7 +755,7 @@ export async function run({ only, origin } = {}) {
       const checked = new Set()
 
       for (const stop of await keyboardWalk(page, result.stops, result.resting, selectors)) {
-        const at = Number(stop.order)
+        const at = stampedOrder(stop.order)
 
         // `<`, not `<=`: Chromium's own date field moves focus between the segments of ONE
         // input, so the same element is a stop twice in a row, and that is not an order defect.
