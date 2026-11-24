@@ -538,11 +538,10 @@ describe('every workflow', () => {
 // by one regex in `ci.yml`, held as a workflow-level `env` key so the three `change-scope` calls
 // cannot drift apart.
 describe('ci.yml light lane', () => {
-  const ci = readRepoSource('.github/workflows/ci.yml')
-  const light = new RegExp(match(ci, /^\s*LIGHT_PATHS: '(.+)'$/m))
+  const light = new RegExp(match(ciWorkflow, /^\s*LIGHT_PATHS: '(.+)'$/m))
 
   it('passes that one list to every job that classifies the change', () => {
-    const passed = [...ci.matchAll(/^\s*light: (.+)$/gm)].map((m) => m[1])
+    const passed = [...ciWorkflow.matchAll(/^\s*light: (.+)$/gm)].map((m) => m[1])
 
     expect(passed).toEqual(Array<string>(3).fill('${{ env.LIGHT_PATHS }}'))
   })
@@ -572,10 +571,10 @@ describe('ci.yml light lane', () => {
   })
 
   it('skips Smoke through the scope job, not the workflow', () => {
-    const smoke = ci.slice(ci.indexOf('\n  smoke:'))
+    const smoke = ciWorkflow.slice(ciWorkflow.indexOf('\n  smoke:'))
 
     expect(smoke).toMatch(/^ {4}needs: scope$/m)
     expect(smoke).toMatch(/^ {4}if: \$\{\{ needs\.scope\.outputs\.full == 'true' \}\}$/m)
-    expect(ci).not.toMatch(/^\s+paths(-ignore)?:/m)
+    expect(ciWorkflow).not.toMatch(/^\s+paths(-ignore)?:/m)
   })
 })
