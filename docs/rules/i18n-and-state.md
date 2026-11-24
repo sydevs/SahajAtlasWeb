@@ -272,9 +272,12 @@ source of truth, so all three stay linkable and shareable:
   tree's real ancestry (`placedPathname`), and passes over a venue and any place
   holding a single in-person class (`passablePlaces`): "Back to Balham Library"
   on a class there read as going nowhere, and a one-class place only opens that
-  class again (`loneClassPath`, RegionView). A climb stamps `climbedFrom`, so a
-  one-class place reached by one climbs on instead of bouncing back into the
-  class, even before the feed has loaded. Register and Share say "Back to class":
+  class again. A place carries that class's own address as `singleEventPath`,
+  derived in `getRegion` beside the same field on each of its rows, so the row
+  shortcut, the page's redirect and the climb read one answer. A climb stamps
+  `climbedFrom`, so a one-class place reached by one climbs on
+  (`loneClassExit`) instead of bouncing back into the class, even before the
+  feed has loaded. Register and Share say "Back to class":
   the class is still on screen behind them. The filters keep an X, since they
   sit over the page they narrow (`NavHeader close`); the filter drawer over the
   calendar also marks its control `overlay`, so its loading and error chrome
