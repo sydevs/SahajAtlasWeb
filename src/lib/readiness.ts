@@ -55,6 +55,7 @@ export const READY_CONTRACT_VERSION = 3
  * fits. A working widget in a box nobody can browse in is still worth telling the client about.
  * ⚠ **Absent until the inline view has measured its box**, which is a lazy chunk and a frame after
  * the mount is attested: a verifier that needs the answer waits for the key, not the attribute.
+ * SahajCloud's verifier reads it to warn the client (sydevs/SahajCloud#1264).
  */
 export type ReadinessMarker = {
   v: number
