@@ -1,6 +1,6 @@
 import type { Story, StoryDefault } from '@ladle/react'
 
-import { Funnel, Menu, X } from 'lucide-react'
+import { Expand, Funnel, Menu, Settings, X } from 'lucide-react'
 
 import {
   StoryWrapper,
@@ -21,7 +21,7 @@ export default {
 } satisfies StoryDefault
 
 const colors = ['primary', 'secondary', 'contrast', 'neutral'] as const
-const variants = ['solid', 'flat', 'bordered', 'ghost'] as const
+const variants = ['solid', 'flat', 'bordered', 'ghost', 'floating'] as const
 const sizes = ['sm', 'md', 'lg'] as const
 const radii = ['sm', 'full'] as const
 
@@ -32,7 +32,7 @@ const radii = ['sm', 'full'] as const
  * `isIconOnly` squares the width against the size scale. The colour × variant
  * matrix lives in the exported `controlSurface` recipe. ActionCircle skins its
  * circle with the same recipe. So `color`, `variant`, `size`, and `radius` mean
- * the same thing across every control.
+ * the same thing across every control. `floating` is the variant for a control over the map, like the settings cog.
  */
 export const Default: Story = () => (
   <StoryWrapper>
@@ -119,6 +119,35 @@ export const Default: Story = () => (
             radius={radius}
           </Button>
         ))}
+      </div>
+    </StorySection>
+
+    <StorySection
+      background="gradient"
+      description="`variant=floating` is a control over the map or the page: the app's opaque surface and a shadow, in every colour. The settings cog is one, and the pills are samples."
+      title="Floating"
+    >
+      <div className="flex flex-col gap-4">
+        <div className="flex flex-wrap items-center gap-3">
+          <Button radius="full" size="sm" variant="floating">
+            <Expand size={16} />
+            Sample pill
+          </Button>
+          <Button radius="full" size="sm" variant="floating">
+            <X size={16} />
+            Sample pill
+          </Button>
+          <Button isIconOnly aria-label="Settings" radius="full" size="sm" variant="floating">
+            <Settings size={16} />
+          </Button>
+        </div>
+        <div className="flex flex-wrap items-center gap-3">
+          {colors.map((color) => (
+            <Button key={color} color={color} radius="full" size="sm" variant="floating">
+              {color}
+            </Button>
+          ))}
+        </div>
       </div>
     </StorySection>
 

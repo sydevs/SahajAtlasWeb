@@ -42,7 +42,7 @@ export const Default: Story = () => (
     </StorySection>
 
     <StorySection
-      description="The cog floats over whatever is behind it (the map, or a filled panel), so it carries its own border + shadow rather than relying on the surface under it."
+      description="The cog floats over whatever is behind it (the map, or a filled panel), so it is a `floating` Button: its own surface, border and shadow rather than the surface under it."
       inContext={true}
       title="Examples"
     >

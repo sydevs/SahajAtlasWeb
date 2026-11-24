@@ -26,6 +26,11 @@ export const controlSurface = tv({
       bordered: 'border bg-transparent',
       /** No surface shows until hovered. Toolbar and header controls must recede. */
       ghost: 'bg-transparent',
+      /**
+       * A control over the map or the page — "Expand map", "Close map", the floating cog: the
+       * app's own opaque surface, and a shadow lifting it off whatever moves behind it.
+       */
+      floating: 'border bg-background shadow-lg',
     },
     /**
      * ⚠ `sm` and `md` are drawn at 44px on a touch screen, which is the tap floor (#432).
@@ -124,6 +129,27 @@ export const controlSurface = tv({
       class: 'border-contrast-11 text-contrast-11 hover:bg-contrast-3',
     },
     { color: 'neutral', variant: 'bordered', class: 'border-gray-12 text-gray-12 hover:bg-gray-3' },
+    // floating: primary is filled, as its solid is — the one call to action over a map. The rest
+    // keep the app's surface, with the ramp's border step (7) rather than its text step, since
+    // the surface and the shadow already set them apart; neutral takes the divider every other
+    // app border uses.
+    {
+      color: 'primary',
+      variant: 'floating',
+      class:
+        'border-transparent bg-primary-12 text-white hover:bg-primary-11 dark:bg-primary-9 dark:text-primary-foreground dark:hover:bg-primary-10',
+    },
+    {
+      color: 'secondary',
+      variant: 'floating',
+      class: 'border-secondary-7 text-secondary-11 hover:bg-secondary-3',
+    },
+    {
+      color: 'contrast',
+      variant: 'floating',
+      class: 'border-contrast-7 text-contrast-11 hover:bg-contrast-3',
+    },
+    { color: 'neutral', variant: 'floating', class: 'border-divider text-gray-12 hover:bg-gray-3' },
     // ghost (surface only on hover)
     { color: 'primary', variant: 'ghost', class: 'text-primary-11 hover:bg-primary-3' },
     { color: 'secondary', variant: 'ghost', class: 'text-secondary-11 hover:bg-secondary-3' },
