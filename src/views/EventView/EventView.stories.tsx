@@ -6,44 +6,13 @@ import type { Event } from '@/types'
 import { NO_ERROR, ViewStory, stateControl } from '@/views/story-harness'
 import { EventView } from '@/views/EventView/EventView'
 import { useLocale } from '@/hooks/use-locale'
-import {
-  mockEvent,
-  mockEventCourse,
-  mockEventEnded,
-  mockEventFull,
-  mockEventFullToday,
-  mockEventInactive,
-  mockEventMinimal,
-  mockEventToday,
-} from '@/mocks/events'
+import { eventViewExamples, mockEvent } from '@/mocks/events'
 
 export default { title: 'Views' } satisfies StoryDefault
 
 // EventView keys on `['event', id, locale]`. Each example is one resolver state,
 // reusing the shared event fixtures.
-const EXAMPLES: Record<string, Event> = {
-  'In person': mockEvent,
-  Minimal: mockEventMinimal,
-  Online: { ...mockEvent, id: 301, eventType: 'online', languages: ['fr'] },
-  Today: mockEventToday,
-  Course: mockEventCourse,
-  Ended: mockEventEnded,
-  Inactive: mockEventInactive,
-  // At capacity: "Full" chip, no Register button — the facts stay normal (the
-  // class still runs), and the slot becomes "This event is full" + "See nearby
-  // events" + the contact helper.
-  Full: mockEventFull,
-  // Full AND meeting today — "Full" supersedes the "Today" chip.
-  'Full · today': mockEventFullToday,
-  'External registration': {
-    ...mockEvent,
-    id: 302,
-    registrationMode: 'external',
-    externalRegistrationUrl: 'https://example.org/register',
-  },
-}
-
-type ExampleKey = keyof typeof EXAMPLES
+type ExampleKey = keyof typeof eventViewExamples
 
 /**
  * EventView — the full event panel screen: header, facts, Register, actions, images, About.
@@ -65,7 +34,7 @@ export const Default: Story<{ example: ExampleKey; state: StoryFallbackArg }> = 
   state,
 }) => {
   const { locale } = useLocale()
-  const event = EXAMPLES[example] ?? mockEvent
+  const event = eventViewExamples[example] ?? mockEvent
 
   return (
     <ViewStory
@@ -85,7 +54,7 @@ Default.args = { example: 'In person', state: NO_ERROR }
 Default.argTypes = {
   example: {
     name: 'Example',
-    options: Object.keys(EXAMPLES),
+    options: Object.keys(eventViewExamples),
     control: { type: 'radio' },
     defaultValue: 'In person',
   },

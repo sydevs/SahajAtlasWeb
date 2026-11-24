@@ -21,7 +21,7 @@ pnpm ladle:build  # static build (also the CI gate — broken stories fail it)
 
 | Piece                   | What it does                                                                        |
 | ----------------------- | -------------------------------------------------------------------------------------- |
-| `.ladle/config.mjs`     | Story glob (`src/**/*.stories.{ts,tsx}`), title, port, `viteConfig`.                  |
+| `.ladle/config.mjs`     | Story glob (`src/**/*.stories.{ts,tsx,mdx}`), title, port, `viteConfig`.                  |
 | `.ladle/vite.config.ts` | Resolves the `@/` alias to `src/` (Ladle relocates Vite's root).                      |
 | `.ladle/i18n.ts`        | Self-contained i18next over the committed English snapshot, English only (Ladle talks to no API). |
 | `.ladle/components.tsx` | The **global decorator**: React Query + Helmet + a `MemoryRouter` + `<I18nextProvider>`. |
@@ -117,8 +117,9 @@ of them from `'../../ladle'`.
 
 ## Writing a story
 
-One **consolidated `Default: Story`** per file — no Ladle `args`/`argTypes`
-controls. Document via sections and grids instead. See
+Component inventories use one **consolidated `Default: Story`** per file
+with sections and grids. Interactive view stories use native Ladle controls
+(`args` and `argTypes`). Write companion notes in a `*.stories.mdx` file. See
 [`atoms/Chip/Chip.stories.tsx`](src/components/atoms/Chip/Chip.stories.tsx)
 for the reference.
 

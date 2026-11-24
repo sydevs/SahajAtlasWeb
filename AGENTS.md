@@ -49,7 +49,7 @@ experience, with a country → region → area → venue → event hierarchy.
   release, and did. Take both lines from the session's own attribution, or read them off
   `git log` when unsure.
 
-The [class page prototype](src/views/EventView/ClassPage.stories.tsx) belongs to Ladle. Keep its fixtures, mock submissions and host-page treatments in `stories/class-page/`. The live Atlas class view ships independently.
+The [class page prototype](src/views/EventView/ClassPage.stories.tsx) belongs to Ladle. Keep its fixtures, mock submissions and host-page treatments in `stories/class-page/`. Render the prototype directly in Ladle. Use its Viewport for sizing and Story Controls for fixtures. Keep the expanded single-class map focused on the venue, directions, registration and return. Use the same share actions on class and confirmation screens. Keep Example independent of Fallback and use the shared view harness and mock event variants. Keep the SEO notes in the adjacent MDX story. Support short, tall and hidden host banners and an optional Add to Calendar action on desktop and iPhone. The live Atlas class view ships independently.
 
 ## Project overview
 

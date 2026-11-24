@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react'
-import type { Client, IpLocation } from '@/types'
+import type { AtlasConfig, Client, IpLocation } from '@/types'
 
 import { Suspense, useEffect, useMemo } from 'react'
 import clsx from 'clsx'
@@ -14,6 +14,7 @@ import { DrawerErrorFallback, DrawerLoading } from '@/views/fallbacks'
 import { WidgetModeContext, type WidgetMode } from '@/config/mode'
 import { clientQuery, geojsonQuery, regionsQuery } from '@/config/api'
 import atlasAuth from '@/config/api/auth'
+import { atlasConfigQuery } from '@/config/api/fetch'
 import { Mapbox } from '@/components/organisms/Mapbox/Map'
 import { NoopMapControllerProvider } from '@/hooks/use-map-controller'
 import { RealMapControllerProvider } from '@/hooks/use-map-controller-real'
@@ -186,6 +187,7 @@ export type StoryErrorKey = keyof typeof STORY_ERRORS
 
 /** The control's "render the view normally" option. */
 export const NO_ERROR = 'None'
+export const LOADING = 'Loading'
 
 /**
  * A list that came back legitimately empty. This sits on the same axis as the
@@ -200,7 +202,7 @@ export const NO_ERROR = 'None'
  */
 export const EMPTY = 'Empty'
 
-export type StoryFallbackArg = StoryErrorKey | typeof NO_ERROR | typeof EMPTY
+export type StoryFallbackArg = StoryErrorKey | typeof NO_ERROR | typeof LOADING | typeof EMPTY
 
 /**
  * The failures EVERY data-reading view can reach, because they come from the FETCH,
@@ -224,7 +226,9 @@ const FETCH_ERRORS = ['Offline', 'Server', 'Config', 'Unknown'] as const
  * This is a `select`, not a radio: with the shared failures appended it runs to seven
  * options, and a radio column that tall pushes the Example control off the panel.
  */
-export const stateControl = (...viewFallbacks: (StoryErrorKey | typeof EMPTY)[]) => ({
+export const stateControl = (
+  ...viewFallbacks: (StoryErrorKey | typeof EMPTY | typeof LOADING)[]
+) => ({
   name: 'Fallback',
   options: [NO_ERROR, ...viewFallbacks, ...FETCH_ERRORS] as StoryFallbackArg[],
   control: { type: 'select' as const },
@@ -256,11 +260,14 @@ export type ViewStoryProps = Omit<ViewHarnessProps, 'seedKey'> & {
  * ancestor and falls through to the IP guess — with no per-fallback stub anywhere.
  */
 export function ViewStory({ example, state = NO_ERROR, children, ...harness }: ViewStoryProps) {
-  const thrown = state === NO_ERROR || state === EMPTY ? undefined : STORY_ERRORS[state]
+  let content = children
+
+  if (state === LOADING) content = <DrawerLoading />
+  else if (state !== NO_ERROR && state !== EMPTY) content = <Thrower error={STORY_ERRORS[state]} />
 
   return (
     <ViewHarness {...harness} seedKey={`${example}·${state}`}>
-      {thrown ? <Thrower error={thrown} /> : children}
+      {content}
     </ViewHarness>
   )
 }
@@ -293,6 +300,11 @@ export function ViewHarness({
     c.setQueryData(geojsonQuery().queryKey, mockGeojson)
     c.setQueryData(regionsQuery().queryKey, mockRegionNodes)
     c.setQueryData(clientQuery(atlasAuth.apiKey).queryKey, mockClient)
+    // Error panels read the operator config to decide whether to offer a report form.
+    c.setQueryData<AtlasConfig>(atlasConfigQuery().queryKey, {
+      availableLocales: ['en'],
+      reportIssueForm: null,
+    })
     c.setQueryData(['ip-location'], mockIpLocation)
     seed?.(c)
 

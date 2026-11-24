@@ -1,8 +1,11 @@
 import type { Event } from '@/types'
+import type { StoryFallbackArg } from '@/views/story-harness'
 
 import { useState, useLayoutEffect, useRef } from 'react'
-import { useMediaQuery } from 'react-responsive'
 import { Flag, ChevronLeft } from 'lucide-react'
+
+import { MobileFooterFade } from '../shared/MobileFooterFade'
+import { HostBanner, type BannerHeight } from '../shared/HostBanner'
 
 import { ClassRegistration } from './ClassRegistration'
 import { CorrectionPreview } from './CorrectionPreview'
@@ -13,86 +16,128 @@ import { VenueMapPreview } from './VenueMap'
 import { QrPoster } from './QrPoster'
 import { PhotoGrid } from './PhotoGrid'
 import { ClassFacts } from './ClassFacts'
-import { classFixture, fullAddress, descriptionParagraphs } from './fixture'
-// Shri Mataji teaching, from https://shrimataji.org/reading-room/
-import hostBannerPhoto from './host-banner.webp'
+import {
+  classPageFixture,
+  fullAddress,
+  descriptionParagraphs,
+  type ClassPageExample,
+} from './fixture'
 import { ClassCalendar } from './ClassCalendar'
 
-import { ViewHarness } from '@/views/story-harness'
+import { ViewStory } from '@/views/story-harness'
+import { eventTitlesQuery, regionQuery } from '@/config/api'
+import { mockLeafRegion } from '@/mocks/regions'
+import {
+  hasRegisterSlot,
+  EventRegisterBar,
+} from '@/components/organisms/EventDetails/EventRegister'
 import { usePublishedNode } from '@/hooks/use-published-node'
+import { DEFAULT_DURATION } from '@/lib/shape/event'
 import { setFrame } from '@/lib/overlay'
 import { useShareUrl } from '@/hooks/use-share-url'
 import { useLocale } from '@/hooks/use-locale'
 import { useEventDisplay } from '@/hooks/use-event-display'
-import { useIsWideWidget } from '@/config/responsive'
+import { useIsWide } from '@/config/responsive'
 import { EventChips } from '@/components/molecules/EventChips'
 import { Button } from '@/components/atoms/Button'
 
 function ClassScreen({
   event,
   desktop,
-  short,
+  description,
+  backPlace,
+  showCalendar,
   onBack,
   onReport,
   onRegister,
 }: {
   event: Event
   desktop: boolean
-  short: boolean
+  description: string[]
+  backPlace: string
+  showCalendar: boolean
   onBack: () => void
   onReport: () => void
   onRegister: () => void
 }) {
-  const wide = useIsWideWidget()
-  const shareUrl = useShareUrl(event.webUrl, event.path)
-  const { display } = useEventDisplay(event)
+  const classUrl = useShareUrl(event.webUrl, event.path)
+  const { t } = useLocale()
+  const { display, contactHelper, blockedMessage } = useEventDisplay(event)
   const whereLineFull = fullAddress(event)
-  const city = event.address?.city
+  const shareUrl = display.actions.includes('share') ? classUrl : undefined
+  const city = !display.online && event.address?.city
   const heading = city ? `${event.title} in ${city}` : event.title
-  const desktopShareUrl = desktop && display.actions.includes('share') ? shareUrl : undefined
   const nextSession = display.next?.toJSDate()
-  const description = descriptionParagraphs(short)
   const photos = event.images.flatMap(({ url, alt }) =>
     url ? [{ src: url, alt: alt ?? undefined, caption: alt ?? undefined }] : [],
   )
   const backRow = (
     <div className="sticky top-[var(--class-host-header-height)] z-20 shrink-0 bg-background max-[959px]:mx-auto max-[959px]:w-full max-[959px]:max-w-[var(--sy-content-max,512px)] max-[959px]:px-6 [&_button]:min-h-11 [&>div]:mb-0">
-      <Button className="-ms-2 min-h-11" color="primary" variant="ghost" onClick={onBack}>
+      <Button
+        className="-ms-3 min-h-11 gap-0.5 px-2"
+        color="primary"
+        variant="ghost"
+        onClick={onBack}
+      >
         <ChevronLeft size={16} />
-        Back to United Kingdom
+        Back to {backPlace}
       </Button>
     </div>
   )
-  const register = desktop ? (
-    <ClassRegistration event={event} shareUrl={shareUrl} />
-  ) : (
-    <Button
-      className="w-full bg-primary-12 font-semibold text-white dark:bg-primary-9"
-      color="primary"
-      size="lg"
-      onClick={onRegister}
-    >
-      Register for free
-    </Button>
+  const canRegister = hasRegisterSlot(event, display)
+  const pinRegister = !desktop && canRegister && display.registration === 'open'
+  let register
+
+  if (!canRegister) register = null
+  else if (display.showNearby) {
+    register = (
+      <div className="space-y-1 text-center">
+        {display.full && <p className="text-sm text-gray-11">{blockedMessage}</p>}
+        <Button className="w-full" color="primary" variant="flat" onClick={onBack}>
+          {t('event.display.see_nearby')}
+        </Button>
+        {contactHelper && <p className="text-xs text-gray-11">{contactHelper}</p>}
+      </div>
+    )
+  } else if (display.registration !== 'open' || event.registrationMode === 'external') {
+    register = <EventRegisterBar basePath={event.path} event={event} />
+  } else
+    register = desktop ? (
+      <ClassRegistration event={event} shareUrl={shareUrl} />
+    ) : (
+      <Button
+        className="w-full bg-primary-12 font-semibold text-white dark:bg-primary-9"
+        color="primary"
+        size="lg"
+        onClick={onRegister}
+      >
+        Register for free
+      </Button>
+    )
+  const secondaryActions = display.actions.length > 0 && (
+    <ClassActions event={event} url={shareUrl} />
   )
-  const secondaryActions = <ClassActions event={event} url={shareUrl} />
-  const calendar = event.schedule && display.next && display.nextEnd && nextSession && (
-    <div className="w-fit max-w-full min-[960px]:mt-3 [&_button[aria-expanded]]:h-11 [&_button[aria-expanded]]:w-auto [&_button[aria-expanded]]:gap-2 [&_button[aria-expanded]]:bg-transparent [&_button[aria-expanded]]:px-1 [&_button[aria-expanded]]:text-sm [&_button[aria-expanded]]:text-primary-11 [&_button[aria-expanded]:hover]:bg-primary-3">
-      <ClassCalendar
-        end={display.nextEnd}
-        event={{
-          id: `${event.id}-${nextSession.getTime()}`,
-          title: event.title,
-          from: nextSession,
-          schedule: { ...event.schedule, recurrenceType: null, exclusions: [] },
-          location: display.online ? undefined : whereLineFull,
-          url: shareUrl,
-        }}
-        start={display.next}
-      />
-    </div>
-  )
-  const about = (
+  const calendar = showCalendar &&
+    event.schedule &&
+    display.next &&
+    display.nextEnd &&
+    nextSession && (
+      <div className="w-fit max-w-full min-[960px]:mt-3 [&_button[aria-expanded]]:h-11 [&_button[aria-expanded]]:w-auto [&_button[aria-expanded]]:gap-2 [&_button[aria-expanded]]:bg-transparent [&_button[aria-expanded]]:px-1 [&_button[aria-expanded]]:text-sm [&_button[aria-expanded]]:text-primary-11 [&_button[aria-expanded]:hover]:bg-primary-3">
+        <ClassCalendar
+          end={event.schedule.endTime ? display.nextEnd : display.next.plus(DEFAULT_DURATION)}
+          event={{
+            id: `${event.id}-${nextSession.getTime()}`,
+            title: event.title,
+            from: nextSession,
+            schedule: { ...event.schedule, recurrenceType: null, exclusions: [] },
+            location: display.online ? undefined : whereLineFull,
+            url: shareUrl,
+          }}
+          start={display.next}
+        />
+      </div>
+    )
+  const about = description.length > 0 && (
     <section>
       <h2 className="mb-2 text-base font-semibold">About this class</h2>
       <div
@@ -116,7 +161,7 @@ function ClassScreen({
     >
       <Flag aria-hidden size={17} />
       <span className="underline decoration-primary-7 underline-offset-4">
-        Report a problem with this class
+        Suggest a correction to the class details
       </span>
     </button>
   )
@@ -133,7 +178,7 @@ function ClassScreen({
             <EventChips event={event} />
             <section
               aria-label="Class details"
-              className="mt-5 border-b border-divider pb-4 text-[1.125rem] leading-[1.4]"
+              className="mt-5 border-b border-divider pb-6 text-[1.125rem] leading-[1.4]"
             >
               <ClassFacts detailed event={event} />
               {calendar}
@@ -155,32 +200,15 @@ function ClassScreen({
             className="top-[calc(var(--class-host-header-height)+3.5rem)] min-w-0 has-[[aria-expanded=true]]:static! [@media(min-height:760px)]:sticky"
           >
             <div className="rounded-2xl border border-divider bg-background">
-              <VenueMapPreview
-                event={event}
-                register={register}
-                renderDesktopPanel={(directions) => (
-                  <>
-                    <h2 className="px-6 pt-4 pb-3 text-xl font-semibold">{event.title}</h2>
-                    <div className="flex flex-col gap-4 px-6 pt-1 pb-6">
-                      <EventChips event={event} />
-                      <ClassFacts event={event} />
-                      {register}
-                      <div className="flex gap-2 [&>div]:contents [&>div>div]:contents">
-                        {directions}
-                        {secondaryActions}
-                      </div>
-                      {about}
-                      {photos.length > 0 && <PhotoGrid photos={photos} />}
-                      {correction}
-                    </div>
-                  </>
-                )}
-                where={whereLineFull}
-              />
+              {display.actions.includes('directions') && (
+                <VenueMapPreview desktop event={event} register={register} where={whereLineFull} />
+              )}
               <div className="flex flex-col gap-4 p-5">
-                <ClassActions inline event={event} url={shareUrl} />
+                {(display.actions.includes('website') || display.actions.includes('contact')) && (
+                  <ClassActions inline event={event} url={shareUrl} />
+                )}
                 {register}
-                {desktopShareUrl && <ClassSharing title={event.title} url={desktopShareUrl} />}
+                {shareUrl && <ClassSharing title={event.title} url={shareUrl} />}
               </div>
             </div>
             <div className="mt-1 px-5">{correction}</div>
@@ -199,30 +227,24 @@ function ClassScreen({
       <div>
         <div className="mx-auto flex w-full max-w-[720px] flex-col gap-4 px-6 pt-1 pb-10">
           <EventChips event={event} />
-          <VenueMapPreview event={event} register={register} where={whereLineFull} />
+          {display.actions.includes('directions') && (
+            <VenueMapPreview event={event} register={register} where={whereLineFull} />
+          )}
           <div className="flex flex-col gap-1">
             <ClassFacts event={event} />
             {calendar}
           </div>
           {secondaryActions}
-          {wide && register}
+          {!pinRegister && register}
           {about}
           <PhotoGrid photos={photos} />
           {shareUrl && <QrPoster inline label={event.title} url={shareUrl} />}
           {correction}
         </div>
       </div>
-      {!wide && (
+      {pinRegister && (
         <footer className="pointer-events-none sticky bottom-0 z-20 mx-auto w-full max-w-[720px] bg-background px-6 pt-2 pb-[max(8px,env(safe-area-inset-bottom))]">
-          {/* Finish the fade above the button so scrolling text disappears before the CTA. */}
-          <div
-            aria-hidden
-            className="absolute inset-x-0 bottom-full h-4"
-            style={{
-              backgroundImage:
-                'linear-gradient(to bottom, hsl(var(--background) / 0), hsl(var(--background) / 0.6) 64%, hsl(var(--background)))',
-            }}
-          />
+          <MobileFooterFade />
           <div className="pointer-events-auto">{register}</div>
         </footer>
       )}
@@ -230,17 +252,57 @@ function ClassScreen({
   )
 }
 export type ClassExample = {
+  example: ClassPageExample
+  state: StoryFallbackArg
+  showCalendar: boolean
   showPhotos: boolean
   shortDescription: boolean
-  showHostBanner: boolean
+  banner?: BannerHeight
 }
-export function ClassPage({ showHostBanner, showPhotos, shortDescription }: ClassExample) {
-  const desktop = useMediaQuery({ minWidth: 960 })
+export function ClassPage({
+  example,
+  state,
+  banner,
+  showPhotos,
+  shortDescription,
+  showCalendar,
+}: ClassExample) {
+  const event = classPageFixture(example)
+
+  return (
+    <ClassPageLayout
+      banner={banner}
+      description={descriptionParagraphs(event, shortDescription)}
+      event={showPhotos ? event : { ...event, images: [] }}
+      showCalendar={showCalendar}
+      state={state}
+    />
+  )
+}
+
+export function ClassPageLayout({
+  event,
+  description,
+  banner,
+  backPlace = 'United Kingdom',
+  state,
+  showCalendar = true,
+  onBack,
+}: {
+  event: Event
+  description: string[]
+  banner?: BannerHeight
+  backPlace?: string
+  state?: StoryFallbackArg
+  showCalendar?: boolean
+  onBack?: () => void
+}) {
   const [page, setPage] = useState<'class' | 'region' | 'registration' | 'correction'>('class')
   const { locale } = useLocale()
-  const event = showPhotos ? classFixture : { ...classFixture, images: [] }
   const back = () => setPage('class')
   const { node: scroller, adopt } = usePublishedNode<HTMLDivElement>(setFrame)
+  const desktop = useIsWide(scroller)
+  const shareUrl = useShareUrl(event.webUrl, event.path)
   const previousScroll = useRef(0)
   const navigate = (next: typeof page) => {
     previousScroll.current = scroller?.scrollTop ?? 0
@@ -257,32 +319,38 @@ export function ClassPage({ showHostBanner, showPhotos, shortDescription }: Clas
       className="fixed inset-0 overflow-y-auto bg-background text-foreground [--class-host-header-height:calc(3.5rem+1px)] [--sy-content-max:720px]"
     >
       <WebsiteHeader />
-      {showHostBanner && page === 'class' && (
+      {banner && page === 'class' && (
         <div className="mx-auto min-[960px]:max-w-[1200px] min-[960px]:px-10 min-[960px]:pt-5 xl:px-12">
-          <svg
-            aria-label="Shri Mataji Nirmala Devi teaching Sahaja Yoga meditation"
-            className={
-              desktop
-                ? 'block h-auto w-full overflow-hidden rounded-xl'
-                : 'block h-[clamp(132px,25svh,176px)] w-full overflow-hidden sm:aspect-[4/1] sm:h-auto'
-            }
-            preserveAspectRatio="xMidYMin slice"
-            role="img"
-            viewBox={desktop ? '0 0 798 260' : '76 10 640 340'}
-          >
-            <image height={350} href={hostBannerPhoto} width={990} />
-          </svg>
+          <HostBanner height={banner} />
         </div>
       )}
 
       {scroller && (
         <div>
-          <ViewHarness height="container" mode={{ standalone: false }} seedKey={locale}>
+          <ViewStory
+            example={`${event.id}-${locale}`}
+            height="container"
+            mode={{ standalone: false }}
+            path={event.path}
+            seed={(client) => {
+              client.setQueryData(
+                eventTitlesQuery(locale).queryKey,
+                new Map([[event.id, event.title]]),
+              )
+              if (event.region?.slug === mockLeafRegion.slug) {
+                client.setQueryData(
+                  regionQuery(mockLeafRegion.slug, locale).queryKey,
+                  mockLeafRegion,
+                )
+              }
+            }}
+            state={state}
+          >
             {page === 'registration' ? (
-              <ClassRegistration event={event} shareUrl={event.webUrl ?? undefined} onBack={back} />
+              <ClassRegistration event={event} shareUrl={shareUrl} onBack={back} />
             ) : page === 'correction' ? (
               <CorrectionPreview
-                description={descriptionParagraphs(shortDescription).join('\n\n')}
+                description={description.join('\n\n')}
                 event={event}
                 onClose={back}
               />
@@ -295,15 +363,17 @@ export function ClassPage({ showHostBanner, showPhotos, shortDescription }: Clas
               </section>
             ) : (
               <ClassScreen
+                backPlace={backPlace}
+                description={description}
                 desktop={desktop}
                 event={event}
-                short={shortDescription}
-                onBack={() => navigate('region')}
+                showCalendar={showCalendar}
+                onBack={onBack ?? (() => navigate('region'))}
                 onRegister={() => navigate('registration')}
                 onReport={() => navigate('correction')}
               />
             )}
-          </ViewHarness>
+          </ViewStory>
         </div>
       )}
     </div>

@@ -7,7 +7,7 @@ import { fileURLToPath } from 'url'
  * @type {import('@ladle/react').UserConfig}
  */
 export default {
-  stories: 'src/**/*.stories.{ts,tsx}',
+  stories: 'src/**/*.stories.{ts,tsx,mdx}',
   // Point Ladle at its own dedicated Vite config. Without this line,
   // Ladle auto-discovers the root vite.config.ts instead. That config's
   // multi-entry `rollupOptions.input` (index.html and Widget.tsx) and its

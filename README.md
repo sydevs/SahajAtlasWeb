@@ -180,7 +180,7 @@ components through `renderToStaticMarkup`, not jsdom. See
 - [`DESIGN_SYSTEM.md`](DESIGN_SYSTEM.md) — component taxonomy, exports,
   styling
 - [`STORYBOOK.md`](STORYBOOK.md) — Ladle story conventions
-- [Class page prototype](stories/class-page/ClassPage.tsx) — open **Views → Class page** in Ladle to edit the desktop and iPhone layouts. The story has switches for the host banner, photos and a short description. **Story notes** holds the SEO requirements for a published page. Registration and corrections run locally with mock data.
+- [Class page prototype](stories/class-page/ClassPage.tsx) — open **Views → Class page** in Ladle to edit the desktop and iPhone layouts. Use Ladle’s **Viewport** control to resize the page. **Story Controls** (the sliders icon) sets the host banner (off, short or tall), photos, Add to Calendar and description length. Expanding the venue map keeps the address, Directions and registration together. The class page and registration confirmation share the same invitation options, including native sharing where available. Choose an **Example** to preview booking states, online classes or sparse listings. **Fallback** independently shows loading, a missing class or a fetch error for the selected example. Read the publishing requirements in **Views → Class page SEO notes**. Registration and corrections run locally with mock data.
 - nested `AGENTS.md` files (`src/`, `src/components/`, `src/views/`, `scripts/`) —
   directory-scoped guidance. Run `find . -name AGENTS.md -not -path './node_modules/*'` for the inventory
 - [`docs/rules/`](docs/rules/) — guidance scoped to files no single

@@ -3,7 +3,8 @@ import type { Event } from '@/types'
 import { DateTime } from 'luxon'
 
 import { lexicalToText } from '@/lib/shape'
-import { mockEvent } from '@/mocks/events'
+import { eventViewExamples, mockEvent, mockEventStartedCourse } from '@/mocks/events'
+import { childRoute, parentOf } from '@/lib/shape/path'
 
 // Keep the Friday named in the copy in sync with the next bookable date, including across DST.
 const now = DateTime.now().setZone('Europe/London')
@@ -29,9 +30,32 @@ export const classFixture: Event = {
     upcomingDates: [next.toJSDate(), next.plus({ weeks: 1 }).toJSDate()],
   },
 }
-export const descriptionParagraphs = (short: boolean) =>
-  short ? [shortDescription] : longDescription
-const shortDescription = lexicalToText(mockEvent.description)
+export const classPageExamples = {
+  ...eventViewExamples,
+  'In person': classFixture,
+  'Course in progress': mockEventStartedCourse,
+}
+export type ClassPageExample = keyof typeof classPageExamples
+
+export function classPageFixture(example: ClassPageExample) {
+  const event: Event = classPageExamples[example] ?? classFixture
+  // Several shared variants inherit the original event's URL when they override its id.
+  const path = childRoute(parentOf(event.path) ?? '', event.id)
+
+  return {
+    ...event,
+    path,
+    webPath: event.webPath && path,
+    webUrl: event.webUrl && new URL(path, event.webUrl).href,
+  }
+}
+
+export function descriptionParagraphs(event: Event, short: boolean) {
+  if (event.id === classFixture.id && !short) return longDescription
+  const paragraphs = lexicalToText(event.description).split(/\n+/).filter(Boolean)
+
+  return short ? paragraphs.slice(0, 1) : paragraphs
+}
 
 export const fullAddress = ({ address }: Event) =>
   [address?.street, [address?.city, address?.postCode].filter(Boolean).join(' ')]

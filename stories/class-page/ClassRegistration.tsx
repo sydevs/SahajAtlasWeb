@@ -1,7 +1,7 @@
 import type { Event } from '@/types'
 
 import { useState, useEffect, useId, useRef } from 'react'
-import { ChevronDown, MapPin } from 'lucide-react'
+import { ChevronDown, ChevronLeft, MapPin } from 'lucide-react'
 import * as Dialog from '@radix-ui/react-dialog'
 
 import { fullAddress } from './fixture'
@@ -16,8 +16,6 @@ import { fieldChrome } from '@/components/atoms/Select'
 import { ModalBody, ModalContent, ModalFooter } from '@/components/atoms/Modal'
 import { FormField } from '@/components/molecules/FormField'
 import { useEventDisplay } from '@/hooks/use-event-display'
-import { ShareContent } from '@/components/molecules/ShareContent'
-import { useViewerCountry } from '@/hooks/use-viewer-country'
 import { useLocale } from '@/hooks/use-locale'
 import { enabledQuestions, eventTimeZone } from '@/lib/shape'
 // Story-only form: the class and its optional questions come from the fixture; submit stays local.
@@ -31,8 +29,8 @@ export function ClassRegistration({
   onBack?: () => void
 }) {
   const { locale, t } = useLocale()
-  const { display } = useEventDisplay(event)
-  const country = useViewerCountry()
+  const { display, whereLine } = useEventDisplay(event)
+  const venue = display.online ? whereLine : fullAddress(event)
   const [open, setOpen] = useState(false)
   const formId = useId()
   const [confirmedDate, setConfirmedDate] = useState<Date | null>(null)
@@ -93,17 +91,16 @@ export function ClassRegistration({
             <div ref={status} className="pb-5 text-center outline-none" role="status" tabIndex={-1}>
               <p className="mb-1 text-base font-semibold">{event.title}</p>
               <p className="text-base">{dateFormat.format(confirmedDate)}</p>
-              <p className="mt-1 text-sm text-gray-11">{fullAddress(event)}</p>
+              <p className="mt-1 text-sm text-gray-11">{venue}</p>
             </div>
-            {shareUrl &&
-              (onBack ? (
-                <section className="space-y-2 border-t border-divider pt-4">
-                  <h2 className="font-semibold">{t('registration.form.invite_friend')}</h2>
-                  <ShareContent country={country} label={event.title} url={shareUrl} />
-                </section>
-              ) : (
-                <ClassSharing invitation title={event.title} url={shareUrl} />
-              ))}
+            {shareUrl && (
+              <ClassSharing
+                invitation
+                nativeFirst={Boolean(onBack)}
+                title={event.title}
+                url={shareUrl}
+              />
+            )}
           </>
         ) : (
           <form
@@ -118,13 +115,13 @@ export function ClassRegistration({
           >
             <div className="flex items-center gap-2 text-sm text-gray-11">
               <MapPin aria-hidden size={17} />
-              {fullAddress(event)}
+              {venue}
             </div>
             <FormField htmlFor={formId + '-session'} label="Your first class">
               <div className="relative">
                 <select
                   required
-                  className={fieldChrome({ className: 'appearance-none pe-10' })}
+                  className={fieldChrome({ className: 'min-h-11 appearance-none pe-10' })}
                   id={formId + '-session'}
                   name="session"
                 >
@@ -141,11 +138,12 @@ export function ClassRegistration({
                 />
               </div>
             </FormField>
-            <div className="grid gap-3 sm:grid-cols-2">
+            <div className="grid gap-4">
               <FormField htmlFor={formId + '-name'} label={t('registration.form.name')}>
                 <Input
                   required
                   autoComplete="name"
+                  className="min-h-11"
                   id={formId + '-name'}
                   name="name"
                   pattern=".*[^ ].*"
@@ -155,6 +153,7 @@ export function ClassRegistration({
                 <Input
                   required
                   autoComplete="email"
+                  className="min-h-11"
                   id={formId + '-email'}
                   name="email"
                   type="email"
@@ -162,7 +161,7 @@ export function ClassRegistration({
               </FormField>
             </div>
             {questions.length > 0 && (
-              <details className="group border-y border-divider">
+              <details open className="group border-y border-divider">
                 <summary className="flex min-h-11 cursor-pointer list-none items-center justify-between gap-2 text-sm font-medium [&::-webkit-details-marker]:hidden">
                   Optional questions from the organiser
                   <ChevronDown aria-hidden className="group-open:rotate-180" size={16} />
@@ -214,8 +213,13 @@ export function ClassRegistration({
     return (
       <main className="mx-auto w-full max-w-[640px]">
         <header className="px-6 py-4">
-          <Button className="-ms-2 mb-2" color="primary" variant="ghost" onClick={onBack}>
-            Back to class
+          <Button
+            className="-ms-3 mb-2 min-h-11 gap-0.5 px-2"
+            color="primary"
+            variant="ghost"
+            onClick={onBack}
+          >
+            <ChevronLeft aria-hidden size={16} /> Back to class
           </Button>
           <h1 className="text-xl font-semibold">{title}</h1>
           {!confirmedDate && <p className="text-gray-11">{event.title}</p>}

@@ -315,6 +315,28 @@ export const mockEventMinimal: Event = {
   path: '/united-kingdom/cambridge/141',
 }
 
+export const eventViewExamples = {
+  'In person': mockEvent,
+  Minimal: mockEventMinimal,
+  Online: { ...mockEvent, id: 301, eventType: 'online', languages: ['fr'] },
+  Today: mockEventToday,
+  Course: mockEventCourse,
+  Ended: mockEventEnded,
+  Inactive: mockEventInactive,
+  // At capacity: "Full" chip, no Register button — the facts stay normal (the
+  // class still runs), and the slot becomes "This event is full" + "See nearby
+  // events" + the contact helper.
+  Full: mockEventFull,
+  // Full AND meeting today — "Full" supersedes the "Today" chip.
+  'Full · today': mockEventFullToday,
+  'External registration': {
+    ...mockEvent,
+    id: 302,
+    registrationMode: 'external',
+    externalRegistrationUrl: 'https://example.org/register',
+  },
+} satisfies Record<string, Event>
+
 // ── A comprehensive gallery of list-card variants ───────────────────────────────
 //
 // One EventSlim per distinct card render — recurrence, resolver status, distance,

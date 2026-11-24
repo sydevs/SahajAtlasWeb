@@ -1,7 +1,7 @@
 import type { GlobalProvider } from '@ladle/react'
 
 import { useEffect, useRef } from 'react'
-import { ActionType, ThemeState, useLadleContext } from '@ladle/react'
+import { ThemeState } from '@ladle/react'
 import { MemoryRouter } from 'react-router'
 import clsx from 'clsx'
 import { I18nextProvider } from 'react-i18next'
@@ -52,6 +52,15 @@ const PALETTES: Record<string, PaletteRoles> = {
 const PALETTE_NAMES = Object.keys(PALETTES)
 const DEFAULT_PALETTE = PALETTE_NAMES[0]
 
+export const argTypes = {
+  palette: {
+    name: 'Brand palette',
+    options: PALETTE_NAMES,
+    control: { type: 'select' },
+    defaultValue: DEFAULT_PALETTE,
+  },
+}
+
 // Global decorator for every story.
 //
 // This mirrors src/providers.tsx: React Query and Helmet, with no
@@ -79,13 +88,10 @@ const DEFAULT_PALETTE = PALETTE_NAMES[0]
 // story's own <ThemeSwitch> toggles it, not only Ladle's toolbar.
 // Ladle's own chrome stays on Ladle's theme — that is expected.
 //
-// Brand palette: a native Ladle control, registered on every story (see
-// below), applies a tenant preset to the story wrapper through the
-// production applyPalette. It re-applies whenever the palette or the
+// The global Brand palette control applies a tenant preset through applyPalette. It re-applies whenever the palette or the
 // resolved light/dark theme changes. It also hands the preset down through
 // BrandPaletteContext, as BrandTheme does, so the map's markers follow it.
-export const Provider: GlobalProvider = ({ children }) => {
-  const { globalState, dispatch } = useLadleContext()
+export const Provider: GlobalProvider = ({ children, globalState }) => {
   const ladleTheme = globalState.theme
 
   useEffect(() => {
@@ -110,33 +116,6 @@ export const Provider: GlobalProvider = ({ children }) => {
   // component-preview padding, and fill their width-xsmall frame edge to
   // edge. Every other tier keeps the padded gutter.
   const isView = globalState.story?.startsWith('views--')
-
-  // The brand palette is a first-class Ladle control, in the Controls
-  // panel, not a custom <select>. Ladle wipes control state on each
-  // story change. The args provider only re-seeds a story's own args. So
-  // this effect re-adds the palette control whenever it is missing, but
-  // only after the story's controls finish initializing. This effect
-  // merges onto the story's own controls. It never overwrites them. The
-  // args provider's effect runs once per story (deps []), so it never
-  // wipes the palette control back out afterward.
-  useEffect(() => {
-    if (!globalState.controlInitialized || globalState.control.palette) return
-
-    dispatch({
-      type: ActionType.UpdateControl,
-      value: {
-        ...globalState.control,
-        palette: {
-          type: 'select',
-          name: 'Brand palette',
-          options: PALETTE_NAMES,
-          defaultValue: DEFAULT_PALETTE,
-          value: DEFAULT_PALETTE,
-          description: 'Tenant brand palette applied via the production applyPalette',
-        },
-      },
-    })
-  }, [globalState.control, globalState.controlInitialized, dispatch])
 
   const palette =
     PALETTES[globalState.control.palette?.value ?? DEFAULT_PALETTE] ?? NO_BRAND_PALETTE

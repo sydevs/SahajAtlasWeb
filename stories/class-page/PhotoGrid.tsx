@@ -25,7 +25,7 @@ export function PhotoGrid({ photos }: { photos: Slide[] }) {
             >
               <img
                 alt={photo.alt ?? t('event.actions.view_photo')}
-                className="block h-auto w-full"
+                className="block aspect-[auto_3/2] h-auto w-full"
                 decoding="async"
                 loading="lazy"
                 src={photo.src}

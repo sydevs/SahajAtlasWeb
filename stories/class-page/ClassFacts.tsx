@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react'
 import type { Event } from '@/types'
 
-import { CalendarDays, MapPin, Copy, Check } from 'lucide-react'
+import { CalendarDays, MapPin, Monitor, Copy, Check } from 'lucide-react'
 import { useState, useEffect } from 'react'
 
 import meditation from './meditate.svg'
@@ -27,7 +27,7 @@ function Fact({
       className={
         detailed
           ? 'grid grid-cols-[32px_minmax(0,1fr)] items-center gap-3.5 py-2.5'
-          : 'grid grid-cols-[20px_minmax(0,1fr)] items-start gap-3'
+          : 'grid grid-cols-[20px_minmax(0,1fr)] items-start gap-3 has-[button]:items-center'
       }
     >
       <span aria-hidden className="flex justify-center text-primary">
@@ -41,36 +41,38 @@ function Fact({
   )
 }
 function Address({ value }: { value: string }) {
-  const [copied, setCopied] = useState(false)
+  const [copyStatus, setCopyStatus] = useState<'idle' | 'copied' | 'manual'>('idle')
 
   useEffect(() => {
-    if (!copied) return
-    const timer = window.setTimeout(() => setCopied(false), 2000)
+    if (copyStatus === 'idle') return
+    const timer = window.setTimeout(() => setCopyStatus('idle'), 2000)
 
     return () => window.clearTimeout(timer)
-  }, [copied])
+  }, [copyStatus])
 
   return (
     <button
       aria-label={'Copy address: ' + value}
-      className="text-start"
+      className="min-h-11 text-start select-text"
       type="button"
       onClick={async () => {
         try {
           await navigator.clipboard.writeText(value)
-          setCopied(true)
+          setCopyStatus('copied')
         } catch {
-          /* The address remains selectable. */
+          setCopyStatus('manual')
         }
       }}
     >
       {value}{' '}
       <span aria-live="polite">
-        {copied ? (
+        {copyStatus === 'copied' ? (
           <>
             <Check aria-hidden className="inline text-primary" size={14} />
-            <span className="sr-only">Address copied</span>
+            <span className="ms-1 text-sm font-normal text-primary-11">Address copied</span>
           </>
+        ) : copyStatus === 'manual' ? (
+          <span className="text-sm font-normal text-gray-11">Select the address to copy it</span>
         ) : (
           <Copy aria-hidden className="inline text-gray-9" size={14} />
         )}
@@ -79,12 +81,17 @@ function Address({ value }: { value: string }) {
   )
 }
 export function ClassFacts({ event, detailed = false }: { event: Event; detailed?: boolean }) {
-  const { display, recurrenceLine, whenLine } = useEventDisplay(event)
+  const { display, recurrenceLine, whenLine, whereLine, whereSubtext, eventTimeRange } =
+    useEventDisplay(event)
   const { t, locale } = useLocale()
   const dateLocale = locale === 'en' ? 'en-GB' : locale
   const next = display.next
   const time = next
-    ? formatTimeRange(next, display.nextEnd, dateLocale === 'en-GB' ? 'en-GB-u-hc-h12' : dateLocale)
+    ? formatTimeRange(
+        next,
+        event.schedule?.endTime ? display.nextEnd : null,
+        dateLocale === 'en-GB' ? 'en-GB-u-hc-h12' : dateLocale,
+      )
     : null
   const nextSession = next
     ? t('event.display.next_session', {
@@ -111,18 +118,31 @@ export function ClassFacts({ event, detailed = false }: { event: Event; detailed
         {composeCalendarLine({
           recurrenceLine,
           whenLine,
-          time,
+          time: display.online ? eventTimeRange : time,
           hasNext: Boolean(display.next),
         })}
         {recurrenceLine && <p className="text-sm font-normal text-gray-11">{nextSession}</p>}
       </Fact>
-      <Fact
-        detailed={detailed}
-        icon={<MapPin size={size} strokeWidth={detailed ? 1.5 : 2} />}
-        label="Location"
-      >
-        <Address value={fullAddress(event)} />
-      </Fact>
+      {whereLine && display.status !== 'ended' && (
+        <Fact
+          detailed={detailed}
+          icon={
+            display.online ? (
+              <Monitor size={size} />
+            ) : (
+              <MapPin size={size} strokeWidth={detailed ? 1.5 : 2} />
+            )
+          }
+          label="Location"
+        >
+          {display.actions.includes('directions') ? (
+            <Address value={fullAddress(event)} />
+          ) : (
+            whereLine
+          )}
+          {whereSubtext && <p className="text-sm font-normal text-gray-11">{whereSubtext}</p>}
+        </Fact>
+      )}
       {detailed && (
         <Fact
           detailed

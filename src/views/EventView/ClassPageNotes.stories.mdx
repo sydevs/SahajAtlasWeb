@@ -1,0 +1,66 @@
+import { Meta } from "@ladle/react"
+
+<Meta title="Views/Class page SEO notes" />
+
+<article className="mx-auto max-w-prose space-y-4 p-6 leading-relaxed [&_a]:underline [&_h1]:text-2xl [&_h1]:font-semibold [&_h2]:pt-2 [&_h2]:text-lg [&_h2]:font-semibold">
+
+# Class page SEO notes
+
+Publishing handoff for the class page prototype. Atlas already generates Event JSON-LD in
+`EventMetadata`. Check a published class on both Atlas and the host website, comparing the
+initial HTML with the rendered page. At the 23 November review, We Meditate’s host metadata
+was identified as a separate WordPress integration task. Use the existing SahajCloud
+route metadata endpoint, `/api/atlas/seo`, when rendering the host page. Compare the title,
+canonical and Event data for the same class in the raw HTML and the rendered document.
+
+The area naming and publishing rules below are proposals for that work. The meeting left
+the source of confirmed area names open.
+
+## Class heading and search result
+
+Use one H1 with the class name, activity and confirmed local place. “Friday Morning Meditation
+in Cambridge” is the example here. Write the search title in the local language. The English
+pattern is “Free Meditation in Ringwood, Victoria – Tuesdays - Sahaja Yoga Classes”. Omit the
+weekday when the schedule has none.
+
+Write a short, unique meta description from visible facts such as the venue, day, time and free
+admission. Set a matching Open Graph title, description and representative image for sharing.
+
+## How the class gets its area name
+
+One option is for Mapbox to suggest the neighbourhood, locality and
+parent city. The organiser confirms the spelling and can add a locally meaningful landmark or
+metro station. Use SahajCloud Regions as the one registry. AI can flag duplicates and missing
+parents for review.
+
+Format places by language and country. Enfield, London and Санкт-Петербург, м. Проспект
+Просвещения are different ways to locate a class. Use the full state or country when needed to
+distinguish places. Reuse the confirmed names in headings, metadata and place links.
+
+Use permanent geocoding for stored Mapbox results. [Mapbox storage
+guidance](https://docs.mapbox.com/api/search/geocoding/#storing-geocoding-results)
+
+## What a crawler should find
+
+Serve the title, description, H1, schedule, address, cost and class description in the initial
+HTML. Link from a place page to the class and back with ordinary HTML links. Opening the map,
+slideshow or registration keeps the same indexable class page.
+
+Publish one canonical URL per class. Prefer the national site when it fully hosts the Atlas,
+otherwise We Meditate. List active, scheduled classes in the sitemap. Mark inactive or
+unscheduled classes noindex. Redirect old class URLs permanently and connect published language
+versions with reciprocal hreflang links.
+
+## Structured data for scheduled classes
+
+Use Event JSON-LD for a real upcoming session. Match the visible name, description, start and
+end with local time offsets, venue and postal address. Include the organiser, free admission, a
+zero-price offer with local currency and a representative image when available.
+
+The weekly class keeps a stable URL. Google requires a dedicated event URL for each occurrence
+that targets its event results. Decide whether to publish those pages before promising rich
+results. Validate a published example with the Rich Results Test and inspect its canonical in
+Search Console. [Google event
+guidance](https://developers.google.com/search/docs/appearance/structured-data/event)
+
+</article>
