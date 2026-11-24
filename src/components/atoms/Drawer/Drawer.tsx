@@ -153,7 +153,13 @@ const drawer = tv({
        * Nothing scrolls inside it, so the page grows to fit. The column lifts the bands' width
        * cap itself, through `--sy-content-max`.
        */
-      inline: { body: 'flex-none overflow-visible after:hidden' },
+      inline: {
+        body: 'flex-none overflow-visible after:hidden',
+        // A title naming the place the inline embed's page heading already names gives way to
+        // that heading. `display: none` takes it out of the accessibility tree too, so this is
+        // the same tree as not rendering it (`DrawerTitle`, `views/shared.tsx`).
+        header: '[&_[data-sy-place]]:hidden',
+      },
     },
     // A full-width surface, such as CalendarView, instead of the 352px
     // left panel, so a month grid stays legible. This only matters with
@@ -202,9 +208,6 @@ const DrawerContext = createContext<DrawerCtx>({
 })
 
 const useDrawerSlots = () => useContext(DrawerContext)
-
-/** Which surface a view's `Drawer*` subtree renders in. */
-export const useDrawerMode = () => useContext(DrawerContext).mode
 
 // A real drawer is anchored or filled. `inline` is a surface with no drawer at all, reached
 // only through `DrawerSlotsProvider`.

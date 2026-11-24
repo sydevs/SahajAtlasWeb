@@ -10,7 +10,6 @@ import { useQueries, useQuery, useSuspenseQuery } from '@tanstack/react-query'
 import { CalendarDays, Funnel, Menu, Search, X } from 'lucide-react'
 
 import { Button } from '@/components/atoms/Button'
-import { useDrawerMode } from '@/components/atoms/Drawer'
 import { FallbackPanel, GeolocationPrompt } from '@/components/molecules'
 import { MapSearch } from '@/components/organisms'
 import { eventQuery, geojsonQuery, regionQuery, regionsQuery } from '@/config/api'
@@ -91,8 +90,8 @@ export type DrawerTitleProps = {
    */
   note?: ReactNode
   /**
-   * The title names the place the inline embed's page heading already names, so inline it
-   * gives way to that heading and only the lines under it render.
+   * Marks a title that names the place the inline embed's page heading already names. The
+   * drawer's `inline` header slot is what hides it there.
    */
   isPlace?: boolean
 }
@@ -106,11 +105,11 @@ export type DrawerTitleProps = {
  * content heading below it, not a competing label.
  */
 export function DrawerTitle({ title, subtitle, note, isPlace = false }: DrawerTitleProps) {
-  const headed = useDrawerMode() === 'inline' && isPlace
-
   return (
     <div className="min-w-0">
-      {!headed && <h2 className="truncate text-lg font-semibold">{title}</h2>}
+      <h2 className="truncate text-lg font-semibold" data-sy-place={isPlace || undefined}>
+        {title}
+      </h2>
       {subtitle && <div className="truncate text-sm text-gray-11">{subtitle}</div>}
       {note && <div className="truncate text-xs text-gray-11">{note}</div>}
     </div>
