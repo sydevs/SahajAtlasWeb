@@ -115,27 +115,6 @@ const ABOVE_SHEET_WHEN_SHORT_PX = 75
 const capStop = <T extends number | string | null>(point: T, cap: number | null): T | string =>
   cap !== null && typeof point === 'string' && parseFloat(point) > cap ? `${cap}px` : point
 
-// The places a climb passes over walk every class in the feed, so they are worked out once per
-// feed and region tree, not per navigation.
-const passableCache = new WeakMap<Geojson, { regions: RegionNode[]; passable: Set<string> }>()
-const passableFor = (regions: RegionNode[], feed: Geojson): Set<string> => {
-  const cached = passableCache.get(feed)
-
-  if (cached?.regions === regions) return cached.passable
-
-  const passable = passablePlaces(
-    regions,
-    feed.features.map(({ properties }) => ({
-      region: properties.region,
-      online: isOnline(properties),
-    })),
-  )
-
-  passableCache.set(feed, { regions, passable })
-
-  return passable
-}
-
 // Frames a stationary sheet holds before the `--sy-sheet-top` mirror parks itself (about
 // 0.5s at 60fps — well past the end of any vaul spring). See the effect below for why it
 // parks at all.
@@ -255,16 +234,28 @@ export function DrawerStack() {
         queryClient.getQueryState(geojsonQuery().queryKey)?.dataUpdatedAt
       }`,
   )
-  const step = useMemo(() => {
+  // The places a climb passes over walk every class in the feed, and the place paths build a Map
+  // of the whole region tree, so both are worked out per feed rather than per navigation.
+  const climb = useMemo(() => {
     const regions = queryClient.getQueryData<RegionNode[]>(regionsQuery().queryKey)
     const feed = queryClient.getQueryData<Geojson>(geojsonQuery().queryKey)
 
-    return backStep(location, {
+    return {
       pathOf: placePathsOf(regions),
-      passable: regions && feed ? passableFor(regions, feed) : undefined,
-    })
+      passable:
+        regions && feed
+          ? passablePlaces(
+              regions,
+              feed.features.map(({ properties }) => ({
+                region: properties.region,
+                online: isOnline(properties),
+              })),
+            )
+          : undefined,
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps -- `cachesFilled` is the re-read trigger for caches nothing here observes
-  }, [queryClient, location, cachesFilled])
+  }, [queryClient, cachesFilled])
+  const step = useMemo(() => backStep(location, climb), [location, climb])
   // The country on screen, kept through the routes that name none (search, calendar), so the
   // place search a country page opens stays in that country. The world view clears it.
   const setBrowsedCountry = useBrowsedCountry((s) => s.setCode)
