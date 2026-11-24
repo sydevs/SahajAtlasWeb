@@ -51,7 +51,7 @@
      normally, a frame when one has taken the containing block.
 
      Every drawer, peek strip, and sheet is `position: fixed`, so `100dvh` is correct
-     only while nothing has taken that block. The expanded map's dialog deliberately does,
+     only while nothing has taken that block. The expanded map's dialog (#169) deliberately does,
      with `contain: layout`, and starts below the host's header — so inside it `100dvh`
      overshoots by the header's height and the sheet, its peek strips, and the sticky
      Register bar all overrun the clip edge. `100%` on a fixed child resolves against its

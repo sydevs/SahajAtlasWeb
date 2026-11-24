@@ -5,7 +5,7 @@ import { useCallback, useState } from 'react'
  * tells the caller when it may render its children.
  *
  * Two singletons need exactly this. The widget's FRAME (`setFrame`), the box the fixed layer
- * resolves against, taken by `InlineEmbedView`'s expanded dialog.
+ * resolves against, taken by `InlineEmbedView`'s expanded dialog (#161, #169).
  * And the THEME ROOT (`setThemeRoot`), the wrapper in `Widget.tsx` that every portal lands in when
  * no frame is live.
  * Never hand-copy it: copies have drifted twice. `Widget.theme-root.test.tsx` pins the theme root.

@@ -24,7 +24,7 @@ import { overlayContainer } from '@/lib/overlay'
 //
 // **Both axes are measured against the box this modal is CLIPPED to, not
 // the viewport.** It portals through `overlayContainer()`. So inside a
-// frame, such as the inline embed's expanded dialog, `contain: layout` makes
+// frame, such as the inline embed's expanded dialog (#161, #169), `contain: layout` makes
 // that frame the containing block. A viewport unit would then describe something else entirely.
 //
 // Height reads `--sy-frame-h`, which is `100dvh` outside a frame and `100%`

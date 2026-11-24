@@ -42,7 +42,7 @@ const DRAWER_W_PX = 352
 // map the open sheet hides, and on /fr/paris the classes listed first sat under it.
 const MOBILE_SHEET_PX = 300
 // What the sheet must still leave of the map above it, for the pin the camera just framed. It also
-// keeps the padding inside a short frame, where padding past the canvas makes `fitBounds` refuse
+// keeps the padding inside a short frame (#169), where padding past the canvas makes `fitBounds` refuse
 // the fit outright.
 const MIN_MAP_STRIP_PX = 160
 const MAP_MARGIN = 20

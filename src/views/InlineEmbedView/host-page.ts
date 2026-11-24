@@ -113,7 +113,9 @@ function headerCandidates(host: HTMLElement | null): Element[] {
     climb(document.elementFromPoint(window.innerWidth * fraction, 1))
   for (const landmark of document.querySelectorAll('header, [role="banner"]')) climb(landmark)
 
-  return [...found].filter((element) => !host?.contains(element))
+  return [...found].filter(
+    (element) => !host || (!host.contains(element) && !element.contains(host)),
+  )
 }
 
 // A bar, not a takeover or a sidebar: most of the window's width, little of its height.
@@ -126,7 +128,8 @@ function coversNow(element: Element): number {
   const header =
     position === 'fixed' ||
     position === 'sticky' ||
-    element.localName === 'header' ||
+    // A `<header>` inside sectioning content heads that section, not the page (HTML-AAM).
+    (element.localName === 'header' && !element.closest('article, aside, main, nav, section')) ||
     element.getAttribute('role') === 'banner'
 
   return header && isBar(rect) && rect.top <= 1 && rect.bottom > 0 ? rect.bottom : 0
@@ -185,6 +188,10 @@ function cannotGrow(host: HTMLElement, content: HTMLElement): boolean {
   }
 }
 
+// How long a clip must last before the embed boxes for good: longer than an accordion or tab
+// panel takes to open, which clips everything inside it while it animates.
+const CLIP_SETTLE_MS = 600
+
 // What the host's own height rule is overridden with, so the inline embed is as tall as its
 // content. Inline `!important` outranks any author rule.
 const GROW = [
@@ -198,8 +205,8 @@ const GROW = [
  *
  * Where the content cannot reach the page, the element takes its box's full height instead, and
  * the content scrolls within it, so nothing is cut off and nothing spills over the page below.
- * Once boxed, it stays boxed: growing again would only clip again. The previous inline values come
- * back on unmount.
+ * Once boxed, it stays boxed: growing again would only clip again. So only a clip still there once
+ * the page has settled boxes it. The previous inline values come back on unmount.
  */
 export function useGrowHost(host: HTMLElement | null, content: HTMLElement | null): boolean {
   const [boxed, setBoxed] = useState(false)
@@ -230,8 +237,13 @@ export function useGrowHost(host: HTMLElement | null, content: HTMLElement | nul
   useLayoutEffect(() => {
     if (!host || !content || boxed || typeof ResizeObserver === 'undefined') return
 
+    let settling: ReturnType<typeof setTimeout> | undefined
     const check = () => {
-      if (cannotGrow(host, content)) setBoxed(true)
+      clearTimeout(settling)
+      if (!cannotGrow(host, content)) return
+      settling = setTimeout(() => {
+        if (cannotGrow(host, content)) setBoxed(true)
+      }, CLIP_SETTLE_MS)
     }
     const observer = new ResizeObserver(check)
 
@@ -239,7 +251,10 @@ export function useGrowHost(host: HTMLElement | null, content: HTMLElement | nul
     observer.observe(content)
     check()
 
-    return () => observer.disconnect()
+    return () => {
+      clearTimeout(settling)
+      observer.disconnect()
+    }
   }, [host, content, boxed])
 
   return boxed

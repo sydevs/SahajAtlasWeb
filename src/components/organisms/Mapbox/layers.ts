@@ -13,8 +13,9 @@ import {
 } from '@/config/theme/palette'
 import { ringRadiusPx, ringZoom } from '@/lib/camera'
 
-// The narrowest map the interface is drawn at: a phone's inline strip, or a small frame.
-const NARROWEST_MAP_PX = 360
+// The narrowest map the interface is drawn at: the inline strip on a 320px phone, less its 16px
+// gutters.
+const NARROWEST_MAP_PX = 288
 
 type Props = {
   id: string

@@ -27,14 +27,12 @@ export default defineConfig({
     // One line: `scripts/select-unit-specs.test.ts` reads this array back as JSON.
     // prettier-ignore
     exclude: ['node_modules', 'dist', 'build', '.ladle', 'tests/smoke/**', 'tests/browser/**', '.claude/worktrees/**'],
-    // This raises the timeout from vitest's 5-second default. Three
-    // specs flaked in the full run but passed alone: `href.test.ts` and
-    // two jsdom `CompactEmbedView` specs. `href.test.ts` walks the
-    // TypeScript AST of every `src/**/*.tsx` file, to check the
-    // JSX-anchor inventory. Each `CompactEmbedView` spec boots a DOM and
-    // mounts a Radix dialog. All three finished in 5 to 7 seconds under
-    // parallel load on a fast laptop, so a slower CI runner needs more
-    // room.
+    // This raises the timeout from vitest's 5-second default. Specs that
+    // walk the whole tree, such as `href.test.ts` (the TypeScript AST of
+    // every `src/**/*.tsx` file), and jsdom specs that mount a Radix
+    // dialog flaked in the full run but passed alone, finishing in 5 to 7
+    // seconds under parallel load on a fast laptop, so a slower CI runner
+    // needs more room.
     //
     // No spec here waits on a network call or a timer, so this timeout
     // never catches a hang. It only caps how slow a genuinely slow spec

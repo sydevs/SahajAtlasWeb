@@ -108,10 +108,10 @@ describe('the vague-place layers', () => {
     expect(dot.maxzoom).toBeUndefined()
   })
 
-  // The narrowest map the full interface renders in is 360px, so one level past this the ring's
-  // outline is off every screen and only its tint would be left.
-  it('drops the ring where it grows as wide as the narrowest map, around zoom 11.7', () => {
-    expect(RING_MAX_ZOOM).toBeCloseTo(11.7, 1)
+  // The narrowest map is the inline strip on a 320px phone, 288px wide, so one level past this the
+  // ring's outline is off every screen and only its tint would be left.
+  it('drops the ring where it grows as wide as the narrowest map, around zoom 11.4', () => {
+    expect(RING_MAX_ZOOM).toBeCloseTo(11.4, 1)
     expect(RING_MAX_ZOOM).toBeGreaterThan(RING_ZOOM)
   })
 

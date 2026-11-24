@@ -283,20 +283,28 @@ function InlineLayout() {
   const boxed = useGrowHost(host, content)
   const heading = useRef<HTMLDivElement>(null)
   const lastPath = useRef(pathname)
+  // Whether a navigation since the heading was last placed opened a view. A replace — the home
+  // redirect, a filter — opens none, but one after a push in the expanded map must not hide it.
+  const opened = useRef(false)
   const top = boxed ? 0 : stickTop
   // Behind the expanded map the content column is hidden, so the page keeps the height it had,
   // and the visitor keeps their place in it.
   // eslint-disable-next-line react-hooks/exhaustive-deps -- measured once, at each opening
   const pinnedHeight = useMemo(() => (expanded ? content?.offsetHeight : undefined), [expanded])
 
+  useEffect(() => {
+    if (pathname !== lastPath.current && navigationType !== 'REPLACE') opened.current = true
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- each path change is read once, with the navigation that made it
+  }, [pathname])
+
   // A new view starts at its own top: opening a city from the bottom of a long list would
   // otherwise leave the visitor looking at the middle of the next page. A view reached in the
-  // expanded map is waiting when it closes. A replace is not a view the visitor opened — the
-  // home redirect, a filter — so it moves nothing.
+  // expanded map is waiting when it closes.
   useEffect(() => {
     if (pathname === lastPath.current || expanded) return
     lastPath.current = pathname
-    if (navigationType === 'REPLACE') return
+    if (!opened.current) return
+    opened.current = false
 
     const element = heading.current
 
