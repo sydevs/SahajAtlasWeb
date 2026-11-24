@@ -822,7 +822,7 @@ export function DrawerStack() {
                 gets its own strip below the views. Floating over them, it sat on list rows and
                 form fields, and the narrower the box the more it covered. side="top" opens
                 the menu upward from there. */}
-            <div className="flex h-12 shrink-0 items-center border-t border-divider px-4">
+            <div className="flex h-12 shrink-0 items-center border-t border-divider px-gutter">
               <SettingsMenu toolbar side="top" />
             </div>
           </div>

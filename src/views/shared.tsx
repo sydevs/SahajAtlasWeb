@@ -8,6 +8,7 @@ import { useLocation, useNavigationType, useSearchParams } from 'react-router'
 import { useTranslation } from 'react-i18next'
 import { useQueries, useQuery, useSuspenseQuery } from '@tanstack/react-query'
 import { CalendarDays, Funnel, Menu, Search, X } from 'lucide-react'
+import clsx from 'clsx'
 
 import { Button } from '@/components/atoms/Button'
 import { FallbackPanel, GeolocationPrompt } from '@/components/molecules'
@@ -116,6 +117,11 @@ export function DrawerTitle({ title, subtitle, note }: DrawerTitleProps) {
  */
 const HEADER_CONTROL = { variant: 'ghost', isIconOnly: true, size: 'sm' } as const
 
+// The control that ends a header. Its 20px icon sits centred in a 32px box (44px on a touch
+// screen), so this pulls the box into the gutter until the icon lands on the panel edge, in the
+// column of the rows' chevrons, with the tap area whole.
+const HEADER_LAST_CONTROL = '-me-1.5 pointer-coarse:-me-3'
+
 export function CloseButton({ className }: { className?: string }) {
   // This renders inside the error/loading chrome, where a suspend would escape the
   // boundary and blank the widget instead of showing the failure. `useTranslation()`
@@ -128,7 +134,7 @@ export function CloseButton({ className }: { className?: string }) {
     <Button
       {...HEADER_CONTROL}
       aria-label={t('common.chrome.close')}
-      className={className}
+      className={clsx(HEADER_LAST_CONTROL, className)}
       onClick={dismiss}
     >
       <X size={20} />
@@ -197,6 +203,7 @@ export function CollapseToggle() {
       {...HEADER_CONTROL}
       aria-expanded={!collapsed}
       aria-label={collapsed ? t('common.a11y.explore') : t('common.chrome.close')}
+      className={HEADER_LAST_CONTROL}
       onClick={toggle}
     >
       {collapsed ? <Menu size={24} /> : <X size={20} />}
@@ -211,7 +218,14 @@ export function CollapseToggle() {
 // (SearchView), and — with `iconOnly` — an icon-only header control carrying the
 // active count as a badge (CountriesView's header), so it reads as one set with
 // the close/collapse chrome.
-export function FilterButton({ iconOnly = false }: { iconOnly?: boolean }) {
+export function FilterButton({
+  iconOnly = false,
+  isLast = false,
+}: {
+  iconOnly?: boolean
+  /** Nothing follows it in the header, so its icon takes the panel's edge. */
+  isLast?: boolean
+}) {
   // Also rendered by the fallback chrome (views/fallbacks.tsx), where a suspend
   // would escape the boundary and blank the widget instead of showing the failure.
   // See CloseButton for why this read cannot.
@@ -226,7 +240,12 @@ export function FilterButton({ iconOnly = false }: { iconOnly?: boolean }) {
 
   if (iconOnly) {
     return (
-      <Button {...HEADER_CONTROL} aria-label={label} className="relative" onClick={open}>
+      <Button
+        {...HEADER_CONTROL}
+        aria-label={label}
+        className={clsx('relative', isLast && HEADER_LAST_CONTROL)}
+        onClick={open}
+      >
         <Funnel size={20} />
         {count > 0 && (
           <span

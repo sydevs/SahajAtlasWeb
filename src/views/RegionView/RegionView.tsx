@@ -1,7 +1,6 @@
 import { useSuspenseQuery } from '@tanstack/react-query'
 import { Helmet } from 'react-helmet-async'
 import { useTranslation } from 'react-i18next'
-import { Monitor } from 'lucide-react'
 
 import { Alert } from '@/components/atoms/Alert'
 import { Link } from '@/components/atoms/Link'
@@ -163,12 +162,12 @@ export function RegionView({ slug }: { slug: string }) {
         ) : (
           <List>
             {/* On a region with sub-regions, the online roll-up opens in its own drawer
-                via this card, keeping the placeless classes out of the mixed list below. */}
+                via this card, keeping the placeless classes out of the mixed list below.
+                No icon: no other row here has one, so every label starts on one edge. */}
             {showOnlineCard && (
               <ListItem
                 count={region.onlineEvents.length}
                 href={`${childRoute(region.path, 'online')}${filterSearch}`}
-                icon={<Monitor size={24} />}
                 label={t('online.title')}
               />
             )}

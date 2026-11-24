@@ -21,6 +21,7 @@ import {
   FilterButton,
   GeolocationSuggestion,
   SearchField,
+  useDrawerControl,
   useFrameOnTop,
 } from '@/views/shared'
 
@@ -34,6 +35,7 @@ export function CountriesView() {
   const { regionNames } = useLocale()
   const { standalone } = useWidgetMode()
   const { reset } = useMapController()
+  const { canCollapse } = useDrawerControl()
   // A shared link can carry filters (`/?days=2`). The map already applies them to its pins, so
   // the counts and the onward links must too, or the two disagree.
   const filters = useEventFilters()
@@ -84,7 +86,8 @@ export function CountriesView() {
           index is meaningless, so there is no sort menu here. */}
       <DrawerHeader>
         <SearchField />
-        <FilterButton iconOnly />
+        {/* The toggle renders nothing where the sheet cannot collapse, so filters end the row. */}
+        <FilterButton iconOnly isLast={!canCollapse} />
         <CollapseToggle />
       </DrawerHeader>
       <DrawerBody>
@@ -104,7 +107,7 @@ export function CountriesView() {
               <ListItem
                 count={onlineCount}
                 href={onlineSearch}
-                icon={<Monitor size={24} />}
+                icon={<Monitor size={20} />}
                 label={t('online.title')}
               />
             )}
