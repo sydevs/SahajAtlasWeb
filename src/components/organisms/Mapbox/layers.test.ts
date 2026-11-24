@@ -131,7 +131,7 @@ describe('the vague-place layers', () => {
     expect(paintOf(dot)['circle-color']).toBe(paintOf(ring)['circle-color'])
   })
 
-  // The pin is 34px wide at icon-size 0.85: the ring takes over once its radius is that wide.
+  // The pin shows 34 × 0.85 ≈ 29px wide: the ring takes over once its radius is that wide.
   it('switches where the ring is as wide as the pin, around zoom 9 for a 3km radius', () => {
     expect(VAGUE_RADIUS_KM).toBe(3)
     expect(RING_ZOOM).toBeCloseTo(9.06, 2)
@@ -155,6 +155,19 @@ describe('the vague-place layers', () => {
     expect(at0[2]).toEqual(['get', 'cosLat'])
     expect((at1[1] as number) / (at0[1] as number)).toBeCloseTo(2 ** 24)
   })
+})
+
+// The pin art is rasterised at the size it shows (`markers.ts`). An `icon-size` here
+// would have Mapbox resample it from its atlas, with no mipmaps, and stair-step the edge.
+it('draws the resting pins at their own size', () => {
+  for (const layer of [
+    unclusteredPointLayer,
+    vaguePinLayer,
+    selectedPointLayer,
+    clusterLayer({}),
+  ]) {
+    expect(layer.layout).not.toHaveProperty('icon-size')
+  }
 })
 
 describe('clusterLayer', () => {

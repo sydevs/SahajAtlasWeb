@@ -62,25 +62,32 @@ const RING_OPACITY = 0.706
 // read on the near-black panel — washes out on it too.
 const MARKER_MODE: ThemeMode = 'light'
 
-// Rasterisation scale — the images are drawn at 2× and registered with
-// `pixelRatio: 2`, matching the @2x Studio sprite they replace.
-const SCALE = 2
-
+// Each image is rasterised at the size it is shown and at the screen's own pixel
+// ratio, so Mapbox draws it 1:1. ⚠ Never shrink one with `icon-size` instead:
+// Mapbox resamples a scaled icon from its atlas with no mipmaps, which
+// stair-steps a thin edge (the pins' outline, measured at 2× and 1×).
 type MarkerImage = {
-  /** This is the logical (CSS px) size. The bitmap is `SCALE`× this size. */
+  /** The bitmap's size in device pixels. */
   width: number
   height: number
+  /** Device pixels per CSS pixel, for `addImage`, so the image shows at its logical size. */
+  ratio: number
   svg: string
 }
 
-// This builds one `<svg>` at `SCALE`× its logical size — the size Mapbox
-// reads from the decoded element. It is declared once here, rather than
-// once per shape.
-const svg = (width: number, height: number, body: string): MarkerImage => ({
-  width,
-  height,
-  svg: `<svg xmlns="http://www.w3.org/2000/svg" width="${width * SCALE}" height="${height * SCALE}" viewBox="0 0 ${width} ${height}">${body}</svg>`,
-})
+// `width` and `height` are the art's logical size, which its viewBox keeps;
+// `size` is how large it shows, relative to that.
+const svg = (width: number, height: number, body: string, ratio: number, size = 1): MarkerImage => {
+  const pixelWidth = Math.round(width * size * ratio)
+  const pixelHeight = Math.round(height * size * ratio)
+
+  return {
+    width: pixelWidth,
+    height: pixelHeight,
+    ratio,
+    svg: `<svg xmlns="http://www.w3.org/2000/svg" width="${pixelWidth}" height="${pixelHeight}" viewBox="0 0 ${width} ${height}">${body}</svg>`,
+  }
+}
 
 // This is the teardrop pin: a 15px-radius head centered at (15.5, 16), with
 // tangent sides converging on the tip at (15.5, 37.6), a white center dot,
@@ -90,10 +97,12 @@ const svg = (width: number, height: number, body: string): MarkerImage => ({
 // blur are sized to land inside 34×38, rather than being squared off by the
 // edge. The last of it falls under the tip, where the pin meets the map
 // anyway.
-/** The teardrop pin's image width, before a layer's `icon-size`. */
+/** The teardrop pin's art width, in its own units. */
 export const PIN_WIDTH = 34
+/** How large a pin shows, relative to its art: `PIN_WIDTH × PIN_SIZE` CSS px wide. */
+export const PIN_SIZE = 0.85
 
-const pin = (fill: string, outline: string): MarkerImage =>
+const pin = (fill: string, outline: string, ratio: number): MarkerImage =>
   svg(
     PIN_WIDTH,
     38,
@@ -104,6 +113,8 @@ const pin = (fill: string, outline: string): MarkerImage =>
   </defs>
   <path d="M4.71 26.42a15 15 0 1 1 21.58 0L15.5 37.6Z" fill="${fill}" filter="url(#shadow)" stroke="${outline}" stroke-width="${OUTLINE_WIDTH}" stroke-linejoin="round"/>
   <circle cx="15.5" cy="16" r="4.5" fill="#FFFFFF"/>`,
+    ratio,
+    PIN_SIZE,
   )
 
 // This is the cluster bubble: a solid disc inside a wider translucent ring.
@@ -111,12 +122,13 @@ const pin = (fill: string, outline: string): MarkerImage =>
 // text.
 // The translucent ring is the whole edge: no outline, which clashed with it.
 // The disc is opaque, so a pale feature underneath cannot thin its count.
-const cluster = (fill: string, ring: string): MarkerImage =>
+const cluster = (fill: string, ring: string, ratio: number): MarkerImage =>
   svg(
     38,
     38,
     `<circle cx="19" cy="19" r="19" fill="${ring}" fill-opacity="${RING_OPACITY}"/>
   <circle cx="19" cy="19" r="13.8" fill="${fill}"/>`,
+    ratio,
   )
 
 /** Marker image ids — referenced by `icon-image` in `layers.ts`. */
@@ -202,22 +214,26 @@ export function markerColors(palette: PaletteRoles): MarkerColors {
 
 /**
  * The four marker images in the given colors, with the pins edged for `mode`'s
- * basemap.
+ * basemap, rasterised at `ratio` device pixels per CSS pixel.
  *
  * This is a Map, not an object literal. The `styleimagemissing` event carries
  * whatever `icon-image` asked for, including the basemap's own layers. An id
  * like `constructor` would resolve up an object's prototype chain to a
  * non-marker.
  */
-export function markerImages(colors: MarkerColors, mode: ThemeMode): Map<string, MarkerImage> {
+export function markerImages(
+  colors: MarkerColors,
+  mode: ThemeMode,
+  ratio: number,
+): Map<string, MarkerImage> {
   const { point, cluster: bubble, clusterSelected, pointSelected } = MARKER_IDS
   const edge = MARKER_OUTLINE[mode]
 
   return new Map<string, MarkerImage>([
-    [point, pin(colors[point].fill, edge)],
-    [pointSelected, pin(colors[pointSelected].fill, edge)],
-    [bubble, cluster(colors[bubble].fill, colors[bubble].ring)],
-    [clusterSelected, cluster(colors[clusterSelected].fill, colors[clusterSelected].ring)],
+    [point, pin(colors[point].fill, edge, ratio)],
+    [pointSelected, pin(colors[pointSelected].fill, edge, ratio)],
+    [bubble, cluster(colors[bubble].fill, colors[bubble].ring, ratio)],
+    [clusterSelected, cluster(colors[clusterSelected].fill, colors[clusterSelected].ring, ratio)],
   ])
 }
 
@@ -266,13 +282,13 @@ const decoding = new Map<string, Promise<HTMLImageElement>>()
 // instead.
 const failed = new Set<string>()
 
-/** Rasterise one marker SVG at `SCALE`× via an inline data URI (no network). */
+/** Rasterise one marker SVG via an inline data URI (no network). */
 function decodeMarker(key: string, { svg, width, height }: MarkerImage) {
   const pending = decoding.get(key)
 
   if (pending) return pending
 
-  const image = new Image(width * SCALE, height * SCALE)
+  const image = new Image(width, height)
 
   image.src = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`
 
@@ -309,7 +325,11 @@ export function registerMarkerImages(
   colors: MarkerColors,
   mode: ThemeMode,
 ): () => void {
-  const images = markerImages(colors, mode)
+  // shortcut: read once per subscription, so a window dragged to a screen with
+  // another pixel ratio keeps the old bitmaps, scaled, until the next palette or
+  // theme change. Listen for the ratio's own media query if that is ever seen.
+  const ratio = window.devicePixelRatio || 1
+  const images = markerImages(colors, mode, ratio)
   // What this subscription has already put on the map. Mapbox re-fires
   // `styleimagemissing` per missing id PER TILE BATCH, and without this each
   // repeat would replace the image again. It needs no color of its own: the
@@ -341,7 +361,7 @@ export function registerMarkerImages(
     // leaving it to the decode path's `.catch`.
     try {
       if (map.hasImage(id)) map.removeImage(id)
-      map.addImage(id, image, { pixelRatio: SCALE })
+      map.addImage(id, image, { pixelRatio: ratio })
 
       registered.set(id, key)
     } catch (error) {

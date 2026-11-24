@@ -1,6 +1,6 @@
 import type { LayerProps } from 'react-map-gl/mapbox'
 
-import { MARKER_IDS, MARKER_OUTLINE, markerColors, PIN_WIDTH } from './markers'
+import { MARKER_IDS, MARKER_OUTLINE, markerColors, PIN_SIZE, PIN_WIDTH } from './markers'
 
 import {
   buildScale,
@@ -82,11 +82,9 @@ export const clusterLayer = (palette: PaletteRoles): Props => ({
   },
 })
 
-const PIN_SIZE = 0.85
-
+// No `icon-size`: the pin art is rasterised at the size it shows (`markers.ts`).
 const pinLayout = {
   'icon-anchor': 'bottom',
-  'icon-size': PIN_SIZE,
   'icon-ignore-placement': true,
   'icon-image': MARKER_IDS.point,
 } as const
@@ -212,7 +210,6 @@ export const selectedPointLayer: SymbolLayerProps = {
   source: 'selection',
   layout: {
     'icon-anchor': 'bottom',
-    'icon-size': 0.85,
     'icon-ignore-placement': true,
     'icon-image': MARKER_IDS.pointSelected,
   },
@@ -243,7 +240,8 @@ export const hoveredPointLayer: SymbolLayerProps = {
   source: 'hover',
   layout: {
     'icon-anchor': 'bottom',
-    'icon-size': 1,
+    // The art's full 34px width: the hovered pin pops above the others.
+    'icon-size': 1 / PIN_SIZE,
     'icon-ignore-placement': true,
     'icon-image': MARKER_IDS.pointSelected,
   },

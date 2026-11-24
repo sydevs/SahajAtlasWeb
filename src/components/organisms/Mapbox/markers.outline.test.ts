@@ -44,7 +44,7 @@ describe('the fixed marker outline', () => {
   it.each(['light', 'dark'] as const)(
     'edges every pin for the %s basemap, and no bubble, which carries its own ring',
     (mode) => {
-      const images = markerImages(DEFAULT_MARKER_COLORS, mode)
+      const images = markerImages(DEFAULT_MARKER_COLORS, mode, 2)
 
       for (const id of [MARKER_IDS.point, MARKER_IDS.pointSelected]) {
         expect(images.get(id)?.svg).toContain(`stroke="${MARKER_OUTLINE[mode]}"`)

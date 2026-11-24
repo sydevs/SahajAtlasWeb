@@ -57,6 +57,10 @@ The map is the heart of the app and its hottest render path. Treat it carefully.
   holds the pins edged and the bubbles not.
   ⚠ **Dark edge on the light map, pale edge on the dark one.** The dark style is
   mid-toned and its land is lighter than its water. Do not swap them.
+- **Each image is rasterised at the size it shows, at the screen's pixel ratio, and
+  drawn with no `icon-size`** (`PIN_SIZE`, `markers.ts`). ⚠ Mapbox resamples a scaled
+  icon from its atlas with no mipmaps, which stair-stepped the pins' 1.2 outline at
+  both 1× and 2×. Only the transient hover and area highlights still scale.
 - **The marks take the LIGHT-mode palette in both modes** (`MARKER_MODE`). The dark
   basemap is mid-toned and washed out, so a dark-mode solid — lifted to read on the
   near-black panel — washed out on it. So `markerColors` and `clusterLayer` take no

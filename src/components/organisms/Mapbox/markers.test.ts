@@ -13,23 +13,27 @@ import { DEFAULT_MARKER_COLORS, MARKER_IDS, markerColors, markerImages } from '.
  */
 const STOCK = {
   [MARKER_IDS.point]: {
-    width: 34,
-    height: 38,
-    svg: '<svg xmlns="http://www.w3.org/2000/svg" width="68" height="76" viewBox="0 0 34 38"><defs>\n    <filter id="shadow" x="-40%" y="-40%" width="200%" height="200%">\n      <feDropShadow dx="1.2" dy="0.8" stdDeviation="0.9" flood-color="#4A5350" flood-opacity="0.45"/>\n    </filter>\n  </defs>\n  <path d="M4.71 26.42a15 15 0 1 1 21.58 0L15.5 37.6Z" fill="#2d9a76" filter="url(#shadow)" stroke="#000000" stroke-width="1.2" stroke-linejoin="round"/>\n  <circle cx="15.5" cy="16" r="4.5" fill="#FFFFFF"/></svg>',
+    width: 58,
+    height: 65,
+    ratio: 2,
+    svg: '<svg xmlns="http://www.w3.org/2000/svg" width="58" height="65" viewBox="0 0 34 38"><defs>\n    <filter id="shadow" x="-40%" y="-40%" width="200%" height="200%">\n      <feDropShadow dx="1.2" dy="0.8" stdDeviation="0.9" flood-color="#4A5350" flood-opacity="0.45"/>\n    </filter>\n  </defs>\n  <path d="M4.71 26.42a15 15 0 1 1 21.58 0L15.5 37.6Z" fill="#2d9a76" filter="url(#shadow)" stroke="#000000" stroke-width="1.2" stroke-linejoin="round"/>\n  <circle cx="15.5" cy="16" r="4.5" fill="#FFFFFF"/></svg>',
   },
   [MARKER_IDS.pointSelected]: {
-    width: 34,
-    height: 38,
-    svg: '<svg xmlns="http://www.w3.org/2000/svg" width="68" height="76" viewBox="0 0 34 38"><defs>\n    <filter id="shadow" x="-40%" y="-40%" width="200%" height="200%">\n      <feDropShadow dx="1.2" dy="0.8" stdDeviation="0.9" flood-color="#4A5350" flood-opacity="0.45"/>\n    </filter>\n  </defs>\n  <path d="M4.71 26.42a15 15 0 1 1 21.58 0L15.5 37.6Z" fill="#d87b64" filter="url(#shadow)" stroke="#000000" stroke-width="1.2" stroke-linejoin="round"/>\n  <circle cx="15.5" cy="16" r="4.5" fill="#FFFFFF"/></svg>',
+    width: 58,
+    height: 65,
+    ratio: 2,
+    svg: '<svg xmlns="http://www.w3.org/2000/svg" width="58" height="65" viewBox="0 0 34 38"><defs>\n    <filter id="shadow" x="-40%" y="-40%" width="200%" height="200%">\n      <feDropShadow dx="1.2" dy="0.8" stdDeviation="0.9" flood-color="#4A5350" flood-opacity="0.45"/>\n    </filter>\n  </defs>\n  <path d="M4.71 26.42a15 15 0 1 1 21.58 0L15.5 37.6Z" fill="#d87b64" filter="url(#shadow)" stroke="#000000" stroke-width="1.2" stroke-linejoin="round"/>\n  <circle cx="15.5" cy="16" r="4.5" fill="#FFFFFF"/></svg>',
   },
   [MARKER_IDS.cluster]: {
-    width: 38,
-    height: 38,
+    width: 76,
+    height: 76,
+    ratio: 2,
     svg: '<svg xmlns="http://www.w3.org/2000/svg" width="76" height="76" viewBox="0 0 38 38"><circle cx="19" cy="19" r="19" fill="#9cd8c4" fill-opacity="0.706"/>\n  <circle cx="19" cy="19" r="13.8" fill="#268264"/></svg>',
   },
   [MARKER_IDS.clusterSelected]: {
-    width: 38,
-    height: 38,
+    width: 76,
+    height: 76,
+    ratio: 2,
     svg: '<svg xmlns="http://www.w3.org/2000/svg" width="76" height="76" viewBox="0 0 38 38"><circle cx="19" cy="19" r="19" fill="#e8c4bb" fill-opacity="0.706"/>\n  <circle cx="19" cy="19" r="13.8" fill="#d2664b"/></svg>',
   },
 } as const
@@ -55,13 +59,13 @@ describe('markerColors', () => {
   })
 
   it('renders the stock art', () => {
-    const images = markerImages(markerColors({}), 'light')
+    const images = markerImages(markerColors({}), 'light', 2)
 
     for (const id of Object.values(MARKER_IDS)) expect(images.get(id)).toEqual(STOCK[id])
   })
 
   it('changes only the pins’ edge on the dark basemap', () => {
-    const images = markerImages(markerColors({}), 'dark')
+    const images = markerImages(markerColors({}), 'dark', 2)
 
     for (const id of Object.values(MARKER_IDS)) {
       expect(images.get(id)?.svg).toBe(
@@ -117,19 +121,34 @@ describe('markerColors', () => {
 
 describe('markerImages', () => {
   it('paints the derived fill and ring into the SVG', () => {
-    const images = markerImages(markerColors({ primary: MAROON }), 'light')
+    const images = markerImages(markerColors({ primary: MAROON }), 'light', 2)
 
     expect(images.get(MARKER_IDS.point)?.svg).toContain('fill="#521430"')
     expect(images.get(MARKER_IDS.point)?.svg).toContain('stroke="#000000"')
     expect(images.get(MARKER_IDS.cluster)?.svg).toContain('fill="#390e22"')
     expect(images.get(MARKER_IDS.cluster)?.svg).toContain('fill="#c44f84"')
     // A palette moves only the fills, never the box the art is placed in.
-    expect(images.get(MARKER_IDS.point)).toMatchObject({ width: 34, height: 38 })
-    expect(images.get(MARKER_IDS.cluster)).toMatchObject({ width: 38, height: 38 })
+    expect(images.get(MARKER_IDS.point)).toMatchObject({ width: 58, height: 65 })
+    expect(images.get(MARKER_IDS.cluster)).toMatchObject({ width: 76, height: 76 })
+  })
+
+  it('rasterises at the screen’s pixel ratio and the size each image shows', () => {
+    // A pin shows at 0.85 of its 34×38 art, so Mapbox needs no `icon-size` to shrink
+    // it: a scaled icon is resampled with no mipmaps, which stair-steps its edge.
+    for (const ratio of [1, 1.5, 3]) {
+      const images = markerImages(DEFAULT_MARKER_COLORS, 'light', ratio)
+
+      expect(images.get(MARKER_IDS.point)).toMatchObject({
+        width: Math.round(34 * 0.85 * ratio),
+        height: Math.round(38 * 0.85 * ratio),
+        ratio,
+      })
+      expect(images.get(MARKER_IDS.cluster)).toMatchObject({ width: 38 * ratio, ratio })
+    }
   })
 
   it('answers nothing for an id that is not a marker', () => {
-    const images = markerImages(DEFAULT_MARKER_COLORS, 'light')
+    const images = markerImages(DEFAULT_MARKER_COLORS, 'light', 2)
 
     // `styleimagemissing` carries the basemap's own layer ids too, which is why
     // this is a Map rather than an object literal.
