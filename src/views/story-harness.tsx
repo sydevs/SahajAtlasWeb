@@ -9,7 +9,7 @@ import { ErrorBoundary } from 'react-error-boundary'
 import { MapProvider } from 'react-map-gl/mapbox'
 
 import { DrawerSlotsProvider } from '@/components/atoms/Drawer'
-import { DrawerControlContext } from '@/views/shared'
+import { DrawerControlContext, NO_DRAWER_CONTROL } from '@/views/shared'
 import { DrawerErrorFallback, DrawerLoading } from '@/views/fallbacks'
 import { WidgetModeContext, type WidgetMode } from '@/config/mode'
 import { clientQuery, geojsonQuery, regionsQuery } from '@/config/api'
@@ -69,15 +69,8 @@ const mockIpLocation: IpLocation = {
   country_code: 'GB',
 }
 
-/** A drawer control for stories: dismissable (so the fallbacks render their close
- *  control), but with nowhere to actually go. */
-const STORY_DRAWER_CONTROL = {
-  collapsed: false,
-  canCollapse: false,
-  canDismiss: true,
-  toggle: () => {},
-  dismiss: () => {},
-}
+/** A drawer control for stories: Back shows, named for a country, but goes nowhere. */
+const STORY_DRAWER_CONTROL = { ...NO_DRAWER_CONTROL, backTo: '/gb' }
 
 export type ViewHarnessProps = {
   /** The active use-case key — remounts and re-seeds when it changes. */
@@ -319,7 +312,7 @@ export function ViewHarness({
               and this is the nesting DrawerStack itself uses (DrawerContent > Suspense >
               ErrorBoundary > the view). */}
           {/* A live drawer control, so the chrome the fallbacks render is exercisable,
-              rather than inert: `canDismiss` decides whether they show a close button at
+              rather than inert: `backTo` decides whether they show Back at
               all, and without a provider every story would preview the root's control
               set (issue #89). `dismiss` is a no-op — a story has nowhere to dismiss to. */}
           <DrawerControlContext.Provider value={STORY_DRAWER_CONTROL}>

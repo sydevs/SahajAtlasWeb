@@ -1,7 +1,7 @@
 import type { TranslationKey } from '@/types/i18next'
 import type { StackEntry } from '@/lib/shape'
 
-import { isoCountryCode, resolveStack } from '@/lib/shape'
+import { isoCountryCode, resolveStack, searchedPlaceName } from '@/lib/shape'
 
 /**
  * What a place in the widget is CALLED, for the Back button.
@@ -19,7 +19,7 @@ import { isoCountryCode, resolveStack } from '@/lib/shape'
  * default since i18next 27, `TFunction` takes a key with options or a key alone, and an optional
  * parameter matches neither.
  */
-export type NavTranslate = {
+type NavTranslate = {
   (key: TranslationKey): string
   (key: TranslationKey, options: { title: string }): string
   (key: TranslationKey, options: { place: string }): string
@@ -27,45 +27,45 @@ export type NavTranslate = {
 
 export type NavNaming = {
   t: NavTranslate
+  /** A region's name by slug, from the cached region tree. */
+  regionName?: (slug: string) => string | undefined
   /**
-   * Region names by slug. A Map, not the region array it comes from: the region tree is the
-   * whole world's list.
-   */
-  regionNames?: ReadonlyMap<string, string>
-  /**
-   * A country's name in the visitor's language, by ISO code: the name RegionView's heading shows,
-   * known before the region tree arrives, so a deep link never reads "GB" meanwhile.
+   * A country's name in the visitor's language, by its ISO code: the name RegionView's heading
+   * shows, known before the region tree arrives, so a deep link never reads "GB" meanwhile.
    */
   countryName?: (code: string) => string | undefined
-  titles?: ReadonlyMap<number, string>
+  /** A class's title by id, from whichever cache holds it. */
+  eventTitle?: (id: number) => string | undefined
 }
 
 // A slug no cache names, made readable, so a person never reads a raw slug: "united-kingdom"
-// reads "United Kingdom", and a two-letter country code reads "GB".
+// reads "United Kingdom".
 const readableSlug = (slug: string): string =>
-  /^[a-z]{2}$/i.test(slug)
-    ? slug.toUpperCase()
-    : slug
-        .split('-')
-        .filter(Boolean)
-        .map((word) => word.charAt(0).toLocaleUpperCase() + word.slice(1))
-        .join(' ')
+  slug
+    .split('-')
+    .filter(Boolean)
+    .map((word) => word.charAt(0).toLocaleUpperCase() + word.slice(1))
+    .join(' ')
 
 /** The name of one stack entry, or `undefined` where nothing true is known. */
-export function entryName(
+function entryName(
   entry: StackEntry,
-  { t, regionNames, countryName, titles }: NavNaming,
+  { t, regionName, countryName, eventTitle }: NavNaming,
 ): string | undefined {
   switch (entry.kind) {
     case 'region': {
+      // A two-letter slug no cache names reads as its code: "GB".
       const code = isoCountryCode(entry.slug)
 
       return (
-        (code && countryName?.(code)) || regionNames?.get(entry.slug) || readableSlug(entry.slug)
+        (code && countryName?.(code)) ||
+        regionName?.(entry.slug) ||
+        code ||
+        readableSlug(entry.slug)
       )
     }
     case 'event':
-      return titles?.get(entry.id)
+      return eventTitle?.(entry.id)
     case 'online':
       return t('online.title')
     case 'search':
@@ -80,13 +80,8 @@ export function entryName(
   }
 }
 
-// The first part of a searched place: "Prague, Czechia" reads "Prague". Most of a full address
-// is noise in a one-line button.
-const shortPlace = (query: string | null): string | undefined =>
-  query?.split(',')[0]?.trim() || undefined
-
 /**
- * What Back says, for the route it goes to (`backDestination`). "Back to" is said every time: on
+ * What Back says, for the route it goes to (`backStep`). "Back to" is said every time: on
  * a class opened from a poster, a bare "Lipanská 873/4" reads as an address, not a way back.
  * The two that name no place are whole sentences, so a translator can reorder them. A results
  * page names the place searched, so someone leaving a class knows what they will find there.
@@ -99,7 +94,7 @@ export function backLabel(route: string, naming: NavNaming): string {
   if (!entry) return t('common.chrome.back_to_world_map')
 
   if (entry.kind === 'search') {
-    const place = shortPlace(new URLSearchParams(query).get('q'))
+    const place = searchedPlaceName(new URLSearchParams(query).get('q'))
 
     if (place) return t('common.chrome.back_to_results_near', { place })
   }

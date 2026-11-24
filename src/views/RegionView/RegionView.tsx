@@ -25,10 +25,10 @@ import {
   DEFAULT_FILTERS,
   cameUpFrom,
   childRoute,
+  climbDestination,
   climbedUpFrom,
   hasActiveFilters,
   loneClassPath,
-  parentOf,
   searchPath,
   viewRegion,
 } from '@/lib/shape'
@@ -112,7 +112,7 @@ export function RegionView({ slug }: { slug: string }) {
         <Navigate
           replace
           state={{ climbedFrom: location.pathname }}
-          to={parentOf(location.pathname) ?? '/'}
+          to={climbDestination(location.pathname)}
         />
       )
     if (!cameUpFrom(location, lone)) return <Navigate replace state={location.state} to={lone} />

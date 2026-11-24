@@ -240,7 +240,7 @@ below the patch register.
 
 **The frame is `contain: layout`, and that one property does all of it.** It makes
 the element the containing block for every fixed descendant, so the canvas, the
-drawers, and the strips are identical in both modes — containment is NOT a
+drawers, and the cog are identical in both modes — containment is NOT a
 `fixed`-to-`absolute` swap. It also makes the frame a **stacking context**, which
 answers "what is our z-index relative to the host's": the widget's `z-30`…`z-50` stop
 competing with the host's CSS. `lib/overlay.ts` holds the one reference

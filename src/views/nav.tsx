@@ -1,17 +1,14 @@
 import type { ReactNode } from 'react'
+import type { Event, RegionNode } from '@/types'
 
-import { useLocation } from 'react-router'
 import { useQueryClient } from '@tanstack/react-query'
-import { useTranslation } from 'react-i18next'
 import { ChevronLeft, X } from 'lucide-react'
 
 import { Button } from '@/components/atoms/Button'
 import { DrawerHeader } from '@/components/atoms/Drawer'
 import { eventQuery, eventTitlesQuery, regionsQuery } from '@/config/api'
-import { useWidgetMode } from '@/config/mode'
 import { useLocale } from '@/hooks/use-locale'
-import { isFilterOverlay, resolveStack } from '@/lib/shape'
-import { type NavNaming, backLabel } from '@/views/nav-names'
+import { backLabel } from '@/views/nav-names'
 import { DrawerTitle, ExpandSheetButton, HEADER_CONTROL, useDrawerControl } from '@/views/shared'
 
 /**
@@ -24,36 +21,23 @@ import { DrawerTitle, ExpandSheetButton, HEADER_CONTROL, useDrawerControl } from
 export function BackButton({ iconOnly = false }: { iconOnly?: boolean }) {
   // Also rendered by the loading and error chrome, so it must not suspend, and its reads are
   // cache-only: a fetch there would re-issue the read that just failed.
-  const { t } = useTranslation()
-  const { locale, regionNames: countryNames } = useLocale()
-  const { hasMap } = useWidgetMode()
-  const location = useLocation()
+  const { t, locale, regionNames: countryNames } = useLocale()
   const { backTo, dismiss } = useDrawerControl()
   const queryClient = useQueryClient()
 
-  // The filters' X is the way out while they cover the calendar, and history can't say where the
-  // calendar came from until they close.
-  if (!backTo || isFilterOverlay(resolveStack(location.pathname), hasMap)) return null
+  if (!backTo) return null
 
-  const regions = queryClient.getQueryData<{ slug: string; name?: string | null }[]>(
-    regionsQuery().queryKey,
-  )
-  // Register and Share go back to a class that has just been loaded under its own key.
-  const target = resolveStack(backTo.split('?')[0]).at(-1)
-  const title =
-    target?.kind === 'event'
-      ? queryClient.getQueryData<{ title?: string }>(eventQuery(target.id, locale).queryKey)?.title
-      : undefined
   const label = backLabel(backTo, {
-    t: t as NavNaming['t'],
+    t,
     countryName: (code) => countryNames.of(code),
-    regionNames: new Map(
-      regions?.flatMap((node) => (node.name ? [[node.slug, node.name] as const] : [])) ?? [],
-    ),
-    titles:
-      target?.kind === 'event' && title
-        ? new Map([[target.id, title]])
-        : queryClient.getQueryData<Map<number, string>>(eventTitlesQuery(locale).queryKey),
+    regionName: (slug) =>
+      queryClient
+        .getQueryData<RegionNode[]>(regionsQuery().queryKey)
+        ?.find((node) => node.slug === slug)?.name ?? undefined,
+    // Register and Share go back to a class that has just been loaded under its own key.
+    eventTitle: (id) =>
+      queryClient.getQueryData<Event>(eventQuery(id, locale).queryKey)?.title ||
+      queryClient.getQueryData<Map<number, string>>(eventTitlesQuery(locale).queryKey)?.get(id),
   })
 
   if (iconOnly) {
@@ -103,17 +87,12 @@ export function NavRow({ children }: { children?: ReactNode }) {
  * The one place an X still means something: an overlay over a view, closing back onto what is
  * still on screen behind it. Going somewhere is Back's job.
  */
-export function OverlayCloseButton({ className }: { className?: string }) {
-  const { t } = useTranslation()
+function OverlayCloseButton() {
+  const { t } = useLocale()
   const { dismiss } = useDrawerControl()
 
   return (
-    <Button
-      {...HEADER_CONTROL}
-      aria-label={t('common.chrome.close')}
-      className={className}
-      onClick={dismiss}
-    >
+    <Button {...HEADER_CONTROL} aria-label={t('common.chrome.close')} onClick={dismiss}>
       <X size={20} />
     </Button>
   )
@@ -124,8 +103,6 @@ export type NavHeaderProps = {
   subtitle?: ReactNode
   /** The view's own controls, on the Back row. */
   actions?: ReactNode
-  /** An overlay over a view still on screen: a title and an X, with no Back row. */
-  overlay?: boolean
 }
 
 /**
@@ -133,7 +110,11 @@ export type NavHeaderProps = {
  * the same spot from view to view. The controls share the Back row, so the title has the panel's
  * full width and a long name wraps instead of being cut off.
  */
-export function NavHeader({ title, subtitle, actions, overlay = false }: NavHeaderProps) {
+export function NavHeader({ title, subtitle, actions }: NavHeaderProps) {
+  const { overlay } = useDrawerControl()
+
+  // An overlay over a view still on screen (the filters over the calendar) closes onto it with an
+  // X: a title and the X, with no Back row.
   if (overlay) {
     return (
       <DrawerHeader className="justify-between">

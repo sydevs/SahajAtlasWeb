@@ -271,7 +271,7 @@ export function CalendarView() {
           explains why the pathname alone is not enough. */}
       <ResetErrorBoundary FallbackComponent={DrawerErrorBody} resetKeys={[filtersKey(filters)]}>
         {/* `DrawerLoadingBody`, not `DrawerLoading` — this fence sits BELOW the header
-            above, so the chrome-ful one drew a second header (and a second close button)
+            above, so the chrome-ful one drew a second header (and a second Back button)
             under CalendarControls while the grid loaded. Pairs with `DrawerErrorBody` on
             the boundary, for the same reason. */}
         <Suspense fallback={<DrawerLoadingBody />}>

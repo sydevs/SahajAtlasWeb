@@ -1,10 +1,9 @@
 /**
- * In-widget history shaping. The drawer stack is a pure function of the URL, but
- * *dismissal* is history-aware: every in-widget push stamps an incrementing
- * `location.state.depth`, so closing a drawer can go chronologically back
- * (`navigate(-1)`) when in-widget history exists, and fall back to the structural
- * parent only for a fresh deep link. This is kept here (pure, no react-router
- * import), so the decision is unit-testable in isolation from the components
+ * In-widget history shaping. The drawer stack is a pure function of the URL, but Back is
+ * history-aware: every in-widget push stamps an incrementing `location.state.depth`, so Back
+ * can go chronologically back (`navigate(-1)`) when in-widget history exists, and climbs only
+ * for a fresh deep link, never popping the host page's own history. This is kept here (pure,
+ * no react-router import), so the decision is unit-testable in isolation from the components
  * that apply it.
  */
 import { ancestorIds, indexRegions } from './hierarchy'
@@ -16,16 +15,19 @@ import { type PlacePathOf, placedPathname, resolveStack } from './path'
  */
 export type AtlasNavState = { depth?: number; from?: string; climbedFrom?: string }
 
+// `state` is `unknown` at the react-router boundary, and may be anything a host page put there,
+// so every member is read as possibly anything.
+const navState = (location: { state?: unknown }): { [K in keyof AtlasNavState]?: unknown } =>
+  typeof location.state === 'object' && location.state !== null ? location.state : {}
+
 /**
  * The in-widget history depth carried on a location's `state`. A fresh deep link
  * (or any navigation we did not stamp) has no numeric depth, so it reads as 0.
- * This reads defensively: `state` is `unknown` at the react-router boundary, and
- * may be anything a host page put there.
  */
 export const atlasDepth = (location: { state?: unknown }): number => {
-  const state = location.state as { depth?: unknown } | null | undefined
+  const { depth } = navState(location)
 
-  return typeof state?.depth === 'number' ? state.depth : 0
+  return typeof depth === 'number' ? depth : 0
 }
 
 /**
@@ -41,11 +43,11 @@ export const atlasDepth = (location: { state?: unknown }): number => {
  */
 export const atlasPushState = (location: {
   state?: unknown
-  pathname?: string
-  search?: string
+  pathname: string
+  search: string
 }): AtlasNavState => ({
   depth: atlasDepth(location) + 1,
-  ...(location.pathname ? { from: `${location.pathname}${location.search ?? ''}` } : {}),
+  from: `${location.pathname}${location.search}`,
 })
 
 /** What a climb reads to pass over places (`climbDestination`). Every member may be missing. */
@@ -106,25 +108,29 @@ export const climbDestination = (pathname: string, { passable, pathOf }: ClimbIn
   return index >= 0 ? entries[index].path : '/'
 }
 
+/** What Back does: where it lands, and whether getting there is a step back in history. */
+export type BackStep = { to: string; history: boolean }
+
 /**
- * Where Back goes from this location, as a route with its query, or `undefined` at the root.
- * With in-widget history it is the entry `navigate(-1)` lands on; a fresh deep link climbs
- * instead, the same decision `dismissAction` makes, so the label and the press agree.
+ * What Back does from this location, or `undefined` at the root, which has nothing to go back
+ * to. With in-widget history it steps back to the entry the push stamped as `from`. Otherwise
+ * (a fresh deep link, or an entry stamped before `from` existed) it climbs, so it can never
+ * pop the host page's history. Back's label and its press both read this one answer.
  */
-export const backDestination = (
+export const backStep = (
   location: { pathname: string; search?: string; state?: unknown },
   climb?: ClimbInputs,
-): string | undefined => {
+): BackStep | undefined => {
   if (resolveStack(location.pathname).length === 0) return undefined
 
-  const from = (location.state as { from?: unknown } | null | undefined)?.from
+  const { from } = navState(location)
 
-  if (atlasDepth(location) > 0 && typeof from === 'string') return from
+  if (atlasDepth(location) > 0 && typeof from === 'string') return { to: from, history: true }
 
   const parent = climbDestination(location.pathname, climb)
 
-  // A search keeps its query when something stacked over it climbs back (DrawerStack).
-  return parent === '/search' ? `${parent}${location.search ?? ''}` : parent
+  // A search keeps its query when something stacked over it climbs back.
+  return { to: parent === '/search' ? `${parent}${location.search ?? ''}` : parent, history: false }
 }
 
 /**
@@ -159,7 +165,7 @@ const leadsTo = (value: unknown, path: string): boolean => {
 
 /** Whether a structural climb (Back, swipe or Escape at depth 0) left `path` or a place above it. */
 export const climbedUpFrom = (location: { state?: unknown }, path: string): boolean =>
-  leadsTo((location.state as { climbedFrom?: unknown } | null | undefined)?.climbedFrom, path)
+  leadsTo(navState(location).climbedFrom, path)
 
 /**
  * Whether this location was reached by leaving `path`, or a place on the way down to it: a
@@ -167,29 +173,4 @@ export const climbedUpFrom = (location: { state?: unknown }, path: string): bool
  * then, so leaving the class never bounces back into it, even two levels up.
  */
 export const cameUpFrom = (location: { state?: unknown }, path: string): boolean =>
-  climbedUpFrom(location, path) ||
-  leadsTo((location.state as { from?: unknown } | null | undefined)?.from, path)
-
-/** What dismissing the top drawer resolves to. */
-export type DismissAction =
-  | 'collapse' // the root view (no parent) — collapse the sheet to its peek
-  | 'back' // in-widget history exists — go chronologically back (restores camera)
-  | 'fallback' // a fresh deep link (depth 0) — climb to the structural parent
-
-/**
- * Resolve the dismiss behaviour from whether a structural parent exists and the
- * current in-widget depth. `back` (never at depth 0) is what keeps the embedded
- * widget from navigating the *host page* away. At depth 0 there is no in-widget
- * entry to pop, so this climbs structurally instead.
- */
-export const dismissAction = ({
-  hasParent,
-  depth,
-}: {
-  hasParent: boolean
-  depth: number
-}): DismissAction => {
-  if (!hasParent) return 'collapse'
-
-  return depth > 0 ? 'back' : 'fallback'
-}
+  climbedUpFrom(location, path) || leadsTo(navState(location).from, path)

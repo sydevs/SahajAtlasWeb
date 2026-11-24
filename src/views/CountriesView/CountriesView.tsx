@@ -26,8 +26,8 @@ import {
 } from '@/views/shared'
 
 // The base view, at route `/`. It shows a leading "Online Classes" entry into the
-// online-filtered search, then the global country list, with the geocoder and a stacked-list
-// toggle in its header. It renders as inner content of the persistent drawer — DrawerStack owns
+// online-filtered search, then the global country list, with the geocoder and the filters in
+// its header (the button that raises the sheet, while it is pulled down). It renders as inner content of the persistent drawer — DrawerStack owns
 // the sheet. This view is handled like every other one. It is simply the one with no parent, so
 // dismissing it collapses the sheet to its peek.
 export function CountriesView() {

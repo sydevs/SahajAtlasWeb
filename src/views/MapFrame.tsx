@@ -18,7 +18,7 @@ import { reportIntegrationWarning } from '@/lib/report'
  * **Containment is one element, and it is the element the expanded dialog already proved.**
  * `contain: layout` makes an element the containing block for every fixed descendant, so the
  * whole interface re-parents onto this box with no `fixed` → `absolute` swap anywhere. The
- * canvas div, the drawers, and the strips are byte-identical in both modes. The two arguments
+ * canvas div, the drawers, and the cog are byte-identical in both modes. The two arguments
  * that used to make containment intractable were retired by #161, and are load-bearing here:
  *
  * - **`--sy-frame-h`** — `100dvh` on `.sy-atlas`, `100%` under `[data-sy-frame]`. A `100%`

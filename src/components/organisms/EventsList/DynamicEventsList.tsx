@@ -7,7 +7,14 @@ import { LoadMore } from './LoadMore'
 
 import { ActiveFilterPills } from '@/components/molecules/ActiveFilterPills'
 import { FallbackPanel } from '@/components/molecules/Fallbacks'
-import { DEFAULT_REVEAL, hasActiveFilters, revealKey, revealRows, sortEvents } from '@/lib/shape'
+import {
+  DEFAULT_REVEAL,
+  hasActiveFilters,
+  revealKey,
+  revealRows,
+  searchedPlaceName,
+  sortEvents,
+} from '@/lib/shape'
 import { useCountrySite } from '@/hooks/use-country-site'
 import { useEventFilters, useSetFilters } from '@/hooks/use-filters'
 import { useLocale } from '@/hooks/use-locale'
@@ -76,10 +83,9 @@ export function DynamicEventsList({
   // This is the searched place each card names in its distance line, read
   // ONCE here. A card that reads the URL directly subscribes the whole list
   // to every URL change — see the prop's note on `EventsList`. Typing never
-  // writes `?q`, so this names the picked place, not half-typed text. Its
-  // leading part keeps the line short. The
+  // writes `?q`, so this names the picked place, not half-typed text. The
   // precise reference point stays in each card's accessible label.
-  const searchedPlace = (useSearchParams()[0].get('q') ?? '').split(',')[0].trim()
+  const searchedPlace = searchedPlaceName(useSearchParams()[0].get('q'))
   const { rows, more, next, total, nearbyKm } = useMemo(
     () => revealRows(sorted, { shown, showAll, hasSearchCenter, searchCountry }),
     [sorted, shown, showAll, hasSearchCenter, searchCountry],

@@ -43,35 +43,36 @@ import {
 } from '@/lib/shape'
 
 // The collapse/expand and dismiss control for the sheet, provided by DrawerStack.
-// Views use it for their close and list-toggle buttons, so those act on the ONE
+// Views use it for Back and the sheet's expand button, so those act on the ONE
 // persistent vaul sheet directly (a plain navigation), rather than opening or
 // closing a drawer — which is what kept the sheet from sliding out and back in on
 // every transition.
 export type DrawerControl = {
-  /** Where `dismiss()` lands, as a route with its query, for Back to name. Unset at the root. */
+  /**
+   * Where `dismiss()` lands, as a route with its query, for Back to name. Unset at the root,
+   * where there is nowhere to go and `navigate(-1)` would take the HOST page back, so the
+   * error/loading chrome offers no dead control (issue #89). Unset under the filter overlay too,
+   * whose X is the way out until it closes.
+   */
   backTo?: string
+  /** An overlay over a view still on screen: its header closes with an X instead of Back. */
+  overlay?: boolean
+  /** The phone sheet sits at its peek. Never true where the sheet cannot collapse. */
   collapsed: boolean
   canCollapse: boolean
-  /**
-   * Whether `dismiss()` would actually go somewhere. This is false only at the
-   * root, where there is no parent to climb to and `navigate(-1)` would take the
-   * HOST page back. It is read by the error/loading chrome, which renders its own
-   * header and must not offer a dead control (issue #89). The views' own headers
-   * do not need it, since a view that rendered at all has a working stack around
-   * it.
-   */
-  canDismiss: boolean
   toggle: () => void
   dismiss: () => void
 }
 
-export const DrawerControlContext = createContext<DrawerControl>({
+/** A control with nowhere to go: the default outside DrawerStack, and the base for stand-ins. */
+export const NO_DRAWER_CONTROL: DrawerControl = {
   collapsed: false,
   canCollapse: false,
-  canDismiss: false,
   toggle: () => {},
   dismiss: () => {},
-})
+}
+
+export const DrawerControlContext = createContext<DrawerControl>(NO_DRAWER_CONTROL)
 
 export const useDrawerControl = () => useContext(DrawerControlContext)
 
@@ -165,9 +166,9 @@ export function SearchButton() {
 export function ExpandSheetButton() {
   // Also rendered by the error/loading chrome, so it must not suspend (see CalendarButton).
   const { t } = useTranslation()
-  const { collapsed, canCollapse, toggle } = useDrawerControl()
+  const { collapsed, toggle } = useDrawerControl()
 
-  if (!canCollapse || !collapsed) return null
+  if (!collapsed) return null
 
   return (
     <Button className="shrink-0" color="primary" size="sm" variant="flat" onClick={toggle}>
@@ -270,8 +271,8 @@ export function SearchField({ label }: Pick<MapSearchProps, 'label'> = {}) {
 // only then, so it never needs to re-derive history-awareness itself.
 export type FrameContext = { isEntry: boolean }
 
-// Only the top (active) view is rendered — ancestors are peek panels, not views —
-// so each view frames the map for its level unconditionally on mount, and when
+// Only the top (active) view is rendered, so each view frames the map for its level
+// unconditionally on mount, and when
 // its inputs change. This is centralized, so the call sites are one line and their
 // deps arrays stay honest: `deps` is spread into the effect's own array, so a
 // per-view length is fine (it is fixed for any given call site across renders).

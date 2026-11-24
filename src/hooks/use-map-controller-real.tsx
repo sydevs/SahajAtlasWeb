@@ -8,7 +8,7 @@ import { MapControllerContext } from './use-map-controller'
 
 import { useMapbox, usePaddingState } from '@/hooks/use-mapbox'
 import { useSheetCover, useViewState } from '@/config/store'
-import { useIsWide } from '@/config/responsive'
+import { SHEET_OPEN_PX, useIsWide } from '@/config/responsive'
 import { eventFrameZoom, hasMapPoint, worldViewCamera } from '@/lib/camera'
 import { hasApproximatePlace, isOnline } from '@/lib/shape'
 import { frameElement } from '@/lib/overlay'
@@ -37,10 +37,9 @@ import { frameElement } from '@/lib/overlay'
 // This code rejects that approach, because it would put a DOM read in the map's hot path, to serve an override that is not a supported feature yet.
 // If a host is ever invited to set that variable, this is the constant that must start resolving it.
 const DRAWER_W_PX = 352
-// `OPEN_SNAP` in `DrawerStack`, the height the phone sheet opens at. Only a fallback: the stack
-// publishes what the sheet actually covers. Padding for the peek alone centred a framed place on
-// map the open sheet hides, and on /fr/paris the classes listed first sat under it.
-const MOBILE_SHEET_PX = 356
+// The phone sheet's open height is only a fallback (`SHEET_OPEN_PX`): the stack publishes what
+// the sheet actually covers. Padding for the peek alone centred a framed place on map the open
+// sheet hides, and on /fr/paris the classes listed first sat under it.
 // What the sheet must still leave of the map above it, for the pin the camera just framed. It also
 // keeps the padding inside a short contained embed (#169), where padding past the canvas makes
 // `fitBounds` refuse the fit outright.
@@ -118,7 +117,7 @@ export function RealMapControllerProvider({ children }: { children: ReactNode })
   // Keep the drawer's known footprint out of the usable camera area.
   useEffect(() => {
     const boxHeight = frameElement()?.clientHeight ?? window.innerHeight
-    const sheet = Math.max(0, Math.min(sheetCover ?? MOBILE_SHEET_PX, boxHeight - MIN_MAP_STRIP_PX))
+    const sheet = Math.max(0, Math.min(sheetCover ?? SHEET_OPEN_PX, boxHeight - MIN_MAP_STRIP_PX))
 
     setPadding({
       left: MAP_MARGIN + (isWide ? DRAWER_W_PX : 0),

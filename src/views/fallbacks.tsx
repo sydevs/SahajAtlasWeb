@@ -15,7 +15,7 @@ import { useWidgetMode } from '@/config/mode'
 import { useLocale } from '@/hooks/use-locale'
 import { useMapController } from '@/hooks/use-map-controller'
 import { classifyError, errorMessage } from '@/lib/report'
-import { baseStackEntry, isFilterOverlay, nearestKnownRegion, resolveStack } from '@/lib/shape'
+import { baseStackEntry, nearestKnownRegion, resolveStack } from '@/lib/shape'
 import { BackButton, NavHeader } from '@/views/nav'
 import {
   CalendarButton,
@@ -91,7 +91,7 @@ function SearchFieldSkeleton() {
  * threw.
  *
  * Every view renders its own `DrawerHeader` *inside* the boundary and below its
- * `useSuspenseQuery`, so a throw or a suspend erases the header and its close button
+ * `useSuspenseQuery`, so a throw or a suspend erases the header and its Back button
  * along with the content. That left an error state with no way out of the drawer at
  * all (issue #89), and a load with nothing on screen to say which thing was opening.
  *
@@ -120,7 +120,7 @@ export function DrawerChrome({
   const { locale } = useLocale()
   const { hasMap } = useWidgetMode()
   const location = useLocation()
-  const { canDismiss } = useDrawerControl()
+  const { backTo } = useDrawerControl()
   // This is cache-only (`enabled: false`), not merely non-suspending. It renders on EVERY
   // loading and error state, so a fetch here would re-issue a read on exactly the failures
   // where the backend is already the problem. A miss costs the title, never the frame. Both go
@@ -186,11 +186,11 @@ export function DrawerChrome({
               a cold start it would instantiate one while the map is still initialising, then
               tear it down again the moment CountriesView mounts its own. An ERROR chrome keeps
               the real field. There it is the escape hatch. */}
-          {canDismiss && <BackButton iconOnly />}
+          <BackButton iconOnly />
           {interactive ? <SearchField /> : <SearchFieldSkeleton />}
           {/* At the root there is nothing to climb to: `navigate(-1)` would take the host page
               back. So Back renders only below it, and the root offers to raise the sheet. */}
-          {!canDismiss && <ExpandSheetButton />}
+          {!backTo && <ExpandSheetButton />}
         </DrawerHeader>
         <DrawerToolbar>
           <ListToolbar>
@@ -223,7 +223,6 @@ export function DrawerChrome({
           {entry.kind === 'calendar' && <FilterButton iconOnly />}
         </>
       }
-      overlay={isFilterOverlay(resolveStack(location.pathname), hasMap)}
       title={title}
     />
   )
@@ -244,7 +243,7 @@ export function DrawerLoading() {
 /**
  * The spinner alone, for a Suspense fence that sits BELOW a view's own header — the
  * calendar's grid. The chrome-ful `DrawerLoading` there would draw a second header,
- * with a second close button, under the one CalendarControls already renders.
+ * with a second Back button, under the one CalendarControls already renders.
  *
  * This is the loading counterpart of `DrawerErrorBody`/`ErrorPanel` — same split,
  * same reason.

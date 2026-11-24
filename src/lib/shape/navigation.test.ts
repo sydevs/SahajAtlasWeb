@@ -4,11 +4,10 @@ import { placePathsOf } from './path'
 import {
   atlasDepth,
   atlasPushState,
-  backDestination,
+  backStep,
   cameUpFrom,
   climbDestination,
   climbedUpFrom,
-  dismissAction,
   loneClassPath,
   passablePlaces,
 } from './navigation'
@@ -41,8 +40,10 @@ describe('atlasDepth', () => {
 
 describe('atlasPushState', () => {
   it('stamps one level deeper than the current entry', () => {
-    expect(atlasPushState({ state: null })).toEqual({ depth: 1 }) // fresh entry → depth 1
-    expect(atlasPushState({ state: { depth: 2 } })).toEqual({ depth: 3 })
+    const at = { pathname: '/gb', search: '' }
+
+    expect(atlasPushState({ ...at, state: null })).toMatchObject({ depth: 1 }) // fresh entry
+    expect(atlasPushState({ ...at, state: { depth: 2 } })).toMatchObject({ depth: 3 })
   })
 
   it('records where the push left, query included, so Back can name it', () => {
@@ -50,23 +51,6 @@ describe('atlasPushState', () => {
       depth: 1,
       from: '/search?q=Prague',
     })
-  })
-})
-
-describe('dismissAction', () => {
-  it('collapses the root view (no parent) regardless of depth', () => {
-    expect(dismissAction({ hasParent: false, depth: 0 })).toBe('collapse')
-    expect(dismissAction({ hasParent: false, depth: 3 })).toBe('collapse')
-  })
-
-  it('goes chronologically back when in-widget history exists (depth > 0)', () => {
-    expect(dismissAction({ hasParent: true, depth: 1 })).toBe('back')
-    expect(dismissAction({ hasParent: true, depth: 9 })).toBe('back')
-  })
-
-  it('climbs to the structural parent for a fresh deep link (depth 0)', () => {
-    // Never `back` at depth 0 — the embedded widget shares history with the host page.
-    expect(dismissAction({ hasParent: true, depth: 0 })).toBe('fallback')
   })
 })
 
@@ -132,25 +116,37 @@ describe('climbDestination', () => {
   })
 })
 
-describe('backDestination', () => {
+describe('backStep', () => {
   it('is nothing at the root', () => {
-    expect(backDestination({ pathname: '/' })).toBeUndefined()
+    expect(backStep({ pathname: '/' })).toBeUndefined()
   })
 
-  it('names the entry history goes back to, query included', () => {
+  it('steps back to the entry the push left, query included', () => {
     expect(
-      backDestination({ pathname: '/gb/712', state: { depth: 1, from: '/search?q=Prague' } }),
-    ).toBe('/search?q=Prague')
+      backStep({ pathname: '/gb/712', state: { depth: 1, from: '/search?q=Prague' } }),
+    ).toEqual({ to: '/search?q=Prague', history: true })
   })
 
   it('climbs on a fresh deep link, even with a stale `from`', () => {
-    expect(backDestination({ pathname: '/gb/712', state: { from: '/search' } })).toBe('/gb')
+    // Never a history step at depth 0: the embedded widget shares history with the host page.
+    expect(backStep({ pathname: '/gb/712', state: { from: '/search' } })).toEqual({
+      to: '/gb',
+      history: false,
+    })
+  })
+
+  it('climbs, rather than stepping back blind, from an entry stamped with no `from`', () => {
+    expect(backStep({ pathname: '/gb/712', state: { depth: 2 } })).toEqual({
+      to: '/gb',
+      history: false,
+    })
   })
 
   it('keeps the search query when climbing back into the results', () => {
-    expect(backDestination({ pathname: '/search/filters', search: '?q=Prague' })).toBe(
-      '/search?q=Prague',
-    )
+    expect(backStep({ pathname: '/search/filters', search: '?q=Prague' })).toEqual({
+      to: '/search?q=Prague',
+      history: false,
+    })
   })
 })
 

@@ -37,6 +37,7 @@ import {
   byDistance,
   byNextOccurrence,
   countUnder,
+  eventsUnder,
   childRoute,
   childrenOf,
   DEFAULT_FILTERS,
@@ -449,11 +450,9 @@ export const regionRoute = (node: RegionNode): string =>
 const countryCodeOf = (node: RegionNode): string | undefined => isoCountryCode(node.slug)
 
 // A place holding exactly one class has no list worth showing, so its row opens the class, at
-// its own address under the place, so the drawers behind it name every place above it. An online
-// class stays out: one located class beside an online one is still two to choose from.
-const singleEventPath = (events: IndexedFeature[], node: RegionNode): string | undefined => {
-  const under = events.filter((event) => event.ancestorIds.includes(node.id))
-
+// its own address under the place. `under` is every class under the place, online ones included:
+// one located class beside an online one is still two to choose from.
+const singleEventPath = (under: IndexedFeature[], node: RegionNode): string | undefined => {
   if (under.length !== 1 || under[0].online) return undefined
 
   const route = regionRoute(node)
@@ -494,18 +493,20 @@ const getCountries = async (filters?: EventFilters): Promise<RegionListItem[]> =
   // So the display order holds even for a seeded story with an unsorted mock.
   return regions
     .filter((node) => node.level === 'country')
-    .map((node) =>
-      RegionListItemSchema.parse({
+    .map((node) => {
+      const under = eventsUnder(events, node.id)
+
+      return RegionListItemSchema.parse({
         id: node.id,
         slug: node.slug,
         level: node.level,
         name: node.name ?? node.slug,
         countryCode: countryCodeOf(node),
-        eventCount: countUnder(events, node.id),
+        eventCount: under.length,
         path: regionRoute(node),
-        singleEventPath: singleEventPath(events, node),
-      }),
-    )
+        singleEventPath: singleEventPath(under, node),
+      })
+    })
     .filter((country) => country.eventCount > 0)
 }
 
@@ -582,12 +583,18 @@ const getRegion = async (slug: string, filters?: EventFilters): Promise<Region> 
   const subregions: RegionListItem[] = []
 
   for (const child of children) {
-    const located = byChild.get(child.id)?.length ?? 0
+    const located = byChild.get(child.id) ?? []
+    // Only a child holding one located class can hold one class in all, so only then are the
+    // online classes under it looked for.
+    const under =
+      located.length === 1
+        ? [...located, ...online.filter((event) => event.ancestorIds.includes(child.id))]
+        : located
 
-    if (located > 0)
+    if (located.length > 0)
       subregions.push({
-        ...toListItem(child, located),
-        singleEventPath: singleEventPath(visible, child),
+        ...toListItem(child, located.length),
+        singleEventPath: singleEventPath(under, child),
       })
   }
   subregions.sort(byEventCountDesc)

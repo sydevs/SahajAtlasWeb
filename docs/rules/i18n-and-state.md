@@ -260,22 +260,23 @@ source of truth, so all three stay linkable and shareable:
   (`resolveStack`) — of the *router's* location, which on a host page whose
   anchor the widget declined to take is a `MemoryRouter`'s location rather than
   the address bar's (`mountDecision`). Nothing below the router can tell, which
-  is the point. Dismissal is history-aware: `dismissAction` maps Back, swipe, or
-  Esc to a chronological `navigate(-1)` when in-widget `atlasDepth(location) > 0`
-  (restoring the prior camera), and only to a structural climb for a fresh deep
-  link (depth 0) — never popping the host page's own history.
-  **Back says where it goes, and the label and the press read one decision.**
-  Every push stamps `from` (path and query) beside `depth`, because history can
-  be moved through but never read; `backDestination` returns that at depth > 0,
-  else `climbDestination`, and DrawerStack hands the result to Back as
-  `DrawerControl.backTo`. The climb follows the region tree's real ancestry
-  (`placedPathname`), and passes over a venue and any place holding a single
-  in-person class (`passablePlaces`): "Back to Balham Library" on a class there
-  read as going nowhere, and a one-class place only opens that class again
-  (`loneClassPath`, RegionView). A climb stamps `climbedFrom`, so a one-class
-  place reached by one climbs on instead of bouncing back into the class, even
-  before the feed has loaded. An X is left only on an overlay over a page still
-  on screen: the filters over the calendar (`OverlayCloseButton`).
+  is the point. Back, swipe and Esc are one `dismiss`, history-aware: a
+  chronological `navigate(-1)` when in-widget `atlasDepth(location) > 0`
+  (restoring the prior camera), and a structural climb otherwise — never popping
+  the host page's own history.
+  **Back says where it goes, and the label and the press read one decision**,
+  `backStep`, worked out once in DrawerStack and handed to Back as
+  `DrawerControl.backTo`. Every push stamps `from` (path and query) beside
+  `depth`, because history can be moved through but never read; an entry with no
+  `from` climbs rather than stepping back blind. The climb follows the region
+  tree's real ancestry (`placedPathname`), and passes over a venue and any place
+  holding a single in-person class (`passablePlaces`): "Back to Balham Library"
+  on a class there read as going nowhere, and a one-class place only opens that
+  class again (`loneClassPath`, RegionView). A climb stamps `climbedFrom`, so a
+  one-class place reached by one climbs on instead of bouncing back into the
+  class, even before the feed has loaded. An X is left only on an overlay over a
+  page still on screen, the filters over the calendar: its control carries
+  `overlay`, and `NavHeader` draws the X from it.
   **Nothing draws the history behind the view.** Back names where it goes, so
   the stacked edges that once stood for each panel a repeated X would pass
   through are gone, and with them the depth bookkeeping they needed.
@@ -303,7 +304,7 @@ two axes separate — an inner fallback must never re-throw to escalate.
 - **Fallbacks render their own chrome.** `DrawerChrome` rebuilds the header from
   the URL plus already-cached data (the region tree for a name, the titles
   sliver for an event), so both a loading and an error state keep the drawer's
-  identity and its close control. A **loading** chrome sets `interactive={false}`,
+  identity and its Back button. A **loading** chrome sets `interactive={false}`,
   which swaps the geocoder for an inert shape — mounting a real Mapbox search
   element in a freshly-mounted fallback would instantiate and tear one down on
   every cold start. The **error** chrome keeps the live field, since there it is
