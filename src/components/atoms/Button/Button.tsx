@@ -27,8 +27,8 @@ export const controlSurface = tv({
       /** No surface shows until hovered. Toolbar and header controls must recede. */
       ghost: 'bg-transparent',
       /**
-       * A control over the map or the page, such as the settings cog: the app's own opaque
-       * surface, and a shadow lifting it off whatever moves behind it.
+       * A control over the map or the page — "Expand map", "Close map", the floating cog: the
+       * app's own opaque surface, and a shadow lifting it off whatever moves behind it.
        */
       floating: 'border bg-background shadow-lg',
     },
@@ -68,13 +68,11 @@ export const controlSurface = tv({
     // brand seed, such as a pale secondary, still reads with white. Dark mode
     // keeps the ramp's light solid (step 9) and its adaptive on-color. `neutral`
     // uses the fixed gray solid. Gray-9 pairs with gray-1 or white in both modes.
-    // `floating` shares this row: primary is the one call to action over a map, so it is filled
-    // rather than bordered. `border-transparent` is inert on `solid`, which draws no border.
     {
       color: 'primary',
-      variant: ['solid', 'floating'],
+      variant: 'solid',
       class:
-        'border-transparent bg-primary-12 text-white hover:bg-primary-11 dark:bg-primary-9 dark:text-primary-foreground dark:hover:bg-primary-10',
+        'bg-primary-12 text-white hover:bg-primary-11 dark:bg-primary-9 dark:text-primary-foreground dark:hover:bg-primary-10',
     },
     {
       color: 'secondary',
@@ -131,9 +129,13 @@ export const controlSurface = tv({
       class: 'border-contrast-11 text-contrast-11 hover:bg-contrast-3',
     },
     { color: 'neutral', variant: 'bordered', class: 'border-gray-12 text-gray-12 hover:bg-gray-3' },
-    // floating: the app's surface, with the ramp's border step (7) rather than its text step,
-    // since the surface and the shadow already set these apart; neutral takes the divider every
-    // other app border uses. `primary` is filled instead, in the solid row above.
+    // floating: the ramp's border step (7), not its text step, since the surface and the shadow
+    // already set it apart; neutral takes the divider every other app border uses.
+    {
+      color: 'primary',
+      variant: 'floating',
+      class: 'border-primary-7 text-primary-11 hover:bg-primary-3',
+    },
     {
       color: 'secondary',
       variant: 'floating',
@@ -144,14 +146,7 @@ export const controlSurface = tv({
       variant: 'floating',
       class: 'border-contrast-7 text-contrast-11 hover:bg-contrast-3',
     },
-    // ⚠ The glyph rests at step 11 and darkens on hover, the same pair the `ghost` row below
-    // uses. The two are one set of neutral controls — the settings cog renders as either — so a
-    // step of their own here would rest the same cog at two different weights.
-    {
-      color: 'neutral',
-      variant: 'floating',
-      class: 'border-divider text-gray-11 hover:bg-gray-3 hover:text-foreground',
-    },
+    { color: 'neutral', variant: 'floating', class: 'border-divider text-gray-12 hover:bg-gray-3' },
     // ghost (surface only on hover)
     { color: 'primary', variant: 'ghost', class: 'text-primary-11 hover:bg-primary-3' },
     { color: 'secondary', variant: 'ghost', class: 'text-secondary-11 hover:bg-secondary-3' },
@@ -180,21 +175,6 @@ export const controlSurface = tv({
     radius: 'sm',
     isIconOnly: false,
   },
-})
-
-/**
- * The skin of a control floating over the map or the page: the app's own surface, the divider
- * border colour, and a shadow lifting it off whatever scrolls behind. Three call sites spell it
- * — the inline map's "Expand map", the expanded map's "Close map", and the floating cog — so it
- * is one recipe here rather than three copies (`DESIGN_SYSTEM.md` § Styling). Each site passes
- * only its own position.
- *
- * `bordered` draws the border and the round corner for a caller that is not a `Button`. A
- * `Button` arm already has both from `variant="bordered" radius="full"`.
- */
-export const floatingChrome = tv({
-  base: 'border-divider bg-background shadow-lg',
-  variants: { bordered: { true: 'rounded-full border' } },
 })
 
 const button = tv({

@@ -21,7 +21,7 @@ import { X } from 'lucide-react'
 import { eventTitlesQuery, regionsQuery } from '@/config/api'
 import { useExpansion } from '@/hooks/use-expansion'
 import { useLocale } from '@/hooks/use-locale'
-import { Button, floatingChrome } from '@/components/atoms/Button'
+import { Button } from '@/components/atoms/Button'
 import { Drawer, DrawerContent, DrawerSlotsProvider } from '@/components/atoms/Drawer'
 import { ResetErrorBoundary, SettingsMenu } from '@/components/molecules'
 import { WidgetWidthContext, useIsWide } from '@/config/responsive'
@@ -256,18 +256,16 @@ function CloseMapButton({ beside }: { beside: boolean }) {
 
   return (
     <Button
-      className={floatingChrome({
-        className: clsx(
-          'fixed z-[45] -translate-x-1/2 rtl:translate-x-1/2',
-          // Beside a left panel, the middle of the MAP is the middle of what the panel leaves.
-          beside
-            ? 'start-[calc(50%+var(--sy-drawer-w,352px)/2)] bottom-6'
-            : 'start-1/2 top-[max(12px,calc(var(--sy-sheet-top,var(--sy-frame-h))-56px))]',
-        ),
-      })}
+      className={clsx(
+        'fixed z-[45] -translate-x-1/2 rtl:translate-x-1/2',
+        // Beside a left panel, the middle of the MAP is the middle of what the panel leaves.
+        beside
+          ? 'start-[calc(50%+var(--sy-drawer-w,352px)/2)] bottom-6'
+          : 'start-1/2 top-[max(12px,calc(var(--sy-sheet-top,var(--sy-frame-h))-56px))]',
+      )}
       radius="full"
       size="sm"
-      variant="bordered"
+      variant="floating"
       onClick={collapse}
     >
       <X size={16} />

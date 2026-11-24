@@ -14,14 +14,14 @@ import {
   StoryGridCell,
 } from '../../ladle'
 
-import { Button, floatingChrome } from './Button'
+import { Button } from './Button'
 
 export default {
   title: 'Atoms',
 } satisfies StoryDefault
 
 const colors = ['primary', 'secondary', 'contrast', 'neutral'] as const
-const variants = ['solid', 'flat', 'bordered', 'ghost'] as const
+const variants = ['solid', 'flat', 'bordered', 'ghost', 'floating'] as const
 const sizes = ['sm', 'md', 'lg'] as const
 const radii = ['sm', 'full'] as const
 
@@ -32,8 +32,7 @@ const radii = ['sm', 'full'] as const
  * `isIconOnly` squares the width against the size scale. The colour × variant
  * matrix lives in the exported `controlSurface` recipe. ActionCircle skins its
  * circle with the same recipe. So `color`, `variant`, `size`, and `radius` mean
- * the same thing across every control. `floatingChrome` is the skin of a control floating
- * over the map: "Expand map", "Close map" and the settings cog.
+ * the same thing across every control. `floating` is the variant for a control over the map.
  */
 export const Default: Story = () => (
   <StoryWrapper>
@@ -125,31 +124,30 @@ export const Default: Story = () => (
 
     <StorySection
       background="gradient"
-      description="`floatingChrome` skins a control floating over the map or the page: the app's surface, the divider border and a shadow. A `Button` takes it as its `className`, over `variant=bordered radius=full`; anything else passes `bordered` for the border and the round corner. The caller adds only its position."
-      title="Floating chrome"
+      description="`variant=floating` is a control over the map or the page: the app's opaque surface and a shadow, in every colour. The app's three are neutral pills — Expand map, Close map and the settings cog."
+      title="Floating"
     >
-      <div className="flex flex-wrap items-center gap-3">
-        <Button className={floatingChrome()} radius="full" size="sm" variant="bordered">
-          <Expand size={16} />
-          Expand map
-        </Button>
-        <Button className={floatingChrome()} radius="full" size="sm" variant="bordered">
-          <X size={16} />
-          Close map
-        </Button>
-        {/* `touch-target relative` is the cog's 44px tap area, as SettingsMenu's own trigger
-            carries it. Drawn at 32px, a story without it measures short and reddens the gate. */}
-        <button
-          aria-label="Settings"
-          className={floatingChrome({
-            bordered: true,
-            className:
-              'touch-target relative flex h-8 w-8 items-center justify-center text-gray-11 hover:text-foreground',
-          })}
-          type="button"
-        >
-          <Settings size={16} />
-        </button>
+      <div className="flex flex-col gap-4">
+        <div className="flex flex-wrap items-center gap-3">
+          <Button radius="full" size="sm" variant="floating">
+            <Expand size={16} />
+            Expand map
+          </Button>
+          <Button radius="full" size="sm" variant="floating">
+            <X size={16} />
+            Close map
+          </Button>
+          <Button isIconOnly aria-label="Settings" radius="full" size="sm" variant="floating">
+            <Settings size={16} />
+          </Button>
+        </div>
+        <div className="flex flex-wrap items-center gap-3">
+          {colors.map((color) => (
+            <Button key={color} color={color} radius="full" size="sm" variant="floating">
+              {color}
+            </Button>
+          ))}
+        </div>
       </div>
     </StorySection>
 

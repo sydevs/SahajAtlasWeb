@@ -15,7 +15,7 @@ import { useQuery } from '@tanstack/react-query'
 import { Expand } from 'lucide-react'
 import clsx from 'clsx'
 
-import { Button, floatingChrome } from '@/components/atoms/Button'
+import { Button } from '@/components/atoms/Button'
 import { SettingsMenu } from '@/components/molecules'
 import { regionsQuery } from '@/config/api'
 import embed from '@/config/embed'
@@ -194,10 +194,10 @@ function ExpandedDialog({ children }: { children: ReactNode }) {
 // ===== THE VIEW ===== //
 
 const EXPAND_BUTTON = {
-  className: floatingChrome({ className: 'absolute top-3 left-3 z-10' }),
+  className: 'absolute top-3 left-3 z-10',
   radius: 'full',
   size: 'sm',
-  variant: 'bordered',
+  variant: 'floating',
 } as const
 
 /**
