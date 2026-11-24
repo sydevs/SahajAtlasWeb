@@ -43,6 +43,14 @@ cover everything a host would notice since the widget was first deployed.
 
 ### Changed
 
+- **The panel's text, edges and corners follow one system.** ([#471]) Titles are larger (20px)
+  than the rows under them (16px); times, addresses, Filters, Sort and the Register button are a
+  touch larger, without letter spacing. The header, search box, notices, list and buttons share
+  one 24px left and right edge. Buttons, fields, boxes and tags have 8px corners, the panel and
+  menus 16px, and filter tags stay round. Long place names wrap to a second line instead of
+  ending in "…", a region's place rows show only the name and the number of classes, and
+  desktop flags are smaller. **No parameter, origin, CSP, storage or Permissions-Policy change.**
+
 - **Screen-reader labels in every language now ship with the widget.** ([#456]) The names a
   screen reader speaks for icon-only controls (calendar arrows, the settings cog, a filter chip's
   remove button, share buttons, loading spinners) are now translated into every language
@@ -1254,6 +1262,7 @@ must-revalidate`, pinned rather than left to the CDN default. The production dom
 [#387]: https://github.com/sydevs/SahajAtlasWeb/issues/387
 [#409]: https://github.com/sydevs/SahajAtlasWeb/pull/409
 [#456]: https://github.com/sydevs/SahajAtlasWeb/pull/456
+[#471]: https://github.com/sydevs/SahajAtlasWeb/pull/471
 [#411]: https://github.com/sydevs/SahajAtlasWeb/pull/411
 [#418]: https://github.com/sydevs/SahajAtlasWeb/pull/418
 [#424]: https://github.com/sydevs/SahajAtlasWeb/pull/424
