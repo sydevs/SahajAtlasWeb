@@ -45,6 +45,10 @@ const BOXES: Record<string, { marker: string; why: string }> = {
     marker: 'relative min-h-0 w-full',
     why: 'the map-less container the filled panel is absolute against',
   },
+  'views/story-harness.tsx': {
+    marker: CONTAINING_BLOCK,
+    why: "the view stories' stand-in for the expanded map's dialog",
+  },
 }
 
 /**

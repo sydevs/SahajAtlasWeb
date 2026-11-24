@@ -107,14 +107,28 @@ controls panel alphabetically by arg key, ignoring declaration order —
 first on every story. Only Ladle's global "Brand palette" control sorts
 higher.
 
-**Every view also has a global Form control**: `Inline`, the view in the inline
-embed's page (its heading, and `InlineColumns` with the map box beside it), or
-`Expanded`, the expanded map's panel. The decorator adds it to every `views--`
-story (`.ladle/components.tsx`) and `ViewHarness` reads it, so a view story
-writes nothing for it, and a new one gets it for free. The choice holds as you
-move between views. Widen the story viewport to 768px or more to see the two
-columns. The map box stays empty unless the story passes `map`, and even then
-only at the full width (`InlineForm`'s docblock says why).
+**Every view also has two global controls**, `Form` and `Map`. The decorator
+adds them to every `views--` story (`.ladle/components.tsx`) and `ViewHarness`
+reads them, so a view story writes nothing for them, a new one gets them for
+free, and their values hold as you move between views.
+
+- **Form**: `Inline`, the view in the inline embed's page (its heading, and
+  `InlineColumns` with the map beside it), or `Expanded`, the expanded map's
+  frame with the view's panel over the map — a side panel where the frame is
+  wide, a bottom sheet where it is not.
+- **Map**, on by default: the live map, with a real `MapController`, so a view
+  frames it as it does in the app. Off is a `map=false` embed. It needs
+  `VITE_MAPBOX_ACCESSTOKEN`, and without one every view renders map-less.
+
+Widen the story viewport to 768px or more to see the inline form's two columns.
+The map draws at any viewport width: the decorator bridges the two things
+mapbox-gl cannot see across Ladle's viewport iframe, its container check and
+the window's `resize`.
+
+⚠ **With a token, the accessibility gate fails every view story on the map's
+own controls** — the locate button and the Mapbox wordmark measure under the
+44px floor, as `organisms--mapbox` already did. CI's library build carries no
+token, so its gate renders the views map-less and does not see them.
 
 ### StoryGrid (matrices)
 

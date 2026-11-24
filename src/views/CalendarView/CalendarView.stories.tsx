@@ -135,6 +135,7 @@ export const Default: Story<{ example: (typeof EXAMPLES)[number]; state: StoryFa
 
   return (
     <ViewStory
+      wide
       example={example}
       seed={(client: QueryClient) => {
         // Seed the default key (initial render) AND the active-filter key (once the params are
