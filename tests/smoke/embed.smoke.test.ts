@@ -50,31 +50,6 @@ function fetchEmbed() {
 }
 
 /**
- * Every chunk `auto.js` can reach, crawled once and shared by the specs below.
- *
- * Only a clean crawl is cached. A broken chunk or a thrown fetch clears it, so each retry
- * crawls again rather than replaying a settled rejection (see `fetchEmbed`). A transient
- * 5xx no longer needs that retry: the crawl waits one out itself (`SETTLE_ROUNDS`).
- */
-let crawl: Promise<{ seen: string[]; broken: string[] }> | undefined
-
-function crawlDeploy() {
-  crawl ??= crawlFromLoader().then(
-    (result) => {
-      if (result.broken.length > 0) crawl = undefined
-
-      return result
-    },
-    (err) => {
-      crawl = undefined
-      throw err
-    },
-  )
-
-  return crawl
-}
-
-/**
  * How long the crawl waits out a 5xx before it calls a chunk broken.
  *
  * A 5xx is never how a MISSING chunk answers: `assets.not_found_handling` serves the SPA
@@ -237,7 +212,7 @@ describe('embed bundle', () => {
   test.skipIf(skipWithoutPreview)(
     'serves every chunk the loader can reach',
     async () => {
-      const { seen, broken } = await crawlDeploy()
+      const { seen, broken } = await crawlFromLoader()
 
       expect(seen.length).toBeGreaterThan(0)
 
