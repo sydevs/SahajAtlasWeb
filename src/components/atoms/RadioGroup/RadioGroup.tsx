@@ -34,8 +34,10 @@ const radioOption = tv({
   variants: {
     checked: {
       true: {
-        card: 'border-primary-9 bg-primary-9 font-medium text-primary-foreground',
-        mark: 'accent-primary-foreground',
+        // As the solid Button and the checked Checkbox: the dark step 12 under white in
+        // light mode, the ramp's solid and its on-colour in dark.
+        card: 'border-primary-12 bg-primary-12 font-medium text-white dark:border-primary-9 dark:bg-primary-9 dark:text-primary-foreground',
+        mark: 'accent-white dark:accent-primary-foreground',
       },
       false: { card: 'border-gray-7 text-foreground hover:bg-gray-2', mark: 'accent-primary' },
     },
@@ -62,8 +64,8 @@ const radioOption = tv({
       checked: true,
       isInvalid: true,
       class: {
-        card: 'border-danger-9 bg-danger-9 text-danger-foreground',
-        mark: 'accent-danger-foreground',
+        card: 'border-danger-9 bg-danger-9 text-danger-foreground dark:border-danger-9 dark:bg-danger-9 dark:text-danger-foreground',
+        mark: 'accent-danger-foreground dark:accent-danger-foreground',
       },
     },
   ],
