@@ -1,4 +1,4 @@
-import { WIRE_EVENT } from '../../src/mocks/wire'
+import { WIRE_EVENT } from '../../src/mocks/sahajcloud'
 import en from '../../src/config/translations.en.json' with { type: 'json' }
 
 import { atlasRoute, copy, expect, hostPage, test, widget } from './fixtures'
@@ -7,7 +7,7 @@ import { atlasRoute, copy, expect, hostPage, test, widget } from './fixtures'
 // (`resolveStack`). Dismissal is history-aware: with in-widget history it goes back the way the
 // visitor came, and with none — a deep link — it climbs, never taking the host page back.
 
-/** The drill-down through the wire fixtures' tree, from the country list to the class. */
+/** The drill-down through the SahajCloud fixtures' tree, from the country list to the class. */
 const PATH = [
   { link: /United Kingdom/, route: '/gb', title: 'United Kingdom' },
   { link: /^Cambridgeshire \d+$/, route: '/gb/cambridgeshire', title: 'Cambridgeshire' },

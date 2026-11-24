@@ -5,7 +5,7 @@
 // these are what it PARSES: dates as ISO strings, regions as one flat tree linked by `parent`, the
 // feed as a FeatureCollection carrying Payload's pagination members, relationships populated only
 // as far as each fetcher's `select` asks, and Payload's own envelopes around all of it. A fixture
-// in view-model shape skips the parse the lane exists to exercise. `wire.test.ts` runs every
+// in view-model shape skips the parse the lane exists to exercise. `sahajcloud.test.ts` runs every
 // fixture through the real fetchers, against `answerSahajCloud`, so neither can drift from the
 // contract the app reads.
 import type { RegionNode } from '@/types'
@@ -34,7 +34,7 @@ const nodeById = new Map(mockRegionNodes.map((node) => [node.id, node]))
 const regionNode = (id: number): RegionNode => {
   const node = nodeById.get(id)
 
-  if (!node) throw new Error(`wire fixtures: no region ${id} in the tree`)
+  if (!node) throw new Error(`SahajCloud fixtures: no region ${id} in the tree`)
 
   return node
 }
@@ -109,7 +109,8 @@ const eventDocs: Record<string, Json> = Object.fromEntries(
 
 const wireEventFeature = features.find(({ properties }) => properties.id === mockEvent.id)
 
-if (!wireEventFeature) throw new Error(`wire fixtures: no feed feature for event ${mockEvent.id}`)
+if (!wireEventFeature)
+  throw new Error(`SahajCloud fixtures: no feed feature for event ${mockEvent.id}`)
 
 /** The event every scenario that opens one opens: the located class, under its city. */
 export const WIRE_EVENT = {
@@ -135,7 +136,7 @@ const onePage = (totalDocs: number) => ({
 
 const paginated = (docs: unknown[]) => toJson({ docs, ...onePage(docs.length) })
 
-export const wire = {
+export const sahajCloud = {
   /** `GET /api/clients/me`. Payload's `me` adds `collection` and `_strategy` to the user row. */
   clientMe: toJson({
     user: {
@@ -206,23 +207,23 @@ export function answerSahajCloud(request: {
   if (method === 'GET') {
     if (path === '/clients/me') {
       return request.authorization === `clients API-Key ${WIRE_API_KEY}`
-        ? ok(wire.clientMe)
+        ? ok(sahajCloud.clientMe)
         : ok({ user: null })
     }
-    if (path === '/globals/sy-atlas-config') return ok(wire.atlasConfig)
-    if (path === '/globals/sy-atlas-translations') return ok(wire.translations)
-    if (path === '/regions') return ok(wire.regions)
-    if (path === '/events/geojson') return ok(wire.feed)
-    if (path === '/events') return ok(wire.eventTitles)
+    if (path === '/globals/sy-atlas-config') return ok(sahajCloud.atlasConfig)
+    if (path === '/globals/sy-atlas-translations') return ok(sahajCloud.translations)
+    if (path === '/regions') return ok(sahajCloud.regions)
+    if (path === '/events/geojson') return ok(sahajCloud.feed)
+    if (path === '/events') return ok(sahajCloud.eventTitles)
 
     const id = /^\/events\/(\d+)$/.exec(path)?.[1]
 
-    if (id) return wire.events[id] ? ok(wire.events[id]) : ok(wire.notFound, 404)
+    if (id) return sahajCloud.events[id] ? ok(sahajCloud.events[id]) : ok(sahajCloud.notFound, 404)
   }
 
   if (method === 'POST') {
-    if (path === '/user-submissions') return ok(wire.submissionCreated, 201)
-    if (path === '/clients/report') return ok(wire.embedReport)
+    if (path === '/user-submissions') return ok(sahajCloud.submissionCreated, 201)
+    if (path === '/clients/report') return ok(sahajCloud.embedReport)
   }
 
   return undefined

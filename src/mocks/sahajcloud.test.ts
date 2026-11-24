@@ -1,6 +1,6 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
 
-import { WIRE_API_KEY, WIRE_EVENT, answerSahajCloud, wire } from './wire'
+import { WIRE_API_KEY, WIRE_EVENT, answerSahajCloud, sahajCloud } from './sahajcloud'
 
 import atlasAuth from '@/config/api/auth'
 import api, { eventTitlesQuery } from '@/config/api/fetch'
@@ -8,7 +8,7 @@ import mutate, { RegistrationRefusedError } from '@/config/api/mutate'
 import { queryClient } from '@/config/query-client'
 import translations from '@/config/translations.en.json' with { type: 'json' }
 
-// The browser lane answers SahajCloud from `wire.ts`, and a fixture the app cannot parse would
+// The browser lane answers SahajCloud from `sahajcloud.ts`, and a fixture the app cannot parse would
 // fail there as a blank widget, minutes into a CI run. So this runs every fixture through the
 // REAL fetchers and their zod parses — the real SDK too, composing the real URLs — with only the
 // network swapped for `answerSahajCloud`, the router the lane itself serves.
@@ -34,7 +34,7 @@ const serveWire = async (input: RequestInfo | URL, init?: RequestInit) => {
 
   requests.push(`${method} ${url.pathname}`)
 
-  if (!answer) throw new Error(`no wire fixture answers ${method} ${url.pathname}`)
+  if (!answer) throw new Error(`no SahajCloud fixture answers ${method} ${url.pathname}`)
 
   return json(answer.json, answer.status)
 }
@@ -54,7 +54,7 @@ beforeEach(() => {
   atlasAuth.apiKey = WIRE_API_KEY
 })
 
-describe('wire fixtures, read through the fetchers', () => {
+describe('SahajCloud fixtures, read through the fetchers', () => {
   it('authenticates the lane key as its client, and nobody else', async () => {
     expect((await api.getClient()).clientId).toBe('browser-lane')
 
@@ -78,8 +78,8 @@ describe('wire fixtures, read through the fetchers', () => {
     const feed = await api.getGeojson()
     const titles = await eventTitlesQuery('en').queryFn()
 
-    expect(regions).toHaveLength((wire.regions as { docs: unknown[] }).docs.length)
-    expect(feed.features).toHaveLength((wire.feed as { features: unknown[] }).features.length)
+    expect(regions).toHaveLength((sahajCloud.regions as { docs: unknown[] }).docs.length)
+    expect(feed.features).toHaveLength((sahajCloud.feed as { features: unknown[] }).features.length)
     expect([...titles.keys()].sort()).toEqual(feed.features.map((f) => f.properties.id).sort())
     expect(requests).toEqual(['GET /api/regions', 'GET /api/events/geojson', 'GET /api/events'])
   })
@@ -126,7 +126,7 @@ describe('wire fixtures, read through the fetchers', () => {
   // The lane's failure scenario fulfils this body with a 500. It must stay an uncoded failure,
   // or the form would show a refusal's copy rather than the generic failure the spec asserts.
   it('keeps the server error uncoded, so the form treats it as a failure, not a refusal', async () => {
-    vi.stubGlobal('fetch', async () => json(wire.serverError, 500))
+    vi.stubGlobal('fetch', async () => json(sahajCloud.serverError, 500))
 
     try {
       const sent = mutate.createRegistration(

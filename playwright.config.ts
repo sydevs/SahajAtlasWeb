@@ -1,7 +1,7 @@
 import { defineConfig, devices } from '@playwright/test'
 
 import { LANE_DIST, LANE_PORT } from './tests/browser/lane.mjs'
-import { WIRE_API_KEY } from './src/mocks/wire'
+import { WIRE_API_KEY } from './src/mocks/sahajcloud'
 
 // The browser lane: the built widget, on real host pages, in a real Chromium, with every
 // request answered from fixtures (`tests/browser/fixtures.ts`). `docs/testing.md` § "The

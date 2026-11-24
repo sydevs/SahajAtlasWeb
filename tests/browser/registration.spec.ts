@@ -1,6 +1,6 @@
 import type { Page } from '@playwright/test'
 
-import { WIRE_EVENT, wire } from '../../src/mocks/wire'
+import { WIRE_EVENT, sahajCloud } from '../../src/mocks/sahajcloud'
 import en from '../../src/config/translations.en.json' with { type: 'json' }
 
 import { LANE_API_ORIGIN } from './lane.mjs'
@@ -52,7 +52,7 @@ test('a registration SahajCloud fails shows the failure, not the confirmation', 
   page,
   lane,
 }) => {
-  await lane.answerSahajCloud('/user-submissions', { status: 500, json: wire.serverError })
+  await lane.answerSahajCloud('/user-submissions', { status: 500, json: sahajCloud.serverError })
   await page.goto(hostPage('sidebar-mapless.html', REGISTER))
   await register(page)
 
