@@ -3,9 +3,11 @@ import type { LayerProps } from 'react-map-gl/mapbox'
 import { MARKER_IDS, MARKER_OUTLINE, markerColors, PIN_WIDTH } from './markers'
 
 import {
+  buildScale,
   readableOn,
+  scaleHex,
+  seedOrDefault,
   SOLID_STEP,
-  stepHex,
   type PaletteRoles,
   type ThemeMode,
 } from '@/config/theme/palette'
@@ -282,9 +284,8 @@ export const boundsLayer = (palette: PaletteRoles, mode: ThemeMode): LayerProps 
   },
   paint: {
     // The brand solid stays visible on both basemaps: step 9 caps its
-    // lightness in light mode and floors it in dark. The neutral mid-grey it
-    // falls back to needs no theme-aware variant for the same reason.
-    'line-color': stepHex(palette.primary, mode, SOLID_STEP) ?? '#888',
+    // lightness in light mode and floors it in dark.
+    'line-color': scaleHex(buildScale(seedOrDefault('primary', palette.primary), mode), SOLID_STEP),
     'line-width': 4,
   },
 })

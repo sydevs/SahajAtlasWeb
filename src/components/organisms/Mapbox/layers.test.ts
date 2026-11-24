@@ -195,13 +195,13 @@ describe('clusterLayer', () => {
 describe('boundsLayer', () => {
   // This layer renders only behind `DEBUG_BOUNDARY` in `Map.tsx`, so nothing on
   // screen says whether its color is right.
-  it('draws the stock mid-grey when primary has no usable seed', () => {
-    expect(paintOf(boundsLayer({}, 'light'))['line-color']).toBe('#888')
-    expect(paintOf(boundsLayer({}, 'dark'))['line-color']).toBe('#888')
-    expect(paintOf(boundsLayer({ primary: '#000000' }, 'light'))['line-color']).toBe('#888')
+  it('draws the default solid when primary has no usable seed', () => {
+    expect(paintOf(boundsLayer({}, 'light'))['line-color']).toBe('#2d9a76')
+    expect(paintOf(boundsLayer({}, 'dark'))['line-color']).toBe('#61d1ac')
+    expect(paintOf(boundsLayer({ primary: '#000000' }, 'light'))['line-color']).toBe('#2d9a76')
   })
 
-  it('draws the brand solid otherwise, per mode', () => {
+  it('draws the brand solid, per mode', () => {
     expect(paintOf(boundsLayer({ primary: MAROON }, 'light'))['line-color']).toBe('#521430')
     expect(paintOf(boundsLayer({ primary: MAROON }, 'dark'))['line-color']).toBe('#d65c93')
   })

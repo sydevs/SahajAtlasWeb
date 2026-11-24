@@ -8,10 +8,10 @@ import {
   DEFAULT_SEEDS,
   paletteReport,
   readableOn,
+  scaleHex,
   seedOrDefault,
   shiftHex,
   SOLID_STEP,
-  stepHex,
   type ColorScale,
   type Step,
   type ThemeMode,
@@ -189,20 +189,19 @@ describe('applyPalette', () => {
 })
 
 // The map paints with literal colors, not CSS variables, so it reads the ramp
-// through these three rather than through `applyPalette`.
+// through these rather than through `applyPalette`.
 describe('the hex accessors', () => {
   it('gives a step as #rrggbb, per mode', () => {
-    expect(stepHex('#64032e', 'light', 9)).toBe('#521430')
+    expect(scaleHex(buildScale('#64032e', 'light'), 9)).toBe('#521430')
     // Dark mode floors the solid's lightness at 60, so the same seed is lighter.
-    expect(stepHex('#64032e', 'dark', 9)).toBe('#d65c93')
-    expect(stepHex('#64032e', 'light', 8)).toBe('#d9689b')
+    expect(scaleHex(buildScale('#64032e', 'dark'), 9)).toBe('#d65c93')
+    expect(scaleHex(buildScale('#64032e', 'light'), 8)).toBe('#d9689b')
   })
 
   it('refuses a seed that is absent, invalid or the unconfigured sentinel', () => {
-    // The refusal `setRole` already makes by writing nothing. Every caller then
-    // keeps its own built-in default.
+    // The refusal `setRole` already makes by writing nothing, so the map takes the
+    // same default the static theme does.
     for (const seed of [undefined, null, '', 'not-a-color', '#000000']) {
-      expect(stepHex(seed, 'light', 9)).toBeNull()
       expect(seedOrDefault('primary', seed)).toBe(DEFAULT_SEEDS.primary)
     }
   })
@@ -211,7 +210,7 @@ describe('the hex accessors', () => {
     // Snapping these to our default read as the picker ignoring the manager.
     for (const seed of ['#ffffff', '#f2f2f2', '#333333']) {
       expect(parse(buildScale(seed, 'light')[9]).s).toBe(0)
-      expect(stepHex(seed, 'light', 9)).not.toBeNull()
+      expect(seedOrDefault('primary', seed)).toBe(seed)
     }
   })
 
@@ -253,7 +252,7 @@ describe('the hex accessors', () => {
   it('picks black or white for any fill, by the rule behind the solid step on-color', () => {
     expect(readableOn('#521430')).toBe('#ffffff')
     expect(readableOn('#d65c93')).toBe('#000000')
-    expect(readableOn(stepHex('#64032e', 'light', 9)!)).toBe(
+    expect(readableOn(scaleHex(buildScale('#64032e', 'light'), 9))).toBe(
       colord(`hsl(${buildScale('#64032e', 'light').on})`).toHex(),
     )
   })

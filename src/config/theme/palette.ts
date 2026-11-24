@@ -470,10 +470,6 @@ export const seedOrDefault = (role: BrandRole, seedHex: string | null | undefine
 // The map paints in hex. An SVG `fill` attribute and a Mapbox paint both refuse the channel
 // triples above, and neither can read a CSS variable.
 // So these accessors exist, and `colord` stays in this file, the only one that knows the ladder.
-//
-// `stepHex` returns null for a seed that is absent, invalid or achromatic.
-// That is the refusal `setRole` already makes by writing nothing.
-// So each caller falls back to its own built-in default, rather than to a washed-out grey ramp.
 
 // `channel()` emits the CSS space-separated HSL syntax, so colord parses it back.
 // Never hand-roll that parse: it would be a second, unpinned copy of the format
@@ -482,17 +478,6 @@ const hexOf = (channels: string): string => colord(`hsl(${channels})`).toHex()
 
 /** One step of an already-built ramp, as `#rrggbb`. */
 export const scaleHex = (scale: ColorScale, step: Step): string => hexOf(scale[step])
-
-/** One step of a seed's ramp, as `#rrggbb`. */
-export function stepHex(
-  seedHex: string | null | undefined,
-  mode: ThemeMode,
-  step: Step,
-): string | null {
-  if (!seedHex || !isBrandSeed(seedHex)) return null
-
-  return hexOf(buildScale(seedHex, mode)[step])
-}
 
 /**
  * Black or white, whichever reads better on a colour, as `#rrggbb` — the rule
