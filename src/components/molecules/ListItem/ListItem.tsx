@@ -48,7 +48,7 @@ export function ListItem({ label, subtitle, count, href, icon }: ListItemProps) 
             tapping the row already does, so it goes one step further. The
             title stays `text-foreground` (gray-12), and remains the loudest
             thing in the row. */}
-        <div className="me-1 text-end text-sm font-normal text-gray-11 tabular-nums">{count}</div>
+        <div className="me-1 text-end text-sm font-normal text-gray-11">{count}</div>
         <ChevronRight className="text-gray-9 rtl:-scale-x-100" size={20} />
       </Link>
     </li>

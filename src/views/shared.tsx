@@ -103,7 +103,10 @@ export type DrawerTitleProps = {
 export function DrawerTitle({ title, subtitle, note }: DrawerTitleProps) {
   return (
     <div className="min-w-0">
-      <h2 className="truncate text-xl">{title}</h2>
+      {/* Wraps rather than truncates: beside a header's icons a 20px name such as "North of
+          England" runs out of room on a phone, and a cut place name is the one thing a
+          visitor came to read. */}
+      <h2 className="line-clamp-2 text-xl">{title}</h2>
       {subtitle && <div className="truncate text-sm text-gray-11">{subtitle}</div>}
       {note && <div className="truncate text-xs text-gray-11">{note}</div>}
     </div>
