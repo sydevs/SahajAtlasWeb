@@ -49,6 +49,17 @@ describe('where the host says its header ends', () => {
     expect(headerOffset(element, 'now')).toBe(0)
   })
 
+  it('reads pixels only, and looks for the header itself past any other unit', () => {
+    const element = host()
+
+    element.style.setProperty('--sahaj-atlas-header', '72')
+    expect(headerOffset(element, 'now')).toBe(72)
+
+    // 4.5rem read as 4.5 would start the expanded map over the header it names.
+    element.style.setProperty('--sahaj-atlas-header', '4.5rem')
+    expect(headerOffset(element, 'now')).toBe(0)
+  })
+
   it('answers zero, the whole screen, when nothing is stated or found', () => {
     expect(headerOffset(host(), 'now')).toBe(0)
     expect(headerOffset(host(), 'stuck')).toBe(0)

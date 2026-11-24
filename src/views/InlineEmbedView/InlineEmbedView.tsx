@@ -10,7 +10,7 @@ import {
 } from 'react'
 import * as Primitive from '@radix-ui/react-dialog'
 import { m } from 'framer-motion'
-import { useLocation } from 'react-router'
+import { useLocation, useNavigationType } from 'react-router'
 import { useQuery } from '@tanstack/react-query'
 import { MapProvider } from 'react-map-gl/mapbox'
 import { Expand } from 'lucide-react'
@@ -39,11 +39,10 @@ import {
 } from '@/views/FullInterface'
 import { headingPlace } from '@/views/InlineEmbedView/heading-place'
 import {
-  headerOffset,
   hostElement,
   pageHasHeading,
   useGrowHost,
-  useStuckHeader,
+  useHeaderOffset,
 } from '@/views/InlineEmbedView/host-page'
 
 /**
@@ -119,8 +118,8 @@ const contentClass = `fixed inset-x-0 bottom-0 ${aboveHost} overflow-clip bg-bac
 function ExpandedDialog({ children }: { children: ReactNode }) {
   const { t } = useLocale()
   const { expanded: open, collapse } = useExpansion()
-  // Read when the map opens, not at mount: a header can hide on scroll, or wrap to two lines.
-  const top = useMemo(() => (open ? headerOffset(hostElement(), 'now') : 0), [open])
+  // Read when the map opens, not at mount: a header can scroll away, or wrap to two lines.
+  const top = useHeaderOffset(hostElement(), 'now', open)
   // Published as the widget's frame, and the children wait for it — `usePublishedNode`
   // carries the timing argument.
   //
@@ -236,10 +235,11 @@ function ExpandButton() {
 
 function InlineLayout() {
   const { pathname } = useLocation()
+  const navigationType = useNavigationType()
   const { hasMap } = useWidgetMode()
   const { expanded } = useExpansion()
   const host = useMemo(hostElement, [])
-  const stickTop = useStuckHeader(host)
+  const stickTop = useHeaderOffset(host, 'stuck')
   const [content, setContent] = useState<HTMLDivElement | null>(null)
   const boxed = useGrowHost(host, content)
   const heading = useRef<HTMLDivElement>(null)
@@ -252,10 +252,12 @@ function InlineLayout() {
 
   // A new view starts at its own top: opening a city from the bottom of a long list would
   // otherwise leave the visitor looking at the middle of the next page. A view reached in the
-  // expanded map is waiting when it closes.
+  // expanded map is waiting when it closes. A replace is not a view the visitor opened — the
+  // home redirect, a filter — so it moves nothing.
   useEffect(() => {
     if (pathname === lastPath.current || expanded) return
     lastPath.current = pathname
+    if (navigationType === 'REPLACE') return
 
     const element = heading.current
 
@@ -279,8 +281,8 @@ function InlineLayout() {
             // ⚠ `contain: layout` makes this box the containing block for the canvas, which is
             // fixed. `transform-gpu` gives WebKit's compositor the same box to clip it to (#424).
             // The square is capped to what fits below the header, so all of it stays in view.
-            className="relative h-[clamp(180px,33vh,320px)] transform-gpu overflow-clip rounded-2xl border border-divider [contain:layout] @min-[720px]:sticky @min-[720px]:ms-auto @min-[720px]:aspect-square @min-[720px]:h-auto @min-[720px]:max-w-[calc(100vh-var(--sy-inline-top,0px)-32px)]"
-            style={{ top: top + 16, '--sy-inline-top': `${top}px` } as CSSProperties}
+            className="relative h-[clamp(180px,33vh,320px)] transform-gpu overflow-clip rounded-2xl border border-divider [contain:layout] @min-[720px]:sticky @min-[720px]:top-[calc(var(--sy-inline-top,0px)+16px)] @min-[720px]:ms-auto @min-[720px]:aspect-square @min-[720px]:h-auto @min-[720px]:max-w-[calc(100vh-var(--sy-inline-top,0px)-32px)]"
+            style={{ '--sy-inline-top': `${top}px` } as CSSProperties}
           >
             {/* The expanded dialog runs its own map, and two maps would fight over the one
                 camera-settled flag; this one comes back, and re-frames, on collapse. */}

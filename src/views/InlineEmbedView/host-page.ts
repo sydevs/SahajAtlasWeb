@@ -1,4 +1,4 @@
-import { useEffect, useLayoutEffect, useState } from 'react'
+import { useEffect, useLayoutEffect, useMemo, useState } from 'react'
 
 import { getThemeRoot } from '@/hooks/use-theme'
 
@@ -34,11 +34,15 @@ export function hostElement(): HTMLElement | null {
  */
 export function headerOffset(host: HTMLElement | null, when: 'now' | 'stuck'): number {
   try {
-    const stated = parseFloat(
-      getComputedStyle(host ?? document.documentElement).getPropertyValue('--sahaj-atlas-header'),
+    // Pixels only. A `4rem` read as 4 would put the expanded map over the header it names, so
+    // anything else falls through to looking for the header.
+    const stated = /^(\d*\.?\d+)(px)?$/.exec(
+      getComputedStyle(host ?? document.documentElement)
+        .getPropertyValue('--sahaj-atlas-header')
+        .trim(),
     )
 
-    if (Number.isFinite(stated)) return Math.max(0, stated)
+    if (stated) return Number(stated[1])
 
     const covers = when === 'now' ? coversNow : coversStuck
 
@@ -49,27 +53,48 @@ export function headerOffset(host: HTMLElement | null, when: 'now' | 'stuck'): n
 }
 
 /**
- * `headerOffset(host, 'stuck')`, measured again when the window's width changes: a header's
- * height moves at the host's own breakpoints, never on a height-only resize such as a phone's
- * address bar collapsing.
+ * `headerOffset`, while `active`, measured again — once a frame at most — when the window's width
+ * changes: a header's height moves at the host's own breakpoints, never on a height-only resize
+ * such as a phone's address bar collapsing.
+ *
+ * Measured in render, so the expanded map's first frame already starts below the header, rather
+ * than covering the point the search reads.
+ *
+ * shortcut: a header that changes height without a width change (hiding on scroll, a dismissed
+ * promo bar) keeps its old offset; a host with one states `--sahaj-atlas-header`. Observe the
+ * header found, if a host ever needs more.
  */
-export function useStuckHeader(host: HTMLElement | null): number {
-  const [offset, setOffset] = useState(() => headerOffset(host, 'stuck'))
+export function useHeaderOffset(
+  host: HTMLElement | null,
+  when: 'now' | 'stuck',
+  active = true,
+): number {
+  const [resized, setResized] = useState(0)
 
   useEffect(() => {
+    if (!active) return
+
     let width = window.innerWidth
+    let frame = 0
     const measure = () => {
-      if (window.innerWidth === width) return
-      width = window.innerWidth
-      setOffset(headerOffset(host, 'stuck'))
+      if (frame || window.innerWidth === width) return
+      frame = requestAnimationFrame(() => {
+        frame = 0
+        width = window.innerWidth
+        setResized((count) => count + 1)
+      })
     }
 
     window.addEventListener('resize', measure)
 
-    return () => window.removeEventListener('resize', measure)
-  }, [host])
+    return () => {
+      cancelAnimationFrame(frame)
+      window.removeEventListener('resize', measure)
+    }
+  }, [active])
 
-  return offset
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- `resized` re-runs the read on a width change
+  return useMemo(() => (active ? headerOffset(host, when) : 0), [host, when, active, resized])
 }
 
 /**
@@ -116,7 +141,8 @@ function coversStuck(element: Element): number {
   // `top: auto` pins nothing for a sticky element, and leaves a fixed one where it sits.
   const pinnedAt = top === 'auto' ? (position === 'fixed' ? rect.top : NaN) : parseFloat(top)
 
-  return pinnedAt <= 1 && isBar(rect) ? Math.max(0, pinnedAt) + rect.height : 0
+  // A header pinned partly above the window (one that retracts) covers only what shows of it.
+  return pinnedAt <= 1 && isBar(rect) ? Math.max(0, pinnedAt + rect.height) : 0
 }
 
 /**
