@@ -1,4 +1,4 @@
-import { useLayoutEffect, useState } from 'react'
+import { useEffect, useLayoutEffect, useState } from 'react'
 
 import { getThemeRoot } from '@/hooks/use-theme'
 
@@ -13,7 +13,7 @@ import { getThemeRoot } from '@/hooks/use-theme'
 
 /** The `<sahaj-atlas>` element this widget renders in, or `null` standalone. */
 export function hostElement(): HTMLElement | null {
-  const root = getThemeRoot()?.getRootNode()
+  const root = getThemeRoot().getRootNode()
 
   return root instanceof ShadowRoot && root.host instanceof HTMLElement ? root.host : null
 }
@@ -25,15 +25,17 @@ export function hostElement(): HTMLElement | null {
  * - `now` — what covers the top of the window at this moment: where the expanded map starts.
  * - `stuck` — what pins itself to the top once the page scrolls: where the inline map sticks.
  *
- * The host states it with `--sahaj-atlas-top` on the element or any ancestor, which answers both
- * and which the WordPress plugin already writes. Failing that, the widget looks for the header
- * itself: a fixed or sticky bar, a `<header>` or a `role="banner"`. Failing both, zero — the
- * expanded map covers the whole screen.
+ * The host states it with `--sahaj-atlas-header` on the element or any ancestor, which answers
+ * both. Failing that, the widget looks for the header itself: a fixed or sticky bar, a `<header>`
+ * or a `role="banner"`. Failing both, zero — the expanded map covers the whole screen.
+ *
+ * ⚠ Not the WordPress plugin's `--sahaj-atlas-top`, which is where the atlas element starts in
+ * the document — the header's bottom only while nothing else sits between them.
  */
 export function headerOffset(host: HTMLElement | null, when: 'now' | 'stuck'): number {
   try {
     const stated = parseFloat(
-      getComputedStyle(host ?? document.documentElement).getPropertyValue('--sahaj-atlas-top'),
+      getComputedStyle(host ?? document.documentElement).getPropertyValue('--sahaj-atlas-header'),
     )
 
     if (Number.isFinite(stated)) return Math.max(0, stated)
@@ -44,6 +46,30 @@ export function headerOffset(host: HTMLElement | null, when: 'now' | 'stuck'): n
   } catch {
     return 0
   }
+}
+
+/**
+ * `headerOffset(host, 'stuck')`, measured again when the window's width changes: a header's
+ * height moves at the host's own breakpoints, never on a height-only resize such as a phone's
+ * address bar collapsing.
+ */
+export function useStuckHeader(host: HTMLElement | null): number {
+  const [offset, setOffset] = useState(() => headerOffset(host, 'stuck'))
+
+  useEffect(() => {
+    let width = window.innerWidth
+    const measure = () => {
+      if (window.innerWidth === width) return
+      width = window.innerWidth
+      setOffset(headerOffset(host, 'stuck'))
+    }
+
+    window.addEventListener('resize', measure)
+
+    return () => window.removeEventListener('resize', measure)
+  }, [host])
+
+  return offset
 }
 
 /**
@@ -82,20 +108,15 @@ function coversNow(element: Element): number {
 }
 
 function coversStuck(element: Element): number {
-  const style = getComputedStyle(element)
-
-  if (style.position !== 'fixed' && style.position !== 'sticky') return 0
-
-  // `auto` pins nothing for a sticky element, and leaves a fixed one where it sits.
-  const top =
-    style.top === 'auto'
-      ? style.position === 'fixed'
-        ? element.getBoundingClientRect().top
-        : NaN
-      : parseFloat(style.top)
+  const { position, top } = getComputedStyle(element)
   const rect = element.getBoundingClientRect()
 
-  return Number.isFinite(top) && top <= 1 && isBar(rect) ? Math.max(0, top) + rect.height : 0
+  if (position !== 'fixed' && position !== 'sticky') return 0
+
+  // `top: auto` pins nothing for a sticky element, and leaves a fixed one where it sits.
+  const pinnedAt = top === 'auto' ? (position === 'fixed' ? rect.top : NaN) : parseFloat(top)
+
+  return pinnedAt <= 1 && isBar(rect) ? Math.max(0, pinnedAt) + rect.height : 0
 }
 
 /**
@@ -110,21 +131,49 @@ export function pageHasHeading(host: HTMLElement | null): boolean {
   }
 }
 
+/**
+ * Whether the content cannot reach the page: the host's box holds it in, or an ancestor clips
+ * what grows past it — a site builder's frame, an app shell that never scrolls. An ancestor that
+ * scrolls reaches it, so the search stops there.
+ */
+function cannotGrow(host: HTMLElement, content: HTMLElement): boolean {
+  try {
+    if (content.offsetHeight > host.clientHeight + 1) return true
+
+    const bottom = host.getBoundingClientRect().bottom
+
+    for (let ancestor = host.parentElement; ancestor; ancestor = ancestor.parentElement) {
+      const { overflowY } = getComputedStyle(ancestor)
+
+      if (overflowY === 'auto' || overflowY === 'scroll') return false
+      if (
+        (overflowY === 'hidden' || overflowY === 'clip') &&
+        ancestor.getBoundingClientRect().bottom < bottom - 1
+      )
+        return true
+    }
+
+    return false
+  } catch {
+    return false
+  }
+}
+
 // What the host's own height rule is overridden with, so the inline embed is as tall as its
 // content. Inline `!important` outranks any author rule.
 const GROW = [
-  ['height', 'auto'],
   ['max-height', 'none'],
   // A scroll container would also take the inline map's `sticky` away from the page.
   ['overflow', 'visible'],
 ] as const
 
 /**
- * Lets the host element grow to fit, and says whether it could not.
+ * Lets the host element grow to fit, and says whether it could not (`boxed`).
  *
- * Some boxes cannot grow from inside — a stretched flex or grid item, a site builder's own
- * frame — and there the content scrolls within the box instead (`boxed`), so nothing spills
- * over the page below it. The previous inline values come back on unmount.
+ * Where the content cannot reach the page, the element takes its box's full height instead, and
+ * the content scrolls within it, so nothing is cut off and nothing spills over the page below.
+ * Once boxed, it stays boxed: growing again would only clip again. The previous inline values come
+ * back on unmount.
  */
 export function useGrowHost(host: HTMLElement | null, content: HTMLElement | null): boolean {
   const [boxed, setBoxed] = useState(false)
@@ -133,7 +182,7 @@ export function useGrowHost(host: HTMLElement | null, content: HTMLElement | nul
     if (!host) return
 
     const style = host.style
-    const grow: (readonly [string, string])[] = [...GROW]
+    const grow: (readonly [string, string])[] = [...GROW, ['height', boxed ? '100%' : 'auto']]
 
     if (getComputedStyle(host).display === 'inline') grow.push(['display', 'block'])
 
@@ -150,12 +199,14 @@ export function useGrowHost(host: HTMLElement | null, content: HTMLElement | nul
         else style.removeProperty(property)
       }
     }
-  }, [host])
+  }, [host, boxed])
 
   useLayoutEffect(() => {
-    if (!host || !content || typeof ResizeObserver === 'undefined') return
+    if (!host || !content || boxed || typeof ResizeObserver === 'undefined') return
 
-    const check = () => setBoxed(content.offsetHeight > host.clientHeight + 1)
+    const check = () => {
+      if (cannotGrow(host, content)) setBoxed(true)
+    }
     const observer = new ResizeObserver(check)
 
     observer.observe(host)
@@ -163,7 +214,7 @@ export function useGrowHost(host: HTMLElement | null, content: HTMLElement | nul
     check()
 
     return () => observer.disconnect()
-  }, [host, content])
+  }, [host, content, boxed])
 
   return boxed
 }

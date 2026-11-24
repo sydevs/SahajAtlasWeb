@@ -99,6 +99,32 @@ test('a sized slot opens inline, grows to its content, and expands the map on re
   await expect(atlas.getByRole('link', { name: UNITED_KINGDOM })).toBeVisible()
 })
 
+// WeMeditate's own atlas page never scrolls: its shell clips whatever grows past it. So the widget
+// keeps the box it was given and scrolls inside it, and its last row stays reachable.
+test('a shell that never scrolls keeps the atlas in its box, scrolling inside', async ({
+  page,
+}) => {
+  await page.goto(hostPage('app-shell.html'))
+
+  const atlas = widget(page)
+
+  await expect(atlas.getByRole('link', { name: UNITED_KINGDOM })).toBeVisible()
+  await expect
+    .poll(() =>
+      page.evaluate(() => {
+        const host = document.querySelector('sahaj-atlas')!
+
+        return host.clientHeight - host.parentElement!.clientHeight
+      }),
+    )
+    .toBe(0)
+
+  const last = atlas.getByRole('link').last()
+
+  await last.scrollIntoViewIfNeeded()
+  await expect(last).toBeInViewport()
+})
+
 // The page's rules are aimed at every button, div and span, at `!important` and above zero
 // specificity. Since #236 the widget renders in a shadow root, which no host selector reaches.
 test('hostile host CSS does not restyle the widget', async ({ page }) => {

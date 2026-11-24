@@ -178,6 +178,18 @@ function pages(src) {
       true,
     ),
 
+    // WeMeditate's own atlas page: a shell that never scrolls — a fixed height and `overflow:
+    // hidden` around a full-height `<main>`. Growing there only clips, so the widget keeps
+    // `<main>`'s height and scrolls inside it.
+    'app-shell.html': page(
+      'App shell that never scrolls',
+      `<div style="display:flex;flex-direction:column;height:480px;overflow:hidden;border:2px solid #333">
+      <header style="flex:none;background:#1E6C71;color:#fff;padding:16px 24px;font-weight:600">A page that never scrolls</header>
+      <main style="flex:1;min-height:0"><sahaj-atlas style="display:block;height:100%"></sahaj-atlas></main>
+    </div>${loader('key=KEY&map=true')}`,
+      'the atlas must fill the box under the header and scroll inside it, down to its last row.',
+    ),
+
     // A narrow column: the inline embed's phone layout, a short map strip above the list, on a
     // desktop, because the widget measures its own box. The host's 520px height gives way.
     'sidebar-map.html': page(

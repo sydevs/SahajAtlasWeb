@@ -14,7 +14,7 @@ import { headerOffset, pageHasHeading, useGrowHost } from './host-page'
 
 afterEach(() => {
   document.body.replaceChildren()
-  document.documentElement.style.removeProperty('--sahaj-atlas-top')
+  document.documentElement.style.removeProperty('--sahaj-atlas-header')
 })
 
 const host = () => {
@@ -26,17 +26,17 @@ const host = () => {
 }
 
 describe('where the host says its header ends', () => {
-  it('reads --sahaj-atlas-top off the element', () => {
+  it('reads --sahaj-atlas-header off the element', () => {
     const element = host()
 
-    element.style.setProperty('--sahaj-atlas-top', '64px')
+    element.style.setProperty('--sahaj-atlas-header', '64px')
 
     expect(headerOffset(element, 'now')).toBe(64)
     expect(headerOffset(element, 'stuck')).toBe(64)
   })
 
   it('reads it off the document when the widget has no element of its own', () => {
-    document.documentElement.style.setProperty('--sahaj-atlas-top', '32px')
+    document.documentElement.style.setProperty('--sahaj-atlas-header', '32px')
 
     expect(headerOffset(null, 'now')).toBe(32)
   })
@@ -44,7 +44,7 @@ describe('where the host says its header ends', () => {
   it('never answers a negative offset', () => {
     const element = host()
 
-    element.style.setProperty('--sahaj-atlas-top', '-20px')
+    element.style.setProperty('--sahaj-atlas-header', '-20px')
 
     expect(headerOffset(element, 'now')).toBe(0)
   })

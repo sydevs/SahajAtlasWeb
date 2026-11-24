@@ -110,8 +110,10 @@ cover everything a host would notice since the widget was first deployed.
     element cannot grow, the widget scrolls inside it.
   - **The full-screen map, the contained map and the compact card are gone.** A deep link opens
     inline on its route instead of opening an overlay.
-  - **A new, optional CSS custom property, `--sahaj-atlas-top`**, says where your header ends. The
-    widget looks for your header itself when it is absent.
+  - **A new, optional CSS custom property, `--sahaj-atlas-header`**, says how tall your sticky
+    header is. The widget looks for your header itself when it is absent.
+  - **Where your page cannot let the widget grow** — an app shell that never scrolls, a site
+    builder's fixed frame — the widget fills the box it has and scrolls inside it.
   - **The widget adds a heading to your page**: an `<h1>`, or an `<h2>` when your page has an
     `<h1>` of its own.
   - **In an iframe**, the widget opens inline and scrolls inside the frame; "Expand map" opens a

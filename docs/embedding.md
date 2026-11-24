@@ -453,11 +453,15 @@ venue or a class, whose own name follows as a smaller heading.
 your element is `inline` — so a height rule written for the old full-screen and contained maps
 gives way, and nothing scrolls inside the widget. Your values come back if the widget is removed.
 
-⚠ **Where your element cannot grow, the widget scrolls inside it instead.** A stretched flex or grid
-item takes its track's size whatever its own height says, and a site builder may fix its box from
-outside. The widget then fits your box and scrolls within it, so nothing spills over the content
-below. ⚠ That includes `overflow: hidden` on an ancestor, which also takes away the map's
-stickiness — the map then scrolls away with the list.
+⚠ **Where your page cannot let it grow, the widget scrolls inside its box instead.** A stretched
+flex or grid item takes its track's size whatever its own height says, a site builder may fix its
+box from outside, and an app shell with `overflow: hidden` around a full-height `<main>` clips
+whatever grows past it. The widget then keeps your element's own height — `height: 100%` of its
+parent — and scrolls within it, so nothing is cut off and nothing spills over the content below.
+
+⚠ **An ancestor with `overflow` set takes the map's stickiness away**, even where the page itself
+scrolls: a sticky element sticks within its nearest scrolling ancestor. The map then scrolls away
+with the list.
 
 ### The expanded map
 
@@ -466,20 +470,21 @@ covering the screen below your header.** A "Close map" button floats at the bott
 and returns the visitor to your page, showing whatever they were last looking at. Escape and a
 click outside the map — your header included — close it too.
 
-**Say where your header ends with `--sahaj-atlas-top`.** Set it on `<sahaj-atlas>` or any ancestor,
-in pixels, and the expanded map starts there, and the inline map sticks below it:
+**Say how tall your sticky header is with `--sahaj-atlas-header`.** Set it on `<sahaj-atlas>` or
+any ancestor, in pixels, and the expanded map starts there, and the inline map sticks below it:
 
 ```html
 <style>
   sahaj-atlas {
-    --sahaj-atlas-top: 72px;
+    --sahaj-atlas-header: 72px;
   }
 </style>
 ```
 
-The WordPress plugin sets it for you. **Without it, the widget looks for your header itself**: a
-fixed, sticky or `<header>`/`role="banner"` element across the top of the window. If it finds none,
-the expanded map covers the whole screen.
+**Without it, the widget looks for your header itself**: a fixed, sticky or
+`<header>`/`role="banner"` bar across the top of the window. If it finds none, the expanded map
+covers the whole screen. (The WordPress plugin's `--sahaj-atlas-top` is a different value — where
+the atlas starts on the page — and the widget does not read it.)
 
 While the map is open it is a **modal dialog**: your page's scroll is locked, and the rest of your
 page is marked `aria-hidden`, both undone on close. Its layer uses `z-index: 2147483000`, starting
@@ -1360,7 +1365,7 @@ Three things to check when you migrate:
 | **Add to calendar → Download .ics file does nothing, in an iframe**          | The frame is sandboxed without `allow-downloads`. That row — the **last** one — builds the `.ics` file in the browser and hands it over as a download, which a sandbox refuses, silently like the popup above. The five rows above it are unaffected. Add `allow-downloads`, or drop `sandbox`.                                                                                                                                                                                                              |
 | **`atlas=` on the script URL seems to be ignored**                           | The page's own URL already carries an `?atlas=` route, which always wins. That is intended — see [`atlas`, and how the route is chosen](#atlas-and-how-the-route-is-chosen).                                                                                                                                                                                                                                                                                                                                  |
 | **Sharing offers no link**                                                   | The same memory-routing mode, on a page with no canonical atlas URL to offer instead.                                                                                                                                                                                                                                                                                                                                                                                                                         |
-| **The expanded map covers your header**                                      | The widget did not find it. State where it ends with `--sahaj-atlas-top` on `<sahaj-atlas>` or an ancestor — see [the expanded map](#the-expanded-map). |
+| **The expanded map covers your header**                                      | The widget did not find it. State where it ends with `--sahaj-atlas-header` on `<sahaj-atlas>` or an ancestor — see [the expanded map](#the-expanded-map). |
 | **The widget looks wrong on your site only**                                 | Not a selector of yours — the shadow root stops those. Look instead at an inherited property the widget does not restate on its own root, your root `font-size` (the calendar only), or the `sahaj-atlas-fonts` `<style>` missing from your `<head>` — or sitting there inert, which is what a `style-src` without `'unsafe-inline'` leaves behind. See [what the widget does to your page](#what-the-widget-does-to-your-page).                                                                              |
 | **It broke after working yesterday**                                         | The embed updates in place. Check [`CHANGELOG.md`](../CHANGELOG.md). Then look for a cached `auto.js`, `loader.js` or `embed.js` at your edge requesting chunk names that no longer exist.                                                                                                                                                                                                                                                                                                                                 |
 | **Console: "could not find a place to render"**                              | The snippet is in `<head>`: add an empty `<sahaj-atlas></sahaj-atlas>` where the widget should appear, or move the snippet into the body. `async` and `defer` are fine on a snippet in the body — the loader waits for your page either way. **Or the snippet is no longer on the page** when the loader looks, which is after your page finishes parsing — a tag something removed, or replaced wholesale. Every setting rides on that tag's URL, so this comes with **"no `key` parameter on the embed script URL"** beside it, and adding the element alone then gets you the configuration-error screen instead. Leave the tag where it is.                                                                                                                                                                                                                                                                                                                         |
