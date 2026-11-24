@@ -2,7 +2,13 @@ import { colord, extend } from 'colord'
 import a11yPlugin from 'colord/plugins/a11y'
 import { describe, expect, it } from 'vitest'
 
-import { BASEMAP_SURFACES, DEFAULT_MARKER_COLORS, MARKER_OUTLINE, markerImages } from './markers'
+import {
+  BASEMAP_SURFACES,
+  DEFAULT_MARKER_COLORS,
+  MARKER_IDS,
+  MARKER_OUTLINE,
+  markerImages,
+} from './markers'
 
 import { readRepoSource } from '@/test-support/repo-source'
 
@@ -35,13 +41,21 @@ describe('the fixed marker outline', () => {
     expect(colord(swapped.dark).contrast(BASEMAP_SURFACES.dark.water)).toBeLessThan(3)
   })
 
-  it('draws no black or white edge on a pin or a bubble, which carry their own ring', () => {
-    for (const image of markerImages(DEFAULT_MARKER_COLORS).values()) {
-      for (const edge of Object.values(MARKER_OUTLINE)) {
-        expect(image.svg).not.toContain(`stroke="${edge}"`)
+  it.each(['light', 'dark'] as const)(
+    'edges every pin for the %s basemap, and no bubble, which carries its own ring',
+    (mode) => {
+      const images = markerImages(DEFAULT_MARKER_COLORS, mode)
+
+      for (const id of [MARKER_IDS.point, MARKER_IDS.pointSelected]) {
+        expect(images.get(id)?.svg).toContain(`stroke="${MARKER_OUTLINE[mode]}"`)
       }
-    }
-  })
+      for (const id of [MARKER_IDS.cluster, MARKER_IDS.clusterSelected]) {
+        for (const edge of Object.values(MARKER_OUTLINE)) {
+          expect(images.get(id)?.svg).not.toContain(`stroke="${edge}"`)
+        }
+      }
+    },
+  )
 
   it('names the styles the surfaces were measured from', () => {
     // The values are measured once from each style's JSON, which no gate can fetch

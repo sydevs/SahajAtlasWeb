@@ -26,9 +26,9 @@ import {
 //
 // Names are `sy-`-prefixed, so they can never collide with a style sprite.
 
-// The vague-place ring and dot (`layers.ts`) carry a fixed edge for the style
-// they are drawn on, so the brand colour is never measured against the basemap.
-// A pin and a bubble carry their own translucent ring instead (below).
+// A pin, and the vague-place ring and dot (`layers.ts`), carry a fixed edge for
+// the style they are drawn on, so the brand colour is never measured against the
+// basemap. A bubble carries its own translucent ring instead (below).
 //
 // Measured once from each Studio style's own JSON — the two ids are in
 // `Map.tsx`'s `MAP_STYLES`. Light `ck7g6nag70rn11io09f45odkq`: land `#f3ead8`,
@@ -50,15 +50,12 @@ export const BASEMAP_SURFACES: Record<ThemeMode, { land: string; water: string }
   dark: { land: '#5a8bbf', water: '#33567a' },
 }
 
-// The pin's own ring, in the bubble's ring colour and opacity, visibly this wide
-// outside the head: wide enough to read as a halo, well short of the bubble's 5.2.
-const PIN_RING_WIDTH = 2.2
-const RING_OPACITY = 0.706
+// The pin's edge: thin enough to read as an edge rather than a second colour. The
+// canvas clips the outer 0.1–0.2 units at the head's left edge and the tip, where
+// the pin meets the map anyway.
+const OUTLINE_WIDTH = 1.2
 
-// The head shrinks about the tip to make room for that ring inside the 34×38 box,
-// so the tip stays on the bottom edge `icon-anchor: 'bottom'` pins and the outer
-// edge stays where the head used to end.
-const PIN_SCALE = 0.86
+const RING_OPACITY = 0.706
 
 // The map's marks take their colours from the LIGHT-mode palette in both modes.
 // The dark basemap is mid-toned and washed out, so a dark-mode solid — lifted to
@@ -96,11 +93,7 @@ const svg = (width: number, height: number, body: string): MarkerImage => ({
 /** The teardrop pin's image width, before a layer's `icon-size`. */
 export const PIN_WIDTH = 34
 
-// The ring is a stroke on a copy of the outline drawn BEHIND the head, so only its
-// outer half shows and the head's own fill is never tinted by it.
-const PIN_PATH = 'M4.71 26.42a15 15 0 1 1 21.58 0L15.5 37.6Z'
-
-const pin = (fill: string, ring: string): MarkerImage =>
+const pin = (fill: string, outline: string): MarkerImage =>
   svg(
     PIN_WIDTH,
     38,
@@ -109,14 +102,9 @@ const pin = (fill: string, ring: string): MarkerImage =>
       <feDropShadow dx="1.2" dy="0.8" stdDeviation="0.9" flood-color="#4A5350" flood-opacity="0.45"/>
     </filter>
   </defs>
-  <g transform="translate(15.5 37.6) scale(${PIN_SCALE}) translate(-15.5 -37.6)">
-  <path d="${PIN_PATH}" fill="none" stroke="${ring}" stroke-opacity="${RING_OPACITY}" stroke-width="${round((PIN_RING_WIDTH * 2) / PIN_SCALE)}" stroke-linejoin="round"/>
-  <path d="${PIN_PATH}" fill="${fill}" filter="url(#shadow)"/>
-  <circle cx="15.5" cy="16" r="4.5" fill="#FFFFFF"/>
-  </g>`,
+  <path d="M4.71 26.42a15 15 0 1 1 21.58 0L15.5 37.6Z" fill="${fill}" filter="url(#shadow)" stroke="${outline}" stroke-width="${OUTLINE_WIDTH}" stroke-linejoin="round"/>
+  <circle cx="15.5" cy="16" r="4.5" fill="#FFFFFF"/>`,
   )
-
-const round = (n: number) => Math.round(n * 100) / 100
 
 // This is the cluster bubble: a solid disc inside a wider translucent ring.
 // The count label is a `text-field` on the layer, so the art carries no
@@ -139,18 +127,20 @@ export const MARKER_IDS = {
   clusterSelected: 'sy-cluster-selected',
 } as const
 
-/** One mark's two colors: the shape it fills, and the ring around it. */
-type MarkColors = { fill: string; ring: string }
+/** A pin's fill. Its edge is the basemap's (`MARKER_OUTLINE`), not a brand colour. */
+type PinColors = { fill: string }
+/** A bubble's two colors: the disc, and the translucent ring around it. */
+type BubbleColors = { fill: string; ring: string }
 
 export type MarkerColors = Readonly<{
-  [MARKER_IDS.point]: MarkColors
-  [MARKER_IDS.pointSelected]: MarkColors
-  [MARKER_IDS.cluster]: MarkColors
-  [MARKER_IDS.clusterSelected]: MarkColors
+  [MARKER_IDS.point]: PinColors
+  [MARKER_IDS.pointSelected]: PinColors
+  [MARKER_IDS.cluster]: BubbleColors
+  [MARKER_IDS.clusterSelected]: BubbleColors
 }>
 
-// One pale halo per role, taken from the pin's fill, so a pin and a bubble wear the
-// same ring. The cap keeps a light fill's ring a colour rather than white.
+// A bubble's pale halo, taken from the role's solid rather than the deeper disc so
+// it stays pale. The cap keeps a light fill's ring a colour rather than white.
 const ringOf = (fill: string) =>
   shiftHex(fill, { lightness: 34, saturation: -11, maxLightness: 82 })
 
@@ -162,16 +152,12 @@ const ringOf = (fill: string) =>
 // count: white at 4.7:1 on the default green, where the solid would give 3.5:1.
 function deriveMarkerColors(primarySeed: string, contrastSeed: string): MarkerColors {
   const built = buildPalette({ primary: primarySeed, contrast: contrastSeed }, MARKER_MODE)
-  const pair = (role: 'primary' | 'contrast'): [MarkColors, MarkColors] => {
+  const pair = (role: 'primary' | 'contrast'): [PinColors, BubbleColors] => {
     // Both seeds are usable (`seedOrDefault`), so `buildPalette` built both roles.
     const { scale } = built[role]!
     const fill = scaleHex(scale, SOLID_STEP)
-    const ring = ringOf(fill)
 
-    return [
-      { fill, ring },
-      { fill: scaleHex(scale, HOVER_STEP), ring },
-    ]
+    return [{ fill }, { fill: scaleHex(scale, HOVER_STEP), ring: ringOf(fill) }]
   }
   const [point, bubble] = pair('primary')
   const [pointSelected, bubbleSelected] = pair('contrast')
@@ -215,19 +201,21 @@ export function markerColors(palette: PaletteRoles): MarkerColors {
 }
 
 /**
- * The four marker images in the given colors.
+ * The four marker images in the given colors, with the pins edged for `mode`'s
+ * basemap.
  *
  * This is a Map, not an object literal. The `styleimagemissing` event carries
  * whatever `icon-image` asked for, including the basemap's own layers. An id
  * like `constructor` would resolve up an object's prototype chain to a
  * non-marker.
  */
-export function markerImages(colors: MarkerColors): Map<string, MarkerImage> {
+export function markerImages(colors: MarkerColors, mode: ThemeMode): Map<string, MarkerImage> {
   const { point, cluster: bubble, clusterSelected, pointSelected } = MARKER_IDS
+  const edge = MARKER_OUTLINE[mode]
 
   return new Map<string, MarkerImage>([
-    [point, pin(colors[point].fill, colors[point].ring)],
-    [pointSelected, pin(colors[pointSelected].fill, colors[pointSelected].ring)],
+    [point, pin(colors[point].fill, edge)],
+    [pointSelected, pin(colors[pointSelected].fill, edge)],
     [bubble, cluster(colors[bubble].fill, colors[bubble].ring)],
     [clusterSelected, cluster(colors[clusterSelected].fill, colors[clusterSelected].ring)],
   ])
@@ -238,8 +226,12 @@ export function markerImages(colors: MarkerColors): Map<string, MarkerImage> {
 // SVG string IS the art, so this cannot miss a difference and needs no separate
 // list of the colors that went into it.
 //
-// The art is the same in both modes, so one entry per image survives an ordinary
-// visit — four per embed — and a theme switch answers from a warm cache.
+// The pins' edge is per basemap, so at most one entry per image per mode survives
+// an ordinary visit — eight per embed — and none of them needs eviction.
+//
+// shortcut: an embed's first switch into a mode decodes that mode's pins, so they
+// land a tick after the new style's first frame rather than on it. Measure before
+// warming the other mode at mount, which costs every visitor the decodes.
 //
 // shortcut: a `clients` preview session repaints per colour-picker message, and
 // each new palette retains four more bitmaps for the life of that tab — about
@@ -303,17 +295,21 @@ function decodeMarker(key: string, { svg, width, height }: MarkerImage) {
  * Register the marker images with a map, and keep them registered.
  *
  * `styleimagemissing` is Mapbox's own hook for supplying an icon a style
- * lacks. It re-fires after every style load. So this one subscription
- * covers both the initial load AND the light/dark switch, which swaps the
- * style and drops runtime images, without tracking the theme here. This
+ * lacks. It re-fires after every style load, which covers the initial load and
+ * the style a light/dark switch swaps in. The pins' edge follows `mode`, so
+ * `Map.tsx` re-subscribes on a switch as it does on a palette change. This
  * function returns an unsubscribe.
  *
  * `colors` repaints a live map in place. Call this again with a new set — the
  * effect in `Map.tsx` does, since the set is one of its dependencies — and
  * each image whose colors changed is removed and added again.
  */
-export function registerMarkerImages(map: MapRef, colors: MarkerColors): () => void {
-  const images = markerImages(colors)
+export function registerMarkerImages(
+  map: MapRef,
+  colors: MarkerColors,
+  mode: ThemeMode,
+): () => void {
+  const images = markerImages(colors, mode)
   // What this subscription has already put on the map. Mapbox re-fires
   // `styleimagemissing` per missing id PER TILE BATCH, and without this each
   // repeat would replace the image again. It needs no color of its own: the

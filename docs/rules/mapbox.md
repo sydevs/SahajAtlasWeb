@@ -49,24 +49,25 @@ The map is the heart of the app and its hottest render path. Treat it carefully.
   re-fires the event per missing id **per tile batch**, and the warm path must
   add the image _synchronously_ inside the handler, or the new style's first
   frame paints pinless.
-- **A pin and a bubble carry their own translucent ring; only the vague ring and dot
-  carry a fixed outline** (#389). The bubble's ring is its whole edge, and a pin has a
-  thinner ring of the same colour and opacity, drawn behind the head. A black or white
-  outline on either clashed with that ring. `MARKER_OUTLINE` and the
-  `BASEMAP_SURFACES` it was measured against live in `markers.ts`, for the vague
-  layers; `markers.outline.test.ts` holds both against ≥ 3:1.
+- **A pin carries a fixed outline; a bubble carries its own translucent ring** (#389,
+  #469). The pin's edge is `MARKER_OUTLINE` for the basemap that is up, 1.2 wide, and
+  so is the vague ring and dot's. The bubble's ring is its whole edge: a black or white
+  outline beside it clashed. `MARKER_OUTLINE` and the `BASEMAP_SURFACES` it was measured
+  against live in `markers.ts`; `markers.outline.test.ts` holds both against ≥ 3:1, and
+  holds the pins edged and the bubbles not.
   ⚠ **Dark edge on the light map, pale edge on the dark one.** The dark style is
   mid-toned and its land is lighter than its water. Do not swap them.
 - **The marks take the LIGHT-mode palette in both modes** (`MARKER_MODE`). The dark
   basemap is mid-toned and washed out, so a dark-mode solid — lifted to read on the
-  near-black panel — washed out on it. So `markerColors`, `markerImages`,
-  `registerMarkerImages` and `clusterLayer` take no mode, and the stock art is one
-  set of four images whichever basemap is up.
+  near-black panel — washed out on it. So `markerColors` and `clusterLayer` take no
+  mode. `markerImages` and `registerMarkerImages` take one for the pins' edge alone,
+  so `Map.tsx` re-registers on a theme switch, and the first switch into a mode
+  decodes that mode's pins.
 - **The four images carry the tenant's colors** (#17). `markerColors(palette)`
   derives them from the palette `BrandTheme` resolved and hands down
   (`config/theme/brand-palette.ts`) — the pin from `primary` step 9 and the cluster
-  disc from step 10, the selected pair the same from `contrast`, and one pale ring
-  per role from its step 9. The cluster count is black or white, whichever reads
+  disc from step 10, the selected pair the same from `contrast`, and each bubble's
+  pale ring from its role's step 9. The cluster count is black or white, whichever reads
   better on that disc (`readableOn`), and the disc is opaque.
   It reads them through `buildPalette`, not `stepHex`, so the selected pin carries
   `selected-distinct` — the check that keeps it from matching every pin around it.

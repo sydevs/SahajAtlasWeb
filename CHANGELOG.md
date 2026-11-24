@@ -48,9 +48,11 @@ cover everything a host would notice since the widget was first deployed.
   `#1E6C71`) and the default accent a coral (`#E0775C`, was `#d8735a`), and the panel's greys are
   faintly warm. A cluster circle is now solid and one shade deeper than a single class's pin, and
   its number is black or white, whichever reads better on it — white on the default green, at
-  4.7:1. Each pin and circle wears a paler halo. **If you set your own brand colours, your map
+  4.7:1. A circle wears a paler halo, and a pin a thin black edge on the light map and a white
+  one on the dark map, in place of its halo. **If you set your own brand colours, your map
   changes too:** your circles turn one shade deeper than your pins and become solid, their
-  number may switch between black and white, and the halos turn paler. If you leave the colours
+  number may switch between black and white, the halos turn paler, and the pins take the
+  hard edge. If you leave the colours
   unset, the whole widget, panels included, takes the new green and coral. **No parameter,
   origin, CSP, storage or Permissions-Policy change.**
 

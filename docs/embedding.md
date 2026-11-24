@@ -327,8 +327,8 @@ rather than as a grey. A grey or a white you pick stays neutral — there is no 
 selected pin's colour is also pushed away from the pin colour when the two you chose
 are too close to tell apart, which can take it near black or near white. What is stored on your
 record never changes — only what the widget paints does. Separately, a cluster bubble's edge is
-its own translucent ring and a pin carries a thinner ring of the same kind, so nothing about your
-colour depends on what the map is showing underneath it.
+its own translucent ring and a pin's edge is a thin black line on the light map and a white one on
+the dark map, so nothing about your colour depends on what the map is showing underneath it.
 
 Identity is the same on every page you embed on, so making it per-embed only risks two of your
 pages disagreeing about what the product is called. The routing prefix is worse than merely
