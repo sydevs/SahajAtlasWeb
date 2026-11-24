@@ -823,7 +823,11 @@ export function DrawerStack() {
                 form fields, and the narrower the box the more it covered. side="top" opens
                 the menu upward from there. */}
             <div className="flex h-12 shrink-0 items-center border-t border-divider px-4">
-              <SettingsMenu side="top" variant="ghost" />
+              {/* ⚠ The negative start margin pulls the control back so its 20px GLYPH, not its
+                  box, sits on the strip's `px-4` — lining the cog up with the drawer content
+                  above it. The box is 32px on a fine pointer and 44px on a coarse one, so the
+                  pull is half of each difference. */}
+              <SettingsMenu className="-ms-1.5 pointer-coarse:-ms-3" side="top" variant="ghost" />
             </div>
           </div>
         </DrawerControlContext.Provider>
