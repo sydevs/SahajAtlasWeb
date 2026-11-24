@@ -43,6 +43,23 @@ cover everything a host would notice since the widget was first deployed.
 
 ### Changed
 
+- **The panel's text, edges and corners follow one system.** ([#471]) Titles are larger (20px)
+  than the rows under them (16px); times, addresses, Filters, Sort and the Register button are a
+  touch larger, without letter spacing. The header, search box, notices, list and buttons share
+  one 24px left and right edge. Buttons, fields, boxes and tags have 8px corners, the panel and
+  menus 16px, and filter tags stay round. Long place names wrap to a second line instead of
+  ending in "…", a region's place rows show only the name and the number of classes, and
+  desktop flags are smaller. **No parameter, origin, CSP, storage or Permissions-Policy change.**
+
+- **The settings cog is bigger on a phone, and the controls floating over the widget are drawn
+  by one recipe.** ([#470]) The cog over the map is drawn at 44px on a touch screen, where it was
+  32px with an invisible 44px tap area, and its gear glyph is 20px rather than 16px on every
+  device. Where the widget has no map, the cog sits in its own strip and is now drawn at 32px on
+  a desktop, with the same hover tint the panel's other icon controls have. The close control on
+  the collapsed card's full-screen layer takes the same surface: a 1px border in place of 1.5px,
+  and that hover tint. Nothing moves, nothing is harder to reach, and there is **no parameter,
+  origin, CSP, storage or Permissions-Policy change**.
+
 - **The calendar's today highlight takes the buttons' dark green in light mode.** ([#478]) It
   was the bright primary solid under black text; it is now the same dark shade under white that
   the solid buttons use, from your own primary colour or the default green. Dark mode is
@@ -1294,6 +1311,7 @@ must-revalidate`, pinned rather than left to the CDN default. The production dom
 [#409]: https://github.com/sydevs/SahajAtlasWeb/pull/409
 [#476]: https://github.com/sydevs/SahajAtlasWeb/pull/476
 [#456]: https://github.com/sydevs/SahajAtlasWeb/pull/456
+[#471]: https://github.com/sydevs/SahajAtlasWeb/pull/471
 [#411]: https://github.com/sydevs/SahajAtlasWeb/pull/411
 [#418]: https://github.com/sydevs/SahajAtlasWeb/pull/418
 [#424]: https://github.com/sydevs/SahajAtlasWeb/pull/424
@@ -1306,3 +1324,4 @@ must-revalidate`, pinned rather than left to the CDN default. The production dom
 [#448]: https://github.com/sydevs/SahajAtlasWeb/pull/448
 [#446]: https://github.com/sydevs/SahajAtlasWeb/pull/446
 [#447]: https://github.com/sydevs/SahajAtlasWeb/pull/447
+[#470]: https://github.com/sydevs/SahajAtlasWeb/pull/470

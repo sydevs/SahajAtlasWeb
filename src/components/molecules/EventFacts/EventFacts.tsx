@@ -11,12 +11,14 @@ import {
 } from '@/hooks/use-event-display'
 
 // The when/where fact list. `default` is the panel treatment: brand-tinted
-// icons, roomy spacing. `compact` is the list-card treatment: tighter
-// spacing, and icons that inherit the text colour and shrink to the text
+// icons, roomy spacing. `compact` is the list-card treatment: a size under
+// the card's title, tighter spacing, and icons that shrink to the text
 // height, reading as inline text with a leading glyph, not a labelled
-// block. `card` is the boxed event-details card: a `title` over the
-// default facts on a tinted rounded surface, the object being acted on
-// above the registration and share forms. Each fact has a required primary
+// block. Its time and address keep the foreground colour, since they are
+// what a visitor came for; only the distance steps back. `card` is the
+// boxed event-details card: a `title` over the default facts on a tinted
+// rounded surface, the object being acted on above the registration and
+// share forms. Each fact has a required primary
 // line (`text`) and an optional faded second line (`subtext`).
 //
 // Presentation and composition live together here. This is the only place
@@ -31,16 +33,17 @@ const facts = tv({
     base: 'flex flex-col',
     item: 'flex',
     icon: 'shrink-0',
-    text: 'min-w-0 text-sm leading-snug font-medium',
-    subtext: 'font-normal text-gray-11',
+    text: 'min-w-0 text-base leading-snug',
+    subtext: 'text-gray-11',
   },
   variants: {
     variant: {
       default: { base: 'gap-2.5', item: 'gap-3', icon: 'text-primary' },
-      compact: { base: 'gap-1', item: 'gap-2', icon: 'text-gray-11' },
+      // Every fact takes at least 22px, so one-line facts never sit line on line.
+      compact: { base: 'gap-1.5', item: 'min-h-5.5 gap-2', icon: 'text-gray-11', text: 'text-sm' },
       card: {
         wrapper: 'rounded-lg border border-divider bg-gray-2 p-3',
-        title: 'mb-3 text-base leading-tight font-semibold',
+        title: 'mb-3 text-lg',
         base: 'gap-2.5',
         item: 'gap-3',
         icon: 'text-primary',

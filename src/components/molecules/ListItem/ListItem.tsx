@@ -7,7 +7,6 @@ import { Link } from '@/components/atoms/Link'
 
 export interface ListItemProps {
   label: string
-  subtitle?: string | null
   count: number
   href: string
   /**
@@ -26,22 +25,18 @@ export interface ListItemProps {
  * component covers all of them. The only thing that varies is the glyph
  * in the icon slot.
  */
-export function ListItem({ label, subtitle, count, href, icon }: ListItemProps) {
+export function ListItem({ label, count, href, icon }: ListItemProps) {
   return (
     <li>
       <Link
-        className={listRow({ className: 'flex flex-row items-center py-4 font-semibold' })}
+        className={listRow({ className: 'flex min-h-14 flex-row items-center py-3' })}
         href={href}
       >
         {icon && (
-          <span className="me-3 flex h-7 w-7 shrink-0 items-center justify-center lg:h-9 lg:w-9">
-            {icon}
-          </span>
+          // One 24px slot at every width, so a flag row is no taller than a plain one.
+          <span className="me-3 flex h-6 w-6 shrink-0 items-center justify-center">{icon}</span>
         )}
-        <div className="flex-grow text-lg">
-          <div>{label}</div>
-          {subtitle && <div className="mt-0.5 text-md font-normal">{subtitle}</div>}
-        </div>
+        <div className="flex-grow text-lg">{label}</div>
         {/* Both step down from the title, but not to the same place. The
             count is still information, so it keeps gray-11, the ramp's
             readable low-contrast TEXT step — gray-10 is a hover solid and
@@ -49,7 +44,7 @@ export function ListItem({ label, subtitle, count, href, icon }: ListItemProps) 
             tapping the row already does, so it goes one step further. The
             title stays `text-foreground` (gray-12), and remains the loudest
             thing in the row. */}
-        <div className="me-1 text-end text-gray-11">{count}</div>
+        <div className="me-1 text-end text-sm text-gray-11">{count}</div>
         <ChevronRight className="text-gray-9 rtl:-scale-x-100" size={20} />
       </Link>
     </li>

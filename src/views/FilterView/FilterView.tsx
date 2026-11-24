@@ -92,11 +92,11 @@ export function FilterView({ initialDraft }: { initialDraft?: EventFilters } = {
     <>
       {/* The filters sit over the page they narrow, so they close back onto it with an X. */}
       <NavHeader close title={t('filters.chrome.title')} />
-      <DrawerBody className="p-4">
+      <DrawerBody className="px-gutter py-4">
         <SearchFilters value={draft} onChange={setDraft} />
       </DrawerBody>
       {(draftActive || hasChanges) && (
-        <DrawerFooter className="flex items-center gap-2 p-3">
+        <DrawerFooter className="flex items-center gap-2 px-gutter py-3">
           {draftActive && (
             <Button className="flex-1" variant="flat" onClick={() => commit(DEFAULT_FILTERS)}>
               {t('filters.chrome.clear')}

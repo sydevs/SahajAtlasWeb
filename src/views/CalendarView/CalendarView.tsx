@@ -203,7 +203,7 @@ function CalendarControls({ controls }: { controls: CalendarControlsPlugin }) {
             <button
               // A drawn 44px on a touch screen, like the arrows either side (#432): an
               // invisible tap area would reach over them at this 2px gap, and they would take it.
-              className="inline-flex items-center rounded px-1.5 py-1 text-sm font-medium hover:bg-primary-3 pointer-coarse:min-h-11 pointer-coarse:px-3"
+              className="inline-flex items-center rounded-lg px-1.5 py-1 text-sm font-medium hover:bg-primary-3 pointer-coarse:min-h-11 pointer-coarse:px-3"
               type="button"
               onClick={() => dateInputRef.current?.showPicker?.()}
             >
@@ -381,13 +381,13 @@ function CalendarGrid({
 
   return (
     <>
-      <DrawerBody className="max-w-none overflow-hidden p-4">
+      <DrawerBody className="max-w-none overflow-hidden px-gutter py-4">
         <div className="sx-calendar">
           <CalendarMount calendar={calendar} />
         </div>
       </DrawerBody>
       {hasOnline && (
-        <p className="shrink-0 border-t border-divider px-4 py-2 text-xs text-gray-11">
+        <p className="shrink-0 border-t border-divider px-gutter py-2 text-xs text-gray-11">
           {t('calendar.times_note', { zone: zoneCity(DateTime.local().zoneName) })}
         </p>
       )}

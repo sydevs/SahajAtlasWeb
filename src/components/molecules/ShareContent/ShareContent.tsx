@@ -13,7 +13,7 @@ const copyField = tv({
   // ⚠ `truncate` sits on the inner span, not here. It carries `overflow: hidden`, which clips
   // this button's own `touch-target` pseudo-element back to the drawn box — the 44px tap area
   // was there in the style and answered to nothing (#432).
-  base: 'touch-target relative w-full rounded px-3 py-2 text-start text-sm text-secondary-11 transition-colors select-all',
+  base: 'touch-target relative w-full rounded-lg px-3 py-2 text-start text-sm text-secondary-11 transition-colors select-all',
   variants: { copied: { true: 'bg-secondary-5', false: 'bg-secondary-3' } },
   defaultVariants: { copied: false },
 })

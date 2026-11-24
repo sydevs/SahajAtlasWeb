@@ -9,7 +9,13 @@ import { DrawerHeader } from '@/components/atoms/Drawer'
 import { regionsQuery } from '@/config/api'
 import { useLocale } from '@/hooks/use-locale'
 import { backLabel } from '@/views/nav-names'
-import { DrawerTitle, ExpandSheetButton, HEADER_CONTROL, useDrawerControl } from '@/views/shared'
+import {
+  DrawerTitle,
+  ExpandSheetButton,
+  HEADER_CONTROL,
+  HEADER_EDGE,
+  useDrawerControl,
+} from '@/views/shared'
 
 /**
  * The way back, at the start of every header below the root. It says where it goes ("Back to
@@ -108,7 +114,12 @@ export function NavHeader({ title, subtitle, actions, close = false }: NavHeader
     return (
       <DrawerHeader className="justify-between">
         {title ? <DrawerTitle title={title} /> : <div />}
-        <Button {...HEADER_CONTROL} aria-label={t('common.chrome.close')} onClick={dismiss}>
+        <Button
+          {...HEADER_CONTROL}
+          aria-label={t('common.chrome.close')}
+          className={HEADER_EDGE}
+          onClick={dismiss}
+        >
           <X size={20} />
         </Button>
       </DrawerHeader>

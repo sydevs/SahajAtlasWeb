@@ -101,7 +101,7 @@ export function RegistrationView({
         subtitle={t('common.chrome.all_classes_free')}
         title={t('registration.form.title')}
       />
-      <DrawerBody className="p-4">
+      <DrawerBody className="px-gutter py-4">
         <EventFacts
           className="mx-auto mb-4 w-full max-w-md"
           event={event}

@@ -33,7 +33,7 @@ export function ShareView({ eventPath }: { eventPath: string }) {
   return (
     <>
       <NavHeader title={t('share.title')} />
-      <DrawerBody className="p-4">
+      <DrawerBody className="px-gutter py-4">
         <EventFacts
           className="mx-auto mb-4 w-full max-w-md"
           event={event}

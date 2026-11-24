@@ -14,7 +14,7 @@ import { tv } from '@/styles/tv'
  */
 export const menuChrome = tv({
   slots: {
-    surface: 'z-50 rounded-xl border border-divider bg-background p-1 text-foreground shadow-xl',
+    surface: 'z-50 rounded-2xl border border-divider bg-background p-1 text-foreground shadow-xl',
     row: 'flex cursor-pointer rounded-lg py-2 text-sm outline-none select-none data-[highlighted]:bg-primary-3',
   },
   variants: {

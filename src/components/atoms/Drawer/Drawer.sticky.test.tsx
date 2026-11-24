@@ -65,7 +65,7 @@ describe('DrawerBody', () => {
     expect(render(<DrawerBody>content</DrawerBody>)).toContain('after:h-[var(--sy-footer-h,0px)]')
   })
 
-  // FilterView, ShareView, RegistrationView and CalendarView all pass `p-4`, which
+  // FilterView, ShareView, RegistrationView and CalendarView all pass `py-4`, which
   // tailwind-merge resolves against a slot's own `pb-*`. The clearance has to survive
   // the first of them to gain a sticky footer.
   it('keeps the clearance a caller shorthand cannot merge away', () => {

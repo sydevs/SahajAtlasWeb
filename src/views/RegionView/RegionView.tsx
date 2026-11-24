@@ -1,7 +1,6 @@
 import { useSuspenseQuery } from '@tanstack/react-query'
 import { Helmet } from 'react-helmet-async'
 import { useTranslation } from 'react-i18next'
-import { Monitor } from 'lucide-react'
 import { Navigate, useLocation } from 'react-router'
 
 import { Alert } from '@/components/atoms/Alert'
@@ -113,7 +112,9 @@ export function RegionView({ slug }: { slug: string }) {
   const isEmpty = region.subregions.length === 0 && !hasEventList
   // "All events are free" is the subtitle FALLBACK. It states this once per list — no Free
   // chip repeats on cards — but only where events are actually listed. A city's own subtitle
-  // takes the slot when present.
+  // takes the slot when present. The place rows dropped that same field because a row
+  // annotated one child while the reader was still choosing a region. Here they have arrived
+  // at the place it names, and this is the field's last reader in the app.
   const subheader =
     (region.level === 'city' ? region.subtitle : undefined) ??
     (hasEventList ? t('common.chrome.all_classes_free') : undefined)
@@ -149,7 +150,7 @@ export function RegionView({ slug }: { slug: string }) {
             Wilson upper bound below 0.5. */}
         {feedback === 'denied' && (
           <Alert
-            className="mb-4"
+            className="mx-gutter mb-4"
             closeLabel={t('common.chrome.close')}
             color="neutral"
             description={
@@ -193,25 +194,26 @@ export function RegionView({ slug }: { slug: string }) {
         ) : (
           <List>
             {/* On a region with sub-regions, the online roll-up opens in its own drawer
-                via this card, keeping the placeless classes out of the mixed list below. */}
+                via this card, keeping the placeless classes out of the mixed list below.
+                No icon: no other row here has one, so every label starts on one edge. */}
             {showOnlineCard && (
               <ListItem
                 count={region.onlineEvents.length}
                 href={`${childRoute(region.path, 'online')}${filterSearch}`}
-                icon={<Monitor size={24} />}
                 label={t('online.title')}
               />
             )}
             {/* Sub-regions (venues/centres, child areas) then this region's own located
                 events, in one list. Region ids and event ids come from independent
-                sequences, so namespace the keys. */}
+                sequences, so namespace the keys. A place row is its name and count only:
+                its SahajCloud subtitle (Eastbourne's "Learn to Meditate") advertised a
+                course to someone only choosing the right part of the country. */}
             {region.subregions.map((child) => (
               <ListItem
                 key={`region-${child.id}`}
                 count={child.eventCount}
                 href={`${child.singleEventPath ?? child.path}${filterSearch}`}
                 label={child.name}
-                subtitle={child.subtitle}
               />
             ))}
             {region.events.map((event) => (

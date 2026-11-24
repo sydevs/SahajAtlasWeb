@@ -55,7 +55,7 @@ describe('GeolocationPrompt', () => {
 
     expect(html).toContain('bg-secondary-3')
     expect(html).toContain('items-center')
-    // This aligns the horizontal padding with the drawer header (px-4).
-    expect(html).toContain('px-4')
+    // Inset by the panel gutter, the same edge as the header above and the rows below.
+    expect(html).toContain('mx-gutter')
   })
 })

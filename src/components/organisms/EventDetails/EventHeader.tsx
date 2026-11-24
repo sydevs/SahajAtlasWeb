@@ -17,11 +17,9 @@ export type EventHeaderProps = {
  */
 export function EventHeader({ event, nav }: EventHeaderProps) {
   return (
-    <div className="flex shrink-0 flex-col px-6 pt-1 pb-2 md:pt-4">
+    <div className="flex shrink-0 flex-col px-gutter pt-1 pb-2 md:pt-4">
       {nav}
-      <h1 className="line-clamp-3 text-lg leading-6 font-semibold tracking-wide break-words">
-        {event.title}
-      </h1>
+      <h1 className="line-clamp-3 text-xl break-words">{event.title}</h1>
     </div>
   )
 }

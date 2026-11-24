@@ -679,8 +679,12 @@ export function DrawerStack() {
                 gets its own strip below the views. Floating over them, it sat on list rows and
                 form fields, and the narrower the box the more it covered. side="top" opens
                 the menu upward from there. */}
-            <div className="flex h-12 shrink-0 items-center border-t border-divider px-4">
-              <SettingsMenu toolbar side="top" />
+            <div className="flex h-12 shrink-0 items-center border-t border-divider px-gutter">
+              {/* ⚠ The negative start margin pulls the control back so its 20px GLYPH, not its
+                  box, sits on the strip's gutter — lining the cog up with the drawer content
+                  above it. The box is 32px on a fine pointer and 44px on a coarse one, so the
+                  pull is half of each difference. */}
+              <SettingsMenu className="-ms-1.5 pointer-coarse:-ms-3" side="top" variant="ghost" />
             </div>
           </div>
         </DrawerControlContext.Provider>

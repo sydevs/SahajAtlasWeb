@@ -62,6 +62,6 @@ describe('ListItem', () => {
     // The chevron is the row's last element and the only <svg> in it.
     expect(html.match(/<svg[^>]*class="([^"]*)"/)?.[1] ?? '').toContain('text-gray-9')
     // The title keeps the row's inherited foreground — it stays the loudest thing here.
-    expect(html).toContain('<div class="flex-grow text-lg"><div>France</div></div>')
+    expect(html).toContain('<div class="flex-grow text-lg">France</div>')
   })
 })
