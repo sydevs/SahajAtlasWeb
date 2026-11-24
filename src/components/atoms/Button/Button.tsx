@@ -27,8 +27,8 @@ export const controlSurface = tv({
       /** No surface shows until hovered. Toolbar and header controls must recede. */
       ghost: 'bg-transparent',
       /**
-       * A control over the map or the page — "Expand map", "Close map", the floating cog: the
-       * app's own opaque surface, and a shadow lifting it off whatever moves behind it.
+       * A control over the map or the page, such as the settings cog: the app's own opaque
+       * surface, and a shadow lifting it off whatever moves behind it.
        */
       floating: 'border bg-background shadow-lg',
     },

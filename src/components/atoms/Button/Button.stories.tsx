@@ -32,7 +32,8 @@ const radii = ['sm', 'full'] as const
  * `isIconOnly` squares the width against the size scale. The colour × variant
  * matrix lives in the exported `controlSurface` recipe. ActionCircle skins its
  * circle with the same recipe. So `color`, `variant`, `size`, and `radius` mean
- * the same thing across every control. `floating` is the variant for a control over the map, like the settings cog.
+ * the same thing across every control. `floating` is the variant for a control over the map,
+ * like the settings cog.
  */
 export const Default: Story = () => (
   <StoryWrapper>
