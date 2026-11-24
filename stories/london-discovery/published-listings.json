@@ -1,0 +1,1452 @@
+[
+  {
+    "id": 1358,
+    "startTime": "19:00",
+    "title": "Evening Meditation at 5707 Gilpin St",
+    "languages": ["en"],
+    "webPath": "/ca/british-columbia/metro-vancouver/1358",
+    "webUrl": "https://www.sahajayoga.ca/freeclasses/ca/british-columbia/metro-vancouver/1358",
+    "registrationMode": "sahaj-atlas",
+    "address": {
+      "street": "5707 Gilpin St",
+      "postCode": "V5G 2J1",
+      "country": "CA",
+      "region": "BC",
+      "city": "Burnaby",
+      "latitude": 49.2421959,
+      "longitude": -122.9803152
+    },
+    "schedule": {
+      "firstDate": "2022-11-17T03:00:00.000Z",
+      "firstDate_tz": "America/Vancouver",
+      "endTime": "20:00",
+      "weekdays": ["WE"],
+      "upcomingDates": [
+        "2026-11-26T03:00:00.000Z",
+        "2026-12-03T03:00:00.000Z",
+        "2026-12-10T03:00:00.000Z",
+        "2026-12-17T03:00:00.000Z",
+        "2026-12-24T03:00:00.000Z",
+        "2026-12-31T03:00:00.000Z",
+        "2027-01-07T03:00:00.000Z",
+        "2027-01-14T03:00:00.000Z",
+        "2027-01-21T03:00:00.000Z",
+        "2027-01-28T03:00:00.000Z"
+      ]
+    },
+    "paragraphs": ["Weekly Meditation classes that anyone can join"]
+  },
+  {
+    "id": 1359,
+    "startTime": "18:30",
+    "title": "Evening Meditation at Victoria West Community Centre",
+    "languages": ["en"],
+    "webPath": "/ca/british-columbia/victoria-british-columbia/1359",
+    "webUrl": "https://www.sahajayoga.ca/freeclasses/ca/british-columbia/victoria-british-columbia/1359",
+    "registrationMode": "sahaj-atlas",
+    "address": {
+      "venueName": "Victoria West Community Centre",
+      "street": "521 Craigflower Rd",
+      "room": "QA Board Room",
+      "postCode": "V9A 2V8",
+      "country": "CA",
+      "region": "BC",
+      "city": "Victoria",
+      "latitude": 48.437281,
+      "longitude": -123.3882563
+    },
+    "schedule": {
+      "firstDate": "2025-10-29T01:30:00.000Z",
+      "firstDate_tz": "America/Vancouver",
+      "endTime": "19:30",
+      "weekdays": ["WE"],
+      "upcomingDates": [
+        "2026-11-26T02:30:00.000Z",
+        "2026-12-03T02:30:00.000Z",
+        "2026-12-10T02:30:00.000Z",
+        "2026-12-17T02:30:00.000Z",
+        "2026-12-24T02:30:00.000Z",
+        "2026-12-31T02:30:00.000Z",
+        "2027-01-07T02:30:00.000Z",
+        "2027-01-14T02:30:00.000Z",
+        "2027-01-21T02:30:00.000Z",
+        "2027-01-28T02:30:00.000Z"
+      ]
+    },
+    "paragraphs": [
+      "Weekly classes that anyone can join regardless of their previous experience in Meditation."
+    ]
+  },
+  {
+    "id": 1366,
+    "startTime": "19:00",
+    "title": "Evening Meditation at 9201 Islington Ave",
+    "languages": ["en"],
+    "webPath": "/ca/ontario/york-region/1366",
+    "webUrl": "https://www.sahajayoga.ca/freeclasses/ca/ontario/york-region/1366",
+    "registrationMode": "external",
+    "address": {
+      "street": "9201 Islington Ave",
+      "room": "Babysitting Room, 1st floor",
+      "postCode": "L4L 1A7",
+      "country": "CA",
+      "region": "ON",
+      "city": "Vaughan",
+      "latitude": 43.8165286,
+      "longitude": -79.5972051
+    },
+    "schedule": {
+      "firstDate": "2022-11-30T00:00:00.000Z",
+      "firstDate_tz": "America/Toronto",
+      "weekdays": ["TU"],
+      "upcomingDates": [
+        "2026-11-25T00:00:00.000Z",
+        "2026-12-02T00:00:00.000Z",
+        "2026-12-09T00:00:00.000Z",
+        "2026-12-16T00:00:00.000Z",
+        "2026-12-23T00:00:00.000Z",
+        "2026-12-30T00:00:00.000Z",
+        "2027-01-06T00:00:00.000Z",
+        "2027-01-13T00:00:00.000Z",
+        "2027-01-20T00:00:00.000Z",
+        "2027-01-27T00:00:00.000Z"
+      ]
+    },
+    "paragraphs": []
+  },
+  {
+    "id": 1369,
+    "startTime": "19:00",
+    "title": "North York",
+    "languages": ["en"],
+    "webPath": "/ca/ontario/toronto/1369",
+    "webUrl": "https://www.sahajayoga.ca/freeclasses/ca/ontario/toronto/1369",
+    "registrationMode": "external",
+    "address": {
+      "venueName": "Mitchell Field Community Centre",
+      "street": "89 Church Ave",
+      "room": "Arts and Crafts room",
+      "postCode": "M2N 6C9",
+      "country": "CA",
+      "region": "ON",
+      "city": "Toronto",
+      "latitude": 43.77451909999999,
+      "longitude": -79.40810979999999
+    },
+    "schedule": {
+      "firstDate": "2023-09-11T23:00:00.000Z",
+      "firstDate_tz": "America/Toronto",
+      "endTime": "20:45",
+      "weekdays": ["MO"],
+      "upcomingDates": [
+        "2026-11-24T00:00:00.000Z",
+        "2026-12-01T00:00:00.000Z",
+        "2026-12-08T00:00:00.000Z",
+        "2026-12-15T00:00:00.000Z",
+        "2026-12-22T00:00:00.000Z",
+        "2026-12-29T00:00:00.000Z",
+        "2027-01-05T00:00:00.000Z",
+        "2027-01-12T00:00:00.000Z",
+        "2027-01-19T00:00:00.000Z",
+        "2027-01-26T00:00:00.000Z"
+      ]
+    },
+    "paragraphs": [
+      "Join us for a free 10-week course to learn how to meditate and bring balance to your life!",
+      "Can't make the class? Follow along for 21 days (YouTube Free videos) & become your own meditation master."
+    ],
+    "website": "https://www.youtube.com/live/7bYZq5KjJfE?feature=shared"
+  },
+  {
+    "id": 1370,
+    "startTime": "19:00",
+    "title": "Richmond Hill - Richvale CC",
+    "languages": ["en"],
+    "webPath": "/ca/ontario/york-region/1370",
+    "webUrl": "https://www.sahajayoga.ca/freeclasses/ca/ontario/york-region/1370",
+    "registrationMode": "external",
+    "address": {
+      "venueName": "Richvale Community Centre & Pool",
+      "street": "160 Avenue Rd",
+      "room": "Community centre room accross the pool",
+      "postCode": "L4C 5L8",
+      "country": "CA",
+      "region": "ON",
+      "city": "Richmond Hill",
+      "latitude": 43.853484,
+      "longitude": -79.44599
+    },
+    "schedule": {
+      "firstDate": "2022-12-01T00:00:00.000Z",
+      "firstDate_tz": "America/Toronto",
+      "weekdays": ["WE"],
+      "upcomingDates": [
+        "2026-11-26T00:00:00.000Z",
+        "2026-12-03T00:00:00.000Z",
+        "2026-12-10T00:00:00.000Z",
+        "2026-12-17T00:00:00.000Z",
+        "2026-12-24T00:00:00.000Z",
+        "2026-12-31T00:00:00.000Z",
+        "2027-01-07T00:00:00.000Z",
+        "2027-01-14T00:00:00.000Z",
+        "2027-01-21T00:00:00.000Z",
+        "2027-01-28T00:00:00.000Z"
+      ]
+    },
+    "paragraphs": []
+  },
+  {
+    "id": 1371,
+    "startTime": "19:00",
+    "title": "Evening Meditation at Bishop P. F. Reding Catholic Secondary School",
+    "languages": ["en"],
+    "webPath": "/ca/ontario/halton-region/1371",
+    "webUrl": "https://www.sahajayoga.ca/freeclasses/ca/ontario/halton-region/1371",
+    "registrationMode": "external",
+    "address": {
+      "venueName": "Bishop P. F. Reding Catholic Secondary School",
+      "street": "1120 Main St E",
+      "room": "Room 108 - Enter school door #8",
+      "postCode": "L9T 6H7",
+      "country": "CA",
+      "region": "ON",
+      "city": "Milton",
+      "latitude": 43.5309694,
+      "longitude": -79.8632585
+    },
+    "schedule": {
+      "firstDate": "2026-09-23T23:00:00.000Z",
+      "firstDate_tz": "America/Toronto",
+      "endTime": "20:15",
+      "weekdays": ["WE"],
+      "untilDate": "2026-12-09T00:00:00.000Z",
+      "endingType": "until",
+      "upcomingDates": [
+        "2026-11-26T00:00:00.000Z",
+        "2026-12-03T00:00:00.000Z",
+        "2026-12-10T00:00:00.000Z"
+      ]
+    },
+    "paragraphs": [
+      "IN PERSON CLASSES - In person classes run on specific dates, throughout the year. Call or join whatsapp group to confirm exact start dates for the session throughout the year.",
+      "Can't make the class? Follow along for 21 days (YouTube Free videos search \"Sahaja Yoga Meditation 21 day\") & become your own meditation master.",
+      "Walk in's welcome. Join the what's app group for regular notifications."
+    ],
+    "website": "https://chat.whatsapp.com/JBYhtAMqD5x5su8dtu4xjj"
+  },
+  {
+    "id": 1373,
+    "startTime": "19:00",
+    "title": "Evening Meditation at Terry Miller Recreation Centre",
+    "languages": ["en"],
+    "webPath": "/ca/ontario/peel-region/1373",
+    "webUrl": "https://www.sahajayoga.ca/freeclasses/ca/ontario/peel-region/1373",
+    "registrationMode": "sahaj-atlas",
+    "address": {
+      "venueName": "Terry Miller Recreation Centre",
+      "street": "1295 Williams Pkwy",
+      "room": "Terry Miller Recreation Center - Room 2",
+      "postCode": "L6S 3J8",
+      "country": "CA",
+      "region": "ON",
+      "city": "Brampton",
+      "latitude": 43.73200720000001,
+      "longitude": -79.7316157
+    },
+    "schedule": {
+      "firstDate": "2026-01-09T00:00:00.000Z",
+      "firstDate_tz": "America/Toronto",
+      "weekdays": ["TH"],
+      "upcomingDates": [
+        "2026-11-27T00:00:00.000Z",
+        "2026-12-04T00:00:00.000Z",
+        "2026-12-11T00:00:00.000Z",
+        "2026-12-18T00:00:00.000Z",
+        "2026-12-25T00:00:00.000Z",
+        "2027-01-01T00:00:00.000Z",
+        "2027-01-08T00:00:00.000Z",
+        "2027-01-15T00:00:00.000Z",
+        "2027-01-22T00:00:00.000Z",
+        "2027-01-29T00:00:00.000Z"
+      ]
+    },
+    "paragraphs": [
+      "Can't make the class? Follow along for 21 days (YouTube Free videos) & become your own meditation master: https://www.youtube.com/live/7bYZq5KjJfE"
+    ],
+    "website": "https://www.youtube.com/live/7bYZq5KjJfE?feature=shared"
+  },
+  {
+    "id": 1374,
+    "startTime": "19:00",
+    "title": "Evening Meditation at Mississauga Valley Community Centre",
+    "languages": ["en"],
+    "webPath": "/ca/ontario/peel-region/1374",
+    "webUrl": "https://www.sahajayoga.ca/freeclasses/ca/ontario/peel-region/1374",
+    "registrationMode": "sahaj-atlas",
+    "address": {
+      "venueName": "Mississauga Valley Community Centre",
+      "street": "1275 Mississauga Vly Blvd",
+      "room": "Mississauga Valley Community Centre, Frank Bean Lounge",
+      "postCode": "L5A 3R8",
+      "country": "CA",
+      "region": "ON",
+      "city": "Mississauga",
+      "latitude": 43.5971878,
+      "longitude": -79.6239834
+    },
+    "schedule": {
+      "firstDate": "2026-08-06T23:00:00.000Z",
+      "firstDate_tz": "America/Toronto",
+      "weekdays": ["TH"],
+      "upcomingDates": [
+        "2026-11-27T00:00:00.000Z",
+        "2026-12-04T00:00:00.000Z",
+        "2026-12-11T00:00:00.000Z",
+        "2026-12-18T00:00:00.000Z",
+        "2026-12-25T00:00:00.000Z",
+        "2027-01-01T00:00:00.000Z",
+        "2027-01-08T00:00:00.000Z",
+        "2027-01-15T00:00:00.000Z",
+        "2027-01-22T00:00:00.000Z",
+        "2027-01-29T00:00:00.000Z"
+      ]
+    },
+    "paragraphs": [
+      "Can't make the class? Follow along for 21 days (YouTube Free videos) & become your own meditation master: https://www.youtube.com/live/7bYZq5KjJfE"
+    ],
+    "website": "https://www.youtube.com/live/7bYZq5KjJfE?feature=shared"
+  },
+  {
+    "id": 1380,
+    "startTime": "15:00",
+    "title": "Regina Public Library, Glen Elm branch",
+    "languages": ["en"],
+    "webPath": "/ca/saskatchewan/regina/1380",
+    "webUrl": "https://www.sahajayoga.ca/freeclasses/ca/saskatchewan/regina/1380",
+    "registrationMode": "external",
+    "address": {
+      "venueName": "Regina Public Library - Glen Elm Branch",
+      "street": "1601 Dewdney Ave E",
+      "postCode": "S4N 4N6",
+      "country": "CA",
+      "region": "SK",
+      "city": "Regina",
+      "latitude": 50.4549071,
+      "longitude": -104.5602611
+    },
+    "schedule": {
+      "firstDate": "2025-01-05T21:00:00.000Z",
+      "firstDate_tz": "America/Regina",
+      "endTime": "16:00",
+      "weekdays": ["SU"],
+      "upcomingDates": [
+        "2026-11-29T21:00:00.000Z",
+        "2026-12-06T21:00:00.000Z",
+        "2026-12-13T21:00:00.000Z",
+        "2026-12-20T21:00:00.000Z",
+        "2026-12-27T21:00:00.000Z",
+        "2027-01-03T21:00:00.000Z",
+        "2027-01-10T21:00:00.000Z",
+        "2027-01-17T21:00:00.000Z",
+        "2027-01-24T21:00:00.000Z",
+        "2027-01-31T21:00:00.000Z"
+      ]
+    },
+    "paragraphs": [
+      "The program runs every Sunday with the exception of long weekends when the branch is closed."
+    ],
+    "website": "https://www.reginameditation.ca/"
+  },
+  {
+    "id": 1439,
+    "startTime": "19:00",
+    "title": "Evening Meditation at 416 Meridian Rd SE #10a",
+    "languages": ["en"],
+    "webPath": "/ca/alberta/calgary/416-meridian-rd-se-10a/1439",
+    "webUrl": "https://www.sahajayoga.ca/freeclasses/ca/alberta/calgary/416-meridian-rd-se-10a/1439",
+    "registrationMode": "external",
+    "address": {
+      "venueName": "416 Meridian Rd SE #10a",
+      "street": "416 Meridian Rd SE",
+      "postCode": "T2A 1X2",
+      "country": "CA",
+      "region": "AB",
+      "city": "Calgary",
+      "latitude": 51.0502129,
+      "longitude": -114.0007559
+    },
+    "schedule": {
+      "firstDate": "2023-02-28T02:00:00.000Z",
+      "firstDate_tz": "America/Edmonton",
+      "weekdays": ["MO"],
+      "upcomingDates": [
+        "2026-11-24T02:00:00.000Z",
+        "2026-12-01T02:00:00.000Z",
+        "2026-12-08T02:00:00.000Z",
+        "2026-12-15T02:00:00.000Z",
+        "2026-12-22T02:00:00.000Z",
+        "2026-12-29T02:00:00.000Z",
+        "2027-01-05T02:00:00.000Z",
+        "2027-01-12T02:00:00.000Z",
+        "2027-01-19T02:00:00.000Z",
+        "2027-01-26T02:00:00.000Z"
+      ]
+    },
+    "paragraphs": [],
+    "website": "https://www.youtube.com/live/7bYZq5KjJfE"
+  },
+  {
+    "id": 1441,
+    "startTime": "18:30",
+    "title": "Evening Meditation at White Rock Library",
+    "languages": ["en"],
+    "webPath": "/ca/british-columbia/metro-vancouver/1441",
+    "webUrl": "https://www.sahajayoga.ca/freeclasses/ca/british-columbia/metro-vancouver/1441",
+    "registrationMode": "external",
+    "address": {
+      "venueName": "White Rock Library",
+      "street": "15342 Buena Vista Ave",
+      "room": "Second Floor",
+      "postCode": "V4B 1Y6",
+      "country": "CA",
+      "region": "BC",
+      "city": "White Rock",
+      "latitude": 49.0235749,
+      "longitude": -122.7973049
+    },
+    "schedule": {
+      "firstDate": "2023-02-28T02:30:00.000Z",
+      "firstDate_tz": "America/Vancouver",
+      "weekdays": ["MO"],
+      "upcomingDates": [
+        "2026-11-24T02:30:00.000Z",
+        "2026-12-01T02:30:00.000Z",
+        "2026-12-08T02:30:00.000Z",
+        "2026-12-15T02:30:00.000Z",
+        "2026-12-22T02:30:00.000Z",
+        "2026-12-29T02:30:00.000Z",
+        "2027-01-05T02:30:00.000Z",
+        "2027-01-12T02:30:00.000Z",
+        "2027-01-19T02:30:00.000Z",
+        "2027-01-26T02:30:00.000Z"
+      ]
+    },
+    "paragraphs": [
+      "Learn how to meditate, de-stress and connect with your inner-self. A typical session includes introduction, meditation, and some balancing techniques that you can use to stay in a balanced state for the rest of the week.",
+      "After the session, you will be in a better state both emotionally and mentally.",
+      "The workshop is designed so that it works for both new and experienced meditators.",
+      "Sahaja Yoga is a unique method of meditation that takes you beyond mental, emotional, and physical activity and allows you to experience the true self which lies within."
+    ]
+  },
+  {
+    "id": 1502,
+    "startTime": "19:00",
+    "title": "Evening Meditation at Birkdale Community Centre",
+    "languages": ["en"],
+    "webPath": "/ca/ontario/toronto/1502",
+    "webUrl": "https://www.sahajayoga.ca/freeclasses/ca/ontario/toronto/1502",
+    "registrationMode": "sahaj-atlas",
+    "address": {
+      "venueName": "Birkdale Community Centre",
+      "street": "1299 Ellesmere Rd",
+      "room": "Meeting Room 1/2",
+      "postCode": "M1P 2Y2",
+      "country": "CA",
+      "region": "ON",
+      "city": "Scarborough",
+      "latitude": 43.7682777,
+      "longitude": -79.2638657
+    },
+    "schedule": {
+      "firstDate": "2026-09-30T23:00:00.000Z",
+      "firstDate_tz": "America/Toronto",
+      "endTime": "20:00",
+      "weekdays": ["WE"],
+      "upcomingDates": [
+        "2026-11-26T00:00:00.000Z",
+        "2026-12-03T00:00:00.000Z",
+        "2026-12-10T00:00:00.000Z",
+        "2026-12-17T00:00:00.000Z",
+        "2026-12-24T00:00:00.000Z",
+        "2026-12-31T00:00:00.000Z",
+        "2027-01-07T00:00:00.000Z",
+        "2027-01-14T00:00:00.000Z",
+        "2027-01-21T00:00:00.000Z",
+        "2027-01-28T00:00:00.000Z"
+      ]
+    },
+    "paragraphs": [
+      "Join us for a free 10-week course to learn how to meditate and bring balance to your life!"
+    ]
+  },
+  {
+    "id": 1517,
+    "startTime": "19:00",
+    "title": "Evening Meditation at Whitby Public Library - Central Library",
+    "languages": ["en"],
+    "webPath": "/ca/ontario/durham-region/1517",
+    "webUrl": "https://www.sahajayoga.ca/freeclasses/ca/ontario/durham-region/1517",
+    "registrationMode": "external",
+    "address": {
+      "venueName": "Whitby Public Library - Central Library",
+      "street": "405 Dundas St W",
+      "room": "1A",
+      "postCode": "L1N 6A1",
+      "country": "CA",
+      "region": "ON",
+      "city": "Whitby",
+      "latitude": 43.87826,
+      "longitude": -78.94618299999999
+    },
+    "schedule": {
+      "firstDate": "2026-09-25T23:00:00.000Z",
+      "firstDate_tz": "America/Toronto",
+      "endTime": "20:15",
+      "weekdays": ["FR"],
+      "upcomingDates": [
+        "2026-11-28T00:00:00.000Z",
+        "2026-12-05T00:00:00.000Z",
+        "2026-12-12T00:00:00.000Z",
+        "2026-12-19T00:00:00.000Z",
+        "2026-12-26T00:00:00.000Z",
+        "2027-01-02T00:00:00.000Z",
+        "2027-01-09T00:00:00.000Z",
+        "2027-01-16T00:00:00.000Z",
+        "2027-01-23T00:00:00.000Z",
+        "2027-01-30T00:00:00.000Z"
+      ]
+    },
+    "paragraphs": [
+      "Join us for free weekly meditation classes in Whitby.",
+      "Discover the inner journey of Self-realization and bring harmony to your life. Please visit website and register to receive weekly updates.",
+      "Disclaimer: This program is not sponsored by the Whitby Public Library and the Library carries no responsibility for its content."
+    ],
+    "website": "https://www.meditateinwhitby.org/"
+  },
+  {
+    "id": 1600,
+    "startTime": "19:00",
+    "title": "Evening Meditation at OISE Building",
+    "languages": ["en"],
+    "webPath": "/ca/ontario/toronto/1600",
+    "webUrl": "https://www.sahajayoga.ca/freeclasses/ca/ontario/toronto/1600",
+    "registrationMode": "sahaj-atlas",
+    "address": {
+      "venueName": "OISE Building",
+      "street": "252 Bloor St W",
+      "room": "#01 - 5250",
+      "postCode": "M5S 1V6",
+      "country": "CA",
+      "region": "ON",
+      "city": "Toronto",
+      "latitude": 43.6683809,
+      "longitude": -79.39843979999999
+    },
+    "schedule": {
+      "firstDate": "2025-02-07T00:00:00.000Z",
+      "firstDate_tz": "America/Toronto",
+      "endTime": "20:30",
+      "weekdays": ["TH"],
+      "upcomingDates": [
+        "2026-11-27T00:00:00.000Z",
+        "2026-12-04T00:00:00.000Z",
+        "2026-12-11T00:00:00.000Z",
+        "2026-12-18T00:00:00.000Z",
+        "2026-12-25T00:00:00.000Z",
+        "2027-01-01T00:00:00.000Z",
+        "2027-01-08T00:00:00.000Z",
+        "2027-01-15T00:00:00.000Z",
+        "2027-01-22T00:00:00.000Z",
+        "2027-01-29T00:00:00.000Z"
+      ]
+    },
+    "paragraphs": [
+      "Join our classes to learn how to meditate and find inner peace.",
+      "Always Free & Open to All.",
+      "For details regarding the room number, please contact us at the phone number provided.",
+      "Can't make the class? Follow along for 21 days (YouTube Free videos) & become your own meditation master."
+    ],
+    "website": "https://www.youtube.com/live/7bYZq5KjJfE?feature=shared"
+  },
+  {
+    "id": 1690,
+    "startTime": "10:00",
+    "title": "Morning Meditation at Timms Community Centre",
+    "languages": ["en"],
+    "webPath": "/ca/british-columbia/langley/1690",
+    "webUrl": "https://www.sahajayoga.ca/freeclasses/ca/british-columbia/langley/1690",
+    "registrationMode": "sahaj-atlas",
+    "address": {
+      "venueName": "Timms Community Centre",
+      "street": "20399 Douglas Cres",
+      "postCode": "V3A 4B3",
+      "country": "CA",
+      "region": "BC",
+      "city": "Langley",
+      "latitude": 49.1039993,
+      "longitude": -122.6574318
+    },
+    "schedule": {
+      "firstDate": "2026-01-03T18:00:00.000Z",
+      "firstDate_tz": "America/Vancouver",
+      "endTime": "11:00",
+      "weekdays": ["SA"],
+      "untilDate": "2027-12-31T00:00:00.000Z",
+      "endingType": "until",
+      "upcomingDates": [
+        "2026-11-28T18:00:00.000Z",
+        "2026-12-05T18:00:00.000Z",
+        "2026-12-12T18:00:00.000Z",
+        "2026-12-19T18:00:00.000Z",
+        "2026-12-26T18:00:00.000Z",
+        "2027-01-02T18:00:00.000Z",
+        "2027-01-09T18:00:00.000Z",
+        "2027-01-16T18:00:00.000Z",
+        "2027-01-23T18:00:00.000Z",
+        "2027-01-30T18:00:00.000Z"
+      ]
+    },
+    "paragraphs": []
+  },
+  {
+    "id": 1691,
+    "startTime": "19:00",
+    "title": "Evening Meditation at Surrey Libraries - City Centre Branch",
+    "languages": ["en"],
+    "webPath": "/ca/british-columbia/surrey/1691",
+    "webUrl": "https://www.sahajayoga.ca/freeclasses/ca/british-columbia/surrey/1691",
+    "registrationMode": "sahaj-atlas",
+    "address": {
+      "venueName": "Surrey Libraries - City Centre Branch",
+      "street": "10350 University Dr",
+      "room": "Room 405",
+      "postCode": "V3T 4B8",
+      "country": "CA",
+      "region": "BC",
+      "city": "Surrey",
+      "latitude": 49.1904125,
+      "longitude": -122.8495787
+    },
+    "schedule": {
+      "firstDate": "2024-05-10T02:00:00.000Z",
+      "firstDate_tz": "America/Vancouver",
+      "endTime": "20:00",
+      "weekdays": ["TH"],
+      "upcomingDates": [
+        "2026-11-27T03:00:00.000Z",
+        "2026-12-04T03:00:00.000Z",
+        "2026-12-11T03:00:00.000Z",
+        "2026-12-18T03:00:00.000Z",
+        "2026-12-25T03:00:00.000Z",
+        "2027-01-01T03:00:00.000Z",
+        "2027-01-08T03:00:00.000Z",
+        "2027-01-15T03:00:00.000Z",
+        "2027-01-22T03:00:00.000Z",
+        "2027-01-29T03:00:00.000Z"
+      ]
+    },
+    "paragraphs": []
+  },
+  {
+    "id": 1693,
+    "startTime": "19:30",
+    "title": "Evening Meditation at 438 Park Ave",
+    "languages": ["en"],
+    "webPath": "/ca/ontario/york-region/1693",
+    "webUrl": "https://www.sahajayoga.ca/freeclasses/ca/ontario/york-region/1693",
+    "registrationMode": "external",
+    "address": {
+      "street": "438 Park Ave",
+      "postCode": "L3Y 1W1",
+      "country": "CA",
+      "region": "ON",
+      "city": "Newmarket",
+      "latitude": 44.0533121,
+      "longitude": -79.459006
+    },
+    "schedule": {
+      "firstDate": "2025-07-03T23:30:00.000Z",
+      "firstDate_tz": "America/Toronto",
+      "endTime": "20:30",
+      "weekdays": ["FR"],
+      "upcomingDates": [
+        "2026-11-28T00:30:00.000Z",
+        "2026-12-05T00:30:00.000Z",
+        "2026-12-12T00:30:00.000Z",
+        "2026-12-19T00:30:00.000Z",
+        "2026-12-26T00:30:00.000Z",
+        "2027-01-02T00:30:00.000Z",
+        "2027-01-09T00:30:00.000Z",
+        "2027-01-16T00:30:00.000Z",
+        "2027-01-23T00:30:00.000Z",
+        "2027-01-30T00:30:00.000Z"
+      ]
+    },
+    "paragraphs": [
+      "Join us for a free 10-week course to learn how to meditate and bring balance to your life!"
+    ],
+    "website": "https://www.youtube.com/live/7bYZq5KjJfE?feature=shared"
+  },
+  {
+    "id": 1765,
+    "startTime": "17:30",
+    "title": "Evening Meditation at 1918 St George Ave",
+    "languages": ["en"],
+    "webPath": "/ca/saskatchewan/saskatoon/1765",
+    "webUrl": "https://www.sahajayoga.ca/freeclasses/ca/saskatchewan/saskatoon/1765",
+    "registrationMode": "external",
+    "address": {
+      "street": "1918 St George Ave",
+      "postCode": "S7M 0K5",
+      "country": "CA",
+      "region": "SK",
+      "city": "Saskatoon",
+      "latitude": 52.1066677,
+      "longitude": -106.6737206
+    },
+    "schedule": {
+      "firstDate": "2025-01-19T23:30:00.000Z",
+      "firstDate_tz": "America/Regina",
+      "endTime": "18:30",
+      "weekdays": ["SU"],
+      "upcomingDates": [
+        "2026-11-29T23:30:00.000Z",
+        "2026-12-06T23:30:00.000Z",
+        "2026-12-13T23:30:00.000Z",
+        "2026-12-20T23:30:00.000Z",
+        "2026-12-27T23:30:00.000Z",
+        "2027-01-03T23:30:00.000Z",
+        "2027-01-10T23:30:00.000Z",
+        "2027-01-17T23:30:00.000Z",
+        "2027-01-24T23:30:00.000Z",
+        "2027-01-31T23:30:00.000Z"
+      ]
+    },
+    "paragraphs": [
+      "Join us for a revolving cycle of courses to learn how to meditate and bring balance to your life!"
+    ]
+  },
+  {
+    "id": 1784,
+    "startTime": "11:00",
+    "title": "Morning Meditation at Regina Public Library - George Bothwell Branch",
+    "languages": ["en"],
+    "webPath": "/ca/saskatchewan/regina/1784",
+    "webUrl": "https://www.sahajayoga.ca/freeclasses/ca/saskatchewan/regina/1784",
+    "registrationMode": "external",
+    "address": {
+      "venueName": "Regina Public Library - George Bothwell Branch",
+      "street": "2965 Gordon Rd",
+      "postCode": "S4S 6H7",
+      "country": "CA",
+      "region": "SK",
+      "city": "Regina",
+      "latitude": 50.40218050000001,
+      "longitude": -104.6224533
+    },
+    "schedule": {
+      "firstDate": "2025-01-04T17:00:00.000Z",
+      "firstDate_tz": "America/Regina",
+      "endTime": "12:00",
+      "weekdays": ["SA"],
+      "upcomingDates": [
+        "2026-11-28T17:00:00.000Z",
+        "2026-12-05T17:00:00.000Z",
+        "2026-12-12T17:00:00.000Z",
+        "2026-12-19T17:00:00.000Z",
+        "2026-12-26T17:00:00.000Z",
+        "2027-01-02T17:00:00.000Z",
+        "2027-01-09T17:00:00.000Z",
+        "2027-01-16T17:00:00.000Z",
+        "2027-01-23T17:00:00.000Z",
+        "2027-01-30T17:00:00.000Z"
+      ]
+    },
+    "paragraphs": [],
+    "website": "https://www.reginameditation.ca"
+  },
+  {
+    "id": 1785,
+    "startTime": "12:00",
+    "title": "Afternoon Meditation at Regina Public Library - Central and Children's Branch",
+    "languages": ["en"],
+    "webPath": "/ca/saskatchewan/regina/1785",
+    "webUrl": "https://www.sahajayoga.ca/freeclasses/ca/saskatchewan/regina/1785",
+    "registrationMode": "external",
+    "address": {
+      "venueName": "Regina Public Library - Central and Children's Branch",
+      "street": "2311 12 Ave",
+      "room": "Community room",
+      "postCode": "S4P 0N3",
+      "country": "CA",
+      "region": "SK",
+      "city": "Regina",
+      "latitude": 50.4485597,
+      "longitude": -104.6139532
+    },
+    "schedule": {
+      "firstDate": "2025-01-09T18:00:00.000Z",
+      "firstDate_tz": "America/Regina",
+      "endTime": "13:00",
+      "weekdays": ["TH"],
+      "upcomingDates": [
+        "2026-11-26T18:00:00.000Z",
+        "2026-12-03T18:00:00.000Z",
+        "2026-12-10T18:00:00.000Z",
+        "2026-12-17T18:00:00.000Z",
+        "2026-12-24T18:00:00.000Z",
+        "2026-12-31T18:00:00.000Z",
+        "2027-01-07T18:00:00.000Z",
+        "2027-01-14T18:00:00.000Z",
+        "2027-01-21T18:00:00.000Z",
+        "2027-01-28T18:00:00.000Z"
+      ]
+    },
+    "paragraphs": [],
+    "website": "https://www.reginameditation.ca"
+  },
+  {
+    "id": 1798,
+    "startTime": "18:30",
+    "title": "Evening Meditation at 171 Mapleton Ave",
+    "languages": ["en"],
+    "webPath": "/ca/ontario/barrie/1798",
+    "webUrl": "https://www.sahajayoga.ca/freeclasses/ca/ontario/barrie/1798",
+    "registrationMode": "sahaj-atlas",
+    "address": {
+      "street": "171 Mapleton Ave",
+      "room": "Activity Room 1 or 2",
+      "postCode": "L4N 8T6",
+      "country": "CA",
+      "region": "ON",
+      "city": "Barrie",
+      "latitude": 44.33919789999999,
+      "longitude": -79.7170258
+    },
+    "schedule": {
+      "firstDate": "2026-09-09T22:30:00.000Z",
+      "firstDate_tz": "America/Toronto",
+      "weekdays": ["WE"],
+      "upcomingDates": [
+        "2026-11-25T23:30:00.000Z",
+        "2026-12-02T23:30:00.000Z",
+        "2026-12-09T23:30:00.000Z",
+        "2026-12-16T23:30:00.000Z",
+        "2026-12-23T23:30:00.000Z",
+        "2026-12-30T23:30:00.000Z",
+        "2027-01-06T23:30:00.000Z",
+        "2027-01-13T23:30:00.000Z",
+        "2027-01-20T23:30:00.000Z",
+        "2027-01-27T23:30:00.000Z"
+      ]
+    },
+    "paragraphs": [
+      "Join us for a free 10-week course to learn how to meditate and bring balance to your life!"
+    ]
+  },
+  {
+    "id": 1803,
+    "startTime": "19:30",
+    "title": "Meditace pro začátečníky",
+    "languages": ["cs"],
+    "webPath": "/cz/praha/lipanska-8734/1803",
+    "webUrl": "https://wemeditate.com/map/cz/praha/lipanska-8734/1803",
+    "registrationMode": "sahaj-atlas",
+    "address": {
+      "venueName": "Lipanská 873/4",
+      "street": "Lipanská 873/4",
+      "postCode": "130 00",
+      "country": "CZ",
+      "region": "HLA",
+      "city": "Prague",
+      "latitude": 50.083639,
+      "longitude": 14.4532782
+    },
+    "schedule": {
+      "firstDate": "2026-11-24T18:30:00.000Z",
+      "firstDate_tz": "Europe/Prague",
+      "endTime": "20:30",
+      "weekdays": ["TU"],
+      "upcomingDates": [
+        "2026-11-24T18:30:00.000Z",
+        "2026-12-01T18:30:00.000Z",
+        "2026-12-08T18:30:00.000Z",
+        "2026-12-15T18:30:00.000Z",
+        "2026-12-22T18:30:00.000Z",
+        "2026-12-29T18:30:00.000Z",
+        "2027-01-05T18:30:00.000Z",
+        "2027-01-12T18:30:00.000Z",
+        "2027-01-19T18:30:00.000Z",
+        "2027-01-26T18:30:00.000Z"
+      ]
+    },
+    "paragraphs": [
+      "Vyzkoušeli byste si rádi meditaci ?",
+      "Tak právě pro Vás jsme připravili pravidelné kurzy. Dozvíte se, jak meditace funguje, jaký vliv má na naši fyzickou i psychickou pohodu a zdraví a jak může ovlivnit naše každodenní činnosti. Především si ale vyzkoušíme meditaci v praxi. Je to naše osobní zkušenost a praxe, která nám umožní poznat, osvojit a rozvíjet náš meditační stav a skrze něj se obohatit o další znalosti a dovednosti. Není třeba žádné speciální oblečení. Sedíme na židlích případně na polštářích. Lekce jsou jednoduché a zvládne je každý.",
+      "Těšíme se na vás!",
+      "VSTUP - volný"
+    ]
+  },
+  {
+    "id": 1804,
+    "startTime": "18:30",
+    "title": "Meditation for everyone in English",
+    "languages": ["en"],
+    "webPath": "/cz/praha/lipanska-8734/1804",
+    "webUrl": "https://wemeditate.com/map/cz/praha/lipanska-8734/1804",
+    "registrationMode": "sahaj-atlas",
+    "address": {
+      "venueName": "Lipanská 873/4",
+      "street": "Lipanská 873/4",
+      "postCode": "130 00",
+      "country": "CZ",
+      "region": "HLA",
+      "city": "Prague",
+      "latitude": 50.083639,
+      "longitude": 14.4532782
+    },
+    "schedule": {
+      "firstDate": "2026-11-26T17:30:00.000Z",
+      "firstDate_tz": "Europe/Prague",
+      "endTime": "19:30",
+      "weekdays": ["TH"],
+      "upcomingDates": [
+        "2026-11-26T17:30:00.000Z",
+        "2026-12-03T17:30:00.000Z",
+        "2026-12-10T17:30:00.000Z",
+        "2026-12-17T17:30:00.000Z",
+        "2026-12-24T17:30:00.000Z",
+        "2026-12-31T17:30:00.000Z",
+        "2027-01-07T17:30:00.000Z",
+        "2027-01-14T17:30:00.000Z",
+        "2027-01-21T17:30:00.000Z",
+        "2027-01-28T17:30:00.000Z"
+      ]
+    },
+    "paragraphs": ["Everyone is more than welcome to meditate with us. :-)"]
+  },
+  {
+    "id": 1833,
+    "startTime": "18:30",
+    "title": "Evening Meditation at Halifax Shopping Centre",
+    "languages": ["en"],
+    "webPath": "/ca/nova-scotia/halifax/1833",
+    "webUrl": "https://www.sahajayoga.ca/freeclasses/ca/nova-scotia/halifax/1833",
+    "registrationMode": "external",
+    "address": {
+      "venueName": "Halifax Shopping Centre",
+      "street": "7001 Mumford Rd",
+      "postCode": "B3L 4R3",
+      "country": "CA",
+      "region": "NS",
+      "city": "Halifax",
+      "latitude": 44.6493029,
+      "longitude": -63.618185
+    },
+    "schedule": {
+      "firstDate": "2025-07-07T21:30:00.000Z",
+      "firstDate_tz": "America/Halifax",
+      "endTime": "19:30",
+      "weekdays": ["MO"],
+      "upcomingDates": [
+        "2026-11-23T22:30:00.000Z",
+        "2026-11-30T22:30:00.000Z",
+        "2026-12-07T22:30:00.000Z",
+        "2026-12-14T22:30:00.000Z",
+        "2026-12-21T22:30:00.000Z",
+        "2026-12-28T22:30:00.000Z",
+        "2027-01-04T22:30:00.000Z",
+        "2027-01-11T22:30:00.000Z",
+        "2027-01-18T22:30:00.000Z",
+        "2027-01-25T22:30:00.000Z"
+      ]
+    },
+    "paragraphs": [
+      "Join us for a free 10-week course to learn how to meditate and bring balance to your life!",
+      "To find the meditation program, enter the Halifax Shopping Centre mall on the top level, using entrance 2 near Starbucks. Walk straight ahead to a set of glass doors (located between Nespresso and Soft Moc). Take the elevator to the 1st floor and turn left, and another left.",
+      "Please note the outside glass doors lock at 7 pm, so try to be on time (630) to the best of your ability."
+    ]
+  },
+  {
+    "id": 1842,
+    "startTime": "19:00",
+    "title": "Evening Meditation at Norman Pinky Lewis Recreation Centre",
+    "languages": ["en"],
+    "webPath": "/ca/ontario/hamilton-region/1842",
+    "webUrl": "https://www.sahajayoga.ca/freeclasses/ca/ontario/hamilton-region/1842",
+    "registrationMode": "sahaj-atlas",
+    "address": {
+      "venueName": "Norman Pinky Lewis Recreation Centre",
+      "street": "192 Wentworth St N",
+      "room": "Community Room 3",
+      "postCode": "L8L 5V7",
+      "country": "CA",
+      "region": "ON",
+      "city": "Hamilton",
+      "latitude": 43.25695340000001,
+      "longitude": -79.8452855
+    },
+    "schedule": {
+      "firstDate": "2026-01-09T00:00:00.000Z",
+      "firstDate_tz": "America/Toronto",
+      "endTime": "20:30",
+      "weekdays": ["TH"],
+      "upcomingDates": [
+        "2026-11-27T00:00:00.000Z",
+        "2026-12-04T00:00:00.000Z",
+        "2026-12-11T00:00:00.000Z",
+        "2026-12-18T00:00:00.000Z",
+        "2026-12-25T00:00:00.000Z",
+        "2027-01-01T00:00:00.000Z",
+        "2027-01-08T00:00:00.000Z",
+        "2027-01-15T00:00:00.000Z",
+        "2027-01-22T00:00:00.000Z",
+        "2027-01-29T00:00:00.000Z"
+      ]
+    },
+    "paragraphs": [
+      "A standard weekly class, where seekers can join at any time.",
+      "Class is in the room 3."
+    ]
+  },
+  {
+    "id": 1853,
+    "startTime": "19:00",
+    "title": "Evening Meditation at Evergreen Seniors Community Centre",
+    "languages": ["en"],
+    "webPath": "/ca/ontario/guelph/1853",
+    "webUrl": "https://www.sahajayoga.ca/freeclasses/ca/ontario/guelph/1853",
+    "registrationMode": "sahaj-atlas",
+    "address": {
+      "venueName": "Evergreen Seniors Community Centre",
+      "street": "Woolwich St",
+      "room": "Room #3",
+      "country": "CA",
+      "region": "ON",
+      "city": "Guelph",
+      "latitude": 43.5563269,
+      "longitude": -80.2654103
+    },
+    "schedule": {
+      "firstDate": "2025-09-11T23:00:00.000Z",
+      "firstDate_tz": "America/Toronto",
+      "endTime": "20:00",
+      "weekdays": ["TH"],
+      "upcomingDates": [
+        "2026-11-27T00:00:00.000Z",
+        "2026-12-04T00:00:00.000Z",
+        "2026-12-11T00:00:00.000Z",
+        "2026-12-18T00:00:00.000Z",
+        "2026-12-25T00:00:00.000Z",
+        "2027-01-01T00:00:00.000Z",
+        "2027-01-08T00:00:00.000Z",
+        "2027-01-15T00:00:00.000Z",
+        "2027-01-22T00:00:00.000Z",
+        "2027-01-29T00:00:00.000Z"
+      ]
+    },
+    "paragraphs": ["A standard weekly class, where seekers can join at any time."]
+  },
+  {
+    "id": 1854,
+    "startTime": "19:00",
+    "title": "Evening Meditation at River Grove Community Centre",
+    "languages": ["en"],
+    "webPath": "/ca/ontario/peel-region/1854",
+    "webUrl": "https://www.sahajayoga.ca/freeclasses/ca/ontario/peel-region/1854",
+    "registrationMode": "sahaj-atlas",
+    "address": {
+      "venueName": "River Grove Community Centre",
+      "street": "5800 River Grove Ave",
+      "room": "Susan Burts Art Studio",
+      "postCode": "L5M 4R8",
+      "country": "CA",
+      "region": "ON",
+      "city": "Mississauga",
+      "latitude": 43.5895927,
+      "longitude": -79.71210529999999
+    },
+    "schedule": {
+      "firstDate": "2026-01-10T00:00:00.000Z",
+      "firstDate_tz": "America/Toronto",
+      "endTime": "20:30",
+      "weekdays": ["FR"],
+      "upcomingDates": [
+        "2026-11-28T00:00:00.000Z",
+        "2026-12-05T00:00:00.000Z",
+        "2026-12-12T00:00:00.000Z",
+        "2026-12-19T00:00:00.000Z",
+        "2026-12-26T00:00:00.000Z",
+        "2027-01-02T00:00:00.000Z",
+        "2027-01-09T00:00:00.000Z",
+        "2027-01-16T00:00:00.000Z",
+        "2027-01-23T00:00:00.000Z",
+        "2027-01-30T00:00:00.000Z"
+      ]
+    },
+    "paragraphs": [
+      "Can't make the class? Follow along for 21 days (YouTube Free videos) & become your own meditation master - https://www.youtube.com/live/7bYZq5KjJfE"
+    ],
+    "website": "https://www.youtube.com/live/7bYZq5KjJfE?feature=shared"
+  },
+  {
+    "id": 1961,
+    "startTime": "19:00",
+    "title": "Evening Meditation at Coquitlam City Branch Public Library",
+    "languages": ["en"],
+    "webPath": "/ca/british-columbia/metro-vancouver/1961",
+    "webUrl": "https://www.sahajayoga.ca/freeclasses/ca/british-columbia/metro-vancouver/1961",
+    "registrationMode": "sahaj-atlas",
+    "address": {
+      "venueName": "Coquitlam City Branch Public Library",
+      "street": "1169 Pinetree Wy",
+      "postCode": "V3B 8A9",
+      "country": "CA",
+      "region": "BC",
+      "city": "Coquitlam",
+      "latitude": 49.2812916,
+      "longitude": -122.7926492
+    },
+    "schedule": {
+      "firstDate": "2026-07-08T02:00:00.000Z",
+      "firstDate_tz": "America/Vancouver",
+      "endTime": "20:00",
+      "weekdays": ["TU"],
+      "upcomingDates": [
+        "2026-11-25T03:00:00.000Z",
+        "2026-12-02T03:00:00.000Z",
+        "2026-12-09T03:00:00.000Z",
+        "2026-12-16T03:00:00.000Z",
+        "2026-12-23T03:00:00.000Z",
+        "2026-12-30T03:00:00.000Z",
+        "2027-01-06T03:00:00.000Z",
+        "2027-01-13T03:00:00.000Z",
+        "2027-01-20T03:00:00.000Z",
+        "2027-01-27T03:00:00.000Z"
+      ]
+    },
+    "paragraphs": []
+  },
+  {
+    "id": 1962,
+    "startTime": "18:45",
+    "title": "Evening Meditation at 7340 Winchelsea Crescent",
+    "languages": ["en"],
+    "webPath": "/ca/british-columbia/metro-vancouver/1962",
+    "webUrl": "https://www.sahajayoga.ca/freeclasses/ca/british-columbia/metro-vancouver/1962",
+    "registrationMode": "sahaj-atlas",
+    "address": {
+      "street": "7340 Winchelsea Crescent",
+      "postCode": "V7C 4E4",
+      "country": "CA",
+      "region": "BC",
+      "city": "Richmond",
+      "latitude": 49.1585004,
+      "longitude": -123.1878906
+    },
+    "schedule": {
+      "firstDate": "2026-07-04T01:45:00.000Z",
+      "firstDate_tz": "America/Vancouver",
+      "endTime": "20:00",
+      "weekdays": ["FR"],
+      "upcomingDates": [
+        "2026-11-28T02:45:00.000Z",
+        "2026-12-05T02:45:00.000Z",
+        "2026-12-12T02:45:00.000Z",
+        "2026-12-19T02:45:00.000Z",
+        "2026-12-26T02:45:00.000Z",
+        "2027-01-02T02:45:00.000Z",
+        "2027-01-09T02:45:00.000Z",
+        "2027-01-16T02:45:00.000Z",
+        "2027-01-23T02:45:00.000Z",
+        "2027-01-30T02:45:00.000Z"
+      ]
+    },
+    "paragraphs": []
+  },
+  {
+    "id": 1980,
+    "startTime": "19:00",
+    "title": "Evening Meditation at Empire Park",
+    "languages": ["en"],
+    "webPath": "/ca/alberta/edmonton/1980",
+    "webUrl": "https://www.sahajayoga.ca/freeclasses/ca/alberta/edmonton/1980",
+    "registrationMode": "external",
+    "address": {
+      "venueName": "Empire Park",
+      "street": "4804 107 St NW",
+      "postCode": "T6H 2W8",
+      "country": "CA",
+      "region": "AB",
+      "city": "Edmonton",
+      "latitude": 53.4867111,
+      "longitude": -113.5096012
+    },
+    "schedule": {
+      "firstDate": "2026-10-02T01:00:00.000Z",
+      "firstDate_tz": "America/Edmonton",
+      "weekdays": ["TH"],
+      "upcomingDates": [
+        "2026-11-27T02:00:00.000Z",
+        "2026-12-04T02:00:00.000Z",
+        "2026-12-11T02:00:00.000Z",
+        "2026-12-18T02:00:00.000Z",
+        "2026-12-25T02:00:00.000Z",
+        "2027-01-01T02:00:00.000Z",
+        "2027-01-08T02:00:00.000Z",
+        "2027-01-15T02:00:00.000Z",
+        "2027-01-22T02:00:00.000Z",
+        "2027-01-29T02:00:00.000Z"
+      ]
+    },
+    "paragraphs": [
+      "Can't make the class? Follow along for 21 days (YouTube Free videos) & become your own meditation master in just 21 days."
+    ],
+    "website": "https://www.youtube.com/live/7bYZq5KjJfE"
+  },
+  {
+    "id": 1995,
+    "startTime": "19:00",
+    "title": "Evening Meditation at McMillan Arts Centre",
+    "languages": ["en"],
+    "webPath": "/ca/british-columbia/parksville/1995",
+    "webUrl": "https://www.sahajayoga.ca/freeclasses/ca/british-columbia/parksville/1995",
+    "registrationMode": "sahaj-atlas",
+    "address": {
+      "venueName": "McMillan Arts Centre",
+      "street": "133 McMillan St",
+      "postCode": "V9P 1K3",
+      "country": "CA",
+      "region": "BC",
+      "city": "Parksville",
+      "latitude": 49.3199351,
+      "longitude": -124.3172572
+    },
+    "schedule": {
+      "firstDate": "2026-10-28T02:00:00.000Z",
+      "firstDate_tz": "America/Vancouver",
+      "endTime": "20:00",
+      "weekdays": ["TU"],
+      "upcomingDates": [
+        "2026-11-25T03:00:00.000Z",
+        "2026-12-02T03:00:00.000Z",
+        "2026-12-09T03:00:00.000Z",
+        "2026-12-16T03:00:00.000Z",
+        "2026-12-23T03:00:00.000Z",
+        "2026-12-30T03:00:00.000Z",
+        "2027-01-06T03:00:00.000Z",
+        "2027-01-13T03:00:00.000Z",
+        "2027-01-20T03:00:00.000Z",
+        "2027-01-27T03:00:00.000Z"
+      ]
+    },
+    "paragraphs": []
+  },
+  {
+    "id": 1996,
+    "startTime": "15:00",
+    "title": "Afternoon Meditation at Westminster Woods Public School",
+    "languages": ["en"],
+    "webPath": "/ca/ontario/guelph/1996",
+    "webUrl": "https://www.sahajayoga.ca/freeclasses/ca/ontario/guelph/1996",
+    "registrationMode": "external",
+    "address": {
+      "venueName": "Westminster Woods Public School",
+      "street": "140 Goodwin Dr",
+      "room": "Library 2nd floor",
+      "postCode": "N1L 1P7",
+      "country": "CA",
+      "region": "ON",
+      "city": "Guelph",
+      "latitude": 43.5098,
+      "longitude": -80.18011419999999
+    },
+    "schedule": {
+      "firstDate": "2026-10-24T19:00:00.000Z",
+      "firstDate_tz": "America/Toronto",
+      "endTime": "16:00",
+      "weekdays": ["SA"],
+      "upcomingDates": [
+        "2026-11-28T20:00:00.000Z",
+        "2026-12-05T20:00:00.000Z",
+        "2026-12-12T20:00:00.000Z",
+        "2026-12-19T20:00:00.000Z",
+        "2026-12-26T20:00:00.000Z",
+        "2027-01-02T20:00:00.000Z",
+        "2027-01-09T20:00:00.000Z",
+        "2027-01-16T20:00:00.000Z",
+        "2027-01-23T20:00:00.000Z",
+        "2027-01-30T20:00:00.000Z"
+      ]
+    },
+    "paragraphs": ["Join us for a free course to learn how to meditate."]
+  },
+  {
+    "id": 2020,
+    "startTime": "18:00",
+    "title": "Meditace pro začátečníky",
+    "languages": ["cs"],
+    "webPath": "/cz/praha/lipanska-8734/2020",
+    "webUrl": "https://wemeditate.com/map/cz/praha/lipanska-8734/2020",
+    "registrationMode": "sahaj-atlas",
+    "address": {
+      "street": "Lipanská 873/4",
+      "postCode": "130 00",
+      "country": "CZ",
+      "region": "10",
+      "city": "Prague",
+      "latitude": 50.083656,
+      "longitude": 14.453207,
+      "venueName": "Lipanská 873/4"
+    },
+    "schedule": {
+      "firstDate": "2026-11-24T17:00:00.000Z",
+      "firstDate_tz": "Europe/Berlin",
+      "endTime": "19:20",
+      "weekdays": ["TU"],
+      "upcomingDates": [
+        "2026-11-24T17:00:00.000Z",
+        "2026-12-01T17:00:00.000Z",
+        "2026-12-08T17:00:00.000Z",
+        "2026-12-15T17:00:00.000Z",
+        "2026-12-22T17:00:00.000Z",
+        "2026-12-29T17:00:00.000Z",
+        "2027-01-05T17:00:00.000Z",
+        "2027-01-12T17:00:00.000Z",
+        "2027-01-19T17:00:00.000Z",
+        "2027-01-26T17:00:00.000Z"
+      ]
+    },
+    "paragraphs": [
+      "Vyzkoušeli byste si rádi meditaci ?",
+      "Tak právě pro Vás jsme připravili pravidelné kurzy. Dozvíte se, jak meditace funguje, jaký vliv má na naši fyzickou i psychickou pohodu a zdraví a jak může ovlivnit naše každodenní činnosti. Především si ale vyzkoušíme meditaci v praxi. Je to naše osobní zkušenost a praxe, která nám umožní poznat, osvojit a rozvíjet náš meditační stav a skrze něj se obohatit o další znalosti a dovednosti. Není třeba žádné speciální oblečení. Sedíme na židlích případně na polštářích. Lekce jsou jednoduché a zvládne je každý.",
+      "Těšíme se na vás!",
+      "VSTUP - volný"
+    ]
+  },
+  {
+    "id": 2021,
+    "startTime": "17:00",
+    "title": " Медитация",
+    "languages": ["ru"],
+    "webPath": "/cz/praha/lipanska-8734/2021",
+    "webUrl": "https://wemeditate.com/map/cz/praha/lipanska-8734/2021",
+    "registrationMode": "sahaj-atlas",
+    "address": {
+      "street": "Lipanská 873/4",
+      "postCode": "130 00",
+      "country": "CZ",
+      "region": "10",
+      "city": "Prague",
+      "latitude": 50.083656,
+      "longitude": 14.453207,
+      "venueName": "Lipanská 873/4"
+    },
+    "schedule": {
+      "firstDate": "2026-11-25T16:00:00.000Z",
+      "firstDate_tz": "Europe/Berlin",
+      "endTime": "18:00",
+      "weekdays": ["WE"],
+      "upcomingDates": [
+        "2026-11-25T16:00:00.000Z",
+        "2026-12-02T16:00:00.000Z",
+        "2026-12-09T16:00:00.000Z",
+        "2026-12-16T16:00:00.000Z",
+        "2026-12-23T16:00:00.000Z",
+        "2026-12-30T16:00:00.000Z",
+        "2027-01-06T16:00:00.000Z",
+        "2027-01-13T16:00:00.000Z",
+        "2027-01-20T16:00:00.000Z",
+        "2027-01-27T16:00:00.000Z"
+      ]
+    },
+    "paragraphs": [
+      "Будем рады видеть вас на наших занятиях по медитации, которые проходят каждую среду. Приглашаем всех желающих!"
+    ]
+  },
+  {
+    "id": 2022,
+    "startTime": "18:00",
+    "title": "Meditace pro začátečníky ",
+    "languages": ["cs"],
+    "webPath": "/cz/praha/lipanska-8734/2022",
+    "webUrl": "https://wemeditate.com/map/cz/praha/lipanska-8734/2022",
+    "registrationMode": "sahaj-atlas",
+    "address": {
+      "street": "Lipanská 873/4",
+      "postCode": "130 00",
+      "country": "CZ",
+      "region": "10",
+      "city": "Prague",
+      "latitude": 50.083656,
+      "longitude": 14.453207,
+      "venueName": "Lipanská 873/4"
+    },
+    "schedule": {
+      "firstDate": "2026-11-23T17:00:00.000Z",
+      "firstDate_tz": "Europe/Berlin",
+      "endTime": "19:20",
+      "weekdays": ["MO"],
+      "upcomingDates": [
+        "2026-11-23T17:00:00.000Z",
+        "2026-11-30T17:00:00.000Z",
+        "2026-12-07T17:00:00.000Z",
+        "2026-12-14T17:00:00.000Z",
+        "2026-12-21T17:00:00.000Z",
+        "2026-12-28T17:00:00.000Z",
+        "2027-01-04T17:00:00.000Z",
+        "2027-01-11T17:00:00.000Z",
+        "2027-01-18T17:00:00.000Z",
+        "2027-01-25T17:00:00.000Z"
+      ]
+    },
+    "paragraphs": [
+      "Vyzkoušeli byste si rádi meditaci ?",
+      "Tak právě pro Vás jsme připravili pravidelné kurzy. Dozvíte se, jak meditace funguje, jaký vliv má na naši fyzickou i psychickou pohodu a zdraví a jak může ovlivnit naše každodenní činnosti. Především si ale vyzkoušíme meditaci v praxi. Je to naše osobní zkušenost a praxe, která nám umožní poznat, osvojit a rozvíjet náš meditační stav a skrze něj se obohatit o další znalosti a dovednosti. Není třeba žádné speciální oblečení. Sedíme na židlích případně na polštářích. Lekce jsou jednoduché a zvládne je každý.",
+      "Těšíme se na vás!"
+    ]
+  },
+  {
+    "id": 2023,
+    "startTime": "16:00",
+    "title": "Meditace pro začátečníky - víkend",
+    "languages": ["cs", "en"],
+    "webPath": "/cz/praha/2023",
+    "webUrl": "https://wemeditate.com/map/cz/praha/2023",
+    "registrationMode": "sahaj-atlas",
+    "address": {
+      "street": "Lipanská 873/4",
+      "postCode": "130 00",
+      "country": "CZ",
+      "region": "10",
+      "city": "Prague",
+      "latitude": 50.083656,
+      "longitude": 14.453207,
+      "venueName": "Lipanská 873/4"
+    },
+    "schedule": {
+      "firstDate": "2026-11-28T15:00:00.000Z",
+      "firstDate_tz": "Europe/Berlin",
+      "endTime": "17:15",
+      "weekdays": ["SA"],
+      "upcomingDates": [
+        "2026-11-28T15:00:00.000Z",
+        "2026-12-05T15:00:00.000Z",
+        "2026-12-12T15:00:00.000Z",
+        "2026-12-19T15:00:00.000Z",
+        "2026-12-26T15:00:00.000Z",
+        "2027-01-02T15:00:00.000Z",
+        "2027-01-09T15:00:00.000Z",
+        "2027-01-16T15:00:00.000Z",
+        "2027-01-23T15:00:00.000Z",
+        "2027-01-30T15:00:00.000Z"
+      ]
+    },
+    "paragraphs": [
+      "Vyzkoušeli byste si rádi meditaci ? Všichni jste vítáni na  naše otevřené kurzy každou sobotu.",
+      "Těšíme se na Vás!",
+      "Would you like to try meditation? You are all welcome to join our open classes every Saturday.",
+      "We look forward to seeing you!"
+    ]
+  }
+]

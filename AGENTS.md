@@ -51,6 +51,8 @@ experience, with a country → region → area → venue → event hierarchy.
 
 The [class page prototype](src/views/EventView/ClassPage.stories.tsx) belongs to Ladle. Keep its fixtures, mock submissions and host-page treatments in `stories/class-page/`. Render the prototype directly in Ladle. Use its Viewport for sizing and Story Controls for fixtures. Keep the expanded single-class map focused on the venue, directions, registration and return. Use the same share actions on class and confirmation screens. Keep Example independent of Fallback and use the shared view harness and mock event variants. Keep the SEO notes in the adjacent MDX story. Support short, tall and hidden host banners and an optional Add to Calendar action on desktop and iPhone. The live Atlas class view ships independently.
 
+The [London discovery story](src/views/SearchView/LondonDiscovery.stories.tsx) keeps its venue and timetable examples in `stories/london-discovery/`. Use the same class summary in List, Week and map results. At country scale, offer cities before classes. Base filter visibility on the available venues, times and languages. Keep Filters pinned below the host header in List and Week. Use published Atlas snapshots for the Canada and Prague examples, retaining venue-local times and every listed language. On mobile, the optional static map preview opens the full map and hands off to Show map after it scrolls past the host header. Both views support expanding the desktop map and returning to the same results. Both stories use the same optional Shri Mataji host banner.
+
 ## Project overview
 
 | Concern | Choice |
