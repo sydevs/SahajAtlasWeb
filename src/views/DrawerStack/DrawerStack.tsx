@@ -326,16 +326,17 @@ export function DrawerStack({ inline = false }: { inline?: boolean } = {}) {
   // Filters over the full-width calendar (map mode) render as a separate modal drawer
   // OVER the still-mounted calendar — from the right at ≥md, a bottom sheet on mobile —
   // rather than replacing it. So the calendar stays the base view, and the trailing
-  // `filters` entry peels off into the overlay below. (Map-less keeps the plain
-  // replace-stack behaviour.)
-  const filterOverlay = isFilterOverlay(entries, hasMap)
+  // `filters` entry peels off into the overlay below. (Map-less and inline keep the plain
+  // replace-stack behaviour: an overlay belongs to a sheet over a map.)
+  const filterOverlay = isFilterOverlay(entries, sheeted)
 
   // Reads through `baseStackEntry` rather than the last non-overlay entry — the same value
   // either way, but stated in the shared vocabulary, so `top.path` is provably
   // `topViewKey(location.pathname, hasMap)`. `useFrameOnTop` compares itself against
   // that key to tell whether it is still the view on top, and the two agreeing is what
-  // makes the comparison mean anything.
-  const top = baseStackEntry(entries, hasMap) ?? null
+  // makes the comparison mean anything. Inline, they part only on a filters route, and
+  // neither the calendar nor the filters view frames the map.
+  const top = baseStackEntry(entries, sheeted) ?? null
   // The calendar is the one full-width view. It fills the widget, minus the floating margins,
   // instead of the 352px left panel (see the Drawer `wide` variant) — EXCEPT in its list
   // (agenda) view, one narrow column that reads better at the regular width. `isWide` is here
@@ -353,8 +354,8 @@ export function DrawerStack({ inline = false }: { inline?: boolean } = {}) {
   const ancestry = useMemo(() => {
     const placed = resolveStack(placedPathname(location.pathname, pathOf))
 
-    return isFilterOverlay(placed, hasMap) ? placed.slice(0, -1) : placed
-  }, [location.pathname, pathOf, hasMap])
+    return isFilterOverlay(placed, sheeted) ? placed.slice(0, -1) : placed
+  }, [location.pathname, pathOf, sheeted])
   // The country on screen, kept through the routes that name none (search, calendar), so the
   // place search a country page opens stays in that country. The world view clears it.
   const setBrowsedCountry = useBrowsedCountry((s) => s.setCode)
@@ -824,14 +825,14 @@ export function DrawerStack({ inline = false }: { inline?: boolean } = {}) {
     return (
       <WidgetWidthContext.Provider value={isWide}>
         <DrawerControlContext.Provider value={control}>
-          <div ref={setContainer} className="flex min-w-0 flex-col">
+          {/* The page heading sets the width here, so the bands' own cap is lifted. */}
+          <div ref={setContainer} className="flex min-w-0 flex-col [--sy-content-max:none]">
             <DrawerSlotsProvider mode="inline">
               <div key={top?.path ?? '/'} className="flex flex-col">
                 {topView}
               </div>
             </DrawerSlotsProvider>
           </div>
-          {filterDrawer}
         </DrawerControlContext.Provider>
       </WidgetWidthContext.Provider>
     )
@@ -953,13 +954,11 @@ export function DrawerStack({ inline = false }: { inline?: boolean } = {}) {
                     'fixed top-3 z-40',
                     // ⚠ **Uses `isWide`, not a `md:` variant — the #169 correction.**
                     // This clears the LEFT PANEL, so it has to agree with whatever
-                    // decided there is one — and that is now the frame's width, not
-                    // the viewport's. A 600px contained map on a desktop gets the
-                    // bottom sheet, and a viewport variant would still push the cog
-                    // 384px right for a panel that is not there. At a 400px frame it
-                    // would land past the edge, where the frame's `overflow-clip`
-                    // clips it away entirely. Outside a frame, `isWide` IS the
-                    // viewport's answer, so this stays the same offset it always was.
+                    // decided there is one — and that is the frame's width, not the
+                    // viewport's. A frame narrower than the crossing gets the bottom
+                    // sheet, and a viewport variant would still push the cog 384px
+                    // right for a panel that is not there. Outside a frame, `isWide` IS
+                    // the viewport's answer.
                     isWide
                       ? 'start-[calc(var(--sy-drawer-w,352px)+32px+env(safe-area-inset-left,0px))] lg:start-[calc(var(--sy-drawer-w,352px)+48px+env(safe-area-inset-left,0px))] lg:top-4'
                       : 'start-3',

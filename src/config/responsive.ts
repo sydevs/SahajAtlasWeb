@@ -15,7 +15,7 @@ import { useMediaQuery } from 'react-responsive'
  *    A 320px column on a 1600px desktop must answer these the way a phone does.
  *  - **viewport** (`useIsWideViewport`): this is for the case where the screen genuinely is the question.
  *    It has no app call sites left. The map camera padding was the last one, and #169 moved it to the container signal,
- *    because a contained map's frame and the viewport stopped being the same box.
+ *    because a frame and the viewport stopped being the same box.
  *    It survives as `useIsWide`'s own fallback, which is how a widget with nothing to measure still gets the right answer,
  *    and in a Ladle story, where the viewport really is the container.
  *  - **input** (`useCoarsePointer`, `useHasRealPointer`): this is for affordances that depend on the DEVICE, not the space, such as whether `tel:` reaches a dialer.

@@ -31,7 +31,6 @@ import {
 // module scope, splitting `FullInterface` behind `lazy` was not enough on its own: measured in a
 // browser, an embed still fetched all 485 KiB gz through this one barrel import.
 import { ReportIssueModal } from '@/components/organisms/ReportIssueForm'
-import { NoExpansionProvider } from '@/hooks/use-expansion'
 import { WidgetModeContext } from '@/config/mode'
 import livePreview from '@/config/live-preview/protocol'
 import '@/styles/globals.css'
@@ -401,11 +400,9 @@ function AppShell({
       )}
       <Suspense fallback={<LoadingFallback unboxed={hasMap && !inline} />}>
         {inline ? (
-          <InlineEmbedView hasMap={hasMap} homePath={homePath} primaryDomain={primaryDomain} />
+          <InlineEmbedView homePath={homePath} primaryDomain={primaryDomain} />
         ) : (
-          <NoExpansionProvider>
-            <FullInterface hasMap={hasMap} homePath={homePath} primaryDomain={primaryDomain} />
-          </NoExpansionProvider>
+          <FullInterface homePath={homePath} primaryDomain={primaryDomain} />
         )}
       </Suspense>
     </WidgetModeContext.Provider>

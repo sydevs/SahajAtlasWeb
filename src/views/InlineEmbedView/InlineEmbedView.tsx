@@ -1,6 +1,7 @@
 import {
   type CSSProperties,
   type ReactNode,
+  Activity,
   useCallback,
   useEffect,
   useMemo,
@@ -30,13 +31,19 @@ import { usePublishedNode } from '@/hooks/use-published-node'
 import { fallbackUrl } from '@/lib/fallback-url'
 import { setFrame, widgetOverlayContainer } from '@/lib/overlay'
 import { DrawerStack } from '@/views/DrawerStack/DrawerStack'
-import { MapInterface, MapLayer, useInterfaceBoot } from '@/views/FullInterface'
+import {
+  type InterfaceProps,
+  MapInterface,
+  MapLayer,
+  useInterfaceBoot,
+} from '@/views/FullInterface'
 import { headingPlace } from '@/views/InlineEmbedView/heading-place'
 import {
   headerOffset,
   hostElement,
   pageHasHeading,
   useGrowHost,
+  useStuckHeader,
 } from '@/views/InlineEmbedView/host-page'
 
 /**
@@ -58,18 +65,18 @@ import {
 /**
  * "Free Meditation classes in London": the place the route is in (`headingPlace`), or the
  * world's own title. A venue or a class keeps its own name as the panel's smaller heading below.
+ * It is the page's main heading only where the host's page has none of its own.
  */
-function PlaceHeading({ level }: { level: 'h1' | 'h2' }) {
+function PlaceHeading() {
   const { t, regionNames } = useLocale()
   const { pathname } = useLocation()
   const { data: tree } = useQuery(regionsQuery())
+  const [Heading] = useState<'h1' | 'h2'>(() => (pageHasHeading(hostElement()) ? 'h2' : 'h1'))
 
   const place = useMemo(
     () => headingPlace(pathname, tree, (code) => regionNames.of(code)),
     [pathname, tree, regionNames],
   )
-
-  const Heading = level
 
   return (
     <Heading className="min-w-0 text-2xl font-semibold">
@@ -109,19 +116,11 @@ const contentClass = `fixed inset-x-0 bottom-0 ${aboveHost} overflow-clip bg-bac
  * **Every portal in the app redirects inside it while it is open** (`setFrame`), because a
  * modal traps focus in its own content and hides everything else from assistive technology.
  */
-function ExpandedDialog({
-  open,
-  top,
-  onOpenChange,
-  title,
-  children,
-}: {
-  open: boolean
-  top: number
-  onOpenChange: (open: boolean) => void
-  title: string
-  children: ReactNode
-}) {
+function ExpandedDialog({ children }: { children: ReactNode }) {
+  const { t } = useLocale()
+  const { expanded: open, collapse } = useExpansion()
+  // Read when the map opens, not at mount: a header can hide on scroll, or wrap to two lines.
+  const top = useMemo(() => (open ? headerOffset(hostElement(), 'now') : 0), [open])
   // Published as the widget's frame, and the children wait for it — `usePublishedNode`
   // carries the timing argument.
   //
@@ -142,7 +141,18 @@ function ExpandedDialog({
   )
 
   return (
-    <Primitive.Root open={open} onOpenChange={onOpenChange}>
+    <Primitive.Root
+      open={open}
+      onOpenChange={(next) => {
+        if (next) return
+
+        // `ReportIssueModal` is mounted OUTSIDE this branch but portals through
+        // `overlayContainer()`, which is this dialog while it is open. Closing with the modal
+        // up would leave it rendering into a detached node with its scroll lock still on.
+        useReportModal.getState().closeReport()
+        collapse()
+      }}
+    >
       {/* NOT `overlayContainer()`: that resolves to this dialog once it is open, and a portal
           cannot render into its own subtree. */}
       <Primitive.Portal container={widgetOverlayContainer()}>
@@ -171,7 +181,9 @@ function ExpandedDialog({
             style={{ top }}
             transition={{ duration: 0.15 }}
           >
-            <Primitive.Title className="sr-only">{title}</Primitive.Title>
+            {/* The same name the widget's own landmark carries: a dialog whose accessible name
+                resolves empty is announced as an unlabelled group. */}
+            <Primitive.Title className="sr-only">{t('common.chrome.widget_label')}</Primitive.Title>
             {/* Held back until the ref above has published this node, so the first drawer
                 portals inside the dialog rather than beside it. */}
             {node && children}
@@ -184,16 +196,24 @@ function ExpandedDialog({
 
 // ===== THE VIEW ===== //
 
+const EXPAND_BUTTON = {
+  className: 'absolute top-3 left-3 z-10 border-divider bg-background shadow-lg',
+  radius: 'full',
+  size: 'sm',
+  variant: 'bordered',
+} as const
+
 /**
  * Over the inline map's top-left corner — physically left, since the attribution and the
- * locate control hold the top right and the wordmark the bottom right. A framed embed cannot
- * grow where it is, so there the button opens a page that fits, in a new tab.
+ * locate control hold the top right and the wordmark the bottom right.
+ *
+ * A frame cannot grow where it is — the standalone page framed, or a host page that is itself
+ * framed — so there the button opens a page that fits, in a new tab.
  */
 function ExpandButton() {
   const { t } = useLocale()
   const { standalone } = useWidgetMode()
   const { expand } = useExpansion()
-  const className = 'absolute top-3 left-3 z-10 border-divider bg-background shadow-lg'
   const label = (
     <>
       <Expand size={16} />
@@ -203,48 +223,32 @@ function ExpandButton() {
 
   // Two JSX branches, not a conditional `href`: `ButtonProps` is a discriminated union, so a
   // maybe-undefined href does not narrow into the anchor arm.
-  return standalone ? (
-    <Button
-      className={className}
-      href={fallbackUrl()}
-      radius="full"
-      size="sm"
-      target="_blank"
-      variant="bordered"
-    >
+  return standalone || embed.observed?.topLevel === false ? (
+    <Button {...EXPAND_BUTTON} href={fallbackUrl()} target="_blank">
       {label}
     </Button>
   ) : (
-    <Button className={className} radius="full" size="sm" variant="bordered" onClick={expand}>
+    <Button {...EXPAND_BUTTON} onClick={expand}>
       {label}
     </Button>
   )
 }
 
-function InlineLayout({ hasMap }: { hasMap: boolean }) {
-  const { t } = useLocale()
+function InlineLayout() {
   const { pathname } = useLocation()
-  const { expanded, collapse } = useExpansion()
+  const { hasMap } = useWidgetMode()
+  const { expanded } = useExpansion()
   const host = useMemo(hostElement, [])
-  const [level] = useState<'h1' | 'h2'>(() => (pageHasHeading(host) ? 'h2' : 'h1'))
-  const [stickTop, setStickTop] = useState(() => headerOffset(host, 'stuck'))
+  const stickTop = useStuckHeader(host)
   const [content, setContent] = useState<HTMLDivElement | null>(null)
   const boxed = useGrowHost(host, content)
   const heading = useRef<HTMLDivElement>(null)
   const lastPath = useRef(pathname)
-  // Read when the map opens, not at mount: a header can hide on scroll, or wrap to two lines.
-  // eslint-disable-next-line react-hooks/exhaustive-deps -- re-measured on each opening, never in between
-  const dialogTop = useMemo(() => (expanded ? headerOffset(host, 'now') : 0), [expanded])
   const top = boxed ? 0 : stickTop
-
-  // A header's height moves at the host's own breakpoints.
-  useEffect(() => {
-    const measure = () => setStickTop(headerOffset(host, 'stuck'))
-
-    window.addEventListener('resize', measure)
-
-    return () => window.removeEventListener('resize', measure)
-  }, [host])
+  // Behind the expanded map the content column is hidden, so the page keeps the height it had,
+  // and the visitor keeps their place in it.
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- measured once, at each opening
+  const pinnedHeight = useMemo(() => (expanded ? content?.offsetHeight : undefined), [expanded])
 
   // A new view starts at its own top: opening a city from the bottom of a long list would
   // otherwise leave the visitor looking at the middle of the next page. A view reached in the
@@ -263,7 +267,12 @@ function InlineLayout({ hasMap }: { hasMap: boolean }) {
   // A narrower one stacks a short map strip above the content, and it does not stick.
   const columns = (
     <div className={clsx('grid gap-4', hasMap && '@min-[720px]:grid-cols-2')}>
-      <DrawerStack inline />
+      {/* Hidden while the expanded map shows the same view: its effects would frame a map that
+          is not there and write the stores the expanded one reads, and its live regions would
+          speak from behind the modal. Its state is kept for the way back. */}
+      <Activity mode={expanded ? 'hidden' : 'visible'}>
+        <DrawerStack inline />
+      </Activity>
       {hasMap && (
         <div className="order-first px-4 @min-[720px]:order-none @min-[720px]:ps-0">
           <div
@@ -290,18 +299,18 @@ function InlineLayout({ hasMap }: { hasMap: boolean }) {
           '@container w-full bg-background text-foreground',
           boxed && 'h-full overflow-y-auto',
         )}
-        // Behind the expanded map, the page's copy of the same view stays mounted, so closing
-        // returns to it. `inert` takes it out of reach entirely: the modal's own hiding skips
-        // any subtree holding a live region, and a loading view holds one.
-        inert={expanded}
       >
-        <div ref={setContent} className="flex flex-col gap-2 py-4">
+        <div
+          ref={setContent}
+          className="flex flex-col gap-2 py-4"
+          style={{ minHeight: pinnedHeight }}
+        >
           <div
             ref={heading}
             className="flex items-center gap-3 px-4"
             style={{ scrollMarginTop: top + 16 }}
           >
-            <PlaceHeading level={level} />
+            <PlaceHeading />
             <SettingsMenu toolbar className="ms-auto" />
           </div>
           {hasMap ? (
@@ -314,41 +323,20 @@ function InlineLayout({ hasMap }: { hasMap: boolean }) {
         </div>
       </div>
       {hasMap && (
-        <ExpandedDialog
-          open={expanded}
-          // The same name the widget's own landmark carries: a dialog whose accessible name
-          // resolves empty is announced as an unlabelled group.
-          title={t('common.chrome.widget_label')}
-          top={dialogTop}
-          onOpenChange={(next) => {
-            if (next) return
-
-            // `ReportIssueModal` is mounted OUTSIDE this branch but portals through
-            // `overlayContainer()`, which is this dialog while it is open. Closing with the modal
-            // up would leave it rendering into a detached node with its scroll lock still on.
-            useReportModal.getState().closeReport()
-            collapse()
-          }}
-        >
-          <MapInterface hasMap />
+        <ExpandedDialog>
+          <MapInterface />
         </ExpandedDialog>
       )}
     </>
   )
 }
 
-export type InlineEmbedViewProps = {
-  hasMap: boolean
-  homePath?: string
-  primaryDomain?: string
-}
-
-function InlineEmbedView({ hasMap, homePath, primaryDomain }: InlineEmbedViewProps) {
-  useInterfaceBoot({ homePath, primaryDomain })
+function InlineEmbedView(props: InterfaceProps) {
+  useInterfaceBoot(props)
 
   return (
     <LocalExpansionProvider>
-      <InlineLayout hasMap={hasMap} />
+      <InlineLayout />
     </LocalExpansionProvider>
   )
 }

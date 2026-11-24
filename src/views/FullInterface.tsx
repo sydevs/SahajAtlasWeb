@@ -5,6 +5,7 @@ import { MapProvider } from 'react-map-gl/mapbox'
 
 import { Spinner } from '@/components/atoms/Spinner'
 import { useCameraSettled } from '@/config/store'
+import { useWidgetMode } from '@/config/mode'
 import { Mapbox } from '@/components/organisms/Mapbox'
 import { NoopMapControllerProvider } from '@/hooks/use-map-controller'
 import { RealMapControllerProvider } from '@/hooks/use-map-controller-real'
@@ -120,18 +121,15 @@ function MapCurtain() {
   )
 }
 
+/** What every interface form is booted with, from the client record. */
+export type InterfaceProps = { homePath?: string; primaryDomain?: string }
+
 /**
  * What an interface does once it is on screen: the pageview, the captcha guard, the home
  * redirect, and the cache warm. Called once per interface module, and never by the expanded map
  * an inline embed opens, which is the same interface over the page rather than a second one.
  */
-export function useInterfaceBoot({
-  homePath,
-  primaryDomain = '',
-}: {
-  homePath?: string
-  primaryDomain?: string
-}) {
+export function useInterfaceBoot({ homePath, primaryDomain = '' }: InterfaceProps) {
   const navigate = useNavigate()
   const location = useLocation()
   const didInit = useRef(false)
@@ -178,8 +176,8 @@ export function MapLayer({ cooperative = false }: { cooperative?: boolean }) {
 }
 
 /** The map (or not) and the drawer stack over it. */
-export function MapInterface({ hasMap }: { hasMap: boolean }) {
-  return hasMap ? (
+export function MapInterface() {
+  return useWidgetMode().hasMap ? (
     <MapProvider>
       <MapLayer />
       <RealMapControllerProvider>
@@ -194,18 +192,10 @@ export function MapInterface({ hasMap }: { hasMap: boolean }) {
 }
 
 /** The map-first interface: the standalone page opened directly. */
-function FullInterface({
-  hasMap,
-  homePath,
-  primaryDomain,
-}: {
-  hasMap: boolean
-  homePath?: string
-  primaryDomain?: string
-}) {
+function FullInterface({ homePath, primaryDomain }: InterfaceProps) {
   useInterfaceBoot({ homePath, primaryDomain })
 
-  return <MapInterface hasMap={hasMap} />
+  return <MapInterface />
 }
 
 export default FullInterface

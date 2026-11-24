@@ -18,10 +18,12 @@ const REGIONS = [
   node(2, 'south-east', 'South East', 'region', 1, '/gb/south-east'),
   node(3, 'london', 'London', 'city', 2, '/gb/south-east/london'),
   node(4, 'brixton', 'Brixton Centre', 'venue', 3, '/gb/south-east/london/brixton'),
+  node(5, 'as', 'Ascot', 'city', 2, '/gb/south-east/as'),
 ]
 
 // Distinguishable from the tree's own English name, so a case reading the tree instead fails.
-const countryName = (code: string) => (code === 'GB' ? 'Royaume-Uni' : undefined)
+const COUNTRY_NAMES: Record<string, string> = { GB: 'Royaume-Uni', AS: 'Samoa américaines' }
+const countryName = (code: string) => COUNTRY_NAMES[code]
 const place = (pathname: string) => headingPlace(pathname, REGIONS, countryName)
 
 describe('the place the inline heading names', () => {
@@ -35,6 +37,10 @@ describe('the place the inline heading names', () => {
 
   it("names a country in the visitor's language", () => {
     expect(place('/gb')).toBe('Royaume-Uni')
+  })
+
+  it('reads a two-letter slug as a country only where the tree says it is one', () => {
+    expect(place('/gb/south-east/as')).toBe('Ascot')
   })
 
   it('names the city a venue sits in, not the venue', () => {

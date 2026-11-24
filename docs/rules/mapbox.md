@@ -372,9 +372,9 @@ collapsed form — its own information button, which `compact` renders — and s
 any other placement must be reviewed and approved by Mapbox, so the credits
 cannot move into the settings menu.
 
-⚠ The top-right container also holds `GeolocateControl`, and `[data-sy-expanded]`
-nudges the whole column down 40px to clear the expanded surface's collapse
-control — two controls now, not one.
+⚠ The top-right container also holds `GeolocateControl`, so nothing of ours may sit
+in that corner: the inline map's "Expand map" takes the top LEFT, and the expanded
+map's "Close map" floats at the bottom middle.
 
 ## A geocoder lookup whose answer is STORED asks for `permanent`
 

@@ -17,19 +17,11 @@ const NOOP: Expansion = {
   collapse: () => {},
 }
 
+// The default: nowhere bigger to go — the map-first page, a Ladle story — so a component that never
+// heard of expansion cannot be broken by it.
 const ExpansionContext = createContext<Expansion>(NOOP)
 
 export const useExpansion = () => useContext(ExpansionContext)
-
-/**
- * This covers surfaces with nowhere bigger to go: the map-first page and a Ladle story.
- *
- * The default context value is this same object.
- * So a subtree with no provider above it behaves identically, and a component that never heard of expansion cannot be broken by it.
- */
-export function NoExpansionProvider({ children }: { children: ReactNode }) {
-  return <ExpansionContext.Provider value={NOOP}>{children}</ExpansionContext.Provider>
-}
 
 /**
  * This is expansion in the host's own page: the inline embed's map opens over the page, then comes back.

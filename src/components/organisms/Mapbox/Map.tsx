@@ -248,7 +248,7 @@ function EventPinPopover({
 
 /**
  * @param cooperative Leave one-finger and wheel scrolling to the host page, moving the map only on
- *   two fingers or Ctrl/⌘ + wheel (`gestures=cooperative`, contained maps only).
+ *   two fingers or Ctrl/⌘ + wheel (`gestures=cooperative`, the inline map only).
  */
 export function Mapbox({ cooperative = false }: { cooperative?: boolean } = {}) {
   let navigate = useAtlasNavigate()

@@ -649,7 +649,7 @@ more, opted in the same way (`grep -rl '@vitest-environment jsdom' src/`); this 
   state, it is covering the door.**
 - `src/views/InlineEmbedView/host-page.test.tsx` — what the inline embed reads and writes on the
   HOST's document: the element's inline height override and its restore, the page's own `h1`, the
-  `--sahaj-atlas-top` property. There is no pure half left; jsdom gives no layout, so the header
+  `--sahaj-atlas-header` property. There is no pure half left; jsdom gives no layout, so the header
   search across the top of the window is left to the browser lane.
 - `src/lib/overlay.test.ts` — the portal target, and its one piece of module state (#161). It
   tests whether the expanded surface stays connected to the theme root — a detached target
@@ -694,7 +694,7 @@ and the pull request records the manual Escape pass.
 
 ### A CLOSED portal renders nothing under SSR — an "absence" assertion proves nothing
 
-This app is portal-dense — every vaul drawer, every Radix overlay, `CompactEmbedView`'s expanded
+This app is portal-dense — every vaul drawer, every Radix overlay, the inline embed's expanded
 dialog — and the node lane relates to them in two opposite ways, depending on one bit:
 
 | under `renderToStaticMarkup`       | what happens                                                                                |
@@ -706,8 +706,8 @@ So the trap is narrow: an **absence** assertion about a closed portal's contents
 reason that has nothing to do with the property under test. Issue #161 wrote exactly that spec —
 "a collapsed card does not render the interface" — watched it pass, and it kept passing with the
 regression reintroduced, because the dialog was closed either way and there was never any markup
-for `not.toContain` to find. `CompactEmbedView.mount.test.tsx` is the jsdom version that actually
-holds.
+for `not.toContain` to find. The jsdom version of that spec held (it went with the compact card);
+a closed-portal absence needs a DOM, or the browser lane.
 
 ⚠ **Do not over-generalize this into "the node lane can never assert a portal."** It does so
 loudly: a portal that renders when it should not makes SSR **throw** rather than pass quietly.
@@ -835,9 +835,9 @@ sits at about half the bound, and has in every re-measurement since, on 4 cores 
 widest selection grew. Time the hook (below) rather than quoting a figure: the ceiling is the
 narrower constraint of the two — a slot is spent long before a second is.
 ⚠ **The 0.12s class is smaller than #289 found it**: `src/views/FullInterface.tsx` selected
-nothing until `MapFrame.test.tsx` named it as a quoted repo-relative path, and now costs **2.2s**
-per edit for the wiring pin it previously had no per-edit coverage from at all. A quoted literal
-buys selection, and selection is what the budget is spent on.
+nothing until a spec named it as a quoted path (`MapFrame.test.tsx` then, since deleted;
+`App.standalone-title.test.tsx` now), and cost **2.2s** per edit as measured then. A quoted
+literal buys selection, and selection is what the budget is spent on.
 Re-measure by timing the hook itself, since the command it builds is the thing under budget:
 
 ```bash

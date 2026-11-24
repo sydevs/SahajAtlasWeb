@@ -139,13 +139,12 @@ export function DrawerChrome({
   // and drawer-control change, so this does not re-scan it for a name that only
   // moves with the slug.
   const regionSlug = entry?.kind === 'region' ? entry.slug : undefined
-  const regionName = useMemo(
+  const region = useMemo(
     () =>
-      regionSlug === undefined
-        ? undefined
-        : (regions?.find((node) => node.slug === regionSlug)?.name ?? undefined),
+      regionSlug === undefined ? undefined : regions?.find((node) => node.slug === regionSlug),
     [regions, regionSlug],
   )
+  const regionName = region?.name ?? undefined
 
   const title = (() => {
     switch (entry?.kind) {
@@ -209,7 +208,11 @@ export function DrawerChrome({
       {/* An empty <div> rather than an empty DrawerTitle when nothing resolved: a blank
           <h2> is a heading with no name, which is worse for a screen reader than no
           heading at all. It still holds the left slot so the control stays right-aligned. */}
-      {title ? <DrawerTitle isPlace={entry?.kind === 'region'} title={title} /> : <div />}
+      {title ? (
+        <DrawerTitle isPlace={!!region && region.level !== 'venue'} title={title} />
+      ) : (
+        <div />
+      )}
       <div className="flex shrink-0 items-center gap-2">
         {/* A region's own header offers these three, and all still work — they navigate
             rather than read. The calendar and the filters are scoped to the region whose page

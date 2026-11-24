@@ -9,7 +9,6 @@ import { MapControllerContext } from './use-map-controller'
 import { useMapbox, usePaddingState } from '@/hooks/use-mapbox'
 import { useSheetCover, useViewState } from '@/config/store'
 import { useIsWide } from '@/config/responsive'
-import { useExpansion } from '@/hooks/use-expansion'
 import { eventFrameZoom, hasMapPoint, worldViewCamera } from '@/lib/camera'
 import { hasApproximatePlace, isOnline } from '@/lib/shape'
 import { frameElement } from '@/lib/overlay'
@@ -43,8 +42,8 @@ const DRAWER_W_PX = 352
 // map the open sheet hides, and on /fr/paris the classes listed first sat under it.
 const MOBILE_SHEET_PX = 300
 // What the sheet must still leave of the map above it, for the pin the camera just framed. It also
-// keeps the padding inside a short contained embed (#169), where padding past the canvas makes
-// `fitBounds` refuse the fit outright.
+// keeps the padding inside a short frame, where padding past the canvas makes `fitBounds` refuse
+// the fit outright.
 const MIN_MAP_STRIP_PX = 160
 const MAP_MARGIN = 20
 
@@ -90,9 +89,9 @@ const eventPoint = (event: Pick<EventSlim, 'address' | 'eventType' | 'inactive' 
  * The app reaches this provider only through the lazy interface modules, so the eager graph
  * never loads this provider or mapbox-gl.
  *
- * `inline` is the inline embed's own map, which no drawer covers, so it pads by the margin
- * alone. It shares the padding store with the expanded map, and stands down while that one is
- * open, so the two never fight over it. Its effect re-runs on collapse, which restores its own.
+ * `inline` is the inline embed's own map, which no drawer covers, so it writes no padding: the
+ * store's margin-only default is its padding. The expanded map's provider gives that default
+ * back when it unmounts, so its drawer padding cannot outlive it.
  */
 export function RealMapControllerProvider({
   children,
@@ -119,17 +118,10 @@ export function RealMapControllerProvider({
   // `frameElement()` is a shared node, not a shared context, so both sides can reach it.
   // This is also why the dialog publishes that node in the layout phase, before either side first renders.
   const isWide = useIsWide(frameElement())
-  const { expanded } = useExpansion()
-  const standDown = inline && expanded
 
   // Keep the drawer's known footprint out of the usable camera area.
   useEffect(() => {
-    if (standDown) return
-    if (inline) {
-      setPadding({ left: MAP_MARGIN, right: MAP_MARGIN, top: MAP_MARGIN, bottom: MAP_MARGIN })
-
-      return
-    }
+    if (inline) return
 
     const boxHeight = frameElement()?.clientHeight ?? window.innerHeight
     const sheet = Math.max(0, Math.min(sheetCover ?? MOBILE_SHEET_PX, boxHeight - MIN_MAP_STRIP_PX))
@@ -140,7 +132,10 @@ export function RealMapControllerProvider({
       top: MAP_MARGIN,
       bottom: MAP_MARGIN + (isWide ? 0 : sheet),
     })
-  }, [inline, standDown, isWide, sheetCover, setPadding])
+
+    return () =>
+      setPadding({ left: MAP_MARGIN, right: MAP_MARGIN, top: MAP_MARGIN, bottom: MAP_MARGIN })
+  }, [inline, isWide, sheetCover, setPadding])
 
   const controller = useMemo<MapController>(
     () => ({

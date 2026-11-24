@@ -251,22 +251,25 @@ once. The expanded map is `MapInterface`, the same interface without that boot.
   dialog opened from the content must not be confined to the map. The two maps never coexist:
   the inline one unmounts while the dialog's is open, because both write the one camera-settled
   flag, and remounts on collapse, re-framing as its controller arrives. They share the padding
-  store, so `RealMapControllerProvider inline` pads by the margin alone and stands down while
-  expanded; its effect re-runs on collapse and restores its own padding.
+  store: `RealMapControllerProvider inline` writes nothing, since the store's margin-only default
+  is its padding, and the expanded map's provider gives that default back when it unmounts.
 - **Layout is measured on the widget, in CSS** — `@container` with `@min-[720px]:`, never a
   viewport variant (#107).
 - **The host's page is `host-page.ts`'s business, and every read is guarded.** The host
   element's height rule is overridden with inline `!important` styles while mounted and given
-  back after (`useGrowHost`); where it still cannot grow, the content scrolls inside it
-  (`boxed`), which also moves the map's `sticky` onto that scroller. `headerOffset` reads
-  `--sahaj-atlas-top`, then looks for a fixed, sticky or banner element across the top of the
+  back after (`useGrowHost`). Where the content still cannot reach the page — its box holds, or an
+  ancestor clips, as WeMeditate's `/map` shell does — the element takes `height: 100%` and the
+  content scrolls inside it (`boxed`), which also moves the map's `sticky` onto that scroller. `headerOffset` reads
+  `--sahaj-atlas-header`, then looks for a fixed, sticky or banner element across the top of the
   window, then answers zero. `pageHasHeading` makes the page heading an `h2` under a host `h1`.
 - **The expanded dialog is module-private in `InlineEmbedView`.** It publishes itself as the
   app's portal target, needs `contain: layout`, and has one caller, so it is not an atom;
   `Modal` stays the generic dialog. It starts below the host's header rather than over it, and
-  its visible exit is `DrawerStack`'s "Close map", floating above the sheet's live top. The
-  inline content behind it is `inert`: Radix's `hideOthers` skips any subtree holding a live
-  region, and a loading view holds one.
+  its visible exit is `DrawerStack`'s "Close map", floating above the sheet's live top. Behind
+  it, the inline column sits in a hidden `<Activity>`: its effects would otherwise frame a map
+  that is not there and write the stores the expanded map reads, and Radix's `hideOthers` skips
+  any subtree holding a live region. The content keeps its height while hidden, so the page
+  does not move under the modal.
 
 ### The expanded map is contained by its FRAME (issue #169)
 

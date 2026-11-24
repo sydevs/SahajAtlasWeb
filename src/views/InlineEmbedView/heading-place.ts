@@ -28,7 +28,9 @@ export function headingPlace(
 
     if (node?.level === 'venue') continue
 
-    const code = isoCountryCode(entry.slug)
+    // Only a country's slug is its code: a city slugged `as` is not American Samoa
+    // (`lib/shape/country.ts`). Before the tree arrives, a two-letter slug is the best guess.
+    const code = !node || node.level === 'country' ? isoCountryCode(entry.slug) : undefined
 
     return (code && countryName(code)) || node?.name || undefined
   }

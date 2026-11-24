@@ -150,15 +150,10 @@ const drawer = tv({
       },
       /**
        * In the host page's flow, with no drawer at all: the inline embed's content column.
-       * Nothing scrolls inside it, so the page grows to fit, and nothing centres itself in a
-       * column the page heading is aligned to.
+       * Nothing scrolls inside it, so the page grows to fit. The column lifts the bands' width
+       * cap itself, through `--sy-content-max`.
        */
-      inline: {
-        header: '!mx-0 !max-w-none',
-        toolbar: '!mx-0 !max-w-none',
-        body: '!mx-0 !max-w-none !flex-none !overflow-visible after:hidden',
-        footer: '!mx-0 !max-w-none',
-      },
+      inline: { body: 'flex-none overflow-visible after:hidden' },
     },
     // A full-width surface, such as CalendarView, instead of the 352px
     // left panel, so a month grid stays legible. This only matters with
@@ -211,7 +206,10 @@ const useDrawerSlots = () => useContext(DrawerContext)
 /** Which surface a view's `Drawer*` subtree renders in. */
 export const useDrawerMode = () => useContext(DrawerContext).mode
 
-export type DrawerProps = VariantProps<typeof drawer> & {
+// A real drawer is anchored or filled. `inline` is a surface with no drawer at all, reached
+// only through `DrawerSlotsProvider`.
+export type DrawerProps = Omit<VariantProps<typeof drawer>, 'mode'> & {
+  mode?: 'anchored' | 'filled'
   /** Controlled open state. */
   open?: boolean
   onOpenChange?: (open: boolean) => void

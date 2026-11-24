@@ -71,10 +71,10 @@ export function frameElement(): HTMLElement | null {
  * The collision boundary a Radix popper needs to stay inside the frame (#169).
  *
  * ⚠ **Radix's popper defaults to an EMPTY boundary, which Floating UI reads as the viewport.**
- * That was right while the widget owned the viewport and is wrong the moment a frame contains it:
- * a menu opened near the bottom of a 640px contained map sees hundreds of pixels of free browser
- * window below its trigger, places itself there, and the frame's `overflow-clip` erases it. The
- * control then appears to do nothing, with nothing in the console.
+ * That is wrong the moment a frame contains the widget: the expanded map's dialog starts below the
+ * host's header, so a menu opened near its top sees free window above its trigger, places itself
+ * under the header, and the frame's `overflow-clip` erases it. The control then appears to do
+ * nothing, with nothing in the console.
  *
  * `null` is filtered out by Radix, so with no frame this is exactly today's behaviour.
  *
