@@ -98,11 +98,11 @@ cover everything a host would notice since the widget was first deployed.
   origin, CSP, storage or Permissions-Policy change.**
 
 - ⚠ **Every embed now opens inline, as part of your page, and the map opens over it on request.**
-  The widget shows a heading — "Free Meditation classes in London" — above two columns: the
-  classes on the left, and a square map on the right that stays in view below your header. A
-  narrow widget stacks a short map strip above the classes; `map=false` shows the classes alone.
-  "Expand map" opens the full map, with its panel, in a modal covering the screen below your
-  header, and "Close map" brings the visitor back. See
+  ([#466]) The widget shows a heading — "Free Meditation classes in London" — above two
+  columns: the classes on the left, and a square map on the right that stays in view below
+  your header. A narrow widget stacks a short map strip above the classes; `map=false` shows
+  the classes alone. "Expand map" opens the full map, with its panel, in a modal covering the
+  screen below your header, and "Close map" brings the visitor back. See
   [Sizing the element](docs/embedding.md#sizing-the-element). What you can observe:
   - **The widget overrides your element's height.** It writes `height: auto`, `max-height: none`
     and `overflow: visible` onto `<sahaj-atlas>` as inline `!important` styles, so a height you
@@ -1252,6 +1252,7 @@ must-revalidate`, pinned rather than left to the CDN default. The production dom
   (`//evil.com`) and non-allowlisted-scheme hrefs. Defense in depth — no live hole was
   found. ([#111], [#136])
 
+[#466]: https://github.com/sydevs/SahajAtlasWeb/pull/466
 [#478]: https://github.com/sydevs/SahajAtlasWeb/pull/478
 [#469]: https://github.com/sydevs/SahajAtlasWeb/pull/469
 [#192]: https://github.com/sydevs/SahajAtlasWeb/pull/192
