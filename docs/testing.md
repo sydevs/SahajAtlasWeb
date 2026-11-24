@@ -666,25 +666,37 @@ more, opted in the same way (`grep -rl '@vitest-environment jsdom' src/`); this 
   only a DOM can say whether it is on screen, and the cache cannot — a later message carrying no
   `previewEvent` leaves the cache entry exactly as it was while covering it with the skeleton.
 
-### One dialog per jsdom FILE, and assert the focus call rather than where focus ends up (#432)
+### Wait out Radix's focus restore, and assert the focus call rather than where focus ends up (#432, #475)
 
-Two Radix dialogs in one spec file share one `document`, and React finishes one case's
-teardown while the next case is already running. Radix's focus scope then moves focus from the
-case that has already ended, and the next case's `document.activeElement` is whatever that
-teardown decided. Measured on `Modal.focus.test.tsx`: three cases in one file failed about one
-run in five, two about one in eight, one passed fifteen times out of fifteen. So the second
-property lives in `Modal.focus-opener.test.tsx`, as its own file.
+Radix's `FocusScope` dispatches its unmount auto-focus from a `setTimeout(…, 0)`
+(`@radix-ui/react-focus-scope`), and nothing makes that timer run before the `act()` that closed
+the dialog returns. ⚠ **`act` is not microtasks-only** — its async form yields through
+`enqueueTask`, which is `setImmediate` under Node — so a pending 0 ms timer sometimes runs
+inside it and sometimes does not. A spec asserting straight after the close therefore reads its
+focus trace before anything was asked for, at random, and fails `expected undefined`. Measured
+on `Modal.focus.test.tsx`: three cases in one file failed 5 runs in 15, and 0 in 20 once
+`close()` waits the timer out.
 
-⚠ **It is a scheduling race, not a slow read.** Flushing harder makes it worse, not better —
-an extra `act` flush after the close took it from one in six to one in four, because the extra
-microtasks give the previous case's teardown more room to run. Waiting for `activeElement` to
-stop changing does not fix it either: it comes to rest on the wrong element.
+⚠ **Wait for the timer after the closing `act` returns, never inside it.** The cleanup that
+queues Radix's timer runs during that `act`, so a wait queued in the same scope is the earlier
+of the two timers and fires first: measured 7 failures in 20, worse than no wait at all.
+`vi.waitFor` around the assertion is the other correct shape, at a 50 ms poll interval per case.
 
-What a dialog atom owns is **asking** for focus back, so these specs spy on
-`HTMLElement.prototype.focus` and assert the last element the close path asked for. Where focus
-settles after a torn-down sibling has had its say is not a property of the atom under test, and
-a browser is what settles the end state — `pnpm test:a11y` walks the keyboard over every story,
-and the pull request records the manual Escape pass.
+⚠ **It is a scheduling race, not a slow read, so flushing microtasks harder makes it worse** —
+an extra `act` flush after the close once took it from one in six to one in four. Waiting for
+`activeElement` to stop changing does not fix it either: it comes to rest on the wrong element.
+
+⚠ **One dialog per jsdom file was this same race, and is no longer the rule.** Its failures were
+read as a sibling case's teardown moving focus, so the opener property lived in its own file
+until #475. The earlier measurement — three cases failing one run in five, two one in eight, one
+15 for 15 — is what an independent dice roll per case produces, so it was evidence for the timer
+rather than against it. The cases share one file again.
+
+What a dialog atom owns is **asking** for focus back, so each case spies on
+`HTMLElement.prototype.focus` and asserts the last element the close path asked for. Where focus
+ends up afterwards is not a property of the atom under test, and a browser is what settles it —
+`pnpm test:a11y` walks the keyboard over every story, and the pull request records the manual
+Escape pass.
 
 ### A CLOSED portal renders nothing under SSR — an "absence" assertion proves nothing
 
