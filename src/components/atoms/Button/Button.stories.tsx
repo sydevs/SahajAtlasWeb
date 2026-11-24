@@ -137,12 +137,14 @@ export const Default: Story = () => (
           <X size={16} />
           Close map
         </Button>
+        {/* `touch-target relative` is the cog's 44px tap area, as SettingsMenu's own trigger
+            carries it. Drawn at 32px, a story without it measures short and reddens the gate. */}
         <button
           aria-label="Settings"
           className={floatingChrome({
             bordered: true,
             className:
-              'flex h-8 w-8 items-center justify-center text-gray-11 hover:text-foreground',
+              'touch-target relative flex h-8 w-8 items-center justify-center text-gray-11 hover:text-foreground',
           })}
           type="button"
         >
