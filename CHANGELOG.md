@@ -43,7 +43,7 @@ cover everything a host would notice since the widget was first deployed.
 
 ### Changed
 
-- **A warmer default look, and map circles whose numbers are easy to read.** ([#PRNUM]) The
+- **A warmer default look, and map circles whose numbers are easy to read.** ([#469]) The
   widget's built-in colours change: the default primary is now a green (`#2D9A76`, was the teal
   `#1E6C71`) and the default accent a coral (`#E0775C`, was `#d8735a`), and the panel's greys are
   faintly warm. A cluster circle is now solid and one shade deeper than a single class's pin, and
@@ -1178,6 +1178,7 @@ must-revalidate`, pinned rather than left to the CDN default. The production dom
   (`//evil.com`) and non-allowlisted-scheme hrefs. Defense in depth — no live hole was
   found. ([#111], [#136])
 
+[#469]: https://github.com/sydevs/SahajAtlasWeb/pull/469
 [#192]: https://github.com/sydevs/SahajAtlasWeb/pull/192
 [#187]: https://github.com/sydevs/SahajAtlasWeb/pull/187
 [#159]: https://github.com/sydevs/SahajAtlasWeb/pull/159
