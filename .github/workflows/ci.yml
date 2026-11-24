@@ -33,6 +33,9 @@ permissions:
 # `.vscode/`, is read by a build, lint, test or script (eslint ignores `.claude/`; nothing here
 # runs a formatter). A new file under `docs/` that is not on this list takes the full lane,
 # which fails safe.
+env:
+  LIGHT_PATHS: '(^|/)(AGENTS|CLAUDE|README|CHANGELOG|DESIGN_SYSTEM|STORYBOOK)\.md$|^docs/(architecture|environment|mcp-setup|security-triggers|stacked-prs)\.md$|^docs/rules/(code-comments|data-layer|i18n-and-state|mapbox)\.md$|^\.claude/|^\.vscode/'
+
 jobs:
   # The decision `Smoke` reads. Cheap: one checkout and a diff.
   scope:
@@ -47,7 +50,7 @@ jobs:
         id: scope
         uses: sydevs/claude-workflow/.github/actions/change-scope@main
         with:
-          light: '(^|/)(AGENTS|CLAUDE|README|CHANGELOG|DESIGN_SYSTEM|STORYBOOK)\.md$|^docs/(architecture|environment|mcp-setup|security-triggers|stacked-prs)\.md$|^docs/rules/(code-comments|data-layer|i18n-and-state|mapbox)\.md$|^\.claude/|^\.vscode/'
+          light: ${{ env.LIGHT_PATHS }}
 
   gate:
     name: Lint, Typecheck & Build
@@ -59,7 +62,7 @@ jobs:
         id: scope
         uses: sydevs/claude-workflow/.github/actions/change-scope@main
         with:
-          light: '(^|/)(AGENTS|CLAUDE|README|CHANGELOG|DESIGN_SYSTEM|STORYBOOK)\.md$|^docs/(architecture|environment|mcp-setup|security-triggers|stacked-prs)\.md$|^docs/rules/(code-comments|data-layer|i18n-and-state|mapbox)\.md$|^\.claude/|^\.vscode/'
+          light: ${{ env.LIGHT_PATHS }}
       # Reads `packageManager` from package.json.
       - uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6
         if: ${{ steps.scope.outputs.full == 'true' }}
@@ -234,7 +237,7 @@ jobs:
         id: scope
         uses: sydevs/claude-workflow/.github/actions/change-scope@main
         with:
-          light: '(^|/)(AGENTS|CLAUDE|README|CHANGELOG|DESIGN_SYSTEM|STORYBOOK)\.md$|^docs/(architecture|environment|mcp-setup|security-triggers|stacked-prs)\.md$|^docs/rules/(code-comments|data-layer|i18n-and-state|mapbox)\.md$|^\.claude/|^\.vscode/'
+          light: ${{ env.LIGHT_PATHS }}
       - uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
         if: ${{ steps.scope.outputs.full == 'true' }}
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0

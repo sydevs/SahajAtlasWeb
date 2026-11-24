@@ -535,15 +535,16 @@ describe('every workflow', () => {
 
 // The light lane skips steps on a docs-only change, so a file the specs READ must never count as
 // light: a change to it would then merge without the lane that parses it. Everything is decided
-// by one regex in `ci.yml`, passed to three `change-scope` calls, so the three must agree.
+// by one regex in `ci.yml`, held as a workflow-level `env` key so the three `change-scope` calls
+// cannot drift apart.
 describe('ci.yml light lane', () => {
   const ci = readRepoSource('.github/workflows/ci.yml')
-  const lights = [...ci.matchAll(/^\s*light: '(.+)'$/gm)].map((m) => m[1])
-  const light = new RegExp(lights[0])
+  const light = new RegExp(match(ci, /^\s*LIGHT_PATHS: '(.+)'$/m))
 
-  it('gives every job that classifies the change the same list of light paths', () => {
-    expect(lights).toHaveLength(3)
-    expect(new Set(lights).size).toBe(1)
+  it('passes that one list to every job that classifies the change', () => {
+    const passed = [...ci.matchAll(/^\s*light: (.+)$/gm)].map((m) => m[1])
+
+    expect(passed).toEqual(Array<string>(3).fill('${{ env.LIGHT_PATHS }}'))
   })
 
   it('counts a guide as light, and never a file a spec or the build reads', () => {
