@@ -134,6 +134,12 @@
   --container-6xl: 1152px;
   --container-7xl: 1280px;
   --container-prose: 65ch;
+  /* The inline embed's own crossing, read as `@min-sy-cols:` on its `@container`: the width at
+     which the content column and the map sit side by side instead of stacking. It is the widget's
+     own width, never the window's (#107), and it is NOT `WIDE_MIN_PX` — that one decides the
+     drawer's shape (`config/responsive.ts`). Named here so seven call sites in one component
+     cannot drift apart. */
+  --container-sy-cols: 720px;
 
   /* v3 declared `fontSize` twice; the second block won outright, so this scale stops at
      `2xl` on purpose. `text-3xl` generated nothing under v3 and still generates nothing. */

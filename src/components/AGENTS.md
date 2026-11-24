@@ -215,7 +215,7 @@ shipping a narrow embed that quietly behaves like a desktop.
 | Modal box sizing | container (the frame) | Portals through `overlayContainer()`, so a frame contains and clips it on both axes. |
 | `EventHeader`'s `md:pt-4`, `ListItem`'s `lg:h-9 lg:w-9` | viewport (accepted residue) | The only two variants that fire wrongly in a narrow map-less embed. Both are cosmetic — fix them if you are already there. |
 | Form-field font size — the 16px floor (the `field-size` utility, on `fieldChrome` and both search fields) | **input, then viewport** — one `@utility` in `globals.css`, not one of the three hooks | iOS Safari scales the whole page in when a focused field computes under 16px, and embedded that zoom lands on the host's page. The trigger is the engine, not the box: an iPhone is 932px wide in landscape, so a `md:`-only floor handed it the 13px scale back and zoomed exactly as before (measured). So 13px needs a wide screen **and** a fine pointer — the same hardware question the `tel:` row asks, in CSS rather than `useCoarsePointer()`. A 400px iframe on a desktop therefore does render 16px fields, which is cosmetic and accepted. One utility rather than a class pair also lets `[&_input]:field-size` reach the geocoder's own input in a single arm. `src/styles/mobile-zoom.test.ts` holds the floor, refuses a bare `md:`, and refuses a caller `text-*`, which a custom utility cannot outrank (#322). |
-| Inline columns vs. a map strip above the list (`InlineEmbedView`) | container, in CSS (`@container`, `@min-[720px]:`) | The same fit question, asked of the widget's own width, with no JS. |
+| Inline columns vs. a map strip above the list (`InlineEmbedView`) | container, in CSS (`@container`, `@min-sy-cols:`) | The same fit question, asked of the widget's own width, with no JS. `--container-sy-cols` in `globals.css` is the crossing, and it is not `WIDE_MIN_PX`. |
 | Inline vs. map-first (`App`) | the entry, once | Not a size question: every embed and every frame is inline, and only the standalone page opened directly is map-first. |
 | Reduced motion, color scheme | preference | Not a size question at all — see the accessibility motion seams below. |
 
@@ -253,7 +253,7 @@ once. The expanded map is `MapInterface`, the same interface without that boot.
   flag, and remounts on collapse, re-framing as its controller arrives. They share the padding
   store: `RealMapControllerProvider inline` writes nothing, since the store's margin-only default
   is its padding, and the expanded map's provider gives that default back when it unmounts.
-- **Layout is measured on the widget, in CSS** — `@container` with `@min-[720px]:`, never a
+- **Layout is measured on the widget, in CSS** — `@container` with `@min-sy-cols:`, never a
   viewport variant (#107).
 - **The host's page is `host-page.ts`'s business, and every read is guarded.** The host
   element's height rule is overridden with inline `!important` styles while mounted and given

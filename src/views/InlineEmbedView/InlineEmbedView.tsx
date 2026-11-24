@@ -263,10 +263,10 @@ function InlineLayout() {
     // eslint-disable-next-line react-hooks/exhaustive-deps -- a navigation, or closing the map after one, is the only trigger
   }, [pathname, expanded])
 
-  // Side by side from a 720px-wide widget, measured on the widget rather than the window (#107).
-  // A narrower one stacks a short map strip above the content, and it does not stick.
+  // Side by side from `--container-sy-cols` wide, measured on the widget rather than the window
+  // (#107). A narrower one stacks a short map strip above the content, and it does not stick.
   const columns = (
-    <div className={clsx('grid gap-4', hasMap && '@min-[720px]:grid-cols-2')}>
+    <div className={clsx('grid gap-4', hasMap && '@min-sy-cols:grid-cols-2')}>
       {/* Hidden while the expanded map shows the same view: its effects would frame a map that
           is not there and write the stores the expanded one reads, and its live regions would
           speak from behind the modal. Its state is kept for the way back. */}
@@ -274,12 +274,12 @@ function InlineLayout() {
         <DrawerStack inline />
       </Activity>
       {hasMap && (
-        <div className="order-first px-4 @min-[720px]:order-none @min-[720px]:ps-0">
+        <div className="order-first px-4 @min-sy-cols:order-none @min-sy-cols:ps-0">
           <div
             // ⚠ `contain: layout` makes this box the containing block for the canvas, which is
             // fixed. `transform-gpu` gives WebKit's compositor the same box to clip it to (#424).
             // The square is capped to what fits below the header, so all of it stays in view.
-            className="relative h-[clamp(180px,33vh,320px)] transform-gpu overflow-clip rounded-2xl border border-divider [contain:layout] @min-[720px]:sticky @min-[720px]:top-[calc(var(--sy-inline-top,0px)+16px)] @min-[720px]:ms-auto @min-[720px]:aspect-square @min-[720px]:h-auto @min-[720px]:max-w-[calc(100vh-var(--sy-inline-top,0px)-32px)]"
+            className="relative h-[clamp(180px,33vh,320px)] transform-gpu overflow-clip rounded-2xl border border-divider [contain:layout] @min-sy-cols:sticky @min-sy-cols:top-[calc(var(--sy-inline-top,0px)+16px)] @min-sy-cols:ms-auto @min-sy-cols:aspect-square @min-sy-cols:h-auto @min-sy-cols:max-w-[calc(100vh-var(--sy-inline-top,0px)-32px)]"
             style={{ '--sy-inline-top': `${top}px` } as CSSProperties}
           >
             {/* The expanded dialog runs its own map, and two maps would fight over the one
