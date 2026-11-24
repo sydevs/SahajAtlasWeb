@@ -26,7 +26,7 @@ function stubDocument() {
 
 afterEach(() => {
   clearReadiness()
-  publishFit(null)
+  publishFit(undefined)
   vi.unstubAllGlobals()
 })
 
@@ -37,14 +37,20 @@ describe('readinessMarker', () => {
    * is a verification that silently starts failing there, so the shape is pinned exactly rather
    * than by `toMatchObject`.
    */
-  it('carries exactly the five fields the verifier reads', () => {
-    expect(readinessMarker(observed)).toEqual({
+  it('carries exactly the fields the verifier reads', () => {
+    expect(readinessMarker(observed, null)).toEqual({
       v: READY_CONTRACT_VERSION,
       routing: 'query',
       topLevel: true,
       urlWritable: true,
       tooSmall: null,
     })
+  })
+
+  // The verifier waits for the key: a `null` written before anything measured would read as
+  // "fits" on a box that does not.
+  it('leaves the fit out until the box has been measured', () => {
+    expect(readinessMarker(observed)).not.toHaveProperty('tooSmall')
   })
 
   // Stored as `widgetVersion`, which SahajCloud's schema types as a number.

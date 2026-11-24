@@ -429,7 +429,8 @@ It is written **after** the widget renders, never on script load, and removed ag
 unmounts. It exists so our CMS can confirm the embed works, from your own page, before treating
 it as your region's canonical page — a claim the widget makes about itself is not evidence.
 `tooSmall` is the element's box, `{"width":220,"height":640}`, while it is too small to browse in
-([Sizing the element](#sizing-the-element)), and `null` while it fits. Nothing on your page needs
+([Sizing the element](#sizing-the-element)), and `null` while it fits. It appears a moment after
+the rest, once the widget has measured its box. Nothing on your page needs
 to read it.
 
 ## Sizing the element

@@ -53,29 +53,33 @@ export const READY_CONTRACT_VERSION = 3
  * `tooSmall` is the element's box, in whole pixels, while it is too small for the inline atlas
  * and shows only its heading and "Expand map" (`views/InlineEmbedView/fit.ts`); `null` while it
  * fits. A working widget in a box nobody can browse in is still worth telling the client about.
+ * ⚠ **Absent until the inline view has measured its box**, which is a lazy chunk and a frame after
+ * the mount is attested: a verifier that needs the answer waits for the key, not the attribute.
  */
 export type ReadinessMarker = {
   v: number
   routing: RoutingMode
   topLevel: boolean
   urlWritable: boolean
-  tooSmall: { width: number; height: number } | null
+  tooSmall?: Fit
 }
+
+/** The box while the widget is too small for it, `null` while it fits. */
+export type Fit = { width: number; height: number } | null
 
 /** What the mount attests, which the entry measures once. */
 export type MountAttestation = Omit<ReadinessMarker, 'v' | 'tooSmall'>
 
-export function readinessMarker(
-  marker: MountAttestation,
-  tooSmall: ReadinessMarker['tooSmall'] = null,
-): ReadinessMarker {
-  return { v: READY_CONTRACT_VERSION, ...marker, tooSmall }
+export function readinessMarker(marker: MountAttestation, tooSmall?: Fit): ReadinessMarker {
+  return tooSmall === undefined
+    ? { v: READY_CONTRACT_VERSION, ...marker }
+    : { v: READY_CONTRACT_VERSION, ...marker, tooSmall }
 }
 
 // The mount is attested once, by the entry; the fit is measured later and changes with the box,
-// by the inline view. Each writes its own half, so the marker always carries both.
+// by the inline view. Each writes its own half, so the marker carries both once both are known.
 let attested: MountAttestation | null = null
-let fit: ReadinessMarker['tooSmall'] = null
+let fit: Fit | undefined
 
 function write(): void {
   if (!attested) return
@@ -109,9 +113,10 @@ export function publishReadiness(marker: MountAttestation): void {
 
 /**
  * Record whether the widget fits its box, on the marker if one is up and on the next one if not.
- * The inline view calls it as its box crosses the floor, never per resize.
+ * The inline view calls it once measured and as its box crosses the floor, never per resize, and
+ * with `undefined` when it unmounts, since nothing measures the box then.
  */
-export function publishFit(tooSmall: ReadinessMarker['tooSmall']): void {
+export function publishFit(tooSmall: Fit | undefined): void {
   fit = tooSmall
   write()
 }

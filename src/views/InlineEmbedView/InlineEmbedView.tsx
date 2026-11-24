@@ -305,7 +305,7 @@ function InlineLayout() {
     publishFit(small)
     if (small) reportIntegrationWarning(tooSmallMessage(small))
   }, [small])
-  useEffect(() => () => publishFit(null), [])
+  useEffect(() => () => publishFit(undefined), [])
 
   useEffect(() => {
     if (pathname !== lastPath.current && navigationType !== 'REPLACE') opened.current = true
