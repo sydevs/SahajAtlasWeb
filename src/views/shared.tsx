@@ -112,6 +112,12 @@ export function DrawerTitle({ title, subtitle, note }: DrawerTitleProps) {
  * The drawer header's icon controls (back, overlay close, calendar, search, filter) are all
  * the same Button preset, kept here as values, rather than as a wrapper component, so they
  * provably render identical chrome — the header reads as one set of buttons.
+ *
+ * Every control in this module also renders inside the loading and error chrome
+ * (`views/fallbacks.tsx`), where a suspend would escape the boundary and blank the widget
+ * instead of showing the failure — so none of them may suspend. `useTranslation()` cannot:
+ * the English snapshot is bundled, and i18next initialises synchronously with no backend to
+ * wait on (`config/i18n.ts`).
  */
 export const HEADER_CONTROL = { variant: 'ghost', isIconOnly: true, size: 'sm' } as const
 
@@ -120,10 +126,7 @@ export const HEADER_CONTROL = { variant: 'ghost', isIconOnly: true, size: 'sm' }
 // Region filter). This uses the same header-control chrome as the other header controls,
 // so the header reads as one set of buttons.
 export function CalendarButton({ regionSlug }: { regionSlug: string }) {
-  // Also rendered by the fallback chrome (views/fallbacks.tsx), where a suspend
-  // would escape the boundary and blank the widget instead of showing the failure.
-  // `useTranslation()` cannot suspend: the English snapshot is bundled, and i18next
-  // initialises synchronously with no backend to wait on (`config/i18n.ts`).
+  // Renders in the fallback chrome too, so it must not suspend (see `HEADER_CONTROL`).
   const { t } = useTranslation()
   const navigate = useAtlasNavigate()
 
@@ -142,10 +145,7 @@ export function CalendarButton({ regionSlug }: { regionSlug: string }) {
 // distance-ranked search view. This renders the same header-control chrome as the
 // other header controls, so the header reads as one set of buttons.
 export function SearchButton() {
-  // Also rendered by the fallback chrome (views/fallbacks.tsx), where a suspend
-  // would escape the boundary and blank the widget instead of showing the failure.
-  // `useTranslation()` cannot suspend: the English snapshot is bundled, and i18next
-  // initialises synchronously with no backend to wait on (`config/i18n.ts`).
+  // Renders in the fallback chrome too, so it must not suspend (see `HEADER_CONTROL`).
   const { t } = useTranslation()
   const navigate = useAtlasNavigate()
 
@@ -164,7 +164,7 @@ export function SearchButton() {
 // thin handle is easy to miss, and a keyboard can't use it. Hidden where the sheet cannot
 // collapse (a wide panel, or map-less) and while it is open.
 export function ExpandSheetButton() {
-  // Also rendered by the error/loading chrome, so it must not suspend (see CalendarButton).
+  // Renders in the fallback chrome too, so it must not suspend (see `HEADER_CONTROL`).
   const { t } = useTranslation()
   const { collapsed, toggle } = useDrawerControl()
 
@@ -185,10 +185,7 @@ export function ExpandSheetButton() {
 // active count as a badge (CountriesView's header), so it reads as one set with
 // the other header controls.
 export function FilterButton({ iconOnly = false }: { iconOnly?: boolean }) {
-  // Also rendered by the fallback chrome (views/fallbacks.tsx), where a suspend
-  // would escape the boundary and blank the widget instead of showing the failure.
-  // `useTranslation()` cannot suspend: the English snapshot is bundled, and i18next
-  // initialises synchronously with no backend to wait on (`config/i18n.ts`).
+  // Renders in the fallback chrome too, so it must not suspend (see `HEADER_CONTROL`).
   const { t } = useTranslation()
   const navigate = useAtlasNavigate()
   const location = useLocation()
@@ -408,10 +405,7 @@ export function useEventFromPath(eventPath: string) {
  * same panel.
  */
 export function EmptyEventList() {
-  // Also rendered by the fallback chrome (views/fallbacks.tsx), where a suspend
-  // would escape the boundary and blank the widget instead of showing the failure.
-  // `useTranslation()` cannot suspend: the English snapshot is bundled, and i18next
-  // initialises synchronously with no backend to wait on (`config/i18n.ts`).
+  // Renders in the fallback chrome too, so it must not suspend (see `HEADER_CONTROL`).
   const { t } = useTranslation()
 
   return (
