@@ -186,7 +186,6 @@ export function DrawerChrome({
               the real field. There it is the escape hatch. */}
           <BackButton iconOnly />
           {interactive ? <SearchField /> : <SearchFieldSkeleton />}
-          {/* Back renders only below the root, where there is somewhere to go. */}
           <ExpandSheetButton />
         </DrawerHeader>
         <DrawerToolbar>
