@@ -149,10 +149,11 @@ jobs:
           key: playwright-chromium-${{ runner.os }}-${{ steps.playwright.outputs.version }}
       - name: Install Chromium for the accessibility gate
         if: ${{ steps.scope.outputs.full == 'true' }}
-        # ⚠ No `if:`, on purpose. `--with-deps` installs system libraries outside the cached
-        # directory, and Playwright skips a browser whose marker the restore brought back — so
-        # this step heals a partial entry instead of launching into one. `--no-shell` keeps the
-        # payload what the key says: neither consumer launches the headless shell.
+        # ⚠ Never gated on the restore's outcome. `--with-deps` installs system libraries
+        # outside the cached directory, and Playwright skips a browser whose marker the restore
+        # brought back — so this step heals a partial entry instead of launching into one.
+        # `--no-shell` keeps the payload what the key says: neither consumer launches the
+        # headless shell.
         run: pnpm exec playwright install --with-deps --no-shell chromium
       - name: Accessibility gate
         if: ${{ steps.scope.outputs.full == 'true' }}
@@ -260,7 +261,8 @@ jobs:
           key: playwright-chromium-${{ runner.os }}-${{ steps.playwright.outputs.version }}
       - name: Install Chromium
         if: ${{ steps.scope.outputs.full == 'true' }}
-        # ⚠ No `if:`: it would hand a partially restored entry to the lane as a browser.
+        # ⚠ Never gated on the restore's outcome: a cache hit would hand a partially restored
+        # entry to the lane as a browser.
         # `--no-shell`: the lane runs the full Chromium (`channel: 'chromium'`), not the shell.
         run: pnpm exec playwright install --with-deps --no-shell chromium
 
