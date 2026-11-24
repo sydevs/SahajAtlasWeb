@@ -686,11 +686,8 @@ of the two timers and fires first: measured 7 failures in 20, worse than no wait
 an extra `act` flush after the close once took it from one in six to one in four. Waiting for
 `activeElement` to stop changing does not fix it either: it comes to rest on the wrong element.
 
-⚠ **One dialog per jsdom file was this same race, and is no longer the rule.** Its failures were
-read as a sibling case's teardown moving focus, so the opener property lived in its own file
-until #475. The earlier measurement — three cases failing one run in five, two one in eight, one
-15 for 15 — is what an independent dice roll per case produces, so it was evidence for the timer
-rather than against it. The cases share one file again.
+⚠ **One dialog per jsdom file is not the rule.** It was this race, read as a sibling case's
+teardown, until #475.
 
 What a dialog atom owns is **asking** for focus back, so each case spies on
 `HTMLElement.prototype.focus` and asserts the last element the close path asked for. Where focus
