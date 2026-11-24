@@ -22,9 +22,11 @@ pnpm ladle:build  # static build (also the CI gate — broken stories fail it)
 | Piece                   | What it does                                                                        |
 | ----------------------- | -------------------------------------------------------------------------------------- |
 | `.ladle/config.mjs`     | Story glob (`src/**/*.stories.{ts,tsx}`), title, port, `viteConfig`.                  |
-| `.ladle/vite.config.ts` | Resolves the `@/` alias to `src/` (Ladle relocates Vite's root).                      |
-| `.ladle/i18n.ts`        | Self-contained i18next over the committed English snapshot, English only (Ladle talks to no API). |
-| `.ladle/components.tsx` | The **global decorator**: React Query + Helmet + a `MemoryRouter` + `<I18nextProvider>`. |
+| `.ladle/vite.config.ts` | Resolves the `@/` alias to `src/` (Ladle relocates Vite's root). Points the app's SahajCloud origin at Ladle's own, serves the Turnstile challenge there, and swaps in `react-map-gl.tsx`. |
+| `.ladle/backend.ts`     | Answers every SahajCloud read from the browser lane's wire fixtures (`src/mocks/wire.ts`), and the IP lookup with Cambridge. Ladle talks to no API. |
+| `.ladle/react-map-gl.tsx` | react-map-gl with `reuseMaps` off: a map carried between Ladle's iframe and its page drew nothing. |
+| `.ladle/i18n.ts`        | Self-contained i18next over the committed English snapshot and the screen-reader strings, English only. |
+| `.ladle/components.tsx` | The **global decorator**: React Query + Helmet + a `MemoryRouter` (fresh per story) + `<I18nextProvider>`. |
 
 **Theme and canvas.** Ladle's theme toggle drives the **whole canvas** — the
 decorator calls `applyTheme()` with the toggle's state and stamps the `dark`
@@ -130,6 +132,16 @@ own controls** — the locate button and the Mapbox wordmark measure under the
 44px floor, as `organisms--mapbox` already did. CI's library build carries no
 token, so its gate renders the views map-less and does not see them.
 
+### The whole widget (`Widget / Interactive`)
+
+`src/App.stories.tsx` renders the real `App`, inline, on a stand-in host page:
+browse, open a class and register, search, filter, expand the map and close it.
+Its data is the wire fixtures' small tree, through the app's real fetchers, so a
+fixture the widget newly needs is added in `src/mocks/wire.ts`, where the browser
+lane reads it too. Its **Map** control is a `map=false` embed. Fullscreen (`f`)
+gives it the window: in Ladle's frame its header never reaches the top of the
+window, so the expanded map does not find it and opens over it.
+
 ### StoryGrid (matrices)
 
 For multi-dimensional atom matrices (e.g. colour × state). Mobile-first: it
@@ -200,6 +212,9 @@ section showing realistic in-app usage.
   wrap them in `MapProvider`.
 - Translated text resolves through the bundled-resource i18n instance, so
   stories render offline.
+- A SahajCloud read a story makes — a view's own prefetch, the whole widget's
+  boot — is answered by `.ladle/backend.ts`, never by production. One no fixture
+  models answers 404 and logs `Ladle: no wire fixture answers …`.
 
 ## Best practices
 

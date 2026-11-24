@@ -1,41 +1,51 @@
+import type { ReactNode } from 'react'
 import type { Story, StoryDefault } from '@ladle/react'
 
 import App from '@/App'
-import { SAHAJCLOUD_API_KEY } from '@/mocks/sahajcloud'
+import { WIRE_API_KEY } from '@/mocks/wire'
 
-export default { title: 'Interactive' } satisfies StoryDefault
+export default { title: 'Widget' } satisfies StoryDefault
 
 /**
- * The whole widget, interactive, as an embed in a 640px box renders it: browse a country down to a
- * city, open a class and register for it, search, filter, open the calendar. Every SahajCloud read
- * is answered from fixtures (`.ladle/backend.ts`): the browser lane's, over a bigger atlas of real
- * places, so every list is long enough to scroll and nothing reaches production.
+ * A stand-in for the page an embed sits in. Raw markup on purpose: this is the host's page, not
+ * ours. Its sticky header is what the inline map sticks below and the expanded map opens under,
+ * and its `h1` is why the widget's own heading is an `h2`.
  */
-export const Default: Story<{ map: boolean }> = ({ map }) => {
-  // Map-less without a token, as the view stories are: a canvas with no tiles previews nothing.
-  const hasMap = map && Boolean(import.meta.env.VITE_MAPBOX_ACCESSTOKEN)
-
-  // The page around the widget is a stand-in for the host's, raw markup on purpose, and its copy
-  // is what a contained map scrolls past.
+function HostPage({ children }: { children: ReactNode }) {
   return (
     <div className="flex min-h-screen flex-col bg-gray-2">
       <header className="sticky top-0 z-10 flex h-14 shrink-0 items-center border-b border-divider bg-background px-6 font-semibold">
         A host site
       </header>
       <article className="mx-auto flex w-full max-w-6xl flex-col gap-4 px-4 py-8">
-        {/* The host's own `h1` is why the widget's heading is an `h2`. */}
         <h1 className="text-2xl font-semibold">Meditate with us</h1>
         <p className="text-gray-11">The host page&apos;s own copy, above the widget.</p>
-        <div className="h-[640px] overflow-clip rounded-2xl bg-background">
-          <App key={String(hasMap)} contained apiKey={SAHAJCLOUD_API_KEY} hasMap={hasMap} />
-        </div>
+        <div className="overflow-clip rounded-2xl bg-background">{children}</div>
         <p className="text-gray-11">And more of it below, so the page scrolls past the widget.</p>
       </article>
     </div>
   )
 }
 
-Default.storyName = 'Full Widget'
+/**
+ * The whole widget, interactive, as an embed renders it: browse a country down to a city, open a
+ * class and register for it, search, filter, open the calendar, expand the map and close it.
+ * Every SahajCloud read is answered from the browser lane's fixtures (`.ladle/backend.ts`), so
+ * the data is their small tree and nothing reaches production. Fullscreen (`f`) gives it the
+ * window, as a host page would.
+ */
+export const Default: Story<{ map: boolean }> = ({ map }) => {
+  // Map-less without a token, as the view stories are: a canvas with no tiles previews nothing.
+  const hasMap = map && Boolean(import.meta.env.VITE_MAPBOX_ACCESSTOKEN)
+
+  return (
+    <HostPage>
+      <App key={String(hasMap)} inline apiKey={WIRE_API_KEY} hasMap={hasMap} />
+    </HostPage>
+  )
+}
+
+Default.storyName = 'Interactive'
 Default.args = { map: true }
 Default.argTypes = {
   map: {

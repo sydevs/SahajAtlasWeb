@@ -338,7 +338,10 @@ export function ViewHarness({
             all, and without a provider every story would preview the root's control
             set (issue #89). `dismiss` is a no-op — a story has nowhere to dismiss to. */}
         <DrawerControlContext.Provider value={STORY_DRAWER_CONTROL}>
-          <MapProviders inline={inline}>
+          {/* One controller per form, as the app has one per map: the expanded one gives the
+              sheet's padding back as it unmounts, which a prop change would never do, and the
+              inline map then framed past its own box. */}
+          <MapProviders key={inline ? 'inline' : 'expanded'} inline={inline}>
             {inline ? (
               <InlineForm withMap={withMap}>{view}</InlineForm>
             ) : (
