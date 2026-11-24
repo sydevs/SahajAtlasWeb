@@ -20,7 +20,7 @@ export function ClassAction({
   return (
     <Button
       {...props}
-      className="h-auto min-h-11 min-w-0 flex-1 flex-col gap-1 rounded-lg bg-gray-3 px-2 py-2 text-xs font-medium text-foreground hover:bg-gray-4 [&_svg]:text-primary"
+      className="h-auto min-h-11 min-w-0 flex-1 flex-col gap-1 rounded-lg bg-gray-3 px-2 py-2 text-xs font-medium text-foreground hover:bg-gray-4 pointer-coarse:h-auto [&_svg]:shrink-0 [&_svg]:text-primary"
       variant="ghost"
     >
       {icon}

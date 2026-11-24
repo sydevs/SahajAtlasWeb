@@ -5,14 +5,14 @@ import {
   type ClassExample,
 } from '../../../stories/class-page/ClassPage'
 import { classPageExamples } from '../../../stories/class-page/fixture'
+import { ClassProposalContext } from '../../../stories/class-page/proposal'
 
 import { LOADING, NO_ERROR, stateControl } from '@/views/story-harness'
 
 export default { title: 'Views' } satisfies StoryDefault
 
-export const ClassPage: Story<
-  Omit<ClassExample, 'banner'> & { banner: 'off' | 'short' | 'tall' }
-> = ({ banner, ...settings }) => (
+type ClassPageArgs = Omit<ClassExample, 'banner'> & { banner: 'off' | 'short' | 'tall' }
+export const ClassPage: Story<ClassPageArgs> = ({ banner, ...settings }) => (
   <div className="relative h-dvh min-w-0 [contain:layout]">
     <ClassPageView {...settings} banner={banner === 'off' ? undefined : banner} />
   </div>
@@ -42,4 +42,20 @@ ClassPage.argTypes = {
   showCalendar: { name: 'Show Add to Calendar', control: { type: 'boolean' } },
   showPhotos: { name: 'Show class photos', control: { type: 'boolean' } },
   shortDescription: { name: 'Short description', control: { type: 'boolean' } },
+}
+
+export const ClassPageProposal: Story<ClassPageArgs & { confirmedPlace: string }> = ({
+  confirmedPlace,
+  ...settings
+}) => (
+  <ClassProposalContext.Provider value={{ confirmedPlace, showCalendar: settings.showCalendar }}>
+    <ClassPage {...settings} />
+  </ClassProposalContext.Provider>
+)
+
+ClassPageProposal.storyName = 'Class page proposal'
+ClassPageProposal.args = { ...ClassPage.args, banner: 'short', confirmedPlace: '' }
+ClassPageProposal.argTypes = {
+  ...ClassPage.argTypes,
+  confirmedPlace: { name: 'Confirmed local place', control: { type: 'text' } },
 }

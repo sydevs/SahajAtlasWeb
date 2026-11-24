@@ -1,12 +1,14 @@
 import type { Event } from '@/types'
 
-import { useState, useEffect, useId, useRef } from 'react'
-import { ChevronDown, ChevronLeft, MapPin } from 'lucide-react'
+import { useContext, useState, useEffect, useId, useRef } from 'react'
+import { Check, ChevronDown, ChevronLeft, MapPin } from 'lucide-react'
 import * as Dialog from '@radix-ui/react-dialog'
 
 import { fullAddress } from './fixture'
 import { Lotus } from './Lotus'
 import { ClassSharing } from './ClassSharing'
+import { ClassSessionCalendar } from './ClassCalendar'
+import { ClassProposalContext } from './proposal'
 
 import { Button } from '@/components/atoms/Button'
 import { Input } from '@/components/atoms/Input'
@@ -29,6 +31,7 @@ export function ClassRegistration({
   onBack?: () => void
 }) {
   const { locale, t } = useLocale()
+  const proposal = useContext(ClassProposalContext)
   const { display, whereLine } = useEventDisplay(event)
   const venue = display.online ? whereLine : fullAddress(event)
   const [open, setOpen] = useState(false)
@@ -61,9 +64,19 @@ export function ClassRegistration({
 
   const title = confirmedDate ? (
     <span className="flex flex-col items-center gap-1 text-center">
-      <Lotus />
+      {proposal ? (
+        <span className="mb-2 grid size-14 place-items-center rounded-full bg-primary-3 text-primary-11">
+          <Check aria-hidden className="class-proposal-check" size={30} strokeWidth={2.5} />
+        </span>
+      ) : (
+        <Lotus />
+      )}
       <span className="text-[1.875rem] leading-tight font-semibold tracking-tight">
-        {locale.startsWith('en') ? `See you on ${weekday}!` : 'Registration complete'}
+        {proposal
+          ? 'You’re registered!'
+          : locale.startsWith('en')
+            ? `See you on ${weekday}!`
+            : 'Registration complete'}
       </span>
     </span>
   ) : (
@@ -86,6 +99,8 @@ export function ClassRegistration({
                     from { transform: rotate(var(--bud-angle, 0deg)) scale(.87); }
                     to { transform: none; }
                   }
+                  .class-proposal-check path { stroke-dasharray: 32; animation: class-proposal-check 320ms ease-out; }
+                  @keyframes class-proposal-check { from { stroke-dashoffset: 32; } to { stroke-dashoffset: 0; } }
                 }
               `}</style>
             <div ref={status} className="pb-5 text-center outline-none" role="status" tabIndex={-1}>
@@ -93,6 +108,16 @@ export function ClassRegistration({
               <p className="text-base">{dateFormat.format(confirmedDate)}</p>
               <p className="mt-1 text-sm text-gray-11">{venue}</p>
             </div>
+            {proposal?.showCalendar && (
+              <div className="mb-4 text-center">
+                <ClassSessionCalendar
+                  date={confirmedDate}
+                  event={event}
+                  presentation={onBack ? 'sheet' : 'menu'}
+                  url={shareUrl}
+                />
+              </div>
+            )}
             {shareUrl && (
               <ClassSharing
                 invitation
@@ -161,7 +186,7 @@ export function ClassRegistration({
               </FormField>
             </div>
             {questions.length > 0 && (
-              <details open className="group border-y border-divider">
+              <details className="group border-y border-divider" open={!proposal}>
                 <summary className="flex min-h-11 cursor-pointer list-none items-center justify-between gap-2 text-sm font-medium [&::-webkit-details-marker]:hidden">
                   Optional questions from the organiser
                   <ChevronDown aria-hidden className="group-open:rotate-180" size={16} />

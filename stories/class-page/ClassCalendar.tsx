@@ -1,13 +1,22 @@
-import type { DateTime } from 'luxon'
+import type { Event } from '@/types'
 
 import { useState } from 'react'
+import { DateTime } from 'luxon'
+import * as Dialog from '@radix-ui/react-dialog'
+import * as Menu from '@radix-ui/react-dropdown-menu'
 import { useTranslation } from 'react-i18next'
 import { CalendarPlus, ChevronDown } from 'lucide-react'
 import clsx from 'clsx'
 
 import { saveBlob } from './download'
+import { fullAddress } from './fixture'
+import { mobileSheet } from './proposal'
 
 import { Button } from '@/components/atoms/Button'
+import { ModalBody, ModalContent } from '@/components/atoms/Modal'
+import { menuChrome } from '@/components/atoms/Menu'
+import { eventTimeZone, DEFAULT_DURATION, withEndTime } from '@/lib/shape/event'
+import { frameCollision, overlayContainer } from '@/lib/overlay'
 import {
   type IcsEventInput,
   buildEventIcs,
@@ -20,22 +29,38 @@ import {
 const TARGET_ROW =
   'h-12 w-full justify-start border-b border-divider text-base text-foreground last:border-b-0'
 
-type ClassCalendarProps = {
-  /** Everything the export needs. The caller builds it from the FULL event doc.
-   *  The trimmed feed carries no exclusions or untilDate (see `lib/ics.ts`). */
-  start: DateTime
-  end: DateTime
-  event: IcsEventInput
-}
-
 const downloadEventIcs = (event: IcsEventInput) => {
   const blob = new Blob([buildEventIcs(event)], { type: 'text/calendar;charset=utf-8' })
 
   saveBlob(blob, icsFileName(event.title))
 }
 
-// Save the next session directly from the class page, before or without registering.
-export function ClassCalendar({ event, start, end }: ClassCalendarProps) {
+export function ClassSessionCalendar({
+  event: listing,
+  date,
+  url,
+  presentation,
+}: {
+  event: Event
+  date: Date
+  url?: string
+  presentation: 'inline' | 'sheet' | 'menu'
+}) {
+  const { t } = useTranslation()
+  const [open, setOpen] = useState(false)
+
+  if (!listing.schedule) return null
+  const start = DateTime.fromJSDate(date, { zone: eventTimeZone(listing) })
+  const scheduledEnd = withEndTime(start, listing.schedule.endTime)
+  const end = scheduledEnd && scheduledEnd > start ? scheduledEnd : start.plus(DEFAULT_DURATION)
+  const event: IcsEventInput = {
+    id: `${listing.id}-${date.getTime()}`,
+    title: listing.title,
+    from: date,
+    schedule: { ...listing.schedule, recurrenceType: null, exclusions: [] },
+    location: listing.eventType === 'online' ? undefined : fullAddress(listing),
+    url,
+  }
   const stamp = (date: DateTime) => date.toUTC().toFormat("yyyyMMdd'T'HHmmss'Z'")
   const google = new URLSearchParams({
     action: 'TEMPLATE',
@@ -44,8 +69,6 @@ export function ClassCalendar({ event, start, end }: ClassCalendarProps) {
     location: event.location ?? '',
     details: event.url ?? '',
   })
-  const { t } = useTranslation()
-  const [open, setOpen] = useState(false)
   const downloadIcs = () => downloadEventIcs(event)
 
   // These are brand names, so they stay untranslated. They are also unique,
@@ -57,58 +80,77 @@ export function ClassCalendar({ event, start, end }: ClassCalendarProps) {
     { label: 'Yahoo', href: buildYahooCalendarUrl(event) },
   ]
 
+  const label = t('event.actions.add_calendar')
+  const trigger = (
+    <Button
+      aria-expanded={open}
+      className="min-h-11 gap-2 text-primary-11"
+      variant="ghost"
+      onClick={presentation === 'inline' ? () => setOpen(!open) : undefined}
+    >
+      <CalendarPlus aria-hidden size={18} />
+      {label}
+      <ChevronDown aria-hidden className={clsx(open && 'rotate-180')} size={16} />
+    </Button>
+  )
+  const rows = [
+    <Button
+      key="apple"
+      aria-label={`Apple · ${t('event.actions.download_ics')}`}
+      className={TARGET_ROW}
+      variant="ghost"
+      onClick={downloadIcs}
+    >
+      Apple
+    </Button>,
+    ...targets.map(({ label, href }) => (
+      <Button key={label} className={TARGET_ROW} href={href} target="_blank" variant="ghost">
+        {label}
+      </Button>
+    )),
+  ]
+
+  if (presentation === 'sheet')
+    return (
+      <Dialog.Root open={open} onOpenChange={setOpen}>
+        <Dialog.Trigger asChild>{trigger}</Dialog.Trigger>
+        <ModalContent className={mobileSheet} closeLabel={t('common.chrome.close')} title={label}>
+          <ModalBody>
+            {rows.map((row) => (
+              <Dialog.Close key={row.key} asChild>
+                {row}
+              </Dialog.Close>
+            ))}
+          </ModalBody>
+        </ModalContent>
+      </Dialog.Root>
+    )
+  if (presentation === 'menu')
+    return (
+      <Menu.Root modal={false} open={open} onOpenChange={setOpen}>
+        <Menu.Trigger asChild>{trigger}</Menu.Trigger>
+        <Menu.Portal container={overlayContainer()}>
+          <Menu.Content
+            align="start"
+            aria-label={label}
+            className={menuChrome().surface()}
+            sideOffset={4}
+            {...frameCollision()}
+          >
+            {rows.map((row) => (
+              <Menu.Item key={row.key} asChild className={menuChrome().row()}>
+                {row}
+              </Menu.Item>
+            ))}
+          </Menu.Content>
+        </Menu.Portal>
+      </Menu.Root>
+    )
+
   return (
     <div className="flex flex-col gap-1">
-      <Button
-        aria-expanded={open}
-        className="w-full"
-        color="primary"
-        size="lg"
-        variant="solid"
-        onClick={() => setOpen(!open)}
-      >
-        <CalendarPlus aria-hidden size={18} />
-        {t('event.actions.add_calendar')}
-        <ChevronDown
-          aria-hidden
-          className={clsx('transition-transform', open && 'rotate-180')}
-          size={18}
-        />
-      </Button>
-
-      <div className={clsx('flex-col', open ? 'flex' : 'hidden')}>
-        {/* Apple Calendar has no add-by-URL endpoint. An .ics file IS the
-          Apple path, and it doubles as the escape hatch for every other
-          client, such as Thunderbird, Proton, or a corporate desktop
-          Outlook. The accessible name CONTAINS the visible "Apple", so it
-          satisfies WCAG 2.5.3, while still telling a screen-reader user
-          that this one downloads a file. */}
-        <Button
-          aria-label={`Apple · ${t('event.actions.download_ics')}`}
-          className={TARGET_ROW}
-          color="neutral"
-          variant="ghost"
-          onClick={downloadIcs}
-        >
-          Apple
-        </Button>
-
-        {/* The Button atom derives `rel="noopener noreferrer"` from
-          `target="_blank"` itself. So spelling it here would only opt this
-          one row out of whatever the atom decides an external link needs. */}
-        {targets.map(({ label, href }) => (
-          <Button
-            key={label}
-            className={TARGET_ROW}
-            color="neutral"
-            href={href}
-            target="_blank"
-            variant="ghost"
-          >
-            {label}
-          </Button>
-        ))}
-      </div>
+      {trigger}
+      {open && <div className="flex flex-col">{rows}</div>}
     </div>
   )
 }

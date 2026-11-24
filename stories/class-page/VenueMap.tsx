@@ -1,9 +1,11 @@
 import type { Event } from '@/types'
 
-import { type ReactNode, useState, useCallback } from 'react'
+import { type ReactNode, useContext, useState, useCallback } from 'react'
 import * as Dialog from '@radix-ui/react-dialog'
 import ReactMapGL, { Marker, NavigationControl } from 'react-map-gl/mapbox'
 import { Navigation, Maximize2, X } from 'lucide-react'
+
+import { ClassProposalContext, mobileSheet } from './proposal'
 
 import { Button } from '@/components/atoms/Button'
 import { ModalBody, ModalContent } from '@/components/atoms/Modal'
@@ -47,7 +49,7 @@ const staticMapUrl = ({
 const googleRoute = (latitude: number, longitude: number) =>
   `https://www.google.com/maps/dir/?api=1&destination=${latitude},${longitude}`
 
-// The story's iPhone frame has the desktop browser's user agent. Direct previews use the device.
+// Legacy Simulator links can explicitly request the iPhone route chooser.
 function VenueDirections({
   latitude,
   longitude,
@@ -58,6 +60,7 @@ function VenueDirections({
   compact?: boolean
 }) {
   const { t } = useLocale()
+  const proposal = useContext(ClassProposalContext)
   const device = new URLSearchParams(window.location.search).get('device')
   const apple = device
     ? device === 'iPhone'
@@ -96,7 +99,11 @@ function VenueDirections({
           {content}
         </Button>
       </Dialog.Trigger>
-      <ModalContent closeLabel={t('common.chrome.close')} title="Open directions in">
+      <ModalContent
+        className={proposal ? mobileSheet : undefined}
+        closeLabel={t('common.chrome.close')}
+        title="Open directions in"
+      >
         <ModalBody className="flex flex-col gap-2 pb-4">
           <Button
             href={`https://maps.apple.com/?daddr=${destination}`}
@@ -178,6 +185,7 @@ export function VenueMapPreview({
   desktop?: boolean
 }) {
   const { theme } = useTheme()
+  const proposal = useContext(ClassProposalContext)
   const touch = useCoarsePointer()
   const device = new URLSearchParams(window.location.search).get('device')
   const expandLabel = (device ? device === 'iPhone' : touch) ? 'Tap to expand' : 'Expand map'
@@ -217,7 +225,7 @@ export function VenueMapPreview({
       <div
         className={
           desktop
-            ? 'relative isolate overflow-hidden rounded-t-[15px] bg-gray-3 pb-5 before:block before:aspect-[480/228]'
+            ? `relative isolate overflow-hidden bg-gray-3 pb-5 before:block before:aspect-[480/228] ${proposal ? 'rounded-xl' : 'rounded-t-[15px]'}`
             : 'relative isolate overflow-hidden rounded-lg border border-divider bg-gray-3 pb-5 before:block before:aspect-[3.1] before:min-h-24'
         }
       >

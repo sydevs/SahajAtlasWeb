@@ -1,7 +1,7 @@
 import type { Event } from '@/types'
 import type { StoryFallbackArg } from '@/views/story-harness'
 
-import { useState, useLayoutEffect, useRef } from 'react'
+import { useContext, useState, useLayoutEffect, useRef } from 'react'
 import { Flag, ChevronLeft } from 'lucide-react'
 
 import { MobileFooterFade } from '../shared/MobileFooterFade'
@@ -22,7 +22,8 @@ import {
   descriptionParagraphs,
   type ClassPageExample,
 } from './fixture'
-import { ClassCalendar } from './ClassCalendar'
+import { ClassSessionCalendar } from './ClassCalendar'
+import { ClassProposalContext, localClassHeading } from './proposal'
 
 import { ViewStory } from '@/views/story-harness'
 import { eventTitlesQuery, regionQuery } from '@/config/api'
@@ -32,7 +33,6 @@ import {
   EventRegisterBar,
 } from '@/components/organisms/EventDetails/EventRegister'
 import { usePublishedNode } from '@/hooks/use-published-node'
-import { DEFAULT_DURATION } from '@/lib/shape/event'
 import { setFrame } from '@/lib/overlay'
 import { useShareUrl } from '@/hooks/use-share-url'
 import { useLocale } from '@/hooks/use-locale'
@@ -61,18 +61,23 @@ function ClassScreen({
   onRegister: () => void
 }) {
   const classUrl = useShareUrl(event.webUrl, event.path)
+  const proposal = useContext(ClassProposalContext)
   const { t } = useLocale()
   const { display, contactHelper, blockedMessage } = useEventDisplay(event)
   const whereLineFull = fullAddress(event)
   const shareUrl = display.actions.includes('share') ? classUrl : undefined
   const city = !display.online && event.address?.city
-  const heading = city ? `${event.title} in ${city}` : event.title
-  const nextSession = display.next?.toJSDate()
+  const place = display.online ? '' : proposal?.confirmedPlace.trim() || city || ''
+  const heading = proposal
+    ? localClassHeading(event.title, place)
+    : city
+      ? `${event.title} in ${city}`
+      : event.title
   const photos = event.images.flatMap(({ url, alt }) =>
     url ? [{ src: url, alt: alt ?? undefined, caption: alt ?? undefined }] : [],
   )
   const backRow = (
-    <div className="sticky top-[var(--class-host-header-height)] z-20 shrink-0 bg-background max-[959px]:mx-auto max-[959px]:w-full max-[959px]:max-w-[var(--sy-content-max,512px)] max-[959px]:px-6 [&_button]:min-h-11 [&>div]:mb-0">
+    <div className="sticky top-[var(--class-host-header-height,auto)] z-20 shrink-0 bg-background max-[959px]:mx-auto max-[959px]:w-full max-[959px]:max-w-[var(--sy-content-max,512px)] max-[959px]:px-6 [&_button]:min-h-11 [&>div]:mb-0">
       <Button
         className="-ms-3 min-h-11 gap-0.5 px-2"
         color="primary"
@@ -117,26 +122,17 @@ function ClassScreen({
   const secondaryActions = display.actions.length > 0 && (
     <ClassActions event={event} url={shareUrl} />
   )
-  const calendar = showCalendar &&
-    event.schedule &&
-    display.next &&
-    display.nextEnd &&
-    nextSession && (
-      <div className="w-fit max-w-full min-[960px]:mt-3 [&_button[aria-expanded]]:h-11 [&_button[aria-expanded]]:w-auto [&_button[aria-expanded]]:gap-2 [&_button[aria-expanded]]:bg-transparent [&_button[aria-expanded]]:px-1 [&_button[aria-expanded]]:text-sm [&_button[aria-expanded]]:text-primary-11 [&_button[aria-expanded]:hover]:bg-primary-3">
-        <ClassCalendar
-          end={event.schedule.endTime ? display.nextEnd : display.next.plus(DEFAULT_DURATION)}
-          event={{
-            id: `${event.id}-${nextSession.getTime()}`,
-            title: event.title,
-            from: nextSession,
-            schedule: { ...event.schedule, recurrenceType: null, exclusions: [] },
-            location: display.online ? undefined : whereLineFull,
-            url: shareUrl,
-          }}
-          start={display.next}
-        />
-      </div>
-    )
+  const dropIn = display.kind !== 'course' && !display.online && !display.full
+  const calendar = showCalendar && (!proposal || dropIn) && event.schedule && display.next && (
+    <div className="w-fit max-w-full min-[960px]:mt-3 [&_button[aria-expanded]]:h-11 [&_button[aria-expanded]]:w-auto [&_button[aria-expanded]]:gap-2 [&_button[aria-expanded]]:bg-transparent [&_button[aria-expanded]]:px-1 [&_button[aria-expanded]]:text-sm [&_button[aria-expanded]]:text-primary-11 [&_button[aria-expanded]:hover]:bg-primary-3">
+      <ClassSessionCalendar
+        date={display.next.toJSDate()}
+        event={event}
+        presentation={proposal ? (desktop ? 'menu' : 'sheet') : 'inline'}
+        url={shareUrl}
+      />
+    </div>
+  )
   const about = description.length > 0 && (
     <section>
       <h2 className="mb-2 text-base font-semibold">About this class</h2>
@@ -161,7 +157,7 @@ function ClassScreen({
     >
       <Flag aria-hidden size={17} />
       <span className="underline decoration-primary-7 underline-offset-4">
-        Suggest a correction to the class details
+        {proposal ? 'Report incorrect class details' : 'Suggest a correction to the class details'}
       </span>
     </button>
   )
@@ -199,11 +195,13 @@ function ClassScreen({
             aria-label="Venue map and class actions"
             className="top-[calc(var(--class-host-header-height)+3.5rem)] min-w-0 has-[[aria-expanded=true]]:static! [@media(min-height:760px)]:sticky"
           >
-            <div className="rounded-2xl border border-divider bg-background">
+            <div
+              className={proposal ? undefined : 'rounded-2xl border border-divider bg-background'}
+            >
               {display.actions.includes('directions') && (
                 <VenueMapPreview desktop event={event} register={register} where={whereLineFull} />
               )}
-              <div className="flex flex-col gap-4 p-5">
+              <div className={`flex flex-col gap-4 ${proposal ? 'pt-4' : 'p-5'}`}>
                 {(display.actions.includes('website') || display.actions.includes('contact')) && (
                   <ClassActions inline event={event} url={shareUrl} />
                 )}
@@ -211,7 +209,9 @@ function ClassScreen({
                 {shareUrl && <ClassSharing title={event.title} url={shareUrl} />}
               </div>
             </div>
-            <div className="mt-1 px-5">{correction}</div>
+            <div className={proposal ? 'mt-4 border-t border-divider pt-1' : 'mt-1 px-5'}>
+              {correction}
+            </div>
           </aside>
         </div>
       </main>
@@ -238,7 +238,7 @@ function ClassScreen({
           {!pinRegister && register}
           {about}
           <PhotoGrid photos={photos} />
-          {shareUrl && <QrPoster inline label={event.title} url={shareUrl} />}
+          {shareUrl && <QrPoster inline={!proposal} label={event.title} url={shareUrl} />}
           {correction}
         </div>
       </div>

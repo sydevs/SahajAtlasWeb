@@ -1,6 +1,6 @@
 import type { Event } from '@/types'
 
-import { useEffect, useRef, useState } from 'react'
+import { useContext, useEffect, useRef, useState } from 'react'
 import { DateTime } from 'luxon'
 import {
   CalendarClock,
@@ -12,6 +12,8 @@ import {
   ChevronRight,
   ChevronLeft,
 } from 'lucide-react'
+
+import { ClassProposalContext } from './proposal'
 
 import { Button } from '@/components/atoms/Button'
 import { Input } from '@/components/atoms/Input'
@@ -159,6 +161,7 @@ export function CorrectionPreview({
   onClose: () => void
 }) {
   const [step, setStep] = useState<Section>('pick')
+  const proposal = useContext(ClassProposalContext)
   const [changes, setChanges] = useState<Suggestion[]>([])
   const [sender, setSender] = useState({ email: '', note: '' })
   const [error, setError] = useState('')
@@ -192,7 +195,9 @@ export function CorrectionPreview({
   }
   const title =
     step === 'pick'
-      ? 'What needs fixing?'
+      ? proposal
+        ? 'Which class details need updating?'
+        : 'What needs fixing?'
       : step === 'review'
         ? changes.every((c) => c.reason === 'nobody')
           ? 'Check your report'
@@ -211,7 +216,9 @@ export function CorrectionPreview({
         {step === 'pick' ? 'Back to class' : 'Back'}
       </Button>
       <div>
-        <h1 className="text-xl font-semibold">Suggest a correction</h1>
+        <h1 className="text-xl font-semibold">
+          {proposal ? 'Report incorrect class details' : 'Suggest a correction'}
+        </h1>
         <p className="text-gray-11">{event.title}</p>
       </div>
       <h2 ref={heading} className="scroll-mt-20 text-lg font-semibold outline-none" tabIndex={-1}>
