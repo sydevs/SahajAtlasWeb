@@ -129,12 +129,15 @@ export const controlSurface = tv({
       class: 'border-contrast-11 text-contrast-11 hover:bg-contrast-3',
     },
     { color: 'neutral', variant: 'bordered', class: 'border-gray-12 text-gray-12 hover:bg-gray-3' },
-    // floating: the ramp's border step (7), not its text step, since the surface and the shadow
-    // already set it apart; neutral takes the divider every other app border uses.
+    // floating: primary is filled, as its solid is — the one call to action over a map. The rest
+    // keep the app's surface, with the ramp's border step (7) rather than its text step, since
+    // the surface and the shadow already set them apart; neutral takes the divider every other
+    // app border uses.
     {
       color: 'primary',
       variant: 'floating',
-      class: 'border-primary-7 text-primary-11 hover:bg-primary-3',
+      class:
+        'border-transparent bg-primary-12 text-white hover:bg-primary-11 dark:bg-primary-9 dark:text-primary-foreground dark:hover:bg-primary-10',
     },
     {
       color: 'secondary',
