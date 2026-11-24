@@ -182,6 +182,21 @@ export const controlSurface = tv({
   },
 })
 
+/**
+ * The skin of a control floating over the map or the page: the app's own surface, the divider
+ * border colour, and a shadow lifting it off whatever scrolls behind. Three call sites spell it
+ * — the inline map's "Expand map", the expanded map's "Close map", and the floating cog — so it
+ * is one recipe here rather than three copies (`DESIGN_SYSTEM.md` § Styling). Each site passes
+ * only its own position.
+ *
+ * `bordered` draws the border and the round corner for a caller that is not a `Button`. A
+ * `Button` arm already has both from `variant="bordered" radius="full"`.
+ */
+export const floatingChrome = tv({
+  base: 'border-divider bg-background shadow-lg',
+  variants: { bordered: { true: 'rounded-full border', false: '' } },
+})
+
 const button = tv({
   extend: controlSurface,
   base: [

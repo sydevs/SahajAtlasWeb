@@ -3,8 +3,9 @@ import * as DropdownMenu from '@radix-ui/react-dropdown-menu'
 import { useTranslation } from 'react-i18next'
 import { Check, ChevronRight, Info, Languages, Monitor, Moon, Settings, Sun } from 'lucide-react'
 
+import { tv } from '@/styles/tv'
 import { frameCollision } from '@/lib/overlay'
-import { Button } from '@/components/atoms/Button'
+import { floatingChrome } from '@/components/atoms/Button'
 import { menuChrome } from '@/components/atoms/Menu'
 import { useAvailableLocales } from '@/hooks/use-available-locales'
 import { useWidgetMode } from '@/config/mode'
@@ -15,10 +16,21 @@ import { type ThemePreference, useThemePreference } from '@/hooks/use-theme'
 import { overlayContainer } from '@/lib/overlay'
 import { publishLocale } from '@/lib/shape'
 
-// The glyph both cogs draw. It is `HEADER_CONTROL`'s (`views/shared.tsx`), since the ghost cog
-// joins that set, and the floating one is drawn at 44px on a touch screen — a 16px glyph left
-// it hollow there.
-const GLYPH = 20
+// A recipe rather than a `clsx` join, because the merge is load-bearing: the floating cog
+// needs `relative` for its `touch-target` area, and both callers pass their own `fixed` or
+// `absolute`. `clsx` resolves nothing, and `relative` is later in Tailwind's own position
+// order, so a joined class list would win the cascade and unpin the cog (#432).
+const trigger = tv({
+  base: 'flex items-center justify-center text-gray-11 transition-colors hover:text-foreground',
+  variants: {
+    toolbar: {
+      true: '-ms-3 h-11 w-11 rounded-lg outline-none focus-visible:ring-2 focus-visible:ring-focus focus-visible:ring-inset',
+      // Drawn at 32px, and kept there: `touch-target` is what gives a finger 44px to reach
+      // it, and nothing sits close enough to take that area.
+      false: floatingChrome({ bordered: true, className: 'touch-target relative h-8 w-8' }),
+    },
+  },
+})
 
 const { surface, row } = menuChrome({ submenus: true })
 const menu = surface()
@@ -43,19 +55,18 @@ function ItemCheck() {
 // footer's LanguageSelector and ThemeSwitch. `className` positions the
 // trigger button.
 export type SettingsMenuProps = {
-  /** Positions the trigger button. */
+  /** Positions the trigger button (the cog floats over the map or the panel). */
   className?: string
   /** Which side the menu opens toward the trigger (bottom for a top cog, top for a bottom cog). */
   side?: DropdownMenu.DropdownMenuContentProps['side']
-  /** `floating` over the map; `ghost` in a row of controls, such as a header. */
-  variant?: 'floating' | 'ghost'
+  /**
+   * The cog sits in a toolbar row instead of floating, so it takes the header icons' flat look
+   * and a 44px tap area.
+   */
+  toolbar?: boolean
 }
 
-export function SettingsMenu({
-  className,
-  side = 'bottom',
-  variant = 'floating',
-}: SettingsMenuProps) {
+export function SettingsMenu({ className, side = 'bottom', toolbar = false }: SettingsMenuProps) {
   const { t } = useTranslation()
   const { locale, setLocale } = useLocale()
   // The set an operator publishes in SahajCloud, never a list compiled in here (#198). Every row
@@ -98,19 +109,13 @@ export function SettingsMenu({
   return (
     <DropdownMenu.Root>
       <DropdownMenu.Trigger asChild>
-        {/* ⚠ The caller's `fixed` or `absolute` reaches the Button's recipe, which merges it over
-            the `relative` its `touch-target` needs; a `clsx` join would let `relative` win the
-            cascade and unpin the cog (#432). */}
-        <Button
-          isIconOnly
+        <button
           aria-label={t('common.a11y.settings')}
-          className={className}
-          radius={variant === 'floating' ? 'full' : 'sm'}
-          size="sm"
-          variant={variant}
+          className={trigger({ toolbar, className })}
+          type="button"
         >
-          <Settings size={GLYPH} />
-        </Button>
+          <Settings size={toolbar ? 20 : 16} />
+        </button>
       </DropdownMenu.Trigger>
 
       <DropdownMenu.Portal container={container}>
