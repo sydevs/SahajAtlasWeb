@@ -212,7 +212,7 @@ export function CollapseToggle() {
       className={HEADER_EDGE}
       onClick={toggle}
     >
-      {collapsed ? <Menu size={24} /> : <X size={20} />}
+      {collapsed ? <Menu size={20} /> : <X size={20} />}
     </Button>
   )
 }
