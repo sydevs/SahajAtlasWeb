@@ -3,3 +3,15 @@
 @source '../stories/class-page';
 @source '../stories/shared';
 @source '../stories/london-discovery';
+
+/* In the editor, Ladle's canvas padding shares the viewport with the story. */
+.ladle-main:has(.class-page-preview) {
+  box-sizing: border-box;
+  height: 100dvh;
+}
+
+.ladle-main .sy-atlas:has(> .class-page-preview),
+.ladle-main .class-page-preview {
+  height: 100%;
+  min-height: 0;
+}

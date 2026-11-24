@@ -41,6 +41,8 @@ import { useIsWide } from '@/config/responsive'
 import { EventChips } from '@/components/molecules/EventChips'
 import { Button } from '@/components/atoms/Button'
 
+const mobileColumn = 'mx-auto w-full max-w-[720px] px-6'
+
 function ClassScreen({
   event,
   desktop,
@@ -77,9 +79,11 @@ function ClassScreen({
     url ? [{ src: url, alt: alt ?? undefined, caption: alt ?? undefined }] : [],
   )
   const backRow = (
-    <div className="sticky top-[var(--class-host-header-height,auto)] z-20 shrink-0 bg-background max-[959px]:mx-auto max-[959px]:w-full max-[959px]:max-w-[var(--sy-content-max,512px)] max-[959px]:px-6 [&_button]:min-h-11 [&>div]:mb-0">
+    <div
+      className={`sticky top-[var(--class-host-header-height)] z-20 bg-background ${desktop ? '' : mobileColumn}`}
+    >
       <Button
-        className="-ms-3 min-h-11 gap-0.5 px-2"
+        className="-ms-3.5 min-h-11 gap-0.5 px-2"
         color="primary"
         variant="ghost"
         onClick={onBack}
@@ -122,13 +126,12 @@ function ClassScreen({
   const secondaryActions = display.actions.length > 0 && (
     <ClassActions event={event} url={shareUrl} />
   )
-  const dropIn = display.kind !== 'course' && !display.online && !display.full
-  const calendar = showCalendar && (!proposal || dropIn) && event.schedule && display.next && (
+  const calendar = showCalendar && event.schedule && display.next && (
     <div className="w-fit max-w-full min-[960px]:mt-3 [&_button[aria-expanded]]:h-11 [&_button[aria-expanded]]:w-auto [&_button[aria-expanded]]:gap-2 [&_button[aria-expanded]]:bg-transparent [&_button[aria-expanded]]:px-1 [&_button[aria-expanded]]:text-sm [&_button[aria-expanded]]:text-primary-11 [&_button[aria-expanded]:hover]:bg-primary-3">
       <ClassSessionCalendar
         date={display.next.toJSDate()}
         event={event}
-        presentation={proposal ? (desktop ? 'menu' : 'sheet') : 'inline'}
+        presentation="inline"
         url={shareUrl}
       />
     </div>
@@ -169,12 +172,13 @@ function ClassScreen({
         <h1 className="mt-5 mb-3 text-[clamp(1.875rem,2.7vw,2.25rem)] leading-[1.15] font-semibold tracking-[-0.025em] text-balance break-words">
           {heading}
         </h1>
+        {proposal && <EventChips className="mb-8" event={event} />}
         <div className="grid grid-cols-[minmax(0,1fr)_minmax(328px,0.69fr)] items-start gap-[clamp(36px,5vw,76px)]">
           <article className="min-w-0">
-            <EventChips event={event} />
+            {!proposal && <EventChips event={event} />}
             <section
               aria-label="Class details"
-              className="mt-5 border-b border-divider pb-6 text-[1.125rem] leading-[1.4]"
+              className={`border-b border-divider text-[1.125rem] leading-[1.4] ${proposal ? 'pb-8' : 'mt-5 pt-2.5 pb-6'}`}
             >
               <ClassFacts detailed event={event} />
               {calendar}
@@ -221,16 +225,14 @@ function ClassScreen({
   return (
     <>
       {backRow}
-      <h1 className="mx-auto w-full max-w-[720px] px-6 pt-2 pb-3 text-xl leading-tight font-semibold">
-        {heading}
-      </h1>
+      <h1 className={`${mobileColumn} pt-2 pb-3 text-xl leading-tight font-semibold`}>{heading}</h1>
       <div>
         <div className="mx-auto flex w-full max-w-[720px] flex-col gap-4 px-6 pt-1 pb-10">
           <EventChips event={event} />
           {display.actions.includes('directions') && (
             <VenueMapPreview event={event} register={register} where={whereLineFull} />
           )}
-          <div className="flex flex-col gap-1">
+          <div className={`flex flex-col gap-1 ${proposal ? 'py-2' : ''}`}>
             <ClassFacts event={event} />
             {calendar}
           </div>
@@ -298,6 +300,7 @@ export function ClassPageLayout({
   onBack?: () => void
 }) {
   const [page, setPage] = useState<'class' | 'region' | 'registration' | 'correction'>('class')
+  const proposal = useContext(ClassProposalContext)
   const { locale } = useLocale()
   const back = () => setPage('class')
   const { node: scroller, adopt } = usePublishedNode<HTMLDivElement>(setFrame)
@@ -320,7 +323,13 @@ export function ClassPageLayout({
     >
       <WebsiteHeader />
       {banner && page === 'class' && (
-        <div className="mx-auto min-[960px]:max-w-[1200px] min-[960px]:px-10 min-[960px]:pt-5 xl:px-12">
+        <div
+          className={
+            proposal
+              ? `[&>svg]:rounded-none ${desktop ? '' : 'pb-6'}`
+              : 'mx-auto min-[960px]:max-w-[1200px] min-[960px]:px-10 min-[960px]:pt-5 xl:px-12'
+          }
+        >
           <HostBanner height={banner} />
         </div>
       )}

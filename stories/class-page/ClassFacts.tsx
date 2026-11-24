@@ -26,8 +26,8 @@ function Fact({
     <div
       className={
         detailed
-          ? 'grid grid-cols-[32px_minmax(0,1fr)] items-center gap-3.5 py-2.5'
-          : 'grid grid-cols-[20px_minmax(0,1fr)] items-start gap-3 has-[button]:items-center'
+          ? 'grid grid-cols-[32px_minmax(0,1fr)] items-center gap-3.5 py-2.5 first:pt-0'
+          : 'grid grid-cols-[20px_minmax(0,1fr)] items-start gap-3 has-[button]:items-center [&_button]:min-h-11'
       }
     >
       <span aria-hidden className="flex justify-center text-primary">
@@ -53,7 +53,7 @@ function Address({ value }: { value: string }) {
   return (
     <button
       aria-label={'Copy address: ' + value}
-      className="min-h-11 text-start select-text"
+      className="touch-target relative text-start select-text"
       type="button"
       onClick={async () => {
         try {

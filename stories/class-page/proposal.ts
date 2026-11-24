@@ -4,7 +4,6 @@ import { createContext } from 'react'
 // render the same components with their original presentation.
 export const ClassProposalContext = createContext<{
   confirmedPlace: string
-  showCalendar: boolean
 } | null>(null)
 
 export const mobileSheet =

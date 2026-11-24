@@ -135,6 +135,7 @@ function ExpandedClassMap({
   actions: ReactNode
 }) {
   const [pageFrame] = useState(frameElement)
+  const proposal = useContext(ClassProposalContext)
   const publish = useCallback(
     (node: HTMLDivElement | null) => setFrame(node ?? pageFrame),
     [pageFrame],
@@ -151,20 +152,29 @@ function ExpandedClassMap({
       {node && (
         <>
           <div className="relative min-h-0 flex-1">{map}</div>
-          <div className="border-t border-divider bg-background">
-            <div className="mx-auto grid w-full max-w-[920px] items-center gap-3 px-5 pt-3 pb-[max(12px,env(safe-area-inset-bottom))] md:grid-cols-[1fr_auto]">
+          <div className="@container shrink-0 border-t border-divider bg-background">
+            <div className="mx-auto grid w-full max-w-[920px] items-center gap-3 px-5 pt-3 pb-[max(12px,env(safe-area-inset-bottom))] @min-[768px]:grid-cols-[1fr_auto]">
               <div className="flex items-start justify-between gap-3">
                 <div>
                   <p className="font-semibold">{name}</p>
                   <p className="text-sm text-gray-11">{where}</p>
                 </div>
                 <Dialog.Close asChild>
-                  <Button className="min-h-11 shrink-0" variant="ghost">
+                  <Button
+                    className={
+                      proposal
+                        ? 'absolute top-[max(12px,env(safe-area-inset-top))] right-[max(12px,env(safe-area-inset-right))] z-10 min-h-11 rounded-full bg-background px-4 shadow-sm'
+                        : 'min-h-11 shrink-0'
+                    }
+                    variant={proposal ? 'bordered' : 'ghost'}
+                  >
                     <X aria-hidden size={16} /> Close map
                   </Button>
                 </Dialog.Close>
               </div>
-              <div className="flex items-center gap-2 md:min-w-[300px] [&>*]:flex-1">{actions}</div>
+              <div className="flex items-center gap-2 @min-[768px]:min-w-[300px] [&>*]:flex-1">
+                {actions}
+              </div>
             </div>
           </div>
         </>
@@ -216,7 +226,7 @@ export function VenueMapPreview({
       mapboxAccessToken={import.meta.env.VITE_MAPBOX_ACCESSTOKEN}
     >
       <Marker {...point} color="#df785f" />
-      <NavigationControl position="top-right" showCompass={false} />
+      <NavigationControl position={proposal ? 'top-left' : 'top-right'} showCompass={false} />
     </ReactMapGL>
   )
 

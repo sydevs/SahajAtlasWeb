@@ -108,7 +108,7 @@ export function ClassRegistration({
               <p className="text-base">{dateFormat.format(confirmedDate)}</p>
               <p className="mt-1 text-sm text-gray-11">{venue}</p>
             </div>
-            {proposal?.showCalendar && (
+            {proposal && (
               <div className="mb-4 text-center">
                 <ClassSessionCalendar
                   date={confirmedDate}
