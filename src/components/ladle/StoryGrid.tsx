@@ -20,12 +20,8 @@ export const StoryGrid = ({ children }: StoryGridProps) => (
  * matrix packs demo controls tightly enough that their own tap areas overlap, and each cell
  * but the last then answers across less than 44px. These pages are read on a phone like any
  * other, so the grid takes the floor rather than an exemption from the gate.
- *
- * ⚠ The vertical figure leaves the area SLACK in the cell, and 12px — which fits a 20px control's
- * area to the pixel — is why: the gate probes a symmetric cross from the rounded centre, so a row
- * of the page's own sub-pixel offset costs the last probe and an exact fit reports 43px.
  */
-const cellPadding = 'px-2 sm:px-3 py-1.5 sm:py-2 pointer-coarse:px-3 pointer-coarse:py-3.5'
+const cellPadding = 'px-2 sm:px-3 py-1.5 sm:py-2 pointer-coarse:px-3 pointer-coarse:py-3'
 
 export interface StoryGridHeaderProps {
   children: ReactNode
