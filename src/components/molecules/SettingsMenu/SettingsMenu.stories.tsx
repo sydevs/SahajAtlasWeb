@@ -28,26 +28,12 @@ export const Default: Story = () => (
     </StorySection>
 
     <StorySection
-      description="`side` points the panel away from the trigger's screen position — bottom for the top-left cog on the map, top for the bottom-left cog when map-less."
-      title="Sides"
-    >
-      <div className="flex items-center gap-10 py-3">
-        <StorySection title='side="bottom"' variant="subsection">
-          <SettingsMenu side="bottom" />
-        </StorySection>
-        <StorySection title='side="top"' variant="subsection">
-          <SettingsMenu side="top" />
-        </StorySection>
-      </div>
-    </StorySection>
-
-    <StorySection
       description="The cog floats over whatever is behind it, the map, so it is a `floating` Button: its own surface, border and shadow rather than the surface under it."
       inContext={true}
       title="Examples"
     >
       <div className="relative h-32 w-full overflow-hidden rounded-lg bg-gray-4">
-        <SettingsMenu className="absolute start-3 bottom-3" side="top" />
+        <SettingsMenu className="absolute start-3 top-3" />
       </div>
     </StorySection>
 

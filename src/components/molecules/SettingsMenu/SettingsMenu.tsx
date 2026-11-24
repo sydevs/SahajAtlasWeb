@@ -47,8 +47,6 @@ function ItemCheck() {
 export type SettingsMenuProps = {
   /** Positions the trigger button (the cog floats over the map or the panel). */
   className?: string
-  /** Which side the menu opens toward the trigger (bottom for a top cog, top for a bottom cog). */
-  side?: DropdownMenu.DropdownMenuContentProps['side']
   /**
    * The cog sits in a toolbar row instead of floating, so it takes the header icons' flat look
    * and a 44px tap area.
@@ -56,7 +54,7 @@ export type SettingsMenuProps = {
   toolbar?: boolean
 }
 
-export function SettingsMenu({ className, side = 'bottom', toolbar = false }: SettingsMenuProps) {
+export function SettingsMenu({ className, toolbar = false }: SettingsMenuProps) {
   const { t } = useTranslation()
   const { locale, setLocale } = useLocale()
   // The set an operator publishes in SahajCloud, never a list compiled in here (#198). Every row
@@ -125,13 +123,7 @@ export function SettingsMenu({ className, side = 'bottom', toolbar = false }: Se
       </DropdownMenu.Trigger>
 
       <DropdownMenu.Portal container={container}>
-        <DropdownMenu.Content
-          align="start"
-          className={menu}
-          side={side}
-          sideOffset={8}
-          {...frameCollision()}
-        >
+        <DropdownMenu.Content align="start" className={menu} sideOffset={8} {...frameCollision()}>
           <DropdownMenu.Sub>
             <DropdownMenu.SubTrigger className={item}>
               <Languages size={18} />
