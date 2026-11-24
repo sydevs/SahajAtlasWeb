@@ -82,21 +82,6 @@ export function NavRow({ children }: { children?: ReactNode }) {
   )
 }
 
-/**
- * The one place an X still means something: an overlay over a view, closing back onto what is
- * still on screen behind it. Going somewhere is Back's job.
- */
-function OverlayCloseButton() {
-  const { t } = useLocale()
-  const { dismiss } = useDrawerControl()
-
-  return (
-    <Button {...HEADER_CONTROL} aria-label={t('common.chrome.close')} onClick={dismiss}>
-      <X size={20} />
-    </Button>
-  )
-}
-
 export type NavHeaderProps = {
   title?: ReactNode
   subtitle?: ReactNode
@@ -112,15 +97,20 @@ export type NavHeaderProps = {
  * full width and a long name wraps instead of being cut off.
  */
 export function NavHeader({ title, subtitle, actions, close = false }: NavHeaderProps) {
+  const { t } = useLocale()
   // The filters' own drawer over the calendar marks its control, so its loading and error
   // chrome closes the same way.
-  const { overlay } = useDrawerControl()
+  const { overlay, dismiss } = useDrawerControl()
 
+  // The one place an X still means something: a panel over a view, closing back onto what is
+  // still on screen behind it. Going somewhere is Back's job.
   if (close || overlay) {
     return (
       <DrawerHeader className="justify-between">
         {title ? <DrawerTitle title={title} /> : <div />}
-        <OverlayCloseButton />
+        <Button {...HEADER_CONTROL} aria-label={t('common.chrome.close')} onClick={dismiss}>
+          <X size={20} />
+        </Button>
       </DrawerHeader>
     )
   }
