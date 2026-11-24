@@ -20,13 +20,13 @@ const toggleGroup = tv({
   },
   variants: {
     joined: {
-      false: { root: 'flex-wrap gap-1', item: 'rounded' },
+      false: { root: 'flex-wrap gap-1', item: 'rounded-lg' },
       // Segmented: natural-width items in a single row, flush with overlapping
       // (collapsed) borders, only the outer corners rounded.
       true: {
         // ⚠ One pixel over the 44px floor on a touch screen: `-ms-px` collapses the shared
         // border, so the neighbour owns that column and a 44px item answers to 43 (#432).
-        item: '-ms-px rounded-none first:ms-0 first:rounded-s last:rounded-e pointer-coarse:min-w-[45px]',
+        item: '-ms-px rounded-none first:ms-0 first:rounded-s-lg last:rounded-e-lg pointer-coarse:min-w-[45px]',
       },
     },
     // Active-filter tint. This colours the UNSELECTED items primary. The

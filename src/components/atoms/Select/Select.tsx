@@ -23,7 +23,7 @@ export const fieldChrome = tv({
   // to be cancelled again by the one variant that grows with its content. It is a drawn size
   // rather than the `touch-target` utility because an `<input>` renders no `::after` for that
   // utility to use. `pointer-coarse` is the same hardware question `field-size` below asks.
-  base: 'w-full rounded border bg-background px-3 field-size text-foreground transition-colors outline-none focus-visible:ring-2 focus-visible:ring-focus disabled:opacity-disabled pointer-coarse:min-h-11',
+  base: 'w-full rounded-lg border bg-background px-3 field-size text-foreground transition-colors outline-none focus-visible:ring-2 focus-visible:ring-focus disabled:opacity-disabled pointer-coarse:min-h-11',
   variants: {
     isInvalid: { true: 'border-danger-7', false: 'border-gray-7' },
     /** A trigger lays its value out against the chevron. A plain input does not. */
@@ -150,7 +150,7 @@ export type SelectItemProps = {
 export function SelectItem({ value, textValue, children, className }: SelectItemProps) {
   return (
     <RadixSelect.Item
-      className={`relative flex cursor-pointer items-center rounded px-3 py-2 text-sm text-foreground outline-none select-none data-[highlighted]:bg-primary-4 data-[state=checked]:font-semibold ${
+      className={`relative flex cursor-pointer items-center rounded-lg px-3 py-2 text-sm text-foreground outline-none select-none data-[highlighted]:bg-primary-4 data-[state=checked]:font-semibold ${
         className ?? ''
       }`}
       textValue={textValue}

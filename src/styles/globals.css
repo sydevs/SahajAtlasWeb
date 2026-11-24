@@ -104,14 +104,14 @@
   --breakpoint-xl: 1280px;
   --breakpoint-2xl: 1536px;
 
-  /* v4 renamed this scale one step down (its `sm` is v3's `DEFAULT`), so the names are
-     written out rather than inherited: `rounded-sm` has to stay 2px. */
+  /* One corner rule: `rounded-lg` (8px) for everything inside a panel — buttons, fields,
+     boxes, notices, rows, tags — and `rounded-2xl` (16px) for the panel itself, sheets and
+     menus. Pills are `rounded-full`. The 2, 4, 6 and 12px steps are deleted rather than
+     pointed at 8px, so a name still says what it draws, and `radius.test.ts` keeps them out
+     (bare `rounded`, `-sm`, `-md` and `-xl` generate nothing now). The checkbox keeps 4px,
+     in its own file: at 8px a 16px box reads as a radio. */
   --radius-*: initial;
-  --radius: 4px;
-  --radius-sm: 2px;
-  --radius-md: 6px;
   --radius-lg: 8px;
-  --radius-xl: 12px;
   --radius-2xl: 16px;
   --radius-3xl: 24px;
 
@@ -137,25 +137,28 @@
   /* v3 declared `fontSize` twice; the second block won outright, so this scale stops at
      `2xl` on purpose. `text-3xl` generated nothing under v3 and still generates nothing. */
   --text-*: initial;
+  /* 12 / 14 / 15 / 16 / 20 / 28. Titles (`xl`, 20px) lead the rows under them (`lg`, 16px),
+     and body text carries no letter spacing: the 0.36px it had made small text read as a
+     different typeface. Uppercase chips add their own 0.3px. `md` is `base` under the name
+     some call sites use. */
   --text-xs: 12px;
-  --text-xs--line-height: 1.66667;
-  --text-xs--letter-spacing: 0.36px;
-  --text-sm: 13px;
-  --text-sm--line-height: 1.5;
-  --text-sm--letter-spacing: 0.36px;
-  --text-base: 14px;
-  --text-base--line-height: 1.2;
-  --text-md: 14px;
-  --text-md--line-height: 1.2;
-  --text-lg: 17px;
-  --text-lg--line-height: 1.2;
+  --text-xs--line-height: 1.33333;
+  --text-sm: 14px;
+  --text-sm--line-height: 1.42857;
+  --text-base: 15px;
+  --text-base--line-height: 1.46667;
+  --text-md: 15px;
+  --text-md--line-height: 1.46667;
+  --text-lg: 16px;
+  --text-lg--line-height: 1.375;
   --text-lg--font-weight: 600;
   --text-xl: 20px;
-  --text-xl--line-height: 1.2;
+  --text-xl--line-height: 1.3;
   --text-xl--font-weight: 600;
-  --text-2xl: 30px;
-  --text-2xl--line-height: 1.166667;
-  --text-2xl--letter-spacing: 0.8px;
+  --text-xl--letter-spacing: -0.2px;
+  --text-2xl: 28px;
+  --text-2xl--line-height: 1.2;
+  --text-2xl--letter-spacing: -0.4px;
 
   --leading-*: initial;
   --leading-none: 1;
@@ -188,11 +191,13 @@
      self-hosted face. v4 has no `defaultTheme` import, so the fallback stacks are
      written out. */
   --font-*: initial;
-  --font-sans: var(--sy-font-sans, 'Atlas Rethink Sans'), ui-sans-serif, system-ui, sans-serif,
+  --font-sans:
+    var(--sy-font-sans, 'Atlas Rethink Sans'), ui-sans-serif, system-ui, sans-serif,
     'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji';
   --font-serif: ui-serif, Georgia, Cambria, 'Times New Roman', Times, serif;
-  --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono',
-    'Courier New', monospace;
+  --font-mono:
+    ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New',
+    monospace;
 
   --background-image-circle-pattern: url('/graphics/circle.svg');
 
@@ -465,7 +470,7 @@ html.sy-atlas {
 }
 
 /* The iOS zoom floor (#322). Safari scales the host's whole page in when a focused field
-   computes under 16px, and nothing of ours can undo it. The 13px scale needs a wide screen
+   computes under 16px, and nothing of ours can undo it. The smaller 14px size needs a wide screen
    AND a fine pointer — focus zoom is the engine's behaviour, not the viewport's, and an iPhone
    is 932px wide in landscape. One name, so `[&_input]:field-size` reaches a library's own
    input in one arm where the class pair needed two, CSS having no `or`. */

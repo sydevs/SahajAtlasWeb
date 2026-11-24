@@ -41,11 +41,11 @@ export const controlSurface = tv({
     },
     /**
      * Corner radius. It matches the Chip atom's vocabulary. `sm` is the control's
-     * standard corner. `full` is fully round. This is independent of the content,
+     * standard 8px corner, the one every control inside the panel shares. `full` is fully round. This is independent of the content,
      * so a label button can be a pill, and an icon-only button can be a circle.
      */
     radius: {
-      sm: 'rounded',
+      sm: 'rounded-lg',
       full: 'rounded-full',
     },
     /**

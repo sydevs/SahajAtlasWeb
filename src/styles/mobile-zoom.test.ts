@@ -17,7 +17,7 @@ const ZOOM_FLOOR = /\bfield-size\b/
 const ON_THE_RECIPE = /fieldChrome\(/
 
 /**
- * The 13px scale may only come back on a wide screen AND a fine pointer.
+ * The 14px size may only come back on a wide screen AND a fine pointer.
  *
  * A bare `md:` was the first attempt and it leaves the defect live: focus zoom is the engine's
  * behaviour, not the viewport's, and every iPhone since the 13 mini is at least 780px wide in
@@ -136,7 +136,7 @@ describe('every field clears the 16px iOS zoom floor', () => {
     expect(under.map(label)).toEqual([])
   })
 
-  it('never takes the 13px scale back on width alone', () => {
+  it('never takes the 14px size back on width alone', () => {
     const bare = fields.filter(({ className }) => BARE_BREAKPOINT.test(className))
 
     expect(bare.map(label)).toEqual([])
@@ -157,12 +157,12 @@ describe('every field clears the 16px iOS zoom floor', () => {
 // Comment-stripped, because both files below discuss the very classes being matched and
 // documenting a rule must not satisfy it (`source-tree.ts`).
 describe('the floor itself, and the one field reached from outside', () => {
-  it('floors `field-size` at 16px, and returns the 13px scale only when wide and mouse-driven', () => {
+  it('floors `field-size` at 16px, and returns the 14px size only when wide and mouse-driven', () => {
     const sheet = readSourceWithoutComments('styles/globals.css')
     const [utility = ''] = sheet.match(/@utility field-size \{[^}]*\}/) ?? []
 
     expect(utility).toContain('text-[16px]')
-    // Without this every field grows by 3px on a desktop too, which is a design question.
+    // Without this every field grows by 2px on a desktop too, which is a design question.
     expect(utility).toContain('md:pointer-fine:text-sm')
   })
 

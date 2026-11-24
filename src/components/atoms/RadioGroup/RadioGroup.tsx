@@ -28,7 +28,7 @@ const radioOption = tv({
   slots: {
     // The card IS the radio's tap target — a native mark is 16px, and the label activates the
     // input it wraps — so the 44px floor sits here on a touch screen (#432).
-    card: 'flex cursor-pointer items-center gap-3 rounded border px-3 py-2.5 text-sm transition-colors pointer-coarse:min-h-11',
+    card: 'flex cursor-pointer items-center gap-3 rounded-lg border px-3 py-2.5 text-sm transition-colors pointer-coarse:min-h-11',
     mark: 'h-4 w-4 shrink-0',
   },
   variants: {

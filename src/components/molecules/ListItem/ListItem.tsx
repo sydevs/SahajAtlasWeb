@@ -40,7 +40,7 @@ export function ListItem({ label, subtitle, count, href, icon }: ListItemProps) 
         )}
         <div className="flex-grow text-lg">
           <div>{label}</div>
-          {subtitle && <div className="mt-0.5 text-md font-normal">{subtitle}</div>}
+          {subtitle && <div className="mt-0.5 text-sm font-normal text-gray-11">{subtitle}</div>}
         </div>
         {/* Both step down from the title, but not to the same place. The
             count is still information, so it keeps gray-11, the ramp's
@@ -49,7 +49,7 @@ export function ListItem({ label, subtitle, count, href, icon }: ListItemProps) 
             tapping the row already does, so it goes one step further. The
             title stays `text-foreground` (gray-12), and remains the loudest
             thing in the row. */}
-        <div className="me-1 text-end text-gray-11">{count}</div>
+        <div className="me-1 text-end text-sm font-normal text-gray-11 tabular-nums">{count}</div>
         <ChevronRight className="text-gray-9 rtl:-scale-x-100" size={20} />
       </Link>
     </li>

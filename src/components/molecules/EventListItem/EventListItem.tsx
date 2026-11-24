@@ -128,9 +128,9 @@ function EventListItemImpl({ event, searchedPlace, showDistance = true }: EventL
         onMouseEnter={activate}
         onMouseLeave={deactivate}
       >
-        <div className="line-clamp-2 leading-tight font-semibold">{event.title}</div>
+        <div className="line-clamp-2 text-lg">{event.title}</div>
         <EventFacts
-          className="my-1"
+          className="mt-0.5 mb-1"
           distance={
             distanceText && (
               <span aria-label={distanceLabel} title={distanceLabel}>

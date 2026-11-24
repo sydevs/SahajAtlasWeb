@@ -18,7 +18,7 @@ export type EventHeaderProps = {
 export function EventHeader({ event, trailing }: EventHeaderProps) {
   return (
     <div className="flex shrink-0 items-start justify-between gap-2 px-6 pt-1 pb-2 md:pt-4">
-      <h1 className="line-clamp-3 text-lg leading-6 font-semibold tracking-wide">{event.title}</h1>
+      <h1 className="line-clamp-3 text-xl">{event.title}</h1>
       {trailing}
     </div>
   )
