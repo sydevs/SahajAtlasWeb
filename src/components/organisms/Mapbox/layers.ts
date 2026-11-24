@@ -1,11 +1,13 @@
 import type { LayerProps } from 'react-map-gl/mapbox'
 
-import { MARKER_IDS, MARKER_MODE, MARKER_OUTLINE, PIN_WIDTH } from './markers'
+import { MARKER_IDS, MARKER_OUTLINE, markerColors, PIN_SIZE, PIN_WIDTH } from './markers'
 
 import {
-  onHex,
+  buildScale,
+  readableOn,
+  scaleHex,
+  seedOrDefault,
   SOLID_STEP,
-  stepHex,
   type PaletteRoles,
   type ThemeMode,
 } from '@/config/theme/palette'
@@ -58,10 +60,9 @@ export const INTERACTIVE_LAYER_IDS = [
 /**
  * The cluster bubble and its count.
  *
- * A factory, because the count's color follows the bubble's fill: the bubble
- * is the `primary` solid (`markers.ts`), so the readable on-color of that same
- * ramp is what stays legible on it. Memoise the result — `docs/rules/mapbox.md`
- * forbids a fresh paint object per render.
+ * A factory, because the count's color follows the bubble's fill: black or
+ * white, whichever reads better on the disc `markerColors` paints. Memoise the
+ * result — `docs/rules/mapbox.md` forbids a fresh paint object per render.
  */
 export const clusterLayer = (palette: PaletteRoles): Props => ({
   id: LAYER_IDS.cluster,
@@ -77,20 +78,13 @@ export const clusterLayer = (palette: PaletteRoles): Props => ({
     'text-size': 12,
   },
   paint: {
-    // White on the stock teal bubble, which is the same art on both basemaps.
-    // The disc is slightly translucent (see `markers.ts`), so a pale feature
-    // underneath can show through and reduce contrast with it. This is
-    // inherited from the Studio sprite this replaced. Make the inner disc
-    // fully opaque if the count ever reads thin.
-    'text-color': onHex(palette.primary, MARKER_MODE) ?? '#FFFFFF',
+    'text-color': readableOn(markerColors(palette)[MARKER_IDS.cluster].fill),
   },
 })
 
-const PIN_SIZE = 0.85
-
+// No `icon-size`: the pin art is rasterised at the size it shows (`markers.ts`).
 const pinLayout = {
   'icon-anchor': 'bottom',
-  'icon-size': PIN_SIZE,
   'icon-ignore-placement': true,
   'icon-image': MARKER_IDS.point,
 } as const
@@ -149,7 +143,7 @@ export const vaguePinLayer: Props = {
  * A factory, memoised like `clusterLayer`, because the colour follows the brand.
  */
 export const vagueRingLayer = (palette: PaletteRoles, mode: ThemeMode): Props => {
-  const color = stepHex(palette.primary, MARKER_MODE, SOLID_STEP) ?? '#21C1A2'
+  const color = markerColors(palette)[MARKER_IDS.point].fill
   const atEquator = (zoom: number) => ringRadiusPx(VAGUE_RADIUS_KM, zoom, 0)
 
   return {
@@ -191,7 +185,7 @@ export const vagueRingLayer = (palette: PaletteRoles, mode: ThemeMode): Props =>
  * ring rather than as a second kind of pin. A factory, memoised like `clusterLayer`.
  */
 export const vagueDotLayer = (palette: PaletteRoles, mode: ThemeMode): Props => {
-  const color = stepHex(palette.primary, MARKER_MODE, SOLID_STEP) ?? '#21C1A2'
+  const color = markerColors(palette)[MARKER_IDS.point].fill
 
   return {
     id: LAYER_IDS.vagueDot,
@@ -216,7 +210,6 @@ export const selectedPointLayer: SymbolLayerProps = {
   source: 'selection',
   layout: {
     'icon-anchor': 'bottom',
-    'icon-size': 0.85,
     'icon-ignore-placement': true,
     'icon-image': MARKER_IDS.pointSelected,
   },
@@ -247,7 +240,8 @@ export const hoveredPointLayer: SymbolLayerProps = {
   source: 'hover',
   layout: {
     'icon-anchor': 'bottom',
-    'icon-size': 1,
+    // The art's full 34px width: the hovered pin pops above the others.
+    'icon-size': 1 / PIN_SIZE,
     'icon-ignore-placement': true,
     'icon-image': MARKER_IDS.pointSelected,
   },
@@ -288,9 +282,8 @@ export const boundsLayer = (palette: PaletteRoles, mode: ThemeMode): LayerProps 
   },
   paint: {
     // The brand solid stays visible on both basemaps: step 9 caps its
-    // lightness in light mode and floors it in dark. The neutral mid-grey it
-    // falls back to needs no theme-aware variant for the same reason.
-    'line-color': stepHex(palette.primary, mode, SOLID_STEP) ?? '#888',
+    // lightness in light mode and floors it in dark.
+    'line-color': scaleHex(buildScale(seedOrDefault('primary', palette.primary), mode), SOLID_STEP),
     'line-width': 4,
   },
 })

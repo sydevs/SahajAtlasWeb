@@ -11,7 +11,7 @@ import type { ReactNode } from 'react'
  * @param description - Optional description text below the title
  * @param children - The section content
  * @param background - Context background simulating the map surface panels float
- *   over: 'none', 'neutral' (semantic surface), or 'gradient' (brand teal)
+ *   over: 'none', 'neutral' (semantic surface), or 'gradient' (a fixed dark teal)
  * @param variant - Section type: 'section', 'subsection', or 'scrollable'
  * @param inContext - When true, adds "In Context" prefix to title and bold top border
  */
@@ -33,7 +33,7 @@ export const StorySection = ({
   inContext = false,
 }: StorySectionProps) => {
   // Context backgrounds that simulate the map surface panels float over.
-  // The teal gradient is a fixed dark brand colour, so its text is pinned
+  // The teal gradient is a fixed dark colour, not the brand ramp, so its text is pinned
   // white to read in both themes. Neutral uses a theme-aware semantic
   // surface token instead.
   const getBackgroundStyles = () => {
