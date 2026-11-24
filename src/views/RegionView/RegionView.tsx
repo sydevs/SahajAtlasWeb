@@ -173,14 +173,15 @@ export function RegionView({ slug }: { slug: string }) {
             )}
             {/* Sub-regions (venues/centres, child areas) then this region's own located
                 events, in one list. Region ids and event ids come from independent
-                sequences, so namespace the keys. */}
+                sequences, so namespace the keys. A place row is its name and count only:
+                its SahajCloud subtitle (Eastbourne's "Learn to Meditate") advertised a
+                course to someone only choosing the right part of the country. */}
             {region.subregions.map((child) => (
               <ListItem
                 key={`region-${child.id}`}
                 count={child.eventCount}
                 href={`${child.path}${filterSearch}`}
                 label={child.name}
-                subtitle={child.subtitle}
               />
             ))}
             {region.events.map((event) => (
