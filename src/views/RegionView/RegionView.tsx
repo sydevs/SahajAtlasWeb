@@ -118,7 +118,7 @@ export function RegionView({ slug }: { slug: string }) {
             Wilson upper bound below 0.5. */}
         {feedback === 'denied' && (
           <Alert
-            className="mb-4"
+            className="mx-gutter mb-4"
             closeLabel={t('common.chrome.close')}
             color="neutral"
             description={

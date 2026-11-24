@@ -120,10 +120,11 @@ export function DrawerTitle({ title, subtitle, note }: DrawerTitleProps) {
  */
 const HEADER_CONTROL = { variant: 'ghost', isIconOnly: true, size: 'sm' } as const
 
-// The control that ends a header. Its 20px icon sits centred in a 32px box (44px on a touch
-// screen), so this pulls the box into the gutter until the icon lands on the panel edge, in the
-// column of the rows' chevrons, with the tap area whole.
-const HEADER_LAST_CONTROL = '-me-1.5 pointer-coarse:-me-3'
+// On every header control, so whichever one ends the row takes it, whatever renders null after
+// it. Its 20px icon sits centred in a 32px box (44px on a touch screen), so this pulls the box
+// into the gutter until the icon lands on the panel edge, in the column of the rows' chevrons,
+// with the tap area whole.
+const HEADER_EDGE = 'last:-me-1.5 pointer-coarse:last:-me-3'
 
 export function CloseButton({ className }: { className?: string }) {
   // This renders inside the error/loading chrome, where a suspend would escape the
@@ -137,7 +138,7 @@ export function CloseButton({ className }: { className?: string }) {
     <Button
       {...HEADER_CONTROL}
       aria-label={t('common.chrome.close')}
-      className={clsx(HEADER_LAST_CONTROL, className)}
+      className={clsx(HEADER_EDGE, className)}
       onClick={dismiss}
     >
       <X size={20} />
@@ -160,6 +161,7 @@ export function CalendarButton({ regionSlug }: { regionSlug: string }) {
     <Button
       {...HEADER_CONTROL}
       aria-label={t('calendar.title')}
+      className={HEADER_EDGE}
       onClick={() => navigate(calendarPath(regionSlug))}
     >
       <CalendarDays size={20} />
@@ -181,6 +183,7 @@ export function SearchButton() {
     <Button
       {...HEADER_CONTROL}
       aria-label={t('search.chrome.title')}
+      className={HEADER_EDGE}
       onClick={() => navigate(searchPath())}
     >
       <Search size={20} />
@@ -206,7 +209,7 @@ export function CollapseToggle() {
       {...HEADER_CONTROL}
       aria-expanded={!collapsed}
       aria-label={collapsed ? t('common.a11y.explore') : t('common.chrome.close')}
-      className={HEADER_LAST_CONTROL}
+      className={HEADER_EDGE}
       onClick={toggle}
     >
       {collapsed ? <Menu size={24} /> : <X size={20} />}
@@ -221,14 +224,7 @@ export function CollapseToggle() {
 // (SearchView), and — with `iconOnly` — an icon-only header control carrying the
 // active count as a badge (CountriesView's header), so it reads as one set with
 // the close/collapse chrome.
-export function FilterButton({
-  iconOnly = false,
-  isLast = false,
-}: {
-  iconOnly?: boolean
-  /** Nothing follows it in the header, so its icon takes the panel's edge. */
-  isLast?: boolean
-}) {
+export function FilterButton({ iconOnly = false }: { iconOnly?: boolean }) {
   // Also rendered by the fallback chrome (views/fallbacks.tsx), where a suspend
   // would escape the boundary and blank the widget instead of showing the failure.
   // See CloseButton for why this read cannot.
@@ -246,7 +242,7 @@ export function FilterButton({
       <Button
         {...HEADER_CONTROL}
         aria-label={label}
-        className={clsx('relative', isLast && HEADER_LAST_CONTROL)}
+        className={clsx('relative', HEADER_EDGE)}
         onClick={open}
       >
         <Funnel size={20} />

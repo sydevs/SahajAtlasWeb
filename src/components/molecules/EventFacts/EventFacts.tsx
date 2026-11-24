@@ -15,9 +15,10 @@ import {
 // the card's title, tighter spacing, and icons that shrink to the text
 // height, reading as inline text with a leading glyph, not a labelled
 // block. Its time and address keep the foreground colour, since they are
-// what a visitor came for; only the distance steps back. `card` is the boxed event-details card: a `title` over the
-// default facts on a tinted rounded surface, the object being acted on
-// above the registration and share forms. Each fact has a required primary
+// what a visitor came for; only the distance steps back. `card` is the
+// boxed event-details card: a `title` over the default facts on a tinted
+// rounded surface, the object being acted on above the registration and
+// share forms. Each fact has a required primary
 // line (`text`) and an optional faded second line (`subtext`).
 //
 // Presentation and composition live together here. This is the only place
@@ -33,7 +34,7 @@ const facts = tv({
     item: 'flex',
     icon: 'shrink-0',
     text: 'min-w-0 text-base leading-snug',
-    subtext: 'font-normal text-gray-11',
+    subtext: 'text-gray-11',
   },
   variants: {
     variant: {

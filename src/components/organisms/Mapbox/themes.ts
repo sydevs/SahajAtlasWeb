@@ -27,7 +27,7 @@ export const controlTheme = {
     colorBackgroundActive: 'var(--gray-4)',
     colorPrimary: 'hsl(var(--primary-9))',
     border: '1px solid var(--gray-7)',
-    borderRadius: '8px',
+    borderRadius: 'var(--radius-lg, 8px)',
     boxShadow: 'none',
   },
   // The geocoder hardcodes three things its variables don't reach. Typed text is 75% black in

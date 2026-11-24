@@ -107,16 +107,11 @@
   --breakpoint-xl: 1280px;
   --breakpoint-2xl: 1536px;
 
-  /* One corner rule: `rounded-lg` (8px) for everything inside a panel — buttons, fields,
-     boxes, notices, rows, tags — and `rounded-2xl` (16px) for the panel itself, sheets and
-     menus. Pills are `rounded-full`. The 2, 4, 6 and 12px steps are deleted rather than
-     pointed at 8px, so a name still says what it draws, and `radius.test.ts` keeps them out
-     (bare `rounded`, `-sm`, `-md` and `-xl` generate nothing now). The checkbox keeps 4px,
-     in its own file: at 8px a 16px box reads as a radio. */
+  /* 8px inside the panel, 16px for panels, sheets and menus (DESIGN_SYSTEM.md § Styling). Other
+     steps are deleted, not aliased, so a class name still says what it draws. */
   --radius-*: initial;
   --radius-lg: 8px;
   --radius-2xl: 16px;
-  --radius-3xl: 24px;
 
   /* v3's `maxWidth` and `columns`, which v4 unifies into one namespace. v3's `maxWidth`
      was a function taking `breakpoints(theme('screens'))`; v4 has no such helper, so the
@@ -140,18 +135,14 @@
   /* v3 declared `fontSize` twice; the second block won outright, so this scale stops at
      `2xl` on purpose. `text-3xl` generated nothing under v3 and still generates nothing. */
   --text-*: initial;
-  /* 12 / 14 / 15 / 16 / 20 / 28. Titles (`xl`, 20px) lead the rows under them (`lg`, 16px),
-     and body text carries no letter spacing: the 0.36px it had made small text read as a
-     different typeface. Uppercase chips add their own 0.3px. `md` is `base` under the name
-     some call sites use. */
+  /* No letter spacing on body text: at these sizes it made small text read as another
+     typeface. */
   --text-xs: 12px;
   --text-xs--line-height: 1.33333;
   --text-sm: 14px;
   --text-sm--line-height: 1.42857;
   --text-base: 15px;
   --text-base--line-height: 1.46667;
-  --text-md: 15px;
-  --text-md--line-height: 1.46667;
   --text-lg: 16px;
   --text-lg--line-height: 1.375;
   --text-lg--font-weight: 600;

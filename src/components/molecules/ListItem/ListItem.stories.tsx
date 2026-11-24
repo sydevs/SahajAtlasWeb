@@ -15,8 +15,8 @@ export default { title: 'Molecules / List' } satisfies StoryDefault
 const FLAG_CLASS = 'h-full w-full rounded-full border border-divider bg-divider'
 
 /**
- * ListItem — a single navigable row: an optional leading glyph, a label, an
- * optional subtitle, a count, and a trailing arrow. It backs every row in a
+ * ListItem — a single navigable row: an optional leading glyph, a label, a
+ * count, and a trailing arrow. It backs every row in a
  * region list: the country to region to area drill-down, and the
  * online-classes entry that belongs to no region at all. The glyph is the
  * only thing that varies, and the card's fixed icon slot keeps every row
@@ -39,7 +39,6 @@ export const Default: Story = () => (
               href="#area"
               icon={<CircleFlag cdnUrl={FLAG_CDN_URL} className={FLAG_CLASS} countryCode="gb" />}
               label="Oxford"
-              subtitle="Oxfordshire"
             />
           </List>
         </StorySection>
@@ -101,9 +100,9 @@ export const Default: Story = () => (
     >
       <div className="max-w-md overflow-hidden rounded-lg border border-divider">
         <List>
-          <ListItem count={12} href="#area" label="Cambridge" subtitle="Cambridgeshire" />
-          <ListItem count={7} href="#area" label="Oxford" subtitle="Oxfordshire" />
-          <ListItem count={3} href="#area" label="London" subtitle="Greater London" />
+          <ListItem count={12} href="#area" label="Cambridge" />
+          <ListItem count={7} href="#area" label="Oxford" />
+          <ListItem count={3} href="#area" label="London" />
         </List>
       </div>
     </StorySection>

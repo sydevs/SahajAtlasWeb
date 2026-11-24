@@ -7,11 +7,11 @@ import { ListItem } from '@/components/molecules/ListItem'
 import { ListToolbar } from '@/components/molecules/ListToolbar'
 import { EventHeader } from '@/components/organisms/EventDetails/EventHeader'
 import { mockEvent } from '@/mocks/events'
+import { tv } from '@/styles/tv'
 
 /**
- * The panel has one left and right edge, `--spacing-gutter`. The header, the list rows and the
- * class page each drew their own (16, 24 and 24px), so a title, a row and a toolbar button
- * started at three distances from the side. Each band below is one place that drifted.
+ * The panel has one left and right edge, `--spacing-gutter`. Each band below spells its own
+ * inset, so each is a place a title, a row or a toolbar button can drift off that edge.
  */
 
 const firstClasses = (html: string) => (html.match(/class="([^"]*)"/)?.[1] ?? '').split(' ')
@@ -37,5 +37,9 @@ describe('the panel gutter', () => {
     const classes = firstClasses(renderToStaticMarkup(<ListToolbar>controls</ListToolbar>))
 
     expect(classes).toContain('px-[calc(var(--spacing-gutter)_-_12px)]')
+  })
+
+  it('replaces a slot inset rather than shipping beside it', () => {
+    expect(tv({ base: 'px-4' })({ className: 'px-gutter' })).toBe('px-gutter')
   })
 })

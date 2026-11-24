@@ -3,6 +3,13 @@ import { extendTailwindMerge } from 'tailwind-merge'
 import { createTV, type VariantProps } from 'tailwind-variants/lite'
 
 /**
+ * ⚠ Every spacing token our `@theme` adds beyond the numeric scale is named here. tailwind-merge
+ * cannot read the theme, so it takes `px-gutter` for an unknown class and ships it BESIDE a
+ * slot's `px-4` instead of replacing it — whichever comes later in the sheet wins.
+ */
+const twMerge = extendTailwindMerge({ extend: { theme: { spacing: ['gutter'] } } })
+
+/**
  * The `tv()` every recipe is built with: tailwind-variants' lite runtime, merging through
  * tailwind-merge.
  *
@@ -14,13 +21,6 @@ import { createTV, type VariantProps } from 'tailwind-variants/lite'
  * `tailwind-merge` is pinned exactly: it decides every recipe's conflicts, and no gate diffs them
  * all across a bump.
  */
-/**
- * ⚠ Every spacing token our `@theme` adds beyond the numeric scale is named here. tailwind-merge
- * cannot read the theme, so it takes `px-gutter` for an unknown class and ships it BESIDE a
- * slot's `px-4` instead of replacing it — whichever comes later in the sheet wins.
- */
-const twMerge = extendTailwindMerge({ extend: { theme: { spacing: ['gutter'] } } })
-
 export const tv = createTV({ twMerge })
 
 export type { VariantProps }

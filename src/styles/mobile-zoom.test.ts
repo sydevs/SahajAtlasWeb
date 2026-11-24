@@ -36,7 +36,7 @@ const FIELD_COMPONENTS = ['Input', 'Textarea', 'Select', 'Combobox']
  * the core `text-*` scale, so at equal specificity the caller's class wins at every width and
  * the field computes 12px on a phone.
  */
-const CALLER_TEXT_SIZE = /\btext-(?:xs|sm|base|md|lg|xl|2xl|\[)/
+const CALLER_TEXT_SIZE = /\btext-(?:xs|sm|base|lg|xl|2xl|\[)/
 
 /**
  * Tags that render a focusable text field.

@@ -18,11 +18,11 @@ const DELETED_STEP = new RegExp(
 )
 
 describe('the corner rule', () => {
-  it('leaves only the 8, 16 and 24px steps in the theme', () => {
+  it('leaves only the 8 and 16px steps in the theme', () => {
     const sheet = readSourceWithoutComments('styles/globals.css')
     const radii = [...sheet.matchAll(/^\s*(--radius[\w-]*):/gm)].map(([, name]) => name)
 
-    expect(radii).toEqual(['--radius-lg', '--radius-2xl', '--radius-3xl'])
+    expect(radii).toEqual(['--radius-lg', '--radius-2xl'])
   })
 
   it('never names a deleted step, which would draw a square corner', () => {
