@@ -84,7 +84,9 @@ export function RegionView({ slug }: { slug: string }) {
   const isEmpty = region.subregions.length === 0 && !hasEventList
   // "All events are free" is the subtitle FALLBACK. It states this once per list — no Free
   // chip repeats on cards — but only where events are actually listed. A city's own subtitle
-  // takes the slot when present.
+  // takes the slot when present. The place rows dropped that same field because a row
+  // annotated one child while the reader was still choosing a region. Here they have arrived
+  // at the place it names, and this is the field's last reader in the app.
   const subheader =
     (region.level === 'city' ? region.subtitle : undefined) ??
     (hasEventList ? t('common.chrome.all_classes_free') : undefined)
