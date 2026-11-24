@@ -354,7 +354,9 @@ function InlineLayout() {
               style={{ scrollMarginTop: top + 16 }}
             >
               <PlaceHeading />
-              <SettingsMenu className="ms-auto" variant="ghost" />
+              {/* The negative end margin puts the 20px glyph, not its 32px (44px on touch) box,
+                  on the row's `px-4`, in line with the map's edge below. */}
+              <SettingsMenu className="ms-auto -me-1.5 pointer-coarse:-me-3" variant="ghost" />
             </div>
             <MapProviders inline>
               <InlineColumns

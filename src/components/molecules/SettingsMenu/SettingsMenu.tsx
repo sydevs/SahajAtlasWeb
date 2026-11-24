@@ -15,12 +15,10 @@ import { type ThemePreference, useThemePreference } from '@/hooks/use-theme'
 import { overlayContainer } from '@/lib/overlay'
 import { publishLocale } from '@/lib/shape'
 
-// The cog over the map is a round pill; the one in a row of controls matches the drawer
-// header's icon buttons, which are ghost, square-cornered and draw a 20px glyph.
-const TRIGGER = {
-  floating: { radius: 'full', glyph: 16 },
-  ghost: { radius: 'sm', glyph: 20 },
-} as const
+// The glyph both cogs draw. It is `HEADER_CONTROL`'s (`views/shared.tsx`), since the ghost cog
+// joins that set, and the floating one is drawn at 44px on a touch screen — a 16px glyph left
+// it hollow there.
+const GLYPH = 20
 
 const { surface, row } = menuChrome({ submenus: true })
 const menu = surface()
@@ -48,7 +46,7 @@ export type SettingsMenuProps = {
   /** Positions the trigger button. */
   className?: string
   /** `floating` over the map; `ghost` in a row of controls, such as the inline heading. */
-  variant?: keyof typeof TRIGGER
+  variant?: 'floating' | 'ghost'
 }
 
 export function SettingsMenu({ className, variant = 'floating' }: SettingsMenuProps) {
@@ -101,11 +99,11 @@ export function SettingsMenu({ className, variant = 'floating' }: SettingsMenuPr
           isIconOnly
           aria-label={t('common.a11y.settings')}
           className={className}
-          radius={TRIGGER[variant].radius}
+          radius={variant === 'floating' ? 'full' : 'sm'}
           size="sm"
           variant={variant}
         >
-          <Settings size={TRIGGER[variant].glyph} />
+          <Settings size={GLYPH} />
         </Button>
       </DropdownMenu.Trigger>
 

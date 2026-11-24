@@ -32,7 +32,7 @@ const radii = ['sm', 'full'] as const
  * `isIconOnly` squares the width against the size scale. The colour × variant
  * matrix lives in the exported `controlSurface` recipe. ActionCircle skins its
  * circle with the same recipe. So `color`, `variant`, `size`, and `radius` mean
- * the same thing across every control. `floating` is the variant for a control over the map.
+ * the same thing across every control.
  */
 export const Default: Story = () => (
   <StoryWrapper>
@@ -124,30 +124,21 @@ export const Default: Story = () => (
 
     <StorySection
       background="gradient"
-      description="`variant=floating` is a control over the map or the page: the app's opaque surface and a shadow, in every colour. The app's three are neutral pills — Expand map, Close map and the settings cog."
+      description="`variant=floating` is a control over the map or the page: the app's opaque surface and a shadow. Over a gradient, which is the one thing the colour grids above cannot show. The app's three: Expand map, Close map and the settings cog."
       title="Floating"
     >
-      <div className="flex flex-col gap-4">
-        <div className="flex flex-wrap items-center gap-3">
-          <Button radius="full" size="sm" variant="floating">
-            <Expand size={16} />
-            Expand map
-          </Button>
-          <Button radius="full" size="sm" variant="floating">
-            <X size={16} />
-            Close map
-          </Button>
-          <Button isIconOnly aria-label="Settings" radius="full" size="sm" variant="floating">
-            <Settings size={16} />
-          </Button>
-        </div>
-        <div className="flex flex-wrap items-center gap-3">
-          {colors.map((color) => (
-            <Button key={color} color={color} radius="full" size="sm" variant="floating">
-              {color}
-            </Button>
-          ))}
-        </div>
+      <div className="flex flex-wrap items-center gap-3">
+        <Button radius="full" size="sm" variant="floating">
+          <Expand size={16} />
+          Expand map
+        </Button>
+        <Button radius="full" size="sm" variant="floating">
+          <X size={16} />
+          Close map
+        </Button>
+        <Button isIconOnly aria-label="Settings" radius="full" size="sm" variant="floating">
+          <Settings size={20} />
+        </Button>
       </div>
     </StorySection>
 
