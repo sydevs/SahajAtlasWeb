@@ -240,8 +240,6 @@ const RETIRING_KEYS: Record<string, string> = {
   'common.chrome.explore': 'sydevs/SahajCloud#1246',
   'common.chrome.loading': 'sydevs/SahajCloud#1246',
   'common.settings.title': 'sydevs/SahajCloud#1246',
-  // TODO: file the SahajCloud issue that drops it, with the three inline-embed keys it adds.
-  'compact.open': 'not filed yet',
   'event.actions.pause_slideshow': 'sydevs/SahajCloud#1246',
   'event.actions.view_photo': 'sydevs/SahajCloud#1246',
   'filters.chrome.remove': 'sydevs/SahajCloud#1246',

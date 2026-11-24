@@ -85,9 +85,6 @@
       "title": "Settings"
     }
   },
-  "compact": {
-    "open": "Find a class near you"
-  },
   "countries": {
     "place_title": "Free Meditation classes in %{place}",
     "title": "Free Meditation Classes"
