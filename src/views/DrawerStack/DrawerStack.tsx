@@ -109,6 +109,9 @@ const FIT_SNAP = 'fit'
 // On a phone on its side, the open and taller stops covered nearly all of a 375px-tall map. There
 // every pixel stop stays this far below the top of the window, the band of map a 300px open stop
 // left on such a screen.
+// shortcut: this is under the 160px the camera reserves above the sheet for a pin it just framed
+// (`MIN_MAP_STRIP_PX`), so on a short window a framed pin can land under the sheet. Raise it to
+// the camera's reserve once the landscape sheet has been measured on a phone.
 const ABOVE_SHEET_WHEN_SHORT_PX = 75
 
 /** A pixel stop held down to `cap`. Fractions, and every stop when there is no cap, pass through. */
