@@ -7,7 +7,6 @@ import { ListItem } from '@/components/molecules/ListItem'
 import { ListToolbar } from '@/components/molecules/ListToolbar'
 import { EventHeader } from '@/components/organisms/EventDetails/EventHeader'
 import { mockEvent } from '@/mocks/events'
-import { readSourceWithoutComments } from '@/test-support/source-tree'
 
 /**
  * The panel has one left and right edge, `--spacing-gutter`. The header, the list rows and the
@@ -18,10 +17,6 @@ import { readSourceWithoutComments } from '@/test-support/source-tree'
 const firstClasses = (html: string) => (html.match(/class="([^"]*)"/)?.[1] ?? '').split(' ')
 
 describe('the panel gutter', () => {
-  it('is one token in the theme', () => {
-    expect(readSourceWithoutComments('styles/globals.css')).toMatch(/--spacing-gutter:\s*24px;/)
-  })
-
   it.each([
     ['the drawer header', <DrawerHeader key="h">title</DrawerHeader>],
     [

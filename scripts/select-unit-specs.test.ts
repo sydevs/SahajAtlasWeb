@@ -198,6 +198,7 @@ describe('this repository', () => {
     'src/lib/overlay.popper.test.ts',
     'src/lib/shape/href.test.ts',
     'src/styles/mobile-zoom.test.ts',
+    'src/styles/radius.test.ts',
     'src/test-support/source-tree.test.ts',
   ]
 
