@@ -225,8 +225,8 @@ Two properties of the mechanism are load-bearing:
   mode there is nothing to measure — the theme root is `display: contents`, the
   canvas is `position: fixed; inset: 0`, every drawer is `fixed` — so `useIsWide`
   falls through to the viewport and returns exactly what the old `useIsDesktop` did.
-  ⚠ Since #169 a map embed can have its own frame too, and then it is measured like
-  any other box.
+  ⚠ The expanded map is the exception: its dialog takes the containing block (#169), so
+  inside it the fit question is measured like any other box.
 - **The first measurement is not damped. Every later one is.** The seed runs in a
   layout effect, so the right model is on screen from the first frame. Damping it too
   would paint a frame of the viewport's answer and then remount the drawer — the
@@ -255,13 +255,12 @@ once. The expanded map is `MapInterface`, the same interface without that boot.
   is its padding, and the expanded map's provider gives that default back when it unmounts.
 - **Layout is measured on the widget, in CSS** — `@container` with `@min-sy-cols:`, never a
   viewport variant (#107).
-- **The host's page is `host-page.ts`'s business, and every read is guarded.** The host
-  element's height rule is overridden with inline `!important` styles while mounted and given
-  back after (`useGrowHost`). Where the content still cannot reach the page — its box holds, or an
-  ancestor clips, as WeMeditate's `/map` shell does — the element takes `height: 100%` and the
-  content scrolls inside it (`boxed`), which also moves the map's `sticky` onto that scroller. `headerOffset` reads
-  `--sahaj-atlas-header`, then looks for a fixed, sticky or banner element across the top of the
-  window, then answers zero. `pageHasHeading` makes the page heading an `h2` under a host `h1`.
+- **The host's page is `host-page.ts`'s business, and every read there is guarded** — hosts patch
+  `getBoundingClientRect` and friends, and a throw would take the embed down with it.
+  `useGrowHost` overrides the element's height rule and gives it back; `boxed` is its answer where
+  an ancestor clips what grows, and WeMeditate's `/map` shell is the case that exists for.
+  `headerOffset` says where the host's header ends, and `pageHasHeading` makes the page heading an
+  `h2` under a host `h1`.
 - **The expanded dialog is module-private in `InlineEmbedView`.** It publishes itself as the
   app's portal target, needs `contain: layout`, and has one caller, so it is not an atom;
   `Modal` stays the generic dialog. It starts below the host's header rather than over it, and
