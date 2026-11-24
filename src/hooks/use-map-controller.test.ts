@@ -62,8 +62,8 @@ describe('area framing — Back from a class zooms out to the whole place', () =
     Number(controller.match(new RegExp(`const ${name} = (\\d+(?:\\.\\d+)?)`))?.[1])
 
   it('caps a city, region or country fit wider than a venue, which is wider than a class', () => {
-    expect(zoom('AREA_MAX_ZOOM')).toBeLessThan(zoom('REGION_MAX_ZOOM'))
-    expect(zoom('REGION_MAX_ZOOM')).toBeLessThan(zoom('EVENT_ZOOM'))
+    expect(zoom('AREA_MAX_ZOOM')).toBeLessThan(zoom('VENUE_MAX_ZOOM'))
+    expect(zoom('VENUE_MAX_ZOOM')).toBeLessThan(zoom('EVENT_ZOOM'))
   })
 
   it('fits an area by the area cap', () => {

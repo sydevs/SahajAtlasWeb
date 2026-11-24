@@ -14,7 +14,7 @@ import { placeSearchPath } from '@/lib/shape'
  *
  * **This is a navigation, not a camera command.** That is what makes the whole thing simple.
  * The URL becomes `/search?center=…&bbox=…`, and SearchView's existing `frameSearch` does the framing.
- * So the fit caps at `REGION_MAX_ZOOM` for free, the results list re-ranks from the new center, and the bottom sheet rises out of its peek.
+ * So the fit caps at `VENUE_MAX_ZOOM` for free, the results list re-ranks from the new center, and the bottom sheet rises out of its peek.
  * Mapbox's control on its own only moved the camera, to the accuracy circle at zoom 15.
  * That left a street corner with the classes off-screen, and the list still ranked from wherever the map happened to be.
  *

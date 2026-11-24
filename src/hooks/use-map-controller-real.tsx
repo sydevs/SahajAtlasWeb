@@ -48,13 +48,13 @@ const MAP_MARGIN = 20
 
 // These constants keep zoom consistent.
 // An event frames at `EVENT_ZOOM`.
-// A venue frames no closer than `REGION_MAX_ZOOM`, 2 levels wider.
+// A venue frames no closer than `VENUE_MAX_ZOOM`, 2 levels wider.
 // So clicking an event from its region is always a zoom-in, never a jarring zoom-out.
 // A city, region or country fits no closer than `AREA_MAX_ZOOM`, so a city whose classes all
 // meet a few streets apart still shows the whole city, and Back from a class visibly zooms out.
 // `REGION_FIT_PADDING` keeps edge events off the map border.
 const EVENT_ZOOM = 15
-const REGION_MAX_ZOOM = 13
+const VENUE_MAX_ZOOM = 13
 const AREA_MAX_ZOOM = 11.5
 const REGION_FIT_PADDING = 48
 // An online event has only an approximate location.
@@ -138,7 +138,7 @@ export function RealMapControllerProvider({ children }: { children: ReactNode })
         // So this frames it by flying to its derived center, instead of fitting its zero-area bbox.
         if (region.level === 'venue') {
           setBoundary(undefined)
-          if (region.center) flyTo(region.center, REGION_MAX_ZOOM)
+          if (region.center) flyTo(region.center, VENUE_MAX_ZOOM)
         } else if (region.bounds) {
           setBoundary(bboxPolygon(region.bounds))
           // This caps the fit and pads the edges.
@@ -162,7 +162,7 @@ export function RealMapControllerProvider({ children }: { children: ReactNode })
         const zoom = eventFrameZoom({
           online: isOnline(event),
           visible: isPointVisible(point.longitude, point.latitude),
-          atDetailZoom: (mapbox?.getZoom() ?? 0) >= REGION_MAX_ZOOM,
+          atDetailZoom: (mapbox?.getZoom() ?? 0) >= VENUE_MAX_ZOOM,
           isEntry: opts?.isEntry ?? false,
           eventZoom: point.approximate ? VAGUE_ZOOM : EVENT_ZOOM,
           onlineZoom: ONLINE_ZOOM,
@@ -184,7 +184,7 @@ export function RealMapControllerProvider({ children }: { children: ReactNode })
         // So a resize while an event was open cleared the pin, with no navigation at all.
         setSelection(null)
         setBoundary(undefined)
-        if (bbox) fitBounds(bbox, { maxZoom: REGION_MAX_ZOOM, padding: REGION_FIT_PADDING })
+        if (bbox) fitBounds(bbox, { maxZoom: VENUE_MAX_ZOOM, padding: REGION_FIT_PADDING })
         else if (center) flyTo(center, EVENT_ZOOM)
         // No bbox and no center means nothing was searched.
         // So there is nothing to frame, and the camera stays where the visitor left it.
