@@ -9,7 +9,7 @@ import { ListToolbar } from '@/components/molecules/ListToolbar'
 import { EventHeader } from '@/components/organisms/EventDetails/EventHeader'
 import { mockEvent } from '@/mocks/events'
 import { tv } from '@/styles/tv'
-import { readSourceWithoutComments } from '@/test-support/source-tree'
+import { readRepoSource } from '@/test-support/repo-source'
 
 /**
  * The panel has one left and right edge, `--spacing-gutter`. Each band below spells its own
@@ -49,7 +49,7 @@ describe('the panel gutter', () => {
     // nothing on its own — only the subtrahend matching the button it offsets does.
     const steps = Number(button.find((name) => /^px-\d+$/.test(name))?.slice(3))
     const scale = Number(
-      readSourceWithoutComments('styles/globals.css').match(/^\s*--spacing:\s*(\d+)px;/m)?.[1],
+      readRepoSource('src/styles/globals.css').match(/^\s*--spacing:\s*(\d+)px;/m)?.[1],
     )
 
     expect(toolbar).toContain(`px-[calc(var(--spacing-gutter)_-_${steps * scale}px)]`)
