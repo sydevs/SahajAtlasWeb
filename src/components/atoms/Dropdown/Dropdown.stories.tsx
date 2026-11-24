@@ -17,7 +17,7 @@ const sizes = ['sm', 'md', 'lg'] as const
 // `role="button"`. So the trigger itself must not be an interactive element.
 // Nesting a real <button> inside would give two focus stops for one control.
 const triggerClass =
-  'inline-flex cursor-pointer items-center gap-2 rounded-md border border-gray-7 px-4 py-2 text-sm font-medium text-foreground pointer-coarse:min-h-11'
+  'inline-flex cursor-pointer items-center gap-2 rounded-lg border border-gray-7 px-4 py-2 text-sm font-medium text-foreground pointer-coarse:min-h-11'
 
 /**
  * Dropdown — a portaled popover shell with viewport-aware placement (flip and

@@ -9,7 +9,7 @@ import { Button } from '@/components/atoms/Button'
 // `danger` always keeps the fixed status red, never the brand tint.
 const alert = tv({
   slots: {
-    base: 'flex gap-3 rounded p-3',
+    base: 'flex gap-3 rounded-lg p-3',
     iconWrapper: 'shrink-0',
     content: 'min-w-0 flex-1',
     title: 'text-sm font-medium',

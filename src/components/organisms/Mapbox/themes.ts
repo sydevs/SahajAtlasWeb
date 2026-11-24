@@ -6,7 +6,7 @@ import { FONT_FAMILY } from '@/styles/fonts'
 // light/dark mode and the tenant palette. Colors map to the same tokens
 // Tailwind uses: the neutral ramp (`--gray-*`, dark-adaptive), the surface
 // (`--background`), and the brand accent (`--primary-9`). The input border
-// matches our form inputs (`gray-7`), with the default rounded corners.
+// matches our form inputs (`gray-7`), with their 8px corner.
 // The geocoder styles itself with its own CSS-in-JS, so it cannot inherit
 // our `font-sans`. The stack is restated here and built from FONT_FAMILY,
 // so a rename of the self-hosted face cannot leave this one input in the
@@ -18,7 +18,7 @@ export const controlTheme = {
     // derives from it. It stays small, so the "Search for events near…"
     // placeholder is not truncated.
     unit: '14px',
-    fontWeight: '500',
+    fontWeight: '400',
     padding: '1em',
     colorText: 'var(--gray-12)',
     colorSecondary: 'var(--gray-11)',
@@ -27,7 +27,7 @@ export const controlTheme = {
     colorBackgroundActive: 'var(--gray-4)',
     colorPrimary: 'hsl(var(--primary-9))',
     border: '1px solid var(--gray-7)',
-    borderRadius: '4px',
+    borderRadius: 'var(--radius-lg, 8px)',
     boxShadow: 'none',
   },
   // The geocoder hardcodes three things its variables don't reach. Typed text is 75% black in

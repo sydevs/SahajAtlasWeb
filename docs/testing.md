@@ -570,8 +570,14 @@ Five things about it are deliberate:
   answers across 44px and a 44px control under an overlay answers to nothing — only a hit test
   tells those two apart. `spanFrom` walks outward from the centre and stops at the first miss on
   each side, so a control crowded on one side reports the room it has rather than two patches.
-  ⚠ A control the page has no room to centre has probe points off the viewport, so the floor does
-  not apply to it: each one is **named** in the report and raises a warning annotation, and none
+  ⚠ **The centre it walks out from is the control's own rect, and the area it measures is the
+  `::after` around it.** The two part company by a fraction of a pixel, so the window reaches a
+  whole tap area either side rather than half of one — at half, the outermost probe on one side
+  falls outside and an area that is exactly 44px reports 43 (measured on
+  `atoms--inputs--checkbox`, whose centre sat on 421.86 with its area on [399, 443)).
+  ⚠ A control the page has no room to centre has the point that **ends** a run off the viewport,
+  so the floor does not apply to it: each one is **named** in the report and raises a warning
+  annotation, and none
   of them fails the gate — failing would red a required check for where a control sat rather than
   for how big it is.
 - **`region` and `landmark-unique` are off**, and `scripts/check-a11y.mjs` says why: a story is
@@ -887,16 +893,18 @@ to select from. The full lane still runs in the lean gate (`.claude/skills/pr-pr
 in CI, so this narrows the inner loop, not the gate.
 
 **What holds the budget is the selection's width, and `scripts/select-unit-specs.test.ts` pins
-that**: the widest edit in the tree, exhaustively through the real composition, at 22 against a
-ceiling of 22 — no headroom, so the next spec reading a repo file through `repo-source` trips it,
+that**: the widest edit in the tree, exhaustively through the real composition, at 23 against a
+ceiling of 23 — no headroom, so the next spec reading a repo file through `repo-source` trips it,
 and the answer is to time the hook and ratchet, never to drop a spec. ⚠ **Two PRs can trip it
 without either one doing so alone**: #322's `mobile-zoom.test.ts` and #324's `attribution.test.ts`
 each took a slot, and the pin went red on the merge rather than on either branch; #328's
 `Drawer.scroll.test.tsx` ratcheted it from 17 to 18, #17's
 `BrandTheme.palette.test.tsx` from 18 to 19, `theme-color.test.ts` from 19 to 20, and
-`assert-classic-bridge.test.ts` from 21 to 22. ⚠ Width is not time, and which of
+`assert-classic-bridge.test.ts` from 21 to 22, and `gutter.test.tsx` from 22 to 23. ⚠ Width is
+not time, and which of
 the pair is slower has flipped across machines — `i18n.ts` selects 12, four of them jsdom, and
-measured 6.2s against the widest's 5.5s at nineteen (2026-11-01, 4 cores), having been the faster
+measured 6.0s against the widest's 4.4s at twenty-three (2026-11-24, 4 cores), 6.2s against 5.5s
+at nineteen, having been the faster
 of the two at eighteen — so width
 bounds the slice, never the time, and a jump in either is a re-measure of both. It also pins each
 of the three specifier forms, end to end against this tree; the tree-walking set as a closed list,

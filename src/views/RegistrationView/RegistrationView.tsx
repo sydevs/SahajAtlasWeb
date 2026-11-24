@@ -111,7 +111,7 @@ export function RegistrationView({
         />
         <CloseButton />
       </DrawerHeader>
-      <DrawerBody className="p-4">
+      <DrawerBody className="px-gutter py-4">
         <EventFacts
           className="mx-auto mb-4 w-full max-w-md"
           event={event}

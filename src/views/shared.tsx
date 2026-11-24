@@ -8,6 +8,7 @@ import { useLocation, useNavigationType, useSearchParams } from 'react-router'
 import { useTranslation } from 'react-i18next'
 import { useQueries, useQuery, useSuspenseQuery } from '@tanstack/react-query'
 import { CalendarDays, Funnel, Menu, Search, X } from 'lucide-react'
+import clsx from 'clsx'
 
 import { Button } from '@/components/atoms/Button'
 import { FallbackPanel, GeolocationPrompt } from '@/components/molecules'
@@ -102,7 +103,10 @@ export type DrawerTitleProps = {
 export function DrawerTitle({ title, subtitle, note }: DrawerTitleProps) {
   return (
     <div className="min-w-0">
-      <h2 className="truncate text-lg font-semibold">{title}</h2>
+      {/* Wraps rather than truncates: beside a header's icons a 20px name such as "North of
+          England" runs out of room on a phone, and a cut place name is the one thing a
+          visitor came to read. */}
+      <h2 className="line-clamp-2 text-xl">{title}</h2>
       {subtitle && <div className="truncate text-sm text-gray-11">{subtitle}</div>}
       {note && <div className="truncate text-xs text-gray-11">{note}</div>}
     </div>
@@ -116,6 +120,12 @@ export function DrawerTitle({ title, subtitle, note }: DrawerTitleProps) {
  */
 const HEADER_CONTROL = { variant: 'ghost', isIconOnly: true, size: 'sm' } as const
 
+// On every header control, so whichever one ends the row takes it, whatever renders null after
+// it. Its 20px icon sits centred in a 32px box (44px on a touch screen), so this pulls the box
+// into the gutter until the icon lands on the panel edge, in the column of the rows' chevrons,
+// with the tap area whole.
+const HEADER_EDGE = 'last:-me-1.5 pointer-coarse:last:-me-3'
+
 export function CloseButton({ className }: { className?: string }) {
   // This renders inside the error/loading chrome, where a suspend would escape the
   // boundary and blank the widget instead of showing the failure. `useTranslation()`
@@ -128,7 +138,7 @@ export function CloseButton({ className }: { className?: string }) {
     <Button
       {...HEADER_CONTROL}
       aria-label={t('common.chrome.close')}
-      className={className}
+      className={clsx(HEADER_EDGE, className)}
       onClick={dismiss}
     >
       <X size={20} />
@@ -151,6 +161,7 @@ export function CalendarButton({ regionSlug }: { regionSlug: string }) {
     <Button
       {...HEADER_CONTROL}
       aria-label={t('calendar.title')}
+      className={HEADER_EDGE}
       onClick={() => navigate(calendarPath(regionSlug))}
     >
       <CalendarDays size={20} />
@@ -172,6 +183,7 @@ export function SearchButton() {
     <Button
       {...HEADER_CONTROL}
       aria-label={t('search.chrome.title')}
+      className={HEADER_EDGE}
       onClick={() => navigate(searchPath())}
     >
       <Search size={20} />
@@ -197,9 +209,10 @@ export function CollapseToggle() {
       {...HEADER_CONTROL}
       aria-expanded={!collapsed}
       aria-label={collapsed ? t('common.a11y.explore') : t('common.chrome.close')}
+      className={HEADER_EDGE}
       onClick={toggle}
     >
-      {collapsed ? <Menu size={24} /> : <X size={20} />}
+      {collapsed ? <Menu size={20} /> : <X size={20} />}
     </Button>
   )
 }
@@ -226,7 +239,12 @@ export function FilterButton({ iconOnly = false }: { iconOnly?: boolean }) {
 
   if (iconOnly) {
     return (
-      <Button {...HEADER_CONTROL} aria-label={label} className="relative" onClick={open}>
+      <Button
+        {...HEADER_CONTROL}
+        aria-label={label}
+        className={clsx('relative', HEADER_EDGE)}
+        onClick={open}
+      >
         <Funnel size={20} />
         {count > 0 && (
           <span

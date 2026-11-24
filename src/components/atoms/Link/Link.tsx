@@ -17,7 +17,7 @@ import { atlasPushState, hasAllowedScheme, isSafeHref } from '@/lib/shape'
 const link = tv({
   // `touch-target` is what gives a line of link text a 44px tap area on a touch screen,
   // without changing where it sits in the line (#432).
-  base: 'touch-target relative inline-flex items-center gap-1 rounded-sm transition-opacity outline-none hover:opacity-hover focus-visible:ring-2 focus-visible:ring-focus',
+  base: 'touch-target relative inline-flex items-center gap-1 rounded-lg transition-opacity outline-none hover:opacity-hover focus-visible:ring-2 focus-visible:ring-focus',
   variants: {
     // ⚠ Step 11, the ramp's readable TEXT step, never the bare token, which is step 9 — a
     // solid-background colour. `text-contrast` measured 3.22:1 on the light background (#432).
