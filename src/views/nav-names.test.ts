@@ -10,6 +10,7 @@ const t = ((key: string, opts?: { title?: string; place?: string }) => {
   const copy: Record<string, string> = {
     'common.chrome.back': 'Back',
     'common.chrome.back_to': `Back to ${opts?.title}`,
+    'common.chrome.back_to_class': 'Back to class',
     'common.chrome.back_to_world_map': 'Back to the world map',
     'common.chrome.back_to_results_near': `Back to results near ${opts?.place}`,
     'search.chrome.title': 'Search',
@@ -23,15 +24,14 @@ const t = ((key: string, opts?: { title?: string; place?: string }) => {
 
 const regionName = (slug: string) =>
   ({ gb: 'United Kingdom', london: 'London' })[slug as 'gb' | 'london']
-const eventTitle = (id: number) => (id === 7 ? 'Monday Evening Meditation' : undefined)
-const naming = { t, regionName, eventTitle }
+const naming = { t, regionName }
 
 describe('backLabel', () => {
   it.each([
     ['/', 'Back to the world map'],
     ['/gb', 'Back to United Kingdom'],
     ['/gb/london', 'Back to London'],
-    ['/gb/london/7', 'Back to Monday Evening Meditation'],
+    ['/gb/london/7', 'Back to class'],
     ['/search?q=Prague%2C+Czechia&center=14.4,50.1', 'Back to results near Prague'],
     ['/search', 'Back to Search'],
     ['/calendar', 'Back to Calendar'],
@@ -51,10 +51,6 @@ describe('backLabel', () => {
     const countryName = (code: string) => (code === 'GB' ? 'Royaume-Uni' : undefined)
 
     expect(backLabel('/gb', { ...naming, countryName })).toBe('Back to Royaume-Uni')
-  })
-
-  it('degrades to plain "Back" for a class whose title is not cached', () => {
-    expect(backLabel('/gb/london/99', naming)).toBe('Back')
   })
 
   it('never returns an empty name', () => {

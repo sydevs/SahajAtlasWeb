@@ -46,9 +46,9 @@ cover everything a host would notice since the widget was first deployed.
 - **Every place and class page says "Back to …" where it leads, instead of an X.** ([#476]) The
   control at the top of a country, region, city, class, registration or share page now names the
   page it returns to ("Back to United Kingdom", "Back to the world map", "Back to results near
-  Prague"). It still never takes your page's own history back: with no earlier step inside the
+  Prague", "Back to class"). It still never takes your page's own history back: with no earlier step inside the
   widget, it goes up a level, past the building a class meets in and any place holding only that
-  class. An X remains only on the filters over the calendar, and the faint panels that stacked
+  class. An X remains only on the filters, and the faint panels that stacked
   behind the current one are gone. On a phone the panel opens at 356px rather than 300px and pulls
   down to 104px, enough for Back, the first line of the name and a "Show more" button, which
   replaces the menu button; on a window 480px tall or less, every stop stays 75px below the top.

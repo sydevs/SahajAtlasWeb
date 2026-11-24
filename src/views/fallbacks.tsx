@@ -220,6 +220,7 @@ export function DrawerChrome({
           {entry.kind === 'calendar' && <FilterButton iconOnly />}
         </>
       }
+      close={entry.kind === 'filters'}
       title={title}
     />
   )

@@ -90,9 +90,8 @@ export function FilterView({ initialDraft }: { initialDraft?: EventFilters } = {
 
   return (
     <>
-      {/* Over the calendar the filters are an overlay, closed by an X; stacked on a place or
-          the results, they are a page, and Back names where it returns. */}
-      <NavHeader title={t('filters.chrome.title')} />
+      {/* The filters sit over the page they narrow, so they close back onto it with an X. */}
+      <NavHeader close title={t('filters.chrome.title')} />
       <DrawerBody className="p-4">
         <SearchFilters value={draft} onChange={setDraft} />
       </DrawerBody>

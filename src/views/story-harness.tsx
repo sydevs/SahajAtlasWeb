@@ -18,6 +18,7 @@ import { Mapbox } from '@/components/organisms/Mapbox/Map'
 import { NoopMapControllerProvider } from '@/hooks/use-map-controller'
 import { RealMapControllerProvider } from '@/hooks/use-map-controller-real'
 import { mockErrors, mockNotFound } from '@/mocks/errors'
+import { parentOf } from '@/lib/shape'
 import { mockGeojson, mockRegionNodes } from '@/mocks/regions'
 
 // The comprehensive event-variant list, re-exported here so the event-list view
@@ -69,8 +70,11 @@ const mockIpLocation: IpLocation = {
   country_code: 'GB',
 }
 
-/** A drawer control for stories: Back shows, named for a country, but goes nowhere. */
-const STORY_DRAWER_CONTROL = { ...NO_DRAWER_CONTROL, backTo: '/gb' }
+/** A drawer control for stories: Back names the story's parent page, but goes nowhere. */
+const storyDrawerControl = (path: string | undefined) => ({
+  ...NO_DRAWER_CONTROL,
+  backTo: path ? (parentOf(path) ?? '/') : '/gb',
+})
 
 export type ViewHarnessProps = {
   /** The active use-case key — remounts and re-seeds when it changes. */
@@ -315,7 +319,7 @@ export function ViewHarness({
               rather than inert: `backTo` decides whether they show Back at
               all, and without a provider every story would preview the root's control
               set (issue #89). `dismiss` is a no-op — a story has nowhere to dismiss to. */}
-          <DrawerControlContext.Provider value={STORY_DRAWER_CONTROL}>
+          <DrawerControlContext.Provider value={storyDrawerControl(path)}>
             <DrawerSlotsProvider direction="bottom" mode="filled">
               {/* With a map behind it the drawer is a PANEL, as it is in map mode. Without one
                   it fills the canvas, as a map-less embed does. Both are positioned: the map

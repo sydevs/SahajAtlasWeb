@@ -274,9 +274,11 @@ source of truth, so all three stay linkable and shareable:
   on a class there read as going nowhere, and a one-class place only opens that
   class again (`loneClassPath`, RegionView). A climb stamps `climbedFrom`, so a
   one-class place reached by one climbs on instead of bouncing back into the
-  class, even before the feed has loaded. An X is left only on an overlay over a
-  page still on screen, the filters over the calendar: its control carries
-  `overlay`, and `NavHeader` draws the X from it.
+  class, even before the feed has loaded. Register and Share say "Back to class":
+  the class is still on screen behind them. The filters keep an X, since they
+  sit over the page they narrow (`NavHeader close`); the filter drawer over the
+  calendar also marks its control `overlay`, so its loading and error chrome
+  close the same way.
   **Nothing draws the history behind the view.** Back names where it goes, so
   the stacked edges that once stood for each panel a repeated X would pass
   through are gone, and with them the depth bookkeeping they needed.

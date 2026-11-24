@@ -1,12 +1,12 @@
 import type { ReactNode } from 'react'
-import type { Event, RegionNode } from '@/types'
+import type { RegionNode } from '@/types'
 
 import { useQueryClient } from '@tanstack/react-query'
 import { ChevronLeft, X } from 'lucide-react'
 
 import { Button } from '@/components/atoms/Button'
 import { DrawerHeader } from '@/components/atoms/Drawer'
-import { eventQuery, eventTitlesQuery, regionsQuery } from '@/config/api'
+import { regionsQuery } from '@/config/api'
 import { useLocale } from '@/hooks/use-locale'
 import { backLabel } from '@/views/nav-names'
 import { DrawerTitle, ExpandSheetButton, HEADER_CONTROL, useDrawerControl } from '@/views/shared'
@@ -21,7 +21,7 @@ import { DrawerTitle, ExpandSheetButton, HEADER_CONTROL, useDrawerControl } from
 export function BackButton({ iconOnly = false }: { iconOnly?: boolean }) {
   // Also rendered by the loading and error chrome, so it must not suspend, and its reads are
   // cache-only: a fetch there would re-issue the read that just failed.
-  const { t, locale, regionNames: countryNames } = useLocale()
+  const { t, regionNames: countryNames } = useLocale()
   const { backTo, dismiss } = useDrawerControl()
   const queryClient = useQueryClient()
 
@@ -34,10 +34,6 @@ export function BackButton({ iconOnly = false }: { iconOnly?: boolean }) {
       queryClient
         .getQueryData<RegionNode[]>(regionsQuery().queryKey)
         ?.find((node) => node.slug === slug)?.name ?? undefined,
-    // Register and Share go back to a class that has just been loaded under its own key.
-    eventTitle: (id) =>
-      queryClient.getQueryData<Event>(eventQuery(id, locale).queryKey)?.title ||
-      queryClient.getQueryData<Map<number, string>>(eventTitlesQuery(locale).queryKey)?.get(id),
   })
 
   if (iconOnly) {
@@ -49,8 +45,9 @@ export function BackButton({ iconOnly = false }: { iconOnly?: boolean }) {
   }
 
   return (
+    // The atom's own `sm` padding, pulled out by it so the chevron lines up with the title.
     <Button
-      className="-ms-2 min-w-0 justify-start gap-0.5 ps-0.5 pe-0"
+      className="-ms-3 min-w-0 justify-start gap-1"
       color="primary"
       size="sm"
       variant="ghost"
@@ -103,6 +100,8 @@ export type NavHeaderProps = {
   subtitle?: ReactNode
   /** The view's own controls, on the Back row. */
   actions?: ReactNode
+  /** A panel over a page (the filters): a title and an X that closes back onto the page. */
+  close?: boolean
 }
 
 /**
@@ -110,12 +109,12 @@ export type NavHeaderProps = {
  * the same spot from view to view. The controls share the Back row, so the title has the panel's
  * full width and a long name wraps instead of being cut off.
  */
-export function NavHeader({ title, subtitle, actions }: NavHeaderProps) {
+export function NavHeader({ title, subtitle, actions, close = false }: NavHeaderProps) {
+  // The filters' own drawer over the calendar marks its control, so its loading and error
+  // chrome closes the same way.
   const { overlay } = useDrawerControl()
 
-  // An overlay over a view still on screen (the filters over the calendar) closes onto it with an
-  // X: a title and the X, with no Back row.
-  if (overlay) {
+  if (close || overlay) {
     return (
       <DrawerHeader className="justify-between">
         {title ? <DrawerTitle title={title} /> : <div />}

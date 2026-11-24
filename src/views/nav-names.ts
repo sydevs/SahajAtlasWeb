@@ -34,8 +34,6 @@ export type NavNaming = {
    * shows, known before the region tree arrives, so a deep link never reads "GB" meanwhile.
    */
   countryName?: (code: string) => string | undefined
-  /** A class's title by id, from whichever cache holds it. */
-  eventTitle?: (id: number) => string | undefined
 }
 
 // A slug no cache names, made readable, so a person never reads a raw slug: "united-kingdom"
@@ -50,7 +48,7 @@ const readableSlug = (slug: string): string =>
 /** The name of one stack entry, or `undefined` where nothing true is known. */
 function entryName(
   entry: StackEntry,
-  { t, regionName, countryName, eventTitle }: NavNaming,
+  { t, regionName, countryName }: NavNaming,
 ): string | undefined {
   switch (entry.kind) {
     case 'region': {
@@ -64,8 +62,6 @@ function entryName(
         readableSlug(entry.slug)
       )
     }
-    case 'event':
-      return eventTitle?.(entry.id)
     case 'online':
       return t('online.title')
     case 'search':
@@ -74,7 +70,8 @@ function entryName(
       return t('calendar.title')
     case 'filters':
       return t('filters.chrome.title')
-    // `register` and `share` are leaves, so neither can be somewhere to go back to.
+    // A class is named by `backLabel`, and `register` and `share` are leaves, so neither can be
+    // somewhere to go back to.
     default:
       return undefined
   }
@@ -98,6 +95,9 @@ export function backLabel(route: string, naming: NavNaming): string {
 
     if (place) return t('common.chrome.back_to_results_near', { place })
   }
+
+  // Only Register and Share go back to a class, which is still on screen behind them.
+  if (entry.kind === 'event') return t('common.chrome.back_to_class')
 
   const title = entryName(entry, naming)
 
