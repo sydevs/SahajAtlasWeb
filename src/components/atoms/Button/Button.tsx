@@ -68,11 +68,13 @@ export const controlSurface = tv({
     // brand seed, such as a pale secondary, still reads with white. Dark mode
     // keeps the ramp's light solid (step 9) and its adaptive on-color. `neutral`
     // uses the fixed gray solid. Gray-9 pairs with gray-1 or white in both modes.
+    // `floating` shares this row: primary is the one call to action over a map, so it is filled
+    // rather than bordered. `border-transparent` is inert on `solid`, which draws no border.
     {
       color: 'primary',
-      variant: 'solid',
+      variant: ['solid', 'floating'],
       class:
-        'bg-primary-12 text-white hover:bg-primary-11 dark:bg-primary-9 dark:text-primary-foreground dark:hover:bg-primary-10',
+        'border-transparent bg-primary-12 text-white hover:bg-primary-11 dark:bg-primary-9 dark:text-primary-foreground dark:hover:bg-primary-10',
     },
     {
       color: 'secondary',
@@ -129,16 +131,9 @@ export const controlSurface = tv({
       class: 'border-contrast-11 text-contrast-11 hover:bg-contrast-3',
     },
     { color: 'neutral', variant: 'bordered', class: 'border-gray-12 text-gray-12 hover:bg-gray-3' },
-    // floating: primary is filled, as its solid is — the one call to action over a map. The rest
-    // keep the app's surface, with the ramp's border step (7) rather than its text step, since
-    // the surface and the shadow already set them apart; neutral takes the divider every other
-    // app border uses.
-    {
-      color: 'primary',
-      variant: 'floating',
-      class:
-        'border-transparent bg-primary-12 text-white hover:bg-primary-11 dark:bg-primary-9 dark:text-primary-foreground dark:hover:bg-primary-10',
-    },
+    // floating: the app's surface, with the ramp's border step (7) rather than its text step,
+    // since the surface and the shadow already set these apart; neutral takes the divider every
+    // other app border uses. `primary` is filled instead, in the solid row above.
     {
       color: 'secondary',
       variant: 'floating',
