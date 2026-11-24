@@ -83,8 +83,11 @@ function crawlDeploy() {
  * serving its own assets — measured on PR #466, where four chunks answered 500 for about
  * 25 seconds and 200 after. The lane's own `retry: 2` cannot buy that time, because each
  * retry re-crawls from scratch and so races the same window again.
+ *
+ * ⚠ Keep `SETTLE_ROUNDS` × `SETTLE_WAIT_MS` above that window. Under it the lane is back to
+ * depending on the retry, which is the defect this replaced.
  */
-const SETTLE_ROUNDS = 6
+const SETTLE_ROUNDS = 10
 const SETTLE_WAIT_MS = 3_000
 
 async function crawlFromLoader() {
