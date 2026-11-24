@@ -40,7 +40,7 @@ const DRAWER_W_PX = 352
 // `OPEN_SNAP` in `DrawerStack`, the height the phone sheet opens at. Only a fallback: the stack
 // publishes what the sheet actually covers. Padding for the peek alone centred a framed place on
 // map the open sheet hides, and on /fr/paris the classes listed first sat under it.
-const MOBILE_SHEET_PX = 300
+const MOBILE_SHEET_PX = 356
 // What the sheet must still leave of the map above it, for the pin the camera just framed. It also
 // keeps the padding inside a short contained embed (#169), where padding past the canvas makes
 // `fitBounds` refuse the fit outright.
@@ -49,11 +49,14 @@ const MAP_MARGIN = 20
 
 // These constants keep zoom consistent.
 // An event frames at `EVENT_ZOOM`.
-// A region fits no closer than `REGION_MAX_ZOOM`, 2 levels wider.
+// A venue frames no closer than `REGION_MAX_ZOOM`, 2 levels wider.
 // So clicking an event from its region is always a zoom-in, never a jarring zoom-out.
+// A city, region or country fits no closer than `AREA_MAX_ZOOM`, so a city whose classes all
+// meet a few streets apart still shows the whole city, and Back from a class visibly zooms out.
 // `REGION_FIT_PADDING` keeps edge events off the map border.
 const EVENT_ZOOM = 15
 const REGION_MAX_ZOOM = 13
+const AREA_MAX_ZOOM = 11.5
 const REGION_FIT_PADDING = 48
 // An online event has only an approximate location.
 // This frames it wide, at city or area level, when a deep link makes it the session entry point.
@@ -140,9 +143,9 @@ export function RealMapControllerProvider({ children }: { children: ReactNode })
         } else if (region.bounds) {
           setBoundary(bboxPolygon(region.bounds))
           // This caps the fit and pads the edges.
-          // A single-event or tight-event region cannot zoom past `REGION_MAX_ZOOM`. This cap has no effect on a large region that already fits wider.
+          // A single-event or tight-event region cannot zoom past `AREA_MAX_ZOOM`. This cap has no effect on a large region that already fits wider.
           // The padding keeps events clear of the border.
-          fitBounds(region.bounds, { maxZoom: REGION_MAX_ZOOM, padding: REGION_FIT_PADDING })
+          fitBounds(region.bounds, { maxZoom: AREA_MAX_ZOOM, padding: REGION_FIT_PADDING })
         } else {
           setBoundary(undefined)
         }
