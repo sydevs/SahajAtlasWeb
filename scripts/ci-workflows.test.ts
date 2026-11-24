@@ -57,6 +57,13 @@ const jobIn = (workflow: string, name: string) => {
 /** A job's steps, one per `- ` at step indentation. */
 const steps = (job: string) => job.split(/^ {6}- /m).slice(1)
 
+/**
+ * The one `if:` a gated step may carry: the light lane's (`ci.yml`, "Docs-only changes take the
+ * light lane"). A step that is the whole point of a required check may skip on a docs-only change
+ * and on no other condition, so every pin below strips this line and still refuses any other.
+ */
+const SCOPE_IF = /^\s*if: \$\{\{ steps\.scope\.outputs\.full == 'true' \}\}\n/gm
+
 /** The `actions/cache*` actions a workflow or a job uses, in order. */
 const cacheActions = (scope: string) =>
   [...scope.matchAll(/^\s*(?:- )?uses: (actions\/cache\S*)@/gm)].map((m) => m[1])
@@ -316,7 +323,7 @@ describe('ci.yml browser lane', () => {
     expect(workflowEvents(ci)).toEqual(['merge_group', 'pull_request'])
     expect(job).not.toMatch(/^ {4}if:/m)
     expect(lane).toHaveLength(1)
-    expect(lane[0]).not.toMatch(/^\s*if:/m)
+    expect(lane[0].replace(SCOPE_IF, '')).not.toMatch(/^\s*if:/m)
   })
 
   it('fails the workflow on the first failure, with no retry to hide a flake', () => {
@@ -333,7 +340,9 @@ describe('ci.yml browser lane', () => {
   })
 
   it('pins every action it uses by commit SHA', () => {
-    const refs = [...job.matchAll(/^\s*(?:- )?uses: \S+@(\S+)/gm)].map((m) => m[1])
+    // `sydevs/` is this organisation's own, followed at `@main` on purpose (the `every workflow`
+    // block below says why).
+    const refs = [...job.matchAll(/^\s*(?:- )?uses: (?!sydevs\/)\S+@(\S+)/gm)].map((m) => m[1])
 
     expect(refs.length).toBeGreaterThan(0)
     for (const ref of refs) expect(ref).toMatch(/^[0-9a-f]{40}$/)
@@ -435,7 +444,7 @@ describe('the Chromium cache key', () => {
     // libraries no cache holds; `--no-shell` keeps what a miss downloads to what the key promises.
     expect(run).toContain('--with-deps')
     expect(run).toContain('--no-shell')
-    expect(install[0]).not.toMatch(/^\s*if:/m)
+    expect(install[0].replace(SCOPE_IF, '')).not.toMatch(/^\s*if:/m)
   })
 
   // The key names the `playwright` pin, which is what `pnpm exec playwright install` downloads,
@@ -470,7 +479,7 @@ describe("ci.yml's gate job, on the unit lane", () => {
   // The step is the bare command: no `|| true` after it, and no key under it such as
   // `continue-on-error`, either of which would report a red spec as a green gate.
   it('lets a failing spec fail the job', () => {
-    expect(gateJob).toMatch(/^ {6}- run: pnpm test:coverage\n(?! {8}\S)/m)
+    expect(gateJob.replace(SCOPE_IF, '')).toMatch(/^ {6}- run: pnpm test:coverage\n(?! {8}\S)/m)
   })
 
   // The path is the `json-summary` reporter's own, under vitest's default reports directory.
@@ -521,5 +530,51 @@ describe('every workflow', () => {
     // The comment is the only readable half of a pin, and it is what Dependabot rewrites when it
     // moves the SHA — on the same line, or it is left behind.
     expect(thirdParty.filter(({ comment }) => !/^#\s*v\d/.test(comment))).toEqual([])
+  })
+})
+
+// The light lane skips steps on a docs-only change, so a file the specs READ must never count as
+// light: a change to it would then merge without the lane that parses it. Everything is decided
+// by one regex in `ci.yml`, held as a workflow-level `env` key so the three `change-scope` calls
+// cannot drift apart.
+describe('ci.yml light lane', () => {
+  const light = new RegExp(match(ciWorkflow, /^\s*LIGHT_PATHS: '(.+)'$/m))
+
+  it('passes that one list to every job that classifies the change', () => {
+    const passed = [...ciWorkflow.matchAll(/^\s*light: (.+)$/gm)].map((m) => m[1])
+
+    expect(passed).toEqual(Array<string>(3).fill('${{ env.LIGHT_PATHS }}'))
+  })
+
+  it('counts a guide as light, and never a file a spec or the build reads', () => {
+    for (const path of [
+      'CLAUDE.md',
+      'src/views/AGENTS.md',
+      'docs/stacked-prs.md',
+      'docs/rules/code-comments.md',
+      'docs/rules/mapbox.md',
+      '.claude/skills/pr-prep/check.sh',
+    ])
+      expect(light.test(path), path).toBe(true)
+
+    for (const path of [
+      'docs/embedding.md',
+      'docs/testing.md',
+      'docs/rules/deployment.md',
+      'src/App.tsx',
+      'package.json',
+      '.github/workflows/ci.yml',
+      'scripts/ci-workflows.test.ts',
+      'public/_headers',
+    ])
+      expect(light.test(path), path).toBe(false)
+  })
+
+  it('skips Smoke through the scope job, not the workflow', () => {
+    const smoke = ciWorkflow.slice(ciWorkflow.indexOf('\n  smoke:'))
+
+    expect(smoke).toMatch(/^ {4}needs: scope$/m)
+    expect(smoke).toMatch(/^ {4}if: \$\{\{ needs\.scope\.outputs\.full == 'true' \}\}$/m)
+    expect(ciWorkflow).not.toMatch(/^\s+paths(-ignore)?:/m)
   })
 })

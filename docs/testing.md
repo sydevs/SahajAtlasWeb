@@ -406,8 +406,11 @@ the prefix (`docs/rules/deployment.md`).
 production build, with the lane's own SahajCloud origin and a dummy Mapbox token), serves it with
 the same server and host pages as `pnpm review:embed`, and drives it in Chromium with
 `@playwright/test`. CI runs it as **`Browser lane`** on every pull request and merge-queue entry,
-and it blocks: no retries, no `if:` that could skip it, no `continue-on-error`
+and it blocks: no retries, no `continue-on-error`, and no `if:` on the job
 (`scripts/ci-workflows.test.ts` pins all three).
+⚠ **The lane step carries one condition, the light lane's**, so a change touching only the
+guides `ci.yml`'s header lists reports this check green without running a scenario. That spec
+pins it as the only condition the step may carry.
 
 The job restores Chromium from a cache it never writes. `browser-cache.yml` saves it on each push
 to `main`, the one cache scope a pull request and a merge-queue run can both read; one they saved
