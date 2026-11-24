@@ -39,7 +39,8 @@ const facts = tv({
   variants: {
     variant: {
       default: { base: 'gap-2.5', item: 'gap-3', icon: 'text-primary' },
-      compact: { base: 'gap-0.5', item: 'gap-2', icon: 'text-gray-11', text: 'text-sm' },
+      // Every fact takes at least 22px, so one-line facts never sit line on line.
+      compact: { base: 'gap-1.5', item: 'min-h-5.5 gap-2', icon: 'text-gray-11', text: 'text-sm' },
       card: {
         wrapper: 'rounded-lg border border-divider bg-gray-2 p-3',
         title: 'mb-3 text-lg',

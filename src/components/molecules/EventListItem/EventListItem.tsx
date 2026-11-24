@@ -121,7 +121,7 @@ function EventListItemImpl({ event, searchedPlace, showDistance = true }: EventL
           would break silently the day a card grows a second anchor. */}
       <Link
         data-event-row
-        className={listRow({ className: 'flex flex-col gap-1 py-4' })}
+        className={listRow({ className: 'flex flex-col gap-1.5 py-4' })}
         href={event.path}
         onBlur={deactivate}
         onFocus={activate}
@@ -130,7 +130,6 @@ function EventListItemImpl({ event, searchedPlace, showDistance = true }: EventL
       >
         <div className="line-clamp-2 text-lg">{event.title}</div>
         <EventFacts
-          className="mt-0.5 mb-1"
           distance={
             distanceText && (
               <span aria-label={distanceLabel} title={distanceLabel}>
@@ -141,7 +140,7 @@ function EventListItemImpl({ event, searchedPlace, showDistance = true }: EventL
           event={event}
           variant="compact"
         />
-        <EventChips className="mt-1" event={event} variant="compact" />
+        <EventChips className="mt-1.5" event={event} variant="compact" />
       </Link>
     </li>
   )

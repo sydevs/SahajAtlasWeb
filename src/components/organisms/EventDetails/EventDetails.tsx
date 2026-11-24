@@ -82,13 +82,11 @@ export function EventDetails({ event, basePath, ctaInline = true, children }: Ev
     // instead of floating 40px above it. Everything else keeps the padding.
     <div className={`flex flex-col gap-4 px-gutter pt-2 ${hasImages ? '' : 'pb-10'}`}>
       {/* The triage chips open the body. They do not sit under the title in the
-          pinned header. The chips are a short row. The container's `gap-4` and
-          the facts' own `my-2` add extra space before the facts. The `-mb-2`
-          class removes that extra space. */}
-      <EventChips className="-mb-2" event={event} />
+          pinned header. */}
+      <EventChips event={event} />
 
-      {/* Extra space appears around the date and location facts, above the Register button. */}
-      <EventFacts className="my-2" event={event} />
+      {/* The facts keep extra room above the Register button. */}
+      <EventFacts className="mb-2" event={event} />
 
       {children}
 
