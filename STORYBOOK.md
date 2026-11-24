@@ -21,7 +21,7 @@ pnpm ladle:build  # static build (also the CI gate — broken stories fail it)
 
 | Piece                   | What it does                                                                        |
 | ----------------------- | -------------------------------------------------------------------------------------- |
-| `.ladle/config.mjs`     | Story glob (`src/**/*.stories.{ts,tsx}`), title, port, `viteConfig`, and the story order: alphabetical, with `Interactive` last. |
+| `.ladle/config.mjs`     | Story glob (`src/**/*.stories.{ts,tsx}`), title, port, `viteConfig`, and the story order: Atoms, Molecules, Organisms, Views, Interactive, then any other group, each alphabetical inside. |
 | `.ladle/vite.config.ts` | Resolves the `@/` alias to `src/` (Ladle relocates Vite's root). Points the app's SahajCloud origin at Ladle's own, serves the Turnstile challenge there, and swaps in `react-map-gl.tsx`. |
 | `.ladle/backend.ts`     | Answers every SahajCloud read from the browser lane's wire fixtures (`src/mocks/wire.ts`), and the IP lookup with Cambridge. Ladle talks to no API. |
 | `.ladle/react-map-gl.tsx` | react-map-gl as a story needs it: `reuseMaps` off (a map carried between Ladle's iframe and its page drew nothing), a canvas that follows its own box, and the realm bridge mapbox-gl needs inside the viewport iframe. |

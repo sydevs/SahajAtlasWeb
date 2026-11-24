@@ -14,14 +14,14 @@ import {
   StoryGridCell,
 } from '../../ladle'
 
-import { Button } from './Button'
+import { Button, floatingChrome } from './Button'
 
 export default {
   title: 'Atoms',
 } satisfies StoryDefault
 
 const colors = ['primary', 'secondary', 'contrast', 'neutral'] as const
-const variants = ['solid', 'flat', 'bordered', 'ghost', 'floating'] as const
+const variants = ['solid', 'flat', 'bordered', 'ghost'] as const
 const sizes = ['sm', 'md', 'lg'] as const
 const radii = ['sm', 'full'] as const
 
@@ -32,7 +32,8 @@ const radii = ['sm', 'full'] as const
  * `isIconOnly` squares the width against the size scale. The colour × variant
  * matrix lives in the exported `controlSurface` recipe. ActionCircle skins its
  * circle with the same recipe. So `color`, `variant`, `size`, and `radius` mean
- * the same thing across every control.
+ * the same thing across every control. `floatingChrome` is the skin of a control floating
+ * over the map: "Expand map", "Close map" and the settings cog.
  */
 export const Default: Story = () => (
   <StoryWrapper>
@@ -124,17 +125,29 @@ export const Default: Story = () => (
 
     <StorySection
       background="gradient"
-      description="`variant=floating` is a control over the map or the page: the app's opaque surface and a shadow. Over a gradient, which is the one thing the colour grids above cannot show. The settings cog is the app's own; the pill is a sample."
-      title="Floating"
+      description="`floatingChrome` skins a control floating over the map or the page: the app's surface, the divider border and a shadow. A `Button` takes it as its `className`, over `variant=bordered radius=full`; anything else passes `bordered` for the border and the round corner. The caller adds only its position."
+      title="Floating chrome"
     >
       <div className="flex flex-wrap items-center gap-3">
-        <Button radius="full" size="sm" variant="floating">
+        <Button className={floatingChrome()} radius="full" size="sm" variant="bordered">
           <Expand size={16} />
-          Sample pill
+          Expand map
         </Button>
-        <Button isIconOnly aria-label="Settings" radius="full" size="sm" variant="floating">
-          <Settings size={20} />
+        <Button className={floatingChrome()} radius="full" size="sm" variant="bordered">
+          <X size={16} />
+          Close map
         </Button>
+        <button
+          aria-label="Settings"
+          className={floatingChrome({
+            bordered: true,
+            className:
+              'flex h-8 w-8 items-center justify-center text-gray-11 hover:text-foreground',
+          })}
+          type="button"
+        >
+          <Settings size={16} />
+        </button>
       </div>
     </StorySection>
 
