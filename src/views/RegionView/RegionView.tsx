@@ -27,8 +27,8 @@ import {
   climbDestination,
   hasActiveFilters,
   loneClassExit,
+  resolveStack,
   searchPath,
-  viewRegion,
 } from '@/lib/shape'
 import { validateWebUrl } from '@/lib/url'
 import { NavHeader } from '@/views/nav'
@@ -69,11 +69,13 @@ export function RegionView({ slug }: { slug: string }) {
   const { data: region } = useSuspenseQuery(regionQuery(slug, locale, filters))
 
   // A place with one class opens it: a list of one is an extra tap. Only while this view is the
-  // page on screen, not while it plays its exit, and not while it answers the post-event email,
-  // whose acknowledgement is this page's. Reached by climbing out of that class, it climbs on,
-  // as Back already said it would; reached by a step back from the class, it shows its page.
+  // page the URL names — DrawerStack keeps an exiting view mounted under the new one, and router
+  // context reaches it — and not while it answers the post-event email, whose acknowledgement is
+  // this page's. Reached by climbing out of that class, it climbs on, as Back already said it
+  // would; reached by a step back from the class, it shows its page.
+  const top = resolveStack(location.pathname).at(-1)
   const lone =
-    feedback || viewRegion(location.pathname) !== slug ? undefined : region.singleEventPath
+    feedback || top?.kind !== 'region' || top.slug !== slug ? undefined : region.singleEventPath
   const exit = lone ? loneClassExit(location, lone) : undefined
   const redirect =
     !lone || exit === 'back'
