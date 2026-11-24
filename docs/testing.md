@@ -203,19 +203,14 @@ claim about platform behaviour, asserted rather than left as a comment.
 
 ### A fresh version can 5xx for its own assets, and the chunk crawl waits that out
 
-The specs read a version uploaded seconds earlier, and on **PR #466** four of its chunks
-answered **500** while the rest of the deploy served normally — then **200** about 25 seconds
-later, off the same pinned address. The lane's `retry: 2` could not absorb it: each retry
-re-crawls from scratch, so all three attempts raced the same window and the broken set only
-shrank, 4 → 3 → 2.
+The specs read a version uploaded seconds earlier, and on **PR #466** four of its chunks answered
+**500** while the rest of the deploy served normally. So `embed.smoke.test.ts` re-checks a 5xx for
+`SETTLE_ROUNDS` rounds before it calls a chunk broken, rather than leaning on the lane's
+`retry: 2` — each retry re-crawls from scratch, so all three race the same window again.
 
-So `embed.smoke.test.ts` re-checks a 5xx itself, six rounds three seconds apart, and calls the
-chunk broken only after that. ⚠ **This costs the defect the spec exists to catch nothing**, and
-the reason is the second invariant above: a chunk the deploy does not hold answers the SPA shell
-with **200 `text/html`**, never a 5xx. Measured against a stand-in deploy — a chunk that 500s
-three times then heals passes in 9.3s, one served as the shell fails in 0.3s, and one that 500s
-forever fails in 18.3s naming it. Do not widen the wait to a non-5xx status: that is the half
-that must stay instant.
+⚠ **This costs the defect the spec exists to catch nothing**, and the reason is the second
+invariant above: a chunk the deploy does not hold answers the SPA shell with **200 `text/html`**,
+never a 5xx. Do not widen the wait to a non-5xx status: that is the half that must stay instant.
 
 ### A deployed file is not a working one — check the origins the bundle will REQUEST
 
