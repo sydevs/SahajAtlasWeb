@@ -149,11 +149,6 @@ export type MarkerColors = Readonly<{
   [MARKER_IDS.clusterSelected]: MarkColors
 }>
 
-// One pale halo per role, taken from the pin's fill, so a pin and a bubble wear the
-// same ring. The cap keeps a light fill's ring a colour rather than white.
-const ringOf = (fill: string) =>
-  shiftHex(fill, { lightness: 34, saturation: -11, maxLightness: 82 })
-
 // Through `buildPalette`, not `buildScale`, so the selected pair carries
 // `selected-distinct` — the check that keeps it from matching every pin around it.
 //
@@ -166,7 +161,9 @@ function deriveMarkerColors(primarySeed: string, contrastSeed: string): MarkerCo
     // Both seeds are usable (`seedOrDefault`), so `buildPalette` built both roles.
     const { scale } = built[role]!
     const fill = scaleHex(scale, SOLID_STEP)
-    const ring = ringOf(fill)
+    // One pale halo per role, taken from the pin's fill, so a pin and a bubble wear the
+    // same ring. The cap keeps a light fill's ring a colour rather than white.
+    const ring = shiftHex(fill, { lightness: 34, saturation: -11, maxLightness: 82 })
 
     return [
       { fill, ring },
