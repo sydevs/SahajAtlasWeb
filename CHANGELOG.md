@@ -52,6 +52,11 @@ cover everything a host would notice since the widget was first deployed.
   and that hover tint. Nothing moves, nothing is harder to reach, and there is **no parameter,
   origin, CSP, storage or Permissions-Policy change**.
 
+- **The calendar's today highlight takes the buttons' dark green in light mode.** ([#478]) It
+  was the bright primary solid under black text; it is now the same dark shade under white that
+  the solid buttons use, from your own primary colour or the default green. Dark mode is
+  unchanged. **No parameter, origin, CSP, storage or Permissions-Policy change.**
+
 - **A warmer default look, and map circles whose numbers are easy to read.** ([#469]) The
   widget's built-in colours change: the default primary is now a green (`#2D9A76`, was the teal
   `#1E6C71`) and the default accent a coral (`#E0775C`, was `#d8735a`), and the panel's greys are
@@ -1189,6 +1194,7 @@ must-revalidate`, pinned rather than left to the CDN default. The production dom
   (`//evil.com`) and non-allowlisted-scheme hrefs. Defense in depth — no live hole was
   found. ([#111], [#136])
 
+[#478]: https://github.com/sydevs/SahajAtlasWeb/pull/478
 [#469]: https://github.com/sydevs/SahajAtlasWeb/pull/469
 [#192]: https://github.com/sydevs/SahajAtlasWeb/pull/192
 [#187]: https://github.com/sydevs/SahajAtlasWeb/pull/187
