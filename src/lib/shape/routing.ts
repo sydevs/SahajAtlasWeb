@@ -24,7 +24,7 @@
  * This module is pure. It never touches `window`, so the whole decision is testable in
  * the node lane. `atlas-history.ts` is the part that touches `history`.
  */
-import { decodePath, safePath } from './path'
+import { safeDecode, safePath } from './path'
 import { encodeParamValue, searchWith, searchWithout } from './query'
 
 /**
@@ -113,7 +113,9 @@ export const routeToParam = (route: string): string => encodeParamValue(route)
  */
 export function routeFromParam(search: string | null | undefined): string | undefined {
   try {
-    return safePath(new URLSearchParams(search ?? '').get(ROUTE_PARAM))
+    // `URLSearchParams` has already percent-decoded the value. NFC makes a pasted decomposed
+    // slug (`a` + combining diaeresis) the same route as the composed one the region tree has.
+    return safePath(new URLSearchParams(search ?? '').get(ROUTE_PARAM)?.normalize('NFC'))
   } catch {
     return undefined
   }
@@ -317,10 +319,16 @@ export function mountPrefix(
 }
 
 export function routeFromPathname(
-  pathname: string,
-  prefix: string,
+  rawPathname: string,
+  rawPrefix: string,
   search?: string | null,
 ): string | undefined {
+  // A pathname holds a non-ASCII slug percent-encoded, while `webPath` and query mode's route
+  // both hold it raw (`atlas-url-contract.json`, version 2). Decoding is what makes one route
+  // spelling out of the two URL shapes, and the prefix arrives in either spelling too.
+  const pathname = safeDecode(rawPathname)
+  const prefix = safeDecode(rawPrefix)
+
   if (prefix !== '' && !pathname.startsWith(prefix)) return undefined
 
   // A prefix must match on a segment boundary: `/mapped` is not inside `/map`.
@@ -328,10 +336,7 @@ export function routeFromPathname(
 
   if (prefix !== '' && rest !== '' && !rest.startsWith('/')) return undefined
 
-  // A pathname holds a non-ASCII slug percent-encoded, while `webPath` and query mode's route
-  // both hold it raw (`atlas-url-contract.json`, version 2). Decoding is what makes one route
-  // spelling out of the two URL shapes.
-  const route = rest === '' ? '/' : decodePath(rest)
+  const route = rest === '' ? '/' : rest
 
   if (safePath(route) === undefined) return undefined
 

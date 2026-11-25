@@ -375,11 +375,13 @@ describe('routeFromPathname', () => {
     expect(routeFromPathname('/map/bg/%D1%81%D0%BE%D1%84%D0%B8%D1%8F', '/map')).toBe('/bg/софия')
   })
 
-  // ⚠ The guard reads the DECODED route. Checked the other order: `/%2F%2Fevil.example` passes
-  // `safePath` encoded, and decodes to the `//evil.example` the guard exists for.
-  it('runs the path guard on the decoded route, not the encoded one', () => {
-    expect(routeFromPathname('/map/%2F%2Fevil.example', '/map')).toBeUndefined()
-    expect(routeFromPathname('/map/%09/evil.example', '/map')).toBeUndefined()
+  // ⚠ The guard reads the DECODED route, and `safeDecode` is what keeps a structural character
+  // from ever reaching it: a segment decoding to `/`, `\\` or a control character stays encoded,
+  // so `//evil.example` cannot be composed out of one slug. The route survives as a slug no
+  // place answers to, rather than as a refusal.
+  it('never decodes an encoded separator into the route', () => {
+    expect(routeFromPathname('/map/%2F%2Fevil.example', '/map')).toBe('/%2F%2Fevil.example')
+    expect(routeFromPathname('/map/%09/evil.example', '/map')).toBe('/%09/evil.example')
   })
 })
 
