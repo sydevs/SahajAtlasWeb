@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react'
 import type { Client } from '@/types'
 
-import { Suspense, useEffect, useMemo } from 'react'
+import { Suspense, useEffect, useMemo, useState } from 'react'
 import clsx from 'clsx'
 import { useLocation, useNavigate } from 'react-router'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
@@ -181,7 +181,31 @@ export const NO_ERROR = 'None'
  */
 export const EMPTY = 'Empty'
 
-export type StoryFallbackArg = StoryErrorKey | typeof NO_ERROR | typeof EMPTY
+/**
+ * The view still waiting on its data: the drawer's Suspense fallback, the chrome a view keeps
+ * while it loads. Every view reaches it, so it sits beside "render normally" on every story.
+ */
+export const LOADING = 'Loading'
+
+export type StoryFallbackArg = StoryErrorKey | typeof NO_ERROR | typeof EMPTY | typeof LOADING
+
+/**
+ * Suspends for good, so the drawer's loading chrome stays on screen. Only from an update after
+ * mount: `SeedPath` reaches its path through a router navigation, which React renders as a
+ * transition, and a transition that suspends keeps the screen it had — blank — rather than
+ * showing the fallback.
+ */
+const NEVER = new Promise<never>(() => {})
+
+function Suspender() {
+  const [suspended, setSuspended] = useState(false)
+
+  useEffect(() => setSuspended(true), [])
+
+  if (suspended) throw NEVER
+
+  return null
+}
 
 /**
  * The failures EVERY data-reading view can reach, because they come from the FETCH,
@@ -207,7 +231,7 @@ const FETCH_ERRORS = ['Offline', 'Server', 'Config', 'Unknown'] as const
  */
 export const stateControl = (...viewFallbacks: (StoryErrorKey | typeof EMPTY)[]) => ({
   name: 'Fallback',
-  options: [NO_ERROR, ...viewFallbacks, ...FETCH_ERRORS] as StoryFallbackArg[],
+  options: [NO_ERROR, LOADING, ...viewFallbacks, ...FETCH_ERRORS] as StoryFallbackArg[],
   control: { type: 'select' as const },
   defaultValue: NO_ERROR as StoryFallbackArg,
 })
@@ -237,11 +261,12 @@ export type ViewStoryProps = Omit<ViewHarnessProps, 'seedKey'> & {
  * ancestor and falls through to the IP guess — with no per-fallback stub anywhere.
  */
 export function ViewStory({ example, state = NO_ERROR, children, ...harness }: ViewStoryProps) {
-  const thrown = state === NO_ERROR || state === EMPTY ? undefined : STORY_ERRORS[state]
+  const thrown =
+    state === NO_ERROR || state === EMPTY || state === LOADING ? undefined : STORY_ERRORS[state]
 
   return (
     <ViewHarness {...harness} seedKey={`${example}·${state}`}>
-      {thrown ? <Thrower error={thrown} /> : children}
+      {state === LOADING ? <Suspender /> : thrown ? <Thrower error={thrown} /> : children}
     </ViewHarness>
   )
 }
