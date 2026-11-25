@@ -428,15 +428,16 @@ job's `--no-shell`.
 refuses a pin that is not an exact version: a step output is repository text, and a newline inside
 one forges further outputs on a fork's pull request.
 
-| scenario (`tests/browser/`)                   | host page              | watched failing against                                              |
-| --------------------------------------------- | ---------------------- | -------------------------------------------------------------------- |
-| the map embed boots, lists, draws its map     | `full-map.html`        | no Mapbox token passed to the map                                    |
-| browse in, then Close and Back retrace it     | `full-map.html`        | Close climbing to the parent instead of going back                   |
-| a deep link opens its event; Close climbs     | `full-map.html?atlas=` | Close going `navigate(-1)` at depth 0 (#89)                          |
-| `map=false` lists and draws no map            | `sidebar-mapless.html` | the map rendered whatever `hasMap` said                              |
-| a slot too small renders the compact card     | `sidebar-map.html`     | the slot decision never choosing the card                            |
-| host CSS does not reach the widget            | `hostile-css.html`     | no shadow root (#236); the baseline's `letter-spacing` reset dropped |
-| registration accepted, and failing with a 500 | `sidebar-mapless.html` | a drifted create envelope; the thank-you shown on failure (#103)     |
+| scenario (`tests/browser/`)                                       | host page              | watched failing against                                              |
+| ----------------------------------------------------------------- | ---------------------- | -------------------------------------------------------------------- |
+| the map embed boots, lists, draws its map                         | `full-map.html`        | no Mapbox token passed to the map                                    |
+| browse in, then Back retraces it                                  | `full-map.html`        | Back climbing to the parent instead of going back                    |
+| a deep link's Back climbs past the places holding only its class  | `full-map.html?atlas=` | Back going `navigate(-1)` at depth 0 (#89)                           |
+| a place holding one class opens it, and Back does not re-enter it | `full-map.html?atlas=` | a climb landing back in the class it left                            |
+| `map=false` lists and draws no map                                | `sidebar-mapless.html` | the map rendered whatever `hasMap` said                              |
+| a slot too small renders the compact card                         | `sidebar-map.html`     | the slot decision never choosing the card                            |
+| host CSS does not reach the widget                                | `hostile-css.html`     | no shadow root (#236); the baseline's `letter-spacing` reset dropped |
+| registration accepted, and failing with a 500                     | `sidebar-mapless.html` | a drifted create envelope; the thank-you shown on failure (#103)     |
 
 ### Why hermetic: it answers the missing-backend problem
 
