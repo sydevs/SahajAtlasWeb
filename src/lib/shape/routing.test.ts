@@ -370,6 +370,19 @@ describe('routeFromPathname', () => {
   it('is just the path when there is no ?atlas=', () => {
     expect(routeFromPathname('/map/search', '/map', '?utm=x')).toBe('/search')
   })
+
+  it('decodes a native-script slug, so one route spelling comes out of both URL shapes', () => {
+    expect(routeFromPathname('/map/bg/%D1%81%D0%BE%D1%84%D0%B8%D1%8F', '/map')).toBe('/bg/софия')
+  })
+
+  // ⚠ The guard reads the DECODED route, and `safeDecode` is what keeps a structural character
+  // from ever reaching it: a segment decoding to `/`, `\\` or a control character stays encoded,
+  // so `//evil.example` cannot be composed out of one slug. The route survives as a slug no
+  // place answers to, rather than as a refusal.
+  it('never decodes an encoded separator into the route', () => {
+    expect(routeFromPathname('/map/%2F%2Fevil.example', '/map')).toBe('/%2F%2Fevil.example')
+    expect(routeFromPathname('/map/%09/evil.example', '/map')).toBe('/%09/evil.example')
+  })
 })
 
 // Both of these went in when `hrefFor`/`pathHrefFor` moved onto `query.ts`, and both were checked

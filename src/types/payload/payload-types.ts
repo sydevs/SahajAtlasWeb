@@ -1075,6 +1075,14 @@ export interface Page {
   generateSlug?: boolean | null;
   slug: string;
   /**
+   * The page this one sits under. Its address becomes the start of this one’s.
+   */
+  parent?: (number | null) | Page;
+  /**
+   * Where this page is served, as of the last save.
+   */
+  path?: string | null;
+  /**
    * Article author (for article pages)
    */
   author?: (number | null) | Author;
@@ -4461,6 +4469,8 @@ export interface PagesSelect<T extends boolean = true> {
       };
   generateSlug?: T;
   slug?: T;
+  parent?: T;
+  path?: T;
   author?: T;
   featuredVideo?: T;
   tags?: T;
@@ -5516,6 +5526,9 @@ export interface PayloadMigrationsSelect<T extends boolean = true> {
  */
 export interface WmWebConfig {
   id: number;
+  /**
+   * The page the site serves at its root. Only a page that sits under no other page can be chosen — the root has no address above it.
+   */
   homePage: number | Page;
   /**
    * Languages We Meditate is offered in. Drives the site’s language picker and the hreflang links on every page. A language can only be selected once the We Meditate Web translations are published in it — publish that global in the language first. Publishing all locales at once includes empty ones, so publish deliberately.
@@ -5565,6 +5578,16 @@ export interface WmWebConfig {
    * Select up to 5 meta pages about the website. eg. Privacy Notice, Contact Form, etc.
    */
   infoPages?: (number | Page)[] | null;
+  indexPages?: {
+    /**
+     * The site shows this page as the parent of every meditation page. Only a page whose slug is “meditations” and that sits under no other page can be chosen.
+     */
+    meditations?: (number | null) | Page;
+    /**
+     * The site shows this page as the parent of every talk page. Only a page whose slug is “lectures” and that sits under no other page can be chosen.
+     */
+    lectures?: (number | null) | Page;
+  };
   updatedAt?: string | null;
   createdAt?: string | null;
 }
@@ -8861,7 +8884,6 @@ export interface SyAtlasTranslation {
     errors?: SyAtlasTranslationsSubmitErrorsStrings;
   };
   share?: SyAtlasTranslationsShareStrings;
-  compact?: SyAtlasTranslationsCompactStrings;
   seo?: SyAtlasTranslationsSeoStrings;
   emails?: SyAtlasTranslationsEmailsStrings;
   _status?: ('draft' | 'published') | null;
@@ -8870,15 +8892,31 @@ export interface SyAtlasTranslation {
 }
 export interface SyAtlasTranslationsCommonChromeStrings {
   /**
-   * Peek-strip name for the root drawer, shown when a deeper view is open.
+   * Back control where its target has no name.
    */
   back?: string;
   /**
-   * Peek-strip name that names its target view. `%{title}` = the parent view’s title.
+   * Back control on every place and class page. `%{title}` = the place it returns to.
    */
   back_to?: string;
   /**
-   * Close control on every drawer, the report modal, the compact dialog, and the feedback banner.
+   * Back control on the registration and share pages, which open over the class they return to.
+   */
+  back_to_class?: string;
+  /**
+   * Back control on a country page, which returns to the map of every country.
+   */
+  back_to_world_map?: string;
+  /**
+   * Back control on a class opened from a search, and the spoken name of the arrow beside the search box on the results. `%{place}` = the first part of the searched place, such as `Prague`.
+   */
+  back_to_results_near?: string;
+  /**
+   * Button that raises the panel a phone visitor pulled down, on the first screen and on every place and class page.
+   */
+  show_more?: string;
+  /**
+   * Close control on the filters, which sit over the page they narrow, the report modal, and the feedback banner.
    */
   close?: string;
   /**
@@ -8886,7 +8924,7 @@ export interface SyAtlasTranslationsCommonChromeStrings {
    */
   cancel?: string;
   /**
-   * Landmark name (role="region") of the widget root, and the compact card’s heading. Must never be blank — it is how a screen-reader user finds the widget.
+   * Landmark name (role="region") of the widget root, and the accessible name of the expanded map’s dialog. Must never be blank — it is how a screen-reader user finds the widget.
    */
   widget_label?: string;
   /**
@@ -9059,6 +9097,14 @@ export interface SyAtlasTranslationsCommonMapStrings {
    * Label of the geolocate control once the browser has refused or failed to supply a location, and the heading of the dialog that reports that failure.
    */
   location_not_available?: string;
+  /**
+   * Button on the inline map that opens the full map over the host’s page.
+   */
+  expand?: string;
+  /**
+   * Button on the expanded map that returns the visitor to the page.
+   */
+  close?: string;
 }
 export interface SyAtlasTranslationsCommonFeedbackStrings {
   /**
@@ -9088,13 +9134,17 @@ export interface SyAtlasTranslationsCommonFeedbackStrings {
 }
 export interface SyAtlasTranslationsCountriesStrings {
   /**
-   * Heading of the base drawer, and the drawer stack’s document title.
+   * Heading of the base drawer, the drawer stack’s document title, and the inline embed’s page heading at the top of the atlas, where no place is chosen.
    */
   title?: string;
+  /**
+   * The inline embed’s page heading once a visitor is in a place. `%{place}` = the country, region or city name; for a venue or a class it is the city the venue sits in.
+   */
+  place_title?: string;
 }
 export interface SyAtlasTranslationsSearchChromeStrings {
   /**
-   * Search view heading, and its peek-strip name.
+   * Search view heading, and the name Back says for it.
    */
   title?: string;
   /**
@@ -9152,7 +9202,7 @@ export interface SyAtlasTranslationsSearchNearbyPromptStrings {
 }
 export interface SyAtlasTranslationsFiltersChromeStrings {
   /**
-   * Filter view heading, and its peek-strip name.
+   * Filter view heading, and the name Back says for it.
    */
   title?: string;
   /**
@@ -9308,7 +9358,7 @@ export interface SyAtlasTranslationsFiltersRegionStrings {
 }
 export interface SyAtlasTranslationsOnlineStrings {
   /**
-   * Online view heading, its row on the Countries list, its link on a Region, and its peek-strip name.
+   * Online view heading, its row on the Countries list, its link on a Region, and the name Back says for it.
    */
   title?: string;
 }
@@ -9570,7 +9620,7 @@ export interface SyAtlasTranslationsEventTitleStrings {
 }
 export interface SyAtlasTranslationsCalendarStrings {
   /**
-   * Calendar view heading, and its peek-strip name.
+   * Calendar view heading, and the name Back says for it.
    */
   title?: string;
   /**
@@ -9592,7 +9642,7 @@ export interface SyAtlasTranslationsCalendarStrings {
 }
 export interface SyAtlasTranslationsRegistrationFormStrings {
   /**
-   * Registration view heading, and its peek-strip name. Untranslated in every non-English locale today — the English merge serves English until a translator fills it.
+   * Registration view heading. Untranslated in every non-English locale today — the English merge serves English until a translator fills it.
    */
   title?: string;
   /**
@@ -9647,6 +9697,10 @@ export interface SyAtlasTranslationsRegistrationFormStrings {
    * Refusal: the security check expired and must be redone before registering.
    */
   captcha_retry?: string;
+  /**
+   * Message above the “Try again” button, with Register disabled, when the registration form’s hidden security check (Turnstile) fails to load. Browsing the rest of the Atlas still works.
+   */
+  captcha_blocked?: string;
   /**
    * Mailing-list opt-in checkbox on the registration form. Shown only when the event’s `offersMailingList` is true.
    */
@@ -9948,7 +10002,7 @@ export interface SyAtlasTranslationsSubmitErrorsStrings {
 }
 export interface SyAtlasTranslationsShareStrings {
   /**
-   * Share view heading, and its peek-strip name. Untranslated in every non-English locale today — the English merge serves English until a translator fills it.
+   * Share view heading. Untranslated in every non-English locale today — the English merge serves English until a translator fills it.
    */
   title?: string;
   /**
@@ -9959,12 +10013,6 @@ export interface SyAtlasTranslationsShareStrings {
    * Confirmation shown after the link is copied.
    */
   copied?: string;
-}
-export interface SyAtlasTranslationsCompactStrings {
-  /**
-   * The card’s one button, which opens the atlas.
-   */
-  open?: string;
 }
 export interface SyAtlasTranslationsSeoStrings {
   /**
@@ -10153,6 +10201,12 @@ export interface WmWebConfigSelect<T extends boolean = true> {
   classPages?: T;
   knowledgePages?: T;
   infoPages?: T;
+  indexPages?:
+    | T
+    | {
+        meditations?: T;
+        lectures?: T;
+      };
   updatedAt?: T;
   createdAt?: T;
   globalType?: T;
@@ -10455,7 +10509,6 @@ export interface SyAtlasTranslationsSelect<T extends boolean = true> {
         errors?: T;
       };
   share?: T;
-  compact?: T;
   seo?: T;
   emails?: T;
   _status?: T;
@@ -10887,7 +10940,7 @@ export interface TableOfContentsBlock {
  * via the `definition` "ContentIndexBlock".
  */
 export interface ContentIndexBlock {
-  type: 'meditations' | 'pages' | 'songs' | 'lectures';
+  type: 'meditations' | 'pages' | 'songs' | 'lectures' | 'user-choices';
   /**
    * Maximum number of items to return (1–100)
    */
@@ -10900,6 +10953,14 @@ export interface ContentIndexBlock {
    * Select user choices to use as filters for this index grid
    */
   userChoiceFilters?: (number | UserChoice)[] | null;
+  /**
+   * Which kinds of user choice this index lists
+   */
+  userChoiceTypeFilters?: ('mood' | 'goal' | 'duration')[] | null;
+  /**
+   * Whether to list the featured choices, the rest, or every one
+   */
+  userChoiceFeatured?: ('featured' | 'not-featured' | 'all') | null;
   /**
    * Select music tags to use as filters for this index grid
    */

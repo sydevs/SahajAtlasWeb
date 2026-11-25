@@ -67,7 +67,6 @@ const WIDGET_TABS = [
   'calendar',
   'registration',
   'share',
-  'compact',
 ]
 
 const strip = (node) => {

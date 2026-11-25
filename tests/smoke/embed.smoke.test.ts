@@ -1,3 +1,5 @@
+import { setTimeout as wait } from 'node:timers/promises'
+
 import { describe, expect, test } from 'vitest'
 
 import { auditBridge } from '../../scripts/assert-classic-bridge.mjs'
@@ -48,28 +50,20 @@ function fetchEmbed() {
 }
 
 /**
- * Every chunk `auto.js` can reach, crawled once and shared by the specs below.
+ * How long the crawl waits out a 5xx before it calls a chunk broken.
  *
- * Only a clean crawl is cached. A broken chunk or a thrown fetch clears it, so each retry
- * crawls again rather than replaying the same transient 5xx (see `fetchEmbed`).
+ * A 5xx is never how a MISSING chunk answers: `assets.not_found_handling` serves the SPA
+ * shell with 200 `text/html`, which the content-type check below reports with no waiting
+ * at all. What a 5xx does mean is a version uploaded seconds ago that has not finished
+ * serving its own assets — measured on PR #466, where four chunks answered 500 for about
+ * 25 seconds and 200 after. The lane's own `retry: 2` cannot buy that time, because each
+ * retry re-crawls from scratch and so races the same window again.
+ *
+ * ⚠ Keep `SETTLE_ROUNDS` × `SETTLE_WAIT_MS` above that window. Under it the lane is back to
+ * depending on the retry, which is the defect this replaced.
  */
-let crawl: Promise<{ seen: string[]; broken: string[] }> | undefined
-
-function crawlDeploy() {
-  crawl ??= crawlFromLoader().then(
-    (result) => {
-      if (result.broken.length > 0) crawl = undefined
-
-      return result
-    },
-    (err) => {
-      crawl = undefined
-      throw err
-    },
-  )
-
-  return crawl
-}
+const SETTLE_ROUNDS = 10
+const SETTLE_WAIT_MS = 3_000
 
 async function crawlFromLoader() {
   const { body } = await fetchEmbed()
@@ -111,35 +105,62 @@ async function crawlFromLoader() {
   const seen = new Set<string>()
   const queue = ['/auto.js']
   const bodies = new Map<string, string>([['/auto.js', body]])
+  let unsettled = new Map<string, string>()
 
-  while (queue.length) {
-    const path = queue.pop() as string
-    const source = bodies.get(path)
+  const read = async (path: string) => {
+    // Uses GET, not HEAD. The body serves both as the assertion and as the next
+    // frontier to crawl. The whole deploy is roughly 440 KiB gzipped, and this
+    // lane runs separately from the PR gate.
+    const res = await fetchPreview(path)
+    const type = res.headers.get('content-type') ?? ''
 
-    if (!source) continue
+    if (res.status === 200 && /javascript|ecmascript/i.test(type)) {
+      bodies.set(path, await res.text())
+      queue.push(path)
 
-    for (const [, spec] of source.matchAll(RELATIVE_JS)) {
-      const next = resolveFrom(path, spec)
+      return
+    }
 
-      if (seen.has(next)) continue
+    if (res.status >= 500) {
+      unsettled.set(path, `${path} → ${res.status} ${type}`)
 
-      seen.add(next)
+      return
+    }
 
-      // Uses GET, not HEAD. The body serves both as the assertion and as the next
-      // frontier to crawl. The whole deploy is roughly 440 KiB gzipped, and this
-      // lane runs separately from the PR gate.
-      const res = await fetchPreview(next)
-      const type = res.headers.get('content-type') ?? ''
+    broken.push(`${path} → ${res.status} ${type}`)
+  }
 
-      if (res.status === 200 && /javascript|ecmascript/i.test(type)) {
-        const text = await res.text()
+  for (let round = 0; ; round += 1) {
+    while (queue.length) {
+      const path = queue.pop() as string
+      const source = bodies.get(path)
 
-        bodies.set(next, text)
-        queue.push(next)
-      } else {
-        broken.push(`${next} → ${res.status} ${type}`)
+      if (!source) continue
+
+      for (const [, spec] of source.matchAll(RELATIVE_JS)) {
+        const next = resolveFrom(path, spec)
+
+        if (seen.has(next)) continue
+
+        seen.add(next)
+        await read(next)
       }
     }
+
+    if (unsettled.size === 0) break
+
+    if (round >= SETTLE_ROUNDS) {
+      broken.push(...unsettled.values())
+      break
+    }
+
+    const retrying = [...unsettled.keys()]
+
+    unsettled = new Map()
+
+    await wait(SETTLE_WAIT_MS)
+
+    for (const path of retrying) await read(path)
   }
 
   return { seen: [...seen], broken }
@@ -185,11 +206,18 @@ describe('embed bundle', () => {
     expect(body.length).toBeLessThan(20_000)
   })
 
-  test.skipIf(skipWithoutPreview)('serves every chunk the loader can reach', async () => {
-    const { seen, broken } = await crawlDeploy()
+  // The timeout covers the crawl plus `SETTLE_ROUNDS` waits, and the lane's config budgets
+  // 30s. A broken deploy still fails on the first pass, so this slack is spent only on an
+  // edge that is still settling.
+  test.skipIf(skipWithoutPreview)(
+    'serves every chunk the loader can reach',
+    async () => {
+      const { seen, broken } = await crawlFromLoader()
 
-    expect(seen.length).toBeGreaterThan(0)
+      expect(seen.length).toBeGreaterThan(0)
 
-    expect(broken).toEqual([])
-  })
+      expect(broken).toEqual([])
+    },
+    90_000,
+  )
 })
