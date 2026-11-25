@@ -316,8 +316,7 @@ export const resolveStack = (pathname: string): StackEntry[] => {
   segments.forEach((segment, i) => {
     const path = `/${segments.slice(0, i + 1).join('/')}`
     const parentPath = i === 0 ? '/' : `/${segments.slice(0, i).join('/')}`
-    // Decoded first: `toLowerCase` on `%D1%81` would read `%d1%81`, and the reserved words are
-    // matched as letters, whichever way the address bar spelled them.
+    // `toLowerCase` must see letters, not `%D1%81`.
     const decoded = safeDecode(segment)
     const word = decoded.toLowerCase()
 

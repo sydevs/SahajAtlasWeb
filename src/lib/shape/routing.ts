@@ -323,8 +323,6 @@ export function routeFromPathname(
   rawPrefix: string,
   search?: string | null,
 ): string | undefined {
-  // The prefix is decoded the same way, so a mount with a non-ASCII segment matches however it
-  // was spelled.
   const pathname = safeDecode(rawPathname)
   const prefix = safeDecode(rawPrefix)
 
