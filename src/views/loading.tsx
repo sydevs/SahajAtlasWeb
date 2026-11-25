@@ -16,10 +16,8 @@ import { List } from '@/components/molecules/List/List'
 import { ListToolbar } from '@/components/molecules/ListToolbar/ListToolbar'
 import { ListItemSkeleton } from '@/components/molecules/ListItem/ListItemSkeleton'
 import { EventListItemSkeleton } from '@/components/molecules/EventListItem/EventListItemSkeleton'
-import {
-  EventDetailsSkeleton,
-  EventHeaderSkeleton,
-} from '@/components/organisms/EventDetails/EventDetailsSkeleton'
+import { EventDetailsSkeleton } from '@/components/organisms/EventDetails/EventDetailsSkeleton'
+import { EventHeader } from '@/components/organisms/EventDetails/EventHeader'
 import { MapSearchSkeleton } from '@/components/organisms/Mapbox/MapSearchSkeleton'
 import { SHEET_OPEN_PX, shortSheetCap, useIsShortViewport, useIsWide } from '@/config/responsive'
 import { guessListsPlaces } from '@/lib/shape/hierarchy'
@@ -233,7 +231,7 @@ export function BootFallback() {
       )
       break
     case 'event':
-      header = <EventHeaderSkeleton nav={<NavRowSkeleton />} />
+      header = <EventHeader nav={<NavRowSkeleton />} />
       break
     default: {
       const words = entry && STATIC_TITLES[entry.kind]

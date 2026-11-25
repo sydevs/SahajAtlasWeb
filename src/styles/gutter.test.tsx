@@ -27,7 +27,7 @@ describe('the panel gutter', () => {
         <ListItem count={3} href="/gb" label="United Kingdom" />
       </MemoryRouter>,
     ],
-    ['the class page header', <EventHeader key="e" event={mockEvent} />],
+    ['the class page header', <EventHeader key="e" title={mockEvent.title} />],
   ])('insets %s by it', (_, element) => {
     const classes = firstClasses(renderToStaticMarkup(element))
 
