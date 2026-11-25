@@ -27,7 +27,8 @@ export function QrPoster({ label, url, onOpen }: QrPosterProps) {
 
   return (
     <Disclosure title={t('share.qr_title')} onOpenChange={(open) => open && onOpen?.()}>
-      <QrCode label={label} url={url} />
+      {/* Keyed so a changed link never shows, or downloads, the old code. */}
+      <QrCode key={url} label={label} url={url} />
     </Disclosure>
   )
 }
@@ -35,7 +36,11 @@ export function QrPoster({ label, url, onOpen }: QrPosterProps) {
 type QrState = { status: 'loading' } | { status: 'failed' } | { status: 'ready'; matrix: QrMatrix }
 
 /** Mounted by the open row, so each reopen after a failure tries the encoder again. */
-export function QrCode({ label, url, initial }: QrPosterProps & { initial?: QrState }) {
+export function QrCode({
+  label,
+  url,
+  initial,
+}: Pick<QrPosterProps, 'label' | 'url'> & { initial?: QrState }) {
   const { t } = useTranslation()
   const [state, setState] = useState<QrState>(initial ?? { status: 'loading' })
 

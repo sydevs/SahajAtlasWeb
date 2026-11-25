@@ -2,6 +2,7 @@ import { type ReactNode, useEffect, useRef, useState } from 'react'
 import * as Collapsible from '@radix-ui/react-collapsible'
 import { ChevronDown } from 'lucide-react'
 
+import { canScroll } from '@/components/atoms/Drawer/sheet-touch'
 import { usePrefersReducedMotion } from '@/hooks/use-reduced-motion'
 import { WIDGET_SCOPE_CLASS } from '@/lib/scope'
 import { tv } from '@/styles/tv'
@@ -30,19 +31,11 @@ export type DisclosureProps = {
   className?: string
 }
 
-/**
- * The nearest ancestor inside the widget that scrolls vertically and has something to scroll, or
- * none. Content alone is not enough: `overflow-x: hidden` computes `overflow-y` to `auto` too.
- */
+/** The nearest scroll container inside the widget, or none. */
 function scrollParent(element: HTMLElement): HTMLElement | null {
   for (let node = element.parentElement; node; node = node.parentElement) {
     if (node.classList.contains(WIDGET_SCOPE_CLASS)) return null
-    if (
-      /(auto|scroll)/.test(getComputedStyle(node).overflowY) &&
-      node.scrollHeight > node.clientHeight
-    ) {
-      return node
-    }
+    if (canScroll(node)) return node
   }
 
   return null
@@ -82,15 +75,20 @@ export function Disclosure({
   const rootRef = useRef<HTMLDivElement>(null)
   const reducedMotion = usePrefersReducedMotion()
 
-  // Opening reveals the row, and again whenever the panel grows while open (content that loads
-  // after the click). Measured relative to the scroll container, so a sheet still sliding up
-  // gives the same answer as one at rest.
+  // Opening reveals the row, and so does each growth while open (content that loads after the
+  // click). Only growth: a visitor who scrolled back up is not pulled down by a resize.
   useEffect(() => {
     const element = rootRef.current
 
     if (!open || !element) return
 
-    const observer = new ResizeObserver(() => reveal(element, !reducedMotion))
+    let height = 0
+    const observer = new ResizeObserver(() => {
+      const next = element.offsetHeight
+
+      if (next > height) reveal(element, !reducedMotion)
+      height = next
+    })
 
     observer.observe(element)
 

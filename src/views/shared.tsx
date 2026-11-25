@@ -62,7 +62,7 @@ export type DrawerControl = {
   collapsed: boolean
   toggle: () => void
   /** Lifts the phone sheet to near-full, for content that just grew. A no-op on the side panel. */
-  expand?: () => void
+  expand: () => void
   dismiss: () => void
 }
 
@@ -71,6 +71,7 @@ export const NO_DRAWER_CONTROL: DrawerControl = {
   collapsed: false,
   toggle: () => {},
   dismiss: () => {},
+  expand: () => {},
 }
 
 export const DrawerControlContext = createContext<DrawerControl>(NO_DRAWER_CONTROL)
