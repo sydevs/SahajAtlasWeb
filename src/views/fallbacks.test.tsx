@@ -8,6 +8,7 @@ import { DrawerChrome } from './fallbacks'
 
 // Chrome is stubbed with markers, not nulls, so the band can be told from the header.
 vi.mock('react-i18next', () => ({ useTranslation: () => ({ t: (key: string) => key }) }))
+vi.mock('lucide-react', () => ({ Search: () => <i>magnifier</i> }))
 vi.mock('@tanstack/react-query', () => ({ useQuery: () => ({ data: undefined }) }))
 vi.mock('@/config/api', () => ({
   eventTitlesQuery: () => ({ queryKey: ['titles'] }),
@@ -15,9 +16,15 @@ vi.mock('@/config/api', () => ({
   regionsQuery: () => ({ queryKey: ['regions'] }),
 }))
 vi.mock('@/config/mode', () => ({ useWidgetMode: () => ({ hasMap: true }) }))
+vi.mock('@/hooks/use-atlas-navigate', () => ({ useAtlasNavigate: () => () => {} }))
 vi.mock('@/hooks/use-locale', () => ({ useLocale: () => ({ locale: 'en' }) }))
 vi.mock('@/hooks/use-map-controller', () => ({
   useMapController: () => ({ frameRegion: () => {} }),
+}))
+vi.mock('@/components/atoms/Button', () => ({
+  Button: ({ children, ...rest }: { children: ReactNode; 'aria-label'?: string }) => (
+    <button aria-label={rest['aria-label']}>{children}</button>
+  ),
 }))
 vi.mock('@/components/atoms/Drawer', () => ({
   DrawerBody: ({ children }: { children: ReactNode }) => <section>body:{children}</section>,
@@ -47,7 +54,8 @@ vi.mock('@/views/shared', () => ({
   CalendarButton: () => <i>calendar-button</i>,
   ExpandSheetButton: () => <i>expand-button</i>,
   FilterButton: () => <i>filter-button</i>,
-  SearchButton: () => <i>search-button</i>,
+  HEADER_CONTROL: {},
+  HEADER_EDGE: '',
   SearchField: () => <i>search-field</i>,
 }))
 
@@ -63,7 +71,7 @@ describe('DrawerChrome — the band a place page arrives with', () => {
     const markup = chrome('/gb/south-east')
 
     expect(markup).toContain('<aside>field-toolbar:<i>search-field</i></aside>')
-    expect(markup).not.toContain('search-button')
+    expect(markup).not.toContain('magnifier')
   })
 
   it('fills the same band with the skeleton while the view loads', () => {
@@ -84,7 +92,8 @@ describe('DrawerChrome — the band a place page arrives with', () => {
   it('leaves the online roll-up on its magnifier', () => {
     const markup = chrome('/gb/south-east/online')
 
-    expect(markup).toContain('search-button')
+    expect(markup).toContain('aria-label="search.chrome.title"')
+    expect(markup).toContain('magnifier')
     expect(markup).not.toContain('field-toolbar')
   })
 })

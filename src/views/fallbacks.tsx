@@ -6,22 +6,26 @@ import { useEffect, useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useLocation } from 'react-router'
 import { useQuery } from '@tanstack/react-query'
+import { Search } from 'lucide-react'
 
+import { Button } from '@/components/atoms/Button'
 import { DrawerBody, DrawerHeader, DrawerToolbar } from '@/components/atoms/Drawer'
 import { Spinner } from '@/components/atoms/Spinner'
 import { CENTERED_BODY, FallbackPanel, ListToolbar } from '@/components/molecules'
 import { eventTitlesQuery, regionQuery, regionsQuery } from '@/config/api'
 import { useWidgetMode } from '@/config/mode'
+import { useAtlasNavigate } from '@/hooks/use-atlas-navigate'
 import { useLocale } from '@/hooks/use-locale'
 import { useMapController } from '@/hooks/use-map-controller'
 import { classifyError, errorMessage } from '@/lib/report'
-import { baseStackEntry, nearestKnownRegion, resolveStack } from '@/lib/shape'
+import { baseStackEntry, nearestKnownRegion, resolveStack, searchPath } from '@/lib/shape'
 import { BackButton, NavHeader } from '@/views/nav'
 import {
   CalendarButton,
   ExpandSheetButton,
   FilterButton,
-  SearchButton,
+  HEADER_CONTROL,
+  HEADER_EDGE,
   SearchField,
 } from '@/views/shared'
 
@@ -71,6 +75,30 @@ const chromeHasField = (entry: StackEntry | undefined, notFound: boolean) =>
 //
 // Split out of `views/shared.tsx` (issue #89), which had grown to hold the drawer
 // controls, the search field, the geolocation suggestion, AND all of this.
+
+/**
+ * The magnifier the online roll-up's chrome leads with, which jumps to the distance-ranked
+ * search view. Same chrome as the header's other controls, so the header reads as one set.
+ *
+ * shortcut: OnlineView itself draws no search affordance, so this offers one the loaded
+ * view does not; drop it once that view carries a field, as the place pages now do.
+ */
+function SearchButton() {
+  // This IS the fallback chrome, so it must not suspend (see `HEADER_CONTROL`).
+  const { t } = useTranslation()
+  const navigate = useAtlasNavigate()
+
+  return (
+    <Button
+      {...HEADER_CONTROL}
+      aria-label={t('search.chrome.title')}
+      className={HEADER_EDGE}
+      onClick={() => navigate(searchPath())}
+    >
+      <Search size={20} />
+    </Button>
+  )
+}
 
 /**
  * A disabled stand-in for the geocoder: the same box, none of the machinery. Matches

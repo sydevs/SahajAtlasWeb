@@ -43,7 +43,6 @@ vi.mock('@/views/shared', () => ({
     hasSearchChrome ? <i>empty-list</i> : <i>empty-list-with-search-field</i>,
   FilterButton: () => <i>filter-button</i>,
   GeolocationSuggestion: () => null,
-  SearchButton: () => <i>search-button</i>,
   SearchField: () => <i>search-field</i>,
   useFrameOnTop: () => {},
 }))
@@ -59,7 +58,6 @@ describe('RegionView — search on a place page', () => {
     expect(markup).toMatch(
       /<header><h2>[^<]*<\/h2><i>calendar-button<\/i><i>filter-button<\/i><\/header><aside>field-toolbar:<i>search-field<\/i><\/aside><section>body:.*<i>empty-list<\/i>/,
     )
-    expect(markup).not.toContain('search-button')
     expect(markup).not.toContain('empty-list-with-search-field')
   })
 })
