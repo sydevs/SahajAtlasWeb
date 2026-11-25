@@ -320,7 +320,10 @@ export const resolveStack = (pathname: string): StackEntry[] => {
   return entries
 }
 
-/** A place's address as the region tree gives it, by slug (`webPath`, already `safePath`-checked). */
+/**
+ * A place's address as the region tree gives it, by slug (`webPath`, already `safePath`-checked).
+ * The slug is the decoded one a `StackEntry` carries, never a percent-encoded segment.
+ */
 export type PlacePathOf = (slug: string) => string | undefined
 
 /** Each place's own address, by slug, from the region tree. Undefined until the tree is cached. */
@@ -331,7 +334,9 @@ export const placePathsOf = (
 
   const paths = new Map(regions.map((node) => [safeDecode(node.slug), safePath(node.webPath)]))
 
-  return (slug) => paths.get(safeDecode(slug))
+  // Only the key side decodes. Decoding the lookup too would decode twice, and
+  // `/bg/%25D1%2581…` — a slug spelling the literal `%D1%81…` — would resolve to софия.
+  return (slug) => paths.get(slug)
 }
 
 /** The deepest place in a stack: the one the page actually shows, or holds the class it shows. */

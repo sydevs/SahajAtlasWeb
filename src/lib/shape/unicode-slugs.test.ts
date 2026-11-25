@@ -136,3 +136,14 @@ describe('encoded structure is never decoded', () => {
     expect(routeFromPathname('/%5Cevil.com', '')).toBe('/%5Cevil.com')
   })
 })
+
+describe('a segment is decoded once', () => {
+  const pathOf = placePathsOf([{ slug: 'софия', webPath: '/bg/софия' }])
+
+  it('does not resolve a slug spelling the percent-escapes of another', () => {
+    // `%25D1%2581…` decodes once to the literal `%D1%81…`, which names no place.
+    const literal = `/bg/${encodeURIComponent('%D1%81%D0%BE%D1%84%D0%B8%D1%8F')}`
+
+    expect(placedPathname(literal, pathOf)).toBe(literal)
+  })
+})
