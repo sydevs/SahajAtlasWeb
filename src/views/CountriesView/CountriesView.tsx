@@ -62,6 +62,7 @@ export function CountriesView() {
   // The count above follows the active filters, so the search it opens must too.
   const onlineSearch = `/search?${filtersToParams({ ...filters, format: 'online' }).toString()}`
   const noMatches = hasActiveFilters(filters) && sortedCountries.length === 0 && onlineCount === 0
+  const showBrowseHeading = onlineCount > 0 && sortedCountries.length > 0
 
   // Frame the world view when this view mounts. This uses `reset()`, not an empty
   // `frameSearch`. The root view is the one place that genuinely wants the whole world, and
@@ -95,22 +96,20 @@ export function CountriesView() {
             rather than a place in the list below. `noMatches` implies no online classes, so this
             never sits above the fallback. */}
         {onlineCount > 0 && (
-          <>
-            <List>
-              <ListItem
-                count={onlineCount}
-                description={t('online.subtitle')}
-                href={onlineSearch}
-                icon={<MeditateFigure size={24} />}
-                label={t('online.title')}
-              />
-            </List>
-            {sortedCountries.length > 0 && (
-              <h3 className="px-gutter pt-4 pb-1 text-xs font-medium tracking-[0.08em] text-gray-11 uppercase">
-                {t('countries.browse_heading')}
-              </h3>
-            )}
-          </>
+          <List>
+            <ListItem
+              count={onlineCount}
+              description={t('online.subtitle')}
+              href={onlineSearch}
+              icon={<MeditateFigure size={24} />}
+              label={t('online.title')}
+            />
+          </List>
+        )}
+        {showBrowseHeading && (
+          <h3 className="px-gutter pt-4 pb-1 text-xs font-medium tracking-[0.08em] text-gray-11 uppercase">
+            {t('countries.browse_heading')}
+          </h3>
         )}
         {noMatches ? (
           <FallbackPanel
