@@ -76,6 +76,7 @@ here is **organisms own data/network/map lifecycles. Atoms and molecules don't.*
 | `Spinner/`            | `Spinner`                                                            | SVG spinner. `decorative` drops the live region when the parent already announces busy (Button) |
 | `Textarea/`           | `Textarea`                                                           | The multiline sibling of Input, on the same `fieldChrome` recipe (`multiline` variant). Same `isInvalid`/`highlight` props |
 | `ToggleGroup/`        | `ToggleGroup`, `ToggleGroupItem`                                     | Radix toggle group — the filter panel's format/frequency/day/time-of-day pills. `highlight` primary-tints the _unselected_ items to flag an active field |
+| `Tooltip/`            | `Tooltip`                                                            | Radix tooltip: a control's accessible name shown beside it, on hover and keyboard focus, never on touch. The map's controls use it; skinned like the map's opened credits |
 
 **Input atoms share one error/active-state interface.** Every form-control atom
 (`Input`, `Textarea`, `Select`, `Combobox`, `Checkbox`, `RadioGroup`,

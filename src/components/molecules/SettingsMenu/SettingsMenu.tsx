@@ -5,6 +5,7 @@ import { Check, ChevronRight, Info, Languages, Monitor, Moon, Settings, Sun } fr
 
 import { frameCollision } from '@/lib/overlay'
 import { Button } from '@/components/atoms/Button'
+import { Tooltip, type TooltipProps } from '@/components/atoms/Tooltip'
 import { menuChrome } from '@/components/atoms/Menu'
 import { useAvailableLocales } from '@/hooks/use-available-locales'
 import { useWidgetMode } from '@/config/mode'
@@ -48,6 +49,8 @@ export type SettingsMenuProps = {
   side?: DropdownMenu.DropdownMenuContentProps['side']
   /** Which edge of the trigger the menu lines up with (`end` for the map's right-hand column). */
   align?: DropdownMenu.DropdownMenuContentProps['align']
+  /** Shows the trigger's name as a label on that side, on hover and keyboard focus. */
+  tooltipSide?: TooltipProps['side']
   /** `floating` over the map; `ghost` in a row of controls, such as a header. */
   variant?: 'floating' | 'ghost'
 }
@@ -56,6 +59,7 @@ export function SettingsMenu({
   className,
   side = 'bottom',
   align = 'start',
+  tooltipSide,
   variant = 'floating',
 }: SettingsMenuProps) {
   const { t } = useTranslation()
@@ -97,23 +101,34 @@ export function SettingsMenu({
   ]
   const currentTheme = themes.find((th) => th.value === preference) ?? themes[0]
 
-  return (
-    <DropdownMenu.Root>
-      <DropdownMenu.Trigger asChild>
-        {/* ⚠ The caller's `fixed` or `absolute` reaches the Button's recipe, which merges it over
+  const label = t('common.a11y.settings')
+  const trigger = (
+    <DropdownMenu.Trigger asChild>
+      {/* ⚠ The caller's `fixed` or `absolute` reaches the Button's recipe, which merges it over
             the `relative` its `touch-target` needs; a `clsx` join would let `relative` win the
             cascade and unpin the cog (#432). */}
-        <Button
-          isIconOnly
-          aria-label={t('common.a11y.settings')}
-          className={className}
-          radius={variant === 'floating' ? 'full' : 'sm'}
-          size={variant === 'floating' ? 'md' : 'sm'}
-          variant={variant}
-        >
-          <Settings size={GLYPH} />
-        </Button>
-      </DropdownMenu.Trigger>
+      <Button
+        isIconOnly
+        aria-label={label}
+        className={className}
+        radius={variant === 'floating' ? 'full' : 'sm'}
+        size={variant === 'floating' ? 'md' : 'sm'}
+        variant={variant}
+      >
+        <Settings size={GLYPH} />
+      </Button>
+    </DropdownMenu.Trigger>
+  )
+
+  return (
+    <DropdownMenu.Root>
+      {tooltipSide ? (
+        <Tooltip label={label} side={tooltipSide}>
+          {trigger}
+        </Tooltip>
+      ) : (
+        trigger
+      )}
 
       <DropdownMenu.Portal container={container}>
         <DropdownMenu.Content

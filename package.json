@@ -55,6 +55,7 @@
     "@radix-ui/react-slider": "^1.6.1",
     "@radix-ui/react-switch": "^1.4.1",
     "@radix-ui/react-toggle-group": "^1.2.1",
+    "@radix-ui/react-tooltip": "^1.4.1",
     "@schedule-x/calendar": "4.9.1",
     "@schedule-x/calendar-controls": "4.9.1",
     "@schedule-x/react": "4.1.0",

@@ -362,27 +362,30 @@ A corner that follows the layout therefore costs a measured width in React, a
 custom property, and a CSS rule that moves mapbox's container — which is the shape
 #330 shipped first and its review replaced.
 
-**The top right holds ONE control: the column of settings, find-me and credits.**
-Mapbox's corner containers float and `clear: both`, so separate controls there stack
-in mount order with Mapbox's own margins, and lining them up with a control of ours
-would take exactly the stylesheet rules above. So `MapControls` is a single
-`useControl` whose element lays out its own children:
+**The top right holds ONE control: find-me and settings in a column, with the credits to
+their left.** Mapbox's corner containers float and `clear: both`, so separate controls there
+stack in mount order with Mapbox's own margins, and lining them up with a control of ours would
+take exactly the stylesheet rules above. So `MapControls` is a single `useControl` whose element
+lays out its own children:
 
-- **Settings and find-me are floating `Button`s**, so they take the theme in every
-  state. The settings cog is hidden where `useSettingsCog` says (the full-width
-  calendar, the sheet's near-full stop).
-- **Find-me drives Mapbox's `GeolocateControl` without showing it.** `Map.tsx` renders
-  it with `showButton={false}`, and our button calls its `trigger()`; the blue dot, the
-  permission flow and the `onError` dialog are unchanged. A permission denied before the
-  map loaded used to leave Mapbox's button disabled and silent — `trigger()` asks anyway,
-  so that case reaches the dialog too.
-- **The credits are Mapbox's own compact `AttributionControl`**, created inside the
-  column and appended as its last child rather than added to the map. Only its look is
-  restyled, in one commented block in `globals.css` (`.sy-map-controls …`): the same disc
-  as the Buttons, a lucide mask for the glyph, theme tokens for every state.
+- **Find-me and settings are floating `Button`s**, so they take the theme in every state, and
+  each shows its name in a `Tooltip` on hover and keyboard focus. The settings cog is hidden
+  where `useSettingsCog` says (the full-width calendar, the sheet's near-full stop).
+- **Find-me drives Mapbox's `GeolocateControl` without showing it.** `Map.tsx` renders it with
+  `showButton={false}`, and our button calls its `trigger()`; the blue dot, the permission flow
+  and the `onError` dialog are unchanged. A permission denied before the map loaded used to
+  leave Mapbox's button disabled and silent — `trigger()` asks anyway, so that case reaches the
+  dialog too.
+- **The credits are Mapbox's own compact `AttributionControl`, in Mapbox's own look**, created
+  inside the column's element, level with its top, rather than added to the map. Opened, it
+  grows leftward, away from the buttons. `globals.css` only resets Mapbox's corner margin and
+  float inside our element, adds the 44px touch tap area, and carries #370's dark-theme fix.
   `attribution.test.ts` pins the corner literals, the single attribution, and that the
-  stylesheet still names the classes it restyles — a mapbox-gl upgrade that renames one
-  would quietly bring back the white button.
+  stylesheet still names the classes it targets.
+
+⚠ **Not beside the wordmark.** The bottom right looks like its natural place, but the phone
+sheet's peek covers the whole bottom edge at every snap, so the credits would never be visible
+on a phone, which Mapbox's terms do not allow.
 
 **Neither may be dropped, and neither may leave the map.** The wordmark is
 required outright; the text attribution is required for any map using Mapbox

@@ -62,3 +62,6 @@ export type { TextareaProps } from './Textarea'
 
 export { ToggleGroup, ToggleGroupItem } from './ToggleGroup'
 export type { ToggleGroupProps, ToggleGroupItemProps } from './ToggleGroup'
+
+export { Tooltip } from './Tooltip'
+export type { TooltipProps } from './Tooltip'

@@ -644,81 +644,50 @@ html.sy-atlas {
   margin-top: 40px;
 }
 
-/* Mapbox's credits button, at the foot of the map's control column (`Mapbox/MapControls`), drawn
-   as the same disc as the floating Buttons above it: 40px, and 44px on a touch screen, as the
-   Button atom draws its `md` size. This restyles, never places: Mapbox's `position` prop places
-   the column. Mapbox's own skin is fixed colours (white, a black glyph bitmap, a blue focus glow),
-   which stayed white in the dark theme, so every state here takes a theme token instead. The glyph
-   is lucide's `info` as a mask, so it takes `currentColor` like the icons beside it.
-   The hover rule repeats `.mapboxgl-ctrl-attrib` to outrank Mapbox's own
-   `.mapboxgl-ctrl button:not(:disabled):hover`. `attribution.test.ts` fails if a mapbox-gl
-   upgrade renames the classes this targets. */
-.sy-map-controls {
-  --sy-map-ctrl-size: 40px;
+/* Mapbox's credits, which sit beside the map's control column (`Mapbox/MapControls`) in Mapbox's
+   own look. Inside our element, Mapbox's corner margins and float would push it off the column's
+   top edge, so they are reset; the column's own gap spaces it. On a touch screen it gets the 44px
+   tap area every other control has, without growing the 24px button.
+   `attribution.test.ts` fails if a mapbox-gl upgrade renames the classes this targets. */
+.sy-map-controls .mapboxgl-ctrl-attrib.mapboxgl-compact {
+  margin: 0;
+  float: none;
 }
 
 @media (pointer: coarse) {
-  .sy-map-controls {
-    --sy-map-ctrl-size: 44px;
+  /* Mapbox's own `.mapboxgl-ctrl button` rule clips with `overflow: hidden`. */
+  .sy-map-controls .mapboxgl-ctrl-attrib .mapboxgl-ctrl-attrib-button {
+    overflow: visible;
+  }
+
+  .sy-map-controls .mapboxgl-ctrl-attrib-button::after {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 44px;
+    height: 44px;
+    content: '';
+    transform: translate(-50%, -50%);
   }
 }
 
-.sy-map-controls .mapboxgl-ctrl-attrib.mapboxgl-compact {
-  @apply border border-divider bg-background text-gray-11 shadow-lg;
-  position: relative;
-  box-sizing: border-box;
-  min-width: var(--sy-map-ctrl-size);
-  min-height: var(--sy-map-ctrl-size);
-  margin: 0;
-  padding: 0;
-  float: none;
-  border-radius: 9999px;
+/* Mapbox paints its credits white, with a glyph drawn in a fixed colour, so in the dark theme it
+   stayed white beside the dark buttons. This gives it their surface, and `invert` then
+   `hue-rotate` turns the glyph light. */
+.dark .mapboxgl-ctrl-attrib.mapboxgl-compact {
+  background-color: hsl(var(--background));
 }
 
-.sy-map-controls .mapboxgl-ctrl-attrib.mapboxgl-compact-show {
-  padding: 9px calc(var(--sy-map-ctrl-size) + 4px) 9px 16px;
-  border-radius: 20px;
+.dark .mapboxgl-ctrl button:not(:disabled):hover {
+  background-color: var(--gray-3);
 }
 
-.sy-map-controls .mapboxgl-ctrl-attrib-button {
-  top: -1px;
-  right: -1px;
-  width: var(--sy-map-ctrl-size);
-  height: var(--sy-map-ctrl-size);
-  background-color: transparent;
-  background-image: none;
-  border-radius: 9999px;
-  color: inherit;
+.dark .mapboxgl-ctrl-attrib-button {
+  filter: invert(1) hue-rotate(180deg);
 }
 
-.sy-map-controls .mapboxgl-ctrl-attrib .mapboxgl-ctrl-attrib-button:hover,
-.sy-map-controls .mapboxgl-ctrl-attrib.mapboxgl-compact-show .mapboxgl-ctrl-attrib-button {
-  @apply bg-gray-3 text-foreground;
-}
-
-.sy-map-controls .mapboxgl-ctrl-attrib .mapboxgl-ctrl-attrib-button:focus {
-  box-shadow: none;
-}
-
-.sy-map-controls .mapboxgl-ctrl-attrib .mapboxgl-ctrl-attrib-button:focus-visible {
-  @apply ring-2 ring-focus;
-}
-
-.sy-map-controls .mapboxgl-ctrl-attrib-button .mapboxgl-ctrl-icon {
-  display: block;
-  width: 100%;
-  height: 100%;
-  background-color: currentColor;
-  mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='12' cy='12' r='10'/%3E%3Cpath d='M12 16v-4M12 8h.01'/%3E%3C/svg%3E")
-    center / 20px 20px no-repeat;
-}
-
-.sy-map-controls .mapboxgl-ctrl-attrib a {
-  @apply text-gray-11;
-}
-
-.sy-map-controls .mapboxgl-ctrl-attrib a:hover {
-  @apply text-gray-12;
+.dark .mapboxgl-ctrl-attrib a {
+  color: var(--gray-11);
 }
 
 /* The boot curtain's spinner (views/FullInterface.tsx → MapCurtain). It fades in on a

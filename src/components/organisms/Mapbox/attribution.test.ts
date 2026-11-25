@@ -36,7 +36,7 @@ describe('the Mapbox wordmark and attribution corners', () => {
     expect(controls.match(/new mapLib\.AttributionControl\(/g)).toHaveLength(1)
     expect(column, "the column's useControl call").toContain('compact: true')
     // Created but never added to the map, so the column is what puts it on screen.
-    expect(controls).toMatch(/append\(this\.attribution\.onAdd\(map\)\)/)
+    expect(controls).toMatch(/prepend\(this\.attribution\.onAdd\(map\)\)/)
   })
 
   it('puts the attribution in the one corner no drawer covers', () => {
@@ -58,11 +58,12 @@ describe('the Mapbox wordmark and attribution corners', () => {
     expect(cornerIn(map, 'logoPosition')).toBe('bottom-right')
   })
 
-  it('restyles the credits button through class names mapbox-gl still renders', () => {
-    // A mapbox-gl upgrade that renames these would drop the disc and the dark theme without a
-    // sound, leaving Mapbox's white button beside two of ours.
+  it('seats the credits beside the column through class names mapbox-gl still renders', () => {
+    // A mapbox-gl upgrade that renames these would bring back Mapbox's corner margin and float
+    // inside the column, and drop the touch tap area, without a sound.
     const selectors = read(STYLES)
       .split('\n')
+      .map((line) => line.trim())
       .filter((line) => line.startsWith('.sy-map-controls '))
 
     for (const name of [

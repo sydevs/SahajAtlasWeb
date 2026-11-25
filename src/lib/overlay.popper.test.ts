@@ -52,6 +52,7 @@ const BOUNDED: Record<string, string> = {
   'components/atoms/Select/Select.tsx': 'the plain list picker',
   'components/atoms/Combobox/Combobox.tsx':
     'the search-in-the-field region picker (Popover + cmdk)',
+  'components/atoms/Tooltip/Tooltip.tsx': "the labels beside the map's controls",
   ...MENUS,
 }
 
