@@ -398,12 +398,7 @@ export function useEventFromPath(eventPath: string) {
  * available (DynamicEventsList's EmptyResults) — but renders them through this
  * same panel.
  */
-export function EmptyEventList({
-  hasSearchChrome = false,
-}: {
-  /** The view already mounts a `SearchField` (RegionView). A second would be a duplicate. */
-  hasSearchChrome?: boolean
-} = {}) {
+export function EmptyEventList() {
   // Renders in the fallback chrome too, so it must not suspend (see `HEADER_CONTROL`).
   const { t } = useTranslation()
 
@@ -411,7 +406,7 @@ export function EmptyEventList({
     // `align="start"`: this stands in for the region's list, which begins at the
     // top-left of the body — the same posture `fallbackAlign` gives these
     // views' error states.
-    <FallbackPanel align="start" hasSearchChrome={hasSearchChrome} kind="empty">
+    <FallbackPanel align="start" kind="empty">
       {/* `label` is the field's accessible name AND its placeholder, so it does the whole
           job of prompting: dropped out of a header, the default "search for events near…"
           reads on this screen as a promise that there ARE nearby events. */}

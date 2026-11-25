@@ -8,7 +8,7 @@ import { RegionView } from './RegionView'
 
 import { mockParentRegion } from '@/mocks/regions'
 
-// Emptied, so the page also renders its empty state, the other place a search field lives.
+// Emptied, so the page also renders its empty state, which must not draw a second field.
 const region = { ...mockParentRegion, subregions: [], events: [], onlineEvents: [] }
 
 // Chrome is stubbed with markers, not nulls, so order can be read off the markup.
@@ -28,7 +28,12 @@ vi.mock('@/components/atoms/Drawer', () => ({
     </aside>
   ),
 }))
-vi.mock('@/components/molecules', () => ({ ActiveFilterPills: () => null }))
+vi.mock('@/components/molecules', () => ({
+  ActiveFilterPills: () => null,
+  FallbackPanel: ({ hasSearchChrome }: { hasSearchChrome?: boolean }) => (
+    <i>{hasSearchChrome ? 'panel' : 'panel-with-search-field'}</i>
+  ),
+}))
 vi.mock('@/views/nav', () => ({
   NavHeader: ({ title, actions }: { title: ReactNode; actions: ReactNode }) => (
     <header>
@@ -39,8 +44,6 @@ vi.mock('@/views/nav', () => ({
 }))
 vi.mock('@/views/shared', () => ({
   CalendarButton: () => <i>calendar-button</i>,
-  EmptyEventList: ({ hasSearchChrome }: { hasSearchChrome?: boolean }) =>
-    hasSearchChrome ? <i>empty-list</i> : <i>empty-list-with-search-field</i>,
   FilterButton: () => <i>filter-button</i>,
   GeolocationSuggestion: () => null,
   SearchField: () => <i>search-field</i>,
@@ -56,8 +59,8 @@ describe('RegionView — search on a place page', () => {
     )
 
     expect(markup).toMatch(
-      /<header><h2>[^<]*<\/h2><i>calendar-button<\/i><i>filter-button<\/i><\/header><aside>field-toolbar:<i>search-field<\/i><\/aside><section>body:.*<i>empty-list<\/i>/,
+      /<header><h2>[^<]*<\/h2><i>calendar-button<\/i><i>filter-button<\/i><\/header><aside>field-toolbar:<i>search-field<\/i><\/aside><section>body:.*<i>panel<\/i>/,
     )
-    expect(markup).not.toContain('empty-list-with-search-field')
+    expect(markup).not.toContain('panel-with-search-field')
   })
 })

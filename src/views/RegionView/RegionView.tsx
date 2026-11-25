@@ -33,7 +33,6 @@ import { validateWebUrl } from '@/lib/url'
 import { NavHeader } from '@/views/nav'
 import {
   CalendarButton,
-  EmptyEventList,
   FilterButton,
   GeolocationSuggestion,
   SearchField,
@@ -187,15 +186,13 @@ export function RegionView({ slug }: { slug: string }) {
             list are more than the screen can carry, and the reader has just acted once
             already. It returns as soon as they dismiss the banner. */}
         {!feedback && <GeolocationSuggestion position="above" regionCenter={region.center} />}
-        {isEmpty && hasActiveFilters(filters) ? (
+        {isEmpty ? (
           <FallbackPanel
             hasSearchChrome
             align="start"
-            kind="no-results"
+            kind={hasActiveFilters(filters) ? 'no-results' : 'empty'}
             onClearFilters={() => setFilters(DEFAULT_FILTERS)}
           />
-        ) : isEmpty ? (
-          <EmptyEventList hasSearchChrome />
         ) : (
           <List>
             {/* On a region with sub-regions, the online roll-up opens in its own drawer
