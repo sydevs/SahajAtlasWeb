@@ -47,6 +47,6 @@ describe('QrCode', () => {
 
     expect(html).toContain('role="alert"')
     expect(html).toContain('share.qr_failed')
-    expect(html).not.toContain('<svg')
+    expect(html).not.toContain('role="img"')
   })
 })

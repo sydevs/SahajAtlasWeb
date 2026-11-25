@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Download } from 'lucide-react'
 
+import { Alert } from '@/components/atoms/Alert'
 import { Button } from '@/components/atoms/Button'
 import { Disclosure } from '@/components/atoms/Disclosure'
 import { Spinner } from '@/components/atoms/Spinner'
@@ -60,11 +61,7 @@ export function QrCode({
   const path = useMemo(() => (matrix ? qrSvgPath(matrix) : ''), [matrix])
 
   if (state.status === 'failed') {
-    return (
-      <p className="text-sm text-danger-11" role="alert">
-        {t('share.qr_failed')}
-      </p>
-    )
+    return <Alert color="danger" description={t('share.qr_failed')} role="alert" />
   }
 
   if (!matrix) {
@@ -86,7 +83,7 @@ export function QrCode({
       {/* Black on white in dark theme too: scanners need dark on light. */}
       <svg
         aria-label={t('share.a11y.qr_code', { title: label })}
-        className="h-44 w-44 rounded-lg border border-divider bg-white"
+        className="h-44 w-44 bg-white"
         role="img"
         shapeRendering="crispEdges"
         viewBox={`0 0 ${matrix.length} ${matrix.length}`}
