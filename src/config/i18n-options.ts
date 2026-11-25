@@ -14,6 +14,9 @@
 // have to deploy before a language an operator had already published could be chosen.
 // `supportedLngs` went with it, for the same reason — `preferredLocale` below does the
 // narrowing that option used to, against the set the CMS actually answered.
+import snapshot from './translations.en.json'
+import { EN_A11Y, withA11y } from './a11y/a11y'
+
 import { LOCALE_PARAM } from '@/lib/shape/locale-param'
 import { WIDGET_SCOPE_CLASS } from '@/lib/scope'
 
@@ -64,6 +67,13 @@ export const i18nDetectionOptions = {
   convertDetectedLanguage: (language: string) =>
     /^(cimode|dev)$/i.test(language) ? 'en' : language,
 }
+
+/**
+ * What an instance boots with, before SahajCloud answers: the committed English snapshot, with the
+ * English screen-reader strings riding in its place (`config/a11y/`). Every other locale's arrive
+ * inside its SahajCloud bundle (`translationsQuery`).
+ */
+export const bootResources = { en: { translation: withA11y(snapshot, EN_A11Y) } }
 
 export const i18nSharedOptions = {
   fallbackLng: 'en',
