@@ -110,12 +110,7 @@ export const drawer = tv({
         content: 'inset-x-0 top-0 h-[var(--sy-frame-h)] rounded-b-2xl border-b border-divider',
       },
     },
-    // How the panel relates to its container. This used to be two
-    // independent booleans, `contained` and `full`. But only two of the four
-    // possible states ever occurred in practice. DrawerStack always set both
-    // together, and `filled`'s class list is entirely `!important` overrides
-    // that cancel the other one. That pattern is the signature of a variant
-    // that wanted to be a mode.
+    // How the panel relates to its container.
     mode: {
       /** Fixed to the viewport, anchored to the `direction` edge. This is the map layout. */
       anchored: {},
@@ -128,11 +123,8 @@ export const drawer = tv({
         content: '!absolute !inset-0 !h-full !max-h-none !w-full !max-w-none !rounded-none !pb-0',
       },
     },
-    // A full-width surface, such as CalendarView, instead of the 352px
-    // left panel, so a month grid stays legible. This only matters with
-    // the anchored `left` panel, in map mode at ≥md. The bottom sheet is
-    // already full-width, and `filled` (map-less) already fills the
-    // container. So both ignore this variant (see the compound below).
+    // A full-width surface, such as CalendarView, instead of the 352px left panel, so a month
+    // grid stays legible.
     wide: { true: {}, false: {} },
   },
   compoundVariants: [
