@@ -1,7 +1,7 @@
 import { renderToStaticMarkup } from 'react-dom/server'
 import { describe, it, expect } from 'vitest'
 
-import { List, listRow } from './List'
+import { List, listRow, ListRowChevron } from './List'
 
 // Node-only SSR assertions (see `docs/testing.md`). These pin the
 // explicit class-level resets, which duplicate preflight on purpose —
@@ -28,10 +28,16 @@ describe('List', () => {
     expect(classes).toContain('[&amp;&gt;li]:list-none')
   })
 
-  it('lays a row out centred beside its chevron, which mirrors in RTL', () => {
-    const { row, chevron } = listRow()
+  it('lays a row out centred, and ends it in a chevron that mirrors in RTL', () => {
+    expect(listRow().split(' ')).toEqual(
+      expect.arrayContaining(['flex', 'items-center', 'px-gutter']),
+    )
 
-    expect(row().split(' ')).toEqual(expect.arrayContaining(['flex', 'items-center', 'px-gutter']))
-    expect(chevron().split(' ')).toEqual(['text-gray-9', 'rtl:-scale-x-100'])
+    const html = renderToStaticMarkup(<ListRowChevron />)
+    const classes = (html.match(/class="([^"]*)"/)?.[1] ?? '').split(' ')
+
+    expect(html).toMatch(/^<svg[\s>]/)
+    expect(html).toContain('width="20"')
+    expect(classes).toEqual(expect.arrayContaining(['text-gray-9', 'rtl:-scale-x-100']))
   })
 })

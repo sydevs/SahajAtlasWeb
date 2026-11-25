@@ -6,7 +6,7 @@ import { describe, it, expect, vi } from 'vitest'
 
 import { EventListItem } from './EventListItem'
 
-import { listRow } from '@/components/molecules/List/List'
+import { ListRowChevron } from '@/components/molecules/List/List'
 import { mockEventSlim } from '@/mocks/events'
 
 // Node-only SSR assertions (see `docs/testing.md`). The card must be a
@@ -105,7 +105,13 @@ describe('EventListItem', () => {
     expect(column).toContain('flex-col')
     expect(column).toContain('min-w-0')
     expect(column).not.toContain('items-center')
-    expect(classes.at(-1)).toEqual(expect.arrayContaining(listRow().chevron().split(' ')))
+    // The card's chevron must be the shared element, not a lookalike, so a
+    // class row and a place row cannot drift apart again.
+    const shared = renderToStaticMarkup(<ListRowChevron />)
+
+    expect(classes.at(-1)).toEqual(
+      expect.arrayContaining((shared.match(/class="([^"]*)"/)?.[1] ?? '').split(' ')),
+    )
     expect(html).toMatch(/lucide-chevron-right[^>]*>[\s\S]*?<\/svg><\/a><\/li>$/)
   })
 })

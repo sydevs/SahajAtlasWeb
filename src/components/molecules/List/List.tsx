@@ -1,5 +1,7 @@
 import type { ReactNode } from 'react'
 
+import { ChevronRight } from 'lucide-react'
+
 import { tv } from '@/styles/tv'
 
 // The list row's chrome and its horizontal gutter live here, not in each
@@ -11,19 +13,26 @@ import { tv } from '@/styles/tv'
 
 /**
  * A navigable row inside a `List`. Cards wrap it in an `<li>`, so each row
- * is a valid direct child of the `<ul>`, and put `row` on that li's inner
- * <Link> or <a>, and `chevron` on the `ChevronRight` (size 20) it ends in.
- * So the hover and press feedback, the gutter and the chevron stay
- * identical across row types.
+ * is a valid direct child of the `<ul>`, put this on that li's inner
+ * <Link> or <a>, and end it with `<ListRowChevron />`. So the hover and
+ * press feedback, the gutter and the chevron stay identical across row
+ * types.
  */
 export const listRow = tv({
-  slots: {
-    row: 'flex items-center px-gutter text-inherit transition-colors hover:bg-primary-2 active:bg-primary-3 dark:hover:bg-gray-3 dark:active:bg-gray-4',
-    // The chevron only restates what tapping the row already does, so it
-    // sits a step below the quietest text in any row (gray-11, #432).
-    chevron: 'text-gray-9 rtl:-scale-x-100',
-  },
+  base: 'flex items-center px-gutter text-inherit transition-colors hover:bg-primary-2 active:bg-primary-3 dark:hover:bg-gray-3 dark:active:bg-gray-4',
 })
+
+/**
+ * The drill-in arrow a `listRow` ends in. This is the element, not its
+ * classes: a row renders it rather than restating the glyph, its size and
+ * its RTL flip.
+ */
+export function ListRowChevron() {
+  // The chevron only restates what tapping the row already does, so it
+  // sits a step below the quietest text in any row (gray-11, #432).
+  // Lucide has no mirroring prop, so the flip is declared on the glyph.
+  return <ChevronRight className="text-gray-9 rtl:-scale-x-100" size={20} />
+}
 
 // The divider draws here. Cards carry no border of their own, so mixed
 // region and event lists stay uniform. It is a ::before rule on every

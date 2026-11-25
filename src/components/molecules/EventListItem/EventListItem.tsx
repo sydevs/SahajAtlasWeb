@@ -1,8 +1,7 @@
-import { ChevronRight } from 'lucide-react'
 import { memo, useEffect, useRef } from 'react'
 import { useTranslation } from 'react-i18next'
 
-import { listRow } from '@/components/molecules/List/List'
+import { listRow, ListRowChevron } from '@/components/molecules/List/List'
 import { useLocale } from '@/hooks/use-locale'
 import { useMapController } from '@/hooks/use-map-controller'
 import { useHoverPrefetch } from '@/hooks/use-prefetch-event'
@@ -34,8 +33,6 @@ export interface EventListItemProps {
 // searched town is "close", and a line on every card becomes noise. This
 // compares in km, regardless of the unit the locale renders it in.
 const MIN_DISTANCE_KM = 5
-
-const { row, chevron } = listRow()
 
 /**
  * The list card: title, then the shared EventFacts summary (recurrence and
@@ -125,7 +122,7 @@ function EventListItemImpl({ event, searchedPlace, showDistance = true }: EventL
           would break silently the day a card grows a second anchor. */}
       <Link
         data-event-row
-        className={row({ className: 'py-4' })}
+        className={listRow({ className: 'py-4' })}
         href={event.path}
         onBlur={deactivate}
         onFocus={activate}
@@ -150,7 +147,7 @@ function EventListItemImpl({ event, searchedPlace, showDistance = true }: EventL
           />
           <EventChips className="mt-1" event={event} variant="compact" />
         </div>
-        <ChevronRight className={chevron()} size={20} />
+        <ListRowChevron />
       </Link>
     </li>
   )
