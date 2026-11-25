@@ -138,7 +138,7 @@ describe('MapFrame, contained', () => {
 
   it('takes the containing block with contain:layout, and marks itself for the CSS', () => {
     // `contain: layout` is the whole mechanism: it makes this the containing block for every
-    // fixed descendant — the canvas, the drawers, the cog — with no `fixed` →
+    // fixed descendant — the canvas and the drawers — with no `fixed` →
     // `absolute` swap anywhere. `data-sy-frame` is what switches `--sy-frame-h` to `100%`.
     const wrapper = mount(
       <MapFrame contained>

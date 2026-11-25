@@ -20,8 +20,7 @@ import { frameElement } from '@/lib/overlay'
 //
 // **`DRAWER_W_PX` is one half of a pair. See the other half before you change it.**
 // The drawer's actual width comes from a `352px` fallback baked into its Tailwind classes.
-// That fallback is `w-[var(--sy-drawer-w,352px)]`, in `components/atoms/Drawer/Drawer.tsx` and `views/DrawerStack/DrawerStack.tsx`.
-// `DrawerStack`'s `SettingsMenu` offset reads the same variable.
+// That fallback is `w-[var(--sy-drawer-w,352px)]`, in `components/atoms/Drawer/Drawer.tsx`.
 // A class string cannot read a value from this file, because the Tailwind JIT scanner needs a literal.
 // So you must keep the two values in step by hand.
 // Moving only one value throws no error.

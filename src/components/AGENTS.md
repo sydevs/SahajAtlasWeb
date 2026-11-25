@@ -209,8 +209,8 @@ shipping a narrow embed that quietly behaves like a desktop.
 | Sticky Register bar (`EventView`) | container | A snap sheet can scroll the CTA out of sight. This is a property of the sheet. |
 | Contact — `tel:` vs. number + copy popover (`EventActions`) | input | Whether `tel:` reaches a dialer is hardware, not window width. This is the one place "narrow ⇒ mobile" reads wrong. |
 | Map camera padding (`use-map-controller`) | container (the frame) | Camera padding must agree with whatever picked the panel it pads around. Reads `frameElement()` — `null`, and so the viewport, wherever no frame exists. |
+| Map controls: column vs row (`MapControls`) | viewport (via `useIsShortViewport`) | A phone on its side is too short for a column. The same answer caps the frameless phone sheet's stops (`DrawerStack`), so the row stays above that sheet's top. |
 | Anchored-panel geometry — `lg:inset-y-4`, `lg:rounded-2xl` (Drawer atom) | viewport (accepted residue) | #169 broke "viewport equals container". A contained map can reach a `lg:` crossing its frame never sees. What survives is cosmetic float and rounding. |
-| SettingsMenu cog offset (`DrawerStack`) | container (via `isWide`) | Clears the left panel, so it must agree with whatever decided there is one. Outside a frame, `isWide` is the viewport's own answer. |
 | Which calendar view renders, which options the switch offers, and which one it lights (`CalendarView`, and `DrawerStack` for the drawer's width) | container (via `useIsWideWidget`) | Not a fit question but a **capability** one: Schedule-X refuses its month grid and its week grid below the crossing, and substitutes silently. So this is the one row where the signal decides what a third-party library *can draw*, not how much room to give it — and a viewport read would light a grid a 320px column cannot render (#331). All five seams read one resolver, so they cannot disagree. |
 | Modal box sizing | container (the frame) | Portals through `overlayContainer()`, so a frame contains and clips it on both axes. |
 | `EventHeader`'s `md:pt-4` | viewport (accepted residue) | The only variant that fires wrongly in a narrow map-less embed. It is cosmetic — fix it if you are already there. |
@@ -239,8 +239,8 @@ a viewport-relative `--sy-sheet-top`, and `100dvh` overshooting a frame — is a
 below the patch register.
 
 **The frame is `contain: layout`, and that one property does all of it.** It makes
-the element the containing block for every fixed descendant, so the canvas, the
-drawers, and the cog are identical in both modes — containment is NOT a
+the element the containing block for every fixed descendant, so the canvas and the
+drawers are identical in both modes — containment is NOT a
 `fixed`-to-`absolute` swap. It also makes the frame a **stacking context**, which
 answers "what is our z-index relative to the host's": the widget's `z-30`…`z-50` stop
 competing with the host's CSS. `lib/overlay.ts` holds the one reference
@@ -520,7 +520,7 @@ map-less mode — measured at a 1440px viewport, where a `filled` drawer compute
 **A caution against a plausible-sounding claim that is FALSE.** It is widely
 repeated that `container-type: inline-size` makes an element a containing block for
 `position: fixed` descendants — which would matter enormously here, since the map
-canvas, every drawer, and the cog are all fixed. Measured in
+canvas and every drawer are fixed. Measured in
 Chrome 151:
 
 | host style | fixed child resolves against |
