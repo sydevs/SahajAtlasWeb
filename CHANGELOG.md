@@ -48,7 +48,8 @@ cover everything a host would notice since the widget was first deployed.
   to a separate search page, so a visitor who went into the wrong place can search again from
   where they are. The box stays put while the list scrolls under it. Typing leaves the address
   alone; picking a place opens its results with the active filters kept. The calendar and filter
-  controls stay in the header. While the box is on screen, the place search's hidden `aria-live`
+  controls stay in the header, and the panel shows the same box while it loads and when it
+  fails, in place of the old magnifier. While the box is on screen, the place search's hidden `aria-live`
   region sits in your `<body>`, as it already did on the first screen. **No parameter, origin,
   CSP, storage or Permissions-Policy change.**
 
@@ -596,6 +597,10 @@ no-referrer`.
   opens — so there was no way to discover this from the widget. See [Permissions Policy].
 
 ### Fixed
+
+- **The place-search box is its normal height on touch screens.** ([#485]) On a phone or tablet
+  it drew about three times as tall as intended (132px instead of 44px), pushing the list below
+  it down the panel. No parameter, origin or CSP change.
 
 - **An event's structured data now names your organization as the organizer.** ([#442]) The widget
   reads that name from the public name on your client record, and had been reading a field the
