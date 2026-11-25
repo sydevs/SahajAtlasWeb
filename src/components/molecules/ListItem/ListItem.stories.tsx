@@ -54,7 +54,7 @@ export const Default: Story = () => (
           <ListItem
             count={41}
             href="#online"
-            icon={<MeditateFigure className="text-contrast-10 dark:text-contrast" size={24} />}
+            icon={<MeditateFigure size={24} />}
             label="Online Classes"
           />
           <ListItem
@@ -79,7 +79,7 @@ export const Default: Story = () => (
             count={41}
             description="Join from anywhere"
             href="#online"
-            icon={<MeditateFigure className="text-contrast-10 dark:text-contrast" size={24} />}
+            icon={<MeditateFigure size={24} />}
             label="Online Classes"
           />
           <ListItem

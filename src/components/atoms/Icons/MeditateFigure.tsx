@@ -26,7 +26,9 @@ export function MeditateFigure({ size = 24, ...props }: MeditateFigureProps) {
       xmlns="http://www.w3.org/2000/svg"
       {...props}
     >
-      <path d={PATH} />
+      {/* The mark's one coral lives here, not at the call site: `currentColor` resolves against
+          this element's own colour, and no caller's spread can reach it. */}
+      <path className="text-contrast-10 dark:text-contrast" d={PATH} />
     </svg>
   )
 }

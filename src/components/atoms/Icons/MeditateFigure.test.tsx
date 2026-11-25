@@ -13,6 +13,11 @@ describe('MeditateFigure', () => {
     expect(renderToStaticMarkup(<MeditateFigure size={18} />)).toContain('height="18"')
   })
 
+  it('carries its coral on the path, so no call site repeats it', () => {
+    expect(html).toMatch(/<path[^>]*\sclass="text-contrast-10 dark:text-contrast"/)
+    expect(html).not.toMatch(/<svg[^>]*\sclass=/)
+  })
+
   it('carries no id, so two copies on one page cannot collide', () => {
     expect(html).not.toMatch(/\sid="/)
   })
