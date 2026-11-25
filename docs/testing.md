@@ -202,6 +202,17 @@ that mechanism.
 `robots.smoke.test.ts` pins the #91 CORS headers against displacement by the #106 `/*` rule — a
 claim about platform behaviour, asserted rather than left as a comment.
 
+### A fresh version can 5xx for its own assets, and the chunk crawl waits that out
+
+The specs read a version uploaded seconds earlier, and on **PR #466** four of its chunks answered
+**500** while the rest of the deploy served normally. So `embed.smoke.test.ts` re-checks a 5xx for
+`SETTLE_ROUNDS` rounds before it calls a chunk broken, rather than leaning on the lane's
+`retry: 2` — each retry re-crawls from scratch, so all three race the same window again.
+
+⚠ **This costs the defect the spec exists to catch nothing**, and the reason is the second
+invariant above: a chunk the deploy does not hold answers the SPA shell with **200 `text/html`**,
+never a 5xx. Do not widen the wait to a non-5xx status: that is the half that must stay instant.
+
 ### A deployed file is not a working one — check the origins the bundle will REQUEST
 
 Every spec above asks whether something was **deployed**. `boot-origins.smoke.test.ts` asks
