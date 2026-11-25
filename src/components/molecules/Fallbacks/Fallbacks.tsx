@@ -814,9 +814,11 @@ export const CENTERED_BODY =
  * move the sentence away from where the reader's eye already is, and would make the
  * drawer look like a different kind of screen. This posture also needs no `max-h`
  * guard: content that starts at the top is on screen by construction. That is exactly
- * what `CENTERED_BODY` has to work to achieve.
+ * what `CENTERED_BODY` has to work to achieve. Nor does it fill the body: it shares the body
+ * with what follows it (the location prompt), and a floating panel sized to its content would
+ * push that out of view.
  */
-export const START_BODY = 'flex h-full flex-col items-start px-gutter py-6 text-start'
+export const START_BODY = 'flex flex-col items-start px-gutter py-6 text-start'
 
 /** Which posture a surface renders in — see `CENTERED_BODY` / `START_BODY`. */
 export type FallbackAlign = 'center' | 'start'

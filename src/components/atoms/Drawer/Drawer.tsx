@@ -112,11 +112,11 @@ const drawer = tv({
       // edit. Otherwise the map keeps framing around the old width, and
       // nothing anywhere reports the drift.
       // Floating (≥lg), the panel is as tall as its view, up to the frame's height less its
-      // margins. A panel holding the place search keeps room for its suggestions, which open
-      // inside it and scroll past `--sy-results-max-h` (Mapbox/themes.ts).
+      // margins. While the place search's suggestions are open it takes the full height: they
+      // open inside it, and it clips. The geocoder keeps `aria-expanded` (Mapbox/geocoder-dom.ts).
       left: {
         content:
-          'inset-y-0 left-0 w-[calc(var(--sy-drawer-w,352px)+env(safe-area-inset-left,0px))] max-w-[calc(100%-32px)] rounded-none border border-divider ps-[env(safe-area-inset-left,0px)] lg:top-4 lg:bottom-auto lg:left-4 lg:max-h-[calc(var(--sy-frame-h)-32px)] lg:rounded-2xl lg:[--sy-results-max-h:320px] lg:has-[[role=search]]:min-h-[min(calc(var(--sy-results-max-h)+80px),calc(var(--sy-frame-h)-32px))]',
+          'inset-y-0 left-0 w-[calc(var(--sy-drawer-w,352px)+env(safe-area-inset-left,0px))] max-w-[calc(100%-32px)] rounded-none border border-divider ps-[env(safe-area-inset-left,0px)] lg:top-4 lg:bottom-auto lg:left-4 lg:max-h-[calc(var(--sy-frame-h)-32px)] lg:rounded-2xl lg:has-[[role=search]_[aria-expanded=true]]:h-[calc(var(--sy-frame-h)-32px)]',
       },
       right: {
         content:
