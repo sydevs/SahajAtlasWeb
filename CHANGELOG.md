@@ -52,8 +52,8 @@ cover everything a host would notice since the widget was first deployed.
   region sits in your `<body>`, as it already did on the first screen. **No parameter, origin,
   CSP, storage or Permissions-Policy change.**
 
-- **Place slugs may contain non-ASCII letters, and URLs carry them percent-encoded.** A region's
-  slug keeps its native letters, lowercased (`/bg/софия` where it was `/bg/sofiya`;
+- **Place slugs may contain non-ASCII letters, and URLs carry them percent-encoded.** ([#483]) A
+  region's slug keeps its native letters, lowercased (`/bg/софия` where it was `/bg/sofiya`;
   `/de/trier/universität-trier` where it was `universitat-trier`). On the wire, in
   `routing=path` pathnames and in `?atlas=` values, they are percent-encoded
   (`/bg/%D1%81%D0%BE%D1%84%D0%B8%D1%8F`), and the widget resolves either spelling to the same
@@ -1250,6 +1250,7 @@ must-revalidate`, pinned rather than left to the CDN default. The production dom
   found. ([#111], [#136])
 
 [#485]: https://github.com/sydevs/SahajAtlasWeb/pull/485
+[#483]: https://github.com/sydevs/SahajAtlasWeb/pull/483
 [#478]: https://github.com/sydevs/SahajAtlasWeb/pull/478
 [#469]: https://github.com/sydevs/SahajAtlasWeb/pull/469
 [#192]: https://github.com/sydevs/SahajAtlasWeb/pull/192
