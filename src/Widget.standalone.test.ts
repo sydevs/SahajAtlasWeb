@@ -313,15 +313,10 @@ const packagesOf = (modules: Iterable<string>): string[] =>
   ].sort()
 
 /**
- * The tier barrels and the route screens' own. The interface behind `lazy` imports all four;
- * nothing that loads before it may.
+ * The tier barrels and the route screens' own. The interface behind `lazy` imports all three;
+ * nothing that loads before it may. Atoms have no barrel — every caller takes one by folder path.
  */
-const BARRELS = [
-  'components/atoms/index.ts',
-  'components/molecules/index.ts',
-  'components/organisms/index.ts',
-  'views/index.ts',
-]
+const BARRELS = ['components/molecules/index.ts', 'components/organisms/index.ts', 'views/index.ts']
 
 /** What both entries load before they render. */
 const SHELL_PACKAGES = [
