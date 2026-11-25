@@ -542,18 +542,18 @@ this table or the folklore it fixes. On the frame itself both are deliberate, an
 
 - Components are grouped by atomic tier — `src/components/{atoms,molecules,organisms}/`
   — each in its own **PascalCase folder** (`Chip/Chip.tsx` + stories + `index.ts`),
-  with a barrel `index.ts` per tier (the `Icons/` and `Mapbox/` sub-modules group
-  several files). `src/views/` holds the route screens. App code imports from the
-  tier barrels. Components import each other by component-folder path. See
-  `DESIGN_SYSTEM.md`.
+  with a barrel `index.ts` per tier that has callers (the `Icons/` and `Mapbox/`
+  sub-modules group several files). `src/views/` holds the route screens. App code
+  imports from the tier barrels, except for an atom, which it takes by folder path —
+  atoms carry no tier barrel. Components import each other by component-folder path.
+  See `DESIGN_SYSTEM.md`.
   ⚠ **The eager shell imports by component-folder path too** — `DESIGN_SYSTEM.md`,
   "Eager-shell exception", says which modules and why, and `Widget.standalone.test.ts`
   fails on a barrel import there.
 - **Explicit named exports — no `export *`.** Every component and tier barrel lists
   exactly what it surfaces: the primary component(s) plus the `<Name>Props` type.
   Keep single-use internals (private modals, row primitives, helper sub-cards)
-  module-private. The `Icons/` icon-set module is the one wildcard exception. See
-  the export rules in `DESIGN_SYSTEM.md`.
+  module-private. See the export rules in `DESIGN_SYSTEM.md`.
 - **Atoms stay primitive.** Put pure domain helpers (e.g. `isSoon`) in `src/lib/`,
   not in an atom, and keep single-use compositions inlined in their one parent.
 - Keep components presentational where possible. Pull data via hooks

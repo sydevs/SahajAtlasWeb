@@ -447,7 +447,7 @@ export type SurfaceLimits = {
    * else.
    */
   canNavigate?: boolean
-  /** The surface already leads with a geocoder (SearchView). A second would look odd. */
+  /** The surface's chrome already holds a geocoder. A second would be a duplicate. */
   hasSearchChrome?: boolean
   /** There is an organiser's number on the event, so the viewer can be put in touch
    *  with someone. Without one, `contact` gives way to `onward`. */

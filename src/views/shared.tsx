@@ -7,7 +7,7 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useRef, use
 import { useLocation, useNavigationType, useSearchParams } from 'react-router'
 import { useTranslation } from 'react-i18next'
 import { useQueries, useQuery, useSuspenseQuery } from '@tanstack/react-query'
-import { CalendarDays, Funnel, Search } from 'lucide-react'
+import { CalendarDays, Funnel } from 'lucide-react'
 import clsx from 'clsx'
 
 import { Button } from '@/components/atoms/Button'
@@ -34,7 +34,6 @@ import {
 import {
   activeFilterCount,
   ancestorSlugs,
-  searchPath,
   atlasDepth,
   calendarPath,
   isoCountryCode,
@@ -146,26 +145,6 @@ export function CalendarButton({ regionSlug }: { regionSlug: string }) {
       onClick={() => navigate(calendarPath(regionSlug))}
     >
       <CalendarDays size={20} />
-    </Button>
-  )
-}
-
-// The search affordance for region headers (RegionView): jumps to the
-// distance-ranked search view. This renders the same header-control chrome as the
-// other header controls, so the header reads as one set of buttons.
-export function SearchButton() {
-  // Renders in the fallback chrome too, so it must not suspend (see `HEADER_CONTROL`).
-  const { t } = useTranslation()
-  const navigate = useAtlasNavigate()
-
-  return (
-    <Button
-      {...HEADER_CONTROL}
-      aria-label={t('search.chrome.title')}
-      className={HEADER_EDGE}
-      onClick={() => navigate(searchPath())}
-    >
-      <Search size={20} />
     </Button>
   )
 }
