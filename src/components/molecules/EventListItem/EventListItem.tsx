@@ -1,7 +1,7 @@
 import { memo, useEffect, useRef } from 'react'
 import { useTranslation } from 'react-i18next'
 
-import { listRow } from '@/components/molecules/List/List'
+import { ListRow } from '@/components/molecules/List/List'
 import { useLocale } from '@/hooks/use-locale'
 import { useMapController } from '@/hooks/use-map-controller'
 import { useHoverPrefetch } from '@/hooks/use-prefetch-event'
@@ -9,7 +9,6 @@ import { formatDistance } from '@/lib'
 import { isOnline } from '@/lib/shape'
 import { EventChips } from '@/components/molecules/EventChips'
 import { EventFacts } from '@/components/molecules/EventFacts'
-import { Link } from '@/components/atoms/Link'
 import { EventSlim } from '@/types'
 
 export interface EventListItemProps {
@@ -39,20 +38,18 @@ const MIN_DISTANCE_KM = 5
  * time, then the address with its distance faded below, or the online
  * hosted-from line), then the compact EventChips (a non-default type, a
  * non-UI language, and a "Today"). The facts carry the distance, not a
- * chip. The whole card is tappable, with a press state and no chevron. The
- * Link wrapper stays hookable for map-pin highlight (#44). The row is an
- * <li> wrapping the Link, so each card is a valid direct child of the
- * List's <ul> (#65). The List draws the divider between cards, not each
- * card.
+ * chip. The card is a ListRow, so it ends in the same chevron as a place
+ * row and a class looks as tappable as a place. Its Link stays hookable for
+ * map-pin highlight (#44).
  *
  * **This is memoized** (the only `memo` in the repo, so it needs a
  * reason). The search results list GROWS as it pages, re-rendering with an
  * ever-longer `rows` array, and each card runs a dozen-odd hooks. `event`
  * references stay stable across a reveal, since sorting and slicing reuse
  * the same objects. So every already-read row bails out, and only the new
- * page does work. Without this, paging to the 1000-row ceiling would
- * re-render the rows above on every press, which is most of the work and
- * none of the value.
+ * page does work. Without this, paging to the reveal ceiling (`MAX_REVEAL`
+ * in `lib/shape/reveal.ts`, 400 rows) would re-render the rows above on
+ * every press, which is most of the work and none of the value.
  */
 function EventListItemImpl({ event, searchedPlace, showDistance = true }: EventListItemProps) {
   const { t } = useTranslation()
@@ -112,24 +109,27 @@ function EventListItemImpl({ event, searchedPlace, showDistance = true }: EventL
     prefetch.leave(event.id)
   }
 
+  // `data-event-row` marks the row's focusable element, so
+  // DynamicEventsList can move focus onto the first newly revealed card
+  // when a "show more" press unmounts its button. This is an explicit hook,
+  // instead of a structural `li > a` query, which would break silently the
+  // day a card grows a second anchor.
   return (
-    <li>
-      {/* `data-event-row` marks the row's focusable element, so
-          DynamicEventsList can move focus onto the first newly revealed
-          card when a "show more" press unmounts its button. This is an
-          explicit hook, instead of a structural `li > a` query, which
-          would break silently the day a card grows a second anchor. */}
-      <Link
-        data-event-row
-        className={listRow({ className: 'flex flex-col gap-1.5 py-4' })}
-        href={event.path}
-        onBlur={deactivate}
-        onFocus={activate}
-        onMouseEnter={activate}
-        onMouseLeave={deactivate}
-      >
+    <ListRow
+      data-event-row
+      className="py-4"
+      href={event.path}
+      onBlur={deactivate}
+      onFocus={activate}
+      onMouseEnter={activate}
+      onMouseLeave={deactivate}
+    >
+      {/* `min-w-0` lets a truncating chip or an unbroken title shrink
+          instead of pushing the chevron out. */}
+      <div className="flex min-w-0 flex-1 flex-col gap-1">
         <div className="line-clamp-2 text-lg">{event.title}</div>
         <EventFacts
+          className="mt-0.5 mb-1"
           distance={
             distanceText && (
               <span aria-label={distanceLabel} title={distanceLabel}>
@@ -140,9 +140,9 @@ function EventListItemImpl({ event, searchedPlace, showDistance = true }: EventL
           event={event}
           variant="compact"
         />
-        <EventChips className="mt-1.5" event={event} variant="compact" />
-      </Link>
-    </li>
+        <EventChips className="mt-1" event={event} variant="compact" />
+      </div>
+    </ListRow>
   )
 }
 
