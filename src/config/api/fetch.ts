@@ -871,7 +871,6 @@ export const TRANSLATION_SELECT = {
   calendar: true,
   registration: true,
   share: true,
-  compact: true,
 } as const
 
 // This drops Payload's own document metadata before the bundle reaches i18next.

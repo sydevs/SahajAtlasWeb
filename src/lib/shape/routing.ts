@@ -323,6 +323,9 @@ export function routeFromPathname(
   rawPrefix: string,
   search?: string | null,
 ): string | undefined {
+  // A pathname holds a non-ASCII slug percent-encoded, while `webPath` and query mode's route
+  // both hold it raw (`atlas-url-contract.json`, version 2). Decoding is what makes one route
+  // spelling out of the two URL shapes, and the prefix arrives in either spelling too.
   const pathname = safeDecode(rawPathname)
   const prefix = safeDecode(rawPrefix)
 

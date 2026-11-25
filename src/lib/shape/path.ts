@@ -26,6 +26,9 @@ import { sortFromParams, sortToParams } from './sort'
  * ⚠ NFC is ours alone: SahajCloud's `parseAtlasRoute` decodes without composing, so an NFD
  * address resolves here and 404s there, and the page's SEO canonical would then name a
  * different document than the page. `indexRegions` keys `bySlug` NFC to hold our half.
+ *
+ * ⚠ Decode BEFORE `safePath`, never after: a route has to meet that guard as what it decodes
+ * to. Segment by segment, so one malformed escape costs its own slug instead of the whole route.
  */
 export const safeDecode = (pathname: string): string =>
   pathname
