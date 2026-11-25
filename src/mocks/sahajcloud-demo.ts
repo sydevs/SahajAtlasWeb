@@ -358,7 +358,6 @@ const STARTS = [
 type DemoNode = (typeof regionNodes)[number]
 
 const nodes: DemoNode[] = [...regionNodes]
-const taken = new Set(regionNodes.map((node) => node.slug))
 let nextRegionId = 60_000
 
 const kebab = (name: string) =>
@@ -384,7 +383,9 @@ function place(
 
   // Slugs are one namespace across the tree, as SahajCloud's are: a city named for its region
   // takes the country's code.
-  const unique = taken.has(slug) ? `${slug}-${parent?.webPath.split('/')[1] ?? 'x'}` : slug
+  const unique = nodes.some((node) => node.slug === slug)
+    ? `${slug}-${parent?.webPath.split('/')[1] ?? 'x'}`
+    : slug
   const node: DemoNode = {
     id: nextRegionId++,
     slug: unique,
@@ -396,7 +397,6 @@ function place(
     webUrl: null,
   }
 
-  taken.add(unique)
   nodes.push(node)
 
   return node
