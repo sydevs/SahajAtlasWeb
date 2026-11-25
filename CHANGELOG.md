@@ -43,6 +43,21 @@ cover everything a host would notice since the widget was first deployed.
 
 ### Changed
 
+- **Every class in a list ends with the same arrow as a place.** ([#488]) A class row in a
+  region's or a search's list now shows the grey chevron a country, region or city row has always
+  shown, so a class looks as tappable as a place. The arrow takes about 24px from the title, so a
+  long class name wraps to a second line a little sooner than before. Nothing else moves, and the
+  whole row is still one link. **No parameter, origin, CSP, storage or Permissions-Policy
+  change.**
+
+- **Place slugs may contain non-ASCII letters, and URLs carry them percent-encoded.** A region's
+  slug keeps its native letters, lowercased (`/bg/софия` where it was `/bg/sofiya`;
+  `/de/trier/universität-trier` where it was `universitat-trier`). On the wire, in
+  `routing=path` pathnames and in `?atlas=` values, they are percent-encoded
+  (`/bg/%D1%81%D0%BE%D1%84%D0%B8%D1%8F`), and the widget resolves either spelling to the same
+  place. A host that matches or rewrites these paths must decode each segment before matching,
+  and must not assume `[a-z0-9-]`. **No parameter, origin, CSP, storage or Permissions-Policy change.**
+
 - **The map's buttons sit together in its top right corner.** ([#482]) Find my location, then
   settings, are two round buttons there — 40px, and 44px on a touch screen — with Mapbox's
   credits button beside them; in a window 480px tall or less they run as a row. Settings moved
@@ -1337,3 +1352,4 @@ must-revalidate`, pinned rather than left to the CDN default. The production dom
 [#447]: https://github.com/sydevs/SahajAtlasWeb/pull/447
 [#470]: https://github.com/sydevs/SahajAtlasWeb/pull/470
 [#482]: https://github.com/sydevs/SahajAtlasWeb/pull/482
+[#488]: https://github.com/sydevs/SahajAtlasWeb/pull/488

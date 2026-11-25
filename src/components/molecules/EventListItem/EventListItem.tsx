@@ -47,9 +47,9 @@ const MIN_DISTANCE_KM = 5
  * ever-longer `rows` array, and each card runs a dozen-odd hooks. `event`
  * references stay stable across a reveal, since sorting and slicing reuse
  * the same objects. So every already-read row bails out, and only the new
- * page does work. Without this, paging to the 1000-row ceiling would
- * re-render the rows above on every press, which is most of the work and
- * none of the value.
+ * page does work. Without this, paging to the reveal ceiling (`MAX_REVEAL`
+ * in `lib/shape/reveal.ts`, 400 rows) would re-render the rows above on
+ * every press, which is most of the work and none of the value.
  */
 function EventListItemImpl({ event, searchedPlace, showDistance = true }: EventListItemProps) {
   const { t } = useTranslation()
