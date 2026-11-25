@@ -13,7 +13,7 @@ import { getThemeRoot } from '@/hooks/use-theme'
  * The widget's FRAME: the element the fixed layer resolves against, when something other
  * than the viewport does.
  *
- * Everything the interface renders — the map canvas, every drawer, the peek strips, the cog —
+ * Everything the interface renders — the map canvas, every drawer, the cog —
  * is `position: fixed`, so by default it all resolves against the viewport. An ancestor
  * carrying `contain: layout` takes that containing block instead, and the widget has exactly
  * two elements that deliberately do so. This is the one reference to whichever is live, and the

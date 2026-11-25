@@ -17,22 +17,24 @@ import { DEFAULT_FILTERS, filtersKey, filtersToParams, hasActiveFilters } from '
 import { FLAG_CDN_URL } from '@/lib/flag-cdn'
 import { validateWebUrl } from '@/lib/url'
 import {
-  CollapseToggle,
+  ExpandSheetButton,
   FilterButton,
   GeolocationSuggestion,
   SearchField,
+  useDrawerControl,
   useFrameOnTop,
 } from '@/views/shared'
 
 // The base view, at route `/`. It shows a leading "Online Classes" entry into the
-// online-filtered search, then the global country list, with the geocoder and a stacked-list
-// toggle in its header. It renders as inner content of the persistent drawer — DrawerStack owns
+// online-filtered search, then the global country list, with the geocoder and the filters in
+// its header (the button that raises the sheet, while it is pulled down). It renders as inner content of the persistent drawer — DrawerStack owns
 // the sheet. This view is handled like every other one. It is simply the one with no parent, so
 // dismissing it collapses the sheet to its peek.
 export function CountriesView() {
   const { t } = useTranslation()
   const { regionNames } = useLocale()
   const { standalone } = useWidgetMode()
+  const { collapsed } = useDrawerControl()
   const { reset } = useMapController()
   // A shared link can carry filters (`/?days=2`). The map already applies them to its pins, so
   // the counts and the onward links must too, or the two disagree.
@@ -84,8 +86,7 @@ export function CountriesView() {
           index is meaningless, so there is no sort menu here. */}
       <DrawerHeader>
         <SearchField />
-        <FilterButton iconOnly />
-        <CollapseToggle />
+        {collapsed ? <ExpandSheetButton /> : <FilterButton iconOnly />}
       </DrawerHeader>
       <DrawerBody>
         <ActiveFilterPills />
@@ -112,7 +113,7 @@ export function CountriesView() {
               <ListItem
                 key={country.id}
                 count={country.eventCount}
-                href={`${country.path}${filterSearch}`}
+                href={`${country.singleEventPath ?? country.path}${filterSearch}`}
                 icon={
                   country.countryCode ? (
                     <CircleFlag

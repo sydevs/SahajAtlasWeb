@@ -513,7 +513,7 @@ An **unsized** map embed is the one thing that does not adapt, since there is no
 compact card instead**, whose button opens the map full-screen (below).
 
 ⚠ **A full-window map on a phone wants `viewport-fit=cover` in your viewport meta tag.** The
-widget keeps its panel, its peek strips and the map's own controls clear of a notch or a camera
+widget keeps its panel and the map's own controls clear of a notch or a camera
 cut-out, reading `env(safe-area-inset-*)` to do it. Those values are **zero** unless your page
 opts in:
 

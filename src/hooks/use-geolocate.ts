@@ -14,7 +14,7 @@ import { placeSearchPath } from '@/lib/shape'
  *
  * **This is a navigation, not a camera command.** That is what makes the whole thing simple.
  * The URL becomes `/search?center=…&bbox=…`, and SearchView's existing `frameSearch` does the framing.
- * So the fit caps at `REGION_MAX_ZOOM` for free, the results list re-ranks from the new center, and the bottom sheet rises out of its peek.
+ * So the fit caps at `VENUE_MAX_ZOOM` for free, the results list re-ranks from the new center, and the bottom sheet rises out of its peek.
  * Mapbox's control on its own only moved the camera, to the accuracy circle at zoom 15.
  * That left a street corner with the classes off-screen, and the list still ranked from wherever the map happened to be.
  *
@@ -33,7 +33,7 @@ export function useGeolocateToSearch(geojson: Geojson | undefined) {
   const navigate = useAtlasNavigate()
   // This is the RAW navigate, for the naming replace below.
   // `useAtlasNavigate` is for pushes. It stamps an incrementing `atlasDepth` and remembers the outgoing camera.
-  // Doing either for an entry that added no history would leave the drawer stack drawing a peek strip for a back-step that does not exist.
+  // Doing either for an entry that added no history would leave Back naming a step that does not exist.
   // Its own docblock reserves it for pushes, the same way FilterView's apply-replace does.
   const replace = useNavigate()
   const location = useLocation()

@@ -3,7 +3,7 @@ import type { PaddingOptions } from 'mapbox-gl'
 /**
  * Pure camera-decision helpers, split out of the map controller / mapbox hook so
  * they unit-test without a live map. The controller owns the zoom *values*
- * (EVENT_ZOOM / REGION_MAX_ZOOM / REGION_FIT_PADDING) and passes them in. These
+ * (EVENT_ZOOM / VENUE_MAX_ZOOM / REGION_FIT_PADDING) and passes them in. These
  * functions only decide the *shape* of the move.
  */
 

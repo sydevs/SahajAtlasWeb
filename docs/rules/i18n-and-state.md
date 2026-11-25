@@ -260,24 +260,36 @@ source of truth, so all three stay linkable and shareable:
   (`resolveStack`) — of the *router's* location, which on a host page whose
   anchor the widget declined to take is a `MemoryRouter`'s location rather than
   the address bar's (`mountDecision`). Nothing below the router can tell, which
-  is the point. Dismissal is history-aware: `dismissAction` maps X, swipe, or Esc
-  to a chronological `navigate(-1)` when in-widget `atlasDepth(location) > 0`
-  (restoring the prior camera), and only to the structural parent for a fresh
-  deep link (depth 0) — never popping the host page's own history.
-  **How many peek strips the stack draws is that same history question, not the
-  URL's ancestor count** — `dismissDepth` counts what a repeated X actually
-  traverses. A pin clicked from the root sits at depth 1 under three URL
-  ancestors, and one press returns to the root, so three cards would be a lie.
-  `DrawerStack` keeps the depth-0 entry's height in a **ref** (non-reactive): it
-  reads only at depth > 0 and writes only at depth 0, so a write can never change
-  the current render.
-  **Each strip is named for where it lands** (`stripLabel`, #102) — they used to
-  all say "Back," giving a three-deep stack three identically-named buttons going
-  three different places. Names come from the `['regions']` tree and the
-  event-titles sliver, read **cache-only** (`enabled: false`), so naming a strip
-  can never become a fetch. It is a separate pure module because importing
-  `DrawerStack.tsx` to test one string would drag mapbox-gl and vaul into the
-  node lane.
+  is the point. Back, swipe and Esc are one `dismiss`, history-aware: a
+  chronological `navigate(-1)` when in-widget `atlasDepth(location) > 0`
+  (restoring the prior camera), and a structural climb otherwise — never popping
+  the host page's own history.
+  **Back says where it goes, and the label and the press read one decision**,
+  `backStep`, worked out once in DrawerStack and handed to Back as
+  `DrawerControl.backTo`. Every push stamps `from` (path and query) beside
+  `depth`, because history can be moved through but never read; an entry with no
+  `from` climbs rather than stepping back blind. The climb follows the region
+  tree's real ancestry (`placedPathname`), and passes over a venue and any place
+  holding a single in-person class (`passablePlaces`): "Back to Balham Library"
+  on a class there read as going nowhere, and a one-class place only opens that
+  class again. A place carries that class's own address as `singleEventPath`,
+  derived in `getRegion` beside the same field on each of its rows, so the row
+  shortcut, the page's redirect and the climb read one answer. A climb stamps
+  `climbedFrom`, so a one-class place reached by one climbs on
+  (`loneClassExit`) instead of bouncing back into the class, even before the
+  feed has loaded. Register and Share say "Back to class":
+  the class is still on screen behind them. The filters keep an X, since they
+  sit over the page they narrow (`NavHeader close`); the filter drawer over the
+  calendar also marks its control `overlay`, so its loading and error chrome
+  close the same way.
+  **Nothing draws the history behind the view.** Back names where it goes, so
+  the stacked edges that once stood for each panel a repeated X would pass
+  through are gone, and with them the depth bookkeeping they needed.
+  **Back's label is read cache-only** (`views/nav-names.ts`): names come from
+  the `['regions']` tree and the event-titles sliver, never a fetch, so a miss
+  costs the name and never the control. It is a separate pure module because
+  importing `DrawerStack.tsx` to test one string would drag mapbox-gl and vaul
+  into the node lane.
 
 Camera control always goes through the `MapController` seam
 (`src/hooks/use-map-controller.tsx`) — never a store, never the map directly.
@@ -297,7 +309,7 @@ two axes separate — an inner fallback must never re-throw to escalate.
 - **Fallbacks render their own chrome.** `DrawerChrome` rebuilds the header from
   the URL plus already-cached data (the region tree for a name, the titles
   sliver for an event), so both a loading and an error state keep the drawer's
-  identity and its close control. A **loading** chrome sets `interactive={false}`,
+  identity and its Back button. A **loading** chrome sets `interactive={false}`,
   which swaps the geocoder for an inert shape — mounting a real Mapbox search
   element in a freshly-mounted fallback would instantiate and tear one down on
   every cold start. The **error** chrome keeps the live field, since there it is

@@ -32,7 +32,7 @@
 
       GIVE `<sahaj-atlas>` A `display: block` AND A HEIGHT AND THE MAP LIVES IN THAT BOX
       instead (issue #169) — `MapFrame` takes the containing block with `contain: layout`,
-      so the canvas, the drawers and the peek strips all resolve against your element and
+      so the canvas, the drawers and the cog all resolve against your element and
       nothing paints outside it. That is the shape to reach for when the page has a header
       above the atlas. `map=false` (below) is the third option: no map at all, and
       container-relative throughout.

@@ -8,8 +8,8 @@ import { reportIntegrationWarning } from '@/lib/report'
 /**
  * The box a **contained** map embed lives in (issue #169).
  *
- * Map mode renders the canvas with `position: fixed; inset: 0`, and every drawer, peek strip,
- * and cog over it is fixed too. So by default it fills the browser window, whatever slot the
+ * Map mode renders the canvas with `position: fixed; inset: 0`, and every drawer and
+ * the cog over it are fixed too. So by default it fills the browser window, whatever slot the
  * host gave `<sahaj-atlas>`, and #107 settled that as a documented requirement of the mode.
  * That requirement blocked the shape the WordPress plugin needs: a site's own header, then the
  * atlas below it. A static header got painted over. A sticky one floated above the map *and*
@@ -18,7 +18,7 @@ import { reportIntegrationWarning } from '@/lib/report'
  * **Containment is one element, and it is the element the expanded dialog already proved.**
  * `contain: layout` makes an element the containing block for every fixed descendant, so the
  * whole interface re-parents onto this box with no `fixed` → `absolute` swap anywhere. The
- * canvas div, the drawers, and the strips are byte-identical in both modes. The two arguments
+ * canvas div, the drawers, and the cog are byte-identical in both modes. The two arguments
  * that used to make containment intractable were retired by #161, and are load-bearing here:
  *
  * - **`--sy-frame-h`** — `100dvh` on `.sy-atlas`, `100%` under `[data-sy-frame]`. A `100%`

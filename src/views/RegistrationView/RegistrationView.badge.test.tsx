@@ -48,9 +48,8 @@ vi.mock('@/hooks/use-event-display', () => ({
 
 const { eventMock } = vi.hoisted(() => ({ eventMock: { current: null as unknown } }))
 
+vi.mock('@/views/nav', () => ({ NavHeader: () => null }))
 vi.mock('@/views/shared', () => ({
-  CloseButton: () => null,
-  DrawerTitle: () => null,
   useDrawerControl: () => ({ dismiss: () => {} }),
   useEventFromPath: () => ({ data: eventMock.current }),
   useFrameEventOnTop: () => {},
@@ -63,9 +62,7 @@ const view = (verificationStage: string | null, registration = 'open') => {
   eventMock.current = { ...mockEvent, verificationStage }
   displayMock.registration = registration
 
-  return renderToStaticMarkup(
-    <RegistrationView eventPath={mockEvent.path} parentPath="/gb/london" />,
-  )
+  return renderToStaticMarkup(<RegistrationView eventPath={mockEvent.path} />)
 }
 
 describe('unverified caveat on the registration screen', () => {

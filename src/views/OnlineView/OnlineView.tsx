@@ -2,20 +2,15 @@ import { useSuspenseQuery } from '@tanstack/react-query'
 import { useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 
-import { DrawerBody, DrawerHeader } from '@/components/atoms/Drawer'
+import { DrawerBody } from '@/components/atoms/Drawer'
 import { ActiveFilterPills, EventListItem, FallbackPanel, List } from '@/components/molecules'
 import { regionQuery } from '@/config/api'
 import { useEventFilters, useSetFilters } from '@/hooks/use-filters'
 import { useLocale } from '@/hooks/use-locale'
 import { useMapController } from '@/hooks/use-map-controller'
 import { DEFAULT_FILTERS, childRoute, hasActiveFilters } from '@/lib/shape'
-import {
-  CloseButton,
-  DrawerTitle,
-  EmptyEventList,
-  useFrameOnTop,
-  useFrameableRegion,
-} from '@/views/shared'
+import { NavHeader } from '@/views/nav'
+import { EmptyEventList, useFrameOnTop, useFrameableRegion } from '@/views/shared'
 
 // The online-classes drawer, at route `<region-path>/online`. It lists the placeless online
 // events rolled up under a region, on their own, so the region page's list stays a clean set
@@ -57,15 +52,12 @@ export function OnlineView({ regionSlug, path }: { regionSlug: string; path: str
 
   return (
     <>
-      <DrawerHeader className="justify-between">
-        {/* The region name is the subtitle. "All classes are free" only fills in when
-            a region has none — no Free chips on the cards (issue #52). */}
-        <DrawerTitle
-          subtitle={regionName || t('common.chrome.all_classes_free')}
-          title={t('online.title')}
-        />
-        <CloseButton />
-      </DrawerHeader>
+      {/* The region name is the subtitle. "All classes are free" only fills in when
+          a region has none — no Free chips on the cards (issue #52). */}
+      <NavHeader
+        subtitle={regionName || t('common.chrome.all_classes_free')}
+        title={t('online.title')}
+      />
       <DrawerBody>
         <ActiveFilterPills />
         {events.length === 0 && hasActiveFilters(filters) ? (
