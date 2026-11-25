@@ -1,3 +1,9 @@
+// Every control in this module also renders inside the loading and error chrome
+// (`views/fallbacks.tsx`), where a suspend would escape the boundary and blank the widget
+// instead of showing the failure — so none of them may suspend. `useTranslation()` cannot:
+// the English snapshot is bundled, and i18next initialises synchronously with no backend to
+// wait on (`config/i18n.ts`).
+
 import type { MapSearchProps } from '@/components/organisms/Mapbox/MapSearch'
 import type { GeocodingFeature } from '@mapbox/search-js-core'
 import type { DependencyList, ReactNode } from 'react'
@@ -111,19 +117,12 @@ export function DrawerTitle({ title, subtitle, note }: DrawerTitleProps) {
   )
 }
 
-// Every control in this module also renders inside the loading and error chrome
-// (`views/fallbacks.tsx`), where a suspend would escape the boundary and blank the widget
-// instead of showing the failure — so none of them may suspend. `useTranslation()` cannot:
-// the English snapshot is bundled, and i18next initialises synchronously with no backend to
-// wait on (`config/i18n.ts`).
-export { HEADER_CONTROL, HEADER_EDGE }
-
 // The calendar affordance for region headers (RegionView): opens the full-width
 // calendar pre-scoped to this region (`/calendar?region=<slug>`, pre-setting the
 // Region filter). This uses the same header-control chrome as the other header controls,
 // so the header reads as one set of buttons.
 export function CalendarButton({ regionSlug }: { regionSlug: string }) {
-  // Renders in the fallback chrome too, so it must not suspend (see `HEADER_CONTROL`).
+  // Renders in the fallback chrome too, so it must not suspend (see the module note).
   const { t } = useTranslation()
   const navigate = useAtlasNavigate()
 
@@ -143,7 +142,7 @@ export function CalendarButton({ regionSlug }: { regionSlug: string }) {
 // distance-ranked search view. This renders the same header-control chrome as the
 // other header controls, so the header reads as one set of buttons.
 export function SearchButton() {
-  // Renders in the fallback chrome too, so it must not suspend (see `HEADER_CONTROL`).
+  // Renders in the fallback chrome too, so it must not suspend (see the module note).
   const { t } = useTranslation()
   const navigate = useAtlasNavigate()
 
@@ -163,7 +162,7 @@ export function SearchButton() {
 // thin handle is easy to miss, and a keyboard can't use it. Hidden where the sheet cannot
 // collapse (a wide panel, or map-less) and while it is open.
 export function ExpandSheetButton() {
-  // Renders in the fallback chrome too, so it must not suspend (see `HEADER_CONTROL`).
+  // Renders in the fallback chrome too, so it must not suspend (see the module note).
   const { t } = useTranslation()
   const { collapsed, toggle } = useDrawerControl()
 
@@ -184,7 +183,7 @@ export function ExpandSheetButton() {
 // active count as a badge (CountriesView's header), so it reads as one set with
 // the other header controls.
 export function FilterButton({ iconOnly = false }: { iconOnly?: boolean }) {
-  // Renders in the fallback chrome too, so it must not suspend (see `HEADER_CONTROL`).
+  // Renders in the fallback chrome too, so it must not suspend (see the module note).
   const { t } = useTranslation()
   const navigate = useAtlasNavigate()
   const location = useLocation()
@@ -409,7 +408,7 @@ export function useEventFromPath(eventPath: string) {
  * same panel.
  */
 export function EmptyEventList() {
-  // Renders in the fallback chrome too, so it must not suspend (see `HEADER_CONTROL`).
+  // Renders in the fallback chrome too, so it must not suspend (see the module note).
   const { t } = useTranslation()
 
   return (
