@@ -17,10 +17,15 @@ export default { title: 'Atoms' } satisfies StoryDefault
 export const Default: Story = () => (
   <StoryWrapper>
     <StorySection
-      description="The label is the control's accessible name, shown. It opens leftward, for the map's right-hand column."
+      description="The label is the control's accessible name, shown. It grows leftward, for the map's right-hand column, and rightward when the left edge leaves it no room — the first button, at the left edge, opens that way."
       title="Floating control"
     >
-      <div className="flex justify-end py-6 pe-6">
+      <div className="flex justify-between py-6">
+        <HoverLabel text="Find my location">
+          <Button isIconOnly aria-label="Find my location" radius="full" variant="floating">
+            <LocateFixed size={20} />
+          </Button>
+        </HoverLabel>
         <HoverLabel text="Find my location">
           <Button isIconOnly aria-label="Find my location" radius="full" variant="floating">
             <LocateFixed size={20} />
