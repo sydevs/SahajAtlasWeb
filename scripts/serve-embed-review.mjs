@@ -57,7 +57,7 @@
  * the interface falls through to its error panel. What needs no backend
  * at all: which chunks are fetched (mapbox-gl in particular), CSS
  * scoping, and icon rendering. The browser lane needs none either: it
- * answers SahajCloud from `src/mocks/wire.ts`.
+ * answers SahajCloud from `src/mocks/sahajcloud.ts`.
  */
 
 import { createReadStream, existsSync, statSync } from 'node:fs'

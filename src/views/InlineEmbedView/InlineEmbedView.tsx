@@ -100,7 +100,7 @@ const contentClass = `fixed inset-x-0 bottom-0 ${aboveHost} overflow-clip bg-bac
  * The map-first interface, over the host's page below its header.
  *
  * ⚠ **`contain: layout` is load-bearing, not an optimisation.** Everything rendered inside —
- * the map canvas, every drawer, the peek strips, the cog — is `position: fixed`, and without it
+ * the map canvas, every drawer, the cog, "Close map" — is `position: fixed`, and without it
  * they would resolve against the viewport and paint over the host's header.
  *
  * ⚠ That is the exact property `src/components/AGENTS.md` forbids on the SCOPE ROOT, for the

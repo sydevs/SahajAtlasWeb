@@ -93,6 +93,25 @@ cover everything a host would notice since the widget was first deployed.
   the solid buttons use, from your own primary colour or the default green. Dark mode is
   unchanged. **No parameter, origin, CSP, storage or Permissions-Policy change.**
 
+- **Every place and class page says "Back to …" where it leads, instead of an X.** ([#476]) The
+  control at the top of a country, region, city, class, registration or share page now names the
+  page it returns to ("Back to United Kingdom", "Back to the world map", "Back to results near
+  Prague", "Back to class"). It still never takes your page's own history back: with no earlier step inside the
+  widget, it goes up a level, past the building a class meets in and any place holding only that
+  class. An X remains only on the filters, and the faint panels that stacked
+  behind the current one are gone. On a phone the panel opens at 356px rather than 300px and pulls
+  down to 104px, enough for Back, the first line of the name and a "Show more" button, which
+  replaces the menu button; on a window 480px tall or less, every stop stays 75px below the top.
+  **No parameter, origin, CSP, storage or Permissions-Policy change.**
+
+- **A place with a single class opens that class.** ([#476]) A link to such a place, such as
+  `?atlas=/gb/cambridgeshire`, now replaces itself in your page's address with the class's own
+  route, and its row in a list links straight to the class. The URL shape is unchanged.
+
+- **Cities, regions and countries open showing the whole place.** ([#476]) The map no longer zooms
+  closer than 11.5 when it frames an area (it was 13), so a city whose classes meet a few streets
+  apart shows the whole city.
+
 - **A warmer default look, and map circles whose numbers are easy to read.** ([#469]) The
   widget's built-in colours change: the default primary is now a green (`#2D9A76`, was the teal
   `#1E6C71`) and the default accent a coral (`#E0775C`, was `#d8735a`), and the panel's greys are
@@ -1319,6 +1338,7 @@ must-revalidate`, pinned rather than left to the CDN default. The production dom
 [On Wix, the script embed is a Custom Element]: docs/embedding.md#on-wix-the-script-embed-is-a-custom-element
 [#387]: https://github.com/sydevs/SahajAtlasWeb/issues/387
 [#409]: https://github.com/sydevs/SahajAtlasWeb/pull/409
+[#476]: https://github.com/sydevs/SahajAtlasWeb/pull/476
 [#456]: https://github.com/sydevs/SahajAtlasWeb/pull/456
 [#471]: https://github.com/sydevs/SahajAtlasWeb/pull/471
 [#411]: https://github.com/sydevs/SahajAtlasWeb/pull/411

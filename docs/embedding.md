@@ -517,9 +517,8 @@ anything else with `display: none` when the page loads, the element has no size 
 waits for it to appear before it loads, deep link or not.
 
 ⚠ **A full-screen map on a phone wants `viewport-fit=cover` in your viewport meta tag.** The
-expanded map keeps its panel, its peek strips and the map's own controls clear of a notch or a
-camera cut-out, reading `env(safe-area-inset-*)` to do it. Those values are **zero** unless your
-page opts in:
+expanded map keeps its panel and the map's own controls clear of a notch or a camera cut-out,
+reading `env(safe-area-inset-*)` to do it. Those values are **zero** unless your page opts in:
 
 ```html
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />

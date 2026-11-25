@@ -7,7 +7,7 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useRef, use
 import { useLocation, useNavigationType, useSearchParams } from 'react-router'
 import { useTranslation } from 'react-i18next'
 import { useQueries, useQuery, useSuspenseQuery } from '@tanstack/react-query'
-import { CalendarDays, Funnel, Menu, Search, X } from 'lucide-react'
+import { CalendarDays, Funnel, Search } from 'lucide-react'
 import clsx from 'clsx'
 
 import { Button } from '@/components/atoms/Button'
@@ -44,40 +44,37 @@ import {
 } from '@/lib/shape'
 
 // The collapse/expand and dismiss control for the sheet, provided by DrawerStack.
-// Views use it for their close and list-toggle buttons, so those act on the ONE
+// Views use it for Back and the sheet's expand button, so those act on the ONE
 // persistent vaul sheet directly (a plain navigation), rather than opening or
 // closing a drawer — which is what kept the sheet from sliding out and back in on
 // every transition.
 export type DrawerControl = {
-  collapsed: boolean
-  canCollapse: boolean
   /**
-   * Whether `dismiss()` would actually go somewhere. This is false only at the
-   * root, where there is no parent to climb to and `navigate(-1)` would take the
-   * HOST page back. It is read by the error/loading chrome, which renders its own
-   * header and must not offer a dead control (issue #89). The views' own headers
-   * do not need it, since a view that rendered at all has a working stack around
-   * it.
+   * Where `dismiss()` lands, as a route with its query, for Back to name. Unset at the root,
+   * where there is nowhere to go and `navigate(-1)` would take the HOST page back, so the
+   * error/loading chrome offers no dead control (issue #89). Unset under the filter overlay too,
+   * whose X is the way out until it closes.
    */
-  canDismiss: boolean
+  backTo?: string
+  /** An overlay over a view still on screen: its header closes with an X instead of Back. */
+  overlay?: boolean
+  /** The phone sheet sits at its peek. Never true where the sheet cannot collapse. */
+  collapsed: boolean
   toggle: () => void
   dismiss: () => void
 }
 
-export const DrawerControlContext = createContext<DrawerControl>({
+/** A control with nowhere to go: the default outside DrawerStack, and the base for stand-ins. */
+export const NO_DRAWER_CONTROL: DrawerControl = {
   collapsed: false,
-  canCollapse: false,
-  canDismiss: false,
   toggle: () => {},
   dismiss: () => {},
-})
+}
+
+export const DrawerControlContext = createContext<DrawerControl>(NO_DRAWER_CONTROL)
 
 export const useDrawerControl = () => useContext(DrawerControlContext)
 
-// The close affordance for the drawer views. This dismisses via the control seam
-// (a navigation to the parent), rather than vaul's Close — closing the real drawer
-// made the sheet animate shut and then re-open with the parent, which read as
-// jarring.
 export type DrawerTitleProps = {
   /** The drawer's visible heading. */
   title: ReactNode
@@ -110,8 +107,8 @@ export function DrawerTitle({ title, subtitle, note, isPlace = false }: DrawerTi
     <div className="min-w-0">
       {/* Wraps rather than truncates: beside a header's icons a 20px name such as "North of
           England" runs out of room on a phone, and a cut place name is the one thing a
-          visitor came to read. */}
-      <h2 className="line-clamp-2 text-xl" data-sy-place={isPlace || undefined}>
+          visitor came to read. `break-words` reaches the one a wrap cannot fit either way. */}
+      <h2 className="line-clamp-2 text-xl break-words" data-sy-place={isPlace || undefined}>
         {title}
       </h2>
       {subtitle && <div className="truncate text-sm text-gray-11">{subtitle}</div>}
@@ -121,46 +118,30 @@ export function DrawerTitle({ title, subtitle, note, isPlace = false }: DrawerTi
 }
 
 /**
- * The drawer header's icon controls (close, list-toggle, filter) are all the same
- * Button preset, kept here as values, rather than as a wrapper component, so the
- * three provably render identical chrome — the header reads as one set of buttons.
+ * The drawer header's icon controls (back, overlay close, calendar, search, filter) are all
+ * the same Button preset, kept here as values, rather than as a wrapper component, so they
+ * provably render identical chrome — the header reads as one set of buttons.
+ *
+ * Every control in this module also renders inside the loading and error chrome
+ * (`views/fallbacks.tsx`), where a suspend would escape the boundary and blank the widget
+ * instead of showing the failure — so none of them may suspend. `useTranslation()` cannot:
+ * the English snapshot is bundled, and i18next initialises synchronously with no backend to
+ * wait on (`config/i18n.ts`).
  */
-const HEADER_CONTROL = { variant: 'ghost', isIconOnly: true, size: 'sm' } as const
+export const HEADER_CONTROL = { variant: 'ghost', isIconOnly: true, size: 'sm' } as const
 
 // On every header control, so whichever one ends the row takes it, whatever renders null after
 // it. Its 20px icon sits centred in a 32px box (44px on a touch screen), so this pulls the box
 // into the gutter until the icon lands on the panel edge, in the column of the rows' chevrons,
 // with the tap area whole.
-const HEADER_EDGE = 'last:-me-1.5 pointer-coarse:last:-me-3'
-
-export function CloseButton({ className }: { className?: string }) {
-  // This renders inside the error/loading chrome, where a suspend would escape the
-  // boundary and blank the widget instead of showing the failure. `useTranslation()`
-  // cannot suspend: the English snapshot is bundled, and i18next initialises
-  // synchronously with no backend to wait on (`config/i18n.ts`).
-  const { t } = useTranslation()
-  const { dismiss } = useDrawerControl()
-
-  return (
-    <Button
-      {...HEADER_CONTROL}
-      aria-label={t('common.chrome.close')}
-      className={clsx(HEADER_EDGE, className)}
-      onClick={dismiss}
-    >
-      <X size={20} />
-    </Button>
-  )
-}
+export const HEADER_EDGE = 'last:-me-1.5 pointer-coarse:last:-me-3'
 
 // The calendar affordance for region headers (RegionView): opens the full-width
 // calendar pre-scoped to this region (`/calendar?region=<slug>`, pre-setting the
-// Region filter). This uses the same header-control chrome as the close control,
+// Region filter). This uses the same header-control chrome as the other header controls,
 // so the header reads as one set of buttons.
 export function CalendarButton({ regionSlug }: { regionSlug: string }) {
-  // Also rendered by the fallback chrome (views/fallbacks.tsx), where a suspend
-  // would escape the boundary and blank the widget instead of showing the failure.
-  // See CloseButton for why this read cannot.
+  // Renders in the fallback chrome too, so it must not suspend (see `HEADER_CONTROL`).
   const { t } = useTranslation()
   const navigate = useAtlasNavigate()
 
@@ -178,11 +159,9 @@ export function CalendarButton({ regionSlug }: { regionSlug: string }) {
 
 // The search affordance for region headers (RegionView): jumps to the
 // distance-ranked search view. This renders the same header-control chrome as the
-// close/filter controls, so the header reads as one set of buttons.
+// other header controls, so the header reads as one set of buttons.
 export function SearchButton() {
-  // Also rendered by the fallback chrome (views/fallbacks.tsx), where a suspend
-  // would escape the boundary and blank the widget instead of showing the failure.
-  // See CloseButton for why this read cannot.
+  // Renders in the fallback chrome too, so it must not suspend (see `HEADER_CONTROL`).
   const { t } = useTranslation()
   const navigate = useAtlasNavigate()
 
@@ -198,28 +177,19 @@ export function SearchButton() {
   )
 }
 
-// The stacked-list toggle in CountriesView's header: expands the collapsed peek
-// into the country list, or collapses the open list back to the peek. Hidden where
-// the sheet cannot collapse (desktop or map-less).
-export function CollapseToggle() {
-  // See CloseButton: also rendered by the error/loading chrome, so it must not
-  // suspend.
+// A sheet pulled down to its peek says how to raise it again. The handle does this too, but a
+// thin handle is easy to miss, and a keyboard can't use it. Hidden where the sheet cannot
+// collapse (a wide panel, or map-less) and while it is open.
+export function ExpandSheetButton() {
+  // Renders in the fallback chrome too, so it must not suspend (see `HEADER_CONTROL`).
   const { t } = useTranslation()
-  const { collapsed, canCollapse, toggle } = useDrawerControl()
+  const { collapsed, toggle } = useDrawerControl()
 
-  if (!canCollapse) return null
+  if (!collapsed) return null
 
-  // At the peek, it is a list toggle (expand the countries list). Once opened past
-  // the peek it becomes the usual close control (collapse back to the peek).
   return (
-    <Button
-      {...HEADER_CONTROL}
-      aria-expanded={!collapsed}
-      aria-label={collapsed ? t('common.a11y.explore') : t('common.chrome.close')}
-      className={HEADER_EDGE}
-      onClick={toggle}
-    >
-      {collapsed ? <Menu size={20} /> : <X size={20} />}
+    <Button className="shrink-0" color="primary" size="sm" variant="flat" onClick={toggle}>
+      {t('common.chrome.show_more')}
     </Button>
   )
 }
@@ -230,11 +200,9 @@ export function CollapseToggle() {
 // over one nav plus count: the labeled ghost button for the list toolbar
 // (SearchView), and — with `iconOnly` — an icon-only header control carrying the
 // active count as a badge (CountriesView's header), so it reads as one set with
-// the close/collapse chrome.
+// the other header controls.
 export function FilterButton({ iconOnly = false }: { iconOnly?: boolean }) {
-  // Also rendered by the fallback chrome (views/fallbacks.tsx), where a suspend
-  // would escape the boundary and blank the widget instead of showing the failure.
-  // See CloseButton for why this read cannot.
+  // Renders in the fallback chrome too, so it must not suspend (see `HEADER_CONTROL`).
   const { t } = useTranslation()
   const navigate = useAtlasNavigate()
   const location = useLocation()
@@ -322,8 +290,8 @@ export function SearchField({ label }: Pick<MapSearchProps, 'label'> = {}) {
 // only then, so it never needs to re-derive history-awareness itself.
 export type FrameContext = { isEntry: boolean }
 
-// Only the top (active) view is rendered — ancestors are peek panels, not views —
-// so each view frames the map for its level unconditionally on mount, and when
+// Only the top (active) view is rendered, so each view frames the map for its level
+// unconditionally on mount, and when
 // its inputs change. This is centralized, so the call sites are one line and their
 // deps arrays stay honest: `deps` is spread into the effect's own array, so a
 // per-view length is fine (it is fixed for any given call site across renders).
@@ -459,9 +427,7 @@ export function useEventFromPath(eventPath: string) {
  * same panel.
  */
 export function EmptyEventList() {
-  // Also rendered by the fallback chrome (views/fallbacks.tsx), where a suspend
-  // would escape the boundary and blank the widget instead of showing the failure.
-  // See CloseButton for why this read cannot.
+  // Renders in the fallback chrome too, so it must not suspend (see `HEADER_CONTROL`).
   const { t } = useTranslation()
 
   return (

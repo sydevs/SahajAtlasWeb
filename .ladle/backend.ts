@@ -1,12 +1,12 @@
-import type { Json } from '@/mocks/wire'
+import type { Json } from '@/mocks/sahajcloud'
 
 import { IP_LOCATION_ENDPOINT } from '@/hooks/use-ip-location'
 import { mockIpLocation } from '@/mocks/regions'
-import { WIRE_API_KEY, wire } from '@/mocks/wire'
+import { SAHAJCLOUD_API_KEY, answerSahajCloud, sahajCloud } from '@/mocks/sahajcloud'
 
 /**
  * Ladle talks to no API. Every SahajCloud request a story makes is answered from the browser
- * lane's wire fixtures (`src/mocks/wire.ts`), over the bigger atlas `wire-demo.ts` adds, through
+ * lane's fixtures (`src/mocks/sahajcloud.ts`), over the bigger atlas `sahajcloud-demo.ts` adds, through
  * the app's real fetchers. So the interactive widget can browse, open and register with lists long
  * enough to scroll, and a view's own idle prefetch never reaches production.
  * The IP lookup gets the guess the view stories seed. Mapbox and picsum go out as normal.
@@ -32,12 +32,15 @@ export function installBackend() {
       // Loaded on the first read, so a story that never reads pays nothing for the atlas, about
       // 100 ms of building at import. Whatever key a story's client holds, it is the one the
       // fixtures recognise.
-      const { answerDemo } = await import('@/mocks/wire-demo')
-      const answer = answerDemo({ method, url, authorization: `clients API-Key ${WIRE_API_KEY}` })
+      const { demo } = await import('@/mocks/sahajcloud-demo')
+      const answer = answerSahajCloud(
+        { method, url, authorization: `clients API-Key ${SAHAJCLOUD_API_KEY}` },
+        demo,
+      )
 
-      if (!answer) console.warn(`Ladle: no wire fixture answers ${method} ${url.pathname}`)
+      if (!answer) console.warn(`Ladle: no SahajCloud fixture answers ${method} ${url.pathname}`)
 
-      return respond(answer?.status ?? 404, answer?.json ?? wire.notFound)
+      return respond(answer?.status ?? 404, answer?.json ?? sahajCloud.notFound)
     }
 
     if (url.origin === ipLookup) return respond(200, { success: true, ...mockIpLocation })

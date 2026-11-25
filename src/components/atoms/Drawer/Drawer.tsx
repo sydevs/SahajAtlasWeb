@@ -84,8 +84,7 @@ const drawer = tv({
   variants: {
     direction: {
       // Flush to the edge on tablet (md–lg). At ≥lg it floats with a margin, so
-      // the map shows around it, rounded to match the stacked ancestor panels.
-      // The divider border matches those panels too.
+      // the map shows around it, rounded.
       //
       // TODO(rtl, #52 WS8): the remaining RTL gap is vaul's own `direction`
       // prop. That prop is physically left or right, and it drives both the

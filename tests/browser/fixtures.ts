@@ -1,10 +1,10 @@
 import type { BrowserContext, Page, Request, Route } from '@playwright/test'
-import type { Json } from '../../src/mocks/wire'
+import type { Json } from '../../src/mocks/sahajcloud'
 
 import { test as base, expect } from '@playwright/test'
 
 import { CHALLENGE_PAGE, CHALLENGE_PATH } from '../../src/mocks/challenge-page'
-import { answerSahajCloud } from '../../src/mocks/wire'
+import { answerSahajCloud } from '../../src/mocks/sahajcloud'
 
 import { LANE_API_ORIGIN, LANE_PORT } from './lane.mjs'
 

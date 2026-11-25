@@ -4,7 +4,7 @@ import type { Story, StoryDefault } from '@ladle/react'
 import clsx from 'clsx'
 
 import App from '@/App'
-import { WIRE_API_KEY } from '@/mocks/wire'
+import { SAHAJCLOUD_API_KEY } from '@/mocks/sahajcloud'
 
 export default { title: 'Interactive' } satisfies StoryDefault
 
@@ -43,7 +43,7 @@ export const Default: Story<{ map: boolean; white: boolean }> = ({ map, white })
 
   return (
     <HostPage white={white}>
-      <App key={String(hasMap)} inline apiKey={WIRE_API_KEY} hasMap={hasMap} />
+      <App key={String(hasMap)} inline apiKey={SAHAJCLOUD_API_KEY} hasMap={hasMap} />
     </HostPage>
   )
 }

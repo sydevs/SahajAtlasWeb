@@ -124,15 +124,15 @@ Read the figures off a run, never off a doc.
 The first invariant says what GREEN means. It says nothing about whose fault RED is, and "no
 preview" is not one thing. The job's last step names the cause:
 
-| cause                                     | what it tells the reader                                        |
-| ----------------------------------------- | --------------------------------------------------------------- |
-| a forked pull request (no credential)     | expected — annotated, exit 0                                    |
-| a `merge_group` entry (no PR number)      | expected — annotated, exit 0, so the queue completes            |
+| cause                                                                         | what it tells the reader                                                                                                                                                                              |
+| ----------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| a forked pull request (no credential)                                         | expected — annotated, exit 0                                                                                                                                                                          |
+| a `merge_group` entry (no PR number)                                          | expected — annotated, exit 0, so the queue completes                                                                                                                                                  |
 | a run Dependabot triggered, with a secret missing from the **Dependabot** set | expected — annotated, exit 0; such a run never reads the Actions secrets, and its **version** updates change no bundle (`docs/rules/deployment.md` § "Deploy-side CI gates" holds what this gives up) |
-| a missing Actions secret on a same-repo PR  | **enter all five** — the plan step gates on every one, so a half-entered set cannot reach a build whose output a spec then blames |
-| the publish produced no address           | **read the publish step** — it is the upload's own log          |
-| the address was refused                   | **read the guard step** — a wrong `--config` is the usual cause |
-| anything else                             | **investigate** — the plan step emitted a reason it does not know |
+| a missing Actions secret on a same-repo PR                                    | **enter all five** — the plan step gates on every one, so a half-entered set cannot reach a build whose output a spec then blames                                                                     |
+| the publish produced no address                                               | **read the publish step** — it is the upload's own log                                                                                                                                                |
+| the address was refused                                                       | **read the guard step** — a wrong `--config` is the usual cause                                                                                                                                       |
+| anything else                                                                 | **investigate** — the plan step emitted a reason it does not know                                                                                                                                     |
 
 Only the first three exit 0, and each is **stated**. An **unrecognised** reason takes the loud
 branch, on purpose, so a future one cannot inherit the softer advice.
@@ -154,7 +154,7 @@ Four findings from the subsystem this replaced, worth keeping so nobody re-deriv
   sweep of this repo both did — could not see the in-progress window at all, and concluded it
   never existed. **#132 was written on that wrong conclusion, survived a full review pass, and
   only a live CI run caught it.** To ask what an integration publishes while it works, watch a
-  live build — a query over completed objects cannot answer it. (The check *suite* is useless
+  live build — a query over completed objects cannot answer it. (The check _suite_ is useless
   alone: GitHub pre-creates one per installed app on every push, so Cloudflare's looks like any
   silent app's.)
 - **How long a Cloudflare Pages build took here, measured over 86 successful
@@ -168,10 +168,11 @@ Four findings from the subsystem this replaced, worth keeping so nobody re-deriv
   window). The sibling `sahajatlas-design` Pages check run ran a median **41 seconds ahead** of
   the app's, which is why it was no use as a second timing source once #279 moved the playground
   to Workers and deleted that project. The wait this justified was **flat**, at about 1.3× the
-  slowest sample; the 6-minute deadline it replaced sat *below* the 95th percentile, which is how
+  slowest sample; the 6-minute deadline it replaced sat _below_ the 95th percentile, which is how
   #124 went red on a healthy commit. Kept as the record of a lane this repo no longer runs: a
   Workers upload is live when the command returns, so there is no build to wait on and no
   deadline to tune.
+
 - **A passing unit spec is not evidence that the thing it tests is reachable.** #132 added the
   `failed` status, spec'd `timeoutStatus` returning it, then never destructured `failure` in
   `main()` — so `timeoutStatus` ran without it, and `failed` could never occur in production
@@ -242,7 +243,7 @@ signal a widget inside other people's pages has took zero events for seven weeks
 live in the spec's own comment, where whoever edits it reads them.
 
 ⚠ **This still does not prove the widget renders**, and no fetch-based spec can — reading a
-string back is a direct observation only because this particular defect *is* a string in the
+string back is a direct observation only because this particular defect _is_ a string in the
 bundle. A failure that only appears at runtime needs a browser: the browser lane below, which
 renders this commit's build. What neither lane reads is a deploy's runtime, so a render that
 breaks only on the deployed origins is still found by eye.
@@ -265,7 +266,7 @@ gate more often closes neither.
 `.github/workflows/production-smoke.yml` runs these same specs against production. Five things
 about it are deliberate:
 
-- **The deploy fires it, not the clock.** What the lane reads is deployed file *content*, which
+- **The deploy fires it, not the clock.** What the lane reads is deployed file _content_, which
   changes only at deploy. A daily cron would re-read an unchanged artifact about 364 times a year
   for one real signal per merge, and still be up to 24 hours late. A `push` trigger fires before
   the deploy exists. So the trigger is Cloudflare's own check run, which is posted when the
@@ -378,11 +379,11 @@ things hold that up, and each fails silently:
 way, so this table is the repo's only record of it and only a browser can confirm it. Under the
 ruleset covering `main`:
 
-| setting                | to be set to                                                                      | observed |
-| ---------------------- | --------------------------------------------------------------------------------- | -------- |
-| Require merge queue    | on                                                                                |          |
-| Bypass list            | empty — a bypass is the hole this closes                                          |          |
-| Required status checks | `Lint, Typecheck & Build`, `Dependency Review / review`, `Smoke`, `Browser lane`  |          |
+| setting                | to be set to                                                                     | observed |
+| ---------------------- | -------------------------------------------------------------------------------- | -------- |
+| Require merge queue    | on                                                                               |          |
+| Bypass list            | empty — a bypass is the hole this closes                                         |          |
+| Required status checks | `Lint, Typecheck & Build`, `Dependency Review / review`, `Smoke`, `Browser lane` |          |
 
 ⚠ **Nothing has been set yet, so every `observed` cell is blank.** The two halves above ship from
 the repo; the ruleset edit is an attended browser step. Whoever makes it fills that column in with
@@ -427,16 +428,17 @@ job's `--no-shell`.
 refuses a pin that is not an exact version: a step output is repository text, and a newline inside
 one forges further outputs on a fork's pull request.
 
-| scenario (`tests/browser/`)                   | host page              | watched failing against                                              |
-| --------------------------------------------- | ---------------------- | -------------------------------------------------------------------- |
-| the map embed boots, lists, draws its map     | `full-map.html`        | no Mapbox token passed to the map                                    |
-| expanded: browse in, Close and Back retrace   | `full-map.html`        | Close climbing to the parent instead of going back                   |
-| a deep link opens inline; Close climbs        | `full-map.html?atlas=` | Close going `navigate(-1)` at depth 0 (#89)                          |
-| `map=false` lists and draws no map            | `sidebar-mapless.html` | the map rendered whatever `hasMap` said                              |
-| a sized slot opens inline, grows, and expands | `sidebar-map.html`     | the compact card the inline embed replaced                           |
-| a box too small shows the heading alone       | `too-narrow.html`      | the full inline atlas rendered in a 220px column                     |
-| host CSS does not reach the widget            | `hostile-css.html`     | no shadow root (#236); the baseline's `letter-spacing` reset dropped |
-| registration accepted, and failing with a 500 | `sidebar-mapless.html` | a drifted create envelope; the thank-you shown on failure (#103)     |
+| scenario (`tests/browser/`)                                       | host page              | watched failing against                                              |
+| ----------------------------------------------------------------- | ---------------------- | -------------------------------------------------------------------- |
+| the map embed boots, lists, draws its map                         | `full-map.html`        | no Mapbox token passed to the map                                    |
+| expanded: browse in, then Back retraces it                        | `full-map.html`        | Back climbing to the parent instead of going back                    |
+| a deep link opens inline; Back climbs past places holding only it | `full-map.html?atlas=` | Back going `navigate(-1)` at depth 0 (#89)                           |
+| a place holding one class opens it, and Back does not re-enter it | `full-map.html?atlas=` | a climb landing back in the class it left                            |
+| `map=false` lists and draws no map                                | `sidebar-mapless.html` | the map rendered whatever `hasMap` said                              |
+| a sized slot opens inline, grows, and expands                     | `sidebar-map.html`     | the compact card the inline embed replaced                           |
+| a box too small shows the heading alone                           | `too-narrow.html`      | the full inline atlas rendered in a 220px column                     |
+| host CSS does not reach the widget                                | `hostile-css.html`     | no shadow root (#236); the baseline's `letter-spacing` reset dropped |
+| registration accepted, and failing with a 500                     | `sidebar-mapless.html` | a drifted create envelope; the thank-you shown on failure (#103)     |
 
 ### Why hermetic: it answers the missing-backend problem
 
@@ -444,8 +446,8 @@ The widget reads SahajCloud before it renders anything (`clients/me`), so a brow
 backend, and a key that backend accepts. The seeded local backend refuses both keys in
 `.env.local` (the header of `scripts/serve-embed-review.mjs`), a fork's CI holds no key at all, and
 a run against production would test production's data rather than this commit. So the lane
-brings its own backend: every SahajCloud request is answered from `src/mocks/wire.ts`, keyed to
-`WIRE_API_KEY`, Mapbox from a minimal style, and the IP lookup from a refusal. That also makes the
+brings its own backend: every SahajCloud request is answered from `src/mocks/sahajcloud.ts`, keyed to
+`SAHAJCLOUD_API_KEY`, Mapbox from a minimal style, and the IP lookup from a refusal. That also makes the
 lane deterministic, since nothing it reads changes under it, and lets a fork and a merge-queue
 entry run it exactly as a pull request does — which is what lets it be a required check.
 
@@ -465,22 +467,22 @@ Three things hold it hermetic, in `tests/browser/fixtures.ts` and `playwright.co
 
 ### The fixtures are wire shape
 
-`src/mocks/wire.ts` holds what SahajCloud sends over HTTP: ISO date strings, the region tree flat
+`src/mocks/sahajcloud.ts` holds what SahajCloud sends over HTTP: ISO date strings, the region tree flat
 and linked by `parent`, Payload's envelopes and pagination members, relationships populated only
 as far as each fetcher's `select` asks. It derives them from the view-model mocks beside it, which
 are what a fetcher RETURNS — answering a browser with those would skip the parse the lane exists
-to exercise. `src/mocks/wire.test.ts`, in the unit lane, runs every fixture through the real
+to exercise. `src/mocks/sahajcloud.test.ts`, in the unit lane, runs every fixture through the real
 fetchers and the real SDK with only `fetch` swapped for the lane's router, and pins the drill-down
 the navigation scenarios click, so a fixture edit that breaks the lane fails in seconds there.
 
 When the widget starts asking for something new, the lane fails naming the request. Answer it:
-a SahajCloud read in `wire.ts` (and `wire.test.ts`), anything else in `fixtures.ts`. Never widen
+a SahajCloud read in `sahajcloud.ts` (and `sahajcloud.test.ts`), anything else in `fixtures.ts`. Never widen
 the catch-all to let it through.
 
 Ladle answers every story's SahajCloud reads from the same fixtures (`.ladle/backend.ts`), and
 frames the same challenge page (`src/mocks/challenge-page.ts`), so a fixture added for the lane
 also reaches the whole widget's story, `Interactive / Full Widget`. That story reads a bigger atlas
-on top (`src/mocks/wire-demo.ts`), which the lane never does.
+on top (`src/mocks/sahajcloud-demo.ts`), which the lane never does.
 
 A spec that says a request never happens awaits `rendered` (`fixtures.ts`) first: the embed
 report the first real render sends, then 500 ms with nothing in flight. The report alone is no
@@ -570,7 +572,7 @@ Five things about it are deliberate:
   ⚠ A story that mutates nothing is still released by the 4s cap, so the wait cannot hang the gate.
 - **It reads a BUILD, never `ladle serve`.** The dev server compiles a story when it is opened,
   so a story that failed to build would pass by never having been built. `--origin
-  http://localhost:61000` points it at the dev server anyway, for the local fix loop only.
+http://localhost:61000` points it at the dev server anyway, for the local fix loop only.
 - **It is a step in CI's existing `gate` job, not a job of its own.** The ruleset requires that
   job's check by name, so a step blocks a merge on the day it lands; a new job would report a
   check nothing requires until somebody edits the ruleset in a browser.
@@ -703,10 +705,10 @@ and the pull request records the manual Escape pass.
 This app is portal-dense — every vaul drawer, every Radix overlay, the inline embed's expanded
 dialog — and the node lane relates to them in two opposite ways, depending on one bit:
 
-| under `renderToStaticMarkup`       | what happens                                                                                |
-| ------------------------------------ | --------------------------------------------------------------------------------------------- |
+| under `renderToStaticMarkup`       | what happens                                                                                          |
+| ---------------------------------- | ----------------------------------------------------------------------------------------------------- |
 | **closed** portal (`open={false}`) | Radix wraps the child in `<Presence>`, so `createPortal` never runs. Nothing renders, nothing throws. |
-| **open** portal                    | React **throws** — *"Portals are not currently supported by the server renderer."*          |
+| **open** portal                    | React **throws** — _"Portals are not currently supported by the server renderer."_                    |
 
 So the trap is narrow: an **absence** assertion about a closed portal's contents passes for a
 reason that has nothing to do with the property under test. Issue #161 wrote exactly that spec —
@@ -754,10 +756,10 @@ still right. It just is not enough on its own when the pure part encodes a forei
 - **Fixtures**: reuse the schema-typed Ladle mocks (`src/mocks/`) and inline small factory
   objects in the spec. Do not add a `tests/fixtures/` dump — keep fixtures next to the assertions
   that use them. The browser lane's SahajCloud responses are the one wire-shape set, in
-  `src/mocks/wire.ts`, derived from those mocks.
+  `src/mocks/sahajcloud.ts`, derived from those mocks.
 - **Mock at the boundary** with `vi.mock` + `vi.hoisted` (see `src/config/api/fetch.test.ts`):
   mock `@payloadcms/sdk` and `@/config/i18n`, not our own logic. Do not test Radix, react-map-gl,
-  or library internals — only *our* contracts.
+  or library internals — only _our_ contracts.
 
 ### A spec that inventories `src/` walks it through `src/test-support/` (issue #286)
 
@@ -919,5 +921,5 @@ source fails there while a detector that stopped matching fails the closed list;
 `vitest.config.ts`'s own `include`, so a spec in a new location fails here rather than quietly
 going uncovered per edit. ⚠ A walker is found by importing
 `src/test-support/source-tree.ts` or by an enumerating call, so one that reaches the tree through
-some *other* helper is still invisible to that pin. The three times above are unchecked, like
+some _other_ helper is still invisible to that pin. The three times above are unchecked, like
 every other measurement in this file.
