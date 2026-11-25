@@ -131,10 +131,9 @@ function EventListItemImpl({ event, searchedPlace, showDistance = true }: EventL
       >
         {/* `min-w-0` lets a truncating chip or an unbroken title shrink
             instead of pushing the chevron out. */}
-        <div className="flex min-w-0 flex-1 flex-col gap-1">
+        <div className="flex min-w-0 flex-1 flex-col gap-1.5">
           <div className="line-clamp-2 text-lg">{event.title}</div>
           <EventFacts
-            className="mt-0.5 mb-1"
             distance={
               distanceText && (
                 <span aria-label={distanceLabel} title={distanceLabel}>
@@ -145,7 +144,7 @@ function EventListItemImpl({ event, searchedPlace, showDistance = true }: EventL
             event={event}
             variant="compact"
           />
-          <EventChips className="mt-1" event={event} variant="compact" />
+          <EventChips className="mt-1.5" event={event} variant="compact" />
         </div>
         <ListRowChevron />
       </Link>
