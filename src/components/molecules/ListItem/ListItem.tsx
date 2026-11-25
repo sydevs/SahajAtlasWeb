@@ -1,8 +1,12 @@
 import type { ReactNode } from 'react'
 
-import { LIST_ITEM_COUNT, LIST_ITEM_ICON, LIST_ITEM_LABEL, LIST_ITEM_ROW } from './ListItemSkeleton'
-
-import { ListRow } from '@/components/molecules/List/List'
+import {
+  LIST_ITEM_COUNT,
+  LIST_ITEM_ICON,
+  LIST_ITEM_LABEL,
+  LIST_ITEM_ROW,
+  ListRow,
+} from '@/components/molecules/List/List'
 
 export interface ListItemProps {
   label: string

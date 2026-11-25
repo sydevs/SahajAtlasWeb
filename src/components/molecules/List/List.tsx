@@ -36,6 +36,19 @@ const listRow = tv({
 const { row, chevron } = listRow()
 const inertRow = listRow({ inert: true }).row
 
+// A row type's own geometry sits here too, beside the skin every row shares, so neither a card
+// nor its placeholder owns the other's box.
+export const LIST_ITEM_ROW = 'min-h-14 py-3'
+export const LIST_ITEM_ICON = 'me-3 flex h-6 w-6 shrink-0 items-center justify-center'
+export const LIST_ITEM_LABEL = 'flex-grow text-lg'
+export const LIST_ITEM_COUNT = 'me-1 text-end text-sm text-gray-11'
+
+export const EVENT_CARD = 'py-4'
+// `min-w-0` lets a truncating chip or an unbroken title shrink instead of pushing the chevron out.
+export const EVENT_CARD_BODY = 'flex min-w-0 flex-1 flex-col gap-1'
+export const EVENT_CARD_TITLE = 'line-clamp-2 text-lg'
+export const EVENT_CARD_FACTS = 'mt-0.5 mb-1'
+
 /**
  * A navigable row inside a `List`: the shell every card renders its content
  * into. It is an `<li>` wrapping the Link, so each row is a valid direct
