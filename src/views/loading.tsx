@@ -10,18 +10,27 @@ import { ChevronLeft, Funnel } from 'lucide-react'
 // this module sits in the eager graph, and a barrel here would carry the whole interface into it.
 import { controlSurface } from '@/components/atoms/Button/Button'
 import { drawer, inPlaceTransform } from '@/components/atoms/Drawer/drawer-style'
-import { Skeleton, SkeletonBlock, SkeletonLine } from '@/components/atoms/Skeleton/Skeleton'
-import { LOADING } from '@/components/atoms/Skeleton/loading'
+import {
+  LOADING,
+  Skeleton,
+  SkeletonBlock,
+  SkeletonLine,
+} from '@/components/atoms/Skeleton/Skeleton'
 import { List } from '@/components/molecules/List/List'
 import { ListToolbar } from '@/components/molecules/ListToolbar/ListToolbar'
 import { ListItemSkeleton } from '@/components/molecules/ListItem/ListItemSkeleton'
 import { EventListItemSkeleton } from '@/components/molecules/EventListItem/EventListItemSkeleton'
-import {
-  EventDetailsSkeleton,
-  EventHeaderSkeleton,
-} from '@/components/organisms/EventDetails/EventDetailsSkeleton'
+import { EventDetailsSkeleton } from '@/components/organisms/EventDetails/EventDetailsSkeleton'
+import { EventHeader } from '@/components/organisms/EventDetails/EventHeader'
 import { MapSearchSkeleton } from '@/components/organisms/Mapbox/MapSearchSkeleton'
-import { SHEET_OPEN_PX, shortSheetCap, useIsShortViewport, useIsWide } from '@/config/responsive'
+import {
+  SHEET_OPEN_PX,
+  WIDE_SNAP,
+  capStop,
+  shortSheetCap,
+  useIsShortViewport,
+  useIsWide,
+} from '@/config/responsive'
 import { guessListsPlaces } from '@/lib/shape/hierarchy'
 import { baseStackEntry, resolveStack } from '@/lib/shape/path'
 import {
@@ -191,8 +200,8 @@ export function BootFallback() {
   const calendar = entry?.kind === 'calendar'
   const slots = drawer({ direction: isWide ? 'left' : 'bottom', mode: 'anchored', wide: calendar })
   const stop = calendar
-    ? 0.97
-    : `${shortViewport ? Math.min(SHEET_OPEN_PX, shortSheetCap()) : SHEET_OPEN_PX}px`
+    ? WIDE_SNAP
+    : capStop(`${SHEET_OPEN_PX}px`, shortViewport ? shortSheetCap() : null)
   const field = (
     <div className={FIELD_SLOT}>
       <MapSearchSkeleton />
@@ -233,7 +242,7 @@ export function BootFallback() {
       )
       break
     case 'event':
-      header = <EventHeaderSkeleton nav={<NavRowSkeleton />} />
+      header = <EventHeader nav={<NavRowSkeleton />} />
       break
     default: {
       const words = entry && STATIC_TITLES[entry.kind]

@@ -3,7 +3,7 @@ import type { ReactNode } from 'react'
 
 import { CalendarDays, MapPin, Monitor } from 'lucide-react'
 
-import { ICON_SIZE, facts } from './EventFactsSkeleton'
+import { ICON_SIZE, facts } from './facts-style'
 
 import {
   composeCalendarLine,

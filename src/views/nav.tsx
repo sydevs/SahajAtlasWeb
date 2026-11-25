@@ -9,15 +9,9 @@ import { DrawerHeader } from '@/components/atoms/Drawer'
 import { regionsQuery } from '@/config/api'
 import { useLocale } from '@/hooks/use-locale'
 import { backLabel } from '@/views/nav-names'
-import { NAV_HEADER, NAV_ROW } from '@/views/chrome-style'
+import { HEADER_CONTROL, HEADER_EDGE, NAV_HEADER, NAV_ROW } from '@/views/chrome-style'
 import { TitleSkeleton } from '@/views/loading'
-import {
-  DrawerTitle,
-  ExpandSheetButton,
-  HEADER_CONTROL,
-  HEADER_EDGE,
-  useDrawerControl,
-} from '@/views/shared'
+import { DrawerTitle, ExpandSheetButton, useDrawerControl } from '@/views/shared'
 
 /**
  * The way back, at the start of every header below the root. It says where it goes ("Back to

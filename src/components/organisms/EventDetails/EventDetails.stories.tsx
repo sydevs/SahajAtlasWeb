@@ -6,7 +6,7 @@ import type { Event } from '@/types'
 import { StoryWrapper, StorySection } from '../../ladle'
 
 import { EventDetails } from './EventDetails'
-import { EventDetailsSkeleton, EventHeaderSkeleton } from './EventDetailsSkeleton'
+import { EventDetailsSkeleton } from './EventDetailsSkeleton'
 import { EventHeader } from './EventHeader'
 import { EventRegisterBar } from './EventRegister'
 
@@ -29,7 +29,7 @@ export default { title: 'Organisms' } satisfies StoryDefault
 function Panel({ event }: { event: Event }) {
   return (
     <div className="max-w-md border border-divider">
-      <EventHeader event={event} />
+      <EventHeader title={event.title} />
       <EventDetails basePath={`/demo/${event.id}`} event={event} />
     </div>
   )
@@ -121,7 +121,7 @@ export const Default: Story = () => (
           </div>
         </div>
         <div className="border border-divider">
-          <EventHeader event={mockEvent} />
+          <EventHeader title={mockEvent.title} />
           <EventDetails basePath="/demo/101" ctaInline={false} event={mockEvent} />
         </div>
       </div>
@@ -136,11 +136,11 @@ export const Default: Story = () => (
           can hit them, and the accessibility gate measures that (#432). */}
       <div className="grid max-w-4xl grid-cols-1 gap-4 md:grid-cols-3">
         <div className="border border-divider">
-          <EventHeaderSkeleton />
+          <EventHeader />
           <EventDetailsSkeleton />
         </div>
         <div className="border border-divider">
-          <EventHeaderSkeleton title={mockEvent.title} />
+          <EventHeader title={mockEvent.title} />
           <EventDetailsSkeleton
             head={
               <>
@@ -151,7 +151,7 @@ export const Default: Story = () => (
           />
         </div>
         <div className="border border-divider">
-          <EventHeader event={mockEvent} />
+          <EventHeader title={mockEvent.title} />
           <EventDetails basePath="/demo/101" event={mockEvent} />
         </div>
       </div>

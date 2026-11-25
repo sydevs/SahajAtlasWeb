@@ -6,9 +6,8 @@ import {
   EVENT_CARD_BODY,
   EVENT_CARD_FACTS,
   EVENT_CARD_TITLE,
-} from './EventListItemSkeleton'
-
-import { ListRow } from '@/components/molecules/List/List'
+  ListRow,
+} from '@/components/molecules/List/List'
 import { useLocale } from '@/hooks/use-locale'
 import { useMapController } from '@/hooks/use-map-controller'
 import { useHoverPrefetch } from '@/hooks/use-prefetch-event'

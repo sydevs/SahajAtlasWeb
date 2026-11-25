@@ -11,7 +11,7 @@ import { DrawerBody, DrawerHeader, DrawerToolbar } from '@/components/atoms/Draw
 import { Spinner } from '@/components/atoms/Spinner'
 import { CENTERED_BODY, FallbackPanel, ListToolbar, SortMenu } from '@/components/molecules'
 import { MapSearchSkeleton } from '@/components/organisms/Mapbox/MapSearchSkeleton'
-import { EventHeaderSkeleton } from '@/components/organisms/EventDetails/EventDetailsSkeleton'
+import { EventHeader } from '@/components/organisms/EventDetails/EventHeader'
 import { eventTitlesQuery, regionQuery, regionsQuery } from '@/config/api'
 import { useWidgetMode } from '@/config/mode'
 import { useIsWideWidget } from '@/config/responsive'
@@ -182,7 +182,7 @@ export function DrawerChrome({
 
   // A class loading takes EventView's own header, so the title lands where the real one will.
   if (loading && entry.kind === 'event') {
-    return <EventHeaderSkeleton nav={<NavRow />} title={title} />
+    return <EventHeader nav={<NavRow />} title={title} />
   }
 
   // A place whose classes are coming says what RegionView will say over them.

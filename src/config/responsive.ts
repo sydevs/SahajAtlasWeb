@@ -102,6 +102,18 @@ const ABOVE_SHEET_WHEN_SHORT_PX = 75
 export const shortSheetCap = (): number =>
   Math.max(SHEET_PEEK_PX, window.innerHeight - ABOVE_SHEET_WHEN_SHORT_PX)
 
+// The sheet's third stop, as a share of the box vaul measures against: near full, with the last
+// 3% left showing. The boot panel stands at the sheet's stops before vaul exists, and `useFitSnap`
+// calls content this tall full, so a copy in any of the three would drift from the sheet itself.
+export const WIDE_SNAP = 0.97
+
+/** A pixel stop held down to `cap`. Fractions, and every stop when there is no cap, pass through. */
+export const capStop = <T extends number | string | null>(
+  point: T,
+  cap: number | null,
+): T | string =>
+  cap !== null && typeof point === 'string' && parseFloat(point) > cap ? `${cap}px` : point
+
 /**
  * Whether the window is a phone on its side, or as short. It reads the viewport on purpose: the
  * frameless phone sheet asks, and that sheet is measured against the window too; and the map's
