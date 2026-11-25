@@ -12,7 +12,7 @@ import type { TranslationTree } from '@/types'
 
 import en from './en.json'
 
-/** The English strings, mounted into the boot resource (`config/i18n.ts`). */
+/** The English strings, mounted into the boot resource (`config/i18n-options.ts`). */
 export const EN_A11Y = en
 
 /** What the strings add to a bundle once mounted, for `i18next.d.ts`. */

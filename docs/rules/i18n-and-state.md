@@ -35,7 +35,7 @@ paths:
 - **Screen-reader strings are this repo's** (`src/config/a11y/`). A string that is only ever
   spoken lives in `<locale>.json`, mounted at `<group>.a11y.<key>`, machine-translated by whoever
   adds it; translators never see it. English is mounted into the boot resource
-  (`config/i18n.ts`); every other locale's file is a lazy chunk, mounted onto its SahajCloud
+  (`config/i18n-options.ts`); every other locale's file is a lazy chunk, mounted onto its SahajCloud
   bundle inside `translationsQuery`, so the cache, the warm-up and `applyLocale` hold one tree. A
   key a file lacks falls back to English through `fallbackLng`. A string that is both seen and
   spoken stays in SahajCloud.
