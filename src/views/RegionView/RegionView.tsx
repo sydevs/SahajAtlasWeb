@@ -5,7 +5,7 @@ import { Navigate, useLocation } from 'react-router'
 
 import { Alert } from '@/components/atoms/Alert'
 import { Link } from '@/components/atoms/Link'
-import { DrawerBody } from '@/components/atoms/Drawer'
+import { DrawerBody, DrawerToolbar } from '@/components/atoms/Drawer'
 import {
   ActiveFilterPills,
   EventListItem,
@@ -36,7 +36,7 @@ import {
   EmptyEventList,
   FilterButton,
   GeolocationSuggestion,
-  SearchButton,
+  SearchField,
   useFrameOnTop,
 } from '@/views/shared'
 
@@ -134,13 +134,20 @@ export function RegionView({ slug }: { slug: string }) {
         actions={
           <>
             <CalendarButton regionSlug={region.slug} />
-            <SearchButton />
             <FilterButton iconOnly />
           </>
         }
         subtitle={subheader}
         title={header}
       />
+      {/* The field itself, not an icon that leads to it, so a visitor in the wrong place can search
+          again from there. Outside the body, so the list scrolls under it. The two custom
+          properties are the header slot's: they size the suggestion list to the field. */}
+      <DrawerToolbar>
+        <div className="[container-type:inline-size] px-gutter pb-2 [--sy-results-w:calc(100cqi_-_2px)]">
+          <SearchField />
+        </div>
+      </DrawerToolbar>
       <DrawerBody>
         <ActiveFilterPills />
         {/* Above the region's own content, which IS the "other classes near them" the
