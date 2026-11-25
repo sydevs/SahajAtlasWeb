@@ -150,8 +150,8 @@ export function CalendarButton({ regionSlug }: { regionSlug: string }) {
   )
 }
 
-// The search affordance for region headers (RegionView): jumps to the
-// distance-ranked search view. This renders the same header-control chrome as the
+// The search affordance for the loading and error chrome's region and online headers: jumps
+// to the distance-ranked search view. This renders the same header-control chrome as the
 // other header controls, so the header reads as one set of buttons.
 export function SearchButton() {
   // Renders in the fallback chrome too, so it must not suspend (see `HEADER_CONTROL`).
@@ -419,7 +419,12 @@ export function useEventFromPath(eventPath: string) {
  * available (DynamicEventsList's EmptyResults) — but renders them through this
  * same panel.
  */
-export function EmptyEventList() {
+export function EmptyEventList({
+  hasSearchChrome = false,
+}: {
+  /** The view already mounts a `SearchField` (RegionView). A second would be a duplicate. */
+  hasSearchChrome?: boolean
+} = {}) {
   // Renders in the fallback chrome too, so it must not suspend (see `HEADER_CONTROL`).
   const { t } = useTranslation()
 
@@ -431,9 +436,11 @@ export function EmptyEventList() {
       {/* `label` is the field's accessible name AND its placeholder, so it does the whole
           job of prompting: dropped out of a header, the default "search for events near…"
           reads on this screen as a promise that there ARE nearby events. */}
-      <SearchField
-        label={t('common.errors.search_label', { defaultValue: 'Or search for a place' })}
-      />
+      {!hasSearchChrome && (
+        <SearchField
+          label={t('common.errors.search_label', { defaultValue: 'Or search for a place' })}
+        />
+      )}
     </FallbackPanel>
   )
 }

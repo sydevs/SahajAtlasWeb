@@ -140,13 +140,10 @@ export function RegionView({ slug }: { slug: string }) {
         subtitle={subheader}
         title={header}
       />
-      {/* The field itself, not an icon that leads to it, so a visitor in the wrong place can search
-          again from there. Outside the body, so the list scrolls under it. The two custom
-          properties are the header slot's: they size the suggestion list to the field. */}
-      <DrawerToolbar>
-        <div className="[container-type:inline-size] px-gutter pb-2 [--sy-results-w:calc(100cqi_-_2px)]">
-          <SearchField />
-        </div>
+      {/* A field, not an icon, so a visitor who landed in the wrong place can search again from
+          here. */}
+      <DrawerToolbar field>
+        <SearchField />
       </DrawerToolbar>
       <DrawerBody>
         <ActiveFilterPills />
@@ -192,12 +189,13 @@ export function RegionView({ slug }: { slug: string }) {
         {!feedback && <GeolocationSuggestion position="above" regionCenter={region.center} />}
         {isEmpty && hasActiveFilters(filters) ? (
           <FallbackPanel
+            hasSearchChrome
             align="start"
             kind="no-results"
             onClearFilters={() => setFilters(DEFAULT_FILTERS)}
           />
         ) : isEmpty ? (
-          <EmptyEventList />
+          <EmptyEventList hasSearchChrome />
         ) : (
           <List>
             {/* On a region with sub-regions, the online roll-up opens in its own drawer
