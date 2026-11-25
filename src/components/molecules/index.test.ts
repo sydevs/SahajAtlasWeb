@@ -34,6 +34,8 @@ const LEAF_PATH_ONLY = [
   // above: luxon is already in the shell, so the leak would be
   // `lib/ics.ts` alone.
   'AddToCalendar',
+  // The QR encoder's loader. The encoder itself is a dynamic import either way.
+  'QrPoster',
 ]
 
 describe('molecules barrel', () => {

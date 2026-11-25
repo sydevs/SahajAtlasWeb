@@ -61,6 +61,8 @@ export type DrawerControl = {
   /** The phone sheet sits at its peek. Never true where the sheet cannot collapse. */
   collapsed: boolean
   toggle: () => void
+  /** Lifts the phone sheet to near-full, for content that just grew. A no-op on the side panel. */
+  expand?: () => void
   dismiss: () => void
 }
 

@@ -7,10 +7,11 @@ import { EventFacts, FallbackPanel } from '@/components/molecules'
 // in the interface's own download, even though this view is lazy (issue #96). EventDetails
 // reaches EventActions the same way, for the same reason.
 import { ShareContent } from '@/components/molecules/ShareContent'
+import { QrPoster } from '@/components/molecules/QrPoster'
 import { useShareUrl } from '@/hooks/use-share-url'
 import { useViewerCountry } from '@/hooks/use-viewer-country'
 import { NavHeader } from '@/views/nav'
-import { useEventFromPath, useFrameEventOnTop } from '@/views/shared'
+import { useDrawerControl, useEventFromPath, useFrameEventOnTop } from '@/views/shared'
 
 // Share links for an event, at route `<event-path>/share`. The event's Share CTA reaches
 // this view, and the route is deep-linkable. So it repeats the compact resolver summary —
@@ -21,6 +22,7 @@ export function ShareView({ eventPath }: { eventPath: string }) {
   // Order the share targets to the viewer's region. This is resolved here, so ShareContent
   // stays a pure, prop-driven molecule.
   const country = useViewerCountry()
+  const { expand } = useDrawerControl()
 
   const { data: event } = useEventFromPath(eventPath)
   // This resolves to the event's canonical page. Otherwise it resolves to this session's own
@@ -33,7 +35,7 @@ export function ShareView({ eventPath }: { eventPath: string }) {
   return (
     <>
       <NavHeader title={t('share.title')} />
-      <DrawerBody className="px-gutter py-4">
+      <DrawerBody fitSheet className="px-gutter py-4">
         <EventFacts
           className="mx-auto mb-4 w-full max-w-md"
           event={event}
@@ -43,7 +45,10 @@ export function ShareView({ eventPath }: { eventPath: string }) {
         {/* Match the summary card's width so the share block lines up with it. */}
         <div className="mx-auto w-full max-w-md">
           {url ? (
-            <ShareContent country={country} label={event.title} url={url} />
+            <div className="flex flex-col gap-4">
+              <ShareContent country={country} label={event.title} url={url} />
+              <QrPoster label={event.title} url={url} onOpen={expand} />
+            </div>
           ) : (
             /* No canonical page, and no route in the URL. The copy field, the native sheet,
                and every react-share target all need a URL. The only string within reach is

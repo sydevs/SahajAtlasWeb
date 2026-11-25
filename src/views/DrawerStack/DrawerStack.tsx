@@ -284,14 +284,16 @@ export function DrawerStack() {
   // sliced the "Next session" line in half. It never opens lower than that snap: the loading
   // skeleton is short, and a sheet that dipped under it would only climb again once the class
   // arrived. One drag down still stops there, with the map and the class's pin above.
-  const fit = useFitSnap(canCollapse && top?.kind === 'event', location.pathname)
+  // Share opens the same way, so its last row (the poster QR code) is in view without a drag.
+  const fitsContent = top?.kind === 'event' || top?.kind === 'share'
+  const fit = useFitSnap(canCollapse && fitsContent, location.pathname)
   const fitPx = typeof fit === 'number' && fit > SHEET_OPEN_PX ? fit : null
   const fitSnap = fitPx === null ? null : `${fitPx}px`
   const snapPoints = useMemo(
     () => (fitSnap === null ? SNAP_POINTS : [PEEK_SNAP, OPEN_SNAP, fitSnap, WIDE_SNAP]),
     [fitSnap],
   )
-  const openSnap = top?.kind === 'event' ? FIT_SNAP : OPEN_SNAP
+  const openSnap = fitsContent ? FIT_SNAP : OPEN_SNAP
   const vaulSnap = snap === FIT_SNAP ? (fit === 'full' ? WIDE_SNAP : (fitSnap ?? OPEN_SNAP)) : snap
   // vaul echoes every `activeSnapPoint` it is handed back through this setter. Taking the echo
   // literally would swap the token for whatever it resolved to that render, and the sheet would
@@ -511,9 +513,9 @@ export function DrawerStack() {
   // manual drag on a non-calendar view.
   useEffect(() => {
     if (direction === 'bottom') {
-      setSnap(top?.kind === 'calendar' ? WIDE_SNAP : top?.kind === 'event' ? FIT_SNAP : OPEN_SNAP)
+      setSnap(top?.kind === 'calendar' ? WIDE_SNAP : fitsContent ? FIT_SNAP : OPEN_SNAP)
     }
-  }, [direction, top?.kind])
+  }, [direction, fitsContent, top?.kind])
 
   // A new searched place lifts the sheet out of its peek, so results are never
   // fetched into a sheet the visitor cannot see. The effect above does not cover this
@@ -539,6 +541,11 @@ export function DrawerStack() {
       backTo: filterOverlay ? undefined : step?.to,
       collapsed: canCollapse && atPeek,
       toggle: () => setSnap((s) => (s === PEEK_SNAP ? openSnap : PEEK_SNAP)),
+      // Bottom sheet only. The side panel has no snaps, and the near-full one hides the map
+      // controls, the settings cog among them.
+      expand: () => {
+        if (direction === 'bottom') setSnap(WIDE_SNAP)
+      },
       dismiss: () => {
         if (!step) return setSnap(PEEK_SNAP)
         // A transition: unmounting a heavy view (the calendar's large grid) would otherwise
@@ -551,7 +558,7 @@ export function DrawerStack() {
         })
       },
     }),
-    [filterOverlay, step, atPeek, openSnap, canCollapse, navigate, location.pathname],
+    [filterOverlay, step, atPeek, openSnap, canCollapse, direction, navigate, location.pathname],
   )
 
   // The filter overlay's own dismiss (its X / swipe / Esc): back to the calendar it opened over,

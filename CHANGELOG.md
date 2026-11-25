@@ -454,6 +454,12 @@ no-referrer`.
 
 ### Added
 
+- **Share offers a QR code for posters.** (#TBD) A closed "QR code for posters" row under the
+  share buttons opens a black-on-white code of the class's shared link and a "Download for
+  printing" button (a PNG of about 1200 px). The code is drawn in the browser from a script
+  chunk on `sahajatlas.com`, fetched only when the row is opened, so a CSP that already allows
+  the widget's `script-src` needs no change. On a phone, Share now opens as tall as its content.
+
 - **The guide now documents Wix, and sends you to a setup screen that fills it in for you.**
   ([#349]) Wix has nowhere to paste a `<script>` tag, so the script embed goes in a **Custom
   Element** — Server URL `https://sahajatlas.com/auto.js?key=YOUR_KEY`, tag name `sahaj-atlas` —
