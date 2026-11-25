@@ -15,11 +15,6 @@ import { useIsShortViewport } from '@/config/responsive'
 /** Where the visitor's last "find me" request stands. */
 export type LocateState = 'idle' | 'waiting' | 'found' | 'failed'
 
-const LOCATE_TINT: Partial<Record<LocateState, string>> = {
-  found: 'text-primary-11',
-  failed: 'text-danger-11',
-}
-
 /**
  * The map's controls as ONE Mapbox control, so Mapbox's `position` prop places them all and no
  * stylesheet rule moves its corner (`docs/rules/mapbox.md`).
@@ -96,7 +91,16 @@ export const MapControls = memo(function MapControls({
           {locate === 'waiting' ? (
             <Spinner decorative color="current" size="sm" />
           ) : (
-            <LocateFixed className={LOCATE_TINT[locate]} size={20} />
+            <LocateFixed
+              className={
+                locate === 'found'
+                  ? 'text-primary-11'
+                  : locate === 'failed'
+                    ? 'text-danger-11'
+                    : undefined
+              }
+              size={20}
+            />
           )}
         </Button>
       </HoverLabel>
