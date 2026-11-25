@@ -36,8 +36,8 @@ export default defineConfig({
     // parallel load on a fast laptop, so a slower CI runner needs more
     // room.
     //
-    // No spec here waits on a network call or a timer, so this timeout
-    // never catches a hang. It only caps how slow a genuinely slow spec
+    // No spec here waits on a network call, or on a timer it did not
+    // queue itself, so this timeout never catches a hang. It only caps how slow a genuinely slow spec
     // may run while the pool is busy. Keep the lane fast by not adding
     // slow specs — `docs/testing.md` budgets what one edit pays, and a
     // spec the whole tree is related to is paid on every one of them.
