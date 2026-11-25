@@ -454,7 +454,7 @@ no-referrer`.
 
 ### Added
 
-- **Share offers a QR code for posters.** (#TBD) A closed "QR code for posters" row under the
+- **Share offers a QR code for posters.** ([#492]) A closed "QR code for posters" row under the
   share buttons opens a black-on-white code of the class's shared link and a "Download for
   printing" button (a PNG of about 1200 px). The code is drawn in the browser from a script
   chunk on `sahajatlas.com`, fetched only when the row is opened, so a CSP that already allows
@@ -1246,6 +1246,7 @@ must-revalidate`, pinned rather than left to the CDN default. The production dom
   (`//evil.com`) and non-allowlisted-scheme hrefs. Defense in depth — no live hole was
   found. ([#111], [#136])
 
+[#492]: https://github.com/sydevs/SahajAtlasWeb/pull/492
 [#478]: https://github.com/sydevs/SahajAtlasWeb/pull/478
 [#469]: https://github.com/sydevs/SahajAtlasWeb/pull/469
 [#192]: https://github.com/sydevs/SahajAtlasWeb/pull/192
