@@ -5,7 +5,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { useFitSnap } from './use-fit-snap'
 
-import { LOADING_ATTR } from '@/components/atoms/Skeleton/loading'
+import { LOADING_ATTR } from '@/components/atoms/Skeleton/Skeleton'
 
 /**
  * A loading placeholder is nothing true to fit: the sheet holds its stop and moves once, when the

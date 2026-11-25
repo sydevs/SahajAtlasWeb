@@ -10,8 +10,12 @@ import { ChevronLeft, Funnel } from 'lucide-react'
 // this module sits in the eager graph, and a barrel here would carry the whole interface into it.
 import { controlSurface } from '@/components/atoms/Button/Button'
 import { drawer, inPlaceTransform } from '@/components/atoms/Drawer/drawer-style'
-import { Skeleton, SkeletonBlock, SkeletonLine } from '@/components/atoms/Skeleton/Skeleton'
-import { LOADING } from '@/components/atoms/Skeleton/loading'
+import {
+  LOADING,
+  Skeleton,
+  SkeletonBlock,
+  SkeletonLine,
+} from '@/components/atoms/Skeleton/Skeleton'
 import { List } from '@/components/molecules/List/List'
 import { ListToolbar } from '@/components/molecules/ListToolbar/ListToolbar'
 import { ListItemSkeleton } from '@/components/molecules/ListItem/ListItemSkeleton'

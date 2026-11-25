@@ -10,6 +10,15 @@ import { tv } from '@/styles/tv'
  * the two cannot drift apart; these only supply the grey shapes.
  */
 
+/**
+ * Marks a loading placeholder. The phone sheet's fit (`useFitSnap`) holds its stop while one is in
+ * the body, so the sheet moves once, when the content arrives.
+ */
+export const LOADING_ATTR = 'data-sy-loading'
+
+/** Spread onto the element that wraps a placeholder. */
+export const LOADING = { [LOADING_ATTR]: '' }
+
 const SHAPE = 'rounded-full bg-gray-3'
 
 export interface SkeletonProps {

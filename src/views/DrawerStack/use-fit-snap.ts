@@ -1,6 +1,6 @@
 import { useLayoutEffect, useState } from 'react'
 
-import { LOADING_ATTR } from '@/components/atoms/Skeleton/loading'
+import { LOADING_ATTR } from '@/components/atoms/Skeleton/Skeleton'
 import { overlayContainer } from '@/lib/overlay'
 
 // The share of the frame the near-full snap shows. Content taller than this just takes it.

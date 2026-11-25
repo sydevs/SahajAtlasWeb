@@ -15,7 +15,7 @@ import {
   hasRegisterSlot,
 } from '@/components/organisms/EventDetails/EventRegister'
 import { EventDetailsSkeleton } from '@/components/organisms/EventDetails/EventDetailsSkeleton'
-import { LOADING } from '@/components/atoms/Skeleton/loading'
+import { LOADING } from '@/components/atoms/Skeleton/Skeleton'
 import { useEventDisplay } from '@/hooks/use-event-display'
 import { eventQuery } from '@/config/api'
 import { useIsWideWidget } from '@/config/responsive'
