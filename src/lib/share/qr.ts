@@ -19,12 +19,12 @@ export async function encodeQr(text: string): Promise<QrMatrix> {
 export const qrSvgPath = (matrix: QrMatrix): string =>
   matrix.flatMap((row, y) => row.map((dark, x) => (dark ? `M${x} ${y}h1v1h-1z` : ''))).join('')
 
-/** Long edge of the downloaded image: enough for an A4 poster at a generous print size. */
-const PNG_TARGET_PX = 1200
-
-/** Pixels per module: a whole number, so every edge prints sharp. */
+/**
+ * Pixels per module, as a whole number so every edge prints sharp. The 1200 px long edge is
+ * enough for an A4 poster at a generous print size.
+ */
 export const qrPngScale = (matrix: QrMatrix): number =>
-  Math.max(1, Math.floor(PNG_TARGET_PX / matrix.length))
+  Math.max(1, Math.floor(1200 / matrix.length))
 
 /**
  * A black-on-white PNG. The colours are fixed on purpose: scanners need dark on light, whatever
