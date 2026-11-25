@@ -5,9 +5,12 @@ import { tv } from '@/styles/tv'
 // The opened shape of Mapbox's credits button beside it on the map: one pill with the control at
 // its end. The pill sits behind the button, which drops its own outline and shadow while the pill
 // is out, so the two read as one shape. `pr-12` clears the 40px button and 8px of air.
+// ⚠ The button's outline and shadow fade on the pill's own timing. The Button recipe transitions
+// only background, colour and opacity, so they otherwise vanished at once while the pill was still
+// fading in, and the button showed bare for the length of the fade.
 const label = tv({
   slots: {
-    root: 'relative inline-flex [&[data-open]>button]:border-transparent [&[data-open]>button]:shadow-none',
+    root: 'relative inline-flex [&>button]:transition-[background,color,opacity,border-color,box-shadow] [&>button]:duration-150 motion-reduce:[&>button]:transition-none [&[data-open]>button]:border-transparent [&[data-open]>button]:shadow-none',
     pill: 'pointer-events-none absolute inset-y-0 right-0 flex items-center rounded-full border border-divider bg-background pr-12 pl-4 text-xs whitespace-nowrap text-gray-11 opacity-0 shadow-lg transition-opacity duration-150 motion-reduce:transition-none',
   },
   variants: {
