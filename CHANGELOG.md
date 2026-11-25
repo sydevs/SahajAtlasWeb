@@ -43,7 +43,7 @@ cover everything a host would notice since the widget was first deployed.
 
 ### Changed
 
-- **On a slow or failing connection the map and its panel appear at once.** ([#PR]) In the full
+- **On a slow or failing connection the map and its panel appear at once.** ([#490]) In the full
   map form the widget no longer shows a white page with "Loading…" while it reads your client
   record: the map draws straight away, and the panel stands where it will open, holding
   placeholders shaped like what is coming — the first screen's search box and country rows, a
@@ -55,7 +55,7 @@ cover everything a host would notice since the widget was first deployed.
   region arrive a moment after the map. The compact card and the map-less forms wait as before.
   **No parameter, origin, CSP, storage or Permissions-Policy change.**
 
-- **A failed security check pauses only signing up.** ([#PR]) When the Turnstile check can't load
+- **A failed security check pauses only signing up.** ([#490]) When the Turnstile check can't load
   — a CSP without `frame-src https://cloud.sydevelopers.com`, a domain missing from your client
   record, or a slow network — visitors can still move around the map, browse places and open
   classes. The registration form says why Register is off and offers Try again, which mounts a
@@ -63,7 +63,7 @@ cover everything a host would notice since the widget was first deployed.
   names both fixes, within about 40 seconds. ⚠ A page with the wrong settings no longer looks
   broken to you at a glance: check the console, or try registering, after changing your CSP.
 
-- **The search box is its 44px tap height on a touch screen again.** ([#PR]) It had grown to
+- **The search box is its 44px tap height on a touch screen again.** ([#490]) It had grown to
   about 134px on every phone and tablet.
 
 - **Every class in a list ends with the same arrow as a place.** ([#488]) A class row in a
@@ -1376,3 +1376,4 @@ must-revalidate`, pinned rather than left to the CDN default. The production dom
 [#470]: https://github.com/sydevs/SahajAtlasWeb/pull/470
 [#482]: https://github.com/sydevs/SahajAtlasWeb/pull/482
 [#488]: https://github.com/sydevs/SahajAtlasWeb/pull/488
+[#490]: https://github.com/sydevs/SahajAtlasWeb/pull/490
