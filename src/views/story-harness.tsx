@@ -182,12 +182,20 @@ export const NO_ERROR = 'None'
 export const EMPTY = 'Empty'
 
 /**
+ * `EMPTY` with filters applied: the list came back empty because of them, so the panel's way
+ * out is "Clear all" rather than somewhere else to look. Data too, like `EMPTY` — the story
+ * seeds the filters and the emptied list together.
+ */
+export const EMPTY_FILTERED = 'Empty · filtered'
+
+/**
  * The view still waiting on its data: the drawer's Suspense fallback, the chrome a view keeps
  * while it loads. Every view reaches it, so it sits beside "render normally" on every story.
  */
 export const LOADING = 'Loading'
 
-export type StoryFallbackArg = StoryErrorKey | typeof NO_ERROR | typeof EMPTY | typeof LOADING
+export type StoryFallbackArg =
+  StoryErrorKey | typeof NO_ERROR | typeof EMPTY | typeof EMPTY_FILTERED | typeof LOADING
 
 /**
  * Suspends for good, so the drawer's loading chrome stays on screen. Only from an update after
@@ -229,7 +237,9 @@ const FETCH_ERRORS = ['Offline', 'Server', 'Config', 'Unknown'] as const
  * This is a `select`, not a radio: with the shared failures appended it runs to seven
  * options, and a radio column that tall pushes the Example control off the panel.
  */
-export const stateControl = (...viewFallbacks: (StoryErrorKey | typeof EMPTY)[]) => ({
+export const stateControl = (
+  ...viewFallbacks: (StoryErrorKey | typeof EMPTY | typeof EMPTY_FILTERED)[]
+) => ({
   name: 'Fallback',
   options: [NO_ERROR, LOADING, ...viewFallbacks, ...FETCH_ERRORS] as StoryFallbackArg[],
   control: { type: 'select' as const },
@@ -239,7 +249,7 @@ export const stateControl = (...viewFallbacks: (StoryErrorKey | typeof EMPTY)[])
 export type ViewStoryProps = Omit<ViewHarnessProps, 'seedKey'> & {
   /** The example's key — folded into the harness's seedKey with the state. */
   example: string
-  /** The selected fallback state, or `NO_ERROR` / `EMPTY` to render the view. */
+  /** The selected fallback state, or `NO_ERROR` / `EMPTY` / `EMPTY_FILTERED` to render the view. */
   state?: StoryFallbackArg
 }
 
@@ -262,7 +272,9 @@ export type ViewStoryProps = Omit<ViewHarnessProps, 'seedKey'> & {
  */
 export function ViewStory({ example, state = NO_ERROR, children, ...harness }: ViewStoryProps) {
   const thrown =
-    state === NO_ERROR || state === EMPTY || state === LOADING ? undefined : STORY_ERRORS[state]
+    state === NO_ERROR || state === EMPTY || state === EMPTY_FILTERED || state === LOADING
+      ? undefined
+      : STORY_ERRORS[state]
 
   return (
     <ViewHarness {...harness} seedKey={`${example}·${state}`}>
