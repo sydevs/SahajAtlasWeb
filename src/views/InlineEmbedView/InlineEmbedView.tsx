@@ -255,7 +255,7 @@ export function InlineColumns({
       {/* The page heading sets the width here, so the bands' own cap is lifted. */}
       <div className="flex min-w-0 flex-col [--sy-content-max:none]">{children}</div>
       {hasMap && (
-        <div className="order-first px-4 @min-sy-cols:order-none @min-sy-cols:ps-0">
+        <div className="order-first px-gutter @min-sy-cols:order-none @min-sy-cols:ps-0">
           <div
             // ⚠ `contain: layout` makes this box the containing block for the canvas, which is
             // fixed. `transform-gpu` gives WebKit's compositor the same box to clip it to (#424).
@@ -350,12 +350,12 @@ function InlineLayout() {
           >
             <div
               ref={heading}
-              className="flex items-center gap-3 px-4"
+              className="flex items-center gap-3 px-gutter"
               style={{ scrollMarginTop: top + 16 }}
             >
               <PlaceHeading />
               {/* The negative end margin puts the 20px glyph, not its 32px (44px on touch) box,
-                  on the row's `px-4`, in line with the map's edge below. */}
+                  on the row's gutter, in line with the map's edge below. */}
               <SettingsMenu className="ms-auto -me-1.5 pointer-coarse:-me-3" variant="ghost" />
             </div>
             <MapProviders inline>
