@@ -21,6 +21,7 @@
   },
   "share": {
     "copy_link": "Պատճենել հղումը",
-    "share_on": "Կիսվել՝ %{platform}"
+    "share_on": "Կիսվել՝ %{platform}",
+    "qr_code": "QR կոդ՝ %{title}"
   }
 }
