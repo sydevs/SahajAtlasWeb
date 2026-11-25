@@ -9,7 +9,7 @@ import {
 } from 'react'
 import { Drawer as Vaul } from 'vaul'
 
-import { drawer, inPlaceTransform } from './drawer-style'
+import { RESULTS_BAND, drawer, inPlaceTransform } from './drawer-style'
 import { isIOS, useSheetDragClaim } from './sheet-touch'
 
 import { type VariantProps } from '@/styles/tv'
@@ -269,13 +269,27 @@ export function DrawerHeader({ children, className }: { children: ReactNode; cla
 export function DrawerToolbar({
   children,
   className,
+  field = false,
 }: {
   children: ReactNode
   className?: string
+  /**
+   * The band holds a `SearchField` and nothing else, so it carries the header's inset and its
+   * results width. Its own gutter, not the field's: `100cqi` is the band's content box.
+   */
+  field?: boolean
 }) {
   const { slots } = useDrawerSlots()
 
-  return <div className={slots.toolbar({ className })}>{children}</div>
+  return (
+    <div
+      className={slots.toolbar({
+        className: `${field ? `${RESULTS_BAND} px-gutter pb-2` : ''} ${className ?? ''}`,
+      })}
+    >
+      {children}
+    </div>
+  )
 }
 
 export function DrawerBody({

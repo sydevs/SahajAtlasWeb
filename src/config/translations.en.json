@@ -87,6 +87,7 @@
     "open": "Find a class near you"
   },
   "countries": {
+    "browse_heading": "Or browse by country",
     "title": "Free Meditation Classes"
   },
   "event": {
@@ -210,6 +211,7 @@
     }
   },
   "online": {
+    "subtitle": "Join from anywhere",
     "title": "Online Classes"
   },
   "registration": {

@@ -3,7 +3,7 @@ import { MemoryRouter } from 'react-router'
 import { describe, expect, it } from 'vitest'
 
 import { Button } from '@/components/atoms/Button'
-import { DrawerHeader } from '@/components/atoms/Drawer'
+import { DrawerHeader, DrawerToolbar } from '@/components/atoms/Drawer'
 import { ListItem } from '@/components/molecules/ListItem'
 import { ListToolbar } from '@/components/molecules/ListToolbar'
 import { EventHeader } from '@/components/organisms/EventDetails/EventHeader'
@@ -21,6 +21,12 @@ const firstClasses = (html: string) => (html.match(/class="([^"]*)"/)?.[1] ?? ''
 describe('the panel gutter', () => {
   it.each([
     ['the drawer header', <DrawerHeader key="h">title</DrawerHeader>],
+    [
+      "a search field's toolbar",
+      <DrawerToolbar key="t" field>
+        field
+      </DrawerToolbar>,
+    ],
     [
       'a list row',
       <MemoryRouter key="r">

@@ -9,7 +9,7 @@ import { ChevronLeft, Funnel } from 'lucide-react'
 // ⚠ By leaf path throughout: `BootFallback` renders before the interface's code has arrived, so
 // this module sits in the eager graph, and a barrel here would carry the whole interface into it.
 import { controlSurface } from '@/components/atoms/Button/Button'
-import { drawer, inPlaceTransform } from '@/components/atoms/Drawer/drawer-style'
+import { RESULTS_BAND, drawer, inPlaceTransform } from '@/components/atoms/Drawer/drawer-style'
 import {
   LOADING,
   Skeleton,
@@ -249,17 +249,25 @@ export function BootFallback() {
       const classes = entry?.kind === 'region' && !guessListsPlaces(entry.path, undefined)
 
       header = (
-        <div className={slots.header({ className: NAV_HEADER })}>
-          <NavRowSkeleton />
-          {words ? (
-            <div className={TITLE}>{t(words[0], { defaultValue: words[1] })}</div>
-          ) : (
-            <TitleSkeleton
-              // What RegionView says over a place's classes, which needs no data.
-              subtitle={classes ? t('common.chrome.all_classes_free') : undefined}
-            />
+        <>
+          <div className={slots.header({ className: NAV_HEADER })}>
+            <NavRowSkeleton />
+            {words ? (
+              <div className={TITLE}>{t(words[0], { defaultValue: words[1] })}</div>
+            ) : (
+              <TitleSkeleton
+                // What RegionView says over a place's classes, which needs no data.
+                subtitle={classes ? t('common.chrome.all_classes_free') : undefined}
+              />
+            )}
+          </div>
+          {/* RegionView's search box, under its title (`DrawerToolbar field`). */}
+          {entry?.kind === 'region' && (
+            <div className={slots.toolbar({ className: `${RESULTS_BAND} px-gutter pb-2` })}>
+              <MapSearchSkeleton />
+            </div>
           )}
-        </div>
+        </>
       )
     }
   }

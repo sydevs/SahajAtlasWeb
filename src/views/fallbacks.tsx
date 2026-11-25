@@ -32,7 +32,6 @@ import {
   CalendarButton,
   ExpandSheetButton,
   FilterButton,
-  SearchButton,
   SearchField,
   useDrawerControl,
 } from '@/views/shared'
@@ -53,6 +52,13 @@ const leadsWithGeocoder = (
   // code after that return reads `entry.slug`/`entry.id`. So it must narrow away `undefined`
   // and the search variant, exactly as the inline check it replaced did.
 ): entry is undefined | Extract<StackEntry, { kind: 'search' }> => !entry || entry.kind === 'search'
+
+/**
+ * Whether this route's view puts a search field under its title — a place page. The chrome
+ * mirrors that band, so nothing moves when the view arrives, and the body reads the same
+ * answer so it never draws a second field under it.
+ */
+const hasFieldBand = (entry: StackEntry | undefined) => entry?.kind === 'region'
 
 // What a DRAWER adds around the shared fallback body — the chrome that survives when
 // a view cannot render, and the routing knowledge only a drawer has. What the body
@@ -195,23 +201,19 @@ export function DrawerChrome({
   // The view's own header, so nothing moves when the view arrives. No title when nothing
   // resolved: a blank <h2> is a heading with no name, worse for a screen reader than none. A
   // place still loading draws its title's line instead, outside any heading.
-  return (
+  const header = (
     <NavHeader
       actions={
         <>
-          {/* A region's own header offers these three, and all still work — they navigate
-              rather than read. The calendar and the filters are scoped to the region whose page
-              failed, which is exactly where a viewer wanted to be. Not for a place that doesn't
-              exist: there is nothing to scope them to, and the message's own way out is the
-              only one that leads anywhere. */}
+          {/* Both still work — they navigate rather than read — and are scoped to the region
+              whose page failed, which is exactly where a viewer wanted to be. Not for a place
+              that doesn't exist: there is nothing to scope them to. */}
           {entry.kind === 'region' && !notFound && (
             <>
               <CalendarButton regionSlug={entry.slug} />
-              <SearchButton />
               <FilterButton iconOnly />
             </>
           )}
-          {entry.kind === 'online' && <SearchButton />}
           {entry.kind === 'calendar' && <FilterButton iconOnly />}
         </>
       }
@@ -220,6 +222,17 @@ export function DrawerChrome({
       subtitle={subtitle}
       title={title}
     />
+  )
+
+  if (!hasFieldBand(entry)) return header
+
+  // A place's search box, under its title. A dead place link keeps the band too: a search needs
+  // nothing from the place.
+  return (
+    <>
+      {header}
+      <DrawerToolbar field>{loading ? <MapSearchSkeleton /> : <SearchField />}</DrawerToolbar>
+    </>
   )
 }
 
@@ -362,11 +375,11 @@ export function ErrorPanel({ error, resetErrorBoundary }: FallbackProps) {
   return (
     <FallbackPanel
       align={fallbackAlign(entry?.kind)}
-      // The root and search chromes already lead with a geocoder, and a dead link
-      // asks for one — so without this check the screen would draw two: the
-      // header's and the body's. This uses the same predicate the chrome uses, so
+      // The root and search chromes lead with a geocoder, and a place's chrome has one under
+      // its title, while a dead link asks for one — so without this check the screen would
+      // draw two: the chrome's and the body's. These are the predicates the chrome uses, so
       // they cannot disagree about which routes those are.
-      hasSearchChrome={leadsWithGeocoder(entry)}
+      hasSearchChrome={leadsWithGeocoder(entry) || hasFieldBand(entry)}
       kind={kind === 'not-found' ? notFoundKind(entry?.kind) : kind}
       // The thrown developer string is not the headline. It is untranslated text written for
       // a developer, rendered to a viewer inside someone else's page. It survives as report
