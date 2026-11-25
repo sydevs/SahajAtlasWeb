@@ -22,6 +22,14 @@ import { overlayContainer } from '@/lib/overlay'
 
 export type DrawerDirection = 'left' | 'right' | 'top' | 'bottom'
 
+// A band hosting a `SearchField` hands the geocoder's suggestion list its width
+// (`--sy-results-w`, read in Mapbox/themes.ts): a dropdown narrower than the band left the
+// list's counts peeking out beside it. The field starts the band and the list sits 1px
+// inside the field's border on each side, hence the 2px. This belongs to the bands rather
+// than the views that mount a field, which drifted: the error chrome mounts a live field
+// (`views/fallbacks.tsx`) and had neither declaration.
+const RESULTS_BAND = '[container-type:inline-size] [--sy-results-w:calc(100cqi_-_2px)]'
+
 const drawer = tv({
   slots: {
     // ⚠ Clip, never hidden — `components/AGENTS.md` carries why (#326). The panel's own
@@ -34,19 +42,12 @@ const drawer = tv({
     // bottom sheet, the views read as a centred column, instead of stretching
     // edge to edge. This has no effect on the 352px anchored panel,
     // which is already narrower.
-    // A header hosting a `SearchField` also hands the geocoder's suggestion list its width
-    // (`--sy-results-w`, read in Mapbox/themes.ts): a dropdown narrower than the band left the
-    // list's counts peeking out beside it. The field starts the band and the list sits 1px
-    // inside the field's border on each side, hence the 2px. This belongs to the slot rather
-    // than the three views that mount a field, which drifted: the error chrome mounts a live
-    // field (`views/fallbacks.tsx`) and had neither declaration.
     // ⚠ The wider gap and bottom padding on a touch screen are the 44px tap floor, not
     // spacing taste (#432): the header's controls are drawn at 32px and each grows an
     // invisible 44px area, 6px past its own box on every side. At the 8px gap two of those
     // areas overlapped, the later control took the shared pixels, and every control but the
     // last measured 40px wide. The room is what lets each one have its own.
-    header:
-      '[container-type:inline-size] mx-auto flex w-full max-w-[var(--sy-content-max,512px)] shrink-0 items-center gap-2 px-gutter pt-4 pb-2 [--sy-results-w:calc(100cqi_-_2px)] pointer-coarse:gap-3 pointer-coarse:pb-3',
+    header: `${RESULTS_BAND} mx-auto flex w-full max-w-[var(--sy-content-max,512px)] shrink-0 items-center gap-2 px-gutter pt-4 pb-2 pointer-coarse:gap-3 pointer-coarse:pb-3`,
     // A second fixed band under the header, for controls that act on the
     // scrolling content below, such as SearchView's Filters and Sort. It
     // shares the header's width cap and `shrink-0`. It sits OUTSIDE the body,
@@ -392,13 +393,27 @@ export function DrawerHeader({ children, className }: { children: ReactNode; cla
 export function DrawerToolbar({
   children,
   className,
+  field = false,
 }: {
   children: ReactNode
   className?: string
+  /**
+   * The band holds a `SearchField` and nothing else, so it carries the header's inset and its
+   * results width. Its own gutter, not the field's: `100cqi` is the band's content box.
+   */
+  field?: boolean
 }) {
   const { slots } = useDrawerSlots()
 
-  return <div className={slots.toolbar({ className })}>{children}</div>
+  return (
+    <div
+      className={slots.toolbar({
+        className: `${field ? `${RESULTS_BAND} px-gutter pb-2` : ''} ${className ?? ''}`,
+      })}
+    >
+      {children}
+    </div>
+  )
 }
 
 export function DrawerBody({

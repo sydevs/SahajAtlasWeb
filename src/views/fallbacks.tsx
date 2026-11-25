@@ -203,11 +203,13 @@ export function DrawerChrome({
     <NavHeader
       actions={
         <>
-          {/* A region's own header offers these three, and all still work — they navigate
-              rather than read. The calendar and the filters are scoped to the region whose page
-              failed, which is exactly where a viewer wanted to be. Not for a place that doesn't
-              exist: there is nothing to scope them to, and the message's own way out is the
-              only one that leads anywhere. */}
+          {/* All three still work — they navigate rather than read. The calendar and the
+              filters are scoped to the region whose page failed, which is exactly where a viewer
+              wanted to be. Not for a place that doesn't exist: there is nothing to scope them to,
+              and the message's own way out is the only one that leads anywhere.
+              shortcut: the loaded region page puts a search field under its title instead of
+              this icon, so the header changes when it arrives; match it when this chrome gets a
+              field skeleton. */}
           {entry.kind === 'region' && !notFound && (
             <>
               <CalendarButton regionSlug={entry.slug} />
