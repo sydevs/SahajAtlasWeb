@@ -43,6 +43,15 @@ cover everything a host would notice since the widget was first deployed.
 
 ### Changed
 
+- **Every country, region and city panel has a search box under its title.** ([#485]) It is the
+  same "search for a place" field the first screen opens on, in place of the magnifier that led
+  to a separate search page, so a visitor who went into the wrong place can search again from
+  where they are. The box stays put while the list scrolls under it. Typing leaves the address
+  alone; picking a place opens its results with the active filters kept. The calendar and filter
+  controls stay in the header. While the box is on screen, the place search's hidden `aria-live`
+  region sits in your `<body>`, as it already did on the first screen. **No parameter, origin,
+  CSP, storage or Permissions-Policy change.**
+
 - **The map's buttons sit together in its top right corner.** ([#482]) Find my location, then
   settings, are two round buttons there — 40px, and 44px on a touch screen — with Mapbox's
   credits button beside them; in a window 480px tall or less they run as a row. Settings moved
@@ -1232,6 +1241,7 @@ must-revalidate`, pinned rather than left to the CDN default. The production dom
   (`//evil.com`) and non-allowlisted-scheme hrefs. Defense in depth — no live hole was
   found. ([#111], [#136])
 
+[#485]: https://github.com/sydevs/SahajAtlasWeb/pull/485
 [#478]: https://github.com/sydevs/SahajAtlasWeb/pull/478
 [#469]: https://github.com/sydevs/SahajAtlasWeb/pull/469
 [#192]: https://github.com/sydevs/SahajAtlasWeb/pull/192
