@@ -1,13 +1,11 @@
 /**
- * In-widget history shaping. The drawer stack is a pure function of the URL, but Back is
- * history-aware: every in-widget push stamps an incrementing `location.state.depth`, so Back
- * can go chronologically back (`navigate(-1)`) when in-widget history exists, and climbs only
- * for a fresh deep link, never popping the host page's own history. This is kept here (pure,
- * no react-router import), so the decision is unit-testable in isolation from the components
- * that apply it.
+ * Where Back goes. The drawer stack is a pure function of the URL, but Back is history-aware:
+ * every in-widget push stamps `location.state`, so Back steps back (`navigate(-1)`) through
+ * in-widget history and climbs only for a fresh deep link, never popping the host page's own
+ * history. Pure, with no react-router import, so the decision tests in isolation.
  */
 import { ancestorIds, indexRegions } from './hierarchy'
-import { type PlacePathOf, placedPathname, resolveStack } from './path'
+import { type PlacePathOf, type StackEntry, placedPathname, resolveStack } from './path'
 
 /**
  * The `state` shape we stamp on in-widget pushes (via the Link atom + useAtlasNavigate). A
@@ -20,6 +18,13 @@ export type AtlasNavState = { depth?: number; from?: string; climbedFrom?: strin
 const navState = (location: { state?: unknown }): { [K in keyof AtlasNavState]?: unknown } =>
   typeof location.state === 'object' && location.state !== null ? location.state : {}
 
+// A stamped route, or `undefined` when the stamp is missing or not a string.
+const stamp = (location: { state?: unknown }, key: 'from' | 'climbedFrom'): string | undefined => {
+  const value = navState(location)[key]
+
+  return typeof value === 'string' ? value : undefined
+}
+
 /**
  * The in-widget history depth carried on a location's `state`. A fresh deep link
  * (or any navigation we did not stamp) has no numeric depth, so it reads as 0.
@@ -31,15 +36,11 @@ export const atlasDepth = (location: { state?: unknown }): number => {
 }
 
 /**
- * The `state` to stamp on an in-widget push: one level deeper than the current
- * entry. The single definition of the depth-stamp convention, shared by the Link
- * atom (declarative `state` prop) and `useAtlasNavigate` (imperative), so the two
- * paths cannot silently diverge. Pair it with `rememberCamera(location.key)` at
- * click time, so a later back restores the camera. That stays a separate call,
- * because Link stamps `state` at render but can only capture the live camera on click.
- *
- * `from` records where the push left, query included, so Back can name the entry
- * `navigate(-1)` lands on: history itself can be moved through, never read.
+ * The `state` to stamp on an in-widget push, shared by the Link atom and `useAtlasNavigate` so
+ * the two cannot diverge: one level deeper, and `from`, where the push left (query included), so
+ * Back can name the entry `navigate(-1)` lands on. History can be moved through, never read.
+ * Pair it with `rememberCamera(location.key)` at click time: Link stamps `state` at render, but
+ * can only capture the live camera on click.
  */
 export const atlasPushState = (location: {
   state?: unknown
@@ -70,20 +71,22 @@ export const passablePlaces = (
   regions: readonly { id: number; slug: string; level?: string | null; parent?: number | null }[],
   classes: readonly { region: { id: number }; online: boolean }[],
 ): Set<string> => {
-  const index = indexRegions([...regions])
-  const located = new Map<number, number>()
-  const online = new Map<number, number>()
+  const index = indexRegions(regions)
+  // How many classes sit under each place, and which places hold an in-person one.
+  const count = new Map<number, number>()
+  const inPerson = new Set<number>()
 
   for (const item of classes) {
-    const tally = item.online ? online : located
-
-    for (const id of ancestorIds(index, item.region.id)) tally.set(id, (tally.get(id) ?? 0) + 1)
+    for (const id of ancestorIds(index, item.region.id)) {
+      count.set(id, (count.get(id) ?? 0) + 1)
+      if (!item.online) inPerson.add(id)
+    }
   }
 
   return new Set(
     regions
       .filter(
-        (node) => node.level === 'venue' || (located.get(node.id) === 1 && !online.has(node.id)),
+        (node) => node.level === 'venue' || (count.get(node.id) === 1 && inPerson.has(node.id)),
       )
       .map((node) => node.slug),
   )
@@ -94,19 +97,11 @@ export const passablePlaces = (
  * worth landing on (`passablePlaces`), along the place's real ancestry (`placedPathname`),
  * not the words typed in the address. With nothing known yet it is the structural parent.
  */
-export const climbDestination = (pathname: string, { passable, pathOf }: ClimbInputs = {}) => {
-  const entries = resolveStack(placedPathname(pathname, pathOf))
-  let index = entries.length - 2
-
-  while (index >= 0) {
-    const entry = entries[index]
-
-    if (entry.kind !== 'region' || !passable?.has(entry.slug)) break
-    index -= 1
-  }
-
-  return index >= 0 ? entries[index].path : '/'
-}
+export const climbDestination = (pathname: string, { passable, pathOf }: ClimbInputs = {}) =>
+  resolveStack(placedPathname(pathname, pathOf))
+    .slice(0, -1)
+    .reverse()
+    .find((entry) => entry.kind !== 'region' || !passable?.has(entry.slug))?.path ?? '/'
 
 /** What Back does: where it lands, and whether getting there is a step back in history. */
 export type BackStep = { to: string; history: boolean }
@@ -123,9 +118,9 @@ export const backStep = (
 ): BackStep | undefined => {
   if (resolveStack(location.pathname).length === 0) return undefined
 
-  const { from } = navState(location)
+  const from = stamp(location, 'from')
 
-  if (atlasDepth(location) > 0 && typeof from === 'string') return { to: from, history: true }
+  if (atlasDepth(location) > 0 && from) return { to: from, history: true }
 
   const parent = climbDestination(location.pathname, climb)
 
@@ -133,15 +128,12 @@ export const backStep = (
   return { to: parent === '/search' ? `${parent}${location.search ?? ''}` : parent, history: false }
 }
 
-const routeOf = (value: unknown): string | undefined =>
-  typeof value === 'string' ? value.split('?')[0] : undefined
-
-// The class an address ends on, by id: a class's own `webPath` and its place's path plus its id
-// are two addresses for one class.
-const classIdOf = (route: string): string | undefined => /\/(\d+)$/.exec(route)?.[1]
-
-const sameClass = (route: string, lone: string): boolean =>
-  route === lone || (classIdOf(route) !== undefined && classIdOf(route) === classIdOf(lone))
+// The class a route shows, or sits on (its Register or Share), by id: a class's own `webPath` and
+// its place's path plus its id are two addresses for one class.
+const classOf = (route: string): number | undefined =>
+  resolveStack(route.split('?')[0])
+    .reverse()
+    .find((entry): entry is Extract<StackEntry, { kind: 'event' }> => entry.kind === 'event')?.id
 
 /**
  * How this location was reached, for a place whose only class sits at `lone`. Such a place opens
@@ -149,22 +141,21 @@ const sameClass = (route: string, lone: string): boolean =>
  *
  * - `'climbed'` — a structural climb (Back, swipe or Escape at depth 0) left the class or a place
  *   above it, so the place climbs on, as Back already said it would.
- * - `'back'` — a step back from the class, or from a page stacked on it (its Register or Share),
- *   so the place shows its own page.
+ * - `'back'` — a step back from the class, or from its Register or Share, so the place shows its
+ *   own page.
  * - `undefined` — an arrival, a push from a place above included, so the place opens its class.
  */
 export const loneClassExit = (
   location: { state?: unknown },
   lone: string,
 ): 'climbed' | 'back' | undefined => {
-  const climbed = routeOf(navState(location).climbedFrom)
+  const id = classOf(lone)
+  const isLone = (route: string) => id !== undefined && classOf(route) === id
+  const climbed = stamp(location, 'climbedFrom')?.split('?')[0]
+  const from = stamp(location, 'from')
 
-  if (climbed !== undefined && (sameClass(climbed, lone) || lone.startsWith(`${climbed}/`)))
-    return 'climbed'
-
-  const from = routeOf(navState(location).from)
-
-  if (from !== undefined && (sameClass(from, lone) || from.startsWith(`${lone}/`))) return 'back'
+  if (climbed && (isLone(climbed) || lone.startsWith(`${climbed}/`))) return 'climbed'
+  if (from && isLone(from)) return 'back'
 
   return undefined
 }
