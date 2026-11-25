@@ -14,14 +14,27 @@ import { tv } from '@/styles/tv'
 
 const listRow = tv({
   slots: {
-    row: 'flex items-center px-gutter text-inherit transition-colors hover:bg-primary-2 active:bg-primary-3 dark:hover:bg-gray-3 dark:active:bg-gray-4',
+    // `gap-1` is the Link atom's own, stated here so a placeholder row, which is no link, lays
+    // out the same.
+    row: 'flex items-center gap-1 px-gutter',
     // The chevron only restates what tapping the row already does, so it
     // sits a step below the quietest text in any row (gray-11, #432).
     chevron: 'text-gray-9 rtl:-scale-x-100',
   },
+  variants: {
+    // A placeholder row (`ListRowSkeleton`) takes no hover or press feedback: nothing there
+    // answers a tap.
+    inert: {
+      false: {
+        row: 'text-inherit transition-colors hover:bg-primary-2 active:bg-primary-3 dark:hover:bg-gray-3 dark:active:bg-gray-4',
+      },
+    },
+  },
+  defaultVariants: { inert: false },
 })
 
 const { row, chevron } = listRow()
+const inertRow = listRow({ inert: true }).row
 
 /**
  * A navigable row inside a `List`: the shell every card renders its content
@@ -37,6 +50,27 @@ export function ListRow({ className, children, ...props }: LinkProps) {
         {children}
         <ChevronRight className={chevron()} size={20} />
       </Link>
+    </li>
+  )
+}
+
+/**
+ * A `ListRow` before its content is known: the same box, gutter and chevron, as no link. A card's
+ * skeleton renders its placeholders into this, as the card renders into `ListRow`.
+ */
+export function ListRowSkeleton({
+  className,
+  children,
+}: {
+  className?: string
+  children: ReactNode
+}) {
+  return (
+    <li>
+      <div className={inertRow({ className })}>
+        {children}
+        <ChevronRight className={chevron()} size={20} />
+      </div>
     </li>
   )
 }

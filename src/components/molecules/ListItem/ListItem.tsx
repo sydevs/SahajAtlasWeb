@@ -1,5 +1,7 @@
 import type { ReactNode } from 'react'
 
+import { LIST_ITEM_COUNT, LIST_ITEM_ICON, LIST_ITEM_LABEL, LIST_ITEM_ROW } from './ListItemSkeleton'
+
 import { ListRow } from '@/components/molecules/List/List'
 
 export interface ListItemProps {
@@ -24,18 +26,18 @@ export interface ListItemProps {
  */
 export function ListItem({ label, count, href, icon }: ListItemProps) {
   return (
-    <ListRow className="min-h-14 py-3" href={href}>
+    <ListRow className={LIST_ITEM_ROW} href={href}>
       {icon && (
         // One 24px slot at every width, so a flag row is no taller than a plain one.
-        <span className="me-3 flex h-6 w-6 shrink-0 items-center justify-center">{icon}</span>
+        <span className={LIST_ITEM_ICON}>{icon}</span>
       )}
-      <div className="flex-grow text-lg">{label}</div>
+      <div className={LIST_ITEM_LABEL}>{label}</div>
       {/* The count steps down from the title, and ListRow's chevron one
           step further. The count is still information, so it keeps
           gray-11, the ramp's readable low-contrast TEXT step — gray-10 is
           a hover solid and measured under 4.5:1 here (#432). The title
           stays `text-foreground` (gray-12), the loudest thing in the row. */}
-      <div className="me-1 text-end text-sm text-gray-11">{count}</div>
+      <div className={LIST_ITEM_COUNT}>{count}</div>
     </ListRow>
   )
 }

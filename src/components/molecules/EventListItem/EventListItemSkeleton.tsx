@@ -1,9 +1,13 @@
 import { SkeletonLine } from '@/components/atoms/Skeleton'
 import { EventFactsSkeleton } from '@/components/molecules/EventFacts/EventFactsSkeleton'
+import { ListRowSkeleton } from '@/components/molecules/List/List'
 
 /** Shared with `EventListItem`, so a card's placeholder and the card cannot drift apart. */
-export const EVENT_CARD = 'flex flex-col gap-1.5 py-4'
+export const EVENT_CARD = 'py-4'
+// `min-w-0` lets a truncating chip or an unbroken title shrink instead of pushing the chevron out.
+export const EVENT_CARD_BODY = 'flex min-w-0 flex-1 flex-col gap-1'
 export const EVENT_CARD_TITLE = 'line-clamp-2 text-lg'
+export const EVENT_CARD_FACTS = 'mt-0.5 mb-1'
 
 export interface EventListItemSkeletonProps {
   /** The title's width, so a column of cards doesn't read as one block. */
@@ -18,12 +22,11 @@ export function EventListItemSkeleton({
   online = false,
 }: EventListItemSkeletonProps) {
   return (
-    <li>
-      {/* The row's gutter without `listRow`'s hover and press states: nothing here is a link. */}
-      <div className={`px-gutter ${EVENT_CARD}`}>
+    <ListRowSkeleton className={EVENT_CARD}>
+      <div className={EVENT_CARD_BODY}>
         <SkeletonLine className={EVENT_CARD_TITLE} width={width} />
-        <EventFactsSkeleton online={online} variant="compact" />
+        <EventFactsSkeleton className={EVENT_CARD_FACTS} online={online} variant="compact" />
       </div>
-    </li>
+    </ListRowSkeleton>
   )
 }
