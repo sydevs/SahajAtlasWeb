@@ -187,10 +187,10 @@ Ten stores, each the single source of truth for its own slice:
   provider renders `DrawerStack`, so a context would have to flow the wrong way, and
   the drawer must not import the map's hooks. It carries `null` wherever there is no
   bottom sheet, and the camera falls back to the open snap's height.
-- **`useSettingsCog`** — whether the map's settings cog is hidden: on the full-width
-  calendar, and at the phone sheet's near-full stop, which covers the control column anyway.
-  A store for `useSheetCover`'s reason: `DrawerStack` decides it and the map's control
-  column (`Mapbox/MapControls`) draws the cog, and neither renders the other's context.
+- **`useMapControls`** — whether the map's control column (find-me, settings, the credits)
+  is hidden. `DrawerStack` sets it at the phone sheet's near-full stop, which covers all of the
+  column but a sliver of its top. A store for `useSheetCover`'s reason: whatever covers the map
+  decides, `Mapbox/MapControls` draws the column, and neither renders the other's context.
 - **`useBrowsedCountry`** — the ISO code of the last country page shown, which scopes
   the place search's suggestions. ⚠ **This is the one slice that looks like it belongs
   in the URL and does not.** The URL holds what a link must reproduce for whoever opens

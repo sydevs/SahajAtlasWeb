@@ -14,6 +14,7 @@ import { readRepoSource as read } from '@/test-support/repo-source'
 // constructs a map, which takes a WebGL context the node lane does not have.
 const MAP = 'src/components/organisms/Mapbox/Map.tsx'
 const CONTROLS = 'src/components/organisms/Mapbox/MapControls.tsx'
+const LOCATE = 'src/components/organisms/Mapbox/use-locate.ts'
 const STYLES = 'src/styles/globals.css'
 const MAPBOX_STYLES = 'node_modules/mapbox-gl/dist/mapbox-gl.css'
 // Where the bottom sheet's snap ladder lives, whose lowest stop rules out both bottom corners for
@@ -95,7 +96,10 @@ describe('a refused location request', () => {
   it("is asked for by the column's button, with Mapbox's own hidden", () => {
     // Mapbox's button left visible would be a second find-me in the corner.
     expect(control, 'the GeolocateControl element').toContain('showButton={false}')
-    expect(map).toMatch(/const control = geolocateRef\.current[\s\S]*?control\.trigger\(\)/)
+    expect(control).toContain('ref={locate.geolocateRef}')
+    expect(read(LOCATE)).toMatch(
+      /const control = geolocateRef\.current[\s\S]*?control\.trigger\(\)/,
+    )
   })
 
   it('opens a dialog that is a sibling of the map, not part of its subtree', () => {
@@ -110,7 +114,7 @@ describe('a refused location request', () => {
   it('hands focus back to the locate control on close', () => {
     // Radix returns focus to a `Dialog.Trigger`, and this dialog has none.
     expect(map.split('</ReactMapGL>')[1]).toMatch(
-      /onCloseAutoFocus=\{[\s\S]*?locateButtonRef\.current\?\.focus\(\)/,
+      /onCloseAutoFocus=\{[\s\S]*?locate\.buttonRef\.current\?\.focus\(\)/,
     )
   })
 })

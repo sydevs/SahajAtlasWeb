@@ -32,7 +32,7 @@ import { useWidgetMode } from '@/config/mode'
 import {
   useBrowsedCountry,
   useCalendarPosition,
-  useSettingsCog,
+  useMapControls,
   useSheetCover,
 } from '@/config/store'
 import { frameElement, overlayContainer } from '@/lib/overlay'
@@ -222,8 +222,7 @@ export function DrawerStack() {
   // The calendar is the one full-width view. It fills the widget, minus the floating margins,
   // instead of the 352px left panel (see the Drawer `wide` variant) — EXCEPT in its list
   // (agenda) view, one narrow column that reads better at the regular width. `isWide` is here
-  // because the wide panel exists only above the crossing; below it `wide` gates the settings
-  // cog alone, which a phone in month view had lost (#331). The view is read reactively, so
+  // because the wide panel exists only above the crossing (#331). The view is read reactively, so
   // switching it resizes the drawer. Date changes do not re-render this component.
   const calendarView = useCalendarPosition((s) => s.view)
   const wide = top?.kind === 'calendar' && isWide && calendarView !== CALENDAR_VIEW_LIST
@@ -343,16 +342,17 @@ export function DrawerStack() {
     return () => setSheetCover(null)
   }, [sheetCover, setSheetCover])
 
-  // The map's settings cog (`Mapbox/MapControls`) has no clean corner on the full-width
-  // calendar, and the sheet's near-full stop covers it, leaving its top edge showing.
-  const cogHidden = wide || (direction === 'bottom' && vaulSnap === WIDE_SNAP)
-  const setCogHidden = useSettingsCog((s) => s.setHidden)
+  // The sheet's near-full stop covers the map's control column all but its top edge, which would
+  // show as a row of slivers above the sheet. Everywhere else a drawer either leaves the column
+  // clear or covers it whole.
+  const controlsHidden = direction === 'bottom' && vaulSnap === WIDE_SNAP
+  const setControlsHidden = useMapControls((s) => s.setHidden)
 
   useEffect(() => {
-    setCogHidden(cogHidden)
+    setControlsHidden(controlsHidden)
 
-    return () => setCogHidden(false)
-  }, [cogHidden, setCogHidden])
+    return () => setControlsHidden(false)
+  }, [controlsHidden, setControlsHidden])
 
   // Mirrors the active sheet's live top onto the sheet itself, every frame, so what reads it
   // tracks a drag without waiting for the snap to settle (map plus mobile only). It is what

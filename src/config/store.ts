@@ -316,17 +316,18 @@ export const useSheetCover = create<SheetCoverState>((set) => ({
   setBottom: (bottom) => set(() => ({ bottom })),
 }))
 
-type SettingsCogState = {
-  /** True where the view on top leaves no clean corner for the map's settings cog. */
+type MapControlsState = {
+  /** True where something over the map leaves its control column no clean place to show. */
   hidden: boolean
   setHidden: (hidden: boolean) => void
 }
 
 /**
- * The drawer decides when the cog is hidden and the map's control column draws it. Like
- * `useSheetCover`, neither side renders the other's context.
+ * Hides the map's whole control column (`Mapbox/MapControls`): find-me, settings and the credits.
+ * Whatever covers the map decides, and the column draws itself; like `useSheetCover`, neither side
+ * renders the other's context.
  */
-export const useSettingsCog = create<SettingsCogState>((set) => ({
+export const useMapControls = create<MapControlsState>((set) => ({
   hidden: false,
   setHidden: (hidden) => set(() => ({ hidden })),
 }))

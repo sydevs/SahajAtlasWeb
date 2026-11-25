@@ -1,6 +1,7 @@
 import type { AttributionControl, IControl, Map as MapboxMap } from 'mapbox-gl'
+import type { LocateState } from './use-locate'
 
-import { memo, type Ref } from 'react'
+import { memo, type Ref, useEffect } from 'react'
 import { createPortal } from 'react-dom'
 import { useTranslation } from 'react-i18next'
 import { useControl } from 'react-map-gl/mapbox'
@@ -11,10 +12,7 @@ import { Spinner } from '@/components/atoms/Spinner'
 import { HoverLabel } from '@/components/atoms/HoverLabel'
 import { SettingsMenu } from '@/components/molecules/SettingsMenu'
 import { useIsShortViewport } from '@/config/responsive'
-import { useSettingsCog } from '@/config/store'
-
-/** Where the visitor's last "find me" request stands. */
-export type LocateState = 'idle' | 'waiting' | 'found' | 'failed'
+import { useMapControls } from '@/config/store'
 
 const LOCATE_TINT: Partial<Record<LocateState, string>> = {
   found: 'text-primary-11',
@@ -48,6 +46,11 @@ class ControlColumn implements IControl {
     return this.root
   }
 
+  /** `visibility`, so a hidden column also leaves the tab order and the accessibility tree. */
+  hide(hidden: boolean) {
+    this.root.style.visibility = hidden ? 'hidden' : ''
+  }
+
   onRemove() {
     this.attribution.onRemove()
     this.root.remove()
@@ -69,7 +72,7 @@ export const MapControls = memo(function MapControls({
   locateRef,
 }: MapControlsProps) {
   const { t } = useTranslation()
-  const cogHidden = useSettingsCog((s) => s.hidden)
+  const hidden = useMapControls((s) => s.hidden)
   // A phone on its side is too short for a column, so the buttons run as a row there, clear of
   // the short window's sheet, which `DrawerStack` caps by the same signal.
   const short = useIsShortViewport()
@@ -80,6 +83,8 @@ export const MapControls = memo(function MapControls({
     ({ mapLib }) => new ControlColumn(new mapLib.AttributionControl({ compact: true })),
     { position: 'top-right' },
   )
+
+  useEffect(() => column.hide(hidden), [column, hidden])
 
   const locateLabel = t('common.map.find_my_location')
 
@@ -102,7 +107,7 @@ export const MapControls = memo(function MapControls({
           )}
         </Button>
       </HoverLabel>
-      {!cogHidden && <SettingsMenu labelled align="end" />}
+      <SettingsMenu labelled align="end" />
     </div>,
     column.slot,
   )

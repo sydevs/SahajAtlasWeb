@@ -371,10 +371,14 @@ take exactly the stylesheet rules above. So `MapControls` is a single `useContro
 lays out its own children:
 
 - **Find-me and settings are floating `Button`s**, so they take the theme in every state, and
-  each draws its name out of its end in a `HoverLabel` on hover and keyboard focus, the same pill shape as the credits button opened. The settings cog is hidden
-  where `useSettingsCog` says (the full-width calendar, the sheet's near-full stop).
+  each draws its name out of its end in a `HoverLabel` on hover and keyboard focus, the same pill
+  shape as the credits button opened.
+- **The whole column hides on `useMapControls`.** Today only the phone sheet's near-full stop sets
+  it, since there the sheet covers all of the column but a sliver of its top; a drawer elsewhere
+  leaves it clear or covers it whole. Anything else that covers the map, or takes these controls
+  over itself, sets the same switch.
 - **Find-me drives Mapbox's `GeolocateControl` without showing it.** `Map.tsx` renders it with
-  `showButton={false}`, and our button calls its `trigger()`; the blue dot, the permission flow
+  `showButton={false}`, and our button calls its `trigger()` through `useLocate`; the blue dot, the permission flow
   and the `onError` dialog are unchanged. A permission denied before the map loaded used to
   leave Mapbox's button disabled and silent — `trigger()` asks anyway, so that case reaches the
   dialog too.

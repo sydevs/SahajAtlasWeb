@@ -1,5 +1,5 @@
 import type { FeatureCollection, Geometry } from 'geojson'
-import type { GeoJSONSource, GeolocateControl as MapboxGeolocate } from 'mapbox-gl'
+import type { GeoJSONSource } from 'mapbox-gl'
 import type { Geojson } from '@/types'
 import type { DisplayableEvent } from '@/hooks/use-event-display'
 
@@ -31,10 +31,11 @@ import {
   LAYER_IDS,
   type SymbolLayerProps,
 } from './layers'
-import { type LocateState, MapControls } from './MapControls'
+import { MapControls } from './MapControls'
 import { mapWorldview, syncMapLanguage } from './map-language'
 import { loadMapLib } from './map-lib'
 import { markerColors, registerMarkerImages } from './markers'
+import { useLocate } from './use-locate'
 import { pinPopoverPlacement, type PopoverAnchor } from './pin-popover'
 
 import { Button } from '@/components/atoms/Button'
@@ -290,6 +291,7 @@ export function Mapbox({ cooperative = false }: { cooperative?: boolean } = {}) 
   // since the feed is already available here. The hook frames around the
   // nearest classes in it.
   const geolocateToSearch = useGeolocateToSearch(data)
+  const locate = useLocate(geolocateToSearch)
 
   // The tenant's resolved palette, as `BrandTheme` painted the UI from it.
   //
@@ -374,45 +376,6 @@ export function Mapbox({ cooperative = false }: { cooperative?: boolean } = {}) 
   // A touch device gets no hover at all, so one tap opens the class. iOS sends a fake mouse move
   // before a tap, and when that reveals content Safari treats the tap as a hover and doesn't click.
   const hasRealPointer = useHasRealPointer()
-
-  // Mapbox's locate control fails silently otherwise (#321). Its own button is hidden, and ours
-  // calls `trigger()`, which asks even where the permission was denied before the map loaded, so
-  // that case reaches `onError` too.
-  const [locationFailed, setLocationFailed] = useState(false)
-  const [locate, setLocate] = useState<LocateState>('idle')
-  const geolocateRef = useRef<MapboxGeolocate>(null)
-  const locateButtonRef = useRef<HTMLButtonElement>(null)
-  // Mirrors 'waiting' for `locateMe`, which stays stable for the memoised controls: a second tap
-  // while a request is out would start another, and its answer would navigate a second time.
-  const locating = useRef(false)
-  const showLocate = useCallback((state: LocateState) => {
-    locating.current = state === 'waiting'
-    setLocate(state)
-  }, [])
-  const failLocate = useCallback(() => {
-    showLocate('failed')
-    setLocationFailed(true)
-  }, [showLocate])
-  const locateMe = useCallback(() => {
-    const control = geolocateRef.current
-
-    if (!control || locating.current) return
-
-    // ⚠ `trigger()` answers false until the control's own setup has run, which waits on a
-    // permissions query after the map loads, and it throws where the page has no geolocation at
-    // all. Mapbox's own button was disabled through both; ours waits, or reports the failure.
-    const ask = () => {
-      try {
-        if (control.trigger()) return showLocate('waiting')
-      } catch {
-        return failLocate()
-      }
-      showLocate('waiting')
-      control.once('ready', ask)
-    }
-
-    ask()
-  }, [showLocate, failLocate])
 
   // This filters the feed before it reaches the clustering source, so
   // cluster counts reflect the filters — a layer-level `filter` would leave
@@ -642,25 +605,19 @@ export function Mapbox({ cooperative = false }: { cooperative?: boolean } = {}) 
             source code says otherwise. This was verified against the running
             control, rather than trusting either claim. */}
         <GeolocateControl
-          ref={geolocateRef}
+          ref={locate.geolocateRef}
           followUserLocation={false}
           positionOptions={LOCATE_POSITION_OPTIONS}
           showButton={false}
-          onError={failLocate}
-          // An answer that arrives after a reported failure wins: the map and list are right,
-          // and an error on top of them would be false.
-          onGeolocate={(position) => {
-            showLocate('found')
-            setLocationFailed(false)
-            geolocateToSearch(position)
-          }}
+          onError={locate.onError}
+          onGeolocate={locate.onGeolocate}
         />
         {/* Carries the attribution `attributionControl` above declines, in the top right, the
             one corner no drawer covers. Why that corner, and why the wordmark sits apart in the
             bottom right: `docs/rules/mapbox.md`, "The wordmark and the attribution" (#330). */}
-        <MapControls locate={locate} locateRef={locateButtonRef} onLocate={locateMe} />
+        <MapControls locate={locate.state} locateRef={locate.buttonRef} onLocate={locate.locate} />
       </ReactMapGL>
-      <Modal open={locationFailed} onOpenChange={setLocationFailed}>
+      <Modal open={locate.failed} onOpenChange={locate.setFailed}>
         <ModalContent
           closeLabel={t('common.chrome.close')}
           description={t('common.map.location_failed')}
@@ -668,7 +625,7 @@ export function Mapbox({ cooperative = false }: { cooperative?: boolean } = {}) 
           onCloseAutoFocus={(event) => {
             // Radix returns focus to a `Dialog.Trigger`, and the locate control is not one.
             event.preventDefault()
-            locateButtonRef.current?.focus()
+            locate.buttonRef.current?.focus()
           }}
         >
           <ModalFooter>
