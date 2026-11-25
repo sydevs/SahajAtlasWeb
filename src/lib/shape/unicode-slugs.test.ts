@@ -176,10 +176,14 @@ describe('a segment is decoded once', () => {
 })
 
 describe('NFC reaches the region index', () => {
-  it('finds a place whose CMS slug was typed decomposed', () => {
-    const decomposedSlug = 'universität-trier'.normalize('NFD')
-    const index = indexRegions([{ id: 1, slug: decomposedSlug, parent: null }])
+  const decomposedSlug = 'universität-trier'.normalize('NFD')
+  const index = indexRegions([{ id: 1, slug: decomposedSlug, parent: null }])
 
+  it('finds a place whose CMS slug was typed decomposed', () => {
     expect(index.bySlug.get('universität-trier'.normalize('NFC'))?.id).toBe(1)
+  })
+
+  it('still finds it by its own raw spelling, which `ancestorSlugs` hands back', () => {
+    expect(index.bySlug.get(decomposedSlug)?.id).toBe(1)
   })
 })
