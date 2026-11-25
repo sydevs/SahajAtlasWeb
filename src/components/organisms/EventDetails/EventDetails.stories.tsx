@@ -131,7 +131,10 @@ export const Default: Story = () => (
       description="While a class loads: the way back works at once, the title shows if a list already named it, and the rest is drawn from the page's own layout. Where only the page's code is still on its way, the real chips and facts stand in for their placeholders. The real page sits beside it for comparison."
       title="Loading"
     >
-      <div className="grid max-w-4xl grid-cols-3 gap-4">
+      {/* Three across only once each column is a panel's width. Squeezed to a third of a
+          phone, the real page's carousel packs its pagination bullets closer than a finger
+          can hit them, and the accessibility gate measures that (#432). */}
+      <div className="grid max-w-4xl grid-cols-1 gap-4 md:grid-cols-3">
         <div className="border border-divider">
           <EventHeaderSkeleton />
           <EventDetailsSkeleton />
