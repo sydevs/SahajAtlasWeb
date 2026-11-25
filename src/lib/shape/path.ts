@@ -10,26 +10,40 @@ import type { BBox } from 'geojson'
 import { filtersFromParams, filtersToParams } from './filters'
 import { sortFromParams, sortToParams } from './sort'
 
-/** Decodes a URL segment, tolerating a malformed `%` escape (returns it unchanged). */
-const safeDecode = (segment: string): string => {
-  try {
-    return decodeURIComponent(segment)
-  } catch {
-    return segment
-  }
-}
-
 /**
- * A pathname with every segment percent-decoded, so it reads as `webPath` spells it.
+ * Decodes a pathname — or a single segment — to the raw Unicode a `webPath` carries, segment
+ * by segment, and composes it to NFC.
  *
- * ⚠ Decode BEFORE `safePath`, never after: `/%2F%2Fevil.example` has to meet that guard as the
- * `//evil.example` it decodes to. Segment by segment, so one malformed escape costs its own slug
- * instead of the whole route.
+ * A slug keeps its native letters (`софия`, `universität-trier`), and the address bar hands
+ * them over percent-encoded, so every comparison against the region tree's raw `webPath`
+ * decodes first. NFC because the same letter has two spellings (`ä` as one code point, or `a`
+ * plus a combining mark), and a typed or pasted address may use either.
+ *
+ * A segment whose decoded form would change the path's structure or meaning (`%2F`, `%5C`,
+ * `%3F`, `%23`, `%25`, control characters) stays encoded, and a malformed escape is left as
+ * it came — so `/a%2Fb` is one segment to every caller, not two.
+ *
+ * ⚠ NFC is ours alone: SahajCloud's `parseAtlasRoute` decodes without composing, so an NFD
+ * address resolves here and 404s there, and the page's SEO canonical would then name a
+ * different document than the page. `indexRegions` keys `bySlug` NFC to hold our half.
+ *
+ * ⚠ Decode BEFORE `safePath`, never after: a route has to meet that guard as what it decodes
+ * to. Segment by segment, so one malformed escape costs its own slug instead of the whole route.
  */
-export const decodePath = (pathname: string): string =>
+export const safeDecode = (pathname: string): string =>
   pathname
     .split('/')
-    .map((segment) => safeDecode(segment))
+    .map((segment) => {
+      try {
+        const decoded = decodeURIComponent(segment).normalize('NFC')
+
+        return /[/\\?#%\u0000-\u001f\u007f]/.test(decoded) ? segment : decoded
+      } catch {
+        // No guard here: composing cannot introduce one of those characters. Widen the
+        // class to something NFC can produce and this branch needs the test too.
+        return segment.normalize('NFC')
+      }
+    })
     .join('/')
 
 /**
@@ -85,7 +99,7 @@ export const safePath = (path: string | null | undefined): string | undefined =>
  * redirect forever on accented slugs.
  */
 export const isCanonicalPath = (pathname: string, target: string): boolean =>
-  decodePath(pathname) === target
+  safeDecode(pathname) === safeDecode(target)
 
 /**
  * The distance-ranked search route, optionally centred on a point. This owns the
@@ -248,9 +262,12 @@ export const resolvePath = (pathname: string): ResolvedPath => {
   const terminal = segments.at(-1)
 
   if (!terminal) return null
-  if (/^\d+$/.test(terminal)) return { kind: 'event', id: Number(terminal) }
 
-  return { kind: 'region', slug: safeDecode(terminal) }
+  const decoded = safeDecode(terminal)
+
+  if (/^\d+$/.test(decoded)) return { kind: 'event', id: Number(decoded) }
+
+  return { kind: 'region', slug: decoded }
 }
 
 /**
@@ -304,7 +321,9 @@ export const resolveStack = (pathname: string): StackEntry[] => {
   segments.forEach((segment, i) => {
     const path = `/${segments.slice(0, i + 1).join('/')}`
     const parentPath = i === 0 ? '/' : `/${segments.slice(0, i).join('/')}`
-    const word = segment.toLowerCase()
+    // `toLowerCase` must see letters, not `%D1%81`.
+    const decoded = safeDecode(segment)
+    const word = decoded.toLowerCase()
 
     if (word === 'search') entries.push({ kind: 'search', path })
     else if (word === 'calendar') entries.push({ kind: 'calendar', path })
@@ -315,14 +334,17 @@ export const resolveStack = (pathname: string): StackEntry[] => {
       entries.push({ kind: 'online', regionSlug: safeDecode(segments[i - 1] ?? ''), path })
     else if (RESERVED_SLUGS.has(word))
       return // legacy prefix (events/areas/…) — no drawer
-    else if (/^\d+$/.test(segment)) entries.push({ kind: 'event', id: Number(segment), path })
-    else entries.push({ kind: 'region', slug: safeDecode(segment), path })
+    else if (/^\d+$/.test(decoded)) entries.push({ kind: 'event', id: Number(decoded), path })
+    else entries.push({ kind: 'region', slug: decoded, path })
   })
 
   return entries
 }
 
-/** A place's address as the region tree gives it, by slug (`webPath`, already `safePath`-checked). */
+/**
+ * A place's address as the region tree gives it, by slug (`webPath`, already `safePath`-checked).
+ * The slug is the decoded one a `StackEntry` carries, never a percent-encoded segment.
+ */
 export type PlacePathOf = (slug: string) => string | undefined
 
 /** Each place's own address, by slug, from the region tree. Undefined until the tree is cached. */
@@ -331,8 +353,10 @@ export const placePathsOf = (
 ): PlacePathOf | undefined => {
   if (!regions) return undefined
 
-  const paths = new Map(regions.map((node) => [node.slug, safePath(node.webPath)]))
+  const paths = new Map(regions.map((node) => [safeDecode(node.slug), safePath(node.webPath)]))
 
+  // Only the key side decodes. Decoding the lookup too would decode twice, and
+  // `/bg/%25D1%2581…` — a slug spelling the literal `%D1%81…` — would resolve to софия.
   return (slug) => paths.get(slug)
 }
 
