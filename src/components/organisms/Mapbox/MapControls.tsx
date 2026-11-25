@@ -11,15 +11,9 @@ import { Spinner } from '@/components/atoms/Spinner'
 import { HoverLabel } from '@/components/atoms/HoverLabel'
 import { SettingsMenu } from '@/components/molecules/SettingsMenu'
 import { useIsShortViewport } from '@/config/responsive'
-import { useSettingsCog } from '@/config/store'
 
 /** Where the visitor's last "find me" request stands. */
 export type LocateState = 'idle' | 'waiting' | 'found' | 'failed'
-
-const LOCATE_TINT: Partial<Record<LocateState, string>> = {
-  found: 'text-primary-11',
-  failed: 'text-danger-11',
-}
 
 /**
  * The map's controls as ONE Mapbox control, so Mapbox's `position` prop places them all and no
@@ -69,7 +63,6 @@ export const MapControls = memo(function MapControls({
   locateRef,
 }: MapControlsProps) {
   const { t } = useTranslation()
-  const cogHidden = useSettingsCog((s) => s.hidden)
   // A phone on its side is too short for a column, so the buttons run as a row there, clear of
   // the short window's sheet, which `DrawerStack` caps by the same signal.
   const short = useIsShortViewport()
@@ -98,11 +91,20 @@ export const MapControls = memo(function MapControls({
           {locate === 'waiting' ? (
             <Spinner decorative color="current" size="sm" />
           ) : (
-            <LocateFixed className={LOCATE_TINT[locate]} size={20} />
+            <LocateFixed
+              className={
+                locate === 'found'
+                  ? 'text-primary-11'
+                  : locate === 'failed'
+                    ? 'text-danger-11'
+                    : undefined
+              }
+              size={20}
+            />
           )}
         </Button>
       </HoverLabel>
-      {!cogHidden && <SettingsMenu labelled align="end" />}
+      <SettingsMenu labelled align="end" />
     </div>,
     column.slot,
   )

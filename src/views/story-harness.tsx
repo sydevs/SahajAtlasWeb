@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react'
-import type { Client, IpLocation } from '@/types'
+import type { Client } from '@/types'
 
 import { Suspense, useEffect, useMemo } from 'react'
 import clsx from 'clsx'
@@ -19,7 +19,7 @@ import { NoopMapControllerProvider } from '@/hooks/use-map-controller'
 import { RealMapControllerProvider } from '@/hooks/use-map-controller-real'
 import { mockErrors, mockNotFound } from '@/mocks/errors'
 import { parentOf } from '@/lib/shape'
-import { mockGeojson, mockRegionNodes } from '@/mocks/regions'
+import { mockGeojson, mockIpLocation, mockRegionNodes } from '@/mocks/regions'
 
 // The comprehensive event-variant list, re-exported here so the event-list view
 // stories (Region / Online / Search) build their lists from ONE shared source.
@@ -53,22 +53,6 @@ export { mockEventSeries, mockEventVariants } from '@/mocks/events'
 /** A minimal host-client record — CountriesView suspends on this (theme plus home
  *  region bootstrap). With no home region, it emits no canonical link. */
 const mockClient: Client = { id: 1, title: 'Demo Host', region: null }
-
-/** A passive IP guess (Cambridge), so the nearby-suggestion prompt renders on the
- *  views that show it (Countries / Region / Search). It sits where the feed has a
- *  located class within reach, and far from the country/region the default example
- *  frames, so `shouldShowGeolocationPrompt` resolves true (a region already being
- *  viewed locally correctly suppresses it). */
-const mockIpLocation: IpLocation = {
-  latitude: 52.2,
-  longitude: 0.12,
-  city: 'Cambridge',
-  country: 'United Kingdom',
-  // A real guess carries the code, and two features read it: the share grid's
-  // region ordering (`useViewerCountry`) and the `?cc` the accepted suggestion
-  // writes — neither of which a code-less guess would exercise.
-  country_code: 'GB',
-}
 
 /** A drawer control for stories: Back names the story's parent page, but goes nowhere. */
 const storyDrawerControl = (path: string | undefined) => ({

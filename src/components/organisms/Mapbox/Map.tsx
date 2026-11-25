@@ -516,8 +516,7 @@ export function Mapbox({ cooperative = false }: { cooperative?: boolean } = {}) 
   // Map padding — keeping the drawer's footprint out of the camera — is
   // owned by the MapController now. It is set from the known drawer width
   // per breakpoint, not by measuring the panel in the DOM or listening for
-  // a window scroll or resize (react-map-gl resizes its own container). See
-  // hooks/use-map-controller.tsx.
+  // a window scroll or resize. See hooks/use-map-controller.tsx.
 
   return (
     <>

@@ -371,8 +371,9 @@ take exactly the stylesheet rules above. So `MapControls` is a single `useContro
 lays out its own children:
 
 - **Find-me and settings are floating `Button`s**, so they take the theme in every state, and
-  each draws its name out of its end in a `HoverLabel` on hover and keyboard focus, the same pill shape as the credits button opened. The settings cog is hidden
-  where `useSettingsCog` says (the full-width calendar, the sheet's near-full stop).
+  each draws its name out of its end in a `HoverLabel` on hover and keyboard focus, the same pill shape as the credits button opened. Neither button is
+  hidden by what the drawer does: the full-width calendar and the sheet's near-full stop both
+  cover the whole column, so a per-view hide on one of its three controls showed nothing.
 - **Find-me drives Mapbox's `GeolocateControl` without showing it.** `Map.tsx` renders it with
   `showButton={false}`, and our button calls its `trigger()`; the blue dot, the permission flow
   and the `onError` dialog are unchanged. A permission denied before the map loaded used to

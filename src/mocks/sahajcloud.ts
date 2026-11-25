@@ -1,5 +1,5 @@
-// SahajCloud's responses as they cross the wire, for the browser lane (`tests/browser/`), which
-// answers every SahajCloud request from here.
+// SahajCloud's responses as they cross the wire, for the browser lane (`tests/browser/`) and Ladle
+// (`.ladle/backend.ts`), which both answer every SahajCloud request from here.
 //
 // ⚠ **Wire shape, not view-model shape.** The mocks beside this file are what a fetcher RETURNS;
 // these are what it PARSES: dates as ISO strings, regions as one flat tree linked by `parent`, the
@@ -19,7 +19,7 @@ import { CLIENT_PAGE_LIMIT } from '@/config/api/paginate'
 export type Json = null | boolean | number | string | Json[] | { [key: string]: Json }
 
 /** What a fixture is once it has been through `JSON.stringify` — the only form the wire carries. */
-const toJson = (value: unknown): Json => JSON.parse(JSON.stringify(value))
+export const toJson = (value: unknown): Json => JSON.parse(JSON.stringify(value))
 
 /** Payload stamps every document it serves. One instant, so a fixture never depends on the clock. */
 const STAMP = '2026-01-01T00:00:00.000Z'
@@ -48,18 +48,22 @@ const regionPath = (id: number): string => {
   return `${parent == null ? '' : regionPath(parent)}/${slug}`
 }
 
-const regionNodes = mockRegionNodes.map((node) => ({
+export const regionNodes = mockRegionNodes.map((node) => ({
   ...node,
   webPath: regionPath(node.id),
   webUrl: null,
 }))
 
 /** A region as `REGION_POPULATE` selects it onto an event: no route, no parent. */
-const regionRef = (id: number) => {
-  const { slug, name, level, subtitle } = regionNode(id)
+export const regionRefOf = ({ id, slug, name, level, subtitle }: RegionNode) => ({
+  id,
+  slug,
+  name,
+  level,
+  subtitle,
+})
 
-  return { id, slug, name, level, subtitle }
-}
+const regionRef = (id: number) => regionRefOf(regionNode(id))
 
 // ── The feed and the events behind it ───────────────────────────────────────────
 
@@ -121,7 +125,7 @@ export const SAHAJCLOUD_EVENT = {
 // ── Payload's envelopes ─────────────────────────────────────────────────────────
 
 /** One page holding every row, which each wholesale read here fits in (`paginate.ts`). */
-const onePage = (totalDocs: number) => ({
+export const onePage = (totalDocs: number) => ({
   totalDocs,
   limit: CLIENT_PAGE_LIMIT,
   totalPages: 1,
@@ -133,7 +137,7 @@ const onePage = (totalDocs: number) => ({
   nextPage: null,
 })
 
-const paginated = (docs: unknown[]) => toJson({ docs, ...onePage(docs.length) })
+export const paginated = (docs: unknown[]) => toJson({ docs, ...onePage(docs.length) })
 
 export const sahajCloud = {
   /** `GET /api/clients/me`. Payload's `me` adds `collection` and `_strategy` to the user row. */
@@ -190,13 +194,13 @@ export const sahajCloud = {
 /**
  * SahajCloud's answer to one request, by method and path under `/api`, or `undefined` for a
  * request these fixtures do not model — which the browser lane fails a test for, rather than
- * inventing a reply the app could misread as data.
+ * inventing a reply the app could misread as data. `fixtures` swaps in a bigger set of the same
+ * shape, as Ladle's demo atlas does (`sahajcloud-demo.ts`).
  */
-export function answerSahajCloud(request: {
-  method: string
-  url: URL
-  authorization?: string | null
-}): { status: number; json: Json } | undefined {
+export function answerSahajCloud(
+  request: { method: string; url: URL; authorization?: string | null },
+  fixtures: typeof sahajCloud = sahajCloud,
+): { status: number; json: Json } | undefined {
   const { method, url } = request
   const path = url.pathname.replace(/^\/api(?=\/)/, '')
   const ok = (json: Json, status = 200) => ({ status, json })
@@ -204,23 +208,23 @@ export function answerSahajCloud(request: {
   if (method === 'GET') {
     if (path === '/clients/me') {
       return request.authorization === `clients API-Key ${SAHAJCLOUD_API_KEY}`
-        ? ok(sahajCloud.clientMe)
+        ? ok(fixtures.clientMe)
         : ok({ user: null })
     }
-    if (path === '/globals/sy-atlas-config') return ok(sahajCloud.atlasConfig)
-    if (path === '/globals/sy-atlas-translations') return ok(sahajCloud.translations)
-    if (path === '/regions') return ok(sahajCloud.regions)
-    if (path === '/events/geojson') return ok(sahajCloud.feed)
-    if (path === '/events') return ok(sahajCloud.eventTitles)
+    if (path === '/globals/sy-atlas-config') return ok(fixtures.atlasConfig)
+    if (path === '/globals/sy-atlas-translations') return ok(fixtures.translations)
+    if (path === '/regions') return ok(fixtures.regions)
+    if (path === '/events/geojson') return ok(fixtures.feed)
+    if (path === '/events') return ok(fixtures.eventTitles)
 
     const id = /^\/events\/(\d+)$/.exec(path)?.[1]
 
-    if (id) return sahajCloud.events[id] ? ok(sahajCloud.events[id]) : ok(sahajCloud.notFound, 404)
+    if (id) return fixtures.events[id] ? ok(fixtures.events[id]) : ok(fixtures.notFound, 404)
   }
 
   if (method === 'POST') {
-    if (path === '/user-submissions') return ok(sahajCloud.submissionCreated, 201)
-    if (path === '/clients/report') return ok(sahajCloud.embedReport)
+    if (path === '/user-submissions') return ok(fixtures.submissionCreated, 201)
+    if (path === '/clients/report') return ok(fixtures.embedReport)
   }
 
   return undefined

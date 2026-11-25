@@ -478,6 +478,11 @@ When the widget starts asking for something new, the lane fails naming the reque
 a SahajCloud read in `sahajcloud.ts` (and `sahajcloud.test.ts`), anything else in `fixtures.ts`. Never widen
 the catch-all to let it through.
 
+Ladle answers every story's SahajCloud reads from the same fixtures (`.ladle/backend.ts`), and
+frames the same challenge page (`src/mocks/challenge-page.ts`), so a fixture added for the lane
+also reaches the whole widget's story, `Interactive / Full Widget`. That story reads a bigger atlas
+on top (`src/mocks/sahajcloud-demo.ts`), which the lane never does.
+
 A spec that says a request never happens awaits `rendered` (`fixtures.ts`) first: the embed
 report the first real render sends, then 500 ms with nothing in flight. The report alone is no
 barrier, since a lazy import an effect starts can leave after it — measured, and it let an injected
