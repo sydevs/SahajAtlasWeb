@@ -5,6 +5,7 @@ import type { RecoveryOffer } from '@/hooks/use-recovery-offer'
 
 import { useEffect, useRef } from 'react'
 import { CircleFlag } from 'react-circle-flags'
+import clsx from 'clsx'
 import { useTranslation } from 'react-i18next'
 import { ErrorBoundary } from 'react-error-boundary'
 import { QueryErrorResetBoundary } from '@tanstack/react-query'
@@ -227,43 +228,6 @@ export const ERROR_POLICY: Record<FallbackKind, FallbackPolicy> = {
     clearFilters: false,
     contact: false,
     report: true,
-  },
-  // Turnstile failed to load, so this widget cannot send anything the viewer
-  // writes (issue #182). The usual cause is a `config` failure: a host CSP that
-  // will not let the widget frame SahajCloud, where the challenge renders, or a
-  // host domain no client record lists (#343, sydevs/SahajCloud#1072). This row
-  // still earns its own row, for one reason `config` cannot express:
-  //
-  // **It offers no report action.** The report form is itself gated by Turnstile.
-  // Sending a viewer to it would hand them a second form that also cannot submit.
-  // This mirrors the call `offline` makes for the network, one layer along.
-  //
-  // The sentence names the cause, not the fix. A visitor cannot edit a CSP. The
-  // instruction "add SahajCloud to your frame-src" means nothing to most visitors
-  // on a meditation page. Only the site's developer needs it.
-  // `reportIntegrationWarning` prints that instruction to the console, where a
-  // developer debugging the embed will look. `docs/embedding.md` carries the
-  // lasting version.
-  //
-  // ⚠ **This row DOES retry. That looks wrong next to `config`, but is correct.**
-  // The check lands on this same kind for a CSP that refuses the frame and for a
-  // frame request that simply failed on the network, and it clears its memoized
-  // verdict whenever it is negative. So a second attempt mounts a fresh frame and
-  // is a real second attempt, and the network-failure half of that pair can
-  // genuinely recover. A CSP block fails again the same way, which costs the
-  // viewer one press. A `config` failure has no such recoverable half, so it
-  // withholds the retry. This row does not.
-  'captcha-blocked': {
-    messageKey: 'common.errors.captcha_blocked',
-    fallbackText:
-      "The map can't load here right now, because its security check didn't respond. Try again later.",
-    color: 'danger',
-    retry: true,
-    onward: false,
-    search: false,
-    clearFilters: false,
-    contact: false,
-    report: false,
   },
   // The catch-all row. A zod parse failure lands here too. SahajCloud's data shape
   // drifting from ours used to have its own `contract` row, which only withheld the
@@ -839,7 +803,8 @@ type FallbackShellProps = FallbackActionsProps & {
  * live body and the floor it degrades to both render this, so the two cannot look like
  * different screens.
  *
- * ONE column at ONE width. Every part is `w-full` inside a single `max-w-xs` box. Left
+ * ONE column at ONE width. Every part is `w-full` inside a single box: `max-w-xs` when
+ * centred, and the panel's full width when it starts at the top of a list. Left
  * to shrink-wrap on its own, each part came out a different width, stacked on a centre
  * line: a banner as wide as its sentence, a button row as wide as its labels, and a
  * full-width field.
@@ -854,7 +819,9 @@ function FallbackShell({
 }: FallbackShellProps) {
   return (
     <FallbackRegion className={align === 'start' ? START_BODY : CENTERED_BODY} message={message}>
-      <div className="flex w-full max-w-xs flex-col items-start gap-3">
+      <div
+        className={clsx('flex w-full flex-col items-start gap-3', align !== 'start' && 'max-w-xs')}
+      >
         {/* `textAlign="left"` is set explicitly, not left to the default. The
             centred posture sets `text-center` on the container. A sentence centred
             inside its own banner is harder to read, and costs the onward link its

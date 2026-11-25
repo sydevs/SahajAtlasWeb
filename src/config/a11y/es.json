@@ -6,6 +6,7 @@
   },
   "common": {
     "loading": "Cargando…",
+    "finding_classes": "Buscando clases…",
     "settings": "Ajustes"
   },
   "event": {

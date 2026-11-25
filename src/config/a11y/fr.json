@@ -6,6 +6,7 @@
   },
   "common": {
     "loading": "Chargement…",
+    "finding_classes": "Recherche des cours…",
     "settings": "Réglages"
   },
   "event": {

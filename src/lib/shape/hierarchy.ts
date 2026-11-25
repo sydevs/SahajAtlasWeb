@@ -1,4 +1,5 @@
 import type { BBox, Position } from 'geojson'
+import type { RegionLevel } from '@/types'
 
 import { boundsOfPoints } from '@/lib/geo'
 
@@ -69,6 +70,13 @@ export const indexRegions = <T extends RegionTreeNode>(nodes: readonly T[]): Reg
  */
 export const childrenOf = <T extends RegionTreeNode>(index: RegionIndex<T>, id: number): T[] =>
   [...index.byId.values()].filter((node) => node.parent === id)
+
+/**
+ * Whether a region's page lists the places under it, as a country's or a region's does, rather
+ * than its own classes, as a city's or a venue's does.
+ */
+export const listsPlaces = (level: RegionLevel): boolean =>
+  level === 'country' || level === 'region'
 
 /**
  * A region's full ancestry ids, self-inclusive (self → parent → … → country),

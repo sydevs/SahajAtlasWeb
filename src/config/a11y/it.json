@@ -6,6 +6,7 @@
   },
   "common": {
     "loading": "Caricamento…",
+    "finding_classes": "Ricerca dei corsi…",
     "settings": "Impostazioni"
   },
   "event": {

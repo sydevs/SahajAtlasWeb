@@ -6,6 +6,7 @@
   },
   "common": {
     "loading": "Se încarcă…",
+    "finding_classes": "Căutăm cursuri…",
     "settings": "Setări"
   },
   "event": {

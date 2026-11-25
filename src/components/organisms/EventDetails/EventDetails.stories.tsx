@@ -6,10 +6,13 @@ import type { Event } from '@/types'
 import { StoryWrapper, StorySection } from '../../ladle'
 
 import { EventDetails } from './EventDetails'
+import { EventDetailsSkeleton, EventHeaderSkeleton } from './EventDetailsSkeleton'
 import { EventHeader } from './EventHeader'
 import { EventRegisterBar } from './EventRegister'
 
 import { EventActions } from '@/components/molecules/EventActions'
+import { EventChips } from '@/components/molecules/EventChips'
+import { EventFacts } from '@/components/molecules/EventFacts'
 import {
   mockEvent,
   mockEventCourse,
@@ -120,6 +123,33 @@ export const Default: Story = () => (
         <div className="border border-divider">
           <EventHeader event={mockEvent} />
           <EventDetails basePath="/demo/101" ctaInline={false} event={mockEvent} />
+        </div>
+      </div>
+    </StorySection>
+
+    <StorySection
+      description="While a class loads: the way back works at once, the title shows if a list already named it, and the rest is drawn from the page's own layout. Where only the page's code is still on its way, the real chips and facts stand in for their placeholders. The real page sits beside it for comparison."
+      title="Loading"
+    >
+      <div className="grid max-w-4xl grid-cols-3 gap-4">
+        <div className="border border-divider">
+          <EventHeaderSkeleton />
+          <EventDetailsSkeleton />
+        </div>
+        <div className="border border-divider">
+          <EventHeaderSkeleton title={mockEvent.title} />
+          <EventDetailsSkeleton
+            head={
+              <>
+                <EventChips event={mockEvent} />
+                <EventFacts className="mb-2" event={mockEvent} />
+              </>
+            }
+          />
+        </div>
+        <div className="border border-divider">
+          <EventHeader event={mockEvent} />
+          <EventDetails basePath="/demo/101" event={mockEvent} />
         </div>
       </div>
     </StorySection>

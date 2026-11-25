@@ -3,6 +3,7 @@ import type { Story, StoryDefault } from '@ladle/react'
 import { StoryWrapper, StorySection } from '../../ladle'
 
 import { EventListItem } from './EventListItem'
+import { EventListItemSkeleton } from './EventListItemSkeleton'
 
 import { List } from '@/components/molecules/List'
 import { mockEventSlim, mockEventSlimOnline } from '@/mocks/events'
@@ -75,6 +76,26 @@ export const Default: Story = () => (
         <List>
           <EventListItem event={{ ...mockEventSlim, id: 113, schedule: null }} />
         </List>
+      </div>
+    </StorySection>
+
+    <StorySection
+      description="While a list of classes loads, each card is drawn from the card's own layout: the title, then the when and where lines with their real icons. The real card sits beside it for comparison."
+      title="Loading"
+    >
+      <div className="grid max-w-3xl grid-cols-2 gap-4">
+        <div className="overflow-hidden rounded-lg border border-divider">
+          <List>
+            <EventListItemSkeleton />
+            <EventListItemSkeleton online width="w-4/5" />
+          </List>
+        </div>
+        <div className="overflow-hidden rounded-lg border border-divider">
+          <List>
+            <EventListItem event={mockEventSlim} />
+            <EventListItem event={mockEventSlimOnline} />
+          </List>
+        </div>
       </div>
     </StorySection>
 

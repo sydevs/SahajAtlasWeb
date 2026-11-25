@@ -6,6 +6,7 @@
   },
   "common": {
     "loading": "Завантаження…",
+    "finding_classes": "Шукаємо заняття…",
     "settings": "Налаштування"
   },
   "event": {

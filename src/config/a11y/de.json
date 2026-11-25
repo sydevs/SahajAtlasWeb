@@ -6,6 +6,7 @@
   },
   "common": {
     "loading": "Wird geladen …",
+    "finding_classes": "Kurse werden gesucht …",
     "settings": "Einstellungen"
   },
   "event": {

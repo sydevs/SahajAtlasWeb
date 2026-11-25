@@ -57,6 +57,9 @@ export type { SelectProps, SelectItemProps } from './Select'
 export { Slider } from './Slider'
 export type { SliderProps } from './Slider'
 
+export { Skeleton, SkeletonBlock, SkeletonLine } from './Skeleton'
+export type { SkeletonLineProps, SkeletonProps } from './Skeleton'
+
 export { Spinner } from './Spinner'
 export type { SpinnerProps } from './Spinner'
 

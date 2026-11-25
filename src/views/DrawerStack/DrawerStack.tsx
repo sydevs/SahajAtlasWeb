@@ -21,6 +21,7 @@ import { useExpansion } from '@/hooks/use-expansion'
 import { useLocale } from '@/hooks/use-locale'
 import { Drawer, DrawerContent } from '@/components/atoms/Drawer'
 import { ResetErrorBoundary, SettingsMenu } from '@/components/molecules'
+import { ClientGate } from '@/config/client-gate'
 import {
   SHEET_OPEN_PX,
   SHEET_PEEK_PX,
@@ -621,6 +622,7 @@ export function DrawerStack() {
                 FallbackComponent={DrawerErrorFallback}
                 onReset={() => setSecondary(loadSecondaryViews())}
               >
+                <ClientGate />
                 <TopView entry={top} secondary={secondary} />
               </ResetErrorBoundary>
             </Suspense>
@@ -677,6 +679,7 @@ export function DrawerStack() {
             <div ref={setContainer} className="relative min-h-0 w-full flex-1 overflow-clip">
               <Drawer
                 key={direction}
+                enterInPlace
                 open
                 container={container}
                 direction={direction}
@@ -722,9 +725,13 @@ export function DrawerStack() {
             />,
             target,
           )}
+        {/* In place from its first frame: on a load it takes over from the boot panel, which
+            already stands where it opens, and a slide in from the edge read as the panel arriving
+            a second time (Devindra, 12 Nov). */}
         <Drawer
           key={direction}
           dismissible
+          enterInPlace
           open
           activeSnapPoint={direction === 'bottom' ? shownSnap : undefined}
           container={target}

@@ -113,7 +113,6 @@ describe('every field clears the 16px iOS zoom floor', () => {
     'components/organisms/RegistrationForm/RegistrationForm.tsx <input>',
     'components/organisms/RegistrationForm/RegistrationForm.tsx <textarea>',
     'views/CalendarView/CalendarView.tsx <input>',
-    'views/fallbacks.tsx <input>',
   ]
 
   it('finds source files to scan (the walk itself must not silently break)', () => {

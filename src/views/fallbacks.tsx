@@ -9,20 +9,30 @@ import { useQuery } from '@tanstack/react-query'
 
 import { DrawerBody, DrawerHeader, DrawerToolbar } from '@/components/atoms/Drawer'
 import { Spinner } from '@/components/atoms/Spinner'
-import { CENTERED_BODY, FallbackPanel, ListToolbar } from '@/components/molecules'
+import { Skeleton, SkeletonLine } from '@/components/atoms/Skeleton'
+import { CENTERED_BODY, FallbackPanel, ListToolbar, SortMenu } from '@/components/molecules'
+import { MapSearchSkeleton } from '@/components/organisms/Mapbox/MapSearchSkeleton'
+import {
+  EventDetailsSkeleton,
+  EventHeaderSkeleton,
+} from '@/components/organisms/EventDetails/EventDetailsSkeleton'
 import { eventTitlesQuery, regionQuery, regionsQuery } from '@/config/api'
 import { useWidgetMode } from '@/config/mode'
+import { useIsWideWidget } from '@/config/responsive'
 import { useLocale } from '@/hooks/use-locale'
 import { useMapController } from '@/hooks/use-map-controller'
 import { classifyError, errorMessage } from '@/lib/report'
-import { baseStackEntry, nearestKnownRegion, resolveStack } from '@/lib/shape'
-import { BackButton, NavHeader } from '@/views/nav'
+import { baseStackEntry, isoCountryCode, nearestKnownRegion, resolveStack } from '@/lib/shape'
+import { LOADING_ATTR } from '@/views/DrawerStack/use-fit-snap'
+import { ClassListSkeleton, PlaceListSkeleton, guessListsPlaces } from '@/views/BootFallback'
+import { BackButton, NavHeader, NavRow } from '@/views/nav'
 import {
   CalendarButton,
   ExpandSheetButton,
   FilterButton,
   SearchButton,
   SearchField,
+  useDrawerControl,
 } from '@/views/shared'
 
 /**
@@ -63,29 +73,6 @@ const leadsWithGeocoder = (
 // controls, the search field, the geolocation suggestion, AND all of this.
 
 /**
- * A disabled stand-in for the geocoder: the same box, none of the machinery. Matches
- * the inert `<input>` `MapSearch` already falls back to when the Geocoder itself
- * fails, so the loading header takes the right shape and the right height without
- * mounting a custom element that is about to be thrown away.
- */
-function SearchFieldSkeleton() {
-  const { t } = useTranslation()
-
-  return (
-    <div className="min-w-0 flex-1">
-      <input
-        disabled
-        readOnly
-        className="w-full rounded-lg border border-divider bg-gray-2 px-3 py-2 field-size text-foreground placeholder:text-gray-11"
-        placeholder={t('search.chrome.placeholder', { defaultValue: 'Search for events near…' })}
-        type="search"
-        value=""
-      />
-    </div>
-  )
-}
-
-/**
  * The header a drawer keeps when its view cannot render — while loading, or after it
  * threw.
  *
@@ -108,16 +95,21 @@ function SearchFieldSkeleton() {
  * language switch re-renders this in place.
  */
 export function DrawerChrome({
-  interactive = true,
+  loading = false,
   notFound = false,
 }: {
-  interactive?: boolean
+  /**
+   * The view is on its way, not broken: placeholders stand where its title and field will be,
+   * and the field is drawn rather than mounted.
+   */
+  loading?: boolean
   /** The page failed because the place doesn't exist, so nothing can be scoped to it. */
   notFound?: boolean
 }) {
   const { t } = useTranslation()
-  const { locale } = useLocale()
+  const { locale, regionNames: countryNames } = useLocale()
   const { hasMap } = useWidgetMode()
+  const { collapsed } = useDrawerControl()
   const location = useLocation()
   // This is cache-only (`enabled: false`), not merely non-suspending. It renders on EVERY
   // loading and error state, so a fetch here would re-issue a read on exactly the failures
@@ -133,16 +125,18 @@ export function DrawerChrome({
   // titles itself "Filters".
   const entry = baseStackEntry(resolveStack(location.pathname), hasMap)
   // The region tree is the whole global list, and this re-renders on every location
-  // and drawer-control change, so this does not re-scan it for a name that only
+  // and drawer-control change, so this does not re-scan it for a node that only
   // moves with the slug.
   const regionSlug = entry?.kind === 'region' ? entry.slug : undefined
-  const regionName = useMemo(
+  const regionNode = useMemo(
     () =>
-      regionSlug === undefined
-        ? undefined
-        : (regions?.find((node) => node.slug === regionSlug)?.name ?? undefined),
+      regionSlug === undefined ? undefined : regions?.find((node) => node.slug === regionSlug),
     [regions, regionSlug],
   )
+  // RegionView's own heading for a country, which needs no region tree: a deep link names the
+  // country at once.
+  const countryCode = isoCountryCode(regionSlug)
+  const regionName = (countryCode && countryNames.of(countryCode)) || regionNode?.name || undefined
 
   const title = (() => {
     switch (entry?.kind) {
@@ -169,36 +163,69 @@ export function DrawerChrome({
     }
   })()
 
+  // A LOADING chrome gets the field's shape, not a working field. `SearchField` mounts a Mapbox
+  // Geocoder — a shadow-DOM custom element bound to the live map. This fallback is freshly
+  // mounted per path inside DrawerStack's keyed view layer, so on a cold start it would
+  // instantiate one while the map is still initialising, then tear it down again the moment the
+  // view mounts its own. An ERROR chrome keeps the real field. There it is the escape hatch.
+  const field = loading ? (
+    <div className="min-w-0 flex-1">
+      <MapSearchSkeleton />
+    </div>
+  ) : (
+    <SearchField />
+  )
+
   // The root and the search view lead with the geocoder, rather than a title, so
   // they get the header their view would render. Everything in it is a NAVIGATION —
   // a new search, a filter drawer — not a read of the data that failed, so none of
   // it needs disabling: on an `offline` search the field is the most useful thing on
   // screen, since a new URL remounts the boundary and may well succeed.
-  if (leadsWithGeocoder(entry)) {
+  if (!entry) {
+    // CountriesView's header: the field, then Filters (or the expand control on a collapsed sheet).
+    return (
+      <DrawerHeader>
+        {field}
+        {collapsed ? <ExpandSheetButton /> : <FilterButton iconOnly />}
+      </DrawerHeader>
+    )
+  }
+
+  if (entry.kind === 'search') {
+    // SearchView's header and toolbar.
     return (
       <>
         <DrawerHeader>
-          {/* A LOADING chrome gets the field's shape, not a working field. `SearchField` mounts
-              a Mapbox Geocoder — a shadow-DOM custom element bound to the live map. This
-              fallback is freshly mounted per path inside DrawerStack's keyed view layer, so on
-              a cold start it would instantiate one while the map is still initialising, then
-              tear it down again the moment CountriesView mounts its own. An ERROR chrome keeps
-              the real field. There it is the escape hatch. */}
           <BackButton iconOnly />
-          {interactive ? <SearchField /> : <SearchFieldSkeleton />}
+          {field}
           <ExpandSheetButton />
         </DrawerHeader>
         <DrawerToolbar>
           <ListToolbar>
             <FilterButton />
+            <SortMenu />
           </ListToolbar>
         </DrawerToolbar>
       </>
     )
   }
 
+  // A class loading takes EventView's own header, so the title lands where the real one will.
+  if (loading && entry.kind === 'event') {
+    return <EventHeaderSkeleton nav={<NavRow />} title={title} />
+  }
+
   // The view's own header, so nothing moves when the view arrives. No title when nothing
-  // resolved: a blank <h2> is a heading with no name, worse for a screen reader than none.
+  // resolved: a blank <h2> is a heading with no name, worse for a screen reader than none. A
+  // place still loading draws its title's line instead.
+  const pendingTitle = loading && entry.kind === 'region' && !title
+  // A place whose classes are coming says what RegionView will say over them.
+  const pendingSubtitle =
+    loading &&
+    entry.kind === 'region' &&
+    !guessListsPlaces(entry.path, regionNode?.level) &&
+    t('common.chrome.all_classes_free')
+
   return (
     <NavHeader
       actions={
@@ -220,19 +247,70 @@ export function DrawerChrome({
         </>
       }
       close={entry.kind === 'filters'}
-      title={title}
+      subtitle={pendingSubtitle || undefined}
+      title={
+        pendingTitle ? (
+          <Skeleton>
+            <SkeletonLine className="text-xl" width="w-1/2" />
+          </Skeleton>
+        ) : (
+          title
+        )
+      }
     />
   )
 }
 
-// The Suspense fallback for a view whose data is still loading — the shared chrome
-// (so the drawer keeps its identity and its way back) over a spinner.
-// `interactive={false}`: see `SearchFieldSkeleton`.
+const LOADING = { [LOADING_ATTR]: '' }
+
+/**
+ * The Suspense fallback for a view whose data is still loading: the view's own header (its way
+ * back and its controls work), over placeholders shaped like the content on its way. Each is
+ * marked `LOADING_ATTR`, so the sheet and the panel hold their height until the content arrives
+ * rather than fitting the placeholder first.
+ */
 export function DrawerLoading() {
+  const { t } = useTranslation()
+  const { hasMap } = useWidgetMode()
+  const isWide = useIsWideWidget()
+  const location = useLocation()
+  const entry = baseStackEntry(resolveStack(location.pathname), hasMap)
+  const { data: regions } = useQuery({ ...regionsQuery(), enabled: false })
+
+  const body = (() => {
+    switch (entry?.kind) {
+      case undefined:
+        return <PlaceListSkeleton icons />
+      case 'region': {
+        const level = regions?.find(({ slug }) => slug === entry.slug)?.level
+        const places = guessListsPlaces(entry.path, level)
+
+        return places ? <PlaceListSkeleton /> : <ClassListSkeleton />
+      }
+      case 'online':
+        return <ClassListSkeleton online />
+      case 'search':
+        return <ClassListSkeleton />
+      case 'event':
+        // The phone sheet pins Register to its foot once the class arrives, so the placeholder
+        // leaves it out there.
+        return (
+          <div {...LOADING}>
+            <p className="sr-only" role="status">
+              {t('common.a11y.loading')}
+            </p>
+            <EventDetailsSkeleton ctaInline={!hasMap || isWide} />
+          </div>
+        )
+      default:
+        return null
+    }
+  })()
+
   return (
     <>
-      <DrawerChrome interactive={false} />
-      <DrawerLoadingBody />
+      <DrawerChrome loading />
+      {body ? <DrawerBody>{body}</DrawerBody> : <DrawerLoadingBody />}
     </>
   )
 }

@@ -10,6 +10,7 @@ import {
   countUnder,
   eventsUnder,
   indexRegions,
+  listsPlaces,
   partitionUnder,
 } from './hierarchy'
 
@@ -42,6 +43,18 @@ describe('indexRegions / childrenOf', () => {
     expect(childrenOf(index, 28).map((child) => child.id)).toEqual([473, 470])
     expect(childrenOf(index, 470).map((child) => child.id)).toEqual([513])
     expect(childrenOf(index, 513)).toEqual([])
+  })
+})
+
+describe('listsPlaces', () => {
+  it('is true for a country and a region, which list the places under them', () => {
+    expect(listsPlaces('country')).toBe(true)
+    expect(listsPlaces('region')).toBe(true)
+  })
+
+  it('is false for a city and a venue, which list their own classes', () => {
+    expect(listsPlaces('city')).toBe(false)
+    expect(listsPlaces('venue')).toBe(false)
   })
 })
 

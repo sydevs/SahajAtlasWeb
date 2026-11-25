@@ -6,6 +6,7 @@
   },
   "common": {
     "loading": "Betöltés…",
+    "finding_classes": "Foglalkozások keresése…",
     "settings": "Beállítások"
   },
   "event": {

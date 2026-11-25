@@ -76,11 +76,11 @@ export type { EventChipsProps, EventChipsVariant } from './EventChips'
 
 export { List, ListRow } from './List'
 
-export { ListItem } from './ListItem'
-export type { ListItemProps } from './ListItem'
+export { ListItem, ListItemSkeleton } from './ListItem'
+export type { ListItemProps, ListItemSkeletonProps } from './ListItem'
 
-export { EventListItem } from './EventListItem'
-export type { EventListItemProps } from './EventListItem'
+export { EventListItem, EventListItemSkeleton } from './EventListItem'
+export type { EventListItemProps, EventListItemSkeletonProps } from './EventListItem'
 
 // NOTE: ImageCarousel, EventActions, ShareContent/CopyField, and
 // AddToCalendar are deliberately NOT re-exported. The organisms barrel
