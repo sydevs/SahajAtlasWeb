@@ -24,7 +24,12 @@ import { Drawer, DrawerContent } from '@/components/atoms/Drawer'
 import { ResetErrorBoundary, SettingsMenu } from '@/components/molecules'
 import { WidgetWidthContext, useIsWide } from '@/config/responsive'
 import { useWidgetMode } from '@/config/mode'
-import { useBrowsedCountry, useCalendarPosition, useSheetCover } from '@/config/store'
+import {
+  useBrowsedCountry,
+  useCalendarPosition,
+  useSettingsCog,
+  useSheetCover,
+} from '@/config/store'
 import { frameElement, overlayContainer } from '@/lib/overlay'
 import {
   type StackEntry,
@@ -384,6 +389,17 @@ export function DrawerStack() {
 
     return () => setSheetCover(null)
   }, [sheetCover, setSheetCover])
+
+  // The map's settings cog (`Mapbox/MapControls`) has no clean corner on the full-width
+  // calendar, and the sheet's near-full stop covers it, leaving its top edge showing.
+  const cogHidden = wide || (direction === 'bottom' && vaulSnap === WIDE_SNAP)
+  const setCogHidden = useSettingsCog((s) => s.setHidden)
+
+  useEffect(() => {
+    setCogHidden(cogHidden)
+
+    return () => setCogHidden(false)
+  }, [cogHidden, setCogHidden])
 
   // The stack must show the panels a repeated X actually goes through, which is a history
   // question, not a URL one (see `dismissDepth`). `entryAncestors` is the structural height
@@ -874,50 +890,7 @@ export function DrawerStack() {
   return (
     <WidgetWidthContext.Provider value={isWide}>
       <DrawerControlContext.Provider value={control}>
-        {target &&
-          createPortal(
-            <>
-              {strips}
-              {/* Inline-start, offset past the drawer on ≥md (flush at tablet,
-                floating in by 4 at ≥lg), so it never overlaps the panel. Uses the
-                logical `start-*`, rather than `left-*`: under RTL the drawer flips to
-                the right edge, and the cog has to travel with it. On mobile the
-                sheet sits at the bottom, so the top-left corner stays clear. */}
-              {/* Uses top-3 on mobile/tablet. At ≥lg the drawer floats (lg:inset-y-4),
-                so this bumps the cog to top-4 to line up with the drawer's top edge.
-                Hidden on the full-width calendar — a focused view with no clean
-                corner for the floating cog — settings stay reachable from every
-                other view. */}
-              {/* The inline-start gap clears the PEEK STRIPS, not just the drawer. The
-                deepest stack pushes an ancestor about 23px past the panel edge, using
-                `PEEK_DESKTOP` times the decay series above. So the cog sits 32px out —
-                48px at ≥lg, where the drawer itself is already inset by 16px. That
-                leaves about 9px of air at the deepest stack. A tighter gap would render
-                the strips under the cog.
-                Both `352px` fallbacks below are the drawer-width pair — the twin
-                value is `DRAWER_W_PX` in `hooks/use-map-controller-real.tsx`. */}
-              {!wide && (
-                <SettingsMenu
-                  className={clsx(
-                    'fixed top-3 z-40',
-                    // ⚠ **Uses `isWide`, not a `md:` variant — the #169 correction.**
-                    // This clears the LEFT PANEL, so it has to agree with whatever
-                    // decided there is one — and that is now the frame's width, not
-                    // the viewport's. A 600px contained map on a desktop gets the
-                    // bottom sheet, and a viewport variant would still push the cog
-                    // 384px right for a panel that is not there. At a 400px frame it
-                    // would land past the edge, where the frame's `overflow-clip`
-                    // clips it away entirely. Outside a frame, `isWide` IS the
-                    // viewport's answer, so this stays the same offset it always was.
-                    isWide
-                      ? 'start-[calc(var(--sy-drawer-w,352px)+32px+env(safe-area-inset-left,0px))] lg:start-[calc(var(--sy-drawer-w,352px)+48px+env(safe-area-inset-left,0px))] lg:top-4'
-                      : 'start-3',
-                  )}
-                />
-              )}
-            </>,
-            target,
-          )}
+        {target && createPortal(strips, target)}
         <Drawer
           key={direction}
           dismissible

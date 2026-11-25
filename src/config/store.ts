@@ -316,6 +316,21 @@ export const useSheetCover = create<SheetCoverState>((set) => ({
   setBottom: (bottom) => set(() => ({ bottom })),
 }))
 
+type SettingsCogState = {
+  /** True where the view on top leaves no clean corner for the map's settings cog. */
+  hidden: boolean
+  setHidden: (hidden: boolean) => void
+}
+
+/**
+ * The drawer decides when the cog is hidden and the map's control column draws it. Like
+ * `useSheetCover`, neither side renders the other's context.
+ */
+export const useSettingsCog = create<SettingsCogState>((set) => ({
+  hidden: false,
+  setHidden: (hidden) => set(() => ({ hidden })),
+}))
+
 type BrowsedCountryState = {
   /** ISO alpha-2 of the last country page shown, or undefined after the world view. */
   code: string | undefined

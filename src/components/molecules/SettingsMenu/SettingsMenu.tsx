@@ -16,8 +16,7 @@ import { overlayContainer } from '@/lib/overlay'
 import { publishLocale } from '@/lib/shape'
 
 // The glyph both cogs draw. It is `HEADER_CONTROL`'s (`views/shared.tsx`), since the ghost cog
-// joins that set, and the floating one is drawn at 44px on a touch screen — a 16px glyph left
-// it hollow there.
+// joins that set, and the floating one is a 40px disc — a 16px glyph left it hollow.
 const GLYPH = 20
 
 const { surface, row } = menuChrome({ submenus: true })
@@ -47,6 +46,8 @@ export type SettingsMenuProps = {
   className?: string
   /** Which side the menu opens toward the trigger (bottom for a top cog, top for a bottom cog). */
   side?: DropdownMenu.DropdownMenuContentProps['side']
+  /** Which edge of the trigger the menu lines up with (`end` for the map's right-hand column). */
+  align?: DropdownMenu.DropdownMenuContentProps['align']
   /** `floating` over the map; `ghost` in a row of controls, such as a header. */
   variant?: 'floating' | 'ghost'
 }
@@ -54,6 +55,7 @@ export type SettingsMenuProps = {
 export function SettingsMenu({
   className,
   side = 'bottom',
+  align = 'start',
   variant = 'floating',
 }: SettingsMenuProps) {
   const { t } = useTranslation()
@@ -106,7 +108,7 @@ export function SettingsMenu({
           aria-label={t('common.a11y.settings')}
           className={className}
           radius={variant === 'floating' ? 'full' : 'sm'}
-          size="sm"
+          size={variant === 'floating' ? 'md' : 'sm'}
           variant={variant}
         >
           <Settings size={GLYPH} />
@@ -115,7 +117,7 @@ export function SettingsMenu({
 
       <DropdownMenu.Portal container={container}>
         <DropdownMenu.Content
-          align="start"
+          align={align}
           className={menu}
           side={side}
           sideOffset={8}
