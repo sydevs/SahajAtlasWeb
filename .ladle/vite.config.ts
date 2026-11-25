@@ -1,8 +1,11 @@
+import type { Plugin } from 'vite'
+
 import { fileURLToPath } from 'url'
 
 import { defineConfig } from 'vite'
 
 import circleFlags from '../scripts/circle-flags.mjs'
+import { CHALLENGE_PAGE, CHALLENGE_PATH } from '../src/mocks/challenge-page'
 
 // Ladle runs its own Vite and React (SWC) plugin, and it sets Vite's
 // `root` to its own app directory. This breaks vite-tsconfig-paths: it
@@ -18,8 +21,45 @@ import circleFlags from '../scripts/circle-flags.mjs'
 // The decorator imports `globals.css` directly instead.
 const srcDir = fileURLToPath(new URL('../src', import.meta.url))
 
+// `react-map-gl/mapbox` is Ladle's own wrapper, which never reuses a map (its docblock says why),
+// and `ladle:react-map-gl` is the package's own ESM entry, for the wrapper alone to import.
+const reactMapGl = fileURLToPath(new URL('./react-map-gl.tsx', import.meta.url))
+const reactMapGlEntry = fileURLToPath(
+  new URL('../node_modules/react-map-gl/dist/mapbox.js', import.meta.url),
+)
+
+/**
+ * The Turnstile challenge, served at the path the app frames it on. A frame is a navigation, which
+ * `backend.ts`'s `fetch` cannot answer, and without a challenge the interface's probe fails the
+ * widget. Answered by the dev server, and emitted as `.html` for the static build, which Workers
+ * serve at the bare path.
+ */
+function challengePage(): Plugin {
+  return {
+    name: 'sy-ladle-challenge',
+    configureServer(server) {
+      server.middlewares.use(CHALLENGE_PATH, (_req, res) => {
+        res.statusCode = 200
+        res.setHeader('Content-Type', 'text/html')
+        res.end(CHALLENGE_PAGE)
+      })
+    },
+    generateBundle() {
+      this.emitFile({
+        type: 'asset',
+        fileName: `${CHALLENGE_PATH.slice(1)}.html`,
+        source: CHALLENGE_PAGE,
+      })
+    },
+  }
+}
+
 export default defineConfig({
-  plugins: [circleFlags()],
+  plugins: [circleFlags(), challengePage()],
+  // Ladle's own origin stands in for SahajCloud's: `backend.ts` answers every read sent there,
+  // and the plugin above serves the challenge frame. Read at runtime, so the static build works
+  // wherever it is deployed.
+  define: { 'import.meta.env.VITE_SAHAJCLOUD_URL': 'globalThis.location.origin' },
   // Give Ladle its own dependency-optimization cache. Ladle force-includes
   // react, react-dom, and its own dependencies in optimizeDeps. So its
   // `configHash` differs from `pnpm dev`'s. Under rolldown-vite (Vite 8),
@@ -39,6 +79,10 @@ export default defineConfig({
   // only cost is a conditional request, not a full re-download.
   server: { headers: { 'Cache-Control': 'no-cache' } },
   resolve: {
-    alias: [{ find: /^@\//, replacement: `${srcDir}/` }],
+    alias: [
+      { find: /^@\//, replacement: `${srcDir}/` },
+      { find: /^react-map-gl\/mapbox$/, replacement: reactMapGl },
+      { find: /^ladle:react-map-gl$/, replacement: reactMapGlEntry },
+    ],
   },
 })

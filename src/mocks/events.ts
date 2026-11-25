@@ -15,7 +15,8 @@ import type { Event, EventImage, EventSlim, RegionRef } from '@/types'
 import { DateTime } from 'luxon'
 
 const ZONE = 'Europe/London'
-const WEEKDAY_CODES = ['MO', 'TU', 'WE', 'TH', 'FR', 'SA', 'SU'] as const
+
+export const WEEKDAY_CODES = ['MO', 'TU', 'WE', 'TH', 'FR', 'SA', 'SU'] as const
 
 const now = DateTime.now().setZone(ZONE)
 
