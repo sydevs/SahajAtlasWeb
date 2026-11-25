@@ -43,6 +43,16 @@ cover everything a host would notice since the widget was first deployed.
 
 ### Changed
 
+- **On a computer, the panel beside the map is as tall as what it shows.** ([#495]) At 1024px
+  and wider, the floating panel ends under its content instead of always running the full height
+  of the window or of your map's box, so a place with two classes covers far less of the map. A
+  long list still fills the height and scrolls inside the panel, and the bottom edge eases over
+  200ms as visitors move between places (instantly with reduced motion). A panel holding the
+  place search keeps at least about 400px, so its suggestions fit, and they scroll if they run
+  longer. The location prompt at the foot of a list now sits 16px from the panel's bottom edge.
+  Width, phones, the full-width calendar and map-less embeds are unchanged. **No parameter,
+  origin, CSP, storage or Permissions-Policy change.**
+
 - **Every class in a list ends with the same arrow as a place.** ([#488]) A class row in a
   region's or a search's list now shows the grey chevron a country, region or city row has always
   shown, so a class looks as tappable as a place. The arrow takes about 24px from the title, so a
@@ -1353,3 +1363,4 @@ must-revalidate`, pinned rather than left to the CDN default. The production dom
 [#470]: https://github.com/sydevs/SahajAtlasWeb/pull/470
 [#482]: https://github.com/sydevs/SahajAtlasWeb/pull/482
 [#488]: https://github.com/sydevs/SahajAtlasWeb/pull/488
+[#495]: https://github.com/sydevs/SahajAtlasWeb/pull/495
