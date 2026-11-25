@@ -20,6 +20,19 @@ const safeDecode = (segment: string): string => {
 }
 
 /**
+ * A pathname with every segment percent-decoded, so it reads as `webPath` spells it.
+ *
+ * ⚠ Decode BEFORE `safePath`, never after: `/%2F%2Fevil.example` has to meet that guard as the
+ * `//evil.example` it decodes to. Segment by segment, so one malformed escape costs its own slug
+ * instead of the whole route.
+ */
+export const decodePath = (pathname: string): string =>
+  pathname
+    .split('/')
+    .map((segment) => safeDecode(segment))
+    .join('/')
+
+/**
  * The parent of a nested path — drops the last segment. Returns `undefined` for a
  * single-segment (top-level) path. Works for both a region path (to its parent
  * region) and an event path (to its region page, dropping the numeric id).
@@ -72,7 +85,7 @@ export const safePath = (path: string | null | undefined): string | undefined =>
  * redirect forever on accented slugs.
  */
 export const isCanonicalPath = (pathname: string, target: string): boolean =>
-  safeDecode(pathname) === target
+  decodePath(pathname) === target
 
 /**
  * The distance-ranked search route, optionally centred on a point. This owns the

@@ -24,7 +24,7 @@
  * This module is pure. It never touches `window`, so the whole decision is testable in
  * the node lane. `atlas-history.ts` is the part that touches `history`.
  */
-import { safePath } from './path'
+import { decodePath, safePath } from './path'
 import { encodeParamValue, searchWith, searchWithout } from './query'
 
 /**
@@ -328,7 +328,10 @@ export function routeFromPathname(
 
   if (prefix !== '' && rest !== '' && !rest.startsWith('/')) return undefined
 
-  const route = rest === '' ? '/' : rest
+  // A pathname holds a non-ASCII slug percent-encoded, while `webPath` and query mode's route
+  // both hold it raw (`atlas-url-contract.json`, version 2). Decoding is what makes one route
+  // spelling out of the two URL shapes.
+  const route = rest === '' ? '/' : decodePath(rest)
 
   if (safePath(route) === undefined) return undefined
 
