@@ -31,7 +31,8 @@ import {
 } from '@/lib/proposal'
 import { buildReportContext } from '@/lib/report'
 import { viewerTimeZone } from '@/lib/time'
-import { CloseButton, useDrawerControl, useEventFromPath, useFrameOnTop } from '@/views/shared'
+import { CloseButton, NavRow } from '@/views/nav'
+import { useDrawerControl, useEventFromPath, useFrameOnTop } from '@/views/shared'
 
 /**
  * The add-a-class and correction flows (#147), at `<region-path>/add`, `/add` and
@@ -237,7 +238,7 @@ function Listing({ target, inlinePanel }: { target: FlowTarget; inlinePanel: boo
 
   return (
     <>
-      <EventHeader event={{ ...listing, title }} trailing={<CloseButton />} />
+      <EventHeader event={{ ...listing, title }} nav={<NavRow />} />
       <DrawerBody>
         {inlinePanel && (
           <div className="mx-6 mb-4 rounded-lg border border-divider">

@@ -122,8 +122,10 @@ and `pnpm test:a11y` (`scripts/AGENTS.md`, #432), Dependency Review and `pnpm ch
   `docs/rules/i18n-and-state.md`.
 - **Navigation**: the UI is a URL-driven drawer stack (`src/views/`) — the pathname decides
   which drawers are open, and there is no drawer-stack store. Dismissal is history-aware: it
-  goes chronologically back when in-widget history exists, and climbs to the structural parent
-  only for a fresh deep link — never popping the host page's history. The mechanism is in
+  goes chronologically back when in-widget history exists, and climbs only for a fresh deep
+  link — never popping the host page's history. Every page below the root says "Back to …"
+  where it lands; an X is left to a panel covering a view that stays live behind it — the
+  filters, and the add-a-class step panel. The mechanism is in
   `docs/rules/i18n-and-state.md`.
 - **Map containment, layout, responsive**: the widget adapts to its own box, not the window,
   and a slot too small for any layout gets a compact card. Detail and reasoning:

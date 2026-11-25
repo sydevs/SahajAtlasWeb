@@ -7,8 +7,9 @@ import { DynamicEventsList } from '@/components/organisms'
 import { useViewState } from '@/config/store'
 import { useMapController } from '@/hooks/use-map-controller'
 import { listResetKey, parseCenter } from '@/lib/shape'
+import { BackButton } from '@/views/nav'
 import {
-  CloseButton,
+  ExpandSheetButton,
   FilterButton,
   GeolocationSuggestion,
   SearchField,
@@ -59,8 +60,9 @@ export function SearchView() {
   return (
     <>
       <DrawerHeader>
+        <BackButton iconOnly />
         <SearchField />
-        <CloseButton />
+        <ExpandSheetButton />
       </DrawerHeader>
       {/* Outside the body, so a long list scrolls UNDER the controls rather than
           carrying them away — the list pages as you scroll, so the one moment Filters

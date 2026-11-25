@@ -20,7 +20,14 @@ export function ViewLayer({ children }: { children: ReactNode }) {
     <m.div
       animate={{ opacity: 1 }}
       aria-hidden={isPresent ? undefined : true}
-      className={clsx('absolute inset-0 flex flex-col', !isPresent && 'pointer-events-none')}
+      className={clsx(
+        // At the peek only the header fits, so what follows it would show as a sliced-off
+        // strip; hidden, it also leaves the tab order. A two-line title would be sliced the same
+        // way, so there it keeps to one line.
+        'absolute inset-0 flex flex-col [[data-sy-peek]_&>*:not(:first-child)]:invisible',
+        '[[data-sy-peek]_&>:first-child_:is(h1,h2)]:line-clamp-1',
+        !isPresent && 'pointer-events-none',
+      )}
       exit={{ opacity: 0 }}
       initial={{ opacity: 0 }}
       transition={{ duration: 0.15 }}

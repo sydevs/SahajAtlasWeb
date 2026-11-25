@@ -55,3 +55,18 @@ describe('drawer width — the TS constant and its CSS twin', () => {
     expect(found).toEqual(found.map((entry) => `${entry.split(':')[0]}: ${declaredPx}px`))
   })
 })
+
+describe('area framing — Back from a class zooms out to the whole place', () => {
+  const controller = read('hooks/use-map-controller-real.tsx')
+  const zoom = (name: string) =>
+    Number(controller.match(new RegExp(`const ${name} = (\\d+(?:\\.\\d+)?)`))?.[1])
+
+  it('caps a city, region or country fit wider than a venue, which is wider than a class', () => {
+    expect(zoom('AREA_MAX_ZOOM')).toBeLessThan(zoom('VENUE_MAX_ZOOM'))
+    expect(zoom('VENUE_MAX_ZOOM')).toBeLessThan(zoom('EVENT_ZOOM'))
+  })
+
+  it('fits an area by the area cap', () => {
+    expect(controller).toMatch(/fitBounds\(region\.bounds, \{ maxZoom: AREA_MAX_ZOOM/)
+  })
+})

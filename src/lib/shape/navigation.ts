@@ -1,88 +1,161 @@
 /**
- * In-widget history shaping. The drawer stack is a pure function of the URL, but
- * *dismissal* is history-aware: every in-widget push stamps an incrementing
- * `location.state.depth`, so closing a drawer can go chronologically back
- * (`navigate(-1)`) when in-widget history exists, and fall back to the structural
- * parent only for a fresh deep link. This is kept here (pure, no react-router
- * import), so the decision is unit-testable in isolation from the components
- * that apply it.
+ * Where Back goes. The drawer stack is a pure function of the URL, but Back is history-aware:
+ * every in-widget push stamps `location.state`, so Back steps back (`navigate(-1)`) through
+ * in-widget history and climbs only for a fresh deep link, never popping the host page's own
+ * history. Pure, with no react-router import, so the decision tests in isolation.
  */
+import { ancestorIds, indexRegions } from './hierarchy'
+import { type PlacePathOf, type StackEntry, placedPathname, resolveStack } from './path'
 
-/** The `state` shape we stamp on in-widget pushes (via the Link atom + useAtlasNavigate). */
-export type AtlasNavState = { depth?: number }
+/**
+ * The `state` shape we stamp on in-widget pushes (via the Link atom + useAtlasNavigate). A
+ * structural climb (dismissing a fresh deep link) carries only `climbedFrom`: the page it left.
+ */
+export type AtlasNavState = { depth?: number; from?: string; climbedFrom?: string }
+
+// `state` is `unknown` at the react-router boundary, and may be anything a host page put there,
+// so every member is read as possibly anything.
+const navState = (location: { state?: unknown }): { [K in keyof AtlasNavState]?: unknown } =>
+  typeof location.state === 'object' && location.state !== null ? location.state : {}
+
+// A stamped route, or `undefined` when the stamp is missing or not a string.
+const stamp = (location: { state?: unknown }, key: 'from' | 'climbedFrom'): string | undefined => {
+  const value = navState(location)[key]
+
+  return typeof value === 'string' ? value : undefined
+}
 
 /**
  * The in-widget history depth carried on a location's `state`. A fresh deep link
  * (or any navigation we did not stamp) has no numeric depth, so it reads as 0.
- * This reads defensively: `state` is `unknown` at the react-router boundary, and
- * may be anything a host page put there.
  */
 export const atlasDepth = (location: { state?: unknown }): number => {
-  const state = location.state as { depth?: unknown } | null | undefined
+  const { depth } = navState(location)
 
-  return typeof state?.depth === 'number' ? state.depth : 0
+  return typeof depth === 'number' ? depth : 0
 }
 
 /**
- * The `state` to stamp on an in-widget push: one level deeper than the current
- * entry. The single definition of the depth-stamp convention, shared by the Link
- * atom (declarative `state` prop) and `useAtlasNavigate` (imperative), so the two
- * paths cannot silently diverge. Pair it with `rememberCamera(location.key)` at
- * click time, so a later back restores the camera. That stays a separate call,
- * because Link stamps `state` at render but can only capture the live camera on click.
+ * The `state` to stamp on an in-widget push, shared by the Link atom and `useAtlasNavigate` so
+ * the two cannot diverge: one level deeper, and `from`, where the push left (query included), so
+ * Back can name the entry `navigate(-1)` lands on. History can be moved through, never read.
+ * Pair it with `rememberCamera(location.key)` at click time: Link stamps `state` at render, but
+ * can only capture the live camera on click.
  */
-export const atlasPushState = (location: { state?: unknown }): AtlasNavState => ({
+export const atlasPushState = (location: {
+  state?: unknown
+  pathname: string
+  search: string
+}): AtlasNavState => ({
   depth: atlasDepth(location) + 1,
+  from: `${location.pathname}${location.search}`,
 })
 
-/** What dismissing the top drawer resolves to. */
-export type DismissAction =
-  | 'collapse' // the root view (no parent) — collapse the sheet to its peek
-  | 'back' // in-widget history exists — go chronologically back (restores camera)
-  | 'fallback' // a fresh deep link (depth 0) — climb to the structural parent
-
-/**
- * Resolve the dismiss behaviour from whether a structural parent exists and the
- * current in-widget depth. `back` (never at depth 0) is what keeps the embedded
- * widget from navigating the *host page* away. At depth 0 there is no in-widget
- * entry to pop, so this climbs structurally instead.
- */
-export const dismissAction = ({
-  hasParent,
-  depth,
-}: {
-  hasParent: boolean
-  depth: number
-}): DismissAction => {
-  if (!hasParent) return 'collapse'
-
-  return depth > 0 ? 'back' : 'fallback'
+/** What a climb reads to pass over places (`climbDestination`). Every member may be missing. */
+export type ClimbInputs = {
+  /** Slugs a climb passes over: venues, and places holding a single in-person class. */
+  passable?: ReadonlySet<string>
+  /** Each place's own address, so a typed or old address climbs the real ancestry. */
+  pathOf?: PlacePathOf
 }
 
 /**
- * How many panels a repeated dismiss actually traverses before the stack
- * collapses — i.e. how many drawers are genuinely behind the active view. This is
- * what the peek strips must count, and it is NOT the URL's ancestor count.
+ * The places a climb passes over:
  *
- * Dismissal is history-aware (see `dismissAction`): while in-widget depth remains,
- * each press goes chronologically BACK one entry, and only once depth reaches 0
- * does it begin climbing structural parents. So a pin clicked from the root view
- * lands at depth 1 with three URL ancestors, yet ONE press returns to the root —
- * rendering three stacked panels there was a lie about where X would take you.
- *
- * `entryAncestors` is the structural ancestor count of the last depth-0 location:
- * the deep link the widget opened on, or whatever a back/climb has returned to.
- * Those are the parents still left to climb once history runs out, so the total is
- * `depth + entryAncestors`. Capped at the current URL's `ancestors`, which is all
- * the stack can actually name — a sibling jump (say a search result in another
- * country) can push depth past the new branch's structural height.
+ * - a venue: a class page already names its venue ("Evening Meditation at Balham Library"),
+ *   so "Back to Balham Library" reads as going nowhere. Back goes to the city instead.
+ * - a place holding a single in-person class and nothing else, which would only open that
+ *   class again (the `singleEventPath` such a place carries).
  */
-export const dismissDepth = ({
-  depth,
-  entryAncestors,
-  ancestors,
-}: {
-  depth: number
-  entryAncestors: number
-  ancestors: number
-}): number => Math.max(0, Math.min(ancestors, depth === 0 ? ancestors : depth + entryAncestors))
+export const passablePlaces = (
+  regions: readonly { id: number; slug: string; level?: string | null; parent?: number | null }[],
+  classes: readonly { region: { id: number }; online: boolean }[],
+): Set<string> => {
+  const index = indexRegions(regions)
+  // How many classes sit under each place, and which places hold an in-person one.
+  const count = new Map<number, number>()
+  const inPerson = new Set<number>()
+
+  for (const item of classes) {
+    for (const id of ancestorIds(index, item.region.id)) {
+      count.set(id, (count.get(id) ?? 0) + 1)
+      if (!item.online) inPerson.add(id)
+    }
+  }
+
+  return new Set(
+    regions
+      .filter(
+        (node) => node.level === 'venue' || (count.get(node.id) === 1 && inPerson.has(node.id)),
+      )
+      .map((node) => node.slug),
+  )
+}
+
+/**
+ * Where a fresh deep link climbs to (Back, swipe, Escape): the nearest place above that is
+ * worth landing on (`passablePlaces`), along the place's real ancestry (`placedPathname`),
+ * not the words typed in the address. With nothing known yet it is the structural parent.
+ */
+export const climbDestination = (pathname: string, { passable, pathOf }: ClimbInputs = {}) =>
+  resolveStack(placedPathname(pathname, pathOf))
+    .slice(0, -1)
+    .reverse()
+    .find((entry) => entry.kind !== 'region' || !passable?.has(entry.slug))?.path ?? '/'
+
+/** What Back does: where it lands, and whether getting there is a step back in history. */
+export type BackStep = { to: string; history: boolean }
+
+/**
+ * What Back does from this location, or `undefined` at the root, which has nothing to go back
+ * to. With in-widget history it steps back to the entry the push stamped as `from`. Otherwise
+ * (a fresh deep link, or an entry stamped before `from` existed) it climbs, so it can never
+ * pop the host page's history. Back's label and its press both read this one answer.
+ */
+export const backStep = (
+  location: { pathname: string; search?: string; state?: unknown },
+  climb?: ClimbInputs,
+): BackStep | undefined => {
+  if (resolveStack(location.pathname).length === 0) return undefined
+
+  const from = stamp(location, 'from')
+
+  if (atlasDepth(location) > 0 && from) return { to: from, history: true }
+
+  const parent = climbDestination(location.pathname, climb)
+
+  // A search keeps its query when something stacked over it climbs back.
+  return { to: parent === '/search' ? `${parent}${location.search ?? ''}` : parent, history: false }
+}
+
+// The class a route shows, or sits on (its Register or Share), by id: a class's own `webPath` and
+// its place's path plus its id are two addresses for one class.
+const classOf = (route: string): number | undefined =>
+  resolveStack(route.split('?')[0])
+    .reverse()
+    .find((entry): entry is Extract<StackEntry, { kind: 'event' }> => entry.kind === 'event')?.id
+
+/**
+ * How this location was reached, for a place whose only class sits at `lone`. Such a place opens
+ * that class, so leaving the class must never bounce back into it:
+ *
+ * - `'climbed'` — a structural climb (Back, swipe or Escape at depth 0) left the class or a place
+ *   above it, so the place climbs on, as Back already said it would.
+ * - `'back'` — a step back from the class, or from its Register or Share, so the place shows its
+ *   own page.
+ * - `undefined` — an arrival, a push from a place above included, so the place opens its class.
+ */
+export const loneClassExit = (
+  location: { state?: unknown },
+  lone: string,
+): 'climbed' | 'back' | undefined => {
+  const id = classOf(lone)
+  const isLone = (route: string) => id !== undefined && classOf(route) === id
+  const climbed = stamp(location, 'climbedFrom')?.split('?')[0]
+  const from = stamp(location, 'from')
+
+  if (climbed && (isLone(climbed) || lone.startsWith(`${climbed}/`))) return 'climbed'
+  if (from && isLone(from)) return 'back'
+
+  return undefined
+}

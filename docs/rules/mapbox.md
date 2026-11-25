@@ -203,11 +203,13 @@ The map is the heart of the app and its hottest render path. Treat it carefully.
   nothing was searched, so the camera stays put. Only the root view wants the
   whole world, and it asks by name via `reset()`.
 - **Framing moves only as needed, and flies** (the zoom constants — `EVENT_ZOOM`,
-  `REGION_MAX_ZOOM`, `REGION_FIT_PADDING`, `ONLINE_ZOOM` — are in
+  `VENUE_MAX_ZOOM`, `AREA_MAX_ZOOM`, `REGION_FIT_PADDING`, `ONLINE_ZOOM` — are in
   `use-map-controller-real.tsx`; the feel is tuned by `FLY_CURVE` / `FLY_SPEED` in
   `use-mapbox.ts`). `frameEvent` keeps the current zoom only for
-  an on-screen pin already at detail zoom, and flies in otherwise. Region fits cap at
-  `REGION_MAX_ZOOM` with edge padding, so a tight region cannot over-zoom.
+  an on-screen pin already at detail zoom, and flies in otherwise. A city, region or
+  country fit caps at `AREA_MAX_ZOOM` with edge padding, so a place whose classes meet
+  a few streets apart still shows the whole place, and Back from a class visibly
+  zooms out. A venue frames at `VENUE_MAX_ZOOM`.
   Every in-app level transition — an event, a region, a search, or `restore()`
   on a back navigation — flies one tuned arc, so zooming in and out feel
   symmetric.
@@ -295,7 +297,7 @@ correct, because the ref beside them is what refreshes those values.
 
 The control opens the distance-ranked results centered on the visitor —
 `use-geolocate.ts` navigates to `/search?center=…&bbox=…` and lets SearchView's
-`frameSearch` do the framing, so the fit inherits the `REGION_MAX_ZOOM` cap and
+`frameSearch` do the framing, so the fit inherits the `VENUE_MAX_ZOOM` cap and
 the list re-ranks. `nearbyBounds` builds the frame from the visitor plus the
 nearest few classes, floored at `NEARBY_RADIUS_KM` and capped at
 `NEARBY_MAX_KM` — the same radius that gates the IP prompt itself, so a class
@@ -342,7 +344,7 @@ responsive decision**, and `src/components/AGENTS.md`'s signal table carries no 
 for it.
 
 **The top right is the one corner no drawer covers**, in either layout: the side
-panel covers the bottom left, and the bottom sheet's `PEEK_SNAP` covers the whole
+panel covers the bottom left, and the bottom sheet's peek (`SHEET_PEEK_PX`) covers the whole
 bottom edge at every snap. The attribution takes it. The wordmark takes the bottom
 right, clear of the panel on a wide embed and **covered by that peek on a narrow
 one** — accepted in #330's review, since the only alternative is the measured

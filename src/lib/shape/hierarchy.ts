@@ -44,7 +44,7 @@ export type RegionIndex<T extends RegionTreeNode> = {
  * Builds the id + slug lookup maps for a region tree in one pass. Slugs are
  * globally unique across levels, so `bySlug` is unambiguous.
  */
-export const indexRegions = <T extends RegionTreeNode>(nodes: T[]): RegionIndex<T> => {
+export const indexRegions = <T extends RegionTreeNode>(nodes: readonly T[]): RegionIndex<T> => {
   const byId = new Map<number, T>()
   const bySlug = new Map<string, T>()
 

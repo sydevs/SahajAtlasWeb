@@ -3,7 +3,7 @@ import { useLocation, useNavigate } from 'react-router'
 import { useQuery } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
 
-import { DrawerBody, DrawerFooter, DrawerHeader } from '@/components/atoms/Drawer'
+import { DrawerBody, DrawerFooter } from '@/components/atoms/Drawer'
 import { Button } from '@/components/atoms/Button'
 import { SearchFilters } from '@/components/molecules'
 import { geojsonQuery } from '@/config/api'
@@ -20,7 +20,7 @@ import {
   parentOf,
   todayISO,
 } from '@/lib/shape'
-import { CloseButton, DrawerTitle } from '@/views/shared'
+import { NavHeader } from '@/views/nav'
 
 // The event-filters drawer, at route `/filters`, `/search/filters` when stacked over a
 // search, or `<region-path>/filters` over a region. This is a normal drawer view, with
@@ -90,10 +90,8 @@ export function FilterView({ initialDraft }: { initialDraft?: EventFilters } = {
 
   return (
     <>
-      <DrawerHeader className="justify-between">
-        <DrawerTitle title={t('filters.chrome.title')} />
-        <CloseButton />
-      </DrawerHeader>
+      {/* The filters sit over the page they narrow, so they close back onto it with an X. */}
+      <NavHeader close title={t('filters.chrome.title')} />
       <DrawerBody className="px-gutter py-4">
         <SearchFilters value={draft} onChange={setDraft} />
       </DrawerBody>

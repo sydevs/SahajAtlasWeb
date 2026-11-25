@@ -1,7 +1,6 @@
-import type { RegionNode } from '@/types'
+import type { Geojson, RegionNode } from '@/types'
 
 import {
-  type CSSProperties,
   Suspense,
   lazy,
   startTransition,
@@ -10,19 +9,26 @@ import {
   useMemo,
   useRef,
   useState,
+  useSyncExternalStore,
 } from 'react'
 import { createPortal } from 'react-dom'
 import { useLocation, useNavigate } from 'react-router'
-import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { AnimatePresence, m } from 'framer-motion'
+import { useQueryClient } from '@tanstack/react-query'
+import { AnimatePresence } from 'framer-motion'
 import clsx from 'clsx'
 
-import { eventTitlesQuery, regionsQuery } from '@/config/api'
+import { geojsonQuery, regionsQuery } from '@/config/api'
 import { useExpansion } from '@/hooks/use-expansion'
 import { useLocale } from '@/hooks/use-locale'
 import { Drawer, DrawerContent } from '@/components/atoms/Drawer'
 import { ResetErrorBoundary, SettingsMenu } from '@/components/molecules'
-import { WidgetWidthContext, useIsWide } from '@/config/responsive'
+import {
+  SHEET_OPEN_PX,
+  SHEET_PEEK_PX,
+  WidgetWidthContext,
+  useIsShortViewport,
+  useIsWide,
+} from '@/config/responsive'
 import { useWidgetMode } from '@/config/mode'
 import { useBrowsedCountry, useCalendarPosition, useSheetCover } from '@/config/store'
 import { frameElement, overlayContainer } from '@/lib/overlay'
@@ -30,25 +36,24 @@ import {
   type StackEntry,
   CALENDAR_VIEW_LIST,
   atlasDepth,
-  dismissAction,
-  dismissDepth,
+  backStep,
   baseStackEntry,
   isFilterOverlay,
+  isOnline,
   isSubmitEntry,
   opensTall,
   isoCountryCode,
+  passablePlaces,
   placePathsOf,
-  placedPathname,
   resolveStack,
   submitPanelPlacement,
   submitTitleKey,
 } from '@/lib/shape'
 import { wakesSheetLoop } from '@/views/DrawerStack/sheet-wake'
-import { stripLabel } from '@/views/DrawerStack/strip-label'
 import { submitSheetChrome } from '@/views/DrawerStack/submit-panel'
 import { ViewLayer } from '@/views/DrawerStack/ViewLayer'
 import { useFitSnap } from '@/views/DrawerStack/use-fit-snap'
-import { DrawerControlContext } from '@/views/shared'
+import { DrawerControlContext, NO_DRAWER_CONTROL } from '@/views/shared'
 import { DrawerErrorFallback, DrawerLoading } from '@/views/fallbacks'
 import { CountriesView } from '@/views/CountriesView/CountriesView'
 import { SearchView } from '@/views/SearchView/SearchView'
@@ -102,56 +107,43 @@ type SecondaryViews = ReturnType<typeof loadSecondaryViews>
 
 // The mobile bottom-sheet snap ladder, ascending. vaul reads a string as pixels, and a
 // number as a fraction of the sheet height:
-//  - '80px'  peek — the handle plus the search or title row
-//  - '300px' lower third — title, a list row, and a peek of the next
-//  - 0.97    near-full
-const SNAP_POINTS = ['80px', '300px', 0.97]
-const PEEK_SNAP = '80px' // the collapsed peek
-const OPEN_SNAP = '300px' // default, and what the peek expands to
+//  - the peek (`SHEET_PEEK_PX`) — the handle plus the first screen's search row, or the Back
+//    row and one line of title (ViewLayer clamps the title to one line there)
+//  - the open stop (`SHEET_OPEN_PX`) — the Back row, the title, a list row, and a peek of the next
+//  - 0.97 near-full
+const PEEK_SNAP = `${SHEET_PEEK_PX}px` // the collapsed peek
+const OPEN_SNAP = `${SHEET_OPEN_PX}px` // default, and what the peek expands to
+const SNAP_POINTS = [PEEK_SNAP, OPEN_SNAP, 0.97]
 const WIDE_SNAP = SNAP_POINTS[2] // the near-full snap the full-width calendar opens at
 // Stands for "as tall as the content" in `snap`. The pixel value moves with the content, so the
 // state holds this token and the ladder carries the live number (`useFitSnap`).
 const FIT_SNAP = 'fit'
 
-// How far each stacked ancestor peeks out behind the active sheet. Wide enough to read as
-// a deliberate stack of cards from across the screen. An earlier few-pixel sliver was easy
-// to mistake for a border. This width still leaves the active sheet unambiguously on top.
-const PEEK_MOBILE = 10 // px above the sheet's top edge
-const PEEK_DESKTOP = 12 // px to the right of the left panel
+// On a phone on its side, the open and taller stops covered nearly all of a 375px-tall map. There
+// every pixel stop stays this far below the top of the window, the band of map a 300px open stop
+// left on such a screen.
+// shortcut: this is under the 160px the camera reserves above the sheet for a pin it just framed
+// (`MIN_MAP_STRIP_PX`), so on a short window a framed pin can land under the sheet. Raise it to
+// the camera's reserve once the landscape sheet has been measured on a phone.
+const ABOVE_SHEET_WHEN_SHORT_PX = 75
+
+/** A pixel stop held down to `cap`. Fractions, and every stop when there is no cap, pass through. */
+const capStop = <T extends number | string | null>(point: T, cap: number | null): T | string =>
+  cap !== null && typeof point === 'string' && parseFloat(point) > cap ? `${cap}px` : point
 
 // Frames a stationary sheet holds before the `--sy-sheet-top` mirror parks itself (about
 // 0.5s at 60fps — well past the end of any vaul spring). See the effect below for why it
 // parks at all.
 const IDLE_FRAMES = 30
 
-// One uniform peek width per stack: every ancestor shares the same gap, and that gap
-// shrinks as the TOTAL depth grows. So each level stays evenly spaced while a taller
-// stack reads denser. `base` is the single-ancestor gap. Strip d sits at `d · gap`.
-const PEEK_DECAY = 0.78
-const perLevelPeek = (total: number, base: number) => base * Math.pow(PEEK_DECAY, total - 1)
-
-// Opacity of the stacked ancestors, fading with depth so the stack recedes rather than
-// competing with the active sheet. The nearest ancestor stays nearly solid, so its
-// peeking edge reads as a panel. Deeper ones drop away but never fully vanish.
-const peekOpacity = (depth: number) => Math.max(0.25, 0.8 - (depth - 1) * 0.2)
-
 type Direction = 'left' | 'bottom'
 
-// Dispatches the active (top) view's inner content. Only the top view renders —
-// ancestors are peek panels, not rendered views — so each view frames the map for its
-// own level on mount.
+// Dispatches the active (top) view's inner content. Only the top view renders, so each view
+// frames the map for its own level on mount.
 //
 // The three lazy views arrive as a prop, rather than being read from module scope, so
 // the identity a boundary reset replaces is the one this renders — see `loadSecondaryViews`.
-function TopView({
-  entry,
-  parentPath,
-  secondary,
-}: {
-  entry: StackEntry | null
-  parentPath: string
-  secondary: SecondaryViews
-}) {
+function TopView({ entry, secondary }: { entry: StackEntry | null; secondary: SecondaryViews }) {
   if (!entry) return <CountriesView />
 
   switch (entry.kind) {
@@ -168,7 +160,7 @@ function TopView({
     case 'event':
       return <EventView basePath={entry.path} id={entry.id} />
     case 'register':
-      return <secondary.RegistrationView eventPath={entry.eventPath} parentPath={parentPath} />
+      return <secondary.RegistrationView eventPath={entry.eventPath} />
     case 'share':
       return <secondary.ShareView eventPath={entry.eventPath} />
     case 'add':
@@ -177,96 +169,14 @@ function TopView({
   }
 }
 
-// Every other control in the app draws this ring on focus. The strips drew nothing, so
-// tabbing into the stack was invisible. `ring-inset` matters because only a thin edge of
-// each strip escapes the sheet in front of it — an outset ring would paint into the
-// sheet's territory, which sits at a higher z-index, and never be seen.
-const PEEK_FOCUS =
-  'outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-focus'
-
-// A simulated ancestor drawer: a semi-transparent panel stacked behind the active sheet,
-// so the stack reads as one set of fading cards over the map, rather than two separate
-// drawers. On mobile it sits `depth * PEEK` above the sheet's *live* top (mirrored onto
-// `--sy-sheet-top` every frame by DrawerStack), so it tracks a drag with no lag. Clicking
-// it pops straight to that ancestor.
-function PeekStrip({
-  depth,
-  gap,
-  direction,
-  zIndex,
-  opacity,
-  label,
-  onClick,
-}: {
-  depth: number
-  gap: number
-  direction: Direction
-  zIndex: number
-  opacity: number
-  label: string
-  onClick: () => void
-}) {
-  // TODO(rtl, #52 WS8): the strip geometry (inline left/right plus the framer x
-  // offsets below) is direction-sensitive. Mirror it alongside the Drawer atom's
-  // `left` variant when an RTL locale ships.
-  const isLeft = direction === 'left'
-  const style: CSSProperties = { position: 'fixed', zIndex }
-  let className: string
-
-  if (isLeft) {
-    // Matches the drawer atom's left variant: flush and square on tablet, floating
-    // and rounded at ≥lg — the geometry lives in these classes, not in inline styles.
-    // The width is the paired `352px` value — its twin is `DRAWER_W_PX` in
-    // `hooks/use-map-controller-real.tsx`. See the Drawer atom for why.
-    // ⚠ This uses `max-w-[calc(100%-32px)]`, not `100vw`. These panels are `position: fixed`,
-    // so inside a frame (#169) a viewport unit describes a box they are not in. A percentage
-    // resolves against the containing block — the frame where there is one, the viewport
-    // where there is not. This is inert either way today, because the anchored panel only
-    // renders at ≥768px, where `352px` always fits — which is exactly why it is worth fixing
-    // before that stops being true.
-    className =
-      'inset-y-0 start-0 w-[calc(var(--sy-drawer-w,352px)+env(safe-area-inset-left,0px))] max-w-[calc(100%-32px)] rounded-none border border-divider bg-background shadow-xl lg:inset-y-4 lg:start-4 lg:rounded-2xl'
-  } else {
-    style.left = 0
-    style.right = 0
-    style.height = 'var(--sy-frame-h)'
-    // `top` tracks the sheet's live position (rAF). The depth offset is the animated
-    // transform below. So drag-tracking stays instant while the stack itself eases.
-    style.top = 'var(--sy-sheet-top, var(--sy-frame-h))'
-    className = 'rounded-t-2xl border-t border-divider bg-background shadow-xl'
-  }
-
-  // The stack slides out to make room as it grows, and back in as it shrinks. Each panel
-  // eases from flush with the sheet edge, offset 0, out to `depth · gap`. `gap` is one
-  // uniform per-level width for the whole stack, tighter the deeper the stack goes —
-  // computed once by DrawerStack. A newly stacked panel enters from under the sheet while
-  // the existing panels shift further out. The reverse happens on close.
-  const offset = isLeft ? { x: depth * gap } : { y: -depth * gap }
-  const flush = isLeft ? { x: 0 } : { y: 0 }
-
-  return (
-    <m.button
-      animate={{ ...offset, opacity }}
-      aria-label={label}
-      className={clsx(className, PEEK_FOCUS)}
-      exit={{ ...flush, opacity: 0 }}
-      initial={{ ...flush, opacity: 0 }}
-      style={style}
-      transition={{ duration: 0.35, ease: [0.32, 0.72, 0, 1] }}
-      type="button"
-      onClick={onClick}
-    />
-  )
-}
-
 // The whole drawer navigation, derived purely from the pathname. ONE persistent vaul
-// drawer holds the active (top) view. Its ancestors are simulated as semi-transparent peek
-// panels behind it. The sheet renders once — DrawerStack owns the DrawerContent, and views
-// are just its inner content. So navigating never remounts or re-slides the drawer. The
-// inner content cross-fades instead. Every view is handled the same way: dismissing
-// navigates to the parent, and the one view with no parent (CountriesView) collapses to
-// its peek instead of closing. Direction is left at ≥md, bottom on mobile. Map-less, the
-// single drawer fills the widget container.
+// drawer holds the active (top) view. The sheet renders once — DrawerStack owns the
+// DrawerContent, and views are just its inner content. So navigating never remounts or
+// re-slides the drawer. The inner content cross-fades instead. Every view is handled the same
+// way: Back goes where it says (`backStep`), and the one view with no parent
+// (CountriesView) collapses to its peek instead. Nothing draws the history behind the view:
+// Back names it. Direction is left at ≥md, bottom on mobile. Map-less, the single drawer fills
+// the widget container.
 export function DrawerStack() {
   const location = useLocation()
   // Reads off the location rather than through `useSearchParams`, which would add a
@@ -277,8 +187,8 @@ export function DrawerStack() {
   // `t` comes off `useLocale`, not a second `useTranslation` call: the hook already
   // holds one for the default (`common`) namespace, and hands it back for exactly this
   // reason. A second call would double this component's i18next subscription, and
-  // DrawerStack re-renders on every geocoder keystroke.
-  const { t, locale } = useLocale()
+  // DrawerStack re-renders on every navigation.
+  const { t } = useLocale()
   // Read unconditionally, like every other seam consumer: with no surface above this
   // component, it is the no-op provider, and the Escape ladder below simply ends where
   // it always did.
@@ -299,8 +209,9 @@ export function DrawerStack() {
   const isWide = useIsWide(container ?? frameElement())
   const direction: Direction = isWide ? 'left' : 'bottom'
   const [snap, setSnap] = useState<number | string | null>(OPEN_SNAP)
-  // Whether the add-a-class step panel is the review bar, as the panel itself reports it.
-  const stripsRef = useRef<HTMLDivElement>(null)
+  // Whether the sheet is sitting at its peek, measured by the sheet-top loop below. Never true
+  // where the sheet cannot collapse, since the loop does not run there.
+  const [atPeek, setAtPeek] = useState(false)
   const sheetOriginRef = useRef<HTMLDivElement>(null)
   // The lazy components ARE the retry state — the boundary's reset swaps in fresh ones.
   // Same shape, and the same reasoning, as EventView's `EventDetails`.
@@ -328,17 +239,45 @@ export function DrawerStack() {
   // switching it resizes the drawer. Date changes do not re-render this component.
   const calendarView = useCalendarPosition((s) => s.view)
   const wide = top?.kind === 'calendar' && isWide && calendarView !== CALENDAR_VIEW_LIST
-  // What sits behind the top view follows the region tree, not the words typed. A place opens by
-  // its last slug, so `/united-kingdom/south-east/london` shows London, and its panels and climb
-  // must name and lead to the UK at `/gb`, not a `/united-kingdom` that doesn't exist. The top view
-  // keeps the address as typed (`top.path` above). A disabled observer follows the cache only.
-  const { data: regionTree } = useQuery({ ...regionsQuery(), enabled: false })
-  const pathOf = useMemo(() => placePathsOf(regionTree), [regionTree])
-  const ancestry = useMemo(() => {
-    const placed = resolveStack(placedPathname(location.pathname, pathOf))
+  // What Back does, worked out once for its label and its press. A fresh deep link's climb follows
+  // the region tree, not the words typed: `/united-kingdom/south-east/london` shows London, and
+  // Back must lead to the UK at `/gb`, not a `/united-kingdom` that doesn't exist. It also passes
+  // over venues and one-class places. The caches are read, never observed: this component stays
+  // mounted all session, and an observer would keep the wholesale caches from ever being
+  // collected. `cachesFilled` re-reads them when either arrives, since a deep link renders this
+  // before they do.
+  const cachesFilled = useSyncExternalStore(
+    useCallback(
+      (onChange: () => void) => queryClient.getQueryCache().subscribe(onChange),
+      [queryClient],
+    ),
+    () =>
+      `${queryClient.getQueryState(regionsQuery().queryKey)?.dataUpdatedAt}:${
+        queryClient.getQueryState(geojsonQuery().queryKey)?.dataUpdatedAt
+      }`,
+  )
+  // The places a climb passes over walk every class in the feed, and the place paths build a Map
+  // of the whole region tree, so both are worked out per feed rather than per navigation.
+  const climb = useMemo(() => {
+    const regions = queryClient.getQueryData<RegionNode[]>(regionsQuery().queryKey)
+    const feed = queryClient.getQueryData<Geojson>(geojsonQuery().queryKey)
 
-    return isFilterOverlay(placed, hasMap) ? placed.slice(0, -1) : placed
-  }, [location.pathname, pathOf, hasMap])
+    return {
+      pathOf: placePathsOf(regions),
+      passable:
+        regions && feed
+          ? passablePlaces(
+              regions,
+              feed.features.map(({ properties }) => ({
+                region: properties.region,
+                online: isOnline(properties),
+              })),
+            )
+          : undefined,
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- `cachesFilled` is the re-read trigger for caches nothing here observes
+  }, [queryClient, cachesFilled])
+  const step = useMemo(() => backStep(location, climb), [location, climb])
   // The country on screen, kept through the routes that name none (search, calendar), so the
   // place search a country page opens stays in that country. The world view clears it.
   const setBrowsedCountry = useBrowsedCountry((s) => s.setCode)
@@ -350,12 +289,7 @@ export function DrawerStack() {
     if (!first || code) setBrowsedCountry(code)
   }, [location.pathname, setBrowsedCountry])
 
-  // Ancestor paths below the top view, root-first (empty at CountriesView).
-  const parentPaths = useMemo(
-    () => (ancestry.length === 0 ? [] : ['/', ...ancestry.slice(0, -1).map((e) => e.path)]),
-    [ancestry],
-  )
-  const parentPath = parentPaths.at(-1)
+  const depth = atlasDepth(location)
   const canCollapse = hasMap && direction === 'bottom'
 
   // A class opens as tall as its content and footer, up to the near-full snap. At the
@@ -363,11 +297,8 @@ export function DrawerStack() {
   // sliced the "Next session" line in half. It never opens lower than that snap: the loading
   // skeleton is short, and a sheet that dipped under it would only climb again once the class
   // arrived. One drag down still stops there, with the map and the class's pin above.
-  const fit = useFitSnap(
-    direction === 'bottom' && hasMap && top?.kind === 'event',
-    location.pathname,
-  )
-  const fitPx = typeof fit === 'number' && fit > parseFloat(OPEN_SNAP) ? fit : null
+  const fit = useFitSnap(canCollapse && top?.kind === 'event', location.pathname)
+  const fitPx = typeof fit === 'number' && fit > SHEET_OPEN_PX ? fit : null
   const fitSnap = fitPx === null ? null : `${fitPx}px`
   const snapPoints = useMemo(
     () => (fitSnap === null ? SNAP_POINTS : [PEEK_SNAP, OPEN_SNAP, fitSnap, WIDE_SNAP]),
@@ -382,18 +313,40 @@ export function DrawerStack() {
     if (next === vaulSnap) return
     setSnap(fitSnap !== null && next === fitSnap ? FIT_SNAP : next)
   }
+  // A short window caps the pixel stops (ABOVE_SHEET_WHEN_SHORT_PX) only on the way to vaul, so
+  // `snap` keeps naming the logical stop and everything that compares it stays as it is. The
+  // near-full stop is a fraction, and still covers the map on purpose.
+  const shortViewport = useIsShortViewport()
+  const snapCap =
+    shortViewport && canCollapse && !frameElement()
+      ? Math.max(SHEET_PEEK_PX, window.innerHeight - ABOVE_SHEET_WHEN_SHORT_PX)
+      : null
+  // Memoised like the ladder it is built from: vaul re-measures every stop when this changes.
+  const shownSnapPoints = useMemo(
+    () =>
+      snapCap === null ? snapPoints : [...new Set(snapPoints.map((p) => capStop(p, snapCap)))],
+    [snapPoints, snapCap],
+  )
+  const shownSnap = capStop(vaulSnap, snapCap)
+  const setShownSnap = (next: number | string | null) => {
+    // A capped stop stands for every stop above the cap: the sheet stays where it was if that caps
+    // to here, and otherwise opens at its usual open stop.
+    if (snapCap !== null && next === `${snapCap}px` && !snapPoints.includes(next)) {
+      if (shownSnap !== next) setSnap(openSnap)
+
+      return
+    }
+    setVaulSnap(next)
+  }
   // What the sheet covers of the map, resolved from the snap it sits at, so the camera reserves
   // the collapsed peek while the sheet is collapsed and a class's taller sheet while it is open.
   // The near-full snap reports the open snap instead: the pin is hidden there whatever the camera
   // does, so the framing serves the third-height stop one drag below.
-  const sheetCover =
-    direction !== 'bottom' || !hasMap
-      ? null
-      : snap === PEEK_SNAP
-        ? parseFloat(PEEK_SNAP)
-        : snap === FIT_SNAP && fitPx !== null
-          ? fitPx
-          : parseFloat(OPEN_SNAP)
+  const sheetCover = !canCollapse
+    ? null
+    : snap === PEEK_SNAP
+      ? SHEET_PEEK_PX
+      : Math.min(snap === FIT_SNAP && fitPx !== null ? fitPx : SHEET_OPEN_PX, snapCap ?? Infinity)
   const setSheetCover = useSheetCover((s) => s.setBottom)
 
   useEffect(() => {
@@ -402,98 +355,25 @@ export function DrawerStack() {
     return () => setSheetCover(null)
   }, [sheetCover, setSheetCover])
 
-  // The stack must show the panels a repeated X actually goes through, which is a history
-  // question, not a URL one (see `dismissDepth`). `entryAncestors` is the structural height
-  // of the last depth-0 location. This is remembered because once history has pushed past
-  // it, the URL no longer names where the widget came in.
-  //
-  // A ref, not state: it is only ever READ at depth > 0, and only ever WRITTEN at
-  // depth 0 — where `dismissDepth` uses the live ancestor count instead. So a write can
-  // never change the current render's output, and making it reactive would only buy a
-  // second render of the whole stack. This gets the same non-reactive treatment as
-  // `useCameraHistory`, for the same reason.
-  // Seeded at 0, NOT at `parentPaths.length`. Mounting already at depth > 0 — a reload
-  // keeps `history.state` — would otherwise make the cap always bind:
-  // `min(ancestors, depth + ancestors) === ancestors`, quietly restoring the URL-ancestor
-  // count this replaced. Neither seed is right after such a reload, because the entry to
-  // climb from is no longer knowable. So this prefers the seed that can only UNDER-count.
-  // A card that no dismiss visits is the bug being fixed, while a missing card is just a
-  // shallower-looking stack.
-  const depth = atlasDepth(location)
-  const entryAncestors = useRef(0)
-
-  useEffect(() => {
-    if (depth === 0) entryAncestors.current = parentPaths.length
-  }, [depth, parentPaths.length])
-
-  // Strips are the FIRST n ancestors (root-first): with history in play, the nearest
-  // URL ancestor may not be where back actually lands, but the root end of the chain
-  // is. So counting from the root keeps the click targets closest to the truth.
-  const stackDepth = dismissDepth({
-    depth,
-    entryAncestors: entryAncestors.current,
-    ancestors: parentPaths.length,
-  })
-  const stackPaths = parentPaths.slice(0, stackDepth)
-
-  // The peek strips' accessible names, resolved from caches the app has already
-  // filled.
-  //
-  // This reads through `getQueryData`, rather than a `useQuery({ enabled: false })` pair —
-  // which is how `DrawerChrome` does the same lookup. The difference is this component's
-  // lifetime, not taste. `DrawerChrome` mounts only while a view is loading or has thrown.
-  // DrawerStack stays mounted for the whole session, so an observer here would be a
-  // permanent one, and React Query counts `gcTime` from the moment the LAST observer
-  // unmounts. Two of the wholesale caches would then simply never be collected —
-  // `WHOLESALE_GC_TIME` unreachable, one retained titles Map per language visited — which is
-  // worst exactly where it is least visible: a `map=false` embed idling on a host page.
-  //
-  // This stays cache-only, still through the shared factories — a read under a divergent
-  // key does not error, it silently misses — and still free to miss. The cost is the name,
-  // not the strip. The trade for dropping the subscription is that a label appears on the
-  // next render, rather than the moment the cache fills. DrawerStack re-renders on every
-  // location change, which is the only time a strip appears at all.
-  //
-  // Uses a Map, not the region array: `stripLabel` runs per strip per render, and the
-  // region tree is the global list of every region in the world.
-  const stripNames = useMemo(() => {
-    // Uses explicit generics: these keys are plain tuples, rather than DataTag-carrying
-    // ones, so `getQueryData` cannot infer what they hold.
-    const regions = queryClient.getQueryData<RegionNode[]>(regionsQuery().queryKey)
-
-    return {
-      // A nameless region is dropped, rather than mapped to a blank, so it falls
-      // through to `stripLabel`'s slug rung instead of naming the strip the empty
-      // string.
-      regionNames: new Map(
-        regions?.flatMap((node) => (node.name ? [[node.slug, node.name] as const] : [])) ?? [],
-      ),
-      titles: queryClient.getQueryData<Map<number, string>>(eventTitlesQuery(locale).queryKey),
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- `location.pathname` is the re-read trigger for a cache nothing here subscribes to
-  }, [queryClient, locale, location.pathname])
-
-  // Mirrors the active sheet's live top onto the peek strips AND the sheet itself,
-  // every frame, so both track a drag without waiting for the snap to settle (map plus
-  // mobile only). The sheet-side copy is what pins EventView's sticky register bar to
-  // the viewport edge — inside the transformed sheet, `position: fixed` resolves
-  // against the sheet, so the bar offsets by the live top instead (issue #52, WS4).
+  // Mirrors the active sheet's live top onto the sheet itself, every frame, so what reads it
+  // tracks a drag without waiting for the snap to settle (map plus mobile only). It is what
+  // pins EventView's sticky register bar to the viewport edge — inside the transformed sheet,
+  // `position: fixed` resolves against the sheet, so the bar offsets by the live top instead
+  // (issue #52, WS4) — and what tells ViewLayer the sheet is at its peek.
   //
   // CSS anchor positioning cannot retire this loop, so no `build.target` raise does
   // either. `anchor()` is valid only in inset properties, and `Fallbacks`'
   // `CENTERED_BODY` reads this variable in `max-height`, so that consumer keeps the
-  // loop running however high the floor goes. The two inset readers — the strip's
-  // `top` above and `DrawerFooter`'s sticky `bottom` — could convert, which trades one
-  // mechanism for two and deletes nothing.
+  // loop running however high the floor goes.
   useEffect(() => {
-    // This effect runs for every bottom-sheet view, root included. The strips and the sticky
-    // register bar only exist above the root, but `--sy-sheet-top` now has a third consumer.
+    // This effect runs for every bottom-sheet view, root included. The sticky register bar only
+    // exists above the root, but `--sy-sheet-top` has other consumers.
     // The error and loading bodies centre themselves within the VISIBLE sheet, and the root
     // can fail too, on a cold `['countries']` read. Without the variable there, they would
-    // centre inside a body that is `h-dvh` tall while only its top 300px is on screen — below
+    // centre inside a body that is `h-dvh` tall while only its top 356px is on screen — below
     // the fold, which is the same bug that made both states invisible on mobile in the first
     // place (issue #89).
-    if (!hasMap || direction !== 'bottom') return
+    if (!canCollapse) return
     let raf = 0
     let still = 0
     let last = Number.NaN
@@ -502,23 +382,19 @@ export function DrawerStack() {
     // now that the effect no longer re-runs per depth change. Two elements carry
     // `[data-vaul-drawer]`, the main sheet and the filter overlay, so a resize across the md
     // breakpoint can leave this holding the overlay. Once that overlay closes, a detached
-    // node measures `top: 0` and would write `--sy-sheet-top: 0px` onto the LIVE strips,
-    // pinning every peek to the top.
+    // node measures `top: 0`, and the live sheet would stop being tracked.
     //
     // ⚠ **Scoped to this widget's own portal target, not `document`.** Both drawers portal
     // through `overlayContainer()` — the frame, or the theme root — never `document.body`,
     // whatever an older comment here claimed. A document-wide query reaches the HOST's DOM,
     // and vaul is a common shadcn dependency. A drawer of theirs, earlier in document order,
     // would win. This code would then write an inline `--sy-sheet-top` onto a host node
-    // every frame, while this widget's own strips took their offset from somebody else's
-    // box.
+    // every frame.
     let sheet: HTMLElement | null = null
     const tick = () => {
       if (!sheet?.isConnected) {
         sheet = (overlayContainer() ?? document).querySelector<HTMLElement>('[data-vaul-drawer]')
       }
-      const el = stripsRef.current
-
       // No sheet still counts as a settled frame: counting it as movement would
       // re-arm the loop (and re-run the query) every frame forever, which is exactly
       // the cost this parks to avoid.
@@ -527,16 +403,16 @@ export function DrawerStack() {
       } else {
         // This measures against the box the fixed layer resolves against, not the
         // viewport. `getBoundingClientRect().top` is a VIEWPORT coordinate. It is
-        // consumed as `top:` on fixed peek strips and `bottom:` on the sticky Register
-        // bar — both of which a frame contains (`contain: layout`). Left raw, every one
-        // of them sat 16-32px out inside the expanded dialog, by exactly its margin.
+        // consumed as `bottom:` on the sticky Register bar, which a frame contains
+        // (`contain: layout`). Left raw, it sat 16-32px out inside the expanded dialog, by
+        // exactly its margin.
         // Contained on a host's page (#169), the error becomes however far down their
         // page the element sits, which is unbounded. With no frame, the offset is zero,
         // so this stays the same number it always was.
         // This reads from the node the overlay module already tracks, NOT
         // `document.querySelector('[data-sy-frame]')`. That would search the host's
         // whole document, so an element of theirs carrying the attribute would win on
-        // document order and offset every strip by its box. Its RECT is still read per
+        // document order and offset the bar by its box. Its RECT is still read per
         // frame — the dialog's inset changes at the `sm:` crossing, and a contained
         // frame moves with the host's own scrolling — but the lookup itself is a module
         // read, not a query.
@@ -549,20 +425,23 @@ export function DrawerStack() {
         // never parks, spending a forced layout flush per frame on somebody else's
         // page.
         let top = Number.NaN
+        let box = 0
 
         try {
           // ⚠ Read against a `fixed` origin on the same layer, not against the viewport. While
           // the iOS keyboard is up, Safari pans the page, and a rect read alone shifts by that
           // pan. The loop then parks on the panned value, because the pan ending fires nothing
-          // that wakes it, and the peek strips stay stranded across the map as a see-through
-          // panel. Both rects shift together, so the difference holds through a pan, and the
-          // origin lands on a frame's edge where one contains the layer.
+          // that wakes it, and the Register bar stays stranded mid-screen. Both rects shift
+          // together, so the difference holds through a pan, and the origin lands on a frame's
+          // edge where one contains the layer.
           const origin =
             sheetOriginRef.current?.getBoundingClientRect().top ??
             frameElement()?.getBoundingClientRect().top ??
             0
 
           top = sheet.getBoundingClientRect().top - origin
+          // Read with the rects, before the writes below dirty the style.
+          box = frameElement()?.clientHeight ?? window.innerHeight
         } catch {
           top = Number.NaN
         }
@@ -575,7 +454,16 @@ export function DrawerStack() {
           still = 0
           last = top
           sheet.style.setProperty('--sy-sheet-top', `${top}px`)
-          el?.style.setProperty('--sy-sheet-top', `${top}px`)
+          // One answer for the peek, from the live top rather than from the settled snap, so a
+          // sheet dragged up fills in as it rises instead of when it lands. ViewLayer hides what
+          // the peek cannot show off the attribute; the header's controls read `collapsed`, which
+          // is this same boolean — decided twice, they disagreed for the length of a drag and the
+          // row offered a view's actions over an invisible body. The state setter bails out on an
+          // unchanged value, so this re-renders once per crossing, not once per frame.
+          const atPeekNow = box - top < SHEET_PEEK_PX + 8
+
+          sheet.toggleAttribute('data-sy-peek', atPeekNow)
+          setAtPeek(atPeekNow)
         }
       }
 
@@ -614,7 +502,7 @@ export function DrawerStack() {
       window.removeEventListener('resize', wake)
       document.removeEventListener('transitionrun', wake, true)
     }
-  }, [hasMap, direction])
+  }, [canCollapse])
 
   // A few views open at the near-full snap on mobile (`opensTall`), and an event at the height of
   // its own content, while every other view keeps the third-height open snap. Keyed on the view KIND (not `wide`), so switching the
@@ -641,71 +529,41 @@ export function DrawerStack() {
     if (direction === 'bottom') setSnap((current) => (current === PEEK_SNAP ? OPEN_SNAP : current))
   }, [direction, searchCenter])
 
-  // Uniform for every view: dismissing pops to the parent, and the one view with no
-  // parent (CountriesView) collapses to the peek instead of closing. Wired to both the
-  // close/list buttons (via context) and vaul's swipe (onOpenChange).
-  // The search view's query (center/bbox/q) is ambient context: keep it when popping
-  // back into `/search` (for example, closing the filters drawer stacked over it), and
-  // drop it when leaving search entirely. Only `/search` carries a query today.
-  const toStackTarget = useCallback(
-    (path: string) => (path === '/search' ? { pathname: path, search: location.search } : path),
-    [location.search],
-  )
-
-  // History-aware dismiss (X / swipe / Esc): with in-widget history (depth > 0), go
-  // chronologically back. That restores the prior camera, and returns to exactly
-  // where the user came from (a `/search` result closes back to those results, not
-  // the event's parent region). A fresh deep link (depth 0) has no in-widget entry to
-  // pop, and `navigate(-1)` would navigate the *host page* away (the embedded widget
-  // shares browser history). So it climbs to the structural parent instead. The root
-  // view (no parent) collapses to its peek.
-  const control = useMemo(() => {
-    // Resolved ONCE, and read by both members below, so `canDismiss` can never drift
-    // from what pressing X actually does. The error fallback renders its own header
-    // (the view's own header is inside the boundary that caught the error) and must
-    // not offer a close that no-ops: at the root there is nothing to climb to, and
-    // `navigate(-1)` would take the HOST page back (issue #89).
-    const action = dismissAction({ hasParent: Boolean(parentPath), depth })
-
-    return {
-      collapsed: snap === PEEK_SNAP,
-      canCollapse,
-      canDismiss: action !== 'collapse',
+  // Back, swipe and Esc all run `dismiss`, and Back's label reads the same `step`, so what it
+  // says is where it goes. With in-widget history it goes chronologically back, restoring the
+  // prior camera. Otherwise it climbs: `navigate(-1)` there would take the HOST page back (the
+  // embedded widget shares browser history). The root view collapses to its peek.
+  const control = useMemo(
+    () => ({
+      // The filter overlay's X is the way out while it covers the calendar.
+      backTo: filterOverlay ? undefined : step?.to,
+      collapsed: canCollapse && atPeek,
       toggle: () => setSnap((s) => (s === PEEK_SNAP ? openSnap : PEEK_SNAP)),
       dismiss: () => {
-        // Marks the dismiss navigation as a transition: unmounting a heavy view (the
-        // calendar's large grid) would otherwise reconcile synchronously and freeze
-        // the click for a beat ("nothing happened"). As a transition, React keeps the
-        // UI responsive and swaps the view when it is ready.
-        if (action === 'collapse') setSnap(PEEK_SNAP)
-        else
-          startTransition(() => {
-            if (action === 'back') navigate(-1)
-            else if (parentPath) navigate(toStackTarget(parentPath)) // 'fallback'
-          })
+        if (!step) return setSnap(PEEK_SNAP)
+        // A transition: unmounting a heavy view (the calendar's large grid) would otherwise
+        // reconcile synchronously and freeze the click for a beat ("nothing happened").
+        startTransition(() => {
+          if (step.history) navigate(-1)
+          // A climb says where it climbed from, so a place that opens its lone class climbs on
+          // rather than bouncing back into it (RegionView, `loneClassExit`).
+          else navigate(step.to, { state: { climbedFrom: location.pathname } })
+        })
       },
-    }
-  }, [snap, openSnap, canCollapse, parentPath, depth, navigate, toStackTarget])
+    }),
+    [filterOverlay, step, atPeek, openSnap, canCollapse, navigate, location.pathname],
+  )
 
-  // The filter overlay's own dismiss (its X / swipe / Esc): back to the calendar it
-  // opened over — chronologically when there is in-widget history, otherwise a direct
-  // climb (with the query kept).
+  // The filter overlay's own dismiss (its X / swipe / Esc): back to the calendar it opened over,
+  // chronologically when there is in-widget history, otherwise a direct climb keeping its query.
   const overlayControl = useMemo(
     () => ({
-      collapsed: false,
-      canCollapse: false,
-      // Always parented to the calendar, so its X always goes somewhere.
-      canDismiss: true,
-      toggle: () => {},
-      // The same back-vs-climb decision as `control` (via `dismissAction`), but the
-      // overlay is always parented to the calendar (`hasParent: true` → never
-      // 'collapse'), so 'fallback' climbs to `/calendar` directly, keeping its query.
+      ...NO_DRAWER_CONTROL,
+      overlay: true,
       dismiss: () =>
-        dismissAction({ hasParent: true, depth }) === 'back'
-          ? navigate(-1)
-          : navigate({ pathname: '/calendar', search: location.search }),
+        depth > 0 ? navigate(-1) : navigate({ pathname: '/calendar', search: location.search }),
     }),
-    [depth, location, navigate],
+    [depth, location.search, navigate],
   )
 
   // Whether the sheet advertises its drag affordance (issue #107). The atom's default is
@@ -719,7 +577,7 @@ export function DrawerStack() {
   // that is not there. The map-less ROOT view sets `dismissible={false}`, since there is no
   // parent to climb to, and correctly keeps no handle. Map mode is always dismissible, so
   // this resolves to the atom's old answer there.
-  const sheetDismissible = hasMap || parentPaths.length > 0
+  const sheetDismissible = hasMap || step !== undefined
   const sheet = (
     <DrawerContent
       aria-label={t('countries.title')}
@@ -738,12 +596,11 @@ export function DrawerStack() {
        * go. The sheet collapses to its peek while it can. Only then does the key belong
        * outward. `collapse()` is a no-op with no surface above this component — the
        * seam's whole point — so a normal embed reaches this line and nothing changes. At
-       * that point vaul's own dismissal was already a no-op too. `dismissAction` returns
-       * 'collapse', and the sheet is either already collapsed or has no snap points left
-       * to collapse to.
+       * that point vaul's own dismissal was already a no-op too: there is no Back step, and
+       * the sheet is either already collapsed or has no snap points left to collapse to.
        */
       onEscapeKeyDown={(event) => {
-        if (control.canDismiss || (control.canCollapse && !control.collapsed)) return
+        if (step || (canCollapse && snap !== PEEK_SNAP)) return
 
         event.preventDefault()
         collapse()
@@ -753,8 +610,8 @@ export function DrawerStack() {
         <AnimatePresence>
           <ViewLayer key={top?.path ?? '/'}>
             {/* Suspense sits OUTSIDE the boundary, so a lazy view's chunk load is a
-                suspend that shows `DrawerLoading` — the shared chrome (header plus close
-                control, rebuilt from the URL) over a spinner — and only a FAILED load
+                suspend that shows `DrawerLoading` — the shared chrome (header plus Back,
+                rebuilt from the URL) over a spinner — and only a FAILED load
                 throws inward to the boundary. That is what keeps a first open of the
                 calendar, register, or share drawer from flashing blank or unstyled: the
                 drawer's identity is on screen from the first frame, and only its body
@@ -764,7 +621,7 @@ export function DrawerStack() {
                 FallbackComponent={DrawerErrorFallback}
                 onReset={() => setSecondary(loadSecondaryViews())}
               >
-                <TopView entry={top} parentPath={parentPath ?? '/'} secondary={secondary} />
+                <TopView entry={top} secondary={secondary} />
               </ResetErrorBoundary>
             </Suspense>
           </ViewLayer>
@@ -838,7 +695,7 @@ export function DrawerStack() {
     ) : null
 
   // Map-less: one contained drawer fills the widget container (there is no map to
-  // reveal, so no peek strips or snap ladder). Standalone owns the viewport
+  // reveal, so no snap ladder). Standalone owns the viewport
   // (100dvh). Embedded fills the host's slot (100%).
   if (!hasMap) {
     return (
@@ -857,10 +714,9 @@ export function DrawerStack() {
                 open
                 container={container}
                 direction={direction}
-                dismissible={parentPaths.length > 0}
+                dismissible={step !== undefined}
                 // Same as the map drawer: the left panel (≥md) has no handle, so
-                // handle-only drag would make it undraggable — dismiss stays the close
-                // button only.
+                // handle-only drag would make it undraggable — dismiss stays Back only.
                 handleOnly={direction === 'left'}
                 mode="filled"
                 onOpenChange={(o) => !o && control.dismiss()}
@@ -885,41 +741,8 @@ export function DrawerStack() {
     )
   }
 
-  // Map mode: stacked ancestor panels (portaled behind the drawer) plus the single
-  // drawer.
+  // Map mode: the single drawer, plus the cog and the sheet's measuring origin, portaled beside it.
   const target = overlayContainer()
-  // One uniform per-level peek width for the whole stack, tighter the deeper it goes
-  // — computed once here (it is a stack constant) rather than per strip.
-  const peekGap = perLevelPeek(stackDepth, direction === 'left' ? PEEK_DESKTOP : PEEK_MOBILE)
-  // Always renders the container plus AnimatePresence (even at 0 ancestors), so a
-  // removed strip animates out on the way back to the root, instead of vanishing.
-  const strips = (
-    <div ref={stripsRef}>
-      <div ref={sheetOriginRef} aria-hidden className="pointer-events-none fixed top-0 h-0 w-0" />
-      <AnimatePresence>
-        {stackPaths.map((path, i) => {
-          const stripDepth = stackPaths.length - i
-          // `parentPaths` is `['/', ...ancestry.slice(0, -1).map(e => e.path)]`, so
-          // strip `i` is entry `i - 1`, and strip 0 is the root (no entry). `stackPaths`
-          // only slices that array, so the alignment survives.
-          const ancestor = ancestry[i - 1]
-
-          return (
-            <PeekStrip
-              key={path}
-              depth={stripDepth}
-              direction={direction}
-              gap={peekGap}
-              label={stripLabel(ancestor, { t, ...stripNames })}
-              opacity={peekOpacity(stripDepth)}
-              zIndex={30 + i}
-              onClick={() => navigate(toStackTarget(path))}
-            />
-          )
-        })}
-      </AnimatePresence>
-    </div>
-  )
 
   return (
     <WidgetWidthContext.Provider value={isWide}>
@@ -927,7 +750,11 @@ export function DrawerStack() {
         {target &&
           createPortal(
             <>
-              {strips}
+              <div
+                ref={sheetOriginRef}
+                aria-hidden
+                className="pointer-events-none fixed top-0 h-0 w-0"
+              />
               {/* Inline-start, offset past the drawer on ≥md (flush at tablet,
                 floating in by 4 at ≥lg), so it never overlaps the panel. Uses the
                 logical `start-*`, rather than `left-*`: under RTL the drawer flips to
@@ -938,14 +765,9 @@ export function DrawerStack() {
                 Hidden on the full-width calendar — a focused view with no clean
                 corner for the floating cog — settings stay reachable from every
                 other view. */}
-              {/* The inline-start gap clears the PEEK STRIPS, not just the drawer. The
-                deepest stack pushes an ancestor about 23px past the panel edge, using
-                `PEEK_DESKTOP` times the decay series above. So the cog sits 32px out —
-                48px at ≥lg, where the drawer itself is already inset by 16px. That
-                leaves about 9px of air at the deepest stack. A tighter gap would render
-                the strips under the cog.
-                Both `352px` fallbacks below are the drawer-width pair — the twin
-                value is `DRAWER_W_PX` in `hooks/use-map-controller-real.tsx`. */}
+              {/* The cog sits 16px past the panel — 32px at ≥lg, where the drawer itself is
+                already inset by 16px. Both `352px` fallbacks below are the drawer-width
+                pair — the twin value is `DRAWER_W_PX` in `hooks/use-map-controller-real.tsx`. */}
               {!wide && (
                 <SettingsMenu
                   className={clsx(
@@ -960,7 +782,7 @@ export function DrawerStack() {
                     // clips it away entirely. Outside a frame, `isWide` IS the
                     // viewport's answer, so this stays the same offset it always was.
                     isWide
-                      ? 'start-[calc(var(--sy-drawer-w,352px)+32px+env(safe-area-inset-left,0px))] lg:start-[calc(var(--sy-drawer-w,352px)+48px+env(safe-area-inset-left,0px))] lg:top-4'
+                      ? 'start-[calc(var(--sy-drawer-w,352px)+16px+env(safe-area-inset-left,0px))] lg:start-[calc(var(--sy-drawer-w,352px)+32px+env(safe-area-inset-left,0px))] lg:top-4'
                       : 'start-3',
                   )}
                 />
@@ -972,21 +794,20 @@ export function DrawerStack() {
           key={direction}
           dismissible
           open
-          activeSnapPoint={direction === 'bottom' ? vaulSnap : undefined}
+          activeSnapPoint={direction === 'bottom' ? shownSnap : undefined}
           container={target}
           direction={direction}
           // The left panel (≥md) has no handle and no snap points, so restricting
-          // drag to the (absent) handle makes it undraggable — dismiss stays the
-          // close button only. The mobile bottom sheet keeps its full-panel
-          // snap-drag.
+          // drag to the (absent) handle makes it undraggable — dismiss stays Back
+          // only. The mobile bottom sheet keeps its full-panel snap-drag.
           handleOnly={direction === 'left'}
           // The box vaul measures snap points against — the frame, or the window.
           // Deliberately NOT `target`: that is the portal target, which embedded is
           // the `display: contents` theme root and measures 0×0. See the note in
           // `Drawer.tsx`.
           measureAgainst={frameElement()}
-          setActiveSnapPoint={direction === 'bottom' ? setVaulSnap : undefined}
-          snapPoints={direction === 'bottom' ? snapPoints : undefined}
+          setActiveSnapPoint={direction === 'bottom' ? setShownSnap : undefined}
+          snapPoints={direction === 'bottom' ? shownSnapPoints : undefined}
           wide={wide}
           onOpenChange={(o) => !o && control.dismiss()}
         >
