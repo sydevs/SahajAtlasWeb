@@ -117,7 +117,7 @@ Radix-wrapping atoms carry their own `isInvalid` `tv()` variant.
 | `Fallbacks/`         | `LoadingFallback`, `ErrorFallback`, `FallbackPanel`, `ResetErrorBoundary`, `CENTERED_BODY` | **Every state that leaves a viewer with no content**, from one table (issue #89). `ERROR_POLICY`, its narrowing function `visibleActions`, the action row, and the display hooks stay **module-private** (tests reach them by module path). Exporting any of them would let the next view hand-roll its own panel — the drift #89 removed. `ERROR_POLICY` maps each `FallbackKind` to its localized copy, its `color` register, and its controls (`retry`/`onward`/`search`/`clearFilters`/`contact`/`report`). A `FallbackKind` is one of the classified failures (`classifyError`, `src/lib/report.ts`), or a way a list can legitimately come back empty. `FallbackPanel` is the shared body. A dead link, a broken query, and an empty list read one component and one row, rather than three components agreeing by hand. `visibleActions` narrows by surface (no boundary to reset, nowhere to navigate, a geocoder already in the chrome) and never strands a viewer. `align` gives two postures: `center` for a drawer whose whole content the panel replaces, and `start` for list views, standing in for content that begins top-left. The onward rung renders inside the banner (`OnwardLink`), since it continues the sentence. The actions sit outside it, since they act on the screen. `ErrorFallback` is the whole-widget screen. `views/fallbacks.tsx` adds the drawer's chrome |
 | `FormField/`         | `FormField`, `fieldErrorId`, `fieldHelpId`, `fieldDescribedBy`                             | Label + control + help/error shell shared by the registration and report forms. Owns the required marker and the `aria-describedby` id convention |
 | `ImageCarousel/`     | `ImageCarousel`, `Slide`                                                                   | Generic Swiper carousel (`slides`). Folds in the lazy YARL lightbox (own chunk) |
-| `List/`              | `List`, `listRow`                                                                          | Scrollable `<ul>` for region/event rows. `listRow` is the shared row chrome and gutter |
+| `List/`              | `List`, `ListRow`                                                                          | Scrollable `<ul>` for region/event rows. `ListRow` is the shell every row renders into: the `<li><a>`, row chrome, gutter and chevron |
 | `GeolocationPrompt/` | `GeolocationPrompt`                                                                        | The IP-geolocated "events near you?" suggestion line |
 | `ListItem/`          | `ListItem`                                                                                 | Every row in a region list: the country → region → area drill-down and the online-classes entry. `icon` is a fixed slot that sizes and spaces the glyph, so rows align whatever goes in it |
 | `SearchFilters/`     | `SearchFilters`                                                                            | The filter form (format/frequency/day/time/language), fully controlled |
@@ -174,7 +174,7 @@ Folder-per-component, not re-exported through the component barrels.
      `Drawer` is `open`/`onOpenChange` controlled with `mode: 'anchored' | 'filled'`
      (filled = map-less), and every View composes it.
   6. **`ActionRow/`** — `ActionRow` + `ActionCircle` (the row and its one child type).
-  8. **`List/`** — `List` + the `listRow` recipe its card children share.
+  8. **`List/`** — `List` + `ListRow`, the shell its card children render into.
   9. **`ShareContent/`** (molecules) — `ShareContent` + `CopyField` (also used by
      the event panel's desktop contact popover).
   10. **`Fallbacks/`** (molecules) — `LoadingFallback` + `ErrorFallback` + `FallbackPanel`
@@ -202,8 +202,9 @@ Folder-per-component, not re-exported through the component barrels.
   `src/lib/` (`resolveEventDisplay`, the `isSoon` predicate, the time formatters).
   A **single-use** composition stays module-private in its one parent (the
   registration form's `Field`/`LabeledInput`). A **multi-use** one becomes a thin
-  exported molecule (`EventFacts`, used by `EventListItem` and the event panel) or a
-  shared recipe (`listRow`, `fieldChrome`, `menuChrome`, `panelChrome`).
+  exported molecule (`EventFacts`, used by `EventListItem` and the event panel; `ListRow`, the
+  shell both list rows render into) or a shared recipe (`fieldChrome`, `menuChrome`,
+  `panelChrome`).
 - **Code-split exception:** a heavy organism that is lazy-loaded (the event detail
   page lazy-imports `EventView`) is intentionally left _out_ of its tier barrel,
   so a barrel import doesn't pull it back into the static graph. Such components —
@@ -250,8 +251,9 @@ Folder-per-component, not re-exported through the component barrels.
   gzipped beside this one), and its bare `lite` entry merges no conflicting classes at all.
 - **A skin more than one component spells is one recipe, not a copy each, and it lives in the
   atom that owns the chrome.** `fieldChrome` (`atoms/Select`) covers the field controls,
-  `panelChrome` beside it the panel a Select or Combobox trigger opens, `listRow` the card rows,
-  and `menuChrome` (`atoms/Menu`) the Radix dropdown menus. Each difference is a **variant**, so
+  `panelChrome` beside it the panel a Select or Combobox trigger opens, and `menuChrome`
+  (`atoms/Menu`) the Radix dropdown menus. Where every user renders the same markup, share a
+  component instead: `ListRow` (`molecules/List`) is the list rows' shell. Each difference is a **variant**, so
   an intended one reads differently from an accidental one — three hand-copied copies of the menu
   skin had already diverged before anything noticed (#367), and `lib/overlay.popper.test.ts` now
   refuses another of either.

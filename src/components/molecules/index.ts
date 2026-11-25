@@ -74,7 +74,7 @@ export type { EventFactsProps } from './EventFacts'
 export { EventChips } from './EventChips'
 export type { EventChipsProps, EventChipsVariant } from './EventChips'
 
-export { List } from './List'
+export { List, ListRow } from './List'
 
 export { ListItem } from './ListItem'
 export type { ListItemProps } from './ListItem'

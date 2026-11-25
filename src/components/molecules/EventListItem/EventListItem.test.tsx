@@ -57,21 +57,6 @@ describe('EventListItem', () => {
     expect(render(false)).not.toContain('event.display.distance_away')
   })
 
-  it('nests as <li><a> so the card is a direct child of the list <ul>', () => {
-    const html = renderToStaticMarkup(
-      <MemoryRouter>
-        <EventListItem event={mockEventSlim} />
-      </MemoryRouter>,
-    )
-
-    // <li> is the outermost element and wraps the anchor: <li><a>…</a></li>.
-    expect(html.startsWith('<li>')).toBe(true)
-    expect(html).toMatch(/^<li><a[\s>]/)
-    expect(html.trimEnd().endsWith('</a></li>')).toBe(true)
-    // The anchor must NOT be the outer element (the invalid <a><li> nesting).
-    expect(html).not.toMatch(/^<a[\s>]/)
-  })
-
   it('marks the anchor as the row, so the results list can focus a revealed card', () => {
     const html = renderToStaticMarkup(
       <MemoryRouter>
@@ -87,20 +72,22 @@ describe('EventListItem', () => {
     expect(html).toContain('data-event-row')
   })
 
-  it('left-aligns the card column: listRow items-stretch beats the Link atom items-center', () => {
+  it('ends in the list chevron, beside a left-aligned content column', () => {
     const html = renderToStaticMarkup(
       <MemoryRouter>
         <EventListItem event={mockEventSlim} />
       </MemoryRouter>,
     )
 
-    // The first class attribute is the card anchor's (the <li> wrapper is bare).
-    const classes = (html.match(/class="([^"]*)"/)?.[1] ?? '').split(' ')
+    // The anchor's class attribute comes first (the <li> wrapper is bare),
+    // then the content column's.
+    const [row, column] = [...html.matchAll(/class="([^"]*)"/g)].map((m) => m[1].split(' '))
 
-    expect(classes).toContain('flex-col')
-    expect(classes).toContain('items-stretch')
-    // The Link atom's inline-link `items-center` must lose the merge. On a
-    // flex-col card, it would centre every line of content.
-    expect(classes).not.toContain('items-center')
+    expect(row).toContain('items-center')
+    // Inside the column nothing centres: the text stays left-aligned.
+    expect(column).toContain('flex-col')
+    expect(column).toContain('min-w-0')
+    expect(column).not.toContain('items-center')
+    expect(html).toMatch(/lucide-chevron-right[^>]*>[\s\S]*?<\/svg><\/a><\/li>$/)
   })
 })
