@@ -19,7 +19,7 @@ export type ListToolbarProps = {
  * the layering stays clean. It sits above the ActiveFilterPills row. It
  * has no vertical padding of its own. Its padding is the panel gutter less
  * the ghost buttons' own `px-3`, so their content starts on the gutter,
- * aligned with the `px-gutter` (`listRow`) of the list rows below.
+ * aligned with the `px-gutter` (`ListRow`) of the list rows below.
  */
 export function ListToolbar({ children }: ListToolbarProps) {
   return (
