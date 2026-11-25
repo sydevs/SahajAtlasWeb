@@ -13,8 +13,6 @@ export type QrPosterProps = {
   label: string
   /** What the code opens. */
   url: string
-  /** Told when the row opens, so a bottom sheet can make room for the code. */
-  onOpen?: () => void
 }
 
 /**
@@ -22,11 +20,11 @@ export type QrPosterProps = {
  * a link to a friend, so this stays closed behind one row, and the encoder only downloads once the
  * row opens (`encodeQr`).
  */
-export function QrPoster({ label, url, onOpen }: QrPosterProps) {
+export function QrPoster({ label, url }: QrPosterProps) {
   const { t } = useTranslation()
 
   return (
-    <Disclosure title={t('share.qr_title')} onOpenChange={(open) => open && onOpen?.()}>
+    <Disclosure title={t('share.qr_title')}>
       {/* Keyed so a changed link never shows, or downloads, the old code. */}
       <QrCode key={url} label={label} url={url} />
     </Disclosure>

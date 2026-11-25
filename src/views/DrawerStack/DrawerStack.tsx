@@ -541,11 +541,6 @@ export function DrawerStack() {
       backTo: filterOverlay ? undefined : step?.to,
       collapsed: canCollapse && atPeek,
       toggle: () => setSnap((s) => (s === PEEK_SNAP ? openSnap : PEEK_SNAP)),
-      // Bottom sheet only. The side panel has no snaps, and the near-full one hides the map
-      // controls, the settings cog among them.
-      expand: () => {
-        if (direction === 'bottom') setSnap(WIDE_SNAP)
-      },
       dismiss: () => {
         if (!step) return setSnap(PEEK_SNAP)
         // A transition: unmounting a heavy view (the calendar's large grid) would otherwise
@@ -558,7 +553,7 @@ export function DrawerStack() {
         })
       },
     }),
-    [filterOverlay, step, atPeek, openSnap, canCollapse, direction, navigate, location.pathname],
+    [filterOverlay, step, atPeek, openSnap, canCollapse, navigate, location.pathname],
   )
 
   // The filter overlay's own dismiss (its X / swipe / Esc): back to the calendar it opened over,

@@ -11,7 +11,7 @@ import { QrPoster } from '@/components/molecules/QrPoster'
 import { useShareUrl } from '@/hooks/use-share-url'
 import { useViewerCountry } from '@/hooks/use-viewer-country'
 import { NavHeader } from '@/views/nav'
-import { useDrawerControl, useEventFromPath, useFrameEventOnTop } from '@/views/shared'
+import { useEventFromPath, useFrameEventOnTop } from '@/views/shared'
 
 // Share links for an event, at route `<event-path>/share`. The event's Share CTA reaches
 // this view, and the route is deep-linkable. So it repeats the compact resolver summary —
@@ -22,7 +22,6 @@ export function ShareView({ eventPath }: { eventPath: string }) {
   // Order the share targets to the viewer's region. This is resolved here, so ShareContent
   // stays a pure, prop-driven molecule.
   const country = useViewerCountry()
-  const { expand } = useDrawerControl()
 
   const { data: event } = useEventFromPath(eventPath)
   // This resolves to the event's canonical page. Otherwise it resolves to this session's own
@@ -47,7 +46,7 @@ export function ShareView({ eventPath }: { eventPath: string }) {
           {url ? (
             <div className="flex flex-col gap-4">
               <ShareContent country={country} label={event.title} url={url} />
-              <QrPoster label={event.title} url={url} onOpen={expand} />
+              <QrPoster label={event.title} url={url} />
             </div>
           ) : (
             /* No canonical page, and no route in the URL. The copy field, the native sheet,
