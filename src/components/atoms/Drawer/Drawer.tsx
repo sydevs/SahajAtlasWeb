@@ -2,6 +2,7 @@ import { type ReactNode, createContext, useContext, useEffect, useRef, useState 
 import { Drawer as Vaul } from 'vaul'
 
 import { isIOS, useSheetDragClaim } from './sheet-touch'
+import { useEaseHeight } from './use-ease-height'
 
 import { tv, type VariantProps } from '@/styles/tv'
 import { overlayContainer } from '@/lib/overlay'
@@ -74,10 +75,7 @@ const drawer = tv({
     // class, and the spacer adds to their padding instead of replacing it. It
     // is a pseudo-element so `[&>:last-child]` postures still find the real
     // last child (`CENTERED_BODY`).
-    // The bottom inset mirrors the header's `pt-4`, so whatever ends the panel sits as far off
-    // its edge as the header does from the top. A closing list is exempt: each row already
-    // carries that space inside its tap area.
-    body: "mx-auto min-h-0 w-full max-w-[var(--sy-content-max,512px)] flex-1 overflow-x-hidden overflow-y-auto overscroll-y-none pb-4 after:block after:h-[var(--sy-footer-h,0px)] after:shrink-0 after:content-[''] has-[>ul:last-child]:pb-0",
+    body: "mx-auto min-h-0 w-full max-w-[var(--sy-content-max,512px)] flex-1 overflow-x-hidden overflow-y-auto overscroll-y-none after:block after:h-[var(--sy-footer-h,0px)] after:shrink-0 after:content-['']",
     footer:
       'mx-auto mt-auto w-full max-w-[var(--sy-content-max,512px)] shrink-0 border-t border-gray-4',
     // This themes the vaul drag handle. Its vendored CSS hardcodes a light
@@ -113,10 +111,11 @@ const drawer = tv({
       // edit. Otherwise the map keeps framing around the old width, and
       // nothing anywhere reports the drift.
       // Floating (≥lg), the panel is as tall as its view, up to the frame's height less its
-      // margins; `useEaseHeight` (DrawerStack) eases the change.
+      // margins. A panel holding the place search keeps room for its suggestions, which open
+      // inside it and scroll past `--sy-results-max-h` (Mapbox/themes.ts).
       left: {
         content:
-          'inset-y-0 left-0 w-[calc(var(--sy-drawer-w,352px)+env(safe-area-inset-left,0px))] max-w-[calc(100%-32px)] rounded-none border border-divider ps-[env(safe-area-inset-left,0px)] lg:top-4 lg:bottom-auto lg:left-4 lg:max-h-[calc(var(--sy-frame-h)-32px)] lg:rounded-2xl',
+          'inset-y-0 left-0 w-[calc(var(--sy-drawer-w,352px)+env(safe-area-inset-left,0px))] max-w-[calc(100%-32px)] rounded-none border border-divider ps-[env(safe-area-inset-left,0px)] lg:top-4 lg:bottom-auto lg:left-4 lg:max-h-[calc(var(--sy-frame-h)-32px)] lg:rounded-2xl lg:[--sy-results-max-h:320px] lg:has-[[role=search]]:min-h-[min(calc(var(--sy-results-max-h)+80px),calc(var(--sy-frame-h)-32px))]',
       },
       right: {
         content:
@@ -187,6 +186,7 @@ type DrawerCtx = {
   direction: DrawerDirection
   // A `filled` drawer, map-less, hides the drag handle. There is nothing to drag.
   mode: 'anchored' | 'filled'
+  wide?: boolean
   // The portal target for a real drawer. Map-less mode passes the widget container.
   container?: HTMLElement | null
 }
@@ -297,7 +297,9 @@ export function Drawer({
   }
 
   return (
-    <DrawerContext.Provider value={{ slots, direction: direction ?? 'bottom', mode, container }}>
+    <DrawerContext.Provider
+      value={{ slots, direction: direction ?? 'bottom', mode, wide, container }}
+    >
       <Vaul.Root {...rootProps} />
     </DrawerContext.Provider>
   )
@@ -354,11 +356,12 @@ export function DrawerContent({
   handle,
   onEscapeKeyDown,
 }: DrawerContentProps) {
-  const { slots, direction, mode, container } = useDrawerSlots()
+  const { slots, direction, mode, wide, container } = useDrawerSlots()
   // State, not a ref: the portal mounts the panel a pass after this component does.
   const [panel, setPanel] = useState<HTMLDivElement | null>(null)
 
   useSheetDragClaim(direction === 'bottom' && mode !== 'filled' ? panel : null)
+  useEaseHeight(direction === 'left' && mode === 'anchored' && !wide ? panel : null)
 
   const showHandle = handle ?? (direction === 'bottom' && mode !== 'filled')
   // `undefined` means use the default themed root. An explicit `null` opts out.
@@ -458,8 +461,7 @@ export function DrawerFooter({
    * ⚠ `fixed`, not `absolute`, and the sheet's `pb-[calc(var(--sy-frame-h)*0.03)]`
    * is why. The cancellation only holds while the offset is measured from the
    * sheet's own box, and `absolute` resolves against the nearest POSITIONED
-   * ancestor — which since #312 is a crossfade layer filling the sheet's
-   * CONTENT box, 3% short. Measured at 390×844 on a deployed preview: the bar
+   * ancestor — the sheet's content box at best, 3% short. Measured at 390×844 on a deployed preview: the bar
    * sat at 818.69 rather than 844, with the body showing through the gap
    * (#320). `fixed` resolves against the nearest ancestor with a transform,
    * and that is the sheet itself, whatever DrawerStack nests in between.

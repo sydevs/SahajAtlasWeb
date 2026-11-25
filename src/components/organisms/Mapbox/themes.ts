@@ -41,8 +41,10 @@ export const controlTheme = {
     .Geocoder:focus-within { box-shadow: 0 0 0 2px hsl(var(--primary-9)); }
     .Results {
       min-width: var(--sy-results-w, 0);
+      /* The floating panel clips, so it sets this and the list scrolls inside it. */
+      max-height: var(--sy-results-max-h, none);
       border-radius: 8px;
-      overflow: hidden;
+      overflow: hidden auto;
       /* The list sits 1px inside the field. The ring closes that gap, so no row shows past it. */
       box-shadow: 0 0 0 1px hsl(var(--background)), 0 8px 24px rgb(0 0 0 / 0.16);
     }

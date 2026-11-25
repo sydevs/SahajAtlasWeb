@@ -3,8 +3,8 @@ import { m, useIsPresent } from 'framer-motion'
 import clsx from 'clsx'
 
 // One view's layer in the sheet's cross-fade. The outgoing and incoming views overlap for
-// the fade by sharing one grid cell (DrawerStack), not by being absolute: in flow, they give the
-// floating panel its height, so it can be as tall as its view.
+// the fade in the one grid cell DrawerStack makes. They stay in flow, so the floating panel takes
+// its height from them.
 //
 // ⚠ **Not `AnimatePresence mode="popLayout"`.** That pops the outgoing view out of flow with
 // a `<style>` element framer-motion appends to `document.head` — the HOST's head, which

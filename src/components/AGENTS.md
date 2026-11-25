@@ -635,7 +635,7 @@ read at mount. The image carousel is the worked example: its pause/play toggle k
 one accessible name while `aria-pressed` carries the state, and it renders only when
 the carousel actually autoplays.
 
-**The rest of the app's motion is off under that preference too, through three
+**The rest of the app's motion is off under that preference too, through four
 seams — one per animation technology** (issue #102):
 
 - **framer-motion** — `MotionConfig` in `src/providers.tsx` covers every `m.*`
@@ -650,6 +650,9 @@ seams — one per animation technology** (issue #102):
   `@media (prefers-reduced-motion: reduce)` block at the foot of
   `src/styles/vaul.css` kills both `animation` and `transition` — vaul's own
   `[data-vaul-animate='false']` hook covers only the first.
+- **The Web Animations API** — `useEaseHeight` (the Drawer atom), which eases the floating
+  panel's height, reads `usePrefersReducedMotion` itself: neither `MotionConfig` nor the vaul
+  media query reaches an `element.animate()` call.
 - **The map camera needs nothing.** mapbox-gl already short-circuits `flyTo` to
   `jumpTo`, zeroes `easeTo`'s duration, and reads the media query live — see the
   comment in `src/hooks/use-mapbox.ts` for the two ways to break this

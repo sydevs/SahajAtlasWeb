@@ -112,11 +112,8 @@ export function LoadMore({
     // This has no vertical padding once the button is gone: the only child
     // left is the `sr-only` region, which is absolutely positioned and
     // contributes no height. Otherwise the padding would be a blank strip
-    // under every fully-revealed list. Closing the drawer body, the body's own
-    // bottom inset is the space under the button.
-    <div
-      className={clsx('flex flex-col items-center gap-2 px-gutter', more && 'pt-4 not-last:pb-4')}
-    >
+    // under every fully-revealed list.
+    <div className={clsx('flex flex-col items-center gap-2 px-gutter', more && 'py-4')}>
       {more && (
         // This stays busy, but never `disabled`, and not through the Button's
         // own `isLoading`, which also sets `disabled`. A browser unfocuses a
