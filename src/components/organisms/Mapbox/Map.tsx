@@ -382,6 +382,9 @@ export function Mapbox({ cooperative = false }: { cooperative?: boolean } = {}) 
   const [locate, setLocate] = useState<LocateState>('idle')
   const geolocateRef = useRef<MapboxGeolocate>(null)
   const locateButtonRef = useRef<HTMLButtonElement>(null)
+  const locateMe = useCallback(() => {
+    if (geolocateRef.current?.trigger()) setLocate('waiting')
+  }, [])
 
   // This filters the feed before it reaches the clustering source, so
   // cluster counts reflect the filters — a layer-level `filter` would leave
@@ -606,8 +609,7 @@ export function Mapbox({ cooperative = false }: { cooperative?: boolean } = {}) 
             the `geolocate` event. So it would race the framing our handler asks
             for through the URL. The flag is read in `_onSuccess`, and it gates
             only that one call. `_updateMarker` is separate, so the blue dot,
-            the accuracy circle, the permission flow, and the localized labels
-            above all stay.
+            the accuracy circle and the permission flow all stay.
             ⚠ Mapbox's own .d.ts file claims this option still recenters. Its
             source code says otherwise. This was verified against the running
             control, rather than trusting either claim. */}
@@ -628,22 +630,10 @@ export function Mapbox({ cooperative = false }: { cooperative?: boolean } = {}) 
             geolocateToSearch(position)
           }}
         />
-        {/* Mapbox's terms require both the wordmark and the attribution, and both must stay on the
-            map view. `attributionControl` above declines Mapbox's own, in a corner no prop can
-            change, and the column below carries it instead — in the top right, the one corner no
-            drawer takes: the side panel covers the bottom left, and the bottom sheet's peek covers
-            the whole bottom edge at every snap. `logoPosition` above puts the wordmark bottom
-            right instead, clear of the panel on a wide embed and covered by that peek on a narrow
-            one — accepted, rather than paid for with a measured per-layout corner (#330). Both
-            positions are read once, when the map is constructed, which is all a corner that never
-            moves needs. */}
-        <MapControls
-          locate={locate}
-          locateRef={locateButtonRef}
-          onLocate={() => {
-            if (geolocateRef.current?.trigger()) setLocate('waiting')
-          }}
-        />
+        {/* Carries the attribution `attributionControl` above declines, in the top right, the
+            one corner no drawer covers. Why that corner, and why the wordmark sits apart in the
+            bottom right: `docs/rules/mapbox.md`, "The wordmark and the attribution" (#330). */}
+        <MapControls locate={locate} locateRef={locateButtonRef} onLocate={locateMe} />
       </ReactMapGL>
       <Modal open={locationFailed} onOpenChange={setLocationFailed}>
         <ModalContent

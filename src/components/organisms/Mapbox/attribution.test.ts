@@ -15,6 +15,7 @@ import { readRepoSource as read } from '@/test-support/repo-source'
 const MAP = 'src/components/organisms/Mapbox/Map.tsx'
 const CONTROLS = 'src/components/organisms/Mapbox/MapControls.tsx'
 const STYLES = 'src/styles/globals.css'
+const MAPBOX_STYLES = 'node_modules/mapbox-gl/dist/mapbox-gl.css'
 // Where the bottom sheet's snap ladder lives, whose lowest stop rules out both bottom corners for
 // the attribution.
 const STACK = 'src/views/DrawerStack/DrawerStack.tsx'
@@ -25,7 +26,6 @@ const cornerIn = (source: string, prop: string) =>
 describe('the Mapbox wordmark and attribution corners', () => {
   const map = read(MAP)
   const controls = read(CONTROLS)
-  const column = controls.match(/useControl\(([\s\S]*?)\n {2}\)/)?.[1] ?? ''
 
   it('renders exactly one attribution, and it is the one this app places', () => {
     // Mapbox adds its own at a position no prop can change, so both halves matter: declining it
@@ -34,7 +34,7 @@ describe('the Mapbox wordmark and attribution corners', () => {
     expect(map).not.toMatch(/<AttributionControl\b/)
     expect(map.match(/<MapControls\b/g)).toHaveLength(1)
     expect(controls.match(/new mapLib\.AttributionControl\(/g)).toHaveLength(1)
-    expect(column, "the column's useControl call").toContain('compact: true')
+    expect(controls).toContain('compact: true')
     // Created but never added to the map, so the column is what puts it on screen.
     expect(controls).toMatch(/prepend\(this\.attribution\.onAdd\(map\)\)/)
   })
@@ -48,7 +48,7 @@ describe('the Mapbox wordmark and attribution corners', () => {
     )
     // The side panel takes the left in a wide layout, so this is the right. Physical, and paired
     // with the drawer's deferred RTL flip (`atoms/Drawer`'s `TODO(rtl, #52 WS8)`).
-    expect(cornerIn(column, 'position')).toBe('top-right')
+    expect(cornerIn(controls, 'position')).toBe('top-right')
   })
 
   it('keeps the wordmark out of the corner the side panel covers', () => {
@@ -59,22 +59,23 @@ describe('the Mapbox wordmark and attribution corners', () => {
   })
 
   it('seats the credits beside the column through class names mapbox-gl still renders', () => {
-    // A mapbox-gl upgrade that renames these would bring back Mapbox's corner margin and float
-    // inside the column, and drop the touch tap area, without a sound.
-    const selectors = read(STYLES)
-      .split('\n')
-      .map((line) => line.trim())
-      .filter((line) => line.startsWith('.sy-map-controls '))
+    // A mapbox-gl upgrade that renamed these would bring back Mapbox's corner margin and float
+    // inside the column, and drop the touch tap area, without a sound. Mapbox's own sheet is what
+    // says whether a name is still rendered, so each must be in both.
+    const ours = read(STYLES)
+    const theirs = read(MAPBOX_STYLES)
 
     for (const name of [
       'mapboxgl-ctrl-attrib',
       'mapboxgl-compact',
       'mapboxgl-ctrl-attrib-button',
     ]) {
-      expect(
-        selectors.some((line) => new RegExp(`\\.${name}(?![\\w-])`).test(line)),
-        name,
-      ).toBe(true)
+      const selector = new RegExp(`\\.${name}(?![\\w-])`)
+
+      expect(theirs, `mapbox-gl's own .${name}`).toMatch(selector)
+      expect(ours, `globals.css targets .${name}`).toMatch(
+        new RegExp(`\\.sy-map-controls [^{]*\\.${name}(?![\\w-])`),
+      )
     }
   })
 })

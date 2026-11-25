@@ -49,7 +49,11 @@ export type SettingsMenuProps = {
   side?: DropdownMenu.DropdownMenuContentProps['side']
   /** Which edge of the trigger the menu lines up with (`end` for the map's right-hand column). */
   align?: DropdownMenu.DropdownMenuContentProps['align']
-  /** Draws the trigger's name out of its end on hover and keyboard focus (`HoverLabel`). */
+  /**
+   * Draws the trigger's name out of its right-hand end on hover and keyboard focus (`HoverLabel`),
+   * for a cog in the map's right-hand column. Not derived from `floating`: a floating cog placed
+   * by `className` elsewhere would be positioned inside the label's wrapper instead.
+   */
   labelled?: boolean
   /** `floating` over the map; `ghost` in a row of controls, such as a header. */
   variant?: 'floating' | 'ghost'

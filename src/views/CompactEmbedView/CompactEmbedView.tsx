@@ -122,7 +122,7 @@ const closeClass = 'absolute end-3 top-3 z-50'
  * click-outside-to-close, makes it legibly a layer over their site.
  *
  * ⚠ **`contain: layout` is load-bearing, not an optimisation.** Everything rendered
- * inside — the map canvas, every drawer, the cog — is `position:
+ * inside — the map canvas and every drawer — is `position:
  * fixed`. A fixed descendant resolves against the VIEWPORT, unless an ancestor
  * establishes a containing block. Without it, they escape the margin and paint to
  * the screen edge while the dialog sits inset. Measured in Chrome 151: a `fixed;

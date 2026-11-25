@@ -654,21 +654,10 @@ html.sy-atlas {
   float: none;
 }
 
-@media (pointer: coarse) {
-  /* Mapbox's own `.mapboxgl-ctrl button` rule clips with `overflow: hidden`. */
-  .sy-map-controls .mapboxgl-ctrl-attrib .mapboxgl-ctrl-attrib-button {
-    overflow: visible;
-  }
-
-  .sy-map-controls .mapboxgl-ctrl-attrib-button::after {
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    width: 44px;
-    height: 44px;
-    content: '';
-    transform: translate(-50%, -50%);
-  }
+/* No `relative` beside the utility: Mapbox already makes this button `position: absolute`, which
+   anchors the tap area as well, and `relative` would unpin it. */
+.sy-map-controls .mapboxgl-ctrl-attrib-button {
+  @apply touch-target;
 }
 
 /* Mapbox paints its credits white, with a glyph drawn in a fixed colour, so in the dark theme it
