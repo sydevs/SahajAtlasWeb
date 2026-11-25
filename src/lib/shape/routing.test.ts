@@ -370,6 +370,17 @@ describe('routeFromPathname', () => {
   it('is just the path when there is no ?atlas=', () => {
     expect(routeFromPathname('/map/search', '/map', '?utm=x')).toBe('/search')
   })
+
+  it('decodes a native-script slug, so one route spelling comes out of both URL shapes', () => {
+    expect(routeFromPathname('/map/bg/%D1%81%D0%BE%D1%84%D0%B8%D1%8F', '/map')).toBe('/bg/софия')
+  })
+
+  // ⚠ The guard reads the DECODED route. Checked the other order: `/%2F%2Fevil.example` passes
+  // `safePath` encoded, and decodes to the `//evil.example` the guard exists for.
+  it('runs the path guard on the decoded route, not the encoded one', () => {
+    expect(routeFromPathname('/map/%2F%2Fevil.example', '/map')).toBeUndefined()
+    expect(routeFromPathname('/map/%09/evil.example', '/map')).toBeUndefined()
+  })
 })
 
 // Both of these went in when `hrefFor`/`pathHrefFor` moved onto `query.ts`, and both were checked
