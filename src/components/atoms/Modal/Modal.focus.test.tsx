@@ -9,23 +9,20 @@ import { setThemeRoot } from '@/hooks/use-theme'
 
 /**
  * Closing a dialog must leave focus where it was, and Radix does not do that here (#432).
- *
- * `DialogContent` restores focus to a `Dialog.Trigger`, and this atom renders none — it is
- * controlled through `open`. Radix's handler calls `preventDefault()` and focuses the trigger
- * it does not have, so focus landed on `<body>`: measured in Chromium against the component
- * library before `useOpenerRestore` recorded the opener itself.
+ * `use-opener-restore.ts` owns the why: there is no `Dialog.Trigger` here to restore to.
  *
  * jsdom, because the whole property is where focus goes across a portal's unmount, which
  * `renderToStaticMarkup` runs none of.
  *
- * ⚠ **One dialog per FILE, and the case asserts the focus CALL rather than
- * `document.activeElement` afterwards.** Two dialogs in one file share one `document`, and
- * React finishes one case's teardown while the next is already running — Radix's focus scope
- * then moves focus from the case that has already ended. Measured: three cases in one file
- * failed about one run in five, two about one in eight, one is 15 for 15. So the sibling
- * property lives in `Modal.focus-opener.test.tsx` rather than below. What this atom owns is
- * asking for focus back; where focus settles after a torn-down sibling has had its say is not
- * a property of it, and the browser pass recorded in the pull request settles the end state.
+ * ⚠ **Radix dispatches its unmount auto-focus from a `setTimeout(…, 0)`, so every case reads
+ * `asked` through `close()`, which waits that timer out** (`@radix-ui/react-focus-scope`).
+ * Asserting straight after the click reads a trace the restore has not reached yet, at random:
+ * `docs/testing.md` holds the measurements and what the wait must not be collapsed into (#475).
+ *
+ * ⚠ **Each case asserts the focus CALL, not `document.activeElement` afterwards.** What this
+ * atom owns is asking for focus back. Where focus ends up once Radix, the browser and a
+ * teardown have all had their say is not a property of it, and the browser pass recorded in the
+ * pull request settles the end state.
  */
 
 let cleanup: (() => void) | null = null
@@ -105,6 +102,7 @@ const openFrom = async (opener: HTMLButtonElement) => {
   })
 }
 
+/** Dismisses the dialog and returns once Radix has asked for focus back. */
 const close = async (host: HTMLElement) => {
   const dismiss = host.querySelector<HTMLButtonElement>('[aria-label="Close"]')
 
@@ -113,6 +111,11 @@ const close = async (host: HTMLElement) => {
   await act(async () => {
     dismiss.click()
   })
+
+  // ⚠ Two steps, in this order. The timer is queued by `FocusScope`'s cleanup, so it exists
+  // only once the `act` above has unmounted the dialog — queue this one inside that scope
+  // instead and it is the earlier of the two, which failed 7 runs in 20 (#475).
+  await new Promise((resolve) => setTimeout(resolve, 0))
 }
 
 describe('ModalContent focus return', () => {
@@ -129,9 +132,43 @@ describe('ModalContent focus return', () => {
     expect(asked.at(-1)).toBe(opener)
   })
 
-  // ⚠ **The caller-wins path has no case anywhere.** `ModalContent` runs the caller's
-  // `onCloseAutoFocus` first and stands down when it prevents the default, which
-  // `ReportIssueModal` depends on. Driving it needs a third dialog, and the one-per-file rule
-  // above would make that a third file for one assertion. The chain is held by the comment at
-  // that call site and by the browser pass instead.
+  // The opener is whatever had FOCUS, not whatever the dialog renders first (#432).
+  // `InlineEmbedView` opens its expanded map through the `useExpansion` seam, from a control
+  // that may be anywhere, so "the control that opened it" cannot be read off the dialog.
+  it('asks for the control that had focus, not the dialog s own first control', async () => {
+    const { host, opener, elsewhere } = await mount()
+
+    elsewhere.focus()
+    await openFrom(opener)
+
+    const asked = traceFocus()
+
+    await close(host)
+
+    expect(asked.at(-1)).toBe(elsewhere)
+  })
+
+  // `ReportIssueModal` depends on this half of the chain; `use-opener-restore.ts` owns why.
+  it('stands down when the caller takes the close event', async () => {
+    const chosen = document.createElement('button')
+
+    // ⚠ Outside the widget root, so the recorder in `useOpenerRestore` cannot adopt it. Inside,
+    // its `focusin` listener records `chosen` as the opener while the dialog closes, the atom's
+    // own restore then asks for the same element, and this case passes with the stand-down gone.
+    document.body.append(chosen)
+
+    const { host, opener } = await mount((event) => {
+      event.preventDefault()
+      chosen.focus()
+    })
+
+    opener.focus()
+    await openFrom(opener)
+
+    const asked = traceFocus()
+
+    await close(host)
+
+    expect(asked.at(-1)).toBe(chosen)
+  })
 })
