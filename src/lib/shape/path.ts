@@ -85,7 +85,7 @@ export const safePath = (path: string | null | undefined): string | undefined =>
  * redirect forever on accented slugs.
  */
 export const isCanonicalPath = (pathname: string, target: string): boolean =>
-  safeDecode(pathname) === target
+  decodePath(pathname) === target
 
 /**
  * The distance-ranked search route, optionally centred on a point. This owns the
