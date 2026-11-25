@@ -9,22 +9,24 @@ import { useQuery } from '@tanstack/react-query'
 
 import { DrawerBody, DrawerHeader, DrawerToolbar } from '@/components/atoms/Drawer'
 import { Spinner } from '@/components/atoms/Spinner'
-import { Skeleton, SkeletonLine } from '@/components/atoms/Skeleton'
 import { CENTERED_BODY, FallbackPanel, ListToolbar, SortMenu } from '@/components/molecules'
 import { MapSearchSkeleton } from '@/components/organisms/Mapbox/MapSearchSkeleton'
-import {
-  EventDetailsSkeleton,
-  EventHeaderSkeleton,
-} from '@/components/organisms/EventDetails/EventDetailsSkeleton'
+import { EventHeaderSkeleton } from '@/components/organisms/EventDetails/EventDetailsSkeleton'
 import { eventTitlesQuery, regionQuery, regionsQuery } from '@/config/api'
 import { useWidgetMode } from '@/config/mode'
 import { useIsWideWidget } from '@/config/responsive'
 import { useLocale } from '@/hooks/use-locale'
 import { useMapController } from '@/hooks/use-map-controller'
 import { classifyError, errorMessage } from '@/lib/report'
-import { baseStackEntry, isoCountryCode, nearestKnownRegion, resolveStack } from '@/lib/shape'
-import { LOADING_ATTR } from '@/views/DrawerStack/use-fit-snap'
-import { ClassListSkeleton, PlaceListSkeleton, guessListsPlaces } from '@/views/BootFallback'
+import {
+  baseStackEntry,
+  guessListsPlaces,
+  isoCountryCode,
+  nearestKnownRegion,
+  resolveStack,
+} from '@/lib/shape'
+import { FIELD_SLOT } from '@/views/chrome-style'
+import { LoadingBody, STATIC_TITLES, hasLoadingBody } from '@/views/loading'
 import { BackButton, NavHeader, NavRow } from '@/views/nav'
 import {
   CalendarButton,
@@ -111,12 +113,6 @@ export function DrawerChrome({
   const { hasMap } = useWidgetMode()
   const { collapsed } = useDrawerControl()
   const location = useLocation()
-  // This is cache-only (`enabled: false`), not merely non-suspending. It renders on EVERY
-  // loading and error state, so a fetch here would re-issue a read on exactly the failures
-  // where the backend is already the problem. A miss costs the title, never the frame. Both go
-  // through the shared factories, so the keys cannot drift from the ones the loaders write. A
-  // cache-only read under a divergent key does not error. It silently misses.
-  const { data: regions } = useQuery({ ...regionsQuery(), enabled: false })
   const { data: titles } = useQuery({ ...eventTitlesQuery(locale), enabled: false })
 
   // The same peel DrawerStack applies: a trailing `filters` over a `calendar` is a
@@ -124,74 +120,48 @@ export function DrawerChrome({
   // calendar. Without this, a calendar that fails underneath an open filter overlay
   // titles itself "Filters".
   const entry = baseStackEntry(resolveStack(location.pathname), hasMap)
-  // The region tree is the whole global list, and this re-renders on every location
-  // and drawer-control change, so this does not re-scan it for a node that only
-  // moves with the slug.
-  const regionSlug = entry?.kind === 'region' ? entry.slug : undefined
-  const regionNode = useMemo(
-    () =>
-      regionSlug === undefined ? undefined : regions?.find((node) => node.slug === regionSlug),
-    [regions, regionSlug],
-  )
-  // RegionView's own heading for a country, which needs no region tree: a deep link names the
-  // country at once.
-  const countryCode = isoCountryCode(regionSlug)
-  const regionName = (countryCode && countryNames.of(countryCode)) || regionNode?.name || undefined
+  const region = useCachedRegion(entry?.kind === 'region' ? entry.slug : undefined)
+  // RegionView's own heading for a country, which needs no region tree, so a deep link names the
+  // country at once. Not for a place that doesn't exist: any two letters name some "region".
+  const countryCode = notFound ? undefined : isoCountryCode(region.slug)
+  const regionName = (countryCode && countryNames.of(countryCode)) || region.node?.name || undefined
 
   const title = (() => {
-    switch (entry?.kind) {
-      case 'region':
-        return regionName
-      case 'online':
-        return t('online.title', { defaultValue: 'Online Classes' })
-      case 'event':
-        return titles?.get(entry.id)
-      case 'search':
-        return t('search.chrome.title', { defaultValue: 'Search' })
-      case 'calendar':
-        return t('calendar.title', { defaultValue: 'Calendar' })
-      case 'filters':
-        return t('filters.chrome.title', { defaultValue: 'Filters' })
-      case 'register':
-        return t('registration.form.title', {
-          defaultValue: 'Register for Meditation',
-        })
-      case 'share':
-        return t('share.title', { defaultValue: 'Share Meditation' })
-      default:
-        return undefined
-    }
-  })()
+    if (entry?.kind === 'region') return regionName
+    if (entry?.kind === 'event') return titles?.get(entry.id)
+    const words = entry && STATIC_TITLES[entry.kind]
 
-  // A LOADING chrome gets the field's shape, not a working field. `SearchField` mounts a Mapbox
-  // Geocoder — a shadow-DOM custom element bound to the live map. This fallback is freshly
-  // mounted per path inside DrawerStack's keyed view layer, so on a cold start it would
-  // instantiate one while the map is still initialising, then tear it down again the moment the
-  // view mounts its own. An ERROR chrome keeps the real field. There it is the escape hatch.
-  const field = loading ? (
-    <div className="min-w-0 flex-1">
-      <MapSearchSkeleton />
-    </div>
-  ) : (
-    <SearchField />
-  )
+    return words && t(words[0], { defaultValue: words[1] })
+  })()
 
   // The root and the search view lead with the geocoder, rather than a title, so
   // they get the header their view would render. Everything in it is a NAVIGATION —
   // a new search, a filter drawer — not a read of the data that failed, so none of
   // it needs disabling: on an `offline` search the field is the most useful thing on
   // screen, since a new URL remounts the boundary and may well succeed.
-  if (!entry) {
-    // CountriesView's header: the field, then Filters (or the expand control on a collapsed sheet).
-    return (
-      <DrawerHeader>
-        {field}
-        {collapsed ? <ExpandSheetButton /> : <FilterButton iconOnly />}
-      </DrawerHeader>
+  if (leadsWithGeocoder(entry)) {
+    // A LOADING chrome gets the field's shape, not a working field. `SearchField` mounts a
+    // Mapbox Geocoder — a shadow-DOM custom element bound to the live map — which the view
+    // arriving a moment later would tear down and build again. An ERROR chrome keeps the real
+    // field. There it is the escape hatch.
+    const field = loading ? (
+      <div className={FIELD_SLOT}>
+        <MapSearchSkeleton />
+      </div>
+    ) : (
+      <SearchField />
     )
-  }
 
-  if (entry.kind === 'search') {
+    // CountriesView's header.
+    if (!entry) {
+      return (
+        <DrawerHeader>
+          {field}
+          {collapsed ? <ExpandSheetButton /> : <FilterButton iconOnly />}
+        </DrawerHeader>
+      )
+    }
+
     // SearchView's header and toolbar.
     return (
       <>
@@ -215,17 +185,16 @@ export function DrawerChrome({
     return <EventHeaderSkeleton nav={<NavRow />} title={title} />
   }
 
+  // A place whose classes are coming says what RegionView will say over them.
+  const pendingRegion = loading && entry.kind === 'region'
+  const subtitle =
+    pendingRegion && !guessListsPlaces(entry.path, region.node?.level)
+      ? t('common.chrome.all_classes_free')
+      : undefined
+
   // The view's own header, so nothing moves when the view arrives. No title when nothing
   // resolved: a blank <h2> is a heading with no name, worse for a screen reader than none. A
-  // place still loading draws its title's line instead.
-  const pendingTitle = loading && entry.kind === 'region' && !title
-  // A place whose classes are coming says what RegionView will say over them.
-  const pendingSubtitle =
-    loading &&
-    entry.kind === 'region' &&
-    !guessListsPlaces(entry.path, regionNode?.level) &&
-    t('common.chrome.all_classes_free')
-
+  // place still loading draws its title's line instead, outside any heading.
   return (
     <NavHeader
       actions={
@@ -247,70 +216,54 @@ export function DrawerChrome({
         </>
       }
       close={entry.kind === 'filters'}
-      subtitle={pendingSubtitle || undefined}
-      title={
-        pendingTitle ? (
-          <Skeleton>
-            <SkeletonLine className="text-xl" width="w-1/2" />
-          </Skeleton>
-        ) : (
-          title
-        )
-      }
+      pendingTitle={pendingRegion && !title}
+      subtitle={subtitle}
+      title={title}
     />
   )
 }
 
-const LOADING = { [LOADING_ATTR]: '' }
+/**
+ * A region from the cached tree, by slug. Cache-only (`enabled: false`), not merely
+ * non-suspending: the chrome renders on EVERY loading and error state, so a fetch here would
+ * re-issue a read on exactly the failures where the backend is already the problem. A miss costs
+ * the title, never the frame. The factory keeps the key the loaders write: a cache-only read
+ * under a divergent key does not error, it silently misses. The tree is the whole global list,
+ * so the scan is memoized on the slug.
+ */
+function useCachedRegion(slug: string | undefined) {
+  const { data: regions } = useQuery({ ...regionsQuery(), enabled: false })
+  const node = useMemo(
+    () => (slug === undefined ? undefined : regions?.find((region) => region.slug === slug)),
+    [regions, slug],
+  )
+
+  return { slug, node }
+}
 
 /**
  * The Suspense fallback for a view whose data is still loading: the view's own header (its way
- * back and its controls work), over placeholders shaped like the content on its way. Each is
- * marked `LOADING_ATTR`, so the sheet and the panel hold their height until the content arrives
- * rather than fitting the placeholder first.
+ * back and its controls work), over the body the boot panel drew (`LoadingBody`), so nothing
+ * changes as one hands over to the other. A view with nothing worth drawing ahead of it waits
+ * on the spinner.
  */
 export function DrawerLoading() {
-  const { t } = useTranslation()
   const { hasMap } = useWidgetMode()
   const isWide = useIsWideWidget()
   const location = useLocation()
   const entry = baseStackEntry(resolveStack(location.pathname), hasMap)
-  const { data: regions } = useQuery({ ...regionsQuery(), enabled: false })
-
-  const body = (() => {
-    switch (entry?.kind) {
-      case undefined:
-        return <PlaceListSkeleton icons />
-      case 'region': {
-        const level = regions?.find(({ slug }) => slug === entry.slug)?.level
-        const places = guessListsPlaces(entry.path, level)
-
-        return places ? <PlaceListSkeleton /> : <ClassListSkeleton />
-      }
-      case 'online':
-        return <ClassListSkeleton online />
-      case 'search':
-        return <ClassListSkeleton />
-      case 'event':
-        // The phone sheet pins Register to its foot once the class arrives, so the placeholder
-        // leaves it out there.
-        return (
-          <div {...LOADING}>
-            <p className="sr-only" role="status">
-              {t('common.a11y.loading')}
-            </p>
-            <EventDetailsSkeleton ctaInline={!hasMap || isWide} />
-          </div>
-        )
-      default:
-        return null
-    }
-  })()
+  const region = useCachedRegion(entry?.kind === 'region' ? entry.slug : undefined)
 
   return (
     <>
       <DrawerChrome loading />
-      {body ? <DrawerBody>{body}</DrawerBody> : <DrawerLoadingBody />}
+      {hasLoadingBody(entry) ? (
+        <DrawerBody>
+          <LoadingBody ctaInline={!hasMap || isWide} entry={entry} level={region.node?.level} />
+        </DrawerBody>
+      ) : (
+        <DrawerLoadingBody />
+      )}
     </>
   )
 }

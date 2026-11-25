@@ -24,6 +24,7 @@ import { hasMapPoint } from '@/lib/camera'
 import { approxBounds } from '@/lib/geo'
 import { geocodeBounds, geocodeCountryCode } from '@/lib/geocode'
 import { atlasError } from '@/lib/report'
+import { FIELD_SLOT, HEADER_CONTROL, HEADER_EDGE, SUBTITLE, TITLE } from '@/views/chrome-style'
 import {
   NEARBY_RADIUS_KM,
   hasActivePlaceSearch,
@@ -103,31 +104,19 @@ export function DrawerTitle({ title, subtitle, note }: DrawerTitleProps) {
       {/* Wraps rather than truncates: beside a header's icons a 20px name such as "North of
           England" runs out of room on a phone, and a cut place name is the one thing a
           visitor came to read. `break-words` reaches the one a wrap cannot fit either way. */}
-      <h2 className="line-clamp-2 text-xl break-words">{title}</h2>
-      {subtitle && <div className="truncate text-sm text-gray-11">{subtitle}</div>}
+      <h2 className={TITLE}>{title}</h2>
+      {subtitle && <div className={SUBTITLE}>{subtitle}</div>}
       {note && <div className="truncate text-xs text-gray-11">{note}</div>}
     </div>
   )
 }
 
-/**
- * The drawer header's icon controls (back, overlay close, calendar, search, filter) are all
- * the same Button preset, kept here as values, rather than as a wrapper component, so they
- * provably render identical chrome — the header reads as one set of buttons.
- *
- * Every control in this module also renders inside the loading and error chrome
- * (`views/fallbacks.tsx`), where a suspend would escape the boundary and blank the widget
- * instead of showing the failure — so none of them may suspend. `useTranslation()` cannot:
- * the English snapshot is bundled, and i18next initialises synchronously with no backend to
- * wait on (`config/i18n.ts`).
- */
-export const HEADER_CONTROL = { variant: 'ghost', isIconOnly: true, size: 'sm' } as const
-
-// On every header control, so whichever one ends the row takes it, whatever renders null after
-// it. Its 20px icon sits centred in a 32px box (44px on a touch screen), so this pulls the box
-// into the gutter until the icon lands on the panel edge, in the column of the rows' chevrons,
-// with the tap area whole.
-export const HEADER_EDGE = 'last:-me-1.5 pointer-coarse:last:-me-3'
+// Every control in this module also renders inside the loading and error chrome
+// (`views/fallbacks.tsx`), where a suspend would escape the boundary and blank the widget
+// instead of showing the failure — so none of them may suspend. `useTranslation()` cannot:
+// the English snapshot is bundled, and i18next initialises synchronously with no backend to
+// wait on (`config/i18n.ts`).
+export { HEADER_CONTROL, HEADER_EDGE }
 
 // The calendar affordance for region headers (RegionView): opens the full-width
 // calendar pre-scoped to this region (`/calendar?region=<slug>`, pre-setting the
@@ -271,7 +260,7 @@ export function SearchField({ label }: Pick<MapSearchProps, 'label'> = {}) {
     // this is what lets a screen-reader viewer tell the place search from the results under it
     // and from the Filters dialog beside it (#432). The name is the field's, not the view's:
     // `SearchView` is itself a dialog called Search.
-    <div aria-label={t('search.chrome.title')} className="min-w-0 flex-1" role="search">
+    <div aria-label={t('search.chrome.title')} className={FIELD_SLOT} role="search">
       <MapSearch label={label} onSelect={handleSelect} />
     </div>
   )

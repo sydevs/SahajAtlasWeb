@@ -9,7 +9,7 @@ import {
 } from 'react'
 import { Drawer as Vaul } from 'vaul'
 
-import { drawer } from './drawer-style'
+import { drawer, inPlaceTransform } from './drawer-style'
 import { isIOS, useSheetDragClaim } from './sheet-touch'
 
 import { type VariantProps } from '@/styles/tv'
@@ -78,24 +78,13 @@ export type DrawerProps = VariantProps<typeof drawer> & {
   measureAgainst?: HTMLElement | null
   /**
    * Open already in place — at the active snap point, or fully open without snap points — with
-   * no slide in from the edge. For a drawer that takes over from a stand-in already on screen,
-   * as the main sheet takes over from the boot panel: sliding in again read as the panel
-   * arriving twice (Devindra, 12 Nov). Later moves between snap points still animate.
+   * no slide in from the edge. For a drawer that takes over from a stand-in already on screen, as
+   * the main sheet takes over from the boot panel, a slide reads as the panel arriving twice.
+   * DrawerStack sets it in every form, so a panel never slides in. Later moves between snap
+   * points still animate.
    */
   enterInPlace?: boolean
   children: ReactNode
-}
-
-/**
- * The `--initial-transform` vaul starts a panel from (vendored in `styles/vaul.css`): its offset
- * along its axis, as a length or a share of its own size. A snap point in px leaves that much of
- * the panel showing; a fraction leaves that share; no snap point means fully open.
- */
-function inPlaceTransform(point: number | string | null | undefined): string {
-  if (typeof point === 'string') return `calc(100% - ${point})`
-  if (typeof point === 'number') return `${(1 - point) * 100}%`
-
-  return '0px'
 }
 
 /** The drawer root. Provides direction and slots to the DrawerContent subtree. */
@@ -118,7 +107,7 @@ export function Drawer({
 }: DrawerProps) {
   const slots = drawer({ direction, mode, wide })
   const initialTransform = enterInPlace
-    ? inPlaceTransform(snapPoints ? activeSnapPoint : undefined)
+    ? inPlaceTransform(snapPoints ? (activeSnapPoint ?? snapPoints[0]) : undefined)
     : undefined
 
   // This passes the snap props unconditionally. `undefined` means no snap

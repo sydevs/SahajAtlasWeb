@@ -2,12 +2,7 @@ import { renderToStaticMarkup } from 'react-dom/server'
 import { MemoryRouter } from 'react-router'
 import { describe, expect, it, vi } from 'vitest'
 
-import {
-  BootFallback,
-  ClassListSkeleton,
-  PlaceListSkeleton,
-  guessListsPlaces,
-} from './BootFallback'
+import { BootFallback, ClassListSkeleton, PlaceListSkeleton, TitleSkeleton } from './loading'
 
 // Node-only SSR assertions (see `docs/testing.md`). Every key renders as itself.
 vi.mock('react-i18next', () => ({ useTranslation: () => ({ t: (key: string) => key }) }))
@@ -36,20 +31,6 @@ describe('the loading lists', () => {
   it('mark themselves as loading, so the sheet does not fit them', () => {
     expect(renderToStaticMarkup(<PlaceListSkeleton />)).toContain('data-sy-loading')
     expect(renderToStaticMarkup(<ClassListSkeleton />)).toContain('data-sy-loading')
-  })
-})
-
-describe('guessListsPlaces', () => {
-  it.each([
-    ['/gb', undefined, true],
-    ['/gb/south-east', undefined, true],
-    ['/gb/south-east/london', undefined, false],
-    // A city directly under its country guesses wrong until the region tree says otherwise.
-    ['/cz/prague', undefined, true],
-    ['/cz/prague', 'city', false],
-    ['/gb/south-east/london', 'region', true],
-  ] as const)('%s at level %s lists places: %s', (path, level, places) => {
-    expect(guessListsPlaces(path, level)).toBe(places)
   })
 })
 
@@ -82,5 +63,34 @@ describe('BootFallback', () => {
 
     expect(html).toContain('common.a11y.loading')
     expect(html).not.toContain('h-10 w-full rounded-lg')
+  })
+
+  it('opens a search as its field and its Filters and Sort row, not a titled list', () => {
+    const html = boot('/search')
+
+    expect(html).toContain('lucide-chevron-left')
+    expect(html).not.toContain('search.chrome.title')
+    expect(html).toContain('lucide-calendar-days')
+  })
+
+  it.each([
+    ['/gb/south-east/london/1817/register', 'registration.form.title'],
+    ['/gb/south-east/london/1817/share', 'share.title'],
+    ['/calendar', 'calendar.title'],
+  ])('opens %s under its own title, with no list it will not show', (path, title) => {
+    const html = boot(path)
+
+    expect(html).toContain(title)
+    expect(html).not.toContain('common.a11y.finding_classes')
+    expect(html).not.toContain('lucide-calendar-days')
+  })
+})
+
+describe('TitleSkeleton', () => {
+  it('draws no heading, which would have no name', () => {
+    const html = renderToStaticMarkup(<TitleSkeleton subtitle="All classes are free" />)
+
+    expect(html).not.toMatch(/<h\d/)
+    expect(html).toContain('All classes are free')
   })
 })

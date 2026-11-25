@@ -15,6 +15,7 @@ import {
   hasRegisterSlot,
 } from '@/components/organisms/EventDetails/EventRegister'
 import { EventDetailsSkeleton } from '@/components/organisms/EventDetails/EventDetailsSkeleton'
+import { LOADING } from '@/components/atoms/Skeleton/loading'
 import { useEventDisplay } from '@/hooks/use-event-display'
 import { eventQuery } from '@/config/api'
 import { useIsWideWidget } from '@/config/responsive'
@@ -25,7 +26,6 @@ import { parentOf } from '@/lib/shape'
 import { NavRow } from '@/views/nav'
 import { useDrawerControl, useFrameEventOnTop } from '@/views/shared'
 import { ErrorPanel } from '@/views/fallbacks'
-import { LOADING_ATTR } from '@/views/DrawerStack/use-fit-snap'
 
 // EventDetails pulls in DOMPurify and the action-row wiring. This keeps it out of the main
 // chunk, as pages/event.tsx used to, by lazy-loading it here.
@@ -133,7 +133,7 @@ export function EventView({ id, basePath }: { id: number; basePath: string }) {
               still until it has (`useFitSnap`). */}
           <Suspense
             fallback={
-              <div {...{ [LOADING_ATTR]: '' }}>
+              <div {...LOADING}>
                 <EventDetailsSkeleton
                   ctaInline={!stickyRegister}
                   head={

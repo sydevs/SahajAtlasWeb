@@ -30,7 +30,7 @@ describe('Skeleton', () => {
 
     expect(html).toMatch(/^<div class="[^"]*text-lg leading-snug/)
     // A real line box: an empty div with only a short bar inside would be the bar's height.
-    expect(html).toContain('​')
+    expect(html).toContain('\u200b')
     expect(html).toContain('w-1/3')
   })
 })

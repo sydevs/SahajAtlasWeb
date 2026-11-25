@@ -8,6 +8,10 @@ import { EventFactsSkeleton } from '@/components/molecules/EventFacts/EventFacts
 /** Shared with `EventDetails`, so the page's placeholder and the page cannot drift apart. */
 export const DETAILS_BODY = 'flex flex-col gap-4 px-gutter pt-2'
 
+/** Shared with `EventHeader`. */
+export const EVENT_HEADER = 'flex shrink-0 flex-col px-gutter pt-1 pb-2 md:pt-4'
+export const EVENT_TITLE = 'line-clamp-3 text-xl break-words'
+
 export interface EventDetailsSkeletonProps {
   /**
    * Draw Register and the action row in the flow, as `EventDetails`' own `ctaInline` does. Off
@@ -27,38 +31,41 @@ export interface EventDetailsSkeletonProps {
  */
 export function EventDetailsSkeleton({ ctaInline = true, head }: EventDetailsSkeletonProps) {
   return (
+    // Each band pulses on its own box: a `contents` wrapper draws no box for the pulse to fade.
     <div className={clsx(DETAILS_BODY, 'pb-10')}>
       {head ?? (
-        <Skeleton className="contents">
-          <div className="flex gap-1">
-            <SkeletonBlock className="h-5 w-24 rounded-lg" />
-            <SkeletonBlock className="h-5 w-16 rounded-lg" />
-          </div>
-          <EventFactsSkeleton className="mb-2" />
-        </Skeleton>
+        <>
+          <Skeleton className="flex gap-1">
+            <SkeletonBlock className="h-5 w-24" />
+            <SkeletonBlock className="h-5 w-16" />
+          </Skeleton>
+          <Skeleton className="mb-2">
+            <EventFactsSkeleton />
+          </Skeleton>
+        </>
       )}
-      <Skeleton className="contents">
-        {ctaInline && (
-          <>
-            <SkeletonBlock className="h-10 w-full rounded-lg" />
-            <div className="flex w-full justify-center gap-2 py-1">
-              {[0, 1].map((column) => (
-                <div key={column} className="flex w-[96px] flex-col items-center gap-1.5">
-                  <SkeletonBlock className="h-12 w-12 rounded-full" />
-                  <SkeletonLine
-                    className="w-full justify-center text-xs leading-tight"
-                    width="w-14"
-                  />
-                </div>
-              ))}
-            </div>
-          </>
-        )}
-        <div className="flex flex-col gap-2">
-          <SkeletonLine className="text-base font-semibold" width="w-1/4" />
-          <SkeletonLine className="text-sm leading-snug" width="w-full" />
-          <SkeletonLine className="text-sm leading-snug" width="w-4/5" />
-        </div>
+      {ctaInline && (
+        <>
+          <Skeleton>
+            <SkeletonBlock className="h-10 w-full" />
+          </Skeleton>
+          <Skeleton className="flex w-full justify-center gap-2 py-1">
+            {[0, 1].map((column) => (
+              <div key={column} className="flex w-[96px] flex-col items-center gap-1.5">
+                <SkeletonBlock className="h-12 w-12 rounded-full" />
+                <SkeletonLine
+                  className="w-full justify-center text-xs leading-tight"
+                  width="w-14"
+                />
+              </div>
+            ))}
+          </Skeleton>
+        </>
+      )}
+      <Skeleton className="flex flex-col gap-2">
+        <SkeletonLine className="text-base font-semibold" width="w-1/4" />
+        <SkeletonLine className="text-sm leading-snug" width="w-full" />
+        <SkeletonLine className="text-sm leading-snug" width="w-4/5" />
       </Skeleton>
     </div>
   )
@@ -87,7 +94,3 @@ export function EventHeaderSkeleton({ nav, title }: EventHeaderSkeletonProps) {
     </div>
   )
 }
-
-/** Shared with `EventHeader`. */
-export const EVENT_HEADER = 'flex shrink-0 flex-col px-gutter pt-1 pb-2 md:pt-4'
-export const EVENT_TITLE = 'line-clamp-3 text-xl break-words'

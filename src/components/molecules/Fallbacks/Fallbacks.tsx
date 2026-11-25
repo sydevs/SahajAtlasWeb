@@ -37,38 +37,12 @@ import { classifyError, errorMessage, reportInternalError } from '@/lib/report'
  */
 const APP_SURFACE = 'flex-center h-full w-full flex-col gap-3 bg-background p-10'
 
-/**
- * This is the same surface, for the form with no box to fill.
- *
- * ⚠ **`h-full` alone collapses silently in map mode. This is the common case.** An
- * unboxed map embed measures zero height on purpose. Everything the interface draws uses
- * `position: fixed`, so the element itself takes no room in the host's layout. The
- * standalone shell's `<html>` behaves the same way. A percentage height against a parent
- * with no definite height resolves to `auto`. So this surface shrink-wraps to its own
- * content instead: measured at 140px, pinned to the TOP of an 800px viewport, with the
- * spinner centred in that 140px, not on the screen.
- *
- * So this fallback copies the shape of what it replaces. The interface it stands in for
- * is fixed and inset-0 in that form, and so is this. Where the widget HAS a box — a
- * contained map, a map-less embed, the compact card — `h-full` is already correct. Taking
- * the viewport there would paint over the host's page. So the caller decides the form.
- * This component does not guess it.
- */
-const APP_SURFACE_UNBOXED = `${APP_SURFACE} fixed inset-0`
-
-export type LoadingFallbackProps = {
-  /**
-   * Take the viewport, not the parent's height. True only for the unboxed map form,
-   * whose interface is itself fixed. See `APP_SURFACE_UNBOXED`.
-   */
-  unboxed?: boolean
-}
-
-export function LoadingFallback({ unboxed = false }: LoadingFallbackProps) {
+/** The spinner a boxed form shows while its code arrives. The full-window map form has `BootFallback`. */
+export function LoadingFallback() {
   const { t } = useTranslation()
 
   return (
-    <div className={unboxed ? APP_SURFACE_UNBOXED : APP_SURFACE}>
+    <div className={APP_SURFACE}>
       {/* Use `srLabel`, not `label`. Screen readers announce it, but it does not draw
           on screen. `DrawerLoadingBody` makes the same choice. A visible "Loading…"
           text adds nothing the spinner has not already said. Its height would also

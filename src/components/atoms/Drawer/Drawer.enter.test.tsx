@@ -6,8 +6,8 @@ import { afterEach, describe, expect, it } from 'vitest'
 import { Drawer, DrawerContent } from './Drawer'
 
 /**
- * `enterInPlace`: where vaul starts the panel (Devindra, 12 Nov — the sheet slid in again after
- * the boot panel had already shown it).
+ * `enterInPlace`: where vaul starts the panel, so a drawer taking over from a stand-in already on
+ * screen does not slide in a second time.
  *
  * jsdom, like `Drawer.snap.test.tsx`, because this is an agreement with vaul: its stylesheet
  * (vendored in `styles/vaul.css`) starts a panel at `--initial-transform`, off screen by default,

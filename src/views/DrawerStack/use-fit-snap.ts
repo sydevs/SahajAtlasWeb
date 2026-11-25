@@ -1,5 +1,6 @@
 import { useLayoutEffect, useState } from 'react'
 
+import { LOADING_ATTR } from '@/components/atoms/Skeleton/loading'
 import { overlayContainer } from '@/lib/overlay'
 
 // The share of the frame the near-full snap shows. Content taller than this just takes it.
@@ -59,9 +60,6 @@ function measure(sheet: HTMLElement, body: HTMLElement): SheetFit | null {
   })
 }
 
-/** Marks a loading placeholder, which neither the sheet's fit nor the panel's height follows. */
-export const LOADING_ATTR = 'data-sy-loading'
-
 /**
  * Follows the open bottom sheet's content height while `enabled`, so a class opens showing
  * its title, when and where above the sticky Register bar, with no blank sheet below. A view
@@ -111,7 +109,11 @@ export function useFitSnap(enabled: boolean, view: string): SheetFit | null {
       // A placeholder is nothing true to fit: the sheet holds its stop and moves once, when the
       // content arrives, rather than fitting the placeholder first.
       const update = () =>
-        setFit(current.querySelector(`[${LOADING_ATTR}]`) ? null : measure(sheet, current))
+        setFit(
+          Array.from(current.children).some((kid) => kid.hasAttribute(LOADING_ATTR))
+            ? null
+            : measure(sheet, current),
+        )
       const resize = new ResizeObserver(update)
       const watch = () => {
         resize.disconnect()
@@ -128,8 +130,7 @@ export function useFitSnap(enabled: boolean, view: string): SheetFit | null {
       const footer = new MutationObserver(update)
 
       watch()
-      // The subtree: the class page's own placeholder gives way deep inside the body.
-      kids.observe(current, { childList: true, subtree: true })
+      kids.observe(current, { childList: true })
       if (current.parentElement) {
         footer.observe(current.parentElement, { attributeFilter: ['style'] })
       }

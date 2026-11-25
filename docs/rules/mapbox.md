@@ -448,9 +448,10 @@ For everything else — driving the map itself — serve the app the usual way
 (`pnpm dev`, or an alt port under the worktree
 pattern) against the seeded local backend.
 
-- **The backend is not a prerequisite — stub `clients/me`.** The widget
-  suspends on that one read before anything renders, so intercepting it
-  answers almost every boot-path question:
+- **The backend is not a prerequisite — stub `clients/me`.** The widget waits
+  on that one read before it shows any data (the full map form draws the map and
+  a placeholder panel meanwhile), so intercepting it answers almost every
+  boot-path question:
 
   ```js
   await page.route('**/clients/me*', (r) =>

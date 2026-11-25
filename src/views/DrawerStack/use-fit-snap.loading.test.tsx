@@ -3,7 +3,9 @@ import { act } from 'react'
 import { createRoot } from 'react-dom/client'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
-import { LOADING_ATTR, useFitSnap } from './use-fit-snap'
+import { useFitSnap } from './use-fit-snap'
+
+import { LOADING_ATTR } from '@/components/atoms/Skeleton/loading'
 
 /**
  * A loading placeholder is nothing true to fit: the sheet holds its stop and moves once, when the
@@ -40,14 +42,10 @@ const box = (height: number) => {
   return node
 }
 
-/**
- * A phone sheet whose fitting body holds the class page's wrapper, and inside it either the
- * placeholder or the content — the placeholder gives way deep inside the body, as EventView's does.
- */
+/** A phone sheet whose fitting body holds either the class page's placeholder or the page. */
 function mountSheet(loading: boolean) {
   const sheet = document.createElement('div')
   const body = document.createElement('div')
-  const page = box(CONTENT_PX)
   const placeholder = box(CONTENT_PX)
 
   sheet.setAttribute('data-vaul-drawer', '')
@@ -56,15 +54,14 @@ function mountSheet(loading: boolean) {
   sheet.getBoundingClientRect = () => ({ top: 0 }) as DOMRect
   body.getBoundingClientRect = () => ({ top: HEADER_PX }) as DOMRect
   if (loading) placeholder.setAttribute(LOADING_ATTR, '')
-  page.append(placeholder)
-  body.append(page)
+  body.append(placeholder)
   sheet.append(body)
   document.body.append(sheet)
 
   return {
     arrive: () => {
       placeholder.remove()
-      page.append(box(CONTENT_PX))
+      body.append(box(CONTENT_PX))
     },
   }
 }
@@ -92,7 +89,7 @@ describe('useFitSnap while the content loads', () => {
     expect(renderFit().fit).toBeNull()
   })
 
-  it('fits the content once it replaces the placeholder deep inside the body', async () => {
+  it('fits the content once it replaces the placeholder', async () => {
     const { arrive } = mountSheet(true)
     const seen = renderFit()
 

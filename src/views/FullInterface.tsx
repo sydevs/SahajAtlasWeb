@@ -115,8 +115,8 @@ function MapCurtain() {
   if (settled) return null
 
   return (
-    // No spinner and no live region: the sheet's own loading state already says what is
-    // happening, and two ways of saying it is one more than a visitor needs.
+    // Not a live region, and nothing drawn on it: the sheet's own loading state already says
+    // what is happening, and two ways of saying it is one more than a visitor needs.
     <div
       aria-hidden
       className="pointer-events-none absolute inset-0 z-10 bg-background/20 backdrop-blur-sm"

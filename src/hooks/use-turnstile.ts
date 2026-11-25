@@ -16,8 +16,8 @@ import { useTheme } from '@/hooks/use-theme'
 // a drifted protocol fails silently, the frame waiting out its handshake.
 //
 // ⚠ **The probe is not lazy (#182).** `useTurnstileGuard` runs it when the INTERFACE mounts, so a
-// host with a stale CSP hears about it on the console. A failure no longer stops the interface:
-// it shows in the forms that need a token, through `status`.
+// host with a stale CSP hears about it on the console. A failure stops nothing else: it shows
+// in the forms that need a token, through `status`.
 
 const CHALLENGE_PATH = '/api/atlas/challenge'
 

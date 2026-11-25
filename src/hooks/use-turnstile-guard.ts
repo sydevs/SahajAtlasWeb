@@ -27,18 +27,12 @@ const captchaAdvice = (serverOrigin: string, hostname: string) =>
   `See ${GUIDE}#troubleshooting`
 
 /**
- * This tells the host's developer when Turnstile cannot load. It no longer stops the widget.
+ * Tells the host's developer when Turnstile cannot load, and blocks nothing.
  *
- * **It is eager, but not blocking.** The probe starts on mount, and nothing waits for it.
- *
- * **Why it no longer fails the interface.** #182 made a failed check take the widget down, so that
- * a host with a stale CSP would notice: every write is captcha-gated, and a quiet failure would let
- * visitors browse and then be unable to register. But the check also fails for reasons that have
- * nothing to do with the host. It is a frame on another origin with a 10-second handshake, so one
- * slow load replaced a working atlas with a message blaming the page (seen once in 30+ loads on an
- * iPhone). Browsing needs no token. So the failure now shows where a token is needed: the
- * registration form says so and offers a retry, and the report form has its own degraded state.
- * The console advice below still reaches the developer.
+ * **It is eager, but not blocking.** The probe starts on mount, and nothing waits for it. Browsing
+ * needs no token, and the check also fails for reasons that are not the host's — it is a frame on
+ * another origin with a handshake that a slow load can miss (#182). So the failure shows where a
+ * token is needed, in the forms, and the advice below reaches the developer on the console.
  *
  * ⚠ **Call this from the INTERFACE, never from the shell.**
  * `.claude/rules/components.md` is explicit that anything that fetches or injects a script must mount with `FullInterface`.

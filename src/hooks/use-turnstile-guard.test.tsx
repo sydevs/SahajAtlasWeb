@@ -1,8 +1,7 @@
 // @vitest-environment jsdom
 import type { MockInstance } from 'vitest'
 
-import { type ReactNode, act } from 'react'
-import { ErrorBoundary } from 'react-error-boundary'
+import { act } from 'react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { createRoot } from 'react-dom/client'
 
@@ -23,7 +22,7 @@ const { probeTurnstile } = vi.hoisted(() => ({ probeTurnstile: vi.fn() }))
 vi.mock('@/hooks/use-turnstile', () => ({ probeTurnstile }))
 
 let cleanup: (() => void) | null = null
-// The guard writes the CSP directive to the console on its way out.
+// The guard writes the CSP directive to the console.
 // This silences that, so a deliberate failure case does not print a wall of advice during a green run.
 let warn: MockInstance<typeof console.warn>
 
@@ -47,23 +46,6 @@ function Guarded() {
   return <p>{GUARDED}</p>
 }
 
-/** This holds whatever reached the boundary, so a case can assert the KIND, not only that it threw. */
-let caught: unknown
-
-function Boundary({ children }: { children: ReactNode }) {
-  return (
-    <ErrorBoundary
-      fallbackRender={({ error }) => {
-        caught = error
-
-        return <p>blocked-fallback</p>
-      }}
-    >
-      {children}
-    </ErrorBoundary>
-  )
-}
-
 async function mount() {
   const host = document.createElement('div')
 
@@ -72,27 +54,18 @@ async function mount() {
   const root = createRoot(host)
 
   await act(async () => {
-    root.render(
-      <Boundary>
-        <Guarded />
-      </Boundary>,
-    )
+    root.render(<Guarded />)
   })
   cleanup = () => act(() => root.unmount())
 }
 
 describe('useTurnstileGuard', () => {
-  beforeEach(() => {
-    caught = undefined
-  })
-
   it('renders the interface when Turnstile is available', async () => {
     probeTurnstile.mockResolvedValue(true)
 
     await mount()
 
     expect(document.body.textContent).toContain(GUARDED)
-    expect(caught).toBeUndefined()
   })
 
   it('keeps the interface on screen when Turnstile cannot load', async () => {
@@ -102,7 +75,6 @@ describe('useTurnstileGuard', () => {
 
     // Browsing needs no token, so a failed check must not take it away.
     expect(document.body.textContent).toContain(GUARDED)
-    expect(caught).toBeUndefined()
   })
 
   it('tells the host developer what to change, on the console', async () => {
@@ -135,6 +107,5 @@ describe('useTurnstileGuard', () => {
     await mount()
 
     expect(document.body.textContent).toContain(GUARDED)
-    expect(caught).toBeUndefined()
   })
 })

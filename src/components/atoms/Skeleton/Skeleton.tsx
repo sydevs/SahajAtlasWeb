@@ -2,6 +2,8 @@ import type { ReactNode } from 'react'
 
 import clsx from 'clsx'
 
+import { tv } from '@/styles/tv'
+
 /**
  * The placeholder primitives every component's own skeleton is built from. A component draws its
  * skeleton beside itself (`ListItemSkeleton` next to `ListItem`) from the same layout classes, so
@@ -42,13 +44,15 @@ export function SkeletonLine({ className, width = 'w-1/2' }: SkeletonLineProps) 
   return (
     <div className={clsx('flex items-center', className)}>
       {/* The zero-width space gives the line its real line box. */}
-      {'​'}
+      {'\u200b'}
       <span className={clsx('h-[0.75em]', SHAPE, width)} />
     </div>
   )
 }
 
-/** Any other shape — a flag's circle, a button's box — sized and rounded by the caller. */
+const block = tv({ base: 'rounded-lg bg-gray-3' })
+
+/** Any other shape — a flag's circle, a button's box — sized by the caller. */
 export function SkeletonBlock({ className }: { className?: string }) {
-  return <div className={clsx('bg-gray-3', className ?? 'rounded-lg')} />
+  return <div className={block({ className })} />
 }

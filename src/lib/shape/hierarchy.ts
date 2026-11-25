@@ -79,6 +79,14 @@ export const listsPlaces = (level: RegionLevel): boolean =>
   level === 'country' || level === 'region'
 
 /**
+ * `listsPlaces` for a page whose level may not be known yet (a deep link before the region tree
+ * arrives). The route then guesses: nothing three levels down lists places. Wrong for a city
+ * directly under its country (`/cz/prague`), which shows place rows a moment before its classes.
+ */
+export const guessListsPlaces = (path: string, level: RegionLevel | undefined): boolean =>
+  level ? listsPlaces(level) : path.split('/').filter(Boolean).length < 3
+
+/**
  * A region's full ancestry ids, self-inclusive (self → parent → … → country),
  * walked up the `parent` links. Replaces the feed's `breadcrumbs` chain now that
  * the wholesale regions dict carries every parent link. A `seen` guard stops a

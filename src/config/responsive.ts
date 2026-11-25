@@ -90,6 +90,18 @@ export function useCoarsePointer(): boolean {
 export const SHEET_PEEK_PX = 104
 export const SHEET_OPEN_PX = 356
 
+// On a phone on its side, the open and taller stops covered nearly all of a 375px-tall map. There
+// every pixel stop stays this far below the top of the window, the band of map a 300px open stop
+// left on such a screen.
+// shortcut: this is under the 160px the camera reserves above the sheet for a pin it just framed
+// (`MIN_MAP_STRIP_PX`), so on a short window a framed pin can land under the sheet. Raise it to
+// the camera's reserve once the landscape sheet has been measured on a phone.
+const ABOVE_SHEET_WHEN_SHORT_PX = 75
+
+/** Where a short window caps the frameless phone sheet's pixel stops (`useIsShortViewport`). */
+export const shortSheetCap = (): number =>
+  Math.max(SHEET_PEEK_PX, window.innerHeight - ABOVE_SHEET_WHEN_SHORT_PX)
+
 /**
  * Whether the window is a phone on its side, or as short. It reads the viewport on purpose: the
  * frameless phone sheet asks, and that sheet is measured against the window too; and the map's

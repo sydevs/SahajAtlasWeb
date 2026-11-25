@@ -27,7 +27,7 @@ import {
   ResetErrorBoundary,
 } from '@/components/molecules/Fallbacks'
 import { ClientGate } from '@/config/client-gate'
-import { BootFallback } from '@/views/BootFallback'
+import { BootFallback } from '@/views/loading'
 // ⚠ Imports the component's own path, NOT the `@/components/organisms` barrel. The barrel
 // re-exports `Mapbox`, so importing ANYTHING through it pulls the map and `react-map-gl`
 // straight back into the eager graph. Under react-map-gl 7, which fired `import('mapbox-gl')` at
@@ -212,13 +212,7 @@ export default function App({
     <RootBoundary>
       <Providers>
         <BrandTheme apiKey={apiKey} palette={brand}>
-          {/* `unboxed` is the map form that fills the window: its interface is fixed and
-              inset-0, so a fallback standing in for it must be too, or it collapses to its
-              own content height at the top of the screen. A contained map, a map-less embed,
-              and the compact card all have a real box, and there `h-full` is already right. */}
-          <Suspense
-            fallback={hasMap && !contained && !compact ? <BootFallback /> : <LoadingFallback />}
-          >
+          <Suspense fallback={<StandIn fillsWindow={hasMap && !contained && !compact} />}>
             {/* `context` names this one in a report: everything below is a drawer failing
                 to load. This is the widget failing to boot. That is also why it, and the root
                 boundary above, are the only two that take the readiness marker down (#153):
@@ -288,6 +282,16 @@ type AppShellProps = {
   prefix?: string
 }
 
+/**
+ * What stands in while the interface's code arrives. The map form that fills the window gets the
+ * boot panel: its interface is fixed and inset-0, so a stand-in must be too, or it collapses to
+ * its own content height at the top of the screen. A contained map, a map-less embed and the
+ * compact card have a box of their own, which a spinner fills.
+ */
+function StandIn({ fillsWindow }: { fillsWindow: boolean }) {
+  return fillsWindow ? <BootFallback /> : <LoadingFallback />
+}
+
 function AppShell({
   apiKey,
   defaultLocale,
@@ -309,6 +313,7 @@ function AppShell({
   const { locale, t } = useLocale()
   const { theme } = useTheme()
   const mapForm = hasMap && !compact
+  const clientLoaded = !!client
 
   // Where the interface goes when it first opens on the root view: a path-mode host's
   // `atlas` default, else the client record's home region (`homePathFor`). The redirect
@@ -335,12 +340,10 @@ function AppShell({
    * not be loaded" screen, permanently. Reached from here, three things are true at
    * once, and none of them by luck: the marker cannot precede a successful boot,
    * because the effect waits for the client record to have resolved, proving
-   * the widget reached the API. It is never published over the loading state, because
-   * this component does not exist during it. And pressing "Try again" remounts this
-   * component, which re-publishes a marker the boundary took down.
+   * the widget reached the API. It is never published over a failed read, which never
+   * sets `clientLoaded`. And pressing "Try again" remounts this component, which
+   * re-publishes a marker the boundary took down.
    */
-  const clientLoaded = !!client
-
   useEffect(() => {
     if (clientLoaded) void announceEmbed({ routing, observed: embed.observed, prefix })
   }, [clientLoaded, routing, prefix])
@@ -413,11 +416,10 @@ function AppShell({
   // `AppShell`'s boundary would replace the card with a loading panel, instead of
   // showing one where the interface is about to appear.
   const interfaceElement = (
-    // Not `unboxed` when compact: this one renders INSIDE the expanded dialog, which
-    // has its own box and a deliberate margin — taking the viewport would paint over
-    // the margin the dialog keeps precisely so the host's page shows through and can
-    // be clicked to close.
-    <Suspense fallback={hasMap && !contained && !compact ? <BootFallback /> : <LoadingFallback />}>
+    // Never the boot panel when compact: this one renders INSIDE the expanded dialog, which has
+    // its own box and a deliberate margin — taking the viewport would paint over the margin the
+    // dialog keeps precisely so the host's page shows through and can be clicked to close.
+    <Suspense fallback={<StandIn fillsWindow={hasMap && !contained && !compact} />}>
       <FullInterface
         clientLoaded={clientLoaded}
         contained={contained}
@@ -429,7 +431,7 @@ function AppShell({
   )
 
   return (
-    <WidgetModeContext.Provider value={{ standalone, hasMap, linkable, apiKey }}>
+    <WidgetModeContext.Provider value={{ standalone, hasMap, linkable }}>
       {!mapForm && <ClientGate />}
       {/* Standalone only. Embedded, this <head> is the HOST page's: their og:locale
           describes their document, not the widget inside it (hence `standalone` existing

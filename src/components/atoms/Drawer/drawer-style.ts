@@ -154,3 +154,15 @@ export const drawer = tv({
   ],
   defaultVariants: { direction: 'bottom', mode: 'anchored', wide: false },
 })
+
+/**
+ * The `--initial-transform` vaul starts a panel from (vendored in `styles/vaul.css`): its offset
+ * along its axis, as a length or a share of its own size. A snap point in px leaves that much of
+ * the panel showing; a fraction leaves that share; no snap point means fully open.
+ */
+export function inPlaceTransform(point: number | string | null | undefined): string {
+  if (typeof point === 'string') return `calc(100% - ${point})`
+  if (typeof point === 'number') return `${(1 - point) * 100}%`
+
+  return '0px'
+}
