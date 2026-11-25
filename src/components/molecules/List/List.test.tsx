@@ -1,7 +1,7 @@
 import { renderToStaticMarkup } from 'react-dom/server'
 import { describe, it, expect } from 'vitest'
 
-import { List } from './List'
+import { List, listRow } from './List'
 
 // Node-only SSR assertions (see `docs/testing.md`). These pin the
 // explicit class-level resets, which duplicate preflight on purpose —
@@ -26,5 +26,12 @@ describe('List', () => {
     // from the ul. SSR escapes the arbitrary-variant selector's & and >
     // in the attribute value.
     expect(classes).toContain('[&amp;&gt;li]:list-none')
+  })
+
+  it('lays a row out centred beside its chevron, which mirrors in RTL', () => {
+    const { row, chevron } = listRow()
+
+    expect(row().split(' ')).toEqual(expect.arrayContaining(['flex', 'items-center', 'px-gutter']))
+    expect(chevron().split(' ')).toEqual(['text-gray-9', 'rtl:-scale-x-100'])
   })
 })

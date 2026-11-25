@@ -28,7 +28,7 @@ describe('ListItem', () => {
     expect(html).toContain('12')
   })
 
-  it('keeps the row vertically centered: its items-center beats listRow items-stretch', () => {
+  it('keeps the row vertically centered through the Link merge', () => {
     const html = renderToStaticMarkup(
       <MemoryRouter>
         <ListItem count={12} href="/regions/france" label="France" />
@@ -38,9 +38,10 @@ describe('ListItem', () => {
     // The first class attribute is the row anchor's (the <li> wrapper is bare).
     const classes = (html.match(/class="([^"]*)"/)?.[1] ?? '').split(' ')
 
-    expect(classes).toContain('flex-row')
+    expect(classes).toContain('flex')
     expect(classes).toContain('items-center')
-    expect(classes).not.toContain('items-stretch')
+    // listRow's `flex` must beat the Link atom's `inline-flex`.
+    expect(classes).not.toContain('inline-flex')
   })
 
   // The trailing count and chevron step down from the title, and not to

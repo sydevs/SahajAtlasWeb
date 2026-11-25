@@ -11,17 +11,18 @@ import { tv } from '@/styles/tv'
 
 /**
  * A navigable row inside a `List`. Cards wrap it in an `<li>`, so each row
- * is a valid direct child of the `<ul>`, and spread this onto that li's
- * inner <Link> or <a>. So the hover and press feedback, and the gutter,
- * stay identical across row types.
+ * is a valid direct child of the `<ul>`, and put `row` on that li's inner
+ * <Link> or <a>, and `chevron` on the `ChevronRight` (size 20) it ends in.
+ * So the hover and press feedback, the gutter and the chevron stay
+ * identical across row types.
  */
 export const listRow = tv({
-  // `items-stretch` undoes the Link atom's `items-center`, its inline
-  // icon-link alignment. On a flex-col card, that would centre every line
-  // of content. Row-shaped cards (ListItem, and EventListItem's row of
-  // content column plus chevron) re-opt into `items-center` in
-  // their own classes, which wins the merge as the later conflict.
-  base: 'block items-stretch px-gutter text-inherit transition-colors hover:bg-primary-2 active:bg-primary-3 dark:hover:bg-gray-3 dark:active:bg-gray-4',
+  slots: {
+    row: 'flex items-center px-gutter text-inherit transition-colors hover:bg-primary-2 active:bg-primary-3 dark:hover:bg-gray-3 dark:active:bg-gray-4',
+    // The chevron only restates what tapping the row already does, so it
+    // sits a step below the quietest text in any row (gray-11, #432).
+    chevron: 'text-gray-9 rtl:-scale-x-100',
+  },
 })
 
 // The divider draws here. Cards carry no border of their own, so mixed

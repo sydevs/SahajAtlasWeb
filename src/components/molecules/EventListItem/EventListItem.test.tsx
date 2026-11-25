@@ -6,6 +6,7 @@ import { describe, it, expect, vi } from 'vitest'
 
 import { EventListItem } from './EventListItem'
 
+import { listRow } from '@/components/molecules/List/List'
 import { mockEventSlim } from '@/mocks/events'
 
 // Node-only SSR assertions (see `docs/testing.md`). The card must be a
@@ -87,42 +88,24 @@ describe('EventListItem', () => {
     expect(html).toContain('data-event-row')
   })
 
-  it('left-aligns the card column beside a chevron, as a place row has', () => {
+  it('ends in the list chevron, beside a left-aligned content column', () => {
     const html = renderToStaticMarkup(
       <MemoryRouter>
         <EventListItem event={mockEventSlim} />
       </MemoryRouter>,
     )
 
-    // The first class attribute is the anchor's (the <li> wrapper is bare),
-    // the next the content column's.
-    const [row, column] = [...html.matchAll(/class="([^"]*)"/g)].map((m) => m[1].split(' '))
+    // The anchor's class attribute comes first (the <li> wrapper is bare),
+    // then the content column's; the chevron's is last.
+    const classes = [...html.matchAll(/class="([^"]*)"/g)].map((m) => m[1].split(' '))
+    const [row, column] = classes
 
-    // The row centres the column against the chevron on purpose.
-    expect(row).toContain('flex-row')
     expect(row).toContain('items-center')
-    // Inside the column nothing centres: titles, times, addresses and tags
-    // stay left-aligned, and `min-w-0` lets a long title wrap instead of
-    // pushing the chevron out.
+    // Inside the column nothing centres: the text stays left-aligned.
     expect(column).toContain('flex-col')
     expect(column).toContain('min-w-0')
     expect(column).not.toContain('items-center')
-  })
-
-  it('ends the row in the same mirrored chevron as a place row', () => {
-    const html = renderToStaticMarkup(
-      <MemoryRouter>
-        <EventListItem event={mockEventSlim} />
-      </MemoryRouter>,
-    )
-
-    const chevron = html.match(/<svg[^>]*lucide-chevron-right[^>]*>/)?.[0] ?? ''
-
-    expect(chevron).toContain('text-gray-9')
-    expect(chevron).toContain('rtl:-scale-x-100')
-    expect(chevron).toContain('shrink-0')
-    expect(chevron).toContain('width="20"')
-    // It is the row's last element, after the content column.
-    expect(html).toMatch(/lucide-chevron-right[\s\S]*<\/svg><\/a><\/li>$/)
+    expect(classes.at(-1)).toEqual(expect.arrayContaining(listRow().chevron().split(' ')))
+    expect(html).toMatch(/lucide-chevron-right[^>]*>[\s\S]*?<\/svg><\/a><\/li>$/)
   })
 })

@@ -35,6 +35,8 @@ export interface EventListItemProps {
 // compares in km, regardless of the unit the locale renders it in.
 const MIN_DISTANCE_KM = 5
 
+const { row, chevron } = listRow()
+
 /**
  * The list card: title, then the shared EventFacts summary (recurrence and
  * time, then the address with its distance faded below, or the online
@@ -123,13 +125,15 @@ function EventListItemImpl({ event, searchedPlace, showDistance = true }: EventL
           would break silently the day a card grows a second anchor. */}
       <Link
         data-event-row
-        className={listRow({ className: 'flex flex-row items-center gap-1 py-4' })}
+        className={row({ className: 'py-4' })}
         href={event.path}
         onBlur={deactivate}
         onFocus={activate}
         onMouseEnter={activate}
         onMouseLeave={deactivate}
       >
+        {/* `min-w-0` lets a truncating chip or an unbroken title shrink
+            instead of pushing the chevron out. */}
         <div className="flex min-w-0 flex-1 flex-col gap-1">
           <div className="line-clamp-2 text-lg">{event.title}</div>
           <EventFacts
@@ -146,9 +150,7 @@ function EventListItemImpl({ event, searchedPlace, showDistance = true }: EventL
           />
           <EventChips className="mt-1" event={event} variant="compact" />
         </div>
-        {/* ListItem's chevron. `min-w-0` on the column above lets a long
-            title wrap, and `shrink-0` here keeps the chevron whole. */}
-        <ChevronRight className="shrink-0 text-gray-9 rtl:-scale-x-100" size={20} />
+        <ChevronRight className={chevron()} size={20} />
       </Link>
     </li>
   )
