@@ -25,7 +25,9 @@ import { ClientGate } from '@/config/client-gate'
 import {
   SHEET_OPEN_PX,
   SHEET_PEEK_PX,
+  WIDE_SNAP,
   WidgetWidthContext,
+  capStop,
   shortSheetCap,
   useIsShortViewport,
   useIsWide,
@@ -106,15 +108,10 @@ type SecondaryViews = ReturnType<typeof loadSecondaryViews>
 //  - 0.97 near-full
 const PEEK_SNAP = `${SHEET_PEEK_PX}px` // the collapsed peek
 const OPEN_SNAP = `${SHEET_OPEN_PX}px` // default, and what the peek expands to
-const SNAP_POINTS = [PEEK_SNAP, OPEN_SNAP, 0.97]
-const WIDE_SNAP = SNAP_POINTS[2] // the near-full snap the full-width calendar opens at
+const SNAP_POINTS = [PEEK_SNAP, OPEN_SNAP, WIDE_SNAP]
 // Stands for "as tall as the content" in `snap`. The pixel value moves with the content, so the
 // state holds this token and the ladder carries the live number (`useFitSnap`).
 const FIT_SNAP = 'fit'
-
-/** A pixel stop held down to `cap`. Fractions, and every stop when there is no cap, pass through. */
-const capStop = <T extends number | string | null>(point: T, cap: number | null): T | string =>
-  cap !== null && typeof point === 'string' && parseFloat(point) > cap ? `${cap}px` : point
 
 // Frames a stationary sheet holds before the `--sy-sheet-top` mirror parks itself (about
 // 0.5s at 60fps — well past the end of any vaul spring). See the effect below for why it

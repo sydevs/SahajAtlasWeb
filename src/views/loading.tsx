@@ -23,7 +23,14 @@ import { EventListItemSkeleton } from '@/components/molecules/EventListItem/Even
 import { EventDetailsSkeleton } from '@/components/organisms/EventDetails/EventDetailsSkeleton'
 import { EventHeader } from '@/components/organisms/EventDetails/EventHeader'
 import { MapSearchSkeleton } from '@/components/organisms/Mapbox/MapSearchSkeleton'
-import { SHEET_OPEN_PX, shortSheetCap, useIsShortViewport, useIsWide } from '@/config/responsive'
+import {
+  SHEET_OPEN_PX,
+  WIDE_SNAP,
+  capStop,
+  shortSheetCap,
+  useIsShortViewport,
+  useIsWide,
+} from '@/config/responsive'
 import { guessListsPlaces } from '@/lib/shape/hierarchy'
 import { baseStackEntry, resolveStack } from '@/lib/shape/path'
 import {
@@ -193,8 +200,8 @@ export function BootFallback() {
   const calendar = entry?.kind === 'calendar'
   const slots = drawer({ direction: isWide ? 'left' : 'bottom', mode: 'anchored', wide: calendar })
   const stop = calendar
-    ? 0.97
-    : `${shortViewport ? Math.min(SHEET_OPEN_PX, shortSheetCap()) : SHEET_OPEN_PX}px`
+    ? WIDE_SNAP
+    : capStop(`${SHEET_OPEN_PX}px`, shortViewport ? shortSheetCap() : null)
   const field = (
     <div className={FIELD_SLOT}>
       <MapSearchSkeleton />

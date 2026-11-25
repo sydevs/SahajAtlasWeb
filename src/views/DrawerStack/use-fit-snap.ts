@@ -1,10 +1,9 @@
 import { useLayoutEffect, useState } from 'react'
 
 import { LOADING_ATTR } from '@/components/atoms/Skeleton/Skeleton'
+import { WIDE_SNAP } from '@/config/responsive'
 import { overlayContainer } from '@/lib/overlay'
 
-// The share of the frame the near-full snap shows. Content taller than this just takes it.
-const NEAR_FULL = 0.97
 // Below this a sheet would sit under the peek, which is no longer "open".
 const MIN_FIT_PX = 120
 
@@ -35,7 +34,7 @@ export function fitHeight({
   const fit = Math.ceil(bodyOffset + contentHeight + footerSpace)
 
   if (!Number.isFinite(fit) || fit < MIN_FIT_PX || frameHeight <= 0) return null
-  if (fit >= frameHeight * NEAR_FULL) return 'full'
+  if (fit >= frameHeight * WIDE_SNAP) return 'full'
 
   return fit
 }
