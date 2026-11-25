@@ -164,7 +164,9 @@ export function MapSearch({ onSelect, label, permanent }: MapSearchProps) {
       // ⚠ The min-height is the 44px tap floor reaching the geocoder's OWN input (#432), the
       // same way `field-size` reaches it: that element is the library's, so a class cannot be
       // put on it, and an `<input>` renders no `::after` for `touch-target` to use.
-      className="[&_input]:field-size [&_input]:pointer-coarse:min-h-11 [&_input:placeholder-shown]:!pe-3"
+      // ⚠ Literal px, never a spacing step: the geocoder declares its own `--spacing` (0.75em),
+      // which every step inside it multiplies, so `min-h-11` drew a 132px field on touch.
+      className="[&_input]:field-size [&_input]:pointer-coarse:min-h-[44px] [&_input:placeholder-shown]:!pe-[12px]"
     >
       <GeocoderBoundary
         fallback={
