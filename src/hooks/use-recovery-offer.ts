@@ -6,7 +6,7 @@ import atlasAuth from '@/config/api/auth'
 import { clientQuery, regionsQuery } from '@/config/api'
 import { regionRoute } from '@/config/api/fetch'
 import { useIpLocation } from '@/hooks/use-ip-location'
-import { nearestKnownRegion, safePath, searchPath } from '@/lib/shape'
+import { isCanonicalPath, nearestKnownRegion, safePath, searchPath } from '@/lib/shape'
 import { reportInternalError } from '@/lib/report'
 
 /**
@@ -97,7 +97,7 @@ export const useRecoveryOffer = (): RecoveryOffer => {
       const home = typeof client?.region === 'object' ? client.region : undefined
       const homePath = home ? safePath(home.webPath) : undefined
 
-      if (home && homePath && homePath !== '/' && homePath !== location.pathname) {
+      if (home && homePath && homePath !== '/' && !isCanonicalPath(location.pathname, homePath)) {
         return { kind: 'region', path: homePath, name: home.name ?? home.slug }
       }
 

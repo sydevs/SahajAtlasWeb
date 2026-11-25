@@ -10,12 +10,20 @@ import type { BBox } from 'geojson'
 import { filtersFromParams, filtersToParams } from './filters'
 import { sortFromParams, sortToParams } from './sort'
 
-/** Decodes a URL segment, tolerating a malformed `%` escape (returns it unchanged). */
-const safeDecode = (segment: string): string => {
+/**
+ * Decodes a URL segment, tolerating a malformed `%` escape (returns it unchanged), and
+ * composes it to NFC.
+ *
+ * A slug keeps its native letters (`софия`, `universität-trier`), and the address bar hands
+ * them over percent-encoded, so every comparison against the region tree's raw `webPath`
+ * decodes first. NFC because the same letter has two spellings (`ä` as one code point, or `a`
+ * plus a combining mark), and a typed or pasted address may use either.
+ */
+export const safeDecode = (segment: string): string => {
   try {
-    return decodeURIComponent(segment)
+    return decodeURIComponent(segment).normalize('NFC')
   } catch {
-    return segment
+    return segment.normalize('NFC')
   }
 }
 
@@ -72,7 +80,7 @@ export const safePath = (path: string | null | undefined): string | undefined =>
  * redirect forever on accented slugs.
  */
 export const isCanonicalPath = (pathname: string, target: string): boolean =>
-  safeDecode(pathname) === target
+  safeDecode(pathname) === safeDecode(target)
 
 /**
  * The distance-ranked search route, optionally centred on a point. This owns the
@@ -291,7 +299,10 @@ export const resolveStack = (pathname: string): StackEntry[] => {
   segments.forEach((segment, i) => {
     const path = `/${segments.slice(0, i + 1).join('/')}`
     const parentPath = i === 0 ? '/' : `/${segments.slice(0, i).join('/')}`
-    const word = segment.toLowerCase()
+    // Decoded first: `toLowerCase` on `%D1%81` would read `%d1%81`, and the reserved words are
+    // matched as letters, whichever way the address bar spelled them.
+    const decoded = safeDecode(segment)
+    const word = decoded.toLowerCase()
 
     if (word === 'search') entries.push({ kind: 'search', path })
     else if (word === 'calendar') entries.push({ kind: 'calendar', path })
@@ -303,7 +314,7 @@ export const resolveStack = (pathname: string): StackEntry[] => {
     else if (RESERVED_SLUGS.has(word))
       return // legacy prefix (events/areas/…) — no drawer
     else if (/^\d+$/.test(segment)) entries.push({ kind: 'event', id: Number(segment), path })
-    else entries.push({ kind: 'region', slug: safeDecode(segment), path })
+    else entries.push({ kind: 'region', slug: decoded, path })
   })
 
   return entries
@@ -318,9 +329,9 @@ export const placePathsOf = (
 ): PlacePathOf | undefined => {
   if (!regions) return undefined
 
-  const paths = new Map(regions.map((node) => [node.slug, safePath(node.webPath)]))
+  const paths = new Map(regions.map((node) => [safeDecode(node.slug), safePath(node.webPath)]))
 
-  return (slug) => paths.get(slug)
+  return (slug) => paths.get(safeDecode(slug))
 }
 
 /** The deepest place in a stack: the one the page actually shows, or holds the class it shows. */

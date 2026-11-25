@@ -43,6 +43,14 @@ cover everything a host would notice since the widget was first deployed.
 
 ### Changed
 
+- **Place slugs may contain non-ASCII letters, and URLs carry them percent-encoded.** A region's
+  slug keeps its native letters, lowercased (`/bg/софия` where it was `/bg/sofiya`;
+  `/de/trier/universität-trier` where it was `universitat-trier`). On the wire, in
+  `routing=path` pathnames and in `?atlas=` values, they are percent-encoded
+  (`/bg/%D1%81%D0%BE%D1%84%D0%B8%D1%8F`), and the widget resolves either spelling to the same
+  place. A host that matches or rewrites these paths must decode each segment before matching,
+  and must not assume `[a-z0-9-]`. **No parameter, origin, CSP, storage or Permissions-Policy change.**
+
 - **The panel's text, edges and corners follow one system.** ([#471]) Titles are larger (20px)
   than the rows under them (16px); times, addresses, Filters, Sort and the Register button are a
   touch larger, without letter spacing. The header, search box, notices, list and buttons share
