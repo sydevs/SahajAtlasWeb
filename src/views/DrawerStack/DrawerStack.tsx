@@ -51,6 +51,7 @@ import {
 } from '@/lib/shape'
 import { wakesSheetLoop } from '@/views/DrawerStack/sheet-wake'
 import { ViewLayer } from '@/views/DrawerStack/ViewLayer'
+import { useEaseHeight } from '@/views/DrawerStack/use-ease-height'
 import { useFitSnap } from '@/views/DrawerStack/use-fit-snap'
 import { DrawerControlContext, NO_DRAWER_CONTROL } from '@/views/shared'
 import { DrawerErrorFallback, DrawerLoading } from '@/views/fallbacks'
@@ -201,6 +202,7 @@ export function DrawerStack() {
   // where the sheet cannot collapse, since the loop does not run there.
   const [atPeek, setAtPeek] = useState(false)
   const sheetOriginRef = useRef<HTMLDivElement>(null)
+  const [layers, setLayers] = useState<HTMLDivElement | null>(null)
   // The lazy components ARE the retry state — the boundary's reset swaps in fresh ones.
   // Same shape, and the same reasoning, as EventView's `EventDetails`.
   const [secondary, setSecondary] = useState(loadSecondaryViews)
@@ -226,6 +228,8 @@ export function DrawerStack() {
   // switching it resizes the drawer. Date changes do not re-render this component.
   const calendarView = useCalendarPosition((s) => s.view)
   const wide = top?.kind === 'calendar' && isWide && calendarView !== CALENDAR_VIEW_LIST
+
+  useEaseHeight(layers, hasMap && direction === 'left' && !wide)
   // What Back does, worked out once for its label and its press. A fresh deep link's climb follows
   // the region tree, not the words typed: `/united-kingdom/south-east/london` shows London, and
   // Back must lead to the UK at `/gb`, not a `/united-kingdom` that doesn't exist. It also passes
@@ -606,7 +610,10 @@ export function DrawerStack() {
         collapse()
       }}
     >
-      <div className="relative min-h-0 flex-1">
+      <div
+        ref={setLayers}
+        className="relative grid min-h-0 flex-1 grid-cols-[minmax(0,1fr)] grid-rows-[minmax(0,1fr)]"
+      >
         <AnimatePresence>
           <ViewLayer key={top?.path ?? '/'}>
             {/* Suspense sits OUTSIDE the boundary, so a lazy view's chunk load is a

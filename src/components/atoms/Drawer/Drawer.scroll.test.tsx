@@ -89,12 +89,16 @@ describe('Drawer — the panel cannot scroll', () => {
     expect(classes.filter((token) => SCROLLS.test(token))).toEqual([])
   })
 
-  it('leaves the body slot no padding of its own', () => {
+  it('leaves the body slot no padding but its bottom inset', () => {
     // A sticky footer's clearance is the slot's own trailing spacer (#320) plus, at the one
-    // view with a footer, that body's `scroll-pb-*` — never padding on the slot.
+    // view with a footer, that body's `scroll-pb-*` — never padding on the slot. The one padding
+    // is the inset mirroring the header's top, and a caller's `py-4` replacing it is intended.
     const body = classesOf('[data-vaul-drawer] .overflow-y-auto')
 
-    expect(body.filter((token) => /^(scroll-)?p[btrlxy]?-/.test(token))).toEqual([])
+    expect(body.filter((token) => /(^|:)(scroll-)?p[btrlxy]?-/.test(token))).toEqual([
+      'pb-4',
+      'has-[>ul:last-child]:pb-0',
+    ])
   })
 })
 

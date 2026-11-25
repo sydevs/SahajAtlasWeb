@@ -521,7 +521,9 @@ export function GeolocationSuggestion({
   if (!ipLocation || !show || knownAtFirstPaint.current !== (position === 'above')) return null
 
   return (
-    <div className={position === 'below' ? 'pt-3' : undefined}>
+    // Below, the last row's own padding is the gap above, and the drawer body's bottom inset the
+    // gap under it.
+    <div className={position === 'above' ? 'pb-2' : undefined}>
       <GeolocationPrompt city={ipLocation.city} onAccept={handleSelect} onClose={handleDismiss} />
     </div>
   )

@@ -74,7 +74,10 @@ const drawer = tv({
     // class, and the spacer adds to their padding instead of replacing it. It
     // is a pseudo-element so `[&>:last-child]` postures still find the real
     // last child (`CENTERED_BODY`).
-    body: "mx-auto min-h-0 w-full max-w-[var(--sy-content-max,512px)] flex-1 overflow-x-hidden overflow-y-auto overscroll-y-none after:block after:h-[var(--sy-footer-h,0px)] after:shrink-0 after:content-['']",
+    // The bottom inset mirrors the header's `pt-4`, so whatever ends the panel sits as far off
+    // its edge as the header does from the top. A closing list is exempt: each row already
+    // carries that space inside its tap area.
+    body: "mx-auto min-h-0 w-full max-w-[var(--sy-content-max,512px)] flex-1 overflow-x-hidden overflow-y-auto overscroll-y-none pb-4 after:block after:h-[var(--sy-footer-h,0px)] after:shrink-0 after:content-[''] has-[>ul:last-child]:pb-0",
     footer:
       'mx-auto mt-auto w-full max-w-[var(--sy-content-max,512px)] shrink-0 border-t border-gray-4',
     // This themes the vaul drag handle. Its vendored CSS hardcodes a light
@@ -109,9 +112,11 @@ const drawer = tv({
       // constant. So changing this width means changing that one in the same
       // edit. Otherwise the map keeps framing around the old width, and
       // nothing anywhere reports the drift.
+      // Floating (≥lg), the panel is as tall as its view, up to the frame's height less its
+      // margins; `useEaseHeight` (DrawerStack) eases the change.
       left: {
         content:
-          'inset-y-0 left-0 w-[calc(var(--sy-drawer-w,352px)+env(safe-area-inset-left,0px))] max-w-[calc(100%-32px)] rounded-none border border-divider ps-[env(safe-area-inset-left,0px)] lg:inset-y-4 lg:left-4 lg:rounded-2xl',
+          'inset-y-0 left-0 w-[calc(var(--sy-drawer-w,352px)+env(safe-area-inset-left,0px))] max-w-[calc(100%-32px)] rounded-none border border-divider ps-[env(safe-area-inset-left,0px)] lg:top-4 lg:bottom-auto lg:left-4 lg:max-h-[calc(var(--sy-frame-h)-32px)] lg:rounded-2xl',
       },
       right: {
         content:
