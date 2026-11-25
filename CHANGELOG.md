@@ -43,6 +43,14 @@ cover everything a host would notice since the widget was first deployed.
 
 ### Changed
 
+- **Place slugs may contain non-ASCII letters, and URLs carry them percent-encoded.** ([#483]) A
+  region's slug keeps its native letters, lowercased (`/bg/софия` where it was `/bg/sofiya`;
+  `/de/trier/universität-trier` where it was `universitat-trier`). On the wire, in
+  `routing=path` pathnames and in `?atlas=` values, they are percent-encoded
+  (`/bg/%D1%81%D0%BE%D1%84%D0%B8%D1%8F`), and the widget resolves either spelling to the same
+  place. A host that matches or rewrites these paths must decode each segment before matching,
+  and must not assume `[a-z0-9-]`. **No parameter, origin, CSP, storage or Permissions-Policy change.**
+
 - ⚠ **Every embed now opens inline, as part of your page, and the map opens over it on request.**
   ([#466]) The widget shows a heading — "Free Meditation classes in London" — above two
   columns: the classes on the left, and a square map on the right that stays in view below
@@ -1261,6 +1269,7 @@ must-revalidate`, pinned rather than left to the CDN default. The production dom
   found. ([#111], [#136])
 
 [#466]: https://github.com/sydevs/SahajAtlasWeb/pull/466
+[#483]: https://github.com/sydevs/SahajAtlasWeb/pull/483
 [#478]: https://github.com/sydevs/SahajAtlasWeb/pull/478
 [#469]: https://github.com/sydevs/SahajAtlasWeb/pull/469
 [#192]: https://github.com/sydevs/SahajAtlasWeb/pull/192
