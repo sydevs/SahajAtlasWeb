@@ -196,7 +196,7 @@ function FullInterface({
     <MapProvider>
       {/* ⚠ **`MapFrame` is the ONLY thing that differs between a viewport map and a contained
           one.** Everything below is byte-identical in both. The canvas stays `position: fixed;
-          inset: 0`, the drawers and peek strips stay fixed, and no view branches on which one
+          inset: 0`, the drawers stay fixed, and no view branches on which one
           it is. `contain: layout` on the frame re-parents the whole fixed layer onto the
           host's box, which is what makes that possible. The alternative, a `fixed` →
           `absolute` swap, is what made containment look intractable, until #161 solved both of

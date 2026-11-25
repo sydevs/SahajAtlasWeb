@@ -83,6 +83,21 @@ export function useCoarsePointer(): boolean {
   return useMediaQuery({ query: '(hover: none) and (pointer: coarse)' })
 }
 
+// The phone sheet's two pixel stops, read by DrawerStack for the sheet and by the camera for the
+// map it covers. The peek is the handle's 28px, the 32px Back row, the 8px under it (NavRow's
+// `mb-2`), a 26px title line and room to spare: at 88px the title's lower half fell off the
+// screen. The open stop shows the Back row, the title, a list row, and a peek of the next.
+export const SHEET_PEEK_PX = 104
+export const SHEET_OPEN_PX = 356
+
+/**
+ * Whether the window is a phone on its side, or as short. It reads the viewport on purpose: only
+ * the frameless phone sheet asks, and that sheet is measured against the window too.
+ */
+export function useIsShortViewport(): boolean {
+  return useMediaQuery({ query: '(max-height: 480px)' })
+}
+
 /** The device has a real pointer that can rest on something, so hover can carry content. */
 export const REAL_POINTER_QUERY = '(hover: hover) and (pointer: fine)'
 

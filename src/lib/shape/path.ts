@@ -200,6 +200,12 @@ export const placeSearchPath = (params: URLSearchParams, place: PlaceSearch): st
 }
 
 /**
+ * The searched place as a short name — the leading part of `?q`, so "Prague, Czechia" reads
+ * "Prague" — or `''` when nothing was searched. A whole address is noise in a one-line label.
+ */
+export const searchedPlaceName = (q: string | null): string => (q ?? '').split(',')[0].trim()
+
+/**
  * The calendar route, optionally pre-scoped to a region (`?region=<slug>`) — owns the
  * wire format together with the region filter codec, so producers (the RegionView
  * entry button) never hand-roll it.

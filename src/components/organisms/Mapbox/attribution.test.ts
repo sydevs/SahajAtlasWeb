@@ -15,8 +15,8 @@ import { readRepoSource as read } from '@/test-support/repo-source'
 const MAP = 'src/components/organisms/Mapbox/Map.tsx'
 const CONTROLS = 'src/components/organisms/Mapbox/MapControls.tsx'
 const STYLES = 'src/styles/globals.css'
-// Where the bottom sheet's lowest snap lives, which is what rules out both bottom corners for the
-// attribution.
+// Where the bottom sheet's snap ladder lives, whose lowest stop rules out both bottom corners for
+// the attribution.
 const STACK = 'src/views/DrawerStack/DrawerStack.tsx'
 
 const cornerIn = (source: string, prop: string) =>
@@ -41,11 +41,11 @@ describe('the Mapbox wordmark and attribution corners', () => {
 
   it('puts the attribution in the one corner no drawer covers', () => {
     // The bottom sheet sits at its peek at every snap, so nothing on the bottom edge is ever
-    // uncovered on a narrow embed. The peek is `DrawerStack`'s own literal, not restated here —
-    // a dismissible sheet would free a bottom corner and relax this.
-    const peek = Number(read(STACK).match(/const PEEK_SNAP = '(\d+)px'/)?.[1])
-
-    expect(peek, "the bottom sheet's peek").toBeGreaterThan(0)
+    // uncovered on a narrow embed: the ladder's lowest stop is the peek, not a dismissed sheet.
+    // A dismissible sheet would free a bottom corner and relax this.
+    expect(read(STACK), "the bottom sheet's lowest stop").toMatch(
+      /const SNAP_POINTS = \[PEEK_SNAP,/,
+    )
     // The side panel takes the left in a wide layout, so this is the right. Physical, and paired
     // with the drawer's deferred RTL flip (`atoms/Drawer`'s `TODO(rtl, #52 WS8)`).
     expect(cornerIn(column, 'position')).toBe('top-right')

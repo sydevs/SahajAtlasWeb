@@ -22,7 +22,8 @@ import { useLocale } from '@/hooks/use-locale'
 import { usePostEventFeedback } from '@/hooks/use-post-event-feedback'
 import { useWidgetMode } from '@/config/mode'
 import { parentOf } from '@/lib/shape'
-import { CloseButton, useDrawerControl, useFrameEventOnTop } from '@/views/shared'
+import { NavRow } from '@/views/nav'
+import { useDrawerControl, useFrameEventOnTop } from '@/views/shared'
 import { ErrorPanel } from '@/views/fallbacks'
 
 // EventDetails pulls in DOMPurify and the action-row wiring. This keeps it out of the main
@@ -54,8 +55,8 @@ const EventActions = lazy(() =>
   import('@/components/molecules/EventActions').then((m) => ({ default: m.EventActions })),
 )
 
-// A single event, at route `<event-path>`. The header — the title — is the mobile sheet's
-// 80px peek payload, and stays pinned above the scrolling body. The chips and facts lead the
+// A single event, at route `<event-path>`. The header — Back and the title — is the mobile
+// sheet's peek payload, and stays pinned above the scrolling body. The chips and facts lead the
 // body. On the mobile map sheet, Register lives in a sticky bar pinned to the viewport edge,
 // via the live `--sy-sheet-top` mirror, so scrolling the description can never hide the KPI
 // (issue #52, WS4). Elsewhere it renders inline in the panel order.
@@ -102,7 +103,7 @@ export function EventView({ id, basePath }: { id: number; basePath: string }) {
       {/* SEO — title, canonical, JSON-LD — is only meaningful for the crawlable standalone
           build. The embedded widget's host owns the document head. */}
       {standalone && <EventMetadata event={event} />}
-      <EventHeader event={event} trailing={<CloseButton />} />
+      <EventHeader event={event} nav={<NavRow />} />
       {/* The body slot's own spacer clears the pinned bar's CONTENT, at the footer's
           published height. Clearing the SCROLL is this body's, and only this body's: focus
           would otherwise park a field behind the bar. It carries the sheet's live top on
@@ -120,7 +121,7 @@ export function EventView({ id, basePath }: { id: number; basePath: string }) {
       >
         {/* The details are a lazy chunk, so they can fail on their own — a dropped connection
             mid-session, or a host CSP blocking the chunk — after the event itself resolved.
-            Keeping that local means the title, the close button, and the sticky Register CTA
+            Keeping that local means the title, Back, and the sticky Register CTA
             all survive. The event stays bookable even when its description is not there
             (issue #89). */}
         <ResetErrorBoundary

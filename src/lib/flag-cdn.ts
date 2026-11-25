@@ -7,5 +7,9 @@
  * shadow root resolves against the HOST page and 404s on every embed, the same trap
  * `src/styles/fonts.ts` documents for fonts. `import.meta.url` is this chunk's own URL, so
  * the path lands on the origin the widget was served from.
+ *
+ * ⚠ **`@vite-ignore` keeps it a runtime resolution everywhere**, which is what the build already
+ * emitted. Without it, a dev server resolves the literal as an asset: Ladle's, rooted elsewhere,
+ * rewrote it to `/@fs/flags`, dropping the slash, and no flag loaded there.
  */
-export const FLAG_CDN_URL = new URL('/flags/', import.meta.url).href
+export const FLAG_CDN_URL = new URL(/* @vite-ignore */ '/flags/', import.meta.url).href

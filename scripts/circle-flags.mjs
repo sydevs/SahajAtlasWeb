@@ -41,6 +41,9 @@ export default function circleFlags() {
         const file = files.get((req.url ?? '').split('?')[0].slice(1))
 
         if (!file) return next()
+        // ⚠ Explicit: Ladle's server is Koa, which presets 404 before any middleware runs, so the
+        // flags arrived as 404s and the browser drew none.
+        res.statusCode = 200
         res.setHeader('Content-Type', req.url?.includes('.svg') ? 'image/svg+xml' : 'text/markdown')
         res.end(file)
       })
