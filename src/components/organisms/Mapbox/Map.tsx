@@ -382,9 +382,37 @@ export function Mapbox({ cooperative = false }: { cooperative?: boolean } = {}) 
   const [locate, setLocate] = useState<LocateState>('idle')
   const geolocateRef = useRef<MapboxGeolocate>(null)
   const locateButtonRef = useRef<HTMLButtonElement>(null)
-  const locateMe = useCallback(() => {
-    if (geolocateRef.current?.trigger()) setLocate('waiting')
+  // Mirrors 'waiting' for `locateMe`, which stays stable for the memoised controls: a second tap
+  // while a request is out would start another, and its answer would navigate a second time.
+  const locating = useRef(false)
+  const showLocate = useCallback((state: LocateState) => {
+    locating.current = state === 'waiting'
+    setLocate(state)
   }, [])
+  const failLocate = useCallback(() => {
+    showLocate('failed')
+    setLocationFailed(true)
+  }, [showLocate])
+  const locateMe = useCallback(() => {
+    const control = geolocateRef.current
+
+    if (!control || locating.current) return
+
+    // ⚠ `trigger()` answers false until the control's own setup has run, which waits on a
+    // permissions query after the map loads, and it throws where the page has no geolocation at
+    // all. Mapbox's own button was disabled through both; ours waits, or reports the failure.
+    const ask = () => {
+      try {
+        if (control.trigger()) return showLocate('waiting')
+      } catch {
+        return failLocate()
+      }
+      showLocate('waiting')
+      control.once('ready', ask)
+    }
+
+    ask()
+  }, [showLocate, failLocate])
 
   // This filters the feed before it reaches the clustering source, so
   // cluster counts reflect the filters — a layer-level `filter` would leave
@@ -618,14 +646,11 @@ export function Mapbox({ cooperative = false }: { cooperative?: boolean } = {}) 
           followUserLocation={false}
           positionOptions={LOCATE_POSITION_OPTIONS}
           showButton={false}
-          onError={() => {
-            setLocate('failed')
-            setLocationFailed(true)
-          }}
+          onError={failLocate}
           // An answer that arrives after a reported failure wins: the map and list are right,
           // and an error on top of them would be false.
           onGeolocate={(position) => {
-            setLocate('found')
+            showLocate('found')
             setLocationFailed(false)
             geolocateToSearch(position)
           }}

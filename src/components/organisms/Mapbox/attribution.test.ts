@@ -95,7 +95,7 @@ describe('a refused location request', () => {
   it("is asked for by the column's button, with Mapbox's own hidden", () => {
     // Mapbox's button left visible would be a second find-me in the corner.
     expect(control, 'the GeolocateControl element').toContain('showButton={false}')
-    expect(map).toMatch(/geolocateRef\.current\?\.trigger\(\)/)
+    expect(map).toMatch(/const control = geolocateRef\.current[\s\S]*?control\.trigger\(\)/)
   })
 
   it('opens a dialog that is a sibling of the map, not part of its subtree', () => {

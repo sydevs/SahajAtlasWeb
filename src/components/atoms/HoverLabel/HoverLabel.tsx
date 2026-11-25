@@ -30,13 +30,24 @@ export type HoverLabelProps = {
 }
 
 let lastInputWasKey = false
-let listening = false
+let mounted = 0
 
+const keyDown = () => (lastInputWasKey = true)
+const pointerDown = () => (lastInputWasKey = false)
+
+// Page-wide listeners on a host's document, so they leave with the last label that needs them.
 function trackInput() {
-  if (listening) return
-  listening = true
-  document.addEventListener('keydown', () => (lastInputWasKey = true), true)
-  document.addEventListener('pointerdown', () => (lastInputWasKey = false), true)
+  if (mounted++ === 0) {
+    document.addEventListener('keydown', keyDown, true)
+    document.addEventListener('pointerdown', pointerDown, true)
+  }
+
+  return () => {
+    if (--mounted === 0) {
+      document.removeEventListener('keydown', keyDown, true)
+      document.removeEventListener('pointerdown', pointerDown, true)
+    }
+  }
 }
 
 /**
