@@ -4,46 +4,11 @@ import { describe, it, expect } from 'vitest'
 
 import { ListItem } from './ListItem'
 
-// Node-only SSR assertions (see `docs/testing.md`). The row must be a
-// valid direct child of the List's <ul>: an <li> wrapping the <Link>/<a>,
-// NOT an <a> wrapping an <li>, the pre-#65 nesting. MemoryRouter supplies
-// the router context the internal Link needs.
+// Node-only SSR assertions (see `docs/testing.md`). ListRow's own specs
+// (List.test.tsx) cover the <li><a> nesting and the chevron. MemoryRouter
+// supplies the router context the internal Link needs.
 
 describe('ListItem', () => {
-  it('nests as <li><a> so the <li> is a direct child of the list <ul>', () => {
-    const html = renderToStaticMarkup(
-      <MemoryRouter>
-        <ListItem count={12} href="/regions/france" label="France" />
-      </MemoryRouter>,
-    )
-
-    // <li> is the outermost element and wraps the anchor: <li><a>…</a></li>.
-    expect(html.startsWith('<li>')).toBe(true)
-    expect(html).toMatch(/^<li><a[\s>]/)
-    expect(html.trimEnd().endsWith('</a></li>')).toBe(true)
-    // The anchor must NOT be the outer element (the invalid <a><li> nesting).
-    expect(html).not.toMatch(/^<a[\s>]/)
-    // Sanity: the row still renders its content.
-    expect(html).toContain('France')
-    expect(html).toContain('12')
-  })
-
-  it('keeps the row vertically centered through the Link merge', () => {
-    const html = renderToStaticMarkup(
-      <MemoryRouter>
-        <ListItem count={12} href="/regions/france" label="France" />
-      </MemoryRouter>,
-    )
-
-    // The first class attribute is the row anchor's (the <li> wrapper is bare).
-    const classes = (html.match(/class="([^"]*)"/)?.[1] ?? '').split(' ')
-
-    expect(classes).toContain('flex')
-    expect(classes).toContain('items-center')
-    // listRow's `flex` must beat the Link atom's `inline-flex`.
-    expect(classes).not.toContain('inline-flex')
-  })
-
   // The trailing count and chevron step down from the title, and not to
   // the same place. The count is still information, so it holds the ramp's readable text step
   // — `gray-10` is a hover solid, and measured 3.9:1 here (#432). The chevron only

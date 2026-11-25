@@ -6,7 +6,6 @@ import { describe, it, expect, vi } from 'vitest'
 
 import { EventListItem } from './EventListItem'
 
-import { listRow } from '@/components/molecules/List/List'
 import { mockEventSlim } from '@/mocks/events'
 
 // Node-only SSR assertions (see `docs/testing.md`). The card must be a
@@ -58,21 +57,6 @@ describe('EventListItem', () => {
     expect(render(false)).not.toContain('event.display.distance_away')
   })
 
-  it('nests as <li><a> so the card is a direct child of the list <ul>', () => {
-    const html = renderToStaticMarkup(
-      <MemoryRouter>
-        <EventListItem event={mockEventSlim} />
-      </MemoryRouter>,
-    )
-
-    // <li> is the outermost element and wraps the anchor: <li><a>…</a></li>.
-    expect(html.startsWith('<li>')).toBe(true)
-    expect(html).toMatch(/^<li><a[\s>]/)
-    expect(html.trimEnd().endsWith('</a></li>')).toBe(true)
-    // The anchor must NOT be the outer element (the invalid <a><li> nesting).
-    expect(html).not.toMatch(/^<a[\s>]/)
-  })
-
   it('marks the anchor as the row, so the results list can focus a revealed card', () => {
     const html = renderToStaticMarkup(
       <MemoryRouter>
@@ -96,16 +80,14 @@ describe('EventListItem', () => {
     )
 
     // The anchor's class attribute comes first (the <li> wrapper is bare),
-    // then the content column's; the chevron's is last.
-    const classes = [...html.matchAll(/class="([^"]*)"/g)].map((m) => m[1].split(' '))
-    const [row, column] = classes
+    // then the content column's.
+    const [row, column] = [...html.matchAll(/class="([^"]*)"/g)].map((m) => m[1].split(' '))
 
     expect(row).toContain('items-center')
     // Inside the column nothing centres: the text stays left-aligned.
     expect(column).toContain('flex-col')
     expect(column).toContain('min-w-0')
     expect(column).not.toContain('items-center')
-    expect(classes.at(-1)).toEqual(expect.arrayContaining(listRow().chevron().split(' ')))
     expect(html).toMatch(/lucide-chevron-right[^>]*>[\s\S]*?<\/svg><\/a><\/li>$/)
   })
 })
