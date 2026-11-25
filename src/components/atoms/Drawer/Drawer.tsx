@@ -90,12 +90,11 @@ const drawer = tv({
       // prop. That prop is physically left or right, and it drives both the
       // drag axis and the enter animation. These inset classes cannot fix
       // that alone. DrawerStack picks the direction, so the flip belongs
-      // there and here together — and with the map attribution's corner, which
-      // is physically `top-right` (`organisms/Mapbox/Map.tsx`) and therefore
-      // lands under the stack's `start-3` cog on a narrow RTL embed. This is
+      // there and here together — and with the map's control column, which is
+      // physically `top-right` (`organisms/Mapbox/MapControls.tsx`). This is
       // deferred until an RTL locale actually ships. Everything else here is
-      // already logical: the stack's panel and cog positioning use `start-*`,
-      // and directional icons carry `rtl:-scale-x-100` at their call sites.
+      // already logical: the stack's panel positioning uses `start-*`, and
+      // directional icons carry `rtl:-scale-x-100` at their call sites.
       //
       // The left inset is the notch or Dynamic Island of a phone held sideways (`viewport-fit=cover`
       // runs the page under it). The panel widens by the inset and pads it, so its content keeps

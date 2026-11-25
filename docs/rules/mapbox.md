@@ -105,8 +105,8 @@ The map is the heart of the app and its hottest render path. Treat it carefully.
 - **Label language follows the locale through `syncMapLanguage`** (`map-language.ts`, one
   `useEffect` in `Map.tsx`). react-map-gl reads the `language` prop once, at construction, so the
   effect calls mapbox-gl's own `setLanguage` on every switch. The geocoder needs nothing: its
-  options are rebuilt per render and the wrapper re-applies them. ⚠ `locale` (the control
-  strings) is still construction-only.
+  options are rebuilt per render and the wrapper re-applies them. ⚠ `locale` (Mapbox's own
+  control strings) is construction-only — see below.
 
 ## Sources and clustering
 
@@ -275,11 +275,15 @@ behavior.
 
 ## Localizing Mapbox's own control strings
 
-The `locale` prop on `<ReactMapGL>` overrides Mapbox's built-in UI strings by
-key (`GeolocateControl.FindMyLocation`, …). It is **construction-only** — Mapbox
+**The map passes no `locale` today.** Find-me is our own Button, named with
+`t('common.map.find_my_location')`, so it follows a mid-session switch. The one Mapbox
+string a visitor meets is the credits toggle's name, left in Mapbox's English on purpose:
+it labels legally required credits, not a feature (sydevs/SahajCloud#1032).
+
+If a Mapbox string ever needs overriding, the `locale` prop on `<ReactMapGL>` does it by
+key (the full set is `defaultLocale` in mapbox-gl). It is **construction-only** — Mapbox
 exposes no `setLocale`, and `locale` is not in react-map-gl's reconciliation
-whitelist — so a mid-session language switch never relabels a control. Keys not
-overridden stay English (the full set is `defaultLocale` in mapbox-gl).
+whitelist — so a mid-session language switch never relabels a control.
 
 ⚠ **It does NOT apply to a control's handlers — those are live.** react-map-gl
 re-assigns `thisRef.current.props = props` on every render
@@ -331,17 +335,18 @@ it** — the same rule the root `AGENTS.md` states for a new fetch origin. Read
 the specifics there. Here, only the rule: **enumerate from the rendered control
 list and the libraries behind it, never from a grep.**
 
-That list is two: `GeolocateControl` and `AttributionControl`. The second
-reaches for nothing — a button and links — so it added no row to that table.
+That list is two: `GeolocateControl` (its button hidden, driven by the column's own)
+and `AttributionControl`. The second reaches for nothing — a button and links — so it
+added no row to that table.
 
-## The wordmark and the attribution sit in TWO fixed corners — no CSS, no measurement
+## The wordmark and the attribution sit in TWO fixed corners — no placement CSS, no measurement
 
 Mapbox's terms require both, and mapbox's own default for the wordmark is the
 bottom left, which the side panel covers. `logoPosition="bottom-right"` on the map
-plus `position="top-right"` on the `AttributionControl` are the entire placement —
-no stylesheet rule, no custom property, no width measurement. **This is not a
-responsive decision**, and `src/components/AGENTS.md`'s signal table carries no row
-for it.
+plus `position: 'top-right'` on the control column (`MapControls.tsx`) are the
+entire placement — no stylesheet rule moves a corner, no custom property, no width
+measurement. **This is not a responsive decision**, and `src/components/AGENTS.md`'s
+signal table carries no row for it.
 
 **The top right is the one corner no drawer covers**, in either layout: the side
 panel covers the bottom left, and the bottom sheet's peek (`SHEET_PEEK_PX`) covers the whole
@@ -350,7 +355,7 @@ right, clear of the panel on a wide embed and **covered by that peek on a narrow
 one** — accepted in #330's review, since the only alternative is the measured
 per-layout corner that review removed.
 
-**Both props are read once, when the map is constructed**, which is exactly why a
+**Both positions are read once, when the map is constructed**, which is exactly why a
 fixed corner is cheap and a per-layout one is not. `logoPosition` has no setter
 and react-map-gl leaves it out of `settingNames`, its reconciliation whitelist;
 `LogoControl` is not a mapbox-gl export, so the logo cannot be removed and
@@ -359,22 +364,46 @@ A corner that follows the layout therefore costs a measured width in React, a
 custom property, and a CSS rule that moves mapbox's container — which is the shape
 #330 shipped first and its review replaced.
 
-**Mapbox's corner containers float and `clear: both`**, so two controls in one
-container stack vertically — which is why the top right is a column of the locate
-button and the attribution, and why a third thing put there lands below both.
-`attribution.test.ts` pins each literal on its own, because a corner that moves
-under a drawer renders perfectly and says nothing.
+**The top right holds ONE control: find-me and settings in a column, with the credits to
+their left.** Mapbox's corner containers float and `clear: both`, so separate controls there
+stack in mount order with Mapbox's own margins, and lining them up with a control of ours would
+take exactly the stylesheet rules above. So `MapControls` is a single `useControl` whose element
+lays out its own children:
+
+- **Find-me and settings are floating `Button`s**, so they take the theme in every state, and
+  each draws its name out of its end in a `HoverLabel` on hover and keyboard focus, the same pill
+  shape as the credits button opened.
+- **The whole column hides on `useMapControls`.** Today only the phone sheet's near-full stop sets
+  it, since there the sheet covers all of the column but a sliver of its top; a drawer elsewhere
+  leaves it clear or covers it whole. Anything else that covers the map, or takes these controls
+  over itself, sets the same switch.
+- **Find-me drives Mapbox's `GeolocateControl` without showing it.** `Map.tsx` renders it with
+  `showButton={false}`, and our button calls its `trigger()` through `useLocate`; the blue dot, the permission flow
+  and the `onError` dialog are unchanged. A permission denied before the map loaded used to
+  leave Mapbox's button disabled and silent — `trigger()` asks anyway, so that case reaches the
+  dialog too.
+- **The credits are Mapbox's own compact `AttributionControl`, in Mapbox's own look**, created
+  inside the column's element, level with its top, rather than added to the map. Opened, it
+  grows leftward, away from the buttons. `globals.css` only resets Mapbox's corner margin and
+  float inside our element, adds the 44px touch tap area, and carries #370's dark-theme fix.
+  `attribution.test.ts` pins the corner literals, the single attribution, and that the
+  stylesheet still names the classes it targets.
+
+⚠ **Not beside the wordmark.** The bottom right looks like its natural place, but the phone
+sheet's peek covers the whole bottom edge at every snap, so the credits would never be visible
+on a phone, which Mapbox's terms do not allow.
 
 **Neither may be dropped, and neither may leave the map.** The wordmark is
 required outright; the text attribution is required for any map using Mapbox
 styles or data, which ours do. Mapbox's attribution guide sanctions exactly one
 collapsed form — its own information button, which `compact` renders — and says
 any other placement must be reviewed and approved by Mapbox, so the credits
-cannot move into the settings menu.
+cannot move into the settings menu, and cannot be redrawn as one of our Buttons.
 
-⚠ The top-right container also holds `GeolocateControl`, so nothing of ours may sit
-in that corner: the inline map's "Expand map" takes the top LEFT, and the expanded
-map's "Close map" floats at the bottom middle.
+⚠ The top-right corner is the control column, so nothing else of ours may sit there:
+the inline map's "Expand map" takes the top LEFT, and the expanded map's "Close map"
+floats at the bottom middle. `.mapboxgl-ctrl-top-right` takes the right-hand safe area,
+and moves the whole corner as one; it is not a per-layout rule.
 
 ## A geocoder lookup whose answer is STORED asks for `permanent`
 

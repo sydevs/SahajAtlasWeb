@@ -23,7 +23,7 @@ import { useExpansion } from '@/hooks/use-expansion'
 import { useLocale } from '@/hooks/use-locale'
 import { Button } from '@/components/atoms/Button'
 import { Drawer, DrawerContent, DrawerSlotsProvider } from '@/components/atoms/Drawer'
-import { ResetErrorBoundary, SettingsMenu } from '@/components/molecules'
+import { ResetErrorBoundary } from '@/components/molecules'
 import {
   SHEET_OPEN_PX,
   SHEET_PEEK_PX,
@@ -31,7 +31,12 @@ import {
   useIsShortViewport,
   useIsWide,
 } from '@/config/responsive'
-import { useBrowsedCountry, useCalendarPosition, useSheetCover } from '@/config/store'
+import {
+  useBrowsedCountry,
+  useCalendarPosition,
+  useMapControls,
+  useSheetCover,
+} from '@/config/store'
 import { frameElement, overlayContainer } from '@/lib/overlay'
 import {
   type StackEntry,
@@ -252,8 +257,7 @@ export function DrawerStack({ inline = false }: { inline?: boolean } = {}) {
   // The calendar is the one full-width view. It fills the widget, minus the floating margins,
   // instead of the 352px left panel (see the Drawer `wide` variant) — EXCEPT in its list
   // (agenda) view, one narrow column that reads better at the regular width. `isWide` is here
-  // because the wide panel exists only above the crossing; below it `wide` gates the settings
-  // cog alone, which a phone in month view had lost (#331). The view is read reactively, so
+  // because the wide panel exists only above the crossing (#331). The view is read reactively, so
   // switching it resizes the drawer. Date changes do not re-render this component.
   const calendarView = useCalendarPosition((s) => s.view)
   const wide = top?.kind === 'calendar' && calendarFillsWidth(isWide, calendarView)
@@ -372,6 +376,18 @@ export function DrawerStack({ inline = false }: { inline?: boolean } = {}) {
 
     return () => setSheetCover(null)
   }, [sheetCover, setSheetCover])
+
+  // The sheet's near-full stop covers the map's control column all but its top edge, which would
+  // show as a row of slivers above the sheet. Everywhere else a drawer either leaves the column
+  // clear or covers it whole.
+  const controlsHidden = direction === 'bottom' && vaulSnap === WIDE_SNAP
+  const setControlsHidden = useMapControls((s) => s.setHidden)
+
+  useEffect(() => {
+    setControlsHidden(controlsHidden)
+
+    return () => setControlsHidden(false)
+  }, [controlsHidden, setControlsHidden])
 
   // Mirrors the active sheet's live top onto the sheet itself, every frame, so what reads it
   // tracks a drag without waiting for the snap to settle (map plus mobile only). It is what
@@ -680,7 +696,7 @@ export function DrawerStack({ inline = false }: { inline?: boolean } = {}) {
     )
   }
 
-  // Map mode: the single drawer, plus the cog and the sheet's measuring origin, portaled beside it.
+  // Map mode: the single drawer, plus the sheet's measuring origin, portaled beside it.
   const target = overlayContainer()
 
   return (
@@ -694,36 +710,6 @@ export function DrawerStack({ inline = false }: { inline?: boolean } = {}) {
                 aria-hidden
                 className="pointer-events-none fixed top-0 h-0 w-0"
               />
-              {/* Inline-start, offset past the drawer on ≥md (flush at tablet,
-                floating in by 4 at ≥lg), so it never overlaps the panel. Uses the
-                logical `start-*`, rather than `left-*`: under RTL the drawer flips to
-                the right edge, and the cog has to travel with it. On mobile the
-                sheet sits at the bottom, so the top-left corner stays clear. */}
-              {/* Uses top-3 on mobile/tablet. At ≥lg the drawer floats (lg:inset-y-4),
-                so this bumps the cog to top-4 to line up with the drawer's top edge.
-                Hidden on the full-width calendar — a focused view with no clean
-                corner for the floating cog — settings stay reachable from every
-                other view. */}
-              {/* The cog sits 16px past the panel — 32px at ≥lg, where the drawer itself is
-                already inset by 16px. Both `352px` fallbacks below are the drawer-width
-                pair — the twin value is `DRAWER_W_PX` in `hooks/use-map-controller-real.tsx`. */}
-              {!wide && (
-                <SettingsMenu
-                  className={clsx(
-                    'fixed top-3 z-40',
-                    // ⚠ **Uses `isWide`, not a `md:` variant — the #169 correction.**
-                    // This clears the LEFT PANEL, so it has to agree with whatever
-                    // decided there is one — and that is the frame's width, not the
-                    // viewport's. A frame narrower than the crossing gets the bottom
-                    // sheet, and a viewport variant would still push the cog 384px
-                    // right for a panel that is not there. Outside a frame, `isWide` IS
-                    // the viewport's answer.
-                    isWide
-                      ? 'start-[calc(var(--sy-drawer-w,352px)+16px+env(safe-area-inset-left,0px))] lg:start-[calc(var(--sy-drawer-w,352px)+32px+env(safe-area-inset-left,0px))] lg:top-4'
-                      : 'start-3',
-                  )}
-                />
-              )}
               {expanded && (
                 <div ref={floatRef} className="contents">
                   <CloseMapButton beside={isWide && !wide} />

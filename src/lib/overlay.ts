@@ -13,7 +13,7 @@ import { getThemeRoot } from '@/hooks/use-theme'
  * The widget's FRAME: the element the fixed layer resolves against, when something other
  * than the viewport does.
  *
- * Everything the interface renders — the map canvas, every drawer, the cog —
+ * Everything the interface renders — the map canvas and every drawer —
  * is `position: fixed`, so by default it all resolves against the viewport. An ancestor
  * carrying `contain: layout` takes that containing block instead. The one element that does so
  * AND hosts portals is the inline embed's expanded dialog (`InlineEmbedView`): the map-first

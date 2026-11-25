@@ -1,12 +1,10 @@
 import type { FeatureCollection, Geometry } from 'geojson'
 import type { GeoJSONSource } from 'mapbox-gl'
-import type { MapRef } from 'react-map-gl/mapbox'
 import type { Geojson } from '@/types'
 import type { DisplayableEvent } from '@/hooks/use-event-display'
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import ReactMapGL, {
-  AttributionControl,
   GeolocateControl,
   Layer,
   MapMouseEvent,
@@ -33,9 +31,11 @@ import {
   LAYER_IDS,
   type SymbolLayerProps,
 } from './layers'
+import { MapControls } from './MapControls'
 import { mapWorldview, syncMapLanguage } from './map-language'
 import { loadMapLib } from './map-lib'
 import { markerColors, registerMarkerImages } from './markers'
+import { useLocate } from './use-locate'
 import { pinPopoverPlacement, type PopoverAnchor } from './pin-popover'
 
 import { Button } from '@/components/atoms/Button'
@@ -274,29 +274,6 @@ export function Mapbox({ cooperative = false }: { cooperative?: boolean } = {}) 
     syncMapLanguage(mapbox, locale)
   }, [mapbox, locale])
 
-  // Mapbox's own control strings are otherwise English on every embed. The
-  // GeolocateControl's whole accessible name comes from these two strings
-  // (issue #102).
-  // The wordmark's and the attribution toggle's names are Mapbox keys too, left
-  // in Mapbox's English on purpose: they label the legally required credits,
-  // not a feature, so they are not worth CMS keys (sydevs/SahajCloud#1032).
-  //
-  // Two things to know before extending this. It is CONSTRUCTION-ONLY.
-  // `locale` is absent from react-map-gl's reconciliation whitelist
-  // (`settingNames` in its mapbox module), and mapbox-gl exposes no
-  // `setLocale`. So, like the `language` prop below, this value is read
-  // once. A mid-session language switch does not relabel the control. Also,
-  // the keys belong to Mapbox, not to this app — the full set is
-  // `defaultLocale` in mapbox-gl. Anything not overridden here silently
-  // stays English.
-  const mapLocale = useMemo(
-    () => ({
-      'GeolocateControl.FindMyLocation': t('common.map.find_my_location'),
-      'GeolocateControl.LocationNotAvailable': t('common.map.location_not_available'),
-    }),
-    [t],
-  )
-
   // These are the active filters (stable identity — this is the hot render
   // path). They apply to the feed below, so the pins and cluster counts
   // match the list.
@@ -314,6 +291,7 @@ export function Mapbox({ cooperative = false }: { cooperative?: boolean } = {}) 
   // since the feed is already available here. The hook frames around the
   // nearest classes in it.
   const geolocateToSearch = useGeolocateToSearch(data)
+  const locate = useLocate(geolocateToSearch)
 
   // The tenant's resolved palette, as `BrandTheme` painted the UI from it.
   //
@@ -398,11 +376,6 @@ export function Mapbox({ cooperative = false }: { cooperative?: boolean } = {}) 
   // A touch device gets no hover at all, so one tap opens the class. iOS sends a fake mouse move
   // before a tap, and when that reveals content Safari treats the tap as a hover and doesn't click.
   const hasRealPointer = useHasRealPointer()
-
-  // Mapbox's locate control fails silently otherwise (#321). ⚠ A permission already denied when
-  // the map loads never reaches `onError`: mapbox renders the control disabled instead.
-  const [locationFailed, setLocationFailed] = useState(false)
-  const mapRef = useRef<MapRef>(null)
 
   // This filters the feed before it reaches the clustering source, so
   // cluster counts reflect the filters — a layer-level `filter` would leave
@@ -511,7 +484,6 @@ export function Mapbox({ cooperative = false }: { cooperative?: boolean } = {}) 
   return (
     <>
       <ReactMapGL
-        ref={mapRef}
         reuseMaps
         attributionControl={false}
         cooperativeGestures={cooperative}
@@ -527,7 +499,6 @@ export function Mapbox({ cooperative = false }: { cooperative?: boolean } = {}) 
         // The first language only: react-map-gl never updates `language` after construction, so
         // `syncMapLanguage` keeps it current from then on.
         language={locale}
-        locale={mapLocale}
         logoPosition="bottom-right"
         mapLib={loadMapLib()}
         mapStyle={MAP_STYLES[theme]}
@@ -628,35 +599,24 @@ export function Mapbox({ cooperative = false }: { cooperative?: boolean } = {}) 
             the `geolocate` event. So it would race the framing our handler asks
             for through the URL. The flag is read in `_onSuccess`, and it gates
             only that one call. `_updateMarker` is separate, so the blue dot,
-            the accuracy circle, the permission flow, and the localized labels
-            above all stay.
+            the accuracy circle and the permission flow all stay.
             ⚠ Mapbox's own .d.ts file claims this option still recenters. Its
             source code says otherwise. This was verified against the running
             control, rather than trusting either claim. */}
         <GeolocateControl
+          ref={locate.geolocateRef}
           followUserLocation={false}
           positionOptions={LOCATE_POSITION_OPTIONS}
-          onError={() => setLocationFailed(true)}
-          // An answer that arrives after a reported failure wins: the map and list are right,
-          // and an error on top of them would be false.
-          onGeolocate={(position) => {
-            setLocationFailed(false)
-            geolocateToSearch(position)
-          }}
+          showButton={false}
+          onError={locate.onError}
+          onGeolocate={locate.onGeolocate}
         />
-        {/* Mapbox's terms require both the wordmark and the attribution, and both must stay on the
-            map view. Mapbox adds its own attribution in a corner no prop can change, so
-            `attributionControl` above declines it and this replaces it — in the top right, the one
-            corner no drawer takes: the side panel covers the bottom left, and the bottom sheet's
-            peek covers the whole bottom edge at every snap. `logoPosition` above puts the wordmark
-            bottom right instead, clear of the panel on a wide embed and covered by that peek on a
-            narrow one — accepted, rather than paid for with a measured per-layout corner (#330). Both
-            props are read once, when the map is constructed, which is all a corner that never moves
-            needs. `compact` keeps it a round button until a visitor opens it, rather than a strip
-            of text across an embed's map. */}
-        <AttributionControl compact position="top-right" />
+        {/* Carries the attribution `attributionControl` above declines, in the top right, the
+            one corner no drawer covers. Why that corner, and why the wordmark sits apart in the
+            bottom right: `docs/rules/mapbox.md`, "The wordmark and the attribution" (#330). */}
+        <MapControls locate={locate.state} locateRef={locate.buttonRef} onLocate={locate.locate} />
       </ReactMapGL>
-      <Modal open={locationFailed} onOpenChange={setLocationFailed}>
+      <Modal open={locate.failed} onOpenChange={locate.setFailed}>
         <ModalContent
           closeLabel={t('common.chrome.close')}
           description={t('common.map.location_failed')}
@@ -664,10 +624,7 @@ export function Mapbox({ cooperative = false }: { cooperative?: boolean } = {}) 
           onCloseAutoFocus={(event) => {
             // Radix returns focus to a `Dialog.Trigger`, and the locate control is not one.
             event.preventDefault()
-            mapRef.current
-              ?.getContainer()
-              .querySelector<HTMLElement>('.mapboxgl-ctrl-geolocate')
-              ?.focus()
+            locate.buttonRef.current?.focus()
           }}
         >
           <ModalFooter>

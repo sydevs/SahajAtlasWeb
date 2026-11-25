@@ -315,6 +315,22 @@ export const useSheetCover = create<SheetCoverState>((set) => ({
   setBottom: (bottom) => set(() => ({ bottom })),
 }))
 
+type MapControlsState = {
+  /** True where something over the map leaves its control column no clean place to show. */
+  hidden: boolean
+  setHidden: (hidden: boolean) => void
+}
+
+/**
+ * Hides the map's whole control column (`Mapbox/MapControls`): find-me, settings and the credits.
+ * Whatever covers the map decides, and the column draws itself; like `useSheetCover`, neither side
+ * renders the other's context.
+ */
+export const useMapControls = create<MapControlsState>((set) => ({
+  hidden: false,
+  setHidden: (hidden) => set(() => ({ hidden })),
+}))
+
 type BrowsedCountryState = {
   /** ISO alpha-2 of the last country page shown, or undefined after the world view. */
   code: string | undefined

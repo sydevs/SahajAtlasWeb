@@ -87,8 +87,10 @@ export const SHEET_PEEK_PX = 104
 export const SHEET_OPEN_PX = 356
 
 /**
- * Whether the window is a phone on its side, or as short. It reads the viewport on purpose: only
- * the frameless phone sheet asks, and that sheet is measured against the window too.
+ * Whether the window is a phone on its side, or as short. It reads the viewport on purpose: the
+ * frameless phone sheet asks, and that sheet is measured against the window too; and the map's
+ * control column turns into a row on the same answer, so the row and that sheet's capped top
+ * cannot disagree.
  */
 export function useIsShortViewport(): boolean {
   return useMediaQuery({ query: '(max-height: 480px)' })

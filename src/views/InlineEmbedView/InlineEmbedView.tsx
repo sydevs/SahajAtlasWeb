@@ -354,9 +354,13 @@ function InlineLayout() {
               style={{ scrollMarginTop: top + 16 }}
             >
               <PlaceHeading />
-              {/* The negative end margin puts the 20px glyph, not its 32px (44px on touch) box,
+              {/* Only without a map: with one, settings sit in the map's own control column
+                  (`Mapbox/MapControls`), and a second cog here would be the same menu twice.
+                  The negative end margin puts the 20px glyph, not its 32px (44px on touch) box,
                   on the row's gutter, in line with the map's edge below. */}
-              <SettingsMenu className="ms-auto -me-1.5 pointer-coarse:-me-3" variant="ghost" />
+              {!hasMap && (
+                <SettingsMenu className="ms-auto -me-1.5 pointer-coarse:-me-3" variant="ghost" />
+              )}
             </div>
             <MapProviders inline>
               <InlineColumns
