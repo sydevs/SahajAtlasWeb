@@ -29,11 +29,12 @@ import {
  * Whether this route's chrome leads with the geocoder, rather than a title — the root and
  * the search view, which get the header their own view would render.
  *
- * Both the chrome, to render the field, and the body, to suppress its own, read this. A
- * `not-found` at `/` or `/search` is a DEAD_END row, which asks for a geocoder, so
- * without this check the screen would draw two. `docs/rules/i18n-and-state.md` states
- * the invariant — "`visibleActions` narrows by surface … a geocoder already in the
- * chrome" — and this function implements it.
+ * The chrome reads this to render the field in place of a title. What the BODY must not
+ * draw a second of is wider — `chromeHasField` — since a place page's chrome carries a
+ * field under its title too. A `not-found` at `/` or `/search` is a DEAD_END row, which
+ * asks for a geocoder, so without that check the screen would draw two.
+ * `docs/rules/i18n-and-state.md` states the invariant — "`visibleActions` narrows by
+ * surface … a geocoder already in the chrome" — and the two together implement it.
  */
 const leadsWithGeocoder = (
   entry: StackEntry | undefined,
@@ -41,6 +42,15 @@ const leadsWithGeocoder = (
   // code after that return reads `entry.slug`/`entry.id`. So it must narrow away `undefined`
   // and the search variant, exactly as the inline check it replaced did.
 ): entry is undefined | Extract<StackEntry, { kind: 'search' }> => !entry || entry.kind === 'search'
+
+/**
+ * Whether this route's chrome draws a search field at all, and so what the body must not
+ * draw a second of. Wider than `leadsWithGeocoder`: a place page's chrome carries the field
+ * in a band under its title, matching the loaded view. A place that does not exist has
+ * nothing to scope one to, so there the body's own field is the only one.
+ */
+const chromeHasField = (entry: StackEntry | undefined, notFound: boolean) =>
+  leadsWithGeocoder(entry) || (entry.kind === 'region' && !notFound)
 
 // What a DRAWER adds around the shared fallback body — the chrome that survives when
 // a view cannot render, and the routing knowledge only a drawer has. What the body
@@ -200,30 +210,36 @@ export function DrawerChrome({
   // The view's own header, so nothing moves when the view arrives. No title when nothing
   // resolved: a blank <h2> is a heading with no name, worse for a screen reader than none.
   return (
-    <NavHeader
-      actions={
-        <>
-          {/* All three still work — they navigate rather than read. The calendar and the
-              filters are scoped to the region whose page failed, which is exactly where a viewer
-              wanted to be. Not for a place that doesn't exist: there is nothing to scope them to,
-              and the message's own way out is the only one that leads anywhere.
-              shortcut: the loaded region page puts a search field under its title instead of
-              this icon, so the header changes when it arrives; match it when this chrome gets a
-              field skeleton. */}
-          {entry.kind === 'region' && !notFound && (
-            <>
-              <CalendarButton regionSlug={entry.slug} />
-              <SearchButton />
-              <FilterButton iconOnly />
-            </>
-          )}
-          {entry.kind === 'online' && <SearchButton />}
-          {entry.kind === 'calendar' && <FilterButton iconOnly />}
-        </>
-      }
-      close={entry.kind === 'filters'}
-      title={title}
-    />
+    <>
+      <NavHeader
+        actions={
+          <>
+            {/* Both still work — they navigate rather than read. They are scoped to the region
+                whose page failed, which is exactly where a viewer wanted to be. Not for a place
+                that doesn't exist: there is nothing to scope them to, and the message's own way
+                out is the only one that leads anywhere. */}
+            {entry.kind === 'region' && !notFound && (
+              <>
+                <CalendarButton regionSlug={entry.slug} />
+                <FilterButton iconOnly />
+              </>
+            )}
+            {entry.kind === 'online' && <SearchButton />}
+            {entry.kind === 'calendar' && <FilterButton iconOnly />}
+          </>
+        }
+        close={entry.kind === 'filters'}
+        title={title}
+      />
+      {/* The loaded place page carries its field in this band, so the chrome carries one too.
+          With a magnifier in the header instead, the header's controls and the body's top both
+          moved when the view arrived. */}
+      {chromeHasField(entry, notFound) && (
+        <DrawerToolbar field>
+          {interactive ? <SearchField /> : <SearchFieldSkeleton />}
+        </DrawerToolbar>
+      )}
+    </>
   )
 }
 
@@ -333,11 +349,11 @@ export function ErrorPanel({ error, resetErrorBoundary }: FallbackProps) {
   return (
     <FallbackPanel
       align={fallbackAlign(entry?.kind)}
-      // The root and search chromes already lead with a geocoder, and a dead link
-      // asks for one — so without this check the screen would draw two: the
-      // header's and the body's. This uses the same predicate the chrome uses, so
-      // they cannot disagree about which routes those are.
-      hasSearchChrome={leadsWithGeocoder(entry)}
+      // The root and search chromes lead with a geocoder, a place page's carries one under
+      // its title, and a dead link asks for one — so without this check the screen would
+      // draw two: the chrome's and the body's. This uses the same predicate the chrome
+      // uses, so they cannot disagree about which routes those are.
+      hasSearchChrome={chromeHasField(entry, kind === 'not-found')}
       kind={kind === 'not-found' ? notFoundKind(entry?.kind) : kind}
       // The thrown developer string is not the headline. It is untranslated text written for
       // a developer, rendered to a viewer inside someone else's page. It survives as report
