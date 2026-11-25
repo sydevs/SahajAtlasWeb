@@ -318,26 +318,6 @@ export function mountPrefix(
   return rawPath.replace(/\/+$/, '')
 }
 
-/**
- * Decodes a pathname segment by segment, to the raw Unicode a `webPath` carries.
- *
- * `location.pathname` is percent-encoded (`/bg/%D1%81%D0%BE%D1%84%D0%B8%D1%8F`), and a slug keeps
- * its native letters (`/bg/софия`). Decoding here means the route the widget holds is spelled one
- * way, whichever form the address bar had, so no later comparison can disagree about it.
- *
- * A segment whose decoded form would change the path's structure or meaning (`%2F`, `%5C`, `%3F`,
- * `%23`, `%25`, control characters) stays encoded, and a malformed escape is left as it came.
- */
-const decodePathname = (pathname: string): string =>
-  pathname
-    .split('/')
-    .map((segment) => {
-      const decoded = safeDecode(segment)
-
-      return /[/\\?#%\u0000-\u001f\u007f]/.test(decoded) ? segment : decoded
-    })
-    .join('/')
-
 export function routeFromPathname(
   rawPathname: string,
   rawPrefix: string,
@@ -345,8 +325,8 @@ export function routeFromPathname(
 ): string | undefined {
   // The prefix is decoded the same way, so a mount with a non-ASCII segment matches however it
   // was spelled.
-  const pathname = decodePathname(rawPathname)
-  const prefix = decodePathname(rawPrefix)
+  const pathname = safeDecode(rawPathname)
+  const prefix = safeDecode(rawPrefix)
 
   if (prefix !== '' && !pathname.startsWith(prefix)) return undefined
 

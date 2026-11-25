@@ -135,6 +135,18 @@ describe('encoded structure is never decoded', () => {
     expect(routeFromPathname('/a%2Fb', '')).toBe('/a%2Fb')
     expect(routeFromPathname('/%5Cevil.com', '')).toBe('/%5Cevil.com')
   })
+
+  it('reaches every caller of the one decoder, not just the route readers', () => {
+    // `/a%2Fb` is one segment and `/a/b` is two, so they are different paths.
+    expect(isCanonicalPath('/a%2Fb', '/a/b')).toBe(false)
+    expect(resolveStack('/a%2Fb').at(-1)).toMatchObject({ kind: 'region', slug: 'a%2Fb' })
+    expect(resolvePath('/a%2Fb')).toEqual({ kind: 'region', slug: 'a%2Fb' })
+  })
+
+  it('leaves a malformed escape as it came', () => {
+    expect(isCanonicalPath('/foo%', '/foo%')).toBe(true)
+    expect(resolvePath('/foo%')).toEqual({ kind: 'region', slug: 'foo%' })
+  })
 })
 
 describe('an event id is read from the decoded segment', () => {

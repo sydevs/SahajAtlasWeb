@@ -11,21 +11,31 @@ import { filtersFromParams, filtersToParams } from './filters'
 import { sortFromParams, sortToParams } from './sort'
 
 /**
- * Decodes a URL segment, tolerating a malformed `%` escape (returns it unchanged), and
- * composes it to NFC.
+ * Decodes a pathname — or a single segment — to the raw Unicode a `webPath` carries, segment
+ * by segment, and composes it to NFC.
  *
  * A slug keeps its native letters (`софия`, `universität-trier`), and the address bar hands
  * them over percent-encoded, so every comparison against the region tree's raw `webPath`
  * decodes first. NFC because the same letter has two spellings (`ä` as one code point, or `a`
  * plus a combining mark), and a typed or pasted address may use either.
+ *
+ * A segment whose decoded form would change the path's structure or meaning (`%2F`, `%5C`,
+ * `%3F`, `%23`, `%25`, control characters) stays encoded, and a malformed escape is left as
+ * it came — so `/a%2Fb` is one segment to every caller, not two.
  */
-export const safeDecode = (segment: string): string => {
-  try {
-    return decodeURIComponent(segment).normalize('NFC')
-  } catch {
-    return segment.normalize('NFC')
-  }
-}
+export const safeDecode = (pathname: string): string =>
+  pathname
+    .split('/')
+    .map((segment) => {
+      try {
+        const decoded = decodeURIComponent(segment).normalize('NFC')
+
+        return /[/\\?#%\u0000-\u001f\u007f]/.test(decoded) ? segment : decoded
+      } catch {
+        return segment.normalize('NFC')
+      }
+    })
+    .join('/')
 
 /**
  * The parent of a nested path — drops the last segment. Returns `undefined` for a
