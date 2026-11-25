@@ -20,11 +20,11 @@ import { ROUTE_PARAM, pathHrefFor, routeFromParam, routeFromPathname } from '@/l
  * opened its default view. That was caught by hand during a review. This is the gate that catches
  * the next one.
  *
- * ⚠ **The refusal cases are deliberately not exercised here.** Eight of the twenty-three have
- * `expected: null`, which means "SahajCloud must refuse to emit a URL" — a constraint on the
- * builder, with no URL for a parser to be handed. Asserting anything about them from this side
- * would be testing our own fake. Their COUNT is pinned instead, so the file cannot quietly lose
- * cases and still look fully covered.
+ * ⚠ **The refusal cases are deliberately not exercised here.** Some cases have `expected: null`,
+ * which means "SahajCloud must refuse to emit a URL" — a constraint on the builder, with no URL
+ * for a parser to be handed. Asserting anything about them from this side would be testing our
+ * own fake. Their COUNT is pinned instead, so the file cannot quietly lose cases and still look
+ * fully covered.
  */
 
 type Case = {
