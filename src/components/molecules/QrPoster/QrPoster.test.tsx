@@ -1,7 +1,7 @@
 import { renderToStaticMarkup } from 'react-dom/server'
 import { describe, expect, it, vi } from 'vitest'
 
-import { QrCode, QrPoster } from './QrPoster'
+import { QrPoster } from './QrPoster'
 
 // Mock the i18n boundary, so each string renders as its key (node lane, no jsdom; see
 // docs/testing.md).
@@ -26,10 +26,14 @@ describe('QrPoster', () => {
   })
 })
 
-describe('QrCode', () => {
+describe('QrPoster, opened', () => {
   it('draws the code black on white, whatever the theme, with the hint and the download', () => {
     const html = renderToStaticMarkup(
-      <QrCode initial={{ status: 'ready', matrix: MATRIX }} label="Evening Meditation" url={URL} />,
+      <QrPoster
+        initial={{ status: 'ready', matrix: MATRIX }}
+        label="Evening Meditation"
+        url={URL}
+      />,
     )
 
     expect(html).toContain('bg-white')
@@ -42,7 +46,7 @@ describe('QrCode', () => {
 
   it('says the code failed instead of drawing a broken one', () => {
     const html = renderToStaticMarkup(
-      <QrCode initial={{ status: 'failed' }} label="Evening Meditation" url={URL} />,
+      <QrPoster initial={{ status: 'failed' }} label="Evening Meditation" url={URL} />,
     )
 
     expect(html).toContain('role="alert"')

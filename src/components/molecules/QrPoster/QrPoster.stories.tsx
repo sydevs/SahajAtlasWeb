@@ -3,7 +3,7 @@ import type { Story, StoryDefault } from '@ladle/react'
 // This is not in the molecules barrel: ShareView reaches it by leaf path, like ShareContent.
 import { StoryWrapper, StorySection } from '../../ladle'
 
-import { QrCode, QrPoster } from './QrPoster'
+import { QrPoster } from './QrPoster'
 
 export default { title: 'Molecules' } satisfies StoryDefault
 
@@ -21,12 +21,9 @@ export const Default: Story = () => (
         <QrPoster label="Evening Meditation at The Hut" url={URL} />
       </div>
     </StorySection>
-    <StorySection
-      description="What the opened row shows if the encoder fails to load."
-      title="Failed"
-    >
+    <StorySection description="The opened row, when the encoder failed to load." title="Failed">
       <div className="w-full max-w-md">
-        <QrCode initial={{ status: 'failed' }} label="Evening Meditation at The Hut" url={URL} />
+        <QrPoster initial={{ status: 'failed' }} label="Evening Meditation at The Hut" url={URL} />
       </div>
     </StorySection>
   </StoryWrapper>

@@ -14,6 +14,8 @@ export type QrPosterProps = {
   label: string
   /** What the code opens. */
   url: string
+  /** Stories and specs only: the row starts open, showing this state. */
+  initial?: QrState
 }
 
 /**
@@ -21,13 +23,13 @@ export type QrPosterProps = {
  * a link to a friend, so this stays closed behind one row, and the encoder only downloads once the
  * row opens (`encodeQr`).
  */
-export function QrPoster({ label, url }: QrPosterProps) {
+export function QrPoster({ label, url, initial }: QrPosterProps) {
   const { t } = useTranslation()
 
   return (
-    <Disclosure title={t('share.qr_title')}>
+    <Disclosure defaultOpen={initial !== undefined} title={t('share.qr_title')}>
       {/* Keyed so a changed link never shows, or downloads, the old code. */}
-      <QrCode key={url} label={label} url={url} />
+      <QrCode key={url} initial={initial} label={label} url={url} />
     </Disclosure>
   )
 }
@@ -35,11 +37,7 @@ export function QrPoster({ label, url }: QrPosterProps) {
 type QrState = { status: 'loading' } | { status: 'failed' } | { status: 'ready'; matrix: QrMatrix }
 
 /** Mounted by the open row, so each reopen after a failure tries the encoder again. */
-export function QrCode({
-  label,
-  url,
-  initial,
-}: Pick<QrPosterProps, 'label' | 'url'> & { initial?: QrState }) {
+function QrCode({ label, url, initial }: QrPosterProps) {
   const { t } = useTranslation()
   const [state, setState] = useState<QrState>(initial ?? { status: 'loading' })
 
