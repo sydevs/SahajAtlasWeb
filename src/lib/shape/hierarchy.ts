@@ -43,6 +43,10 @@ export type RegionIndex<T extends RegionTreeNode> = {
 /**
  * Builds the id + slug lookup maps for a region tree in one pass. Slugs are
  * globally unique across levels, so `bySlug` is unambiguous.
+ *
+ * `bySlug` is keyed NFC, because every lookup reaches it from a URL through
+ * `safeDecode`, which composes. SahajCloud generates NFC slugs, so this only matters
+ * for one typed by hand in NFD — which would otherwise be a place no address resolves.
  */
 export const indexRegions = <T extends RegionTreeNode>(nodes: readonly T[]): RegionIndex<T> => {
   const byId = new Map<number, T>()
@@ -50,7 +54,7 @@ export const indexRegions = <T extends RegionTreeNode>(nodes: readonly T[]): Reg
 
   for (const node of nodes) {
     byId.set(node.id, node)
-    bySlug.set(node.slug, node)
+    bySlug.set(node.slug.normalize('NFC'), node)
   }
 
   return { byId, bySlug }

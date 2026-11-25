@@ -22,6 +22,10 @@ import { sortFromParams, sortToParams } from './sort'
  * A segment whose decoded form would change the path's structure or meaning (`%2F`, `%5C`,
  * `%3F`, `%23`, `%25`, control characters) stays encoded, and a malformed escape is left as
  * it came — so `/a%2Fb` is one segment to every caller, not two.
+ *
+ * ⚠ NFC is ours alone: SahajCloud's `parseAtlasRoute` decodes without composing, so an NFD
+ * address resolves here and 404s there, and the page's SEO canonical would then name a
+ * different document than the page. `indexRegions` keys `bySlug` NFC to hold our half.
  */
 export const safeDecode = (pathname: string): string =>
   pathname

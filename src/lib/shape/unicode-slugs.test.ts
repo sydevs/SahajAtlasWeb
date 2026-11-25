@@ -8,6 +8,7 @@ import {
   resolveStack,
   nearestKnownRegion,
 } from './path'
+import { indexRegions } from './hierarchy'
 import { mountDecision, routeFromParam, routeFromPathname } from './routing'
 
 /**
@@ -171,5 +172,14 @@ describe('a segment is decoded once', () => {
     const literal = `/bg/${encodeURIComponent('%D1%81%D0%BE%D1%84%D0%B8%D1%8F')}`
 
     expect(placedPathname(literal, pathOf)).toBe(literal)
+  })
+})
+
+describe('NFC reaches the region index', () => {
+  it('finds a place whose CMS slug was typed decomposed', () => {
+    const decomposedSlug = 'universität-trier'.normalize('NFD')
+    const index = indexRegions([{ id: 1, slug: decomposedSlug, parent: null }])
+
+    expect(index.bySlug.get('universität-trier'.normalize('NFC'))?.id).toBe(1)
   })
 })
