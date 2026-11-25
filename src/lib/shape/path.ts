@@ -36,6 +36,8 @@ export const safeDecode = (pathname: string): string =>
 
         return /[/\\?#%\u0000-\u001f\u007f]/.test(decoded) ? segment : decoded
       } catch {
+        // No guard here: composing cannot introduce one of those characters. Widen the
+        // class to something NFC can produce and this branch needs the test too.
         return segment.normalize('NFC')
       }
     })
