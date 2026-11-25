@@ -26,6 +26,11 @@ export const controlSurface = tv({
       bordered: 'border bg-transparent',
       /** No surface shows until hovered. Toolbar and header controls must recede. */
       ghost: 'bg-transparent',
+      /**
+       * A control over the map or the page, such as the settings cog: the app's own opaque
+       * surface, and a shadow lifting it off whatever moves behind it.
+       */
+      floating: 'border bg-background shadow-lg',
     },
     /**
      * ⚠ `sm` and `md` are drawn at 44px on a touch screen, which is the tap floor (#432).
@@ -40,12 +45,12 @@ export const controlSurface = tv({
       lg: 'h-12 px-6 text-base',
     },
     /**
-     * Corner radius. It matches the Chip atom's vocabulary. `sm` is the control's
-     * standard corner. `full` is fully round. This is independent of the content,
-     * so a label button can be a pill, and an icon-only button can be a circle.
+     * Corner radius. It matches the Chip atom's vocabulary. `sm` is the 8px corner every
+     * control inside the panel shares. `full` is fully round. This is independent of the
+     * content, so a label button can be a pill, and an icon-only button can be a circle.
      */
     radius: {
-      sm: 'rounded',
+      sm: 'rounded-lg',
       full: 'rounded-full',
     },
     /**
@@ -63,11 +68,13 @@ export const controlSurface = tv({
     // brand seed, such as a pale secondary, still reads with white. Dark mode
     // keeps the ramp's light solid (step 9) and its adaptive on-color. `neutral`
     // uses the fixed gray solid. Gray-9 pairs with gray-1 or white in both modes.
+    // `floating` shares this row: primary is the one call to action over a map, so it is filled
+    // rather than bordered. `border-transparent` is inert on `solid`, which draws no border.
     {
       color: 'primary',
-      variant: 'solid',
+      variant: ['solid', 'floating'],
       class:
-        'bg-primary-12 text-white hover:bg-primary-11 dark:bg-primary-9 dark:text-primary-foreground dark:hover:bg-primary-10',
+        'border-transparent bg-primary-12 text-white hover:bg-primary-11 dark:bg-primary-9 dark:text-primary-foreground dark:hover:bg-primary-10',
     },
     {
       color: 'secondary',
@@ -124,6 +131,27 @@ export const controlSurface = tv({
       class: 'border-contrast-11 text-contrast-11 hover:bg-contrast-3',
     },
     { color: 'neutral', variant: 'bordered', class: 'border-gray-12 text-gray-12 hover:bg-gray-3' },
+    // floating: the app's surface, with the ramp's border step (7) rather than its text step,
+    // since the surface and the shadow already set these apart; neutral takes the divider every
+    // other app border uses. `primary` is filled instead, in the solid row above.
+    {
+      color: 'secondary',
+      variant: 'floating',
+      class: 'border-secondary-7 text-secondary-11 hover:bg-secondary-3',
+    },
+    {
+      color: 'contrast',
+      variant: 'floating',
+      class: 'border-contrast-7 text-contrast-11 hover:bg-contrast-3',
+    },
+    // ⚠ The glyph rests at step 11 and darkens on hover, the same pair the `ghost` row below
+    // uses. The two are one set of neutral controls — the settings cog renders as either — so a
+    // step of their own here would rest the same cog at two different weights.
+    {
+      color: 'neutral',
+      variant: 'floating',
+      class: 'border-divider text-gray-11 hover:bg-gray-3 hover:text-foreground',
+    },
     // ghost (surface only on hover)
     { color: 'primary', variant: 'ghost', class: 'text-primary-11 hover:bg-primary-3' },
     { color: 'secondary', variant: 'ghost', class: 'text-secondary-11 hover:bg-secondary-3' },

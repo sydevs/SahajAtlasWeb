@@ -78,11 +78,7 @@ export const Default: Story<{ example: ExampleKey; state: StoryFallbackArg }> = 
       seed={(client: QueryClient) => client.setQueryData<Event>(['event', event.id, locale], event)}
       state={state}
     >
-      <RegistrationView
-        eventPath={eventPath}
-        initialSubmitted={initialSubmitted}
-        parentPath={EVENT_PARENT}
-      />
+      <RegistrationView eventPath={eventPath} initialSubmitted={initialSubmitted} />
     </ViewStory>
   )
 }

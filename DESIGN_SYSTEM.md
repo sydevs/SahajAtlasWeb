@@ -137,11 +137,12 @@ Radix-wrapping atoms carry their own `isInvalid` `tv()` variant.
 **Views** — `src/views/` holds the URL-driven drawer views (`DrawerStack` +
 `CountriesView`/`SearchView`/`RegionView`/`OnlineView`/`EventView`/
 `FilterView`/`RegistrationView`/`ShareView`), with shared pieces (`DrawerTitle`,
-`CloseButton`, `FilterButton`, `SearchField`, `GeolocationSuggestion`) in
-`views/shared.tsx`. `DrawerStack` derives the stack from the pathname
-(`resolveStack`) and renders ONE vaul drawer holding the active view, with peek
-cards behind it — one per panel a repeated dismiss traverses (`dismissDepth`), not
-per URL ancestor. Map-less, it renders a single `mode="filled"` drawer.
+`FilterButton`, `SearchField`, `GeolocationSuggestion`) in `views/shared.tsx`, and
+the header every view below the root opens with (`NavHeader`, `BackButton`) in
+`views/nav.tsx`. `DrawerStack` derives the stack from the pathname
+(`resolveStack`) and renders ONE vaul drawer holding the active view; Back, not
+a stack of cards behind it, says where the visitor came from. Map-less, it renders a
+single `mode="filled"` drawer.
 Folder-per-component, not re-exported through the component barrels.
 
 ## Conventions
@@ -251,6 +252,17 @@ Folder-per-component, not re-exported through the component barrels.
   an intended one reads differently from an accidental one — three hand-copied copies of the menu
   skin had already diverged before anything noticed (#367), and `lib/overlay.popper.test.ts` now
   refuses another of either.
+- **Three panel-wide rules live as `@theme` tokens in `globals.css`, so a screen follows them by
+  naming the token, never a number.**
+  - **Type:** 12 / 14 / 15 / 16 / 20 / 28px. Titles are `text-xl`, row and result titles
+    `text-lg`, and secondary lines `text-sm`. Body text carries no letter spacing.
+  - **Edge:** the panel's left and right inset is `px-gutter` (24px), with `-mx-gutter` for a
+    full-bleed child and `inset-x-gutter` for a divider. A new token in a spacing namespace also
+    goes in `@/styles/tv`'s merge config, or tailwind-merge ships it beside a slot's `px-*`.
+  - **Corners:** `rounded-lg` (8px) inside the panel, pickers and popovers included;
+    `rounded-2xl` (16px) for panels, sheets and the `Menu` atom's menus; `rounded-full` for pills.
+    The checkbox's 4px is the one exception. Any other `rounded` step generates nothing, and
+    `styles/radius.test.ts` refuses it.
 - Global styles live in `src/styles/globals.css`. The widget injects CSS via JS
   when embedded, so don't rely on a separate stylesheet `<link>`.
 

@@ -784,10 +784,10 @@ export function FallbackRegion({
  * see.
  *
  * `DrawerBody` fills a bottom sheet set to `h-dvh` (vaul computes its snap translates
- * from the window height). The mobile snap view shows only its top 300px. So a plain
- * `justify-center` would place content at roughly `1.5 × viewport − 300` from the top —
- * measured at 643px in a 667px viewport, off screen. That is why these states were
- * invisible on every phone.
+ * from the window height). The mobile snap view shows only its top, the open snap's height.
+ * So a plain `justify-center` would place content at roughly `1.5 × viewport − open snap`
+ * from the top — measured at 643px in a 667px viewport with a 300px open snap, off screen.
+ * That is why these states were invisible on every phone.
  *
  * Two parts do the work here, and both matter:
  *
@@ -804,7 +804,7 @@ export function FallbackRegion({
  *    failure mode this fix avoids.
  */
 export const CENTERED_BODY =
-  'flex h-full max-h-[calc(var(--sy-frame-h)_-_var(--sy-sheet-top,0px))] flex-col items-center p-6 text-center [&>:first-child]:mt-auto [&>:last-child]:mb-auto'
+  'flex h-full max-h-[calc(var(--sy-frame-h)_-_var(--sy-sheet-top,0px))] flex-col items-center px-gutter py-6 text-center [&>:first-child]:mt-auto [&>:last-child]:mb-auto'
 
 /**
  * The other posture: top-left, with no centring at all.
@@ -816,7 +816,7 @@ export const CENTERED_BODY =
  * guard: content that starts at the top is on screen by construction. That is exactly
  * what `CENTERED_BODY` has to work to achieve.
  */
-export const START_BODY = 'flex h-full flex-col items-start p-6 text-start'
+export const START_BODY = 'flex h-full flex-col items-start px-gutter py-6 text-start'
 
 /** Which posture a surface renders in — see `CENTERED_BODY` / `START_BODY`. */
 export type FallbackAlign = 'center' | 'start'

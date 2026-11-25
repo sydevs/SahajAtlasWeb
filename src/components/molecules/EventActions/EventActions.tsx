@@ -63,7 +63,7 @@ function ContactPopover({
           <FloatingFocusManager context={context} modal={false} returnFocus={true}>
             <div
               ref={refs.setFloating}
-              className="z-50 flex min-w-56 flex-col gap-2 rounded-md border border-gray-6 bg-gray-2 p-3 shadow-md"
+              className="z-50 flex min-w-56 flex-col gap-2 rounded-lg border border-gray-6 bg-gray-2 p-3 shadow-md"
               style={floatingStyles}
               {...getFloatingProps({ 'aria-label': label })}
             >

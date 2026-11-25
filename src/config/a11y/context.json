@@ -5,7 +5,6 @@
     "pick_date": "Names the hidden date input behind the calendar heading, which opens the browser’s date picker."
   },
   "common": {
-    "explore": "Names the toggle that expands the collapsed base drawer.",
     "loading": "Read for every loading spinner.",
     "settings": "Names the settings cog button."
   },

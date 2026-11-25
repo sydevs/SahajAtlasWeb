@@ -174,8 +174,8 @@ function pages(src) {
     // This is the shape issue #169 exists for: a site's own sticky
     // header, then the atlas below it. The element carries a height,
     // which is the whole opt-in. `MapFrame` takes the containing block
-    // with `contain: layout`, so the map, its drawers, and its peek
-    // strips all resolve against this box instead of the window. Check
+    // with `contain: layout`, so the map, its drawers, and its cog all
+    // resolve against this box instead of the window. Check
     // two things: the header must stay visible and on top while
     // scrolling, and NOTHING the widget renders may paint outside the
     // bordered box.
@@ -190,7 +190,7 @@ function pages(src) {
       <sahaj-atlas style="display:block;height:640px;border:2px solid #333"></sahaj-atlas>
       <p style="height:80vh">Content below the atlas, to scroll against.</p>
     </div>${loader('key=KEY&map=true')}`,
-      'the map must stay INSIDE the bordered box. Drawers, peek strips and the cog too.',
+      'the map must stay INSIDE the bordered box. Drawers and the cog too.',
       true,
     ),
 

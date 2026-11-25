@@ -1,20 +1,15 @@
 import { useTranslation } from 'react-i18next'
 
 import { Alert } from '@/components/atoms/Alert'
-import { DrawerBody, DrawerHeader } from '@/components/atoms/Drawer'
+import { DrawerBody } from '@/components/atoms/Drawer'
 import { EventFacts, FallbackPanel } from '@/components/molecules'
 import { EventRegisterBar } from '@/components/organisms/EventDetails/EventRegister'
 import { RegistrationForm } from '@/components/organisms/RegistrationForm'
 import { useEventDisplay } from '@/hooks/use-event-display'
 import { useShareUrl } from '@/hooks/use-share-url'
 import { enabledQuestions, eventTimeZone, isOnline, isUnverified } from '@/lib/shape'
-import {
-  CloseButton,
-  DrawerTitle,
-  useDrawerControl,
-  useEventFromPath,
-  useFrameEventOnTop,
-} from '@/views/shared'
+import { NavHeader } from '@/views/nav'
+import { useDrawerControl, useEventFromPath, useFrameEventOnTop } from '@/views/shared'
 
 // The registration form for an event, at route `<event-path>/register`. The event's Register
 // CTA reaches this view, and the route is deep-linkable, so the resolver gates it. A closed,
@@ -26,11 +21,9 @@ import {
 // same copy this renders.
 export function RegistrationView({
   eventPath,
-  parentPath,
   initialSubmitted,
 }: {
   eventPath: string
-  parentPath: string
   /** Preview-only: start the native form on its confirmation screen (see stories). */
   initialSubmitted?: boolean
 }) {
@@ -104,14 +97,11 @@ export function RegistrationView({
 
   return (
     <>
-      <DrawerHeader className="justify-between">
-        <DrawerTitle
-          subtitle={t('common.chrome.all_classes_free')}
-          title={t('registration.form.title')}
-        />
-        <CloseButton />
-      </DrawerHeader>
-      <DrawerBody className="p-4">
+      <NavHeader
+        subtitle={t('common.chrome.all_classes_free')}
+        title={t('registration.form.title')}
+      />
+      <DrawerBody className="px-gutter py-4">
         <EventFacts
           className="mx-auto mb-4 w-full max-w-md"
           event={event}
@@ -139,7 +129,7 @@ export function RegistrationView({
           // register slot, so it falls through to the state message below rather than
           // rendering an empty EventRegisterBar (issue #52).
           <div className="mx-auto w-full max-w-md py-4">
-            <EventRegisterBar basePath={parentPath} event={event} />
+            <EventRegisterBar basePath={eventPath} event={event} />
           </div>
         ) : (
           // Full, ended, or registration closed. The class is real, it just cannot be

@@ -29,7 +29,7 @@
    A shadow root creates no containing block, so the fixed layer is unaffected by the move —
    but the measured table in `src/components/AGENTS.md` still holds: both re-parent
    `position: fixed` descendants to the host element, which would break the map canvas,
-   every drawer, the peek strips, and the settings cog. `container-type` does not. `contain`
+   every drawer, and the settings cog. `container-type` does not. `contain`
    and `transform` do. */
 
 /* **This survives the shadow root, and it is the half that was never about selectors.**
@@ -50,10 +50,10 @@
   /* The height of the box the widget's FIXED layer resolves against — the viewport
      normally, a frame when one has taken the containing block.
 
-     Every drawer, peek strip, and sheet is `position: fixed`, so `100dvh` is correct
+     Every drawer and sheet is `position: fixed`, so `100dvh` is correct
      only while nothing has taken that block. Two elements deliberately do, both with
      `contain: layout`: `CompactEmbedView`'s dialog, which keeps a margin — so inside it
-     `100dvh` overshoots by 16-32px and the sheet, its peek strips, and the sticky
+     `100dvh` overshoots by 16-32px and the sheet and the sticky
      Register bar all overrun the clip edge — and `MapFrame` (#169), which is however
      tall the host made their element. `100%` on a fixed child resolves against its
      containing block, which is the frame there and the viewport everywhere else, so one

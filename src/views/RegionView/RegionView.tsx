@@ -1,11 +1,11 @@
 import { useSuspenseQuery } from '@tanstack/react-query'
 import { Helmet } from 'react-helmet-async'
 import { useTranslation } from 'react-i18next'
-import { Monitor } from 'lucide-react'
+import { Navigate, useLocation } from 'react-router'
 
 import { Alert } from '@/components/atoms/Alert'
 import { Link } from '@/components/atoms/Link'
-import { DrawerBody, DrawerHeader } from '@/components/atoms/Drawer'
+import { DrawerBody } from '@/components/atoms/Drawer'
 import {
   ActiveFilterPills,
   EventListItem,
@@ -20,12 +20,19 @@ import { useMapController } from '@/hooks/use-map-controller'
 import { usePostEventFeedback } from '@/hooks/use-post-event-feedback'
 import { usePrefetchEvents } from '@/hooks/use-prefetch-event'
 import { useWidgetMode } from '@/config/mode'
-import { DEFAULT_FILTERS, childRoute, hasActiveFilters, searchPath } from '@/lib/shape'
+import {
+  DEFAULT_FILTERS,
+  childRoute,
+  climbDestination,
+  hasActiveFilters,
+  loneClassExit,
+  resolveStack,
+  searchPath,
+} from '@/lib/shape'
 import { validateWebUrl } from '@/lib/url'
+import { NavHeader } from '@/views/nav'
 import {
   CalendarButton,
-  CloseButton,
-  DrawerTitle,
   EmptyEventList,
   FilterButton,
   GeolocationSuggestion,
@@ -44,6 +51,7 @@ import {
 // canonical tag is standalone-only.
 export function RegionView({ slug }: { slug: string }) {
   const { t } = useTranslation()
+  const location = useLocation()
   const { regionNames, locale } = useLocale()
   const { standalone } = useWidgetMode()
   const { frameRegion } = useMapController()
@@ -59,7 +67,26 @@ export function RegionView({ slug }: { slug: string }) {
   const { setFilters } = useSetFilters()
   const { data: region } = useSuspenseQuery(regionQuery(slug, locale, filters))
 
-  useFrameOnTop(() => frameRegion(region), [region, frameRegion])
+  // A place with one class opens it: a list of one is an extra tap. Only while this view is the
+  // page the URL names — DrawerStack keeps an exiting view mounted under the new one, and router
+  // context reaches it — and not while it answers the post-event email, whose acknowledgement is
+  // this page's. Reached by climbing out of that class, it climbs on, as Back already said it
+  // would; reached by a step back from the class, it shows its page.
+  const top = resolveStack(location.pathname).at(-1)
+  const lone =
+    feedback || top?.kind !== 'region' || top.slug !== slug ? undefined : region.singleEventPath
+  const exit = lone ? loneClassExit(location, lone) : undefined
+  const redirect =
+    !lone || exit === 'back'
+      ? undefined
+      : exit === 'climbed'
+        ? { to: climbDestination(location.pathname), state: { climbedFrom: location.pathname } }
+        : { to: lone, state: location.state }
+
+  // The page it redirects to frames the map itself, so framing this one too flew the camera twice.
+  useFrameOnTop(() => {
+    if (!redirect) frameRegion(region)
+  }, [region, frameRegion, Boolean(redirect)])
 
   const header = (region.countryCode && regionNames.of(region.countryCode)) || region.name
   const canonicalUrl = validateWebUrl(region.webUrl)
@@ -85,10 +112,14 @@ export function RegionView({ slug }: { slug: string }) {
   const isEmpty = region.subregions.length === 0 && !hasEventList
   // "All events are free" is the subtitle FALLBACK. It states this once per list — no Free
   // chip repeats on cards — but only where events are actually listed. A city's own subtitle
-  // takes the slot when present.
+  // takes the slot when present. The place rows dropped that same field because a row
+  // annotated one child while the reader was still choosing a region. Here they have arrived
+  // at the place it names, and this is the field's last reader in the app.
   const subheader =
     (region.level === 'city' ? region.subtitle : undefined) ??
     (hasEventList ? t('common.chrome.all_classes_free') : undefined)
+
+  if (redirect) return <Navigate replace state={redirect.state} to={redirect.to} />
 
   return (
     <>
@@ -98,18 +129,18 @@ export function RegionView({ slug }: { slug: string }) {
           <meta content={canonicalUrl} property="og:url" />
         </Helmet>
       )}
-      <DrawerHeader className="justify-between">
-        <DrawerTitle subtitle={subheader} title={header} />
-        {/* Calendar, search, filters and close form one right-aligned control group.
-            justify-between keeps the title left. The calendar and the filters both open
-            pre-scoped to this region. */}
-        <div className="flex shrink-0 items-center gap-2">
-          <CalendarButton regionSlug={region.slug} />
-          <SearchButton />
-          <FilterButton iconOnly />
-          <CloseButton />
-        </div>
-      </DrawerHeader>
+      {/* The calendar and the filters both open pre-scoped to this region. */}
+      <NavHeader
+        actions={
+          <>
+            <CalendarButton regionSlug={region.slug} />
+            <SearchButton />
+            <FilterButton iconOnly />
+          </>
+        }
+        subtitle={subheader}
+        title={header}
+      />
       <DrawerBody>
         <ActiveFilterPills />
         {/* Above the region's own content, which IS the "other classes near them" the
@@ -119,7 +150,7 @@ export function RegionView({ slug }: { slug: string }) {
             Wilson upper bound below 0.5. */}
         {feedback === 'denied' && (
           <Alert
-            className="mb-4"
+            className="mx-gutter mb-4"
             closeLabel={t('common.chrome.close')}
             color="neutral"
             description={
@@ -163,25 +194,26 @@ export function RegionView({ slug }: { slug: string }) {
         ) : (
           <List>
             {/* On a region with sub-regions, the online roll-up opens in its own drawer
-                via this card, keeping the placeless classes out of the mixed list below. */}
+                via this card, keeping the placeless classes out of the mixed list below.
+                No icon: no other row here has one, so every label starts on one edge. */}
             {showOnlineCard && (
               <ListItem
                 count={region.onlineEvents.length}
                 href={`${childRoute(region.path, 'online')}${filterSearch}`}
-                icon={<Monitor size={24} />}
                 label={t('online.title')}
               />
             )}
             {/* Sub-regions (venues/centres, child areas) then this region's own located
                 events, in one list. Region ids and event ids come from independent
-                sequences, so namespace the keys. */}
+                sequences, so namespace the keys. A place row is its name and count only:
+                its SahajCloud subtitle (Eastbourne's "Learn to Meditate") advertised a
+                course to someone only choosing the right part of the country. */}
             {region.subregions.map((child) => (
               <ListItem
                 key={`region-${child.id}`}
                 count={child.eventCount}
-                href={`${child.path}${filterSearch}`}
+                href={`${child.singleEventPath ?? child.path}${filterSearch}`}
                 label={child.name}
-                subtitle={child.subtitle}
               />
             ))}
             {region.events.map((event) => (

@@ -499,6 +499,9 @@ describe('getRegion (region-tree derivation)', () => {
       ['brussels', 1],
     ])
     expect(region.subregions[0].path).toBe('/belgium/antwerpen')
+    // Brussels holds exactly one class, so its row opens it. Antwerpen holds two, plus online.
+    expect(region.subregions[0].singleEventPath).toBeUndefined()
+    expect(region.subregions[1].singleEventPath).toBe('/belgium/brussels/3')
 
     // This asserts no promotion: a country lists no events inline. Child events live on child cards instead.
     expect(region.events).toHaveLength(0)
@@ -506,6 +509,20 @@ describe('getRegion (region-tree derivation)', () => {
     // Both online events, from Ghent and Antwerpen, roll up, ordered by soonest next occurrence.
     expect(region.onlineEvents.map((event) => event.id)).toEqual([5, 4])
     expect(region.onlineEvents.every((event) => event.eventType === 'online')).toBe(true)
+  })
+
+  // A place holding one class and nothing else opens that class, so its page carries the class's
+  // own address — derived beside the rows' own, off one reading of the list.
+  it('names the one class a place holds, and keeps the page under a filter', async () => {
+    mockBackend()
+
+    expect((await api.getRegion('brussels')).singleEventPath).toBe('/belgium/brussels/3')
+    // Belgium cards two child places and rolls up online classes: a list worth showing.
+    expect((await api.getRegion('belgium')).singleEventPath).toBeUndefined()
+    // Under a filter the one class left is only what passed it, so the list stays.
+    expect(
+      (await api.getRegion('brussels', { ...DEFAULT_FILTERS, region: 'brussels' })).singleEventPath,
+    ).toBeUndefined()
   })
 
   // A filtered link (`/belgium?format=online`) shows filtered pins. The list and the counts must

@@ -396,7 +396,7 @@ export function SearchFilters({ value, onChange }: SearchFiltersProps) {
                   key={option.code}
                   appearance="checkbox"
                   checked={languages.includes(option.code)}
-                  className="w-full rounded px-2 py-1.5 hover:bg-gray-3"
+                  className="w-full rounded-lg px-2 py-1.5 hover:bg-gray-3"
                   onCheckedChange={() =>
                     patch({
                       languages: languages.includes(option.code)

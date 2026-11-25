@@ -44,7 +44,8 @@ import {
   resolveCalendarView,
 } from '@/lib/shape'
 import { zoneCity } from '@/lib/time'
-import { CloseButton, FilterButton } from '@/views/shared'
+import { BackButton } from '@/views/nav'
+import { ExpandSheetButton, FilterButton } from '@/views/shared'
 import { DrawerErrorBody, DrawerLoadingBody } from '@/views/fallbacks'
 
 // Schedule-X validates `locale` against its own supported BCP-47 set, and THROWS
@@ -159,7 +160,10 @@ function CalendarControls({ controls }: { controls: CalendarControlsPlugin }) {
 
   return (
     <>
-      {/* Mode picker — first item, so it holds the top row when the rest wraps below. */}
+      <BackButton />
+      {/* Pulled down to the peek, the way to raise the sheet again, as every other header has. */}
+      <ExpandSheetButton />
+      {/* Mode picker — holds the top row with Back when the rest wraps below. */}
       <ToggleGroup
         joined
         aria-label={t('calendar.title')}
@@ -199,7 +203,7 @@ function CalendarControls({ controls }: { controls: CalendarControlsPlugin }) {
             <button
               // A drawn 44px on a touch screen, like the arrows either side (#432): an
               // invisible tap area would reach over them at this 2px gap, and they would take it.
-              className="inline-flex items-center rounded px-1.5 py-1 text-sm font-medium hover:bg-primary-3 pointer-coarse:min-h-11 pointer-coarse:px-3"
+              className="inline-flex items-center rounded-lg px-1.5 py-1 text-sm font-medium hover:bg-primary-3 pointer-coarse:min-h-11 pointer-coarse:px-3"
               type="button"
               onClick={() => dateInputRef.current?.showPicker?.()}
             >
@@ -229,10 +233,6 @@ function CalendarControls({ controls }: { controls: CalendarControlsPlugin }) {
 
         <FilterButton />
       </div>
-
-      {/* Close — pinned top-right so it sits in the same spot as every other drawer, even when
-          the header wraps to two rows. */}
-      <CloseButton className="absolute end-4 top-4" />
     </>
   )
 }
@@ -261,7 +261,7 @@ export function CalendarView() {
 
   return (
     <>
-      <DrawerHeader className="relative max-w-none flex-wrap items-center gap-x-3 gap-y-2 pe-12">
+      <DrawerHeader className="max-w-none flex-wrap items-center gap-x-3 gap-y-2">
         <CalendarControls controls={controls} />
       </DrawerHeader>
       <ActiveFilterPills />
@@ -273,7 +273,7 @@ export function CalendarView() {
           explains why the pathname alone is not enough. */}
       <ResetErrorBoundary FallbackComponent={DrawerErrorBody} resetKeys={[filtersKey(filters)]}>
         {/* `DrawerLoadingBody`, not `DrawerLoading` — this fence sits BELOW the header
-            above, so the chrome-ful one drew a second header (and a second close button)
+            above, so the chrome-ful one drew a second header (and a second Back button)
             under CalendarControls while the grid loaded. Pairs with `DrawerErrorBody` on
             the boundary, for the same reason. */}
         <Suspense fallback={<DrawerLoadingBody />}>
@@ -381,13 +381,13 @@ function CalendarGrid({
 
   return (
     <>
-      <DrawerBody className="max-w-none overflow-hidden p-4">
+      <DrawerBody className="max-w-none overflow-hidden px-gutter py-4">
         <div className="sx-calendar">
           <CalendarMount calendar={calendar} />
         </div>
       </DrawerBody>
       {hasOnline && (
-        <p className="shrink-0 border-t border-divider px-4 py-2 text-xs text-gray-11">
+        <p className="shrink-0 border-t border-divider px-gutter py-2 text-xs text-gray-11">
           {t('calendar.times_note', { zone: zoneCity(DateTime.local().zoneName) })}
         </p>
       )}

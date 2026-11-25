@@ -17,20 +17,62 @@ concurrency:
 permissions:
   contents: read
 
+# ── Docs-only changes take the light lane ──────────────────────────────────
+# A change touching nothing but agent guides, notes under docs/, .claude/ or .vscode/ can
+# break nothing the expensive steps measure, so those steps skip and the check reports green
+# in seconds instead of 12–16 minutes (sydevs/SahajCloud#1265). `change-scope`'s own header
+# carries why the steps are gated and never the workflow, and the `why:` anchor behind it.
+# Each job decides for itself with the `scope` step, so the required names never change;
+# `Smoke`, which is a job apart, reads the `scope` job instead, because `needs: gate` would
+# queue it behind the 12 minute job. Dependency Review always runs.
+#
+# ⚠ `light` is an explicit list, not the action's default `\.md$|^docs/|…`, because specs READ
+# some of these files: `ci-workflows.test.ts` parses `docs/embedding.md`, `docs/testing.md` and
+# `docs/rules/deployment.md`, and `host-reset.test.ts` parses `docs/embedding.md`, so a change to
+# any of them must run the unit lane. No other markdown file, and nothing under `.claude/` or
+# `.vscode/`, is read by a build, lint, test or script (eslint ignores `.claude/`; nothing here
+# runs a formatter). A new file under `docs/` that is not on this list takes the full lane,
+# which fails safe.
+env:
+  LIGHT_PATHS: '(^|/)(AGENTS|CLAUDE|README|CHANGELOG|DESIGN_SYSTEM|STORYBOOK)\.md$|^docs/(architecture|environment|mcp-setup|security-triggers|stacked-prs)\.md$|^docs/rules/(code-comments|data-layer|i18n-and-state|mapbox)\.md$|^\.claude/|^\.vscode/'
+
 jobs:
+  # The decision `Smoke` reads. Cheap: one checkout and a diff.
+  scope:
+    name: Change scope
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      full: ${{ steps.scope.outputs.full }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      - name: Classify the change
+        id: scope
+        uses: sydevs/claude-workflow/.github/actions/change-scope@main
+        with:
+          light: ${{ env.LIGHT_PATHS }}
+
   gate:
     name: Lint, Typecheck & Build
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      - name: Classify the change
+        id: scope
+        uses: sydevs/claude-workflow/.github/actions/change-scope@main
+        with:
+          light: ${{ env.LIGHT_PATHS }}
       # Reads `packageManager` from package.json.
       - uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6
+        if: ${{ steps.scope.outputs.full == 'true' }}
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
+        if: ${{ steps.scope.outputs.full == 'true' }}
         with:
           node-version-file: .node-version
           cache: pnpm
       - run: pnpm install --frozen-lockfile
+        if: ${{ steps.scope.outputs.full == 'true' }}
       # A PR that changes a copied contract (the SahajCloud types and the atlas URL contract,
       # `contractSync` in sydevs/claude-workflow's loop-config.json) must leave it exactly as
       # its sync command writes it. A PR that leaves them alone passes, however far SahajCloud
@@ -39,15 +81,19 @@ jobs:
       - name: Contract check
         uses: sydevs/claude-workflow/.github/actions/contract-check@main
       - run: pnpm lint
+        if: ${{ steps.scope.outputs.full == 'true' }}
       - run: pnpm typecheck
+        if: ${{ steps.scope.outputs.full == 'true' }}
       # The unit lane, run once, with coverage collected on that same run — smoke specs are
       # excluded in vitest.config.ts. A failing spec fails this step exactly as `pnpm test:run`
       # would: coverage adds a report, never a second run and never a tolerance.
       - run: pnpm test:coverage
+        if: ${{ steps.scope.outputs.full == 'true' }}
       # Measured, not gated: `vitest.config.ts` sets no threshold, so these figures inform a
       # review and fail nothing. A missing report is annotated rather than failed for the same
       # reason — the specs above already passed.
       - name: Coverage summary
+        if: ${{ steps.scope.outputs.full == 'true' }}
         run: |
           SUMMARY=coverage/coverage-summary.json
           if [ ! -f "$SUMMARY" ]; then
@@ -62,13 +108,16 @@ jobs:
             jq -r '.total | to_entries[] | select(.key != "branchesTrue") | "| \(.key) | \(.value.covered) | \(.value.total) | \(.value.pct)% |"' "$SUMMARY"
           } >> "$GITHUB_STEP_SUMMARY"
       - run: pnpm build
+        if: ${{ steps.scope.outputs.full == 'true' }}
       - name: Bundle-size budget
+        if: ${{ steps.scope.outputs.full == 'true' }}
         # Measures the eager first-load payload, gzipped: the standalone
         # shell's entry plus its modulepreload closure, and embed.js's
         # static import graph. Never budget one chunk alone — the build
         # re-chunks freely. Full rationale: scripts/AGENTS.md and the script itself.
         run: pnpm size
       - run: pnpm ladle:build # fail the gate on broken component stories
+        if: ${{ steps.scope.outputs.full == 'true' }}
 
       # The accessibility gate (#432). It drives the library `pnpm ladle:build` just wrote, in
       # Chromium at phone size with a coarse pointer, and fails on an axe violation, a tap area
@@ -89,23 +138,28 @@ jobs:
       # every new script and every edit to any field — on the critical path of the one required
       # check — while the version Chromium is keyed to had not moved.
       - name: Read the pinned Playwright version
+        if: ${{ steps.scope.outputs.full == 'true' }}
         id: playwright
         run: node scripts/playwright-version.mjs >> "$GITHUB_OUTPUT"
       # ⚠ The key and the path are the browser lane's and `browser-cache.yml`'s to the
       # character, so one warmed entry serves both. That holds because `scripts/check-a11y.mjs`
       # passes `channel: 'chromium'`, launching the same full browser the lane drives.
       - name: Restore the Chromium the accessibility gate drives
+        if: ${{ steps.scope.outputs.full == 'true' }}
         uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: ~/.cache/ms-playwright
           key: playwright-chromium-${{ runner.os }}-${{ steps.playwright.outputs.version }}
       - name: Install Chromium for the accessibility gate
-        # ⚠ No `if:`, on purpose. `--with-deps` installs system libraries outside the cached
-        # directory, and Playwright skips a browser whose marker the restore brought back — so
-        # this step heals a partial entry instead of launching into one. `--no-shell` keeps the
-        # payload what the key says: neither consumer launches the headless shell.
+        if: ${{ steps.scope.outputs.full == 'true' }}
+        # ⚠ Never gated on the restore's outcome. `--with-deps` installs system libraries
+        # outside the cached directory, and Playwright skips a browser whose marker the restore
+        # brought back — so this step heals a partial entry instead of launching into one.
+        # `--no-shell` keeps the payload what the key says: neither consumer launches the
+        # headless shell.
         run: pnpm exec playwright install --with-deps --no-shell chromium
       - name: Accessibility gate
+        if: ${{ steps.scope.outputs.full == 'true' }}
         run: pnpm test:a11y
 
       # Validates BOTH Worker configs against the pinned Wrangler's own schema — the app's
@@ -125,6 +179,7 @@ jobs:
       # No credential and no network — `--dry-run` reaches neither, and metrics are off so
       # a telemetry endpoint cannot make the gate flaky.
       - name: Wrangler config (offline dry run)
+        if: ${{ steps.scope.outputs.full == 'true' }}
         env:
           WRANGLER_SEND_METRICS: 'false'
         run: pnpm check:wrangler
@@ -142,6 +197,7 @@ jobs:
       # The token below is a literal, not a secret, so this step also runs
       # on forked PRs, where real secrets are unavailable.
       - name: Source-map upload chain (offline dry run)
+        if: ${{ steps.scope.outputs.full == 'true' }}
         env:
           SENTRY_AUTH_TOKEN: ci-dry-run-not-a-secret
           SENTRY_ORG: ci-dry-run
@@ -166,9 +222,10 @@ jobs:
   # (`docs/testing.md` § "The browser lane"). It needs no secret, so a fork and a merge-queue
   # entry run it exactly as a pull request does, which is what lets it be a required check.
   #
-  # ⚠ It blocks: no `if:` on the job or the lane step, no `continue-on-error`, and no retries
-  # (`playwright.config.ts`), since a retry turns a flaky scenario green. `ci-workflows.test.ts`
-  # pins all three, and every action here by SHA.
+  # ⚠ It blocks: no `if:` on the job, no `continue-on-error`, and no retries
+  # (`playwright.config.ts`), since a retry turns a flaky scenario green. The lane step carries
+  # the light lane's condition and no other. `ci-workflows.test.ts` pins all three, and every
+  # action here by SHA.
   browser:
     name: Browser lane
     runs-on: ubuntu-latest
@@ -177,32 +234,45 @@ jobs:
       contents: read
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Classify the change
+        id: scope
+        uses: sydevs/claude-workflow/.github/actions/change-scope@main
+        with:
+          light: ${{ env.LIGHT_PATHS }}
       - uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
+        if: ${{ steps.scope.outputs.full == 'true' }}
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        if: ${{ steps.scope.outputs.full == 'true' }}
         with:
           node-version-file: .node-version
           cache: pnpm
       - run: pnpm install --frozen-lockfile
+        if: ${{ steps.scope.outputs.full == 'true' }}
 
       # Each Playwright release pins its own Chromium build, so the cache keys on the pinned
       # version, and a bump downloads the browser that goes with it.
       - name: Read the pinned Playwright version
+        if: ${{ steps.scope.outputs.full == 'true' }}
         id: playwright
         run: node scripts/playwright-version.mjs >> "$GITHUB_OUTPUT"
       # ⚠ Restore only. A cache saved here is scoped to this run's own ref, which no other pull
       # request and no later queue entry can read, so `browser-cache.yml` saves it on `main`.
       - name: Restore the browser
+        if: ${{ steps.scope.outputs.full == 'true' }}
         uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: ~/.cache/ms-playwright
           key: playwright-chromium-${{ runner.os }}-${{ steps.playwright.outputs.version }}
       - name: Install Chromium
-        # ⚠ No `if:`: it would hand a partially restored entry to the lane as a browser.
+        if: ${{ steps.scope.outputs.full == 'true' }}
+        # ⚠ Never gated on the restore's outcome: a cache hit would hand a partially restored
+        # entry to the lane as a browser.
         # `--no-shell`: the lane runs the full Chromium (`channel: 'chromium'`), not the shell.
         run: pnpm exec playwright install --with-deps --no-shell chromium
 
       # Builds the widget for the lane (`dist-browser/`), then runs every scenario.
       - name: Run the browser lane
+        if: ${{ steps.scope.outputs.full == 'true' }}
         run: pnpm test:browser
 
       # Traces are kept only for a failed test (`playwright.config.ts`), so this is the report
@@ -229,6 +299,9 @@ jobs:
   # which reads the Dependabot secrets. Every other way of reaching no preview fails the job.
   smoke:
     name: Smoke
+    # A light change publishes no preview. Skipped through `scope`, never by the workflow.
+    needs: scope
+    if: ${{ needs.scope.outputs.full == 'true' }}
     runs-on: ubuntu-latest
     timeout-minutes: 15
     # Granted on this job alone, for the check run the job posts. At the workflow level it would

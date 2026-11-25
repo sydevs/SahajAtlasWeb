@@ -34,12 +34,14 @@ describe('RadioGroup', () => {
     expect((html.match(/checked/g) ?? []).length).toBe(1)
   })
 
-  it('accents the checked mark with the card solid’s on-colour, never the solid itself', () => {
+  it('accents the checked mark with the card’s own text colour, never the solid itself', () => {
     const { checked, unchecked } = marks(
       renderToStaticMarkup(<RadioGroup name="x" options={options} value="b" onChange={() => {}} />),
     )
 
-    expect(checked).toContain('accent-primary-foreground')
+    // White on the light card's step 12, the solid's on-colour on the dark card's step 9.
+    expect(checked).toContain('accent-white')
+    expect(checked).toContain('dark:accent-primary-foreground')
     expect(checked).not.toContain('accent-primary')
     expect(unchecked).toContain('accent-primary')
   })
@@ -52,7 +54,9 @@ describe('RadioGroup', () => {
     )
 
     expect(checked).toContain('accent-danger-foreground')
-    expect(checked).not.toContain('accent-primary-foreground')
+    expect(checked).toContain('dark:accent-danger-foreground')
+    expect(checked).not.toContain('accent-white')
+    expect(checked).not.toContain('dark:accent-primary-foreground')
   })
 
   it('collapses options past collapseAfter behind the reveal link', () => {

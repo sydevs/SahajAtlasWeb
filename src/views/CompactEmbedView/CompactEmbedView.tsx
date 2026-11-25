@@ -107,12 +107,11 @@ const overlayClass = `fixed inset-0 ${aboveHost} bg-black/50`
 //
 // ⚠ Clip, never hidden — `components/AGENTS.md` carries why (#326). Measured here, since
 // this is where it was caught: 528px of scrollable overflow at 390×844.
-const contentClass = `fixed inset-2 ${aboveHost} overflow-clip rounded-xl bg-background text-foreground shadow-2xl outline-none [contain:layout] sm:inset-4`
-// Deliberately the SettingsMenu cog's chrome, down to the shadow: they are the two
-// floating controls over the same surface, at opposite corners, and they should read
-// as one system.
-const closeClass =
-  'absolute end-3 top-3 z-50 border-divider bg-background text-gray-11 shadow-lg hover:text-foreground'
+const contentClass = `fixed inset-2 ${aboveHost} overflow-clip rounded-2xl bg-background text-foreground shadow-2xl outline-none [contain:layout] sm:inset-4`
+// Position only. The chrome is the Button atom's `floating` variant, the same one the
+// SettingsMenu cog takes: they are the two floating controls over this surface, at
+// opposite corners, and one recipe is what keeps them reading as one system.
+const closeClass = 'absolute end-3 top-3 z-50'
 
 /**
  * The widget's own interface, over the host's page rather than in it.
@@ -123,7 +122,7 @@ const closeClass =
  * click-outside-to-close, makes it legibly a layer over their site.
  *
  * ⚠ **`contain: layout` is load-bearing, not an optimisation.** Everything rendered
- * inside — the map canvas, every drawer, the peek strips, the cog — is `position:
+ * inside — the map canvas, every drawer, the cog — is `position:
  * fixed`. A fixed descendant resolves against the VIEWPORT, unless an ancestor
  * establishes a containing block. Without it, they escape the margin and paint to
  * the screen edge while the dialog sits inset. Measured in Chrome 151: a `fixed;
@@ -239,7 +238,7 @@ function ExpandedDialog({
                 className={closeClass}
                 radius="full"
                 size="sm"
-                variant="bordered"
+                variant="floating"
               >
                 <X size={16} />
               </Button>

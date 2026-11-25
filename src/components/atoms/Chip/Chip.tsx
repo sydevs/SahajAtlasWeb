@@ -8,7 +8,7 @@ import { IconSvgProps } from '@/types'
 // tailwind-variants component (see DESIGN_SYSTEM.md), built directly on
 // the Radix-semantic 12-step tokens. `flat` is a soft, bold tint. `subtle`
 // is that same tint at a lighter content weight. `ghost` is text-only,
-// matching Button's `ghost`. `radius` picks square (`sm`) or pill (`full`)
+// matching Button's `ghost`. `radius` picks the controls' 8px (`sm`) or pill (`full`)
 // corners. Pass `onClose` to render a trailing remove button, as the
 // active-filter pills do.
 const chip = tv({
@@ -17,7 +17,8 @@ const chip = tv({
     // 44px area (#432). On a 24px pill that area reached ~9px past the chip on both sides, and
     // the wrapped row below took it, so every row but the last measured short.
     base: 'inline-flex max-w-full items-center gap-1 pointer-coarse:min-h-11',
-    content: 'min-w-0 truncate leading-none uppercase',
+    // Body text carries no letter spacing; uppercase needs a little to stay legible.
+    content: 'min-w-0 truncate leading-none tracking-[0.3px] uppercase',
     // The close button carries the app's standard focus ring, not only the
     // opacity lift it used to have on its own (issue #102). Opacity is also
     // what HOVER does. So on a chip the pointer happens to rest on, a
@@ -25,8 +26,10 @@ const chip = tv({
     // the same `focus-visible:ring-2 ring-focus` every other control draws.
     // `touch-target` gives the 12px × an invisible 44px tap area on touch screens, at the same
     // drawn size.
+    // Dimmed only as far as 3:1 on the chip's own tint allows: a tinted chip's glyph measures
+    // 3.2:1 at 80% in light mode, and 2.3:1 at 60% (#432).
     close:
-      'touch-target relative shrink-0 rounded-full opacity-60 transition-opacity outline-none hover:opacity-100 focus-visible:opacity-100 focus-visible:ring-2 focus-visible:ring-focus',
+      'touch-target relative shrink-0 rounded-full opacity-80 transition-opacity outline-none hover:opacity-100 focus-visible:opacity-100 focus-visible:ring-2 focus-visible:ring-focus',
   },
   variants: {
     color: { primary: '', secondary: '', contrast: '', neutral: '' },
@@ -43,7 +46,7 @@ const chip = tv({
       md: { base: 'px-2.5 py-1.5 text-sm' },
     },
     radius: {
-      sm: { base: 'rounded-sm' },
+      sm: { base: 'rounded-lg' },
       full: { base: 'rounded-full' },
     },
   },

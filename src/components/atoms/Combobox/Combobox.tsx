@@ -132,7 +132,7 @@ export function Combobox({
               {filtered.map((option) => (
                 <CommandItem
                   key={option.value}
-                  className="relative flex cursor-pointer items-center gap-2 rounded px-3 py-2 text-sm text-foreground outline-none select-none data-[selected=true]:bg-primary-4"
+                  className="relative flex cursor-pointer items-center gap-2 rounded-lg px-3 py-2 text-sm text-foreground outline-none select-none data-[selected=true]:bg-primary-4"
                   value={option.value}
                   onSelect={() => choose(option.value)}
                 >
