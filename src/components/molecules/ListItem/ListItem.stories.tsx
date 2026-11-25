@@ -1,7 +1,6 @@
 import type { Story, StoryDefault } from '@ladle/react'
 
 import { CircleFlag } from 'react-circle-flags'
-import { Monitor } from 'lucide-react'
 
 import { StoryWrapper, StorySection } from '../../ladle'
 
@@ -9,18 +8,18 @@ import { ListItem } from './ListItem'
 
 import { FLAG_CDN_URL } from '@/lib/flag-cdn'
 import { List } from '@/components/molecules/List'
+import { MeditateFigure } from '@/components/atoms/Icons'
 
 export default { title: 'Molecules / List' } satisfies StoryDefault
 
 const FLAG_CLASS = 'h-full w-full rounded-full border border-divider bg-divider'
 
 /**
- * ListItem — a single navigable row: an optional leading glyph, a label, a
- * count, and a trailing arrow. It backs every row in a
- * region list: the country to region to area drill-down, and the
- * online-classes entry that belongs to no region at all. The glyph is the
- * only thing that varies, and the card's fixed icon slot keeps every row
- * aligned, whatever goes in it.
+ * ListItem — a single navigable row: an optional leading glyph, a label with
+ * an optional line under it, a count, and a trailing arrow. It backs every
+ * row in a region list: the country to region to area drill-down, and the
+ * online-classes entry that belongs to no region at all. The card's fixed
+ * icon slot keeps every row aligned, whatever goes in it.
  */
 export const Default: Story = () => (
   <StoryWrapper>
@@ -36,6 +35,7 @@ export const Default: Story = () => (
           <List>
             <ListItem
               count={7}
+              description="Includes nearby towns"
               href="#area"
               icon={<CircleFlag cdnUrl={FLAG_CDN_URL} className={FLAG_CLASS} countryCode="gb" />}
               label="Oxford"
@@ -51,7 +51,12 @@ export const Default: Story = () => (
     >
       <div className="max-w-md overflow-hidden rounded-lg border border-divider">
         <List>
-          <ListItem count={41} href="#online" icon={<Monitor size={24} />} label="Online Classes" />
+          <ListItem
+            count={41}
+            href="#online"
+            icon={<MeditateFigure className="text-contrast-10 dark:text-contrast" size={24} />}
+            label="Online Classes"
+          />
           <ListItem
             count={12}
             href="#country"
@@ -70,7 +75,13 @@ export const Default: Story = () => (
     >
       <div className="max-w-md overflow-hidden rounded-lg border border-divider">
         <List>
-          <ListItem count={41} href="#online" icon={<Monitor size={24} />} label="Online Classes" />
+          <ListItem
+            count={41}
+            description="Join from anywhere"
+            href="#online"
+            icon={<MeditateFigure className="text-contrast-10 dark:text-contrast" size={24} />}
+            label="Online Classes"
+          />
           <ListItem
             count={128}
             href="#country"

@@ -30,4 +30,18 @@ describe('ListItem', () => {
     // The title keeps the row's inherited foreground — it stays the loudest thing here.
     expect(html).toContain('<div class="flex-grow text-lg">France</div>')
   })
+
+  it('sets a description under the title, one step quieter, only when given', () => {
+    const row = (description?: string) =>
+      renderToStaticMarkup(
+        <MemoryRouter>
+          <ListItem count={22} description={description} href="/search" label="Online Classes" />
+        </MemoryRouter>,
+      )
+
+    expect(row('Join from anywhere')).toContain(
+      'Online Classes<div class="text-sm text-gray-11">Join from anywhere</div>',
+    )
+    expect(row()).toContain('<div class="flex-grow text-lg">Online Classes</div>')
+  })
 })

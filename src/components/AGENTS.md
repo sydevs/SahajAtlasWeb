@@ -552,8 +552,7 @@ this table or the folklore it fixes. On the frame itself both are deliberate, an
 - **Explicit named exports — no `export *`.** Every component and tier barrel lists
   exactly what it surfaces: the primary component(s) plus the `<Name>Props` type.
   Keep single-use internals (private modals, row primitives, helper sub-cards)
-  module-private. The `Icons/` icon-set module is the one wildcard exception. See
-  the export rules in `DESIGN_SYSTEM.md`.
+  module-private. See the export rules in `DESIGN_SYSTEM.md`.
 - **Atoms stay primitive.** Put pure domain helpers (e.g. `isSoon`) in `src/lib/`,
   not in an atom, and keep single-use compositions inlined in their one parent.
 - Keep components presentational where possible. Pull data via hooks

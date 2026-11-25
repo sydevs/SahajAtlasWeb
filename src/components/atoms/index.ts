@@ -39,6 +39,9 @@ export type { DropdownProps } from './Dropdown'
 export { HoverLabel } from './HoverLabel'
 export type { HoverLabelProps } from './HoverLabel'
 
+export { MeditateFigure } from './Icons'
+export type { MeditateFigureProps } from './Icons'
+
 export { Input } from './Input'
 export type { InputProps } from './Input'
 
