@@ -191,10 +191,6 @@ export const sahajCloud = {
 
 // ── The router ──────────────────────────────────────────────────────────────────
 
-export type SahajCloudAnswer = { status: number; json: Json }
-
-export type SahajCloudRequest = { method: string; url: URL; authorization?: string | null }
-
 /**
  * SahajCloud's answer to one request, by method and path under `/api`, or `undefined` for a
  * request these fixtures do not model — which the browser lane fails a test for, rather than
@@ -202,9 +198,9 @@ export type SahajCloudRequest = { method: string; url: URL; authorization?: stri
  * shape, as Ladle's demo atlas does (`sahajcloud-demo.ts`).
  */
 export function answerSahajCloud(
-  request: SahajCloudRequest,
+  request: { method: string; url: URL; authorization?: string | null },
   fixtures: typeof sahajCloud = sahajCloud,
-): SahajCloudAnswer | undefined {
+): { status: number; json: Json } | undefined {
   const { method, url } = request
   const path = url.pathname.replace(/^\/api(?=\/)/, '')
   const ok = (json: Json, status = 200) => ({ status, json })

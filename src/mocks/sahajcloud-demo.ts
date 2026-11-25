@@ -4,14 +4,13 @@
 //
 // Real places at their real coordinates, with classes made up around them. Dates are computed
 // from the clock, as `events.ts`'s are, so a class is never in the past.
-import type { Json, SahajCloudAnswer, SahajCloudRequest } from './sahajcloud'
+import type { Json } from './sahajcloud'
 
 import { DateTime } from 'luxon'
 
 import { WEEKDAY_CODES, mockEventImages } from './events'
 import {
   SAHAJCLOUD_EVENT,
-  answerSahajCloud,
   onePage,
   paginated,
   regionNodes,
@@ -527,7 +526,3 @@ export const demo: typeof sahajCloud = {
     ]),
   ),
 }
-
-/** `answerSahajCloud`, over the bigger atlas. */
-export const answerDemo = (request: SahajCloudRequest): SahajCloudAnswer | undefined =>
-  answerSahajCloud(request, demo)

@@ -2,7 +2,7 @@ import type { Json } from '@/mocks/sahajcloud'
 
 import { IP_LOCATION_ENDPOINT } from '@/hooks/use-ip-location'
 import { mockIpLocation } from '@/mocks/regions'
-import { SAHAJCLOUD_API_KEY, sahajCloud } from '@/mocks/sahajcloud'
+import { SAHAJCLOUD_API_KEY, answerSahajCloud, sahajCloud } from '@/mocks/sahajcloud'
 
 /**
  * Ladle talks to no API. Every SahajCloud request a story makes is answered from the browser
@@ -32,12 +32,11 @@ export function installBackend() {
       // Loaded on the first read, so a story that never reads pays nothing for the atlas, about
       // 100 ms of building at import. Whatever key a story's client holds, it is the one the
       // fixtures recognise.
-      const { answerDemo } = await import('@/mocks/sahajcloud-demo')
-      const answer = answerDemo({
-        method,
-        url,
-        authorization: `clients API-Key ${SAHAJCLOUD_API_KEY}`,
-      })
+      const { demo } = await import('@/mocks/sahajcloud-demo')
+      const answer = answerSahajCloud(
+        { method, url, authorization: `clients API-Key ${SAHAJCLOUD_API_KEY}` },
+        demo,
+      )
 
       if (!answer) console.warn(`Ladle: no SahajCloud fixture answers ${method} ${url.pathname}`)
 
