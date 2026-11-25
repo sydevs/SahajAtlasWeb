@@ -137,6 +137,20 @@ describe('encoded structure is never decoded', () => {
   })
 })
 
+describe('an event id is read from the decoded segment', () => {
+  // SahajCloud's `parseAtlasRoute` and WeMeditateWeb's `canonicalAtlasRoute` both test the
+  // decoded segment, and the contract exists to keep all three answering the same route.
+  const encodedDigits = '/bg/%34%32'
+
+  it('resolvePath reads an encoded id as the event, not as a region slug', () => {
+    expect(resolvePath(encodedDigits)).toEqual({ kind: 'event', id: 42 })
+  })
+
+  it('resolveStack reads an encoded id as the event', () => {
+    expect(resolveStack(encodedDigits).at(-1)).toMatchObject({ kind: 'event', id: 42 })
+  })
+})
+
 describe('a segment is decoded once', () => {
   const pathOf = placePathsOf([{ slug: 'софия', webPath: '/bg/софия' }])
 

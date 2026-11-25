@@ -243,9 +243,12 @@ export const resolvePath = (pathname: string): ResolvedPath => {
   const terminal = segments.at(-1)
 
   if (!terminal) return null
-  if (/^\d+$/.test(terminal)) return { kind: 'event', id: Number(terminal) }
 
-  return { kind: 'region', slug: safeDecode(terminal) }
+  const decoded = safeDecode(terminal)
+
+  if (/^\d+$/.test(decoded)) return { kind: 'event', id: Number(decoded) }
+
+  return { kind: 'region', slug: decoded }
 }
 
 /**
@@ -313,7 +316,7 @@ export const resolveStack = (pathname: string): StackEntry[] => {
       entries.push({ kind: 'online', regionSlug: safeDecode(segments[i - 1] ?? ''), path })
     else if (RESERVED_SLUGS.has(word))
       return // legacy prefix (events/areas/…) — no drawer
-    else if (/^\d+$/.test(segment)) entries.push({ kind: 'event', id: Number(segment), path })
+    else if (/^\d+$/.test(decoded)) entries.push({ kind: 'event', id: Number(decoded), path })
     else entries.push({ kind: 'region', slug: decoded, path })
   })
 
