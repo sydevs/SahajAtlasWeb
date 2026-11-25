@@ -6,6 +6,7 @@ import { MemoryRouter } from 'react-router'
 import clsx from 'clsx'
 import { I18nextProvider } from 'react-i18next'
 
+import { installBackend } from './backend'
 import storyI18n from './i18n'
 
 import Providers from '@/providers'
@@ -36,6 +37,9 @@ import '@/styles/fonts'
 if (typeof document !== 'undefined') {
   document.documentElement.classList.add(WIDGET_SCOPE_CLASS)
 }
+
+// Every SahajCloud read a story makes is answered from fixtures (`./backend.ts`).
+if (typeof window !== 'undefined') installBackend()
 
 // Brand presets sampled from real tenants (issue #16). Selecting one runs
 // the production applyPalette on the story wrapper, so Ladle previews
@@ -108,8 +112,25 @@ export const Provider: GlobalProvider = ({ children }) => {
   // View stories are full-view drawer pages. Each one owns the whole
   // canvas through the ViewHarness. So view stories drop the usual
   // component-preview padding, and fill their width-xsmall frame edge to
-  // edge. Every other tier keeps the padded gutter.
+  // edge. The whole widget's story is a host page, so it drops Ladle's own
+  // padding around it too, and fills the main area. Every other tier keeps
+  // the padded gutter.
   const isView = globalState.story?.startsWith('views--')
+  const isWidget = globalState.story?.startsWith('interactive--')
+
+  useEffect(() => {
+    if (!isWidget) return
+
+    const root = document.documentElement.style
+
+    root.setProperty('--ladle-main-padding', '0')
+    root.setProperty('--ladle-main-padding-mobile', '0')
+
+    return () => {
+      root.removeProperty('--ladle-main-padding')
+      root.removeProperty('--ladle-main-padding-mobile')
+    }
+  }, [isWidget])
 
   // The brand palette is a first-class Ladle control, in the Controls
   // panel, not a custom <select>. Ladle wipes control state on each
@@ -155,7 +176,8 @@ export const Provider: GlobalProvider = ({ children }) => {
 
   return (
     <I18nextProvider i18n={storyI18n}>
-      <MemoryRouter>
+      {/* Keyed on the story, so each one starts at `/`, not where the last one navigated. */}
+      <MemoryRouter key={globalState.story}>
         <Providers>
           {/* The scope class sits on both this wrapper and <html>, on purpose.
               See the note at the top of this file: in viewport mode, the story
@@ -173,7 +195,7 @@ export const Provider: GlobalProvider = ({ children }) => {
               WIDGET_SCOPE_CLASS,
               theme,
               'min-h-screen bg-background text-foreground',
-              !isView && 'p-6',
+              !isView && !isWidget && 'p-6',
             )}
           >
             <BrandPaletteContext.Provider value={palette}>{children}</BrandPaletteContext.Provider>

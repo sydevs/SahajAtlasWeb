@@ -3,6 +3,7 @@ import type { Json } from '../../src/mocks/sahajcloud'
 
 import { test as base, expect } from '@playwright/test'
 
+import { CHALLENGE_PAGE, CHALLENGE_PATH } from '../../src/mocks/challenge-page'
 import { answerSahajCloud } from '../../src/mocks/sahajcloud'
 
 import { LANE_API_ORIGIN, LANE_PORT } from './lane.mjs'
@@ -78,27 +79,6 @@ const json = (body: unknown, status = 200) => ({
   body: JSON.stringify(body),
 })
 
-/**
- * The Turnstile challenge page SahajCloud serves. It hands its parent a token at once, and a fresh
- * one on every `reset` — what a passed, invisible challenge does.
- *
- * ⚠ The channel and the message types are `src/hooks/use-turnstile.ts`'s contract with
- * SahajCloud, restated: change them there and here together, or every registration scenario
- * waits on a token that never arrives.
- */
-const CHALLENGE_PAGE = `<!doctype html><meta charset="utf-8"><script>
-const params = new URLSearchParams(location.search)
-const post = (message) =>
-  parent.postMessage({ channel: 'sahaj-atlas-turnstile', ...message }, params.get('parent'))
-let solved = 0
-const solve = () => post({ type: 'token', token: 'browser-lane-token-' + ++solved })
-post({ type: 'ready' })
-if (!params.has('probe')) solve()
-addEventListener('message', (event) => {
-  if (event.data?.channel === 'sahaj-atlas-turnstile' && event.data.type === 'reset') solve()
-})
-</script>`
-
 /** A 1×1 PNG, for every image the event fixtures name. */
 const PIXEL = Buffer.from(
   'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=',
@@ -127,8 +107,7 @@ type Answer = (
 ) => Promise<Fulfilment | undefined> | Fulfilment | undefined
 
 const answerSahajCloudRoute: Answer = async (url, request) => {
-  if (url.pathname === '/api/atlas/challenge')
-    return { contentType: 'text/html', body: CHALLENGE_PAGE }
+  if (url.pathname === CHALLENGE_PATH) return { contentType: 'text/html', body: CHALLENGE_PAGE }
   if (url.pathname.startsWith('/api/images/file/')) return { contentType: 'image/png', body: PIXEL }
 
   const answer = answerSahajCloud({

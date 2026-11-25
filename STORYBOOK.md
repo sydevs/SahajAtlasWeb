@@ -21,10 +21,12 @@ pnpm ladle:build  # static build (also the CI gate — broken stories fail it)
 
 | Piece                   | What it does                                                                        |
 | ----------------------- | -------------------------------------------------------------------------------------- |
-| `.ladle/config.mjs`     | Story glob (`src/**/*.stories.{ts,tsx}`), title, port, `viteConfig`.                  |
-| `.ladle/vite.config.ts` | Resolves the `@/` alias to `src/` (Ladle relocates Vite's root).                      |
-| `.ladle/i18n.ts`        | Self-contained i18next over the committed English snapshot, English only (Ladle talks to no API). |
-| `.ladle/components.tsx` | The **global decorator**: React Query + Helmet + a `MemoryRouter` + `<I18nextProvider>`. |
+| `.ladle/config.mjs`     | Story glob (`src/**/*.stories.{ts,tsx}`), title, port, `viteConfig`, and the story order: Atoms, Molecules, Organisms, Views, Interactive, then any other group, each alphabetical inside. |
+| `.ladle/vite.config.ts` | Resolves the `@/` alias to `src/` (Ladle relocates Vite's root). Points the app's SahajCloud origin at Ladle's own, serves the Turnstile challenge there, and swaps in `react-map-gl.tsx`. |
+| `.ladle/backend.ts`     | Answers every SahajCloud read from the browser lane's fixtures (`src/mocks/sahajcloud.ts`), and the IP lookup with Cambridge. Ladle talks to no API. |
+| `.ladle/react-map-gl.tsx` | react-map-gl as a story needs it: `reuseMaps` off (a map carried between Ladle's iframe and its page drew nothing), a canvas that follows its own box, and the realm bridge mapbox-gl needs inside the viewport iframe. |
+| `.ladle/i18n.ts`        | Self-contained i18next over the committed English snapshot and the screen-reader strings, English only. |
+| `.ladle/components.tsx` | The **global decorator**: React Query + Helmet + a `MemoryRouter` (fresh per story) + `<I18nextProvider>`. |
 
 **Theme and canvas.** Ladle's theme toggle drives the **whole canvas** — the
 decorator calls `applyTheme()` with the toggle's state and stamps the `dark`
@@ -107,6 +109,15 @@ controls panel alphabetically by arg key, ignoring declaration order —
 first on every story. Only Ladle's global "Brand palette" control sorts
 higher.
 
+### The whole widget (`Interactive / Full Widget`)
+
+`src/App.stories.tsx` renders the real `App` on a stand-in host page: browse,
+open a class and register, search, filter. Its data is the SahajCloud
+fixtures, through the app's real fetchers, with a bigger atlas of real places
+on top (`src/mocks/sahajcloud-demo.ts`) so every list scrolls. A fixture the
+widget newly needs goes in `src/mocks/sahajcloud.ts`, where the browser lane
+reads it too. **Map** off is a `map=false` embed.
+
 ### StoryGrid (matrices)
 
 For multi-dimensional atom matrices (e.g. colour × state). Mobile-first: it
@@ -177,6 +188,9 @@ section showing realistic in-app usage.
   wrap them in `MapProvider`.
 - Translated text resolves through the bundled-resource i18n instance, so
   stories render offline.
+- A SahajCloud read a story makes — a view's own prefetch, the whole widget's
+  boot — is answered by `.ladle/backend.ts`, never by production. One no fixture
+  models answers 404 and logs `Ladle: no SahajCloud fixture answers …`.
 
 ## Best practices
 

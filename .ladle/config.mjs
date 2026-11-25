@@ -16,6 +16,18 @@ export default {
   port: 61000,
   previewPort: 61001,
   title: 'Sahaj Atlas Component Library',
+  // The design system's tiers in build order, each group alphabetical inside, as Ladle sorts
+  // it. A group not named here lists after them all. The sidebar keeps this order.
+  // ⚠ Self-contained: Ladle ships this function to the browser as its source text, so it
+  // cannot read anything else in this module.
+  storyOrder: (stories) => {
+    const order = ['atoms', 'molecules', 'organisms', 'views', 'interactive']
+    const rank = (story) => {
+      const at = order.indexOf(story.split('--')[0])
+      return at === -1 ? order.length : at
+    }
+    return stories.toSorted((a, b) => rank(a) - rank(b))
+  },
   hmr: true,
   base: '/',
   addons: {

@@ -6,7 +6,7 @@ import { IpLocationSchema, type IpLocation } from '@/types'
 // This deliberately uses a bare `fetch`, NOT the shared SahajCloud client, `src/config/api/client.ts`.
 // `applyRequestContext` attaches the SahajCloud `Authorization: clients API-Key …` header and `locale` to every request.
 // Sending those to a third-party host would leak the client API key.
-const IP_LOCATION_ENDPOINT = 'https://ipwho.is/'
+export const IP_LOCATION_ENDPOINT = 'https://ipwho.is/'
 
 // This resolves the visitor's approximate location from their IP, or `null` on any failure.
 // A failure can be a network or CSP block, a non-OK response, malformed JSON, or a country-only result. A missing `city` makes the schema reject the result.

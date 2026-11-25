@@ -1,6 +1,8 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { SAHAJCLOUD_API_KEY, SAHAJCLOUD_EVENT, answerSahajCloud, sahajCloud } from './sahajcloud'
+import { demo } from './sahajcloud-demo'
+import { mockEventImages } from './events'
 
 import atlasAuth from '@/config/api/auth'
 import api, { eventTitlesQuery } from '@/config/api/fetch'
@@ -11,7 +13,8 @@ import translations from '@/config/translations.en.json' with { type: 'json' }
 // The browser lane answers SahajCloud from `sahajcloud.ts`, and a fixture the app cannot parse would
 // fail there as a blank widget, minutes into a CI run. So this runs every fixture through the
 // REAL fetchers and their zod parses — the real SDK too, composing the real URLs — with only the
-// network swapped for `answerSahajCloud`, the router the lane itself serves.
+// network swapped for `answerSahajCloud`, the router the lane itself serves. Ladle's bigger demo
+// atlas (`sahajcloud-demo.ts`) goes through the same router, so it is read the same way, below.
 //
 // i18n is the one module stubbed, as `fetch.test.ts` stubs it: booting it would reach for a
 // browser this lane does not have.
@@ -23,21 +26,23 @@ const requests: string[] = []
 const json = (body: unknown, status: number) =>
   new Response(JSON.stringify(body), { status, headers: { 'content-type': 'application/json' } })
 
-const serveSahajCloud = async (input: RequestInfo | URL, init?: RequestInit) => {
-  const url = new URL(String(input))
-  const method = init?.method ?? 'GET'
-  const answer = answerSahajCloud({
-    method,
-    url,
-    authorization: new Headers(init?.headers).get('authorization'),
-  })
+const serve =
+  (fixtures: typeof sahajCloud) => async (input: RequestInfo | URL, init?: RequestInit) => {
+    const url = new URL(String(input))
+    const method = init?.method ?? 'GET'
+    const answer = answerSahajCloud(
+      { method, url, authorization: new Headers(init?.headers).get('authorization') },
+      fixtures,
+    )
 
-  requests.push(`${method} ${url.pathname}`)
+    requests.push(`${method} ${url.pathname}`)
 
-  if (!answer) throw new Error(`no SahajCloud fixture answers ${method} ${url.pathname}`)
+    if (!answer) throw new Error(`no SahajCloud fixture answers ${method} ${url.pathname}`)
 
-  return json(answer.json, answer.status)
-}
+    return json(answer.json, answer.status)
+  }
+
+const serveSahajCloud = serve(sahajCloud)
 
 beforeAll(() => {
   vi.stubGlobal('fetch', serveSahajCloud)
@@ -143,6 +148,49 @@ describe('SahajCloud fixtures, read through the fetchers', () => {
       await expect(sent).rejects.not.toBeInstanceOf(RegistrationRefusedError)
     } finally {
       vi.stubGlobal('fetch', serveSahajCloud)
+    }
+  })
+})
+// Ladle's interactive widget reads this atlas, and a class the app cannot parse would blank it
+// with no spec to say why.
+describe('the demo atlas, read through the fetchers', () => {
+  beforeAll(() => {
+    vi.stubGlobal('fetch', serve(demo))
+  })
+
+  afterAll(() => {
+    vi.stubGlobal('fetch', serveSahajCloud)
+  })
+
+  it('lists enough countries to scroll, each with classes and a flag', async () => {
+    const countries = await api.getCountries()
+
+    expect(countries.length).toBeGreaterThanOrEqual(25)
+    for (const country of countries) {
+      expect(country.eventCount).toBeGreaterThan(0)
+      expect(country.countryCode).toMatch(/^[A-Z]{2}$/)
+    }
+  })
+
+  it('gives the United Kingdom a long list of regions, and Cambridge a long list of classes', async () => {
+    expect((await api.getRegion('gb')).subregions.length).toBeGreaterThanOrEqual(10)
+    expect((await api.getRegion('cambridge')).events.length).toBeGreaterThanOrEqual(12)
+  })
+
+  it('keeps every slug unique, since a region is looked up by its slug', () => {
+    const slugs = (demo.regions as { docs: { slug: string }[] }).docs.map(({ slug }) => slug)
+
+    expect(new Set(slugs).size).toBe(slugs.length)
+  })
+
+  it('serves a full event document, with pictures a story can load, for every class', async () => {
+    const feed = await api.getGeojson()
+
+    for (const { properties } of feed.features) {
+      const event = await api.getEvent(properties.id)
+
+      expect(event.webPath).toBe(properties.webPath)
+      expect(event.images.map(({ url }) => url)).toEqual(mockEventImages.map(({ url }) => url))
     }
   })
 })
