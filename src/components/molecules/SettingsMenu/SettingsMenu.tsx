@@ -1,11 +1,11 @@
-import { type ReactNode } from 'react'
+import { type ReactNode, useState } from 'react'
 import * as DropdownMenu from '@radix-ui/react-dropdown-menu'
 import { useTranslation } from 'react-i18next'
 import { Check, ChevronRight, Info, Languages, Monitor, Moon, Settings, Sun } from 'lucide-react'
 
 import { frameCollision } from '@/lib/overlay'
 import { Button } from '@/components/atoms/Button'
-import { Tooltip, type TooltipProps } from '@/components/atoms/Tooltip'
+import { HoverLabel } from '@/components/atoms/HoverLabel'
 import { menuChrome } from '@/components/atoms/Menu'
 import { useAvailableLocales } from '@/hooks/use-available-locales'
 import { useWidgetMode } from '@/config/mode'
@@ -49,8 +49,8 @@ export type SettingsMenuProps = {
   side?: DropdownMenu.DropdownMenuContentProps['side']
   /** Which edge of the trigger the menu lines up with (`end` for the map's right-hand column). */
   align?: DropdownMenu.DropdownMenuContentProps['align']
-  /** Shows the trigger's name as a label on that side, on hover and keyboard focus. */
-  tooltipSide?: TooltipProps['side']
+  /** Draws the trigger's name out of its end on hover and keyboard focus (`HoverLabel`). */
+  labelled?: boolean
   /** `floating` over the map; `ghost` in a row of controls, such as a header. */
   variant?: 'floating' | 'ghost'
 }
@@ -59,7 +59,7 @@ export function SettingsMenu({
   className,
   side = 'bottom',
   align = 'start',
-  tooltipSide,
+  labelled = false,
   variant = 'floating',
 }: SettingsMenuProps) {
   const { t } = useTranslation()
@@ -101,6 +101,7 @@ export function SettingsMenu({
   ]
   const currentTheme = themes.find((th) => th.value === preference) ?? themes[0]
 
+  const [menuOpen, setMenuOpen] = useState(false)
   const label = t('common.a11y.settings')
   const trigger = (
     <DropdownMenu.Trigger asChild>
@@ -121,11 +122,11 @@ export function SettingsMenu({
   )
 
   return (
-    <DropdownMenu.Root>
-      {tooltipSide ? (
-        <Tooltip label={label} side={tooltipSide}>
+    <DropdownMenu.Root onOpenChange={setMenuOpen}>
+      {labelled ? (
+        <HoverLabel suppressed={menuOpen} text={label}>
           {trigger}
-        </Tooltip>
+        </HoverLabel>
       ) : (
         trigger
       )}

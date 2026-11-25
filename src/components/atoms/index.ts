@@ -36,6 +36,9 @@ export type { DrawerProps, DrawerContentProps, DrawerDirection } from './Drawer'
 export { Dropdown } from './Dropdown'
 export type { DropdownProps } from './Dropdown'
 
+export { HoverLabel } from './HoverLabel'
+export type { HoverLabelProps } from './HoverLabel'
+
 export { Input } from './Input'
 export type { InputProps } from './Input'
 
@@ -62,6 +65,3 @@ export type { TextareaProps } from './Textarea'
 
 export { ToggleGroup, ToggleGroupItem } from './ToggleGroup'
 export type { ToggleGroupProps, ToggleGroupItemProps } from './ToggleGroup'
-
-export { Tooltip } from './Tooltip'
-export type { TooltipProps } from './Tooltip'

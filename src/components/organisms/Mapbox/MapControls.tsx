@@ -8,7 +8,7 @@ import { LocateFixed } from 'lucide-react'
 
 import { Button } from '@/components/atoms/Button'
 import { Spinner } from '@/components/atoms/Spinner'
-import { Tooltip } from '@/components/atoms/Tooltip'
+import { HoverLabel } from '@/components/atoms/HoverLabel'
 import { SettingsMenu } from '@/components/molecules/SettingsMenu'
 import { useSettingsCog } from '@/config/store'
 
@@ -75,7 +75,7 @@ export function MapControls({ locate, onLocate, locateRef }: MapControlsProps) {
 
   return createPortal(
     <>
-      <Tooltip label={locateLabel}>
+      <HoverLabel text={locateLabel}>
         <Button
           ref={locateRef}
           isIconOnly
@@ -98,8 +98,8 @@ export function MapControls({ locate, onLocate, locateRef }: MapControlsProps) {
             <LocateFixed size={20} />
           )}
         </Button>
-      </Tooltip>
-      {!cogHidden && <SettingsMenu align="end" tooltipSide="left" />}
+      </HoverLabel>
+      {!cogHidden && <SettingsMenu labelled align="end" />}
     </>,
     column.slot,
   )
