@@ -3,6 +3,7 @@ import type { FallbackAlign, FallbackKind } from '@/components/molecules'
 import type { StackEntry } from '@/lib/shape'
 
 import { useEffect, useMemo } from 'react'
+import { Search } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { useLocation } from 'react-router'
 import { useQuery } from '@tanstack/react-query'
@@ -17,13 +18,7 @@ import { useMapController } from '@/hooks/use-map-controller'
 import { classifyError, errorMessage } from '@/lib/report'
 import { baseStackEntry, nearestKnownRegion, resolveStack } from '@/lib/shape'
 import { BackButton, NavHeader } from '@/views/nav'
-import {
-  CalendarButton,
-  ExpandSheetButton,
-  FilterButton,
-  SearchButton,
-  SearchField,
-} from '@/views/shared'
+import { CalendarButton, ExpandSheetButton, FilterButton, SearchField } from '@/views/shared'
 
 /**
  * Whether this route's chrome leads with the geocoder, rather than a title — the root and
@@ -41,6 +36,13 @@ const leadsWithGeocoder = (
   // code after that return reads `entry.slug`/`entry.id`. So it must narrow away `undefined`
   // and the search variant, exactly as the inline check it replaced did.
 ): entry is undefined | Extract<StackEntry, { kind: 'search' }> => !entry || entry.kind === 'search'
+
+/**
+ * Whether this route's view puts a search field under its title — a place page. The chrome
+ * mirrors that band, so nothing moves when the view arrives, and the body reads the same
+ * answer so it never draws a second field under it.
+ */
+const hasFieldBand = (entry: StackEntry | undefined) => entry?.kind === 'region'
 
 // What a DRAWER adds around the shared fallback body — the chrome that survives when
 // a view cannot render, and the routing knowledge only a drawer has. What the body
@@ -63,20 +65,26 @@ const leadsWithGeocoder = (
 // controls, the search field, the geolocation suggestion, AND all of this.
 
 /**
- * A disabled stand-in for the geocoder: the same box, none of the machinery. Matches
- * the inert `<input>` `MapSearch` already falls back to when the Geocoder itself
- * fails, so the loading header takes the right shape and the right height without
- * mounting a custom element that is about to be thrown away.
+ * A disabled stand-in for the geocoder: the same box, none of the machinery, so the loading
+ * header takes the field's shape without mounting a custom element that is about to be thrown
+ * away. Its measurements are the themed geocoder's (`Mapbox/themes.ts` and the library's own
+ * sheet): a 36px input inside a 1px border, 44px on touch, the 20px magnifier 8px in and the
+ * text 40px in, so nothing moves when the real field replaces it.
  */
 function SearchFieldSkeleton() {
   const { t } = useTranslation()
 
   return (
-    <div className="min-w-0 flex-1">
+    <div className="relative min-w-0 flex-1">
+      <Search
+        aria-hidden
+        className="pointer-events-none absolute inset-y-0 start-2 my-auto text-gray-11"
+        size={20}
+      />
       <input
         disabled
         readOnly
-        className="w-full rounded-lg border border-divider bg-gray-2 px-3 py-2 field-size text-foreground placeholder:text-gray-11"
+        className="h-[38px] w-full rounded-lg border border-gray-7 bg-background ps-10 pe-3 field-size text-foreground placeholder:text-gray-11 pointer-coarse:h-[46px]"
         placeholder={t('search.chrome.placeholder', { defaultValue: 'Search for events near…' })}
         type="search"
         value=""
@@ -200,30 +208,32 @@ export function DrawerChrome({
   // The view's own header, so nothing moves when the view arrives. No title when nothing
   // resolved: a blank <h2> is a heading with no name, worse for a screen reader than none.
   return (
-    <NavHeader
-      actions={
-        <>
-          {/* All three still work — they navigate rather than read. The calendar and the
-              filters are scoped to the region whose page failed, which is exactly where a viewer
-              wanted to be. Not for a place that doesn't exist: there is nothing to scope them to,
-              and the message's own way out is the only one that leads anywhere.
-              shortcut: the loaded region page puts a search field under its title instead of
-              this icon, so the header changes when it arrives; match it when this chrome gets a
-              field skeleton. */}
-          {entry.kind === 'region' && !notFound && (
-            <>
-              <CalendarButton regionSlug={entry.slug} />
-              <SearchButton />
-              <FilterButton iconOnly />
-            </>
-          )}
-          {entry.kind === 'online' && <SearchButton />}
-          {entry.kind === 'calendar' && <FilterButton iconOnly />}
-        </>
-      }
-      close={entry.kind === 'filters'}
-      title={title}
-    />
+    <>
+      <NavHeader
+        actions={
+          <>
+            {/* Both still work — they navigate rather than read — and are scoped to the region
+                whose page failed, which is exactly where a viewer wanted to be. Not for a place
+                that doesn't exist: there is nothing to scope them to. */}
+            {entry.kind === 'region' && !notFound && (
+              <>
+                <CalendarButton regionSlug={entry.slug} />
+                <FilterButton iconOnly />
+              </>
+            )}
+            {entry.kind === 'calendar' && <FilterButton iconOnly />}
+          </>
+        }
+        close={entry.kind === 'filters'}
+        title={title}
+      />
+      {/* A dead place link keeps the band too: a search needs nothing from the place. */}
+      {hasFieldBand(entry) && (
+        <DrawerToolbar field>
+          {interactive ? <SearchField /> : <SearchFieldSkeleton />}
+        </DrawerToolbar>
+      )}
+    </>
   )
 }
 
@@ -333,11 +343,11 @@ export function ErrorPanel({ error, resetErrorBoundary }: FallbackProps) {
   return (
     <FallbackPanel
       align={fallbackAlign(entry?.kind)}
-      // The root and search chromes already lead with a geocoder, and a dead link
-      // asks for one — so without this check the screen would draw two: the
-      // header's and the body's. This uses the same predicate the chrome uses, so
+      // The root and search chromes lead with a geocoder, and a place's chrome has one under
+      // its title, while a dead link asks for one — so without this check the screen would
+      // draw two: the chrome's and the body's. These are the predicates the chrome uses, so
       // they cannot disagree about which routes those are.
-      hasSearchChrome={leadsWithGeocoder(entry)}
+      hasSearchChrome={leadsWithGeocoder(entry) || hasFieldBand(entry)}
       kind={kind === 'not-found' ? notFoundKind(entry?.kind) : kind}
       // The thrown developer string is not the headline. It is untranslated text written for
       // a developer, rendered to a viewer inside someone else's page. It survives as report
