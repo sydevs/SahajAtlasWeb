@@ -87,20 +87,42 @@ describe('EventListItem', () => {
     expect(html).toContain('data-event-row')
   })
 
-  it('left-aligns the card column: listRow items-stretch beats the Link atom items-center', () => {
+  it('left-aligns the card column beside a chevron, as a place row has', () => {
     const html = renderToStaticMarkup(
       <MemoryRouter>
         <EventListItem event={mockEventSlim} />
       </MemoryRouter>,
     )
 
-    // The first class attribute is the card anchor's (the <li> wrapper is bare).
-    const classes = (html.match(/class="([^"]*)"/)?.[1] ?? '').split(' ')
+    // The first class attribute is the anchor's (the <li> wrapper is bare),
+    // the next the content column's.
+    const [row, column] = [...html.matchAll(/class="([^"]*)"/g)].map((m) => m[1].split(' '))
 
-    expect(classes).toContain('flex-col')
-    expect(classes).toContain('items-stretch')
-    // The Link atom's inline-link `items-center` must lose the merge. On a
-    // flex-col card, it would centre every line of content.
-    expect(classes).not.toContain('items-center')
+    // The row centres the column against the chevron on purpose.
+    expect(row).toContain('flex-row')
+    expect(row).toContain('items-center')
+    // Inside the column nothing centres: titles, times, addresses and tags
+    // stay left-aligned, and `min-w-0` lets a long title wrap instead of
+    // pushing the chevron out.
+    expect(column).toContain('flex-col')
+    expect(column).toContain('min-w-0')
+    expect(column).not.toContain('items-center')
+  })
+
+  it('ends the row in the same mirrored chevron as a place row', () => {
+    const html = renderToStaticMarkup(
+      <MemoryRouter>
+        <EventListItem event={mockEventSlim} />
+      </MemoryRouter>,
+    )
+
+    const chevron = html.match(/<svg[^>]*lucide-chevron-right[^>]*>/)?.[0] ?? ''
+
+    expect(chevron).toContain('text-gray-9')
+    expect(chevron).toContain('rtl:-scale-x-100')
+    expect(chevron).toContain('shrink-0')
+    expect(chevron).toContain('width="20"')
+    // It is the row's last element, after the content column.
+    expect(html).toMatch(/lucide-chevron-right[\s\S]*<\/svg><\/a><\/li>$/)
   })
 })

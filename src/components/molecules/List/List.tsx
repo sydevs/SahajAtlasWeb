@@ -18,7 +18,8 @@ import { tv } from '@/styles/tv'
 export const listRow = tv({
   // `items-stretch` undoes the Link atom's `items-center`, its inline
   // icon-link alignment. On a flex-col card, that would centre every line
-  // of content. Row-shaped cards (ListItem) re-opt into `items-center` in
+  // of content. Row-shaped cards (ListItem, and EventListItem's row of
+  // content column plus chevron) re-opt into `items-center` in
   // their own classes, which wins the merge as the later conflict.
   base: 'block items-stretch px-gutter text-inherit transition-colors hover:bg-primary-2 active:bg-primary-3 dark:hover:bg-gray-3 dark:active:bg-gray-4',
 })

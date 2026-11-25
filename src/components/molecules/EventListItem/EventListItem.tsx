@@ -1,3 +1,4 @@
+import { ChevronRight } from 'lucide-react'
 import { memo, useEffect, useRef } from 'react'
 import { useTranslation } from 'react-i18next'
 
@@ -39,8 +40,9 @@ const MIN_DISTANCE_KM = 5
  * time, then the address with its distance faded below, or the online
  * hosted-from line), then the compact EventChips (a non-default type, a
  * non-UI language, and a "Today"). The facts carry the distance, not a
- * chip. The whole card is tappable, with a press state and no chevron. The
- * Link wrapper stays hookable for map-pin highlight (#44). The row is an
+ * chip. The whole card is tappable, with a press state, and ends in the
+ * same chevron as a place row, so a class looks as tappable as a place.
+ * The Link wrapper stays hookable for map-pin highlight (#44). The row is an
  * <li> wrapping the Link, so each card is a valid direct child of the
  * List's <ul> (#65). The List draws the divider between cards, not each
  * card.
@@ -121,26 +123,32 @@ function EventListItemImpl({ event, searchedPlace, showDistance = true }: EventL
           would break silently the day a card grows a second anchor. */}
       <Link
         data-event-row
-        className={listRow({ className: 'flex flex-col gap-1.5 py-4' })}
+        className={listRow({ className: 'flex flex-row items-center gap-1 py-4' })}
         href={event.path}
         onBlur={deactivate}
         onFocus={activate}
         onMouseEnter={activate}
         onMouseLeave={deactivate}
       >
-        <div className="line-clamp-2 text-lg">{event.title}</div>
-        <EventFacts
-          distance={
-            distanceText && (
-              <span aria-label={distanceLabel} title={distanceLabel}>
-                {distanceText}
-              </span>
-            )
-          }
-          event={event}
-          variant="compact"
-        />
-        <EventChips className="mt-1.5" event={event} variant="compact" />
+        <div className="flex min-w-0 flex-1 flex-col gap-1">
+          <div className="line-clamp-2 text-lg">{event.title}</div>
+          <EventFacts
+            className="mt-0.5 mb-1"
+            distance={
+              distanceText && (
+                <span aria-label={distanceLabel} title={distanceLabel}>
+                  {distanceText}
+                </span>
+              )
+            }
+            event={event}
+            variant="compact"
+          />
+          <EventChips className="mt-1" event={event} variant="compact" />
+        </div>
+        {/* ListItem's chevron. `min-w-0` on the column above lets a long
+            title wrap, and `shrink-0` here keeps the chevron whole. */}
+        <ChevronRight className="shrink-0 text-gray-9 rtl:-scale-x-100" size={20} />
       </Link>
     </li>
   )
