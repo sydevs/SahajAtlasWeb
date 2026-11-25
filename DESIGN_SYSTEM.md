@@ -34,7 +34,7 @@ src/components/
     Chip.tsx                  #   the component (PascalCase, matches the folder)
     Chip.stories.tsx          #   co-located Ladle stories
     index.ts                  #   component barrel: explicit `export { Chip }` + `ChipProps`
-  <tier>/index.ts             # tier barrel — the public import surface
+  <tier>/index.ts             # tier barrel — the public import surface (atoms carry none)
 src/views/      # URL-driven drawer screens (DrawerStack + one folder per route)
 src/lib/        # pure domain utilities (no React/i18n) — e.g. shape/event.ts (isSoon)
 ```
@@ -148,7 +148,7 @@ Folder-per-component, not re-exported through the component barrels.
 
 ## Conventions
 
-### Exports — named, one barrel per tier
+### Exports — named, one barrel per tier that has callers
 
 - **Use named exports** for every component (no `export default`). This keeps the
   barrels clean and import names greppable.
@@ -187,8 +187,8 @@ Folder-per-component, not re-exported through the component barrels.
       surfaces no primary.
 - **App code (views, stories) imports from the tier barrel**:
   `import { ListItem } from '@/components/molecules'`. The barrel is the public surface,
-  so layout can change behind it. ⚠ **Nothing imports `@/components/atoms`** — every view
-  takes an atom by its folder path, so an entry added to that barrel has no caller.
+  so layout can change behind it. ⚠ **Atoms have no tier barrel** — every view and story takes
+  an atom by its folder path, so the barrel that stood here surfaced 17 folders to no caller.
 - **Inside `src/components`, components import each other by the _component folder_
   path** (`@/components/atoms/Chip`, `@/components/molecules/EventFacts`), not
   through a tier barrel. Going through the tier barrel here risks import cycles (a
