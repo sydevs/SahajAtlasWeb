@@ -43,6 +43,16 @@ cover everything a host would notice since the widget was first deployed.
 
 ### Changed
 
+- **Every country, region and city panel has a search box under its title.** ([#485]) It is the
+  same "search for a place" field the first screen opens on, in place of the magnifier that led
+  to a separate search page, so a visitor who went into the wrong place can search again from
+  where they are. The box stays put while the list scrolls under it. Typing leaves the address
+  alone; picking a place opens its results with the active filters kept. The calendar and filter
+  controls stay in the header, and the panel shows the same box while it loads and when it
+  fails, in place of the old magnifier. While the box is on screen, the place search's hidden `aria-live`
+  region sits in your `<body>`, as it already did on the first screen. **No parameter, origin,
+  CSP, storage or Permissions-Policy change.**
+
 - **Every class in a list ends with the same arrow as a place.** ([#488]) A class row in a
   region's or a search's list now shows the grey chevron a country, region or city row has always
   shown, so a class looks as tappable as a place. The arrow takes about 24px from the title, so a
@@ -50,8 +60,8 @@ cover everything a host would notice since the widget was first deployed.
   whole row is still one link. **No parameter, origin, CSP, storage or Permissions-Policy
   change.**
 
-- **Place slugs may contain non-ASCII letters, and URLs carry them percent-encoded.** A region's
-  slug keeps its native letters, lowercased (`/bg/софия` where it was `/bg/sofiya`;
+- **Place slugs may contain non-ASCII letters, and URLs carry them percent-encoded.** ([#483]) A
+  region's slug keeps its native letters, lowercased (`/bg/софия` where it was `/bg/sofiya`;
   `/de/trier/universität-trier` where it was `universitat-trier`). On the wire, in
   `routing=path` pathnames and in `?atlas=` values, they are percent-encoded
   (`/bg/%D1%81%D0%BE%D1%84%D0%B8%D1%8F`), and the widget resolves either spelling to the same
@@ -602,6 +612,10 @@ no-referrer`.
   opens — so there was no way to discover this from the widget. See [Permissions Policy].
 
 ### Fixed
+
+- **The place-search box is its normal height on touch screens.** ([#485]) On a phone or tablet
+  it drew about three times as tall as intended (132px instead of 44px), pushing the list below
+  it down the panel. No parameter, origin or CSP change.
 
 - **An event's structured data now names your organization as the organizer.** ([#442]) The widget
   reads that name from the public name on your client record, and had been reading a field the
@@ -1247,6 +1261,8 @@ must-revalidate`, pinned rather than left to the CDN default. The production dom
   (`//evil.com`) and non-allowlisted-scheme hrefs. Defense in depth — no live hole was
   found. ([#111], [#136])
 
+[#485]: https://github.com/sydevs/SahajAtlasWeb/pull/485
+[#483]: https://github.com/sydevs/SahajAtlasWeb/pull/483
 [#478]: https://github.com/sydevs/SahajAtlasWeb/pull/478
 [#469]: https://github.com/sydevs/SahajAtlasWeb/pull/469
 [#192]: https://github.com/sydevs/SahajAtlasWeb/pull/192
