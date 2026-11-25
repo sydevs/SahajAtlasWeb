@@ -51,6 +51,17 @@ cover everything a host would notice since the widget was first deployed.
   place. A host that matches or rewrites these paths must decode each segment before matching,
   and must not assume `[a-z0-9-]`. **No parameter, origin, CSP, storage or Permissions-Policy change.**
 
+- **The map's buttons sit together in its top right corner.** ([#482]) Find my location, then
+  settings, are two round buttons there — 40px, and 44px on a touch screen — with Mapbox's
+  credits button beside them; in a window 480px tall or less they run as a row. Settings moved
+  there from beside the panel. With a mouse or the keyboard, each shows its name beside it. Both
+  follow the dark theme in every state, where the locate button used to stay white. Mapbox's own
+  locate button (`.mapboxgl-ctrl-geolocate`) is no longer shown: the widget draws its own and
+  drives Mapbox's from it, so a host rule styling Mapbox's button no longer reaches it. A blocked
+  location now opens the "could not get a location" notice instead of a disabled button. Every
+  button shows the pointer cursor again. **No parameter, origin, CSP, storage or
+  Permissions-Policy change.**
+
 - **The panel's text, edges and corners follow one system.** ([#471]) Titles are larger (20px)
   than the rows under them (16px); times, addresses, Filters, Sort and the Register button are a
   touch larger, without letter spacing. The header, search box, notices, list and buttons share
@@ -1333,3 +1344,4 @@ must-revalidate`, pinned rather than left to the CDN default. The production dom
 [#446]: https://github.com/sydevs/SahajAtlasWeb/pull/446
 [#447]: https://github.com/sydevs/SahajAtlasWeb/pull/447
 [#470]: https://github.com/sydevs/SahajAtlasWeb/pull/470
+[#482]: https://github.com/sydevs/SahajAtlasWeb/pull/482

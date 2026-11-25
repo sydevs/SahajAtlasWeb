@@ -54,7 +54,7 @@ export interface DropdownProps {
 }
 
 const dropdownTrigger = tv({
-  base: 'cursor-pointer',
+  base: '',
   variants: { fullWidth: { true: 'w-full', false: 'inline-block' } },
   defaultVariants: { fullWidth: false },
 })

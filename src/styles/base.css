@@ -27,6 +27,15 @@
   margin: 0;
 }
 
+/* Tailwind 4's Preflight dropped v3's `cursor: pointer` on buttons, so every <button> in the
+   widget fell back to the browser's arrow. Restored the way Tailwind's upgrade guide suggests.
+   `:where()` keeps the specificity to the element alone, so a `cursor-*` utility on any one
+   control still wins, and a disabled control keeps the arrow. */
+button:where(:not(:disabled)),
+:where([role='button']:not([aria-disabled='true'])) {
+  cursor: pointer;
+}
+
 /* Keyed on `.sy-carousel` — a class ONLY our ImageCarousel sets — not on `.swiper`
    or `:root`. `.swiper` is Swiper's own class, so theming it repaints every Swiper
    instance in the widget rather than this one. The reason used to be wider: before

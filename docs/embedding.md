@@ -1067,7 +1067,7 @@ by a `Permissions-Policy` header on your own page.
 
 | Feature           | What uses it                                                                      | What breaks without it                                       |
 | ----------------- | --------------------------------------------------------------------------------- | ------------------------------------------------------------ |
-| `geolocation`     | The map's "find my location" control, which opens the classes nearest the visitor | The control is disabled, or says it could not get a location |
+| `geolocation`     | The map's "find my location" control, which opens the classes nearest the visitor | The control says it could not get a location                 |
 | `clipboard-write` | The copy-link button on the share sheet                                           | Copying silently fails                                       |
 | `web-share`       | The native share sheet on mobile                                                  | The share button falls back to the copy/link list            |
 
@@ -1289,18 +1289,17 @@ content at phone widths. The desktop layout is unchanged but for one control —
 sheet's round network icons, which are 44px on every device, because that library sizes its
 button off the icon. Nothing here changes your CSP or your Permissions Policy.
 
-**The map canvas and the two controls over it are Mapbox GL's, and the list above does not
+**The map canvas and the attribution over it are Mapbox GL's, and the list above does not
 cover them.** The canvas's keyboard behaviour is theirs rather than ours, and so is the
-geometry of "find my location" and of the attribution — there is no zoom control. Measured
-against mapbox-gl 3.35.0, unchanged by us: the locate button answers to 32 × 32 CSS px and the
-attribution's information button to 24 × 24, both under the 44px floor. The attribution is also
-the one control we may not resize, since Mapbox's attribution guide sanctions exactly one
-collapsed form of it.
+attribution's information button, drawn at 24 × 24 CSS px: the one control we may not resize,
+since Mapbox's attribution guide sanctions exactly one collapsed form of it. On a touch screen it
+answers to 44 × 44 through an invisible tap area. "Find my location" and the settings button
+beside it are our own buttons, 40px on a desktop and 44px on a touch screen.
 
 **Nor does the check reach them**, for a mechanical reason worth stating rather than leaving
 you to assume: it drives our component library, where the map renders a "needs an access token"
-notice in place of itself, so no map control is ever loaded for it to measure. Those two are
-checked by hand against a real map instead.
+notice in place of itself, so no map control is ever loaded for it to measure. The map's controls
+are checked by hand against a real map instead.
 
 ## Privacy, storage and third-party requests
 

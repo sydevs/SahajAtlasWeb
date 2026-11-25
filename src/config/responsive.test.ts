@@ -144,6 +144,8 @@ describe('the container-vs-viewport decision table', () => {
  */
 const RAW_VIEWPORT_READERS: Record<string, string> = {
   // The height of the box the sheet covers, when no frame owns it, to cap the camera padding.
+  // The width of the box a control's label opens in, when no frame owns it, to pick its side.
+  'components/atoms/HoverLabel/HoverLabel.tsx': 'grows a label rightward when the left has no room',
   'hooks/use-map-controller-real.tsx': 'caps camera padding for a short viewport',
   'lib/slot-decision.ts':
     'the slot decision: compares the host slot to the viewport, and a frame to the screen, before React renders',

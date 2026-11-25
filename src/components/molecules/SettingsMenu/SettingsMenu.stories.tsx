@@ -33,7 +33,7 @@ export const Default: Story = () => (
     </StorySection>
 
     <StorySection
-      description="`side` points the panel away from the trigger's screen position — bottom for the top-left cog on the map, top for the bottom-left cog when map-less."
+      description="`side` points the panel away from the trigger's screen position — bottom for the cog atop the map's control column, top for the bottom-left cog when map-less. On the map it also takes `align` `end`, so the panel lines up under the right-hand column."
       title="Sides"
     >
       <div className="flex items-center gap-10 py-3">
