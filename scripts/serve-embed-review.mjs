@@ -59,7 +59,7 @@
  * confirm rather than assume. What needs no backend at all: which chunks
  * are fetched (mapbox-gl in particular), the slot decision's console
  * message, CSS scoping, and icon rendering. The browser lane needs none
- * either: it answers SahajCloud from `src/mocks/wire.ts`.
+ * either: it answers SahajCloud from `src/mocks/sahajcloud.ts`.
  */
 
 import { createReadStream, existsSync, statSync } from 'node:fs'
