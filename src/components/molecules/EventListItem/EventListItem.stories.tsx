@@ -5,6 +5,7 @@ import { StoryWrapper, StorySection } from '../../ladle'
 import { EventListItem } from './EventListItem'
 import { EventListItemSkeleton } from './EventListItemSkeleton'
 
+import { Skeleton } from '@/components/atoms/Skeleton'
 import { List } from '@/components/molecules/List'
 import { mockEventSlim, mockEventSlimOnline } from '@/mocks/events'
 
@@ -84,12 +85,12 @@ export const Default: Story = () => (
       title="Loading"
     >
       <div className="grid max-w-3xl grid-cols-2 gap-4">
-        <div className="overflow-hidden rounded-lg border border-divider">
+        <Skeleton className="overflow-hidden rounded-lg border border-divider">
           <List>
             <EventListItemSkeleton />
             <EventListItemSkeleton online width="w-4/5" />
           </List>
-        </div>
+        </Skeleton>
         <div className="overflow-hidden rounded-lg border border-divider">
           <List>
             <EventListItem event={mockEventSlim} />

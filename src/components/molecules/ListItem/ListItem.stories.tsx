@@ -9,6 +9,7 @@ import { ListItem } from './ListItem'
 import { ListItemSkeleton } from './ListItemSkeleton'
 
 import { FLAG_CDN_URL } from '@/lib/flag-cdn'
+import { Skeleton } from '@/components/atoms/Skeleton'
 import { List } from '@/components/molecules/List'
 
 export default { title: 'Molecules / List' } satisfies StoryDefault
@@ -113,12 +114,12 @@ export const Default: Story = () => (
       title="Loading"
     >
       <div className="grid max-w-3xl grid-cols-2 gap-4">
-        <div className="overflow-hidden rounded-lg border border-divider">
+        <Skeleton className="overflow-hidden rounded-lg border border-divider">
           <List>
             <ListItemSkeleton icon />
             <ListItemSkeleton width="w-1/3" />
           </List>
-        </div>
+        </Skeleton>
         <div className="overflow-hidden rounded-lg border border-divider">
           <List>
             <ListItem
