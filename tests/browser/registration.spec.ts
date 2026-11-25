@@ -1,6 +1,6 @@
 import type { Page } from '@playwright/test'
 
-import { WIRE_EVENT, wire } from '../../src/mocks/wire'
+import { SAHAJCLOUD_EVENT, sahajCloud } from '../../src/mocks/sahajcloud'
 import en from '../../src/config/translations.en.json' with { type: 'json' }
 
 import { LANE_API_ORIGIN } from './lane.mjs'
@@ -11,7 +11,7 @@ import { expect, hostPage, test, widget } from './fixtures'
 //
 // The failure is a server error rather than offline mode, which takes a copy path of its own.
 
-const REGISTER = `${WIRE_EVENT.path}/register`
+const REGISTER = `${SAHAJCLOUD_EVENT.path}/register`
 
 /** Fills the form and submits it once the challenge has handed over its token. */
 async function register(page: Page) {
@@ -41,7 +41,7 @@ test('a registration SahajCloud accepts shows the confirmation', async ({ page }
 
   expect(request.postDataJSON()).toMatchObject({
     type: 'registration',
-    event: WIRE_EVENT.id,
+    event: SAHAJCLOUD_EVENT.id,
     senderEmail: 'ada@example.org',
   })
   expect(await request.headerValue('x-turnstile-token')).toMatch(/^browser-lane-token-\d+$/)
@@ -52,7 +52,7 @@ test('a registration SahajCloud fails shows the failure, not the confirmation', 
   page,
   lane,
 }) => {
-  await lane.answerSahajCloud('/user-submissions', { status: 500, json: wire.serverError })
+  await lane.answerSahajCloud('/user-submissions', { status: 500, json: sahajCloud.serverError })
   await page.goto(hostPage('sidebar-mapless.html', REGISTER))
   await register(page)
 
