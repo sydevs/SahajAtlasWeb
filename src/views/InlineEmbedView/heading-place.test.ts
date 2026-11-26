@@ -61,6 +61,15 @@ describe('the place the inline heading names', () => {
     expect(place('/search')).toBeUndefined()
   })
 
+  it('finds a place by its Unicode slug, encoded or raw, whatever its normal form (#483)', () => {
+    // A URL arrives NFC once decoded; a slug typed by hand into SahajCloud can be NFD.
+    const munich = node(6, 'mu\u0308nchen', 'München', 'city', 2, '/gb/south-east/mu\u0308nchen')
+    const regions = [...REGIONS, munich]
+
+    expect(headingPlace('/gb/south-east/m%C3%BCnchen', regions, countryName)).toBe('München')
+    expect(headingPlace('/gb/south-east/m\u00fcnchen', regions, countryName)).toBe('München')
+  })
+
   it('names a country before the tree has loaded, and waits for it for anything else', () => {
     expect(headingPlace('/gb', undefined, countryName)).toBe('Royaume-Uni')
     expect(headingPlace('/gb/south-east/london', undefined, countryName)).toBeUndefined()

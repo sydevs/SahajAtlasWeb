@@ -1,6 +1,12 @@
 import type { RegionNode } from '@/types'
 
-import { isoCountryCode, placePathsOf, placedPathname, resolveStack } from '@/lib/shape'
+import {
+  indexRegions,
+  isoCountryCode,
+  placePathsOf,
+  placedPathname,
+  resolveStack,
+} from '@/lib/shape'
 
 /**
  * The place the inline embed's heading names for a route: the deepest region on it that is not
@@ -18,7 +24,8 @@ export function headingPlace(
   regions: readonly RegionNode[] | undefined,
   countryName: (code: string) => string | undefined,
 ): string | undefined {
-  const nodes = new Map(regions?.map((node) => [node.slug, node]))
+  // Answers to both normal forms of a slug, as a URL's decoded one is NFC (`indexRegions`).
+  const nodes = indexRegions(regions ?? []).bySlug
   const entries = resolveStack(placedPathname(pathname, placePathsOf(regions)))
 
   for (const entry of [...entries].reverse()) {
