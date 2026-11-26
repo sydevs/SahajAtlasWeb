@@ -41,6 +41,10 @@ describe('foldHeight', () => {
     expect(foldHeight({ ...base, foldBottom: 120, frameHeight: 844 })).toBe(SHEET_OPEN_PX)
   })
 
+  it('keeps the two thirds on a phone on its side, where that is under the open stop', () => {
+    expect(foldHeight({ ...base, frameHeight: 375 })).toBe(247)
+  })
+
   it('ignores rows that have not laid out yet', () => {
     expect(foldHeight({ ...base, foldBottom: 0 })).toBeNull()
     expect(foldHeight({ ...base, frameHeight: 0 })).toBeNull()

@@ -63,6 +63,8 @@ export function foldHeight({
 
   const fold = Math.ceil(foldBottom + FOLD_GAP_PX + footerSpace)
 
+  // Under a 540px frame the share already sits below the open stop, and it wins: a phone on its
+  // side has no third of a map to spare, and `shortSheetCap` holds every stop lower there anyway.
   return Math.floor(Math.min(Math.max(fold, SHEET_OPEN_PX), frameHeight * FOLD_MAX_SHARE))
 }
 
