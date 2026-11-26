@@ -14,6 +14,7 @@ import {
 import { baseStackEntry, resolveStack } from '@/lib/shape/path'
 import {
   FieldSkeleton,
+  LOADING_BODY_CLIP,
   PanelSkeletonBody,
   PanelSkeletonHeader,
   panelShape,
@@ -65,7 +66,7 @@ export function BootFallback() {
             <FieldSkeleton />
           </div>
         )}
-        <div className={slots.body()}>
+        <div className={slots.body({ className: LOADING_BODY_CLIP })}>
           {/* The phone sheet pins Register to its foot once the class arrives. */}
           {shape && <PanelSkeletonBody body={shape.body} cta={isWide} />}
         </div>

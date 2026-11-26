@@ -153,6 +153,14 @@ function ClassPage({ cta }: { cta: boolean }) {
 }
 
 /**
+ * Clips the scroll container a loading panel's body sits in. Nothing inside is focusable, so a
+ * scrollable body is one no keyboard can scroll (axe `scrollable-region-focusable`), and its
+ * placeholders are nothing to scroll to. `clip` rather than `hidden`, which is still a scroll
+ * container (#326).
+ */
+export const LOADING_BODY_CLIP = 'overflow-y-clip'
+
+/**
  * What fills a loading panel, marked loading so the phone sheet holds still until the content
  * arrives (`useFitSnap`), and announced once, in words.
  *

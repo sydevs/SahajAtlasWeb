@@ -1,7 +1,12 @@
 import type { Story, StoryDefault } from '@ladle/react'
 import type { PanelShape } from './PanelSkeleton'
 
-import { FieldSkeleton, PanelSkeletonBody, PanelSkeletonHeader } from './PanelSkeleton'
+import {
+  FieldSkeleton,
+  LOADING_BODY_CLIP,
+  PanelSkeletonBody,
+  PanelSkeletonHeader,
+} from './PanelSkeleton'
 
 import { StoryWrapper, StorySection } from '@/components/ladle'
 import { RESULTS_BAND, drawer } from '@/components/atoms/Drawer/drawer-style'
@@ -53,7 +58,7 @@ function Panel({ shape, cta }: { shape: PanelShape; cta?: boolean }) {
           <FieldSkeleton />
         </div>
       )}
-      <div className={slots.body()}>
+      <div className={slots.body({ className: LOADING_BODY_CLIP })}>
         <PanelSkeletonBody body={shape.body} cta={cta} />
       </div>
     </div>

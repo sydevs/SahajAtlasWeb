@@ -23,7 +23,9 @@ vi.mock('@/hooks/use-locale', () => ({
   useLocale: () => ({ locale: 'en', regionNames: { of: () => undefined } }),
 }))
 vi.mock('@/components/atoms/Drawer', () => ({
-  DrawerBody: ({ children }: { children: ReactNode }) => <section>body:{children}</section>,
+  DrawerBody: ({ children, className }: { children: ReactNode; className?: string }) => (
+    <section className={className}>body:{children}</section>
+  ),
   DrawerHeader: ({ children }: { children: ReactNode }) => <header>{children}</header>,
   DrawerToolbar: ({ children, field }: { children: ReactNode; field?: boolean }) => (
     <aside>
@@ -71,6 +73,10 @@ describe("a place page's loading and error chrome", () => {
     expect(markup).not.toMatch(/<input[\s>]/)
   })
 
+  it('clips the placeholder body, which holds no stop a keyboard could scroll it from', () => {
+    expect(at('/gb/south-east', <DrawerLoading />)).toContain('<section class="overflow-y-clip">')
+  })
+
   it('fails with the same header, a live field, and no second field in the body', () => {
     const markup = at('/gb/south-east', error('server'))
 
@@ -90,7 +96,7 @@ describe("a place page's loading and error chrome", () => {
   it('gives the online classes page no search control, as its view has none', () => {
     const markup = at('/gb/online', <DrawerLoading />)
 
-    expect(markup).toMatch(/^<header><\/header><section>body:/)
+    expect(markup).toMatch(/^<header><\/header><section class="overflow-y-clip">body:/)
   })
 
   it("leaves the root's field in its header, as CountriesView has it, and the body without one", () => {
