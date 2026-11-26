@@ -107,7 +107,11 @@ const POLICY_KEYS = [...allSource.matchAll(/messageKey: '([a-z_][a-zA-Z0-9_.]*)'
 )
 
 const REFUSAL_KEYS = [
-  ...['ReportIssueForm/ReportIssueForm', 'RegistrationForm/RegistrationForm'].flatMap((file) => {
+  ...[
+    'ReportIssueForm/ReportIssueForm',
+    'RegistrationForm/RegistrationForm',
+    'EventSubmissionForm/EventSubmissionForm',
+  ].flatMap((file) => {
     const source = readSource(`components/organisms/${file}.tsx`)
 
     return [
@@ -219,9 +223,7 @@ describe('every key a call site asks for', () => {
  * wholesale, so a sync for one ticket carries every other ticket's pending key with it (#316).
  * Delete an entry in the PR that wires it: the pin below fails until you do.
  */
-const PENDING_KEYS: Record<string, string> = {
-  'registration.form.subscribe': 'sydevs/SahajAtlasWeb#147',
-}
+const PENDING_KEYS: Record<string, string> = {}
 
 /**
  * The mirror image: copy whose last call site is gone, each with the SahajCloud ticket that

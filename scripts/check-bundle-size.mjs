@@ -92,6 +92,12 @@ import { annotate, report } from './_ci-output.mjs'
 // Every step to today's three figures, newest first, as standalone/embed and as
 // loader. `git log -p` on this constant holds each one in full, dated.
 //
+//   338/336  324.8/325.9  #318  `add`/`correct` routes, the mailing-list schema
+//                               field, and the submission helpers all three
+//                               forms share, +2.9 KiB on both graphs. Chunk
+//                               counts held at 8/3/8, so the `SENTRY_GAP_KIB`
+//                               entries stand. The two budgets differ, so this
+//                               column pairs them
 //   336  321.9/323.1  #449  framer-motion 14, merged in from `main`, +5.8 KiB;
 //                           budget held, as above
 //   336  316.1/317.2  #446  React 19: `react` + `react-dom/client` alone gzip
@@ -131,7 +137,7 @@ import { annotate, report } from './_ci-output.mjs'
 // glyphs cost less than the hand-drawn path data they replaced. A swap that
 // adds a dependency can still win space.
 export const BUDGET_KIB = {
-  standalone: 336,
+  standalone: 338,
   loader: 3.6,
   embed: 336,
 }

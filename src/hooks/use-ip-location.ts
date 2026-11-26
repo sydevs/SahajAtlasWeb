@@ -1,3 +1,4 @@
+import { createContext, useContext } from 'react'
 import { useQuery } from '@tanstack/react-query'
 
 import { IpLocationSchema, type IpLocation } from '@/types'
@@ -31,6 +32,12 @@ export async function fetchIpLocation(): Promise<IpLocation | null> {
   }
 }
 
+/**
+ * `false` keeps every lookup in a subtree from running — for a surface that only previews an
+ * event, like the add-a-class listing, where nobody has asked for anything localized yet.
+ */
+export const IpLookupContext = createContext(true)
+
 // This is one passive lookup per session.
 // `staleTime` and `gcTime` at `Infinity` keep the single result cached and shared across the top-level views, so it never refetches.
 // Pass `enabled: false` to skip the lookup entirely, such as when the suggestion is already dismissed.
@@ -45,10 +52,11 @@ export async function fetchIpLocation(): Promise<IpLocation | null> {
 // If a host ever needs to refuse this flow, the answer is a client-record setting, not a script parameter.
 // The embed URL is not where somebody else's compliance posture should live.
 export function useIpLocation(enabled = true): IpLocation | null {
+  const allowed = useContext(IpLookupContext)
   const { data } = useQuery({
     queryKey: ['ip-location'],
     queryFn: fetchIpLocation,
-    enabled,
+    enabled: enabled && allowed,
     staleTime: Infinity,
     gcTime: Infinity,
   })

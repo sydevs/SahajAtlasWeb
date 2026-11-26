@@ -17,7 +17,13 @@ import { useIsWideWidget } from '@/config/responsive'
 import { useLocale } from '@/hooks/use-locale'
 import { useMapController } from '@/hooks/use-map-controller'
 import { classifyError, errorMessage } from '@/lib/report'
-import { baseStackEntry, isoCountryCode, nearestKnownRegion, resolveStack } from '@/lib/shape'
+import {
+  baseStackEntry,
+  isoCountryCode,
+  nearestKnownRegion,
+  resolveStack,
+  submitTitleKey,
+} from '@/lib/shape'
 import {
   LOADING_BODY_CLIP,
   SkeletonBody,
@@ -146,6 +152,9 @@ export function DrawerChrome({
         return t('registration.form.title', { defaultValue: 'Register for Meditation' })
       case 'share':
         return t('share.title', { defaultValue: 'Share Meditation' })
+      case 'add':
+      case 'correct':
+        return t(submitTitleKey(entry.kind))
       default:
         return undefined
     }
@@ -340,6 +349,7 @@ const notFoundKind = (kind: StackEntry['kind'] | undefined): FallbackKind => {
     case 'event':
     case 'register':
     case 'share':
+    case 'correct':
       return 'not-found-event'
     case 'region':
     case 'online':

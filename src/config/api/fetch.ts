@@ -788,6 +788,10 @@ const getEventDoc = async (id: number): Promise<EventDoc> => {
         registrationLimit: true,
         registrationsFull: true,
         registrationQuestions: true,
+        // Virtual, and resolved on this single-document read only — `null` on every list read
+        // and absent from the feed. SahajCloud's `ensureVirtualFieldDeps` re-adds the `region`
+        // it is computed from on its own.
+        offersMailingList: true,
         region: true,
         verificationStage: true,
         webPath: true,
@@ -871,6 +875,7 @@ export const TRANSLATION_SELECT = {
   event: { display: true, actions: true, recurrence: true },
   calendar: true,
   registration: true,
+  submit: true,
   share: true,
 } as const
 

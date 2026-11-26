@@ -43,6 +43,7 @@ export const WIDGET_TRANSLATION_TABS = [
   'event',
   'calendar',
   'registration',
+  'submit',
   'share',
 ] as const
 

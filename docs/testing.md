@@ -580,6 +580,17 @@ Five things about it are deliberate:
   either way — a green required check that had read nothing. With the first mutation required,
   three runs measured 645, 655 and 655 controls, clean, in about 43s (2026-11-22, 4 cores).
   ⚠ A story that mutates nothing is still released by the 4s cap, so the wait cannot hang the gate.
+  ⚠ **A quiet DOM is not a finished one: a chunk in flight mutates nothing.** A story behind a
+  `lazy` import holds its Suspense fallback without a single mutation while the chunk loads, so
+  the window closes inside the fetch. Measured on `views--event` with that chunk held 1.5s: the
+  audit read **2 controls instead of 12**, and the panel landing mid-walk was reported as out of
+  document order, naming the first control it brought. So the network is waited on first, out of
+  the same 4s budget — **our own scripts and sheets only**, since a wait on the whole network is a
+  wait on `views--registration`'s Turnstile iframe, whose focus indicator is Cloudflare's. A stop
+  the audit never stamped also abstains from the order check now, as it already did from the
+  focus-indicator one — it has no document position to be compared against. ⚠ The wait costs
+  real time: measured 2026-11-24 on 4 cores, 54 stories, 790 controls, **52s before it and 2m20
+  after**, of which the settle itself accounts for about 0.3s a story. The rest is unexplained.
 - **It reads a BUILD, never `ladle serve`.** The dev server compiles a story when it is opened,
   so a story that failed to build would pass by never having been built. `--origin
 http://localhost:61000` points it at the dev server anyway, for the local fix loop only.
@@ -923,18 +934,19 @@ to select from. The full lane still runs in the lean gate (`.claude/skills/pr-pr
 in CI, so this narrows the inner loop, not the gate.
 
 **What holds the budget is the selection's width, and `scripts/select-unit-specs.test.ts` pins
-that**: the widest edit in the tree, exhaustively through the real composition, at 23 against a
-ceiling of 23 — no headroom, so the next spec reading a repo file through `repo-source` trips it,
+that**: the widest edit in the tree, exhaustively through the real composition, at 24 against a
+ceiling of 24 — no headroom, so the next spec reading a repo file through `repo-source` trips it,
 and the answer is to time the hook and ratchet, never to drop a spec. ⚠ **Two PRs can trip it
 without either one doing so alone**: #322's `mobile-zoom.test.ts` and #324's `attribution.test.ts`
 each took a slot, and the pin went red on the merge rather than on either branch; #328's
 `Drawer.scroll.test.tsx` ratcheted it from 17 to 18, #17's
-`BrandTheme.palette.test.tsx` from 18 to 19, `theme-color.test.ts` from 19 to 20, and
-`assert-classic-bridge.test.ts` from 21 to 22, and `gutter.test.tsx` from 22 to 23. ⚠ Width is
-not time, and which of
-the pair is slower has flipped across machines — `i18n.ts` selects 12, four of them jsdom, and
-measured 6.0s against the widest's 4.4s at twenty-three (2026-11-24, 4 cores), 6.2s against 5.5s
-at nineteen, having been the faster
+`BrandTheme.palette.test.tsx` from 18 to 19, `theme-color.test.ts` from 19 to 20,
+`assert-classic-bridge.test.ts` from 21 to 22, and `gutter.test.tsx` from 22 to 23 — and then
+#318's `add-class-entry.test.ts` from 23 to 24, on the merge again, since neither #318 nor
+`gutter.test.tsx` trips the next step alone. ⚠ Width is not time, and which of
+the pair is slower has flipped across machines — `i18n.ts` selects 19, eight of them jsdom, and
+measured 6.6s against the widest's 4.3s at twenty-four (2026-11-24, 4 cores), 6.0s against 4.4s
+at twenty-three, 6.2s against 5.5s at nineteen, having been the faster
 of the two at eighteen — so width
 bounds the slice, never the time, and a jump in either is a re-measure of both. It also pins each
 of the three specifier forms, end to end against this tree; the tree-walking set as a closed list,

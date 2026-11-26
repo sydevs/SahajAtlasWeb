@@ -2,7 +2,9 @@ import type { ReactNode } from 'react'
 import type { RegionNode } from '@/types'
 
 import { useQueryClient } from '@tanstack/react-query'
+import clsx from 'clsx'
 import { ChevronLeft, X } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 
 import { Button } from '@/components/atoms/Button'
 import { DrawerHeader } from '@/components/atoms/Drawer'
@@ -69,6 +71,30 @@ export function BackButton({ iconOnly = false }: { iconOnly?: boolean }) {
 }
 
 /**
+ * The X: the way out of a panel that covers a view rather than replacing it — the filters over
+ * the calendar, and the add-a-class flow, whose listing stays live behind its step panel.
+ */
+export function CloseButton({ className }: { className?: string }) {
+  // This renders inside the error/loading chrome, where a suspend would escape the
+  // boundary and blank the widget instead of showing the failure. `useTranslation()`
+  // cannot suspend: the English snapshot is bundled, and i18next initialises
+  // synchronously with no backend to wait on (`config/i18n.ts`).
+  const { t } = useTranslation()
+  const { dismiss } = useDrawerControl()
+
+  return (
+    <Button
+      {...HEADER_CONTROL}
+      aria-label={t('common.chrome.close')}
+      className={clsx(HEADER_EDGE, className)}
+      onClick={dismiss}
+    >
+      <X size={20} />
+    </Button>
+  )
+}
+
+/**
  * The top row of a header below the root: Back at the start, the view's controls at the end.
  * Pulled down to the peek, those controls give way to the plain way to raise the sheet again,
  * because a drag handle is easy to miss and a keyboard can't use it.
@@ -112,25 +138,16 @@ export function NavHeader({
   close = false,
   pendingTitle = false,
 }: NavHeaderProps) {
-  const { t } = useLocale()
   // The filters' own drawer over the calendar marks its control, so its loading and error
   // chrome closes the same way.
-  const { overlay, dismiss } = useDrawerControl()
+  const { overlay } = useDrawerControl()
 
-  // The one place an X still means something: a panel over a view, closing back onto what is
-  // still on screen behind it. Going somewhere is Back's job.
+  // An X closes back onto what is still on screen behind it. Going somewhere is Back's job.
   if (close || overlay) {
     return (
       <DrawerHeader className="justify-between">
         {title ? <DrawerTitle title={title} /> : <div />}
-        <Button
-          {...HEADER_CONTROL}
-          aria-label={t('common.chrome.close')}
-          className={HEADER_EDGE}
-          onClick={dismiss}
-        >
-          <X size={20} />
-        </Button>
+        <CloseButton />
       </DrawerHeader>
     )
   }

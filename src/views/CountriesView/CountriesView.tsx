@@ -6,6 +6,7 @@ import { useTranslation } from 'react-i18next'
 
 import { DrawerBody, DrawerHeader } from '@/components/atoms/Drawer'
 import { MeditateFigure } from '@/components/atoms/Icons'
+import { Link } from '@/components/atoms/Link'
 import { ActiveFilterPills, FallbackPanel, List, ListItem } from '@/components/molecules'
 import api, { clientQuery, countriesQuery } from '@/config/api'
 import atlasAuth from '@/config/api/auth'
@@ -13,7 +14,13 @@ import { useEventFilters, useFilterSearch, useSetFilters } from '@/hooks/use-fil
 import { useLocale } from '@/hooks/use-locale'
 import { useMapController } from '@/hooks/use-map-controller'
 import { useWidgetMode } from '@/config/mode'
-import { DEFAULT_FILTERS, filtersKey, filtersToParams, hasActiveFilters } from '@/lib/shape'
+import {
+  DEFAULT_FILTERS,
+  addClassPath,
+  filtersKey,
+  filtersToParams,
+  hasActiveFilters,
+} from '@/lib/shape'
 import { FLAG_CDN_URL } from '@/lib/flag-cdn'
 import { validateWebUrl } from '@/lib/url'
 import {
@@ -142,6 +149,9 @@ export function CountriesView() {
           </List>
         )}
         <GeolocationSuggestion position="below" />
+        <Link appearance="footnote" href={addClassPath()}>
+          {t('submit.chrome.add_entry')}
+        </Link>
       </DrawerBody>
     </>
   )

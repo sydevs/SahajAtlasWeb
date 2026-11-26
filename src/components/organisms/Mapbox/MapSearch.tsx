@@ -21,14 +21,12 @@ import {
   searchCountryScope,
 } from '@/lib/shape'
 
-/**
- * The place search field. What is typed stays in the field: the URL changes only when a place is
- * picked (`onSelect`), never per keystroke. Half-typed text in `?q` renamed everything that reads
- * it, so every result card said "5.1 km from Prag" over London's classes.
- */
 export interface MapSearchProps {
   /** Called with the geocoded place the user picked from the suggestions. */
   onSelect: (value: GeocodingFeature) => void
+  /** The field's text. Its owner decides where that lives — a form draft, or `?q`. */
+  value: string
+  onChange: (text: string) => void
   /**
    * This is the accessible name and placeholder. It defaults to the "search
    * for events near…" phrasing, which is right in a header, where position
@@ -36,6 +34,16 @@ export interface MapSearchProps {
    * events when the field sits in an error body instead.
    */
   label?: string
+  /**
+   * Restricts suggestions to these Geocoding feature types, comma-separated — `place` for an
+   * online class's city, `address` for a venue (#147). `PLACE_TYPES` when omitted.
+   */
+  types?: string
+  /**
+   * Biases suggestions toward this point rather than the map's centre or the visitor's own area —
+   * the region an add-a-class flow opened from, which a map-less embed has no camera to say.
+   */
+  proximity?: { lng: number; lat: number }
   /**
    * Ask Mapbox for a result that may be stored. Its terms allow keeping an id
    * only when the lookup that produced it carried this, and such lookups bill
@@ -84,10 +92,22 @@ const searchBias = (zoom: number | undefined, center: LngLatLike | undefined) =>
 // Long enough to span a typing pause, short enough to answer a finished query promptly.
 const NOT_FOUND_SETTLE_MS = 300
 
-export function MapSearch({ onSelect, label, permanent }: MapSearchProps) {
+/**
+ * The geocoder field. It renders the text it is given and reports what was picked. Where that text
+ * lives is its owner's question — `SearchField` follows `?q`, the add-a-class Where step keeps it
+ * beside the draft.
+ */
+export function MapSearch({
+  onSelect,
+  value,
+  onChange,
+  label,
+  types,
+  proximity,
+  permanent,
+}: MapSearchProps) {
   const [searchParams] = useSearchParams()
   const { pathname } = useLocation()
-  const [searchQuery, setSearchQuery] = React.useState(searchParams.get('q') || '')
   const { mapbox } = useMapbox()
   const { locale } = useLocale()
   const { t } = useTranslation()
@@ -107,11 +127,12 @@ export function MapSearch({ onSelect, label, permanent }: MapSearchProps) {
     browsed ??
     isoCountryCode(home?.webPath?.split('/').filter(Boolean)[0])
   const [released, setReleased] = React.useState<ReleasedScope>()
-  const scope = searchCountryScope(country, searchQuery, released)
+  const scope = searchCountryScope(country, value, released)
   const [foundNothing, setFoundNothing] = React.useState(false)
   // Declared only once typing has settled on that answer: each keystroke's response would
   // otherwise toggle it on and off under the field.
   const [settledNothing, setSettledNothing] = React.useState(false)
+  const field = React.useRef<HTMLDivElement>(null)
 
   React.useEffect(() => {
     if (!foundNothing) return setSettledNothing(false)
@@ -120,15 +141,6 @@ export function MapSearch({ onSelect, label, permanent }: MapSearchProps) {
 
     return () => clearTimeout(timer)
   }, [foundNothing])
-
-  // This follows a new `?q`. The field seeds from the URL once, in the state initializer above.
-  // But a pick writes a new place name, the geolocate control names the place it found AFTER
-  // navigating, and `placeSearchPath` clears `?q` on every re-search. None of them remounts this
-  // component when the view on top is unchanged, so without this effect the field would keep
-  // showing a place the results are no longer about. Typing never writes `?q`, so the two can't
-  // fight: half-typed text stays until the URL names a place.
-  const urlQuery = searchParams.get('q') ?? ''
-  const field = React.useRef<HTMLDivElement>(null)
 
   React.useEffect(() => {
     const node = field.current
@@ -171,15 +183,11 @@ export function MapSearch({ onSelect, label, permanent }: MapSearchProps) {
     return () => observer.disconnect()
   }, [])
 
-  React.useEffect(() => {
-    setSearchQuery(urlQuery)
-  }, [urlQuery])
-
   const onSuggest = (response: GeocodingResponse) => {
     const none = response.features.length === 0
 
     if (none && scope) {
-      setReleased({ country: scope, query: searchQuery })
+      setReleased({ country: scope, query: value })
       setFoundNothing(false)
       // The geocoder searches on input, so wait for it to take the wider options, then repeat the
       // query.
@@ -225,8 +233,8 @@ export function MapSearch({ onSelect, label, permanent }: MapSearchProps) {
             className="w-full rounded-lg border border-divider bg-gray-2 px-3 py-2 field-size text-foreground placeholder:text-gray-11"
             placeholder={fieldLabel}
             type="search"
-            value={searchQuery}
-            onChange={(event) => setSearchQuery(event.target.value)}
+            value={value}
+            onChange={(event) => onChange(event.target.value)}
           />
         }
       >
@@ -244,14 +252,14 @@ export function MapSearch({ onSelect, label, permanent }: MapSearchProps) {
             // so only `MapSearch.permanent.test.tsx` catches a misspelled one here.
             ...(scope ? { country: scope } : {}),
             ...(permanent ? { permanent } : {}),
-            proximity: searchBias(mapbox?.getZoom(), mapbox?.getCenter()),
-            types: PLACE_TYPES,
+            proximity: proximity ?? searchBias(mapbox?.getZoom(), mapbox?.getCenter()),
+            types: types ?? PLACE_TYPES,
           }}
           placeholder={fieldLabel}
           theme={controlTheme}
-          value={searchQuery}
-          onChange={(value: string) => {
-            setSearchQuery(value)
+          value={value}
+          onChange={(text: string) => {
+            onChange(text)
             // Pending until this text's own answer arrives.
             setFoundNothing(false)
           }}
@@ -267,7 +275,7 @@ export function MapSearch({ onSelect, label, permanent }: MapSearchProps) {
         className="absolute inset-x-0 top-[calc(100%+10px)] z-10 rounded-lg bg-background px-4 py-3 text-sm text-gray-11 shadow-[0_0_0_1px_hsl(var(--background)),0_8px_24px_rgb(0_0_0/0.16)] empty:hidden"
         role="status"
       >
-        {settledNothing && searchQuery.trim() ? t('common.errors.not_found_region') : null}
+        {settledNothing && value.trim() ? t('common.errors.not_found_region') : null}
       </p>
     </div>
   )

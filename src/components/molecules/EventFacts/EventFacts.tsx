@@ -35,7 +35,7 @@ const facts = tv({
     base: 'flex flex-col',
     item: 'flex',
     icon: 'shrink-0',
-    text: 'min-w-0 text-base leading-snug',
+    text: 'min-w-0 flex-1 text-base leading-snug',
     subtext: 'text-gray-11',
   },
   variants: {
@@ -72,6 +72,7 @@ type Fact = {
   icon: LucideIcon
   text: ReactNode
   subtext?: ReactNode
+  trailing?: ReactNode
   /** The text itself spans two lines, so the icon hangs from the first even with no subtext. */
   stacked?: boolean
 }
@@ -87,6 +88,8 @@ export type EventFactsProps = {
   /** Distance from the searched location, shown faded under the address. List
    *  cards only: the panel has no search origin to measure from. */
   distance?: ReactNode
+  /** Content at the end of the calendar fact and of the location fact. */
+  trailing?: { when?: ReactNode; where?: ReactNode }
   className?: string
 }
 
@@ -105,6 +108,7 @@ export function EventFacts({
   title,
   children,
   distance,
+  trailing,
   className,
 }: EventFactsProps) {
   const { display, surfaces, whereLine, whereLineWithPostCode, roomLine, whereSubtext } =
@@ -116,6 +120,7 @@ export function EventFacts({
       icon: CalendarDays,
       text: [primary, time].filter(Boolean).join(' · '),
       subtext: detail ?? undefined,
+      trailing: trailing?.when,
     },
   ]
 
@@ -139,6 +144,7 @@ export function EventFacts({
       ),
       stacked: Boolean(room),
       subtext: display.online ? (whereSubtext ?? undefined) : (distance ?? undefined),
+      trailing: trailing?.where,
     })
   }
 
@@ -155,7 +161,7 @@ export function EventFacts({
       className={summary ? slots.base() : slots.base({ className })}
       data-sheet-fold={surface === 'page' || undefined}
     >
-      {items.map(({ icon: Icon, text, subtext, stacked }, index) => {
+      {items.map(({ icon: Icon, text, subtext, stacked, trailing: end }, index) => {
         // Alignment is per-fact. Only a stacked fact, one with two lines,
         // hangs its icon from the first line.
         const styles = facts({ surface, stacked: Boolean(subtext) || Boolean(stacked) })
@@ -169,6 +175,7 @@ export function EventFacts({
               <div>{text}</div>
               {subtext && <div className={styles.subtext()}>{subtext}</div>}
             </div>
+            {end}
           </div>
         )
       })}

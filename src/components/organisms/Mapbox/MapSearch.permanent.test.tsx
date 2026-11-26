@@ -54,12 +54,16 @@ const optionsOf = (element: ReactNode, route = '/') => {
 // only from one.
 describe('MapSearch — the options a mount hands the geocoder', () => {
   it('asks for a permanent answer where the caller says the answer is submitted', () => {
-    expect(optionsOf(<MapSearch permanent onSelect={() => {}} />).permanent).toBe(true)
+    expect(
+      optionsOf(<MapSearch permanent value="" onChange={() => {}} onSelect={() => {}} />).permanent,
+    ).toBe(true)
   })
 
   // Absent, not `false` — the geocoder serializes what it is given.
   it('sends no permanent option by default', () => {
-    expect(optionsOf(<MapSearch onSelect={() => {}} />)).not.toHaveProperty('permanent')
+    expect(
+      optionsOf(<MapSearch value="" onChange={() => {}} onSelect={() => {}} />),
+    ).not.toHaveProperty('permanent')
   })
 
   it('leaves the header search field temporary', () => {
@@ -67,17 +71,25 @@ describe('MapSearch — the options a mount hands the geocoder', () => {
   })
 
   it('scopes the lookup to the country the route names, and to none without one', () => {
-    expect(optionsOf(<MapSearch onSelect={() => {}} />, '/gb').country).toBe('GB')
-    expect(optionsOf(<MapSearch onSelect={() => {}} />)).not.toHaveProperty('country')
+    expect(
+      optionsOf(<MapSearch value="" onChange={() => {}} onSelect={() => {}} />, '/gb').country,
+    ).toBe('GB')
+    expect(
+      optionsOf(<MapSearch value="" onChange={() => {}} onSelect={() => {}} />),
+    ).not.toHaveProperty('country')
   })
 
   // The locale is read per render, so a switch reaches the options the element is handed and the
   // geocoder needs no relabelling call of its own — unlike the map, which reads `language` once.
   it('hands the geocoder the current locale, and the next one after a switch', () => {
     geocoder.locale = 'en'
-    expect(optionsOf(<MapSearch onSelect={() => {}} />).language).toBe('en')
+    expect(optionsOf(<MapSearch value="" onChange={() => {}} onSelect={() => {}} />).language).toBe(
+      'en',
+    )
     geocoder.locale = 'fr'
-    expect(optionsOf(<MapSearch onSelect={() => {}} />).language).toBe('fr')
+    expect(optionsOf(<MapSearch value="" onChange={() => {}} onSelect={() => {}} />).language).toBe(
+      'fr',
+    )
     geocoder.locale = 'en'
   })
 })

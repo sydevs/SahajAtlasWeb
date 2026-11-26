@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import type { GeocodingResponse } from '@mapbox/search-js-core'
 
-import { act } from 'react'
+import { act, useState } from 'react'
 import { createRoot } from 'react-dom/client'
 import { MemoryRouter } from 'react-router'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
@@ -43,6 +43,14 @@ const nothing = { features: [] } as unknown as GeocodingResponse
 let host: HTMLElement
 const status = () => host.querySelector('[role="status"]')?.textContent ?? ''
 
+// The field's text lives with its owner, so the test owns it the way `SearchField` and the Where
+// step do. Without that the typing below would never reach the field.
+function Host() {
+  const [text, setText] = useState('')
+
+  return <MapSearch value={text} onChange={setText} onSelect={() => {}} />
+}
+
 beforeEach(() => {
   vi.useFakeTimers()
   host = document.createElement('div')
@@ -50,7 +58,7 @@ beforeEach(() => {
   act(() =>
     createRoot(host).render(
       <MemoryRouter>
-        <MapSearch onSelect={() => {}} />
+        <Host />
       </MemoryRouter>,
     ),
   )
