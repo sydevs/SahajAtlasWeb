@@ -380,7 +380,7 @@ export const mockEventVariants: EventSlim[] = [
     distance: 850,
     path: '/united-kingdom/cambridge/132',
   },
-  // A dateless one-off → "One-off event" · "Contact host for timings".
+  // A dateless one-off → "One-off class" · "Contact host for timings".
   {
     ...mockEventSlim,
     id: 133,

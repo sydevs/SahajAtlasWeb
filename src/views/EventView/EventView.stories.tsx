@@ -31,7 +31,7 @@ const EXAMPLES: Record<string, Event> = {
   Ended: mockEventEnded,
   Inactive: mockEventInactive,
   // At capacity: no Register button — the facts stay normal (the
-  // class still runs), and the slot becomes "This event is full" + "See nearby
+  // class still runs), and the slot becomes "This class is full" + "See nearby
   // events" + the contact helper.
   Full: mockEventFull,
   // Full AND meeting today: no chip, and the when line says "Today".
