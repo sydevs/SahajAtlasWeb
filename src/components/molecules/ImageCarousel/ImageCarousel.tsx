@@ -145,8 +145,8 @@ export function ImageCarousel({ slides }: ImageCarouselProps) {
             as a drag, and swallows the click. So without it, the one
             control this exists to add would fire only intermittently on
             touch, which is where it matters most. The Button atom sets it
-            on every button. ActionRow carries it by hand for exactly this
-            reason. */}
+            on every button. This hand-rolled one carries it itself for exactly
+            this reason. */}
         {autoplays && (
           <button
             data-vaul-no-drag

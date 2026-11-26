@@ -84,7 +84,7 @@ describe('isSafeHref — allows', () => {
   // any of these would be worse than the status quo it replaced, so they are pinned here in
   // the shape their producers emit rather than left to the components' specs.
   it.each([
-    // `directionsUrl` (`lib/events.ts`) — the ActionCircle directions action.
+    // `directionsUrl` (`lib/events.ts`) — the Directions action.
     'https://www.google.com/maps/search/?api=1&query=51.5,-0.12',
     // `buildGoogleCalendarUrl` (`lib/ics.ts`) — a calendar-menu row.
     'https://calendar.google.com/calendar/r?cid=webcal%3A%2F%2Fcloud.example%2Ff.ics',
@@ -92,7 +92,7 @@ describe('isSafeHref — allows', () => {
     'webcal://cloud.example/api/events/calendar/eyJhb.eyJldg.s1gn.ics',
     // ReportIssueForm's contact Button.
     'mailto:atlas@sydevelopers.com',
-    // EventActions' contact circle, and the Fallbacks contact Link.
+    // EventActions' contact button, and the Fallbacks contact Link.
     'tel:+4402012345678',
   ])('%j — a real production href keeps working', (href) => {
     expect(isSafeHref(href)).toBe(true)
@@ -147,11 +147,7 @@ describe('hasAllowedScheme', () => {
 // so it is executable here instead. Precedent: `config/i18n-options.test.ts`
 // pins the locale directories the same way.
 describe('the JSX anchor inventory', () => {
-  const GATED_ANCHORS = [
-    'components/atoms/Button/Button.tsx',
-    'components/atoms/Link/Link.tsx',
-    'components/molecules/ActionRow/ActionRow.tsx',
-  ]
+  const GATED_ANCHORS = ['components/atoms/Button/Button.tsx', 'components/atoms/Link/Link.tsx']
 
   // Only `.tsx` — JSX is the sink this predicate guards. `lexicalToHtml` (`lexical.ts`) also
   // emits `<a href>`, but as an HTML *string* sanitized by DOMPurify downstream: a different
@@ -194,10 +190,10 @@ describe('the JSX anchor inventory', () => {
     expect(sources.length).toBeGreaterThan(50)
   })
 
-  it('is exactly the three components that call isSafeHref', () => {
+  it('is exactly the two components that call isSafeHref', () => {
     const withAnchor = sources.filter(rendersJsxAnchor)
 
-    // A fourth file here renders an anchor. Route its href through
+    // A third file here renders an anchor. Route its href through
     // `isSafeHref` (`lib/shape/href.ts`), then add it below. Adding it below
     // on its own defeats the test.
     //

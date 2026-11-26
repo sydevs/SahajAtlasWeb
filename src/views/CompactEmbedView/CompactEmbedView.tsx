@@ -75,7 +75,7 @@ function Card({ action }: { action: CardAction }) {
         {/* Two JSX branches, not a conditional `href`: `ButtonProps` is a discriminated
             union, so a maybe-undefined href does not narrow into the anchor arm. The
             anchor form is also why this is the `Button` atom rather than a hand-rolled
-            <a> — `href.test.ts` pins the app's JSX-anchor inventory to three components,
+            <a> — `href.test.ts` pins the app's JSX-anchor inventory to two components,
             and Button is one of them, so its `isSafeHref` gate is inherited rather than
             reimplemented. */}
         {action.kind === 'link' ? (
