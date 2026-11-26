@@ -134,7 +134,13 @@ test('a narrow inline calendar leaves the map its controls', async ({ page }) =>
 
   const atlas = widget(page)
 
-  await expect(atlas.getByRole('heading', { name: en.calendar.title, exact: true })).toBeVisible()
+  // The view's own switch, not a heading: the loading chrome's "Calendar" heading is gone once the
+  // view has arrived, and only then has the column taken its stop.
+  await expect(atlas.getByRole('radiogroup', { name: en.calendar.title, exact: true })).toBeVisible(
+    {
+      timeout: 15_000,
+    },
+  )
   await expect(
     atlas.getByRole('button', { name: en.common.map.find_my_location, exact: true }),
   ).toBeVisible()
