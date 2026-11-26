@@ -1,7 +1,7 @@
 import type { TranslationKey } from '@/types/i18next'
 
 import { useMemo } from 'react'
-import { DateTime, Info } from 'luxon'
+import { DateTime } from 'luxon'
 import { useQuery } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
 
@@ -10,6 +10,7 @@ import { regionsQuery } from '@/config/api'
 import { useEventFilters, useSetFilters } from '@/hooks/use-filters'
 import { useLocale } from '@/hooks/use-locale'
 import { formatTimePeriods } from '@/lib'
+import { formatDate, regionalLocale, weekdayNames } from '@/lib/time'
 import { isDateRestricted, isTimeRestricted } from '@/lib/shape'
 
 /**
@@ -39,7 +40,7 @@ export function ActiveFilterPills() {
     setRegion,
   } = useSetFilters()
 
-  const weekdaysShort = useMemo(() => Info.weekdays('short', { locale }), [locale])
+  const weekdaysShort = useMemo(() => weekdayNames(regionalLocale(locale), 'short'), [locale])
 
   // The cache-once region tree, to resolve the selected slug to its display name below.
   const { data: regions } = useQuery(regionsQuery())
@@ -92,7 +93,7 @@ export function ActiveFilterPills() {
   }
   if (isDateRestricted(dateRange)) {
     const fmt = (iso: string) =>
-      DateTime.fromISO(iso).setLocale(locale).toLocaleString(DateTime.DATE_MED)
+      formatDate(DateTime.fromISO(iso), regionalLocale(locale), { weekday: false })
     const { start, end } = dateRange
     let label = ''
 

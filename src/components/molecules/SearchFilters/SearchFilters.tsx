@@ -2,7 +2,6 @@ import type { TranslationKey } from '@/types/i18next'
 
 import { type ReactNode, useMemo } from 'react'
 import { useQuery } from '@tanstack/react-query'
-import { Info } from 'luxon'
 import { useTranslation } from 'react-i18next'
 import { ChevronDown } from 'lucide-react'
 
@@ -15,6 +14,7 @@ import { fieldChrome } from '@/components/atoms/Select'
 import { geojsonQuery, regionsQuery } from '@/config/api'
 import { useLocale } from '@/hooks/use-locale'
 import { formatTimePeriods } from '@/lib'
+import { regionalLocale, weekdayNames } from '@/lib/time'
 import {
   type EventCadence,
   type EventFilters,
@@ -213,13 +213,13 @@ export function SearchFilters({ value, onChange }: SearchFiltersProps) {
       .sort((a, b) => a.label.localeCompare(b.label, locale))
   }, [regions, geojson, locale])
 
-  // Mon-first weekday pills. luxon's `Info.weekdays` is 1 (Mon) through 7
-  // (Sun), matching the store's day encoding. So the value is the index
-  // plus 1. `short` (3-char) labels fit one line at the reduced pill
-  // size. The full name is the accessible label.
+  // Mon-first weekday pills, matching the store's day encoding (1 = Mon), so the value is the
+  // index plus 1. `short` labels fit one line at the reduced pill size. The full name is the
+  // accessible label.
   const weekdays = useMemo(() => {
-    const short = Info.weekdays('short', { locale })
-    const long = Info.weekdays('long', { locale })
+    const formatLocale = regionalLocale(locale)
+    const short = weekdayNames(formatLocale, 'short')
+    const long = weekdayNames(formatLocale)
 
     return short.map((label, index) => ({ value: String(index + 1), label, full: long[index] }))
   }, [locale])

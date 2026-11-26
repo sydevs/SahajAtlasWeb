@@ -1,8 +1,7 @@
 import type { EventAddress } from '@/types'
 
-import { DateTime } from 'luxon'
-
 import { timePeriodRanges, type TimePeriod } from '@/lib/shape'
+import { formatTimeRange, regionalLocale, wallClock } from '@/lib/time'
 
 /**
  * A Google Maps directions link from an event's coordinates (preferred) or its
@@ -23,27 +22,24 @@ export function directionsUrl(address: EventAddress | null | undefined): string 
     : undefined
 }
 
-/**
- * A 0–24h value rendered in the given locale's short time format (e.g. "9:30 AM").
- * 24 wraps to midnight so an upper bound reads as a time rather than "24:00".
- * Shared by the filter form and the active-filter pills for the time-of-day label.
- */
-export function formatHour(locale: string, hour: number): string {
+/** A 0–24h value as the wall clock it stands for. 24 wraps to midnight, so an upper bound reads
+ *  as a time rather than "24:00". */
+const hourClock = (hour: number) => {
   const minutes = Math.round(hour * 60) % (24 * 60)
 
-  return DateTime.fromObject({ hour: Math.floor(minutes / 60), minute: minutes % 60 })
-    .setLocale(locale)
-    .toLocaleString(DateTime.TIME_SIMPLE)
+  return wallClock(Math.floor(minutes / 60), minutes % 60)
 }
 
 /**
- * The selected time-of-day periods rendered as a locale-formatted list of hour
- * ranges (e.g. "9:00 AM – 12:00 PM · 5:00 PM – 9:00 PM"), for the filter form's
- * readout and the active-filter pill. Empty string when nothing is selected — the
- * two surfaces stay in lockstep because both format the same `timePeriodRanges`.
+ * The selected time-of-day periods as a list of hour ranges, written like a class's time
+ * (`formatTimeRange`): "5:00 PM – 12:00 AM" in the US, "17:00–00:00" in the UK. For the filter
+ * form's readout and the active-filter pill, so the two stay in lockstep. Empty string when
+ * nothing is selected.
  */
 export function formatTimePeriods(locale: string, periods: readonly TimePeriod[]): string {
+  const formatLocale = regionalLocale(locale)
+
   return timePeriodRanges(periods)
-    .map(([from, to]) => `${formatHour(locale, from)} – ${formatHour(locale, to)}`)
+    .map(([from, to]) => formatTimeRange(hourClock(from), hourClock(to), formatLocale))
     .join(' · ')
 }

@@ -33,6 +33,10 @@ Do not format files by hand. PostToolUse hooks run Prettier and `eslint --fix` a
 
 - **`react-hooks/exhaustive-deps` is on, and `pnpm lint` fails on it.** Correct the array where every value it would add is stable. Where the array is the design — a mount-only effect, a dependency listed purely to re-run a read, a key standing in for a fresh array — keep it and say why on a narrow `// eslint-disable-next-line react-hooks/exhaustive-deps -- <reason>`. ⚠ Adding the "missing" dependency to one of those changes when the effect runs: `useFrameOnTop` would re-frame the camera on every render, and `AppShell`'s locale effect would re-apply the boot locale.
 
+## Dates and times
+
+- **Every date or time on screen goes through `@/lib/time`** (`formatTimeRange`, `formatDate`, `formatWeekday`, `weekdayNames`, `formatMonth`, `formatRelativeDate`), passed `regionalLocale(locale)`. Each is an `Intl` format in that locale, so a visitor reads their own clock and date order: "7:30 PM" and "Wed, Nov 18" in the US, "19:30" and "Wed 18 Nov" in the UK. Never assemble a time, a day period or a date by hand, and never force a clock (`hour12`) on a locale. The browser's first language decides, as it does for `toLocaleTimeString()`: when it is not the page's, the page's language is formatted in that browser's region and on its clock (`en-CZ` for cs-CZ). The one place the code states a clock is a region CLDR has no English for (`en-BR` falls back to US English), where it adds the browser's hour cycle (`en-BR-u-hc-h23`). Distances follow the same locale (`formatDistance`). A machine format (`HH:mm` for a form value, an ICS stamp, Schedule-X's wall-clock strings) is data, not display, and stays a `toFormat`.
+
 ## Environment variables
 
 Client code reads env vars through `import.meta.env.VITE_*`. See `docs/environment.md` for the canonical reference: which prefix reaches the bundle, and where secrets belong.

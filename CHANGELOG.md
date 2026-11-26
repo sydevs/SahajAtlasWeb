@@ -43,6 +43,14 @@ cover everything a host would notice since the widget was first deployed.
 
 ### Changed
 
+- **Dates, times and distances follow the visitor's own region.** Every time and date the
+  widget shows is now written in the format of the visitor's browser region: a UK visitor reads
+  "17:45–18:45" and "Wed 18 Nov", a US visitor "5:45 – 6:45 PM" and "Wed, Nov 18". A browser
+  whose first language is not the page's keeps that language's clock on an English page (a
+  Czech or German browser reads "17:45"). Whole hours now show their minutes ("6:00 – 7:00 PM").
+  A year appears only on a date outside the current year. The calendar grid follows the same
+  region. Distances read in miles for UK and US visitors and in kilometres everywhere else.
+
 - **The consent line under the sign-up fields reads like the text around it.** ([#506]) It was
   centred in 12px type. It now starts at the left edge, in the card's own 14px size and the quiet
   grey, and says "By registering…" to match the button. Its "privacy policy" still opens We

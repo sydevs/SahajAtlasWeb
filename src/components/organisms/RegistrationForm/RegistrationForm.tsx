@@ -36,6 +36,7 @@ import {
 } from '@/config/api/mutate'
 import livePreview from '@/config/live-preview/protocol'
 import { classifyError } from '@/lib/report'
+import { formatDate, formatRelativeDate, regionalLocale } from '@/lib/time'
 import { splitInlineLink } from '@/lib/shape'
 import { useRegistrationDraft } from '@/config/store'
 import {
@@ -631,7 +632,7 @@ function RegistrationFields({
               >
                 {startingDates.map(({ value, label }) => (
                   <SelectItem key={value} value={value}>
-                    <span className="capitalize">{label}</span>
+                    {label}
                   </SelectItem>
                 ))}
               </Select>
@@ -694,15 +695,14 @@ function dateOptions(
   locale: string,
 ): { value: string; label: string }[] {
   const unit = recurrenceType ? RELATIVE_UNIT[recurrenceType] : undefined
+  const formatLocale = regionalLocale(locale)
 
   return dates.map((date) => {
-    const dateTime = DateTime.fromJSDate(date)
-      .setZone(timeZone ?? 'local')
-      .setLocale(locale)
+    const dateTime = DateTime.fromJSDate(date).setZone(timeZone ?? 'local')
 
     return {
       value: date.toISOString(),
-      label: `${dateTime.toRelativeCalendar(unit ? { unit } : undefined)} - ${dateTime.toLocaleString(DateTime.DATE_MED_WITH_WEEKDAY)}`,
+      label: `${formatRelativeDate(dateTime, formatLocale, unit)} - ${formatDate(dateTime, formatLocale)}`,
     }
   })
 }

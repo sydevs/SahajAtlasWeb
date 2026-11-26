@@ -1,7 +1,18 @@
 import { describe, it, expect } from 'vitest'
 import { DateTime } from 'luxon'
 
-import { formatTimeRange, sameWallClock, zoneCity } from './time'
+import {
+  formatDate,
+  formatMonth,
+  formatRelativeDate,
+  formatTimeRange,
+  formatWeekday,
+  regionalLocale,
+  sameWallClock,
+  scheduleXLocale,
+  wallClock,
+  zoneCity,
+} from './time'
 
 // All fixtures are built in a fixed zone so each endpoint's wall clock — and a
 // cross-zone end's conversion into the start's zone — stays deterministic
@@ -13,16 +24,39 @@ const at = (iso: string, zone = 'Europe/London') => DateTime.fromISO(iso, { zone
 const norm = (value: string) => value.replace(/\s+/g, ' ').trim()
 
 describe('formatTimeRange', () => {
-  it('drops :00 for whole hours and collapses a shared meridiem', () => {
+  // Devindra (12 Nov): never our own am/pm. Each locale reads its own clock, as Intl writes it.
+  it('writes each locale its own clock: am/pm in the US, 24-hour in the UK and Germany', () => {
+    const at = DateTime.fromISO('2026-07-01T19:30', { zone: 'Europe/London' })
+
+    expect(norm(formatTimeRange(at, null, 'en-US'))).toBe('7:30 PM')
+    expect(formatTimeRange(at, null, 'en-GB')).toBe('19:30')
+    expect(formatTimeRange(at, null, 'de')).toBe('19:30')
+  })
+
+  it('writes a class time the visitor’s way: 24-hour in the UK, am/pm in the US', () => {
+    const start = at('2026-11-18T17:45')
+    const end = at('2026-11-18T18:45')
+
+    expect(formatTimeRange(start, end, 'en-GB')).toBe('17:45–18:45')
+    expect(norm(formatTimeRange(start, end, 'en-US'))).toBe('5:45 – 6:45 PM')
+  })
+
+  it('keeps minutes on whole hours and collapses a shared meridiem', () => {
     const out = norm(formatTimeRange(at('2026-07-04T18:00'), at('2026-07-04T19:00'), 'en-US'))
 
-    expect(out).toBe('6 – 7 PM')
+    expect(out).toBe('6:00 – 7:00 PM')
   })
 
   it('keeps minutes when either endpoint has them', () => {
     const out = norm(formatTimeRange(at('2026-07-04T18:30'), at('2026-07-04T19:45'), 'en-US'))
 
     expect(out).toBe('6:30 – 7:45 PM')
+  })
+
+  it('keeps an overnight session to its two times, never two full dates', () => {
+    const out = norm(formatTimeRange(at('2026-10-29T21:30'), at('2026-10-30T00:30'), 'en-US'))
+
+    expect(out).toBe('9:30 PM – 12:30 AM')
   })
 
   it('shows both day periods when the range crosses noon', () => {
@@ -33,14 +67,14 @@ describe('formatTimeRange', () => {
   })
 
   it('formats a lone start time (no end)', () => {
-    expect(norm(formatTimeRange(at('2026-07-04T18:00'), null, 'en-US'))).toBe('6 PM')
+    expect(norm(formatTimeRange(at('2026-07-04T18:00'), null, 'en-US'))).toBe('6:00 PM')
     expect(norm(formatTimeRange(at('2026-07-04T18:30'), null, 'en-US'))).toBe('6:30 PM')
   })
 
   it('collapses a zero-length range to a single time', () => {
     const start = at('2026-07-04T18:00')
 
-    expect(norm(formatTimeRange(start, start, 'en-US'))).toBe('6 PM')
+    expect(norm(formatTimeRange(start, start, 'en-US'))).toBe('6:00 PM')
   })
 
   it('renders 24-hour locales in their own convention (no AM/PM)', () => {
@@ -88,11 +122,67 @@ describe('formatTimeRange', () => {
     expect(out).toBe('9:30 PM – 12:30 AM')
   })
 
+  it('keeps both day periods on a range past midnight of twelve hours or more', () => {
+    // An evening-and-morning filter, 5 PM to noon: `formatRange` alone writes "5:00 – 12:00 PM",
+    // which reads as a morning start.
+    expect(norm(formatTimeRange(wallClock(17), wallClock(12), 'en-US'))).toBe('5:00 PM – 12:00 PM')
+    expect(formatTimeRange(wallClock(17), wallClock(12), 'en-GB')).toBe('17:00–12:00')
+  })
+
   it('formats in the event zone, not the machine zone', () => {
     // 18:00 in London is 19:00 in Prague — the DateTime's own zone wins.
     const prague = at('2026-07-04T19:00', 'Europe/Prague')
 
-    expect(norm(formatTimeRange(prague, null, 'en-US'))).toBe('7 PM')
+    expect(norm(formatTimeRange(prague, null, 'en-US'))).toBe('7:00 PM')
+  })
+})
+
+describe('wallClock', () => {
+  it('writes a typed-in time like any class time, in the locale’s clock', () => {
+    expect(norm(formatTimeRange(wallClock(20, 30), null, 'en-US'))).toBe('8:30 PM')
+    expect(formatTimeRange(wallClock(20, 30), null, 'en-GB')).toBe('20:30')
+    expect(formatTimeRange(wallClock(20, 30), null, 'de')).toBe('20:30')
+  })
+
+  it('reads hour 24 as midnight, so a range can end there', () => {
+    expect(norm(formatTimeRange(wallClock(17), wallClock(24), 'en-US'))).toBe('5:00 PM – 12:00 AM')
+    expect(formatTimeRange(wallClock(17), wallClock(24), 'en-GB')).toBe('17:00–00:00')
+  })
+})
+
+describe('formatDate', () => {
+  const now = DateTime.fromISO('2026-11-06T12:00', { zone: 'Europe/London' })
+
+  it('writes the class page date the visitor’s way', () => {
+    const date = at('2026-11-11T19:30')
+
+    expect(formatDate(date, 'en-GB', { now })).toBe('Wed 11 Nov')
+    expect(formatDate(date, 'en-US', { now })).toBe('Wed, Nov 11')
+    expect(formatDate(date, 'en-GB', { now, weekday: false })).toBe('11 Nov')
+  })
+
+  it('adds the year only when it is not this one', () => {
+    expect(formatDate(at('2022-12-21T19:30'), 'en-GB', { now })).toBe('Wed, 21 Dec 2022')
+    expect(formatDate(at('2027-01-06T19:30'), 'en-GB', { now, weekday: false })).toBe('6 Jan 2027')
+  })
+})
+
+describe('the calendar’s dates', () => {
+  const day = at('2026-11-12T00:00')
+
+  it('names a weekday and a month', () => {
+    expect(formatWeekday(day, 'en-GB')).toBe('Thursday')
+    expect(formatWeekday(day, 'en-GB', 'short')).toBe('Thu')
+    expect(formatWeekday(day, 'de')).toBe('Donnerstag')
+    expect(formatMonth(day, 'en-GB')).toBe('November 2026')
+  })
+
+  it('says how far off a date is to lead a phrase', () => {
+    const today = DateTime.now().setZone('Europe/London')
+
+    expect(formatRelativeDate(today, 'en-GB', 'days')).toBe('Today')
+    expect(formatRelativeDate(today.plus({ days: 1 }), 'en-GB', 'days')).toBe('Tomorrow')
+    expect(formatRelativeDate(today.plus({ weeks: 1 }), 'en-GB', 'weeks')).toBe('Next week')
   })
 })
 
@@ -129,5 +219,84 @@ describe('zoneCity', () => {
   it('is empty for a missing zone', () => {
     expect(zoneCity(null)).toBe('')
     expect(zoneCity(undefined)).toBe('')
+  })
+})
+
+describe('regionalLocale', () => {
+  it("uses the browser's region when its language is the one on screen", () => {
+    expect(regionalLocale('en', ['en-GB', 'en'])).toBe('en-GB')
+    expect(regionalLocale('pt-BR', ['pt-PT'])).toBe('pt-PT')
+  })
+
+  // Chrome and Firefox list en-US after the visitor's own language by default, so an English entry
+  // further down says nothing about the clock they read.
+  it("follows the browser's first language, not an English one further down", () => {
+    const time = (browsers: string[]) =>
+      norm(formatTimeRange(wallClock(17, 45), null, regionalLocale('en', browsers)))
+
+    expect(regionalLocale('en', ['fr-FR', 'en-AU'])).toBe('en-FR')
+    expect(regionalLocale('en', ['de-DE', 'de', 'en-US', 'en'])).toBe('en-DE')
+    expect(time(['de-DE', 'de', 'en-US', 'en'])).toBe('17:45')
+    expect(time(['fr-FR', 'fr', 'en-US', 'en'])).toBe('17:45')
+    expect(time(['de', 'en-US', 'en'])).toBe('17:45')
+    expect(time(['en-US', 'de-DE'])).toBe('5:45 PM')
+  })
+
+  it('keeps the interface locale when the browser names no language', () => {
+    expect(regionalLocale('en', [])).toBe('en')
+  })
+
+  // Devindra (12 Nov): the format familiar for the visitor's locale, as `toLocaleTimeString` gives
+  // it. So a browser in another language keeps its own clock and date order, in English words.
+  it("reads another language's clock and date order, in the interface's words", () => {
+    const time = (browser: string) =>
+      norm(formatTimeRange(wallClock(17, 45), null, regionalLocale('en', [browser])))
+    const day = (browser: string) =>
+      formatDate(DateTime.fromISO('2026-11-13'), regionalLocale('en', [browser]), {
+        now: DateTime.fromISO('2026-11-01'),
+      })
+
+    expect(time('cs-CZ')).toBe('17:45')
+    expect(day('cs-CZ')).toBe('Fri, 13 Nov')
+    // CLDR has no English for Brazil, which would fall back to US English and its 12-hour clock.
+    expect(time('pt-BR')).toBe('17:45')
+    expect(day('pt-BR')).toMatch(/^Fri/)
+    expect(time('es-MX')).toBe('5:45 PM')
+  })
+
+  it('keeps the interface locale for a browser tag Intl refuses', () => {
+    expect(regionalLocale('en', ['x'])).toBe('en')
+  })
+})
+
+describe('scheduleXLocale', () => {
+  it('keeps an exact match', () => {
+    expect(scheduleXLocale('en-GB')).toBe('en-GB')
+    expect(scheduleXLocale('pt-BR')).toBe('pt-BR')
+  })
+
+  it('falls back to the base language for a regional tag it lacks', () => {
+    expect(scheduleXLocale('de-DE')).toBe('de-DE')
+    expect(scheduleXLocale('de-AT')).toBe('de-DE')
+    expect(scheduleXLocale('fr-CA')).toBe('fr-FR')
+    expect(scheduleXLocale('es-MX')).toBe('es-ES')
+  })
+
+  // The lists beside the grid read `regionalLocale`'s tag, so a Czech browser's en-CZ dates are day
+  // first there; the grid's dates must not switch to US order.
+  it('runs a regional English as en-GB or en-US by its date order', () => {
+    expect(scheduleXLocale('en')).toBe('en-US')
+    expect(scheduleXLocale('en-US')).toBe('en-US')
+    expect(scheduleXLocale(regionalLocale('en', ['cs-CZ', 'en-US']))).toBe('en-GB')
+    expect(scheduleXLocale('en-DE')).toBe('en-GB')
+    expect(scheduleXLocale('en-AU')).toBe('en-GB')
+    expect(scheduleXLocale('en-ZA')).toBe('en-GB')
+    expect(scheduleXLocale('en-CA')).toBe('en-US')
+    expect(scheduleXLocale(regionalLocale('en', ['pt-BR']))).toBe('en-US')
+  })
+
+  it('falls back to en-US for a language Schedule-X lacks', () => {
+    expect(scheduleXLocale('hu')).toBe('en-US')
+    expect(scheduleXLocale('hu-HU')).toBe('en-US')
   })
 })

@@ -6,6 +6,7 @@ import { useLocale } from '@/hooks/use-locale'
 import { useMapController } from '@/hooks/use-map-controller'
 import { useHoverPrefetch } from '@/hooks/use-prefetch-event'
 import { formatDistance } from '@/lib'
+import { regionalLocale } from '@/lib/time'
 import { isOnline } from '@/lib/shape'
 import { EventChips } from '@/components/molecules/EventChips'
 import { EventFacts } from '@/components/molecules/EventFacts'
@@ -79,7 +80,7 @@ function EventListItemImpl({ event, searchedPlace, showDistance = true }: EventL
   // reference point stays in the accessible label either way.
   const distance =
     showDistance && !online && event.distance !== undefined && event.distance >= MIN_DISTANCE_KM
-      ? formatDistance(event.distance, locale)
+      ? formatDistance(event.distance, regionalLocale(locale))
       : null
   const distanceText = distance
     ? searchedPlace

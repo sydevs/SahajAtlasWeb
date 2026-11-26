@@ -1,15 +1,25 @@
 /**
  * List-card distance formatting (issue #52): metres below 1 km, one decimal
  * below 10 km, integers above, and miles where that is the road-distance
- * convention (en-US / en-GB), with kilometres everywhere else. Values format
+ * convention (the US and the UK), with kilometres everywhere else. Values format
  * through `Intl.NumberFormat`'s unit style, so separators and unit labels
  * localize.
  */
 
-const MILE_LOCALES = new Set(['en-us', 'en-gb'])
+const MILE_REGIONS = new Set(['US', 'GB'])
 const KM_PER_MILE = 1.609344
 
-export const usesMiles = (locale: string): boolean => MILE_LOCALES.has(locale.toLowerCase())
+/**
+ * Whether the locale's own region drives in miles. Only a stated region counts, so a bare `en`
+ * reads kilometres; `regionalLocale` supplies the visitor's region (`en-GB`, `de-GB`).
+ */
+export const usesMiles = (locale: string): boolean => {
+  try {
+    return MILE_REGIONS.has(new Intl.Locale(locale).region ?? '')
+  } catch {
+    return false
+  }
+}
 
 // Intl.NumberFormat construction is the expensive part (~0.1 ms) and this runs
 // per card in a 50-row results list — cache formatters per locale/unit/digits
