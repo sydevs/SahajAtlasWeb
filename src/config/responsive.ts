@@ -110,6 +110,11 @@ export const shortSheetCap = (): number =>
 // calls content this tall full, so a copy in any of the three would drift from the sheet itself.
 export const WIDE_SNAP = 0.97
 
+// What a phone sheet must still leave of the map above it, for the pin the camera just framed, and
+// for the map's control column. It also keeps the camera's padding inside a short contained embed
+// (#169), where padding past the canvas makes `fitBounds` refuse the fit outright.
+export const MIN_MAP_STRIP_PX = 160
+
 /** A pixel stop held down to `cap`. Fractions, and every stop when there is no cap, pass through. */
 export const capStop = <T extends number | string | null>(
   point: T,

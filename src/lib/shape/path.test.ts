@@ -12,6 +12,7 @@ import {
   listResetKey,
   nearestKnownRegion,
   parentOf,
+  parseBounds,
   parseCenter,
   placeSearchPath,
   resolvePath,
@@ -221,6 +222,15 @@ describe('resolveStack', () => {
       { kind: 'region', slug: 'belgium', path: '/belgium' },
       { kind: 'region', slug: 'liège', path: '/belgium/li%C3%A8ge' },
     ])
+  })
+})
+
+describe('parseBounds', () => {
+  it('reads four finite numbers, and nothing else', () => {
+    expect(parseBounds('-0.51,51.28,0.33,51.69')).toEqual([-0.51, 51.28, 0.33, 51.69])
+    expect(parseBounds('-0.51,51.28,0.33')).toBeUndefined()
+    expect(parseBounds('a,b,c,d')).toBeUndefined()
+    expect(parseBounds(null)).toBeUndefined()
   })
 })
 

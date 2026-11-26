@@ -29,17 +29,14 @@ export type EventCadence = 'any' | 'once' | 'DAILY' | 'WEEKLY' | 'MONTHLY'
 export type TimePeriod = 'morning' | 'afternoon' | 'evening' | 'night'
 export const TIME_PERIODS = ['morning', 'afternoon', 'evening', 'night'] as const
 
-// Each period's local-hour half-open interval(s), `[start, end)`. Night wraps
-// midnight, so it is two intervals. `matchesFilters` tests an occurrence's start
-// hour against these. `timePeriodRanges` coalesces them for display.
+// Each period's local-hour half-open interval(s), `[start, end)`. `matchesFilters` tests an
+// occurrence's start hour against these, and `timePeriodRanges` coalesces them for display. The
+// four tile the day, so their counts add up to the total.
 export const TIME_PERIOD_HOURS: Record<TimePeriod, readonly (readonly [number, number])[]> = {
   morning: [[6, 12]],
   afternoon: [[12, 17]],
-  evening: [[17, 21]],
-  night: [
-    [21, 24],
-    [0, 6],
-  ],
+  evening: [[17, 24]],
+  night: [[0, 6]],
 }
 
 // Selected periods in canonical day order (morning to night), de-duped. This
@@ -100,8 +97,8 @@ export const isTimeRestricted = (timeOfDay: readonly TimePeriod[]): boolean => t
 /**
  * The selected periods as coalesced `[start, end)` hour ranges for display.
  * Adjacent or overlapping intervals are fused. A pair spanning midnight
- * (…-24 and 0-…) displays as one wrapping range — for example, night alone
- * becomes `[21, 6]`. This is empty when nothing is selected. The filter form's
+ * (…-24 and 0-…) displays as one wrapping range — for example, evening and
+ * night together become `[17, 6]`. This is empty when nothing is selected. The filter form's
  * readout and the active pill both use it.
  */
 export const timePeriodRanges = (periods: readonly TimePeriod[]): [number, number][] => {

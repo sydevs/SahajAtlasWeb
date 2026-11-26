@@ -240,7 +240,8 @@ source of truth, so all three stay linkable and shareable:
 - **Search filters** — read with `useEventFilters`, mutate with `useSetFilters`.
   Serialized by `filtersToParams` / `filtersFromParams`. The map, the results
   list, the active-filter pills, and the FilterButton badge all read the same
-  URL.
+  URL. The filter drawer keeps no draft: each tap writes the URL with `replace`,
+  so the markers behind it and its count move at once.
 - **List sort order** — read with `useSortOrder`, mutate with `useSetSortOrder`.
   Serialized under `?sort=` (default `recommended`, omitted). Kept **separate**
   from filters because it is presentation, not a predicate: it only re-orders
@@ -289,6 +290,16 @@ source of truth, so all three stay linkable and shareable:
   sit over the page they narrow (`NavHeader close`); the filter drawer over the
   calendar also marks its control `overlay`, so its loading and error chrome
   close the same way.
+  **Closing the filters shows their answers, never undoes them.** Every tap
+  writes the URL, so X, swipe, Esc and "Show N classes" all run the same
+  `backStep`, which for a `filters` entry lands on the results: over the search
+  or the calendar it steps back there, and DrawerStack rewrites the landed
+  entry's query to the answers tapped since, so no stale results entry is left
+  behind; over any other view, answers replace the filters' own entry with the
+  search, scoped to the place they were opened over, and none close it like any
+  view. A replace keeps the entry's `depth` and `from`, so Back from those
+  results still names the view before the filters, and a fresh link never takes
+  the host page back.
   **Nothing draws the history behind the view.** Back names where it goes, so
   the stacked edges that once stood for each panel a repeated X would pass
   through are gone, and with them the depth bookkeeping they needed.

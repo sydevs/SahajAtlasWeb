@@ -58,6 +58,8 @@ export type DrawerControl = {
   collapsed: boolean
   toggle: () => void
   dismiss: () => void
+  /** Closes the filters onto their results, and opens those as tall as the sheet goes. */
+  showResults: () => void
 }
 
 /** A control with nowhere to go: the default outside DrawerStack, and the base for stand-ins. */
@@ -65,6 +67,7 @@ export const NO_DRAWER_CONTROL: DrawerControl = {
   collapsed: false,
   toggle: () => {},
   dismiss: () => {},
+  showResults: () => {},
 }
 
 export const DrawerControlContext = createContext<DrawerControl>(NO_DRAWER_CONTROL)

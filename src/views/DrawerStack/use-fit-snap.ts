@@ -68,6 +68,41 @@ export function foldHeight({
   return Math.floor(Math.min(Math.max(fold, SHEET_OPEN_PX), frameHeight * FOLD_MAX_SHARE))
 }
 
+/**
+ * How much of the body its content fills, in px: from the body's top edge to the last child's
+ * bottom margin, plus the bottom padding. Measuring the extent rather than summing the children's
+ * heights counts the margins and gaps between them, which a sum leaves out: a sheet sized by the
+ * sum left a panel's last card on the screen's edge. With no child, the padding alone.
+ */
+export function contentExtent({
+  bodyTop,
+  last,
+  paddingTop,
+  paddingBottom,
+  scrollTop,
+}: {
+  bodyTop: number
+  /** The last child in the body's flow: its bottom edge and bottom margin. */
+  last: { bottom: number; marginBottom: number } | null
+  paddingTop: number
+  paddingBottom: number
+  /** A body already scrolled measures from its own top, not the visible one. */
+  scrollTop: number
+}): number {
+  if (!last) return paddingTop + paddingBottom
+
+  return last.bottom + last.marginBottom - bodyTop + scrollTop + paddingBottom
+}
+
+/** The last child that takes room in the body's flow: not hidden, not lifted out of it. */
+function lastInFlow(body: HTMLElement): HTMLElement | undefined {
+  return (Array.from(body.children) as HTMLElement[]).reverse().find((kid) => {
+    const { position } = getComputedStyle(kid)
+
+    return kid.getClientRects().length > 0 && position !== 'absolute' && position !== 'fixed'
+  })
+}
+
 function measure(
   sheet: HTMLElement,
   body: HTMLElement,
@@ -75,11 +110,19 @@ function measure(
   const style = getComputedStyle(body)
   const footerSpace = parseFloat(getComputedStyle(body, '::after').height) || 0
   const sheetTop = sheet.getBoundingClientRect().top
-  const kids = Array.from(body.children) as HTMLElement[]
-  const contentHeight =
-    kids.reduce((sum, kid) => sum + kid.offsetHeight, 0) +
-    (parseFloat(style.paddingTop) || 0) +
-    (parseFloat(style.paddingBottom) || 0)
+  const last = lastInFlow(body)
+  const contentHeight = contentExtent({
+    bodyTop: body.getBoundingClientRect().top,
+    last: last
+      ? {
+          bottom: last.getBoundingClientRect().bottom,
+          marginBottom: parseFloat(getComputedStyle(last).marginBottom) || 0,
+        }
+      : null,
+    paddingTop: parseFloat(style.paddingTop) || 0,
+    paddingBottom: parseFloat(style.paddingBottom) || 0,
+    scrollTop: body.scrollTop,
+  })
   // The sheet is the full-height panel vaul translates, so it is as tall as the box vaul
   // measures snaps against, with no raw viewport read.
   const frameHeight = sheet.offsetHeight

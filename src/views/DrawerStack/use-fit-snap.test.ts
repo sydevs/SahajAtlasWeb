@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import { fitHeight, foldHeight } from './use-fit-snap'
+import { contentExtent, fitHeight, foldHeight } from './use-fit-snap'
 
 import { SHEET_OPEN_PX } from '@/config/responsive'
 
@@ -48,5 +48,34 @@ describe('foldHeight', () => {
   it('ignores rows that have not laid out yet', () => {
     expect(foldHeight({ ...base, foldBottom: 0 })).toBeNull()
     expect(foldHeight({ ...base, frameHeight: 0 })).toBeNull()
+  })
+})
+
+describe('contentExtent', () => {
+  // A 16px-padded body at 100px whose two 40px children sit 20px apart: 16 + 40 + 20 + 40 + 16.
+  const base = {
+    bodyTop: 100,
+    last: { bottom: 216, marginBottom: 0 },
+    paddingTop: 16,
+    paddingBottom: 16,
+    scrollTop: 0,
+  }
+
+  it('counts the gaps between children, which a sum of their heights leaves out', () => {
+    expect(contentExtent(base)).toBe(132)
+  })
+
+  it('counts the last child’s own bottom margin', () => {
+    expect(contentExtent({ ...base, last: { bottom: 216, marginBottom: 12 } })).toBe(144)
+  })
+
+  it('measures a scrolled body from its own top', () => {
+    expect(contentExtent({ ...base, last: { bottom: 176, marginBottom: 0 }, scrollTop: 40 })).toBe(
+      132,
+    )
+  })
+
+  it('is the padding alone with nothing in the body', () => {
+    expect(contentExtent({ ...base, last: null })).toBe(32)
   })
 })

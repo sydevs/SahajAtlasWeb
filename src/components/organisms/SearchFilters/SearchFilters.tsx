@@ -48,7 +48,14 @@ function OptionCount({ count }: { count: number | undefined }) {
   )
 }
 
-type Choice = { value: string; label: ReactNode; count?: number; title?: string }
+type Choice = {
+  value: string
+  label: ReactNode
+  /** Faded text under the label, such as the hours a time of day means. */
+  hint?: string
+  count?: number
+  title?: string
+}
 
 type ChoicesProps = {
   control: FieldControlProps
@@ -90,8 +97,24 @@ function Choices({
           title={option.title}
           value={option.value}
         >
-          {option.label}
-          {!hideCounts && <OptionCount count={option.count} />}
+          {option.hint ? (
+            // The hint runs the tile's full width on a line of its own, so a 12-hour range still
+            // fits a half-width tile in the narrow side panel.
+            <span className="flex w-full min-w-0 flex-col gap-0.5 text-start leading-tight">
+              <span className="flex items-baseline justify-between gap-2">
+                {option.label}
+                {!hideCounts && <OptionCount count={option.count} />}
+              </span>
+              <span className="text-xs font-normal whitespace-nowrap text-gray-11 in-data-[state=on]:text-inherit">
+                {option.hint}
+              </span>
+            </span>
+          ) : (
+            <>
+              {option.label}
+              {!hideCounts && <OptionCount count={option.count} />}
+            </>
+          )}
         </ToggleGroupItem>
       ))}
     </ToggleGroup>
@@ -354,6 +377,12 @@ export function SearchFilters({ value, onChange, where, facets }: SearchFiltersP
   const { format, timeOfDay, daysOfWeek, languages } = value
   const shown = shownGroups(value, facets)
   const counts = facets?.counts
+  // Night is offered only while some class here starts in it, hidden rather than greyed: in
+  // practice that is online classes from far-off time zones. A chosen Night stays, so it can be
+  // undone.
+  const timePeriods = TIME_PERIODS.filter(
+    (period) => period !== 'night' || timeOfDay.includes(period) || (counts?.time.night ?? 0) > 0,
+  )
 
   const patch = (next: Partial<EventFilters>) => onChange({ ...value, ...next })
 
@@ -435,25 +464,20 @@ export function SearchFilters({ value, onChange, where, facets }: SearchFiltersP
           onClear={() => patch({ timeOfDay: [] })}
         >
           {(control) => (
-            <div className="flex flex-col gap-2">
-              <Choices
-                className="grid grid-cols-2"
-                control={control}
-                itemClassName="justify-between gap-2 px-3"
-                options={TIME_PERIODS.map((period) => ({
-                  value: period,
-                  label: t(`filters.time.${period}`),
-                  count: counts?.time[period],
-                }))}
-                type="multiple"
-                value={timeOfDay}
-                onValueChange={(next) => patch({ timeOfDay: next as TimePeriod[] })}
-              />
-              {/* The same times the active-filter pill shows. */}
-              {timeOfDay.length > 0 && (
-                <p className="text-xs text-gray-11">{formatTimePeriods(formatLocale, timeOfDay)}</p>
-              )}
-            </div>
+            <Choices
+              className="grid grid-cols-2"
+              control={control}
+              itemClassName="h-auto! px-3 py-2"
+              options={timePeriods.map((period) => ({
+                value: period,
+                label: t(`filters.time.${period}`),
+                hint: formatTimePeriods(formatLocale, [period]),
+                count: counts?.time[period],
+              }))}
+              type="multiple"
+              value={timeOfDay}
+              onValueChange={(next) => patch({ timeOfDay: next as TimePeriod[] })}
+            />
           )}
         </Question>
       )}

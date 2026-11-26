@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import { facetCounts, scopeFacets, shownGroups } from './facets'
+import { bestRecovery, facetCounts, scopeFacets, shownGroups } from './facets'
 import { DEFAULT_FILTERS, matchesFilters } from './filters'
 
 // Tuesday 2026-11-10 19:00 and Saturday 2026-11-14 10:00, London.
@@ -97,5 +97,39 @@ describe('shownGroups', () => {
       cadence: true,
       languages: false,
     })
+  })
+})
+
+describe('bestRecovery', () => {
+  it('names the answer whose removal brings back the most classes', () => {
+    const events = [
+      event({ eventType: 'online', languages: ['en'] }),
+      event({ eventType: 'online', languages: ['en'] }),
+      event({ eventType: 'offline', languages: ['fr'] }),
+    ]
+    const filters = { ...DEFAULT_FILTERS, format: 'online' as const, languages: ['fr'] }
+
+    expect(bestRecovery(events, filters, today)).toEqual({
+      group: 'languages',
+      count: 2,
+      patch: { languages: [] },
+    })
+  })
+
+  it('removes a whole question: every day picked goes at once', () => {
+    const filters = { ...DEFAULT_FILTERS, daysOfWeek: [1, 7] }
+
+    expect(bestRecovery(feed, filters, today)).toMatchObject({ group: 'days', count: 3 })
+  })
+
+  it('is null when removing any one answer still finds nothing', () => {
+    const events = [event({ eventType: 'online', languages: ['en'] })]
+    const filters = { ...DEFAULT_FILTERS, format: 'offline' as const, languages: ['fr'] }
+
+    expect(bestRecovery(events, filters, today)).toBeNull()
+  })
+
+  it('is null with nothing answered', () => {
+    expect(bestRecovery(feed, DEFAULT_FILTERS, today)).toBeNull()
   })
 })

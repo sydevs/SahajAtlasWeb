@@ -8,7 +8,7 @@ import { MapControllerContext } from './use-map-controller'
 
 import { useMapbox, usePaddingState } from '@/hooks/use-mapbox'
 import { useSheetCover, useViewState } from '@/config/store'
-import { SHEET_OPEN_PX, useIsWide } from '@/config/responsive'
+import { MIN_MAP_STRIP_PX, SHEET_OPEN_PX, useIsWide } from '@/config/responsive'
 import { eventFrameZoom, hasMapPoint, worldViewCamera } from '@/lib/camera'
 import { hasApproximatePlace, isOnline } from '@/lib/shape'
 import { frameElement } from '@/lib/overlay'
@@ -39,10 +39,6 @@ const DRAWER_W_PX = 352
 // The phone sheet's open height is only a fallback (`SHEET_OPEN_PX`): the stack publishes what
 // the sheet actually covers. Padding for the peek alone centred a framed place on map the open
 // sheet hides, and on /fr/paris the classes listed first sat under it.
-// What the sheet must still leave of the map above it, for the pin the camera just framed. It also
-// keeps the padding inside a short contained embed (#169), where padding past the canvas makes
-// `fitBounds` refuse the fit outright.
-const MIN_MAP_STRIP_PX = 160
 const MAP_MARGIN = 20
 
 // These constants keep zoom consistent.

@@ -9,6 +9,7 @@ import { useSearchCountry } from '@/hooks/use-search-country'
 import {
   type EventFilters,
   type FilterFacets,
+  bestRecovery,
   facetCounts,
   hasActiveFilters,
   isNearby,
@@ -54,6 +55,12 @@ export function useFilterFacets(filters: EventFilters): FilterFacets | undefined
     // The region is the scope itself, so a draft with nothing else picked counts as the scope does.
     if (!hasActiveFilters({ ...filters, region: null })) return unfiltered
 
-    return { counts: facetCounts(scope, filters), relevance: unfiltered.relevance }
+    const counts = facetCounts(scope, filters)
+
+    return {
+      counts,
+      relevance: unfiltered.relevance,
+      recovery: counts.total === 0 ? bestRecovery(scope, filters) : undefined,
+    }
   }, [scope, unfiltered, filters])
 }

@@ -6,6 +6,7 @@ import {
   type FilterableEvent,
   type TimePeriod,
   TIME_PERIODS,
+  isDateRestricted,
   matchesFilters,
   todayISO,
 } from './filters'
@@ -68,6 +69,46 @@ export const facetCounts = (
   }
 }
 
+/** One answered question, and how many classes come back once it is removed. */
+export type FilterRecovery = {
+  group: 'format' | 'days' | 'time' | 'cadence' | 'languages' | 'dates'
+  count: number
+  patch: Partial<EventFilters>
+}
+
+/**
+ * The one change that brings back the most classes when nothing matches: the answered question
+ * whose removal leaves the most. `null` when removing any single one still leaves nothing, so
+ * clearing everything is the only way out.
+ */
+export const bestRecovery = (
+  events: readonly FilterableEvent[],
+  filters: EventFilters,
+  today: string = todayISO(),
+): FilterRecovery | null => {
+  const candidates: Pick<FilterRecovery, 'group' | 'patch'>[] = [
+    filters.format !== 'any' && { group: 'format' as const, patch: { format: 'any' as const } },
+    filters.daysOfWeek.length > 0 && { group: 'days' as const, patch: { daysOfWeek: [] } },
+    filters.timeOfDay.length > 0 && { group: 'time' as const, patch: { timeOfDay: [] } },
+    filters.cadence !== 'any' && { group: 'cadence' as const, patch: { cadence: 'any' as const } },
+    filters.languages.length > 0 && { group: 'languages' as const, patch: { languages: [] } },
+    isDateRestricted(filters.dateRange) && {
+      group: 'dates' as const,
+      patch: { dateRange: { start: null, end: null } },
+    },
+  ].filter((candidate) => candidate !== false)
+
+  return candidates.reduce<FilterRecovery | null>((best, candidate) => {
+    const next = { ...filters, ...candidate.patch, region: null }
+    const count = events.reduce(
+      (sum, event) => (matchesFilters(event, next, today) ? sum + 1 : sum),
+      0,
+    )
+
+    return count > (best?.count ?? 0) ? { ...candidate, count } : best
+  }, null)
+}
+
 export type FacetRelevance = {
   format: boolean
   days: boolean
@@ -98,6 +139,8 @@ export const facetRelevance = (scope: FacetCounts): FacetRelevance => {
 export type FilterFacets = {
   counts: FacetCounts
   relevance: FacetRelevance
+  /** The way out when nothing matches (`bestRecovery`); absent while something does. */
+  recovery?: FilterRecovery | null
 }
 
 /** The scope's own counts and relevance, with nothing filtered. */

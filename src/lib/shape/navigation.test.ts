@@ -8,6 +8,7 @@ import {
   climbDestination,
   loneClassExit,
   passablePlaces,
+  sameRoute,
 } from './navigation'
 
 // The in-widget history shaping that turns a chronological-back dismiss on and the
@@ -122,29 +123,92 @@ describe('backStep', () => {
   it('steps back to the entry the push left, query included', () => {
     expect(
       backStep({ pathname: '/gb/712', state: { depth: 1, from: '/search?q=Prague' } }),
-    ).toEqual({ to: '/search?q=Prague', history: true })
+    ).toEqual({ to: '/search?q=Prague', how: 'history' })
   })
 
   it('climbs on a fresh deep link, even with a stale `from`', () => {
     // Never a history step at depth 0: the embedded widget shares history with the host page.
     expect(backStep({ pathname: '/gb/712', state: { from: '/search' } })).toEqual({
       to: '/gb',
-      history: false,
+      how: 'climb',
     })
   })
 
   it('climbs, rather than stepping back blind, from an entry stamped with no `from`', () => {
     expect(backStep({ pathname: '/gb/712', state: { depth: 2 } })).toEqual({
       to: '/gb',
-      history: false,
+      how: 'climb',
     })
   })
 
   it('keeps the search query when climbing back into the results', () => {
-    expect(backStep({ pathname: '/search/filters', search: '?q=Prague' })).toEqual({
+    expect(backStep({ pathname: '/search/42', search: '?q=Prague' })).toEqual({
       to: '/search?q=Prague',
-      history: false,
+      how: 'climb',
     })
+  })
+})
+
+describe('backStep — closing the filters', () => {
+  it('steps back onto the search it opened over, with the answers now in the URL', () => {
+    expect(
+      backStep({
+        pathname: '/search/filters',
+        search: '?q=Prague&days=2',
+        state: { depth: 2, from: '/search?q=Prague' },
+      }),
+    ).toEqual({ to: '/search?q=Prague&days=2', how: 'history' })
+  })
+
+  it('opens the results scoped to the region it was opened over, replacing its own entry', () => {
+    expect(
+      backStep({ pathname: '/gb/filters', search: '?days=2', state: { depth: 1, from: '/gb' } }),
+    ).toEqual({ to: '/search?days=2&region=gb', how: 'replace' })
+  })
+
+  it('keeps a fresh link on the widget: the results replace it, never a step back', () => {
+    expect(backStep({ pathname: '/gb/filters', search: '?days=2' })).toEqual({
+      to: '/search?days=2&region=gb',
+      how: 'replace',
+    })
+    expect(backStep({ pathname: '/calendar/filters', search: '?days=2' })).toEqual({
+      to: '/calendar?days=2',
+      how: 'replace',
+    })
+  })
+
+  it('closes like any view with nothing answered', () => {
+    expect(backStep({ pathname: '/gb/filters', state: { depth: 1, from: '/gb' } })).toEqual({
+      to: '/gb',
+      how: 'history',
+    })
+    expect(backStep({ pathname: '/gb/filters' })).toEqual({ to: '/gb', how: 'climb' })
+    expect(backStep({ pathname: '/filters' })).toEqual({ to: '/', how: 'climb' })
+  })
+
+  it('says the cleared query it lands on, so a step back does not restore the old answers', () => {
+    expect(backStep({ pathname: '/gb/filters', state: { depth: 1, from: '/gb?days=2' } })).toEqual({
+      to: '/gb',
+      how: 'history',
+    })
+  })
+
+  it('returns to the calendar the overlay covers, query kept', () => {
+    expect(
+      backStep({
+        pathname: '/calendar/filters',
+        search: '?time=evening',
+        state: { depth: 2, from: '/calendar' },
+      }),
+    ).toEqual({ to: '/calendar?time=evening', how: 'history' })
+  })
+})
+
+describe('sameRoute', () => {
+  it('ignores the order of query parameters, and nothing else', () => {
+    expect(sameRoute('/search?a=1&b=2', '/search?b=2&a=1')).toBe(true)
+    expect(sameRoute('/search?a=1', '/search')).toBe(false)
+    expect(sameRoute('/gb', '/gb?')).toBe(true)
   })
 })
 

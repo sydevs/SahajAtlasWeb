@@ -6,6 +6,7 @@ import {
   startTransition,
   useCallback,
   useEffect,
+  useLayoutEffect,
   useMemo,
   useRef,
   useState,
@@ -23,6 +24,7 @@ import { Drawer, DrawerContent } from '@/components/atoms/Drawer'
 import { ResetErrorBoundary, SettingsMenu } from '@/components/molecules'
 import { ClientGate } from '@/config/client-gate'
 import {
+  MIN_MAP_STRIP_PX,
   SHEET_OPEN_PX,
   SHEET_PEEK_PX,
   WIDE_SNAP,
@@ -43,8 +45,8 @@ import { frameElement, overlayContainer } from '@/lib/overlay'
 import {
   type StackEntry,
   CALENDAR_VIEW_LIST,
-  atlasDepth,
   backStep,
+  sameRoute,
   baseStackEntry,
   isFilterOverlay,
   isOnline,
@@ -185,6 +187,10 @@ export function DrawerStack() {
   const isWide = useIsWide(container ?? frameElement())
   const direction: Direction = isWide ? 'left' : 'bottom'
   const [snap, setSnap] = useState<number | string | null>(OPEN_SNAP)
+  // Set by "Show N classes": the results it closes onto open at the near-full stop.
+  const resultsTall = useRef(false)
+  // Where a step back is due to land, and the entry it left (`dismiss`).
+  const landing = useRef<{ key: string; to: string } | null>(null)
   // Whether the sheet is sitting at its peek, measured by the sheet-top loop below. Never true
   // where the sheet cannot collapse, since the loop does not run there.
   const [atPeek, setAtPeek] = useState(false)
@@ -264,7 +270,6 @@ export function DrawerStack() {
     if (!first || code) setBrowsedCountry(code)
   }, [location.pathname, setBrowsedCountry])
 
-  const depth = atlasDepth(location)
   const canCollapse = hasMap && direction === 'bottom'
 
   // A class opens as tall as its content and footer, up to the near-full snap. At the
@@ -274,7 +279,9 @@ export function DrawerStack() {
   // arrived. One drag down stops at its key facts (`sheetLadder`), with the class's pin above.
   // Share opens the same way, so its last row (the poster QR code) is in view without a drag.
   const classView = top?.kind === 'event'
-  const fitsContent = classView || top?.kind === 'share'
+  // The filters open just tall enough to show every question and their bottom button, and grow
+  // as a question opens. The calendar's overlay is a drawer of its own, at full height.
+  const fitsContent = classView || top?.kind === 'share' || top?.kind === 'filters'
   // Keys the open stop per class, so class B tapped after class A opens at B's own fit.
   const openedClass = classView ? location.pathname : null
   const { fit, fold: measuredFold } = useFitSnap(canCollapse && fitsContent, location.pathname)
@@ -325,7 +332,15 @@ export function DrawerStack() {
   // The sheet's near-full stop covers the map's control column all but its top edge, which would
   // show as a row of slivers above the sheet. Everywhere else a drawer either leaves the column
   // clear or covers it whole.
-  const controlsHidden = direction === 'bottom' && vaulSnap === WIDE_SNAP
+  // A sheet standing that tall cuts through the column too, so it goes; the filters, a form over
+  // the page, also dim what is left of the map above them.
+  const frameHeight = frameElement()?.clientHeight ?? window.innerHeight
+  const sheetTall =
+    canCollapse &&
+    (vaulSnap === WIDE_SNAP ||
+      (typeof vaulSnap === 'string' && frameHeight - parseFloat(vaulSnap) < MIN_MAP_STRIP_PX))
+  const dimmed = sheetTall && top?.kind === 'filters'
+  const controlsHidden = direction === 'bottom' && sheetTall
   const setControlsHidden = useMapControls((s) => s.setHidden)
 
   useEffect(() => {
@@ -490,9 +505,12 @@ export function DrawerStack() {
   // This runs only when navigating to or from the calendar, so it never fights a
   // manual drag on a non-calendar view.
   useEffect(() => {
-    if (direction === 'bottom') {
-      setSnap(top?.kind === 'calendar' ? WIDE_SNAP : fitsContent ? FIT_SNAP : OPEN_SNAP)
-    }
+    if (direction !== 'bottom') return
+
+    const landTall = resultsTall.current
+
+    resultsTall.current = false
+    setSnap(top?.kind === 'calendar' || landTall ? WIDE_SNAP : fitsContent ? FIT_SNAP : OPEN_SNAP)
   }, [direction, fitsContent, top?.kind, openedClass])
 
   // A new searched place lifts the sheet out of its peek, so results are never
@@ -512,38 +530,61 @@ export function DrawerStack() {
   // Back, swipe and Esc all run `dismiss`, and Back's label reads the same `step`, so what it
   // says is where it goes. With in-widget history it goes chronologically back, restoring the
   // prior camera. Otherwise it climbs: `navigate(-1)` there would take the HOST page back (the
-  // embedded widget shares browser history). The root view collapses to its peek.
+  // embedded widget shares browser history). The root view collapses to its peek. Closing the
+  // filters replaces their own entry instead, or steps back onto the view they covered.
+  const dismiss = useCallback(() => {
+    if (!step) return setSnap(PEEK_SNAP)
+    // A transition: unmounting a heavy view (the calendar's large grid) would otherwise
+    // reconcile synchronously and freeze the click for a beat ("nothing happened").
+    startTransition(() => {
+      if (step.how === 'history') {
+        landing.current = { key: location.key, to: step.to }
+        navigate(-1)
+      } else if (step.how === 'replace') navigate(step.to, { replace: true, state: location.state })
+      // A climb says where it climbed from, so a place that opens its lone class climbs on
+      // rather than bouncing back into it (RegionView, `loneClassExit`).
+      else navigate(step.to, { state: { climbedFrom: location.pathname } })
+    })
+  }, [step, navigate, location.key, location.pathname, location.state])
+
+  // A step back lands where it said: closing the filters onto the search they covered keeps the
+  // answers tapped since, by rewriting the landed entry's query rather than restoring the old one.
+  useLayoutEffect(() => {
+    const pending = landing.current
+
+    if (!pending || pending.key === location.key) return
+    landing.current = null
+    if (
+      location.pathname === pending.to.split('?')[0] &&
+      !sameRoute(`${location.pathname}${location.search}`, pending.to)
+    ) {
+      navigate(pending.to, { replace: true, state: location.state })
+    }
+  }, [location, navigate])
+
+  // "Show N classes" closes the filters like the X does, then opens the results tall.
+  const showResults = useCallback(() => {
+    resultsTall.current = canCollapse
+    dismiss()
+  }, [canCollapse, dismiss])
+
   const control = useMemo(
     () => ({
       // The filter overlay's X is the way out while it covers the calendar.
       backTo: filterOverlay ? undefined : step?.to,
       collapsed: canCollapse && atPeek,
       toggle: () => setSnap((s) => (s === PEEK_SNAP ? openSnap : PEEK_SNAP)),
-      dismiss: () => {
-        if (!step) return setSnap(PEEK_SNAP)
-        // A transition: unmounting a heavy view (the calendar's large grid) would otherwise
-        // reconcile synchronously and freeze the click for a beat ("nothing happened").
-        startTransition(() => {
-          if (step.history) navigate(-1)
-          // A climb says where it climbed from, so a place that opens its lone class climbs on
-          // rather than bouncing back into it (RegionView, `loneClassExit`).
-          else navigate(step.to, { state: { climbedFrom: location.pathname } })
-        })
-      },
+      dismiss,
+      showResults,
     }),
-    [filterOverlay, step, atPeek, openSnap, canCollapse, navigate, location.pathname],
+    [filterOverlay, step, atPeek, openSnap, canCollapse, dismiss, showResults],
   )
 
-  // The filter overlay's own dismiss (its X / swipe / Esc): back to the calendar it opened over,
-  // chronologically when there is in-widget history, otherwise a direct climb keeping its query.
+  // The filter overlay's own control: its X, swipe and Esc close it the same way, through the
+  // same `step`.
   const overlayControl = useMemo(
-    () => ({
-      ...NO_DRAWER_CONTROL,
-      overlay: true,
-      dismiss: () =>
-        depth > 0 ? navigate(-1) : navigate({ pathname: '/calendar', search: location.search }),
-    }),
-    [depth, location.search, navigate],
+    () => ({ ...NO_DRAWER_CONTROL, overlay: true, dismiss, showResults: dismiss }),
+    [dismiss],
   )
 
   // Whether the sheet advertises its drag affordance (issue #107). The atom's default is
@@ -699,11 +740,14 @@ export function DrawerStack() {
       <DrawerControlContext.Provider value={control}>
         {target &&
           createPortal(
-            <div
-              ref={sheetOriginRef}
-              aria-hidden
-              className="pointer-events-none fixed top-0 h-0 w-0"
-            />,
+            <>
+              <div
+                ref={sheetOriginRef}
+                aria-hidden
+                className="pointer-events-none fixed top-0 h-0 w-0"
+              />
+              {dimmed && <div aria-hidden className="fixed inset-0 z-[35] bg-black/50" />}
+            </>,
             target,
           )}
         <Drawer
