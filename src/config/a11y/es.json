@@ -21,6 +21,7 @@
   },
   "share": {
     "copy_link": "Copiar enlace",
-    "share_on": "Compartir en %{platform}"
+    "share_on": "Compartir en %{platform}",
+    "qr_code": "Código QR de %{title}"
   }
 }

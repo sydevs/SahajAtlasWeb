@@ -21,6 +21,7 @@
   },
   "share": {
     "copy_link": "Copiază linkul",
-    "share_on": "Distribuie pe %{platform}"
+    "share_on": "Distribuie pe %{platform}",
+    "qr_code": "Cod QR pentru %{title}"
   }
 }
