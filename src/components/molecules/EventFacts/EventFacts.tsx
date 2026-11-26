@@ -207,7 +207,7 @@ function CopyAddress({ value }: { value: string }) {
       <button
         data-vaul-no-drag
         aria-label={`${t('event.a11y.copy_address')}: ${value}`}
-        className="touch-target relative rounded-lg text-start outline-none select-text focus-visible:ring-2 focus-visible:ring-focus"
+        className="touch-target relative rounded-lg text-start focus-ring select-text"
         type="button"
         onClick={(event) => void onClick(event.currentTarget)}
       >

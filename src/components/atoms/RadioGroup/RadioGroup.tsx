@@ -69,7 +69,7 @@ const radioOption = tv({
     // The radio mark is hidden behind the icon, so the card shows where focus is.
     withIcon: {
       true: {
-        card: 'min-h-14 has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-focus',
+        card: 'min-h-14 has-[:focus-visible]:focus-outline',
         mark: 'sr-only',
       },
     },
