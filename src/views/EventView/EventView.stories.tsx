@@ -6,6 +6,7 @@ import type { Event } from '@/types'
 import { NO_ERROR, ViewStory, stateControl } from '@/views/story-harness'
 import { EventView } from '@/views/EventView/EventView'
 import { useLocale } from '@/hooks/use-locale'
+import { WidgetWidthContext } from '@/config/responsive'
 import {
   mockEvent,
   mockEventCourse,
@@ -90,4 +91,41 @@ Default.argTypes = {
     defaultValue: 'In person',
   },
   state: stateControl('Not found · event'),
+}
+
+/**
+ * The phone map sheet's class page: Register pins to the foot of the sheet, and the action row
+ * stays in the panel after the facts. This is the map-mode, narrow-widget case EventView pins
+ * Register for; the map itself is left out, since the footer is what is being previewed.
+ */
+export const StickyRegister: Story<{ example: ExampleKey }> = ({ example }) => {
+  const { locale } = useLocale()
+  const event = EXAMPLES[example] ?? mockEvent
+
+  return (
+    <WidgetWidthContext.Provider value={false}>
+      <ViewStory
+        example={example}
+        mode={{ hasMap: true }}
+        path={event.path}
+        seed={(client: QueryClient) =>
+          client.setQueryData<Event>(['event', event.id, locale], event)
+        }
+      >
+        <EventView basePath={event.path} id={event.id} />
+      </ViewStory>
+    </WidgetWidthContext.Provider>
+  )
+}
+
+StickyRegister.storyName = 'Event · sticky Register'
+StickyRegister.meta = { width: 'xsmall' }
+StickyRegister.args = { example: 'In person' }
+StickyRegister.argTypes = {
+  example: {
+    name: 'Example',
+    options: Object.keys(EXAMPLES),
+    control: { type: 'radio' },
+    defaultValue: 'In person',
+  },
 }

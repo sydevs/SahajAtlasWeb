@@ -4,7 +4,7 @@ import { readSource, sourceFiles } from '@/test-support/source-tree'
 
 /**
  * Where `announceEmbed` is called from is the guarantee, not a detail — so it is pinned here the
- * way `href.test.ts` pins the app's three JSX anchors (#153).
+ * way `href.test.ts` pins the app's JSX anchors (#153).
  *
  * The readiness marker must never go up over a widget that failed to boot: SahajCloud loads the
  * host page itself and treats the marker as evidence the embed works, so a false one gets a broken

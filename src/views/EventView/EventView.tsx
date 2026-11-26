@@ -45,16 +45,6 @@ const loadEventDetails = () =>
     import('@/components/organisms/EventDetails').then((m) => ({ default: m.EventDetails })),
   )
 
-// The sticky bar carries the action row too (#320), and EventActions reaches CopyField and
-// so react-share — which `molecules/index.ts` keeps out of the eager payload on purpose
-// (issue #96). So the row loads on its own, while EventRegisterBar stays eager: Register is
-// what must survive a chunk the host's CSP blocked (issue #89). Module scope is right here,
-// unlike `loadEventDetails` above, because nothing offers to retry this one — the boundary
-// below renders nothing and the bar keeps its CTA.
-const EventActions = lazy(() =>
-  import('@/components/molecules/EventActions').then((m) => ({ default: m.EventActions })),
-)
-
 // A single event, at route `<event-path>`. The header — Back and the title — is the mobile
 // sheet's peek payload, and stays pinned above the scrolling body. The chips and facts lead the
 // body. On the mobile map sheet, Register lives in a sticky bar pinned to the viewport edge,
@@ -131,7 +121,7 @@ export function EventView({ id, basePath }: { id: number; basePath: string }) {
           {/* The page's shape while its code arrives, marked loading so the phone sheet holds
               still until it has (`useFitSnap`). */}
           <Suspense fallback={<SkeletonBody body="class" cta={!stickyRegister} />}>
-            <EventDetails basePath={basePath} ctaInline={!stickyRegister} event={event}>
+            <EventDetails basePath={basePath} event={event} registerInline={!stickyRegister}>
               {/* This is passed as the panel's slot, so it lands immediately above Register,
                   which lives inside EventDetails when it is inline. The acknowledgement belongs
                   beside the action it wants the reader to take, and the panel is the only thing
@@ -173,19 +163,8 @@ export function EventView({ id, basePath }: { id: number; basePath: string }) {
           sticky
           className={`px-gutter py-3 transition-transform ${collapsed ? 'translate-y-full opacity-0' : ''}`}
         >
-          {/* The two rows are gapped inside a wrapper, not by the footer itself, so the
-              footer's own safe-area spacer is not a third gapped sibling. */}
-          <div className="flex flex-col gap-2">
-            <EventRegisterBar basePath={basePath} event={event} />
-            {/* The row rides the bar so only one copy exists — see `ctaInline`. The
-                boundary keeps a rejected chunk from reaching the body's sibling
-                boundary and taking the Register CTA down with it (issue #89). */}
-            <ResetErrorBoundary context="event actions" fallback={null}>
-              <Suspense fallback={null}>
-                <EventActions basePath={basePath} event={event} />
-              </Suspense>
-            </ResetErrorBoundary>
-          </div>
+          {/* Only Register pins: the action row stays in the panel, after the facts. */}
+          <EventRegisterBar basePath={basePath} event={event} />
         </DrawerFooter>
       )}
     </>
