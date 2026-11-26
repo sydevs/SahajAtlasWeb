@@ -43,7 +43,7 @@ cover everything a host would notice since the widget was first deployed.
 
 ### Changed
 
-- **Dates, times and distances follow the visitor's own region.** Every time and date the
+- **Dates, times and distances follow the visitor's own region.** ([#509]) Every time and date the
   widget shows is now written in the format of the visitor's browser region: a UK visitor reads
   "17:45–18:45" and "Wed 18 Nov", a US visitor "5:45 – 6:45 PM" and "Wed, Nov 18". A browser
   whose first language is not the page's keeps that language's clock on an English page (a
@@ -1345,6 +1345,7 @@ must-revalidate`, pinned rather than left to the CDN default. The production dom
   (`//evil.com`) and non-allowlisted-scheme hrefs. Defense in depth — no live hole was
   found. ([#111], [#136])
 
+[#509]: https://github.com/sydevs/SahajAtlasWeb/pull/509
 [#492]: https://github.com/sydevs/SahajAtlasWeb/pull/492
 [#485]: https://github.com/sydevs/SahajAtlasWeb/pull/485
 [#483]: https://github.com/sydevs/SahajAtlasWeb/pull/483
