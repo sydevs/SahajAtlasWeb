@@ -665,7 +665,9 @@ export async function run({ only, origin } = {}) {
       const checked = new Set()
 
       for (const stop of await keyboardWalk(page, result.stops, result.resting, selectors)) {
-        const at = Number(stop.order)
+        // ⚠ An unstamped stop (rendered after the audit) has no place in document order, and
+        // `Number(null)` is 0, which would read as a jump back to the top.
+        const at = stop.order === null ? NaN : Number(stop.order)
 
         // `<`, not `<=`: Chromium's own date field moves focus between the segments of ONE
         // input, so the same element is a stop twice in a row, and that is not an order defect.
