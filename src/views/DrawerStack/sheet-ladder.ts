@@ -85,15 +85,16 @@ export function sheetLadder({
 }
 
 /**
- * The stop vaul shows for `snap`. A stop the ladder no longer has resolves to a named rung, never
- * to nothing: the open stop to the one that took its place (a class's key facts, measured after a
- * drag there), anything taller to the top.
+ * The stop vaul shows for `snap`. vaul does nothing with a stop its ladder lacks, so one the
+ * ladder dropped resolves to a rung: near full to the top, any other to the rung above the peek.
+ * That covers the open stop a class's key facts replaced, and a held stop on its way to the next
+ * view's reset.
  */
 export function resolveStop({ points, fitStop }: Ladder, snap: Stop): Stop {
   if (snap === FIT_SNAP) return fitStop
   if (snap === null || points.includes(snap)) return snap
 
-  return snap === OPEN_SNAP ? points[1] : points[points.length - 1]
+  return snap === WIDE_SNAP ? points[points.length - 1] : points[1]
 }
 
 /**

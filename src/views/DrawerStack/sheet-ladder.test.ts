@@ -105,13 +105,20 @@ describe('resolveStop', () => {
     expect(resolveStop(full, OPEN_SNAP)).toBe('440px')
   })
 
-  it('shows the top for a stop the ladder dropped above it', () => {
+  it('shows the top for a near-full stop the ladder dropped', () => {
     // Dragged near full while the details loaded, then the class fitted.
     expect(resolveStop(full, WIDE_SNAP)).toBe('600px')
-    // Held at its key facts, then the class shrank below them.
-    const shrunk = sheetLadder({ classView: true, fit: 420, fold: 440 })
+  })
 
-    expect(resolveStop(shrunk, '440px')).toBe('420px')
+  it('shows the rung above the peek for a held stop the ladder dropped', () => {
+    // Held at its key facts, then the class shrank below them.
+    expect(resolveStop(sheetLadder({ classView: true, fit: 420, fold: 440 }), '440px')).toBe(
+      '420px',
+    )
+    // Held at a class's key facts on the render that leaves it for a list, before the reset.
+    expect(resolveStop(sheetLadder({ classView: false, fit: null, fold: null }), '440px')).toBe(
+      OPEN_SNAP,
+    )
   })
 })
 
