@@ -8,6 +8,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import { composeCalendarLine, useEventDisplay } from './use-event-display'
 
 import snapshot from '@/config/translations.en.json'
+import { mockEvent } from '@/mocks/events'
 
 const copy = (key: string): string =>
   key
@@ -243,5 +244,48 @@ describe('useEventDisplay — the type label', () => {
         },
       }),
     ).toBe('One-off event')
+  })
+})
+
+describe('useEventDisplay — the postcode on the class page', () => {
+  const fullLine = (event: DisplayableEvent) => {
+    let line: string | null = 'unset'
+    const Probe = () => {
+      line = useEventDisplay(event).whereLineWithPostCode
+
+      return null
+    }
+
+    renderToStaticMarkup(createElement(Probe))
+
+    return line
+  }
+  // A running weekly class, so the street shows.
+  const heath = {
+    ...mockEvent,
+    address: { ...mockEvent.address, street: '120 Heath St', city: 'London', postCode: 'NW3 1DR' },
+  }
+
+  it('ends the street and town with the postcode', () => {
+    expect(fullLine(heath)).toBe('120 Heath St, London NW3 1DR')
+  })
+
+  it.each([
+    [
+      'as typed, even when the street seems to hold it',
+      '120 Heath St, NW3 1DR',
+      ' NW3 1DR ',
+      '120 Heath St, NW3 1DR, London NW3 1DR',
+    ],
+    ['nothing when there is none', '120 Heath St', '  ', '120 Heath St, London'],
+  ])('adds the postcode %s', (_, street, postCode, expected) => {
+    expect(fullLine({ ...heath, address: { ...heath.address, street, postCode } })).toBe(expected)
+  })
+
+  it.each([
+    ['an online class', { ...heath, eventType: 'online' as const }],
+    ['an inactive listing', { ...heath, inactive: true }],
+  ])('is null for %s, which shows no street', (_, event) => {
+    expect(fullLine(event)).toBeNull()
   })
 })

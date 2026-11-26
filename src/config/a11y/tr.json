@@ -11,7 +11,8 @@
   },
   "event": {
     "view_photo": "Fotoğrafı görüntüle",
-    "pause_slideshow": "Slayt gösterisini duraklat"
+    "pause_slideshow": "Slayt gösterisini duraklat",
+    "copy_address": "Adresi kopyala"
   },
   "filters": {
     "remove": "Kaldır: %{label}"

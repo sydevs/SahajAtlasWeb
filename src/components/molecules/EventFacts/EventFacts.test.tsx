@@ -20,6 +20,10 @@ vi.mock('@/hooks/use-locale', () => ({
 const ROOM = 'Community Hall B'
 const withRoom = { ...mockEvent, address: { ...mockEvent.address, room: ROOM } }
 const roomLine = `event.display.room:${ROOM}`
+const NOT_PANEL = [
+  ['the list card', 'compact'],
+  ['the share and registration summaries', 'card'],
+] as const
 
 describe('EventFacts — the room line (#316)', () => {
   it('shows the room on the panel, on its own line above the street', () => {
@@ -27,7 +31,8 @@ describe('EventFacts — the room line (#316)', () => {
     const street = mockEvent.address?.street ?? ''
 
     expect(street).not.toBe('')
-    expect(html).toContain(`<div>${roomLine}</div><div>${street}`)
+    expect(html).toContain(`<div>${roomLine}</div><div><button`)
+    expect(html).toContain(`<span>${street}`)
   })
 
   it('hangs the pin from the first line when the room stacks it', () => {
@@ -40,10 +45,7 @@ describe('EventFacts — the room line (#316)', () => {
     expect(pinItem(single)).toBe('items-center')
   })
 
-  it.each([
-    ['the list card', 'compact'],
-    ['the share and registration summaries', 'card'],
-  ] as const)('leaves %s without it', (_, variant) => {
+  it.each(NOT_PANEL)('leaves %s without it', (_, variant) => {
     const html = renderToStaticMarkup(<EventFacts event={withRoom} variant={variant} />)
 
     expect(html).not.toContain('event.display.room')
@@ -62,5 +64,39 @@ describe('EventFacts — the room line (#316)', () => {
     ],
   ])('adds no line for %s', (_, event) => {
     expect(renderToStaticMarkup(<EventFacts event={event} />)).not.toContain('event.display.room')
+  })
+})
+
+describe('EventFacts — the address', () => {
+  const full = '5 Market St, Cambridge CB2 3QJ'
+
+  it('makes the class page address, postcode included, a copy button', () => {
+    const html = renderToStaticMarkup(<EventFacts event={mockEvent} />)
+
+    expect(html).toContain(`aria-label="event.a11y.copy_address: ${full}"`)
+    // The visible text is the whole line, and the icon follows its last word.
+    expect(html).toContain(`<span>${full}<svg`)
+    // A tap with a little movement would otherwise start a sheet drag and lose the click.
+    expect(html).toMatch(
+      /<button data-vaul-no-drag="true"[^>]*aria-label="event\.a11y\.copy_address/,
+    )
+  })
+
+  it.each(NOT_PANEL)('keeps %s to plain street and town', (_, variant) => {
+    const html = renderToStaticMarkup(<EventFacts event={mockEvent} variant={variant} />)
+
+    expect(html).toContain('5 Market St, Cambridge')
+    expect(html).not.toContain('CB2 3QJ')
+    expect(html).not.toContain('<button')
+  })
+
+  it.each([
+    ['an online class', mockEventSlimOnline],
+    ['an inactive listing', mockEventInactive],
+  ])('gives %s no copy button', (_, event) => {
+    const html = renderToStaticMarkup(<EventFacts event={event} />)
+
+    expect(html).not.toContain('<button')
+    expect(html).not.toContain('CB2 3QJ')
   })
 })

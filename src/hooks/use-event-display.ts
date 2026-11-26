@@ -46,6 +46,9 @@ export type EventDisplayStrings = {
   eventStartTime: string | null
   /** This is a one-line location: hosted-from for an online event, street and city for a physical one. */
   whereLine: string
+  /** `whereLine` with the postcode, for the class page: "120 Heath St, London NW3 1DR". Null when
+   *  no street shows: an online event, or a listing that hides it. */
+  whereLineWithPostCode: string | null
   /** The room inside the venue, such as "Room: Hall B", for a physical, non-inactive event that names one. */
   roomLine: string | null
   /** For an online event only, the HOST's clock, faded below the where line, such as
@@ -270,9 +273,15 @@ export function useEventDisplay(event: DisplayableEvent): EventDisplayStrings {
       : townOnly
         ? event.address?.city || event.region?.name || ''
         : streetAndCity(event.address?.street, event.address?.city) || event.region?.name || ''
-    // A listing that hides the street hides its room too, as the same wrong answer.
+    // A listing that hides the street hides its postcode and room too: each is a near-exact place.
+    const showsStreet = !display.online && !townOnly
+    // Added as typed, even where the street seems to hold it already: a house number can read
+    // the same as a postcode, and a coordinator sees a real repeat on the page and fixes it.
+    const whereLineWithPostCode = showsStreet
+      ? [whereLine, event.address?.postCode?.trim()].filter(Boolean).join(' ')
+      : null
     const room = event.address?.room?.trim()
-    const roomLine = !display.online && !townOnly && room ? t('event.display.room', { room }) : null
+    const roomLine = showsStreet && room ? t('event.display.room', { room }) : null
     // For an online event only, the host's own clock, faded under the where line, such as
     // "Wed 7:30 PM Prague time" — named like the viewer's time above it, so the two clocks read
     // the same way. The weekday shows ONLY when the host's day differs from the viewer's.
@@ -339,6 +348,7 @@ export function useEventDisplay(event: DisplayableEvent): EventDisplayStrings {
       eventTimeRange,
       eventStartTime,
       whereLine,
+      whereLineWithPostCode,
       roomLine,
       whereSubtext,
       registerLabel,
