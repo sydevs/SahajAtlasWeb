@@ -4,10 +4,19 @@ import { Settings } from 'luxon'
 import { renderToStaticMarkup } from 'react-dom/server'
 import { afterEach, describe, it, expect, vi } from 'vitest'
 
-import { EventFacts } from './EventFacts'
+import { EventFacts as RenderFacts, type EventFactsProps } from './EventFacts'
 
 import { EventChips } from '@/components/molecules/EventChips'
+import { useEventDisplay, type DisplayableEvent } from '@/hooks/use-event-display'
 import { mockEvent, mockEventInactive, mockEventSlimOnline } from '@/mocks/events'
+
+// A parent resolves an event's strings once and hands them down; each sample here does the same.
+const EventFacts = ({
+  event,
+  ...props
+}: Omit<EventFactsProps, 'strings'> & { event: DisplayableEvent }) => (
+  <RenderFacts {...props} strings={useEventDisplay(event)} />
+)
 
 // Node-only SSR, as `EventListItem.test.tsx` does it. `t` echoes the key with its
 // `room` option, so the room line is distinguishable from the street line.
@@ -71,7 +80,18 @@ describe('EventFacts — the room line (#316)', () => {
   })
 })
 
-// The card and the class page each pair these two, and each must say "Today" once.
+// The card and the class page each pair these two over one resolve, and each must say "Today" once.
+const Card = ({ event, surface }: { event: Event; surface: 'page' | 'card' }) => {
+  const strings = useEventDisplay(event)
+
+  return (
+    <>
+      <RenderFacts strings={strings} surface={surface} />
+      <EventChips languages={event.languages} strings={strings} surface={surface} />
+    </>
+  )
+}
+
 describe('EventFacts with EventChips — "Today" once', () => {
   afterEach(() => {
     Settings.now = () => Date.now()
@@ -107,8 +127,7 @@ describe('EventFacts with EventChips — "Today" once', () => {
 
     const html = renderToStaticMarkup(
       <>
-        <EventFacts event={event} surface={surface} />
-        <EventChips event={event} surface={surface} />
+        <Card event={event} surface={surface} />
       </>,
     )
 

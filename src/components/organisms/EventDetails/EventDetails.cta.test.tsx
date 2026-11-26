@@ -26,6 +26,8 @@ vi.mock('@/components/molecules/EventChips', () => ({
 vi.mock('@/components/molecules/EventFacts', () => ({
   EventFacts: () => <i>facts-slot</i>,
 }))
+// The panel resolves the strings its stubbed chips and facts would read, and that pulls i18n.
+vi.mock('@/hooks/use-event-display', () => ({ useEventDisplay: () => ({}) }))
 // DOMPurify binds a real `window` at module scope. `sanitize.test.ts` owns that allowlist.
 vi.mock('./sanitize', () => ({
   sanitizeDescription: (html: string) => html,

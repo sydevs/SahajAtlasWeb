@@ -9,6 +9,7 @@ import { EventActions } from '@/components/molecules/EventActions'
 import { EventChips } from '@/components/molecules/EventChips'
 import { ImageCarousel } from '@/components/molecules/ImageCarousel'
 import { EventFacts } from '@/components/molecules/EventFacts'
+import { useEventDisplay } from '@/hooks/use-event-display'
 import { isUnverified, lexicalToHtml } from '@/lib/shape'
 import { Event } from '@/types'
 
@@ -57,6 +58,7 @@ export type EventDetailsProps = EventSurfaceProps & {
  */
 export function EventDetails({ event, basePath, ctaInline = true, children }: EventDetailsProps) {
   const { t } = useTranslation()
+  const strings = useEventDisplay(event)
 
   const descriptionHtml = lexicalToHtml(event.description)
 
@@ -83,10 +85,10 @@ export function EventDetails({ event, basePath, ctaInline = true, children }: Ev
     <div className={`flex flex-col gap-4 px-gutter pt-2 ${hasImages ? '' : 'pb-10'}`}>
       {/* The triage chips open the body. They do not sit under the title in the
           pinned header. */}
-      <EventChips event={event} />
+      <EventChips languages={event.languages} strings={strings} />
 
       {/* The facts keep extra room above the Register button. */}
-      <EventFacts className="mb-2" event={event} />
+      <EventFacts className="mb-2" strings={strings} />
 
       {children}
 

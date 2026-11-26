@@ -31,7 +31,8 @@ export function RegistrationView({
   const { dismiss } = useDrawerControl()
 
   const { data: event } = useEventFromPath(eventPath)
-  const { display, blockedMessage, whereLine } = useEventDisplay(event)
+  const strings = useEventDisplay(event)
+  const { display, blockedMessage, whereLine } = strings
   // One answer serves both surfaces the confirmation screen puts a URL on — the calendar
   // entry and the invite-a-friend block — so they cannot word the same event two ways. This is
   // `undefined` where there is no honest link (issue #115). Both then degrade, rather than
@@ -104,7 +105,7 @@ export function RegistrationView({
       <DrawerBody className="px-gutter py-4">
         <EventFacts
           className="mx-auto mb-4 w-full max-w-md"
-          event={event}
+          strings={strings}
           surface="summary"
           title={event.title}
         />

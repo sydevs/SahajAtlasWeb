@@ -3,9 +3,18 @@ import type { Event } from '@/types'
 
 import { StoryWrapper, StorySection } from '../../ladle'
 
-import { EventFacts } from './EventFacts'
+import { EventFacts as RenderFacts, type EventFactsProps } from './EventFacts'
 
+import { useEventDisplay, type DisplayableEvent } from '@/hooks/use-event-display'
 import { mockEvent, mockEventOvernight } from '@/mocks/events'
+
+// A parent resolves an event's strings once and hands them down; each sample here does the same.
+const EventFacts = ({
+  event,
+  ...props
+}: Omit<EventFactsProps, 'strings'> & { event: DisplayableEvent }) => (
+  <RenderFacts {...props} strings={useEventDisplay(event)} />
+)
 
 export default { title: 'Molecules' } satisfies StoryDefault
 
