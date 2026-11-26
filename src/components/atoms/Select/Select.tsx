@@ -6,8 +6,8 @@ import { tv } from '@/styles/tv'
 import { frameCollision, overlayContainer } from '@/lib/overlay'
 
 // Shared chrome for every field-like control: this Select's trigger, the
-// registration inputs and textarea (Input/Textarea atoms), the date bounds,
-// and the Combobox trigger. It was previously several hand-copied strings
+// registration inputs and textarea (Input/Textarea atoms) and the date
+// bounds. It was previously several hand-copied strings
 // that had drifted to different corner radii on inputs stacked in the same
 // form. `isInvalid` is a variant here, so no caller re-implements the
 // border ternary. `highlight` tints the field primary, to flag an active
@@ -35,28 +35,10 @@ export const fieldChrome = tv({
   defaultVariants: { isInvalid: false, trigger: false },
 })
 
-// The panel a field trigger opens: this Select's listbox and the Combobox's popover. Both
-// spelled the same six-class surface themselves, so a drift between the two would have
-// reddened nothing — the hazard `menuChrome` was built for one layer up (#367). Each panel's
-// width comes from the popper that opens it, which is the one difference worth naming. There
-// is deliberately no default: a default would hand one surface the other's width property.
-export const panelChrome = tv({
-  base: 'z-50 overflow-hidden rounded-lg border border-gray-6 bg-background shadow-xl',
-  variants: {
-    popper: {
-      /** Radix Select, whose listbox scrolls inside a bounded column. */
-      select: 'flex max-h-72 w-[var(--radix-select-trigger-width)] flex-col',
-      /** Radix Popover, whose panel sizes to its content. */
-      popover: 'w-[var(--radix-popover-trigger-width)]',
-    },
-  },
-})
-
 // A select built on @radix-ui/react-select. It is controlled through
 // `value` and `onValueChange` (pair it with react-hook-form's Controller
 // for forms). The listbox portals into the theme root, so it stays brand
-// and light-dark themed. For a type-to-filter picker, with search in the
-// field itself, use the Combobox atom instead.
+// and light-dark themed.
 export type SelectProps = {
   /** The trigger's id, for a `<label htmlFor>` (FormField) to name it. */
   id?: string
@@ -141,7 +123,7 @@ export const Select = forwardRef<HTMLButtonElement, SelectProps>(function Select
         {/* `position="popper"` exposes `--radix-select-trigger-width`. So the
             listbox matches the trigger's width, instead of sizing to its longest option. */}
         <RadixSelect.Content
-          className={panelChrome({ popper: 'select' })}
+          className="z-50 flex max-h-72 w-[var(--radix-select-trigger-width)] flex-col overflow-hidden rounded-lg border border-gray-6 bg-background shadow-xl"
           {...frameCollision()}
           position="popper"
           sideOffset={4}

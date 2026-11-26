@@ -67,7 +67,7 @@ export const Default: Story = () => {
       </StorySection>
 
       <StorySection
-        description="`highlight` primary-tints the trigger to flag an active/used field (no layout shift). For a type-to-filter picker, use the Combobox atom instead."
+        description="`highlight` primary-tints the trigger to flag an active/used field (no layout shift)."
         title="Highlighted"
       >
         <div className="max-w-xs">
