@@ -65,9 +65,9 @@ export type EventSurfaceView = {
   when: { primary: string; time: string | null; detail: string | null }
   /** "Weekly class", "Course · 8 sessions", "One-off event", or null. */
   type: string | null
-  /** The one availability chip. "Full" supersedes "Today": a session that cannot be joined
-   *  should not invite the reader to act on "Today". */
-  availability: 'full' | 'today' | null
+  /** The Today chip. A full class gets none, so it never invites joining a session it cannot;
+   *  its faded line still says "Today". */
+  today: boolean
 }
 
 /** What {@link surfaceView} chooses between: the resolved state and its strings. */
@@ -109,7 +109,7 @@ export function surfaceView(parts: SurfaceParts, surface: EventSurface): EventSu
     return {
       when: { primary: whenLine, time: hasNext ? time : null, detail: null },
       type: parts.typeLabel,
-      availability: full ? 'full' : null,
+      today: false,
     }
   }
 
@@ -123,7 +123,7 @@ export function surfaceView(parts: SurfaceParts, surface: EventSurface): EventSu
     when: { primary: recurrenceLine, time, detail },
     // The plain weekly class is the default shape, and naming it on a card adds nothing.
     type: card && parts.isDefaultType ? null : parts.typeLabel,
-    availability: full ? 'full' : todayChip ? 'today' : null,
+    today: todayChip,
   }
 }
 

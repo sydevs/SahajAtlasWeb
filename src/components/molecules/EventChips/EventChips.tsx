@@ -18,14 +18,14 @@ export type EventChipsProps = {
 
 /**
  * The event's triage chips, all `flat`: the type (primary), the language(s) folded into one
- * chip (secondary), and the availability chip, "Full" (neutral) or "Today" (contrast). Which of
+ * chip (secondary), and "Today" (contrast). Which of
  * them show is `surfaceView`'s decision; this only renders it. The list card and the class page
  * share this component, so the two never drift.
  */
 export function EventChips({ event, surface = 'page', className }: EventChipsProps) {
   const { t } = useTranslation()
   const { languageCode: uiLanguage, languageLabel } = useLocale()
-  const { type, availability } = useEventDisplay(event).surfaces[surface]
+  const { type, today } = useEventDisplay(event).surfaces[surface]
 
   const languages =
     surface === 'card'
@@ -35,14 +35,13 @@ export function EventChips({ event, surface = 'page', className }: EventChipsPro
     ? languages.map((code) => languageLabel(code)).join(', ')
     : null
 
-  if (!type && !languageText && !availability) return null
+  if (!type && !languageText && !today) return null
 
   return (
     <div className={clsx('flex flex-wrap items-center gap-1', className)}>
       {type && <Chip color="primary">{type}</Chip>}
       {languageText && <Chip color="secondary">{languageText}</Chip>}
-      {availability === 'full' && <Chip color="neutral">{t('event.display.chip_full')}</Chip>}
-      {availability === 'today' && <Chip color="contrast">{t('event.display.chip_today')}</Chip>}
+      {today && <Chip color="contrast">{t('event.display.chip_today')}</Chip>}
     </div>
   )
 }

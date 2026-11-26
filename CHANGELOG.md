@@ -48,7 +48,8 @@ cover everything a host would notice since the widget was first deployed.
   with no dates, and a repeating class with no session left. Stirling, for one, no longer reads
   "ONE-OFF EVENT". "Today" appears once. A class page says it in its time line, without a TODAY
   tag under the title. A list card for a repeating class shows the TODAY tag, without the faded
-  "Today" under its pattern. A full class meeting today shows FULL, with "Today" in its time line.
+  "Today" under its pattern. The FULL tag is gone: a full class says so where you would sign up,
+  and if it meets today it carries no TODAY tag, keeping "Today" in its time line.
   **No parameter, origin, CSP, storage or Permissions-Policy change.**
 
 - **A listing with an empty schedule says "Contact host for timings".** ([#500]) SahajCloud sends

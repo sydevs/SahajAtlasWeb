@@ -10,7 +10,7 @@ import { EventChips } from './EventChips'
 // views by hand, so it covers only the rendering and the language filter. The UI language is
 // `en`, and `languageLabel` echoes the code, so the combined language text is greppable.
 const { views } = vi.hoisted(() => ({
-  views: {} as Record<'page' | 'card', Pick<EventSurfaceView, 'type' | 'availability'>>,
+  views: {} as Record<'page' | 'card', Pick<EventSurfaceView, 'type' | 'today'>>,
 }))
 
 vi.mock('react-i18next', () => ({ useTranslation: () => ({ t: (key: string) => key }) }))
@@ -28,8 +28,8 @@ const render = (languages: string[], surface?: EventChipsProps['surface']) =>
 
 describe('EventChips', () => {
   beforeEach(() => {
-    views.page = { type: 'Weekly class', availability: null }
-    views.card = { type: null, availability: null }
+    views.page = { type: 'Weekly class', today: false }
+    views.card = { type: null, today: false }
   })
 
   it('names the type and folds every language into one chip on the page', () => {
@@ -50,14 +50,11 @@ describe('EventChips', () => {
     expect(render(['en'], 'card')).toBe('')
   })
 
-  it('renders "Full" neutral and "Today" in contrast', () => {
-    views.card.availability = 'today'
-    expect(render(['en'], 'card')).toContain('text-contrast-11')
-    expect(render(['en'], 'card')).toContain('event.display.chip_today')
+  it('renders "Today" in contrast', () => {
+    views.card.today = true
 
-    views.card.availability = 'full'
-    expect(render(['en'], 'card')).toContain('event.display.chip_full')
-    expect(render(['en'], 'card')).not.toContain('event.display.chip_today')
+    expect(render(['en'], 'card')).toContain('event.display.chip_today')
+    expect(render(['en'], 'card')).toContain('text-contrast-11')
   })
 
   it('renders no type chip where the view names none', () => {

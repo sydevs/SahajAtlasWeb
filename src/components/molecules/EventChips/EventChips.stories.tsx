@@ -29,7 +29,7 @@ const SAMPLES: { name: string; event: Event & { languages: string[] } }[] = [
   { name: 'Multi-language', event: { ...mockEvent, languages: ['en', 'fr', 'de'] } },
   { name: 'Today', event: mockEventToday },
   { name: 'Full', event: mockEventFull },
-  { name: 'Full + today → "Full" wins', event: mockEventFullToday },
+  { name: 'Full + today → no Today chip', event: mockEventFullToday },
 ]
 
 // Each sample sits on its own line: the name, then the chip row beneath
@@ -46,11 +46,11 @@ const Samples = ({ surface }: { surface: 'page' | 'card' }) => (
 )
 
 /**
- * EventChips — the shared triage chips (type, language(s), availability).
+ * EventChips — the shared triage chips (type, language(s), Today).
  * The class page names the type and every language. The list card trims to what
  * is not already on the card: it drops the plain weekly-class type and the
- * viewer's own language, and it is the only surface that carries "Today". At
- * most one availability chip renders: "Full" supersedes "Today".
+ * viewer's own language, and it is the only surface that carries "Today". A full
+ * class carries no Today chip.
  */
 export const Default: Story = () => (
   <StoryWrapper>

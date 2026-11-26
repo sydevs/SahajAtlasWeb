@@ -74,18 +74,18 @@ describe('surfaceView', () => {
 
   it('says "Today" once: as the chip on a card, in the faded line on a page', () => {
     expect(surfaceView(today, 'card')).toMatchObject({
-      availability: 'today',
+      today: true,
       when: { detail: null },
     })
     expect(surfaceView(today, 'page')).toMatchObject({
-      availability: null,
+      today: false,
       when: { detail: 'Today' },
     })
   })
 
-  it('lets "Full" take the chip, so a full class keeps "Today" in its line', () => {
+  it('gives a full class no Today chip, so its line keeps "Today"', () => {
     expect(surfaceView({ ...today, full: true }, 'card')).toMatchObject({
-      availability: 'full',
+      today: false,
       when: { detail: 'Today' },
     })
   })
@@ -94,7 +94,7 @@ describe('surfaceView', () => {
     const oneOffToday = { ...oneOff, status: 'today', whenLine: 'Today' } as const
 
     expect(surfaceView(oneOffToday, 'card')).toMatchObject({
-      availability: null,
+      today: false,
       when: { primary: 'Today' },
     })
   })
