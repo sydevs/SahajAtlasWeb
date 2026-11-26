@@ -176,7 +176,10 @@ const regional = new Map<string, string>()
  */
 export function regionalLocale(
   locale: string,
-  browserLocales: readonly string[] = typeof navigator === 'undefined' ? [] : navigator.languages,
+  // An older webview has `navigator` but no `languages`.
+  browserLocales: readonly string[] = typeof navigator === 'undefined'
+    ? []
+    : (navigator.languages ?? []),
 ): string {
   const language = locale.split('-')[0].toLowerCase()
   const [first] = browserLocales
