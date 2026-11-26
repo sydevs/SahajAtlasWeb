@@ -3,18 +3,8 @@ import type { Event } from '@/types'
 
 import { StoryWrapper, StorySection } from '../../ladle'
 
-import { EventFacts as RenderFacts, type EventFactsProps } from './EventFacts'
-
-import { useEventDisplay, type DisplayableEvent } from '@/hooks/use-event-display'
+import { FactsFor } from '@/mocks/event-surfaces'
 import { mockEvent, mockEventOvernight } from '@/mocks/events'
-
-// A parent resolves an event's strings once and hands them down; each sample here does the same.
-const EventFacts = ({
-  event,
-  ...props
-}: Omit<EventFactsProps, 'strings'> & { event: DisplayableEvent }) => (
-  <RenderFacts {...props} strings={useEventDisplay(event)} />
-)
 
 export default { title: 'Molecules' } satisfies StoryDefault
 
@@ -46,7 +36,7 @@ export const Default: Story = () => (
       title="In person"
     >
       <div className="max-w-md">
-        <EventFacts event={mockEvent} />
+        <FactsFor event={mockEvent} />
       </div>
     </StorySection>
 
@@ -55,13 +45,13 @@ export const Default: Story = () => (
       title="With a room"
     >
       <div className="max-w-md">
-        <EventFacts event={{ ...mockEvent, address: { ...mockEvent.address, room: 'Hall B' } }} />
+        <FactsFor event={{ ...mockEvent, address: { ...mockEvent.address, room: 'Hall B' } }} />
       </div>
     </StorySection>
 
     <StorySection description="An online class — screen icon, converted time." title="Online">
       <div className="max-w-md">
-        <EventFacts event={{ ...mockEvent, eventType: 'online' }} />
+        <FactsFor event={{ ...mockEvent, eventType: 'online' }} />
       </div>
     </StorySection>
 
@@ -70,19 +60,19 @@ export const Default: Story = () => (
       title="Past midnight"
     >
       <div className="max-w-md">
-        <EventFacts event={mockEventOvernight} />
+        <FactsFor event={mockEventOvernight} />
       </div>
     </StorySection>
 
     <StorySection description="A bounded course." title="Course">
       <div className="max-w-md">
-        <EventFacts event={course} />
+        <FactsFor event={course} />
       </div>
     </StorySection>
 
     <StorySection description="An ended event — no location line." title="Ended">
       <div className="max-w-md">
-        <EventFacts event={ended} />
+        <FactsFor event={ended} />
       </div>
     </StorySection>
 
@@ -91,8 +81,8 @@ export const Default: Story = () => (
       title="Summary"
     >
       <div className="flex max-w-md flex-col gap-4">
-        <EventFacts event={mockEvent} surface="summary" title={mockEvent.title} />
-        <EventFacts
+        <FactsFor event={mockEvent} surface="summary" title={mockEvent.title} />
+        <FactsFor
           event={{ ...mockEvent, eventType: 'online' }}
           surface="summary"
           title="Online Evening Sitting"
@@ -105,9 +95,9 @@ export const Default: Story = () => (
       title="Card"
     >
       <div className="flex max-w-md flex-col gap-4">
-        <EventFacts event={mockEvent} surface="card" />
-        <EventFacts event={{ ...mockEvent, eventType: 'online' }} surface="card" />
-        <EventFacts event={course} surface="card" />
+        <FactsFor event={mockEvent} surface="card" />
+        <FactsFor event={{ ...mockEvent, eventType: 'online' }} surface="card" />
+        <FactsFor event={course} surface="card" />
       </div>
     </StorySection>
 
@@ -116,7 +106,7 @@ export const Default: Story = () => (
       title="With distance"
     >
       <div className="max-w-md">
-        <EventFacts distance="6.2 km away" event={mockEvent} surface="card" />
+        <FactsFor distance="6.2 km away" event={mockEvent} surface="card" />
       </div>
     </StorySection>
 

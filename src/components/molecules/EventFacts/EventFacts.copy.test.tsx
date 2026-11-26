@@ -5,18 +5,8 @@ import { act } from 'react'
 import { createRoot } from 'react-dom/client'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
-import { EventFacts as RenderFacts, type EventFactsProps } from './EventFacts'
-
-import { useEventDisplay, type DisplayableEvent } from '@/hooks/use-event-display'
+import { FactsFor } from '@/mocks/event-surfaces'
 import { mockEvent } from '@/mocks/events'
-
-// A parent resolves an event's strings once and hands them down; each sample here does the same.
-const EventFacts = ({
-  event,
-  ...props
-}: Omit<EventFactsProps, 'strings'> & { event: DisplayableEvent }) => (
-  <RenderFacts {...props} strings={useEventDisplay(event)} />
-)
 
 vi.mock('react-i18next', () => ({
   useTranslation: () => ({ t: (key: string) => key }),
@@ -44,7 +34,7 @@ async function tapAddress(clipboard: { writeText: (text: string) => Promise<void
   document.body.append(container)
   const root = createRoot(container)
 
-  await act(async () => root.render(<EventFacts event={mockEvent} />))
+  await act(async () => root.render(<FactsFor event={mockEvent} />))
   await act(async () =>
     container.querySelector<HTMLButtonElement>('[aria-label^="event.a11y.copy_address"]')?.click(),
   )

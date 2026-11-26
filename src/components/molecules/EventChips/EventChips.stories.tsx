@@ -3,9 +3,6 @@ import type { Event } from '@/types'
 
 import { StoryWrapper, StorySection } from '../../ladle'
 
-import { EventChips } from './EventChips'
-
-import { useEventDisplay } from '@/hooks/use-event-display'
 import {
   mockEvent,
   mockEventFull,
@@ -13,6 +10,7 @@ import {
   mockEventSlimOnline,
   mockEventToday,
 } from '@/mocks/events'
+import { ChipsFor } from '@/mocks/event-surfaces'
 
 export default { title: 'Molecules' } satisfies StoryDefault
 
@@ -33,10 +31,6 @@ const SAMPLES: { name: string; event: Event & { languages: string[] } }[] = [
   { name: 'Full + today → no Today chip', event: mockEventFullToday },
 ]
 
-const Chips = ({ event, surface }: { event: Event; surface: 'page' | 'card' }) => (
-  <EventChips languages={event.languages} strings={useEventDisplay(event)} surface={surface} />
-)
-
 // Each sample sits on its own line: the name, then the chip row beneath
 // it. So a surface's output for a given event reads as a single unit.
 const Samples = ({ surface }: { surface: 'page' | 'card' }) => (
@@ -44,7 +38,7 @@ const Samples = ({ surface }: { surface: 'page' | 'card' }) => (
     {SAMPLES.map(({ name, event }) => (
       <div key={name} className="flex flex-col gap-1">
         <span className="text-xs text-gray-11">{name}</span>
-        <Chips event={event} surface={surface} />
+        <ChipsFor event={event} surface={surface} />
       </div>
     ))}
   </div>
