@@ -48,16 +48,10 @@ export {
 } from './Fallbacks'
 export type { FallbackAlign, FallbackKind } from './Fallbacks'
 
-// FormField — the label, control, and help-or-error shell shared by the
-// app's forms, and `fieldErrorId`, the single definition of the
-// aria-describedby id convention.
-export { FormField, fieldErrorId, fieldHelpId, fieldDescribedBy } from './FormField'
-export type { FormFieldProps } from './FormField'
-
-// ActionRow / ActionCircle — the labelled tonal-circle secondary actions
-// under an event's Register CTA (Directions, Website, Contact, Share).
-export { ActionRow, ActionCircle } from './ActionRow'
-export type { ActionRowProps, ActionCircleProps } from './ActionRow'
+// FormField — the label, control, and help-or-error shell every form shares, and the one
+// definition of the aria-describedby id convention.
+export { FormField } from './FormField'
+export type { FieldControlProps, FormFieldProps } from './FormField'
 
 // EventFacts — the shared calendar and location fact block for an
 // event. It builds and renders the when/where lines. The panel, the list

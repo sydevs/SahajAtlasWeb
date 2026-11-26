@@ -212,7 +212,7 @@ function ClassPage({ cta }: { cta: boolean }) {
         <SkeletonLine className="text-base leading-snug" width="w-3/5" />
         <SkeletonLine className="text-base leading-snug" width="w-1/2" />
       </div>
-      {cta && <SkeletonBlock className="h-10 w-full" />}
+      {cta && <SkeletonBlock className="h-12 w-full" />}
       <div className="flex flex-col gap-2">
         <SkeletonLine className="text-sm leading-snug" width="w-full" />
         <SkeletonLine className="text-sm leading-snug" width="w-4/5" />

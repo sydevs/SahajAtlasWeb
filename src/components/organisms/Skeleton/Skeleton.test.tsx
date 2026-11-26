@@ -52,9 +52,9 @@ describe('SkeletonBody', () => {
   )
 
   it('leaves Register out where it pins to the sheet foot', () => {
-    expect(renderToStaticMarkup(<SkeletonBody body="class" />)).toContain('h-10 w-full')
+    expect(renderToStaticMarkup(<SkeletonBody body="class" />)).toContain('h-12 w-full')
     expect(renderToStaticMarkup(<SkeletonBody body="class" cta={false} />)).not.toContain(
-      'h-10 w-full',
+      'h-12 w-full',
     )
   })
 })

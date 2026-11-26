@@ -26,6 +26,10 @@ Before hand-rolling UI, check in this order:
    ARIA. We own the Tailwind skin.
 3. Only then write something new, in the right atomic tier per `DESIGN_SYSTEM.md`.
 
+**Every form is one kit**: `FormField` around the form atoms, wired through its render prop.
+Don't hand-roll a radio, a segmented control or a field shell. `DESIGN_SYSTEM.md` § One form kit
+lists the set, and the FormField story's "Form atoms" section shows it.
+
 ## Styling
 
 - Tailwind 4 utility classes are the default. For components with variants
@@ -198,7 +202,7 @@ browser window.** Every decision names one of three signals
 
 **Reaching for the wrong signal fails silently**, so `src/config/responsive.test.ts`
 asserts the viewport call sites as a closed list, the way `href.test.ts` pins the
-app's three JSX anchors. A fourth call site turns the unit lane red instead of
+app's JSX anchors. A fourth call site turns the unit lane red instead of
 shipping a narrow embed that quietly behaves like a desktop.
 
 | Behavior | Signal | Why |
@@ -320,7 +324,7 @@ and one task-named button that opens the interface somewhere it fits.
 - **Expansion goes through a seam** (`src/hooks/use-expansion.tsx`), the same shape
   as `MapController`. A framed embed gets an anchor (`lib/fallback-url.ts`) instead,
   through the `Button` atom's href form — not a new JSX anchor, since `href.test.ts`
-  pins that inventory to three components.
+  pins that inventory.
 - **What it expands into is a module-private dialog inside `CompactEmbedView`, and it
   keeps a margin.** It is not an atom: it publishes itself as the app's
   portal target, needs `contain: layout` since this app's interface is fixed
@@ -570,10 +574,10 @@ this table or the folklore it fixes. On the frame itself both are deliberate, an
 **Do not render a bare `<a href={…}>`.** Use the `Link` atom. If a component
 genuinely must emit its own anchor, its href must go through **`isSafeHref`**
 (`src/lib/shape/href.ts`) first — `safePath`-clean, or an allowed scheme — and a
-refusal reports via `reportInternalError` and degrades to inert content. Exactly
-three components render a JSX anchor (`Link`, `Button`'s href form, `ActionRow`'s
-`ActionCircle`), and `src/lib/shape/href.test.ts` **asserts** that inventory, so a
-fourth turns the unit lane red until it is gated.
+refusal reports via `reportInternalError` and degrades to inert content. Only
+`Link` and `Button`'s href form render a JSX anchor, and
+`src/lib/shape/href.test.ts` **asserts** that inventory, so another
+turns the unit lane red until it is gated.
 
 For why this is a shared predicate rather than a per-component check, and why
 "site-relative" must mean `safePath` rather than `startsWith('/')`, see
@@ -599,7 +603,8 @@ three things defeat it:
 - **`overflow: hidden` clips it**, so a `truncate` on the control itself takes the area away and
   leaves the class in the DOM saying nothing. Put `truncate` on an inner span.
 - **An `<input>` renders no pseudo-element at all**, so a field takes a drawn
-  `pointer-coarse:h-11` instead — `fieldChrome` and the geocoder's own input both do.
+  `pointer-coarse:h-11` instead — `fieldChrome` (through the `field-height` utility) and the
+  geocoder's own input both do.
 - **Two such areas that meet take each other's pixels**, the later element winning every shared
   one, so both controls measure short. Controls that sit flush — the toggle group's items — are
   drawn at 44px instead, and rows that sit close get `pointer-coarse:` spacing. The gate
@@ -673,4 +678,4 @@ can render in a Suspense fallback before translation bundles load.
 **A control on the drawer needs `data-vaul-no-drag`.** vaul reads a tap carrying any
 micro-movement as a drag and swallows the click, so a control without this attribute
 fires only intermittently on touch. The `Button` atom sets it for you. Anything
-hand-rolled (`ActionRow`, the carousel's pause button) must carry it itself.
+hand-rolled (the carousel's pause button) must carry it itself.
