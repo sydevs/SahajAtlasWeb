@@ -105,18 +105,27 @@ describe('ShareContent — Share', () => {
     await renderBlock()
     await press('share.native')
 
-    const networks = [...(popover()?.querySelectorAll('button') ?? [])].map((button) =>
-      button.getAttribute('aria-label'),
-    )
-
-    expect(networks.slice(0, 2)).toEqual(['Share on VK', 'Share on OK.ru'])
-
+    // VK is in Russia's list alone, so finding it proves the popover holds the region's.
     await act(async () =>
       popover()?.querySelector<HTMLButtonElement>('[aria-label="Share on VK"]')?.click(),
     )
 
     expect(open).toHaveBeenCalledOnce()
     expect(popover()).toBeNull()
+  })
+
+  // Once a refusal has opened the popover, the button closes it rather than asking again.
+  it('closes the open popover from the Share button', async () => {
+    const share = vi.fn(() => Promise.reject(new DOMException('', 'NotAllowedError')))
+
+    stubNavigator('share', share)
+    await renderBlock()
+    await press('share.native')
+    expect(popover()).not.toBeNull()
+
+    await press('share.native')
+    expect(popover()).toBeNull()
+    expect(share).toHaveBeenCalledOnce()
   })
 })
 

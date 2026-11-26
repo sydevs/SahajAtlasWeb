@@ -156,12 +156,7 @@ describe('EventFacts — hideSubtext', () => {
   ] as const)('drops %s', (_, surface, line) => {
     const facts = (hideSubtext: boolean) =>
       renderToStaticMarkup(
-        <Facts
-          distance={DISTANCE}
-          event={mockEvent}
-          hideSubtext={hideSubtext}
-          surface={surface}
-        />,
+        <Facts distance={DISTANCE} event={mockEvent} hideSubtext={hideSubtext} surface={surface} />,
       )
 
     expect(facts(false)).toContain(line)

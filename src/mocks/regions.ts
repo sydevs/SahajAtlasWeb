@@ -266,7 +266,7 @@ export const mockIpLocation: IpLocation = {
   longitude: 0.12,
   city: 'Cambridge',
   country: 'United Kingdom',
-  // A real guess carries the code, and two features read it: the share grid's
+  // A real guess carries the code, and two features read it: the Share popover's
   // region ordering (`useViewerCountry`) and the `?cc` the accepted suggestion
   // writes — neither of which a code-less guess would exercise.
   country_code: 'GB',

@@ -7,7 +7,6 @@ import { tv } from '@/styles/tv'
 import { Chip } from '@/components/atoms/Chip'
 import { EventChips } from '@/components/molecules/EventChips'
 import { EventFacts } from '@/components/molecules/EventFacts'
-import { isOnline } from '@/lib/shape'
 
 const summary = tv({
   slots: {
@@ -60,7 +59,9 @@ export function EventSummary({
     <div className={slots.base({ className })}>
       <div className={slots.title()}>
         {event.title}
-        {isOnline(event) && <Chip className={slots.online()}>{t('event.display.online')}</Chip>}
+        {strings.display.online && (
+          <Chip className={slots.online()}>{t('event.display.online')}</Chip>
+        )}
       </div>
       <EventFacts
         className="mt-0.5 mb-1"

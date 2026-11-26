@@ -73,7 +73,7 @@ export type { ListItemProps } from './ListItem'
 export { EventListItem } from './EventListItem'
 export type { EventListItemProps } from './EventListItem'
 
-// NOTE: ImageCarousel, EventActions, ShareContent/CopyField, and
+// NOTE: ImageCarousel, EventActions, ShareContent, and
 // AddToCalendar are deliberately NOT re-exported. The organisms barrel
 // states the same rule for EventDetails and RegistrationForm. Between
 // them, these own Swiper and react-share. The interface's views import
@@ -83,7 +83,7 @@ export type { EventListItemProps } from './EventListItem'
 // `swiper/*` and react-share imports carry side effects. Every real
 // consumer already reaches them by leaf path from inside a lazily-loaded
 // chunk: EventActions and ImageCarousel from EventDetails, ShareContent
-// from EventActions, RegistrationForm and ShareView. That is the
+// from RegistrationForm and ShareView. That is the
 // readiness report's "Swiper bundled twice" finding. `index.test.ts` pins
 // it (issue #96). ⚠ Nothing else does: the interface loads behind a lazy
 // seam, outside the graphs `pnpm size` budgets.

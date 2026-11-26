@@ -50,9 +50,10 @@ cover everything a host would notice since the widget was first deployed.
   `web-share`, the same button opens the region's share networks in a small popover, in their
   own colours. Copy link turns into "Link copied" for a few seconds; where your policy refuses
   `clipboard-write`, it selects the link and says how to copy it by hand. The Share panel's
-  heading reads "Share this class". The "QR code for posters" row moves from Share to the
-  bottom of the class page. **No parameter, origin or CSP change**; the Permissions Policy
-  section says what each refusal now does.
+  heading reads "Share this class". An online class's list card now tags it Online after its
+  title. The "QR code for posters" row moves from Share to the bottom of the class page. **No
+  parameter, origin or CSP change**; the Permissions Policy section says what each refusal now
+  does.
 
 - **Dates, times and distances follow the visitor's own region.** ([#509]) Every time and date the
   widget shows is now written in the format of the visitor's browser region: a UK visitor reads

@@ -13,48 +13,6 @@ import { useCopy } from '@/hooks/use-copy'
 import { useWebShare } from '@/hooks/use-web-share'
 import { frameCollision, overlayContainer } from '@/lib/overlay'
 
-const copyField = tv({
-  // ⚠ `truncate` sits on the inner span, not here. It carries `overflow: hidden`, which clips
-  // this button's own `touch-target` pseudo-element back to the drawn box — the 44px tap area
-  // was there in the style and answered to nothing (#432).
-  base: 'touch-target relative w-full rounded-lg px-3 py-2 text-start text-sm text-secondary-11 transition-colors select-all',
-  variants: { copied: { true: 'bg-secondary-5', false: 'bg-secondary-3' } },
-  defaultVariants: { copied: false },
-})
-
-// A click-to-copy value field. It copies on click, with a brief tint
-// flash. The text stays selectable as a fallback. This is exported for
-// the event panel's desktop contact popover (issue #52).
-export function CopyField({ value }: { value: string }) {
-  const { t } = useTranslation()
-  const { copied, copy } = useCopy(1500)
-
-  return (
-    <div className="flex flex-col gap-1">
-      <button
-        data-vaul-no-drag
-        // The URL is the button's visible text, so the name carries it too: a name that
-        // omitted it would leave a speech-input viewer with nothing to say (WCAG 2.5.3).
-        aria-label={`${t('share.a11y.copy_link')}: ${value}`}
-        className={copyField({ copied })}
-        title={value}
-        type="button"
-        onClick={() => void copy(value)}
-      >
-        <span className="block truncate">{value}</span>
-      </button>
-      {/* Success was previously signalled ONLY by a secondary-3 to
-          secondary-5 tint, a roughly 1.15:1 shift. A screen reader cannot
-          see that at all, and low-vision or monochrome users would not
-          perceive it either. The live region announces success, and the
-          text confirms it. */}
-      <span aria-live="polite" className="h-4 text-xs text-secondary-11">
-        {copied ? t('common.chrome.copied') : ''}
-      </span>
-    </div>
-  )
-}
-
 /** How long Copy link says "Link copied": long enough to read after glancing away and back. */
 const COPIED_MS = 2500
 
@@ -72,6 +30,7 @@ function CopyLinkButton({ url }: { url: string }) {
   const { copied, copy } = useCopy(COPIED_MS)
   const [failed, setFailed] = useState(false)
   const captionRef = useRef<HTMLParagraphElement>(null)
+  const status = copied ? t('share.link_copied') : ''
 
   const onClick = async () => {
     const ok = await copy(url)
@@ -92,10 +51,10 @@ function CopyLinkButton({ url }: { url: string }) {
         onClick={() => void onClick()}
       >
         {copied ? <Check aria-hidden size={18} strokeWidth={3} /> : <Link aria-hidden size={18} />}
-        {copied ? t('share.link_copied') : t('share.copy_link')}
+        {status || t('share.copy_link')}
       </Button>
       <span aria-live="polite" className="sr-only">
-        {copied ? t('share.link_copied') : ''}
+        {status}
       </span>
       {failed && (
         <p className="text-sm text-danger-11" role="alert">
@@ -109,24 +68,22 @@ function CopyLinkButton({ url }: { url: string }) {
   )
 }
 
-type ShareButtonProps = { label: string; url: string; country?: string }
-
 /**
  * Share, as one button. It opens the device's own share sheet, which lists the apps this person
  * uses. Where there is none (most desktop browsers), or a host page refuses it, the same button
  * opens the region's share targets in a popover instead.
  */
-function ShareButton({ label, url, country }: ShareButtonProps) {
+function ShareButton({ label, url, country }: ShareContentProps) {
   const { t } = useTranslation()
   const { canShare, share } = useWebShare()
   const [open, setOpen] = useState(false)
 
   const onClick = async (event: MouseEvent) => {
-    if (!canShare) return
+    // With the popover already open, the click is Radix's own toggle, which closes it.
+    if (!canShare || open) return
 
     // Before the await: Radix reads it as soon as this handler returns, and skips its own toggle.
     event.preventDefault()
-    // Backing out of the sheet is `dismissed`, not a failure: the button stays, ready again.
     if ((await share({ title: label, url })) === 'unavailable') setOpen(true)
   }
 

@@ -17,11 +17,7 @@ import { useCopy } from '@/hooks/use-copy'
 // boxes the card treatment above the registration and share forms. Each
 // fact has a required primary line (`text`) and an optional faded second
 // line (`subtext`).
-//
-// Presentation and composition live together here. This is the only place
-// that builds event facts, and the only thing that renders them. So a
-// generic presenter, previously a separate `Summary` molecule, was public
-// surface with a single internal consumer. It is folded in here instead.
+
 const facts = tv({
   slots: {
     base: 'flex flex-col',
@@ -68,11 +64,7 @@ export type EventFactsProps = {
   /** Distance from the searched location, shown faded under the address. List
    *  cards only: the panel has no search origin to measure from. */
   distance?: ReactNode
-  /**
-   * Drops every faded second line ("Next session: …", the distance, "Hosted from …"), for a
-   * summary above a form. The registration form asks which date, and its confirmation names the
-   * one chosen.
-   */
+  /** Drops every faded second line. */
   hideSubtext?: boolean
   className?: string
 }

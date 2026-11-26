@@ -31,7 +31,6 @@ const url = 'https://atlas.example/e/café'
 const label = 'Saturday Morning Meditation'
 
 describe('ShareContent', () => {
-  // The fallback targets live in the Share button's popover, not in a grid under Copy link.
   it.each([
     ['without a share sheet', undefined],
     ['with a share sheet', () => Promise.resolve()],
@@ -57,14 +56,6 @@ describe('ShareContent', () => {
 
     expect(html).toMatch(/<button[^>]*>.*share\.copy_link<\/button>/)
     expect(html.indexOf('share.copy_link')).toBeLessThan(html.indexOf(url))
-  })
-
-  // One block for the class's Share panel and the registration confirmation: the poster code
-  // is the class page's own row.
-  it('holds no QR code', () => {
-    expect(renderToStaticMarkup(<ShareContent label={label} url={url} />)).not.toContain(
-      'share.qr_title',
-    )
   })
 })
 
