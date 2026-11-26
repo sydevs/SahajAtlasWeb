@@ -5,6 +5,7 @@ import { StoryWrapper, StorySection } from '../../ladle'
 
 import { EventActions } from './EventActions'
 
+import { useEventDisplay } from '@/hooks/use-event-display'
 import { mockEvent } from '@/mocks/events'
 
 export default { title: 'Molecules' } satisfies StoryDefault
@@ -21,7 +22,7 @@ const inactive: Event = { ...mockEvent, id: 204, inactive: true }
 function Panel({ event }: { event: Event }) {
   return (
     <div className="w-[304px] rounded-lg border border-divider py-3">
-      <EventActions basePath={`/demo/${event.id}`} event={event} />
+      <EventActions basePath={`/demo/${event.id}`} event={event} strings={useEventDisplay(event)} />
     </div>
   )
 }

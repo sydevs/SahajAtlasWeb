@@ -1,7 +1,7 @@
 import { renderToStaticMarkup } from 'react-dom/server'
 import { describe, it, expect, vi } from 'vitest'
 
-import { EventDetails } from './EventDetails'
+import { EventDetails, type EventDetailsProps } from './EventDetails'
 
 import { mockEvent } from '@/mocks/events'
 
@@ -26,8 +26,6 @@ vi.mock('@/components/molecules/EventChips', () => ({
 vi.mock('@/components/molecules/EventFacts', () => ({
   EventFacts: () => <i>facts-slot</i>,
 }))
-// The panel resolves the strings its stubbed chips and facts would read, and that pulls i18n.
-vi.mock('@/hooks/use-event-display', () => ({ useEventDisplay: () => ({}) }))
 // DOMPurify binds a real `window` at module scope. `sanitize.test.ts` owns that allowlist.
 vi.mock('./sanitize', () => ({
   sanitizeDescription: (html: string) => html,
@@ -35,7 +33,12 @@ vi.mock('./sanitize', () => ({
 
 const panel = (ctaInline?: boolean) =>
   renderToStaticMarkup(
-    <EventDetails basePath="/gb/london/1" ctaInline={ctaInline} event={mockEvent} />,
+    <EventDetails
+      basePath="/gb/london/1"
+      ctaInline={ctaInline}
+      event={mockEvent}
+      strings={{} as EventDetailsProps['strings']}
+    />,
   )
 
 describe('EventDetails — where the calls to action render', () => {

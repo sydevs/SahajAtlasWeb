@@ -130,7 +130,7 @@ export function RegistrationView({
           // register slot, so it falls through to the state message below rather than
           // rendering an empty EventRegisterBar (issue #52).
           <div className="mx-auto w-full max-w-md py-4">
-            <EventRegisterBar basePath={eventPath} event={event} />
+            <EventRegisterBar basePath={eventPath} event={event} strings={strings} />
           </div>
         ) : (
           // Full, ended, or registration closed. The class is real, it just cannot be

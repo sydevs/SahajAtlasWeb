@@ -10,6 +10,7 @@ import { EventHeader } from './EventHeader'
 import { EventRegisterBar } from './EventRegister'
 
 import { EventActions } from '@/components/molecules/EventActions'
+import { useEventDisplay } from '@/hooks/use-event-display'
 import {
   mockEvent,
   mockEventCourse,
@@ -23,11 +24,30 @@ export default { title: 'Organisms' } satisfies StoryDefault
 
 // This shows the full panel anatomy. The header (title) sits above the body,
 // which EventView orders as chips, facts, Register, actions, About, then images.
-function Panel({ event }: { event: Event }) {
+function Panel({ event, ctaInline }: { event: Event; ctaInline?: boolean }) {
+  const strings = useEventDisplay(event)
+
   return (
     <div className="max-w-md border border-divider">
       <EventHeader title={event.title} />
-      <EventDetails basePath={`/demo/${event.id}`} event={event} />
+      <EventDetails
+        basePath={`/demo/${event.id}`}
+        ctaInline={ctaInline}
+        event={event}
+        strings={strings}
+      />
+    </div>
+  )
+}
+
+// Register plus the action row, as EventView's sticky footer gaps them.
+function RegisterBar({ event }: { event: Event }) {
+  const strings = useEventDisplay(event)
+
+  return (
+    <div className="flex flex-col gap-2">
+      <EventRegisterBar basePath={`/demo/${event.id}`} event={event} strings={strings} />
+      <EventActions basePath={`/demo/${event.id}`} event={event} strings={strings} />
     </div>
   )
 }
@@ -112,15 +132,9 @@ export const Default: Story = () => (
       <div className="flex max-w-md flex-col gap-4">
         {/* The two rows are gapped inside a wrapper, as EventView's footer gaps them. */}
         <div className="border border-divider p-3">
-          <div className="flex flex-col gap-2">
-            <EventRegisterBar basePath="/demo/101" event={mockEvent} />
-            <EventActions basePath="/demo/101" event={mockEvent} />
-          </div>
+          <RegisterBar event={mockEvent} />
         </div>
-        <div className="border border-divider">
-          <EventHeader title={mockEvent.title} />
-          <EventDetails basePath="/demo/101" ctaInline={false} event={mockEvent} />
-        </div>
+        <Panel ctaInline={false} event={mockEvent} />
       </div>
     </StorySection>
 

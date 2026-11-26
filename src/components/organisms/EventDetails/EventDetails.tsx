@@ -1,3 +1,5 @@
+import type { EventDisplayStrings } from '@/hooks/use-event-display'
+
 import { type ReactNode, useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 
@@ -9,21 +11,22 @@ import { EventActions } from '@/components/molecules/EventActions'
 import { EventChips } from '@/components/molecules/EventChips'
 import { ImageCarousel } from '@/components/molecules/ImageCarousel'
 import { EventFacts } from '@/components/molecules/EventFacts'
-import { useEventDisplay } from '@/hooks/use-event-display'
 import { isUnverified, lexicalToHtml } from '@/lib/shape'
 import { Event } from '@/types'
 
 /**
- * Every surface in this folder takes the same pair: the event, and the route
- * that reached it. This type declares the pair once, here. EventDetails,
- * EventActions, and EventRegisterBar all render from these same two values.
- * Callers always pass both together. This way, a change to the contract
- * cannot land on only two of the three.
+ * Every surface in this folder takes the same three values: the event, the
+ * route that reached it, and its resolved display strings. This type declares
+ * them once, here. EventDetails, EventActions, and EventRegisterBar all render
+ * from these. Callers always pass them together. This way, a change to the
+ * contract cannot land on only two of the three.
  */
 export type EventSurfaceProps = {
   event: Event
   /** The event's current route. Register and share drawers open at `${basePath}/register|share`. */
   basePath: string
+  /** The view's one `useEventDisplay(event)`, shared by every surface on the page (#505). */
+  strings: EventDisplayStrings
 }
 
 export type EventDetailsProps = EventSurfaceProps & {
@@ -56,9 +59,14 @@ export type EventDetailsProps = EventSurfaceProps & {
  * About. The title is a separate component (EventHeader). It renders outside
  * the scrolling drawer body, so it stays pinned. The triage chips lead the body.
  */
-export function EventDetails({ event, basePath, ctaInline = true, children }: EventDetailsProps) {
+export function EventDetails({
+  event,
+  basePath,
+  strings,
+  ctaInline = true,
+  children,
+}: EventDetailsProps) {
   const { t } = useTranslation()
-  const strings = useEventDisplay(event)
 
   const descriptionHtml = lexicalToHtml(event.description)
 
@@ -106,8 +114,8 @@ export function EventDetails({ event, basePath, ctaInline = true, children }: Ev
 
       {ctaInline && (
         <>
-          <EventRegisterBar basePath={basePath} event={event} />
-          <EventActions basePath={basePath} event={event} />
+          <EventRegisterBar basePath={basePath} event={event} strings={strings} />
+          <EventActions basePath={basePath} event={event} strings={strings} />
         </>
       )}
 

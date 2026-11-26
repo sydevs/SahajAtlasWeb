@@ -94,8 +94,8 @@ export function EventView({ id, basePath }: { id: number; basePath: string }) {
   // renders at all. In map mode there is no container, so the measured signal returns the
   // viewport's answer. The hook is here so a future map-less sticky bar starts out reading the
   // right thing, not because a narrow embed gains one today.
-  const { display } = useEventDisplay(event)
-  const stickyRegister = hasMap && !isWide && hasRegisterSlot(event, display)
+  const strings = useEventDisplay(event)
+  const stickyRegister = hasMap && !isWide && hasRegisterSlot(event, strings.display)
   const onwardHref = parentOf(event.path)
 
   return (
@@ -131,7 +131,12 @@ export function EventView({ id, basePath }: { id: number; basePath: string }) {
           {/* The page's shape while its code arrives, marked loading so the phone sheet holds
               still until it has (`useFitSnap`). */}
           <Suspense fallback={<SkeletonBody body="class" cta={!stickyRegister} />}>
-            <EventDetails basePath={basePath} ctaInline={!stickyRegister} event={event}>
+            <EventDetails
+              basePath={basePath}
+              ctaInline={!stickyRegister}
+              event={event}
+              strings={strings}
+            >
               {/* This is passed as the panel's slot, so it lands immediately above Register,
                   which lives inside EventDetails when it is inline. The acknowledgement belongs
                   beside the action it wants the reader to take, and the panel is the only thing
@@ -176,13 +181,13 @@ export function EventView({ id, basePath }: { id: number; basePath: string }) {
           {/* The two rows are gapped inside a wrapper, not by the footer itself, so the
               footer's own safe-area spacer is not a third gapped sibling. */}
           <div className="flex flex-col gap-2">
-            <EventRegisterBar basePath={basePath} event={event} />
+            <EventRegisterBar basePath={basePath} event={event} strings={strings} />
             {/* The row rides the bar so only one copy exists — see `ctaInline`. The
                 boundary keeps a rejected chunk from reaching the body's sibling
                 boundary and taking the Register CTA down with it (issue #89). */}
             <ResetErrorBoundary context="event actions" fallback={null}>
               <Suspense fallback={null}>
-                <EventActions basePath={basePath} event={event} />
+                <EventActions basePath={basePath} event={event} strings={strings} />
               </Suspense>
             </ResetErrorBoundary>
           </div>

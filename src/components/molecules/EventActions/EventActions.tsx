@@ -1,3 +1,5 @@
+import type { EventDisplayStrings } from '@/hooks/use-event-display'
+
 import { FloatingFocusManager, FloatingPortal } from '@floating-ui/react'
 import { useTranslation } from 'react-i18next'
 import { Globe, Milestone, PhoneOutgoing, Share } from 'lucide-react'
@@ -6,7 +8,6 @@ import { useAtlasNavigate } from '@/hooks/use-atlas-navigate'
 import { ActionCircle, ActionRow } from '@/components/molecules/ActionRow'
 import { CopyField } from '@/components/molecules/ShareContent'
 import { useCoarsePointer } from '@/config/responsive'
-import { useEventDisplay } from '@/hooks/use-event-display'
 import { usePopover } from '@/hooks/use-popover'
 import { directionsUrl } from '@/lib'
 import { overlayContainer } from '@/lib/overlay'
@@ -81,6 +82,8 @@ export type EventActionsProps = {
   event: Event
   /** The event's current route. The share action navigates to `${basePath}/share`. */
   basePath: string
+  /** The view's one `useEventDisplay(event)`, shared with the rest of the page (#505). */
+  strings: EventDisplayStrings
 }
 
 /**
@@ -88,7 +91,7 @@ export type EventActionsProps = {
  * circles, set per resolver state. Contact is `tel:` on touch, and a popover
  * with the number and copy on desktop. A raw tel: link is a desktop dead end.
  */
-export function EventActions({ event, basePath }: EventActionsProps) {
+export function EventActions({ event, basePath, strings }: EventActionsProps) {
   const { t } = useTranslation()
   const navigate = useAtlasNavigate()
   // The one responsive decision in the app that is about the DEVICE, not
@@ -98,7 +101,7 @@ export function EventActions({ event, basePath }: EventActionsProps) {
   // phone held sideways can also be wider than any breakpoint this app
   // would pick. So this asks the pointer, not the width.
   const canDial = useCoarsePointer()
-  const { display } = useEventDisplay(event)
+  const { display } = strings
 
   const mapsUrl = directionsUrl(event.address)
 
