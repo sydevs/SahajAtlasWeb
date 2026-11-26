@@ -23,13 +23,11 @@ import { overlayContainer } from '@/lib/overlay'
 
 export type DrawerDirection = 'left' | 'right' | 'top' | 'bottom'
 
-// A band hosting a `SearchField` hands the geocoder's suggestion list its width
-// (`--sy-results-w`, read in Mapbox/themes.ts): a dropdown narrower than the band left the
-// list's counts peeking out beside it. The field starts the band and the list sits 1px
-// inside the field's border on each side, hence the 2px. This belongs to the bands rather
-// than the views that mount a field, which drifted: the error chrome mounts a live field
-// (`views/fallbacks.tsx`) and had neither declaration.
-const RESULTS_BAND = '[container-type:inline-size] [--sy-results-w:calc(100cqi_-_2px)]'
+// Marks a band hosting a `SearchField`: the suggestion list runs from the field to the band's
+// end (`MapSearch` measures it), since a dropdown narrower than the band left the list's counts
+// peeking out beside it. This belongs to the bands rather than the views that mount a field,
+// which drifted: the error chrome mounts a live field (`views/fallbacks.tsx`).
+export const RESULTS_BAND = 'sy-results-band'
 
 const drawer = tv({
   slots: {
@@ -407,8 +405,8 @@ export function DrawerToolbar({
   children: ReactNode
   className?: string
   /**
-   * The band holds a `SearchField` and nothing else, so it carries the header's inset and its
-   * results width. Its own gutter, not the field's: `100cqi` is the band's content box.
+   * The band holds a `SearchField` and nothing else, so it carries the header's inset and marks
+   * itself as the band the suggestion list runs to.
    */
   field?: boolean
 }) {

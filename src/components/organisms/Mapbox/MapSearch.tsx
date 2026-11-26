@@ -8,6 +8,7 @@ import { useTranslation } from 'react-i18next'
 import { repairGeocoderDom } from './geocoder-dom'
 import { controlTheme } from './themes'
 
+import { RESULTS_BAND } from '@/components/atoms/Drawer'
 import { clientQuery } from '@/config/api'
 import { useBrowsedCountry } from '@/config/store'
 import atlasAuth from '@/config/api/auth'
@@ -135,6 +136,39 @@ export function MapSearch({ onSelect, label, permanent }: MapSearchProps) {
     if (!node) return undefined
 
     return repairGeocoderDom(node)
+  }, [])
+
+  // The suggestion list opens under the field and runs to the end of the band hosting it, past
+  // any control after the field (the start page's Filters) but never past the band. Measured,
+  // because the field need not start the band: SearchView's Back comes first.
+  React.useLayoutEffect(() => {
+    const node = field.current
+
+    if (!node || typeof ResizeObserver === 'undefined') return undefined
+
+    const band = node.closest<HTMLElement>(`.${RESULTS_BAND}`)
+    const size = () => {
+      const own = node.getBoundingClientRect()
+      let width = own.width
+
+      if (band) {
+        const box = band.getBoundingClientRect()
+        const style = getComputedStyle(band)
+
+        width =
+          style.direction === 'rtl'
+            ? own.right - box.left - parseFloat(style.paddingLeft)
+            : box.right - parseFloat(style.paddingRight) - own.left
+      }
+      // The list sits 1px inside the field's border on each side.
+      node.style.setProperty('--sy-results-w', `${width - 2}px`)
+    }
+    const observer = new ResizeObserver(size)
+
+    observer.observe(node)
+    if (band) observer.observe(band)
+
+    return () => observer.disconnect()
   }, [])
 
   React.useEffect(() => {
