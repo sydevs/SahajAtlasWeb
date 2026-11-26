@@ -18,7 +18,7 @@
     "remove": "Remover %{label}"
   },
   "search": {
-    "results_showing": "Mostrando %{shown} de %{total} eventos",
+    "results_showing": "Mostrando %{shown} de %{total} aulas",
     "dismiss_nearby_prompt": "Fechar"
   },
   "share": {

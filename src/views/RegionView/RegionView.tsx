@@ -42,7 +42,7 @@ import {
 // A region at any level, at route `<region-path>`. It shows child-region cards, then this
 // region's own located events, in ONE mixed list. A city can hold both venue and centre
 // sub-regions, and free-floating events — an event pinned to the city rather than to a venue —
-// and both show together. A region whose online events roll up leads with an "Online Classes"
+// and both show together. A region whose online events roll up leads with an "Online classes"
 // card, which opens its own `<region-path>/online` drawer and keeps those placeless classes
 // out of the list. A region without that card lists its online events inline, after the
 // located ones. This view frames the map to the region's bounds when it is the top of the
@@ -95,7 +95,7 @@ export function RegionView({ slug }: { slug: string }) {
 
   // Warm the first few events actually rendered as cards, on idle, so opening one is a cache
   // hit even on touch — there is no hover to trigger the per-card prefetch. Online events
-  // behind the "Online Classes" roll-up card are not tappable from here, so this excludes
+  // behind the "Online classes" roll-up card are not tappable from here, so this excludes
   // them. Only the inline online list, shown when there is no roll-up card, gets warmed.
   usePrefetchEvents(
     [...region.events, ...(showOnlineCard ? [] : region.onlineEvents)].map((event) => event.id),

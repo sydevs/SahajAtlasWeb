@@ -5,8 +5,6 @@ import { StoryWrapper, StorySection } from '../../ladle'
 import { ShareContent } from './ShareContent'
 import { ShareTargets } from './platform-buttons'
 
-import { panelChrome } from '@/components/atoms/Select'
-
 export default { title: 'Molecules' } satisfies StoryDefault
 
 const label = 'Saturday Morning Meditation'
@@ -42,7 +40,7 @@ export const Default: Story = () => (
       description="What the Share button's popover holds where there is no share sheet: the region's networks, icons only, each in its brand colours. X's black disc carries a hairline in dark mode."
       title="Fallback popover"
     >
-      <div className={panelChrome({ class: 'w-max max-w-full p-3' })}>
+      <div className="w-max max-w-full rounded-lg border border-gray-6 bg-background p-3 shadow-xl">
         <ShareTargets country="GB" title={label} url={url} />
       </div>
     </StorySection>

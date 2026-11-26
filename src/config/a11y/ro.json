@@ -18,7 +18,7 @@
     "remove": "Elimină %{label}"
   },
   "search": {
-    "results_showing": "Se afișează %{shown} din %{total} evenimente",
+    "results_showing": "Se afișează %{shown} din %{total} cursuri",
     "dismiss_nearby_prompt": "Respinge"
   },
   "share": {

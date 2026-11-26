@@ -15,7 +15,8 @@ import {
 } from '@floating-ui/react'
 
 // This is the floating-ui setup shared by every popover surface in the app.
-// Those surfaces are the Dropdown atom's panel and EventActions' desktop contact popover.
+// Those surfaces are the Dropdown atom's panel, EventActions' desktop contact popover and the
+// Share button's fallback networks.
 // Both used to spell out the same `useFloating` plus `offset(8)`, `flip`, `shift`, plus click, dismiss, and role stack.
 // EventActions' copy even carried a comment conceding it was "the same pattern as the Dropdown atom."
 //
@@ -33,12 +34,15 @@ export type UsePopoverOptions = {
   role?: 'menu' | 'dialog' | 'listbox'
   /** Match the panel's width to the trigger's. */
   matchTriggerWidth?: boolean
+  /** Toggle on a click of the trigger (default). Off, the caller opens it with `setIsOpen`. */
+  toggleOnClick?: boolean
 }
 
 export function usePopover({
   placement = 'bottom-start',
   role = 'menu',
   matchTriggerWidth = false,
+  toggleOnClick = true,
 }: UsePopoverOptions = {}) {
   const [isOpen, setIsOpen] = useState(false)
 
@@ -64,7 +68,7 @@ export function usePopover({
   })
 
   const { getReferenceProps, getFloatingProps } = useInteractions([
-    useClick(context),
+    useClick(context, { enabled: toggleOnClick }),
     useDismiss(context),
     useRole(context, { role }),
   ])

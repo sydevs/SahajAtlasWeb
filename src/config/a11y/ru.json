@@ -18,7 +18,7 @@
     "remove": "Удалить: %{label}"
   },
   "search": {
-    "results_showing": "Показано событий: %{shown} из %{total}",
+    "results_showing": "Показано занятий: %{shown} из %{total}",
     "dismiss_nearby_prompt": "Скрыть"
   },
   "share": {

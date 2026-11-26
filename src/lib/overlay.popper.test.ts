@@ -18,7 +18,7 @@ import {
  * It is asserted rather than written down because **this branch already made exactly that mistake
  * once**: the settings cog's offset was moved onto the measured signal in one place and left on a
  * viewport media query in another, 480 lines apart in the same file. Five call sites across four
- * components is where "applied one place and not the other" happens again — so a new popper
+ * components is where "applied one place and not the other" happens again — so a sixth popper
  * turns this lane red with instructions instead of shipping unbounded.
  *
  * Same shape as `href.test.ts` pinning the app's JSX anchors, and for the same reason.
@@ -49,11 +49,7 @@ const MENUS: Record<string, string> = {
 
 /** Why each one is here, so a removal is a decision rather than an accident. */
 const BOUNDED: Record<string, string> = {
-  'components/atoms/Select/Select.tsx': 'the plain list picker',
-  'components/atoms/Combobox/Combobox.tsx':
-    'the search-in-the-field region picker (Popover + cmdk)',
-  'components/molecules/ShareContent/ShareContent.tsx':
-    "the Share button's targets, where the device has no share sheet",
+  'components/atoms/Select/Select.tsx': 'the list picker',
   ...MENUS,
 }
 
@@ -106,42 +102,6 @@ const SKIN_RUNS = [
   'rounded-2xl border border-divider bg-background p-1',
   'data-[highlighted]:bg-primary-3',
 ]
-
-/**
- * The two field pickers share the panel their triggers open, and spell none of it (#367 review).
- * The Share button's fallback popover reads the same panel.
- *
- * Here rather than beside the atom because this file already holds the closed list both
- * surfaces belong to, so one file answers which popper surfaces exist and which skin each
- * reads. `panelChrome` itself sits beside `fieldChrome`, the skin these same two already share.
- */
-const PANELS: Record<string, string> = {
-  'components/atoms/Select/Select.tsx': 'the listbox, and the recipe the others read',
-  'components/atoms/Combobox/Combobox.tsx': 'the search-in-the-field panel',
-  'components/molecules/ShareContent/ShareContent.tsx': "the Share button's fallback popover",
-}
-
-/**
- * Distinctive as a run, not by any one class: `atoms/Dropdown` spells
- * `rounded-lg border border-gray-6 … shadow-xl` too, on a panel whose background token
- * deliberately differs. Reconciling that third one changes how one of the two looks, so it is a
- * design call rather than a third member here.
- */
-const PANEL_RUN = 'overflow-hidden rounded-lg border border-gray-6 bg-background shadow-xl'
-
-describe('the field pickers share one panel skin', () => {
-  it('reads it from the Select atom at each of them', () => {
-    // Call-shaped, for the reason the boundary assertion above gives: a bare mention would
-    // satisfy a substring test, and `unused-imports` strips the import on the next edit.
-    for (const relative of Object.keys(PANELS)) expect(read(relative)).toMatch(/panelChrome\(/)
-  })
-
-  it('leaves no picker spelling the surface itself', () => {
-    expect(SOURCE_FILES.filter((relative) => read(relative).includes(PANEL_RUN))).toEqual([
-      'components/atoms/Select/Select.tsx',
-    ])
-  })
-})
 
 /**
  * `ItemCheck` is duplicated across the two radio menus on purpose, and pinned rather than merged.

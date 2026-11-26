@@ -18,7 +18,7 @@
     "remove": "Αφαίρεση: %{label}"
   },
   "search": {
-    "results_showing": "Εμφανίζονται %{shown} από %{total} εκδηλώσεις",
+    "results_showing": "Εμφανίζονται %{shown} από %{total} μαθήματα",
     "dismiss_nearby_prompt": "Απόρριψη"
   },
   "share": {

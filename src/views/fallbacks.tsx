@@ -135,7 +135,7 @@ export function DrawerChrome({
 
     switch (entry?.kind) {
       case 'online':
-        return t('online.title', { defaultValue: 'Online Classes' })
+        return t('online.title', { defaultValue: 'Online classes' })
       case 'search':
         return t('search.chrome.title', { defaultValue: 'Search' })
       case 'calendar':

@@ -18,7 +18,7 @@
     "remove": "Вилучити: %{label}"
   },
   "search": {
-    "results_showing": "Показано подій: %{shown} з %{total}",
+    "results_showing": "Показано занять: %{shown} з %{total}",
     "dismiss_nearby_prompt": "Приховати"
   },
   "share": {

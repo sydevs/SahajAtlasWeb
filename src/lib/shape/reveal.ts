@@ -200,7 +200,7 @@ export type Reveal<T> = {
   total: number
   /**
    * The boundary the empty state should name: the smallest limit actually applied, so
-   * the sentence stays true. "No events within 300 km" is a lie when a cross-border
+   * the sentence stays true. "No classes within 300 km" is a lie when a cross-border
    * match sits at 200 km and the 150 km foreign limit is what excluded it. "Within
    * 150 km" holds either way, because an empty nearby segment means nothing cleared
    * either limit.

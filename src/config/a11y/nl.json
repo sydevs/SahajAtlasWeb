@@ -18,7 +18,7 @@
     "remove": "%{label} verwijderen"
   },
   "search": {
-    "results_showing": "%{shown} van %{total} evenementen weergegeven",
+    "results_showing": "%{shown} van %{total} lessen weergegeven",
     "dismiss_nearby_prompt": "Negeren"
   },
   "share": {

@@ -4,7 +4,7 @@
 // popover opened, and what Copy link says afterwards. SSR markup cannot reach either.
 import { act } from 'react'
 import { createRoot } from 'react-dom/client'
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import { ShareContent } from './ShareContent'
 
@@ -25,18 +25,6 @@ Reflect.set(globalThis, 'IS_REACT_ACT_ENVIRONMENT', true)
 
 let container: HTMLDivElement
 let unmount: () => void
-
-beforeEach(() => {
-  // Radix's popper measures its content; jsdom has no observer, and lays nothing out anyway.
-  vi.stubGlobal(
-    'ResizeObserver',
-    class {
-      observe() {}
-      unobserve() {}
-      disconnect() {}
-    },
-  )
-})
 
 afterEach(() => {
   act(() => unmount())

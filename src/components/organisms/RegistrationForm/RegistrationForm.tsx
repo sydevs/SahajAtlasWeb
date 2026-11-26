@@ -61,9 +61,9 @@ import { useViewerCountry } from '@/hooks/use-viewer-country'
  */
 const STATE_MESSAGE_KEYS: Record<EventRegistrationErrorCode, TranslationKey> = {
   external_registration: 'event.display.registration_external',
-  event_ended: 'event.display.event_ended',
+  event_ended: 'event.display.class_ended',
   registration_closed: 'event.display.registration_closed',
-  event_full: 'event.display.event_full',
+  event_full: 'event.display.class_full',
 }
 
 /**

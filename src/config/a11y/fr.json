@@ -18,7 +18,7 @@
     "remove": "Supprimer %{label}"
   },
   "search": {
-    "results_showing": "Affichage de %{shown} événements sur %{total}",
+    "results_showing": "Affichage de %{shown} cours sur %{total}",
     "dismiss_nearby_prompt": "Fermer"
   },
   "share": {
