@@ -524,18 +524,31 @@ html.sy-atlas {
    just inside the control, so an `overflow: hidden` parent cannot clip it, and a 2px band of the
    panel's colour inside that line. The band is what shows on a filled control of the focus
    colour's own hue: the line alone measured 1:1 on Register in dark mode. It rides in Tailwind's
-   inset-ring slot, so a control's own `shadow-*` stays. A mouse click shows nothing, because
-   only `:focus-visible` draws it. `focus-ring.test.ts` pins it. */
+   inset-ring slot, so a control's own `shadow-*` stays. `focus-ring.test.ts` pins it.
+   A control takes `focus-ring`, which draws only on `:focus-visible`, so a mouse click shows
+   nothing. A box whose focus lands on a hidden control inside it, such as a choice card around
+   its radio, takes `focus-ring-within`. `focus-outline` is the drawing alone, for a selector
+   that already names the state. */
+@utility focus-outline {
+  outline: 2px solid var(--color-focus, hsl(var(--primary-9)));
+  outline-offset: -2px;
+  --tw-inset-ring-shadow: inset 0 0 0 4px hsl(var(--background));
+  box-shadow:
+    var(--tw-inset-shadow, 0 0 #0000), var(--tw-inset-ring-shadow),
+    var(--tw-ring-offset-shadow, 0 0 #0000), var(--tw-ring-shadow, 0 0 #0000),
+    var(--tw-shadow, 0 0 #0000);
+}
+
 @utility focus-ring {
   outline: none;
   &:focus-visible {
-    outline: 2px solid var(--color-focus, hsl(var(--primary-9)));
-    outline-offset: -2px;
-    --tw-inset-ring-shadow: inset 0 0 0 4px hsl(var(--background));
-    box-shadow:
-      var(--tw-inset-shadow, 0 0 #0000), var(--tw-inset-ring-shadow),
-      var(--tw-ring-offset-shadow, 0 0 #0000), var(--tw-ring-shadow, 0 0 #0000),
-      var(--tw-shadow, 0 0 #0000);
+    @apply focus-outline;
+  }
+}
+
+@utility focus-ring-within {
+  &:has(:focus-visible) {
+    @apply focus-outline;
   }
 }
 
@@ -712,7 +725,7 @@ html.sy-atlas {
 .sy-map-controls .mapboxgl-ctrl-attrib a:focus-visible,
 .mapboxgl-canvas:focus-visible,
 .mapboxgl-ctrl-logo:focus-visible {
-  @apply focus-ring;
+  @apply focus-outline;
 }
 
 /* Mapbox paints its credits white, with a glyph drawn in a fixed colour, so in the dark theme it

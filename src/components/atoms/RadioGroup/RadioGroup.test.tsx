@@ -84,7 +84,7 @@ describe('RadioGroup choice cards', () => {
     // Still two real radios, so arrow keys and the form behave as a radio group's do.
     expect(radios(html)).toBe(2)
     expect(marks(html).checked).toContain('sr-only')
-    expect(html).toContain('has-[:focus-visible]:ring-2')
+    expect(html).toContain('focus-ring-within')
     expect((html.match(/<svg/g) ?? []).length).toBe(2)
   })
 

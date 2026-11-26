@@ -31,19 +31,26 @@ describe('touch-target', () => {
 })
 
 describe('focus-ring', () => {
-  it('draws on :focus-visible alone, inside the control, with a band of the panel colour', () => {
-    const body = utility('focus-ring')
+  it('draws inside the control, with a band of the panel colour', () => {
+    const body = utility('focus-outline')
 
-    expect(body).toMatch(/&:focus-visible\s*{[^}]*outline: 2px solid var\(--color-focus/)
+    expect(body).toMatch(/outline: 2px solid var\(--color-focus/)
     expect(body).toContain('outline-offset: -2px')
     expect(body).toContain('inset 0 0 0 4px hsl(var(--background))')
   })
 
+  it('draws on keyboard focus alone, on the control or inside its box', () => {
+    expect(utility('focus-ring')).toMatch(/&:focus-visible\s*{\s*@apply focus-outline;/)
+    expect(utility('focus-ring-within')).toMatch(
+      /&:has\(:focus-visible\)\s*{\s*@apply focus-outline;/,
+    )
+  })
+
   it('is the only focus indicator a component draws', () => {
+    // A ring in the focus colour, behind any state: `focus-visible:`, `has-[:focus-visible]:`…
+    const OWN_RING = /\bring-focus\b|focus(?:-visible|-within)?\]?:(?:ring|outline)-\d/
     const drifted = sourceFiles({ extensions: ['.ts', '.tsx'] }).filter((path) =>
-      /focus-visible:(?:ring|outline)-|focus:(?:ring|outline)-/.test(
-        readSourceWithoutComments(path),
-      ),
+      OWN_RING.test(readSourceWithoutComments(path)),
     )
 
     expect(drifted).toEqual([])
