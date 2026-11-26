@@ -111,11 +111,8 @@ function FormKit() {
 }
 
 /**
- * FormField — label, control, and help or error: the shell every form shares (the registration
- * form, the report-issue form, adding and correcting a class). It owns the required marker, the rule that an error replaces the help text while it shows, and the
- * `aria-describedby` ids. Pass the control as a function to receive its wiring (id, describedby,
- * required, invalid), so no form wires it by hand. A group of controls is a fieldset, named by
- * its legend.
+ * FormField — the shell every form shares: a label over the control, and help text under it that
+ * an error replaces while it shows. A group of choices is a fieldset named by its legend.
  */
 export const Default: Story = () => (
   <StoryWrapper>
@@ -158,10 +155,7 @@ export const Default: Story = () => (
       </div>
     </StorySection>
 
-    <StorySection
-      description="Every control a form uses, each in its field. Every field, and a ToggleGroup at the form size, is 44px tall on a touch screen and 40px with a mouse, whichever form it is in."
-      title="Form atoms"
-    >
+    <StorySection description="Every control a form uses, each in its field." title="Form atoms">
       <FormKit />
     </StorySection>
 

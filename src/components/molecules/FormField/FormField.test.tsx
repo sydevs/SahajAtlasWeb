@@ -4,7 +4,6 @@ import { describe, it, expect } from 'vitest'
 import {
   type FieldControlProps,
   FormField,
-  fieldDescribedBy,
   fieldErrorId,
   fieldHelpId,
   fieldLabelId,
@@ -77,19 +76,6 @@ describe('FormField error semantics', () => {
 
     expect(html).toContain('Required')
     expect(html).not.toContain('Optional')
-  })
-})
-
-describe('the describedby id convention', () => {
-  it('joins help and error into one attribute value', () => {
-    expect(fieldDescribedBy({ name: 'email', help: true, error: true })).toBe(
-      'email-help email-error',
-    )
-  })
-
-  it('collapses to undefined when there is nothing to point at', () => {
-    expect(fieldDescribedBy({ name: 'email' })).toBeUndefined()
-    expect(fieldErrorId(undefined)).toBeUndefined()
   })
 })
 
@@ -173,6 +159,8 @@ describe('a field around a control that labels itself', () => {
     )
 
     expect(html).toContain(`id="${fieldErrorId('consent')}"`)
+    // Its own label sits beside the box, so the field adds no second one.
+    expect(html).not.toContain('<label')
     expect(wired).toMatchObject({ id: undefined, 'aria-describedby': 'consent-error' })
   })
 })

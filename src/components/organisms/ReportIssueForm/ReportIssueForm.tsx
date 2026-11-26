@@ -254,11 +254,10 @@ const AuthoredField = memo(function AuthoredField({
       case 'checkbox':
         return bindings((bound) => (
           <Checkbox
+            {...typed}
             appearance="checkbox"
-            aria-describedby={typed['aria-describedby']}
             checked={bound.value === true}
             id={id}
-            isInvalid={typed.isInvalid}
             onCheckedChange={bound.onChange}
           >
             {label}

@@ -23,24 +23,6 @@ export const fieldHelpId = (name?: string) => (name ? `${name}-help` : undefined
 export const fieldLabelId = (name?: string) => (name ? `${name}-label` : undefined)
 
 /**
- * The full `aria-describedby` value for a control: its help text, its
- * error, or both. Callers pass this straight to the control, so the two
- * ids cannot be wired inconsistently.
- */
-export const fieldDescribedBy = ({
-  name,
-  help,
-  error,
-}: {
-  name?: string
-  help?: boolean
-  error?: boolean
-}) =>
-  [help ? fieldHelpId(name) : undefined, error ? fieldErrorId(name) : undefined]
-    .filter(Boolean)
-    .join(' ') || undefined
-
-/**
  * What a field hands its control, so the control is wired to the label, the help and the error
  * by the field itself rather than by each caller: spread it onto any form atom.
  */
@@ -127,7 +109,10 @@ export function FormField({
   const control: FieldControlProps = {
     id: group ? undefined : htmlFor,
     'aria-labelledby': group ? fieldLabelId(key) : undefined,
-    'aria-describedby': fieldDescribedBy({ name: key, help: showHelp, error: Boolean(error) }),
+    'aria-describedby':
+      [showHelp && fieldHelpId(key), Boolean(error) && fieldErrorId(key)]
+        .filter(Boolean)
+        .join(' ') || undefined,
     'aria-required': required || undefined,
     isInvalid: Boolean(error),
   }
@@ -147,9 +132,12 @@ export function FormField({
           {caption}
         </legend>
       ) : (
-        <label className="text-sm font-medium" htmlFor={htmlFor}>
-          {caption}
-        </label>
+        // A control that labels itself (no `htmlFor`) already shows the label beside it.
+        htmlFor && (
+          <label className="text-sm font-medium" htmlFor={htmlFor}>
+            {caption}
+          </label>
+        )
       )}
       {typeof children === 'function' ? children(control) : children}
       {showHelp && (

@@ -80,7 +80,7 @@ here is **organisms own data/network/map lifecycles. Atoms and molecules don't.*
 | `HoverLabel/`         | `HoverLabel`                                                         | A control's accessible name drawn out of its end as one pill, on hover and keyboard focus, never on touch — the shape of Mapbox's opened credits button. The map's controls use it                                                                                                                                                                                                                                                                                                                                                                                   |
 
 **One form kit.** Every form is built from `FormField` around these atoms — text in `Input` /
-`Textarea`, a list in `Select` / `Combobox`, short choices in a `size="md"` `ToggleGroup`, longer
+`Textarea`, a list in `Select`, short choices in a `size="md"` `ToggleGroup`, longer
 or described choices in `RadioGroup` (choice cards with an `icon` and `hint`), yes/no in
 `Checkbox`. A form does not hand-roll a radio, a segmented control or a field shell of its own.
 
