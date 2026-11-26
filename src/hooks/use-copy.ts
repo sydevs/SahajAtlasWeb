@@ -2,7 +2,8 @@ import { useCallback, useEffect, useState } from 'react'
 
 /**
  * Copies to the clipboard and holds `copied` true for `ms`. `copy` resolves `false`, and never
- * throws, when there is no clipboard or the host refused `clipboard-write` (`docs/embedding.md`).
+ * throws, when there is no clipboard or the host refused `clipboard-write` (`docs/embedding.md`);
+ * it then selects `fallback`, if given, so the visitor can copy it by hand.
  */
 export function useCopy(ms: number) {
   // A count, not a flag, so a second copy inside the window restarts the timer.
@@ -15,14 +16,16 @@ export function useCopy(ms: number) {
     return () => window.clearTimeout(timer)
   }, [copies, ms])
 
-  const copy = useCallback(async (value: string): Promise<boolean> => {
+  const copy = useCallback(async (value: string, fallback?: Element | null): Promise<boolean> => {
     try {
-      if (!navigator.clipboard) return false
+      if (!navigator.clipboard) throw new Error('no clipboard')
       await navigator.clipboard.writeText(value)
       setCopies((n) => n + 1)
 
       return true
     } catch {
+      if (fallback) window.getSelection()?.selectAllChildren(fallback)
+
       return false
     }
   }, [])

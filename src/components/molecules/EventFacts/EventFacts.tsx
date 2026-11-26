@@ -156,13 +156,6 @@ function CopyAddress({ value }: { value: string }) {
 
   const status = copied ? t('common.chrome.copied') : ''
 
-  // A refused copy selects the address instead, ready to copy by hand. The button's only text is
-  // the address, since the icon is `aria-hidden` and empty, so its children ARE the address. The
-  // element comes in as an argument because `currentTarget` is null once the copy has awaited.
-  const onClick = async (button: HTMLButtonElement) => {
-    if (!(await copy(value))) window.getSelection()?.selectAllChildren(button)
-  }
-
   return (
     <>
       <button
@@ -170,7 +163,9 @@ function CopyAddress({ value }: { value: string }) {
         aria-label={`${t('event.a11y.copy_address')}: ${value}`}
         className="touch-target relative rounded-lg text-start focus-ring select-text"
         type="button"
-        onClick={(event) => void onClick(event.currentTarget)}
+        // A refused copy selects the address, ready to copy by hand: the icon is `aria-hidden` and
+        // empty, so the button's children ARE the address.
+        onClick={(event) => void copy(value, event.currentTarget)}
       >
         {/* The address stays laid out under "Copied", so a wrapped line keeps its height. Inline,
             so the icon follows its last word. */}
