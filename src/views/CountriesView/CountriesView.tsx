@@ -106,10 +106,12 @@ export function CountriesView() {
             />
           </List>
         )}
+        {/* An `h2`, because this view carries no `DrawerTitle`: the inline embed's place
+            heading sits directly above it, and a skipped level fails the accessibility gate. */}
         {showBrowseHeading && (
-          <h3 className="px-gutter pt-4 pb-1 text-xs font-medium tracking-[0.08em] text-gray-11 uppercase">
+          <h2 className="px-gutter pt-4 pb-1 text-xs font-medium tracking-[0.08em] text-gray-11 uppercase">
             {t('countries.browse_heading')}
-          </h3>
+          </h2>
         )}
         {noMatches ? (
           <FallbackPanel
