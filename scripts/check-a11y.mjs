@@ -542,6 +542,12 @@ async function keyboardWalk(page, count, resting, selectors) {
 
     if (!stop) break
     if (stop.skip) continue
+    // Back on the first stop: Tab wrapped round, so the walk is complete. `count` is the
+    // tabbable elements, and a roving-tabindex group (the weekday picker) is one Tab stop holding
+    // several, so the walk can outlast the page and wrap without passing the body.
+    if (stops.length > 0 && stop.order === stops[0].order && stops[stops.length - 1].order !== stop.order) {
+      break
+    }
 
     stops.push({
       ...stop,
@@ -659,7 +665,9 @@ export async function run({ only, origin } = {}) {
       const checked = new Set()
 
       for (const stop of await keyboardWalk(page, result.stops, result.resting, selectors)) {
-        const at = Number(stop.order)
+        // ⚠ An unstamped stop (rendered after the audit) has no place in document order, and
+        // `Number(null)` is 0, which would read as a jump back to the top.
+        const at = stop.order === null ? NaN : Number(stop.order)
 
         // `<`, not `<=`: Chromium's own date field moves focus between the segments of ONE
         // input, so the same element is a stop twice in a row, and that is not an order defect.

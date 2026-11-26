@@ -27,7 +27,7 @@ vi.mock('react-i18next', () => ({
   useTranslation: () => ({ t: (key: string) => key }),
 }))
 vi.mock('@/hooks/use-locale', () => ({
-  useLocale: () => ({ locale: 'en', languageLabel: (code: string) => code }),
+  useLocale: () => ({ locale: 'en', formatLocale: 'en-US', languageLabel: (code: string) => code }),
 }))
 
 // jsdom has no ResizeObserver, which the More filters disclosure watches while open.

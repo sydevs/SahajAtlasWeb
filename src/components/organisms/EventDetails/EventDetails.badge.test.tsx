@@ -19,7 +19,12 @@ vi.mock('react-i18next', () => ({
   useTranslation: () => ({ t: (key: string) => key }),
 }))
 vi.mock('@/hooks/use-locale', () => ({
-  useLocale: () => ({ locale: 'en', languageCode: 'en', languageLabel: (code: string) => code }),
+  useLocale: () => ({
+    locale: 'en',
+    formatLocale: 'en-US',
+    languageCode: 'en',
+    languageLabel: (code: string) => code,
+  }),
 }))
 vi.mock('@/hooks/use-map-controller', () => ({
   useMapController: () => ({ highlightEvent: () => {} }),

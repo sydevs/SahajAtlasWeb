@@ -18,7 +18,9 @@ vi.mock('@tanstack/react-query', async (importOriginal) => ({
   useSuspenseQuery: () => ({ data: region }),
 }))
 vi.mock('@/config/api', () => ({ regionQuery: () => ({ queryKey: ['region'] }) }))
-vi.mock('@/hooks/use-locale', () => ({ useLocale: () => ({ locale: 'en' }) }))
+vi.mock('@/hooks/use-locale', () => ({
+  useLocale: () => ({ locale: 'en', formatLocale: 'en-US' }),
+}))
 vi.mock('@/hooks/use-prefetch-event', () => ({ usePrefetchEvents: () => {} }))
 vi.mock('@/components/atoms/Drawer', () => ({
   DrawerBody: ({ children }: { children: ReactNode }) => <section>body:{children}</section>,

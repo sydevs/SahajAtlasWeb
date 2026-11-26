@@ -43,6 +43,14 @@ cover everything a host would notice since the widget was first deployed.
 
 ### Changed
 
+- **Dates, times and distances follow the visitor's own region.** ([#509]) Every time and date the
+  widget shows is now written in the format of the visitor's browser region: a UK visitor reads
+  "17:45–18:45" and "Wed 18 Nov", a US visitor "5:45 – 6:45 PM" and "Wed, Nov 18". A browser
+  whose first language is not the page's keeps that language's clock on an English page (a
+  Czech or German browser reads "17:45"). Whole hours now show their minutes ("6:00 – 7:00 PM").
+  A year appears only on a date outside the current year. The calendar grid follows the same
+  region. Distances read in miles for UK and US visitors and in kilometres everywhere else.
+
 - **Filters asks only what can narrow the classes where the visitor is.** ([#514]) It opens on
   Where, Online or in person, Day, Time of day and Language, with Frequency and Dates under "More
   filters"; each option shows how many classes it leaves, one that leaves none is greyed out, and
@@ -1373,6 +1381,7 @@ must-revalidate`, pinned rather than left to the CDN default. The production dom
   (`//evil.com`) and non-allowlisted-scheme hrefs. Defense in depth — no live hole was
   found. ([#111], [#136])
 
+[#509]: https://github.com/sydevs/SahajAtlasWeb/pull/509
 [#492]: https://github.com/sydevs/SahajAtlasWeb/pull/492
 [#485]: https://github.com/sydevs/SahajAtlasWeb/pull/485
 [#483]: https://github.com/sydevs/SahajAtlasWeb/pull/483

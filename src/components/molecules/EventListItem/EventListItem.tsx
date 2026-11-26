@@ -55,7 +55,7 @@ function EventListItemImpl({ event, searchedPlace, showDistance = true }: EventL
   const { t } = useTranslation()
   // One resolve per card, shared by its facts and chips (#505).
   const strings = useEventDisplay(event)
-  const { locale } = useLocale()
+  const { formatLocale } = useLocale()
   const { highlightEvent } = useMapController()
   const prefetch = useHoverPrefetch()
 
@@ -82,7 +82,7 @@ function EventListItemImpl({ event, searchedPlace, showDistance = true }: EventL
   // reference point stays in the accessible label either way.
   const distance =
     showDistance && !online && event.distance !== undefined && event.distance >= MIN_DISTANCE_KM
-      ? formatDistance(event.distance, locale)
+      ? formatDistance(event.distance, formatLocale)
       : null
   const distanceText = distance
     ? searchedPlace

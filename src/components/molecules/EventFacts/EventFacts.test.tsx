@@ -19,7 +19,12 @@ vi.mock('react-i18next', () => ({
   }),
 }))
 vi.mock('@/hooks/use-locale', () => ({
-  useLocale: () => ({ locale: 'en', languageCode: 'en', languageLabel: (code: string) => code }),
+  useLocale: () => ({
+    locale: 'en',
+    formatLocale: 'en-US',
+    languageCode: 'en',
+    languageLabel: (code: string) => code,
+  }),
 }))
 
 // A caller resolves the strings once and hands them down, as EventListItem does.

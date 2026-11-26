@@ -36,6 +36,7 @@ import {
 } from '@/config/api/mutate'
 import livePreview from '@/config/live-preview/protocol'
 import { classifyError } from '@/lib/report'
+import { formatDate, formatRelativeDate } from '@/lib/time'
 import { splitInlineLink } from '@/lib/shape'
 import { useRegistrationDraft } from '@/config/store'
 import {
@@ -594,11 +595,11 @@ function RegistrationFields({
   errors,
 }: RegistrationFieldsProps) {
   const { t } = useTranslation()
-  const { locale } = useLocale()
+  const { formatLocale } = useLocale()
 
   const startingDates = useMemo(
-    () => dateOptions(upcomingDates, recurrenceType, timeZone, locale),
-    [upcomingDates, recurrenceType, timeZone, locale],
+    () => dateOptions(upcomingDates, recurrenceType, timeZone, formatLocale),
+    [upcomingDates, recurrenceType, timeZone, formatLocale],
   )
 
   return (
@@ -631,7 +632,7 @@ function RegistrationFields({
               >
                 {startingDates.map(({ value, label }) => (
                   <SelectItem key={value} value={value}>
-                    <span className="capitalize">{label}</span>
+                    {label}
                   </SelectItem>
                 ))}
               </Select>
@@ -691,18 +692,16 @@ function dateOptions(
   dates: Date[],
   recurrenceType: RecurrenceType | null | undefined,
   timeZone: string | undefined,
-  locale: string,
+  formatLocale: string,
 ): { value: string; label: string }[] {
   const unit = recurrenceType ? RELATIVE_UNIT[recurrenceType] : undefined
 
   return dates.map((date) => {
-    const dateTime = DateTime.fromJSDate(date)
-      .setZone(timeZone ?? 'local')
-      .setLocale(locale)
+    const dateTime = DateTime.fromJSDate(date).setZone(timeZone ?? 'local')
 
     return {
       value: date.toISOString(),
-      label: `${dateTime.toRelativeCalendar(unit ? { unit } : undefined)} - ${dateTime.toLocaleString(DateTime.DATE_MED_WITH_WEEKDAY)}`,
+      label: `${formatRelativeDate(dateTime, formatLocale, unit)} - ${formatDate(dateTime, formatLocale)}`,
     }
   })
 }

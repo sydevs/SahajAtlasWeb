@@ -20,7 +20,7 @@ vi.mock('@tanstack/react-query', async (importOriginal) => ({
   useQuery: () => ({ data: undefined }),
 }))
 vi.mock('@/hooks/use-locale', () => ({
-  useLocale: () => ({ locale: 'en', regionNames: { of: () => undefined } }),
+  useLocale: () => ({ locale: 'en', formatLocale: 'en-US', regionNames: { of: () => undefined } }),
 }))
 vi.mock('@/components/atoms/Drawer', () => ({
   DrawerBody: ({ children }: { children: ReactNode }) => <section>body:{children}</section>,

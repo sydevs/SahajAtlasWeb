@@ -24,6 +24,9 @@ paths:
     `availableLocales`, a query key, i18next's active language. Every symbol that
     handles one is named for it — `applyLocale`, `bootLocale`, `preferredLocale`,
     `useAvailableLocales`, `currentLocales`.
+    ⚠ `useLocale().formatLocale` is not one: it is the active locale in the visitor's browser
+    region (`en-CZ`, `en-BR-u-hc-h23`), for formatting dates, times and distances only. Never
+    fetch, store or key a query on it.
   - **Language** is a human language as CONTENT — an event's spoken language in a
     filter, or a display name for one (`languageLabel`, `nativeLanguageLabel`), plus
     `useLocale().languageCode`, the base subtag a font subset keys on.

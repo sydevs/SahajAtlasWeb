@@ -7,6 +7,7 @@ import { useTranslation } from 'react-i18next'
 
 import { applyLocale } from '@/config/locale'
 import { currentLocales } from '@/hooks/use-available-locales'
+import { regionalLocale } from '@/lib/time'
 
 // This holds one `Intl.DisplayNames` per locale and type, for the widget's lifetime.
 // This is keyed here, not held in a component memo, because every list card calls `useLocale`.
@@ -106,6 +107,9 @@ export function useLocale() {
   return {
     t,
     locale,
+    // The locale every date, time and distance is written in: the page's language, formatted the
+    // way the visitor's browser region writes it (`regionalLocale`).
+    formatLocale: regionalLocale(locale),
     languageCode: locale.split('-')[0],
     languageNames,
     languageLabel,

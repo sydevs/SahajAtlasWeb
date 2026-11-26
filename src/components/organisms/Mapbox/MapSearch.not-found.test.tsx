@@ -29,7 +29,9 @@ vi.mock('@mapbox/search-js-react', () => ({
 }))
 vi.mock('react-i18next', () => ({ useTranslation: () => ({ t: (key: string) => key }) }))
 vi.mock('@/config/i18n', () => ({ default: { resolvedLanguage: 'en' } }))
-vi.mock('@/hooks/use-locale', () => ({ useLocale: () => ({ locale: 'en' }) }))
+vi.mock('@/hooks/use-locale', () => ({
+  useLocale: () => ({ locale: 'en', formatLocale: 'en-US' }),
+}))
 vi.mock('@/hooks/use-mapbox', () => ({ useMapbox: () => ({ mapbox: undefined }) }))
 vi.mock('@tanstack/react-query', async (importOriginal) => ({
   ...(await importOriginal<typeof import('@tanstack/react-query')>()),

@@ -1,7 +1,6 @@
 import type { TranslationKey } from '@/types/i18next'
 
 import { type ReactNode, useMemo } from 'react'
-import { Info } from 'luxon'
 import { useTranslation } from 'react-i18next'
 import { ChevronDown } from 'lucide-react'
 
@@ -14,6 +13,7 @@ import { fieldChrome } from '@/components/atoms/Select'
 import { type FieldControlProps, FormField } from '@/components/molecules/FormField'
 import { useLocale } from '@/hooks/use-locale'
 import { formatTimePeriods } from '@/lib'
+import { weekdayNames } from '@/lib/time'
 import {
   EVENT_CADENCES,
   type EventCadence,
@@ -350,20 +350,20 @@ export type SearchFiltersProps = {
  */
 export function SearchFilters({ value, onChange, where, facets }: SearchFiltersProps) {
   const { t } = useTranslation()
-  const { locale } = useLocale()
+  const { formatLocale } = useLocale()
   const { format, timeOfDay, daysOfWeek, languages } = value
   const shown = shownGroups(value, facets)
   const counts = facets?.counts
 
   const patch = (next: Partial<EventFilters>) => onChange({ ...value, ...next })
 
-  // Mon-first: luxon's `Info.weekdays` is 1 (Mon) through 7 (Sun), the store's day encoding.
+  // Mon-first: ISO weekday 1 (Mon) through 7 (Sun), the store's day encoding.
   const weekdays = useMemo(() => {
-    const short = Info.weekdays('short', { locale })
-    const long = Info.weekdays('long', { locale })
+    const short = weekdayNames(formatLocale, 'short')
+    const long = weekdayNames(formatLocale)
 
     return short.map((label, index) => ({ value: index + 1, label, full: long[index] }))
-  }, [locale])
+  }, [formatLocale])
 
   return (
     <div className="flex flex-col gap-5">
@@ -451,7 +451,7 @@ export function SearchFilters({ value, onChange, where, facets }: SearchFiltersP
               />
               {/* The same times the active-filter pill shows. */}
               {timeOfDay.length > 0 && (
-                <p className="text-xs text-gray-11">{formatTimePeriods(locale, timeOfDay)}</p>
+                <p className="text-xs text-gray-11">{formatTimePeriods(formatLocale, timeOfDay)}</p>
               )}
             </div>
           )}

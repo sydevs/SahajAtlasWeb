@@ -1,7 +1,7 @@
 import type { DisplayEventLike, EventDisplay, EventKind, EventStatus } from '@/lib/shape'
 import type { EventAddress, RegionRef } from '@/types'
+import type { DateTime } from 'luxon'
 
-import { DateTime } from 'luxon'
 import { useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 
@@ -13,7 +13,7 @@ import {
   scheduleNamesZone,
   streetAndCity,
 } from '@/lib/shape'
-import { formatTimeRange, sameWallClock, zoneCity } from '@/lib/time'
+import { formatDate, formatTimeRange, formatWeekday, sameWallClock, zoneCity } from '@/lib/time'
 
 /** This is what the formatting layer reads on top of the resolver input: the address and
  *  region refs that feed the where and origin strings, when the surface has them. */
@@ -134,7 +134,7 @@ export function surfaceView(parts: SurfaceParts, surface: EventSurface): EventSu
  */
 export function useEventDisplay(event: DisplayableEvent): EventDisplayStrings {
   const { t } = useTranslation()
-  const { locale } = useLocale()
+  const { locale, formatLocale } = useLocale()
   // The resolver reads the wall clock.
   // A stable event identity, through TanStack's structural sharing, would otherwise freeze
   // "Today" and open-versus-closed for as long as a surface stays mounted.
@@ -146,10 +146,8 @@ export function useEventDisplay(event: DisplayableEvent): EventDisplayStrings {
     const schedule = event.schedule
     const { kind, status, full, next, nextEnd, origin, firstSession, sessions } = display
 
-    const date = (dt: DateTime) =>
-      dt.setLocale(locale).toLocaleString({ weekday: 'short', day: 'numeric', month: 'short' })
-    const shortDate = (dt: DateTime) =>
-      dt.setLocale(locale).toLocaleString({ day: 'numeric', month: 'short' })
+    const date = (dt: DateTime) => formatDate(dt, formatLocale)
+    const shortDate = (dt: DateTime) => formatDate(dt, formatLocale, { weekday: false })
 
     const sessionsLabel =
       sessions != null ? t('event.display.sessions_count', { count: sessions }) : null
@@ -187,9 +185,7 @@ export function useEventDisplay(event: DisplayableEvent): EventDisplayStrings {
 
     if (next && recurrence) {
       const interval = schedule?.interval ?? 1
-      const weekdayNames = display.weekdayInstants.map((dt) =>
-        dt.setLocale(locale).toLocaleString({ weekday: 'long' }),
-      )
+      const weekdayNames = display.weekdayInstants.map((dt) => formatWeekday(dt, formatLocale))
       const weekdays = new Intl.ListFormat(locale, { style: 'long', type: 'conjunction' }).format(
         weekdayNames,
       )
@@ -208,7 +204,7 @@ export function useEventDisplay(event: DisplayableEvent): EventDisplayStrings {
               : t('event.recurrence.weekly_1', { weekday: weekdays })
       } else if (schedule?.monthlyMode === 'weekday' && schedule.weekNumber)
         recurrenceLine = t(WEEK_NUMBER_KEYS[schedule.weekNumber], {
-          weekday: next.setLocale(locale).toLocaleString({ weekday: 'long' }),
+          weekday: formatWeekday(next, formatLocale),
         })
       else recurrenceLine = t('event.recurrence.monthly_date', { day: next.day })
     }
@@ -250,9 +246,9 @@ export function useEventDisplay(event: DisplayableEvent): EventDisplayStrings {
         ? t('event.display.zone_time', { city: zoneCity(next.zoneName) })
         : null
     const withZone = (time: string) => (zoneLabel ? `${time} ${zoneLabel}` : time)
-    const eventStartTime = next ? withZone(formatTimeRange(next, null, locale)) : null
+    const eventStartTime = next ? withZone(formatTimeRange(next, null, formatLocale)) : null
     const eventTimeRange = next
-      ? withZone(formatTimeRange(next, schedule?.endTime ? nextEnd : null, locale))
+      ? withZone(formatTimeRange(next, schedule?.endTime ? nextEnd : null, formatLocale))
       : null
 
     const originCity = event.address?.city ?? event.region?.name ?? zoneCity(origin?.zoneName)
@@ -289,10 +285,8 @@ export function useEventDisplay(event: DisplayableEvent): EventDisplayStrings {
 
     if (origin && next && !sameWallClock(origin, next)) {
       whereSubtext = [
-        origin.weekday !== next.weekday
-          ? origin.setLocale(locale).toLocaleString({ weekday: 'short' })
-          : null,
-        formatTimeRange(origin, null, locale),
+        origin.weekday !== next.weekday ? formatWeekday(origin, formatLocale, 'short') : null,
+        formatTimeRange(origin, null, formatLocale),
         namesZone ? t('event.display.zone_time', { city: zoneCity(origin.zoneName) }) : null,
       ]
         .filter(Boolean)
@@ -363,5 +357,5 @@ export function useEventDisplay(event: DisplayableEvent): EventDisplayStrings {
       blockedMessage,
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps -- `minute` is the invalidation trigger: the resolver reads the wall clock itself
-  }, [event, locale, t, minute])
+  }, [event, locale, formatLocale, t, minute])
 }

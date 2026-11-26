@@ -33,6 +33,10 @@ Do not format files by hand. PostToolUse hooks run Prettier and `eslint --fix` a
 
 - **`react-hooks/exhaustive-deps` is on, and `pnpm lint` fails on it.** Correct the array where every value it would add is stable. Where the array is the design — a mount-only effect, a dependency listed purely to re-run a read, a key standing in for a fresh array — keep it and say why on a narrow `// eslint-disable-next-line react-hooks/exhaustive-deps -- <reason>`. ⚠ Adding the "missing" dependency to one of those changes when the effect runs: `useFrameOnTop` would re-frame the camera on every render, and `AppShell`'s locale effect would re-apply the boot locale.
 
+## Dates and times
+
+- **Every date, time and distance on screen is formatted through `@/lib/time`** (distances through `formatDistance`), given `useLocale().formatLocale`. Never assemble a time, a day period or a date by hand, and never force `hour12`. A machine format (a form value, an ICS stamp, Schedule-X's wall-clock strings) is data and stays a `toFormat`.
+
 ## Environment variables
 
 Client code reads env vars through `import.meta.env.VITE_*`. See `docs/environment.md` for the canonical reference: which prefix reaches the bundle, and where secrets belong.
