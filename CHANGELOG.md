@@ -43,6 +43,15 @@ cover everything a host would notice since the widget was first deployed.
 
 ### Changed
 
+- **On a phone, one drag down from a class stops at its key facts.** ([#496]) It used to drop to
+  the third-height stop every panel shares, where the sticky Register bar covered the class's tags,
+  its time and its address. The sheet now stops where those end, with a third of the map above it,
+  so one drag answers "when and where" and shows the class's own pin at the same time; a second
+  drag reaches the peek strip as before. A class too short to need that stop drags straight down to
+  the peek instead, with no blank sheet above its last row. A phone held sideways keeps the lower
+  cap it already had. Computers, the map-less forms and every other panel are unchanged. No
+  parameter, origin or CSP change.
+
 - **On a slow or failing connection the map and its panel appear at once.** ([#490]) In the full
   map form the widget no longer shows a white page with "Loading…" while it reads your client
   record: the map draws straight away, and the panel stands where it will open, holding
@@ -769,8 +778,8 @@ no-referrer`.
 
 - **Phone fixes from the 6 November check of the live site.** ([#369]) A class's bottom sheet now
   opens as tall as the class needs, up to near full, so the Register bar no longer covers its
-  address and no longer slices a line in half on a small phone — one drag down still stops at the
-  usual third-height. A place's first classes are framed above the open sheet instead of under it,
+  address and no longer slices a line in half on a small phone — one drag down still stopped at the
+  usual third-height, until [#496]. A place's first classes are framed above the open sheet instead of under it,
   and a link to a class that is no longer there frames the place the link names rather than the
   whole world. On a touchscreen the first tap on a pin opens the class: the timing popover now
   shows only where there is a real pointer, and on a desktop it names the class above its timing.
@@ -1412,3 +1421,4 @@ must-revalidate`, pinned rather than left to the CDN default. The production dom
 [#488]: https://github.com/sydevs/SahajAtlasWeb/pull/488
 [#490]: https://github.com/sydevs/SahajAtlasWeb/pull/490
 [#495]: https://github.com/sydevs/SahajAtlasWeb/pull/495
+[#496]: https://github.com/sydevs/SahajAtlasWeb/pull/496
