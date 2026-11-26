@@ -539,7 +539,7 @@ describe('getRegion (region-tree derivation)', () => {
   })
 
   // The home list counts through the same predicate as the pins, and a country nothing matches
-  // drops out, so `/?langs=xx` reaches the no-results panel rather than a list of zeros.
+  // drops out rather than listing at zero.
   it('counts countries only by what the filters let through, and drops a country with none', async () => {
     mockBackend()
 
