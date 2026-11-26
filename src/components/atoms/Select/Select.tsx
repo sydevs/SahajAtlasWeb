@@ -18,12 +18,9 @@ import { frameCollision, overlayContainer } from '@/lib/overlay'
 // `className` — a core `text-*` emits after `field-size` and silently outranks it
 // (`src/styles/mobile-zoom.test.ts` refuses it).
 //
-// **`field-height` goes with it** (`globals.css`): 40px with a mouse, 44px on a touch screen — the
-// 44px tap floor (#432), drawn rather than the `touch-target` utility because an `<input>` renders
-// no `::after` for that utility to use. Every form shares it, so a field in the report form, the
-// sign-up and adding a class is one size, and a `ToggleGroup` at `size="md"` matches it. A
-// caller's own core `h-*` still wins, being emitted after the utility; the textarea's `h-auto`
-// is how it grows with its content.
+// ⚠ **`field-height` is the 44px tap floor on touch (#432)** — `globals.css` owns its sizes. It is
+// drawn rather than the `touch-target` utility because an `<input>` renders no `::after` for that
+// utility to use, and `@/styles/tv` registers it as a height so `multiline`'s `h-auto` replaces it.
 export const fieldChrome = tv({
   base: 'field-height w-full rounded-lg border bg-background px-3 field-size text-foreground transition-colors outline-none focus-visible:ring-2 focus-visible:ring-focus disabled:opacity-disabled',
   variants: {
@@ -74,7 +71,7 @@ export type SelectProps = {
   /** Id of the field's error or description text. It is forwarded to the trigger for screen readers. */
   'aria-describedby'?: string
   'aria-labelledby'?: string
-  'aria-required'?: boolean | 'true' | 'false'
+  'aria-required'?: boolean
   /** Danger-border the trigger and set `aria-invalid` to flag a validation error. */
   isInvalid?: boolean
   /** Primary-tint the trigger to flag an active field. */

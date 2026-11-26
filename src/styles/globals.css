@@ -495,9 +495,9 @@ html.sy-atlas {
 
 /* The one field height every form shares: 40px with a mouse, 44px on a touch screen, where the
    field is a thumb's target (#432). It asks the tap-floor question (`pointer-coarse`), not
-   `field-size`'s zoom one, so a narrow desktop window keeps 40px fields. A utility rather than
-   the class pair, so a caller's core `h-*` (a textarea's `h-auto`) outranks both arms at once —
-   tailwind-merge would drop only the unprefixed one. */
+   `field-size`'s zoom one, so a narrow desktop window keeps 40px fields. One utility rather than
+   the class pair, so `@/styles/tv` can register it as a height and a textarea's `h-auto` replaces
+   both arms at once. */
 @utility field-height {
   @apply h-10 pointer-coarse:h-11;
 }

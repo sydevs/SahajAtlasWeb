@@ -5,9 +5,12 @@ import { createTV, type VariantProps } from 'tailwind-variants/lite'
 /**
  * ⚠ Every spacing token our `@theme` adds beyond the numeric scale is named here. tailwind-merge
  * cannot read the theme, so it takes `px-gutter` for an unknown class and ships it BESIDE a
- * slot's `px-4` instead of replacing it — whichever comes later in the sheet wins.
+ * slot's `px-4` instead of replacing it — whichever comes later in the sheet wins. Our own
+ * `field-height` utility is a height for the same reason: a textarea's `h-auto` replaces it.
  */
-const twMerge = extendTailwindMerge({ extend: { theme: { spacing: ['gutter'] } } })
+const twMerge = extendTailwindMerge({
+  extend: { theme: { spacing: ['gutter'] }, classGroups: { h: ['field-height'] } },
+})
 
 /**
  * The `tv()` every recipe is built with: tailwind-variants' lite runtime, merging through
