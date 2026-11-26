@@ -74,7 +74,8 @@ describe('EventFacts — the address', () => {
     const html = renderToStaticMarkup(<EventFacts event={mockEvent} />)
 
     expect(html).toContain(`aria-label="event.a11y.copy_address: ${full}"`)
-    expect(html).toContain(`<span>${full}</span>`)
+    // The visible text is the whole line, and the icon follows its last word.
+    expect(html).toContain(`<span>${full}<svg`)
     // A tap with a little movement would otherwise start a sheet drag and lose the click.
     expect(html).toMatch(
       /<button data-vaul-no-drag="true"[^>]*aria-label="event\.a11y\.copy_address/,

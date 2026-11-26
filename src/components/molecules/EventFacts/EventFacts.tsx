@@ -1,7 +1,6 @@
 import type { LucideIcon } from 'lucide-react'
 import type { ReactNode } from 'react'
 
-import { useRef } from 'react'
 import { useTranslation } from 'react-i18next'
 import { CalendarDays, Check, Copy, MapPin, Monitor } from 'lucide-react'
 
@@ -224,13 +223,14 @@ export function EventFacts({
 function CopyAddress({ value }: { value: string }) {
   const { t } = useTranslation()
   const { copied, copy } = useCopy(2000)
-  const text = useRef<HTMLSpanElement>(null)
 
   const status = copied ? t('common.chrome.copied') : ''
 
-  // A refused copy selects the address instead, ready to copy by hand.
-  const onClick = async () => {
-    if (!(await copy(value)) && text.current) window.getSelection()?.selectAllChildren(text.current)
+  // A refused copy selects the address instead, ready to copy by hand. The button's only text is
+  // the address, since the icon is `aria-hidden` and empty, so its children ARE the address. The
+  // element comes in as an argument because `currentTarget` is null once the copy has awaited.
+  const onClick = async (button: HTMLButtonElement) => {
+    if (!(await copy(value))) window.getSelection()?.selectAllChildren(button)
   }
 
   return (
@@ -240,12 +240,12 @@ function CopyAddress({ value }: { value: string }) {
         aria-label={`${t('event.a11y.copy_address')}: ${value}`}
         className="touch-target relative rounded-lg text-start outline-none select-text focus-visible:ring-2 focus-visible:ring-focus"
         type="button"
-        onClick={() => void onClick()}
+        onClick={(event) => void onClick(event.currentTarget)}
       >
         {/* The address stays laid out under "Copied", so a wrapped line keeps its height. Inline,
             so the icon follows its last word. */}
         <span className={copied ? 'invisible' : undefined}>
-          <span ref={text}>{value}</span>
+          {value}
           <Copy aria-hidden className="ms-1.5 inline align-[-2px] text-gray-11" size={14} />
         </span>
         {copied && (
