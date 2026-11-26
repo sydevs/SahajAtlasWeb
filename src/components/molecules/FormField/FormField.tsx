@@ -55,7 +55,17 @@ export type FieldControlProps = {
   isInvalid: boolean
 }
 
-export type FormFieldProps = {
+/**
+ * A single control is named by its `<label>` and keyed by its id (`htmlFor`). A control that
+ * labels itself — a checkbox — passes `name` instead, which keys the help and error ids only.
+ * A group of controls with no single id — a choice of cards, a row of days — is a `fieldset`
+ * named by its legend, and must pass `name`: it keys the legend, help and error ids.
+ */
+type FieldTarget =
+  | { as?: undefined; htmlFor?: string; name?: string }
+  | { as: 'fieldset'; name: string; htmlFor?: never }
+
+export type FormFieldProps = FieldTarget & {
   label: ReactNode
   /** Appends the required marker to the label. The caller still marks the control. */
   required?: boolean
@@ -77,14 +87,6 @@ export type FormFieldProps = {
    * shape).
    */
   announceError?: boolean
-  /** The control's id. Omitted for a composite control (e.g. a radio list) with no single id. */
-  htmlFor?: string
-  /**
-   * A group of controls with no single id — a choice of cards, a row of days — renders as a
-   * `fieldset`, its label as the `legend`. `name` then keys the help, error and legend ids.
-   */
-  as?: 'fieldset'
-  name?: string
   /**
    * The control, or a function that receives its wiring ({@link FieldControlProps}) — the id,
    * `aria-labelledby`, `aria-describedby`, `aria-required` and `isInvalid` — so no caller
@@ -120,7 +122,7 @@ export function FormField({
   announceError = true,
 }: FormFieldProps) {
   const group = as === 'fieldset'
-  const key = group ? name : htmlFor
+  const key = htmlFor ?? name
   const showHelp = Boolean(help) && !error
   const control: FieldControlProps = {
     id: group ? undefined : htmlFor,

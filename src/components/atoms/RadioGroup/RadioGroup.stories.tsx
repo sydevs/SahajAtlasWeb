@@ -39,14 +39,11 @@ const signups: RadioOption[] = [
 
 /**
  * RadioGroup — a controlled radio list, rendered as selectable cards. The
- * chosen card is highlighted. `collapseAfter` hides the tail behind a
- * reveal link, so a long list, such as the registration date picker, does
- * not flood the form. Options with an `icon` and a `hint` are choice cards,
- * for a question answered with one tap.
+ * chosen card is highlighted. Options with an `icon` and a `hint` are
+ * choice cards, for a question answered with one tap.
  */
 export const Default: Story = () => {
   const [simple, setSimple] = useState('a')
-  const [collapsed, setCollapsed] = useState('a')
   const [place, setPlace] = useState('offline')
   const [signup, setSignup] = useState('elsewhere')
 
@@ -63,23 +60,6 @@ export const Default: Story = () => {
             options={options.slice(0, 3)}
             value={simple}
             onChange={setSimple}
-          />
-        </div>
-      </StorySection>
-
-      <StorySection
-        description="`collapseAfter` shows the first N options with a reveal link for the rest."
-        title="Collapsible"
-      >
-        <div className="max-w-sm">
-          <RadioGroup
-            aria-label="Pick a date"
-            collapseAfter={3}
-            moreLabel="Show more dates"
-            name="collapsed"
-            options={options}
-            value={collapsed}
-            onChange={setCollapsed}
           />
         </div>
       </StorySection>

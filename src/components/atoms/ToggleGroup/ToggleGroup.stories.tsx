@@ -118,7 +118,7 @@ export const Default: Story = () => {
           <ToggleGroup
             required
             aria-label="On which day?"
-            className="grid grid-cols-7"
+            className="grid grid-cols-7 gap-0.5"
             size="md"
             type="single"
             value={day}

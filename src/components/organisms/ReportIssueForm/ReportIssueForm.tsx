@@ -238,7 +238,6 @@ const AuthoredField = memo(function AuthoredField({
           <Select
             {...typed}
             ref={bound.ref}
-            aria-label={label}
             name={bound.name}
             placeholder={field.placeholder ?? undefined}
             value={typeof bound.value === 'string' ? bound.value : ''}
@@ -285,7 +284,8 @@ const AuthoredField = memo(function AuthoredField({
       announceError={false}
       error={errorCopy(field, error, t)}
       help={help}
-      htmlFor={field.blockType === 'checkbox' ? undefined : id}
+      // A checkbox labels itself, so its id keys only the help and error it points at.
+      {...(field.blockType === 'checkbox' ? { name: id } : { htmlFor: id })}
       label={label}
       required={Boolean(field.required)}
     >

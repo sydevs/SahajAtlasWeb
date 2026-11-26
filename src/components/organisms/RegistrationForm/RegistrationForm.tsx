@@ -520,10 +520,6 @@ const errorCopy = (
   return schemaKey ? t(schemaKey) : error.message
 }
 
-// The label, control, and error shell is the shared `FormField` molecule, and the controls are
-// the shared Input, Textarea and Select atoms, as in the report form. So the required marker, the
-// aria-describedby id convention, the field size and the error border are defined once.
-
 function LabeledInput({
   autoComplete,
   label,
@@ -618,25 +614,21 @@ function RegistrationFields({
             htmlFor={field.name}
             label={t('registration.form.starting_date')}
           >
-            {/* A dropdown, so choosing never pushes the fields below it down. The next date is
-                already chosen, and each option says how far off it is, so a later week is still
-                one quick pick.
-
-                `field.ref` is what makes a failed submit MOVE (issue #102): react-hook-form
+            {/* `field.ref` is what makes a failed submit MOVE (issue #102): react-hook-form
                 focuses the first invalid field, but only one it holds a ref for. This is the
-                first field, so without it a submit with no date moved focus nowhere. */}
+                first field, so without it a submit with no date moves focus nowhere. */}
             {(wiring) => (
               <Select
                 {...wiring}
                 ref={field.ref}
                 name={field.name}
-                value={field.value as unknown as string}
+                value={(field.value as unknown as string | undefined) ?? ''}
                 onBlur={field.onBlur}
                 onValueChange={field.onChange}
               >
-                {startingDates.map(({ value, label, text }) => (
-                  <SelectItem key={value} textValue={text} value={value}>
-                    {label}
+                {startingDates.map(({ value, label }) => (
+                  <SelectItem key={value} value={value}>
+                    <span className="capitalize">{label}</span>
                   </SelectItem>
                 ))}
               </Select>
@@ -692,28 +684,22 @@ const RELATIVE_UNIT: Record<RecurrenceType, 'days' | 'weeks' | 'months'> = {
   MONTHLY: 'months',
 }
 
-/** One starting date: the ISO value, its rendered label, and the same words as plain text for
- *  the listbox's type-ahead. */
-type DateOption = { value: string; label: ReactNode; text: string }
-
 function dateOptions(
   dates: Date[],
   recurrenceType: RecurrenceType | null | undefined,
   timeZone: string | undefined,
   locale: string,
-): DateOption[] {
+): { value: string; label: string }[] {
   const unit = recurrenceType ? RELATIVE_UNIT[recurrenceType] : undefined
 
   return dates.map((date) => {
     const dateTime = DateTime.fromJSDate(date)
       .setZone(timeZone ?? 'local')
       .setLocale(locale)
-    const text = `${dateTime.toRelativeCalendar(unit ? { unit } : undefined)} - ${dateTime.toLocaleString(DateTime.DATE_MED_WITH_WEEKDAY)}`
 
     return {
       value: date.toISOString(),
-      label: <span className="capitalize">{text}</span>,
-      text,
+      label: `${dateTime.toRelativeCalendar(unit ? { unit } : undefined)} - ${dateTime.toLocaleString(DateTime.DATE_MED_WITH_WEEKDAY)}`,
     }
   })
 }

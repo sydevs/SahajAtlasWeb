@@ -1,13 +1,12 @@
 import type { LucideIcon } from 'lucide-react'
 
-import { type ReactNode, forwardRef, useState } from 'react'
+import { type ReactNode, forwardRef } from 'react'
 
 import { tv } from '@/styles/tv'
 
 // A vertical radio list, rendered as selectable cards. It is controlled
 // through `value` and `onChange` (pair it with react-hook-form's
-// Controller). Options past `collapseAfter` hide behind a reveal link, so a
-// long list does not flood a form. It uses a native `<input type="radio">`,
+// Controller). It uses a native `<input type="radio">`,
 // not a Radix primitive, so every option is visible at a glance, since the
 // common case is picking the first. Domain formatting, such as dates and
 // counts, stays in the caller: `label` accepts any node.
@@ -25,6 +24,10 @@ export type RadioOption = {
   icon?: LucideIcon
 }
 
+// A stacked list by default. A caller's layout (`grid grid-cols-2` for two cards side by side)
+// replaces it, merged rather than appended so the two displays cannot fight.
+const radioGroup = tv({ base: 'flex flex-col gap-2' })
+
 // The selected option fills with the primary solid, reading like a selected
 // ToggleGroup item, instead of a faint tint. This makes the choice
 // unmistakable. `highlight` primary-tints the UNSELECTED cards. This changes
@@ -34,20 +37,16 @@ export type RadioOption = {
 // browser paints the native mark in `accent-color`, so an accent matching
 // the card's own fill leaves a ring with nothing in it, and the option
 // reads as unchosen (#323).
-// A stacked list by default. A caller's layout (`grid grid-cols-2` for two cards side by side)
-// replaces it, merged rather than appended so the two displays cannot fight.
-// ⚠ The wider gap on a touch screen is the reveal link's doing: it is one line tall and carries
-// its own invisible 44px area, which at an 8px gap reached over the card above and took 5px of it
-// (#432).
-const radioGroup = tv({ base: 'flex flex-col gap-2 pointer-coarse:gap-4' })
 
 const radioOption = tv({
   slots: {
     // The card IS the radio's tap target — a native mark is 16px, and the label activates the
     // input it wraps — so the 44px floor sits here on a touch screen (#432).
-    card: 'flex cursor-pointer items-center gap-3 rounded-lg border px-3 py-2.5 text-sm transition-colors pointer-coarse:min-h-11',
+    // `relative` holds a choice card's visually hidden radio inside the card, so it scrolls with
+    // it inside a scrolling drawer body.
+    card: 'relative flex cursor-pointer items-center gap-3 rounded-lg border px-3 py-2.5 text-sm transition-colors pointer-coarse:min-h-11',
     mark: 'h-4 w-4 shrink-0',
-    icon: 'flex size-9 shrink-0 items-center justify-center rounded-full transition-colors',
+    icon: 'flex-center size-9 shrink-0 rounded-full transition-colors',
     hint: 'text-xs leading-snug font-normal',
   },
   variants: {
@@ -116,15 +115,11 @@ export type RadioGroupProps = {
   'aria-labelledby'?: string
   /** Id of the group's error or description text. It is forwarded for screen readers. */
   'aria-describedby'?: string
-  'aria-required'?: boolean | 'true' | 'false'
+  'aria-required'?: boolean
   /** Danger-border the group and set `aria-invalid` to flag a validation error. */
   isInvalid?: boolean
   /** Primary-tint the group to flag it as an active field. This mirrors the other atoms. */
   highlight?: boolean
-  /** Show only the first N options, revealing the rest behind `moreLabel`. */
-  collapseAfter?: number
-  /** The reveal link's text — required for the collapse to render. */
-  moreLabel?: ReactNode
   className?: string
 }
 
@@ -139,10 +134,9 @@ export type RadioGroupProps = {
  * `Input`, `Textarea`, `Button`, and `Link` all forward theirs for the same
  * reason.
  *
- * This uses the first radio, not the checked one. `collapseAfter` may mean
- * the checked option is not rendered. A radio group is also a single tab
- * stop, so entering it at the top is where a keyboard user expects to
- * arrive anyway.
+ * This uses the first radio, not the checked one: a radio group is a single
+ * tab stop, so entering it at the top is where a keyboard user expects to
+ * arrive.
  */
 export const RadioGroup = forwardRef<HTMLInputElement, RadioGroupProps>(function RadioGroup(
   {
@@ -157,17 +151,10 @@ export const RadioGroup = forwardRef<HTMLInputElement, RadioGroupProps>(function
     'aria-required': ariaRequired,
     isInvalid,
     highlight,
-    collapseAfter,
-    moreLabel,
     className,
   },
   ref,
 ) {
-  const [expanded, setExpanded] = useState(false)
-
-  const collapsible = collapseAfter != null && moreLabel != null && options.length > collapseAfter
-  const visible = collapsible && !expanded ? options.slice(0, collapseAfter) : options
-
   return (
     <div
       aria-describedby={describedBy}
@@ -178,7 +165,7 @@ export const RadioGroup = forwardRef<HTMLInputElement, RadioGroupProps>(function
       className={radioGroup({ className })}
       role="radiogroup"
     >
-      {visible.map((option, index) => {
+      {options.map((option, index) => {
         const checked = value === option.value
         const Icon = option.icon
         const slots = radioOption({ checked, highlight, isInvalid, withIcon: Boolean(Icon) })
@@ -211,16 +198,6 @@ export const RadioGroup = forwardRef<HTMLInputElement, RadioGroupProps>(function
           </label>
         )
       })}
-
-      {collapsible && !expanded && (
-        <button
-          className="touch-target relative self-start text-sm font-medium text-primary-11 underline underline-offset-2 hover:opacity-hover"
-          type="button"
-          onClick={() => setExpanded(true)}
-        >
-          {moreLabel}
-        </button>
-      )}
     </div>
   )
 })

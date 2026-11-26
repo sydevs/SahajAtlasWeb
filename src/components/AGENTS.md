@@ -26,12 +26,9 @@ Before hand-rolling UI, check in this order:
    ARIA. We own the Tailwind skin.
 3. Only then write something new, in the right atomic tier per `DESIGN_SYSTEM.md`.
 
-**Every form is one kit.** A field is `FormField` around a form atom — `Input`, `Textarea`,
-`Select`, `Combobox`, a `size="md"` `ToggleGroup` for short choices, `RadioGroup` (choice cards
-with `icon` and `hint`) for longer ones, `Checkbox` — and takes its wiring from `FormField`'s
-render prop (`{(control) => <Input {...control} />}`), a group as `as="fieldset"`. Don't hand-roll
-a radio, a segmented control or a field shell; the report, registration and add-a-class forms
-share these, and the FormField story's "Form atoms" section shows them all.
+**Every form is one kit**: `FormField` around the form atoms, wired through its render prop.
+Don't hand-roll a radio, a segmented control or a field shell. `DESIGN_SYSTEM.md` § One form kit
+lists the set, and the FormField story's "Form atoms" section shows it.
 
 ## Styling
 

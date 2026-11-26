@@ -59,38 +59,6 @@ describe('RadioGroup', () => {
     expect(checked).not.toContain('accent-white')
     expect(checked).not.toContain('dark:accent-primary-foreground')
   })
-
-  it('collapses options past collapseAfter behind the reveal link', () => {
-    const html = renderToStaticMarkup(
-      <RadioGroup
-        collapseAfter={2}
-        moreLabel="Show more"
-        name="x"
-        options={options}
-        value="a"
-        onChange={() => {}}
-      />,
-    )
-
-    expect(radios(html)).toBe(2)
-    expect(html).toContain('Show more')
-  })
-
-  it('does not render the reveal link when options fit within collapseAfter', () => {
-    const html = renderToStaticMarkup(
-      <RadioGroup
-        collapseAfter={4}
-        moreLabel="Show more"
-        name="x"
-        options={options}
-        value="a"
-        onChange={() => {}}
-      />,
-    )
-
-    expect(radios(html)).toBe(4)
-    expect(html).not.toContain('Show more')
-  })
 })
 
 describe('RadioGroup choice cards', () => {

@@ -25,10 +25,15 @@ function Days({ required }: { required?: boolean }) {
   )
 }
 
-const press = (label: string) =>
-  act(() => {
-    ;[...host.querySelectorAll('button')].find((b) => b.textContent === label)?.click()
-  })
+const item = (label: string) => {
+  const found = [...host.querySelectorAll('button')].find((b) => b.textContent === label)
+
+  if (!found) throw new Error(`no item labelled ${label}`)
+
+  return found
+}
+
+const press = (label: string) => act(() => item(label).click())
 
 beforeEach(() => {
   host = document.createElement('div')
@@ -48,6 +53,19 @@ describe('a required single choice', () => {
     expect(host.querySelector('output')?.textContent).toBe('tu')
     press('Mo')
     expect(host.querySelector('output')?.textContent).toBe('mo')
+  })
+
+  it('keeps it uncontrolled too', () => {
+    act(() =>
+      root.render(
+        <ToggleGroup required defaultValue="tu" type="single">
+          <ToggleGroupItem value="mo">Mo</ToggleGroupItem>
+          <ToggleGroupItem value="tu">Tu</ToggleGroupItem>
+        </ToggleGroup>,
+      ),
+    )
+    press('Tu')
+    expect(item('Tu').dataset.state).toBe('on')
   })
 
   it('clears, as Radix does, when the question is optional', () => {

@@ -8,7 +8,7 @@ import {
   fieldErrorId,
   fieldHelpId,
   fieldLabelId,
-} from '.'
+} from './FormField'
 
 // Node-only SSR assertions (see `docs/testing.md`). This pins the pair of
 // contracts every form atom in the app leans on: the describedby ids, and,
@@ -155,5 +155,24 @@ describe('a field for a group of controls', () => {
       'aria-describedby': 'day-error',
       isInvalid: true,
     })
+  })
+})
+
+describe('a field around a control that labels itself', () => {
+  it('keys its help and error by `name`, and hands the control no id', () => {
+    let wired: FieldControlProps | undefined
+
+    const html = renderToStaticMarkup(
+      <FormField error="Tick to continue" label="Consent" name="consent">
+        {(control) => {
+          wired = control
+
+          return <button type="button" />
+        }}
+      </FormField>,
+    )
+
+    expect(html).toContain(`id="${fieldErrorId('consent')}"`)
+    expect(wired).toMatchObject({ id: undefined, 'aria-describedby': 'consent-error' })
   })
 })

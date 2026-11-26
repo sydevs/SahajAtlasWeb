@@ -67,7 +67,7 @@ function FormKit() {
           <ToggleGroup
             {...control}
             required
-            className="grid grid-cols-7"
+            className="grid grid-cols-7 gap-0.5"
             size="md"
             type="single"
             value={day}
