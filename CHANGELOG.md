@@ -43,6 +43,14 @@ cover everything a host would notice since the widget was first deployed.
 
 ### Changed
 
+- **A class's tags no longer repeat what its page already says.** ([#500]) A class with no set
+  times, which reads "Contact host for timings", no longer carries a "ONE-OFF EVENT" tag: being
+  marked inactive in SahajCloud now removes its type tag, even where dates are still stored.
+  "Today" appears once. A class page says it in its time line, without a TODAY tag under the
+  title. A list card for a repeating class shows the TODAY tag, without the faded "Today" under
+  its pattern. A full class meeting today shows FULL, with "Today" in its time line. **No
+  parameter, origin, CSP, storage or Permissions-Policy change.**
+
 - **On a slow or failing connection the map and its panel appear at once.** ([#490]) In the full
   map form the widget no longer shows a white page with "Loading…" while it reads your client
   record: the map draws straight away, and the panel stands where it will open, holding
@@ -1412,3 +1420,4 @@ must-revalidate`, pinned rather than left to the CDN default. The production dom
 [#488]: https://github.com/sydevs/SahajAtlasWeb/pull/488
 [#490]: https://github.com/sydevs/SahajAtlasWeb/pull/490
 [#495]: https://github.com/sydevs/SahajAtlasWeb/pull/495
+[#500]: https://github.com/sydevs/SahajAtlasWeb/pull/500
