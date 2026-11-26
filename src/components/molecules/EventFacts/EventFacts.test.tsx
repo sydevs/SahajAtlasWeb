@@ -116,6 +116,19 @@ describe('EventFacts with EventChips — "Today" once', () => {
   })
 })
 
+// `useFitSnap` measures a class's key-facts stop to the bottom of the marked row.
+describe('EventFacts — the key-facts marker', () => {
+  it('marks the panel facts', () => {
+    expect(renderToStaticMarkup(<EventFacts event={mockEvent} />)).toContain('data-sheet-fold')
+  })
+
+  it.each(['card', 'summary'] as const)('leaves the %s facts unmarked', (surface) => {
+    expect(renderToStaticMarkup(<EventFacts event={mockEvent} surface={surface} />)).not.toContain(
+      'data-sheet-fold',
+    )
+  })
+})
+
 describe('EventFacts — the address', () => {
   const full = '5 Market St, Cambridge CB2 3QJ'
 
