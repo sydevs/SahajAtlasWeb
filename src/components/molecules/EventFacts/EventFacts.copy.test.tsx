@@ -49,7 +49,7 @@ describe('EventFacts — the address copy', () => {
     const live = () => container.querySelector('[aria-live]')?.textContent
 
     expect(writeText).toHaveBeenCalledWith(FULL)
-    expect(live()).toBe('share.copied')
+    expect(live()).toBe('common.chrome.copied')
     expect(container.textContent).not.toContain(FULL)
 
     await act(async () => vi.advanceTimersByTime(2000))
@@ -64,7 +64,7 @@ describe('EventFacts — the address copy', () => {
   ])('selects the address to copy by hand when the clipboard is %s', async (_, clipboard) => {
     const { container, root } = await tapAddress(clipboard)
 
-    expect(container.textContent).not.toContain('share.copied')
+    expect(container.textContent).not.toContain('common.chrome.copied')
     expect(window.getSelection()?.toString()).toBe(FULL)
     await act(async () => root.unmount())
   })

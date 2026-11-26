@@ -253,7 +253,7 @@ function CopyAddress({ value }: { value: string }) {
         {copied ? (
           <span className="text-primary-11">
             <Check aria-hidden className="me-1.5 inline align-[-3px]" size={16} />
-            {t('share.copied')}
+            {t('common.chrome.copied')}
           </span>
         ) : (
           // Inline, so on a wrapped address the icon follows the last word.
@@ -264,7 +264,7 @@ function CopyAddress({ value }: { value: string }) {
         )}
       </button>
       <span aria-live="polite" className="sr-only">
-        {copied ? t('share.copied') : ''}
+        {copied ? t('common.chrome.copied') : ''}
       </span>
     </>
   )

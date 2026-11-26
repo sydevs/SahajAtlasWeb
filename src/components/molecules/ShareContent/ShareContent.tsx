@@ -45,7 +45,7 @@ export function CopyField({ value }: { value: string }) {
           perceive it either. The live region announces success, and the
           text confirms it. */}
       <span aria-live="polite" className="h-4 text-xs text-secondary-11">
-        {copied ? t('share.copied') : ''}
+        {copied ? t('common.chrome.copied') : ''}
       </span>
     </div>
   )
