@@ -2,11 +2,17 @@ import type { Story, StoryDefault } from '@ladle/react'
 
 import { StoryWrapper, StorySection } from '../../ladle'
 
-import { EventSummary } from './EventSummary'
+import { EventSummary, type EventSummaryProps } from './EventSummary'
 
+import { useEventDisplay } from '@/hooks/use-event-display'
 import { mockEvent, mockEventCourse, mockEventSlimOnline, mockEventToday } from '@/mocks/events'
 
 export default { title: 'Molecules' } satisfies StoryDefault
+
+// The parent resolves the display once and hands it down; this stands in for that parent.
+const Summary = ({ event, ...props }: Omit<EventSummaryProps, 'strings'>) => (
+  <EventSummary {...props} event={event} strings={useEventDisplay(event)} />
+)
 
 /**
  * EventSummary — a class at a glance: the title with its Online tag, when and where, and the
@@ -20,8 +26,8 @@ export const Default: Story = () => (
       title="In a list"
     >
       <div className="flex max-w-md flex-col gap-4">
-        <EventSummary distance="3.6 km from Cambridge" event={mockEvent} />
-        <EventSummary event={mockEventSlimOnline} />
+        <Summary distance="3.6 km from Cambridge" event={mockEvent} />
+        <Summary event={mockEventSlimOnline} />
       </div>
     </StorySection>
 
@@ -30,8 +36,8 @@ export const Default: Story = () => (
       title="Boxed"
     >
       <div className="flex max-w-md flex-col gap-4">
-        <EventSummary boxed event={mockEventToday} />
-        <EventSummary boxed event={mockEventCourse} />
+        <Summary boxed event={mockEventToday} />
+        <Summary boxed event={mockEventCourse} />
       </div>
     </StorySection>
 
@@ -40,8 +46,8 @@ export const Default: Story = () => (
       title="Boxed · no subtext"
     >
       <div className="flex max-w-md flex-col gap-4">
-        <EventSummary boxed hideSubtext event={mockEventToday} />
-        <EventSummary boxed hideSubtext event={mockEventSlimOnline} />
+        <Summary boxed hideSubtext event={mockEventToday} />
+        <Summary boxed hideSubtext event={mockEventSlimOnline} />
       </div>
     </StorySection>
 

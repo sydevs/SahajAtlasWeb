@@ -1,7 +1,7 @@
 import { renderToStaticMarkup } from 'react-dom/server'
 import { describe, it, expect, vi } from 'vitest'
 
-import { EventDetails } from './EventDetails'
+import { EventDetails, type EventDetailsProps } from './EventDetails'
 
 import { mockEvent, mockEventImages } from '@/mocks/events'
 
@@ -23,7 +23,13 @@ vi.mock('@/components/molecules/EventFacts', () => ({ EventFacts: () => <i>facts
 vi.mock('./sanitize', () => ({ sanitizeDescription: (html: string) => html }))
 
 const panel = (event = { ...mockEvent, images: mockEventImages }) =>
-  renderToStaticMarkup(<EventDetails basePath="/gb/london/1" event={event} />)
+  renderToStaticMarkup(
+    <EventDetails
+      basePath="/gb/london/1"
+      event={event}
+      strings={{} as EventDetailsProps['strings']}
+    />,
+  )
 
 describe('EventDetails — the poster QR code', () => {
   it('ends the class page, after the images, with the class link', () => {
