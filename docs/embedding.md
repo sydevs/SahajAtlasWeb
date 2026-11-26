@@ -478,7 +478,7 @@ with the list.
 
 ### The expanded map
 
-**"Expand map" sits in the map's top-left corner and opens the full map, with the panel over it,
+**"Expand map" sits in the map's bottom-left corner and opens the full map, with the panel over it,
 covering the screen below your header.** A "Close map" button floats at the bottom middle of the map,
 and returns the visitor to your page, showing whatever they were last looking at. Escape and a
 click outside the map — your header included — close it too.

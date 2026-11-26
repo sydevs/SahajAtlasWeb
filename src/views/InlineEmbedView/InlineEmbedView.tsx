@@ -198,9 +198,9 @@ function ExpandedDialog({ children }: { children: ReactNode }) {
 // ===== THE VIEW ===== //
 
 /**
- * Over the inline map's top-left corner — physically left, since the attribution and the
- * locate control hold the top right and the wordmark the bottom right — or under the heading of
- * an atlas too small for its box.
+ * Over the inline map's bottom-left corner — physically left, since the wordmark holds the bottom
+ * right — or under the heading of an atlas too small for its box. Not the top left: in a box
+ * narrower than about 350px, find-me's hover label grows from the top right across it.
  *
  * A frame cannot grow where it is — the standalone page framed, or a host page that is itself
  * framed — so there the button opens a page that fits, in a new tab. So does a map-less atlas,
@@ -264,7 +264,7 @@ export function InlineColumns({
             style={{ '--sy-inline-top': `${top}px` } as CSSProperties}
           >
             {map}
-            <ExpandButton className="absolute top-3 left-3 z-10" />
+            <ExpandButton className="absolute bottom-3 left-3 z-10" />
           </div>
         </div>
       )}

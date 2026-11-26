@@ -403,8 +403,9 @@ any other placement must be reviewed and approved by Mapbox, so the credits
 cannot move into the settings menu, and cannot be redrawn as one of our Buttons.
 
 ⚠ The top-right corner is the control column, so nothing else of ours may sit there:
-the inline map's "Expand map" takes the top LEFT, and the expanded map's "Close map"
-floats at the bottom middle. `.mapboxgl-ctrl-top-right` takes the right-hand safe area,
+the inline map's "Expand map" takes the bottom LEFT, clear of find-me's hover label, which
+grows across the top of a narrow box, and the expanded map's "Close map" floats at the bottom
+middle. `.mapboxgl-ctrl-top-right` takes the right-hand safe area,
 and moves the whole corner as one; it is not a per-layout rule.
 
 ## A geocoder lookup whose answer is STORED asks for `permanent`
