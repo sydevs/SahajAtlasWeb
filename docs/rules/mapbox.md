@@ -169,9 +169,9 @@ The map is the heart of the app and its hottest render path. Treat it carefully.
   (`.event-pin-popover`), and its content is `pointer-events: none`, so it never
   steals hover from the pin or blocks a tap.
 - The card stacks the recurrence above the start time (two narrow lines) rather
-  than the list card's single line, but both derive their parts from the shared
-  `calendarLineParts` gate (`use-event-display.ts`) — the popover and the card
-  can never drift (#52, #72).
+  than the list card's single line, but both read the same `card` view from
+  `surfaceView` (`use-event-display.ts`) — the popover and the card can never
+  drift (#52, #72).
 
 ## View state lives in zustand, not local state
 

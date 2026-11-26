@@ -64,8 +64,7 @@ vi.mock('@/hooks/use-filters', () => ({ useEventFilters: () => harness.filters }
 vi.mock('@/hooks/use-region-matcher', () => ({ useRegionMatcher: () => undefined }))
 vi.mock('@/hooks/use-geolocate', () => ({ useGeolocateToSearch: () => harness.geolocate }))
 vi.mock('@/hooks/use-event-display', () => ({
-  calendarLineParts: () => ({}),
-  useEventDisplay: () => ({}),
+  useEventDisplay: () => ({ surfaces: { card: { when: {} } } }),
 }))
 vi.mock('@/config/responsive', () => ({ useHasRealPointer: () => true }))
 vi.mock('@/config/api', () => ({

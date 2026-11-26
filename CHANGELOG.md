@@ -43,13 +43,19 @@ cover everything a host would notice since the widget was first deployed.
 
 ### Changed
 
-- **A class's tags no longer repeat what its page already says.** ([#500]) A class with no set
-  times, which reads "Contact host for timings", no longer carries a "ONE-OFF EVENT" tag: being
-  marked inactive in SahajCloud now removes its type tag, even where dates are still stored.
-  "Today" appears once. A class page says it in its time line, without a TODAY tag under the
-  title. A list card for a repeating class shows the TODAY tag, without the faded "Today" under
-  its pattern. A full class meeting today shows FULL, with "Today" in its time line. **No
-  parameter, origin, CSP, storage or Permissions-Policy change.**
+- **A class's tags no longer repeat what its page already says.** ([#500]) Every class that
+  reads "Contact host for timings" now carries no type tag: one marked inactive in SahajCloud, one
+  with no dates, and a repeating class with no session left. Stirling, for one, no longer reads
+  "ONE-OFF EVENT". "Today" appears once. A class page says it in its time line, without a TODAY
+  tag under the title. A list card for a repeating class shows the TODAY tag, without the faded
+  "Today" under its pattern. A full class meeting today shows FULL, with "Today" in its time line.
+  **No parameter, origin, CSP, storage or Permissions-Policy change.**
+
+- **A listing with an empty schedule says "Contact host for timings".** ([#500]) SahajCloud sends
+  such a listing a schedule whose fields are all empty, and the widget read it as a one-off on
+  1 January 1970. It no longer says "This event has ended", the "One-off" filter no longer lists
+  it, and its page's structured data (`startDate`, `validFrom`, `og:event:start_time`) no longer
+  carries the 1970 date. It shows as an area on the map, and offers contact, website and share.
 
 - **A class page's address ends with its postcode, and a tap copies it.** ([#498]) "120 Heath
   St, London NW3 1DR", as the host entered it; never for an online class or a listing that hides

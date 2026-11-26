@@ -255,11 +255,11 @@ export const mockEventEnded: Event = {
   },
 }
 
-/** Venue dormant → no Register at all. Contact leads. */
+/** Inactive listing → no Register at all. Contact leads. */
 export const mockEventInactive: Event = {
   ...mockEvent,
   id: 126,
-  title: 'Dormant Venue Programme',
+  title: 'Inactive Venue Programme',
   inactive: true,
 }
 
@@ -360,7 +360,7 @@ export const mockEventVariants: EventSlim[] = [
   slimFrom(mockEventFullToday, { distance: 3, path: '/united-kingdom/cambridge/128' }),
   // A one-off whose date has passed → terminal "Ended" (reachable via direct links).
   slimFrom(mockEventEnded, { path: '/united-kingdom/cambridge/125' }),
-  // A dormant venue (no active schedule) → "Contact host for timings".
+  // An inactive listing → "Contact host for timings".
   slimFrom(mockEventInactive, { path: '/united-kingdom/cambridge/126' }),
   // A weekly class in a language other than the UI's → the language chip shows.
   {

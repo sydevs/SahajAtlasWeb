@@ -6,19 +6,19 @@ import { CalendarDays, Check, Copy, MapPin, Monitor } from 'lucide-react'
 
 import { tv } from '@/styles/tv'
 import {
-  composeCalendarLine,
   useEventDisplay,
   type DisplayableEvent,
+  type EventSurface,
 } from '@/hooks/use-event-display'
 import { useCopy } from '@/hooks/use-copy'
 
-// The when/where fact list. `default` is the panel treatment: brand-tinted
-// icons, roomy spacing. `compact` is the list-card treatment: a size under
+// The when/where fact list. `page` is the class page treatment: brand-tinted
+// icons, roomy spacing. `card` is the list-card treatment: a size under
 // the card's title, tighter spacing, and icons that shrink to the text
 // height, reading as inline text with a leading glyph, not a labelled
 // block. Its time and address keep the foreground colour, since they are
-// what a visitor came for; only the distance steps back. `card` is the
-// boxed event-details card: a `title` over the default facts on a tinted
+// what a visitor came for; only the distance steps back. `summary` is the
+// boxed event-details card: a `title` over the page facts on a tinted
 // rounded surface, the object being acted on above the registration and
 // share forms. Each fact has a required primary
 // line (`text`) and an optional faded second line (`subtext`).
@@ -29,7 +29,7 @@ import { useCopy } from '@/hooks/use-copy'
 // surface with a single internal consumer. It is folded in here instead.
 const facts = tv({
   slots: {
-    // `wrapper` and `title` are used only by the `card` variant. They stay empty otherwise.
+    // `wrapper` and `title` are used only by the `summary` surface. They stay empty otherwise.
     wrapper: '',
     title: '',
     base: 'flex flex-col',
@@ -39,11 +39,11 @@ const facts = tv({
     subtext: 'text-gray-11',
   },
   variants: {
-    variant: {
-      default: { base: 'gap-2.5', item: 'gap-3', icon: 'text-primary' },
+    surface: {
+      page: { base: 'gap-2.5', item: 'gap-3', icon: 'text-primary' },
       // Every fact takes at least 22px, so one-line facts never sit line on line.
-      compact: { base: 'gap-1.5', item: 'min-h-5.5 gap-2', icon: 'text-gray-11', text: 'text-sm' },
-      card: {
+      card: { base: 'gap-1.5', item: 'min-h-5.5 gap-2', icon: 'text-gray-11', text: 'text-sm' },
+      summary: {
         wrapper: 'rounded-lg border border-divider bg-gray-2 p-3',
         title: 'mb-3 text-lg',
         base: 'gap-2.5',
@@ -58,17 +58,15 @@ const facts = tv({
     },
   },
   compoundVariants: [
-    { variant: 'default', stacked: true, class: { icon: 'mt-0.5' } },
-    { variant: 'compact', stacked: true, class: { icon: 'mt-px' } },
-    { variant: 'card', stacked: true, class: { icon: 'mt-0.5' } },
+    { surface: 'page', stacked: true, class: { icon: 'mt-0.5' } },
+    { surface: 'card', stacked: true, class: { icon: 'mt-px' } },
+    { surface: 'summary', stacked: true, class: { icon: 'mt-0.5' } },
   ],
-  defaultVariants: { variant: 'default', stacked: false },
+  defaultVariants: { surface: 'page', stacked: false },
 })
 
-// Icon pixel size per variant. It matches the text height in the compact card.
-const ICON_SIZE = { default: 20, compact: 16, card: 20 } as const
-
-type FactVariant = 'default' | 'compact' | 'card'
+// Icon pixel size per surface. It matches the text height on the list card.
+const ICON_SIZE = { page: 20, card: 16, summary: 20 } as const
 
 type Fact = {
   icon: LucideIcon
@@ -80,11 +78,11 @@ type Fact = {
 
 export type EventFactsProps = {
   event: DisplayableEvent
-  /** `default` (panel), `compact` (list card), or `card` (boxed details card). */
-  variant?: FactVariant
-  /** The heading rendered above the facts. `card` variant only. */
+  /** The class page, a list card, or the boxed share and registration summary. */
+  surface?: EventSurface
+  /** The heading rendered above the facts. `summary` only. */
   title?: ReactNode
-  /** Extra content inside the `card` box, below the facts (e.g. a backlink). */
+  /** Extra content inside the `summary` box, below the facts (e.g. a backlink). */
   children?: ReactNode
   /** Distance from the searched location, shown faded under the address. List
    *  cards only: the panel has no search origin to measure from. */
@@ -98,74 +96,36 @@ export type EventFactsProps = {
  * the address with its distance faded below, or "Online • Hosted from …"
  * with the host's own clock. One place builds this, so
  * the panel, list card, and share/registration summaries never diverge
- * (issue #52). Ended events drop the location.
- *
- * The compact (card) variant is deliberately quieter. It shows the start
- * time only, with no "Next session" line. A card is for triage. The panel
- * carries the detail.
+ * (issue #52). Ended events drop the location. What each surface says is
+ * `surfaceView`'s decision; this only renders it.
  */
 export function EventFacts({
   event,
-  variant = 'default',
+  surface = 'page',
   title,
   children,
   distance,
   className,
 }: EventFactsProps) {
-  const {
-    display,
-    recurrenceLine,
-    whenLine,
-    eventTimeRange,
-    eventStartTime,
-    whereLine,
-    whereLineWithPostCode,
-    roomLine,
-    whereSubtext,
-  } = useEventDisplay(event)
-
-  const compact = variant === 'compact'
-  const time = compact ? eventStartTime : eventTimeRange
-
-  // The muted detail under the timing. "Started …" is only meaningful for
-  // a course, a run with an end. The "Next session" line is panel-only.
-  let timingDetail: string | undefined
-
-  if (display.next && recurrenceLine) {
-    if (display.status === 'started')
-      timingDetail = display.kind === 'course' ? whenLine : undefined
-    else if (display.status === 'running' && compact) timingDetail = undefined
-    // A card's Today chip says it (EventChips). A full class's chip says "Full" instead, so its
-    // line keeps "Today".
-    else if (display.status === 'today' && compact && !display.full) timingDetail = undefined
-    else timingDetail = whenLine
-  }
+  const { display, surfaces, whereLine, whereLineWithPostCode, roomLine, whereSubtext } =
+    useEventDisplay(event)
+  const { primary, time, detail } = surfaces[surface].when
 
   const items: Fact[] = [
     {
       icon: CalendarDays,
-      // The shared calendar-line composition. It is the identical string
-      // on the list card and the map-pin hover popover (#72). Recurring
-      // events lead with the pattern. One-off or terminal events lead with
-      // the when-line, since it IS the date or message. The muted
-      // `timingDetail` beneath it stays card and panel only.
-      text: composeCalendarLine({
-        recurrenceLine,
-        whenLine,
-        time,
-        hasNext: Boolean(display.next),
-      }),
-      subtext: timingDetail,
+      text: [primary, time].filter(Boolean).join(' · '),
+      subtext: detail ?? undefined,
     },
   ]
 
   if (whereLine && display.status !== 'ended') {
     // The room and the copyable address are for finding the place, so only the panel carries
     // them. The list card and the share/registration summaries are triage and recap (#316).
-    const panel = variant === 'default'
-    const room = panel ? roomLine : null
+    const page = surface === 'page'
+    const room = page ? roomLine : null
     const where =
-      panel && whereLineWithPostCode ? <CopyAddress value={whereLineWithPostCode} /> : whereLine
+      page && whereLineWithPostCode ? <CopyAddress value={whereLineWithPostCode} /> : whereLine
 
     items.push({
       icon: display.online ? Monitor : MapPin,
@@ -182,19 +142,19 @@ export function EventFacts({
     })
   }
 
-  const size = ICON_SIZE[variant]
-  const card = variant === 'card'
-  const slots = facts({ variant })
+  const size = ICON_SIZE[surface]
+  const summary = surface === 'summary'
+  const slots = facts({ surface })
 
-  // The card variant owns the outer box, so `className` styles that box.
+  // The summary owns the outer box, so `className` styles that box.
   // It also owns a title above the facts, and a slot below them. The other
-  // variants render just the fact column, and take `className` on it.
+  // surfaces render just the fact column, and take `className` on it.
   const body = (
-    <div className={card ? slots.base() : slots.base({ className })}>
+    <div className={summary ? slots.base() : slots.base({ className })}>
       {items.map(({ icon: Icon, text, subtext, stacked }, index) => {
         // Alignment is per-fact. Only a stacked fact, one with two lines,
         // hangs its icon from the first line.
-        const styles = facts({ variant, stacked: Boolean(subtext) || Boolean(stacked) })
+        const styles = facts({ surface, stacked: Boolean(subtext) || Boolean(stacked) })
 
         return (
           <div key={index} className={styles.item()}>
@@ -211,7 +171,7 @@ export function EventFacts({
     </div>
   )
 
-  if (!card) return body
+  if (!summary) return body
 
   return (
     <div className={slots.wrapper({ className })}>

@@ -25,8 +25,8 @@ const ROOM = 'Community Hall B'
 const withRoom = { ...mockEvent, address: { ...mockEvent.address, room: ROOM } }
 const roomLine = `event.display.room:${ROOM}`
 const NOT_PANEL = [
-  ['the list card', 'compact'],
-  ['the share and registration summaries', 'card'],
+  ['the list card', 'card'],
+  ['the share and registration summaries', 'summary'],
 ] as const
 
 describe('EventFacts — the room line (#316)', () => {
@@ -49,8 +49,8 @@ describe('EventFacts — the room line (#316)', () => {
     expect(pinItem(single)).toBe('items-center')
   })
 
-  it.each(NOT_PANEL)('leaves %s without it', (_, variant) => {
-    const html = renderToStaticMarkup(<EventFacts event={withRoom} variant={variant} />)
+  it.each(NOT_PANEL)('leaves %s without it', (_, surface) => {
+    const html = renderToStaticMarkup(<EventFacts event={withRoom} surface={surface} />)
 
     expect(html).not.toContain('event.display.room')
   })
@@ -97,18 +97,18 @@ describe('EventFacts with EventChips — "Today" once', () => {
   }
 
   it.each([
-    ['a weekly card, as its chip', weekly, 'compact'],
-    ['a full weekly card, in its line', { ...weekly, registrationsFull: true }, 'compact'],
-    ['a one-off card, in its line', oneOff, 'compact'],
-    ['a weekly class page, in its line', weekly, 'default'],
-    ['a one-off class page, in its line', oneOff, 'default'],
-  ] as const)('on %s', (_, event, variant) => {
+    ['a weekly card, as its chip', weekly, 'card'],
+    ['a full weekly card, in its line', { ...weekly, registrationsFull: true }, 'card'],
+    ['a one-off card, in its line', oneOff, 'card'],
+    ['a weekly class page, in its line', weekly, 'page'],
+    ['a one-off class page, in its line', oneOff, 'page'],
+  ] as const)('on %s', (_, event, surface) => {
     Settings.now = () => Date.parse('2026-07-15T11:00:00Z')
 
     const html = renderToStaticMarkup(
       <>
-        <EventFacts event={event} variant={variant} />
-        <EventChips event={event} variant={variant} />
+        <EventFacts event={event} surface={surface} />
+        <EventChips event={event} surface={surface} />
       </>,
     )
 
@@ -131,8 +131,8 @@ describe('EventFacts — the address', () => {
     )
   })
 
-  it.each(NOT_PANEL)('keeps %s to plain street and town', (_, variant) => {
-    const html = renderToStaticMarkup(<EventFacts event={mockEvent} variant={variant} />)
+  it.each(NOT_PANEL)('keeps %s to plain street and town', (_, surface) => {
+    const html = renderToStaticMarkup(<EventFacts event={mockEvent} surface={surface} />)
 
     expect(html).toContain('5 Market St, Cambridge')
     expect(html).not.toContain('CB2 3QJ')
