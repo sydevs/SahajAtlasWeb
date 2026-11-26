@@ -503,3 +503,15 @@ export const streetAndCity = (street?: string | null, city?: string | null): str
 
   return last.localeCompare(c, undefined, { sensitivity: 'base' }) === 0 ? s : `${s}, ${c}`
 }
+
+/**
+ * The address line with its postcode after the town: "120 Heath St, London NW3 1DR". Hosts sometimes
+ * type the postcode into the street or town already, so it is added only when the line lacks it,
+ * compared without case, accents, spaces or punctuation ("NW31DR" and "NW3-1DR" are "NW3 1DR").
+ */
+export const withPostCode = (line: string, postCode?: string | null): string => {
+  const code = postCode?.trim()
+  const squash = (text: string) => fold(text).replace(/[^\p{L}\p{N}]/gu, '')
+
+  return line && code && !squash(line).includes(squash(code)) ? `${line} ${code}` : line
+}

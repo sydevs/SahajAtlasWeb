@@ -20,6 +20,10 @@ vi.mock('@/hooks/use-locale', () => ({
 const ROOM = 'Community Hall B'
 const withRoom = { ...mockEvent, address: { ...mockEvent.address, room: ROOM } }
 const roomLine = `event.display.room:${ROOM}`
+const NOT_PANEL = [
+  ['the list card', 'compact'],
+  ['the share and registration summaries', 'card'],
+] as const
 
 describe('EventFacts — the room line (#316)', () => {
   it('shows the room on the panel, on its own line above the street', () => {
@@ -35,17 +39,13 @@ describe('EventFacts — the room line (#316)', () => {
     const stacked = renderToStaticMarkup(<EventFacts event={withRoom} />)
     const single = renderToStaticMarkup(<EventFacts event={mockEvent} />)
     // The location fact is the last item, so its alignment is the last one rendered.
-    const pinItem = (html: string) =>
-      [...html.matchAll(/class="flex gap-3 (items-(?:start|center))"/g)].at(-1)?.[1]
+    const pinItem = (html: string) => [...html.matchAll(/items-(start|center)/g)].at(-1)?.[0]
 
     expect(pinItem(stacked)).toBe('items-start')
     expect(pinItem(single)).toBe('items-center')
   })
 
-  it.each([
-    ['the list card', 'compact'],
-    ['the share and registration summaries', 'card'],
-  ] as const)('leaves %s without it', (_, variant) => {
+  it.each(NOT_PANEL)('leaves %s without it', (_, variant) => {
     const html = renderToStaticMarkup(<EventFacts event={withRoom} variant={variant} />)
 
     expect(html).not.toContain('event.display.room')
@@ -75,12 +75,11 @@ describe('EventFacts — the address', () => {
 
     expect(html).toContain(`aria-label="event.a11y.copy_address: ${full}"`)
     expect(html).toContain(`<span>${full}</span>`)
+    // A tap with a little movement would otherwise start a sheet drag and lose the click.
+    expect(html).toMatch(/<button data-vaul-no-drag="true"[^>]*aria-label="event\.a11y\.copy_address/)
   })
 
-  it.each([
-    ['the list card', 'compact'],
-    ['the share and registration summaries', 'card'],
-  ] as const)('keeps %s to plain street and town', (_, variant) => {
+  it.each(NOT_PANEL)('keeps %s to plain street and town', (_, variant) => {
     const html = renderToStaticMarkup(<EventFacts event={mockEvent} variant={variant} />)
 
     expect(html).toContain('5 Market St, Cambridge')

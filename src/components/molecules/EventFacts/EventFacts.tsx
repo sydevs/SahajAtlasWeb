@@ -12,7 +12,6 @@ import {
   type DisplayableEvent,
 } from '@/hooks/use-event-display'
 import { useCopy } from '@/hooks/use-copy'
-import { hasApproximatePlace } from '@/lib/shape/event'
 
 // The when/where fact list. `default` is the panel treatment: brand-tinted
 // icons, roomy spacing. `compact` is the list-card treatment: a size under
@@ -159,18 +158,11 @@ export function EventFacts({
   ]
 
   if (whereLine && display.status !== 'ended') {
-    // The room is directions, so only the panel carries it. The list card and the
-    // share/registration summaries are triage and recap (#316).
+    // The room and the copyable address are for finding the place, so only the panel carries
+    // them. The list card and the share/registration summaries are triage and recap (#316).
     const panel = variant === 'default'
     const room = panel ? roomLine : null
-    // The class page is where people find the place, so only it adds the postcode, and lets a
-    // tap copy the address to paste into a maps app. A town alone is not worth copying.
-    const where =
-      panel && !display.online && !hasApproximatePlace(event) ? (
-        <CopyAddress value={whereLineFull} />
-      ) : (
-        whereLine
-      )
+    const where = panel && whereLineFull ? <CopyAddress value={whereLineFull} /> : whereLine
 
     items.push({
       icon: display.online ? Monitor : MapPin,
@@ -227,16 +219,15 @@ export function EventFacts({
   )
 }
 
-/**
- * The class page's street address, which copies itself when tapped. For two seconds the line
- * reads "Copied" in its place, and a screen reader hears it. Where the clipboard is missing or
- * refused, the address is selected instead, ready to copy by hand.
- */
+/** The class page's street address, which copies itself when tapped, to paste into a maps app. */
 function CopyAddress({ value }: { value: string }) {
   const { t } = useTranslation()
   const { copied, copy } = useCopy(2000)
   const text = useRef<HTMLSpanElement>(null)
 
+  const status = copied ? t('common.chrome.copied') : ''
+
+  // A refused copy selects the address instead, ready to copy by hand.
   const onClick = async () => {
     if (!(await copy(value)) && text.current) window.getSelection()?.selectAllChildren(text.current)
   }
@@ -244,27 +235,27 @@ function CopyAddress({ value }: { value: string }) {
   return (
     <>
       <button
-        // The address is the visible text, so the name carries it too (WCAG 2.5.3).
+        data-vaul-no-drag
         aria-label={`${t('event.a11y.copy_address')}: ${value}`}
         className="touch-target relative rounded-lg text-start outline-none select-text focus-visible:ring-2 focus-visible:ring-focus"
         type="button"
         onClick={() => void onClick()}
       >
-        {copied ? (
-          <span className="text-primary-11">
+        {/* The address stays laid out under "Copied", so a wrapped line keeps its height. Inline,
+            so the icon follows its last word. */}
+        <span className={copied ? 'invisible' : undefined}>
+          <span ref={text}>{value}</span>
+          <Copy aria-hidden className="ms-1.5 inline align-[-2px] text-gray-11" size={14} />
+        </span>
+        {copied && (
+          <span className="absolute inset-0 text-primary-11">
             <Check aria-hidden className="me-1.5 inline align-[-3px]" size={16} />
-            {t('common.chrome.copied')}
+            {status}
           </span>
-        ) : (
-          // Inline, so on a wrapped address the icon follows the last word.
-          <>
-            <span ref={text}>{value}</span>
-            <Copy aria-hidden className="ms-1.5 inline align-[-2px] text-gray-11" size={14} />
-          </>
         )}
       </button>
       <span aria-live="polite" className="sr-only">
-        {copied ? t('common.chrome.copied') : ''}
+        {status}
       </span>
     </>
   )

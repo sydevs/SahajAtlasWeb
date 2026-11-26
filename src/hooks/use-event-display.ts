@@ -12,6 +12,7 @@ import {
   resolveEventDisplay,
   scheduleNamesZone,
   streetAndCity,
+  withPostCode,
 } from '@/lib/shape'
 import { formatTimeRange, sameWallClock, zoneCity } from '@/lib/time'
 
@@ -46,10 +47,9 @@ export type EventDisplayStrings = {
   eventStartTime: string | null
   /** This is a one-line location: hosted-from for an online event, street and city for a physical one. */
   whereLine: string
-  /** `whereLine` with the postcode after the town, for the class page, where people find the
-   *  place: "120 Heath St, London NW3 1DR". It equals `whereLine` for an online event, a listing
-   *  that hides its street, and an address that already contains its postcode. */
-  whereLineFull: string
+  /** `whereLine` with the postcode, for the class page: "120 Heath St, London NW3 1DR". Null when
+   *  no street shows: an online event, or a listing that hides it. */
+  whereLineFull: string | null
   /** The room inside the venue, such as "Room: Hall B", for a physical, non-inactive event that names one. */
   roomLine: string | null
   /** For an online event only, the HOST's clock, faded below the where line, such as
@@ -274,23 +274,11 @@ export function useEventDisplay(event: DisplayableEvent): EventDisplayStrings {
       : townOnly
         ? event.address?.city || event.region?.name || ''
         : streetAndCity(event.address?.street, event.address?.city) || event.region?.name || ''
-    // A postcode is how people check they have the right part of town (a Hampstead postcode was
-    // taken for Watford). It is a near-exact place, so a listing that hides its street hides it
-    // too. Hosts sometimes type it into the street or city already, so it is added only when the
-    // line does not contain it, compared without case or spaces ("NW31DR" is "NW3 1DR").
-    const postCode = event.address?.postCode?.trim()
-    const squash = (text: string) => text.replace(/\s+/g, '').toLowerCase()
-    const whereLineFull =
-      !display.online &&
-      !townOnly &&
-      postCode &&
-      whereLine &&
-      !squash(whereLine).includes(squash(postCode))
-        ? `${whereLine} ${postCode}`
-        : whereLine
-    // A listing that hides the street hides its room too, as the same wrong answer.
+    // A listing that hides the street hides its postcode and room too: each is a near-exact place.
+    const showsStreet = !display.online && !townOnly
+    const whereLineFull = showsStreet ? withPostCode(whereLine, event.address?.postCode) : null
     const room = event.address?.room?.trim()
-    const roomLine = !display.online && !townOnly && room ? t('event.display.room', { room }) : null
+    const roomLine = showsStreet && room ? t('event.display.room', { room }) : null
     // For an online event only, the host's own clock, faded under the where line, such as
     // "Wed 7:30 PM Prague time" — named like the viewer's time above it, so the two clocks read
     // the same way. The weekday shows ONLY when the host's day differs from the viewer's.

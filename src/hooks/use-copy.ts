@@ -1,20 +1,16 @@
 import { useCallback, useEffect, useState } from 'react'
 
 /**
- * Copies text to the clipboard and remembers, for `ms`, that it did, so the caller can say so.
- * `copy` resolves `false` when there is no clipboard or the page refused it (a host can block
- * `clipboard-write`, `docs/embedding.md`), so the caller can offer the text to copy by hand.
- * It never throws.
+ * Copies to the clipboard and holds `copied` true for `ms`. `copy` resolves `false`, and never
+ * throws, when there is no clipboard or the host refused `clipboard-write` (`docs/embedding.md`).
  */
 export function useCopy(ms: number) {
   // A count, not a flag, so a second copy inside the window restarts the timer.
   const [copies, setCopies] = useState(0)
-  const [copied, setCopied] = useState(false)
 
   useEffect(() => {
     if (!copies) return
-    setCopied(true)
-    const timer = window.setTimeout(() => setCopied(false), ms)
+    const timer = window.setTimeout(() => setCopies(0), ms)
 
     return () => window.clearTimeout(timer)
   }, [copies, ms])
@@ -31,5 +27,5 @@ export function useCopy(ms: number) {
     }
   }, [])
 
-  return { copied, copy }
+  return { copied: copies > 0, copy }
 }

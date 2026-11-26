@@ -29,6 +29,7 @@ export function CopyField({ value }: { value: string }) {
   return (
     <div className="flex flex-col gap-1">
       <button
+        data-vaul-no-drag
         // The URL is the button's visible text, so the name carries it too: a name that
         // omitted it would leave a speech-input viewer with nothing to say (WCAG 2.5.3).
         aria-label={`${t('share.a11y.copy_link')}: ${value}`}
