@@ -105,7 +105,7 @@ export const TAP_EXCEPTIONS = [
   {
     selector: '[data-radix-focus-guard]',
     reason:
-      'Radix\'s own focus sentinels. They are deliberately empty and focusable, one either side of a trap.',
+      "Radix's own focus sentinels. They are deliberately empty and focusable, one either side of a trap.",
   },
 ]
 
@@ -258,7 +258,7 @@ export function formatUnmeasured(unmeasured) {
  *
  * @param {{ disabledRules: string[], minTap: number, selectors: string[], step: number }} options
  */
- 
+
 async function pageAudit({ disabledRules, minTap, selectors, step }) {
   const root = document.body
   const rules = {}
@@ -328,7 +328,13 @@ async function pageAudit({ disabledRules, minTap, selectors, step }) {
   // nothing failing.
   const shared = /** @type {any} */ (window)
 
-  shared.__a11y = { describe, paint, visible, tabbable }
+  // `stops` is also the tripwire's recount, so the two counts cannot be taken two ways.
+  const stops = () =>
+    [...root.querySelectorAll(`${INTERACTIVE},[tabindex]`)]
+      .map((node) => /** @type {any} */ (node))
+      .filter(tabbable)
+
+  shared.__a11y = { describe, paint, visible, tabbable, stops }
 
   // ⚠ The window reaches a whole tap area either side, not half of one. The centre it walks out
   // from is the CONTROL's, and what it measures is the `touch-target` `::after` around it, so the
@@ -447,16 +453,30 @@ async function pageAudit({ disabledRules, minTap, selectors, step }) {
     })),
     probed,
     resting: Object.fromEntries(resting),
-    stops: [...root.querySelectorAll(`${INTERACTIVE},[tabindex]`)]
-      .map((node) => /** @type {any} */ (node))
-      .filter(tabbable).length,
+    stops: stops().length,
   }
 }
- 
 
 /** How long the DOM must sit still before a story counts as rendered, and the cap on waiting. */
 const QUIET_MS = 250
 const SETTLE_CAP_MS = 4000
+
+/**
+ * The widget's own loading placeholder: `LOADING_ATTR` in `src/components/organisms/Skeleton`,
+ * duplicated because a script cannot import a `.tsx`, and pinned to it by the spec.
+ */
+export const LOADING_SELECTOR = '[data-sy-loading]'
+
+/**
+ * Stories whose subject IS a loading placeholder, so the wait does not hold out for it to go.
+ * Every other story still showing one at the cap is reported as unsettled.
+ */
+export const PLACEHOLDER_STORIES = [
+  {
+    story: 'organisms--skeleton',
+    reason: 'The placeholder catalogue itself. Its skeletons never resolve, by design.',
+  },
+]
 
 /**
  * Waits until the story has stopped changing.
@@ -476,31 +496,81 @@ const SETTLE_CAP_MS = 4000
  * violation either way — green having read nothing. The cap still bounds a story that never
  * mutates.
  *
+ * ⚠ **Nor may it close while a loading placeholder is on the page** (#515). A view whose body is
+ * a lazy chunk draws its skeleton first and its content when the chunk arrives, and the gap
+ * between them outlasted the quiet window: `views--event-·-sticky-register` draws 2 controls at
+ * ~300ms and 12 at ~600ms (measured 2026-11-26), so the audit read 2 stops on one run and 12 on
+ * the next. A longer window only moves that race onto a slower machine.
+ *
  * @param {import('playwright').Page} page
+ * @param {{ requireChange: boolean, waitForLoading: boolean }} options
+ * @returns {Promise<{ loading: number }>} Placeholders still on the page when the wait ended.
  */
-async function settled(page) {
-  await page.evaluate(
-    ([quiet, cap]) =>
+async function settled(page, { requireChange, waitForLoading }) {
+  return page.evaluate(
+    ([quiet, cap, selector, change, loadingBlocks]) =>
       new Promise((done) => {
         let timer
+        const loading = () => document.querySelectorAll(selector).length
+        // A quiet page still holding a placeholder keeps waiting: the mutation that swaps it for
+        // the content restarts the window.
+        const quietly = () => {
+          if (!loadingBlocks || loading() === 0) finish()
+        }
         const observer = new MutationObserver(() => {
           clearTimeout(timer)
-          timer = setTimeout(finish, quiet)
+          timer = setTimeout(quietly, quiet)
         })
 
         function finish() {
           observer.disconnect()
           clearTimeout(timer)
           clearTimeout(ceiling)
-          document.fonts.ready.then(() => requestAnimationFrame(() => done(undefined)))
+          document.fonts.ready.then(() => requestAnimationFrame(() => done({ loading: loading() })))
         }
 
         const ceiling = setTimeout(finish, cap)
 
         observer.observe(document.body, { childList: true, subtree: true, attributes: true })
+        if (!change) timer = setTimeout(quietly, quiet)
       }),
-    [QUIET_MS, SETTLE_CAP_MS],
+    /** @type {const} */ ([
+      QUIET_MS,
+      SETTLE_CAP_MS,
+      LOADING_SELECTOR,
+      requireChange,
+      waitForLoading,
+    ]),
   )
+}
+
+/**
+ * Whether the page the audit read is still the page on screen, asked after settling a second
+ * time: the stops Tab can reach now against the count the audit took, and any control the audit
+ * never stamped. A difference is a story audited before it finished rendering (#515), which
+ * would otherwise pass or fail on a partial read with nothing saying so.
+ *
+ * @param {{ stops: number }} audit
+ * @param {{ stops: number, unstamped: number, loading: number }} now
+ * @param {boolean} placeholderStory
+ * @returns {string | null} The finding's detail, or `null` when the read was whole.
+ */
+export function unsettledDetail(audit, now, placeholderStory) {
+  const problems = []
+
+  if (now.loading > 0 && !placeholderStory) {
+    problems.push(
+      `${now.loading} loading placeholder(s) still on the page after ${SETTLE_CAP_MS}ms`,
+    )
+  }
+  if (now.stops !== audit.stops) {
+    problems.push(`${audit.stops} tab stop(s) at the audit, ${now.stops} after settling again`)
+  }
+  if (now.unstamped > 0) problems.push(`${now.unstamped} control(s) rendered after the audit`)
+
+  return problems.length === 0
+    ? null
+    : `audited before it finished rendering — ${problems.join('; ')}. No other verdict is reported for it.`
 }
 
 /**
@@ -519,7 +589,6 @@ async function keyboardWalk(page, count, resting, selectors) {
   for (let i = 0; i < count; i += 1) {
     await page.keyboard.press('Tab')
 
-     
     const stop = await page.evaluate((exceptions) => {
       const el = /** @type {any} */ (document.activeElement)
 
@@ -538,14 +607,17 @@ async function keyboardWalk(page, count, resting, selectors) {
         painted: paint(el),
       }
     }, selectors)
-     
 
     if (!stop) break
     if (stop.skip) continue
     // Back on the first stop: Tab wrapped round, so the walk is complete. `count` is the
     // tabbable elements, and a roving-tabindex group (the weekday picker) is one Tab stop holding
     // several, so the walk can outlast the page and wrap without passing the body.
-    if (stops.length > 0 && stop.order === stops[0].order && stops[stops.length - 1].order !== stop.order) {
+    if (
+      stops.length > 0 &&
+      stop.order === stops[0].order &&
+      stops[stops.length - 1].order !== stop.order
+    ) {
       break
     }
 
@@ -555,8 +627,7 @@ async function keyboardWalk(page, count, resting, selectors) {
       // opened on focus. It has no resting style to compare against, so the indicator check
       // abstains rather than guessing.
       indicated:
-        resting[String(stop.order)] === undefined ||
-        stop.painted !== resting[String(stop.order)],
+        resting[String(stop.order)] === undefined || stop.painted !== resting[String(stop.order)],
     })
   }
 
@@ -614,7 +685,9 @@ export async function run({ only, origin } = {}) {
         waitUntil: 'load',
         timeout: 30_000,
       })
-      await settled(page)
+      const placeholderStory = PLACEHOLDER_STORIES.some(({ story }) => story === id)
+
+      await settled(page, { requireChange: true, waitForLoading: !placeholderStory })
       // ⚠ By URL, never `content`. axe-core is 650 KB, and inlining it would push that
       // through the debugging protocol and recompile it once per story — 34 MB and 52
       // compiles across this run. A URL is fetched from the server above, cached, and
@@ -627,6 +700,25 @@ export async function run({ only, origin } = {}) {
         selectors,
         step: PROBE_STEP_PX,
       })
+
+      const { loading } = await settled(page, {
+        requireChange: false,
+        waitForLoading: !placeholderStory,
+      })
+      const now = await page.evaluate(() => {
+        const found = /** @type {any} */ (window).__a11y.stops()
+
+        return {
+          stops: found.length,
+          unstamped: found.filter((el) => !el.hasAttribute('data-a11y-order')).length,
+        }
+      })
+      const unsettled = unsettledDetail(result, { ...now, loading }, placeholderStory)
+
+      if (unsettled) {
+        failures.push({ story: id, kind: 'unsettled', detail: unsettled })
+        continue
+      }
 
       controls += result.probed.length
 
@@ -761,6 +853,8 @@ async function main() {
   )
   report([
     `## Accessibility gate — ${failures.length} findings`,
+    '',
+    `${stories} stories, ${controls} controls measured.`,
     '',
     ...formatFailures(failures),
     ...aside,

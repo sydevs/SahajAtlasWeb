@@ -571,7 +571,7 @@ browser 131** — and the browser's 80 contrast failures and 24 label-in-name fa
 among the 31, which is the whole argument. (The browser figure is from the 49 stories that
 rendered; three forms timed out in that first pass.)
 
-Five things about it are deliberate:
+Six things about it are deliberate:
 
 - **The quiet period it waits for cannot close until the story has changed the page once.** `load`
   fires before React mounts, so a run that looked in that gap found the page quiet because nothing
@@ -580,6 +580,17 @@ Five things about it are deliberate:
   either way — a green required check that had read nothing. With the first mutation required,
   three runs measured 645, 655 and 655 controls, clean, in about 43s (2026-11-22, 4 cores).
   ⚠ A story that mutates nothing is still released by the 4s cap, so the wait cannot hang the gate.
+- **Nor can it close while a loading placeholder (`data-sy-loading`) is on the page, and a
+  second settle checks the read was whole** (#515). A view whose body is a lazy chunk draws its
+  skeleton first: `views--event-·-sticky-register` drew 2 controls at ~300ms and 12 at ~600ms,
+  so a 250ms window closed in the gap on one run and not the next — 2 tab stops, then 12, on one
+  build (#509). After the audit the gate settles again and recounts the tab stops; a changed
+  count, a control the audit never stamped, or a placeholder still up at the cap fails the story
+  as **`unsettled`**, with no other verdict, rather than passing or failing it on a partial
+  read. `PLACEHOLDER_STORIES` lists the one story whose skeletons are the subject. Measured
+  2026-11-26 on 11 cores: five full runs measured 689 controls each, in about 58s, up from 41s —
+  the second settle's window, once per story. With the window cut to 50ms the fix still read 12
+  stops; with the placeholder wait off as well, the tripwire reported the 2-against-12 read.
 - **It reads a BUILD, never `ladle serve`.** The dev server compiles a story when it is opened,
   so a story that failed to build would pass by never having been built. `--origin
 http://localhost:61000` points it at the dev server anyway, for the local fix loop only.

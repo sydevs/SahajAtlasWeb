@@ -1,12 +1,17 @@
 import { describe, expect, it } from 'vitest'
 
+import { LOADING_ATTR } from '../src/components/organisms/Skeleton/Skeleton'
+
 import {
+  LOADING_SELECTOR,
   MIN_TAP_PX,
+  PLACEHOLDER_STORIES,
   PROBE_STEP_PX,
   TAP_EXCEPTIONS,
   formatFailures,
   formatUnmeasured,
   spanFrom,
+  unsettledDetail,
 } from './check-a11y.mjs'
 
 // `spanFrom` is the arithmetic behind every tap-target verdict the gate prints, and it is the
@@ -111,5 +116,50 @@ describe('TAP_EXCEPTIONS', () => {
       '.mapboxgl-ctrl-attrib',
       '[data-radix-focus-guard]',
     ])
+  })
+})
+
+describe('LOADING_SELECTOR', () => {
+  // The wait holds out for this marker, so a rename on the component's side would turn the wait
+  // back into a quiet window alone, with nothing failing.
+  it('names the attribute the widget marks its loading placeholder with', () => {
+    expect(LOADING_SELECTOR).toBe(`[${LOADING_ATTR}]`)
+  })
+})
+
+describe('PLACEHOLDER_STORIES', () => {
+  // Each entry is a story the wait no longer holds out for, so each says why.
+  it('is a closed list, and gives every story a reason', () => {
+    expect(PLACEHOLDER_STORIES.map(({ story }) => story)).toEqual(['organisms--skeleton'])
+    for (const entry of PLACEHOLDER_STORIES) expect(entry.reason.length).toBeGreaterThan(20)
+  })
+})
+
+describe('unsettledDetail', () => {
+  const whole = { stops: 12, unstamped: 0, loading: 0 }
+
+  it('passes a page that read the same twice', () => {
+    expect(unsettledDetail({ stops: 12 }, whole, false)).toBeNull()
+  })
+
+  // The #515 shape: the skeleton's 2 stops audited, the content's 12 on screen by the recount.
+  it('reports a page that grew after the audit, naming both counts', () => {
+    const detail = unsettledDetail({ stops: 2 }, { ...whole, unstamped: 10 }, false)
+
+    expect(detail).toContain('2 tab stop(s) at the audit, 12 after settling again')
+    expect(detail).toContain('10 control(s) rendered after the audit')
+  })
+
+  it('reports a control the audit never stamped even when the count matches', () => {
+    expect(unsettledDetail({ stops: 12 }, { ...whole, unstamped: 1 }, false)).toContain(
+      '1 control(s) rendered after the audit',
+    )
+  })
+
+  it('reports a placeholder still up at the cap, except in a story that is one', () => {
+    expect(unsettledDetail({ stops: 12 }, { ...whole, loading: 1 }, false)).toContain(
+      'loading placeholder',
+    )
+    expect(unsettledDetail({ stops: 12 }, { ...whole, loading: 5 }, true)).toBeNull()
   })
 })
