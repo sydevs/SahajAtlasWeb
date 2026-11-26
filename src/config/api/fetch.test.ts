@@ -564,12 +564,17 @@ describe('getRegion (region-tree derivation)', () => {
     ])
     expect(countriesQuery(DEFAULT_FILTERS).queryKey).toEqual(['countries'])
 
-    const online: EventFilters = { ...DEFAULT_FILTERS, format: 'online' }
+    const filtered: EventFilters[] = [
+      { ...DEFAULT_FILTERS, format: 'online' },
+      { ...DEFAULT_FILTERS, region: 'antwerpen' },
+    ]
 
-    expect(regionQuery('belgium', 'en', online).queryKey).not.toEqual(
-      regionQuery('belgium', 'en').queryKey,
-    )
-    expect(countriesQuery(online).queryKey).not.toEqual(countriesQuery().queryKey)
+    for (const filters of filtered) {
+      expect(regionQuery('belgium', 'en', filters).queryKey).not.toEqual(
+        regionQuery('belgium', 'en').queryKey,
+      )
+      expect(countriesQuery(filters).queryKey).not.toEqual(countriesQuery().queryKey)
+    }
   })
 
   // The home list's "Online Classes" badge. It counted the feed in the view, where a region cut
