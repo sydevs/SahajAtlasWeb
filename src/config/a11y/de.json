@@ -18,7 +18,7 @@
     "remove": "%{label} entfernen"
   },
   "search": {
-    "results_showing": "%{shown} von %{total} Veranstaltungen werden angezeigt",
+    "results_showing": "%{shown} von %{total} Kursen werden angezeigt",
     "dismiss_nearby_prompt": "Schließen"
   },
   "share": {

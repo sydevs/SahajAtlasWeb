@@ -18,7 +18,7 @@
     "remove": "حذف %{label}"
   },
   "search": {
-    "results_showing": "نمایش %{shown} از %{total} رویداد",
+    "results_showing": "نمایش %{shown} از %{total} کلاس",
     "dismiss_nearby_prompt": "رد کردن"
   },
   "share": {

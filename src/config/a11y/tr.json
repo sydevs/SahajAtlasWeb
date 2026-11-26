@@ -18,7 +18,7 @@
     "remove": "Kaldır: %{label}"
   },
   "search": {
-    "results_showing": "%{total} etkinliğin %{shown} tanesi gösteriliyor",
+    "results_showing": "%{total} dersin %{shown} tanesi gösteriliyor",
     "dismiss_nearby_prompt": "Yoksay"
   },
   "share": {

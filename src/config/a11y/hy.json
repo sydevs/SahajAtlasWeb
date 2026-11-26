@@ -18,7 +18,7 @@
     "remove": "Հեռացնել՝ %{label}"
   },
   "search": {
-    "results_showing": "Ցուցադրված՝ %{shown}, ընդամենը՝ %{total} միջոցառում",
+    "results_showing": "Ցուցադրված՝ %{shown}, ընդամենը՝ %{total} դաս",
     "dismiss_nearby_prompt": "Անտեսել"
   },
   "share": {
