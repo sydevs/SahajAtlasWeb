@@ -290,6 +290,9 @@ export type EventDisplay = {
   online: boolean
   kind: EventKind
   status: EventStatus
+  /** The listing names no timetable at all — the `inactive` flag, or no schedule. A class whose
+   *  dates ran out reads `status: 'inactive'` too, and keeps its type. */
+  dormant: boolean
   /** At capacity: the CMS's denormalized `registrationsFull` (SahajCloud#601).
    *  A missing flag reads as not-full, so an un-recomputed row degrades to the
    *  open state, instead of hiding a joinable event. */
@@ -332,7 +335,7 @@ const occurrenceEnd = (start: DateTime, endTime: string | null | undefined): Dat
   withEndTime(start, endTime) ?? start.endOf('day')
 
 const terminalDisplay = (
-  base: Pick<EventDisplay, 'online' | 'kind' | 'full'>,
+  base: Pick<EventDisplay, 'online' | 'kind' | 'full' | 'dormant'>,
   status: 'ended' | 'inactive',
   hasContact: boolean,
   hasWebsite: boolean,
@@ -381,6 +384,9 @@ export function resolveEventDisplay(
 
   const recurrence = schedule?.recurrenceType ?? null
   const kind = eventKind(schedule)
+  // A flagged listing arrives with an all-null schedule group, which derives `oneoff`, so the flag
+  // itself has to be read. Surfaces read this back off the display rather than the raw event.
+  const dormant = event.inactive === true || !schedule
   // Capacity is a server-owned boolean (SahajCloud#601). The widget never counts
   // registrations. This is coalesced so an absent flag degrades to not-full.
   const atCapacity = event.registrationsFull ?? false
@@ -391,9 +397,9 @@ export function resolveEventDisplay(
   // registration is blocked. That is what lets every surface reading it first
   // (`statusChip`, `blockedMessage`, the Full chip) stay correct without its own
   // precedence.
-  const base = { online, kind, full: false }
+  const base = { online, kind, full: false, dormant }
 
-  if (event.inactive || !schedule) return terminalDisplay(base, 'inactive', hasContact, hasWebsite)
+  if (dormant) return terminalDisplay(base, 'inactive', hasContact, hasWebsite)
 
   const endTime = schedule.endTime
   const firstStart = scheduleStart(schedule)

@@ -403,6 +403,23 @@ describe('resolveEventDisplay: edge cases', () => {
     expect(resolveEventDisplay(noSchedule, at('2026-07-15T10:00:00')).status).toBe('inactive')
   })
 
+  // A flagged listing and a class whose dates ran out share one status, and only the first has no
+  // type to name. `useEventDisplay` keys its type label on `dormant` for that reason.
+  it('dormant separates the flagged listing from the class whose dates ran out', () => {
+    const now = at('2026-08-01T10:00:00')
+    const dateless = {
+      eventType: 'offline' as const,
+      schedule: { ...weeklySchedule, upcomingDates: [] },
+    }
+    const flagged = { eventType: 'offline' as const, inactive: true, schedule: weeklySchedule }
+
+    expect(resolveEventDisplay(dateless, now).status).toBe('inactive')
+    expect(resolveEventDisplay(dateless, now).dormant).toBe(false)
+    expect(resolveEventDisplay(flagged, now).dormant).toBe(true)
+    expect(resolveEventDisplay(noSchedule, now).dormant).toBe(true)
+    expect(resolveEventDisplay(weeklyClass, at('2026-07-15T10:00:00')).dormant).toBe(false)
+  })
+
   it('an empty upcoming list falls back to a future firstDate', () => {
     const fresh = {
       eventType: 'offline' as const,

@@ -141,10 +141,9 @@ export function useEventDisplay(event: DisplayableEvent): EventDisplayStrings {
     // ── Type label (derived, never host-set) ──
     let typeLabel: string | null
 
-    // "Contact host for timings" already says what a flagged listing is. Its schedule cannot
-    // decide: SahajCloud sends an all-null group, which derives `oneoff`. Nor can the `inactive`
-    // status, which also covers an unflagged class with no session left, and that keeps its type.
-    if (event.inactive || !schedule) typeLabel = null
+    // "Contact host for timings" already says what a dormant listing is. The `inactive` STATUS
+    // cannot decide: it also covers an unflagged class with no session left, which keeps its type.
+    if (display.dormant) typeLabel = null
     else if (kind === 'oneoff') typeLabel = t('event.display.type_oneoff')
     else if (kind === 'course')
       typeLabel = sessionsLabel
