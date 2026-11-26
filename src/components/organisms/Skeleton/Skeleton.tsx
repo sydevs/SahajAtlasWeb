@@ -28,6 +28,14 @@ export const LOADING_ATTR = 'data-sy-loading'
 /** Spread onto the element that wraps a placeholder. */
 export const LOADING = { [LOADING_ATTR]: '' }
 
+/**
+ * Clips the scroll container a loading panel's body sits in. Nothing inside is focusable, so a
+ * scrollable body is one no keyboard can scroll (axe `scrollable-region-focusable`), and its
+ * placeholders are nothing to scroll to. `clip` rather than `hidden`, which is still a scroll
+ * container (#326).
+ */
+export const LOADING_BODY_CLIP = 'overflow-y-clip'
+
 // ── The primitives ──────────────────────────────────────────────────────────────────────────
 
 /**
@@ -292,7 +300,7 @@ export function Skeleton({ shape, cta, direction = 'left' }: SkeletonProps) {
           <SkeletonField />
         </div>
       )}
-      <div className={panel.body()} data-band="body">
+      <div className={panel.body({ className: LOADING_BODY_CLIP })} data-band="body">
         {shape && <SkeletonBody body={shape.body} cta={cta} />}
       </div>
     </>

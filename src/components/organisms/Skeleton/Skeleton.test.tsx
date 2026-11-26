@@ -74,6 +74,16 @@ describe('BootFallback', () => {
     expect(city).toContain('py-4')
   })
 
+  it('clips its placeholder body, in place of the body slot’s own scrolling', () => {
+    // The drawer's body slot, by the footer spacer only it carries.
+    const body = boot('/gb/south-east/london').match(
+      /class="([^"]*after:h-\[var\(--sy-footer-h[^"]*)"/,
+    )?.[1]
+
+    expect(body).toContain('overflow-y-clip')
+    expect(body).not.toContain('overflow-y-auto')
+  })
+
   it('draws a route with no shape as an empty titled panel', () => {
     const calendar = boot('/calendar')
 

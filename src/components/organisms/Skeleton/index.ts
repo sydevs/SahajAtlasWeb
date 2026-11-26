@@ -1,6 +1,7 @@
 export {
   LOADING,
   LOADING_ATTR,
+  LOADING_BODY_CLIP,
   Skeleton,
   SkeletonBlock,
   SkeletonBody,

@@ -19,6 +19,7 @@ import { useMapController } from '@/hooks/use-map-controller'
 import { classifyError, errorMessage } from '@/lib/report'
 import { baseStackEntry, isoCountryCode, nearestKnownRegion, resolveStack } from '@/lib/shape'
 import {
+  LOADING_BODY_CLIP,
   SkeletonBody,
   SkeletonField,
   skeletonShape,
@@ -268,7 +269,7 @@ export function DrawerLoading() {
     <>
       <DrawerChrome loading />
       {shape ? (
-        <DrawerBody>
+        <DrawerBody className={LOADING_BODY_CLIP}>
           {/* The phone sheet pins Register to its foot once the class arrives. */}
           <SkeletonBody body={shape.body} cta={!hasMap || isWide} />
         </DrawerBody>
