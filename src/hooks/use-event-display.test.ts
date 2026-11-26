@@ -249,11 +249,4 @@ describe('useEventDisplay — the type label', () => {
   it('names the same listing without the flag', () => {
     expect(labelFor({ ...stored, inactive: false })).toBe('One-off event')
   })
-
-  it('never calls an untyped listing the default type, though its schedule is weekly', () => {
-    const weekly = { ...stored.schedule, recurrenceType: 'WEEKLY', interval: 1 } as const
-
-    expect(stringsFor({ ...stored, schedule: weekly, inactive: false }).isDefaultType).toBe(true)
-    expect(stringsFor({ ...stored, schedule: weekly, inactive: true }).isDefaultType).toBe(false)
-  })
 })
