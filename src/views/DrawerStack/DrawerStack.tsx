@@ -56,8 +56,10 @@ import { wakesSheetLoop } from '@/views/DrawerStack/sheet-wake'
 import { ViewLayer } from '@/views/DrawerStack/ViewLayer'
 import {
   FIT_SNAP,
+  heldFoldPx,
   OPEN_SNAP,
   PEEK_SNAP,
+  resolveStop,
   sheetCoverPx,
   sheetLadder,
 } from '@/views/DrawerStack/sheet-ladder'
@@ -267,33 +269,18 @@ export function DrawerStack() {
   // third-height snap the sticky Register bar covered the address, and on a small phone it
   // sliced the "Next session" line in half. It never opens lower than that snap: the loading
   // skeleton is short, and a sheet that dipped under it would only climb again once the class
-  // arrived. One drag down still stops there, with the map and the class's pin above.
+  // arrived. One drag down stops at its key facts (`sheetLadder`), with the class's pin above.
   // Share opens the same way, so its last row (the poster QR code) is in view without a drag.
-  const fitsContent = top?.kind === 'event' || top?.kind === 'share'
   const classView = top?.kind === 'event'
+  const fitsContent = classView || top?.kind === 'share'
+  // Keys the open stop per class, so class B tapped after class A opens at B's own fit.
+  const openedClass = classView ? location.pathname : null
   const { fit, fold: measuredFold } = useFitSnap(canCollapse && fitsContent, location.pathname)
-  // A sheet the visitor dragged to the key-facts stop holds it as a literal px stop. That stop
-  // stays on the ladder however the fold remeasures (the footer, a font), so it never moves.
-  const heldFold =
-    classView &&
-    typeof snap === 'string' &&
-    snap.endsWith('px') &&
-    snap !== PEEK_SNAP &&
-    snap !== OPEN_SNAP
-      ? parseFloat(snap)
-      : null
-  const fold = heldFold ?? measuredFold
+  const fold = classView ? (heldFoldPx(snap) ?? measuredFold) : null
   const ladder = useMemo(() => sheetLadder({ classView, fit, fold }), [classView, fit, fold])
   const { points: snapPoints, fitSnap } = ladder
   const openSnap = fitsContent ? FIT_SNAP : OPEN_SNAP
-  // A class dragged to the open stop while its details loaded holds the key-facts stop that
-  // replaced it.
-  const vaulSnap =
-    snap === FIT_SNAP
-      ? ladder.fitStop
-      : classView && snap === OPEN_SNAP && !snapPoints.includes(OPEN_SNAP)
-        ? snapPoints[1]
-        : snap
+  const vaulSnap = resolveStop(ladder, snap)
   // vaul echoes every `activeSnapPoint` it is handed back through this setter. Taking the echo
   // literally would swap the token for whatever it resolved to that render, and the sheet would
   // stop following its content.
@@ -327,7 +314,7 @@ export function DrawerStack() {
   // the collapsed peek while the sheet is collapsed and a class's taller sheet while it is open.
   const sheetCover = !canCollapse
     ? null
-    : Math.min(sheetCoverPx({ snap, classView, fit, fold }), snapCap ?? Infinity)
+    : Math.min(sheetCoverPx(vaulSnap, fold), snapCap ?? Infinity)
   const setSheetCover = useSheetCover((s) => s.setBottom)
 
   useEffect(() => {
@@ -502,10 +489,7 @@ export function DrawerStack() {
   // Keyed on the view KIND (not `wide`), so switching the calendar between
   // month/week/list keeps it tall, rather than collapsing the list to the short snap.
   // This runs only when navigating to or from the calendar, so it never fights a
-  // manual drag on a non-calendar view. A class keys on its path too: class B tapped after
-  // class A was dragged opens at B's own fit, never at A's held key-facts stop.
-  const openedClass = classView ? location.pathname : null
-
+  // manual drag on a non-calendar view.
   useEffect(() => {
     if (direction === 'bottom') {
       setSnap(top?.kind === 'calendar' ? WIDE_SNAP : fitsContent ? FIT_SNAP : OPEN_SNAP)

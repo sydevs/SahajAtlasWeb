@@ -26,7 +26,7 @@ describe('fitHeight', () => {
 })
 
 describe('foldHeight', () => {
-  // 375×667: the time line ends 225px down the sheet, the address 300px; the footer is 150px.
+  // 375×667: the address ends 300px down the sheet, and the footer takes 150px.
   const base = { foldBottom: 300, footerSpace: 150, frameHeight: 667 }
 
   it('stops at two thirds of the frame, so the map keeps a third', () => {

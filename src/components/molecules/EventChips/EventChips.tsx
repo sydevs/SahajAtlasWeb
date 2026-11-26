@@ -59,12 +59,8 @@ export function EventChips({ event, variant = 'default', className }: EventChips
 
   if (!showType && !languageText && !full && !today) return null
 
-  // `data-sheet-fold`: a class's key-facts stop keeps these above the phone's sticky footer.
   return (
-    <div
-      className={clsx('flex flex-wrap items-center gap-1', className)}
-      data-sheet-fold={!compact || undefined}
-    >
+    <div className={clsx('flex flex-wrap items-center gap-1', className)}>
       {showType && <Chip color="primary">{typeLabel}</Chip>}
       {languageText && <Chip color="secondary">{languageText}</Chip>}
       {full && <Chip color="neutral">{t('event.display.chip_full')}</Chip>}

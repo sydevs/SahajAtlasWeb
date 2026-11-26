@@ -2,14 +2,16 @@ import { describe, expect, it } from 'vitest'
 
 import {
   FIT_SNAP,
+  heldFoldPx,
   OPEN_SNAP,
   PEEK_SNAP,
-  SNAP_POINTS,
+  resolveStop,
   sheetCoverPx,
   sheetLadder,
+  SNAP_POINTS,
 } from './sheet-ladder'
 
-import { SHEET_OPEN_PX, SHEET_PEEK_PX, WIDE_SNAP } from '@/config/responsive'
+import { SHEET_OPEN_PX, WIDE_SNAP } from '@/config/responsive'
 
 describe('sheetLadder for a class', () => {
   const classView = true
@@ -41,12 +43,11 @@ describe('sheetLadder for a class', () => {
     ])
   })
 
-  it('stands at the shared open stop while the details load', () => {
-    expect(sheetLadder({ classView, fit: null, fold: null })).toEqual({
-      points: [PEEK_SNAP, OPEN_SNAP, WIDE_SNAP],
-      fitStop: OPEN_SNAP,
-      fitSnap: null,
-    })
+  it('keeps the shared ladder, by identity, while the details load', () => {
+    const ladder = sheetLadder({ classView, fit: null, fold: null })
+
+    expect(ladder.points).toBe(SNAP_POINTS)
+    expect(ladder.fitStop).toBe(OPEN_SNAP)
   })
 })
 
@@ -57,45 +58,13 @@ describe('sheetLadder for every other view', () => {
     expect(sheetLadder({ classView, fit: null, fold: null }).points).toBe(SNAP_POINTS)
   })
 
-  it('slots a fit (Share) between the open and near-full stops, ignoring any fold', () => {
-    expect(sheetLadder({ classView, fit: 600, fold: 440 }).points).toEqual([
+  it('slots a fit (Share) between the open and near-full stops', () => {
+    expect(sheetLadder({ classView, fit: 600, fold: null }).points).toEqual([
       PEEK_SNAP,
       OPEN_SNAP,
       '600px',
       WIDE_SNAP,
     ])
-  })
-})
-
-describe('sheetCoverPx', () => {
-  const at = (snap: number | string, fit: number | 'full' | null, fold: number | null = 440) =>
-    sheetCoverPx({ snap, classView: true, fit, fold })
-
-  it('reserves the peek while collapsed', () => {
-    expect(at(PEEK_SNAP, 600)).toBe(SHEET_PEEK_PX)
-  })
-
-  it('reserves a class open at its fit', () => {
-    expect(at(FIT_SNAP, 600)).toBe(600)
-  })
-
-  it('reserves the key-facts stop', () => {
-    expect(at('440px', 600)).toBe(440)
-  })
-
-  it('frames for the key-facts stop where the near-full sheet hides the pin anyway', () => {
-    expect(at(FIT_SNAP, 'full')).toBe(440)
-    expect(at(WIDE_SNAP, 'full')).toBe(440)
-  })
-
-  it('falls back to the open stop before the key facts are measured', () => {
-    expect(at(FIT_SNAP, null, null)).toBe(SHEET_OPEN_PX)
-  })
-
-  it('leaves other views on the open stop', () => {
-    expect(sheetCoverPx({ snap: OPEN_SNAP, classView: false, fit: null, fold: null })).toBe(
-      SHEET_OPEN_PX,
-    )
   })
 })
 
@@ -107,5 +76,56 @@ describe('every ladder', () => {
         expect(sheetLadder({ classView, fit, fold: 440 }).points[0]).toBe(PEEK_SNAP)
       }
     }
+  })
+})
+
+describe('heldFoldPx', () => {
+  it('holds a px stop the visitor dragged to', () => {
+    expect(heldFoldPx('440px')).toBe(440)
+  })
+
+  it.each([PEEK_SNAP, OPEN_SNAP, FIT_SNAP, WIDE_SNAP, null])('holds nothing at %s', (snap) => {
+    expect(heldFoldPx(snap)).toBeNull()
+  })
+})
+
+describe('resolveStop', () => {
+  const full = sheetLadder({ classView: true, fit: 600, fold: 440 })
+
+  it('shows the fit for the fit token', () => {
+    expect(resolveStop(full, FIT_SNAP)).toBe('600px')
+  })
+
+  it('shows a stop that is on the ladder as it is', () => {
+    expect(resolveStop(full, '440px')).toBe('440px')
+    expect(resolveStop(full, PEEK_SNAP)).toBe(PEEK_SNAP)
+  })
+
+  it('shows the key facts for a class dragged to the open stop before they were measured', () => {
+    expect(resolveStop(full, OPEN_SNAP)).toBe('440px')
+  })
+
+  it('shows the top for a stop the ladder dropped above it', () => {
+    // Dragged near full while the details loaded, then the class fitted.
+    expect(resolveStop(full, WIDE_SNAP)).toBe('600px')
+    // Held at its key facts, then the class shrank below them.
+    const shrunk = sheetLadder({ classView: true, fit: 420, fold: 440 })
+
+    expect(resolveStop(shrunk, '440px')).toBe('420px')
+  })
+})
+
+describe('sheetCoverPx', () => {
+  it('covers a px stop by its own height', () => {
+    expect(sheetCoverPx('440px', 440)).toBe(440)
+    expect(sheetCoverPx('600px', 440)).toBe(600)
+  })
+
+  it('frames for the key-facts stop where the near-full sheet hides the pin anyway', () => {
+    expect(sheetCoverPx(WIDE_SNAP, 440)).toBe(440)
+  })
+
+  it('frames for the open stop at near full without key facts', () => {
+    expect(sheetCoverPx(WIDE_SNAP, null)).toBe(SHEET_OPEN_PX)
   })
 })

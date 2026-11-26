@@ -10,10 +10,9 @@ const MIN_FIT_PX = 120
 /** What a sheet's content needs: a height in px, or `'full'` when it reaches the near-full snap. */
 export type SheetFit = number | 'full'
 
-// The key-facts stop leaves at least a third of the map showing above it, so the class's pin
-// still has room; a fold taller than that is cut at the cap rather than covering the map.
+// The key-facts stop leaves a third of the map above it, so the class's pin still has room.
 const FOLD_MAX_SHARE = 0.66
-// Air between the last key fact and the footer's top edge, so the address never sits flush on it.
+// Air between the last key fact and the footer, so the address never sits flush on it.
 const FOLD_GAP_PX = 12
 
 /**
@@ -46,49 +45,38 @@ export function fitHeight({
 }
 
 /**
- * The class's key-facts stop, in px: the sheet down to its last marked row, plus the sticky
- * footer. Never below the shared open snap, and never above two thirds of the frame. `null`
- * when it can't be measured yet.
- *
- * Pure, so the arithmetic is testable without a DOM. Every number is in CSS px.
+ * A class's key-facts stop, in px: one drag down from open, it keeps the title, chips and
+ * when/where (the row marked `data-sheet-fold`) above the sticky footer. `null` when it can't
+ * be measured yet.
  */
 export function foldHeight({
   foldBottom,
   footerSpace,
   frameHeight,
 }: {
-  /** From the sheet's top edge to the last marked row's bottom edge, unscrolled. */
+  /** From the sheet's top edge to the marked row's bottom edge, unscrolled. */
   foldBottom: number
-  /** What the sticky footer covers at the bottom of the sheet. */
   footerSpace: number
   frameHeight: number
 }): number | null {
-  if (!Number.isFinite(foldBottom) || foldBottom <= 0 || frameHeight <= 0) return null
+  if (foldBottom <= 0 || frameHeight <= 0) return null
 
   const fold = Math.ceil(foldBottom + FOLD_GAP_PX + footerSpace)
 
   return Math.floor(Math.min(Math.max(fold, SHEET_OPEN_PX), frameHeight * FOLD_MAX_SHARE))
 }
 
-function measureFold(sheet: HTMLElement, body: HTMLElement): number | null {
-  const rows = Array.from(body.querySelectorAll<HTMLElement>('[data-sheet-fold]'))
-
-  if (rows.length === 0) return null
-
-  const top = sheet.getBoundingClientRect().top
-
-  return foldHeight({
-    // A body scrolled before this reads still measures from its own top.
-    foldBottom:
-      Math.max(...rows.map((row) => row.getBoundingClientRect().bottom)) - top + body.scrollTop,
-    footerSpace: parseFloat(getComputedStyle(body, '::after').height) || 0,
-    frameHeight: sheet.offsetHeight,
-  })
+export type SheetMeasure = {
+  fit: SheetFit | null
+  fold: number | null
 }
 
-function measure(sheet: HTMLElement, body: HTMLElement): SheetFit | null {
+const UNMEASURED: SheetMeasure = { fit: null, fold: null }
+
+function measure(sheet: HTMLElement, body: HTMLElement): SheetMeasure {
   const style = getComputedStyle(body)
   const footerSpace = parseFloat(getComputedStyle(body, '::after').height) || 0
+  const sheetTop = sheet.getBoundingClientRect().top
   const kids = Array.from(body.children) as HTMLElement[]
   const contentHeight =
     kids.reduce((sum, kid) => sum + kid.offsetHeight, 0) +
@@ -97,28 +85,31 @@ function measure(sheet: HTMLElement, body: HTMLElement): SheetFit | null {
   // The sheet is the full-height panel vaul translates, so it is as tall as the box vaul
   // measures snaps against, with no raw viewport read.
   const frameHeight = sheet.offsetHeight
+  const foldRow = body.querySelector('[data-sheet-fold]')
 
-  return fitHeight({
-    bodyOffset: body.getBoundingClientRect().top - sheet.getBoundingClientRect().top,
-    contentHeight,
-    footerSpace,
-    frameHeight,
-  })
+  return {
+    fit: fitHeight({
+      bodyOffset: body.getBoundingClientRect().top - sheetTop,
+      contentHeight,
+      footerSpace,
+      frameHeight,
+    }),
+    fold: foldRow
+      ? foldHeight({
+          // A body scrolled before this reads still measures from its own top.
+          foldBottom: foldRow.getBoundingClientRect().bottom - sheetTop + body.scrollTop,
+          footerSpace,
+          frameHeight,
+        })
+      : null,
+  }
 }
-
-export type SheetMeasure = {
-  fit: SheetFit | null
-  /** The key-facts stop (`foldHeight`). */
-  fold: number | null
-}
-
-const UNMEASURED: SheetMeasure = { fit: null, fold: null }
 
 /**
- * Follows the open bottom sheet's content height while `enabled`, so a class opens showing
- * its title, when and where above the sticky Register bar, with no blank sheet below. A view
- * that grows (a description or a photo arriving) grows the sheet with it, up to the
- * near-full snap.
+ * Follows the open bottom sheet's content height, and a class's key-facts stop, while `enabled`,
+ * so a class opens showing its title, when and where above the sticky Register bar, with no
+ * blank sheet below. A view that grows (a description or a photo arriving) grows the sheet
+ * with it, up to the near-full snap.
  *
  * `view` names what is on screen (the path), so a new view's body is the one followed.
  *
@@ -154,29 +145,18 @@ export function useFitSnap(enabled: boolean, view: string): SheetMeasure {
       detach?.()
       detach = null
       body = current
+      // A new body never inherits the last one's stops: class B loads from the open stop.
       setMeasured(UNMEASURED)
-      if (!sheet || !current) {
-        setMeasured(UNMEASURED)
-
-        return
-      }
+      if (!sheet || !current) return
 
       // A placeholder is nothing true to fit: the sheet holds its stop and moves once, when the
       // content arrives, rather than fitting the placeholder first.
       const update = () => {
-        if (Array.from(current.children).some((kid) => kid.hasAttribute(LOADING_ATTR))) {
-          setMeasured((prev) => (prev.fit === null ? prev : { ...prev, fit: null }))
+        const next = Array.from(current.children).some((kid) => kid.hasAttribute(LOADING_ATTR))
+          ? UNMEASURED
+          : measure(sheet, current)
 
-          return
-        }
-        setMeasured((prev) => {
-          const next = {
-            fit: measure(sheet, current),
-            fold: measureFold(sheet, current),
-          }
-
-          return next.fit === prev.fit && next.fold === prev.fold ? prev : next
-        })
+        setMeasured((prev) => (next.fit === prev.fit && next.fold === prev.fold ? prev : next))
       }
       const resize = new ResizeObserver(update)
       const watch = () => {

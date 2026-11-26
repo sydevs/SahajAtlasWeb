@@ -15,22 +15,31 @@ export const SNAP_POINTS = [PEEK_SNAP, OPEN_SNAP, WIDE_SNAP]
 // state holds this token and the ladder carries the live number (`useFitSnap`).
 export const FIT_SNAP = 'fit'
 
+// A class shorter than the open stop tops out there; nothing above it but blank sheet.
+const SHORT_CLASS = [PEEK_SNAP, OPEN_SNAP]
+
+type Stop = number | string | null
+
 export type Ladder = {
   points: Array<number | string>
   /** The stop `FIT_SNAP` stands for right now. */
   fitStop: number | string
-  /** The fit as a px stop, or `null` when it is not one of its own (unmeasured, short or full). */
+  /** The fit as a px stop of its own, or `null` (unmeasured, at or below the open stop, or full). */
   fitSnap: string | null
 }
 
 /**
- * The sheet's stops for the view on top.
- *
- * A class (`classView`) climbs peek → key facts (`fold`) → fit: one drag down from open keeps its
- * title, chips and when/where above the sticky footer, and nothing above the fit shows a blank
- * band under its last row. Only a class too long to fit keeps the near-full stop.
- *
- * Every other view that fits its content keeps the shared ladder with the fit slotted in.
+ * The key-facts stop a visitor dragged the sheet to, held as the literal px vaul reported, so a
+ * remeasure never moves it. `null` for any other stop.
+ */
+export const heldFoldPx = (snap: Stop): number | null =>
+  typeof snap === 'string' && snap.endsWith('px') && snap !== PEEK_SNAP && snap !== OPEN_SNAP
+    ? parseFloat(snap)
+    : null
+
+/**
+ * The sheet's stops. A class climbs peek → key facts (`fold`) → fit, keeping near full only when
+ * it is too long to fit; every other view keeps the shared ladder, with its fit slotted in.
  */
 export function sheetLadder({
   classView,
@@ -52,55 +61,45 @@ export function sheetLadder({
       fitSnap,
     }
   }
+  if (typeof fit === 'number' && fitSnap === null) {
+    return { points: SHORT_CLASS, fitStop: OPEN_SNAP, fitSnap }
+  }
 
   const middlePx = fold ?? SHEET_OPEN_PX
   const middle = `${middlePx}px`
 
-  if (fitSnap !== null && fitPx !== null) {
+  if (fitPx !== null && fitSnap !== null) {
     return {
       points: middlePx < fitPx ? [PEEK_SNAP, middle, fitSnap] : [PEEK_SNAP, fitSnap],
       fitStop: fitSnap,
       fitSnap,
     }
   }
-  // Short enough for the open stop: that is the top.
-  if (typeof fit === 'number')
-    return { points: [PEEK_SNAP, OPEN_SNAP], fitStop: OPEN_SNAP, fitSnap }
 
   // Too long to fit, or not measured yet (the details still loading).
   return {
-    points: [PEEK_SNAP, middle, WIDE_SNAP],
+    points: fold === null ? SNAP_POINTS : [PEEK_SNAP, middle, WIDE_SNAP],
     fitStop: fit === 'full' ? WIDE_SNAP : middle,
     fitSnap,
   }
 }
 
 /**
- * What the sheet covers of the map at `snap`, in px, before the short-window cap.
- *
- * The near-full stop covers the class's pin whatever the camera does, so there the camera frames
- * for the stop one drag below: a class's key facts, or the shared open stop.
+ * The stop vaul shows for `snap`. A stop the ladder no longer has resolves to a named rung, never
+ * to nothing: the open stop to the one that took its place (a class's key facts, measured after a
+ * drag there), anything taller to the top.
  */
-export function sheetCoverPx({
-  snap,
-  classView,
-  fit,
-  fold,
-}: {
-  snap: number | string | null
-  classView: boolean
-  fit: SheetFit | null
-  fold: number | null
-}): number {
-  if (snap === PEEK_SNAP) return SHEET_PEEK_PX
+export function resolveStop({ points, fitStop }: Ladder, snap: Stop): Stop {
+  if (snap === FIT_SNAP) return fitStop
+  if (snap === null || points.includes(snap)) return snap
 
-  const { fitSnap } = sheetLadder({ classView, fit, fold })
-
-  if (snap === FIT_SNAP && fitSnap !== null) return parseFloat(fitSnap)
-  if (classView && fold !== null) {
-    if (snap === `${fold}px` || snap === WIDE_SNAP) return fold
-    if (snap === FIT_SNAP && fit === 'full') return fold
-  }
-
-  return SHEET_OPEN_PX
+  return snap === OPEN_SNAP ? points[1] : points[points.length - 1]
 }
+
+/**
+ * What the sheet covers of the map at the stop it shows, in px. The near-full stop hides the
+ * class's pin whatever the camera does, so there the camera frames for the key-facts stop, or
+ * the shared open stop.
+ */
+export const sheetCoverPx = (stop: Stop, fold: number | null): number =>
+  typeof stop === 'string' ? parseFloat(stop) : (fold ?? SHEET_OPEN_PX)
