@@ -34,7 +34,7 @@ afterAll(() => {
 })
 
 describe('formatTimeRange', () => {
-  // Devindra (12 Nov): never our own am/pm. Each locale reads its own clock, as Intl writes it.
+  // Never our own am/pm: each locale reads its own clock, as Intl writes it.
   it('writes each locale its own clock: am/pm in the US, 24-hour in the UK and Germany', () => {
     const at = DateTime.fromISO('2026-07-01T19:30', { zone: 'Europe/London' })
 
@@ -244,8 +244,8 @@ describe('regionalLocale', () => {
     expect(regionalLocale('en', [])).toBe('en')
   })
 
-  // Devindra (12 Nov): the format familiar for the visitor's locale, as `toLocaleTimeString` gives
-  // it. So a browser in another language keeps its own clock and date order, in English words.
+  // The format familiar for the visitor's locale, as `toLocaleTimeString` gives it: a browser in
+  // another language keeps its own clock and date order, in English words.
   it("reads another language's clock and date order, in the interface's words", () => {
     const time = (browser: string) =>
       norm(formatTimeRange(at('2026-11-13T17:45'), null, regionalLocale('en', [browser])))
@@ -281,8 +281,8 @@ describe('scheduleXLocale', () => {
     expect(scheduleXLocale('pt')).toBe('pt-BR')
   })
 
-  // The lists beside the grid read `regionalLocale`'s tag, so a Czech browser's en-CZ dates are day
-  // first there; the grid's dates must not switch to US order.
+  // The lists beside the grid read `regionalLocale`'s tag, so the grid follows its date order: a
+  // Czech browser's en-CZ reads day first in both.
   it('runs a regional English as en-GB or en-US by its date order', () => {
     expect(scheduleXLocale('en')).toBe('en-US')
     expect(scheduleXLocale('en-US')).toBe('en-US')
