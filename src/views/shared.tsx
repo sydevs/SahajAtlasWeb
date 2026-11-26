@@ -500,7 +500,9 @@ export function GeolocationSuggestion({
   if (!ipLocation || !show || knownAtFirstPaint.current !== (position === 'above')) return null
 
   return (
-    <div className={position === 'below' ? 'pt-3' : undefined}>
+    // Below, it can close the panel, so it carries the space under itself; the last row's own
+    // padding is the space above.
+    <div className={position === 'above' ? 'pb-2' : 'pb-4'}>
       <GeolocationPrompt city={ipLocation.city} onAccept={handleSelect} onClose={handleDismiss} />
     </div>
   )

@@ -608,7 +608,7 @@ export function DrawerStack() {
         collapse()
       }}
     >
-      <div className="relative min-h-0 flex-1">
+      <div className="grid min-h-0 flex-1 grid-cols-1 grid-rows-1">
         <AnimatePresence>
           <ViewLayer key={top?.path ?? '/'}>
             {/* Suspense sits OUTSIDE the boundary, so a lazy view's chunk load is a

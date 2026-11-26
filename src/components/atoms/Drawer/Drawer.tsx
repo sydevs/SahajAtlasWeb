@@ -1,9 +1,18 @@
-import { type ReactNode, createContext, useContext, useEffect, useRef, useState } from 'react'
+import {
+  type ReactNode,
+  createContext,
+  useContext,
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+} from 'react'
 import { Drawer as Vaul } from 'vaul'
 
 import { isIOS, useSheetDragClaim } from './sheet-touch'
 
 import { tv, type VariantProps } from '@/styles/tv'
+import { usePrefersReducedMotion } from '@/hooks/use-reduced-motion'
 import { overlayContainer } from '@/lib/overlay'
 
 // A drawer built on vaul (see issue #30). It uses a tailwind-variants slot set,
@@ -22,13 +31,11 @@ import { overlayContainer } from '@/lib/overlay'
 
 export type DrawerDirection = 'left' | 'right' | 'top' | 'bottom'
 
-// A band hosting a `SearchField` hands the geocoder's suggestion list its width
-// (`--sy-results-w`, read in Mapbox/themes.ts): a dropdown narrower than the band left the
-// list's counts peeking out beside it. The field starts the band and the list sits 1px
-// inside the field's border on each side, hence the 2px. This belongs to the bands rather
-// than the views that mount a field, which drifted: the error chrome mounts a live field
-// (`views/fallbacks.tsx`) and had neither declaration.
-const RESULTS_BAND = '[container-type:inline-size] [--sy-results-w:calc(100cqi_-_2px)]'
+// Marks a band hosting a `SearchField`: the suggestion list runs from the field to the band's
+// end (`MapSearch` measures it), since a dropdown narrower than the band left the list's counts
+// peeking out beside it. This belongs to the bands rather than the views that mount a field,
+// which drifted: the error chrome mounts a live field (`views/fallbacks.tsx`).
+export const RESULTS_BAND = 'sy-results-band'
 
 const drawer = tv({
   slots: {
@@ -110,9 +117,13 @@ const drawer = tv({
       // constant. So changing this width means changing that one in the same
       // edit. Otherwise the map keeps framing around the old width, and
       // nothing anywhere reports the drift.
+      // Floating (≥lg), the panel is as tall as its view, up to the frame's height less its
+      // margins. While someone is typing in the place search it takes the full height, since the
+      // suggestions open inside it and it clips. Keyed on the typing, not on the list being open:
+      // Mapbox opens and closes the list on every response, and the panel would follow each one.
       left: {
         content:
-          'inset-y-0 left-0 w-[calc(var(--sy-drawer-w,352px)+env(safe-area-inset-left,0px))] max-w-[calc(100%-32px)] rounded-none border border-divider ps-[env(safe-area-inset-left,0px)] lg:inset-y-4 lg:left-4 lg:rounded-2xl',
+          'inset-y-0 left-0 w-[calc(var(--sy-drawer-w,352px)+env(safe-area-inset-left,0px))] max-w-[calc(100%-32px)] rounded-none border border-divider ps-[env(safe-area-inset-left,0px)] lg:top-4 lg:bottom-auto lg:left-4 lg:max-h-[calc(var(--sy-frame-h)-32px)] lg:rounded-2xl lg:has-[[role=search]:focus-within_input:not(:placeholder-shown)]:h-[calc(var(--sy-frame-h)-32px)]',
       },
       right: {
         content:
@@ -183,6 +194,7 @@ type DrawerCtx = {
   direction: DrawerDirection
   // A `filled` drawer, map-less, hides the drag handle. There is nothing to drag.
   mode: 'anchored' | 'filled'
+  wide?: boolean
   // The portal target for a real drawer. Map-less mode passes the widget container.
   container?: HTMLElement | null
 }
@@ -293,7 +305,9 @@ export function Drawer({
   }
 
   return (
-    <DrawerContext.Provider value={{ slots, direction: direction ?? 'bottom', mode, container }}>
+    <DrawerContext.Provider
+      value={{ slots, direction: direction ?? 'bottom', mode, wide, container }}
+    >
       <Vaul.Root {...rootProps} />
     </DrawerContext.Provider>
   )
@@ -350,11 +364,50 @@ export function DrawerContent({
   handle,
   onEscapeKeyDown,
 }: DrawerContentProps) {
-  const { slots, direction, mode, container } = useDrawerSlots()
+  const { slots, direction, mode, wide, container } = useDrawerSlots()
   // State, not a ref: the portal mounts the panel a pass after this component does.
   const [panel, setPanel] = useState<HTMLDivElement | null>(null)
 
   useSheetDragClaim(direction === 'bottom' && mode !== 'filled' ? panel : null)
+
+  // The floating panel is as tall as its view, so its height changes as the content does.
+  // CSS cannot ease that: the height stays `auto` while only the content changes, so no
+  // transition fires. Hence the Web Animations API, which neither `MotionConfig` nor
+  // `vaul.css`'s reduced-motion block reaches — this reads the preference itself.
+  const reduce = usePrefersReducedMotion()
+  const eases = direction === 'left' && mode === 'anchored' && !wide && !reduce
+
+  // A layout effect, so turning it off (the full-width calendar) disconnects the observer
+  // before it can report that resize, which must not ease.
+  useLayoutEffect(() => {
+    if (!panel || !eases || typeof ResizeObserver === 'undefined') return
+
+    // Seeded by the observer's first delivery, which every observed element gets.
+    let last: number | undefined
+    let ease: Animation | undefined
+    const observer = new ResizeObserver(() => {
+      // A resize mid-ease is skipped. The return to `auto` re-fires the observer, which
+      // eases the rest from where this one stopped.
+      if (ease?.playState === 'running') return
+
+      const next = panel.offsetHeight
+
+      if (last !== undefined && next !== last) {
+        ease = panel.animate(
+          { height: [`${last}px`, `${next}px`] },
+          { duration: 200, easing: 'ease-out' },
+        )
+      }
+      last = next
+    })
+
+    observer.observe(panel)
+
+    return () => {
+      observer.disconnect()
+      ease?.cancel()
+    }
+  }, [panel, eases])
 
   const showHandle = handle ?? (direction === 'bottom' && mode !== 'filled')
   // `undefined` means use the default themed root. An explicit `null` opts out.
@@ -398,8 +451,8 @@ export function DrawerToolbar({
   children: ReactNode
   className?: string
   /**
-   * The band holds a `SearchField` and nothing else, so it carries the header's inset and its
-   * results width. Its own gutter, not the field's: `100cqi` is the band's content box.
+   * The band holds a `SearchField` and nothing else, so it carries the header's inset and marks
+   * itself as the band the suggestion list runs to.
    */
   field?: boolean
 }) {
@@ -468,8 +521,7 @@ export function DrawerFooter({
    * ⚠ `fixed`, not `absolute`, and the sheet's `pb-[calc(var(--sy-frame-h)*0.03)]`
    * is why. The cancellation only holds while the offset is measured from the
    * sheet's own box, and `absolute` resolves against the nearest POSITIONED
-   * ancestor — which since #312 is a crossfade layer filling the sheet's
-   * CONTENT box, 3% short. Measured at 390×844 on a deployed preview: the bar
+   * ancestor — the sheet's content box at best, 3% short. Measured at 390×844 on a deployed preview: the bar
    * sat at 818.69 rather than 844, with the body showing through the gap
    * (#320). `fixed` resolves against the nearest ancestor with a transform,
    * and that is the sheet itself, whatever DrawerStack nests in between.
