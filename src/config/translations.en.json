@@ -104,9 +104,6 @@
     },
     "display": {
       "about": "About this class",
-      "chip_ended": "Ended",
-      "chip_full": "Full",
-      "chip_starts": "Starts %{date}",
       "chip_today": "Today",
       "contact_for_timing": "Contact host for timings",
       "contact_to_join_full": "Contact the host to join anyway",
