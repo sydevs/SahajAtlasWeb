@@ -7,6 +7,7 @@ import { StoryWrapper, StorySection } from '../../ladle'
 import { Modal, ModalBody, ModalClose, ModalContent, ModalFooter } from './Modal'
 
 import { Button } from '@/components/atoms/Button'
+import { Input } from '@/components/atoms/Input'
 
 export default {
   title: 'Atoms',
@@ -26,6 +27,7 @@ export default {
 export const Default: Story = () => {
   const [open, setOpen] = useState(false)
   const [plain, setPlain] = useState(false)
+  const [form, setForm] = useState(false)
 
   return (
     <StoryWrapper>
@@ -84,6 +86,35 @@ export const Default: Story = () => {
               <ModalClose>
                 <Button color="primary" variant="flat">
                   Yes
+                </Button>
+              </ModalClose>
+            </ModalFooter>
+          </ModalContent>
+        </Modal>
+      </StorySection>
+
+      <StorySection
+        description="A dialog holding a field starts in it, not on the ×. On a touch-only screen the dialog itself takes focus instead, so the keyboard does not rise over the form unasked."
+        title="With a form"
+      >
+        <div className="flex h-48 items-center justify-center">
+          <Button variant="flat" onClick={() => setForm(true)}>
+            Open modal
+          </Button>
+        </div>
+
+        <Modal open={form} onOpenChange={setForm}>
+          <ModalContent closeLabel="Close" title="Your details">
+            <ModalBody>
+              <div className="flex flex-col gap-1 py-2 text-sm">
+                <label htmlFor="modal-story-name">Name</label>
+                <Input autoComplete="name" id="modal-story-name" />
+              </div>
+            </ModalBody>
+            <ModalFooter>
+              <ModalClose>
+                <Button color="primary" variant="flat">
+                  Send
                 </Button>
               </ModalClose>
             </ModalFooter>
