@@ -12,6 +12,7 @@ import {
   mockEventSlimOnline,
   mockEventToday,
 } from '@/mocks/events'
+import { useEventDisplay } from '@/hooks/use-event-display'
 
 export default { title: 'Molecules' } satisfies StoryDefault
 
@@ -32,6 +33,15 @@ const SAMPLES: { name: string; event: Event & { languages: string[] } }[] = [
   { name: 'Full + today → no Today chip', event: mockEventFullToday },
 ]
 
+// A caller resolves the strings once and hands them down, as EventListItem does.
+const Sample = ({
+  event,
+  surface,
+}: {
+  event: (typeof SAMPLES)[number]['event']
+  surface: 'page' | 'card'
+}) => <EventChips languages={event.languages} strings={useEventDisplay(event)} surface={surface} />
+
 // Each sample sits on its own line: the name, then the chip row beneath
 // it. So a surface's output for a given event reads as a single unit.
 const Samples = ({ surface }: { surface: 'page' | 'card' }) => (
@@ -39,7 +49,7 @@ const Samples = ({ surface }: { surface: 'page' | 'card' }) => (
     {SAMPLES.map(({ name, event }) => (
       <div key={name} className="flex flex-col gap-1">
         <span className="text-xs text-gray-11">{name}</span>
-        <EventChips event={event} surface={surface} />
+        <Sample event={event} surface={surface} />
       </div>
     ))}
   </div>

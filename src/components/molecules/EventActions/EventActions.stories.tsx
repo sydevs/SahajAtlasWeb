@@ -5,6 +5,7 @@ import { StoryWrapper, StorySection } from '../../ladle'
 
 import { EventActions } from './EventActions'
 
+import { useEventDisplay } from '@/hooks/use-event-display'
 import { mockEvent } from '@/mocks/events'
 
 export default { title: 'Molecules' } satisfies StoryDefault
@@ -22,7 +23,7 @@ function Panel({ event, width = 304 }: { event: Event; width?: 272 | 304 }) {
     <div
       className={`${width === 272 ? 'w-[272px]' : 'w-[304px]'} rounded-lg border border-divider py-3`}
     >
-      <EventActions basePath={`/demo/${event.id}`} event={event} />
+      <EventActions basePath={`/demo/${event.id}`} event={event} strings={useEventDisplay(event)} />
     </div>
   )
 }

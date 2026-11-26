@@ -1,3 +1,5 @@
+import type { EventDisplayStrings } from '@/hooks/use-event-display'
+
 import { type ReactNode, useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 
@@ -13,16 +15,18 @@ import { isUnverified, lexicalToHtml } from '@/lib/shape'
 import { Event } from '@/types'
 
 /**
- * Every surface in this folder takes the same pair: the event, and the route
- * that reached it. This type declares the pair once, here. EventDetails,
- * EventActions, and EventRegisterBar all render from these same two values.
- * Callers always pass both together. This way, a change to the contract
- * cannot land on only two of the three.
+ * Every surface in this folder takes the same three values: the event, the
+ * route that reached it, and its resolved display strings. This type declares
+ * them once, here. EventDetails, EventActions, and EventRegisterBar all render
+ * from these. Callers always pass them together. This way, a change to the
+ * contract cannot land on only two of the three.
  */
 export type EventSurfaceProps = {
   event: Event
   /** The event's current route. Register and share drawers open at `${basePath}/register|share`. */
   basePath: string
+  /** The view's one `useEventDisplay(event)`, shared by every surface on the page (#505). */
+  strings: EventDisplayStrings
 }
 
 export type EventDetailsProps = EventSurfaceProps & {
@@ -56,6 +60,7 @@ export type EventDetailsProps = EventSurfaceProps & {
 export function EventDetails({
   event,
   basePath,
+  strings,
   registerInline = true,
   children,
 }: EventDetailsProps) {
@@ -86,10 +91,10 @@ export function EventDetails({
     <div className={`flex flex-col gap-4 px-gutter pt-2 ${hasImages ? '' : 'pb-10'}`}>
       {/* The triage chips open the body. They do not sit under the title in the
           pinned header. */}
-      <EventChips event={event} />
+      <EventChips languages={event.languages} strings={strings} />
 
       {/* The facts keep extra room above the Register button. */}
-      <EventFacts className="mb-2" event={event} />
+      <EventFacts className="mb-2" strings={strings} />
 
       {children}
 
@@ -105,8 +110,8 @@ export function EventDetails({
         />
       )}
 
-      {registerInline && <EventRegisterBar basePath={basePath} event={event} />}
-      <EventActions basePath={basePath} event={event} />
+      {registerInline && <EventRegisterBar basePath={basePath} event={event} strings={strings} />}
+      <EventActions basePath={basePath} event={event} strings={strings} />
 
       {/* About — host-authored prose always sits below the facts and actions. */}
       {descriptionHtml && (

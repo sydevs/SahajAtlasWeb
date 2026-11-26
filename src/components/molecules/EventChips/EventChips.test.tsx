@@ -9,21 +9,20 @@ import { EventChips } from './EventChips'
 // Which chips a surface shows is `surfaceView`'s decision, specced beside it. This drives the
 // views by hand, so it covers only the rendering and the language filter. The UI language is
 // `en`, and `languageLabel` echoes the code, so the combined language text is greppable.
-const { views } = vi.hoisted(() => ({
-  views: {} as Record<'page' | 'card', Pick<EventSurfaceView, 'type' | 'today'>>,
-}))
+const views = {} as Record<'page' | 'card', Pick<EventSurfaceView, 'type' | 'today'>>
 
 vi.mock('react-i18next', () => ({ useTranslation: () => ({ t: (key: string) => key }) }))
 vi.mock('@/hooks/use-locale', () => ({
   useLocale: () => ({ languageCode: 'en', languageLabel: (code: string) => code }),
 }))
-vi.mock('@/hooks/use-event-display', () => ({
-  useEventDisplay: () => ({ surfaces: views }),
-}))
 
 const render = (languages: string[], surface?: EventChipsProps['surface']) =>
   renderToStaticMarkup(
-    <EventChips event={{ languages } as unknown as EventChipsProps['event']} surface={surface} />,
+    <EventChips
+      languages={languages}
+      strings={{ surfaces: views } as unknown as EventChipsProps['strings']}
+      surface={surface}
+    />,
   )
 
 describe('EventChips', () => {

@@ -1,16 +1,15 @@
+import type { EventDisplayStrings, EventSurface } from '@/hooks/use-event-display'
+
 import clsx from 'clsx'
 import { useTranslation } from 'react-i18next'
 
 import { Chip } from '@/components/atoms/Chip'
-import {
-  useEventDisplay,
-  type DisplayableEvent,
-  type EventSurface,
-} from '@/hooks/use-event-display'
 import { useLocale } from '@/hooks/use-locale'
 
 export type EventChipsProps = {
-  event: DisplayableEvent & { languages: string[] }
+  /** The parent's `useEventDisplay(event)`, shared with its EventFacts so a card resolves once. */
+  strings: EventDisplayStrings
+  languages: string[]
   /** The class page names every language; a card leaves out the viewer's own. */
   surface?: Exclude<EventSurface, 'summary'>
   className?: string
@@ -22,18 +21,14 @@ export type EventChipsProps = {
  * them show is `surfaceView`'s decision; this only renders it. The list card and the class page
  * share this component, so the two never drift.
  */
-export function EventChips({ event, surface = 'page', className }: EventChipsProps) {
+export function EventChips({ strings, languages, surface = 'page', className }: EventChipsProps) {
   const { t } = useTranslation()
   const { languageCode: uiLanguage, languageLabel } = useLocale()
-  const { type, today } = useEventDisplay(event).surfaces[surface]
+  const { type, today } = strings.surfaces[surface]
 
-  const languages =
-    surface === 'card'
-      ? event.languages.filter((code) => code.split('-')[0] !== uiLanguage)
-      : event.languages
-  const languageText = languages.length
-    ? languages.map((code) => languageLabel(code)).join(', ')
-    : null
+  const shown =
+    surface === 'card' ? languages.filter((code) => code.split('-')[0] !== uiLanguage) : languages
+  const languageText = shown.length ? shown.map((code) => languageLabel(code)).join(', ') : null
 
   if (!type && !languageText && !today) return null
 

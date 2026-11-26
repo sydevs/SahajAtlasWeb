@@ -31,7 +31,8 @@ export function RegistrationView({
   const { dismiss } = useDrawerControl()
 
   const { data: event } = useEventFromPath(eventPath)
-  const { display, blockedMessage, whereLine } = useEventDisplay(event)
+  const strings = useEventDisplay(event)
+  const { display, blockedMessage, whereLine } = strings
   // One answer serves both surfaces the confirmation screen puts a URL on — the calendar
   // entry and the invite-a-friend block — so they cannot word the same event two ways. This is
   // `undefined` where there is no honest link (issue #115). Both then degrade, rather than
@@ -104,7 +105,7 @@ export function RegistrationView({
       <DrawerBody className="px-gutter py-4">
         <EventFacts
           className="mx-auto mb-4 w-full max-w-md"
-          event={event}
+          strings={strings}
           surface="summary"
           title={event.title}
         />
@@ -129,7 +130,7 @@ export function RegistrationView({
           // register slot, so it falls through to the state message below rather than
           // rendering an empty EventRegisterBar (issue #52).
           <div className="mx-auto w-full max-w-md py-4">
-            <EventRegisterBar basePath={eventPath} event={event} />
+            <EventRegisterBar basePath={eventPath} event={event} strings={strings} />
           </div>
         ) : (
           // Full, ended, or registration closed. The class is real, it just cannot be
