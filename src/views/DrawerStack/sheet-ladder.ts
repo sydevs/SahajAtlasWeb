@@ -15,9 +15,6 @@ export const SNAP_POINTS = [PEEK_SNAP, OPEN_SNAP, WIDE_SNAP]
 // state holds this token and the ladder carries the live number (`useFitSnap`).
 export const FIT_SNAP = 'fit'
 
-// A class shorter than the open stop tops out there; nothing above it but blank sheet.
-const SHORT_CLASS = [PEEK_SNAP, OPEN_SNAP]
-
 type Stop = number | string | null
 
 export type Ladder = {
@@ -61,8 +58,9 @@ export function sheetLadder({
       fitSnap,
     }
   }
+  // A class shorter than the open stop tops out there; nothing above it but blank sheet.
   if (typeof fit === 'number' && fitSnap === null) {
-    return { points: SHORT_CLASS, fitStop: OPEN_SNAP, fitSnap }
+    return { points: [PEEK_SNAP, OPEN_SNAP], fitStop: OPEN_SNAP, fitSnap }
   }
 
   const middlePx = fold ?? SHEET_OPEN_PX
