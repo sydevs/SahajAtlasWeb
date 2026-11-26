@@ -43,10 +43,18 @@ cover everything a host would notice since the widget was first deployed.
 
 ### Changed
 
+- **A class page's actions are quiet grey buttons, and Register is taller.** ([#502]) Directions,
+  Contact, Share and Website were outlined circles; each is now a grey button with its icon beside
+  the word, or above it across the row when a label would not fit on one line (four actions, a
+  narrow phone, or longer languages such as Spanish, Portuguese and Russian). Register is 48px
+  tall, with 16px before the row. On an iPhone or iPad, Directions opens Apple Maps rather than
+  Google Maps, which made a fresh browser accept Google's consent page first. **No parameter,
+  origin, CSP, storage or Permissions-Policy change.**
+
 - **A class page's address ends with its postcode, and a tap copies it.** ([#498]) "120 Heath
   St, London NW3 1DR", as the host entered it; never for an online class or a listing that hides
   its street. List cards, the calendar and the share and sign-up summaries keep the short line. A tap on the address copies street, town and
-  postcode, to paste into any maps app — the Directions button opens Google Maps alone — and the
+  postcode, to paste into any maps app — the Directions button opens only one — and the
   line reads "Copied" for two seconds. This is a third use of `clipboard-write`: where your page
   denies it, the address is selected to copy by hand instead. **No parameter, origin or CSP
   change.**
@@ -1420,4 +1428,5 @@ must-revalidate`, pinned rather than left to the CDN default. The production dom
 [#488]: https://github.com/sydevs/SahajAtlasWeb/pull/488
 [#490]: https://github.com/sydevs/SahajAtlasWeb/pull/490
 [#498]: https://github.com/sydevs/SahajAtlasWeb/pull/498
+[#502]: https://github.com/sydevs/SahajAtlasWeb/pull/502
 [#495]: https://github.com/sydevs/SahajAtlasWeb/pull/495
