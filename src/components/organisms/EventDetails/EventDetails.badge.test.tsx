@@ -5,6 +5,7 @@ import { describe, it, expect, vi } from 'vitest'
 import { EventDetails } from './EventDetails'
 
 import { EventListItem } from '@/components/molecules/EventListItem'
+import { useEventDisplay } from '@/hooks/use-event-display'
 import { mockEvent, mockEventSlim } from '@/mocks/events'
 
 // Node-only SSR assertions (see `docs/testing.md`). The panel and the card are asserted
@@ -48,10 +49,18 @@ vi.mock('./sanitize', () => ({
 const TITLE_KEY = 'event.display.unverified_title'
 const NOTE_KEY = 'event.display.unverified_note'
 
+// EventView resolves the page's strings once and hands them down.
+const Page = ({ event, registerInline }: { event: typeof mockEvent; registerInline?: boolean }) => (
+  <EventDetails
+    basePath="/gb/london/1"
+    event={event}
+    registerInline={registerInline}
+    strings={useEventDisplay(event)}
+  />
+)
+
 const panel = (verificationStage: string | null) =>
-  renderToStaticMarkup(
-    <EventDetails basePath="/gb/london/1" event={{ ...mockEvent, verificationStage }} />,
-  )
+  renderToStaticMarkup(<Page event={{ ...mockEvent, verificationStage }} />)
 
 // ⚠ A card's chips drop the plain weekly type and the
 // viewer's own language — for the stock fixture it renders NOTHING, which would make the
@@ -100,11 +109,7 @@ describe('unverified badge', () => {
   // is absent. The caveat is not the button's, and must survive without it.
   it('renders with Register pinned to the sheet footer', () => {
     const markup = renderToStaticMarkup(
-      <EventDetails
-        basePath="/gb/london/1"
-        event={{ ...mockEvent, verificationStage: 'unverified' }}
-        registerInline={false}
-      />,
+      <Page event={{ ...mockEvent, verificationStage: 'unverified' }} registerInline={false} />,
     )
 
     expect(markup).toContain(TITLE_KEY)

@@ -84,8 +84,8 @@ export function EventView({ id, basePath }: { id: number; basePath: string }) {
   // renders at all. In map mode there is no container, so the measured signal returns the
   // viewport's answer. The hook is here so a future map-less sticky bar starts out reading the
   // right thing, not because a narrow embed gains one today.
-  const { display } = useEventDisplay(event)
-  const stickyRegister = hasMap && !isWide && hasRegisterSlot(event, display)
+  const strings = useEventDisplay(event)
+  const stickyRegister = hasMap && !isWide && hasRegisterSlot(event, strings.display)
   const onwardHref = parentOf(event.path)
 
   return (
@@ -121,7 +121,12 @@ export function EventView({ id, basePath }: { id: number; basePath: string }) {
           {/* The page's shape while its code arrives, marked loading so the phone sheet holds
               still until it has (`useFitSnap`). */}
           <Suspense fallback={<SkeletonBody body="class" cta={!stickyRegister} />}>
-            <EventDetails basePath={basePath} event={event} registerInline={!stickyRegister}>
+            <EventDetails
+              basePath={basePath}
+              event={event}
+              registerInline={!stickyRegister}
+              strings={strings}
+            >
               {/* This is passed as the panel's slot, so it lands immediately above Register,
                   which lives inside EventDetails when it is inline. The acknowledgement belongs
                   beside the action it wants the reader to take, and the panel is the only thing
@@ -164,7 +169,7 @@ export function EventView({ id, basePath }: { id: number; basePath: string }) {
           className={`px-gutter py-3 transition-transform ${collapsed ? 'translate-y-full opacity-0' : ''}`}
         >
           {/* Only Register pins: the action row stays in the panel, after the facts. */}
-          <EventRegisterBar basePath={basePath} event={event} />
+          <EventRegisterBar basePath={basePath} event={event} strings={strings} />
         </DrawerFooter>
       )}
     </>

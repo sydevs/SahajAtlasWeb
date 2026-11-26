@@ -8,6 +8,7 @@ import { EventFacts, FallbackPanel } from '@/components/molecules'
 // reaches EventActions the same way, for the same reason.
 import { ShareContent } from '@/components/molecules/ShareContent'
 import { QrPoster } from '@/components/molecules/QrPoster'
+import { useEventDisplay } from '@/hooks/use-event-display'
 import { useShareUrl } from '@/hooks/use-share-url'
 import { useViewerCountry } from '@/hooks/use-viewer-country'
 import { NavHeader } from '@/views/nav'
@@ -29,6 +30,8 @@ export function ShareView({ eventPath }: { eventPath: string }) {
   // widget routes off the URL (issue #115).
   const url = useShareUrl(event.webUrl, event.path)
 
+  const strings = useEventDisplay(event)
+
   useFrameEventOnTop(event)
 
   return (
@@ -37,7 +40,7 @@ export function ShareView({ eventPath }: { eventPath: string }) {
       <DrawerBody fitSheet className="px-gutter py-4">
         <EventFacts
           className="mx-auto mb-4 w-full max-w-md"
-          event={event}
+          strings={strings}
           surface="summary"
           title={event.title}
         />

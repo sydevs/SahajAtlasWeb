@@ -8851,6 +8851,7 @@ export interface SyAtlasTranslation {
   };
   filters?: {
     chrome?: SyAtlasTranslationsFiltersChromeStrings;
+    where?: SyAtlasTranslationsFiltersWhereStrings;
     format?: SyAtlasTranslationsFiltersFormatStrings;
     cadence?: SyAtlasTranslationsFiltersCadenceStrings;
     days?: SyAtlasTranslationsFiltersDaysStrings;
@@ -8858,6 +8859,7 @@ export interface SyAtlasTranslation {
     language?: SyAtlasTranslationsFiltersLanguageStrings;
     dates?: SyAtlasTranslationsFiltersDatesStrings;
     region?: SyAtlasTranslationsFiltersRegionStrings;
+    more?: SyAtlasTranslationsFiltersMoreStrings;
   };
   online?: SyAtlasTranslationsOnlineStrings;
   event?: {
@@ -8932,7 +8934,7 @@ export interface SyAtlasTranslationsCommonChromeStrings {
    */
   all_classes_free?: string;
   /**
-   * Confirmation after a visitor copies a share link, a phone number, an email, or a class’s address.
+   * Confirmation after a visitor copies a phone number, an email, or a class’s address. Copying a share link answers with `share.link_copied` instead.
    */
   copied?: string;
 }
@@ -9230,6 +9232,16 @@ export interface SyAtlasTranslationsFiltersChromeStrings {
    */
   no_results?: string;
 }
+export interface SyAtlasTranslationsFiltersWhereStrings {
+  /**
+   * Section label of the Where question, above Near me and the tag naming the place in scope.
+   */
+  label?: string;
+  /**
+   * Button in the Where question that lists the classes around the visitor’s location.
+   */
+  near_me?: string;
+}
 export interface SyAtlasTranslationsFiltersFormatStrings {
   /**
    * Section label of the format filter.
@@ -9247,6 +9259,10 @@ export interface SyAtlasTranslationsFiltersFormatStrings {
    * Format option: classes held online.
    */
   online?: string;
+  /**
+   * Section label of the format question in the filter drawer, above its Online and In person options. `format.label` stays the one-word name.
+   */
+  question?: string;
 }
 export interface SyAtlasTranslationsFiltersCadenceStrings {
   /**
@@ -9279,6 +9295,10 @@ export interface SyAtlasTranslationsFiltersDaysStrings {
    * Section label of the day-of-week filter.
    */
   label?: string;
+  /**
+   * Section label of the day-of-week question in the filter drawer, above the seven day buttons.
+   */
+  short_label?: string;
 }
 export interface SyAtlasTranslationsFiltersTimeStrings {
   /**
@@ -9359,6 +9379,12 @@ export interface SyAtlasTranslationsFiltersRegionStrings {
    * Shown when the region search matches nothing.
    */
   empty?: string;
+}
+export interface SyAtlasTranslationsFiltersMoreStrings {
+  /**
+   * Disclosure at the bottom of the filter drawer that reveals the less-used questions.
+   */
+  label?: string;
 }
 export interface SyAtlasTranslationsOnlineStrings {
   /**
@@ -10002,11 +10028,27 @@ export interface SyAtlasTranslationsShareStrings {
    */
   title?: string;
   /**
+   * Heading of the Share view for one class.
+   */
+  title_class?: string;
+  /**
    * Label of the device’s own share sheet.
    */
   native?: string;
   /**
-   * Closed row under the share buttons that opens a QR code of the class link, for hosts printing posters.
+   * What the Copy link button says for a moment after it has put the class link on the clipboard.
+   */
+  link_copied?: string;
+  /**
+   * Shown on a phone or tablet when the page refused the clipboard: how to copy the link by hand.
+   */
+  copy_failed_touch?: string;
+  /**
+   * Shown on a computer when the page refused the clipboard. The link is already selected; this says which keys copy it.
+   */
+  copy_failed_pointer?: string;
+  /**
+   * Closed row at the bottom of a class page that opens a QR code of the class link, for hosts printing posters.
    */
   qr_title?: string;
   /**
@@ -10478,6 +10520,7 @@ export interface SyAtlasTranslationsSelect<T extends boolean = true> {
     | T
     | {
         chrome?: T;
+        where?: T;
         format?: T;
         cadence?: T;
         days?: T;
@@ -10485,6 +10528,7 @@ export interface SyAtlasTranslationsSelect<T extends boolean = true> {
         language?: T;
         dates?: T;
         region?: T;
+        more?: T;
       };
   online?: T;
   event?:

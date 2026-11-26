@@ -9,6 +9,7 @@ import { EventDetails } from './EventDetails'
 import { EventHeader } from './EventHeader'
 import { EventRegisterBar } from './EventRegister'
 
+import { useEventDisplay } from '@/hooks/use-event-display'
 import {
   mockEvent,
   mockEventCourse,
@@ -22,14 +23,26 @@ export default { title: 'Organisms' } satisfies StoryDefault
 
 // This shows the full panel anatomy. The header (title) sits above the body,
 // which EventView orders as chips, facts, Register, actions, About, then images.
-function Panel({ event }: { event: Event }) {
+function Panel({ event, registerInline }: { event: Event; registerInline?: boolean }) {
+  const strings = useEventDisplay(event)
+
   return (
     <div className="max-w-md border border-divider">
       <EventHeader title={event.title} />
-      <EventDetails basePath={`/demo/${event.id}`} event={event} />
+      <EventDetails
+        basePath={`/demo/${event.id}`}
+        event={event}
+        registerInline={registerInline}
+        strings={strings}
+      />
     </div>
   )
 }
+
+// Register alone, as EventView's sticky footer pins it.
+const RegisterBar = ({ event }: { event: Event }) => (
+  <EventRegisterBar basePath={`/demo/${event.id}`} event={event} strings={useEventDisplay(event)} />
+)
 
 const external: Event = {
   ...mockEvent,
@@ -110,12 +123,9 @@ export const Default: Story = () => (
     >
       <div className="flex max-w-md flex-col gap-4">
         <div className="border border-divider p-3">
-          <EventRegisterBar basePath="/demo/101" event={mockEvent} />
+          <RegisterBar event={mockEvent} />
         </div>
-        <div className="border border-divider">
-          <EventHeader title={mockEvent.title} />
-          <EventDetails basePath="/demo/101" event={mockEvent} registerInline={false} />
-        </div>
+        <Panel event={mockEvent} registerInline={false} />
       </div>
     </StorySection>
 

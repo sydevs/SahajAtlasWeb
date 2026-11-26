@@ -2,6 +2,7 @@ import { memo, useEffect, useRef } from 'react'
 import { useTranslation } from 'react-i18next'
 
 import { ListRow } from '@/components/molecules/List/List'
+import { useEventDisplay } from '@/hooks/use-event-display'
 import { useLocale } from '@/hooks/use-locale'
 import { useMapController } from '@/hooks/use-map-controller'
 import { useHoverPrefetch } from '@/hooks/use-prefetch-event'
@@ -52,6 +53,8 @@ const MIN_DISTANCE_KM = 5
  */
 function EventListItemImpl({ event, searchedPlace, showDistance = true }: EventListItemProps) {
   const { t } = useTranslation()
+  // One resolve per card, shared by its facts and chips (#505).
+  const strings = useEventDisplay(event)
   const { locale } = useLocale()
   const { highlightEvent } = useMapController()
   const prefetch = useHoverPrefetch()
@@ -136,10 +139,10 @@ function EventListItemImpl({ event, searchedPlace, showDistance = true }: EventL
               </span>
             )
           }
-          event={event}
+          strings={strings}
           surface="card"
         />
-        <EventChips className="mt-1" event={event} surface="card" />
+        <EventChips className="mt-1" languages={event.languages} strings={strings} surface="card" />
       </div>
     </ListRow>
   )
