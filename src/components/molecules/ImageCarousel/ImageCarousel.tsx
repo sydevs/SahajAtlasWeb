@@ -152,7 +152,7 @@ export function ImageCarousel({ slides }: ImageCarouselProps) {
             data-vaul-no-drag
             aria-label={t('event.a11y.pause_slideshow')}
             aria-pressed={paused}
-            className="touch-target absolute end-2 bottom-2 z-10 flex h-8 w-8 items-center justify-center rounded-full bg-black/50 text-white transition-colors outline-none hover:bg-black/70 focus-visible:ring-2 focus-visible:ring-focus"
+            className="touch-target absolute end-2 bottom-2 z-10 flex h-8 w-8 items-center justify-center rounded-full bg-black/50 text-white focus-ring transition-colors hover:bg-black/70"
             type="button"
             onClick={() => setPaused((wasPaused) => !wasPaused)}
           >

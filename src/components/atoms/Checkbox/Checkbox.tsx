@@ -28,7 +28,7 @@ import { tv, type VariantProps } from '@/styles/tv'
 // different property, so an errored control keeps its ring while it goes grey.
 const toggle = tv({
   slots: {
-    root: 'touch-target relative shrink-0 rounded-full bg-gray-6 transition-colors outline-none focus-visible:ring-2 focus-visible:ring-focus data-[disabled]:cursor-not-allowed data-[disabled]:bg-gray-5 data-[disabled]:data-[state=checked]:bg-gray-9 dark:data-[disabled]:data-[state=checked]:bg-gray-9',
+    root: 'touch-target relative shrink-0 rounded-full bg-gray-6 focus-ring transition-colors data-[disabled]:cursor-not-allowed data-[disabled]:bg-gray-5 data-[disabled]:data-[state=checked]:bg-gray-9 dark:data-[disabled]:data-[state=checked]:bg-gray-9',
     thumb:
       'block translate-x-[2px] rounded-full bg-gray-1 shadow transition-transform will-change-transform data-[disabled]:bg-gray-2 data-[disabled]:shadow-none',
   },
@@ -75,7 +75,7 @@ const toggle = tv({
 const box = tv({
   slots: {
     // 4px, the one exception to the corner rule (globals.css): at 8px a 16px box reads as a radio.
-    root: 'touch-target relative flex shrink-0 items-center justify-center rounded-[4px] border border-gray-7 bg-background transition-colors outline-none focus-visible:ring-2 focus-visible:ring-focus data-[disabled]:cursor-not-allowed data-[disabled]:border-gray-7 data-[disabled]:bg-gray-4 data-[disabled]:data-[state=checked]:border-gray-9 data-[disabled]:data-[state=checked]:bg-gray-9 data-[disabled]:data-[state=checked]:text-gray-1 dark:data-[disabled]:data-[state=checked]:border-gray-9 dark:data-[disabled]:data-[state=checked]:bg-gray-9 dark:data-[disabled]:data-[state=checked]:text-gray-1',
+    root: 'touch-target relative flex shrink-0 items-center justify-center rounded-[4px] border border-gray-7 bg-background focus-ring transition-colors data-[disabled]:cursor-not-allowed data-[disabled]:border-gray-7 data-[disabled]:bg-gray-4 data-[disabled]:data-[state=checked]:border-gray-9 data-[disabled]:data-[state=checked]:bg-gray-9 data-[disabled]:data-[state=checked]:text-gray-1 dark:data-[disabled]:data-[state=checked]:border-gray-9 dark:data-[disabled]:data-[state=checked]:bg-gray-9 dark:data-[disabled]:data-[state=checked]:text-gray-1',
     indicator: 'flex items-center justify-center',
   },
   variants: {

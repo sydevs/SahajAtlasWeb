@@ -43,6 +43,20 @@ cover everything a host would notice since the widget was first deployed.
 
 ### Changed
 
+- **Keyboard focus looks the same on every control.** ([#PRNUM]) A 2px line in your brand colour,
+  drawn just inside the control, with a thin band of the panel's colour inside it so it still
+  shows on a filled button such as Register. Buttons, filter tags, fields, the place search and
+  the map's own credits button, logo and canvas all draw it; before, they drew three different
+  rings, and Mapbox's blue halo appeared even on a mouse click. A mouse click still shows nothing.
+
+- **A dialog with a form starts in its first field.** ([#PRNUM]) It started on its × button, as if
+  Close were already chosen. On a touch-only screen the dialog itself takes focus instead, so the
+  on-screen keyboard does not rise over the form before anyone has read it.
+
+- **The search box's clear button answers to a 44px tap on a touch screen**, at the same drawn
+  size. ([#PRNUM]) The invisible tap areas around small controls now apply only to touch-only
+  screens, so a touchscreen laptop's mouse no longer hits an area it cannot see.
+
 - **The consent line under the sign-up fields reads like the text around it.** ([#506]) It was
   centred in 12px type. It now starts at the left edge, in the card's own 14px size and the quiet
   grey, and says "By registering…" to match the button. Its "privacy policy" still opens We
@@ -1447,6 +1461,7 @@ must-revalidate`, pinned rather than left to the CDN default. The production dom
 [#482]: https://github.com/sydevs/SahajAtlasWeb/pull/482
 [#488]: https://github.com/sydevs/SahajAtlasWeb/pull/488
 [#490]: https://github.com/sydevs/SahajAtlasWeb/pull/490
+[#PRNUM]: https://github.com/sydevs/SahajAtlasWeb/pull/PRNUM
 [#498]: https://github.com/sydevs/SahajAtlasWeb/pull/498
 [#495]: https://github.com/sydevs/SahajAtlasWeb/pull/495
 [#500]: https://github.com/sydevs/SahajAtlasWeb/pull/500

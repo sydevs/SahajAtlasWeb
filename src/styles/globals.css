@@ -503,9 +503,11 @@ html.sy-atlas {
 }
 
 /* An invisible 44px tap area around a smaller control, on touch screens only, so the control
-   keeps its drawn size. It needs a positioned element, so pair it with `relative`. */
+   keeps its drawn size. It needs a positioned element, so pair it with `relative`.
+   The query is `useCoarsePointer`'s (`config/responsive.ts`): `(pointer: coarse)` alone is also
+   true on a touchscreen laptop, whose mouse would then hit an area it cannot see. */
 @utility touch-target {
-  @media (pointer: coarse) {
+  @media (hover: none) and (pointer: coarse) {
     &::after {
       content: '';
       position: absolute;
@@ -515,6 +517,25 @@ html.sy-atlas {
       height: max(100%, 44px);
       transform: translate(-50%, -50%);
     }
+  }
+}
+
+/* The one keyboard-focus outline, for every control: a 2px line in the focus colour drawn
+   just inside the control, so an `overflow: hidden` parent cannot clip it, and a 2px band of the
+   panel's colour inside that line. The band is what shows on a filled control of the focus
+   colour's own hue: the line alone measured 1:1 on Register in dark mode. It rides in Tailwind's
+   inset-ring slot, so a control's own `shadow-*` stays. A mouse click shows nothing, because
+   only `:focus-visible` draws it. `focus-ring.test.ts` pins it. */
+@utility focus-ring {
+  outline: none;
+  &:focus-visible {
+    outline: 2px solid var(--color-focus, hsl(var(--primary-9)));
+    outline-offset: -2px;
+    --tw-inset-ring-shadow: inset 0 0 0 4px hsl(var(--background));
+    box-shadow:
+      var(--tw-inset-shadow, 0 0 #0000), var(--tw-inset-ring-shadow),
+      var(--tw-ring-offset-shadow, 0 0 #0000), var(--tw-ring-shadow, 0 0 #0000),
+      var(--tw-shadow, 0 0 #0000);
   }
 }
 
@@ -673,6 +694,25 @@ html.sy-atlas {
    anchors the tap area as well, and `relative` would unpin it. */
 .sy-map-controls .mapboxgl-ctrl-attrib-button {
   @apply touch-target;
+}
+
+/* Mapbox draws its own blue halo on a focused control, even for a mouse click, and leaves the
+   map itself and its logo to the browser's default ring. All four take the outline every other
+   control has instead. The `.sy-map-controls` prefix outranks Mapbox's own `button:focus` rule,
+   which a bare selector would tie. */
+.sy-map-controls .mapboxgl-ctrl-attrib-button:focus,
+.sy-map-controls .mapboxgl-ctrl-attrib a:focus,
+.mapboxgl-canvas:focus,
+.mapboxgl-ctrl-logo:focus {
+  box-shadow: none;
+  outline: none;
+}
+
+.sy-map-controls .mapboxgl-ctrl-attrib-button:focus-visible,
+.sy-map-controls .mapboxgl-ctrl-attrib a:focus-visible,
+.mapboxgl-canvas:focus-visible,
+.mapboxgl-ctrl-logo:focus-visible {
+  @apply focus-ring;
 }
 
 /* Mapbox paints its credits white, with a glyph drawn in a fixed colour, so in the dark theme it

@@ -37,7 +37,13 @@ afterEach(async () => {
   vi.restoreAllMocks()
 })
 
-function Harness({ onCloseAutoFocus }: { onCloseAutoFocus?: (event: Event) => void }) {
+function Harness({
+  onCloseAutoFocus,
+  withField,
+}: {
+  onCloseAutoFocus?: (event: Event) => void
+  withField?: boolean
+}) {
   const [isOpen, setOpen] = useState(false)
 
   return (
@@ -50,7 +56,7 @@ function Harness({ onCloseAutoFocus }: { onCloseAutoFocus?: (event: Event) => vo
       </button>
       <Modal open={isOpen} onOpenChange={setOpen}>
         <ModalContent closeLabel="Close" title="Report" onCloseAutoFocus={onCloseAutoFocus}>
-          <ModalBody>Body</ModalBody>
+          <ModalBody>{withField ? <input aria-label="Name" id="field" /> : 'Body'}</ModalBody>
         </ModalContent>
       </Modal>
     </>
@@ -58,7 +64,7 @@ function Harness({ onCloseAutoFocus }: { onCloseAutoFocus?: (event: Event) => vo
 }
 
 /** Mounts the harness inside a theme root, which is what the atom portals into. */
-async function mount(onCloseAutoFocus?: (event: Event) => void) {
+async function mount(onCloseAutoFocus?: (event: Event) => void, withField = false) {
   const host = document.createElement('div')
 
   document.body.append(host)
@@ -67,7 +73,7 @@ async function mount(onCloseAutoFocus?: (event: Event) => void) {
   const root = createRoot(host)
 
   await act(async () => {
-    root.render(<Harness onCloseAutoFocus={onCloseAutoFocus} />)
+    root.render(<Harness withField={withField} onCloseAutoFocus={onCloseAutoFocus} />)
   })
 
   cleanup = () => {
@@ -170,5 +176,44 @@ describe('ModalContent focus return', () => {
     await close(host)
 
     expect(asked.at(-1)).toBe(chosen)
+  })
+})
+
+describe('ModalContent opening focus', () => {
+  const touchOnly = (matches: boolean) =>
+    vi
+      .spyOn(window, 'matchMedia')
+      .mockImplementation((query) => ({ matches, media: query }) as MediaQueryList)
+
+  it('starts a form in its first field, not on the ×', async () => {
+    // jsdom has no `matchMedia` to spy on, so the atom's own fallback is a fine pointer.
+    window.matchMedia ??= (() => ({ matches: false })) as unknown as typeof window.matchMedia
+    touchOnly(false)
+    const { host, opener } = await mount(undefined, true)
+    const asked = traceFocus()
+
+    await openFrom(opener)
+
+    expect(asked.at(-1)).toBe(host.ownerDocument.getElementById('field'))
+  })
+
+  it('focuses the dialog itself on a touch-only screen, so no keyboard rises', async () => {
+    window.matchMedia ??= (() => ({ matches: false })) as unknown as typeof window.matchMedia
+    touchOnly(true)
+    const { opener } = await mount(undefined, true)
+    const asked = traceFocus()
+
+    await openFrom(opener)
+
+    expect(asked.at(-1)?.getAttribute('role')).toBe('dialog')
+  })
+
+  it('leaves Radix its own start when there is no field', async () => {
+    const { opener } = await mount()
+    const asked = traceFocus()
+
+    await openFrom(opener)
+
+    expect(asked.at(-1)?.getAttribute('aria-label')).toBe('Close')
   })
 })

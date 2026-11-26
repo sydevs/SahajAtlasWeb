@@ -35,15 +35,35 @@ export const controlTheme = {
     // touch field drew 132px tall. Only geocoder parts we never render read it themselves.
     spacing: '4px',
   },
-  // The geocoder hardcodes three things its variables don't reach. Typed text is 75% black in
-  // both themes, so `colorText` never touches it and it vanishes on a dark panel. Its focus state
-  // is a dotted border. And its placeholder is 37% black, about 2.6:1 on white. These restate all
-  // three in the tokens the rest of the panel uses, with the same 2px ring as `fieldChrome`.
+  // The geocoder hardcodes what its variables don't reach. Typed text is 75% black in both
+  // themes, so `colorText` never touches it and it vanishes on a dark panel. Its focus states are
+  // a dotted border and a grey box. And its placeholder is 37% black, about 2.6:1 on white. These
+  // restate them in the panel's tokens, with the outline of the `focus-ring` utility, which
+  // cannot reach this sheet. The clear × is drawn at 20px, so on a touch screen it takes the
+  // invisible 44px area `touch-target` gives every other small control.
   cssText: `
     .Input, .Input:focus { color: var(--gray-12); caret-color: var(--gray-12); }
     .Input:focus { border: 0; }
     .Input::placeholder { color: var(--gray-11); opacity: 1; }
-    .Geocoder:focus-within { box-shadow: 0 0 0 2px hsl(var(--primary-9)); }
+    .Geocoder:focus-within {
+      outline: 2px solid hsl(var(--primary-9));
+      outline-offset: -2px;
+      box-shadow: inset 0 0 0 4px hsl(var(--background));
+    }
+    .ClearBtn { position: relative; }
+    .ClearBtn:focus { border: 0; outline: none; }
+    .ClearBtn:focus-visible { outline: 2px solid hsl(var(--primary-9)); outline-offset: -2px; border-radius: 9999px; }
+    @media (hover: none) and (pointer: coarse) {
+      .ClearBtn::after {
+        content: '';
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        width: 44px;
+        height: 44px;
+        transform: translate(-50%, -50%);
+      }
+    }
     .Results {
       min-width: var(--sy-results-w, 0);
       border-radius: 8px;

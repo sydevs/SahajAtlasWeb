@@ -14,7 +14,7 @@ const disclosure = tv({
   slots: {
     root: 'border-t border-divider',
     trigger:
-      'group touch-target relative flex min-h-14 w-full items-center justify-between gap-3 text-start text-base font-medium outline-none focus-visible:ring-2 focus-visible:ring-focus',
+      'group touch-target relative flex min-h-14 w-full items-center justify-between gap-3 text-start text-base font-medium focus-ring',
     chevron: 'shrink-0 text-gray-11 transition-transform group-data-[state=open]:rotate-180',
     panel: 'pb-4',
   },

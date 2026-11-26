@@ -96,6 +96,30 @@ export type ModalContentProps = {
   className?: string
 }
 
+/** The first control a viewer fills in. A Radix `Select` trigger is a `combobox` button. */
+const FIRST_FIELD =
+  'input:not([type="hidden"]):not(:disabled), textarea:not(:disabled), select:not(:disabled), [role="combobox"]:not(:disabled)'
+
+/**
+ * Radix starts a dialog on its first tabbable control, which here is always the header's ×, so a
+ * form opened looking as though Close were already chosen. It starts in the first field instead.
+ * On a touch-only screen the dialog itself takes focus: focusing a field there raises the
+ * keyboard over the form before the viewer has read it. With no field, Radix's own choice stands.
+ */
+const startInFirstField = (event: Event) => {
+  const dialog = event.target
+
+  if (!(dialog instanceof HTMLElement)) return
+  const field = dialog.querySelector<HTMLElement>(FIRST_FIELD)
+
+  if (!field) return
+  event.preventDefault()
+  // The same question `useCoarsePointer` asks, read once at open rather than subscribed to.
+  const touchOnly = window.matchMedia?.('(hover: none) and (pointer: coarse)').matches
+
+  ;(touchOnly ? dialog : field).focus({ preventScroll: true })
+}
+
 /** The portaled, centred panel: header (title, description, ×) above `children`. */
 export function ModalContent({
   title,
@@ -129,6 +153,7 @@ export function ModalContent({
         ref={restore?.adoptContent}
         className={`${content} ${className ?? ''}`}
         onCloseAutoFocus={onClose}
+        onOpenAutoFocus={startInFirstField}
         {...describedBy}
       >
         <div className={header}>
