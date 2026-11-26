@@ -47,8 +47,10 @@ cover everything a host would notice since the widget was first deployed.
   and wider, the floating panel ends under its content instead of always running the full height
   of the window or of your map's box, so a place with two classes covers far less of the map. A
   long list still fills the height and scrolls inside the panel, and the bottom edge eases over
-  200ms as visitors move between places (instantly with reduced motion). While a search
-  box's suggestions are open, the panel takes the full height so they fit. The location prompt at the foot of a list now sits 16px from the panel's bottom edge.
+  200ms as visitors move between places (instantly with reduced motion). While someone types in a
+  search box, the panel takes the full height so the suggestions fit, and "We couldn't find that
+  place." now shows in the suggestions' spot, styled like them, once typing pauses. The location
+  prompt at the foot of a list now sits 16px from the panel's bottom edge.
   Width, phones, the full-width calendar and map-less embeds are unchanged. **No parameter,
   origin, CSP, storage or Permissions-Policy change.**
 
