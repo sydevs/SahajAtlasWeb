@@ -38,10 +38,7 @@ const Facts = ({
 const ROOM = 'Community Hall B'
 const withRoom = { ...mockEvent, address: { ...mockEvent.address, room: ROOM } }
 const roomLine = `event.display.room:${ROOM}`
-const NOT_PANEL = [
-  ['the list card', 'card'],
-  ['the share and registration summaries', 'summary'],
-] as const
+const NOT_PANEL = [['the list card and the summary that reuses it', 'card']] as const
 
 describe('EventFacts — the room line (#316)', () => {
   it('shows the room on the panel, on its own line above the street', () => {
@@ -142,10 +139,33 @@ describe('EventFacts — the key-facts marker', () => {
     expect(renderToStaticMarkup(<Facts event={mockEvent} />)).toContain('data-sheet-fold')
   })
 
-  it.each(['card', 'summary'] as const)('leaves the %s facts unmarked', (surface) => {
-    expect(renderToStaticMarkup(<Facts event={mockEvent} surface={surface} />)).not.toContain(
+  it('leaves the card facts unmarked', () => {
+    expect(renderToStaticMarkup(<Facts event={mockEvent} surface="card" />)).not.toContain(
       'data-sheet-fold',
     )
+  })
+})
+
+// Above the registration form, the faded lines answer questions the form itself asks.
+describe('EventFacts — hideSubtext', () => {
+  const DISTANCE = '6.2 km from Cambridge'
+
+  it.each([
+    ['the distance', 'card', DISTANCE],
+    ['the "Next session" line', 'page', 'event.display.next_session'],
+  ] as const)('drops %s', (_, surface, line) => {
+    const facts = (hideSubtext: boolean) =>
+      renderToStaticMarkup(
+        <Facts
+          distance={DISTANCE}
+          event={mockEvent}
+          hideSubtext={hideSubtext}
+          surface={surface}
+        />,
+      )
+
+    expect(facts(false)).toContain(line)
+    expect(facts(true)).not.toContain(line)
   })
 })
 

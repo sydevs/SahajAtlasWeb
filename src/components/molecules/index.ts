@@ -49,13 +49,16 @@ export { FormField } from './FormField'
 export type { FieldControlProps, FormFieldProps } from './FormField'
 
 // EventFacts — the shared calendar and location fact block for an
-// event. It builds and renders the when/where lines. The panel, the list
-// card, and the share and registration drawers all use it. Its `card`
-// variant is the boxed, titled treatment those two drawers use. There is
-// deliberately no separate wrapper for it. The one that existed only
-// added an outbound backlink that was never correct behaviour (#156).
+// event. It builds and renders the when/where lines, for the panel and,
+// through EventSummary, everywhere else.
 export { EventFacts } from './EventFacts'
 export type { EventFactsProps } from './EventFacts'
+
+// EventSummary — a class at a glance: title, facts and chips. The list
+// card renders it, and the Share, Register and confirmation panels box it
+// at their top.
+export { EventSummary } from './EventSummary'
+export type { EventSummaryProps } from './EventSummary'
 
 // The event's triage chips. The list card and the event header share
 // this, so the two never drift. The `card` surface trims the list card.

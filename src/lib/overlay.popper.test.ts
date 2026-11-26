@@ -18,7 +18,7 @@ import {
  * It is asserted rather than written down because **this branch already made exactly that mistake
  * once**: the settings cog's offset was moved onto the measured signal in one place and left on a
  * viewport media query in another, 480 lines apart in the same file. Five call sites across four
- * components is where "applied one place and not the other" happens again — so a sixth popper
+ * components is where "applied one place and not the other" happens again — so a new popper
  * turns this lane red with instructions instead of shipping unbounded.
  *
  * Same shape as `href.test.ts` pinning the app's JSX anchors, and for the same reason.
@@ -52,6 +52,8 @@ const BOUNDED: Record<string, string> = {
   'components/atoms/Select/Select.tsx': 'the plain list picker',
   'components/atoms/Combobox/Combobox.tsx':
     'the search-in-the-field region picker (Popover + cmdk)',
+  'components/molecules/ShareContent/ShareContent.tsx':
+    "the Share button's targets, where the device has no share sheet",
   ...MENUS,
 }
 
@@ -107,14 +109,16 @@ const SKIN_RUNS = [
 
 /**
  * The two field pickers share the panel their triggers open, and spell none of it (#367 review).
+ * The Share button's fallback popover reads the same panel.
  *
  * Here rather than beside the atom because this file already holds the closed list both
  * surfaces belong to, so one file answers which popper surfaces exist and which skin each
  * reads. `panelChrome` itself sits beside `fieldChrome`, the skin these same two already share.
  */
 const PANELS: Record<string, string> = {
-  'components/atoms/Select/Select.tsx': 'the listbox, and the recipe both read',
+  'components/atoms/Select/Select.tsx': 'the listbox, and the recipe the others read',
   'components/atoms/Combobox/Combobox.tsx': 'the search-in-the-field panel',
+  'components/molecules/ShareContent/ShareContent.tsx': "the Share button's fallback popover",
 }
 
 /**

@@ -87,20 +87,6 @@ export const Default: Story = () => (
     </StorySection>
 
     <StorySection
-      description="The summary: a title over the page facts on a tinted box, shown above the registration and share forms."
-      title="Summary"
-    >
-      <div className="flex max-w-md flex-col gap-4">
-        <Facts event={mockEvent} surface="summary" title={mockEvent.title} />
-        <Facts
-          event={{ ...mockEvent, eventType: 'online' }}
-          surface="summary"
-          title="Online Evening Sitting"
-        />
-      </div>
-    </StorySection>
-
-    <StorySection
       description="What every result card shows: smaller icons faded to the subtext level, the end time dropped, and no 'Next session' line — a list repeats the pattern, so only the lead time earns its space."
       title="Card"
     >
@@ -117,6 +103,16 @@ export const Default: Story = () => (
     >
       <div className="max-w-md">
         <Facts distance="6.2 km away" event={mockEvent} surface="card" />
+      </div>
+    </StorySection>
+
+    <StorySection
+      description="`hideSubtext` drops every faded second line, as the summary above the registration form does: the form asks which date."
+      title="Card · no subtext"
+    >
+      <div className="flex max-w-md flex-col gap-4">
+        <Facts hideSubtext distance="6.2 km away" event={mockEvent} surface="card" />
+        <Facts hideSubtext event={{ ...mockEvent, eventType: 'online' }} surface="card" />
       </div>
     </StorySection>
 

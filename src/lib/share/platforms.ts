@@ -2,7 +2,7 @@
 //
 // A meditation event is shared globally. A viewer in Russia reaches for VK
 // or Telegram, one in Japan for LINE, one in India for WhatsApp. So the
-// share grid is ordered to the *viewer's* country, instead of showing
+// share targets follow the *viewer's* country, instead of showing
 // everyone the same Western five. No npm package ships per-country platform
 // preferences, so this map is hand-maintained: an ISO alpha-2 code to the
 // platforms that country actually uses, most-popular first, seeded from
@@ -30,7 +30,7 @@ export type PlatformKey =
 // broadly-used targets for a global audience. Reddit is anglophone-skewed,
 // so it is left to the country lists that want it. Email is not listed
 // here. `platformsForCountry` appends it to every result, and five keeps
-// the resulting grid a single balanced row of six.
+// the Share popover a single balanced row of six.
 export const DEFAULT_PLATFORMS: PlatformKey[] = [
   'whatsapp',
   'facebook',
@@ -43,7 +43,7 @@ export const DEFAULT_PLATFORMS: PlatformKey[] = [
 // uppercase the input first, so casing at the call site does not matter.
 // Two invariants hold: `email` is not listed here (`platformsForCountry`
 // appends it to every result, so it is always the last option and appears
-// exactly once), and each list is kept to five or fewer, so the grid stays
+// exactly once), and each list is kept to five or fewer, so the popover stays
 // a single balanced row of six once email is appended.
 export const PLATFORMS_BY_COUNTRY: Record<string, PlatformKey[]> = {
   // Russia and CIS: VK and OK.ru dominate. Telegram and Viber are heavily used.
@@ -52,7 +52,7 @@ export const PLATFORMS_BY_COUNTRY: Record<string, PlatformKey[]> = {
   KZ: ['vk', 'whatsapp', 'telegram', 'ok', 'x'],
   UA: ['telegram', 'viber', 'facebook', 'whatsapp', 'x'],
   // East Asia: LINE across Japan, Taiwan, and Thailand. Weibo in China
-  // (WeChat is native-only, so it is not in this web grid).
+  // (WeChat is native-only, so it is not in this web list).
   JP: ['line', 'x', 'facebook', 'whatsapp'],
   TW: ['line', 'facebook', 'x', 'whatsapp', 'telegram'],
   TH: ['line', 'facebook', 'whatsapp', 'x', 'telegram'],

@@ -13,11 +13,10 @@ import { useCopy } from '@/hooks/use-copy'
 // the card's title, tighter spacing, and icons that shrink to the text
 // height, reading as inline text with a leading glyph, not a labelled
 // block. Its time and address keep the foreground colour, since they are
-// what a visitor came for; only the distance steps back. `summary` is the
-// boxed event-details card: a `title` over the page facts on a tinted
-// rounded surface, the object being acted on above the registration and
-// share forms. Each fact has a required primary
-// line (`text`) and an optional faded second line (`subtext`).
+// what a visitor came for; only the distance steps back. `EventSummary`
+// boxes the card treatment above the registration and share forms. Each
+// fact has a required primary line (`text`) and an optional faded second
+// line (`subtext`).
 //
 // Presentation and composition live together here. This is the only place
 // that builds event facts, and the only thing that renders them. So a
@@ -25,9 +24,6 @@ import { useCopy } from '@/hooks/use-copy'
 // surface with a single internal consumer. It is folded in here instead.
 const facts = tv({
   slots: {
-    // `wrapper` and `title` are used only by the `summary` surface. They stay empty otherwise.
-    wrapper: '',
-    title: '',
     base: 'flex flex-col',
     item: 'flex',
     icon: 'shrink-0',
@@ -39,13 +35,6 @@ const facts = tv({
       page: { base: 'gap-2.5', item: 'gap-3', icon: 'text-primary' },
       // Every fact takes at least 22px, so one-line facts never sit line on line.
       card: { base: 'gap-1.5', item: 'min-h-5.5 gap-2', icon: 'text-gray-11', text: 'text-sm' },
-      summary: {
-        wrapper: 'rounded-lg border border-divider bg-gray-2 p-3',
-        title: 'mb-3 text-lg',
-        base: 'gap-2.5',
-        item: 'gap-3',
-        icon: 'text-primary',
-      },
     },
     // A two-line fact hangs its icon beside the FIRST line. A lone line centres it.
     stacked: {
@@ -56,13 +45,12 @@ const facts = tv({
   compoundVariants: [
     { surface: 'page', stacked: true, class: { icon: 'mt-0.5' } },
     { surface: 'card', stacked: true, class: { icon: 'mt-px' } },
-    { surface: 'summary', stacked: true, class: { icon: 'mt-0.5' } },
   ],
   defaultVariants: { surface: 'page', stacked: false },
 })
 
 // Icon pixel size per surface. It matches the text height on the list card.
-const ICON_SIZE = { page: 20, card: 16, summary: 20 } as const
+const ICON_SIZE = { page: 20, card: 16 } as const
 
 type Fact = {
   icon: LucideIcon
@@ -75,15 +63,17 @@ type Fact = {
 export type EventFactsProps = {
   /** The parent's `useEventDisplay(event)`, shared with its EventChips so a card resolves once. */
   strings: EventDisplayStrings
-  /** The class page, a list card, or the boxed share and registration summary. */
+  /** The class page, or a list card and the summary that reuses it. */
   surface?: EventSurface
-  /** The heading rendered above the facts. `summary` only. */
-  title?: ReactNode
-  /** Extra content inside the `summary` box, below the facts (e.g. a backlink). */
-  children?: ReactNode
   /** Distance from the searched location, shown faded under the address. List
    *  cards only: the panel has no search origin to measure from. */
   distance?: ReactNode
+  /**
+   * Drops every faded second line ("Next session: …", the distance, "Hosted from …"), for a
+   * summary above a form. The registration form asks which date, and its confirmation names the
+   * one chosen.
+   */
+  hideSubtext?: boolean
   className?: string
 }
 
@@ -99,9 +89,8 @@ export type EventFactsProps = {
 export function EventFacts({
   strings,
   surface = 'page',
-  title,
-  children,
   distance,
+  hideSubtext = false,
   className,
 }: EventFactsProps) {
   const { display, surfaces, whereLine, whereLineWithPostCode, roomLine, whereSubtext } = strings
@@ -117,7 +106,7 @@ export function EventFacts({
 
   if (whereLine && display.status !== 'ended') {
     // The room and the copyable address are for finding the place, so only the panel carries
-    // them. The list card and the share/registration summaries are triage and recap (#316).
+    // them. The list card, and the summary that reuses it, are triage and recap (#316).
     const page = surface === 'page'
     const room = page ? roomLine : null
     const where =
@@ -139,19 +128,13 @@ export function EventFacts({
   }
 
   const size = ICON_SIZE[surface]
-  const summary = surface === 'summary'
   const slots = facts({ surface })
 
-  // The summary owns the outer box, so `className` styles that box.
-  // It also owns a title above the facts, and a slot below them. The other
-  // surfaces render just the fact column, and take `className` on it.
-  const body = (
+  return (
     // `data-sheet-fold`: the panel's facts end a class's key-facts stop (`foldHeight`).
-    <div
-      className={summary ? slots.base() : slots.base({ className })}
-      data-sheet-fold={surface === 'page' || undefined}
-    >
-      {items.map(({ icon: Icon, text, subtext, stacked }, index) => {
+    <div className={slots.base({ className })} data-sheet-fold={surface === 'page' || undefined}>
+      {items.map(({ icon: Icon, text, subtext: line, stacked }, index) => {
+        const subtext = hideSubtext ? undefined : line
         // Alignment is per-fact. Only a stacked fact, one with two lines,
         // hangs its icon from the first line.
         const styles = facts({ surface, stacked: Boolean(subtext) || Boolean(stacked) })
@@ -168,16 +151,6 @@ export function EventFacts({
           </div>
         )
       })}
-    </div>
-  )
-
-  if (!summary) return body
-
-  return (
-    <div className={slots.wrapper({ className })}>
-      {title != null && <div className={slots.title()}>{title}</div>}
-      {body}
-      {children}
     </div>
   )
 }

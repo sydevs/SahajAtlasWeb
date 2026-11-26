@@ -8,8 +8,7 @@ import { useMapController } from '@/hooks/use-map-controller'
 import { useHoverPrefetch } from '@/hooks/use-prefetch-event'
 import { formatDistance } from '@/lib'
 import { isOnline } from '@/lib/shape'
-import { EventChips } from '@/components/molecules/EventChips'
-import { EventFacts } from '@/components/molecules/EventFacts'
+import { EventSummary } from '@/components/molecules/EventSummary'
 import { EventSlim } from '@/types'
 
 export interface EventListItemProps {
@@ -35,9 +34,9 @@ export interface EventListItemProps {
 const MIN_DISTANCE_KM = 5
 
 /**
- * The list card: title, then the shared EventFacts summary (recurrence and
- * time, then the address with its distance faded below, or the online
- * hosted-from line), then the card's EventChips. The facts carry the
+ * The list card: the shared EventSummary — the title with its Online tag,
+ * recurrence and time, the address with its distance faded below (or the
+ * online hosted-from line), then the card's chips. The facts carry the
  * distance, not a chip. The card is a ListRow, so it ends in the same chevron
  * as a place row and a class looks as tappable as a place. Its Link stays
  * hookable for map-pin highlight (#44).
@@ -126,24 +125,20 @@ function EventListItemImpl({ event, searchedPlace, showDistance = true }: EventL
       onMouseEnter={activate}
       onMouseLeave={deactivate}
     >
-      {/* `min-w-0` lets a truncating chip or an unbroken title shrink
+      {/* `min-w-0` (inside the summary) lets a truncating chip or an unbroken title shrink
           instead of pushing the chevron out. */}
-      <div className="flex min-w-0 flex-1 flex-col gap-1">
-        <div className="line-clamp-2 text-lg">{event.title}</div>
-        <EventFacts
-          className="mt-0.5 mb-1"
-          distance={
-            distanceText && (
-              <span aria-label={distanceLabel} title={distanceLabel}>
-                {distanceText}
-              </span>
-            )
-          }
-          strings={strings}
-          surface="card"
-        />
-        <EventChips className="mt-1" languages={event.languages} strings={strings} surface="card" />
-      </div>
+      <EventSummary
+        className="flex-1"
+        distance={
+          distanceText && (
+            <span aria-label={distanceLabel} title={distanceLabel}>
+              {distanceText}
+            </span>
+          )
+        }
+        event={event}
+        strings={strings}
+      />
     </ListRow>
   )
 }
