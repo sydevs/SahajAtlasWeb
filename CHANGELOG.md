@@ -43,7 +43,7 @@ cover everything a host would notice since the widget was first deployed.
 
 ### Changed
 
-- **The consent line under the sign-up fields reads like the text around it.** ([#504]) It was
+- **The consent line under the sign-up fields reads like the text around it.** ([#506]) It was
   centred in 12px type. It now starts at the left edge, in the card's own 14px size and the quiet
   grey, and says "By registering…" to match the button. Its "privacy policy" still opens We
   Meditate's policy in a new tab. **No parameter, origin or CSP change.**
@@ -1451,4 +1451,4 @@ must-revalidate`, pinned rather than left to the CDN default. The production dom
 [#495]: https://github.com/sydevs/SahajAtlasWeb/pull/495
 [#500]: https://github.com/sydevs/SahajAtlasWeb/pull/500
 [#496]: https://github.com/sydevs/SahajAtlasWeb/pull/496
-[#504]: https://github.com/sydevs/SahajAtlasWeb/pull/504
+[#506]: https://github.com/sydevs/SahajAtlasWeb/pull/506
