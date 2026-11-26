@@ -47,9 +47,10 @@ cover everything a host would notice since the widget was first deployed.
   St, London NW3 1DR", unless the host already typed the postcode into the street or town; never
   for an online class or a listing that hides its street. List cards, the calendar and the
   share and sign-up summaries keep the short line. A tap on the address copies street, town and
-  postcode, to paste into a maps app, and the line reads "Copied" for two seconds. This is a
-  third use of `clipboard-write`: where your page denies it, the address is selected to copy by
-  hand instead. **No parameter, origin or CSP change.**
+  postcode, to paste into any maps app — the Directions button opens Google Maps alone — and the
+  line reads "Copied" for two seconds. This is a third use of `clipboard-write`: where your page
+  denies it, the address is selected to copy by hand instead. **No parameter, origin or CSP
+  change.**
 
 - **On a slow or failing connection the map and its panel appear at once.** ([#490]) In the full
   map form the widget no longer shows a white page with "Loading…" while it reads your client

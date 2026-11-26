@@ -219,7 +219,9 @@ export function EventFacts({
   )
 }
 
-/** The class page's street address, which copies itself when tapped, to paste into a maps app. */
+/** The class page's street address, which copies itself when tapped. The Directions action beside
+ *  it opens Google Maps from the stored point (`lib/events.ts`), so the clipboard is the only
+ *  route to any other maps app — Apple Maps is the iOS default. */
 function CopyAddress({ value }: { value: string }) {
   const { t } = useTranslation()
   const { copied, copy } = useCopy(2000)
