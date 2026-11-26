@@ -55,8 +55,8 @@ export function EventChips({ event, variant = 'default', className }: EventChips
   // set only when it is the actual blocker, so an ended or dormant event
   // still falls through to its own treatment.
   const full = display.full
-  // "Today" is card-only, and only beside a recurrence pattern ("Every Wednesday"). Elsewhere
-  // the when line already says "Today".
+  // Only a card that leads with its pattern ("Every Wednesday") carries "Today" here, and
+  // EventFacts drops that card's muted "Today" line to match. Elsewhere the when line says it.
   const today = !full && display.status === 'today' && compact && Boolean(recurrenceLine)
 
   if (!showType && !languageText && !full && !today) return null

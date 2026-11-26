@@ -132,6 +132,9 @@ export function EventFacts({
     if (display.status === 'started')
       timingDetail = display.kind === 'course' ? whenLine : undefined
     else if (display.status === 'running' && compact) timingDetail = undefined
+    // A card's Today chip says it (EventChips). A full class's chip says "Full" instead, so its
+    // line keeps "Today".
+    else if (display.status === 'today' && compact && !display.full) timingDetail = undefined
     else timingDetail = whenLine
   }
 

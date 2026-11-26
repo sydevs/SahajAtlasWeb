@@ -1,8 +1,12 @@
+import type { Event } from '@/types'
+
+import { Settings } from 'luxon'
 import { renderToStaticMarkup } from 'react-dom/server'
-import { describe, it, expect, vi } from 'vitest'
+import { afterEach, describe, it, expect, vi } from 'vitest'
 
 import { EventFacts } from './EventFacts'
 
+import { EventChips } from '@/components/molecules/EventChips'
 import { mockEvent, mockEventInactive, mockEventSlimOnline } from '@/mocks/events'
 
 // Node-only SSR, as `EventListItem.test.tsx` does it. `t` echoes the key with its
@@ -14,7 +18,7 @@ vi.mock('react-i18next', () => ({
   }),
 }))
 vi.mock('@/hooks/use-locale', () => ({
-  useLocale: () => ({ locale: 'en' }),
+  useLocale: () => ({ locale: 'en', languageCode: 'en', languageLabel: (code: string) => code }),
 }))
 
 const ROOM = 'Community Hall B'
@@ -62,5 +66,50 @@ describe('EventFacts — the room line (#316)', () => {
     ],
   ])('adds no line for %s', (_, event) => {
     expect(renderToStaticMarkup(<EventFacts event={event} />)).not.toContain('event.display.room')
+  })
+})
+
+// The card and the class page each pair these two, and each must say "Today" once.
+describe('EventFacts with EventChips — "Today" once', () => {
+  afterEach(() => {
+    Settings.now = () => Date.now()
+  })
+
+  // Wednesday 15 July 2026: noon in London, and the class meets at 18:30.
+  const weekly: Event = {
+    ...mockEvent,
+    registrationsFull: false,
+    schedule: {
+      firstDate: new Date('2026-07-01T17:30:00Z'),
+      firstDate_tz: 'Europe/London',
+      endTime: '20:00',
+      recurrenceType: 'WEEKLY',
+      interval: 1,
+      weekdays: ['WE'],
+      upcomingDates: [new Date('2026-07-15T17:30:00Z'), new Date('2026-07-22T17:30:00Z')],
+    },
+  }
+  const oneOff: Event = {
+    ...weekly,
+    schedule: { ...weekly.schedule!, recurrenceType: null, weekdays: [] },
+  }
+
+  it.each([
+    ['a weekly card, as its chip', weekly, 'compact'],
+    ['a full weekly card, in its line', { ...weekly, registrationsFull: true }, 'compact'],
+    ['a one-off card, in its line', oneOff, 'compact'],
+    ['a weekly class page, in its line', weekly, 'default'],
+    ['a one-off class page, in its line', oneOff, 'default'],
+  ] as const)('on %s', (_, event, variant) => {
+    Settings.now = () => Date.parse('2026-07-15T11:00:00Z')
+
+    const html = renderToStaticMarkup(
+      <>
+        <EventFacts event={event} variant={variant} />
+        <EventChips event={event} variant={variant} />
+      </>,
+    )
+
+    expect(html.split('event.display.chip_today')).toHaveLength(2)
   })
 })
