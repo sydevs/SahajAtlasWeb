@@ -49,7 +49,7 @@ export type EventDisplayStrings = {
   whereLine: string
   /** `whereLine` with the postcode, for the class page: "120 Heath St, London NW3 1DR". Null when
    *  no street shows: an online event, or a listing that hides it. */
-  whereLineFull: string | null
+  whereLineWithPostCode: string | null
   /** The room inside the venue, such as "Room: Hall B", for a physical, non-inactive event that names one. */
   roomLine: string | null
   /** For an online event only, the HOST's clock, faded below the where line, such as
@@ -276,7 +276,9 @@ export function useEventDisplay(event: DisplayableEvent): EventDisplayStrings {
         : streetAndCity(event.address?.street, event.address?.city) || event.region?.name || ''
     // A listing that hides the street hides its postcode and room too: each is a near-exact place.
     const showsStreet = !display.online && !townOnly
-    const whereLineFull = showsStreet ? withPostCode(whereLine, event.address?.postCode) : null
+    const whereLineWithPostCode = showsStreet
+      ? withPostCode(whereLine, event.address?.postCode)
+      : null
     const room = event.address?.room?.trim()
     const roomLine = showsStreet && room ? t('event.display.room', { room }) : null
     // For an online event only, the host's own clock, faded under the where line, such as
@@ -345,7 +347,7 @@ export function useEventDisplay(event: DisplayableEvent): EventDisplayStrings {
       eventTimeRange,
       eventStartTime,
       whereLine,
-      whereLineFull,
+      whereLineWithPostCode,
       roomLine,
       whereSubtext,
       registerLabel,

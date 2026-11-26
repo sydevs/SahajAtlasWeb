@@ -120,7 +120,7 @@ export function EventFacts({
     eventTimeRange,
     eventStartTime,
     whereLine,
-    whereLineFull,
+    whereLineWithPostCode,
     roomLine,
     whereSubtext,
   } = useEventDisplay(event)
@@ -162,7 +162,8 @@ export function EventFacts({
     // them. The list card and the share/registration summaries are triage and recap (#316).
     const panel = variant === 'default'
     const room = panel ? roomLine : null
-    const where = panel && whereLineFull ? <CopyAddress value={whereLineFull} /> : whereLine
+    const where =
+      panel && whereLineWithPostCode ? <CopyAddress value={whereLineWithPostCode} /> : whereLine
 
     items.push({
       icon: display.online ? Monitor : MapPin,

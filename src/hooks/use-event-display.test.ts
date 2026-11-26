@@ -251,7 +251,7 @@ describe('useEventDisplay — the postcode on the class page', () => {
   const fullLine = (event: DisplayableEvent) => {
     let line: string | null = 'unset'
     const Probe = () => {
-      line = useEventDisplay(event).whereLineFull
+      line = useEventDisplay(event).whereLineWithPostCode
 
       return null
     }
