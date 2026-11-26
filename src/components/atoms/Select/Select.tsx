@@ -22,7 +22,7 @@ import { frameCollision, overlayContainer } from '@/lib/overlay'
 // drawn rather than the `touch-target` utility because an `<input>` renders no `::after` for that
 // utility to use, and `@/styles/tv` registers it as a height so `multiline`'s `h-auto` replaces it.
 export const fieldChrome = tv({
-  base: 'field-height w-full rounded-lg border bg-background px-3 field-size text-foreground transition-colors focus-ring disabled:opacity-disabled',
+  base: 'field-height w-full rounded-lg border bg-background px-3 field-size text-foreground focus-ring transition-colors disabled:opacity-disabled',
   variants: {
     isInvalid: { true: 'border-danger-7', false: 'border-gray-7' },
     /** A trigger lays its value out against the chevron. A plain input does not. */
