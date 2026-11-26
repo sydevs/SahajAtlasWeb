@@ -131,27 +131,68 @@ export function FormField({
   )
   const Root = group ? 'fieldset' : 'div'
 
-  const field = (
+  // Outside the legend, so the group's name stays the question alone. It is HIDDEN, never
+  // unmounted, while the field is empty: `visibility: hidden` also takes it out of the tab order
+  // and the accessibility tree, and the row keeps its height.
+  const clearButton = clear && (
+    <button
+      data-vaul-no-drag
+      className={clsx(
+        'touch-target relative shrink-0 text-xs font-medium text-primary-11 focus-ring hover:underline',
+        !clear.active && 'invisible',
+      )}
+      type="button"
+      onClick={clear.onClear}
+    >
+      {clear.label}
+    </button>
+  )
+  // ⚠ The extra space under a row with a Clear on a touch screen is not spacing taste: the Clear's
+  // invisible 44px tap area (#432) reaches down toward the control, which would take those taps.
+  const labelRow = 'flex items-baseline justify-between gap-2 pointer-coarse:mb-2'
+
+  return (
     <Root className="flex min-w-0 flex-col gap-1">
-      {group ? (
-        // A legend sits outside the fieldset's flex flow, so it spaces itself.
-        <legend
-          className={clsx('mb-1 text-sm font-medium', clear && 'pe-16 pointer-coarse:mb-3')}
-          id={fieldLabelId(key)}
-        >
-          {caption}
-        </legend>
-      ) : (
-        // A control that labels itself (no `htmlFor`) already shows the label beside it.
-        htmlFor && (
-          <label
-            className={clsx('text-sm font-medium', clear && 'pe-16 pointer-coarse:mb-2')}
-            htmlFor={htmlFor}
-          >
+      {group &&
+        (clear ? (
+          // A legend cannot hold the Clear, so it names the group off screen and the row beside
+          // the Clear shows the same words.
+          <>
+            <legend className="sr-only" id={fieldLabelId(key)}>
+              {caption}
+            </legend>
+            <div className={labelRow}>
+              <span aria-hidden className="text-sm font-medium">
+                {caption}
+              </span>
+              {clearButton}
+            </div>
+          </>
+        ) : (
+          // A legend sits outside the fieldset's flex flow, so it spaces itself.
+          <legend className="mb-1 text-sm font-medium" id={fieldLabelId(key)}>
+            {caption}
+          </legend>
+        ))}
+      {/* A control that labels itself (no `htmlFor`) already shows the label beside it. */}
+      {!group &&
+        (htmlFor || clear) &&
+        (clear ? (
+          <div className={labelRow}>
+            {htmlFor ? (
+              <label className="text-sm font-medium" htmlFor={htmlFor}>
+                {caption}
+              </label>
+            ) : (
+              <span />
+            )}
+            {clearButton}
+          </div>
+        ) : (
+          <label className="text-sm font-medium" htmlFor={htmlFor}>
             {caption}
           </label>
-        )
-      )}
+        ))}
       {typeof children === 'function' ? children(control) : children}
       {showHelp && (
         <span className="text-xs text-gray-11" id={fieldHelpId(key)}>
@@ -190,32 +231,5 @@ export function FormField({
         </span>
       )}
     </Root>
-  )
-
-  if (!clear) return field
-
-  // The Clear sits at the end of the label row. It is positioned against this wrapper, because a
-  // fieldset's own box starts halfway down its legend.
-  return (
-    <div className="relative min-w-0">
-      {field}
-      {/* Outside the legend, so the group's name stays the question alone. It is HIDDEN, never
-          unmounted, while the field is empty: `visibility: hidden` also takes it out of the tab
-          order and the accessibility tree.
-          ⚠ The extra space under the label on a touch screen is not spacing taste: this is a
-          small text control whose invisible 44px tap area (#432) reaches down toward the
-          control, which would otherwise take those taps. */}
-      <button
-        data-vaul-no-drag
-        className={clsx(
-          'touch-target absolute end-0 top-0 text-xs font-medium text-primary-11 focus-ring hover:underline',
-          !clear.active && 'invisible',
-        )}
-        type="button"
-        onClick={clear.onClear}
-      >
-        {clear.label}
-      </button>
-    </div>
   )
 }
