@@ -597,9 +597,9 @@ replaces the other.
 
 **The 44px tap floor is met by growing an invisible area, not by redrawing the control.**
 `touch-target` (`globals.css`) puts a 44px `::after` on a smaller control, under
-`(hover: none) and (pointer: coarse)` — `useCoarsePointer`'s query, so a touchscreen laptop's
-mouse meets no area it cannot see — and nothing moves on a desktop. A drawn `pointer-coarse:`
-size still asks `(pointer: coarse)` alone. It needs `relative` beside it, and
+`TOUCH_ONLY_QUERY` (`config/responsive.ts`), so a touchscreen laptop's mouse meets no area it
+cannot see and nothing moves on a desktop. A drawn `pointer-coarse:` size still asks
+`(pointer: coarse)` alone. It needs `relative` beside it, and
 three things defeat it:
 
 - **`overflow: hidden` clips it**, so a `truncate` on the control itself takes the area away and
@@ -616,14 +616,11 @@ three things defeat it:
 `relative` is later than `absolute` and `fixed` in Tailwind's own order, so a joined list wins
 the cascade and unpins the caller's control. `SettingsMenu`'s trigger carries that story.
 
-**Keyboard focus is one outline from `globals.css`, never a control's own `ring-*`.** A control
-takes `focus-ring`, which draws `focus-outline` on `:focus-visible` only, so a mouse click shows
-nothing. A box whose focus lands on a hidden control inside it takes the drawing behind its own
-state — the choice card's `has-[:focus-visible]:focus-outline`. The outline is inset, with a band
-of the panel colour inside the line, so an `overflow` clip cannot cut it and it shows on a fill of
-the focus colour. `src/styles/focus-ring.test.ts` refuses a ring in the focus colour anywhere in
-`src/`. ⚠ The geocoder field's box restates the drawing in `Mapbox/themes.ts`: its class names
-are seeded per instance, so no utility can be put on it.
+**Keyboard focus is one outline: a control takes `focus-ring`, never its own `ring-*`.** A box
+whose focus lands on a hidden control inside it takes `focus-outline` behind its own state, as the
+choice card does. `src/styles/focus-ring.test.ts` holds both. ⚠ The geocoder field's box restates
+the drawing in `Mapbox/themes.ts`: its class names are seeded per instance, so no utility can be
+put on it.
 
 ⚠ **Radix restores focus to a `Dialog.Trigger`, and neither of this app's dialogs has one**, so
 closing dropped the viewer on `<body>` (#432). `useOpenerRestore` (`src/hooks/`) is the one

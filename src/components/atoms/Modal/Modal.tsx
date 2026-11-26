@@ -97,14 +97,6 @@ export type ModalContentProps = {
   className?: string
 }
 
-/** A control a viewer fills in. A Radix `Select` trigger is a `combobox` button. */
-const FIELD = ':is(input:not([type="hidden"]), textarea, [role="combobox"]):not(:disabled)'
-
-const firstField = (dialog: HTMLElement) =>
-  [...dialog.querySelectorAll<HTMLElement>(FIELD)].find(
-    (field) => field.checkVisibility?.() ?? true,
-  )
-
 /**
  * Radix starts a dialog on its first tabbable control, which here is always the header's ×, so
  * the dialog read as though Close were already chosen. A form starts in its first field instead,
@@ -124,7 +116,12 @@ const startInFirstField = (event: Event) => {
 
   const root = dialog.getRootNode() as Document | ShadowRoot
   const handOn = () => {
-    const field = firstField(dialog)
+    // A control a viewer fills in. A Radix `Select` trigger is a `combobox` button.
+    const field = [
+      ...dialog.querySelectorAll<HTMLElement>(
+        ':is(input:not([type="hidden"]), textarea, [role="combobox"]):not(:disabled)',
+      ),
+    ].find((candidate) => candidate.checkVisibility?.() ?? true)
 
     if (field) field.focus({ preventScroll: true })
 

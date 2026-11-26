@@ -27,6 +27,16 @@ describe('focus-ring', () => {
     )
   })
 
+  it('is the drawing the geocoder field restates in its own sheet, which no utility reaches', () => {
+    const geocoder = readSourceWithoutComments('components/organisms/Mapbox/themes.ts').match(
+      /\.Geocoder:has\(\.Input:focus-visible\) \{[^}]*\}/,
+    )?.[0]
+
+    expect(geocoder).toContain('outline: 2px solid var(--color-focus)')
+    expect(geocoder).toContain('outline-offset: -2px')
+    expect(geocoder).toContain('inset 0 0 0 4px hsl(var(--background))')
+  })
+
   it('draws on keyboard focus alone', () => {
     expect(utility('focus-ring')).toMatch(/&:focus-visible\s*{\s*@apply focus-outline;/)
   })
