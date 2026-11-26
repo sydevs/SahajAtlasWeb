@@ -13,7 +13,7 @@ vi.mock('react-i18next', () => ({
   useTranslation: () => ({ t: (key: string) => key }),
 }))
 vi.mock('@/hooks/use-locale', () => ({
-  useLocale: () => ({ locale: 'en', languageLabel: (code: string) => code }),
+  useLocale: () => ({ locale: 'en', formatLocale: 'en-US', languageLabel: (code: string) => code }),
 }))
 // This is partial. `config/query-client` constructs a real QueryClient
 // on import, so only the hook is replaced. With no feed cached, the form

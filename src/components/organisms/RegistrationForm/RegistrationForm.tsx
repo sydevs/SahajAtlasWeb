@@ -36,7 +36,7 @@ import {
 } from '@/config/api/mutate'
 import livePreview from '@/config/live-preview/protocol'
 import { classifyError } from '@/lib/report'
-import { formatDate, formatRelativeDate, regionalLocale } from '@/lib/time'
+import { formatDate, formatRelativeDate } from '@/lib/time'
 import { splitInlineLink } from '@/lib/shape'
 import { useRegistrationDraft } from '@/config/store'
 import {
@@ -595,11 +595,11 @@ function RegistrationFields({
   errors,
 }: RegistrationFieldsProps) {
   const { t } = useTranslation()
-  const { locale } = useLocale()
+  const { formatLocale } = useLocale()
 
   const startingDates = useMemo(
-    () => dateOptions(upcomingDates, recurrenceType, timeZone, locale),
-    [upcomingDates, recurrenceType, timeZone, locale],
+    () => dateOptions(upcomingDates, recurrenceType, timeZone, formatLocale),
+    [upcomingDates, recurrenceType, timeZone, formatLocale],
   )
 
   return (
@@ -692,10 +692,9 @@ function dateOptions(
   dates: Date[],
   recurrenceType: RecurrenceType | null | undefined,
   timeZone: string | undefined,
-  locale: string,
+  formatLocale: string,
 ): { value: string; label: string }[] {
   const unit = recurrenceType ? RELATIVE_UNIT[recurrenceType] : undefined
-  const formatLocale = regionalLocale(locale)
 
   return dates.map((date) => {
     const dateTime = DateTime.fromJSDate(date).setZone(timeZone ?? 'local')

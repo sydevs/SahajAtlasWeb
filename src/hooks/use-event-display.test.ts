@@ -21,7 +21,9 @@ vi.mock('react-i18next', () => ({
       copy(key).replace(/%\{(\w+)\}/g, (_, name: string) => options[name]),
   }),
 }))
-vi.mock('@/hooks/use-locale', () => ({ useLocale: () => ({ locale: 'en' }) }))
+vi.mock('@/hooks/use-locale', () => ({
+  useLocale: () => ({ locale: 'en', formatLocale: 'en-US' }),
+}))
 
 // What each surface says, as pure decisions over the resolved state and its strings.
 describe('surfaceView', () => {

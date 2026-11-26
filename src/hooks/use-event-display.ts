@@ -13,14 +13,7 @@ import {
   scheduleNamesZone,
   streetAndCity,
 } from '@/lib/shape'
-import {
-  formatDate,
-  formatTimeRange,
-  formatWeekday,
-  regionalLocale,
-  sameWallClock,
-  zoneCity,
-} from '@/lib/time'
+import { formatDate, formatTimeRange, formatWeekday, sameWallClock, zoneCity } from '@/lib/time'
 
 /** This is what the formatting layer reads on top of the resolver input: the address and
  *  region refs that feed the where and origin strings, when the surface has them. */
@@ -141,7 +134,7 @@ export function surfaceView(parts: SurfaceParts, surface: EventSurface): EventSu
  */
 export function useEventDisplay(event: DisplayableEvent): EventDisplayStrings {
   const { t } = useTranslation()
-  const { locale } = useLocale()
+  const { locale, formatLocale } = useLocale()
   // The resolver reads the wall clock.
   // A stable event identity, through TanStack's structural sharing, would otherwise freeze
   // "Today" and open-versus-closed for as long as a surface stays mounted.
@@ -153,7 +146,6 @@ export function useEventDisplay(event: DisplayableEvent): EventDisplayStrings {
     const schedule = event.schedule
     const { kind, status, full, next, nextEnd, origin, firstSession, sessions } = display
 
-    const formatLocale = regionalLocale(locale)
     const date = (dt: DateTime) => formatDate(dt, formatLocale)
     const shortDate = (dt: DateTime) => formatDate(dt, formatLocale, { weekday: false })
 
@@ -365,5 +357,5 @@ export function useEventDisplay(event: DisplayableEvent): EventDisplayStrings {
       blockedMessage,
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps -- `minute` is the invalidation trigger: the resolver reads the wall clock itself
-  }, [event, locale, t, minute])
+  }, [event, locale, formatLocale, t, minute])
 }

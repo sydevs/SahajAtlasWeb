@@ -6,7 +6,6 @@
  * localize.
  */
 
-const MILE_REGIONS = new Set(['US', 'GB'])
 const KM_PER_MILE = 1.609344
 
 /**
@@ -14,11 +13,9 @@ const KM_PER_MILE = 1.609344
  * reads kilometres; `regionalLocale` supplies the visitor's region (`en-GB`, `de-GB`).
  */
 export const usesMiles = (locale: string): boolean => {
-  try {
-    return MILE_REGIONS.has(new Intl.Locale(locale).region ?? '')
-  } catch {
-    return false
-  }
+  const { region } = new Intl.Locale(locale)
+
+  return region === 'US' || region === 'GB'
 }
 
 // Intl.NumberFormat construction is the expensive part (~0.1 ms) and this runs

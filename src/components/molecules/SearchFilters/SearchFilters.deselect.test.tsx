@@ -27,7 +27,7 @@ vi.mock('react-i18next', () => ({
   useTranslation: () => ({ t: (key: string) => key }),
 }))
 vi.mock('@/hooks/use-locale', () => ({
-  useLocale: () => ({ locale: 'en', languageLabel: (code: string) => code }),
+  useLocale: () => ({ locale: 'en', formatLocale: 'en-US', languageLabel: (code: string) => code }),
 }))
 vi.mock('@tanstack/react-query', async (importOriginal) => ({
   ...(await importOriginal<typeof import('@tanstack/react-query')>()),

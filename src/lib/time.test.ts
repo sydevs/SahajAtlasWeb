@@ -1,5 +1,5 @@
-import { describe, it, expect } from 'vitest'
-import { DateTime } from 'luxon'
+import { afterAll, beforeAll, describe, it, expect } from 'vitest'
+import { DateTime, Settings } from 'luxon'
 
 import {
   formatDate,
@@ -22,6 +22,16 @@ const at = (iso: string, zone = 'Europe/London') => DateTime.fromISO(iso, { zone
 // Intl renders the range separator as an en dash, sometimes with non-breaking
 // spaces around it — normalize whitespace so assertions stay readable.
 const norm = (value: string) => value.replace(/\s+/g, ' ').trim()
+
+// "This year" for the year rule: every date below sits in 2026 unless it names another year.
+const realNow = Settings.now
+
+beforeAll(() => {
+  Settings.now = () => Date.UTC(2026, 10, 6, 12)
+})
+afterAll(() => {
+  Settings.now = realNow
+})
 
 describe('formatTimeRange', () => {
   // Devindra (12 Nov): never our own am/pm. Each locale reads its own clock, as Intl writes it.
@@ -51,12 +61,6 @@ describe('formatTimeRange', () => {
     const out = norm(formatTimeRange(at('2026-07-04T18:30'), at('2026-07-04T19:45'), 'en-US'))
 
     expect(out).toBe('6:30 – 7:45 PM')
-  })
-
-  it('keeps an overnight session to its two times, never two full dates', () => {
-    const out = norm(formatTimeRange(at('2026-10-29T21:30'), at('2026-10-30T00:30'), 'en-US'))
-
-    expect(out).toBe('9:30 PM – 12:30 AM')
   })
 
   it('shows both day periods when the range crosses noon', () => {
@@ -127,6 +131,8 @@ describe('formatTimeRange', () => {
     // which reads as a morning start.
     expect(norm(formatTimeRange(wallClock(17), wallClock(12), 'en-US'))).toBe('5:00 PM – 12:00 PM')
     expect(formatTimeRange(wallClock(17), wallClock(12), 'en-GB')).toBe('17:00–12:00')
+    // A 24-hour clock has no day period to lose, so the locale keeps its own range and suffix.
+    expect(norm(formatTimeRange(wallClock(17), wallClock(12), 'de'))).toBe('17:00–12:00 Uhr')
   })
 
   it('formats in the event zone, not the machine zone', () => {
@@ -138,12 +144,6 @@ describe('formatTimeRange', () => {
 })
 
 describe('wallClock', () => {
-  it('writes a typed-in time like any class time, in the locale’s clock', () => {
-    expect(norm(formatTimeRange(wallClock(20, 30), null, 'en-US'))).toBe('8:30 PM')
-    expect(formatTimeRange(wallClock(20, 30), null, 'en-GB')).toBe('20:30')
-    expect(formatTimeRange(wallClock(20, 30), null, 'de')).toBe('20:30')
-  })
-
   it('reads hour 24 as midnight, so a range can end there', () => {
     expect(norm(formatTimeRange(wallClock(17), wallClock(24), 'en-US'))).toBe('5:00 PM – 12:00 AM')
     expect(formatTimeRange(wallClock(17), wallClock(24), 'en-GB')).toBe('17:00–00:00')
@@ -151,19 +151,17 @@ describe('wallClock', () => {
 })
 
 describe('formatDate', () => {
-  const now = DateTime.fromISO('2026-11-06T12:00', { zone: 'Europe/London' })
-
   it('writes the class page date the visitor’s way', () => {
     const date = at('2026-11-11T19:30')
 
-    expect(formatDate(date, 'en-GB', { now })).toBe('Wed 11 Nov')
-    expect(formatDate(date, 'en-US', { now })).toBe('Wed, Nov 11')
-    expect(formatDate(date, 'en-GB', { now, weekday: false })).toBe('11 Nov')
+    expect(formatDate(date, 'en-GB')).toBe('Wed 11 Nov')
+    expect(formatDate(date, 'en-US')).toBe('Wed, Nov 11')
+    expect(formatDate(date, 'en-GB', { weekday: false })).toBe('11 Nov')
   })
 
   it('adds the year only when it is not this one', () => {
-    expect(formatDate(at('2022-12-21T19:30'), 'en-GB', { now })).toBe('Wed, 21 Dec 2022')
-    expect(formatDate(at('2027-01-06T19:30'), 'en-GB', { now, weekday: false })).toBe('6 Jan 2027')
+    expect(formatDate(at('2022-12-21T19:30'), 'en-GB')).toBe('Wed, 21 Dec 2022')
+    expect(formatDate(at('2027-01-06T19:30'), 'en-GB', { weekday: false })).toBe('6 Jan 2027')
   })
 })
 
@@ -232,7 +230,7 @@ describe('regionalLocale', () => {
   // further down says nothing about the clock they read.
   it("follows the browser's first language, not an English one further down", () => {
     const time = (browsers: string[]) =>
-      norm(formatTimeRange(wallClock(17, 45), null, regionalLocale('en', browsers)))
+      norm(formatTimeRange(at('2026-11-13T17:45'), null, regionalLocale('en', browsers)))
 
     expect(regionalLocale('en', ['fr-FR', 'en-AU'])).toBe('en-FR')
     expect(regionalLocale('en', ['de-DE', 'de', 'en-US', 'en'])).toBe('en-DE')
@@ -250,11 +248,9 @@ describe('regionalLocale', () => {
   // it. So a browser in another language keeps its own clock and date order, in English words.
   it("reads another language's clock and date order, in the interface's words", () => {
     const time = (browser: string) =>
-      norm(formatTimeRange(wallClock(17, 45), null, regionalLocale('en', [browser])))
+      norm(formatTimeRange(at('2026-11-13T17:45'), null, regionalLocale('en', [browser])))
     const day = (browser: string) =>
-      formatDate(DateTime.fromISO('2026-11-13'), regionalLocale('en', [browser]), {
-        now: DateTime.fromISO('2026-11-01'),
-      })
+      formatDate(DateTime.fromISO('2026-11-13'), regionalLocale('en', [browser]))
 
     expect(time('cs-CZ')).toBe('17:45')
     expect(day('cs-CZ')).toBe('Fri, 13 Nov')

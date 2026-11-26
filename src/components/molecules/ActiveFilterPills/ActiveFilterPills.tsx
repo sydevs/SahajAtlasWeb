@@ -10,7 +10,7 @@ import { regionsQuery } from '@/config/api'
 import { useEventFilters, useSetFilters } from '@/hooks/use-filters'
 import { useLocale } from '@/hooks/use-locale'
 import { formatTimePeriods } from '@/lib'
-import { formatDate, regionalLocale, weekdayNames } from '@/lib/time'
+import { formatDate, weekdayNames } from '@/lib/time'
 import { isDateRestricted, isTimeRestricted } from '@/lib/shape'
 
 /**
@@ -28,7 +28,7 @@ import { isDateRestricted, isTimeRestricted } from '@/lib/shape'
  */
 export function ActiveFilterPills() {
   const { t } = useTranslation()
-  const { locale, languageLabel } = useLocale()
+  const { formatLocale, languageLabel } = useLocale()
   const { format, timeOfDay, daysOfWeek, languages, cadence, dateRange, region } = useEventFilters()
   const {
     setFormat,
@@ -40,7 +40,7 @@ export function ActiveFilterPills() {
     setRegion,
   } = useSetFilters()
 
-  const weekdaysShort = useMemo(() => weekdayNames(regionalLocale(locale), 'short'), [locale])
+  const weekdaysShort = useMemo(() => weekdayNames(formatLocale, 'short'), [formatLocale])
 
   // The cache-once region tree, to resolve the selected slug to its display name below.
   const { data: regions } = useQuery(regionsQuery())
@@ -80,7 +80,7 @@ export function ActiveFilterPills() {
     pills.push({
       key: 'time',
       // This is empty when every period is selected, a whole-day cover. It then reads as "any time".
-      label: formatTimePeriods(locale, timeOfDay) || t('filters.chrome.any_time'),
+      label: formatTimePeriods(formatLocale, timeOfDay) || t('filters.chrome.any_time'),
       onRemove: () => setTimeOfDay([]),
     })
   }
@@ -92,8 +92,7 @@ export function ActiveFilterPills() {
     })
   }
   if (isDateRestricted(dateRange)) {
-    const fmt = (iso: string) =>
-      formatDate(DateTime.fromISO(iso), regionalLocale(locale), { weekday: false })
+    const fmt = (iso: string) => formatDate(DateTime.fromISO(iso), formatLocale, { weekday: false })
     const { start, end } = dateRange
     let label = ''
 

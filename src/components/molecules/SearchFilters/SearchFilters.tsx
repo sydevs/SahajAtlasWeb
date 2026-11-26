@@ -14,7 +14,7 @@ import { fieldChrome } from '@/components/atoms/Select'
 import { geojsonQuery, regionsQuery } from '@/config/api'
 import { useLocale } from '@/hooks/use-locale'
 import { formatTimePeriods } from '@/lib'
-import { regionalLocale, weekdayNames } from '@/lib/time'
+import { weekdayNames } from '@/lib/time'
 import {
   type EventCadence,
   type EventFilters,
@@ -171,7 +171,7 @@ export type SearchFiltersProps = {
  */
 export function SearchFilters({ value, onChange }: SearchFiltersProps) {
   const { t } = useTranslation()
-  const { locale, languageLabel } = useLocale()
+  const { locale, formatLocale, languageLabel } = useLocale()
   const { format, timeOfDay, daysOfWeek, languages, cadence, dateRange, region } = value
 
   // Patch one or more fields of the current draft.
@@ -217,12 +217,11 @@ export function SearchFilters({ value, onChange }: SearchFiltersProps) {
   // index plus 1. `short` labels fit one line at the reduced pill size. The full name is the
   // accessible label.
   const weekdays = useMemo(() => {
-    const formatLocale = regionalLocale(locale)
     const short = weekdayNames(formatLocale, 'short')
     const long = weekdayNames(formatLocale)
 
     return short.map((label, index) => ({ value: String(index + 1), label, full: long[index] }))
-  }, [locale])
+  }, [formatLocale])
 
   // The distinct language codes present in the feed, labelled and sorted per locale.
   const languageOptions = useMemo(() => {
@@ -341,7 +340,7 @@ export function SearchFilters({ value, onChange }: SearchFiltersProps) {
               active-filter pill shows. It stays hidden when nothing is
               selected, so there is no "any time" placeholder. */}
           {timeOfDay.length > 0 && (
-            <p className="text-xs text-gray-11">{formatTimePeriods(locale, timeOfDay)}</p>
+            <p className="text-xs text-gray-11">{formatTimePeriods(formatLocale, timeOfDay)}</p>
           )}
         </div>
       </FilterGroup>

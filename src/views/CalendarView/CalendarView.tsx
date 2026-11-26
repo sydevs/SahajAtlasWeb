@@ -43,7 +43,7 @@ import {
   isCalendarViewOption,
   resolveCalendarView,
 } from '@/lib/shape'
-import { formatDate, formatMonth, regionalLocale, scheduleXLocale, zoneCity } from '@/lib/time'
+import { formatDate, formatMonth, scheduleXLocale, zoneCity } from '@/lib/time'
 import { BackButton } from '@/views/nav'
 import { ExpandSheetButton, FilterButton } from '@/views/shared'
 import { DrawerErrorBody, DrawerLoadingBody } from '@/views/fallbacks'
@@ -85,7 +85,7 @@ const drive = (controls: CalendarControlsPlugin, fn: (c: CalendarControlsPlugin)
 // own atoms — one consistent drawer header — and SX's header bar stays hidden in globals.css.
 function CalendarControls({ controls }: { controls: CalendarControlsPlugin }) {
   const { t } = useTranslation()
-  const { locale } = useLocale()
+  const { formatLocale } = useLocale()
   const isWide = useIsWideWidget()
   const stored = useCalendarPosition((s) => s.view)
   // The OPTION, not the stored name: below the crossing a stored `week` renders a month
@@ -99,7 +99,6 @@ function CalendarControls({ controls }: { controls: CalendarControlsPlugin }) {
   // but the specific date (condensed month) in the week + list views — for the week its first day.
   const focused = date ?? DateTime.now().toISODate()
   const dt = focused ? DateTime.fromISO(focused) : null
-  const formatLocale = regionalLocale(locale)
   const label = !dt
     ? ''
     : option === CALENDAR_VIEW_MONTH
@@ -274,7 +273,7 @@ function CalendarGrid({
   // The "Online" term is the SAME one the list/detail views show for an online event's
   // location (`events:display.online`) — no calendar-specific duplicate.
   const { t } = useTranslation()
-  const { locale } = useLocale()
+  const { locale, formatLocale } = useLocale()
   const { theme } = useTheme()
   const navigate = useAtlasNavigate()
   const isWide = useIsWideWidget()
@@ -328,7 +327,7 @@ function CalendarGrid({
       // SX needs a supported BCP-47 code (see `scheduleXLocale`), or it throws. This project's
       // token overrides (globals.css) carry the light/dark and accent theming regardless of
       // `isDark`.
-      locale: scheduleXLocale(regionalLocale(locale)),
+      locale: scheduleXLocale(formatLocale),
       callbacks: {
         // Each entry carries its event's route. This opens the matching EventView — the atlas
         // navigate stamps camera and depth like every other in-widget push.

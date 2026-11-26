@@ -24,7 +24,6 @@ describe('formatDistance', () => {
     expect(usesMiles('en')).toBe(false)
     expect(usesMiles('en-CZ')).toBe(false)
     expect(usesMiles('fr')).toBe(false)
-    expect(usesMiles('x')).toBe(false)
 
     expect(formatDistance(1.609344, 'en-US')).toBe('1 mi')
     expect(formatDistance(16.09344, 'en-US')).toBe('10 mi')

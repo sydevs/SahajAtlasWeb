@@ -13,7 +13,7 @@ vi.mock('react-i18next', () => ({
   useTranslation: () => ({ t: (key: string) => key }),
 }))
 vi.mock('@/hooks/use-locale', () => ({
-  useLocale: () => ({ locale: 'en' }),
+  useLocale: () => ({ locale: 'en', formatLocale: 'en-US' }),
 }))
 
 const FULL = '5 Market St, Cambridge CB2 3QJ'

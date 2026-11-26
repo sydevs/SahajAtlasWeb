@@ -24,7 +24,7 @@ const harness = vi.hoisted(() => ({
   geolocate: () => {},
   filters: {},
   padding: { top: 0, right: 0, bottom: 0, left: 0 },
-  locale: { t: (key: string) => key, locale: 'en', languageCode: 'en' },
+  locale: { t: (key: string) => key, locale: 'en', formatLocale: 'en-US', languageCode: 'en' },
   mapbox: {
     getLanguage: () => 'en',
     getZoom: () => 5,
