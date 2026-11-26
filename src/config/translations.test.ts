@@ -80,7 +80,7 @@ const arrayLiterals = (source: string, name: string): string[] => {
 // exporting a list only a spec reads would be the wrong trade — so they are read out of its
 // source, the way `WEEK_NUMBERS` reads `use-event-display.ts`. `TIME_PERIODS` and `SORT_ORDERS`
 // are already exported from `lib/shape`, so those import.
-const filtersSource = readSource('components/molecules/SearchFilters/SearchFilters.tsx')
+const filtersSource = readSource('components/organisms/SearchFilters/SearchFilters.tsx')
 
 const FORMATS = arrayLiterals(filtersSource, 'const FORMAT_OPTIONS[^=]*=')
 const CADENCES = arrayLiterals(filtersSource, 'const CADENCE_OPTIONS[^=]*=').map((o) =>

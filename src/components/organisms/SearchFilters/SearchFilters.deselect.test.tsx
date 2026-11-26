@@ -38,6 +38,15 @@ vi.mock('@/config/api', () => ({
   regionsQuery: () => ({ queryKey: ['regions'] }),
 }))
 
+// jsdom has no ResizeObserver, which the More filters disclosure watches while open.
+vi.stubGlobal(
+  'ResizeObserver',
+  class {
+    observe() {}
+    disconnect() {}
+  },
+)
+
 let cleanup: (() => void) | null = null
 
 afterEach(() => {
@@ -66,9 +75,11 @@ function mount(filters: EventFilters) {
   return { drafts, host }
 }
 
-/** The toggle item whose accessible label is `text`, within the group labelled `group`. */
+/** The toggle item whose accessible label is `text`, within the question whose legend is `group`. */
 const itemIn = (host: HTMLElement, group: string, text: string) => {
-  const root = host.querySelector(`[aria-label="${group}"]`)
+  const root = [...host.querySelectorAll('fieldset')].find(
+    (fieldset) => fieldset.querySelector('legend')?.textContent === group,
+  )
   const item = [...(root?.querySelectorAll('button') ?? [])].find(
     (button) => button.textContent === text,
   )

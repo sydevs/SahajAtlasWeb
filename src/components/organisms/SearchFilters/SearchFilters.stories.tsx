@@ -11,7 +11,7 @@ import { mockEventSlimList } from '@/mocks/events'
 import { DEFAULT_FILTERS, facetCounts, facetRelevance } from '@/lib/shape'
 
 export default {
-  title: 'Molecules',
+  title: 'Organisms',
 } satisfies StoryDefault
 
 // A few distinct language sets, so the Language question has options to count.

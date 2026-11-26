@@ -6,7 +6,7 @@ import { WhereFilter } from './WhereFilter'
 
 import { DrawerBody, DrawerFooter } from '@/components/atoms/Drawer'
 import { Button } from '@/components/atoms/Button'
-import { SearchFilters } from '@/components/molecules'
+import { SearchFilters } from '@/components/organisms'
 import { useEventFilters } from '@/hooks/use-filters'
 import { useFilterFacets } from '@/hooks/use-filter-facets'
 import {

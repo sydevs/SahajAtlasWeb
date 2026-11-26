@@ -17,7 +17,7 @@ vi.mock('@tanstack/react-query', async (importOriginal) => ({
 }))
 vi.mock('@/hooks/use-filter-facets', () => ({ useFilterFacets: () => undefined }))
 vi.mock('./WhereFilter', () => ({ WhereFilter: () => null }))
-vi.mock('@/components/molecules', () => ({
+vi.mock('@/components/organisms', () => ({
   SearchFilters: ({ value }: { value: EventFilters }) => <i>draft-region:{value.region ?? '∅'}</i>,
 }))
 vi.mock('@/views/nav', () => ({ NavHeader: () => null }))

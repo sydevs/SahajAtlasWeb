@@ -1,17 +1,18 @@
 import type { TranslationKey } from '@/types/i18next'
 import type { FilterFacets } from '@/hooks/use-filter-facets'
 
-import { type ReactNode, useMemo, useState } from 'react'
+import { type ReactNode, useMemo } from 'react'
 import { Info } from 'luxon'
 import { useTranslation } from 'react-i18next'
 import { ChevronDown } from 'lucide-react'
-import clsx from 'clsx'
 
 import { Checkbox } from '@/components/atoms/Checkbox'
+import { Disclosure } from '@/components/atoms/Disclosure'
 import { Dropdown } from '@/components/atoms/Dropdown'
 import { Input } from '@/components/atoms/Input'
 import { ToggleGroup, ToggleGroupItem } from '@/components/atoms/ToggleGroup'
 import { fieldChrome } from '@/components/atoms/Select'
+import { type FieldControlProps, FormField } from '@/components/molecules/FormField'
 import { useLocale } from '@/hooks/use-locale'
 import { formatTimePeriods } from '@/lib'
 import {
@@ -34,7 +35,7 @@ const INLINE_LANGUAGES = 4
 // upper-case on the wire), so no lookup map is needed.
 //
 // The Format and Frequency toggles omit the "any" option. A single-select
-// toggle can be left unselected, meaning any, and the group's "Clear"
+// toggle can be left unselected, meaning any, and the field's "Clear"
 // resets it. So the toggle only shows the real choices.
 //
 // ⚠ Clicking the SELECTED option clears it. That needs the `|| 'any'` in
@@ -60,58 +61,28 @@ function OptionCount({ count }: { count: number | undefined }) {
   )
 }
 
-// A labelled filter group: a heading, with an optional right-aligned
-// hint, such as the time readout, above its control. When the filter is
-// `active`, a small "Clear" link after the label resets just that filter,
-// through `onClear`.
-function FilterGroup({
-  label,
-  hint,
-  active,
-  onClear,
-  children,
-}: {
+type QuestionProps = {
+  name: string
   label: string
-  hint?: string
-  active?: boolean
-  onClear?: () => void
-  children: ReactNode
-}) {
+  /** The field has an answer, so its Clear shows. */
+  active: boolean
+  onClear: () => void
+  children: (control: FieldControlProps) => ReactNode
+}
+
+/** One filter question: a `FormField` fieldset, named by its legend, with a Clear for its answer. */
+function Question({ name, label, active, onClear, children }: QuestionProps) {
   const { t } = useTranslation()
 
   return (
-    // ⚠ The wider gap on a touch screen is not spacing taste: `Clear` is a small text control,
-    // and its invisible 44px tap area (#432) reaches into whatever sits under the row. At the
-    // 8px gap the toggles below — positioned, so painted later — took those taps, and both
-    // controls measured short. The gap is what lets each one have its own.
-    <section className="flex flex-col gap-2 pointer-coarse:gap-4">
-      <div className="flex items-baseline justify-between gap-2">
-        <div className="flex items-baseline gap-2">
-          <span className="text-sm font-medium text-foreground">{label}</span>
-          {/* Clear is HIDDEN, never unmounted, so it cannot change the row's
-              height. The row is `items-baseline`, and the two children have
-              different line boxes: the label is `text-sm` (19.5px), this is
-              `text-xs` (about 20px). So mounting the button on selection
-              grew the row and pushed every section below it down. Reserving
-              the space is deterministic, where pinning a measured pixel
-              height is not. It survives a font change and a translation
-              that wraps. `visibility: hidden` also takes it out of the tab
-              order and the accessibility tree, so no `aria-hidden` or
-              `tabIndex` is needed to stop a hidden control being reachable. */}
-          {onClear && (
-            <button
-              className={`touch-target relative text-xs font-medium text-primary-11 hover:underline ${active ? '' : 'invisible'}`}
-              type="button"
-              onClick={onClear}
-            >
-              {t('filters.chrome.clear_one')}
-            </button>
-          )}
-        </div>
-        {hint && <span className="text-xs text-gray-11">{hint}</span>}
-      </div>
+    <FormField
+      as="fieldset"
+      clear={{ label: t('filters.chrome.clear_one'), active, onClear }}
+      label={label}
+      name={name}
+    >
       {children}
-    </section>
+    </FormField>
   )
 }
 
@@ -127,9 +98,7 @@ const clampDate = (value: string, min: string, max: string): string => {
   return value
 }
 
-// One labelled date bound, From or To: a native date input scoped to the
-// picker window. This is module-private, like `FilterGroup`. Both bounds
-// share it, so the input styling lives in one place.
+// One labelled date bound, From or To: a native date input scoped to the picker window.
 function DateBound({
   label,
   value,
@@ -176,7 +145,12 @@ type ControlProps = {
  * Languages: one tap each when there are few, a dropdown when there are many. The options are
  * the languages classes in this scope actually use, most-used first.
  */
-function LanguageFilter({ value, patch, facets }: ControlProps) {
+function LanguageFilter({
+  value,
+  patch,
+  facets,
+  control,
+}: ControlProps & { control: FieldControlProps }) {
   const { t } = useTranslation()
   const { languageLabel } = useLocale()
   const options = facets?.counts.languages ?? []
@@ -185,8 +159,9 @@ function LanguageFilter({ value, patch, facets }: ControlProps) {
   if (options.length <= INLINE_LANGUAGES) {
     return (
       <ToggleGroup
-        aria-label={t('filters.language.label')}
+        {...control}
         className="grid grid-cols-2"
+        size="md"
         type="multiple"
         value={languages}
         onValueChange={(next) => patch({ languages: next })}
@@ -194,7 +169,7 @@ function LanguageFilter({ value, patch, facets }: ControlProps) {
         {options.map((option) => (
           <ToggleGroupItem
             key={option.code}
-            className="h-11 justify-between gap-2 px-3"
+            className="justify-between gap-2 px-3"
             disabled={option.count === 0 && !languages.includes(option.code)}
             value={option.code}
           >
@@ -251,8 +226,6 @@ function LanguageFilter({ value, patch, facets }: ControlProps) {
 function MoreFilters({ value, patch, facets }: ControlProps) {
   const { t } = useTranslation()
   const { cadence, dateRange } = value
-  const active = cadence !== 'any' || isDateRestricted(dateRange)
-  const [open, setOpen] = useState(active)
   // The date picker is bounded to today through today plus 12 months, the window the URL codec
   // clamps to.
   const { min: dateMin, max: dateMax } = dateWindow()
@@ -260,34 +233,23 @@ function MoreFilters({ value, patch, facets }: ControlProps) {
   const showCadence = cadence !== 'any' || (facets?.relevance.cadence ?? true)
 
   return (
-    <div className="flex flex-col">
-      <button
-        aria-expanded={open}
-        className="-mx-gutter flex min-h-11 items-center justify-between gap-2 px-gutter text-sm font-semibold text-foreground outline-none hover:bg-gray-3 focus-visible:ring-2 focus-visible:ring-focus focus-visible:ring-inset"
-        type="button"
-        onClick={() => setOpen((current) => !current)}
-      >
-        <span className="flex items-center gap-2">
-          {t('filters.more.label')}
-          {active && !open && <span aria-hidden className="size-2 rounded-full bg-primary-9" />}
-        </span>
-        <ChevronDown
-          aria-hidden
-          className={clsx('shrink-0 text-gray-11 transition-transform', open && 'rotate-180')}
-          size={18}
-        />
-      </button>
-      {open && (
-        <div className="flex flex-col gap-5 pt-2">
-          {showCadence && (
-            <FilterGroup
-              active={cadence !== 'any'}
-              label={t('filters.cadence.label')}
-              onClear={() => patch({ cadence: 'any' })}
-            >
+    <Disclosure
+      defaultOpen={cadence !== 'any' || isDateRestricted(dateRange)}
+      title={t('filters.more.label')}
+    >
+      <div className="flex flex-col gap-5">
+        {showCadence && (
+          <Question
+            active={cadence !== 'any'}
+            label={t('filters.cadence.label')}
+            name="filter-cadence"
+            onClear={() => patch({ cadence: 'any' })}
+          >
+            {(control) => (
               <ToggleGroup
-                aria-label={t('filters.cadence.label')}
+                {...control}
                 className="grid grid-cols-2"
+                size="md"
                 type="single"
                 value={cadence}
                 onValueChange={(next) => patch({ cadence: (next || 'any') as EventCadence })}
@@ -295,7 +257,7 @@ function MoreFilters({ value, patch, facets }: ControlProps) {
                 {CADENCE_OPTIONS.map((option) => (
                   <ToggleGroupItem
                     key={option}
-                    className="h-11 gap-1.5"
+                    className="gap-1.5"
                     disabled={counts?.[option] === 0 && cadence !== option}
                     value={option}
                   >
@@ -304,13 +266,16 @@ function MoreFilters({ value, patch, facets }: ControlProps) {
                   </ToggleGroupItem>
                 ))}
               </ToggleGroup>
-            </FilterGroup>
-          )}
-          <FilterGroup
-            active={isDateRestricted(dateRange)}
-            label={t('filters.dates.label')}
-            onClear={() => patch({ dateRange: { start: null, end: null } })}
-          >
+            )}
+          </Question>
+        )}
+        <Question
+          active={isDateRestricted(dateRange)}
+          label={t('filters.dates.label')}
+          name="filter-dates"
+          onClear={() => patch({ dateRange: { start: null, end: null } })}
+        >
+          {() => (
             <div className="grid grid-cols-2 gap-2">
               <DateBound
                 highlight={dateRange.start !== null}
@@ -329,10 +294,10 @@ function MoreFilters({ value, patch, facets }: ControlProps) {
                 onChange={(end) => patch({ dateRange: { ...dateRange, end } })}
               />
             </div>
-          </FilterGroup>
-        </div>
-      )}
-    </div>
+          )}
+        </Question>
+      </div>
+    </Disclosure>
   )
 }
 
@@ -351,16 +316,15 @@ export type SearchFiltersProps = {
  * The event-filters form, in the order a visitor decides: where, online or in person, day, time
  * of day, language, then Frequency and Dates under "More filters". This is fully controlled: it
  * edits `value` and reports the next draft through `onChange`, so the host (FilterView) applies
- * it on demand.
+ * it on demand. Each question is a `FormField` fieldset over a `size="md"` `ToggleGroup`.
  *
  * A question that cannot change the results in this scope is not asked, unless it is already
  * answered (`shownGroups`). An option that would leave no classes is disabled unless selected.
- * Every option is one toggle style; the groups differ only in layout.
  */
 export function SearchFilters({ value, onChange, where, facets }: SearchFiltersProps) {
   const { t } = useTranslation()
   const { locale } = useLocale()
-  const { format, timeOfDay, daysOfWeek } = value
+  const { format, timeOfDay, daysOfWeek, languages } = value
   const shown = shownGroups(value, facets)
   const counts = facets?.counts
 
@@ -376,115 +340,128 @@ export function SearchFilters({ value, onChange, where, facets }: SearchFiltersP
     return short.map((label, index) => ({ value: index + 1, label, full: long[index] }))
   }, [locale])
 
-  const timeActive = isTimeRestricted(timeOfDay)
-
   return (
     <div className="flex flex-col gap-5">
       {where}
 
       {shown.format && (
-        <FilterGroup
+        <Question
           active={format !== 'any'}
           label={t('filters.format.question')}
+          name="filter-format"
           onClear={() => patch({ format: 'any' })}
         >
-          <ToggleGroup
-            aria-label={t('filters.format.question')}
-            className="grid grid-cols-2"
-            type="single"
-            value={format}
-            onValueChange={(next) => patch({ format: (next || 'any') as EventFormat })}
-          >
-            {FORMAT_OPTIONS.map((option) => (
-              <ToggleGroupItem
-                key={option}
-                className="h-11 gap-1.5"
-                disabled={counts?.format[option] === 0 && format !== option}
-                value={option}
-              >
-                {t(`filters.format.${option}`)}
-                <OptionCount count={counts?.format[option]} />
-              </ToggleGroupItem>
-            ))}
-          </ToggleGroup>
-        </FilterGroup>
-      )}
-
-      {shown.days && (
-        <FilterGroup
-          active={daysOfWeek.length > 0}
-          label={t('filters.days.short_label')}
-          onClear={() => patch({ daysOfWeek: [] })}
-        >
-          <ToggleGroup
-            aria-label={t('filters.days.short_label')}
-            className="grid grid-cols-7"
-            type="multiple"
-            value={daysOfWeek.map(String)}
-            onValueChange={(next) => patch({ daysOfWeek: next.map(Number) })}
-          >
-            {/* The abbreviation is the accessible name, not the full day. A name a viewer
-                cannot see is a name a speech-input viewer cannot say (WCAG 2.5.3), and the
-                group above already says these are days. `title` keeps the full name within
-                reach of a pointer. */}
-            {weekdays.map((day) => (
-              <ToggleGroupItem
-                key={day.value}
-                className="h-11 min-w-0 px-0"
-                disabled={counts?.days[day.value] === 0 && !daysOfWeek.includes(day.value)}
-                title={day.full}
-                value={String(day.value)}
-              >
-                {day.label}
-              </ToggleGroupItem>
-            ))}
-          </ToggleGroup>
-        </FilterGroup>
-      )}
-
-      {shown.time && (
-        <FilterGroup
-          active={timeActive}
-          label={t('filters.time.label')}
-          onClear={() => patch({ timeOfDay: [] })}
-        >
-          <div className="flex flex-col gap-2">
+          {(control) => (
             <ToggleGroup
-              aria-label={t('filters.time.label')}
+              {...control}
               className="grid grid-cols-2"
-              type="multiple"
-              value={timeOfDay}
-              onValueChange={(next) => patch({ timeOfDay: next as TimePeriod[] })}
+              size="md"
+              type="single"
+              value={format}
+              onValueChange={(next) => patch({ format: (next || 'any') as EventFormat })}
             >
-              {TIME_PERIODS.map((period) => (
+              {FORMAT_OPTIONS.map((option) => (
                 <ToggleGroupItem
-                  key={period}
-                  className="h-11 justify-between gap-2 px-3"
-                  disabled={counts?.time[period] === 0 && !timeOfDay.includes(period)}
-                  value={period}
+                  key={option}
+                  className="gap-1.5"
+                  disabled={counts?.format[option] === 0 && format !== option}
+                  value={option}
                 >
-                  {t(`filters.time.${period}`)}
-                  <OptionCount count={counts?.time[period]} />
+                  {t(`filters.format.${option}`)}
+                  <OptionCount count={counts?.format[option]} />
                 </ToggleGroupItem>
               ))}
             </ToggleGroup>
-            {/* The times the selection covers. This is the same string the active-filter pill
-                shows, hidden when nothing is selected. */}
-            {timeOfDay.length > 0 && (
-              <p className="text-xs text-gray-11">{formatTimePeriods(locale, timeOfDay)}</p>
-            )}
-          </div>
-        </FilterGroup>
+          )}
+        </Question>
+      )}
+
+      {shown.days && (
+        <Question
+          active={daysOfWeek.length > 0}
+          label={t('filters.days.short_label')}
+          name="filter-days"
+          onClear={() => patch({ daysOfWeek: [] })}
+        >
+          {(control) => (
+            <ToggleGroup
+              {...control}
+              className="grid grid-cols-7"
+              size="md"
+              type="multiple"
+              value={daysOfWeek.map(String)}
+              onValueChange={(next) => patch({ daysOfWeek: next.map(Number) })}
+            >
+              {/* The abbreviation is the accessible name, not the full day. A name a viewer
+                  cannot see is a name a speech-input viewer cannot say (WCAG 2.5.3), and the
+                  legend already says these are days. `title` keeps the full name within reach
+                  of a pointer. */}
+              {weekdays.map((day) => (
+                <ToggleGroupItem
+                  key={day.value}
+                  className="min-w-0 px-0"
+                  disabled={counts?.days[day.value] === 0 && !daysOfWeek.includes(day.value)}
+                  title={day.full}
+                  value={String(day.value)}
+                >
+                  {day.label}
+                </ToggleGroupItem>
+              ))}
+            </ToggleGroup>
+          )}
+        </Question>
+      )}
+
+      {shown.time && (
+        <Question
+          active={isTimeRestricted(timeOfDay)}
+          label={t('filters.time.label')}
+          name="filter-time"
+          onClear={() => patch({ timeOfDay: [] })}
+        >
+          {(control) => (
+            <div className="flex flex-col gap-2">
+              <ToggleGroup
+                {...control}
+                className="grid grid-cols-2"
+                size="md"
+                type="multiple"
+                value={timeOfDay}
+                onValueChange={(next) => patch({ timeOfDay: next as TimePeriod[] })}
+              >
+                {TIME_PERIODS.map((period) => (
+                  <ToggleGroupItem
+                    key={period}
+                    className="justify-between gap-2 px-3"
+                    disabled={counts?.time[period] === 0 && !timeOfDay.includes(period)}
+                    value={period}
+                  >
+                    {t(`filters.time.${period}`)}
+                    <OptionCount count={counts?.time[period]} />
+                  </ToggleGroupItem>
+                ))}
+              </ToggleGroup>
+              {/* The times the selection covers. This is the same string the active-filter pill
+                  shows, hidden when nothing is selected. */}
+              {timeOfDay.length > 0 && (
+                <p className="text-xs text-gray-11">{formatTimePeriods(locale, timeOfDay)}</p>
+              )}
+            </div>
+          )}
+        </Question>
       )}
 
       {shown.languages && (
-        <FilterGroup
-          active={value.languages.length > 0}
+        <Question
+          active={languages.length > 0}
           label={t('filters.language.label')}
+          name="filter-languages"
           onClear={() => patch({ languages: [] })}
         >
-          <LanguageFilter facets={facets} patch={patch} value={value} />
-        </FilterGroup>
+          {(control) => (
+            <LanguageFilter control={control} facets={facets} patch={patch} value={value} />
+          )}
+        </Question>
       )}
 
       <MoreFilters facets={facets} patch={patch} value={value} />

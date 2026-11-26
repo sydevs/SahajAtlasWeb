@@ -164,3 +164,33 @@ describe('a field around a control that labels itself', () => {
     expect(wired).toMatchObject({ id: undefined, 'aria-describedby': 'consent-error' })
   })
 })
+
+describe('the optional Clear', () => {
+  const field = (clear?: { active: boolean }) =>
+    renderToStaticMarkup(
+      <FormField
+        as="fieldset"
+        clear={clear && { label: 'Clear', active: clear.active, onClear: () => {} }}
+        label="Day"
+        name="days"
+      >
+        <span />
+      </FormField>,
+    )
+
+  it('is absent unless asked for', () => {
+    expect(field()).not.toContain('<button')
+  })
+
+  it('sits outside the legend, so the group keeps the question as its name', () => {
+    const html = field({ active: true })
+
+    expect(html).toMatch(/<legend[^>]*>Day<\/legend>/)
+    expect(html).toMatch(/<button[^>]*>Clear<\/button>/)
+  })
+
+  it('keeps its place while the field is empty, hidden rather than unmounted', () => {
+    expect(field({ active: false })).toMatch(/<button[^>]*\binvisible\b[^>]*>Clear<\/button>/)
+    expect(field({ active: true })).not.toMatch(/\binvisible\b/)
+  })
+})

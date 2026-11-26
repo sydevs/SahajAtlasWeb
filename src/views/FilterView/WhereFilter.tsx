@@ -5,6 +5,7 @@ import { useSearchParams } from 'react-router'
 import { LocateFixed, X } from 'lucide-react'
 
 import { Button } from '@/components/atoms/Button'
+import { FormField } from '@/components/molecules/FormField'
 import { regionsQuery } from '@/config/api'
 import { useWidgetMode } from '@/config/mode'
 import { useNearMe, useNearVisitor } from '@/hooks/use-near-me'
@@ -35,7 +36,7 @@ export function WhereFilter({ region, onPlace, onClear, searchable = true }: Whe
   const nearMeOn = useNearVisitor(center)
   const { data: regions } = useQuery(regionsQuery())
   const { status, locate } = useNearMe({ naming: hasMap, onPlace })
-  const section = useRef<HTMLElement>(null)
+  const section = useRef<HTMLDivElement>(null)
 
   const regionName = region ? (regions?.find((node) => node.slug === region)?.name ?? region) : null
   const placeName = center && !nearMeOn ? searchParams.get('q') : null
@@ -64,46 +65,49 @@ export function WhereFilter({ region, onPlace, onClear, searchable = true }: Whe
   }
 
   return (
-    <section ref={section} className="flex flex-col gap-2">
-      <h3 className="text-sm font-semibold text-foreground">{t('filters.where.label')}</h3>
-      {searchable && (
-        <Button
-          aria-pressed={nearMeOn}
-          className={nearMeOn ? 'h-11 self-start' : 'h-11 self-start border-gray-6 text-foreground'}
-          color={nearMeOn ? 'primary' : 'neutral'}
-          isLoading={status === 'locating'}
-          variant={nearMeOn ? 'solid' : 'bordered'}
-          onClick={nearMeOn ? onClear : locate}
-        >
-          {status !== 'locating' && <LocateFixed aria-hidden size={18} />}
-          {t('filters.where.near_me')}
-        </Button>
-      )}
-      {/* `contents`, so the live region takes no gap in the column while it is empty. */}
-      <div className="contents" role="status">
-        {status === 'failed' && (
-          <button
-            className="touch-target relative self-start text-start text-sm text-primary-11 hover:underline"
-            type="button"
-            onClick={searchInstead}
+    <FormField as="fieldset" label={t('filters.where.label')} name="filter-where">
+      <div ref={section} className="flex flex-col gap-2">
+        {searchable && (
+          <Button
+            aria-pressed={nearMeOn}
+            className={
+              nearMeOn ? 'h-11 self-start' : 'h-11 self-start border-gray-6 text-foreground'
+            }
+            color={nearMeOn ? 'primary' : 'neutral'}
+            isLoading={status === 'locating'}
+            variant={nearMeOn ? 'solid' : 'bordered'}
+            onClick={nearMeOn ? onClear : locate}
           >
-            {t('common.map.location_failed')}
-          </button>
+            {status !== 'locating' && <LocateFixed aria-hidden size={18} />}
+            {t('filters.where.near_me')}
+          </Button>
+        )}
+        {/* `contents`, so the live region takes no gap in the column while it is empty. */}
+        <div className="contents" role="status">
+          {status === 'failed' && (
+            <button
+              className="touch-target relative self-start text-start text-sm text-primary-11 hover:underline"
+              type="button"
+              onClick={searchInstead}
+            >
+              {t('common.map.location_failed')}
+            </button>
+          )}
+        </div>
+        {scopeLabel && (
+          <div>
+            <button
+              aria-label={t('filters.a11y.remove', { label: scopeLabel })}
+              className="touch-target relative inline-flex h-8 max-w-full items-center gap-1.5 rounded-full bg-gray-3 ps-3 pe-2 text-sm font-medium text-foreground outline-none hover:bg-gray-4 focus-visible:ring-2 focus-visible:ring-focus"
+              type="button"
+              onClick={onClear}
+            >
+              <span className="truncate">{scopeLabel}</span>
+              <X aria-hidden className="shrink-0 text-gray-11" size={16} />
+            </button>
+          </div>
         )}
       </div>
-      {scopeLabel && (
-        <div>
-          <button
-            aria-label={t('filters.a11y.remove', { label: scopeLabel })}
-            className="touch-target relative inline-flex h-8 max-w-full items-center gap-1.5 rounded-full bg-gray-3 ps-3 pe-2 text-sm font-medium text-foreground outline-none hover:bg-gray-4 focus-visible:ring-2 focus-visible:ring-focus"
-            type="button"
-            onClick={onClear}
-          >
-            <span className="truncate">{scopeLabel}</span>
-            <X aria-hidden className="shrink-0 text-gray-11" size={16} />
-          </button>
-        </div>
-      )}
-    </section>
+    </FormField>
   )
 }

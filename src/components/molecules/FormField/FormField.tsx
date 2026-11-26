@@ -1,4 +1,5 @@
 import { type ReactNode } from 'react'
+import clsx from 'clsx'
 
 /**
  * The `aria-describedby` target for a field's error text. The id
@@ -70,6 +71,11 @@ export type FormFieldProps = FieldTarget & {
    */
   announceError?: boolean
   /**
+   * A small "Clear" link at the end of the label row, which resets just this field. Absent by
+   * default. While `active` is false it is hidden but keeps its place, so it cannot move the row.
+   */
+  clear?: { label: string; active: boolean; onClear: () => void }
+  /**
    * The control, or a function that receives its wiring ({@link FieldControlProps}) — the id,
    * `aria-labelledby`, `aria-describedby`, `aria-required` and `isInvalid` — so no caller
    * assembles them by hand.
@@ -102,6 +108,7 @@ export function FormField({
   name,
   children,
   announceError = true,
+  clear,
 }: FormFieldProps) {
   const group = as === 'fieldset'
   const key = htmlFor ?? name
@@ -124,17 +131,23 @@ export function FormField({
   )
   const Root = group ? 'fieldset' : 'div'
 
-  return (
+  const field = (
     <Root className="flex min-w-0 flex-col gap-1">
       {group ? (
         // A legend sits outside the fieldset's flex flow, so it spaces itself.
-        <legend className="mb-1 text-sm font-medium" id={fieldLabelId(key)}>
+        <legend
+          className={clsx('mb-1 text-sm font-medium', clear && 'pe-16 pointer-coarse:mb-3')}
+          id={fieldLabelId(key)}
+        >
           {caption}
         </legend>
       ) : (
         // A control that labels itself (no `htmlFor`) already shows the label beside it.
         htmlFor && (
-          <label className="text-sm font-medium" htmlFor={htmlFor}>
+          <label
+            className={clsx('text-sm font-medium', clear && 'pe-16 pointer-coarse:mb-2')}
+            htmlFor={htmlFor}
+          >
             {caption}
           </label>
         )
@@ -177,5 +190,31 @@ export function FormField({
         </span>
       )}
     </Root>
+  )
+
+  if (!clear) return field
+
+  // The Clear sits at the end of the label row. It is positioned against this wrapper, because a
+  // fieldset's own box starts halfway down its legend.
+  return (
+    <div className="relative min-w-0">
+      {field}
+      {/* Outside the legend, so the group's name stays the question alone. It is HIDDEN, never
+          unmounted, while the field is empty: `visibility: hidden` also takes it out of the tab
+          order and the accessibility tree.
+          ⚠ The extra space under the label on a touch screen is not spacing taste: this is a
+          small text control whose invisible 44px tap area (#432) reaches down toward the
+          control, which would otherwise take those taps. */}
+      <button
+        className={clsx(
+          'touch-target absolute end-0 top-0 text-xs font-medium text-primary-11 hover:underline',
+          !clear.active && 'invisible',
+        )}
+        type="button"
+        onClick={clear.onClear}
+      >
+        {clear.label}
+      </button>
+    </div>
   )
 }
