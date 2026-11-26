@@ -43,6 +43,31 @@ cover everything a host would notice since the widget was first deployed.
 
 ### Changed
 
+- **Keyboard focus looks the same on every control.** ([#510]) A 2px line in your brand colour,
+  drawn just inside the control, with a thin band of the panel's colour inside it so it still
+  shows on a filled button such as Register. Buttons, filter tags, fields, the place search and
+  the map's own credits button, logo and canvas all draw it; before, they drew three different
+  rings, and Mapbox's blue halo appeared even on a mouse click. A mouse click still shows nothing.
+
+- **A dialog with a form starts in its first field.** ([#510]) It started on its × button, as if
+  Close were already chosen. On a touch-only screen the dialog itself takes focus instead, so the
+  on-screen keyboard does not rise over the form before anyone has read it.
+
+- **The search box's clear button answers to a 44px tap on a touch screen**, at the same drawn
+  size. ([#510]) The invisible tap areas around small controls now apply only to touch-only
+  screens, so a touchscreen laptop's mouse no longer hits an area it cannot see.
+
+- **A class page's actions are quiet grey buttons, and Register is taller.** ([#502]) Directions,
+  Contact, Share and Website were outlined circles; each is now a grey button with its icon beside
+  the word, or above it across the row when a label would not fit on one line (a narrow phone,
+  all four actions in the desktop panel, or longer languages such as Spanish, Portuguese and
+  Russian). Register is 48px
+  tall. On the phone map sheet only Register pins to the foot: the actions stay in the panel,
+  under the address, rather than riding the pinned bar. On an iPhone or iPad, Directions opens
+  Apple Maps rather than Google Maps, which made a fresh browser accept Google's consent page
+  first. **No parameter,
+  origin, CSP, storage or Permissions-Policy change.**
+
 - **The consent line under the sign-up fields reads like the text around it.** ([#506]) It was
   centred in 12px type. It now starts at the left edge, in the card's own 14px size and the quiet
   grey, and says "By registering…" to match the button. Its "privacy policy" still opens We
@@ -74,7 +99,7 @@ cover everything a host would notice since the widget was first deployed.
 - **A class page's address ends with its postcode, and a tap copies it.** ([#498]) "120 Heath
   St, London NW3 1DR", as the host entered it; never for an online class or a listing that hides
   its street. List cards, the calendar and the share and sign-up summaries keep the short line. A tap on the address copies street, town and
-  postcode, to paste into any maps app — the Directions button opens Google Maps alone — and the
+  postcode, to paste into any maps app — the Directions button opens only one — and the
   line reads "Copied" for two seconds. This is a third use of `clipboard-write`: where your page
   denies it, the address is selected to copy by hand instead. **No parameter, origin or CSP
   change.**
@@ -1459,7 +1484,9 @@ must-revalidate`, pinned rather than left to the CDN default. The production dom
 [#488]: https://github.com/sydevs/SahajAtlasWeb/pull/488
 [#490]: https://github.com/sydevs/SahajAtlasWeb/pull/490
 [#498]: https://github.com/sydevs/SahajAtlasWeb/pull/498
+[#502]: https://github.com/sydevs/SahajAtlasWeb/pull/502
 [#495]: https://github.com/sydevs/SahajAtlasWeb/pull/495
 [#500]: https://github.com/sydevs/SahajAtlasWeb/pull/500
 [#496]: https://github.com/sydevs/SahajAtlasWeb/pull/496
 [#506]: https://github.com/sydevs/SahajAtlasWeb/pull/506
+[#510]: https://github.com/sydevs/SahajAtlasWeb/pull/510

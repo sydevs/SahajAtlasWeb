@@ -58,11 +58,6 @@ export type { FallbackAlign, FallbackKind } from './Fallbacks'
 export { FormField } from './FormField'
 export type { FieldControlProps, FormFieldProps } from './FormField'
 
-// ActionRow / ActionCircle — the labelled tonal-circle secondary actions
-// under an event's Register CTA (Directions, Website, Contact, Share).
-export { ActionRow, ActionCircle } from './ActionRow'
-export type { ActionRowProps, ActionCircleProps } from './ActionRow'
-
 // EventFacts — the shared calendar and location fact block for an
 // event. It builds and renders the when/where lines. The panel, the list
 // card, and the share and registration drawers all use it. Its `card`

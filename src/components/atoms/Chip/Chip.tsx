@@ -23,13 +23,13 @@ const chip = tv({
     // opacity lift it used to have on its own (issue #102). Opacity is also
     // what HOVER does. So on a chip the pointer happens to rest on, a
     // keyboard user got no signal that focus had landed there. The ring is
-    // the same `focus-visible:ring-2 ring-focus` every other control draws.
+    // the same `focus-ring` outline every other control draws.
     // `touch-target` gives the 12px × an invisible 44px tap area on touch screens, at the same
     // drawn size.
     // Dimmed only as far as 3:1 on the chip's own tint allows: a tinted chip's glyph measures
     // 3.2:1 at 80% in light mode, and 2.3:1 at 60% (#432).
     close:
-      'touch-target relative shrink-0 rounded-full opacity-80 transition-opacity outline-none hover:opacity-100 focus-visible:opacity-100 focus-visible:ring-2 focus-visible:ring-focus',
+      'touch-target relative shrink-0 rounded-full opacity-80 focus-ring transition-opacity hover:opacity-100 focus-visible:opacity-100',
   },
   variants: {
     color: { primary: '', secondary: '', contrast: '', neutral: '' },

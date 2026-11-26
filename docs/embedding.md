@@ -1274,10 +1274,13 @@ name, so the search, the filters and the results are told apart.
 
 Inside that landmark, every control the widget draws:
 
-- is reached by Tab, in the order it appears, and shows a focus ring where it lands;
+- is reached by Tab, in the order it appears, and shows the same focus outline where it lands —
+  a 2px line in your brand colour, inside the control;
 - is never a Tab stop while it is invisible;
 - carries a name in the page's language, icon-only controls included;
-- answers to a tap of at least 44 × 44 CSS pixels on a touch screen.
+- answers to a tap of at least 44 × 44 CSS pixels on a touch-only screen (`(hover: none) and
+  (pointer: coarse)`). A touchscreen laptop gets the larger drawn controls but none of the
+  invisible tap areas, which its mouse would hit without seeing them.
 
 **Each of those is checked on every change we make**, in a real browser at phone size, over every
 component in the library — `axe-core` for the rule set, a hit test for the tap areas, and a
@@ -1294,7 +1297,9 @@ cover them.** The canvas's keyboard behaviour is theirs rather than ours, and so
 attribution's information button, drawn at 24 × 24 CSS px: the one control we may not resize,
 since Mapbox's attribution guide sanctions exactly one collapsed form of it. On a touch screen it
 answers to 44 × 44 through an invisible tap area. "Find my location" and the settings button
-beside it are our own buttons, 40px on a desktop and 44px on a touch screen.
+beside it are our own buttons, 40px on a desktop and 44px on a touch screen. Mapbox's own blue
+focus halo is replaced: the canvas, the logo and the attribution show the widget's focus
+outline, and only for the keyboard.
 
 **Nor does the check reach them**, for a mechanical reason worth stating rather than leaving
 you to assume: it drives our component library, where the map renders a "needs an access token"

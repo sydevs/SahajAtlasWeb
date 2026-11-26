@@ -680,9 +680,9 @@ export async function run({ only, origin } = {}) {
   // warmed cache entry serves both CI consumers. The default launches the headless shell, a
   // download of its own under the same directory (#459).
   const browser = await chromium.launch({ channel: 'chromium' })
-  // `isMobile` is what makes `(pointer: coarse)` match, and the `touch-target` utility is
-  // written against that query — on a fine pointer every small control would be reported and
-  // the gate would be measuring a device nobody taps.
+  // `isMobile` is what makes `(hover: none) and (pointer: coarse)` match, and the
+  // `touch-target` utility is written against that query — on a fine pointer every small control
+  // would be reported and the gate would be measuring a device nobody taps.
   const context = await browser.newContext({
     viewport: PHONE,
     deviceScaleFactor: 1,

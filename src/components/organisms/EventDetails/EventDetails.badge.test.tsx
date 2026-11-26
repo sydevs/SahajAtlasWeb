@@ -106,8 +106,8 @@ describe('unverified badge', () => {
       <MemoryRouter>
         <EventDetails
           basePath="/gb/london/1"
-          ctaInline={false}
           event={{ ...mockEvent, verificationStage: 'unverified' }}
+          registerInline={false}
         />
       </MemoryRouter>,
     )

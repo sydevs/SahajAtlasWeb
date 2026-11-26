@@ -219,10 +219,12 @@ export function MapSearch({
       ref={field}
       // ⚠ The min-height is the 44px tap floor reaching the geocoder's OWN input (#432), the
       // same way `field-size` reaches it: that element is the library's, so a class cannot be
-      // put on it, and an `<input>` renders no `::after` for `touch-target` to use.
+      // put on it, and an `<input>` renders no `::after` for `touch-target` to use. Its 20px
+      // clear × can, so it takes the tap area and the focus outline, found by the suffix the
+      // library seeds its class names with.
       // ⚠ Literal px, never a spacing step: the geocoder declares its own `--spacing` (0.75em),
       // which every step inside it multiplies, so `min-h-11` drew a 132px field on touch.
-      className="relative [&_input]:field-size [&_input]:pointer-coarse:min-h-[44px] [&_input:placeholder-shown]:!pe-[12px]"
+      className="relative [&_[class$='--ClearBtn']]:touch-target [&_[class$='--ClearBtn']]:relative [&_[class$='--ClearBtn']]:focus-ring [&_input]:field-size [&_input]:pointer-coarse:min-h-[44px] [&_input:placeholder-shown]:!pe-[12px]"
     >
       <GeocoderBoundary
         fallback={

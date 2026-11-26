@@ -29,23 +29,21 @@ export type EventSurfaceProps = {
 export type EventDetailsSection = 'details' | 'when' | 'where' | 'about'
 
 export type EventDetailsProps = EventSurfaceProps & {
-  /** Render the calls to action — Register, then the secondary action row —
-   *  inline in panel order. The mobile map sheet passes false and mounts both
-   *  in the sticky drawer footer instead. They travel together because the
-   *  footer is pinned over the body's last band, so an inline copy of either
-   *  would be drawn underneath it at the short snap (#320). */
-  ctaInline?: boolean
+  /** Render Register inline, above the action row. The mobile map sheet passes
+   *  false and pins Register in the sticky drawer footer instead (#320). The
+   *  action row stays in the panel either way. */
+  registerInline?: boolean
   /**
    * This slot renders below the facts, inside the panel's own flow, above the
    * unverified caveat and Register.
    *
    * This uses a slot, not a prop, because each caller decides what goes here.
    * It is a view's job, not this component's job. The alternative was a second
-   * boolean beside `ctaInline` for every new addition. EventView passes
+   * boolean beside `registerInline` for every new addition. EventView passes
    * the post-event feedback acknowledgement (#164).
    *
-   * ⚠ The calls to action are sometimes not inline. Then the mobile map sheet
-   * mounts them in the sticky footer instead. This slot still renders here,
+   * ⚠ Register is sometimes not inline. Then the mobile map sheet pins it in
+   * the sticky footer instead. This slot still renders here,
    * after the facts and above everything that follows. This position keeps it
    * above the sticky bar in reading order too.
    */
@@ -71,7 +69,7 @@ export type EventDetailsProps = EventSurfaceProps & {
 export function EventDetails({
   event,
   basePath,
-  ctaInline = true,
+  registerInline = true,
   children,
   sectionTrailing,
   actions,
@@ -128,7 +126,9 @@ export function EventDetails({
 
       {children}
 
-      {actions ?? <PublishedActions basePath={basePath} ctaInline={ctaInline} event={event} />}
+      {actions ?? (
+        <PublishedActions basePath={basePath} event={event} registerInline={registerInline} />
+      )}
 
       {/* About — host-authored prose always sits below the facts and actions. */}
       {(descriptionHtml || sectionTrailing) && (
@@ -159,8 +159,8 @@ export function EventDetails({
 function PublishedActions({
   event,
   basePath,
-  ctaInline,
-}: EventSurfaceProps & { ctaInline: boolean }) {
+  registerInline,
+}: EventSurfaceProps & { registerInline: boolean }) {
   const { t } = useTranslation()
 
   return (
@@ -177,12 +177,8 @@ function PublishedActions({
         />
       )}
 
-      {ctaInline && (
-        <>
-          <EventRegisterBar basePath={basePath} event={event} />
-          <EventActions basePath={basePath} event={event} />
-        </>
-      )}
+      {registerInline && <EventRegisterBar basePath={basePath} event={event} />}
+      <EventActions basePath={basePath} event={event} />
     </>
   )
 }

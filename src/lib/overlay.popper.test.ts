@@ -21,7 +21,7 @@ import {
  * components is where "applied one place and not the other" happens again — so a sixth popper
  * turns this lane red with instructions instead of shipping unbounded.
  *
- * Same shape as `href.test.ts` pinning the app's three JSX anchors, and for the same reason.
+ * Same shape as `href.test.ts` pinning the app's JSX anchors, and for the same reason.
  */
 
 // Every scan reads comment-stripped source, so these assertions are about CODE. Without it the

@@ -145,14 +145,14 @@ export function ImageCarousel({ slides }: ImageCarouselProps) {
             as a drag, and swallows the click. So without it, the one
             control this exists to add would fire only intermittently on
             touch, which is where it matters most. The Button atom sets it
-            on every button. ActionRow carries it by hand for exactly this
-            reason. */}
+            on every button. This hand-rolled one carries it itself for exactly
+            this reason. */}
         {autoplays && (
           <button
             data-vaul-no-drag
             aria-label={t('event.a11y.pause_slideshow')}
             aria-pressed={paused}
-            className="touch-target absolute end-2 bottom-2 z-10 flex h-8 w-8 items-center justify-center rounded-full bg-black/50 text-white transition-colors outline-none hover:bg-black/70 focus-visible:ring-2 focus-visible:ring-focus"
+            className="touch-target absolute end-2 bottom-2 z-10 flex h-8 w-8 items-center justify-center rounded-full bg-black/50 text-white focus-ring transition-colors hover:bg-black/70"
             type="button"
             onClick={() => setPaused((wasPaused) => !wasPaused)}
           >
