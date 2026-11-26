@@ -68,14 +68,10 @@ export function foldHeight({
   return Math.floor(Math.min(Math.max(fold, SHEET_OPEN_PX), frameHeight * FOLD_MAX_SHARE))
 }
 
-export type SheetMeasure = {
-  fit: SheetFit | null
-  fold: number | null
-}
-
-const UNMEASURED: SheetMeasure = { fit: null, fold: null }
-
-function measure(sheet: HTMLElement, body: HTMLElement): SheetMeasure {
+function measure(
+  sheet: HTMLElement,
+  body: HTMLElement,
+): { fit: SheetFit | null; fold: number | null } {
   const style = getComputedStyle(body)
   const footerSpace = parseFloat(getComputedStyle(body, '::after').height) || 0
   const sheetTop = sheet.getBoundingClientRect().top
@@ -118,12 +114,21 @@ function measure(sheet: HTMLElement, body: HTMLElement): SheetMeasure {
  * It reads the sheet the same way the `--sy-sheet-top` loop does: inside this widget's own
  * portal target, never the host's document.
  */
-export function useFitSnap(enabled: boolean, view: string): SheetMeasure {
-  const [measured, setMeasured] = useState<SheetMeasure>(UNMEASURED)
+export function useFitSnap(
+  enabled: boolean,
+  view: string,
+): { fit: SheetFit | null; fold: number | null } {
+  const [fit, setFit] = useState<SheetFit | null>(null)
+  const [fold, setFold] = useState<number | null>(null)
 
   useLayoutEffect(() => {
+    const unmeasured = () => {
+      setFit(null)
+      setFold(null)
+    }
+
     if (!enabled) {
-      setMeasured(UNMEASURED)
+      unmeasured()
 
       return
     }
@@ -148,17 +153,22 @@ export function useFitSnap(enabled: boolean, view: string): SheetMeasure {
       detach = null
       body = current
       // A new body never inherits the last one's stops: class B loads from the open stop.
-      setMeasured(UNMEASURED)
+      unmeasured()
       if (!sheet || !current) return
 
       // A placeholder is nothing true to fit: the sheet holds its stop and moves once, when the
       // content arrives, rather than fitting the placeholder first.
       const update = () => {
-        const next = Array.from(current.children).some((kid) => kid.hasAttribute(LOADING_ATTR))
-          ? UNMEASURED
-          : measure(sheet, current)
+        if (Array.from(current.children).some((kid) => kid.hasAttribute(LOADING_ATTR))) {
+          unmeasured()
 
-        setMeasured((prev) => (next.fit === prev.fit && next.fold === prev.fold ? prev : next))
+          return
+        }
+
+        const next = measure(sheet, current)
+
+        setFit(next.fit)
+        setFold(next.fold)
       }
       const resize = new ResizeObserver(update)
       const watch = () => {
@@ -199,5 +209,5 @@ export function useFitSnap(enabled: boolean, view: string): SheetMeasure {
     // `view` re-finds the body when another view (another path) mounts its own.
   }, [enabled, view])
 
-  return enabled ? measured : UNMEASURED
+  return { fit: enabled ? fit : null, fold: enabled ? fold : null }
 }
