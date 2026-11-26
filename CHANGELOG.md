@@ -43,6 +43,11 @@ cover everything a host would notice since the widget was first deployed.
 
 ### Changed
 
+- **The consent line under the sign-up fields reads like the text around it.** ([#504]) It was
+  centred in 12px type. It now starts at the left edge, in the card's own 14px size and the quiet
+  grey, and says "By registering…" to match the button. Its "privacy policy" still opens We
+  Meditate's policy in a new tab. **No parameter, origin or CSP change.**
+
 - **A class's tags no longer repeat what its page already says.** ([#500]) Every class that
   reads "Contact host for timings" now carries no type tag: one marked inactive in SahajCloud, one
   with no dates, and a repeating class with no session left. Stirling, for one, no longer reads
@@ -1446,3 +1451,4 @@ must-revalidate`, pinned rather than left to the CDN default. The production dom
 [#495]: https://github.com/sydevs/SahajAtlasWeb/pull/495
 [#500]: https://github.com/sydevs/SahajAtlasWeb/pull/500
 [#496]: https://github.com/sydevs/SahajAtlasWeb/pull/496
+[#504]: https://github.com/sydevs/SahajAtlasWeb/pull/504
