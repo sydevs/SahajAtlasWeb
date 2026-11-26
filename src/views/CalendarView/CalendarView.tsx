@@ -42,8 +42,9 @@ import {
   filtersKey,
   isCalendarViewOption,
   resolveCalendarView,
+  scheduleXLocale,
 } from '@/lib/shape'
-import { formatDate, formatMonth, scheduleXLocale, zoneCity } from '@/lib/time'
+import { formatDate, formatMonth, zoneCity } from '@/lib/time'
 import { BackButton } from '@/views/nav'
 import { ExpandSheetButton, FilterButton } from '@/views/shared'
 import { DrawerErrorBody, DrawerLoadingBody } from '@/views/fallbacks'
