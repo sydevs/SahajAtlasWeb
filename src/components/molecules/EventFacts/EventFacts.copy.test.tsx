@@ -20,7 +20,7 @@ const FULL = '5 Market St, Cambridge CB2 3QJ'
 
 afterEach(() => {
   vi.useRealTimers()
-  document.body.innerHTML = ''
+  document.body.replaceChildren()
   window.getSelection()?.removeAllRanges()
   Reflect.deleteProperty(navigator, 'clipboard')
 })
