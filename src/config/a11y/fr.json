@@ -11,7 +11,8 @@
   },
   "event": {
     "view_photo": "Voir la photo",
-    "pause_slideshow": "Mettre le diaporama en pause"
+    "pause_slideshow": "Mettre le diaporama en pause",
+    "copy_address": "Copier l’adresse"
   },
   "filters": {
     "remove": "Supprimer %{label}"

@@ -16,13 +16,13 @@
       "back_to_world_map": "Back to the world map",
       "cancel": "Cancel",
       "close": "Close",
+      "copied": "Copied",
       "show_more": "Show more",
       "widget_label": "Free meditation classes"
     },
     "errors": {
       "back_to_region": "See events in %{region}",
       "browse_countries": "Browse all countries",
-      "captcha_blocked": "The map can't load here right now, because its security check didn't respond. Try again later.",
       "config": "This Atlas isn't set up correctly on this page.",
       "generic": "Something went wrong.",
       "near_city": "See events near %{city}",
@@ -261,7 +261,6 @@
     }
   },
   "share": {
-    "copied": "Copied",
     "native": "Share…",
     "qr_download": "Download for printing",
     "qr_failed": "The QR code didn’t load. Check your connection, then close and reopen this.",

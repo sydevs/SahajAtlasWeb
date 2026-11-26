@@ -8931,6 +8931,10 @@ export interface SyAtlasTranslationsCommonChromeStrings {
    * Subtitle under the Region, Online, and Registration headers.
    */
   all_classes_free?: string;
+  /**
+   * Confirmation after a visitor copies a share link, a phone number, an email, or a class’s address.
+   */
+  copied?: string;
 }
 export interface SyAtlasTranslationsCommonSettingsStrings {
   /**
@@ -8987,10 +8991,6 @@ export interface SyAtlasTranslationsCommonErrorsStrings {
    * Message in the Share view when the event has no shareable URL.
    */
   share_unavailable?: string;
-  /**
-   * Message shown in place of the Atlas when its security check (Turnstile) does not answer: the host page blocked it, or it was too slow.
-   */
-  captcha_blocked?: string;
   /**
    * Empty-list message in the Region and Online views, when the place itself has no events.
    */
@@ -10017,10 +10017,6 @@ export interface SyAtlasTranslationsShareStrings {
    * Label of the device’s own share sheet.
    */
   native?: string;
-  /**
-   * Confirmation shown after the link is copied.
-   */
-  copied?: string;
   /**
    * Closed row under the share buttons that opens a QR code of the class link, for hosts printing posters.
    */

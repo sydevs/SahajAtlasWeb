@@ -1,7 +1,7 @@
 import { useLayoutEffect, useState } from 'react'
 
 import { LOADING_ATTR } from '@/components/organisms/Skeleton/Skeleton'
-import { WIDE_SNAP } from '@/config/responsive'
+import { SHEET_OPEN_PX, WIDE_SNAP } from '@/config/responsive'
 import { overlayContainer } from '@/lib/overlay'
 
 // Below this a sheet would sit under the peek, which is no longer "open".
@@ -9,6 +9,11 @@ const MIN_FIT_PX = 120
 
 /** What a sheet's content needs: a height in px, or `'full'` when it reaches the near-full snap. */
 export type SheetFit = number | 'full'
+
+// The key-facts stop leaves a third of the map above it, so the class's pin still has room.
+const FOLD_MAX_SHARE = 0.66
+// Air between the last key fact and the footer, so the address never sits flush on it.
+const FOLD_GAP_PX = 12
 
 /**
  * The height, in px, that shows the open sheet's content and nothing more: the handle, the
@@ -39,9 +44,37 @@ export function fitHeight({
   return fit
 }
 
-function measure(sheet: HTMLElement, body: HTMLElement): SheetFit | null {
+/**
+ * A class's key-facts stop, in px: one drag down from open, it keeps the title, chips and
+ * when/where (the row marked `data-sheet-fold`) above the sticky footer. `null` when it can't
+ * be measured yet.
+ */
+export function foldHeight({
+  foldBottom,
+  footerSpace,
+  frameHeight,
+}: {
+  /** From the sheet's top edge to the marked row's bottom edge, unscrolled. */
+  foldBottom: number
+  footerSpace: number
+  frameHeight: number
+}): number | null {
+  if (foldBottom <= 0 || frameHeight <= 0) return null
+
+  const fold = Math.ceil(foldBottom + FOLD_GAP_PX + footerSpace)
+
+  // Under a 540px frame the share already sits below the open stop, and it wins: a phone on its
+  // side has no third of a map to spare, and `shortSheetCap` holds every stop lower there anyway.
+  return Math.floor(Math.min(Math.max(fold, SHEET_OPEN_PX), frameHeight * FOLD_MAX_SHARE))
+}
+
+function measure(
+  sheet: HTMLElement,
+  body: HTMLElement,
+): { fit: SheetFit | null; fold: number | null } {
   const style = getComputedStyle(body)
   const footerSpace = parseFloat(getComputedStyle(body, '::after').height) || 0
+  const sheetTop = sheet.getBoundingClientRect().top
   const kids = Array.from(body.children) as HTMLElement[]
   const contentHeight =
     kids.reduce((sum, kid) => sum + kid.offsetHeight, 0) +
@@ -50,32 +83,52 @@ function measure(sheet: HTMLElement, body: HTMLElement): SheetFit | null {
   // The sheet is the full-height panel vaul translates, so it is as tall as the box vaul
   // measures snaps against, with no raw viewport read.
   const frameHeight = sheet.offsetHeight
+  const foldRow = body.querySelector('[data-sheet-fold]')
 
-  return fitHeight({
-    bodyOffset: body.getBoundingClientRect().top - sheet.getBoundingClientRect().top,
-    contentHeight,
-    footerSpace,
-    frameHeight,
-  })
+  return {
+    fit: fitHeight({
+      bodyOffset: body.getBoundingClientRect().top - sheetTop,
+      contentHeight,
+      footerSpace,
+      frameHeight,
+    }),
+    fold: foldRow
+      ? foldHeight({
+          // A body scrolled before this reads still measures from its own top.
+          foldBottom: foldRow.getBoundingClientRect().bottom - sheetTop + body.scrollTop,
+          footerSpace,
+          frameHeight,
+        })
+      : null,
+  }
 }
 
 /**
- * Follows the open bottom sheet's content height while `enabled`, so a class opens showing
- * its title, when and where above the sticky Register bar, with no blank sheet below. A view
- * that grows (a description or a photo arriving) grows the sheet with it, up to the
- * near-full snap.
+ * Follows the open bottom sheet's content height, and a class's key-facts stop, while `enabled`,
+ * so a class opens showing its title, when and where above the sticky Register bar, with no
+ * blank sheet below. A view that grows (a description or a photo arriving) grows the sheet
+ * with it, up to the near-full snap.
  *
  * `view` names what is on screen (the path), so a new view's body is the one followed.
  *
  * It reads the sheet the same way the `--sy-sheet-top` loop does: inside this widget's own
  * portal target, never the host's document.
  */
-export function useFitSnap(enabled: boolean, view: string): SheetFit | null {
+export function useFitSnap(
+  enabled: boolean,
+  view: string,
+): { fit: SheetFit | null; fold: number | null } {
   const [fit, setFit] = useState<SheetFit | null>(null)
+  const [fold, setFold] = useState<number | null>(null)
 
   useLayoutEffect(() => {
-    if (!enabled) {
+    const unmeasured = () => {
       setFit(null)
+      setFold(null)
+    }
+
+    if (!enabled) {
+      unmeasured()
 
       return
     }
@@ -99,20 +152,24 @@ export function useFitSnap(enabled: boolean, view: string): SheetFit | null {
       detach?.()
       detach = null
       body = current
-      if (!sheet || !current) {
-        setFit(null)
-
-        return
-      }
+      // A new body never inherits the last one's stops: class B loads from the open stop.
+      unmeasured()
+      if (!sheet || !current) return
 
       // A placeholder is nothing true to fit: the sheet holds its stop and moves once, when the
       // content arrives, rather than fitting the placeholder first.
-      const update = () =>
-        setFit(
-          Array.from(current.children).some((kid) => kid.hasAttribute(LOADING_ATTR))
-            ? null
-            : measure(sheet, current),
-        )
+      const update = () => {
+        if (Array.from(current.children).some((kid) => kid.hasAttribute(LOADING_ATTR))) {
+          unmeasured()
+
+          return
+        }
+
+        const next = measure(sheet, current)
+
+        setFit(next.fit)
+        setFold(next.fold)
+      }
       const resize = new ResizeObserver(update)
       const watch = () => {
         resize.disconnect()
@@ -152,5 +209,5 @@ export function useFitSnap(enabled: boolean, view: string): SheetFit | null {
     // `view` re-finds the body when another view (another path) mounts its own.
   }, [enabled, view])
 
-  return enabled ? fit : null
+  return { fit: enabled ? fit : null, fold: enabled ? fold : null }
 }
