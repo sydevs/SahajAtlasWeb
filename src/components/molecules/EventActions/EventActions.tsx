@@ -7,7 +7,7 @@ import { Globe, Navigation, Phone, Share } from 'lucide-react'
 
 import { useAtlasNavigate } from '@/hooks/use-atlas-navigate'
 import { Button } from '@/components/atoms/Button'
-import { CopyField } from '@/components/molecules/ShareContent'
+import { useCopy } from '@/hooks/use-copy'
 import { useCoarsePointer } from '@/config/responsive'
 import { usePopover } from '@/hooks/use-popover'
 import { directionsUrl } from '@/lib'
@@ -123,6 +123,8 @@ function ContactPopover({
       role: 'dialog',
     },
   )
+  const { t } = useTranslation()
+  const { copied, copy } = useCopy(1500)
 
   return (
     <>
@@ -154,7 +156,24 @@ function ContactPopover({
               {...getFloatingProps({ 'aria-label': label })}
             >
               {name && <div className="text-sm font-medium">{name}</div>}
-              <CopyField value={phone} />
+              {/* ⚠ `truncate` sits on the inner span: on the button it would clip the
+                  `touch-target` area back to the drawn box (#432). The number is the visible
+                  text, so the name carries it too (WCAG 2.5.3). */}
+              <div className="flex flex-col gap-1">
+                <button
+                  data-vaul-no-drag
+                  aria-label={`${t('share.a11y.copy_link')}: ${phone}`}
+                  className={`touch-target relative w-full rounded-lg px-3 py-2 text-start text-sm text-secondary-11 transition-colors select-all ${copied ? 'bg-secondary-5' : 'bg-secondary-3'}`}
+                  title={phone}
+                  type="button"
+                  onClick={() => void copy(phone)}
+                >
+                  <span className="block truncate">{phone}</span>
+                </button>
+                <span aria-live="polite" className="h-4 text-xs text-secondary-11">
+                  {copied ? t('common.chrome.copied') : ''}
+                </span>
+              </div>
             </div>
           </FloatingFocusManager>
         </FloatingPortal>

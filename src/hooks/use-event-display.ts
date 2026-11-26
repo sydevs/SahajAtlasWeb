@@ -56,8 +56,8 @@ const WEEK_NUMBER_KEYS = {
   '-1': 'event.recurrence.monthly_last',
 } as const
 
-/** Where an event shows: its class page, a list card, or the share and registration summary. */
-export type EventSurface = 'page' | 'card' | 'summary'
+/** Where an event shows: its class page, or a list card (and the summary that reuses it). */
+export type EventSurface = 'page' | 'card'
 
 export type EventSurfaceView = {
   /** The calendar fact. `primary` leads: the pattern ("Every Wednesday") for a recurring event,
@@ -345,7 +345,6 @@ export function useEventDisplay(event: DisplayableEvent): EventDisplayStrings {
       surfaces: {
         page: surfaceView(parts, 'page'),
         card: surfaceView(parts, 'card'),
-        summary: surfaceView(parts, 'summary'),
       },
       whereLine,
       whereLineWithPostCode,

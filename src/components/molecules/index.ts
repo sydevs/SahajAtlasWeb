@@ -49,13 +49,16 @@ export { FormField } from './FormField'
 export type { FieldControlProps, FormFieldProps } from './FormField'
 
 // EventFacts — the shared calendar and location fact block for an
-// event. It builds and renders the when/where lines. The panel, the list
-// card, and the share and registration drawers all use it. Its `card`
-// variant is the boxed, titled treatment those two drawers use. There is
-// deliberately no separate wrapper for it. The one that existed only
-// added an outbound backlink that was never correct behaviour (#156).
+// event. It builds and renders the when/where lines, for the panel and,
+// through EventSummary, everywhere else.
 export { EventFacts } from './EventFacts'
 export type { EventFactsProps } from './EventFacts'
+
+// EventSummary — a class at a glance: title, facts and chips. The list
+// card renders it, and the Share, Register and confirmation panels box it
+// at their top.
+export { EventSummary } from './EventSummary'
+export type { EventSummaryProps } from './EventSummary'
 
 // The event's triage chips. The list card and the event header share
 // this, so the two never drift. The `card` surface trims the list card.
@@ -70,7 +73,7 @@ export type { ListItemProps } from './ListItem'
 export { EventListItem } from './EventListItem'
 export type { EventListItemProps } from './EventListItem'
 
-// NOTE: ImageCarousel, EventActions, ShareContent/CopyField, and
+// NOTE: ImageCarousel, EventActions, ShareContent, and
 // AddToCalendar are deliberately NOT re-exported. The organisms barrel
 // states the same rule for EventDetails and RegistrationForm. Between
 // them, these own Swiper and react-share. The interface's views import
@@ -80,7 +83,7 @@ export type { EventListItemProps } from './EventListItem'
 // `swiper/*` and react-share imports carry side effects. Every real
 // consumer already reaches them by leaf path from inside a lazily-loaded
 // chunk: EventActions and ImageCarousel from EventDetails, ShareContent
-// from EventActions, RegistrationForm and ShareView. That is the
+// from RegistrationForm and ShareView. That is the
 // readiness report's "Swiper bundled twice" finding. `index.test.ts` pins
 // it (issue #96). ⚠ Nothing else does: the interface loads behind a lazy
 // seam, outside the graphs `pnpm size` budgets.

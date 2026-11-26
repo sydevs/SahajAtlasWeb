@@ -2,7 +2,7 @@ import { useTranslation } from 'react-i18next'
 
 import { Alert } from '@/components/atoms/Alert'
 import { DrawerBody } from '@/components/atoms/Drawer'
-import { EventFacts, FallbackPanel } from '@/components/molecules'
+import { EventSummary, FallbackPanel } from '@/components/molecules'
 import { EventRegisterBar } from '@/components/organisms/EventDetails/EventRegister'
 import { RegistrationForm } from '@/components/organisms/RegistrationForm'
 import { useEventDisplay } from '@/hooks/use-event-display'
@@ -103,11 +103,12 @@ export function RegistrationView({
         title={t('registration.form.title')}
       />
       <DrawerBody className="px-gutter py-4">
-        <EventFacts
+        <EventSummary
+          boxed
+          hideSubtext
           className="mx-auto mb-4 w-full max-w-md"
+          event={event}
           strings={strings}
-          surface="summary"
-          title={event.title}
         />
 
         {open && !external ? (

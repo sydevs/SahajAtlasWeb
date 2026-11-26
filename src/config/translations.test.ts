@@ -258,8 +258,8 @@ const RETIRING_KEYS: Record<string, string> = {
   'search.nearby_prompt.dismiss': 'sydevs/SahajCloud#1246',
   'search.results.no_nearby': 'sydevs/SahajCloud#1289',
   'search.results.showing': 'sydevs/SahajCloud#1246',
-  'share.copy_link': 'sydevs/SahajCloud#1246',
   'share.share_on': 'sydevs/SahajCloud#1246',
+  'share.title': 'sydevs/SahajCloud#1290',
 }
 
 describe('every key the snapshot holds', () => {

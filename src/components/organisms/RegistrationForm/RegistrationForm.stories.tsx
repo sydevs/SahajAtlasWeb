@@ -129,7 +129,7 @@ export const Default: Story = () => (
     </StorySection>
 
     <StorySection
-      description="The post-submit confirmation. Two blocks under the thank-you line: add-to-calendar (Apple downloads an .ics; the other four are link-outs) and the share grid. The calendar block only renders when the view passes export inputs — RegistrationView builds them from the FULL event doc, since the trimmed feed omits exclusions and untilDate."
+      description="The post-submit confirmation. Two blocks under the thank-you line: add-to-calendar (Apple downloads an .ics; the other four are link-outs) and the share block. The calendar block only renders when the view passes export inputs — RegistrationView builds them from the FULL event doc, since the trimmed feed omits exclusions and untilDate."
       title="Confirmation"
     >
       <div className="max-w-md rounded-lg border border-divider p-4">

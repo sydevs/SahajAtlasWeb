@@ -1,54 +1,120 @@
-import { useState } from 'react'
+import { type MouseEvent, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Share } from 'lucide-react'
+import { FloatingFocusManager, FloatingPortal } from '@floating-ui/react'
+import clsx from 'clsx'
+import { Check, Link, Share } from 'lucide-react'
 
-import { PlatformButton } from './platform-buttons'
+import { ShareTargets } from './platform-buttons'
 
-import { tv } from '@/styles/tv'
 import { Button } from '@/components/atoms/Button'
+import { useCoarsePointer } from '@/config/responsive'
 import { useCopy } from '@/hooks/use-copy'
+import { usePopover } from '@/hooks/use-popover'
 import { useWebShare } from '@/hooks/use-web-share'
-import { platformsForCountry } from '@/lib/share/platforms'
+import { overlayContainer } from '@/lib/overlay'
 
-const copyField = tv({
-  // ⚠ `truncate` sits on the inner span, not here. It carries `overflow: hidden`, which clips
-  // this button's own `touch-target` pseudo-element back to the drawn box — the 44px tap area
-  // was there in the style and answered to nothing (#432).
-  base: 'touch-target relative w-full rounded-lg px-3 py-2 text-start text-sm text-secondary-11 transition-colors select-all',
-  variants: { copied: { true: 'bg-secondary-5', false: 'bg-secondary-3' } },
-  defaultVariants: { copied: false },
-})
-
-// A click-to-copy value field. It copies on click, with a brief tint
-// flash. The text stays selectable as a fallback. This is exported for
-// the event panel's desktop contact popover (issue #52).
-export function CopyField({ value }: { value: string }) {
+// The button itself changes, under the visitor's thumb, so the answer is where they are already
+// looking. The raw URL stays below as a caption, to show what is shared and to select by
+// hand where a host page refuses the clipboard.
+function CopyLinkButton({ url }: { url: string }) {
   const { t } = useTranslation()
-  const { copied, copy } = useCopy(1500)
+  const touch = useCoarsePointer()
+  const { copied, copy } = useCopy(2500)
+  const [failed, setFailed] = useState(false)
+  const captionRef = useRef<HTMLParagraphElement>(null)
+  const status = copied ? t('share.link_copied') : ''
+
+  // A host's Permissions-Policy, or a page that is not https, refuses the clipboard: the link is
+  // selected instead, which the hint below names.
+  const onClick = async () => setFailed(!(await copy(url, captionRef.current)))
 
   return (
-    <div className="flex flex-col gap-1">
-      <button
-        data-vaul-no-drag
-        // The URL is the button's visible text, so the name carries it too: a name that
-        // omitted it would leave a speech-input viewer with nothing to say (WCAG 2.5.3).
-        aria-label={`${t('share.a11y.copy_link')}: ${value}`}
-        className={copyField({ copied })}
-        title={value}
-        type="button"
-        onClick={() => void copy(value)}
+    <div className="flex flex-col gap-2">
+      <Button
+        className="w-full"
+        color="primary"
+        size="lg"
+        variant={copied ? 'flat' : 'bordered'}
+        onClick={() => void onClick()}
       >
-        <span className="block truncate">{value}</span>
-      </button>
-      {/* Success was previously signalled ONLY by a secondary-3 to
-          secondary-5 tint, a roughly 1.15:1 shift. A screen reader cannot
-          see that at all, and low-vision or monochrome users would not
-          perceive it either. The live region announces success, and the
-          text confirms it. */}
-      <span aria-live="polite" className="h-4 text-xs text-secondary-11">
-        {copied ? t('common.chrome.copied') : ''}
+        {copied ? <Check aria-hidden size={18} strokeWidth={3} /> : <Link aria-hidden size={18} />}
+        {status || t('share.copy_link')}
+      </Button>
+      <span aria-live="polite" className="sr-only">
+        {status}
       </span>
+      {failed && (
+        <p className="text-sm text-danger-11" role="alert">
+          {t(touch ? 'share.copy_failed_touch' : 'share.copy_failed_pointer')}
+        </p>
+      )}
+      <p
+        ref={captionRef}
+        className={clsx(
+          'text-center text-xs text-gray-11 select-all',
+          failed ? 'break-all' : 'truncate',
+        )}
+        title={url}
+      >
+        {url}
+      </p>
     </div>
+  )
+}
+
+/**
+ * Share, as one button. It opens the device's own share sheet, which lists the apps this person
+ * uses. Where there is none (most desktop browsers), or a host page refuses it, the same button
+ * opens the region's share targets in a popover instead.
+ */
+function ShareButton({ label, url, country }: ShareContentProps) {
+  const { t } = useTranslation()
+  const { canShare, share } = useWebShare()
+  const { isOpen, setIsOpen, refs, floatingStyles, context, getReferenceProps, getFloatingProps } =
+    usePopover({ placement: 'bottom', role: 'dialog', toggleOnClick: false })
+
+  const onClick = async () => {
+    if (!canShare || isOpen) return setIsOpen(!isOpen)
+    if ((await share({ title: label, url })) === 'unavailable') setIsOpen(true)
+  }
+
+  // A pick hands over to the network's page or the mail app, so the popover goes with it.
+  const closeOnPick = (event: MouseEvent) => {
+    if ((event.target as Element).closest('button')) setIsOpen(false)
+  }
+
+  return (
+    <>
+      <Button
+        ref={refs.setReference}
+        className="w-full"
+        color="primary"
+        size="lg"
+        variant="solid"
+        {...getReferenceProps({ onClick: () => void onClick() })}
+      >
+        <Share aria-hidden size={18} />
+        {t('share.native')}
+      </Button>
+      {isOpen && (
+        <FloatingPortal root={overlayContainer()}>
+          {/* Non-modal and focus-returning, as the contact popover is: focus goes in to the
+              first network, and Esc or an outside click puts it back on Share. */}
+          <FloatingFocusManager context={context} modal={false} returnFocus={true}>
+            {/* As wide as one row of targets, which can be wider than a narrow side panel's
+                button. Only a screen too narrow for the row wraps it. */}
+            <div
+              ref={refs.setFloating}
+              className="z-50 max-w-[calc(100vw-16px)] rounded-lg border border-gray-6 bg-background p-3 shadow-xl"
+              style={floatingStyles}
+              {...getFloatingProps({ 'aria-label': t('share.native'), onClick: closeOnPick })}
+            >
+              <ShareTargets country={country} title={label} url={url} />
+            </div>
+          </FloatingFocusManager>
+        </FloatingPortal>
+      )}
+    </>
   )
 }
 
@@ -56,59 +122,25 @@ export type ShareContentProps = {
   label: string
   url: string
   /**
-   * The viewer's country (ISO alpha-2). It orders the share grid to their
-   * region (`platformsForCountry`). The consumer resolves it, through
-   * `useViewerCountry`, so this molecule stays pure and SSR-testable. When
-   * absent, this uses the default platform set.
+   * The viewer's country (ISO alpha-2). It picks and orders the share targets to their region
+   * (`platformsForCountry`). The consumer resolves it, through `useViewerCountry`, so this
+   * molecule stays pure and SSR-testable. When absent, this uses the default platform set.
    */
   country?: string
 }
 
 /**
- * The shareable block: a click-to-copy URL field, plus regionally-ordered
- * share targets. On a device that supports the Web Share API, it leads
- * with a single "Share…" button, opening the native OS sheet, which
- * surfaces the viewer's own installed apps, the ultimate region filter.
- * Everywhere else, or if that native call is blocked, it falls back to a
- * grid of `react-share` buttons ordered by `country`. This is generic
- * (label, url, and optional country). The event share drawer (ShareView)
- * and the registration "thank you" screen both use it.
+ * The one share block, on the class's Share panel and on the registration confirmation: Share
+ * (the device's own sheet, or the region's targets in a popover), then Copy link.
  *
- * `label` and `url` pass through raw. react-share and the native sheet
- * encode their own parameters, so the old `encodeURI` here would have
- * double-encoded them.
+ * `label` and `url` pass through raw. react-share and the native sheet encode their own
+ * parameters, so an `encodeURI` here would double-encode them.
  */
 export function ShareContent({ label, url, country }: ShareContentProps) {
-  const { t } = useTranslation()
-  const { canShare, share } = useWebShare()
-  // This reveals the grid when there is no native sheet, or after a
-  // native attempt is blocked (host Permissions-Policy). So the viewer is
-  // never stranded. A dismissed sheet keeps the button: it worked.
-  const [gridRevealed, setGridRevealed] = useState(false)
-  const showGrid = !canShare || gridRevealed
-
-  const platforms = platformsForCountry(country)
-
-  const shareNatively = async () => {
-    if ((await share({ title: label, url })) === 'unavailable') setGridRevealed(true)
-  }
-
   return (
     <div className="flex flex-col gap-3">
-      <CopyField value={url} />
-
-      {showGrid ? (
-        <div className="flex flex-row flex-wrap justify-center gap-3">
-          {platforms.map((platform) => (
-            <PlatformButton key={platform} platform={platform} title={label} url={url} />
-          ))}
-        </div>
-      ) : (
-        <Button className="w-full" color="primary" variant="solid" onClick={shareNatively}>
-          <Share size={18} />
-          {t('share.native')}
-        </Button>
-      )}
+      <ShareButton country={country} label={label} url={url} />
+      <CopyLinkButton url={url} />
     </div>
   )
 }

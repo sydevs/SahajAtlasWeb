@@ -10,22 +10,21 @@ import { mockEvent } from '@/mocks/events'
 
 export default { title: 'Views' } satisfies StoryDefault
 
-// These stories show how the share grid reorders to the viewer's region. So this disables
-// the Web Share API in the preview. On a capable browser, such as desktop Chrome,
-// ShareContent otherwise leads with the single native "Share…" button, and hides the
-// per-region grid. This change is scoped to the Ladle preview session. The shipped widget
-// never imports story files, so it stays untouched. This is a no-op under the static build,
-// where `navigator.share` is absent.
+// These stories show how the share targets reorder to the viewer's region. So this disables
+// the Web Share API in the preview: on a browser with a share sheet, such as Safari, Share
+// would open the sheet instead of the popover of networks. This change is scoped to the Ladle
+// preview session. The shipped widget never imports story files, so it stays untouched. This
+// is a no-op where `navigator.share` is absent.
 try {
   if (typeof navigator !== 'undefined' && 'share' in navigator) {
     Object.defineProperty(navigator, 'share', { configurable: true, value: undefined })
   }
 } catch {
-  // Not overridable here — the grid still appears once the native call fails.
+  // Not overridable here — the popover still opens once the native call fails.
 }
 
-// A representative viewer country per world region. The share grid orders itself from the
-// IP lookup's `country_code` (see `useViewerCountry`). So each example seeds one country code.
+// A representative viewer country per world region. The share targets order themselves from
+// the IP lookup's `country_code` (see `useViewerCountry`). So each example seeds one country code.
 // `Default` carries none, and falls back to the universal set. Email always gets appended, so
 // it is the last icon in every case.
 const REGIONS: Record<string, { code?: string; city: string; country: string }> = {
@@ -58,12 +57,12 @@ const SHARE_CASES = {
 type ShareKey = keyof typeof SHARE_CASES
 
 /**
- * ShareView — the share drawer screen. It shows the event summary card over the copyable
- * link, and the region-ordered share grid. Switch the Region control to watch the grid
+ * ShareView — the share drawer screen. It opens on the class's summary, over Share and Copy
+ * link. Press Share to open the region's networks; switch the Region control to watch them
  * reorder to that viewer's country (email is always the final option).
  *
- * The Share link control switches what there is to share. `none` is the case the copy field,
- * the native sheet, and every grid target all need and cannot fake: no canonical page, and a
+ * The Share link control switches what there is to share. `none` is the case Copy link, the
+ * native sheet, and every share target all need and cannot fake: no canonical page, and a
  * host page routing the widget off the URL. The screen says so, instead of handing out the
  * host's address (issue #115).
  *

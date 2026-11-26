@@ -19,8 +19,8 @@ export type QrPosterProps = {
 }
 
 /**
- * A QR code of the class link, for hosts printing posters. Most people opening Share want to send
- * a link to a friend, so this stays closed behind one row, and the encoder only downloads once the
+ * A QR code of the class link, for hosts printing posters. It closes the class page, and most
+ * visitors never need it, so it stays closed behind one row, and the encoder only downloads once the
  * row opens (`encodeQr`).
  */
 export function QrPoster({ label, url, initial }: QrPosterProps) {

@@ -1,6 +1,6 @@
 import type { Story, StoryDefault } from '@ladle/react'
 
-// This is not in the molecules barrel: ShareView reaches it by leaf path, like ShareContent.
+// This is not in the molecules barrel: EventDetails reaches it by leaf path, like ShareContent.
 import { StoryWrapper, StorySection } from '../../ladle'
 
 import { QrPoster } from './QrPoster'
@@ -10,7 +10,7 @@ export default { title: 'Molecules' } satisfies StoryDefault
 const URL = 'https://wemeditate.com/map/gb/south-east/london/balham-library/1392'
 
 /**
- * QrPoster — the closed "QR code for posters" row under the share buttons. Opening it fetches the
+ * QrPoster — the closed "QR code for posters" row at the bottom of the class page. Opening it fetches the
  * encoder (watch the Network tab for one `uqr` chunk) and draws the class link, black on white in
  * both themes, with a download sized for printing.
  */

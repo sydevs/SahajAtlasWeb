@@ -145,7 +145,7 @@ export function DrawerChrome({
       case 'register':
         return t('registration.form.title', { defaultValue: 'Register for Meditation' })
       case 'share':
-        return t('share.title', { defaultValue: 'Share Meditation' })
+        return t('share.title_class', { defaultValue: 'Share this class' })
       default:
         return undefined
     }

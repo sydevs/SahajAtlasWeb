@@ -11,7 +11,7 @@ export type EventChipsProps = {
   strings: EventDisplayStrings
   languages: string[]
   /** The class page names every language; a card leaves out the viewer's own. */
-  surface?: Exclude<EventSurface, 'summary'>
+  surface?: EventSurface
   className?: string
 }
 

@@ -12,9 +12,9 @@ export type WebShareData = {
  *
  * - `shared`: the sheet completed.
  * - `dismissed`: the viewer closed the sheet (`AbortError`). They saw it working, so the
- *   caller keeps offering it rather than swapping in the fallback grid.
+ *   caller keeps offering it rather than opening the fallback targets.
  * - `unavailable`: the sheet could not open — no API, or the host page's
- *   `Permissions-Policy` refused it (`NotAllowedError`). The caller reveals the grid, so the
+ *   `Permissions-Policy` refused it (`NotAllowedError`). The caller opens the targets, so the
  *   viewer is never stranded.
  */
 export type WebShareOutcome = 'shared' | 'dismissed' | 'unavailable'
@@ -46,7 +46,7 @@ export function useWebShare(): {
       return 'shared'
     } catch (error) {
       // ⚠ Closing the macOS sheet rejects with `AbortError`. Treating that as a failure
-      // replaced the working Share button with the fallback grid the moment the viewer
+      // replaced the working Share button with the fallback targets the moment the viewer
       // closed the sheet.
       return error instanceof DOMException && error.name === 'AbortError'
         ? 'dismissed'

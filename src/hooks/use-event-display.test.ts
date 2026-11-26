@@ -103,7 +103,7 @@ describe('surfaceView', () => {
 
   it('keeps the "Next session" line off a card', () => {
     expect(surfaceView(weekly, 'card').when.detail).toBeNull()
-    expect(surfaceView(weekly, 'summary').when.detail).toBe('Next session: Thu, 4 Jul')
+    expect(surfaceView(weekly, 'page').when.detail).toBe('Next session: Thu, 4 Jul')
   })
 
   it('says "Started" only for a course', () => {

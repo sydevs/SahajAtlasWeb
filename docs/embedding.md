@@ -1065,11 +1065,11 @@ Alongside the origins in the CSP table above, the widget needs three browser **c
 Each is denied to a cross-origin iframe by default, and each can also be denied to a script embed
 by a `Permissions-Policy` header on your own page.
 
-| Feature           | What uses it                                                                                                                      | What breaks without it                                              |
-| ----------------- | --------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------- |
-| `geolocation`     | The map's "find my location" control and the filters' Near me (map-less embeds too), each opening the classes nearest the visitor | Each says it could not get a location                               |
-| `clipboard-write` | The copy-link button on the share sheet, the contact popover's copy button, and tapping a class's address                         | Copying fails; a tapped address is selected to copy by hand instead |
-| `web-share`       | The native share sheet on mobile                                                                                                  | The share button falls back to the copy/link list                   |
+| Feature           | What uses it                                                                                                                           | What breaks without it                                                                                      |
+| ----------------- | -------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------- |
+| `geolocation`     | The map's "find my location" control and the filters' Near me (map-less embeds too), each opening the classes nearest the visitor      | Each says it could not get a location                                                                       |
+| `clipboard-write` | Copy link on a class's Share panel and the registration confirmation, the contact popover's copy button, and tapping a class's address | Copy link says it could not copy and selects the link to copy by hand; a tapped address is selected instead |
+| `web-share`       | The Share button, which opens the device's own share sheet                                                                             | Share opens a popover of the region's share networks instead                                                |
 
 **None of the three errors**, so nothing in your console will tell you. If
 you send a `Permissions-Policy` header, allow these three for your own origin. If you embed in
