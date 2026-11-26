@@ -320,7 +320,7 @@ and one task-named button that opens the interface somewhere it fits.
 - **Expansion goes through a seam** (`src/hooks/use-expansion.tsx`), the same shape
   as `MapController`. A framed embed gets an anchor (`lib/fallback-url.ts`) instead,
   through the `Button` atom's href form — not a new JSX anchor, since `href.test.ts`
-  pins that inventory to two components.
+  pins that inventory.
 - **What it expands into is a module-private dialog inside `CompactEmbedView`, and it
   keeps a margin.** It is not an atom: it publishes itself as the app's
   portal target, needs `contain: layout` since this app's interface is fixed
@@ -570,10 +570,10 @@ this table or the folklore it fixes. On the frame itself both are deliberate, an
 **Do not render a bare `<a href={…}>`.** Use the `Link` atom. If a component
 genuinely must emit its own anchor, its href must go through **`isSafeHref`**
 (`src/lib/shape/href.ts`) first — `safePath`-clean, or an allowed scheme — and a
-refusal reports via `reportInternalError` and degrades to inert content. Exactly
-two components render a JSX anchor (`Link` and `Button`'s href form), and
-`src/lib/shape/href.test.ts` **asserts** that inventory, so a
-third turns the unit lane red until it is gated.
+refusal reports via `reportInternalError` and degrades to inert content. Only
+`Link` and `Button`'s href form render a JSX anchor, and
+`src/lib/shape/href.test.ts` **asserts** that inventory, so another
+turns the unit lane red until it is gated.
 
 For why this is a shared predicate rather than a per-component check, and why
 "site-relative" must mean `safePath` rather than `startsWith('/')`, see

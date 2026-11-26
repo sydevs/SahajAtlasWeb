@@ -15,12 +15,12 @@ const noContact: Event = { ...mockEvent, id: 203, contactPhone: null, contactNam
 const inactive: Event = { ...mockEvent, id: 204, inactive: true }
 
 // The drawer panel is about 352px wide, with a 24px gutter, so its content box is about 304px:
-// the default width here. 288px is a 320px phone's sheet less its gutters, where the row puts
-// every icon above its label. The row must fit its set on one line at both, never wrapping.
-function Panel({ event, width = 304 }: { event: Event; width?: 288 | 304 }) {
+// the default width here. 272px is a 320px phone's sheet less its gutters. The row must fit its
+// set on one line at both, never wrapping.
+function Panel({ event, width = 304 }: { event: Event; width?: 272 | 304 }) {
   return (
     <div
-      className={`${width === 288 ? 'w-[288px]' : 'w-[304px]'} rounded-lg border border-divider py-3`}
+      className={`${width === 272 ? 'w-[272px]' : 'w-[304px]'} rounded-lg border border-divider py-3`}
     >
       <EventActions basePath={`/demo/${event.id}`} event={event} />
     </div>
@@ -37,7 +37,7 @@ function Panel({ event, width = 304 }: { event: Event; width?: 288 | 304 }) {
 export const Default: Story = () => (
   <StoryWrapper>
     <StorySection
-      description="The full set — Directions · Website · Contact · Share — on one line, icons above labels."
+      description="The full set — Directions · Website · Contact · Share — on one line; in the panel the icons go above the labels so none is cut."
       title="Physical event"
     >
       <Panel event={mockEvent} />
@@ -59,10 +59,10 @@ export const Default: Story = () => (
     </StorySection>
 
     <StorySection
-      description="A 320px phone: in a row under 296px the icons sit above the labels, so none is cut off."
+      description="A 320px phone: a label that would be cut puts every icon above its label."
       title="Narrow, without website"
     >
-      <Panel event={noWebsite} width={288} />
+      <Panel event={noWebsite} width={272} />
     </StorySection>
 
     <StorySection description="Inactive: no Register exists." title="Inactive">

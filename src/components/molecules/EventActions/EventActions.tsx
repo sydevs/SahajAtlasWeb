@@ -1,11 +1,11 @@
-import { type ReactNode } from 'react'
+import { type ReactNode, useLayoutEffect, useRef, useState } from 'react'
 import { FloatingFocusManager, FloatingPortal } from '@floating-ui/react'
 import { useTranslation } from 'react-i18next'
 import { Globe, Navigation, Phone, Share } from 'lucide-react'
 
-import { tv } from '@/styles/tv'
 import { useAtlasNavigate } from '@/hooks/use-atlas-navigate'
 import { Button } from '@/components/atoms/Button'
+import { isIOS } from '@/components/atoms/Drawer/sheet-touch'
 import { CopyField } from '@/components/molecules/ShareContent'
 import { useCoarsePointer } from '@/config/responsive'
 import { useEventDisplay } from '@/hooks/use-event-display'
@@ -14,25 +14,44 @@ import { directionsUrl } from '@/lib'
 import { overlayContainer } from '@/lib/overlay'
 import { Event } from '@/types'
 
-// One quiet grey Button per action, icon beside label, so Register stays the only thing that
-// stands out. Each starts at its own label's width and the row shares the rest: equal thirds cut
-// "Directions" short in the 352px desktop panel. Four actions, or a row under 296px (a phone
-// under about 345px), put the icon above the label instead: three English labels need 266px
-// inline, and the margin is for longer translations. No label is cut at 320px either way.
-const action = tv({
-  // ⚠ `min-h`, not `h`: tailwind-merge cannot cancel the recipe's `pointer-coarse:h-11` with a
-  // plain `h-14`, so a fixed height pinned the stacked buttons to 44px on exactly the phone.
-  base: 'h-auto min-h-11 min-w-0 flex-auto gap-1.5 px-1 py-1 pointer-coarse:h-auto [&_svg]:shrink-0 [&_svg]:text-primary-11',
-  variants: {
-    stacked: {
-      true: 'min-h-14 flex-col gap-0.5 text-xs',
-      false:
-        '@max-[296px]:min-h-14 @max-[296px]:flex-col @max-[296px]:gap-0.5 @max-[296px]:text-xs',
-    },
-  },
-})
+// One quiet grey Button per action, so Register stays the only thing that stands out. Each starts
+// at its own label's width and the row shares the rest: equal thirds cut "Directions" short in the
+// 352px desktop panel. The row's `data-stacked` puts every icon above its label.
+// ⚠ `min-h`, not `h`: tailwind-merge cannot cancel the recipe's `pointer-coarse:h-11` with a plain
+// `h-14`, which pinned stacked buttons to 44px on a phone.
+const ACTION =
+  'min-h-11 min-w-0 flex-auto gap-1.5 px-1 group-data-stacked/actions:min-h-14 group-data-stacked/actions:flex-col group-data-stacked/actions:gap-0.5 group-data-stacked/actions:text-xs [&_svg]:shrink-0 [&_svg]:text-primary-11'
 
 const ICON_SIZE = 18
+
+// Icon beside label while every label fits on one line, otherwise icon above label across the
+// row. No width breakpoint can tell: three labels need 266px in English and 336px in Portuguese.
+// A row stays stacked until `labels` changes, so it cannot flip back and forth.
+function useStackWhenCut(labels: string) {
+  const ref = useRef<HTMLDivElement>(null)
+  const [stackedFor, setStackedFor] = useState<string>()
+  const stacked = stackedFor === labels
+
+  useLayoutEffect(() => {
+    const row = ref.current
+
+    if (!row || stacked || typeof ResizeObserver === 'undefined') return undefined
+
+    const check = () => {
+      const spans = [...row.querySelectorAll('span')]
+
+      if (spans.some((label) => label.scrollWidth > label.clientWidth)) setStackedFor(labels)
+    }
+    const observer = new ResizeObserver(check)
+
+    check()
+    observer.observe(row)
+
+    return () => observer.disconnect()
+  }, [labels, stacked])
+
+  return { ref, stacked }
+}
 
 type ActionContentProps = { icon: ReactNode; label: string }
 
@@ -41,7 +60,7 @@ function ActionContent({ icon, label }: ActionContentProps) {
   return (
     <>
       {icon}
-      <span className="max-w-full min-w-0 truncate">{label}</span>
+      <span className="max-w-full truncate">{label}</span>
     </>
   )
 }
@@ -56,12 +75,10 @@ function ContactPopover({
   label,
   name,
   phone,
-  stacked,
 }: {
   label: string
   name?: string | null
   phone: string
-  stacked: boolean
 }) {
   const { isOpen, refs, floatingStyles, context, getReferenceProps, getFloatingProps } = usePopover(
     {
@@ -72,12 +89,7 @@ function ContactPopover({
 
   return (
     <>
-      <Button
-        ref={refs.setReference}
-        className={action({ stacked })}
-        variant="flat"
-        {...getReferenceProps()}
-      >
+      <Button ref={refs.setReference} className={ACTION} variant="flat" {...getReferenceProps()}>
         <ActionContent icon={<Phone size={ICON_SIZE} />} label={label} />
       </Button>
       {isOpen && (
@@ -126,7 +138,7 @@ export type EventActionsProps = {
  * with the number and copy on desktop. A raw tel: link is a desktop dead end.
  */
 export function EventActions({ event, basePath }: EventActionsProps) {
-  const { t } = useTranslation()
+  const { t, i18n } = useTranslation()
   const navigate = useAtlasNavigate()
   // The one responsive decision in the app that is about the DEVICE, not
   // the space (issue #107). Whether a `tel:` link reaches anything is a
@@ -137,90 +149,68 @@ export function EventActions({ event, basePath }: EventActionsProps) {
   const canDial = useCoarsePointer()
   const { display } = useEventDisplay(event)
 
-  const mapsUrl = directionsUrl(event.address)
-  // The resolver lists Website and Contact only when the event has them, so four means all four.
-  const stacked = display.actions.length > 3
-  const className = action({ stacked })
+  const mapsUrl = directionsUrl(event.address, isIOS())
 
   const buttons = display.actions.flatMap((kind) => {
     switch (kind) {
       case 'directions':
-        return mapsUrl
-          ? [
-              <Button
-                key="directions"
-                className={className}
-                href={mapsUrl}
-                target="_blank"
-                variant="flat"
-              >
-                <ActionContent
-                  icon={<Navigation className="rtl:-scale-x-100" size={ICON_SIZE} />}
-                  label={t('event.actions.directions')}
-                />
-              </Button>,
-            ]
-          : []
+        if (!mapsUrl) return []
+
+        return (
+          <Button key={kind} className={ACTION} href={mapsUrl} target="_blank" variant="flat">
+            <ActionContent
+              icon={<Navigation size={ICON_SIZE} />}
+              label={t('event.actions.directions')}
+            />
+          </Button>
+        )
       case 'website':
-        return event.website
-          ? [
-              <Button
-                key="website"
-                className={className}
-                href={event.website}
-                target="_blank"
-                variant="flat"
-              >
-                <ActionContent
-                  icon={<Globe size={ICON_SIZE} />}
-                  label={t('event.actions.website')}
-                />
-              </Button>,
-            ]
-          : []
+        if (!event.website) return []
+
+        return (
+          <Button key={kind} className={ACTION} href={event.website} target="_blank" variant="flat">
+            <ActionContent icon={<Globe size={ICON_SIZE} />} label={t('event.actions.website')} />
+          </Button>
+        )
       case 'contact': {
         if (!event.contactPhone) return []
         const label = t('event.actions.contact')
 
         // Touch devices dial. Everything else shows the number with a copy affordance.
-        if (canDial) {
-          return [
-            <Button
-              key="contact"
-              className={className}
-              href={`tel:${event.contactPhone}`}
-              variant="flat"
-            >
-              <ActionContent icon={<Phone size={ICON_SIZE} />} label={label} />
-            </Button>,
-          ]
-        }
-
-        return [
+        return canDial ? (
+          <Button key={kind} className={ACTION} href={`tel:${event.contactPhone}`} variant="flat">
+            <ActionContent icon={<Phone size={ICON_SIZE} />} label={label} />
+          </Button>
+        ) : (
           <ContactPopover
-            key="contact"
+            key={kind}
             label={label}
             name={event.contactName}
             phone={event.contactPhone}
-            stacked={stacked}
-          />,
-        ]
+          />
+        )
       }
       case 'share':
-        return [
+        return (
           <Button
-            key="share"
-            className={className}
+            key={kind}
+            className={ACTION}
             variant="flat"
             onClick={() => navigate(`${basePath}/share`)}
           >
             <ActionContent icon={<Share size={ICON_SIZE} />} label={t('event.actions.share')} />
-          </Button>,
-        ]
+          </Button>
+        )
     }
   })
+  // The language and the set decide every label.
+  const { ref, stacked } = useStackWhenCut(`${i18n.language}:${buttons.map((b) => b.key).join()}`)
 
   if (buttons.length === 0) return null
 
-  return <div className="@container flex w-full items-stretch gap-2">{buttons}</div>
+  return (
+    <div ref={ref} className="group/actions flex w-full gap-2" data-stacked={stacked || undefined}>
+      {buttons}
+    </div>
+  )
 }

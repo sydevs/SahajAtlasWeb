@@ -172,7 +172,6 @@ export const Default: Story = () => (
     >
       <div className="flex items-center gap-6" dir="rtl">
         <ChevronRight className="rtl:-scale-x-100" size={24} />
-        <Navigation className="rtl:-scale-x-100" size={24} />
         <span className="text-sm text-gray-11">dir=&quot;rtl&quot;</span>
       </div>
     </StorySection>

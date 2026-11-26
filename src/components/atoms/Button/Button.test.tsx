@@ -35,7 +35,7 @@ describe('Button', () => {
   })
 })
 
-// The atom's href form is one of the app's two JSX anchors. Until #114 it was
+// The atom's href form is one of the app's JSX anchors. Until #114 it was
 // ungated. The `Link` atom's guard sits in a component this arm never reaches.
 //
 // The predicate's own case table lives in `src/lib/shape/href.test.ts`. This spec

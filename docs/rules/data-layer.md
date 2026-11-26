@@ -224,8 +224,7 @@ only thing judging the value it admits.
 
 Only two components render a JSX anchor, and both call it (#114): the
 `Link` atom and the `Button` atom's href form. Before #114, `Button` and the event
-action row (since folded into `Button`) rendered a raw `<a href>` that skipped the
-`Link` atom's own check. Their hrefs were safe by _provenance_ — a `SafeUrlSchema`-parsed
+action row rendered a raw `<a href>` that skipped the `Link` atom's own check. Their hrefs were safe by _provenance_ — a `SafeUrlSchema`-parsed
 `event.website`, a `directionsUrl` the app builds, literal `mailto:` / `tel:`
 prefixes — but provenance is not a property the next caller inherits. No live hole
 was ever found here — this predicate is defense-in-depth — but the recurrence rate
