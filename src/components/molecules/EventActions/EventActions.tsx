@@ -8,7 +8,6 @@ import { Globe, Navigation, Phone, Share } from 'lucide-react'
 import { useAtlasNavigate } from '@/hooks/use-atlas-navigate'
 import { Button } from '@/components/atoms/Button'
 import { useCopy } from '@/hooks/use-copy'
-import { tv } from '@/styles/tv'
 import { useCoarsePointer } from '@/config/responsive'
 import { usePopover } from '@/hooks/use-popover'
 import { directionsUrl } from '@/lib'
@@ -26,47 +25,6 @@ const ACTION =
   'min-h-11 min-w-0 flex-auto gap-1.5 px-1 group-data-stacked/actions:min-h-14 group-data-stacked/actions:flex-col group-data-stacked/actions:gap-0.5 group-data-stacked/actions:text-xs [&_svg]:shrink-0 [&_svg]:text-primary-11'
 
 const ICON_SIZE = 18
-
-const copyField = tv({
-  // ⚠ `truncate` sits on the inner span, not here. It carries `overflow: hidden`, which clips
-  // this button's own `touch-target` pseudo-element back to the drawn box — the 44px tap area
-  // was there in the style and answered to nothing (#432).
-  base: 'touch-target relative w-full rounded-lg px-3 py-2 text-start text-sm text-secondary-11 transition-colors select-all',
-  variants: { copied: { true: 'bg-secondary-5', false: 'bg-secondary-3' } },
-  defaultVariants: { copied: false },
-})
-
-// A click-to-copy value field for the desktop contact popover's phone number (issue #52). It
-// copies on click, with a brief tint flash. The text stays selectable as a fallback.
-function CopyField({ value }: { value: string }) {
-  const { t } = useTranslation()
-  const { copied, copy } = useCopy(1500)
-
-  return (
-    <div className="flex flex-col gap-1">
-      <button
-        data-vaul-no-drag
-        // The URL is the button's visible text, so the name carries it too: a name that
-        // omitted it would leave a speech-input viewer with nothing to say (WCAG 2.5.3).
-        aria-label={`${t('share.a11y.copy_link')}: ${value}`}
-        className={copyField({ copied })}
-        title={value}
-        type="button"
-        onClick={() => void copy(value)}
-      >
-        <span className="block truncate">{value}</span>
-      </button>
-      {/* Success was previously signalled ONLY by a secondary-3 to
-          secondary-5 tint, a roughly 1.15:1 shift. A screen reader cannot
-          see that at all, and low-vision or monochrome users would not
-          perceive it either. The live region announces success, and the
-          text confirms it. */}
-      <span aria-live="polite" className="h-4 text-xs text-secondary-11">
-        {copied ? t('common.chrome.copied') : ''}
-      </span>
-    </div>
-  )
-}
 
 const LABEL = {
   directions: 'event.actions.directions',
@@ -165,6 +123,8 @@ function ContactPopover({
       role: 'dialog',
     },
   )
+  const { t } = useTranslation()
+  const { copied, copy } = useCopy(1500)
 
   return (
     <>
@@ -196,7 +156,24 @@ function ContactPopover({
               {...getFloatingProps({ 'aria-label': label })}
             >
               {name && <div className="text-sm font-medium">{name}</div>}
-              <CopyField value={phone} />
+              {/* ⚠ `truncate` sits on the inner span: on the button it would clip the
+                  `touch-target` area back to the drawn box (#432). The number is the visible
+                  text, so the name carries it too (WCAG 2.5.3). */}
+              <div className="flex flex-col gap-1">
+                <button
+                  data-vaul-no-drag
+                  aria-label={`${t('share.a11y.copy_link')}: ${phone}`}
+                  className={`touch-target relative w-full rounded-lg px-3 py-2 text-start text-sm text-secondary-11 transition-colors select-all ${copied ? 'bg-secondary-5' : 'bg-secondary-3'}`}
+                  title={phone}
+                  type="button"
+                  onClick={() => void copy(phone)}
+                >
+                  <span className="block truncate">{phone}</span>
+                </button>
+                <span aria-live="polite" className="h-4 text-xs text-secondary-11">
+                  {copied ? t('common.chrome.copied') : ''}
+                </span>
+              </div>
             </div>
           </FloatingFocusManager>
         </FloatingPortal>
