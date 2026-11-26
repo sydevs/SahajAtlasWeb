@@ -11,7 +11,7 @@ export type EventChipsProps = {
   event: DisplayableEvent & { languages: string[] }
   /**
    * `default`, the event header, names the type where the listing has one, and
-   * every language.
+   * every language. It never shows "Today": the when line under it already says so.
    * `compact`, the list card, drops the plain weekly-class type and the
    * viewer's own language. Those are the chips that add nothing at a
    * glance.
@@ -22,15 +22,15 @@ export type EventChipsProps = {
 
 /**
  * The event's triage chips. Up to three, all `flat`: the class type
- * (primary), the language(s) combined into one chip (secondary), and a
- * single availability chip, "Full" (neutral) or "Today" (contrast). The
- * list card and the event header share this component, so the two never
- * drift. `compact` trims the redundant chips on the card.
+ * (primary, none for an inactive listing), the language(s) combined into one
+ * chip (secondary), and a single availability chip, "Full" (neutral) or, on a
+ * card, "Today" (contrast). The list card and the event header share this
+ * component, so the two never drift. `compact` trims the redundant chips on the card.
  */
 export function EventChips({ event, variant = 'default', className }: EventChipsProps) {
   const { t } = useTranslation()
   const { languageCode: uiLanguage, languageLabel } = useLocale()
-  const { display, typeLabel, isDefaultType } = useEventDisplay(event)
+  const { display, typeLabel, isDefaultType, recurrenceLine } = useEventDisplay(event)
 
   const compact = variant === 'compact'
 
@@ -55,7 +55,9 @@ export function EventChips({ event, variant = 'default', className }: EventChips
   // set only when it is the actual blocker, so an ended or dormant event
   // still falls through to its own treatment.
   const full = display.full
-  const today = !full && display.status === 'today'
+  // "Today" is card-only, and only beside a recurrence pattern ("Every Wednesday"). Elsewhere
+  // the when line already says "Today".
+  const today = !full && display.status === 'today' && compact && Boolean(recurrenceLine)
 
   if (!showType && !languageText && !full && !today) return null
 

@@ -15,6 +15,7 @@ const { d } = vi.hoisted(() => ({
     full: false,
     typeLabel: 'Weekly class' as string | null,
     isDefaultType: true,
+    recurrenceLine: 'Every Wednesday' as string | null,
   },
 }))
 
@@ -27,6 +28,7 @@ vi.mock('@/hooks/use-event-display', () => ({
     display: { status: d.status, full: d.full },
     typeLabel: d.typeLabel,
     isDefaultType: d.isDefaultType,
+    recurrenceLine: d.recurrenceLine,
   }),
 }))
 
@@ -41,6 +43,7 @@ describe('EventChips', () => {
     d.full = false
     d.typeLabel = 'Weekly class'
     d.isDefaultType = true
+    d.recurrenceLine = 'Every Wednesday'
   })
 
   it('default: names the type and folds every language into one chip', () => {
@@ -65,13 +68,26 @@ describe('EventChips', () => {
     expect(html).not.toContain('en, fr')
   })
 
-  it('shows a contrast "Today" chip when the event is today', () => {
+  it('compact: shows a contrast "Today" chip beside a recurrence pattern', () => {
     d.status = 'today'
 
-    const html = render(['en'])
+    const html = render(['en'], 'compact')
 
     expect(html).toContain('event.display.chip_today')
     expect(html).toContain('text-contrast-11')
+  })
+
+  it('default: never shows "Today" — the class page\'s when line already says it', () => {
+    d.status = 'today'
+
+    expect(render(['en'])).not.toContain('event.display.chip_today')
+  })
+
+  it('compact: no "Today" chip without a recurrence pattern — the when line says it', () => {
+    d.status = 'today'
+    d.recurrenceLine = null
+
+    expect(render(['en'], 'compact')).not.toContain('event.display.chip_today')
   })
 
   it('renders no type chip where the listing has no type to name', () => {
@@ -96,7 +112,7 @@ describe('EventChips', () => {
     d.full = true
     d.status = 'today'
 
-    const html = render(['en'])
+    const html = render(['en'], 'compact')
 
     expect(html).toContain('event.display.chip_full')
     expect(html).not.toContain('event.display.chip_today')

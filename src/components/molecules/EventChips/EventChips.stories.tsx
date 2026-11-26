@@ -47,14 +47,15 @@ const Samples = ({ variant }: { variant: 'default' | 'compact' }) => (
 
 /**
  * EventChips — the shared triage chips (type, language(s), availability).
- * `default`, the event header, names the type and every language. `compact`,
- * the list card, drops the plain weekly-class type and the viewer's own
- * language. At most one availability chip renders: "Full" supersedes "Today".
+ * `default`, the event header, names the type and every language, and never
+ * shows "Today". `compact`, the list card, drops the plain weekly-class type and
+ * the viewer's own language, and shows "Today" only beside a recurrence pattern.
+ * At most one availability chip renders: "Full" supersedes "Today".
  */
 export const Default: Story = () => (
   <StoryWrapper>
     <StorySection
-      description="The event header names the type and folds every language into one chip."
+      description="The event header names the type and folds every language into one chip. It shows no Today chip: the when line says it."
       title="Default"
     >
       <Samples variant="default" />

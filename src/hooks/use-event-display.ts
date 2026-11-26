@@ -25,8 +25,8 @@ export type DisplayableEvent = DisplayEventLike & {
 export type EventDisplayStrings = {
   /** The raw resolved state, for surfaces that need more than strings. */
   display: EventDisplay
-  /** "Weekly class" / "Course · 8 sessions" / "One-off event". Null for a by-request listing,
-   *  which carries no schedule and so has no type to name. */
+  /** "Weekly class" / "Course · 8 sessions" / "One-off event". Null for a listing with the
+   *  `inactive` flag, schedule stored or not, and for one with no schedule. */
   typeLabel: string | null
   /** This is true for a plain weekly class, the default shape. Its `typeLabel` adds
    *  nothing on a compact surface, so the list card skips its type pill. */
@@ -141,11 +141,10 @@ export function useEventDisplay(event: DisplayableEvent): EventDisplayStrings {
     // ── Type label (derived, never host-set) ──
     let typeLabel: string | null
 
-    // A by-request listing carries no schedule, so the resolver derives `oneoff` from the
-    // absent recurrence and "One-off event" would be simply wrong. "Contact host for timings"
-    // already says what it is. A real one-off has a schedule, inactive or not, and keeps its
-    // label.
-    if (!schedule) typeLabel = null
+    // The `inactive` flag alone decides: SahajCloud sends a by-request listing an all-null
+    // schedule group, so the resolver derives `oneoff` and "One-off event" would be wrong.
+    // "Contact host for timings" already says what it is. No schedule at all names no type either.
+    if (event.inactive || !schedule) typeLabel = null
     else if (kind === 'oneoff') typeLabel = t('event.display.type_oneoff')
     else if (kind === 'course')
       typeLabel = sessionsLabel

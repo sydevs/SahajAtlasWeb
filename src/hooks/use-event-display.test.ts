@@ -231,17 +231,21 @@ describe('useEventDisplay — the type label', () => {
     expect(labelFor({ eventType: 'offline', address: { city: 'Stirling' } })).toBe(null)
   })
 
-  it('still names a real one-off an operator marked inactive', () => {
-    expect(
-      labelFor({
-        eventType: 'offline',
-        inactive: true,
-        address: { city: 'Stirling' },
-        schedule: {
-          firstDate: new Date('2026-07-01T17:30:00Z'),
-          firstDate_tz: 'Europe/Prague',
-        },
-      }),
-    ).toBe('One-off event')
+  // Stirling (event 1505): flagged, with a schedule group SahajCloud still sends.
+  const stored = {
+    eventType: 'offline',
+    address: { city: 'Stirling' },
+    schedule: {
+      firstDate: new Date('2026-07-01T17:30:00Z'),
+      firstDate_tz: 'Europe/Prague',
+    },
+  } as const
+
+  it('is null for a listing with the inactive flag, even with a schedule stored', () => {
+    expect(labelFor({ ...stored, inactive: true })).toBe(null)
+  })
+
+  it('names the same listing without the flag', () => {
+    expect(labelFor({ ...stored, inactive: false })).toBe('One-off event')
   })
 })
