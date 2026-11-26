@@ -127,14 +127,13 @@ const REFUSED = 'refused'
 
 const PRIVACY_POLICY_URL = 'https://wemeditate.com/privacy'
 
-// The card's own size in the quiet grey, set from the start like the fields above it.
+// Left-aligned like the fields above it, at the card's own size, in the quiet grey.
 const CONSENT_CLASSES = 'text-sm text-gray-11'
 
 /**
  * The consent line under the fields. A translation marks the words that link to the privacy
  * policy as `<link>…</link>`, so each language puts the link where its own sentence needs it. A
- * translation without the mark reads as plain text, as every one did before. The link is inline,
- * so its 44px tap area is `touch-target`'s pseudo-element, which leaves the line height alone.
+ * translation without the mark reads as plain text, as every one did before.
  */
 function ConsentNote({ text }: { text: string }) {
   const parts = splitInlineLink(text)
@@ -147,7 +146,7 @@ function ConsentNote({ text }: { text: string }) {
       <Link
         data-vaul-no-drag
         isExternal
-        className="touch-target relative underline underline-offset-2"
+        className="underline underline-offset-2"
         href={PRIVACY_POLICY_URL}
       >
         {parts.link}

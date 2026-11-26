@@ -94,7 +94,7 @@ describe('RegistrationForm', () => {
 
       expect(anchor).toContain('target="_blank"')
       expect(anchor).toMatch(/rel="[^"]*\bnoopener\b/)
-      // A 44px tap area on touch screens, from a pseudo-element so the line keeps its height.
+      // The Link atom's 44px tap area on touch screens, a pseudo-element that keeps the line height.
       expect(anchor).toMatch(/class="[^"]*\btouch-target\b[^"]*\brelative\b/)
     })
 
