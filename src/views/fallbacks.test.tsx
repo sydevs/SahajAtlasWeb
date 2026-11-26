@@ -30,6 +30,7 @@ vi.mock('@/components/atoms/Drawer', () => ({
       {field ? 'field-toolbar' : 'toolbar'}:{children}
     </aside>
   ),
+  useDrawerMode: () => 'anchored',
 }))
 vi.mock('@/components/molecules', () => ({
   CENTERED_BODY: '',

@@ -55,6 +55,13 @@ const DrawerContext = createContext<DrawerCtx>({
 
 const useDrawerSlots = () => useContext(DrawerContext)
 
+/**
+ * `inline` in the inline embed's column, where the views sit in the page's flow; `anchored` in a
+ * real drawer. For a decision CSS cannot make from the slots, such as how many lines a loading
+ * title takes in a column wider than a panel.
+ */
+export const useDrawerMode = (): DrawerMode => useDrawerSlots().mode
+
 // A real drawer is anchored. `inline` is a surface with no drawer at all, reached only through
 // `DrawerSlotsProvider`.
 export type DrawerProps = Omit<VariantProps<typeof drawer>, 'mode'> & {

@@ -7,7 +7,7 @@ import { useTranslation } from 'react-i18next'
 import { useLocation } from 'react-router'
 import { useQuery } from '@tanstack/react-query'
 
-import { DrawerBody, DrawerHeader, DrawerToolbar } from '@/components/atoms/Drawer'
+import { DrawerBody, DrawerHeader, DrawerToolbar, useDrawerMode } from '@/components/atoms/Drawer'
 import { Spinner } from '@/components/atoms/Spinner'
 import { CENTERED_BODY, FallbackPanel, ListToolbar, SortMenu } from '@/components/molecules'
 import { EventHeader } from '@/components/organisms/EventDetails/EventHeader'
@@ -115,6 +115,7 @@ export function DrawerChrome({
   const { locale, regionNames: countryNames } = useLocale()
   const { hasMap } = useWidgetMode()
   const { collapsed } = useDrawerControl()
+  const inline = useDrawerMode() === 'inline'
   const location = useLocation()
   const { data: titles } = useQuery({ ...eventTitlesQuery(locale), enabled: false })
 
@@ -191,9 +192,10 @@ export function DrawerChrome({
     )
   }
 
-  // A class loading takes EventView's own header, so the title lands where the real one will.
+  // A class loading takes EventView's own header, so the title lands where the real one will. A
+  // title fits one line in the inline column, wider than a panel, and wraps to two in a panel.
   if (loading && entry.kind === 'event') {
-    return <EventHeader nav={<NavRow />} title={title} />
+    return <EventHeader nav={<NavRow />} title={title} titleLines={inline ? 1 : 2} />
   }
 
   // The view's own header, so nothing moves when the view arrives. No title when nothing
