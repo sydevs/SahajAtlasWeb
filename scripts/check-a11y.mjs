@@ -545,7 +545,7 @@ async function keyboardWalk(page, count, resting, selectors) {
     // Back on the first stop: Tab wrapped round, so the walk is complete. `count` is the
     // tabbable elements, and a roving-tabindex group (the weekday picker) is one Tab stop holding
     // several, so the walk can outlast the page and wrap without passing the body.
-    if (stops.length > 0 && stop.order === stops[0].order && stops.at(-1).order !== stop.order) {
+    if (stops.length > 0 && stop.order === stops[0].order && stops[stops.length - 1].order !== stop.order) {
       break
     }
 
