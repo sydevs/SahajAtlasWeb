@@ -22,6 +22,7 @@
   },
   "share": {
     "copy_link": "کپی پیوند",
-    "share_on": "اشتراک‌گذاری در %{platform}"
+    "share_on": "اشتراک‌گذاری در %{platform}",
+    "qr_code": "کد QR برای %{title}"
   }
 }

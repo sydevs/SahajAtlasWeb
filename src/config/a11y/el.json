@@ -22,6 +22,7 @@
   },
   "share": {
     "copy_link": "Αντιγραφή συνδέσμου",
-    "share_on": "Κοινοποίηση: %{platform}"
+    "share_on": "Κοινοποίηση: %{platform}",
+    "qr_code": "Κωδικός QR για %{title}"
   }
 }
