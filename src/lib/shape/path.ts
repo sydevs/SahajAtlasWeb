@@ -226,6 +226,14 @@ export const placeSearchPath = (params: URLSearchParams, place: PlaceSearch): st
   return `/search?${next.toString()}`
 }
 
+/** The same place search, with the filter drawer still open over it. */
+export const placeFiltersPath = (params: URLSearchParams, place: PlaceSearch): string =>
+  placeSearchPath(params, place).replace('/search?', '/search/filters?')
+
+/** The current query with the searched place dropped, keeping the filters and sort. */
+export const noPlaceSearch = (params: URLSearchParams): string =>
+  preserveSearchState(params).toString()
+
 /**
  * The searched place as a short name — the leading part of `?q`, so "Prague, Czechia" reads
  * "Prague" — or `''` when nothing was searched. A whole address is noise in a one-line label.

@@ -1,24 +1,20 @@
 import type { Story, StoryDefault } from '@ladle/react'
 import type { Geojson } from '@/types'
 
-import { useEffect, useState } from 'react'
-import { useQueryClient } from '@tanstack/react-query'
+import { useMemo, useState } from 'react'
 
 import { StoryWrapper, StorySection } from '../../ladle'
 
 import { SearchFilters } from './SearchFilters'
 
-import { geojsonQuery } from '@/config/api'
 import { mockEventSlimList } from '@/mocks/events'
-import { DEFAULT_FILTERS } from '@/lib/shape'
+import { DEFAULT_FILTERS, facetCounts, facetRelevance } from '@/lib/shape'
 
 export default {
   title: 'Molecules',
 } satisfies StoryDefault
 
-// This seeds the map's `['geojson']` cache, which the form reads language
-// options from, with a few distinct language sets, so the Language
-// dropdown has options to show.
+// A few distinct language sets, so the Language question has options to count.
 const LANGUAGE_SETS = [['en'], ['fr'], ['hi', 'en'], ['de']]
 
 const mockGeojson: Geojson = {
@@ -39,27 +35,34 @@ const mockGeojson: Geojson = {
   })),
 }
 
+const scope = mockGeojson.features.map((feature) => feature.properties)
+const relevance = facetRelevance(facetCounts(scope, DEFAULT_FILTERS))
+
 /** SearchFilters — the event-filters form, as rendered inside the FilterView drawer. */
 export const Default: Story = () => {
-  const queryClient = useQueryClient()
-  const [filters, setFilters] = useState(DEFAULT_FILTERS)
-
-  useEffect(() => {
-    queryClient.setQueryData(geojsonQuery().queryKey, mockGeojson)
-  }, [queryClient])
+  const [plain, setPlain] = useState(DEFAULT_FILTERS)
+  const [counted, setCounted] = useState(DEFAULT_FILTERS)
+  const facets = useMemo(() => ({ counts: facetCounts(scope, counted), relevance }), [counted])
 
   return (
     <StoryWrapper>
       <StorySection
-        description="Format / Frequency / Day-of-week / Time-of-day (period toggles) / Language (multi-select dropdown). A controlled form — it edits the given value and reports changes via onChange."
-        title="Event filters form"
+        description="Before the feed loads: every question but Language, with no numbers. Frequency and Dates sit under More filters."
+        title="Without counts"
       >
         <div className="max-w-sm rounded-lg border border-divider p-4">
-          <SearchFilters value={filters} onChange={setFilters} />
+          <SearchFilters value={plain} onChange={setPlain} />
         </div>
       </StorySection>
 
-      <div />
+      <StorySection
+        description="With the feed: each option shows how many classes it leaves, an option that leaves none is disabled unless selected, and a question that cannot narrow this scope is not asked."
+        title="With counts"
+      >
+        <div className="max-w-sm rounded-lg border border-divider p-4">
+          <SearchFilters facets={facets} value={counted} onChange={setCounted} />
+        </div>
+      </StorySection>
     </StoryWrapper>
   )
 }

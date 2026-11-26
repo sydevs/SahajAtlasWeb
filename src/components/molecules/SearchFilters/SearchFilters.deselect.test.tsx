@@ -81,7 +81,7 @@ const itemIn = (host: HTMLElement, group: string, text: string) => {
 describe('SearchFilters — pressing the selected option clears the filter', () => {
   it('reports format: any when the on option is pressed again', () => {
     const { drafts, host } = mount({ ...DEFAULT_FILTERS, format: 'online' })
-    const selected = itemIn(host, 'filters.format.label', 'filters.format.online')
+    const selected = itemIn(host, 'filters.format.question', 'filters.format.online')
 
     // Sanity check: Radix really does consider this one on. So the press
     // below is a DESELECT, not just a click on an inert item.
@@ -110,7 +110,7 @@ describe('SearchFilters — pressing the selected option clears the filter', () 
   it('still selects a different option normally', () => {
     const { drafts, host } = mount({ ...DEFAULT_FILTERS, format: 'online' })
 
-    act(() => itemIn(host, 'filters.format.label', 'filters.format.offline').click())
+    act(() => itemIn(host, 'filters.format.question', 'filters.format.offline').click())
 
     expect(drafts).toHaveLength(1)
     expect(drafts[0].format).toBe('offline')

@@ -16,7 +16,7 @@ const toggleGroup = tv({
     // ⚠ The `pointer-coarse` pair is the 44px tap floor (#432), and it is a drawn size rather
     // than the `touch-target` utility on purpose: the items are flush, so an invisible area
     // wider than an item would sit over its neighbour and take the neighbour's taps instead.
-    item: 'relative inline-flex h-8 min-w-8 items-center justify-center border border-gray-6 bg-background px-2 text-sm font-medium text-gray-11 transition-colors outline-none select-none hover:bg-gray-3 focus-visible:z-10 focus-visible:ring-2 focus-visible:ring-focus disabled:opacity-disabled data-[state=on]:z-10 data-[state=on]:border-primary-12 data-[state=on]:bg-primary-12 data-[state=on]:text-white dark:data-[state=on]:border-primary-9 dark:data-[state=on]:bg-primary-9 dark:data-[state=on]:text-primary-foreground pointer-coarse:h-11 pointer-coarse:min-w-11',
+    item: 'relative inline-flex h-8 min-w-8 items-center justify-center border border-gray-6 bg-background px-2 text-sm font-medium text-foreground transition-colors outline-none select-none hover:bg-gray-3 focus-visible:z-10 focus-visible:ring-2 focus-visible:ring-focus disabled:opacity-disabled data-[state=on]:z-10 data-[state=on]:border-primary-12 data-[state=on]:bg-primary-12 data-[state=on]:text-white dark:data-[state=on]:border-primary-9 dark:data-[state=on]:bg-primary-9 dark:data-[state=on]:text-primary-foreground pointer-coarse:h-11 pointer-coarse:min-w-11',
   },
   variants: {
     joined: {

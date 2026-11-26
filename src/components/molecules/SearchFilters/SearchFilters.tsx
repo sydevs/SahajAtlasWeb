@@ -1,18 +1,17 @@
 import type { TranslationKey } from '@/types/i18next'
+import type { FilterFacets } from '@/hooks/use-filter-facets'
 
-import { type ReactNode, useMemo } from 'react'
-import { useQuery } from '@tanstack/react-query'
+import { type ReactNode, useMemo, useState } from 'react'
 import { Info } from 'luxon'
 import { useTranslation } from 'react-i18next'
 import { ChevronDown } from 'lucide-react'
+import clsx from 'clsx'
 
 import { Checkbox } from '@/components/atoms/Checkbox'
-import { Combobox } from '@/components/atoms/Combobox'
 import { Dropdown } from '@/components/atoms/Dropdown'
 import { Input } from '@/components/atoms/Input'
 import { ToggleGroup, ToggleGroupItem } from '@/components/atoms/ToggleGroup'
 import { fieldChrome } from '@/components/atoms/Select'
-import { geojsonQuery, regionsQuery } from '@/config/api'
 import { useLocale } from '@/hooks/use-locale'
 import { formatTimePeriods } from '@/lib'
 import {
@@ -21,12 +20,14 @@ import {
   type EventFormat,
   type TimePeriod,
   TIME_PERIODS,
-  ancestorIds,
   dateWindow,
-  indexRegions,
   isDateRestricted,
   isTimeRestricted,
+  shownGroups,
 } from '@/lib/shape'
+
+// How many languages still read better as one tap each than as a dropdown.
+const INLINE_LANGUAGES = 4
 
 // The Format and Frequency toggle options, in display order. The i18n leaf
 // key for each is just the lowercased value (`recurrenceType` is
@@ -45,8 +46,19 @@ import {
 // the paragraph above says they do. `'any'` is the sentinel the URL codec
 // omits, so a cleared group round-trips as an absent parameter and
 // matches no ToggleGroupItem, which is what renders the group unselected.
-const FORMAT_OPTIONS: EventFormat[] = ['offline', 'online']
-const CADENCE_OPTIONS: EventCadence[] = ['DAILY', 'WEEKLY', 'MONTHLY', 'once']
+const FORMAT_OPTIONS: Exclude<EventFormat, 'any'>[] = ['offline', 'online']
+const CADENCE_OPTIONS: Exclude<EventCadence, 'any'>[] = ['DAILY', 'WEEKLY', 'MONTHLY', 'once']
+
+/** A quiet live count beside an option. It takes the option's colour once selected. */
+function OptionCount({ count }: { count: number | undefined }) {
+  if (count === undefined) return null
+
+  return (
+    <span className="text-xs font-normal text-gray-11 tabular-nums in-data-[state=on]:text-inherit">
+      {count}
+    </span>
+  )
+}
 
 // A labelled filter group: a heading, with an optional right-aligned
 // hint, such as the time readout, above its control. When the filter is
@@ -134,12 +146,13 @@ function DateBound({
   onChange: (value: string | null) => void
 }) {
   return (
-    <label className="flex min-w-0 flex-1 flex-col gap-1 text-xs text-gray-11">
+    <label className="flex min-w-0 flex-col gap-1 text-xs text-gray-11">
       {label}
       {/* iOS Safari gives a date field an intrinsic minimum width of its own, wider than half
-          a phone sheet, so From and To overlapped and To ran off the edge. */}
+          a phone sheet, so From and To overlapped and To ran off the edge. `appearance-none`
+          drops it, and `min-w-0 w-full` lets the grid column decide. */}
       <Input
-        className="min-w-0 appearance-none px-2"
+        className="w-full min-w-0 appearance-none px-2"
         highlight={highlight}
         max={max}
         min={min}
@@ -153,287 +166,328 @@ function DateBound({
   )
 }
 
+type ControlProps = {
+  value: EventFilters
+  patch: (next: Partial<EventFilters>) => void
+  facets?: FilterFacets
+}
+
+/**
+ * Languages: one tap each when there are few, a dropdown when there are many. The options are
+ * the languages classes in this scope actually use, most-used first.
+ */
+function LanguageFilter({ value, patch, facets }: ControlProps) {
+  const { t } = useTranslation()
+  const { languageLabel } = useLocale()
+  const options = facets?.counts.languages ?? []
+  const { languages } = value
+
+  if (options.length <= INLINE_LANGUAGES) {
+    return (
+      <ToggleGroup
+        aria-label={t('filters.language.label')}
+        className="grid grid-cols-2"
+        type="multiple"
+        value={languages}
+        onValueChange={(next) => patch({ languages: next })}
+      >
+        {options.map((option) => (
+          <ToggleGroupItem
+            key={option.code}
+            className="h-11 justify-between gap-2 px-3"
+            disabled={option.count === 0 && !languages.includes(option.code)}
+            value={option.code}
+          >
+            <span className="truncate">{languageLabel(option.code)}</span>
+            <OptionCount count={option.count} />
+          </ToggleGroupItem>
+        ))}
+      </ToggleGroup>
+    )
+  }
+
+  const selected = languages.map(languageLabel).join(', ')
+
+  return (
+    <Dropdown
+      fullWidth
+      aria-label={t('filters.language.label')}
+      role="dialog"
+      trigger={
+        <span className={fieldChrome({ trigger: true, highlight: languages.length > 0 })}>
+          <span className="truncate">{selected || t('filters.language.all')}</span>
+          <ChevronDown className="h-4 w-4 shrink-0 opacity-70" />
+        </span>
+      }
+    >
+      <div className="max-h-56 overflow-y-auto p-1">
+        {options.map((option) => (
+          <Checkbox
+            key={option.code}
+            appearance="checkbox"
+            checked={languages.includes(option.code)}
+            className="w-full rounded-lg px-2 py-1.5 hover:bg-gray-3"
+            disabled={option.count === 0 && !languages.includes(option.code)}
+            onCheckedChange={() =>
+              patch({
+                languages: languages.includes(option.code)
+                  ? languages.filter((code) => code !== option.code)
+                  : [...languages, option.code],
+              })
+            }
+          >
+            <span className="flex w-full items-baseline justify-between gap-3">
+              {languageLabel(option.code)}
+              <OptionCount count={option.count} />
+            </span>
+          </Checkbox>
+        ))}
+      </div>
+    </Dropdown>
+  )
+}
+
+/** Frequency and Dates, folded away: most classes are weekly, so neither narrows much. */
+function MoreFilters({ value, patch, facets }: ControlProps) {
+  const { t } = useTranslation()
+  const { cadence, dateRange } = value
+  const active = cadence !== 'any' || isDateRestricted(dateRange)
+  const [open, setOpen] = useState(active)
+  // The date picker is bounded to today through today plus 12 months, the window the URL codec
+  // clamps to.
+  const { min: dateMin, max: dateMax } = dateWindow()
+  const counts = facets?.counts.cadence
+  const showCadence = cadence !== 'any' || (facets?.relevance.cadence ?? true)
+
+  return (
+    <div className="flex flex-col">
+      <button
+        aria-expanded={open}
+        className="-mx-gutter flex min-h-11 items-center justify-between gap-2 px-gutter text-sm font-semibold text-foreground outline-none hover:bg-gray-3 focus-visible:ring-2 focus-visible:ring-focus focus-visible:ring-inset"
+        type="button"
+        onClick={() => setOpen((current) => !current)}
+      >
+        <span className="flex items-center gap-2">
+          {t('filters.more.label')}
+          {active && !open && <span aria-hidden className="size-2 rounded-full bg-primary-9" />}
+        </span>
+        <ChevronDown
+          aria-hidden
+          className={clsx('shrink-0 text-gray-11 transition-transform', open && 'rotate-180')}
+          size={18}
+        />
+      </button>
+      {open && (
+        <div className="flex flex-col gap-5 pt-2">
+          {showCadence && (
+            <FilterGroup
+              active={cadence !== 'any'}
+              label={t('filters.cadence.label')}
+              onClear={() => patch({ cadence: 'any' })}
+            >
+              <ToggleGroup
+                aria-label={t('filters.cadence.label')}
+                className="grid grid-cols-2"
+                type="single"
+                value={cadence}
+                onValueChange={(next) => patch({ cadence: (next || 'any') as EventCadence })}
+              >
+                {CADENCE_OPTIONS.map((option) => (
+                  <ToggleGroupItem
+                    key={option}
+                    className="h-11 gap-1.5"
+                    disabled={counts?.[option] === 0 && cadence !== option}
+                    value={option}
+                  >
+                    {t(`filters.cadence.${option.toLowerCase()}` as TranslationKey)}
+                    <OptionCount count={counts?.[option]} />
+                  </ToggleGroupItem>
+                ))}
+              </ToggleGroup>
+            </FilterGroup>
+          )}
+          <FilterGroup
+            active={isDateRestricted(dateRange)}
+            label={t('filters.dates.label')}
+            onClear={() => patch({ dateRange: { start: null, end: null } })}
+          >
+            <div className="grid grid-cols-2 gap-2">
+              <DateBound
+                highlight={dateRange.start !== null}
+                label={t('filters.dates.from')}
+                max={dateRange.end ?? dateMax}
+                min={dateMin}
+                value={dateRange.start ?? ''}
+                onChange={(start) => patch({ dateRange: { ...dateRange, start } })}
+              />
+              <DateBound
+                highlight={dateRange.end !== null}
+                label={t('filters.dates.to')}
+                max={dateMax}
+                min={dateRange.start ?? dateMin}
+                value={dateRange.end ?? ''}
+                onChange={(end) => patch({ dateRange: { ...dateRange, end } })}
+              />
+            </div>
+          </FilterGroup>
+        </div>
+      )}
+    </div>
+  )
+}
+
 export type SearchFiltersProps = {
   /** The (draft) filter values the form edits. */
   value: EventFilters
   /** Called with the next draft on every change. The host applies it on demand. */
   onChange: (filters: EventFilters) => void
+  /** The Where group, which needs the router and the geocoder, so the view supplies it. */
+  where?: ReactNode
+  /** Live counts and relevance. Without them every group but Language shows, with no numbers. */
+  facets?: FilterFacets
 }
 
 /**
- * The event-filters form: the Format, Frequency, Day, Time, and Language
- * controls. This is fully controlled. It edits `value` and reports the
- * next draft through `onChange`. It does not touch the store, so the host
- * (FilterView) can defer applying until the user clicks Apply. Language
- * uses a multi-select dropdown, so it scales as more languages appear in
- * the feed. The options are the distinct codes in the cached geojson
- * feed, labelled per locale.
+ * The event-filters form, in the order a visitor decides: where, online or in person, day, time
+ * of day, language, then Frequency and Dates under "More filters". This is fully controlled: it
+ * edits `value` and reports the next draft through `onChange`, so the host (FilterView) applies
+ * it on demand.
+ *
+ * A question that cannot change the results in this scope is not asked, unless it is already
+ * answered (`shownGroups`). An option that would leave no classes is disabled unless selected.
+ * Every option is one toggle style; the groups differ only in layout.
  */
-export function SearchFilters({ value, onChange }: SearchFiltersProps) {
+export function SearchFilters({ value, onChange, where, facets }: SearchFiltersProps) {
   const { t } = useTranslation()
-  const { locale, languageLabel } = useLocale()
-  const { format, timeOfDay, daysOfWeek, languages, cadence, dateRange, region } = value
+  const { locale } = useLocale()
+  const { format, timeOfDay, daysOfWeek } = value
+  const shown = shownGroups(value, facets)
+  const counts = facets?.counts
 
   // Patch one or more fields of the current draft.
   const patch = (next: Partial<EventFilters>) => onChange({ ...value, ...next })
 
-  const { data: geojson } = useQuery(geojsonQuery())
-  const { data: regions } = useQuery(regionsQuery())
-
-  // Region options: every region present in the feed, at any level with
-  // events under it, labelled with a breadcrumb hint, so same-named places
-  // are distinguishable. The region cut itself, self plus descendants,
-  // lives in `buildRegionMatcher`.
-  const regionOptions = useMemo(() => {
-    if (!regions?.length || !geojson) return []
-
-    const index = indexRegions(regions)
-    // Many features share a region. So this expands ancestry once per
-    // DISTINCT region id, instead of once per feature.
-    const directRegionIds = new Set(geojson.features.map((f) => f.properties.region.id))
-    const present = new Set<number>()
-
-    for (const id of directRegionIds) {
-      for (const ancestorId of ancestorIds(index, id)) present.add(ancestorId)
-    }
-
-    return regions
-      .filter((node) => present.has(node.id))
-      .map((node) => ({
-        value: node.slug,
-        label: node.name ?? node.slug,
-        hint:
-          ancestorIds(index, node.id)
-            .slice(1) // drop self → parent … country
-            .map((id) => index.byId.get(id)?.name)
-            .filter((name): name is string => Boolean(name))
-            .reverse() // country → … → parent (top-down breadcrumb)
-            .join(' · ') || undefined,
-      }))
-      .sort((a, b) => a.label.localeCompare(b.label, locale))
-  }, [regions, geojson, locale])
-
-  // Mon-first weekday pills. luxon's `Info.weekdays` is 1 (Mon) through 7
-  // (Sun), matching the store's day encoding. So the value is the index
-  // plus 1. `short` (3-char) labels fit one line at the reduced pill
-  // size. The full name is the accessible label.
+  // Mon-first weekday pills. luxon's `Info.weekdays` is 1 (Mon) through 7 (Sun), matching the
+  // store's day encoding. The full name is the hover title.
   const weekdays = useMemo(() => {
     const short = Info.weekdays('short', { locale })
     const long = Info.weekdays('long', { locale })
 
-    return short.map((label, index) => ({ value: String(index + 1), label, full: long[index] }))
+    return short.map((label, index) => ({ value: index + 1, label, full: long[index] }))
   }, [locale])
 
-  // The distinct language codes present in the feed, labelled and sorted per locale.
-  const languageOptions = useMemo(() => {
-    const codes = new Set<string>()
-
-    geojson?.features.forEach((feature) =>
-      feature.properties.languages.forEach((code) => codes.add(code)),
-    )
-
-    return [...codes]
-      .map((code) => ({ code, label: languageLabel(code) }))
-      .sort((a, b) => a.label.localeCompare(b.label, locale))
-  }, [geojson, languageLabel, locale])
-
   const timeActive = isTimeRestricted(timeOfDay)
-  // This shows the selected language names in the trigger, truncated, so
-  // the selection is visible at a glance, instead of an opaque count.
-  const selectedLanguages = languages.map(
-    (code) => languageOptions.find((option) => option.code === code)?.label ?? code,
-  )
-  const languageTriggerLabel =
-    selectedLanguages.length === 0 ? t('filters.language.all') : selectedLanguages.join(', ')
-  // The date picker is bounded to today through today plus 12 months, the
-  // same window the URL codec clamps to. This computes once per render,
-  // cheap and always current.
-  const { min: dateMin, max: dateMax } = dateWindow()
 
   return (
     <div className="flex flex-col gap-5">
-      <FilterGroup
-        active={format !== 'any'}
-        label={t('filters.format.label')}
-        onClear={() => patch({ format: 'any' })}
-      >
-        <ToggleGroup
-          joined
-          aria-label={t('filters.format.label')}
-          highlight={format !== 'any'}
-          type="single"
-          value={format}
-          onValueChange={(next) => patch({ format: (next || 'any') as EventFormat })}
-        >
-          {FORMAT_OPTIONS.map((option) => (
-            <ToggleGroupItem key={option} value={option}>
-              {t(`filters.format.${option}`)}
-            </ToggleGroupItem>
-          ))}
-        </ToggleGroup>
-      </FilterGroup>
+      {where}
 
-      <FilterGroup
-        active={cadence !== 'any'}
-        label={t('filters.cadence.label')}
-        onClear={() => patch({ cadence: 'any' })}
-      >
-        <ToggleGroup
-          joined
-          aria-label={t('filters.cadence.label')}
-          highlight={cadence !== 'any'}
-          type="single"
-          value={cadence}
-          onValueChange={(next) => patch({ cadence: (next || 'any') as EventCadence })}
+      {shown.format && (
+        <FilterGroup
+          active={format !== 'any'}
+          label={t('filters.format.question')}
+          onClear={() => patch({ format: 'any' })}
         >
-          {CADENCE_OPTIONS.map((option) => (
-            <ToggleGroupItem key={option} value={option}>
-              {t(`filters.cadence.${option.toLowerCase()}` as TranslationKey)}
-            </ToggleGroupItem>
-          ))}
-        </ToggleGroup>
-      </FilterGroup>
-
-      <FilterGroup
-        active={daysOfWeek.length > 0}
-        label={t('filters.days.label')}
-        onClear={() => patch({ daysOfWeek: [] })}
-      >
-        <ToggleGroup
-          aria-label={t('filters.days.label')}
-          highlight={daysOfWeek.length > 0}
-          type="multiple"
-          value={daysOfWeek.map(String)}
-          onValueChange={(next) => patch({ daysOfWeek: next.map(Number) })}
-        >
-          {/* The abbreviation is the accessible name, not the full day. A name a viewer
-              cannot see is a name a speech-input viewer cannot say (WCAG 2.5.3), and the
-              group above already says these are days. `title` keeps the full name within
-              reach of a pointer. */}
-          {weekdays.map((day) => (
-            <ToggleGroupItem key={day.value} title={day.full} value={day.value}>
-              {day.label}
-            </ToggleGroupItem>
-          ))}
-        </ToggleGroup>
-      </FilterGroup>
-
-      <FilterGroup
-        active={timeActive}
-        label={t('filters.time.label')}
-        onClear={() => patch({ timeOfDay: [] })}
-      >
-        <div className="flex flex-col gap-2">
           <ToggleGroup
-            aria-label={t('filters.time.label')}
-            highlight={timeActive}
-            type="multiple"
-            value={timeOfDay}
-            onValueChange={(next) => patch({ timeOfDay: next as TimePeriod[] })}
+            aria-label={t('filters.format.question')}
+            className="grid grid-cols-2"
+            type="single"
+            value={format}
+            onValueChange={(next) => patch({ format: (next || 'any') as EventFormat })}
           >
-            {TIME_PERIODS.map((period) => (
-              <ToggleGroupItem key={period} value={period}>
-                {t(`filters.time.${period}`)}
+            {FORMAT_OPTIONS.map((option) => (
+              <ToggleGroupItem
+                key={option}
+                className="h-11 gap-1.5"
+                disabled={counts?.format[option] === 0 && format !== option}
+                value={option}
+              >
+                {t(`filters.format.${option}`)}
+                <OptionCount count={counts?.format[option]} />
               </ToggleGroupItem>
             ))}
           </ToggleGroup>
-          {/* The times the selection covers. This is the same string the
-              active-filter pill shows. It stays hidden when nothing is
-              selected, so there is no "any time" placeholder. */}
-          {timeOfDay.length > 0 && (
-            <p className="text-xs text-gray-11">{formatTimePeriods(locale, timeOfDay)}</p>
-          )}
-        </div>
-      </FilterGroup>
-
-      <FilterGroup
-        active={isDateRestricted(dateRange)}
-        label={t('filters.dates.label')}
-        onClear={() => patch({ dateRange: { start: null, end: null } })}
-      >
-        <div className="flex items-end gap-2">
-          <DateBound
-            highlight={dateRange.start !== null}
-            label={t('filters.dates.from')}
-            max={dateRange.end ?? dateMax}
-            min={dateMin}
-            value={dateRange.start ?? ''}
-            onChange={(start) => patch({ dateRange: { ...dateRange, start } })}
-          />
-          <DateBound
-            highlight={dateRange.end !== null}
-            label={t('filters.dates.to')}
-            max={dateMax}
-            min={dateRange.start ?? dateMin}
-            value={dateRange.end ?? ''}
-            onChange={(end) => patch({ dateRange: { ...dateRange, end } })}
-          />
-        </div>
-      </FilterGroup>
-
-      <FilterGroup
-        active={languages.length > 0}
-        label={t('filters.language.label')}
-        onClear={() => patch({ languages: [] })}
-      >
-        {languageOptions.length === 0 ? (
-          <p className="text-sm text-gray-11">{t('filters.language.empty')}</p>
-        ) : (
-          <Dropdown
-            fullWidth
-            aria-label={t('filters.language.label')}
-            role="dialog"
-            trigger={
-              <span className={fieldChrome({ trigger: true, highlight: languages.length > 0 })}>
-                <span className="truncate">{languageTriggerLabel}</span>
-                <ChevronDown className="h-4 w-4 shrink-0 opacity-70" />
-              </span>
-            }
-          >
-            <div className="max-h-56 overflow-y-auto p-1">
-              {languageOptions.map((option) => (
-                <Checkbox
-                  key={option.code}
-                  appearance="checkbox"
-                  checked={languages.includes(option.code)}
-                  className="w-full rounded-lg px-2 py-1.5 hover:bg-gray-3"
-                  onCheckedChange={() =>
-                    patch({
-                      languages: languages.includes(option.code)
-                        ? languages.filter((code) => code !== option.code)
-                        : [...languages, option.code],
-                    })
-                  }
-                >
-                  {option.label}
-                </Checkbox>
-              ))}
-            </div>
-          </Dropdown>
-        )}
-      </FilterGroup>
-
-      {/* Region is a combobox. Type in the field to filter the CMS regions
-          present in the feed, by name or breadcrumb, then click one.
-          Clearing uses the group's "Clear". */}
-      {regionOptions.length > 0 && (
-        <FilterGroup
-          active={region !== null}
-          label={t('filters.region.label')}
-          onClear={() => patch({ region: null })}
-        >
-          <Combobox
-            aria-label={t('filters.region.label')}
-            emptyLabel={t('filters.region.empty')}
-            highlight={region !== null}
-            options={regionOptions}
-            placeholder={t('filters.region.all')}
-            searchPlaceholder={t('filters.region.search')}
-            value={region ?? undefined}
-            onValueChange={(next) => patch({ region: next })}
-          />
         </FilterGroup>
       )}
+
+      {shown.days && (
+        <FilterGroup
+          active={daysOfWeek.length > 0}
+          label={t('filters.days.short_label')}
+          onClear={() => patch({ daysOfWeek: [] })}
+        >
+          <ToggleGroup
+            aria-label={t('filters.days.short_label')}
+            className="grid grid-cols-7"
+            type="multiple"
+            value={daysOfWeek.map(String)}
+            onValueChange={(next) => patch({ daysOfWeek: next.map(Number) })}
+          >
+            {/* The abbreviation is the accessible name, not the full day. A name a viewer
+                cannot see is a name a speech-input viewer cannot say (WCAG 2.5.3), and the
+                group above already says these are days. `title` keeps the full name within
+                reach of a pointer. */}
+            {weekdays.map((day) => (
+              <ToggleGroupItem
+                key={day.value}
+                className="h-11 min-w-0 px-0"
+                disabled={counts?.days[day.value] === 0 && !daysOfWeek.includes(day.value)}
+                title={day.full}
+                value={String(day.value)}
+              >
+                {day.label}
+              </ToggleGroupItem>
+            ))}
+          </ToggleGroup>
+        </FilterGroup>
+      )}
+
+      {shown.time && (
+        <FilterGroup
+          active={timeActive}
+          label={t('filters.time.label')}
+          onClear={() => patch({ timeOfDay: [] })}
+        >
+          <div className="flex flex-col gap-2">
+            <ToggleGroup
+              aria-label={t('filters.time.label')}
+              className="grid grid-cols-2"
+              type="multiple"
+              value={timeOfDay}
+              onValueChange={(next) => patch({ timeOfDay: next as TimePeriod[] })}
+            >
+              {TIME_PERIODS.map((period) => (
+                <ToggleGroupItem
+                  key={period}
+                  className="h-11 justify-between gap-2 px-3"
+                  disabled={counts?.time[period] === 0 && !timeOfDay.includes(period)}
+                  value={period}
+                >
+                  {t(`filters.time.${period}`)}
+                  <OptionCount count={counts?.time[period]} />
+                </ToggleGroupItem>
+              ))}
+            </ToggleGroup>
+            {/* The times the selection covers. This is the same string the active-filter pill
+                shows, hidden when nothing is selected. */}
+            {timeOfDay.length > 0 && (
+              <p className="text-xs text-gray-11">{formatTimePeriods(locale, timeOfDay)}</p>
+            )}
+          </div>
+        </FilterGroup>
+      )}
+
+      {shown.languages && (
+        <FilterGroup
+          active={value.languages.length > 0}
+          label={t('filters.language.label')}
+          onClear={() => patch({ languages: [] })}
+        >
+          <LanguageFilter facets={facets} patch={patch} value={value} />
+        </FilterGroup>
+      )}
+
+      <MoreFilters facets={facets} patch={patch} value={value} />
     </div>
   )
 }
