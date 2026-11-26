@@ -21,6 +21,7 @@
   },
   "share": {
     "copy_link": "Bağlantıyı kopyala",
-    "share_on": "Paylaş: %{platform}"
+    "share_on": "Paylaş: %{platform}",
+    "qr_code": "%{title} için QR kodu"
   }
 }

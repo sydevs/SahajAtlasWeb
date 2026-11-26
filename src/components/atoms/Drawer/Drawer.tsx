@@ -1,10 +1,18 @@
-import { type ReactNode, createContext, useContext, useEffect, useRef, useState } from 'react'
+import {
+  type ReactNode,
+  createContext,
+  useContext,
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+} from 'react'
 import { Drawer as Vaul } from 'vaul'
 
 import { isIOS, useSheetDragClaim } from './sheet-touch'
-import { useEaseHeight } from './use-ease-height'
 
 import { tv, type VariantProps } from '@/styles/tv'
+import { usePrefersReducedMotion } from '@/hooks/use-reduced-motion'
 import { overlayContainer } from '@/lib/overlay'
 
 // A drawer built on vaul (see issue #30). It uses a tailwind-variants slot set,
@@ -361,7 +369,45 @@ export function DrawerContent({
   const [panel, setPanel] = useState<HTMLDivElement | null>(null)
 
   useSheetDragClaim(direction === 'bottom' && mode !== 'filled' ? panel : null)
-  useEaseHeight(direction === 'left' && mode === 'anchored' && !wide ? panel : null)
+
+  // The floating panel is as tall as its view, so its height changes as the content does.
+  // CSS cannot ease that: the height stays `auto` while only the content changes, so no
+  // transition fires. Hence the Web Animations API, which neither `MotionConfig` nor
+  // `vaul.css`'s reduced-motion block reaches — this reads the preference itself.
+  const reduce = usePrefersReducedMotion()
+  const eases = direction === 'left' && mode === 'anchored' && !wide && !reduce
+
+  // A layout effect, so turning it off (the full-width calendar) disconnects the observer
+  // before it can report that resize, which must not ease.
+  useLayoutEffect(() => {
+    if (!panel || !eases || typeof ResizeObserver === 'undefined') return
+
+    // Seeded by the observer's first delivery, which every observed element gets.
+    let last: number | undefined
+    let ease: Animation | undefined
+    const observer = new ResizeObserver(() => {
+      // A resize mid-ease is skipped. The return to `auto` re-fires the observer, which
+      // eases the rest from where this one stopped.
+      if (ease?.playState === 'running') return
+
+      const next = panel.offsetHeight
+
+      if (last !== undefined && next !== last) {
+        ease = panel.animate(
+          { height: [`${last}px`, `${next}px`] },
+          { duration: 200, easing: 'ease-out' },
+        )
+      }
+      last = next
+    })
+
+    observer.observe(panel)
+
+    return () => {
+      observer.disconnect()
+      ease?.cancel()
+    }
+  }, [panel, eases])
 
   const showHandle = handle ?? (direction === 'bottom' && mode !== 'filled')
   // `undefined` means use the default themed root. An explicit `null` opts out.

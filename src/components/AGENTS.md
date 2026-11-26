@@ -650,9 +650,9 @@ seams — one per animation technology** (issue #102):
   `@media (prefers-reduced-motion: reduce)` block at the foot of
   `src/styles/vaul.css` kills both `animation` and `transition` — vaul's own
   `[data-vaul-animate='false']` hook covers only the first.
-- **The Web Animations API** — `useEaseHeight` (the Drawer atom), which eases the floating
-  panel's height, reads `usePrefersReducedMotion` itself: neither `MotionConfig` nor the vaul
-  media query reaches an `element.animate()` call.
+- **The Web Animations API** — the height ease in `DrawerContent` (the Drawer atom), which
+  eases the floating panel as its view resizes it, reads `usePrefersReducedMotion` itself:
+  neither `MotionConfig` nor the vaul media query reaches an `element.animate()` call.
 - **The map camera needs nothing.** mapbox-gl already short-circuits `flyTo` to
   `jumpTo`, zeroes `easeTo`'s duration, and reads the media query live — see the
   comment in `src/hooks/use-mapbox.ts` for the two ways to break this
