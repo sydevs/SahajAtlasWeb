@@ -128,6 +128,9 @@ const REFUSED = 'refused'
 
 const PRIVACY_POLICY_URL = 'https://wemeditate.com/privacy'
 
+// Left-aligned like the fields above it, at the card's own size, in the quiet grey.
+const CONSENT_CLASSES = 'text-sm text-gray-11'
+
 /**
  * The consent line under the fields. A translation marks the words that link to the privacy
  * policy as `<link>…</link>`, so each language puts the link where its own sentence needs it. A
@@ -136,10 +139,10 @@ const PRIVACY_POLICY_URL = 'https://wemeditate.com/privacy'
 function ConsentNote({ text }: { text: string }) {
   const parts = splitInlineLink(text)
 
-  if (!parts) return <p className="text-center text-xs">{text}</p>
+  if (!parts) return <p className={CONSENT_CLASSES}>{text}</p>
 
   return (
-    <p className="text-center text-xs">
+    <p className={CONSENT_CLASSES}>
       {parts.before}
       <Link
         data-vaul-no-drag
