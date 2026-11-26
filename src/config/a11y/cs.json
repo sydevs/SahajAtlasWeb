@@ -6,6 +6,7 @@
   },
   "common": {
     "loading": "Načítání…",
+    "finding_classes": "Hledáme lekce…",
     "settings": "Nastavení"
   },
   "event": {

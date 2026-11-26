@@ -6,6 +6,7 @@
   },
   "common": {
     "loading": "در حال بارگذاری…",
+    "finding_classes": "در حال یافتن کلاس‌ها…",
     "settings": "تنظیمات"
   },
   "event": {

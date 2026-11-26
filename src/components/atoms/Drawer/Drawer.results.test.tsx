@@ -1,7 +1,8 @@
 import { renderToStaticMarkup } from 'react-dom/server'
 import { describe, expect, it } from 'vitest'
 
-import { DrawerHeader, DrawerToolbar, RESULTS_BAND } from './Drawer'
+import { DrawerHeader, DrawerToolbar } from './Drawer'
+import { RESULTS_BAND } from './drawer-style'
 
 // Both bands that mount a `SearchField` mark themselves as the band its suggestion list runs to
 // (#370; `MapSearch` measures it). A band without one is not marked, so a plain toolbar stays out.

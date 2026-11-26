@@ -29,6 +29,11 @@ export const controlTheme = {
     border: '1px solid var(--gray-7)',
     borderRadius: 'var(--radius-lg, 8px)',
     boxShadow: 'none',
+    // ⚠ Tailwind's spacing step, the `--spacing` in `styles/globals.css`. The geocoder declares
+    // its own `--spacing` (0.75em) on its box, the variable every spacing utility reads, so a
+    // class reaching into it from `MapSearch` (`min-h-11`, `pe-3`) measured three times over: the
+    // touch field drew 132px tall. Only geocoder parts we never render read it themselves.
+    spacing: '4px',
   },
   // The geocoder hardcodes three things its variables don't reach. Typed text is 75% black in
   // both themes, so `colorText` never touches it and it vanishes on a dark panel. Its focus state

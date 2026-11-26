@@ -19,7 +19,9 @@ vi.mock('@tanstack/react-query', async (importOriginal) => ({
   ...(await importOriginal<typeof import('@tanstack/react-query')>()),
   useQuery: () => ({ data: undefined }),
 }))
-vi.mock('@/hooks/use-locale', () => ({ useLocale: () => ({ locale: 'en' }) }))
+vi.mock('@/hooks/use-locale', () => ({
+  useLocale: () => ({ locale: 'en', regionNames: { of: () => undefined } }),
+}))
 vi.mock('@/components/atoms/Drawer', () => ({
   DrawerBody: ({ children }: { children: ReactNode }) => <section>body:{children}</section>,
   DrawerHeader: ({ children }: { children: ReactNode }) => <header>{children}</header>,
@@ -35,16 +37,19 @@ vi.mock('@/components/molecules', () => ({
     <i>{hasSearchChrome ? 'panel' : 'panel-with-search-field'}</i>
   ),
   ListToolbar: ({ children }: { children: ReactNode }) => <div>{children}</div>,
+  SortMenu: () => <i>sort-menu</i>,
 }))
 vi.mock('@/views/nav', () => ({
   BackButton: () => <i>back</i>,
   NavHeader: ({ actions }: { actions: ReactNode }) => <header>{actions}</header>,
+  NavRow: () => <i>nav-row</i>,
 }))
 vi.mock('@/views/shared', () => ({
   CalendarButton: () => <i>calendar-button</i>,
   ExpandSheetButton: () => null,
   FilterButton: () => <i>filter-button</i>,
   SearchField: () => <i>search-field</i>,
+  useDrawerControl: () => ({ collapsed: false }),
 }))
 
 const at = (path: string, view: ReactNode) =>
@@ -58,10 +63,12 @@ describe("a place page's loading and error chrome", () => {
   it('loads with the page header and the field band, the field drawn inert', () => {
     const markup = at('/gb/south-east', <DrawerLoading />)
 
+    // The field's shape (`SkeletonField`), hidden from assistive tech, never a live field.
     expect(markup).toMatch(
-      /^<header><i>calendar-button<\/i><i>filter-button<\/i><\/header><aside>field-toolbar:<div[^>]*><svg.*?<\/svg><input[^>]*disabled=""/,
+      /^<header><i>calendar-button<\/i><i>filter-button<\/i><\/header><aside>field-toolbar:<div aria-hidden="true"/,
     )
     expect(markup).not.toContain('search-field')
+    expect(markup).not.toMatch(/<input[\s>]/)
   })
 
   it('fails with the same header, a live field, and no second field in the body', () => {
@@ -86,9 +93,9 @@ describe("a place page's loading and error chrome", () => {
     expect(markup).toMatch(/^<header><\/header><section>body:/)
   })
 
-  it("leaves the root's field in its header, and the body without one", () => {
+  it("leaves the root's field in its header, as CountriesView has it, and the body without one", () => {
     expect(at('/', error('server'))).toMatch(
-      /^<header><i>back<\/i><i>search-field<\/i><\/header><aside>toolbar:.*<section>body:<i>panel<\/i>/,
+      /^<header><i>search-field<\/i><i>filter-button<\/i><\/header><section>body:<i>panel<\/i>/,
     )
   })
 })

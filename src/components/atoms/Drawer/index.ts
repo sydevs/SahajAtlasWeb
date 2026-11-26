@@ -7,6 +7,6 @@ export {
   DrawerFooter,
   DrawerClose,
   DrawerSlotsProvider,
-  RESULTS_BAND,
 } from './Drawer'
+export { RESULTS_BAND } from './drawer-style'
 export type { DrawerProps, DrawerContentProps, DrawerDirection } from './Drawer'

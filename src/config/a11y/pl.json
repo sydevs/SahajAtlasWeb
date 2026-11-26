@@ -6,6 +6,7 @@
   },
   "common": {
     "loading": "Wczytywanie…",
+    "finding_classes": "Szukamy zajęć…",
     "settings": "Ustawienia"
   },
   "event": {

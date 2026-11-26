@@ -28,11 +28,6 @@ export const mockErrors: Record<ErrorKind, unknown> = {
   'not-found': atlasError('not-found', 'Region not found: atlantis'),
   // An embed whose API key SahajCloud rejects.
   config: sdkError(401, 'Unauthorized'),
-  // A host page whose CSP refuses to frame SahajCloud's challenge page, so it cannot
-  // render and no form can produce a token (issues #182, #343). Tagged rather than
-  // frame-driven for the same reason `offline` is: the fixture must classify the same way
-  // wherever the story renders.
-  'captcha-blocked': atlasError('captcha-blocked', 'Turnstile could not be loaded'),
   // Anything unrecognized — the catch-all that offers both a retry and a report. A zod
   // parse failure lands here too, which is why the fixture IS one: `contract` used to be
   // its own kind, and collapsing it means the shape that once had a bespoke row must go
@@ -78,8 +73,6 @@ export const mockErrorNotes: Record<ErrorKind, string> = {
   'not-found':
     "A dead link — the empty state's register, not a malfunction. In the drawer it offers the recovery ladder plus a field; at the app level, where no drawer stack is mounted for either to lead anywhere, `visibleActions` restores the report CTA in their place.",
   config: 'A rejected API key. Report only; nothing a viewer can press will help.',
-  'captcha-blocked':
-    "A host CSP that blocks Turnstile. The only row offering NOTHING at all — not even a report, because the report form is captcha-gated too, so it would be a second form that can't submit. The fix belongs to the site's developer, who gets it on the console — and to us, who get a Sentry event.",
   unknown:
     "Unrecognized — including a zod parse failure, where SahajCloud's shape drifted from ours. Both a retry and a report: the cause is for the report, not the screen.",
 }

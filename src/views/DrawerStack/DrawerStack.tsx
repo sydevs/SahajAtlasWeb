@@ -21,10 +21,14 @@ import { useExpansion } from '@/hooks/use-expansion'
 import { useLocale } from '@/hooks/use-locale'
 import { Drawer, DrawerContent } from '@/components/atoms/Drawer'
 import { ResetErrorBoundary, SettingsMenu } from '@/components/molecules'
+import { ClientGate } from '@/config/client-gate'
 import {
   SHEET_OPEN_PX,
   SHEET_PEEK_PX,
+  WIDE_SNAP,
   WidgetWidthContext,
+  capStop,
+  shortSheetCap,
   useIsShortViewport,
   useIsWide,
 } from '@/config/responsive'
@@ -104,23 +108,10 @@ type SecondaryViews = ReturnType<typeof loadSecondaryViews>
 //  - 0.97 near-full
 const PEEK_SNAP = `${SHEET_PEEK_PX}px` // the collapsed peek
 const OPEN_SNAP = `${SHEET_OPEN_PX}px` // default, and what the peek expands to
-const SNAP_POINTS = [PEEK_SNAP, OPEN_SNAP, 0.97]
-const WIDE_SNAP = SNAP_POINTS[2] // the near-full snap the full-width calendar opens at
+const SNAP_POINTS = [PEEK_SNAP, OPEN_SNAP, WIDE_SNAP]
 // Stands for "as tall as the content" in `snap`. The pixel value moves with the content, so the
 // state holds this token and the ladder carries the live number (`useFitSnap`).
 const FIT_SNAP = 'fit'
-
-// On a phone on its side, the open and taller stops covered nearly all of a 375px-tall map. There
-// every pixel stop stays this far below the top of the window, the band of map a 300px open stop
-// left on such a screen.
-// shortcut: this is under the 160px the camera reserves above the sheet for a pin it just framed
-// (`MIN_MAP_STRIP_PX`), so on a short window a framed pin can land under the sheet. Raise it to
-// the camera's reserve once the landscape sheet has been measured on a phone.
-const ABOVE_SHEET_WHEN_SHORT_PX = 75
-
-/** A pixel stop held down to `cap`. Fractions, and every stop when there is no cap, pass through. */
-const capStop = <T extends number | string | null>(point: T, cap: number | null): T | string =>
-  cap !== null && typeof point === 'string' && parseFloat(point) > cap ? `${cap}px` : point
 
 // Frames a stationary sheet holds before the `--sy-sheet-top` mirror parks itself (about
 // 0.5s at 60fps — well past the end of any vaul spring). See the effect below for why it
@@ -302,14 +293,11 @@ export function DrawerStack() {
     if (next === vaulSnap) return
     setSnap(fitSnap !== null && next === fitSnap ? FIT_SNAP : next)
   }
-  // A short window caps the pixel stops (ABOVE_SHEET_WHEN_SHORT_PX) only on the way to vaul, so
+  // A short window caps the pixel stops (`shortSheetCap`) only on the way to vaul, so
   // `snap` keeps naming the logical stop and everything that compares it stays as it is. The
   // near-full stop is a fraction, and still covers the map on purpose.
   const shortViewport = useIsShortViewport()
-  const snapCap =
-    shortViewport && canCollapse && !frameElement()
-      ? Math.max(SHEET_PEEK_PX, window.innerHeight - ABOVE_SHEET_WHEN_SHORT_PX)
-      : null
+  const snapCap = shortViewport && canCollapse && !frameElement() ? shortSheetCap() : null
   // Memoised like the ladder it is built from: vaul re-measures every stop when this changes.
   const shownSnapPoints = useMemo(
     () =>
@@ -609,11 +597,13 @@ export function DrawerStack() {
       }}
     >
       <div className="grid min-h-0 flex-1 grid-cols-1 grid-rows-1">
-        <AnimatePresence>
+        {/* `initial={false}`: the first view takes over from the loading shapes already on
+            screen, so it arrives without fading in from nothing. Later views still cross-fade. */}
+        <AnimatePresence initial={false}>
           <ViewLayer key={top?.path ?? '/'}>
             {/* Suspense sits OUTSIDE the boundary, so a lazy view's chunk load is a
                 suspend that shows `DrawerLoading` — the shared chrome (header plus Back,
-                rebuilt from the URL) over a spinner — and only a FAILED load
+                rebuilt from the URL) over placeholders shaped like the view — and only a FAILED load
                 throws inward to the boundary. That is what keeps a first open of the
                 calendar, register, or share drawer from flashing blank or unstyled: the
                 drawer's identity is on screen from the first frame, and only its body
@@ -623,6 +613,7 @@ export function DrawerStack() {
                 FallbackComponent={DrawerErrorFallback}
                 onReset={() => setSecondary(loadSecondaryViews())}
               >
+                <ClientGate />
                 <TopView entry={top} secondary={secondary} />
               </ResetErrorBoundary>
             </Suspense>
@@ -679,6 +670,7 @@ export function DrawerStack() {
             <div ref={setContainer} className="relative min-h-0 w-full flex-1 overflow-clip">
               <Drawer
                 key={direction}
+                enterInPlace
                 open
                 container={container}
                 direction={direction}
@@ -727,6 +719,7 @@ export function DrawerStack() {
         <Drawer
           key={direction}
           dismissible
+          enterInPlace
           open
           activeSnapPoint={direction === 'bottom' ? shownSnap : undefined}
           container={target}

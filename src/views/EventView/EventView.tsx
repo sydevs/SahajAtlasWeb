@@ -14,7 +14,6 @@ import {
   EventRegisterBar,
   hasRegisterSlot,
 } from '@/components/organisms/EventDetails/EventRegister'
-import { Spinner } from '@/components/atoms/Spinner'
 import { useEventDisplay } from '@/hooks/use-event-display'
 import { eventQuery } from '@/config/api'
 import { useIsWideWidget } from '@/config/responsive'
@@ -25,6 +24,7 @@ import { parentOf } from '@/lib/shape'
 import { NavRow } from '@/views/nav'
 import { useDrawerControl, useFrameEventOnTop } from '@/views/shared'
 import { ErrorPanel } from '@/views/fallbacks'
+import { SkeletonBody } from '@/components/organisms/Skeleton/Skeleton'
 
 // EventDetails pulls in DOMPurify and the action-row wiring. This keeps it out of the main
 // chunk, as pages/event.tsx used to, by lazy-loading it here.
@@ -103,7 +103,7 @@ export function EventView({ id, basePath }: { id: number; basePath: string }) {
       {/* SEO — title, canonical, JSON-LD — is only meaningful for the crawlable standalone
           build. The embedded widget's host owns the document head. */}
       {standalone && <EventMetadata event={event} />}
-      <EventHeader event={event} nav={<NavRow />} />
+      <EventHeader nav={<NavRow />} title={event.title} />
       {/* The body slot's own spacer clears the pinned bar's CONTENT, at the footer's
           published height. Clearing the SCROLL is this body's, and only this body's: focus
           would otherwise park a field behind the bar. It carries the sheet's live top on
@@ -128,13 +128,9 @@ export function EventView({ id, basePath }: { id: number; basePath: string }) {
           FallbackComponent={ErrorPanel}
           onReset={() => setEventDetails(loadEventDetails())}
         >
-          {/* The one Spinner in the app with no visible label and no `decorative`, so it is
-              the one whose screen-reader-only text actually renders. The atom defaults that
-              text to English. This is a view, well past the i18n boot, so it can hand over
-              the translated word (issue #102). */}
-          <Suspense
-            fallback={<Spinner className="mx-auto my-16" srLabel={t('common.a11y.loading')} />}
-          >
+          {/* The page's shape while its code arrives, marked loading so the phone sheet holds
+              still until it has (`useFitSnap`). */}
+          <Suspense fallback={<SkeletonBody body="class" cta={!stickyRegister} />}>
             <EventDetails basePath={basePath} ctaInline={!stickyRegister} event={event}>
               {/* This is passed as the panel's slot, so it lands immediately above Register,
                   which lives inside EventDetails when it is inline. The acknowledgement belongs

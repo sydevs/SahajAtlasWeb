@@ -4,12 +4,14 @@ import { describe, it, expect } from 'vitest'
 
 import {
   ancestorIds,
+  guessListsPlaces,
   ancestorSlugs,
   boundsUnder,
   childrenOf,
   countUnder,
   eventsUnder,
   indexRegions,
+  listsPlaces,
   partitionUnder,
 } from './hierarchy'
 
@@ -42,6 +44,18 @@ describe('indexRegions / childrenOf', () => {
     expect(childrenOf(index, 28).map((child) => child.id)).toEqual([473, 470])
     expect(childrenOf(index, 470).map((child) => child.id)).toEqual([513])
     expect(childrenOf(index, 513)).toEqual([])
+  })
+})
+
+describe('listsPlaces', () => {
+  it('is true for a country and a region, which list the places under them', () => {
+    expect(listsPlaces('country')).toBe(true)
+    expect(listsPlaces('region')).toBe(true)
+  })
+
+  it('is false for a city and a venue, which list their own classes', () => {
+    expect(listsPlaces('city')).toBe(false)
+    expect(listsPlaces('venue')).toBe(false)
   })
 })
 
@@ -151,5 +165,19 @@ describe('partitionUnder', () => {
     expect(byChild.size).toBe(0)
     expect(direct).toHaveLength(2)
     expect(online).toHaveLength(1)
+  })
+})
+
+describe('guessListsPlaces', () => {
+  it.each([
+    ['/gb', undefined, true],
+    ['/gb/south-east', undefined, true],
+    ['/gb/south-east/london', undefined, false],
+    // A city directly under its country guesses wrong until the region tree says otherwise.
+    ['/cz/prague', undefined, true],
+    ['/cz/prague', 'city', false],
+    ['/gb/south-east/london', 'region', true],
+  ] as const)('%s at level %s lists places: %s', (path, level, places) => {
+    expect(guessListsPlaces(path, level)).toBe(places)
   })
 })

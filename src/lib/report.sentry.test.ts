@@ -155,7 +155,6 @@ const EXPECTED: Record<ErrorKind, boolean> = {
   'not-found': false,
   server: true,
   config: true,
-  'captcha-blocked': true,
   unknown: true,
 }
 
