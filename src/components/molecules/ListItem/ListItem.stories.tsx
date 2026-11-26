@@ -5,10 +5,8 @@ import { CircleFlag } from 'react-circle-flags'
 import { StoryWrapper, StorySection } from '../../ladle'
 
 import { ListItem } from './ListItem'
-import { ListItemSkeleton } from './ListItemSkeleton'
 
 import { FLAG_CDN_URL } from '@/lib/flag-cdn'
-import { Skeleton } from '@/components/atoms/Skeleton'
 import { List } from '@/components/molecules/List'
 import { MeditateFigure } from '@/components/atoms/Icons'
 
@@ -117,31 +115,6 @@ export const Default: Story = () => (
           <ListItem count={7} href="#area" label="Oxford" />
           <ListItem count={3} href="#area" label="London" />
         </List>
-      </div>
-    </StorySection>
-
-    <StorySection
-      description="While a list of places loads, each row is drawn from the row's own layout: the same height, gutter, icon slot and chevron, with the name and count as bars. The real row sits beside it for comparison."
-      title="Loading"
-    >
-      <div className="grid max-w-3xl grid-cols-2 gap-4">
-        <Skeleton className="overflow-hidden rounded-lg border border-divider">
-          <List>
-            <ListItemSkeleton icon />
-            <ListItemSkeleton width="w-1/3" />
-          </List>
-        </Skeleton>
-        <div className="overflow-hidden rounded-lg border border-divider">
-          <List>
-            <ListItem
-              count={64}
-              href="#country"
-              icon={<CircleFlag cdnUrl={FLAG_CDN_URL} className={FLAG_CLASS} countryCode="gb" />}
-              label="United Kingdom"
-            />
-            <ListItem count={12} href="#area" label="Cambridge" />
-          </List>
-        </div>
       </div>
     </StorySection>
 

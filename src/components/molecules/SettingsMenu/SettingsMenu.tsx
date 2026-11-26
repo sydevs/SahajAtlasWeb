@@ -16,7 +16,7 @@ import { type ThemePreference, useThemePreference } from '@/hooks/use-theme'
 import { overlayContainer } from '@/lib/overlay'
 import { publishLocale } from '@/lib/shape'
 
-// The glyph both cogs draw. It is `HEADER_CONTROL`'s (`views/chrome-style.ts`), since the ghost cog
+// The glyph both cogs draw. It is `HEADER_CONTROL`'s (`views/shared.tsx`), since the ghost cog
 // joins that set, and the floating one is a 40px disc — a 16px glyph left it hollow.
 const GLYPH = 20
 

@@ -10,7 +10,6 @@ import { useQuery } from '@tanstack/react-query'
 import { DrawerBody, DrawerHeader, DrawerToolbar } from '@/components/atoms/Drawer'
 import { Spinner } from '@/components/atoms/Spinner'
 import { CENTERED_BODY, FallbackPanel, ListToolbar, SortMenu } from '@/components/molecules'
-import { MapSearchSkeleton } from '@/components/organisms/Mapbox/MapSearchSkeleton'
 import { EventHeader } from '@/components/organisms/EventDetails/EventHeader'
 import { eventTitlesQuery, regionQuery, regionsQuery } from '@/config/api'
 import { useWidgetMode } from '@/config/mode'
@@ -18,15 +17,8 @@ import { useIsWideWidget } from '@/config/responsive'
 import { useLocale } from '@/hooks/use-locale'
 import { useMapController } from '@/hooks/use-map-controller'
 import { classifyError, errorMessage } from '@/lib/report'
-import {
-  baseStackEntry,
-  guessListsPlaces,
-  isoCountryCode,
-  nearestKnownRegion,
-  resolveStack,
-} from '@/lib/shape'
-import { FIELD_SLOT } from '@/views/chrome-style'
-import { LoadingBody, STATIC_TITLES, hasLoadingBody } from '@/views/loading'
+import { baseStackEntry, isoCountryCode, nearestKnownRegion, resolveStack } from '@/lib/shape'
+import { FieldSkeleton, PanelSkeletonBody, panelShape } from '@/views/PanelSkeleton'
 import { BackButton, NavHeader, NavRow } from '@/views/nav'
 import {
   CalendarButton,
@@ -135,9 +127,23 @@ export function DrawerChrome({
   const title = (() => {
     if (entry?.kind === 'region') return regionName
     if (entry?.kind === 'event') return titles?.get(entry.id)
-    const words = entry && STATIC_TITLES[entry.kind]
 
-    return words && t(words[0], { defaultValue: words[1] })
+    switch (entry?.kind) {
+      case 'online':
+        return t('online.title', { defaultValue: 'Online Classes' })
+      case 'search':
+        return t('search.chrome.title', { defaultValue: 'Search' })
+      case 'calendar':
+        return t('calendar.title', { defaultValue: 'Calendar' })
+      case 'filters':
+        return t('filters.chrome.title', { defaultValue: 'Filters' })
+      case 'register':
+        return t('registration.form.title', { defaultValue: 'Register for Meditation' })
+      case 'share':
+        return t('share.title', { defaultValue: 'Share Meditation' })
+      default:
+        return undefined
+    }
   })()
 
   // The root and the search view lead with the geocoder, rather than a title, so
@@ -150,13 +156,7 @@ export function DrawerChrome({
     // Mapbox Geocoder — a shadow-DOM custom element bound to the live map — which the view
     // arriving a moment later would tear down and build again. An ERROR chrome keeps the real
     // field. There it is the escape hatch.
-    const field = loading ? (
-      <div className={FIELD_SLOT}>
-        <MapSearchSkeleton />
-      </div>
-    ) : (
-      <SearchField />
-    )
+    const field = loading ? <FieldSkeleton /> : <SearchField />
 
     // CountriesView's header.
     if (!entry) {
@@ -191,13 +191,6 @@ export function DrawerChrome({
     return <EventHeader nav={<NavRow />} title={title} />
   }
 
-  // A place whose classes are coming says what RegionView will say over them.
-  const pendingRegion = loading && entry.kind === 'region'
-  const subtitle =
-    pendingRegion && !guessListsPlaces(entry.path, region.node?.level)
-      ? t('common.chrome.all_classes_free')
-      : undefined
-
   // The view's own header, so nothing moves when the view arrives. No title when nothing
   // resolved: a blank <h2> is a heading with no name, worse for a screen reader than none. A
   // place still loading draws its title's line instead, outside any heading.
@@ -218,8 +211,7 @@ export function DrawerChrome({
         </>
       }
       close={entry.kind === 'filters'}
-      pendingTitle={pendingRegion && !title}
-      subtitle={subtitle}
+      pendingTitle={loading && entry.kind === 'region' && !title}
       title={title}
     />
   )
@@ -231,7 +223,7 @@ export function DrawerChrome({
   return (
     <>
       {header}
-      <DrawerToolbar field>{loading ? <MapSearchSkeleton /> : <SearchField />}</DrawerToolbar>
+      <DrawerToolbar field>{loading ? <FieldSkeleton /> : <SearchField />}</DrawerToolbar>
     </>
   )
 }
@@ -256,7 +248,7 @@ function useCachedRegion(slug: string | undefined) {
 
 /**
  * The Suspense fallback for a view whose data is still loading: the view's own header (its way
- * back and its controls work), over the body the boot panel drew (`LoadingBody`), so nothing
+ * back and its controls work), over the body the boot panel drew (`PanelSkeletonBody`), so nothing
  * changes as one hands over to the other. A view with nothing worth drawing ahead of it waits
  * on the spinner.
  */
@@ -266,13 +258,15 @@ export function DrawerLoading() {
   const location = useLocation()
   const entry = baseStackEntry(resolveStack(location.pathname), hasMap)
   const region = useCachedRegion(entry?.kind === 'region' ? entry.slug : undefined)
+  const shape = panelShape(entry, region.node?.level)
 
   return (
     <>
       <DrawerChrome loading />
-      {hasLoadingBody(entry) ? (
+      {shape ? (
         <DrawerBody>
-          <LoadingBody ctaInline={!hasMap || isWide} entry={entry} level={region.node?.level} />
+          {/* The phone sheet pins Register to its foot once the class arrives. */}
+          <PanelSkeletonBody body={shape.body} cta={!hasMap || isWide} />
         </DrawerBody>
       ) : (
         <DrawerLoadingBody />

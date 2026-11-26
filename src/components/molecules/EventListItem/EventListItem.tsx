@@ -1,13 +1,7 @@
 import { memo, useEffect, useRef } from 'react'
 import { useTranslation } from 'react-i18next'
 
-import {
-  EVENT_CARD,
-  EVENT_CARD_BODY,
-  EVENT_CARD_FACTS,
-  EVENT_CARD_TITLE,
-  ListRow,
-} from '@/components/molecules/List/List'
+import { ListRow } from '@/components/molecules/List/List'
 import { useLocale } from '@/hooks/use-locale'
 import { useMapController } from '@/hooks/use-map-controller'
 import { useHoverPrefetch } from '@/hooks/use-prefetch-event'
@@ -123,17 +117,19 @@ function EventListItemImpl({ event, searchedPlace, showDistance = true }: EventL
   return (
     <ListRow
       data-event-row
-      className={EVENT_CARD}
+      className="py-4"
       href={event.path}
       onBlur={deactivate}
       onFocus={activate}
       onMouseEnter={activate}
       onMouseLeave={deactivate}
     >
-      <div className={EVENT_CARD_BODY}>
-        <div className={EVENT_CARD_TITLE}>{event.title}</div>
+      {/* `min-w-0` lets a truncating chip or an unbroken title shrink
+          instead of pushing the chevron out. */}
+      <div className="flex min-w-0 flex-1 flex-col gap-1">
+        <div className="line-clamp-2 text-lg">{event.title}</div>
         <EventFacts
-          className={EVENT_CARD_FACTS}
+          className="mt-0.5 mb-1"
           distance={
             distanceText && (
               <span aria-label={distanceLabel} title={distanceLabel}>

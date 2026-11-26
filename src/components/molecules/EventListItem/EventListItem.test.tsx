@@ -5,7 +5,6 @@ import { MemoryRouter } from 'react-router'
 import { describe, it, expect, vi } from 'vitest'
 
 import { EventListItem } from './EventListItem'
-import { EventListItemSkeleton } from './EventListItemSkeleton'
 
 import { mockEventSlim } from '@/mocks/events'
 
@@ -90,25 +89,5 @@ describe('EventListItem', () => {
     expect(column).toContain('min-w-0')
     expect(column).not.toContain('items-center')
     expect(html).toMatch(/lucide-chevron-right[^>]*>[\s\S]*?<\/svg><\/a><\/li>$/)
-  })
-
-  it('draws the same card box as its skeleton, so the list does not move when it arrives', () => {
-    // Interaction and focus styling the `Link` atom and `listRow` add, which moves nothing.
-    const linkOnly =
-      /^(block|items-stretch|items-center|inline-flex|gap-1|text-inherit|transition-\S+|outline-none|relative|rounded-lg|touch-target|(dark:)?(hover|active|focus-visible):.*)$/
-    const layout = (html: string, element: string) =>
-      (html.match(new RegExp(`<${element} class="([^"]*)"`))?.[1] ?? '')
-        .split(' ')
-        .filter((name) => !linkOnly.test(name))
-        .sort()
-    const real = renderToStaticMarkup(
-      <MemoryRouter>
-        <EventListItem event={mockEventSlim} />
-      </MemoryRouter>,
-    )
-
-    expect(layout(renderToStaticMarkup(<EventListItemSkeleton />), 'div')).toEqual(
-      layout(real, 'a'),
-    )
   })
 })

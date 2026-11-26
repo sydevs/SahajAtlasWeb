@@ -63,7 +63,7 @@ describe("a place page's loading and error chrome", () => {
   it('loads with the page header and the field band, the field drawn inert', () => {
     const markup = at('/gb/south-east', <DrawerLoading />)
 
-    // The field's shape (`MapSearchSkeleton`), hidden from assistive tech, never a live field.
+    // The field's shape (`FieldSkeleton`), hidden from assistive tech, never a live field.
     expect(markup).toMatch(
       /^<header><i>calendar-button<\/i><i>filter-button<\/i><\/header><aside>field-toolbar:<div aria-hidden="true"/,
     )

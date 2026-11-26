@@ -1,12 +1,6 @@
 import type { ReactNode } from 'react'
 
-import {
-  LIST_ITEM_COUNT,
-  LIST_ITEM_ICON,
-  LIST_ITEM_LABEL,
-  LIST_ITEM_ROW,
-  ListRow,
-} from '@/components/molecules/List/List'
+import { ListRow } from '@/components/molecules/List/List'
 
 export interface ListItemProps {
   label: string
@@ -32,12 +26,12 @@ export interface ListItemProps {
  */
 export function ListItem({ label, description, count, href, icon }: ListItemProps) {
   return (
-    <ListRow className={LIST_ITEM_ROW} href={href}>
+    <ListRow className="min-h-14 py-3" href={href}>
       {icon && (
         // One 24px slot at every width, so a flag row is no taller than a plain one.
-        <span className={LIST_ITEM_ICON}>{icon}</span>
+        <span className="me-3 flex h-6 w-6 shrink-0 items-center justify-center">{icon}</span>
       )}
-      <div className={LIST_ITEM_LABEL}>
+      <div className="flex-grow text-lg">
         {label}
         {description && <div className="text-sm text-gray-11">{description}</div>}
       </div>
@@ -46,7 +40,7 @@ export function ListItem({ label, description, count, href, icon }: ListItemProp
           gray-11, the ramp's readable low-contrast TEXT step — gray-10 is
           a hover solid and measured under 4.5:1 here (#432). The title
           stays `text-foreground` (gray-12), the loudest thing in the row. */}
-      <div className={LIST_ITEM_COUNT}>{count}</div>
+      <div className="me-1 text-end text-sm text-gray-11">{count}</div>
     </ListRow>
   )
 }

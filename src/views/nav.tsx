@@ -6,12 +6,17 @@ import { ChevronLeft, X } from 'lucide-react'
 
 import { Button } from '@/components/atoms/Button'
 import { DrawerHeader } from '@/components/atoms/Drawer'
+import { Skeleton, SkeletonLine } from '@/components/atoms/Skeleton/Skeleton'
 import { regionsQuery } from '@/config/api'
 import { useLocale } from '@/hooks/use-locale'
 import { backLabel } from '@/views/nav-names'
-import { HEADER_CONTROL, HEADER_EDGE, NAV_HEADER, NAV_ROW } from '@/views/chrome-style'
-import { TitleSkeleton } from '@/views/loading'
-import { DrawerTitle, ExpandSheetButton, useDrawerControl } from '@/views/shared'
+import {
+  DrawerTitle,
+  ExpandSheetButton,
+  HEADER_CONTROL,
+  HEADER_EDGE,
+  useDrawerControl,
+} from '@/views/shared'
 
 /**
  * The way back, at the start of every header below the root. It says where it goes ("Back to
@@ -75,7 +80,7 @@ export function NavRow({ children }: { children?: ReactNode }) {
     // The bottom margin keeps Back from reading as part of the title below it. Back has no end
     // padding: the controls' own padding spaces them, and in the 352px panel any more cut
     // "Back to the world map" short beside four controls.
-    <div className={NAV_ROW}>
+    <div className="mb-2 flex min-h-8 items-center justify-between gap-1">
       <BackButton />
       <div className="ms-auto flex shrink-0 items-center gap-1 empty:hidden">
         {collapsed ? <ExpandSheetButton /> : children}
@@ -131,10 +136,13 @@ export function NavHeader({
   }
 
   return (
-    <DrawerHeader className={NAV_HEADER}>
+    <DrawerHeader className="flex-col items-stretch gap-0">
       <NavRow>{actions}</NavRow>
       {pendingTitle ? (
-        <TitleSkeleton subtitle={subtitle} />
+        // No heading: a heading with nothing in it is worse than none.
+        <Skeleton>
+          <SkeletonLine className="text-xl" width="w-1/2" />
+        </Skeleton>
       ) : (
         title && <DrawerTitle subtitle={subtitle} title={title} />
       )}

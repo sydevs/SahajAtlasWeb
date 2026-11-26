@@ -11,9 +11,8 @@ export default {
 const TEXT = ['text-xs', 'text-sm', 'text-base', 'text-lg', 'text-xl'] as const
 
 /**
- * Skeleton — the grey shapes a loading state is drawn with. A component draws its own skeleton
- * beside itself from these (`ListItemSkeleton` next to `ListItem`), sharing its layout, so the
- * placeholder and the content cannot drift apart. The shapes are hidden from screen readers and
+ * Skeleton — the grey shapes a loading state is drawn with. The panel's loading shapes
+ * (Views › Panel Skeleton) are built from these. The shapes are hidden from screen readers and
  * pulse unless motion is reduced; the loading state says what it waits for once, in words.
  */
 export const Default: Story = () => (

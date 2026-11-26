@@ -6,7 +6,6 @@ import { StoryWrapper, StorySection } from '../../ladle'
 
 import { Mapbox } from './Map'
 import { MapSearch } from './MapSearch'
-import { MapSearchSkeleton } from './MapSearchSkeleton'
 
 import { Alert } from '@/components/atoms/Alert'
 
@@ -53,15 +52,6 @@ export const Default: Story = () => (
       ) : (
         <NeedsToken what="geocoder" />
       )}
-    </StorySection>
-
-    <StorySection
-      description="The search box while its view loads: the geocoder's size, greyed and holding bars, so it reads as on its way rather than as a field that ignores a tap, and the header doesn't move when the real one mounts. Inside Ladle's frame the real geocoder falls back to a plain field, so compare against the running app."
-      title="Search, loading"
-    >
-      <div className="max-w-md">
-        <MapSearchSkeleton />
-      </div>
     </StorySection>
 
     <StorySection

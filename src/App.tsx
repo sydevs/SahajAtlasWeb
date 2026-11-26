@@ -27,7 +27,7 @@ import {
   ResetErrorBoundary,
 } from '@/components/molecules/Fallbacks'
 import { ClientGate } from '@/config/client-gate'
-import { BootFallback } from '@/views/loading'
+import { BootFallback } from '@/views/BootFallback'
 // ⚠ Imports the component's own path, NOT the `@/components/organisms` barrel. The barrel
 // re-exports `Mapbox`, so importing ANYTHING through it pulls the map and `react-map-gl`
 // straight back into the eager graph. Under react-map-gl 7, which fired `import('mapbox-gl')` at

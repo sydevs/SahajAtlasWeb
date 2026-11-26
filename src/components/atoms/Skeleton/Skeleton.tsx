@@ -5,9 +5,8 @@ import clsx from 'clsx'
 import { tv } from '@/styles/tv'
 
 /**
- * The placeholder primitives every component's own skeleton is built from. A component draws its
- * skeleton beside itself (`ListItemSkeleton` next to `ListItem`) from the same layout classes, so
- * the two cannot drift apart; these only supply the grey shapes.
+ * The placeholder primitives the loading states are drawn with (`views/PanelSkeleton.tsx`): grey
+ * lines at a text size's own height, and blocks for everything else.
  */
 
 /**

@@ -14,40 +14,14 @@ import { tv } from '@/styles/tv'
 
 const listRow = tv({
   slots: {
-    // `gap-1` is the Link atom's own, stated here so a placeholder row, which is no link, lays
-    // out the same.
-    row: 'flex items-center gap-1 px-gutter',
+    row: 'flex items-center px-gutter text-inherit transition-colors hover:bg-primary-2 active:bg-primary-3 dark:hover:bg-gray-3 dark:active:bg-gray-4',
     // The chevron only restates what tapping the row already does, so it
     // sits a step below the quietest text in any row (gray-11, #432).
     chevron: 'text-gray-9 rtl:-scale-x-100',
   },
-  variants: {
-    // A placeholder row (`ListRowSkeleton`) takes no hover or press feedback: nothing there
-    // answers a tap.
-    inert: {
-      false: {
-        row: 'text-inherit transition-colors hover:bg-primary-2 active:bg-primary-3 dark:hover:bg-gray-3 dark:active:bg-gray-4',
-      },
-    },
-  },
-  defaultVariants: { inert: false },
 })
 
 const { row, chevron } = listRow()
-const inertRow = listRow({ inert: true }).row
-
-// A row type's own geometry sits here too, beside the skin every row shares, so neither a card
-// nor its placeholder owns the other's box.
-export const LIST_ITEM_ROW = 'min-h-14 py-3'
-export const LIST_ITEM_ICON = 'me-3 flex h-6 w-6 shrink-0 items-center justify-center'
-export const LIST_ITEM_LABEL = 'flex-grow text-lg'
-export const LIST_ITEM_COUNT = 'me-1 text-end text-sm text-gray-11'
-
-export const EVENT_CARD = 'py-4'
-// `min-w-0` lets a truncating chip or an unbroken title shrink instead of pushing the chevron out.
-export const EVENT_CARD_BODY = 'flex min-w-0 flex-1 flex-col gap-1'
-export const EVENT_CARD_TITLE = 'line-clamp-2 text-lg'
-export const EVENT_CARD_FACTS = 'mt-0.5 mb-1'
 
 /**
  * A navigable row inside a `List`: the shell every card renders its content
@@ -63,27 +37,6 @@ export function ListRow({ className, children, ...props }: LinkProps) {
         {children}
         <ChevronRight className={chevron()} size={20} />
       </Link>
-    </li>
-  )
-}
-
-/**
- * A `ListRow` before its content is known: the same box, gutter and chevron, as no link. A card's
- * skeleton renders its placeholders into this, as the card renders into `ListRow`.
- */
-export function ListRowSkeleton({
-  className,
-  children,
-}: {
-  className?: string
-  children: ReactNode
-}) {
-  return (
-    <li>
-      <div className={inertRow({ className })}>
-        {children}
-        <ChevronRight className={chevron()} size={20} />
-      </div>
     </li>
   )
 }

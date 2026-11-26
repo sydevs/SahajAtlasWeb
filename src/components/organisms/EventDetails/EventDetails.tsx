@@ -3,7 +3,6 @@ import { useTranslation } from 'react-i18next'
 
 import { EventRegisterBar } from './EventRegister'
 import { sanitizeDescription } from './sanitize'
-import { DETAILS_BODY } from './EventDetailsSkeleton'
 
 import { Alert } from '@/components/atoms/Alert'
 import { EventActions } from '@/components/molecules/EventActions'
@@ -81,7 +80,7 @@ export function EventDetails({ event, basePath, ctaInline = true, children }: Ev
     // The carousel is full-bleed and always last. It removes the container's
     // bottom padding, so the images sit flush against the end of the view
     // instead of floating 40px above it. Everything else keeps the padding.
-    <div className={`${DETAILS_BODY} ${hasImages ? '' : 'pb-10'}`}>
+    <div className={`flex flex-col gap-4 px-gutter pt-2 ${hasImages ? '' : 'pb-10'}`}>
       {/* The triage chips open the body. They do not sit under the title in the
           pinned header. */}
       <EventChips event={event} />
