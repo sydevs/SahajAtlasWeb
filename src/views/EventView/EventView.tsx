@@ -174,8 +174,9 @@ export function EventView({ id, basePath }: { id: number; basePath: string }) {
           className={`px-gutter py-3 transition-transform ${collapsed ? 'translate-y-full opacity-0' : ''}`}
         >
           {/* The two rows are gapped inside a wrapper, not by the footer itself, so the
-              footer's own safe-area spacer is not a third gapped sibling. */}
-          <div className="flex flex-col gap-2">
+              footer's own safe-area spacer is not a third gapped sibling. 16px, as inline,
+              so the action row reads as its own set rather than part of Register. */}
+          <div className="flex flex-col gap-4">
             <EventRegisterBar basePath={basePath} event={event} />
             {/* The row rides the bar so only one copy exists — see `ctaInline`. The
                 boundary keeps a rejected chunk from reaching the body's sibling
