@@ -13,7 +13,6 @@ import {
   nextOccurrence,
   resolveEventDisplay,
   streetAndCity,
-  withPostCode,
 } from './event'
 
 const offline = {
@@ -623,36 +622,5 @@ describe('hasApproximatePlace', () => {
       false,
     )
     expect(hasApproximatePlace({ eventType: 'online', inactive: true })).toBe(false)
-  })
-})
-
-describe('withPostCode', () => {
-  it.each([
-    ['adds it after the town', '120 Heath St, London', 'NW3 1DR', '120 Heath St, London NW3 1DR'],
-    ['trims it', '120 Heath St, London', '  NW3 1DR ', '120 Heath St, London NW3 1DR'],
-    ['skips one the street holds', '32 Cejl, 602 00, Brno', '602 00', '32 Cejl, 602 00, Brno'],
-    [
-      'skips one the town holds',
-      '120 Heath St, London NW3 1DR',
-      'NW3 1DR',
-      '120 Heath St, London NW3 1DR',
-    ],
-    [
-      'skips one spaced differently',
-      '120 Heath St nw31dr, London',
-      'NW3 1DR',
-      '120 Heath St nw31dr, London',
-    ],
-    [
-      'skips one punctuated differently',
-      '120 Heath St, NW3-1DR, London',
-      'NW3 1DR',
-      '120 Heath St, NW3-1DR, London',
-    ],
-    ['leaves a line with no postcode', '120 Heath St, London', null, '120 Heath St, London'],
-    ['leaves a blank postcode', '120 Heath St, London', '  ', '120 Heath St, London'],
-    ['adds nothing to an empty line', '', 'NW3 1DR', ''],
-  ])('%s', (_, line, postCode, expected) => {
-    expect(withPostCode(line, postCode)).toBe(expected)
   })
 })

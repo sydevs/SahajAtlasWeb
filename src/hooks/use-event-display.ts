@@ -12,7 +12,6 @@ import {
   resolveEventDisplay,
   scheduleNamesZone,
   streetAndCity,
-  withPostCode,
 } from '@/lib/shape'
 import { formatTimeRange, sameWallClock, zoneCity } from '@/lib/time'
 
@@ -276,8 +275,10 @@ export function useEventDisplay(event: DisplayableEvent): EventDisplayStrings {
         : streetAndCity(event.address?.street, event.address?.city) || event.region?.name || ''
     // A listing that hides the street hides its postcode and room too: each is a near-exact place.
     const showsStreet = !display.online && !townOnly
+    // Added as typed, even where the street seems to hold it already: a house number can read
+    // the same as a postcode, and a coordinator sees a real repeat on the page and fixes it.
     const whereLineWithPostCode = showsStreet
-      ? withPostCode(whereLine, event.address?.postCode)
+      ? [whereLine, event.address?.postCode?.trim()].filter(Boolean).join(' ')
       : null
     const room = event.address?.room?.trim()
     const roomLine = showsStreet && room ? t('event.display.room', { room }) : null

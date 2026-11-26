@@ -271,6 +271,18 @@ describe('useEventDisplay — the postcode on the class page', () => {
   })
 
   it.each([
+    [
+      'as typed, even when the street seems to hold it',
+      '120 Heath St, NW3 1DR',
+      ' NW3 1DR ',
+      '120 Heath St, NW3 1DR, London NW3 1DR',
+    ],
+    ['nothing when there is none', '120 Heath St', '  ', '120 Heath St, London'],
+  ])('adds the postcode %s', (_, street, postCode, expected) => {
+    expect(fullLine({ ...heath, address: { ...heath.address, street, postCode } })).toBe(expected)
+  })
+
+  it.each([
     ['an online class', { ...heath, eventType: 'online' as const }],
     ['an inactive listing', { ...heath, inactive: true }],
   ])('is null for %s, which shows no street', (_, event) => {

@@ -44,8 +44,8 @@ cover everything a host would notice since the widget was first deployed.
 ### Changed
 
 - **A class page's address ends with its postcode, and a tap copies it.** ([#498]) "120 Heath
-  St, London NW3 1DR", unless the host already typed the postcode into the street or town; never
-  for an online class or a listing that hides its street. List cards, the calendar and the
+  St, London NW3 1DR", as the host entered it; never for an online class or a listing that hides
+  its street. List cards, the calendar and the
   share and sign-up summaries keep the short line. A tap on the address copies street, town and
   postcode, to paste into any maps app — the Directions button opens Google Maps alone — and the
   line reads "Copied" for two seconds. This is a third use of `clipboard-write`: where your page

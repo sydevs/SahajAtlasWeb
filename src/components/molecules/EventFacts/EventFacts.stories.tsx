@@ -50,20 +50,6 @@ export const Default: Story = () => (
       </div>
     </StorySection>
 
-    <StorySection
-      description="A host who typed the postcode into the street already — it is not added twice."
-      title="Postcode in the street"
-    >
-      <div className="max-w-md">
-        <EventFacts
-          event={{
-            ...mockEvent,
-            address: { ...mockEvent.address, street: '5 Market St, CB2 3QJ' },
-          }}
-        />
-      </div>
-    </StorySection>
-
     <StorySection description="An online class — screen icon, converted time." title="Online">
       <div className="max-w-md">
         <EventFacts event={{ ...mockEvent, eventType: 'online' }} />
