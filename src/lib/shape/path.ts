@@ -496,3 +496,11 @@ export const baseStackEntry = (entries: StackEntry[], hasMap = true): StackEntry
  */
 export const topViewKey = (pathname: string, hasMap = true): string =>
   baseStackEntry(resolveStack(pathname), hasMap)?.path ?? '/'
+
+/**
+ * The identity of the view layer on screen, which the drawer cross-fades on. The filter drawer
+ * keeps one identity across its routes: Near me moves it from `/filters` to `/search/filters`
+ * under an open form, and that must not fade the form out and back in.
+ */
+export const viewLayerKey = (top: StackEntry | null | undefined): string =>
+  top?.kind === 'filters' ? 'filters' : (top?.path ?? '/')

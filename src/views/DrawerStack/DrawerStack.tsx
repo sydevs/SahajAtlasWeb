@@ -52,6 +52,7 @@ import {
   passablePlaces,
   placePathsOf,
   resolveStack,
+  viewLayerKey,
 } from '@/lib/shape'
 import { wakesSheetLoop } from '@/views/DrawerStack/sheet-wake'
 import { ViewLayer } from '@/views/DrawerStack/ViewLayer'
@@ -589,9 +590,7 @@ export function DrawerStack() {
         {/* `initial={false}`: the first view takes over from the loading shapes already on
             screen, so it arrives without fading in from nothing. Later views still cross-fade. */}
         <AnimatePresence initial={false}>
-          {/* The filter drawer keeps one identity across its routes. Near me moves it from
-              `/filters` to `/search/filters`, and that must not crossfade the form. */}
-          <ViewLayer key={top?.kind === 'filters' ? 'filters' : (top?.path ?? '/')}>
+          <ViewLayer key={viewLayerKey(top)}>
             {/* Suspense sits OUTSIDE the boundary, so a lazy view's chunk load is a
                 suspend that shows `DrawerLoading` — the shared chrome (header plus Back,
                 rebuilt from the URL) over placeholders shaped like the view — and only a FAILED load

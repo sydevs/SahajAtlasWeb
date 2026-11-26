@@ -157,7 +157,7 @@ type Segmentable = { distance?: number; address?: { country?: string | null } | 
  * so a class with no address country (every online one) is judged on distance alone, rather than
  * on a fact we do not have. `isoCountryCode` lets a malformed CMS value degrade to unknown.
  */
-export const nearbyLimitKm = (event: Segmentable, searchCountry?: string): number => {
+const nearbyLimitKm = (event: Segmentable, searchCountry?: string): number => {
   const country = isoCountryCode(event.address?.country)
 
   return searchCountry && country && country !== searchCountry ? FOREIGN_NEARBY_KM : NEARBY_KM
