@@ -14,7 +14,7 @@ import { Button } from '@/components/atoms/Button'
 import { FallbackPanel, GeolocationPrompt } from '@/components/molecules'
 import { MapSearch } from '@/components/organisms'
 import { eventQuery, geojsonQuery, regionQuery, regionsQuery } from '@/config/api'
-import { useCameraHistory } from '@/config/store'
+import { useCameraHistory, useSearchFocus } from '@/config/store'
 import { useAtlasNavigate } from '@/hooks/use-atlas-navigate'
 import { useEventFilters } from '@/hooks/use-filters'
 import { useIpLocation } from '@/hooks/use-ip-location'
@@ -219,6 +219,32 @@ export function FilterButton({ iconOnly = false }: { iconOnly?: boolean }) {
 // behaviour that used to live in the removed SearchBar.
 export function SearchField({ label }: Pick<MapSearchProps, 'label'> = {}) {
   const { t } = useTranslation()
+  const box = useRef<HTMLDivElement>(null)
+
+  // Takes focus when asked to (`useSearchFocus`). The geocoder renders its input a moment after
+  // mounting, so this watches for it rather than waiting a set time, as `Modal`'s first-field
+  // focus does.
+  useEffect(() => {
+    const host = box.current
+
+    if (!host || !useSearchFocus.getState().consume()) return
+
+    const focusInput = () => {
+      const input = host.querySelector('input')
+
+      input?.focus({ preventScroll: true })
+
+      return input !== null
+    }
+
+    if (focusInput()) return
+
+    const watch = new MutationObserver(() => focusInput() && watch.disconnect())
+
+    watch.observe(host, { childList: true, subtree: true })
+
+    return () => watch.disconnect()
+  }, [])
   const navigate = useAtlasNavigate()
   const [searchParams] = useSearchParams()
 
@@ -250,7 +276,7 @@ export function SearchField({ label }: Pick<MapSearchProps, 'label'> = {}) {
     // this is what lets a screen-reader viewer tell the place search from the results under it
     // and from the Filters dialog beside it (#432). The name is the field's, not the view's:
     // `SearchView` is itself a dialog called Search.
-    <div aria-label={t('search.chrome.title')} className="min-w-0 flex-1" role="search">
+    <div ref={box} aria-label={t('search.chrome.title')} className="min-w-0 flex-1" role="search">
       <MapSearch label={label} onSelect={handleSelect} />
     </div>
   )

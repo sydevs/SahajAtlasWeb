@@ -61,6 +61,7 @@ import { useLocale } from '@/hooks/use-locale'
 import { useTheme } from '@/hooks/use-theme'
 import { useMapbox } from '@/hooks/use-mapbox'
 import { pointCoordinates } from '@/lib/geo'
+import { LOCATE_POSITION_OPTIONS } from '@/lib/geolocation'
 
 const MAP_STYLES = {
   light: 'mapbox://styles/sydevadmin/ck7g6nag70rn11io09f45odkq',
@@ -82,9 +83,6 @@ const MAP_STYLES = {
  * the visitor has now seen where it starts from.
  */
 const REVEAL_TIMEOUT_MS = 1500
-// Mapbox's locate default is six seconds. iOS Safari appears to count that while its permission
-// prompt is open, so a visitor who took a moment to press Allow saw a failure.
-const LOCATE_POSITION_OPTIONS: PositionOptions = { timeout: 30_000 }
 
 type GeoFeature = Geojson['features'][number]
 

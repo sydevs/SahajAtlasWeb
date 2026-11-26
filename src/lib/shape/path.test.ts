@@ -1,6 +1,9 @@
 import { describe, it, expect } from 'vitest'
 
 import {
+  baseStackEntry,
+  noPlaceSearch,
+  placeFiltersPath,
   placePathsOf,
   placedPathname,
   childRoute,
@@ -15,6 +18,7 @@ import {
   resolveStack,
   safePath,
   topViewKey,
+  viewLayerKey,
 } from './path'
 
 describe('safePath', () => {
@@ -466,5 +470,28 @@ describe('topViewKey', () => {
   // change": the same SearchView must re-frame when `?center` moves.
   it('is unchanged by a re-search on the same view', () => {
     expect(topViewKey('/search')).toBe(topViewKey('/search'))
+  })
+})
+
+describe('viewLayerKey', () => {
+  it('keeps the filter drawer one layer when Near me moves it onto a search', () => {
+    const over = (pathname: string) => viewLayerKey(baseStackEntry(resolveStack(pathname), false))
+
+    expect(over('/filters')).toBe(over('/search/filters'))
+    expect(over('/search')).not.toBe(over('/search/filters'))
+  })
+})
+
+describe('the filter drawer over a place search', () => {
+  const params = new URLSearchParams('days=2&region=gb&q=Leeds&center=-1.5,53.8')
+
+  it('moves the drawer onto the new place, keeping the answers and dropping the region', () => {
+    expect(placeFiltersPath(params, { center: [-0.128, 51.507], q: 'London' })).toBe(
+      '/search/filters?days=2&q=London&center=-0.128%2C51.507',
+    )
+  })
+
+  it('drops the place and the region, keeping the answers', () => {
+    expect(noPlaceSearch(params)).toBe('days=2')
   })
 })

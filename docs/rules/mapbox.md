@@ -322,8 +322,8 @@ the app declines to suggest cannot widen the camera either.
 ## The map needs browser PERMISSIONS, and a grep will not find them
 
 `<GeolocateControl />` is our JSX, but `navigator.geolocation` runs **inside
-mapbox-gl**, so grepping `src/` for it finds nothing and wrongly suggests no
-permission is needed. The widget is embedded on pages we do not own, and
+mapbox-gl**, so grepping `src/` for it finds only the filters' Near me
+(`use-near-me.ts`, which also runs in a map-less embed) and misses the map's own request. The widget is embedded on pages we do not own, and
 Permissions Policy can deny `geolocation`, `clipboard-write`, or `web-share` to
 a cross-origin frame by default (a host can also deny a script embed the same
 way with a header) — all three fail **silently**: "Find my location" does

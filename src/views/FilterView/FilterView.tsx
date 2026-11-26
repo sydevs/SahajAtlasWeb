@@ -1,24 +1,25 @@
-import { useMemo, useState } from 'react'
+import { useRef, useState } from 'react'
 import { useLocation, useNavigate } from 'react-router'
-import { useQuery } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
+
+import { WhereFilter } from './WhereFilter'
 
 import { DrawerBody, DrawerFooter } from '@/components/atoms/Drawer'
 import { Button } from '@/components/atoms/Button'
-import { SearchFilters } from '@/components/molecules'
-import { geojsonQuery } from '@/config/api'
+import { SearchFilters } from '@/components/organisms'
 import { useEventFilters } from '@/hooks/use-filters'
-import { useRegionMatcher } from '@/hooks/use-region-matcher'
+import { useFilterFacets } from '@/hooks/use-filter-facets'
 import {
   DEFAULT_FILTERS,
   type EventFilters,
+  type PlaceSearch,
   filterOriginRegion,
   filtersKey,
   filtersToParams,
   hasActiveFilters,
-  matchesFilters,
+  noPlaceSearch,
   parentOf,
-  todayISO,
+  placeFiltersPath,
 } from '@/lib/shape'
 import { NavHeader } from '@/views/nav'
 
@@ -49,25 +50,25 @@ export function FilterView({ initialDraft }: { initialDraft?: EventFilters } = {
         region: applied.region ?? filterOriginRegion(location.pathname),
       },
   )
-  // Region cut for the live count, from the draft's selected region (see matchesFilters).
-  const matchesRegion = useRegionMatcher(draft.region)
+  // The live counts behind every option and the Apply button, cut to the current scope.
+  const facets = useFilterFacets(draft)
+  const count = facets?.counts.total
 
-  const { data: geojson } = useQuery(geojsonQuery())
-
-  // A live preview of how many events the draft filters match. Skip the full-feed
-  // predicate scan when the draft is all-default (every event matches).
-  const count = useMemo(() => {
-    if (!geojson) return undefined
-    if (!hasActiveFilters(draft)) return geojson.features.length
-
-    const today = todayISO()
-
-    return geojson.features.filter((f) => matchesFilters(f.properties, draft, today, matchesRegion))
-      .length
-  }, [geojson, draft, matchesRegion])
-
-  const hasChanges = filtersKey(draft) !== filtersKey(applied)
+  // Near me and the place tag move the URL under the drawer, where the draft cannot see it, so a
+  // moved place is a change to apply like any other answer. Closing with X discards it.
+  const [placeMoved, setPlaceMoved] = useState(false)
+  const hasChanges = placeMoved || filtersKey(draft) !== filtersKey(applied)
   const draftActive = hasActiveFilters(draft)
+  // A location fix answers seconds after Near me is pressed, and must not undo what was tapped
+  // meanwhile.
+  const latestDraft = useRef(draft)
+
+  latestDraft.current = draft
+
+  // The view the drawer closes back onto. Only the calendar and the search list show filtered
+  // classes, so over any other view the filters apply to (and the place moves onto) a search.
+  const origin = parentOf(location.pathname)
+  const filtersOrigin = origin === '/calendar' || origin === '/search' ? origin : '/search'
 
   // Applying or clearing returns to the ORIGIN view — the drawer beneath the filters — with
   // the filters written into its query. So filtering from the calendar returns to the
@@ -82,18 +83,56 @@ export function FilterView({ initialDraft }: { initialDraft?: EventFilters } = {
     // are part of `revealKey`, so a new set is a new result set and the list is back at
     // its first page by construction (see `use-reveal`).
     const search = filtersToParams(filters, new URLSearchParams(location.search)).toString()
-    const origin = parentOf(location.pathname)
-    const target = origin === '/calendar' || origin === '/search' ? origin : '/search'
 
-    navigate({ pathname: target, search }, { replace: true, state: location.state })
+    navigate({ pathname: filtersOrigin, search }, { replace: true, state: location.state })
   }
+
+  const movePlace = (next: EventFilters, to: { pathname: string; search: string } | string) => {
+    setDraft(next)
+    setPlaceMoved(true)
+    navigate(to, { replace: true, state: location.state })
+  }
+
+  // A place replaces any region, and the drawer moves over that search with the draft written
+  // into the URL, so the search it lands on and the form cannot disagree.
+  const pickPlace = (place: PlaceSearch) => {
+    const next = { ...latestDraft.current, region: null }
+
+    movePlace(
+      next,
+      placeFiltersPath(filtersToParams(next, new URLSearchParams(location.search)), place),
+    )
+  }
+
+  // Drops the place and the region, and keeps every other answer. Over a region's own page the
+  // drawer moves onto the unscoped search, so the list behind it no longer names that region.
+  const clearWhere = () =>
+    movePlace(
+      { ...draft, region: null },
+      {
+        pathname: `${filtersOrigin}/filters`,
+        search: noPlaceSearch(new URLSearchParams(location.search)),
+      },
+    )
 
   return (
     <>
       {/* The filters sit over the page they narrow, so they close back onto it with an X. */}
       <NavHeader close title={t('filters.chrome.title')} />
       <DrawerBody className="px-gutter py-4">
-        <SearchFilters value={draft} onChange={setDraft} />
+        <SearchFilters
+          facets={facets}
+          value={draft}
+          where={
+            <WhereFilter
+              region={draft.region}
+              searchable={origin !== '/calendar'}
+              onClear={clearWhere}
+              onPlace={pickPlace}
+            />
+          }
+          onChange={setDraft}
+        />
       </DrawerBody>
       {(draftActive || hasChanges) && (
         <DrawerFooter className="flex items-center gap-2 px-gutter py-3">
