@@ -163,7 +163,7 @@ describe('DrawerContent — the floating panel’s height ease', () => {
     height = 700
     observed.deliver()
 
-    // The switch to the wide calendar, which must not ease.
+    // The full-width calendar owns its own height, so `wide` turns the ease off.
     mount({ wide: true })
     expect(observed.disconnected).toBe(true)
     expect(cancel).toHaveBeenCalled()
