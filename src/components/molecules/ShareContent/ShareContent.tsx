@@ -6,6 +6,7 @@ import { PlatformButton } from './platform-buttons'
 
 import { tv } from '@/styles/tv'
 import { Button } from '@/components/atoms/Button'
+import { useCopy } from '@/hooks/use-copy'
 import { useWebShare } from '@/hooks/use-web-share'
 import { platformsForCountry } from '@/lib/share/platforms'
 
@@ -23,28 +24,19 @@ const copyField = tv({
 // the event panel's desktop contact popover (issue #52).
 export function CopyField({ value }: { value: string }) {
   const { t } = useTranslation()
-  const [copied, setCopied] = useState(false)
-
-  const copy = () => {
-    navigator.clipboard
-      ?.writeText(value)
-      .then(() => {
-        setCopied(true)
-        window.setTimeout(() => setCopied(false), 1500)
-      })
-      .catch(() => {})
-  }
+  const { copied, copy } = useCopy(1500)
 
   return (
     <div className="flex flex-col gap-1">
       <button
+        data-vaul-no-drag
         // The URL is the button's visible text, so the name carries it too: a name that
         // omitted it would leave a speech-input viewer with nothing to say (WCAG 2.5.3).
         aria-label={`${t('share.a11y.copy_link')}: ${value}`}
         className={copyField({ copied })}
         title={value}
         type="button"
-        onClick={copy}
+        onClick={() => void copy(value)}
       >
         <span className="block truncate">{value}</span>
       </button>
@@ -54,7 +46,7 @@ export function CopyField({ value }: { value: string }) {
           perceive it either. The live region announces success, and the
           text confirms it. */}
       <span aria-live="polite" className="h-4 text-xs text-secondary-11">
-        {copied ? t('share.copied') : ''}
+        {copied ? t('common.chrome.copied') : ''}
       </span>
     </div>
   )

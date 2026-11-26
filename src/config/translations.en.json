@@ -19,6 +19,7 @@
       "back_to_world_map": "Back to the world map",
       "cancel": "Cancel",
       "close": "Close",
+      "copied": "Copied",
       "explore": "Explore",
       "loading": "Loading…",
       "show_more": "Show more",
@@ -272,7 +273,6 @@
     }
   },
   "share": {
-    "copied": "Copied",
     "copy_link": "Copy link",
     "native": "Share…",
     "qr_download": "Download for printing",

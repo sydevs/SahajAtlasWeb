@@ -11,7 +11,8 @@
   },
   "event": {
     "view_photo": "Vezi fotografia",
-    "pause_slideshow": "Pune pe pauză prezentarea"
+    "pause_slideshow": "Pune pe pauză prezentarea",
+    "copy_address": "Copiază adresa"
   },
   "filters": {
     "remove": "Elimină %{label}"

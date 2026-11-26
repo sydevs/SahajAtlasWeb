@@ -32,7 +32,10 @@ const ended: Event = {
  */
 export const Default: Story = () => (
   <StoryWrapper>
-    <StorySection description="A recurring in-person class." title="In person">
+    <StorySection
+      description="A recurring in-person class. The address ends with its postcode, and a tap copies it."
+      title="In person"
+    >
       <div className="max-w-md">
         <EventFacts event={mockEvent} />
       </div>
