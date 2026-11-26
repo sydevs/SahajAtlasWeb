@@ -4,23 +4,38 @@ import { DateTime } from 'luxon'
 
 import { timePeriodRanges, type TimePeriod } from '@/lib/shape'
 
+/** iPhone or iPad. iPadOS reports itself as a Mac, so touch points tell the two apart. */
+export function isAppleMobile(
+  nav: Pick<Navigator, 'userAgent' | 'maxTouchPoints'> | undefined = globalThis.navigator,
+): boolean {
+  if (!nav) return false
+
+  return (
+    /iPhone|iPad|iPod/.test(nav.userAgent) ||
+    (/Macintosh/.test(nav.userAgent) && nav.maxTouchPoints > 1)
+  )
+}
+
 /**
- * A Google Maps directions link from an event's coordinates (preferred) or its
- * address text. This is undefined when there is nothing to point at. Pure —
- * shared by the panel's Directions action and any future card affordance.
+ * A directions link from an event's coordinates (preferred) or its address text, undefined when
+ * there is nothing to point at. iPhones and iPads get Apple Maps: Google Maps in Safari stops a
+ * fresh browser at a consent page first. Everything else gets Google Maps.
  */
-export function directionsUrl(address: EventAddress | null | undefined): string | undefined {
+export function directionsUrl(
+  address: EventAddress | null | undefined,
+  apple: boolean = isAppleMobile(),
+): string | undefined {
   const { latitude, longitude, street, city, country } = address ?? {}
+  const query =
+    latitude != null && longitude != null
+      ? `${latitude},${longitude}`
+      : encodeURIComponent([street, city, country].filter(Boolean).join(', '))
 
-  if (latitude != null && longitude != null) {
-    return `https://www.google.com/maps/search/?api=1&query=${latitude},${longitude}`
-  }
+  if (!query) return undefined
 
-  const query = [street, city, country].filter(Boolean).join(', ')
-
-  return query
-    ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(query)}`
-    : undefined
+  return apple
+    ? `https://maps.apple.com/?daddr=${query}`
+    : `https://www.google.com/maps/search/?api=1&query=${query}`
 }
 
 /**

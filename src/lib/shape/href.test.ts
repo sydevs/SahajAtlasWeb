@@ -84,8 +84,9 @@ describe('isSafeHref — allows', () => {
   // any of these would be worse than the status quo it replaced, so they are pinned here in
   // the shape their producers emit rather than left to the components' specs.
   it.each([
-    // `directionsUrl` (`lib/events.ts`) — the Directions action.
+    // `directionsUrl` (`lib/events.ts`) — the Directions action, Google and Apple Maps.
     'https://www.google.com/maps/search/?api=1&query=51.5,-0.12',
+    'https://maps.apple.com/?daddr=51.5,-0.12',
     // `buildGoogleCalendarUrl` (`lib/ics.ts`) — a calendar-menu row.
     'https://calendar.google.com/calendar/r?cid=webcal%3A%2F%2Fcloud.example%2Ff.ics',
     // `buildFeedSubscribeUrl` (`lib/ics.ts`) — the Apple row, and the string inside `cid`.
