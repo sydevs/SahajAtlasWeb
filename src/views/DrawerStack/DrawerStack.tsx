@@ -56,6 +56,7 @@ import {
 import { wakesSheetLoop } from '@/views/DrawerStack/sheet-wake'
 import { ViewLayer } from '@/views/DrawerStack/ViewLayer'
 import {
+  capPoints,
   FIT_SNAP,
   heldFoldPx,
   OPEN_SNAP,
@@ -294,11 +295,7 @@ export function DrawerStack() {
   const shortViewport = useIsShortViewport()
   const snapCap = shortViewport && canCollapse && !frameElement() ? shortSheetCap() : null
   // Memoised like the ladder it is built from: vaul re-measures every stop when this changes.
-  const shownSnapPoints = useMemo(
-    () =>
-      snapCap === null ? snapPoints : [...new Set(snapPoints.map((p) => capStop(p, snapCap)))],
-    [snapPoints, snapCap],
-  )
+  const shownSnapPoints = useMemo(() => capPoints(snapPoints, snapCap), [snapPoints, snapCap])
   const shownSnap = capStop(vaulSnap, snapCap)
   const setShownSnap = (next: number | string | null) => {
     // A capped stop stands for every stop above the cap: the sheet stays where it was if that caps

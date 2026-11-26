@@ -1,6 +1,6 @@
 import type { SheetFit } from '@/views/DrawerStack/use-fit-snap'
 
-import { SHEET_OPEN_PX, SHEET_PEEK_PX, WIDE_SNAP } from '@/config/responsive'
+import { SHEET_OPEN_PX, SHEET_PEEK_PX, WIDE_SNAP, capStop } from '@/config/responsive'
 
 // The mobile bottom-sheet snap ladder, ascending. vaul reads a string as pixels, and a
 // number as a fraction of the sheet height:
@@ -81,6 +81,18 @@ export function sheetLadder({
     fitSnap,
   }
 }
+
+/**
+ * The ladder a short window shows: every pixel stop held down to `cap`, and the duplicates that
+ * makes dropped, so a class whose key facts and fit both sit above the cap climbs peek → cap.
+ * Only the stops are capped — `snap` and the fit token keep naming the uncapped stop, and
+ * `DrawerStack` tells a collapsed stop from a real one by the uncapped ladder.
+ */
+export const capPoints = (
+  points: Array<number | string>,
+  cap: number | null,
+): Array<number | string> =>
+  cap === null ? points : [...new Set(points.map((point) => capStop(point, cap)))]
 
 /**
  * The stop vaul shows for `snap`. vaul does nothing with a stop its ladder lacks, so one the

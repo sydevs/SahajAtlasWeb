@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 
 import {
+  capPoints,
   FIT_SNAP,
   heldFoldPx,
   OPEN_SNAP,
@@ -85,6 +86,39 @@ describe('heldFoldPx', () => {
 
   it.each([PEEK_SNAP, OPEN_SNAP, FIT_SNAP, WIDE_SNAP, null])('holds nothing at %s', (snap) => {
     expect(heldFoldPx(snap)).toBeNull()
+  })
+})
+
+describe('capPoints', () => {
+  it('passes every stop through where the window is not short', () => {
+    const { points } = sheetLadder({ classView: true, fit: 600, fold: 440 })
+
+    expect(capPoints(points, null)).toBe(points)
+  })
+
+  it('leaves a class one stop above the peek where the cap is under its key facts', () => {
+    // A 375px-tall frame caps at 300px (`shortSheetCap`), under both the key facts and the fit.
+    expect(capPoints(sheetLadder({ classView: true, fit: 600, fold: 440 }).points, 300)).toEqual([
+      PEEK_SNAP,
+      '300px',
+    ])
+  })
+
+  it('keeps a class key-facts stop that fits under the cap', () => {
+    // The same frame measures its key facts at 247px (`foldHeight`), below the cap.
+    expect(capPoints(sheetLadder({ classView: true, fit: 360, fold: 247 }).points, 300)).toEqual([
+      PEEK_SNAP,
+      '247px',
+      '300px',
+    ])
+  })
+
+  it('leaves the near-full stop alone, a fraction of the frame rather than a height', () => {
+    expect(capPoints(sheetLadder({ classView: false, fit: 600, fold: null }).points, 300)).toEqual([
+      PEEK_SNAP,
+      '300px',
+      WIDE_SNAP,
+    ])
   })
 })
 
