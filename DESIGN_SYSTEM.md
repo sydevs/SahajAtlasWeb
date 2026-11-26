@@ -258,7 +258,7 @@ Folder-per-component, not re-exported through the component barrels.
   component instead: `ListRow` (`molecules/List`) is the list rows' shell. Each difference is a **variant**, so
   an intended one reads differently from an accidental one — three hand-copied copies of the menu
   skin had already diverged before anything noticed (#367), and `lib/overlay.popper.test.ts` now
-  refuses another of either.
+  refuses another.
 - **Three panel-wide rules live as `@theme` tokens in `globals.css`, so a screen follows them by
   naming the token, never a number.**
   - **Type:** 12 / 14 / 15 / 16 / 20 / 28px. Titles are `text-xl`, row and result titles

@@ -49,7 +49,7 @@ const MENUS: Record<string, string> = {
 
 /** Why each one is here, so a removal is a decision rather than an accident. */
 const BOUNDED: Record<string, string> = {
-  'components/atoms/Select/Select.tsx': 'the plain list picker',
+  'components/atoms/Select/Select.tsx': 'the list picker',
   ...MENUS,
 }
 
