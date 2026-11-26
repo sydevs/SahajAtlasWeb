@@ -276,6 +276,9 @@ describe('scheduleXLocale', () => {
     expect(scheduleXLocale('de-AT')).toBe('de-DE')
     expect(scheduleXLocale('fr-CA')).toBe('fr-FR')
     expect(scheduleXLocale('es-MX')).toBe('es-ES')
+    // A Portuguese page whose browser reads pt-PT still runs the grid in Portuguese.
+    expect(scheduleXLocale(regionalLocale('pt-BR', ['pt-PT']))).toBe('pt-BR')
+    expect(scheduleXLocale('pt')).toBe('pt-BR')
   })
 
   // The lists beside the grid read `regionalLocale`'s tag, so a Czech browser's en-CZ dates are day

@@ -207,7 +207,8 @@ const SCHEDULE_X_LOCALES: Record<string, string> = {
   nl: 'nl-NL',
   ru: 'ru-RU',
   uk: 'uk-UA',
-  'pt-BR': 'pt-BR',
+  // Schedule-X ships Brazilian Portuguese only, so every Portuguese browser runs it (`pt-PT`).
+  pt: 'pt-BR',
 }
 
 /** Whether `locale` writes the day before the month, as en-GB does and en-US does not. */
