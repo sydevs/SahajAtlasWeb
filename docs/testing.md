@@ -581,16 +581,20 @@ Six things about it are deliberate:
   three runs measured 645, 655 and 655 controls, clean, in about 43s (2026-11-22, 4 cores).
   ⚠ A story that mutates nothing is still released by the 4s cap, so the wait cannot hang the gate.
 - **Nor can it close while a loading placeholder (`data-sy-loading`) is on the page, and a
-  second settle checks the read was whole** (#515). A view whose body is a lazy chunk draws its
-  skeleton first: `views--event-·-sticky-register` drew 2 controls at ~300ms and 12 at ~600ms,
-  so a 250ms window closed in the gap on one run and not the next — 2 tab stops, then 12, on one
-  build (#509). After the audit the gate settles again and recounts the tab stops; a changed
-  count, a control the audit never stamped, or a placeholder still up at the cap fails the story
-  as **`unsettled`**, with no other verdict, rather than passing or failing it on a partial
-  read. `PLACEHOLDER_STORIES` lists the one story whose skeletons are the subject. Measured
-  2026-11-26 on 11 cores: five full runs measured 689 controls each, in about 58s, up from 41s —
-  the second settle's window, once per story. With the window cut to 50ms the fix still read 12
-  stops; with the placeholder wait off as well, the tripwire reported the 2-against-12 read.
+  recount checks the read was whole** (#515). React holds a Suspense boundary's content back at
+  least 300ms after its fallback commits (react-dom 19's `FALLBACK_THROTTLE_MS`), so a view that
+  draws a skeleton first goes quiet for longer than the 250ms window: `views--event` and its
+  sticky-register sibling were audited on the skeleton — 2 tab stops on one run, 12 on the next,
+  one build (#509). The tab stops are counted before axe runs, after the probe, and again 100ms
+  later; a changed count, a control the audit never stamped, or a placeholder still on the
+  page fails the story as **`unsettled`**, with no other verdict. `PLACEHOLDER_STORIES` lists the
+  one story whose skeletons are the subject.
+  ⚠ **The marker covers skeleton phases only, so do not shorten the quiet window to win time
+  back.** The boot spinner, the lazy map library and a late row in `views--countries` carry no
+  marker: at a 50ms window, 7 of 18 reads of those stories were partial (2026-11-26).
+  Measured 2026-11-26 on 11 cores: five full runs measured 689 controls each, about 49s against
+  41s before. With the placeholder wait off and a 50ms window, the recount reported the
+  skeleton read on every run.
 - **It reads a BUILD, never `ladle serve`.** The dev server compiles a story when it is opened,
   so a story that failed to build would pass by never having been built. `--origin
 http://localhost:61000` points it at the dev server anyway, for the local fix loop only.
@@ -625,7 +629,7 @@ http://localhost:61000` points it at the dev server anyway, for the local fix lo
   claim that no axe rule was left out.
 
 ⚠ **The gate's own arithmetic is in the unit lane** (`scripts/check-a11y.test.ts`) — the span
-measurement, the report's grouping, and the exemption list. Only the browser half needs a
+measurement, the report's grouping, the unsettled-read verdict, and the exemption lists. Only the browser half needs a
 browser.
 
 ## Decision: node-only (no jsdom / Testing Library)
