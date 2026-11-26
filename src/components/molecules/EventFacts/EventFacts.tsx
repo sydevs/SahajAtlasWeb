@@ -1,15 +1,11 @@
 import type { LucideIcon } from 'lucide-react'
 import type { ReactNode } from 'react'
+import type { EventDisplayStrings, EventSurface } from '@/hooks/use-event-display'
 
 import { useTranslation } from 'react-i18next'
 import { CalendarDays, Check, Copy, MapPin, Monitor } from 'lucide-react'
 
 import { tv } from '@/styles/tv'
-import {
-  useEventDisplay,
-  type DisplayableEvent,
-  type EventSurface,
-} from '@/hooks/use-event-display'
 import { useCopy } from '@/hooks/use-copy'
 
 // The when/where fact list. `page` is the class page treatment: brand-tinted
@@ -77,7 +73,8 @@ type Fact = {
 }
 
 export type EventFactsProps = {
-  event: DisplayableEvent
+  /** The parent's `useEventDisplay(event)`, shared with its EventChips so a card resolves once. */
+  strings: EventDisplayStrings
   /** The class page, a list card, or the boxed share and registration summary. */
   surface?: EventSurface
   /** The heading rendered above the facts. `summary` only. */
@@ -100,15 +97,14 @@ export type EventFactsProps = {
  * `surfaceView`'s decision; this only renders it.
  */
 export function EventFacts({
-  event,
+  strings,
   surface = 'page',
   title,
   children,
   distance,
   className,
 }: EventFactsProps) {
-  const { display, surfaces, whereLine, whereLineWithPostCode, roomLine, whereSubtext } =
-    useEventDisplay(event)
+  const { display, surfaces, whereLine, whereLineWithPostCode, roomLine, whereSubtext } = strings
   const { primary, time, detail } = surfaces[surface].when
 
   const items: Fact[] = [

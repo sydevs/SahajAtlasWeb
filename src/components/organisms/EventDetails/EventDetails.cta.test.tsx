@@ -1,7 +1,7 @@
 import { renderToStaticMarkup } from 'react-dom/server'
 import { describe, it, expect, vi } from 'vitest'
 
-import { EventDetails } from './EventDetails'
+import { EventDetails, type EventDetailsProps } from './EventDetails'
 
 import { mockEvent } from '@/mocks/events'
 
@@ -33,7 +33,12 @@ vi.mock('./sanitize', () => ({
 
 const panel = (registerInline?: boolean) =>
   renderToStaticMarkup(
-    <EventDetails basePath="/gb/london/1" event={mockEvent} registerInline={registerInline} />,
+    <EventDetails
+      basePath="/gb/london/1"
+      event={mockEvent}
+      registerInline={registerInline}
+      strings={{} as EventDetailsProps['strings']}
+    />,
   )
 
 describe('EventDetails — where the calls to action render', () => {
