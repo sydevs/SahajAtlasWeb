@@ -31,7 +31,7 @@ through there before:
 **Module entries stay unanchored on purpose, so a spec travels with its module** — the
 `src/lib/shape/path` entry matches `path.test.ts` as well as `path.ts`. An assertion enforces
 several of these guards, not a reader: `href.test.ts` pins the JSX anchor inventory to exactly
-three components (`atoms/Link/`, `atoms/Button/`, `molecules/ActionRow/`) and fails if any of
+two components (`atoms/Link/`, `atoms/Button/`) and fails if any of
 them stops calling `isSafeHref`. `path.test.ts` pins `//evil.com` and the tab/LF/CR forms.
 Deleting one of those assertions is precisely the diff worth seeing.
 
