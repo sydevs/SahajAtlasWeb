@@ -43,18 +43,18 @@ cover everything a host would notice since the widget was first deployed.
 
 ### Changed
 
-- **Keyboard focus looks the same on every control.** ([#PRNUM]) A 2px line in your brand colour,
+- **Keyboard focus looks the same on every control.** ([#510]) A 2px line in your brand colour,
   drawn just inside the control, with a thin band of the panel's colour inside it so it still
   shows on a filled button such as Register. Buttons, filter tags, fields, the place search and
   the map's own credits button, logo and canvas all draw it; before, they drew three different
   rings, and Mapbox's blue halo appeared even on a mouse click. A mouse click still shows nothing.
 
-- **A dialog with a form starts in its first field.** ([#PRNUM]) It started on its × button, as if
+- **A dialog with a form starts in its first field.** ([#510]) It started on its × button, as if
   Close were already chosen. On a touch-only screen the dialog itself takes focus instead, so the
   on-screen keyboard does not rise over the form before anyone has read it.
 
 - **The search box's clear button answers to a 44px tap on a touch screen**, at the same drawn
-  size. ([#PRNUM]) The invisible tap areas around small controls now apply only to touch-only
+  size. ([#510]) The invisible tap areas around small controls now apply only to touch-only
   screens, so a touchscreen laptop's mouse no longer hits an area it cannot see.
 
 - **The consent line under the sign-up fields reads like the text around it.** ([#506]) It was
@@ -1461,9 +1461,9 @@ must-revalidate`, pinned rather than left to the CDN default. The production dom
 [#482]: https://github.com/sydevs/SahajAtlasWeb/pull/482
 [#488]: https://github.com/sydevs/SahajAtlasWeb/pull/488
 [#490]: https://github.com/sydevs/SahajAtlasWeb/pull/490
-[#PRNUM]: https://github.com/sydevs/SahajAtlasWeb/pull/PRNUM
 [#498]: https://github.com/sydevs/SahajAtlasWeb/pull/498
 [#495]: https://github.com/sydevs/SahajAtlasWeb/pull/495
 [#500]: https://github.com/sydevs/SahajAtlasWeb/pull/500
 [#496]: https://github.com/sydevs/SahajAtlasWeb/pull/496
 [#506]: https://github.com/sydevs/SahajAtlasWeb/pull/506
+[#510]: https://github.com/sydevs/SahajAtlasWeb/pull/510
