@@ -1,19 +1,108 @@
 import type { EventDisplayStrings } from '@/hooks/use-event-display'
 
+import { type ReactNode, useLayoutEffect, useRef, useState } from 'react'
 import { FloatingFocusManager, FloatingPortal } from '@floating-ui/react'
 import { useTranslation } from 'react-i18next'
-import { Globe, Milestone, PhoneOutgoing, Share } from 'lucide-react'
+import { Globe, Navigation, Phone, Share } from 'lucide-react'
 
 import { useAtlasNavigate } from '@/hooks/use-atlas-navigate'
-import { ActionCircle, ActionRow } from '@/components/molecules/ActionRow'
+import { Button } from '@/components/atoms/Button'
 import { CopyField } from '@/components/molecules/ShareContent'
 import { useCoarsePointer } from '@/config/responsive'
 import { usePopover } from '@/hooks/use-popover'
 import { directionsUrl } from '@/lib'
+import { telHref } from '@/lib/shape'
 import { overlayContainer } from '@/lib/overlay'
+import { isIOS } from '@/lib/platform'
 import { Event } from '@/types'
 
-// The desktop contact action: the circle, plus a popover carrying the
+// One quiet grey Button per action, so Register stays the only thing that stands out. Each starts
+// at its own label's width and the row shares the rest: equal thirds cut "Directions" short in the
+// 352px desktop panel. The row's `data-stacked` puts every icon above its label.
+// ⚠ `min-h`, not `h`: tailwind-merge cannot cancel the recipe's `pointer-coarse:h-11` with a plain
+// `h-14`, which pinned stacked buttons to 44px on a phone.
+const ACTION =
+  'min-h-11 min-w-0 flex-auto gap-1.5 px-1 group-data-stacked/actions:min-h-14 group-data-stacked/actions:flex-col group-data-stacked/actions:gap-0.5 group-data-stacked/actions:text-xs [&_svg]:shrink-0 [&_svg]:text-primary-11'
+
+const ICON_SIZE = 18
+
+const LABEL = {
+  directions: 'event.actions.directions',
+  website: 'event.actions.website',
+  contact: 'event.actions.contact',
+  share: 'event.actions.share',
+} as const
+
+// Icon beside label while every label fits on one line, otherwise icon above label across the
+// row. No width breakpoint can tell: three labels need 266px in English and 336px in Portuguese.
+// A cut records the width the inline row needs, and the row goes back inline only once it has
+// that much, so it cannot flip back and forth. Fonts can land after the first check, and the
+// row's own size does not change when they do, so their arrival re-checks too.
+function useStackWhenCut(labels: string) {
+  const ref = useRef<HTMLDivElement>(null)
+  const [cut, setCut] = useState<{ labels: string; needs: number }>()
+  const stacked = cut?.labels === labels
+
+  useLayoutEffect(() => {
+    const row = ref.current
+
+    if (!row || typeof ResizeObserver === 'undefined') return undefined
+
+    let live = true
+    const check = () => {
+      if (!live) return
+
+      if (cut && stacked) {
+        if (row.clientWidth > cut.needs) setCut(undefined)
+
+        return
+      }
+
+      const buttons = [...row.children]
+      const overflow = buttons.map((button) => {
+        const label = button.querySelector('span')
+
+        return label ? label.scrollWidth - label.clientWidth : 0
+      })
+
+      if (!overflow.some((px) => px > 0)) return
+
+      const gap = parseFloat(getComputedStyle(row).columnGap) || 0
+      const needs = buttons.reduce(
+        (sum, button, i) => sum + button.getBoundingClientRect().width + overflow[i],
+        gap * (buttons.length - 1),
+      )
+
+      setCut({ labels, needs: Math.ceil(needs) })
+    }
+    const observer = new ResizeObserver(check)
+
+    check()
+    observer.observe(row)
+    void document.fonts?.ready.then(check)
+
+    return () => {
+      live = false
+      observer.disconnect()
+    }
+  }, [cut, labels, stacked])
+
+  return { ref, stacked }
+}
+
+type ActionContentProps = { icon: ReactNode; label: string }
+
+// `truncate` sits on the inner span: on the Button itself it would clip the touch-target area.
+function ActionContent({ icon, label }: ActionContentProps) {
+  return (
+    <>
+      {icon}
+      <span className="max-w-full truncate">{label}</span>
+    </>
+  )
+}
+
+// The desktop contact action: the button, plus a popover carrying the
 // number and a copy affordance. A raw `tel:` link is a desktop dead end.
 // This uses the same @floating-ui pattern as the Dropdown atom. It is
 // portaled, so the scrolling panel never clips it. It is viewport-aware,
@@ -37,17 +126,13 @@ function ContactPopover({
 
   return (
     <>
-      <ActionCircle
-        ref={refs.setReference}
-        icon={<PhoneOutgoing />}
-        label={label}
-        variant="bordered"
-        {...getReferenceProps()}
-      />
+      <Button ref={refs.setReference} className={ACTION} variant="flat" {...getReferenceProps()}>
+        <ActionContent icon={<Phone size={ICON_SIZE} />} label={label} />
+      </Button>
       {isOpen && (
         <FloatingPortal root={overlayContainer()}>
           {/* The panel is PORTALED to the theme root. So in DOM order it sits
-              nowhere near the circle that opened it. Without a focus manager, a
+              nowhere near the button that opened it. Without a focus manager, a
               keyboard or screen-reader user pressed Contact, was told a dialog
               opened, and then tabbed on into whatever follows the map, never
               reaching the number.
@@ -58,7 +143,7 @@ function ContactPopover({
               popover opened. The rest matches Dropdown. It is non-modal, since the
               page behind stays live and this is a phone number, not a task to
               finish. It also sets `returnFocus`, so Esc or an outside click puts the
-              caret back on the Contact circle, instead of at the top of the
+              caret back on the Contact button, instead of at the top of the
               document. Esc and outside-click themselves come from `useDismiss` in
               `usePopover`. The manager only decides where focus goes. */}
           <FloatingFocusManager context={context} modal={false} returnFocus={true}>
@@ -87,8 +172,8 @@ export type EventActionsProps = {
 }
 
 /**
- * The secondary action row (issue #52, WS3): equal-weight labelled tonal
- * circles, set per resolver state. Contact is `tel:` on touch, and a popover
+ * The secondary action row (issue #52, WS3): equal-weight labelled buttons,
+ * set per resolver state. Contact is `tel:` on touch, and a popover
  * with the number and copy on desktop. A raw tel: link is a desktop dead end.
  */
 export function EventActions({ event, basePath, strings }: EventActionsProps) {
@@ -103,76 +188,66 @@ export function EventActions({ event, basePath, strings }: EventActionsProps) {
   const canDial = useCoarsePointer()
   const { display } = strings
 
-  const mapsUrl = directionsUrl(event.address)
+  const mapsUrl = directionsUrl(event.address, isIOS())
 
-  const circles = display.actions.flatMap((action) => {
-    switch (action) {
+  const buttons = display.actions.flatMap((kind) => {
+    switch (kind) {
       case 'directions':
-        return mapsUrl
-          ? [
-              <ActionCircle
-                key="directions"
-                isExternal
-                href={mapsUrl}
-                icon={<Milestone className="rtl:-scale-x-100" />}
-                label={t('event.actions.directions')}
-                variant="bordered"
-              />,
-            ]
-          : []
+        if (!mapsUrl) return []
+
+        return (
+          <Button key={kind} className={ACTION} href={mapsUrl} target="_blank" variant="flat">
+            <ActionContent icon={<Navigation size={ICON_SIZE} />} label={t(LABEL.directions)} />
+          </Button>
+        )
       case 'website':
-        return event.website
-          ? [
-              <ActionCircle
-                key="website"
-                isExternal
-                href={event.website}
-                icon={<Globe />}
-                label={t('event.actions.website')}
-                variant="bordered"
-              />,
-            ]
-          : []
+        if (!event.website) return []
+
+        return (
+          <Button key={kind} className={ACTION} href={event.website} target="_blank" variant="flat">
+            <ActionContent icon={<Globe size={ICON_SIZE} />} label={t(LABEL.website)} />
+          </Button>
+        )
       case 'contact': {
         if (!event.contactPhone) return []
-        const label = t('event.actions.contact')
+        const label = t(LABEL.contact)
 
         // Touch devices dial. Everything else shows the number with a copy affordance.
-        if (canDial) {
-          return [
-            <ActionCircle
-              key="contact"
-              href={`tel:${event.contactPhone}`}
-              icon={<PhoneOutgoing />}
-              label={label}
-              variant="bordered"
-            />,
-          ]
-        }
-
-        return [
+        return canDial ? (
+          <Button key={kind} className={ACTION} href={telHref(event.contactPhone)} variant="flat">
+            <ActionContent icon={<Phone size={ICON_SIZE} />} label={label} />
+          </Button>
+        ) : (
           <ContactPopover
-            key="contact"
+            key={kind}
             label={label}
             name={event.contactName}
             phone={event.contactPhone}
-          />,
-        ]
+          />
+        )
       }
       case 'share':
-        return [
-          <ActionCircle
-            key="share"
-            icon={<Share size={20} />}
-            label={t('event.actions.share')}
-            variant="bordered"
+        return (
+          <Button
+            key={kind}
+            className={ACTION}
+            variant="flat"
             onClick={() => navigate(`${basePath}/share`)}
-          />,
-        ]
+          >
+            <ActionContent icon={<Share size={ICON_SIZE} />} label={t(LABEL.share)} />
+          </Button>
+        )
     }
   })
+  const { ref, stacked } = useStackWhenCut(
+    buttons.map((button) => t(LABEL[button.key as keyof typeof LABEL])).join('|'),
+  )
 
-  if (circles.length === 0) return null
+  if (buttons.length === 0) return null
 
-  return <ActionRow>{circles}</ActionRow>
+  return (
+    <div ref={ref} className="group/actions flex w-full gap-2" data-stacked={stacked || undefined}>
+      {buttons}
+    </div>
+  )
 }

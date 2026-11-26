@@ -8,10 +8,9 @@ import { isSafeHref } from '@/lib/shape'
 /**
  * The shared control surface. It holds the colour × variant matrix, the size
  * scale, the corner radius, and the icon-only sizing. It is exported because it
- * skins more than one component: Button applies it to its own root, and
- * ActionCircle applies it to the tinted circle inside its column (see the note
- * in ActionRow). Sharing one recipe keeps `color`, `variant`, `size`, and
- * `radius` meaning the same thing everywhere.
+ * skins more than one component: Button applies it to its own root, and the
+ * Fallbacks contact row skins a `Link` with it. Sharing one recipe keeps
+ * `color`, `variant`, `size`, and `radius` meaning the same thing everywhere.
  *
  * The matrix uses literal classes, not classes built at runtime. Tailwind's
  * scanner can only see literal classes.
@@ -59,7 +58,7 @@ export const controlSurface = tv({
      * because the square shape is the whole point. These controls sit in flex
      * header rows next to long titles. The default flex-shrink would squash the
      * width, and the hover square with it. This is independent of `radius`.
-     * Square icon buttons use `sm`. The action row's circles use `full`.
+     * Square icon buttons use `sm`.
      */
     isIconOnly: { true: 'shrink-0 px-0', false: '' },
   },
@@ -185,8 +184,7 @@ export const controlSurface = tv({
 const button = tv({
   extend: controlSurface,
   base: [
-    'outline-none',
-    'focus-visible:ring-2 focus-visible:ring-focus focus-visible:ring-offset-1',
+    'focus-ring',
     'disabled:pointer-events-none disabled:opacity-disabled',
     // ⚠ This covers WIDTH, and only width — the heights above are drawn, and `pointer-coarse:w-11`
     // reaches the icon-only pair alone. A short label is what is left: `sm` reading "sm" draws

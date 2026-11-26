@@ -15,7 +15,7 @@ const slider = tv({
     // `touch-target` keeps the 16px dot and gives a finger 44px to catch it on a touch
     // screen (#432). It needs the positioned element beside it.
     thumb:
-      'touch-target relative block h-4 w-4 rounded-full border border-gray-7 bg-gray-1 shadow transition-colors outline-none focus-visible:ring-2 focus-visible:ring-focus',
+      'touch-target relative block h-4 w-4 rounded-full border border-gray-7 bg-gray-1 shadow focus-ring transition-colors',
   },
   variants: {
     // Active-filter tint. This colours the UNFILLED track and thumb border

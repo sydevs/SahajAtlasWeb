@@ -62,7 +62,7 @@ button:where(:not(:disabled)),
     0 0 2px rgb(0 0 0 / 0.7),
     0 1px 3px rgb(0 0 0 / 0.5);
   /* An 8px dot is an 8px tap target, and a finger is not 8px (#432). The utility carries its
-     own `(pointer: coarse)` guard and the geometry; `relative` is the one part a
+     own touch-screen guard and the geometry; `relative` is the one part a
      library-owned element forces us to supply, since there is no class to put it on. */
   @apply touch-target relative;
 }
@@ -71,7 +71,7 @@ button:where(:not(:disabled)),
    overlap, the later sibling wins every shared pixel, and each bullet but the last would
    answer across less than it did before. 8px dot + 2 × 18px = 44, so they stay disjoint. The
    dots themselves are unchanged at every size. */
-@media (pointer: coarse) {
+@media (hover: none) and (pointer: coarse) {
   .sy-carousel {
     --swiper-pagination-bullet-horizontal-gap: 18px;
   }

@@ -9,7 +9,6 @@ import { EventDetails } from './EventDetails'
 import { EventHeader } from './EventHeader'
 import { EventRegisterBar } from './EventRegister'
 
-import { EventActions } from '@/components/molecules/EventActions'
 import { useEventDisplay } from '@/hooks/use-event-display'
 import {
   mockEvent,
@@ -24,7 +23,7 @@ export default { title: 'Organisms' } satisfies StoryDefault
 
 // This shows the full panel anatomy. The header (title) sits above the body,
 // which EventView orders as chips, facts, Register, actions, About, then images.
-function Panel({ event, ctaInline }: { event: Event; ctaInline?: boolean }) {
+function Panel({ event, registerInline }: { event: Event; registerInline?: boolean }) {
   const strings = useEventDisplay(event)
 
   return (
@@ -32,25 +31,18 @@ function Panel({ event, ctaInline }: { event: Event; ctaInline?: boolean }) {
       <EventHeader title={event.title} />
       <EventDetails
         basePath={`/demo/${event.id}`}
-        ctaInline={ctaInline}
         event={event}
+        registerInline={registerInline}
         strings={strings}
       />
     </div>
   )
 }
 
-// Register plus the action row, as EventView's sticky footer gaps them.
-function RegisterBar({ event }: { event: Event }) {
-  const strings = useEventDisplay(event)
-
-  return (
-    <div className="flex flex-col gap-2">
-      <EventRegisterBar basePath={`/demo/${event.id}`} event={event} strings={strings} />
-      <EventActions basePath={`/demo/${event.id}`} event={event} strings={strings} />
-    </div>
-  )
-}
+// Register alone, as EventView's sticky footer pins it.
+const RegisterBar = ({ event }: { event: Event }) => (
+  <EventRegisterBar basePath={`/demo/${event.id}`} event={event} strings={useEventDisplay(event)} />
+)
 
 const external: Event = {
   ...mockEvent,
@@ -126,15 +118,14 @@ export const Default: Story = () => (
     </StorySection>
 
     <StorySection
-      description="Register plus the secondary action row, as the mobile sheet's sticky footer renders them. `ctaInline={false}` is what the panel passes when the bar is pinned to the footer instead."
+      description="Register alone, as the mobile sheet's sticky footer renders it. `registerInline={false}` is what the panel passes when Register is pinned to the footer; the action row stays in the panel."
       title="Register bar"
     >
       <div className="flex max-w-md flex-col gap-4">
-        {/* The two rows are gapped inside a wrapper, as EventView's footer gaps them. */}
         <div className="border border-divider p-3">
           <RegisterBar event={mockEvent} />
         </div>
-        <Panel ctaInline={false} event={mockEvent} />
+        <Panel event={mockEvent} registerInline={false} />
       </div>
     </StorySection>
 

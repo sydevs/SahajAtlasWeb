@@ -20,6 +20,7 @@ import { useReportForm } from '@/hooks/use-report-form'
 import { useRecoveryOffer } from '@/hooks/use-recovery-offer'
 import { FLAG_CDN_URL } from '@/lib/flag-cdn'
 import { classifyError, errorMessage, reportInternalError } from '@/lib/report'
+import { telHref } from '@/lib/shape'
 
 /**
  * This is the whole-widget surface. It fills the embed when the app has no content to
@@ -625,10 +626,7 @@ export function FallbackActions({
             .join(' — ')}
           className={callSkin}
           color="neutral"
-          // The code strips whitespace from the URI, but keeps it in the label. RFC
-          // 3966 allows no spaces in a `tel:` URI, and some dialers fail on them. But
-          // a human reads "+44 20 1234 5678" back more easily.
-          href={`tel:${contact.phone.replace(/\s+/g, '')}`}
+          href={telHref(contact.phone)}
         >
           <PhoneOutgoing size={18} />
           {contact.phone}

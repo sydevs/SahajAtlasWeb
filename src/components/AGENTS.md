@@ -202,7 +202,7 @@ browser window.** Every decision names one of three signals
 
 **Reaching for the wrong signal fails silently**, so `src/config/responsive.test.ts`
 asserts the viewport call sites as a closed list, the way `href.test.ts` pins the
-app's three JSX anchors. A fourth call site turns the unit lane red instead of
+app's JSX anchors. A fourth call site turns the unit lane red instead of
 shipping a narrow embed that quietly behaves like a desktop.
 
 | Behavior | Signal | Why |
@@ -324,7 +324,7 @@ and one task-named button that opens the interface somewhere it fits.
 - **Expansion goes through a seam** (`src/hooks/use-expansion.tsx`), the same shape
   as `MapController`. A framed embed gets an anchor (`lib/fallback-url.ts`) instead,
   through the `Button` atom's href form — not a new JSX anchor, since `href.test.ts`
-  pins that inventory to three components.
+  pins that inventory.
 - **What it expands into is a module-private dialog inside `CompactEmbedView`, and it
   keeps a margin.** It is not an atom: it publishes itself as the app's
   portal target, needs `contain: layout` since this app's interface is fixed
@@ -574,10 +574,10 @@ this table or the folklore it fixes. On the frame itself both are deliberate, an
 **Do not render a bare `<a href={…}>`.** Use the `Link` atom. If a component
 genuinely must emit its own anchor, its href must go through **`isSafeHref`**
 (`src/lib/shape/href.ts`) first — `safePath`-clean, or an allowed scheme — and a
-refusal reports via `reportInternalError` and degrades to inert content. Exactly
-three components render a JSX anchor (`Link`, `Button`'s href form, `ActionRow`'s
-`ActionCircle`), and `src/lib/shape/href.test.ts` **asserts** that inventory, so a
-fourth turns the unit lane red until it is gated.
+refusal reports via `reportInternalError` and degrades to inert content. Only
+`Link` and `Button`'s href form render a JSX anchor, and
+`src/lib/shape/href.test.ts` **asserts** that inventory, so another
+turns the unit lane red until it is gated.
 
 For why this is a shared predicate rather than a per-component check, and why
 "site-relative" must mean `safePath` rather than `startsWith('/')`, see
@@ -597,7 +597,9 @@ replaces the other.
 
 **The 44px tap floor is met by growing an invisible area, not by redrawing the control.**
 `touch-target` (`globals.css`) puts a 44px `::after` on a smaller control, under
-`(pointer: coarse)` alone, so nothing moves on a desktop. It needs `relative` beside it, and
+`TOUCH_ONLY_QUERY` (`config/responsive.ts`), so a touchscreen laptop's mouse meets no area it
+cannot see and nothing moves on a desktop. A drawn `pointer-coarse:` size still asks
+`(pointer: coarse)` alone. It needs `relative` beside it, and
 three things defeat it:
 
 - **`overflow: hidden` clips it**, so a `truncate` on the control itself takes the area away and
@@ -613,6 +615,12 @@ three things defeat it:
 ⚠ **Join the classes with `tv()`, never `clsx`, wherever a caller may pass its own position.**
 `relative` is later than `absolute` and `fixed` in Tailwind's own order, so a joined list wins
 the cascade and unpins the caller's control. `SettingsMenu`'s trigger carries that story.
+
+**Keyboard focus is one outline: a control takes `focus-ring`, never its own `ring-*`.** A box
+whose focus lands on a hidden control inside it takes `focus-outline` behind its own state, as the
+choice card does. `src/styles/focus-ring.test.ts` holds both. ⚠ The geocoder field's box restates
+the drawing in `Mapbox/themes.ts`: its class names are seeded per instance, so no utility can be
+put on it.
 
 ⚠ **Radix restores focus to a `Dialog.Trigger`, and neither of this app's dialogs has one**, so
 closing dropped the viewer on `<body>` (#432). `useOpenerRestore` (`src/hooks/`) is the one
@@ -678,4 +686,4 @@ can render in a Suspense fallback before translation bundles load.
 **A control on the drawer needs `data-vaul-no-drag`.** vaul reads a tap carrying any
 micro-movement as a drag and swallows the click, so a control without this attribute
 fires only intermittently on touch. The `Button` atom sets it for you. Anything
-hand-rolled (`ActionRow`, the carousel's pause button) must carry it itself.
+hand-rolled (the carousel's pause button) must carry it itself.

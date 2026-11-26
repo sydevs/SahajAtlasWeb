@@ -50,11 +50,11 @@ const TITLE_KEY = 'event.display.unverified_title'
 const NOTE_KEY = 'event.display.unverified_note'
 
 // EventView resolves the page's strings once and hands them down.
-const Page = ({ event, ctaInline }: { event: typeof mockEvent; ctaInline?: boolean }) => (
+const Page = ({ event, registerInline }: { event: typeof mockEvent; registerInline?: boolean }) => (
   <EventDetails
     basePath="/gb/london/1"
-    ctaInline={ctaInline}
     event={event}
+    registerInline={registerInline}
     strings={useEventDisplay(event)}
   />
 )
@@ -109,7 +109,7 @@ describe('unverified badge', () => {
   // is absent. The caveat is not the button's, and must survive without it.
   it('renders with Register pinned to the sheet footer', () => {
     const markup = renderToStaticMarkup(
-      <Page ctaInline={false} event={{ ...mockEvent, verificationStage: 'unverified' }} />,
+      <Page event={{ ...mockEvent, verificationStage: 'unverified' }} registerInline={false} />,
     )
 
     expect(markup).toContain(TITLE_KEY)

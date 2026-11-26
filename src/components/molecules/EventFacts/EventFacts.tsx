@@ -183,8 +183,8 @@ export function EventFacts({
 }
 
 /** The class page's street address, which copies itself when tapped. The Directions action beside
- *  it opens Google Maps from the stored point (`lib/events.ts`), so the clipboard is the only
- *  route to any other maps app — Apple Maps is the iOS default. */
+ *  it opens one maps app from the stored point (`lib/events.ts`: Apple Maps on iOS, else Google),
+ *  so the clipboard is the only route to any other. */
 function CopyAddress({ value }: { value: string }) {
   const { t } = useTranslation()
   const { copied, copy } = useCopy(2000)
@@ -203,7 +203,7 @@ function CopyAddress({ value }: { value: string }) {
       <button
         data-vaul-no-drag
         aria-label={`${t('event.a11y.copy_address')}: ${value}`}
-        className="touch-target relative rounded-lg text-start outline-none select-text focus-visible:ring-2 focus-visible:ring-focus"
+        className="touch-target relative rounded-lg text-start focus-ring select-text"
         type="button"
         onClick={(event) => void onClick(event.currentTarget)}
       >
