@@ -159,12 +159,19 @@ export function useInterfaceBoot({ clientLoaded, homePath, primaryDomain = '' }:
  * its box behind the drawers, independent of Tailwind viewport-unit utility generation.
  *
  * `cooperative` leaves one-finger and wheel scrolling to the page (`gestures=cooperative`). Never
- * in a map that fills its own window, where nothing scrolls.
+ * in a map that fills its own window, where nothing scrolls. `settings={false}` leaves the settings
+ * menu out of the map's controls, for the inline map, whose page heading carries it.
  */
-export function MapLayer({ cooperative = false }: { cooperative?: boolean }) {
+export function MapLayer({
+  cooperative = false,
+  settings = true,
+}: {
+  cooperative?: boolean
+  settings?: boolean
+}) {
   return (
     <div style={{ position: 'fixed', inset: 0 }}>
-      <Mapbox cooperative={cooperative} />
+      <Mapbox cooperative={cooperative} settings={settings} />
       <MapCurtain />
     </div>
   )

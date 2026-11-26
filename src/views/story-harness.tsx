@@ -9,6 +9,7 @@ import { useLadleContext } from '@ladle/react'
 import { ErrorBoundary } from 'react-error-boundary'
 
 import { DrawerSlotsProvider } from '@/components/atoms/Drawer'
+import { SettingsMenu } from '@/components/molecules/SettingsMenu'
 import { DrawerControlContext, NO_DRAWER_CONTROL } from '@/views/shared'
 import { DrawerErrorFallback, DrawerLoading } from '@/views/fallbacks'
 import { WidgetModeContext, type WidgetMode } from '@/config/mode'
@@ -363,8 +364,9 @@ function InlineForm({ children }: { children: ReactNode }) {
     <div className="@container flex min-h-screen w-full flex-col gap-2 bg-background py-4 text-foreground">
       <div className="flex items-center gap-3 px-4">
         <PlaceHeading />
+        <SettingsMenu className="ms-auto -me-1.5 pointer-coarse:-me-3" variant="ghost" />
       </div>
-      <InlineColumns map={<MapLayer />}>
+      <InlineColumns map={<MapLayer settings={false} />}>
         <WidgetWidthContext.Provider value={isWide}>
           <div ref={setColumn} className="flex flex-col">
             <DrawerSlotsProvider mode="inline">{children}</DrawerSlotsProvider>

@@ -354,19 +354,19 @@ function InlineLayout() {
               style={{ scrollMarginTop: top + 16 }}
             >
               <PlaceHeading />
-              {/* Only without a map: with one, settings sit in the map's own control column
-                  (`Mapbox/MapControls`), and a second cog here would be the same menu twice.
-                  The negative end margin puts the 20px glyph, not its 32px (44px on touch) box,
-                  on the row's gutter, in line with the map's edge below. */}
-              {!hasMap && (
-                <SettingsMenu className="ms-auto -me-1.5 pointer-coarse:-me-3" variant="ghost" />
-              )}
+              {/* The page's settings, beside its heading, so the inline map's own controls leave
+                  them out; the expanded map carries its own. The negative end margin puts the 20px
+                  glyph, not its 32px (44px on touch) box, on the row's gutter, in line with the
+                  map's edge below. */}
+              <SettingsMenu className="ms-auto -me-1.5 pointer-coarse:-me-3" variant="ghost" />
             </div>
             <MapProviders inline>
               <InlineColumns
                 // The expanded dialog runs its own map, and two maps would fight over the one
                 // camera-settled flag; this one comes back, and re-frames, on collapse.
-                map={!expanded && <MapLayer cooperative={embed.config.cooperative} />}
+                map={
+                  !expanded && <MapLayer cooperative={embed.config.cooperative} settings={false} />
+                }
                 top={top}
               >
                 {/* Hidden while the expanded map shows the same view: its effects would frame a

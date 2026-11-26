@@ -55,6 +55,11 @@ class ControlColumn implements IControl {
 type MapControlsProps = {
   locate: LocateState
   onLocate: () => void
+  /**
+   * Draw the settings menu in the column. The inline map leaves it to the page heading's row,
+   * where it stays with the page rather than on the map.
+   */
+  settings?: boolean
   /** The find-me button, so the location dialog can hand focus back to it. */
   locateRef: Ref<HTMLButtonElement>
 }
@@ -65,6 +70,7 @@ export const MapControls = memo(function MapControls({
   locate,
   onLocate,
   locateRef,
+  settings = true,
 }: MapControlsProps) {
   const { t } = useTranslation()
   const hidden = useMapControls((s) => s.hidden)
@@ -111,7 +117,7 @@ export const MapControls = memo(function MapControls({
           )}
         </Button>
       </HoverLabel>
-      <SettingsMenu labelled align="end" />
+      {settings && <SettingsMenu labelled align="end" />}
     </div>,
     column.slot,
   )

@@ -249,8 +249,12 @@ function EventPinPopover({
 /**
  * @param cooperative Leave one-finger and wheel scrolling to the host page, moving the map only on
  *   two fingers or Ctrl/⌘ + wheel (`gestures=cooperative`, the inline map only).
+ * @param settings Draw the settings menu in the control column (`MapControls`).
  */
-export function Mapbox({ cooperative = false }: { cooperative?: boolean } = {}) {
+export function Mapbox({
+  cooperative = false,
+  settings = true,
+}: { cooperative?: boolean; settings?: boolean } = {}) {
   let navigate = useAtlasNavigate()
   const { mapbox, padding, moveMap } = useMapbox()
   // ⚠ Not `zoom`, `latitude` or `longitude`: the map is uncontrolled, so nothing here draws from
@@ -614,7 +618,12 @@ export function Mapbox({ cooperative = false }: { cooperative?: boolean } = {}) 
         {/* Carries the attribution `attributionControl` above declines, in the top right, the
             one corner no drawer covers. Why that corner, and why the wordmark sits apart in the
             bottom right: `docs/rules/mapbox.md`, "The wordmark and the attribution" (#330). */}
-        <MapControls locate={locate.state} locateRef={locate.buttonRef} onLocate={locate.locate} />
+        <MapControls
+          locate={locate.state}
+          locateRef={locate.buttonRef}
+          settings={settings}
+          onLocate={locate.locate}
+        />
       </ReactMapGL>
       <Modal open={locate.failed} onOpenChange={locate.setFailed}>
         <ModalContent
