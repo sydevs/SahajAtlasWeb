@@ -1,4 +1,4 @@
-import { type ReactNode } from 'react'
+import { type ReactNode, forwardRef } from 'react'
 import * as RadixSelect from '@radix-ui/react-select'
 import { ChevronDown } from 'lucide-react'
 
@@ -17,18 +17,17 @@ import { frameCollision, overlayContainer } from '@/lib/overlay'
 // which owns the argument for the sizes it picks. A caller must not pass a `text-*` through
 // `className` — a core `text-*` emits after `field-size` and silently outranks it
 // (`src/styles/mobile-zoom.test.ts` refuses it).
+//
+// ⚠ **`field-height` is the 44px tap floor on touch (#432)** — `globals.css` owns its sizes. It is
+// drawn rather than the `touch-target` utility because an `<input>` renders no `::after` for that
+// utility to use, and `@/styles/tv` registers it as a height so `multiline`'s `h-auto` replaces it.
 export const fieldChrome = tv({
-  // ⚠ `min-h-11` on the base, not a height per variant: the 44px tap floor (#432) has to hold
-  // for the input, the trigger and the textarea alike, and a fixed height on each would have
-  // to be cancelled again by the one variant that grows with its content. It is a drawn size
-  // rather than the `touch-target` utility because an `<input>` renders no `::after` for that
-  // utility to use. `pointer-coarse` is the same hardware question `field-size` below asks.
-  base: 'w-full rounded-lg border bg-background px-3 field-size text-foreground transition-colors outline-none focus-visible:ring-2 focus-visible:ring-focus disabled:opacity-disabled pointer-coarse:min-h-11',
+  base: 'field-height w-full rounded-lg border bg-background px-3 field-size text-foreground transition-colors outline-none focus-visible:ring-2 focus-visible:ring-focus disabled:opacity-disabled',
   variants: {
     isInvalid: { true: 'border-danger-7', false: 'border-gray-7' },
     /** A trigger lays its value out against the chevron. A plain input does not. */
-    trigger: { true: 'inline-flex h-10 items-center justify-between gap-2', false: 'h-10' },
-    /** Textareas grow with their content instead of holding the 40px field height. */
+    trigger: { true: 'inline-flex items-center justify-between gap-2' },
+    /** Textareas grow with their content instead of holding the field height. */
     multiline: { true: 'h-auto py-2' },
     /** Active-filter tint: a primary background makes an in-use field stand out. */
     highlight: { true: 'border-primary-7 bg-primary-2' },
@@ -59,6 +58,8 @@ export const panelChrome = tv({
 // and light-dark themed. For a type-to-filter picker, with search in the
 // field itself, use the Combobox atom instead.
 export type SelectProps = {
+  /** The trigger's id, for a `<label htmlFor>` (FormField) to name it. */
+  id?: string
   value?: string
   defaultValue?: string
   onValueChange?: (value: string) => void
@@ -69,6 +70,8 @@ export type SelectProps = {
   'aria-label'?: string
   /** Id of the field's error or description text. It is forwarded to the trigger for screen readers. */
   'aria-describedby'?: string
+  'aria-labelledby'?: string
+  'aria-required'?: boolean
   /** Danger-border the trigger and set `aria-invalid` to flag a validation error. */
   isInvalid?: boolean
   /** Primary-tint the trigger to flag an active field. */
@@ -77,21 +80,29 @@ export type SelectProps = {
   className?: string
 }
 
-export function Select({
-  value,
-  defaultValue,
-  onValueChange,
-  onBlur,
-  name,
-  disabled,
-  placeholder,
-  'aria-label': ariaLabel,
-  'aria-describedby': describedBy,
-  isInvalid,
-  highlight,
-  children,
-  className,
-}: SelectProps) {
+// The ref lands on the trigger, the one focusable part: react-hook-form can only move focus to
+// an invalid field it holds a ref for, and skips one without it silently (#102).
+export const Select = forwardRef<HTMLButtonElement, SelectProps>(function Select(
+  {
+    id,
+    value,
+    defaultValue,
+    onValueChange,
+    onBlur,
+    name,
+    disabled,
+    placeholder,
+    'aria-label': ariaLabel,
+    'aria-describedby': describedBy,
+    'aria-labelledby': labelledBy,
+    'aria-required': ariaRequired,
+    isInvalid,
+    highlight,
+    children,
+    className,
+  },
+  ref,
+) {
   return (
     <RadixSelect.Root
       defaultValue={defaultValue}
@@ -101,10 +112,14 @@ export function Select({
       onValueChange={onValueChange}
     >
       <RadixSelect.Trigger
+        ref={ref}
         aria-describedby={describedBy}
         aria-invalid={isInvalid || undefined}
         aria-label={ariaLabel}
+        aria-labelledby={labelledBy}
+        aria-required={ariaRequired}
         className={fieldChrome({ isInvalid, highlight, trigger: true, className })}
+        id={id}
         onBlur={onBlur}
       >
         {/* The value ellipsises and the chevron holds its width. Without both, a long
@@ -138,7 +153,7 @@ export function Select({
       </RadixSelect.Portal>
     </RadixSelect.Root>
   )
-}
+})
 
 export type SelectItemProps = {
   value: string

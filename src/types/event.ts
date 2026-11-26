@@ -117,6 +117,16 @@ export const EventScheduleSchema = z.object({
 } satisfies PartialZodShape<SahajCloudSchedule>)
 export type EventSchedule = z.infer<typeof EventScheduleSchema>
 
+// SahajCloud sends an inactive listing an all-null group, and `z.coerce.date()` reads its null
+// `firstDate` as 1970-01-01. A group with no first date is no schedule at all.
+export const OptionalScheduleSchema = z.preprocess(
+  (value) =>
+    value && typeof value === 'object' && (value as { firstDate?: unknown }).firstDate == null
+      ? null
+      : value,
+  EventScheduleSchema.nullish(),
+)
+
 // Populated `images` upload (the SahajCloud `Image` collection). `url` is a
 // virtual field derived from `filename` (which `getEvent` selects). It is nullish,
 // so a single file-less image cannot fail the whole event read. Consumers skip
@@ -200,11 +210,11 @@ export const AgnosticFeedEventSchema = z.object({
   id: z.number(),
   eventType: EventTypeSchema,
   languages: z.array(z.string()),
-  // Dormant event (no active schedule. CMS requires contact info on it). In the
-  // feed so cards resolve the same inactive state as the panel.
+  // An inactive listing (CMS requires contact info on it). In the feed so cards resolve the
+  // same inactive state as the panel.
   inactive: z.boolean().nullish(),
   address: EventAddressSchema.nullish(),
-  schedule: EventScheduleSchema.nullish(),
+  schedule: OptionalScheduleSchema,
   region: RegionRefSchema,
   // Denormalized "at capacity" flag (SahajCloud#601) — a boolean, never a raw
   // count, so cards resolve the same Full state as the panel. Nullish: the CMS
@@ -261,7 +271,7 @@ export const EventDocSchema = z.object({
   languages: z.array(z.string()),
   inactive: z.boolean().nullish(),
   address: EventAddressSchema.nullish(),
-  schedule: EventScheduleSchema.nullish(),
+  schedule: OptionalScheduleSchema,
   description: LexicalDocumentSchema.nullish(),
   images: z.array(EventImageSchema).default([]),
   contactPhone: z.string().nullish(),

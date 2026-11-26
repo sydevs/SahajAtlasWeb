@@ -110,8 +110,6 @@ describe('every field clears the 16px iOS zoom floor', () => {
     'components/atoms/Input/Input.tsx <input>',
     'components/atoms/Textarea/Textarea.tsx <textarea>',
     'components/organisms/Mapbox/MapSearch.tsx <input>',
-    'components/organisms/RegistrationForm/RegistrationForm.tsx <input>',
-    'components/organisms/RegistrationForm/RegistrationForm.tsx <textarea>',
     'views/CalendarView/CalendarView.tsx <input>',
   ]
 

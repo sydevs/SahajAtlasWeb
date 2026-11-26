@@ -29,42 +29,43 @@ const SAMPLES: { name: string; event: Event & { languages: string[] } }[] = [
   { name: 'Multi-language', event: { ...mockEvent, languages: ['en', 'fr', 'de'] } },
   { name: 'Today', event: mockEventToday },
   { name: 'Full', event: mockEventFull },
-  { name: 'Full + today → "Full" wins', event: mockEventFullToday },
+  { name: 'Full + today → no Today chip', event: mockEventFullToday },
 ]
 
 // Each sample sits on its own line: the name, then the chip row beneath
-// it. So a variant's output for a given event reads as a single unit.
-const Samples = ({ variant }: { variant: 'default' | 'compact' }) => (
+// it. So a surface's output for a given event reads as a single unit.
+const Samples = ({ surface }: { surface: 'page' | 'card' }) => (
   <div className="flex flex-col gap-4">
     {SAMPLES.map(({ name, event }) => (
       <div key={name} className="flex flex-col gap-1">
         <span className="text-xs text-gray-11">{name}</span>
-        <EventChips event={event} variant={variant} />
+        <EventChips event={event} surface={surface} />
       </div>
     ))}
   </div>
 )
 
 /**
- * EventChips — the shared triage chips (type, language(s), availability).
- * `default`, the event header, names the type and every language. `compact`,
- * the list card, drops the plain weekly-class type and the viewer's own
- * language. At most one availability chip renders: "Full" supersedes "Today".
+ * EventChips — the shared triage chips (type, language(s), Today).
+ * The class page names the type and every language. The list card trims to what
+ * is not already on the card: it drops the plain weekly-class type and the
+ * viewer's own language, and it is the only surface that carries "Today". A full
+ * class carries no Today chip.
  */
 export const Default: Story = () => (
   <StoryWrapper>
     <StorySection
-      description="The event header names the type and folds every language into one chip."
-      title="Default"
+      description="The class page names the type and folds every language into one chip."
+      title="Page"
     >
-      <Samples variant="default" />
+      <Samples surface="page" />
     </StorySection>
 
     <StorySection
       description="The list card drops the plain weekly-class type and the viewer's own language (viewer language = en)."
-      title="Compact"
+      title="Card"
     >
-      <Samples variant="compact" />
+      <Samples surface="card" />
     </StorySection>
 
     <div />

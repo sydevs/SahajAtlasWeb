@@ -78,7 +78,7 @@ export const bootResources = { en: { translation: withA11y(snapshot, EN_A11Y) } 
 export const i18nSharedOptions = {
   fallbackLng: 'en',
   // One namespace. SahajCloud serves a locale's whole bundle as one document with nested keys
-  // (`event.display.chip_full`), which i18next resolves natively, so the old `common`/`events`
+  // (`event.display.chip_today`), which i18next resolves natively, so the old `common`/`events`
   // split has nothing left to divide.
   defaultNS: 'translation',
   ns: ['translation'],

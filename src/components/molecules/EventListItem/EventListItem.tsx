@@ -36,11 +36,10 @@ const MIN_DISTANCE_KM = 5
 /**
  * The list card: title, then the shared EventFacts summary (recurrence and
  * time, then the address with its distance faded below, or the online
- * hosted-from line), then the compact EventChips (a non-default type, a
- * non-UI language, and a "Today"). The facts carry the distance, not a
- * chip. The card is a ListRow, so it ends in the same chevron as a place
- * row and a class looks as tappable as a place. Its Link stays hookable for
- * map-pin highlight (#44).
+ * hosted-from line), then the card's EventChips. The facts carry the
+ * distance, not a chip. The card is a ListRow, so it ends in the same chevron
+ * as a place row and a class looks as tappable as a place. Its Link stays
+ * hookable for map-pin highlight (#44).
  *
  * **This is memoized** (the only `memo` in the repo, so it needs a
  * reason). The search results list GROWS as it pages, re-rendering with an
@@ -138,9 +137,9 @@ function EventListItemImpl({ event, searchedPlace, showDistance = true }: EventL
             )
           }
           event={event}
-          variant="compact"
+          surface="card"
         />
-        <EventChips className="mt-1" event={event} variant="compact" />
+        <EventChips className="mt-1" event={event} surface="card" />
       </div>
     </ListRow>
   )

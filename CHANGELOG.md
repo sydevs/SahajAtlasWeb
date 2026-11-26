@@ -48,10 +48,30 @@ cover everything a host would notice since the widget was first deployed.
   the word, or above it across the row when a label would not fit on one line (four actions, a
   narrow phone, or longer languages such as Spanish, Portuguese and Russian). Register is 48px
   tall. On the phone map sheet only Register pins to the foot: the actions stay in the panel,
-  under the address, rather than riding the pinned bar. On an iPhone or iPad, Directions opens Apple Maps rather than
-  Google Maps, which made a fresh browser accept Google's consent page first. **No parameter,
+  under the address, rather than riding the pinned bar. On an iPhone or iPad, Directions opens
+  Apple Maps rather than Google Maps, which made a fresh browser accept Google's consent page
+  first. **No parameter,
   origin, CSP, storage or Permissions-Policy change.**
 
+- **The consent line under the sign-up fields reads like the text around it.** ([#506]) It was
+  centred in 12px type. It now starts at the left edge, in the card's own 14px size and the quiet
+  grey, and says "By registering…" to match the button. Its "privacy policy" still opens We
+  Meditate's policy in a new tab. **No parameter, origin or CSP change.**
+
+- **A class's tags no longer repeat what its page already says.** ([#500]) Every class that
+  reads "Contact host for timings" now carries no type tag: one marked inactive in SahajCloud, one
+  with no dates, and a repeating class with no session left. Stirling, for one, no longer reads
+  "ONE-OFF EVENT". "Today" appears once. A class page says it in its time line, without a TODAY
+  tag under the title. A list card for a repeating class shows the TODAY tag, without the faded
+  "Today" under its pattern. The FULL tag is gone: a full class says so where you would sign up,
+  and if it meets today it carries no TODAY tag, keeping "Today" in its time line.
+  **No parameter, origin, CSP, storage or Permissions-Policy change.**
+
+- **A listing with an empty schedule says "Contact host for timings".** ([#500]) SahajCloud sends
+  such a listing a schedule whose fields are all empty, and the widget read it as a one-off on
+  1 January 1970. It no longer says "This event has ended", the "One-off" filter no longer lists
+  it, and its page's structured data (`startDate`, `validFrom`, `og:event:start_time`) no longer
+  carries the 1970 date. It shows as an area on the map, and offers contact, website and share.
 - **On a phone, one drag down from a class stops at its key facts.** ([#496]) It used to drop to
   the third-height stop every panel shares, where the sticky Register bar covered the class's tags,
   its time and its address. The sheet now stops where those end, with a third of the map above it,
@@ -1440,4 +1460,6 @@ must-revalidate`, pinned rather than left to the CDN default. The production dom
 [#498]: https://github.com/sydevs/SahajAtlasWeb/pull/498
 [#502]: https://github.com/sydevs/SahajAtlasWeb/pull/502
 [#495]: https://github.com/sydevs/SahajAtlasWeb/pull/495
+[#500]: https://github.com/sydevs/SahajAtlasWeb/pull/500
 [#496]: https://github.com/sydevs/SahajAtlasWeb/pull/496
+[#506]: https://github.com/sydevs/SahajAtlasWeb/pull/506

@@ -105,8 +105,8 @@ export function RegistrationView({
         <EventFacts
           className="mx-auto mb-4 w-full max-w-md"
           event={event}
+          surface="summary"
           title={event.title}
-          variant="card"
         />
 
         {open && !external ? (

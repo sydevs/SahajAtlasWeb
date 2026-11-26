@@ -40,7 +40,7 @@ import { pinPopoverPlacement, type PopoverAnchor } from './pin-popover'
 
 import { Button } from '@/components/atoms/Button'
 import { Modal, ModalClose, ModalContent, ModalFooter } from '@/components/atoms/Modal'
-import { calendarLineParts, useEventDisplay } from '@/hooks/use-event-display'
+import { useEventDisplay } from '@/hooks/use-event-display'
 import { useCameraSettled, useCameraTarget, useViewState, type MapPoint } from '@/config/store'
 import { useAtlasNavigate } from '@/hooks/use-atlas-navigate'
 import { useEventFilters } from '@/hooks/use-filters'
@@ -170,9 +170,8 @@ function PointSource({
 
 // This is the card shown inside the hover popover: the class name, then its
 // timing, with the recurrence (for example, "Every Thursday") stacked above its
-// start time. It renders the SAME calendar parts that the list card's
-// `composeCalendarLine` joins (via the shared `calendarLineParts` gate). Here
-// they stack instead of joining with a `·`, so the two never drift apart (#72).
+// start time. It reads the list card's own `card` view, stacked where the card
+// joins with a `·`, so the two never drift apart (#72).
 // The name comes from the per-locale titles sliver, since the feed carries none. It is read
 // CACHE-ONLY, like the drawer's fallback chrome: a live observer here would make one mouse-move
 // over a pin fetch every title in the locale. Until a view that needs them has loaded them, the
@@ -181,13 +180,7 @@ function EventPinCard({ event }: { event: DisplayableEvent & { id: number } }) {
   const { locale } = useLocale()
   const { data: titles } = useQuery({ ...eventTitlesQuery(locale), enabled: false })
   const title = titles?.get(event.id)
-  const { display, recurrenceLine, whenLine, eventStartTime } = useEventDisplay(event)
-  const { primary, time } = calendarLineParts({
-    recurrenceLine,
-    whenLine,
-    time: eventStartTime,
-    hasNext: Boolean(display.next),
-  })
+  const { primary, time } = useEventDisplay(event).surfaces.card.when
 
   if (!title && !primary) return null
 

@@ -59,7 +59,7 @@ export const Default: Story = () => (
     </StorySection>
 
     <StorySection
-      description="Next session is later today — its own status chip. Unreachable before the fixtures became clock-relative, since a far-future date always resolved to `upcoming`."
+      description="Next session is later today — the when line says so, with no chip. Unreachable before the fixtures became clock-relative, since a far-future date always resolved to `upcoming`."
       title="Today"
     >
       <Panel event={mockEventToday} />

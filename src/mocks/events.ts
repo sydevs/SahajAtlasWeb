@@ -255,17 +255,17 @@ export const mockEventEnded: Event = {
   },
 }
 
-/** Venue dormant → no Register at all. Contact leads. */
+/** Inactive listing → no Register at all. Contact leads. */
 export const mockEventInactive: Event = {
   ...mockEvent,
   id: 126,
-  title: 'Dormant Venue Programme',
+  title: 'Inactive Venue Programme',
   inactive: true,
 }
 
 /**
- * At capacity (the CMS `registrationsFull` flag, SahajCloud#601) → "Full" chip,
- * registration hidden, "See nearby events" + the contact helper. Unlike Ended,
+ * At capacity (the CMS `registrationsFull` flag, SahajCloud#601) → registration
+ * hidden, "See nearby events" + the contact helper. Unlike Ended,
  * the class still runs, so its facts stay normal — it is a running weekly class
  * that simply cannot be joined.
  */
@@ -277,8 +277,8 @@ export const mockEventFull: Event = {
 }
 
 /**
- * Full AND meeting today — the precedence case: "Full" supersedes "Today", since
- * whether you can join is the more actionable fact.
+ * Full AND meeting today: no Today chip, since the session cannot be joined. The
+ * faded line still says "Today".
  */
 export const mockEventFullToday: Event = {
   ...mockEventToday,
@@ -354,13 +354,13 @@ export const mockEventVariants: EventSlim[] = [
   slimFrom(mockEventCourse, { distance: 30, path: '/united-kingdom/cambridge/123' }),
   // The same course after its first session → "Started <date>".
   slimFrom(mockEventStartedCourse, { distance: 45, path: '/united-kingdom/cambridge/124' }),
-  // At capacity → "Full" chip, no Register (the class still runs, facts normal).
+  // At capacity → no Register (the class still runs, facts normal).
   slimFrom(mockEventFull, { distance: 12, path: '/united-kingdom/cambridge/127' }),
-  // Full AND today → "Full" supersedes the "Today" chip.
+  // Full AND today → no Today chip.
   slimFrom(mockEventFullToday, { distance: 3, path: '/united-kingdom/cambridge/128' }),
   // A one-off whose date has passed → terminal "Ended" (reachable via direct links).
   slimFrom(mockEventEnded, { path: '/united-kingdom/cambridge/125' }),
-  // A dormant venue (no active schedule) → "Contact host for timings".
+  // An inactive listing → "Contact host for timings".
   slimFrom(mockEventInactive, { path: '/united-kingdom/cambridge/126' }),
   // A weekly class in a language other than the UI's → the language chip shows.
   {

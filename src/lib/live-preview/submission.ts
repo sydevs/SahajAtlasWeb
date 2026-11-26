@@ -3,7 +3,7 @@ import type { EventDoc, EventImage, RegionNode, RegionRef } from '@/types'
 import z from 'zod'
 
 import { LIVE_PREVIEW_PATH } from '@/config/live-preview/protocol'
-import { EventDocSchema, EventImageSchema, EventScheduleSchema, RegionRefSchema } from '@/types'
+import { EventDocSchema, EventImageSchema, OptionalScheduleSchema, RegionRefSchema } from '@/types'
 
 /**
  * Live preview of a user submission: turning one `previewEvent` payload into an event the
@@ -78,7 +78,7 @@ export const PreviewEventSchema = EventDocSchema.extend({
   // A proposal is a patch, so its schedule can be half a schedule — and `firstDate` is the
   // one required field in the group. Dropping an unreadable schedule keeps the rest of the
   // proposal on screen, where failing the whole parse would show the reviewer nothing.
-  schedule: EventScheduleSchema.nullish().catch(null),
+  schedule: OptionalScheduleSchema.catch(null),
 })
 export type PreviewEvent = z.infer<typeof PreviewEventSchema>
 
