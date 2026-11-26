@@ -7,6 +7,7 @@ import {
   hasActivePlaceSearch,
   hasClassWithin,
   isLocalRegion,
+  locatedPlace,
   markGeolocationDismissed,
   nearbyBounds,
   readGeolocationDismissed,
@@ -214,5 +215,21 @@ describe('nearbyBounds', () => {
 
   it('ignores online classes, which carry no geometry', () => {
     expect(nearbyBounds(PARIS_POINT, feed(online()))).toEqual(floorOnly())
+  })
+})
+
+describe('locatedPlace', () => {
+  it('rounds every coordinate it hands a URL to three decimals, the frame too', async () => {
+    const { place, named } = locatedPlace(
+      { longitude: 2.352219, latitude: 48.856614 },
+      feed(),
+      { naming: false },
+    )
+    const decimals = (n: number) => (String(n).split('.')[1] ?? '').length
+
+    expect(place.center).toEqual([2.352, 48.857])
+    expect([...place.center, ...(place.bbox ?? [])].every((n) => decimals(n) <= 3)).toBe(true)
+    // A map-less embed asks Mapbox nothing, so there is no name to wait for.
+    await expect(named).resolves.toBeNull()
   })
 })

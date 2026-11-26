@@ -1,7 +1,9 @@
 import type { Geojson } from '@/types'
 import type { BBox } from 'geojson'
+import type { PlaceSearch } from '@/lib/shape'
 
 import { approxBounds, boundsOfPoints, distanceKm } from './geo'
+import { geocodeCountryCode, reverseGeocode } from './geocode'
 
 // The visibility logic behind the IP-geolocation "nearby classes"
 // suggestion, factored out of the GeolocationSuggestion component so every
@@ -182,4 +184,32 @@ export const shouldShowGeolocationPrompt = ({
     hasClassWithin(geojson, point, NEARBY_MAX_KM) &&
     !isLocalRegion(regionCenter, point, LOCAL_REGION_KM)
   )
+}
+
+/**
+ * Where a located visitor is, in the terms a typed search uses, for both ways in: the map's
+ * "find my location" and the filters' Near me. The point and its frame are rounded at once; the
+ * place's name and country follow from the reverse lookup, or `null` without one (`naming` is
+ * off for a map-less embed, which promises no Mapbox calls). Each caller decides when to
+ * navigate: the map moves first and names after, Near me waits briefly for the name.
+ */
+export const locatedPlace = (
+  coords: { longitude: number; latitude: number },
+  feed: Geojson | undefined,
+  { locale, naming }: { locale?: string; naming: boolean },
+): { place: PlaceSearch; named: Promise<Pick<PlaceSearch, 'q' | 'countryCode'> | null> } => {
+  const center = coarsePoint(coords)
+  const place = { center, bbox: nearbyBounds(center, feed).map(roundCoordinate) as BBox }
+  const named = naming
+    ? reverseGeocode(center, locale).then((feature) =>
+        feature
+          ? {
+              q: feature.properties?.full_address ?? undefined,
+              countryCode: geocodeCountryCode(feature),
+            }
+          : null,
+      )
+    : Promise.resolve(null)
+
+  return { place, named }
 }

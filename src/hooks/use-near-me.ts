@@ -1,4 +1,3 @@
-import type { BBox } from 'geojson'
 import type { PlaceSearch } from '@/lib/shape'
 
 import { useCallback, useEffect, useRef, useState } from 'react'
@@ -7,13 +6,7 @@ import { useQuery } from '@tanstack/react-query'
 import { geojsonQuery } from '@/config/api'
 import { useNearMeState } from '@/config/store'
 import { useLocale } from '@/hooks/use-locale'
-import { geocodeCountryCode, reverseGeocode } from '@/lib/geocode'
-import {
-  LOCATE_POSITION_OPTIONS,
-  coarsePoint,
-  nearbyBounds,
-  roundCoordinate,
-} from '@/lib/geolocation'
+import { LOCATE_POSITION_OPTIONS, locatedPlace } from '@/lib/geolocation'
 
 /** How long to wait for a place name before searching without one. */
 const NAME_WAIT_MS = 1500
@@ -29,8 +22,7 @@ export function useNearVisitor(center: [number, number] | undefined): boolean {
 
 /**
  * The Near me choice: asks the browser for a position only when pressed, and answers with a place
- * in the same terms as a typed search, rounded by `coarsePoint`. `naming: false` is for map-less
- * embeds, which promise no Mapbox calls.
+ * in the same terms as a typed search (`locatedPlace`), waiting briefly for the place's name.
  */
 export function useNearMe({
   naming,
@@ -62,27 +54,19 @@ export function useNearMe({
       async (position) => {
         if (id !== request.current) return
 
-        const center = coarsePoint(position.coords)
+        const { place, named } = locatedPlace(position.coords, geojson, { locale, naming })
         const timeout = new Promise<null>((resolve) =>
           setTimeout(() => resolve(null), NAME_WAIT_MS),
         )
-        const feature = naming
-          ? await Promise.race([reverseGeocode(center, locale), timeout])
-          : null
+        const name = await Promise.race([named, timeout])
 
         if (id !== request.current) return
 
-        setCenter(center)
+        setCenter(place.center)
         setStatus('idle')
         // The fix can take seconds, so the place goes to the caller as it is NOW, not as it was
         // when Near me was pressed: an answer tapped meanwhile must not be lost.
-        latest.current({
-          center,
-          // Rounded like the point, so no coordinate in the URL is finer than 110m.
-          bbox: nearbyBounds(center, geojson).map(roundCoordinate) as BBox,
-          q: feature?.properties?.full_address ?? undefined,
-          countryCode: feature ? geocodeCountryCode(feature) : undefined,
-        })
+        latest.current({ ...place, ...name })
       },
       () => {
         if (id === request.current) setStatus('failed')

@@ -5,8 +5,7 @@ import { useLocation, useNavigate, useSearchParams } from 'react-router'
 
 import { useAtlasNavigate } from '@/hooks/use-atlas-navigate'
 import { useLocale } from '@/hooks/use-locale'
-import { geocodeCountryCode, reverseGeocode } from '@/lib/geocode'
-import { coarsePoint, nearbyBounds } from '@/lib/geolocation'
+import { locatedPlace } from '@/lib/geolocation'
 import { placeSearchPath } from '@/lib/shape'
 
 /**
@@ -59,14 +58,10 @@ export function useGeolocateToSearch(geojson: Geojson | undefined) {
 
   return useCallback((position: GeolocationPosition) => {
     const { navigate: go, searchParams: params, geojson: feed, locale: lang } = live.current
-    // Rounded before anything serializes it (`coarsePoint`). This is the coordinate half of the
-    // judgement `reverseGeocode` below makes by asking for `place` rather than a street address.
-    //
-    // This rounding lives here, not in `placeSearchPath`.
-    // The other two callers pass a typed geocode or an IP guess, both already public and coarse.
-    // Blurring those would only cost accuracy.
-    const point = coarsePoint(position.coords)
-    const place = { center: point, bbox: nearbyBounds(point, feed) }
+    // `locatedPlace` rounds before anything serializes it. That rounding lives there, not in
+    // `placeSearchPath`: the other callers pass a typed geocode or an IP guess, both already
+    // public and coarse, and blurring those would only cost accuracy.
+    const { place, named } = locatedPlace(position.coords, feed, { locale: lang, naming: true })
 
     // This navigates FIRST, on the coordinates alone.
     // Getting here may already have cost many seconds of `positionOptions.timeout`.
@@ -82,13 +77,8 @@ export function useGeolocateToSearch(geojson: Geojson | undefined) {
     //
     // This rebuilds the URL from the same `params` and `place`, instead of merging onto whatever the URL says by then.
     // So the naming cannot disturb the search it is naming.
-    void reverseGeocode(point, lang).then((feature) => {
-      if (!feature) return
-
-      const q = feature.properties?.full_address ?? undefined
-      const countryCode = geocodeCountryCode(feature)
-
-      if (!q && !countryCode) return
+    void named.then((name) => {
+      if (!name?.q && !name?.countryCode) return
 
       // ⚠ **This labels only the search we started, and only while the visitor is still on it.**
       // This promise resolves a few hundred ms late, easily long enough to tap a class.
@@ -98,7 +88,7 @@ export function useGeolocateToSearch(geojson: Geojson | undefined) {
 
       if (`${now.pathname}${now.search}` !== target) return
 
-      live.current.replace(placeSearchPath(params, { ...place, q, countryCode }), {
+      live.current.replace(placeSearchPath(params, { ...place, ...name }), {
         replace: true,
         // This carries the state explicitly. The raw navigate forwards only what it is given.
         // Dropping the entry's `atlasDepth` would make the drawer's X climb to the structural parent instead of going back.
