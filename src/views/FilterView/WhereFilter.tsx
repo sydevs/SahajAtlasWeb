@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next'
 import { useSearchParams } from 'react-router'
 import { LocateFixed } from 'lucide-react'
 
+import { Alert } from '@/components/atoms/Alert'
 import { Button } from '@/components/atoms/Button'
 import { Chip } from '@/components/atoms/Chip'
 import { FormField } from '@/components/molecules/FormField'
@@ -83,19 +84,19 @@ export function WhereFilter({ region, onPlace, onClear, searchable }: WhereFilte
             {t('filters.where.near_me')}
           </Button>
         )}
-        {/* `contents`, so the live region takes no gap in the column while it is empty. */}
-        <div className="contents" role="status">
-          {status === 'failed' && (
+        {status === 'failed' && (
+          // Announced at once: it answers the press that asked for the location.
+          <Alert color="danger" role="alert" size="sm">
             <button
               data-vaul-no-drag
-              className="touch-target relative self-start text-start text-sm text-primary-11 focus-ring hover:underline"
+              className="touch-target relative w-full text-start text-sm focus-ring hover:underline"
               type="button"
               onClick={searchInstead}
             >
               {t('common.map.location_failed')}
             </button>
-          )}
-        </div>
+          </Alert>
+        )}
         {scopeLabel && (
           // The same removable pill the applied filters show above the list.
           <Chip
