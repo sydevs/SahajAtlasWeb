@@ -1,7 +1,7 @@
 import ts from 'typescript'
 import { describe, expect, it } from 'vitest'
 
-import { hasAllowedScheme, isSafeHref } from './href'
+import { hasAllowedScheme, isSafeHref, telHref } from './href'
 
 import { parseSource } from '@/test-support/source-ast'
 import { readSource, sourceFiles } from '@/test-support/source-tree'
@@ -214,5 +214,12 @@ describe('the JSX anchor inventory', () => {
       expect(source).toMatch(/import\s*\{[^}]*\bisSafeHref\b[^}]*\}\s*from/)
       expect(source).toContain('isSafeHref(href)')
     }
+  })
+})
+
+describe('telHref', () => {
+  it('drops the spaces people write a number with, which RFC 3966 does not allow', () => {
+    expect(telHref('+44 7939 524096')).toBe('tel:+447939524096')
+    expect(telHref('+44\u00a020 1234\t5678')).toBe('tel:+442012345678')
   })
 })

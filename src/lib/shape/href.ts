@@ -71,3 +71,9 @@ export const hasAllowedScheme = (href: unknown): boolean =>
  */
 export const isSafeHref = (href: unknown): boolean =>
   typeof href === 'string' && (safePath(href) !== undefined || hasAllowedScheme(href))
+
+/**
+ * A dial link for a phone number as people write it. RFC 3966 allows no spaces in a `tel:` URI
+ * and some dialers fail on them, so they go from the link and stay in the visible label.
+ */
+export const telHref = (phone: string): string => `tel:${phone.replace(/\s+/g, '')}`

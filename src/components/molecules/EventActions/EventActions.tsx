@@ -11,6 +11,7 @@ import { useCoarsePointer } from '@/config/responsive'
 import { useEventDisplay } from '@/hooks/use-event-display'
 import { usePopover } from '@/hooks/use-popover'
 import { directionsUrl } from '@/lib'
+import { telHref } from '@/lib/shape'
 import { overlayContainer } from '@/lib/overlay'
 import { Event } from '@/types'
 
@@ -178,7 +179,7 @@ export function EventActions({ event, basePath }: EventActionsProps) {
 
         // Touch devices dial. Everything else shows the number with a copy affordance.
         return canDial ? (
-          <Button key={kind} className={ACTION} href={`tel:${event.contactPhone}`} variant="flat">
+          <Button key={kind} className={ACTION} href={telHref(event.contactPhone)} variant="flat">
             <ActionContent icon={<Phone size={ICON_SIZE} />} label={label} />
           </Button>
         ) : (
