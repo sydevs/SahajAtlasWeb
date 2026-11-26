@@ -19,10 +19,13 @@ vi.mock('@payloadcms/sdk', () => ({
 }))
 vi.mock('@/config/i18n', () => ({ default: { resolvedLanguage: 'en' } }))
 
-// The consent line carries the link markup a translation would, so its rendering is visible.
-const MARKED_CONSENT =
-  'By registering you agree, in accordance with our <link>privacy policy</link>.'
-const consent = vi.hoisted(() => ({ text: '' }))
+// The consent line carries the link markup a translation would, so its rendering is visible. A
+// test that needs other copy sets `text`, and every test starts from the marked sentence again.
+const consent = vi.hoisted(() => {
+  const marked = 'By registering you agree, in accordance with our <link>privacy policy</link>.'
+
+  return { marked, text: marked }
+})
 
 vi.mock('react-i18next', () => ({
   useTranslation: () => ({
@@ -45,6 +48,10 @@ const form = (
 )
 
 describe('RegistrationForm', () => {
+  beforeEach(() => {
+    consent.text = consent.marked
+  })
+
   // Every free-form answer rides in `submissionData`, where SahajCloud bounds one value
   // at `USER_SUBMISSION_VALUE_MAX`. An over-long one refuses the WHOLE registration as a
   // `ValidationError` — no `errors[].data.code`, so the registrant gets the generic
@@ -75,10 +82,6 @@ describe('RegistrationForm', () => {
   })
 
   describe('consent line', () => {
-    beforeEach(() => {
-      consent.text = MARKED_CONSENT
-    })
-
     const consentLine = (html: string) =>
       /<p class="([^"]*)">By registering[\s\S]*?<\/p>/.exec(html)
 
