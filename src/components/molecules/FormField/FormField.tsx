@@ -132,8 +132,8 @@ export function FormField({
           {caption}
         </legend>
       ) : (
-        // A control that labels itself (no `htmlFor`) already shows the label beside it.
-        htmlFor && (
+        // A control that labels itself (`name`, no `htmlFor`) already shows the label beside it.
+        (htmlFor || !name) && (
           <label className="text-sm font-medium" htmlFor={htmlFor}>
             {caption}
           </label>

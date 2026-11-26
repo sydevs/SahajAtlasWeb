@@ -8,9 +8,8 @@ import { useState } from 'react'
 import { useMutation } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
 
-import { ValidatedInput } from './fields'
-
 import { Alert } from '@/components/atoms/Alert'
+import { Input } from '@/components/atoms/Input'
 import { Button } from '@/components/atoms/Button'
 import { Textarea } from '@/components/atoms/Textarea'
 import { FormField } from '@/components/molecules/FormField'
@@ -115,25 +114,33 @@ export function ReviewBar({
         if (token) mutation.mutate({ built, captcha: token })
       }}
     >
-      <ValidatedInput
+      <FormField
         required
-        autoComplete="email"
         error={emailError && t('submit.errors.email')}
         help={t('submit.review.email_help')}
-        id="submit-sender-email"
+        htmlFor="submit-sender-email"
         label={t('submit.review.email_label')}
-        type="email"
-        value={senderEmail}
-        onChange={(event) => onSender({ email: event.target.value })}
-      />
+      >
+        {(control) => (
+          <Input
+            {...control}
+            autoComplete="email"
+            type="email"
+            value={senderEmail}
+            onChange={(event) => onSender({ email: event.target.value })}
+          />
+        )}
+      </FormField>
       <FormField htmlFor="submit-note" label={t('submit.review.note_label')}>
-        <Textarea
-          id="submit-note"
-          maxLength={userSubmissionValueMax('note')}
-          rows={2}
-          value={note}
-          onChange={(event) => onSender({ note: event.target.value })}
-        />
+        {(control) => (
+          <Textarea
+            {...control}
+            maxLength={userSubmissionValueMax('note')}
+            rows={2}
+            value={note}
+            onChange={(event) => onSender({ note: event.target.value })}
+          />
+        )}
       </FormField>
 
       <div ref={challengeRef} className="empty:hidden" />

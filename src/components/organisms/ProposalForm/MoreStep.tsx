@@ -1,8 +1,9 @@
 import { useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 
-import { type StepProps, TITLE_MAX, ValidatedInput } from './fields'
+import { type StepProps, TITLE_MAX } from './fields'
 
+import { Input } from '@/components/atoms/Input'
 import { FormField } from '@/components/molecules/FormField'
 import { USER_SUBMISSION_VALUE_MAX } from '@/config/api/mutate'
 import { useLocale } from '@/hooks/use-locale'
@@ -26,14 +27,20 @@ export function MoreStep({
   return (
     <div className="flex flex-col gap-4">
       <h3 className="text-base font-semibold">{t('submit.more.title')}</h3>
-      <ValidatedInput
+      <FormField
         help={t('submit.more.title_help')}
-        id="submit-title"
+        htmlFor="submit-title"
         label={t('submit.more.title_label')}
-        maxLength={TITLE_MAX}
-        value={draft.title}
-        onChange={(event) => onChange({ title: event.target.value })}
-      />
+      >
+        {(control) => (
+          <Input
+            {...control}
+            maxLength={TITLE_MAX}
+            value={draft.title}
+            onChange={(event) => onChange({ title: event.target.value })}
+          />
+        )}
+      </FormField>
       <FormField label={t('submit.more.languages_label')}>
         <MultiSelect
           label={t('submit.more.languages_label')}
@@ -43,15 +50,21 @@ export function MoreStep({
           onChange={(languages) => onChange({ languages })}
         />
       </FormField>
-      <ValidatedInput
+      <FormField
         error={errors.website && t('submit.errors.online_url')}
-        id="submit-website"
+        htmlFor="submit-website"
         label={t('submit.more.website_label')}
-        maxLength={USER_SUBMISSION_VALUE_MAX}
-        type="url"
-        value={draft.website}
-        onChange={(event) => onChange({ website: event.target.value })}
-      />
+      >
+        {(control) => (
+          <Input
+            {...control}
+            maxLength={USER_SUBMISSION_VALUE_MAX}
+            type="url"
+            value={draft.website}
+            onChange={(event) => onChange({ website: event.target.value })}
+          />
+        )}
+      </FormField>
     </div>
   )
 }

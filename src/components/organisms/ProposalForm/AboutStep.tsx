@@ -13,14 +13,16 @@ export function AboutStep({ draft, onChange }: StepProps) {
     <div className="flex flex-col gap-4">
       <h3 className="text-base font-semibold">{t('submit.about.title')}</h3>
       <FormField htmlFor="submit-description" label={t('submit.about.description_label')}>
-        <Textarea
-          id="submit-description"
-          maxLength={userSubmissionValueMax('message')}
-          placeholder={t('submit.about.description_placeholder')}
-          rows={5}
-          value={draft.description}
-          onChange={(event) => onChange({ description: event.target.value })}
-        />
+        {(control) => (
+          <Textarea
+            {...control}
+            maxLength={userSubmissionValueMax('message')}
+            placeholder={t('submit.about.description_placeholder')}
+            rows={5}
+            value={draft.description}
+            onChange={(event) => onChange({ description: event.target.value })}
+          />
+        )}
       </FormField>
     </div>
   )

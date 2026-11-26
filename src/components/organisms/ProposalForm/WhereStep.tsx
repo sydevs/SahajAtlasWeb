@@ -4,8 +4,9 @@ import type { GeocodingFeature } from '@mapbox/search-js-core'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
-import { type StepProps, CONTACT_MAX, ValidatedInput } from './fields'
+import { type StepProps, CONTACT_MAX } from './fields'
 
+import { Input } from '@/components/atoms/Input'
 import { ToggleGroup, ToggleGroupItem } from '@/components/atoms/ToggleGroup'
 import { FormField } from '@/components/molecules/FormField'
 import { MapSearch, type MapSearchProps } from '@/components/organisms/Mapbox/MapSearch'
@@ -27,12 +28,12 @@ export function WhereStep({
       <h3 className="text-base font-semibold">{t('submit.where.title')}</h3>
       <ToggleGroup
         joined
+        required
         aria-label={t('submit.where.title')}
+        size="md"
         type="single"
         value={draft.eventType}
-        onValueChange={(value) =>
-          value && onChange({ eventType: value as ListingDraft['eventType'] })
-        }
+        onValueChange={(value) => onChange({ eventType: value as ListingDraft['eventType'] })}
       >
         <ToggleGroupItem value="offline">{t('submit.where.offline')}</ToggleGroupItem>
         <ToggleGroupItem value="online">{t('submit.where.online')}</ToggleGroupItem>
@@ -53,26 +54,35 @@ export function WhereStep({
               onSelect={onPick('address')}
             />
           </FormField>
-          <ValidatedInput
-            id="submit-room"
-            label={t('submit.where.room_label')}
-            maxLength={CONTACT_MAX}
-            value={draft.room}
-            onChange={(event) => onChange({ room: event.target.value })}
-          />
+          <FormField htmlFor="submit-room" label={t('submit.where.room_label')}>
+            {(control) => (
+              <Input
+                {...control}
+                maxLength={CONTACT_MAX}
+                value={draft.room}
+                onChange={(event) => onChange({ room: event.target.value })}
+              />
+            )}
+          </FormField>
         </>
       ) : (
         <>
-          <ValidatedInput
+          <FormField
             required
             error={errors.onlineUrl && t('submit.errors.online_url')}
-            id="submit-online-url"
+            htmlFor="submit-online-url"
             label={t('submit.where.online_url_label')}
-            placeholder={t('submit.where.online_url_placeholder')}
-            type="url"
-            value={draft.onlineUrl}
-            onChange={(event) => onChange({ onlineUrl: event.target.value })}
-          />
+          >
+            {(control) => (
+              <Input
+                {...control}
+                placeholder={t('submit.where.online_url_placeholder')}
+                type="url"
+                value={draft.onlineUrl}
+                onChange={(event) => onChange({ onlineUrl: event.target.value })}
+              />
+            )}
+          </FormField>
           <FormField
             required
             error={errors.city && t('submit.errors.city_required')}

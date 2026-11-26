@@ -164,3 +164,15 @@ describe('a field around a control that labels itself', () => {
     expect(wired).toMatchObject({ id: undefined, 'aria-describedby': 'consent-error' })
   })
 })
+
+describe('a field around a composite picker with no id of its own', () => {
+  it('keeps its label as the caption', () => {
+    const html = renderToStaticMarkup(
+      <FormField label="Languages">
+        <div />
+      </FormField>,
+    )
+
+    expect(html).toContain('>Languages</label>')
+  })
+})
