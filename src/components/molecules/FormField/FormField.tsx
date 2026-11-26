@@ -207,7 +207,7 @@ export function FormField({
           control, which would otherwise take those taps. */}
       <button
         className={clsx(
-          'touch-target absolute end-0 top-0 text-xs font-medium text-primary-11 hover:underline',
+          'touch-target absolute end-0 top-0 text-xs font-medium text-primary-11 focus-ring hover:underline',
           !clear.active && 'invisible',
         )}
         type="button"

@@ -86,7 +86,7 @@ export function WhereFilter({ region, onPlace, onClear, searchable = true }: Whe
         <div className="contents" role="status">
           {status === 'failed' && (
             <button
-              className="touch-target relative self-start text-start text-sm text-primary-11 hover:underline"
+              className="touch-target relative self-start text-start text-sm text-primary-11 focus-ring hover:underline"
               type="button"
               onClick={searchInstead}
             >
@@ -98,7 +98,7 @@ export function WhereFilter({ region, onPlace, onClear, searchable = true }: Whe
           <div>
             <button
               aria-label={t('filters.a11y.remove', { label: scopeLabel })}
-              className="touch-target relative inline-flex h-8 max-w-full items-center gap-1.5 rounded-full bg-gray-3 ps-3 pe-2 text-sm font-medium text-foreground outline-none hover:bg-gray-4 focus-visible:ring-2 focus-visible:ring-focus"
+              className="touch-target relative inline-flex h-8 max-w-full items-center gap-1.5 rounded-full bg-gray-3 ps-3 pe-2 text-sm font-medium text-foreground focus-ring hover:bg-gray-4"
               type="button"
               onClick={onClear}
             >
