@@ -43,6 +43,20 @@ cover everything a host would notice since the widget was first deployed.
 
 ### Changed
 
+- **A class's tags no longer repeat what its page already says.** ([#500]) Every class that
+  reads "Contact host for timings" now carries no type tag: one marked inactive in SahajCloud, one
+  with no dates, and a repeating class with no session left. Stirling, for one, no longer reads
+  "ONE-OFF EVENT". "Today" appears once. A class page says it in its time line, without a TODAY
+  tag under the title. A list card for a repeating class shows the TODAY tag, without the faded
+  "Today" under its pattern. The FULL tag is gone: a full class says so where you would sign up,
+  and if it meets today it carries no TODAY tag, keeping "Today" in its time line.
+  **No parameter, origin, CSP, storage or Permissions-Policy change.**
+
+- **A listing with an empty schedule says "Contact host for timings".** ([#500]) SahajCloud sends
+  such a listing a schedule whose fields are all empty, and the widget read it as a one-off on
+  1 January 1970. It no longer says "This event has ended", the "One-off" filter no longer lists
+  it, and its page's structured data (`startDate`, `validFrom`, `og:event:start_time`) no longer
+  carries the 1970 date. It shows as an area on the map, and offers contact, website and share.
 - **On a phone, one drag down from a class stops at its key facts.** ([#496]) It used to drop to
   the third-height stop every panel shares, where the sticky Register bar covered the class's tags,
   its time and its address. The sheet now stops where those end, with a third of the map above it,
@@ -1430,4 +1444,5 @@ must-revalidate`, pinned rather than left to the CDN default. The production dom
 [#490]: https://github.com/sydevs/SahajAtlasWeb/pull/490
 [#498]: https://github.com/sydevs/SahajAtlasWeb/pull/498
 [#495]: https://github.com/sydevs/SahajAtlasWeb/pull/495
+[#500]: https://github.com/sydevs/SahajAtlasWeb/pull/500
 [#496]: https://github.com/sydevs/SahajAtlasWeb/pull/496

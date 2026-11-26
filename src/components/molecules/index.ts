@@ -68,11 +68,10 @@ export type { ActionRowProps, ActionCircleProps } from './ActionRow'
 export { EventFacts } from './EventFacts'
 export type { EventFactsProps } from './EventFacts'
 
-// The event's triage chips (type, language(s), Today). The list card
-// and the event header share this, so the two never drift. `compact`
-// trims the list card.
+// The event's triage chips. The list card and the event header share
+// this, so the two never drift. The `card` surface trims the list card.
 export { EventChips } from './EventChips'
-export type { EventChipsProps, EventChipsVariant } from './EventChips'
+export type { EventChipsProps } from './EventChips'
 
 export { List, ListRow } from './List'
 

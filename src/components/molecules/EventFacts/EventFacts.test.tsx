@@ -1,8 +1,12 @@
+import type { Event } from '@/types'
+
+import { Settings } from 'luxon'
 import { renderToStaticMarkup } from 'react-dom/server'
-import { describe, it, expect, vi } from 'vitest'
+import { afterEach, describe, it, expect, vi } from 'vitest'
 
 import { EventFacts } from './EventFacts'
 
+import { EventChips } from '@/components/molecules/EventChips'
 import { mockEvent, mockEventInactive, mockEventSlimOnline } from '@/mocks/events'
 
 // Node-only SSR, as `EventListItem.test.tsx` does it. `t` echoes the key with its
@@ -14,15 +18,15 @@ vi.mock('react-i18next', () => ({
   }),
 }))
 vi.mock('@/hooks/use-locale', () => ({
-  useLocale: () => ({ locale: 'en' }),
+  useLocale: () => ({ locale: 'en', languageCode: 'en', languageLabel: (code: string) => code }),
 }))
 
 const ROOM = 'Community Hall B'
 const withRoom = { ...mockEvent, address: { ...mockEvent.address, room: ROOM } }
 const roomLine = `event.display.room:${ROOM}`
 const NOT_PANEL = [
-  ['the list card', 'compact'],
-  ['the share and registration summaries', 'card'],
+  ['the list card', 'card'],
+  ['the share and registration summaries', 'summary'],
 ] as const
 
 describe('EventFacts — the room line (#316)', () => {
@@ -45,8 +49,8 @@ describe('EventFacts — the room line (#316)', () => {
     expect(pinItem(single)).toBe('items-center')
   })
 
-  it.each(NOT_PANEL)('leaves %s without it', (_, variant) => {
-    const html = renderToStaticMarkup(<EventFacts event={withRoom} variant={variant} />)
+  it.each(NOT_PANEL)('leaves %s without it', (_, surface) => {
+    const html = renderToStaticMarkup(<EventFacts event={withRoom} surface={surface} />)
 
     expect(html).not.toContain('event.display.room')
   })
@@ -67,14 +71,59 @@ describe('EventFacts — the room line (#316)', () => {
   })
 })
 
+// The card and the class page each pair these two, and each must say "Today" once.
+describe('EventFacts with EventChips — "Today" once', () => {
+  afterEach(() => {
+    Settings.now = () => Date.now()
+  })
+
+  // Wednesday 15 July 2026: noon in London, and the class meets at 18:30.
+  const weekly: Event = {
+    ...mockEvent,
+    registrationsFull: false,
+    schedule: {
+      firstDate: new Date('2026-07-01T17:30:00Z'),
+      firstDate_tz: 'Europe/London',
+      endTime: '20:00',
+      recurrenceType: 'WEEKLY',
+      interval: 1,
+      weekdays: ['WE'],
+      upcomingDates: [new Date('2026-07-15T17:30:00Z'), new Date('2026-07-22T17:30:00Z')],
+    },
+  }
+  const oneOff: Event = {
+    ...weekly,
+    schedule: { ...weekly.schedule!, recurrenceType: null, weekdays: [] },
+  }
+
+  it.each([
+    ['a weekly card, as its chip', weekly, 'card'],
+    ['a full weekly card, in its line', { ...weekly, registrationsFull: true }, 'card'],
+    ['a one-off card, in its line', oneOff, 'card'],
+    ['a weekly class page, in its line', weekly, 'page'],
+    ['a one-off class page, in its line', oneOff, 'page'],
+  ] as const)('on %s', (_, event, surface) => {
+    Settings.now = () => Date.parse('2026-07-15T11:00:00Z')
+
+    const html = renderToStaticMarkup(
+      <>
+        <EventFacts event={event} surface={surface} />
+        <EventChips event={event} surface={surface} />
+      </>,
+    )
+
+    expect(html.split('event.display.chip_today')).toHaveLength(2)
+  })
+})
+
 // `useFitSnap` measures a class's key-facts stop to the bottom of the marked row.
 describe('EventFacts — the key-facts marker', () => {
   it('marks the panel facts', () => {
     expect(renderToStaticMarkup(<EventFacts event={mockEvent} />)).toContain('data-sheet-fold')
   })
 
-  it.each(['compact', 'card'] as const)('leaves the %s facts unmarked', (variant) => {
-    expect(renderToStaticMarkup(<EventFacts event={mockEvent} variant={variant} />)).not.toContain(
+  it.each(['card', 'summary'] as const)('leaves the %s facts unmarked', (surface) => {
+    expect(renderToStaticMarkup(<EventFacts event={mockEvent} surface={surface} />)).not.toContain(
       'data-sheet-fold',
     )
   })
@@ -95,8 +144,8 @@ describe('EventFacts — the address', () => {
     )
   })
 
-  it.each(NOT_PANEL)('keeps %s to plain street and town', (_, variant) => {
-    const html = renderToStaticMarkup(<EventFacts event={mockEvent} variant={variant} />)
+  it.each(NOT_PANEL)('keeps %s to plain street and town', (_, surface) => {
+    const html = renderToStaticMarkup(<EventFacts event={mockEvent} surface={surface} />)
 
     expect(html).toContain('5 Market St, Cambridge')
     expect(html).not.toContain('CB2 3QJ')

@@ -53,6 +53,18 @@ describe('EventSlimSchema', () => {
   })
 })
 
+describe('an all-null schedule group', () => {
+  // What SahajCloud sends an inactive listing such as Stirling (event 1505).
+  const allNull = { firstDate: null, firstDate_tz: null, recurrenceType: null, upcomingDates: null }
+
+  it.each([
+    ['the feed', AgnosticFeedEventSchema, { ...mockEventSlim, schedule: allNull }],
+    ['an event read', EventDocSchema, { ...mockEvent, schedule: allNull }],
+  ] as const)('reads as no schedule in %s, not one dated 1970', (_, schema, wire) => {
+    expect(schema.parse(wire).schedule).toBeNull()
+  })
+})
+
 describe('FeedEventSchema', () => {
   it('parses a feed event (the geojson feature properties), dropping derived fields', () => {
     const parsed = FeedEventSchema.parse(mockEventSlim)
