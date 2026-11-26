@@ -7,6 +7,7 @@ import {
   useCameraHistory,
   useCameraSettled,
   useCameraTarget,
+  useSearchFocus,
   useViewState,
 } from './store'
 
@@ -203,5 +204,16 @@ describe('useCameraSettled', () => {
     useCameraSettled.getState().forgetSettled()
 
     expect(useCameraSettled.getState()).toBe(before)
+  })
+})
+
+describe('useSearchFocus', () => {
+  it('hands one request to the first search box that asks, and to no other', () => {
+    const { request, consume } = useSearchFocus.getState()
+
+    expect(consume()).toBe(false)
+    request()
+    expect(consume()).toBe(true)
+    expect(consume()).toBe(false)
   })
 })

@@ -226,6 +226,14 @@ export const placeSearchPath = (params: URLSearchParams, place: PlaceSearch): st
   return `/search?${next.toString()}`
 }
 
+/** The same place search, with the filter drawer still open over it. */
+export const placeFiltersPath = (params: URLSearchParams, place: PlaceSearch): string =>
+  placeSearchPath(params, place).replace('/search?', '/search/filters?')
+
+/** The current query with the searched place dropped, keeping the filters and sort. */
+export const noPlaceSearch = (params: URLSearchParams): string =>
+  preserveSearchState(params).toString()
+
 /**
  * The searched place as a short name — the leading part of `?q`, so "Prague, Czechia" reads
  * "Prague" — or `''` when nothing was searched. A whole address is noise in a one-line label.
@@ -488,3 +496,11 @@ export const baseStackEntry = (entries: StackEntry[], hasMap = true): StackEntry
  */
 export const topViewKey = (pathname: string, hasMap = true): string =>
   baseStackEntry(resolveStack(pathname), hasMap)?.path ?? '/'
+
+/**
+ * The identity of the view layer on screen, which the drawer cross-fades on. The filter drawer
+ * keeps one identity across its routes: Near me moves it from `/filters` to `/search/filters`
+ * under an open form, and that must not fade the form out and back in.
+ */
+export const viewLayerKey = (top: StackEntry | null | undefined): string =>
+  top?.kind === 'filters' ? 'filters' : (top?.path ?? '/')

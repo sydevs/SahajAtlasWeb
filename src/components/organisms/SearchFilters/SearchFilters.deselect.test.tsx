@@ -29,14 +29,15 @@ vi.mock('react-i18next', () => ({
 vi.mock('@/hooks/use-locale', () => ({
   useLocale: () => ({ locale: 'en', languageLabel: (code: string) => code }),
 }))
-vi.mock('@tanstack/react-query', async (importOriginal) => ({
-  ...(await importOriginal<typeof import('@tanstack/react-query')>()),
-  useQuery: () => ({ data: undefined }),
-}))
-vi.mock('@/config/api', () => ({
-  geojsonQuery: () => ({ queryKey: ['geojson'] }),
-  regionsQuery: () => ({ queryKey: ['regions'] }),
-}))
+
+// jsdom has no ResizeObserver, which the More filters disclosure watches while open.
+vi.stubGlobal(
+  'ResizeObserver',
+  class {
+    observe() {}
+    disconnect() {}
+  },
+)
 
 let cleanup: (() => void) | null = null
 
@@ -66,9 +67,11 @@ function mount(filters: EventFilters) {
   return { drafts, host }
 }
 
-/** The toggle item whose accessible label is `text`, within the group labelled `group`. */
+/** The toggle item whose accessible label is `text`, within the question whose legend is `group`. */
 const itemIn = (host: HTMLElement, group: string, text: string) => {
-  const root = host.querySelector(`[aria-label="${group}"]`)
+  const root = [...host.querySelectorAll('fieldset')].find(
+    (fieldset) => fieldset.querySelector('legend')?.textContent === group,
+  )
   const item = [...(root?.querySelectorAll('button') ?? [])].find(
     (button) => button.textContent === text,
   )
@@ -81,7 +84,7 @@ const itemIn = (host: HTMLElement, group: string, text: string) => {
 describe('SearchFilters — pressing the selected option clears the filter', () => {
   it('reports format: any when the on option is pressed again', () => {
     const { drafts, host } = mount({ ...DEFAULT_FILTERS, format: 'online' })
-    const selected = itemIn(host, 'filters.format.label', 'filters.format.online')
+    const selected = itemIn(host, 'filters.format.question', 'filters.format.online')
 
     // Sanity check: Radix really does consider this one on. So the press
     // below is a DESELECT, not just a click on an inert item.
@@ -110,7 +113,7 @@ describe('SearchFilters — pressing the selected option clears the filter', () 
   it('still selects a different option normally', () => {
     const { drafts, host } = mount({ ...DEFAULT_FILTERS, format: 'online' })
 
-    act(() => itemIn(host, 'filters.format.label', 'filters.format.offline').click())
+    act(() => itemIn(host, 'filters.format.question', 'filters.format.offline').click())
 
     expect(drafts).toHaveLength(1)
     expect(drafts[0].format).toBe('offline')

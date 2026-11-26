@@ -5,7 +5,7 @@ import { TRANSLATION_SELECT } from './api/fetch'
 import { EN_A11Y, withA11y } from './a11y/a11y'
 
 import { REGISTRATION_QUESTION_NAMES, WIDGET_TRANSLATION_TABS } from '@/types'
-import { SORT_ORDERS, TIME_PERIODS } from '@/lib/shape'
+import { EVENT_CADENCES, SORT_ORDERS, TIME_PERIODS } from '@/lib/shape'
 import { readRepoSource } from '@/test-support/repo-source'
 import { readSource, sourceFiles } from '@/test-support/source-tree'
 
@@ -76,16 +76,14 @@ const arrayLiterals = (source: string, name: string): string[] => {
   return table ? [...table[1].matchAll(/['"]([A-Za-z_][a-zA-Z0-9_.]*)['"]/g)].map((m) => m[1]) : []
 }
 
-// `FORMAT_OPTIONS` and `CADENCE_OPTIONS` are module-local to the component that renders them —
-// exporting a list only a spec reads would be the wrong trade — so they are read out of its
-// source, the way `WEEK_NUMBERS` reads `use-event-display.ts`. `TIME_PERIODS` and `SORT_ORDERS`
-// are already exported from `lib/shape`, so those import.
-const filtersSource = readSource('components/molecules/SearchFilters/SearchFilters.tsx')
+// `FORMAT_OPTIONS` is module-local to the component that renders it — exporting a list only a
+// spec reads would be the wrong trade — so it is read out of its source, the way `WEEK_NUMBERS`
+// reads `use-event-display.ts`. `EVENT_CADENCES`, `TIME_PERIODS` and `SORT_ORDERS` are already
+// exported from `lib/shape`, so those import.
+const filtersSource = readSource('components/organisms/SearchFilters/SearchFilters.tsx')
 
 const FORMATS = arrayLiterals(filtersSource, 'const FORMAT_OPTIONS[^=]*=')
-const CADENCES = arrayLiterals(filtersSource, 'const CADENCE_OPTIONS[^=]*=').map((o) =>
-  o.toLowerCase(),
-)
+const CADENCES = EVENT_CADENCES.map((o) => o.toLowerCase())
 
 const FILTER_OPTIONS = [
   ...['label', 'any', ...FORMATS].map((o) => `filters.format.${o}`),
@@ -185,7 +183,6 @@ describe('every key a call site asks for', () => {
     // list back, one file over from the one it was just taken out of.
     for (const [name, family] of Object.entries({
       FORMATS,
-      CADENCES,
       WEEK_NUMBERS,
       REFUSAL_KEYS,
       POLICY_KEYS,
@@ -244,6 +241,12 @@ const RETIRING_KEYS: Record<string, string> = {
   'event.actions.pause_slideshow': 'sydevs/SahajCloud#1246',
   'event.actions.view_photo': 'sydevs/SahajCloud#1246',
   'filters.chrome.remove': 'sydevs/SahajCloud#1246',
+  'filters.days.label': 'sydevs/SahajCloud#1286',
+  'filters.language.empty': 'sydevs/SahajCloud#1286',
+  'filters.region.all': 'sydevs/SahajCloud#1286',
+  'filters.region.empty': 'sydevs/SahajCloud#1286',
+  'filters.region.label': 'sydevs/SahajCloud#1286',
+  'filters.region.search': 'sydevs/SahajCloud#1286',
   'registration.form.show_more_dates': 'sydevs/SahajCloud#1282',
   'search.nearby_prompt.dismiss': 'sydevs/SahajCloud#1246',
   'search.results.showing': 'sydevs/SahajCloud#1246',
