@@ -369,8 +369,9 @@ export function DrawerStack({ inline = false }: { inline?: boolean } = {}) {
 
   // The sheet's near-full stop covers the map's control column all but its top edge, which would
   // show as a row of slivers above the sheet. Everywhere else a drawer either leaves the column
-  // clear or covers it whole.
-  const controlsHidden = direction === 'bottom' && vaulSnap === WIDE_SNAP
+  // clear or covers it whole. The inline column covers nothing, though a narrow one takes the
+  // calendar's near-full stop too, so it must not hide the inline map's credits.
+  const controlsHidden = canCollapse && vaulSnap === WIDE_SNAP
   const setControlsHidden = useMapControls((s) => s.setHidden)
 
   useEffect(() => {

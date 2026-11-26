@@ -126,6 +126,20 @@ test('a box too small for the atlas shows its heading and "Expand map" alone', a
   await expect(expanded.getByRole('link', { name: UNITED_KINGDOM })).toBeVisible()
 })
 
+// A narrow inline column opens the calendar at the near-full stop a phone sheet takes, but it covers
+// no map: the inline map keeps its control column, and with it Mapbox's credits.
+test('a narrow inline calendar leaves the map its controls', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 })
+  await page.goto(hostPage('full-map.html', '/calendar'))
+
+  const atlas = widget(page)
+
+  await expect(atlas.getByRole('heading', { name: en.calendar.title, exact: true })).toBeVisible()
+  await expect(
+    atlas.getByRole('button', { name: en.common.map.find_my_location, exact: true }),
+  ).toBeVisible()
+})
+
 // WeMeditate's own atlas page never scrolls: its shell clips whatever grows past it. So the widget
 // keeps the box it was given and scrolls inside it, and its last row stays reachable.
 test('a shell that never scrolls keeps the atlas in its box, scrolling inside', async ({
