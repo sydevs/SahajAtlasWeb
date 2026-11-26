@@ -57,6 +57,8 @@ type ChoicesProps = {
   itemClassName?: string
   /** Counts still disable an empty option, but are not printed (the week strip has no room). */
   hideCounts?: boolean
+  /** Flush, as one segmented control, where a gap would take items under the 44px tap floor. */
+  joined?: boolean
 } & (
   | { type: 'single'; value: string; onValueChange: (value: string) => void }
   | { type: 'multiple'; value: string[]; onValueChange: (value: string[]) => void }
@@ -72,13 +74,14 @@ function Choices({
   className,
   itemClassName,
   hideCounts,
+  joined,
   ...selection
 }: ChoicesProps) {
   const chosen = (value: string) =>
     selection.type === 'single' ? selection.value === value : selection.value.includes(value)
 
   return (
-    <ToggleGroup {...control} {...selection} className={className} size="md">
+    <ToggleGroup {...control} {...selection} className={className} joined={joined} size="md">
       {options.map((option) => (
         <ToggleGroupItem
           key={option.value}
@@ -402,8 +405,11 @@ export function SearchFilters({ value, onChange, where, facets }: SearchFiltersP
             // The abbreviation is the accessible name, not the full day: a name a viewer cannot
             // see is one a speech-input viewer cannot say (WCAG 2.5.3). `title` keeps the full
             // name within reach of a pointer.
+            // ⚠ Joined: seven gapped days measured 39px wide each at a 390px screen, under the
+            // 44px tap floor (#432); flush, they keep it down to a 360px phone.
             <Choices
               hideCounts
+              joined
               className="grid grid-cols-7"
               control={control}
               itemClassName="min-w-0 px-0"

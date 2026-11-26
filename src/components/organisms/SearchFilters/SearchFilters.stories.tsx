@@ -50,7 +50,7 @@ export const Default: Story = () => {
         description="Before the feed loads: every question but Language, with no numbers. Frequency and Dates sit under More filters."
         title="Without counts"
       >
-        <div className="max-w-sm rounded-lg border border-divider p-4">
+        <div className="max-w-sm">
           <SearchFilters value={plain} onChange={setPlain} />
         </div>
       </StorySection>
@@ -59,7 +59,7 @@ export const Default: Story = () => {
         description="With the feed: each option shows how many classes it leaves, an option that leaves none is disabled unless selected, and a question that cannot narrow this scope is not asked."
         title="With counts"
       >
-        <div className="max-w-sm rounded-lg border border-divider p-4">
+        <div className="max-w-sm">
           <SearchFilters facets={facets} value={counted} onChange={setCounted} />
         </div>
       </StorySection>
