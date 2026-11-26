@@ -76,7 +76,9 @@ describe('EventFacts — the address', () => {
     expect(html).toContain(`aria-label="event.a11y.copy_address: ${full}"`)
     expect(html).toContain(`<span>${full}</span>`)
     // A tap with a little movement would otherwise start a sheet drag and lose the click.
-    expect(html).toMatch(/<button data-vaul-no-drag="true"[^>]*aria-label="event\.a11y\.copy_address/)
+    expect(html).toMatch(
+      /<button data-vaul-no-drag="true"[^>]*aria-label="event\.a11y\.copy_address/,
+    )
   })
 
   it.each(NOT_PANEL)('keeps %s to plain street and town', (_, variant) => {
