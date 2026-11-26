@@ -4,7 +4,10 @@ import { Settings } from 'luxon'
 import { renderToStaticMarkup } from 'react-dom/server'
 import { afterEach, describe, it, expect, vi } from 'vitest'
 
-import { ChipsFor, FactsFor } from '@/mocks/event-surfaces'
+import { EventFacts, type EventFactsProps } from './EventFacts'
+
+import { EventChips } from '@/components/molecules/EventChips'
+import { useEventDisplay, type DisplayableEvent } from '@/hooks/use-event-display'
 import { mockEvent, mockEventInactive, mockEventSlimOnline } from '@/mocks/events'
 
 // Node-only SSR, as `EventListItem.test.tsx` does it. `t` echoes the key with its
@@ -19,6 +22,14 @@ vi.mock('@/hooks/use-locale', () => ({
   useLocale: () => ({ locale: 'en', languageCode: 'en', languageLabel: (code: string) => code }),
 }))
 
+// A caller resolves the strings once and hands them down, as EventListItem does.
+const Facts = ({
+  event,
+  ...props
+}: Omit<EventFactsProps, 'strings'> & { event: DisplayableEvent }) => (
+  <EventFacts {...props} strings={useEventDisplay(event)} />
+)
+
 const ROOM = 'Community Hall B'
 const withRoom = { ...mockEvent, address: { ...mockEvent.address, room: ROOM } }
 const roomLine = `event.display.room:${ROOM}`
@@ -29,7 +40,7 @@ const NOT_PANEL = [
 
 describe('EventFacts — the room line (#316)', () => {
   it('shows the room on the panel, on its own line above the street', () => {
-    const html = renderToStaticMarkup(<FactsFor event={withRoom} />)
+    const html = renderToStaticMarkup(<Facts event={withRoom} />)
     const street = mockEvent.address?.street ?? ''
 
     expect(street).not.toBe('')
@@ -38,8 +49,8 @@ describe('EventFacts — the room line (#316)', () => {
   })
 
   it('hangs the pin from the first line when the room stacks it', () => {
-    const stacked = renderToStaticMarkup(<FactsFor event={withRoom} />)
-    const single = renderToStaticMarkup(<FactsFor event={mockEvent} />)
+    const stacked = renderToStaticMarkup(<Facts event={withRoom} />)
+    const single = renderToStaticMarkup(<Facts event={mockEvent} />)
     // The location fact is the last item, so its alignment is the last one rendered.
     const pinItem = (html: string) => [...html.matchAll(/items-(start|center)/g)].at(-1)?.[0]
 
@@ -48,7 +59,7 @@ describe('EventFacts — the room line (#316)', () => {
   })
 
   it.each(NOT_PANEL)('leaves %s without it', (_, surface) => {
-    const html = renderToStaticMarkup(<FactsFor event={withRoom} surface={surface} />)
+    const html = renderToStaticMarkup(<Facts event={withRoom} surface={surface} />)
 
     expect(html).not.toContain('event.display.room')
   })
@@ -65,7 +76,7 @@ describe('EventFacts — the room line (#316)', () => {
       { ...mockEventInactive, address: { ...mockEventInactive.address, room: ROOM } },
     ],
   ])('adds no line for %s', (_, event) => {
-    expect(renderToStaticMarkup(<FactsFor event={event} />)).not.toContain('event.display.room')
+    expect(renderToStaticMarkup(<Facts event={event} />)).not.toContain('event.display.room')
   })
 })
 
@@ -93,6 +104,17 @@ describe('EventFacts with EventChips — "Today" once', () => {
     schedule: { ...weekly.schedule!, recurrenceType: null, weekdays: [] },
   }
 
+  const Pair = ({ event, surface }: { event: Event; surface: 'page' | 'card' }) => {
+    const strings = useEventDisplay(event)
+
+    return (
+      <>
+        <EventFacts strings={strings} surface={surface} />
+        <EventChips languages={event.languages} strings={strings} surface={surface} />
+      </>
+    )
+  }
+
   it.each([
     ['a weekly card, as its chip', weekly, 'card'],
     ['a full weekly card, in its line', { ...weekly, registrationsFull: true }, 'card'],
@@ -103,12 +125,7 @@ describe('EventFacts with EventChips — "Today" once', () => {
     Settings.now = () => Date.parse('2026-07-15T11:00:00Z')
 
     // The card and the class page each pair the facts with the chips, and say "Today" once.
-    const html = renderToStaticMarkup(
-      <>
-        <FactsFor event={event} surface={surface} />
-        <ChipsFor event={event} surface={surface} />
-      </>,
-    )
+    const html = renderToStaticMarkup(<Pair event={event} surface={surface} />)
 
     expect(html.split('event.display.chip_today')).toHaveLength(2)
   })
@@ -117,11 +134,11 @@ describe('EventFacts with EventChips — "Today" once', () => {
 // `useFitSnap` measures a class's key-facts stop to the bottom of the marked row.
 describe('EventFacts — the key-facts marker', () => {
   it('marks the panel facts', () => {
-    expect(renderToStaticMarkup(<FactsFor event={mockEvent} />)).toContain('data-sheet-fold')
+    expect(renderToStaticMarkup(<Facts event={mockEvent} />)).toContain('data-sheet-fold')
   })
 
   it.each(['card', 'summary'] as const)('leaves the %s facts unmarked', (surface) => {
-    expect(renderToStaticMarkup(<FactsFor event={mockEvent} surface={surface} />)).not.toContain(
+    expect(renderToStaticMarkup(<Facts event={mockEvent} surface={surface} />)).not.toContain(
       'data-sheet-fold',
     )
   })
@@ -131,7 +148,7 @@ describe('EventFacts — the address', () => {
   const full = '5 Market St, Cambridge CB2 3QJ'
 
   it('makes the class page address, postcode included, a copy button', () => {
-    const html = renderToStaticMarkup(<FactsFor event={mockEvent} />)
+    const html = renderToStaticMarkup(<Facts event={mockEvent} />)
 
     expect(html).toContain(`aria-label="event.a11y.copy_address: ${full}"`)
     // The visible text is the whole line, and the icon follows its last word.
@@ -143,7 +160,7 @@ describe('EventFacts — the address', () => {
   })
 
   it.each(NOT_PANEL)('keeps %s to plain street and town', (_, surface) => {
-    const html = renderToStaticMarkup(<FactsFor event={mockEvent} surface={surface} />)
+    const html = renderToStaticMarkup(<Facts event={mockEvent} surface={surface} />)
 
     expect(html).toContain('5 Market St, Cambridge')
     expect(html).not.toContain('CB2 3QJ')
@@ -154,7 +171,7 @@ describe('EventFacts — the address', () => {
     ['an online class', mockEventSlimOnline],
     ['an inactive listing', mockEventInactive],
   ])('gives %s no copy button', (_, event) => {
-    const html = renderToStaticMarkup(<FactsFor event={event} />)
+    const html = renderToStaticMarkup(<Facts event={event} />)
 
     expect(html).not.toContain('<button')
     expect(html).not.toContain('CB2 3QJ')
