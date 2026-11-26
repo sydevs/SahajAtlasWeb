@@ -3,7 +3,7 @@ import type { RoutingMode } from '@/loader/config'
 
 import { type ReactNode, Suspense, lazy, useEffect, useLayoutEffect, useMemo, useRef } from 'react'
 import { Helmet } from 'react-helmet-async'
-import { useSuspenseQuery } from '@tanstack/react-query'
+import { useQuery } from '@tanstack/react-query'
 import { ErrorBoundary } from 'react-error-boundary'
 
 import { useLocale } from './hooks/use-locale'
@@ -25,6 +25,8 @@ import {
   LoadingFallback,
   ResetErrorBoundary,
 } from '@/components/molecules/Fallbacks'
+import { ClientGate } from '@/config/client-gate'
+import { BootFallback } from '@/views/BootFallback'
 // ⚠ Imports the component's own path, NOT the `@/components/organisms` barrel. The barrel
 // re-exports `Mapbox`, so importing ANYTHING through it pulls the map and `react-map-gl`
 // straight back into the eager graph. Under react-map-gl 7, which fired `import('mapbox-gl')` at
@@ -186,11 +188,7 @@ export default function App({
     <RootBoundary>
       <Providers>
         <BrandTheme apiKey={apiKey} palette={brand}>
-          {/* `unboxed` is the map form that fills the window: its interface is fixed and
-              inset-0, so a fallback standing in for it must be too, or it collapses to its
-              own content height at the top of the screen. The inline form has a real box,
-              and there `h-full` is already right. */}
-          <Suspense fallback={<LoadingFallback unboxed={!inline} />}>
+          <Suspense fallback={<StandIn fillsWindow={!inline} />}>
             {/* `context` names this one in a report: everything below is a drawer failing
                 to load. This is the widget failing to boot. That is also why it, and the root
                 boundary above, are the only two that take the readiness marker down (#153):
@@ -258,6 +256,16 @@ type AppShellProps = {
   prefix?: string
 }
 
+/**
+ * What stands in while the interface's code arrives. The map-first form fills the window and gets
+ * the boot panel: its interface is fixed and inset-0, so a stand-in must be too, or it collapses
+ * to its own content height at the top of the screen. The inline form has a box of its own, which
+ * a spinner fills.
+ */
+function StandIn({ fillsWindow }: { fillsWindow: boolean }) {
+  return fillsWindow ? <BootFallback /> : <LoadingFallback />
+}
+
 function AppShell({
   apiKey,
   defaultLocale,
@@ -270,9 +278,14 @@ function AppShell({
 }: AppShellProps) {
   if (!apiKey) throw atlasError('config', 'Missing api key.')
 
-  const { data: client } = useSuspenseQuery(clientQuery(apiKey))
+  // ⚠ **Not a suspense read, so that the map can draw before the API answers.** The record
+  // decides nothing about the map. `ClientGate` does the waiting and the throwing instead, and
+  // WHERE it sits is the decision: with a map it sits inside each drawer view, so a slow or failed
+  // API shows in the panel beside a live map rather than replacing the whole interface.
+  const { data: client } = useQuery(clientQuery(apiKey))
   const { locale, t } = useLocale()
   const { theme } = useTheme()
+  const clientLoaded = !!client
 
   // Where the interface goes when it first opens on the root view: a path-mode host's
   // `atlas` default, else the client record's home region (`homePathFor`). The redirect
@@ -282,7 +295,7 @@ function AppShell({
     route: embed.config.route,
     routeFromPage: embed.config.routeFromPage,
     region:
-      (client.region && typeof client.region === 'object' && safePath(client.region.webPath)) ||
+      (client?.region && typeof client.region === 'object' && safePath(client.region.webPath)) ||
       undefined,
   })
 
@@ -297,14 +310,14 @@ function AppShell({
    * been published yet, and the root's effect would then publish one over the "could
    * not be loaded" screen, permanently. Reached from here, three things are true at
    * once, and none of them by luck: the marker cannot precede a successful boot,
-   * because `useSuspenseQuery` above has already resolved the client record, proving
-   * the widget reached the API. It is never published over the loading state, because
-   * this component does not exist during it. And pressing "Try again" remounts this
-   * component, which re-publishes a marker the boundary took down.
+   * because the effect waits for the client record to have resolved, proving
+   * the widget reached the API. It is never published over a failed read, which never
+   * sets `clientLoaded`. And pressing "Try again" remounts this component, which
+   * re-publishes a marker the boundary took down.
    */
   useEffect(() => {
-    void announceEmbed({ routing, observed: embed.observed, prefix })
-  }, [routing, prefix])
+    if (clientLoaded) void announceEmbed({ routing, observed: embed.observed, prefix })
+  }, [clientLoaded, routing, prefix])
 
   // ⚠ **The client record's `locale` is deliberately NOT read.** The widget's language
   // should match the page it is embedded in, and `<html lang>` says that per page —
@@ -360,15 +373,16 @@ function AppShell({
   // nothing else. Do not restore the claim without restoring the parameter.
   const primaryDomain = useMemo(
     () =>
-      client.allowedDomains
+      client?.allowedDomains
         ?.split('\n')
         .map((domain) => domain.trim())
         .find(Boolean) ?? '',
-    [client.allowedDomains],
+    [client?.allowedDomains],
   )
 
   return (
     <WidgetModeContext.Provider value={{ standalone, hasMap, linkable }}>
+      {!hasMap && <ClientGate />}
       {/* Standalone only. Embedded, this <head> is the HOST page's: their og:locale
           describes their document, not the widget inside it (hence `standalone` existing
           at all).
@@ -401,11 +415,19 @@ function AppShell({
           <LivePreviewController />
         </Suspense>
       )}
-      <Suspense fallback={<LoadingFallback unboxed={!inline} />}>
+      <Suspense fallback={<StandIn fillsWindow={!inline} />}>
         {inline ? (
-          <InlineEmbedView homePath={homePath} primaryDomain={primaryDomain} />
+          <InlineEmbedView
+            clientLoaded={clientLoaded}
+            homePath={homePath}
+            primaryDomain={primaryDomain}
+          />
         ) : (
-          <FullInterface homePath={homePath} primaryDomain={primaryDomain} />
+          <FullInterface
+            clientLoaded={clientLoaded}
+            homePath={homePath}
+            primaryDomain={primaryDomain}
+          />
         )}
       </Suspense>
     </WidgetModeContext.Provider>

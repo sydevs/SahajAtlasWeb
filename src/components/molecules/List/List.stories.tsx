@@ -2,7 +2,7 @@ import type { Story, StoryDefault } from '@ladle/react'
 
 import { StoryWrapper, StorySection } from '../../ladle'
 
-import { List } from './List'
+import { List, ListRow } from './List'
 
 import { ListItem } from '@/components/molecules/ListItem'
 
@@ -20,6 +20,27 @@ export const Default: Story = () => (
           <ListItem count={12} href="#area" label="Cambridge" />
           <ListItem count={7} href="#area" label="Oxford" />
           <ListItem count={3} href="#area" label="London" />
+        </List>
+      </div>
+    </StorySection>
+
+    <StorySection
+      description="ListRow is the shell every list row renders its content into: the li and its link, the gutter, the hover and press feedback, and the trailing chevron. ListItem and EventListItem both render into it, so the two row kinds cannot drift apart."
+      title="ListRow"
+    >
+      <div className="max-w-md overflow-hidden rounded-lg border border-divider">
+        <List>
+          <ListRow className="min-h-14 py-3" href="#row">
+            <div className="flex-grow text-lg">Any content</div>
+          </ListRow>
+          <ListRow className="py-4" href="#row">
+            <div className="flex min-w-0 flex-1 flex-col gap-1">
+              <div className="text-lg">A taller row</div>
+              <div className="text-sm text-gray-11">
+                Its content stacks; the chevron stays centred.
+              </div>
+            </div>
+          </ListRow>
         </List>
       </div>
     </StorySection>

@@ -1,17 +1,14 @@
 // @vitest-environment jsdom
 import type { MockInstance } from 'vitest'
 
-import { type ReactNode, act } from 'react'
-import { ErrorBoundary } from 'react-error-boundary'
+import { act } from 'react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { createRoot } from 'react-dom/client'
 
 import { useTurnstileGuard } from './use-turnstile-guard'
 
-import { classifyError } from '@/lib/report'
-
 /**
- * The eager Turnstile check fails the widget instead of degrading. See issue #182.
+ * The eager Turnstile check warns the host's developer and leaves the interface running.
  *
  * **This uses jsdom, because the property under test is a re-render that SSR cannot express.**
  * The verdict arrives from a promise AFTER the first paint. That is the whole design, since nothing blocks on it.
@@ -25,7 +22,7 @@ const { probeTurnstile } = vi.hoisted(() => ({ probeTurnstile: vi.fn() }))
 vi.mock('@/hooks/use-turnstile', () => ({ probeTurnstile }))
 
 let cleanup: (() => void) | null = null
-// The guard writes the CSP directive to the console on its way out.
+// The guard writes the CSP directive to the console.
 // This silences that, so a deliberate failure case does not print a wall of advice during a green run.
 let warn: MockInstance<typeof console.warn>
 
@@ -49,23 +46,6 @@ function Guarded() {
   return <p>{GUARDED}</p>
 }
 
-/** This holds whatever reached the boundary, so a case can assert the KIND, not only that it threw. */
-let caught: unknown
-
-function Boundary({ children }: { children: ReactNode }) {
-  return (
-    <ErrorBoundary
-      fallbackRender={({ error }) => {
-        caught = error
-
-        return <p>blocked-fallback</p>
-      }}
-    >
-      {children}
-    </ErrorBoundary>
-  )
-}
-
 async function mount() {
   const host = document.createElement('div')
 
@@ -74,39 +54,27 @@ async function mount() {
   const root = createRoot(host)
 
   await act(async () => {
-    root.render(
-      <Boundary>
-        <Guarded />
-      </Boundary>,
-    )
+    root.render(<Guarded />)
   })
   cleanup = () => act(() => root.unmount())
 }
 
 describe('useTurnstileGuard', () => {
-  beforeEach(() => {
-    caught = undefined
-  })
-
   it('renders the interface when Turnstile is available', async () => {
     probeTurnstile.mockResolvedValue(true)
 
     await mount()
 
     expect(document.body.textContent).toContain(GUARDED)
-    expect(caught).toBeUndefined()
   })
 
-  it('fails the widget as `captcha-blocked` when Turnstile cannot load', async () => {
+  it('keeps the interface on screen when Turnstile cannot load', async () => {
     probeTurnstile.mockResolvedValue(false)
 
     await mount()
 
-    expect(document.body.textContent).not.toContain(GUARDED)
-    // This checks the KIND, not merely that something threw.
-    // The kind picks the sentence.
-    // More importantly, it withholds the report CTA that would open a second form the same failure has already disabled.
-    expect(classifyError(caught)).toBe('captcha-blocked')
+    // Browsing needs no token, so a failed check must not take it away.
+    expect(document.body.textContent).toContain(GUARDED)
   })
 
   it('tells the host developer what to change, on the console', async () => {
@@ -117,7 +85,6 @@ describe('useTurnstileGuard', () => {
     const advice = warn.mock.calls.map((args) => String(args[0])).join('\n')
 
     // The directive is the only part of this addressed to somebody who can act on it.
-    // It must survive the throw that unmounts the tree. That is why the hook orders its steps this way.
     expect(advice).toContain('docs/embedding.md')
     // ⚠ SahajCloud's origin under `frame-src`, not Cloudflare's (#343, sydevs/SahajCloud#1072):
     // the challenge renders in a frame SahajCloud serves, so naming anything else would send a
@@ -140,6 +107,5 @@ describe('useTurnstileGuard', () => {
     await mount()
 
     expect(document.body.textContent).toContain(GUARDED)
-    expect(caught).toBeUndefined()
   })
 })

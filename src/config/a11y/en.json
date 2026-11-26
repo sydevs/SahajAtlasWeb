@@ -6,6 +6,7 @@
   },
   "common": {
     "loading": "Loading…",
+    "finding_classes": "Finding classes…",
     "settings": "Settings"
   },
   "event": {

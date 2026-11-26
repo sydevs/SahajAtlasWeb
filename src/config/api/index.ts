@@ -14,9 +14,12 @@ const api = {
 // This is the client-record query contract, in one place.
 // AppRouter's suspense read and BrandTheme's non-suspense read both share it.
 // So the key and fetcher can never drift between them.
+// Session-long: `ClientGate` mounts a reader with every view, and a record that changes in the
+// admin a few times a year is not worth a request per navigation.
 export const clientQuery = (apiKey?: string | null) => ({
   queryKey: ['client', apiKey] as const,
   queryFn: () => api.getClient(),
+  staleTime: ATLAS_CONFIG_STALE_TIME,
 })
 
 // This is the single-event query contract, in one place.

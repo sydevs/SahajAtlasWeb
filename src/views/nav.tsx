@@ -6,6 +6,7 @@ import { ChevronLeft, X } from 'lucide-react'
 
 import { Button } from '@/components/atoms/Button'
 import { DrawerHeader } from '@/components/atoms/Drawer'
+import { SkeletonGroup, SkeletonLine } from '@/components/organisms/Skeleton/Skeleton'
 import { regionsQuery } from '@/config/api'
 import { useLocale } from '@/hooks/use-locale'
 import { backLabel } from '@/views/nav-names'
@@ -97,6 +98,8 @@ export type NavHeaderProps = {
   close?: boolean
   /** The title names a place, which the inline embed's page heading already names (`DrawerTitle`). */
   isPlace?: boolean
+  /** The title is on its way: its line is drawn as a placeholder, outside any heading. */
+  pendingTitle?: boolean
 }
 
 /**
@@ -110,6 +113,7 @@ export function NavHeader({
   actions,
   close = false,
   isPlace = false,
+  pendingTitle = false,
 }: NavHeaderProps) {
   const { t } = useLocale()
   // The filters' own drawer over the calendar marks its control, so its loading and error
@@ -137,7 +141,17 @@ export function NavHeader({
   return (
     <DrawerHeader className="flex-col items-stretch gap-0">
       <NavRow>{actions}</NavRow>
-      {title && <DrawerTitle isPlace={isPlace} subtitle={subtitle} title={title} />}
+      {pendingTitle ? (
+        // No heading: a heading with nothing in it is worse than none. Inline, it gives way to the
+        // page heading as the place title it stands for will.
+        <div className="contents" data-sy-place={isPlace || undefined}>
+          <SkeletonGroup>
+            <SkeletonLine className="text-xl" width="w-1/2" />
+          </SkeletonGroup>
+        </div>
+      ) : (
+        title && <DrawerTitle isPlace={isPlace} subtitle={subtitle} title={title} />
+      )}
     </DrawerHeader>
   )
 }

@@ -3,7 +3,6 @@ import * as Fathom from 'fathom-client'
 import { useLocation, useNavigate } from 'react-router'
 import { MapProvider } from 'react-map-gl/mapbox'
 
-import { Spinner } from '@/components/atoms/Spinner'
 import { useCameraSettled } from '@/config/store'
 import { useWidgetMode } from '@/config/mode'
 import { Mapbox } from '@/components/organisms/Mapbox'
@@ -94,11 +93,6 @@ function useAnalytics(primaryDomain: string, pathname: string) {
  * yet". The moment it stops reading as a map behind glass, it has become a loading screen,
  * which is a worse answer than the world view it was meant to soften.
  *
- * The spinner fades in on a delay (`sy-map-curtain-spinner`, styles/globals.css), rather than
- * appearing at once, so a warm boot reads as a clean frost-to-reveal instead of flashing a
- * spinner nobody had time to register. This uses a CSS animation-delay, rather than a timer,
- * because there is no state here to schedule against.
- *
  * Module-private, and rendered in exactly one place, per the single-use rule in
  * DESIGN_SYSTEM.md.
  */
@@ -108,28 +102,29 @@ function MapCurtain() {
   if (settled) return null
 
   return (
+    // Not a live region, and nothing drawn on it: the sheet's own loading state already says
+    // what is happening, and two ways of saying it is one more than a visitor needs.
     <div
-      // Not `role="status"`: the drawer's own DrawerLoading already announces the wait, and two
-      // live regions describing one boot is one more than a screen reader should hear.
       aria-hidden
-      className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center bg-background/20 backdrop-blur-sm"
-    >
-      <span className="sy-map-curtain-spinner">
-        <Spinner decorative size="lg" />
-      </span>
-    </div>
+      className="pointer-events-none absolute inset-0 z-10 bg-background/20 backdrop-blur-sm"
+    />
   )
 }
 
 /** What every interface form is booted with, from the client record. */
-export type InterfaceProps = { homePath?: string; primaryDomain?: string }
+export type InterfaceProps = {
+  /** Whether `homePath` is known yet: the interface mounts before the client record arrives. */
+  clientLoaded: boolean
+  homePath?: string
+  primaryDomain?: string
+}
 
 /**
  * What an interface does once it is on screen: the pageview, the captcha guard, the home
  * redirect, and the cache warm. Called once per interface module, and never by the expanded map
  * an inline embed opens, which is the same interface over the page rather than a second one.
  */
-export function useInterfaceBoot({ homePath, primaryDomain = '' }: InterfaceProps) {
+export function useInterfaceBoot({ clientLoaded, homePath, primaryDomain = '' }: InterfaceProps) {
   const navigate = useNavigate()
   const location = useLocation()
   const didInit = useRef(false)
@@ -145,11 +140,11 @@ export function useInterfaceBoot({ homePath, primaryDomain = '' }: InterfaceProp
   // root entry, so opening adds no host history entry (#112). This runs once — re-visiting `/`
   // shows the list, not a redirect loop.
   useEffect(() => {
-    if (didInit.current) return
+    if (didInit.current || !clientLoaded) return
     didInit.current = true
     if (location.pathname === '/' && homePath && homePath !== '/')
       navigate(homePath, { replace: true })
-  }, [homePath, location.pathname, navigate])
+  }, [clientLoaded, homePath, location.pathname, navigate])
 
   // The feed and region tree. Idempotent — React Query deduplicates — so this costs nothing
   // where `App` has already fired it in parallel with the client bootstrap.
@@ -206,8 +201,8 @@ export function MapInterface() {
 }
 
 /** The map-first interface: the standalone page opened directly. */
-function FullInterface({ homePath, primaryDomain }: InterfaceProps) {
-  useInterfaceBoot({ homePath, primaryDomain })
+function FullInterface(props: InterfaceProps) {
+  useInterfaceBoot(props)
 
   return <MapInterface />
 }

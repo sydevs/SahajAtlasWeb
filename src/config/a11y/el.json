@@ -6,6 +6,7 @@
   },
   "common": {
     "loading": "Φόρτωση…",
+    "finding_classes": "Αναζήτηση μαθημάτων…",
     "settings": "Ρυθμίσεις"
   },
   "event": {

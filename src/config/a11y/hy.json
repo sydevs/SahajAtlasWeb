@@ -6,6 +6,7 @@
   },
   "common": {
     "loading": "Բեռնվում է…",
+    "finding_classes": "Դասերի որոնում…",
     "settings": "Կարգավորումներ"
   },
   "event": {

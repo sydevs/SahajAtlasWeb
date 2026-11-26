@@ -6,6 +6,7 @@
   },
   "common": {
     "loading": "Yükleniyor…",
+    "finding_classes": "Dersler aranıyor…",
     "settings": "Ayarlar"
   },
   "event": {

@@ -113,9 +113,6 @@ export const MAX_RETRY_DELAY = 4000
  * A dead region link and a missing API key both fail identically on attempt two.
  * `offline` is deliberately still retryable.
  * React Query's default `networkMode: 'online'` pauses those attempts, rather than burning them.
- * `captcha-blocked` is retryable for the reason its `ERROR_POLICY` row gives.
- * A blocked script and a failed script request are one verdict here, and the second of those recovers.
- * This kind is thrown during render rather than by a query, though, so nothing routes it through here today.
  *
  * **The kind list here mirrors the `retry` column of `ERROR_POLICY`**, in `components/molecules/Fallbacks`.
  * That column decides whether the viewer sees a "Try again" button for the same failure.

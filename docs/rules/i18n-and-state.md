@@ -313,8 +313,9 @@ two axes separate — an inner fallback must never re-throw to escalate.
 - **Fallbacks render their own chrome.** `DrawerChrome` rebuilds the header from
   the URL plus already-cached data (the region tree for a name, the titles
   sliver for an event), so both a loading and an error state keep the drawer's
-  identity and its Back button. A **loading** chrome sets `interactive={false}`,
-  which swaps the geocoder for an inert shape — mounting a real Mapbox search
+  identity and its Back button. A **loading** chrome (`loading`) draws the view's
+  own header with placeholders where its data goes, and swaps the geocoder for
+  an inert shape — mounting a real Mapbox search
   element in a freshly-mounted fallback would instantiate and tear one down on
   every cold start. The **error** chrome keeps the live field, since there it is
   the escape hatch. Below a view's own header, use `DrawerLoadingBody` /

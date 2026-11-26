@@ -201,11 +201,11 @@ function BootShell({ children }: { children: ReactNode }) {
 /**
  * What a path embed shows while it reads the prefix.
  *
- * ⚠ **Not `null`, and not `LoadingFallback` either.** The wait itself is not extra
- * latency — query mode suspends on the very same `clients/me` request, and shows
- * `LoadingFallback` through it (`App.tsx`). The only thing path mode was missing is that
- * state. `Spinner` is an atom and calls no `useTranslation`, so unlike `LoadingFallback`
- * it cannot suspend inside a Suspense fallback, which would throw.
+ * ⚠ **Not `null`, and not `BootFallback` either.** The wait reads the same `clients/me`
+ * record query mode reads (`App.tsx`), so it is not extra latency — but the richer panel
+ * draws the route's own chrome, and the prefix is what the router is still waiting for.
+ * `Spinner` is an atom and calls no `useTranslation`, so unlike a view it cannot suspend
+ * inside a Suspense fallback, which would throw.
  */
 function BootSurface() {
   return (

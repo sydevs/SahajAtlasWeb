@@ -6,6 +6,7 @@
   },
   "common": {
     "loading": "Read for every loading spinner.",
+    "finding_classes": "Read once while a list of places or classes is loading, in place of the placeholder rows drawn on screen.",
     "settings": "Names the settings cog button."
   },
   "event": {
