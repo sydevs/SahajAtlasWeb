@@ -180,15 +180,12 @@ describe('ModalContent focus return', () => {
 })
 
 describe('ModalContent opening focus', () => {
-  const touchOnly = (matches: boolean) =>
-    vi
-      .spyOn(window, 'matchMedia')
-      .mockImplementation((query) => ({ matches, media: query }) as MediaQueryList)
+  afterEach(() => {
+    vi.unstubAllGlobals()
+  })
 
   it('starts a form in its first field, not on the ×', async () => {
-    // jsdom has no `matchMedia` to spy on, so the atom's own fallback is a fine pointer.
-    window.matchMedia ??= (() => ({ matches: false })) as unknown as typeof window.matchMedia
-    touchOnly(false)
+    // jsdom has no `matchMedia`, which the atom reads as a fine pointer.
     const { host, opener } = await mount(undefined, true)
     const asked = traceFocus()
 
@@ -197,23 +194,32 @@ describe('ModalContent opening focus', () => {
     expect(asked.at(-1)).toBe(host.ownerDocument.getElementById('field'))
   })
 
+  it('hands focus to a field that arrives after the dialog opens', async () => {
+    const { host, opener } = await mount()
+    const asked = traceFocus()
+
+    await openFrom(opener)
+    const dialog = asked.at(-1)
+
+    expect(dialog?.getAttribute('role')).toBe('dialog')
+    const field = document.createElement('input')
+
+    await act(async () => {
+      dialog?.append(field)
+      await new Promise((resolve) => setTimeout(resolve, 0))
+    })
+
+    expect(asked.at(-1)).toBe(field)
+    expect(host.ownerDocument.contains(field)).toBe(true)
+  })
+
   it('focuses the dialog itself on a touch-only screen, so no keyboard rises', async () => {
-    window.matchMedia ??= (() => ({ matches: false })) as unknown as typeof window.matchMedia
-    touchOnly(true)
+    vi.stubGlobal('matchMedia', () => ({ matches: true }))
     const { opener } = await mount(undefined, true)
     const asked = traceFocus()
 
     await openFrom(opener)
 
     expect(asked.at(-1)?.getAttribute('role')).toBe('dialog')
-  })
-
-  it('leaves Radix its own start when there is no field', async () => {
-    const { opener } = await mount()
-    const asked = traceFocus()
-
-    await openFrom(opener)
-
-    expect(asked.at(-1)?.getAttribute('aria-label')).toBe('Close')
   })
 })

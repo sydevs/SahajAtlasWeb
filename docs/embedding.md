@@ -1279,8 +1279,8 @@ Inside that landmark, every control the widget draws:
 - is never a Tab stop while it is invisible;
 - carries a name in the page's language, icon-only controls included;
 - answers to a tap of at least 44 × 44 CSS pixels on a touch-only screen (`(hover: none) and
-(pointer: coarse)`); a touchscreen laptop keeps the drawn size, since its mouse would hit an
-  area it cannot see.
+  (pointer: coarse)`). A touchscreen laptop gets the larger drawn controls but none of the
+  invisible tap areas, which its mouse would hit without seeing them.
 
 **Each of those is checked on every change we make**, in a real browser at phone size, over every
 component in the library — `axe-core` for the rule set, a hit test for the tap areas, and a

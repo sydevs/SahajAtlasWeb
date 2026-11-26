@@ -520,34 +520,16 @@ html.sy-atlas {
   }
 }
 
-/* The one keyboard-focus outline, for every control: a 2px line in the focus colour drawn
-   just inside the control, so an `overflow: hidden` parent cannot clip it, and a 2px band of the
-   panel's colour inside that line. The band is what shows on a filled control of the focus
-   colour's own hue: the line alone measured 1:1 on Register in dark mode. It rides in Tailwind's
-   inset-ring slot, so a control's own `shadow-*` stays. `focus-ring.test.ts` pins it.
-   A control takes `focus-ring`, which draws only on `:focus-visible`, so a mouse click shows
-   nothing. A box whose focus lands on a hidden control inside it, such as a choice card around
-   its radio, takes `focus-ring-within`. `focus-outline` is the drawing alone, for a selector
-   that already names the state. */
+/* The one keyboard-focus outline (`src/components/AGENTS.md` § Accessibility). Inset, so an
+   `overflow` clip cannot cut it, with a band of the panel's colour inside the line: the line alone
+   measured 1:1 on Register in dark mode. */
 @utility focus-outline {
-  outline: 2px solid var(--color-focus, hsl(var(--primary-9)));
-  outline-offset: -2px;
-  --tw-inset-ring-shadow: inset 0 0 0 4px hsl(var(--background));
-  box-shadow:
-    var(--tw-inset-shadow, 0 0 #0000), var(--tw-inset-ring-shadow),
-    var(--tw-ring-offset-shadow, 0 0 #0000), var(--tw-ring-shadow, 0 0 #0000),
-    var(--tw-shadow, 0 0 #0000);
+  @apply outline-2 -outline-offset-2 outline-focus inset-ring-4 inset-ring-background;
 }
 
 @utility focus-ring {
   outline: none;
   &:focus-visible {
-    @apply focus-outline;
-  }
-}
-
-@utility focus-ring-within {
-  &:has(:focus-visible) {
     @apply focus-outline;
   }
 }
@@ -709,16 +691,10 @@ html.sy-atlas {
   @apply touch-target;
 }
 
-/* Mapbox draws its own blue halo on a focused control, even for a mouse click, and leaves the
-   map itself and its logo to the browser's default ring. All four take the outline every other
-   control has instead. The `.sy-map-controls` prefix outranks Mapbox's own `button:focus` rule,
-   which a bare selector would tie. */
-.sy-map-controls .mapboxgl-ctrl-attrib-button:focus,
-.sy-map-controls .mapboxgl-ctrl-attrib a:focus,
-.mapboxgl-canvas:focus,
-.mapboxgl-ctrl-logo:focus {
+/* Mapbox draws its own blue halo on its credits button, even for a mouse click. It and the rest of
+   Mapbox's focusable parts take the widget's outline instead. */
+.sy-map-controls .mapboxgl-ctrl-attrib-button:focus {
   box-shadow: none;
-  outline: none;
 }
 
 .sy-map-controls .mapboxgl-ctrl-attrib-button:focus-visible,

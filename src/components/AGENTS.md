@@ -617,11 +617,13 @@ three things defeat it:
 the cascade and unpins the caller's control. `SettingsMenu`'s trigger carries that story.
 
 **Keyboard focus is one outline from `globals.css`, never a control's own `ring-*`.** A control
-takes `focus-ring`; a box whose focus lands on a hidden control inside it, such as a choice card,
-takes `focus-ring-within`. Both draw an inset 2px outline plus a band of the panel colour inside
-it, so it survives an `overflow` clip and shows on a fill of the focus colour.
-`src/styles/focus-ring.test.ts` refuses a ring in the focus colour anywhere in `src/`. The
-geocoder's sheet restates it in `Mapbox/themes.ts`, which the utility cannot reach.
+takes `focus-ring`, which draws `focus-outline` on `:focus-visible` only, so a mouse click shows
+nothing. A box whose focus lands on a hidden control inside it takes the drawing behind its own
+state — the choice card's `has-[:focus-visible]:focus-outline`. The outline is inset, with a band
+of the panel colour inside the line, so an `overflow` clip cannot cut it and it shows on a fill of
+the focus colour. `src/styles/focus-ring.test.ts` refuses a ring in the focus colour anywhere in
+`src/`. ⚠ The geocoder field's box restates the drawing in `Mapbox/themes.ts`: its class names
+are seeded per instance, so no utility can be put on it.
 
 ⚠ **Radix restores focus to a `Dialog.Trigger`, and neither of this app's dialogs has one**, so
 closing dropped the viewer on `<body>` (#432). `useOpenerRestore` (`src/hooks/`) is the one

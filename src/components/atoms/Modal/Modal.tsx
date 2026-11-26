@@ -3,6 +3,7 @@ import * as Dialog from '@radix-ui/react-dialog'
 import { X } from 'lucide-react'
 
 import { Button } from '@/components/atoms/Button'
+import { TOUCH_ONLY_QUERY } from '@/config/responsive'
 import { useOpenerRestore } from '@/hooks/use-opener-restore'
 import { overlayContainer } from '@/lib/overlay'
 
@@ -96,28 +97,46 @@ export type ModalContentProps = {
   className?: string
 }
 
-/** The first control a viewer fills in. A Radix `Select` trigger is a `combobox` button. */
-const FIRST_FIELD =
-  'input:not([type="hidden"]):not(:disabled), textarea:not(:disabled), select:not(:disabled), [role="combobox"]:not(:disabled)'
+/** A control a viewer fills in. A Radix `Select` trigger is a `combobox` button. */
+const FIELD = ':is(input:not([type="hidden"]), textarea, [role="combobox"]):not(:disabled)'
+
+const firstField = (dialog: HTMLElement) =>
+  [...dialog.querySelectorAll<HTMLElement>(FIELD)].find(
+    (field) => field.checkVisibility?.() ?? true,
+  )
 
 /**
- * Radix starts a dialog on its first tabbable control, which here is always the header's ×, so a
- * form opened looking as though Close were already chosen. It starts in the first field instead.
- * On a touch-only screen the dialog itself takes focus: focusing a field there raises the
- * keyboard over the form before the viewer has read it. With no field, Radix's own choice stands.
+ * Radix starts a dialog on its first tabbable control, which here is always the header's ×, so
+ * the dialog read as though Close were already chosen. A form starts in its first field instead,
+ * and anything else on the dialog itself. On a touch-only screen the dialog takes focus either
+ * way: a focused field there raises the keyboard over the form before the viewer has read it.
+ *
+ * A form that suspends (the report form behind its spinner) has no field yet at open, so the
+ * dialog watches for one and hands focus on, unless the viewer has moved it meanwhile.
  */
 const startInFirstField = (event: Event) => {
   const dialog = event.target
 
   if (!(dialog instanceof HTMLElement)) return
-  const field = dialog.querySelector<HTMLElement>(FIRST_FIELD)
-
-  if (!field) return
   event.preventDefault()
-  // The same question `useCoarsePointer` asks, read once at open rather than subscribed to.
-  const touchOnly = window.matchMedia?.('(hover: none) and (pointer: coarse)').matches
+  dialog.focus({ preventScroll: true })
+  if (window.matchMedia?.(TOUCH_ONLY_QUERY).matches) return
 
-  ;(touchOnly ? dialog : field).focus({ preventScroll: true })
+  const root = dialog.getRootNode() as Document | ShadowRoot
+  const handOn = () => {
+    const field = firstField(dialog)
+
+    if (field) field.focus({ preventScroll: true })
+
+    return field !== undefined
+  }
+
+  if (handOn()) return
+  const watch = new MutationObserver(() => {
+    if (root.activeElement !== dialog || handOn()) watch.disconnect()
+  })
+
+  watch.observe(dialog, { childList: true, subtree: true })
 }
 
 /** The portaled, centred panel: header (title, description, ×) above `children`. */
