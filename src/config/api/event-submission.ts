@@ -1,5 +1,5 @@
 import type { Event as SahajCloudEvent } from '@/types/payload/payload-types'
-import type { ProposalPayload } from '@/types'
+import type { EventSubmissionPayload } from '@/types'
 
 import {
   type UserSubmissionResponse,
@@ -15,9 +15,9 @@ import {
  * system-written, is a join, or is privileged — ownership, lifecycle, `region`, `images` and the
  * whole registration cluster. A refused key is a 400 `proposed_field_invalid`, which no copy
  * covers because the form, not the visitor, would be at fault. This list is what keeps it
- * unreachable: `sendProposal` drops any key outside it.
+ * unreachable: `sendEventSubmission` drops any key outside it.
  */
-export const PROPOSABLE_EVENT_FIELDS = [
+export const EVENT_SUBMISSION_FIELDS = [
   'title',
   'languages',
   'contactName',
@@ -31,7 +31,7 @@ export const PROPOSABLE_EVENT_FIELDS = [
   'schedule',
 ] as const satisfies readonly (keyof SahajCloudEvent)[]
 
-export type ProposableEventField = (typeof PROPOSABLE_EVENT_FIELDS)[number]
+export type EventSubmissionField = (typeof EVENT_SUBMISSION_FIELDS)[number]
 
 /** The `SubmissionLocation` column's own bound on each id. Anything else would refuse the whole create. */
 const MAPBOX_FEATURE_ID = /^[A-Za-z0-9_=-]{1,200}$/
@@ -44,7 +44,7 @@ export const isMapboxFeatureId = (value: unknown): value is string =>
  * submission (#147, SahajCloud#1021). A manager reviews it, and Accept writes `proposed` to
  * Events verbatim.
  *
- * **Every key is filtered against `PROPOSABLE_EVENT_FIELDS` here**, so intake's
+ * **Every key is filtered against `EVENT_SUBMISSION_FIELDS` here**, so intake's
  * `proposed_field_invalid` stays a defect this widget cannot produce rather than copy a visitor
  * ever reads.
  *
@@ -52,10 +52,12 @@ export const isMapboxFeatureId = (value: unknown): value is string =>
  *
  * `location` names the place's Mapbox layers, which intake matches to a region itself.
  */
-const sendProposal = async (payload: ProposalPayload): Promise<UserSubmissionResponse> => {
+const sendEventSubmission = async (
+  payload: EventSubmissionPayload,
+): Promise<UserSubmissionResponse> => {
   const proposed = Object.fromEntries(
     Object.entries(payload.proposed).filter(([key]) =>
-      (PROPOSABLE_EVENT_FIELDS as readonly string[]).includes(key),
+      (EVENT_SUBMISSION_FIELDS as readonly string[]).includes(key),
     ),
   )
 
@@ -76,11 +78,11 @@ const sendProposal = async (payload: ProposalPayload): Promise<UserSubmissionRes
     }),
   }
 
-  return postUserSubmission(json, payload.turnstileToken, 'Proposal refused')
+  return postUserSubmission(json, payload.turnstileToken, 'Event submission refused')
 }
 
 // Its own module, imported by the form alone rather than spread into `api`, so none of it rides
 // in the eager graph.
 export default {
-  sendProposal,
+  sendEventSubmission,
 }

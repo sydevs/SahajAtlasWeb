@@ -1,14 +1,14 @@
 import type { GeocodingFeature, GeocodingOptions } from '@mapbox/search-js-core'
-import type { ListingDraft } from '@/lib/proposal'
+import type { ListingDraft } from '@/lib/event-submission'
 
 import { renderToStaticMarkup } from 'react-dom/server'
 import { MemoryRouter } from 'react-router'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { describe, expect, it, vi } from 'vitest'
 
-import { ProposalForm } from './ProposalForm'
+import { EventSubmissionForm } from './EventSubmissionForm'
 
-import { emptyDraft } from '@/lib/proposal'
+import { emptyDraft } from '@/lib/event-submission'
 import { EMPTY_SENDER } from '@/config/store'
 import { viewerTimeZone } from '@/lib/time'
 
@@ -55,7 +55,7 @@ const renderWhere = (
   renderToStaticMarkup(
     <MemoryRouter>
       <QueryClientProvider client={new QueryClient()}>
-        <ProposalForm
+        <EventSubmissionForm
           context={{ path: '/add', pageUrl: 'https://host.example', locale: 'en', userAgent: 'x' }}
           draft={draft}
           sender={EMPTY_SENDER}
@@ -81,7 +81,7 @@ const pick = (zoneNearby: string | undefined) => {
   return onChange.mock.calls[0][0]
 }
 
-describe('ProposalForm picking a place', () => {
+describe('EventSubmissionForm picking a place', () => {
   it('takes the zone of a nearby class', () => {
     expect(pick('Europe/London').timeZone).toBe('Europe/London')
   })

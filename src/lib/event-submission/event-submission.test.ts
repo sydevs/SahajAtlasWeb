@@ -6,7 +6,7 @@ import { describe, expect, it } from 'vitest'
 
 import {
   type ListingDraft,
-  buildProposal,
+  buildEventSubmission,
   diffPatch,
   draftPreviewSchedule,
   draftLocation,
@@ -23,7 +23,7 @@ import {
   stepErrors,
 } from '.'
 
-import { PROPOSABLE_EVENT_FIELDS } from '@/config/api/proposal'
+import { EVENT_SUBMISSION_FIELDS } from '@/config/api/event-submission'
 
 // The two shapes Mapbox Geocoding v6 retrieves: an address, whose city, state and country sit
 // in `context`, and a city, which is its own `place` layer. Only the fields the flow reads.
@@ -183,7 +183,7 @@ describe('stepErrors', () => {
 
 describe('a new listing', () => {
   it('sends the address id in the address group, and the layers above it as location', () => {
-    const { proposed, location, event } = buildProposal(inPerson())
+    const { proposed, location, event } = buildEventSubmission(inPerson())
 
     expect(proposed.address?.mapboxId).toBe('dXJuOm1ieGFkcjoxMjM0')
     expect(location).toEqual({
@@ -195,7 +195,7 @@ describe('a new listing', () => {
   })
 
   it('sends an online class its city as location.placeId, and no address', () => {
-    const { proposed, location } = buildProposal(online())
+    const { proposed, location } = buildEventSubmission(online())
 
     expect(location.placeId).toBe('dXJuOm1ieHBsYzpCcnU')
     expect(proposed).not.toHaveProperty('address')
@@ -203,12 +203,12 @@ describe('a new listing', () => {
   })
 
   it('carries only proposable Events fields, and never region or regionHint', () => {
-    const { proposed } = buildProposal(
+    const { proposed } = buildEventSubmission(
       inPerson({ title: 'Evening meditation', contactPhone: '123', website: 'https://a.example' }),
     )
 
     for (const key of Object.keys(proposed)) {
-      expect(PROPOSABLE_EVENT_FIELDS as readonly string[]).toContain(key)
+      expect(EVENT_SUBMISSION_FIELDS as readonly string[]).toContain(key)
     }
     expect(proposed).not.toHaveProperty('region')
     expect(proposed).not.toHaveProperty('regionHint')
@@ -313,11 +313,15 @@ describe('a correction', () => {
   it('sends nothing when nothing changed, however lossy the round trip', () => {
     // A two-weekly, two-day class does not fit the flow's choices. Untouched, it must not be
     // flattened into a weekly one-day class by the act of opening it.
-    expect(buildProposal(baseDraft, correction)).toEqual({ event: 507, proposed: {}, location: {} })
+    expect(buildEventSubmission(baseDraft, correction)).toEqual({
+      event: 507,
+      proposed: {},
+      location: {},
+    })
   })
 
   it('names the event and sends only the changed leaves', () => {
-    const { event: target, proposed } = buildProposal(
+    const { event: target, proposed } = buildEventSubmission(
       { ...baseDraft, room: 'Hall B', contactName: 'Alex' },
       correction,
     )
@@ -327,20 +331,20 @@ describe('a correction', () => {
   })
 
   it('sends a cleared field as null, which is how a patch clears a value', () => {
-    expect(buildProposal({ ...baseDraft, contactPhone: '' }, correction).proposed).toEqual({
+    expect(buildEventSubmission({ ...baseDraft, contactPhone: '' }, correction).proposed).toEqual({
       contactPhone: null,
     })
   })
 
   it('moves only the start time, leaving the stored zone and repeat alone', () => {
-    const { proposed } = buildProposal({ ...baseDraft, startTime: '18:30' }, correction)
+    const { proposed } = buildEventSubmission({ ...baseDraft, startTime: '18:30' }, correction)
 
     expect(proposed).toEqual({ schedule: { firstDate: '2024-01-08T18:30:00.000Z' } })
   })
 
   it('clears the address leaves a newly picked place does not carry', () => {
     const picked = { ...featureToPlace(addressFeature), postCode: undefined, region: undefined }
-    const { proposed } = buildProposal({ ...baseDraft, address: picked }, correction)
+    const { proposed } = buildEventSubmission({ ...baseDraft, address: picked }, correction)
 
     // SahajCloud merges the address group leaf by leaf, so an absent leaf would keep the old
     // venue's postcode and subdivision on the new one.
@@ -348,9 +352,9 @@ describe('a correction', () => {
   })
 
   it('re-places the class only when a new place is picked', () => {
-    expect(buildProposal({ ...baseDraft, room: 'x' }, correction).location).toEqual({})
+    expect(buildEventSubmission({ ...baseDraft, room: 'x' }, correction).location).toEqual({})
 
-    const moved = buildProposal(
+    const moved = buildEventSubmission(
       { ...baseDraft, address: featureToPlace(addressFeature) },
       correction,
     )

@@ -1,4 +1,4 @@
-import type { ProposableEventField } from '@/config/api/proposal'
+import type { EventSubmissionField } from '@/config/api/event-submission'
 import type { ReportContext } from '@/lib/report'
 import type { Event as SahajCloudEvent } from '@/types/payload/payload-types'
 
@@ -11,7 +11,7 @@ type EventSchedulePatch = Partial<NonNullable<SahajCloudEvent['schedule']>>
  * room and leaves the rest of the address alone. Arrays and rich text replace whole.
  */
 export type ProposedEventPatch = Partial<
-  Omit<Pick<SahajCloudEvent, ProposableEventField>, 'address' | 'schedule'>
+  Omit<Pick<SahajCloudEvent, EventSubmissionField>, 'address' | 'schedule'>
 > & {
   address?: EventAddressPatch
   schedule?: EventSchedulePatch
@@ -21,18 +21,18 @@ export type ProposedEventPatch = Partial<
  * The layers above where the visitor placed the class, as Mapbox feature ids — the
  * `SubmissionLocation` column, a sibling of `proposed`. Intake matches these to regions.
  */
-export type ProposalLocation = {
+export type EventSubmissionLocation = {
   placeId?: string
   regionId?: string
   countryId?: string
 }
 
-/** What the add-a-class and correction flows hand `sendProposal`. */
-export type ProposalPayload = {
+/** What the add-a-class and correction flows hand `sendEventSubmission`. */
+export type EventSubmissionPayload = {
   /** The published class a correction targets. Omitted for a new listing. */
   event?: number
   proposed: ProposedEventPatch
-  location?: ProposalLocation
+  location?: EventSubmissionLocation
   /** The submitter's own address, which the review outcome goes to. Required. */
   senderEmail: string
   /** An optional note to the reviewer. */

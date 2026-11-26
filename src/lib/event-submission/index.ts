@@ -12,11 +12,11 @@ export {
 } from './draft'
 export { eventToDraft, openListing, type OpenedListing } from './event'
 export {
-  buildProposal,
+  buildEventSubmission,
   diffPatch,
   draftToPatch,
   newListingPatch,
-  type BuiltProposal,
+  type BuiltEventSubmission,
   type ScheduleFields,
 } from './patch'
 export { featureToPlace, searchProximity, type PickedPlace } from './place'

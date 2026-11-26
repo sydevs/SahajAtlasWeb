@@ -1,4 +1,4 @@
-import type { ZonedPoint } from '@/lib/proposal'
+import type { ZonedPoint } from '@/lib/event-submission'
 
 import { useMemo } from 'react'
 import { useQuery } from '@tanstack/react-query'

@@ -6,7 +6,7 @@ import type {
   ListingSender,
   ListingStep,
   PickedPlace,
-} from '@/lib/proposal'
+} from '@/lib/event-submission'
 import type { GeocodingFeature } from '@mapbox/search-js-core'
 import type { ReactNode } from 'react'
 
@@ -23,9 +23,9 @@ import { WhereStep } from './WhereStep'
 import { submitTitleKey } from '@/lib/shape'
 import { viewerTimeZone } from '@/lib/time'
 import { Button } from '@/components/atoms/Button'
-import { LISTING_STEPS, draftPlace, featureToPlace, stepErrors } from '@/lib/proposal'
+import { LISTING_STEPS, draftPlace, featureToPlace, stepErrors } from '@/lib/event-submission'
 
-export type ProposalFormProps = {
+export type EventSubmissionFormProps = {
   /** A new listing, or a correction to the published class `correction` names. */
   correction?: { eventId: number; baseDraft: ListingDraft }
   draft: ListingDraft
@@ -62,7 +62,7 @@ export type ProposalFormProps = {
  *
  * Contact and About may be skipped. A correction opens on Review and sends only what changed.
  */
-export function ProposalForm({
+export function EventSubmissionForm({
   correction,
   draft,
   step,
@@ -80,7 +80,7 @@ export function ProposalForm({
   languageOptions = [],
   trailing,
   initialRefusal,
-}: ProposalFormProps) {
+}: EventSubmissionFormProps) {
   const { t } = useTranslation()
   // Errors show once a step has been attempted, never while it is first being filled in.
   const [attempted, setAttempted] = useState<ListingStep | null>(null)

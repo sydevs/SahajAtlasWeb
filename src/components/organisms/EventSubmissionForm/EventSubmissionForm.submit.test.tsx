@@ -2,10 +2,10 @@
 //
 // This boots a DOM for the reason `ReportIssueForm.submit.test.tsx` does: what it covers is the
 // screen AFTER an async submit resolves or is refused, and the request that submit produced.
-// SSR markup can reach neither. The SDK is mocked at its boundary, so the real `sendProposal`
+// SSR markup can reach neither. The SDK is mocked at its boundary, so the real `sendEventSubmission`
 // body mapping and refusal re-cast run inside the system under test.
 import type { GeocodingFeature } from '@mapbox/search-js-core'
-import type { ListingDraft, ListingStep } from '@/lib/proposal'
+import type { ListingDraft, ListingStep } from '@/lib/event-submission'
 
 import { act, useState } from 'react'
 import { createRoot } from 'react-dom/client'
@@ -13,9 +13,9 @@ import { MemoryRouter } from 'react-router'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
-import { ProposalForm } from './ProposalForm'
+import { EventSubmissionForm } from './EventSubmissionForm'
 
-import { emptyDraft, featureToPlace } from '@/lib/proposal'
+import { emptyDraft, featureToPlace } from '@/lib/event-submission'
 import { challengeFrameStub } from '@/test-support/turnstile-frame'
 
 const sdk = vi.hoisted(() => ({ find: vi.fn(), findByID: vi.fn(), request: vi.fn() }))
@@ -112,7 +112,7 @@ function Harness({
   const [sender, setSender] = useState({ email: '', note: '' })
 
   return (
-    <ProposalForm
+    <EventSubmissionForm
       context={context}
       correction={correction}
       draft={draft}
@@ -182,7 +182,7 @@ const refuse = (code?: string) =>
     }),
   )
 
-describe('ProposalForm submit', () => {
+describe('EventSubmissionForm submit', () => {
   it('sends a new listing as a proposal, then shows the receipt', async () => {
     sdk.request.mockResolvedValue({ json: async () => ({ doc: { id: 7 } }) })
 
@@ -334,7 +334,7 @@ async function press(label: string) {
   await act(async () => button.click())
 }
 
-describe('ProposalForm steps', () => {
+describe('EventSubmissionForm steps', () => {
   it('lets Contact and About be skipped on the way to review', async () => {
     const root = await mount({ initial: inPerson, startAt: 'contact' })
 

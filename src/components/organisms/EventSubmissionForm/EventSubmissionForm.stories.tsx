@@ -1,15 +1,15 @@
 import type { Story, StoryDefault } from '@ladle/react'
-import type { ListingDraft, ListingStep } from '@/lib/proposal'
-import type { ProposalFormProps } from './ProposalForm'
+import type { ListingDraft, ListingStep } from '@/lib/event-submission'
+import type { EventSubmissionFormProps } from './EventSubmissionForm'
 
 import { useState } from 'react'
 
 // Not in the organisms barrel — it is reached only through the lazy submit views.
 import { StorySection, StoryWrapper } from '../../ladle'
 
-import { ProposalForm } from './ProposalForm'
+import { EventSubmissionForm } from './EventSubmissionForm'
 
-import { emptyDraft } from '@/lib/proposal'
+import { emptyDraft } from '@/lib/event-submission'
 import { EMPTY_SENDER } from '@/config/store'
 
 export default { title: 'Organisms' } satisfies StoryDefault
@@ -55,7 +55,11 @@ function Panel({
   step: initialStep,
   width = 352,
   ...rest
-}: Partial<ProposalFormProps> & { initial: ListingDraft; step: ListingStep; width?: number }) {
+}: Partial<EventSubmissionFormProps> & {
+  initial: ListingDraft
+  step: ListingStep
+  width?: number
+}) {
   const [draft, setDraft] = useState(initial)
   const [step, setStep] = useState(initialStep)
   // The store's own rule, so a story walks the steps the way the view does.
@@ -65,7 +69,7 @@ function Panel({
 
   return (
     <div className="rounded-lg border border-divider bg-background" style={{ width }}>
-      <ProposalForm
+      <EventSubmissionForm
         context={context}
         languageOptions={['en', 'fr', 'de', 'hi']}
         onClose={() => setSent(false)}
@@ -90,7 +94,7 @@ function Panel({
 const STEPS: ListingStep[] = ['where', 'when', 'contact', 'about', 'review', 'more']
 
 /**
- * ProposalForm is the add-a-class and correction panel (#147): Where, When, Contact, About and
+ * EventSubmissionForm is the add-a-class and correction panel (#147): Where, When, Contact, About and
  * Review, plus the optional details step off Review. In the app it sits in its own sheet beside
  * the live listing — from the right on a wide widget, rising from the bottom on a narrow one —
  * and shrinks to the review bar on step 5. Each section here holds its own draft, so the steps
@@ -169,4 +173,4 @@ export const Default: Story = () => (
     <div />
   </StoryWrapper>
 )
-Default.storyName = 'Proposal Form'
+Default.storyName = 'Event Submission Form'

@@ -11,7 +11,7 @@ import {
   useViewState,
 } from './store'
 
-import { emptyDraft } from '@/lib/proposal'
+import { emptyDraft } from '@/lib/event-submission'
 
 // These stores are the single source of truth for the map view, plus the registration draft.
 // They are plain zustand vanilla stores.

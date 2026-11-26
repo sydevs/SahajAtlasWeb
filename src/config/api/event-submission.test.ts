@@ -4,7 +4,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import z from 'zod'
 
 import { UserSubmissionError } from './mutate'
-import proposalApi from './proposal'
+import eventSubmissionApi from './event-submission'
 
 // The same boundary mock as `mutate.test.ts`: the SDK is stubbed, so `requestJson` runs against a
 // controlled Response.
@@ -46,7 +46,7 @@ beforeEach(() => {
   sdk.request.mockReset()
 })
 
-describe('sendProposal', () => {
+describe('sendEventSubmission', () => {
   const created = { doc: { id: 99 }, message: 'Created successfully.' }
 
   // A new in-person listing, as the add-a-class flow builds it from a picked address.
@@ -77,7 +77,9 @@ describe('sendProposal', () => {
   it('creates a proposal row carrying the patch, the location and the sender', async () => {
     sdk.request.mockResolvedValue(jsonResponse(created))
 
-    await expect(proposalApi.sendProposal(newListing)).resolves.toEqual({ doc: { id: 99 } })
+    await expect(eventSubmissionApi.sendEventSubmission(newListing)).resolves.toEqual({
+      doc: { id: 99 },
+    })
 
     const [options] = sdk.request.mock.calls[0]
 
@@ -97,7 +99,7 @@ describe('sendProposal', () => {
   it('never sends region or regionHint, which intake derives itself', async () => {
     sdk.request.mockResolvedValue(jsonResponse(created))
 
-    await proposalApi.sendProposal({
+    await eventSubmissionApi.sendEventSubmission({
       ...newListing,
       // A caller that slipped either in would mint a listing in a region of its choosing.
       proposed: { ...newListing.proposed, region: 7, images: [3] } as typeof newListing.proposed,
@@ -114,7 +116,7 @@ describe('sendProposal', () => {
   it('sends only proposable Events fields, so `proposed_field_invalid` is unreachable', async () => {
     sdk.request.mockResolvedValue(jsonResponse(created))
 
-    await proposalApi.sendProposal({
+    await eventSubmissionApi.sendEventSubmission({
       ...newListing,
       proposed: {
         ...newListing.proposed,
@@ -135,7 +137,7 @@ describe('sendProposal', () => {
   it('puts an online class city in location.placeId', async () => {
     sdk.request.mockResolvedValue(jsonResponse(created))
 
-    await proposalApi.sendProposal({
+    await eventSubmissionApi.sendEventSubmission({
       ...newListing,
       proposed: { eventType: 'online', onlineUrl: 'https://meet.example/abc' },
       location: { placeId: 'dXJuOm1ieHBsYzpBUVRC' },
@@ -150,7 +152,7 @@ describe('sendProposal', () => {
   it('drops a location id the column would refuse, and omits an empty location', async () => {
     sdk.request.mockResolvedValue(jsonResponse(created))
 
-    await proposalApi.sendProposal({
+    await eventSubmissionApi.sendEventSubmission({
       ...newListing,
       location: { placeId: 'not an id!', regionId: 'x'.repeat(201), countryId: undefined },
     })
@@ -162,7 +164,7 @@ describe('sendProposal', () => {
   it('names the event for a correction', async () => {
     sdk.request.mockResolvedValue(jsonResponse(created))
 
-    await proposalApi.sendProposal({
+    await eventSubmissionApi.sendEventSubmission({
       event: 507,
       proposed: { contactPhone: '+44 20 7946 0000', address: { room: 'Hall B' } },
       senderEmail: 'ada@example.org',
@@ -183,7 +185,7 @@ describe('sendProposal', () => {
   it('carries the note and the context as allowed pairs, and the token as a header', async () => {
     sdk.request.mockResolvedValue(jsonResponse(created))
 
-    await proposalApi.sendProposal(newListing)
+    await eventSubmissionApi.sendEventSubmission(newListing)
 
     const [options] = sdk.request.mock.calls[0]
 
@@ -210,13 +212,17 @@ describe('sendProposal', () => {
   ])('re-casts a %s refusal as a UserSubmissionError', async (code) => {
     sdk.request.mockRejectedValue(new FakeSDKError([{ message: 'Refused.', data: { code } }], 400))
 
-    await expect(proposalApi.sendProposal(newListing)).rejects.toBeInstanceOf(UserSubmissionError)
-    await expect(proposalApi.sendProposal(newListing)).rejects.toMatchObject({ code })
+    await expect(eventSubmissionApi.sendEventSubmission(newListing)).rejects.toBeInstanceOf(
+      UserSubmissionError,
+    )
+    await expect(eventSubmissionApi.sendEventSubmission(newListing)).rejects.toMatchObject({ code })
   })
 
   it('rejects a success body that is not a create envelope, as a parse failure', async () => {
     sdk.request.mockResolvedValue(jsonResponse({ ok: true }))
 
-    await expect(proposalApi.sendProposal(newListing)).rejects.toBeInstanceOf(z.ZodError)
+    await expect(eventSubmissionApi.sendEventSubmission(newListing)).rejects.toBeInstanceOf(
+      z.ZodError,
+    )
   })
 })

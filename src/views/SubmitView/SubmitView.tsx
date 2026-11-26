@@ -1,4 +1,9 @@
-import type { ListingDraft, OpenedListing, PickedPlace, ScheduleFields } from '@/lib/proposal'
+import type {
+  ListingDraft,
+  OpenedListing,
+  PickedPlace,
+  ScheduleFields,
+} from '@/lib/event-submission'
 import type { Event, Region } from '@/types'
 import type { ReactNode } from 'react'
 
@@ -15,7 +20,7 @@ import { type SubmitEntry, submitPanelPlacement, submitTitleKey } from '@/lib/sh
 import { DrawerBody } from '@/components/atoms/Drawer'
 import { IpLookupContext } from '@/hooks/use-ip-location'
 import { EventHeader } from '@/components/organisms/EventDetails/EventHeader'
-import { ProposalForm } from '@/components/organisms/ProposalForm'
+import { EventSubmissionForm } from '@/components/organisms/EventSubmissionForm'
 import { regionQuery } from '@/config/api'
 import { useWidgetMode } from '@/config/mode'
 import { useListingDraft } from '@/config/store'
@@ -28,7 +33,7 @@ import {
   openListing,
   previewEvent,
   searchProximity,
-} from '@/lib/proposal'
+} from '@/lib/event-submission'
 import { buildReportContext } from '@/lib/report'
 import { viewerTimeZone } from '@/lib/time'
 import { CloseButton, NavRow } from '@/views/nav'
@@ -158,7 +163,7 @@ function FlowPanel({ target, trailing }: { target: FlowTarget; trailing?: ReactN
   const { update, setSender, setStep, markSent } = useListingDraft.getState()
 
   return (
-    <ProposalForm
+    <EventSubmissionForm
       context={buildReportContext({ path: location.pathname, locale })}
       correction={
         target.event && session.base

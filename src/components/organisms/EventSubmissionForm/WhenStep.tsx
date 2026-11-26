@@ -1,4 +1,4 @@
-import type { ListingDraft } from '@/lib/proposal'
+import type { ListingDraft } from '@/lib/event-submission'
 
 import { useTranslation } from 'react-i18next'
 

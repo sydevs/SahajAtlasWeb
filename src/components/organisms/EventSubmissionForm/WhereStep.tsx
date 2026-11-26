@@ -1,4 +1,4 @@
-import type { ListingDraft } from '@/lib/proposal'
+import type { ListingDraft } from '@/lib/event-submission'
 import type { GeocodingFeature } from '@mapbox/search-js-core'
 
 import { useState } from 'react'

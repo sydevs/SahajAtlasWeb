@@ -1,4 +1,4 @@
-import type { ProposalLocation } from '@/types'
+import type { EventSubmissionLocation } from '@/types'
 import type { PickedPlace } from './place'
 
 /**
@@ -76,8 +76,8 @@ export const emptyDraft = (timeZone: string, languages: string[] = []): ListingD
 export const draftPlace = (draft: ListingDraft): PickedPlace | null =>
   draft.eventType === 'online' ? draft.city : draft.address
 
-/** Where the class sits, for `sendProposal`'s `location`: the address, or an online class's city. */
-export const draftLocation = (draft: ListingDraft): ProposalLocation =>
+/** Where the class sits, for `sendEventSubmission`'s `location`: the address, or an online class's city. */
+export const draftLocation = (draft: ListingDraft): EventSubmissionLocation =>
   draftPlace(draft)?.location ?? {}
 
 /**

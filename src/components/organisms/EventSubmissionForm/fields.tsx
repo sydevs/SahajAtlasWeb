@@ -1,4 +1,4 @@
-import type { ListingDraft, ListingErrors } from '@/lib/proposal'
+import type { ListingDraft, ListingErrors } from '@/lib/event-submission'
 
 /** The Events title's own bound. */
 export const TITLE_MAX = 100

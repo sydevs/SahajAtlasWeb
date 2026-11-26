@@ -110,7 +110,7 @@ const REFUSAL_KEYS = [
   ...[
     'ReportIssueForm/ReportIssueForm',
     'RegistrationForm/RegistrationForm',
-    'ProposalForm/ProposalForm',
+    'EventSubmissionForm/EventSubmissionForm',
   ].flatMap((file) => {
     const source = readSource(`components/organisms/${file}.tsx`)
 

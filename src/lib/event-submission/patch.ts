@@ -1,4 +1,4 @@
-import type { ProposalLocation, ProposedEventPatch } from '@/types'
+import type { EventSubmissionLocation, ProposedEventPatch } from '@/types'
 import type { ListingDraft } from './draft'
 
 import { DateTime } from 'luxon'
@@ -61,7 +61,7 @@ export const draftSchedule = (draft: ScheduleFields): DraftSchedule | undefined 
 }
 
 /**
- * The whole listing as an Events patch. Every key is one of `PROPOSABLE_EVENT_FIELDS`.
+ * The whole listing as an Events patch. Every key is one of `EVENT_SUBMISSION_FIELDS`.
  *
  * Optional values that are blank come out `null` rather than absent, so a correction that
  * empties a field reads as a change; `newListingPatch` drops them for a new listing.
@@ -143,10 +143,10 @@ export const diffPatch = (
   return walk(base, next) as ProposedEventPatch
 }
 
-export type BuiltProposal = {
+export type BuiltEventSubmission = {
   event?: number
   proposed: ProposedEventPatch
-  location: ProposalLocation
+  location: EventSubmissionLocation
 }
 
 /**
@@ -154,10 +154,10 @@ export type BuiltProposal = {
  * class opened as — both built by `draftToPatch`, so a section nobody touched produces the
  * same leaves and is not sent, however lossy the round trip from SahajCloud's shape is.
  */
-export const buildProposal = (
+export const buildEventSubmission = (
   draft: ListingDraft,
   correction?: { eventId: number; baseDraft: ListingDraft },
-): BuiltProposal => {
+): BuiltEventSubmission => {
   if (!correction) {
     return { proposed: newListingPatch(draft), location: draftLocation(draft) }
   }

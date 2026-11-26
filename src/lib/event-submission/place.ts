@@ -1,6 +1,6 @@
 import type { GeocodingFeature, GeocodingFeatureContextComponent } from '@mapbox/search-js-core'
 import type { Position } from 'geojson'
-import type { EventAddress, ProposalLocation } from '@/types'
+import type { EventAddress, EventSubmissionLocation } from '@/types'
 
 import { compact } from './shared'
 
@@ -31,7 +31,7 @@ export type PickedPlace = {
   latitude?: number
   longitude?: number
   /** The layers above the place, for intake to match to a region. */
-  location: ProposalLocation
+  location: EventSubmissionLocation
 }
 
 /**

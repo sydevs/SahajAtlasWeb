@@ -1,4 +1,4 @@
-import type { ListingSection } from '@/lib/proposal'
+import type { ListingSection } from '@/lib/event-submission'
 import type { Event } from '@/types'
 import type { TranslationKey } from '@/types/i18next'
 

@@ -1,4 +1,9 @@
-import type { ListingDraft, ListingSender, ListingStep, OpenedListing } from '@/lib/proposal'
+import type {
+  ListingDraft,
+  ListingSender,
+  ListingStep,
+  OpenedListing,
+} from '@/lib/event-submission'
 import type { CalendarViewOption } from '@/lib/shape'
 import type { Feature } from 'geojson'
 
@@ -305,7 +310,7 @@ export const useRegistrationDraft = create<RegistrationDraftState & Registration
 
 // The add-a-class and correction flows (#147): the listing and the step panel both read it, and
 // it survives the md-crossing remount. `key` names the route (`add:/gb/london`, `correct:507`).
-// A value, not an import: `lib/proposal` stays out of the eager graph this store is in.
+// A value, not an import: `lib/event-submission` stays out of the eager graph this store is in.
 export const EMPTY_SENDER: ListingSender = { email: '', note: '' }
 
 type ListingDraftState = {

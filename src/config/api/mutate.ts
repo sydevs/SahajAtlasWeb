@@ -248,7 +248,7 @@ const createRegistration = async (
  * `invalid_email` is belt-and-braces. The widget validates the address with zod before sending.
  * But the guard checks `senderEmail` itself, so this code can still come back.
  * `content_unscannable` (sydevs/SahajCloud#948) needs a `proposed` patch to reach, so only
- * `sendProposal` can earn it. Neither it nor `captcha_unavailable` is something a visitor can fix
+ * `sendEventSubmission` can earn it. Neither it nor `captcha_unavailable` is something a visitor can fix
  * by editing a field, so both forms map them onto their generic send-failed copy.
  */
 export type UserSubmissionErrorCode =

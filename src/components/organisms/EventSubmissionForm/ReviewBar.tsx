@@ -1,8 +1,13 @@
 import type { TranslationKey } from '@/types/i18next'
 import type { UserSubmissionErrorCode } from '@/config/api/mutate'
 import type { ReportContext } from '@/lib/report'
-import type { BuiltProposal, ListingDraft, ListingSender, ListingStep } from '@/lib/proposal'
-import type { ProposalFormProps } from './ProposalForm'
+import type {
+  BuiltEventSubmission,
+  ListingDraft,
+  ListingSender,
+  ListingStep,
+} from '@/lib/event-submission'
+import type { EventSubmissionFormProps } from './EventSubmissionForm'
 
 import { useState } from 'react'
 import { useMutation } from '@tanstack/react-query'
@@ -13,10 +18,10 @@ import { Input } from '@/components/atoms/Input'
 import { Button } from '@/components/atoms/Button'
 import { Textarea } from '@/components/atoms/Textarea'
 import { FormField } from '@/components/molecules/FormField'
-import proposalApi from '@/config/api/proposal'
+import eventSubmissionApi from '@/config/api/event-submission'
 import { refusalCopyKey, userSubmissionValueMax } from '@/config/api/mutate'
 import { useTurnstile } from '@/hooks/use-turnstile'
-import { buildProposal, firstInvalidStep, isEmail } from '@/lib/proposal'
+import { buildEventSubmission, firstInvalidStep, isEmail } from '@/lib/event-submission'
 
 /** The copy for each refusal the proposal intake can return. */
 const REFUSAL_MESSAGE_KEYS: Record<UserSubmissionErrorCode, TranslationKey> = {
@@ -45,14 +50,14 @@ export function ReviewBar({
   onSender,
 }: {
   sender: ListingSender
-  onSender: ProposalFormProps['onSender']
-  correction?: ProposalFormProps['correction']
+  onSender: EventSubmissionFormProps['onSender']
+  correction?: EventSubmissionFormProps['correction']
   draft: ListingDraft
   context: ReportContext
   onInvalid: (step: ListingStep) => void
   onMore: () => void
   onSent: () => void
-  initialRefusal?: ProposalFormProps['initialRefusal']
+  initialRefusal?: EventSubmissionFormProps['initialRefusal']
 }) {
   const { t } = useTranslation()
   const senderEmail = sender.email
@@ -66,8 +71,8 @@ export function ReviewBar({
     retry: 0,
     // Offline, the default would pause this behind a spinner that never resolves.
     networkMode: 'always',
-    mutationFn: ({ built, captcha }: { built: BuiltProposal; captcha: string }) =>
-      proposalApi.sendProposal({
+    mutationFn: ({ built, captcha }: { built: BuiltEventSubmission; captcha: string }) =>
+      eventSubmissionApi.sendEventSubmission({
         ...built,
         senderEmail: senderEmail.trim(),
         note: note.trim() || undefined,
@@ -104,7 +109,7 @@ export function ReviewBar({
         if (!isEmail(senderEmail)) return setEmailError(true)
         setEmailError(false)
 
-        const built = buildProposal(draft, correction)
+        const built = buildEventSubmission(draft, correction)
 
         // A new place re-places the class through `location` alone, so it counts as a change.
         const unchanged =
