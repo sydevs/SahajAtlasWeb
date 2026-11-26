@@ -503,9 +503,11 @@ html.sy-atlas {
 }
 
 /* An invisible 44px tap area around a smaller control, on touch screens only, so the control
-   keeps its drawn size. It needs a positioned element, so pair it with `relative`. */
+   keeps its drawn size. It needs a positioned element, so pair it with `relative`.
+   The query is `useCoarsePointer`'s (`config/responsive.ts`): `(pointer: coarse)` alone is also
+   true on a touchscreen laptop, whose mouse would then hit an area it cannot see. */
 @utility touch-target {
-  @media (pointer: coarse) {
+  @media (hover: none) and (pointer: coarse) {
     &::after {
       content: '';
       position: absolute;
@@ -515,6 +517,20 @@ html.sy-atlas {
       height: max(100%, 44px);
       transform: translate(-50%, -50%);
     }
+  }
+}
+
+/* The one keyboard-focus outline (`src/components/AGENTS.md` § Accessibility). Inset, so an
+   `overflow` clip cannot cut it, with a band of the panel's colour inside the line: the line alone
+   measured 1:1 on Register in dark mode. */
+@utility focus-outline {
+  @apply outline-2 -outline-offset-2 outline-focus inset-ring-4 inset-ring-background;
+}
+
+@utility focus-ring {
+  outline: none;
+  &:focus-visible {
+    @apply focus-outline;
   }
 }
 
@@ -673,6 +689,19 @@ html.sy-atlas {
    anchors the tap area as well, and `relative` would unpin it. */
 .sy-map-controls .mapboxgl-ctrl-attrib-button {
   @apply touch-target;
+}
+
+/* Mapbox draws its own blue halo on its credits button, even for a mouse click. It and the rest of
+   Mapbox's focusable parts take the widget's outline instead. */
+.sy-map-controls .mapboxgl-ctrl-attrib-button:focus {
+  box-shadow: none;
+}
+
+.sy-map-controls .mapboxgl-ctrl-attrib-button:focus-visible,
+.sy-map-controls .mapboxgl-ctrl-attrib a:focus-visible,
+.mapboxgl-canvas:focus-visible,
+.mapboxgl-ctrl-logo:focus-visible {
+  @apply focus-outline;
 }
 
 /* Mapbox paints its credits white, with a glyph drawn in a fixed colour, so in the dark theme it

@@ -80,8 +80,11 @@ export function useIsWideViewport(): boolean {
  * A phone in landscape can also be wider than the crossing.
  */
 export function useCoarsePointer(): boolean {
-  return useMediaQuery({ query: '(hover: none) and (pointer: coarse)' })
+  return useMediaQuery({ query: TOUCH_ONLY_QUERY })
 }
+
+/** A device whose only input is touch. `globals.css`'s `touch-target` restates it in CSS. */
+export const TOUCH_ONLY_QUERY = '(hover: none) and (pointer: coarse)'
 
 // The phone sheet's two pixel stops, read by DrawerStack for the sheet and by the camera for the
 // map it covers. The peek is the handle's 28px, the 32px Back row, the 8px under it (NavRow's

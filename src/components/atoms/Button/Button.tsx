@@ -184,8 +184,7 @@ export const controlSurface = tv({
 const button = tv({
   extend: controlSurface,
   base: [
-    'outline-none',
-    'focus-visible:ring-2 focus-visible:ring-focus focus-visible:ring-offset-1',
+    'focus-ring',
     'disabled:pointer-events-none disabled:opacity-disabled',
     // ⚠ This covers WIDTH, and only width — the heights above are drawn, and `pointer-coarse:w-11`
     // reaches the icon-only pair alone. A short label is what is left: `sm` reading "sm" draws
