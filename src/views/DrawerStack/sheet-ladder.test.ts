@@ -6,7 +6,6 @@ import {
   OPEN_SNAP,
   PEEK_SNAP,
   resolveStop,
-  sheetCoverPx,
   sheetLadder,
   SNAP_POINTS,
 } from './sheet-ladder'
@@ -119,20 +118,5 @@ describe('resolveStop', () => {
     expect(resolveStop(sheetLadder({ classView: false, fit: null, fold: null }), '440px')).toBe(
       OPEN_SNAP,
     )
-  })
-})
-
-describe('sheetCoverPx', () => {
-  it('covers a px stop by its own height', () => {
-    expect(sheetCoverPx('440px', 440)).toBe(440)
-    expect(sheetCoverPx('600px', 440)).toBe(600)
-  })
-
-  it('frames for the key-facts stop where the near-full sheet hides the pin anyway', () => {
-    expect(sheetCoverPx(WIDE_SNAP, 440)).toBe(440)
-  })
-
-  it('frames for the open stop at near full without key facts', () => {
-    expect(sheetCoverPx(WIDE_SNAP, null)).toBe(SHEET_OPEN_PX)
   })
 })

@@ -94,11 +94,3 @@ export function resolveStop({ points, fitStop }: Ladder, snap: Stop): Stop {
 
   return snap === WIDE_SNAP ? points[points.length - 1] : points[1]
 }
-
-/**
- * What the sheet covers of the map at the stop it shows, in px. The near-full stop hides the
- * class's pin whatever the camera does, so there the camera frames for the key-facts stop, or
- * the shared open stop.
- */
-export const sheetCoverPx = (stop: Stop, fold: number | null): number =>
-  typeof stop === 'string' ? parseFloat(stop) : (fold ?? SHEET_OPEN_PX)

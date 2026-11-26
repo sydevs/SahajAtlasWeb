@@ -23,6 +23,7 @@ import { Drawer, DrawerContent } from '@/components/atoms/Drawer'
 import { ResetErrorBoundary, SettingsMenu } from '@/components/molecules'
 import { ClientGate } from '@/config/client-gate'
 import {
+  SHEET_OPEN_PX,
   SHEET_PEEK_PX,
   WIDE_SNAP,
   WidgetWidthContext,
@@ -60,7 +61,6 @@ import {
   OPEN_SNAP,
   PEEK_SNAP,
   resolveStop,
-  sheetCoverPx,
   sheetLadder,
 } from '@/views/DrawerStack/sheet-ladder'
 import { useFitSnap } from '@/views/DrawerStack/use-fit-snap'
@@ -312,9 +312,10 @@ export function DrawerStack() {
   }
   // What the sheet covers of the map, resolved from the snap it sits at, so the camera reserves
   // the collapsed peek while the sheet is collapsed and a class's taller sheet while it is open.
-  const sheetCover = !canCollapse
-    ? null
-    : Math.min(sheetCoverPx(vaulSnap, fold), snapCap ?? Infinity)
+  // The near-full stop hides the class's pin whatever the camera does, so there the camera frames
+  // for the key-facts stop, or the shared open stop.
+  const coverPx = typeof vaulSnap === 'string' ? parseFloat(vaulSnap) : (fold ?? SHEET_OPEN_PX)
+  const sheetCover = !canCollapse ? null : Math.min(coverPx, snapCap ?? Infinity)
   const setSheetCover = useSheetCover((s) => s.setBottom)
 
   useEffect(() => {
