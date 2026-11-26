@@ -25,7 +25,6 @@ import {
   LoadingFallback,
   ResetErrorBoundary,
 } from '@/components/molecules/Fallbacks'
-import { ClientGate } from '@/config/client-gate'
 import { BootFallback } from '@/views/BootFallback'
 // ⚠ Imports the component's own path, NOT the `@/components/organisms` barrel. The barrel
 // re-exports `Mapbox`, so importing ANYTHING through it pulls the map and `react-map-gl`
@@ -278,10 +277,10 @@ function AppShell({
 }: AppShellProps) {
   if (!apiKey) throw atlasError('config', 'Missing api key.')
 
-  // ⚠ **Not a suspense read, so that the map can draw before the API answers.** The record
-  // decides nothing about the map. `ClientGate` does the waiting and the throwing instead, and
-  // WHERE it sits is the decision: with a map it sits inside each drawer view, so a slow or failed
-  // API shows in the panel beside a live map rather than replacing the whole interface.
+  // ⚠ **Not a suspense read, so that the interface can draw before the API answers.** The record
+  // decides nothing about the layout. `ClientGate` does the waiting and the throwing instead, and
+  // WHERE it sits is the decision: inside each drawer view, so a slow or failed API shows in the
+  // panel, beside the heading and a live map, rather than replacing the whole interface.
   const { data: client } = useQuery(clientQuery(apiKey))
   const { locale, t } = useLocale()
   const { theme } = useTheme()
@@ -382,7 +381,6 @@ function AppShell({
 
   return (
     <WidgetModeContext.Provider value={{ standalone, hasMap, linkable }}>
-      {!hasMap && <ClientGate />}
       {/* Standalone only. Embedded, this <head> is the HOST page's: their og:locale
           describes their document, not the widget inside it (hence `standalone` existing
           at all).

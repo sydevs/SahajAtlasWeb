@@ -43,8 +43,7 @@ cover everything a host would notice since the widget was first deployed.
 
 ### Changed
 
-- **On a slow or failing connection the map and its panel appear at once.** ([#490]) With a map,
-  the widget no longer shows a white page with "Loading…" while it reads your client
+- **On a slow or failing connection the map and its panel appear at once.** ([#490]) The widget no longer shows a white page with "Loading…" while it reads your client
   record: the map draws straight away, and the panel stands where it will open, holding
   placeholders shaped like what is coming — the first screen's search box and country rows, a
   place's rows or class cards, or a class page. A screen reader hears "Finding classes…" once. The
@@ -52,7 +51,7 @@ cover everything a host would notice since the widget was first deployed.
   at most once, when the content arrives. If the data can't be read, the message and Try again sit
   inside the panel and the map stays; the spinner in the middle of the map is gone. A wrong `key`
   now costs one Mapbox map load before its error shows, and your client record's colours and home
-  region arrive a moment after the map. A map-less embed waits as before.
+  region arrive a moment after the map. A `map=false` embed draws its placeholders the same way.
   **No parameter, origin, CSP, storage or Permissions-Policy change.**
 
 - **A failed security check pauses only signing up.** ([#490]) When the Turnstile check can't load
