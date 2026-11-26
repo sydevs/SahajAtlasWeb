@@ -46,7 +46,7 @@ describe('surfaceView', () => {
     status: 'upcoming',
     recurrenceLine: null,
     whenLine: 'Sat, 5 Jul',
-    typeLabel: 'One-off event',
+    typeLabel: 'One-off class',
     isDefaultType: false,
   }
 
@@ -284,7 +284,7 @@ describe('useEventDisplay — the type label', () => {
   })
 
   it('names the same listing without the flag', () => {
-    expect(labelFor({ ...stored, inactive: false })).toBe('One-off event')
+    expect(labelFor({ ...stored, inactive: false })).toBe('One-off class')
   })
 
   // An unflagged class with no session left reads "Contact host for timings" too.

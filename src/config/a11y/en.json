@@ -18,7 +18,7 @@
     "remove": "Remove %{label}"
   },
   "search": {
-    "results_showing": "Showing %{shown} of %{total} events",
+    "results_showing": "Showing %{shown} of %{total} classes",
     "dismiss_nearby_prompt": "Dismiss"
   },
   "share": {

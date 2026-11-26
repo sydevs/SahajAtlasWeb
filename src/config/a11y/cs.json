@@ -18,7 +18,7 @@
     "remove": "Odebrat: %{label}"
   },
   "search": {
-    "results_showing": "Zobrazeno událostí: %{shown} z %{total}",
+    "results_showing": "Zobrazeno lekcí: %{shown} z %{total}",
     "dismiss_nearby_prompt": "Skrýt"
   },
   "share": {

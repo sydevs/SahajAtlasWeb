@@ -100,7 +100,7 @@ const cityVenues: RegionListItem[] = [
 
 /**
  * A mixed region: child-region cards AND its own free-floating located events in one
- * list, led by an "Online Classes" roll-up card. A region can hold both venues/child
+ * list, led by an "Online classes" roll-up card. A region can hold both venues/child
  * areas and events pinned to the region itself (not to a child), and they render
  * together — the mixed shape RegionView supports.
  */
@@ -125,7 +125,7 @@ export const mockParentRegion: Region = {
 }
 
 /**
- * A full parent (a country): eight child-region cards led by an "Online Classes"
+ * A full parent (a country): eight child-region cards led by an "Online classes"
  * roll-up, with a mix of rows that carry a subtitle and rows that do not. The header
  * shows the localized country name (via `countryCode`).
  */
@@ -189,7 +189,7 @@ export const mockLeafRegion: Region = {
 
 /**
  * A mixed city: venues as its children AND its own free-floating located events,
- * led by an "Online Classes" roll-up — London with two venues ("44 Chelsham Rd",
+ * led by an "Online classes" roll-up — London with two venues ("44 Chelsham Rd",
  * "Flood Street") plus a few classes pinned to the city itself.
  */
 export const mockCityWithVenuesRegion: Region = {

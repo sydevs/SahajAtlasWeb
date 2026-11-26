@@ -14,7 +14,7 @@ const t = ((key: string, opts?: { title?: string; place?: string }) => {
     'common.chrome.back_to_world_map': 'Back to the world map',
     'common.chrome.back_to_results_near': `Back to results near ${opts?.place}`,
     'search.chrome.title': 'Search',
-    'online.title': 'Online Classes',
+    'online.title': 'Online classes',
     'calendar.title': 'Calendar',
     'filters.chrome.title': 'Filters',
   }
@@ -36,7 +36,7 @@ describe('backLabel', () => {
     ['/search', 'Back to Search'],
     ['/calendar', 'Back to Calendar'],
     ['/filters', 'Back to Filters'],
-    ['/gb/online', 'Back to Online Classes'],
+    ['/gb/online', 'Back to Online classes'],
   ])('names %s as "%s"', (route, label) => {
     expect(backLabel(route, naming)).toBe(label)
   })

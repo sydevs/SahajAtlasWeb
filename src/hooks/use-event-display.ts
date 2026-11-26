@@ -63,7 +63,7 @@ export type EventSurfaceView = {
   /** The calendar fact. `primary` leads: the pattern ("Every Wednesday") for a recurring event,
    *  else the when line, which is the date or a message. `detail` is faded beneath it. */
   when: { primary: string; time: string | null; detail: string | null }
-  /** "Weekly class", "Course · 8 sessions", "One-off event", or null. */
+  /** "Weekly class", "Course · 8 sessions", "One-off class", or null. */
   type: string | null
   /** The Today chip. A full class gets none, so it never invites joining a session it cannot;
    *  its faded line still says "Today". */
@@ -157,7 +157,7 @@ export function useEventDisplay(event: DisplayableEvent): EventDisplayStrings {
 
     // "Contact host for timings" already says what an inactive listing is.
     if (status === 'inactive') typeLabel = null
-    else if (kind === 'oneoff') typeLabel = t('event.display.type_oneoff')
+    else if (kind === 'oneoff') typeLabel = t('event.display.type_oneoff_class')
     else if (kind === 'course')
       typeLabel = sessionsLabel
         ? `${t('event.display.type_course')} · ${sessionsLabel}`
@@ -214,7 +214,7 @@ export function useEventDisplay(event: DisplayableEvent): EventDisplayStrings {
     let whenLine: string
 
     if (status === 'inactive') whenLine = t('event.display.contact_for_timing')
-    else if (status === 'ended') whenLine = t('event.display.event_ended')
+    else if (status === 'ended') whenLine = t('event.display.class_ended')
     else if (status === 'today') whenLine = t('event.display.chip_today')
     else if (status === 'upcoming')
       whenLine =
@@ -301,7 +301,7 @@ export function useEventDisplay(event: DisplayableEvent): EventDisplayStrings {
     )
     const microcopy: string[] = []
 
-    if (full) microcopy.push(t('event.display.event_full'))
+    if (full) microcopy.push(t('event.display.class_full'))
     else if (display.registration === 'open') {
       // The course note leads. The online mechanics note renders second. See issue #52.
       if (kind === 'course') microcopy.push(t('event.display.registration_required'))
@@ -318,9 +318,9 @@ export function useEventDisplay(event: DisplayableEvent): EventDisplayStrings {
 
     // This is one state-to-copy mapping for every surface that blocks registration.
     const blockedMessage = full
-      ? t('event.display.event_full')
+      ? t('event.display.class_full')
       : display.status === 'ended'
-        ? t('event.display.event_ended')
+        ? t('event.display.class_ended')
         : display.registration === 'closed'
           ? t('event.display.registration_closed')
           : display.registration === 'hidden'

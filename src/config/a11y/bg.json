@@ -18,7 +18,7 @@
     "remove": "Премахване: %{label}"
   },
   "search": {
-    "results_showing": "Показани събития: %{shown} от %{total}",
+    "results_showing": "Показани занимания: %{shown} от %{total}",
     "dismiss_nearby_prompt": "Скриване"
   },
   "share": {

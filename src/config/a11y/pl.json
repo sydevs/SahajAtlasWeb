@@ -18,7 +18,7 @@
     "remove": "Usuń: %{label}"
   },
   "search": {
-    "results_showing": "Wyświetlono wydarzeń: %{shown} z %{total}",
+    "results_showing": "Wyświetlono zajęć: %{shown} z %{total}",
     "dismiss_nearby_prompt": "Odrzuć"
   },
   "share": {

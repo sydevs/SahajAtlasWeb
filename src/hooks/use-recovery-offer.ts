@@ -43,7 +43,7 @@ export type RecoveryOffer =
  *     This is evidence about the SITE, not this navigation, so it ranks below rung 1.
  *     But a France-scoped embed's visitor almost certainly wants France.
  *     `AppShell` already suspends on the client record, so this costs no request.
- *  3. **A cached IP guess**, such as "See events near Bordeaux."
+ *  3. **A cached IP guess**, such as "See classes near Bordeaux."
  *     This reads PASSIVELY, through `useIpLocation(false)`. It never fires the lookup from an error screen.
  *     A blocked CSP is a plausible CAUSE of the failure being displayed.
  *     So the recovery could fail the same way the thing it is recovering from did.
