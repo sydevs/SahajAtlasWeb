@@ -16,9 +16,8 @@ Before hand-rolling UI, check in this order:
 1. **`src/components/atoms/`** — its atoms already exist and carry the app's tokens
    and focus behavior. Drawer (vaul) is the surface for anything that is a _place_ in
    the URL-driven stack. Modal (Radix Dialog) is the ephemeral surface that never
-   touches the URL or history. `Combobox` is the search-in-the-field picker; `Select` is
-   the plain list picker. Every form-control atom shares one error and active-state
-   interface: **`isInvalid`**
+   touches the URL or history. `Select` is the list picker. Every form-control atom
+   shares one error and active-state interface: **`isInvalid`**
    (danger visual plus `aria-invalid`, with `aria-describedby` for the error text)
    and **`highlight`** (tints the _unselected_ state, no layout shift, to flag an
    active filter). See `DESIGN_SYSTEM.md`.
@@ -632,8 +631,7 @@ and the comment there says why neither end is spare.
 **An accessible name must contain the control's own visible text** (WCAG 2.5.3): a speech-input
 viewer says what they can see. So a weekday pill reading `Mon` is named `Mon`, not `Monday`; a
 value-showing trigger is named `<field>: <value>`; and a copy button whose content is a URL
-carries that URL in its name. Radix's `Select` trigger is exempt by taking `role="combobox"`,
-which our `Combobox`'s trigger deliberately does not.
+carries that URL in its name. Radix's `Select` trigger is exempt by taking `role="combobox"`.
 
 **Text colour comes from the ramp's step 11, never the bare token, which is step 9** — a solid
 background colour. `text-contrast` measured 3.22:1 on the light background. ⚠ Step 11 is
