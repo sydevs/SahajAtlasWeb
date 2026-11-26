@@ -45,7 +45,7 @@ paths:
   open an issue on `sydevs/SahajCloud` — search the open ones first and update the
   outstanding request rather than duplicating it. Once the CMS ships the key, run
   `pnpm sync:translations --write` and wire the `t()` here.
-- **One namespace, nested keys** (`event.display.chip_full`). i18next resolves the
+- **One namespace, nested keys** (`event.display.chip_today`). i18next resolves the
   nesting natively, so there is no `common`/`events` split any more and every hook
   call is a bare `useTranslation()`.
 - **Interpolation uses Ruby-style delimiters** `%{var}`, not i18next's default

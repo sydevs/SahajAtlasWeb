@@ -32,7 +32,10 @@ const ended: Event = {
  */
 export const Default: Story = () => (
   <StoryWrapper>
-    <StorySection description="A recurring in-person class." title="In person">
+    <StorySection
+      description="A recurring in-person class. The address ends with its postcode, and a tap copies it."
+      title="In person"
+    >
       <div className="max-w-md">
         <EventFacts event={mockEvent} />
       </div>
@@ -75,27 +78,27 @@ export const Default: Story = () => (
     </StorySection>
 
     <StorySection
-      description="The boxed details card (a title over the default facts on a tinted surface) shown above the registration and share forms."
-      title="Card"
+      description="The summary: a title over the page facts on a tinted box, shown above the registration and share forms."
+      title="Summary"
     >
       <div className="flex max-w-md flex-col gap-4">
-        <EventFacts event={mockEvent} title={mockEvent.title} variant="card" />
+        <EventFacts event={mockEvent} surface="summary" title={mockEvent.title} />
         <EventFacts
           event={{ ...mockEvent, eventType: 'online' }}
+          surface="summary"
           title="Online Evening Sitting"
-          variant="card"
         />
       </div>
     </StorySection>
 
     <StorySection
-      description="The variant every result card uses: smaller icons faded to the subtext level, the end time dropped, and no 'Next session' line — a list repeats the pattern, so only the lead time earns its space."
-      title="Compact"
+      description="What every result card shows: smaller icons faded to the subtext level, the end time dropped, and no 'Next session' line — a list repeats the pattern, so only the lead time earns its space."
+      title="Card"
     >
       <div className="flex max-w-md flex-col gap-4">
-        <EventFacts event={mockEvent} variant="compact" />
-        <EventFacts event={{ ...mockEvent, eventType: 'online' }} variant="compact" />
-        <EventFacts event={course} variant="compact" />
+        <EventFacts event={mockEvent} surface="card" />
+        <EventFacts event={{ ...mockEvent, eventType: 'online' }} surface="card" />
+        <EventFacts event={course} surface="card" />
       </div>
     </StorySection>
 
@@ -104,7 +107,7 @@ export const Default: Story = () => (
       title="With distance"
     >
       <div className="max-w-md">
-        <EventFacts distance="6.2 km away" event={mockEvent} variant="compact" />
+        <EventFacts distance="6.2 km away" event={mockEvent} surface="card" />
       </div>
     </StorySection>
 

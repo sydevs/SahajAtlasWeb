@@ -14,9 +14,9 @@ import api, {
 
 import livePreview, { LIVE_PREVIEW_INACTIVE } from '@/config/live-preview/protocol'
 import { previewRequestDecorator } from '@/config/live-preview/request'
-import { eventsQuery } from '@/config/api'
+import { eventsQuery, regionQuery } from '@/config/api'
 import { MAX_RETRY_DELAY, queryClient } from '@/config/query-client'
-import { DEFAULT_FILTERS } from '@/lib/shape'
+import { DEFAULT_FILTERS, type EventFilters } from '@/lib/shape'
 import { EventDocSchema } from '@/types'
 import de from '@/config/a11y/de.json'
 
@@ -536,6 +536,45 @@ describe('getRegion (region-tree derivation)', () => {
     expect(region.onlineEvents.map((event) => event.id)).toEqual([5, 4])
     expect(region.eventCount).toBe(2)
     expect(region.bounds).toEqual([4.35, 50.85, 4.41, 51.21])
+  })
+
+  // The home list counts through the same predicate as the pins, and a country nothing matches
+  // drops out rather than listing at zero.
+  it('counts countries only by what the filters let through, and drops a country with none', async () => {
+    mockBackend()
+
+    const count = async (filters?: EventFilters) =>
+      (await api.getCountries(filters)).map(({ slug, eventCount }) => ({ slug, eventCount }))
+
+    expect(await count()).toEqual([{ slug: 'belgium', eventCount: 5 }])
+    expect(await count(DEFAULT_FILTERS)).toEqual(await count())
+    expect(await count({ ...DEFAULT_FILTERS, format: 'online' })).toEqual([
+      { slug: 'belgium', eventCount: 2 },
+    ])
+    expect(await count({ ...DEFAULT_FILTERS, languages: ['xx'] })).toEqual([])
+  })
+
+  // Live preview writes `regionQuery(slug, locale)` and the boot warm-up writes
+  // `countriesQuery()`; an unfiltered read under any other key would silently miss both.
+  it('keys an unfiltered place list exactly as its writers do, and a filtered one apart', () => {
+    expect(regionQuery('belgium', 'en', DEFAULT_FILTERS).queryKey).toEqual([
+      'region',
+      'belgium',
+      'en',
+    ])
+    expect(countriesQuery(DEFAULT_FILTERS).queryKey).toEqual(['countries'])
+
+    const filtered: EventFilters[] = [
+      { ...DEFAULT_FILTERS, format: 'online' },
+      { ...DEFAULT_FILTERS, region: 'antwerpen' },
+    ]
+
+    for (const filters of filtered) {
+      expect(regionQuery('belgium', 'en', filters).queryKey).not.toEqual(
+        regionQuery('belgium', 'en').queryKey,
+      )
+      expect(countriesQuery(filters).queryKey).not.toEqual(countriesQuery().queryKey)
+    }
   })
 
   // The home list's "Online Classes" badge. It counted the feed in the view, where a region cut

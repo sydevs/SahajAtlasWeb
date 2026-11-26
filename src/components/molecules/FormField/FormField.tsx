@@ -17,24 +17,37 @@ export const fieldErrorId = (name?: string) => (name ? `${name}-error` : undefin
 export const fieldHelpId = (name?: string) => (name ? `${name}-help` : undefined)
 
 /**
- * The full `aria-describedby` value for a control: its help text, its
- * error, or both. Callers pass this straight to the control, so the two
- * ids cannot be wired inconsistently.
+ * The id of a group's legend, which its control names itself by (`aria-labelledby`). A radio
+ * group inside a fieldset is otherwise a nameless group within a named one.
  */
-export const fieldDescribedBy = ({
-  name,
-  help,
-  error,
-}: {
-  name?: string
-  help?: boolean
-  error?: boolean
-}) =>
-  [help ? fieldHelpId(name) : undefined, error ? fieldErrorId(name) : undefined]
-    .filter(Boolean)
-    .join(' ') || undefined
+export const fieldLabelId = (name?: string) => (name ? `${name}-label` : undefined)
 
-export type FormFieldProps = {
+/**
+ * What a field hands its control, so the control is wired to the label, the help and the error
+ * by the field itself rather than by each caller: spread it onto any form atom.
+ */
+export type FieldControlProps = {
+  /** The control's id, matching the label's `htmlFor`. Absent for a group. */
+  id?: string
+  /** A group's legend, which names it. Absent for a single control, which its label names. */
+  'aria-labelledby'?: string
+  /** The help or the error, whichever shows. */
+  'aria-describedby'?: string
+  'aria-required'?: true
+  isInvalid: boolean
+}
+
+/**
+ * A single control is named by its `<label>` and keyed by its id (`htmlFor`). A control that
+ * labels itself — a checkbox — passes `name` instead, which keys the help and error ids only.
+ * A group of controls with no single id — a choice of cards, a row of days — is a `fieldset`
+ * named by its legend, and must pass `name`: it keys the legend, help and error ids.
+ */
+type FieldTarget =
+  | { as?: undefined; htmlFor?: string; name?: string }
+  | { as: 'fieldset'; name: string; htmlFor?: never }
+
+export type FormFieldProps = FieldTarget & {
   label: ReactNode
   /** Appends the required marker to the label. The caller still marks the control. */
   required?: boolean
@@ -56,17 +69,28 @@ export type FormFieldProps = {
    * shape).
    */
   announceError?: boolean
-  /** The control's id. Omitted for a composite control (e.g. a radio list) with no single id. */
-  htmlFor?: string
-  children: ReactNode
+  /**
+   * The control, or a function that receives its wiring ({@link FieldControlProps}) — the id,
+   * `aria-labelledby`, `aria-describedby`, `aria-required` and `isInvalid` — so no caller
+   * assembles them by hand.
+   */
+  children: ReactNode | ((control: FieldControlProps) => ReactNode)
 }
 
 /**
- * Label, control, and help or error: the shared shell for the app's forms
- * (the registration form and the report-issue form). It exists as a
- * molecule, instead of a copy per form, so the required marker, the
- * help-or-error precedence, and above all the `aria-describedby` id
- * convention are defined once.
+ * Label, control, and help or error: the shared shell for every form in the app — the
+ * registration form, the report-issue form and adding or correcting a class. It exists as a
+ * molecule, instead of a copy per form, so the required marker, the help-or-error precedence,
+ * and above all the `aria-describedby` id convention are defined once.
+ *
+ * A single control is labelled by a `<label>`; a group (`as="fieldset"`) by a `<legend>`. Pass
+ * the control as a function to receive its wiring:
+ *
+ * ```tsx
+ * <FormField error={error} help={help} htmlFor="email" label="Email">
+ *   {(control) => <Input {...control} type="email" />}
+ * </FormField>
+ * ```
  */
 export function FormField({
   label,
@@ -74,18 +98,50 @@ export function FormField({
   help,
   error,
   htmlFor,
+  as,
+  name,
   children,
   announceError = true,
 }: FormFieldProps) {
+  const group = as === 'fieldset'
+  const key = htmlFor ?? name
+  const showHelp = Boolean(help) && !error
+  const control: FieldControlProps = {
+    id: group ? undefined : htmlFor,
+    'aria-labelledby': group ? fieldLabelId(key) : undefined,
+    'aria-describedby':
+      [showHelp && fieldHelpId(key), Boolean(error) && fieldErrorId(key)]
+        .filter(Boolean)
+        .join(' ') || undefined,
+    'aria-required': required || undefined,
+    isInvalid: Boolean(error),
+  }
+  const caption = (
+    <>
+      {label}
+      {required && ' *'}
+    </>
+  )
+  const Root = group ? 'fieldset' : 'div'
+
   return (
-    <div className="flex flex-col gap-1">
-      <label className="text-sm font-medium" htmlFor={htmlFor}>
-        {label}
-        {required && ' *'}
-      </label>
-      {children}
-      {help && !error && (
-        <span className="text-xs text-gray-11" id={fieldHelpId(htmlFor)}>
+    <Root className="flex min-w-0 flex-col gap-1">
+      {group ? (
+        // A legend sits outside the fieldset's flex flow, so it spaces itself.
+        <legend className="mb-1 text-sm font-medium" id={fieldLabelId(key)}>
+          {caption}
+        </legend>
+      ) : (
+        // A control that labels itself (no `htmlFor`) already shows the label beside it.
+        htmlFor && (
+          <label className="text-sm font-medium" htmlFor={htmlFor}>
+            {caption}
+          </label>
+        )
+      )}
+      {typeof children === 'function' ? children(control) : children}
+      {showHelp && (
+        <span className="text-xs text-gray-11" id={fieldHelpId(key)}>
           {help}
         </span>
       )}
@@ -114,12 +170,12 @@ export function FormField({
       {error && (
         <span
           className="text-xs text-danger-11"
-          id={fieldErrorId(htmlFor)}
+          id={fieldErrorId(key)}
           role={announceError ? 'alert' : undefined}
         >
           {error}
         </span>
       )}
-    </div>
+    </Root>
   )
 }

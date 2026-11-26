@@ -22,10 +22,11 @@ import { Button } from '@/components/atoms/Button'
 import { Alert } from '@/components/atoms/Alert'
 import { Checkbox } from '@/components/atoms/Checkbox'
 import { Link } from '@/components/atoms/Link'
-import { RadioGroup, type RadioOption } from '@/components/atoms/RadioGroup'
-import { fieldChrome } from '@/components/atoms/Select'
+import { Input } from '@/components/atoms/Input'
+import { Select, SelectItem } from '@/components/atoms/Select'
+import { Textarea } from '@/components/atoms/Textarea'
 import { AddToCalendar } from '@/components/molecules/AddToCalendar'
-import { FormField, fieldErrorId } from '@/components/molecules/FormField'
+import { FormField } from '@/components/molecules/FormField'
 import { INPUT_REFUSAL_KEYS } from '@/components/organisms/ReportIssueForm/refusal-copy'
 import { ShareContent } from '@/components/molecules/ShareContent'
 import api from '@/config/api'
@@ -128,6 +129,9 @@ const REFUSED = 'refused'
 
 const PRIVACY_POLICY_URL = 'https://wemeditate.com/privacy'
 
+// Left-aligned like the fields above it, at the card's own size, in the quiet grey.
+const CONSENT_CLASSES = 'text-sm text-gray-11'
+
 /**
  * The consent line under the fields. A translation marks the words that link to the privacy
  * policy as `<link>…</link>`, so each language puts the link where its own sentence needs it. A
@@ -136,10 +140,10 @@ const PRIVACY_POLICY_URL = 'https://wemeditate.com/privacy'
 function ConsentNote({ text }: { text: string }) {
   const parts = splitInlineLink(text)
 
-  if (!parts) return <p className="text-center text-xs">{text}</p>
+  if (!parts) return <p className={CONSENT_CLASSES}>{text}</p>
 
   return (
-    <p className="text-center text-xs">
+    <p className={CONSENT_CLASSES}>
       {parts.before}
       <Link
         data-vaul-no-drag
@@ -528,12 +532,6 @@ const errorCopy = (
   return schemaKey ? t(schemaKey) : error.message
 }
 
-// The label, control, and error shell is the shared `FormField` molecule,
-// also used by the report-issue form. So the required marker and the
-// aria-describedby id convention are defined once. The control's chrome
-// comes from the shared `fieldChrome` recipe, so these inputs match the
-// Select and the filter date bounds.
-
 function LabeledInput({
   autoComplete,
   label,
@@ -554,16 +552,15 @@ function LabeledInput({
 }) {
   return (
     <FormField error={error} htmlFor={registration.name} label={label} required={required}>
-      <input
-        aria-describedby={error ? fieldErrorId(registration.name) : undefined}
-        aria-invalid={error ? true : undefined}
-        autoComplete={autoComplete}
-        className={fieldChrome({ isInvalid: Boolean(error) })}
-        id={registration.name}
-        maxLength={maxLength}
-        type={type}
-        {...registration}
-      />
+      {(control) => (
+        <Input
+          {...control}
+          autoComplete={autoComplete}
+          maxLength={maxLength}
+          type={type}
+          {...registration}
+        />
+      )}
     </FormField>
   )
 }
@@ -581,15 +578,7 @@ function LabeledTextarea({
 }) {
   return (
     <FormField error={error} htmlFor={registration.name} label={label}>
-      <textarea
-        aria-describedby={error ? fieldErrorId(registration.name) : undefined}
-        aria-invalid={error ? true : undefined}
-        className={fieldChrome({ isInvalid: Boolean(error), multiline: true })}
-        id={registration.name}
-        maxLength={maxLength}
-        rows={3}
-        {...registration}
-      />
+      {(control) => <Textarea {...control} maxLength={maxLength} rows={3} {...registration} />}
     </FormField>
   )
 }
@@ -626,9 +615,8 @@ function RegistrationFields({
   return (
     <div className="flex flex-col gap-4">
       {/* The form value is the ISO string. RegistrationSchema's z.coerce.date()
-          turns it into a Date on submit, so the radio list's onChange stores
-          the ISO string, and this casts across that string-to-Date coercion
-          seam. */}
+          turns it into a Date on submit, so the select stores the ISO string,
+          and this casts across that string-to-Date coercion seam. */}
       <Controller
         control={control}
         defaultValue={upcomingDates[0]?.toISOString() as unknown as Date}
@@ -637,32 +625,28 @@ function RegistrationFields({
           <FormField
             required
             error={errors.startingAt && t('registration.errors.starting_at')}
+            htmlFor={field.name}
             label={t('registration.form.starting_date')}
           >
-            {/* `field.ref` is what makes a failed submit MOVE (issue #102).
-                react-hook-form focuses the first invalid field itself. That
-                is `shouldFocusError`, on by default. But it can only focus a
-                field it was handed a ref for, and it walks them in
-                registration order, which here is the order they render in.
-
-                This is the first field. Until RadioGroup forwarded a ref, it
-                was the one field RHF had to skip. A submit with no date
-                chosen moved focus nowhere and said nothing. So a
-                screen-reader user was left on the Register button, with no
-                sign of why it had not worked. The other two are plain
-                `register`ed inputs, and were always covered. */}
-            <RadioGroup
-              ref={field.ref}
-              aria-label={t('registration.form.starting_date')}
-              collapseAfter={VISIBLE_DATES}
-              isInvalid={!!errors.startingAt}
-              moreLabel={t('registration.form.show_more_dates')}
-              name={field.name}
-              options={startingDates}
-              value={field.value as unknown as string}
-              onBlur={field.onBlur}
-              onChange={field.onChange}
-            />
+            {/* `field.ref` is what makes a failed submit MOVE (issue #102): react-hook-form
+                focuses the first invalid field, but only one it holds a ref for. This is the
+                first field, so without it a submit with no date moves focus nowhere. */}
+            {(wiring) => (
+              <Select
+                {...wiring}
+                ref={field.ref}
+                name={field.name}
+                value={(field.value as unknown as string | undefined) ?? ''}
+                onBlur={field.onBlur}
+                onValueChange={field.onChange}
+              >
+                {startingDates.map(({ value, label }) => (
+                  <SelectItem key={value} value={value}>
+                    <span className="capitalize">{label}</span>
+                  </SelectItem>
+                ))}
+              </Select>
+            )}
           </FormField>
         )}
         rules={{ required: true }}
@@ -720,10 +704,6 @@ function RegistrationFields({
   )
 }
 
-// The starting-date picker shows the next `VISIBLE_DATES` occurrences up
-// front. The RadioGroup atom collapses the rest behind a "show more" link.
-const VISIBLE_DATES = 3
-
 // This sets the relative-label unit per recurrence, so the options read in
 // the class's own cadence. For weekly: "This week," "Next week," "In 2
 // weeks." For daily: "Today," "Tomorrow," "In 2 days." For monthly: "This
@@ -741,7 +721,7 @@ function dateOptions(
   recurrenceType: RecurrenceType | null | undefined,
   timeZone: string | undefined,
   locale: string,
-): RadioOption[] {
+): { value: string; label: string }[] {
   const unit = recurrenceType ? RELATIVE_UNIT[recurrenceType] : undefined
 
   return dates.map((date) => {
@@ -751,12 +731,7 @@ function dateOptions(
 
     return {
       value: date.toISOString(),
-      label: (
-        <span className="capitalize">
-          {dateTime.toRelativeCalendar(unit ? { unit } : undefined)} -{' '}
-          {dateTime.toLocaleString(DateTime.DATE_MED_WITH_WEEKDAY)}
-        </span>
-      ),
+      label: `${dateTime.toRelativeCalendar(unit ? { unit } : undefined)} - ${dateTime.toLocaleString(DateTime.DATE_MED_WITH_WEEKDAY)}`,
     }
   })
 }

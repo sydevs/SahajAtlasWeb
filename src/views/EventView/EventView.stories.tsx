@@ -29,11 +29,11 @@ const EXAMPLES: Record<string, Event> = {
   Course: mockEventCourse,
   Ended: mockEventEnded,
   Inactive: mockEventInactive,
-  // At capacity: "Full" chip, no Register button — the facts stay normal (the
+  // At capacity: no Register button — the facts stay normal (the
   // class still runs), and the slot becomes "This event is full" + "See nearby
   // events" + the contact helper.
   Full: mockEventFull,
-  // Full AND meeting today — "Full" supersedes the "Today" chip.
+  // Full AND meeting today: no chip, and the when line says "Today".
   'Full · today': mockEventFullToday,
   'External registration': {
     ...mockEvent,

@@ -22,7 +22,7 @@ import { Input } from '@/components/atoms/Input'
 import { ModalBody, ModalFooter } from '@/components/atoms/Modal'
 import { Select, SelectItem } from '@/components/atoms/Select'
 import { Textarea } from '@/components/atoms/Textarea'
-import { FormField, fieldDescribedBy } from '@/components/molecules/FormField'
+import { type FieldControlProps, FormField } from '@/components/molecules/FormField'
 import api from '@/config/api'
 import { USER_SUBMISSION_VALUE_MAX, refusalCopyKey } from '@/config/api/mutate'
 import { useTurnstile } from '@/hooks/use-turnstile'
@@ -202,31 +202,28 @@ const AuthoredField = memo(function AuthoredField({
   const ours = field.label ? undefined : copy
   const label = field.label || (copy ? t(copy.label) : field.name)
   const help = ours?.help && !field.required ? t(ours.help) : undefined
-  const describedBy = fieldDescribedBy({ name: id, help: Boolean(help), error: Boolean(error) })
-
-  const typed = {
-    'aria-describedby': describedBy,
-    'aria-invalid': error ? (true as const) : undefined,
-    'aria-required': field.required ? ('true' as const) : undefined,
-    id,
-    isInvalid: Boolean(error),
-    placeholder: ours ? t(ours.placeholder) : undefined,
-  }
+  const placeholder = ours ? t(ours.placeholder) : undefined
 
   const bindings = (
     render: (bound: ControllerRenderProps<ReportValues, string>) => ReactElement,
   ) => <Controller control={control} name={key} render={({ field: bound }) => render(bound)} />
 
-  const authoredControl = () => {
+  // The field wires each control (`FieldControlProps`), as it does in every other form. Only the
+  // invalid state is the form's own: a required block with no sentence of ours (`errorCopy`) is
+  // still invalid, though the field has no error text to point at.
+  const authoredControl = (wiring: FieldControlProps) => {
+    const typed = { ...wiring, isInvalid: Boolean(error) }
+
     switch (field.blockType) {
       case 'textarea':
+        // `maxLength` is a hard stop at the schema's ceiling, which is the collection's bound on
+        // this field's own NAME. Without it, pasting a long stack trace — the very report this
+        // exists for — just disables submit.
         return (
           <Textarea
             {...typed}
-            // A hard stop at the schema's ceiling, which is the collection's bound on this
-            // field's own NAME. Without it, pasting a long stack trace — the very report this
-            // exists for — just disables submit.
             maxLength={userSubmissionValueMax(field.name)}
+            placeholder={placeholder}
             rows={5}
             {...register(key)}
           />
@@ -234,9 +231,8 @@ const AuthoredField = memo(function AuthoredField({
       case 'select':
         return bindings((bound) => (
           <Select
-            aria-describedby={describedBy}
-            aria-label={label}
-            isInvalid={Boolean(error)}
+            {...typed}
+            ref={bound.ref}
             name={bound.name}
             placeholder={field.placeholder ?? undefined}
             value={typeof bound.value === 'string' ? bound.value : ''}
@@ -253,23 +249,23 @@ const AuthoredField = memo(function AuthoredField({
       case 'checkbox':
         return bindings((bound) => (
           <Checkbox
+            {...typed}
             appearance="checkbox"
-            aria-describedby={describedBy}
             checked={bound.value === true}
             id={id}
-            isInvalid={Boolean(error)}
             onCheckedChange={bound.onChange}
           >
             {label}
           </Checkbox>
         ))
       default:
+        // One over-long value refuses the whole submission with nothing pointing at the field
+        // that caused it, so `maxLength` stops the viewer at the bound instead.
         return (
           <Input
             {...typed}
-            // One over-long value refuses the whole submission with nothing pointing at the field
-            // that caused it, so the control stops the viewer at the bound instead.
             maxLength={field.blockType === 'email' ? REPORT_EMAIL_MAX : USER_SUBMISSION_VALUE_MAX}
+            placeholder={placeholder}
             type={inputType(field.blockType)}
             {...register(key)}
           />
@@ -282,11 +278,12 @@ const AuthoredField = memo(function AuthoredField({
       announceError={false}
       error={errorCopy(field, error, t)}
       help={help}
-      htmlFor={field.blockType === 'checkbox' ? undefined : id}
+      // A checkbox labels itself, so its id keys only the help and error it points at.
+      {...(field.blockType === 'checkbox' ? { name: id } : { htmlFor: id })}
       label={label}
       required={Boolean(field.required)}
     >
-      {authoredControl()}
+      {authoredControl}
     </FormField>
   )
 })

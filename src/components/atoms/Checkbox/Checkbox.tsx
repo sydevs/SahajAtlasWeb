@@ -127,6 +127,8 @@ export type CheckboxProps = VariantProps<typeof toggle> & {
   isInvalid?: boolean
   /** Id of the field's error/description text, forwarded for screen readers. */
   'aria-describedby'?: string
+  'aria-labelledby'?: string
+  'aria-required'?: boolean
   /** The control's name where it has no `children` to take one from. Radix renders a
    *  `<button>`, so without either it is a control a screen reader announces unnamed. */
   'aria-label'?: string
@@ -147,6 +149,8 @@ export function Checkbox({
   highlight,
   isInvalid,
   'aria-describedby': describedBy,
+  'aria-labelledby': labelledBy,
+  'aria-required': ariaRequired,
   'aria-label': ariaLabel,
   children,
   className,
@@ -161,6 +165,8 @@ export function Checkbox({
         aria-describedby={describedBy}
         aria-invalid={isInvalid || undefined}
         aria-label={ariaLabel}
+        aria-labelledby={labelledBy}
+        aria-required={ariaRequired}
         checked={checked}
         className={root({ className: children ? undefined : className })}
         defaultChecked={defaultChecked}
@@ -181,6 +187,8 @@ export function Checkbox({
         aria-describedby={describedBy}
         aria-invalid={isInvalid || undefined}
         aria-label={ariaLabel}
+        aria-labelledby={labelledBy}
+        aria-required={ariaRequired}
         checked={checked}
         className={root({ className: children ? undefined : className })}
         defaultChecked={defaultChecked}

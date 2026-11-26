@@ -56,7 +56,7 @@ const panel = (verificationStage: string | null) =>
     </MemoryRouter>,
   )
 
-// ⚠ The card's chips are `compact`, and that variant drops the plain weekly type and the
+// ⚠ A card's chips drop the plain weekly type and the
 // viewer's own language — for the stock fixture it renders NOTHING, which would make the
 // absence assertion below pass against a badge that really was there. A second language
 // is what puts chips on screen for it to miss.

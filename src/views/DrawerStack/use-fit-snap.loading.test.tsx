@@ -67,11 +67,11 @@ function mountSheet(loading: boolean) {
 }
 
 function renderFit() {
-  const seen = { fit: undefined as ReturnType<typeof useFitSnap> | undefined }
+  const seen = { fit: undefined as ReturnType<typeof useFitSnap>['fit'] | undefined }
   const root = createRoot(document.createElement('div'))
 
   function Probe() {
-    seen.fit = useFitSnap(true, '/gb/south-east/london/1817')
+    seen.fit = useFitSnap(true, '/gb/south-east/london/1817').fit
 
     return null
   }

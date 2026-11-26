@@ -104,30 +104,56 @@ const eventKind = (schedule?: EventSchedule | null): EventKind =>
   !schedule?.recurrenceType ? 'oneoff' : schedule.endingType ? 'course' : 'class'
 
 /**
+ * A schedule's sessions in the event's zone: SahajCloud's `upcomingDates`, which arrive with
+ * exclusions applied, or the first session alone while it has not finished and no list came.
+ * The annotation is load-bearing: `@types/luxon` narrows `setZone`'s return, so an inferred array
+ * could not hold `scheduleStart`'s plain `DateTime`.
+ */
+const sessionsOf = (schedule: EventSchedule, now: DateTime): DateTime[] => {
+  const eventTz = scheduleTimeZone(schedule)
+  const listed: DateTime[] = (schedule.upcomingDates ?? []).map((date) =>
+    DateTime.fromJSDate(date).setZone(eventTz),
+  )
+  const first = scheduleStart(schedule)
+
+  if (listed.length === 0 && occurrenceEnd(first, schedule.endTime) > now) return [first]
+
+  return listed
+}
+
+/** The first session not yet over. Today's counts until its end time passes. */
+const nextSession = (sessions: DateTime[], schedule: EventSchedule, now: DateTime) =>
+  sessions.find((start) => occurrenceEnd(start, schedule.endTime) > now) ?? null
+
+/**
+ * An inactive listing has no session to name, so it reads "Contact host for timings" and carries
+ * no type: SahajCloud's `inactive` flag, no schedule, or a class with no session left. (A one-off
+ * or course with none left has ended instead.) The status, the map's area and the type tag all
+ * read this one verdict.
+ */
+export const isInactive = (
+  event: EventLike & { inactive?: boolean | null },
+  now: DateTime = DateTime.now(),
+): boolean => {
+  const { schedule } = event
+
+  if (event.inactive || !schedule) return true
+
+  return eventKind(schedule) === 'class' && !nextSession(sessionsOf(schedule, now), schedule, now)
+}
+
+/**
  * Whether an in-person listing's stored point stands for its town rather than a door, so the map
- * draws an area and nothing offers directions to it: a listing `resolveEventDisplay` calls
- * inactive, or one whose street names no place (`hasVagueAddress`).
- *
- * ⚠ "Inactive" has to mean here what it means there, or the map and the panel disagree about the
- * same listing — the disagreement this predicate exists to remove. So it covers a dateless class
- * too, not only the flag and a missing schedule: `resolveEventDisplay` reports every class with no
- * occurrence left as inactive, and the panel already hides its street on that verdict.
- *
- * This reads no clock, which leaves one narrow residue: a schedule whose `upcomingDates` is empty
- * while its first session has not finished reads dateless here, where `resolveEventDisplay` falls
- * back to that session. That is upstream drift, and an area is the safe answer to it.
+ * draws an area and nothing offers directions to it: an inactive listing, or one whose street
+ * names no place (`hasVagueAddress`).
  */
 export const hasApproximatePlace = (
   event: EventLike & {
     inactive?: boolean | null
     address?: VagueAddress | null
   },
-): boolean =>
-  !isOnline(event) &&
-  (Boolean(event.inactive) ||
-    !event.schedule ||
-    (eventKind(event.schedule) === 'class' && !nextOccurrence(event)) ||
-    hasVagueAddress(event.address))
+  now: DateTime = DateTime.now(),
+): boolean => !isOnline(event) && (isInactive(event, now) || hasVagueAddress(event.address))
 
 /**
  * Published with nobody vouching for it — the one stage that means that. The reminder
@@ -277,7 +303,7 @@ export type EventStatus =
   | 'running' // recurring class, series underway (no chip)
   | 'started' // course past its first session, run not finished
   | 'ended' // one-off/course fully over (reachable via direct links only)
-  | 'inactive' // CMS `inactive` flag, or dateless
+  | 'inactive' // `isInactive`: the flag, no schedule, or a class with no session left
 
 export type RegistrationState = 'open' | 'closed' | 'hidden'
 
@@ -382,42 +408,23 @@ export function resolveEventDisplay(
   // registrations. This is coalesced so an absent flag degrades to not-full.
   const atCapacity = event.registrationsFull ?? false
   // Terminal states report not-full. Fullness is moot once an event has ended or
-  // gone dormant, and their own copy must win. Together with the started-course
+  // gone inactive, and their own copy must win. Together with the started-course
   // check below, this mirrors the server's gate order (ended, then started
   // course, then full). So `full` is true only when it is the reason
   // registration is blocked. That is what lets every surface reading it first
-  // (`statusChip`, `blockedMessage`, the Full chip) stay correct without its own
-  // precedence.
+  // (`blockedMessage`, the Today chip) stay correct without its own precedence.
   const base = { online, kind, full: false }
 
-  if (event.inactive || !schedule) return terminalDisplay(base, 'inactive', hasContact, hasWebsite)
+  if (!schedule || isInactive(event, now))
+    return terminalDisplay(base, 'inactive', hasContact, hasWebsite)
 
   const endTime = schedule.endTime
   const firstStart = scheduleStart(schedule)
+  const candidates = sessionsOf(schedule, now)
+  const next = nextSession(candidates, schedule, now)
 
-  // Occurrence instants in the event's zone. `upcomingDates` is precomputed
-  // server-side, with exclusions applied. This falls back to `firstDate` itself
-  // when the list is empty but the first session has not finished (defensive).
-  // The annotation is load-bearing. `@types/luxon` 3.7.6 narrows `setZone`'s
-  // return to `DateTime<true> | DateTime<false>`, so an inferred array cannot
-  // hold `scheduleStart`'s plain `DateTime` in the fallback below.
-  let candidates: DateTime[] = (schedule.upcomingDates ?? []).map((date) =>
-    DateTime.fromJSDate(date).setZone(eventTz),
-  )
-
-  if (candidates.length === 0 && occurrenceEnd(firstStart, endTime) > now) {
-    candidates = [firstStart]
-  }
-
-  // This rolls past finished occurrences. Today's session counts until its end
-  // time passes, then the next occurrence takes over.
-  const next = candidates.find((start) => occurrenceEnd(start, endTime) > now) ?? null
-
-  if (!next) {
-    // A class never "ends". No dates means dateless, so contact the host.
-    // One-offs and courses are genuinely over.
-    return terminalDisplay(base, kind === 'class' ? 'inactive' : 'ended', hasContact, hasWebsite)
-  }
+  // A class with none left is inactive, above. A one-off or course is over.
+  if (!next) return terminalDisplay(base, 'ended', hasContact, hasWebsite)
 
   const nextDisplay = next.setZone(displayZone)
   const live = now >= next && now <= occurrenceEnd(next, endTime)

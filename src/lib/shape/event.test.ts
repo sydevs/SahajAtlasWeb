@@ -8,6 +8,7 @@ import {
   eventTimeZone,
   hasApproximatePlace,
   hasVagueAddress,
+  isInactive,
   isOnline,
   isSoon,
   nextOccurrence,
@@ -403,6 +404,26 @@ describe('resolveEventDisplay: edge cases', () => {
     expect(resolveEventDisplay(noSchedule, at('2026-07-15T10:00:00')).status).toBe('inactive')
   })
 
+  // One verdict: the status, the map's area and the missing type tag all read `isInactive`.
+  it('is inactive exactly when isInactive says so', () => {
+    const options = at('2026-07-20T10:00:00')
+    const dateless = {
+      eventType: 'offline' as const,
+      schedule: { ...weeklySchedule, upcomingDates: [] },
+    }
+    const flagged = { eventType: 'offline' as const, inactive: true, schedule: weeklySchedule }
+
+    for (const [event, expected] of [
+      [dateless, true],
+      [flagged, true],
+      [noSchedule, true],
+      [weeklyClass, false],
+    ] as const) {
+      expect(isInactive(event, options.now)).toBe(expected)
+      expect(resolveEventDisplay(event, options).status === 'inactive').toBe(expected)
+    }
+  })
+
   it('an empty upcoming list falls back to a future firstDate', () => {
     const fresh = {
       eventType: 'offline' as const,
@@ -566,23 +587,26 @@ describe('hasVagueAddress', () => {
 
 describe('hasApproximatePlace', () => {
   const weekly = weeklySchedule
+  // While the Wednesdays are still ahead.
+  const placeAt = (event: Parameters<typeof hasApproximatePlace>[0]) =>
+    hasApproximatePlace(event, at('2026-07-20T10:00:00').now)
   const street = { street: '16 Ramsden Rd', city: 'London' }
 
   it('is true for an inactive listing, even with a real street', () => {
     expect(
-      hasApproximatePlace({
+      placeAt({
         eventType: 'offline',
         inactive: true,
         schedule: weekly,
         address: street,
       }),
     ).toBe(true)
-    expect(hasApproximatePlace({ eventType: 'offline', address: street })).toBe(true)
+    expect(placeAt({ eventType: 'offline', address: street })).toBe(true)
   })
 
   it('is true for an active class whose street names no place', () => {
     expect(
-      hasApproximatePlace({
+      placeAt({
         eventType: 'offline',
         schedule: weekly,
         address: { street: 'Sneek', city: 'Sneek' },
@@ -595,9 +619,7 @@ describe('hasApproximatePlace', () => {
   it('is true for a class whose occurrences have all passed', () => {
     const dateless = { ...weeklySchedule, upcomingDates: [] }
 
-    expect(hasApproximatePlace({ eventType: 'offline', schedule: dateless, address: street })).toBe(
-      true,
-    )
+    expect(placeAt({ eventType: 'offline', schedule: dateless, address: street })).toBe(true)
     expect(
       resolveEventDisplay({ eventType: 'offline', schedule: dateless }, at('2026-08-01T10:00:00'))
         .status,
@@ -608,9 +630,7 @@ describe('hasApproximatePlace', () => {
   it('is false for a course that has ended', () => {
     const over = { ...weeklySchedule, endingType: 'count' as const, count: 4, upcomingDates: [] }
 
-    expect(hasApproximatePlace({ eventType: 'offline', schedule: over, address: street })).toBe(
-      false,
-    )
+    expect(placeAt({ eventType: 'offline', schedule: over, address: street })).toBe(false)
     expect(
       resolveEventDisplay({ eventType: 'offline', schedule: over }, at('2026-08-01T10:00:00'))
         .status,
@@ -618,9 +638,7 @@ describe('hasApproximatePlace', () => {
   })
 
   it('is false for an active class at a real street, and for any online event', () => {
-    expect(hasApproximatePlace({ eventType: 'offline', schedule: weekly, address: street })).toBe(
-      false,
-    )
-    expect(hasApproximatePlace({ eventType: 'online', inactive: true })).toBe(false)
+    expect(placeAt({ eventType: 'offline', schedule: weekly, address: street })).toBe(false)
+    expect(placeAt({ eventType: 'online', inactive: true })).toBe(false)
   })
 })

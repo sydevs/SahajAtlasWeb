@@ -38,8 +38,8 @@ export function ShareView({ eventPath }: { eventPath: string }) {
         <EventFacts
           className="mx-auto mb-4 w-full max-w-md"
           event={event}
+          surface="summary"
           title={event.title}
-          variant="card"
         />
         {/* Match the summary card's width so the share block lines up with it. */}
         <div className="mx-auto w-full max-w-md">

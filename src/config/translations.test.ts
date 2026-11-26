@@ -246,6 +246,7 @@ const RETIRING_KEYS: Record<string, string> = {
   'event.actions.pause_slideshow': 'sydevs/SahajCloud#1246',
   'event.actions.view_photo': 'sydevs/SahajCloud#1246',
   'filters.chrome.remove': 'sydevs/SahajCloud#1246',
+  'registration.form.show_more_dates': 'sydevs/SahajCloud#1282',
   'search.nearby_prompt.dismiss': 'sydevs/SahajCloud#1246',
   'search.results.showing': 'sydevs/SahajCloud#1246',
   'share.copy_link': 'sydevs/SahajCloud#1246',

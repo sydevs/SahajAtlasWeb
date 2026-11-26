@@ -5,9 +5,10 @@ import { createElement } from 'react'
 import { renderToStaticMarkup } from 'react-dom/server'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
-import { composeCalendarLine, useEventDisplay } from './use-event-display'
+import { surfaceView, useEventDisplay, type SurfaceParts } from './use-event-display'
 
 import snapshot from '@/config/translations.en.json'
+import { mockEvent } from '@/mocks/events'
 
 const copy = (key: string): string =>
   key
@@ -22,64 +23,98 @@ vi.mock('react-i18next', () => ({
 }))
 vi.mock('@/hooks/use-locale', () => ({ useLocale: () => ({ locale: 'en' }) }))
 
-// This is the shared calendar-line composition, used by both the list card, EventFacts compact, and the map-pin hover popover. See #72.
-// This is pure string logic.
-// The i18n and locale resolution that produces the inputs is exercised through the hook in the browser.
-// Here, this pins the join rules, so the two surfaces can never drift.
-describe('composeCalendarLine', () => {
-  it('leads with the recurrence pattern and appends the time', () => {
-    expect(
-      composeCalendarLine({
-        recurrenceLine: 'Every Thursday',
-        whenLine: 'Next session Thu, 4 Jul',
-        time: '7:30 PM',
-        hasNext: true,
-      }),
-    ).toBe('Every Thursday · 7:30 PM')
+// What each surface says, as pure decisions over the resolved state and its strings.
+describe('surfaceView', () => {
+  const weekly: SurfaceParts = {
+    status: 'running',
+    kind: 'class',
+    full: false,
+    hasNext: true,
+    recurrenceLine: 'Every Thursday',
+    whenLine: 'Next session: Thu, 4 Jul',
+    startTime: '7:30 PM',
+    timeRange: '7:30 – 9 PM',
+    typeLabel: 'Weekly class',
+    isDefaultType: true,
+  }
+  const today: SurfaceParts = { ...weekly, status: 'today', whenLine: 'Today' }
+  const oneOff: SurfaceParts = {
+    ...weekly,
+    kind: 'oneoff',
+    status: 'upcoming',
+    recurrenceLine: null,
+    whenLine: 'Sat, 5 Jul',
+    typeLabel: 'One-off event',
+    isDefaultType: false,
+  }
+
+  it('leads a recurring event with its pattern: the start time on a card, the range on a page', () => {
+    expect(surfaceView(weekly, 'card').when).toMatchObject({
+      primary: 'Every Thursday',
+      time: '7:30 PM',
+    })
+    expect(surfaceView(weekly, 'page').when.time).toBe('7:30 – 9 PM')
   })
 
-  it('drops a missing time from a recurring line', () => {
-    expect(
-      composeCalendarLine({
-        recurrenceLine: 'Every Thursday',
-        whenLine: 'Next session Thu, 4 Jul',
-        time: null,
-        hasNext: true,
-      }),
-    ).toBe('Every Thursday')
+  it('leads a one-off with its when line, and drops the time once no session is ahead', () => {
+    expect(surfaceView(oneOff, 'card').when).toEqual({
+      primary: 'Sat, 5 Jul',
+      time: '7:30 PM',
+      detail: null,
+    })
+
+    const ended = { ...oneOff, status: 'ended', hasNext: false, whenLine: 'Event ended' } as const
+
+    expect(surfaceView(ended, 'card').when).toEqual({
+      primary: 'Event ended',
+      time: null,
+      detail: null,
+    })
   })
 
-  it('leads with the when-line for a one-off (no recurrence) and appends the time', () => {
-    expect(
-      composeCalendarLine({
-        recurrenceLine: null,
-        whenLine: 'Sat, 5 Jul',
-        time: '7:30 PM',
-        hasNext: true,
-      }),
-    ).toBe('Sat, 5 Jul · 7:30 PM')
+  it('says "Today" once: as the chip on a card, in the faded line on a page', () => {
+    expect(surfaceView(today, 'card')).toMatchObject({
+      today: true,
+      when: { detail: null },
+    })
+    expect(surfaceView(today, 'page')).toMatchObject({
+      today: false,
+      when: { detail: 'Today' },
+    })
   })
 
-  it('omits a stale time on a terminal line with no upcoming occurrence', () => {
-    expect(
-      composeCalendarLine({
-        recurrenceLine: null,
-        whenLine: 'Event ended',
-        time: '7:30 PM', // must be dropped when there is no next occurrence
-        hasNext: false,
-      }),
-    ).toBe('Event ended')
+  it('gives a full class no Today chip, so its line keeps "Today"', () => {
+    expect(surfaceView({ ...today, full: true }, 'card')).toMatchObject({
+      today: false,
+      when: { detail: 'Today' },
+    })
   })
 
-  it('keeps just the when-line for a dateless one-off (no time, no next)', () => {
-    expect(
-      composeCalendarLine({
-        recurrenceLine: null,
-        whenLine: 'Contact host for timings',
-        time: null,
-        hasNext: false,
-      }),
-    ).toBe('Contact host for timings')
+  it('carries no Today chip on a one-off card, whose when line says it', () => {
+    const oneOffToday = { ...oneOff, status: 'today', whenLine: 'Today' } as const
+
+    expect(surfaceView(oneOffToday, 'card')).toMatchObject({
+      today: false,
+      when: { primary: 'Today' },
+    })
+  })
+
+  it('keeps the "Next session" line off a card', () => {
+    expect(surfaceView(weekly, 'card').when.detail).toBeNull()
+    expect(surfaceView(weekly, 'summary').when.detail).toBe('Next session: Thu, 4 Jul')
+  })
+
+  it('says "Started" only for a course', () => {
+    const started = { ...weekly, status: 'started', whenLine: 'Started 5 Nov' } as const
+
+    expect(surfaceView({ ...started, kind: 'course' }, 'card').when.detail).toBe('Started 5 Nov')
+    expect(surfaceView(started, 'page').when.detail).toBeNull()
+  })
+
+  it('leaves the plain weekly type off a card only', () => {
+    expect(surfaceView(weekly, 'card').type).toBeNull()
+    expect(surfaceView(weekly, 'page').type).toBe('Weekly class')
+    expect(surfaceView({ ...weekly, isDefaultType: false }, 'card').type).toBe('Weekly class')
   })
 })
 
@@ -111,7 +146,7 @@ describe('useEventDisplay — an online class seen from another zone', () => {
       const strings = useEventDisplay(event)
 
       lines = {
-        main: composeCalendarLine({ ...strings, time: strings.eventStartTime, hasNext: true }),
+        main: [strings.surfaces.card.when.primary, strings.surfaces.card.when.time].join(' · '),
         subtext: strings.whereSubtext,
       }
 
@@ -178,7 +213,7 @@ describe('useEventDisplay — an in-person class names its clock only for a view
     Settings.now = () => Date.parse('2026-07-13T12:00:00Z')
     let time: string | null = null
     const Probe = () => {
-      time = useEventDisplay(event).eventStartTime
+      time = useEventDisplay(event).surfaces.card.when.time
 
       return null
     }
@@ -212,36 +247,91 @@ describe('useEventDisplay — an in-person class names its clock only for a view
 })
 
 describe('useEventDisplay — the type label', () => {
-  const labelFor = (event: DisplayableEvent) => {
-    let label: string | null = 'unset'
+  const stringsFor = (event: DisplayableEvent) => {
+    let strings: ReturnType<typeof useEventDisplay> | undefined
     const Probe = () => {
-      label = useEventDisplay(event).typeLabel
+      strings = useEventDisplay(event)
 
       return null
     }
 
     renderToStaticMarkup(createElement(Probe))
 
-    return label
+    return strings!
   }
+  const labelFor = (event: DisplayableEvent) => stringsFor(event).surfaces.page.type
 
   // The resolver reads an absent recurrence as `oneoff`, and a listing with no schedule at all
-  // has no recurrence either. Naming it is what put "One-off event" on a by-request class.
-  it('is null for a by-request listing, which carries no schedule', () => {
+  // has no recurrence either. Naming it is what put "One-off event" on an inactive listing.
+  it('is null for a listing with no schedule', () => {
     expect(labelFor({ eventType: 'offline', address: { city: 'Stirling' } })).toBe(null)
   })
 
-  it('still names a real one-off an operator marked inactive', () => {
-    expect(
-      labelFor({
-        eventType: 'offline',
-        inactive: true,
-        address: { city: 'Stirling' },
-        schedule: {
-          firstDate: new Date('2026-07-01T17:30:00Z'),
-          firstDate_tz: 'Europe/Prague',
-        },
-      }),
-    ).toBe('One-off event')
+  // A schedule group SahajCloud still sends, as for Stirling (event 1505).
+  const stored = {
+    eventType: 'offline',
+    address: { city: 'Stirling' },
+    schedule: {
+      firstDate: new Date('2026-07-01T17:30:00Z'),
+      firstDate_tz: 'Europe/Prague',
+    },
+  } as const
+
+  it('is null for a listing with the inactive flag, even with a schedule stored', () => {
+    expect(labelFor({ ...stored, inactive: true })).toBe(null)
+  })
+
+  it('names the same listing without the flag', () => {
+    expect(labelFor({ ...stored, inactive: false })).toBe('One-off event')
+  })
+
+  // An unflagged class with no session left reads "Contact host for timings" too.
+  it('is null for a weekly class with no session left', () => {
+    const dateless = { ...stored.schedule, recurrenceType: 'WEEKLY' as const, upcomingDates: [] }
+
+    expect(labelFor({ ...stored, schedule: dateless })).toBe(null)
+  })
+})
+
+describe('useEventDisplay — the postcode on the class page', () => {
+  const fullLine = (event: DisplayableEvent) => {
+    let line: string | null = 'unset'
+    const Probe = () => {
+      line = useEventDisplay(event).whereLineWithPostCode
+
+      return null
+    }
+
+    renderToStaticMarkup(createElement(Probe))
+
+    return line
+  }
+  // A running weekly class, so the street shows.
+  const heath = {
+    ...mockEvent,
+    address: { ...mockEvent.address, street: '120 Heath St', city: 'London', postCode: 'NW3 1DR' },
+  }
+
+  it('ends the street and town with the postcode', () => {
+    expect(fullLine(heath)).toBe('120 Heath St, London NW3 1DR')
+  })
+
+  it.each([
+    [
+      'as typed, even when the street seems to hold it',
+      '120 Heath St, NW3 1DR',
+      ' NW3 1DR ',
+      '120 Heath St, NW3 1DR, London NW3 1DR',
+    ],
+    ['nothing when there is none', '120 Heath St', '  ', '120 Heath St, London'],
+  ])('adds the postcode %s', (_, street, postCode, expected) => {
+    expect(fullLine({ ...heath, address: { ...heath.address, street, postCode } })).toBe(expected)
+  })
+
+  it.each([
+    ['an online class', { ...heath, eventType: 'online' as const }],
+    ['an inactive listing', { ...heath, inactive: true }],
+  ])('is null for %s, which shows no street', (_, event) => {
+    expect(fullLine(event)).toBeNull()
   })
 })
