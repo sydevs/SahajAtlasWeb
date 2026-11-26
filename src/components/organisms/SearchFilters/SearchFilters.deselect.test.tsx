@@ -29,14 +29,6 @@ vi.mock('react-i18next', () => ({
 vi.mock('@/hooks/use-locale', () => ({
   useLocale: () => ({ locale: 'en', languageLabel: (code: string) => code }),
 }))
-vi.mock('@tanstack/react-query', async (importOriginal) => ({
-  ...(await importOriginal<typeof import('@tanstack/react-query')>()),
-  useQuery: () => ({ data: undefined }),
-}))
-vi.mock('@/config/api', () => ({
-  geojsonQuery: () => ({ queryKey: ['geojson'] }),
-  regionsQuery: () => ({ queryKey: ['regions'] }),
-}))
 
 // jsdom has no ResizeObserver, which the More filters disclosure watches while open.
 vi.stubGlobal(

@@ -70,6 +70,26 @@ export const hasClassWithin = (
   )
 
 /**
+ * How long a location request waits. Mapbox's default is six seconds, and iOS Safari appears to
+ * count that while its permission prompt is open, so a visitor who took a moment to press Allow
+ * saw a failure.
+ */
+export const LOCATE_POSITION_OPTIONS: PositionOptions = { timeout: 30_000 }
+
+/**
+ * A device fix rounded to about 110m, before anything serializes it, so the visitor's doorstep
+ * never reaches a URL they might copy or the host page's analytics. Every place frame and list
+ * rank this feeds is orders of magnitude coarser.
+ */
+export const coarsePoint = (coords: { longitude: number; latitude: number }): [number, number] => [
+  roundCoordinate(coords.longitude),
+  roundCoordinate(coords.latitude),
+]
+
+/** One coordinate to three decimals, about 110m: the precision any coordinate in a URL gets. */
+export const roundCoordinate = (n: number): number => Math.round(n * 1e3) / 1e3
+
+/**
  * The area to frame around a located visitor: their point, plus the nearest few classes.
  *
  * "Find my location" should answer *where are the classes near me*, so the camera has to hold

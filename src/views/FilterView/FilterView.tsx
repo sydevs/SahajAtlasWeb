@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react'
+import { useRef, useState } from 'react'
 import { useLocation, useNavigate } from 'react-router'
 import { useTranslation } from 'react-i18next'
 
@@ -54,8 +54,21 @@ export function FilterView({ initialDraft }: { initialDraft?: EventFilters } = {
   const facets = useFilterFacets(draft)
   const count = facets?.counts.total
 
-  const hasChanges = filtersKey(draft) !== filtersKey(applied)
+  // Near me and the place tag move the URL under the drawer, where the draft cannot see it, so a
+  // moved place is a change to apply like any other answer. Closing with X discards it.
+  const [placeMoved, setPlaceMoved] = useState(false)
+  const hasChanges = placeMoved || filtersKey(draft) !== filtersKey(applied)
   const draftActive = hasActiveFilters(draft)
+  // A location fix answers seconds after Near me is pressed, and must not undo what was tapped
+  // meanwhile.
+  const latestDraft = useRef(draft)
+
+  latestDraft.current = draft
+
+  // The view the drawer closes back onto. Only the calendar and the search list show filtered
+  // classes, so over any other view the filters apply to (and the place moves onto) a search.
+  const origin = parentOf(location.pathname)
+  const filtersOrigin = origin === '/calendar' || origin === '/search' ? origin : '/search'
 
   // Applying or clearing returns to the ORIGIN view — the drawer beneath the filters — with
   // the filters written into its query. So filtering from the calendar returns to the
@@ -70,35 +83,37 @@ export function FilterView({ initialDraft }: { initialDraft?: EventFilters } = {
     // are part of `revealKey`, so a new set is a new result set and the list is back at
     // its first page by construction (see `use-reveal`).
     const search = filtersToParams(filters, new URLSearchParams(location.search)).toString()
-    const origin = parentOf(location.pathname)
-    const target = origin === '/calendar' || origin === '/search' ? origin : '/search'
 
-    navigate({ pathname: target, search }, { replace: true, state: location.state })
+    navigate({ pathname: filtersOrigin, search }, { replace: true, state: location.state })
+  }
+
+  const movePlace = (next: EventFilters, to: { pathname: string; search: string } | string) => {
+    setDraft(next)
+    setPlaceMoved(true)
+    navigate(to, { replace: true, state: location.state })
   }
 
   // A place replaces any region, and the drawer moves over that search with the draft written
   // into the URL, so the search it lands on and the form cannot disagree.
-  const pickPlace = useCallback(
-    (place: PlaceSearch) => {
-      const next = { ...draft, region: null }
+  const pickPlace = (place: PlaceSearch) => {
+    const next = { ...latestDraft.current, region: null }
 
-      setDraft(next)
-      navigate(
-        placeFiltersPath(filtersToParams(next, new URLSearchParams(location.search)), place),
-        { replace: true, state: location.state },
-      )
-    },
-    [draft, location.search, location.state, navigate],
-  )
-
-  // Drops the place and the region, and keeps every other answer.
-  const clearWhere = () => {
-    setDraft({ ...draft, region: null })
-    navigate(
-      { pathname: location.pathname, search: noPlaceSearch(new URLSearchParams(location.search)) },
-      { replace: true, state: location.state },
+    movePlace(
+      next,
+      placeFiltersPath(filtersToParams(next, new URLSearchParams(location.search)), place),
     )
   }
+
+  // Drops the place and the region, and keeps every other answer. Over a region's own page the
+  // drawer moves onto the unscoped search, so the list behind it no longer names that region.
+  const clearWhere = () =>
+    movePlace(
+      { ...draft, region: null },
+      {
+        pathname: `${filtersOrigin}/filters`,
+        search: noPlaceSearch(new URLSearchParams(location.search)),
+      },
+    )
 
   return (
     <>
@@ -111,7 +126,7 @@ export function FilterView({ initialDraft }: { initialDraft?: EventFilters } = {
           where={
             <WhereFilter
               region={draft.region}
-              searchable={parentOf(location.pathname) !== '/calendar'}
+              searchable={origin !== '/calendar'}
               onClear={clearWhere}
               onPlace={pickPlace}
             />

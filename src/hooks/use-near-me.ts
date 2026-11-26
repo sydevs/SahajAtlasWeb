@@ -8,7 +8,12 @@ import { geojsonQuery } from '@/config/api'
 import { useNearMeState } from '@/config/store'
 import { useLocale } from '@/hooks/use-locale'
 import { geocodeCountryCode, reverseGeocode } from '@/lib/geocode'
-import { nearbyBounds } from '@/lib/geolocation'
+import {
+  LOCATE_POSITION_OPTIONS,
+  coarsePoint,
+  nearbyBounds,
+  roundCoordinate,
+} from '@/lib/geolocation'
 
 /** How long to wait for a place name before searching without one. */
 const NAME_WAIT_MS = 1500
@@ -24,9 +29,8 @@ export function useNearVisitor(center: [number, number] | undefined): boolean {
 
 /**
  * The Near me choice: asks the browser for a position only when pressed, and answers with a place
- * in the same terms as a typed search. The position is rounded to about 110m before it can reach
- * a URL, as `useGeolocateToSearch` does. `naming: false` is for map-less embeds, which promise no
- * Mapbox calls.
+ * in the same terms as a typed search, rounded by `coarsePoint`. `naming: false` is for map-less
+ * embeds, which promise no Mapbox calls.
  */
 export function useNearMe({
   naming,
@@ -42,6 +46,9 @@ export function useNearMe({
   // The fix can arrive seconds later, by when the visitor may have left. An answer belongs only
   // to the request still waiting.
   const request = useRef(0)
+  const latest = useRef(onPlace)
+
+  latest.current = onPlace
 
   useEffect(() => () => void (request.current += 1), [])
 
@@ -55,12 +62,7 @@ export function useNearMe({
       async (position) => {
         if (id !== request.current) return
 
-        // Every coordinate the URL gets is rounded, the frame's as well as the point's.
-        const round = (n: number) => Math.round(n * 1e3) / 1e3
-        const center: [number, number] = [
-          round(position.coords.longitude),
-          round(position.coords.latitude),
-        ]
+        const center = coarsePoint(position.coords)
         const timeout = new Promise<null>((resolve) =>
           setTimeout(() => resolve(null), NAME_WAIT_MS),
         )
@@ -72,9 +74,12 @@ export function useNearMe({
 
         setCenter(center)
         setStatus('idle')
-        onPlace({
+        // The fix can take seconds, so the place goes to the caller as it is NOW, not as it was
+        // when Near me was pressed: an answer tapped meanwhile must not be lost.
+        latest.current({
           center,
-          bbox: nearbyBounds(center, geojson).map(round) as BBox,
+          // Rounded like the point, so no coordinate in the URL is finer than 110m.
+          bbox: nearbyBounds(center, geojson).map(roundCoordinate) as BBox,
           q: feature?.properties?.full_address ?? undefined,
           countryCode: feature ? geocodeCountryCode(feature) : undefined,
         })
@@ -82,9 +87,9 @@ export function useNearMe({
       () => {
         if (id === request.current) setStatus('failed')
       },
-      { timeout: 30000, maximumAge: 300000 },
+      LOCATE_POSITION_OPTIONS,
     )
-  }, [geojson, locale, naming, onPlace, setCenter])
+  }, [geojson, locale, naming, setCenter])
 
   return { status, locate }
 }

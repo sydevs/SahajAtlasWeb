@@ -5,7 +5,7 @@ import { TRANSLATION_SELECT } from './api/fetch'
 import { EN_A11Y, withA11y } from './a11y/a11y'
 
 import { REGISTRATION_QUESTION_NAMES, WIDGET_TRANSLATION_TABS } from '@/types'
-import { SORT_ORDERS, TIME_PERIODS } from '@/lib/shape'
+import { EVENT_CADENCES, SORT_ORDERS, TIME_PERIODS } from '@/lib/shape'
 import { readRepoSource } from '@/test-support/repo-source'
 import { readSource, sourceFiles } from '@/test-support/source-tree'
 
@@ -76,16 +76,14 @@ const arrayLiterals = (source: string, name: string): string[] => {
   return table ? [...table[1].matchAll(/['"]([A-Za-z_][a-zA-Z0-9_.]*)['"]/g)].map((m) => m[1]) : []
 }
 
-// `FORMAT_OPTIONS` and `CADENCE_OPTIONS` are module-local to the component that renders them —
-// exporting a list only a spec reads would be the wrong trade — so they are read out of its
-// source, the way `WEEK_NUMBERS` reads `use-event-display.ts`. `TIME_PERIODS` and `SORT_ORDERS`
-// are already exported from `lib/shape`, so those import.
+// `FORMAT_OPTIONS` is module-local to the component that renders it — exporting a list only a
+// spec reads would be the wrong trade — so it is read out of its source, the way `WEEK_NUMBERS`
+// reads `use-event-display.ts`. `EVENT_CADENCES`, `TIME_PERIODS` and `SORT_ORDERS` are already
+// exported from `lib/shape`, so those import.
 const filtersSource = readSource('components/organisms/SearchFilters/SearchFilters.tsx')
 
 const FORMATS = arrayLiterals(filtersSource, 'const FORMAT_OPTIONS[^=]*=')
-const CADENCES = arrayLiterals(filtersSource, 'const CADENCE_OPTIONS[^=]*=').map((o) =>
-  o.toLowerCase(),
-)
+const CADENCES = EVENT_CADENCES.map((o) => o.toLowerCase())
 
 const FILTER_OPTIONS = [
   ...['label', 'any', ...FORMATS].map((o) => `filters.format.${o}`),
@@ -185,7 +183,6 @@ describe('every key a call site asks for', () => {
     // list back, one file over from the one it was just taken out of.
     for (const [name, family] of Object.entries({
       FORMATS,
-      CADENCES,
       WEEK_NUMBERS,
       REFUSAL_KEYS,
       POLICY_KEYS,

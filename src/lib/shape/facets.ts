@@ -1,37 +1,26 @@
-import type { EventSchedule, FeedEvent } from '@/types'
-
-import { DateTime } from 'luxon'
-
-import { eventTimeZone } from './event'
 import {
   DEFAULT_FILTERS,
+  EVENT_CADENCES,
   type EventCadence,
   type EventFilters,
+  type FilterableEvent,
   type TimePeriod,
   TIME_PERIODS,
-  dateFloor,
-  isDateRestricted,
-  isTimeRestricted,
   matchesFilters,
-  occurrenceMatchesFilters,
   todayISO,
 } from './filters'
 
 /**
  * What each filter can still do in the current scope: how many classes every option would
  * leave, and which whole groups could change the results at all. The filter form reads this to
- * show live counts and to drop the groups that would be noise here (one language in this
- * country means no language question).
+ * show live counts and to drop the questions that would be noise here.
  *
  * The events passed in are already cut to the scope (the world, a region, or the area around a
- * searched place), so the region filter is not consulted again.
+ * searched place), so the region filter is not consulted again. Every count goes through
+ * `matchesFilters`, the predicate the list and the map apply, so the numbers cannot drift from
+ * what Apply then shows.
  */
 
-type FacetEvent = Pick<FeedEvent, 'eventType' | 'languages'> & {
-  schedule?: EventSchedule | null
-}
-
-const CADENCES = ['DAILY', 'WEEKLY', 'MONTHLY', 'once'] as const
 const DAYS = [1, 2, 3, 4, 5, 6, 7] as const
 
 export type FacetCounts = {
@@ -46,64 +35,22 @@ export type FacetCounts = {
   languages: { code: string; count: number }[]
 }
 
-// Converting a stored date into the event's zone is the one expensive step in the predicate, and
-// a facet pass needs the answer about thirty times per event. One conversion per occurrence,
-// cached against the feed's own objects, keeps a tap well under a frame's worth of work.
-const occurrenceCache = new WeakMap<object, DateTime[]>()
-
-const localOccurrences = (event: FacetEvent): DateTime[] => {
-  const cached = occurrenceCache.get(event)
-
-  if (cached) return cached
-
-  const zone = eventTimeZone(event)
-  const local = (event.schedule?.upcomingDates ?? []).map((date) =>
-    DateTime.fromJSDate(date, { zone }),
-  )
-
-  occurrenceCache.set(event, local)
-
-  return local
-}
-
-const NO_REGION_OR_TIME = {
-  daysOfWeek: [],
-  timeOfDay: [],
-  dateRange: { start: null, end: null },
-  region: null,
-}
-
-/** The same answer as `matchesFilters`, over the cached occurrences. */
-const passes = (event: FacetEvent, filters: EventFilters, today: string): boolean => {
-  if (!matchesFilters(event, { ...filters, ...NO_REGION_OR_TIME }, today)) return false
-
-  const occurrenceBound =
-    filters.daysOfWeek.length > 0 ||
-    isTimeRestricted(filters.timeOfDay) ||
-    isDateRestricted(filters.dateRange)
-
-  if (!occurrenceBound) return true
-
-  const floor = dateFloor(filters, today)
-
-  return localOccurrences(event).some((local) => occurrenceMatchesFilters(local, filters, floor))
-}
-
 /** Counts every option of every group against `filters`. */
 export const facetCounts = (
-  events: readonly FacetEvent[],
+  events: readonly FilterableEvent[],
   filters: EventFilters,
   today: string = todayISO(),
 ): FacetCounts => {
   const count = (next: Partial<EventFilters>) => {
-    const candidate = { ...filters, ...next }
+    const candidate = { ...filters, ...next, region: null }
 
-    return events.reduce((sum, event) => (passes(event, candidate, today) ? sum + 1 : sum), 0)
+    return events.reduce(
+      (sum, event) => (matchesFilters(event, candidate, today) ? sum + 1 : sum),
+      0,
+    )
   }
 
-  const codes = new Set<string>()
-
-  events.forEach((event) => event.languages.forEach((code) => codes.add(code)))
+  const codes = new Set(events.flatMap((event) => event.languages))
 
   return {
     total: count({}),
@@ -113,7 +60,7 @@ export const facetCounts = (
       TIME_PERIODS.map((period) => [period, count({ timeOfDay: [period] })]),
     ) as FacetCounts['time'],
     cadence: Object.fromEntries(
-      CADENCES.map((cadence) => [cadence, count({ cadence })]),
+      EVENT_CADENCES.map((cadence) => [cadence, count({ cadence })]),
     ) as FacetCounts['cadence'],
     languages: [...codes]
       .map((code) => ({ code, count: count({ languages: [code] }) }))
@@ -126,7 +73,6 @@ export type FacetRelevance = {
   days: boolean
   time: boolean
   cadence: boolean
-  languages: boolean
 }
 
 /**
@@ -145,15 +91,21 @@ export const facetRelevance = (scope: FacetCounts): FacetRelevance => {
     days: narrows(Object.values(scope.days)),
     time: narrows(Object.values(scope.time)),
     cadence: narrows(Object.values(scope.cadence)),
-    languages: narrows(scope.languages.map((language) => language.count)),
   }
 }
 
-/** The scope's own relevance, with nothing filtered. */
-export const scopeRelevance = (events: readonly FacetEvent[], today?: string): FacetRelevance =>
-  facetRelevance(facetCounts(events, DEFAULT_FILTERS, today))
+/** The live counts behind the filter form, and the scope's own relevance. */
+export type FilterFacets = {
+  counts: FacetCounts
+  relevance: FacetRelevance
+}
 
-export type ShownGroups = Pick<FacetRelevance, 'format' | 'days' | 'time' | 'languages'>
+/** The scope's own counts and relevance, with nothing filtered. */
+export const scopeFacets = (events: readonly FilterableEvent[], today?: string): FilterFacets => {
+  const counts = facetCounts(events, DEFAULT_FILTERS, today)
+
+  return { counts, relevance: facetRelevance(counts) }
+}
 
 /**
  * Which questions the filter form asks: a group that could narrow this scope, or one already
@@ -162,12 +114,10 @@ export type ShownGroups = Pick<FacetRelevance, 'format' | 'days' | 'time' | 'lan
  * Language shows wherever the scope's classes have a language, even only one, because then it
  * says which language the classes are in.
  */
-export const shownGroups = (
-  filters: EventFilters,
-  facets: { counts: FacetCounts; relevance: FacetRelevance } | undefined,
-): ShownGroups => ({
+export const shownGroups = (filters: EventFilters, facets: FilterFacets | undefined) => ({
   format: filters.format !== 'any' || (facets?.relevance.format ?? true),
   days: filters.daysOfWeek.length > 0 || (facets?.relevance.days ?? true),
   time: filters.timeOfDay.length > 0 || (facets?.relevance.time ?? true),
+  cadence: filters.cadence !== 'any' || (facets?.relevance.cadence ?? true),
   languages: filters.languages.length > 0 || (facets?.counts.languages.length ?? 0) > 0,
 })

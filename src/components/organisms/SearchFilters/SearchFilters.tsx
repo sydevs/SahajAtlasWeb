@@ -1,5 +1,4 @@
 import type { TranslationKey } from '@/types/i18next'
-import type { FilterFacets } from '@/hooks/use-filter-facets'
 
 import { type ReactNode, useMemo } from 'react'
 import { Info } from 'luxon'
@@ -16,9 +15,11 @@ import { type FieldControlProps, FormField } from '@/components/molecules/FormFi
 import { useLocale } from '@/hooks/use-locale'
 import { formatTimePeriods } from '@/lib'
 import {
+  EVENT_CADENCES,
   type EventCadence,
   type EventFilters,
   type EventFormat,
+  type FilterFacets,
   type TimePeriod,
   TIME_PERIODS,
   dateWindow,
@@ -30,25 +31,11 @@ import {
 // How many languages still read better as one tap each than as a dropdown.
 const INLINE_LANGUAGES = 4
 
-// The Format and Frequency toggle options, in display order. The i18n leaf
-// key for each is just the lowercased value (`recurrenceType` is
-// upper-case on the wire), so no lookup map is needed.
-//
-// The Format and Frequency toggles omit the "any" option. A single-select
-// toggle can be left unselected, meaning any, and the field's "Clear"
-// resets it. So the toggle only shows the real choices.
-//
-// ⚠ Clicking the SELECTED option clears it. That needs the `|| 'any'` in
-// the two `onValueChange`s below. Radix's single-select already fires
-// `onValueChange('')` on deselect (`onItemDeactivate`), so the capability
-// was always there. A `next && patch(…)` truthiness guard silently
-// swallowed it. That left these two dimensions the only filters a user
-// could set but not un-set from the control itself, the opposite of what
-// the paragraph above says they do. `'any'` is the sentinel the URL codec
-// omits, so a cleared group round-trips as an absent parameter and
-// matches no ToggleGroupItem, which is what renders the group unselected.
+// The single-select questions offer no "any": nothing selected means any.
+// ⚠ Pressing the SELECTED option clears it: Radix fires `onValueChange('')` on deselect, and the
+// `|| 'any'` below maps that to the sentinel the URL codec omits. A truthiness guard once
+// swallowed it, leaving these questions settable but not unsettable from the control itself.
 const FORMAT_OPTIONS: Exclude<EventFormat, 'any'>[] = ['offline', 'online']
-const CADENCE_OPTIONS: Exclude<EventCadence, 'any'>[] = ['DAILY', 'WEEKLY', 'MONTHLY', 'once']
 
 /** A quiet live count beside an option. It takes the option's colour once selected. */
 function OptionCount({ count }: { count: number | undefined }) {
@@ -58,6 +45,53 @@ function OptionCount({ count }: { count: number | undefined }) {
     <span className="text-xs font-normal text-gray-11 tabular-nums in-data-[state=on]:text-inherit">
       {count}
     </span>
+  )
+}
+
+type Choice = { value: string; label: ReactNode; count?: number; title?: string }
+
+type ChoicesProps = {
+  control: FieldControlProps
+  options: Choice[]
+  className: string
+  itemClassName?: string
+  /** Counts still disable an empty option, but are not printed (the week strip has no room). */
+  hideCounts?: boolean
+} & (
+  | { type: 'single'; value: string; onValueChange: (value: string) => void }
+  | { type: 'multiple'; value: string[]; onValueChange: (value: string[]) => void }
+)
+
+/**
+ * One question's options, each with its live count. An option that would leave no classes is
+ * disabled, unless it is already chosen, so it can always be undone.
+ */
+function Choices({
+  control,
+  options,
+  className,
+  itemClassName,
+  hideCounts,
+  ...selection
+}: ChoicesProps) {
+  const chosen = (value: string) =>
+    selection.type === 'single' ? selection.value === value : selection.value.includes(value)
+
+  return (
+    <ToggleGroup {...control} {...selection} className={className} size="md">
+      {options.map((option) => (
+        <ToggleGroupItem
+          key={option.value}
+          className={itemClassName}
+          disabled={option.count === 0 && !chosen(option.value)}
+          title={option.title}
+          value={option.value}
+        >
+          {option.label}
+          {!hideCounts && <OptionCount count={option.count} />}
+        </ToggleGroupItem>
+      ))}
+    </ToggleGroup>
   )
 }
 
@@ -98,7 +132,6 @@ const clampDate = (value: string, min: string, max: string): string => {
   return value
 }
 
-// One labelled date bound, From or To: a native date input scoped to the picker window.
 function DateBound({
   label,
   value,
@@ -143,7 +176,8 @@ type ControlProps = {
 
 /**
  * Languages: one tap each when there are few, a dropdown when there are many. The options are
- * the languages classes in this scope actually use, most-used first.
+ * the languages classes in this scope use, most-used first, plus any already chosen that this
+ * scope lacks, so every answer can still be undone.
  */
 function LanguageFilter({
   value,
@@ -153,31 +187,30 @@ function LanguageFilter({
 }: ControlProps & { control: FieldControlProps }) {
   const { t } = useTranslation()
   const { languageLabel } = useLocale()
-  const options = facets?.counts.languages ?? []
   const { languages } = value
+  const inScope = facets?.counts.languages ?? []
+  const options = [
+    ...inScope,
+    ...languages
+      .filter((code) => !inScope.some((option) => option.code === code))
+      .map((code) => ({ code, count: 0 })),
+  ]
 
   if (options.length <= INLINE_LANGUAGES) {
     return (
-      <ToggleGroup
-        {...control}
+      <Choices
         className="grid grid-cols-2"
-        size="md"
+        control={control}
+        itemClassName="justify-between gap-2 px-3"
+        options={options.map((option) => ({
+          value: option.code,
+          label: <span className="truncate">{languageLabel(option.code)}</span>,
+          count: option.count,
+        }))}
         type="multiple"
         value={languages}
         onValueChange={(next) => patch({ languages: next })}
-      >
-        {options.map((option) => (
-          <ToggleGroupItem
-            key={option.code}
-            className="justify-between gap-2 px-3"
-            disabled={option.count === 0 && !languages.includes(option.code)}
-            value={option.code}
-          >
-            <span className="truncate">{languageLabel(option.code)}</span>
-            <OptionCount count={option.count} />
-          </ToggleGroupItem>
-        ))}
-      </ToggleGroup>
+      />
     )
   }
 
@@ -229,8 +262,6 @@ function MoreFilters({ value, patch, facets }: ControlProps) {
   // The date picker is bounded to today through today plus 12 months, the window the URL codec
   // clamps to.
   const { min: dateMin, max: dateMax } = dateWindow()
-  const counts = facets?.counts.cadence
-  const showCadence = cadence !== 'any' || (facets?.relevance.cadence ?? true)
 
   return (
     <Disclosure
@@ -238,7 +269,7 @@ function MoreFilters({ value, patch, facets }: ControlProps) {
       title={t('filters.more.label')}
     >
       <div className="flex flex-col gap-5">
-        {showCadence && (
+        {shownGroups(value, facets).cadence && (
           <Question
             active={cadence !== 'any'}
             label={t('filters.cadence.label')}
@@ -246,26 +277,19 @@ function MoreFilters({ value, patch, facets }: ControlProps) {
             onClear={() => patch({ cadence: 'any' })}
           >
             {(control) => (
-              <ToggleGroup
-                {...control}
+              <Choices
                 className="grid grid-cols-2"
-                size="md"
+                control={control}
+                itemClassName="gap-1.5"
+                options={EVENT_CADENCES.map((option) => ({
+                  value: option,
+                  label: t(`filters.cadence.${option.toLowerCase()}` as TranslationKey),
+                  count: facets?.counts.cadence[option],
+                }))}
                 type="single"
                 value={cadence}
                 onValueChange={(next) => patch({ cadence: (next || 'any') as EventCadence })}
-              >
-                {CADENCE_OPTIONS.map((option) => (
-                  <ToggleGroupItem
-                    key={option}
-                    className="gap-1.5"
-                    disabled={counts?.[option] === 0 && cadence !== option}
-                    value={option}
-                  >
-                    {t(`filters.cadence.${option.toLowerCase()}` as TranslationKey)}
-                    <OptionCount count={counts?.[option]} />
-                  </ToggleGroupItem>
-                ))}
-              </ToggleGroup>
+              />
             )}
           </Question>
         )}
@@ -319,7 +343,7 @@ export type SearchFiltersProps = {
  * it on demand. Each question is a `FormField` fieldset over a `size="md"` `ToggleGroup`.
  *
  * A question that cannot change the results in this scope is not asked, unless it is already
- * answered (`shownGroups`). An option that would leave no classes is disabled unless selected.
+ * answered (`shownGroups`).
  */
 export function SearchFilters({ value, onChange, where, facets }: SearchFiltersProps) {
   const { t } = useTranslation()
@@ -328,11 +352,9 @@ export function SearchFilters({ value, onChange, where, facets }: SearchFiltersP
   const shown = shownGroups(value, facets)
   const counts = facets?.counts
 
-  // Patch one or more fields of the current draft.
   const patch = (next: Partial<EventFilters>) => onChange({ ...value, ...next })
 
-  // Mon-first weekday pills. luxon's `Info.weekdays` is 1 (Mon) through 7 (Sun), matching the
-  // store's day encoding. The full name is the hover title.
+  // Mon-first: luxon's `Info.weekdays` is 1 (Mon) through 7 (Sun), the store's day encoding.
   const weekdays = useMemo(() => {
     const short = Info.weekdays('short', { locale })
     const long = Info.weekdays('long', { locale })
@@ -352,26 +374,19 @@ export function SearchFilters({ value, onChange, where, facets }: SearchFiltersP
           onClear={() => patch({ format: 'any' })}
         >
           {(control) => (
-            <ToggleGroup
-              {...control}
+            <Choices
               className="grid grid-cols-2"
-              size="md"
+              control={control}
+              itemClassName="gap-1.5"
+              options={FORMAT_OPTIONS.map((option) => ({
+                value: option,
+                label: t(`filters.format.${option}`),
+                count: counts?.format[option],
+              }))}
               type="single"
               value={format}
               onValueChange={(next) => patch({ format: (next || 'any') as EventFormat })}
-            >
-              {FORMAT_OPTIONS.map((option) => (
-                <ToggleGroupItem
-                  key={option}
-                  className="gap-1.5"
-                  disabled={counts?.format[option] === 0 && format !== option}
-                  value={option}
-                >
-                  {t(`filters.format.${option}`)}
-                  <OptionCount count={counts?.format[option]} />
-                </ToggleGroupItem>
-              ))}
-            </ToggleGroup>
+            />
           )}
         </Question>
       )}
@@ -384,30 +399,24 @@ export function SearchFilters({ value, onChange, where, facets }: SearchFiltersP
           onClear={() => patch({ daysOfWeek: [] })}
         >
           {(control) => (
-            <ToggleGroup
-              {...control}
+            // The abbreviation is the accessible name, not the full day: a name a viewer cannot
+            // see is one a speech-input viewer cannot say (WCAG 2.5.3). `title` keeps the full
+            // name within reach of a pointer.
+            <Choices
+              hideCounts
               className="grid grid-cols-7"
-              size="md"
+              control={control}
+              itemClassName="min-w-0 px-0"
+              options={weekdays.map((day) => ({
+                value: String(day.value),
+                label: day.label,
+                count: counts?.days[day.value],
+                title: day.full,
+              }))}
               type="multiple"
               value={daysOfWeek.map(String)}
               onValueChange={(next) => patch({ daysOfWeek: next.map(Number) })}
-            >
-              {/* The abbreviation is the accessible name, not the full day. A name a viewer
-                  cannot see is a name a speech-input viewer cannot say (WCAG 2.5.3), and the
-                  legend already says these are days. `title` keeps the full name within reach
-                  of a pointer. */}
-              {weekdays.map((day) => (
-                <ToggleGroupItem
-                  key={day.value}
-                  className="min-w-0 px-0"
-                  disabled={counts?.days[day.value] === 0 && !daysOfWeek.includes(day.value)}
-                  title={day.full}
-                  value={String(day.value)}
-                >
-                  {day.label}
-                </ToggleGroupItem>
-              ))}
-            </ToggleGroup>
+            />
           )}
         </Question>
       )}
@@ -421,28 +430,20 @@ export function SearchFilters({ value, onChange, where, facets }: SearchFiltersP
         >
           {(control) => (
             <div className="flex flex-col gap-2">
-              <ToggleGroup
-                {...control}
+              <Choices
                 className="grid grid-cols-2"
-                size="md"
+                control={control}
+                itemClassName="justify-between gap-2 px-3"
+                options={TIME_PERIODS.map((period) => ({
+                  value: period,
+                  label: t(`filters.time.${period}`),
+                  count: counts?.time[period],
+                }))}
                 type="multiple"
                 value={timeOfDay}
                 onValueChange={(next) => patch({ timeOfDay: next as TimePeriod[] })}
-              >
-                {TIME_PERIODS.map((period) => (
-                  <ToggleGroupItem
-                    key={period}
-                    className="justify-between gap-2 px-3"
-                    disabled={counts?.time[period] === 0 && !timeOfDay.includes(period)}
-                    value={period}
-                  >
-                    {t(`filters.time.${period}`)}
-                    <OptionCount count={counts?.time[period]} />
-                  </ToggleGroupItem>
-                ))}
-              </ToggleGroup>
-              {/* The times the selection covers. This is the same string the active-filter pill
-                  shows, hidden when nothing is selected. */}
+              />
+              {/* The same times the active-filter pill shows. */}
               {timeOfDay.length > 0 && (
                 <p className="text-xs text-gray-11">{formatTimePeriods(locale, timeOfDay)}</p>
               )}

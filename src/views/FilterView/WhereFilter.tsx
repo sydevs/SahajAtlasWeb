@@ -2,14 +2,15 @@ import { useRef } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
 import { useSearchParams } from 'react-router'
-import { LocateFixed, X } from 'lucide-react'
+import { LocateFixed } from 'lucide-react'
 
 import { Button } from '@/components/atoms/Button'
+import { Chip } from '@/components/atoms/Chip'
 import { FormField } from '@/components/molecules/FormField'
 import { regionsQuery } from '@/config/api'
 import { useWidgetMode } from '@/config/mode'
 import { useNearMe, useNearVisitor } from '@/hooks/use-near-me'
-import { type PlaceSearch, parseCenter } from '@/lib/shape'
+import { type PlaceSearch, parseCenter, searchedPlaceName } from '@/lib/shape'
 import { useDrawerControl } from '@/views/shared'
 
 export type WhereFilterProps = {
@@ -20,14 +21,14 @@ export type WhereFilterProps = {
   /** Back to everywhere: drops the place and the region. */
   onClear: () => void
   /** Near me only makes sense where the results rank by place. */
-  searchable?: boolean
+  searchable: boolean
 }
 
 /**
  * The Where group: Near me, and the place in scope as a removable tag. There is no town field:
  * the list's own search box is the one place to type a town.
  */
-export function WhereFilter({ region, onPlace, onClear, searchable = true }: WhereFilterProps) {
+export function WhereFilter({ region, onPlace, onClear, searchable }: WhereFilterProps) {
   const { t } = useTranslation()
   const [searchParams] = useSearchParams()
   const { hasMap } = useWidgetMode()
@@ -39,7 +40,7 @@ export function WhereFilter({ region, onPlace, onClear, searchable = true }: Whe
   const section = useRef<HTMLDivElement>(null)
 
   const regionName = region ? (regions?.find((node) => node.slug === region)?.name ?? region) : null
-  const placeName = center && !nearMeOn ? searchParams.get('q') : null
+  const placeName = center && !nearMeOn ? searchedPlaceName(searchParams.get('q')) : null
   const scopeLabel = placeName || regionName
 
   // The calendar's filters have no place to search and, unscoped, nothing in scope to show: a
@@ -86,6 +87,7 @@ export function WhereFilter({ region, onPlace, onClear, searchable = true }: Whe
         <div className="contents" role="status">
           {status === 'failed' && (
             <button
+              data-vaul-no-drag
               className="touch-target relative self-start text-start text-sm text-primary-11 focus-ring hover:underline"
               type="button"
               onClick={searchInstead}
@@ -95,17 +97,16 @@ export function WhereFilter({ region, onPlace, onClear, searchable = true }: Whe
           )}
         </div>
         {scopeLabel && (
-          <div>
-            <button
-              aria-label={t('filters.a11y.remove', { label: scopeLabel })}
-              className="touch-target relative inline-flex h-8 max-w-full items-center gap-1.5 rounded-full bg-gray-3 ps-3 pe-2 text-sm font-medium text-foreground focus-ring hover:bg-gray-4"
-              type="button"
-              onClick={onClear}
-            >
-              <span className="truncate">{scopeLabel}</span>
-              <X aria-hidden className="shrink-0 text-gray-11" size={16} />
-            </button>
-          </div>
+          // The same removable pill the applied filters show above the list.
+          <Chip
+            className="self-start"
+            closeLabel={t('filters.a11y.remove', { label: scopeLabel })}
+            color="neutral"
+            radius="full"
+            onClose={onClear}
+          >
+            {scopeLabel}
+          </Chip>
         )}
       </div>
     </FormField>

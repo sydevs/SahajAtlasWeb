@@ -8,7 +8,7 @@ import { StoryWrapper, StorySection } from '../../ladle'
 import { SearchFilters } from './SearchFilters'
 
 import { mockEventSlimList } from '@/mocks/events'
-import { DEFAULT_FILTERS, facetCounts, facetRelevance } from '@/lib/shape'
+import { DEFAULT_FILTERS, facetCounts, scopeFacets } from '@/lib/shape'
 
 export default {
   title: 'Organisms',
@@ -36,7 +36,7 @@ const mockGeojson: Geojson = {
 }
 
 const scope = mockGeojson.features.map((feature) => feature.properties)
-const relevance = facetRelevance(facetCounts(scope, DEFAULT_FILTERS))
+const { relevance } = scopeFacets(scope)
 
 /** SearchFilters — the event-filters form, as rendered inside the FilterView drawer. */
 export const Default: Story = () => {

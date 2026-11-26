@@ -6,7 +6,7 @@ import { useLocation, useNavigate, useSearchParams } from 'react-router'
 import { useAtlasNavigate } from '@/hooks/use-atlas-navigate'
 import { useLocale } from '@/hooks/use-locale'
 import { geocodeCountryCode, reverseGeocode } from '@/lib/geocode'
-import { nearbyBounds } from '@/lib/geolocation'
+import { coarsePoint, nearbyBounds } from '@/lib/geolocation'
 import { placeSearchPath } from '@/lib/shape'
 
 /**
@@ -59,24 +59,13 @@ export function useGeolocateToSearch(geojson: Geojson | undefined) {
 
   return useCallback((position: GeolocationPosition) => {
     const { navigate: go, searchParams: params, geojson: feed, locale: lang } = live.current
-    // This rounds to about 110m BEFORE anything serializes it.
-    // So the visitor's doorstep never reaches a URL they might copy, or their host page's analytics.
-    // This costs nothing the feature can see.
-    // The frame is a neighborhood, `NEARBY_RADIUS_KM` is 25km, and the list ranks over hundreds of km.
-    // Both are orders of magnitude coarser than this rounding.
-    //
-    // This is the same judgement `reverseGeocode` below already makes, by asking for `place` rather than a street address.
-    // This is the coordinate half of that judgement.
-    // The first version left it at full float precision, while the label beside it was being deliberately coarsened.
+    // Rounded before anything serializes it (`coarsePoint`). This is the coordinate half of the
+    // judgement `reverseGeocode` below makes by asking for `place` rather than a street address.
     //
     // This rounding lives here, not in `placeSearchPath`.
     // The other two callers pass a typed geocode or an IP guess, both already public and coarse.
     // Blurring those would only cost accuracy.
-    const round = (n: number) => Math.round(n * 1e3) / 1e3
-    const point: [number, number] = [
-      round(position.coords.longitude),
-      round(position.coords.latitude),
-    ]
+    const point = coarsePoint(position.coords)
     const place = { center: point, bbox: nearbyBounds(point, feed) }
 
     // This navigates FIRST, on the coordinates alone.

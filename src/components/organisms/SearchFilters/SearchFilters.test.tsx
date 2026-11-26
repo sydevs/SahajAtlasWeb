@@ -5,46 +5,20 @@ import { SearchFilters } from './SearchFilters'
 
 import { DEFAULT_FILTERS } from '@/lib/shape'
 
-// Node-only SSR assertions (see `docs/testing.md`). The form is fully
-// controlled and store-free. So the only things it reaches for are copy,
-// the locale, and the two cached reads it derives its option lists from.
-// All are mocked at the boundary.
+// Node-only SSR assertions (see `docs/testing.md`). The form is fully controlled and store-free,
+// so the only things it reaches for are copy and the locale, both mocked at the boundary.
 vi.mock('react-i18next', () => ({
   useTranslation: () => ({ t: (key: string) => key }),
 }))
 vi.mock('@/hooks/use-locale', () => ({
   useLocale: () => ({ locale: 'en', languageLabel: (code: string) => code }),
 }))
-// This is partial. `config/query-client` constructs a real QueryClient
-// on import, so only the hook is replaced. With no feed cached, the form
-// still renders every group. The geojson read only supplies the Language
-// dropdown's options.
-vi.mock('@tanstack/react-query', async (importOriginal) => ({
-  ...(await importOriginal<typeof import('@tanstack/react-query')>()),
-  useQuery: () => ({ data: undefined }),
-}))
-// Mocked so the import chain never reaches `config/i18n`, which boots i18next on import.
-vi.mock('@/config/api', () => ({
-  geojsonQuery: () => ({ queryKey: ['geojson'] }),
-  regionsQuery: () => ({ queryKey: ['regions'] }),
-}))
 
 const render = (filters = DEFAULT_FILTERS) =>
   renderToStaticMarkup(<SearchFilters value={filters} onChange={() => {}} />)
 
-// Every group's "Clear" link is HIDDEN, not unmounted, so appearing and
-// disappearing cannot change its row's height.
-//
-// The row is `items-baseline`, and the two children have different line
-// boxes: the label is `text-sm` (19.5px), Clear is `text-xs` (about
-// 20px). So mounting the button on selection grew the row and pushed
-// every section below it down the page. Reserving the space is what
-// makes that impossible. Tuning the line-height only made the two
-// numbers closer.
-//
-// The invariant is the COUNT, not the class. As long as the same number
-// of buttons occupy the flex layout in both states, no amount of later
-// restyling can reintroduce the jump.
+// Each question's Clear is hidden, never unmounted, while the question is unanswered, so its
+// appearing cannot move the form. The invariant is the COUNT, whatever the styling.
 describe('SearchFilters — the per-group Clear reserves its space', () => {
   const clearButtons = (html: string) =>
     html.match(/<button[^>]*>filters\.chrome\.clear_one<\/button>/g) ?? []
@@ -91,8 +65,11 @@ describe('SearchFilters — the questions this scope can answer', () => {
       cadence: { DAILY: 0, WEEKLY: 3, MONTHLY: 0, once: 0 },
       languages: [{ code: 'cs', count: 3 }],
     },
-    relevance: { format: false, days: true, time: false, cadence: false, languages: false },
+    relevance: { format: false, days: true, time: false, cadence: false },
   }
+  // The attribute, not the class list, which names `disabled:` variants on every item.
+  const disabledOption = (markup: string, inner: string) =>
+    / disabled=""/.test(markup.match(new RegExp(`<button([^>]*)>${inner}`))?.[1] ?? '')
   const withFacets = (filters = DEFAULT_FILTERS) =>
     renderToStaticMarkup(<SearchFilters facets={facets} value={filters} onChange={() => {}} />)
 
@@ -107,17 +84,37 @@ describe('SearchFilters — the questions this scope can answer', () => {
 
   it('keeps an answered question, and disables an option that leaves nothing unless chosen', () => {
     const html = withFacets({ ...DEFAULT_FILTERS, format: 'online' })
-    // The attribute, not the class list, which names `disabled:` variants on every item.
-    const disabled = (markup: string, inner: string) =>
-      / disabled=""/.test(markup.match(new RegExp(`<button([^>]*)>${inner}`))?.[1] ?? '')
 
     expect(html).toContain('filters.format.question')
-    expect(disabled(html, 'filters.format.online')).toBe(false)
+    expect(disabledOption(html, 'filters.format.online')).toBe(false)
     expect(
-      disabled(withFacets({ ...DEFAULT_FILTERS, format: 'offline' }), 'filters.format.online'),
+      disabledOption(
+        withFacets({ ...DEFAULT_FILTERS, format: 'offline' }),
+        'filters.format.online',
+      ),
     ).toBe(true)
-    expect(disabled(withFacets(), 'Tue')).toBe(true)
-    expect(disabled(withFacets(), 'Mon')).toBe(false)
+    expect(disabledOption(withFacets(), 'Tue')).toBe(true)
+    expect(disabledOption(withFacets(), 'Mon')).toBe(false)
+  })
+
+  it('keeps a chosen language this place lacks, so it can still be undone', () => {
+    const html = withFacets({ ...DEFAULT_FILTERS, languages: ['fr'] })
+
+    expect(html).toMatch(/fr<\/span><span[^>]*>0<\/span>/)
+    expect(disabledOption(html, '<span class="truncate">fr')).toBe(false)
+  })
+
+  it('folds many languages into a dropdown', () => {
+    const many = ['cs', 'de', 'en', 'fr', 'ru'].map((code) => ({ code, count: 1 }))
+    const html = renderToStaticMarkup(
+      <SearchFilters
+        facets={{ ...facets, counts: { ...facets.counts, languages: many } }}
+        value={DEFAULT_FILTERS}
+        onChange={() => {}}
+      />,
+    )
+
+    expect(html).toContain('filters.language.all')
   })
 
   it('opens More filters by itself when Frequency or Dates is set', () => {

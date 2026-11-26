@@ -206,6 +206,7 @@ export function FormField({
           small text control whose invisible 44px tap area (#432) reaches down toward the
           control, which would otherwise take those taps. */}
       <button
+        data-vaul-no-drag
         className={clsx(
           'touch-target absolute end-0 top-0 text-xs font-medium text-primary-11 focus-ring hover:underline',
           !clear.active && 'invisible',

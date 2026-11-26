@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import { facetCounts, scopeRelevance, shownGroups } from './facets'
+import { facetCounts, scopeFacets, shownGroups } from './facets'
 import { DEFAULT_FILTERS, matchesFilters } from './filters'
 
 // Tuesday 2026-11-10 19:00 and Saturday 2026-11-14 10:00, London.
@@ -56,38 +56,32 @@ describe('facetCounts', () => {
   })
 })
 
-describe('scopeRelevance', () => {
+describe('facetRelevance', () => {
   it('drops a group where no option could narrow the results', () => {
-    const relevance = scopeRelevance([event({}), event({})], today)
-
-    expect(relevance).toEqual({
+    expect(scopeFacets([event({}), event({})], today).relevance).toEqual({
       format: false,
       days: false,
       time: false,
       cadence: false,
-      languages: false,
     })
   })
 
   it('keeps a group where an option leaves some classes but not all', () => {
-    const relevance = scopeRelevance(feed, today)
+    const { relevance } = scopeFacets(feed, today)
 
     expect(relevance.format).toBe(true)
-    expect(relevance.languages).toBe(true)
+    expect(relevance.days).toBe(true)
     expect(relevance.cadence).toBe(false)
   })
 })
 
 describe('shownGroups', () => {
-  const alike = [event({}), event({})]
-  const scope = {
-    counts: facetCounts(alike, DEFAULT_FILTERS, today),
-    relevance: scopeRelevance(alike, today),
-  }
+  const scope = scopeFacets([event({}), event({})], today)
 
   it('drops a group that could not narrow this scope, but keeps one in use', () => {
     expect(shownGroups(DEFAULT_FILTERS, scope)).toMatchObject({ format: false, days: false })
     expect(shownGroups({ ...DEFAULT_FILTERS, format: 'online' }, scope).format).toBe(true)
+    expect(shownGroups({ ...DEFAULT_FILTERS, cadence: 'WEEKLY' }, scope).cadence).toBe(true)
   })
 
   it('keeps Language where every class speaks one, so it says which', () => {
@@ -100,6 +94,7 @@ describe('shownGroups', () => {
       format: true,
       days: true,
       time: true,
+      cadence: true,
       languages: false,
     })
   })
